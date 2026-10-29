@@ -248,6 +248,18 @@ fn a_push_goes_from_the_run_folder_to_the_remote_and_a_protected_base_is_refused
     w.send(&push("develop", false)).unwrap();
     let tip = git(&remote, &["rev-parse", "feat/src/add-x"]);
     assert_eq!(tip, w.folders.run_repo(RUN).unwrap().head_sha().unwrap());
+    // A write that names another branch than the one of the run folder pushes nothing.
+    let other = Write::Push {
+        run: RUN.into(),
+        branch: "feat/src/other".into(),
+        base: "develop".into(),
+        force_with_lease: false,
+    };
+    assert!(
+        w.send(&other)
+            .unwrap_err()
+            .contains("not on `feat/src/other`")
+    );
     // With lease on a branch that moved nowhere: allowed. Pushing the base itself: refused.
     w.send(&push("develop", true)).unwrap();
     assert!(w.send(&push("feat/src/add-x", false)).is_err());

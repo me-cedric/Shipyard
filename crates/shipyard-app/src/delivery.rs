@@ -520,11 +520,19 @@ impl Writer for ProjectWriter {
                 .map_err(e),
             Write::Push {
                 run,
+                branch,
                 base,
                 force_with_lease,
-                ..
             } => {
                 let repo = self.folders.run_repo(run)?;
+                // The approval names this branch: push it and nothing else.
+                let head = repo.status().map_err(e)?.branch;
+                if head.as_deref() != Some(branch.as_str()) {
+                    return Err(format!(
+                        "the run folder is on `{}`, not on `{branch}`: nothing was pushed",
+                        head.unwrap_or_default()
+                    ));
+                }
                 let (remote, url) = repo
                     .remote()
                     .map_err(e)?
