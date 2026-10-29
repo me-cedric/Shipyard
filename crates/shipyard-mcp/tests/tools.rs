@@ -484,12 +484,23 @@ mod merged {
         control.set_enabled(&id, true).unwrap();
         let fake = Arc::new(Fake::default());
         let server = Server::new(fake.clone()).with_proxy(Arc::new(Proxy::new(Arc::new(control))));
+        let mut tools = all();
+        tools.push("custom-fake__ping".into());
         let binding = Binding {
             run: "r".into(),
             step: "s".into(),
-            tools: all(),
+            tools,
         };
         let token = server.sessions().open(binding).unwrap().0;
+        let blocked = server
+            .sessions()
+            .open(Binding {
+                run: "r".into(),
+                step: "plan".into(),
+                tools: all(),
+            })
+            .unwrap()
+            .0;
         let rpc = |method: &str, params: Value| {
             server
                 .handle(
@@ -518,5 +529,43 @@ mod merged {
         );
         let none = rpc("tools/call", json!({"name": "ghost__x", "arguments": {}}));
         assert_eq!(none["result"]["isError"], true);
+        // A step that does not list the proxied tool neither sees it nor calls it.
+        let ask = |method: &str, params: Value| {
+            server
+                .handle(
+                    &blocked,
+                    &json!({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}),
+                )
+                .unwrap()
+        };
+        let list = ask("tools/list", json!({}));
+        assert_eq!(list["result"]["tools"].as_array().unwrap().len(), 8);
+        let call = ask(
+            "tools/call",
+            json!({"name": "custom-fake__ping", "arguments": {}}),
+        );
+        assert_eq!(call["result"]["isError"], true);
+        assert!(
+            call["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("may not call")
+        );
     }
+}
+
+#[test]
+fn revoke_step_ends_only_the_sessions_of_that_step() {
+    let lab = Lab::new();
+    let (a, b) = (
+        lab.token("r1", "build", all()),
+        lab.token("r1", "review", all()),
+    );
+    let req = json!({"jsonrpc": "2.0", "id": 1, "method": "ping"});
+    assert_eq!(lab.server.sessions().revoke_step("r1", "build"), 1);
+    assert_eq!(
+        lab.server.handle(&a, &req).unwrap()["error"]["code"],
+        -32001
+    );
+    assert!(lab.server.handle(&b, &req).unwrap().get("result").is_some());
 }

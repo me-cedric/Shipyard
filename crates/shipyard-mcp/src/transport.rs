@@ -86,8 +86,16 @@ fn handle_http(stream: TcpStream, port: u16, server: &Server) {
     let _ = stream.set_write_timeout(Some(Duration::from_secs(5)));
     let mut reader = BufReader::new(stream);
     let mut first = String::new();
-    if reader.read_line(&mut first).is_err() {
+    // A bounded read: a request line with no end cannot fill the memory.
+    if (&mut reader)
+        .take(MAX_HEADERS as u64)
+        .read_line(&mut first)
+        .is_err()
+    {
         return;
+    }
+    if !first.ends_with('\n') {
+        return reply(reader.get_mut(), "431 Request Header Fields Too Large", "");
     }
     let mut parts = first.split_whitespace();
     let (method, path) = (parts.next().unwrap_or(""), parts.next().unwrap_or(""));
@@ -95,7 +103,8 @@ fn handle_http(stream: TcpStream, port: u16, server: &Server) {
     let mut seen = first.len();
     loop {
         let mut line = String::new();
-        if reader.read_line(&mut line).is_err() {
+        let room = MAX_HEADERS.saturating_sub(seen) as u64 + 1;
+        if (&mut reader).take(room).read_line(&mut line).is_err() {
             return;
         }
         seen += line.len();

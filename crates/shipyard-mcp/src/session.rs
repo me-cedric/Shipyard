@@ -85,4 +85,12 @@ impl Sessions {
         list.retain(|(_, s)| s.binding.run != run);
         before - list.len()
     }
+
+    /// End each session of one step of a run. Call it when the step ends.
+    pub fn revoke_step(&self, run: &str, step: &str) -> usize {
+        let mut list = self.list.lock().unwrap_or_else(|e| e.into_inner());
+        let before = list.len();
+        list.retain(|(_, s)| !(s.binding.run == run && s.binding.step == step));
+        before - list.len()
+    }
 }

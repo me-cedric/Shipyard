@@ -130,7 +130,11 @@ impl Server {
             "tools/list" => {
                 let mut tools = agent::definitions(|n| session.allows(n));
                 if let Some(proxy) = &self.proxy {
-                    tools.extend(proxy.tools());
+                    tools.extend(proxy.tools().into_iter().filter(|t| {
+                        t.get("name")
+                            .and_then(Value::as_str)
+                            .is_some_and(|n| session.allows(n))
+                    }));
                 }
                 json!({ "tools": tools })
             }
@@ -181,6 +185,12 @@ impl Server {
             let Some(proxy) = &self.proxy else {
                 return tool_error(format!("unknown tool: {name}"));
             };
+            if !session.allows(name) {
+                return tool_error(format!(
+                    "the step {} may not call {name}",
+                    session.binding.step
+                ));
+            }
             if let Err(why) = self.admit(session, size) {
                 return tool_error(why);
             }

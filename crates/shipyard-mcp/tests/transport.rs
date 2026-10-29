@@ -269,3 +269,15 @@ fn the_listener_is_on_the_loopback_address_and_stops_on_drop() {
     drop(http_server);
     assert!(TcpStream::connect(("127.0.0.1", port)).is_err());
 }
+
+#[test]
+fn http_refuses_a_request_line_with_no_end() {
+    let (server, _) = setup();
+    let http_server = Http::start(server, 0).unwrap();
+    let mut stream = TcpStream::connect(("127.0.0.1", http_server.port())).unwrap();
+    // 64 KiB with no newline: the server must stop reading at the header limit.
+    let _ = stream.write_all("A".repeat(64 * 1024).as_bytes());
+    let mut raw = String::new();
+    let _ = stream.read_to_string(&mut raw);
+    assert!(raw.starts_with("HTTP/1.1 431"), "{raw:?}");
+}
