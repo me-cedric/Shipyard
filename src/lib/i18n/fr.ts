@@ -8,6 +8,7 @@ import { homeFr } from "./home";
 import { knowledgeFr } from "./knowledge";
 import { settingsFr } from "./settings";
 import { specsFr } from "./specs";
+import { uiFr } from "./ui";
 
 export const fr: Messages = {
 	common: { close: "Fermer", search: "Rechercher", open: "Ouvrir", loading: "Chargement" },
@@ -204,7 +205,6 @@ export const fr: Messages = {
 		remove: "Retirer de la liste",
 		confirmRemove: "Retirer {name} de la liste ? Les fichiers restent sur le disque.",
 		recent: "Projets récents",
-		confirmFile: "Créer .shipyard/project.yaml dans {path} ?",
 		state: {
 			clean: "Propre",
 			changed: "Modifié",
@@ -218,7 +218,23 @@ export const fr: Messages = {
 			invalid: "Valeur invalide : {message}",
 			failed: "{message}",
 		},
-		path: { decisions: "Décisions", questions: "Questions", specs: "Spécifications" },
+		path: {
+			decisions: "Décisions",
+			questions: "Questions",
+			specs: "Spécifications",
+			diagrams: "Diagrammes",
+			models: "Modèles",
+			api: "API",
+			data: "Modèles de données",
+			flows: "Flux",
+			designs: "Maquettes",
+			"test-plans": "Plans de test",
+			handbook: "Guide",
+			documents: "Documents",
+			slides: "Présentations",
+			dashboards: "Tableaux de bord",
+		},
+		trackerScope: "Périmètre du tracker",
 		paths: "Chemins",
 		workflow: "Workflow par défaut",
 		save: "Enregistrer",
@@ -385,6 +401,16 @@ export const fr: Messages = {
 		switch: "Basculer",
 		delete: "Supprimer",
 		confirmDelete: "Supprimer {name}",
+		merge: "Fusionner",
+		mergeBranch: "Fusionner {name}",
+		mergeAbort: "Annuler la fusion",
+		mergeProgress: "Fusion en cours, {count} fichiers en conflit",
+		mergeResult: {
+			"up-to-date": "Déjà à jour",
+			"fast-forwarded": "Avancée directe",
+			merged: "Fusionné",
+			conflicts: "Conflits",
+		},
 		publish: "Publier",
 		fetch: "Récupérer",
 		local: "Locales",
@@ -685,4 +711,5 @@ export const fr: Messages = {
 	factory: factoryFr,
 	settings: settingsFr,
 	specs: specsFr,
+	ui: uiFr,
 };

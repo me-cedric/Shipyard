@@ -40,8 +40,8 @@ export function CommandPalette({
 			}}
 		>
 			<Dialog.Portal>
-				<Dialog.Backdrop className="fixed inset-0 z-40 bg-n-1/60 transition-opacity duration-(--duration-fast) data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
-				<Dialog.Popup className="fixed top-24 left-1/2 z-50 w-[32rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-md border border-n-7 bg-n-2 transition-opacity duration-(--duration-fast) data-[ending-style]:opacity-0 data-[starting-style]:opacity-0">
+				<Dialog.Backdrop className="fixed inset-0 z-40 bg-n-1/60 backdrop-blur-sm transition-opacity duration-(--duration-fast) data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
+				<Dialog.Popup className="fixed top-24 left-1/2 z-50 w-[32rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 overflow-hidden rounded-xl border border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
 					<Dialog.Title className="sr-only">{t.palette.title}</Dialog.Title>
 					<Command shouldFilter={false} label={t.palette.title}>
 						<div className="flex items-center gap-2 border-b px-3">
@@ -75,7 +75,7 @@ export function CommandPalette({
 												setSearch("");
 												onOpenChange(false);
 											}}
-											className="flex h-row cursor-default items-center gap-2 rounded-sm px-2 text-ui text-n-12 data-[selected=true]:bg-n-4"
+											className="flex h-row cursor-default items-center gap-2 rounded-sm px-2 text-ui text-n-12 data-[selected=true]:bg-n-5"
 										>
 											<span aria-hidden="true" className="text-n-10">
 												{item.icon}

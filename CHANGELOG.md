@@ -42,6 +42,8 @@
 - Settings / Me turns each notification source on or off. After an update check finds a newer version, the notification centre shows its changes once. Nothing installs.
 - Every tab passes an automatic accessibility check in light and dark themes, and the slides renderer loads only when Slides opens. The release build ships the `shipyard` command next to the app for the agent bridge.
 - Project menu in the sidebar (an icon button when the sidebar is collapsed) to open a folder, clone, close the project and remove a project from the list without deleting a file, a Close project action in the palette and the native menu, and the recent projects on the first run.
+- New look with depth and motion: a context bar on top with the project menu, the branch, the repository state with Sync, live runs, Needs you, search, assistant, notifications and theme; a floating sidebar with counts and a 56 px rail; tabs with a sliding pill; page headers; and Home with key figures, Inbox cards in panels and an activity timeline. Reduced motion turns every animation off.
+- Legacy repositories open in place: a folder with no project file gets its paths from the Legacy layout, Settings / Project edits every path and the tracker scope, the Legacy project list shows in the first run, flows, costing and team files in Legacy JSON read and save in their own format, and Code merges a branch or aborts a merge.
 
 ## [0.0.1]
 

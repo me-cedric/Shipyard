@@ -11,6 +11,7 @@ import { Inspector } from "@/ui/organisms/inspector";
 import { Toaster } from "@/ui/organisms/toaster";
 import { Shell } from "@/ui/templates/shell";
 import { useActions, useShortcuts } from "./actions";
+import { ContextBar } from "./context-bar";
 import { useNativeMenu, useShellEvents } from "./events";
 import { PaletteHost } from "./palette-host";
 import { RefDetail } from "./ref-detail";
@@ -36,7 +37,7 @@ function Frame() {
 		clearExplain,
 	} = useShell();
 	const { commit: runCommit } = useCodeActions();
-	const { list, sync, commit, assistant } = useActions();
+	const { list, sync, commit, assistant, palette } = useActions();
 	useShortcuts(list);
 	useNativeMenu(list);
 	useShellEvents();
@@ -64,6 +65,7 @@ function Frame() {
 		<>
 			<Shell
 				sidebarOpen={sidebarOpen}
+				contextbar={<ContextBar sync={sync} assistant={assistant} palette={palette} />}
 				sidebar={<Sidebar toggle={toggle} />}
 				main={<Outlet />}
 				assistantSide={chat.side}
@@ -88,7 +90,7 @@ function Frame() {
 						) : null}
 					</Inspector>
 				}
-				statusbar={<StatusBar sync={sync} commit={commit} assistant={assistant} />}
+				statusbar={<StatusBar commit={commit} />}
 			/>
 			<Toaster toasts={toasts} onDismiss={dismiss} />
 			<PaletteHost actions={list} />

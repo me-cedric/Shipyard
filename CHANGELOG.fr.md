@@ -42,6 +42,8 @@
 - Réglages / Moi active ou coupe chaque source de notification. Quand la vérification trouve une version plus récente, le centre de notifications montre ses changements une fois. Rien ne s’installe.
 - Chaque onglet passe un contrôle d’accessibilité automatique en thème clair et sombre, et le moteur des diapositives se charge seulement à l’ouverture de Diapositives. La version de publication livre la commande `shipyard` à côté de l’application pour le pont des agents.
 - Menu de projet dans la barre latérale (un bouton d’icône quand la barre est réduite) pour ouvrir un dossier, cloner, fermer le projet et retirer un projet de la liste sans supprimer de fichier, une action Fermer le projet dans la palette et le menu natif, et les projets récents au premier lancement.
+- Nouvel aspect avec profondeur et mouvement : une barre de contexte en haut avec le menu de projet, la branche, l’état du dépôt avec Synchroniser, les exécutions en cours, À traiter, la recherche, l’assistant, les notifications et le thème ; une barre latérale flottante avec des compteurs et un rail de 56 px ; des onglets avec une pastille qui glisse ; des en-têtes de page ; et un Accueil avec les chiffres clés, les cartes de la boîte de réception dans des panneaux et une chronologie de l’activité. Le mouvement réduit coupe toutes les animations.
+- Les dépôts Legacy s’ouvrent sur place : un dossier sans fichier projet reçoit ses chemins de la structure Legacy, Réglages / Projet modifie chaque chemin et le périmètre du tracker, la liste des projets Legacy apparaît au premier lancement, les fichiers de flux, de chiffrage et d’équipe au format JSON de Legacy se lisent et s’enregistrent dans leur format, et Code fusionne une branche ou annule une fusion.
 
 ## [0.0.1]
 

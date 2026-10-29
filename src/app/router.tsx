@@ -9,7 +9,6 @@ import {
 	type RouterHistory,
 	redirect,
 } from "@tanstack/react-router";
-import { BranchSelector } from "@/features/code";
 import { AppShell, ROLE_HOME, SPACES, type SpaceId, TabsBar, tabPath } from "@/features/shell";
 import { usePrefs } from "@/lib/prefs";
 import { NotFound } from "./not-found";
@@ -33,7 +32,7 @@ const indexRoute = createRoute({
 function SpaceLayout({ space }: { space: SpaceId }) {
 	return (
 		<div className="flex h-full flex-col">
-			<TabsBar space={space} trailing={space === "code" ? <BranchSelector /> : undefined} />
+			<TabsBar space={space} />
 			{/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable) */}
 			<div tabIndex={0} className="flex min-h-0 flex-1 flex-col overflow-auto">
 				<Outlet />

@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MotionConfig } from "motion/react";
 import { type ReactNode, useState } from "react";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { PrefsProvider, usePrefs } from "@/lib/prefs";
@@ -20,7 +21,10 @@ export function Providers({ children }: { children: ReactNode }) {
 			<I18nProvider>
 				<PrefsProvider>
 					<TooltipProvider>
-						<Ready>{children}</Ready>
+						{/* Reduced motion drops every move and layout animation of the motion library. */}
+						<MotionConfig reducedMotion="user">
+							<Ready>{children}</Ready>
+						</MotionConfig>
 					</TooltipProvider>
 				</PrefsProvider>
 			</I18nProvider>

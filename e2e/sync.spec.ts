@@ -53,7 +53,7 @@ test("the sync action in the status bar runs a tick and the connection shows its
 	await expect(row.getByRole("status")).toHaveText("Idle");
 
 	// Keyboard only: focus the action, press Enter.
-	const sync = page.getByRole("contentinfo").getByRole("button", { name: "Sync" });
+	const sync = page.getByRole("banner").getByRole("button", { name: "Sync" });
 	await sync.focus();
 	await page.keyboard.press("Enter");
 	await expect(row.getByRole("status")).toContainText(/Idle\s*\d{1,2}[:.]\d{2}/);
@@ -68,7 +68,7 @@ test("a failed poll shows the failed state and keeps the mirror", async ({ page 
 	await openWithTracker(page, null);
 	await sidebar(page).getByRole("link", { name: "Settings" }).click();
 	await tabs(page).getByRole("link", { name: "Connections" }).click();
-	await page.getByRole("contentinfo").getByRole("button", { name: "Sync" }).click();
+	await page.getByRole("banner").getByRole("button", { name: "Sync" }).click();
 	const row = page.getByRole("group", { name: "Acme" });
 	await expect(row.getByRole("status")).toContainText("Failed");
 	await expect(row.getByRole("status")).toContainText("no secret saved");

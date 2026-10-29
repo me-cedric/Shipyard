@@ -6,11 +6,14 @@ import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useNotifications } from "@/lib/notifications";
 import { useActiveProject } from "@/lib/projects";
-import { ArrowPathIcon } from "@/ui/icons";
+import { Avatar } from "@/ui/atoms/avatar";
+import { StatusDot } from "@/ui/atoms/status-dot";
+import { ArrowPathIcon, ClockIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
-import { GroupSection } from "@/ui/molecules/group-section";
-import { NotificationRow } from "@/ui/molecules/notification-row";
-import { ListDetail } from "@/ui/templates/list-detail";
+import { SHAPE } from "@/ui/molecules/notification-row";
+import { PageHeader } from "@/ui/molecules/page-header";
+import { Panel } from "@/ui/molecules/panel";
+import { Timeline, TimelineItem } from "@/ui/molecules/timeline";
 
 const SHOWN = 20;
 // shortcut: one page of 50 events for each run, so a very long run misses its newest events; upgrade with a log tail command.
@@ -36,46 +39,50 @@ export function Activity() {
 	if (active === undefined) return null;
 	if (active === null) return <NoProject title={t.tabs.home.activity} />;
 	const time = new Intl.DateTimeFormat(lang, { dateStyle: "short", timeStyle: "short" });
+	const refresh = () => void qc.invalidateQueries();
 	return (
-		<ListDetail title={t.tabs.home.activity}>
+		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
+			<PageHeader
+				icon={<ClockIcon size={16} />}
+				title={t.tabs.home.activity}
+				count={events.length + notices.length}
+				menu={[{ label: t.home.refresh, icon: <ArrowPathIcon size={12} />, onClick: refresh }]}
+			/>
 			<PinnedTiles />
 			{events.length === 0 && notices.length === 0 ? (
-				<div className="p-4">
-					<EmptyState
-						action={{
-							label: t.home.refresh,
-							icon: <ArrowPathIcon size={14} />,
-							onClick: () => void qc.invalidateQueries(),
-						}}
-					/>
-				</div>
+				<EmptyState
+					action={{ label: t.home.refresh, icon: <ArrowPathIcon size={14} />, onClick: refresh }}
+				/>
 			) : (
-				<>
-					<GroupSection name={t.factory.log} count={events.length}>
-						{events.map((e) => (
-							<NotificationRow
-								key={`${e.run}:${e.id}`}
-								kind="info"
-								kindLabel={t.notifications.kind.info}
-								title={`${e.key} ${e.step ? `${e.step} ` : ""}${e.kind}`}
-								time={e.ts === null ? "" : time.format(e.ts)}
-							/>
-						))}
-					</GroupSection>
-					<GroupSection name={t.notifications.title} count={notices.length}>
-						{notices.map((n) => (
-							<NotificationRow
-								key={n.id}
-								kind={n.kind}
-								kindLabel={t.notifications.kind[n.kind]}
-								title={n.title}
-								body={n.body}
-								time={time.format(n.time)}
-							/>
-						))}
-					</GroupSection>
-				</>
+				<div className="grid items-start gap-4 px-4 xl:grid-cols-2">
+					<Panel title={t.factory.log} count={events.length} flush>
+						<Timeline>
+							{events.map((e) => (
+								<TimelineItem
+									key={`${e.run}:${e.id}`}
+									// The step is the agent at work: its avatar leads the event.
+									lead={<Avatar name={e.step ?? e.key} className="size-6" />}
+									title={`${e.key} ${e.step ? `${e.step} ` : ""}${e.kind}`}
+									time={e.ts === null ? "" : time.format(e.ts)}
+								/>
+							))}
+						</Timeline>
+					</Panel>
+					<Panel title={t.notifications.title} count={notices.length} flush>
+						<Timeline>
+							{notices.map((n) => (
+								<TimelineItem
+									key={n.id}
+									lead={<StatusDot status={SHAPE[n.kind]} label={t.notifications.kind[n.kind]} />}
+									title={n.title}
+									body={n.body}
+									time={time.format(n.time)}
+								/>
+							))}
+						</Timeline>
+					</Panel>
+				</div>
 			)}
-		</ListDetail>
+		</div>
 	);
 }

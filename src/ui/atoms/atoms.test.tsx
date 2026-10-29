@@ -234,11 +234,13 @@ describe("atoms (REQ-004, REQ-014)", () => {
 		expect(el.className).not.toMatch(/animate-/);
 	});
 
-	it("no atom removes the focus ring or uses a shadow", () => {
+	it("no atom removes the focus ring or uses a shadow outside the elevation tokens", () => {
 		expect(Object.keys(atomFiles).length).toBeGreaterThanOrEqual(12);
 		for (const [path, text] of Object.entries(atomFiles)) {
 			if (path.endsWith(".test.tsx")) continue;
-			expect(text, path).not.toMatch(/outline-none|outline-0|focus:outline|\bshadow/);
+			expect(text, path).not.toMatch(
+				/outline-none|outline-0|focus:outline|(?<!transition-)\bshadow(?!-(?:1|2|3|glow)\b)/,
+			);
 		}
 	});
 });

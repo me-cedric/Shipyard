@@ -16,11 +16,18 @@ describe("templates (REQ-006)", () => {
 		expect(screen.getByText("Slot")).toBeInTheDocument();
 	});
 
-	it("Shell uses a 48 px or a 220 px sidebar", () => {
+	it("Shell shows the context bar on top as the banner", () => {
+		renderApp(<Shell contextbar={<button type="button">Sync</button>} sidebar="s" main="m" />);
+		expect(screen.getByRole("banner")).toContainElement(
+			screen.getByRole("button", { name: "Sync" }),
+		);
+	});
+
+	it("Shell uses a 56 px rail or a 220 px sidebar", () => {
 		const { unmount } = renderApp(<Shell sidebar="s" main="m" sidebarOpen />);
 		const nav = screen.getByRole("navigation", { name: "Sidebar" });
 		expect(nav.className).toContain("data-[open=true]:w-55");
-		expect(nav.className).toContain("data-[open=false]:w-12");
+		expect(nav.className).toContain("data-[open=false]:w-14");
 		expect(nav).toHaveAttribute("data-open", "true");
 		unmount();
 		renderApp(<Shell sidebar="s" main="m" sidebarOpen={false} />);

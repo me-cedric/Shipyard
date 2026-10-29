@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { type Theme, usePrefs } from "@/lib/prefs";
+import { AnimatedIcon } from "../atoms/animated-icon";
 import { Avatar } from "../atoms/avatar";
 import { Badge } from "../atoms/badge";
 import { Button } from "../atoms/button";
@@ -8,13 +9,18 @@ import { Checkbox } from "../atoms/checkbox";
 import { IconButton } from "../atoms/icon-button";
 import { Input } from "../atoms/input";
 import { Kbd } from "../atoms/kbd";
+import { LiveDot } from "../atoms/live-dot";
+import { Progress } from "../atoms/progress";
 import { Select } from "../atoms/select";
 import { Skeleton } from "../atoms/skeleton";
+import { Sparkline } from "../atoms/sparkline";
 import { type Status, StatusDot } from "../atoms/status-dot";
 import { Switch } from "../atoms/switch";
 import { Textarea } from "../atoms/textarea";
 import {
 	ArrowPathIcon,
+	BellIcon,
+	CheckIcon,
 	Cog6ToothIcon,
 	ComputerDesktopIcon,
 	HomeIcon,
@@ -27,6 +33,7 @@ import {
 } from "../icons";
 import { BacklinkList } from "../molecules/backlink-list";
 import { BoardColumn } from "../molecules/board-column";
+import { Card } from "../molecules/card";
 import { CommitRow } from "../molecules/commit-row";
 import { ConflictBlock, type ConflictChoice } from "../molecules/conflict-block";
 import { ConnectionRow } from "../molecules/connection-row";
@@ -39,14 +46,18 @@ import { FindingRow } from "../molecules/finding-row";
 import { FlagList } from "../molecules/flag-list";
 import { MemberRow, SuggestionRow } from "../molecules/member-row";
 import { NotificationRow } from "../molecules/notification-row";
+import { PageHeader } from "../molecules/page-header";
+import { Panel } from "../molecules/panel";
 import { ProjectSwitcher } from "../molecules/project-switcher";
 import { RefChip } from "../molecules/ref-chip";
 import { SecretInput } from "../molecules/secret-input";
 import { SettingsRow } from "../molecules/settings-row";
 import { Stat } from "../molecules/stat";
+import { StatStrip } from "../molecules/stat-strip";
 import { SyncStatus } from "../molecules/sync-status";
 import { TicketCard } from "../molecules/ticket-card";
 import { TicketRow } from "../molecules/ticket-row";
+import { Timeline, TimelineItem } from "../molecules/timeline";
 import { ViewTabs } from "../molecules/view-tabs";
 import { ApplyDialog } from "../organisms/apply-dialog";
 import { CommandPalette } from "../organisms/command-palette";
@@ -94,6 +105,15 @@ const COLOURS = [
 	"bg-danger-subtle",
 	"bg-info-subtle",
 ];
+const SURFACES = ["bg-surface-0", "bg-surface-1", "bg-surface-2", "bg-surface-3"];
+const SOFT = [
+	"bg-accent-soft",
+	"bg-success-soft",
+	"bg-warning-soft",
+	"bg-danger-soft",
+	"bg-info-soft",
+];
+const SHADOWS = ["shadow-1", "shadow-2", "shadow-3", "shadow-glow"];
 const SIZES = ["text-11", "text-12", "text-13", "text-14", "text-16", "text-20"];
 
 function Row({ name, children }: { name: string; children: ReactNode }) {
@@ -129,6 +149,27 @@ function Tokens() {
 			<Row name="radius">
 				<div className="size-8 rounded-sm border" />
 				<div className="size-8 rounded-md border" />
+				<div className="size-8 rounded-lg border" />
+				<div className="size-8 rounded-xl border" />
+			</Row>
+			<Row name="surface">
+				{SURFACES.map((c) => (
+					<div key={c} className={`${c} size-8 rounded-md border`} />
+				))}
+			</Row>
+			<Row name="elevation">
+				{SHADOWS.map((c) => (
+					<div key={c} className={`${c} size-8 rounded-lg bg-surface-2`} />
+				))}
+			</Row>
+			<Row name="gradient, soft">
+				<div className="size-8 rounded-md bg-accent-gradient" />
+				{SOFT.map((c) => (
+					<div key={c} className={`${c} size-8 rounded-md`} />
+				))}
+			</Row>
+			<Row name="canvas">
+				<div className="h-16 w-64 rounded-lg border bg-canvas" />
 			</Row>
 		</div>
 	);
@@ -137,6 +178,8 @@ function Tokens() {
 function Atoms() {
 	const { t } = useI18n();
 	const [lang, setLang] = useState("a");
+	const [sync, setSync] = useState(false);
+	const [rings, setRings] = useState(0);
 	return (
 		<div>
 			<Row name="Button">
@@ -194,6 +237,26 @@ function Atoms() {
 			</Row>
 			<Row name="Skeleton">
 				<Skeleton className="h-row w-48" />
+			</Row>
+			<Row name="LiveDot, Progress">
+				<LiveDot label={t.status.active} />
+				<Progress value={3} max={5} label={t.status.active} className="w-48" />
+			</Row>
+			<Row name="Sparkline">
+				<Sparkline values={[2, 4, 3, 6, 5, 8, 7, 9]} className="w-32" />
+			</Row>
+			<Row name="AnimatedIcon">
+				<AnimatedIcon icon={ArrowPathIcon} spin={sync} />
+				<AnimatedIcon icon={BellIcon} ring={rings} />
+				<AnimatedIcon icon={CheckIcon} play={rings} />
+				<Button
+					onClick={() => {
+						setSync((v) => !v);
+						setRings((n) => n + 1);
+					}}
+				>
+					{t.shell.sync}
+				</Button>
 			</Row>
 		</div>
 	);
@@ -540,6 +603,51 @@ function Molecules() {
 			</Row>
 			<Row name="EmptyState">
 				<EmptyState action={{ label: t.empty.create, onClick: () => {} }} />
+				<EmptyState layout="cards" action={{ label: t.empty.create, onClick: () => {} }} />
+			</Row>
+			<Row name="PageHeader">
+				<div className="w-full">
+					<PageHeader
+						icon={<InboxIcon size={16} />}
+						title={t.home.needsYou}
+						count={3}
+						chips={<RefChip refId="wi:KEY-1" state="resolved" onOpen={() => {}} />}
+						action={<Button variant="primary">{t.home.refresh}</Button>}
+						menu={[{ label: t.home.refresh, icon: <ArrowPathIcon size={12} />, onClick: () => {} }]}
+					/>
+				</div>
+			</Row>
+			<Row name="StatStrip">
+				<StatStrip
+					className="w-full"
+					items={[
+						{ label: t.home.needsYou, value: "3" },
+						{ label: t.ui.myItems, value: "7", delta: "+2" },
+						{ label: t.shell.runs, value: "2" },
+						{ label: t.ui.spendToday, value: "$4.20", trend: [1, 3, 2, 5, 4, 6] },
+					]}
+				/>
+			</Row>
+			<Row name="Panel, Card">
+				<Panel title={t.home.questions} count={2} className="w-80">
+					<Card className="px-3 py-2">wi:KEY-1</Card>
+					<Card interactive tabIndex={0} className="px-3 py-2">
+						wi:KEY-2
+					</Card>
+				</Panel>
+			</Row>
+			<Row name="Timeline">
+				<div className="w-80">
+					<Timeline>
+						<TimelineItem lead={<Avatar name="Plan" />} title="ACME-1 plan started" time="10:02" />
+						<TimelineItem
+							lead={<StatusDot status="warning" />}
+							title="ACME-1: question"
+							body="Q-101"
+							time="10:04"
+						/>
+					</Timeline>
+				</div>
 			</Row>
 		</div>
 	);

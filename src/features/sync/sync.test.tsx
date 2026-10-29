@@ -14,9 +14,11 @@ async function cleanCopy() {
 }
 
 const bar = async () => within(await screen.findByRole("contentinfo"));
+// The one Sync action sits in the context bar on top.
+const top = async () => within(await screen.findByRole("banner"));
 
 describe("the sync action and the connection state rows", () => {
-	it("runs one tick from the status bar and the row shows the state with the time", async () => {
+	it("runs one tick from the context bar and the row shows the state with the time", async () => {
 		const user = userEvent.setup();
 		const id = await withTracker();
 		mountApp("/settings/connections");
@@ -24,7 +26,7 @@ describe("the sync action and the connection state rows", () => {
 		// Nothing synced yet: the dash, no time.
 		expect(await within(row).findByRole("status")).toHaveTextContent("Idle");
 		expect(row.querySelector("time")).toBeNull();
-		await user.click((await bar()).getByRole("button", { name: "Sync" }));
+		await user.click((await top()).getByRole("button", { name: "Sync" }));
 		await waitFor(() => expect(mockState().sync.ticks).toBe(1));
 		await waitFor(() => expect(row.querySelector("time")).not.toBeNull());
 		expect(mockState().sync.lastOk[id]).toBeGreaterThan(0);
@@ -37,7 +39,7 @@ describe("the sync action and the connection state rows", () => {
 		await cleanCopy();
 		mountApp("/settings/connections");
 		const row = await screen.findByRole("group", { name: "Acme" });
-		await user.click((await bar()).getByRole("button", { name: "Sync" }));
+		await user.click((await top()).getByRole("button", { name: "Sync" }));
 		await waitFor(() => expect(within(row).getByRole("status")).toHaveTextContent("Failed"));
 		expect(within(row).getByRole("status")).toHaveTextContent("no secret saved");
 		expect((await bar()).getAllByRole("alert")[0]).toHaveTextContent("acme: no secret saved");

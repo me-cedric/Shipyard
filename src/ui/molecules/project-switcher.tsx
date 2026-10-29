@@ -27,7 +27,7 @@ export const STATE_DOT: Record<ProjectState, Status> = {
 export type SwitcherProject = { id: string; name: string; state: ProjectState };
 
 const ITEM =
-	"flex h-row cursor-default items-center gap-2 rounded-sm px-2 text-n-12 data-[disabled]:opacity-50 data-[highlighted]:bg-n-4";
+	"flex h-row cursor-default items-center gap-2 rounded-sm px-2 text-n-12 data-[disabled]:opacity-50 data-[highlighted]:bg-n-5";
 
 function Entry({ icon, children }: { icon: ReactNode; children: ReactNode }) {
 	return (
@@ -101,7 +101,7 @@ export function ProjectSwitcher({
 			{compact ? <Tooltip label={t.projects.switcher}>{trigger}</Tooltip> : trigger}
 			<Menu.Portal>
 				<Menu.Positioner sideOffset={4} className="z-50">
-					<Menu.Popup className="min-w-48 rounded-md border border-n-7 bg-n-2 p-1 text-ui transition-opacity duration-(--duration-fast) data-[ending-style]:opacity-0 data-[starting-style]:opacity-0">
+					<Menu.Popup className="min-w-48 rounded-lg border border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring origin-(--transform-origin) data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 p-1 text-ui">
 						<Menu.RadioGroup value={value ?? ""} onValueChange={(id) => onChange(String(id))}>
 							{projects.map((p) => (
 								<Menu.RadioItem key={p.id} value={p.id} closeOnClick className={ITEM}>
@@ -134,7 +134,7 @@ export function ProjectSwitcher({
 								</Menu.SubmenuTrigger>
 								<Menu.Portal>
 									<Menu.Positioner sideOffset={4} className="z-50">
-										<Menu.Popup className="min-w-40 rounded-md border border-n-7 bg-n-2 p-1 text-ui">
+										<Menu.Popup className="min-w-40 rounded-lg border border-n-6 bg-surface-3 p-1 text-ui shadow-3">
 											{projects.map((p) => (
 												<Menu.Item key={p.id} className={ITEM} onClick={() => onRemove(p)}>
 													{p.name}

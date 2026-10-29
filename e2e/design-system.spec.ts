@@ -76,7 +76,8 @@ test.describe("gallery in the dev build", () => {
 	});
 
 	test("switches the theme and the language", async ({ page }) => {
-		await page.getByRole("button", { name: "Dark" }).click();
+		// exact: the context bar also has a "Theme: Dark" button.
+		await page.getByRole("button", { name: "Dark", exact: true }).click();
 		await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 		await page.getByRole("button", { name: "Language" }).click();
 		await expect(page.locator("html")).toHaveAttribute("lang", "fr");
@@ -86,7 +87,7 @@ test.describe("gallery in the dev build", () => {
 	for (const theme of ["Light", "Dark"]) {
 		for (const layer of LAYERS) {
 			test(`has no axe violation: ${layer}, ${theme} theme`, async ({ page }) => {
-				await page.getByRole("button", { name: theme }).click();
+				await page.getByRole("button", { name: theme, exact: true }).click();
 				await page.getByRole("button", { name: layer }).click();
 				// The nested Shell demo adds a second main and nav to the page: the landmark rules skip it, and
 				// the real shell is checked on the real pages. label-content-name-mismatch: see Q-095.

@@ -7,6 +7,7 @@ import { homeEn } from "./home";
 import { knowledgeEn } from "./knowledge";
 import { settingsEn } from "./settings";
 import { specsEn } from "./specs";
+import { uiEn } from "./ui";
 
 export const en = {
 	common: { close: "Close", search: "Search", open: "Open", loading: "Loading" },
@@ -199,7 +200,6 @@ export const en = {
 		back: "Back",
 		cloneRun: "Clone",
 		createRun: "Create",
-		confirmFile: "Create .shipyard/project.yaml in {path}?",
 		close: "Close project",
 		remove: "Remove from list",
 		confirmRemove: "Remove {name} from the list? The files stay on disk.",
@@ -217,7 +217,23 @@ export const en = {
 			invalid: "Invalid value: {message}",
 			failed: "{message}",
 		},
-		path: { decisions: "Decisions", questions: "Questions", specs: "Specs" },
+		path: {
+			decisions: "Decisions",
+			questions: "Questions",
+			specs: "Specs",
+			diagrams: "Diagrams",
+			models: "Models",
+			api: "API",
+			data: "Data models",
+			flows: "Flows",
+			designs: "Designs",
+			"test-plans": "Test plans",
+			handbook: "Handbook",
+			documents: "Documents",
+			slides: "Slides",
+			dashboards: "Dashboards",
+		},
+		trackerScope: "Tracker scope",
 		paths: "Paths",
 		workflow: "Default workflow",
 		save: "Save",
@@ -379,6 +395,16 @@ export const en = {
 		switch: "Switch",
 		delete: "Delete",
 		confirmDelete: "Delete {name}",
+		merge: "Merge",
+		mergeBranch: "Merge {name}",
+		mergeAbort: "Abort merge",
+		mergeProgress: "Merge in progress, {count} files in conflict",
+		mergeResult: {
+			"up-to-date": "Already up to date",
+			"fast-forwarded": "Fast-forwarded",
+			merged: "Merged",
+			conflicts: "Conflicts",
+		},
 		publish: "Publish",
 		fetch: "Fetch",
 		local: "Local",
@@ -664,6 +690,7 @@ export const en = {
 	factory: factoryEn,
 	settings: settingsEn,
 	specs: specsEn,
+	ui: uiEn,
 };
 
 export type Messages = typeof en;

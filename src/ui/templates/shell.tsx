@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 
-/** Sidebar is 48 px collapsed or 220 px open. */
+/** A context bar on top, a floating sidebar (56 px rail or 220 px open), the main canvas and a status bar. */
 export function Shell({
+	contextbar,
 	sidebar,
 	main,
 	inspector,
@@ -11,6 +12,8 @@ export function Shell({
 	assistant,
 	assistantSide = "right",
 }: {
+	/** The bar of the project, the branch, the factory pulse and the global actions. */
+	contextbar?: ReactNode;
 	sidebar: ReactNode;
 	main: ReactNode;
 	inspector?: ReactNode;
@@ -22,12 +25,17 @@ export function Shell({
 }) {
 	const { t } = useI18n();
 	return (
-		<div className="flex h-full flex-col bg-n-1">
-			<div className="flex min-h-0 flex-1">
+		<div className="flex h-full flex-col bg-surface-0">
+			{contextbar ? (
+				<header className="flex h-11 shrink-0 items-center gap-2 border-b bg-surface-1 px-2">
+					{contextbar}
+				</header>
+			) : null}
+			<div className="flex min-h-0 flex-1 bg-canvas">
 				<nav
 					aria-label={t.nav.sidebar}
 					data-open={sidebarOpen}
-					className="shrink-0 overflow-hidden border-r transition-[width] duration-(--duration-base) ease-standard data-[open=false]:w-12 data-[open=true]:w-55"
+					className="z-10 my-2 ml-2 shrink-0 overflow-hidden rounded-lg border bg-surface-1 shadow-1 transition-[width] duration-(--duration-base) ease-standard data-[open=false]:w-14 data-[open=true]:w-55"
 				>
 					{sidebar}
 				</nav>
@@ -43,7 +51,7 @@ export function Shell({
 				{inspector}
 			</div>
 			{statusbar ? (
-				<footer className="flex h-6 items-center gap-3 border-t px-3 text-11 text-n-11">
+				<footer className="flex h-5 shrink-0 items-center gap-3 border-t bg-surface-1 px-3 text-11 text-n-11">
 					{statusbar}
 				</footer>
 			) : null}

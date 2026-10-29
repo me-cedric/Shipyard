@@ -65,11 +65,10 @@ describe("router", () => {
 		expect(
 			await within(nav).findByRole("link", { name: "Knowledge", current: "page" }),
 		).toBeTruthy();
-		expect(
-			within(nav)
-				.getAllByRole("link")
-				.map((l) => l.getAttribute("aria-label")),
-		).toEqual(["Home", "Knowledge", "Design", "Specs", "Work", "Factory", "Code", "Settings"]);
+		const links = within(nav).getAllByRole("link");
+		const names = ["Home", "Knowledge", "Design", "Specs", "Work", "Factory", "Code", "Settings"];
+		expect(links).toHaveLength(names.length);
+		for (const [i, name] of names.entries()) expect(links[i]).toHaveAccessibleName(name);
 	});
 
 	it("shows the not-found view for an unknown path", async () => {
@@ -126,21 +125,22 @@ describe("shell", () => {
 		expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("keep me");
 		// The shell button closes it again.
 		await user.click(
-			within(await screen.findByRole("contentinfo")).getByRole("button", { name: "Assistant" }),
+			within(await screen.findByRole("banner")).getByRole("button", { name: "Assistant" }),
 		);
 		expect(panel).toHaveAttribute("data-open", "false");
 	});
 
-	it("shows the sync, commit and assistant actions in the status bar", async () => {
+	it("shows sync, search, assistant, bell and theme on top, and only commit in the status bar", async () => {
 		mount("/home");
+		const top = within((await screen.findByRole("banner")) as HTMLElement);
+		for (const name of ["Sync", "Search", "Assistant", "Notifications", /^Theme: /])
+			expect(top.getByRole("button", { name })).toBeInTheDocument();
 		const bar = (await screen.findByRole("contentinfo")) as HTMLElement;
-		// The bell is the notification centre, not a second action.
 		expect(
 			within(bar)
 				.getAllByRole("button")
-				.filter((b) => b.getAttribute("aria-label") !== "Notifications")
 				.map((b) => b.textContent),
-		).toEqual(["Sync", "Commit", "Assistant"]);
+		).toEqual(["Commit"]);
 		expect(await within(bar).findByRole("img", { name: "Success" })).toBeInTheDocument();
 	});
 });

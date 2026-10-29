@@ -67,7 +67,7 @@ const THEME_ICON: Record<Theme, Icon> = {
 const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
 export const shortcutText = (key: string) => `${MAC ? "⌘" : "Ctrl+"}${key.toUpperCase()}`;
 
-/** The one registry. The palette and the status bar read it. */
+/** The one registry. The palette, the context bar and the status bar read it. */
 export function useActions() {
 	const { t, setLang } = useI18n();
 	const { role, sidebarOpen, setPrefs } = usePrefs();
@@ -166,16 +166,17 @@ export function useActions() {
 			key: "j",
 			run: () => setAssistantOpen(!assistantOpen),
 		});
+		const palette = withKey({
+			id: "palette",
+			label: t.palette.title,
+			Icon: MagnifyingGlassIcon,
+			key: "k",
+			run: () => setPaletteOpen(true),
+		});
 		const list: Action[] = [
 			...spaces,
 			assistant,
-			withKey({
-				id: "palette",
-				label: t.palette.title,
-				Icon: MagnifyingGlassIcon,
-				key: "k",
-				run: () => setPaletteOpen(true),
-			}),
+			palette,
 			withKey({
 				id: "toggle-sidebar",
 				label: t.shell.toggleSidebar,
@@ -223,7 +224,7 @@ export function useActions() {
 			commit,
 			updateCheck,
 		];
-		return { list, sync: syncAction, commit, assistant };
+		return { list, sync: syncAction, commit, assistant, palette };
 	}, [
 		t,
 		role,

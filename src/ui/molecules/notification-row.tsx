@@ -5,7 +5,7 @@ import { type Status, StatusDot } from "../atoms/status-dot";
 export type NoticeShape = "info" | "error" | "needs-you";
 
 // A shape and a colour together: the kind never relies on colour alone.
-const SHAPE: Record<NoticeShape, Status> = {
+export const SHAPE: Record<NoticeShape, Status> = {
 	info: "info",
 	error: "danger",
 	"needs-you": "warning",

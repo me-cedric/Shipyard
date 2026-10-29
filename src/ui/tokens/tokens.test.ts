@@ -54,11 +54,29 @@ describe("tokens (REQ-001)", () => {
 		expect(sizes).toEqual(["11:11", "12:12", "13:13", "14:14", "16:16", "20:20"]);
 	});
 
-	it("allows the radii 4 and 6, and no shadow", () => {
+	it("allows the radii 4, 8, 12 and 16, and only the elevation shadows", () => {
 		expect(decl(theme, "--radius-sm")).toBe("4px");
-		expect(decl(theme, "--radius-md")).toBe("6px");
+		expect(decl(theme, "--radius-md")).toBe("8px");
+		expect(decl(theme, "--radius-lg")).toBe("12px");
+		expect(decl(theme, "--radius-xl")).toBe("16px");
 		for (const s of ["--shadow-*", "--inset-shadow-*", "--drop-shadow-*"])
 			expect(decl(theme, s)).toBe("initial");
+		const inline = block("@theme inline");
+		for (const n of ["1", "2", "3"])
+			expect(decl(inline, `--shadow-${n}`)).toBe(`var(--elevation-${n})`);
+		expect(decl(inline, "--shadow-glow")).toBe("var(--accent-glow)");
+	});
+
+	it("defines four surfaces, a dark-mode highlight, the accent gradient and soft status tints (ADR 0014)", () => {
+		for (let i = 0; i <= 3; i++) expect(decl(root, `--surface-${i}`), `surface-${i}`).toBeDefined();
+		expect(decl(root, "--highlight")).toMatch(/^light-dark\(/);
+		for (const n of [1, 2, 3]) expect(decl(root, `--elevation-${n}`)).toContain("var(--highlight)");
+		expect(decl(root, "--accent-gradient")).toContain("var(--gradient-to)");
+		expect(decl(root, "--gradient-to")).toContain("calc(h + 40)");
+		for (const c of ["accent", "success", "warning", "danger", "info"])
+			expect(decl(root, `--${c}-soft`), `${c}-soft`).toContain(`var(--${c})`);
+		expect(css).toContain("@utility bg-canvas");
+		expect(css).toContain("font-variant-numeric: tabular-nums");
 	});
 
 	it("drops the default Tailwind palette", () => {
@@ -76,7 +94,8 @@ describe("tokens (REQ-001)", () => {
 		const rules = [
 			/#[0-9a-fA-F]{3,8}\b/,
 			/\b(?:rgba?|hsla?|oklch|oklab|lab|lch)\(/,
-			/\bshadow/,
+			// Only the elevation tokens: shadow-1, shadow-2, shadow-3 and shadow-glow.
+			/(?<!transition-)\bshadow(?!-(?:1|2|3|glow)\b)/,
 			/\b(?:text|bg|border|fill|stroke|ring|outline|from|to|via)-(?:red|green|blue|gray|grey|slate|zinc|neutral|white|black|yellow|orange|amber|emerald|sky|indigo|violet|purple|pink|rose)\b/,
 			/\b(?:text|bg|fill)-\[/,
 			/\bfont-(?:serif|bold|black|thin)\b/,
@@ -103,12 +122,17 @@ describe("motion (REQ-002)", () => {
 		expect(decl(theme, "--duration-base")).toBe("200ms");
 	});
 
-	it("loops only the active-run indicator", () => {
+	it("loops only the live-state indicators: active run, live agent, running sync", () => {
 		const loops = Object.entries(sources).filter(
 			([p, t]) => !/\.test\./.test(p) && /\banimate-(?!none)/.test(t),
 		);
-		expect(loops.map(([p]) => p)).toEqual(["/src/ui/atoms/status-dot.tsx"]);
+		expect(loops.map(([p]) => p).sort()).toEqual([
+			"/src/ui/atoms/animated-icon.tsx",
+			"/src/ui/atoms/live-dot.tsx",
+			"/src/ui/atoms/status-dot.tsx",
+		]);
 		expect(decl(block("@theme"), "--animate-status-pulse")).toContain("infinite");
+		expect(decl(block("@theme"), "--animate-live")).toContain("infinite");
 	});
 
 	it("removes motion when the system asks for reduced motion", () => {

@@ -7,17 +7,21 @@ import {
 	useInbox,
 	useInboxActions,
 } from "@/lib/home";
-import { format, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { useActiveProject, useProjectActions } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { capabilityOf, useFile, useFoldTargets, useSpecsActions, useSpecView } from "@/lib/specs";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
-import { ArrowPathIcon, FolderOpenIcon } from "@/ui/icons";
+import { ArrowPathIcon, FolderOpenIcon, InboxIcon } from "@/ui/icons";
 import { ApprovalBar } from "@/ui/molecules/approval-bar";
+import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { PageHeader } from "@/ui/molecules/page-header";
+import { Panel } from "@/ui/molecules/panel";
 import { QuestionCard } from "@/ui/molecules/question-card";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { HomeStats } from "../stats";
 
 /** Home / Inbox: what waits for the person, in four groups (shell REQ-003, questions-loop REQ-008). */
 export function Inbox() {
@@ -28,50 +32,67 @@ export function Inbox() {
 	const { loading, questions, approvals, plans, messages } = useInbox();
 	const total = questions.length + approvals.length + plans.length + messages.length;
 	return (
-		<div className="flex min-h-0 flex-1 flex-col overflow-auto">
-			<h1 className="px-3 py-2 text-14 font-medium">{t.home.needsYou}</h1>
+		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
+			<PageHeader
+				icon={<InboxIcon size={16} />}
+				title={t.home.needsYou}
+				count={active ? total : undefined}
+				menu={
+					active
+						? [
+								{
+									label: t.home.refresh,
+									icon: <ArrowPathIcon size={12} />,
+									onClick: () => void act.refresh(),
+								},
+							]
+						: undefined
+				}
+			/>
 			{active === null ? (
-				<div className="p-4">
-					<EmptyState
-						action={{
-							label: t.projects.open,
-							icon: <FolderOpenIcon size={14} />,
-							onClick: () => void openFolder(),
-						}}
-					/>
-				</div>
-			) : total === 0 && !loading ? (
-				<div className="p-4">
-					<EmptyState
-						action={{
-							label: t.home.refresh,
-							icon: <ArrowPathIcon size={14} />,
-							onClick: () => void act.refresh(),
-						}}
-					/>
-				</div>
+				<EmptyState
+					action={{
+						label: t.projects.open,
+						icon: <FolderOpenIcon size={14} />,
+						onClick: () => void openFolder(),
+					}}
+				/>
 			) : (
 				<>
-					<Group name={t.home.questions} count={questions.length}>
-						{questions.map((x) => (
-							<QuestionRow key={`${x.run}:${x.question.id}`} item={x} />
-						))}
-					</Group>
-					<Group name={t.home.approvals} count={approvals.length}>
-						{approvals.map((a) => (
-							<ApprovalRow key={a.id} approval={a} />
-						))}
-					</Group>
-					<Group name={t.home.planReview} count={plans.length}>
-						{plans.map((r) => (
-							<PlanRow key={r.id} run={r.id} ticket={r.key} title={r.title} />
-						))}
-					</Group>
-					<Group name={t.home.messages} count={messages.length}>
-						{messages.map((m) => (
-							<MessageRow key={`${m.run}:${m.n}`} message={m} />
-						))}
-					</Group>
+					<HomeStats />
+					{total === 0 && !loading ? (
+						<EmptyState
+							layout="cards"
+							action={{
+								label: t.home.refresh,
+								icon: <ArrowPathIcon size={14} />,
+								onClick: () => void act.refresh(),
+							}}
+						/>
+					) : (
+						<div className="flex flex-col gap-4 px-4">
+							<Group name={t.home.questions} count={questions.length}>
+								{questions.map((x) => (
+									<QuestionRow key={`${x.run}:${x.question.id}`} item={x} />
+								))}
+							</Group>
+							<Group name={t.home.approvals} count={approvals.length}>
+								{approvals.map((a) => (
+									<ApprovalRow key={a.id} approval={a} />
+								))}
+							</Group>
+							<Group name={t.home.planReview} count={plans.length}>
+								{plans.map((r) => (
+									<PlanRow key={r.id} run={r.id} ticket={r.key} title={r.title} />
+								))}
+							</Group>
+							<Group name={t.home.messages} count={messages.length}>
+								{messages.map((m) => (
+									<MessageRow key={`${m.run}:${m.n}`} message={m} />
+								))}
+							</Group>
+						</div>
+					)}
 				</>
 			)}
 		</div>
@@ -79,15 +100,11 @@ export function Inbox() {
 }
 
 function Group({ name, count, children }: { name: string; count: number; children: ReactNode }) {
-	const { t } = useI18n();
 	if (count === 0) return null;
 	return (
-		<section aria-label={name}>
-			<h2 className="border-b bg-n-2 px-3 py-1 text-12 font-medium text-n-11">
-				{format(t.count, { name, count })}
-			</h2>
+		<Panel title={name} count={count}>
 			{children}
-		</section>
+		</Panel>
 	);
 }
 
@@ -119,14 +136,14 @@ function QuestionRow({ item }: { item: QuestionItem }) {
 		onAnswer: (choice) => void guard(() => act.answer(item.run, q.id, choice)),
 	};
 	return (
-		<>
+		<Card className="*:border-b-0">
 			{q.spec && q.state === "answered" ? (
 				<FoldedCard {...props} spec={q.spec} />
 			) : (
 				<QuestionCard {...props} />
 			)}
 			<Failure error={error} />
-		</>
+		</Card>
 	);
 }
 
@@ -173,7 +190,7 @@ function ApprovalRow({ approval: a }: { approval: ApprovalItem }) {
 	const act = useInboxActions();
 	const { error, run } = useGuard();
 	return (
-		<>
+		<Card className="*:border-b-0">
 			<ApprovalBar
 				approval={a}
 				meta={<RunLink run={a.run} ticket={a.key} />}
@@ -181,7 +198,7 @@ function ApprovalRow({ approval: a }: { approval: ApprovalItem }) {
 				onReject={() => void run(() => act.reject(a.id))}
 			/>
 			<Failure error={error} />
-		</>
+		</Card>
 	);
 }
 
@@ -191,8 +208,8 @@ function PlanRow({ run, ticket, title }: { run: string; ticket: string; title: s
 	const { error, run: guard } = useGuard();
 	const [note, setNote] = useState("");
 	return (
-		<>
-			<div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
+		<Card>
+			<div className="flex flex-wrap items-center gap-2 px-3 py-2">
 				<RunLink run={run} ticket={ticket} />
 				<span className="flex-1 text-ui font-medium">{title}</span>
 				<Input
@@ -209,7 +226,7 @@ function PlanRow({ run, ticket, title }: { run: string; ticket: string; title: s
 				</Button>
 			</div>
 			<Failure error={error} />
-		</>
+		</Card>
 	);
 }
 
@@ -218,8 +235,8 @@ function MessageRow({ message: m }: { message: MessageItem }) {
 	const act = useInboxActions();
 	const { error, run } = useGuard();
 	return (
-		<>
-			<div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
+		<Card>
+			<div className="flex flex-wrap items-center gap-2 px-3 py-2">
 				<RunLink run={m.run} ticket={m.key} />
 				<span className="font-mono text-12 text-n-11">{m.from}</span>
 				<span className={m.read ? "flex-1 text-ui text-n-11" : "flex-1 text-ui font-medium"}>
@@ -232,6 +249,6 @@ function MessageRow({ message: m }: { message: MessageItem }) {
 				)}
 			</div>
 			<Failure error={error} />
-		</>
+		</Card>
 	);
 }

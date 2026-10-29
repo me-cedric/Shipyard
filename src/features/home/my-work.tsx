@@ -9,13 +9,19 @@ import { useShell } from "@/lib/shell";
 import { useWorkItems } from "@/lib/sync";
 import { memberName, useTeam, useWorkContext } from "@/lib/work";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { ArrowPathIcon } from "@/ui/icons";
+import { ArrowPathIcon, UsersIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
-import { GroupSection } from "@/ui/molecules/group-section";
+import { PageHeader } from "@/ui/molecules/page-header";
+import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { RUN_STATUS } from "@/ui/molecules/run-card";
 import { TicketRow, type WorkCategory } from "@/ui/molecules/ticket-row";
-import { ListDetail } from "@/ui/templates/list-detail";
+
+/** The mirrored items assigned to the person. */
+export function useMyItems() {
+	const me = useWorkContext().data?.me ?? null;
+	return (useWorkItems({}).data ?? []).filter((i) => me !== null && i.member === me);
+}
 
 /** Home / My work: the mirrored items assigned to the person, and the runs on those items (shell REQ-003). */
 export function MyWork() {
@@ -23,29 +29,29 @@ export function MyWork() {
 	const qc = useQueryClient();
 	const active = useActiveProject().data;
 	const { openDetail, openRef } = useShell();
-	const me = useWorkContext().data?.me ?? null;
 	const members = useTeam().data?.team.members ?? [];
-	const items = (useWorkItems({}).data ?? []).filter((i) => me !== null && i.member === me);
+	const items = useMyItems();
 	const keys = new Set(items.map((i) => i.key));
 	const runs = (useRuns().data ?? []).filter((r) => keys.has(r.key));
 	if (active === undefined) return null;
 	if (active === null) return <NoProject title={t.tabs.home["my-work"]} />;
+	const refresh = () => void qc.invalidateQueries();
 	return (
-		<ListDetail title={t.tabs.home["my-work"]}>
+		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
+			<PageHeader
+				icon={<UsersIcon size={16} />}
+				title={t.tabs.home["my-work"]}
+				count={items.length}
+				menu={[{ label: t.home.refresh, icon: <ArrowPathIcon size={12} />, onClick: refresh }]}
+			/>
 			<PinnedTiles />
 			{items.length === 0 && runs.length === 0 ? (
-				<div className="p-4">
-					<EmptyState
-						action={{
-							label: t.home.refresh,
-							icon: <ArrowPathIcon size={14} />,
-							onClick: () => void qc.invalidateQueries(),
-						}}
-					/>
-				</div>
+				<EmptyState
+					action={{ label: t.home.refresh, icon: <ArrowPathIcon size={14} />, onClick: refresh }}
+				/>
 			) : (
-				<>
-					<GroupSection name={t.home.items} count={items.length}>
+				<div className="grid gap-4 px-4 xl:grid-cols-2">
+					<Panel title={t.home.items} count={items.length} flush>
 						{items.map((i) => (
 							<TicketRow
 								key={i.key}
@@ -58,8 +64,8 @@ export function MyWork() {
 								onOpen={() => openDetail(i.key, <TicketDetail key={i.key} itemKey={i.key} />)}
 							/>
 						))}
-					</GroupSection>
-					<GroupSection name={t.factory.runs} count={runs.length}>
+					</Panel>
+					<Panel title={t.factory.runs} count={runs.length} flush>
 						{runs.map((r) => (
 							<div key={r.id} className="flex h-row items-center gap-2 border-b px-3">
 								<StatusDot status={RUN_STATUS[r.state]} label={t.factory.state[r.state]} />
@@ -68,9 +74,9 @@ export function MyWork() {
 								<span className="truncate text-ui">{r.title}</span>
 							</div>
 						))}
-					</GroupSection>
-				</>
+					</Panel>
+				</div>
 			)}
-		</ListDetail>
+		</div>
 	);
 }
