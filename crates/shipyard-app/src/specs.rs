@@ -300,10 +300,10 @@ pub fn question_create(s: &AppState, mut q: Question) -> Res<String> {
     let p = project(s)?;
     let dir = questions_dir(&p);
     if q.id.is_empty() {
-        q.id = raid::next_id(&raid::list(&dir));
+        q.id = raid::next_entry_id(&raid::list(&dir));
     }
     let _g = s.guard();
-    raid::create(&dir, &q).map_err(err)?;
+    raid::create_in(&dir, &q).map_err(err)?;
     Ok(format!("{}/{}.md", p.file.path("questions"), q.id))
 }
 
