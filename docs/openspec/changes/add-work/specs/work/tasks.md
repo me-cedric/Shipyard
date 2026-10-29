@@ -37,8 +37,8 @@ Plan: [plan.md](./plan.md)
 - [x] T022 Build the apply preview and apply in `src/features/work/apply.tsx` on the `ApplyDialog` organism. Apply sits in Work / Plan. `CreateWorkItem` sits in the inspector of a ref. Covers REQ-019, REQ-025, REQ-026, REQ-029.
 - [x] T023 Write the e2e test `e2e/work.spec.ts` with a fake tracker: assign, estimate, plan, time, apply. Covers REQ-001 to REQ-029.
 - [x] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-028.
-- [ ] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-029.
-- [ ] T026 Compare the code with `spec.md`, update stale artifacts, then close Q-032, Q-033, Q-034 and Q-060. Covers REQ-005, REQ-010, REQ-021, REQ-026.
+- [x] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-029. Run 2026-10-29: `cargo test -p` core, trackers, forges, agents, engine, store, app, git and mcp passed; `pnpm tsc --noEmit` passed; `pnpm vitest run` passed (101 files, 761 tests); `pnpm playwright test` passed 95, failed 1: `e2e/a11y.spec.ts` factory light theme, axe `label-content-name-mismatch` on the Agents map run nodes, and the test passed on a second run (flaky, open); `cd docs && npx -y @fission-ai/openspec@1.15.0 validate --all --strict` passed (16 of 16).
+- [x] T026 Compare the code with `spec.md`, update stale artifacts, then close Q-032, Q-033, Q-034 and Q-060. Covers REQ-005, REQ-010, REQ-021, REQ-026. Compared 2026-10-29 with `.agents/progress/w4.md`. Code follows the working assumptions: the day rate is sealed with the project passphrase (Q-032), apply matches a row by the ref in a label (Q-033), time entries live in the repository (Q-034), the rate of a shared role is the mean (Q-060). Gaps: no test proves that the Excel export opens in the CGI costing tool (REQ-013), so that acceptance criterion stays unticked; Jira Data Center skips the parent of a story and Jira with a required `Epic Name` is not covered; Azure DevOps has no worklog; Jira reads one page of 1000 worklogs; no test proves the focus ring of every Work view. RAID closing waits for the owner (Q-032, Q-033, Q-034, Q-060).
 
 ## Completion Check
 

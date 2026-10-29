@@ -40,7 +40,7 @@ cargo test -p shipyard-core
 pnpm tsc --noEmit
 pnpm vitest run src/ui
 pnpm playwright test e2e/design-system.spec.ts
-cd /Users/mecedric/Documents/Projects/shipyard/docs && npx -y @fission-ai/openspec@latest validate add-design-system --strict
+cd docs && npx -y @fission-ai/openspec@latest validate add-design-system --strict
 ```
 
 ## Docs And Spec Sync

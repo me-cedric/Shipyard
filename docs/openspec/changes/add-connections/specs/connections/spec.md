@@ -59,21 +59,21 @@ Legacy is Jira-shaped. Its credentials, MCP servers and assistants sit on differ
 
 ### Acceptance Criteria
 
-- [ ] Settings / Connections lists the six tracker kinds, the three forge kinds, MCP servers, runners and providers.
-- [ ] Each tracker connection shows the six flags with a shape and a colour.
+- [x] Settings / Connections lists the six tracker kinds, the three forge kinds, MCP servers, runners and providers. Test: `src/features/settings/connections/connections.test.tsx`, `groups.test.tsx` (same folder).
+- [x] Each tracker connection shows the six flags with a shape and a colour. Test: `src/features/settings/connections/connections.test.tsx`.
 - [ ] A view that needs a flag the tracker lacks shows that it is off. It shows no error.
-- [ ] A contract test with fakes passes for each tracker with the same work item shape.
-- [ ] A custom MCP server starts, shows running, stops, and shows stopped.
-- [ ] An MCP server with a missing dependency does not start and names the dependency.
-- [ ] An installed runner CLI appears as detected with no manual step.
-- [ ] A token never appears in a process argument list, a URL, a log line or a repository file.
-- [ ] A failed test names the missing scope or permission.
-- [ ] Removing a connection deletes its keychain entry.
-- [ ] A `conn:<id>` ref resolves to the connection with its kind and state.
+- [x] A contract test with fakes passes for each tracker with the same work item shape. Test: `crates/shipyard-trackers/tests/contract.rs`.
+- [x] A custom MCP server starts, shows running, stops, and shows stopped. Test: `crates/shipyard-agents/tests/mcp_control.rs`, `src/features/settings/connections/groups.test.tsx`.
+- [x] An MCP server with a missing dependency does not start and names the dependency. Test: `crates/shipyard-agents/tests/mcp_control.rs`, `src/features/settings/connections/groups.test.tsx`.
+- [x] An installed runner CLI appears as detected with no manual step. Test: `crates/shipyard-agents/tests/runners.rs`.
+- [x] A token never appears in a process argument list, a URL, a log line or a repository file. Test: `crates/shipyard-trackers/tests/contract.rs`, `crates/shipyard-secrets/tests/secrets.rs`, `crates/shipyard-app/tests/connections.rs`.
+- [x] A failed test names the missing scope or permission. Test: `crates/shipyard-app/tests/connections.rs`, `e2e/connections.spec.ts`.
+- [x] Removing a connection deletes its keychain entry. Test: `crates/shipyard-app/tests/connections.rs`.
+- [x] A `conn:<id>` ref resolves to the connection with its kind and state. Test: `crates/shipyard-app/src/commands/refs.rs`.
 - [ ] Every view works with the keyboard, shows a focus ring and has French and English text.
-- [ ] An external agent client lists the tools of an active MCP server through the one Shipyard endpoint.
-- [ ] A second agent turn reuses the open MCP server and does not start it again.
-- [ ] A forge connection lists its repositories, marks one with no push right, and creates a remote repository.
+- [x] An external agent client lists the tools of an active MCP server through the one Shipyard endpoint. Test: `crates/shipyard-mcp/tests/proxy.rs`.
+- [x] A second agent turn reuses the open MCP server and does not start it again. Test: `crates/shipyard-mcp/tests/proxy.rs`.
+- [x] A forge connection lists its repositories, marks one with no push right, and creates a remote repository. Test: `src/features/settings/connections/connections.test.tsx`, `crates/shipyard-forges/tests/contract.rs`.
 
 ### Links
 

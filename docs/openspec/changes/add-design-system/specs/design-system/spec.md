@@ -52,14 +52,14 @@ Legacy has 490 titles, 336 hints and 216 descriptions. Each page builds its own 
 
 ### Acceptance Criteria
 
-- [ ] The gallery shows every token, atom, molecule, organism and template in both themes.
+- [x] The gallery shows every token, atom, molecule, organism and template in both themes. Test: `e2e/design-system.spec.ts`.
 - [ ] No component shows a tagline, helper text or secondary label.
-- [ ] Each interactive component works with the keyboard alone and shows a focus ring.
-- [ ] Text and borders meet the contrast target in each theme (Q-005).
-- [ ] With reduced motion on, no component animates. The indicator of an active run is static.
-- [ ] The two densities change row height and text size, and nothing else.
-- [ ] A French and an English build show no missing label.
-- [ ] The gallery route is absent from the release build.
+- [x] Each interactive component works with the keyboard alone and shows a focus ring. Test: `src/ui/atoms/atoms.test.tsx`, `e2e/design-system.spec.ts`.
+- [x] Text and borders meet the contrast target in each theme (Q-005). Test: `e2e/design-system.spec.ts` (axe), `src/ui/tokens/tokens.test.ts`.
+- [x] With reduced motion on, no component animates. The indicator of an active run is static. Test: `src/ui/tokens/tokens.test.ts`.
+- [x] The two densities change row height and text size, and nothing else. Test: `src/ui/tokens/tokens.test.ts`.
+- [x] A French and an English build show no missing label. Test: `src/lib/i18n/i18n.test.tsx`.
+- [x] The gallery route is absent from the release build. Test: `e2e/design-system.spec.ts`.
 
 ### Links
 

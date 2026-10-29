@@ -65,24 +65,24 @@ Legacy has an assistant drawer with its own runner. It does not know the project
 
 ### Acceptance Criteria
 
-- [ ] The panel opens in every space with a shortcut and keeps the thread and draft when the view changes.
-- [ ] Each project has its own threads, and each thread has its own transcript, draft and session.
-- [ ] A thread is not in the repository.
-- [ ] The context shows the view, the selected entity and the added refs, and the person can remove each one.
-- [ ] Ask mode changes nothing, plan mode changes no file, and agent mode changes files only in a worktree.
-- [ ] A denied permission shows a wait and one action grants it and resumes the session.
-- [ ] A thread keeps its own runner, model and effort, and the turns count in the budgets of the factory.
-- [ ] A changed rule applies from the next turn.
-- [ ] Send to factory creates a work item after a confirm, or starts a run of a chosen workflow.
-- [ ] The Explain answer cites refs that resolve.
-- [ ] Copy, insert and open a cited ref work on a reply.
-- [ ] A quota failure shows one sentence and a retry that does not replay edits.
-- [ ] A turn shows a trace that collapses to one line, and the panel shows a context ring and the quota windows.
-- [ ] A reply with options shows one button for each option.
-- [ ] The panel keeps its width and side after a restart.
-- [ ] A project default sets the runner, model, effort and mode of a new thread.
-- [ ] No prompt, argument, thread or log holds a secret value.
-- [ ] The panel works by keyboard, shows a focus ring and assistive labels, and shows French and English.
+- [x] The panel opens in every space with a shortcut and keeps the thread and draft when the view changes. Test: `e2e/assistant.spec.ts`.
+- [x] Each project has its own threads, and each thread has its own transcript, draft and session. Test: `crates/shipyard-store/tests/threads.rs`.
+- [x] A thread is not in the repository. Test: `crates/shipyard-store/tests/threads.rs`.
+- [x] The context shows the view, the selected entity and the added refs, and the person can remove each one. Test: `src/features/assistant/assistant.test.tsx`.
+- [x] Ask mode changes nothing, plan mode changes no file, and agent mode changes files only in a worktree. Test: `crates/shipyard-agents/tests/assistant_modes.rs`.
+- [x] A denied permission shows a wait and one action grants it and resumes the session. Test: `crates/shipyard-agents/tests/assistant_turn.rs`, `src/features/assistant/assistant.test.tsx`.
+- [x] A thread keeps its own runner, model and effort, and the turns count in the budgets of the factory. Test: `crates/shipyard-agents/tests/assistant_turn.rs`, `crates/shipyard-engine/tests/assistant_budget.rs`.
+- [x] A changed rule applies from the next turn. Test: `crates/shipyard-agents/tests/assistant_rules.rs`.
+- [x] Send to factory creates a work item after a confirm, or starts a run of a chosen workflow. Test: `crates/shipyard-app/tests/assistant_send.rs`, `src/features/assistant/assistant.test.tsx`. A run starts through the label and the pickup (REQ-015).
+- [x] The Explain answer cites refs that resolve. Test: `crates/shipyard-app/tests/assistant_send.rs`.
+- [x] Copy, insert and open a cited ref work on a reply. Test: `src/features/assistant/assistant.test.tsx`.
+- [x] A quota failure shows one sentence and a retry that does not replay edits. Test: `crates/shipyard-agents/tests/assistant_turn.rs`, `src/features/assistant/assistant.test.tsx`.
+- [x] A turn shows a trace that collapses to one line, and the panel shows a context ring and the quota windows. Test: `src/features/assistant/panel_extras.test.tsx`.
+- [x] A reply with options shows one button for each option. Test: `src/features/assistant/panel_extras.test.tsx`.
+- [x] The panel keeps its width and side after a restart. Test: `src/features/assistant/panel_extras.test.tsx`.
+- [x] A project default sets the runner, model, effort and mode of a new thread. Test: `crates/shipyard-store/tests/assistant_defaults.rs`. No UI edits the defaults yet.
+- [x] No prompt, argument, thread or log holds a secret value. Test: `crates/shipyard-agents/tests/assistant_turn.rs`, `crates/shipyard-app/src/assistant.rs` (draft).
+- [x] The panel works by keyboard, shows a focus ring and assistive labels, and shows French and English. Test: `src/features/assistant/a11y.test.tsx`.
 
 ### Links
 

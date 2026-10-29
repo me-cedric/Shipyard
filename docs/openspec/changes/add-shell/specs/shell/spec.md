@@ -55,21 +55,21 @@ Legacy has 40 routes, 12 sidebar groups and four stacked filters that hide pages
 
 ### Acceptance Criteria
 
-- [ ] The sidebar shows Home, Design, Specs, Work, Factory, Code, Knowledge and Settings, in that order for the default role.
-- [ ] The Inbox shows a question and an approval, and one click on the approval sends the write.
-- [ ] The palette finds a ref and runs an action from the keyboard.
-- [ ] The inspector shows backlinks for each entity kind.
-- [ ] The commit control and the sync control exist once, in the status bar. The palette and the native menu run the same actions.
-- [ ] A new event appears once in the notification centre and once as a system notification.
-- [ ] For each role, every view is still reachable.
-- [ ] A change in Settings / Me applies in all projects.
-- [ ] After a restart, each project opens on its last view.
-- [ ] No tour, helper text or tagline shows on first run.
-- [ ] Every label shows in French and in English.
-- [ ] The native menu lists the global actions, and each item runs the palette action.
-- [ ] A context menu opens from the pointer and from the keyboard, and Escape returns focus to the row.
-- [ ] A new version appears once in the notification centre.
-- [ ] Every shell action has a keyboard path, a focus ring and an assistive label.
+- [x] The sidebar shows Home, Design, Specs, Work, Factory, Code, Knowledge and Settings, in that order for the default role. Test: `src/features/shell/routes.test.tsx`, `e2e/smoke.spec.ts`.
+- [x] The Inbox shows a question and an approval, and one click on the approval sends the write. Test: `src/features/home/home.test.tsx`.
+- [x] The palette finds a ref and runs an action from the keyboard. Test: `src/features/shell/palette.test.tsx`, `src/features/shell/refs.test.tsx`, `e2e/smoke.spec.ts`.
+- [x] The inspector shows backlinks for each entity kind. Test: `src/features/shell/refs.test.tsx`, `src/features/shell/inspector.test.tsx`.
+- [x] The commit control and the sync control exist once, in the status bar. The palette and the native menu run the same actions. Test: `src/features/shell/statusbar.test.tsx`, `src/features/shell/notifications.test.tsx`.
+- [x] A new event appears once in the notification centre and once as a system notification. Test: `src/features/shell/notifications.test.tsx`, `src/features/shell/needs-you.test.tsx`.
+- [x] For each role, every view is still reachable. Test: `src/features/shell/routes.test.tsx`.
+- [x] A change in Settings / Me applies in all projects. Test: `src/features/settings/me/me.test.tsx`.
+- [x] After a restart, each project opens on its last view. Test: `e2e/shell.spec.ts`.
+- [x] No tour, helper text or tagline shows on first run. Test: `e2e/shell.spec.ts`, `src/features/shell/routes.test.tsx`.
+- [x] Every label shows in French and in English. Test: `src/lib/i18n/i18n.test.tsx`, `src/features/shell/notifications.test.tsx`.
+- [x] The native menu lists the global actions, and each item runs the palette action. Test: `src/features/shell/notifications.test.tsx`.
+- [x] A context menu opens from the pointer and from the keyboard, and Escape returns focus to the row. Test: `e2e/shell-events.spec.ts`.
+- [x] A new version appears once in the notification centre. Test: `src/features/shell/notifications.test.tsx`, `e2e/shell-events.spec.ts`.
+- [x] Every shell action has a keyboard path, a focus ring and an assistive label. Test: `e2e/shell.spec.ts`, `e2e/a11y.spec.ts`.
 
 ### Links
 

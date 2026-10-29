@@ -79,17 +79,17 @@ Legacy has these features, but commit sits in 11 pages and pull sits in three pl
 
 ### Acceptance Criteria
 
-- [ ] Code / Changes shows the tree and the two diffs. It stages, unstages, discards after a confirmation, resolves conflicts and stashes.
-- [ ] The commit action commits staged files only. It refuses a summary with a wrong type.
-- [ ] A commit on `feat/auth/SHIP-42-login` links to `wi:SHIP-42`. A commit of a run links to its `run:`.
-- [ ] A branch named `patch-3` is refused, and the working branch cannot be deleted.
-- [ ] The remote watch notifies once per push by someone else. It never changes a working copy file.
-- [ ] Code / Pull requests lists the mirror offline. A person can open, comment, approve, request changes, merge and mark ready.
-- [ ] A draft pull request from a run shows Mark ready. Merge stays off until it is ready.
-- [ ] Code / Quality runs only declared checks after a confirmation, and a report holds no secret value.
-- [ ] Code / Impacts writes an action plan and a digest in two files. The digest holds no path.
-- [ ] The terminal panel opens at the project root and shows no connection secret.
-- [ ] The file viewer opens a cited file at its line and never changes it.
+- [x] Code / Changes shows the tree and the two diffs. It stages, unstages, discards after a confirmation, resolves conflicts and stashes. Test: `src/features/code/changes.test.tsx`, `crates/shipyard-git/tests/code.rs`.
+- [x] The commit action commits staged files only. It refuses a summary with a wrong type. Test: `src/features/code/changes.test.tsx`, `crates/shipyard-git/tests/code.rs`.
+- [x] A commit on `feat/auth/SHIP-42-login` links to `wi:SHIP-42`. A commit of a run links to its `run:`. Test: `crates/shipyard-store/tests/code.rs`, `crates/shipyard-app/src/code.rs`.
+- [x] A branch named `patch-3` is refused, and the working branch cannot be deleted. Test: `src/features/code/branches.test.tsx`, `crates/shipyard-core/tests/code.rs`.
+- [x] The remote watch notifies once per push by someone else. It never changes a working copy file. Test: `crates/shipyard-app/src/commands/code.rs`.
+- [x] Code / Pull requests lists the mirror offline. A person can open, comment, approve, request changes, merge and mark ready. Test: `src/features/code/pull-requests.test.tsx`, `crates/shipyard-forges/tests/code.rs`.
+- [x] A draft pull request from a run shows Mark ready. Merge stays off until it is ready. Test: `src/features/code/pull-requests.test.tsx`.
+- [x] Code / Quality runs only declared checks after a confirmation, and a report holds no secret value. Test: `src/features/code/quality.test.tsx`, `crates/shipyard-app/src/code.rs`, `crates/shipyard-store/tests/code.rs`.
+- [x] Code / Impacts writes an action plan and a digest in two files. The digest holds no path. Test: `crates/shipyard-app/src/code.rs`, `crates/shipyard-core/tests/code.rs`.
+- [x] The terminal panel opens at the project root and shows no connection secret. Test: `src/features/code/terminal.test.tsx`, `crates/shipyard-app/src/terminal.rs`.
+- [x] The file viewer opens a cited file at its line and never changes it. Test: `src/features/code/viewer.test.tsx`, `crates/shipyard-app/src/commands/code.rs`.
 - [ ] Every Code view works with the keyboard, shows a focus ring and has French and English text.
 
 ### Links

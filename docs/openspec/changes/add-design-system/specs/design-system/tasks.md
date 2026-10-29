@@ -23,9 +23,9 @@ Plan: [plan.md](./plan.md)
 - [x] T010 [P] Add the French and English label catalogues in `src/lib/i18n/ui.fr.json` and `src/lib/i18n/ui.en.json`. REQ-015. Kept as typed TS files in `src/lib/i18n/` (Q-093).
 - [x] T011 Write the gallery e2e (layers, axe, keyboard, release build) in `e2e/design-system.spec.ts`. REQ-007, REQ-014, REQ-015.
 - [x] T012 Implement the gallery route in `src/ui/gallery/`. REQ-007.
-- [ ] T013 Add one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. All REQ.
-- [ ] T014 Run the validation commands from `plan.md`.
-- [ ] T015 Compare the code with `spec.md` and update stale artifacts.
+- [x] T013 Add one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. All REQ. Entries exist in both files: "Design system with tokens, components and a gallery in the dev build" and the accessibility pass (`CHANGELOG.md` and `CHANGELOG.fr.md`, 40 bullets each).
+- [x] T014 Run the validation commands from `plan.md`. Run 2026-10-29: `cargo test -p` core, trackers, forges, agents, engine, store, app, git and mcp passed; `pnpm tsc --noEmit` passed; `pnpm vitest run` passed (101 files, 761 tests); `pnpm playwright test` passed 95, failed 1: `e2e/a11y.spec.ts` factory light theme, axe `label-content-name-mismatch` on the Agents map run nodes, and the test passed on a second run (flaky, open); `cd docs && npx -y @fission-ai/openspec@1.15.0 validate --all --strict` passed (16 of 16).
+- [x] T015 Compare the code with `spec.md` and update stale artifacts. Compared 2026-10-29 with `.agents/progress/w9.md`. The spec matches the code. Fixed: the validation path in `plan.md` is `cd docs`. Gaps: Inter is the text font until ITF gives consent for Switzer (REQ-003, Q-001; the spec states this); the second acceptance criterion (no tagline, helper text or secondary label) has no test, so it stays unticked; the design token view reads `tokens.css`, so `src/ui/tokens/tokens.test.ts` exempts it (Q-099 to Q-101).
 
 ## Completion Check
 

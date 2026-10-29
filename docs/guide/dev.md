@@ -15,7 +15,8 @@
 | `src/features/<space>/` | One folder per space. A feature imports only `@/ui`, `@/lib` and its own folder. |
 | `src/lib/ipc/` | Generated bindings and the mock layer. |
 | `src/lib/i18n/` | English and French catalogues. `fr.ts` has the type of `en.ts`. |
-| `e2e/` | Playwright smoke tests on the Vite build. |
+| `e2e/` | Playwright tests on the Vite release build, with the mock IPC. |
+| `docs/guide/` | User pages, one for each space, and this guide. |
 
 ## Run
 
@@ -64,6 +65,13 @@ pnpm build:sidecar   # only the sidecar: crates/shipyard-app/binaries/shipyard-<
 ```
 
 `scripts/build-sidecar.mjs` builds the CLI in release mode for the target triple and copies it to `crates/shipyard-app/binaries/` (git ignores the folder). `tauri.release.conf.json` runs it as `beforeBuildCommand`. `tauri.conf.json` has no `externalBin`, so `pnpm build`, `pnpm tauri dev` and `cargo test` need no sidecar (Q-092). A dev build uses `shipyard` from the `PATH`.
+
+## End-to-end tests
+
+`pnpm test:e2e` builds the app with `VITE_MOCK_DEMO=0` and serves it on port 4174. One file covers each space, for example `e2e/work.spec.ts`. Run one file with `pnpm playwright test e2e/<name>.spec.ts`.
+
+- `e2e/a11y.spec.ts` runs axe (`@axe-core/playwright`) on every tab of every space, in the light and the dark theme, with reduced motion. A violation fails the test. A new tab joins the run when you add it to `SPACES` in `src/features/shell/spaces.ts`.
+- `e2e/design-system.spec.ts` covers the gallery: one page for each atomic layer, a focus ring on each layer button, the theme and language switch, and axe on each layer in both themes. The gallery exists in the dev build only. The test starts its own `vite` dev server on port 4175. It checks that the release build has no gallery route.
 
 ## Checks
 

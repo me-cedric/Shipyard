@@ -58,7 +58,7 @@ cd docs && npx -y @fission-ai/openspec@latest validate add-delivery --strict
 
 ## Open Items
 
-- The assignee of the pull request (REQ-012) and the impacts digest (REQ-027): no port yet. The `reviewers` and `assignee` keys are in the `automation.yaml` codec; the engine reads `reviewers` (the project list wins), nothing reads `assignee`.
+- The assignee of the pull request (REQ-012): no port yet. The `reviewers` and `assignee` keys are in the `automation.yaml` codec; the engine reads `reviewers` (the project list wins), nothing reads `assignee`. The impacts digest (REQ-027) has its port: `Git::digest` in `crates/shipyard-engine/src/ports.rs`, tested in `crates/shipyard-engine/tests/pull_request.rs` (Q-084).
 - `PullApi` has no log tail for a failed check: `Pulls::failed_checks` returns names and URLs, and the tail when the adapter has it.
 - The app adapter of `Git::merge_child(run, child, message)` follows the contract test in `crates/shipyard-git/tests/merge_child_port.rs`: commit what the child left in its worktree, call `shipyard_git::delivery::squash_child`, remove the worktree and the child branch (with `force`: a squash is not an ancestor). It is built and tested on a temporary repository in `crates/shipyard-app/src/delivery/tests.rs`.
 - The adapters are not run against a real forge or tracker (fake HTTP and temporary repositories only). The `Labels` write adds the labels that the ticket lacks and cannot remove one: the tracker adapters have no remove call. A pull request is open when its reviewers fail: the error says so and the retry finds the pull request. A gate command runs inside the lock of the factory, so a long gate holds the views for its time (limit 15 minutes). A timeout kills the shell only, not its children.

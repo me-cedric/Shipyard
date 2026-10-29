@@ -38,11 +38,11 @@ Plan: [plan.md](./plan.md)
 - [x] T018 Add the IPC commands and events in `crates/shipyard-app/src/factory.rs`, then regenerate the bindings with the project command. Covers REQ-001 to REQ-039. Wire `Factory::set_refs`, the `Git` adapter, and the Inbox items of `Factory::messages`.
 - [x] T019 Write view and Settings control tests in `src/features/factory/factory.test.tsx`. Covers the Settings controls of REQ-008 and REQ-025, and REQ-027, REQ-038, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033.
 - [x] T020 Implement the six views in `src/features/factory/`. Covers the Settings controls of REQ-008 and REQ-025, and REQ-027, REQ-038, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-034.
-- [x] T021 [P] Add French and English keys in `src/i18n/` for `factory`. Covers REQ-033.
+- [x] T021 [P] Add French and English keys in `src/lib/i18n/factory.ts` for `factory`. Covers REQ-033.
 - [x] T022 Write the end-to-end test in `e2e/factory.spec.ts`. Covers REQ-003, REQ-024, REQ-026, REQ-027, REQ-028.
 - [x] T023 [P] Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
 - [x] T024 Run the validation commands from `plan.md`.
-- [ ] T025 Compare the code with `spec.md` and update stale artifacts.
+- [x] T025 Compare the code with `spec.md` and update stale artifacts. Compared 2026-10-29 with `.agents/progress/w7.md`. Stale text fixed: the i18n path of T021. Gaps: REQ-022 asks for token and money budgets per day and per member, but the code enforces money only there; tokens limit a run only (Q-061); the alert flags of a day and a member budget are not saved, so one more alert can fire after a restart; a day budget pauses a run on its next usage event. Four acceptance criteria stay unticked for lack of a named test: the automation mapping edit (REQ-025), the role file change, the log shown the same in the UI and the ticket summary (REQ-008), and the one primary action, keyboard and focus ring of the views. The working assumptions of Q-002, Q-023, Q-024 and Q-025 still match the code (Q-024: the code also ships Gemini, OpenCode, Copilot and HTTP providers).
 
 ## Completion Check
 

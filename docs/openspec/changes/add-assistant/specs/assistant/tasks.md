@@ -36,7 +36,7 @@ Plan: [plan.md](plan.md)
 - [x] T023 Write the end-to-end test in `e2e/assistant.spec.ts` for ask, plan, agent, Send to factory and Explain (REQ-007, REQ-008, REQ-009, REQ-014, REQ-015, REQ-016, REQ-022 to REQ-025).
 - [x] T024 [P] Add the changelog entry in `CHANGELOG.md` and `CHANGELOG.fr.md` (REQ-001).
 - [x] T025 Run `cd docs && npx -y @fission-ai/openspec@latest validate add-assistant --strict` and the commands of `plan.md` (REQ-001 to REQ-025).
-- [ ] T026 Compare the code with the spec and update stale artifacts in `docs/openspec/changes/add-assistant/`. Close Q-047, Q-048 and Q-049 (REQ-009, REQ-015).
+- [x] T026 Compare the code with the spec and update stale artifacts in `docs/openspec/changes/add-assistant/`. Close Q-047, Q-048 and Q-049 (REQ-009, REQ-015). Compared 2026-10-29 with `.agents/progress/w7.md`. Code matches REQ-001 to REQ-025. Code follows the recommended option of each RAID question: one worktree per thread (Q-047), a work item first and the run from its claim (Q-048), two permission levels and no bypass (Q-049). Gaps: no UI to discard an agent worktree (REQ-009); no UI to edit project defaults (REQ-019, the commands `assistant_defaults_get` and `assistant_defaults_set` exist); CLI runners only, no HTTP provider (REQ-011, REQ-012); the secret filter covers provider keys and connection secrets (REQ-020). RAID closing waits for the owner.
 
 ## Completion Check
 

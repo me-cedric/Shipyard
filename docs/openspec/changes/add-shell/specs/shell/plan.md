@@ -42,7 +42,7 @@ pnpm tsc --noEmit
 pnpm vitest run src/features/shell
 pnpm vitest run src/features/home
 pnpm playwright test e2e/shell.spec.ts
-cd /Users/mecedric/Documents/Projects/shipyard/docs && npx -y @fission-ai/openspec@latest validate add-shell --strict
+cd docs && npx -y @fission-ai/openspec@latest validate add-shell --strict
 ```
 
 ## Docs And Spec Sync

@@ -19,8 +19,8 @@ Plan: [plan.md](./plan.md)
 - [x] T006 Implement the exports in `crates/shipyard-store/src/export.rs`. Covers REQ-013 to REQ-016.
 - [x] T007 [P] Write app tests in `crates/shipyard-app/tests/knowledge.rs`: code graph through a fake MCP server. Covers REQ-002, REQ-008.
 - [x] T008 Implement the commands in `crates/shipyard-app/src/knowledge.rs`. Covers REQ-002, REQ-008, REQ-023.
-- [x] T009 [P] Write component tests for the renderer in `src/ui/graph-canvas.test.tsx`: selection, keyboard, table view, reduced motion. Covers REQ-003, REQ-005, REQ-006.
-- [x] T010 Build `GraphCanvas` in `src/ui/graph-canvas.tsx` and switch the Agents map to it. Covers REQ-003.
+- [x] T009 [P] Write component tests for the renderer in `src/ui/organisms/graph-canvas.test.tsx`: selection, keyboard, table view, reduced motion. Covers REQ-003, REQ-005, REQ-006.
+- [x] T010 Build `GraphCanvas` in `src/ui/organisms/graph-canvas.tsx` and switch the Agents map to it. Covers REQ-003.
 - [x] T011 [P] Write component tests for Graph in `src/features/knowledge/graph.test.tsx`: kinds, filter, focus, source switch, marks. Covers REQ-001, REQ-002, REQ-004, REQ-005, REQ-007.
 - [x] T012 Build Graph in `src/features/knowledge/`. Covers REQ-001, REQ-002, REQ-004, REQ-005, REQ-007.
 - [x] T013 [P] Write component tests for Explain in `src/features/knowledge/explain.test.tsx`. Covers REQ-008, REQ-009.
@@ -36,7 +36,7 @@ Plan: [plan.md](./plan.md)
 - [x] T023 Write the e2e test `e2e/knowledge.spec.ts`: graph, Explain, handbook, export, deck, path, dashboard. Covers REQ-001 to REQ-026. Done: six tests on the mock. Open: none.
 - [x] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-026.
 - [x] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-026.
-- [ ] T026 Compare the code with `spec.md`, update stale artifacts, then close Q-044, Q-045 and Q-046. Covers REQ-002, REQ-016, REQ-021.
+- [x] T026 Compare the code with `spec.md`, update stale artifacts, then close Q-044, Q-045 and Q-046. Covers REQ-002, REQ-016, REQ-021. Compared 2026-10-29 with `.agents/progress/w8.md`. Code follows the recommended option of each RAID question: the xlsx export is the client deliverable (Q-044), the code graph comes from codebase-memory (Q-045: `crates/shipyard-app/tests/knowledge.rs`), a term opens the spec that defines it (Q-046: `learn.test.tsx`). Stale text fixed: the path of `graph-canvas.test.tsx` in `plan.md`. Gaps: REQ-016 a deck exports as one file that opens offline is not built (Q-071), so its criterion stays unticked; the deck has no theme logo (Q-072); no tile add or remove (REQ-021); no Explain in the ref chip context menu (REQ-016); no test proves the keyboard, focus ring and French text of every Knowledge view; the `.docx` layout is not checked in Word. RAID closing waits for the owner (Q-044, Q-045, Q-046).
 
 ## Completion Check
 

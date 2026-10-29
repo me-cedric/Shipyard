@@ -28,7 +28,7 @@ One graph renderer lives in `src/ui/`. Pure rules (stale and orphan marks, learn
 ## Affected Surfaces
 
 - Code: `crates/shipyard-core` (rules), `crates/shipyard-store` (codecs, exports), `crates/shipyard-app` (commands, Explain context, code graph calls), `src/ui/` (GraphCanvas), `src/features/knowledge/`. The Agents map of `add-factory` imports `GraphCanvas`.
-- Tests: `crates/*/tests`, `src/ui/graph-canvas.test.tsx`, `src/features/knowledge/*.test.tsx`, `e2e/knowledge.spec.ts`.
+- Tests: `crates/*/tests`, `src/ui/organisms/graph-canvas.test.tsx`, `src/features/knowledge/*.test.tsx`, `e2e/knowledge.spec.ts`.
 - Docs/specs: `docs/openspec/changes/add-knowledge/`, `CHANGELOG.md`, `CHANGELOG.fr.md`, Q-044, Q-045, Q-046.
 
 ## Approach
@@ -49,7 +49,7 @@ One graph renderer lives in `src/ui/`. Pure rules (stale and orphan marks, learn
 cargo test -p shipyard-core
 cargo test -p shipyard-store
 cargo test -p shipyard-app
-pnpm vitest run src/ui/graph-canvas.test.tsx
+pnpm vitest run src/ui/organisms/graph-canvas.test.tsx
 pnpm vitest run src/features/knowledge
 pnpm playwright test e2e/knowledge.spec.ts
 cd docs && npx -y @fission-ai/openspec@latest validate add-knowledge --strict

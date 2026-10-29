@@ -70,20 +70,20 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 
 ### Acceptance Criteria
 
-- [ ] Backlog and Board read the mirror, work offline and show the run state of each item.
-- [ ] A card move sends the transition, and a refusal returns the card.
-- [ ] A team file with a duplicate handle is refused and the last valid team stays.
-- [ ] The PM assigns a member, and the suggestion ranks members by skill and capacity without assigning.
-- [ ] An item assigned to me with the pickup label is eligible on my machine, and no other item is.
-- [ ] A sheet shows the four views with equal totals in the summary, the spread and the portfolio.
+- [x] Backlog and Board read the mirror, work offline and show the run state of each item. Test: `src/features/work/backlog.test.tsx`.
+- [x] A card move sends the transition, and a refusal returns the card. Test: `src/features/work/backlog.test.tsx`.
+- [x] A team file with a duplicate handle is refused and the last valid team stays. Test: `crates/shipyard-store/tests/work.rs`, `src/features/work/team.test.tsx`.
+- [x] The PM assigns a member, and the suggestion ranks members by skill and capacity without assigning. Test: `src/features/work/backlog.test.tsx`, `crates/shipyard-core/tests/work.rs`.
+- [x] An item assigned to me with the pickup label is eligible on my machine, and no other item is. Test: `crates/shipyard-core/tests/pickup.rs`.
+- [x] A sheet shows the four views with equal totals in the summary, the spread and the portfolio. Test: `src/features/work/estimates.test.tsx`.
 - [ ] An Excel import shows a preview, and an Excel export opens in the CGI costing tool.
-- [ ] Sealed sheets show unreadable text in the file and a locked state without the passphrase.
-- [ ] A team change moves the plan dates and changes no file.
-- [ ] A time entry needs a resolved member, and no worklog is sent without a person's action.
-- [ ] A lost worklog response never causes a second worklog.
-- [ ] The apply preview writes nothing, a failed row keeps the earlier rows, and a second apply creates no duplicate.
-- [ ] Plan and apply read the effort of the sheet and keep no copy.
-- [ ] One click on a ref creates one work item, and a second click creates none.
+- [x] Sealed sheets show unreadable text in the file and a locked state without the passphrase. Test: `crates/shipyard-store/tests/work.rs`, `src/features/work/estimates.test.tsx`.
+- [x] A team change moves the plan dates and changes no file. Test: `src/features/work/plan.test.tsx`.
+- [x] A time entry needs a resolved member, and no worklog is sent without a person's action. Test: `src/features/work/time.test.tsx`.
+- [x] A lost worklog response never causes a second worklog. Test: `src/features/work/time.test.tsx`, `crates/shipyard-trackers/tests/work.rs`.
+- [x] The apply preview writes nothing, a failed row keeps the earlier rows, and a second apply creates no duplicate. Test: `src/features/work/apply.test.tsx`, `crates/shipyard-trackers/tests/work.rs`.
+- [x] Plan and apply read the effort of the sheet and keep no copy. Test: `src/features/work/apply.test.tsx`, `crates/shipyard-store/tests/work.rs`.
+- [x] One click on a ref creates one work item, and a second click creates none. Test: `src/features/work/apply.test.tsx`, `crates/shipyard-trackers/tests/work.rs`.
 - [ ] Every Work view works with the keyboard, shows a focus ring and has French and English text.
 
 ### Links

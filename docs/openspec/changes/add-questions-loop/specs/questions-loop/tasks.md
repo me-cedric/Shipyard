@@ -29,7 +29,7 @@ Plan: [plan.md](./plan.md)
 - [x] T015 Write the end-to-end test in `e2e/questions-loop.spec.ts`. Covers REQ-004, REQ-008, REQ-009, REQ-017.
 - [x] T016 [P] Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
 - [x] T017 Run the validation commands from `plan.md`.
-- [ ] T018 Compare the code with `spec.md` and update stale artifacts.
+- [x] T018 Compare the code with `spec.md` and update stale artifacts. Compared 2026-10-29 with `.agents/progress/w7.md`. The spec matches the code, and the working assumptions of Q-002, Q-026, Q-027 and Q-028 still hold. No stale text found. Gap: no test proves the focus ring and the French text of the question card, so the last acceptance criterion stays unticked (`src/features/home/inbox/question-card.test.tsx` covers the keyboard).
 
 ## Completion Check
 

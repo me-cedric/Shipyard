@@ -73,20 +73,20 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 
 ### Acceptance Criteria
 
-- [ ] A run in `SelfReview` uses a reviewer with no history of the builder and posts nothing outside the run log.
-- [ ] A finding that cites a missing line is dropped.
-- [ ] A third fix round never starts. The run moves to `Blocked` and the Inbox shows the P0 and P1 findings.
-- [ ] A red gate sends the run back to `Working`. A green gate with no P0 or P1 finding opens the pull request step, also with a P2 finding.
-- [ ] A draft pull request sits in In review, whatever its CI state.
-- [ ] The branch follows `<type>/<area>/<kebab>`, and the commit and the body hold no AI attribution line.
-- [ ] The pull request uses only labels that exist and opens as a draft.
-- [ ] With `push` and `pull_request` off, the Inbox shows one approval for each write, and one click sends it.
-- [ ] A force with lease always waits for a click.
-- [ ] A repeated tick opens one pull request and posts one summary.
-- [ ] A CI failure and a review comment each send the run to `ChangesRequested` and back to `Working` in the same worktree.
-- [ ] A merged pull request moves the run to `Merged` and `Done`, never to `Cancelled`, then moves the ticket, posts the summary and removes the clean worktree.
-- [ ] A pull request closed without a merge moves the run to `Blocked`.
-- [ ] Factory / Runs shows In review and Ready to merge with the pull request, CI and review state.
+- [x] A run in `SelfReview` uses a reviewer with no history of the builder and posts nothing outside the run log. Test: `crates/shipyard-engine/tests/review.rs`.
+- [x] A finding that cites a missing line is dropped. Test: `crates/shipyard-engine/tests/review.rs`.
+- [x] A third fix round never starts. The run moves to `Blocked` and the Inbox shows the P0 and P1 findings. Test: `crates/shipyard-engine/tests/review.rs`.
+- [x] A red gate sends the run back to `Working`. A green gate with no P0 or P1 finding opens the pull request step, also with a P2 finding. Test: `crates/shipyard-engine/tests/review.rs`.
+- [x] A draft pull request sits in In review, whatever its CI state. Test: `crates/shipyard-core/tests/delivery.rs` (`lanes`), `src/features/factory/delivery.test.tsx`.
+- [x] The branch follows `<type>/<area>/<kebab>`, and the commit and the body hold no AI attribution line. Test: `crates/shipyard-core/tests/delivery.rs`, `crates/shipyard-engine/tests/pull_request.rs`.
+- [x] The pull request uses only labels that exist and opens as a draft. Test: `crates/shipyard-core/tests/delivery.rs`, `crates/shipyard-engine/tests/pull_request.rs`.
+- [x] With `push` and `pull_request` off, the Inbox shows one approval for each write, and one click sends it. Test: `crates/shipyard-engine/tests/pull_request.rs`.
+- [x] A force with lease always waits for a click. Test: `crates/shipyard-engine/tests/approvals.rs`, `crates/shipyard-engine/tests/feedback.rs`.
+- [x] A repeated tick opens one pull request and posts one summary. Test: `crates/shipyard-engine/tests/pull_request.rs`, `crates/shipyard-engine/tests/merge.rs`.
+- [x] A CI failure and a review comment each send the run to `ChangesRequested` and back to `Working` in the same worktree. Test: `crates/shipyard-engine/tests/feedback.rs`.
+- [x] A merged pull request moves the run to `Merged` and `Done`, never to `Cancelled`, then moves the ticket, posts the summary and removes the clean worktree. Test: `crates/shipyard-engine/tests/merge.rs`.
+- [x] A pull request closed without a merge moves the run to `Blocked`. Test: `crates/shipyard-engine/tests/feedback.rs`.
+- [x] Factory / Runs shows In review and Ready to merge with the pull request, CI and review state. Test: `src/features/factory/delivery.test.tsx`, `e2e/delivery.spec.ts`.
 - [ ] Every delivery view works with the keyboard, shows a focus ring and has French and English text.
 
 ### Links

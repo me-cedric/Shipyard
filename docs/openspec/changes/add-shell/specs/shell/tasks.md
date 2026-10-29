@@ -24,13 +24,13 @@ Plan: [plan.md](./plan.md)
 - [x] T011 Write Home tests in `src/features/home/home.test.tsx`. REQ-003, REQ-004.
 - [x] T012 Implement Inbox, My work and Activity in `src/features/home/`. REQ-003, REQ-004. My work and Activity do not show pinned tiles yet (`add-knowledge` REQ-024).
 - [x] T013 Write Settings / Me and language tests in `src/features/settings/me/me.test.tsx`. REQ-010, REQ-011.
-- [x] T014 Implement Settings / Me and the language switch in `src/features/settings/me/` and `src/lib/i18n/`. REQ-010, REQ-011. The code is `src/features/settings/me.tsx`. Open: fonts, shortcuts and notification sources (Q-099).
+- [x] T014 Implement Settings / Me and the language switch in `src/features/settings/me/` and `src/lib/i18n/`. REQ-010, REQ-011. The code is `src/features/settings/me.tsx`. Done: a switch for each notification source (`notifyOff`). Open: fonts and shortcuts (Q-099).
 - [x] T015 [P] Write update check and last-view tests in `crates/shipyard-app/src/shell/prefs.rs` (`cargo test -p shipyard-app`). REQ-014, REQ-015. The update check tests are in `crates/shipyard-app/src/shell/update.rs`.
 - [x] T016 Implement the update check and the last view store in `crates/shipyard-app/src/shell/prefs.rs`. REQ-014, REQ-015. The check reads the `releaseUrl` preference, informs and installs nothing. `UpdateInfo.notes` holds the changelog sections after `seenVersion` (Q-098). The UI shows `notes` once in the notification centre and records `seenVersion`.
 - [x] T017 Write the shell e2e (keyboard path, first run, restart) in `e2e/shell.spec.ts`. REQ-015, REQ-016, REQ-017. The e2e restart check is the vitest test in `src/features/projects/projects.test.tsx` (Q-100).
-- [ ] T018 Add one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. All REQ.
-- [ ] T019 Run the validation commands from `plan.md`.
-- [ ] T020 Compare the code with `spec.md` and update stale artifacts.
+- [x] T018 Add one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. All REQ. The entries exist in `CHANGELOG.md` and `CHANGELOG.fr.md` (40 bullets each): the shell, the notification centre, the context menus, the notification sources and the update notes.
+- [x] T019 Run the validation commands from `plan.md`. Run 2026-10-29: `cargo test -p` core, trackers, forges, agents, engine, store, app, git and mcp passed; `pnpm tsc --noEmit` passed; `pnpm vitest run` passed (101 files, 761 tests); `pnpm playwright test` passed 95, failed 1: `e2e/a11y.spec.ts` factory light theme, axe `label-content-name-mismatch` on the Agents map run nodes, and the test passed on a second run (flaky, open); `cd docs && npx -y @fission-ai/openspec@1.15.0 validate --all --strict` passed (16 of 16).
+- [x] T020 Compare the code with `spec.md` and update stale artifacts. Compared 2026-10-29 with `.agents/progress/w8.md` and `w9.md`. Stale text fixed: the validation path in `plan.md` is `cd docs`, and T014 no longer lists the notification sources as open. Gaps: REQ-010 lists fonts, reduced motion, shortcuts and the detected agent CLIs, but Settings / Me holds six settings; the CLIs sit in Settings / Connections (Q-099, working option: keep six). The event list lives in the UI, not in Rust (T009, T010). Q-100 (last view on a project switch) and Q-101 (design tokens without Figma) hold decisions that the spec does not state yet.
 
 ## Completion Check
 

@@ -92,30 +92,30 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 
 ### Acceptance Criteria
 
-- [ ] A claimed ticket creates a run in `Queued` and the run reaches `Done` through the main path.
-- [ ] A transition that the state machine does not list is refused and logged.
-- [ ] PlanReview waits for a person, and a workflow with the gate off skips it.
-- [ ] A run in `WaitingForAnswer` shows no stall timeout and no budget spend, and returns to its stored state.
-- [ ] A failed step retries after 10 s, 20 s, 40 s and so on, never more than 5 min apart.
+- [x] A claimed ticket creates a run in `Queued` and the run reaches `Done` through the main path. Test: `crates/shipyard-engine/tests/engine.rs`.
+- [x] A transition that the state machine does not list is refused and logged. Test: `crates/shipyard-core/tests/run_state.rs`.
+- [x] PlanReview waits for a person, and a workflow with the gate off skips it. Test: `crates/shipyard-core/tests/run_state.rs`, `crates/shipyard-engine/tests/engine.rs`.
+- [x] A run in `WaitingForAnswer` shows no stall timeout and no budget spend, and returns to its stored state. Test: `crates/shipyard-core/tests/run_state.rs`, `crates/shipyard-engine/tests/questions.rs`.
+- [x] A failed step retries after 10 s, 20 s, 40 s and so on, never more than 5 min apart. Test: `crates/shipyard-core/tests/run_state.rs`, `crates/shipyard-engine/tests/engine.rs`.
 - [ ] Each of the sixteen run states has a tracker status and labels in `.shipyard/automation.yaml`, and an edit changes the next write.
-- [ ] A broken workflow file shows its error and the last valid version keeps running.
-- [ ] The five default workflows exist and validate against the schema.
-- [ ] A `for_each` step with `max_parallel` 2 runs at most two children, each in its own worktree.
-- [ ] The children of a worktree step join the run folder at fan-in, and a conflict blocks the run.
+- [x] A broken workflow file shows its error and the last valid version keeps running. Test: `crates/shipyard-store/tests/factory_files.rs`, `e2e/factory.spec.ts`.
+- [x] The five default workflows exist and validate against the schema. Test: `crates/shipyard-store/tests/factory_files.rs`.
+- [x] A `for_each` step with `max_parallel` 2 runs at most two children, each in its own worktree. Test: `crates/shipyard-core/tests/workflow.rs`, `crates/shipyard-git/tests/worktree.rs`.
+- [x] The children of a worktree step join the run folder at fan-in, and a conflict blocks the run. Test: `crates/shipyard-engine/tests/children.rs`.
 - [ ] A role file in `.shipyard/roles/` changes the profile that its step uses.
-- [ ] A runner streams events to the run bus, and no secret value appears in its arguments or in the log.
-- [ ] Each of the eight tools writes one event with the effect named in its requirement, and a bad input is rejected.
+- [x] A runner streams events to the run bus, and no secret value appears in its arguments or in the log. Test: `crates/shipyard-agents/tests/runner.rs`.
+- [x] Each of the eight tools writes one event with the effect named in its requirement, and a bad input is rejected. Test: `crates/shipyard-mcp/tests/tools.rs`.
 - [ ] The run log has no edit and no delete, and the UI and the ticket summary show the same events.
-- [ ] A run at 80 % of its budget raises one alert, and at 100 % it moves to `Paused`.
-- [ ] A run in `Paused` leaves it when a person raises the budget and resumes it.
-- [ ] A workflow `limits` block sets max turns, budget and stall timeout, and a bad value is rejected.
-- [ ] `SelfReview` uses a fresh reviewer, allows two fix rounds at most, and moves to `Blocked` when they are spent.
-- [ ] The agent tools answer on stdio and on HTTP, and HTTP accepts only this machine.
-- [ ] A run with no event for the stall timeout is stopped, and a run at max turns moves to `Failed`.
-- [ ] The kill switch of a run cancels it, and the global kill switch cancels every active run and stops pickup.
-- [ ] After a restart the runs, the approval queue, the open questions and the kill switch are back, running steps start again, and no write that went out is sent twice.
-- [ ] With all four write switches off, each write appears in the Inbox as an approval, and one click sends it.
-- [ ] The Runs view shows the six lanes with counts, puts each state in its lane, shows a ready `PROpen` run in Ready to merge, and the run view shows the DAG, event tail, diff and cost.
+- [x] A run at 80 % of its budget raises one alert, and at 100 % it moves to `Paused`. Test: `crates/shipyard-engine/tests/engine.rs`.
+- [x] A run in `Paused` leaves it when a person raises the budget and resumes it. Test: `crates/shipyard-engine/tests/engine.rs`.
+- [x] A workflow `limits` block sets max turns, budget and stall timeout, and a bad value is rejected. Test: `crates/shipyard-core/tests/workflow.rs`, `crates/shipyard-engine/tests/engine.rs`.
+- [x] `SelfReview` uses a fresh reviewer, allows two fix rounds at most, and moves to `Blocked` when they are spent. Test: `crates/shipyard-engine/tests/review.rs`.
+- [x] The agent tools answer on stdio and on HTTP, and HTTP accepts only this machine. Test: `crates/shipyard-mcp/tests/transport.rs`.
+- [x] A run with no event for the stall timeout is stopped, and a run at max turns moves to `Failed`. Test: `crates/shipyard-engine/tests/engine.rs`.
+- [x] The kill switch of a run cancels it, and the global kill switch cancels every active run and stops pickup. Test: `crates/shipyard-engine/tests/engine.rs`, `e2e/factory.spec.ts`.
+- [x] After a restart the runs, the approval queue, the open questions and the kill switch are back, running steps start again, and no write that went out is sent twice. Test: `crates/shipyard-engine/tests/restart.rs`.
+- [x] With all four write switches off, each write appears in the Inbox as an approval, and one click sends it. Test: `crates/shipyard-engine/tests/approvals.rs`.
+- [x] The Runs view shows the six lanes with counts, puts each state in its lane, shows a ready `PROpen` run in Ready to merge, and the run view shows the DAG, event tail, diff and cost. Test: `src/features/factory/runs.test.tsx`, `e2e/factory.spec.ts`.
 - [ ] The Workflows, Agents map, Sessions and Usage views each open from the Factory sidebar and have one primary action.
 - [ ] Every Factory view works with the keyboard, shows a focus ring and has assistive labels, in French and English.
 

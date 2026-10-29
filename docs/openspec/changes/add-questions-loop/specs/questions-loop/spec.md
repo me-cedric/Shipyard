@@ -60,21 +60,21 @@ An agent that guesses a decision that belongs to a person produces wrong work. L
 
 ### Acceptance Criteria
 
-- [ ] The planner reads the ticket with `grill-me` before any plan, and each open high-impact item becomes a question.
-- [ ] A call to `ask_question` with one option or five options is rejected.
-- [ ] The run moves to `WaitingForAnswer`, shows its return state, and spends no budget while it waits.
-- [ ] With the switches on, the ticket moves to the mapped status and one comment carries the marker and numbered options.
-- [ ] A spec-level question creates a RAID file in `docs/delivery/questions/` and the file validates.
-- [ ] The Inbox shows a QuestionCard, and the person sends an answer with the keyboard.
-- [ ] A reply from the account that Shipyard writes with counts as a reply, and a comment with a stored id does not.
-- [ ] A reply on the tracker site is found on the next tick and read as a number, a letter, `/answer B` or free text.
-- [ ] A reply that Shipyard cannot read does not resume the run, and the card shows it for a decision.
-- [ ] A reply that the person edits before the run resumes gives the edited answer, and an edit after the resume changes nothing and is logged.
-- [ ] A run with two open questions resumes only after both have an answer.
-- [ ] With `tracker_comment` and `tracker_transition` off, the comment and the move show as approvals, and an answer in the Inbox resumes the run.
-- [ ] The run returns to its return state with the answer in context, by CLI session resume or by a re-brief from the run log.
-- [ ] A person folds the answer of a spec-level question into the spec after a preview.
-- [ ] A ticket that becomes terminal closes its non-spec questions and leaves its spec-level questions open.
+- [x] The planner reads the ticket with `grill-me` before any plan, and each open high-impact item becomes a question. Test: `crates/shipyard-store/tests/factory_files.rs` (the feature workflow grills first).
+- [x] A call to `ask_question` with one option or five options is rejected. Test: `crates/shipyard-engine/tests/questions.rs`, `crates/shipyard-core/tests/reply_parser.rs`.
+- [x] The run moves to `WaitingForAnswer`, shows its return state, and spends no budget while it waits. Test: `crates/shipyard-engine/tests/questions.rs`, `crates/shipyard-core/tests/run_state.rs`.
+- [x] With the switches on, the ticket moves to the mapped status and one comment carries the marker and numbered options. Test: `crates/shipyard-engine/tests/questions.rs`.
+- [x] A spec-level question creates a RAID file in `docs/delivery/questions/` and the file validates. Test: `crates/shipyard-engine/tests/questions.rs`.
+- [x] The Inbox shows a QuestionCard, and the person sends an answer with the keyboard. Test: `src/features/home/inbox/question-card.test.tsx`, `e2e/questions-loop.spec.ts`.
+- [x] A reply from the account that Shipyard writes with counts as a reply, and a comment with a stored id does not. Test: `crates/shipyard-engine/tests/handoff.rs`.
+- [x] A reply on the tracker site is found on the next tick and read as a number, a letter, `/answer B` or free text. Test: `crates/shipyard-engine/tests/handoff.rs`, `crates/shipyard-core/tests/reply_parser.rs`.
+- [x] A reply that Shipyard cannot read does not resume the run, and the card shows it for a decision. Test: `crates/shipyard-core/tests/reply_parser.rs`, `src/features/home/inbox/question-card.test.tsx`.
+- [x] A reply that the person edits before the run resumes gives the edited answer, and an edit after the resume changes nothing and is logged. Test: `crates/shipyard-engine/tests/questions.rs`, `crates/shipyard-core/tests/reply_parser.rs`.
+- [x] A run with two open questions resumes only after both have an answer. Test: `crates/shipyard-engine/tests/questions.rs`.
+- [x] With `tracker_comment` and `tracker_transition` off, the comment and the move show as approvals, and an answer in the Inbox resumes the run. Test: `crates/shipyard-engine/tests/questions.rs`.
+- [x] The run returns to its return state with the answer in context, by CLI session resume or by a re-brief from the run log. Test: `crates/shipyard-engine/tests/questions.rs`, `crates/shipyard-engine/tests/restart.rs`.
+- [x] A person folds the answer of a spec-level question into the spec after a preview. Test: `src/features/home/home.test.tsx`.
+- [x] A ticket that becomes terminal closes its non-spec questions and leaves its spec-level questions open. Test: `crates/shipyard-engine/tests/questions.rs`.
 - [ ] The question card works with the keyboard, shows a focus ring, has assistive labels and ships in French and English.
 
 ### Links

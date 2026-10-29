@@ -37,7 +37,7 @@ Plan: [plan.md](./plan.md)
 - [x] T021 Write the e2e test `e2e/delivery.spec.ts` with a fake tracker and forge: review, pull request, CI failure, merge, close. Covers REQ-001 to REQ-029.
 - [x] T022 [P] Add one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-029.
 - [x] T023 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-029.
-- [ ] T024 Compare the code with `spec.md` and update stale artifacts, then close Q-029, Q-030 and Q-031. Covers REQ-006, REQ-012, REQ-026.
+- [x] T024 Compare the code with `spec.md` and update stale artifacts, then close Q-029, Q-030 and Q-031. Covers REQ-006, REQ-012, REQ-026. Compared 2026-10-29 with `.agents/progress/w7.md` and `w8.md`. Code matches the working assumptions of REQ-006 (gates in `.shipyard/project.yaml`, Q-030), REQ-012 (`reviewers` list, Q-029) and REQ-026 (`Blocked`, Q-031). Stale text fixed: the digest port exists (`plan.md`, Open Items). Gaps: nothing reads `assignee` for the pull request (REQ-012); the Automation form in `src/features/sync/` does not edit `reviewers` or `assignee`; no test proves the keyboard and focus ring of the delivery views, so the last acceptance criterion stays unticked; the adapters never ran against a real forge or tracker. RAID closing waits for the owner (Q-029, Q-030, Q-031).
 
 ## Completion Check
 

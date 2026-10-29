@@ -34,7 +34,7 @@ Plan: [plan.md](plan.md)
 - [x] T021 Write the end-to-end test in `e2e/extensions.spec.ts` for apply, plugin import with review, and child deploy (REQ-003, REQ-011, REQ-012, REQ-016, REQ-017). Done: three tests on the mock. Open: none.
 - [x] T022 [P] Add the changelog entry in `CHANGELOG.md` and `CHANGELOG.fr.md` (REQ-001).
 - [x] T023 Run `cd docs && npx -y @fission-ai/openspec@latest validate add-extensions --strict` and the commands of `plan.md` (REQ-001 to REQ-019).
-- [ ] T024 Compare the code with the spec and update stale artifacts in `docs/openspec/changes/add-extensions/`. Close Q-050, Q-051 and Q-052 (REQ-005, REQ-014, REQ-016).
+- [x] T024 Compare the code with the spec and update stale artifacts in `docs/openspec/changes/add-extensions/`. Close Q-050, Q-051 and Q-052 (REQ-005, REQ-014, REQ-016). Compared 2026-10-29 with `.agents/progress/w8.md`. Code follows the recommended option of each RAID question: show only for the pin (Q-050), a deploy stops at the local branch (Q-051), an import of the newer archive shows a diff (Q-052). Gaps: Upgrade restricts the update to a selection only for absent entries, because `ac sync` writes the whole project (REQ-006, Q-074), so the Upgrade-a-selection scenario and its criterion stay unticked; the roles and skills list is read only (REQ-008, Q-082); no test proves the OpenSpec guidance deploy (REQ-017 area) or the Health fix on selected children (Q-083); Q-081 (Add compass with no pin) is open. RAID closing waits for the owner (Q-050, Q-051, Q-052).
 
 ## Completion Check
 

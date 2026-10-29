@@ -67,21 +67,21 @@ A junior or a new member must understand the project from its decisions, specs a
 
 ### Acceptance Criteria
 
-- [ ] Knowledge / Graph draws the reference graph with filters by kind and a table view.
-- [ ] The graph, the code graph and Factory / Agents map use one renderer.
-- [ ] A click on a node opens its entity in the inspector.
-- [ ] An entity with no backlink shows as an orphan, and an entity whose source changed later shows as stale.
-- [ ] A `doc:<path>` ref resolves to its page.
-- [ ] Explain answers from the reference graph and cites refs that resolve. It says so when it has no answer.
-- [ ] A person edits a handbook page and saves it to the repository after a changed-file warning.
-- [ ] The architecture dossier exports as `.docx` with five sections. An unreadable source gives a named gap.
-- [ ] The functional documentation exports as `.docx` and holds no sealed day rate.
-- [ ] A client deliverable exports as `.xlsx`.
-- [ ] A deck uses the project theme and opens in a present mode that Escape leaves.
+- [x] Knowledge / Graph draws the reference graph with filters by kind and a table view. Test: `src/features/knowledge/graph.test.tsx`, `e2e/knowledge.spec.ts`.
+- [x] The graph, the code graph and Factory / Agents map use one renderer. Test: `src/ui/organisms/graph-canvas.test.tsx`, `src/features/knowledge/graph.test.tsx`.
+- [x] A click on a node opens its entity in the inspector. Test: `src/features/knowledge/graph.test.tsx`.
+- [x] An entity with no backlink shows as an orphan, and an entity whose source changed later shows as stale. Test: `crates/shipyard-core/tests/knowledge.rs`, `src/features/knowledge/graph.test.tsx`.
+- [x] A `doc:<path>` ref resolves to its page. Test: `src/features/knowledge/handbook.test.tsx`, `crates/shipyard-store/tests/knowledge.rs`.
+- [x] Explain answers from the reference graph and cites refs that resolve. It says so when it has no answer. Test: `src/features/knowledge/explain.test.tsx`, `crates/shipyard-app/tests/assistant_send.rs`.
+- [x] A person edits a handbook page and saves it to the repository after a changed-file warning. Test: `src/features/knowledge/handbook.test.tsx`, `e2e/knowledge.spec.ts`.
+- [x] The architecture dossier exports as `.docx` with five sections. An unreadable source gives a named gap. Test: `crates/shipyard-store/tests/export.rs`.
+- [x] The functional documentation exports as `.docx` and holds no sealed day rate. Test: `crates/shipyard-store/tests/export.rs`.
+- [x] A client deliverable exports as `.xlsx`. Test: `crates/shipyard-store/tests/export.rs`.
+- [x] A deck uses the project theme and opens in a present mode that Escape leaves. Test: `src/features/knowledge/slides.test.tsx`.
 - [ ] A deck exports as one file that opens offline.
-- [ ] Knowledge / Learn lists the path in order and a glossary of terms.
-- [ ] A dashboard saves to a file with no commit. A tile shows its numbers as a table.
-- [ ] A pinned tile shows on Home.
+- [x] Knowledge / Learn lists the path in order and a glossary of terms. Test: `src/features/knowledge/learn.test.tsx`.
+- [x] A dashboard saves to a file with no commit. A tile shows its numbers as a table. Test: `src/features/knowledge/dashboards.test.tsx`, `crates/shipyard-store/tests/knowledge.rs`.
+- [x] A pinned tile shows on Home. Test: `src/features/knowledge/dashboards.test.tsx`, `e2e/knowledge.spec.ts`.
 - [ ] Every Knowledge view works with the keyboard, shows a focus ring and has French and English text.
 
 ### Links

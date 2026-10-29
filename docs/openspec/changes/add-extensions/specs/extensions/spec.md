@@ -59,22 +59,22 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 
 ### Acceptance Criteria
 
-- [ ] Settings / Agents and rules shows five lists with counts. A skill shows its risk and write capability.
-- [ ] An apply writes through `ac sync` and keeps each existing file.
-- [ ] The view shows the pinned version and the sync state, and the state is the same after a clone.
-- [ ] The pinned version does not change without a person's action.
+- [x] Settings / Agents and rules shows five lists with counts. A skill shows its risk and write capability. Test: `src/features/settings/extensions/extensions.test.tsx`, `crates/shipyard-store/tests/compass.rs`.
+- [x] An apply writes through `ac sync` and keeps each existing file. Test: `crates/shipyard-app/tests/compass_apply.rs`, `crates/shipyard-core/tests/extensions.rs`.
+- [x] The view shows the pinned version and the sync state, and the state is the same after a clone. Test: `crates/shipyard-store/tests/compass.rs`.
+- [x] The pinned version does not change without a person's action. Test: `crates/shipyard-app/tests/compass_apply.rs`.
 - [ ] One Upgrade action updates every actionable entry, or a selection.
-- [ ] A stale compass entry is a Health finding with one fix.
+- [x] A stale compass entry is a Health finding with one fix. Test: `crates/shipyard-core/tests/compass_health.rs`.
 - [ ] The roles and skills list shows who loads each, and an edit applies to the next run or turn.
-- [ ] Settings / Extensions shows the three catalog groups, and a deploy shows its files first.
-- [ ] A plugin `.zip` imports as data, a bad archive is refused, and nothing is written before the review.
-- [ ] The review lists each file and setting, and only accepted items are written.
-- [ ] A plugin MCP server goes to connections, and a local command is refused.
-- [ ] Child projects show n of m and propose only current parent entries.
-- [ ] A deploy to a child makes a branch and a commit in a local clone.
+- [x] Settings / Extensions shows the three catalog groups, and a deploy shows its files first. Test: `src/features/settings/extensions/extensions.test.tsx`, `crates/shipyard-store/tests/catalog.rs`.
+- [x] A plugin `.zip` imports as data, a bad archive is refused, and nothing is written before the review. Test: `crates/shipyard-store/tests/plugins.rs`.
+- [x] The review lists each file and setting, and only accepted items are written. Test: `crates/shipyard-store/tests/plugins.rs`, `e2e/extensions.spec.ts`.
+- [x] A plugin MCP server goes to connections, and a local command is refused. Test: `crates/shipyard-store/tests/plugins.rs`.
+- [x] Child projects show n of m and propose only current parent entries. Test: `crates/shipyard-core/tests/extensions.rs`.
+- [x] A deploy to a child makes a branch and a commit in a local clone. Test: `crates/shipyard-git/tests/child_deploy.rs`, `e2e/extensions.spec.ts`.
 - [ ] The OpenSpec guidance deploys to a child and keeps the child's own instructions.
 - [ ] A Health fix runs on the children that the person selects.
-- [ ] Both views work by keyboard, show a focus ring and assistive labels, and show French and English.
+- [x] Both views work by keyboard, show a focus ring and assistive labels, and show French and English. Test: `src/features/settings/extensions/a11y.test.tsx`.
 
 ### Links
 

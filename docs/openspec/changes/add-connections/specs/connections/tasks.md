@@ -32,7 +32,7 @@ Plan: [plan.md](./plan.md)
 - [x] T016 [P] Add French and English keys in `src/lib/i18n/` for `connections`. Covers REQ-016.
 - [x] T017 Write the end-to-end test in `e2e/connections.spec.ts`. Covers REQ-001, REQ-011, REQ-012, REQ-014.
 - [x] T018 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
-- [ ] T019 Run the validation commands from `plan.md`.
+- [x] T019 Run the validation commands from `plan.md`. Run 2026-10-29: `cargo test -p` core, trackers, forges, agents, engine, store, app, git and mcp passed; `pnpm tsc --noEmit` passed; `pnpm vitest run` passed (101 files, 761 tests); `pnpm playwright test` passed 95, failed 1: `e2e/a11y.spec.ts` factory light theme, axe `label-content-name-mismatch` on the Agents map run nodes, and the test passed on a second run (flaky, open); `cd docs && npx -y @fission-ai/openspec@1.15.0 validate --all --strict` passed (16 of 16).
 
 ## Completion Check
 
