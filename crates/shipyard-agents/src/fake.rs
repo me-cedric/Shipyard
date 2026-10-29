@@ -17,7 +17,8 @@ pub fn program(dir: &Path, name: &str, body: &str) -> PathBuf {
 ///
 /// It answers `initialize`, `tools/list` (one tool, `ping`) and `tools/call` (`pong`). Method
 /// `env` returns the variables `FAKE_TOKEN` and `FAKE_AUTH`. Method `crash` makes it exit without
-/// an answer. Method `hang` makes it stay silent.
+/// an answer. Method `hang` makes it stay silent for a minute, after it writes the id of the request
+/// to `<pid file>.hang`: a test that waits for that file knows that the request is in flight.
 pub fn mcp_server(dir: &Path, name: &str, pid_file: &Path) -> PathBuf {
     let body = format!(
         r#"echo $$ >> '{pid}'
@@ -31,7 +32,7 @@ while IFS= read -r line; do
     tools/call) printf '{{"jsonrpc":"2.0","id":%s,"result":{{"content":[{{"type":"text","text":"pong"}}]}}}}\n' "$id" ;;
     env) printf '{{"jsonrpc":"2.0","id":%s,"result":{{"token":"%s","auth":"%s"}}}}\n' "$id" "$FAKE_TOKEN" "$FAKE_AUTH" ;;
     crash) exit 0 ;;
-    hang) sleep 5 ;;
+    hang) echo "$id" >> '{pid}.hang'; sleep 60 ;;
   esac
 done"#,
         pid = pid_file.display()

@@ -6,22 +6,63 @@ use shipyard_http::{
 };
 use shipyard_secrets::Secret;
 use std::io::{Read, Write};
-use std::net::TcpListener;
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
+/// How long a test server waits for a byte before it gives up. Long: a loaded machine is slow.
+const PATIENCE: Duration = Duration::from_secs(30);
+
+/// Read one whole request: the head, then `Content-Length` bytes of body. A server that answers
+/// and closes before the client has sent its body resets the connection, and the client sees an
+/// error that has nothing to do with the code under test.
+fn read_request(stream: &mut TcpStream) -> String {
+    stream.set_read_timeout(Some(PATIENCE)).unwrap();
+    let mut raw = Vec::new();
+    let mut buf = [0u8; 4096];
+    let head_end = loop {
+        if let Some(at) = raw.windows(4).position(|w| w == b"\r\n\r\n") {
+            break at + 4;
+        }
+        match stream.read(&mut buf).unwrap() {
+            0 => return String::from_utf8_lossy(&raw).to_string(),
+            n => raw.extend_from_slice(&buf[..n]),
+        }
+    };
+    let head = String::from_utf8_lossy(&raw[..head_end]).to_ascii_lowercase();
+    let wanted = head
+        .lines()
+        .find_map(|l| l.strip_prefix("content-length:"))
+        .and_then(|n| n.trim().parse::<usize>().ok())
+        .unwrap_or(0);
+    while raw.len() < head_end + wanted {
+        match stream.read(&mut buf).unwrap() {
+            0 => break,
+            n => raw.extend_from_slice(&buf[..n]),
+        }
+    }
+    String::from_utf8_lossy(&raw).to_string()
+}
+
+/// Send the answer, then wait for the client to close. No unread byte stays in the socket at
+/// close, so no reset reaches the client.
+fn answer(mut stream: TcpStream, bytes: &[u8]) {
+    let _ = stream.write_all(bytes);
+    let _ = stream.shutdown(Shutdown::Write);
+    let mut sink = [0u8; 4096];
+    while matches!(stream.read(&mut sink), Ok(n) if n > 0) {}
+}
+
 /// Serve one canned answer; send back the raw request text.
-fn serve(answer: Vec<u8>) -> (String, mpsc::Receiver<String>) {
+fn serve(answer_bytes: Vec<u8>) -> (String, mpsc::Receiver<String>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());
     let (tx, rx) = mpsc::channel();
     thread::spawn(move || {
         let (mut stream, _) = listener.accept().unwrap();
-        let mut buf = [0u8; 4096];
-        let n = stream.read(&mut buf).unwrap();
-        let _ = tx.send(String::from_utf8_lossy(&buf[..n]).to_string());
-        let _ = stream.write_all(&answer);
+        let _ = tx.send(read_request(&mut stream));
+        answer(stream, &answer_bytes);
     });
     (url, rx)
 }
@@ -146,35 +187,36 @@ fn urls_are_validated_and_encoded() {
     );
 }
 
-/// Accept one call, wait `delay`, then answer `{"a":1}`.
-fn slow(delay: Duration) -> String {
+/// Accept one call and hold the answer until `release` fires (or the patience ends). The caller
+/// decides when the answer comes, so no test depends on how fast the machine runs.
+fn held(release: mpsc::Receiver<()>) -> String {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());
     thread::spawn(move || {
         let (mut stream, _) = listener.accept().unwrap();
-        let mut buf = [0u8; 4096];
-        let _ = stream.read(&mut buf);
-        thread::sleep(delay);
-        let _ = stream.write_all(&http("200 OK", "", br#"{"a":1}"#));
+        read_request(&mut stream);
+        let _ = release.recv_timeout(PATIENCE);
+        answer(stream, &http("200 OK", "", br#"{"a":1}"#));
     });
     url
 }
 
 #[test]
 fn a_per_request_read_timeout_cuts_a_slow_answer_or_lets_it_finish() {
-    let short = Request::get(
-        format!("{}/x", slow(Duration::from_millis(1500))),
-        Auth::None,
-    )
-    .timeout(Duration::from_millis(200));
+    // The answer does not come until the client has given up: the short timeout cuts it.
+    let (release, held_back) = mpsc::channel();
+    let short = Request::get(format!("{}/x", held(held_back)), Auth::None)
+        .timeout(Duration::from_millis(200));
     assert!(matches!(Client.send(&short), Err(Error::Transport(_))));
+    release.send(()).unwrap();
 
-    let long = Request::get(
-        format!("{}/x", slow(Duration::from_millis(500))),
-        Auth::None,
-    )
-    .timeout(Duration::from_secs(5));
-    assert_eq!(Client.json(&long).unwrap()["a"], 1);
+    // The answer comes after the short timeout would have fired: the long timeout lets it finish.
+    let (release, held_back) = mpsc::channel();
+    let long = Request::get(format!("{}/x", held(held_back)), Auth::None).timeout(PATIENCE);
+    let client = thread::spawn(move || Client.json(&long));
+    thread::sleep(Duration::from_millis(300));
+    release.send(()).unwrap();
+    assert_eq!(client.join().unwrap().unwrap()["a"], 1);
 
     // The default stays 30 s.
     assert!(

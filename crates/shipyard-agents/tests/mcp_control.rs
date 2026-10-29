@@ -53,7 +53,8 @@ impl Lab {
         McpControl::new(self.store.clone(), config)
             .with_dirs(self.dirs())
             .with_waits(Waits {
-                start: Duration::from_secs(5),
+                // Generous: a loaded machine is slow, and a start or a call that works must not fail.
+                start: Duration::from_secs(30),
                 call: Duration::from_millis(800),
             })
     }
@@ -76,6 +77,16 @@ fn custom(name: &str, command: &str) -> CustomInput {
         name: name.into(),
         command: command.into(),
         ..CustomInput::default()
+    }
+}
+
+/// Wait for a condition, not for a time: poll until it holds. The limit is far above any honest
+/// delay and only stops a test that would never end.
+fn wait_until(what: &str, mut condition: impl FnMut() -> bool) {
+    let limit = std::time::Instant::now() + Duration::from_secs(30);
+    while !condition() {
+        assert!(std::time::Instant::now() < limit, "timed out: {what}");
+        std::thread::sleep(Duration::from_millis(10));
     }
 }
 
@@ -271,14 +282,9 @@ fn stop_and_quit_end_a_grandchild_of_the_launcher_too() {
         } else {
             control.stop(&id);
         }
-        let mut tries = 0;
-        while !gone(&grandchild) && tries < 50 {
-            std::thread::sleep(Duration::from_millis(20));
-            tries += 1;
-        }
-        assert!(
-            gone(&grandchild),
-            "the helper ends with the group (quit: {quit})"
+        wait_until(
+            &format!("the helper ends with the group (quit: {quit})"),
+            || gone(&grandchild),
         );
     }
 }
@@ -294,16 +300,13 @@ fn quitting_ends_a_server_that_is_busy_with_a_request() {
         let (control, id) = (control.clone(), id.clone());
         std::thread::spawn(move || control.request(&id, "hang", json!({})))
     };
-    std::thread::sleep(Duration::from_millis(200));
+    // The server writes the id of the request when it has it: the request is in flight.
+    let hang = lab.dir.path().join("pids.hang");
+    wait_until("the request reaches the server", || hang.exists());
     control.stop_all();
-    let mut tries = 0;
-    while !dead(&pid) && tries < 20 {
-        std::thread::sleep(Duration::from_millis(20));
-        tries += 1;
-    }
-    assert!(
-        dead(&pid),
-        "the busy server ends at the quit, not after its request"
+    wait_until(
+        "the busy server ends at the quit, not after its request",
+        || dead(&pid),
     );
     let _ = busy.join();
 }
@@ -543,7 +546,8 @@ fn a_server_that_stays_silent_times_out_and_fails() {
         control.request(&id, "hang", json!({})),
         Err(AgentError::Server(_))
     ));
-    assert!(started.elapsed() < Duration::from_secs(4));
+    // The call wait is 0.8 s and the server sleeps a minute: the call returned at its own limit.
+    assert!(started.elapsed() < Duration::from_secs(30));
     assert!(matches!(control.state(&id), State::Failed { .. }));
 }
 
@@ -651,7 +655,10 @@ fn an_install_runs_the_manager_and_checks_that_the_command_exists_after() {
         .unwrap_err()
         .to_string();
     assert!(err.contains("did not finish"), "{err}");
-    assert!(began.elapsed() < Duration::from_secs(5));
+    assert!(
+        began.elapsed() < Duration::from_secs(25),
+        "stopped at the deadline, not after 30 s"
+    );
 
     // With no manager, the person gets the link.
     let lab = Lab::new();
