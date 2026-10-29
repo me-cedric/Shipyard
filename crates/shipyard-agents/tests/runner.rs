@@ -37,8 +37,7 @@ fn fixture(script: &str) -> Fixture {
         rec.display()
     );
     let bin = program(&root, "fake-cli", &body);
-    let mut spec = RunSpec::new("Fix the login.", &work);
-    spec.scratch = root.join("scratch-run1");
+    let mut spec = RunSpec::new("Fix the login.", &work, root.join("scratch-run1"));
     spec.program = Some(bin);
     spec.codex_home = Some(root.join("codex-home"));
     Fixture {
@@ -246,6 +245,9 @@ fn claude_plan_mode_is_read_only_and_a_fresh_run_has_no_resume() {
     let args = argv(&f.rec);
     let at = args.iter().position(|a| a == "--permission-mode").unwrap();
     assert_eq!(args[at + 1], "plan");
+    // The built-in set is cut to the read tools: no `Edit`, no `Write`, no `Bash`.
+    let tools = args.iter().position(|a| a == "--tools").unwrap();
+    assert_eq!(args[tools + 1], "Read,Grep,Glob");
     for absent in [
         "--resume",
         "--model",
@@ -255,6 +257,24 @@ fn claude_plan_mode_is_read_only_and_a_fresh_run_has_no_resume() {
     ] {
         assert!(!args.contains(&absent.to_string()), "{absent}");
     }
+}
+
+#[test]
+fn claude_plan_mode_keeps_bash_only_when_the_step_lists_a_bash_rule() {
+    let mut f = fixture(CLAUDE_STREAM);
+    f.spec.allowed_tools = vec!["Read".into(), "Bash(git diff:*)".into()];
+    go("claude", f.spec.clone());
+    let args = argv(&f.rec);
+    let tools = args.iter().position(|a| a == "--tools").unwrap();
+    assert_eq!(args[tools + 1], "Read,Grep,Glob,Bash");
+}
+
+#[test]
+fn claude_auto_mode_leaves_the_built_in_set_alone() {
+    let mut f = fixture(CLAUDE_STREAM);
+    f.spec.mode = Mode::Auto;
+    go("claude", f.spec.clone());
+    assert!(!argv(&f.rec).contains(&"--tools".to_string()));
 }
 
 #[test]
@@ -977,6 +997,10 @@ fn a_bad_spec_starts_no_process() {
     };
     assert!(bad(&|s| s.prompt = "  ".into()).contains("prompt"));
     assert!(bad(&|s| s.dir = f.root.join("missing")).contains("workspace"));
+    // The scratch folder holds the MCP config and the brief: never inside the worktree.
+    assert!(bad(&|s| s.scratch = s.dir.join(".scratch")).contains("scratch"));
+    assert!(bad(&|s| s.scratch = s.dir.clone()).contains("scratch"));
+    assert!(bad(&|s| s.scratch = "relative/scratch".into()).contains("scratch"));
     assert!(bad(&|s| s.model = Some("--dangerously-skip-permissions".into())).contains("model"));
     assert!(bad(&|s| s.effort = Some("high; rm".into())).contains("effort"));
     assert!(bad(&|s| s.resume = Some("-r x".into())).contains("session id"));

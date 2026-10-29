@@ -88,12 +88,17 @@ pub struct RunSpec {
     pub effort: Option<String>,
     pub mode: Mode,
     /// Tool names in the words of the CLI (`Read`, `Bash(git diff:*)`, `mcp__shipyard__report`).
-    /// Used by Claude Code and Gemini CLI. The others enforce the mode by sandbox or by
-    /// permission answers, and ignore the list.
+    /// Used by Claude Code and Gemini CLI, to pre-approve. The others ignore the list.
+    ///
+    /// What stops a write in [`Mode::Plan`]: Claude Code gets `--tools` with the read tools only.
+    /// Codex runs with `--sandbox read-only` (the operating system refuses the write). OpenCode
+    /// runs its `plan` agent. Gemini and Copilot rely on their permission answers.
     pub allowed_tools: Vec<String>,
     /// The working directory: the worktree of the run.
     pub dir: PathBuf,
-    /// A folder of the run, outside the worktree, for the generated MCP files.
+    /// A folder for the generated MCP files and the brief: absolute, outside `dir`, and its own
+    /// to this unit (its last name tags the files). The app keeps it under the app data. Never
+    /// in the worktree: a commit would take the token with it.
     pub scratch: PathBuf,
     pub mcp: Vec<McpEntry>,
     /// A session id that the CLI gave in an earlier run ([`Event::Session`]).
@@ -107,7 +112,11 @@ pub struct RunSpec {
 }
 
 impl RunSpec {
-    pub fn new(prompt: impl Into<String>, dir: impl Into<PathBuf>) -> Self {
+    pub fn new(
+        prompt: impl Into<String>,
+        dir: impl Into<PathBuf>,
+        scratch: impl Into<PathBuf>,
+    ) -> Self {
         let dir = dir.into();
         Self {
             prompt: prompt.into(),
@@ -115,7 +124,7 @@ impl RunSpec {
             effort: None,
             mode: Mode::Plan,
             allowed_tools: Vec::new(),
-            scratch: dir.join(".shipyard-scratch"),
+            scratch: scratch.into(),
             dir,
             mcp: Vec::new(),
             resume: None,
@@ -614,6 +623,9 @@ fn check_spec(spec: &RunSpec) -> Result<(), AgentError> {
             "the workspace is not a folder: {}",
             spec.dir.display()
         )));
+    }
+    if !spec.scratch.is_absolute() || spec.scratch.starts_with(&spec.dir) {
+        return bad("the scratch folder must be absolute and outside the workspace");
     }
     // These go into arguments: a leading `-` would be read as a flag.
     for (what, v) in [("model", &spec.model), ("effort", &spec.effort)] {

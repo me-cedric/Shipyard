@@ -30,6 +30,18 @@ impl Runner for Claude {
             }
             .into(),
         );
+        // `--allowedTools` only pre-approves. `--tools` cuts the built-in set itself: a plan run
+        // cannot call `Edit` or `Write` whatever the permission mode says. `Bash` stays only when
+        // the step lists a `Bash` rule. MCP tools are not built in: this flag leaves them alone.
+        if spec.mode == Mode::Plan {
+            let bash = spec.allowed_tools.iter().any(|t| t.starts_with("Bash"));
+            let set = if bash {
+                "Read,Grep,Glob,Bash"
+            } else {
+                "Read,Grep,Glob"
+            };
+            args.extend(["--tools".into(), set.into()]);
+        }
         if let Some(m) = &spec.model {
             args.extend(["--model".into(), m.clone()]);
         }
