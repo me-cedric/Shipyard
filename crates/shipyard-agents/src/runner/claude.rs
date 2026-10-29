@@ -62,6 +62,10 @@ impl Runner for Claude {
         })
     }
 
+    fn http_mcp(&self) -> bool {
+        true
+    }
+
     fn parser(&self, _: &RunSpec) -> Box<dyn Parser> {
         Box::new(ClaudeParser::default())
     }

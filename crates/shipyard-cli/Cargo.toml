@@ -10,3 +10,4 @@ path = "src/main.rs"
 
 [dependencies]
 shipyard-mcp = { path = "../shipyard-mcp" }
+serde_json = "1"

@@ -25,8 +25,10 @@ mod codex;
 mod gemini;
 mod opencode;
 mod provider;
+mod shipyard;
 
 pub use provider::run_provider;
+pub use shipyard::{BRIDGE_FLAG, TOKEN_ENV, URL_ENV};
 
 use crate::AgentError;
 use crate::which::{quiet, search_dirs, which};
@@ -64,6 +66,16 @@ pub struct McpEntry {
     pub command: String,
     pub args: Vec<String>,
     pub vars: Vec<(String, Secret)>,
+    /// An HTTP entry: the CLI calls this endpoint itself and starts no process. `command` stays
+    /// empty. Only a runner with [`Runner::http_mcp`] takes one.
+    pub http: Option<HttpEntry>,
+}
+
+/// An MCP server that the CLI reaches over HTTP (`type: http`). The header values are secrets.
+#[derive(Debug, Clone)]
+pub struct HttpEntry {
+    pub url: String,
+    pub headers: Vec<(String, Secret)>,
 }
 
 #[derive(Debug, Clone)]
@@ -210,6 +222,10 @@ pub trait Runner: Send + Sync {
     fn bin(&self) -> &'static str;
     fn launch(&self, spec: &RunSpec, program: PathBuf) -> Result<Launch, AgentError>;
     fn parser(&self, spec: &RunSpec) -> Box<dyn Parser>;
+    /// The CLI reads an HTTP entry (`type: http` with headers) in its MCP config.
+    fn http_mcp(&self) -> bool {
+        false
+    }
 }
 
 /// The runner for a detected runner id.
@@ -328,6 +344,12 @@ pub(crate) fn thread_run(
 /// Start a run. The checks come first, and none starts a process when it fails.
 pub fn start(runner: &dyn Runner, spec: RunSpec) -> Result<Run, AgentError> {
     check_spec(&spec)?;
+    if !runner.http_mcp() && spec.mcp.iter().any(|m| m.http.is_some()) {
+        return Err(AgentError::Invalid(format!(
+            "{} takes no HTTP MCP entry",
+            runner.id()
+        )));
+    }
     let program = match &spec.program {
         Some(p) => p.clone(),
         None => which(runner.bin(), &search_dirs())
@@ -344,8 +366,24 @@ fn spawn(launch: Launch, mut parser: Box<dyn Parser>, spec: &RunSpec) -> Result<
         .iter()
         .chain(&spec.vars)
         .chain(spec.mcp.iter().flat_map(|m| m.vars.iter()))
+        .chain(
+            spec.mcp
+                .iter()
+                .filter_map(|m| m.http.as_ref())
+                .flat_map(|h| h.headers.iter()),
+        )
         .map(|(_, s)| s.clone())
         .filter(|s| !s.is_empty())
+        .collect();
+    // A header holds `Bearer <token>`: scrub the bare token too.
+    let secrets: Vec<Secret> = secrets
+        .iter()
+        .cloned()
+        .chain(
+            secrets
+                .iter()
+                .filter_map(|s| s.expose().strip_prefix("Bearer ").map(Secret::new)),
+        )
         .collect();
 
     // The brief is read from a file, not from a pipe. A pipe ends only when every copy of its
@@ -598,7 +636,13 @@ fn check_spec(spec: &RunSpec) -> Result<(), AgentError> {
         return bad("a tool name is empty, holds a comma or holds a control character");
     }
     for m in &spec.mcp {
-        if !plain_word(&m.name, "_") || m.command.trim().is_empty() {
+        let target = match &m.http {
+            Some(h) => {
+                h.url.starts_with("http") && h.headers.iter().all(|(k, _)| plain_word(k, ""))
+            }
+            None => !m.command.trim().is_empty(),
+        };
+        if !plain_word(&m.name, "_") || !target {
             return Err(AgentError::Invalid(format!(
                 "not a valid MCP entry: {}",
                 m.name
@@ -653,12 +697,19 @@ pub(crate) fn write_private(path: &Path, text: &str) -> Result<(), AgentError> {
 /// the result goes to a private file only.
 pub(crate) fn mcp_map(entries: &[McpEntry]) -> Value {
     let mut map = serde_json::Map::new();
-    for e in entries {
-        let vars: serde_json::Map<String, Value> = e
-            .vars
+    let secret_map = |pairs: &[(String, Secret)]| -> serde_json::Map<String, Value> {
+        pairs
             .iter()
             .map(|(k, v)| (k.clone(), Value::String(v.expose().to_string())))
-            .collect();
+            .collect()
+    };
+    for e in entries {
+        if let Some(h) = &e.http {
+            let entry = serde_json::json!({ "type": "http", "url": h.url, "headers": secret_map(&h.headers) });
+            map.insert(e.name.clone(), entry);
+            continue;
+        }
+        let vars = secret_map(&e.vars);
         map.insert(
             e.name.clone(),
             serde_json::json!({ "command": e.command, "args": e.args, "env": vars }),

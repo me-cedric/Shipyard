@@ -100,6 +100,7 @@ fn mcp() -> McpEntry {
         command: "/bin/shipyard".into(),
         args: vec!["--mcp-run".into(), "run1".into()],
         vars: vec![("SHIPYARD_TOKEN".into(), Secret::new(MCP_KEY))],
+        http: None,
     }
 }
 
@@ -307,6 +308,127 @@ fn a_crash_message_does_not_leak_a_secret_from_stderr() {
             message: "bad key ***".into()
         }
     );
+}
+
+// ---- The Shipyard MCP entry
+
+const MCP_URL: &str = "http://127.0.0.1:4567/mcp";
+
+fn shipyard_entry(runner_id: &str) -> McpEntry {
+    McpEntry::shipyard(
+        &*runner(runner_id).unwrap(),
+        Path::new("/bin/shipyard"),
+        MCP_URL,
+        &Secret::new(MCP_KEY),
+    )
+    .unwrap()
+}
+
+#[test]
+fn claude_gets_an_http_entry_in_a_private_file_and_no_token_in_argv() {
+    let mut f = fixture(CLAUDE_STREAM);
+    f.spec.mcp = vec![shipyard_entry("claude")];
+    f.spec.vars = vec![("FAKE_KEY".into(), Secret::new(KEY))];
+    let events = go("claude", f.spec.clone());
+    assert_eq!(read(&f.rec, "mode").trim(), "-rw-------");
+    let file: serde_json::Value = serde_json::from_str(&read(&f.rec, "mcp.json")).unwrap();
+    let server = &file["mcpServers"]["shipyard"];
+    assert_eq!(server["type"], "http");
+    assert_eq!(server["url"], MCP_URL);
+    assert_eq!(
+        server["headers"]["Authorization"],
+        format!("Bearer {MCP_KEY}")
+    );
+    assert!(server.get("command").is_none());
+    assert!(!Path::new(read(&f.rec, "mcp-path").trim()).exists());
+    assert_no_secret(&argv(&f.rec), &events);
+}
+
+#[test]
+fn the_bearer_token_is_scrubbed_from_events() {
+    let script = format!(
+        "{CLAUDE_STREAM}\necho '{{\"type\":\"assistant\",\"message\":{{\"content\":[{{\"type\":\"text\",\"text\":\"saw {MCP_KEY} and Bearer {MCP_KEY}\"}}]}}}}'"
+    );
+    let mut f = fixture(&script);
+    f.spec.mcp = vec![shipyard_entry("claude")];
+    let events = go("claude", f.spec.clone());
+    let log = serde_json::to_string(&events).unwrap();
+    assert!(!log.contains(MCP_KEY), "{log}");
+}
+
+#[test]
+fn a_cli_without_http_entries_gets_the_bridge_with_the_vars_in_its_file() {
+    let entry = shipyard_entry("codex");
+    assert_eq!(entry.command, "/bin/shipyard");
+    assert_eq!(entry.args, vec!["--mcp-bridge"]);
+    assert!(entry.http.is_none());
+    let vars: Vec<(&str, &str)> = entry
+        .vars
+        .iter()
+        .map(|(k, v)| (k.as_str(), v.expose()))
+        .collect();
+    assert_eq!(
+        vars,
+        vec![
+            ("SHIPYARD_MCP_URL", MCP_URL),
+            ("SHIPYARD_MCP_TOKEN", MCP_KEY)
+        ]
+    );
+    assert_eq!(
+        (URL_ENV, TOKEN_ENV, BRIDGE_FLAG),
+        ("SHIPYARD_MCP_URL", "SHIPYARD_MCP_TOKEN", "--mcp-bridge")
+    );
+
+    let mut f = fixture(
+        r#"p=$(printenv GEMINI_CLI_SYSTEM_SETTINGS_PATH)
+cp "$p" "$REC/settings.json"; ls -l "$p" | cut -c1-10 > "$REC/mode"
+echo '{"type":"init","session_id":"g-1"}'
+echo '{"type":"result","status":"success","stats":{}}'"#,
+    );
+    f.spec.mcp = vec![shipyard_entry("gemini")];
+    let events = go("gemini", f.spec.clone());
+    assert_eq!(read(&f.rec, "mode").trim(), "-rw-------");
+    let settings: serde_json::Value = serde_json::from_str(&read(&f.rec, "settings.json")).unwrap();
+    let server = &settings["mcpServers"]["shipyard"];
+    assert_eq!(server["args"][0], "--mcp-bridge");
+    assert_eq!(server["env"]["SHIPYARD_MCP_TOKEN"], MCP_KEY);
+    assert_no_secret(&argv(&f.rec), &events);
+}
+
+#[test]
+fn the_endpoint_must_be_on_this_machine() {
+    let claude = runner("claude").unwrap();
+    for url in [
+        "https://127.0.0.1:1/mcp",
+        "http://example.com/mcp",
+        "http://127.0.0.1.evil.com:1/mcp",
+        "http://127.0.0.1:1@evil.com/mcp",
+    ] {
+        let r = McpEntry::shipyard(
+            &*claude,
+            Path::new("/bin/shipyard"),
+            url,
+            &Secret::new(MCP_KEY),
+        );
+        let err = r
+            .err()
+            .unwrap_or_else(|| panic!("{url} was accepted"))
+            .to_string();
+        assert!(err.contains("loopback") && !err.contains(MCP_KEY), "{err}");
+    }
+}
+
+#[test]
+fn a_runner_without_http_entries_refuses_one_and_starts_nothing() {
+    let f = fixture("echo started > \"$REC/started\"");
+    let mut spec = f.spec.clone();
+    spec.mcp = vec![shipyard_entry("claude")];
+    let err = start(&*runner("codex").unwrap(), spec)
+        .err()
+        .unwrap()
+        .to_string();
+    assert!(err.contains("HTTP MCP"), "{err}");
+    assert!(!f.rec.join("started").exists());
 }
 
 // ---- Codex
