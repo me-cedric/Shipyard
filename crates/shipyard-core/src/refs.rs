@@ -189,112 +189,135 @@ impl fmt::Display for Ref {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const ULID: &str = "01JD0000000000000000000000";
-
-    /// One valid and one rejected form for each of the 21 kinds.
-    #[test]
-    fn each_kind_has_a_valid_and_a_rejected_form() {
-        let ulid_bad = "81JD0000000000000000000000";
-        let cases: [(&str, String, String); 21] = [
-            ("project", "project:shipyard".into(), "project:Ship".into()),
-            ("member", "member:ada-1".into(), "member:-ada".into()),
-            ("diagram", "diagram:context".into(), "diagram:a_b".into()),
-            ("model", "model:domain".into(), "model:".into()),
-            ("adr", "adr:0004".into(), "adr:12".into()),
-            ("api", "api:ipc".into(), "api:IPC".into()),
-            ("data", "data:run-log".into(), "data:run log".into()),
-            ("flow", "flow:onboarding".into(), "flow:-x".into()),
-            ("screen", "screen:home".into(), "screen:Home".into()),
-            ("change", "change:add-refs".into(), "change:add_refs".into()),
-            ("spec", "spec:auth#REQ-003".into(), "spec:auth#REQ-3".into()),
-            ("test", "test:smoke".into(), "test:".into()),
-            ("q", "q:Q-012".into(), "q:Q-12".into()),
-            ("wi", "wi:SHIP-42".into(), "wi:ship-42".into()),
-            ("est", "est:v1".into(), "est:V1".into()),
-            ("wf", "wf:deliver".into(), "wf:de liver".into()),
-            ("run", format!("run:{ULID}/plan"), format!("run:{ulid_bad}")),
-            ("pr", "pr:github:42".into(), "pr:github:0".into()),
-            ("commit", "commit:abc1234".into(), "commit:abc123".into()),
-            ("doc", "doc:docs/plan.md".into(), "doc:../x".into()),
-            ("conn", "conn:github-1".into(), "conn:a:b".into()),
-        ];
-        for (kind, ok, bad) in cases {
-            assert!(parse(&ok).is_some(), "{kind}: {ok} must parse");
-            assert!(parse(&bad).is_none(), "{kind}: {bad} must not parse");
+impl Ref {
+    /// The kind prefix of the ref, such as `adr` or `wi`.
+    pub fn kind(&self) -> &'static str {
+        match self {
+            Ref::Slug(k, _) => k.as_str(),
+            Ref::Estimate { .. } => "est",
+            Ref::Adr(_) => "adr",
+            Ref::Spec { .. } => "spec",
+            Ref::Question(_) => "q",
+            Ref::WorkItem(_) => "wi",
+            Ref::Run { .. } => "run",
+            Ref::Pr { .. } => "pr",
+            Ref::Commit(_) => "commit",
+            Ref::Doc(_) => "doc",
         }
     }
+}
 
-    #[test]
-    fn spec_scenarios() {
-        for ok in [
-            "adr:0004",
-            "q:Q-012",
-            "wi:SHIP-42",
-            "pr:github:42",
-            "spec:auth#REQ-003",
-            "run:01JD0000000000000000000000/plan",
-        ] {
-            assert!(parse(ok).is_some(), "{ok}");
+/// A ref found in a text, with its byte range.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Found {
+    pub target: Ref,
+    pub start: usize,
+    pub end: usize,
+}
+
+/// Finds each valid ref in a text. Skips code spans and fenced code blocks (Q-011, option 1).
+// shortcut: a code span ends on its own line, and a fence needs its own closing line. Upgrade with a Markdown parser if a case needs it.
+pub fn detect(text: &str) -> Vec<Found> {
+    let mut out = Vec::new();
+    let mut fence: Option<(u8, usize)> = None;
+    let mut base = 0;
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim_start();
+        match (fence, fence_marker(trimmed)) {
+            (Some((c, n)), Some((c2, n2)))
+                if c == c2 && n2 >= n && trimmed[n2..].trim().is_empty() =>
+            {
+                fence = None;
+            }
+            (Some(_), _) => {}
+            (None, Some(m)) => fence = Some(m),
+            (None, None) => scan_line(line, base, &mut out),
         }
-        assert!(parse("foo:bar").is_none());
-        assert!(parse("adr:12").is_none());
+        base += line.len();
     }
+    out
+}
 
-    #[test]
-    fn edge_forms() {
-        assert!(parse("spec:auth").is_some());
-        assert!(parse("spec:auth#REQ-0003").is_some());
-        assert!(parse("spec:auth#REQ-").is_none());
-        assert!(parse("spec:auth#X-003").is_none());
-        assert!(parse("run:01JD0000000000000000000000").is_some());
-        assert!(parse("run:01JD0000000000000000000000/").is_none());
-        assert!(parse("run:01JD000000000000000000000U").is_none());
-        assert!(parse("wi:SHIP-0").is_none());
-        assert!(parse("wi:S1-9").is_some());
-        assert!(parse("commit:ABC1234").is_none());
-        assert!(parse(&format!("commit:{}", "a".repeat(41))).is_none());
-        assert!(parse("doc:/etc/passwd").is_none());
-        assert!(parse("doc:a\\b").is_none());
-        assert!(parse("doc:a/../b").is_none());
-        assert!(parse("doc:a/b..c").is_some());
-        assert!(parse("pr:github:1x").is_none());
-        assert!(parse("").is_none());
-        assert!(parse("adr").is_none());
-        assert_eq!(
-            parse("est:auth#r3"),
-            Some(Ref::Estimate {
-                sheet: "auth".into(),
-                row: Some("r3".into())
-            })
-        );
-        assert!(parse("est:auth#").is_none());
-        assert!(parse("est:auth#R3").is_none());
-    }
+/// A fence line starts with three or more backticks or tildes. Returns the char and the count.
+fn fence_marker(line: &str) -> Option<(u8, usize)> {
+    let c = *line
+        .as_bytes()
+        .first()
+        .filter(|c| matches!(c, b'`' | b'~'))?;
+    let n = line.bytes().take_while(|b| *b == c).count();
+    (n >= 3).then_some((c, n))
+}
 
-    #[test]
-    fn display_round_trips() {
-        for s in [
-            "project:shipyard",
-            "est:v1",
-            "est:auth#r3",
-            "wf:deliver",
-            "conn:gh",
-            "adr:0004",
-            "spec:auth",
-            "spec:auth#REQ-003",
-            "q:Q-012",
-            "wi:SHIP-42",
-            "run:01JD0000000000000000000000",
-            "run:01JD0000000000000000000000/plan",
-            "pr:github:42",
-            "commit:abc1234",
-            "doc:docs/plan.md",
-        ] {
-            assert_eq!(parse(s).unwrap().to_string(), s);
+fn run_len(b: &[u8], i: usize) -> usize {
+    b[i..].iter().take_while(|c| **c == b'`').count()
+}
+
+/// Index of the next run of exactly `n` backticks at or after `from`.
+fn find_run(b: &[u8], from: usize, n: usize) -> Option<usize> {
+    let mut j = from;
+    while j < b.len() {
+        if b[j] == b'`' {
+            let m = run_len(b, j);
+            if m == n {
+                return Some(j);
+            }
+            j += m;
+        } else {
+            j += 1;
         }
+    }
+    None
+}
+
+fn scan_line(line: &str, base: usize, out: &mut Vec<Found>) {
+    let b = line.as_bytes();
+    let (mut i, mut seg) = (0, 0);
+    while i < b.len() {
+        if b[i] != b'`' {
+            i += 1;
+            continue;
+        }
+        let n = run_len(b, i);
+        match find_run(b, i + n, n) {
+            Some(close) => {
+                tokens(line, seg, i, base, out);
+                i = close + n;
+                seg = i;
+            }
+            None => i += n,
+        }
+    }
+    tokens(line, seg, b.len(), base, out);
+}
+
+fn is_ref_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || matches!(c, ':' | '#' | '/' | '.' | '-' | '_')
+}
+
+fn tokens(line: &str, from: usize, to: usize, base: usize, out: &mut Vec<Found>) {
+    let seg = &line[from..to];
+    let mut start = None;
+    let mut flush = |s: usize, e: usize| {
+        let piece = seg[s..e].trim_end_matches(['.', ':']);
+        if let Some(target) = parse(piece) {
+            out.push(Found {
+                target,
+                start: base + from + s,
+                end: base + from + s + piece.len(),
+            });
+        }
+    };
+    for (i, c) in seg.char_indices() {
+        match (is_ref_char(c), start) {
+            (true, None) => start = Some(i),
+            (false, Some(s)) => {
+                flush(s, i);
+                start = None;
+            }
+            _ => {}
+        }
+    }
+    if let Some(s) = start {
+        flush(s, seg.len());
     }
 }

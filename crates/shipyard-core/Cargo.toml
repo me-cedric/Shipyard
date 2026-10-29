@@ -3,3 +3,7 @@ name = "shipyard-core"
 version.workspace = true
 edition.workspace = true
 publish = false
+
+[dependencies]
+serde.workspace = true
+specta = { workspace = true, features = ["derive"] }
