@@ -139,6 +139,8 @@ pub struct Brief {
     pub tools: Vec<String>,
     pub prompt: String,
     pub dir: PathBuf,
+    // The app gives each (`run`, `step`) its own scratch folder for `RunSpec::scratch`: under the
+    // app data, never inside `dir`. The MCP config with the token and the brief go there.
     /// The CLI session to resume ([`AgentEvent::Session`] of an earlier start).
     pub resume: Option<String>,
 }
@@ -154,6 +156,10 @@ pub trait AgentRun: Send {
 /// The runners, as the factory sees them. The app wraps `shipyard_agents::runner::start`.
 pub trait Agents: Send + Sync {
     fn start(&self, brief: &Brief) -> PortResult<Box<dyn AgentRun>>;
+
+    /// The agent of `step` (`Brief::step`) ended, was stopped or failed: revoke its MCP session
+    /// (`Sessions::revoke_step`) and remove its scratch folder. A start opens a new session.
+    fn end(&self, _run: &str, _step: &str) {}
 }
 
 /// The folders of the steps. The app wraps `shipyard_git::Repo::child_worktree_add`.

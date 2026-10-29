@@ -518,6 +518,7 @@ struct AgentsState {
     queues: Vec<std::collections::VecDeque<crate::ports::AgentEvent>>,
     live: Vec<bool>,
     fail: Option<String>,
+    ended: Vec<(String, String)>,
 }
 
 /// A runner with no process. Each start is one agent; a test pushes its events.
@@ -525,6 +526,11 @@ struct AgentsState {
 pub struct FakeAgents(Arc<Mutex<AgentsState>>);
 
 impl FakeAgents {
+    /// The `(run, step)` pairs that the factory ended, in order.
+    pub fn ended(&self) -> Vec<(String, String)> {
+        lock(&self.0).ended.clone()
+    }
+
     pub fn briefs(&self) -> Vec<crate::ports::Brief> {
         lock(&self.0).briefs.clone()
     }
@@ -584,6 +590,10 @@ impl crate::ports::Agents for FakeAgents {
         s.queues.push(Default::default());
         s.live.push(true);
         Ok(Box::new(FakeAgent(self.0.clone(), s.briefs.len() - 1)))
+    }
+
+    fn end(&self, run: &str, step: &str) {
+        lock(&self.0).ended.push((run.into(), step.into()));
     }
 }
 

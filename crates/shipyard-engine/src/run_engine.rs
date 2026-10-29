@@ -601,8 +601,13 @@ impl Inner {
             }
         };
         rec.run = to;
-        if !to.state.clocks_run() {
-            park(rec);
+        let stopped = if to.state.clocks_run() {
+            Vec::new()
+        } else {
+            park(rec)
+        };
+        for step in stopped {
+            self.agents.end(run_id, &step);
         }
         let ended = to.state.is_final() && !from.state.is_final();
         if ended {
@@ -851,6 +856,7 @@ impl Inner {
             u.state = StepState::Failed;
             s.state = StepState::Failed;
         }
+        self.agents.end(run_id, &unit_id);
         let payload = json!({"step_failed": reason, "failures": failures});
         self.log(run_id, Some(&unit_id), kind::NOTE, payload);
         self.transition(run_id, event);
@@ -862,6 +868,9 @@ impl Inner {
         u.agent = None;
         u.state = StepState::Done;
         u.output = out;
+        let unit_id = u.id.clone();
+        self.agents.end(run_id, &unit_id);
+        let s = self.rec(run_id).steps.get_mut(sid).expect("step");
         let states: Vec<StepState> = s.units.iter().map(|u| u.state).collect();
         if workflow::fan_in(&states) == StepState::Done {
             self.step_done(run_id, sid, block);
@@ -1207,15 +1216,19 @@ impl Inner {
     }
 }
 
-/// Stop the agents of a run that left the clock states. Each keeps its session.
-fn park(rec: &mut RunRec) {
+/// Stop the agents of a run that left the clock states. Each keeps its session. The ids of the
+/// units that stopped.
+fn park(rec: &mut RunRec) -> Vec<String> {
+    let mut stopped = Vec::new();
     for u in rec.steps.values_mut().flat_map(|s| &mut s.units) {
         if let Some(mut a) = u.agent.take() {
             a.cancel();
             u.state = StepState::Pending;
             u.parked = true;
+            stopped.push(u.id.clone());
         }
     }
+    stopped
 }
 
 impl Dispatch for Factory {

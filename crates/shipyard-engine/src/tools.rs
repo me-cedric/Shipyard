@@ -174,6 +174,7 @@ impl Inner {
     fn deliver(&mut self, run_id: &str, sid: &str, only: Option<&str>, note: String) {
         let s = self.rec(run_id).steps.get_mut(sid).expect("step");
         s.notes.push(note);
+        let mut stopped = Vec::new();
         for u in s
             .units
             .iter_mut()
@@ -183,7 +184,11 @@ impl Inner {
                 agent.cancel();
                 u.state = StepState::Pending;
                 u.parked = true;
+                stopped.push(u.id.clone());
             }
+        }
+        for id in stopped {
+            self.agents.end(run_id, &id);
         }
     }
 

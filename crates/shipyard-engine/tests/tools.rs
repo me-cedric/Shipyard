@@ -470,3 +470,16 @@ fn read_ref_without_an_index_says_so() {
     let run = fx.start("SHIP-1", &[]);
     assert!(err(&fx, &run, "work", read_ref("adr:0003")).contains("index"));
 }
+
+#[test]
+fn the_factory_ends_the_agent_of_a_step_when_the_step_ends_stops_or_fails() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = fx.start("SHIP-1", &[]);
+    fx.done(&run, "grill");
+    assert_eq!(fx.agents.ended(), [(run.clone(), "grill".to_string())]);
+    // A stop (the run leaves the clock states) ends the agents that run.
+    fx.f.cancel(&run).unwrap();
+    let ended = fx.agents.ended();
+    assert!(ended.len() > 1, "{ended:?}");
+    assert!(ended.iter().all(|(r, _)| *r == run));
+}
