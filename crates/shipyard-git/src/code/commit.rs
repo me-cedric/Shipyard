@@ -55,6 +55,8 @@ impl Repo {
             return Err(GitError::EmptySummary);
         }
         let mut index = self.repo.index()?;
+        // Another process (the `git` command) may have changed the index file.
+        index.read(true)?;
         if index.has_conflicts() {
             let files = index
                 .conflicts()?
@@ -64,18 +66,19 @@ impl Repo {
                 .collect();
             return Err(GitError::Conflicts(files));
         }
-        // A merge or a rebase commit needs more than one parent. This function makes none.
-        match self.repo.state() {
-            RepositoryState::Clean => {}
+        // A merge in progress with no conflict left ends here: the commit gets both parents.
+        let merging = match self.repo.state() {
+            RepositoryState::Clean => false,
+            RepositoryState::Merge => true,
             s => return Err(GitError::Busy(format!("{s:?}").to_lowercase())),
-        }
+        };
         let tree = self.repo.find_tree(index.write_tree()?)?;
         let parent = match self.repo.head() {
             Ok(h) => Some(h.peel_to_commit()?),
             Err(e) if e.code() == ErrorCode::UnbornBranch => None,
             Err(e) => return Err(e.into()),
         };
-        if parent.as_ref().map(|p| p.tree_id()) == Some(tree.id()) {
+        if !merging && parent.as_ref().map(|p| p.tree_id()) == Some(tree.id()) {
             return Err(GitError::NothingStaged);
         }
         if parent.is_none() && tree.is_empty() {
@@ -88,10 +91,21 @@ impl Repo {
         } else {
             format!("{summary}\n\n{description}")
         };
-        let parents: Vec<_> = parent.iter().collect();
+        // `mergehead_foreach` needs `&mut`: read MERGE_HEAD, one id per line.
+        let mut merge_commits = Vec::new();
+        if merging {
+            let text = std::fs::read_to_string(self.repo.path().join("MERGE_HEAD"))?;
+            for line in text.lines().filter(|l| !l.trim().is_empty()) {
+                merge_commits.push(self.repo.find_commit(Oid::from_str(line.trim())?)?);
+            }
+        }
+        let parents: Vec<_> = parent.iter().chain(merge_commits.iter()).collect();
         let id = self
             .repo
             .commit(Some("HEAD"), &sig, &sig, &message, &tree, &parents)?;
+        if merging {
+            self.repo.cleanup_state()?;
+        }
         Ok(id.to_string())
     }
 

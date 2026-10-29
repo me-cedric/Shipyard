@@ -744,6 +744,30 @@ fn conflicts_list_blocks_with_base_and_resolve_by_choice() {
 }
 
 #[test]
+fn a_merge_with_no_conflict_left_commits_with_both_parents_and_clears_the_state() {
+    let (_t, r) = two_block_merge();
+    // Conflicts left: the commit refuses.
+    assert!(matches!(
+        r.commit("fix: merge", ""),
+        Err(GitError::Conflicts(_))
+    ));
+    r.resolve_blocks("f.txt", &[Choice::Theirs, Choice::Ours])
+        .unwrap();
+    let id = r.commit("fix: merge other", "").unwrap();
+    let info = r.commit_info(&id).unwrap();
+    assert_eq!(info.parents.len(), 2);
+    assert_eq!(info.summary, "fix: merge other");
+    let g = Repository::open(r.workdir()).unwrap();
+    assert_eq!(g.state(), git2::RepositoryState::Clean);
+    assert!(!g.path().join("MERGE_HEAD").exists());
+    // The next commit is a plain one again.
+    assert!(matches!(
+        r.commit("fix: again", ""),
+        Err(GitError::NothingStaged)
+    ));
+}
+
+#[test]
 fn conflict_choices_both_and_neither_whole_side_and_marker_guard() {
     let (_t, r) = two_block_merge();
     r.resolve_blocks("f.txt", &[Choice::Both, Choice::Neither])
