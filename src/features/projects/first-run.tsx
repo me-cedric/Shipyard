@@ -2,7 +2,13 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { pickFolder } from "@/lib/ipc";
 import { ROLES, type Role, usePrefs } from "@/lib/prefs";
-import { outcomeError, type ProjectOutcome, useProjectActions, useProjects } from "@/lib/projects";
+import {
+	outcomeError,
+	type ProjectOutcome,
+	useLegacyProjects,
+	useProjectActions,
+	useProjects,
+} from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
@@ -43,7 +49,8 @@ export function FolderField({ path, onPick }: { path: string; onPick: (path: str
 export function FirstRun() {
 	const { t } = useI18n();
 	const { role, setPrefs } = usePrefs();
-	const { openFolder, clone, create, switchTo } = useProjectActions();
+	const { openFolder, openLegacy, clone, create, switchTo } = useProjectActions();
+	const legacy = useLegacyProjects().data ?? [];
 	const recent = [...(useProjects().data ?? [])]
 		.sort((a, b) => b.lastUsed - a.lastUsed)
 		.slice(0, 5);
@@ -160,6 +167,26 @@ export function FirstRun() {
 							</li>
 						))}
 					</ul>
+				) : null}
+				{step === "start" && legacy.length ? (
+					<div>
+						<h2 id="legacy-projects" className="pb-1 text-12 font-medium text-n-11">
+							{t.projects.legacy.title}
+						</h2>
+						<ul aria-labelledby="legacy-projects" className="flex flex-col gap-1">
+							{legacy.map((p) => (
+								<li key={p.id}>
+									<Button
+										className="w-full justify-start"
+										onClick={() => run(() => openLegacy(p.id))}
+									>
+										<FolderOpenIcon size={14} />
+										{p.name}
+									</Button>
+								</li>
+							))}
+						</ul>
+					</div>
 				) : null}
 				{error ? (
 					<p role="alert" className="text-ui text-danger-text">

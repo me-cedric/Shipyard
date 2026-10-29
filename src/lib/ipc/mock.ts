@@ -33,6 +33,7 @@ import {
 	codeBranchCreate,
 	codeBranchDelete,
 	codeBranches,
+	codeBranchMerge,
 	codeBranchSwitch,
 	codeCommit,
 	codeCommitDetail,
@@ -41,6 +42,7 @@ import {
 	codeDiscard,
 	codeFileRead,
 	codeLog,
+	codeMergeAbort,
 	codePull,
 	codePush,
 	codeResolve,
@@ -152,6 +154,9 @@ const FOLDERS = ["/mock/alpha", "/mock/beta", "/mock/gamma"];
  */
 export const DEMO_FOLDER = "/mock/demo";
 let demo = false;
+
+/** The projects of the Legacy registry on the machine of the mock. */
+const LEGACY = [{ id: "kvy-storyarc", name: "StoryArc", path: "/mock/storyarc" }];
 
 const DEFAULT_PATHS = {
 	decisions: "docs/decisions",
@@ -545,9 +550,8 @@ const handlers: Handlers = {
 	refsReindex: () => 0,
 	projectsList: () => state.projects,
 	projectsActive: () => active() ?? null,
-	projectsOpen: (path, init) => {
+	projectsOpen: (path) => {
 		if (path === "/mock/plain") return outcome("not-repository", path);
-		if (path === "/mock/bare" && !init) return outcome("needs-project-file", path);
 		const name = path.split("/").pop() ?? "project";
 		const known = state.projects.some((p) => p.path === path);
 		const opened = activate(path, name, deriveKey(name));
@@ -941,6 +945,11 @@ const handlers: Handlers = {
 		codeBranchSwitch(code(), name);
 		return null;
 	},
+	codeBranchMerge: (name) => codeBranchMerge(code(), name),
+	codeMergeAbort: () => {
+		codeMergeAbort(code());
+		return null;
+	},
 	codeBranchDelete: (name, force) => {
 		codeBranchDelete(code(), name, force);
 		return null;
@@ -1162,6 +1171,24 @@ const handlers: Handlers = {
 	assistantDefaultsSet: (d) => ai.defaultsSet(state.assistant, d),
 	assistantOptions: () => ai.options(),
 	projectImport: () => ({ copied: [], skipped: [], conflicts: [] }),
+	legacyProjects: () => LEGACY.filter((k) => !state.projects.some((p) => p.path === k.path)),
+	legacyProjectOpen: (id) => {
+		const k = LEGACY.find((x) => x.id === id);
+		if (!k) throw `unknown Legacy project: ${id}`;
+		const known = state.projects.some((p) => p.path === k.path);
+		const opened = activate(k.path, k.name, deriveKey(k.name));
+		// The Legacy paths of the registry entry, written once. A saved file wins.
+		const p = opened.project;
+		if (p && !(known || state.files[p.id]))
+			state.files[p.id] = {
+				name: p.name,
+				key: p.key,
+				paths: { ...DEFAULT_PATHS, diagrams: "docs/drawings", models: "docs/diagrams" },
+				defaultWorkflow: null,
+				gates: [],
+			};
+		return opened;
+	},
 };
 
 /** The active project and the ref index, for the assistant commands. */

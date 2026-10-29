@@ -12,6 +12,7 @@ import type {
 	FileDiff,
 	FileView,
 	LogPage,
+	MergeOutcome,
 	PullOutcome,
 	Resolution,
 	Stash,
@@ -30,6 +31,8 @@ export type MockCode = {
 	commits: Record<string, Commit>;
 	stashes: { id: string; message: string; files: Record<string, MockFile> }[];
 	conflicts: ConflictFile[];
+	/** A merge is in progress: the person resolves the conflicts or aborts it. */
+	merging: boolean;
 	notice: WatchNotice_Serialize | null;
 	/** Minutes between two fetches of the project (default 15, 1 to 1440). */
 	watchMinutes: number;
@@ -93,6 +96,7 @@ export function seedCode(): MockCode {
 		commits,
 		stashes: [],
 		conflicts: [],
+		merging: false,
 		notice: null,
 		watchMinutes: 15,
 		counter: 4,
@@ -156,6 +160,7 @@ export function codeStatus(c: MockCode): Changes_Serialize {
 			.filter(([, f]) => !inHead(f) && f.work !== null)
 			.map(([p]) => make(p, "untracked")),
 		conflicted,
+		merging: c.merging,
 	};
 }
 
@@ -240,6 +245,7 @@ export function codeCommit(c: MockCode, summary: string, description: string): s
 	c.commits[made.info.sha] = made;
 	branch.log.unshift(made.info.sha);
 	branch.touches.push(...Object.keys(changes));
+	c.merging = false;
 	for (const [p, f] of Object.entries(c.files)) {
 		f.head = f.index;
 		if (f.head === null && f.work === null) delete c.files[p];
@@ -321,6 +327,7 @@ export function codeBranchCreate(c: MockCode, name: string) {
 }
 
 export function codeBranchSwitch(c: MockCode, name: string) {
+	if (c.merging) throw "the repository is busy with a merge";
 	const target =
 		c.branches[name] ?? (c.remoteBranches.includes(name) ? c.branches.main : undefined);
 	if (!target) throw `branch not found: ${name}`;
@@ -334,6 +341,51 @@ export function codeBranchSwitch(c: MockCode, name: string) {
 	if (dirty.length) throw `uncommitted changes would be overwritten: ${dirty.join(", ")}`;
 	if (!c.branches[local]) c.branches[local] = { log: [...target.log], touches: [] };
 	c.branch = local;
+}
+
+/** The rules of `Repo::merge_branch`: no tracked change, fast-forward, a merge commit, or conflicts. */
+export function codeBranchMerge(c: MockCode, name: string): MergeOutcome {
+	if (c.merging) throw "the repository is busy with a merge";
+	const dirty = Object.entries(c.files)
+		.filter(([, f]) => inHead(f) && (f.work !== f.head || f.index !== f.head))
+		.map(([p]) => p);
+	if (dirty.length) throw `uncommitted changes would be overwritten: ${dirty.join(", ")}`;
+	const ours = c.branches[c.branch];
+	const theirs =
+		c.branches[name] ?? (c.remoteBranches.includes(name) ? c.branches.main : undefined);
+	if (!(ours && theirs)) throw `branch not found: ${name}`;
+	if (theirs.log.every((sha) => ours.log.includes(sha))) return "up-to-date";
+	if (ours.log.every((sha) => theirs.log.includes(sha))) {
+		ours.log = [...theirs.log];
+		ours.touches.push(...theirs.touches);
+		return "fast-forwarded";
+	}
+	const clash = [...new Set(theirs.touches)].filter((p) => ours.touches.includes(p));
+	if (clash.length) {
+		c.merging = true;
+		c.conflicts = clash.map((path) => ({
+			path,
+			text: true,
+			segments: [
+				{ kind: "text", text: "a\n" },
+				{ kind: "block", ours: "ours\n", base: "base\n", theirs: "theirs\n" },
+			],
+		}));
+		return { conflicts: clash };
+	}
+	const made = commit(c.counter++, `Merge branch '${name}' into ${c.branch}`, {});
+	made.info.parents = [ours.log[0] ?? "", theirs.log[0] ?? ""];
+	made.info.labels = [{ name: c.branch, kind: "branch" }];
+	c.commits[made.info.sha] = made;
+	ours.log = [made.info.sha, ...new Set([...ours.log, ...theirs.log])];
+	ours.touches.push(...theirs.touches);
+	return { merged: made.info.sha };
+}
+
+export function codeMergeAbort(c: MockCode) {
+	if (!c.merging) throw "git: no merge is in progress";
+	c.merging = false;
+	c.conflicts = [];
 }
 
 export function codeBranchDelete(c: MockCode, name: string, force: boolean) {

@@ -48,7 +48,7 @@ pub(crate) fn fx(writes: Writes) -> Fx {
         Arc::new(shipyard_http::fake::FakeHttp::new()),
     ));
     let s = AppState::with_agents(data.path().join("data"), conns, Arc::new(agents.clone()));
-    projects::open(&s, repo.path().to_str().unwrap(), true).unwrap();
+    projects::open(&s, repo.path().to_str().unwrap()).unwrap();
     let id = s.registry().unwrap().active().unwrap().id.clone();
     seed(repo.path()).unwrap();
 

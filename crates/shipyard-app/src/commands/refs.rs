@@ -204,7 +204,7 @@ mod tests {
         .unwrap();
         let data = tempfile::tempdir().unwrap();
         let s = AppState::new(data.path().into());
-        projects::open(&s, repo.path().to_str().unwrap(), true).unwrap();
+        projects::open(&s, repo.path().to_str().unwrap()).unwrap();
         (repo, data, s)
     }
 

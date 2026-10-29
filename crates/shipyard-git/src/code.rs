@@ -16,7 +16,7 @@ mod remote;
 mod stash;
 mod status;
 
-pub use branch::{Branch, BranchKind};
+pub use branch::{Branch, BranchKind, MergeOutcome};
 pub use commit::{CommitInfo, LogPage, RefKind, RefLabel};
 pub use conflict::{Choice, ConflictFile, Segment, Side};
 pub use diff::{DiffSide, FileDiff, FileView};

@@ -31,6 +31,7 @@ use shipyard_store::work::{
     time_path, write_calendar, write_decisions, write_sheet, write_sheet_with, write_team,
     write_team_with, write_time,
 };
+use shipyard_store::{legacy, project_import};
 use shipyard_trackers::work::{self as writes, Click, RowResult, Sent, TrackerWrite};
 use specta::Type;
 use tauri::AppHandle;
@@ -44,6 +45,13 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 // ---------------------------------------------------------------- session
+
+fn json_sheet_path(slug: &str) -> String {
+    format!("docs/costing/{slug}.json")
+}
+
+/// The Legacy team file. It is the team when `.shipyard/team.yaml` does not exist (Q-102).
+const LEGACY_TEAM: &str = "docs/planning/team.json";
 
 /// What the app keeps in memory for Work, by project id.
 ///
@@ -129,7 +137,8 @@ impl Ctx<'_> {
         }
     }
 
-    /// The slugs of `docs/costing/*.yaml`, sorted.
+    /// The slugs of `docs/costing/*.yaml` and of the Legacy `*.json` sheets, sorted. A YAML sheet
+    /// hides the JSON sheet of the same slug.
     fn slugs(&self) -> Res<Vec<String>> {
         let Ok(rd) = std::fs::read_dir(self.root.join("docs/costing")) else {
             return Ok(Vec::new());
@@ -138,15 +147,25 @@ impl Ctx<'_> {
             .flatten()
             .filter_map(|e| {
                 let name = e.file_name().to_string_lossy().into_owned();
-                name.strip_suffix(".yaml").map(String::from)
+                (name.strip_suffix(".yaml").or(name.strip_suffix(".json"))).map(String::from)
             })
             .filter(|slug| sheet_path(slug).is_ok())
             .collect();
         out.sort();
+        out.dedup();
         Ok(out)
     }
 
+    /// The sheet is a Legacy JSON file: there is no YAML file for it (Q-102).
+    fn json_sheet(&self, slug: &str) -> bool {
+        sheet_path(slug).is_ok_and(|p| !self.root.join(p).exists())
+            && self.root.join(json_sheet_path(slug)).is_file()
+    }
+
     fn sheet_text(&self, slug: &str) -> Res<Option<String>> {
+        if self.json_sheet(slug) {
+            return self.read(&json_sheet_path(slug));
+        }
         self.read(&sheet_path(slug).map_err(err)?)
     }
 
@@ -154,6 +173,14 @@ impl Ctx<'_> {
         let text = self
             .sheet_text(slug)?
             .ok_or_else(|| format!("no sheet `{slug}`"))?;
+        if self.json_sheet(slug) {
+            let v = serde_json::from_str(&text).map_err(|e| format!("{slug}: {e}"))?;
+            return Ok(project_import::sheet(
+                &v,
+                slug,
+                &project_import::roles(&self.root),
+            ));
+        }
         self.with_sealer(|sealer| read_sheet_with(&text, sealer))
             .map_err(err)
     }
@@ -173,7 +200,7 @@ impl Ctx<'_> {
             .get(&self.project)
             .cloned()
             .unwrap_or_default();
-        let text = self.read(TEAM_PATH).unwrap_or_default();
+        let text = self.team_text();
         let load = self.with_sealer(|sealer| load_team_with(text.as_deref(), sealer, &last));
         if load.error.is_none() {
             lock(&self.s.work.team).insert(self.project.clone(), load.team.clone());
@@ -183,6 +210,20 @@ impl Ctx<'_> {
             team: load.team,
             error: load.error,
         }
+    }
+
+    /// The text of the team: the YAML file, or the Legacy `team.json` as YAML.
+    fn team_text(&self) -> Option<String> {
+        self.read(TEAM_PATH).unwrap_or_default().or_else(|| {
+            let v = serde_json::from_str(&self.read(LEGACY_TEAM).ok()??).ok()?;
+            let team = project_import::team(&v, &project_import::roles(&self.root));
+            write_team(&team, None).ok()
+        })
+    }
+
+    /// The Legacy team file is the team now, so a save writes it in its own format.
+    fn json_team(&self) -> bool {
+        !self.root.join(TEAM_PATH).exists() && self.root.join(LEGACY_TEAM).is_file()
     }
 
     fn decisions(&self) -> Res<Decisions> {
@@ -395,6 +436,15 @@ pub fn team_save(s: &AppState, mut team: Team) -> Res<TeamView> {
     }
     team.locked = false;
     c.write_pass()?;
+    if c.json_team() {
+        let roles = project_import::roles(&c.root);
+        let old = c.read(LEGACY_TEAM)?;
+        c.write(
+            LEGACY_TEAM,
+            &legacy::team_json(&team, old.as_deref(), &roles),
+        )?;
+        return Ok(c.team());
+    }
     let text = c
         .with_sealer(|sealer| write_team_with(&team, sealer))
         .map_err(err)?;
@@ -550,7 +600,11 @@ pub fn seal_all(s: &AppState, passphrase: &str) -> Res<SealState> {
     }
     c.verify(passphrase)?;
     for slug in c.slugs()? {
-        let Some(text) = c.sheet_text(&slug)?.filter(|t| !is_sealed(t)) else {
+        // shortcut: a Legacy JSON sheet is not sealed. Move it to YAML first.
+        let Some(text) = c
+            .sheet_text(&slug)?
+            .filter(|t| !is_sealed(t) && !c.json_sheet(&slug))
+        else {
             continue;
         };
         let sheet = read_sheet(&text, None).map_err(|e| format!("{slug}: {e}"))?;
@@ -742,6 +796,15 @@ pub fn sheet_get(s: &AppState, slug: &str) -> Res<SheetView> {
 pub fn sheet_save(s: &AppState, slug: &str, sheet: Sheet) -> Res<SheetView> {
     let c = ctx(s)?;
     let rel = sheet_path(slug).map_err(err)?;
+    if c.json_sheet(slug) {
+        let old = c.sheet_text(slug)?;
+        let roles = project_import::roles(&c.root);
+        c.write(
+            &json_sheet_path(slug),
+            &legacy::sheet_json(&sheet, old.as_deref(), &roles),
+        )?;
+        return sheet_view(&c, slug);
+    }
     c.write_pass()?;
     let text = c
         .with_sealer(|sealer| write_sheet_with(&sheet, sealer))
@@ -798,6 +861,9 @@ pub fn excel_read(s: &AppState, path: &str, scope: Option<&str>) -> Res<Preview>
 pub fn excel_replace(s: &AppState, slug: &str, confirmed: bool) -> Res<SheetView> {
     let c = ctx(s)?;
     let rel = sheet_path(slug).map_err(err)?;
+    if c.json_sheet(slug) {
+        return Err("a Legacy JSON sheet takes no Excel import".into());
+    }
     let pass = c.write_pass()?;
     {
         let pending = lock(&s.work.excel);

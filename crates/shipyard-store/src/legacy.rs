@@ -1,0 +1,294 @@
+//! The Legacy layout, read in place (Q-102): the path detection for a folder with no project file,
+//! the Legacy project registry, and the writers that keep a Legacy JSON file in its own format.
+
+use std::collections::BTreeMap;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use serde::Deserialize;
+use serde_json::{Map, Value, json};
+use shipyard_core::project::{ProjectFile, validate};
+use shipyard_core::work::{Sheet, Team};
+
+const DRAWINGS: [&str; 6] = ["excalidraw", "drawio", "mmd", "mermaid", "bpmn", "svg"];
+const MODELS: [&str; 2] = ["c4", "likec4"];
+const DEPTH: usize = 6;
+
+/// True when a file below `dir` has one of the extensions.
+fn holds(root: &Path, dir: &str, exts: &[&str], depth: usize) -> bool {
+    let Ok(rd) = fs::read_dir(root.join(dir)) else {
+        return false;
+    };
+    rd.flatten().any(|e| {
+        let name = e.file_name().to_string_lossy().into_owned();
+        let path = format!("{dir}/{name}");
+        match e.file_type() {
+            Ok(t) if t.is_dir() => depth < DEPTH && holds(root, &path, exts, depth + 1),
+            Ok(t) if t.is_file() => name
+                .rsplit_once('.')
+                .is_some_and(|(_, x)| exts.contains(&x.to_lowercase().as_str())),
+            _ => false,
+        }
+    })
+}
+
+/// The paths of a Legacy layout that differ from the Shipyard defaults, for what exists on disk.
+/// A plain folder gives an empty map.
+pub fn detect_paths(root: &Path) -> BTreeMap<String, String> {
+    let mut out = BTreeMap::new();
+    let mut put = |k: &str, v: &str| out.insert(k.to_string(), v.to_string());
+    if holds(root, "docs/drawings", &DRAWINGS, 0) && !holds(root, "docs/diagrams", &DRAWINGS, 0) {
+        put("diagrams", "docs/drawings");
+    }
+    if holds(root, "docs/diagrams", &MODELS, 0) && !holds(root, "docs/models", &MODELS, 0) {
+        put("models", "docs/diagrams");
+    }
+    if root.join("docs/network/flows.json").is_file() {
+        put("flows", "docs/network/flows.json");
+    }
+    out
+}
+
+/// The project file for a folder without one: the defaults, then the detected Legacy paths, then
+/// `extra` (the paths that the Legacy registry holds).
+pub fn layout_file(
+    root: &Path,
+    name: &str,
+    key: &str,
+    extra: &BTreeMap<String, String>,
+) -> ProjectFile {
+    let mut f = ProjectFile::new(name, key);
+    f.paths.extend(detect_paths(root));
+    f.paths.extend(extra.clone());
+    // A path that fails the rule is dropped: the default stays.
+    let bad: Vec<String> = validate(&f)
+        .into_iter()
+        .filter_map(|i| i.field.strip_prefix("paths.").map(String::from))
+        .collect();
+    for k in bad {
+        f.paths.remove(&k);
+    }
+    f
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LegacyProject {
+    pub id: String,
+    pub name: String,
+    pub path: String,
+    /// Shipyard keys. Only the paths that the Legacy entry sets.
+    pub paths: BTreeMap<String, String>,
+}
+
+/// The Legacy key of an artifact folder, and the Shipyard key that holds it.
+const KEYS: [(&str, &str); 12] = [
+    ("diagrams", "models"),
+    ("drawings", "diagrams"),
+    ("adr", "decisions"),
+    ("openapi", "api"),
+    ("data_models", "data"),
+    ("openspec", "specs"),
+    ("test_plans", "test-plans"),
+    ("designs", "designs"),
+    ("flows", "flows"),
+    ("slides", "slides"),
+    ("dashboards", "dashboards"),
+    ("delivery", "questions"),
+];
+
+/// Reads `projects.json` of Legacy. Only the id, the name, the path and the paths are read: the
+/// other fields (address, user, overrides) never leave the file. A missing or bad file gives none.
+pub fn read_registry(file: &Path) -> Vec<LegacyProject> {
+    #[derive(Deserialize)]
+    struct Raw {
+        #[serde(default)]
+        projects: Vec<Item>,
+    }
+    #[derive(Deserialize)]
+    struct Item {
+        #[serde(default)]
+        id: String,
+        #[serde(default)]
+        name: String,
+        #[serde(default)]
+        path: String,
+        #[serde(default)]
+        paths: BTreeMap<String, Value>,
+    }
+    let Ok(raw) = fs::read(file)
+        .map_err(drop)
+        .and_then(|b| serde_json::from_slice::<Raw>(&b).map_err(drop))
+    else {
+        return Vec::new();
+    };
+    raw.projects
+        .into_iter()
+        .filter(|p| !p.id.is_empty() && Path::new(&p.path).is_absolute())
+        .map(|p| {
+            let paths = KEYS
+                .iter()
+                .filter_map(|(k, s)| {
+                    let v = p.paths.get(*k)?.as_str()?.trim().trim_end_matches('/');
+                    // Legacy keeps the delivery folder. The questions are one level below it.
+                    let v = if *k == "delivery" {
+                        format!("{v}/questions")
+                    } else {
+                        v.into()
+                    };
+                    (!v.is_empty() && !v.starts_with('/')).then(|| ((*s).to_string(), v))
+                })
+                .collect();
+            LegacyProject {
+                name: if p.name.is_empty() {
+                    p.id.clone()
+                } else {
+                    p.name
+                },
+                id: p.id,
+                path: p.path,
+                paths,
+            }
+        })
+        .collect()
+}
+
+/// Where Legacy keeps `projects.json` on this machine.
+pub fn registry_file() -> Option<PathBuf> {
+    let var = |k: &str| std::env::var_os(k).map(PathBuf::from);
+    let base = if cfg!(target_os = "macos") {
+        var("HOME")?.join("Library/Application Support")
+    } else if cfg!(windows) {
+        var("APPDATA")?
+    } else {
+        var("XDG_DATA_HOME").or_else(|| var("HOME").map(|h| h.join(".local/share")))?
+    };
+    Some(base.join("legacy/projects.json"))
+}
+
+// ---------------------------------------------------------------- JSON write-back
+
+fn obj(v: Option<&Value>) -> Map<String, Value> {
+    v.and_then(Value::as_object).cloned().unwrap_or_default()
+}
+
+fn slug(s: &str) -> String {
+    let s: String = s
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect();
+    s.trim_matches('-').to_string()
+}
+
+fn persona_id(role: &str, roles: &BTreeMap<String, String>) -> String {
+    roles
+        .iter()
+        .find(|(_, name)| name.as_str() == role)
+        .map_or_else(|| role.to_string(), |(id, _)| id.clone())
+}
+
+/// The Legacy sheet text for `sheet`. An entry of `old` keeps every key that Shipyard does not own
+/// (groups, macro sizes, the plan). JSON keys come out sorted.
+pub fn sheet_json(sheet: &Sheet, old: Option<&str>, roles: &BTreeMap<String, String>) -> String {
+    let old: Value = old
+        .and_then(|t| serde_json::from_str(t).ok())
+        .unwrap_or(Value::Null);
+    let mut top = obj(Some(&old));
+    top.entry("version").or_insert(json!(1));
+    let mut meta = obj(old.get("meta"));
+    meta.insert("name".into(), json!(sheet.name));
+    meta.insert("currency".into(), json!(sheet.currency));
+    meta.insert("marginRate".into(), json!(sheet.margin_rate));
+    top.insert("meta".into(), Value::Object(meta));
+    let find = |list: Option<&Value>, id: &str| {
+        list.and_then(Value::as_array)
+            .and_then(|a| {
+                a.iter()
+                    .find(|x| slug(x.get("id").and_then(Value::as_str).unwrap_or("")) == id)
+            })
+            .cloned()
+    };
+    let features: Vec<Value> = sheet
+        .features
+        .iter()
+        .map(|f| {
+            let old_f = find(old.get("features"), &f.id);
+            let mut o = obj(old_f.as_ref());
+            o.entry("id").or_insert(json!(f.id));
+            o.insert("name".into(), json!(f.name));
+            let tasks: Vec<Value> = f
+                .tasks
+                .iter()
+                .map(|t| {
+                    let mut x =
+                        obj(find(old_f.as_ref().and_then(|v| v.get("tasks")), &t.id).as_ref());
+                    x.entry("id").or_insert(json!(t.id));
+                    x.insert("name".into(), json!(t.name));
+                    x.insert("description".into(), json!(t.description));
+                    x.insert("personaId".into(), json!(persona_id(&t.role, roles)));
+                    x.insert("mandays".into(), json!(t.percent.or(t.days).unwrap_or(0.0)));
+                    x.insert(
+                        "chargeType".into(),
+                        json!(if t.percent.is_some() { "ratio" } else { "days" }),
+                    );
+                    x.insert(
+                        "kind".into(),
+                        json!(if t.other { "other" } else { "build" }),
+                    );
+                    x.insert("comments".into(), json!(t.note));
+                    Value::Object(x)
+                })
+                .collect();
+            o.insert("tasks".into(), Value::Array(tasks));
+            Value::Object(o)
+        })
+        .collect();
+    top.insert("features".into(), Value::Array(features));
+    serde_json::to_string_pretty(&Value::Object(top)).unwrap_or_default() + "\n"
+}
+
+/// The Legacy `team.json` text for `team`. A member of `old` with the same name keeps its windows,
+/// its persona and every other key.
+pub fn team_json(team: &Team, old: Option<&str>, roles: &BTreeMap<String, String>) -> String {
+    let old: Value = old
+        .and_then(|t| serde_json::from_str(t).ok())
+        .unwrap_or(Value::Null);
+    let mut top = obj(Some(&old));
+    top.entry("version").or_insert(json!(1));
+    let members: Vec<Value> = team
+        .members
+        .iter()
+        .map(|m| {
+            let prev = old.get("members").and_then(Value::as_array).and_then(|a| {
+                a.iter()
+                    .find(|x| x.get("name").and_then(Value::as_str) == Some(&m.name))
+            });
+            let mut o = obj(prev);
+            if prev.is_none() {
+                o.insert("id".into(), json!(m.handle));
+                o.insert("personaId".into(), json!(persona_id(&m.role, roles)));
+                o.insert(
+                    "windows".into(),
+                    json!([{"from": m.availability.from, "to": m.availability.until, "load": 1}]),
+                );
+            }
+            o.insert("name".into(), json!(m.name));
+            if let Some(e) = m.trackers.iter().find(|t| t.contains('@')) {
+                o.insert("email".into(), json!(e));
+            }
+            if let Some(r) = m.day_rate {
+                o.insert("tjm".into(), json!(r));
+            }
+            let absences: Vec<Value> = m
+                .availability
+                .absences
+                .iter()
+                .map(|a| json!({"from": a.from, "to": a.to}))
+                .collect();
+            o.insert("absences".into(), Value::Array(absences));
+            Value::Object(o)
+        })
+        .collect();
+    top.insert("members".into(), Value::Array(members));
+    serde_json::to_string_pretty(&Value::Object(top)).unwrap_or_default() + "\n"
+}

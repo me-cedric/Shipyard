@@ -31,6 +31,8 @@ export const commands = {
 	healthFix: (id: string, expected: string | null) => typedError<FixResult, string>(__TAURI_INVOKE("health_fix", { id, expected })),
 	/**  Reads the Legacy folder and writes the matching files into the active project. It replaces no file. */
 	projectImport: (source: string) => typedError<ImportReport, string>(__TAURI_INVOKE("project_import", { source })),
+	legacyProjects: () => typedError<LegacyProject[], string>(__TAURI_INVOKE("legacy_projects")),
+	legacyProjectOpen: (id: string) => typedError<ProjectOutcome_Serialize, string>(__TAURI_INVOKE("legacy_project_open", { id })),
 	connectionsList: () => typedError<Connection_Serialize[], string>(__TAURI_INVOKE("connections_list")),
 	connectionsAdd: (draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_add", { draft })),
 	connectionsEdit: (id: string, draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_edit", { id, draft })),
@@ -55,6 +57,8 @@ export const commands = {
 	codeBranchCreate: (name: string) => typedError<null, string>(__TAURI_INVOKE("code_branch_create", { name })),
 	codeBranchSwitch: (name: string) => typedError<null, string>(__TAURI_INVOKE("code_branch_switch", { name })),
 	codeBranchDelete: (name: string, force: boolean) => typedError<null, string>(__TAURI_INVOKE("code_branch_delete", { name, force })),
+	codeBranchMerge: (name: string) => typedError<MergeOutcome, string>(__TAURI_INVOKE("code_branch_merge", { name })),
+	codeMergeAbort: () => typedError<null, string>(__TAURI_INVOKE("code_merge_abort")),
 	codeStashPush: (message: string | null) => typedError<string, string>(__TAURI_INVOKE("code_stash_push", { message })),
 	codeStashList: () => typedError<Stash[], string>(__TAURI_INVOKE("code_stash_list")),
 	codeStashApply: (index: number) => typedError<null, string>(__TAURI_INVOKE("code_stash_apply", { index })),
@@ -785,6 +789,8 @@ export type Changes_Deserialize = {
 	unstaged: FileChange_Deserialize[],
 	untracked: FileChange_Deserialize[],
 	conflicted: FileChange_Deserialize[],
+	/**  A merge is in progress: the person resolves the conflicts, or aborts it. */
+	merging: boolean,
 };
 
 /**  A file that has a staged and a later unstaged change is in both lists. */
@@ -801,6 +807,8 @@ export type Changes_Serialize = {
 	unstaged: FileChange_Serialize[],
 	untracked: FileChange_Serialize[],
 	conflicted: FileChange_Serialize[],
+	/**  A merge is in progress: the person resolves the conflicts, or aborts it. */
+	merging: boolean,
 };
 
 export type ChatMessage = {
@@ -1694,6 +1702,12 @@ export type KNode_Serialize = {
 
 export type Kind = "epic" | "story";
 
+export type LegacyProject = {
+	id: string,
+	name: string,
+	path: string,
+};
+
 /**  The six lanes of Factory / Runs, in order. */
 export type Lane = "queued" | "working" | "needs_you" | "in_review" | "ready_to_merge" | "done";
 
@@ -1860,6 +1874,14 @@ export type Member_Serialize = {
 
 export type MergeMethod = "merge" | "squash" | "rebase";
 
+/**
+ *  The result of [`Repo::merge_branch`]. With `Conflicts` the merge stays in progress: the files
+ *  show in [`Repo::conflicts`], and [`Repo::merge_abort`] ends it.
+ */
+export type MergeOutcome = "up-to-date" | "fast-forwarded" | 
+/**  A merge commit was made. The value is its full id. */
+({ merged: string }) & { conflicts?: never } | ({ conflicts: string[] }) & { merged?: never };
+
 export type MessageState = { state: "done" } | 
 /**  The runner stopped for a permission. `permission` is the tool, as the runner names it. */
 { state: "waiting"; permission: string } | { state: "failed"; kind: FailKind; message: string };
@@ -1907,9 +1929,7 @@ export type OpenPull_Serialize = {
 	labels: string[],
 };
 
-export type OpenStatus = "opened" | 
-/**  The repository has no project file. A person confirms, then the call repeats with `init`. */
-"needs-project-file" | "not-repository" | "folder-not-empty" | "invalid" | "failed";
+export type OpenStatus = "opened" | "not-repository" | "folder-not-empty" | "invalid" | "failed";
 
 export type OpenedPull = OpenedPull_Serialize | OpenedPull_Deserialize;
 

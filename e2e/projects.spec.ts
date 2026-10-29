@@ -74,3 +74,13 @@ test("opens an entity from the palette and shows its backlinks", async ({ page }
 	await expect(inspector.getByRole("heading", { name: "Spec (2)" })).toBeVisible();
 	await expect(inspector.getByRole("heading", { name: "Change (1)" })).toBeVisible();
 });
+
+test("opens a Legacy project from the Legacy group of the first run", async ({ page }) => {
+	await page.goto("/");
+	await page
+		.getByRole("list", { name: "Legacy" })
+		.getByRole("button", { name: "StoryArc" })
+		.click();
+	await expect(page.getByRole("button", { name: /^Project/ })).toHaveText(/StoryArc/);
+	await expect(page.getByRole("heading", { name: "Needs you" })).toBeVisible();
+});

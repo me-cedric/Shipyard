@@ -1,10 +1,12 @@
 import {
 	codeBranchCreate,
 	codeBranchDelete,
+	codeBranchMerge,
 	codeBranchSwitch,
 	codeCommit,
 	codeDiff,
 	codeFileRead,
+	codeMergeAbort,
 	codeStage,
 	codeStatus,
 	codeUnstage,
@@ -67,5 +69,32 @@ describe("the Code mock", () => {
 
 	it("writes a unified diff with context", () => {
 		expect(unifiedDiff("a", "1\n2\n3\n4\n5\n", "1\n2\n3\nX\n5\n")).toContain("-4\n+X\n 5");
+	});
+
+	it("merges a branch, stops on a conflict and aborts", () => {
+		const c = seedCode();
+		// A change in the working copy blocks the merge, as in the Rust command.
+		expect(() => codeBranchMerge(c, "feat/auth/login")).toThrow("uncommitted changes");
+		for (const f of Object.values(c.files)) {
+			f.index = f.head;
+			f.work = f.head;
+		}
+		expect(codeBranchMerge(c, "feat/auth/login")).toBe("up-to-date");
+		expect(() => codeBranchMerge(c, "nope")).toThrow("branch not found");
+		// Both branches change one file: the merge stays in progress.
+		codeBranchCreate(c, "feat/x/side");
+		const side = c.branches["feat/x/side"];
+		side?.touches.push("src/app.ts");
+		side?.log.unshift("s".repeat(40));
+		codeBranchSwitch(c, "main");
+		c.branches.main?.touches.push("src/app.ts");
+		c.branches.main?.log.unshift("m".repeat(40));
+		expect(codeBranchMerge(c, "feat/x/side")).toEqual({ conflicts: ["src/app.ts"] });
+		expect(codeStatus(c)).toMatchObject({ merging: true });
+		expect(codeStatus(c).conflicted).toHaveLength(1);
+		expect(() => codeBranchMerge(c, "feat/x/side")).toThrow("busy with a merge");
+		codeMergeAbort(c);
+		expect(codeStatus(c)).toMatchObject({ merging: false, conflicted: [] });
+		expect(() => codeMergeAbort(c)).toThrow("no merge");
 	});
 });

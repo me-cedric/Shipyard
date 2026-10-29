@@ -88,7 +88,7 @@ fn fx_wrapped(
         .set_secret(&c.id, Secret::new("tok-work-secret"))
         .unwrap();
     let s = AppState::with_connections(data.path().join("data"), conns);
-    projects::open(&s, repo.path().to_str().unwrap(), true).unwrap();
+    projects::open(&s, repo.path().to_str().unwrap()).unwrap();
     let FileRead::Valid(mut f) = read_project_file(repo.path()).unwrap() else {
         panic!("a valid file")
     };
@@ -1455,5 +1455,48 @@ fn no_error_and_no_file_holds_the_passphrase_or_the_token() {
         texts
             .iter()
             .all(|t| !t.contains(PASS) && !t.contains("tok-work-secret"))
+    );
+}
+
+#[test]
+fn legacy_json_sheets_and_team_open_in_place_and_save_in_their_format() {
+    let f = fx();
+    let put = |rel: &str, text: &str| {
+        let p = f.repo.path().join(rel);
+        std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+        std::fs::write(p, text).unwrap();
+    };
+    put(
+        "docs/costing/mvp.json",
+        r#"{"version":1,"plan":{"p":[1]},"meta":{"name":"MVP","currency":"EUR","marginRate":0.1},
+        "features":[{"id":"f1","name":"Login","tasks":[{"id":"t1","name":"Form","personaId":"dev","mandays":3,"chargeType":"days","kind":"build"}]}]}"#,
+    );
+    put(
+        "docs/planning/team.json",
+        r#"{"version":1,"members":[{"id":"m","name":"Ana","email":"ana@x.io","personaId":"dev","tjm":500,"windows":[]}]}"#,
+    );
+    let v = sheet_get(&f.s, "mvp").unwrap();
+    assert_eq!(v.sheet.features[0].tasks[0].days, Some(3.0));
+    assert!(
+        v.totals.price > 0.0,
+        "the team rate prices the Legacy sheet"
+    );
+    let mut sheet = v.sheet;
+    sheet.features[0].tasks[0].days = Some(5.0);
+    sheet_save(&f.s, "mvp", sheet).unwrap();
+    assert!(!f.exists("docs/costing/mvp.yaml"), "no YAML twin");
+    let text = f.file("docs/costing/mvp.json");
+    assert!(text.contains("\"mandays\": 5.0") && text.contains("\"plan\""));
+    assert!(excel_replace(&f.s, "mvp", true).is_err());
+
+    let mut t = team_get(&f.s).unwrap().team;
+    assert_eq!(t.members[0].handle, "ana");
+    t.members[0].day_rate = Some(600.0);
+    team_save(&f.s, t).unwrap();
+    assert!(!f.exists(".shipyard/team.yaml"));
+    assert!(f.file("docs/planning/team.json").contains("\"tjm\": 600.0"));
+    assert_eq!(
+        team_get(&f.s).unwrap().team.members[0].day_rate,
+        Some(600.0)
     );
 }

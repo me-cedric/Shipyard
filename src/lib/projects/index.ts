@@ -15,15 +15,45 @@ import {
 export type ProjectEntry = ProjectEntry_Serialize;
 export type ProjectOutcome = ProjectOutcome_Serialize;
 
+/**
+ * Every artifact path of a project file, with its default (`DEFAULT_PATHS` and `MORE_PATHS` of
+ * `shipyard-core`). Settings / Project lists them all.
+ */
+export const PATH_DEFAULTS: Record<string, string> = {
+	decisions: "docs/decisions",
+	questions: "docs/delivery/questions",
+	specs: "docs/openspec",
+	diagrams: "docs/diagrams",
+	models: "docs/models",
+	api: "docs/api",
+	data: "docs/data-models",
+	flows: "docs/flows",
+	designs: "docs/designs",
+	"test-plans": "docs/delivery/test-plans",
+	handbook: "docs/handbook",
+	documents: "docs/documents",
+	slides: "docs/slides",
+	dashboards: "docs/dashboards",
+};
+
 export const projectKeys = {
 	list: ["projects", "list"] as const,
 	active: ["projects", "active"] as const,
 	settings: ["projects", "settings"] as const,
 	health: ["health"] as const,
+	legacy: ["projects", "legacy"] as const,
 };
 
 export function useProjects() {
 	return useQuery({ queryKey: projectKeys.list, queryFn: () => unwrap(commands.projectsList()) });
+}
+
+/** The projects of the Legacy registry on this machine that are not in the list yet. */
+export function useLegacyProjects() {
+	return useQuery({
+		queryKey: projectKeys.legacy,
+		queryFn: () => unwrap(commands.legacyProjects()),
+	});
 }
 
 /** `data` is null when no project is active, and undefined while it loads. */
@@ -51,7 +81,7 @@ export function worstStatus(severities: Severity[]): "success" | "info" | "warni
 
 /** The text of a failed open, clone or create. Null when the project opened. */
 export function outcomeError(t: Messages, o: ProjectOutcome): string | null {
-	if (o.status === "opened" || o.status === "needs-project-file") return null;
+	if (o.status === "opened") return null;
 	return format(t.projects.error[o.status], { message: o.message ?? "" });
 }
 
@@ -79,18 +109,18 @@ export function useProjectActions() {
 		[opened],
 	);
 
-	/** Picks a folder and opens it. Without a project file it asks first. Null when the person cancels. */
+	/** Picks a folder and opens it. A folder with no project file gets one. Null when the person cancels. */
 	const openFolder = useCallback(async () => {
 		const path = await pickFolder();
 		if (!path) return null;
-		let o = await unwrap(commands.projectsOpen(path, false));
-		if (
-			o.status === "needs-project-file" &&
-			(await confirmDialog(format(t.projects.confirmFile, { path })))
-		)
-			o = await unwrap(commands.projectsOpen(path, true));
-		return opened(o);
-	}, [opened, t]);
+		return opened(await unwrap(commands.projectsOpen(path, false)));
+	}, [opened]);
+
+	/** Opens a project of the Legacy registry with its Legacy paths. */
+	const openLegacy = useCallback(
+		async (id: string) => opened(await unwrap(commands.legacyProjectOpen(id))),
+		[opened],
+	);
 
 	const clone = useCallback(
 		async (url: string, path: string) => opened(await unwrap(commands.projectsClone(url, path))),
@@ -121,5 +151,5 @@ export function useProjectActions() {
 		[qc, router, t],
 	);
 
-	return { switchTo, openFolder, clone, create, close, remove };
+	return { switchTo, openFolder, openLegacy, clone, create, close, remove };
 }

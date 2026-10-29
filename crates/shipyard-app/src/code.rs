@@ -858,7 +858,7 @@ mod tests {
         std::fs::write(root.join("a.txt"), "one\n").unwrap();
         git(&root, &["add", "-A"]);
         git(&root, &["commit", "-q", "-m", "chore: base"]);
-        projects::open(&s, root.to_str().unwrap(), true).unwrap();
+        projects::open(&s, root.to_str().unwrap()).unwrap();
         (s, std::fs::canonicalize(&root).unwrap())
     }
 

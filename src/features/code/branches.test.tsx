@@ -134,4 +134,38 @@ describe("Code / Branches", () => {
 		await user.click(await screen.findByRole("option", { name: "feat/auth/login" }));
 		await waitFor(() => expect(mockState().code?.branch).toBe("feat/auth/login"));
 	});
+
+	it("merges a branch with one click, shows the conflict blocks and aborts the merge", async () => {
+		const user = userEvent.setup();
+		await open();
+		await unwrap(commands.codeStatus());
+		const code = mockState().code;
+		if (!code) throw new Error("no code state");
+		mountApp("/code/branches");
+		const row = await screen.findByRole("group", { name: "feat/auth/login" });
+		// The seed working copy has changes: the merge names the file and stops.
+		await user.click(within(row).getByRole("button", { name: "Merge feat/auth/login" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("uncommitted changes");
+		await unwrap(commands.codeUnstage(["src"]));
+		await unwrap(commands.codeDiscard(["src", "docs"], false));
+		await user.click(within(row).getByRole("button", { name: "Merge feat/auth/login" }));
+		expect(await screen.findByText("Already up to date")).toBeInTheDocument();
+
+		// Both branches changed one file.
+		const side = code.branches["feat/auth/login"];
+		side?.log.unshift("s".repeat(40));
+		side?.touches.push("src/app.ts");
+		code.branches.main?.touches.push("src/app.ts");
+		await user.click(within(row).getByRole("button", { name: "Merge feat/auth/login" }));
+		expect(await screen.findByText("Merge in progress, 1 files in conflict")).toBeInTheDocument();
+		const file = await screen.findByRole("region", { name: "src/app.ts" });
+		expect(within(file).getByRole("group", { name: "Block 1" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Merge feat/auth/login" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Abort merge" }));
+		await waitFor(() => expect(mockState().code?.merging).toBe(false));
+		expect(
+			await screen.findByRole("button", { name: "Merge feat/auth/login" }),
+		).toBeInTheDocument();
+		expect(screen.queryByRole("region", { name: "src/app.ts" })).toBeNull();
+	}, 20_000);
 });

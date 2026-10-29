@@ -17,6 +17,18 @@ pub enum BranchKind {
     Remote,
 }
 
+/// The result of [`Repo::merge_branch`]. With `Conflicts` the merge stays in progress: the files
+/// show in [`Repo::conflicts`], and [`Repo::merge_abort`] ends it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "kebab-case")]
+pub enum MergeOutcome {
+    UpToDate,
+    FastForwarded,
+    /// A merge commit was made. The value is its full id.
+    Merged(String),
+    Conflicts(Vec<String>),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 pub struct Branch {
     /// `main` for a local branch, `origin/main` for a remote one.
@@ -64,6 +76,71 @@ impl Repo {
             }
         }
         Ok(out)
+    }
+
+    /// Merge a local or a remote branch (`origin/feat`) into the working branch. It refuses while
+    /// another operation runs, and while a tracked file has a change. A merge with no conflict
+    /// ends with a merge commit. A merge with conflicts stays in progress.
+    pub fn merge_branch(&self, name: &str) -> Result<MergeOutcome> {
+        self.check_state()?;
+        self.check_tracked_clean()?;
+        let head = self.repo.head().map_err(|_| GitError::Detached)?;
+        if !head.is_branch() {
+            return Err(GitError::Detached);
+        }
+        let ours = head.peel_to_commit()?;
+        let into = head.shorthand().unwrap_or("HEAD").to_string();
+        let refname = head.name()?.to_string();
+        let theirs = [BranchType::Local, BranchType::Remote]
+            .into_iter()
+            .find_map(|t| self.repo.find_branch(name, t).ok())
+            .ok_or_else(|| GitError::NoBranch(name.to_string()))?;
+        let their = self.repo.reference_to_annotated_commit(theirs.get())?;
+        let (analysis, _) = self.repo.merge_analysis(&[&their])?;
+        if analysis.is_up_to_date() {
+            return Ok(MergeOutcome::UpToDate);
+        }
+        if analysis.is_fast_forward() {
+            let target = self.repo.find_object(their.id(), None)?;
+            self.repo
+                .checkout_tree(&target, Some(CheckoutBuilder::new().safe()))?;
+            self.repo
+                .find_reference(&refname)?
+                .set_target(their.id(), "merge: fast-forward")?;
+            return Ok(MergeOutcome::FastForwarded);
+        }
+        let sig = self.repo.signature().map_err(|_| GitError::NoIdentity)?;
+        self.repo
+            .merge(&[&their], None, Some(CheckoutBuilder::new().safe()))?;
+        let mut index = self.repo.index()?;
+        index.read(true)?;
+        if index.has_conflicts() {
+            return Ok(MergeOutcome::Conflicts(super::conflict::conflict_paths(
+                &index,
+            )?));
+        }
+        let tree = self.repo.find_tree(index.write_tree()?)?;
+        let theirs_commit = self.repo.find_commit(their.id())?;
+        let id = self.repo.commit(
+            Some("HEAD"),
+            &sig,
+            &sig,
+            &format!("Merge branch '{name}' into {into}"),
+            &tree,
+            &[&ours, &theirs_commit],
+        )?;
+        self.repo.cleanup_state()?;
+        Ok(MergeOutcome::Merged(id.to_string()))
+    }
+
+    /// End a merge in progress: the working copy goes back to HEAD. Refuses when no merge runs.
+    pub fn merge_abort(&self) -> Result<()> {
+        if self.repo.state() != RepositoryState::Merge {
+            return Err(GitError::Git("no merge is in progress".into()));
+        }
+        let head = self.repo.head()?.peel(git2::ObjectType::Commit)?;
+        self.repo.reset(&head, git2::ResetType::Hard, None)?;
+        Ok(self.repo.cleanup_state()?)
     }
 
     /// Create a branch at HEAD and make it the working branch. The files do not change.

@@ -5,7 +5,7 @@ use std::path::Path;
 
 use git2::{Repository, RepositoryInitOptions};
 use shipyard_git::code::{
-    BranchKind, Choice, DiffSide, FileState, PullOutcome, RefKind, Segment, Side,
+    BranchKind, Choice, DiffSide, FileState, MergeOutcome, PullOutcome, RefKind, Segment, Side,
 };
 use shipyard_git::{Auth, GitError, Repo};
 use tempfile::TempDir;
@@ -1094,4 +1094,91 @@ fn tags_list_by_name_and_compare_with_uncommitted_work() {
     let mut files = r.changed_since("v1.0").unwrap();
     files.sort();
     assert_eq!(files, ["a.txt", "b.txt"]);
+}
+
+#[test]
+fn merge_branch_fast_forwards_merges_and_stops_on_a_conflict_until_abort() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    commit(&r, "a.txt", "one\n", "chore: base");
+    r.create_branch("feat/x/ff").unwrap();
+    commit(&r, "b.txt", "b\n", "feat: b");
+    r.switch_branch("main").unwrap();
+    assert_eq!(
+        r.merge_branch("feat/x/ff").unwrap(),
+        MergeOutcome::FastForwarded
+    );
+    assert!(r.workdir().join("b.txt").exists());
+    assert_eq!(r.merge_branch("feat/x/ff").unwrap(), MergeOutcome::UpToDate);
+
+    // Both sides moved: a merge commit with two parents.
+    r.create_branch("feat/x/two").unwrap();
+    commit(&r, "c.txt", "c\n", "feat: c");
+    r.switch_branch("main").unwrap();
+    commit(&r, "d.txt", "d\n", "feat: d");
+    let MergeOutcome::Merged(id) = r.merge_branch("feat/x/two").unwrap() else {
+        panic!("a merge commit")
+    };
+    let git = Repository::open(r.workdir()).unwrap();
+    assert_eq!(
+        git.find_commit(git2::Oid::from_str(&id).unwrap())
+            .unwrap()
+            .parent_count(),
+        2
+    );
+    assert!(r.status().unwrap().is_clean());
+
+    // A conflict leaves the merge in progress. Abort restores the branch.
+    r.create_branch("feat/x/clash").unwrap();
+    commit(&r, "a.txt", "theirs\n", "feat: theirs");
+    r.switch_branch("main").unwrap();
+    let head = commit(&r, "a.txt", "ours\n", "feat: ours");
+    assert_eq!(
+        r.merge_branch("feat/x/clash").unwrap(),
+        MergeOutcome::Conflicts(vec![s("a.txt")])
+    );
+    assert!(r.status().unwrap().merging);
+    assert_eq!(r.conflicts().unwrap().len(), 1);
+    assert!(matches!(
+        r.merge_branch("feat/x/ff"),
+        Err(GitError::Busy(_))
+    ));
+    r.merge_abort().unwrap();
+    let st = r.status().unwrap();
+    assert!(!st.merging && st.is_clean());
+    assert_eq!(st.head.as_deref(), Some(head.as_str()));
+    assert_eq!(
+        fs::read_to_string(r.workdir().join("a.txt")).unwrap(),
+        "ours\n"
+    );
+    assert!(r.merge_abort().is_err());
+
+    // A resolved conflict commits as a merge.
+    assert!(matches!(
+        r.merge_branch("feat/x/clash").unwrap(),
+        MergeOutcome::Conflicts(_)
+    ));
+    r.resolve_blocks("a.txt", &[Choice::Theirs]).unwrap();
+    r.commit("chore: merge", "").unwrap();
+    assert!(!r.status().unwrap().merging);
+    assert_eq!(
+        fs::read_to_string(r.workdir().join("a.txt")).unwrap(),
+        "theirs\n"
+    );
+}
+
+#[test]
+fn merge_branch_refuses_a_dirty_tracked_file_and_an_unknown_branch() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    commit(&r, "a.txt", "one\n", "chore: base");
+    r.create_branch("feat/x/y").unwrap();
+    r.switch_branch("main").unwrap();
+    write(&r, "a.txt", "dirty\n");
+    assert!(matches!(
+        r.merge_branch("feat/x/y"),
+        Err(GitError::DirtyTree(_))
+    ));
+    r.discard(&[s("a.txt")], false).unwrap();
+    assert!(matches!(r.merge_branch("nope"), Err(GitError::NoBranch(_))));
 }

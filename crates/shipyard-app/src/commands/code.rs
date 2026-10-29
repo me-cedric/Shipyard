@@ -12,7 +12,7 @@ use shipyard_core::code::{check_branch_name, check_summary};
 use shipyard_git::Repo;
 use shipyard_git::code::{
     Branch, Changes, Choice, CommitInfo, ConflictFile, DiffSide, FileChange, FileDiff, FileView,
-    HeadChange, LogPage, PullOutcome, Side, Stash,
+    HeadChange, LogPage, MergeOutcome, PullOutcome, Side, Stash,
 };
 use shipyard_store::code::{set_watch_minutes, watch_minutes};
 use specta::Type;
@@ -98,6 +98,16 @@ pub fn branch_create(s: &AppState, name: &str) -> Res<()> {
 
 pub fn branch_switch(s: &AppState, name: &str) -> Res<()> {
     repo(s)?.switch_branch(name).map_err(err)
+}
+
+/// Merges a branch into the working branch. Conflicts leave the merge in progress.
+pub fn branch_merge(s: &AppState, name: &str) -> Res<MergeOutcome> {
+    repo(s)?.merge_branch(name).map_err(err)
+}
+
+/// Ends a merge in progress. The working copy goes back to HEAD.
+pub fn merge_abort(s: &AppState) -> Res<()> {
+    repo(s)?.merge_abort().map_err(err)
 }
 
 /// The caller asks for the confirmation that names the branch (REQ-013).
@@ -378,6 +388,18 @@ pub async fn code_branch_switch(app: AppHandle, name: String) -> Res<()> {
 
 #[tauri::command]
 #[specta::specta]
+pub async fn code_branch_merge(app: AppHandle, name: String) -> Res<MergeOutcome> {
+    blocking(app, move |s| branch_merge(s, &name)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_merge_abort(app: AppHandle) -> Res<()> {
+    blocking(app, merge_abort).await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn code_branch_delete(app: AppHandle, name: String, force: bool) -> Res<()> {
     blocking(app, move |s| branch_delete(s, &name, force)).await
 }
@@ -500,7 +522,7 @@ mod tests {
         let s = AppState::new(dir.join("data"));
         let root = dir.join(name);
         git_init(&root);
-        projects::open(&s, root.to_str().unwrap(), true).unwrap();
+        projects::open(&s, root.to_str().unwrap()).unwrap();
         (s, std::fs::canonicalize(&root).unwrap())
     }
 
@@ -516,6 +538,30 @@ mod tests {
 
     fn paths(x: &[&str]) -> Vec<String> {
         x.iter().map(|p| p.to_string()).collect()
+    }
+
+    #[test]
+    fn a_merge_shows_its_conflict_blocks_and_one_abort_ends_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, root) = project(dir.path(), "p");
+        git(&root, &["switch", "-q", "-c", "feat/x/side"]);
+        write(&root, "a.txt", "theirs\n");
+        git(&root, &["commit", "-q", "-am", "feat: theirs"]);
+        git(&root, &["switch", "-q", "main"]);
+        write(&root, "a.txt", "ours\n");
+        git(&root, &["commit", "-q", "-am", "feat: ours"]);
+        assert!(branch_merge(&s, "nope").is_err());
+        let out = branch_merge(&s, "feat/x/side").unwrap();
+        assert_eq!(out, MergeOutcome::Conflicts(paths(&["a.txt"])));
+        assert!(status(&s).unwrap().merging);
+        assert_eq!(conflicts(&s).unwrap().len(), 1);
+        merge_abort(&s).unwrap();
+        assert!(!status(&s).unwrap().merging);
+        assert!(merge_abort(&s).is_err());
+        assert_eq!(
+            std::fs::read_to_string(root.join("a.txt")).unwrap(),
+            "ours\n"
+        );
     }
 
     #[test]

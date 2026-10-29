@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { COMMIT_TYPES, useBranches, useCodeActions } from "@/lib/code";
+import {
+	COMMIT_TYPES,
+	type MergeOutcome,
+	mergeKey,
+	useBranches,
+	useChanges,
+	useCodeActions,
+	useConflicts,
+} from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -7,6 +15,7 @@ import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { ArrowPathIcon, CheckIcon, PlusIcon } from "@/ui/icons";
 import { SettingsRow } from "@/ui/molecules/settings-row";
+import { ConflictPane } from "./changes";
 import { withProject } from "./project-gate";
 import { useRun } from "./use-run";
 
@@ -47,7 +56,10 @@ function CreateBranch({ run }: { run: (job: () => Promise<unknown>) => void }) {
 function BranchesView() {
 	const { t } = useI18n();
 	const branches = useBranches().data ?? [];
-	const { switchBranch, deleteBranch, fetch, push } = useCodeActions();
+	const { switchBranch, deleteBranch, mergeBranch, abortMerge, fetch, push } = useCodeActions();
+	const merging = useChanges().data?.merging ?? false;
+	const conflicts = useConflicts().data ?? [];
+	const [merged, setMerged] = useState<MergeOutcome | null>(null);
 	const { error, run: runJob } = useRun();
 	const [confirming, setConfirming] = useState<string | null>(null);
 	const run = (job: () => Promise<unknown>) => void runJob(job);
@@ -73,6 +85,29 @@ function BranchesView() {
 					{error}
 				</p>
 			) : null}
+			{merging ? (
+				<div className="flex items-center gap-2 border-b px-3 py-2">
+					<p role="status" className="flex-1 text-ui">
+						{format(t.code.mergeProgress, { count: conflicts.length })}
+					</p>
+					<Button
+						variant="danger"
+						onClick={() =>
+							run(async () => {
+								setMerged(null);
+								await abortMerge();
+							})
+						}
+					>
+						{t.code.mergeAbort}
+					</Button>
+				</div>
+			) : merged ? (
+				<p role="status" className="px-3 py-2 text-ui">
+					{t.code.mergeResult[mergeKey(merged)]}
+				</p>
+			) : null}
+			{merging ? conflicts.map((c) => <ConflictPane key={c.path} file={c} run={run} />) : null}
 			{groups.map((g) => (
 				<section key={g.id} aria-label={g.title}>
 					<h2 className="px-3 py-1 text-12 font-medium text-n-11">
@@ -93,6 +128,15 @@ function BranchesView() {
 							>
 								{t.code.switch}
 							</Button>
+							{!b.is_head && !merging ? (
+								<Button
+									variant="ghost"
+									aria-label={format(t.code.mergeBranch, { name: b.name })}
+									onClick={() => run(async () => setMerged(await mergeBranch(b.name)))}
+								>
+									{t.code.merge}
+								</Button>
+							) : null}
 							{b.kind === "local" && !b.is_head ? (
 								confirming === b.name ? (
 									<Button

@@ -12,6 +12,7 @@ pub mod export;
 pub mod factory_files;
 pub mod fold;
 pub mod knowledge;
+pub mod legacy;
 pub mod project_import;
 pub mod madr;
 pub mod mirror;

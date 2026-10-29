@@ -2,9 +2,12 @@
 
 use std::path::{Path, PathBuf};
 
+use std::collections::BTreeMap;
+
 use serde::Serialize;
 use shipyard_core::project::{ProjectFile, validate};
 use shipyard_git::project::{WorkState, clone_repo, init, is_repo, state};
+use shipyard_store::legacy::layout_file;
 use shipyard_store::project::{Entry, FileRead, Overrides, read_project_file, write_project_file};
 use specta::Type;
 use tauri::AppHandle;
@@ -29,8 +32,6 @@ pub struct ProjectEntry {
 #[serde(rename_all = "kebab-case")]
 pub enum OpenStatus {
     Opened,
-    /// The repository has no project file. A person confirms, then the call repeats with `init`.
-    NeedsProjectFile,
     NotRepository,
     FolderNotEmpty,
     Invalid,
@@ -118,9 +119,18 @@ fn activate(s: &AppState, root: &Path, file: &ProjectFile) -> Res<ProjectOutcome
     })
 }
 
-/// Opens a folder that holds a repository. It never runs `git init`.
-/// Without a project file it asks first: `init` is the confirm.
-pub fn open(s: &AppState, path: &str, init: bool) -> Res<ProjectOutcome> {
+/// Opens a folder that holds a repository. It never runs `git init`. Without a project file it
+/// writes one: the Legacy layout that it finds, or the defaults (Q-102).
+pub fn open(s: &AppState, path: &str) -> Res<ProjectOutcome> {
+    open_with(s, path, &BTreeMap::new())
+}
+
+/// `open`, with the artifact paths of a Legacy registry entry.
+pub fn open_with(
+    s: &AppState,
+    path: &str,
+    paths: &BTreeMap<String, String>,
+) -> Res<ProjectOutcome> {
     let Ok(root) = std::fs::canonicalize(path) else {
         return Ok(outcome(OpenStatus::NotRepository, path));
     };
@@ -128,17 +138,16 @@ pub fn open(s: &AppState, path: &str, init: bool) -> Res<ProjectOutcome> {
         return Ok(outcome(OpenStatus::NotRepository, path));
     }
     let name = folder_name(&root);
-    let fallback = || ProjectFile::new(&name, &derive_key(&name));
+    let fallback = || layout_file(&root, &name, &derive_key(&name), paths);
     let file = match read_project_file(&root).map_err(err)? {
         FileRead::Valid(f) => f,
-        FileRead::Missing if init => {
+        FileRead::Missing => {
             let f = fallback();
             write_project_file(&root, &f).map_err(err)?;
             f
         }
-        FileRead::Missing => return Ok(outcome(OpenStatus::NeedsProjectFile, path)),
         // The project opens. Settings / Health shows the line and the value.
-        FileRead::Invalid(_) => fallback(),
+        FileRead::Invalid(_) => ProjectFile::new(&name, &derive_key(&name)),
     };
     activate(s, &root, &file)
 }
@@ -174,7 +183,7 @@ pub fn clone(s: &AppState, url: &str, path: &str) -> Res<ProjectOutcome> {
     }
     let auth = s.connections.git_auth(url.trim())?;
     match clone_repo(url.trim(), Path::new(path), &auth) {
-        Ok(()) => open(s, path, true),
+        Ok(()) => open(s, path),
         Err(e) => Ok(outcome(OpenStatus::Failed, e)),
     }
 }
@@ -282,8 +291,10 @@ pub async fn projects_active(app: AppHandle) -> Res<Option<ProjectEntry>> {
 
 #[tauri::command]
 #[specta::specta]
+// `init` stays for the IPC contract. The file is written without a confirm.
+#[allow(unused_variables)]
 pub async fn projects_open(app: AppHandle, path: String, init: bool) -> Res<ProjectOutcome> {
-    blocking(app, move |s| open(s, &path, init)).await
+    blocking(app, move |s| open(s, &path)).await
 }
 
 #[tauri::command]
@@ -376,7 +387,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let s = state_in(dir.path());
         let p = repo(dir.path(), "alpha", true);
-        let o = open(&s, &p, false).unwrap();
+        let o = open(&s, &p).unwrap();
         assert_eq!(o.status, OpenStatus::Opened);
         let e = o.project.unwrap();
         assert_eq!(
@@ -388,18 +399,47 @@ mod tests {
     }
 
     #[test]
-    fn a_repository_without_a_project_file_waits_for_the_confirm() {
+    fn a_repository_without_a_project_file_gets_the_defaults() {
         let dir = tempfile::tempdir().unwrap();
         let s = state_in(dir.path());
         let p = repo(dir.path(), "beta", false);
+        assert_eq!(open(&s, &p).unwrap().status, OpenStatus::Opened);
+        let f = read_project_file(Path::new(&p)).unwrap();
+        let FileRead::Valid(f) = f else {
+            panic!("no file")
+        };
+        assert_eq!(f.paths.len(), 3);
+        assert_eq!(f.path("models"), "docs/models");
+    }
+
+    #[test]
+    fn a_legacy_folder_gets_the_legacy_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = state_in(dir.path());
+        let p = repo(dir.path(), "kvy", false);
+        let root = Path::new(&p);
+        for (rel, text) in [
+            ("docs/drawings/a.mmd", "graph TD"),
+            ("docs/diagrams/ctx/m.c4", "model {}"),
+            ("docs/network/flows.json", "{\"flows\":[]}"),
+        ] {
+            std::fs::create_dir_all(root.join(rel).parent().unwrap()).unwrap();
+            std::fs::write(root.join(rel), text).unwrap();
+        }
+        assert_eq!(open(&s, &p).unwrap().status, OpenStatus::Opened);
+        let FileRead::Valid(f) = read_project_file(root).unwrap() else {
+            panic!("no file")
+        };
+        assert_eq!(f.path("diagrams"), "docs/drawings");
+        assert_eq!(f.path("models"), "docs/diagrams");
+        assert_eq!(f.path("flows"), "docs/network/flows.json");
+        // A project file that exists is never changed.
+        std::fs::write(root.join(".shipyard/project.yaml"), "name: K\nkey: KVY\n").unwrap();
+        open(&s, &p).unwrap();
         assert_eq!(
-            open(&s, &p, false).unwrap().status,
-            OpenStatus::NeedsProjectFile
+            std::fs::read_to_string(root.join(".shipyard/project.yaml")).unwrap(),
+            "name: K\nkey: KVY\n"
         );
-        assert!(!Path::new(&p).join(".shipyard").exists());
-        assert!(list(&s).unwrap().is_empty());
-        assert_eq!(open(&s, &p, true).unwrap().status, OpenStatus::Opened);
-        assert!(Path::new(&p).join(".shipyard/project.yaml").exists());
     }
 
     #[test]
@@ -408,12 +448,12 @@ mod tests {
         let s = state_in(dir.path());
         let plain = dir.path().join("plain");
         std::fs::create_dir(&plain).unwrap();
-        let o = open(&s, plain.to_str().unwrap(), true).unwrap();
+        let o = open(&s, plain.to_str().unwrap()).unwrap();
         assert_eq!(o.status, OpenStatus::NotRepository);
         assert!(!plain.join(".git").exists(), "no git init");
         assert_eq!(std::fs::read_dir(&plain).unwrap().count(), 0);
         assert_eq!(
-            open(&s, "/does/not/exist", true).unwrap().status,
+            open(&s, "/does/not/exist").unwrap().status,
             OpenStatus::NotRepository
         );
     }
@@ -429,7 +469,7 @@ mod tests {
             "name: G\nkey: bad\n",
         )
         .unwrap();
-        assert_eq!(open(&s, &p, false).unwrap().status, OpenStatus::Opened);
+        assert_eq!(open(&s, &p).unwrap().status, OpenStatus::Opened);
     }
 
     #[test]
@@ -470,7 +510,7 @@ mod tests {
         let s = state_in(dir.path());
         let p = repo(dir.path(), "keep", true);
         std::fs::write(Path::new(&p).join(".gitignore"), "mine\n").unwrap();
-        open(&s, &p, false).unwrap();
+        open(&s, &p).unwrap();
         assert_eq!(
             std::fs::read_to_string(Path::new(&p).join(".gitignore")).unwrap(),
             "mine\n"
@@ -481,8 +521,8 @@ mod tests {
     fn switch_changes_the_active_project_and_keeps_the_last_view() {
         let dir = tempfile::tempdir().unwrap();
         let s = state_in(dir.path());
-        open(&s, &repo(dir.path(), "one", true), false).unwrap();
-        open(&s, &repo(dir.path(), "two", true), false).unwrap();
+        open(&s, &repo(dir.path(), "one", true)).unwrap();
+        open(&s, &repo(dir.path(), "two", true)).unwrap();
         assert_eq!(active(&s).unwrap().unwrap().id, "two");
         set_view(&s, "two", "/work/board").unwrap();
         assert!(set_view(&s, "two", "nope").is_err());
@@ -500,13 +540,13 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let s = state_in(dir.path());
         let p = repo(dir.path(), "one", true);
-        open(&s, &p, false).unwrap();
+        open(&s, &p).unwrap();
         close(&s).unwrap();
         assert!(active(&s).unwrap().is_none());
         let all = list(&s).unwrap();
         assert_eq!((all.len(), all[0].active), (1, false));
         close(&s).unwrap();
-        assert_eq!(open(&s, &p, false).unwrap().status, OpenStatus::Opened);
+        assert_eq!(open(&s, &p).unwrap().status, OpenStatus::Opened);
         assert_eq!(active(&s).unwrap().unwrap().id, "one");
     }
 
@@ -515,8 +555,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let s = state_in(dir.path());
         let one = repo(dir.path(), "one", true);
-        open(&s, &one, false).unwrap();
-        open(&s, &repo(dir.path(), "two", true), false).unwrap();
+        open(&s, &one).unwrap();
+        open(&s, &repo(dir.path(), "two", true)).unwrap();
         remove(&s, "one").unwrap();
         assert_eq!(list(&s).unwrap().len(), 1);
         assert_eq!(active(&s).unwrap().unwrap().id, "two");
@@ -531,7 +571,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let s = state_in(dir.path());
         let p = repo(dir.path(), "gone", true);
-        open(&s, &p, false).unwrap();
+        open(&s, &p).unwrap();
         std::fs::remove_dir_all(&p).unwrap();
         assert_eq!(list(&s).unwrap()[0].state, WorkState::Missing);
     }
@@ -541,7 +581,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let s = state_in(dir.path());
         let p = repo(dir.path(), "delta", true);
-        open(&s, &p, false).unwrap();
+        open(&s, &p).unwrap();
         let mut file = settings(&s).unwrap().unwrap().file.unwrap();
         file.paths.insert("decisions".into(), "adr".into());
         save_file(&s, file).unwrap();

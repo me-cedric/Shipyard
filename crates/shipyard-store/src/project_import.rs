@@ -136,7 +136,7 @@ fn slug(s: &str) -> String {
 }
 
 /// A Legacy persona is a role. Its name is the role in Shipyard (`role_rates` keys on it).
-fn roles(source: &Path) -> BTreeMap<String, String> {
+pub fn roles(source: &Path) -> BTreeMap<String, String> {
     let Some(Ok(v)) = json(source, "docs/personas/personas.json") else {
         return BTreeMap::new();
     };
@@ -146,7 +146,7 @@ fn roles(source: &Path) -> BTreeMap<String, String> {
         .collect()
 }
 
-fn team(v: &Value, roles: &BTreeMap<String, String>) -> Team {
+pub fn team(v: &Value, roles: &BTreeMap<String, String>) -> Team {
     let mut used = BTreeSet::new();
     let members = list(v, "members")
         .iter()
@@ -211,7 +211,7 @@ fn team(v: &Value, roles: &BTreeMap<String, String>) -> Team {
     }
 }
 
-fn sheet(v: &Value, stem: &str, roles: &BTreeMap<String, String>) -> Sheet {
+pub fn sheet(v: &Value, stem: &str, roles: &BTreeMap<String, String>) -> Sheet {
     let meta = v.get("meta").unwrap_or(&Value::Null);
     let features = list(v, "features")
         .iter()

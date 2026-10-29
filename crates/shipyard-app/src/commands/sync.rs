@@ -817,7 +817,7 @@ mod tests {
                 .unwrap();
         }
         let s = AppState::with_connections(data.path().join("data"), conns);
-        projects::open(&s, repo.path().to_str().unwrap(), true).unwrap();
+        projects::open(&s, repo.path().to_str().unwrap()).unwrap();
         let FileRead::Valid(mut f) = read_project_file(repo.path()).unwrap() else {
             panic!("a valid file")
         };

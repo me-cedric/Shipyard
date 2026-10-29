@@ -333,7 +333,7 @@ mod tests {
             .status()
             .unwrap();
         let s = AppState::new(tmp.path().join("data"));
-        crate::commands::projects::open(&s, root.to_str().unwrap(), true).unwrap();
+        crate::commands::projects::open(&s, root.to_str().unwrap()).unwrap();
         assert!(start_dir(&s, Some("src")).unwrap().ends_with("src"));
         assert!(start_dir(&s, Some("..")).is_err());
         assert!(start_dir(&s, Some("missing")).is_err());

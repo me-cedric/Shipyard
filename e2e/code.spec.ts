@@ -79,6 +79,29 @@ test("creates a branch in Code / Branches with the type, area and subject", asyn
 	await expect(heading(page, "Local (3)")).toBeVisible();
 });
 
+test("merges a branch with one click in Code / Branches", async ({ page }) => {
+	await openCode(page, "Branches");
+	const row = page.getByRole("group", { name: "feat/auth/login" });
+	await row.getByRole("button", { name: "Merge feat/auth/login" }).click();
+	await expect(page.getByRole("alert")).toContainText("uncommitted changes");
+
+	await page
+		.getByRole("navigation", { name: "Tabs" })
+		.getByRole("link", { name: "Changes" })
+		.click();
+	await page
+		.getByRole("region", { name: "Stashes" })
+		.getByRole("button", { name: "Stash" })
+		.click();
+	await expect(heading(page, "Stashes (1)")).toBeVisible();
+	await page
+		.getByRole("navigation", { name: "Tabs" })
+		.getByRole("link", { name: "Branches" })
+		.click();
+	await row.getByRole("button", { name: "Merge feat/auth/login" }).click();
+	await expect(page.getByText("Already up to date")).toBeVisible();
+});
+
 // The list holds the factory pull requests (#40 to #47) and the forge mock ones (#141 to #143).
 const pull = (page: Page, n: number) => page.getByRole("button", { name: new RegExp(`^#${n} `) });
 

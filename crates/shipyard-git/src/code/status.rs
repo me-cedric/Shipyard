@@ -45,6 +45,8 @@ pub struct Changes {
     pub unstaged: Vec<FileChange>,
     pub untracked: Vec<FileChange>,
     pub conflicted: Vec<FileChange>,
+    /// A merge is in progress: the person resolves the conflicts, or aborts it.
+    pub merging: bool,
 }
 
 impl Changes {
@@ -81,7 +83,10 @@ fn under(paths: &[String], p: &str) -> bool {
 
 impl Repo {
     pub fn status(&self) -> Result<Changes> {
-        let mut out = Changes::default();
+        let mut out = Changes {
+            merging: self.repo.state() == git2::RepositoryState::Merge,
+            ..Changes::default()
+        };
         let head = self.repo.head().ok();
         // The HEAD link names the branch, also before the first commit.
         out.branch = self

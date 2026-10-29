@@ -32,18 +32,23 @@ describe("first run", () => {
 		expect(mockState().projects).toHaveLength(1);
 	});
 
-	it("asks before it writes a project file, and writes nothing on a refusal", async () => {
+	it("opens a folder with no project file at once and writes the file without a question", async () => {
 		const user = userEvent.setup();
 		mockState().nextFolder = "/mock/bare";
-		mockState().confirm = false;
 		mountApp("/home/inbox");
 		await user.click(await screen.findByRole("button", { name: "Open a local folder" }));
-		await waitFor(() => expect(mockState().nextFolder).toBeUndefined());
-		expect(mockState().projects).toHaveLength(0);
-		mockState().nextFolder = "/mock/bare";
-		mockState().confirm = true;
-		await user.click(screen.getByRole("button", { name: "Open a local folder" }));
 		expect(await screen.findByRole("heading", { name: "Needs you" })).toBeInTheDocument();
+		expect(mockState().projects[0]?.path).toBe("/mock/bare");
+	});
+
+	it("offers the Legacy projects in a group and opens one with its paths", async () => {
+		const user = userEvent.setup();
+		mountApp("/home/inbox");
+		const group = await screen.findByRole("list", { name: "Legacy" });
+		await user.click(within(group).getByRole("button", { name: "StoryArc" }));
+		expect(await screen.findByRole("heading", { name: "Needs you" })).toBeInTheDocument();
+		expect(mockState().projects[0]?.path).toBe("/mock/storyarc");
+		expect(mockState().files.storya?.paths.models).toBe("docs/diagrams");
 	});
 
 	it("names the missing repository and opens nothing", async () => {
@@ -281,6 +286,38 @@ describe("Settings / Project", () => {
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().files.alpha?.paths.decisions).toBe("adr"));
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
+	});
+
+	it("lists every path key and writes only the keys that the person changes", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/settings/project");
+		for (const name of ["Diagrams", "Models", "Flows", "Test plans", "Dashboards", "Data models"])
+			expect(await screen.findByRole("textbox", { name })).toBeInTheDocument();
+		expect(screen.getByRole("textbox", { name: "Models" })).toHaveValue("docs/models");
+		const models = screen.getByRole("textbox", { name: "Models" });
+		await user.clear(models);
+		await user.type(models, "docs/diagrams");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().files.alpha?.paths.models).toBe("docs/diagrams"));
+		// A key that holds its default stays out of the file.
+		expect(mockState().files.alpha?.paths.api).toBeUndefined();
+	});
+
+	it("edits the tracker scope and keeps it when the paths are saved", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/settings/project");
+		const scope = await screen.findByRole("textbox", { name: "Tracker scope" });
+		await user.type(scope, "PROJ");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().files.alpha?.connections?.trackerScope).toBe("PROJ"));
+		const decisions = await screen.findByRole("textbox", { name: "Decisions" });
+		await user.clear(decisions);
+		await user.type(decisions, "adr");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().files.alpha?.paths.decisions).toBe("adr"));
+		expect(mockState().files.alpha?.connections?.trackerScope).toBe("PROJ");
 	});
 
 	it("records the tracker and the forge of the project by connection id", async () => {

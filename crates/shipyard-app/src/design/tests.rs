@@ -284,3 +284,29 @@ fn the_open_action_takes_an_https_address_or_a_fig_file_of_the_project() {
         assert!(outside_target(root, bad).is_err(), "{bad}");
     }
 }
+
+#[test]
+fn a_legacy_flows_file_reads_as_rows_and_saves_as_json() {
+    let f = fx();
+    let mut file_ = project(&f.s).unwrap().file;
+    file_
+        .paths
+        .insert("flows".into(), "docs/network/flows.json".into());
+    shipyard_store::project::write_project_file(f.repo.path(), &file_).unwrap();
+    let rel = "docs/network/flows.json";
+    put_file(
+        &f,
+        rel,
+        r#"{"version":1,"flows":[{"id":"a","name":"web","source":"web","destination":"db","vlan":"v10","protocol":"TCP","ports":"80","action":"Allow"}]}"#,
+    );
+    let l = list(&f.s).unwrap();
+    assert_eq!(l.artifacts[0].path, rel);
+    let t = read(&f.s, rel).unwrap();
+    assert!(t.text.starts_with("rows:"), "the view reads YAML rows");
+    let mut rows = design::read_flows(&t.text).unwrap();
+    rows[0].port = Some("443".into());
+    let w = flows_save(&f.s, rel, &rows, Some(&t.stamp)).unwrap();
+    assert!(!w.conflict);
+    let saved = file(&f, rel);
+    assert!(saved.contains("\"ports\": \"443\"") && saved.contains("\"name\": \"web\""));
+}

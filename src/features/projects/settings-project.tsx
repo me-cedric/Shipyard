@@ -11,7 +11,7 @@ import {
 	type Theme,
 	unwrap,
 } from "@/lib/ipc";
-import { projectKeys, useProjectActions } from "@/lib/projects";
+import { PATH_DEFAULTS, projectKeys, useProjectActions } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
@@ -29,12 +29,16 @@ type Draft = {
 	workflow: string;
 	/** The connection id for each purpose. Empty is none. */
 	connections: { tracker: string; forge: string };
+	/** The Jira project key, the repository, the Azure project or the Linear team. */
+	scope: string;
 };
 
 const draftOf = (f: ProjectFile_Deserialize | null): Draft => ({
-	paths: { ...f?.paths },
+	// Every key shows: a key that the file does not set shows its default.
+	paths: { ...PATH_DEFAULTS, ...f?.paths },
 	workflow: f?.defaultWorkflow ?? "",
 	connections: { tracker: f?.connections?.tracker ?? "", forge: f?.connections?.forge ?? "" },
+	scope: f?.connections?.trackerScope ?? "",
 });
 
 // An invalid or missing project file leaves only the overrides. Settings / Health shows the finding.
@@ -74,13 +78,19 @@ function Form({
 			await unwrap(
 				commands.projectFileSave({
 					...file,
-					paths: draft.paths,
+					// A key stays out of the file while it holds its default and the file did not set it.
+					paths: Object.fromEntries(
+						Object.entries(draft.paths)
+							.map(([k, v]) => [k, v.trim()] as const)
+							.filter(([k, v]) => k in (file.paths ?? {}) || v !== PATH_DEFAULTS[k]),
+					),
 					defaultWorkflow: draft.workflow.trim() || null,
 					connections:
-						draft.connections.tracker || draft.connections.forge
+						draft.connections.tracker || draft.connections.forge || draft.scope.trim()
 							? {
 									tracker: draft.connections.tracker || null,
 									forge: draft.connections.forge || null,
+									trackerScope: draft.scope.trim() || null,
 								}
 							: null,
 				}),
@@ -128,48 +138,61 @@ function Form({
 								{
 									id: "paths",
 									title: t.projects.paths,
-									rows: Object.keys(draft.paths)
-										.sort()
-										.map((kind) => ({
-											id: kind,
-											icon: <FolderOpenIcon size={14} />,
-											label: (t.projects.path as Record<string, string>)[kind] ?? kind,
-											control: (
-												<Input
-													label={(t.projects.path as Record<string, string>)[kind] ?? kind}
-													value={draft.paths[kind] ?? ""}
-													onChange={(e) =>
-														setDraft({
-															...draft,
-															paths: { ...draft.paths, [kind]: e.target.value },
-														})
-													}
-													className="w-64"
-												/>
-											),
-										})),
+									rows: Object.keys(draft.paths).map((kind) => ({
+										id: kind,
+										icon: <FolderOpenIcon size={14} />,
+										label: (t.projects.path as Record<string, string>)[kind] ?? kind,
+										control: (
+											<Input
+												label={(t.projects.path as Record<string, string>)[kind] ?? kind}
+												value={draft.paths[kind] ?? ""}
+												onChange={(e) =>
+													setDraft({
+														...draft,
+														paths: { ...draft.paths, [kind]: e.target.value },
+													})
+												}
+												className="w-64"
+											/>
+										),
+									})),
 								},
 								{
 									id: "connections",
 									title: t.projects.connections,
-									rows: (["tracker", "forge"] as const).map((group) => ({
-										id: group,
-										icon: <LinkIcon size={14} />,
-										label: t.connections.type[group],
-										control: (
-											<Select
-												label={t.connections.type[group]}
-												value={draft.connections[group] || NONE}
-												onValueChange={(v) =>
-													setDraft({
-														...draft,
-														connections: { ...draft.connections, [group]: v === NONE ? "" : v },
-													})
-												}
-												items={connectionItems(group)}
-											/>
-										),
-									})),
+									rows: [
+										...(["tracker", "forge"] as const).map((group) => ({
+											id: group,
+											icon: <LinkIcon size={14} />,
+											label: t.connections.type[group],
+											control: (
+												<Select
+													label={t.connections.type[group]}
+													value={draft.connections[group] || NONE}
+													onValueChange={(v) =>
+														setDraft({
+															...draft,
+															connections: { ...draft.connections, [group]: v === NONE ? "" : v },
+														})
+													}
+													items={connectionItems(group)}
+												/>
+											),
+										})),
+										{
+											id: "scope",
+											icon: <LinkIcon size={14} />,
+											label: t.projects.trackerScope,
+											control: (
+												<Input
+													label={t.projects.trackerScope}
+													value={draft.scope}
+													onChange={(e) => setDraft({ ...draft, scope: e.target.value })}
+													className="w-64"
+												/>
+											),
+										},
+									],
 								},
 								{
 									id: "workflow",

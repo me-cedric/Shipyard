@@ -12,6 +12,7 @@ import {
 	type FileChange_Serialize,
 	type FileDiff,
 	isTauri,
+	type MergeOutcome,
 	type PullOutcome,
 	type Resolution,
 	type Stash,
@@ -24,7 +25,16 @@ export type FileChange = FileChange_Serialize;
 export type Branch = Branch_Serialize;
 export type CommitDetail = CommitDetail_Serialize;
 export type WatchNotice = WatchNotice_Serialize;
-export type { CommitInfo, ConflictFile, DiffSide, FileDiff, PullOutcome, Resolution, Stash };
+export type {
+	CommitInfo,
+	ConflictFile,
+	DiffSide,
+	FileDiff,
+	MergeOutcome,
+	PullOutcome,
+	Resolution,
+	Stash,
+};
 
 /** The commit types of `shipyard-core`. A branch name starts with one of them. */
 export const COMMIT_TYPES = ["feat", "fix", "chore", "docs", "refactor", "test"] as const;
@@ -143,6 +153,8 @@ export function useCodeActions() {
 			createBranch: (name: string) => run(commands.codeBranchCreate(name)),
 			switchBranch: (name: string) => run(commands.codeBranchSwitch(name)),
 			deleteBranch: (name: string, force: boolean) => run(commands.codeBranchDelete(name, force)),
+			mergeBranch: (name: string) => run(commands.codeBranchMerge(name)),
+			abortMerge: () => run(commands.codeMergeAbort()),
 			stash: (message: string | null) => run(commands.codeStashPush(message)),
 			applyStash: (index: number) => run(commands.codeStashApply(index)),
 			dropStash: (id: string) => run(commands.codeStashDrop(id)),
@@ -153,6 +165,10 @@ export function useCodeActions() {
 		};
 	}, [qc]);
 }
+
+/** The key of the message for a merge result. */
+export const mergeKey = (o: MergeOutcome) =>
+	typeof o === "string" ? o : "merged" in o ? "merged" : "conflicts";
 
 /** The commit action stays off with nothing staged or with a conflict left (REQ-007). */
 export const canCommit = (c: Changes | undefined) =>

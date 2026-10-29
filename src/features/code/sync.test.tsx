@@ -6,6 +6,8 @@ import { seedCode } from "@/lib/ipc/mock-code";
 import { mountApp } from "@/test/mount";
 
 const bar = async () => within(await screen.findByRole("contentinfo"));
+// The one Sync action sits in the context bar on top.
+const top = async () => within(await screen.findByRole("banner"));
 
 async function withNotice() {
 	await unwrap(commands.projectsOpen("/mock/alpha", false));
@@ -40,7 +42,7 @@ describe("the remote watch notice and the sync action", () => {
 		await withNotice();
 		mountApp("/code/changes");
 		await (await bar()).findByRole("status");
-		await user.click((await bar()).getByRole("button", { name: "Sync" }));
+		await user.click((await top()).getByRole("button", { name: "Sync" }));
 		expect(await (await bar()).findByRole("alert")).toHaveTextContent("src/app.ts");
 		expect((await bar()).getByRole("status")).toBeInTheDocument();
 	});
@@ -54,7 +56,7 @@ describe("the remote watch notice and the sync action", () => {
 		await unwrap(commands.codeDiscard(["src"], false));
 		mountApp("/code/changes");
 		await (await bar()).findByRole("status");
-		await user.click((await bar()).getByRole("button", { name: "Sync" }));
+		await user.click((await top()).getByRole("button", { name: "Sync" }));
 		const footer = await bar();
 		await waitFor(() => expect(footer.queryByRole("status")).toBeNull());
 		expect(footer.queryByRole("alert")).toBeNull();

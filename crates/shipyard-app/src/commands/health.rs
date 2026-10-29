@@ -167,7 +167,7 @@ mod tests {
             create(&s, root.to_str().unwrap(), "P", "PRJ").unwrap();
         } else {
             shipyard_git::project::init(&root).unwrap();
-            open(&s, root.to_str().unwrap(), true).unwrap();
+            open(&s, root.to_str().unwrap()).unwrap();
             std::fs::remove_file(root.join(PROJECT_FILE)).unwrap();
         }
         (dir, s, root)

@@ -5,7 +5,7 @@ use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
-use shipyard_core::flows::FlowRow;
+use shipyard_core::flows::{self, FlowRow};
 use shipyard_core::project::ProjectFile;
 use shipyard_core::refs;
 use specta::Type;
@@ -94,7 +94,12 @@ fn files(root: &Path, dir: &str) -> Vec<String> {
         }
     }
     let mut out = Vec::new();
-    rec(root, dir, &mut out);
+    // A path can name one file (the Legacy flows file).
+    if root.join(dir).is_file() {
+        out.push(dir.to_string());
+    } else {
+        rec(root, dir, &mut out);
+    }
     out.sort();
     out
 }
@@ -195,7 +200,15 @@ pub fn list(root: &Path, p: &ProjectFile) -> Vec<Artifact> {
                 }
                 "model" => matches!(ext.as_str(), "c4" | "likec4"),
                 "data" => ext == "dbml",
-                "flow" => matches!(ext.as_str(), "yaml" | "yml"),
+                "flow" => {
+                    if ext == "json" {
+                        a.issue = fs::read_to_string(root.join(&path))
+                            .map_err(|e| e.to_string())
+                            .and_then(|t| read_flows(&t))
+                            .err();
+                    }
+                    matches!(ext.as_str(), "yaml" | "yml" | "json")
+                }
                 _ if matches!(ext.as_str(), "yaml" | "yml" | "json") => {
                     match fs::read_to_string(root.join(&path))
                         .map_err(|e| e.to_string())
@@ -254,9 +267,95 @@ struct FlowFile {
     rows: Vec<FlowRow>,
 }
 
+/// Reads the rows of a flow file: the Shipyard YAML, or the Legacy JSON (`{"flows": [...]}`). A
+/// JSON row takes its id from its place in the file.
 pub fn read_flows(text: &str) -> Result<Vec<FlowRow>, String> {
+    if text.trim_start().starts_with('{') {
+        return read_flows_json(text);
+    }
     serde_yaml::from_str::<FlowFile>(text)
         .map(|f| f.rows)
+        .map_err(|e| e.to_string())
+}
+
+fn read_flows_json(text: &str) -> Result<Vec<FlowRow>, String> {
+    let v: serde_json::Value = serde_json::from_str(text).map_err(|e| e.to_string())?;
+    let list = v
+        .get("flows")
+        .and_then(serde_json::Value::as_array)
+        .ok_or("no `flows` list")?;
+    let s = |f: &serde_json::Value, k: &str| {
+        f.get(k)
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("")
+            .to_string()
+    };
+    let opt = |t: String| Some(t).filter(|t| !t.is_empty());
+    list.iter()
+        .enumerate()
+        .map(|(i, f)| {
+            let action = serde_json::from_value(f.get("action").cloned().unwrap_or_default())
+                .map_err(|_| format!("flow {}: bad action", i + 1))?;
+            Ok(FlowRow {
+                id: i as u32 + 1,
+                source: s(f, "source"),
+                destination: s(f, "destination"),
+                network: opt(s(f, "vlan")).unwrap_or_else(|| s(f, "subnet")),
+                protocol: s(f, "protocol"),
+                port: opt(s(f, "ports")),
+                action,
+                note: opt(s(f, "description")),
+            })
+        })
+        .collect()
+}
+
+/// The Legacy JSON text for the rows. The flow at the place `id` of `old` keeps its other keys
+/// (name, brick names, subnet). JSON keys come out sorted.
+pub fn write_flows_json(rows: &[FlowRow], old: &str) -> Result<String, String> {
+    use serde_json::{Map, Value, json};
+    let old: Value = serde_json::from_str(old).unwrap_or(Value::Null);
+    let prev = old.get("flows").and_then(Value::as_array);
+    let list: Vec<Value> = rows
+        .iter()
+        .map(|r| {
+            let mut o: Map<String, Value> = prev
+                .and_then(|p| p.get((r.id as usize).checked_sub(1)?))
+                .and_then(Value::as_object)
+                .cloned()
+                .unwrap_or_else(|| {
+                    let mut m = Map::new();
+                    m.insert("id".into(), json!(format!("flow-{}", r.id)));
+                    m.insert("name".into(), json!(format!("flow-{}", r.id)));
+                    m
+                });
+            let action = if r.action == flows::Action::Allow {
+                "Allow"
+            } else {
+                "Deny"
+            };
+            for (k, v) in [
+                ("source", &r.source),
+                ("destination", &r.destination),
+                ("vlan", &r.network),
+                ("protocol", &r.protocol),
+            ] {
+                o.insert(k.into(), json!(v));
+            }
+            o.insert("ports".into(), json!(r.port.clone().unwrap_or_default()));
+            o.insert(
+                "description".into(),
+                json!(r.note.clone().unwrap_or_default()),
+            );
+            o.insert("action".into(), json!(action));
+            Value::Object(o)
+        })
+        .collect();
+    let mut top = old.as_object().cloned().unwrap_or_default();
+    top.entry("version").or_insert(json!(1));
+    top.insert("flows".into(), Value::Array(list));
+    serde_json::to_string_pretty(&Value::Object(top))
+        .map(|t| t + "\n")
         .map_err(|e| e.to_string())
 }
 
@@ -294,14 +393,14 @@ pub(crate) fn file_ref(rel: &str, p: &ProjectFile) -> Option<(&'static str, Stri
         ("test", "test-plans"),
     ]
     .into_iter()
-    .find(|(_, folder)| is_under(rel, p.path(folder)))
+    .find(|(_, folder)| is_at(rel, p.path(folder)))
     .map(|(kind, _)| {
         let ok = match kind {
             "diagram" => diagram_format(&ext).is_some(),
             "model" => matches!(ext.as_str(), "c4" | "likec4"),
             "api" => matches!(ext.as_str(), "yaml" | "yml" | "json"),
             "data" => ext == "dbml",
-            "flow" => matches!(ext.as_str(), "yaml" | "yml"),
+            "flow" => matches!(ext.as_str(), "yaml" | "yml" | "json"),
             _ => ext == "feature",
         };
         (kind, ok)
@@ -363,7 +462,7 @@ pub fn resolve_in(
     folders: &[&str],
 ) -> Result<PathBuf, String> {
     let bad = || format!("path not allowed: {rel}");
-    if !plain(rel) || !folders.iter().any(|k| is_under(rel, p.path(k))) {
+    if !plain(rel) || !folders.iter().any(|k| is_at(rel, p.path(k))) {
         return Err(bad());
     }
     // A link must not lead out of the repository.
@@ -374,6 +473,11 @@ pub fn resolve_in(
         return Err(bad());
     }
     Ok(full)
+}
+
+/// `rel` is the path itself or below it. A flows path can name one file.
+pub fn is_at(rel: &str, path: &str) -> bool {
+    rel == path || is_under(rel, path)
 }
 
 pub fn is_under(rel: &str, folder: &str) -> bool {

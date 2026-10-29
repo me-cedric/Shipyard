@@ -130,7 +130,16 @@ pub fn list(s: &AppState) -> Res<DesignList> {
 
 pub fn read(s: &AppState, rel: &str) -> Res<Text> {
     let p = project(s)?;
-    read_text(&design::resolve(&p.root, &p.file, rel)?, rel)
+    let mut t = read_text(&design::resolve(&p.root, &p.file, rel)?, rel)?;
+    // The view reads rows as YAML. A Legacy JSON flow file gives the same rows (Q-102).
+    if rel.ends_with(".json") && is_flow_file(&p.file, rel) {
+        t.text = design::write_flows(&design::read_flows(&t.text)?, "")?;
+    }
+    Ok(t)
+}
+
+fn is_flow_file(f: &ProjectFile, rel: &str) -> bool {
+    design::is_at(rel, f.path("flows"))
 }
 
 pub fn write(
@@ -203,20 +212,19 @@ pub fn adr_decide(
 pub fn flows_save(s: &AppState, rel: &str, rows: &[FlowRow], stamp: Option<&str>) -> Res<Written> {
     let p = project(s)?;
     let full = design::resolve(&p.root, &p.file, rel)?;
-    if !design::is_under(rel, p.file.path("flows")) {
+    if !is_flow_file(&p.file, rel) {
         return Err(format!("not a flow file: {rel}"));
     }
     for r in rows {
         flows::check(r).map_err(|e| format!("row {}: {e}", r.id))?;
     }
     let old = std::fs::read_to_string(&full).unwrap_or_default();
-    put(
-        s,
-        &full,
-        &design::write_flows(rows, &old)?,
-        stamp,
-        !full.exists(),
-    )
+    let text = if rel.ends_with(".json") {
+        design::write_flows_json(rows, &old)?
+    } else {
+        design::write_flows(rows, &old)?
+    };
+    put(s, &full, &text, stamp, !full.exists())
 }
 
 // ---------------------------------------------------------------- try

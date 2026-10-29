@@ -164,7 +164,7 @@ function DiffPane({ path, side }: { path: string; side: DiffSide }) {
 }
 
 /** The blocks of one conflicted file, one choice each, and the whole-side and hand-edit paths. */
-function ConflictPane({
+export function ConflictPane({
 	file,
 	run,
 }: {
