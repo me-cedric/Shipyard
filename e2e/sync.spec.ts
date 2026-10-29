@@ -36,7 +36,7 @@ test("imports the backlog after a count, then reads it from the mirror with no t
 	await expect(page.getByRole("main").getByRole("status")).toHaveText("10 open tickets");
 	await expect(page.getByRole("group", { name: /^ACME-/ })).toHaveCount(0);
 	await page.getByRole("button", { name: "Confirm" }).click();
-	await expect(page.getByRole("heading", { name: "Backlog (10)" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "To Do (7)" })).toBeVisible();
 
 	await page.getByRole("textbox", { name: "Search" }).fill("export");
 	await expect(page.getByRole("group", { name: /^ACME-/ })).toHaveCount(1);
@@ -61,7 +61,7 @@ test("the sync action in the status bar runs a tick and the connection shows its
 	// The tick filled the mirror: the backlog shows tickets with no import.
 	await sidebar(page).getByRole("link", { name: "Work" }).click();
 	await tabs(page).getByRole("link", { name: "Backlog" }).click();
-	await expect(page.getByRole("heading", { name: "Backlog (10)" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "To Do (7)" })).toBeVisible();
 });
 
 test("a failed poll shows the failed state and keeps the mirror", async ({ page }) => {

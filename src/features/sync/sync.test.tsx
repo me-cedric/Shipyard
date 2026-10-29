@@ -3,27 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
-
-/** An open project whose tracker is a Linear connection. Without `secret` the polls fail. */
-async function withTracker(secret = true) {
-	await unwrap(commands.projectsOpen("/mock/alpha", false));
-	const c = await unwrap(
-		commands.connectionsAdd({
-			name: "Acme",
-			group: "tracker",
-			kind: "linear",
-			url: "",
-			user: null,
-		}),
-	);
-	if (secret) await unwrap(commands.connectionsSetSecret(c.id, "tok-sync-view"));
-	const settings = await unwrap(commands.projectSettings());
-	if (!settings?.file) throw new Error("no project file");
-	await unwrap(
-		commands.projectFileSave({ ...settings.file, connections: { tracker: c.id, forge: null } }),
-	);
-	return c.id;
-}
+import { withTracker } from "@/test/tracker";
 
 /** A clean working copy: the git part of the sync action then has nothing to refuse. */
 async function cleanCopy() {
@@ -34,102 +14,6 @@ async function cleanCopy() {
 }
 
 const bar = async () => within(await screen.findByRole("contentinfo"));
-const rows = () => screen.findAllByRole("group", { name: /^ACME-\d+$/ });
-
-describe("Work / Backlog", () => {
-	it("shows the count before it writes and the tickets after the confirm", async () => {
-		const user = userEvent.setup();
-		await withTracker();
-		mountApp("/work/backlog");
-		await user.click(await screen.findByRole("button", { name: "Import" }));
-		const main = within(await screen.findByRole("main"));
-		expect(await main.findByRole("status")).toHaveTextContent("10 open tickets");
-		expect(mockState().sync.mirror).toHaveLength(0);
-		await user.click(screen.getByRole("button", { name: "Confirm" }));
-		expect(await rows()).toHaveLength(10);
-		expect(screen.getByRole("heading", { name: "Backlog (10)" })).toBeInTheDocument();
-		// The closed tickets are not in the import.
-		expect(screen.queryByRole("group", { name: "ACME-11" })).toBeNull();
-	});
-
-	it("leaves the mirror empty when the person cancels", async () => {
-		const user = userEvent.setup();
-		await withTracker();
-		mountApp("/work/backlog");
-		await user.click(await screen.findByRole("button", { name: "Import" }));
-		await user.click(await screen.findByRole("button", { name: "Cancel" }));
-		expect(mockState().sync.mirror).toHaveLength(0);
-		expect(await screen.findByRole("button", { name: "Import" })).toBeInTheDocument();
-	});
-
-	it("adopts a closed ticket by key and names a missing one", async () => {
-		const user = userEvent.setup();
-		await withTracker();
-		await unwrap(commands.syncImportPlan());
-		await unwrap(commands.syncImportConfirm());
-		mountApp("/work/backlog");
-		await rows();
-		await user.type(await screen.findByRole("textbox", { name: "Ticket key" }), "ACME-11");
-		await user.click(screen.getByRole("button", { name: "Adopt" }));
-		const done = await screen.findByRole("group", { name: "ACME-11" });
-		expect(within(done).getByText("Done")).toBeInTheDocument();
-		await user.type(screen.getByRole("textbox", { name: "Ticket key" }), "ACME-99");
-		await user.click(screen.getByRole("button", { name: "Adopt" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("not found: ACME-99");
-	});
-
-	it("links a ticket to a local ref and unlinks it", async () => {
-		const user = userEvent.setup();
-		await withTracker();
-		await unwrap(commands.syncImportPlan());
-		await unwrap(commands.syncImportConfirm());
-		mountApp("/work/backlog");
-		await rows();
-		const first = () => screen.getByRole("group", { name: "ACME-1" });
-		await user.click(within(first()).getByRole("button", { name: "Link" }));
-		await user.type(within(first()).getByRole("textbox", { name: "Local ref" }), "nope");
-		await user.click(within(first()).getByRole("button", { name: "Confirm" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("not a ref: nope");
-		await user.clear(within(first()).getByRole("textbox", { name: "Local ref" }));
-		await user.type(within(first()).getByRole("textbox", { name: "Local ref" }), "change:add-auth");
-		await user.click(within(first()).getByRole("button", { name: "Confirm" }));
-		expect(await within(first()).findByRole("button", { name: /^change:add-auth/ })).toBeVisible();
-		await user.click(within(first()).getByRole("button", { name: "Unlink" }));
-		await waitFor(() =>
-			expect(within(first()).queryByRole("button", { name: /^change:add-auth/ })).toBeNull(),
-		);
-	});
-
-	it("filters the mirror by text and by status with no tick", async () => {
-		const user = userEvent.setup();
-		await withTracker();
-		await unwrap(commands.syncImportPlan());
-		await unwrap(commands.syncImportConfirm());
-		mountApp("/work/backlog");
-		await rows();
-		await user.type(screen.getByRole("textbox", { name: "Search" }), "export");
-		await waitFor(() => expect(screen.getAllByRole("group", { name: /^ACME-/ })).toHaveLength(1));
-		expect(screen.getByRole("group", { name: "ACME-2" })).toBeInTheDocument();
-		await user.clear(screen.getByRole("textbox", { name: "Search" }));
-		await user.click(screen.getByRole("combobox", { name: "Status" }));
-		await user.click(await screen.findByRole("option", { name: "In Review" }));
-		await waitFor(() => expect(screen.getAllByRole("group", { name: /^ACME-/ })).toHaveLength(1));
-		expect(screen.getByRole("group", { name: "ACME-7" })).toBeInTheDocument();
-		expect(mockState().sync.ticks).toBe(0);
-	});
-
-	it("is in French when the language is French", async () => {
-		mockState().prefs.lang = "fr";
-		await withTracker();
-		await unwrap(commands.syncImportPlan());
-		await unwrap(commands.syncImportConfirm());
-		mountApp("/work/backlog");
-		await rows();
-		expect(screen.getByRole("button", { name: "Importer" })).toBeInTheDocument();
-		expect(screen.getByRole("textbox", { name: "Clé du ticket" })).toBeInTheDocument();
-		expect(screen.getByRole("combobox", { name: "Statut" })).toBeInTheDocument();
-	});
-});
 
 describe("the sync action and the connection state rows", () => {
 	it("runs one tick from the status bar and the row shows the state with the time", async () => {

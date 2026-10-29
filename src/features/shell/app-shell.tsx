@@ -1,4 +1,5 @@
-import { Outlet } from "@tanstack/react-router";
+import { Outlet, useRouterState } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { useCodeActions } from "@/lib/code";
 import { useI18n } from "@/lib/i18n";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
@@ -19,14 +20,30 @@ import { ViewMemory } from "./view-memory";
 function Frame() {
 	const { t } = useI18n();
 	const { sidebarOpen } = usePrefs();
-	const { inspectorOpen, setInspectorOpen, selectedRef, openRef, commitOpen, setCommitOpen } =
-		useShell();
+	const {
+		inspectorOpen,
+		setInspectorOpen,
+		selectedRef,
+		openRef,
+		detail,
+		closeDetail,
+		commitOpen,
+		setCommitOpen,
+	} = useShell();
 	const { commit: runCommit } = useCodeActions();
 	const { list, sync, commit } = useActions();
 	useShortcuts(list);
 	useNativeMenu(list);
 	useShellEvents();
 	const { toasts, dismiss } = useNotifications();
+	// A detail belongs to the view that opened it: leaving the view closes it.
+	const path = useRouterState({ select: (s) => s.location.pathname });
+	const open = useRef(detail);
+	open.current = detail;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: only a change of view closes the detail
+	useEffect(() => {
+		if (open.current) closeDetail();
+	}, [path, closeDetail]);
 	const toggle = list.find((a) => a.id === "toggle-sidebar");
 	if (!toggle) throw new Error("Missing action: toggle-sidebar");
 	return (
@@ -39,9 +56,13 @@ function Frame() {
 					<Inspector
 						open={inspectorOpen}
 						onClose={() => setInspectorOpen(false)}
-						title={t.inspector.title}
+						title={detail?.title ?? t.inspector.title}
 					>
-						{selectedRef ? <RefDetail refId={selectedRef} onOpen={openRef} /> : null}
+						{detail ? (
+							detail.node
+						) : selectedRef ? (
+							<RefDetail refId={selectedRef} onOpen={openRef} />
+						) : null}
 					</Inspector>
 				}
 				statusbar={<StatusBar sync={sync} commit={commit} />}

@@ -4,7 +4,8 @@ import { Inbox } from "@/features/home";
 import { FirstRun, Health, ProjectSettings } from "@/features/projects";
 import { Connections, Me } from "@/features/settings";
 import { type SpaceId, tabLabel } from "@/features/shell";
-import { Automation, Backlog } from "@/features/sync";
+import { Automation } from "@/features/sync";
+import { Backlog, Board, Estimates, Plan, Team, Time } from "@/features/work";
 import { useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
 import { EmptyState } from "@/ui/molecules/empty-state";
@@ -35,6 +36,11 @@ const VIEWS: Partial<Record<string, ComponentType>> = {
 	"settings/connections": Connections,
 	"settings/me": Me,
 	"work/backlog": Backlog,
+	"work/board": Board,
+	"work/plan": Plan,
+	"work/estimates": Estimates,
+	"work/team": Team,
+	"work/time": Time,
 	"settings/project": ProjectView,
 	"settings/health": Health,
 };

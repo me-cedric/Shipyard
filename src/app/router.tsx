@@ -28,10 +28,12 @@ const indexRoute = createRoute({
 
 function SpaceLayout({ space }: { space: SpaceId }) {
 	return (
-		<>
+		<div className="flex h-full flex-col">
 			<TabsBar space={space} trailing={space === "code" ? <BranchSelector /> : undefined} />
-			<Outlet />
-		</>
+			<div className="flex min-h-0 flex-1 flex-col overflow-auto">
+				<Outlet />
+			</div>
+		</div>
 	);
 }
 
