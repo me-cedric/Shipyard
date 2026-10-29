@@ -10,8 +10,9 @@ use serde_json::Value;
 use shipyard_core::specs::{ARTIFACTS, artifact_path, valid_change_id};
 use specta::Type;
 
+/// Named `SpecFinding` in the bindings: `health::Finding` has the name `Finding`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename = "SpecFinding", rename_all = "camelCase")]
 pub struct Finding {
     /// `proposal`, `spec`, `plan`, `checklist` or `tasks`.
     pub artifact: String,

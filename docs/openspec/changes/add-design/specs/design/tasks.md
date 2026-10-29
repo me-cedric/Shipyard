@@ -19,8 +19,8 @@ Plan: [plan.md](./plan.md)
 - [x] T006 Implement flow rules and filters in `crates/shipyard-core/src/flows.rs`. Covers REQ-016, REQ-017, REQ-018.
 - [x] T007 Write safe write tests in `crates/shipyard-store/tests/safe_write.rs`. Covers REQ-005, REQ-023.
 - [x] T008 Implement safe write in `crates/shipyard-store/src/safe_write.rs`. Covers REQ-005, REQ-023.
-- [ ] T009 Write IPC command tests in `crates/shipyard-app/tests/design_ipc.rs`. Covers REQ-001, REQ-002, REQ-003, REQ-008, REQ-009, REQ-010, REQ-011.
-- [ ] T010 Add the IPC commands in `crates/shipyard-app/src/design.rs`, then regenerate the bindings with the project command. Covers REQ-001 to REQ-021.
+- [x] T009 Write IPC command tests in `crates/shipyard-app/tests/design_ipc.rs`. Covers REQ-001, REQ-002, REQ-003, REQ-008, REQ-009, REQ-010, REQ-011.
+- [x] T010 Add the IPC commands in `crates/shipyard-app/src/design.rs`, then regenerate the bindings with the project command. Covers REQ-001 to REQ-021.
 - [ ] T011 Write the end-to-end test in `e2e/design.spec.ts`. Covers REQ-006, REQ-010, REQ-017.
 - [ ] T012 Write view tests for diagrams, architecture and data in `src/features/design/render.test.tsx`. Covers REQ-003, REQ-004, REQ-006, REQ-007, REQ-014, REQ-015.
 - [ ] T013 Implement the Diagrams, Architecture and Data views in `src/features/design/`. Covers REQ-003, REQ-004, REQ-006, REQ-007, REQ-014, REQ-015.

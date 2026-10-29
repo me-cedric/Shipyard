@@ -22,11 +22,11 @@ use crate::connections::{ConnectionDraft, ConnectionGroup, ConnectionKind, Conne
 
 const PASS: &str = "correct horse battery";
 
-struct Fx {
+pub(crate) struct Fx {
     _data: tempfile::TempDir,
-    repo: tempfile::TempDir,
-    s: AppState,
-    http: Arc<FakeHttp>,
+    pub(crate) repo: tempfile::TempDir,
+    pub(crate) s: AppState,
+    pub(crate) http: Arc<FakeHttp>,
     tracker: String,
     /// The mirror key of the tracker rows.
     source: String,
@@ -110,7 +110,7 @@ fn fx_wrapped(
     }
 }
 
-fn fx() -> Fx {
+pub(crate) fn fx() -> Fx {
     fx_with(ConnectionKind::JiraCloud, Some("PROJ"))
 }
 
@@ -123,7 +123,7 @@ impl Fx {
         self.repo.path().join(rel).exists()
     }
 
-    fn writes(&self) -> usize {
+    pub(crate) fn writes(&self) -> usize {
         self.http
             .requests()
             .iter()
@@ -131,7 +131,7 @@ impl Fx {
             .count()
     }
 
-    fn item(&self, key: &str) -> WorkItem {
+    pub(crate) fn item(&self, key: &str) -> WorkItem {
         self.s
             .sync
             .mirror()
@@ -142,7 +142,7 @@ impl Fx {
             .item
     }
 
-    fn put(&self, items: Vec<WorkItem>) {
+    pub(crate) fn put(&self, items: Vec<WorkItem>) {
         let tickets: Vec<Ticket> = items.into_iter().map(Ticket::new).collect();
         self.s
             .sync
@@ -205,7 +205,7 @@ fn lot() -> Sheet {
     }
 }
 
-fn ticket(key: &str, title: &str, labels: &[&str]) -> WorkItem {
+pub(crate) fn ticket(key: &str, title: &str, labels: &[&str]) -> WorkItem {
     WorkItem {
         key: key.into(),
         title: title.into(),
@@ -225,7 +225,7 @@ fn ticket(key: &str, title: &str, labels: &[&str]) -> WorkItem {
 }
 
 /// The Jira issue JSON that a refresh reads.
-fn issue(
+pub(crate) fn issue(
     key: &str,
     summary: &str,
     desc: &str,
@@ -1074,7 +1074,7 @@ fn a_worklog_that_only_the_tracker_holds_shows_as_such_and_a_tracker_without_tim
 
 // ---------------------------------------------------------------- apply (REQ-019, REQ-025, REQ-026)
 
-const NO_ISSUES: &str = r#"{"issues":[]}"#;
+pub(crate) const NO_ISSUES: &str = r#"{"issues":[]}"#;
 
 fn apply_routes(f: &Fx) {
     f.http

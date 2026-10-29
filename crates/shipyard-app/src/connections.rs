@@ -266,6 +266,11 @@ fn forge_config(r: &Record) -> Res<ForgeConfig> {
 }
 
 impl Connections {
+    /// The HTTP client of the app, for a request that holds no connection secret.
+    pub(crate) fn http(&self) -> Arc<dyn Http> {
+        self.http.clone()
+    }
+
     pub fn new(dir: &Path, secrets: Arc<dyn SecretStore>, http: Arc<dyn Http>) -> Self {
         Self {
             path: dir.join(FILE),

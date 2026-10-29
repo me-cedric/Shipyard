@@ -40,6 +40,7 @@ pub struct AppState {
     pub agents: Agents,
     pub sync: SyncHost,
     pub work: crate::work::Session,
+    pub specs: crate::specs::Session,
     lock: Mutex<()>,
     /// The remote watch notice of each project id, until the person syncs (spec `code`, REQ-017).
     notices: Mutex<HashMap<String, code::WatchNotice>>,
@@ -64,6 +65,7 @@ impl AppState {
             connections,
             agents: Agents::system(&dir),
             work: Default::default(),
+            specs: Default::default(),
             dir,
             lock: Mutex::new(()),
             notices: Mutex::new(HashMap::new()),

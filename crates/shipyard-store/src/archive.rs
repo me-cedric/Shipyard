@@ -9,7 +9,8 @@ use shipyard_core::specs::valid_change_id;
 
 use crate::safe_write;
 
-fn dir_names(p: &Path) -> Vec<String> {
+/// The sorted names of the folders in `p`. Empty on error.
+pub fn dir_names(p: &Path) -> Vec<String> {
     let mut v: Vec<String> = fs::read_dir(p)
         .into_iter()
         .flatten()

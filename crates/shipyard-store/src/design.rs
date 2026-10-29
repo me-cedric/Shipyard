@@ -10,7 +10,7 @@ use shipyard_core::project::ProjectFile;
 use shipyard_core::refs;
 use specta::Type;
 
-const MAX_BYTES: u64 = 5 * 1024 * 1024;
+pub const MAX_BYTES: u64 = 5 * 1024 * 1024;
 
 /// The folders that `resolve` opens.
 const FOLDERS: [&str; 7] = [
@@ -131,7 +131,7 @@ fn has_board(svg: &std::io::Result<String>) -> bool {
 type Info = (Option<String>, Option<String>);
 
 /// `Ok(None)`: a readable file that is not a contract.
-fn api_info(text: &str) -> Result<Option<Info>, String> {
+pub(crate) fn api_info(text: &str) -> Result<Option<Info>, String> {
     let v: Value = serde_yaml::from_str(text).map_err(|e| e.to_string())?;
     if v.get("openapi").or_else(|| v.get("swagger")).is_none() {
         return Ok(None);
@@ -139,6 +139,27 @@ fn api_info(text: &str) -> Result<Option<Info>, String> {
     let info = v.get("info");
     let get = |k: &str| scalar(info.and_then(|i| i.get(k)));
     Ok(Some((get("title"), get("version"))))
+}
+
+/// The `servers` of a contract as `(listed, address)`. The address has each `{variable}` set to
+/// its default.
+pub fn api_servers(text: &str) -> Result<Vec<(String, String)>, String> {
+    let v: Value = serde_yaml::from_str(text).map_err(|e| e.to_string())?;
+    Ok(v.get("servers")
+        .and_then(Value::as_sequence)
+        .into_iter()
+        .flatten()
+        .filter_map(|sv| {
+            let raw = sv.get("url")?.as_str()?.to_string();
+            let mut url = raw.clone();
+            let vars = sv.get("variables").and_then(Value::as_mapping);
+            for (k, d) in vars.into_iter().flatten() {
+                let (k, d) = (k.as_str()?, d.get("default")?.as_str()?);
+                url = url.replace(&format!("{{{k}}}"), d);
+            }
+            Some((raw, url))
+        })
+        .collect())
 }
 
 /// The artifacts of the project, sorted by kind then path.
@@ -246,12 +267,44 @@ pub fn write_flows(rows: &[FlowRow]) -> String {
     .unwrap_or_default()
 }
 
-fn screens_path(p: &ProjectFile) -> String {
+pub(crate) fn screens_path(p: &ProjectFile) -> String {
     format!("{}/screens.json", p.path("designs"))
 }
 
+/// The ref kind and slug of a file by its folder and extension, for the ref index. An `api` file
+/// also needs a contract text (`api_info`).
+///
+/// shortcut: a slug clash gets no suffix here, as `list` gives it. Both files answer to one ref.
+pub(crate) fn file_ref(rel: &str, p: &ProjectFile) -> Option<(&'static str, String)> {
+    let name = rel.rsplit('/').next()?;
+    let (stem, ext) = split_name(name);
+    let (kind, ok) = [
+        ("diagram", "diagrams"),
+        ("model", "models"),
+        ("api", "api"),
+        ("data", "data"),
+        ("flow", "flows"),
+        ("test", "test-plans"),
+    ]
+    .into_iter()
+    .find(|(_, folder)| is_under(rel, p.path(folder)))
+    .map(|(kind, _)| {
+        let ok = match kind {
+            "diagram" => diagram_format(&ext).is_some(),
+            "model" => matches!(ext.as_str(), "c4" | "likec4"),
+            "api" => matches!(ext.as_str(), "yaml" | "yml" | "json"),
+            "data" => ext == "dbml",
+            "flow" => matches!(ext.as_str(), "yaml" | "yml"),
+            _ => ext == "feature",
+        };
+        (kind, ok)
+    })?;
+    let slug = slug(stem);
+    (ok && !slug.is_empty()).then_some((kind, slug))
+}
+
 /// A relative path with no `..` and no root.
-fn plain(rel: &str) -> bool {
+pub fn plain(rel: &str) -> bool {
     !rel.is_empty()
         && !rel.contains('\\')
         && Path::new(rel)
@@ -259,18 +312,23 @@ fn plain(rel: &str) -> bool {
             .all(|c| matches!(c, Component::Normal(_)))
 }
 
-/// Reads `screens.json`. A missing file gives no screens.
-pub fn read_screens(root: &Path, p: &ProjectFile) -> Result<Vec<Screen>, String> {
+/// The screens of a `screens.json` text.
+pub(crate) fn parse_screens(text: &str) -> Result<Vec<Screen>, String> {
     #[derive(Deserialize)]
     struct File {
         screens: Vec<Screen>,
     }
+    serde_json::from_str::<File>(text)
+        .map(|f| f.screens)
+        .map_err(|e| e.to_string())
+}
+
+/// Reads `screens.json`. A missing file gives no screens.
+pub fn read_screens(root: &Path, p: &ProjectFile) -> Result<Vec<Screen>, String> {
     let Ok(text) = fs::read_to_string(root.join(screens_path(p))) else {
         return Ok(Vec::new());
     };
-    let mut screens = serde_json::from_str::<File>(&text)
-        .map_err(|e| e.to_string())?
-        .screens;
+    let mut screens = parse_screens(&text)?;
     for s in &mut screens {
         s.broken = s
             .figma
@@ -287,8 +345,18 @@ pub fn design_doc_path(p: &ProjectFile) -> String {
 
 /// The absolute path of a design file. Every Design read and write goes through here.
 pub fn resolve(root: &Path, p: &ProjectFile, rel: &str) -> Result<PathBuf, String> {
+    resolve_in(root, p, rel, &FOLDERS)
+}
+
+/// The absolute path of a file below one of the folders (keys of the project paths).
+pub fn resolve_in(
+    root: &Path,
+    p: &ProjectFile,
+    rel: &str,
+    folders: &[&str],
+) -> Result<PathBuf, String> {
     let bad = || format!("path not allowed: {rel}");
-    if !plain(rel) || !FOLDERS.iter().any(|k| is_under(rel, p.path(k))) {
+    if !plain(rel) || !folders.iter().any(|k| is_under(rel, p.path(k))) {
         return Err(bad());
     }
     // A link must not lead out of the repository.
@@ -301,6 +369,6 @@ pub fn resolve(root: &Path, p: &ProjectFile, rel: &str) -> Result<PathBuf, Strin
     Ok(full)
 }
 
-fn is_under(rel: &str, folder: &str) -> bool {
+pub fn is_under(rel: &str, folder: &str) -> bool {
     !folder.is_empty() && rel != folder && Path::new(rel).starts_with(folder)
 }

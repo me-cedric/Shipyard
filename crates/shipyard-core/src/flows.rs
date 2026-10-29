@@ -3,8 +3,9 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+/// Named `FlowAction` in the bindings: `work::Action` has the name `Action`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename = "FlowAction", rename_all = "lowercase")]
 pub enum Action {
     #[serde(alias = "Allow")]
     Allow,

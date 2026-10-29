@@ -3,7 +3,9 @@
 pub mod agents;
 mod commands;
 pub mod connections;
+pub mod design;
 mod shell;
+pub mod specs;
 pub mod sync;
 pub mod work;
 
@@ -128,6 +130,32 @@ fn specta_builder() -> Builder<tauri::Wry> {
         work::apply_run,
         work::work_item_preview,
         work::work_item_create,
+        design::design_list,
+        design::design_read,
+        design::design_write,
+        design::design_adr_create,
+        design::design_adr_decide,
+        design::design_flows_save,
+        design::design_try,
+        design::design_open,
+        specs::specs_changes,
+        specs::specs_change_create,
+        specs::specs_read,
+        specs::specs_write,
+        specs::specs_validate,
+        specs::specs_capabilities,
+        specs::specs_spec,
+        specs::specs_questions,
+        specs::specs_question_save,
+        specs::specs_question_create,
+        specs::specs_testplans,
+        specs::specs_coverage,
+        specs::specs_fold,
+        specs::specs_split_draft,
+        specs::specs_split_save,
+        specs::specs_split_preview,
+        specs::specs_split_apply,
+        specs::specs_archive,
         sh::shell_menu,
         sh::notify_os,
         sh::update_check,

@@ -4,9 +4,11 @@
 use std::path::Path;
 use std::time::UNIX_EPOCH;
 
+use shipyard_core::gherkin;
 use shipyard_core::project::ProjectFile;
 use shipyard_core::refs::{Ref, detect, parse};
 
+use crate::design::{api_info, file_ref, parse_screens, screens_path};
 use crate::project::parse_project_file;
 use crate::ref_index::{Citation, Entity};
 use crate::seal::is_sealed;
@@ -14,13 +16,26 @@ use crate::work::{read_decisions, read_sheet, read_team};
 
 const MAX_BYTES: u64 = 1_000_000;
 
-/// The folders to scan: the artifact paths of the project file, `.shipyard` and the work files
-/// (estimate sheets and plan decisions).
+/// The folders to scan: the artifact paths of the project file (with the design folders and the
+/// test plan folder), `.shipyard` and the work files (estimate sheets and plan decisions).
 pub fn roots(p: &ProjectFile) -> Vec<String> {
     let mut r: Vec<String> = ["decisions", "questions", "specs"]
         .iter()
         .map(|k| p.path(k).to_string())
         .collect();
+    r.extend(
+        [
+            "diagrams",
+            "models",
+            "api",
+            "data",
+            "flows",
+            "designs",
+            "test-plans",
+        ]
+        .iter()
+        .map(|k| p.path(k).to_string()),
+    );
     r.extend([".shipyard", "docs/costing", "docs/planning"].map(String::from));
     r
 }
@@ -44,7 +59,24 @@ pub fn walk(root: &Path, roots: &[String]) -> Vec<File> {
                     rec(root, &child, out);
                 }
             } else if meta.len() <= MAX_BYTES
-                && matches!(name.rsplit('.').next(), Some("md" | "yaml" | "yml"))
+                && (name.ends_with(".drawio.svg")
+                    || matches!(
+                        name.rsplit('.').next(),
+                        Some(
+                            "md" | "yaml"
+                                | "yml"
+                                | "json"
+                                | "feature"
+                                | "excalidraw"
+                                | "drawio"
+                                | "mmd"
+                                | "mermaid"
+                                | "bpmn"
+                                | "c4"
+                                | "likec4"
+                                | "dbml"
+                        )
+                    ))
             {
                 let nanos = meta
                     .modified()
@@ -90,6 +122,7 @@ fn title_of(text: &str) -> Option<String> {
 
 fn file_stem(rel: &str) -> &str {
     let name = rel.rsplit('/').next().unwrap_or(rel);
+    let name = name.strip_suffix(".drawio.svg").unwrap_or(name);
     name.rsplit_once('.').map_or(name, |(s, _)| s)
 }
 
@@ -128,6 +161,38 @@ pub fn scan(rel: &str, text: &str, p: &ProjectFile) -> (Vec<Entity>, Vec<Citatio
             primary = format!("q:Q-{n}");
             add(primary.clone(), &title, front(text, "status"));
         }
+    } else if rel == screens_path(p) {
+        for sc in parse_screens(text).unwrap_or_default() {
+            let target = format!("screen:{}", sc.slug);
+            if parse(&target).is_none() {
+                continue;
+            }
+            extra.extend(
+                sc.artifacts
+                    .iter()
+                    .filter(|a| parse(a).is_some())
+                    .map(|a| Citation {
+                        source: target.clone(),
+                        target: a.clone(),
+                    }),
+            );
+            add(target, &sc.title, None);
+        }
+    } else if let Some((kind, slug)) = file_ref(rel, p).filter(|(k, _)| {
+        // A file in the API folder is a contract only when its text says so.
+        *k != "api" || matches!(api_info(text), Ok(Some(_)))
+    }) {
+        primary = format!("{kind}:{slug}");
+        let name = match (kind, api_info(text)) {
+            ("api", Ok(Some((Some(t), _)))) => t,
+            ("test", _) => gherkin::parse(text)
+                .ok()
+                .map(|plan| plan.title)
+                .filter(|t| !t.is_empty())
+                .unwrap_or_else(|| file_stem(rel).into()),
+            _ => file_stem(rel).into(),
+        };
+        add(primary.clone(), &name, None);
     } else if let Some(rest) = below(rel, p.path("specs")) {
         let parts: Vec<&str> = rest.split('/').collect();
         match parts.as_slice() {

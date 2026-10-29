@@ -237,14 +237,14 @@ fn local_day(secs: u64, offset_minutes: i32) -> String {
 }
 
 /// Today on the screen of the person: the offset that the view sent with `work_context`.
-fn today(s: &AppState) -> String {
+pub(crate) fn today(s: &AppState) -> String {
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs());
     local_day(secs, s.work.offset.load(Ordering::Relaxed))
 }
 
-fn need_click(click: bool) -> Res<()> {
+pub(crate) fn need_click(click: bool) -> Res<()> {
     if click {
         Ok(())
     } else {
@@ -254,10 +254,10 @@ fn need_click(click: bool) -> Res<()> {
 
 // ---------------------------------------------------------------- the tracker
 
-struct Target {
+pub(crate) struct Target {
     id: String,
     scope: Option<String>,
-    caps: Capabilities,
+    pub(crate) caps: Capabilities,
 }
 
 impl Target {
@@ -267,7 +267,7 @@ impl Target {
     }
 }
 
-fn tracker(s: &AppState) -> Res<Target> {
+pub(crate) fn tracker(s: &AppState) -> Res<Target> {
     let a = active(s)?.ok_or("no active project")?;
     let (id, scope, kind) =
         tracker_target(s, &a)?.ok_or("the project has no tracker connection")?;
@@ -283,7 +283,7 @@ fn writer(s: &AppState, t: &Target) -> Res<Box<dyn TrackerWrite>> {
 }
 
 /// The mirrored items of a tracker. No request leaves the machine.
-fn mirror_items(s: &AppState, t: &Target) -> Res<Vec<WorkItem>> {
+pub(crate) fn mirror_items(s: &AppState, t: &Target) -> Res<Vec<WorkItem>> {
     if !s.sync.mirror_exists() {
         return Ok(Vec::new());
     }
@@ -1096,7 +1096,7 @@ pub fn preview(s: &AppState, slugs: &[String]) -> Res<Vec<DiffRow>> {
     ))
 }
 
-fn container(t: &Target) -> Res<&str> {
+pub(crate) fn container(t: &Target) -> Res<&str> {
     t.scope.as_deref().ok_or_else(|| {
         "set the tracker scope in .shipyard/project.yaml (connections.trackerScope)".to_string()
     })
@@ -1109,13 +1109,20 @@ pub fn apply(s: &AppState, slugs: &[String], click: bool) -> Res<Vec<ApplyRow>> 
     need_click(click)?;
     let c = ctx(s)?;
     let t = tracker(s)?;
-    let scope = container(&t)?;
+    container(&t)?;
     let diff = writes::diff(&t.caps, rows_of(&c, slugs)?, &mirror_items(s, &t)?);
-    let w = writer(s, &t)?;
-    let results = writes::apply(&*w, scope, &diff);
+    write_diff(s, &t, &diff)
+}
+
+/// Send a diff to the container of the tracker and read the written tickets again. The caller has
+/// the click. The Specs split uses it too (`specs` REQ-018).
+pub(crate) fn write_diff(s: &AppState, t: &Target, diff: &[DiffRow]) -> Res<Vec<ApplyRow>> {
+    let scope = container(t)?;
+    let w = writer(s, t)?;
+    let results = writes::apply(&*w, scope, diff);
     refresh(
         s,
-        &t,
+        t,
         &*w,
         results
             .iter()
@@ -1381,4 +1388,4 @@ pub async fn work_item_create(app: AppHandle, row: Row, click: bool) -> Res<Appl
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

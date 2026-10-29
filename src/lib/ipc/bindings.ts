@@ -123,6 +123,32 @@ export const commands = {
 	applyRun: (slugs: string[], click: boolean) => typedError<ApplyRow_Serialize[], string>(__TAURI_INVOKE("apply_run", { slugs, click })),
 	workItemPreview: (row: Row_Deserialize) => typedError<DiffRow_Serialize, string>(__TAURI_INVOKE("work_item_preview", { row })),
 	workItemCreate: (row: Row_Deserialize, click: boolean) => typedError<ApplyRow_Serialize, string>(__TAURI_INVOKE("work_item_create", { row, click })),
+	designList: () => typedError<DesignList_Serialize, string>(__TAURI_INVOKE("design_list")),
+	designRead: (path: string) => typedError<Text, string>(__TAURI_INVOKE("design_read", { path })),
+	designWrite: (path: string, text: string, stamp: string | null, create: boolean) => typedError<Written_Serialize, string>(__TAURI_INVOKE("design_write", { path, text, stamp, create })),
+	designAdrCreate: (title: string) => typedError<Adr, string>(__TAURI_INVOKE("design_adr_create", { title })),
+	designAdrDecide: (path: string, decision: Decision, comment: string, stamp: string) => typedError<Written_Serialize, string>(__TAURI_INVOKE("design_adr_decide", { path, decision, comment, stamp })),
+	designFlowsSave: (path: string, rows: FlowRow_Deserialize[], stamp: string | null) => typedError<Written_Serialize, string>(__TAURI_INVOKE("design_flows_save", { path, rows, stamp })),
+	designTry: (request: TryRequest_Deserialize, click: boolean) => typedError<TryResponse, string>(__TAURI_INVOKE("design_try", { request, click })),
+	designOpen: (target: string) => typedError<null, string>(__TAURI_INVOKE("design_open", { target })),
+	specsChanges: () => typedError<ChangeView_Serialize[], string>(__TAURI_INVOKE("specs_changes")),
+	specsChangeCreate: (id: string) => typedError<ChangeView_Serialize, string>(__TAURI_INVOKE("specs_change_create", { id })),
+	specsRead: (path: string) => typedError<Text, string>(__TAURI_INVOKE("specs_read", { path })),
+	specsWrite: (path: string, text: string, stamp: string | null, create: boolean) => typedError<Written_Serialize, string>(__TAURI_INVOKE("specs_write", { path, text, stamp, create })),
+	specsValidate: (id: string) => typedError<SpecFinding_Serialize[], string>(__TAURI_INVOKE("specs_validate", { id })),
+	specsCapabilities: () => typedError<CapabilityRow[], string>(__TAURI_INVOKE("specs_capabilities")),
+	specsSpec: (path: string) => typedError<SpecView_Serialize, string>(__TAURI_INVOKE("specs_spec", { path })),
+	specsQuestions: () => typedError<Entry[], string>(__TAURI_INVOKE("specs_questions")),
+	specsQuestionSave: (path: string, question: Question, stamp: string | null) => typedError<Written_Serialize, string>(__TAURI_INVOKE("specs_question_save", { path, question, stamp })),
+	specsQuestionCreate: (question: Question) => typedError<string, string>(__TAURI_INVOKE("specs_question_create", { question })),
+	specsTestplans: () => typedError<PlanRow[], string>(__TAURI_INVOKE("specs_testplans")),
+	specsCoverage: (capability: string) => typedError<string[], string>(__TAURI_INVOKE("specs_coverage", { capability })),
+	specsFold: (specPath: string, questionId: string, answer: string, stamp: string, click: boolean) => typedError<Written_Serialize, string>(__TAURI_INVOKE("specs_fold", { specPath, questionId, answer, stamp, click })),
+	specsSplitDraft: (change: string) => typedError<Draft_Serialize, string>(__TAURI_INVOKE("specs_split_draft", { change })),
+	specsSplitSave: (draft: Draft_Deserialize) => typedError<null, string>(__TAURI_INVOKE("specs_split_save", { draft })),
+	specsSplitPreview: (change: string) => typedError<SplitPreview_Serialize, string>(__TAURI_INVOKE("specs_split_preview", { change })),
+	specsSplitApply: (change: string, click: boolean) => typedError<ApplyRow_Serialize[], string>(__TAURI_INVOKE("specs_split_apply", { change, click })),
+	specsArchive: (id: string, confirmed: boolean) => typedError<string[], string>(__TAURI_INVOKE("specs_archive", { id, confirmed })),
 	/**  Replaces the native menu with one in the language of the person. `labels` is keyed by item id. */
 	shellMenu: (labels: { [key in string]: string }) => typedError<null, string>(__TAURI_INVOKE("shell_menu", { labels })),
 	/**
@@ -141,6 +167,17 @@ export const commands = {
 export type Accent = "blue" | "violet" | "green" | "orange" | "rose";
 
 export type Action = "create" | "update" | "unchanged";
+
+export type Adr = {
+	/**  `0004`. */
+	number: string,
+	/**  The first `# ` line. */
+	title: string,
+	status: string,
+	date: string,
+	/**  Relative to the repository. */
+	path: string,
+};
 
 export type AppInfo = {
 	name: string,
@@ -170,6 +207,60 @@ export type ApplyRow_Serialize = {
 	error: string | null,
 	/**  The fields that this tracker cannot hold. They were not sent. */
 	skipped: Field[],
+};
+
+export type Artifact = Artifact_Serialize | Artifact_Deserialize;
+
+export type ArtifactState = ArtifactState_Serialize | ArtifactState_Deserialize;
+
+export type ArtifactState_Deserialize = {
+	/**  `proposal`, `spec`, `plan`, `checklist` or `tasks`. */
+	artifact: string,
+	capability?: string | null,
+	/**  Inside the change folder. */
+	path: string,
+	status: ArtifactStatus,
+	findings: SpecFinding_Deserialize[],
+};
+
+export type ArtifactState_Serialize = {
+	/**  `proposal`, `spec`, `plan`, `checklist` or `tasks`. */
+	artifact: string,
+	capability: string | null,
+	/**  Inside the change folder. */
+	path: string,
+	status: ArtifactStatus,
+	findings: SpecFinding_Serialize[],
+};
+
+export type ArtifactStatus = "missing" | "draft" | "done";
+
+export type Artifact_Deserialize = {
+	/**  `diagram:x`. */
+	reference: string,
+	kind: string,
+	slug: string,
+	/**  Relative to the repository. */
+	path: string,
+	title: string,
+	format?: string | null,
+	version?: string | null,
+	/**  Why the file is not readable. */
+	issue?: string | null,
+};
+
+export type Artifact_Serialize = {
+	/**  `diagram:x`. */
+	reference: string,
+	kind: string,
+	slug: string,
+	/**  Relative to the repository. */
+	path: string,
+	title: string,
+	format: string | null,
+	version: string | null,
+	/**  Why the file is not readable. */
+	issue: string | null,
 };
 
 export type Automation = Automation_Serialize | Automation_Deserialize;
@@ -346,6 +437,32 @@ export type Capabilities = {
 	assignee: boolean,
 };
 
+export type CapabilityRow = {
+	capability: string,
+	path: string,
+	requirements: number,
+};
+
+export type ChangeView = ChangeView_Serialize | ChangeView_Deserialize;
+
+export type ChangeView_Deserialize = {
+	id: string,
+	/**  Repository path of the change folder. */
+	path: string,
+	/**  `true` after a validation since the app started. */
+	validated: boolean,
+	artifacts: ArtifactState_Deserialize[],
+};
+
+export type ChangeView_Serialize = {
+	id: string,
+	/**  Repository path of the change folder. */
+	path: string,
+	/**  `true` after a validation since the app started. */
+	validated: boolean,
+	artifacts: ArtifactState_Serialize[],
+};
+
 /**  A file that has a staged and a later unstaged change is in both lists. */
 export type Changes = Changes_Serialize | Changes_Deserialize;
 
@@ -497,6 +614,8 @@ export type Connection_Serialize = {
 
 export type Contrast = "default" | "high";
 
+export type Decision = "accept" | "reject";
+
 /**
  *  The decisions of a person, for all sheets (REQ-017). Keys are `est:<slug>#<task-id>`.
  *  It holds no computed date.
@@ -525,6 +644,28 @@ export type Decisions_Serialize = {
 
 export type Density = "default" | "compact";
 
+export type DesignList = DesignList_Serialize | DesignList_Deserialize;
+
+export type DesignList_Deserialize = {
+	artifacts: Artifact_Deserialize[],
+	adrs: Adr[],
+	screens: Screen_Deserialize[],
+	/**  Why `screens.json` is not readable. The screens stay empty then. */
+	screensError?: string | null,
+	/**  Repository path of the design doc. */
+	doc: string,
+};
+
+export type DesignList_Serialize = {
+	artifacts: Artifact_Serialize[],
+	adrs: Adr[],
+	screens: Screen_Serialize[],
+	/**  Why `screens.json` is not readable. The screens stay empty then. */
+	screensError: string | null,
+	/**  Repository path of the design doc. */
+	doc: string,
+};
+
 export type DiffRow = DiffRow_Serialize | DiffRow_Deserialize;
 
 export type DiffRow_Deserialize = {
@@ -550,6 +691,24 @@ export type DiffSide =
 "staged" | 
 /**  The index against the working copy. An untracked file shows as all added. */
 "unstaged";
+
+export type Draft = Draft_Serialize | Draft_Deserialize;
+
+export type Draft_Deserialize = {
+	change: string,
+	items: Item_Deserialize[],
+};
+
+export type Draft_Serialize = {
+	change: string,
+	items: Item_Serialize[],
+};
+
+export type Entry = {
+	path: string,
+	question: Question,
+	issues: string[],
+};
 
 export type Feature = Feature_Serialize | Feature_Deserialize;
 
@@ -666,6 +825,41 @@ export type FixResult = {
 	written: boolean,
 };
 
+/**  Named `FlowAction` in the bindings: `work::Action` has the name `Action`. */
+export type FlowAction = FlowAction_Serialize | FlowAction_Deserialize;
+
+/**  Named `FlowAction` in the bindings: `work::Action` has the name `Action`. */
+export type FlowAction_Deserialize = "allow" | "Allow" | "deny" | "Deny";
+
+/**  Named `FlowAction` in the bindings: `work::Action` has the name `Action`. */
+export type FlowAction_Serialize = "allow" | "deny";
+
+export type FlowRow = FlowRow_Serialize | FlowRow_Deserialize;
+
+export type FlowRow_Deserialize = {
+	id: number,
+	source: string,
+	destination: string,
+	/**  A VLAN or a VNET. */
+	network: string,
+	protocol: string,
+	port?: string | null,
+	action: FlowAction_Deserialize,
+	note?: string | null,
+};
+
+export type FlowRow_Serialize = {
+	id: number,
+	source: string,
+	destination: string,
+	/**  A VLAN or a VNET. */
+	network: string,
+	protocol: string,
+	port?: string,
+	action: FlowAction_Serialize,
+	note?: string,
+};
+
 export type Gantt = Gantt_Serialize | Gantt_Deserialize;
 
 export type Gantt_Deserialize = {
@@ -722,6 +916,8 @@ export type ImportReport = {
 	conflicts: string[],
 };
 
+export type Item = Item_Serialize | Item_Deserialize;
+
 /**  The filter of the Work views. Every set part must match. */
 export type ItemFilter = ItemFilter_Serialize | ItemFilter_Deserialize;
 
@@ -744,6 +940,30 @@ export type ItemFilter_Serialize = {
 	assignee: string | null,
 	label: string | null,
 };
+
+export type Item_Deserialize = {
+	rowId: string,
+	kind: Kind,
+	title: string,
+	description: string,
+	/**  The `spec:<capability>#REQ-NNN` refs that the item covers. */
+	reqs: string[],
+	/**  The row id of the epic of a story. */
+	parent?: string | null,
+};
+
+export type Item_Serialize = {
+	rowId: string,
+	kind: Kind,
+	title: string,
+	description: string,
+	/**  The `spec:<capability>#REQ-NNN` refs that the item covers. */
+	reqs: string[],
+	/**  The row id of the epic of a story. */
+	parent: string | null,
+};
+
+export type Kind = "epic" | "story";
 
 export type Lang = "en" | "fr";
 
@@ -770,6 +990,22 @@ export type LogPage = {
 	commits: CommitInfo[],
 	/**  Older commits exist after this page. The view says that the log is cut when it is false. */
 	has_more: boolean,
+};
+
+export type Marker = Marker_Serialize | Marker_Deserialize;
+
+export type Marker_Deserialize = {
+	line: number,
+	/**  `Q-NNN`, when the marker cites one. */
+	question?: string | null,
+	text: string,
+};
+
+export type Marker_Serialize = {
+	line: number,
+	/**  `Q-NNN`, when the marker cites one. */
+	question: string | null,
+	text: string,
 };
 
 /**  A custom MCP server. `id` is set to edit one. */
@@ -905,6 +1141,17 @@ export type Overrides_Serialize = {
 export type ParsedRef = {
 	ref: string,
 	kind: string,
+};
+
+export type PlanRow = {
+	path: string,
+	title: string,
+	scenarios: number,
+	/**  The refs that the scenarios cite. */
+	refs: string[],
+	errors: SyntaxError[],
+	/**  The cited `spec:` refs that no spec holds. */
+	broken: string[],
 };
 
 export type PlanView = PlanView_Serialize | PlanView_Deserialize;
@@ -1133,6 +1380,21 @@ export type ProviderDraft = {
 
 export type PullOutcome = "up-to-date" | "fast-forwarded" | "rebased";
 
+export type Question = {
+	id: string,
+	kind: string,
+	status: string,
+	raisedAt: string,
+	raisedBy: string,
+	owner: string,
+	specRef: string,
+	taskRef: string,
+	ticket: string,
+	title: string,
+	/**  The text after the title line, kept as it is. */
+	body: string,
+};
+
 export type Reason = { kind: "skill"; skill: string } | { kind: "missing-skill"; skill: string } | { kind: "free-days"; days: number | null } | { kind: "full" };
 
 export type RefKind = "branch" | "remote" | "tag";
@@ -1189,6 +1451,12 @@ export type Repository_Serialize = {
 	 *  `None` means the forge does not say. Azure DevOps never says in a listing.
 	 */
 	canPush: boolean | null,
+};
+
+export type Requirement = {
+	id: string,
+	title: string,
+	line: number,
 };
 
 /**  How a person resolves one conflicted file (REQ-005). */
@@ -1281,6 +1549,28 @@ export type Runner_Serialize = {
 	version: string | null,
 	/**  How to install it. Shown beside a missing runner. */
 	install: string,
+};
+
+export type Screen = Screen_Serialize | Screen_Deserialize;
+
+export type Screen_Deserialize = {
+	slug: string,
+	title: string,
+	artifacts?: string[],
+	/**  An https URL or a repository path of a `.fig` file. */
+	figma?: string | null,
+	/**  A local `figma` path that does not exist. */
+	broken?: boolean,
+};
+
+export type Screen_Serialize = {
+	slug: string,
+	title: string,
+	artifacts: string[],
+	/**  An https URL or a repository path of a `.fig` file. */
+	figma: string | null,
+	/**  A local `figma` path that does not exist. */
+	broken: boolean,
 };
 
 export type SealState = {
@@ -1387,6 +1677,59 @@ export type Span_Serialize = {
 	to: string,
 };
 
+/**  Named `SpecFinding` in the bindings: `health::Finding` has the name `Finding`. */
+export type SpecFinding = SpecFinding_Serialize | SpecFinding_Deserialize;
+
+/**  Named `SpecFinding` in the bindings: `health::Finding` has the name `Finding`. */
+export type SpecFinding_Deserialize = {
+	/**  `proposal`, `spec`, `plan`, `checklist` or `tasks`. */
+	artifact: string,
+	capability?: string | null,
+	/**  The path inside the change folder. */
+	path: string,
+	line?: number | null,
+	message: string,
+	level: string,
+};
+
+/**  Named `SpecFinding` in the bindings: `health::Finding` has the name `Finding`. */
+export type SpecFinding_Serialize = {
+	/**  `proposal`, `spec`, `plan`, `checklist` or `tasks`. */
+	artifact: string,
+	capability: string | null,
+	/**  The path inside the change folder. */
+	path: string,
+	line: number | null,
+	message: string,
+	level: string,
+};
+
+export type SpecView = SpecView_Serialize | SpecView_Deserialize;
+
+export type SpecView_Deserialize = {
+	requirements: Requirement[],
+	markers: Marker_Deserialize[],
+};
+
+export type SpecView_Serialize = {
+	requirements: Requirement[],
+	markers: Marker_Serialize[],
+};
+
+export type SplitPreview = SplitPreview_Serialize | SplitPreview_Deserialize;
+
+export type SplitPreview_Deserialize = {
+	/**  The problems that block the apply. */
+	problems: string[],
+	rows: DiffRow_Deserialize[],
+};
+
+export type SplitPreview_Serialize = {
+	/**  The problems that block the apply. */
+	problems: string[],
+	rows: DiffRow_Serialize[],
+};
+
 export type Stash = {
 	/**  Position in the list: 0 is the newest. A drop moves the ones after it. */
 	index: number,
@@ -1459,6 +1802,11 @@ export type SyncReport = {
 };
 
 export type SyncStatus = "idle" | "running" | "failed";
+
+export type SyntaxError = {
+	line: number,
+	message: string,
+};
 
 /**
  *  One task of a lot. `days` is a fixed effort. `percent` is a share of the build effort.
@@ -1576,6 +1924,12 @@ export type Team_Serialize = {
  */
 export type TestOutcome = { kind: "passed"; account: string } | { kind: "missing-scope"; scope: string } | { kind: "failed"; reason: string };
 
+/**  A text file and the stamp that a later write must give back. */
+export type Text = {
+	text: string,
+	stamp: string,
+};
+
 export type Theme = "light" | "dark" | "system";
 
 /**  A time entry that a person wrote (REQ-020, REQ-021). */
@@ -1685,6 +2039,40 @@ export type TrackerLog = {
 	id: string,
 	minutes: number,
 	note: string,
+};
+
+export type TryRequest = TryRequest_Serialize | TryRequest_Deserialize;
+
+export type TryRequest_Deserialize = {
+	/**  The contract file. */
+	path: string,
+	/**  One of the `servers` of the contract, as written there. */
+	server: string,
+	method: string,
+	/**  Starts with `/`. The query is part of it. */
+	route: string,
+	/**  JSON text. */
+	body?: string | null,
+};
+
+export type TryRequest_Serialize = {
+	/**  The contract file. */
+	path: string,
+	/**  One of the `servers` of the contract, as written there. */
+	server: string,
+	method: string,
+	/**  Starts with `/`. The query is part of it. */
+	route: string,
+	/**  JSON text. */
+	body: string | null,
+};
+
+export type TryResponse = {
+	status: number,
+	/**  At most 1 MB. */
+	body: string,
+	truncated: boolean,
+	elapsedMs: number,
 };
 
 export type UpdateInfo = {
@@ -1811,6 +2199,21 @@ export type Writes_Serialize = {
 	pull_request: boolean,
 	tracker_transition: boolean,
 	tracker_comment: boolean,
+};
+
+/**  The result of a write. With `conflict`, nothing was written and `stamp` is the stamp on disk. */
+export type Written = Written_Serialize | Written_Deserialize;
+
+/**  The result of a write. With `conflict`, nothing was written and `stamp` is the stamp on disk. */
+export type Written_Deserialize = {
+	conflict: boolean,
+	stamp?: string | null,
+};
+
+/**  The result of a write. With `conflict`, nothing was written and `stamp` is the stamp on disk. */
+export type Written_Serialize = {
+	conflict: boolean,
+	stamp: string | null,
 };
 
 /* Tauri Specta runtime */
