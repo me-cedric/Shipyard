@@ -129,6 +129,14 @@ impl RunLog {
         self.query("WHERE run = ?1 AND id > ?2 ORDER BY id", params![run, id])
     }
 
+    /// At most `limit` events of a run after `id`, oldest first. A view pages with the last id.
+    pub fn page(&self, run: &str, id: i64, limit: usize) -> Result<Vec<Event>> {
+        self.query(
+            "WHERE run = ?1 AND id > ?2 ORDER BY id LIMIT ?3",
+            params![run, id, limit as i64],
+        )
+    }
+
     /// The id of the newest event of a run. `0`: the run has none.
     pub fn last_id(&self, run: &str) -> Result<i64> {
         Ok(self.conn.query_row(

@@ -59,6 +59,29 @@ fn the_tail_reads_after_an_id() {
 }
 
 #[test]
+fn a_page_of_one_run_follows_the_last_id() {
+    let log = RunLog::open_memory().unwrap();
+    for n in 0..5 {
+        log.append("A", None, kind::NOTE, &json!({ "n": n }), 1)
+            .unwrap();
+        log.append("B", None, kind::NOTE, &json!({ "n": n }), 1)
+            .unwrap();
+    }
+    let first = log.page("A", 0, 2).unwrap();
+    assert_eq!(
+        first
+            .iter()
+            .map(|e| e.payload["n"].as_i64().unwrap())
+            .collect::<Vec<_>>(),
+        [0, 1]
+    );
+    let next = log.page("A", first[1].id, 10).unwrap();
+    assert_eq!(next.len(), 3);
+    assert!(next.iter().all(|e| e.run == "A"));
+    assert!(log.page("A", next[2].id, 10).unwrap().is_empty());
+}
+
+#[test]
 fn the_last_event_of_a_kind_gives_the_current_state() {
     let log = RunLog::open_memory().unwrap();
     log.append("r", None, kind::STATE, &json!({"to": "Claimed"}), 1)
