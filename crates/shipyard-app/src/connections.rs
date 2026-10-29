@@ -208,6 +208,16 @@ fn slug(name: &str, kind: ConnectionKind) -> String {
     }
 }
 
+/// The lower case `host[:port]` of an address, without scheme, user info and path.
+fn host_of(url: &str) -> String {
+    let rest = url.trim().split_once("://").map_or(url.trim(), |(_, r)| r);
+    let auth = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    auth.rsplit('@')
+        .next()
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+}
+
 /// The adapter config of a record. It checks the address and the user without a request.
 fn tracker_config(r: &Record) -> TrackerConfig {
     TrackerConfig {
@@ -368,6 +378,13 @@ impl Connections {
             }
             let mut new = Self::check(&draft, id)?;
             new.secret = old.secret;
+            // The secret belongs to a host. A new host would send it to a stranger: drop it.
+            if new.secret && host_of(&new.url) != host_of(&old.url) {
+                self.secrets
+                    .delete(&conn_account(id))
+                    .map_err(|e| e.to_string())?;
+                new.secret = false;
+            }
             new.state = if (&new.url, &new.user) == (&old.url, &old.user) {
                 old.state
             } else {
@@ -540,6 +557,33 @@ mod tests {
         assert_eq!(https_host("http://github.com/a/b"), None);
         assert_eq!(https_host("git@github.com:a/b.git"), None);
         assert_eq!(https_host("/local/path"), None);
+    }
+
+    #[test]
+    fn an_edit_that_changes_the_host_drops_the_secret() {
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::MemoryStore;
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(MemoryStore::default());
+        let c = Connections::new(dir.path(), store.clone(), Arc::new(FakeHttp::new()));
+        let draft = |url: &str| ConnectionDraft {
+            name: "Code".into(),
+            group: ConnectionGroup::Forge,
+            kind: ConnectionKind::GitHub,
+            url: url.into(),
+            user: None,
+        };
+        let id = c.add(draft("https://github.com")).unwrap().id;
+        c.set_secret(&id, Secret::new("tok-1")).unwrap();
+        // Same host, another scheme and path, upper case: the secret stays.
+        let kept = c.edit(&id, draft("https://GitHub.com/api")).unwrap();
+        assert!(kept.secret);
+        assert!(store.get(&conn_account(&id)).unwrap().is_some());
+        // Another host: no secret, in the record and in the keychain.
+        let moved = c.edit(&id, draft("https://evil.example.com")).unwrap();
+        assert!(!moved.secret);
+        assert!(store.get(&conn_account(&id)).unwrap().is_none());
+        assert!(c.git_auth("https://evil.example.com/a/b").is_ok());
     }
 
     #[test]

@@ -444,11 +444,13 @@ const handlers: Handlers = {
 		return null;
 	},
 	healthRun: () => (active() ? FINDINGS.filter((f) => !state.fixed.includes(f.id)) : []),
-	healthFix: (id, confirm) => {
+	healthFix: (id, expected) => {
 		const f = FINDINGS.find((x) => x.id === id);
 		if (f?.fix.kind !== "write") throw "this fix writes no file";
-		if (confirm) state.fixed.push(id);
-		return { path: f.fix.path, content: f.fix.content, written: confirm };
+		if (expected != null && expected !== f.fix.content)
+			throw "the file changed since the preview: preview the fix again";
+		if (expected != null) state.fixed.push(id);
+		return { path: f.fix.path, content: f.fix.content, written: expected != null };
 	},
 	connectionsList: () => state.connections,
 	connectionsAdd: (d) => {
@@ -480,6 +482,13 @@ const handlers: Handlers = {
 		Object.assign(c, { name: d.name.trim(), url, user });
 		return c;
 	},
+	connectionsUsers: (id) =>
+		state.projects
+			.filter((p) => {
+				const c = state.files[p.id]?.connections;
+				return c?.tracker === id || c?.forge === id;
+			})
+			.map((p) => ({ id: p.id, name: p.name, key: p.key })),
 	connectionsRemove: (id) => {
 		const c = conn(id);
 		state.connections = state.connections.filter((x) => x !== c);

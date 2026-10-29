@@ -40,6 +40,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
         conn::connections_add,
         conn::connections_edit,
         conn::connections_remove,
+        conn::connections_users,
         conn::connections_set_secret,
         conn::connections_test,
         conn::connections_repos,

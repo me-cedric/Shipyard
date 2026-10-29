@@ -26,13 +26,14 @@ export const commands = {
 	projectFileSave: (file: ProjectFile_Deserialize) => typedError<null, string>(__TAURI_INVOKE("project_file_save", { file })),
 	projectOverridesSave: (overrides: Overrides_Deserialize) => typedError<null, string>(__TAURI_INVOKE("project_overrides_save", { overrides })),
 	healthRun: () => typedError<Finding_Serialize[], string>(__TAURI_INVOKE("health_run")),
-	healthFix: (id: string, confirm: boolean) => typedError<FixResult, string>(__TAURI_INVOKE("health_fix", { id, confirm })),
+	healthFix: (id: string, expected: string | null) => typedError<FixResult, string>(__TAURI_INVOKE("health_fix", { id, expected })),
 	/**  Reads nothing and writes nothing. W9 adds the codecs. */
 	projectImport: (source: string) => __TAURI_INVOKE<ImportReport>("project_import", { source }),
 	connectionsList: () => typedError<Connection_Serialize[], string>(__TAURI_INVOKE("connections_list")),
 	connectionsAdd: (draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_add", { draft })),
 	connectionsEdit: (id: string, draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_edit", { id, draft })),
 	connectionsRemove: (id: string) => typedError<null, string>(__TAURI_INVOKE("connections_remove", { id })),
+	connectionsUsers: (id: string) => typedError<ConnectionUser[], string>(__TAURI_INVOKE("connections_users", { id })),
 	/**  Write-only: the secret goes to the keychain and no command returns it. */
 	connectionsSetSecret: (id: string, secret: string) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_set_secret", { id, secret })),
 	connectionsTest: (id: string) => typedError<TestOutcome, string>(__TAURI_INVOKE("connections_test", { id })),
@@ -53,7 +54,7 @@ export const commands = {
 	codeStashPush: (message: string | null) => typedError<string, string>(__TAURI_INVOKE("code_stash_push", { message })),
 	codeStashList: () => typedError<Stash[], string>(__TAURI_INVOKE("code_stash_list")),
 	codeStashApply: (index: number) => typedError<null, string>(__TAURI_INVOKE("code_stash_apply", { index })),
-	codeStashDrop: (index: number) => typedError<null, string>(__TAURI_INVOKE("code_stash_drop", { index })),
+	codeStashDrop: (id: string) => typedError<null, string>(__TAURI_INVOKE("code_stash_drop", { id })),
 	codeConflicts: () => typedError<ConflictFile[], string>(__TAURI_INVOKE("code_conflicts")),
 	codeResolve: (path: string, how: Resolution) => typedError<null, string>(__TAURI_INVOKE("code_resolve", { path, how })),
 	codeFetch: () => typedError<null, string>(__TAURI_INVOKE("code_fetch")),
@@ -286,6 +287,13 @@ export type ConnectionKind = "jira-cloud" | "jira-data-center" | "github" | "git
 
 /**  What the last test said. A person sees it as the state of the connection. */
 export type ConnectionState = "untested" | "passed" | "failed";
+
+/**  A registered project whose `.shipyard/project.yaml` names a connection. */
+export type ConnectionUser = {
+	id: string,
+	name: string,
+	key: string,
+};
 
 /**  A connection as the views see it. It never holds a secret value. */
 export type Connection_Deserialize = {

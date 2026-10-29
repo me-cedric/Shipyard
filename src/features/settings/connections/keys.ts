@@ -4,6 +4,7 @@ import { commands, unwrap } from "@/lib/ipc";
 export const connectionKeys = {
 	list: ["connections", "list"] as const,
 	repos: (id: string) => ["connections", "repos", id] as const,
+	users: (id: string) => ["connections", "users", id] as const,
 };
 
 export const mcpKeys = { list: ["mcp", "list"] as const };

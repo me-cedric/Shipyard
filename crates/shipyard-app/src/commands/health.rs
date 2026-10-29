@@ -89,9 +89,19 @@ pub struct FixResult {
     pub written: bool,
 }
 
-/// Without `confirm` the call returns the new content and writes nothing.
-/// With `confirm` it writes the file. Only a `Write` fix changes a file.
-pub fn fix(s: &AppState, id: &str, confirm: bool) -> Res<FixResult> {
+/// A path that stays inside the project: not empty, no root, no `..`.
+fn relative(path: &str) -> bool {
+    !path.is_empty()
+        && std::path::Path::new(path)
+            .components()
+            .all(|c| matches!(c, std::path::Component::Normal(_)))
+}
+
+/// Without `expected` the call returns the new content and writes nothing.
+/// With `expected` (the content that a person saw) it writes the file, and only when the fix
+/// still gives that content: the project may have changed since the preview.
+/// Only a `Write` fix changes a file.
+pub fn fix(s: &AppState, id: &str, expected: Option<&str>) -> Res<FixResult> {
     let root = PathBuf::from(&s.registry()?.active().ok_or("no active project")?.path);
     let finding = run(s)?
         .into_iter()
@@ -100,9 +110,14 @@ pub fn fix(s: &AppState, id: &str, confirm: bool) -> Res<FixResult> {
     let Fix::Write { path, content } = finding.fix else {
         return Err("this fix writes no file".into());
     };
-    if confirm {
-        // The path comes from the health rules, and the rules write fixed relative paths.
-        debug_assert!(!path.starts_with('/') && !path.contains(".."));
+    let confirm = expected.is_some();
+    if let Some(seen) = expected {
+        if seen != content {
+            return Err("the file changed since the preview: preview the fix again".into());
+        }
+        if !relative(&path) {
+            return Err(format!("the fix path is not inside the project: {path}"));
+        }
         write_atomic(&root.join(&path), content.as_bytes()).map_err(err)?;
         if path == PROJECT_FILE {
             // The registry takes the name and the key of the new file.
@@ -129,8 +144,8 @@ pub async fn health_run(app: AppHandle) -> Res<Vec<Finding>> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn health_fix(app: AppHandle, id: String, confirm: bool) -> Res<FixResult> {
-    blocking(app, move |s| fix(s, &id, confirm)).await
+pub async fn health_fix(app: AppHandle, id: String, expected: Option<String>) -> Res<FixResult> {
+    blocking(app, move |s| fix(s, &id, expected.as_deref())).await
 }
 
 #[cfg(test)]
@@ -179,13 +194,13 @@ mod tests {
             .into_iter()
             .find(|f| f.code == "project-file-missing")
             .unwrap();
-        let preview = fix(&s, &f.id, false).unwrap();
+        let preview = fix(&s, &f.id, None).unwrap();
         assert!(!preview.written && preview.content.contains("key:"));
         assert!(
             !root.join(PROJECT_FILE).exists(),
             "a preview writes nothing"
         );
-        assert!(fix(&s, &f.id, true).unwrap().written);
+        assert!(fix(&s, &f.id, Some(&preview.content)).unwrap().written);
         assert!(root.join(PROJECT_FILE).exists());
         assert!(
             !codes(&s).iter().any(|(_, c)| c == "project-file-missing"),
@@ -206,7 +221,16 @@ mod tests {
             std::fs::read_to_string(root.join(".gitignore")).unwrap(),
             "target/\n"
         );
-        fix(&s, &f.id, true).unwrap();
+        let preview = fix(&s, &f.id, None).unwrap();
+        // The file changed after the preview: the confirm refuses and writes nothing.
+        std::fs::write(root.join(".gitignore"), "target/\nnode_modules/\n").unwrap();
+        assert!(fix(&s, &f.id, Some(&preview.content)).is_err());
+        assert_eq!(
+            std::fs::read_to_string(root.join(".gitignore")).unwrap(),
+            "target/\nnode_modules/\n"
+        );
+        std::fs::write(root.join(".gitignore"), "target/\n").unwrap();
+        fix(&s, &f.id, Some(&preview.content)).unwrap();
         let text = std::fs::read_to_string(root.join(".gitignore")).unwrap();
         assert!(text.starts_with("target/\n") && text.contains(".DS_Store"));
         assert!(run(&s).unwrap().iter().all(|f| f.code != "ignore-missing"));
@@ -229,7 +253,15 @@ mod tests {
                 .iter()
                 .any(|f| f.code == "ref-broken" && f.source.as_deref() == Some("adr:0001"))
         );
-        assert!(fix(&s, &invalid.id, true).is_err());
+        assert!(fix(&s, &invalid.id, Some("x")).is_err());
+    }
+
+    #[test]
+    fn a_fix_path_stays_inside_the_project() {
+        assert!(relative(".shipyard/project.yaml") && relative(".gitignore"));
+        for bad in ["", "/etc/hosts", "../x", "a/../../x", "a/.."] {
+            assert!(!relative(bad), "{bad}");
+        }
     }
 
     #[test]

@@ -10,7 +10,6 @@ import {
 	unwrap,
 } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
-import { projectKeys } from "@/lib/projects";
 import { useBacklinks } from "@/lib/refs";
 import { useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
@@ -78,22 +77,28 @@ function RemovePanel({ id, onDone }: { id: string; onDone: () => void }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const { openRef } = useShell();
-	const cited = useBacklinks(`conn:${id}`).data ?? [];
-	// The project file names the connection by id (`connections` in `.shipyard/project.yaml`).
-	const file = useQuery({
-		queryKey: projectKeys.settings,
-		queryFn: () => unwrap(commands.projectSettings()),
-	}).data?.file;
-	const uses =
-		file && (file.connections?.tracker === id || file.connections?.forge === id)
-			? [
-					...cited,
-					{
-						kind: "project",
-						items: [{ source: `project:${file.key.toLowerCase()}`, title: file.name }],
-					},
-				]
-			: cited;
+	const backlinks = useBacklinks(`conn:${id}`);
+	const cited = backlinks.data ?? [];
+	// Every registered project that names the connection in its `.shipyard/project.yaml`, not
+	// only the active one. A cached list is not trusted: the confirm waits for a fresh one.
+	const users = useQuery({
+		queryKey: connectionKeys.users(id),
+		queryFn: () => unwrap(commands.connectionsUsers(id)),
+		gcTime: 0,
+	});
+	const ready = users.isSuccess && !users.isFetching && !backlinks.isLoading;
+	const uses = users.data?.length
+		? [
+				...cited,
+				{
+					kind: "project",
+					items: users.data.map((p) => ({
+						source: `project:${p.key.toLowerCase()}`,
+						title: p.name,
+					})),
+				},
+			]
+		: cited;
 	const [error, setError] = useState<string | null>(null);
 	const confirm = async () => {
 		try {
@@ -113,13 +118,13 @@ function RemovePanel({ id, onDone }: { id: string; onDone: () => void }) {
 				}))}
 				onOpen={openRef}
 			/>
-			{error ? (
+			{error || users.error ? (
 				<p role="alert" className="text-ui text-danger-text">
-					{error}
+					{error ?? message(users.error)}
 				</p>
 			) : null}
 			<div className="flex gap-2">
-				<Button variant="danger" onClick={confirm}>
+				<Button variant="danger" disabled={!ready} onClick={confirm}>
 					{t.connections.confirm}
 				</Button>
 				<Button variant="ghost" onClick={onDone}>

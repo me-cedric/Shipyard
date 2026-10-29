@@ -201,6 +201,27 @@ describe("Settings / Connections", () => {
 		expect(screen.getByRole("button", { name: /project:alpha/ })).toBeInTheDocument();
 	});
 
+	it("lists a project that is not the active one and waits for the list before it confirms", async () => {
+		const user = userEvent.setup();
+		const c = await seed({ name: "Acme" });
+		await open();
+		await unwrap(
+			commands.projectFileSave({
+				name: "alpha",
+				key: "ALPHA",
+				paths: {},
+				defaultWorkflow: null,
+				gates: [],
+				connections: { tracker: c.id },
+			}),
+		);
+		await unwrap(commands.projectsOpen("/mock/beta", false));
+		mountApp("/settings/connections");
+		await user.click(within(await row("Acme")).getByRole("button", { name: "Remove" }));
+		expect(await screen.findByRole("button", { name: /project:alpha/ })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Confirm" })).toBeEnabled();
+	});
+
 	it("lists the entities that use a connection, then removes it with its secret", async () => {
 		const user = userEvent.setup();
 		await open();
