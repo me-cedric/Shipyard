@@ -5,4 +5,5 @@ pub mod health;
 pub mod project;
 pub mod refs;
 pub mod run;
+pub mod work;
 pub mod work_item;
