@@ -14,7 +14,7 @@ Git operations live in `shipyard-git`. Forge calls live in `shipyard-forges`. Pu
 | Stack/runtime | Rust workspace and React 19 (MASTER-PLAN 7.1, 7.3). TanStack Table and Virtual for the tree, the log and the lists. |
 | Dependencies | No new dependency by default. The terminal needs a PTY crate and a terminal emulator package. Reuse one that the workspace holds, else raise an ADR before adding it. |
 | Data/storage | Quality reports in `docs/security/` and `docs/quality/`. Impact reports in `docs/delivery/impacts/` and `docs/delivery/digests/`, one dated file each. The watch interval is a per-machine value in the app data folder (Q-042). The mirror stays in the app data folder. |
-| APIs/contracts | IPC commands `git_*`, `branch_*`, `pr_*`, `quality_*`, `impact_*`, `terminal_*`. Events `watch_notice` and `terminal_data`. Bindings are generated. Uses the `Forge` trait of `add-connections`. |
+| APIs/contracts | IPC commands `code_*` (git part built), later `pr_*`, `quality_*`, `impact_*`, `terminal_*`. Events `code-notice` and later `terminal_data`. Bindings are generated. Uses the `Forge` trait of `add-connections`. |
 | Git | git2 in `shipyard-git`. One credentials path, shared with worktrees. Conflict blocks parse in a pure function. |
 | Commit rules | A pure function in `shipyard-core` checks the summary, the branch name and the work item key. It lists the refs of a commit. |
 | Remote watch | A timer task fetches the remote heads only. It compares the heads with the last stored heads and emits one event on a change. It never calls a checkout or a merge. |
@@ -23,7 +23,7 @@ Git operations live in `shipyard-git`. Forge calls live in `shipyard-forges`. Pu
 | Quality | Checks run the scripts that the project declares. Scanners run as child processes after a click (Q-043). Reports pass a redaction step before they reach a file. |
 | Impacts | The diff comes from `shipyard-git`. Analyze starts the shared runner layer of `add-assistant` with two separate prompts, one for the plan and one for the digest. A pure check refuses a digest that holds a path or a secret pattern. |
 | Terminal | A PTY session in `shipyard-app`. The environment is built from an allow list and holds no connection secret. |
-| Shared components | `DiffView` goes to `src/ui/` as an organism. `add-factory` and `add-delivery` reuse it. A feature imports only `ui`, `lib` and its own folder. |
+| Shared components | `DiffView` goes to `src/ui/molecules/`. `add-factory` and `add-delivery` reuse it. A feature imports only `ui`, `lib` and its own folder. |
 | Risks | A discard loses work: the confirmation and a test guard it. The watch must never write: a test compares the working copy before and after. Scanner output may hold a secret: redaction and a test cover it. |
 
 ## Affected Surfaces

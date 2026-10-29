@@ -176,7 +176,7 @@ The system SHALL discard changes only after a confirmation. The confirmation SHA
 
 ### Requirement: REQ-005 Conflicts
 
-When a merge or a stash stops on a conflict, the Conflicts group SHALL list each conflicted file. For each block of a file the person SHALL choose ours, theirs, both or none. The person SHALL also be able to take a whole side or edit the file. The system MUST refuse to mark a file resolved while it holds a conflict marker.
+When a merge or a stash stops on a conflict, the Conflicts group SHALL list each conflicted file. For each block of a file the person SHALL choose ours, theirs, both or none. The person SHALL also be able to take a whole side, or mark the file resolved after a hand edit in another tool. The system MUST refuse to mark a file resolved while it holds a conflict marker.
 
 #### Scenario: Resolve a block
 - GIVEN a conflicted file with two blocks
@@ -190,11 +190,11 @@ When a merge or a stash stops on a conflict, the Conflicts group SHALL list each
 
 ### Requirement: REQ-006 Stash
 
-The system SHALL save the working copy as a stash, untracked files included. The name is optional. The system SHALL list the stashes and SHALL apply, pop or drop one. A drop SHALL need a confirmation that names the stash.
+The system SHALL save the working copy as a stash, untracked files included. The name is optional. The system SHALL list the stashes and SHALL apply or drop one. An apply leaves the stash in the list, and a drop removes it. A drop SHALL need a confirmation that names the stash.
 
-#### Scenario: Pop a stash
+#### Scenario: Apply and drop a stash
 - GIVEN a stash that holds two files
-- WHEN a person pops it on a clean working copy
+- WHEN a person applies it on a clean working copy and then drops it
 - THEN the two files return as unstaged changes and the stash leaves the list
 
 ### Requirement: REQ-007 Commit action
@@ -268,7 +268,7 @@ The system SHALL create a branch from the current head and SHALL switch to it. T
 
 ### Requirement: REQ-013 Delete a branch
 
-The system SHALL delete a branch after two clicks. The second click SHALL be a confirmation that names the branch. The system MUST refuse to delete the working branch. The system SHALL delete a forge-only branch on the forge after the same confirmation.
+The system SHALL delete a branch after two clicks. The second click SHALL be a confirmation that names the branch. The system MUST refuse to delete the working branch. The system SHALL delete a forge-only branch on the forge after the same confirmation. This version deletes local branches only: the forge call comes with the forge adapter writes.
 
 #### Scenario: Working branch
 - GIVEN the working branch
@@ -277,16 +277,21 @@ The system SHALL delete a branch after two clicks. The second click SHALL be a c
 
 ### Requirement: REQ-014 Publish and sync
 
-The system SHALL publish the working branch with a person's click and MUST NOT use a force push. The sync action of the status bar SHALL fetch. It SHALL then fast-forward the working branch when the working copy is clean. [NEEDS CLARIFICATION: Q-041 Does the status-bar sync action also pull git?] Working assumption: Q-041 option 1, one tick, then fetch and fast-forward.
+The system SHALL publish the working branch with a person's click and MUST NOT use a force push. The sync action of the status bar SHALL fetch. It SHALL then bring the working branch up to date when the working copy is clean. [NEEDS CLARIFICATION: Q-041 Does the status-bar sync action also pull git?] Working assumption: Q-041 option 1, one tick, then fetch and update.
 
 #### Scenario: Dirty sync
 - GIVEN a working copy with uncommitted changes and a newer remote head
 - WHEN a person runs the sync action
 - THEN the fetch runs, the working copy stays as it is and the status bar names the reason
 
+#### Scenario: Rebase conflict
+- GIVEN a clean working copy with a local commit that conflicts with a newer remote commit
+- WHEN a person runs the sync action
+- THEN the working branch stays as it was and the status bar names the conflicted files
+
 ### Requirement: REQ-015 Remote watch
 
-In the background, the system SHALL fetch the remote heads of each project that has a remote. It SHALL watch the working branch and each branch that the project lists. Each project SHALL set its own interval. The default SHALL be 15 minutes. [NEEDS CLARIFICATION: Q-042 Where does the watch interval live?]
+In the background, the system SHALL fetch the remote heads of each project that has a remote. It SHALL watch the working branch and each branch that the project lists. Each project SHALL set its own interval. The default SHALL be 15 minutes. [NEEDS CLARIFICATION: Q-042 Where does the watch interval live?] This version has the default only: no setting changes the interval yet.
 
 #### Scenario: Default interval
 - GIVEN a project with no interval set
@@ -304,7 +309,7 @@ The remote watch MUST move only the remote tracking references. It MUST NOT chan
 
 ### Requirement: REQ-017 Watch notification
 
-The system SHALL notify only when the remote heads change between two fetches. The notice SHALL name the commit count, the branch, the author and the last subject. It SHALL carry the Sync action. Being behind with no new push SHALL NOT notify. The notice SHALL leave the list when the project is quiet again.
+The system SHALL notify only when the remote heads change between two fetches. The notice SHALL name the commit count, the branch, the author and the last subject. It SHALL carry the Sync action. Being behind with no new push SHALL NOT notify. The notice SHALL leave the list when the project is quiet again: this version removes it when the sync action brings the working branch up to date.
 
 #### Scenario: Push by someone else
 - GIVEN a remote head that moved by two commits

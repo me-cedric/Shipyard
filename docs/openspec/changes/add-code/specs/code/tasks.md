@@ -11,9 +11,9 @@ Plan: [plan.md](./plan.md)
 
 ## Tasks
 
-- [ ] T001 Write unit tests in `crates/shipyard-core/tests/code.rs`: summary type, branch name, work item key, ref list, digest check. Covers REQ-008, REQ-009, REQ-012, REQ-031.
-- [ ] T002 Implement those rules in `crates/shipyard-core/src/code.rs`. Covers REQ-008, REQ-009, REQ-012, REQ-031.
-- [x] T003 Write git tests on temporary repositories in `crates/shipyard-git/tests/code.rs`: status, two diffs, stage, discard, stash, conflict, commit, log, branches, fetch of heads. Covers REQ-001 to REQ-007, REQ-010 to REQ-016. Done: status, two diffs, stage, unstage, discard, stash, conflict blocks, commit, log, branches, delete branch, fetch, remote head compare, pull --rebase, push, worktrees. Open: none. Not carried: merge commit (the repository refuses a commit during a merge), stash pop (apply, then drop).
+- [ ] T001 Write unit tests in `crates/shipyard-core/tests/code.rs`: summary type, branch name, work item key, ref list, digest check. Covers REQ-008, REQ-009, REQ-012, REQ-031. Partial: `crates/shipyard-core/tests/code.rs` holds the summary type and branch name tests (REQ-008, REQ-012). Open: work item key, ref list, digest check (REQ-009, REQ-031).
+- [ ] T002 Implement those rules in `crates/shipyard-core/src/code.rs`. Covers REQ-008, REQ-009, REQ-012, REQ-031. Partial: `crates/shipyard-core/src/code.rs` holds `check_summary` and `check_branch_name`. Open: the same three rules as T001.
+- [x] T003 Write git tests on temporary repositories in `crates/shipyard-git/tests/code.rs`: status, two diffs, stage, discard, stash, conflict, commit, log, branches, fetch of heads. Covers REQ-001 to REQ-007, REQ-010 to REQ-016. Done: status, two diffs, stage, unstage, discard, stash, conflict blocks, commit, log, branches, delete branch, fetch, remote head compare, pull --rebase, push, worktrees. Open: none. Merge commit: done (a commit after the last conflict has both parents and clears the merge state). Not carried: stash pop (apply, then drop).
 - [x] T004 Implement the operations in `crates/shipyard-git/src/code.rs`. Covers REQ-001 to REQ-007, REQ-010 to REQ-016. Done: the same list, in `crates/shipyard-git/src/code/` (`status.rs` discard, `stash.rs`, `conflict.rs`, `branch.rs` delete, `remote.rs` `remote_heads` and `head_changes`), with credentials and proxy in `src/auth.rs` and worktrees in `src/worktree.rs`. Open: none.
 - [ ] T005 [P] Write forge contract tests with a fake in `crates/shipyard-forges/tests/code.rs`: list, detail, open, comment, verdict, merge, mark ready, refused write. Covers REQ-018 to REQ-023, REQ-025.
 - [ ] T006 Implement those calls in `crates/shipyard-forges/src/code.rs`. Covers REQ-018 to REQ-023, REQ-025.
@@ -21,20 +21,20 @@ Plan: [plan.md](./plan.md)
 - [ ] T008 Implement the codecs and the index in `crates/shipyard-store/src/code.rs`. Covers REQ-009, REQ-024, REQ-028, REQ-033.
 - [ ] T009 [P] Write Analyze tests with a fake runner in `crates/shipyard-agents/tests/impacts.rs`: seven axes, stale refs, two separate outputs, clean digest. Covers REQ-029 to REQ-032.
 - [ ] T010 Implement Analyze in `crates/shipyard-agents/src/impacts.rs`. Covers REQ-029 to REQ-032.
-- [ ] T011 [P] Write app tests in `crates/shipyard-app/tests/code.rs`: watch interval, notice on a head change only, no working copy write, terminal environment, scanner redaction. Covers REQ-015, REQ-016, REQ-017, REQ-027, REQ-035.
-- [ ] T012 Implement the commands, the watch task and the terminal in `crates/shipyard-app/src/code.rs`. Covers REQ-015 to REQ-017, REQ-026, REQ-027, REQ-034, REQ-035.
-- [ ] T013 [P] Write component tests for Changes and the commit form in `src/features/code/changes.test.tsx`. Covers REQ-001 to REQ-008.
-- [ ] T014 Build `DiffView` in `src/ui/diff-view.tsx` and Changes in `src/features/code/`. Covers REQ-001 to REQ-008.
-- [ ] T015 [P] Write component tests for History and Branches in `src/features/code/branches.test.tsx`. Covers REQ-010 to REQ-014.
-- [ ] T016 Build History, Branches and the selector in `src/features/code/`. Covers REQ-009 to REQ-014.
+- [ ] T011 [P] Write app tests in `crates/shipyard-app/tests/code.rs`: watch interval, notice on a head change only, no working copy write, terminal environment, scanner redaction. Covers REQ-015, REQ-016, REQ-017, REQ-027, REQ-035. Partial: the tests are in `crates/shipyard-app/src/commands/code.rs` (the commands are private to the crate): notice on a head change only, no working copy write, dirty sync, merge commit after conflicts. Open: terminal environment, scanner redaction, a test of the watch interval.
+- [ ] T012 Implement the commands, the watch task and the terminal in `crates/shipyard-app/src/code.rs`. Covers REQ-015 to REQ-017, REQ-026, REQ-027, REQ-034, REQ-035. Partial: `crates/shipyard-app/src/commands/code.rs` holds the commands and the watch task (fixed 15 minute interval, event `code-notice`). Open: terminal, quality and scanner commands (REQ-026, REQ-027, REQ-034, REQ-035), a per-project interval (Q-042).
+- [x] T013 [P] Write component tests for Changes and the commit form in `src/features/code/changes.test.tsx`. Covers REQ-001 to REQ-008. Done: Changes, conflicts, stash, the commit form and the sync notice, with the mock IPC.
+- [x] T014 Build `DiffView` in `src/ui/diff-view.tsx` and Changes in `src/features/code/`. Covers REQ-001 to REQ-008. Done: `DiffView` is a molecule in `src/ui/molecules/diff-view.tsx`, with `FileRow`, `CommitRow`, `ConflictBlock`, `Textarea` and the `CommitDialog` organism, all in the gallery.
+- [x] T015 [P] Write component tests for History and Branches in `src/features/code/branches.test.tsx`. Covers REQ-010 to REQ-014. Done: `src/features/code/branches.test.tsx` covers History and Branches.
+- [x] T016 Build History, Branches and the selector in `src/features/code/`. Covers REQ-009 to REQ-014. Done for REQ-010 to REQ-014: History, Branches and the header selector. Open: the `commit:` entity links and backlinks (REQ-009), delete of a forge-only branch (REQ-013).
 - [ ] T017 [P] Write component tests for Pull requests in `src/features/code/pull-requests.test.tsx`. Covers REQ-018 to REQ-025.
 - [ ] T018 Build Pull requests in `src/features/code/`. Covers REQ-018 to REQ-025.
 - [ ] T019 [P] Write component tests for Quality and Impacts in `src/features/code/quality.test.tsx` and `impacts.test.tsx`. Covers REQ-026 to REQ-033.
 - [ ] T020 Build Quality and Impacts in `src/features/code/`. Covers REQ-026 to REQ-033.
 - [ ] T021 [P] Write component tests for the terminal panel and the file viewer in `src/features/code/terminal.test.tsx` and `viewer.test.tsx`. Covers REQ-034 to REQ-036.
 - [ ] T022 Build the terminal panel and the file viewer in `src/features/code/`. Covers REQ-034 to REQ-036.
-- [ ] T023 Write the e2e test `e2e/code.spec.ts` with a fake forge: stage, commit, branch, pull request, mark ready, Analyze. Covers REQ-001 to REQ-037.
-- [ ] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-037.
+- [ ] T023 Write the e2e test `e2e/code.spec.ts` with a fake forge: stage, commit, branch, pull request, mark ready, Analyze. Covers REQ-001 to REQ-037. Partial: `e2e/code.spec.ts` covers stage, commit, History, branch switch and branch create on the mock. Open: pull request, mark ready, Analyze.
+- [ ] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-037. Partial: English and French keys and the changelog entries cover the git views. Open: keys of Pull requests, Quality, Impacts and the terminal.
 - [ ] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-037.
 - [ ] T026 Compare the code with `spec.md`, update stale artifacts, then close Q-041, Q-042 and Q-043. Covers REQ-014, REQ-015, REQ-027.
 

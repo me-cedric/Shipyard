@@ -15,6 +15,7 @@
 - Reference index: backlinks grouped by kind in the inspector, and search by ref or title in the command palette.
 - Preferences, language and the last view of each project now live in the app data folder.
 - Settings / Connections to add, edit, test and remove tracker and forge connections (Jira, GitHub, GitLab, Azure DevOps, Linear), with the capability flags of each tracker, write-only secrets kept in the system keychain, and the repository list of a forge with a mark on each repository you cannot push to.
+- Code space with Changes (folder tree, staged and unstaged diffs, stage, unstage, discard after a confirmation, stash, conflict blocks), History and Branches, a working branch selector in the header, one commit action in the status bar, a sync action that updates the working branch, and a notice when a colleague pushes. A clone uses the saved token of the forge connection with the same host.
 
 ## [0.0.1]
 
