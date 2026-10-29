@@ -32,6 +32,8 @@ function Frame() {
 		setCommitOpen,
 		assistantOpen,
 		setAssistantOpen,
+		explainRef,
+		clearExplain,
 	} = useShell();
 	const { commit: runCommit } = useCodeActions();
 	const { list, sync, commit, assistant } = useActions();
@@ -43,6 +45,13 @@ function Frame() {
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	// One assistant for every space: the shell holds its state, so a change of view keeps it.
 	const chat = useAssistant({ open: assistantOpen, view: path, selected: selectedRef });
+	// The Explain action of the inspector, the palette and the menu waits for a thread.
+	const { current, busy, explain } = chat;
+	useEffect(() => {
+		if (!explainRef || !assistantOpen || !current || busy) return;
+		clearExplain();
+		void explain(explainRef);
+	}, [explainRef, assistantOpen, current, busy, explain, clearExplain]);
 	const open = useRef(detail);
 	open.current = detail;
 	// biome-ignore lint/correctness/useExhaustiveDependencies: only a change of view closes the detail

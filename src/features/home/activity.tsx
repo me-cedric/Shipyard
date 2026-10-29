@@ -1,4 +1,5 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { PinnedTiles } from "@/features/knowledge";
 import { NoProject } from "@/features/work/no-project";
 import { useRuns } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
@@ -37,6 +38,7 @@ export function Activity() {
 	const time = new Intl.DateTimeFormat(lang, { dateStyle: "short", timeStyle: "short" });
 	return (
 		<ListDetail title={t.tabs.home.activity}>
+			<PinnedTiles />
 			{events.length === 0 && notices.length === 0 ? (
 				<div className="p-4">
 					<EmptyState

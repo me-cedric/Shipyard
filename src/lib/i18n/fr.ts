@@ -3,6 +3,7 @@ import { designFr } from "./design";
 import type { Messages } from "./en";
 import { factoryFr } from "./factory";
 import { homeFr } from "./home";
+import { knowledgeFr } from "./knowledge";
 import { settingsFr } from "./settings";
 import { specsFr } from "./specs";
 
@@ -146,6 +147,7 @@ export const fr: Messages = {
 	},
 	lang: { en: "Anglais", fr: "Français" },
 	home: homeFr,
+	knowledge: knowledgeFr,
 	notFound: { title: "Introuvable", home: "Accueil" },
 	shell: {
 		sync: "Synchroniser",
@@ -236,7 +238,7 @@ export const fr: Messages = {
 			compass: "Assistant compass : {detail}",
 			"ref-broken": "Référence rompue {detail}",
 		},
-		fix: { write: "Écrire", open: "Ouvrir", recheck: "Revérifier" },
+		fix: { write: "Écrire", open: "Ouvrir", apply: "Appliquer", recheck: "Revérifier" },
 		confirm: "Confirmer",
 	},
 	connections: {

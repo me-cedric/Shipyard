@@ -3,6 +3,7 @@ import { Branches, Changes, History } from "@/features/code";
 import { Api, Architecture, Data, Decisions, Diagrams, Flows, Screens } from "@/features/design";
 import { AgentsMap, Runs, Sessions, Usage, Workflows } from "@/features/factory";
 import { Activity, Inbox, MyWork } from "@/features/home";
+import { Dashboards, Documents, Graph, Handbook, Learn, Slides } from "@/features/knowledge";
 import { FirstRun, Health, ProjectSettings } from "@/features/projects";
 import { AgentsRules, Connections, Me } from "@/features/settings";
 import { type SpaceId, tabLabel } from "@/features/shell";
@@ -64,6 +65,12 @@ const VIEWS: Partial<Record<string, ComponentType>> = {
 	"specs/questions": Questions,
 	"specs/test-plans": TestPlans,
 	"specs/constitution": Constitution,
+	"knowledge/graph": Graph,
+	"knowledge/handbook": Handbook,
+	"knowledge/documents": Documents,
+	"knowledge/slides": Slides,
+	"knowledge/learn": Learn,
+	"knowledge/dashboards": Dashboards,
 	"settings/project": ProjectView,
 	"settings/health": Health,
 };

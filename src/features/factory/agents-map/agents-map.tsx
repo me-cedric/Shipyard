@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { STEP_STATUS } from "@/ui/molecules/run-step";
-import { EntityGraph, type EntityNode } from "@/ui/organisms/entity-graph";
+import { type CanvasNode, GraphCanvas } from "@/ui/organisms/graph-canvas";
 import { ListDetail } from "@/ui/templates/list-detail";
 
 /** Factory / Agents map: agents, tickets, files and refs. A node opens its entity in the inspector (factory REQ-030). */
@@ -15,11 +15,11 @@ export function AgentsMap() {
 	const active = useActiveProject().data;
 	const runs = useRuns();
 	const sessions = useSessions();
-	const { openRef } = useShell();
+	const { openRef, selectedRef } = useShell();
 	const graph = useMemo(() => {
-		const nodes = new Map<string, EntityNode>();
+		const nodes = new Map<string, CanvasNode>();
 		const links: [string, string][] = [];
-		const add = (n: EntityNode) => nodes.set(n.id, n);
+		const add = (n: CanvasNode) => nodes.set(n.id, n);
 		for (const r of runs.data ?? []) {
 			const ticket = `wi:${r.key}`;
 			add({ id: ticket, kind: "ticket", label: r.key, name: `${f.ticket} ${r.key}` });
@@ -48,10 +48,24 @@ export function AgentsMap() {
 		}
 		return { nodes: [...nodes.values()], links };
 	}, [runs.data, sessions.data, f]);
+	const kinds = [
+		{ id: "agent", label: f.agent },
+		{ id: "ticket", label: f.ticket },
+		{ id: "file", label: f.file },
+		{ id: "ref", label: f.ref },
+	];
 	if (active === null) return <NoProject title={f.agentsMap} />;
 	return (
 		<ListDetail title={f.agentsMap}>
-			<EntityGraph nodes={graph.nodes} links={graph.links} label={f.graph} onOpen={openRef} />
+			<GraphCanvas
+				nodes={graph.nodes}
+				links={graph.links}
+				kinds={kinds}
+				label={f.graph}
+				labels={t.knowledge.canvas}
+				selected={selectedRef}
+				onOpen={openRef}
+			/>
 		</ListDetail>
 	);
 }

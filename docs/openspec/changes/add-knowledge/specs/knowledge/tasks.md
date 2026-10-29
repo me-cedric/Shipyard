@@ -19,20 +19,20 @@ Plan: [plan.md](./plan.md)
 - [x] T006 Implement the exports in `crates/shipyard-store/src/export.rs`. Covers REQ-013 to REQ-016.
 - [x] T007 [P] Write app tests in `crates/shipyard-app/tests/knowledge.rs`: code graph through a fake MCP server. Covers REQ-002, REQ-008.
 - [x] T008 Implement the commands in `crates/shipyard-app/src/knowledge.rs`. Covers REQ-002, REQ-008, REQ-023.
-- [ ] T009 [P] Write component tests for the renderer in `src/ui/graph-canvas.test.tsx`: selection, keyboard, table view, reduced motion. Covers REQ-003, REQ-005, REQ-006.
-- [ ] T010 Build `GraphCanvas` in `src/ui/graph-canvas.tsx` and switch the Agents map to it. Covers REQ-003.
-- [ ] T011 [P] Write component tests for Graph in `src/features/knowledge/graph.test.tsx`: kinds, filter, focus, source switch, marks. Covers REQ-001, REQ-002, REQ-004, REQ-005, REQ-007.
-- [ ] T012 Build Graph in `src/features/knowledge/`. Covers REQ-001, REQ-002, REQ-004, REQ-005, REQ-007.
-- [ ] T013 [P] Write component tests for Explain in `src/features/knowledge/explain.test.tsx`. Covers REQ-008, REQ-009.
-- [ ] T014 Build the Explain action in `src/features/knowledge/`. Covers REQ-008, REQ-009.
-- [ ] T015 [P] Write component tests for Handbook and Documents in `src/features/knowledge/handbook.test.tsx` and `documents.test.tsx`. Covers REQ-010 to REQ-016, REQ-025.
-- [ ] T016 Build Handbook, Documents and the editor in `src/features/knowledge/`. Covers REQ-010 to REQ-016, REQ-025.
-- [ ] T017 [P] Write component tests for Slides in `src/features/knowledge/slides.test.tsx`. Covers REQ-017 to REQ-019.
-- [ ] T018 Build Slides in `src/features/knowledge/`. Covers REQ-017 to REQ-019.
-- [ ] T019 [P] Write component tests for Learn in `src/features/knowledge/learn.test.tsx`. Covers REQ-020, REQ-021.
-- [ ] T020 Build Learn in `src/features/knowledge/`. Covers REQ-020, REQ-021.
-- [ ] T021 [P] Write component tests for Dashboards and Home widgets in `src/features/knowledge/dashboards.test.tsx`. Covers REQ-022 to REQ-024.
-- [ ] T022 Build Dashboards and the Home widgets in `src/features/knowledge/`. Covers REQ-022 to REQ-024.
+- [x] T009 [P] Write component tests for the renderer in `src/ui/graph-canvas.test.tsx`: selection, keyboard, table view, reduced motion. Covers REQ-003, REQ-005, REQ-006.
+- [x] T010 Build `GraphCanvas` in `src/ui/graph-canvas.tsx` and switch the Agents map to it. Covers REQ-003.
+- [x] T011 [P] Write component tests for Graph in `src/features/knowledge/graph.test.tsx`: kinds, filter, focus, source switch, marks. Covers REQ-001, REQ-002, REQ-004, REQ-005, REQ-007.
+- [x] T012 Build Graph in `src/features/knowledge/`. Covers REQ-001, REQ-002, REQ-004, REQ-005, REQ-007.
+- [x] T013 [P] Write component tests for Explain in `src/features/knowledge/explain.test.tsx`. Covers REQ-008, REQ-009.
+- [x] T014 Build the Explain action in `src/features/knowledge/`. Covers REQ-008, REQ-009.
+- [x] T015 [P] Write component tests for Handbook and Documents in `src/features/knowledge/handbook.test.tsx` and `documents.test.tsx`. Covers REQ-010 to REQ-016, REQ-025.
+- [x] T016 Build Handbook, Documents and the editor in `src/features/knowledge/`. Covers REQ-010 to REQ-016, REQ-025.
+- [x] T017 [P] Write component tests for Slides in `src/features/knowledge/slides.test.tsx`. Covers REQ-017 to REQ-019.
+- [x] T018 Build Slides in `src/features/knowledge/`. Covers REQ-017 to REQ-019.
+- [x] T019 [P] Write component tests for Learn in `src/features/knowledge/learn.test.tsx`. Covers REQ-020, REQ-021.
+- [x] T020 Build Learn in `src/features/knowledge/`. Covers REQ-020, REQ-021.
+- [x] T021 [P] Write component tests for Dashboards and Home widgets in `src/features/knowledge/dashboards.test.tsx`. Covers REQ-022 to REQ-024.
+- [x] T022 Build Dashboards and the Home widgets in `src/features/knowledge/`. Covers REQ-022 to REQ-024.
 - [ ] T023 Write the e2e test `e2e/knowledge.spec.ts`: graph, Explain, handbook, export, deck, path, dashboard. Covers REQ-001 to REQ-026.
 - [ ] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-026.
 - [ ] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-026.

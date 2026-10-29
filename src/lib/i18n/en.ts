@@ -2,6 +2,7 @@ import { assistantEn } from "./assistant";
 import { designEn } from "./design";
 import { factoryEn } from "./factory";
 import { homeEn } from "./home";
+import { knowledgeEn } from "./knowledge";
 import { settingsEn } from "./settings";
 import { specsEn } from "./specs";
 
@@ -145,6 +146,7 @@ export const en = {
 	},
 	lang: { en: "English", fr: "French" },
 	home: homeEn,
+	knowledge: knowledgeEn,
 	notFound: { title: "Not found", home: "Home" },
 	shell: {
 		sync: "Sync",
@@ -235,7 +237,7 @@ export const en = {
 			compass: "Compass helper: {detail}",
 			"ref-broken": "Broken ref {detail}",
 		},
-		fix: { write: "Write", open: "Open", recheck: "Recheck" },
+		fix: { write: "Write", open: "Open", apply: "Apply", recheck: "Recheck" },
 		confirm: "Confirm",
 	},
 	connections: {

@@ -14,6 +14,11 @@ type ShellState = {
 	paletteOpen: boolean;
 	setPaletteOpen: (open: boolean) => void;
 	assistantOpen: boolean;
+	/** The ref that the assistant must explain next. The shell clears it once the answer starts. */
+	explainRef: string | null;
+	/** Opens the assistant with the entity as context and asks for the Explain answer (knowledge REQ-008). */
+	explain: (ref: string) => void;
+	clearExplain: () => void;
 	setAssistantOpen: (open: boolean) => void;
 	syncing: boolean;
 	/** The reason of the last failed sync, or null. */
@@ -43,6 +48,7 @@ export function ShellProvider({
 	const [detail, setDetail] = useState<{ title: string; node: ReactNode } | null>(null);
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [assistantOpen, setAssistantOpen] = useState(false);
+	const [explainRef, setExplainRef] = useState<string | null>(null);
 	const [syncing, setSyncing] = useState(false);
 	const [syncError, setSyncError] = useState<string | null>(null);
 	const [commitOpen, setCommitOpen] = useState(false);
@@ -52,6 +58,12 @@ export function ShellProvider({
 		setDetail(null);
 		setInspectorOpen(true);
 	}, []);
+	const explain = useCallback((ref: string) => {
+		setSelectedRef(ref);
+		setAssistantOpen(true);
+		setExplainRef(ref);
+	}, []);
+	const clearExplain = useCallback(() => setExplainRef(null), []);
 	const openDetail = useCallback((title: string, node: ReactNode) => {
 		setDetail({ title, node });
 		setInspectorOpen(true);
@@ -85,6 +97,9 @@ export function ShellProvider({
 			setPaletteOpen,
 			assistantOpen,
 			setAssistantOpen,
+			explainRef,
+			explain,
+			clearExplain,
 			syncing,
 			syncError,
 			sync,
@@ -101,6 +116,9 @@ export function ShellProvider({
 			closeDetail,
 			paletteOpen,
 			assistantOpen,
+			explainRef,
+			explain,
+			clearExplain,
 			syncing,
 			syncError,
 			sync,

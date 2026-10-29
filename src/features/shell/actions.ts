@@ -81,6 +81,8 @@ export function useActions() {
 		setAssistantOpen,
 		sync,
 		setCommitOpen,
+		selectedRef,
+		explain,
 	} = shell;
 	const { pull } = useCodeActions();
 	const syncNow = useSyncNow();
@@ -179,6 +181,16 @@ export function useActions() {
 				key: "i",
 				run: () => setInspectorOpen(!inspectorOpen),
 			}),
+			...(selectedRef
+				? [
+						{
+							id: "explain",
+							label: format(t.knowledge.explainRef, { ref: selectedRef }),
+							Icon: BookOpenIcon,
+							run: () => explain(selectedRef),
+						} satisfies Action,
+					]
+				: []),
 			...(["light", "dark", "system"] as const).map(
 				(theme): Action => ({
 					id: `theme-${theme}`,
@@ -221,6 +233,8 @@ export function useActions() {
 		stageable,
 		openFolder,
 		checkUpdate,
+		selectedRef,
+		explain,
 	]);
 }
 

@@ -36,6 +36,10 @@ function Finding({ finding }: { finding: Finding_Serialize }) {
 		attempt(async () => {
 			if (fix.kind === "open") openRef(fix.target);
 			else if (fix.kind === "recheck") await qc.invalidateQueries({ queryKey: projectKeys.health });
+			else if (fix.kind === "apply") {
+				await unwrap(commands.compassApply([fix.entry]));
+				await qc.invalidateQueries();
+			}
 			// A file fix shows the new content first. It writes after the confirm click.
 			else setPreview(await unwrap(commands.healthFix(finding.id, null)));
 		});

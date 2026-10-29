@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { PinnedTiles } from "@/features/knowledge";
 import { NoProject } from "@/features/work/no-project";
 import { TicketDetail } from "@/features/work/ticket-detail";
 import { useRuns } from "@/lib/factory";
@@ -31,6 +32,7 @@ export function MyWork() {
 	if (active === null) return <NoProject title={t.tabs.home["my-work"]} />;
 	return (
 		<ListDetail title={t.tabs.home["my-work"]}>
+			<PinnedTiles />
 			{items.length === 0 && runs.length === 0 ? (
 				<div className="p-4">
 					<EmptyState
