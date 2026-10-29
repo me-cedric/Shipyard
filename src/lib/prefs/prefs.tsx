@@ -3,10 +3,24 @@ import { createContext, type ReactNode, useContext, useEffect, useMemo, useState
 export type Theme = "light" | "dark" | "system";
 export type Density = "default" | "compact";
 export type Contrast = "default" | "high";
-export type Prefs = { theme: Theme; density: Density; contrast: Contrast };
+export const ROLES = ["pm", "architect", "developer", "qa", "ba", "lead", "junior"] as const;
+export type Role = (typeof ROLES)[number] | "none";
+export type Prefs = {
+	theme: Theme;
+	density: Density;
+	contrast: Contrast;
+	role: Role;
+	sidebarOpen: boolean;
+};
 
 const KEY = "shipyard.prefs";
-const DEFAULTS: Prefs = { theme: "system", density: "default", contrast: "default" };
+const DEFAULTS: Prefs = {
+	theme: "system",
+	density: "default",
+	contrast: "default",
+	role: "none",
+	sidebarOpen: true,
+};
 
 function load(): Prefs {
 	try {
@@ -15,6 +29,8 @@ function load(): Prefs {
 			theme: ["light", "dark", "system"].includes(raw.theme) ? raw.theme : DEFAULTS.theme,
 			density: ["default", "compact"].includes(raw.density) ? raw.density : DEFAULTS.density,
 			contrast: ["default", "high"].includes(raw.contrast) ? raw.contrast : DEFAULTS.contrast,
+			role: ["none", ...ROLES].includes(raw.role) ? raw.role : DEFAULTS.role,
+			sidebarOpen: typeof raw.sidebarOpen === "boolean" ? raw.sidebarOpen : DEFAULTS.sidebarOpen,
 		};
 	} catch {
 		return DEFAULTS;

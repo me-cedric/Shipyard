@@ -12,12 +12,15 @@
 			"!crates",
 			"!**/dist",
 			"!**/target",
+			"!**/test-results",
+			"!**/playwright-report",
 			"!**/node_modules",
 			"!pnpm-lock.yaml",
 			"!.mcp.json",
 			"!renovate.json",
 			"!.vscode",
-			"!**/*.md"
+			"!**/*.md",
+			"!.vitest"
 		]
 	},
 	"formatter": {

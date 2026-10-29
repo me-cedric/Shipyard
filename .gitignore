@@ -8,3 +8,5 @@ target/
 !.env.example
 test-results/
 playwright-report/
+.vitest/
+blob-report/

@@ -1,22 +1,18 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { I18nProvider } from "@/lib/i18n";
-import { PrefsProvider } from "@/lib/prefs";
-import { TooltipProvider } from "@/ui/atoms/tooltip";
-import { Gallery } from "@/ui/gallery/gallery";
+import { App } from "@/app/app";
+import { isTauri } from "@/lib/ipc";
+import { installMockIpc } from "@/lib/ipc/mock";
 import "@/ui/tokens/tokens.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root");
 
+// Outside Tauri (browser, Playwright) the generated mock serves the commands.
+if (!isTauri()) installMockIpc();
+
 createRoot(root).render(
 	<StrictMode>
-		<I18nProvider>
-			<PrefsProvider>
-				<TooltipProvider>
-					<Gallery />
-				</TooltipProvider>
-			</PrefsProvider>
-		</I18nProvider>
+		<App />
 	</StrictMode>,
 );
