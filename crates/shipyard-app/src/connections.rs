@@ -438,7 +438,13 @@ impl Connections {
     /// Blocks on the network: call it in `spawn_blocking`.
     pub fn test(&self, id: &str) -> Res<TestOutcome> {
         let r = self.record(id)?;
-        let outcome = if !r.secret {
+        // The keychain is the truth: the `secret` flag can drift.
+        let outcome = if self
+            .secrets
+            .get(&conn_account(id))
+            .map_err(|e| e.to_string())?
+            .is_none()
+        {
             TestOutcome::Failed {
                 reason: "no secret saved".into(),
             }
