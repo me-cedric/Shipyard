@@ -1,0 +1,6 @@
+model_verbosity = "low"
+model_reasoning_summary = "none"
+
+[mcp_servers.codebase-memory]
+command = "codebase-memory-mcp"
+args = ["--tool-profile=analysis"]

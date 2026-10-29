@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "packs": [
+    "ci-github",
+    "security",
+    "e2e",
+    "renovate"
+  ],
+  "exclude": [],
+  "upstream": [
+    "taste",
+    "mattpocock"
+  ]
+}

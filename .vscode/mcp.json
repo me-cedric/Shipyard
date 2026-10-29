@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "codebase-memory": {
+      "type": "stdio",
+      "command": "codebase-memory-mcp",
+      "args": [
+        "--tool-profile=analysis"
+      ]
+    }
+  }
+}

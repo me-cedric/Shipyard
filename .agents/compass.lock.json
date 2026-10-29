@@ -1,0 +1,978 @@
+{
+  "lockVersion": 2,
+  "version": "1.0.2",
+  "tag": "v1.0.2",
+  "skills": [
+    "adr",
+    "architecture-advisor",
+    "brandkit",
+    "brutalist-skill",
+    "ci-triage",
+    "compass",
+    "debug",
+    "delivery-digest",
+    "e2e",
+    "grill",
+    "grill-me",
+    "grilling",
+    "harness-improve",
+    "harness-loop",
+    "image-to-code-skill",
+    "imagegen-frontend-mobile",
+    "imagegen-frontend-web",
+    "impact-analysis",
+    "minimalist-skill",
+    "pr-flow",
+    "project-memory",
+    "redesign-skill",
+    "remaining-work",
+    "review",
+    "soft-skill",
+    "spec-flow",
+    "stitch-skill",
+    "task-flow",
+    "taste-skill",
+    "taste-skill-v1",
+    "vuln-triage",
+    "working-style-skills"
+  ],
+  "files": {
+    ".agents/hooks/compass.mjs": {
+      "owner": "compass",
+      "sha": "f06af77f44d0d210"
+    },
+    ".agents/skills/adr/SKILL.md": {
+      "owner": "compass",
+      "sha": "0bba13a7bfc5059c"
+    },
+    ".agents/skills/architecture-advisor/SKILL.md": {
+      "owner": "compass",
+      "sha": "3b0b7d6c1710a5a9"
+    },
+    ".agents/skills/brandkit/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".agents/skills/brandkit/SKILL.md": {
+      "owner": "compass",
+      "sha": "9584a127e535c90b"
+    },
+    ".agents/skills/brutalist-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".agents/skills/brutalist-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "fffbaac8597f0767"
+    },
+    ".agents/skills/ci-triage/SKILL.md": {
+      "owner": "compass",
+      "sha": "5799aab650ff9999"
+    },
+    ".agents/skills/compass/SKILL.md": {
+      "owner": "compass",
+      "sha": "a3ea9eb7e02265e7"
+    },
+    ".agents/skills/debug/SKILL.md": {
+      "owner": "compass",
+      "sha": "c57688d05012172f"
+    },
+    ".agents/skills/delivery-digest/SKILL.md": {
+      "owner": "compass",
+      "sha": "3ca439fd14052b5e"
+    },
+    ".agents/skills/e2e/SKILL.md": {
+      "owner": "compass",
+      "sha": "f2fa72d54e043687"
+    },
+    ".agents/skills/grill-me/LICENSE": {
+      "owner": "compass",
+      "sha": "0e7ac423bf2c6e22"
+    },
+    ".agents/skills/grill-me/SKILL.md": {
+      "owner": "compass",
+      "sha": "caaf8b8de1684f96"
+    },
+    ".agents/skills/grill-me/agents/openai.yaml": {
+      "owner": "compass",
+      "sha": "c061e39c3e0f9d86"
+    },
+    ".agents/skills/grill/SKILL.md": {
+      "owner": "compass",
+      "sha": "679020ff02a9aacb"
+    },
+    ".agents/skills/grill/references/decider-view.md": {
+      "owner": "compass",
+      "sha": "391e00958395fa59"
+    },
+    ".agents/skills/grilling/LICENSE": {
+      "owner": "compass",
+      "sha": "0e7ac423bf2c6e22"
+    },
+    ".agents/skills/grilling/SKILL.md": {
+      "owner": "compass",
+      "sha": "10ff989e7498b23b"
+    },
+    ".agents/skills/grilling/agents/openai.yaml": {
+      "owner": "compass",
+      "sha": "1411d7df7d99b7e6"
+    },
+    ".agents/skills/harness-improve/SKILL.md": {
+      "owner": "compass",
+      "sha": "8cddc5fbc9b636b5"
+    },
+    ".agents/skills/harness-loop/SKILL.md": {
+      "owner": "compass",
+      "sha": "5db08e561fa89509"
+    },
+    ".agents/skills/image-to-code-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".agents/skills/image-to-code-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "4c060a8064a8b133"
+    },
+    ".agents/skills/imagegen-frontend-mobile/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".agents/skills/imagegen-frontend-mobile/SKILL.md": {
+      "owner": "compass",
+      "sha": "8a33389979f3074f"
+    },
+    ".agents/skills/imagegen-frontend-web/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".agents/skills/imagegen-frontend-web/SKILL.md": {
+      "owner": "compass",
+      "sha": "6b5c2256522fdba1"
+    },
+    ".agents/skills/impact-analysis/SKILL.md": {
+      "owner": "compass",
+      "sha": "16f411339118bbcc"
+    },
+    ".agents/skills/minimalist-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".agents/skills/minimalist-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "769ab38eed137bb2"
+    },
+    ".agents/skills/pr-flow/SKILL.md": {
+      "owner": "compass",
+      "sha": "100ed9b3006115a1"
+    },
+    ".agents/skills/pr-flow/references/body.md": {
+      "owner": "compass",
+      "sha": "fdcbba95792f6dfc"
+    },
+    ".agents/skills/project-memory/SKILL.md": {
+      "owner": "compass",
+      "sha": "56ab5928a94e6515"
+    },
+    ".agents/skills/redesign-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".agents/skills/redesign-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "a75d547d04595fe9"
+    },
+    ".agents/skills/remaining-work/SKILL.md": {
+      "owner": "compass",
+      "sha": "3f551eca6d3c1546"
+    },
+    ".agents/skills/review/SKILL.md": {
+      "owner": "compass",
+      "sha": "1f149724cd5a4e49"
+    },
+    ".agents/skills/review/references/report.md": {
+      "owner": "compass",
+      "sha": "62d8d46ed80adf43"
+    },
+    ".agents/skills/review/scripts/post-review.mjs": {
+      "owner": "compass",
+      "sha": "99f7d321f2cab502"
+    },
+    ".agents/skills/soft-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".agents/skills/soft-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "e1e32f5e2d420872"
+    },
+    ".agents/skills/spec-flow/SKILL.md": {
+      "owner": "compass",
+      "sha": "db235fbd90007fc3"
+    },
+    ".agents/skills/spec-flow/references/convert-documents.md": {
+      "owner": "compass",
+      "sha": "4ae3be6d9a2e93b6"
+    },
+    ".agents/skills/spec-flow/references/delta-section.md": {
+      "owner": "compass",
+      "sha": "3404cf0f1e49fff5"
+    },
+    ".agents/skills/spec-flow/references/drift-triage.md": {
+      "owner": "compass",
+      "sha": "2af7d036e9c626d9"
+    },
+    ".agents/skills/spec-flow/references/openspec.md": {
+      "owner": "compass",
+      "sha": "ce700bb9ab28c883"
+    },
+    ".agents/skills/stitch-skill/DESIGN.md": {
+      "owner": "compass",
+      "sha": "0ab6740c4ebb1966"
+    },
+    ".agents/skills/stitch-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".agents/skills/stitch-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "46bdb08fee2dded3"
+    },
+    ".agents/skills/task-flow/SKILL.md": {
+      "owner": "compass",
+      "sha": "1002ff89060e6079"
+    },
+    ".agents/skills/taste-skill-v1/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".agents/skills/taste-skill-v1/SKILL.md": {
+      "owner": "compass",
+      "sha": "43f6f3ed31064293"
+    },
+    ".agents/skills/taste-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".agents/skills/taste-skill/README.md": {
+      "owner": "compass",
+      "sha": "5e33fd716b3e1ffa"
+    },
+    ".agents/skills/taste-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "ee847084e58f5a81"
+    },
+    ".agents/skills/taste-skill/assets/base.css": {
+      "owner": "compass",
+      "sha": "6cb587d723881928"
+    },
+    ".agents/skills/taste-skill/assets/base.js": {
+      "owner": "compass",
+      "sha": "8d50416125596b84"
+    },
+    ".agents/skills/taste-skill/evals/evals.json": {
+      "owner": "compass",
+      "sha": "07856fb030058f3d"
+    },
+    ".agents/skills/taste-skill/library/directions.json": {
+      "owner": "compass",
+      "sha": "d71e3824af33a92d"
+    },
+    ".agents/skills/taste-skill/library/heroes.json": {
+      "owner": "compass",
+      "sha": "b6015f6de0a6b8bc"
+    },
+    ".agents/skills/taste-skill/library/motions.json": {
+      "owner": "compass",
+      "sha": "1129ce0f0d552c9d"
+    },
+    ".agents/skills/taste-skill/library/palettes.json": {
+      "owner": "compass",
+      "sha": "a14be9f45baba848"
+    },
+    ".agents/skills/taste-skill/library/photos.json": {
+      "owner": "compass",
+      "sha": "8fc3b76bca90f446"
+    },
+    ".agents/skills/taste-skill/library/sections.json": {
+      "owner": "compass",
+      "sha": "4be76b7da5b1f5a8"
+    },
+    ".agents/skills/taste-skill/library/sites.json": {
+      "owner": "compass",
+      "sha": "92196d14a05e7518"
+    },
+    ".agents/skills/taste-skill/library/type.json": {
+      "owner": "compass",
+      "sha": "01a36c53c4398f48"
+    },
+    ".agents/skills/taste-skill/references/colour.md": {
+      "owner": "compass",
+      "sha": "6556bcc7eed48b7b"
+    },
+    ".agents/skills/taste-skill/references/copy.md": {
+      "owner": "compass",
+      "sha": "676edbe75d5f3cfd"
+    },
+    ".agents/skills/taste-skill/references/critique.md": {
+      "owner": "compass",
+      "sha": "5943ea74ebe015cf"
+    },
+    ".agents/skills/taste-skill/references/imagery.md": {
+      "owner": "compass",
+      "sha": "c5e2b5e50a8f947a"
+    },
+    ".agents/skills/taste-skill/references/layout.md": {
+      "owner": "compass",
+      "sha": "87d915bfb9324caf"
+    },
+    ".agents/skills/taste-skill/references/motion.md": {
+      "owner": "compass",
+      "sha": "12b193563cc4b5d1"
+    },
+    ".agents/skills/taste-skill/references/research.md": {
+      "owner": "compass",
+      "sha": "016d908b429099f4"
+    },
+    ".agents/skills/taste-skill/references/tells.md": {
+      "owner": "compass",
+      "sha": "31a759a787afdde6"
+    },
+    ".agents/skills/taste-skill/references/type.md": {
+      "owner": "compass",
+      "sha": "6353ff1d0ce2f991"
+    },
+    ".agents/skills/taste-skill/scripts/assets.mjs": {
+      "owner": "compass",
+      "sha": "b4b4b99b5634735f"
+    },
+    ".agents/skills/taste-skill/scripts/draw.mjs": {
+      "owner": "compass",
+      "sha": "1e680f8dc8034154"
+    },
+    ".agents/skills/taste-skill/scripts/inspect.mjs": {
+      "owner": "compass",
+      "sha": "0fc0a847b038f554"
+    },
+    ".agents/skills/taste-skill/scripts/lib/cdp.mjs": {
+      "owner": "compass",
+      "sha": "1065d3307c817e1b"
+    },
+    ".agents/skills/taste-skill/scripts/lib/probe.mjs": {
+      "owner": "compass",
+      "sha": "5c5148893414ce7e"
+    },
+    ".agents/skills/taste-skill/scripts/lib/rules.mjs": {
+      "owner": "compass",
+      "sha": "71435cdac327b71f"
+    },
+    ".agents/skills/taste-skill/scripts/lint.mjs": {
+      "owner": "compass",
+      "sha": "8480ff2104f4b8f8"
+    },
+    ".agents/skills/vuln-triage/SKILL.md": {
+      "owner": "compass",
+      "sha": "b92092cb1e19d4a1"
+    },
+    ".agents/skills/vuln-triage/scripts/sarif-merge.mjs": {
+      "owner": "compass",
+      "sha": "9b74cba0d629865a"
+    },
+    ".agents/skills/working-style-skills/SKILL.md": {
+      "owner": "compass",
+      "sha": "f0bf052321071435"
+    },
+    ".claude/agents/reviewer.md": {
+      "owner": "compass",
+      "sha": "5f8841bddbdafe81"
+    },
+    ".claude/agents/scout.md": {
+      "owner": "compass",
+      "sha": "b187db6482e2f345"
+    },
+    ".claude/agents/worker.md": {
+      "owner": "compass",
+      "sha": "823ce16b518080fa"
+    },
+    ".claude/output-styles/compass.md": {
+      "owner": "compass",
+      "sha": "609cb34642ffad2c"
+    },
+    ".claude/skills/adr/SKILL.md": {
+      "owner": "compass",
+      "sha": "0bba13a7bfc5059c"
+    },
+    ".claude/skills/architecture-advisor/SKILL.md": {
+      "owner": "compass",
+      "sha": "3b0b7d6c1710a5a9"
+    },
+    ".claude/skills/brandkit/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".claude/skills/brandkit/SKILL.md": {
+      "owner": "compass",
+      "sha": "9584a127e535c90b"
+    },
+    ".claude/skills/brutalist-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".claude/skills/brutalist-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "fffbaac8597f0767"
+    },
+    ".claude/skills/ci-triage/SKILL.md": {
+      "owner": "compass",
+      "sha": "5799aab650ff9999"
+    },
+    ".claude/skills/compass/SKILL.md": {
+      "owner": "compass",
+      "sha": "a3ea9eb7e02265e7"
+    },
+    ".claude/skills/debug/SKILL.md": {
+      "owner": "compass",
+      "sha": "c57688d05012172f"
+    },
+    ".claude/skills/delivery-digest/SKILL.md": {
+      "owner": "compass",
+      "sha": "3ca439fd14052b5e"
+    },
+    ".claude/skills/e2e/SKILL.md": {
+      "owner": "compass",
+      "sha": "f2fa72d54e043687"
+    },
+    ".claude/skills/grill-me/LICENSE": {
+      "owner": "compass",
+      "sha": "0e7ac423bf2c6e22"
+    },
+    ".claude/skills/grill-me/SKILL.md": {
+      "owner": "compass",
+      "sha": "caaf8b8de1684f96"
+    },
+    ".claude/skills/grill-me/agents/openai.yaml": {
+      "owner": "compass",
+      "sha": "c061e39c3e0f9d86"
+    },
+    ".claude/skills/grill/SKILL.md": {
+      "owner": "compass",
+      "sha": "679020ff02a9aacb"
+    },
+    ".claude/skills/grill/references/decider-view.md": {
+      "owner": "compass",
+      "sha": "391e00958395fa59"
+    },
+    ".claude/skills/grilling/LICENSE": {
+      "owner": "compass",
+      "sha": "0e7ac423bf2c6e22"
+    },
+    ".claude/skills/grilling/SKILL.md": {
+      "owner": "compass",
+      "sha": "10ff989e7498b23b"
+    },
+    ".claude/skills/grilling/agents/openai.yaml": {
+      "owner": "compass",
+      "sha": "1411d7df7d99b7e6"
+    },
+    ".claude/skills/harness-improve/SKILL.md": {
+      "owner": "compass",
+      "sha": "8cddc5fbc9b636b5"
+    },
+    ".claude/skills/harness-loop/SKILL.md": {
+      "owner": "compass",
+      "sha": "5db08e561fa89509"
+    },
+    ".claude/skills/image-to-code-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".claude/skills/image-to-code-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "4c060a8064a8b133"
+    },
+    ".claude/skills/imagegen-frontend-mobile/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".claude/skills/imagegen-frontend-mobile/SKILL.md": {
+      "owner": "compass",
+      "sha": "8a33389979f3074f"
+    },
+    ".claude/skills/imagegen-frontend-web/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".claude/skills/imagegen-frontend-web/SKILL.md": {
+      "owner": "compass",
+      "sha": "6b5c2256522fdba1"
+    },
+    ".claude/skills/impact-analysis/SKILL.md": {
+      "owner": "compass",
+      "sha": "16f411339118bbcc"
+    },
+    ".claude/skills/minimalist-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".claude/skills/minimalist-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "769ab38eed137bb2"
+    },
+    ".claude/skills/pr-flow/SKILL.md": {
+      "owner": "compass",
+      "sha": "100ed9b3006115a1"
+    },
+    ".claude/skills/pr-flow/references/body.md": {
+      "owner": "compass",
+      "sha": "fdcbba95792f6dfc"
+    },
+    ".claude/skills/project-memory/SKILL.md": {
+      "owner": "compass",
+      "sha": "56ab5928a94e6515"
+    },
+    ".claude/skills/redesign-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".claude/skills/redesign-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "a75d547d04595fe9"
+    },
+    ".claude/skills/remaining-work/SKILL.md": {
+      "owner": "compass",
+      "sha": "3f551eca6d3c1546"
+    },
+    ".claude/skills/review/SKILL.md": {
+      "owner": "compass",
+      "sha": "1f149724cd5a4e49"
+    },
+    ".claude/skills/review/references/report.md": {
+      "owner": "compass",
+      "sha": "62d8d46ed80adf43"
+    },
+    ".claude/skills/review/scripts/post-review.mjs": {
+      "owner": "compass",
+      "sha": "99f7d321f2cab502"
+    },
+    ".claude/skills/soft-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".claude/skills/soft-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "e1e32f5e2d420872"
+    },
+    ".claude/skills/spec-flow/SKILL.md": {
+      "owner": "compass",
+      "sha": "db235fbd90007fc3"
+    },
+    ".claude/skills/spec-flow/references/convert-documents.md": {
+      "owner": "compass",
+      "sha": "4ae3be6d9a2e93b6"
+    },
+    ".claude/skills/spec-flow/references/delta-section.md": {
+      "owner": "compass",
+      "sha": "3404cf0f1e49fff5"
+    },
+    ".claude/skills/spec-flow/references/drift-triage.md": {
+      "owner": "compass",
+      "sha": "2af7d036e9c626d9"
+    },
+    ".claude/skills/spec-flow/references/openspec.md": {
+      "owner": "compass",
+      "sha": "ce700bb9ab28c883"
+    },
+    ".claude/skills/stitch-skill/DESIGN.md": {
+      "owner": "compass",
+      "sha": "0ab6740c4ebb1966"
+    },
+    ".claude/skills/stitch-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".claude/skills/stitch-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "46bdb08fee2dded3"
+    },
+    ".claude/skills/task-flow/SKILL.md": {
+      "owner": "compass",
+      "sha": "1002ff89060e6079"
+    },
+    ".claude/skills/taste-skill-v1/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".claude/skills/taste-skill-v1/SKILL.md": {
+      "owner": "compass",
+      "sha": "43f6f3ed31064293"
+    },
+    ".claude/skills/taste-skill/LICENSE": {
+      "owner": "compass",
+      "sha": "4575a543ab88dad1"
+    },
+    ".claude/skills/taste-skill/README.md": {
+      "owner": "compass",
+      "sha": "5e33fd716b3e1ffa"
+    },
+    ".claude/skills/taste-skill/SKILL.md": {
+      "owner": "compass",
+      "sha": "ee847084e58f5a81"
+    },
+    ".claude/skills/taste-skill/assets/base.css": {
+      "owner": "compass",
+      "sha": "6cb587d723881928"
+    },
+    ".claude/skills/taste-skill/assets/base.js": {
+      "owner": "compass",
+      "sha": "8d50416125596b84"
+    },
+    ".claude/skills/taste-skill/evals/evals.json": {
+      "owner": "compass",
+      "sha": "07856fb030058f3d"
+    },
+    ".claude/skills/taste-skill/library/directions.json": {
+      "owner": "compass",
+      "sha": "d71e3824af33a92d"
+    },
+    ".claude/skills/taste-skill/library/heroes.json": {
+      "owner": "compass",
+      "sha": "b6015f6de0a6b8bc"
+    },
+    ".claude/skills/taste-skill/library/motions.json": {
+      "owner": "compass",
+      "sha": "1129ce0f0d552c9d"
+    },
+    ".claude/skills/taste-skill/library/palettes.json": {
+      "owner": "compass",
+      "sha": "a14be9f45baba848"
+    },
+    ".claude/skills/taste-skill/library/photos.json": {
+      "owner": "compass",
+      "sha": "8fc3b76bca90f446"
+    },
+    ".claude/skills/taste-skill/library/sections.json": {
+      "owner": "compass",
+      "sha": "4be76b7da5b1f5a8"
+    },
+    ".claude/skills/taste-skill/library/sites.json": {
+      "owner": "compass",
+      "sha": "92196d14a05e7518"
+    },
+    ".claude/skills/taste-skill/library/type.json": {
+      "owner": "compass",
+      "sha": "01a36c53c4398f48"
+    },
+    ".claude/skills/taste-skill/references/colour.md": {
+      "owner": "compass",
+      "sha": "6556bcc7eed48b7b"
+    },
+    ".claude/skills/taste-skill/references/copy.md": {
+      "owner": "compass",
+      "sha": "676edbe75d5f3cfd"
+    },
+    ".claude/skills/taste-skill/references/critique.md": {
+      "owner": "compass",
+      "sha": "5943ea74ebe015cf"
+    },
+    ".claude/skills/taste-skill/references/imagery.md": {
+      "owner": "compass",
+      "sha": "c5e2b5e50a8f947a"
+    },
+    ".claude/skills/taste-skill/references/layout.md": {
+      "owner": "compass",
+      "sha": "87d915bfb9324caf"
+    },
+    ".claude/skills/taste-skill/references/motion.md": {
+      "owner": "compass",
+      "sha": "12b193563cc4b5d1"
+    },
+    ".claude/skills/taste-skill/references/research.md": {
+      "owner": "compass",
+      "sha": "016d908b429099f4"
+    },
+    ".claude/skills/taste-skill/references/tells.md": {
+      "owner": "compass",
+      "sha": "31a759a787afdde6"
+    },
+    ".claude/skills/taste-skill/references/type.md": {
+      "owner": "compass",
+      "sha": "6353ff1d0ce2f991"
+    },
+    ".claude/skills/taste-skill/scripts/assets.mjs": {
+      "owner": "compass",
+      "sha": "b4b4b99b5634735f"
+    },
+    ".claude/skills/taste-skill/scripts/draw.mjs": {
+      "owner": "compass",
+      "sha": "1e680f8dc8034154"
+    },
+    ".claude/skills/taste-skill/scripts/inspect.mjs": {
+      "owner": "compass",
+      "sha": "0fc0a847b038f554"
+    },
+    ".claude/skills/taste-skill/scripts/lib/cdp.mjs": {
+      "owner": "compass",
+      "sha": "1065d3307c817e1b"
+    },
+    ".claude/skills/taste-skill/scripts/lib/probe.mjs": {
+      "owner": "compass",
+      "sha": "5c5148893414ce7e"
+    },
+    ".claude/skills/taste-skill/scripts/lib/rules.mjs": {
+      "owner": "compass",
+      "sha": "71435cdac327b71f"
+    },
+    ".claude/skills/taste-skill/scripts/lint.mjs": {
+      "owner": "compass",
+      "sha": "8480ff2104f4b8f8"
+    },
+    ".claude/skills/vuln-triage/SKILL.md": {
+      "owner": "compass",
+      "sha": "b92092cb1e19d4a1"
+    },
+    ".claude/skills/vuln-triage/scripts/sarif-merge.mjs": {
+      "owner": "compass",
+      "sha": "9b74cba0d629865a"
+    },
+    ".claude/skills/working-style-skills/SKILL.md": {
+      "owner": "compass",
+      "sha": "f0bf052321071435"
+    },
+    ".claude/workflows/deliver.js": {
+      "owner": "compass",
+      "sha": "2c52bb1220dd3f2a"
+    },
+    ".codex/agents/reviewer.toml": {
+      "owner": "compass",
+      "sha": "d37254a1ea65dddc"
+    },
+    ".codex/agents/scout.toml": {
+      "owner": "compass",
+      "sha": "5c1e03de72d6b21a"
+    },
+    ".codex/agents/worker.toml": {
+      "owner": "compass",
+      "sha": "db11d6fa605a9cb4"
+    },
+    ".github/PULL_REQUEST_TEMPLATE.md": {
+      "owner": "project",
+      "sha": "4bd8a4bda017c234"
+    },
+    ".github/agents/reviewer.agent.md": {
+      "owner": "compass",
+      "sha": "1279ae49448b0693"
+    },
+    ".github/agents/scout.agent.md": {
+      "owner": "compass",
+      "sha": "b4cc54371537b252"
+    },
+    ".github/agents/worker.agent.md": {
+      "owner": "compass",
+      "sha": "1d56ceb111f89a80"
+    },
+    ".github/hooks/compass.json": {
+      "owner": "compass",
+      "sha": "2dcfc81b8fa07258"
+    },
+    ".github/workflows/compass-check.yml": {
+      "owner": "compass",
+      "sha": "4a29e79407147d10"
+    },
+    ".github/workflows/compass-e2e.yml": {
+      "owner": "project",
+      "sha": "1a5176acbc973c50"
+    },
+    ".github/workflows/compass-helm-bump.yml": {
+      "owner": "project",
+      "sha": "7a747cc6de7db145"
+    },
+    ".github/workflows/compass-migrations.yml": {
+      "owner": "project",
+      "sha": "2b70f64e78440907"
+    },
+    ".github/workflows/compass-security.yml": {
+      "owner": "project",
+      "sha": "bcbf7c6aecc7ac2a"
+    },
+    ".osv-scanner.toml": {
+      "owner": "project",
+      "sha": "e30058cb853d1f33"
+    },
+    "renovate.json": {
+      "owner": "project",
+      "sha": "b01c76833c00e061"
+    }
+  },
+  "keys": {
+    ".claude/settings.json": {
+      "attribution": "43c29209e9992eb7",
+      "hooks.PostToolUseFailure": {
+        "entries": [
+          "d2969008d6010dc6"
+        ]
+      },
+      "hooks.PreToolUse": {
+        "entries": [
+          "91a0745159ec68fc"
+        ]
+      },
+      "hooks.SessionStart": {
+        "entries": [
+          "0f7777fbff8bad3a"
+        ]
+      },
+      "hooks.Stop": {
+        "entries": [
+          "c9f004c1519ef722"
+        ]
+      },
+      "outputStyle": "51db4f8a21e2c7fa",
+      "permissions.ask": {
+        "entries": [
+          "b96a73616290656e",
+          "65157598d6277171",
+          "0304a64e21a8f388",
+          "bf332bd1b2403aba",
+          "99267f9c16ae6e1f",
+          "201020dc5d3826d8",
+          "f89f888ce9a985d3",
+          "5af93677189f6014",
+          "0cd9b513e7c3cb42",
+          "1f4e186141800fd9",
+          "2afcee0ec1917293",
+          "ac9ad21e0e1a1391",
+          "b523df186fc6c75d",
+          "5df11047ed578d5e",
+          "f0d159117af0f665",
+          "24a6af72469fd014",
+          "d6fffec771afec96",
+          "89885250150c7eb4",
+          "3567d1853769ce06",
+          "4e2141c3896b267a",
+          "2a81d3391be5eb1b",
+          "885b9c1ad3b2dad8",
+          "19d0a37418201bbc",
+          "5776dc1f8f167be7",
+          "750e0f298b91a911",
+          "4cb60f341ac54cbe",
+          "360779d389f6f718",
+          "811ca74c4c36db8b",
+          "7b8213b2442b9dfa",
+          "e2c86b3a9f0aefb1",
+          "b1f4bacb643c8993",
+          "1fe5e7966bcfc34c",
+          "d1a1e1192ceec0ac",
+          "0b4105ce34fe9dd3",
+          "f3057c9a6eae4dd6",
+          "cc98d0bbb173cd75",
+          "3190656e7da89b48",
+          "e37508e8628ae2f6",
+          "18d8a26ea77bf328",
+          "fb6b7298716e7e81",
+          "a6226f4f620321b6",
+          "1690cfc3d6cffb40",
+          "6302ffdd000c3524",
+          "d9f32cb945867029",
+          "dd586b44e71d283e",
+          "7cd9352a2cd0b444",
+          "bfe1223d89cabdc3",
+          "38b57b644fdd24d6",
+          "6b2ee5d0ecc175e1",
+          "601cc6583fa5849e",
+          "623ac1419e723e34",
+          "746040f1f5cf88e1",
+          "6bdf2da09d44da06",
+          "6d2d52bbd868c79a",
+          "8b940d8e614a88fc",
+          "7ab6b0cf7d64d121",
+          "1d909ea0e729097c",
+          "16cc6e2d7f839385",
+          "307f7bef75244add",
+          "b0d463caf2f75424",
+          "4ad4e2db28c94d46",
+          "5ced956a48efc240",
+          "eedaf4ba240b36d3",
+          "ff39416f15734532",
+          "cfabbd4e64d7e32d",
+          "95ef9869f5232d3a",
+          "762e94898af64884",
+          "5c02d65a5dc990ff",
+          "0a821d441fdea6c3",
+          "901bb129e0cf0c84",
+          "370c23792fdfc8f0",
+          "346741d85893a974",
+          "2a0f1f02b9ca9ca9",
+          "f1d7857ee2ad4efb",
+          "69802ea9ad3f4bba",
+          "350d5f527a917b0a",
+          "7455bc218d3e29d9",
+          "9b4f273d0358eff9",
+          "0adf9cc245562758",
+          "4d6b7cc5dad58e8b",
+          "f5b3e074532687c2",
+          "7a0518e87ddcf05d",
+          "1e604fe1dd4f677f",
+          "13acd4a2e61305e9",
+          "83df23e017d297c3"
+        ]
+      },
+      "permissions.deny": {
+        "entries": [
+          "faa65e889d103936",
+          "e883e89fae290d55",
+          "5983a987f34ebe8f",
+          "853de09d4b005f82",
+          "dc150e6f3b9b7650",
+          "3eee9287bc8bd1bf",
+          "336fee59ad183c65",
+          "67e991a99a1f389a",
+          "a1156a22738b7147",
+          "81e371a7113d5e99",
+          "37459146b7058add",
+          "6ea1d6d7ca7e7b8b",
+          "ee5963a264b2477a",
+          "0770d21501de0958",
+          "cbd6e06c7a4e6815",
+          "d1dd25f612997b9d",
+          "aeac5d4e5ac30cb1"
+        ]
+      }
+    },
+    ".codex/config.toml": {
+      "mcp_servers.codebase-memory": "638f001d1131bf9e",
+      "model_reasoning_summary": "4189fe00d7621474",
+      "model_verbosity": "30099ff77ef4d3dc"
+    },
+    ".codex/hooks.json": {
+      "hooks.PostToolUse": {
+        "entries": [
+          "b554aceea533874c"
+        ]
+      },
+      "hooks.PreToolUse": {
+        "entries": [
+          "f6a92541de279937"
+        ]
+      },
+      "hooks.SessionStart": {
+        "entries": [
+          "0d094bd226abba21"
+        ]
+      },
+      "hooks.Stop": {
+        "entries": [
+          "68855cf08e69652c"
+        ]
+      }
+    },
+    ".mcp.json": {
+      "mcpServers.codebase-memory": "3421b082920660b3"
+    },
+    ".vscode/mcp.json": {
+      "servers.codebase-memory": "329f287c11f97138"
+    }
+  },
+  "blocks": {
+    "AGENTS.md": "daf332a82449977f",
+    "CLAUDE.md": "42a0de2714a77b1c"
+  }
+}
