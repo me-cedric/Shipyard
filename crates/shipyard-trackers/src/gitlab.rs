@@ -1,7 +1,6 @@
 //! GitLab Issues, REST v4. Works for gitlab.com and a self-managed host.
 
 use crate::Tracker;
-use crate::marker;
 use crate::model::*;
 use serde_json::Value;
 use shipyard_http::{Auth, Http, Request, build_url, encode, items, num, text};
@@ -194,7 +193,7 @@ impl GitLab {
             .map(|n| Comment {
                 id: n["id"].to_string(),
                 author: person(&n["author"]),
-                body: marker::from_wire(&text(n, "/body")),
+                body: text(n, "/body"),
                 created: text(n, "/created_at"),
             })
             .collect();

@@ -36,6 +36,12 @@ struct Fixture {
 fn fixture() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let http = Arc::new(FakeHttp::new());
+    // The account of the connection. Only its comments can hold a claim stamp.
+    http.get(
+        "api.github.com/user",
+        200,
+        r#"{"login":"ada","name":"Ada"}"#,
+    );
     http.get(
         "/repos/acme/web/issues/12/comments",
         200,
@@ -199,6 +205,35 @@ fn the_host_keeps_one_engine_for_a_plan_and_replaces_it_for_a_new_one() {
 }
 
 #[test]
+fn two_projects_on_one_connection_keep_their_own_cursor_and_only_the_open_one_runs() {
+    let f = fixture();
+    let host = SyncHost::new(f.dir.path(), f.conns.clone(), false);
+    host.apply("web", Some(plan(Automation::default())))
+        .unwrap();
+    host.running("web").unwrap().tick(true).unwrap();
+    let mirror = host.mirror().unwrap();
+    assert!(mirror.state("issues@acme/web").unwrap().last_ok.is_some());
+
+    // Another project: the same connection, another container.
+    let mut other = plan(Automation::default());
+    other.project = "api".into();
+    other.scope = Some("acme/api".into());
+    host.apply("api", Some(other)).unwrap();
+    assert!(
+        host.running("web").is_none(),
+        "the project that is not open stops"
+    );
+    assert_eq!(
+        mirror.state("issues@acme/api").unwrap().last_ok,
+        None,
+        "the poll of one container never moves the cursor of the other"
+    );
+    assert!(mirror.claims("issues@acme/api").unwrap().is_empty());
+    assert!(!mirror.tickets("issues@acme/web").unwrap().is_empty());
+    assert!(mirror.tickets("issues@acme/api").unwrap().is_empty());
+}
+
+#[test]
 fn a_background_engine_ticks_by_itself_and_tells_the_views() {
     let f = fixture();
     let host = SyncHost::new(f.dir.path(), f.conns.clone(), true);
@@ -302,7 +337,7 @@ fn a_stamp_is_written_once_refreshed_when_old_and_cleared_for_its_machine_only()
     let posts = bodies(&f, Method::Post);
     assert_eq!(posts.len(), 1);
     assert!(
-        posts[0].1.contains("<!-- shipyard:claim m-c -->"),
+        posts[0].1.contains("<!-- shipyard:claim m-c."),
         "{}",
         posts[0].1
     );
@@ -327,6 +362,84 @@ fn a_stamp_is_written_once_refreshed_when_old_and_cleared_for_its_machine_only()
     let deletes = bodies(&f, Method::Delete);
     assert_eq!(deletes.len(), 2);
     assert!(deletes[1].0.ends_with("/issues/comments/9002"));
+}
+
+#[test]
+fn a_stamp_counts_only_from_the_account_of_the_connection() {
+    let f = fixture();
+    let t = TrackerAdapter::new(f.conns.clone(), "issues", Some("acme/web".into()));
+    f.http.get(
+        "/repos/acme/web/issues/5/comments",
+        200,
+        r#"[{"id":1,"user":{"login":"mallory"},"body":"<!-- shipyard:claim m-evil -->","created_at":"2026-10-29T09:59:00Z"},
+            {"id":2,"user":{"login":"ada"},"body":"<!-- shipyard:claim m-a -->","created_at":"2026-10-29T09:59:30Z"}]"#,
+    );
+    let machines: Vec<_> = t
+        .stamps("acme/web#5")
+        .unwrap()
+        .into_iter()
+        .map(|s| s.machine)
+        .collect();
+    assert_eq!(
+        machines,
+        ["m-a"],
+        "the look-alike of another account is no stamp"
+    );
+}
+
+#[test]
+fn a_stamp_ages_by_the_clock_of_the_tracker_not_by_this_machine() {
+    let f = fixture();
+    let t = TrackerAdapter::new(f.conns.clone(), "issues", Some("acme/web".into()));
+    // The server says 10:00:00 whatever the local clock says. The stamp is 30 s old by it.
+    f.http.get_with(
+        "/repos/acme/web/issues/5/comments",
+        200,
+        &[("Date", "Thu, 29 Oct 2026 10:00:00 GMT")],
+        r#"[{"id":2,"user":{"login":"ada"},"body":"<!-- shipyard:claim m-a -->","created_at":"2026-10-29T09:59:30Z"}]"#,
+    );
+    let age = t.stamps("acme/web#5").unwrap()[0].age;
+    assert!(
+        (30..40).contains(&age.as_secs()),
+        "30 s by the server clock, not the gap to this machine: {age:?}"
+    );
+}
+
+#[test]
+fn a_refresh_keeps_the_place_of_the_first_claim() {
+    let f = fixture();
+    let t = TrackerAdapter::new(f.conns.clone(), "issues", Some("acme/web".into()));
+    f.http
+        .get(
+            "/repos/acme/web/issues/5/comments",
+            200,
+            r#"[{"id":2,"user":{"login":"ada"},"body":"<!-- shipyard:claim m-a.1793260000 -->","created_at":"2026-10-29T09:59:55Z"},
+                {"id":3,"user":{"login":"ada"},"body":"<!-- shipyard:claim m-b.1793267990 -->","created_at":"2026-10-29T09:59:50Z"}]"#,
+        )
+        .post(
+            "/repos/acme/web/issues/5/comments",
+            "shipyard:claim",
+            201,
+            tracker_fx_created(),
+        )
+        .delete("/repos/acme/web/issues/comments/", 204, "");
+    t.write_stamp("acme/web#5", "m-a").unwrap();
+    let posts = bodies(&f, Method::Post);
+    assert!(
+        posts[0]
+            .1
+            .contains("<!-- shipyard:claim m-a.1793260000 -->"),
+        "the new stamp carries the time of the first claim: {}",
+        posts[0].1
+    );
+    // The order of a stamp is its first claim: m-a stays first, whatever its comment time.
+    let order: Vec<_> = t
+        .stamps("acme/web#5")
+        .unwrap()
+        .into_iter()
+        .map(|s| s.machine)
+        .collect();
+    assert_eq!(order, ["m-a", "m-b"]);
 }
 
 fn tracker_fx_created() -> &'static str {
@@ -361,7 +474,7 @@ fn a_tick_with_the_comment_switch_on_stamps_the_ticket_it_claims() {
         );
         assert!(body.contains("shipyard:claim m-"), "{body}");
     }
-    let claims = host.mirror().unwrap().claims("issues").unwrap();
+    let claims = host.mirror().unwrap().claims("issues@acme/web").unwrap();
     assert!(
         claims[0].stamped,
         "the claim says that the ticket holds the stamp"
@@ -378,5 +491,5 @@ fn a_tick_with_the_switch_off_writes_nothing_to_the_tracker() {
     assert_eq!(report.started, ["acme/web#12"]);
     assert!(bodies(&f, Method::Post).is_empty());
     assert!(bodies(&f, Method::Delete).is_empty());
-    assert!(!host.mirror().unwrap().claims("issues").unwrap()[0].stamped);
+    assert!(!host.mirror().unwrap().claims("issues@acme/web").unwrap()[0].stamped);
 }

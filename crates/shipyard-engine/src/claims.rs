@@ -2,8 +2,8 @@
 //!
 //! A claim has two layers. The local claim is a row in the store: two runs on one machine never
 //! claim one ticket. The stamp is a mark on the ticket: two machines never run one ticket.
-//! The oldest live stamp wins, so two machines that write at once agree on the winner after a
-//! read-back. A stamp is live while its age is under the stale time (`q:Q-021`).
+//! The oldest live stamp wins (by first claim: a refresh keeps it), so two machines that write at
+//! once agree on the winner after a read-back. A stamp is live while its age is under the stale time (`q:Q-021`).
 //! The stamp is a tracker write. It follows `Writes::stamp_allowed`. With the switch off the claim
 //! stays local: this machine still reads the stamps of others and yields to a live one.
 
@@ -54,7 +54,7 @@ pub struct Heartbeat {
 }
 
 impl Claims<'_> {
-    /// The machine of the oldest live stamp.
+    /// The machine of the oldest live stamp, by first claim.
     fn leader(&self, key: &str) -> PortResult<Option<String>> {
         Ok(self
             .tracker
@@ -136,7 +136,8 @@ impl Claims<'_> {
     }
 
     /// Once per tick. A claim without an active run is released. For the others: yield to a live
-    /// stamp of another machine, else refresh the own stamp so that it does not go stale.
+    /// stamp of another machine, else refresh the own stamp so that it does not go stale. With the
+    /// switch off (`stamp: false`) no refresh is a tracker write.
     pub fn heartbeat(&self, active: &[String]) -> Result<Heartbeat> {
         let mut out = Heartbeat::default();
         for c in self.mirror.claims(self.source)? {
@@ -150,7 +151,7 @@ impl Claims<'_> {
             match self.leader(&c.key).map(|l| self.foreign(l)) {
                 Err(e) => out.errors.push(format!("{}: {e}", c.key)),
                 Ok(Some(_)) => out.lost.push(c.key),
-                Ok(None) if c.stamped => {
+                Ok(None) if c.stamped && self.stamp => {
                     if let Err(e) = self.tracker.write_stamp(&c.key, self.machine) {
                         out.errors.push(format!("{}: {e}", c.key));
                     }

@@ -16,6 +16,7 @@ use shipyard_store::project::{FileRead, read_project_file, write_project_file};
 use shipyard_store::ref_query::State;
 
 use super::*;
+use crate::commands::sync::tracker_source;
 use crate::commands::{projects, refs};
 use crate::connections::{ConnectionDraft, ConnectionGroup, ConnectionKind, Connections};
 
@@ -27,6 +28,8 @@ struct Fx {
     s: AppState,
     http: Arc<FakeHttp>,
     tracker: String,
+    /// The mirror key of the tracker rows.
+    source: String,
 }
 
 fn fx_with(kind: ConnectionKind, scope: Option<&str>) -> Fx {
@@ -66,12 +69,15 @@ fn fx_with(kind: ConnectionKind, scope: Option<&str>) -> Fx {
         tracker_scope: scope.map(String::from),
     });
     write_project_file(repo.path(), &f).unwrap();
+    let a = active(&s).unwrap().unwrap();
+    let source = tracker_source(&s, &a).unwrap().unwrap();
     Fx {
         _data: data,
         repo,
         s,
         http,
         tracker: c.id,
+        source,
     }
 }
 
@@ -101,7 +107,7 @@ impl Fx {
             .sync
             .mirror()
             .unwrap()
-            .ticket(&self.tracker, key)
+            .ticket(&self.source, key)
             .unwrap()
             .unwrap()
             .item
@@ -113,7 +119,7 @@ impl Fx {
             .sync
             .mirror()
             .unwrap()
-            .put_tickets(&self.tracker, &tickets)
+            .put_tickets(&self.source, &tickets)
             .unwrap();
     }
 }

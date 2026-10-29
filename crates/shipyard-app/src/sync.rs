@@ -20,7 +20,7 @@ use shipyard_core::work_item::StatusCategory;
 use shipyard_engine::ports::{
     Dispatch, ForgePort, ListQuery, Page, PortResult, Stamp, StartRequest, TrackerPort,
 };
-use shipyard_engine::tick::{Config, Engine, TickReport};
+use shipyard_engine::tick::{Config, Engine, TickReport, connection_of, source_key};
 use shipyard_engine::{Clock, SystemClock, import::ImportPlan};
 use shipyard_forges::{CiState, ForgeKind, PullQuery, PullRequest, PullState, StateFilter};
 use shipyard_store::mirror::{Mirror, SyncState};
@@ -46,17 +46,23 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 /// A tracker connection as the engine's port.
 ///
 /// The claim stamp (`add-sync` REQ-009) is a comment that holds the hidden marker
-/// `<!-- shipyard:claim <machine> -->` (`shipyard_trackers::marker`). The engine writes it only
-/// when the `tracker_comment` switch is on. The stamp is not a human comment: `comments` leaves it
-/// out, so `questions-loop` never sees it.
+/// `<!-- shipyard:claim <machine>.<first claim> -->` (`shipyard_trackers::marker`). The engine
+/// writes it only when the `tracker_comment` switch is on. The stamp is not a human comment:
+/// `comments` leaves it out, so `questions-loop` never sees it.
 ///
-/// shortcut: the age of a stamp is its creation time against this machine's clock. The tracker
-/// gives no clock of its own. A machine with a clock that is minutes off would read stamps as
-/// younger or older than they are.
+/// A stamp counts only when the account of this connection wrote it: every machine of the person
+/// uses that account. A look-alike that another person typed is a plain comment.
+///
+/// The age of a stamp is the time of the tracker (`Date` header of its answer) minus the creation
+/// time of the comment, so a machine with a wrong clock reads stamps as they are. The first claim
+/// time rides in the marker: a refresh writes a new comment but keeps the place of the first
+/// stamp, so a leftover of a lost race never ends a live run.
 pub struct TrackerAdapter {
     conns: Arc<Connections>,
     id: String,
     scope: Option<String>,
+    /// The account id of the connection, read once.
+    account: OnceLock<String>,
 }
 
 /// A stamp is written again only when it is older than this. The stale time is 10 minutes
@@ -70,13 +76,26 @@ struct Found {
     machine: String,
     /// Unix seconds, or `None` when the time does not parse. Such a stamp counts as live.
     created: Option<u64>,
+    /// Unix seconds of the first claim of the machine, from the marker. Old stamps lack it.
+    since: Option<u64>,
 }
 
 impl Found {
-    fn age(&self) -> Duration {
+    /// The age by the clock of the tracker, `now` in Unix seconds.
+    fn age(&self, now: u64) -> Duration {
         self.created.map_or(Duration::ZERO, |c| {
-            SystemClock.now().saturating_sub(Duration::from_secs(c))
+            Duration::from_secs(now.saturating_sub(c))
         })
+    }
+}
+
+/// `machine.since` or a bare `machine`.
+fn split_arg(arg: &str) -> (String, Option<u64>) {
+    match arg.rsplit_once('.') {
+        Some((m, n)) if !m.is_empty() => n
+            .parse()
+            .map_or_else(|_| (arg.to_string(), None), |n| (m.to_string(), Some(n))),
+        _ => (arg.to_string(), None),
     }
 }
 
@@ -86,6 +105,7 @@ impl TrackerAdapter {
             conns,
             id: id.into(),
             scope,
+            account: OnceLock::new(),
         }
     }
 
@@ -93,23 +113,44 @@ impl TrackerAdapter {
         self.conns.tracker_write(&self.id)
     }
 
-    /// The stamps of a ticket, oldest first. Two stamps with one creation time order by id, so
+    /// The time of the tracker now, in Unix seconds: the local clock plus the skew that the last
+    /// answer showed.
+    fn now(&self) -> u64 {
+        let local = SystemClock.now().as_secs() as i64;
+        u64::try_from(local + self.conns.clock_skew(&self.id)).unwrap_or(0)
+    }
+
+    /// The account of the connection. shortcut: it is read once for the life of the engine. A new
+    /// secret for another account takes effect with the next engine.
+    fn account(&self, w: &dyn TrackerWrite) -> PortResult<String> {
+        if let Some(id) = self.account.get() {
+            return Ok(id.clone());
+        }
+        let id = w.me().map_err(|e| e.to_string())?.id;
+        Ok(self.account.get_or_init(|| id).clone())
+    }
+
+    /// The stamps of a ticket, oldest first claim first. Two stamps with one time order by id, so
     /// two machines agree on the winner.
     fn found(&self, w: &dyn TrackerWrite, key: &str) -> PortResult<Vec<Found>> {
+        let account = self.account(w)?;
         let mut out: Vec<Found> = all_comments(w, key)
             .map_err(|e| e.to_string())?
             .into_iter()
+            .filter(|c| c.author.id == account)
             .filter_map(|c| {
+                let (machine, since) = split_arg(&marker::find(&c.body, CLAIM)?);
                 Some(Found {
-                    machine: marker::find(&c.body, CLAIM)?,
+                    machine,
+                    since,
                     created: epoch_secs(&c.created),
                     id: c.id,
                 })
             })
             .collect();
         out.sort_by(|a, b| {
-            let id = |f: &Found| (f.id.len(), f.id.clone());
-            (a.created, id(a)).cmp(&(b.created, id(b)))
+            let order = |f: &Found| (f.since.or(f.created), f.created, f.id.len(), f.id.clone());
+            order(a).cmp(&order(b))
         });
         Ok(out)
     }
@@ -167,18 +208,20 @@ impl TrackerPort for TrackerAdapter {
         if !t.capabilities().comments {
             return Ok(Vec::new());
         }
-        Ok(self
-            .found(&*t, key)?
+        let found = self.found(&*t, key)?;
+        // After `found`: the answers of that read set the skew.
+        let now = self.now();
+        Ok(found
             .into_iter()
             .map(|f| Stamp {
-                age: f.age(),
+                age: f.age(now),
                 machine: f.machine,
             })
             .collect())
     }
 
     /// Add the stamp, or write it again when it is old. The new stamp goes in before the old one
-    /// goes out, so the ticket never shows a gap.
+    /// goes out, so the ticket never shows a gap. The new stamp keeps the first claim time.
     fn write_stamp(&self, key: &str, machine: &str) -> PortResult<()> {
         let t = self.tracker()?;
         let mine: Vec<Found> = self
@@ -186,10 +229,15 @@ impl TrackerPort for TrackerAdapter {
             .into_iter()
             .filter(|f| f.machine == machine)
             .collect();
-        if mine.last().is_some_and(|f| f.age() < REFRESH_AFTER) {
+        let now = self.now();
+        if mine.last().is_some_and(|f| f.age(now) < REFRESH_AFTER) {
             return Ok(());
         }
-        t.add_comment(key, &marker::make(CLAIM, machine))
+        let since = mine
+            .first()
+            .and_then(|f| f.since.or(f.created))
+            .unwrap_or(now);
+        t.add_comment(key, &marker::make(CLAIM, &format!("{machine}.{since}")))
             .map_err(|e| e.to_string())?;
         for old in mine {
             // An old copy that stays goes stale and does no harm: it is this machine's own.
@@ -480,10 +528,28 @@ impl Plan {
         (&self.tracker, &self.scope, &self.forge) == (&other.tracker, &other.scope, &other.forge)
     }
 
-    /// The connection ids that the engine polls.
-    pub fn sources(&self) -> Vec<String> {
-        std::iter::once(self.tracker.clone())
-            .chain(self.forge.iter().map(|(id, _)| id.clone()))
+    /// The mirror key of the tracker rows: its cursor, claims and tickets belong to this
+    /// connection and this container only.
+    pub fn tracker_source(&self) -> String {
+        source_key(&self.tracker, self.scope.as_deref())
+    }
+
+    /// The mirror key of the forge rows.
+    pub fn forge_source(&self) -> Option<String> {
+        self.forge
+            .as_ref()
+            .map(|(id, repo)| source_key(id, Some(repo)))
+    }
+
+    /// `(connection id, mirror key)` of each source that the engine polls.
+    pub fn sources(&self) -> Vec<(String, String)> {
+        std::iter::once((self.tracker.clone(), self.tracker_source()))
+            .chain(
+                self.forge
+                    .iter()
+                    .zip(self.forge_source())
+                    .map(|((id, _), source)| (id.clone(), source)),
+            )
             .collect()
     }
 }
@@ -515,7 +581,17 @@ impl Running {
     pub fn tick(&self, force: bool) -> Res<TickReport> {
         let mut e = lock(&self.engine);
         self.ticking.store(true, Ordering::SeqCst);
-        let out = e.tick(force).map_err(|e| e.to_string());
+        let out = e.tick(force).map_err(|e| e.to_string()).map(|mut r| {
+            // A view knows the connection, not its mirror key.
+            for c in r
+                .polled
+                .iter_mut()
+                .chain(r.failed.iter_mut().map(|f| &mut f.0))
+            {
+                *c = connection_of(c).to_string();
+            }
+            r
+        });
         self.ticking.store(false, Ordering::SeqCst);
         drop(e);
         // The timers moved: the loop computes its wait again.
@@ -657,6 +733,16 @@ impl SyncHost {
             }
             return Ok(());
         };
+        // Only the open project polls. The engine of another project stops: it would poll and
+        // pick up work for a project that nobody works in.
+        engines.retain(|id, old| {
+            let keep = id == project;
+            if !keep {
+                old.stop.store(true, Ordering::SeqCst);
+                old.wake_up();
+            }
+            keep
+        });
         if let Some(old) = engines.get(project).cloned() {
             if old.plan().same_engine(&plan) {
                 // The new rules wait for a tick in progress. The map must not wait with them.
@@ -678,10 +764,10 @@ impl SyncHost {
     }
 
     fn build(&self, plan: &Plan) -> Res<Running> {
-        let mut cfg = Config::new(&self.machine, &plan.project, &plan.tracker);
+        let mut cfg = Config::new(&self.machine, &plan.project, &plan.tracker_source());
         let tracker = TrackerAdapter::new(self.conns.clone(), &plan.tracker, plan.scope.clone());
         let forge: Option<Box<dyn ForgePort>> = plan.forge.as_ref().map(|(id, repo)| {
-            cfg.forge = Some(id.clone());
+            cfg.forge = plan.forge_source();
             Box::new(ForgeAdapter::new(self.conns.clone(), id, repo)) as Box<dyn ForgePort>
         });
         let mirror = Mirror::open(&self.mirror).map_err(|e| e.to_string())?;
@@ -718,8 +804,8 @@ impl SyncHost {
         r.plan()
             .sources()
             .into_iter()
-            .map(|id| {
-                let state = mirror.state(&id).map_err(|e| e.to_string())?;
+            .map(|(id, source)| {
+                let state = mirror.state(&source).map_err(|e| e.to_string())?;
                 Ok((id, state, ticking))
             })
             .collect()

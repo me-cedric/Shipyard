@@ -37,10 +37,12 @@ impl Engine {
     }
 
     /// Write the plan to the mirror. The tick cursor stays: the next tick still reads the changes
-    /// since its last good poll. Returns the count written.
+    /// since its last good poll. A row that a tick made newer since the plan stays. Returns the
+    /// count written.
     pub fn import(&self, plan: &ImportPlan) -> Result<usize> {
-        self.mirror.put_tickets(&self.cfg.tracker, &plan.tickets)?;
-        Ok(plan.tickets.len())
+        Ok(self
+            .mirror
+            .put_tickets_newer(&self.cfg.tracker, &plan.tickets)?)
     }
 
     /// Take one ticket by key into the mirror. Each tick keeps it current, even when the

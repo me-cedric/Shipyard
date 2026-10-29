@@ -19,6 +19,9 @@ pub const BASELINE: &str = "#baseline";
 
 /// The new comments of a ticket as events, and the ids to remember.
 ///
+/// `posted` holds the ids of the question comments that the system posted: only those count as a
+/// question marker (`answers`).
+///
 /// The first scan of a ticket is a baseline: the comments that exist already are not new, so they
 /// are remembered and not sent. An answer to a question marker is sent anyway: the question may
 /// be older than the mirror.
@@ -26,10 +29,11 @@ pub fn comment_events(
     key: &str,
     comments: &[Comment],
     seen: &HashSet<String>,
+    posted: &HashSet<String>,
 ) -> (Vec<SyncEvent>, Vec<String>) {
     let first = !seen.contains(BASELINE);
     let (mut events, mut ids) = (Vec::new(), Vec::new());
-    for (c, answers) in comments.iter().zip(answers(comments)) {
+    for (c, answers) in comments.iter().zip(answers(comments, posted)) {
         if seen.contains(&c.id) {
             continue;
         }

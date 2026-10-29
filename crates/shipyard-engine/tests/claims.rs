@@ -181,6 +181,31 @@ fn a_refresh_keeps_the_claim_live() {
 }
 
 #[test]
+fn a_heartbeat_with_the_switch_off_writes_no_stamp() {
+    let w = World::new();
+    let on = Side::new("A", true);
+    on.claims(&w).claim("A-1", "To Do").unwrap();
+    assert_eq!(w.tracker.stamp_writes(), 1);
+    // The person turns `tracker_comment` off while the run goes on.
+    let off = Side {
+        stamp: false,
+        ..Side {
+            mirror: on.mirror,
+            name: "A",
+            stamp: true,
+        }
+    };
+    w.clock.advance(secs(400));
+    let hb = off.claims(&w).heartbeat(&["A-1".to_string()]).unwrap();
+    assert!(hb.lost.is_empty() && hb.errors.is_empty(), "{hb:?}");
+    assert_eq!(
+        w.tracker.stamp_writes(),
+        1,
+        "no tracker write with the switch off"
+    );
+}
+
+#[test]
 fn release_removes_the_claim_and_the_stamp_and_frees_the_ticket() {
     let w = World::new();
     let (a, b) = (Side::new("A", true), Side::new("B", true));

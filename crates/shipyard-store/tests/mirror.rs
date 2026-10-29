@@ -70,7 +70,7 @@ fn a_commit_stores_tickets_pulls_and_the_good_tick_in_one_step() {
             pulls: &[pull(7)],
             seen: &[],
             events: &[],
-            at: 1000,
+            at: Some(1000),
         },
     )
     .unwrap();
@@ -101,7 +101,7 @@ fn a_commit_replaces_a_row_with_the_same_key() {
                 pulls: &[],
                 seen: &[],
                 events: &[],
-                at: 1,
+                at: Some(1),
             },
         )
         .unwrap();
@@ -121,7 +121,7 @@ fn a_failed_poll_keeps_the_mirror_and_counts() {
             pulls: &[],
             seen: &[],
             events: &[],
-            at: 500,
+            at: Some(500),
         },
     )
     .unwrap();
@@ -138,7 +138,7 @@ fn a_failed_poll_keeps_the_mirror_and_counts() {
             pulls: &[],
             seen: &[],
             events: &[],
-            at: 600,
+            at: Some(600),
         },
     )
     .unwrap();
@@ -157,7 +157,7 @@ fn seen_comments_are_kept_per_ticket() {
             pulls: &[],
             seen: &[("A-1".into(), vec!["c1".into(), "c2".into()])],
             events: &[],
-            at: 1,
+            at: Some(1),
         },
     )
     .unwrap();
@@ -183,7 +183,7 @@ fn events_wait_in_the_outbox_until_they_are_acknowledged() {
             pulls: &[],
             seen: &[],
             events: &[comment_event("c1"), pr.clone()],
-            at: 1,
+            at: Some(1),
         },
     )
     .unwrap();
@@ -231,7 +231,7 @@ fn the_mirror_survives_a_restart() {
                 pulls: &[],
                 seen: &[],
                 events: &[],
-                at: 9,
+                at: Some(9),
             },
         )
         .unwrap();
@@ -343,7 +343,7 @@ fn the_fingerprint_moves_with_a_ticket_a_pull_request_and_a_link() {
             pulls: &[pull(7)],
             seen: &[],
             events: &[],
-            at: 1,
+            at: Some(1),
         },
     )
     .unwrap();
@@ -352,4 +352,51 @@ fn the_fingerprint_moves_with_a_ticket_a_pull_request_and_a_link() {
     let before = m.fingerprint("t").unwrap();
     m.put_tickets("other", &[ticket("B-1", "To Do")]).unwrap();
     assert_eq!(m.fingerprint("t").unwrap(), before);
+}
+
+// ---- cursor of a cut-off poll, import guard, question comments
+
+#[test]
+fn a_cut_off_poll_keeps_the_cursor_and_clears_the_failures() {
+    let m = Mirror::open_memory().unwrap();
+    let poll = |at| Poll {
+        tickets: &[],
+        pulls: &[],
+        seen: &[],
+        events: &[],
+        at,
+    };
+    m.commit("jira", &poll(Some(100))).unwrap();
+    m.mark_failed("jira", "offline").unwrap();
+    m.commit("jira", &poll(None)).unwrap();
+    let s = m.state("jira").unwrap();
+    assert_eq!((s.last_ok, s.failures, s.error), (Some(100), 0, None));
+    m.commit("gh", &poll(None)).unwrap();
+    assert_eq!(m.state("gh").unwrap().last_ok, None);
+}
+
+#[test]
+fn a_put_that_is_not_newer_leaves_the_row() {
+    let m = Mirror::open_memory().unwrap();
+    let mut newer = ticket("A-1", "In Progress");
+    newer.item.updated = "2026-10-29T12:00:00Z".into();
+    m.put_tickets("jira", &[newer]).unwrap();
+    let older = [ticket("A-1", "To Do"), ticket("A-2", "To Do")];
+    assert_eq!(m.put_tickets_newer("jira", &older).unwrap(), 1);
+    assert_eq!(
+        m.ticket("jira", "A-1").unwrap().unwrap().item.status.name,
+        "In Progress"
+    );
+    assert!(m.ticket("jira", "A-2").unwrap().is_some());
+}
+
+#[test]
+fn the_comment_ids_of_the_questions_that_the_system_posted_are_kept_per_ticket() {
+    let m = Mirror::open_memory().unwrap();
+    m.question_posted("jira", "A-1", "11").unwrap();
+    m.question_posted("jira", "A-1", "11").unwrap();
+    m.question_posted("jira", "A-2", "12").unwrap();
+    assert_eq!(m.questions("jira", "A-1").unwrap().len(), 1);
+    assert!(m.questions("jira", "A-1").unwrap().contains("11"));
+    assert!(m.questions("gh", "A-1").unwrap().is_empty());
 }

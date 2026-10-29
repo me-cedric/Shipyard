@@ -462,6 +462,37 @@ fn stored_by(name: &str, wire: &str) -> String {
 }
 
 #[test]
+fn a_plain_look_alike_is_a_marker_only_where_the_tracker_rewrites_markers() {
+    // GitHub and GitLab keep the canonical form. Plain text that looks like the wire form is text.
+    for name in NAMES {
+        let route = match name {
+            "jira-cloud" | "jira-dc" => "/issue/PROJ-12/comment",
+            "github" => "/issues/12/comments",
+            "gitlab" => "/issues/12/notes",
+            "azure" => "/comments",
+            _ => continue,
+        };
+        let key = match name {
+            "jira-cloud" | "jira-dc" => "PROJ-12",
+            "azure" => "412",
+            _ => "acme/web#12",
+        };
+        let fake = Arc::new(FakeHttp::new());
+        if name == "azure" {
+            fake.get(
+                "workitems/412?fields=System.TeamProject&",
+                200,
+                fx!("azure/project_only.json"),
+            );
+        }
+        fake.get(route, 200, &page_of(name, "(shipyard:claim evil)"));
+        let body = &writer(name, &fake).comments_page(key, None).unwrap().items[0].body;
+        let spoofable = !matches!(name, "github" | "gitlab");
+        assert_eq!(marker::find(body, "claim").is_some(), spoofable, "{name}");
+    }
+}
+
+#[test]
 fn the_marker_survives_the_write_the_conversion_and_the_read() {
     for name in NAMES {
         let sent = case(name, false);

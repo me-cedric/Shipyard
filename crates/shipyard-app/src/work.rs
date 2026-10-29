@@ -20,6 +20,7 @@ use shipyard_core::work::{
     Suggestion, Team, TimeEntry, TimeRow, Totals, TrackerLog,
 };
 use shipyard_core::work_item::{Capabilities, WorkItem};
+use shipyard_engine::tick::source_key;
 use shipyard_store::excel::{self, MAX_BYTES, Preview};
 use shipyard_store::project::write_atomic;
 use shipyard_store::seal::{self, is_sealed};
@@ -222,6 +223,13 @@ struct Target {
     caps: Capabilities,
 }
 
+impl Target {
+    /// The mirror key of the rows of this connection and container.
+    fn source(&self) -> String {
+        source_key(&self.id, self.scope.as_deref())
+    }
+}
+
 fn tracker(s: &AppState) -> Res<Target> {
     let a = active(s)?.ok_or("no active project")?;
     let (id, scope, kind) =
@@ -245,7 +253,7 @@ fn mirror_items(s: &AppState, t: &Target) -> Res<Vec<WorkItem>> {
     Ok(s.sync
         .mirror()
         .map_err(err)?
-        .tickets(&t.id)
+        .tickets(&t.source())
         .map_err(err)?
         .into_iter()
         .map(|t| t.item)
@@ -259,12 +267,12 @@ fn refresh(s: &AppState, t: &Target, w: &dyn TrackerWrite, keys: impl IntoIterat
         for key in keys {
             let Ok(item) = w.get(&key) else { continue };
             let mut row = m
-                .ticket(&t.id, &key)
+                .ticket(&t.source(), &key)
                 .ok()
                 .flatten()
                 .unwrap_or_else(|| Ticket::new(item.clone()));
             row.item = item;
-            let _ = m.put_tickets(&t.id, &[row]);
+            let _ = m.put_tickets(&t.source(), &[row]);
         }
     }
     s.sync.changed();
@@ -368,7 +376,7 @@ pub fn suggest(s: &AppState, key: &str) -> Res<Vec<Suggestion>> {
         .sync
         .mirror()
         .map_err(err)?
-        .ticket(&t.id, key)
+        .ticket(&t.source(), key)
         .map_err(err)?
         .ok_or_else(|| format!("not in the mirror: {key}"))?;
     let team = c.team().team;

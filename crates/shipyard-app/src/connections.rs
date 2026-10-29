@@ -5,14 +5,17 @@
 //! connection only says that one is saved. The adapters are sync, so a caller runs `test`,
 //! `repos`, `tracker` and `forge` in `spawn_blocking`.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 use shipyard_core::work_item::{Capabilities, TrackerKind};
 use shipyard_forges::{Forge, ForgeConfig, ForgeKind, Repository};
 use shipyard_git::{Auth, auth::https_host};
-use shipyard_http::{Client, Http, TestOutcome};
+use shipyard_http::{Client, Error, Http, Request, Response, TestOutcome};
 use shipyard_secrets::{Keychain, Secret, SecretStore, conn_account};
 use shipyard_store::project::write_atomic;
 use shipyard_trackers::work::TrackerWrite;
@@ -183,6 +186,33 @@ pub struct Connections {
     secrets: Arc<dyn SecretStore>,
     http: Arc<dyn Http>,
     lock: Mutex<()>,
+    /// Per connection: the server clock minus the local clock, in seconds.
+    skews: Mutex<HashMap<String, Arc<AtomicI64>>>,
+}
+
+/// An `Http` that remembers the clock of the server: the `Date` header of each response. A claim
+/// stamp ages by the clock of the tracker, not by the clock of this machine (`add-sync` plan,
+/// Risks).
+struct Clocked {
+    inner: Arc<dyn Http>,
+    skew: Arc<AtomicI64>,
+}
+
+fn local_secs() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as i64)
+}
+
+impl Http for Clocked {
+    fn send(&self, request: &Request) -> Result<Response, Error> {
+        let res = self.inner.send(request)?;
+        if let Some(server) = res.date() {
+            self.skew
+                .store(server as i64 - local_secs(), Ordering::Relaxed);
+        }
+        Ok(res)
+    }
 }
 
 /// A slug of the name: `[a-z0-9][a-z0-9-]*`, up to 40 characters. Empty when the name has no letter.
@@ -242,7 +272,23 @@ impl Connections {
             secrets,
             http,
             lock: Mutex::new(()),
+            skews: Mutex::new(HashMap::new()),
         }
+    }
+
+    fn skew_of(&self, id: &str) -> Arc<AtomicI64> {
+        self.skews
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .entry(id.into())
+            .or_default()
+            .clone()
+    }
+
+    /// The server clock of the tracker connection minus the clock of this machine, in seconds, as
+    /// of its last response. `0` before the first response, or when the server sends no `Date`.
+    pub fn clock_skew(&self, id: &str) -> i64 {
+        self.skew_of(id).load(Ordering::Relaxed)
     }
 
     /// The OS keychain and the real HTTP client.
@@ -481,12 +527,12 @@ impl Connections {
         if r.group != ConnectionGroup::Tracker {
             return Err(format!("{id} is not a tracker"));
         }
-        shipyard_trackers::work::connect_write(
-            &tracker_config(&r),
-            self.secret(&r)?,
-            self.http.clone(),
-        )
-        .map_err(|e| e.to_string())
+        let http = Arc::new(Clocked {
+            inner: self.http.clone(),
+            skew: self.skew_of(id),
+        });
+        shipyard_trackers::work::connect_write(&tracker_config(&r), self.secret(&r)?, http)
+            .map_err(|e| e.to_string())
     }
 
     /// The forge adapter of a connection.

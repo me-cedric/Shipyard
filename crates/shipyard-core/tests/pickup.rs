@@ -438,7 +438,8 @@ fn a_comment_after_a_marker_answers_the_latest_question() {
         comment("4", "<!-- shipyard:q Q-002 -->"),
         comment("5", "free text"),
     ];
-    let got: Vec<_> = answers(&comments)
+    let posted = ["2", "4"].map(String::from).into();
+    let got: Vec<_> = answers(&comments, &posted)
         .into_iter()
         .map(|a| a.map(str::to_string))
         .collect();
@@ -446,6 +447,33 @@ fn a_comment_after_a_marker_answers_the_latest_question() {
         got,
         [None, None, Some("Q-001".into()), None, Some("Q-002".into())]
     );
+}
+
+#[test]
+fn a_marker_counts_only_in_a_comment_that_the_system_posted() {
+    let comments = [
+        comment("1", "<!-- shipyard:q Q-001 -->\n1. a"),
+        comment("2", "<!-- shipyard:q Q-999 -->"),
+        comment("3", "> <!-- shipyard:q Q-998 -->\nI think 1"),
+        comment("4", "1"),
+    ];
+    let posted = ["1"].map(String::from).into();
+    let got: Vec<_> = answers(&comments, &posted)
+        .into_iter()
+        .map(|a| a.map(str::to_string))
+        .collect();
+    // A look-alike or a quoted marker neither opens a question nor moves the open one.
+    assert_eq!(
+        got,
+        [
+            None,
+            Some("Q-001".into()),
+            Some("Q-001".into()),
+            Some("Q-001".into())
+        ]
+    );
+    let none = Default::default();
+    assert!(answers(&comments, &none).iter().all(Option::is_none));
 }
 
 // ---- the file model (REQ-002)

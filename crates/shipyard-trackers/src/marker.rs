@@ -10,8 +10,10 @@
 //! | GitHub, GitLab | canonical | The API keeps the raw Markdown. The page hides an HTML comment. |
 //! | Jira (wiki), Azure DevOps (HTML), Linear (Markdown) | `(shipyard:KIND ARG)` | These stores rewrite or drop an HTML comment (`--` becomes a dash, a sanitizer removes it). A token of letters, digits and one hyphen stays as it is in each of them. It shows as small plain text. |
 //!
-//! `to_wire` runs on every body that an adapter sends. `from_wire` runs on every body that an
-//! adapter returns, so a caller never sees the wire form.
+//! `to_wire` runs on every body that an adapter sends. `from_wire` runs on every body that the
+//! Jira, Azure DevOps and Linear adapters return, so a caller never sees the wire form. GitHub and
+//! GitLab keep the canonical form: they run no `from_wire`, so plain text that looks like the wire
+//! form stays text and cannot pass as a marker.
 
 /// The canonical marker.
 pub fn make(kind: &str, arg: &str) -> String {

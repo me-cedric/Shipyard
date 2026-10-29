@@ -141,6 +141,36 @@ impl Response {
             .map(|(_, v)| v.as_str())
     }
 
+    /// The `Date` header as Unix seconds: the clock of the server. `None` when it is missing or not
+    /// the form `Sun, 06 Nov 1994 08:49:37 GMT`.
+    pub fn date(&self) -> Option<u64> {
+        let mut it = self.header("date")?.split_whitespace();
+        let (_, day, mon, year, time, zone) = (
+            it.next()?,
+            it.next()?.parse::<i64>().ok()?,
+            it.next()?,
+            it.next()?.parse::<i64>().ok()?,
+            it.next()?,
+            it.next()?,
+        );
+        let month = 1 + [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        ]
+        .iter()
+        .position(|m| *m == mon)? as i64;
+        let mut t = time.split(':').map(|n| n.parse::<i64>().ok());
+        let (h, mi, s) = (t.next()??, t.next()??, t.next()??);
+        if zone != "GMT" || !(1..=31).contains(&day) || h > 23 || mi > 59 || s > 60 {
+            return None;
+        }
+        // Days since the epoch from a civil date (Howard Hinnant's algorithm).
+        let y = year - i64::from(month <= 2);
+        let (era, yoe) = (y.div_euclid(400), y.rem_euclid(400));
+        let doy = (153 * (if month > 2 { month - 3 } else { month + 9 }) + 2) / 5 + day - 1;
+        let days = era * 146_097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719_468;
+        u64::try_from(days * 86_400 + h * 3600 + mi * 60 + s).ok()
+    }
+
     /// The body when the status is 2xx; an [`Error::Status`] otherwise.
     pub fn ok(self) -> Result<Self, Error> {
         if (200..300).contains(&self.status) {
@@ -306,4 +336,38 @@ pub fn items<'a>(value: &'a Value, pointer: &str) -> &'a [Value] {
         .pointer(pointer)
         .and_then(Value::as_array)
         .map_or(&[], Vec::as_slice)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn at(date: &str) -> Option<u64> {
+        Response {
+            status: 200,
+            headers: vec![("date".into(), date.into())],
+            body: Vec::new(),
+        }
+        .date()
+    }
+
+    #[test]
+    fn the_date_header_gives_the_server_clock_in_unix_seconds() {
+        assert_eq!(at("Thu, 29 Oct 2026 10:00:00 GMT"), Some(1_793_268_000));
+        assert_eq!(at("Thu, 01 Jan 1970 00:00:00 GMT"), Some(0));
+        for bad in [
+            "",
+            "yesterday",
+            "Thu, 29 Oct 2026 10:00:00 CET",
+            "Thu, 29 Foo 2026 10:00:00 GMT",
+        ] {
+            assert_eq!(at(bad), None, "{bad}");
+        }
+        let none = Response {
+            status: 200,
+            headers: vec![],
+            body: vec![],
+        };
+        assert_eq!(none.date(), None);
+    }
 }

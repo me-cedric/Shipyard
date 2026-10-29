@@ -44,8 +44,9 @@ pub struct Poll<'a> {
     pub seen: &'a [(String, Vec<String>)],
     /// Events to hand off. They wait in the outbox until `ack`.
     pub events: &'a [SyncEvent],
-    /// Unix seconds when the poll started.
-    pub at: u64,
+    /// Unix seconds when the poll started. `None` for a poll that read only part of the list:
+    /// the cursor stays, so the next poll still asks for what this one did not read.
+    pub at: Option<u64>,
 }
 
 pub struct Mirror {
@@ -98,6 +99,9 @@ impl Mirror {
              CREATE TABLE IF NOT EXISTS links(
                  source TEXT NOT NULL, local TEXT NOT NULL, key TEXT NOT NULL,
                  PRIMARY KEY(source, local), UNIQUE(source, key));
+             CREATE TABLE IF NOT EXISTS questions(
+                 source TEXT NOT NULL, key TEXT NOT NULL, comment_id TEXT NOT NULL,
+                 PRIMARY KEY(source, key, comment_id));
              CREATE TABLE IF NOT EXISTS claims(
                  source TEXT NOT NULL, key TEXT NOT NULL, machine TEXT NOT NULL,
                  status TEXT NOT NULL, stamped INTEGER NOT NULL, claimed_at INTEGER NOT NULL,
@@ -183,7 +187,27 @@ impl Mirror {
         Ok(rows.collect::<std::result::Result<_, _>>()?)
     }
 
+    /// The ids of the comments that this system posted as questions on a ticket
+    /// (`add-questions-loop` REQ-009). Only these comments hold a question marker.
+    pub fn questions(&self, source: &str, key: &str) -> Result<HashSet<String>> {
+        let mut st = self
+            .conn
+            .prepare("SELECT comment_id FROM questions WHERE source = ?1 AND key = ?2")?;
+        let rows = st.query_map([source, key], |r| r.get(0))?;
+        Ok(rows.collect::<std::result::Result<_, _>>()?)
+    }
+
     // ---- writes
+
+    /// Remember the id of a question comment that this system posted. The factory calls it right
+    /// after the post.
+    pub fn question_posted(&self, source: &str, key: &str, comment_id: &str) -> Result<()> {
+        self.conn.execute(
+            "INSERT OR IGNORE INTO questions(source, key, comment_id) VALUES (?1, ?2, ?3)",
+            [source, key, comment_id],
+        )?;
+        Ok(())
+    }
 
     fn upsert_tickets(tx: &rusqlite::Transaction, source: &str, tickets: &[Ticket]) -> Result<()> {
         for t in tickets {
@@ -237,6 +261,24 @@ impl Mirror {
         Ok(tx.commit()?)
     }
 
+    /// Like `put_tickets`, but a row that the mirror holds with a later `updated` stays. A list that
+    /// a person read a while ago must not overwrite what a poll wrote since. Returns the count
+    /// written.
+    /// shortcut: `updated` compares as text. One tracker writes one form, so the order holds.
+    pub fn put_tickets_newer(&self, source: &str, tickets: &[Ticket]) -> Result<usize> {
+        let tx = self.conn.unchecked_transaction()?;
+        let mut fresh = Vec::new();
+        for t in tickets {
+            let held = self.ticket(source, &t.item.key)?;
+            if held.is_none_or(|h| h.item.updated <= t.item.updated) {
+                fresh.push(t.clone());
+            }
+        }
+        Self::upsert_tickets(&tx, source, &fresh)?;
+        tx.commit()?;
+        Ok(fresh.len())
+    }
+
     /// One good poll: upsert rows, remember comments, queue events, record the tick. Atomic.
     pub fn commit(&self, source: &str, poll: &Poll) -> Result<()> {
         let tx = self.conn.unchecked_transaction()?;
@@ -250,8 +292,9 @@ impl Mirror {
         Self::queue(&tx, source, poll.seen, poll.events)?;
         tx.execute(
             "INSERT INTO state(source, last_ok, failures, error) VALUES (?1, ?2, 0, NULL)
-             ON CONFLICT(source) DO UPDATE SET last_ok = ?2, failures = 0, error = NULL",
-            params![source, poll.at as i64],
+             ON CONFLICT(source) DO UPDATE SET last_ok = COALESCE(?2, last_ok), failures = 0,
+             error = NULL",
+            params![source, poll.at.map(|t| t as i64)],
         )?;
         Ok(tx.commit()?)
     }

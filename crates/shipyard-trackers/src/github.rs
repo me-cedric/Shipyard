@@ -2,7 +2,6 @@
 //! The issues endpoints list pull requests too. The adapter drops them.
 
 use crate::Tracker;
-use crate::marker;
 use crate::model::*;
 use serde_json::Value;
 use shipyard_http::{Auth, Http, Request, build_url, items, text};
@@ -218,7 +217,7 @@ impl GitHub {
             .map(|c| Comment {
                 id: c["id"].to_string(),
                 author: person(&c["user"]),
-                body: marker::from_wire(&text(c, "/body")),
+                body: text(c, "/body"),
                 created: text(c, "/created_at"),
             })
             .collect();

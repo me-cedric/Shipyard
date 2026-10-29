@@ -28,13 +28,32 @@ const MAX_BACKOFF: Duration = Duration::from_secs(300);
 /// Jitter is up to this share of the interval, added to it.
 const JITTER_SHARE: f64 = 0.2;
 
+/// Splits a connection id from its container in a mirror key. A connection id holds no `@`.
+const SCOPE_SEP: char = '@';
+
+/// The key of the rows of one connection and one container (Jira project key, `owner/repo`) in the
+/// mirror: its cursor, claims and tickets. Two projects on one connection with two containers get
+/// two keys, so a poll of one never moves the cursor of the other.
+pub fn source_key(connection: &str, scope: Option<&str>) -> String {
+    match scope {
+        Some(scope) => format!("{connection}{SCOPE_SEP}{scope}"),
+        None => connection.into(),
+    }
+}
+
+/// The connection id of a mirror key.
+pub fn connection_of(source: &str) -> &str {
+    source.split(SCOPE_SEP).next().unwrap_or(source)
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     /// Names this machine in the stamps.
     pub machine: String,
     pub project: String,
-    /// The connection id of the tracker: the key of its rows in the mirror.
+    /// The mirror key of the tracker: `source_key` of its connection and container.
     pub tracker: String,
+    /// The mirror key of the forge.
     pub forge: Option<String>,
     /// A stamp that nobody refreshed for this long is stale (`q:Q-021`, working assumption).
     pub stale: Duration,
@@ -294,6 +313,8 @@ impl Engine {
                 self.cfg.max_pages
             ));
         }
+        // A cut-off list leaves items unread. The cursor stays, so no unread item falls behind it.
+        let at = (!truncated).then(|| started.as_secs());
         let known = self.mirror.tickets(&src)?;
 
         // The tickets that matter most must be current, whether the list returned them or not.
@@ -324,7 +345,12 @@ impl Engine {
         for key in &active {
             match self.tracker.comments(key) {
                 Ok(comments) => {
-                    let (ev, ids) = comment_events(key, &comments, &self.mirror.seen(&src, key)?);
+                    let (ev, ids) = comment_events(
+                        key,
+                        &comments,
+                        &self.mirror.seen(&src, key)?,
+                        &self.mirror.questions(&src, key)?,
+                    );
                     events.extend(ev);
                     seen.push((key.clone(), ids));
                 }
@@ -338,7 +364,7 @@ impl Engine {
                 pulls: &[],
                 seen: &seen,
                 events: &events,
-                at: started.as_secs(),
+                at,
             },
         )?;
         rep.changed += changed.len() as u32;
@@ -360,10 +386,17 @@ impl Engine {
                 cursor,
             })
         });
-        let (mut fetched, _) = match fetched {
+        let (mut fetched, truncated) = match fetched {
             Ok(v) => v,
             Err(e) => return self.fail(&src, true, e, rep),
         };
+        if truncated {
+            rep.errors.push(format!(
+                "{src}: more than {} pages: the rest waits for the next poll",
+                self.cfg.max_pages
+            ));
+        }
+        let at = (!truncated).then(|| started.as_secs());
         let known = self.mirror.pulls(&src)?;
         // A run needs its pull request current, even when the list left it out.
         let wanted: Vec<u64> = self.runs().into_iter().filter_map(|r| r.pr).collect();
@@ -392,7 +425,7 @@ impl Engine {
                 pulls: &changed,
                 seen: &[],
                 events: &events,
-                at: started.as_secs(),
+                at,
             },
         )?;
         rep.changed += changed.len() as u32;
@@ -517,7 +550,12 @@ impl Engine {
         let src = &self.cfg.tracker;
         match self.tracker.comments(key) {
             Ok(comments) => {
-                let (events, ids) = comment_events(key, &comments, &self.mirror.seen(src, key)?);
+                let (events, ids) = comment_events(
+                    key,
+                    &comments,
+                    &self.mirror.seen(src, key)?,
+                    &self.mirror.questions(src, key)?,
+                );
                 self.mirror.record(src, &[(key.to_string(), ids)], &events)
             }
             // The first poll with the run reads them as a baseline instead.
@@ -526,9 +564,10 @@ impl Engine {
     }
 
     /// Refresh the stamps, drop claims that no run holds, and stop a run whose claim another
-    /// machine took (REQ-010).
+    /// machine took (REQ-010). A run of any project holds its claim: two projects can share one
+    /// source, and a project must not release the claims of the other.
     fn heartbeat(&self, rep: &mut TickReport) -> Result<()> {
-        let runs = self.runs();
+        let runs = self.dispatch.active_runs();
         let keys: Vec<String> = runs.iter().map(|r| r.key.clone()).collect();
         let hb = self.claims().heartbeat(&keys)?;
         rep.errors.extend(hb.errors);

@@ -12,7 +12,7 @@ use shipyard_core::pickup::{AUTOMATION_FILE, Automation, Ticket};
 use shipyard_core::refs::{Ref, detect, parse};
 use shipyard_core::work::Team;
 use shipyard_core::work_item::StatusCategory;
-use shipyard_engine::tick::TickReport;
+use shipyard_engine::tick::{TickReport, source_key};
 use shipyard_git::Repo;
 use shipyard_store::automation_file::{AutomationRead, read_automation, write_automation};
 use shipyard_store::project::{Entry, FileRead, read_project_file};
@@ -89,6 +89,18 @@ pub(crate) fn tracker_target(
         (None, _) => None,
     };
     Ok(Some((tracker, scope, conn.kind)))
+}
+
+/// The mirror key of the tracker rows of the active project: its connection and container.
+pub(crate) fn tracker_source(s: &AppState, a: &Active) -> Res<Option<String>> {
+    Ok(tracker_target(s, a)?.map(|(id, scope, _)| source_key(&id, scope.as_deref())))
+}
+
+/// The mirror key of the forge rows of the active project: its connection and repository.
+pub(crate) fn forge_source(a: &Active) -> Option<String> {
+    a.forge
+        .as_deref()
+        .map(|id| source_key(id, origin_slug(&a.entry).as_deref()))
 }
 
 fn origin_slug(e: &Entry) -> Option<String> {
@@ -425,7 +437,7 @@ pub fn items(s: &AppState, f: &ItemFilter) -> Res<Vec<WorkItemView>> {
     let Some(a) = active(s)? else {
         return Ok(Vec::new());
     };
-    let (Some(src), true) = (a.tracker, s.sync.mirror_exists()) else {
+    let (Some(src), true) = (tracker_source(s, &a)?, s.sync.mirror_exists()) else {
         return Ok(Vec::new());
     };
     let team = team_of(Path::new(&a.entry.path));
@@ -456,12 +468,22 @@ pub fn items(s: &AppState, f: &ItemFilter) -> Res<Vec<WorkItemView>> {
 pub fn resolve_mirror(s: &AppState, text: &str) -> Res<Option<Resolved>> {
     let (source, found) = match parse(text) {
         Some(Ref::WorkItem(key)) => {
-            let Some(src) = active(s)?.and_then(|a| a.tracker) else {
+            let Some(a) = active(s)? else {
+                return Ok(None);
+            };
+            let Some(src) = tracker_source(s, &a)? else {
                 return Ok(None);
             };
             (src, Mirrored::Ticket(key))
         }
-        Some(Ref::Pr { forge, number }) => (forge, Mirrored::Pull(number)),
+        Some(Ref::Pr { forge, number }) => {
+            // The ref names the connection. The rows of the active forge sit under its key.
+            let src = active(s)?
+                .filter(|a| a.forge.as_deref() == Some(forge.as_str()))
+                .and_then(|a| forge_source(&a))
+                .unwrap_or(forge);
+            (src, Mirrored::Pull(number))
+        }
         _ => return Ok(None),
     };
     if !s.sync.mirror_exists() {
@@ -516,19 +538,25 @@ pub(crate) fn index_mirror(s: &AppState, root: &Path, index: &mut RefIndex) -> R
     let team_file = std::fs::metadata(root.join(shipyard_store::work::TEAM_PATH))
         .ok()
         .map(|f| (f.len(), f.modified().ok()));
-    let mut sources: Vec<(String, bool)> = a.tracker.iter().map(|t| (t.clone(), true)).collect();
-    sources.extend(a.forge.iter().map(|f| (f.clone(), false)));
+    // `(connection id, mirror key, tracker)`. The entity names use the connection id.
+    let mut sources: Vec<(String, String, bool)> = Vec::new();
+    if let (Some(id), Some(src)) = (a.tracker.clone(), tracker_source(s, &a)?) {
+        sources.push((id, src, true));
+    }
+    if let (Some(id), Some(src)) = (a.forge.clone(), forge_source(&a)) {
+        sources.push((id, src, false));
+    }
     let team = team_of(root);
-    for (id, tracker) in sources {
-        let key = format!("mirror:{id}");
-        let fp = format!("{}|{team_file:?}", m.fingerprint(&id).map_err(err)?);
+    for (id, src, tracker) in sources {
+        let key = format!("mirror:{src}");
+        let fp = format!("{}|{team_file:?}", m.fingerprint(&src).map_err(err)?);
         if index.fingerprint(&key).map_err(err)?.as_deref() == Some(fp.as_str()) {
             continue;
         }
         let (mut ents, mut cites) = (Vec::new(), Vec::new());
         if tracker {
-            let links = m.links(&id).map_err(err)?;
-            for t in m.tickets(&id).map_err(err)? {
+            let links = m.links(&src).map_err(err)?;
+            for t in m.tickets(&src).map_err(err)? {
                 let i = &t.item;
                 let me = format!("wi:{}", i.key);
                 if parse(&me).is_none() {
@@ -562,7 +590,7 @@ pub(crate) fn index_mirror(s: &AppState, root: &Path, index: &mut RefIndex) -> R
                 }));
             }
         } else {
-            for p in m.pulls(&id).map_err(err)? {
+            for p in m.pulls(&src).map_err(err)? {
                 let me = format!("pr:{id}:{}", p.number);
                 if parse(&me).is_none() {
                     continue;
@@ -741,6 +769,7 @@ mod tests {
         );
         let data = tempfile::tempdir().unwrap();
         let http = Arc::new(FakeHttp::new());
+        http.get("api.github.com/user", 200, r#"{"login":"ada"}"#);
         http.get(
             "/repos/acme/web/issues/12/comments",
             200,
@@ -889,9 +918,14 @@ mod tests {
         assert_eq!(pr.status.as_deref(), Some("open"));
         assert!(resolve_mirror(&f.s, "pr:code:99").unwrap().is_none());
         let m = f.s.sync.mirror().unwrap();
-        let mut t = Ticket::new(m.ticket("issues", "acme/web#13").unwrap().unwrap().item);
+        let mut t = Ticket::new(
+            m.ticket("issues@acme/web", "acme/web#13")
+                .unwrap()
+                .unwrap()
+                .item,
+        );
         t.item.key = "ACME-1".into();
-        m.put_tickets("issues", &[t]).unwrap();
+        m.put_tickets("issues@acme/web", &[t]).unwrap();
         let wi = resolve_mirror(&f.s, "wi:ACME-1").unwrap().unwrap();
         assert_eq!(
             (wi.title.as_deref(), wi.status.as_deref()),
@@ -907,7 +941,7 @@ mod tests {
         // The tracker goes away: the next poll fails and nothing changes in the mirror.
         let r = ensure(&f.s).unwrap().unwrap();
         r.with(|e| {
-            e.mirror().mark_failed("issues", "offline")?;
+            e.mirror().mark_failed("issues@acme/web", "offline")?;
             Ok(())
         })
         .unwrap();
@@ -1010,7 +1044,7 @@ mod tests {
         run_tick(&f.s).unwrap();
         write_team(f.repo.path(), "U1");
         let m = f.s.sync.mirror().unwrap();
-        let base = m.ticket("issues", "acme/web#13").unwrap().unwrap();
+        let base = m.ticket("issues@acme/web", "acme/web#13").unwrap().unwrap();
         let mut one = Ticket::new(base.item.clone());
         one.item.key = "ACME-1".into();
         one.item.assignee = Some(Person {
@@ -1023,8 +1057,9 @@ mod tests {
         two.item.key = "ACME-2".into();
         two.item.title = "Epic".into();
         two.item.assignee = None;
-        m.put_tickets("issues", &[one, two]).unwrap();
-        m.link("issues", "change:add-sync", "ACME-1").unwrap();
+        m.put_tickets("issues@acme/web", &[one, two]).unwrap();
+        m.link("issues@acme/web", "change:add-sync", "ACME-1")
+            .unwrap();
 
         let hit = |q: &str| -> Vec<String> {
             with_index(&f.s, |i| i.search(q, 20))
@@ -1045,7 +1080,7 @@ mod tests {
         assert_eq!(sources(&f.s, "wi:ACME-1"), ["change:add-sync"]);
 
         // A new link and a changed team show at the next query, with no manual refresh.
-        m.unlink("issues", "change:add-sync").unwrap();
+        m.unlink("issues@acme/web", "change:add-sync").unwrap();
         assert!(sources(&f.s, "wi:ACME-1").is_empty());
         write_team(f.repo.path(), "U9");
         assert!(sources(&f.s, "member:ana").is_empty());
@@ -1119,12 +1154,12 @@ mod tests {
         let f = fixture();
         run_tick(&f.s).unwrap();
         let m = f.s.sync.mirror().unwrap();
-        let mut t = m.ticket("issues", "acme/web#13").unwrap().unwrap();
+        let mut t = m.ticket("issues@acme/web", "acme/web#13").unwrap().unwrap();
         t.item.assignee = Some(shipyard_core::work_item::Person {
             id: "U1".into(),
             name: "Ada".into(),
         });
-        m.put_tickets("issues", &[t]).unwrap();
+        m.put_tickets("issues@acme/web", &[t]).unwrap();
         let member = |s: &AppState| {
             items(s, &ItemFilter::default())
                 .unwrap()

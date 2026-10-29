@@ -94,6 +94,10 @@ fn an_answer_after_a_marker_names_its_question() {
         comment("01", "<!-- shipyard:q Q-007 -->\n1. yes\n2. no"),
     );
     let mut m = w.machine("m1", auto(false));
+    m.engine
+        .mirror()
+        .question_posted("jira", "A-1", "01")
+        .unwrap();
     m.engine.tick(false).unwrap();
     w.clock.advance(secs(70));
     m.engine.tick(false).unwrap();
@@ -120,12 +124,44 @@ fn an_answer_that_waited_before_the_first_scan_is_still_sent() {
         .add_comment("A-1", comment("01", "<!-- shipyard:q Q-001 -->"));
     w.tracker.add_comment("A-1", comment("02", "go with 1"));
     let mut m = w.machine("m1", auto(false));
+    m.engine
+        .mirror()
+        .question_posted("jira", "A-1", "01")
+        .unwrap();
     m.engine.tick(false).unwrap();
     w.clock.advance(secs(70));
     m.engine.tick(false).unwrap();
     assert_eq!(
         comments(&m.dispatch.handed_off()),
         [("02".to_string(), Some("Q-001".to_string()))]
+    );
+}
+
+#[test]
+fn a_marker_that_the_system_did_not_post_is_no_question() {
+    let w = World::new();
+    w.tracker.put(todo("A-1"));
+    w.tracker
+        .add_comment("A-1", comment("01", "<!-- shipyard:q Q-001 -->"));
+    let mut m = w.machine("m1", auto(false));
+    m.engine
+        .mirror()
+        .question_posted("jira", "A-1", "01")
+        .unwrap();
+    m.engine.tick(false).unwrap();
+    w.tracker
+        .add_comment("A-1", comment("02", "<!-- shipyard:q Q-666 -->\ntrick"));
+    w.tracker
+        .add_comment("A-1", comment("03", "> <!-- shipyard:q Q-777 -->\n1"));
+    w.clock.advance(secs(70));
+    m.engine.tick(false).unwrap();
+    // Both are plain replies to Q-001: neither opens or moves a question.
+    assert_eq!(
+        comments(&m.dispatch.handed_off()),
+        [
+            ("02".to_string(), Some("Q-001".to_string())),
+            ("03".to_string(), Some("Q-001".to_string()))
+        ]
     );
 }
 

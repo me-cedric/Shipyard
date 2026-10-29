@@ -45,7 +45,8 @@ pub trait TrackerPort: Send + Sync {
         true
     }
 
-    /// The stamps of the ticket, oldest first by creation. Stale ones are included.
+    /// The stamps of the ticket, oldest first by first claim: a refreshed stamp keeps the place of
+    /// the first one. Stale ones are included.
     fn stamps(&self, key: &str) -> PortResult<Vec<Stamp>>;
 
     /// A tracker write. Create the stamp of `machine`, or refresh it. The engine calls this only

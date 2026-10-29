@@ -2,7 +2,7 @@
 //! (spec `sync`, REQ-002, REQ-003, REQ-004, REQ-006, REQ-007). No I/O: the engine fetches,
 //! these functions decide.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
@@ -476,18 +476,22 @@ pub fn question_marker(body: &str) -> Option<&str> {
     (closed && !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit())).then_some(id)
 }
 
-/// For each comment, in order: the question that it answers. A comment after a marker answers
-/// the latest marker. A marker comment answers nothing.
-pub fn answers(comments: &[Comment]) -> Vec<Option<&str>> {
+/// For each comment, in order: the question that it answers. A marker counts only in a comment
+/// that the system posted (`posted` holds those ids, `add-questions-loop` REQ-009): a look-alike
+/// that another person wrote, or a quoted marker in a reply, is a plain comment. A comment after a
+/// marker answers the latest marker. A marker comment answers nothing.
+pub fn answers<'a>(comments: &'a [Comment], posted: &HashSet<String>) -> Vec<Option<&'a str>> {
     let mut open = None;
     comments
         .iter()
-        .map(|c| match question_marker(&c.body) {
-            Some(q) => {
-                open = Some(q);
-                None
-            }
-            None => open,
-        })
+        .map(
+            |c| match question_marker(&c.body).filter(|_| posted.contains(&c.id)) {
+                Some(q) => {
+                    open = Some(q);
+                    None
+                }
+                None => open,
+            },
+        )
         .collect()
 }

@@ -45,6 +45,27 @@ fn an_import_does_not_move_the_tick_cursor() {
 }
 
 #[test]
+fn an_import_does_not_overwrite_a_row_that_a_tick_made_newer() {
+    let w = world_with(2);
+    let mut m = w.machine("m1", auto(false));
+    let plan = m.engine.import_plan().unwrap();
+    // The tracker moves on and a tick reads it before the person confirms.
+    w.tracker.update("A-001", "2026-10-29T12:00:00Z", |t| {
+        t.item.status.name = "In Progress".into();
+    });
+    w.clock.advance(secs(70));
+    m.engine.tick(true).unwrap();
+    assert_eq!(
+        m.engine.import(&plan).unwrap(),
+        1,
+        "only A-002 is not newer"
+    );
+    let mirror = m.engine.mirror();
+    let row = mirror.ticket("jira", "A-001").unwrap().unwrap();
+    assert_eq!(row.item.status.name, "In Progress");
+}
+
+#[test]
 fn a_list_that_never_ends_stops_the_import_and_the_tick() {
     let w = world_with(2);
     w.tracker.set_endless(true);
@@ -55,6 +76,8 @@ fn a_list_that_never_ends_stops_the_import_and_the_tick() {
     assert!(r.errors.iter().any(|e| e.contains("20 pages")), "{r:?}");
     assert_eq!(m.engine.mirror().tickets("jira").unwrap().len(), 2);
     assert_eq!(w.log.count("list"), 1000 + 20);
+    // A cut-off poll leaves items unread: the cursor does not move past them.
+    assert_eq!(m.engine.mirror().state("jira").unwrap().last_ok, None);
 }
 
 #[test]

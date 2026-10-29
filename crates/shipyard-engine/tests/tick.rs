@@ -212,6 +212,25 @@ fn a_ticket_that_closes_stops_its_run_with_the_reason_and_frees_the_claim() {
 }
 
 #[test]
+fn a_project_does_not_release_the_claim_of_a_run_of_another_project() {
+    let w = World::new();
+    w.tracker.put(todo("A-1"));
+    let mut m = w.machine("m1", auto(false));
+    // The claim and the run belong to another project that shares the source.
+    m.engine
+        .mirror()
+        .claim("jira", "A-1", "m1", "To Do", false, START)
+        .unwrap();
+    m.dispatch.add_run(ActiveRun {
+        project: "other".into(),
+        ..working("run-9", "A-1", None)
+    });
+    let r = m.engine.tick(false).unwrap();
+    assert!(r.errors.is_empty(), "{r:?}");
+    assert_eq!(m.engine.mirror().claims("jira").unwrap().len(), 1);
+}
+
+#[test]
 fn a_ticket_closed_by_a_merge_does_not_cancel_the_run() {
     let w = World::new();
     let mut m = w.machine("m1", auto(false));
