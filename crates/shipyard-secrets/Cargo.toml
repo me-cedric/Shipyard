@@ -1,0 +1,9 @@
+[package]
+name = "shipyard-secrets"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+thiserror = "2"
