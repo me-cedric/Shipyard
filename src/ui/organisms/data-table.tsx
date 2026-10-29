@@ -105,10 +105,12 @@ export function DataTable<T extends RowData>({
 				renderItem={(e) => {
 					if (e.kind === "group")
 						return (
-							<div className="flex h-row items-center border-b bg-n-2 px-3">
-								<h3 className="text-12 font-medium text-n-11">
-									{format(t.count, { name: groupLabel?.(e.id) ?? e.id, count: e.count })}
-								</h3>
+							<div role="row" className="flex h-row items-center border-b bg-n-2 px-3">
+								<div role="cell">
+									<h3 className="text-12 font-medium text-n-11">
+										{format(t.count, { name: groupLabel?.(e.id) ?? e.id, count: e.count })}
+									</h3>
+								</div>
 							</div>
 						);
 					const original = e.row.original;

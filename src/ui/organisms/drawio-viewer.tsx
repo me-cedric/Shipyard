@@ -31,7 +31,7 @@ export function DrawioViewer({
 		<img
 			src={svgDataUri(text)}
 			alt={label}
-			className="max-h-full max-w-full self-start rounded-md border border-n-7 bg-white"
+			className="max-h-full max-w-full self-start rounded-md border border-n-7"
 		/>
 	) : (
 		<CodeEditor label={label} value={text} readOnly className="flex-1" />

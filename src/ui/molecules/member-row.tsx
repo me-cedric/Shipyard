@@ -43,7 +43,7 @@ export function MemberRow({
 				onClick={onOpen}
 				className="flex h-full min-w-0 flex-1 items-center gap-3 px-3 text-left"
 			>
-				<Avatar name={name} className="size-5 text-[10px]" />
+				<Avatar name={name} className="size-5 text-11" />
 				<span className="w-40 shrink-0 truncate text-ui">{name}</span>
 				<span className="w-24 shrink-0 truncate font-mono text-11 text-n-11">{handle}</span>
 				<Badge className="w-16 shrink-0 justify-center">{job}</Badge>
@@ -87,7 +87,7 @@ export function SuggestionRow({
 			aria-label={name}
 			className={cn("flex min-h-row items-center gap-2 border-b py-1", current && "bg-n-3")}
 		>
-			<Avatar name={name} className="size-5 text-[10px]" />
+			<Avatar name={name} className="size-5 text-11" />
 			<span className="min-w-0 flex-1">
 				<span className="block truncate text-ui">{name}</span>
 				<span className="flex flex-wrap gap-1">
@@ -95,7 +95,7 @@ export function SuggestionRow({
 						<Badge
 							key={r.id}
 							variant={r.tone === "neutral" ? "neutral" : r.tone}
-							className="h-4 text-[10px]"
+							className="h-4 text-11"
 						>
 							{r.text}
 						</Badge>

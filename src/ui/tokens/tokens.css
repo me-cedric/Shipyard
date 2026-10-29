@@ -1,13 +1,5 @@
 @import "tailwindcss";
-@import "@fontsource-variable/inter";
-
-@font-face {
-	font-family: "Departure Mono";
-	src: url("./fonts/DepartureMono-Regular.woff2") format("woff2");
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-}
+@import "./fonts.css";
 
 /* Spacing is Tailwind's 4 px step (--spacing: 0.25rem). Only the tokens below exist. */
 @theme {
@@ -104,7 +96,7 @@
 	--n-7: light-dark(oklch(0.872 0.008 250), oklch(0.33 0.014 250));
 	--n-8: light-dark(oklch(0.82 0.01 250), oklch(0.395 0.016 250));
 	--n-9: light-dark(oklch(0.64 0.012 250), oklch(0.56 0.016 250));
-	--n-10: light-dark(oklch(0.595 0.012 250), oklch(0.62 0.015 250));
+	--n-10: light-dark(oklch(0.54 0.012 250), oklch(0.62 0.015 250));
 	--n-11: light-dark(oklch(0.48 0.012 250), oklch(0.76 0.012 250));
 	--n-12: light-dark(oklch(0.23 0.01 250), oklch(0.96 0.005 250));
 
@@ -121,7 +113,7 @@
 	--warning: light-dark(oklch(0.75 0.15 80), oklch(0.82 0.15 85));
 	--warning-subtle: light-dark(oklch(0.96 0.05 90), oklch(0.29 0.05 80));
 	--warning-text: light-dark(oklch(0.45 0.1 70), oklch(0.85 0.13 85));
-	--danger: light-dark(oklch(0.6 0.21 25), oklch(0.68 0.2 25));
+	--danger: light-dark(oklch(0.55 0.21 25), oklch(0.68 0.2 25));
 	--danger-subtle: light-dark(oklch(0.95 0.03 25), oklch(0.28 0.07 25));
 	--danger-text: light-dark(oklch(0.48 0.19 25), oklch(0.8 0.13 25));
 	--info: light-dark(oklch(0.58 0.17 275), oklch(0.72 0.14 275));

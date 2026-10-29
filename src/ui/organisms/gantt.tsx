@@ -189,7 +189,7 @@ export function Gantt({
 						.map((d) => (
 							<span
 								key={d}
-								className="absolute top-5 font-mono text-[10px] text-n-10"
+								className="absolute top-5 font-mono text-11 text-n-10"
 								style={{ left: x(d) + 2 }}
 							>
 								{d.slice(8)}

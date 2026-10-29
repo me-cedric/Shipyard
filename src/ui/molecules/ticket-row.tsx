@@ -15,7 +15,7 @@ export function CategoryDot({ category, label }: { category: WorkCategory; label
 export function Assignee({ name, unknown }: { name: string; unknown?: string }) {
 	return (
 		<span className="flex min-w-0 items-center gap-1.5 text-ui text-n-11">
-			<Avatar name={name} className="size-5 text-[10px]" />
+			<Avatar name={name} className="size-5 text-11" />
 			<span className="truncate">{name}</span>
 			{unknown ? <StatusDot status="warning" label={unknown} className="size-2" /> : null}
 		</span>

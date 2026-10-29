@@ -99,7 +99,7 @@ const SIZES = ["text-11", "text-12", "text-13", "text-14", "text-16", "text-20"]
 function Row({ name, children }: { name: string; children: ReactNode }) {
 	return (
 		<div className="flex flex-wrap items-center gap-3 border-b py-3">
-			<span className="w-32 font-mono text-11 text-n-10">{name}</span>
+			<h2 className="w-32 font-mono text-11 text-n-10">{name}</h2>
 			{children}
 		</div>
 	);
@@ -737,7 +737,7 @@ function Templates() {
 	return (
 		<div>
 			<Row name="Shell">
-				<div className="h-64 w-full border">
+				<div data-shell-demo="" className="h-64 w-full border">
 					<Shell
 						sidebarOpen={open}
 						sidebar={
@@ -845,7 +845,8 @@ export function Gallery() {
 	return (
 		<div className="mx-auto flex max-w-4xl flex-col gap-4 p-6">
 			<header className="flex items-center gap-2">
-				<nav aria-label={t.nav.sidebar} className="flex flex-1 gap-1">
+				<h1 className="sr-only">{t.gallery[layer]}</h1>
+				<nav aria-label={t.nav.tabs} className="flex flex-1 gap-1">
 					{LAYERS.map((l) => (
 						<Button
 							key={l}
