@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isRef } from "./refs";
+import { isRef } from "./mock-refs";
 
 const ULID = "01JD0000000000000000000000";
 
-// Same cases as `crates/shipyard-core/src/refs.rs`.
+// Same cases as `crates/shipyard-core/tests/refs_grammar.rs`.
 const valid = [
 	"project:shipyard",
 	"member:ada-1",

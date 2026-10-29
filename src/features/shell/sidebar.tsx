@@ -2,9 +2,11 @@ import { Link } from "@tanstack/react-router";
 import type { ReactElement } from "react";
 import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
+import { useActiveProject, useProjectActions, useProjects } from "@/lib/projects";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Tooltip } from "@/ui/atoms/tooltip";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/ui/icons";
+import { ProjectSwitcher } from "@/ui/molecules/project-switcher";
 import logo from "../../../docs/assets/logo.svg";
 import { type Action, SPACE_ICON, shortcutText } from "./actions";
 import { orderedSpaces } from "./spaces";
@@ -12,6 +14,9 @@ import { orderedSpaces } from "./spaces";
 export function Sidebar({ toggle }: { toggle: Action }) {
 	const { t } = useI18n();
 	const { role, sidebarOpen } = usePrefs();
+	const projects = useProjects().data ?? [];
+	const active = useActiveProject().data;
+	const { switchTo } = useProjectActions();
 	const entries = orderedSpaces(role).map((space, i) => {
 		const Icon = SPACE_ICON[space];
 		const name = t.space[space];
@@ -42,6 +47,14 @@ export function Sidebar({ toggle }: { toggle: Action }) {
 			<div className="flex h-8 items-center px-1">
 				<img src={logo} alt="Shipyard" className="size-6 shrink-0" />
 			</div>
+			{sidebarOpen && active ? (
+				<ProjectSwitcher
+					projects={projects}
+					value={active.id}
+					onChange={(id) => void switchTo(id)}
+					className="w-full"
+				/>
+			) : null}
 			<ul className="flex min-h-0 flex-1 flex-col gap-0.5">{entries}</ul>
 			<IconButton
 				label={sidebarOpen ? t.nav.collapse : t.nav.expand}

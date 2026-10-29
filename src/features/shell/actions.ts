@@ -1,7 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
 import { type ComponentType, useEffect, useMemo } from "react";
 import { format, type Lang, useI18n } from "@/lib/i18n";
+import { errorDialog } from "@/lib/ipc";
 import { type Theme, usePrefs } from "@/lib/prefs";
+import { outcomeError, useProjectActions } from "@/lib/projects";
+import { useShell } from "@/lib/shell";
 import {
 	ArrowPathIcon,
 	BookOpenIcon,
@@ -12,6 +15,7 @@ import {
 	ComputerDesktopIcon,
 	CpuChipIcon,
 	DocumentTextIcon,
+	FolderOpenIcon,
 	HomeIcon,
 	LanguageIcon,
 	MagnifyingGlassIcon,
@@ -20,7 +24,6 @@ import {
 	SwatchIcon,
 	ViewColumnsIcon,
 } from "@/ui/icons";
-import { useShell } from "./shell-state";
 import { orderedSpaces, type SpaceId } from "./spaces";
 
 type Icon = ComponentType<{ size?: number }>;
@@ -62,6 +65,7 @@ export function useActions() {
 	const { role, sidebarOpen, setPrefs } = usePrefs();
 	const navigate = useNavigate();
 	const shell = useShell();
+	const { openFolder } = useProjectActions();
 	const { inspectorOpen, setInspectorOpen, setPaletteOpen, sync } = shell;
 
 	return useMemo(() => {
@@ -78,6 +82,16 @@ export function useActions() {
 				run: () => navigate({ to: `/${space}` as const }),
 			}),
 		);
+		const openProject: Action = {
+			id: "project-open",
+			label: t.projects.open,
+			Icon: FolderOpenIcon,
+			run: () =>
+				void openFolder().then((o) => {
+					const error = o && outcomeError(t, o);
+					if (error) void errorDialog(error);
+				}),
+		};
 		const syncAction: Action = { id: "sync", label: t.shell.sync, Icon: ArrowPathIcon, run: sync };
 		// Placeholder: the real commit comes with `add-code`.
 		const commit: Action = { id: "commit", label: t.shell.commit, Icon: CheckIcon, run: () => {} };
@@ -120,6 +134,7 @@ export function useActions() {
 					run: () => setLang(l),
 				}),
 			),
+			openProject,
 			syncAction,
 			commit,
 		];
@@ -135,6 +150,7 @@ export function useActions() {
 		setInspectorOpen,
 		setPaletteOpen,
 		sync,
+		openFolder,
 	]);
 }
 

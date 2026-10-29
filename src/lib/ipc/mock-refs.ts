@@ -1,4 +1,5 @@
-// Mirror of the ref grammar in `crates/shipyard-core/src/refs.rs`. Keep both in step; the tests share cases.
+// Mock only. The app parses refs with the `refs_parse` command. The mock needs the same grammar as
+// `crates/shipyard-core/src/refs.rs`, so the tests share their cases.
 const NAME = "[a-z0-9][a-z0-9-]*";
 const ULID = "[0-7][0-9A-HJKMNP-TV-Z]{25}";
 
@@ -32,4 +33,9 @@ export function isRef(text: string): boolean {
 	if (i < 0) return false;
 	const kind = text.slice(0, i);
 	return Object.hasOwn(GRAMMAR, kind) && GRAMMAR[kind]?.test(text.slice(i + 1)) === true;
+}
+
+/** What the `refs_parse` command returns. */
+export function parseRef(text: string): { ref: string; kind: string } | null {
+	return isRef(text) ? { ref: text, kind: text.slice(0, text.indexOf(":")) } : null;
 }

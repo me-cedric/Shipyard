@@ -1,8 +1,9 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CheckIcon, ChevronRightIcon } from "../icons";
 
-export type SelectItem = { value: string; label: string };
+export type SelectItem = { value: string; label: string; icon?: ReactNode };
 
 export function Select({
 	label,
@@ -50,6 +51,7 @@ export function Select({
 									<BaseSelect.ItemIndicator className="w-3">
 										<CheckIcon size={12} />
 									</BaseSelect.ItemIndicator>
+									{item.icon}
 									<BaseSelect.ItemText>{item.label}</BaseSelect.ItemText>
 								</BaseSelect.Item>
 							))}

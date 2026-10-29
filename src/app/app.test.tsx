@@ -1,24 +1,15 @@
-import { RouterProvider } from "@tanstack/react-router";
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SPACE_IDS, SPACES, tabLabel } from "@/features/shell";
 import { en } from "@/lib/i18n/en";
 import { fr } from "@/lib/i18n/fr";
-import { installMockIpc } from "@/lib/ipc/mock";
-import { Providers } from "./providers";
-import { createAppRouter, createMemoryHistory } from "./router";
-
-beforeAll(installMockIpc);
-beforeEach(() => localStorage.clear());
+import { commands, unwrap } from "@/lib/ipc";
+import { mockState } from "@/lib/ipc/mock";
+import { mountApp } from "@/test/mount";
 
 function mount(path: string, role?: string) {
-	if (role) localStorage.setItem("shipyard.prefs", JSON.stringify({ role }));
-	const router = createAppRouter(createMemoryHistory({ initialEntries: [path] }));
-	render(
-		<Providers>
-			<RouterProvider router={router} />
-		</Providers>,
-	);
+	if (role) mockState().prefs.role = role as "pm";
+	return mountApp(path);
 }
 
 const sidebar = () => screen.findByRole("navigation", { name: "Sidebar" });
@@ -47,7 +38,14 @@ describe("router", () => {
 			}
 	});
 
+	it("shows the first run on Home until a project is active", async () => {
+		mount("/home/inbox");
+		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
+		expect(screen.queryByRole("heading", { name: "Needs you" })).toBeNull();
+	});
+
 	it("shows the heading of the Inbox", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/home/inbox");
 		expect(await screen.findByRole("heading", { name: "Needs you" })).toBeInTheDocument();
 	});

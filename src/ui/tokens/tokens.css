@@ -137,6 +137,37 @@
 	color-scheme: dark;
 }
 
+/* A project can override the accent. Only the hue changes. */
+:root[data-accent] {
+	--accent: oklch(0.757 0.147 var(--accent-hue));
+	--accent-hover: light-dark(oklch(0.7 0.15 var(--accent-hue)), oklch(0.8 0.13 var(--accent-hue)));
+	--accent-subtle: light-dark(
+		oklch(0.95 0.03 var(--accent-hue)),
+		oklch(0.28 0.05 var(--accent-hue))
+	);
+	--accent-text: light-dark(oklch(0.5 0.15 var(--accent-hue)), oklch(0.8 0.12 var(--accent-hue)));
+}
+
+:root[data-accent="blue"] {
+	--accent-hue: 238;
+}
+
+:root[data-accent="violet"] {
+	--accent-hue: 295;
+}
+
+:root[data-accent="green"] {
+	--accent-hue: 150;
+}
+
+:root[data-accent="orange"] {
+	--accent-hue: 55;
+}
+
+:root[data-accent="rose"] {
+	--accent-hue: 10;
+}
+
 /* Stronger text and borders. */
 :root[data-contrast="high"] {
 	--n-6: light-dark(oklch(0.78 0.01 250), oklch(0.42 0.015 250));

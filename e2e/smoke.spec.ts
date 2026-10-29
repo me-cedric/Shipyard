@@ -32,7 +32,7 @@ test("runs an action from the palette with the keyboard", async ({ page }) => {
 	await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
 	await page.keyboard.press("ControlOrMeta+k");
 	await expect(page.getByRole("dialog")).toBeVisible();
-	await page.keyboard.type("Theme: Dark");
+	await page.getByRole("dialog").getByRole("combobox").fill("Theme: Dark");
 	await page.keyboard.press("Enter");
 	await expect(page.getByRole("dialog")).toBeHidden();
 	await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");

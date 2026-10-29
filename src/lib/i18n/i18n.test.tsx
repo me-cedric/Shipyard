@@ -1,4 +1,5 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { mockState } from "@/lib/ipc/mock";
 import { format, I18nProvider, useI18n } from "./i18n";
 
 function Probe() {
@@ -11,17 +12,27 @@ function Probe() {
 }
 
 describe("i18n", () => {
-	it("switches to French", () => {
+	it("switches to French and keeps it in the app data folder", async () => {
 		render(
 			<I18nProvider>
 				<Probe />
 			</I18nProvider>,
 		);
-		expect(screen.getByRole("button")).toHaveTextContent("en:Close");
+		expect(await screen.findByRole("button")).toHaveTextContent("en:Close");
 		act(() => screen.getByRole("button").click());
 		expect(screen.getByRole("button")).toHaveTextContent("fr:Fermer");
 		expect(document.documentElement.lang).toBe("fr");
-		expect(localStorage.getItem("shipyard.lang")).toBe("fr");
+		await waitFor(() => expect(mockState().prefs.lang).toBe("fr"));
+	});
+
+	it("starts in the stored language", async () => {
+		mockState().prefs.lang = "fr";
+		render(
+			<I18nProvider>
+				<Probe />
+			</I18nProvider>,
+		);
+		await waitFor(() => expect(screen.getByRole("button")).toHaveTextContent("fr:Fermer"));
 	});
 
 	it("interpolates {name}", () => {

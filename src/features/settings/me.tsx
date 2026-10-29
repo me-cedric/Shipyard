@@ -1,14 +1,30 @@
 import { useI18n } from "@/lib/i18n";
-import { type Contrast, type Density, ROLES, type Role, type Theme, usePrefs } from "@/lib/prefs";
+import {
+	type Contrast,
+	type Density,
+	type Overridable,
+	ROLES,
+	type Role,
+	type Theme,
+	usePrefs,
+} from "@/lib/prefs";
 import { Select } from "@/ui/atoms/select";
+import { StatusDot } from "@/ui/atoms/status-dot";
 import { Switch } from "@/ui/atoms/switch";
 import { Cog6ToothIcon, ComputerDesktopIcon, LanguageIcon, SunIcon, SwatchIcon } from "@/ui/icons";
 import { Settings } from "@/ui/templates/settings";
 
 export function Me() {
 	const { t, lang, setLang } = useI18n();
-	const { theme, density, contrast, role, setPrefs } = usePrefs();
+	const { theme, density, contrast, role, overridden, setPrefs } = usePrefs();
 	const roles: Role[] = ["none", ...ROLES];
+	// The mark: the active project sets this value, and it replaces the one below.
+	const marked = (key: Overridable, control: React.ReactNode) => (
+		<span className="flex items-center gap-2">
+			{overridden.includes(key) ? <StatusDot status="info" label={t.projects.overridden} /> : null}
+			{control}
+		</span>
+	);
 	return (
 		<div className="p-4">
 			<Settings
@@ -21,7 +37,8 @@ export function Me() {
 								id: "theme",
 								icon: <SunIcon size={14} />,
 								label: t.prefs.theme,
-								control: (
+								control: marked(
+									"theme",
 									<Select
 										label={t.prefs.theme}
 										value={theme}
@@ -31,7 +48,7 @@ export function Me() {
 											{ value: "dark", label: t.theme.dark },
 											{ value: "system", label: t.theme.system },
 										]}
-									/>
+									/>,
 								),
 							},
 							{
@@ -67,7 +84,8 @@ export function Me() {
 								id: "density",
 								icon: <Cog6ToothIcon size={14} />,
 								label: t.prefs.compact,
-								control: (
+								control: marked(
+									"density",
 									<Switch
 										label={t.prefs.compact}
 										iconOnly
@@ -75,14 +93,15 @@ export function Me() {
 										onCheckedChange={(c) =>
 											setPrefs({ density: (c ? "compact" : "default") satisfies Density })
 										}
-									/>
+									/>,
 								),
 							},
 							{
 								id: "contrast",
 								icon: <ComputerDesktopIcon size={14} />,
 								label: t.prefs.contrast,
-								control: (
+								control: marked(
+									"contrast",
 									<Switch
 										label={t.prefs.contrast}
 										iconOnly
@@ -90,7 +109,7 @@ export function Me() {
 										onCheckedChange={(c) =>
 											setPrefs({ contrast: (c ? "high" : "default") satisfies Contrast })
 										}
-									/>
+									/>,
 								),
 							},
 						],

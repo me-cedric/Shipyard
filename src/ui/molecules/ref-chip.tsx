@@ -38,13 +38,16 @@ export function RefChip({
 	const { t } = useI18n();
 	const kind = refId.split(":")[0] ?? "";
 	const stateLabel = t.ref[state];
+	// The ref holds the kind. The name adds the title, then the state.
+	const name = [refId, title, stateLabel].filter(Boolean).join(", ");
 	return (
 		<Tooltip label={title ? `${title} · ${stateLabel}` : stateLabel}>
 			<button
 				type="button"
 				data-state={state}
-				aria-label={`${refId}, ${stateLabel}`}
-				onClick={() => onOpen?.(refId)}
+				aria-label={name}
+				// An unresolved chip has no entity to open.
+				onClick={() => state !== "unresolved" && onOpen?.(refId)}
 				className={cn(
 					"inline-flex h-5 items-center gap-1.5 rounded-sm border border-n-7 bg-n-2 px-1.5 font-mono text-11 text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-4",
 					className,

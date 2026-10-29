@@ -1,9 +1,18 @@
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import {
+	createContext,
+	type ReactNode,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
+import { commands, type Lang, unwrap } from "@/lib/ipc";
 import { en, type Messages } from "./en";
 import { fr } from "./fr";
 
-export type Lang = "en" | "fr";
-const KEY = "shipyard.lang";
+export type { Lang };
+
 const catalogues: Record<Lang, Messages> = { en, fr };
 
 /** Replace each `{name}` with the value of `vars.name`. */
@@ -11,24 +20,36 @@ export function format(template: string, vars: Record<string, string | number>):
 	return template.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m));
 }
 
-function initialLang(): Lang {
-	const stored = localStorage.getItem(KEY);
-	if (stored === "en" || stored === "fr") return stored;
-	return navigator.language.toLowerCase().startsWith("fr") ? "fr" : "en";
-}
+const systemLang = (): Lang => (navigator.language.toLowerCase().startsWith("fr") ? "fr" : "en");
 
-type Ctx = { t: Messages; lang: Lang; setLang: (lang: Lang) => void };
+type Ctx = { t: Messages; lang: Lang; setLang: (lang: Lang) => void; loaded: boolean };
 const I18nContext = createContext<Ctx | null>(null);
 
+/** The language lives in the preferences of the app data folder. The system language is the default. */
 export function I18nProvider({ children }: { children: ReactNode }) {
-	const [lang, setLang] = useState<Lang>(initialLang);
+	const [lang, setLangState] = useState<Lang>(systemLang);
+	const [loaded, setLoaded] = useState(false);
+
+	useEffect(() => {
+		unwrap(commands.prefsGet())
+			.then((p) => p.lang && setLangState(p.lang))
+			.catch((e) => console.error(e))
+			.finally(() => setLoaded(true));
+	}, []);
 
 	useEffect(() => {
 		document.documentElement.lang = lang;
-		localStorage.setItem(KEY, lang);
 	}, [lang]);
 
-	const value = useMemo(() => ({ t: catalogues[lang], lang, setLang }), [lang]);
+	const setLang = useCallback((next: Lang) => {
+		setLangState(next);
+		unwrap(commands.prefsSet({ lang: next })).catch((e) => console.error(e));
+	}, []);
+
+	const value = useMemo(
+		() => ({ t: catalogues[lang], lang, setLang, loaded }),
+		[lang, setLang, loaded],
+	);
 	return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 

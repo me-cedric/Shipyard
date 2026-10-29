@@ -13,6 +13,7 @@ export { InboxIcon } from "./inbox";
 export { LanguageIcon } from "./language";
 export { MagnifyingGlassIcon } from "./magnifying-glass";
 export { MoonIcon } from "./moon";
+export { ArrowDownTrayIcon, FolderOpenIcon, PlusIcon } from "./outline";
 export { SunIcon } from "./sun";
 export { SwatchIcon } from "./swatch";
 export { ViewColumnsIcon } from "./view-columns";

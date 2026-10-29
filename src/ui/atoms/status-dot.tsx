@@ -42,13 +42,22 @@ const SHAPES: Record<Status, { shape: string; color: string; node: React.ReactNo
 	},
 };
 
-export function StatusDot({ status, className }: { status: Status; className?: string }) {
+export function StatusDot({
+	status,
+	label,
+	className,
+}: {
+	status: Status;
+	/** Replaces the generic name of the status. */
+	label?: string;
+	className?: string;
+}) {
 	const { t } = useI18n();
 	const s = SHAPES[status];
 	return (
 		<svg
 			role="img"
-			aria-label={t.status[status]}
+			aria-label={label ?? t.status[status]}
 			data-shape={s.shape}
 			viewBox="0 0 10 10"
 			className={cn(

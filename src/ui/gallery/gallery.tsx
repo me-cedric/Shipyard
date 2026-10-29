@@ -23,8 +23,11 @@ import {
 	MoonIcon,
 	SunIcon,
 } from "../icons";
+import { BacklinkList } from "../molecules/backlink-list";
 import { EmptyState } from "../molecules/empty-state";
 import { FilterBar } from "../molecules/filter-bar";
+import { FindingRow } from "../molecules/finding-row";
+import { ProjectSwitcher } from "../molecules/project-switcher";
 import { RefChip } from "../molecules/ref-chip";
 import { SettingsRow } from "../molecules/settings-row";
 import { CommandPalette } from "../organisms/command-palette";
@@ -168,12 +171,54 @@ function Molecules() {
 	const { t } = useI18n();
 	const [query, setQuery] = useState("");
 	const [active, setActive] = useState<string[]>([]);
+	const [project, setProject] = useState("alpha");
+	const noop = () => {};
 	return (
 		<div>
 			<Row name="RefChip">
 				<RefChip refId="wi:KEY-1" state="resolved" title="KEY-1" />
 				<RefChip refId="spec:auth" state="unresolved" />
 				<RefChip refId="adr:0009" state="broken" />
+			</Row>
+			<Row name="BacklinkList">
+				<div className="w-72">
+					<BacklinkList
+						groups={[
+							{
+								kind: "spec",
+								items: [{ ref: "spec:auth", title: "Spec: auth" }, { ref: "spec:billing" }],
+							},
+							{ kind: "change", items: [{ ref: "change:add-auth" }] },
+						]}
+						onOpen={noop}
+					/>
+				</div>
+				<div className="w-72">
+					<BacklinkList groups={[]} onOpen={noop} />
+				</div>
+			</Row>
+			<Row name="ProjectSwitcher">
+				<ProjectSwitcher
+					value={project}
+					onChange={setProject}
+					projects={[
+						{ id: "alpha", name: "Alpha", state: "clean" },
+						{ id: "beta", name: "Beta", state: "changed" },
+						{ id: "gamma", name: "Gamma", state: "behind" },
+						{ id: "delta", name: "Delta", state: "ahead" },
+						{ id: "eps", name: "Epsilon", state: "missing" },
+					]}
+				/>
+			</Row>
+			<Row name="FindingRow">
+				<div className="w-full max-w-xl">
+					<FindingRow
+						status="warning"
+						title="Broken ref adr:0009"
+						source={<RefChip refId="spec:auth" state="resolved" />}
+						action={{ label: t.common.open, onClick: noop }}
+					/>
+				</div>
 			</Row>
 			<Row name="SettingsRow">
 				<div className="w-96">
