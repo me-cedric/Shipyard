@@ -121,6 +121,9 @@ describe("project switcher", () => {
 		const switcher = await screen.findByRole("combobox", { name: "Project" });
 		switcher.focus();
 		await user.keyboard("{Enter}");
+		// The list loads after it opens: keys sent before the options exist are lost.
+		await screen.findByRole("option", { name: /alpha/ });
+		await screen.findByRole("option", { name: /beta/ });
 		await user.keyboard("{ArrowUp}{Enter}");
 		await waitFor(async () =>
 			expect((await unwrap(commands.projectsActive()))?.name).toBe("alpha"),
