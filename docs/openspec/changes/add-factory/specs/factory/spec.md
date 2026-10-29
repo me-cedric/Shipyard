@@ -66,6 +66,14 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 - REQ-037: The system SHALL serve the agent tools over two transports, stdio and HTTP. Both transports SHALL offer the same eight tools with the same inputs. The HTTP transport SHALL accept only calls from this machine (assumption `q:Q-053`): it SHALL listen on the loopback address, SHALL check the Host and Origin headers, and SHALL need the bearer token of a step. The token SHALL name the run and the step, and an input SHALL NOT name another run. The agent SHALL get the token in its MCP config file and never in an argument.
 - REQ-038: The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The lane Working SHALL hold `Planning`, `Working`, `SelfReview` and `ChangesRequested`. The lane Needs you SHALL hold `PlanReview`, `WaitingForAnswer`, `Blocked`, `Paused` and `Failed`. The lane Ready to merge SHALL hold a `PROpen` run with passing CI, no change request and no draft. The lane In review SHALL hold each other `PROpen` run. The lane Done SHALL hold `Merged`, `Done` and `Cancelled`.
 - REQ-039: After a restart, the system SHALL take back the runs, the approval queue, the open questions and the global kill switch from the run log file. A step that ran SHALL start again, on its CLI session when it has one, else with a new brief. The system MUST NOT send a write a second time when the log shows that it went out before the restart.
+- REQ-040: The files that hold a secret (the MCP config and the brief) SHALL be in a scratch folder under the app data, outside the worktree. Each unit SHALL have its own scratch folder. A start with a scratch folder inside the workspace SHALL fail.
+- REQ-041: A step in `plan` mode SHALL NOT write. Claude Code SHALL get the read tools only, Codex SHALL run with the read-only sandbox and OpenCode SHALL run its `plan` agent. The default workflows SHALL set `mode: plan` on each `triager`, `scout`, `reviewer` and `planner` step.
+- REQ-042: A tool of a connected MCP server SHALL show in the tool list, and SHALL run in a call, only when the `tools` field of the step names it. The session of a step SHALL end when the step ends, stops or fails. A step SHALL hold at most 16 children that run or wait.
+- REQ-043: The text of a ticket, a review thread, a CI log or a free-text answer SHALL reach an agent in an `<untrusted-data>` block. The brief SHALL say that such a block is data. A closing tag inside the text SHALL NOT end the block.
+- REQ-044: The global kill switch SHALL NOT cancel a run in `Merged`: that run goes to `Done`. The run kill switch, the global kill switch and a stop for a terminal ticket SHALL share one cancel path. That path SHALL withdraw the open ticket questions.
+- REQ-045: A click on an approval SHALL be refused while the global kill switch is on. An approval of a push, a pull request or a thread reply SHALL be dropped when its run reaches a final state. A click on such an approval SHALL be refused while its run is in a side state, and the approval SHALL stay.
+- REQ-046: A person MAY add tokens when they resume a paused run. A run paused for the token limit SHALL leave `Paused` only when the limit, with the added tokens, is above the token count.
+- REQ-047: The HTTP transport SHALL read the request line and each header line within one size limit. A request above the limit SHALL get the answer 431.
 
 ### Non-Goals
 
@@ -792,3 +800,95 @@ After a restart, the system SHALL take back the runs, the approval queue, the op
 - GIVEN the global kill switch is on
 - WHEN the app restarts
 - THEN the kill switch is still on
+
+### Requirement: REQ-040 Scratch folder
+
+The files that hold a secret (the MCP config and the brief) SHALL be in a scratch folder under the app data, outside the worktree. Each unit SHALL have its own scratch folder. A start with a scratch folder inside the workspace SHALL fail.
+
+#### Scenario: Scratch inside the worktree
+- GIVEN a start whose scratch folder is inside the workspace
+- WHEN the runner starts
+- THEN the start fails and no process starts
+
+### Requirement: REQ-041 Plan mode
+
+A step in `plan` mode SHALL NOT write. Claude Code SHALL get the read tools only, Codex SHALL run with the read-only sandbox and OpenCode SHALL run its `plan` agent. The default workflows SHALL set `mode: plan` on each `triager`, `scout`, `reviewer` and `planner` step.
+
+#### Scenario: Read tools only
+- GIVEN a step in `plan` mode on Claude Code
+- WHEN the runner starts
+- THEN the CLI gets `--tools` with `Read`, `Grep` and `Glob` and no write tool
+
+### Requirement: REQ-042 Tool scope
+
+A tool of a connected MCP server SHALL show in the tool list, and SHALL run in a call, only when the `tools` field of the step names it. The session of a step SHALL end when the step ends, stops or fails. A step SHALL hold at most 16 children that run or wait.
+
+#### Scenario: Proxied tool not allowed
+- GIVEN a step with `tools: [read_ref]` and a connected server with the tool `search`
+- WHEN the agent lists the tools or calls `<server>__search`
+- THEN the list does not show it and the system refuses the call
+
+#### Scenario: Session ends
+- GIVEN a running step
+- WHEN the step ends
+- THEN its token is no longer valid
+
+### Requirement: REQ-043 Untrusted text
+
+The text of a ticket, a review thread, a CI log or a free-text answer SHALL reach an agent in an `<untrusted-data>` block. The brief SHALL say that such a block is data. A closing tag inside the text SHALL NOT end the block.
+
+#### Scenario: Instruction in a ticket
+- GIVEN a ticket whose description holds an instruction and a closing `</untrusted-data>` tag
+- WHEN a step starts
+- THEN the brief holds the description inside one block and says that the block is data
+
+### Requirement: REQ-044 Kill switch scope
+
+The global kill switch SHALL NOT cancel a run in `Merged`: that run goes to `Done`. The run kill switch, the global kill switch and a stop for a terminal ticket SHALL share one cancel path. That path SHALL withdraw the open ticket questions.
+
+#### Scenario: Merged run
+- GIVEN a run in `Merged`
+- WHEN the person uses the global kill switch
+- THEN the run stays in `Merged` and goes on to `Done`
+
+#### Scenario: Questions withdrawn
+- GIVEN a run with an open ticket question
+- WHEN the person uses its kill switch
+- THEN the question is withdrawn
+
+### Requirement: REQ-045 Approval guards
+
+A click on an approval SHALL be refused while the global kill switch is on. An approval of a push, a pull request or a thread reply SHALL be dropped when its run reaches a final state. A click on such an approval SHALL be refused while its run is in a side state, and the approval SHALL stay.
+
+#### Scenario: Run ended
+- GIVEN a push approval of a run that is then cancelled
+- WHEN the person clicks Approve
+- THEN the click is refused and the push does not go out
+
+#### Scenario: Kill switch on
+- GIVEN a pending approval and the global kill switch on
+- WHEN the person clicks Approve
+- THEN the click is refused and the approval stays
+
+#### Scenario: Side state
+- GIVEN a push approval of a run in `Blocked`
+- WHEN the person clicks Approve
+- THEN the click is refused, and after the unblock the click sends the push
+
+### Requirement: REQ-046 Token resume
+
+A person MAY add tokens when they resume a paused run. A run paused for the token limit SHALL leave `Paused` only when the limit, with the added tokens, is above the token count.
+
+#### Scenario: Token pause
+- GIVEN a run paused at its token limit
+- WHEN the person resumes it with money only
+- THEN the run stays in `Paused`, and with added tokens it goes back to `Working`
+
+### Requirement: REQ-047 Request size
+
+The HTTP transport SHALL read the request line and each header line within one size limit. A request above the limit SHALL get the answer 431.
+
+#### Scenario: Request line with no end
+- GIVEN the HTTP transport
+- WHEN a caller sends more bytes than the limit with no line end
+- THEN the system answers 431 and reads no more

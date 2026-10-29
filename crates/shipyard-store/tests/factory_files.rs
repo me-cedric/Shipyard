@@ -1,9 +1,7 @@
 //! The default workflows and roles, the seed and the reload with the last valid version (spec
 //! `factory`, REQ-010, REQ-011, REQ-014, REQ-035).
 
-use shipyard_core::workflow::{
-    Action, DEFAULT_ROLES, Effort, Gate, Mode, Workflow, Workspace,
-};
+use shipyard_core::workflow::{Action, DEFAULT_ROLES, Effort, Gate, Mode, Workflow, Workspace};
 use shipyard_store::factory_files::{
     Loaded, ROLES_DIR, WORKFLOWS_DIR, default_roles, default_workflows, load, parse_role, seed,
 };

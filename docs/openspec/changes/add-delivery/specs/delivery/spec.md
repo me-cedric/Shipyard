@@ -56,6 +56,9 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - REQ-027: When `add-code` gives an impacts digest, the pull request body SHALL include it as one section.
 - REQ-028: The system SHALL expose each pull request as a `pr:<forge>:<number>` entity. The entity SHALL show state, CI state and review state. The mirror of `sync` SHALL stay the source for reads.
 - REQ-029: The run cards in In review and Ready to merge SHALL show the `pr:` ref, CI state and review state. Status SHALL use shape and colour together. Delivery SHALL add no primary action to Factory / Runs. Each delivery view SHALL follow the interface rules of the constitution. It SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. It SHALL have a keyboard path, a focus ring, assistive labels, contrast and reduced motion. It SHALL show French and English text.
+- REQ-030: A P0 or P1 finding with no citation, or with an unknown severity, SHALL block the run. Only a finding with a bad citation SHALL be dropped. A review that ends with no usable finding and an outcome other than `done` SHALL block the run.
+- REQ-031: A title, a body, a comment or a summary that Shipyard posts to a tracker or a forge SHALL hold no AI attribution line and no mention that notifies a person. An attribution line is a `Co-Authored-By` line, a line with `generated with`, or the robot sign.
+- REQ-032: The lookup of the pull request of a branch SHALL return an open pull request or none. A merged or a closed pull request SHALL NOT be a target for a push or a thread reply.
 
 ### Non-Goals
 
@@ -476,3 +479,35 @@ The run cards in In review and Ready to merge SHALL show the `pr:` ref, CI state
 - GIVEN a run with failing CI
 - WHEN the card shows the CI state
 - THEN the state has a shape and a colour and an assistive label
+
+### Requirement: REQ-030 Closed review
+
+A P0 or P1 finding with no citation, or with an unknown severity, SHALL block the run. Only a finding with a bad citation SHALL be dropped. A review that ends with no usable finding and an outcome other than `done` SHALL block the run.
+
+#### Scenario: Uncited finding
+- GIVEN a review that reports one P1 finding with no path and no line
+- WHEN the report ends
+- THEN the finding blocks and the run goes to a fix round
+
+#### Scenario: No usable finding
+- GIVEN a review whose only finding cites a line that does not exist, and an outcome that is not `done`
+- WHEN the report ends
+- THEN the run goes to a fix round
+
+### Requirement: REQ-031 Outgoing text
+
+A title, a body, a comment or a summary that Shipyard posts to a tracker or a forge SHALL hold no AI attribution line and no mention that notifies a person. An attribution line is a `Co-Authored-By` line, a line with `generated with`, or the robot sign.
+
+#### Scenario: Mention in a title
+- GIVEN a ticket title with `@bob` and the robot sign
+- WHEN the pull request opens
+- THEN the title and the body hold no working mention and no robot sign
+
+### Requirement: REQ-032 Open pull request lookup
+
+The lookup of the pull request of a branch SHALL return an open pull request or none. A merged or a closed pull request SHALL NOT be a target for a push or a thread reply.
+
+#### Scenario: Closed only
+- GIVEN a branch with one closed pull request
+- WHEN the system looks for its pull request
+- THEN the answer is none
