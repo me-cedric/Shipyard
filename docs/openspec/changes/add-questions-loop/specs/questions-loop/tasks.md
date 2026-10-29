@@ -26,7 +26,7 @@ Plan: [plan.md](./plan.md)
 - [ ] T012 Write view tests in `src/features/home/inbox/question-card.test.tsx`. Covers REQ-008, REQ-011, REQ-015, REQ-021.
 - [ ] T013 Implement the QuestionCard and the fold preview in `src/features/home/inbox/`. Covers REQ-008, REQ-011, REQ-015, REQ-020, REQ-021.
 - [ ] T014 [P] Add French and English keys in `src/i18n/` for `questions`. Covers REQ-021.
-- [ ] T015 Write the end-to-end test in `e2e/questions-loop.spec.ts`. Covers REQ-004, REQ-008, REQ-009, REQ-017.
+- [x] T015 Write the end-to-end test in `e2e/questions-loop.spec.ts`. Covers REQ-004, REQ-008, REQ-009, REQ-017.
 - [ ] T016 [P] Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
 - [ ] T017 Run the validation commands from `plan.md`.
 - [ ] T018 Compare the code with `spec.md` and update stale artifacts.

@@ -39,7 +39,7 @@ Plan: [plan.md](./plan.md)
 - [ ] T019 Write view and Settings control tests in `src/features/factory/factory.test.tsx`. Covers the Settings controls of REQ-008 and REQ-025, and REQ-027, REQ-038, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033.
 - [ ] T020 Implement the six views in `src/features/factory/`. Covers the Settings controls of REQ-008 and REQ-025, and REQ-027, REQ-038, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-034.
 - [ ] T021 [P] Add French and English keys in `src/i18n/` for `factory`. Covers REQ-033.
-- [ ] T022 Write the end-to-end test in `e2e/factory.spec.ts`. Covers REQ-003, REQ-024, REQ-026, REQ-027, REQ-028.
+- [x] T022 Write the end-to-end test in `e2e/factory.spec.ts`. Covers REQ-003, REQ-024, REQ-026, REQ-027, REQ-028.
 - [ ] T023 [P] Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
 - [ ] T024 Run the validation commands from `plan.md`.
 - [ ] T025 Compare the code with `spec.md` and update stale artifacts.
