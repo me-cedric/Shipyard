@@ -21,14 +21,14 @@ Plan: [plan.md](./plan.md)
 - [x] T008 Implement backlinks, search and check in `crates/shipyard-store/src/ref_query.rs`. Covers REQ-007, REQ-008, REQ-009, REQ-010.
 - [x] T009 Write a `read_ref` test with a fake index in `crates/shipyard-mcp/tests/read_ref.rs`. Covers REQ-014.
 - [x] T010 Implement `read_ref` in `crates/shipyard-mcp/src/tools/read_ref.rs`. Covers REQ-014.
-- [ ] T011 Add the IPC commands in `crates/shipyard-app/src/refs.rs`, then regenerate the bindings with the project command. Covers REQ-006 to REQ-010.
-- [ ] T012 Write RefChip and BacklinkList tests in `src/features/refs/refs.test.tsx`. Covers REQ-007, REQ-011, REQ-012, REQ-013.
-- [ ] T013 Implement RefChip behaviour and BacklinkList in `src/features/refs/`. Covers REQ-007, REQ-011, REQ-012, REQ-013.
-- [ ] T014 [P] Add French and English keys in `src/i18n/` for `refs`. Covers REQ-013.
-- [ ] T015 Write the end-to-end test in `e2e/refs.spec.ts`. Covers REQ-007, REQ-008, REQ-011.
-- [ ] T016 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
-- [ ] T017 Run the validation commands from `plan.md`.
-- [ ] T018 Compare the code with `spec.md` and update stale artifacts.
+- [x] T011 Add the IPC commands in `crates/shipyard-app/src/commands/refs.rs`, then regenerate the bindings with the project command. Covers REQ-006 to REQ-010.
+- [x] T012 Write RefChip and BacklinkList tests in `src/features/shell/refs.test.tsx` and `src/ui/molecules/backlink-list.test.tsx`. Covers REQ-007, REQ-011, REQ-012, REQ-013.
+- [x] T013 Implement RefChip behaviour and BacklinkList in `src/ui/molecules/`, and the inspector content in `src/features/shell/ref-detail.tsx`. Covers REQ-007, REQ-011, REQ-012, REQ-013.
+- [x] T014 [P] Add French and English keys in `src/lib/i18n/` for `refs`. Covers REQ-013.
+- [x] T015 Write the end-to-end test in `e2e/projects.spec.ts` (palette search and backlinks). Covers REQ-007, REQ-008, REQ-011.
+- [x] T016 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
+- [x] T017 Run the validation commands from `plan.md`.
+- [x] T018 Compare the code with `spec.md` and update stale artifacts.
 
 ## Completion Check
 

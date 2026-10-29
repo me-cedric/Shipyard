@@ -142,7 +142,7 @@ The system SHALL open a local folder that holds a Git repository as a project. W
 
 ### Requirement: REQ-003 Clone a remote repository
 
-The system SHALL clone a remote repository into a folder that the person picks. It SHALL use the credentials of a connection. [NEEDS CLARIFICATION: Q-015 Which folder does a clone use by default?] The working assumption is that no default exists.
+The system SHALL clone a remote repository into a new folder inside a folder that the person picks. The new folder takes the name of the repository. It SHALL use the credentials of a connection. [NEEDS CLARIFICATION: Q-015 Which folder does a clone use by default?] The working assumption is that no default exists.
 
 #### Scenario: Clone with a connection
 - GIVEN a forge connection with access to the repository
