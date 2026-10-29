@@ -123,6 +123,34 @@ fn stage_and_unstage_files_folders_deletions() {
 }
 
 #[test]
+fn stage_and_unstage_match_paths_literally() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    commit(&r, "keep.txt", "1\n", "chore: keep");
+    write(&r, "a.txt", "a\n");
+    write(&r, "b.txt", "b\n");
+    write(&r, "c[1].txt", "c\n");
+    r.stage(&[s("*.txt")]).unwrap();
+    assert!(r.status().unwrap().staged.is_empty());
+    r.stage(&[s("c[1].txt")]).unwrap();
+    assert_eq!(r.status().unwrap().staged.len(), 1);
+    r.stage(&[s("a.txt"), s("b.txt")]).unwrap();
+    r.unstage(&[s("*.txt")]).unwrap();
+    assert_eq!(r.status().unwrap().staged.len(), 3);
+    r.unstage(&[s("c[1].txt")]).unwrap();
+    let st = r.status().unwrap();
+    assert_eq!(st.staged.len(), 2);
+    assert_eq!(st.untracked.len(), 1);
+    // A staged edit of a committed file goes back to the committed content.
+    write(&r, "keep.txt", "2\n");
+    r.stage(&[s("keep.txt")]).unwrap();
+    r.unstage(&[s("keep.txt")]).unwrap();
+    let st = r.status().unwrap();
+    assert_eq!(st.unstaged.len(), 1);
+    assert_eq!(st.unstaged[0].path, "keep.txt");
+}
+
+#[test]
 fn stage_and_unstage_before_the_first_commit() {
     let tmp = TempDir::new().unwrap();
     let r = init(tmp.path());
@@ -859,9 +887,15 @@ fn taking_a_side_replaces_a_link_and_keeps_the_index_mode() {
     assert!(fs::read_to_string(&f).unwrap().contains("t2\n"));
 
     // A link in a parent folder is refused.
-    let (_t, r) = two_block_merge();
-    let dir = TempDir::new().unwrap();
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
     commit(&r, "sub/g.txt", "1\n", "chore: g");
+    r.create_branch("other").unwrap();
+    commit(&r, "sub/g.txt", "2\n", "fix: other");
+    r.switch_branch("main").unwrap();
+    commit(&r, "sub/g.txt", "3\n", "fix: main");
+    merge_other(&r);
+    let dir = TempDir::new().unwrap();
     fs::remove_dir_all(r.workdir().join("sub")).unwrap();
     symlink(dir.path(), r.workdir().join("sub")).unwrap();
     assert!(r.resolve_side("sub/g.txt", Side::Ours).is_err());

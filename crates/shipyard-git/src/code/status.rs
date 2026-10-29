@@ -1,5 +1,7 @@
 //! Status: staged, unstaged, untracked and conflicted files (REQ-001, REQ-003).
 
+use std::path::Path;
+
 use git2::{Delta, Status, StatusOptions};
 use serde::Serialize;
 use specta::Type;
@@ -67,6 +69,14 @@ fn state_of(d: Delta) -> FileState {
 
 fn path_of(f: git2::DiffFile<'_>) -> Option<String> {
     f.path().map(|p| p.to_string_lossy().replace('\\', "/"))
+}
+
+/// Literal match: `p` is one of `paths` or is under one of them. No glob; `.` is the whole tree.
+fn under(paths: &[String], p: &str) -> bool {
+    paths.iter().any(|d| {
+        let d = d.trim_start_matches("./").trim_end_matches('/');
+        matches!(d, "" | ".") || p == d || p.strip_prefix(d).is_some_and(|r| r.starts_with('/'))
+    })
 }
 
 impl Repo {
@@ -140,21 +150,64 @@ impl Repo {
     }
 
     /// Stage files or folders: additions, edits and deletions. Staging a conflicted file marks it resolved.
+    /// The match is literal: a file, or a folder and what is under it. No glob.
     pub fn stage(&self, paths: &[String]) -> Result<()> {
         super::check_paths(paths)?;
+        let st = self.status()?;
         let mut index = self.repo.index()?;
-        index.add_all(paths, git2::IndexAddOption::DEFAULT, None)?;
-        index.update_all(paths, None)?;
+        for f in [&st.unstaged, &st.untracked, &st.conflicted]
+            .into_iter()
+            .flatten()
+            .filter(|f| under(paths, &f.path))
+        {
+            if let Some(old) = &f.old_path {
+                index.remove_path(Path::new(old)).ok();
+            }
+            let p = Path::new(&f.path);
+            if std::fs::symlink_metadata(self.workdir().join(p)).is_ok() {
+                index.add_path(p)?;
+            } else {
+                index.remove_path(p).ok();
+                index.conflict_remove(p).ok();
+            }
+        }
         index.write()?;
         Ok(())
     }
 
-    /// Unstage files or folders. The working copy keeps its edits.
+    /// Unstage files or folders. The working copy keeps its edits. Literal match, like `stage`.
     pub fn unstage(&self, paths: &[String]) -> Result<()> {
         super::check_paths(paths)?;
-        let head = self.repo.head().ok().and_then(|h| h.peel_to_commit().ok());
-        let target = head.as_ref().map(|c| c.as_object());
-        self.repo.reset_default(target, paths)?;
+        let tree = self
+            .repo
+            .head()
+            .ok()
+            .and_then(|h| h.peel_to_tree().ok());
+        let mut index = self.repo.index()?;
+        for f in self.status()?.staged.iter().filter(|f| under(paths, &f.path)) {
+            // A rename also brings the old path back.
+            for p in f.old_path.iter().chain([&f.path]) {
+                let p = Path::new(p);
+                match tree.as_ref().and_then(|t| t.get_path(p).ok()) {
+                    Some(e) => index.add(&git2::IndexEntry {
+                        ctime: git2::IndexTime::new(0, 0),
+                        mtime: git2::IndexTime::new(0, 0),
+                        dev: 0,
+                        ino: 0,
+                        mode: e.filemode() as u32,
+                        uid: 0,
+                        gid: 0,
+                        file_size: 0,
+                        id: e.id(),
+                        flags: 0,
+                        flags_extended: 0,
+                        path: p.to_string_lossy().into_owned().into_bytes(),
+                    })?,
+                    None => index.remove_path(p)?,
+                }
+            }
+        }
+        index.write()?;
         Ok(())
     }
 
@@ -164,13 +217,7 @@ impl Repo {
     /// confirms with a person first (REQ-004).
     pub fn discard(&self, paths: &[String], untracked: bool) -> Result<()> {
         super::check_paths(paths)?;
-        // The match is literal: a file, or a folder and what is under it. No glob.
-        let hit = |p: &str| {
-            paths.iter().any(|d| {
-                let d = d.trim_end_matches('/');
-                p == d || p.strip_prefix(d).is_some_and(|r| r.starts_with('/'))
-            })
-        };
+        let hit = |p: &str| under(paths, p);
         let st = self.status()?;
         let mut restore = Vec::new();
         let mut delete = Vec::new();
