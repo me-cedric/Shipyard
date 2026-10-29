@@ -6,6 +6,7 @@ pub mod gherkin;
 pub mod health;
 pub mod pickup;
 pub mod project;
+pub mod question;
 pub mod refs;
 pub mod run;
 pub mod specs;
