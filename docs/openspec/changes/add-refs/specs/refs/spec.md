@@ -83,12 +83,17 @@ Legacy pages connect only through a staleness graph. A person cannot see which s
 
 ### Requirement: REQ-001 Ref grammar
 
-The system SHALL define one ref form for each entity kind: `project:<id>`, `member:<handle>`, `diagram:<slug>`, `model:<slug>`, `adr:NNNN`, `api:<slug>`, `data:<slug>`, `flow:<slug>`, `screen:<slug>`, `change:<id>`, `spec:<capability>`, `spec:<capability>#REQ-NNN`, `test:<slug>`, `q:Q-NNN`, `wi:<KEY-N>`, `est:<slug>`, `wf:<id>`, `run:<ulid>`, `run:<ulid>/<step-id>`, `pr:<forge>:<number>`, `commit:<sha>`, `doc:<path>` and `conn:<id>`.
+The system SHALL define one ref form for each entity kind: `project:<id>`, `member:<handle>`, `diagram:<slug>`, `model:<slug>`, `adr:NNNN`, `api:<slug>`, `data:<slug>`, `flow:<slug>`, `screen:<slug>`, `change:<id>`, `spec:<capability>`, `spec:<capability>#REQ-NNN`, `test:<slug>`, `q:Q-NNN`, `wi:<KEY-N>`, `est:<slug>`, `est:<slug>#<row-id>`, `wf:<id>`, `run:<ulid>`, `run:<ulid>/<step-id>`, `pr:<forge>:<number>`, `commit:<sha>`, `doc:<path>` and `conn:<id>`.
 
 #### Scenario: Valid form of each kind
 - GIVEN the ref grammar
 - WHEN a test parses `adr:0004`, `q:Q-012`, `wi:SHIP-42`, `pr:github:42` and `spec:auth#REQ-003`
 - THEN each ref parses to its kind and its parts
+
+#### Scenario: Row of an estimate sheet
+- GIVEN the ref grammar
+- WHEN a test parses `est:auth#r3`
+- THEN the ref parses as the row `r3` of the sheet `auth`
 
 #### Scenario: Two forms for one kind
 - GIVEN the kinds `spec` and `run`

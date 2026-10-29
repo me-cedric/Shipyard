@@ -9,7 +9,7 @@ Shipyard needs one Code space with one commit action and one sync action, and li
 
 - Add Code / Changes: the working copy as a folder tree, staged and unstaged diffs, stage, unstage and discard per file, folder or selection, conflict resolution, stash.
 - Add the one commit action in the status bar, with a conventional commit message in two fields.
-- Add Code / History and Code / Branches: the log, the working branch selector, create (named `<type>/<subject>`), switch, delete.
+- Add Code / History and Code / Branches: the log, the working branch selector, create (named `<type>/<area>/<kebab>`), switch, delete.
 - Add the remote watch: Shipyard fetches the remote heads in the background and notifies when a colleague pushed. It never writes the working copy.
 - Add Code / Pull requests: list, description, files, commits, CI checks, conversation, verdicts; open, comment, approve, request changes, merge.
 - Add Code / Quality: QA and security scanner results.

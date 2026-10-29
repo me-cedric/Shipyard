@@ -27,9 +27,9 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 
 ### Requirements
 
-- REQ-001: The system SHALL show Settings / Agents and rules with four lists: skills, packs, guides and the contract.
-- REQ-002: The skill list SHALL show the risk level and the write capability of each skill.
-- REQ-003: The system SHALL apply a chosen skill, pack, guide or the contract to the project through `ac sync`.
+- REQ-001: Settings / Agents and rules SHALL show five lists: skills, packs, guides, patterns and the contract.
+- REQ-002: The skill list SHALL show the risk level and the write capability of each skill. The list SHALL mark each skill that suits the stack of the project. The system SHALL detect the stack from the files of the project.
+- REQ-003: The system SHALL apply a chosen skill, pack, guide, pattern or the contract through `ac sync`.
 - REQ-004: The view SHALL show the pinned compass version and the sync state of each entry: absent, stale or current.
 - REQ-005: The system SHALL NOT change the pinned compass version without a person's action.
 - REQ-006: One action SHALL bring every actionable entry up to date.
@@ -54,10 +54,12 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 - Running plugin code, install hooks and a plugin sandbox.
 - Editing the compass files in the submodule. They are read only.
 - Creating child repositories and opening pull requests in a forge.
+- Running the compass Node helpers on the working copy (Legacy Doctor Outillage). `add-projects` REQ-018 owns it in Settings / Health.
+- A catalog repository setting. The catalog comes from the pinned compass version (ADR 0010), so one source keeps the pin reproducible.
 
 ### Acceptance Criteria
 
-- [ ] Settings / Agents and rules shows four lists with counts. A skill shows its risk and write capability.
+- [ ] Settings / Agents and rules shows five lists with counts. A skill shows its risk and write capability.
 - [ ] An apply writes through `ac sync` and keeps each existing file.
 - [ ] The view shows the pinned version and the sync state, and the state is the same after a clone.
 - [ ] The pinned version does not change without a person's action.
@@ -76,7 +78,7 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 
 ### Links
 
-- Consumes: `add-projects` REQ-006, REQ-008, REQ-011 and REQ-012 (active project, children, Health, fix actions), `add-connections` REQ-006 and REQ-011 (MCP servers, secrets), ADR 0010 (pinned compass).
+- Consumes: `add-projects` REQ-017, REQ-008, REQ-011 and REQ-012 (active project, Health, fix actions), `add-connections` REQ-006 and REQ-011 (MCP servers, secrets), ADR 0010 (pinned compass).
 - Produces: compass rules, roles and skills for `add-factory` (REQ-014) and `add-assistant` (REQ-013), the compass check for `add-projects` Health, catalog components and OpenSpec guidance for child projects.
 
 ### Legacy parity
@@ -84,7 +86,9 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 | Legacy feature | Shipyard view | REQ ids |
 |---|---|---|
 | Compass (skills, packs, guides, contract) | Settings / Agents and rules | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006 |
-| Compass patterns and roles loaded by agents | Settings / Agents and rules | REQ-008 |
+| Compass patterns (instincts) | Settings / Agents and rules | REQ-001, REQ-003 |
+| Roles loaded by agents | Settings / Agents and rules | REQ-008 |
+| Doctor: stack detection that marks suited skills | Settings / Agents and rules | REQ-002 |
 | Catalog | Settings / Extensions | REQ-009, REQ-010 |
 | Plugins | Settings / Extensions | REQ-011, REQ-012, REQ-013, REQ-014 |
 | Child projects | Settings / Extensions | REQ-015, REQ-016 |
@@ -101,12 +105,12 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 
 ### Requirement: REQ-001 Agents and rules view
 
-The system SHALL show Settings / Agents and rules with four lists: skills, packs, guides and the contract. Each list SHALL show a count. The lists SHALL read the compass files that the project pins.
+Settings / Agents and rules SHALL show five lists: skills, packs, guides, patterns and the contract. Each list SHALL show a count. The lists SHALL read the compass files that the project pins. The patterns list SHALL show the instincts of `.agents/instincts/`.
 
 #### Scenario: Open the view
 - GIVEN a project with compass pinned
 - WHEN the person opens Settings / Agents and rules
-- THEN four lists show with a count each
+- THEN five lists show with a count each
 
 #### Scenario: No compass pinned
 - GIVEN a project with no compass pinned
@@ -115,7 +119,7 @@ The system SHALL show Settings / Agents and rules with four lists: skills, packs
 
 ### Requirement: REQ-002 Skill list
 
-The skill list SHALL show the risk level and the write capability of each skill. The person SHALL be able to search the list and to preview the text of a skill before applying it.
+The skill list SHALL show the risk level and the write capability of each skill. The list SHALL mark each skill that suits the stack of the project. The system SHALL detect the stack from the files of the project. The person SHALL be able to search the list and to preview the text of a skill before applying it.
 
 #### Scenario: Search
 - GIVEN the skill list
@@ -129,7 +133,7 @@ The skill list SHALL show the risk level and the write capability of each skill.
 
 ### Requirement: REQ-003 Apply compass entries
 
-The system SHALL apply a chosen skill, pack, guide or the contract to the project through `ac sync`. The system MUST NOT overwrite a file that already exists. It SHALL report each file that it kept.
+The system SHALL apply a chosen skill, pack, guide, pattern or the contract through `ac sync`. The system MUST NOT overwrite a file that already exists. It SHALL report each file that it kept.
 
 #### Scenario: Apply a pack
 - GIVEN a pack that is absent

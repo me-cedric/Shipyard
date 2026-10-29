@@ -40,20 +40,26 @@ Legacy has an assistant drawer with its own runner. It does not know the project
 - REQ-011: Each thread SHALL have its own runner, model and effort.
 - REQ-012: The assistant SHALL use the runner layer of the factory.
 - REQ-013: Each turn SHALL load the compass rules and the skills of the project that the extensions capability gives.
-- REQ-014: A person SHALL be able to send a thread to the factory as a work item.
-- REQ-015: A person SHALL be able to send a thread to the factory as a run.
+- REQ-014: A person SHALL be able to send a thread to the factory as a work item through `add-work` REQ-029.
+- REQ-015: A person SHALL be able to send a thread to the factory as a run. The system SHALL set the label `wf:<id>` on the REQ-014 item and MUST NOT start a run directly.
 - REQ-016: The system SHALL answer an Explain request of the knowledge capability in ask mode.
 - REQ-017: Each reply SHALL offer the actions copy, insert and open a cited ref.
 - REQ-018: The system SHALL tell a quota failure from an error and SHALL say so in one sentence.
 - REQ-019: A project SHALL be able to set the default runner, model, effort and mode of new threads.
 - REQ-020: A secret value MUST NOT appear in a prompt, a runner argument, a thread or a log.
 - REQ-021: The assistant panel SHALL follow the interface rules of the constitution.
+- REQ-022: Each turn SHALL show a trace of its tool calls: tool, target and elapsed time. The trace SHALL collapse to one line when the turn ends. A person SHALL be able to expand it.
+- REQ-023: The panel SHALL show a ring for the share of the context window that the thread uses. The panel SHALL show the quota windows of the account when the runner reports them. The ring and each window SHALL have a text value for assistive tools.
+- REQ-024: When a reply asks a follow-up or lists options, the panel SHALL show one button for each option. A click SHALL send that option as the next turn. The person MAY still type a free answer.
+- REQ-025: The person SHALL be able to resize the width of the panel. The person SHALL be able to choose the left or the right side for it. The system SHALL keep both settings for each person on this machine.
 
 ### Non-Goals
 
 - The factory run engine, workflows and approvals. The `factory` capability owns them.
 - The runner, provider and secret adapters. The `connections` capability owns them.
 - The Explain action on an entity and its view. The `knowledge` capability owns them.
+- A `/` list of ready prompts. The skills of REQ-013 already give the ready actions.
+- A selection toolbar (explain, improve, shorten). REQ-006 sends a selected passage as quoted content, and the person types the verb.
 - Free chat between agents and a runner on another machine.
 - Threads that several people share, and threads in the repository.
 
@@ -71,6 +77,9 @@ Legacy has an assistant drawer with its own runner. It does not know the project
 - [ ] The Explain answer cites refs that resolve.
 - [ ] Copy, insert and open a cited ref work on a reply.
 - [ ] A quota failure shows one sentence and a retry that does not replay edits.
+- [ ] A turn shows a trace that collapses to one line, and the panel shows a context ring and the quota windows.
+- [ ] A reply with options shows one button for each option.
+- [ ] The panel keeps its width and side after a restart.
 - [ ] A project default sets the runner, model, effort and mode of a new thread.
 - [ ] No prompt, argument, thread or log holds a secret value.
 - [ ] The panel works by keyboard, shows a focus ring and assistive labels, and shows French and English.
@@ -78,7 +87,8 @@ Legacy has an assistant drawer with its own runner. It does not know the project
 ### Links
 
 - Consumes: `add-connections` REQ-009, REQ-010 and REQ-011 (runners, providers, secrets), REQ-018 (MCP relay), `add-factory` REQ-014, REQ-015, REQ-022 and REQ-035 (runner layer, budgets, roles), `add-refs` REQ-005, REQ-006, REQ-011 and REQ-014 (context, citations, RefChip), `add-extensions` REQ-008 (rules and skills), `add-projects` REQ-010 (overrides), `add-shell` (panel slot).
-- Produces: threads, the Explain answer for `add-knowledge`, work items through `add-sync` and `add-connections` (tracker), runs through `add-factory`.
+- Consumes also: `add-work` REQ-029 (one work item from a ref).
+- Produces: threads, the Explain answer for `add-knowledge`, work items through `add-work` (REQ-029), runs through the label `wf:<id>` and `add-factory` pickup.
 
 ### Legacy parity
 
@@ -90,6 +100,11 @@ Legacy has an assistant drawer with its own runner. It does not know the project
 | Per-project assistant settings | Settings / Project overrides | REQ-019 |
 | Quota failure and retry | Assistant panel, thread | REQ-018 |
 | Selected passage sent as quoted content | Assistant panel, context | REQ-006 |
+| `/` list of ready prompts; selection toolbar | Non-Goal: skills and quoted content cover them | none |
+| Turn trace | Assistant panel, turn | REQ-022 |
+| Context ring and quota windows | Assistant panel, header | REQ-023 |
+| One-click reply buttons | Assistant panel, reply | REQ-024 |
+| Resizable width and side | Assistant panel | REQ-025 |
 
 ### Existing References
 
@@ -263,7 +278,7 @@ Each turn SHALL load the compass rules and the skills of the project that the ex
 
 ### Requirement: REQ-014 Send to factory as a work item
 
-A person SHALL be able to send a thread to the factory as a work item. The item SHALL hold the summary of the thread and its refs. The tracker SHALL receive the item only after the person confirms it.
+A person SHALL be able to send a thread to the factory as a work item. The item SHALL hold the summary of the thread and its refs. The system SHALL create the item through `add-work` REQ-029, only after the person confirms it.
 
 #### Scenario: Create the item
 - GIVEN a thread with a plan
@@ -277,12 +292,13 @@ A person SHALL be able to send a thread to the factory as a work item. The item 
 
 ### Requirement: REQ-015 Send to factory as a run
 
-A person SHALL be able to send a thread to the factory as a run. The person SHALL pick the workflow. The run SHALL start from the work item of the thread. [NEEDS CLARIFICATION: Q-048 Does a run start without a ticket?]
+A person SHALL be able to send a thread to the factory as a run. The person SHALL pick the workflow. The system SHALL set the label `wf:<id>` on the work item of REQ-014. The factory SHALL then claim the item and start the run (`add-factory` REQ-009). The system MUST NOT start a run directly. [NEEDS CLARIFICATION: Q-048 Does a run start without a ticket?]
 
 #### Scenario: Start a run
 - GIVEN a thread that became a work item
 - WHEN the person picks the workflow `feature`
-- THEN a run appears in Factory / Runs with the thread as its brief
+- THEN the item holds the label `wf:feature`
+- AND a run appears in Factory / Runs after pickup, with the thread as its brief
 
 ### Requirement: REQ-016 Explain answer
 
@@ -367,3 +383,39 @@ The assistant panel SHALL follow the interface rules of the constitution. It SHA
 - GIVEN the system asks for reduced motion
 - WHEN the panel opens
 - THEN the panel shows no motion except an active turn
+
+### Requirement: REQ-022 Turn trace
+
+Each turn SHALL show a trace of its tool calls: tool, target and elapsed time. The trace SHALL collapse to one line when the turn ends. A person SHALL be able to expand it.
+
+#### Scenario: Collapse
+- GIVEN a turn that ran three tool calls
+- WHEN the turn ends
+- THEN the trace shows one line and the person can expand it
+
+### Requirement: REQ-023 Context ring and quota
+
+The panel SHALL show a ring for the share of the context window that the thread uses. The panel SHALL show the quota windows of the account when the runner reports them. The ring and each window SHALL have a text value for assistive tools.
+
+#### Scenario: Ring
+- GIVEN a thread that uses 60 percent of the context window
+- WHEN the person looks at the panel
+- THEN the ring shows 60 percent and its text value says 60 percent
+
+### Requirement: REQ-024 Reply buttons
+
+When a reply asks a follow-up or lists options, the panel SHALL show one button for each option. A click SHALL send that option as the next turn. The person MAY still type a free answer.
+
+#### Scenario: Pick an option
+- GIVEN a reply that lists two options
+- WHEN the person clicks the second button
+- THEN the panel sends the text of that option as the next turn
+
+### Requirement: REQ-025 Panel width and side
+
+The person SHALL be able to resize the width of the panel. The person SHALL be able to choose the left or the right side for it. The system SHALL keep both settings for each person on this machine.
+
+#### Scenario: Move the panel
+- GIVEN the panel on the right side
+- WHEN the person chooses the left side and resizes it
+- THEN the panel stays on the left at that width after a restart

@@ -20,7 +20,7 @@ The codecs for OpenSpec changes, RAID files and Gherkin plans live in `shipyard-
 | RAID codec | One reader and one writer in `shipyard-store`. The writer keeps the nine keys in order and rejects an unknown kind or status. |
 | Gherkin | A parser in `shipyard-core` returns scenarios, steps and cited requirement refs. Coverage is a set difference. |
 | Fold | A text edit under `### Clarifications` in `## Purpose`. It shows a preview and writes only after a click. |
-| Split | The `spec-split` workflow writes a draft file. The reviewed split goes to the `add-work` apply (REQ-025, REQ-026) in `shipyard-trackers`. The apply holds the one match mark (Q-033). |
+| Split | The `spec-split` workflow writes a draft file. The reviewed split goes to the `add-work` apply (REQ-025, REQ-026) in `shipyard-trackers`. The apply holds the one match mark, the row ref `est:<slug>#<row-id>` (Q-033). `add-work` owns the apply code; this change adds no tracker code. |
 | Writes | Atomic write by temp file and rename. A check of the modified time before replace. |
 | Risks | The CLI needs Node and network on first run. Show the finding "validator missing" and keep the editor usable. |
 
@@ -37,7 +37,7 @@ The codecs for OpenSpec changes, RAID files and Gherkin plans live in `shipyard-
 3. Write the validation runner and its finding mapper.
 4. Write the Gherkin parser and the coverage check.
 5. Write the fold edit with its preview.
-6. Write the split model and the draft file in `shipyard-core`. Hand the reviewed split to the `add-work` apply in `shipyard-trackers`. Use a fake tracker in tests.
+6. Write the split model and the draft file in `shipyard-core`. Hand the reviewed split to the `add-work` apply, which lives in `shipyard-trackers`. Depend on `add-work` T010. Use a fake tracker in tests.
 7. Write the archive move and the safe write.
 8. Add the IPC commands. Build the five views with EditorFrame. Add French and English keys.
 

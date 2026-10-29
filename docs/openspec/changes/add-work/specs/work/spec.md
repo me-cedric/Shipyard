@@ -36,7 +36,7 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 - REQ-007: The system SHALL suggest members for an item from skills and capacity. The suggestion SHALL rank the members and SHALL show the reason for each. The suggestion SHALL NOT assign.
 - REQ-008: The PM SHALL be able to mark an item for agent work. Marking SHALL add the pickup label on the tracker. The pickup label SHALL come from `.shipyard/automation.yaml` (default `shipyard`). An item SHALL be eligible for a member's factory only when it is assigned to that member. It SHALL also hold the pickup label. Work SHALL resolve the member through the tracker handles of the team, and `add-sync` SHALL read the result (`add-sync` REQ-006).
 - REQ-009: The system SHALL keep one estimate sheet for each lot as a text file in the repository. The system SHALL expose each sheet as `est:<slug>`. A sheet SHALL hold the features and tasks of its lot with an effort in days.
-- REQ-010: A task effort SHALL be a fixed number of days or a percentage of the build effort. The system SHALL compute the totals from the entries and from the day rates of the members (REQ-003). The system MUST NOT store a computed total in the file.
+- REQ-010: A task effort SHALL be a fixed number of days or a percentage of the build effort. The system SHALL compute the totals from the entries and from the day rates of the members (REQ-003). The system MUST NOT store a computed total in the file. [NEEDS CLARIFICATION: Q-060 Which day rate applies to a task role when several members share that role?]
 - REQ-011: Work / Estimates SHALL offer four views of a sheet: backlog, summary, monthly spread and portfolio. The backlog SHALL show lot, feature and task. The summary SHALL show price, cost and margin. The spread SHALL show effort and cost by month. The portfolio SHALL show all sheets together.
 - REQ-012: The system SHALL import an Excel file that follows the CGI costing layout into a sheet. The import SHALL show a preview with each row that it refuses and its reason. The system MUST NOT replace a sheet before the person confirms.
 - REQ-013: The system SHALL export a sheet to an Excel file that the CGI costing tool opens. The export SHALL hold the same totals as the summary.
@@ -51,16 +51,17 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 - REQ-022: The system SHALL send a time entry to the tracker worklog only when a person acts on that entry. An agent, a run or a tick MUST NOT send a worklog. The person SHALL choose to reduce the remaining estimate or leave it. The system SHALL disable the send when the tracker lacks the time tracking capability.
 - REQ-023: The system SHALL write the entry first, send second and store the tracker receipt third. An entry with a receipt SHALL NOT be offered again. Each sent worklog SHALL carry a mark of the entry id. When a response is lost, the system SHALL find the worklog by its mark and SHALL NOT send it again.
 - REQ-024: Each time row SHALL show one of three states: in the tracker, to send, or only in the tracker. The system MUST NOT add local and tracker hours together. The system SHALL flag a difference of duration and MUST NOT correct it.
-- REQ-025: Shipyard SHALL show the epics and stories to create or update from the estimate sheets. The preview SHALL mark each row create, update or unchanged against the mirror. The system MUST NOT write to the tracker before the PM applies. A reviewed split from `add-specs` SHALL use this preview and the apply of REQ-026, with one match mark.
-- REQ-026: Apply SHALL write each row and SHALL show the result of each row. A failed row SHALL NOT undo the rows already written. A second apply SHALL NOT create a duplicate. Apply SHALL write the summary, description, estimate and parent, and MUST NOT write the status or the assignee. Apply SHALL match a row to its ticket by a mark that the ticket holds. [NEEDS CLARIFICATION: Q-033 How does apply match a row to its ticket?] Working assumption: Q-033 option 1, the `est:` ref of the row in a ticket label.
+- REQ-025: Shipyard SHALL show the epics and stories to create or update from the estimate sheets. The preview SHALL mark each row create, update or unchanged against the mirror. The system MUST NOT write to the tracker before the PM applies. A reviewed split from `add-specs` SHALL use this preview and the apply of REQ-026, with one match mark. Work owns the apply code.
+- REQ-026: Apply SHALL write each row and SHALL show the result of each row. A failed row SHALL NOT undo the rows already written. A second apply SHALL NOT create a duplicate. Apply SHALL write the summary, description, estimate and parent. It MUST NOT write the status or the assignee. Apply SHALL match a row to its ticket by the row ref `est:<slug>#<row-id>`, which the ticket holds in a label. [NEEDS CLARIFICATION: Q-033 How does apply match a row to its ticket?] Working assumption: Q-033 option 1.
 - REQ-027: The system SHALL expose members as `member:<handle>` and sheets as `est:<slug>`. The inspector SHALL show their backlinks. The run state of an item SHALL come from `add-factory` (REQ-034).
 - REQ-028: Each Work view SHALL follow the interface rules of the constitution. It SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. It SHALL have one primary action. It SHALL have a keyboard path, a focus ring, assistive labels, contrast and reduced motion. It SHALL show French and English text.
+- REQ-029: The system SHALL create one work item from a ref after one click of a person. The creation SHALL use the preview of REQ-025 and the apply of REQ-026 for one row. The row SHALL carry the source ref as its match mark. The system MUST NOT create the item before the click.
 
 ### Non-Goals
 
 - Polling the tracker and the pickup itself. `add-sync` owns them.
 - Running the agent and the write switches. `add-factory` owns them.
-- Creating work items from a spec split. `add-specs` owns the split. This change applies the result.
+- Creating work items from a spec split. `add-specs` owns the split. This change applies the result (REQ-025, REQ-026).
 - Tracker adapters and credentials. `add-connections` owns them.
 - The Legacy Répartition scopes, one writer for each file, gates and brief. Work covers the assignment of tickets only.
 - A timer or any automatic time capture.
@@ -82,12 +83,13 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 - [ ] A lost worklog response never causes a second worklog.
 - [ ] The apply preview writes nothing, a failed row keeps the earlier rows, and a second apply creates no duplicate.
 - [ ] Plan and apply read the effort of the sheet and keep no copy.
+- [ ] One click on a ref creates one work item, and a second click creates none.
 - [ ] Every Work view works with the keyboard, shows a focus ring and has French and English text.
 
 ### Links
 
 - Consumes: `add-sync` (the `wi:` mirror and the pickup filter; REQ-005, REQ-006, REQ-015), `add-specs` (work items from a split), `add-connections` (tracker writes and capability flags; REQ-003, REQ-004, REQ-011), `add-factory` (run state per item; REQ-034).
-- Produces: `member:` and `est:` entities, assignments and the label that drive pickup in `add-sync`, the plan, the time entries.
+- Produces: `member:` and `est:` entities, assignments and the label that drive pickup in `add-sync`, the plan, the time entries, and one work item from a ref (REQ-029) for `add-design` REQ-020 and `add-assistant` REQ-014.
 - Related: `add-projects` REQ-014 (the Legacy import brings team, costing sheets and tickets config; `q:Q-003`), `add-shell` REQ-003 (My work), `add-factory` REQ-022 (budget per member).
 
 ### Legacy parity
@@ -98,7 +100,7 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 | Assignments (ticket assignment only; Répartition scopes and brief are out) | Work / Backlog and Board; assignment and suggestion | REQ-006, REQ-007, REQ-008 |
 | Costing (sheets, Excel, sealed) | Work / Estimates | REQ-009 to REQ-015 |
 | Planning (Gantt) | Work / Plan | REQ-016 to REQ-019 |
-| Tickets (plan and apply, labels) | Work / Backlog and Board; plan and apply | REQ-001, REQ-002, REQ-008, REQ-025, REQ-026 |
+| Tickets (plan and apply, labels) | Work / Backlog and Board; plan and apply | REQ-001, REQ-002, REQ-008, REQ-025, REQ-026, REQ-029 |
 | Imputations and worklog | Work / Time | REQ-020 to REQ-024 |
 
 ### Existing References
@@ -110,6 +112,7 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 - `docs/delivery/questions/Q-032.md`
 - `docs/delivery/questions/Q-033.md`
 - `docs/delivery/questions/Q-034.md`
+- `docs/delivery/questions/Q-060.md`
 - Legacy `docs/features.md` (Planning, Chiffrage, Répartition) and `docs/jira-temps.md`, read only.
 
 ## ADDED Requirements
@@ -232,7 +235,7 @@ The system SHALL keep one estimate sheet for each lot as a text file in the repo
 
 ### Requirement: REQ-010 Effort entry
 
-A task effort SHALL be a fixed number of days or a percentage of the build effort. The system SHALL compute the totals from the entries and from the day rates of the members (REQ-003). The system MUST NOT store a computed total in the file.
+A task effort SHALL be a fixed number of days or a percentage of the build effort. The system SHALL compute the totals from the entries and from the day rates of the members (REQ-003). The system MUST NOT store a computed total in the file. [NEEDS CLARIFICATION: Q-060 Which day rate applies to a task role when several members share that role?]
 
 #### Scenario: Percentage
 - GIVEN a build effort of 20 days and a test task of 25 %
@@ -413,7 +416,7 @@ Each time row SHALL show one of three states: in the tracker, to send, or only i
 
 ### Requirement: REQ-025 Plan and apply
 
-Shipyard SHALL show the epics and stories to create or update from the estimate sheets. The preview SHALL mark each row create, update or unchanged against the mirror. The system MUST NOT write to the tracker before the PM applies. A reviewed split from `add-specs` SHALL use this preview and the apply of REQ-026, with one match mark.
+Shipyard SHALL show the epics and stories to create or update from the estimate sheets. The preview SHALL mark each row create, update or unchanged against the mirror. The system MUST NOT write to the tracker before the PM applies. A reviewed split from `add-specs` SHALL use this preview and the apply of REQ-026, with one match mark. Work owns the apply code.
 
 #### Scenario: Preview
 - GIVEN a sheet with 3 features and 1 ticket that exists
@@ -427,7 +430,7 @@ Shipyard SHALL show the epics and stories to create or update from the estimate 
 
 ### Requirement: REQ-026 Apply result
 
-Apply SHALL write each row and SHALL show the result of each row. A failed row SHALL NOT undo the rows already written. A second apply SHALL NOT create a duplicate. Apply SHALL write the summary, description, estimate and parent, and MUST NOT write the status or the assignee. Apply SHALL match a row to its ticket by a mark that the ticket holds. [NEEDS CLARIFICATION: Q-033 How does apply match a row to its ticket?] Working assumption: Q-033 option 1, the `est:` ref of the row in a ticket label.
+Apply SHALL write each row and SHALL show the result of each row. A failed row SHALL NOT undo the rows already written. A second apply SHALL NOT create a duplicate. Apply SHALL write the summary, description, estimate and parent. It MUST NOT write the status or the assignee. Apply SHALL match a row to its ticket by the row ref `est:<slug>#<row-id>`, which the ticket holds in a label. [NEEDS CLARIFICATION: Q-033 How does apply match a row to its ticket?] Working assumption: Q-033 option 1.
 
 #### Scenario: Partial failure
 - GIVEN an apply where the 3rd row fails
@@ -466,3 +469,17 @@ Each Work view SHALL follow the interface rules of the constitution. It SHALL us
 - GIVEN the language set to French
 - WHEN a person opens a Work view
 - THEN all labels show in French
+
+### Requirement: REQ-029 Create one work item
+
+The system SHALL create one work item from a ref after one click of a person. The creation SHALL use the preview of REQ-025 and the apply of REQ-026 for one row. The row SHALL carry the source ref as its match mark. The system MUST NOT create the item before the click.
+
+#### Scenario: One click
+- GIVEN a ref of a diagram or a thread
+- WHEN a person clicks Create work item and confirms the row
+- THEN the apply writes one ticket and the ticket holds the source ref in a label
+
+#### Scenario: Second click
+- GIVEN a ticket that holds the source ref
+- WHEN a person clicks Create work item again
+- THEN the row shows as unchanged and no ticket is created

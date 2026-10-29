@@ -19,8 +19,8 @@ Plan: [plan.md](./plan.md)
 - [ ] T006 Implement the seal in `crates/shipyard-store/src/seal.rs`. Covers REQ-005, REQ-014.
 - [ ] T007 [P] Write Excel tests in `crates/shipyard-store/tests/excel.rs`: preview with a bad row, no replace before confirm, round trip. Covers REQ-012, REQ-013.
 - [ ] T008 Implement the Excel import and export in `crates/shipyard-store/src/excel.rs`. Covers REQ-012, REQ-013.
-- [ ] T009 Write tracker contract tests with a fake in `crates/shipyard-trackers/tests/work.rs`: assign, label, transition refusal, worklog, mark lookup, apply. Covers REQ-002, REQ-006, REQ-008, REQ-022, REQ-023, REQ-026.
-- [ ] T010 Implement those calls in `crates/shipyard-trackers/src/work.rs`. Covers REQ-002, REQ-006, REQ-008, REQ-022, REQ-023, REQ-026.
+- [ ] T009 Write tracker contract tests with a fake in `crates/shipyard-trackers/tests/work.rs`: assign, label, transition refusal, worklog, mark lookup, apply, one item from a ref. Covers REQ-002, REQ-006, REQ-008, REQ-022, REQ-023, REQ-026, REQ-029.
+- [ ] T010 Implement those calls in `crates/shipyard-trackers/src/work.rs`. Covers REQ-002, REQ-006, REQ-008, REQ-022, REQ-023, REQ-026, REQ-029. This is the one owner of the apply code; `add-specs` depends on it.
 - [ ] T011 [P] Write IPC tests for `member:` and `est:` entities in `crates/shipyard-app/tests/work.rs`. Covers REQ-027.
 - [ ] T012 Implement the commands in `crates/shipyard-app/src/work.rs`. Covers REQ-027.
 - [ ] T013 [P] Write component tests for Backlog and Board in `src/features/work/backlog.test.tsx`. Covers REQ-001, REQ-002.
@@ -31,12 +31,12 @@ Plan: [plan.md](./plan.md)
 - [ ] T018 Build Estimates in `src/features/work/`. Covers REQ-009 to REQ-015.
 - [ ] T019 [P] Write component tests for Plan and Time in `src/features/work/plan.test.tsx` and `time.test.tsx`. Covers REQ-016 to REQ-024.
 - [ ] T020 Build Plan and Time in `src/features/work/`. Covers REQ-016 to REQ-024.
-- [ ] T021 [P] Write component tests for the apply flow in `src/features/work/apply.test.tsx`. Covers REQ-019, REQ-025, REQ-026.
-- [ ] T022 Build the apply preview and apply in `src/features/work/`. Covers REQ-019, REQ-025, REQ-026.
-- [ ] T023 Write the e2e test `e2e/work.spec.ts` with a fake tracker: assign, estimate, plan, time, apply. Covers REQ-001 to REQ-028.
+- [ ] T021 [P] Write component tests for the apply flow in `src/features/work/apply.test.tsx`. Covers REQ-019, REQ-025, REQ-026, REQ-029.
+- [ ] T022 Build the apply preview and apply in `src/features/work/`. Covers REQ-019, REQ-025, REQ-026, REQ-029.
+- [ ] T023 Write the e2e test `e2e/work.spec.ts` with a fake tracker: assign, estimate, plan, time, apply. Covers REQ-001 to REQ-029.
 - [ ] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-028.
-- [ ] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-028.
-- [ ] T026 Compare the code with `spec.md`, update stale artifacts, then close Q-032, Q-033 and Q-034. Covers REQ-005, REQ-021, REQ-026.
+- [ ] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-029.
+- [ ] T026 Compare the code with `spec.md`, update stale artifacts, then close Q-032, Q-033, Q-034 and Q-060. Covers REQ-005, REQ-010, REQ-021, REQ-026.
 
 ## Completion Check
 

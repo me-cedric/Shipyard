@@ -30,12 +30,12 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 - REQ-001: The system SHALL move a run along the main path `Queued`, `Claimed`, `Planning`, `PlanReview`, `Working`, `SelfReview`, `PROpen`, `Merged`, `Done`. The system SHALL refuse and log any transition that this requirement and REQ-002 to REQ-005 do not list.
 - REQ-002: A run SHALL return to `Planning` when a person rejects the plan at `PlanReview`. A run SHALL return to `Working` from `SelfReview` for a fix round and from `ChangesRequested`, in the same worktree. A CI failure or a review comment on the pull request SHALL move a run from `PROpen` to `ChangesRequested`.
 - REQ-003: `PlanReview` SHALL be a human gate. A workflow SHALL be able to turn it off. Then a run SHALL move from `Planning` to `Working` without a person.
-- REQ-004: From any active state, a run SHALL be able to enter `WaitingForAnswer`, `Blocked`, `RetryQueued`, `Paused`, `Failed` or `Cancelled`. `WaitingForAnswer` follows `ask_question`. `Blocked` follows a missing connection, a missing runner, a rejected approval or spent review rounds. `RetryQueued` follows a failed step. `Paused` follows a hard budget stop. `Failed` follows exhausted retries or max turns. `Cancelled` follows a kill switch or a terminal ticket.
+- REQ-004: From any active state, a run SHALL be able to enter `WaitingForAnswer`, `Blocked`, `RetryQueued`, `Paused`, `Failed` or `Cancelled`. `Blocked` follows a missing connection or runner, a rejected approval, spent review rounds or a pull request closed without a merge (`add-delivery` REQ-026). The scenarios give `WaitingForAnswer`, `RetryQueued` and `Paused`. `Failed` follows exhausted retries or max turns. `Cancelled` follows a kill switch or a stop from `add-sync` REQ-004.
 - REQ-005: A run SHALL store its return state when it enters `WaitingForAnswer`, `Blocked`, `RetryQueued` or `Paused`. The run SHALL go back to that state when it leaves. `Failed`, `Cancelled` and `Done` SHALL be final. A run SHALL leave `Paused` when a person raises its budget and resumes it. A resume with no budget left SHALL keep the run in `Paused` (assumption `q:Q-053`). [NEEDS CLARIFICATION: Q-025 How does a run leave `Blocked`?] Working assumption: Q-025 option 1, on the next tick after the cause is gone, or by a click.
 - REQ-006: While a run is in `WaitingForAnswer`, the system SHALL pause the stall timer and the budget clock. Both SHALL restart when the run leaves that state.
 - REQ-007: The system SHALL delay retry number n of a step by min(10 s x 2^(n-1), 5 min). A step SHALL fail the run when its `retry` count is spent.
 - REQ-008: The system SHALL map each of the sixteen run states to a tracker status and labels in `.shipyard/automation.yaml`. The project admin SHALL be able to change each row. The status and label changes SHALL follow the `tracker_transition` switch.
-- REQ-009: A run SHALL start only from a ticket that `sync` claimed. When the ticket becomes terminal, the system SHALL stop the run and move it to `Cancelled`.
+- REQ-009: A run SHALL start only from a ticket that `sync` claimed. The workflow SHALL come from the ticket label `wf:<id>`, else from the project default (`add-projects` REQ-007). On a stop from `add-sync` REQ-004, the system SHALL move the run to `Cancelled`.
 - REQ-010: The system SHALL read workflows from `.shipyard/workflows/<id>.yaml` and validate each file with a JSON Schema. The system SHALL reload a changed file at once. It SHALL keep the last valid version when the new file is invalid.
 - REQ-011: The system SHALL ship the workflows `feature`, `bug`, `spike`, `spec-split` and `review-only`. `feature` SHALL grill, plan with a human gate, build with fan-out, review and open a pull request. `bug` SHALL triage, fix, review and open a pull request, with no `PlanReview`. `spike` SHALL grill, investigate and report, with no pull request. `spec-split` SHALL read a change and propose work items behind a human gate. `review-only` SHALL review an existing branch and report.
 - REQ-012: A step SHALL accept the fields `id`, `role`, `model`, `effort`, `tools`, `needs`, `skill` and `action`. A step SHALL accept the fields `for_each`, `max_parallel`, `retry`, `timeout`, `budget`, `fresh_context` and `max_rounds`. A step SHALL accept `mode` (plan or auto), `workspace` (worktree, shared or none) and `gate` (none or human). The system SHALL reject an unknown field and a `needs` cycle.
@@ -51,8 +51,8 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 - REQ-022: The system SHALL enforce a budget in tokens and money per run, per day and per member. It SHALL raise one alert at 80 % of a budget. It SHALL move the run to `Paused` at 100 %. [NEEDS CLARIFICATION: Q-023 What are the default budgets?] Working assumption: Q-023 option 1, the workflow limit for a run and no default per day or per member.
 - REQ-023: The system SHALL stop a step that sends no event for the stall timeout. It SHALL treat that step as a failed step. The system SHALL stop a run at its max turns and SHALL move it to `Failed`.
 - REQ-024: The system SHALL offer a kill switch per run and one global kill switch. The run switch SHALL move the run to `Cancelled`. The global switch SHALL cancel every active run on this machine and stop pickup until a person turns it off.
-- REQ-025: The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pull_request`, `tracker_transition` and `tracker_comment`. All four SHALL be off by default, and a project admin SHALL turn each one on in Settings. [NEEDS CLARIFICATION: Q-002 What is the default for automation writes?] Working assumption: Q-002 option 1, all off.
-- REQ-026: A write without its switch SHALL become an approval in Home / Inbox that names the exact write. One click SHALL send the write, and a rejection SHALL drop it and move the run to `Blocked`.
+- REQ-025: The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pull_request`, `tracker_transition` and `tracker_comment`. All four SHALL be off by default, and a project admin SHALL turn each one on in Settings / Project, group Automation. That group SHALL be the one editor of `.shipyard/automation.yaml`. [NEEDS CLARIFICATION: Q-002 What is the default for automation writes?] Working assumption: Q-002 option 1, all off.
+- REQ-026: A write without its switch SHALL become an approval in Home / Inbox that names the exact write. One click SHALL send the write, and a rejection SHALL drop it and move the run to `Blocked`. A push with force with lease SHALL always wait for approval, also when `push` is on (`add-delivery` REQ-015).
 - REQ-027: Factory / Runs SHALL show six lanes, each with a count. The view SHALL have one primary action. Each run SHALL sit in the lane that REQ-038 gives.
 - REQ-028: The run view SHALL show the workflow DAG with the live state of each step. It SHALL also show the event tail, the diff of the worktree and the cost. It SHALL offer the kill switch of the run.
 - REQ-029: Factory / Workflows SHALL list the workflows with their steps and SHALL edit the same files as REQ-010. It SHALL show a validation error with its line.
@@ -62,9 +62,9 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 - REQ-033: Each Factory view SHALL follow the interface rules of the constitution. It SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. It SHALL have one primary action, a keyboard path and a focus ring. It SHALL have assistive labels, enough contrast and reduced motion. It SHALL show French and English text.
 - REQ-034: The system SHALL expose each run as `run:<ulid>` with its steps as `run:<ulid>/<step-id>`, and each workflow as `wf:<id>`. It SHALL expose the run state to `work` and `refs`.
 - REQ-035: A workflow SHALL hold a `limits` block with `max_turns`, `budget_usd` and `stall_s`. The block SHALL set the max turns, the budget in USD and the stall timeout of each run. The system SHALL reject a limit that is not a positive number.
-- REQ-036: After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL use the `reviewer` role in a fresh context. The reviewer SHALL run the compass `review` skill against the spec and the standards. A finding SHALL send the run back to `Working` for a fix round. The system SHALL allow two fix rounds at most, and `max_rounds` SHALL NOT exceed 2. When the rounds are spent and findings remain, the run SHALL move to `Blocked` with the findings in the log (assumption `q:Q-053`).
+- REQ-036: After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL follow `add-delivery` REQ-001 to REQ-004. `max_rounds` SHALL NOT exceed 2.
 - REQ-037: The system SHALL serve the agent tools over two transports, stdio and HTTP. Both transports SHALL offer the same eight tools with the same inputs. The HTTP transport SHALL accept only calls from this machine (assumption `q:Q-053`).
-- REQ-038: The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The lane Working SHALL hold `Planning`, `Working`, `SelfReview` and `ChangesRequested`. The lane Needs you SHALL hold `PlanReview`, `WaitingForAnswer`, `Blocked`, `Paused` and `Failed`. The lane Ready to merge SHALL hold a `PROpen` run with passing CI and no change request. The lane In review SHALL hold each other `PROpen` run. The lane Done SHALL hold `Merged`, `Done` and `Cancelled`.
+- REQ-038: The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The lane Working SHALL hold `Planning`, `Working`, `SelfReview` and `ChangesRequested`. The lane Needs you SHALL hold `PlanReview`, `WaitingForAnswer`, `Blocked`, `Paused` and `Failed`. The lane Ready to merge SHALL hold a `PROpen` run with passing CI, no change request and no draft. The lane In review SHALL hold each other `PROpen` run. The lane Done SHALL hold `Merged`, `Done` and `Cancelled`.
 
 ### Non-Goals
 
@@ -171,7 +171,12 @@ A run SHALL return to `Planning` when a person rejects the plan at `PlanReview`.
 
 ### Requirement: REQ-004 Side states
 
-From any active state, a run SHALL be able to enter `WaitingForAnswer`, `Blocked`, `RetryQueued`, `Paused`, `Failed` or `Cancelled`. `WaitingForAnswer` follows `ask_question`. `Blocked` follows a missing connection, a missing runner, a rejected approval or spent review rounds. `RetryQueued` follows a failed step. `Paused` follows a hard budget stop. `Failed` follows exhausted retries or max turns. `Cancelled` follows a kill switch or a terminal ticket.
+From any active state, a run SHALL be able to enter `WaitingForAnswer`, `Blocked`, `RetryQueued`, `Paused`, `Failed` or `Cancelled`. `Blocked` follows a missing connection or runner, a rejected approval, spent review rounds or a pull request closed without a merge (`add-delivery` REQ-026). The scenarios give `WaitingForAnswer`, `RetryQueued` and `Paused`. `Failed` follows exhausted retries or max turns. `Cancelled` follows a kill switch or a stop from `add-sync` REQ-004.
+
+#### Scenario: Question and budget
+- GIVEN a run in `Working`
+- WHEN the agent calls `ask_question`, or a hard budget stop applies
+- THEN the run moves to `WaitingForAnswer`, or to `Paused`
 
 #### Scenario: Failed step
 - GIVEN a run in `Working` with retries left
@@ -246,12 +251,17 @@ The system SHALL map each of the sixteen run states to a tracker status and labe
 
 ### Requirement: REQ-009 Pickup and terminal tickets
 
-A run SHALL start only from a ticket that `sync` claimed. When the ticket becomes terminal, the system SHALL stop the run and move it to `Cancelled`.
+A run SHALL start only from a ticket that `sync` claimed. The workflow SHALL come from the ticket label `wf:<id>`, else from the project default (`add-projects` REQ-007). On a stop from `add-sync` REQ-004, the system SHALL move the run to `Cancelled`.
 
 #### Scenario: Terminal ticket
 - GIVEN an active run
-- WHEN a tick shows the ticket as done
+- WHEN `add-sync` REQ-004 stops the run for a done ticket
 - THEN the run moves to `Cancelled` and its agent session stops
+
+#### Scenario: Workflow choice
+- GIVEN a claimed ticket with the label `wf:bug`
+- WHEN the engine creates the run
+- THEN the run uses the workflow `bug`, and a ticket with no such label uses the project default
 
 #### Scenario: No claim
 - GIVEN a ticket without a claim
@@ -465,7 +475,7 @@ The system SHALL offer a kill switch per run and one global kill switch. The run
 
 ### Requirement: REQ-025 Write switches
 
-The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pull_request`, `tracker_transition` and `tracker_comment`. All four SHALL be off by default, and a project admin SHALL turn each one on in Settings. [NEEDS CLARIFICATION: Q-002 What is the default for automation writes?] Working assumption: Q-002 option 1, all off.
+The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pull_request`, `tracker_transition` and `tracker_comment`. All four SHALL be off by default, and a project admin SHALL turn each one on in Settings / Project, group Automation. That group SHALL be the one editor of `.shipyard/automation.yaml`. [NEEDS CLARIFICATION: Q-002 What is the default for automation writes?] Working assumption: Q-002 option 1, all off.
 
 #### Scenario: Default off
 - GIVEN a new project
@@ -477,9 +487,14 @@ The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pul
 - WHEN they turn on `push`
 - THEN the next push of a run goes out with no approval
 
+#### Scenario: Force with lease
+- GIVEN `push` on and a push that rewrites history
+- WHEN the run sends it
+- THEN the push waits as an approval in Home / Inbox
+
 ### Requirement: REQ-026 Approvals
 
-A write without its switch SHALL become an approval in Home / Inbox that names the exact write. One click SHALL send the write, and a rejection SHALL drop it and move the run to `Blocked`.
+A write without its switch SHALL become an approval in Home / Inbox that names the exact write. One click SHALL send the write, and a rejection SHALL drop it and move the run to `Blocked`. A push with force with lease SHALL always wait for approval, also when `push` is on (`add-delivery` REQ-015).
 
 #### Scenario: Approve
 - GIVEN a run that wants to push and `push` off
@@ -614,7 +629,7 @@ A workflow SHALL hold a `limits` block with `max_turns`, `budget_usd` and `stall
 
 ### Requirement: REQ-036 SelfReview
 
-After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL use the `reviewer` role in a fresh context. The reviewer SHALL run the compass `review` skill against the spec and the standards. A finding SHALL send the run back to `Working` for a fix round. The system SHALL allow two fix rounds at most, and `max_rounds` SHALL NOT exceed 2. When the rounds are spent and findings remain, the run SHALL move to `Blocked` with the findings in the log.
+After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL follow `add-delivery` REQ-001 to REQ-004. `max_rounds` SHALL NOT exceed 2.
 
 #### Scenario: Clean review
 - GIVEN a run in `SelfReview`
@@ -627,9 +642,9 @@ After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL us
 - THEN the run returns to `Working` in the same worktree for round 2
 
 #### Scenario: Rounds spent
-- GIVEN a run with two fix rounds spent and a finding left
+- GIVEN a run with two fix rounds spent and a P0 or P1 finding left
 - WHEN the reviewer reports it
-- THEN the run moves to `Blocked` and the log holds the finding
+- THEN the run moves to `Blocked` and Home / Inbox shows a card with the finding
 
 #### Scenario: Fresh context
 - GIVEN a run in `SelfReview`
@@ -652,9 +667,14 @@ The system SHALL serve the agent tools over two transports, stdio and HTTP. Both
 
 ### Requirement: REQ-038 Run lanes
 
-The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The lane Working SHALL hold `Planning`, `Working`, `SelfReview` and `ChangesRequested`. The lane Needs you SHALL hold `PlanReview`, `WaitingForAnswer`, `Blocked`, `Paused` and `Failed`. The lane Ready to merge SHALL hold a `PROpen` run with passing CI and no change request. The lane In review SHALL hold each other `PROpen` run. The lane Done SHALL hold `Merged`, `Done` and `Cancelled`.
+The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The lane Working SHALL hold `Planning`, `Working`, `SelfReview` and `ChangesRequested`. The lane Needs you SHALL hold `PlanReview`, `WaitingForAnswer`, `Blocked`, `Paused` and `Failed`. The lane Ready to merge SHALL hold a `PROpen` run with passing CI, no change request and no draft. The lane In review SHALL hold each other `PROpen` run. The lane Done SHALL hold `Merged`, `Done` and `Cancelled`.
 
 #### Scenario: Ready to merge
-- GIVEN a run in `PROpen` with passing CI and no change request
+- GIVEN a run in `PROpen` with passing CI, no change request and no draft
 - WHEN the person opens Runs
 - THEN the run shows in the lane Ready to merge
+
+#### Scenario: Draft
+- GIVEN a run in `PROpen` with passing CI and a draft pull request
+- WHEN the person opens Runs
+- THEN the run shows in the lane In review

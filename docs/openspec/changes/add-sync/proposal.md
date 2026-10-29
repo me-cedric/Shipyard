@@ -19,5 +19,5 @@ Legacy syncs tickets on a click only, and it cannot stop work when a ticket clos
 - Affected capability: `sync`
 - Consumes: `connections` (Tracker and Forge adapters), `work` (assignee from the team), `factory` (the list of active runs to reconcile).
 - Produces: the `wi:` and `pr:` mirror for `work`, `code`, `delivery` and `refs`; claimed tickets for `factory`; new comments for `questions-loop`; pull request, CI and merge events for `delivery`.
-- Legacy parity: Tickets sync (adopt, link, import backlog), Surveillance des dépôts distants (the tick replaces the polling of remote heads for tickets).
+- Legacy parity: Tickets sync (adopt, link, import backlog).
 - Affected code/docs: `crates/shipyard-engine` (tick), `crates/shipyard-store` (mirror), `.shipyard/automation.yaml`, ADR 0007.

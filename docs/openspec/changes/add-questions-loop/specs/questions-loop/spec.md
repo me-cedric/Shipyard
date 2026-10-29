@@ -33,7 +33,7 @@ An agent that guesses a decision that belongs to a person produces wrong work. L
 - REQ-004: When an agent asks, the system SHALL move the run to `WaitingForAnswer` and store its return state. The stall timer and the budget clock SHALL stop, as `factory` REQ-006 states.
 - REQ-005: The system SHALL move the ticket to the status that the mapping gives for `WaitingForAnswer`, for example `Needs info`. The move SHALL follow the `tracker_transition` switch.
 - REQ-006: The system SHALL post one comment for each question. The comment SHALL hold the marker `<!-- shipyard:q Q-NNN -->`, the question and the options. The options SHALL be numbered from 1, with the recommended one marked. The comment SHALL end with one line that tells how to reply. The system SHALL store the id of each comment that it posts. The post SHALL follow the `tracker_comment` switch. A tracker with no comment capability SHALL get no comment.
-- REQ-007: A question that carries the ref of a spec SHALL also create the file `docs/delivery/questions/Q-NNN.md` in the working copy. The file SHALL hold the question and its options. The system MUST NOT commit the file.
+- REQ-007: A question that carries the ref of a spec SHALL also create the file `docs/delivery/questions/Q-NNN.md` in the working copy. The file SHALL follow the format of `add-specs` REQ-009 and SHALL hold the question and its options. The system MUST NOT commit the file.
 - REQ-008: Home / Inbox SHALL show each open question as a QuestionCard. The card SHALL show the question, the options and the recommended option. It SHALL show a free text field when the question allows it. The card SHALL have one primary action, send the answer. The person SHALL choose an option with the keyboard.
 - REQ-009: On each tick the system SHALL look for the first human reply after the marker. A human reply SHALL be a later comment with an id that the system did not store at a post. The system SHALL NOT use the author of a comment to tell a reply from a Shipyard comment.
 - REQ-010: The system SHALL read a reply as an option number, an option letter (A is option 1) or `/answer B`. It SHALL read free text when the question allows it. The system SHALL read the forms without case.
@@ -41,7 +41,7 @@ An agent that guesses a decision that belongs to a person produces wrong work. L
 - REQ-012: The system SHALL read the text of a reply as it stands at the moment of detection. An edit after the run resumed MUST NOT change the answer. The system SHALL log that edit and show a note on the card.
 - REQ-013: Each question SHALL have one answer. The first answer in time SHALL win, from the Inbox or from the tracker site. The system SHALL log a later answer without effect.
 - REQ-014: A run MAY have several open questions. It SHALL stay in `WaitingForAnswer` until each one has an answer. Its return state SHALL be the state before the first question.
-- REQ-015: After an answer, the system SHALL offer to fold a spec-level answer into the Clarifications of its spec. The system SHALL show a preview. It SHALL write only after a click. It SHALL replace the matching marker with the answer.
+- REQ-015: After an answer, the system SHALL offer the fold preview of a spec-level answer into the Clarifications of its spec. The system SHALL write nothing. After one click, `add-specs` REQ-015 SHALL write the answer.
 - REQ-016: With `tracker_comment` or `tracker_transition` off, the comment and the ticket move SHALL be approvals in the Inbox. An answer in the Inbox SHALL still resume the run. [NEEDS CLARIFICATION: Q-002 What is the default for automation writes?] Working assumption: Q-002 option 1, all off.
 - REQ-017: The run SHALL return to its return state with the answer in its context. It SHALL resume the CLI session when the runner supports it. Otherwise it SHALL re-brief the agent from the run log. The ticket SHALL move to the status of the return state.
 - REQ-018: When the ticket of a question becomes terminal, the system SHALL close each ticket-level question of that run as withdrawn. It SHALL post no comment. A spec-level question SHALL stay open until a person answers it or withdraws it.
@@ -79,7 +79,7 @@ An agent that guesses a decision that belongs to a person produces wrong work. L
 
 ### Links
 
-- Consumes: `add-factory` REQ-004, REQ-005, REQ-006, REQ-008, REQ-009, REQ-017, REQ-021, REQ-025 and REQ-026 (states, return state, clocks, mapping, terminal tickets, `ask_question`, run log, switches, approvals), `add-sync` REQ-004 and REQ-011 (terminal tickets, new comments on the tick), `add-connections` REQ-003 (comment and transition capability flags), `add-specs` (the RAID register, the spec to fold into), `add-shell` REQ-004 (Inbox), `add-design-system` REQ-005 (QuestionCard, ApprovalBar).
+- Consumes: `add-factory` REQ-004, REQ-005, REQ-006, REQ-008, REQ-009, REQ-017, REQ-021, REQ-025 and REQ-026 (states, return state, clocks, mapping, terminal tickets, `ask_question`, run log, switches, approvals), `add-sync` REQ-004 and REQ-011 (terminal tickets, new comments on the tick), `add-connections` REQ-003 (comment and transition capability flags), `add-specs` REQ-009 and REQ-015 (the RAID file format, the register, the fold write), `add-shell` REQ-004 (Inbox), `add-design-system` REQ-005 (QuestionCard, ApprovalBar).
 - Produces: `q:` entities, Inbox cards for `add-shell`, answers that resume runs in `add-factory`, folded clarifications in `add-specs`, RAID files that `add-refs` indexes.
 
 ### Legacy parity
@@ -192,7 +192,7 @@ The system SHALL post one comment for each question. The comment SHALL hold the 
 
 ### Requirement: REQ-007 RAID file
 
-A question that carries the ref of a spec SHALL also create the file `docs/delivery/questions/Q-NNN.md` in the working copy. The file SHALL hold the question and its options. The system MUST NOT commit the file.
+A question that carries the ref of a spec SHALL also create the file `docs/delivery/questions/Q-NNN.md` in the working copy. The file SHALL follow the format of `add-specs` REQ-009 and SHALL hold the question and its options. The system MUST NOT commit the file.
 
 #### Scenario: Spec-level
 - GIVEN a question with the ref `spec:projects#REQ-003`
@@ -304,7 +304,7 @@ A run MAY have several open questions. It SHALL stay in `WaitingForAnswer` until
 
 ### Requirement: REQ-015 Fold
 
-After an answer, the system SHALL offer to fold a spec-level answer into the Clarifications of its spec. The system SHALL show a preview. It SHALL write only after a click. It SHALL replace the matching marker with the answer.
+After an answer, the system SHALL offer the fold preview of a spec-level answer into the Clarifications of its spec. The system SHALL write nothing. After one click, `add-specs` REQ-015 SHALL write the answer.
 
 #### Scenario: Preview
 - GIVEN an answered spec-level question
@@ -314,7 +314,7 @@ After an answer, the system SHALL offer to fold a spec-level answer into the Cla
 #### Scenario: Confirm
 - GIVEN the preview
 - WHEN the person confirms
-- THEN the spec holds the answer and the marker is gone
+- THEN `add-specs` REQ-015 writes the answer and the marker is gone
 
 ### Requirement: REQ-016 Approvals for comment and move
 

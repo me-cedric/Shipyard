@@ -46,11 +46,11 @@ Legacy has one page for each kind of artifact. Nothing links a decision to the s
 - REQ-017: The system SHALL filter the flow table by VLAN or VNET, by protocol, by action and by free text. Filters SHALL combine.
 - REQ-018: The system SHALL add, edit and remove a flow row. The system SHALL reject a row with a missing field.
 - REQ-019: The system SHALL list the screens in Design / Screens with their design artifacts and `.fig` links. The system SHALL open a `.fig` link outside the app.
-- REQ-020: The system SHALL start a run from a screen or an ADR through the factory. [NEEDS CLARIFICATION: Q-038 How does a screen or an ADR start a run?] Working assumption: Q-038 option 1, one click creates a work item that cites the ref, and normal pickup starts the run. The run MUST obey the factory rules and the write switches.
+- REQ-020: The system SHALL start a run from a screen or an ADR through the factory. [NEEDS CLARIFICATION: Q-038 How does a screen or an ADR start a run?] Working assumption: Q-038 option 1. One click creates a work item that cites the ref through `add-work` REQ-029. Normal pickup starts the run. The run MUST obey the factory rules and the write switches.
 - REQ-021: The system SHALL show and edit the design doc of the project in Design / Screens.
 - REQ-022: Each Design view SHALL follow the interface rules of the constitution. It SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. It SHALL have one primary action, a keyboard path and a focus ring. It SHALL have assistive labels, enough contrast and reduced motion. It SHALL show French and English text.
 - REQ-023: The system SHALL write a file in full or not at all. The system SHALL warn before it replaces a file that changed on disk after the person opened it.
-- REQ-024: The system SHALL read the design tokens of a linked Figma file and SHALL show them beside the tokens of the design system. [NEEDS CLARIFICATION: Q-054 Who owns the extraction of design tokens from Figma?] Working assumption: Q-054 option 1, Design / Screens owns the read and the person owns the change to the token file. The system MUST NOT change the token file before one click of the person.
+- REQ-024: The system SHALL read the design tokens of a linked Figma file. It SHALL show them beside the tokens of the project design doc (REQ-021). [NEEDS CLARIFICATION: Q-054 Who owns the extraction of design tokens from Figma?] Working assumption: Q-054 option 1, Design / Screens owns the read and the person owns the change to the token file. The system MUST NOT change the token file before one click of the person.
 
 ### Non-Goals
 
@@ -58,7 +58,7 @@ Legacy has one page for each kind of artifact. Nothing links a decision to the s
 - Defining the token set of Shipyard. The design-system capability owns it.
 - Running an agent. The factory capability owns runs.
 - Drawing the knowledge graph. The knowledge capability owns it.
-- Exporting a client document from a diagram. A later change covers exports.
+- Exports: `add-knowledge` REQ-013.
 
 ### Acceptance Criteria
 
@@ -73,13 +73,13 @@ Legacy has one page for each kind of artifact. Nothing links a decision to the s
 - [ ] A DBML model shows its tables and relations.
 - [ ] The flow table filters by VLAN or VNET, protocol and action.
 - [ ] A `.fig` link opens outside the app.
-- [ ] The tokens of a Figma file show beside the tokens of the design system, and nothing changes before a click.
+- [ ] The tokens of a Figma file show beside the tokens of the project design doc, and nothing changes before a click.
 - [ ] The design to code action on an ADR leads to a run through the factory.
 - [ ] Every Design view works with the keyboard and shows in French and English.
 
 ### Links
 
-- Consumes: `add-refs` REQ-001 and REQ-007 (grammar and backlinks), `add-design-system` REQ-005 (EditorFrame, RefChip, BacklinkList), `add-shell` REQ-006 (inspector), `add-factory` REQ-009 (a run starts from a claimed ticket) and REQ-025 (switches), `add-connections` (try view credentials), `add-sync` (work item mirror).
+- Consumes: `add-refs` REQ-001 and REQ-007 (grammar and backlinks), `add-design-system` REQ-005 (EditorFrame, RefChip, BacklinkList), `add-shell` REQ-006 (inspector), `add-factory` REQ-009 (a run starts from a claimed ticket) and REQ-025 (switches), `add-connections` (try view credentials), `add-sync` (work item mirror), `add-work` REQ-029 (one work item from a ref).
 - Produces: `diagram:`, `model:`, `adr:`, `api:`, `data:`, `flow:` and `screen:` entities for `add-refs` (index), `add-specs` (citations), `add-knowledge` (graph, learn), `add-factory` (`read_ref`) and `add-assistant` (context).
 - Related: `q:Q-002` (all automation writes off by default), `docs/decisions/` (the ADR files).
 
@@ -317,13 +317,13 @@ The system SHALL list the screens in Design / Screens with their design artifact
 
 ### Requirement: REQ-020 Design to code
 
-The system SHALL start a run from a screen or an ADR through the factory. [NEEDS CLARIFICATION: Q-038 How does a screen or an ADR start a run?] Working assumption: Q-038 option 1, one click creates a work item that cites the ref, and normal pickup starts the run. The run MUST obey the factory rules and the write switches.
+The system SHALL start a run from a screen or an ADR through the factory. [NEEDS CLARIFICATION: Q-038 How does a screen or an ADR start a run?] Working assumption: Q-038 option 1. One click creates a work item that cites the ref through `add-work` REQ-029. Normal pickup starts the run. The run MUST obey the factory rules and the write switches.
 
 #### Scenario: Start from an ADR
 - GIVEN an accepted ADR
 - WHEN the person uses the design to code action
-- THEN the factory receives the ref of the ADR
-- AND the person sees the run or the item that starts it
+- THEN `add-work` REQ-029 creates a work item that cites the ADR
+- AND the person sees the item that starts the run
 
 ### Requirement: REQ-021 Design doc
 
@@ -364,12 +364,12 @@ The system SHALL write a file in full or not at all. The system SHALL warn befor
 
 ### Requirement: REQ-024 Figma tokens
 
-The system SHALL read the design tokens of a linked Figma file and SHALL show them beside the tokens of the design system. [NEEDS CLARIFICATION: Q-054 Who owns the extraction of design tokens from Figma?] Working assumption: Q-054 option 1, Design / Screens owns the read and the person owns the change to the token file. The system MUST NOT change the token file before one click of the person.
+The system SHALL read the design tokens of a linked Figma file. It SHALL show them beside the tokens of the project design doc (REQ-021). [NEEDS CLARIFICATION: Q-054 Who owns the extraction of design tokens from Figma?] Working assumption: Q-054 option 1, Design / Screens owns the read and the person owns the change to the token file. The system MUST NOT change the token file before one click of the person.
 
 #### Scenario: Show tokens
 - GIVEN a screen with a linked Figma file
 - WHEN the person uses the extract tokens action
-- THEN the view shows the tokens of the file beside the tokens of the design system
+- THEN the view shows the tokens of the file beside the tokens of the project design doc
 
 #### Scenario: No click
 - GIVEN the shown tokens

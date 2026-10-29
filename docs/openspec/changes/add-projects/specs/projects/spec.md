@@ -33,7 +33,7 @@ A team works on several repositories. Legacy keeps a project registry, but setup
 - REQ-004: The system SHALL create a new project as a new repository with a project file.
 - REQ-005: The system SHALL add OS ignore rules only to a repository that Shipyard creates.
 - REQ-006: The system SHALL show a project switcher in the shell with the state of each working copy.
-- REQ-007: The system SHALL keep the name, the key, the artifact paths and the default workflow in `.shipyard/project.yaml`. [NEEDS CLARIFICATION: Q-014 Which value gives the id of `project:<id>`?] Working assumption: the key.
+- REQ-007: The system SHALL keep the name, the key, the artifact paths, the default workflow and the gate commands in `.shipyard/project.yaml`. [NEEDS CLARIFICATION: Q-014 Which value gives the id of `project:<id>`?] Working assumption: the key.
 - REQ-008: The system SHALL keep a project registry in the app data folder, and MUST keep machine values out of the repository. The registry holds the project overrides of a personal preference. [NEEDS CLARIFICATION: Q-016 Where do the project overrides live?] Working assumption: the registry.
 - REQ-009: The system SHALL show Settings / Project with the paths, the default workflow and the overrides.
 - REQ-010: A project override SHALL take the place of the same preference of a person. The registry SHALL hold it. The view SHALL show which settings the project overrides.
@@ -44,6 +44,8 @@ A team works on several repositories. Legacy keeps a project registry, but setup
 - REQ-015: The Legacy import SHALL show a report and MUST NOT overwrite an existing file without a person's confirmation.
 - REQ-016: Each projects view SHALL follow the interface rules of the constitution.
 - REQ-017: The system SHALL expose each project as a `project:` entity and the active project to every other capability.
+- REQ-018: Settings / Health SHALL run the compass Node helpers on the working copy and SHALL show each result as a finding in the tool checks group.
+- REQ-019: A project SHALL be able to override the accent colour in the registry. The design system SHALL apply it while that project is active.
 
 ### Non-Goals
 
@@ -52,7 +54,11 @@ A team works on several repositories. Legacy keeps a project registry, but setup
 - Storing secrets. The `connections` capability owns them.
 - Child projects and plugins. The `extensions` capability owns them.
 - Importing Legacy run history or time entries.
-- Running `git init` on a folder that holds no repository (Legacy Doctor bootstrap). Opening never changes a folder outside the project file. Creation (REQ-004) is the only way to start a repository.
+- Running `git init` on a folder that holds no repository (Legacy Dossier local git init). Opening never changes a folder outside the project file. Creation (REQ-004) is the only way to start a repository.
+- Bootstrap (the `bootstrap.mjs --schema` form, `BOOTSTRAP_PROMPT.md` and `specs/000-project`). A new project starts from REQ-004 and the `add-specs` flow, so a second start path adds nothing.
+- Stack detection that marks skills as suited. The `extensions` capability owns the skill lists.
+- A default provisioning template for the next projects. REQ-004 writes the project file only. A template waits for a real need.
+- A team editor. Work / Team (`add-work`) is the one team editor. Settings / Team, if shown, opens Work / Team.
 
 ### Acceptance Criteria
 
@@ -65,6 +71,8 @@ A team works on several repositories. Legacy keeps a project registry, but setup
 - [ ] Settings / Project saves paths and default workflow to the project file, and overrides to the registry.
 - [ ] A setting that the project overrides is marked in Settings / Project and in Settings / Me.
 - [ ] `.shipyard/project.yaml` holds no override of a personal preference.
+- [ ] Settings / Health lists the result of each compass Node helper in the tool checks group.
+- [ ] A project accent override in the registry changes the accent while that project is active.
 - [ ] Each finding in Settings / Health has one fix action, and the fix clears the finding.
 - [ ] The status bar dot changes colour and shape with the worst finding.
 - [ ] The Legacy import lists what it copied, what it skipped and why.
@@ -83,7 +91,9 @@ A team works on several repositories. Legacy keeps a project registry, but setup
 | Home (project list) | Project switcher | REQ-006 |
 | Project registry | Registry in the app data folder | REQ-008, REQ-017 |
 | Doctor (compliance, tooling) | Settings / Health, status bar dot | REQ-005, REQ-011, REQ-012, REQ-013 |
-| Doctor (bootstrap) | Not kept: see Non-Goals. REQ-004 creates a repository | REQ-002, REQ-004 |
+| Dossier local git init | Not kept: see Non-Goals. REQ-004 creates a repository | REQ-002, REQ-004 |
+| Doctor (Outillage: compass Node helpers) | Settings / Health, tool checks | REQ-018 |
+| Per-project accent colour | Settings / Project overrides | REQ-019 |
 | Settings | Settings / Project | REQ-007, REQ-009 |
 | Per-project overrides of Préférences | Settings / Project overrides | REQ-010 |
 | Legacy data of a leaving team | Legacy import | REQ-014, REQ-015 |
@@ -193,12 +203,12 @@ The system SHALL show a switcher in the shell that lists the projects of the reg
 
 ### Requirement: REQ-007 Project file
 
-The system SHALL keep the name, the key, the artifact paths of each kind and the default workflow in `.shipyard/project.yaml`. [NEEDS CLARIFICATION: Q-014 Which value gives the id of `project:<id>`?] The working assumption is that the key gives the id. The file MUST NOT hold an override of a personal preference.
+The system SHALL keep the name, the key, the artifact paths of each kind, the default workflow and the gate commands in `.shipyard/project.yaml`. The gate commands are the checks that a run must pass before a pull request (`q:Q-030`). [NEEDS CLARIFICATION: Q-014 Which value gives the id of `project:<id>`?] The working assumption is that the key gives the id. The file MUST NOT hold an override of a personal preference.
 
 #### Scenario: Read
 - GIVEN a valid project file
 - WHEN the project opens
-- THEN the name, the key and the paths load
+- THEN the name, the key, the paths and the gate commands load
 
 #### Scenario: Invalid file
 - GIVEN a project file with a bad value
@@ -341,3 +351,27 @@ The system SHALL expose each registered project as a `project:<id>` entity. The 
 - GIVEN a switch to another project
 - WHEN any capability asks for the active project
 - THEN it gets the new project
+
+### Requirement: REQ-018 Compass helpers check
+
+Settings / Health SHALL run the compass Node helpers on the working copy. It SHALL show each result as a finding in the tool checks group.
+
+#### Scenario: Helper fails
+- GIVEN a working copy and a compass helper that reports a problem
+- WHEN a person opens Settings / Health
+- THEN the tool checks group lists that problem as a finding
+
+#### Scenario: No Node
+- GIVEN a machine with no Node tool
+- WHEN a person opens Settings / Health
+- THEN the tool checks group names the missing tool and runs no helper
+
+### Requirement: REQ-019 Accent override
+
+A project SHALL be able to override the accent colour. The registry SHALL hold the value. The design system SHALL apply it while that project is active (`add-design-system` REQ-001). The value MUST NOT reach the repository.
+
+#### Scenario: Project accent
+- GIVEN a project with an accent override in the registry
+- WHEN that project is active
+- THEN the interface shows the accent of the project
+- AND `.shipyard/project.yaml` holds no accent

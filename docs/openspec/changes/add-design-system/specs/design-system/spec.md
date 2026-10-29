@@ -27,7 +27,7 @@ Legacy has 490 titles, 336 hints and 216 descriptions. Each page builds its own 
 
 ### Requirements
 
-- REQ-001: Design tokens define colour, spacing, type scale, radius and borders.
+- REQ-001: Design tokens define colour, spacing, type scale, radius and borders. The accent takes a per-project value (`add-projects` REQ-019).
 - REQ-002: Motion tokens define two durations, and motion respects the reduced-motion setting.
 - REQ-003: The interface uses one text font and one mono font, with a fallback.
 - REQ-004: The atoms exist: Button, IconButton, Input, Select, Checkbox, Switch, Badge, StatusDot, Avatar, Kbd, Tooltip, Skeleton.
@@ -76,6 +76,7 @@ Legacy has 490 titles, 336 hints and 216 descriptions. Each page builds its own 
 | Density preference | Settings / Me, density | REQ-013 |
 | Fonts preference | Settings / Me, fonts | REQ-003 |
 | Reduced-motion preference | Settings / Me, reduced motion | REQ-002 |
+| Per-project accent colour | Settings / Project, accent | REQ-001 |
 
 ### Existing References
 
@@ -88,13 +89,18 @@ Legacy has 490 titles, 336 hints and 216 descriptions. Each page builds its own 
 
 ### Requirement: REQ-001 Design tokens
 
-The system SHALL define colour tokens: a 12-step neutral scale, one accent and four status colours. The system SHALL define a 4 px spacing grid and the type sizes 11, 12, 13, 14, 16 and 20. The radii SHALL be 4 and 6, and borders SHALL replace shadows. No component SHALL use a value outside the tokens.
+The system SHALL define colour tokens: a 12-step neutral scale, one accent and four status colours. The system SHALL define a 4 px spacing grid and the type sizes 11, 12, 13, 14, 16 and 20. The radii SHALL be 4 and 6, and borders SHALL replace shadows. No component SHALL use a value outside the tokens. The accent token SHALL take the per-project value of `add-projects` REQ-019.
 
 #### Scenario: Component uses tokens only
 - GIVEN a component in the gallery
 - WHEN a reviewer inspects its style
 - THEN each colour, space, size and radius comes from a token
 - AND the component has no shadow
+
+#### Scenario: Project accent
+- GIVEN a project with its own accent
+- WHEN that project is active
+- THEN every accent use shows that colour
 
 ### Requirement: REQ-002 Motion
 

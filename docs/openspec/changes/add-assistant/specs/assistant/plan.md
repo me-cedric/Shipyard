@@ -18,7 +18,7 @@ One assistant panel in the shell. It sends each turn through the runner layer of
 | Data/storage | Threads, transcripts and drafts in SQLite in the app data folder (`shipyard-store`). Nothing in the repository. |
 | Context and citations | `shipyard-core` ref parser and the ref index of `add-refs`. The panel adds only refs that resolve. |
 | Secrets | The keychain through `connections`. A runner gets a connection id, never a value. A log filter drops any value that matches a stored secret. |
-| Send to factory | A tracker write through `connections` after a confirm. A run starts through the engine. Q-048 decides the no-ticket case. |
+| Send to factory | The work item comes from `add-work` REQ-029 after a confirm. The label `wf:<id>` selects the workflow, and the factory claims the item. Q-048 decides the no-ticket case. |
 | Frontend | `src/features/assistant/` for the panel. It imports only `ui`, `lib` and its own folder. |
 | APIs/contracts | Tauri commands in `shipyard-app`, grouped in an `assistant` module. `tauri-specta` generates the types and the mock. |
 | Dependencies | No new dependency. |

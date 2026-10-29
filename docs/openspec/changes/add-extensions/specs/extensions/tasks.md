@@ -13,8 +13,8 @@ Plan: [plan.md](plan.md)
 
 - [ ] T001 Write tests for the no-overwrite write and the entry states in `crates/shipyard-core/tests/extensions.rs` (REQ-003, REQ-004, REQ-010).
 - [ ] T002 Implement entries, states and the no-overwrite write in `crates/shipyard-core/src/extensions.rs` (REQ-003, REQ-004, REQ-010).
-- [ ] T003 Write tests for reading the compass tree and the lock in `crates/shipyard-store/tests/compass.rs` (REQ-001, REQ-002, REQ-004).
-- [ ] T004 Implement the compass reader in `crates/shipyard-store/src/compass.rs` (REQ-001, REQ-002, REQ-004).
+- [ ] T003 Write tests for reading the compass tree, the lock, the patterns and the stack mark in `crates/shipyard-store/tests/compass.rs` (REQ-001, REQ-002, REQ-004).
+- [ ] T004 Implement the compass reader, the patterns list and the stack mark in `crates/shipyard-store/src/compass.rs` (REQ-001, REQ-002, REQ-004).
 - [ ] T005 Write tests for apply, upgrade and no silent pin change in `crates/shipyard-app/tests/compass_apply.rs` (REQ-003, REQ-005, REQ-006).
 - [ ] T006 Implement the apply and upgrade commands in `crates/shipyard-app/src/extensions/compass.rs` (REQ-003, REQ-005, REQ-006).
 - [ ] T007 Write tests for the compass Health findings and fixes in `crates/shipyard-core/tests/compass_health.rs` (REQ-007).

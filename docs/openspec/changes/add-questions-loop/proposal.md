@@ -14,7 +14,7 @@ Shipyard needs a loop where an agent asks a question with options, the person an
 - Add the answer in Home / Inbox with `QuestionCard`, and on the tracker site.
 - Add answer detection on the next tick: the first human reply after the marker, read as an option number, a letter, `/answer B`, or free text.
 - Add the resume: the run returns to its return state with the answer in context. It resumes the CLI session when the CLI supports it, else it re-briefs from the run log.
-- Add the fold of an answer into the spec that raised it.
+- Add the fold preview of an answer into the spec that raised it. `specs` writes the fold.
 
 ## Impact
 

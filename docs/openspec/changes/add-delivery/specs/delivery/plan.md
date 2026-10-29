@@ -14,7 +14,7 @@ The pull request flow, feedback loop and merge close live in `shipyard-engine`. 
 | Stack/runtime | Rust workspace and React 19 (MASTER-PLAN 7.1, 7.3). Steps run on the engine runtime of `add-factory`. |
 | Dependencies | No new dependency. Reuse `git2` through `shipyard-git` and the `Forge` trait of `add-connections`. |
 | Data/storage | Run log and `pr:` rows in the SQLite store of `shipyard-store`. Reviewer list in `.shipyard/automation.yaml`. Gate commands in `.shipyard/project.yaml` (Q-030). |
-| APIs/contracts | Uses the `Forge` and `Tracker` traits. IPC commands `delivery_pr_state` and `delivery_resolve_approval`. Events `pr_opened`, `review_round`. Bindings are generated. |
+| APIs/contracts | Uses the `Forge` and `Tracker` traits. IPC command `delivery_pr_state`. Approvals use `approval_decide` of `add-factory`. Events `pr_opened`, `review_round`. Bindings are generated. |
 | Review | A workflow step with role `reviewer` and `fresh_context: true`, `max_rounds: 2`. A pure function opens each cited path and line. |
 | Pull request | A pure function builds the branch, title, labels and body from the run log. The engine calls the forge only after the switch check. |
 | Feedback | The engine takes the CI and review events of `sync`. It moves the run in the same worktree and passes the failed checks and threads as step input. |

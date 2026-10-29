@@ -15,8 +15,8 @@ Plan: [plan.md](./plan.md)
 - [ ] T002 Implement the work item type and the flag set in `crates/shipyard-core/src/work_item.rs`. Covers REQ-003, REQ-004.
 - [ ] T003 Write the tracker contract suite and a fake in `crates/shipyard-trackers/tests/contract.rs`. Covers REQ-002, REQ-003, REQ-004, REQ-012.
 - [ ] T004 Implement the `Tracker` trait and the six adapters in `crates/shipyard-trackers/src/`. Covers REQ-002, REQ-003, REQ-004, REQ-012.
-- [ ] T005 Write forge contract tests in `crates/shipyard-forges/tests/contract.rs`. Covers REQ-005, REQ-012.
-- [ ] T006 Implement the `Forge` trait and three adapters in `crates/shipyard-forges/src/`. Covers REQ-005, REQ-012.
+- [ ] T005 Write forge contract tests in `crates/shipyard-forges/tests/contract.rs`. Covers REQ-005, REQ-012, REQ-019.
+- [ ] T006 Implement the `Forge` trait and three adapters in `crates/shipyard-forges/src/`. Covers REQ-005, REQ-012, REQ-019.
 - [ ] T007 Write keychain and redaction tests with a fake keychain in `crates/shipyard-agents/tests/secrets.rs`. Covers REQ-011, REQ-014.
 - [ ] T008 Implement the keychain module and log redaction in `crates/shipyard-agents/src/secrets.rs`. Covers REQ-011, REQ-014.
 - [ ] T009 Write runner detection and provider tests in `crates/shipyard-agents/tests/runners.rs`. Covers REQ-009, REQ-010.

@@ -23,8 +23,8 @@ Plan: [plan.md](./plan.md)
 - [ ] T010 Implement the fold in `crates/shipyard-store/src/fold.rs`. Covers REQ-015.
 - [ ] T011 Write split model tests in `crates/shipyard-core/tests/split.rs`. Covers REQ-016, REQ-017.
 - [ ] T012 Implement the split model in `crates/shipyard-core/src/split.rs`. It does no I/O. Covers REQ-016, REQ-017.
-- [ ] T013 Write hand-off tests with a fake tracker in `crates/shipyard-trackers/tests/split_apply.rs`: no write before the click, one match mark, no duplicate on a second apply. Covers REQ-018, REQ-019.
-- [ ] T014 Implement the hand-off to the `add-work` apply in `crates/shipyard-trackers/src/split_apply.rs`. Covers REQ-018, REQ-019.
+- [ ] T013 Write hand-off tests with a fake tracker in `crates/shipyard-app/tests/split_apply.rs`: no write before the click, one row ref, no duplicate on a second apply. Depends on `add-work` T010. Covers REQ-018, REQ-019.
+- [ ] T014 Implement the hand-off to the `add-work` apply in `crates/shipyard-app/src/split_apply.rs`. It calls the apply of `add-work` T010 and adds no tracker code. Covers REQ-018, REQ-019.
 - [ ] T015 Write archive and safe write tests in `crates/shipyard-store/tests/archive.rs`. Covers REQ-020, REQ-023.
 - [ ] T016 Implement archive and safe write in `crates/shipyard-store/src/archive.rs`. Covers REQ-020, REQ-023.
 - [ ] T017 Write IPC command tests in `crates/shipyard-app/tests/specs_ipc.rs`. Covers REQ-001, REQ-003, REQ-021.

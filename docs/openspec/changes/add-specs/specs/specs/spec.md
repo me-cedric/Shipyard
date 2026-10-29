@@ -41,10 +41,10 @@ Specs come before code, for people and for agents. Legacy shows changes, RAID qu
 - REQ-012: The system SHALL edit a test plan in Gherkin. The system SHALL report each syntax error with its line.
 - REQ-013: A scenario of a test plan SHALL cite one or more requirements by ref. The system SHALL list the requirements of a spec that no scenario cites.
 - REQ-014: The system SHALL show the constitution in Specs / Constitution. The system SHALL let a person edit it.
-- REQ-015: After one click, the system SHALL write the answer to a spec-level question into the `### Clarifications` heading of the spec. The system MUST NOT add a `## ` section. The system SHALL replace the matching marker with the answer.
-- REQ-016: The system SHALL draft the split of a change into epics and stories. A person SHALL draft it by hand, or the `spec-split` workflow SHALL draft it. Each item SHALL cite the requirements that it covers.
+- REQ-015: After one click, the system SHALL write the answer to a spec-level question into the `### Clarifications` heading of the spec. The system MUST NOT add a `## ` section. The system SHALL replace the matching marker with the answer. This is the only fold write: `add-questions-loop` REQ-015 offers the preview, and this requirement writes.
+- REQ-016: The system SHALL draft the split of a change into epics and stories. A person SHALL draft it by hand, or the `spec-split` workflow SHALL draft it. Each item SHALL cite the requirements that it covers. Each item SHALL have a row id. Its row ref SHALL be `est:<change-id>#<row-id>`.
 - REQ-017: The system SHALL show the draft split for review. The PM SHALL be able to edit, remove or add an item before the apply.
-- REQ-018: The system SHALL hand a reviewed split to the apply of `add-work` (REQ-025, REQ-026) only after one click of the PM. The system MUST NOT write the split to the tracker by another path. The apply SHALL use the one match mark of `add-work` REQ-026, so that a second apply creates no duplicate. The click SHALL count as the approval of the writes. A comment or a status move SHALL follow the factory switches. Working assumption: Q-033 option 1, the ref of the item in a ticket label.
+- REQ-018: The system SHALL hand a reviewed split to the apply of `add-work` (REQ-025, REQ-026) only after one click of the PM. The system MUST NOT write the split to the tracker by another path. The apply SHALL use the row ref of `add-work` REQ-026 as its match mark, so a second apply creates no duplicate. The click SHALL count as the approval of the writes. A comment or a status move SHALL follow the factory switches. Working assumption: Q-033 option 1, the row ref in a ticket label.
 - REQ-019: The system SHALL keep the link between each work item and its requirements. [NEEDS CLARIFICATION: Q-035 What happens when a person applies a split again after a change of the spec?] Working assumption: Q-035 option 1, match each item by its requirement refs, create only the missing items and show the changed ones for review. Q-035 uses the match mark of Q-033.
 - REQ-020: The system SHALL archive a change when its work items are done. [NEEDS CLARIFICATION: Q-036 May a person archive a change with open work items?] Working assumption: Q-036 option 1, archive needs all work items done or closed, and the person confirms a list of the open ones to override. The archive SHALL move the capability specs of the change into the settled capabilities.
 - REQ-021: The system SHALL expose each change as `change:<id>`, each capability as `spec:<capability>`, each requirement as `spec:<capability>#REQ-NNN`, and each test plan as `test:<slug>`. The reference graph SHALL index them.
@@ -266,7 +266,7 @@ The system SHALL show the constitution in Specs / Constitution. The system SHALL
 
 ### Requirement: REQ-015 Fold an answer
 
-After one click, the system SHALL write the answer to a spec-level question into the `### Clarifications` heading of the spec. The system MUST NOT add a `## ` section. The system SHALL replace the matching marker with the answer.
+After one click, the system SHALL write the answer to a spec-level question into the `### Clarifications` heading of the spec. The system MUST NOT add a `## ` section. The system SHALL replace the matching marker with the answer. This is the only fold write: `add-questions-loop` REQ-015 offers the preview, and this requirement writes.
 
 #### Scenario: Fold
 - GIVEN an answered question that a marker cites
@@ -281,7 +281,7 @@ After one click, the system SHALL write the answer to a spec-level question into
 
 ### Requirement: REQ-016 Split draft
 
-The system SHALL draft the split of a change into epics and stories. A person SHALL draft it by hand, or the `spec-split` workflow SHALL draft it. Each item SHALL cite the requirements that it covers.
+The system SHALL draft the split of a change into epics and stories. A person SHALL draft it by hand, or the `spec-split` workflow SHALL draft it. Each item SHALL cite the requirements that it covers. Each item SHALL have a row id. Its row ref SHALL be `est:<change-id>#<row-id>`.
 
 #### Scenario: Draft with the workflow
 - GIVEN a change with a spec
@@ -300,7 +300,7 @@ The system SHALL show the draft split for review. The PM SHALL be able to edit, 
 
 ### Requirement: REQ-018 Split apply
 
-The system SHALL hand a reviewed split to the apply of `add-work` (REQ-025, REQ-026) only after one click of the PM. The system MUST NOT write the split to the tracker by another path. The apply SHALL use the one match mark of `add-work` REQ-026, so that a second apply creates no duplicate. The click SHALL count as the approval of the writes. A comment or a status move SHALL follow the factory switches. Working assumption: Q-033 option 1, the ref of the item in a ticket label.
+The system SHALL hand a reviewed split to the apply of `add-work` (REQ-025, REQ-026) only after one click of the PM. The system MUST NOT write the split to the tracker by another path. The apply SHALL use the row ref of `add-work` REQ-026 as its match mark, so a second apply creates no duplicate. The click SHALL count as the approval of the writes. A comment or a status move SHALL follow the factory switches. Working assumption: Q-033 option 1, the row ref in a ticket label.
 
 #### Scenario: Apply
 - GIVEN a reviewed split and a tracker connection

@@ -39,7 +39,7 @@ Legacy has these features, but commit sits in 11 pages and pull sits in three pl
 - REQ-010: Code / History SHALL list the commits of the working branch with branch and tag labels.
 - REQ-011: The Code header SHALL show the working branch in one selector.
 - REQ-012: The system SHALL create a branch from the current head and SHALL switch to it.
-- REQ-013: The system SHALL delete a branch after two clicks, the second one a confirmation that names the branch.
+- REQ-013: The system SHALL delete a branch after two clicks. The second click SHALL be a confirmation that names the branch.
 - REQ-014: The system SHALL publish the working branch with a person's click and MUST NOT use a force push.
 - REQ-015: In the background, the system SHALL fetch the remote heads of each project that has a remote.
 - REQ-016: The remote watch MUST move only the remote tracking references.
@@ -75,13 +75,13 @@ Legacy has these features, but commit sits in 11 pages and pull sits in three pl
 - A file editor, a rename, a delete and a new file in the file viewer. The viewer reads only.
 - A terminal that starts an external terminal program. Only the panel exists.
 - A conflict resolver that uses an agent. A person resolves each conflict.
-- Writing the change request document and the work-done sheet that Legacy exports from Impacts.
+- Writing the change request document and the work-done sheet that Legacy exports from Impacts. The digest goes into the pull request (`add-delivery` REQ-027), and `add-knowledge` REQ-013 to REQ-016 export client documents.
 
 ### Acceptance Criteria
 
 - [ ] Code / Changes shows the tree and the two diffs. It stages, unstages, discards after a confirmation, resolves conflicts and stashes.
 - [ ] The commit action commits staged files only. It refuses a summary with a wrong type.
-- [ ] A commit on `feat/SHIP-42-login` links to `wi:SHIP-42`. A commit of a run links to its `run:`.
+- [ ] A commit on `feat/auth/SHIP-42-login` links to `wi:SHIP-42`. A commit of a run links to its `run:`.
 - [ ] A branch named `patch-3` is refused, and the working branch cannot be deleted.
 - [ ] The remote watch notifies once per push by someone else. It never changes a working copy file.
 - [ ] Code / Pull requests lists the mirror offline. A person can open, comment, approve, request changes, merge and mark ready.
@@ -101,7 +101,7 @@ Legacy has these features, but commit sits in 11 pages and pull sits in three pl
 - Consumes: `add-factory` (run branches and lanes; REQ-038) and `add-assistant` (the runner for Analyze; REQ-012).
 - Produces: `commit:` entities and the commit operation for `add-shell` (REQ-007).
 - Produces: branch and commit operations, and the impacts digest, for `add-delivery` (REQ-027).
-- Produces: quality and impact reports for `add-knowledge` (dashboards, code graph) and `add-specs`.
+- Produces: quality and impact reports for `add-knowledge` (dashboards) and `add-specs`.
 - Related: `add-shell` REQ-008 (the watch notice), `add-design` REQ-023 (safe save), `add-projects` REQ-007 (the project file).
 
 ### Legacy parity
@@ -230,7 +230,7 @@ The summary SHALL follow `<type>(<scope>): <subject>`. The type SHALL be one of 
 The system SHALL expose each commit as a `commit:<sha>` entity. The commit SHALL link to `wi:` when its message or branch name holds the key of a mirrored work item. It SHALL link to `run:` when a run made it. Its backlinks SHALL show in the inspector.
 
 #### Scenario: Link to a work item
-- GIVEN a branch named `feat/SHIP-42-login`
+- GIVEN a branch named `feat/auth/SHIP-42-login`
 - WHEN a person commits on it
 - THEN the commit links to `wi:SHIP-42`
 
@@ -254,12 +254,12 @@ The Code header SHALL show the working branch in one selector. One value SHALL d
 
 ### Requirement: REQ-012 Create and switch
 
-The system SHALL create a branch from the current head and SHALL switch to it. The name SHALL be `<type>/<subject>`, with a type from the commit types and a subject in lower case with hyphens. Switching to a remote branch SHALL first create a local branch that tracks it.
+The system SHALL create a branch from the current head and SHALL switch to it. The name SHALL be `<type>/<area>/<kebab>`. The type SHALL come from the commit types. The area and the subject SHALL use lower case with hyphens. Switching to a remote branch SHALL first create a local branch that tracks it.
 
 #### Scenario: Create
 - GIVEN the working branch `main`
-- WHEN a person creates a branch of type fix with the subject `login-timeout`
-- THEN the branch `fix/login-timeout` exists and is the working branch
+- WHEN a person creates a branch of type fix with the area `auth` and the subject `login-timeout`
+- THEN the branch `fix/auth/login-timeout` exists and is the working branch
 
 #### Scenario: Bad name
 - GIVEN a name `patch-3`
@@ -268,7 +268,7 @@ The system SHALL create a branch from the current head and SHALL switch to it. T
 
 ### Requirement: REQ-013 Delete a branch
 
-The system SHALL delete a branch after two clicks, the second one a confirmation that names the branch. The system MUST refuse to delete the working branch. The system SHALL delete a forge-only branch on the forge after the same confirmation.
+The system SHALL delete a branch after two clicks. The second click SHALL be a confirmation that names the branch. The system MUST refuse to delete the working branch. The system SHALL delete a forge-only branch on the forge after the same confirmation.
 
 #### Scenario: Working branch
 - GIVEN the working branch
@@ -286,7 +286,7 @@ The system SHALL publish the working branch with a person's click and MUST NOT u
 
 ### Requirement: REQ-015 Remote watch
 
-In the background, the system SHALL fetch the remote heads of each project that has a remote. It SHALL watch the working branch and each branch that the project lists. Each project SHALL have its own interval, 15 minutes by default. [NEEDS CLARIFICATION: Q-042 Where does the watch interval live?]
+In the background, the system SHALL fetch the remote heads of each project that has a remote. It SHALL watch the working branch and each branch that the project lists. Each project SHALL set its own interval. The default SHALL be 15 minutes. [NEEDS CLARIFICATION: Q-042 Where does the watch interval live?]
 
 #### Scenario: Default interval
 - GIVEN a project with no interval set

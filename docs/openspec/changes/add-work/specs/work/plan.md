@@ -5,7 +5,7 @@ Date: 2026-10-29
 
 ## Summary
 
-The team and estimate codecs live in `shipyard-store`. Pure rules (suggestion, estimate maths, Gantt, plan diff) live in `shipyard-core`. Tracker writes go through the `Tracker` trait. The UI is `src/features/work/`. This covers REQ-001 to REQ-028.
+The team and estimate codecs live in `shipyard-store`. Pure rules (suggestion, estimate maths, Gantt, plan diff) live in `shipyard-core`. Tracker writes go through the `Tracker` trait. The UI is `src/features/work/`. This covers REQ-001 to REQ-029.
 
 ## Technical Context
 
@@ -14,20 +14,20 @@ The team and estimate codecs live in `shipyard-store`. Pure rules (suggestion, e
 | Stack/runtime | Rust workspace and React 19 (MASTER-PLAN 7.1, 7.3). TanStack Table and Virtual for lists. |
 | Dependencies | No new dependency. Excel read and write needs a crate or package. Reuse one that the workspace already holds, else raise an ADR before adding it. |
 | Data/storage | `.shipyard/team.yaml`. Estimate sheets in `docs/costing/<slug>.yaml`. Plan decisions in `docs/planning/plan.yaml`, calendar in `docs/planning/calendar.yaml`. Time in `docs/time/<handle>/<yyyy-mm>.yaml`. All are text in the repository. The mirror stays in the app data folder. |
-| APIs/contracts | Uses the `Tracker` trait for assignee, labels, transitions, worklog and create or update. IPC commands `work_team`, `work_assign`, `work_suggest`, `estimate_*`, `plan_*`, `time_*`, `apply_preview`, `apply_run`. Bindings are generated. |
+| APIs/contracts | Uses the `Tracker` trait for assignee, labels, transitions, worklog and create or update. IPC commands `work_team`, `work_assign`, `work_suggest`, `estimate_*`, `plan_*`, `time_*`, `apply_preview`, `apply_run`, `work_item_create`. Bindings are generated. |
 | Suggestion | A pure function scores skill match and free capacity. It returns a ranked list with reasons. |
 | Estimates | A pure function computes totals from entries and role rates. No total reaches the file. |
 | Seal | Authenticated encryption of the sheet files and the day rate field. The passphrase lives in the keychain (`add-connections` REQ-011). |
 | Gantt | A pure function schedules tasks over capacity, availability and calendar. Only the decision file is written. |
 | Time | Write the local entry, send, then store the receipt. The worklog note carries `shipyard log=<id>`. The day anchors at 09:00 in the machine offset. |
-| Apply | A pure diff of rows against the mirror. Each row carries its `est:` ref as a ticket label for matching (Q-033). |
+| Apply | A pure diff of rows against the mirror. Each row carries its `est:<slug>#<row-id>` ref as a ticket label for matching (Q-033). One item from a ref uses the same apply (REQ-029). Split apply code lives here only. |
 | Risks | A sealed file cannot merge. A lost worklog response. Excel layout drift. The dedupe mark and the import preview cover the last two. |
 
 ## Affected Surfaces
 
 - Code: `crates/shipyard-core` (rules), `crates/shipyard-store` (team, estimate, plan, time codecs, seal), `crates/shipyard-trackers` (assign, worklog, apply calls), `crates/shipyard-app` (commands), `src/features/work/`.
 - Tests: `crates/*/tests`, `src/features/work/*.test.tsx`, `e2e/work.spec.ts`.
-- Docs/specs: `docs/openspec/changes/add-work/`, `CHANGELOG.md`, `CHANGELOG.fr.md`, Q-032, Q-033, Q-034.
+- Docs/specs: `docs/openspec/changes/add-work/`, `CHANGELOG.md`, `CHANGELOG.fr.md`, Q-032, Q-033, Q-034, Q-060.
 
 ## Approach
 

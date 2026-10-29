@@ -14,7 +14,7 @@ Reply parsing and the question state are pure code in `shipyard-core`. The engin
 | Stack/runtime | Rust workspace and React 19 (MASTER-PLAN 7.1, 7.3). |
 | Dependencies | No new dependency. Reuse the engine, the store and the `Tracker` trait. |
 | Data/storage | Questions and answers in the run log of the app data folder. A RAID file `docs/delivery/questions/Q-NNN.md` for a spec-level question. |
-| APIs/contracts | IPC commands `question_answer`, `question_confirm_reply`, `question_fold_preview`, `question_fold_apply`, `questions_list`. Events for a new question and a new answer. Bindings are generated. |
+| APIs/contracts | IPC commands `question_answer`, `question_confirm_reply`, `question_fold_preview`, `questions_list`. `add-specs` owns the fold write (`specs_fold`). Events for a new question and a new answer. Bindings are generated. |
 | Reply parser | A pure function in `shipyard-core`. It takes the reply text, the option count and the free text flag. It returns an option, a free text, or unclear. |
 | Marker | `<!-- shipyard:q Q-NNN -->` on the first line of the comment. Reading finds it by exact match. |
 | Id allocation | Next number after the highest in the RAID folder and in the comments of the ticket. Q-026 stays open. |
@@ -38,7 +38,7 @@ Reply parsing and the question state are pure code in `shipyard-core`. The engin
 5. Add detection on the tick, the one-answer rule, the edit rule and the unclear reply.
 6. Add the resume, with session resume or a re-brief.
 7. Add the terminal ticket rule and the reminder.
-8. Add the fold preview and the fold write.
+8. Add the fold preview.
 9. Build the QuestionCard and the fold preview. Add French and English keys.
 
 ## Validation

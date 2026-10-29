@@ -38,7 +38,7 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - REQ-009: The base SHALL be the base that the project declares. Else it SHALL be `develop` when that branch exists. Else it SHALL be the default branch. The system MUST NOT open a feature pull request onto a release branch.
 - REQ-010: The title SHALL follow the commit. The body SHALL start with an opening paragraph, then the gate result, then one item for each ticket. The body MUST NOT hold a count or a verdict that the run log does not hold. No title, body or comment SHALL hold an AI attribution line.
 - REQ-011: The system SHALL read the labels of the forge first and SHALL use only labels that exist. It SHALL add one type label and each area label that the diff touches. It MUST NOT add a label that states a judgement. It MUST NOT remove a label that a person set.
-- REQ-012: The assignee of the pull request SHALL be the member who owns the ticket. The pull request SHALL name at least one reviewer. [NEEDS CLARIFICATION: Q-029 Who are the default reviewers of a pull request that a run opens?] Working assumption: Q-029 option 1, the reviewer list of `.shipyard/automation.yaml`.
+- REQ-012: The assignee of the pull request SHALL be the member who owns the ticket. The pull request SHALL name at least one reviewer. [NEEDS CLARIFICATION: Q-029 Who are the default reviewers of a pull request that a run opens?] Working assumption: Q-029 option 1, the reviewer list of `.shipyard/automation.yaml`. A person edits that list in Settings / Project, group Automation (`add-factory` REQ-025).
 - REQ-013: The pull request SHALL open as a draft. Marking it ready SHALL be a person's action in `add-code`.
 - REQ-014: The `push` and `pull_request` switches SHALL be off by default (`add-factory` REQ-025). [NEEDS CLARIFICATION: Q-002 What is the default for automation writes?] Working assumption: Q-002 option 1, all off. A write without its switch SHALL become an approval in Home / Inbox that names the exact write. One click SHALL send it. A rejection SHALL drop the write and move the run to `Blocked` (`add-factory` REQ-026).
 - REQ-015: A push that rewrites history SHALL use force with lease. It MUST NOT use a plain force. It SHALL always wait as an approval, also when `push` is on.
@@ -252,7 +252,7 @@ The system SHALL read the labels of the forge first and SHALL use only labels th
 
 ### Requirement: REQ-012 Assignee and reviewers
 
-The assignee of the pull request SHALL be the member who owns the ticket. The pull request SHALL name at least one reviewer. [NEEDS CLARIFICATION: Q-029 Who are the default reviewers of a pull request that a run opens?] Working assumption: Q-029 option 1, the reviewer list of `.shipyard/automation.yaml`.
+The assignee of the pull request SHALL be the member who owns the ticket. The pull request SHALL name at least one reviewer. [NEEDS CLARIFICATION: Q-029 Who are the default reviewers of a pull request that a run opens?] Working assumption: Q-029 option 1, the reviewer list of `.shipyard/automation.yaml`. A person edits that list in Settings / Project, group Automation (`add-factory` REQ-025).
 
 #### Scenario: Reviewer list
 - GIVEN a reviewer list in the project rules

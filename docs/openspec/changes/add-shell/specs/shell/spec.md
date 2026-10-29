@@ -29,7 +29,7 @@ Legacy has 40 routes, 12 sidebar groups and four stacked filters that hide pages
 
 - REQ-001: The sidebar lists the seven spaces and Settings.
 - REQ-002: The shell has a main area and an inspector panel.
-- REQ-003: Home has three views: Inbox, My work and Activity.
+- REQ-003: Home has three views: Inbox, My work and Activity. My work and Activity show the tiles that the person pinned (`add-knowledge` REQ-024).
 - REQ-004: The Inbox lists questions and approvals.
 - REQ-005: The command palette searches refs and runs every action.
 - REQ-006: The inspector shows the selected entity and its backlinks.
@@ -40,7 +40,7 @@ Legacy has 40 routes, 12 sidebar groups and four stacked filters that hide pages
 - REQ-011: The app ships in French and English, and the person switches the language.
 - REQ-012: The native menu offers the global actions.
 - REQ-013: Context menus offer the actions of the entity under the pointer.
-- REQ-014: The app checks for updates and tells the person.
+- REQ-014: The app checks for updates and tells the person. After an update, the app shows the changelog sections of the new version.
 - REQ-015: The app reopens the last view of each project.
 - REQ-016: The app has no tour and no per-project hidden tab.
 - REQ-017: Every shell action has a keyboard path, a focus ring and an assistive label.
@@ -50,6 +50,7 @@ Legacy has 40 routes, 12 sidebar groups and four stacked filters that hide pages
 - No page content of a space. Each space capability owns its views.
 - No second commit or sync control in a view.
 - No setting that hides a view.
+- A team editor. Work / Team (`add-work`) is the one team editor. Settings / Team, if shown, opens Work / Team and holds no second editor.
 - Project overrides of a personal preference. `add-projects` owns them, in the project registry (Q-016).
 
 ### Acceptance Criteria
@@ -88,6 +89,7 @@ Legacy has 40 routes, 12 sidebar groups and four stacked filters that hide pages
 | Context menus | Context menus | REQ-013 |
 | Native menu | Native menu | REQ-012 |
 | Update check | Update check | REQ-014 |
+| Nouveautés (changelog after an update) | Update check, changelog sections | REQ-014 |
 | Home widgets of Dashboards | Home / My work and Activity | REQ-003 |
 | Reopen last page | Last view per project | REQ-015 |
 
@@ -123,13 +125,18 @@ The shell SHALL have a main area and an inspector panel. The inspector SHALL ope
 
 ### Requirement: REQ-003 Home views
 
-The Home space SHALL have the views Inbox, My work and Activity. Inbox SHALL carry the heading "Needs you". My work SHALL list the items assigned to the person. Activity SHALL list recent events of the project.
+The Home space SHALL have the views Inbox, My work and Activity. Inbox SHALL carry the heading "Needs you". My work SHALL list the items assigned to the person. Activity SHALL list recent events of the project. My work and Activity SHALL show the tiles that the person pinned (`add-knowledge` REQ-024).
 
 #### Scenario: Open Home
 - GIVEN the person opens Home
 - WHEN Home renders
 - THEN the three views are available as tabs
 - AND Inbox is the first tab
+
+#### Scenario: Pinned tile
+- GIVEN the person pinned a tile in Knowledge
+- WHEN My work renders
+- THEN the tile shows in My work and in Activity
 
 ### Requirement: REQ-004 Inbox content
 
@@ -244,12 +251,17 @@ A context menu SHALL open on a secondary click or a keyboard shortcut on an enti
 
 ### Requirement: REQ-014 Update check
 
-The app SHALL check for a new version at start and on request. When a new version exists, the app SHALL tell the person through the notification centre. The install behaviour is open (working assumption: Q-009, option 1). [NEEDS CLARIFICATION: Q-009 Does the app install an update by itself?]
+The app SHALL check for a new version at start and on request. When a new version exists, the app SHALL tell the person through the notification centre. After an update, the app SHALL show the changelog sections of the versions since the last one that ran. The install behaviour is open (working assumption: Q-009, option 1). [NEEDS CLARIFICATION: Q-009 Does the app install an update by itself?]
 
 #### Scenario: New version found
 - GIVEN a newer version exists
 - WHEN the app starts
 - THEN the notification centre lists the update once
+
+#### Scenario: After an update
+- GIVEN the app starts on a newer version than the last run
+- WHEN the app opens
+- THEN it shows the changelog sections of the new versions once
 
 ### Requirement: REQ-015 Reopen last view
 

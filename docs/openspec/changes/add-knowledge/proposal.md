@@ -7,7 +7,7 @@ Shipyard needs one Knowledge space that draws the reference graph, explains any 
 
 ## What Changes
 
-- Add Knowledge / Graph: the reference graph and the code graph in one renderer, with filters by kind.
+- Add Knowledge / Graph: the reference graph and the code graph (from the codebase-memory index) in one renderer, with filters by kind.
 - Add the Explain action on every entity: the assistant answers from the reference graph and cites refs.
 - Add Knowledge / Handbook: the wiki of the project, in the repository.
 - Add Knowledge / Documents: Markdown documents and the client deliverables (architecture dossier, functional documentation) exported to `.docx` and `.xlsx`.
@@ -18,7 +18,7 @@ Shipyard needs one Knowledge space that draws the reference graph, explains any 
 ## Impact
 
 - Affected capability: `knowledge`
-- Consumes: `refs` (graph and backlinks), `design`, `specs`, `code` (code graph, quality, impacts), `factory` (run metrics for dashboards), `assistant` (the Explain answer).
+- Consumes: `refs` (graph and backlinks), `design`, `specs`, `code` (quality, impacts), `factory` (run metrics for dashboards), `assistant` (the Explain answer).
 - Produces: `doc:` entities, the graph view used by `factory` (Agents map renderer), dashboards and Home widgets for `shell`.
 - Legacy parity: Knowledge graph, Wiki handbook, Documents, Slides, Learning, Learning path, Dashboards, Dossier d'architecture, Documentation fonctionnelle.
 - Affected code/docs: `src/features/knowledge/`, `crates/shipyard-store`.

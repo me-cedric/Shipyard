@@ -9,11 +9,11 @@ Shipyard needs one Work space where the PM sees the backlog, assigns people and 
 
 - Add Work / Backlog and Work / Board on the tracker mirror, with filters and the run state of each item.
 - Add Work / Team from `.shipyard/team.yaml`: name, tracker handles, role, capacity, skills, day rate, availability.
-- Add assignment: the PM assigns a member; Shipyard suggests an assignee from skills and capacity. "Assigned to me" with the label `shipyard` makes a ticket eligible for the local factory.
+- Add assignment: the PM assigns a member; Shipyard suggests an assignee from skills and capacity. "Assigned to me" with the pickup label makes a ticket eligible for the local factory. The label comes from `.shipyard/automation.yaml` (default `shipyard`).
 - Add Work / Estimates: one sheet per lot, with backlog, summary (price, cost, margin), monthly spread and portfolio views, and Excel import and export.
 - Add Work / Plan: a Gantt computed from an estimate sheet, the team and the calendar. Only human decisions are stored.
 - Add Work / Time: time entries and the tracker worklog. A worklog write needs the person's action.
-- Add the plan-and-apply flow for tracker writes: Shipyard shows the epics and stories to create or update, and the PM applies them.
+- Add the plan-and-apply flow for tracker writes: Shipyard shows the epics and stories to create or update, and the PM applies them. It also creates one work item from a ref after one click.
 
 ## Impact
 

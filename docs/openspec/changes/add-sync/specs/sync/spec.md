@@ -28,18 +28,18 @@ Agents must pick up work from the team tracker. The app must show the tracker st
 ### Requirements
 
 - REQ-001: The system SHALL poll each tracker connection and each forge connection on a tick. The default interval SHALL be 60 s and the minimum SHALL be 30 s. Each poll SHALL add jitter and SHALL ask only for changes since the last tick.
-- REQ-002: The system SHALL let a person set the interval and SHALL refuse a value under 30 s.
+- REQ-002: The system SHALL let a person set the interval in Settings / Project, group Automation (`add-factory` REQ-025) and SHALL refuse a value under 30 s.
 - REQ-003: Each tick SHALL reconcile before it dispatches, in this order: fetch, compare, update the mirror, hand off events, stop runs, pick up new work.
 - REQ-004: The system SHALL stop each active run whose ticket became terminal, except a run whose pull request merged, and SHALL record the reason on the run.
 - REQ-005: The system SHALL keep a mirror of work items and pull requests in the app data folder. The tracker and the forge SHALL stay the source of truth. Views SHALL read the mirror and SHALL NOT call the tracker.
-- REQ-006: The system SHALL read the pickup filter from `.shipyard/automation.yaml`: assignee, label, status set, component and priority. The default label SHALL be `shipyard`. The assignee SHALL come from the team handles of `work`. The system MUST NOT pick up while the global kill switch is on.
-- REQ-007: The system SHALL read the concurrency from `.shipyard/automation.yaml`: global, per project and per status. The default SHALL be 2 runs.
+- REQ-006: The system SHALL read the pickup filter from `.shipyard/automation.yaml`. A person edits it in Settings / Project, group Automation (`add-factory` REQ-025). The pickup filter SHALL have these parts: assignee, label, status set, component and priority. The default label SHALL be `shipyard`. The assignee SHALL come from the team handles of `work`. The system MUST NOT pick up while the global kill switch is on.
+- REQ-007: The system SHALL read the concurrency from `.shipyard/automation.yaml`. A person edits it in Settings / Project, group Automation (`add-factory` REQ-025). The concurrency SHALL have these parts: global, per project and per status. The default SHALL be 2 runs.
 - REQ-008: The system SHALL take a claim as an atomic lock in the local store before a run starts. Two runs on one machine MUST NOT claim the same ticket.
 - REQ-009: The system SHALL put a claim stamp on the ticket so that two machines never run the same ticket. The stamp is a tracker write. [NEEDS CLARIFICATION: Q-020 How does the claim stamp relate to the automation write switches?] Working assumption: the claim stamp is not one of the four switches, and pickup rules that a person turned on allow it.
 - REQ-010: The system SHALL release a claim when its run ends, and SHALL treat a claim as stale when its stamp is not refreshed. [NEEDS CLARIFICATION: Q-021 After how long is a claim stale?] Working assumption: 10 minutes without a refresh.
 - REQ-011: The system SHALL hand each new ticket comment to `questions-loop` once.
 - REQ-012: The system SHALL hand each pull request, CI and merge event to `delivery` once.
-- REQ-013: The system SHALL show one sync action in the status bar and the sync state of each connection. The action SHALL run one tick at once.
+- REQ-013: The system SHALL show one sync action in the status bar and the sync state of each connection. The action SHALL run one tick at once, then the git fetch and fast-forward of `add-code` REQ-014 (`q:Q-041`).
 - REQ-014: The system SHALL keep the last good mirror when a poll fails, SHALL show the failed state on the connection and SHALL retry with a longer delay.
 - REQ-015: The system SHALL let a person adopt a ticket, link a ticket to a local item and import the backlog of a tracker.
 - REQ-016: The system SHALL expose the mirror as `wi:` and `pr:` entities, and SHALL send a tick event to the capabilities that listen.
@@ -52,7 +52,6 @@ Agents must pick up work from the team tracker. The app must show the tracker st
 - Editing a ticket. The `work` capability owns edits.
 - Choosing the assignee. The `work` capability owns it.
 - Running the agent. The `factory` capability owns runs and the write switches.
-- Polling the remote heads of a git repository (Legacy remote watch). The pull request poll replaces it.
 
 ### Acceptance Criteria
 
@@ -82,7 +81,6 @@ Agents must pick up work from the team tracker. The app must show the tracker st
 | Legacy feature | Shipyard view | REQ ids |
 | --- | --- | --- |
 | Tickets sync (adopt, link, import backlog) | Work / Backlog; status bar sync action | REQ-005, REQ-013, REQ-015 |
-| Surveillance des dépôts distants | Tick of pull requests and CI | REQ-001, REQ-012 |
 | Tickets sync on a click only | Tick, reconcile, stop runs | REQ-001, REQ-003, REQ-004 |
 
 ### Existing References
@@ -113,7 +111,7 @@ The system SHALL poll each tracker connection and each forge connection on a tic
 
 ### Requirement: REQ-002 Interval setting
 
-The system SHALL let a person set the interval and SHALL refuse a value under 30 s.
+The system SHALL let a person set the interval in Settings / Project, group Automation (`add-factory` REQ-025) and SHALL refuse a value under 30 s.
 
 #### Scenario: Too short
 - GIVEN a person enters 10 s
@@ -161,7 +159,7 @@ The system SHALL keep a mirror of work items and pull requests in the app data f
 
 ### Requirement: REQ-006 Pickup filter
 
-The system SHALL read the pickup filter from `.shipyard/automation.yaml`: assignee, label, status set, component and priority. The default label SHALL be `shipyard`. The assignee SHALL resolve through the team handles of `work`. A ticket SHALL be picked up only when it matches every set filter. The system MUST NOT pick up while the global kill switch is on.
+The system SHALL read the pickup filter from `.shipyard/automation.yaml`. A person edits it in Settings / Project, group Automation (`add-factory` REQ-025). The pickup filter SHALL have these parts: assignee, label, status set, component and priority. The default label SHALL be `shipyard`. The assignee SHALL resolve through the team handles of `work`. A ticket SHALL be picked up only when it matches every set filter. The system MUST NOT pick up while the global kill switch is on.
 
 #### Scenario: Match
 - GIVEN a ticket with the label `shipyard`, assigned to me, in an allowed status
@@ -180,7 +178,7 @@ The system SHALL read the pickup filter from `.shipyard/automation.yaml`: assign
 
 ### Requirement: REQ-007 Concurrency
 
-The system SHALL read the concurrency from `.shipyard/automation.yaml`: global, per project and per status. The default SHALL be 2 runs. The system MUST NOT start a run above any set limit.
+The system SHALL read the concurrency from `.shipyard/automation.yaml`. A person edits it in Settings / Project, group Automation (`add-factory` REQ-025). The concurrency SHALL have these parts: global, per project and per status. The default SHALL be 2 runs. The system MUST NOT start a run above any set limit.
 
 #### Scenario: Default limit
 - GIVEN no concurrency setting and 5 matching tickets
@@ -250,13 +248,18 @@ The system SHALL hand each pull request, CI and merge event to `delivery` once.
 
 ### Requirement: REQ-013 Sync action and state
 
-The system SHALL show one sync action in the status bar. The action SHALL run one tick at once. The system SHALL show the sync state of each connection in Settings / Connections: idle, running, failed, with the time of the last good tick.
+The system SHALL show one sync action in the status bar. The action SHALL run one tick at once, then the git fetch and fast-forward of `add-code` REQ-014 (`q:Q-041`). The system SHALL show the sync state of each connection in Settings / Connections: idle, running, failed, with the time of the last good tick.
 
 #### Scenario: Run at once
 - GIVEN the next tick is in 40 s
 - WHEN a person activates the sync action
 - THEN a tick runs now
 - AND the timer restarts
+
+#### Scenario: Git fetch
+- GIVEN a project with a remote and a clean working copy
+- WHEN a person activates the sync action
+- THEN the tick runs, then the working branch fetches and fast-forwards
 
 #### Scenario: No second control
 - GIVEN any view of the app

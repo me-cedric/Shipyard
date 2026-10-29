@@ -19,8 +19,8 @@ Plan: [plan.md](./plan.md)
 - [ ] T006 Implement validation of `ask_question`, the wait, the ticket move and the comment in `crates/shipyard-engine/src/questions.rs`. Covers REQ-002, REQ-004, REQ-005, REQ-006, REQ-016.
 - [ ] T007 Implement detection, the one-answer rule, the edit rule and the unclear reply in `crates/shipyard-engine/src/answers.rs`. Covers REQ-009, REQ-011, REQ-012, REQ-013.
 - [ ] T008 Implement resume, several open questions, the terminal ticket rule and the reminder in `crates/shipyard-engine/src/resume.rs`. Covers REQ-001, REQ-014, REQ-017, REQ-018, REQ-019.
-- [ ] T009 Write fold tests in `crates/shipyard-store/tests/fold.rs`. Covers REQ-015.
-- [ ] T010 Implement the fold preview and write in `crates/shipyard-store/src/fold.rs`. Covers REQ-015.
+- [ ] T009 Write fold preview tests in `crates/shipyard-store/tests/fold.rs`. Covers REQ-015.
+- [ ] T010 Implement the fold preview in `crates/shipyard-store/src/fold.rs`. Covers REQ-015.
 - [ ] T011 Add the IPC commands and events in `crates/shipyard-app/src/questions.rs`, then regenerate the bindings with the project command. Covers REQ-008, REQ-011, REQ-015, REQ-020.
 - [ ] T012 Write view tests in `src/features/home/inbox/question-card.test.tsx`. Covers REQ-008, REQ-011, REQ-015, REQ-021.
 - [ ] T013 Implement the QuestionCard and the fold preview in `src/features/home/inbox/`. Covers REQ-008, REQ-011, REQ-015, REQ-020, REQ-021.

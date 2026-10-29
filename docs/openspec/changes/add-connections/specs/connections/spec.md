@@ -45,6 +45,7 @@ Legacy is Jira-shaped. Its credentials, MCP servers and assistants sit on differ
 - REQ-016: Each connections view SHALL follow the interface rules of the constitution.
 - REQ-017: The Shipyard MCP endpoint SHALL also serve the tools of each active MCP server, named `<server-id>__<tool>`.
 - REQ-018: The system SHALL keep a stdio MCP server open between agent turns through a relay.
+- REQ-019: The system SHALL list the repositories of a forge connection and SHALL mark each one that the account cannot push to. It SHALL check the push target of a project and SHALL create a remote repository on request.
 
 ### Non-Goals
 
@@ -54,6 +55,7 @@ Legacy is Jira-shaped. Its credentials, MCP servers and assistants sit on differ
 - A webhook relay or a hosted proxy.
 - Deploying MCP servers from the plugin catalogue. The `extensions` capability owns it.
 - Storing a secret in any place except the OS keychain.
+- Reading the accounts of the `gh` and `glab` tools. The keychain is the only source (`q:Q-017`).
 
 ### Acceptance Criteria
 
@@ -71,6 +73,7 @@ Legacy is Jira-shaped. Its credentials, MCP servers and assistants sit on differ
 - [ ] Every view works with the keyboard, shows a focus ring and has French and English text.
 - [ ] An external agent client lists the tools of an active MCP server through the one Shipyard endpoint.
 - [ ] A second agent turn reuses the open MCP server and does not start it again.
+- [ ] A forge connection lists its repositories, marks one with no push right, and creates a remote repository.
 
 ### Links
 
@@ -89,6 +92,7 @@ Legacy is Jira-shaped. Its credentials, MCP servers and assistants sit on differ
 | Assistant CLI detection | Settings / Connections / Runners and providers | REQ-009, REQ-010 |
 | PR forge setup | Settings / Connections / Forges | REQ-005 |
 | Legacy MCP server relay and proxy | Shipyard MCP endpoint | REQ-017, REQ-018 |
+| Repository picker (list, push-impossible marker, push-target check, create) | Settings / Connections / Forges | REQ-019 |
 
 ### Existing References
 
@@ -319,3 +323,22 @@ The system SHALL start a relay in place of a stdio MCP server for an agent turn.
 - GIVEN the app is closed
 - WHEN a headless run calls the relay
 - THEN the relay starts the server and the run continues
+
+### Requirement: REQ-019 Repository picker
+
+The system SHALL list the repositories of a forge connection and SHALL mark each one that the account cannot push to. It SHALL check the push target of a project and SHALL create a remote repository on request.
+
+#### Scenario: No push right
+- GIVEN a forge connection whose account can only read a repository
+- WHEN a person lists the repositories
+- THEN that repository shows a marker that push is not possible
+
+#### Scenario: Push target check
+- GIVEN a project whose remote the account cannot push to
+- WHEN a person checks the push target
+- THEN the check names the missing permission
+
+#### Scenario: Create a remote repository
+- GIVEN a forge connection with the right to create
+- WHEN a person asks for a new remote repository
+- THEN the forge holds the repository and the project uses it as its remote

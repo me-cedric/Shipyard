@@ -28,7 +28,7 @@ A junior or a new member must understand the project from its decisions, specs a
 ### Requirements
 
 - REQ-001: Knowledge / Graph SHALL draw the reference graph of the project.
-- REQ-002: Knowledge / Graph SHALL also draw the code graph.
+- REQ-002: Knowledge / Graph SHALL also draw the code graph from the codebase-memory index of the project.
 - REQ-003: The reference graph, the code graph and Factory / Agents map SHALL use one renderer (`add-factory` REQ-030).
 - REQ-004: The graph SHALL filter by kind.
 - REQ-005: A click on a node SHALL open its entity in the inspector (`add-shell` REQ-006).
@@ -61,7 +61,7 @@ A junior or a new member must understand the project from its decisions, specs a
 - The reference index and the backlinks. `add-refs` owns them.
 - The Legacy My learning page with RSS feeds. The learning path replaces it.
 - Parsing a `.docx` or an `.xlsx` back into the project. Exports are one-way.
-- The change request document and the work-done sheet that Legacy exports from Impacts.
+- The change request document and the work-done sheet that Legacy exports from Impacts. The digest goes into the pull request (`add-delivery` REQ-027), and REQ-013 to REQ-016 cover the client documents.
 - A custom theme editor. One project theme serves all decks.
 - A hand-written block language for dashboards. Tiles come from a fixed catalogue.
 
@@ -88,7 +88,7 @@ A junior or a new member must understand the project from its decisions, specs a
 
 - Consumes: `add-refs` (graph, backlinks, search; REQ-003, REQ-007, REQ-008).
 - Consumes: `add-design` (models, ADRs, data, flows, API, screens; REQ-001, REQ-023) and `add-specs` (specs and capabilities; REQ-005, REQ-006).
-- Consumes: `add-code` (code graph input, quality reports, impact reports; REQ-027, REQ-028, REQ-033).
+- Consumes: `add-code` (quality reports, impact reports; REQ-027, REQ-028, REQ-033).
 - Consumes: `add-factory` (run metrics for tiles; REQ-030, REQ-032) and `add-work` (estimates for the annex; REQ-009, REQ-014).
 - Consumes: `add-assistant` (the Explain answer; REQ-016) and `add-shell` (inspector, Home; REQ-003, REQ-006).
 - Produces: `doc:` entities for `add-refs`.
@@ -133,7 +133,7 @@ Knowledge / Graph SHALL draw the reference graph of the project. A node SHALL be
 
 ### Requirement: REQ-002 Code graph
 
-Knowledge / Graph SHALL also draw the code graph. It shows the files, modules and symbols of the project, and their calls. One control SHALL switch between the reference graph and the code graph. [NEEDS CLARIFICATION: Q-045 How does knowledge get the code graph?]
+Knowledge / Graph SHALL also draw the code graph from the codebase-memory index of the project. It shows the files, modules and symbols of the project, and their calls. One control SHALL switch between the reference graph and the code graph. [NEEDS CLARIFICATION: Q-045 How does knowledge get the code graph?]
 
 #### Scenario: Switch source
 - GIVEN a project with a code graph
@@ -323,7 +323,7 @@ Knowledge / Learn SHALL show a glossary of the terms that the specs define. Each
 
 ### Requirement: REQ-022 Dashboards
 
-Knowledge / Dashboards SHALL show a dashboard as a grid of tiles. A dashboard SHALL be a repository file that the team shares. A change SHALL save to the file and MUST NOT make a commit. A file that a newer version wrote SHALL show. The system MUST NOT overwrite it.
+Knowledge / Dashboards SHALL show a dashboard as a grid of tiles. A dashboard SHALL be a repository file that the team shares. A change SHALL save to the file and MUST NOT make a commit. The system SHALL show a file that a newer version wrote. The system MUST NOT overwrite it.
 
 #### Scenario: Move a tile
 - GIVEN a dashboard
