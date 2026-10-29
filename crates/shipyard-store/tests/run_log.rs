@@ -213,3 +213,22 @@ fn a_snapshot_is_replaced_and_never_changes_the_log() {
     assert_eq!(log.last_id("r1").unwrap(), b);
     assert_eq!(log.last_id("none").unwrap(), 0);
 }
+
+#[test]
+fn usage_events_are_the_runner_events_of_type_usage() {
+    let log = RunLog::open_memory().unwrap();
+    let usage = json!({"type": "usage", "input_tokens": 3, "output_tokens": 4, "cost_usd": 0.5});
+    log.append("r1", Some("a"), kind::RUNNER, &usage, 10)
+        .unwrap();
+    log.append("r1", None, kind::RUNNER, &json!({"type": "turn"}), 11)
+        .unwrap();
+    log.append("r2", None, kind::NOTE, &usage, 12).unwrap();
+    log.append("r2", None, kind::RUNNER, &usage, 13).unwrap();
+    let got: Vec<_> = log
+        .usage_events()
+        .unwrap()
+        .iter()
+        .map(|e| (e.run.clone(), e.ts))
+        .collect();
+    assert_eq!(got, [("r1".to_string(), 10), ("r2".to_string(), 13)]);
+}

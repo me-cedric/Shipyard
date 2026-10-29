@@ -62,6 +62,25 @@ fn the_diff_shows_the_change_and_is_cut_at_the_cap() {
 }
 
 #[test]
+fn the_diff_by_file_has_the_shape_of_the_code_space_and_a_total_cap() {
+    let (_t, r, _) = fixture();
+    let files = r.file_diffs_since("main", 100_000).unwrap();
+    let lib = files.iter().find(|f| f.path == "src/lib.rs").unwrap();
+    assert!(
+        lib.text.contains("+TWO") && !lib.binary && !lib.truncated,
+        "{lib:?}"
+    );
+    assert_eq!(
+        files.len(),
+        r.changed_since("main").unwrap().len(),
+        "one entry for each changed file"
+    );
+    let capped = r.file_diffs_since("main", 10).unwrap();
+    assert!(capped.iter().any(|f| f.truncated));
+    assert!(capped.iter().map(|f| f.text.len()).sum::<usize>() <= 10);
+}
+
+#[test]
 fn a_line_is_read_from_the_folder_and_a_missing_one_is_none() {
     let (_t, r, _) = fixture();
     assert_eq!(r.line("src/lib.rs", 2).unwrap().as_deref(), Some("TWO"));

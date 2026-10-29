@@ -197,6 +197,15 @@ impl RunLog {
             .pop())
     }
 
+    /// The usage events of the runner (`{"type":"usage",...}`) of every run, oldest first. They
+    /// carry the tokens and the money of the Usage view and of the day budget.
+    pub fn usage_events(&self) -> Result<Vec<Event>> {
+        self.query(
+            "WHERE kind = 'runner' AND instr(payload, '\"type\":\"usage\"') > 0 ORDER BY id",
+            [],
+        )
+    }
+
     /// The run ids, in order of their first event.
     pub fn runs(&self) -> Result<Vec<String>> {
         let mut st = self

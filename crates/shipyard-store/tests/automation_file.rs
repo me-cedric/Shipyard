@@ -2,7 +2,8 @@
 
 use shipyard_core::pickup::{AUTOMATION_FILE, Automation, StateMapping};
 use shipyard_store::automation_file::{
-    AutomationRead, parse_automation, read_automation, render_automation, write_automation,
+    AutomationRead, parse_automation, read_automation, render_automation, set_budget,
+    write_automation,
 };
 
 const FULL: &str = "\
@@ -161,4 +162,57 @@ fn a_broken_file_reads_as_invalid() {
         read_automation(dir.path()).unwrap(),
         AutomationRead::Invalid(_)
     ));
+}
+
+#[test]
+fn budgets_default_to_none_and_stay_out_of_the_file() {
+    let a = parse_automation("interval: 60\n").unwrap();
+    assert!(a.budgets.is_empty());
+    assert!(!render_automation(&a).unwrap().contains("budgets"));
+}
+
+#[test]
+fn a_budgets_block_is_read_and_its_keys_and_values_are_checked() {
+    let a = parse_automation(
+        "budgets:\n  day:\n    '*': 20\n    2026-10-29: 5.5\n  member:\n    Alice: 10\n",
+    )
+    .unwrap();
+    assert_eq!(a.budgets.for_day("2026-10-29"), Some(5.5));
+    assert_eq!(a.budgets.for_day("2026-10-30"), Some(20.0));
+    assert_eq!(a.budgets.for_member("Alice"), Some(10.0));
+    assert_eq!(a.budgets.for_member("Bob"), None);
+    for bad in [
+        "budgets:\n  day:\n    monday: 5\n",
+        "budgets:\n  day:\n    '*': 0\n",
+        "budgets:\n  member:\n    Alice: -1\n",
+        "budgets:\n  week: {}\n",
+        "budgets:\n  member:\n    Alice: many\n",
+    ] {
+        assert!(parse_automation(bad).is_err(), "{bad}");
+    }
+}
+
+#[test]
+fn set_budget_writes_clears_and_refuses() {
+    let dir = tempfile::tempdir().unwrap();
+    set_budget(dir.path(), "member", "Alice", Some(7.0)).unwrap();
+    set_budget(dir.path(), "day", "*", Some(30.0)).unwrap();
+    let AutomationRead::Valid(a) = read_automation(dir.path()).unwrap() else {
+        panic!("expected a valid file");
+    };
+    assert_eq!(a.budgets.for_member("Alice"), Some(7.0));
+    assert_eq!(a.budgets.for_day("2026-01-01"), Some(30.0));
+    set_budget(dir.path(), "member", "Alice", None).unwrap();
+    assert!(set_budget(dir.path(), "week", "x", Some(1.0)).is_err());
+    assert!(set_budget(dir.path(), "day", "monday", Some(1.0)).is_err());
+    assert!(set_budget(dir.path(), "member", "Bob", Some(-2.0)).is_err());
+    let AutomationRead::Valid(a) = read_automation(dir.path()).unwrap() else {
+        panic!("expected a valid file");
+    };
+    assert_eq!(a.budgets.for_member("Alice"), None, "cleared");
+    assert_eq!(
+        a.budgets.for_day("2026-01-01"),
+        Some(30.0),
+        "refusals kept the file"
+    );
 }

@@ -942,6 +942,10 @@ const handlers: Handlers = {
 	runsList: () => fx.runsList(state.factory, active()?.id ?? null),
 	runGetOne: (run) => fx.runGetOne(state.factory, active()?.id ?? null, run),
 	runLogPage: (run, after, limit) => fx.runLogPage(state.factory, run, after, limit),
+	sessionsList: () => fx.sessionsList(state.factory, active()?.id ?? null),
+	usageGet: () => fx.usageGet(state.factory, active()?.id ?? null),
+	budgetSet: (scope, key, usd) => fx.budgetSet(state.factory, scope, key, usd),
+	runDiff: (run) => fx.runDiff(state.factory, active()?.id ?? null, run),
 	runStart: (key) => {
 		const p = active();
 		if (!p) throw "no project is open";

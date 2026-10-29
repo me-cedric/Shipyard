@@ -8,6 +8,7 @@ import type {
 	ApprovalView,
 	AskedQuestion_Serialize,
 	Effort,
+	FileDiff,
 	FindingView_Serialize,
 	Gate,
 	IssueView_Serialize,
@@ -22,12 +23,16 @@ import type {
 	RunLogEvent_Serialize,
 	RunLogPage_Serialize,
 	RunnerTiers,
+	RunSpendView_Serialize,
 	RunState,
 	RunView_Serialize,
+	SessionView_Serialize,
+	SpendView_Serialize,
 	Step_Serialize,
 	StepState,
 	StepView,
 	UnitView,
+	UsageView_Serialize,
 	Workflow_Serialize,
 	WorkflowFile_Serialize,
 	WorkflowItem_Serialize,
@@ -448,6 +453,8 @@ export type MockFactory = {
 	messages: { run: string; from: string; text: string; at: number; read: boolean }[];
 	approvals: ApprovalView[];
 	tiers: RunnerTiers[];
+	/** Money budgets in USD. A day key is `YYYY-MM-DD` or `*`, a member key is a name or `*`. */
+	budgets: { day: Record<string, number>; member: Record<string, number> };
 	kill: boolean;
 	/** The text of each workflow file. */
 	workflows: Record<string, string>;
@@ -474,6 +481,7 @@ export const emptyFactory = (): MockFactory => ({
 	messages: [],
 	approvals: [],
 	tiers: defaultTiers(),
+	budgets: { day: {}, member: {} },
 	kill: false,
 	workflows: { ...WORKFLOWS },
 	roles: {},
@@ -861,6 +869,8 @@ export function seedFactory(): MockFactory {
 	run(14, "ACME-3", "bug", "Queued", { steps: steps("bug", 0, "pending") });
 
 	for (const [i, r] of f.runs.entries()) seedLog(f, r, T0 + i * 1_200_000);
+	// One demo budget, so Usage shows a member with a budget and rows with none (Q-023).
+	f.budgets.member["Ada Lovelace"] = 10;
 	return f;
 }
 
@@ -1210,4 +1220,127 @@ export function roleWrite(f: MockFactory, id: string, text: string): null {
 	if (issue) throw refusal(issue);
 	f.roles[id] = text;
 	return null;
+}
+
+// ------------------------------------------------------------------ sessions, usage, diff
+
+const cents = (n: number) => Math.round(n * 100) / 100;
+const DAY = 86_400_000;
+const isDay = (k: string) => /^\d{4}-\d{2}-\d{2}$/.test(k);
+/** The planning and review steps run on the top model, the others on the mid one. */
+const modelOf = (step: string) =>
+	step === "plan" || step.startsWith("review") ? "opus" : "sonnet";
+
+/** The live sessions and the latest ended ones, newest first. A step that never started has none. */
+export function sessionsList(f: MockFactory, project: string | null): SessionView_Serialize[] {
+	const out: SessionView_Serialize[] = [];
+	for (const r of runsOf(f, project).toReversed()) {
+		const started = r.steps
+			.toReversed()
+			.filter((s) => s.state !== "pending")
+			.flatMap((s) => (s.units.length ? s.units : [{ id: s.id, state: s.state }]));
+		// The run total is shared between its sessions in units of 1/k; the last one takes the rest.
+		const split = (n: number, i: number, k: number) => {
+			const total = Math.round(n * k);
+			const part = Math.floor(total / started.length);
+			return (i === started.length - 1 ? total - part * i : part) / k;
+		};
+		for (const [i, u] of started.entries())
+			out.push({
+				run: r.id,
+				key: r.key,
+				step: u.id,
+				runner: "claude",
+				model: modelOf(u.id),
+				state: u.state,
+				tokens: split(r.tokens, i, 1),
+				costUsd: split(r.costUsd, i, 100),
+			});
+	}
+	return out.slice(0, 50);
+}
+
+/** Tokens and money per run, per UTC day and per member, each with its budget (`null`: none). */
+export function usageGet(f: MockFactory, project: string | null): UsageView_Serialize {
+	const mine = runsOf(f, project);
+	const days = new Map<string, [number, number]>();
+	const members = new Map<string, [number, number]>();
+	const add = (m: Map<string, [number, number]>, k: string, r: Rec) => {
+		const [tokens, usd] = m.get(k) ?? [0, 0];
+		m.set(k, [tokens + r.tokens, usd + r.costUsd]);
+	};
+	mine.forEach((r, i) => {
+		// The demo runs spread over three UTC days, the oldest ones first.
+		const day = new Date(T0 - Math.max(0, 2 - Math.floor(i / 5)) * DAY).toISOString().slice(0, 10);
+		add(days, day, r);
+		add(members, FAKE_TICKETS.find((t) => t.key === r.key)?.assignee ?? "", r);
+	});
+	const rows = (
+		m: Map<string, [number, number]>,
+		budget: Record<string, number>,
+	): SpendView_Serialize[] =>
+		[...m]
+			.map(([key, [tokens, usd]]) => ({
+				key,
+				tokens,
+				usd: cents(usd),
+				budget: budget[key] ?? budget["*"] ?? null,
+			}))
+			.sort((a, b) => a.key.localeCompare(b.key));
+	return {
+		runs: mine
+			.map(
+				(r): RunSpendView_Serialize => ({
+					run: r.id,
+					key: r.key,
+					tokens: r.tokens,
+					usd: r.costUsd,
+					budget: r.budgetUsd,
+				}),
+			)
+			.reverse(),
+		days: rows(days, f.budgets.day).reverse(),
+		members: rows(members, f.budgets.member),
+	};
+}
+
+/** Set a budget, or clear it (`usd` is `null`). The rules are those of the automation codec. */
+export function budgetSet(f: MockFactory, scope: string, key: string, usd: number | null): null {
+	if (scope !== "day" && scope !== "member") throw `unknown budget scope \`${scope}\``;
+	if (usd !== null && !(Number.isFinite(usd) && usd > 0))
+		throw `invalid automation file: budgets.${scope}.${key} = ${usd}`;
+	if (scope === "day" ? key !== "*" && !isDay(key) : key === "")
+		throw `invalid automation file: budgets.${scope}.${key} = ${usd}`;
+	const map = f.budgets[scope];
+	if (usd === null) delete map[key];
+	else map[key] = usd;
+	return null;
+}
+
+/** The diff of a run folder against its base. A queued run has no folder yet. */
+export function runDiff(f: MockFactory, project: string | null, run: string): FileDiff[] {
+	if (!RUN_ID.test(run)) throw `\`${run}\` is not a run id`;
+	const r = runsOf(f, project).find((x) => x.id === run);
+	if (!r) throw `no run ${run}`;
+	if (r.state === "Queued") return [];
+	const name = r.key.toLowerCase().replace("-", "_");
+	const file = (path: string, hunk: string[]): FileDiff => ({
+		path,
+		text: [
+			`diff --git a/${path} b/${path}`,
+			`--- a/${path}`,
+			`+++ b/${path}`,
+			`@@ -1,2 +1,${2 + hunk.length} @@`,
+			' import { run } from "./run";',
+			" ",
+			...hunk.map((l) => `+${l}`),
+			"",
+		].join("\n"),
+		binary: false,
+		truncated: false,
+	});
+	return [
+		file(`src/${name}.ts`, [`export const ${name} = () => run("${r.key}");`]),
+		file(`src/${name}.test.ts`, [`it("runs ${r.key}", () => expect(${name}()).toBeDefined());`]),
+	];
 }

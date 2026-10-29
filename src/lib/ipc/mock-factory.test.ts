@@ -480,3 +480,77 @@ describe("mock factory: workflows, roles and tiers", () => {
 		expect((await unwrap(commands.tiersGet()))[0]?.top).toBe("opus");
 	});
 });
+
+describe("mock factory: sessions, usage, budgets and the run diff", () => {
+	beforeEach(async () => {
+		resetMock();
+		await open();
+	});
+
+	it("lists one session per started step or child, and they add up to the runs", async () => {
+		const rows = await unwrap(commands.sessionsList());
+		const working = await one("ACME-2");
+		const mine = rows.filter((s) => s.run === working.id);
+		expect(mine.length).toBeGreaterThan(2);
+		expect(mine.some((s) => s.state === "running" && s.runner === "claude" && s.model)).toBe(true);
+		expect(mine.reduce((n, s) => n + s.tokens, 0)).toBe(working.tokens);
+		expect(Math.round(mine.reduce((n, s) => n + (s.costUsd ?? 0), 0) * 100)).toBe(
+			Math.round((working.costUsd ?? 0) * 100),
+		);
+		// A queued run has no session.
+		expect(rows.some((s) => s.key === "ACME-3")).toBe(false);
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		expect(await unwrap(commands.sessionsList())).toEqual([]);
+	});
+
+	it("sums usage per run, day and member against their budgets", async () => {
+		const u = await unwrap(commands.usageGet());
+		const list = await runs();
+		expect(u.runs).toHaveLength(list.length);
+		const total = (rows: { usd: number | null }[]) =>
+			Math.round(rows.reduce((n, r) => n + (r.usd ?? 0), 0) * 100);
+		expect(total(u.days)).toBe(total(u.runs));
+		expect(total(u.members)).toBe(total(u.runs));
+		expect(u.days.length).toBe(3);
+		expect(u.days.map((d) => d.key)).toEqual([...u.days.map((d) => d.key)].sort().reverse());
+		expect(u.days.every((d) => d.budget === null)).toBe(true);
+		expect(u.members.find((m) => m.key === "Ada Lovelace")?.budget).toBe(10);
+		expect(u.members.find((m) => m.key === "")?.budget).toBeNull();
+	});
+
+	it("sets, applies and clears a budget, and refuses a bad one", async () => {
+		await unwrap(commands.budgetSet("day", "*", 25));
+		await unwrap(commands.budgetSet("member", "Grace Hopper", 4.5));
+		const u = await unwrap(commands.usageGet());
+		expect(u.days.every((d) => d.budget === 25)).toBe(true);
+		expect(u.members.find((m) => m.key === "Grace Hopper")?.budget).toBe(4.5);
+		await unwrap(commands.budgetSet("day", "*", null));
+		expect((await unwrap(commands.usageGet())).days.every((d) => d.budget === null)).toBe(true);
+		await unwrap(commands.budgetSet("day", "2026-10-29", 3));
+		expect(
+			(await unwrap(commands.usageGet())).days.find((d) => d.key === "2026-10-29")?.budget,
+		).toBe(3);
+		for (const [scope, key, usd] of [
+			["week", "*", 1],
+			["day", "monday", 1],
+			["day", "*", 0],
+			["member", "", 1],
+			["member", "Ada Lovelace", -2],
+			["member", "Ada Lovelace", Number.NaN],
+		] as const)
+			await expect(
+				unwrap(commands.budgetSet(scope, key, usd)),
+				`${scope} ${key} ${usd}`,
+			).rejects.toThrow();
+	});
+
+	it("gives the diff of a run folder, nothing for a queued run, and refuses a stranger", async () => {
+		const files = await unwrap(commands.runDiff((await one("ACME-2")).id));
+		expect(files.map((f) => f.path)).toEqual(["src/acme_2.ts", "src/acme_2.test.ts"]);
+		expect(files[0]).toMatchObject({ binary: false, truncated: false });
+		expect(files[0]?.text).toContain("+export const acme_2");
+		expect(await unwrap(commands.runDiff((await one("ACME-3")).id))).toEqual([]);
+		await expect(unwrap(commands.runDiff("nope"))).rejects.toThrow("is not a run id");
+		await expect(unwrap(commands.runDiff("0".repeat(26)))).rejects.toThrow("no run");
+	});
+});

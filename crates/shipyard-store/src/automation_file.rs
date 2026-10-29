@@ -72,6 +72,26 @@ pub fn write_automation(root: &Path, a: &Automation) -> Result<()> {
     )
 }
 
+/// Set or clear (`usd` is `None`) one budget in the file (`factory` REQ-032). `scope` is `day` or
+/// `member`. A missing file starts from the defaults; an invalid file or value is refused.
+pub fn set_budget(root: &Path, scope: &str, key: &str, usd: Option<f64>) -> Result<()> {
+    let mut a = match read_automation(root)? {
+        AutomationRead::Missing => Automation::default(),
+        AutomationRead::Valid(a) => a,
+        AutomationRead::Invalid(_) => return Err("the automation file is not valid".into()),
+    };
+    let map = match scope {
+        "day" => &mut a.budgets.day,
+        "member" => &mut a.budgets.member,
+        _ => return Err(format!("unknown budget scope `{scope}`").into()),
+    };
+    match usd {
+        Some(v) => map.insert(key.into(), v),
+        None => map.remove(key),
+    };
+    write_automation(root, &a)
+}
+
 /// The default row of each of the sixteen states (`factory` plan, REQ-008). `None` is "unchanged".
 pub fn default_status_map() -> BTreeMap<String, StateMapping> {
     use RunState as S;

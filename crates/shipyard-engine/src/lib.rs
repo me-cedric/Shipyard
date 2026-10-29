@@ -24,6 +24,7 @@ pub mod review;
 pub mod run_engine;
 pub mod tick;
 pub mod tools;
+pub mod usage;
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 

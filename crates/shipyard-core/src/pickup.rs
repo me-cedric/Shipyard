@@ -111,7 +111,47 @@ impl Writes {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+/// Money budgets in USD (`factory` REQ-022, REQ-032). Key `*` is the budget of every day or of
+/// every member that has no key of its own. No entry means no budget (`q:Q-023`, option 1).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, Type)]
+#[serde(deny_unknown_fields, default)]
+pub struct Budgets {
+    /// Key: a UTC day, `YYYY-MM-DD`.
+    pub day: BTreeMap<String, f64>,
+    /// Key: the name of the ticket assignee.
+    pub member: BTreeMap<String, f64>,
+}
+
+impl Budgets {
+    pub fn is_empty(&self) -> bool {
+        self.day.is_empty() && self.member.is_empty()
+    }
+
+    pub fn for_day(&self, day: &str) -> Option<f64> {
+        self.day.get(day).or_else(|| self.day.get("*")).copied()
+    }
+
+    pub fn for_member(&self, name: &str) -> Option<f64> {
+        self.member
+            .get(name)
+            .or_else(|| self.member.get("*"))
+            .copied()
+    }
+}
+
+fn is_day(key: &str) -> bool {
+    let b = key.as_bytes();
+    b.len() == 10
+        && b.iter().enumerate().all(|(i, c)| {
+            if i == 4 || i == 7 {
+                *c == b'-'
+            } else {
+                c.is_ascii_digit()
+            }
+        })
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields, default)]
 pub struct Automation {
     /// Poll interval in seconds. At least 30.
@@ -127,6 +167,8 @@ pub struct Automation {
     /// The assignee of that pull request when the ticket names none (`delivery` REQ-012).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub assignee: Option<String>,
+    #[serde(skip_serializing_if = "Budgets::is_empty")]
+    pub budgets: Budgets,
 }
 
 impl Default for Automation {
@@ -139,6 +181,7 @@ impl Default for Automation {
             writes: Writes::default(),
             reviewers: Vec::new(),
             assignee: None,
+            budgets: Budgets::default(),
         }
     }
 }
@@ -158,6 +201,20 @@ impl Automation {
                     field: format!("status_map.{key}"),
                     value: key.clone(),
                 });
+            }
+        }
+        let bad = |field: &str, key: &String, usd: f64| Issue {
+            field: format!("budgets.{field}.{key}"),
+            value: usd.to_string(),
+        };
+        for (key, usd) in &self.budgets.day {
+            if !(usd.is_finite() && *usd > 0.0) || (key != "*" && !is_day(key)) {
+                out.push(bad("day", key, *usd));
+            }
+        }
+        for (key, usd) in &self.budgets.member {
+            if !(usd.is_finite() && *usd > 0.0) || key.is_empty() {
+                out.push(bad("member", key, *usd));
             }
         }
         out

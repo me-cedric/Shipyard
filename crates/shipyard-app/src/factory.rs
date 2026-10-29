@@ -30,12 +30,14 @@ use shipyard_engine::ports::{
     AgentEvent, AgentRun, Agents, Brief, Dispatch, PortResult, StartRequest,
 };
 use shipyard_engine::run_engine::{Config, Factory, Project, RunInfo, Tiers};
+use shipyard_git::code::FileDiff;
 use shipyard_mcp::proxy::Proxy;
 use shipyard_mcp::server::Server;
 use shipyard_mcp::session::{Binding, Sessions};
 use shipyard_mcp::tools::agent::AgentEvents;
 use shipyard_mcp::transport::Http;
 use shipyard_secrets::Secret;
+use shipyard_store::automation_file::{AutomationRead, read_automation, set_budget};
 use shipyard_store::factory_files::{
     FileIssue, Loaded, ROLES_DIR, Role, WORKFLOWS_DIR, default_roles, load, parse_role,
     parse_workflow, seed,
@@ -66,6 +68,8 @@ const DEFAULT_WORKFLOW: &str = "feature";
 /// The longest workflow or role file that a view can save.
 const MAX_FILE: usize = 64 * 1024;
 const MAX_PAGE: u32 = 500;
+/// The longest run diff, in bytes. The view says when a file is cut.
+const MAX_RUN_DIFF: usize = 256 * 1024;
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
@@ -843,6 +847,146 @@ pub fn run_log(s: &AppState, run: &str, after: u32, limit: u32) -> Res<RunLogPag
     })
 }
 
+/// One agent session: a step, or a child of a step, that started (`factory` REQ-031).
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionView {
+    pub run: String,
+    /// The ticket.
+    pub key: String,
+    pub step: String,
+    pub runner: String,
+    pub model: Option<String>,
+    pub state: StepState,
+    pub tokens: u32,
+    pub cost_usd: f64,
+}
+
+/// The live sessions and the latest ended ones of the active project, newest first.
+pub fn sessions(s: &AppState) -> Res<Vec<SessionView>> {
+    let Some(a) = active(s)? else {
+        return Ok(Vec::new());
+    };
+    Ok(s.factory
+        .factory
+        .sessions()
+        .into_iter()
+        .filter(|x| x.project == a.entry.id)
+        .map(|x| SessionView {
+            run: x.run,
+            key: x.key,
+            step: x.step,
+            runner: x.runner,
+            model: x.model,
+            state: x.state,
+            tokens: u32::try_from(x.tokens).unwrap_or(u32::MAX),
+            cost_usd: x.cost_usd,
+        })
+        .collect())
+}
+
+/// Tokens and money of a day or a member, with its budget (`null`: none).
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SpendView {
+    /// A UTC day `YYYY-MM-DD`, or a member name (`""`: no assignee).
+    pub key: String,
+    pub tokens: u32,
+    pub usd: f64,
+    pub budget: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RunSpendView {
+    pub run: String,
+    /// The ticket.
+    pub key: String,
+    pub tokens: u32,
+    pub usd: f64,
+    /// The budget of the run.
+    pub budget: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct UsageView {
+    pub runs: Vec<RunSpendView>,
+    /// Newest day first.
+    pub days: Vec<SpendView>,
+    pub members: Vec<SpendView>,
+}
+
+fn spend_view(x: shipyard_engine::usage::Spend) -> SpendView {
+    SpendView {
+        key: x.key,
+        tokens: u32::try_from(x.tokens).unwrap_or(u32::MAX),
+        usd: x.usd,
+        budget: x.budget,
+    }
+}
+
+/// Usage of the active project per run, per UTC day and per member (`factory` REQ-032).
+pub fn usage(s: &AppState) -> Res<UsageView> {
+    let Some(a) = active(s)? else {
+        return Ok(UsageView {
+            runs: Vec::new(),
+            days: Vec::new(),
+            members: Vec::new(),
+        });
+    };
+    let f = &s.factory.factory;
+    let (days, members) = f.usage(&a.entry.id);
+    let mut runs: Vec<RunSpendView> = f
+        .runs()
+        .into_iter()
+        .filter(|r| r.project == a.entry.id)
+        .map(|r| RunSpendView {
+            run: r.id,
+            key: r.key,
+            tokens: u32::try_from(r.tokens).unwrap_or(u32::MAX),
+            usd: r.cost_usd,
+            budget: Some(r.budget_usd),
+        })
+        .collect();
+    runs.reverse();
+    Ok(UsageView {
+        runs,
+        days: days.into_iter().map(spend_view).collect(),
+        members: members.into_iter().map(spend_view).collect(),
+    })
+}
+
+/// Set a budget in `.shipyard/automation.yaml`, or clear it (`usd` is `None`). `scope` is `day`
+/// (key: a UTC day or `*`) or `member` (key: a name or `*`). The engine counts it at once.
+pub fn budget_save(s: &AppState, scope: &str, key: &str, usd: Option<f64>) -> Res<()> {
+    let (id, root) = root_of(s)?;
+    set_budget(&root, scope, key, usd).map_err(err)?;
+    if let AutomationRead::Valid(a) = read_automation(&root).map_err(err)? {
+        s.factory.factory.set_budgets(&id, a.budgets);
+    }
+    Ok(())
+}
+
+/// The diff of a run folder against its base, one entry for each file (`factory` REQ-028).
+pub fn diff_of_run(s: &AppState, run: &str) -> Res<Vec<FileDiff>> {
+    let (id, root) = root_of(s)?;
+    s.factory
+        .factory
+        .run_info(run)
+        .filter(|r| r.project == id)
+        .ok_or_else(|| format!("no run {run}"))?;
+    Folders {
+        root,
+        data: s.dir.clone(),
+        project: id,
+        runner: RUNNER.into(),
+        declared_base: None,
+        specs: String::new(),
+    }
+    .run_diff(run, MAX_RUN_DIFF)
+}
+
 /// `run:<id>` and `run:<id>/<step>` resolve from the factory (`factory` REQ-021). A run that this
 /// machine does not know stays unresolved: it falls through to the index, which finds nothing.
 pub fn resolve_run(s: &AppState, text: &str) -> Option<shipyard_store::ref_query::Resolved> {
@@ -1253,6 +1397,31 @@ pub async fn run_get_one(app: AppHandle, run: String) -> Res<Option<RunView>> {
 #[specta::specta]
 pub async fn run_log_page(app: AppHandle, run: String, after: u32, limit: u32) -> Res<RunLogPage> {
     blocking(app, move |s| run_log(s, &run, after, limit)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn sessions_list(app: AppHandle) -> Res<Vec<SessionView>> {
+    blocking(app, sessions).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn usage_get(app: AppHandle) -> Res<UsageView> {
+    blocking(app, usage).await
+}
+
+/// `usd` of `null` clears the budget.
+#[tauri::command]
+#[specta::specta]
+pub async fn budget_set(app: AppHandle, scope: String, key: String, usd: Option<f64>) -> Res<()> {
+    blocking(app, move |s| budget_save(s, &scope, &key, usd)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn run_diff(app: AppHandle, run: String) -> Res<Vec<FileDiff>> {
+    blocking(app, move |s| diff_of_run(s, &run)).await
 }
 
 #[tauri::command]

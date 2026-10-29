@@ -130,6 +130,11 @@ export const commands = {
 	runsList: () => typedError<RunView_Serialize[], string>(__TAURI_INVOKE("runs_list")),
 	runGetOne: (run: string) => typedError<RunView_Serialize | null, string>(__TAURI_INVOKE("run_get_one", { run })),
 	runLogPage: (run: string, after: number, limit: number) => typedError<RunLogPage_Serialize, string>(__TAURI_INVOKE("run_log_page", { run, after, limit })),
+	sessionsList: () => typedError<SessionView_Serialize[], string>(__TAURI_INVOKE("sessions_list")),
+	usageGet: () => typedError<UsageView_Serialize, string>(__TAURI_INVOKE("usage_get")),
+	/**  `usd` of `null` clears the budget. */
+	budgetSet: (scope: string, key: string, usd: number | null) => typedError<null, string>(__TAURI_INVOKE("budget_set", { scope, key, usd })),
+	runDiff: (run: string) => typedError<FileDiff[], string>(__TAURI_INVOKE("run_diff", { run })),
 	runStart: (key: string) => typedError<string, string>(__TAURI_INVOKE("run_start", { key })),
 	runCancel: (run: string) => typedError<null, string>(__TAURI_INVOKE("run_cancel", { run })),
 	runResume: (run: string, addUsd: number | null, addTokens: number) => typedError<RunState, string>(__TAURI_INVOKE("run_resume", { run, addUsd, addTokens })),
@@ -425,6 +430,7 @@ export type Automation_Deserialize = {
 	reviewers?: string[],
 	/**  The assignee of that pull request when the ticket names none (`delivery` REQ-012). */
 	assignee?: string | null,
+	budgets?: Budgets_Deserialize,
 };
 
 export type Automation_Serialize = {
@@ -439,6 +445,7 @@ export type Automation_Serialize = {
 	reviewers?: string[],
 	/**  The assignee of that pull request when the ticket names none (`delivery` REQ-012). */
 	assignee?: string,
+	budgets?: Budgets_Serialize,
 };
 
 /**  When a member works at all. Outside `from` and `until`, and inside an absence, capacity is zero. */
@@ -545,6 +552,34 @@ export type Branch_Serialize = {
 export type BrokenCitation = {
 	target: string,
 	source: string,
+};
+
+/**
+ *  Money budgets in USD (`factory` REQ-022, REQ-032). Key `*` is the budget of every day or of
+ *  every member that has no key of its own. No entry means no budget (`q:Q-023`, option 1).
+ */
+export type Budgets = Budgets_Serialize | Budgets_Deserialize;
+
+/**
+ *  Money budgets in USD (`factory` REQ-022, REQ-032). Key `*` is the budget of every day or of
+ *  every member that has no key of its own. No entry means no budget (`q:Q-023`, option 1).
+ */
+export type Budgets_Deserialize = {
+	/**  Key: a UTC day, `YYYY-MM-DD`. */
+	day?: { [key in string]: number | null },
+	/**  Key: the name of the ticket assignee. */
+	member?: { [key in string]: number | null },
+};
+
+/**
+ *  Money budgets in USD (`factory` REQ-022, REQ-032). Key `*` is the budget of every day or of
+ *  every member that has no key of its own. No entry means no budget (`q:Q-023`, option 1).
+ */
+export type Budgets_Serialize = {
+	/**  Key: a UTC day, `YYYY-MM-DD`. */
+	day: { [key in string]: number | null },
+	/**  Key: the name of the ticket assignee. */
+	member: { [key in string]: number | null },
 };
 
 /**  Working days and public holidays (REQ-016). */
@@ -1860,6 +1895,28 @@ export type RunLogPage_Serialize = {
 	more: boolean,
 };
 
+export type RunSpendView = RunSpendView_Serialize | RunSpendView_Deserialize;
+
+export type RunSpendView_Deserialize = {
+	run: string,
+	/**  The ticket. */
+	key: string,
+	tokens: number,
+	usd: number | null,
+	/**  The budget of the run. */
+	budget?: number | null,
+};
+
+export type RunSpendView_Serialize = {
+	run: string,
+	/**  The ticket. */
+	key: string,
+	tokens: number,
+	usd: number | null,
+	/**  The budget of the run. */
+	budget: number | null,
+};
+
 export type RunState = "Queued" | "Claimed" | "Planning" | "PlanReview" | "Working" | "SelfReview" | "PROpen" | "ChangesRequested" | "Merged" | "Done" | "WaitingForAnswer" | "Blocked" | "RetryQueued" | "Paused" | "Failed" | "Cancelled";
 
 /**  A run with what a card needs (`factory` REQ-027, REQ-038). */
@@ -2001,6 +2058,35 @@ export type Segment =
 /**  One block. `base` is empty when the file has no common ancestor. */
 { kind: "block"; ours: string; base: string; theirs: string };
 
+/**  One agent session: a step, or a child of a step, that started (`factory` REQ-031). */
+export type SessionView = SessionView_Serialize | SessionView_Deserialize;
+
+/**  One agent session: a step, or a child of a step, that started (`factory` REQ-031). */
+export type SessionView_Deserialize = {
+	run: string,
+	/**  The ticket. */
+	key: string,
+	step: string,
+	runner: string,
+	model?: string | null,
+	state: StepState,
+	tokens: number,
+	costUsd: number | null,
+};
+
+/**  One agent session: a step, or a child of a step, that started (`factory` REQ-031). */
+export type SessionView_Serialize = {
+	run: string,
+	/**  The ticket. */
+	key: string,
+	step: string,
+	runner: string,
+	model: string | null,
+	state: StepState,
+	tokens: number,
+	costUsd: number | null,
+};
+
 export type Severity = "info" | "warning" | "error";
 
 /**  An estimate sheet: the features and tasks of one lot (REQ-009). It holds no total. */
@@ -2123,6 +2209,27 @@ export type SpecView_Deserialize = {
 export type SpecView_Serialize = {
 	requirements: Requirement[],
 	markers: Marker_Serialize[],
+};
+
+/**  Tokens and money of a day or a member, with its budget (`null`: none). */
+export type SpendView = SpendView_Serialize | SpendView_Deserialize;
+
+/**  Tokens and money of a day or a member, with its budget (`null`: none). */
+export type SpendView_Deserialize = {
+	/**  A UTC day `YYYY-MM-DD`, or a member name (`""`: no assignee). */
+	key: string,
+	tokens: number,
+	usd: number | null,
+	budget?: number | null,
+};
+
+/**  Tokens and money of a day or a member, with its budget (`null`: none). */
+export type SpendView_Serialize = {
+	/**  A UTC day `YYYY-MM-DD`, or a member name (`""`: no assignee). */
+	key: string,
+	tokens: number,
+	usd: number | null,
+	budget: number | null,
 };
 
 export type SplitPreview = SplitPreview_Serialize | SplitPreview_Deserialize;
@@ -2566,6 +2673,22 @@ export type UpdateInfo = {
 	newer: boolean,
 	/**  The page of the release, for the person to read. */
 	url: string,
+};
+
+export type UsageView = UsageView_Serialize | UsageView_Deserialize;
+
+export type UsageView_Deserialize = {
+	runs: RunSpendView_Deserialize[],
+	/**  Newest day first. */
+	days: SpendView_Deserialize[],
+	members: SpendView_Deserialize[],
+};
+
+export type UsageView_Serialize = {
+	runs: RunSpendView_Serialize[],
+	/**  Newest day first. */
+	days: SpendView_Serialize[],
+	members: SpendView_Serialize[],
 };
 
 /**  What the remote watch found: remote branches that moved between two fetches (REQ-017). */

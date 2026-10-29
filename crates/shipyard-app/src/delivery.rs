@@ -91,6 +91,19 @@ impl Folders {
         Repo::open(&self.run_path(run)?).map_err(e)
     }
 
+    /// The files that the run changed against its base, one diff for each (`factory` REQ-028).
+    /// shortcut: the base is where the run started (`start_rev`), not a base that a pull request
+    /// later fixed. Fix when a run can change its base.
+    pub fn run_diff(
+        &self,
+        run: &str,
+        max_bytes: usize,
+    ) -> PortResult<Vec<shipyard_git::code::FileDiff>> {
+        let repo = self.run_repo(run)?;
+        let rev = self.start_rev(&repo);
+        repo.file_diffs_since(&rev, max_bytes).map_err(e)
+    }
+
     /// The branch names of the repository, with the remote prefix cut, no duplicate.
     fn names(repo: &Repo) -> PortResult<BTreeSet<String>> {
         Ok(repo

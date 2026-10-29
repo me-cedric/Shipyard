@@ -2,9 +2,9 @@
 //! REQ-005): the files and the diff against a base, one line of a file, a folder at a revision.
 //! Reads only: no call here changes the repository.
 
-use git2::{DiffFormat, DiffOptions, ObjectType, TreeWalkMode, TreeWalkResult};
+use git2::{DiffFormat, DiffOptions, ObjectType, Patch, TreeWalkMode, TreeWalkResult};
 
-use crate::code::{Repo, check_paths};
+use crate::code::{FileDiff, Repo, check_paths};
 use crate::error::{GitError, Result};
 
 /// Files above this size count as binary, so a huge file never loads as a diff.
@@ -74,6 +74,37 @@ impl Repo {
             text.push_str("\n[cut]\n");
         }
         Ok(text)
+    }
+
+    /// The diff of [`Repo::changed_since`], one entry for each file, in the shape of the Code
+    /// space. `max_bytes` caps the text of all files together: the entry that crosses it is cut
+    /// (`truncated`) and the next ones come with no text.
+    pub fn file_diffs_since(&self, base: &str, max_bytes: usize) -> Result<Vec<FileDiff>> {
+        let diff = self.since(base)?;
+        let mut left = max_bytes;
+        let mut out = Vec::new();
+        for i in 0..diff.deltas().len() {
+            let Some(mut patch) = Patch::from_diff(&diff, i)? else {
+                continue;
+            };
+            let d = patch.delta();
+            let path = d.new_file().path().or_else(|| d.old_file().path());
+            let path = path.map_or_else(String::new, |p| p.to_string_lossy().replace('\\', "/"));
+            let binary = d.flags().is_binary();
+            let mut text = match binary {
+                true => String::new(),
+                false => String::from_utf8_lossy(&patch.to_buf()?).into_owned(),
+            };
+            let truncated = cut(&mut text, left);
+            left -= text.len();
+            out.push(FileDiff {
+                path,
+                text,
+                binary,
+                truncated,
+            });
+        }
+        Ok(out)
     }
 
     /// Line `line` (from 1) of `path` in the working copy. `None`: no such file or line, or the

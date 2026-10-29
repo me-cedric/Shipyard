@@ -184,6 +184,13 @@ pub(crate) struct Unit {
     pub output: Value,
     pub text: String,
     pub cost: f64,
+    /// The runner and the model that the last start used. Empty: never started.
+    #[serde(default)]
+    pub runner: String,
+    #[serde(default)]
+    pub model: Option<String>,
+    #[serde(default)]
+    pub tokens: u64,
     /// The worktree of this child is joined into the run folder.
     pub merged: bool,
 }
@@ -205,6 +212,9 @@ impl Unit {
             output: Value::Null,
             text: String::new(),
             cost: 0.0,
+            runner: String::new(),
+            model: None,
+            tokens: 0,
             merged: false,
         }
     }
@@ -873,6 +883,7 @@ impl Inner {
             } => {
                 let cost = cost_usd.unwrap_or(0.0);
                 u.cost += cost;
+                u.tokens += input_tokens + output_tokens;
                 rec.cost += cost;
                 rec.tokens += input_tokens + output_tokens;
                 self.check_budget(run_id);
@@ -907,6 +918,7 @@ impl Inner {
         });
         [money, tokens]
             .into_iter()
+            .chain(self.spend_levels(run_id))
             .chain(steps)
             .max_by_key(|l| rank(*l))
             .unwrap_or(BudgetLevel::Under)
@@ -1190,6 +1202,8 @@ impl Inner {
             Ok(agent) => {
                 let u = &mut self.rec(run_id).steps.get_mut(sid).expect("step").units[i];
                 u.agent = Some(agent);
+                u.runner = brief.runner.clone();
+                u.model = brief.model.clone();
                 u.state = StepState::Running;
                 u.started = now;
                 u.last = now;

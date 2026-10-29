@@ -756,3 +756,93 @@ fn a_change_of_a_workflow_or_role_file_is_seen_and_taken_again() {
     std::fs::remove_file(flows.join("one.yaml")).unwrap();
     assert!(files_changed(s, id, root));
 }
+
+fn spend(cost: f64) -> AgentEvent {
+    AgentEvent::Usage {
+        input_tokens: 10,
+        output_tokens: 20,
+        cached_tokens: 0,
+        cost_usd: Some(cost),
+    }
+}
+
+#[test]
+fn sessions_and_usage_show_the_run_and_a_budget_is_saved_and_enforced() {
+    let fx = fx(Writes::default());
+    let run = fx.start("SHIP-1");
+    fx.agents.push("work", spend(0.5));
+    fx.s.factory.factory.pump();
+
+    let rows = sessions(&fx.s).unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(
+        (
+            rows[0].run.as_str(),
+            rows[0].key.as_str(),
+            rows[0].step.as_str(),
+            rows[0].tokens
+        ),
+        (run.as_str(), "SHIP-1", "work", 30)
+    );
+    assert_eq!(rows[0].state, StepState::Running);
+
+    let u = usage(&fx.s).unwrap();
+    assert_eq!(
+        (u.runs.len(), u.runs[0].usd, u.runs[0].budget),
+        (1, 0.5, Some(1.0))
+    );
+    assert_eq!(
+        (u.days.len(), u.days[0].usd, u.days[0].budget),
+        (1, 0.5, None)
+    );
+    assert_eq!((u.members[0].key.as_str(), u.members[0].budget), ("", None));
+
+    // A day budget of 0.6 USD: 0.5 is over 80 %, the next 0.2 spends it.
+    budget_save(&fx.s, "day", "*", Some(0.6)).unwrap();
+    assert_eq!(usage(&fx.s).unwrap().days[0].budget, Some(0.6));
+    let file = std::fs::read_to_string(fx.repo.path().join(".shipyard/automation.yaml")).unwrap();
+    assert!(file.contains("budgets"), "{file}");
+    fx.agents.push("work", spend(0.2));
+    fx.s.factory.factory.pump();
+    assert_eq!(
+        run_get(&fx.s, &run).unwrap().unwrap().state,
+        RunState::Paused
+    );
+
+    assert!(budget_save(&fx.s, "week", "*", Some(1.0)).is_err());
+    assert!(budget_save(&fx.s, "member", "Ann", Some(-1.0)).is_err());
+    budget_save(&fx.s, "day", "*", None).unwrap();
+    assert_eq!(usage(&fx.s).unwrap().days[0].budget, None);
+}
+
+#[test]
+fn the_run_diff_lists_each_changed_file_of_the_run_folder_and_refuses_a_foreign_run() {
+    let fx = fx(Writes::default());
+    let run = fx.start("SHIP-1");
+    let repo = shipyard_git::Repo::open(fx.repo.path()).unwrap();
+    std::fs::write(fx.repo.path().join("a.txt"), "a\n").unwrap();
+    repo.stage(&["a.txt".to_string()]).unwrap();
+    repo.commit("chore: add a", "").unwrap();
+    assert!(diff_of_run(&fx.s, "01HZZZZZZZZZZZZZZZZZZZZZZZ").is_err());
+    let folders = Folders {
+        root: fx.repo.path().into(),
+        data: fx.s.dir.clone(),
+        project: fx.id.clone(),
+        runner: RUNNER.into(),
+        declared_base: None,
+        specs: String::new(),
+    };
+    // The run folder is made on first use.
+    let path = shipyard_engine::ports::Workspaces::dir(
+        &folders,
+        &run,
+        shipyard_core::workflow::Workspace::Shared,
+        None,
+    );
+    let path = path.unwrap();
+    std::fs::write(path.join("new.txt"), "hello\n").unwrap();
+    let files = diff_of_run(&fx.s, &run).unwrap();
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0].path, "new.txt");
+    assert!(files[0].text.contains("+hello"));
+}
