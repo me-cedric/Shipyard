@@ -1,5 +1,6 @@
 //! Stores in the app data folder and codecs for repository files.
 
+pub mod excel;
 pub mod prefs;
 pub mod project;
 pub mod ref_index;
