@@ -61,6 +61,7 @@ import { Board } from "../templates/board";
 import { ListDetail } from "../templates/list-detail";
 import { Settings } from "../templates/settings";
 import { Shell } from "../templates/shell";
+import { DesignParts } from "./design-gallery";
 
 const LAYERS = ["tokens", "atoms", "molecules", "organisms", "templates"] as const;
 type Layer = (typeof LAYERS)[number];
@@ -722,6 +723,7 @@ function Organisms() {
 					</Inspector>
 				</div>
 			</Row>
+			<DesignParts />
 		</div>
 	);
 }
