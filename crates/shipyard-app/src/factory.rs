@@ -104,6 +104,8 @@ pub struct FactoryHost {
     pub factory: Arc<Factory>,
     /// A second connection to the run log file, for the pages of the views.
     log: Mutex<RunLog>,
+    /// Why the run log file could not open. The factory then runs on a scratch log.
+    degraded: Option<String>,
     endpoint: Arc<OnceLock<Endpoint>>,
     http: Mutex<Option<Http>>,
     emit: OnceLock<Emitter>,
@@ -122,13 +124,24 @@ impl FactoryHost {
         });
         let path = dir.join(LOG_FILE);
         // A layout that this build does not know is an error, never a reset. The factory then runs
-        // with a log in memory: nothing is written over the file.
-        let (write, read) = match (RunLog::open(&path), RunLog::open(&path)) {
-            (Ok(w), Ok(r)) => (w, r),
+        // on a scratch log: nothing is written over the file, and the writer and the reader of
+        // the views share this one file. `run_log_degraded` tells the person.
+        let (write, read, degraded) = match (RunLog::open(&path), RunLog::open(&path)) {
+            (Ok(w), Ok(r)) => (w, r, None),
             (Err(x), _) | (_, Err(x)) => {
                 eprintln!("run log {}: {x}", path.display());
-                let mem = || RunLog::open_memory().expect("an in-memory run log");
-                (mem(), mem())
+                let scratch = std::env::temp_dir()
+                    .join(format!("shipyard-run-log-{}.sqlite", std::process::id()));
+                let _ = std::fs::remove_file(&scratch);
+                let (w, r) = match (RunLog::open(&scratch), RunLog::open(&scratch)) {
+                    (Ok(w), Ok(r)) => (w, r),
+                    // No folder to write: two logs in memory, the views then see no page.
+                    _ => {
+                        let mem = || RunLog::open_memory().expect("an in-memory run log");
+                        (mem(), mem())
+                    }
+                };
+                (w, r, Some(x.to_string()))
             }
         };
         let cfg = Config {
@@ -144,6 +157,7 @@ impl FactoryHost {
                 write,
             )),
             log: Mutex::new(read),
+            degraded,
             endpoint,
             http: Mutex::new(None),
             emit: OnceLock::new(),
@@ -151,6 +165,11 @@ impl FactoryHost {
             loaded: Mutex::new(HashMap::new()),
             mirrors: Mutex::new(HashMap::new()),
         }
+    }
+
+    /// The reason that the run log file did not open, or `None` when it did.
+    pub fn degraded(&self) -> Option<&str> {
+        self.degraded.as_deref()
     }
 
     pub fn log(&self) -> MutexGuard<'_, RunLog> {
@@ -1210,6 +1229,13 @@ pub async fn run_plan_approve(app: AppHandle, run: String) -> Res<()> {
 #[specta::specta]
 pub async fn run_plan_reject(app: AppHandle, run: String, note: String) -> Res<()> {
     blocking(app, move |s| reject_plan(s, &run, &note)).await
+}
+
+/// Why the run log file did not open, or `null`. The runs of this session are then not kept.
+#[tauri::command]
+#[specta::specta]
+pub async fn run_log_degraded(app: AppHandle) -> Res<Option<String>> {
+    blocking(app, |s| Ok(s.factory.degraded().map(str::to_string))).await
 }
 
 #[tauri::command]

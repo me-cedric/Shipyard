@@ -688,3 +688,34 @@ fn tool_names_reach_the_cli_as_shipyard_mcp_tools() {
     assert!(plain("build-1") && plain("01JRUN"));
     assert!(!plain("../x") && !plain("-x") && !plain("a b") && !plain(""));
 }
+
+/// A run log that does not open is not touched. The factory runs on a scratch log that the writer
+/// and the reader of the views share, and the host says so.
+#[test]
+fn a_run_log_that_does_not_open_gives_a_shared_scratch_log_and_says_so() {
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join(LOG_FILE);
+    std::fs::write(
+        &file,
+        "this is not a database, and it is not ours to overwrite",
+    )
+    .unwrap();
+    let host = FactoryHost::new(dir.path(), Tiers::default(), None);
+    assert!(host.degraded().is_some());
+    assert!(
+        std::fs::read_to_string(&file)
+            .unwrap()
+            .starts_with("this is not"),
+        "the file of the person is left as it was"
+    );
+    // What the factory writes, the reader of the views sees: one scratch file, two connections.
+    host.factory.set_kill_switch(true);
+    let saved = host.log().snapshots().unwrap();
+    assert!(saved.iter().any(|s| s.key == "meta"), "{}", saved.len());
+    let good = tempfile::tempdir().unwrap();
+    assert!(
+        FactoryHost::new(good.path(), Tiers::default(), None)
+            .degraded()
+            .is_none()
+    );
+}

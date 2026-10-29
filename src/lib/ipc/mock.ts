@@ -953,6 +953,7 @@ const handlers: Handlers = {
 	runPlanApprove: (run) => fx.runPlanApprove(state.factory, run),
 	runPlanReject: (run, note) => fx.runPlanReject(state.factory, run, note),
 	killSwitchGet: () => fx.killSwitchGet(state.factory),
+	runLogDegraded: () => fx.runLogDegraded(),
 	killSwitchSet: (on) => fx.killSwitchSet(state.factory, on),
 	workflowsList: () => fx.workflowsList(need(state.factory)),
 	workflowGet: (id) => fx.workflowGet(need(state.factory), id),

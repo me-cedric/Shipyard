@@ -1011,6 +1011,9 @@ export function runPlanReject(f: MockFactory, run: string, note: string): null {
 
 export const killSwitchGet = (f: MockFactory) => f.kill;
 
+/** The mock run log always opens. */
+export const runLogDegraded = (): string | null => null;
+
 /** On cancels every run that is not final. */
 export function killSwitchSet(f: MockFactory, on: boolean): boolean {
 	f.kill = on;

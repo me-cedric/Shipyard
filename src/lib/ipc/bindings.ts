@@ -137,6 +137,8 @@ export const commands = {
 	runPlanApprove: (run: string) => typedError<null, string>(__TAURI_INVOKE("run_plan_approve", { run })),
 	runPlanReject: (run: string, note: string) => typedError<null, string>(__TAURI_INVOKE("run_plan_reject", { run, note })),
 	killSwitchGet: () => typedError<boolean, string>(__TAURI_INVOKE("kill_switch_get")),
+	/**  Why the run log file did not open, or `null`. The runs of this session are then not kept. */
+	runLogDegraded: () => typedError<string | null, string>(__TAURI_INVOKE("run_log_degraded")),
 	killSwitchSet: (on: boolean) => typedError<boolean, string>(__TAURI_INVOKE("kill_switch_set", { on })),
 	workflowsList: () => typedError<WorkflowItem_Serialize[], string>(__TAURI_INVOKE("workflows_list")),
 	workflowGet: (id: string) => typedError<WorkflowFile_Serialize, string>(__TAURI_INVOKE("workflow_get", { id })),

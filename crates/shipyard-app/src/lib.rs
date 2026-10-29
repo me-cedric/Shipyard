@@ -145,6 +145,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
         factory::run_plan_approve,
         factory::run_plan_reject,
         factory::kill_switch_get,
+        factory::run_log_degraded,
         factory::kill_switch_set,
         factory::workflows_list,
         factory::workflow_get,
