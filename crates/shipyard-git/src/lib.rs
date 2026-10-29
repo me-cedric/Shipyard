@@ -7,6 +7,7 @@ pub mod code;
 pub mod delivery;
 pub mod error;
 pub mod project;
+mod reads;
 pub mod worktree;
 
 pub use auth::{Auth, Credential};
