@@ -1,6 +1,7 @@
 //! Domain types, refs, run states and the work item. No I/O.
 
 pub mod code;
+pub mod delivery;
 pub mod flows;
 pub mod gherkin;
 pub mod health;
