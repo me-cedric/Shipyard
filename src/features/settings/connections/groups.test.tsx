@@ -49,6 +49,7 @@ describe("Settings / Connections / MCP servers", () => {
 		await waitFor(() =>
 			expect(within(figma).getByRole("img", { name: "Running" })).toBeInTheDocument(),
 		);
+		expect(within(figma).queryByRole("alert")).toBeNull();
 		await user.click(within(figma).getByRole("button", { name: "Stop" }));
 		await waitFor(() =>
 			expect(within(figma).getByRole("img", { name: "Stopped" })).toBeInTheDocument(),

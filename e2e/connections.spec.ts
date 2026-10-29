@@ -94,6 +94,7 @@ test("adds an MCP server with a secret, starts it and stops it", async ({ page }
 
 	await row.getByRole("button", { name: "Start" }).click();
 	await expect(row.getByRole("img", { name: "Running" })).toBeVisible();
+	await expect(row.getByRole("alert")).toHaveCount(0);
 	await row.getByRole("button", { name: "Stop" }).click();
 	await expect(row.getByRole("img", { name: "Stopped" })).toBeVisible();
 

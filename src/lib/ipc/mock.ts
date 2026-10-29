@@ -675,6 +675,8 @@ export function installMockIpc() {
 		// The generated code sends `{ a, b }` in the order of the parameters.
 		const out = handler(...Object.values((args ?? {}) as Record<string, unknown>));
 		// A real command sends a copy. A shared object would hide a change from the query cache.
-		return out === undefined ? out : structuredClone(out);
+		// A handler can be async (an MCP start): wait for it, then copy.
+		const copy = (v: unknown) => (v === undefined ? v : structuredClone(v));
+		return out instanceof Promise ? out.then(copy) : copy(out);
 	});
 }
