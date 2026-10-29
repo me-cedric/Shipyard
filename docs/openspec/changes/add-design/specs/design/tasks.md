@@ -33,12 +33,12 @@ Plan: [plan.md](./plan.md)
 - [x] T020 Write design to code tests in `src/features/design/design_to_code.test.tsx` after Q-038 is answered. Covers REQ-020.
 - [x] T021 Implement the design to code action in `src/features/design/` after Q-038 is answered. Covers REQ-020.
 - [x] T022 [P] Add French and English keys in `src/i18n/` for `design`. Covers REQ-022.
-- [ ] T023 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-001 to REQ-024.
-- [ ] T024 Run the validation commands from `plan.md`. Covers REQ-001 to REQ-024.
-- [ ] T025 Compare the code with `spec.md` and update stale artifacts. Covers REQ-001 to REQ-024.
+- [x] T023 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-001 to REQ-024.
+- [x] T024 Run the validation commands from `plan.md`. Covers REQ-001 to REQ-024.
+- [x] T025 Compare the code with `spec.md` and update stale artifacts. Covers REQ-001 to REQ-024.
 
 ## Completion Check
 
 - [ ] All acceptance criteria are met.
-- [ ] Required validation passed or failures are marked pre-existing.
+- [x] Required validation passed or failures are marked pre-existing.
 - [ ] Specs, docs, and code agree.

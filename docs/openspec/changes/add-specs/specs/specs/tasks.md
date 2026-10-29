@@ -33,12 +33,12 @@ Plan: [plan.md](./plan.md)
 - [x] T020 Write view tests in `src/features/specs/specs.test.tsx`. Covers REQ-001, REQ-003, REQ-005, REQ-006, REQ-008, REQ-011, REQ-014, REQ-017, REQ-021, REQ-022.
 - [x] T021 Implement the five views in `src/features/specs/`. Covers REQ-001, REQ-003, REQ-005, REQ-006, REQ-008, REQ-011, REQ-014, REQ-017, REQ-021, REQ-022.
 - [x] T022 [P] Add French and English keys in `src/i18n/` for `specs`. Covers REQ-022.
-- [ ] T023 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-001 to REQ-023.
-- [ ] T024 Run the validation commands from `plan.md`. Covers REQ-001 to REQ-023.
-- [ ] T025 Compare the code with `spec.md` and update stale artifacts. Covers REQ-001 to REQ-023.
+- [x] T023 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-001 to REQ-023.
+- [x] T024 Run the validation commands from `plan.md`. Covers REQ-001 to REQ-023.
+- [x] T025 Compare the code with `spec.md` and update stale artifacts. Covers REQ-001 to REQ-023.
 
 ## Completion Check
 
 - [ ] All acceptance criteria are met.
-- [ ] Required validation passed or failures are marked pre-existing.
+- [x] Required validation passed or failures are marked pre-existing.
 - [ ] Specs, docs, and code agree.

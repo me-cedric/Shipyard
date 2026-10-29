@@ -14,13 +14,13 @@ The codecs for OpenSpec changes, RAID files and Gherkin plans live in `shipyard-
 | Stack/runtime | Rust workspace and React 19 (MASTER-PLAN 7.1, 7.3). |
 | Dependencies | No new dependency. Run the OpenSpec CLI (`npx -y @fission-ai/openspec@latest`) for strict validation. Reuse the YAML codec. |
 | Data/storage | Files only: `docs/openspec/**`, `docs/delivery/questions/Q-NNN.md`, the test plan files (Q-037). The draft split lives in the app data folder until apply. |
-| APIs/contracts | IPC commands `specs_changes`, `specs_validate`, `specs_questions`, `specs_testplans`, `specs_fold`, `specs_split_draft`, `specs_split_apply`, `specs_archive`. Bindings are generated. |
+| APIs/contracts | IPC commands `specs_changes`, `specs_change_create`, `specs_read`, `specs_write`, `specs_validate`, `specs_capabilities`, `specs_spec`, `specs_questions`, `specs_question_save`, `specs_question_create`, `specs_testplans`, `specs_coverage`, `specs_fold`, `specs_split_draft`, `specs_split_save`, `specs_split_preview`, `specs_split_apply`, `specs_archive`. Bindings are generated. |
 | Artifact status | `shipyard-core` reads the five artifact files of a change and returns missing, draft or done. |
 | Validation | `shipyard-store` runs the CLI with `--strict --json` and maps each finding to its artifact and line. |
 | RAID codec | One reader and one writer in `shipyard-store`. The writer keeps the nine keys in order and rejects an unknown kind or status. |
 | Gherkin | A parser in `shipyard-core` returns scenarios, steps and cited requirement refs. Coverage is a set difference. |
 | Fold | A text edit under `### Clarifications` in `## Purpose`. It shows a preview and writes only after a click. |
-| Split | The `spec-split` workflow writes a draft file. The reviewed split goes to the `add-work` apply (REQ-025, REQ-026) in `shipyard-trackers`. The apply holds the one match mark, the row ref `est:<slug>#<row-id>` (Q-033). `add-work` owns the apply code; this change adds no tracker code. |
+| Split | `specs_split_apply` maps each item to a `work::Row` and calls the `add-work` diff and apply in `crates/shipyard-app/src/work.rs`. The `spec-split` workflow writes a draft file. The reviewed split goes to the `add-work` apply (REQ-025, REQ-026) in `shipyard-trackers`. The apply holds the one match mark, the row ref `est:<slug>#<row-id>` (Q-033). `add-work` owns the apply code; this change adds no tracker code. |
 | Writes | Atomic write by temp file and rename. A check of the modified time before replace. |
 | Risks | The CLI needs Node and network on first run. Show the finding "validator missing" and keep the editor usable. |
 

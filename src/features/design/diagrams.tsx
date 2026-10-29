@@ -60,7 +60,7 @@ function Diagram({ a }: { a: Artifact }) {
 								errorLine={error?.line}
 								onChange={file.setText}
 							/>
-							<div className="min-h-0 overflow-auto">
+							<div className="h-full min-h-0">
 								<MermaidView source={file.text} label={a.title} onError={onError} />
 							</div>
 						</div>

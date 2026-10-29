@@ -43,7 +43,7 @@ export function MermaidView({
 		<div
 			role="img"
 			aria-label={label}
-			className="min-h-40 overflow-auto rounded-md border border-n-7 bg-n-1 p-3 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
+			className="h-full min-h-40 overflow-auto rounded-md border border-n-7 bg-n-1 p-3 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
 			// biome-ignore lint/security/noDangerouslySetInnerHtml: Mermaid output, sanitised with securityLevel "strict"
 			dangerouslySetInnerHTML={{ __html: svg ?? "" }}
 		/>

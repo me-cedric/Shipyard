@@ -12,12 +12,12 @@ Design files stay in the repository. `shipyard-store` holds the MADR codec and t
 | Item | Decision |
 | ---- | -------- |
 | Stack/runtime | Rust workspace and React 19 (MASTER-PLAN 7.1, 7.3). |
-| Dependencies | Excalidraw, Mermaid, LikeC4, an OpenAPI parser and a DBML parser run in the webview. Add each one only in this change, after a check of its licence. |
-| Data/storage | Files only: `docs/decisions/`, and diagram, model, API, DBML, flow and design doc files under `docs/`. No database table. |
-| APIs/contracts | IPC commands `design_list`, `design_read`, `design_write`, `design_adr_create`, `design_adr_decide`, `design_try`. Bindings are generated. |
+| Dependencies | `@excalidraw/excalidraw`, `mermaid`, `bpmn-js` (viewer), `@likec4/language-services` (browser build with Node shims) and `yaml` run in the webview, each in its own lazy chunk. The DBML parser and the OpenAPI read view are ported from Legacy: `@dbml/core` builds a 15 MB chunk, and the Redoc and Swagger UIs break the interface rules. |
+| Data/storage | Files only. Default folders (`MORE_PATHS` in `shipyard-core`, a project file can change them): `docs/decisions`, `docs/diagrams`, `docs/models`, `docs/api`, `docs/data-models`, `docs/flows`, `docs/designs` (`screens.json`, `design.md`). No database table. |
+| APIs/contracts | IPC commands `design_list`, `design_read`, `design_write`, `design_adr_create`, `design_adr_decide`, `design_flows_save`, `design_try`, `design_open`. Bindings are generated. |
 | Refs | The slug is the file name without extension. The ADR number is the file prefix. `add-refs` indexes them. |
 | MADR | A codec in `shipyard-store` reads and writes the front matter status, date and decision comment. |
-| draw.io and BPMN | Open per Q-040. A viewer in the EditorFrame is the baseline. |
+| draw.io and BPMN | Open per Q-040. Read-only in the EditorFrame with an open-outside action. A `.drawio.svg` shows as an image; a plain `.drawio` shows its XML, because the draw.io editor needs a Tauri URI scheme. |
 | Flow table | A YAML or CSV file under `docs/`. A pure validator in `shipyard-core` rejects a row with a missing field. |
 | Try view | The request leaves from the Rust side so that a secret stays out of the webview and logs. Server policy follows Q-039. |
 | Design to code | Follows Q-038. It reuses the factory pickup and the write switches. |
