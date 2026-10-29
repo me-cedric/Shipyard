@@ -12,6 +12,7 @@ steps:
     role: scout
     model: small
     effort: low
+    mode: plan
     needs: [grill]
     tools: [read_ticket, read_ref, post_progress, report]
   - id: report

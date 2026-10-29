@@ -5,6 +5,7 @@ steps:
     role: triager
     model: small
     effort: low
+    mode: plan
     tools: [read_ticket, read_ref, ask_question, post_progress, report]
   - id: fix
     role: worker
@@ -18,6 +19,7 @@ steps:
     role: reviewer
     model: top
     effort: high
+    mode: plan
     needs: [fix]
     fresh_context: true
     max_rounds: 2

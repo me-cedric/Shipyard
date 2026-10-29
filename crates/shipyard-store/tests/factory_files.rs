@@ -1,7 +1,9 @@
 //! The default workflows and roles, the seed and the reload with the last valid version (spec
 //! `factory`, REQ-010, REQ-011, REQ-014, REQ-035).
 
-use shipyard_core::workflow::{Action, DEFAULT_ROLES, Effort, Gate, Workflow, Workspace};
+use shipyard_core::workflow::{
+    Action, DEFAULT_ROLES, Effort, Gate, Mode, Workflow, Workspace,
+};
 use shipyard_store::factory_files::{
     Loaded, ROLES_DIR, WORKFLOWS_DIR, default_roles, default_workflows, load, parse_role, seed,
 };
@@ -13,6 +15,21 @@ fn roles() -> Vec<String> {
 fn workflow(id: &str) -> Workflow {
     let (_, text) = default_workflows().iter().find(|(i, _)| *i == id).unwrap();
     serde_yaml::from_str(text).unwrap()
+}
+
+/// A step that only reads runs in plan mode: the CLI refuses a write (security review, finding 5).
+#[test]
+fn a_read_only_step_runs_in_plan_mode() {
+    for (id, _) in default_workflows() {
+        for s in workflow(id).steps {
+            if matches!(
+                s.role.as_deref(),
+                Some("planner" | "reviewer" | "scout" | "triager")
+            ) {
+                assert_eq!(s.mode, Mode::Plan, "{id}/{}", s.id);
+            }
+        }
+    }
 }
 
 #[test]

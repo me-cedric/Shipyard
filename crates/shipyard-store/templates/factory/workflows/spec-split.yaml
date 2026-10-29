@@ -5,6 +5,7 @@ steps:
     role: scout
     model: small
     effort: low
+    mode: plan
     tools: [read_ticket, read_ref, report]
   - id: propose
     role: planner

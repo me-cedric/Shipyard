@@ -5,6 +5,7 @@ steps:
     role: reviewer
     model: top
     effort: high
+    mode: plan
     fresh_context: true
     max_rounds: 2
     tools: [read_ticket, read_ref, post_progress, report]
