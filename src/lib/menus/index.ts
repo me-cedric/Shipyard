@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import type { MenuItem } from "@/ui/molecules/context-menu";
 
@@ -34,25 +34,23 @@ export type Handlers = Partial<Record<MenuAction, () => void>>;
 /** `menu(kind, handlers)` gives the items of the context menu of a row. */
 export function useMenus() {
 	const { t } = useI18n();
-	const label: Record<MenuAction, string> = {
-		open: t.context.open,
-		"copy-ref": t.context.copyRef,
-		"copy-path": t.context.copyPath,
-		"copy-sha": t.context.copySha,
-		stage: t.code.stage,
-		unstage: t.code.unstage,
-		discard: t.code.discard,
-		test: t.connections.test,
-		edit: t.connections.edit,
-		remove: t.connections.remove,
-	};
-	return useCallback(
-		(kind: EntityKind, handlers: Handlers): MenuItem[] =>
+	return useMemo(() => {
+		const label: Record<MenuAction, string> = {
+			open: t.context.open,
+			"copy-ref": t.context.copyRef,
+			"copy-path": t.context.copyPath,
+			"copy-sha": t.context.copySha,
+			stage: t.code.stage,
+			unstage: t.code.unstage,
+			discard: t.code.discard,
+			test: t.connections.test,
+			edit: t.connections.edit,
+			remove: t.connections.remove,
+		};
+		return (kind: EntityKind, handlers: Handlers): MenuItem[] =>
 			MENU[kind].flatMap((id) => {
 				const onSelect = handlers[id];
 				return onSelect ? [{ id, label: label[id], onSelect }] : [];
-			}),
-		// biome-ignore lint/correctness/useExhaustiveDependencies: the labels follow the language
-		[t],
-	);
+			});
+	}, [t]);
 }

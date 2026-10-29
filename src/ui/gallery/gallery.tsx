@@ -43,9 +43,9 @@ import { SecretInput } from "../molecules/secret-input";
 import { SettingsRow } from "../molecules/settings-row";
 import { CommandPalette } from "../organisms/command-palette";
 import { CommitDialog } from "../organisms/commit-dialog";
+import { Inspector } from "../organisms/inspector";
 import { NotificationCentre } from "../organisms/notification-centre";
 import { Toaster } from "../organisms/toaster";
-import { Inspector } from "../organisms/inspector";
 import { Settings } from "../templates/settings";
 import { Shell } from "../templates/shell";
 
