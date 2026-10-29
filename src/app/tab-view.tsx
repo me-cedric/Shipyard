@@ -2,9 +2,9 @@ import type { ComponentType } from "react";
 import { Branches, Changes, History } from "@/features/code";
 import { Api, Architecture, Data, Decisions, Diagrams, Flows, Screens } from "@/features/design";
 import { AgentsMap, Runs, Sessions, Usage, Workflows } from "@/features/factory";
-import { Inbox } from "@/features/home";
+import { Activity, Inbox, MyWork } from "@/features/home";
 import { FirstRun, Health, ProjectSettings } from "@/features/projects";
-import { Connections, Me } from "@/features/settings";
+import { AgentsRules, Connections, Me } from "@/features/settings";
 import { type SpaceId, tabLabel } from "@/features/shell";
 import { Capabilities, Constitution, Questions, SpecChanges, TestPlans } from "@/features/specs";
 import { Automation } from "@/features/sync";
@@ -33,11 +33,14 @@ function ProjectView() {
 /** Views that a feature owns. The other tabs show the empty state until their capability lands. */
 const VIEWS: Partial<Record<string, ComponentType>> = {
 	"home/inbox": HomeInbox,
+	"home/my-work": MyWork,
+	"home/activity": Activity,
 	"code/changes": Changes,
 	"code/history": History,
 	"code/branches": Branches,
 	"settings/connections": Connections,
 	"settings/me": Me,
+	"settings/agents-rules": AgentsRules,
 	"work/backlog": Backlog,
 	"work/board": Board,
 	"work/plan": Plan,

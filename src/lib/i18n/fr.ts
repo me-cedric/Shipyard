@@ -3,6 +3,7 @@ import { designFr } from "./design";
 import type { Messages } from "./en";
 import { factoryFr } from "./factory";
 import { homeFr } from "./home";
+import { settingsFr } from "./settings";
 import { specsFr } from "./specs";
 
 export const fr: Messages = {
@@ -653,5 +654,6 @@ export const fr: Messages = {
 	assistant: assistantFr,
 	design: designFr,
 	factory: factoryFr,
+	settings: settingsFr,
 	specs: specsFr,
 };

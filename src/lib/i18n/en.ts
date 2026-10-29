@@ -2,6 +2,7 @@ import { assistantEn } from "./assistant";
 import { designEn } from "./design";
 import { factoryEn } from "./factory";
 import { homeEn } from "./home";
+import { settingsEn } from "./settings";
 import { specsEn } from "./specs";
 
 export const en = {
@@ -632,6 +633,7 @@ export const en = {
 	assistant: assistantEn,
 	design: designEn,
 	factory: factoryEn,
+	settings: settingsEn,
 	specs: specsEn,
 };
 

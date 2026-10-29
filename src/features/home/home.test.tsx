@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { ShellProvider } from "@/lib/shell";
+import { mountApp } from "@/test/mount";
+import { importAll, withTracker } from "@/test/tracker";
 import { renderApp } from "@/ui/test-utils";
 import { Inbox } from "./index";
 
@@ -128,6 +130,50 @@ describe("Home / Inbox", () => {
 				<Inbox />
 			</ShellProvider>,
 		);
+		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
+	});
+});
+
+describe("Home / My work", () => {
+	it("lists the items of the person and their runs, with counts", async () => {
+		await withTracker();
+		await importAll();
+		const me = (await unwrap(commands.workContext(0))).me;
+		const mine = (await unwrap(commands.syncItems({}))).filter((i) => i.member === me);
+		const keys = new Set(mine.map((i) => i.key));
+		const runs = (await unwrap(commands.runsList())).filter((r) => keys.has(r.key));
+		expect(mine.length).toBeGreaterThan(0);
+		mountApp("/home/my-work");
+		expect(
+			await screen.findByRole("heading", { name: `Items (${mine.length})` }),
+		).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: `Runs (${runs.length})` })).toBeInTheDocument();
+		for (const i of mine) expect(screen.getByRole("group", { name: i.key })).toBeInTheDocument();
+		expect(screen.queryByText("Bump dependencies")).toBeNull();
+	});
+
+	it("shows ghost rows and one action without a project", async () => {
+		mountApp("/home/my-work");
+		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
+	});
+});
+
+describe("Home / Activity", () => {
+	it("lists the run log events and the notifications, with counts", async () => {
+		mockState().prefs.releaseUrl = "https://example.com/newer/releases/latest";
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mountApp("/home/activity");
+		expect(await screen.findByRole("heading", { name: /^Events \([1-9]/ })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Notifications (1)" })).toBeInTheDocument();
+		expect(
+			within(screen.getByRole("region", { name: "Notifications" })).getByText(
+				"Update available: 0.2.0",
+			),
+		).toBeInTheDocument();
+	});
+
+	it("shows ghost rows and one action without a project", async () => {
+		mountApp("/home/activity");
 		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
 	});
 });
