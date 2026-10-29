@@ -1,6 +1,10 @@
 import { mockIPC } from "@tauri-apps/api/mocks";
 import type {
 	BacklinkGroup_Serialize,
+	Capabilities,
+	Connection_Serialize,
+	ConnectionDraft_Deserialize,
+	ConnectionKind,
 	commands,
 	Finding_Serialize,
 	Overrides_Serialize,
@@ -10,6 +14,7 @@ import type {
 	ProjectOutcome_Serialize,
 	Resolved_Serialize,
 	SearchHit,
+	TestOutcome,
 } from "./bindings";
 import { parseRef } from "./mock-refs";
 
@@ -44,6 +49,9 @@ type State = {
 	nextFolder?: string;
 	cursor: number;
 	confirm: boolean;
+	connections: Connection_Serialize[];
+	/** The keychain. No command returns a value from it: the tests read it to prove a write. */
+	secrets: Record<string, string>;
 };
 
 const FOLDERS = ["/mock/alpha", "/mock/beta", "/mock/gamma"];
@@ -62,6 +70,8 @@ const fresh = (): State => ({
 	fixed: [],
 	cursor: 0,
 	confirm: true,
+	connections: [],
+	secrets: {},
 });
 
 let state = fresh();
@@ -95,6 +105,7 @@ const CITES: [source: string, target: string][] = [
 	["spec:billing", "adr:0004"],
 	["change:add-auth", "adr:0004"],
 	["adr:0004", "q:Q-012"],
+	["spec:auth", "conn:linear"],
 ];
 const COVERED = ["adr", "q", "change", "spec", "wf", "doc"];
 
@@ -112,6 +123,15 @@ function resolve(text: string): Resolved_Serialize | null {
 			title: project.name,
 			status: project.state,
 			location: project.path,
+		};
+	const conn = state.connections.find((c) => `conn:${c.id}` === text);
+	if (conn)
+		return {
+			...base,
+			state: "resolved",
+			title: conn.name,
+			status: `${conn.kind}: ${conn.state}`,
+			location: null,
 		};
 	const hit = active() ? ENTITIES[text] : undefined;
 	if (hit)
@@ -214,6 +234,69 @@ const FINDINGS: Finding_Serialize[] = [
 	},
 ];
 
+// The flags of each product. The real command returns them from `shipyard-core`.
+const ALL_FLAGS: Capabilities = {
+	hierarchy: true,
+	transitions: true,
+	labels: true,
+	comments: true,
+	timeTracking: true,
+	assignee: true,
+};
+const FLAGS: Record<ConnectionKind, Capabilities> = {
+	"jira-cloud": ALL_FLAGS,
+	"jira-data-center": ALL_FLAGS,
+	"azure-dev-ops": ALL_FLAGS,
+	github: { ...ALL_FLAGS, hierarchy: false, timeTracking: false },
+	gitlab: { ...ALL_FLAGS, hierarchy: false },
+	linear: { ...ALL_FLAGS, timeTracking: false },
+};
+const FORGE_KINDS: ConnectionKind[] = ["github", "gitlab", "azure-dev-ops"];
+
+const slug = (name: string, kind: string) => {
+	const s = name
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "")
+		.slice(0, 40)
+		.replace(/-+$/, "");
+	return s || kind;
+};
+
+/** The checks of `connections_add` and `connections_edit`: the same rules as the Rust adapters. */
+function checkDraft(d: ConnectionDraft_Deserialize) {
+	if (!d.name.trim()) throw "the name needs 1 to 60 characters";
+	if (d.group === "forge" && !FORGE_KINDS.includes(d.kind)) throw "this product is not a forge";
+	if (d.kind !== "linear" || d.group === "forge") {
+		if (!/^https:\/\/[^/\s@]+/.test(d.url.trim()) && !d.url.trim().startsWith("http://localhost"))
+			throw "bad address: use an https address";
+	}
+	if (d.kind === "jira-cloud" && d.group === "tracker" && !d.user?.trim())
+		throw "setting: Jira Cloud needs the account email";
+}
+
+const conn = (id: string) => {
+	const c = state.connections.find((x) => x.id === id);
+	if (!c) throw `unknown connection: ${id}`;
+	return c;
+};
+
+function testConnection(id: string): TestOutcome {
+	const c = conn(id);
+	let out: TestOutcome;
+	if (!c.secret) out = { kind: "failed", reason: "no secret saved" };
+	else if (state.secrets[id] === "revoked")
+		out = { kind: "failed", reason: "the token was rejected: wrong, expired or revoked" };
+	else if (c.url.includes("noscope"))
+		out = {
+			kind: "missing-scope",
+			scope: c.group === "forge" ? "Pull requests: read" : "Issues: read",
+		};
+	else out = { kind: "passed", account: "Ada Lovelace" };
+	c.state = out.kind === "passed" ? "passed" : "failed";
+	return out;
+}
+
 // A missing key fails `tsc`: each generated command needs a handler.
 const handlers: Handlers = {
 	appInfo: () => ({ name: "Shipyard", version: "0.1.0", os: "browser" }),
@@ -302,6 +385,73 @@ const handlers: Handlers = {
 		if (f?.fix.kind !== "write") throw "this fix writes no file";
 		if (confirm) state.fixed.push(id);
 		return { path: f.fix.path, content: f.fix.content, written: confirm };
+	},
+	connectionsList: () => state.connections,
+	connectionsAdd: (d) => {
+		checkDraft(d);
+		const base = slug(d.name, d.kind);
+		let id = base;
+		for (let n = 2; state.connections.some((c) => c.id === id); n++) id = `${base}-${n}`;
+		const c: Connection_Serialize = {
+			id,
+			name: d.name.trim(),
+			group: d.group,
+			kind: d.kind,
+			url: d.kind === "linear" && d.group === "tracker" ? "" : d.url.trim(),
+			user: d.user?.trim() || null,
+			secret: false,
+			state: "untested",
+			capabilities: d.group === "tracker" ? FLAGS[d.kind] : null,
+		};
+		state.connections.push(c);
+		return c;
+	},
+	connectionsEdit: (id, d) => {
+		const c = conn(id);
+		if (c.group !== d.group || c.kind !== d.kind) throw "the kind of a connection does not change";
+		checkDraft(d);
+		const url = d.kind === "linear" && d.group === "tracker" ? "" : d.url.trim();
+		const user = d.user?.trim() || null;
+		if (url !== c.url || user !== c.user) c.state = "untested";
+		Object.assign(c, { name: d.name.trim(), url, user });
+		return c;
+	},
+	connectionsRemove: (id) => {
+		const c = conn(id);
+		state.connections = state.connections.filter((x) => x !== c);
+		delete state.secrets[id];
+		return null;
+	},
+	connectionsSetSecret: (id, secret) => {
+		const c = conn(id);
+		if (!secret.trim()) throw "the secret needs 1 to 4096 characters";
+		state.secrets[id] = secret.trim();
+		c.secret = true;
+		c.state = "untested";
+		return c;
+	},
+	connectionsTest: testConnection,
+	connectionsRepos: (id) => {
+		if (conn(id).group !== "forge") throw `${id} is not a forge`;
+		return {
+			items: [
+				{
+					slug: "acme/web",
+					url: "https://example.com/acme/web",
+					defaultBranch: "main",
+					archived: false,
+					canPush: true,
+				},
+				{
+					slug: "acme/docs",
+					url: "https://example.com/acme/docs",
+					defaultBranch: "main",
+					archived: false,
+					canPush: false,
+				},
+			],
+			next: null,
+		};
 	},
 	projectImport: (source) => ({
 		copied: [],

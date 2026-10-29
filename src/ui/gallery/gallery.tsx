@@ -22,13 +22,17 @@ import {
 	MagnifyingGlassIcon,
 	MoonIcon,
 	SunIcon,
+	XMarkIcon,
 } from "../icons";
 import { BacklinkList } from "../molecules/backlink-list";
+import { ConnectionRow } from "../molecules/connection-row";
 import { EmptyState } from "../molecules/empty-state";
 import { FilterBar } from "../molecules/filter-bar";
 import { FindingRow } from "../molecules/finding-row";
+import { FlagList } from "../molecules/flag-list";
 import { ProjectSwitcher } from "../molecules/project-switcher";
 import { RefChip } from "../molecules/ref-chip";
+import { SecretInput } from "../molecules/secret-input";
 import { SettingsRow } from "../molecules/settings-row";
 import { CommandPalette } from "../organisms/command-palette";
 import { Inspector } from "../organisms/inspector";
@@ -172,6 +176,7 @@ function Molecules() {
 	const [query, setQuery] = useState("");
 	const [active, setActive] = useState<string[]>([]);
 	const [project, setProject] = useState("alpha");
+	const [secret, setSecret] = useState("");
 	const noop = () => {};
 	return (
 		<div>
@@ -225,6 +230,60 @@ function Molecules() {
 					<SettingsRow icon={<SunIcon size={14} />} label={t.prefs.theme}>
 						<Switch label={t.prefs.theme} iconOnly />
 					</SettingsRow>
+				</div>
+			</Row>
+			<Row name="FlagList">
+				<FlagList
+					label={t.connections.flags}
+					onLabel={t.connections.on}
+					offLabel={t.connections.off}
+					flags={[
+						{ id: "hierarchy", label: t.connections.flag.hierarchy, on: true },
+						{ id: "labels", label: t.connections.flag.labels, on: true },
+						{ id: "timeTracking", label: t.connections.flag.timeTracking, on: false },
+					]}
+				/>
+			</Row>
+			<Row name="SecretInput">
+				<SecretInput
+					label={t.connections.field.secret}
+					saved={false}
+					value={secret}
+					onChange={setSecret}
+					className="w-48"
+				/>
+				<SecretInput
+					label={t.connections.field.secret}
+					saved
+					value=""
+					onChange={noop}
+					className="w-48"
+				/>
+			</Row>
+			<Row name="ConnectionRow">
+				<div className="w-full max-w-xl">
+					<ConnectionRow
+						status="success"
+						statusLabel={t.connections.state.passed}
+						name="Acme"
+						product={t.connections.kind.tracker.linear}
+						flags={
+							<FlagList
+								label={t.connections.flags}
+								onLabel={t.connections.on}
+								offLabel={t.connections.off}
+								flags={[
+									{ id: "labels", label: t.connections.flag.labels, on: true },
+									{ id: "timeTracking", label: t.connections.flag.timeTracking, on: false },
+								]}
+							/>
+						}
+						actions={
+							<IconButton label={t.connections.remove}>
+								<XMarkIcon size={14} />
+							</IconButton>
+						}
+					/>
 				</div>
 			</Row>
 			<Row name="FilterBar">

@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import { Inbox } from "@/features/home";
 import { FirstRun, Health, ProjectSettings } from "@/features/projects";
-import { Me } from "@/features/settings";
+import { Connections, Me } from "@/features/settings";
 import { type SpaceId, tabLabel } from "@/features/shell";
 import { useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
@@ -17,6 +17,7 @@ function HomeInbox() {
 /** Views that a feature owns. The other tabs show the empty state until their capability lands. */
 const VIEWS: Partial<Record<string, ComponentType>> = {
 	"home/inbox": HomeInbox,
+	"settings/connections": Connections,
 	"settings/me": Me,
 	"settings/project": ProjectSettings,
 	"settings/health": Health,
