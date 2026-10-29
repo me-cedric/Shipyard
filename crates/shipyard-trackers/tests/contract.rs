@@ -389,9 +389,13 @@ fn a_filter_that_needs_an_absent_flag_sends_nothing() {
         time_tracking: false,
         assignee: false,
     };
-    assert!(matches!(
+    assert_eq!(
         caps.require(Capability::Comments),
-        Err(TrackerError::Unsupported(Capability::Comments))
+        Err(Capability::Comments)
+    );
+    assert!(matches!(
+        TrackerError::from(Capability::Comments),
+        TrackerError::Unsupported(Capability::Comments)
     ));
     assert!(caps.require(Capability::Hierarchy).is_err());
 }

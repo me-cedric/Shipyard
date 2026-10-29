@@ -1,6 +1,7 @@
-//! Domain types, refs and run states. No I/O.
+//! Domain types, refs, run states and the work item. No I/O.
 
 pub mod health;
 pub mod project;
 pub mod refs;
 pub mod run;
+pub mod work_item;
