@@ -1,0 +1,18 @@
+[package]
+name = "shipyard-http"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+shipyard-secrets = { path = "../shipyard-secrets" }
+base64 = "0.22"
+serde_json = "1"
+thiserror = "2"
+url = "2"
+# `native-certs` reads the OS trust store: a TLS-inspecting proxy root lives there.
+ureq = { version = "2", features = ["native-certs"] }
+# Named so the client can trust the OS store plus a corporate bundle (SHIPYARD_CA_BUNDLE).
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-native-certs = "0.7"
+rustls-pemfile = "2"
