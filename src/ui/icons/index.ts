@@ -15,12 +15,21 @@ export { MagnifyingGlassIcon } from "./magnifying-glass";
 export { MoonIcon } from "./moon";
 export {
 	ArrowDownTrayIcon,
+	ArrowUpTrayIcon,
 	BellIcon,
+	CalendarDaysIcon,
+	ChevronDownIcon,
+	ChevronUpIcon,
+	ClockIcon,
 	FolderOpenIcon,
 	LinkIcon,
+	LockClosedIcon,
+	LockOpenIcon,
 	PlayIcon,
 	PlusIcon,
 	StopIcon,
+	TrashIcon,
+	UsersIcon,
 } from "./outline";
 export { SunIcon } from "./sun";
 export { SwatchIcon } from "./swatch";

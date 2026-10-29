@@ -97,6 +97,8 @@ type State = {
 	fixed: string[];
 	/** The folder that the next picker returns. Without it the picker walks `FOLDERS`. */
 	nextFolder?: string;
+	/** The path of the next file dialog (a workbook). */
+	nextFile?: string;
 	cursor: number;
 	confirm: boolean;
 	connections: Connection_Serialize[];
@@ -155,6 +157,13 @@ export const mockState = () => state;
 export function pickMock(): string | null {
 	const f = state.nextFolder ?? FOLDERS[state.cursor++ % FOLDERS.length] ?? null;
 	state.nextFolder = undefined;
+	return f;
+}
+
+/** The file picker of the mock: the path that a test names, or a workbook. Each name is used once. */
+export function pickFileMock(): string | null {
+	const f = state.nextFile ?? "/mock/costing.xlsx";
+	state.nextFile = undefined;
 	return f;
 }
 
