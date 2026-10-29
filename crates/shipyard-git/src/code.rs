@@ -10,14 +10,18 @@ use crate::error::{GitError, Result};
 
 mod branch;
 mod commit;
+mod conflict;
 mod diff;
 mod remote;
+mod stash;
 mod status;
 
 pub use branch::{Branch, BranchKind};
 pub use commit::{CommitInfo, LogPage, RefKind, RefLabel};
+pub use conflict::{Choice, ConflictFile, Segment, Side};
 pub use diff::{DiffSide, FileDiff};
-pub use remote::PullOutcome;
+pub use remote::{HeadChange, PullOutcome, RemoteHead};
+pub use stash::Stash;
 pub use status::{Changes, FileChange, FileState};
 
 pub struct Repo {

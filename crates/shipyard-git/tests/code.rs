@@ -4,7 +4,9 @@ use std::fs;
 use std::path::Path;
 
 use git2::{Repository, RepositoryInitOptions};
-use shipyard_git::code::{BranchKind, DiffSide, FileState, PullOutcome, RefKind};
+use shipyard_git::code::{
+    BranchKind, Choice, DiffSide, FileState, PullOutcome, RefKind, Segment, Side,
+};
 use shipyard_git::{Auth, GitError, Repo};
 use tempfile::TempDir;
 
@@ -587,4 +589,294 @@ fn open_and_discover() {
     let bare = other.path().join("bare.git");
     Repository::init_bare(&bare).unwrap();
     assert!(matches!(Repo::open(&bare), Err(GitError::NotARepo(_))));
+}
+
+#[test]
+fn discard_restores_tracked_files_and_deletes_untracked_only_when_asked() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    commit(&r, "a.txt", "1\n", "chore: a");
+    commit(&r, "d/b.txt", "1\n", "chore: b");
+    commit(&r, "d/c.txt", "1\n", "chore: c");
+    write(&r, "a.txt", "2\n");
+    write(&r, "d/b.txt", "2\n");
+    fs::remove_file(r.workdir().join("d/c.txt")).unwrap();
+    write(&r, "d/new.txt", "n\n");
+    write(&r, "keep.txt", "k\n");
+
+    // A folder, no untracked flag: tracked files return, untracked files stay.
+    r.discard(&[s("d")], false).unwrap();
+    let read = |p: &str| fs::read_to_string(r.workdir().join(p)).unwrap();
+    assert_eq!(read("d/b.txt"), "1\n");
+    assert_eq!(read("d/c.txt"), "1\n");
+    assert_eq!(read("a.txt"), "2\n");
+    assert!(r.workdir().join("d/new.txt").exists());
+
+    // Untracked flag: the untracked file under the path goes, others stay.
+    r.discard(&[s("d")], true).unwrap();
+    assert!(!r.workdir().join("d/new.txt").exists());
+    assert!(r.workdir().join("keep.txt").exists());
+    r.discard(&[s("a.txt")], true).unwrap();
+    assert_eq!(read("a.txt"), "1\n");
+
+    // A staged edit stays staged: discard takes unstaged changes only.
+    write(&r, "a.txt", "staged\n");
+    r.stage(&[s("a.txt")]).unwrap();
+    write(&r, "a.txt", "later\n");
+    r.discard(&[s("a.txt")], false).unwrap();
+    assert_eq!(read("a.txt"), "staged\n");
+    assert_eq!(r.status().unwrap().staged.len(), 1);
+}
+
+#[test]
+fn discard_refuses_outside_paths_and_leaves_ignored_files_and_link_targets() {
+    let tmp = TempDir::new().unwrap();
+    let outside = TempDir::new().unwrap();
+    fs::write(outside.path().join("x.txt"), "x").unwrap();
+    let r = init(&tmp.path().join("repo"));
+    commit(&r, ".gitignore", "ign.txt\n", "chore: ignore");
+    write(&r, "ign.txt", "i\n");
+    for bad in ["../x.txt", "/etc/hosts", ""] {
+        assert!(matches!(
+            r.discard(&[s(bad)], true),
+            Err(GitError::BadPath(_))
+        ));
+    }
+    r.discard(&[s("ign.txt")], true).unwrap();
+    assert!(r.workdir().join("ign.txt").exists());
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(outside.path(), r.workdir().join("link")).unwrap();
+        r.discard(&[s("link/x.txt")], true).unwrap();
+        assert!(outside.path().join("x.txt").exists());
+    }
+}
+
+#[test]
+fn stash_push_list_apply_drop_with_untracked_files() {
+    let tmp = TempDir::new().unwrap();
+    let mut r = init(tmp.path());
+    commit(&r, "a.txt", "1\n", "chore: a");
+    assert!(r.stash_push(None).is_err()); // nothing to stash
+    write(&r, "a.txt", "2\n");
+    write(&r, "new.txt", "n\n");
+    r.stash_push(Some("my work")).unwrap();
+    assert!(r.status().unwrap().is_clean());
+    write(&r, "b.txt", "b\n");
+    r.stash_push(None).unwrap();
+
+    let list = r.stash_list().unwrap();
+    assert_eq!(list.len(), 2);
+    assert_eq!(list[0].index, 0);
+    assert!(list[0].message.starts_with("WIP on main"));
+    assert!(list[1].message.contains("my work"));
+
+    r.stash_apply(1).unwrap();
+    let st = r.status().unwrap();
+    assert_eq!(st.unstaged.len(), 1);
+    assert_eq!(st.untracked.len(), 1);
+    assert_eq!(r.stash_list().unwrap().len(), 2); // apply keeps the stash
+    r.stash_drop(1).unwrap();
+    r.stash_drop(0).unwrap();
+    assert!(r.stash_list().unwrap().is_empty());
+    assert!(r.stash_drop(0).is_err());
+}
+
+/// `l1..l12`: ours edits l2 and l11, theirs edits the same lines. The merge leaves two blocks.
+fn two_block_merge() -> (TempDir, Repo) {
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    let body = |a: &str, b: &str| {
+        (1..=12)
+            .map(|i| match i {
+                2 => format!("{a}\n"),
+                11 => format!("{b}\n"),
+                _ => format!("l{i}\n"),
+            })
+            .collect::<String>()
+    };
+    commit(&r, "f.txt", &body("l2", "l11"), "chore: base");
+    r.create_branch("other").unwrap();
+    commit(&r, "f.txt", &body("t2", "t11"), "fix: other");
+    r.switch_branch("main").unwrap();
+    commit(&r, "f.txt", &body("o2", "o11"), "fix: main");
+    merge_other(&r);
+    (tmp, r)
+}
+
+fn merge_other(r: &Repo) {
+    let g = Repository::open(r.workdir()).unwrap();
+    let other = g.find_branch("other", git2::BranchType::Local).unwrap();
+    let ac = g.reference_to_annotated_commit(other.get()).unwrap();
+    g.merge(&[&ac], None, None).unwrap();
+}
+
+#[test]
+fn conflicts_list_blocks_with_base_and_resolve_by_choice() {
+    let (_t, r) = two_block_merge();
+    let list = r.conflicts().unwrap();
+    assert_eq!(list.len(), 1);
+    assert_eq!(list[0].path, "f.txt");
+    assert!(list[0].text);
+    let blocks: Vec<_> = list[0]
+        .segments
+        .iter()
+        .filter_map(|g| match g {
+            Segment::Block { ours, base, theirs } => Some((ours, base, theirs)),
+            Segment::Text { .. } => None,
+        })
+        .collect();
+    assert_eq!(blocks.len(), 2);
+    assert_eq!(blocks[0], (&s("o2\n"), &s("l2\n"), &s("t2\n")));
+
+    // Wrong number of choices: refused, the file stays conflicted.
+    assert!(r.resolve_blocks("f.txt", &[Choice::Ours]).is_err());
+    assert_eq!(r.status().unwrap().conflicted.len(), 1);
+
+    r.resolve_blocks("f.txt", &[Choice::Theirs, Choice::Ours])
+        .unwrap();
+    let text = fs::read_to_string(r.workdir().join("f.txt")).unwrap();
+    assert!(text.contains("t2\n") && text.contains("o11\n"));
+    assert!(!text.contains("<<<<<<<") && !text.contains("o2\n") && !text.contains("t11\n"));
+    let st = r.status().unwrap();
+    assert!(st.conflicted.is_empty());
+    assert_eq!(st.staged.len(), 1);
+}
+
+#[test]
+fn conflict_choices_both_and_neither_whole_side_and_marker_guard() {
+    let (_t, r) = two_block_merge();
+    r.resolve_blocks("f.txt", &[Choice::Both, Choice::Neither])
+        .unwrap();
+    let text = fs::read_to_string(r.workdir().join("f.txt")).unwrap();
+    assert!(text.contains("o2\nt2\n"));
+    assert!(!text.contains("o11") && !text.contains("t11") && !text.contains("l11"));
+
+    let (_t, r) = two_block_merge();
+    r.resolve_side("f.txt", Side::Theirs).unwrap();
+    let text = fs::read_to_string(r.workdir().join("f.txt")).unwrap();
+    assert!(text.contains("t2\n") && text.contains("t11\n") && !text.contains("o2"));
+    assert!(r.status().unwrap().conflicted.is_empty());
+
+    // Marker left: mark resolved refuses and names the file.
+    let (_t, r) = two_block_merge();
+    match r.mark_resolved("f.txt") {
+        Err(GitError::ConflictMarkers(p)) => assert_eq!(p, "f.txt"),
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(r.status().unwrap().conflicted.len(), 1);
+    // A hand edit without markers is accepted.
+    write(&r, "f.txt", "hand\n");
+    r.mark_resolved("f.txt").unwrap();
+    assert!(r.status().unwrap().conflicted.is_empty());
+    assert!(r.mark_resolved("../f.txt").is_err());
+}
+
+#[test]
+fn a_stash_that_stops_on_a_conflict_is_listed_and_the_stash_is_kept() {
+    let tmp = TempDir::new().unwrap();
+    let mut r = init(tmp.path());
+    commit(&r, "a.txt", "1\n", "chore: a");
+    write(&r, "a.txt", "stash\n");
+    r.stash_push(None).unwrap();
+    commit(&r, "a.txt", "head\n", "fix: head");
+    match r.stash_apply(0) {
+        Err(GitError::Conflicts(files)) => assert_eq!(files, ["a.txt"]),
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(r.stash_list().unwrap().len(), 1);
+    let list = r.conflicts().unwrap();
+    assert_eq!(list.len(), 1);
+    assert_eq!(list[0].path, "a.txt");
+    r.resolve_side("a.txt", Side::Ours).unwrap();
+    assert_eq!(
+        fs::read_to_string(r.workdir().join("a.txt")).unwrap(),
+        "head\n"
+    );
+}
+
+#[test]
+fn a_conflict_without_a_text_side_takes_a_whole_side_only() {
+    // modify / delete: ours deletes, theirs edits.
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    commit(&r, "f.txt", "1\n", "chore: f");
+    r.create_branch("other").unwrap();
+    commit(&r, "f.txt", "2\n", "fix: edit");
+    r.switch_branch("main").unwrap();
+    fs::remove_file(r.workdir().join("f.txt")).unwrap();
+    r.stage(&[s("f.txt")]).unwrap();
+    r.commit("fix: delete", "").unwrap();
+    merge_other(&r);
+
+    let list = r.conflicts().unwrap();
+    assert!(!list[0].text && list[0].segments.is_empty());
+    assert!(r.resolve_blocks("f.txt", &[]).is_err());
+    r.resolve_side("f.txt", Side::Ours).unwrap(); // our side is a deletion
+    assert!(!r.workdir().join("f.txt").exists());
+    assert!(r.status().unwrap().conflicted.is_empty());
+}
+
+#[test]
+fn delete_branch_refuses_the_working_branch_and_an_unmerged_one() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    commit(&r, "a.txt", "1\n", "chore: a");
+    r.create_branch("merged").unwrap();
+    r.switch_branch("main").unwrap();
+    r.create_branch("work").unwrap();
+    commit(&r, "b.txt", "1\n", "feat: b");
+    r.switch_branch("main").unwrap();
+
+    assert!(matches!(
+        r.delete_branch("main", true),
+        Err(GitError::IsWorkingBranch(_))
+    ));
+    assert!(matches!(
+        r.delete_branch("nope", false),
+        Err(GitError::NoBranch(_))
+    ));
+    match r.delete_branch("work", false) {
+        Err(GitError::BranchNotMerged(n)) => assert_eq!(n, "work"),
+        other => panic!("{other:?}"),
+    }
+    r.delete_branch("merged", false).unwrap();
+    r.delete_branch("work", true).unwrap();
+    let names: Vec<_> = r.branches().unwrap().into_iter().map(|b| b.name).collect();
+    assert_eq!(names, ["main"]);
+}
+
+#[test]
+fn remote_heads_compare_before_and_after_a_fetch() {
+    let (tmp, a, url) = with_remote();
+    let b = clone(&url, &tmp.path().join("b"));
+    let before = b.remote_heads("origin").unwrap();
+    assert_eq!(before.len(), 1);
+    assert_eq!(before[0].name, "origin/main");
+
+    // No push: a fetch changes nothing.
+    b.fetch("origin", &Auth::none()).unwrap();
+    let same = b.remote_heads("origin").unwrap();
+    assert!(b.head_changes(&before, &same).unwrap().is_empty());
+
+    commit(&a, "n1.txt", "1\n", "feat: one");
+    commit(&a, "n2.txt", "2\n", "feat: two");
+    a.push("origin", &Auth::none()).unwrap();
+    a.create_branch("feat/x").unwrap();
+    commit(&a, "x.txt", "x\n", "feat: x");
+    a.push("origin", &Auth::none()).unwrap();
+
+    b.fetch("origin", &Auth::none()).unwrap();
+    let after = b.remote_heads("origin").unwrap();
+    let mut ch = b.head_changes(&before, &after).unwrap();
+    ch.sort_by(|x, y| x.name.cmp(&y.name));
+    assert_eq!(ch.len(), 2);
+    assert_eq!(ch[0].name, "origin/feat/x");
+    assert!(ch[0].old.is_none());
+    assert_eq!((ch[0].count, ch[0].subject.as_str()), (1, "feat: x"));
+    assert_eq!(ch[1].name, "origin/main");
+    assert_eq!((ch[1].count, ch[1].subject.as_str()), (2, "feat: two"));
+    assert_eq!(ch[1].author, "Test User");
+    // The same list twice is quiet: the notice leaves.
+    assert!(b.head_changes(&after, &after).unwrap().is_empty());
 }

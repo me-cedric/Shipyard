@@ -1,4 +1,4 @@
-//! Branches: list, create, switch (REQ-011, REQ-012).
+//! Branches: list, create, switch, delete (REQ-011, REQ-012, REQ-013).
 //!
 //! The name rule `<type>/<area>/<kebab>` belongs to `shipyard-core`. This module only refuses
 //! a name that git refuses.
@@ -139,6 +139,28 @@ impl Repo {
                 .set_upstream(Some(r))?;
         }
         self.repo.set_head(&format!("refs/heads/{local}"))?;
+        Ok(())
+    }
+
+    /// Delete a local branch. Refuses the working branch. Without `force` it also refuses a
+    /// branch that HEAD does not contain, so no commit is lost. A forge-only branch is the
+    /// forge adapter's job.
+    pub fn delete_branch(&self, name: &str, force: bool) -> Result<()> {
+        let mut b = self
+            .repo
+            .find_branch(name, BranchType::Local)
+            .map_err(|_| GitError::NoBranch(name.to_string()))?;
+        if b.is_head() {
+            return Err(GitError::IsWorkingBranch(name.to_string()));
+        }
+        if !force {
+            let tip = b.get().peel_to_commit()?.id();
+            let head = self.repo.head()?.peel_to_commit()?.id();
+            if tip != head && !self.repo.graph_descendant_of(head, tip)? {
+                return Err(GitError::BranchNotMerged(name.to_string()));
+            }
+        }
+        b.delete()?;
         Ok(())
     }
 }

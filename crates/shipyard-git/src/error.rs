@@ -26,6 +26,12 @@ pub enum GitError {
     Busy(String),
     #[error("branch not found: {0}")]
     NoBranch(String),
+    #[error("the working branch cannot be deleted: {0}")]
+    IsWorkingBranch(String),
+    #[error("the branch is not merged: {0}")]
+    BranchNotMerged(String),
+    #[error("the file still holds a conflict marker: {0}")]
+    ConflictMarkers(String),
     #[error("branch already exists: {0}")]
     BranchExists(String),
     #[error("branch name is not valid: {0}")]
@@ -47,6 +53,12 @@ pub enum GitError {
 impl From<git2::Error> for GitError {
     fn from(e: git2::Error) -> Self {
         Self::Git(e.message().to_string())
+    }
+}
+
+impl From<std::io::Error> for GitError {
+    fn from(e: std::io::Error) -> Self {
+        Self::Git(e.to_string())
     }
 }
 

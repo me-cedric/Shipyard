@@ -157,4 +157,52 @@ impl Repo {
         self.repo.reset_default(target, paths)?;
         Ok(())
     }
+
+    /// Throw away the unstaged edits of files and folders: tracked files return to their
+    /// staged content, also a deleted file. A staged change stays. With `untracked` the
+    /// untracked files under the paths are deleted too; ignored files never are. The caller
+    /// confirms with a person first (REQ-004).
+    pub fn discard(&self, paths: &[String], untracked: bool) -> Result<()> {
+        super::check_paths(paths)?;
+        // The match is literal: a file, or a folder and what is under it. No glob.
+        let hit = |p: &str| {
+            paths.iter().any(|d| {
+                let d = d.trim_end_matches('/');
+                p == d || p.strip_prefix(d).is_some_and(|r| r.starts_with('/'))
+            })
+        };
+        let st = self.status()?;
+        let mut restore = Vec::new();
+        let mut delete = Vec::new();
+        for f in st.unstaged.iter().filter(|f| hit(&f.path)) {
+            restore.push(f.path.as_str());
+            if let Some(old) = &f.old_path {
+                // An unstaged rename: the old path comes back, the new one is untracked.
+                restore.push(old);
+                delete.push(f.path.as_str());
+            }
+        }
+        if untracked {
+            delete.extend(
+                st.untracked
+                    .iter()
+                    .filter(|f| hit(&f.path))
+                    .map(|f| f.path.as_str()),
+            );
+        }
+        if !restore.is_empty() {
+            let mut cb = git2::build::CheckoutBuilder::new();
+            cb.force().disable_pathspec_match(true);
+            for p in restore {
+                cb.path(p);
+            }
+            self.repo.checkout_index(None, Some(&mut cb))?;
+        }
+        if untracked {
+            for p in delete {
+                std::fs::remove_file(self.workdir().join(p))?;
+            }
+        }
+        Ok(())
+    }
 }

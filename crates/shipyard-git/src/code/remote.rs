@@ -20,7 +20,95 @@ pub enum PullOutcome {
     Rebased,
 }
 
+/// One remote tracking branch and its tip.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+pub struct RemoteHead {
+    /// `origin/main`.
+    pub name: String,
+    pub tip: String,
+}
+
+/// A remote branch whose tip moved between two fetches (REQ-017).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+pub struct HeadChange {
+    pub name: String,
+    /// `None` for a new branch.
+    pub old: Option<String>,
+    pub new: String,
+    /// New commits. For a new branch, commits that no other remote branch holds.
+    pub count: u32,
+    /// Author of the new tip.
+    pub author: String,
+    /// Subject of the new tip.
+    pub subject: String,
+}
+
 impl Repo {
+    /// The remote tracking branches of `remote`, sorted by name. `origin/HEAD` is left out.
+    /// Call it before and after [`Repo::fetch`], then pass both lists to [`Repo::head_changes`].
+    pub fn remote_heads(&self, remote: &str) -> Result<Vec<RemoteHead>> {
+        let prefix = format!("refs/remotes/{remote}/");
+        let mut out = Vec::new();
+        for r in self.repo.references()? {
+            let r = r?;
+            let (Ok(name), Some(tip)) = (r.name(), r.target()) else {
+                continue; // a symbolic ref such as origin/HEAD
+            };
+            if let Some(short) = name
+                .strip_prefix("refs/remotes/")
+                .filter(|_| name.starts_with(&prefix))
+            {
+                out.push(RemoteHead {
+                    name: short.to_string(),
+                    tip: tip.to_string(),
+                });
+            }
+        }
+        out.sort_by(|a, b| a.name.cmp(&b.name));
+        Ok(out)
+    }
+
+    /// The branches of `after` whose tip differs from `before`. Empty when nothing moved, so
+    /// being behind with no new push gives no notice. A branch that vanished is not listed.
+    pub fn head_changes(
+        &self,
+        before: &[RemoteHead],
+        after: &[RemoteHead],
+    ) -> Result<Vec<HeadChange>> {
+        let mut out = Vec::new();
+        for a in after {
+            let old = before.iter().find(|b| b.name == a.name);
+            if old.is_some_and(|o| o.tip == a.tip) {
+                continue;
+            }
+            let new = git2::Oid::from_str(&a.tip)?;
+            let mut walk = self.repo.revwalk()?;
+            walk.push(new)?;
+            let hide: Vec<&str> = match old {
+                Some(o) => vec![&o.tip],
+                None => after
+                    .iter()
+                    .filter(|h| h.name != a.name)
+                    .map(|h| h.tip.as_str())
+                    .collect(),
+            };
+            for h in hide {
+                // A pruned old tip cannot be hidden: the count then runs high, which is safe.
+                let _ = git2::Oid::from_str(h).map(|id| walk.hide(id));
+            }
+            let tip = self.repo.find_commit(new)?;
+            out.push(HeadChange {
+                name: a.name.clone(),
+                old: old.map(|o| o.tip.clone()),
+                new: a.tip.clone(),
+                count: walk.count() as u32,
+                author: tip.author().name().unwrap_or_default().to_string(),
+                subject: tip.summary().ok().flatten().unwrap_or_default().to_string(),
+            });
+        }
+        Ok(out)
+    }
+
     /// Fetch the heads of `remote`. It moves only the remote tracking refs: the working copy,
     /// the index and the local branches stay as they are (REQ-016).
     pub fn fetch(&self, remote: &str, auth: &Auth) -> Result<()> {
