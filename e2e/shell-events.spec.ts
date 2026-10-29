@@ -15,8 +15,8 @@ test("shows a notification for a newer version, in a toast and in the centre", a
 	await expect(toast.getByText("Update available: 0.2.0")).toBeVisible();
 
 	const bell = page.getByRole("button", { name: "Notifications" });
-	// Two entries: the changelog of the new version (REQ-014) and the update itself.
-	await expect(bell).toContainText("2 unread");
+	// One entry: the update itself. Its changelog shows only after the update is installed (REQ-014).
+	await expect(bell).toContainText("1 unread");
 	await bell.click();
 	await expect(page.getByRole("dialog").getByText("Update available: 0.2.0")).toHaveCount(1);
 	await expect(bell).not.toContainText("unread");

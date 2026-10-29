@@ -793,10 +793,10 @@ const handlers: Handlers = {
 			latest: newer ? "0.2.0" : "0.1.0",
 			newer,
 			url: "https://example.com/releases/latest",
-			// The sections after the last seen version, or after the running one.
+			// The sections after the last version that ran, up to the running one.
 			notes:
-				newer || (state.prefs.seenVersion != null && state.prefs.seenVersion < "0.1.0")
-					? "## 0.2.0\n- A change."
+				state.prefs.seenVersion != null && state.prefs.seenVersion < "0.1.0"
+					? "## 0.1.0\n- A change."
 					: "",
 		};
 	},

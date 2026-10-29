@@ -22,7 +22,13 @@ export function TokenView() {
 	const { t } = useI18n();
 	const s = t.design.screens;
 	return (
-		<section aria-label={s.tokens} className="min-h-0 overflow-auto">
+		// The region scrolls, so the keyboard needs to reach it (axe `scrollable-region-focusable`).
+		<section
+			aria-label={s.tokens}
+			// biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region must take the focus
+			tabIndex={0}
+			className="min-h-0 overflow-auto"
+		>
 			{GROUPS.map((g) => {
 				const rows = TOKENS.filter((x) => x.family === g);
 				return (

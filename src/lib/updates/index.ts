@@ -15,17 +15,18 @@ export function useUpdateCheck() {
 		async (manual: boolean) => {
 			try {
 				const info = await unwrap(commands.updateCheck());
-				// The changelog shows once. It counts as seen only when it showed.
+				// The changelog of the version that now runs shows once. `seenVersion` is the last version
+				// that ran: it moves to `current` when the notes showed, or when there are none.
 				if (
-					info.notes &&
+					!info.notes ||
 					(await push({
-						id: `update:notes:${info.latest}`,
+						id: `update:notes:${info.current}`,
 						kind: "info",
-						title: format(t.notifications.notes, { version: info.latest }),
+						title: format(t.notifications.notes, { version: info.current }),
 						body: info.notes,
 					}))
 				)
-					await unwrap(commands.prefsSet({ seenVersion: info.latest }));
+					await unwrap(commands.prefsSet({ seenVersion: info.current }));
 				if (info.newer)
 					push({
 						id: `update:${info.latest}`,

@@ -13,7 +13,7 @@ pub struct UpdateInfo {
     pub newer: bool,
     /// The page of the release, for the person to read.
     pub url: String,
-    /// The changelog sections after the last seen version, up to the latest. Empty when none.
+    /// The changelog sections after the last version that ran, up to the running one. Empty when none.
     pub notes: String,
 }
 
@@ -66,8 +66,8 @@ pub fn is_newer(current: &str, latest: &str) -> bool {
 
 /// Reads the release at `release_url` (a GitHub release answer: `tag_name` and `html_url`).
 /// The address is `https`, or `http` on a local host. Sends no credential. `seen` is the last
-/// version whose changelog the person saw: the notes start after it, or after `current` when it is
-/// unknown or newer.
+/// version that ran. After an update (`current` above `seen`) the notes are the sections in
+/// between. With no `seen` (first start) or no update, the notes are empty.
 pub fn check(
     http: &dyn Http,
     release_url: &str,
@@ -84,11 +84,15 @@ pub fn check(
         return Err("the release answer holds no version".into());
     }
     let page = text(&reply, "/html_url");
-    let from = seen.filter(|s| is_newer(s, current)).unwrap_or(current);
+    let notes = seen
+        .filter(|s| is_newer(s, current))
+        .map_or(String::new(), |s| {
+            sections(&text(&reply, "/body"), s, current)
+        });
     Ok(UpdateInfo {
         current: current.into(),
         newer: is_newer(current, &latest),
-        notes: sections(&text(&reply, "/body"), from, &latest),
+        notes,
         latest,
         url: if page.is_empty() { url } else { page },
     })
@@ -171,19 +175,22 @@ mod tests {
     }
 
     #[test]
-    fn the_notes_follow_the_release_body_and_the_seen_version() {
+    fn the_notes_show_once_after_an_update_and_never_for_a_version_not_installed() {
         let http = FakeHttp::new();
         let body = serde_json::json!({"tag_name": "v0.3.0", "body": LOG}).to_string();
         http.get("/latest", 200, &body);
         let url = "https://example.com/latest";
-        let up = check(&http, url, "0.1.0", None).unwrap();
-        assert!(up.newer && up.notes.starts_with("## 0.3.0") && up.notes.contains("0.2.0"));
-        // After an update: running 0.3.0, last seen 0.1.0.
-        let after = check(&http, url, "0.3.0", Some("0.1.0")).unwrap();
-        assert!(!after.newer && after.notes.contains("- c") && after.notes.contains("- b"));
-        assert!(!after.notes.contains("- a"));
-        // Seen is current, or newer than current: nothing to show.
-        assert_eq!(check(&http, url, "0.3.0", Some("0.3.0")).unwrap().notes, "");
-        assert_eq!(check(&http, url, "0.3.0", Some("0.9.0")).unwrap().notes, "");
+        // Before the update: running 0.1.0 and 0.3.0 exists. No notes, only `newer`.
+        let before = check(&http, url, "0.1.0", Some("0.1.0")).unwrap();
+        assert!(before.newer && before.notes.is_empty());
+        // First start after the update to 0.2.0: the sections in between, not 0.3.0 and not 0.1.0.
+        let first = check(&http, url, "0.2.0", Some("0.1.0")).unwrap();
+        assert!(first.newer && first.notes.contains("- b"));
+        assert!(!first.notes.contains("- c") && !first.notes.contains("- a"));
+        // Second start: the app stored `0.2.0` as the last version that ran. Nothing to show.
+        assert_eq!(check(&http, url, "0.2.0", Some("0.2.0")).unwrap().notes, "");
+        // No stored version (first install) or a newer one (downgrade): nothing to show.
+        assert_eq!(check(&http, url, "0.2.0", None).unwrap().notes, "");
+        assert_eq!(check(&http, url, "0.2.0", Some("0.9.0")).unwrap().notes, "");
     }
 }

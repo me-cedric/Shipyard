@@ -70,7 +70,10 @@ describe("Design / Screens", () => {
 		const user = userEvent.setup();
 		await mountDesign(<Screens />);
 		await user.click(await row(/Design doc/));
-		const tokens = within(await screen.findByRole("region", { name: "Tokens" }));
+		const region = await screen.findByRole("region", { name: "Tokens" });
+		// It scrolls, so the keyboard reaches it.
+		expect(region).toHaveAttribute("tabindex", "0");
+		const tokens = within(region);
 		for (const heading of [
 			"Neutral (12)",
 			"Accent (5)",

@@ -161,13 +161,14 @@ describe("Home / My work", () => {
 describe("Home / Activity", () => {
 	it("lists the run log events and the notifications, with counts", async () => {
 		mockState().prefs.releaseUrl = "https://example.com/newer/releases/latest";
+		mockState().prefs.seenVersion = "0.0.9";
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/activity");
 		expect(await screen.findByRole("heading", { name: /^Events \([1-9]/ })).toBeInTheDocument();
 		expect(await screen.findByRole("heading", { name: "Notifications (2)" })).toBeInTheDocument();
 		const region = within(screen.getByRole("region", { name: "Notifications" }));
 		expect(region.getByText("Update available: 0.2.0")).toBeInTheDocument();
-		expect(region.getByText("What changed in 0.2.0")).toBeInTheDocument();
+		expect(region.getByText("What changed in 0.1.0")).toBeInTheDocument();
 	});
 
 	it("shows ghost rows and one action without a project", async () => {

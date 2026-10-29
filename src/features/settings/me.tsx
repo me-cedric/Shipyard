@@ -59,6 +59,9 @@ const SOURCES: EventSource[] = [
 	"remote-head",
 ];
 
+// One queue for all switches: each write reads the stored list after the write before it is done.
+let writes: Promise<unknown> = Promise.resolve();
+
 /** One switch for a source of notifications. Off adds the source to `Prefs.notifyOff` (REQ-008). */
 function NotifySwitch({ source }: { source: EventSource }) {
 	const { t } = useI18n();
@@ -74,8 +77,8 @@ function NotifySwitch({ source }: { source: EventSource }) {
 			iconOnly
 			checked={!off.includes(source)}
 			onCheckedChange={(on) => {
-				// Read the stored list first, so a switch never overwrites another one.
-				unwrap(commands.prefsGet())
+				writes = writes
+					.then(() => unwrap(commands.prefsGet()))
 					.then((p) =>
 						unwrap(
 							commands.prefsSet({

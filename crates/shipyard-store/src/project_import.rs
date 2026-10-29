@@ -17,6 +17,8 @@ use shipyard_core::work::{Availability, Feature, Member, Sheet, Span, Task, Team
 use crate::{project, safe_write, work};
 
 const MAX_BYTES: u64 = 2 * 1024 * 1024;
+const MAX_DEPTH: usize = 8;
+const MAX_FILES: usize = 2000;
 /// The folders that have the same layout in Legacy and in Shipyard. Files are copied as they are.
 const SAME: [&str; 3] = ["docs/decisions", "docs/delivery/questions", "docs/openspec"];
 
@@ -41,8 +43,23 @@ impl Report {
     }
 }
 
-fn read(path: &Path) -> std::result::Result<String, String> {
-    let meta = fs::symlink_metadata(path).map_err(|e| e.to_string())?;
+/// Refuses a symlink on `rel` under `base`. `read_dir` and `read_to_string` follow a symlink in a
+/// parent folder, so a link such as `docs/decisions -> ../..` would reach files outside the source.
+fn plain(base: &Path, rel: &str) -> std::result::Result<(), String> {
+    let mut path = base.to_path_buf();
+    for part in rel.split('/') {
+        path.push(part);
+        if fs::symlink_metadata(&path).is_ok_and(|m| m.file_type().is_symlink()) {
+            return Err("symlink is not followed".into());
+        }
+    }
+    Ok(())
+}
+
+fn read(base: &Path, rel: &str) -> std::result::Result<String, String> {
+    plain(base, rel)?;
+    let path = base.join(rel);
+    let meta = fs::symlink_metadata(&path).map_err(|e| e.to_string())?;
     if !meta.is_file() {
         return Err("not a regular file".into());
     }
@@ -52,17 +69,39 @@ fn read(path: &Path) -> std::result::Result<String, String> {
     fs::read_to_string(path).map_err(|e| e.to_string())
 }
 
-/// The files under `dir`, as paths relative to `base`, sorted. A symlink is not followed.
-fn files(base: &Path, rel: &str, out: &mut Vec<String>) {
+/// The files under the folder `rel` of `base`, as paths relative to `base`, sorted. A symlink on the
+/// path to the folder is refused. Dotfiles are skipped. The walk stops at `MAX_DEPTH` and `MAX_FILES`.
+/// A symlink inside the folder is listed as a file: `read` refuses it.
+fn files(
+    base: &Path,
+    rel: &str,
+    depth: usize,
+    out: &mut Vec<String>,
+    skipped: &mut Vec<(String, String)>,
+) {
+    if let Err(e) = plain(base, rel) {
+        skipped.push((rel.into(), e));
+        return;
+    }
+    if depth > MAX_DEPTH {
+        skipped.push((rel.into(), "too deep".into()));
+        return;
+    }
     let Ok(rd) = fs::read_dir(base.join(rel)) else {
         return;
     };
     let mut names: Vec<_> = rd.flatten().collect();
     names.sort_by_key(|e| e.file_name());
     for e in names {
-        let p = format!("{rel}/{}", e.file_name().to_string_lossy());
-        if e.file_type().is_ok_and(|t| t.is_dir()) {
-            files(base, &p, out);
+        let name = e.file_name().to_string_lossy().into_owned();
+        let p = format!("{rel}/{name}");
+        if name.starts_with('.') {
+            skipped.push((p, "hidden file".into()));
+        } else if out.len() >= MAX_FILES {
+            skipped.push((p, "too many files".into()));
+            return;
+        } else if e.file_type().is_ok_and(|t| t.is_dir()) {
+            files(base, &p, depth + 1, out, skipped);
         } else {
             out.push(p);
         }
@@ -73,7 +112,7 @@ fn json(source: &Path, rel: &str) -> Option<std::result::Result<Value, String>> 
     if source.join(rel).symlink_metadata().is_err() {
         return None;
     }
-    Some(read(&source.join(rel)).and_then(|t| serde_json::from_str(&t).map_err(|e| e.to_string())))
+    Some(read(source, rel).and_then(|t| serde_json::from_str(&t).map_err(|e| e.to_string())))
 }
 
 fn text<'a>(v: &'a Value, key: &str) -> &'a str {
@@ -292,7 +331,7 @@ pub fn import(source: &Path, root: &Path) -> Report {
 
     // Costing sheets.
     let mut sheets = Vec::new();
-    files(source, "docs/costing", &mut sheets);
+    files(source, "docs/costing", 0, &mut sheets, &mut r.skipped);
     for rel in sheets.iter().filter(|p| p.ends_with(".json")) {
         let stem = slug(
             rel.trim_start_matches("docs/costing/")
@@ -313,9 +352,9 @@ pub fn import(source: &Path, root: &Path) -> Report {
     // Decisions, RAID files and specs: the same path and the same text.
     for dir in SAME {
         let mut found = Vec::new();
-        files(source, dir, &mut found);
+        files(source, dir, 0, &mut found, &mut r.skipped);
         for rel in found {
-            match read(&source.join(&rel)) {
+            match read(source, &rel) {
                 Ok(t) => r.put(&rel, &rel, root, &t),
                 Err(e) => r.skipped.push((rel, e)),
             }

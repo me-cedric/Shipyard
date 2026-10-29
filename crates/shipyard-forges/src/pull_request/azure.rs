@@ -42,9 +42,17 @@ fn mergeable(v: &Value) -> Mergeable {
 }
 
 impl PullApi for Azure {
-    // Azure DevOps has no per-repository visibility: the project sets it.
+    // Azure DevOps has no per-repository visibility: the project sets it. A public project makes a
+    // public repository, so it is refused.
     fn create_repo(&self, slug: &str) -> Result<Repository, ForgeError> {
         let parts = segments(slug, 2, 2)?;
+        let project = self.call(&format!("/_apis/projects/{}", encode(parts[0])), &[], API)?;
+        if text(&project, "/visibility") == "public" {
+            return Err(ForgeError::Rejected(format!(
+                "the project {} is public: a new repository would be public",
+                parts[0]
+            )));
+        }
         let path = format!("/{}/_apis/git/repositories", encode(parts[0]));
         let v = self.write(Method::Post, &path, json!({ "name": parts[1] }))?;
         Ok(repository(&v))

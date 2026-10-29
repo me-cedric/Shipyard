@@ -28,7 +28,7 @@ describe("mock ipc", () => {
 		);
 		const prefs = await unwrap(commands.prefsSet({ notifyOff: ["update"], seenVersion: "0.0.9" }));
 		expect([prefs.notifyOff, prefs.seenVersion]).toEqual([["update"], "0.0.9"]);
-		expect((await unwrap(commands.updateCheck())).notes).toContain("0.2.0");
+		expect((await unwrap(commands.updateCheck())).notes).toContain("0.1.0");
 	});
 
 	it("parses refs with the same grammar as the Rust command", async () => {

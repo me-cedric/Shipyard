@@ -81,12 +81,17 @@ impl PullApi for GitLab {
         let ns = self
             .call(&format!("/namespaces/{}", encode(&group)), &[])
             .map_err(|e| e.not_found(&group))?;
+        let Some(namespace_id) = shipyard_http::num(&ns, "/id") else {
+            return Err(ForgeError::Rejected(format!(
+                "the forge returned no namespace id for {group}"
+            )));
+        };
         let v = self.write(
             Method::Post,
             "/projects",
             json!({
                 "name": name, "path": name, "visibility": "private",
-                "namespace_id": shipyard_http::num(&ns, "/id").unwrap_or(0),
+                "namespace_id": namespace_id,
             }),
         )?;
         Ok(repository(&v))

@@ -655,7 +655,12 @@ fn a_private_repository_is_created_on_each_forge() {
 
     // Azure DevOps: the project is in the path.
     let fake = Arc::new(FakeHttp::new());
-    fake.post(
+    fake.get(
+        "/_apis/projects/Payments",
+        200,
+        r#"{"visibility":"private"}"#,
+    )
+    .post(
         "/Payments/_apis/git/repositories",
         "\"name\":\"new\"",
         201,
@@ -685,5 +690,30 @@ fn a_bad_slug_or_a_refusal_creates_nothing() {
             .count()
             == 1,
         "only the refused call went out"
+    );
+}
+
+#[test]
+fn a_namespace_with_no_id_and_a_public_azure_project_create_nothing() {
+    let fake = Arc::new(FakeHttp::new());
+    // The create calls answer: only the check can stop the call.
+    let made = r#"{"path_with_namespace":"acme/new","web_url":"u","name":"new","webUrl":"u"}"#;
+    fake.get("/namespaces/acme", 200, r#"{"name":"acme"}"#)
+        .post("/projects", "", 201, made)
+        .post("/Open/_apis/git/repositories", "", 201, made);
+    let gl = build(ForgeKind::GitLab, "https://gitlab.com", fake.clone());
+    assert!(gl.create_repo("acme/new").is_err());
+
+    fake.get("/_apis/projects/Open", 200, r#"{"visibility":"public"}"#);
+    let az = build(
+        ForgeKind::AzureDevOps,
+        "https://dev.azure.com/acme",
+        fake.clone(),
+    );
+    let e = az.create_repo("Open/new").unwrap_err().to_string();
+    assert!(e.contains("public"), "{e}");
+    assert!(
+        fake.requests().iter().all(|r| r.method != Method::Post),
+        "no repository was written"
     );
 }

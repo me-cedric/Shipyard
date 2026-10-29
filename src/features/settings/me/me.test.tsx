@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
@@ -46,6 +46,17 @@ describe("Settings / Me notifications (shell REQ-008)", () => {
 		await waitFor(() => expect(mockState().prefs.notifyOff).toEqual(["approval", "sync-failure"]));
 		await user.click(screen.getByRole("switch", { name: "Approval" }));
 		await waitFor(() => expect(mockState().prefs.notifyOff).toEqual(["sync-failure"]));
+	});
+
+	it("keeps both changes when two switches turn off in quick succession", async () => {
+		mountApp("/settings/me");
+		const a = await screen.findByRole("switch", { name: "Approval" });
+		const b = screen.getByRole("switch", { name: "Failed sync" });
+		fireEvent.click(a);
+		fireEvent.click(b);
+		await waitFor(() =>
+			expect([...mockState().prefs.notifyOff].sort()).toEqual(["approval", "sync-failure"]),
+		);
 	});
 });
 

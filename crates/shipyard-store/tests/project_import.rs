@@ -162,8 +162,75 @@ fn a_symlink_in_the_source_is_skipped_not_followed() {
         r.skipped,
         [(
             "docs/decisions/0001-x.md".to_string(),
-            "not a regular file".to_string()
+            "symlink is not followed".to_string()
         )]
     );
     assert!(!root.path().join("docs/decisions/0001-x.md").exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn a_symlinked_folder_is_skipped_and_nothing_outside_the_source_is_copied() {
+    let outside = tempfile::tempdir().unwrap();
+    fs::create_dir_all(outside.path().join("planning")).unwrap();
+    fs::write(outside.path().join("0001-secret.md"), "secret").unwrap();
+    fs::write(
+        outside.path().join("planning/team.json"),
+        r#"{"members":[{"name":"Eve"}]}"#,
+    )
+    .unwrap();
+    let src = tempfile::tempdir().unwrap();
+    fs::create_dir_all(src.path().join("docs")).unwrap();
+    // The folder itself is a link, and so is a parent folder of the team file.
+    std::os::unix::fs::symlink(outside.path(), src.path().join("docs/decisions")).unwrap();
+    std::os::unix::fs::symlink(
+        outside.path().join("planning"),
+        src.path().join("docs/planning"),
+    )
+    .unwrap();
+    let root = tempfile::tempdir().unwrap();
+    let r = import(src.path(), root.path());
+    for p in ["docs/decisions", "docs/planning/team.json"] {
+        assert!(
+            r.skipped
+                .iter()
+                .any(|(s, why)| s == p && why.contains("symlink")),
+            "{p} not skipped: {r:?}"
+        );
+    }
+    assert!(
+        r.copied
+            .iter()
+            .all(|c| !c.contains("secret") && !c.contains("team"))
+    );
+    assert!(!root.path().join(".shipyard/team.yaml").exists());
+    assert!(!root.path().join("docs/decisions").exists());
+}
+
+#[test]
+fn a_dotfile_and_a_file_over_the_limit_are_skipped() {
+    let src = tempfile::tempdir().unwrap();
+    let dir = src.path().join("docs/decisions");
+    fs::create_dir_all(dir.join(".hiddendir")).unwrap();
+    fs::write(dir.join(".hiddendir/key"), "key").unwrap();
+    fs::write(dir.join(".hidden.md"), "x").unwrap();
+    fs::write(dir.join("0001-ok.md"), "ok").unwrap();
+    fs::File::create(dir.join("0002-big.md"))
+        .unwrap()
+        .set_len(2 * 1024 * 1024 + 1)
+        .unwrap();
+    let root = tempfile::tempdir().unwrap();
+    let r = import(src.path(), root.path());
+    let why = |p: &str| {
+        r.skipped
+            .iter()
+            .find(|(s, _)| s == p)
+            .map(|(_, w)| w.as_str())
+    };
+    assert_eq!(why("docs/decisions/.hiddendir"), Some("hidden file"));
+    assert_eq!(why("docs/decisions/.hidden.md"), Some("hidden file"));
+    assert_eq!(why("docs/decisions/0002-big.md"), Some("too large"));
+    assert!(r.copied.contains(&"docs/decisions/0001-ok.md".to_string()));
+    assert!(!root.path().join("docs/decisions/.hiddendir").exists());
+    assert!(!root.path().join("docs/decisions/0002-big.md").exists());
 }

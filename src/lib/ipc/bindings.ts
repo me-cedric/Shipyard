@@ -3747,7 +3747,7 @@ export type UpdateInfo = {
 	newer: boolean,
 	/**  The page of the release, for the person to read. */
 	url: string,
-	/**  The changelog sections after the last seen version, up to the latest. Empty when none. */
+	/**  The changelog sections after the last version that ran, up to the running one. Empty when none. */
 	notes: string,
 };
 
