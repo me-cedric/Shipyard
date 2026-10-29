@@ -129,6 +129,15 @@ impl RunLog {
         self.query("WHERE run = ?1 AND id > ?2 ORDER BY id", params![run, id])
     }
 
+    /// The id of the newest event of a run. `0`: the run has none.
+    pub fn last_id(&self, run: &str) -> Result<i64> {
+        Ok(self.conn.query_row(
+            "SELECT COALESCE(MAX(id), 0) FROM events WHERE run = ?1",
+            [run],
+            |r| r.get(0),
+        )?)
+    }
+
     /// Save or replace the snapshot of `key`. Never touches an event.
     pub fn save_snapshot(&self, key: &str, event: i64, value: &Value) -> Result<()> {
         self.conn.execute(

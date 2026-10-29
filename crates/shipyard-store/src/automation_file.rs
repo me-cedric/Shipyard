@@ -11,6 +11,9 @@ use shipyard_core::run::RunState;
 use crate::Result;
 use crate::project::{Issues, line_of, write_atomic};
 
+// A read gives one value and the caller matches it at once: boxing the file would only change the
+// callers (the app matches `Valid(a)`).
+#[allow(clippy::large_enum_variant)]
 pub enum AutomationRead {
     Missing,
     Valid(Automation),

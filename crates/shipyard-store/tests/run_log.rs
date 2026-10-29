@@ -187,4 +187,6 @@ fn a_snapshot_is_replaced_and_never_changes_the_log() {
     assert_eq!(tail.len(), 1);
     assert_eq!(tail[0].id, b);
     assert!(log.after("r1", b).unwrap().is_empty());
+    assert_eq!(log.last_id("r1").unwrap(), b);
+    assert_eq!(log.last_id("none").unwrap(), 0);
 }
