@@ -22,7 +22,7 @@ Plan: [plan.md](./plan.md)
 - [x] T009 Write fold preview tests in `crates/shipyard-store/tests/fold.rs`. Covers REQ-015.
 - [x] T010 Implement the fold preview in `crates/shipyard-store/src/fold.rs`. Covers REQ-015.
 - [x] T008b Keep open questions and their markers across a restart: `crates/shipyard-engine/src/persist.rs`, test in `crates/shipyard-engine/tests/restart.rs`. Covers REQ-014, REQ-017, REQ-019.
-- [ ] T011 Add the IPC commands and events in `crates/shipyard-app/src/questions.rs`, then regenerate the bindings with the project command. Covers REQ-008, REQ-011, REQ-015, REQ-020.
+- [x] T011 Add the IPC commands and events in `crates/shipyard-app/src/questions.rs`, then regenerate the bindings with the project command. Covers REQ-008, REQ-011, REQ-015, REQ-020.
 - [ ] T012 Write view tests in `src/features/home/inbox/question-card.test.tsx`. Covers REQ-008, REQ-011, REQ-015, REQ-021.
 - [ ] T013 Implement the QuestionCard and the fold preview in `src/features/home/inbox/`. Covers REQ-008, REQ-011, REQ-015, REQ-020, REQ-021.
 - [ ] T014 [P] Add French and English keys in `src/i18n/` for `questions`. Covers REQ-021.

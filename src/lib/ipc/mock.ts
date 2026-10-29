@@ -52,6 +52,7 @@ import {
 	seedCode,
 } from "./mock-code";
 import * as design from "./mock-design";
+import * as fx from "./mock-factory";
 import { parseRef } from "./mock-refs";
 import * as specs from "./mock-specs";
 import {
@@ -117,6 +118,8 @@ type State = {
 	design: design.MockDesign;
 	/** The files of the Specs space: changes, specs, questions and test plans. */
 	specs: specs.MockSpecs;
+	/** The runs, questions, approvals, workflows, roles and tiers of the factory. */
+	factory: fx.MockFactory;
 	/** The system notifications that the app asked for. */
 	os: { title: string; body: string }[];
 	/** The labels of the last native menu. */
@@ -163,6 +166,7 @@ const fresh = (): State => ({
 	work: work.seedWork(),
 	design: design.seedDesign(),
 	specs: specs.seedSpecs(),
+	factory: fx.seedFactory(),
 	os: [],
 	menu: {},
 });
@@ -933,6 +937,38 @@ const handlers: Handlers = {
 			confirmed,
 			state.work.today,
 		),
+	tiersGet: () => fx.tiersGet(state.factory),
+	tiersSet: (row) => fx.tiersSet(state.factory, row),
+	runsList: () => fx.runsList(state.factory, active()?.id ?? null),
+	runGetOne: (run) => fx.runGetOne(state.factory, active()?.id ?? null, run),
+	runLogPage: (run, after, limit) => fx.runLogPage(state.factory, run, after, limit),
+	runStart: (key) => {
+		const p = active();
+		if (!p) throw "no project is open";
+		return needTracker(() => fx.runStart(state.factory, p.id, state.sync.mirror, key));
+	},
+	runCancel: (run) => fx.runCancel(state.factory, run),
+	runResume: (run, addUsd, addTokens) => fx.runResume(state.factory, run, addUsd, addTokens),
+	runUnblock: (run) => fx.runUnblock(state.factory, run),
+	runPlanApprove: (run) => fx.runPlanApprove(state.factory, run),
+	runPlanReject: (run, note) => fx.runPlanReject(state.factory, run, note),
+	killSwitchGet: () => fx.killSwitchGet(state.factory),
+	killSwitchSet: (on) => fx.killSwitchSet(state.factory, on),
+	workflowsList: () => fx.workflowsList(need(state.factory)),
+	workflowGet: (id) => fx.workflowGet(need(state.factory), id),
+	workflowCheck: (id, text) => fx.workflowCheck(need(state.factory), id, text),
+	workflowWrite: (id, text) => fx.workflowWrite(need(state.factory), id, text),
+	rolesList: () => fx.rolesList(need(state.factory)),
+	roleGet: (id) => fx.roleGet(need(state.factory), id),
+	roleWrite: (id, text) => fx.roleWrite(need(state.factory), id, text),
+	questionsList: () => fx.questionsList(state.factory, active()?.id ?? null),
+	questionAnswer: (run, id, choice) => fx.questionAnswer(state.factory, run, id, choice),
+	messagesList: () => fx.messagesList(state.factory, active()?.id ?? null),
+	messageReadMark: (run, n) => fx.messageReadMark(state.factory, run, n),
+	approvalsList: () => fx.approvalsList(state.factory, active()?.id ?? null),
+	approvalApprove: (id) => fx.approvalApprove(state.factory, id),
+	approvalReject: (id) => fx.approvalReject(state.factory, id),
+	pullsList: () => fx.pullsList(state.factory, active()?.id ?? null),
 	projectImport: (source) => ({
 		copied: [],
 		skipped: [{ path: source, reason: "not-implemented" }],

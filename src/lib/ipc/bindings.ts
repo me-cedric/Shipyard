@@ -83,6 +83,10 @@ export const commands = {
 	mcpStop: (id: string) => typedError<null, string>(__TAURI_INVOKE("mcp_stop", { id })),
 	mcpState: (id: string) => typedError<McpState, string>(__TAURI_INVOKE("mcp_state", { id })),
 	mcpInstall: (command: string) => typedError<string, string>(__TAURI_INVOKE("mcp_install", { command })),
+	/**  The model of each tier for each runner (`factory` REQ-012). Settings / Connections edits it. */
+	tiersGet: () => typedError<RunnerTiers[], string>(__TAURI_INVOKE("tiers_get")),
+	/**  Saves the row of one runner. A step that starts after the edit uses it. */
+	tiersSet: (row: RunnerTiers) => typedError<RunnerTiers[], string>(__TAURI_INVOKE("tiers_set", { row })),
 	syncState: () => typedError<SyncConnection_Serialize[], string>(__TAURI_INVOKE("sync_state")),
 	syncNow: () => typedError<SyncReport, string>(__TAURI_INVOKE("sync_now")),
 	syncAutomationGet: () => typedError<AutomationView_Serialize, string>(__TAURI_INVOKE("sync_automation_get")),
@@ -123,6 +127,32 @@ export const commands = {
 	applyRun: (slugs: string[], click: boolean) => typedError<ApplyRow_Serialize[], string>(__TAURI_INVOKE("apply_run", { slugs, click })),
 	workItemPreview: (row: Row_Deserialize) => typedError<DiffRow_Serialize, string>(__TAURI_INVOKE("work_item_preview", { row })),
 	workItemCreate: (row: Row_Deserialize, click: boolean) => typedError<ApplyRow_Serialize, string>(__TAURI_INVOKE("work_item_create", { row, click })),
+	runsList: () => typedError<RunView_Serialize[], string>(__TAURI_INVOKE("runs_list")),
+	runGetOne: (run: string) => typedError<RunView_Serialize | null, string>(__TAURI_INVOKE("run_get_one", { run })),
+	runLogPage: (run: string, after: number, limit: number) => typedError<RunLogPage_Serialize, string>(__TAURI_INVOKE("run_log_page", { run, after, limit })),
+	runStart: (key: string) => typedError<string, string>(__TAURI_INVOKE("run_start", { key })),
+	runCancel: (run: string) => typedError<null, string>(__TAURI_INVOKE("run_cancel", { run })),
+	runResume: (run: string, addUsd: number | null, addTokens: number) => typedError<RunState, string>(__TAURI_INVOKE("run_resume", { run, addUsd, addTokens })),
+	runUnblock: (run: string) => typedError<null, string>(__TAURI_INVOKE("run_unblock", { run })),
+	runPlanApprove: (run: string) => typedError<null, string>(__TAURI_INVOKE("run_plan_approve", { run })),
+	runPlanReject: (run: string, note: string) => typedError<null, string>(__TAURI_INVOKE("run_plan_reject", { run, note })),
+	killSwitchGet: () => typedError<boolean, string>(__TAURI_INVOKE("kill_switch_get")),
+	killSwitchSet: (on: boolean) => typedError<boolean, string>(__TAURI_INVOKE("kill_switch_set", { on })),
+	workflowsList: () => typedError<WorkflowItem_Serialize[], string>(__TAURI_INVOKE("workflows_list")),
+	workflowGet: (id: string) => typedError<WorkflowFile_Serialize, string>(__TAURI_INVOKE("workflow_get", { id })),
+	workflowCheck: (id: string, text: string) => typedError<IssueView_Serialize | null, string>(__TAURI_INVOKE("workflow_check", { id, text })),
+	workflowWrite: (id: string, text: string) => typedError<null, string>(__TAURI_INVOKE("workflow_write", { id, text })),
+	rolesList: () => typedError<RoleItem_Serialize[], string>(__TAURI_INVOKE("roles_list")),
+	roleGet: (id: string) => typedError<RoleFile_Serialize, string>(__TAURI_INVOKE("role_get", { id })),
+	roleWrite: (id: string, text: string) => typedError<null, string>(__TAURI_INVOKE("role_write", { id, text })),
+	questionsList: () => typedError<QuestionView_Serialize[], string>(__TAURI_INVOKE("questions_list")),
+	questionAnswer: (run: string, id: string, choice: QuestionChoice) => typedError<null, string>(__TAURI_INVOKE("question_answer", { run, id, choice })),
+	messagesList: () => typedError<MessageView[], string>(__TAURI_INVOKE("messages_list")),
+	messageReadMark: (run: string, n: number) => typedError<null, string>(__TAURI_INVOKE("message_read_mark", { run, n })),
+	approvalsList: () => typedError<ApprovalView[], string>(__TAURI_INVOKE("approvals_list")),
+	approvalApprove: (id: number) => typedError<string | null, string>(__TAURI_INVOKE("approval_approve", { id })),
+	approvalReject: (id: number) => typedError<null, string>(__TAURI_INVOKE("approval_reject", { id })),
+	pullsList: () => typedError<PrRowView[], string>(__TAURI_INVOKE("pulls_list")),
 	designList: () => typedError<DesignList_Serialize, string>(__TAURI_INVOKE("design_list")),
 	designRead: (path: string) => typedError<Text, string>(__TAURI_INVOKE("design_read", { path })),
 	designWrite: (path: string, text: string, stamp: string | null, create: boolean) => typedError<Written_Serialize, string>(__TAURI_INVOKE("design_write", { path, text, stamp, create })),
@@ -179,6 +209,47 @@ export type Adr = {
 	path: string,
 };
 
+/**
+ *  A role profile. `model` is a tier (`top`, `mid`, `small`) that the runner config maps to a
+ *  model. A step may name its own model and effort: they win over the profile.
+ */
+export type AgentRole = AgentRole_Serialize | AgentRole_Deserialize;
+
+/**
+ *  A role profile. `model` is a tier (`top`, `mid`, `small`) that the runner config maps to a
+ *  model. A step may name its own model and effort: they win over the profile.
+ */
+export type AgentRole_Deserialize = {
+	id: string,
+	description: string,
+	model?: string | null,
+	effort?: Effort | null,
+	/**  The text after the frontmatter: the system prompt of the role. */
+	prompt: string,
+};
+
+/**
+ *  A role profile. `model` is a tier (`top`, `mid`, `small`) that the runner config maps to a
+ *  model. A step may name its own model and effort: they win over the profile.
+ */
+export type AgentRole_Serialize = {
+	id: string,
+	description: string,
+	model: string | null,
+	effort: Effort | null,
+	/**  The text after the frontmatter: the system prompt of the role. */
+	prompt: string,
+};
+
+export type Answer = {
+	choice: QuestionChoice,
+	source: AnswerSource,
+	/**  The reply text as it stood at detection (REQ-012). Empty for an Inbox choice. */
+	text: string,
+};
+
+export type AnswerSource = { kind: "inbox" } | { kind: "tracker"; comment: string };
+
 export type AppInfo = {
 	name: string,
 	version: string,
@@ -207,6 +278,23 @@ export type ApplyRow_Serialize = {
 	error: string | null,
 	/**  The fields that this tracker cannot hold. They were not sent. */
 	skipped: Field[],
+};
+
+/**  A write that waits for a person (Home / Inbox), named exactly (`factory` REQ-026). */
+export type ApprovalView = {
+	id: number,
+	run: string,
+	/**  The ticket of the run, `""` when the run is gone. */
+	key: string,
+	title: string,
+	/**  `transition`, `labels`, `comment`, `push`, `open_pr` or `resolve_threads`. */
+	kind: string,
+	/**  One line that names the write. */
+	summary: string,
+	/**  The text that goes out: the comment, the pull request body, the reply. */
+	detail: string,
+	/**  A push that rewrites history. */
+	force: boolean,
 };
 
 export type Artifact = Artifact_Serialize | Artifact_Deserialize;
@@ -261,6 +349,44 @@ export type Artifact_Serialize = {
 	version: string | null,
 	/**  Why the file is not readable. */
 	issue: string | null,
+};
+
+export type AskedQuestion = AskedQuestion_Serialize | AskedQuestion_Deserialize;
+
+export type AskedQuestion_Deserialize = {
+	/**  `Q-NNN`. The entity is `q:Q-NNN`. */
+	id: string,
+	question: string,
+	options: string[],
+	/**  From 1. */
+	recommended: number,
+	free_text: boolean,
+	/**  The spec ref of a spec-level question (`spec:<capability>#REQ-NNN`). */
+	spec?: string | null,
+	state: QuestionState,
+	answer?: Answer | null,
+	/**  The last unclear reply, for the card (REQ-011). */
+	unclear?: string | null,
+	/**  The answer comment changed after detection: the card shows a note (REQ-012). */
+	edited: boolean,
+};
+
+export type AskedQuestion_Serialize = {
+	/**  `Q-NNN`. The entity is `q:Q-NNN`. */
+	id: string,
+	question: string,
+	options: string[],
+	/**  From 1. */
+	recommended: number,
+	free_text: boolean,
+	/**  The spec ref of a spec-level question (`spec:<capability>#REQ-NNN`). */
+	spec: string | null,
+	state: QuestionState,
+	answer: Answer | null,
+	/**  The last unclear reply, for the card (REQ-011). */
+	unclear: string | null,
+	/**  The answer comment changed after detection: the card shows a note (REQ-012). */
+	edited: boolean,
 };
 
 export type Automation = Automation_Serialize | Automation_Deserialize;
@@ -712,6 +838,8 @@ export type Draft_Serialize = {
 	items: Item_Serialize[],
 };
 
+export type Effort = "low" | "medium" | "high" | "xhigh" | "max";
+
 export type Entry = {
 	path: string,
 	question: Question,
@@ -800,6 +928,27 @@ export type Filter_Serialize = {
 
 export type Finding = Finding_Serialize | Finding_Deserialize;
 
+/**  A P0 or P1 finding that blocks the pull request (the Inbox card). */
+export type FindingView = FindingView_Serialize | FindingView_Deserialize;
+
+/**  A P0 or P1 finding that blocks the pull request (the Inbox card). */
+export type FindingView_Deserialize = {
+	/**  `P0`, `P1` or `P2`. */
+	severity: string,
+	path?: string | null,
+	line?: number | null,
+	text: string,
+};
+
+/**  A P0 or P1 finding that blocks the pull request (the Inbox card). */
+export type FindingView_Serialize = {
+	/**  `P0`, `P1` or `P2`. */
+	severity: string,
+	path: string | null,
+	line: number | null,
+	text: string,
+};
+
 export type Finding_Deserialize = {
 	id: string,
 	group: Group,
@@ -878,6 +1027,8 @@ export type Gantt_Serialize = {
 	bars: Bar_Serialize[],
 };
 
+export type Gate = "none" | "human";
+
 export type Group = "compliance" | "tools" | "refs" | 
 /**  Reserved: no generated file exists yet. */
 "generated";
@@ -922,6 +1073,25 @@ export type ImportReport = {
 	copied: string[],
 	skipped: ImportItem[],
 	conflicts: string[],
+};
+
+/**  One reason to refuse a workflow or role file, with the line of its field (`factory` REQ-010). */
+export type IssueView = IssueView_Serialize | IssueView_Deserialize;
+
+/**  One reason to refuse a workflow or role file, with the line of its field (`factory` REQ-010). */
+export type IssueView_Deserialize = {
+	/**  Repository-relative path. */
+	file: string,
+	line?: number | null,
+	message: string,
+};
+
+/**  One reason to refuse a workflow or role file, with the line of its field (`factory` REQ-010). */
+export type IssueView_Serialize = {
+	/**  Repository-relative path. */
+	file: string,
+	line: number | null,
+	message: string,
 };
 
 export type Item = Item_Serialize | Item_Deserialize;
@@ -972,6 +1142,9 @@ export type Item_Serialize = {
 };
 
 export type Kind = "epic" | "story";
+
+/**  The six lanes of Factory / Runs, in order. */
+export type Lane = "queued" | "working" | "needs_you" | "in_review" | "ready_to_merge" | "done";
 
 export type Lang = "en" | "fr";
 
@@ -1117,6 +1290,23 @@ export type Member_Serialize = {
 	availability: Availability_Serialize,
 };
 
+/**  A message that an agent left for the person (`message` to `person`). */
+export type MessageView = {
+	run: string,
+	/**  The number of the message in its run, from 0. `message_read` takes it. */
+	n: number,
+	key: string,
+	title: string,
+	/**  The step or child that wrote it. */
+	from: string,
+	text: string,
+	/**  Unix seconds. */
+	at: number | null,
+	read: boolean,
+};
+
+export type Mode = "plan" | "auto";
+
 export type MonthSpend = {
 	month: string,
 	days: number | null,
@@ -1184,6 +1374,28 @@ export type Portfolio = {
 	/**  One row for each sheet, by slug. */
 	sheets: ([string, Totals])[],
 	total: Totals,
+};
+
+/**  A pull request of the forge of the active project, from the mirror (`delivery` REQ-028). */
+export type PrRowView = {
+	/**  `pr:<forge>:<number>`. */
+	reference: string,
+	forge: string,
+	number: number,
+	title: string,
+	/**  `open`, `closed` or `merged`. */
+	state: string,
+	draft: boolean,
+	/**  `none`, `pending`, `passing` or `failing`. */
+	ci: string,
+	/**  `clear` or `changes_requested`. */
+	review: string,
+	headSha: string,
+	url: string,
+	updated: string,
+	lane: Lane,
+	/**  The runs that opened this pull request. */
+	runs: string[],
 };
 
 export type Prefs = Prefs_Serialize | Prefs_Deserialize;
@@ -1403,6 +1615,38 @@ export type Question = {
 	body: string,
 };
 
+/**  An answer: an option number from 1, or free text. */
+export type QuestionChoice = { kind: "option"; n: number } | { kind: "text"; text: string };
+
+/**
+ *  REQ-020. Adapted from the lifecycle of Legacy `src/lib/raid.ts` (`ALLOWED_NEXT`): Shipyard
+ *  has no `assigned` state, and the fold (`specs`) is not a question state.
+ */
+export type QuestionState = "open" | "answered" | 
+/**  The ticket became terminal before an answer (REQ-018). */
+"withdrawn";
+
+/**  A question with the run that asked it (`questions-loop` REQ-020). */
+export type QuestionView = QuestionView_Serialize | QuestionView_Deserialize;
+
+/**  A question with the run that asked it (`questions-loop` REQ-020). */
+export type QuestionView_Deserialize = {
+	run: string,
+	/**  The ticket of the run. */
+	key: string,
+	title: string,
+	question: AskedQuestion_Deserialize,
+};
+
+/**  A question with the run that asked it (`questions-loop` REQ-020). */
+export type QuestionView_Serialize = {
+	run: string,
+	/**  The ticket of the run. */
+	key: string,
+	title: string,
+	question: AskedQuestion_Serialize,
+};
+
 export type Reason = { kind: "skill"; skill: string } | { kind: "missing-skill"; skill: string } | { kind: "free-days"; days: number | null } | { kind: "full" };
 
 export type RefKind = "branch" | "remote" | "tag";
@@ -1500,6 +1744,50 @@ export type Resolved_Serialize = {
 
 export type Role = "none" | "pm" | "architect" | "developer" | "qa" | "ba" | "lead" | "junior";
 
+export type RoleFile = RoleFile_Serialize | RoleFile_Deserialize;
+
+export type RoleFile_Deserialize = {
+	id: string,
+	/**  The file, or the bundled text of a default role that has no file. */
+	text: string,
+	role?: AgentRole_Deserialize | null,
+	issue?: IssueView_Deserialize | null,
+};
+
+export type RoleFile_Serialize = {
+	id: string,
+	/**  The file, or the bundled text of a default role that has no file. */
+	text: string,
+	role: AgentRole_Serialize | null,
+	issue: IssueView_Serialize | null,
+};
+
+export type RoleItem = RoleItem_Serialize | RoleItem_Deserialize;
+
+export type RoleItem_Deserialize = {
+	id: string,
+	description: string,
+	/**  A tier (`top`, `mid`, `small`) or a model id. */
+	model?: string | null,
+	effort?: Effort | null,
+	/**  A file in `.shipyard/roles/` exists. */
+	file: boolean,
+	/**  A default role ships with the app. */
+	bundled: boolean,
+};
+
+export type RoleItem_Serialize = {
+	id: string,
+	description: string,
+	/**  A tier (`top`, `mid`, `small`) or a model id. */
+	model: string | null,
+	effort: Effort | null,
+	/**  A file in `.shipyard/roles/` exists. */
+	file: boolean,
+	/**  A default role ships with the app. */
+	bundled: boolean,
+};
+
 /**  One ticket that the sheets ask for. A feature is an epic. A task is a story. */
 export type Row = Row_Serialize | Row_Deserialize;
 
@@ -1531,9 +1819,120 @@ export type Row_Serialize = {
 	parent: string | null,
 };
 
+/**  One event of the run log. `payload` is JSON text. */
+export type RunLogEvent = RunLogEvent_Serialize | RunLogEvent_Deserialize;
+
+/**  One event of the run log. `payload` is JSON text. */
+export type RunLogEvent_Deserialize = {
+	id: number,
+	step?: string | null,
+	kind: string,
+	payload: string,
+	/**  Unix milliseconds. */
+	ts: number | null,
+};
+
+/**  One event of the run log. `payload` is JSON text. */
+export type RunLogEvent_Serialize = {
+	id: number,
+	step: string | null,
+	kind: string,
+	payload: string,
+	/**  Unix milliseconds. */
+	ts: number | null,
+};
+
+export type RunLogPage = RunLogPage_Serialize | RunLogPage_Deserialize;
+
+export type RunLogPage_Deserialize = {
+	events: RunLogEvent_Deserialize[],
+	/**  Pass it as `after` for the next page. */
+	last: number,
+	more: boolean,
+};
+
+export type RunLogPage_Serialize = {
+	events: RunLogEvent_Serialize[],
+	/**  Pass it as `after` for the next page. */
+	last: number,
+	more: boolean,
+};
+
+export type RunState = "Queued" | "Claimed" | "Planning" | "PlanReview" | "Working" | "SelfReview" | "PROpen" | "ChangesRequested" | "Merged" | "Done" | "WaitingForAnswer" | "Blocked" | "RetryQueued" | "Paused" | "Failed" | "Cancelled";
+
+/**  A run with what a card needs (`factory` REQ-027, REQ-038). */
+export type RunView = RunView_Serialize | RunView_Deserialize;
+
+/**  A run with what a card needs (`factory` REQ-027, REQ-038). */
+export type RunView_Deserialize = {
+	id: string,
+	/**  `run:<id>`. */
+	reference: string,
+	project: string,
+	/**  The ticket. */
+	key: string,
+	title: string,
+	url: string,
+	workflow: string,
+	state: RunState,
+	/**  The state that a side state returns to. */
+	returnTo?: RunState | null,
+	lane: Lane,
+	/**  The pull request of the run, from the mirror. */
+	pr?: PrRowView | null,
+	costUsd: number | null,
+	tokens: number,
+	turns: number,
+	budgetUsd: number | null,
+	steps: StepView[],
+	findings: FindingView_Deserialize[],
+	worktreeKept?: string | null,
+	openQuestions: number,
+	approvals: number,
+};
+
+/**  A run with what a card needs (`factory` REQ-027, REQ-038). */
+export type RunView_Serialize = {
+	id: string,
+	/**  `run:<id>`. */
+	reference: string,
+	project: string,
+	/**  The ticket. */
+	key: string,
+	title: string,
+	url: string,
+	workflow: string,
+	state: RunState,
+	/**  The state that a side state returns to. */
+	returnTo: RunState | null,
+	lane: Lane,
+	/**  The pull request of the run, from the mirror. */
+	pr: PrRowView | null,
+	costUsd: number | null,
+	tokens: number,
+	turns: number,
+	budgetUsd: number | null,
+	steps: StepView[],
+	findings: FindingView_Serialize[],
+	worktreeKept: string | null,
+	openQuestions: number,
+	approvals: number,
+};
+
 export type Runner = Runner_Serialize | Runner_Deserialize;
 
 export type RunnerState = "detected" | "missing";
+
+/**
+ *  The model of each tier (`top`, `mid`, `small`) of one runner (`factory` REQ-012: a step names
+ *  a tier, never a vendor id). An empty text means that the runner uses its own default model.
+ */
+export type RunnerTiers = {
+	runner: string,
+	top: string,
+	mid: string,
+	small: string,
+};
 
 export type Runner_Deserialize = {
 	id: string,
@@ -1762,6 +2161,77 @@ export type StateMapping_Deserialize = {
 export type StateMapping_Serialize = {
 	status?: string,
 	labels?: string[],
+};
+
+/**  One step (REQ-012). A step has a `role` or an `action`, never both. */
+export type Step = Step_Serialize | Step_Deserialize;
+
+/**  A step that the engine does itself, with no agent. */
+export type StepAction = "open_pr";
+
+/**  The live state of a step, or of one child of a `for_each` step. */
+export type StepState = "pending" | "running" | 
+/**  Output ready, `gate: human`: waits for a person. A rejection sets it back to `Pending`. */
+"gate" | "done" | "failed";
+
+export type StepView = {
+	id: string,
+	state: StepState,
+	units: UnitView[],
+};
+
+/**  One step (REQ-012). A step has a `role` or an `action`, never both. */
+export type Step_Deserialize = {
+	id?: string,
+	role?: string | null,
+	model?: string | null,
+	effort?: Effort | null,
+	/**  The agent tools that the step may call (REQ-016). Empty: none. */
+	tools?: string[],
+	skill?: string | null,
+	mode?: Mode,
+	workspace?: Workspace,
+	needs?: string[],
+	gate?: Gate,
+	/**  `<step>.<field>`: one child for each item of that output. `<step>` is in `needs`. */
+	for_each?: string | null,
+	max_parallel?: number | null,
+	/**  Retries after a failure. 0: the first failure fails the run. */
+	retry?: number,
+	/**  Seconds. */
+	timeout?: number | null,
+	/**  USD for this step, inside the workflow budget. */
+	budget?: number | null,
+	fresh_context?: boolean,
+	max_rounds?: number | null,
+	action?: StepAction | null,
+};
+
+/**  One step (REQ-012). A step has a `role` or an `action`, never both. */
+export type Step_Serialize = {
+	id: string,
+	role?: string,
+	model?: string,
+	effort?: Effort,
+	/**  The agent tools that the step may call (REQ-016). Empty: none. */
+	tools?: string[],
+	skill?: string,
+	mode: Mode,
+	workspace: Workspace,
+	needs?: string[],
+	gate: Gate,
+	/**  `<step>.<field>`: one child for each item of that output. `<step>` is in `needs`. */
+	for_each?: string,
+	max_parallel?: number,
+	/**  Retries after a failure. 0: the first failure fails the run. */
+	retry: number,
+	/**  Seconds. */
+	timeout?: number,
+	/**  USD for this step, inside the workflow budget. */
+	budget?: number | null,
+	fresh_context: boolean,
+	max_rounds?: number,
+	action?: StepAction,
 };
 
 export type Suggestion = {
@@ -2083,6 +2553,11 @@ export type TryResponse = {
 	elapsedMs: number,
 };
 
+export type UnitView = {
+	id: string,
+	state: StepState,
+};
+
 export type UpdateInfo = {
 	current: string,
 	latest: string,
@@ -2189,6 +2664,76 @@ export type WorkItemView_Serialize = {
 };
 
 export type WorkState = "clean" | "changed" | "behind" | "ahead" | "missing";
+
+export type Workflow = Workflow_Serialize | Workflow_Deserialize;
+
+export type WorkflowFile = WorkflowFile_Serialize | WorkflowFile_Deserialize;
+
+export type WorkflowFile_Deserialize = {
+	id: string,
+	text: string,
+	/**  The parsed workflow, when the text is valid. */
+	workflow?: Workflow_Deserialize | null,
+	issue?: IssueView_Deserialize | null,
+};
+
+export type WorkflowFile_Serialize = {
+	id: string,
+	text: string,
+	/**  The parsed workflow, when the text is valid. */
+	workflow: Workflow_Serialize | null,
+	issue: IssueView_Serialize | null,
+};
+
+/**
+ *  One workflow of the project (`factory` REQ-010). An invalid file shows its last valid version
+ *  and its issue.
+ */
+export type WorkflowItem = WorkflowItem_Serialize | WorkflowItem_Deserialize;
+
+/**
+ *  One workflow of the project (`factory` REQ-010). An invalid file shows its last valid version
+ *  and its issue.
+ */
+export type WorkflowItem_Deserialize = {
+	id: string,
+	steps: string[],
+	issue?: IssueView_Deserialize | null,
+};
+
+/**
+ *  One workflow of the project (`factory` REQ-010). An invalid file shows its last valid version
+ *  and its issue.
+ */
+export type WorkflowItem_Serialize = {
+	id: string,
+	steps: string[],
+	issue: IssueView_Serialize | null,
+};
+
+/**  Limits of each run of the workflow (REQ-035). */
+export type WorkflowLimits = {
+	max_turns: number,
+	budget_usd: number | null,
+	stall_s: number,
+};
+
+export type Workflow_Deserialize = {
+	id: string,
+	/**  File order. The scheduler and the views keep it. */
+	steps: Step_Deserialize[],
+	limits: WorkflowLimits,
+};
+
+export type Workflow_Serialize = {
+	id: string,
+	/**  File order. The scheduler and the views keep it. */
+	steps: Step_Serialize[],
+	limits: WorkflowLimits,
+};
+
+/**  `shared`: the one worktree of the run. `worktree`: one worktree for each child. */
+export type Workspace = "worktree" | "shared" | "none";
 
 /**  The four write switches of `factory`. All off by default (`q:Q-002`). */
 export type Writes = Writes_Serialize | Writes_Deserialize;
