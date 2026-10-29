@@ -16,7 +16,7 @@ Reply parsing and the question state are pure code in `shipyard-core`. The engin
 | Data/storage | Questions and answers in the run log of the app data folder. A RAID file `docs/delivery/questions/Q-NNN.md` for a spec-level question. |
 | APIs/contracts | IPC commands `question_answer`, `question_confirm_reply`, `question_fold_preview`, `questions_list`. `add-specs` owns the fold write (`specs_fold`). Events for a new question and a new answer. Bindings are generated. |
 | Reply parser | A pure function in `shipyard-core`. It takes the reply text, the option count and the free text flag. It returns an option, a free text, or unclear. |
-| Marker | `<!-- shipyard:q Q-NNN -->` on the first line of the comment. Reading finds it by exact match. |
+| Marker | `<!-- shipyard:q Q-NNN -->` anywhere in the comment. This is the canonical form that the code writes and reads. GitHub and GitLab keep it as it is (the page hides it). Jira, Azure DevOps and Linear store it as the plain token `(shipyard:q Q-NNN)`, because their stores rewrite or drop an HTML comment. The adapter maps both ways (`shipyard_trackers::marker`), so the engine sees the canonical form only. |
 | Id allocation | Next number after the highest in the RAID folder and in the comments of the ticket. Q-026 stays open. |
 | Detection | The sync tick hands each new comment to the engine (`sync` REQ-011). The engine keeps the first human comment after the marker. The Shipyard account is known from the connection. |
 | Resume | The runner reports whether it supports session resume. If yes, resume with the answer. If no, build a brief from the run log. |

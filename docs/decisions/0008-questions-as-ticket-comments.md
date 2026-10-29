@@ -14,3 +14,4 @@ Chosen option: "Marked ticket comments", because people can answer where they al
 ### Consequences
 - Marker: `<!-- shipyard:q Q-NNN -->`. Answers: option number, letter, `/answer X`, or free text.
 - Spec-level questions also get a RAID file in `docs/delivery/questions/`.
+- Wire form: the marker is an HTML comment on GitHub and GitLab. Jira, Azure DevOps and Linear store the plain token `(shipyard:q Q-NNN)`, which no conversion of their stores changes. The adapter maps both ways. The claim stamp of `add-sync` uses the same mechanism with the kind `claim`.
