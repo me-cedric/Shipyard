@@ -43,9 +43,9 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 - REQ-014: The system SHALL read each role as a Markdown profile at `.shipyard/roles/<role>.md`. The roles `scout`, `worker`, `reviewer`, `planner`, `tester`, `docs` and `triager` SHALL exist by default. A project SHALL be able to add roles.
 - REQ-015: The system SHALL run agents headless with streamed JSON, as far as the connections allow. The system SHALL support Claude Code, Codex, GitHub Copilot, Gemini CLI, OpenCode and HTTP model providers. A runner MUST NOT receive a secret value in its arguments. The log MUST NOT hold one. [NEEDS CLARIFICATION: Q-024 Which runners ship in the first release?] Working assumption: Q-024 option 1, Claude Code and Codex.
 - REQ-016: The system SHALL serve the eight tools `ask_question`, `post_progress`, `handoff`, `message`, `spawn_subtask`, `report`, `read_ticket` and `read_ref` to agents. A tool call SHALL write one structured event to the run bus. The system SHALL reject a call with an invalid input. A step SHALL call only the tools of its `tools` field.
-- REQ-017: `ask_question` SHALL take a question, two to four options and one recommended option. It SHALL also take a flag for free text and an optional ref of a spec. It SHALL move the run to `WaitingForAnswer` and SHALL hand the question to the questions loop.
-- REQ-018: `post_progress` SHALL take a short text. It SHALL show the text in the event tail and the ticket summary. `report` SHALL take an outcome (done, partial or failed), a summary and refs of the artifacts. It SHALL end the step with that output.
-- REQ-019: `handoff` SHALL take a role and a summary. It SHALL pass the work to that role in the same run. `message` SHALL take a target step or the person, and a text. It SHALL deliver the text at the next turn of the target. `spawn_subtask` SHALL take a title, a brief and a role. It SHALL start a child run under the limits of the calling step.
+- REQ-017: `ask_question` SHALL take a question, two to four options and one recommended option. It SHALL also take a flag for free text and a kind, `ticket` (default) or `spec`. A `spec` question SHALL carry a ref of a spec, and a `ticket` question SHALL NOT. It SHALL move the run to `WaitingForAnswer` and SHALL hand the question to the questions loop.
+- REQ-018: `post_progress` SHALL take a short text. It SHALL show the text in the event tail and the ticket summary. `report` SHALL take an outcome (done, partial or failed), a summary, refs of the artifacts and optional named output fields, such as the list `tasks` of a plan. It SHALL end the step with that output. A report above the size cap SHALL be an error.
+- REQ-019: `handoff` SHALL take a role, a summary and an optional target step. It SHALL pass the work to that role in the same run. `message` SHALL take a target step or the person, and a text. It SHALL deliver the text at the next turn of the target. `spawn_subtask` SHALL take a title, a brief and a role. It SHALL start a child run under the limits of the calling step.
 - REQ-020: `read_ticket` SHALL take a ref `wi:` and SHALL return the mirrored ticket. `read_ref` SHALL take any ref and SHALL return its resolved text. Both tools SHALL be read-only, and a ref that does not resolve SHALL return an error and not a guess.
 - REQ-021: The system SHALL keep an append-only run log. The log SHALL hold one event for each state change, tool call, runner event and write. The system MUST NOT edit or delete an event. The UI and the ticket summary SHALL read the same log.
 - REQ-022: The system SHALL enforce a budget in tokens and money per run, per day and per member. It SHALL raise one alert at 80 % of a budget. It SHALL move the run to `Paused` at 100 %. [NEEDS CLARIFICATION: Q-023 What are the default budgets?] Working assumption: Q-023 option 1, the workflow limit for a run and no default per day or per member.
@@ -63,7 +63,7 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 - REQ-034: The system SHALL expose each run as `run:<ulid>` with its steps as `run:<ulid>/<step-id>`, and each workflow as `wf:<id>`. It SHALL expose the run state to `work` and `refs`.
 - REQ-035: A workflow SHALL hold a `limits` block with `max_turns`, `budget_usd` and `stall_s`. The block SHALL set the max turns, the budget in USD and the stall timeout of each run. The system SHALL reject a limit that is not a positive number.
 - REQ-036: After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL follow `add-delivery` REQ-001 to REQ-004. `max_rounds` SHALL NOT exceed 2.
-- REQ-037: The system SHALL serve the agent tools over two transports, stdio and HTTP. Both transports SHALL offer the same eight tools with the same inputs. The HTTP transport SHALL accept only calls from this machine (assumption `q:Q-053`).
+- REQ-037: The system SHALL serve the agent tools over two transports, stdio and HTTP. Both transports SHALL offer the same eight tools with the same inputs. The HTTP transport SHALL accept only calls from this machine (assumption `q:Q-053`): it SHALL listen on the loopback address, SHALL check the Host and Origin headers, and SHALL need the bearer token of a step. The token SHALL name the run and the step, and an input SHALL NOT name another run. The agent SHALL get the token in its MCP config file and never in an argument.
 - REQ-038: The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The lane Working SHALL hold `Planning`, `Working`, `SelfReview` and `ChangesRequested`. The lane Needs you SHALL hold `PlanReview`, `WaitingForAnswer`, `Blocked`, `Paused` and `Failed`. The lane Ready to merge SHALL hold a `PROpen` run with passing CI, no change request and no draft. The lane In review SHALL hold each other `PROpen` run. The lane Done SHALL hold `Merged`, `Done` and `Cancelled`.
 
 ### Non-Goals
@@ -359,7 +359,7 @@ The system SHALL run agents headless with streamed JSON, as far as the connectio
 
 ### Requirement: REQ-016 Agent tools
 
-The system SHALL serve the eight tools `ask_question`, `post_progress`, `handoff`, `message`, `spawn_subtask`, `report`, `read_ticket` and `read_ref` to agents. A tool call SHALL write one structured event to the run bus. The system SHALL reject a call with an invalid input. A step SHALL call only the tools of its `tools` field.
+The system SHALL serve the eight tools `ask_question`, `post_progress`, `handoff`, `message`, `spawn_subtask`, `report`, `read_ticket` and `read_ref` to agents. A tool call SHALL write one structured event to the run bus. The system SHALL reject a call with an invalid input. A step SHALL call only the tools of its `tools` field. The system SHALL limit the calls per minute and the size of each call.
 
 #### Scenario: Invalid input
 - GIVEN an agent in a step
@@ -370,6 +370,11 @@ The system SHALL serve the eight tools `ask_question`, `post_progress`, `handoff
 - GIVEN a step with `tools: [read_ref]`
 - WHEN the agent calls `report`
 - THEN the system refuses the call
+
+#### Scenario: Too many calls
+- GIVEN a step that has used its calls of the minute
+- WHEN the agent calls a tool again
+- THEN the system returns an error with the wait time and writes no event
 
 ### Requirement: REQ-017 ask_question tool
 
@@ -674,6 +679,11 @@ The system SHALL serve the agent tools over two transports, stdio and HTTP. Both
 - GIVEN the HTTP transport
 - WHEN a caller from another machine connects
 - THEN the system refuses the call
+
+#### Scenario: No token
+- GIVEN the HTTP transport
+- WHEN a local caller sends a call with no valid token
+- THEN the system answers 401 and runs no tool
 
 ### Requirement: REQ-038 Run lanes
 
