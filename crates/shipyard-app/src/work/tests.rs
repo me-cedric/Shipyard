@@ -446,6 +446,36 @@ fn mark_adds_the_pickup_label_of_automation_yaml() {
 }
 
 #[test]
+fn mark_for_run_adds_the_workflow_label_and_the_pickup_label_on_a_click_only() {
+    let f = fx();
+    f.put(vec![ticket("PROJ-5", "T", &[])]);
+    f.http
+        .put("/rest/api/2/issue/PROJ-5", "labels", 204, "")
+        .get(
+            "/rest/api/2/issue/PROJ-5",
+            200,
+            &issue("PROJ-5", "T", "", "wf:feature", None, 0),
+        );
+    assert!(mark_for_run(&f.s, "PROJ-5", "feature", false).is_err());
+    assert_eq!(f.writes(), 0);
+    mark_for_run(&f.s, "PROJ-5", "feature", true).unwrap();
+    let bodies: Vec<String> = f
+        .http
+        .requests()
+        .into_iter()
+        .filter(|r| r.method == Method::Put)
+        .map(|r| r.body.unwrap().to_string())
+        .collect();
+    assert_eq!(
+        bodies,
+        [
+            r#"{"update":{"labels":[{"add":"wf:feature"}]}}"#,
+            r#"{"update":{"labels":[{"add":"shipyard"}]}}"#
+        ]
+    );
+}
+
+#[test]
 fn a_refused_transition_reaches_the_view_and_the_mirror_keeps_its_row() {
     let f = fx();
     f.put(vec![ticket("PROJ-5", "T", &[])]);

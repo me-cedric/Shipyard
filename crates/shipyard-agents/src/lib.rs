@@ -4,6 +4,9 @@
 //! A secret stays in a `Secret` and in the OS keychain (REQ-011). An MCP server gets its secrets
 //! in environment variables of its own process, and nowhere else.
 
+pub mod assistant;
+pub mod assistant_modes;
+pub mod assistant_rules;
 pub mod mcp_control;
 pub mod runner;
 pub mod runners;

@@ -186,6 +186,35 @@ export const commands = {
 	specsSplitPreview: (change: string) => typedError<SplitPreview_Serialize, string>(__TAURI_INVOKE("specs_split_preview", { change })),
 	specsSplitApply: (change: string, click: boolean) => typedError<ApplyRow_Serialize[], string>(__TAURI_INVOKE("specs_split_apply", { change, click })),
 	specsArchive: (id: string, confirmed: boolean) => typedError<string[], string>(__TAURI_INVOKE("specs_archive", { id, confirmed })),
+	assistantThreads: () => typedError<ThreadSummary[], string>(__TAURI_INVOKE("assistant_threads")),
+	assistantCreate: (title: string | null) => typedError<ThreadView_Serialize, string>(__TAURI_INVOKE("assistant_create", { title })),
+	assistantGet: (thread: string) => typedError<ThreadView_Serialize, string>(__TAURI_INVOKE("assistant_get", { thread })),
+	assistantRename: (thread: string, title: string) => typedError<ThreadSummary, string>(__TAURI_INVOKE("assistant_rename", { thread, title })),
+	/**  Fails when the worktree of the thread holds changes: discard it first. */
+	assistantDelete: (thread: string) => typedError<null, string>(__TAURI_INVOKE("assistant_delete", { thread })),
+	assistantWorktreeDiscard: (thread: string, force: boolean) => typedError<ThreadView_Serialize, string>(__TAURI_INVOKE("assistant_worktree_discard", { thread, force })),
+	assistantDiff: (thread: string) => typedError<FileDiff[], string>(__TAURI_INVOKE("assistant_diff", { thread })),
+	assistantSaveDraft: (thread: string, draft: string, context: Context_Deserialize) => typedError<null, string>(__TAURI_INVOKE("assistant_save_draft", { thread, draft, context })),
+	assistantSettingsSet: (thread: string, settings: ThreadSettings_Deserialize) => typedError<ThreadView_Serialize, string>(__TAURI_INVOKE("assistant_settings_set", { thread, settings })),
+	/**  Adds the ref only when it resolves. An error text says why it did not. */
+	assistantRefAdd: (thread: string, text: string) => typedError<Context_Serialize, string>(__TAURI_INVOKE("assistant_ref_add", { thread, text })),
+	assistantRefRemove: (thread: string, text: string) => typedError<Context_Serialize, string>(__TAURI_INVOKE("assistant_ref_remove", { thread, text })),
+	/**
+	 *  Runs one turn and returns the assistant message. An error text: a spent budget, a busy thread.
+	 *  A runner failure is not an error: it is a message with the state `failed`.
+	 */
+	assistantSend: (thread: string, text: string, quotes: Quote[], context: Context_Deserialize) => typedError<TurnResult_Serialize, string>(__TAURI_INVOKE("assistant_send", { thread, text, quotes, context })),
+	/**  Grants the tool that the last message waits for and resumes the session. */
+	assistantGrant: (thread: string) => typedError<TurnResult_Serialize, string>(__TAURI_INVOKE("assistant_grant", { thread })),
+	/**  Resumes the session after a failed turn. It does not send the first request again. */
+	assistantRetry: (thread: string) => typedError<TurnResult_Serialize, string>(__TAURI_INVOKE("assistant_retry", { thread })),
+	assistantExplain: (thread: string, entity: string) => typedError<TurnResult_Serialize, string>(__TAURI_INVOKE("assistant_explain", { thread, entity })),
+	assistantToFactoryPreview: (thread: string) => typedError<DiffRow_Serialize, string>(__TAURI_INVOKE("assistant_to_factory_preview", { thread })),
+	/**  `workflow` of `null`: a work item. A workflow id: the item gets the label `wf:<id>`. */
+	assistantToFactory: (thread: string, workflow: string | null, click: boolean) => typedError<FactorySend_Serialize, string>(__TAURI_INVOKE("assistant_to_factory", { thread, workflow, click })),
+	assistantDefaultsGet: () => typedError<AssistantDefaults_Serialize, string>(__TAURI_INVOKE("assistant_defaults_get")),
+	assistantDefaultsSet: (defaults: AssistantDefaults_Deserialize) => typedError<AssistantDefaults_Serialize, string>(__TAURI_INVOKE("assistant_defaults_set", { defaults })),
+	assistantOptions: () => typedError<RunnerOptions[], string>(__TAURI_INVOKE("assistant_options")),
 	/**  Replaces the native menu with one in the language of the person. `labels` is keyed by item id. */
 	shellMenu: (labels: { [key in string]: string }) => typedError<null, string>(__TAURI_INVOKE("shell_menu", { labels })),
 	/**
@@ -395,6 +424,33 @@ export type AskedQuestion_Serialize = {
 	/**  The answer comment changed after detection: the card shows a note (REQ-012). */
 	edited: boolean,
 };
+
+export type AssistantDefaults = AssistantDefaults_Serialize | AssistantDefaults_Deserialize;
+
+export type AssistantDefaults_Deserialize = {
+	runner?: string | null,
+	model?: string | null,
+	effort?: string | null,
+	mode?: AssistantMode | null,
+	permission?: Permission | null,
+};
+
+export type AssistantDefaults_Serialize = {
+	runner: string | null,
+	model: string | null,
+	effort: string | null,
+	mode: AssistantMode | null,
+	permission: Permission | null,
+};
+
+/**  What a thread may do (REQ-007 to REQ-009). */
+export type AssistantMode = 
+/**  Read only. The reply is text. */
+"ask" | 
+/**  Read only. The reply is a plan. */
+"plan" | 
+/**  Edits files, in a worktree of the thread only. */
+"agent";
 
 export type Automation = Automation_Serialize | Automation_Deserialize;
 
@@ -669,6 +725,21 @@ export type Changes_Serialize = {
 	conflicted: FileChange_Serialize[],
 };
 
+export type ChatMessage = {
+	role: ChatRole,
+	text: string,
+	quotes: Quote[],
+	/**  The refs that the reply cites. */
+	refs: string[],
+	trace: TraceStep[],
+	state: MessageState,
+	usage: Usage,
+	/**  Unix seconds. */
+	at: number,
+};
+
+export type ChatRole = "user" | "assistant";
+
 export type Choice = "ours" | "theirs" | 
 /**  Ours, then theirs. */
 "both" | "neither";
@@ -783,6 +854,23 @@ export type Connection_Serialize = {
 	capabilities: Capabilities | null,
 };
 
+/**  The view, the selected entity and the refs that the person added (REQ-004). */
+export type Context = Context_Serialize | Context_Deserialize;
+
+/**  The view, the selected entity and the refs that the person added (REQ-004). */
+export type Context_Deserialize = {
+	view: string,
+	selected?: string | null,
+	refs: string[],
+};
+
+/**  The view, the selected entity and the refs that the person added (REQ-004). */
+export type Context_Serialize = {
+	view: string,
+	selected: string | null,
+	refs: string[],
+};
+
 export type Contrast = "default" | "high";
 
 export type Decision = "accept" | "reject";
@@ -882,6 +970,22 @@ export type Entry = {
 	question: Question,
 	issues: string[],
 };
+
+export type FactorySend = FactorySend_Serialize | FactorySend_Deserialize;
+
+export type FactorySend_Deserialize = {
+	item: ApplyRow_Deserialize,
+	/**  `wf:<id>` when the thread was sent as a run. */
+	label?: string | null,
+};
+
+export type FactorySend_Serialize = {
+	item: ApplyRow_Serialize,
+	/**  `wf:<id>` when the thread was sent as a run. */
+	label: string | null,
+};
+
+export type FailKind = "quota" | "error";
 
 export type Feature = Feature_Serialize | Feature_Deserialize;
 
@@ -1065,6 +1169,14 @@ export type Gantt_Serialize = {
 };
 
 export type Gate = "none" | "human";
+
+/**  What the ring and the quota windows show (REQ-023). */
+export type Gauge = {
+	/**  Tokens of the last model call of the thread: input, cache and output. */
+	usedTokens: number,
+	windowTokens: number,
+	quotas: QuotaWindow[],
+};
 
 export type Group = "compliance" | "tools" | "refs" | 
 /**  Reserved: no generated file exists yet. */
@@ -1327,6 +1439,10 @@ export type Member_Serialize = {
 	availability: Availability_Serialize,
 };
 
+export type MessageState = { state: "done" } | 
+/**  The runner stopped for a permission. `permission` is the tool, as the runner names it. */
+{ state: "waiting"; permission: string } | { state: "failed"; kind: FailKind; message: string };
+
 /**  A message that an agent left for the person (`message` to `person`). */
 export type MessageView = {
 	run: string,
@@ -1373,10 +1489,16 @@ export type Overrides_Serialize = {
 	accent: Accent | null,
 };
 
+/**  The side of the window that the assistant panel sits on (spec `assistant`, REQ-025). */
+export type PanelSide = "left" | "right";
+
 export type ParsedRef = {
 	ref: string,
 	kind: string,
 };
+
+/**  What an agent-mode thread may do in its worktree (Q-049: the person picks). */
+export type Permission = "read_only" | "edit" | "full";
 
 export type PlanRow = {
 	path: string,
@@ -1447,6 +1569,8 @@ export type PrefsPatch_Deserialize = {
 	sidebarOpen?: boolean | null,
 	lang?: Lang | null,
 	releaseUrl?: string | null,
+	assistantWidth?: number | null,
+	assistantSide?: PanelSide | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -1457,6 +1581,8 @@ export type PrefsPatch_Serialize = {
 	sidebarOpen: boolean | null,
 	lang: Lang | null,
 	releaseUrl: string | null,
+	assistantWidth: number | null,
+	assistantSide: PanelSide | null,
 };
 
 export type Prefs_Deserialize = {
@@ -1469,6 +1595,9 @@ export type Prefs_Deserialize = {
 	lang?: Lang | null,
 	/**  Where the update check reads the latest release (spec `shell`, REQ-014). It only informs. */
 	releaseUrl?: string,
+	/**  Width of the assistant panel, in pixels. */
+	assistantWidth?: number,
+	assistantSide?: PanelSide,
 };
 
 export type Prefs_Serialize = {
@@ -1481,6 +1610,9 @@ export type Prefs_Serialize = {
 	lang: Lang | null,
 	/**  Where the update check reads the latest release (spec `shell`, REQ-014). It only informs. */
 	releaseUrl: string,
+	/**  Width of the assistant panel, in pixels. */
+	assistantWidth: number,
+	assistantSide: PanelSide,
 };
 
 export type Preview = Preview_Serialize | Preview_Deserialize;
@@ -1682,6 +1814,19 @@ export type QuestionView_Serialize = {
 	key: string,
 	title: string,
 	question: AskedQuestion_Serialize,
+};
+
+/**  A quota window of the account, when the runner reports it. No runner reports one yet. */
+export type QuotaWindow = {
+	label: string,
+	percent: number,
+};
+
+/**  A passage, a ticket text or a file text that goes to the runner as data (REQ-006). */
+export type Quote = {
+	/**  A ref or a file name. */
+	source: string,
+	text: string,
 };
 
 export type Reason = { kind: "skill"; skill: string } | { kind: "missing-skill"; skill: string } | { kind: "free-days"; days: number | null } | { kind: "full" };
@@ -1979,6 +2124,14 @@ export type RunView_Serialize = {
 };
 
 export type Runner = Runner_Serialize | Runner_Deserialize;
+
+/**  What a person may pick for a runner (REQ-011). */
+export type RunnerOptions = {
+	runner: string,
+	models: string[],
+	efforts: string[],
+	windowTokens: number,
+};
 
 export type RunnerState = "detected" | "missing";
 
@@ -2519,6 +2672,85 @@ export type Text = {
 
 export type Theme = "light" | "dark" | "system";
 
+export type Thread = Thread_Serialize | Thread_Deserialize;
+
+export type ThreadSettings = ThreadSettings_Serialize | ThreadSettings_Deserialize;
+
+export type ThreadSettings_Deserialize = {
+	/**  A runner id of `runners::detect`. */
+	runner: string,
+	model?: string | null,
+	effort?: string | null,
+	mode: AssistantMode,
+	permission?: Permission,
+};
+
+export type ThreadSettings_Serialize = {
+	/**  A runner id of `runners::detect`. */
+	runner: string,
+	model: string | null,
+	effort: string | null,
+	mode: AssistantMode,
+	permission: Permission,
+};
+
+/**  A thread in the list. */
+export type ThreadSummary = {
+	id: string,
+	title: string,
+	mode: AssistantMode,
+	runner: string,
+	updated: number,
+};
+
+export type ThreadView = ThreadView_Serialize | ThreadView_Deserialize;
+
+export type ThreadView_Deserialize = {
+	thread: Thread_Deserialize,
+	gauge: Gauge,
+};
+
+export type ThreadView_Serialize = {
+	thread: Thread_Serialize,
+	gauge: Gauge,
+};
+
+export type Thread_Deserialize = {
+	id: string,
+	project: string,
+	title: string,
+	settings: ThreadSettings_Deserialize,
+	context: Context_Deserialize,
+	draft: string,
+	/**  The CLI session. A retry and a grant resume it. */
+	session?: string | null,
+	/**  Tools that the person granted after a denial. */
+	granted?: string[],
+	messages: ChatMessage[],
+	usage: Usage,
+	worktree?: Worktree | null,
+	created: number,
+	updated: number,
+};
+
+export type Thread_Serialize = {
+	id: string,
+	project: string,
+	title: string,
+	settings: ThreadSettings_Serialize,
+	context: Context_Serialize,
+	draft: string,
+	/**  The CLI session. A retry and a grant resume it. */
+	session: string | null,
+	/**  Tools that the person granted after a denial. */
+	granted: string[],
+	messages: ChatMessage[],
+	usage: Usage,
+	worktree: Worktree | null,
+	created: number,
+	updated: number,
+};
+
 /**  A time entry that a person wrote (REQ-020, REQ-021). */
 export type TimeEntry = TimeEntry_Serialize | TimeEntry_Deserialize;
 
@@ -2621,6 +2853,13 @@ export type Totals = {
 	unrated: string[],
 };
 
+/**  One tool call of a turn (REQ-022). */
+export type TraceStep = {
+	tool: string,
+	target: string,
+	ms: number,
+};
+
 /**  A worklog as the tracker holds it. */
 export type TrackerLog = {
 	id: string,
@@ -2662,6 +2901,26 @@ export type TryResponse = {
 	elapsedMs: number,
 };
 
+export type TurnResult = TurnResult_Serialize | TurnResult_Deserialize;
+
+export type TurnResult_Deserialize = {
+	thread: ThreadView_Deserialize,
+	message: ChatMessage,
+	/**  The files that the thread changed in its worktree (agent mode). */
+	changed: FileDiff[],
+	/**  The budget at 80 % or more, named. The turn ran. */
+	alert?: string | null,
+};
+
+export type TurnResult_Serialize = {
+	thread: ThreadView_Serialize,
+	message: ChatMessage,
+	/**  The files that the thread changed in its worktree (agent mode). */
+	changed: FileDiff[],
+	/**  The budget at 80 % or more, named. The turn ran. */
+	alert: string | null,
+};
+
 export type UnitView = {
 	id: string,
 	state: StepState,
@@ -2673,6 +2932,13 @@ export type UpdateInfo = {
 	newer: boolean,
 	/**  The page of the release, for the person to read. */
 	url: string,
+};
+
+export type Usage = {
+	inputTokens: number,
+	outputTokens: number,
+	cachedTokens: number,
+	costUsd: number | null,
 };
 
 export type UsageView = UsageView_Serialize | UsageView_Deserialize;
@@ -2859,6 +3125,14 @@ export type Workflow_Serialize = {
 
 /**  `shared`: the one worktree of the run. `worktree`: one worktree for each child. */
 export type Workspace = "worktree" | "shared" | "none";
+
+/**  The worktree of an agent-mode thread (Q-047: one for each thread, kept until the person acts). */
+export type Worktree = {
+	path: string,
+	branch: string,
+	/**  The commit that the diff reads against. */
+	base: string,
+};
 
 /**  The four write switches of `factory`. All off by default (`q:Q-002`). */
 export type Writes = Writes_Serialize | Writes_Deserialize;

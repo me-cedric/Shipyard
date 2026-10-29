@@ -41,6 +41,37 @@ pub struct SessionInfo {
 /// The sessions that `Factory::sessions` keeps of the finished steps, newest first.
 const RECENT: usize = 50;
 
+/// Running tokens and money of one project, by UTC day and by member.
+#[derive(Default)]
+pub(crate) struct Spent {
+    days: BTreeMap<String, (u64, f64)>,
+    members: BTreeMap<String, (u64, f64)>,
+}
+
+impl Spent {
+    /// Add a usage event to its day. Gives its tokens and money.
+    fn day(&mut self, payload: &serde_json::Value, ts: u64) -> (u64, f64) {
+        let n = |k: &str| payload[k].as_u64().unwrap_or(0);
+        let (tokens, usd) = (
+            n("input_tokens") + n("output_tokens"),
+            payload["cost_usd"].as_f64().unwrap_or(0.0),
+        );
+        let d = self
+            .days
+            .entry(day_of(Duration::from_millis(ts)))
+            .or_default();
+        d.0 += tokens;
+        d.1 += usd;
+        (tokens, usd)
+    }
+
+    fn member(&mut self, name: String, tokens: u64, usd: f64) {
+        let m = self.members.entry(name).or_default();
+        m.0 += tokens;
+        m.1 += usd;
+    }
+}
+
 fn day_of(t: Duration) -> String {
     iso(t)[..10].to_string()
 }
@@ -64,56 +95,99 @@ impl Inner {
             .unwrap_or_default()
     }
 
-    /// Tokens and money of each UTC day, from the usage events of the runs of `project`.
-    fn day_spend(&self, project: &str) -> BTreeMap<String, (u64, f64)> {
-        let mut days: BTreeMap<String, (u64, f64)> = BTreeMap::new();
+    /// The running totals of `project`: the days from the usage events of the log, the members
+    /// from the runs. Built once when the project opens (`Factory::set_project`).
+    pub(crate) fn build_spent(&self, project: &str) -> Spent {
+        let mut out = Spent::default();
         for e in self.log.usage_events().unwrap_or_default() {
-            if self.runs.get(&e.run).is_none_or(|r| r.project != project) {
-                continue;
+            let mine = match e.run.strip_prefix(crate::budget::RUN_PREFIX) {
+                Some(p) => p == project,
+                None => self.runs.get(&e.run).is_some_and(|r| r.project == project),
+            };
+            if mine {
+                out.day(&e.payload, e.ts);
             }
-            let n = |k: &str| e.payload[k].as_u64().unwrap_or(0);
-            let d = days.entry(day_of(Duration::from_millis(e.ts))).or_default();
-            d.0 += n("input_tokens") + n("output_tokens");
-            d.1 += e.payload["cost_usd"].as_f64().unwrap_or(0.0);
         }
-        days
-    }
-
-    /// Tokens and money of each member over the runs of `project`.
-    fn member_spend(&self, project: &str) -> BTreeMap<String, (u64, f64)> {
-        let mut out: BTreeMap<String, (u64, f64)> = BTreeMap::new();
         for r in self.runs.values().filter(|r| r.project == project) {
-            let m = out.entry(self.member_of(&r.id)).or_default();
-            m.0 += r.tokens;
-            m.1 += r.cost;
+            out.member(self.member_of(&r.id), r.tokens, r.cost);
+        }
+        for b in self.assistant_bookings(project) {
+            out.member(b.member, b.tokens, b.usd);
         }
         out
     }
 
-    /// The worse of the day level and the member level of the run (REQ-022). `Under` with no
-    /// budget: the default is no budget per day or per member.
-    pub(crate) fn spend_levels(&self, run_id: &str) -> [BudgetLevel; 2] {
+    /// Add a usage event of the log to the day totals of its project.
+    pub(crate) fn add_day(&mut self, run_id: &str, payload: &serde_json::Value, ts: u64) {
+        let project = match self.runs.get(run_id) {
+            Some(r) => r.project.clone(),
+            None => return,
+        };
+        if let Some(s) = self.spent.get_mut(&project) {
+            s.day(payload, ts);
+        }
+    }
+
+    /// Add a booked assistant turn (`budget::book_assistant`) to the day and the member.
+    pub(crate) fn add_booking(&mut self, project: &str, payload: &serde_json::Value, ts: u64) {
+        if let Some(s) = self.spent.get_mut(project) {
+            let (tokens, usd) = s.day(payload, ts);
+            let member = payload["member"].as_str().unwrap_or_default();
+            s.member(member.to_string(), tokens, usd);
+        }
+    }
+
+    /// Add the usage of a run to the total of its assignee. Zero adds the row only.
+    pub(crate) fn add_member(&mut self, run_id: &str, tokens: u64, usd: f64) {
+        let Some(project) = self.runs.get(run_id).map(|r| r.project.clone()) else {
+            return;
+        };
+        if self.spent.contains_key(&project) {
+            let member = self.member_of(run_id);
+            if let Some(s) = self.spent.get_mut(&project) {
+                s.member(member, tokens, usd);
+            }
+        }
+    }
+
+    /// Tokens and money of each UTC day, from the usage events of the runs of `project`.
+    pub(crate) fn day_spend(&self, project: &str) -> BTreeMap<String, (u64, f64)> {
+        self.spent
+            .get(project)
+            .map(|s| s.days.clone())
+            .unwrap_or_default()
+    }
+
+    /// Tokens and money of each member over the runs of `project`.
+    pub(crate) fn member_spend(&self, project: &str) -> BTreeMap<String, (u64, f64)> {
+        self.spent
+            .get(project)
+            .map(|s| s.members.clone())
+            .unwrap_or_default()
+    }
+
+    /// The day level and the member level of the run (REQ-022), each with its budget key
+    /// (`day:<date>`, `member:<name>`). A level exists only for a budget: the default is no
+    /// budget per day or per member.
+    pub(crate) fn spend_levels(&self, run_id: &str) -> Vec<(String, BudgetLevel)> {
         let (Some(p), Some(r)) = (self.project_of(run_id), self.runs.get(run_id)) else {
-            return [BudgetLevel::Under; 2];
+            return Vec::new();
         };
         let b = &p.automation.budgets;
-        if b.is_empty() {
-            return [BudgetLevel::Under; 2];
-        }
+        let Some(s) = self.spent.get(&r.project).filter(|_| !b.is_empty()) else {
+            return Vec::new();
+        };
         let today = day_of(self.clock.now());
-        let day = b.for_day(&today).map_or(BudgetLevel::Under, |usd| {
-            let spent = self.day_spend(&r.project).get(&today).map_or(0.0, |d| d.1);
-            run::budget_level(spent, usd)
-        });
         let member = self.member_of(run_id);
-        let member = b.for_member(&member).map_or(BudgetLevel::Under, |usd| {
-            let spent = self
-                .member_spend(&r.project)
-                .get(&member)
-                .map_or(0.0, |d| d.1);
-            run::budget_level(spent, usd)
+        let day = b.for_day(&today).map(|usd| {
+            let spent = s.days.get(&today).map_or(0.0, |d| d.1);
+            (format!("day:{today}"), run::budget_level(spent, usd))
         });
-        [day, member]
+        let who = b.for_member(&member).map(|usd| {
+            let spent = s.members.get(&member).map_or(0.0, |d| d.1);
+            (format!("member:{member}"), run::budget_level(spent, usd))
+        });
+        day.into_iter().chain(who).collect()
     }
 }
 
@@ -176,8 +250,11 @@ impl Factory {
             })
             .collect();
         out.sort_by_key(|s| std::cmp::Reverse(s.started));
-        let live = out.iter().filter(|s| s.state == StepState::Running).count();
-        out.truncate(live.max(RECENT));
+        let mut ended = 0;
+        out.retain(|s| {
+            ended += usize::from(s.state != StepState::Running);
+            s.state == StepState::Running || ended <= RECENT
+        });
         out
     }
 }

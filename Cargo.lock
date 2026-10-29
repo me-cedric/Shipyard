@@ -3795,6 +3795,8 @@ dependencies = [
  "libc",
  "serde",
  "serde_json",
+ "shipyard-core",
+ "shipyard-git",
  "shipyard-http",
  "shipyard-secrets",
  "specta",

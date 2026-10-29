@@ -12,6 +12,7 @@ import {
 	ArrowDownTrayIcon,
 	ArrowPathIcon,
 	BookOpenIcon,
+	ChatBubbleIcon,
 	CheckIcon,
 	ChevronRightIcon,
 	CodeBracketIcon,
@@ -72,7 +73,15 @@ export function useActions() {
 	const navigate = useNavigate();
 	const shell = useShell();
 	const { openFolder } = useProjectActions();
-	const { inspectorOpen, setInspectorOpen, setPaletteOpen, sync, setCommitOpen } = shell;
+	const {
+		inspectorOpen,
+		setInspectorOpen,
+		setPaletteOpen,
+		assistantOpen,
+		setAssistantOpen,
+		sync,
+		setCommitOpen,
+	} = shell;
 	const { pull } = useCodeActions();
 	const syncNow = useSyncNow();
 	const stageable = canCommit(useChanges().data);
@@ -139,8 +148,16 @@ export function useActions() {
 			Icon: ArrowDownTrayIcon,
 			run: () => void checkUpdate(true),
 		};
+		const assistant = withKey({
+			id: "toggle-assistant",
+			label: t.assistant.title,
+			Icon: ChatBubbleIcon,
+			key: "j",
+			run: () => setAssistantOpen(!assistantOpen),
+		});
 		const list: Action[] = [
 			...spaces,
+			assistant,
 			withKey({
 				id: "palette",
 				label: t.palette.title,
@@ -184,12 +201,14 @@ export function useActions() {
 			commit,
 			updateCheck,
 		];
-		return { list, sync: syncAction, commit };
+		return { list, sync: syncAction, commit, assistant };
 	}, [
 		t,
 		role,
 		sidebarOpen,
 		inspectorOpen,
+		assistantOpen,
+		setAssistantOpen,
 		navigate,
 		setPrefs,
 		setLang,

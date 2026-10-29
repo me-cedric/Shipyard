@@ -8,12 +8,17 @@ export function Shell({
 	inspector,
 	statusbar,
 	sidebarOpen = true,
+	assistant,
+	assistantSide = "right",
 }: {
 	sidebar: ReactNode;
 	main: ReactNode;
 	inspector?: ReactNode;
 	statusbar?: ReactNode;
 	sidebarOpen?: boolean;
+	/** A side panel that sits left or right of the main view. */
+	assistant?: ReactNode;
+	assistantSide?: "left" | "right";
 }) {
 	const { t } = useI18n();
 	return (
@@ -26,6 +31,7 @@ export function Shell({
 				>
 					{sidebar}
 				</nav>
+				{assistantSide === "left" ? assistant : null}
 				<main
 					aria-label={t.nav.main}
 					tabIndex={-1}
@@ -33,6 +39,7 @@ export function Shell({
 				>
 					{main}
 				</main>
+				{assistantSide === "right" ? assistant : null}
 				{inspector}
 			</div>
 			{statusbar ? (

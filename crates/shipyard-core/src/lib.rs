@@ -1,5 +1,6 @@
 //! Domain types, refs, run states and the work item. No I/O.
 
+pub mod assistant;
 pub mod code;
 pub mod delivery;
 pub mod flows;

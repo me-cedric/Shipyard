@@ -1,6 +1,7 @@
 //! Stores in the app data folder and codecs for repository files.
 
 pub mod archive;
+pub mod assistant_defaults;
 pub mod automation_file;
 pub mod design;
 pub mod excel;
@@ -19,6 +20,7 @@ mod repo_scan;
 pub mod run_log;
 pub mod safe_write;
 pub mod seal;
+pub mod threads;
 pub mod work;
 
 /// One error type for the stores. The callers show its text.

@@ -7,6 +7,7 @@
 //! from the run log file ([`persist`]). The agent tools that need the run are in [`tools`].
 
 pub mod approvals;
+pub mod budget;
 pub mod children;
 pub mod claims;
 pub mod fake;

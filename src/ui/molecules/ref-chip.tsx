@@ -56,6 +56,9 @@ export function RefChip({
 					type="button"
 					data-state={state}
 					aria-label={name}
+					// A drop on the assistant panel adds the ref to its context.
+					draggable
+					onDragStart={(e) => e.dataTransfer.setData("text/plain", refId)}
 					// An unresolved chip has no entity to open.
 					onClick={() => state !== "unresolved" && onOpen?.(refId)}
 					className={cn(

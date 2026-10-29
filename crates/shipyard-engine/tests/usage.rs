@@ -175,3 +175,74 @@ fn usage_sums_by_day_and_member_with_budgets_and_sessions_show_the_steps() {
     );
     assert_eq!(s[0].cost_usd, 1.5);
 }
+
+#[test]
+fn sessions_keep_a_live_one_older_than_the_newest_ended_ones() {
+    let fx = fx(Budgets::default());
+    fx.start("SHIP-0", &[]);
+    let live = run_of(&fx, "SHIP-0");
+    for i in 1..=52 {
+        fx.advance(1);
+        let key = format!("SHIP-{i}");
+        fx.start(&key, &[]);
+        fx.done(&run_of(&fx, &key), "work");
+    }
+    let s = fx.f.sessions();
+    assert_eq!(s.len(), 51, "the live one and the newest 50 ended");
+    assert!(
+        s.iter()
+            .any(|x| x.run == live && x.state == StepState::Running)
+    );
+}
+
+#[test]
+fn a_day_budget_alerts_once_for_all_the_runs_of_the_day() {
+    let fx = fx(day_budget(2.0));
+    fx.start("SHIP-1", &[]);
+    fx.event("work", usage(1.7));
+    fx.start("SHIP-2", &[]);
+    fx.event("work", usage(0.1));
+    let alerts: usize =
+        fx.f.runs()
+            .iter()
+            .map(|r| fx.logged(&r.id, "alert").len())
+            .sum();
+    assert_eq!(alerts, 1);
+}
+
+const SMALL: &str = "
+id: one
+steps:
+  - { id: work, role: worker, model: mid, tools: [report] }
+limits: { max_turns: 50, budget_usd: 1, stall_s: 10000000 }
+";
+
+#[test]
+fn a_day_budget_alerts_after_the_run_budget_alerted() {
+    let fx = Fx::build(writes(true), &[SMALL], Config::default(), |p| {
+        p.automation.budgets = day_budget(1.05);
+    });
+    let run = fx.start("SHIP-1", &[]);
+    fx.event("work", usage(0.82));
+    assert_eq!(fx.logged(&run, "alert").len(), 1, "the run budget");
+    fx.event("work", usage(0.03));
+    let keys: Vec<_> = fx
+        .logged(&run, "alert")
+        .iter()
+        .map(|a| a["key"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(keys, [format!("run:{run}"), "day:2026-10-29".to_string()]);
+}
+
+#[test]
+fn the_totals_after_a_restart_equal_the_totals_before() {
+    let mut fx = fx(day_budget(50.0));
+    fx.start("SHIP-1", &[]);
+    fx.event("work", usage(1.0));
+    fx.start("SHIP-2", &[]);
+    fx.event("work", usage(0.5));
+    let before = fx.f.usage("ship");
+    assert_eq!(before.0[0].usd, 1.5);
+    fx.restart_with(|p| p.automation.budgets = day_budget(50.0));
+    assert_eq!(fx.f.usage("ship"), before);
+}

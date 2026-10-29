@@ -23,7 +23,15 @@ function ActionButton({ action, children }: { action: Action; children?: ReactNo
 	);
 }
 
-export function StatusBar({ sync, commit }: { sync: Action; commit: Action }) {
+export function StatusBar({
+	sync,
+	commit,
+	assistant,
+}: {
+	sync: Action;
+	commit: Action;
+	assistant: Action;
+}) {
 	const { t } = useI18n();
 	const { syncing, syncError } = useShell();
 	const { items, unread, markRead, clear } = useNotifications();
@@ -57,6 +65,7 @@ export function StatusBar({ sync, commit }: { sync: Action; commit: Action }) {
 				</span>
 			) : null}
 			<ActionButton action={commit} />
+			<ActionButton action={assistant} />
 			<span className="flex-1" />
 			<NotificationCentre items={items} unread={unread} onOpen={markRead} onClear={clear} />
 			<span className="inline-flex items-center gap-1">

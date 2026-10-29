@@ -5,6 +5,8 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+shipyard-core = { path = "../shipyard-core" }
+shipyard-git = { path = "../shipyard-git" }
 shipyard-http = { path = "../shipyard-http" }
 shipyard-secrets = { path = "../shipyard-secrets" }
 base64 = "0.22"

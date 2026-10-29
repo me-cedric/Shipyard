@@ -50,6 +50,24 @@ pub enum Lang {
     Fr,
 }
 
+/// The side of the window that the assistant panel sits on (spec `assistant`, REQ-025).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum PanelSide {
+    Left,
+    Right,
+}
+
+pub const PANEL_WIDTH: std::ops::RangeInclusive<u32> = 280..=900;
+
+fn default_panel_width() -> u32 {
+    400
+}
+
+fn default_panel_side() -> PanelSide {
+    PanelSide::Right
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Prefs {
@@ -63,6 +81,11 @@ pub struct Prefs {
     /// Where the update check reads the latest release (spec `shell`, REQ-014). It only informs.
     #[serde(default = "default_release_url")]
     pub release_url: String,
+    /// Width of the assistant panel, in pixels.
+    #[serde(default = "default_panel_width")]
+    pub assistant_width: u32,
+    #[serde(default = "default_panel_side")]
+    pub assistant_side: PanelSide,
 }
 
 /// The latest release of the Shipyard repository, in the GitHub API form.
@@ -83,6 +106,8 @@ impl Default for Prefs {
             sidebar_open: true,
             lang: None,
             release_url: default_release_url(),
+            assistant_width: default_panel_width(),
+            assistant_side: default_panel_side(),
         }
     }
 }
@@ -97,6 +122,8 @@ pub struct PrefsPatch {
     pub sidebar_open: Option<bool>,
     pub lang: Option<Lang>,
     pub release_url: Option<String>,
+    pub assistant_width: Option<u32>,
+    pub assistant_side: Option<PanelSide>,
 }
 
 const FILE: &str = "prefs.json";
@@ -121,6 +148,10 @@ impl Prefs {
         self.role = p.role.unwrap_or(self.role);
         self.sidebar_open = p.sidebar_open.unwrap_or(self.sidebar_open);
         self.lang = p.lang.or(self.lang);
+        if let Some(w) = p.assistant_width {
+            self.assistant_width = w.clamp(*PANEL_WIDTH.start(), *PANEL_WIDTH.end());
+        }
+        self.assistant_side = p.assistant_side.unwrap_or(self.assistant_side);
         if let Some(url) = p.release_url {
             // An empty value goes back to the default.
             self.release_url = if url.trim().is_empty() {
@@ -144,6 +175,31 @@ mod tests {
         let p = Prefs::load(dir.path());
         assert_eq!((p.theme, p.lang), (Theme::Dark, Some(Lang::Fr)));
         assert_eq!(p.release_url, DEFAULT_RELEASE_URL);
+    }
+
+    #[test]
+    fn the_panel_width_and_side_persist_and_the_width_stays_in_range() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut p = Prefs::default();
+        assert_eq!(
+            (p.assistant_width, p.assistant_side),
+            (400, PanelSide::Right)
+        );
+        p.apply(PrefsPatch {
+            assistant_width: Some(5000),
+            assistant_side: Some(PanelSide::Left),
+            ..Default::default()
+        });
+        assert_eq!(
+            (p.assistant_width, p.assistant_side),
+            (900, PanelSide::Left)
+        );
+        p.save(dir.path()).unwrap();
+        let q = Prefs::load(dir.path());
+        assert_eq!(
+            (q.assistant_width, q.assistant_side),
+            (900, PanelSide::Left)
+        );
     }
 
     #[test]

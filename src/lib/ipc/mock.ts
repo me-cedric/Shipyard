@@ -28,6 +28,7 @@ import {
 	providerTest,
 	seedAgents,
 } from "./mock-agents";
+import * as ai from "./mock-assistant";
 import {
 	codeBranchCreate,
 	codeBranchDelete,
@@ -120,6 +121,8 @@ type State = {
 	specs: specs.MockSpecs;
 	/** The runs, questions, approvals, workflows, roles and tiers of the factory. */
 	factory: fx.MockFactory;
+	/** The assistant threads, their worktrees and the project defaults. */
+	assistant: ai.MockAssistant;
 	/** The system notifications that the app asked for. */
 	os: { title: string; body: string }[];
 	/** The labels of the last native menu. */
@@ -153,6 +156,8 @@ const fresh = (): State => ({
 		sidebarOpen: true,
 		lang: null,
 		releaseUrl: RELEASE_URL,
+		assistantWidth: 400,
+		assistantSide: "right",
 	},
 	projects: [],
 	files: {},
@@ -167,6 +172,7 @@ const fresh = (): State => ({
 	design: design.seedDesign(),
 	specs: specs.seedSpecs(),
 	factory: fx.seedFactory(),
+	assistant: ai.seedAssistant(),
 	os: [],
 	menu: {},
 });
@@ -974,12 +980,44 @@ const handlers: Handlers = {
 	approvalApprove: (id) => fx.approvalApprove(state.factory, id),
 	approvalReject: (id) => fx.approvalReject(state.factory, id),
 	pullsList: () => fx.pullsList(state.factory, active()?.id ?? null),
+	assistantThreads: () => ai.threads(state.assistant, assistantEnv()),
+	assistantCreate: (title) => ai.create(state.assistant, assistantEnv(), title),
+	assistantGet: (id) => ai.get(state.assistant, assistantEnv(), id),
+	assistantRename: (id, title) => ai.rename(state.assistant, assistantEnv(), id, title),
+	assistantDelete: (id) => ai.remove(state.assistant, assistantEnv(), id),
+	assistantWorktreeDiscard: (id, force) =>
+		ai.worktreeDiscard(state.assistant, assistantEnv(), id, force),
+	assistantDiff: (id) => ai.diff(state.assistant, assistantEnv(), id),
+	assistantSaveDraft: (id, draft, context) =>
+		ai.saveDraft(state.assistant, assistantEnv(), id, draft, context),
+	assistantSettingsSet: (id, settings) =>
+		ai.settingsSet(state.assistant, assistantEnv(), id, settings),
+	assistantRefAdd: (id, text) => ai.refAdd(state.assistant, assistantEnv(), id, text),
+	assistantRefRemove: (id, text) => ai.refRemove(state.assistant, assistantEnv(), id, text),
+	assistantSend: (id, text, quotes, context) =>
+		ai.send(state.assistant, assistantEnv(), id, text, quotes, context),
+	assistantGrant: (id) => ai.grant(state.assistant, assistantEnv(), id),
+	assistantRetry: (id) => ai.retry(state.assistant, assistantEnv(), id),
+	assistantExplain: (id, entity) => ai.explain(state.assistant, assistantEnv(), id, entity),
+	assistantToFactoryPreview: (id) => ai.toFactoryPreview(state.assistant, assistantEnv(), id),
+	assistantToFactory: (id, workflow, click) =>
+		ai.toFactory(state.assistant, assistantEnv(), id, workflow, click),
+	assistantDefaultsGet: () => ai.defaultsGet(state.assistant),
+	assistantDefaultsSet: (d) => ai.defaultsSet(state.assistant, d),
+	assistantOptions: () => ai.options(),
 	projectImport: (source) => ({
 		copied: [],
 		skipped: [{ path: source, reason: "not-implemented" }],
 		conflicts: [],
 	}),
 };
+
+/** The active project and the ref index, for the assistant commands. */
+function assistantEnv(): ai.Env {
+	const p = active();
+	if (!p) throw "no active project";
+	return { project: p.id, resolves: (ref) => resolve(ref)?.state === "resolved" };
+}
 
 /** The Work data of the active project. Without a project the commands fail as the real ones do. */
 function need<T>(data: T): T {

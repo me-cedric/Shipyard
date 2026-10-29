@@ -288,6 +288,24 @@ impl Agents {
             .collect())
     }
 
+    /// The provider keys, for the secret filter of the assistant (spec `assistant` REQ-020). No
+    /// command returns them.
+    pub fn secret_values(&self) -> Vec<String> {
+        let providers = Self::read(&self.path)
+            .map(|f| f.providers)
+            .unwrap_or_default();
+        providers
+            .iter()
+            .filter_map(|r| {
+                self.secrets
+                    .get(&conn_account(&r.provider.id))
+                    .ok()
+                    .flatten()
+            })
+            .map(|s| s.expose().to_string())
+            .collect()
+    }
+
     fn record(&self, id: &str) -> Res<Record> {
         Self::read(&self.path)?
             .providers

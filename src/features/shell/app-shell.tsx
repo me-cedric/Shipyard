@@ -1,5 +1,6 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { AssistantPanel, useAssistant } from "@/features/assistant";
 import { useCodeActions } from "@/lib/code";
 import { useI18n } from "@/lib/i18n";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
@@ -29,15 +30,19 @@ function Frame() {
 		closeDetail,
 		commitOpen,
 		setCommitOpen,
+		assistantOpen,
+		setAssistantOpen,
 	} = useShell();
 	const { commit: runCommit } = useCodeActions();
-	const { list, sync, commit } = useActions();
+	const { list, sync, commit, assistant } = useActions();
 	useShortcuts(list);
 	useNativeMenu(list);
 	useShellEvents();
 	const { toasts, dismiss } = useNotifications();
 	// A detail belongs to the view that opened it: leaving the view closes it.
 	const path = useRouterState({ select: (s) => s.location.pathname });
+	// One assistant for every space: the shell holds its state, so a change of view keeps it.
+	const chat = useAssistant({ open: assistantOpen, view: path, selected: selectedRef });
 	const open = useRef(detail);
 	open.current = detail;
 	// biome-ignore lint/correctness/useExhaustiveDependencies: only a change of view closes the detail
@@ -52,6 +57,15 @@ function Frame() {
 				sidebarOpen={sidebarOpen}
 				sidebar={<Sidebar toggle={toggle} />}
 				main={<Outlet />}
+				assistantSide={chat.side}
+				assistant={
+					<AssistantPanel
+						assistant={chat}
+						open={assistantOpen}
+						onClose={() => setAssistantOpen(false)}
+						onOpenRef={openRef}
+					/>
+				}
 				inspector={
 					<Inspector
 						open={inspectorOpen}
@@ -65,7 +79,7 @@ function Frame() {
 						) : null}
 					</Inspector>
 				}
-				statusbar={<StatusBar sync={sync} commit={commit} />}
+				statusbar={<StatusBar sync={sync} commit={commit} assistant={assistant} />}
 			/>
 			<Toaster toasts={toasts} onDismiss={dismiss} />
 			<PaletteHost actions={list} />

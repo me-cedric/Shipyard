@@ -13,6 +13,8 @@ type ShellState = {
 	closeDetail: () => void;
 	paletteOpen: boolean;
 	setPaletteOpen: (open: boolean) => void;
+	assistantOpen: boolean;
+	setAssistantOpen: (open: boolean) => void;
 	syncing: boolean;
 	/** The reason of the last failed sync, or null. */
 	syncError: string | null;
@@ -40,6 +42,7 @@ export function ShellProvider({
 	const [selectedRef, setSelectedRef] = useState<string | null>(null);
 	const [detail, setDetail] = useState<{ title: string; node: ReactNode } | null>(null);
 	const [paletteOpen, setPaletteOpen] = useState(false);
+	const [assistantOpen, setAssistantOpen] = useState(false);
 	const [syncing, setSyncing] = useState(false);
 	const [syncError, setSyncError] = useState<string | null>(null);
 	const [commitOpen, setCommitOpen] = useState(false);
@@ -80,6 +83,8 @@ export function ShellProvider({
 			closeDetail,
 			paletteOpen,
 			setPaletteOpen,
+			assistantOpen,
+			setAssistantOpen,
 			syncing,
 			syncError,
 			sync,
@@ -95,6 +100,7 @@ export function ShellProvider({
 			openDetail,
 			closeDetail,
 			paletteOpen,
+			assistantOpen,
 			syncing,
 			syncError,
 			sync,

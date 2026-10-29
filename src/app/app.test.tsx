@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SPACE_IDS, SPACES, tabLabel } from "@/features/shell";
 import { en } from "@/lib/i18n/en";
@@ -109,7 +109,29 @@ describe("shell", () => {
 		expect(await screen.findByRole("link", { name: "Diagrams", current: "page" })).toBeTruthy();
 	});
 
-	it("shows one sync and one commit action in the status bar", async () => {
+	it("opens the assistant with Mod+J, focuses its input and keeps the draft in the next view", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mount("/home");
+		await sidebar();
+		const panel = await screen.findByLabelText("Assistant", { selector: "aside" });
+		expect(panel).toHaveAttribute("data-open", "false");
+		expect(panel).toHaveAttribute("inert");
+		await user.keyboard("{Control>}j{/Control}");
+		const input = await screen.findByRole("textbox", { name: "Message" });
+		await waitFor(() => expect(input).toHaveFocus());
+		await user.type(input, "keep me");
+		await user.keyboard("{Control>}2{/Control}");
+		await screen.findByRole("link", { name: "Diagrams", current: "page" });
+		expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("keep me");
+		// The shell button closes it again.
+		await user.click(
+			within(await screen.findByRole("contentinfo")).getByRole("button", { name: "Assistant" }),
+		);
+		expect(panel).toHaveAttribute("data-open", "false");
+	});
+
+	it("shows the sync, commit and assistant actions in the status bar", async () => {
 		mount("/home");
 		const bar = (await screen.findByRole("contentinfo")) as HTMLElement;
 		// The bell is the notification centre, not a second action.
@@ -118,7 +140,7 @@ describe("shell", () => {
 				.getAllByRole("button")
 				.filter((b) => b.getAttribute("aria-label") !== "Notifications")
 				.map((b) => b.textContent),
-		).toEqual(["Sync", "Commit"]);
+		).toEqual(["Sync", "Commit", "Assistant"]);
 		expect(await within(bar).findByRole("img", { name: "Success" })).toBeInTheDocument();
 	});
 });

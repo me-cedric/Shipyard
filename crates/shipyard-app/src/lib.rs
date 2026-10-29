@@ -1,6 +1,7 @@
 //! Tauri shell. Commands live in `commands/`, one module for each feature.
 
 pub mod agents;
+pub mod assistant;
 mod commands;
 pub mod connections;
 pub mod delivery;
@@ -13,8 +14,8 @@ pub mod sync;
 pub mod work;
 
 use commands::{
-    AppState, agents as ag, app, code, connections as conn, health, legacy, prefs, projects, refs,
-    shell as sh, sync as sy,
+    AppState, agents as ag, app, assistant as asst, code, connections as conn, health, legacy,
+    prefs, projects, refs, shell as sh, sync as sy,
 };
 use tauri::{Emitter, Manager};
 use tauri_specta::{Builder, collect_commands};
@@ -192,6 +193,26 @@ fn specta_builder() -> Builder<tauri::Wry> {
         specs::specs_split_preview,
         specs::specs_split_apply,
         specs::specs_archive,
+        asst::assistant_threads,
+        asst::assistant_create,
+        asst::assistant_get,
+        asst::assistant_rename,
+        asst::assistant_delete,
+        asst::assistant_worktree_discard,
+        asst::assistant_diff,
+        asst::assistant_save_draft,
+        asst::assistant_settings_set,
+        asst::assistant_ref_add,
+        asst::assistant_ref_remove,
+        asst::assistant_send,
+        asst::assistant_grant,
+        asst::assistant_retry,
+        asst::assistant_explain,
+        asst::assistant_to_factory_preview,
+        asst::assistant_to_factory,
+        asst::assistant_defaults_get,
+        asst::assistant_defaults_set,
+        asst::assistant_options,
         sh::shell_menu,
         sh::notify_os,
         sh::update_check,

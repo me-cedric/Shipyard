@@ -5,6 +5,7 @@
 
 pub mod agents;
 pub mod app;
+pub mod assistant;
 pub mod code;
 pub mod connections;
 pub mod health;

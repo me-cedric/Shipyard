@@ -479,6 +479,23 @@ pub fn mark(s: &AppState, key: &str, click: bool) -> Res<()> {
     Ok(())
 }
 
+/// Send an item to the factory as a run: add the label `wf:<workflow>` and, when `automation.yaml`
+/// has one, the pickup label. The factory claims the item. Nothing here starts a run (`assistant`
+/// REQ-015). The caller checks the workflow id.
+pub fn mark_for_run(s: &AppState, key: &str, workflow: &str, click: bool) -> Res<()> {
+    need_click(click)?;
+    let c = ctx(s)?;
+    let pickup = automation_in(&c.root)?.pickup.label;
+    let t = tracker(s)?;
+    let w = writer(s, &t)?;
+    w.add_label(key, &format!("wf:{workflow}")).map_err(err)?;
+    if let Some(label) = pickup {
+        w.add_label(key, &label).map_err(err)?;
+    }
+    refresh(s, &t, &*w, [key.to_string()]);
+    Ok(())
+}
+
 /// Move an item to a status. The tracker may refuse: the text names the reason and the card
 /// returns (REQ-002).
 pub fn transition(s: &AppState, key: &str, to: &str, click: bool) -> Res<()> {

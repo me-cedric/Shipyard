@@ -327,6 +327,11 @@ pub(crate) struct Inner {
     pub gens: BTreeMap<String, u64>,
     /// The app quits: a gate that ends now was stopped, and its verdict is not a finding.
     pub closing: bool,
+    /// The day and member budgets that sent their alert: `day:<date>`, `member:<name>`
+    /// (REQ-022). The run budget has its flag in `RunRec::alerted`.
+    pub alerted: BTreeSet<String>,
+    /// Running totals of each open project. `set_project` builds them from the log.
+    pub spent: BTreeMap<String, crate::usage::Spent>,
 }
 
 pub struct Factory {
@@ -402,6 +407,8 @@ impl Factory {
             delivering: BTreeMap::new(),
             gens: BTreeMap::new(),
             closing: false,
+            alerted: BTreeSet::new(),
+            spent: BTreeMap::new(),
         };
         inner.recover();
         inner.persist();
@@ -432,7 +439,10 @@ impl Factory {
 
     /// Add a project, or replace it after a reload of its files.
     pub fn set_project(&self, id: &str, project: Project) {
-        self.lock().projects.insert(id.into(), project);
+        let mut inner = self.lock();
+        inner.projects.insert(id.into(), project);
+        let spent = inner.build_spent(id);
+        inner.spent.insert(id.into(), spent);
     }
 
     /// Read the agents, check the clocks, start the next steps. Call it often.
@@ -620,6 +630,8 @@ impl Inner {
         let ts = self.clock.now().as_millis() as u64;
         if let Err(e) = self.log.append(run_id, step, kind, &payload, ts) {
             self.errors.push(format!("run log {run_id}: {e}"));
+        } else if kind == kind::RUNNER && payload["type"] == "usage" {
+            self.add_day(run_id, &payload, ts);
         }
     }
 
@@ -886,6 +898,7 @@ impl Inner {
                 u.tokens += input_tokens + output_tokens;
                 rec.cost += cost;
                 rec.tokens += input_tokens + output_tokens;
+                self.add_member(run_id, input_tokens + output_tokens, cost);
                 self.check_budget(run_id);
             }
             AgentEvent::Exit { code, cancelled } => {
@@ -905,7 +918,8 @@ impl Inner {
         }
     }
 
-    pub(crate) fn budget_level(&self, run_id: &str) -> BudgetLevel {
+    /// The level of the budgets of the run itself, and of the shared ones by key.
+    fn budget_levels(&self, run_id: &str) -> (BudgetLevel, Vec<(String, BudgetLevel)>) {
         let rec = &self.runs[run_id];
         let money = run::budget_level(rec.cost, rec.wf.limits.budget_usd + rec.extra_usd);
         let tokens = self.cfg.max_tokens.map_or(BudgetLevel::Under, |m| {
@@ -916,25 +930,46 @@ impl Inner {
             s.budget
                 .map(|b| run::budget_level(spent, b + rec.extra_usd))
         });
-        [money, tokens]
+        let own = [money, tokens]
             .into_iter()
-            .chain(self.spend_levels(run_id))
             .chain(steps)
+            .max_by_key(|l| rank(*l))
+            .unwrap_or(BudgetLevel::Under);
+        (own, self.spend_levels(run_id))
+    }
+
+    pub(crate) fn budget_level(&self, run_id: &str) -> BudgetLevel {
+        let (own, shared) = self.budget_levels(run_id);
+        shared
+            .into_iter()
+            .map(|(_, l)| l)
+            .chain([own])
             .max_by_key(|l| rank(*l))
             .unwrap_or(BudgetLevel::Under)
     }
 
     /// One alert at 80 %, a hard stop at 100 % (REQ-022).
     fn check_budget(&mut self, run_id: &str) {
-        let level = self.budget_level(run_id);
+        let (own, shared) = self.budget_levels(run_id);
+        let stop =
+            own == BudgetLevel::Spent || shared.iter().any(|(_, l)| *l == BudgetLevel::Spent);
         let rec = self.rec(run_id);
         let (cost, tokens) = (rec.cost, rec.tokens);
-        if level != BudgetLevel::Under && !rec.alerted {
+        let mut keys = Vec::new();
+        if own != BudgetLevel::Under && !rec.alerted {
             rec.alerted = true;
-            let payload = json!({"budget": "80 %", "cost_usd": cost, "tokens": tokens});
+            keys.push(format!("run:{run_id}"));
+        }
+        for (key, l) in shared {
+            if l != BudgetLevel::Under && self.alerted.insert(key.clone()) {
+                keys.push(key);
+            }
+        }
+        for key in keys {
+            let payload = json!({"budget": "80 %", "key": key, "cost_usd": cost, "tokens": tokens});
             self.log(run_id, None, ALERT, payload);
         }
-        if level == BudgetLevel::Spent {
+        if stop {
             self.transition(run_id, RunEvent::BudgetStop);
         }
     }
@@ -1349,6 +1384,7 @@ impl Inner {
             "machine": req.machine, "stamped": req.stamped,
         });
         self.runs.insert(id.clone(), rec);
+        self.add_member(&id, 0, 0.0);
         self.log(&id, None, kind::NOTE, payload);
         self.transition(&id, RunEvent::Claim);
         self.transition(&id, RunEvent::Start);

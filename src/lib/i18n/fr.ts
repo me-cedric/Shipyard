@@ -1,3 +1,4 @@
+import { assistantFr } from "./assistant";
 import { designFr } from "./design";
 import type { Messages } from "./en";
 import { factoryFr } from "./factory";
@@ -649,6 +650,7 @@ export const fr: Messages = {
 		copySha: "Copier l'id",
 	},
 	count: "{name} ({count})",
+	assistant: assistantFr,
 	design: designFr,
 	factory: factoryFr,
 	specs: specsFr,

@@ -201,7 +201,10 @@ impl Inner {
     /// A run in the log with no save and no end: name it.
     fn name_orphans(&mut self, known: &HashSet<String>) {
         let Ok(runs) = self.log.runs() else { return };
-        for run in runs.iter().filter(|r| !known.contains(*r)) {
+        for run in runs
+            .iter()
+            .filter(|r| !known.contains(*r) && !r.starts_with(crate::budget::RUN_PREFIX))
+        {
             let ended = self
                 .log
                 .last(run, kind::STATE)
