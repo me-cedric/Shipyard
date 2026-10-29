@@ -5,9 +5,13 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+# `https` is not a default feature: without it every HTTPS remote fails with "no TLS stream".
+git2 = { version = "0.21", features = ["https"] }
 serde.workspace = true
 shipyard-core = { path = "../shipyard-core" }
+shipyard-secrets = { path = "../shipyard-secrets" }
 specta = { workspace = true, features = ["derive"] }
+thiserror = "2"
 
 [dev-dependencies]
 tempfile = "3"
