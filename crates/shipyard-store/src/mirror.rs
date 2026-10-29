@@ -137,6 +137,22 @@ impl Mirror {
         rows.map(|b| Ok(serde_json::from_str(&b?)?)).collect()
     }
 
+    /// A text that changes when a ticket, a pull request or a link of `source` changes. The ref
+    /// index uses it to decide whether to read the mirror again. A write replaces a row, and a
+    /// replaced row takes a new `rowid`, so the count and the highest `rowid` move with it.
+    pub fn fingerprint(&self, source: &str) -> Result<String> {
+        let mut out = Vec::new();
+        for table in ["tickets", "pulls", "links"] {
+            let (n, top): (i64, i64) = self.conn.query_row(
+                &format!("SELECT COUNT(*), COALESCE(MAX(rowid), 0) FROM {table} WHERE source = ?1"),
+                [source],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )?;
+            out.push(format!("{n}.{top}"));
+        }
+        Ok(out.join("-"))
+    }
+
     pub fn state(&self, source: &str) -> Result<SyncState> {
         let row = self
             .conn

@@ -317,3 +317,39 @@ fn put_tickets_and_record_leave_the_tick_cursor_alone() {
     assert_eq!(m.pending_events().unwrap().len(), 1);
     assert_eq!(m.state("jira").unwrap().last_ok, None);
 }
+
+#[test]
+fn the_fingerprint_moves_with_a_ticket_a_pull_request_and_a_link() {
+    let m = Mirror::open_memory().unwrap();
+    let mut last = m.fingerprint("t").unwrap();
+    let mut moved = |m: &Mirror| {
+        let now = m.fingerprint("t").unwrap();
+        assert_ne!(last, now);
+        last = now;
+    };
+    m.put_tickets("t", &[ticket("A-1", "To Do")]).unwrap();
+    moved(&m);
+    // A changed row replaces the row.
+    m.put_tickets("t", &[ticket("A-1", "Done")]).unwrap();
+    moved(&m);
+    m.link("t", "change:x", "A-1").unwrap();
+    moved(&m);
+    m.unlink("t", "change:x").unwrap();
+    moved(&m);
+    m.commit(
+        "t",
+        &Poll {
+            tickets: &[],
+            pulls: &[pull(7)],
+            seen: &[],
+            events: &[],
+            at: 1,
+        },
+    )
+    .unwrap();
+    moved(&m);
+    // Another source does not move it.
+    let before = m.fingerprint("t").unwrap();
+    m.put_tickets("other", &[ticket("B-1", "To Do")]).unwrap();
+    assert_eq!(m.fingerprint("t").unwrap(), before);
+}

@@ -589,6 +589,9 @@ fn place(
     None
 }
 
+/// The days that each member gave to the tasks: by member index and day number.
+type Used = HashMap<(usize, i32), f64>;
+
 /// Schedule one sheet over the team, the calendar and the decisions of a person (REQ-016).
 /// Each member works at the capacity of the member, tasks take capacity in the order of
 /// `Decisions::order`, a task with no member choice goes to the member of its role that
@@ -601,6 +604,42 @@ pub fn gantt(
     decisions: &Decisions,
     today: &str,
 ) -> Gantt {
+    schedule(slug, sheet, team, cal, decisions, today).0
+}
+
+/// The days that each member has booked from `today` over `span` days, by handle, across all
+/// sheets (REQ-007). A sheet is scheduled alone, so two lots can book the same member on one
+/// day: the sum then exceeds the capacity and the suggestion shows the member as full. A member
+/// with no booked day is not in the map.
+pub fn booked(
+    sheets: &[(String, Sheet)],
+    team: &Team,
+    cal: &Calendar,
+    decisions: &Decisions,
+    today: &str,
+    span: i32,
+) -> BTreeMap<String, f64> {
+    let from = parse_day(today).unwrap_or(0);
+    let mut out: BTreeMap<String, f64> = BTreeMap::new();
+    for (slug, sheet) in sheets {
+        let (_, used) = schedule(slug, sheet, team, cal, decisions, today);
+        for ((idx, day), days) in used {
+            if (from..from + span).contains(&day) {
+                *out.entry(team.members[idx].handle.clone()).or_default() += days;
+            }
+        }
+    }
+    out
+}
+
+fn schedule(
+    slug: &str,
+    sheet: &Sheet,
+    team: &Team,
+    cal: &Calendar,
+    decisions: &Decisions,
+    today: &str,
+) -> (Gantt, Used) {
     let rates = role_rates(team);
     let build = build_days(sheet);
     let first = cal.next_working(parse_day(today).unwrap_or(0));
@@ -616,7 +655,7 @@ pub fn gantt(
     };
     tasks.sort_by_key(|(_, t)| rank(t)); // stable: the rest keeps the sheet order
 
-    let mut used: HashMap<(usize, i32), f64> = HashMap::new();
+    let mut used: Used = HashMap::new();
     let mut bars: HashMap<String, Bar> = HashMap::new();
     for (feature, task) in tasks {
         let days = task_days(task, build);
@@ -682,12 +721,13 @@ pub fn gantt(
             },
         );
     }
-    Gantt {
+    let gantt = Gantt {
         bars: sheet
             .tasks()
             .filter_map(|(_, t)| bars.remove(&reference(&t.id)))
             .collect(),
-    }
+    };
+    (gantt, used)
 }
 
 /// One day of effort for each working day, from `start`.

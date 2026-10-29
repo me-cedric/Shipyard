@@ -142,11 +142,13 @@ fn the_connection_ids_round_trip_and_unset_ones_stay_out_of_the_file() {
     f.connections = Some(ProjectConnections {
         tracker: Some("acme-linear".into()),
         forge: None,
+        tracker_scope: Some("ACME".into()),
     });
     write_project_file(dir.path(), &f).unwrap();
     let text = std::fs::read_to_string(dir.path().join(".shipyard/project.yaml")).unwrap();
     assert!(text.contains("connections:") && text.contains("tracker: acme-linear"));
     assert!(!text.contains("forge"), "{text}");
+    assert!(text.contains("trackerScope: ACME"), "{text}");
     let FileRead::Valid(back) = read_project_file(dir.path()).unwrap() else {
         panic!("valid")
     };

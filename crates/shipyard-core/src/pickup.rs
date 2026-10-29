@@ -34,6 +34,10 @@ pub struct Filter {
     /// before it picks up (`work` resolves handles).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub assignee: Option<String>,
+    /// The tracker ids and names of the member that `assignee` names. The caller fills it from the
+    /// team file (REQ-006). It is never in the file. Empty: only the handle itself matches.
+    #[serde(skip)]
+    pub accounts: Vec<String>,
     /// `null` turns the label filter off.
     pub label: Option<String>,
     /// Status names. Empty means the `Todo` category.
@@ -48,6 +52,7 @@ impl Default for Filter {
     fn default() -> Self {
         Self {
             assignee: None,
+            accounts: Vec::new(),
             label: Some(DEFAULT_LABEL.into()),
             statuses: Vec::new(),
             component: None,
@@ -390,9 +395,11 @@ pub fn matches(filter: &Filter, t: &Ticket) -> bool {
         .as_deref()
         .is_none_or(|l| item.labels.iter().any(|x| eq(x, l)))
         && filter.assignee.as_deref().is_none_or(|a| {
-            item.assignee
-                .as_ref()
-                .is_some_and(|p| eq(&p.id, a) || eq(&p.name, a))
+            item.assignee.as_ref().is_some_and(|p| {
+                std::iter::once(a)
+                    .chain(filter.accounts.iter().map(String::as_str))
+                    .any(|x| eq(&p.id, x) || eq(&p.name, x))
+            })
         })
         && if filter.statuses.is_empty() {
             item.status.category == StatusCategory::Todo

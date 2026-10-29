@@ -581,3 +581,65 @@ fn a_lost_response_finds_the_worklog_by_its_mark_and_never_offers_a_second_send(
     assert_eq!(rows[0].state, TimeState::InTracker);
     assert!(rows[0].lost_receipt);
 }
+
+// ---- booked days (REQ-007)
+
+#[test]
+fn booked_days_count_the_planned_work_inside_the_window() {
+    let t = team(vec![
+        member("ana", "dev", 5.0, &[], 500.0),
+        member("bob", "qa", 5.0, &[], 400.0),
+    ]);
+    let sheets = vec![(
+        "lot".to_string(),
+        sheet(vec![task("a", "dev", 3.0), task("b", "dev", 4.0)]),
+    )];
+    let book = |span| {
+        booked(
+            &sheets,
+            &t,
+            &Calendar::default(),
+            &Decisions::default(),
+            "2026-11-02", // a Monday
+            span,
+        )
+    };
+    // Seven days from Monday hold five working days of ana. Bob has no task.
+    assert_eq!(book(7), BTreeMap::from([("ana".to_string(), 5.0)]));
+    assert_eq!(book(2), BTreeMap::from([("ana".to_string(), 2.0)]));
+    // The sum over the sheets: a second lot books the same member again.
+    let two = vec![
+        sheets[0].clone(),
+        ("other".to_string(), sheet(vec![task("c", "dev", 1.0)])),
+    ];
+    let all = booked(
+        &two,
+        &t,
+        &Calendar::default(),
+        &Decisions::default(),
+        "2026-11-02",
+        7,
+    );
+    assert_eq!(all["ana"], 6.0);
+}
+
+#[test]
+fn booked_days_feed_the_suggestion() {
+    let t = team(vec![
+        member("ana", "dev", 5.0, &["api"], 500.0),
+        member("bob", "dev", 5.0, &["api"], 500.0),
+    ]);
+    let sheets = vec![("lot".to_string(), sheet(vec![task("a", "dev", 5.0)]))];
+    let b = booked(
+        &sheets,
+        &t,
+        &Calendar::default(),
+        &Decisions::default(),
+        "2026-11-02",
+        7,
+    );
+    // The task goes to the first member that finishes first (ana, by handle). She is full.
+    let ranked = suggest(&["api".to_string()], &t, &b);
+    assert_eq!(ranked[0].handle, "bob");
+    assert!(ranked[1].reasons.contains(&Reason::Full));
+}

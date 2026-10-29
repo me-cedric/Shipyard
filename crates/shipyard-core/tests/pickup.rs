@@ -477,3 +477,18 @@ fn the_claim_stamp_follows_the_comment_switch() {
     w.tracker_comment = true;
     assert!(w.stamp_allowed());
 }
+
+#[test]
+fn a_resolved_handle_matches_every_account_of_the_member() {
+    let mut auto = Automation::default();
+    // The handle `ana` is not a tracker name. The caller resolved it through the team file.
+    auto.pickup.assignee = Some("ana".into());
+    assert!(pick(&auto, &[todo("A-1")], &[], &[], false).is_empty());
+    auto.pickup.accounts = vec!["U9".into(), "U1".into()];
+    assert_eq!(pick(&auto, &[todo("A-1")], &[], &[], false), ["A-1"]);
+    auto.pickup.accounts = vec!["U9".into()];
+    assert!(pick(&auto, &[todo("A-1")], &[], &[], false).is_empty());
+    // Accounts without an assignee filter change nothing.
+    auto.pickup.assignee = None;
+    assert_eq!(pick(&auto, &[todo("A-1")], &[], &[], false), ["A-1"]);
+}

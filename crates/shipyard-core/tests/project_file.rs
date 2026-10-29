@@ -72,13 +72,34 @@ fn a_connection_id_is_a_conn_slug() {
     f.connections = Some(ProjectConnections {
         tracker: Some("acme-linear".into()),
         forge: None,
+        tracker_scope: None,
     });
     assert!(validate(&f).is_empty());
     for bad in ["", "Acme", "a b", "-a", "https://x.test", "a/b"] {
         f.connections = Some(ProjectConnections {
             tracker: None,
             forge: Some(bad.into()),
+            tracker_scope: None,
         });
         assert_eq!(fields(&f), ["connections.forge"], "{bad:?}");
+    }
+}
+
+#[test]
+fn a_tracker_scope_is_text_that_a_query_can_carry() {
+    let mut f = ok();
+    for good in ["ACME", "acme/web", "My Project", "team-x"] {
+        f.connections = Some(ProjectConnections {
+            tracker_scope: Some(good.into()),
+            ..Default::default()
+        });
+        assert!(validate(&f).is_empty(), "{good:?}");
+    }
+    for bad in ["", " ACME", "ACME ", "A\nB", &"x".repeat(201)] {
+        f.connections = Some(ProjectConnections {
+            tracker_scope: Some(bad.into()),
+            ..Default::default()
+        });
+        assert_eq!(fields(&f), ["connections.trackerScope"], "{bad:?}");
     }
 }

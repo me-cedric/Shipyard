@@ -5,20 +5,23 @@ use std::path::Path;
 use std::time::UNIX_EPOCH;
 
 use shipyard_core::project::ProjectFile;
-use shipyard_core::refs::detect;
+use shipyard_core::refs::{Ref, detect, parse};
 
 use crate::project::parse_project_file;
 use crate::ref_index::{Citation, Entity};
+use crate::seal::is_sealed;
+use crate::work::{read_decisions, read_sheet, read_team};
 
 const MAX_BYTES: u64 = 1_000_000;
 
-/// The folders to scan: the artifact paths of the project file and `.shipyard`.
+/// The folders to scan: the artifact paths of the project file, `.shipyard` and the work files
+/// (estimate sheets and plan decisions).
 pub fn roots(p: &ProjectFile) -> Vec<String> {
     let mut r: Vec<String> = ["decisions", "questions", "specs"]
         .iter()
         .map(|k| p.path(k).to_string())
         .collect();
-    r.push(".shipyard".into());
+    r.extend([".shipyard", "docs/costing", "docs/planning"].map(String::from));
     r
 }
 
@@ -99,6 +102,7 @@ pub fn scan(rel: &str, text: &str, p: &ProjectFile) -> (Vec<Entity>, Vec<Citatio
     let doc = format!("doc:{rel}");
     let title = title_of(text).unwrap_or_else(|| file_stem(rel).to_string());
     let mut ents = Vec::new();
+    let mut extra: Vec<Citation> = Vec::new();
     let mut primary = doc.clone();
     let mut add = |target: String, title: &str, status: Option<String>| {
         ents.push(Entity {
@@ -150,6 +154,50 @@ pub fn scan(rel: &str, text: &str, p: &ProjectFile) -> (Vec<Entity>, Vec<Citatio
             }
             _ => {}
         }
+    } else if rel == ".shipyard/team.yaml" {
+        // A sealed day rate leaves the members readable: only the rate is hidden (REQ-005).
+        for m in read_team(text, None).map(|t| t.members).unwrap_or_default() {
+            add(format!("member:{}", m.handle), &m.name, Some(m.role));
+        }
+    } else if let Some(slug) = rel
+        .strip_prefix("docs/costing/")
+        .and_then(|n| n.strip_suffix(".yaml"))
+        .filter(|n| !n.contains('/'))
+    {
+        // A sealed sheet is one opaque entity: no row is read (REQ-014).
+        primary = format!("est:{slug}");
+        match read_sheet(text, None) {
+            Ok(sheet) => {
+                add(primary.clone(), &sheet.name, None);
+                for f in &sheet.features {
+                    add(format!("est:{slug}#{}", f.id), &f.name, None);
+                }
+                for (_, t) in sheet.tasks() {
+                    add(format!("est:{slug}#{}", t.id), &t.name, None);
+                    if let Some(key) = &t.ticket {
+                        extra.push(Citation {
+                            source: primary.clone(),
+                            target: format!("wi:{key}"),
+                        });
+                    }
+                }
+            }
+            Err(_) => add(
+                primary.clone(),
+                slug,
+                is_sealed(text).then(|| "sealed".into()),
+            ),
+        }
+    } else if rel == "docs/planning/plan.yaml" {
+        // The members that a person chose for a task: the sheet cites the member.
+        for (task, d) in read_decisions(text).map(|d| d.tasks).unwrap_or_default() {
+            if let (Some(Ref::Estimate { sheet, .. }), Some(h)) = (parse(&task), &d.member) {
+                extra.push(Citation {
+                    source: format!("est:{sheet}"),
+                    target: format!("member:{h}"),
+                });
+            }
+        }
     } else if rel == ".shipyard/project.yaml" {
         if let Ok(f) = parse_project_file(text) {
             primary = format!("project:{}", f.id());
@@ -183,6 +231,7 @@ pub fn scan(rel: &str, text: &str, p: &ProjectFile) -> (Vec<Entity>, Vec<Citatio
             source: primary.clone(),
             target: f.target.to_string(),
         })
+        .chain(extra)
         .filter(|c| c.source != c.target)
         .collect();
     cites.sort_by(|a, b| a.target.cmp(&b.target));

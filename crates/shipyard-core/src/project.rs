@@ -28,6 +28,11 @@ pub struct ProjectConnections {
     pub tracker: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub forge: Option<String>,
+    /// The container of the tracker: the Jira project key, `owner/repo` on GitHub or GitLab, the
+    /// Azure DevOps project or the Linear team. Unset: GitHub and GitLab use the origin repository
+    /// and the other trackers list the whole account.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tracker_scope: Option<String>,
 }
 
 /// The file holds no machine path, no secret and no personal preference.
@@ -119,6 +124,15 @@ fn valid_workflow(w: &str) -> bool {
         && b.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-')
 }
 
+fn c_scope(f: &ProjectFile) -> Option<&str> {
+    f.connections.as_ref()?.tracker_scope.as_deref()
+}
+
+/// Text that a tracker query can carry: no edge space, no control character, 200 characters at most.
+fn valid_scope(s: &str) -> bool {
+    !s.is_empty() && s.len() <= 200 && s.trim() == s && !s.chars().any(char::is_control)
+}
+
 pub fn validate(f: &ProjectFile) -> Vec<Issue> {
     let mut out = Vec::new();
     let mut bad = |field: String, value: &str| {
@@ -147,6 +161,9 @@ pub fn validate(f: &ProjectFile) -> Vec<Issue> {
                 bad(format!("connections.{field}"), id);
             }
         }
+    }
+    if let Some(sc) = c_scope(f).filter(|sc| !valid_scope(sc)) {
+        bad("connections.trackerScope".into(), sc);
     }
     for (i, g) in f.gates.iter().enumerate() {
         if g.trim().is_empty() {

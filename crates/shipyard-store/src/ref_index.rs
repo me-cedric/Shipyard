@@ -117,6 +117,26 @@ impl RefIndex {
         Ok(tx.commit()?)
     }
 
+    /// The fingerprint that `set_source` stored for `key`. A caller that reads a source other than
+    /// a file (the mirror) compares it first and skips the read when it did not change.
+    pub fn fingerprint(&self, key: &str) -> Result<Option<String>> {
+        Ok(self
+            .conn
+            .query_row(
+                "SELECT fingerprint FROM sources WHERE key = ?1",
+                [key],
+                |r| r.get(0),
+            )
+            .map(Some)
+            .or_else(|e| {
+                if e == rusqlite::Error::QueryReturnedNoRows {
+                    Ok(None)
+                } else {
+                    Err(e)
+                }
+            })?)
+    }
+
     pub fn remove_source(&mut self, key: &str) -> Result<()> {
         let tx = self.conn.transaction()?;
         for table in ["entities", "citations"] {
