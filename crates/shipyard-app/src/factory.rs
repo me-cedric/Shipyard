@@ -808,12 +808,7 @@ pub fn start(s: &AppState, key: &str) -> Res<String> {
         .ok_or_else(|| format!("{key} is not in the mirror: sync first"))?;
     ensure(s)?;
     let f = &s.factory.factory;
-    if f.active_runs()
-        .iter()
-        .any(|r| r.project == a.entry.id && r.key == key)
-    {
-        return Err(format!("a run is active on {key}"));
-    }
+    // The engine refuses a second active run on the ticket, under its own lock.
     let status = ticket.item.status.name.clone();
     let out = f.start(&StartRequest {
         project: a.entry.id.clone(),

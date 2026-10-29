@@ -1274,6 +1274,13 @@ impl Inner {
         if self.kill {
             return Err("the global kill switch is on".into());
         }
+        // One active run for each ticket. The check and the insert share one lock, so two
+        // starts of the same ticket (a click, a tick) cannot both pass.
+        if self.runs.values().any(|r| {
+            !r.run.state.is_final() && r.project == req.project && r.key == req.ticket.item.key
+        }) {
+            return Err(format!("a run is active on {}", req.ticket.item.key));
+        }
         let p = self
             .projects
             .get(&req.project)

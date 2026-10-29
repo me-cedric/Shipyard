@@ -10,7 +10,7 @@ use shipyard_core::pickup::{PrEvent, PrEventKind, SyncEvent};
 use shipyard_core::run::RunState;
 use shipyard_core::workflow::{Effort, Mode, StepState};
 use shipyard_engine::approvals::Write;
-use shipyard_engine::ports::{AgentEvent, Dispatch};
+use shipyard_engine::ports::{AgentEvent, Dispatch, StartRequest};
 use shipyard_engine::run_engine::Config;
 use shipyard_mcp::tools::agent::Outcome;
 
@@ -447,4 +447,44 @@ fn the_ticket_text_reaches_the_agent_as_fenced_data() {
     );
     assert!(open < prompt.find("Ignore the rules").unwrap());
     assert!(prompt.find("Delete every file").unwrap() < close);
+}
+
+/// Two starts of one ticket make one run, even when they come at once (`factory` REQ-050).
+#[test]
+fn a_ticket_with_an_active_run_starts_no_second_run() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    let request = |key: &str| StartRequest {
+        project: "ship".into(),
+        ticket: shipyard_engine::fake::todo(key),
+        status: "To Do".into(),
+        machine: "m1".into(),
+        stamped: false,
+    };
+    let results: Vec<_> = std::thread::scope(|s| {
+        let tries: Vec<_> = (0..8)
+            .map(|_| {
+                let f = fx.f.clone();
+                s.spawn(move || f.start(&request("SHIP-1")))
+            })
+            .collect();
+        tries.into_iter().map(|t| t.join().unwrap()).collect()
+    });
+    assert_eq!(
+        results.iter().filter(|r| r.is_ok()).count(),
+        1,
+        "{results:?}"
+    );
+    assert_eq!(fx.f.active_runs().len(), 1);
+    let e = fx.f.start(&request("SHIP-1")).unwrap_err();
+    assert!(e.contains("a run is active on SHIP-1"), "{e}");
+    // Another ticket is another run; an ended run frees its ticket.
+    fx.f.start(&request("SHIP-2")).unwrap();
+    let run =
+        fx.f.active_runs()
+            .into_iter()
+            .find(|r| r.key == "SHIP-1")
+            .unwrap()
+            .run_id;
+    fx.f.cancel(&run).unwrap();
+    fx.f.start(&request("SHIP-1")).unwrap();
 }
