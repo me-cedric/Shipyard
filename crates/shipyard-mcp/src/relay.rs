@@ -13,11 +13,86 @@
 
 use crate::proxy::Proxy;
 use serde_json::{Value, json};
+use shipyard_agents::mcp_control::{McpConfig, McpControl};
+use shipyard_secrets::SecretStore;
 use std::io::{self, BufRead, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 /// The command-line flag that selects the relay. The server id follows it.
 pub const FLAG: &str = "--mcp-relay";
+
+/// The app data folder file that holds the MCP config. The app writes it, the relay reads it.
+pub const CONFIG_FILE: &str = "agents.json";
+
+/// The identifier of the app (`tauri.conf.json`): the name of its data folder.
+const APP_ID: &str = "dev.shipyard.app";
+
+/// The socket of the app. Its folder is private (`0700`, see [`Relay::listen`]).
+pub fn socket_path(data_dir: &Path) -> PathBuf {
+    data_dir.join("relay").join("mcp.sock")
+}
+
+/// The app data folder, where Tauri puts it. `SHIPYARD_DATA_DIR` replaces it (tests, portable use).
+pub fn data_dir() -> Option<PathBuf> {
+    if let Some(dir) = std::env::var_os("SHIPYARD_DATA_DIR") {
+        return Some(dir.into());
+    }
+    let home = || std::env::var_os("HOME").map(PathBuf::from);
+    if cfg!(target_os = "macos") {
+        Some(home()?.join("Library/Application Support").join(APP_ID))
+    } else if cfg!(windows) {
+        Some(PathBuf::from(std::env::var_os("APPDATA")?).join(APP_ID))
+    } else {
+        let base = std::env::var_os("XDG_DATA_HOME")
+            .map(PathBuf::from)
+            .or_else(|| Some(home()?.join(".local/share")))?;
+        Some(base.join(APP_ID))
+    }
+}
+
+/// The MCP config that the app saved. A missing or unreadable file gives no server: the relay
+/// then answers each request with an error, as for any server that is not enabled.
+fn read_config(data_dir: &Path) -> McpConfig {
+    #[derive(serde::Deserialize, Default)]
+    struct File {
+        #[serde(default)]
+        mcp: McpConfig,
+    }
+    std::fs::read(data_dir.join(CONFIG_FILE))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<File>(&bytes).ok())
+        .unwrap_or_default()
+        .mcp
+}
+
+/// The entry of `shipyard --mcp-relay <server>`: stdio to the agent, the app socket in
+/// `data_dir`, and a process of our own when the app is closed. The secrets come from `store`.
+pub fn run_in(
+    data_dir: &Path,
+    server: &str,
+    store: Arc<dyn SecretStore>,
+    input: impl BufRead,
+    output: impl Write,
+) -> io::Result<()> {
+    let control = Arc::new(McpControl::new(store, read_config(data_dir)));
+    let fallback = Proxy::new(control.clone());
+    let done = serve(server, &socket_path(data_dir), &fallback, input, output);
+    control.stop_all();
+    done
+}
+
+/// [`run_in`] on the real stdio, the real data folder and the OS keychain.
+pub fn run(server: &str) -> io::Result<()> {
+    let dir = data_dir().ok_or_else(|| io::Error::other("no app data folder"))?;
+    run_in(
+        &dir,
+        server,
+        Arc::new(shipyard_secrets::Keychain),
+        io::stdin().lock(),
+        io::stdout().lock(),
+    )
+}
 
 /// How long a relay waits for the app. Longer than a server start.
 #[cfg(unix)]

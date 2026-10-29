@@ -3,6 +3,7 @@
 //! Each command is `async` and runs its work on a blocking thread, so git and disk never freeze the window.
 //! The logic sits in plain functions that take `&AppState`, so tests need no Tauri runtime.
 
+pub mod agents;
 pub mod app;
 pub mod code;
 pub mod connections;
@@ -17,6 +18,7 @@ use std::fmt::Display;
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
 
+use crate::agents::Agents;
 use crate::connections::Connections;
 use shipyard_store::project::Registry;
 use shipyard_store::ref_index::RefIndex;
@@ -32,6 +34,7 @@ pub fn err(e: impl Display) -> String {
 pub struct AppState {
     pub dir: PathBuf,
     pub connections: Connections,
+    pub agents: Agents,
     lock: Mutex<()>,
     /// The remote watch notice of each project id, until the person syncs (spec `code`, REQ-017).
     notices: Mutex<HashMap<String, code::WatchNotice>>,
@@ -42,6 +45,7 @@ impl AppState {
     pub fn new(dir: PathBuf) -> Self {
         Self {
             connections: Connections::system(&dir),
+            agents: Agents::system(&dir),
             dir,
             lock: Mutex::new(()),
             notices: Mutex::new(HashMap::new()),

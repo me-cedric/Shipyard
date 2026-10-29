@@ -1,9 +1,12 @@
 //! Tauri shell. Commands live in `commands/`, one module for each feature.
 
+pub mod agents;
 mod commands;
 pub mod connections;
 
-use commands::{AppState, app, code, connections as conn, health, legacy, prefs, projects, refs};
+use commands::{
+    AppState, agents as ag, app, code, connections as conn, health, legacy, prefs, projects, refs,
+};
 use tauri::Manager;
 use tauri_specta::{Builder, collect_commands};
 
@@ -62,6 +65,24 @@ fn specta_builder() -> Builder<tauri::Wry> {
         code::code_push,
         code::code_watch_tick,
         code::code_watch_notice,
+        ag::runners_list,
+        ag::providers_list,
+        ag::providers_add,
+        ag::providers_edit,
+        ag::providers_set_secret,
+        ag::providers_remove,
+        ag::providers_test,
+        ag::providers_models,
+        ag::mcp_list,
+        ag::mcp_enable,
+        ag::mcp_add_custom,
+        ag::mcp_remove,
+        ag::mcp_forget,
+        ag::mcp_set_field,
+        ag::mcp_start,
+        ag::mcp_stop,
+        ag::mcp_state,
+        ag::mcp_install,
     ])
 }
 
@@ -76,12 +97,30 @@ pub fn run() {
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
-            app.manage(AppState::new(dir));
+            app.manage(AppState::new(dir.clone()));
             code::spawn_watch(app.handle().clone(), WATCH_EVERY);
+            // The relay answers `shipyard --mcp-relay <id>` with the open server (REQ-018).
+            // A failure leaves each agent turn to start its own server.
+            #[cfg(unix)]
+            match shipyard_mcp::relay::Relay::listen(
+                app.state::<AppState>().agents.proxy.clone(),
+                &shipyard_mcp::relay::socket_path(&dir),
+            ) {
+                Ok(relay) => {
+                    app.manage(relay);
+                }
+                Err(e) => eprintln!("MCP relay: {e}"),
+            }
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running Shipyard");
+        .build(tauri::generate_context!())
+        .expect("error while building Shipyard")
+        .run(|app, event| {
+            // Each server that the app started ends with it (REQ-007).
+            if let tauri::RunEvent::Exit = event {
+                app.state::<AppState>().agents.mcp.stop_all();
+            }
+        });
 }
 
 #[cfg(test)]

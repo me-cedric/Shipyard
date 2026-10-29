@@ -62,6 +62,26 @@ export const commands = {
 	/**  Runs one watch tick now and emits the notices. The background watch runs the same tick. */
 	codeWatchTick: () => typedError<WatchNotice_Serialize[], string>(__TAURI_INVOKE("code_watch_tick")),
 	codeWatchNotice: () => typedError<WatchNotice_Serialize | null, string>(__TAURI_INVOKE("code_watch_notice")),
+	runnersList: () => typedError<Runner_Serialize[], string>(__TAURI_INVOKE("runners_list")),
+	providersList: () => typedError<Provider[], string>(__TAURI_INVOKE("providers_list")),
+	providersAdd: (draft: ProviderDraft) => typedError<Provider, string>(__TAURI_INVOKE("providers_add", { draft })),
+	providersEdit: (id: string, draft: ProviderDraft) => typedError<Provider, string>(__TAURI_INVOKE("providers_edit", { id, draft })),
+	/**  Write-only: the key goes to the keychain and no command returns it. */
+	providersSetSecret: (id: string, secret: string) => typedError<Provider, string>(__TAURI_INVOKE("providers_set_secret", { id, secret })),
+	providersRemove: (id: string) => typedError<null, string>(__TAURI_INVOKE("providers_remove", { id })),
+	providersTest: (id: string) => typedError<TestOutcome, string>(__TAURI_INVOKE("providers_test", { id })),
+	providersModels: (id: string) => typedError<string[], string>(__TAURI_INVOKE("providers_models", { id })),
+	mcpList: () => typedError<McpServer[], string>(__TAURI_INVOKE("mcp_list")),
+	mcpEnable: (id: string, on: boolean) => typedError<null, string>(__TAURI_INVOKE("mcp_enable", { id, on })),
+	mcpAddCustom: (draft: McpCustom_Deserialize) => typedError<string, string>(__TAURI_INVOKE("mcp_add_custom", { draft })),
+	mcpRemove: (id: string) => typedError<null, string>(__TAURI_INVOKE("mcp_remove", { id })),
+	mcpForget: (id: string) => typedError<null, string>(__TAURI_INVOKE("mcp_forget", { id })),
+	/**  Write-only: a secret field goes to the keychain and no command returns it. */
+	mcpSetField: (id: string, key: string, value: string) => typedError<null, string>(__TAURI_INVOKE("mcp_set_field", { id, key, value })),
+	mcpStart: (id: string) => typedError<null, string>(__TAURI_INVOKE("mcp_start", { id })),
+	mcpStop: (id: string) => typedError<null, string>(__TAURI_INVOKE("mcp_stop", { id })),
+	mcpState: (id: string) => typedError<McpState, string>(__TAURI_INVOKE("mcp_state", { id })),
+	mcpInstall: (command: string) => typedError<string, string>(__TAURI_INVOKE("mcp_install", { command })),
 };
 
 /* Types */
@@ -413,6 +433,75 @@ export type LogPage = {
 	has_more: boolean,
 };
 
+/**  A custom MCP server. `id` is set to edit one. */
+export type McpCustom = McpCustom_Serialize | McpCustom_Deserialize;
+
+/**  A custom MCP server. `id` is set to edit one. */
+export type McpCustom_Deserialize = {
+	id?: string | null,
+	name: string,
+	description: string,
+	/**  A command, or an `https` address. */
+	command: string,
+	args: string[],
+	env: McpEnv[],
+};
+
+/**  A custom MCP server. `id` is set to edit one. */
+export type McpCustom_Serialize = {
+	id: string | null,
+	name: string,
+	description: string,
+	/**  A command, or an `https` address. */
+	command: string,
+	args: string[],
+	env: McpEnv[],
+};
+
+/**  A program that a command needs on this machine. */
+export type McpDependency = {
+	/**  The command. It is the argument of [`McpControl::install_dependency`]. */
+	command: string,
+	label: string,
+	present: boolean,
+	/**  Shipyard can install it here (Homebrew on macOS, winget on Windows). */
+	installable: boolean,
+	/**  Where a person installs it by hand. Empty for a command Shipyard does not know. */
+	url: string,
+};
+
+/**  One environment variable of a custom MCP server. An empty value keeps the stored one. */
+export type McpEnv = {
+	key: string,
+	value: string,
+};
+
+/**  One input of a server. Each value is a keychain entry, secret or not. */
+export type McpField = {
+	key: string,
+	label: string,
+	/**  The view masks a secret field. */
+	secret: boolean,
+};
+
+/**  One row of the MCP list. */
+export type McpServer = {
+	id: string,
+	category: string,
+	label: string,
+	description: string,
+	custom: boolean,
+	enabled: boolean,
+	fields: McpField[],
+	/**  The keys of the fields that have a value. Never the value. */
+	filled: string[],
+	state: McpState,
+	/**  The dependencies that are not on this machine (REQ-008). */
+	missing: McpDependency[],
+};
+
+export type McpState = { state: "stopped" } | { state: "starting" } | { state: "running" } | { state: "failed"; reason: string };
+
 export type OpenStatus = "opened" | 
 /**  The repository has no project file. A person confirms, then the call repeats with `init`. */
 "needs-project-file" | "not-repository" | "folder-not-empty" | "invalid" | "failed";
@@ -558,6 +647,25 @@ export type ProjectSettings_Serialize = {
 	overrides: Overrides_Serialize,
 };
 
+/**  A provider as the views see it. It never holds the key. */
+export type Provider = {
+	id: string,
+	name: string,
+	url: string,
+	model: string,
+	/**  True when the keychain holds a key. A local runtime needs none. */
+	secret: boolean,
+	state: ConnectionState,
+};
+
+/**  What the person types to add or edit a provider. The key goes through `set_secret`. */
+export type ProviderDraft = {
+	name: string,
+	/**  Up to and including the version segment: `http://localhost:1234/v1`. */
+	url: string,
+	model: string,
+};
+
 export type PullOutcome = "up-to-date" | "fast-forwarded" | "rebased";
 
 export type RefKind = "branch" | "remote" | "tag";
@@ -642,6 +750,34 @@ export type Resolved_Serialize = {
 };
 
 export type Role = "none" | "pm" | "architect" | "developer" | "qa" | "ba" | "lead" | "junior";
+
+export type Runner = Runner_Serialize | Runner_Deserialize;
+
+export type RunnerState = "detected" | "missing";
+
+export type Runner_Deserialize = {
+	id: string,
+	label: string,
+	state: RunnerState,
+	/**  The program that was found. `None` when missing. */
+	path?: string | null,
+	/**  `None` when missing, or when the runner printed no version in time. */
+	version?: string | null,
+	/**  How to install it. Shown beside a missing runner. */
+	install: string,
+};
+
+export type Runner_Serialize = {
+	id: string,
+	label: string,
+	state: RunnerState,
+	/**  The program that was found. `None` when missing. */
+	path: string | null,
+	/**  `None` when missing, or when the runner printed no version in time. */
+	version: string | null,
+	/**  How to install it. Shown beside a missing runner. */
+	install: string,
+};
 
 export type SearchHit = {
 	ref: string,

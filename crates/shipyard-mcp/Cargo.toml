@@ -8,8 +8,8 @@ publish = false
 serde.workspace = true
 serde_json = "1"
 shipyard-agents = { path = "../shipyard-agents" }
+shipyard-secrets = { path = "../shipyard-secrets" }
 shipyard-store = { path = "../shipyard-store" }
 
 [dev-dependencies]
-shipyard-secrets = { path = "../shipyard-secrets" }
 tempfile = "3"

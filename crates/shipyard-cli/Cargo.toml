@@ -7,3 +7,6 @@ publish = false
 [[bin]]
 name = "shipyard"
 path = "src/main.rs"
+
+[dependencies]
+shipyard-mcp = { path = "../shipyard-mcp" }

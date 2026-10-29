@@ -3619,6 +3619,7 @@ dependencies = [
  "serde_json",
  "shipyard-http",
  "shipyard-secrets",
+ "specta",
  "tempfile",
  "thiserror 2.0.21",
 ]
@@ -3629,10 +3630,12 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "shipyard-agents",
  "shipyard-core",
  "shipyard-forges",
  "shipyard-git",
  "shipyard-http",
+ "shipyard-mcp",
  "shipyard-secrets",
  "shipyard-store",
  "shipyard-trackers",
@@ -3648,6 +3651,9 @@ dependencies = [
 [[package]]
 name = "shipyard-cli"
 version = "0.1.0"
+dependencies = [
+ "shipyard-mcp",
+]
 
 [[package]]
 name = "shipyard-core"

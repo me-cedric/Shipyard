@@ -17,6 +17,18 @@ import type {
 	TestOutcome,
 } from "./bindings";
 import {
+	type MockAgents,
+	mcpAddCustom,
+	mcpServer,
+	mcpStart,
+	mcpState,
+	provider,
+	providerAdd,
+	providerEdit,
+	providerTest,
+	seedAgents,
+} from "./mock-agents";
+import {
 	codeBranchCreate,
 	codeBranchDelete,
 	codeBranches,
@@ -77,6 +89,7 @@ type State = {
 	secrets: Record<string, string>;
 	/** The working copy of the active project. Seeded on first use. */
 	code?: MockCode;
+	agents: MockAgents;
 };
 
 const FOLDERS = ["/mock/alpha", "/mock/beta", "/mock/gamma"];
@@ -97,6 +110,7 @@ const fresh = (): State => ({
 	confirm: true,
 	connections: [],
 	secrets: {},
+	agents: seedAgents(),
 });
 
 let state = fresh();
@@ -484,6 +498,66 @@ const handlers: Handlers = {
 			],
 			next: null,
 		};
+	},
+	runnersList: () => state.agents.runners,
+	providersList: () => state.agents.providers,
+	providersAdd: (d) => providerAdd(state.agents, d),
+	providersEdit: (id, d) => providerEdit(state.agents, id, d),
+	providersSetSecret: (id, secret) => {
+		const p = provider(state.agents, id);
+		if (!secret.trim()) throw "the secret needs 1 to 4096 characters";
+		state.secrets[id] = secret.trim();
+		p.secret = true;
+		p.state = "untested";
+		return p;
+	},
+	providersRemove: (id) => {
+		const p = provider(state.agents, id);
+		state.agents.providers = state.agents.providers.filter((x) => x !== p);
+		delete state.secrets[id];
+		return null;
+	},
+	providersTest: (id) => providerTest(state.agents, state.secrets, id),
+	providersModels: (id) => {
+		provider(state.agents, id);
+		return ["llama-3", "qwen"];
+	},
+	mcpList: () => state.agents.mcp,
+	mcpEnable: (id, on) => {
+		const s = mcpServer(state.agents, id);
+		s.enabled = on;
+		if (!on) s.state = { state: "stopped" };
+		return null;
+	},
+	mcpAddCustom: (d) => mcpAddCustom(state.agents, d),
+	mcpRemove: (id) => {
+		const s = mcpServer(state.agents, id);
+		if (!s.custom) throw `unknown MCP server: ${id}`;
+		state.agents.mcp = state.agents.mcp.filter((x) => x !== s);
+		return null;
+	},
+	mcpForget: (id) => {
+		const s = mcpServer(state.agents, id);
+		Object.assign(s, { enabled: false, filled: [], state: { state: "stopped" } });
+		return null;
+	},
+	mcpSetField: (id, key, value) => {
+		const s = mcpServer(state.agents, id);
+		if (!s.fields.some((f) => f.key === key)) throw `${id} has no field ${key}`;
+		if (!value) throw "the value is empty";
+		state.secrets[`${id}/${key}`] = value;
+		if (!s.filled.includes(key)) s.filled.push(key);
+		return null;
+	},
+	mcpStart: (id) => mcpStart(state.agents, id),
+	mcpStop: (id) => {
+		mcpServer(state.agents, id).state = { state: "stopped" };
+		return null;
+	},
+	mcpState: (id) => mcpState(state.agents, id),
+	mcpInstall: (command) => {
+		for (const s of state.agents.mcp) s.missing = s.missing.filter((d) => d.command !== command);
+		return `installed ${command}`;
 	},
 	codeStatus: () => codeStatus(code()),
 	codeDiff: (path, side) => codeDiff(code(), path, side),

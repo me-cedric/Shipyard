@@ -63,14 +63,14 @@ const RUNNERS: &[RunnerDef] = &[
     },
 ];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, specta::Type)]
 #[serde(rename_all = "lowercase")]
 pub enum RunnerState {
     Detected,
     Missing,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, specta::Type)]
 pub struct Runner {
     pub id: &'static str,
     pub label: &'static str,

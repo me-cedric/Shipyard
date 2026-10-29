@@ -35,7 +35,8 @@ use std::time::{Duration, Instant};
 /* ---------- Definitions ---------- */
 
 /// One input of a server. Each value is a keychain entry, secret or not.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[serde(rename = "McpField")]
 pub struct Field {
     pub key: String,
     pub label: String,
@@ -451,7 +452,8 @@ impl Os {
 }
 
 /// A program that a command needs on this machine.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename = "McpDependency")]
 pub struct Dependency {
     /// The command. It is the argument of [`McpControl::install_dependency`].
     pub command: String,
@@ -565,8 +567,9 @@ pub fn install_with(command: &str, dirs: &[PathBuf], os: Os) -> Result<String, A
 
 /* ---------- State and rows ---------- */
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, specta::Type)]
 #[serde(tag = "state", rename_all = "lowercase")]
+#[serde(rename = "McpState")]
 pub enum State {
     Stopped,
     Starting,
@@ -575,7 +578,8 @@ pub enum State {
 }
 
 /// One row of the MCP list.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, specta::Type)]
+#[serde(rename = "McpServer")]
 pub struct ServerRow {
     pub id: String,
     pub category: String,

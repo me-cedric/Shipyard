@@ -15,10 +15,12 @@ serde.workspace = true
 tauri.workspace = true
 tauri-specta.workspace = true
 specta.workspace = true
+shipyard-agents = { path = "../shipyard-agents" }
 shipyard-core = { path = "../shipyard-core" }
 shipyard-forges = { path = "../shipyard-forges" }
 shipyard-git = { path = "../shipyard-git" }
 shipyard-http = { path = "../shipyard-http" }
+shipyard-mcp = { path = "../shipyard-mcp" }
 shipyard-secrets = { path = "../shipyard-secrets" }
 shipyard-store = { path = "../shipyard-store" }
 shipyard-trackers = { path = "../shipyard-trackers" }

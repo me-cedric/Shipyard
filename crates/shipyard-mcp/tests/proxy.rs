@@ -7,7 +7,7 @@ use shipyard_agents::AgentError;
 use shipyard_agents::fake::mcp_server;
 use shipyard_agents::mcp_control::{CustomInput, McpConfig, McpControl, State, Waits};
 use shipyard_mcp::proxy::{Proxy, split};
-use shipyard_mcp::relay::{Relay, serve};
+use shipyard_mcp::relay::{CONFIG_FILE, Relay, run_in, serve, socket_path};
 use shipyard_secrets::MemoryStore;
 use std::io::Cursor;
 use std::os::unix::fs::PermissionsExt;
@@ -224,4 +224,44 @@ fn the_socket_is_private_and_goes_away_with_the_relay() {
     std::fs::create_dir(&open).unwrap();
     std::fs::set_permissions(&open, std::fs::Permissions::from_mode(0o755)).unwrap();
     assert!(Relay::listen(window, &open.join("relay.sock")).is_err());
+}
+
+#[test]
+fn the_relay_entry_reads_the_saved_config_and_starts_the_server_when_the_app_is_closed() {
+    let lab = Lab::new();
+    let command = lab
+        .dir
+        .path()
+        .join("fake-mcp")
+        .to_string_lossy()
+        .into_owned();
+    let config = {
+        let control = McpControl::new(Arc::new(MemoryStore::default()), McpConfig::default());
+        let input = CustomInput {
+            name: "Fake".into(),
+            command,
+            ..Default::default()
+        };
+        let id = control.add_custom(input).unwrap().id;
+        control.set_enabled(&id, true).unwrap();
+        control.config()
+    };
+    // The app writes `agents.json` with other keys too: the relay reads `mcp` only.
+    let file = json!({ "mcp": config, "providers": [] });
+    std::fs::write(lab.dir.path().join(CONFIG_FILE), file.to_string()).unwrap();
+    assert!(!socket_path(lab.dir.path()).exists(), "the app is closed");
+
+    let call = |server: &str| {
+        let request = json!({ "jsonrpc": "2.0", "id": 7, "method": "tools/list" });
+        let mut out = Vec::new();
+        let store = Arc::new(MemoryStore::default());
+        let input = Cursor::new(format!("{request}\n"));
+        run_in(lab.dir.path(), server, store, input, &mut out).unwrap();
+        serde_json::from_slice::<Value>(&out).unwrap()
+    };
+    let answer = call("custom-fake");
+    assert_eq!(answer["id"], 7);
+    assert_eq!(answer["result"]["tools"][0]["name"], "ping");
+    // A server that is not in the config gets an error, not silence.
+    assert_eq!(call("custom-other")["error"]["code"], -32603);
 }

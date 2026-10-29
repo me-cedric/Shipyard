@@ -184,8 +184,8 @@ pub struct Connections {
     lock: Mutex<()>,
 }
 
-/// A slug of the name, valid as a `conn:` id: `[a-z0-9][a-z0-9-]*`. Falls back to the kind.
-fn slug(name: &str, kind: ConnectionKind) -> String {
+/// A slug of the name: `[a-z0-9][a-z0-9-]*`, up to 40 characters. Empty when the name has no letter.
+pub(crate) fn slug_text(name: &str) -> String {
     let mut out = String::new();
     for c in name.to_ascii_lowercase().chars() {
         if c.is_ascii_alphanumeric() {
@@ -195,8 +195,17 @@ fn slug(name: &str, kind: ConnectionKind) -> String {
         }
     }
     let out: String = out.trim_end_matches('-').chars().take(40).collect();
-    let out = out.trim_end_matches('-');
-    if out.is_empty() { kind.as_str() } else { out }.to_string()
+    out.trim_end_matches('-').to_string()
+}
+
+/// A valid `conn:` id from the name. Falls back to the kind.
+fn slug(name: &str, kind: ConnectionKind) -> String {
+    let out = slug_text(name);
+    if out.is_empty() {
+        kind.as_str().into()
+    } else {
+        out
+    }
 }
 
 /// The lower case `host[:port]` of an `https` address, without user info. `None` for the rest.
