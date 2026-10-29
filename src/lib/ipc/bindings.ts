@@ -82,6 +82,18 @@ export const commands = {
 	mcpStop: (id: string) => typedError<null, string>(__TAURI_INVOKE("mcp_stop", { id })),
 	mcpState: (id: string) => typedError<McpState, string>(__TAURI_INVOKE("mcp_state", { id })),
 	mcpInstall: (command: string) => typedError<string, string>(__TAURI_INVOKE("mcp_install", { command })),
+	/**  Replaces the native menu with one in the language of the person. `labels` is keyed by item id. */
+	shellMenu: (labels: { [key in string]: string }) => typedError<null, string>(__TAURI_INVOKE("shell_menu", { labels })),
+	/**
+	 *  A system notification, for an event of the "needs you" class while the window is in the
+	 *  background. The UI decides when: it also shows the event in the notification centre, once.
+	 */
+	notifyOs: (title: string, body: string) => typedError<null, string>(__TAURI_INVOKE("notify_os", { title, body })),
+	/**
+	 *  Reads the release address of the preferences and says whether a newer version exists.
+	 *  It installs nothing.
+	 */
+	updateCheck: () => typedError<UpdateInfo, string>(__TAURI_INVOKE("update_check")),
 };
 
 /* Types */
@@ -541,6 +553,7 @@ export type PrefsPatch_Deserialize = {
 	role?: Role | null,
 	sidebarOpen?: boolean | null,
 	lang?: Lang | null,
+	releaseUrl?: string | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -550,6 +563,7 @@ export type PrefsPatch_Serialize = {
 	role: Role | null,
 	sidebarOpen: boolean | null,
 	lang: Lang | null,
+	releaseUrl: string | null,
 };
 
 export type Prefs_Deserialize = {
@@ -560,6 +574,8 @@ export type Prefs_Deserialize = {
 	sidebarOpen: boolean,
 	/**  `None` until the person picks one. The UI then follows the system language. */
 	lang?: Lang | null,
+	/**  Where the update check reads the latest release (spec `shell`, REQ-014). It only informs. */
+	releaseUrl?: string,
 };
 
 export type Prefs_Serialize = {
@@ -570,6 +586,32 @@ export type Prefs_Serialize = {
 	sidebarOpen: boolean,
 	/**  `None` until the person picks one. The UI then follows the system language. */
 	lang: Lang | null,
+	/**  Where the update check reads the latest release (spec `shell`, REQ-014). It only informs. */
+	releaseUrl: string,
+};
+
+/**
+ *  The connection that the project uses for each purpose, as the id of `conn:<id>` (Q-018, working
+ *  assumption). The settings and the secret of a connection stay on the machine of the person.
+ */
+export type ProjectConnections = ProjectConnections_Serialize | ProjectConnections_Deserialize;
+
+/**
+ *  The connection that the project uses for each purpose, as the id of `conn:<id>` (Q-018, working
+ *  assumption). The settings and the secret of a connection stay on the machine of the person.
+ */
+export type ProjectConnections_Deserialize = {
+	tracker?: string | null,
+	forge?: string | null,
+};
+
+/**
+ *  The connection that the project uses for each purpose, as the id of `conn:<id>` (Q-018, working
+ *  assumption). The settings and the secret of a connection stay on the machine of the person.
+ */
+export type ProjectConnections_Serialize = {
+	tracker?: string,
+	forge?: string,
 };
 
 export type ProjectEntry = ProjectEntry_Serialize | ProjectEntry_Deserialize;
@@ -609,6 +651,7 @@ export type ProjectFile_Deserialize = {
 	defaultWorkflow?: string | null,
 	/**  Checks that a run must pass before a pull request (`q:Q-030`). */
 	gates?: string[],
+	connections?: ProjectConnections_Deserialize | null,
 };
 
 /**  The file holds no machine path, no secret and no personal preference. */
@@ -619,6 +662,7 @@ export type ProjectFile_Serialize = {
 	defaultWorkflow: string | null,
 	/**  Checks that a run must pass before a pull request (`q:Q-030`). */
 	gates: string[],
+	connections?: ProjectConnections_Serialize,
 };
 
 export type ProjectOutcome = ProjectOutcome_Serialize | ProjectOutcome_Deserialize;
@@ -813,6 +857,14 @@ export type State = "resolved" |
 export type TestOutcome = { kind: "passed"; account: string } | { kind: "missing-scope"; scope: string } | { kind: "failed"; reason: string };
 
 export type Theme = "light" | "dark" | "system";
+
+export type UpdateInfo = {
+	current: string,
+	latest: string,
+	newer: boolean,
+	/**  The page of the release, for the person to read. */
+	url: string,
+};
 
 /**  What the remote watch found: remote branches that moved between two fetches (REQ-017). */
 export type WatchNotice = WatchNotice_Serialize | WatchNotice_Deserialize;

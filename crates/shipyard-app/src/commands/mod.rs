@@ -12,6 +12,7 @@ pub mod legacy;
 pub mod prefs;
 pub mod projects;
 pub mod refs;
+pub mod shell;
 
 use std::collections::HashMap;
 use std::fmt::Display;

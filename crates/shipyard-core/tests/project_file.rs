@@ -1,6 +1,6 @@
 //! Project file validation (spec `projects`, REQ-007, REQ-010).
 
-use shipyard_core::project::{ProjectFile, ignore_block, validate};
+use shipyard_core::project::{ProjectConnections, ProjectFile, ignore_block, validate};
 
 fn ok() -> ProjectFile {
     ProjectFile::new("Shipyard", "SHIP")
@@ -64,4 +64,21 @@ fn ignore_block_adds_only_the_missing_rules() {
     assert!(more.starts_with("target/\n.DS_Store\n"));
     assert!(more.contains("Thumbs.db"));
     assert_eq!(more.matches(".DS_Store").count(), 1);
+}
+
+#[test]
+fn a_connection_id_is_a_conn_slug() {
+    let mut f = ok();
+    f.connections = Some(ProjectConnections {
+        tracker: Some("acme-linear".into()),
+        forge: None,
+    });
+    assert!(validate(&f).is_empty());
+    for bad in ["", "Acme", "a b", "-a", "https://x.test", "a/b"] {
+        f.connections = Some(ProjectConnections {
+            tracker: None,
+            forge: Some(bad.into()),
+        });
+        assert_eq!(fields(&f), ["connections.forge"], "{bad:?}");
+    }
 }

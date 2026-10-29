@@ -19,6 +19,17 @@ pub const OS_IGNORE: [&str; 4] = [".DS_Store", "._*", "Thumbs.db", "Desktop.ini"
 /// Repository path of the project file.
 pub const PROJECT_FILE: &str = ".shipyard/project.yaml";
 
+/// The connection that the project uses for each purpose, as the id of `conn:<id>` (Q-018, working
+/// assumption). The settings and the secret of a connection stay on the machine of the person.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ProjectConnections {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tracker: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub forge: Option<String>,
+}
+
 /// The file holds no machine path, no secret and no personal preference.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -32,6 +43,8 @@ pub struct ProjectFile {
     /// Checks that a run must pass before a pull request (`q:Q-030`).
     #[serde(default)]
     pub gates: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connections: Option<ProjectConnections>,
 }
 
 /// One invalid value. `field` names it, `value` shows it.
@@ -52,6 +65,7 @@ impl ProjectFile {
                 .collect(),
             default_workflow: None,
             gates: Vec::new(),
+            connections: None,
         }
     }
 
@@ -91,6 +105,14 @@ fn valid_path(p: &str) -> bool {
         && p.split('/').all(|s| s != ".." && !s.is_empty())
 }
 
+/// A `conn:` id: lower case letters, digits and `-`, up to 64 characters.
+fn valid_conn_id(id: &str) -> bool {
+    let mut b = id.bytes();
+    id.len() <= 64
+        && matches!(b.next(), Some(c) if c.is_ascii_lowercase() || c.is_ascii_digit())
+        && b.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-')
+}
+
 fn valid_workflow(w: &str) -> bool {
     let mut b = w.bytes();
     matches!(b.next(), Some(c) if c.is_ascii_lowercase() || c.is_ascii_digit())
@@ -118,6 +140,13 @@ pub fn validate(f: &ProjectFile) -> Vec<Issue> {
     }
     if let Some(w) = f.default_workflow.as_deref().filter(|w| !valid_workflow(w)) {
         bad("defaultWorkflow".into(), w);
+    }
+    if let Some(c) = &f.connections {
+        for (field, id) in [("tracker", &c.tracker), ("forge", &c.forge)] {
+            if let Some(id) = id.as_deref().filter(|id| !valid_conn_id(id)) {
+                bad(format!("connections.{field}"), id);
+            }
+        }
     }
     for (i, g) in f.gates.iter().enumerate() {
         if g.trim().is_empty() {

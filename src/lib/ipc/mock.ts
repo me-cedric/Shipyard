@@ -90,7 +90,13 @@ type State = {
 	/** The working copy of the active project. Seeded on first use. */
 	code?: MockCode;
 	agents: MockAgents;
+	/** The system notifications that the app asked for. */
+	os: { title: string; body: string }[];
+	/** The labels of the last native menu. */
+	menu: Record<string, string>;
 };
+
+const RELEASE_URL = "https://api.github.com/repos/me-cedric/Shipyard/releases/latest";
 
 const FOLDERS = ["/mock/alpha", "/mock/beta", "/mock/gamma"];
 
@@ -102,6 +108,7 @@ const fresh = (): State => ({
 		role: "none",
 		sidebarOpen: true,
 		lang: null,
+		releaseUrl: RELEASE_URL,
 	},
 	projects: [],
 	files: {},
@@ -111,6 +118,8 @@ const fresh = (): State => ({
 	connections: [],
 	secrets: {},
 	agents: seedAgents(),
+	os: [],
+	menu: {},
 });
 
 let state = fresh();
@@ -350,6 +359,8 @@ const handlers: Handlers = {
 	prefsSet: (patch) => {
 		for (const [k, v] of Object.entries(patch))
 			if (v != null) Object.assign(state.prefs, { [k]: v });
+		// An empty release address goes back to the default.
+		if (!state.prefs.releaseUrl.trim()) state.prefs.releaseUrl = RELEASE_URL;
 		return state.prefs;
 	},
 	refsParse: parseRef,
@@ -410,6 +421,13 @@ const handlers: Handlers = {
 			paths: file.paths ?? {},
 			defaultWorkflow: file.defaultWorkflow ?? null,
 			gates: file.gates ?? [],
+			// Unset ids stay out of the file, as in the Rust codec.
+			connections: file.connections
+				? {
+						...(file.connections.tracker ? { tracker: file.connections.tracker } : {}),
+						...(file.connections.forge ? { forge: file.connections.forge } : {}),
+					}
+				: undefined,
 		};
 		p.name = file.name;
 		return null;
@@ -558,6 +576,26 @@ const handlers: Handlers = {
 	mcpInstall: (command) => {
 		for (const s of state.agents.mcp) s.missing = s.missing.filter((d) => d.command !== command);
 		return `installed ${command}`;
+	},
+	shellMenu: (labels) => {
+		state.menu = labels;
+		return null;
+	},
+	notifyOs: (title, body) => {
+		state.os.push({ title, body });
+		return null;
+	},
+	// A release address with `newer` in it has a newer version; one with `broken` fails.
+	updateCheck: () => {
+		const url = state.prefs.releaseUrl;
+		if (url.includes("broken")) throw "the release answer holds no version";
+		const newer = url.includes("newer");
+		return {
+			current: "0.1.0",
+			latest: newer ? "0.2.0" : "0.1.0",
+			newer,
+			url: "https://example.com/releases/latest",
+		};
 	},
 	codeStatus: () => codeStatus(code()),
 	codeDiff: (path, side) => codeDiff(code(), path, side),

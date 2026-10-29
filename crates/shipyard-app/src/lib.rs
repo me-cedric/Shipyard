@@ -3,11 +3,13 @@
 pub mod agents;
 mod commands;
 pub mod connections;
+mod shell;
 
 use commands::{
     AppState, agents as ag, app, code, connections as conn, health, legacy, prefs, projects, refs,
+    shell as sh,
 };
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_specta::{Builder, collect_commands};
 
 fn specta_builder() -> Builder<tauri::Wry> {
@@ -83,6 +85,9 @@ fn specta_builder() -> Builder<tauri::Wry> {
         ag::mcp_stop,
         ag::mcp_state,
         ag::mcp_install,
+        sh::shell_menu,
+        sh::notify_os,
+        sh::update_check,
     ])
 }
 
@@ -93,11 +98,17 @@ pub fn run() {
     let builder = specta_builder();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(builder.invoke_handler())
+        // A menu item runs the palette action with the same id (REQ-012).
+        .on_menu_event(|app, event| {
+            let _ = app.emit("menu-action", event.id().as_ref());
+        })
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
             app.manage(AppState::new(dir.clone()));
+            app.set_menu(shell::menu::build(app.handle(), &Default::default())?)?;
             code::spawn_watch(app.handle().clone(), WATCH_EVERY);
             // The relay answers `shipyard --mcp-relay <id>` with the open server (REQ-018).
             // A failure leaves each agent turn to start its own server.

@@ -133,3 +133,27 @@ fn preferences_merge_a_patch_and_survive_a_corrupt_file() {
     std::fs::write(data.path().join("prefs.json"), "garbage").unwrap();
     assert_eq!(Prefs::load(data.path()), Prefs::default());
 }
+
+#[test]
+fn the_connection_ids_round_trip_and_unset_ones_stay_out_of_the_file() {
+    use shipyard_core::project::ProjectConnections;
+    let dir = tempfile::tempdir().unwrap();
+    let mut f = ProjectFile::new("Acme", "ACME");
+    f.connections = Some(ProjectConnections {
+        tracker: Some("acme-linear".into()),
+        forge: None,
+    });
+    write_project_file(dir.path(), &f).unwrap();
+    let text = std::fs::read_to_string(dir.path().join(".shipyard/project.yaml")).unwrap();
+    assert!(text.contains("connections:") && text.contains("tracker: acme-linear"));
+    assert!(!text.contains("forge"), "{text}");
+    let FileRead::Valid(back) = read_project_file(dir.path()).unwrap() else {
+        panic!("valid")
+    };
+    assert_eq!(back, f);
+    // A file without the key still reads.
+    let plain = ProjectFile::new("Acme", "ACME");
+    write_project_file(dir.path(), &plain).unwrap();
+    let text = std::fs::read_to_string(dir.path().join(".shipyard/project.yaml")).unwrap();
+    assert!(!text.contains("connections"));
+}
