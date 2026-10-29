@@ -111,8 +111,8 @@ pub fn stash_apply(s: &AppState, index: u32) -> Res<()> {
     repo(s)?.stash_apply(index as usize).map_err(err)
 }
 
-pub fn stash_drop(s: &AppState, index: u32) -> Res<()> {
-    repo(s)?.stash_drop(index as usize).map_err(err)
+pub fn stash_drop(s: &AppState, id: &str) -> Res<()> {
+    repo(s)?.stash_drop(id).map_err(err)
 }
 
 pub fn conflicts(s: &AppState) -> Res<Vec<ConflictFile>> {
@@ -348,8 +348,8 @@ pub async fn code_stash_apply(app: AppHandle, index: u32) -> Res<()> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_stash_drop(app: AppHandle, index: u32) -> Res<()> {
-    blocking(app, move |s| stash_drop(s, index)).await
+pub async fn code_stash_drop(app: AppHandle, id: String) -> Res<()> {
+    blocking(app, move |s| stash_drop(s, &id)).await
 }
 
 #[tauri::command]
@@ -536,7 +536,8 @@ mod tests {
         assert!(list[0].message.contains("wip"));
         stash_apply(&s, 0).unwrap();
         assert!(root.join("n.txt").exists());
-        stash_drop(&s, 0).unwrap();
+        assert!(stash_drop(&s, "no-such-id").is_err());
+        stash_drop(&s, &list[0].id).unwrap();
         assert!(stash_list(&s).unwrap().is_empty());
         discard(&s, &paths(&["a.txt"]), false).unwrap();
         assert!(root.join("n.txt").exists(), "untracked stays unless asked");

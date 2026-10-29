@@ -435,6 +435,55 @@ fn fetch_moves_only_remote_tracking_refs() {
 }
 
 #[test]
+fn fetch_brings_no_tags() {
+    let (tmp, a, url) = with_remote();
+    let b = clone(&url, &tmp.path().join("b"));
+    let tip = commit(&a, "t.txt", "t\n", "feat: tagged");
+    a.push("origin", &Auth::none()).unwrap();
+    let bare = Repository::open(&url).unwrap();
+    let obj = bare
+        .find_object(git2::Oid::from_str(&tip).unwrap(), None)
+        .unwrap();
+    bare.tag_lightweight("v1", &obj, false).unwrap();
+    b.fetch("origin", &Auth::none()).unwrap();
+    let g = Repository::open(b.workdir()).unwrap();
+    assert!(g.tag_names(None).unwrap().is_empty());
+    assert_eq!(b.status().unwrap().behind, 1);
+}
+
+#[test]
+fn push_goes_to_the_upstream_merge_ref() {
+    let (tmp, a, url) = with_remote();
+    let b = clone(&url, &tmp.path().join("b"));
+    {
+        let g = Repository::open(b.workdir()).unwrap();
+        let mut c = g.config().unwrap();
+        c.set_str("branch.main.merge", "refs/heads/trunk").unwrap();
+    }
+    let tip = commit(&b, "b.txt", "b\n", "feat: b");
+    b.push("origin", &Auth::none()).unwrap();
+    let bare = Repository::open(&url).unwrap();
+    assert_eq!(
+        bare.find_reference("refs/heads/trunk")
+            .unwrap()
+            .target()
+            .unwrap()
+            .to_string(),
+        tip
+    );
+    // main on the remote did not move.
+    assert_ne!(
+        bare.find_reference("refs/heads/main")
+            .unwrap()
+            .target()
+            .unwrap()
+            .to_string(),
+        tip
+    );
+    drop(a);
+}
+
+#[test]
 fn pull_fast_forwards_rebases_and_reports_up_to_date() {
     let (tmp, a, url) = with_remote();
     let b = clone(&url, &tmp.path().join("b"));
@@ -531,6 +580,22 @@ fn push_never_forces_and_sets_the_upstream() {
             .find_branch("feat/x/new", git2::BranchType::Local)
             .is_ok()
     );
+}
+
+#[test]
+fn a_worktree_that_cannot_be_checked_is_refused_unless_forced() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(&tmp.path().join("main"));
+    commit(&r, "a.txt", "1\n", "chore: a");
+    let wt_path = tmp.path().join("runs").join("run-1");
+    r.worktree_add("run-1", &wt_path, "feat/core/run-1", None)
+        .unwrap();
+    // Break the link of the worktree: it cannot be opened, so it cannot be checked.
+    fs::remove_dir_all(&wt_path).unwrap();
+    let res = r.worktree_remove("run-1", false);
+    assert!(matches!(res, Err(GitError::WorktreeDirty(_))), "{res:?}");
+    r.worktree_remove("run-1", true).unwrap();
+    assert!(r.worktrees().unwrap().is_empty());
 }
 
 #[test]
@@ -704,10 +769,20 @@ fn stash_push_list_apply_drop_with_untracked_files() {
     assert_eq!(st.unstaged.len(), 1);
     assert_eq!(st.untracked.len(), 1);
     assert_eq!(r.stash_list().unwrap().len(), 2); // apply keeps the stash
-    r.stash_drop(1).unwrap();
-    r.stash_drop(0).unwrap();
+    // Drop by id: a new stash moves the positions, the id still finds its stash.
+    let first = list[1].id.clone();
+    write(&r, "c.txt", "c\n");
+    r.stash_push(None).unwrap();
+    r.stash_drop(&first).unwrap();
+    let left = r.stash_list().unwrap();
+    assert_eq!(left.len(), 2);
+    assert!(left.iter().all(|s| s.id != first));
+    assert!(r.stash_drop(&first).is_err());
+    assert_eq!(r.stash_list().unwrap().len(), 2);
+    for s in left {
+        r.stash_drop(&s.id).unwrap();
+    }
     assert!(r.stash_list().unwrap().is_empty());
-    assert!(r.stash_drop(0).is_err());
 }
 
 /// `l1..l12`: ours edits l2 and l11, theirs edits the same lines. The merge leaves two blocks.

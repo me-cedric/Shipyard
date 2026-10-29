@@ -634,8 +634,8 @@ const handlers: Handlers = {
 		codeStashApply(code(), index);
 		return null;
 	},
-	codeStashDrop: (index) => {
-		codeStashDrop(code(), index);
+	codeStashDrop: (id) => {
+		codeStashDrop(code(), id);
 		return null;
 	},
 	codeConflicts: () => code().conflicts,

@@ -4,7 +4,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use git2::{BranchType, ErrorCode, PushOptions, RepositoryState, build::CheckoutBuilder};
+use git2::{
+    AutotagOption, BranchType, ErrorCode, PushOptions, RepositoryState, build::CheckoutBuilder,
+};
 use serde::Serialize;
 use specta::Type;
 
@@ -145,7 +147,11 @@ impl Repo {
     pub fn fetch(&self, remote: &str, auth: &Auth) -> Result<()> {
         let mut r = self.repo.find_remote(remote)?;
         let mut fo = auth.fetch_options(self.repo.config()?);
-        r.fetch(&[] as &[&str], Some(&mut fo), None)
+        // No tag moves, and the refspec is ours: a remote with a custom `fetch` setting cannot
+        // write outside `refs/remotes/<remote>/`.
+        fo.download_tags(AutotagOption::None);
+        let refspec = format!("+refs/heads/*:refs/remotes/{remote}/*");
+        r.fetch(&[refspec.as_str()], Some(&mut fo), None)
             .map_err(|e| auth.scrub(e))
     }
 
@@ -202,30 +208,33 @@ impl Repo {
 
         let sig = self.repo.signature().map_err(|_| GitError::NoIdentity)?;
         let mut rebase = self.repo.rebase(None, Some(&up), None, None)?;
-        while let Some(op) = rebase.next() {
-            op?;
-            let index = self.repo.index()?;
-            if index.has_conflicts() {
-                let files = index
-                    .conflicts()?
-                    .filter_map(|c| c.ok())
-                    .filter_map(|c| c.our.or(c.their).or(c.ancestor))
-                    .map(|e| String::from_utf8_lossy(&e.path).into_owned())
-                    .collect();
-                rebase.abort()?;
-                return Err(GitError::Conflicts(files));
-            }
-            match rebase.commit(None, &sig, None) {
-                Ok(_) => {}
-                // The commit is already upstream: skip it.
-                Err(e) if e.code() == ErrorCode::Applied => {}
-                Err(e) => {
-                    rebase.abort()?;
-                    return Err(e.into());
+        // Any error leaves the branch as it was: abort the rebase before the error goes up.
+        let run = (|| -> Result<()> {
+            while let Some(op) = rebase.next() {
+                op?;
+                let index = self.repo.index()?;
+                if index.has_conflicts() {
+                    let files = index
+                        .conflicts()?
+                        .filter_map(|c| c.ok())
+                        .filter_map(|c| c.our.or(c.their).or(c.ancestor))
+                        .map(|e| String::from_utf8_lossy(&e.path).into_owned())
+                        .collect();
+                    return Err(GitError::Conflicts(files));
+                }
+                match rebase.commit(None, &sig, None) {
+                    Ok(_) => {}
+                    // The commit is already upstream: skip it.
+                    Err(e) if e.code() == ErrorCode::Applied => {}
+                    Err(e) => return Err(e.into()),
                 }
             }
+            Ok(rebase.finish(None)?)
+        })();
+        if let Err(e) = run {
+            let _ = rebase.abort();
+            return Err(e);
         }
-        rebase.finish(None)?;
         Ok(PullOutcome::Rebased)
     }
 
@@ -237,7 +246,16 @@ impl Repo {
             return Err(GitError::Detached);
         }
         let branch = head.shorthand()?.to_string();
-        let refspec = format!("refs/heads/{branch}:refs/heads/{branch}");
+        // The upstream branch may have another name than the local one: push to its merge ref.
+        let config = self.repo.config()?;
+        let dest = config
+            .get_string(&format!("branch.{branch}.remote"))
+            .ok()
+            .filter(|r| r == remote)
+            .and_then(|_| config.get_string(&format!("branch.{branch}.merge")).ok())
+            .filter(|m| m.starts_with("refs/heads/"))
+            .unwrap_or_else(|| format!("refs/heads/{branch}"));
+        let refspec = format!("refs/heads/{branch}:{dest}");
 
         let rejected: Rc<RefCell<Option<String>>> = Rc::default();
         let mut cb = auth.callbacks(self.repo.config()?);

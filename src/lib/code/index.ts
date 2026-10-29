@@ -145,7 +145,7 @@ export function useCodeActions() {
 			deleteBranch: (name: string, force: boolean) => run(commands.codeBranchDelete(name, force)),
 			stash: (message: string | null) => run(commands.codeStashPush(message)),
 			applyStash: (index: number) => run(commands.codeStashApply(index)),
-			dropStash: (index: number) => run(commands.codeStashDrop(index)),
+			dropStash: (id: string) => run(commands.codeStashDrop(id)),
 			resolve: (path: string, how: Resolution) => run(commands.codeResolve(path, how)),
 			fetch: () => run(commands.codeFetch()),
 			pull: () => run(commands.codePull()),

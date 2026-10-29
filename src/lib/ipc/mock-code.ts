@@ -27,7 +27,7 @@ export type MockCode = {
 	remoteBranches: string[];
 	files: Record<string, MockFile>;
 	commits: Record<string, Commit>;
-	stashes: { message: string; files: Record<string, MockFile> }[];
+	stashes: { id: string; message: string; files: Record<string, MockFile> }[];
 	conflicts: ConflictFile[];
 	notice: WatchNotice_Serialize | null;
 	counter: number;
@@ -325,18 +325,19 @@ export function codeBranchDelete(c: MockCode, name: string, force: boolean) {
 
 export function codeStashPush(c: MockCode, message: string | null): string {
 	const files = structuredClone(c.files);
-	c.stashes.unshift({ message: message?.trim() || `WIP on ${c.branch}`, files });
+	const id = `${c.counter++}`.padStart(40, "b");
+	c.stashes.unshift({ id, message: message?.trim() || `WIP on ${c.branch}`, files });
 	for (const [p, f] of Object.entries(c.files)) {
 		if (inHead(f)) {
 			f.index = f.head;
 			f.work = f.head;
 		} else delete c.files[p];
 	}
-	return `stash${c.counter++}`;
+	return id;
 }
 
 export const codeStashList = (c: MockCode): Stash[] =>
-	c.stashes.map((s, index) => ({ index, message: s.message, id: `${index}`.padStart(40, "b") }));
+	c.stashes.map((s, index) => ({ index, message: s.message, id: s.id }));
 
 export function codeStashApply(c: MockCode, index: number) {
 	const s = c.stashes[index];
@@ -344,8 +345,9 @@ export function codeStashApply(c: MockCode, index: number) {
 	for (const [p, f] of Object.entries(s.files)) c.files[p] = { ...f, index: f.head };
 }
 
-export function codeStashDrop(c: MockCode, index: number) {
-	if (!c.stashes[index]) throw `stash not found: ${index}`;
+export function codeStashDrop(c: MockCode, id: string) {
+	const index = c.stashes.findIndex((s) => s.id === id);
+	if (index < 0) throw `stash not found: ${id}`;
 	c.stashes.splice(index, 1);
 }
 

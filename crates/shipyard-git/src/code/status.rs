@@ -178,13 +178,14 @@ impl Repo {
     /// Unstage files or folders. The working copy keeps its edits. Literal match, like `stage`.
     pub fn unstage(&self, paths: &[String]) -> Result<()> {
         super::check_paths(paths)?;
-        let tree = self
-            .repo
-            .head()
-            .ok()
-            .and_then(|h| h.peel_to_tree().ok());
+        let tree = self.repo.head().ok().and_then(|h| h.peel_to_tree().ok());
         let mut index = self.repo.index()?;
-        for f in self.status()?.staged.iter().filter(|f| under(paths, &f.path)) {
+        for f in self
+            .status()?
+            .staged
+            .iter()
+            .filter(|f| under(paths, &f.path))
+        {
             // A rename also brings the old path back.
             for p in f.old_path.iter().chain([&f.path]) {
                 let p = Path::new(p);

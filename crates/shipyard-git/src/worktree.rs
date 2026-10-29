@@ -110,7 +110,11 @@ impl Repo {
             .repo
             .find_worktree(name)
             .map_err(|_| GitError::NoWorktree(name.to_string()))?;
-        if !force && let Ok(repo) = Repository::open_from_worktree(&wt) {
+        if !force {
+            // A worktree that cannot be opened cannot be checked: refuse, `force` overrides.
+            let repo = Repository::open_from_worktree(&wt).map_err(|e| {
+                GitError::WorktreeDirty(format!("cannot check {name}: {}", e.message()))
+            })?;
             let changes = Repo { repo }.status()?;
             if !changes.is_clean() {
                 let files: Vec<_> = [

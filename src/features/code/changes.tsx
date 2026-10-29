@@ -129,7 +129,7 @@ function Stashes({ dirty, run }: { dirty: boolean; run: (job: () => Promise<unkn
 						onClick={() =>
 							run(async () => {
 								if (await confirmDialog(format(t.code.confirmDrop, { name: s.message })))
-									await dropStash(s.index);
+									await dropStash(s.id);
 							})
 						}
 					>

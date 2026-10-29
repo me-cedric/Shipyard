@@ -56,7 +56,14 @@ impl Repo {
         Ok(applied?)
     }
 
-    pub fn stash_drop(&mut self, index: usize) -> Result<()> {
+    /// Drop the stash with commit id `id`. The list can move between a person's click and this
+    /// call (another stash, another tool), so a position would drop the wrong one.
+    pub fn stash_drop(&mut self, id: &str) -> Result<()> {
+        let index = self
+            .stash_list()?
+            .iter()
+            .position(|s| s.id == id)
+            .ok_or_else(|| GitError::Git(format!("stash not found: {id}")))?;
         self.repo.stash_drop(index)?;
         Ok(())
     }
