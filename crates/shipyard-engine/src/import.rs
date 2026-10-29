@@ -40,9 +40,8 @@ impl Engine {
     /// since its last good poll. A row that a tick made newer since the plan stays. Returns the
     /// count written.
     pub fn import(&self, plan: &ImportPlan) -> Result<usize> {
-        Ok(self
-            .mirror
-            .put_tickets_newer(&self.cfg.tracker, &plan.tickets)?)
+        self.mirror
+            .put_tickets_newer(&self.cfg.tracker, &plan.tickets)
     }
 
     /// Take one ticket by key into the mirror. Each tick keeps it current, even when the

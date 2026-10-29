@@ -51,12 +51,16 @@ fn name(s: &str) -> bool {
 /// The members of `.shipyard/team.yaml`. A sealed day rate opens with `passphrase`. With none, the
 /// rates are hidden and `Team::locked` is set (REQ-005).
 pub fn read_team(text: &str, passphrase: Option<&str>) -> Result<Team> {
+    read_team_with(text, passphrase.and_then(|p| Sealer::new(p).ok()).as_mut())
+}
+
+/// `read_team` with a `Sealer` that the caller keeps: it derives each key once.
+pub fn read_team_with(text: &str, mut sealer: Option<&mut Sealer>) -> Result<Team> {
     let mut value: Value = if text.trim().is_empty() {
         Value::Mapping(Default::default())
     } else {
         parse(text)?
     };
-    let mut sealer: Option<Sealer> = None;
     let mut locked = false;
     for member in members_of(&mut value) {
         let Some(rate) = member.get_mut("dayRate") else {
@@ -65,15 +69,12 @@ pub fn read_team(text: &str, passphrase: Option<&str>) -> Result<Team> {
         let Some(sealed) = rate.as_str().filter(|s| seal::is_sealed(s)) else {
             continue;
         };
-        let Some(pass) = passphrase else {
+        let Some(sealer) = sealer.as_deref_mut() else {
             *rate = Value::Null;
             locked = true;
             continue;
         };
-        if sealer.is_none() {
-            sealer = Some(Sealer::new(pass)?);
-        }
-        let plain = sealer.as_mut().expect("set above").open(sealed)?;
+        let plain = sealer.open(sealed)?;
         *rate = Value::Number(plain.parse::<f64>().map_err(|_| SealError::Damaged)?.into());
     }
     let mut team: Team =
@@ -94,13 +95,17 @@ fn members_of(value: &mut Value) -> impl Iterator<Item = &mut Value> {
 /// The team as text. With a passphrase each day rate is sealed (REQ-005). A locked team is
 /// refused: the write would drop the sealed rates.
 pub fn write_team(team: &Team, passphrase: Option<&str>) -> Result<String> {
+    write_team_with(team, passphrase.map(Sealer::new).transpose()?.as_mut())
+}
+
+/// `write_team` with a `Sealer` that the caller keeps.
+pub fn write_team_with(team: &Team, sealer: Option<&mut Sealer>) -> Result<String> {
     if team.locked {
         return Err(SealError::Locked.into());
     }
     team.check().map_err(WorkError::Invalid)?;
     let mut value = serde_yaml::to_value(team).map_err(|e| WorkError::Invalid(e.to_string()))?;
-    if let Some(pass) = passphrase {
-        let mut sealer = Sealer::new(pass)?;
+    if let Some(sealer) = sealer {
         for member in members_of(&mut value) {
             if let Some(rate) = member.get_mut("dayRate") {
                 *rate = Value::String(sealer.seal(&rate.as_f64().unwrap_or_default().to_string())?);
@@ -119,7 +124,16 @@ pub struct TeamLoad {
 /// Load the team. A refused file names its reason and keeps `last` (REQ-003). No file is an
 /// empty team.
 pub fn load_team(text: Option<&str>, passphrase: Option<&str>, last: &Team) -> TeamLoad {
-    match text.map(|t| read_team(t, passphrase)) {
+    load_team_with(
+        text,
+        passphrase.and_then(|p| Sealer::new(p).ok()).as_mut(),
+        last,
+    )
+}
+
+/// `load_team` with a `Sealer` that the caller keeps.
+pub fn load_team_with(text: Option<&str>, sealer: Option<&mut Sealer>, last: &Team) -> TeamLoad {
+    match text.map(|t| read_team_with(t, sealer)) {
         None => TeamLoad {
             team: Team::default(),
             error: None,
@@ -145,7 +159,20 @@ pub fn sheet_path(slug: &str) -> Result<String> {
 
 /// An estimate sheet. A sealed file opens with `passphrase`; with none it is `Seal(Locked)`.
 pub fn read_sheet(text: &str, passphrase: Option<&str>) -> Result<Sheet> {
-    let plain = seal::open(passphrase, text)?;
+    let mut sealer = match passphrase {
+        Some(p) if seal::is_sealed(text) => Some(Sealer::new(p)?),
+        _ => None,
+    };
+    read_sheet_with(text, sealer.as_mut())
+}
+
+/// `read_sheet` with a `Sealer` that the caller keeps: it derives each key once.
+pub fn read_sheet_with(text: &str, sealer: Option<&mut Sealer>) -> Result<Sheet> {
+    let plain = match (seal::is_sealed(text), sealer) {
+        (false, _) => text.to_string(),
+        (true, Some(sealer)) => sealer.open(text)?,
+        (true, None) => return Err(SealError::Locked.into()),
+    };
     let sheet: Sheet = parse(&plain)?;
     sheet.check().map_err(WorkError::Invalid)?;
     Ok(sheet)
@@ -153,10 +180,15 @@ pub fn read_sheet(text: &str, passphrase: Option<&str>) -> Result<Sheet> {
 
 /// A sheet as text. With a passphrase the whole file is sealed (REQ-014).
 pub fn write_sheet(sheet: &Sheet, passphrase: Option<&str>) -> Result<String> {
+    write_sheet_with(sheet, passphrase.map(Sealer::new).transpose()?.as_mut())
+}
+
+/// `write_sheet` with a `Sealer` that the caller keeps.
+pub fn write_sheet_with(sheet: &Sheet, sealer: Option<&mut Sealer>) -> Result<String> {
     sheet.check().map_err(WorkError::Invalid)?;
     let text = dump(sheet)?;
-    Ok(match passphrase {
-        Some(pass) => seal::seal(pass, &text)? + "\n",
+    Ok(match sealer {
+        Some(sealer) => sealer.seal(&text)? + "\n",
         None => text,
     })
 }

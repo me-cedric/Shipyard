@@ -177,6 +177,28 @@ fn a_sealed_sheet_shows_unreadable_text_and_a_locked_state() {
 }
 
 #[test]
+fn one_sealer_reads_and_writes_many_files() {
+    let mut sealer = seal::Sealer::new("pw").unwrap();
+    let s = read_sheet(SHEET, None).unwrap();
+    let one = write_sheet_with(&s, Some(&mut sealer)).unwrap();
+    let two = write_sheet_with(&s, Some(&mut sealer)).unwrap();
+    assert_ne!(one, two, "a fresh nonce for each write");
+    for text in [&one, &two] {
+        assert_eq!(read_sheet_with(text, Some(&mut sealer)).unwrap(), s);
+        assert_eq!(read_sheet(text, Some("pw")).unwrap(), s);
+    }
+    let team_text = write_team_with(&team(), Some(&mut sealer)).unwrap();
+    assert_eq!(
+        read_team_with(&team_text, Some(&mut sealer)).unwrap(),
+        team()
+    );
+    assert!(matches!(
+        read_sheet_with(&one, None),
+        Err(WorkError::Seal(SealError::Locked))
+    ));
+}
+
+#[test]
 fn the_paths_are_fixed() {
     assert_eq!(TEAM_PATH, ".shipyard/team.yaml");
     assert_eq!(sheet_path("lot-1").unwrap(), "docs/costing/lot-1.yaml");

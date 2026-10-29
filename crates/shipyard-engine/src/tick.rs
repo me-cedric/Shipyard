@@ -314,7 +314,7 @@ impl Engine {
             ));
         }
         // A cut-off list leaves items unread. The cursor stays, so no unread item falls behind it.
-        let at = (!truncated).then(|| started.as_secs());
+        let at = (!truncated).then_some(started.as_secs());
         let known = self.mirror.tickets(&src)?;
 
         // The tickets that matter most must be current, whether the list returned them or not.
@@ -396,7 +396,7 @@ impl Engine {
                 self.cfg.max_pages
             ));
         }
-        let at = (!truncated).then(|| started.as_secs());
+        let at = (!truncated).then_some(started.as_secs());
         let known = self.mirror.pulls(&src)?;
         // A run needs its pull request current, even when the list left it out.
         let wanted: Vec<u64> = self.runs().into_iter().filter_map(|r| r.pr).collect();

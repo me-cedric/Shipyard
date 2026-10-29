@@ -33,6 +33,35 @@ struct Fx {
 }
 
 fn fx_with(kind: ConnectionKind, scope: Option<&str>) -> Fx {
+    fx_wrapped(kind, scope, |http| http)
+}
+
+/// An `Http` that runs `hook` once, before the first write to the tracker: another writer touches
+/// the files while the tracker answers.
+struct Hooked {
+    inner: Arc<FakeHttp>,
+    hook: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+}
+
+impl shipyard_http::Http for Hooked {
+    fn send(
+        &self,
+        r: &shipyard_http::Request,
+    ) -> Result<shipyard_http::Response, shipyard_http::Error> {
+        if r.method == Method::Post
+            && let Some(hook) = self.hook.lock().unwrap().take()
+        {
+            hook();
+        }
+        self.inner.send(r)
+    }
+}
+
+fn fx_wrapped(
+    kind: ConnectionKind,
+    scope: Option<&str>,
+    wrap: impl FnOnce(Arc<FakeHttp>) -> Arc<dyn shipyard_http::Http>,
+) -> Fx {
     let repo = tempfile::tempdir().unwrap();
     shipyard_git::project::init(repo.path()).unwrap();
     let data = tempfile::tempdir().unwrap();
@@ -40,7 +69,7 @@ fn fx_with(kind: ConnectionKind, scope: Option<&str>) -> Fx {
     let conns = Arc::new(Connections::new(
         data.path(),
         Arc::new(MemoryStore::default()),
-        http.clone(),
+        wrap(http.clone()),
     ));
     let c = conns
         .add(ConnectionDraft {
@@ -260,7 +289,7 @@ fn the_team_is_edited_as_text_and_a_duplicate_keeps_the_last_valid_team() {
 fn the_context_names_the_flags_the_scope_the_label_and_the_member_of_this_machine() {
     let f = fx();
     save_team(&f, team5());
-    let c = context(&f.s).unwrap();
+    let c = context(&f.s, 0).unwrap();
     assert_eq!(c.tracker.as_deref(), Some(f.tracker.as_str()));
     assert_eq!(c.scope.as_deref(), Some("PROJ"));
     assert_eq!(c.pickup_label.as_deref(), Some("shipyard"));
@@ -270,7 +299,13 @@ fn the_context_names_the_flags_the_scope_the_label_and_the_member_of_this_machin
     assert_eq!(c.today.len(), 10);
     // GitHub has no time tracking.
     let g = fx_with(ConnectionKind::GitHub, None);
-    assert!(!context(&g.s).unwrap().capabilities.unwrap().time_tracking);
+    assert!(
+        !context(&g.s, 0)
+            .unwrap()
+            .capabilities
+            .unwrap()
+            .time_tracking
+    );
 }
 
 // ---------------------------------------------------------------- suggestion (REQ-007)
@@ -871,6 +906,98 @@ fn the_send_needs_a_click_writes_the_receipt_last_and_offers_the_entry_once() {
     // An id that is no entry of the month.
     assert!(worklog_send(&f.s, None, "2026-10-29", "nope", 60, true, true).is_err());
     assert!(worklog_send(&f.s, None, "2026-10-29", &e.id, 3000, true, true).is_err());
+}
+
+#[test]
+fn today_is_the_day_of_the_screen_and_not_the_day_of_greenwich() {
+    // 2026-10-29 23:30 UTC.
+    let secs = 1_793_268_000 + 13 * 3600 + 1800;
+    assert_eq!(local_day(secs, 0), "2026-10-29");
+    assert_eq!(
+        local_day(secs, 120),
+        "2026-10-30",
+        "Paris is already tomorrow"
+    );
+    assert_eq!(local_day(secs, -300), "2026-10-29");
+    assert_eq!(local_day(secs - 24 * 3600, -300), "2026-10-28");
+    let f = fx();
+    assert!(context(&f.s, 15 * 60).is_err());
+    // The offset that the view sent applies to the plan too.
+    context(&f.s, 14 * 60).unwrap();
+    assert_eq!(today(&f.s), local_day(now_secs(), 14 * 60));
+}
+
+fn now_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs())
+}
+
+#[test]
+fn a_send_keeps_an_entry_that_another_write_added_while_the_tracker_answered() {
+    let root = Arc::new(std::sync::OnceLock::<PathBuf>::new());
+    let at = root.clone();
+    let f = fx_wrapped(ConnectionKind::JiraCloud, Some("PROJ"), move |inner| {
+        Arc::new(Hooked {
+            inner,
+            hook: Mutex::new(Some(Box::new(move || {
+                let file = at.get().unwrap().join("docs/time/ana/2026-10.yaml");
+                let late = TimeEntry {
+                    id: "late".into(),
+                    day: "2026-10-29".into(),
+                    minutes: 15,
+                    note: "typed while the send ran".into(),
+                    ticket: None,
+                    worklog: None,
+                };
+                let text = add_to_month(std::fs::read_to_string(&file).ok().as_deref(), late);
+                write_atomic(&file, text.unwrap().as_bytes()).unwrap();
+            }))),
+        })
+    });
+    root.set(f.repo.path().to_path_buf()).unwrap();
+    save_team(&f, team5());
+    f.put(vec![ticket("PROJ-5", "T", &[])]);
+    let e = time_write(&f.s, None, "2026-10-29", 90, "review", Some("PROJ-5")).unwrap();
+    worklog_routes(&f, r#"{"worklogs":[]}"#);
+    f.http.post(
+        "/issue/PROJ-5/worklog",
+        "",
+        201,
+        r#"{"id":"10234","timeSpentSeconds":5400,"comment":"x","started":"s"}"#,
+    );
+    worklog_send(&f.s, None, "2026-10-29", &e.id, 0, false, true).unwrap();
+    let file = f.file("docs/time/ana/2026-10.yaml");
+    assert!(file.contains("id: late"), "the late entry stays: {file}");
+    assert!(file.contains("10234"), "the receipt is stored: {file}");
+}
+
+#[test]
+fn two_sends_of_one_entry_make_one_worklog() {
+    let f = fx();
+    save_team(&f, team5());
+    f.put(vec![ticket("PROJ-5", "T", &[])]);
+    let e = time_write(&f.s, None, "2026-10-29", 90, "review", Some("PROJ-5")).unwrap();
+    // The fake tracker keeps no state, so only the lock stops the second post.
+    worklog_routes(&f, r#"{"worklogs":[]}"#);
+    f.http.post(
+        "/issue/PROJ-5/worklog",
+        "",
+        201,
+        r#"{"id":"10234","timeSpentSeconds":5400,"comment":"x","started":"s"}"#,
+    );
+    let results: Vec<_> = std::thread::scope(|t| {
+        let sends: Vec<_> = (0..4)
+            .map(|_| t.spawn(|| worklog_send(&f.s, None, "2026-10-29", &e.id, 0, false, true)))
+            .collect();
+        sends.into_iter().map(|h| h.join().unwrap()).collect()
+    });
+    assert_eq!(
+        results.iter().filter(|r| r.is_ok()).count(),
+        1,
+        "{results:?}"
+    );
+    assert_eq!(f.writes(), 1);
 }
 
 #[test]

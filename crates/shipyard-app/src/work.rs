@@ -10,7 +10,8 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::atomic::{AtomicI32, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde::Serialize;
 use shipyard_core::pickup::Ticket;
@@ -23,11 +24,12 @@ use shipyard_core::work_item::{Capabilities, WorkItem};
 use shipyard_engine::tick::source_key;
 use shipyard_store::excel::{self, MAX_BYTES, Preview};
 use shipyard_store::project::write_atomic;
-use shipyard_store::seal::{self, is_sealed};
+use shipyard_store::seal::{self, Sealer, is_sealed};
 use shipyard_store::work::{
-    CALENDAR_PATH, DECISIONS_PATH, TEAM_PATH, load_team, read_calendar, read_decisions, read_sheet,
-    read_team, read_time, sheet_path, time_add as add_to_month, time_path, write_calendar,
-    write_decisions, write_sheet, write_team, write_time,
+    CALENDAR_PATH, DECISIONS_PATH, TEAM_PATH, load_team_with, read_calendar, read_decisions,
+    read_sheet, read_sheet_with, read_team, read_time, sheet_path, time_add as add_to_month,
+    time_path, write_calendar, write_decisions, write_sheet, write_sheet_with, write_team,
+    write_team_with, write_time,
 };
 use shipyard_trackers::work::{self as writes, Click, RowResult, Sent, TrackerWrite};
 use specta::Type;
@@ -51,10 +53,19 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 pub struct Session {
     /// The unlocked passphrase. Memory only (REQ-014).
     pass: Mutex<HashMap<String, String>>,
+    /// One sealer for each unlocked project. It keeps the derived keys, so a read or a write
+    /// derives no key twice (a derivation costs a fifth of a second). It goes with the passphrase.
+    sealers: Mutex<HashMap<String, Sealer>>,
     /// The last team file that was valid: a refused file keeps it (REQ-003).
     team: Mutex<HashMap<String, Team>>,
     /// The Excel preview that waits for the confirm of a person (REQ-012).
     excel: Mutex<HashMap<String, Preview>>,
+    /// The offset of the screen from UTC, in minutes east, as the view last said. `today` follows
+    /// it, so the plan starts on the day of the person and not on the day of Greenwich.
+    offset: AtomicI32,
+    /// One lock for each time entry that goes to the tracker: two sends of one entry never run at
+    /// once (REQ-023).
+    sending: Mutex<HashMap<String, Arc<Mutex<()>>>>,
 }
 
 struct Ctx<'a> {
@@ -75,6 +86,24 @@ fn ctx(s: &AppState) -> Res<Ctx<'_>> {
 impl Ctx<'_> {
     fn pass(&self) -> Option<String> {
         lock(&self.s.work.pass).get(&self.project).cloned()
+    }
+
+    /// Run `f` with the sealer of this project, or `None` when the session holds no passphrase.
+    fn with_sealer<T>(&self, f: impl FnOnce(Option<&mut Sealer>) -> T) -> T {
+        f(lock(&self.s.work.sealers).get_mut(&self.project))
+    }
+
+    /// Keep the passphrase and its sealer for this session.
+    fn keep_pass(&self, pass: &str) -> Res<()> {
+        let sealer = Sealer::new(pass).map_err(err)?;
+        lock(&self.s.work.pass).insert(self.project.clone(), pass.into());
+        lock(&self.s.work.sealers).insert(self.project.clone(), sealer);
+        Ok(())
+    }
+
+    fn forget_pass(&self) {
+        lock(&self.s.work.pass).remove(&self.project);
+        lock(&self.s.work.sealers).remove(&self.project);
     }
 
     fn read(&self, rel: &str) -> Res<Option<String>> {
@@ -125,7 +154,8 @@ impl Ctx<'_> {
         let text = self
             .sheet_text(slug)?
             .ok_or_else(|| format!("no sheet `{slug}`"))?;
-        read_sheet(&text, self.pass().as_deref()).map_err(err)
+        self.with_sealer(|sealer| read_sheet_with(&text, sealer))
+            .map_err(err)
     }
 
     /// The sheets that open now. A locked or invalid file is left out.
@@ -144,7 +174,7 @@ impl Ctx<'_> {
             .cloned()
             .unwrap_or_default();
         let text = self.read(TEAM_PATH).unwrap_or_default();
-        let load = load_team(text.as_deref(), self.pass().as_deref(), &last);
+        let load = self.with_sealer(|sealer| load_team_with(text.as_deref(), sealer, &last));
         if load.error.is_none() {
             lock(&self.s.work.team).insert(self.project.clone(), load.team.clone());
         }
@@ -200,11 +230,18 @@ impl Ctx<'_> {
     }
 }
 
-fn today() -> String {
+/// The day of `secs` (Unix time) at `offset_minutes` east of UTC, as `YYYY-MM-DD`.
+fn local_day(secs: u64, offset_minutes: i32) -> String {
+    let local = secs as i64 + i64::from(offset_minutes) * 60;
+    work::iso(local.div_euclid(86_400) as i32)
+}
+
+/// Today on the screen of the person: the offset that the view sent with `work_context`.
+fn today(s: &AppState) -> String {
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs());
-    work::iso((secs / 86_400) as i32)
+    local_day(secs, s.work.offset.load(Ordering::Relaxed))
 }
 
 fn need_click(click: bool) -> Res<()> {
@@ -312,7 +349,13 @@ fn me_of(conn: &Option<Connection>, team: &Team) -> Option<String> {
         .map(|m| m.handle.clone())
 }
 
-pub fn context(s: &AppState) -> Res<WorkContext> {
+/// `offset_minutes` is the offset of the screen from UTC, east positive: the day of the plan, the
+/// booked window and the default day of a time entry are the day of the person.
+pub fn context(s: &AppState, offset_minutes: i32) -> Res<WorkContext> {
+    if !(-14 * 60..=14 * 60).contains(&offset_minutes) {
+        return Err("the offset is not a time zone offset".into());
+    }
+    s.work.offset.store(offset_minutes, Ordering::Relaxed);
     let c = ctx(s)?;
     let a = active(s)?.ok_or("no active project")?;
     let conn = conn_of(s)?;
@@ -323,7 +366,7 @@ pub fn context(s: &AppState) -> Res<WorkContext> {
         scope: tracker_target(s, &a)?.and_then(|t| t.1),
         pickup_label: automation_in(&c.root)?.pickup.label,
         me,
-        today: today(),
+        today: today(s),
     })
 }
 
@@ -351,7 +394,10 @@ pub fn team_save(s: &AppState, mut team: Team) -> Res<TeamView> {
         return Err(seal::SealError::Locked.to_string());
     }
     team.locked = false;
-    let text = write_team(&team, c.write_pass()?.as_deref()).map_err(err)?;
+    c.write_pass()?;
+    let text = c
+        .with_sealer(|sealer| write_team_with(&team, sealer))
+        .map_err(err)?;
     c.write(TEAM_PATH, &text)?;
     Ok(c.team())
 }
@@ -386,7 +432,7 @@ pub fn suggest(s: &AppState, key: &str) -> Res<Vec<Suggestion>> {
         &team,
         &c.calendar()?,
         &c.decisions()?,
-        &today(),
+        &today(s),
         7,
     );
     Ok(work::suggest(
@@ -467,13 +513,13 @@ pub fn unlock(s: &AppState, passphrase: &str) -> Res<SealState> {
         return Err("nothing is sealed".into());
     }
     c.verify(passphrase)?;
-    lock(&s.work.pass).insert(c.project.clone(), passphrase.into());
+    c.keep_pass(passphrase)?;
     c.seal_state()
 }
 
 pub fn lock_session(s: &AppState) -> Res<SealState> {
     let c = ctx(s)?;
-    lock(&s.work.pass).remove(&c.project);
+    c.forget_pass();
     c.seal_state()
 }
 
@@ -503,7 +549,7 @@ pub fn seal_all(s: &AppState, passphrase: &str) -> Res<SealState> {
             c.write(TEAM_PATH, &write_team(&all, Some(passphrase)).map_err(err)?)?;
         }
     }
-    lock(&s.work.pass).insert(c.project.clone(), passphrase.into());
+    c.keep_pass(passphrase)?;
     c.seal_state()
 }
 
@@ -528,7 +574,7 @@ pub fn unseal_all(s: &AppState, passphrase: &str) -> Res<SealState> {
         let team = read_team(&text, Some(passphrase)).map_err(err)?;
         c.write(TEAM_PATH, &write_team(&team, None).map_err(err)?)?;
     }
-    lock(&s.work.pass).remove(&c.project);
+    c.forget_pass();
     c.seal_state()
 }
 
@@ -624,7 +670,7 @@ fn sheet_view(c: &Ctx, slug: &str) -> Res<SheetView> {
         &team,
         &c.calendar()?,
         &c.decisions()?,
-        &today(),
+        &today(c.s),
     )
     .spread();
     let mirror = match tracker(c.s) {
@@ -666,7 +712,10 @@ pub fn sheet_get(s: &AppState, slug: &str) -> Res<SheetView> {
 pub fn sheet_save(s: &AppState, slug: &str, sheet: Sheet) -> Res<SheetView> {
     let c = ctx(s)?;
     let rel = sheet_path(slug).map_err(err)?;
-    let text = write_sheet(&sheet, c.write_pass()?.as_deref()).map_err(err)?;
+    c.write_pass()?;
+    let text = c
+        .with_sealer(|sealer| write_sheet_with(&sheet, sealer))
+        .map_err(err)?;
     c.write(&rel, &text)?;
     sheet_view(&c, slug)
 }
@@ -766,7 +815,7 @@ pub struct PlanView {
 pub fn plan(s: &AppState, slug: &str) -> Res<PlanView> {
     let c = ctx(s)?;
     let sheet = c.sheet(slug)?;
-    let (decisions, calendar, today) = (c.decisions()?, c.calendar()?, today());
+    let (decisions, calendar, today) = (c.decisions()?, c.calendar()?, today(s));
     Ok(PlanView {
         slug: slug.into(),
         gantt: work::gantt(slug, &sheet, &c.team().team, &calendar, &decisions, &today),
@@ -953,17 +1002,23 @@ pub fn worklog_send(
     let c = ctx(s)?;
     let handle = member_of(&c, member)?;
     let rel = time_path(&handle, day).map_err(err)?;
-    let mut entries = read_time(&c.read(&rel)?.unwrap_or_default()).map_err(err)?;
-    let at = entries
-        .iter()
-        .position(|e| e.id == id)
+    // One send of one entry at a time: the second waits, then finds the receipt and is refused.
+    let one = lock(&s.work.sending)
+        .entry(format!("{}/{rel}#{id}", c.project))
+        .or_default()
+        .clone();
+    let _one = lock(&one);
+    let entries = read_time(&c.read(&rel)?.unwrap_or_default()).map_err(err)?;
+    let entry = entries
+        .into_iter()
+        .find(|e| e.id == id)
         .ok_or_else(|| format!("no entry `{id}` in {rel}"))?;
     let t = tracker(s)?;
     let w = writer(s, &t)?;
     let (log, already_there) = match writes::send_worklog(
         &*w,
         &Click::by_person(),
-        &entries[at],
+        &entry,
         offset_minutes,
         reduce_remaining,
     )
@@ -972,8 +1027,22 @@ pub fn worklog_send(
         Sent::Sent(l) => (l, false),
         Sent::AlreadyThere(l) => (l, true),
     };
+    // The send took a while. Read the file again under the guard and set the receipt on that
+    // copy: a write of another entry in the meantime stays.
+    let _g = s.guard();
+    let mut entries = read_time(&c.read(&rel)?.unwrap_or_default()).map_err(err)?;
+    let at = entries.iter().position(|e| e.id == id).ok_or_else(|| {
+        format!(
+            "the entry `{id}` is gone from {rel}: its worklog {} is in the tracker",
+            log.id
+        )
+    })?;
     entries[at].worklog = Some(log.id);
-    c.write(&rel, &write_time(&entries).map_err(err)?)?;
+    write_atomic(
+        &c.root.join(&rel),
+        write_time(&entries).map_err(err)?.as_bytes(),
+    )
+    .map_err(err)?;
     Ok(TimeSent {
         entry: entries.swap_remove(at),
         already_there,
@@ -1093,8 +1162,8 @@ pub fn item_create(s: &AppState, row: Row, click: bool) -> Res<ApplyRow> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_context(app: AppHandle) -> Res<WorkContext> {
-    blocking(app, context).await
+pub async fn work_context(app: AppHandle, offset_minutes: i32) -> Res<WorkContext> {
+    blocking(app, move |s| context(s, offset_minutes)).await
 }
 
 #[tauri::command]
