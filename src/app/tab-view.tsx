@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { Branches, Changes, History } from "@/features/code";
 import { Api, Architecture, Data, Decisions, Diagrams, Flows, Screens } from "@/features/design";
+import { AgentsMap, Runs, Sessions, Usage, Workflows } from "@/features/factory";
 import { Inbox } from "@/features/home";
 import { FirstRun, Health, ProjectSettings } from "@/features/projects";
 import { Connections, Me } from "@/features/settings";
@@ -43,6 +44,11 @@ const VIEWS: Partial<Record<string, ComponentType>> = {
 	"work/estimates": Estimates,
 	"work/team": Team,
 	"work/time": Time,
+	"factory/runs": Runs,
+	"factory/workflows": Workflows,
+	"factory/agents-map": AgentsMap,
+	"factory/sessions": Sessions,
+	"factory/usage": Usage,
 	"design/diagrams": Diagrams,
 	"design/architecture": Architecture,
 	"design/decisions": Decisions,

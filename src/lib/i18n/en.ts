@@ -1,4 +1,5 @@
 import { designEn } from "./design";
+import { factoryEn } from "./factory";
 import { homeEn } from "./home";
 import { specsEn } from "./specs";
 
@@ -628,6 +629,7 @@ export const en = {
 	context: { open: "Open", copyRef: "Copy ref", copyPath: "Copy path", copySha: "Copy id" },
 	count: "{name} ({count})",
 	design: designEn,
+	factory: factoryEn,
 	specs: specsEn,
 };
 

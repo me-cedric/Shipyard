@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Button } from "../atoms/button";
 import { type Status, StatusDot } from "../atoms/status-dot";
 
-/** One finding: its severity shape, its text, an optional source chip and one fix action. */
+/** One finding: its severity shape, its text, an optional source chip and an optional fix action. */
 export function FindingRow({
 	status,
 	title,
@@ -13,7 +13,7 @@ export function FindingRow({
 	status: Status;
 	title: string;
 	source?: ReactNode;
-	action: { label: string; onClick: () => void };
+	action?: { label: string; onClick: () => void };
 	/** The preview of a fix, shown under the row. */
 	children?: ReactNode;
 }) {
@@ -23,7 +23,7 @@ export function FindingRow({
 				<StatusDot status={status} />
 				<span className="flex-1 text-ui">{title}</span>
 				{source}
-				<Button onClick={action.onClick}>{action.label}</Button>
+				{action ? <Button onClick={action.onClick}>{action.label}</Button> : null}
 			</div>
 			{children}
 		</div>

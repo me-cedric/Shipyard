@@ -1,5 +1,6 @@
 import { designFr } from "./design";
 import type { Messages } from "./en";
+import { factoryFr } from "./factory";
 import { homeFr } from "./home";
 import { specsFr } from "./specs";
 
@@ -649,5 +650,6 @@ export const fr: Messages = {
 	},
 	count: "{name} ({count})",
 	design: designFr,
+	factory: factoryFr,
 	specs: specsFr,
 };
