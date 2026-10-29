@@ -34,10 +34,12 @@ pub async fn notify_os(app: AppHandle, title: String, body: String) -> Res<()> {
 }
 
 pub fn update(s: &AppState) -> Res<UpdateInfo> {
+    let prefs = Prefs::load(&s.dir);
     check(
         &Client,
-        &Prefs::load(&s.dir).release_url,
+        &prefs.release_url,
         env!("CARGO_PKG_VERSION"),
+        prefs.seen_version.as_deref(),
     )
 }
 

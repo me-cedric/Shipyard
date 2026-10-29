@@ -68,7 +68,7 @@ pub(crate) fn pull(v: &Value) -> PullRequest {
     }
 }
 
-fn repository(v: &Value) -> Repository {
+pub(crate) fn repository(v: &Value) -> Repository {
     let archived = v["archived"].as_bool() == Some(true);
     Repository {
         slug: text(v, "/full_name"),

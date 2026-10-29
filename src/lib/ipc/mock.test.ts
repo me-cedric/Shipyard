@@ -11,6 +11,26 @@ describe("mock ipc", () => {
 		expect(mockState().prefs.theme).toBe("dark");
 	});
 
+	it("creates a repository only after a click, and serves the update notes and the sources", async () => {
+		const c = await unwrap(
+			commands.connectionsAdd({
+				name: "Acme",
+				group: "forge",
+				kind: "github",
+				url: "https://github.com",
+				user: null,
+			}),
+		);
+		expect((await commands.connectionsCreateRepo(c.id, "acme/new", false)).status).toBe("error");
+		await expect(unwrap(commands.connectionsCreateRepo(c.id, "new", true))).rejects.toBeTruthy();
+		expect((await unwrap(commands.connectionsCreateRepo(c.id, "acme/new", true))).slug).toBe(
+			"acme/new",
+		);
+		const prefs = await unwrap(commands.prefsSet({ notifyOff: ["update"], seenVersion: "0.0.9" }));
+		expect([prefs.notifyOff, prefs.seenVersion]).toEqual([["update"], "0.0.9"]);
+		expect((await unwrap(commands.updateCheck())).notes).toContain("0.2.0");
+	});
+
 	it("parses refs with the same grammar as the Rust command", async () => {
 		expect(await commands.refsParse("adr:0004")).toEqual({ ref: "adr:0004", kind: "adr" });
 		expect(await commands.refsParse("adr:12")).toBeNull();

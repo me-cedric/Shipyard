@@ -38,6 +38,8 @@ export const commands = {
 	connectionsSetSecret: (id: string, secret: string) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_set_secret", { id, secret })),
 	connectionsTest: (id: string) => typedError<TestOutcome, string>(__TAURI_INVOKE("connections_test", { id })),
 	connectionsRepos: (id: string, cursor: string | null) => typedError<RepoPage_Serialize, string>(__TAURI_INVOKE("connections_repos", { id, cursor })),
+	/**  Creates a private repository on a forge connection. It is a write: it needs the click of a person. */
+	connectionsCreateRepo: (id: string, slug: string, click: boolean) => typedError<Repository_Serialize, string>(__TAURI_INVOKE("connections_create_repo", { id, slug, click })),
 	codeStatus: () => typedError<Changes_Serialize, string>(__TAURI_INVOKE("code_status")),
 	codeDiff: (path: string, side: DiffSide) => typedError<FileDiff, string>(__TAURI_INVOKE("code_diff", { path, side })),
 	codeStage: (paths: string[]) => typedError<null, string>(__TAURI_INVOKE("code_stage", { paths })),
@@ -1239,6 +1241,18 @@ export type Entry = {
 
 export type EntryKind = "skill" | "pack" | "guide" | "pattern" | "contract";
 
+/**
+ *  A source of events that can notify the person (spec `shell`, REQ-008). One list feeds the
+ *  notification centre and the system notifications.
+ */
+export type EventSource = 
+/**  A factory question. */
+"question" | "approval" | 
+/**  A run that waits for a person. */
+"run" | "sync-failure" | "update" | 
+/**  The remote head moved. */
+"remote-head";
+
 export type ExplainContext = ExplainContext_Serialize | ExplainContext_Deserialize;
 
 export type ExplainContext_Deserialize = {
@@ -2075,6 +2089,8 @@ export type PrefsPatch_Deserialize = {
 	releaseUrl?: string | null,
 	assistantWidth?: number | null,
 	assistantSide?: PanelSide | null,
+	notifyOff?: EventSource[] | null,
+	seenVersion?: string | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -2087,6 +2103,8 @@ export type PrefsPatch_Serialize = {
 	releaseUrl: string | null,
 	assistantWidth: number | null,
 	assistantSide: PanelSide | null,
+	notifyOff: EventSource[] | null,
+	seenVersion: string | null,
 };
 
 export type Prefs_Deserialize = {
@@ -2102,6 +2120,10 @@ export type Prefs_Deserialize = {
 	/**  Width of the assistant panel, in pixels. */
 	assistantWidth?: number,
 	assistantSide?: PanelSide,
+	/**  The sources that do not notify. Empty means all are on, so a new source starts on. */
+	notifyOff?: EventSource[],
+	/**  The version whose changelog the person has seen. `None` until the first check records it. */
+	seenVersion?: string | null,
 };
 
 export type Prefs_Serialize = {
@@ -2117,6 +2139,10 @@ export type Prefs_Serialize = {
 	/**  Width of the assistant panel, in pixels. */
 	assistantWidth: number,
 	assistantSide: PanelSide,
+	/**  The sources that do not notify. Empty means all are on, so a new source starts on. */
+	notifyOff: EventSource[],
+	/**  The version whose changelog the person has seen. `None` until the first check records it. */
+	seenVersion: string | null,
 };
 
 export type Preview = Preview_Serialize | Preview_Deserialize;
@@ -3721,6 +3747,8 @@ export type UpdateInfo = {
 	newer: boolean,
 	/**  The page of the release, for the person to read. */
 	url: string,
+	/**  The changelog sections after the last seen version, up to the latest. Empty when none. */
+	notes: string,
 };
 
 export type Usage = {

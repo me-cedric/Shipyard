@@ -61,6 +61,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             conn::connections_set_secret,
             conn::connections_test,
             conn::connections_repos,
+            conn::connections_create_repo,
             git::code_status,
             git::code_diff,
             git::code_stage,

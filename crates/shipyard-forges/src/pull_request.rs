@@ -10,7 +10,7 @@ mod azure;
 mod github;
 mod gitlab;
 
-use crate::{CiState, Forge, ForgeError, PullRequest, PullState};
+use crate::{CiState, Forge, ForgeError, PullRequest, PullState, Repository};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use shipyard_http::Response;
@@ -127,6 +127,10 @@ pub trait PullApi: Forge {
     ) -> Result<(), ForgeError>;
 
     fn resolve_thread(&self, repo: &str, number: u64, thread: &str) -> Result<(), ForgeError>;
+
+    /// Create a private repository `owner/name` (`group/sub/name` on GitLab, `project/name` on
+    /// Azure DevOps). It is a write: the caller asks for the click of a person first.
+    fn create_repo(&self, slug: &str) -> Result<Repository, ForgeError>;
 
     /// Draft, CI, change request and merge state (REQ-021).
     fn status(&self, repo: &str, number: u64) -> Result<PullStatus, ForgeError>;

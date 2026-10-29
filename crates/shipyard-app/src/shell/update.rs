@@ -13,6 +13,40 @@ pub struct UpdateInfo {
     pub newer: bool,
     /// The page of the release, for the person to read.
     pub url: String,
+    /// The changelog sections after the last seen version, up to the latest. Empty when none.
+    pub notes: String,
+}
+
+/// The sections of a changelog text (`## 1.2.0 ...` headings) with a version above `from` and
+/// not above `to`. A text with no version heading is one note of the release: kept whole when
+/// `to` is above `from`.
+pub fn sections(body: &str, from: &str, to: &str) -> String {
+    let (Some(from), Some(to)) = (parts(from), parts(to)) else {
+        return String::new();
+    };
+    let version = |line: &str| {
+        let word = line.strip_prefix("## ")?.trim_start_matches(['[', 'v']);
+        parts(word.split([' ', ']']).next()?)
+    };
+    let mut kept = Vec::new();
+    let mut keep = false;
+    let mut headed = false;
+    for line in body.lines() {
+        if let Some(v) = version(line) {
+            headed = true;
+            keep = v > from && v <= to;
+        }
+        if keep {
+            kept.push(line);
+        }
+    }
+    if headed {
+        kept.join("\n").trim().to_string()
+    } else if to > from {
+        body.trim().to_string()
+    } else {
+        String::new()
+    }
 }
 
 /// `v1.2.3-beta.1` gives `[1, 2, 3]`. Text that is not a version gives `None`.
@@ -31,8 +65,15 @@ pub fn is_newer(current: &str, latest: &str) -> bool {
 }
 
 /// Reads the release at `release_url` (a GitHub release answer: `tag_name` and `html_url`).
-/// The address is `https`, or `http` on a local host. Sends no credential.
-pub fn check(http: &dyn Http, release_url: &str, current: &str) -> Result<UpdateInfo, String> {
+/// The address is `https`, or `http` on a local host. Sends no credential. `seen` is the last
+/// version whose changelog the person saw: the notes start after it, or after `current` when it is
+/// unknown or newer.
+pub fn check(
+    http: &dyn Http,
+    release_url: &str,
+    current: &str,
+    seen: Option<&str>,
+) -> Result<UpdateInfo, String> {
     let url = base_url(release_url).map_err(|e| e.to_string())?;
     let reply = http
         .json(&Request::get(url.clone(), Auth::None))
@@ -43,9 +84,11 @@ pub fn check(http: &dyn Http, release_url: &str, current: &str) -> Result<Update
         return Err("the release answer holds no version".into());
     }
     let page = text(&reply, "/html_url");
+    let from = seen.filter(|s| is_newer(s, current)).unwrap_or(current);
     Ok(UpdateInfo {
         current: current.into(),
         newer: is_newer(current, &latest),
+        notes: sections(&text(&reply, "/body"), from, &latest),
         latest,
         url: if page.is_empty() { url } else { page },
     })
@@ -77,14 +120,15 @@ mod tests {
             200,
             r#"{"tag_name":"v0.2.0","html_url":"https://example.com/r/0.2.0"}"#,
         );
-        let info = check(&http, "https://example.com/releases/latest", "0.1.0").unwrap();
+        let info = check(&http, "https://example.com/releases/latest", "0.1.0", None).unwrap();
         assert_eq!(
             info,
             UpdateInfo {
                 current: "0.1.0".into(),
                 latest: "0.2.0".into(),
                 newer: true,
-                url: "https://example.com/r/0.2.0".into()
+                url: "https://example.com/r/0.2.0".into(),
+                notes: String::new()
             }
         );
         assert!(http.requests().iter().all(|r| r.auth.secret().is_none()));
@@ -95,16 +139,51 @@ mod tests {
         let http = FakeHttp::new();
         http.get("/same", 200, r#"{"tag_name":"v0.1.0"}"#);
         http.get("/odd", 200, r#"{"name":"x"}"#);
-        let same = check(&http, "https://example.com/same", "0.1.0").unwrap();
+        let same = check(&http, "https://example.com/same", "0.1.0", None).unwrap();
         assert!(!same.newer);
         assert_eq!(
             same.url, "https://example.com/same",
             "no page: the release address"
         );
-        assert!(check(&http, "https://example.com/odd", "0.1.0").is_err());
+        assert!(check(&http, "https://example.com/odd", "0.1.0", None).is_err());
         assert!(
-            check(&http, "http://example.com/same", "0.1.0").is_err(),
+            check(&http, "http://example.com/same", "0.1.0", None).is_err(),
             "http only on a local host"
         );
+    }
+
+    const LOG: &str = "## 0.3.0\n- c\n\n## [0.2.0] - 2026-10-01\n- b\n\n## 0.1.0\n- a";
+
+    #[test]
+    fn the_notes_are_the_sections_after_a_version_up_to_the_latest() {
+        assert_eq!(
+            sections(LOG, "0.1.0", "0.3.0"),
+            "## 0.3.0\n- c\n\n## [0.2.0] - 2026-10-01\n- b"
+        );
+        assert_eq!(sections(LOG, "0.2.0", "0.2.0"), "");
+        assert_eq!(
+            sections(LOG, "0.1.0", "0.2.0"),
+            "## [0.2.0] - 2026-10-01\n- b"
+        );
+        assert_eq!(sections("plain notes\n", "0.1.0", "0.2.0"), "plain notes");
+        assert_eq!(sections("plain notes", "0.2.0", "0.2.0"), "");
+        assert_eq!(sections(LOG, "latest", "0.3.0"), "");
+    }
+
+    #[test]
+    fn the_notes_follow_the_release_body_and_the_seen_version() {
+        let http = FakeHttp::new();
+        let body = serde_json::json!({"tag_name": "v0.3.0", "body": LOG}).to_string();
+        http.get("/latest", 200, &body);
+        let url = "https://example.com/latest";
+        let up = check(&http, url, "0.1.0", None).unwrap();
+        assert!(up.newer && up.notes.starts_with("## 0.3.0") && up.notes.contains("0.2.0"));
+        // After an update: running 0.3.0, last seen 0.1.0.
+        let after = check(&http, url, "0.3.0", Some("0.1.0")).unwrap();
+        assert!(!after.newer && after.notes.contains("- c") && after.notes.contains("- b"));
+        assert!(!after.notes.contains("- a"));
+        // Seen is current, or newer than current: nothing to show.
+        assert_eq!(check(&http, url, "0.3.0", Some("0.3.0")).unwrap().notes, "");
+        assert_eq!(check(&http, url, "0.3.0", Some("0.9.0")).unwrap().notes, "");
     }
 }

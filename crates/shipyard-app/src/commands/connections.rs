@@ -2,6 +2,7 @@
 //! The logic is in `crate::connections`. A command only runs it on a blocking thread.
 
 use serde::Serialize;
+use shipyard_forges::Repository;
 use shipyard_http::TestOutcome;
 use shipyard_secrets::Secret;
 use shipyard_store::project::{FileRead, read_project_file};
@@ -112,12 +113,42 @@ pub async fn connections_repos(
     .await
 }
 
+/// Creates a private repository on a forge connection. It is a write: it needs the click of a person.
+#[tauri::command]
+#[specta::specta]
+pub async fn connections_create_repo(
+    app: AppHandle,
+    id: String,
+    slug: String,
+    click: bool,
+) -> Res<Repository> {
+    blocking(app, move |s| create_repo(s, &id, &slug, click)).await
+}
+
+pub fn create_repo(s: &AppState, id: &str, slug: &str, click: bool) -> Res<Repository> {
+    crate::work::need_click(click)?;
+    s.connections
+        .pull_api(id)?
+        .create_repo(slug)
+        .map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::commands::projects::create;
     use shipyard_core::project::ProjectConnections;
     use shipyard_store::project::write_project_file;
+
+    #[test]
+    fn creating_a_repository_needs_a_click_before_anything_else() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = AppState::new(dir.path().join("data"));
+        let err = create_repo(&s, "gh", "acme/new", false).unwrap_err();
+        assert!(err.contains("click"), "{err}");
+        let err = create_repo(&s, "gh", "acme/new", true).unwrap_err();
+        assert!(!err.contains("click"), "a click passes the gate: {err}");
+    }
 
     #[test]
     fn the_users_of_a_connection_come_from_every_registered_project() {

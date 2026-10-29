@@ -602,3 +602,88 @@ fn a_repository_name_that_climbs_out_is_refused_before_any_request() {
         assert!(c.fake.requests().is_empty(), "{}", c.name);
     }
 }
+
+// ---- create a remote repository (add-connections T006)
+
+#[test]
+fn a_private_repository_is_created_on_each_forge() {
+    // GitHub: the account itself uses /user/repos, an organization its own route.
+    let fake = Arc::new(FakeHttp::new());
+    let repo = json!({"full_name": "acme/new", "html_url": "u", "default_branch": "main",
+        "permissions": {"push": true}})
+    .to_string();
+    fake.get("/user", 200, r#"{"login":"me"}"#)
+        .post("/orgs/acme/repos", "\"private\":true", 201, &repo)
+        .post("/user/repos", "\"name\":\"mine\"", 201, &repo);
+    let gh = build(ForgeKind::GitHub, "https://github.com", fake.clone());
+    let made = gh.create_repo("acme/new").unwrap();
+    assert_eq!(
+        (made.slug.as_str(), made.can_push),
+        ("acme/new", Some(true))
+    );
+    gh.create_repo("me/mine").unwrap();
+    let posts: Vec<String> = fake
+        .requests()
+        .into_iter()
+        .filter(|r| r.method == Method::Post)
+        .map(|r| r.url)
+        .collect();
+    assert_eq!(posts.len(), 2);
+    assert!(posts[0].ends_with("/orgs/acme/repos") && posts[1].ends_with("/user/repos"));
+
+    // GitLab: the namespace id comes first, the project is private.
+    let fake = Arc::new(FakeHttp::new());
+    fake.get("/namespaces/acme%2Fteam", 200, r#"{"id":42}"#)
+        .post(
+            "/projects",
+            "\"namespace_id\":42",
+            201,
+            r#"{"path_with_namespace":"acme/team/new","web_url":"u","default_branch":"main"}"#,
+        );
+    let gl = build(ForgeKind::GitLab, "https://gitlab.com", fake.clone());
+    assert_eq!(
+        gl.create_repo("acme/team/new").unwrap().slug,
+        "acme/team/new"
+    );
+    let sent = fake
+        .requests()
+        .into_iter()
+        .find(|r| r.method == Method::Post)
+        .and_then(|r| r.body)
+        .unwrap();
+    assert_eq!(sent["visibility"], "private");
+
+    // Azure DevOps: the project is in the path.
+    let fake = Arc::new(FakeHttp::new());
+    fake.post(
+        "/Payments/_apis/git/repositories",
+        "\"name\":\"new\"",
+        201,
+        r#"{"id":"r2","name":"new","project":{"name":"Payments"},"webUrl":"u"}"#,
+    );
+    let az = build(ForgeKind::AzureDevOps, "https://dev.azure.com/acme", fake);
+    assert_eq!(az.create_repo("Payments/new").unwrap().slug, "Payments/new");
+}
+
+#[test]
+fn a_bad_slug_or_a_refusal_creates_nothing() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.get("/user", 200, r#"{"login":"me"}"#).post(
+        "/orgs/acme/repos",
+        "",
+        422,
+        r#"{"message":"name exists"}"#,
+    );
+    let gh = build(ForgeKind::GitHub, "https://github.com", fake.clone());
+    assert!(gh.create_repo("web").is_err(), "no owner");
+    assert!(gh.create_repo("acme/../x").is_err());
+    assert!(gh.create_repo("acme/new").is_err(), "the forge refuses");
+    assert!(
+        fake.requests()
+            .iter()
+            .filter(|r| r.method == Method::Post)
+            .count()
+            == 1,
+        "only the refused call went out"
+    );
+}

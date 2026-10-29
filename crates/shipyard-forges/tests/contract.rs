@@ -231,10 +231,21 @@ fn the_push_target_check_names_a_read_only_repository() {
         gl.forge.repository("acme/docs").unwrap().can_push,
         Some(false)
     );
-    // Azure DevOps does not say.
+    // Azure DevOps: a listing does not say; the security API answers for one repository.
+    let az = azure();
+    assert_eq!(az.forge.repository("Payments/web").unwrap().can_push, None);
+    az.fake
+        .get("/_apis/permissions/", 200, r#"{"value":[true]}"#);
     assert_eq!(
-        azure().forge.repository("Payments/web").unwrap().can_push,
-        None
+        az.forge.repository("Payments/web").unwrap().can_push,
+        Some(true)
+    );
+    let asked = az.fake.requests();
+    assert!(
+        asked
+            .iter()
+            .any(|r| r.url.contains("tokens=repoV2%2Fp1%2Fr1")),
+        "{asked:?}"
     );
 }
 

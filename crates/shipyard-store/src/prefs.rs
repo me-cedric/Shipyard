@@ -58,6 +58,22 @@ pub enum PanelSide {
     Right,
 }
 
+/// A source of events that can notify the person (spec `shell`, REQ-008). One list feeds the
+/// notification centre and the system notifications.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "kebab-case")]
+pub enum EventSource {
+    /// A factory question.
+    Question,
+    Approval,
+    /// A run that waits for a person.
+    Run,
+    SyncFailure,
+    Update,
+    /// The remote head moved.
+    RemoteHead,
+}
+
 pub const PANEL_WIDTH: std::ops::RangeInclusive<u32> = 280..=900;
 
 fn default_panel_width() -> u32 {
@@ -86,6 +102,12 @@ pub struct Prefs {
     pub assistant_width: u32,
     #[serde(default = "default_panel_side")]
     pub assistant_side: PanelSide,
+    /// The sources that do not notify. Empty means all are on, so a new source starts on.
+    #[serde(default)]
+    pub notify_off: Vec<EventSource>,
+    /// The version whose changelog the person has seen. `None` until the first check records it.
+    #[serde(default)]
+    pub seen_version: Option<String>,
 }
 
 /// The latest release of the Shipyard repository, in the GitHub API form.
@@ -108,6 +130,8 @@ impl Default for Prefs {
             release_url: default_release_url(),
             assistant_width: default_panel_width(),
             assistant_side: default_panel_side(),
+            notify_off: Vec::new(),
+            seen_version: None,
         }
     }
 }
@@ -124,6 +148,8 @@ pub struct PrefsPatch {
     pub release_url: Option<String>,
     pub assistant_width: Option<u32>,
     pub assistant_side: Option<PanelSide>,
+    pub notify_off: Option<Vec<EventSource>>,
+    pub seen_version: Option<String>,
 }
 
 const FILE: &str = "prefs.json";
@@ -152,6 +178,15 @@ impl Prefs {
             self.assistant_width = w.clamp(*PANEL_WIDTH.start(), *PANEL_WIDTH.end());
         }
         self.assistant_side = p.assistant_side.unwrap_or(self.assistant_side);
+        if let Some(off) = p.notify_off {
+            self.notify_off.clear();
+            for source in off {
+                if !self.notify_off.contains(&source) {
+                    self.notify_off.push(source);
+                }
+            }
+        }
+        self.seen_version = p.seen_version.or(self.seen_version.take());
         if let Some(url) = p.release_url {
             // An empty value goes back to the default.
             self.release_url = if url.trim().is_empty() {
@@ -199,6 +234,36 @@ mod tests {
         assert_eq!(
             (q.assistant_width, q.assistant_side),
             (900, PanelSide::Left)
+        );
+    }
+
+    #[test]
+    fn every_source_notifies_until_the_person_turns_one_off() {
+        let mut p = Prefs::default();
+        assert!(p.notify_off.is_empty());
+        p.apply(PrefsPatch {
+            notify_off: Some(vec![
+                EventSource::Update,
+                EventSource::Update,
+                EventSource::Run,
+            ]),
+            ..Default::default()
+        });
+        assert_eq!(p.notify_off, [EventSource::Update, EventSource::Run]);
+        p.apply(PrefsPatch::default());
+        assert_eq!(p.notify_off.len(), 2, "an empty patch keeps the choice");
+        p.apply(PrefsPatch {
+            notify_off: Some(vec![]),
+            seen_version: Some("0.2.0".into()),
+            ..Default::default()
+        });
+        assert!(p.notify_off.is_empty());
+        assert_eq!(p.seen_version.as_deref(), Some("0.2.0"));
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join(FILE), r#"{"theme":"dark","density":"default","contrast":"default","role":"none","sidebarOpen":true,"lang":null}"#).unwrap();
+        assert!(
+            Prefs::load(dir.path()).notify_off.is_empty(),
+            "an old file: all on"
         );
     }
 

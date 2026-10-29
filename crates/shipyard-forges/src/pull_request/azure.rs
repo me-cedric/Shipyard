@@ -1,10 +1,10 @@
 //! Azure DevOps: pull requests, labels, reviewers and threads, REST 7.1.
 
 use super::*;
-use crate::azure::{API, Azure, repo_path};
-use crate::{CiState, ForgeError};
+use crate::azure::{API, Azure, repo_path, repository};
+use crate::{CiState, ForgeError, Repository, segments};
 use serde_json::json;
-use shipyard_http::{Auth, Method, Request, build_url, items, text};
+use shipyard_http::{Auth, Method, Request, build_url, encode, items, text};
 
 impl Azure {
     pub(crate) fn write(
@@ -42,6 +42,14 @@ fn mergeable(v: &Value) -> Mergeable {
 }
 
 impl PullApi for Azure {
+    // Azure DevOps has no per-repository visibility: the project sets it.
+    fn create_repo(&self, slug: &str) -> Result<Repository, ForgeError> {
+        let parts = segments(slug, 2, 2)?;
+        let path = format!("/{}/_apis/git/repositories", encode(parts[0]));
+        let v = self.write(Method::Post, &path, json!({ "name": parts[1] }))?;
+        Ok(repository(&v))
+    }
+
     fn find_pull(&self, repo: &str, branch: &str) -> Result<Option<PullRequest>, ForgeError> {
         check_branch(branch)?;
         let source = format!("refs/heads/{branch}");

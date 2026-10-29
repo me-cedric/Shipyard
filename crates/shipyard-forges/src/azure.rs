@@ -10,6 +10,7 @@ use shipyard_secrets::Secret;
 use std::sync::Arc;
 
 pub(crate) const API: &str = "7.1";
+const GIT_NAMESPACE: &str = "2e9eb7ed-3c0a-47d4-87c1-0ffdd275fd87";
 
 pub struct Azure {
     pub(crate) http: Arc<dyn Http>,
@@ -95,14 +96,13 @@ pub(crate) fn repo_path(repo: &str) -> Result<String, ForgeError> {
     ))
 }
 
-fn repository(v: &Value) -> Repository {
+pub(crate) fn repository(v: &Value) -> Repository {
     Repository {
         slug: format!("{}/{}", text(v, "/project/name"), text(v, "/name")),
         url: text(v, "/webUrl"),
         default_branch: branch(&text(v, "/defaultBranch")),
         archived: v["isDisabled"].as_bool() == Some(true),
-        // shortcut: a repository listing carries no permission. The check needs the security
-        // namespace API; add it when the push target check must work on Azure DevOps.
+        // A listing carries no permission: `repository()` of the trait asks the security API.
         can_push: None,
     }
 }
@@ -226,7 +226,17 @@ impl Forge for Azure {
         let v = self
             .call(&repo_path(repo)?, &[], API)
             .map_err(|e| e.not_found(repo))?;
-        Ok(repository(&v))
+        let mut repo = repository(&v);
+        // The security namespace "Git Repositories", bit 4 (GenericContribute): may the account push?
+        // A refused or failed check leaves the marker unknown.
+        let token = format!("repoV2/{}/{}", text(&v, "/project/id"), text(&v, "/id"));
+        let path = format!("/_apis/permissions/{GIT_NAMESPACE}/4");
+        repo.can_push = self
+            .call(&path, &[("tokens", token.as_str())], API)
+            .ok()
+            .and_then(|p| p.pointer("/value/0").and_then(Value::as_bool))
+            .map(|allowed| allowed && !repo.archived);
+        Ok(repo)
     }
 
     fn test(&self, repo: Option<&str>) -> TestOutcome {

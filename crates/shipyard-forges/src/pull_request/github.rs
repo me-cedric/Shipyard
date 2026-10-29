@@ -2,10 +2,10 @@
 //! (REST has no thread resolve and no resolved flag).
 
 use super::*;
-use crate::github::{GitHub, pull, repo_path};
-use crate::{ForgeError, segments};
+use crate::github::{GitHub, pull, repo_path, repository};
+use crate::{ForgeError, Repository, segments};
 use serde_json::json;
-use shipyard_http::{Auth, Method, Request, build_url, items, text};
+use shipyard_http::{Auth, Method, Request, build_url, encode, items, text};
 
 impl GitHub {
     pub(crate) fn write(
@@ -93,6 +93,23 @@ fn mergeable(v: &Value) -> Mergeable {
 }
 
 impl PullApi for GitHub {
+    fn create_repo(&self, slug: &str) -> Result<Repository, ForgeError> {
+        let parts = segments(slug, 2, 2)?;
+        // An organization has its own route; the account itself uses `/user/repos`.
+        let login = text(&self.get("/user", &[])?, "/login");
+        let path = if parts[0].eq_ignore_ascii_case(&login) {
+            "/user/repos".to_string()
+        } else {
+            format!("/orgs/{}/repos", encode(parts[0]))
+        };
+        let v = self.write(
+            Method::Post,
+            &path,
+            json!({ "name": parts[1], "private": true }),
+        )?;
+        Ok(repository(&v))
+    }
+
     fn find_pull(&self, repo: &str, branch: &str) -> Result<Option<PullRequest>, ForgeError> {
         check_branch(branch)?;
         let owner = segments(repo, 2, 2)?[0];

@@ -170,6 +170,8 @@ const fresh = (): State => ({
 		releaseUrl: RELEASE_URL,
 		assistantWidth: 400,
 		assistantSide: "right",
+		notifyOff: [],
+		seenVersion: null,
 	},
 	projects: [],
 	files: {},
@@ -678,6 +680,19 @@ const handlers: Handlers = {
 		return c;
 	},
 	connectionsTest: testConnection,
+	connectionsCreateRepo: (id, slug, click) => {
+		if (conn(id).group !== "forge") throw `${id} is not a forge`;
+		if (!click) throw "this change needs the click of a person";
+		if (slug.split("/").length < 2 || slug.split("/").some((p) => !p || p === "." || p === ".."))
+			throw `setting: a repository name has the form owner/name`;
+		return {
+			slug,
+			url: `https://example.com/${slug}`,
+			defaultBranch: "main",
+			archived: false,
+			canPush: true,
+		};
+	},
 	connectionsRepos: (id) => {
 		if (conn(id).group !== "forge") throw `${id} is not a forge`;
 		return {
@@ -778,6 +793,11 @@ const handlers: Handlers = {
 			latest: newer ? "0.2.0" : "0.1.0",
 			newer,
 			url: "https://example.com/releases/latest",
+			// The sections after the last seen version, or after the running one.
+			notes:
+				newer || (state.prefs.seenVersion != null && state.prefs.seenVersion < "0.1.0")
+					? "## 0.2.0\n- A change."
+					: "",
 		};
 	},
 	syncState: () => syncState(state.sync, syncSources()),

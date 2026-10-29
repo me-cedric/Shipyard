@@ -1,8 +1,8 @@
 //! GitLab: merge requests, discussions and labels, REST v4.
 
 use super::*;
-use crate::gitlab::{GitLab, project_path, pull};
-use crate::{CiState, ForgeError};
+use crate::gitlab::{GitLab, project_path, pull, repository};
+use crate::{CiState, ForgeError, Repository, segments};
 use serde_json::json;
 use shipyard_http::{Auth, Method, Request, build_url, encode, items, text};
 
@@ -74,6 +74,24 @@ fn mergeable(v: &Value) -> Mergeable {
 }
 
 impl PullApi for GitLab {
+    fn create_repo(&self, slug: &str) -> Result<Repository, ForgeError> {
+        let parts = segments(slug, 2, 20)?;
+        let (name, group) = parts.split_last().expect("two segments at least");
+        let group = group.join("/");
+        let ns = self
+            .call(&format!("/namespaces/{}", encode(&group)), &[])
+            .map_err(|e| e.not_found(&group))?;
+        let v = self.write(
+            Method::Post,
+            "/projects",
+            json!({
+                "name": name, "path": name, "visibility": "private",
+                "namespace_id": shipyard_http::num(&ns, "/id").unwrap_or(0),
+            }),
+        )?;
+        Ok(repository(&v))
+    }
+
     fn find_pull(&self, repo: &str, branch: &str) -> Result<Option<PullRequest>, ForgeError> {
         check_branch(branch)?;
         let v = self.call(
