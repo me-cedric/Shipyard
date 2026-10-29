@@ -397,10 +397,7 @@ impl Factory {
 
     /// The run kill switch (REQ-024).
     pub fn cancel(&self, run_id: &str) -> Result<(), String> {
-        let mut inner = self.lock();
-        inner.run(run_id)?;
-        inner.log(run_id, None, kind::NOTE, json!({"stop": "kill switch"}));
-        inner.checked(run_id, RunEvent::Cancel)
+        self.lock().cancel_run(run_id, "kill switch")
     }
 
     /// The global kill switch: on cancels every active run and stops pickup (REQ-024).
@@ -409,8 +406,8 @@ impl Factory {
         inner.kill = on;
         if on {
             for id in inner.live_ids() {
-                inner.log(&id, None, kind::NOTE, json!({"stop": "global kill switch"}));
-                inner.transition(&id, RunEvent::Cancel);
+                // A merged run is not cancelled: it goes to `Done` (the refusal is the answer).
+                let _ = inner.cancel_run(&id, "global kill switch");
             }
         }
     }
@@ -559,6 +556,22 @@ impl Inner {
         }
     }
 
+    /// The one way to cancel a run: a click, the global kill switch or a terminal ticket. A merged
+    /// run is never cancelled: it goes to `Done` through `delivery`. A final run stays as it is.
+    /// The open ticket questions are withdrawn with no comment (REQ-018).
+    pub(crate) fn cancel_run(&mut self, run_id: &str, reason: &str) -> Result<(), String> {
+        let state = self.run(run_id)?.run.state;
+        if state == RunState::Merged {
+            return Err("a merged run goes to Done, not Cancelled".into());
+        }
+        if state.is_final() {
+            return Ok(());
+        }
+        self.withdraw_ticket_questions(run_id);
+        self.log(run_id, None, kind::NOTE, json!({"stop": reason}));
+        self.checked(run_id, RunEvent::Cancel)
+    }
+
     /// `transition` for a person's click: a refusal is an error.
     pub(crate) fn checked(&mut self, run_id: &str, event: RunEvent) -> Result<(), String> {
         let from = self.run(run_id)?.run.state;
@@ -591,13 +604,18 @@ impl Inner {
         if !to.state.clocks_run() {
             park(rec);
         }
-        if to.state.is_final() && !from.state.is_final() {
+        let ended = to.state.is_final() && !from.state.is_final();
+        if ended {
             self.ended.push((rec.project.clone(), rec.key.clone()));
         }
         let payload = json!({
             "from": from.state, "to": to.state, "event": event, "return_to": to.return_to,
         });
         self.log(run_id, None, kind::STATE, payload);
+        if ended {
+            // No push, pull request or thread reply has a target in a final state.
+            self.drop_delivery_approvals(run_id);
+        }
         if from.state != to.state {
             self.map_ticket(run_id, to.state);
         }
@@ -1226,19 +1244,8 @@ impl Dispatch for Factory {
         self.lock().start(request)
     }
 
-    /// A merged run is never cancelled: it goes to `Done` through `delivery`.
     fn stop(&self, run_id: &str, reason: &str) -> Result<(), String> {
-        let mut inner = self.lock();
-        let state = inner.run(run_id)?.run.state;
-        if state == RunState::Merged {
-            return Err("a merged run goes to Done, not Cancelled".into());
-        }
-        if state.is_final() {
-            return Ok(());
-        }
-        inner.withdraw_ticket_questions(run_id);
-        inner.log(run_id, None, kind::NOTE, json!({"stop": reason}));
-        inner.checked(run_id, RunEvent::Cancel)
+        self.lock().cancel_run(run_id, reason)
     }
 
     fn event(&self, event: &SyncEvent) -> Result<(), String> {

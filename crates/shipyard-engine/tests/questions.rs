@@ -319,3 +319,17 @@ fn the_agent_tools_reach_the_run_bus() {
     assert_eq!(fx.f.emit(&who, ask).unwrap()["question"], "Q-001");
     assert_eq!(fx.state(&run), RunState::WaitingForAnswer);
 }
+
+#[test]
+fn a_run_cancel_and_the_global_kill_withdraw_ticket_questions_like_a_terminal_ticket() {
+    let (fx, run) = working(writes(true));
+    fx.f.ask(&run, "work", ask(2, 1, None)).unwrap();
+    fx.f.cancel(&run).unwrap();
+    assert_eq!(fx.f.questions()[0].1.state, QuestionState::Withdrawn);
+
+    let (fx, run) = working(writes(true));
+    fx.f.ask(&run, "work", ask(2, 1, None)).unwrap();
+    fx.f.set_kill_switch(true);
+    assert_eq!(fx.state(&run), RunState::Cancelled);
+    assert_eq!(fx.f.questions()[0].1.state, QuestionState::Withdrawn);
+}

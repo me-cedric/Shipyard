@@ -368,3 +368,17 @@ fn every_runner_event_is_logged() {
     // An exit with code 0 and no report ends the step.
     assert_eq!(fx.state(&run), RunState::Done);
 }
+
+#[test]
+fn the_global_kill_switch_leaves_a_merged_run_to_close() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    let pr = shipyard_core::run::RunEvent::PrMerged;
+    assert_eq!(fx.f.apply(&run, pr).unwrap(), RunState::Merged);
+    fx.f.set_kill_switch(true);
+    assert_eq!(fx.state(&run), RunState::Merged);
+    assert!(
+        fx.f.cancel(&run).is_err(),
+        "a merged run is never cancelled"
+    );
+}

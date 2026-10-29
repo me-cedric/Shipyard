@@ -62,6 +62,14 @@ impl Write {
         }
     }
 
+    /// A push, a pull request or a thread reply: a write that needs a live pull request branch.
+    pub(crate) fn is_delivery(&self) -> bool {
+        matches!(
+            self,
+            Self::Push { .. } | Self::OpenPr { .. } | Self::ResolveThreads { .. }
+        )
+    }
+
     /// Two writes of the same slot: the newer one replaces a pending older one. Only the last
     /// ticket move of a run matters.
     fn same_slot(&self, other: &Self) -> bool {
@@ -204,9 +212,13 @@ impl Factory {
         self.lock().approvals.clone()
     }
 
-    /// A person's click: send the write. `Err` when no such approval waits.
+    /// A person's click: send the write. `Err` when no such approval waits, while the kill
+    /// switch is on, and for a delivery write of a run that ended (the write is dropped) or that
+    /// is in a side state (the write stays: click again when the run goes on). A ticket move or
+    /// a comment of an ended run still goes: it is the close.
     pub fn approve(&self, id: u64) -> Result<Option<String>, String> {
         let mut inner = self.lock();
+        inner.check_approvable(id)?;
         let a = inner.take_approval(id)?;
         inner.log_write(&a.run, Some(id), "approved", &a.write);
         Ok(inner.send(&a.run, &a.write))
@@ -236,17 +248,40 @@ impl Inner {
     pub(crate) fn drop_delivery_approvals(&mut self, run_id: &str) {
         let (gone, kept): (Vec<_>, Vec<_>) = std::mem::take(&mut self.approvals)
             .into_iter()
-            .partition(|a| {
-                a.run == run_id
-                    && matches!(
-                        a.write,
-                        Write::Push { .. } | Write::OpenPr { .. } | Write::ResolveThreads { .. }
-                    )
-            });
+            .partition(|a| a.run == run_id && a.write.is_delivery());
         self.approvals = kept;
         for a in gone {
             self.log_write(run_id, Some(a.id), "dropped", &a.write);
         }
+    }
+
+    fn check_approvable(&mut self, id: u64) -> Result<(), String> {
+        let a = self
+            .approvals
+            .iter()
+            .find(|a| a.id == id)
+            .ok_or_else(|| format!("no approval {id} waits"))?
+            .clone();
+        if self.kill {
+            return Err("the kill switch is on: no write goes out".into());
+        }
+        let Some(state) = self.runs.get(&a.run).map(|r| r.run.state) else {
+            return Ok(());
+        };
+        if a.write.is_delivery() && state.is_final() {
+            self.drop_delivery_approvals(&a.run);
+            return Err(format!(
+                "the run is {}: the write is dropped",
+                state.as_str()
+            ));
+        }
+        if a.write.is_delivery() && state.is_side() {
+            return Err(format!(
+                "the run is {}: approve the write when it goes on",
+                state.as_str()
+            ));
+        }
+        Ok(())
     }
 
     fn take_approval(&mut self, id: u64) -> Result<Approval, String> {

@@ -4,7 +4,7 @@ mod fx;
 
 use fx::{Fx, ONE, writes};
 use shipyard_core::pickup::Writes;
-use shipyard_core::run::RunState;
+use shipyard_core::run::{RunEvent, RunState};
 use shipyard_engine::approvals::Write;
 
 fn labels(l: &[&str]) -> Vec<String> {
@@ -141,4 +141,100 @@ fn a_failed_pull_request_write_is_a_failed_step() {
             .iter()
             .any(|w| w["error"] == "forge down")
     );
+}
+
+/// A bug run in `SelfReview` whose first push waits for a click.
+fn waiting_push(fx: &Fx) -> (String, u64) {
+    fx.git.set_branch("fix/engine/login");
+    let run = fx.start("SHIP-1", &["wf:bug"]);
+    for step in ["triage", "fix", "review"] {
+        fx.done(&run, step);
+    }
+    assert_eq!(fx.state(&run), RunState::SelfReview);
+    let id =
+        fx.f.approvals()
+            .into_iter()
+            .find(|a| matches!(a.write, Write::Push { .. }))
+            .unwrap()
+            .id;
+    (run, id)
+}
+
+fn no_push() -> Writes {
+    Writes {
+        push: false,
+        ..writes(true)
+    }
+}
+
+#[test]
+fn a_cancelled_run_drops_its_delivery_approvals_and_a_click_sends_nothing() {
+    let fx = Fx::new(no_push(), &[]);
+    let (run, id) = waiting_push(&fx);
+    fx.f.cancel(&run).unwrap();
+    assert!(
+        fx.f.approvals()
+            .iter()
+            .all(|a| !matches!(a.write, Write::Push { .. }))
+    );
+    assert!(fx.f.approve(id).is_err());
+    assert!(
+        !fx.writer
+            .sent()
+            .iter()
+            .any(|w| matches!(w, Write::Push { .. }))
+    );
+    assert!(
+        fx.logged(&run, "write")
+            .iter()
+            .any(|w| w["state"] == "dropped" && w["write"]["kind"] == "push")
+    );
+}
+
+#[test]
+fn a_failed_run_drops_its_delivery_approvals() {
+    let fx = Fx::new(no_push(), &[]);
+    let (run, id) = waiting_push(&fx);
+    fx.f.apply(&run, RunEvent::Fail).unwrap();
+    assert_eq!(fx.state(&run), RunState::Failed);
+    assert!(fx.f.approve(id).is_err());
+    assert!(
+        fx.f.approvals()
+            .iter()
+            .all(|a| !matches!(a.write, Write::Push { .. }))
+    );
+}
+
+#[test]
+fn no_approval_goes_out_while_the_kill_switch_is_on() {
+    let fx = Fx::new(Writes::default(), &[ONE]);
+    fx.start("SHIP-1", &[]);
+    let id = fx.f.approvals()[0].id;
+    fx.f.set_kill_switch(true);
+    let err = fx.f.approve(id).unwrap_err();
+    assert!(err.contains("kill switch"), "{err}");
+    assert!(fx.writer.sent().is_empty());
+    // The click stays queued: it goes out when the switch is off.
+    fx.f.set_kill_switch(false);
+    assert!(fx.f.approve(id).is_ok());
+}
+
+#[test]
+fn a_delivery_approval_waits_while_the_run_is_in_a_side_state() {
+    let fx = Fx::new(no_push(), &[]);
+    let (run, id) = waiting_push(&fx);
+    fx.f.apply(&run, RunEvent::Block).unwrap();
+    let err = fx.f.approve(id).unwrap_err();
+    assert!(err.contains("Blocked"), "{err}");
+    assert!(
+        !fx.writer
+            .sent()
+            .iter()
+            .any(|w| matches!(w, Write::Push { .. }))
+    );
+    // The approval stays. After the unblock the click goes out and the run goes on.
+    fx.f.unblock(&run).unwrap();
+    assert_eq!(fx.state(&run), RunState::SelfReview);
+    fx.f.approve(id).unwrap();
+    assert_eq!(fx.state(&run), RunState::PROpen);
 }
