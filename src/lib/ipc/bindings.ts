@@ -29,6 +29,14 @@ export const commands = {
 	healthFix: (id: string, confirm: boolean) => typedError<FixResult, string>(__TAURI_INVOKE("health_fix", { id, confirm })),
 	/**  Reads nothing and writes nothing. W9 adds the codecs. */
 	projectImport: (source: string) => __TAURI_INVOKE<ImportReport>("project_import", { source }),
+	connectionsList: () => typedError<Connection_Serialize[], string>(__TAURI_INVOKE("connections_list")),
+	connectionsAdd: (draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_add", { draft })),
+	connectionsEdit: (id: string, draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_edit", { id, draft })),
+	connectionsRemove: (id: string) => typedError<null, string>(__TAURI_INVOKE("connections_remove", { id })),
+	/**  Write-only: the secret goes to the keychain and no command returns it. */
+	connectionsSetSecret: (id: string, secret: string) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_set_secret", { id, secret })),
+	connectionsTest: (id: string) => typedError<TestOutcome, string>(__TAURI_INVOKE("connections_test", { id })),
+	connectionsRepos: (id: string, cursor: string | null) => typedError<RepoPage_Serialize, string>(__TAURI_INVOKE("connections_repos", { id, cursor })),
 };
 
 /* Types */
@@ -69,6 +77,81 @@ export type Backlink_Serialize = {
 export type BrokenCitation = {
 	target: string,
 	source: string,
+};
+
+export type Capabilities = {
+	hierarchy: boolean,
+	transitions: boolean,
+	labels: boolean,
+	comments: boolean,
+	timeTracking: boolean,
+	assignee: boolean,
+};
+
+/**  A connection as the views see it. It never holds a secret value. */
+export type Connection = Connection_Serialize | Connection_Deserialize;
+
+/**  What a person types. A secret is never part of it: `set_secret` takes it. */
+export type ConnectionDraft = ConnectionDraft_Serialize | ConnectionDraft_Deserialize;
+
+/**  What a person types. A secret is never part of it: `set_secret` takes it. */
+export type ConnectionDraft_Deserialize = {
+	name: string,
+	group: ConnectionGroup,
+	kind: ConnectionKind,
+	/**  Linear has no address. The other kinds need one. */
+	url: string,
+	/**  The account email. Jira Cloud needs it. */
+	user?: string | null,
+};
+
+/**  What a person types. A secret is never part of it: `set_secret` takes it. */
+export type ConnectionDraft_Serialize = {
+	name: string,
+	group: ConnectionGroup,
+	kind: ConnectionKind,
+	/**  Linear has no address. The other kinds need one. */
+	url: string,
+	/**  The account email. Jira Cloud needs it. */
+	user: string | null,
+};
+
+export type ConnectionGroup = "tracker" | "forge";
+
+/**  The product behind a connection. A group picks the use: `github` is a tracker or a forge. */
+export type ConnectionKind = "jira-cloud" | "jira-data-center" | "github" | "gitlab" | "azure-dev-ops" | "linear";
+
+/**  What the last test said. A person sees it as the state of the connection. */
+export type ConnectionState = "untested" | "passed" | "failed";
+
+/**  A connection as the views see it. It never holds a secret value. */
+export type Connection_Deserialize = {
+	id: string,
+	name: string,
+	group: ConnectionGroup,
+	kind: ConnectionKind,
+	url: string,
+	user?: string | null,
+	/**  True when the keychain holds a secret. The value never leaves the keychain. */
+	secret: boolean,
+	state: ConnectionState,
+	/**  The flags of a tracker (REQ-003). `None` for the other groups. */
+	capabilities?: Capabilities | null,
+};
+
+/**  A connection as the views see it. It never holds a secret value. */
+export type Connection_Serialize = {
+	id: string,
+	name: string,
+	group: ConnectionGroup,
+	kind: ConnectionKind,
+	url: string,
+	user: string | null,
+	/**  True when the keychain holds a secret. The value never leaves the keychain. */
+	secret: boolean,
+	state: ConnectionState,
+	/**  The flags of a tracker (REQ-003). `None` for the other groups. */
+	capabilities: Capabilities | null,
 };
 
 export type Contrast = "default" | "high";
@@ -272,6 +355,49 @@ export type ProjectSettings_Serialize = {
 	overrides: Overrides_Serialize,
 };
 
+/**  One page of repositories (REQ-019). */
+export type RepoPage = RepoPage_Serialize | RepoPage_Deserialize;
+
+/**  One page of repositories (REQ-019). */
+export type RepoPage_Deserialize = {
+	items: Repository_Deserialize[],
+	next?: string | null,
+};
+
+/**  One page of repositories (REQ-019). */
+export type RepoPage_Serialize = {
+	items: Repository_Serialize[],
+	next: string | null,
+};
+
+export type Repository = Repository_Serialize | Repository_Deserialize;
+
+export type Repository_Deserialize = {
+	/**  `owner/repo`, `group/subgroup/project` or `project/repo`. */
+	slug: string,
+	url: string,
+	defaultBranch: string,
+	archived: boolean,
+	/**
+	 *  `Some(false)` marks a repository that the account cannot push to (REQ-019).
+	 *  `None` means the forge does not say. Azure DevOps never says in a listing.
+	 */
+	canPush?: boolean | null,
+};
+
+export type Repository_Serialize = {
+	/**  `owner/repo`, `group/subgroup/project` or `project/repo`. */
+	slug: string,
+	url: string,
+	defaultBranch: string,
+	archived: boolean,
+	/**
+	 *  `Some(false)` marks a repository that the account cannot push to (REQ-019).
+	 *  `None` means the forge does not say. Azure DevOps never says in a listing.
+	 */
+	canPush: boolean | null,
+};
+
 export type Resolved = Resolved_Serialize | Resolved_Deserialize;
 
 export type Resolved_Deserialize = {
@@ -307,6 +433,12 @@ export type Severity = "info" | "warning" | "error";
 export type State = "resolved" | 
 /**  The target is not known yet. It stays unresolved until its source is indexed (Q-012). */
 "unresolved" | "broken";
+
+/**
+ *  The result of a connection test. A failure names the missing scope or permission,
+ *  or the reason when it is not a scope (REQ-012).
+ */
+export type TestOutcome = { kind: "passed"; account: string } | { kind: "missing-scope"; scope: string } | { kind: "failed"; reason: string };
 
 export type Theme = "light" | "dark" | "system";
 

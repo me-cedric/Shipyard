@@ -13,6 +13,7 @@ use specta::Type;
 use tauri::AppHandle;
 
 use super::{AppState, Res, blocking, err};
+use crate::connections::Connection;
 
 #[derive(Debug, Serialize, Type)]
 pub struct ParsedRef {
@@ -65,11 +66,28 @@ fn resolve_project(id: &str, e: &Entry) -> Resolved {
     }
 }
 
+/// A connection resolves from the connection store, with its name, kind and state (`connections` REQ-015).
+fn resolve_connection(id: &str, c: &Connection) -> Resolved {
+    Resolved {
+        target: format!("conn:{id}"),
+        kind: "conn".into(),
+        state: State::Resolved,
+        title: Some(c.name.clone()),
+        status: Some(format!("{}: {}", c.kind.as_str(), c.state.as_str())),
+        location: None,
+    }
+}
+
 pub fn resolve(s: &AppState, text: &str) -> Res<Option<Resolved>> {
     if let Some(Ref::Slug(SlugKind::Project, id)) = parse(text)
         && let Some(e) = s.registry()?.get(&id)
     {
         return Ok(Some(resolve_project(&id, e)));
+    }
+    if let Some(Ref::Slug(SlugKind::Connection, id)) = parse(text)
+        && let Some(c) = s.connections.get(&id)?
+    {
+        return Ok(Some(resolve_connection(&id, &c)));
     }
     let found = with_index(s, |i| i.resolve(text))?;
     Ok(match (found, parse(text)) {
@@ -189,6 +207,31 @@ mod tests {
         let r = resolve(&s, &format!("project:{id}")).unwrap().unwrap();
         assert_eq!(r.state, State::Resolved);
         assert!(r.status.is_some());
+    }
+
+    #[test]
+    fn a_connection_ref_resolves_to_its_name_kind_and_state() {
+        use crate::connections::{ConnectionDraft, ConnectionGroup, ConnectionKind};
+        let data = tempfile::tempdir().unwrap();
+        let s = AppState::new(data.path().into());
+        let c = s
+            .connections
+            .add(ConnectionDraft {
+                name: "Acme Linear".into(),
+                group: ConnectionGroup::Tracker,
+                kind: ConnectionKind::Linear,
+                url: String::new(),
+                user: None,
+            })
+            .unwrap();
+        let r = resolve(&s, &format!("conn:{}", c.id)).unwrap().unwrap();
+        assert_eq!(r.state, State::Resolved);
+        assert_eq!(r.title.as_deref(), Some("Acme Linear"));
+        assert_eq!(r.status.as_deref(), Some("linear: untested"));
+        assert_eq!(
+            resolve(&s, "conn:gone").unwrap().unwrap().state,
+            State::Unresolved
+        );
     }
 
     #[test]

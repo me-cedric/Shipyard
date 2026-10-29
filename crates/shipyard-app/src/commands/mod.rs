@@ -4,6 +4,7 @@
 //! The logic sits in plain functions that take `&AppState`, so tests need no Tauri runtime.
 
 pub mod app;
+pub mod connections;
 pub mod health;
 pub mod legacy;
 pub mod prefs;
@@ -14,6 +15,7 @@ use std::fmt::Display;
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
 
+use crate::connections::Connections;
 use shipyard_store::project::Registry;
 use shipyard_store::ref_index::RefIndex;
 use tauri::{AppHandle, Manager};
@@ -27,6 +29,7 @@ pub fn err(e: impl Display) -> String {
 /// Shared state: the app data folder, a write lock and the open ref index.
 pub struct AppState {
     pub dir: PathBuf,
+    pub connections: Connections,
     lock: Mutex<()>,
     pub(crate) index: Mutex<Option<(String, RefIndex)>>,
 }
@@ -34,6 +37,7 @@ pub struct AppState {
 impl AppState {
     pub fn new(dir: PathBuf) -> Self {
         Self {
+            connections: Connections::system(&dir),
             dir,
             lock: Mutex::new(()),
             index: Mutex::new(None),

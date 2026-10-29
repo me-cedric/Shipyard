@@ -15,8 +15,10 @@
 mod client;
 pub mod fake;
 
+use serde::Serialize;
 use serde_json::Value;
 use shipyard_secrets::Secret;
+use specta::Type;
 
 pub use client::{Client, bypasses_proxy};
 
@@ -179,7 +181,8 @@ pub trait Http: Send + Sync {
 
 /// The result of a connection test. A failure names the missing scope or permission,
 /// or the reason when it is not a scope (REQ-012).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum TestOutcome {
     Passed { account: String },
     MissingScope { scope: String },

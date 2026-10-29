@@ -3627,9 +3627,14 @@ name = "shipyard-app"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "shipyard-core",
+ "shipyard-forges",
  "shipyard-git",
+ "shipyard-http",
+ "shipyard-secrets",
  "shipyard-store",
+ "shipyard-trackers",
  "specta",
  "specta-typescript",
  "tauri",
@@ -3664,6 +3669,7 @@ dependencies = [
  "serde_json",
  "shipyard-http",
  "shipyard-secrets",
+ "specta",
  "thiserror 2.0.21",
 ]
 
@@ -3688,8 +3694,10 @@ dependencies = [
  "rustls",
  "rustls-native-certs",
  "rustls-pemfile",
+ "serde",
  "serde_json",
  "shipyard-secrets",
+ "specta",
  "thiserror 2.0.21",
  "ureq",
  "url",

@@ -70,6 +70,13 @@ pub fn conn_account(id: &str) -> String {
 #[error("keychain: {0}")]
 pub struct SecretError(String);
 
+impl SecretError {
+    /// For a store of another crate and for tests. The text never holds a secret value.
+    pub fn new(message: impl Into<String>) -> Self {
+        Self(message.into())
+    }
+}
+
 pub trait SecretStore: Send + Sync {
     fn get(&self, account: &str) -> Result<Option<Secret>, SecretError>;
     fn set(&self, account: &str, secret: &Secret) -> Result<(), SecretError>;

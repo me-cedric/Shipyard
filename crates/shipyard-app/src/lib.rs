@@ -1,8 +1,9 @@
 //! Tauri shell. Commands live in `commands/`, one module for each feature.
 
 mod commands;
+pub mod connections;
 
-use commands::{AppState, app, health, legacy, prefs, projects, refs};
+use commands::{AppState, app, connections as conn, health, legacy, prefs, projects, refs};
 use tauri::Manager;
 use tauri_specta::{Builder, collect_commands};
 
@@ -30,6 +31,13 @@ fn specta_builder() -> Builder<tauri::Wry> {
         health::health_run,
         health::health_fix,
         legacy::project_import,
+        conn::connections_list,
+        conn::connections_add,
+        conn::connections_edit,
+        conn::connections_remove,
+        conn::connections_set_secret,
+        conn::connections_test,
+        conn::connections_repos,
     ])
 }
 

@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use shipyard_http::TestOutcome;
+use specta::Type;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -129,7 +130,8 @@ impl CiStatus {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct Repository {
     /// `owner/repo`, `group/subgroup/project` or `project/repo`.
     pub slug: String,
