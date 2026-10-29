@@ -685,6 +685,16 @@ The system SHALL serve the agent tools over two transports, stdio and HTTP. Both
 - WHEN a local caller sends a call with no valid token
 - THEN the system answers 401 and runs no tool
 
+#### Scenario: Agent without HTTP entries
+- GIVEN a runner whose CLI reads no HTTP MCP entry
+- WHEN a step starts it
+- THEN the MCP file starts `shipyard --mcp-bridge`, the URL and the token are in the file, and no argument holds the token
+
+#### Scenario: App closed
+- GIVEN the bridge runs and the app is closed
+- WHEN the agent calls a tool
+- THEN the bridge answers with an error that says the app is not running
+
 ### Requirement: REQ-038 Run lanes
 
 The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The lane Working SHALL hold `Planning`, `Working`, `SelfReview` and `ChangesRequested`. The lane Needs you SHALL hold `PlanReview`, `WaitingForAnswer`, `Blocked`, `Paused` and `Failed`. The lane Ready to merge SHALL hold a `PROpen` run with passing CI, no change request and no draft. The lane In review SHALL hold each other `PROpen` run. The lane Done SHALL hold `Merged`, `Done` and `Cancelled`.
