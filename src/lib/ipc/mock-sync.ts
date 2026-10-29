@@ -41,6 +41,8 @@ const ticket = (
 	status,
 	category,
 	assignee,
+	// The Work commands resolve the member from the team.
+	member: null,
 	labels,
 	parent: null,
 	url: `https://tracker.example.com/browse/ACME-${n}`,

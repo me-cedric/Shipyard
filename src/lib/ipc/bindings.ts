@@ -93,6 +93,36 @@ export const commands = {
 	syncAdopt: (key: string) => typedError<WorkItemView_Serialize, string>(__TAURI_INVOKE("sync_adopt", { key })),
 	syncLink: (local: string, key: string) => typedError<null, string>(__TAURI_INVOKE("sync_link", { local, key })),
 	syncUnlink: (local: string) => typedError<boolean, string>(__TAURI_INVOKE("sync_unlink", { local })),
+	workContext: () => typedError<WorkContext_Serialize, string>(__TAURI_INVOKE("work_context")),
+	workTeam: () => typedError<TeamView_Serialize, string>(__TAURI_INVOKE("work_team")),
+	workTeamSave: (team: Team_Deserialize) => typedError<TeamView_Serialize, string>(__TAURI_INVOKE("work_team_save", { team })),
+	workSuggest: (key: string) => typedError<Suggestion[], string>(__TAURI_INVOKE("work_suggest", { key })),
+	workAssign: (key: string, member: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_assign", { key, member, click })),
+	workMark: (key: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_mark", { key, click })),
+	workTransition: (key: string, to: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_transition", { key, to, click })),
+	workSealState: () => typedError<SealState, string>(__TAURI_INVOKE("work_seal_state")),
+	workUnlock: (passphrase: string) => typedError<SealState, string>(__TAURI_INVOKE("work_unlock", { passphrase })),
+	workLock: () => typedError<SealState, string>(__TAURI_INVOKE("work_lock")),
+	workSeal: (passphrase: string) => typedError<SealState, string>(__TAURI_INVOKE("work_seal", { passphrase })),
+	workUnseal: (passphrase: string) => typedError<SealState, string>(__TAURI_INVOKE("work_unseal", { passphrase })),
+	estimateList: () => typedError<SheetItem_Serialize[], string>(__TAURI_INVOKE("estimate_list")),
+	estimateGet: (slug: string) => typedError<SheetView_Serialize, string>(__TAURI_INVOKE("estimate_get", { slug })),
+	estimateSave: (slug: string, sheet: Sheet_Deserialize) => typedError<SheetView_Serialize, string>(__TAURI_INVOKE("estimate_save", { slug, sheet })),
+	estimatePortfolio: () => typedError<Portfolio, string>(__TAURI_INVOKE("estimate_portfolio")),
+	excelPreview: (path: string, scope: string | null) => typedError<Preview_Serialize, string>(__TAURI_INVOKE("excel_preview", { path, scope })),
+	excelConfirm: (slug: string, confirmed: boolean) => typedError<SheetView_Serialize, string>(__TAURI_INVOKE("excel_confirm", { slug, confirmed })),
+	excelExport: (slug: string, path: string) => typedError<null, string>(__TAURI_INVOKE("excel_export", { slug, path })),
+	planGet: (slug: string) => typedError<PlanView_Serialize, string>(__TAURI_INVOKE("plan_get", { slug })),
+	planDecisionsSave: (decisions: Decisions_Deserialize) => typedError<null, string>(__TAURI_INVOKE("plan_decisions_save", { decisions })),
+	planCalendarSave: (calendar: Calendar_Deserialize) => typedError<null, string>(__TAURI_INVOKE("plan_calendar_save", { calendar })),
+	timeList: (member: string | null, month: string) => typedError<TimeView_Serialize, string>(__TAURI_INVOKE("time_list", { member, month })),
+	timeAdd: (member: string | null, day: string, minutes: number, note: string, ticket: string | null) => typedError<TimeEntry_Serialize, string>(__TAURI_INVOKE("time_add", { member, day, minutes, note, ticket })),
+	timeFetch: (member: string | null, ticket: string) => typedError<TimeRow_Serialize[], string>(__TAURI_INVOKE("time_fetch", { member, ticket })),
+	timeSend: (member: string | null, day: string, id: string, offsetMinutes: number, reduceRemaining: boolean, click: boolean) => typedError<TimeSent_Serialize, string>(__TAURI_INVOKE("time_send", { member, day, id, offsetMinutes, reduceRemaining, click })),
+	applyPreview: (slugs: string[]) => typedError<DiffRow_Serialize[], string>(__TAURI_INVOKE("apply_preview", { slugs })),
+	applyRun: (slugs: string[], click: boolean) => typedError<ApplyRow_Serialize[], string>(__TAURI_INVOKE("apply_run", { slugs, click })),
+	workItemPreview: (row: Row_Deserialize) => typedError<DiffRow_Serialize, string>(__TAURI_INVOKE("work_item_preview", { row })),
+	workItemCreate: (row: Row_Deserialize, click: boolean) => typedError<ApplyRow_Serialize, string>(__TAURI_INVOKE("work_item_create", { row, click })),
 	/**  Replaces the native menu with one in the language of the person. `labels` is keyed by item id. */
 	shellMenu: (labels: { [key in string]: string }) => typedError<null, string>(__TAURI_INVOKE("shell_menu", { labels })),
 	/**
@@ -110,10 +140,36 @@ export const commands = {
 /* Types */
 export type Accent = "blue" | "violet" | "green" | "orange" | "rose";
 
+export type Action = "create" | "update" | "unchanged";
+
 export type AppInfo = {
 	name: string,
 	version: string,
 	os: string,
+};
+
+export type ApplyRow = ApplyRow_Serialize | ApplyRow_Deserialize;
+
+export type ApplyRow_Deserialize = {
+	reference: string,
+	action: Action,
+	/**  The key of the ticket that the row wrote or matched. */
+	key?: string | null,
+	/**  Why the row failed. The rows before it stay written (REQ-026). */
+	error?: string | null,
+	/**  The fields that this tracker cannot hold. They were not sent. */
+	skipped: Field[],
+};
+
+export type ApplyRow_Serialize = {
+	reference: string,
+	action: Action,
+	/**  The key of the ticket that the row wrote or matched. */
+	key: string | null,
+	/**  Why the row failed. The rows before it stay written (REQ-026). */
+	error: string | null,
+	/**  The fields that this tracker cannot hold. They were not sent. */
+	skipped: Field[],
 };
 
 export type Automation = Automation_Serialize | Automation_Deserialize;
@@ -158,6 +214,23 @@ export type Automation_Serialize = {
 	writes: Writes_Serialize,
 };
 
+/**  When a member works at all. Outside `from` and `until`, and inside an absence, capacity is zero. */
+export type Availability = Availability_Serialize | Availability_Deserialize;
+
+/**  When a member works at all. Outside `from` and `until`, and inside an absence, capacity is zero. */
+export type Availability_Deserialize = {
+	from?: string | null,
+	until?: string | null,
+	absences?: Span_Deserialize[],
+};
+
+/**  When a member works at all. Outside `from` and `until`, and inside an absence, capacity is zero. */
+export type Availability_Serialize = {
+	from?: string,
+	until?: string,
+	absences: Span_Serialize[],
+};
+
 export type Backlink = Backlink_Serialize | Backlink_Deserialize;
 
 export type BacklinkGroup = BacklinkGroup_Serialize | BacklinkGroup_Deserialize;
@@ -182,6 +255,34 @@ export type Backlink_Deserialize = {
 export type Backlink_Serialize = {
 	source: string,
 	title: string | null,
+};
+
+export type Bar = Bar_Serialize | Bar_Deserialize;
+
+export type Bar_Deserialize = {
+	task: string,
+	feature: string,
+	name: string,
+	role: string,
+	/**  `None` when no member fits. The bar then runs one day for each day of effort. */
+	member?: string | null,
+	start: string,
+	end: string,
+	days: number | null,
+	months: MonthSpend[],
+};
+
+export type Bar_Serialize = {
+	task: string,
+	feature: string,
+	name: string,
+	role: string,
+	/**  `None` when no member fits. The bar then runs one day for each day of effort. */
+	member: string | null,
+	start: string,
+	end: string,
+	days: number | null,
+	months: MonthSpend[],
 };
 
 export type Branch = Branch_Serialize | Branch_Deserialize;
@@ -217,6 +318,23 @@ export type Branch_Serialize = {
 export type BrokenCitation = {
 	target: string,
 	source: string,
+};
+
+/**  Working days and public holidays (REQ-016). */
+export type Calendar = Calendar_Serialize | Calendar_Deserialize;
+
+/**  Working days and public holidays (REQ-016). */
+export type Calendar_Deserialize = {
+	/**  1 is Monday, 7 is Sunday. */
+	workingDays?: number[],
+	holidays?: string[],
+};
+
+/**  Working days and public holidays (REQ-016). */
+export type Calendar_Serialize = {
+	/**  1 is Monday, 7 is Sunday. */
+	workingDays: number[],
+	holidays: string[],
 };
 
 export type Capabilities = {
@@ -379,13 +497,77 @@ export type Connection_Serialize = {
 
 export type Contrast = "default" | "high";
 
+/**
+ *  The decisions of a person, for all sheets (REQ-017). Keys are `est:<slug>#<task-id>`.
+ *  It holds no computed date.
+ */
+export type Decisions = Decisions_Serialize | Decisions_Deserialize;
+
+/**
+ *  The decisions of a person, for all sheets (REQ-017). Keys are `est:<slug>#<task-id>`.
+ *  It holds no computed date.
+ */
+export type Decisions_Deserialize = {
+	/**  Task refs, the first gets capacity first. A task that is not here follows in sheet order. */
+	order?: string[],
+	tasks?: { [key in string]: TaskDecision_Deserialize },
+};
+
+/**
+ *  The decisions of a person, for all sheets (REQ-017). Keys are `est:<slug>#<task-id>`.
+ *  It holds no computed date.
+ */
+export type Decisions_Serialize = {
+	/**  Task refs, the first gets capacity first. A task that is not here follows in sheet order. */
+	order: string[],
+	tasks: { [key in string]: TaskDecision_Serialize },
+};
+
 export type Density = "default" | "compact";
+
+export type DiffRow = DiffRow_Serialize | DiffRow_Deserialize;
+
+export type DiffRow_Deserialize = {
+	row: Row_Deserialize,
+	action: Action,
+	/**  The key of the matching ticket. */
+	key?: string | null,
+	/**  What differs, for an update. */
+	changes: Field[],
+};
+
+export type DiffRow_Serialize = {
+	row: Row_Serialize,
+	action: Action,
+	/**  The key of the matching ticket. */
+	key: string | null,
+	/**  What differs, for an update. */
+	changes: Field[],
+};
 
 export type DiffSide = 
 /**  HEAD against the index. */
 "staged" | 
 /**  The index against the working copy. An untracked file shows as all added. */
 "unstaged";
+
+export type Feature = Feature_Serialize | Feature_Deserialize;
+
+export type Feature_Deserialize = {
+	id?: string,
+	name?: string,
+	description?: string,
+	tasks?: Task_Deserialize[],
+};
+
+export type Feature_Serialize = {
+	id: string,
+	name: string,
+	description: string,
+	tasks: Task_Serialize[],
+};
+
+export type Field = "title" | "description" | "estimate" | "parent";
 
 export type FileChange = FileChange_Serialize | FileChange_Deserialize;
 
@@ -482,6 +664,16 @@ export type FixResult = {
 	path: string,
 	content: string,
 	written: boolean,
+};
+
+export type Gantt = Gantt_Serialize | Gantt_Deserialize;
+
+export type Gantt_Deserialize = {
+	bars: Bar_Deserialize[],
+};
+
+export type Gantt_Serialize = {
+	bars: Bar_Serialize[],
 };
 
 export type Group = "compliance" | "tools" | "refs" | 
@@ -649,6 +841,44 @@ export type McpServer = {
 
 export type McpState = { state: "stopped" } | { state: "starting" } | { state: "running" } | { state: "failed"; reason: string };
 
+export type Member = Member_Serialize | Member_Deserialize;
+
+export type Member_Deserialize = {
+	name?: string,
+	/**  The `<handle>` of `member:<handle>`. */
+	handle?: string,
+	/**  The accounts of this person in the trackers (a Jira account id, a GitHub login). */
+	trackers?: string[],
+	role?: string,
+	/**  Days per week. */
+	capacity?: number | null,
+	skills?: string[],
+	/**  `None` when the file has none, or when the seal is on and this machine has no passphrase. */
+	dayRate?: number | null,
+	availability?: Availability_Deserialize,
+};
+
+export type Member_Serialize = {
+	name: string,
+	/**  The `<handle>` of `member:<handle>`. */
+	handle: string,
+	/**  The accounts of this person in the trackers (a Jira account id, a GitHub login). */
+	trackers: string[],
+	role: string,
+	/**  Days per week. */
+	capacity: number | null,
+	skills: string[],
+	/**  `None` when the file has none, or when the seal is on and this machine has no passphrase. */
+	dayRate?: number | null,
+	availability: Availability_Serialize,
+};
+
+export type MonthSpend = {
+	month: string,
+	days: number | null,
+	cost: number | null,
+};
+
 export type OpenStatus = "opened" | 
 /**  The repository has no project file. A person confirms, then the call repeats with `init`. */
 "needs-project-file" | "not-repository" | "folder-not-empty" | "invalid" | "failed";
@@ -675,6 +905,30 @@ export type Overrides_Serialize = {
 export type ParsedRef = {
 	ref: string,
 	kind: string,
+};
+
+export type PlanView = PlanView_Serialize | PlanView_Deserialize;
+
+export type PlanView_Deserialize = {
+	slug: string,
+	gantt: Gantt_Deserialize,
+	decisions: Decisions_Deserialize,
+	calendar: Calendar_Deserialize,
+	today: string,
+};
+
+export type PlanView_Serialize = {
+	slug: string,
+	gantt: Gantt_Serialize,
+	decisions: Decisions_Serialize,
+	calendar: Calendar_Serialize,
+	today: string,
+};
+
+export type Portfolio = {
+	/**  One row for each sheet, by slug. */
+	sheets: ([string, Totals])[],
+	total: Totals,
 };
 
 export type Prefs = Prefs_Serialize | Prefs_Deserialize;
@@ -725,6 +979,26 @@ export type Prefs_Serialize = {
 	releaseUrl: string,
 };
 
+export type Preview = Preview_Serialize | Preview_Deserialize;
+
+export type Preview_Deserialize = {
+	sheet: Sheet_Deserialize,
+	/**  The lots that the workbook holds, in order of first use. */
+	scopes: string[],
+	/**  The lot that `sheet` reads. Other lots are left out, not refused. */
+	scope?: string | null,
+	refused: RefusedRow[],
+};
+
+export type Preview_Serialize = {
+	sheet: Sheet_Serialize,
+	/**  The lots that the workbook holds, in order of first use. */
+	scopes: string[],
+	/**  The lot that `sheet` reads. Other lots are left out, not refused. */
+	scope: string | null,
+	refused: RefusedRow[],
+};
+
 /**
  *  The connection that the project uses for each purpose, as the id of `conn:<id>` (Q-018, working
  *  assumption). The settings and the secret of a connection stay on the machine of the person.
@@ -738,6 +1012,12 @@ export type ProjectConnections = ProjectConnections_Serialize | ProjectConnectio
 export type ProjectConnections_Deserialize = {
 	tracker?: string | null,
 	forge?: string | null,
+	/**
+	 *  The container of the tracker: the Jira project key, `owner/repo` on GitHub or GitLab, the
+	 *  Azure DevOps project or the Linear team. Unset: GitHub and GitLab use the origin repository
+	 *  and the other trackers list the whole account.
+	 */
+	trackerScope?: string | null,
 };
 
 /**
@@ -747,6 +1027,12 @@ export type ProjectConnections_Deserialize = {
 export type ProjectConnections_Serialize = {
 	tracker?: string,
 	forge?: string,
+	/**
+	 *  The container of the tracker: the Jira project key, `owner/repo` on GitHub or GitLab, the
+	 *  Azure DevOps project or the Linear team. Unset: GitHub and GitLab use the origin repository
+	 *  and the other trackers list the whole account.
+	 */
+	trackerScope?: string,
 };
 
 export type ProjectEntry = ProjectEntry_Serialize | ProjectEntry_Deserialize;
@@ -847,11 +1133,19 @@ export type ProviderDraft = {
 
 export type PullOutcome = "up-to-date" | "fast-forwarded" | "rebased";
 
+export type Reason = { kind: "skill"; skill: string } | { kind: "missing-skill"; skill: string } | { kind: "free-days"; days: number | null } | { kind: "full" };
+
 export type RefKind = "branch" | "remote" | "tag";
 
 export type RefLabel = {
 	name: string,
 	kind: RefKind,
+};
+
+export type RefusedRow = {
+	/**  The row number in Excel, from 1. */
+	row: number,
+	reason: string,
 };
 
 /**  One page of repositories (REQ-019). */
@@ -930,6 +1224,37 @@ export type Resolved_Serialize = {
 
 export type Role = "none" | "pm" | "architect" | "developer" | "qa" | "ba" | "lead" | "junior";
 
+/**  One ticket that the sheets ask for. A feature is an epic. A task is a story. */
+export type Row = Row_Serialize | Row_Deserialize;
+
+export type RowKind = "epic" | "story";
+
+/**  One ticket that the sheets ask for. A feature is an epic. A task is a story. */
+export type Row_Deserialize = {
+	/**  `est:<slug>#<row-id>`. The ticket holds it as a label (Q-033). */
+	reference: string,
+	kind: RowKind,
+	title: string,
+	description: string,
+	/**  The estimate of a story, in days. `None` for an epic. */
+	days?: number | null,
+	/**  The ref of the epic row of a story. */
+	parent?: string | null,
+};
+
+/**  One ticket that the sheets ask for. A feature is an epic. A task is a story. */
+export type Row_Serialize = {
+	/**  `est:<slug>#<row-id>`. The ticket holds it as a label (Q-033). */
+	reference: string,
+	kind: RowKind,
+	title: string,
+	description: string,
+	/**  The estimate of a story, in days. `None` for an epic. */
+	days: number | null,
+	/**  The ref of the epic row of a story. */
+	parent: string | null,
+};
+
 export type Runner = Runner_Serialize | Runner_Deserialize;
 
 export type RunnerState = "detected" | "missing";
@@ -958,6 +1283,13 @@ export type Runner_Serialize = {
 	install: string,
 };
 
+export type SealState = {
+	/**  A sheet or a day rate is sealed in the repository. */
+	sealed: boolean,
+	/**  This session holds the passphrase. */
+	unlocked: boolean,
+};
+
 export type SearchHit = {
 	ref: string,
 	kind: string,
@@ -972,7 +1304,88 @@ export type Segment =
 
 export type Severity = "info" | "warning" | "error";
 
+/**  An estimate sheet: the features and tasks of one lot (REQ-009). It holds no total. */
+export type Sheet = Sheet_Serialize | Sheet_Deserialize;
+
+export type SheetItem = SheetItem_Serialize | SheetItem_Deserialize;
+
+export type SheetItem_Deserialize = {
+	slug: string,
+	name?: string | null,
+	state: SheetState,
+	error?: string | null,
+	totals?: Totals | null,
+};
+
+export type SheetItem_Serialize = {
+	slug: string,
+	name: string | null,
+	state: SheetState,
+	error: string | null,
+	totals: Totals | null,
+};
+
+export type SheetState = "ready" | 
+/**  Sealed and this machine has no passphrase: the view shows no number (REQ-014). */
+"locked" | "invalid";
+
+export type SheetView = SheetView_Serialize | SheetView_Deserialize;
+
+export type SheetView_Deserialize = {
+	slug: string,
+	sheet: Sheet_Deserialize,
+	/**  Price, cost and margin (REQ-011). Computed, never stored. */
+	totals: Totals,
+	/**  The days of each task by task id: a percentage task shows its computed days (REQ-010). */
+	days: { [key in string]: number | null },
+	/**  Effort and cost by month. It sums to `totals` (REQ-011). */
+	spread: MonthSpend[],
+	tickets: TaskTicket_Deserialize[],
+};
+
+export type SheetView_Serialize = {
+	slug: string,
+	sheet: Sheet_Serialize,
+	/**  Price, cost and margin (REQ-011). Computed, never stored. */
+	totals: Totals,
+	/**  The days of each task by task id: a percentage task shows its computed days (REQ-010). */
+	days: { [key in string]: number | null },
+	/**  Effort and cost by month. It sums to `totals` (REQ-011). */
+	spread: MonthSpend[],
+	tickets: TaskTicket_Serialize[],
+};
+
+/**  An estimate sheet: the features and tasks of one lot (REQ-009). It holds no total. */
+export type Sheet_Deserialize = {
+	name?: string,
+	currency?: string,
+	/**  A fraction of the cost: `0.15` makes the price 15 % above the cost. */
+	marginRate?: number | null,
+	features?: Feature_Deserialize[],
+};
+
+/**  An estimate sheet: the features and tasks of one lot (REQ-009). It holds no total. */
+export type Sheet_Serialize = {
+	name: string,
+	currency: string,
+	/**  A fraction of the cost: `0.15` makes the price 15 % above the cost. */
+	marginRate: number | null,
+	features: Feature_Serialize[],
+};
+
 export type Side = "ours" | "theirs";
+
+export type Span = Span_Serialize | Span_Deserialize;
+
+export type Span_Deserialize = {
+	from?: string,
+	to?: string,
+};
+
+export type Span_Serialize = {
+	from: string,
+	to: string,
+};
 
 export type Stash = {
 	/**  Position in the list: 0 is the newest. A drop moves the ones after it. */
@@ -998,6 +1411,12 @@ export type StateMapping_Deserialize = {
 export type StateMapping_Serialize = {
 	status?: string,
 	labels?: string[],
+};
+
+export type Suggestion = {
+	handle: string,
+	score: number | null,
+	reasons: Reason[],
 };
 
 /**  The sync state of one connection (REQ-013, REQ-014). */
@@ -1042,12 +1461,231 @@ export type SyncReport = {
 export type SyncStatus = "idle" | "running" | "failed";
 
 /**
+ *  One task of a lot. `days` is a fixed effort. `percent` is a share of the build effort.
+ *  Exactly one is set.
+ */
+export type Task = Task_Serialize | Task_Deserialize;
+
+/**  What a person decided about one task. */
+export type TaskDecision = TaskDecision_Serialize | TaskDecision_Deserialize;
+
+/**  What a person decided about one task. */
+export type TaskDecision_Deserialize = {
+	/**  A fixed start date. */
+	start?: string | null,
+	/**  A member handle. */
+	member?: string | null,
+};
+
+/**  What a person decided about one task. */
+export type TaskDecision_Serialize = {
+	/**  A fixed start date. */
+	start?: string,
+	/**  A member handle. */
+	member?: string,
+};
+
+/**  One ticket of the mirror beside the task that names it (REQ-015). */
+export type TaskTicket = TaskTicket_Serialize | TaskTicket_Deserialize;
+
+/**  One ticket of the mirror beside the task that names it (REQ-015). */
+export type TaskTicket_Deserialize = {
+	task: string,
+	key: string,
+	title: string,
+	/**  The original estimate of the ticket. `None` when the tracker has none. */
+	estimateMinutes?: number | null,
+};
+
+/**  One ticket of the mirror beside the task that names it (REQ-015). */
+export type TaskTicket_Serialize = {
+	task: string,
+	key: string,
+	title: string,
+	/**  The original estimate of the ticket. `None` when the tracker has none. */
+	estimateMinutes: number | null,
+};
+
+/**
+ *  One task of a lot. `days` is a fixed effort. `percent` is a share of the build effort.
+ *  Exactly one is set.
+ */
+export type Task_Deserialize = {
+	id?: string,
+	name?: string,
+	description?: string,
+	role?: string,
+	days?: number | null,
+	percent?: number | null,
+	/**  A task in days feeds the build effort unless it says `other`. A percent task never does. */
+	other?: boolean,
+	/**  The `wi:` key of the ticket of this task (REQ-015). */
+	ticket?: string | null,
+	note?: string,
+};
+
+/**
+ *  One task of a lot. `days` is a fixed effort. `percent` is a share of the build effort.
+ *  Exactly one is set.
+ */
+export type Task_Serialize = {
+	id: string,
+	name: string,
+	description: string,
+	role: string,
+	days?: number | null,
+	percent?: number | null,
+	/**  A task in days feeds the build effort unless it says `other`. A percent task never does. */
+	other?: boolean,
+	/**  The `wi:` key of the ticket of this task (REQ-015). */
+	ticket?: string,
+	note: string,
+};
+
+export type Team = Team_Serialize | Team_Deserialize;
+
+export type TeamView = TeamView_Serialize | TeamView_Deserialize;
+
+export type TeamView_Deserialize = {
+	team: Team_Deserialize,
+	/**  A day rate is sealed and this machine has no passphrase (REQ-005). */
+	locked: boolean,
+	/**  Why the file was refused. The team is then the last valid one (REQ-003). */
+	error?: string | null,
+};
+
+export type TeamView_Serialize = {
+	team: Team_Serialize,
+	/**  A day rate is sealed and this machine has no passphrase (REQ-005). */
+	locked: boolean,
+	/**  Why the file was refused. The team is then the last valid one (REQ-003). */
+	error: string | null,
+};
+
+export type Team_Deserialize = {
+	members?: Member_Deserialize[],
+};
+
+export type Team_Serialize = {
+	members: Member_Serialize[],
+};
+
+/**
  *  The result of a connection test. A failure names the missing scope or permission,
  *  or the reason when it is not a scope (REQ-012).
  */
 export type TestOutcome = { kind: "passed"; account: string } | { kind: "missing-scope"; scope: string } | { kind: "failed"; reason: string };
 
 export type Theme = "light" | "dark" | "system";
+
+/**  A time entry that a person wrote (REQ-020, REQ-021). */
+export type TimeEntry = TimeEntry_Serialize | TimeEntry_Deserialize;
+
+/**  A time entry that a person wrote (REQ-020, REQ-021). */
+export type TimeEntry_Deserialize = {
+	id?: string,
+	day?: string,
+	minutes?: number,
+	note?: string,
+	/**  The `wi:` key of the ticket. */
+	ticket?: string | null,
+	/**  The tracker worklog id: the receipt (REQ-023). */
+	worklog?: string | null,
+};
+
+/**  A time entry that a person wrote (REQ-020, REQ-021). */
+export type TimeEntry_Serialize = {
+	id: string,
+	day: string,
+	minutes: number,
+	note: string,
+	/**  The `wi:` key of the ticket. */
+	ticket?: string,
+	/**  The tracker worklog id: the receipt (REQ-023). */
+	worklog?: string,
+};
+
+export type TimeRow = TimeRow_Serialize | TimeRow_Deserialize;
+
+export type TimeRow_Deserialize = {
+	state: TimeState,
+	entry?: TimeEntry_Deserialize | null,
+	log?: TrackerLog | null,
+	/**  The two durations differ. The system flags it and never corrects it (REQ-024). */
+	differs: boolean,
+	/**
+	 *  A worklog carries the mark of this entry but the entry has no receipt: a lost
+	 *  response. The person stores the id, the system does not send again.
+	 */
+	lostReceipt: boolean,
+};
+
+export type TimeRow_Serialize = {
+	state: TimeState,
+	entry: TimeEntry_Serialize | null,
+	log: TrackerLog | null,
+	/**  The two durations differ. The system flags it and never corrects it (REQ-024). */
+	differs: boolean,
+	/**
+	 *  A worklog carries the mark of this entry but the entry has no receipt: a lost
+	 *  response. The person stores the id, the system does not send again.
+	 */
+	lostReceipt: boolean,
+};
+
+export type TimeSent = TimeSent_Serialize | TimeSent_Deserialize;
+
+export type TimeSent_Deserialize = {
+	/**  The entry with its receipt. */
+	entry: TimeEntry_Deserialize,
+	/**  The tracker held a worklog with the mark of the entry. Nothing was sent (REQ-023). */
+	alreadyThere: boolean,
+};
+
+export type TimeSent_Serialize = {
+	/**  The entry with its receipt. */
+	entry: TimeEntry_Serialize,
+	/**  The tracker held a worklog with the mark of the entry. Nothing was sent (REQ-023). */
+	alreadyThere: boolean,
+};
+
+export type TimeState = "in-tracker" | "to-send" | "only-in-tracker";
+
+export type TimeView = TimeView_Serialize | TimeView_Deserialize;
+
+export type TimeView_Deserialize = {
+	member: string,
+	month: string,
+	/**  The entries of the month. An entry with a receipt is `in-tracker`, the others `to-send`. */
+	rows: TimeRow_Deserialize[],
+	/**  The tracker has the time tracking flag (REQ-022). */
+	canSend: boolean,
+};
+
+export type TimeView_Serialize = {
+	member: string,
+	month: string,
+	/**  The entries of the month. An entry with a receipt is `in-tracker`, the others `to-send`. */
+	rows: TimeRow_Serialize[],
+	/**  The tracker has the time tracking flag (REQ-022). */
+	canSend: boolean,
+};
+
+export type Totals = {
+	days: number | null,
+	cost: number | null,
+	price: number | null,
+	margin: number | null,
+	/**  The roles of tasks that no member rate covers. Their days cost nothing in `cost`. */
+	unrated: string[],
+};
+
+/**  A worklog as the tracker holds it. */
+export type TrackerLog = {
+	id: string,
+	minutes: number,
+	note: string,
+};
 
 export type UpdateInfo = {
 	current: string,
@@ -1072,6 +1710,38 @@ export type WatchNotice_Serialize = {
 	changes: HeadChange_Serialize[],
 };
 
+export type WorkContext = WorkContext_Serialize | WorkContext_Deserialize;
+
+export type WorkContext_Deserialize = {
+	/**  The tracker connection of the project. */
+	tracker?: string | null,
+	/**  The flags of the tracker. A view disables an action that the flags lack (REQ-006, REQ-022). */
+	capabilities?: Capabilities | null,
+	/**  The container that apply creates tickets in. `None` when the project has no setting. */
+	scope?: string | null,
+	/**  The label that marks an item for agent work. `None` when `automation.yaml` turns it off. */
+	pickupLabel?: string | null,
+	/**  The member of the tracker account of this machine, by the `user` of the connection. */
+	me?: string | null,
+	/**  `YYYY-MM-DD`, the first day of the plan. */
+	today: string,
+};
+
+export type WorkContext_Serialize = {
+	/**  The tracker connection of the project. */
+	tracker: string | null,
+	/**  The flags of the tracker. A view disables an action that the flags lack (REQ-006, REQ-022). */
+	capabilities: Capabilities | null,
+	/**  The container that apply creates tickets in. `None` when the project has no setting. */
+	scope: string | null,
+	/**  The label that marks an item for agent work. `None` when `automation.yaml` turns it off. */
+	pickupLabel: string | null,
+	/**  The member of the tracker account of this machine, by the `user` of the connection. */
+	me: string | null,
+	/**  `YYYY-MM-DD`, the first day of the plan. */
+	today: string,
+};
+
 export type WorkItemView = WorkItemView_Serialize | WorkItemView_Deserialize;
 
 export type WorkItemView_Deserialize = {
@@ -1082,6 +1752,12 @@ export type WorkItemView_Deserialize = {
 	/**  `todo`, `in-progress` or `done`. */
 	category: string,
 	assignee?: string | null,
+	/**
+	 *  The team handle of the assignee, found through the tracker accounts of `team.yaml`. `None`
+	 *  when the item has no assignee or the team lacks the assignee: the row shows an unknown
+	 *  member (`work` REQ-008).
+	 */
+	member?: string | null,
 	labels: string[],
 	parent?: string | null,
 	url: string,
@@ -1100,6 +1776,12 @@ export type WorkItemView_Serialize = {
 	/**  `todo`, `in-progress` or `done`. */
 	category: string,
 	assignee: string | null,
+	/**
+	 *  The team handle of the assignee, found through the tracker accounts of `team.yaml`. `None`
+	 *  when the item has no assignee or the team lacks the assignee: the row shows an unknown
+	 *  member (`work` REQ-008).
+	 */
+	member: string | null,
 	labels: string[],
 	parent: string | null,
 	url: string,

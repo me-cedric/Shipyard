@@ -66,6 +66,7 @@ import {
 	syncState,
 	unlink as syncUnlink,
 } from "./mock-sync";
+import * as work from "./mock-work";
 
 type Bindings = typeof commands;
 // A command with a Result returns its data in the mock. The generated wrapper adds the Result.
@@ -106,6 +107,8 @@ type State = {
 	agents: MockAgents;
 	/** The mirror of the fake tracker, the automation file and the ticks. */
 	sync: MockSync;
+	/** The team, the sheets, the plan, the time entries and the worklogs of the Work space. */
+	work: work.MockWork;
 	/** The system notifications that the app asked for. */
 	os: { title: string; body: string }[];
 	/** The labels of the last native menu. */
@@ -135,6 +138,7 @@ const fresh = (): State => ({
 	secrets: {},
 	agents: seedAgents(),
 	sync: seedSync(),
+	work: work.seedWork(),
 	os: [],
 	menu: {},
 });
@@ -194,6 +198,10 @@ function syncSources(): string[] {
 	];
 }
 
+/** The mirror with the team handle of each assignee, as `sync_items` gives it. */
+const memberRows = () =>
+	state.sync.mirror.map((t) => ({ ...t, member: work.handleOf(state.work, t.assignee) }));
+
 function resolve(text: string): Resolved_Serialize | null {
 	const parsed = parseRef(text);
 	if (!parsed) return null;
@@ -220,6 +228,9 @@ function resolve(text: string): Resolved_Serialize | null {
 	const wi = text.startsWith("wi:") ? state.sync.mirror.find((t) => `wi:${t.key}` === text) : null;
 	if (wi)
 		return { ...base, state: "resolved", title: wi.title, status: wi.status, location: wi.url };
+	const owned = active() ? work.workEntities(state.work).find((e) => e.ref === text) : undefined;
+	if (owned)
+		return { ...base, state: "resolved", title: owned.title, status: owned.status, location: null };
 	const hit = active() ? ENTITIES[text] : undefined;
 	if (hit)
 		return { ...base, state: "resolved", title: hit.title, status: hit.status, location: null };
@@ -229,13 +240,18 @@ function resolve(text: string): Resolved_Serialize | null {
 function backlinks(text: string): BacklinkGroup_Serialize[] {
 	if (!active()) return [];
 	const groups = new Map<string, { source: string; title: string | null }[]>();
-	for (const [source, target] of CITES) {
+	const owned = work.workEntities(state.work);
+	const cites = [...CITES, ...work.workCitations(state.work, memberRows())];
+	for (const [source, target] of cites) {
 		if (target !== text) continue;
 		const kind = source.slice(0, source.indexOf(":"));
-		groups.set(kind, [
-			...(groups.get(kind) ?? []),
-			{ source, title: ENTITIES[source]?.title ?? null },
-		]);
+		const title =
+			ENTITIES[source]?.title ??
+			owned.find((e) => e.ref === source)?.title ??
+			state.sync.mirror.find((t) => `wi:${t.key}` === source)?.title ??
+			null;
+		const items = groups.get(kind) ?? [];
+		if (!items.some((i) => i.source === source)) groups.set(kind, [...items, { source, title }]);
 	}
 	return [...groups]
 		.sort(([a], [b]) => a.localeCompare(b))
@@ -245,7 +261,11 @@ function backlinks(text: string): BacklinkGroup_Serialize[] {
 function search(query: string, limit: number): SearchHit[] {
 	const q = query.trim().toLowerCase();
 	if (!q || !active()) return [];
-	const hits = Object.entries(ENTITIES).flatMap(([ref, e]) => {
+	const all = [
+		...Object.entries(ENTITIES).map(([ref, e]) => [ref, e] as const),
+		...work.workEntities(state.work).map((e) => [e.ref, e] as const),
+	];
+	const hits = all.flatMap(([ref, e]) => {
 		const byRef = ref.toLowerCase().includes(q);
 		return byRef || e.title.toLowerCase().includes(q)
 			? [
@@ -458,6 +478,9 @@ const handlers: Handlers = {
 				? {
 						...(file.connections.tracker ? { tracker: file.connections.tracker } : {}),
 						...(file.connections.forge ? { forge: file.connections.forge } : {}),
+						...(file.connections.trackerScope
+							? { trackerScope: file.connections.trackerScope }
+							: {}),
 					}
 				: undefined,
 		};
@@ -649,15 +672,100 @@ const handlers: Handlers = {
 		automationSave(state.sync, a as Parameters<typeof automationSave>[1]);
 		return null;
 	},
-	syncItems: (filter) => (syncSources().length ? syncItems(state.sync, filter) : []),
+	syncItems: (filter) =>
+		syncSources().length
+			? syncItems(state.sync, filter).map((t) => ({
+					...t,
+					member: work.handleOf(state.work, t.assignee),
+				}))
+			: [],
 	syncImportPlan: () => needTracker(() => importPlan(state.sync)),
 	syncImportConfirm: () => needTracker(() => importConfirm(state.sync)),
-	syncAdopt: (key) => needTracker(() => syncAdopt(state.sync, key)),
+	syncAdopt: (key) =>
+		needTracker(() => {
+			const t = syncAdopt(state.sync, key);
+			return { ...t, member: work.handleOf(state.work, t.assignee) };
+		}),
 	syncLink: (local, key) => {
 		needTracker(() => syncLink(state.sync, local, key));
 		return null;
 	},
 	syncUnlink: (local) => needTracker(() => syncUnlink(state.sync, local)),
+	workContext: () => {
+		const p = active();
+		const scope = p ? (state.files[p.id]?.connections?.trackerScope ?? null) : null;
+		return work.workContext(
+			state.work,
+			syncSources()[0] ?? null,
+			scope,
+			state.sync.automation.pickup?.label ?? null,
+		);
+	},
+	workTeam: () => work.teamGet(need(state.work)),
+	workTeamSave: (team) => work.teamSave(need(state.work), team),
+	workSuggest: (key) =>
+		needTracker(() =>
+			work.workSuggest(
+				need(state.work),
+				state.sync.mirror,
+				state.sync.automation.pickup?.label ?? null,
+				key,
+			),
+		),
+	workAssign: (key, member, click) => {
+		needTracker(() => work.workAssign(need(state.work), state.sync.mirror, key, member, click));
+		return null;
+	},
+	workMark: (key, click) => {
+		needTracker(() =>
+			work.workMark(state.sync.mirror, state.sync.automation.pickup?.label ?? null, key, click),
+		);
+		return null;
+	},
+	workTransition: (key, to, click) => {
+		needTracker(() => work.workTransition(state.sync.mirror, key, to, click));
+		return null;
+	},
+	workSealState: () => work.sealState(need(state.work)),
+	workUnlock: (passphrase) => work.sealUnlock(need(state.work), passphrase),
+	workLock: () => work.sealLock(need(state.work)),
+	workSeal: (passphrase) => work.sealAll(need(state.work), passphrase),
+	workUnseal: (passphrase) => work.unsealAll(need(state.work), passphrase),
+	estimateList: () => work.estimateList(need(state.work)),
+	estimateGet: (slug) => work.estimateGet(need(state.work), state.sync.mirror, slug),
+	estimateSave: (slug, sheet) =>
+		work.estimateSave(need(state.work), state.sync.mirror, slug, sheet),
+	estimatePortfolio: () => work.estimatePortfolio(need(state.work)),
+	excelPreview: (path, scope) => work.excelPreview(need(state.work), path, scope),
+	excelConfirm: (slug, confirmed) =>
+		work.excelConfirm(need(state.work), state.sync.mirror, slug, confirmed),
+	excelExport: (slug, path) => {
+		work.excelExport(need(state.work), slug, path);
+		return null;
+	},
+	planGet: (slug) => work.planGet(need(state.work), slug),
+	planDecisionsSave: (decisions) => {
+		work.decisionsSave(need(state.work), decisions);
+		return null;
+	},
+	planCalendarSave: (calendar) => {
+		work.calendarSave(need(state.work), calendar);
+		return null;
+	},
+	timeList: (member, month) =>
+		work.timeList(need(state.work), member, month, syncSources().length > 0),
+	timeAdd: (member, day, minutes, note, ticket) =>
+		work.timeAdd(need(state.work), state.sync.mirror, member, day, minutes, note, ticket),
+	timeFetch: (member, ticket) =>
+		needTracker(() => work.timeFetch(need(state.work), member, ticket)),
+	timeSend: (member, day, id, offset, reduce, click) =>
+		needTracker(() =>
+			work.timeSend(need(state.work), member, day, id, offset, reduce, click, true),
+		),
+	applyPreview: (slugs) => needTracker(() => work.applyPreview(need(state.work), slugs)),
+	applyRun: (slugs, click) => needTracker(() => work.applyRun(need(state.work), slugs, click)),
+	workItemPreview: (row) => needTracker(() => work.itemPreview(need(state.work), row)),
+	workItemCreate: (row, click) => needTracker(() => work.itemCreate(need(state.work), row, click)),
 	codeStatus: () => codeStatus(code()),
 	codeDiff: (path, side) => codeDiff(code(), path, side),
 	codeStage: (paths) => {
@@ -724,6 +832,12 @@ const handlers: Handlers = {
 		conflicts: [],
 	}),
 };
+
+/** The Work data of the active project. Without a project the commands fail as the real ones do. */
+function need<T>(data: T): T {
+	if (!active()) throw "no active project";
+	return data;
+}
 
 function needTracker<T>(f: () => T): T {
 	if (syncSources().length === 0) throw "the project has no tracker connection";
