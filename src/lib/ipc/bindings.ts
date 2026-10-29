@@ -293,6 +293,10 @@ export type Automation_Deserialize = {
 	/**  Key: a run state name (`RunState::as_str`). */
 	status_map?: { [key in string]: StateMapping_Deserialize },
 	writes?: Writes_Deserialize,
+	/**  The reviewers of a pull request that a run opens (`delivery` REQ-012, `q:Q-029`). */
+	reviewers?: string[],
+	/**  The assignee of that pull request when the ticket names none (`delivery` REQ-012). */
+	assignee?: string | null,
 };
 
 export type Automation_Serialize = {
@@ -303,6 +307,10 @@ export type Automation_Serialize = {
 	/**  Key: a run state name (`RunState::as_str`). */
 	status_map: { [key in string]: StateMapping_Serialize },
 	writes: Writes_Serialize,
+	/**  The reviewers of a pull request that a run opens (`delivery` REQ-012, `q:Q-029`). */
+	reviewers?: string[],
+	/**  The assignee of that pull request when the ticket names none (`delivery` REQ-012). */
+	assignee?: string,
 };
 
 /**  When a member works at all. Outside `from` and `until`, and inside an absence, capacity is zero. */
