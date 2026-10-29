@@ -34,8 +34,8 @@ Plan: [plan.md](./plan.md)
 - [x] T021 [P] Write component tests for Dashboards and Home widgets in `src/features/knowledge/dashboards.test.tsx`. Covers REQ-022 to REQ-024.
 - [x] T022 Build Dashboards and the Home widgets in `src/features/knowledge/`. Covers REQ-022 to REQ-024.
 - [x] T023 Write the e2e test `e2e/knowledge.spec.ts`: graph, Explain, handbook, export, deck, path, dashboard. Covers REQ-001 to REQ-026. Done: six tests on the mock. Open: none.
-- [ ] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-026.
-- [ ] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-026.
+- [x] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-026.
+- [x] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-026.
 - [ ] T026 Compare the code with `spec.md`, update stale artifacts, then close Q-044, Q-045 and Q-046. Covers REQ-002, REQ-016, REQ-021.
 
 ## Completion Check

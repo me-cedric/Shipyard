@@ -34,8 +34,8 @@ Plan: [plan.md](./plan.md)
 - [x] T021 [P] Write component tests for the terminal panel and the file viewer in `src/features/code/terminal.test.tsx` and `viewer.test.tsx`. Covers REQ-034 to REQ-036. Done: `terminal.test.tsx` (fake xterm, mock shell) and `viewer.test.tsx`.
 - [x] T022 Build the terminal panel and the file viewer in `src/features/code/`. Covers REQ-034 to REQ-036. Done: `terminal.tsx` with `use-terminal.ts` (one file to switch the events), `viewer.tsx` with `FileViewer` in `src/ui/organisms/`. Open: Q-088 (panel and shortcut), Q-089 (viewer sources).
 - [x] T023 Write the e2e test `e2e/code.spec.ts` with a fake forge: stage, commit, branch, pull request, mark ready, Analyze. Covers REQ-001 to REQ-037. Done: stage, commit, History, branch switch and create, pull request list and detail, comment, mark ready, merge after the confirm click, file viewer, Analyze and terminal echo, on the mock. Open: none.
-- [ ] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-037. Partial: English and French keys and the changelog entries cover the git views. Open: keys of Pull requests, Quality, Impacts and the terminal.
-- [ ] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-037.
+- [x] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-037. Partial: English and French keys and the changelog entries cover the git views. Open: keys of Pull requests, Quality, Impacts and the terminal.
+- [x] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-037.
 - [ ] T026 Compare the code with `spec.md`, update stale artifacts, then close Q-041, Q-042 and Q-043. Covers REQ-014, REQ-015, REQ-027.
 
 ## Completion Check
