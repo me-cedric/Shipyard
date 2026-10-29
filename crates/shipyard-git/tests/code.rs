@@ -904,3 +904,12 @@ fn remote_heads_compare_before_and_after_a_fetch() {
     // The same list twice is quiet: the notice leaves.
     assert!(b.head_changes(&after, &after).unwrap().is_empty());
 }
+
+#[test]
+fn the_remote_is_the_upstream_remote_else_origin_else_none() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    assert_eq!(r.remote().unwrap(), None);
+    let (_t, a, url) = with_remote();
+    assert_eq!(a.remote().unwrap(), Some((s("origin"), url)));
+}

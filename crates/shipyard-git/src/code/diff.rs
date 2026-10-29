@@ -1,7 +1,7 @@
 //! Text diffs with a size cap (REQ-002, REQ-010).
 
 use git2::{Diff, DiffOptions, Patch};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use super::Repo;
@@ -11,7 +11,7 @@ use crate::error::{GitError, Result};
 /// Files above this size count as binary, so a huge file never loads into memory as a diff.
 const MAX_FILE_BYTES: i64 = 8 * 1024 * 1024;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "kebab-case")]
 pub enum DiffSide {
     /// HEAD against the index.

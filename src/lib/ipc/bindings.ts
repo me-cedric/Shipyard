@@ -37,6 +37,31 @@ export const commands = {
 	connectionsSetSecret: (id: string, secret: string) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_set_secret", { id, secret })),
 	connectionsTest: (id: string) => typedError<TestOutcome, string>(__TAURI_INVOKE("connections_test", { id })),
 	connectionsRepos: (id: string, cursor: string | null) => typedError<RepoPage_Serialize, string>(__TAURI_INVOKE("connections_repos", { id, cursor })),
+	codeStatus: () => typedError<Changes_Serialize, string>(__TAURI_INVOKE("code_status")),
+	codeDiff: (path: string, side: DiffSide) => typedError<FileDiff, string>(__TAURI_INVOKE("code_diff", { path, side })),
+	codeStage: (paths: string[]) => typedError<null, string>(__TAURI_INVOKE("code_stage", { paths })),
+	codeUnstage: (paths: string[]) => typedError<null, string>(__TAURI_INVOKE("code_unstage", { paths })),
+	codeDiscard: (paths: string[], untracked: boolean) => typedError<null, string>(__TAURI_INVOKE("code_discard", { paths, untracked })),
+	codeCommit: (summary: string, description: string) => typedError<string, string>(__TAURI_INVOKE("code_commit", { summary, description })),
+	codeLog: (skip: number, limit: number) => typedError<LogPage, string>(__TAURI_INVOKE("code_log", { skip, limit })),
+	codeCommitDetail: (sha: string) => typedError<CommitDetail_Serialize, string>(__TAURI_INVOKE("code_commit_detail", { sha })),
+	codeCommitDiff: (sha: string, path: string) => typedError<FileDiff, string>(__TAURI_INVOKE("code_commit_diff", { sha, path })),
+	codeBranches: () => typedError<Branch_Serialize[], string>(__TAURI_INVOKE("code_branches")),
+	codeBranchCreate: (name: string) => typedError<null, string>(__TAURI_INVOKE("code_branch_create", { name })),
+	codeBranchSwitch: (name: string) => typedError<null, string>(__TAURI_INVOKE("code_branch_switch", { name })),
+	codeBranchDelete: (name: string, force: boolean) => typedError<null, string>(__TAURI_INVOKE("code_branch_delete", { name, force })),
+	codeStashPush: (message: string | null) => typedError<string, string>(__TAURI_INVOKE("code_stash_push", { message })),
+	codeStashList: () => typedError<Stash[], string>(__TAURI_INVOKE("code_stash_list")),
+	codeStashApply: (index: number) => typedError<null, string>(__TAURI_INVOKE("code_stash_apply", { index })),
+	codeStashDrop: (index: number) => typedError<null, string>(__TAURI_INVOKE("code_stash_drop", { index })),
+	codeConflicts: () => typedError<ConflictFile[], string>(__TAURI_INVOKE("code_conflicts")),
+	codeResolve: (path: string, how: Resolution) => typedError<null, string>(__TAURI_INVOKE("code_resolve", { path, how })),
+	codeFetch: () => typedError<null, string>(__TAURI_INVOKE("code_fetch")),
+	codePull: () => typedError<PullOutcome, string>(__TAURI_INVOKE("code_pull")),
+	codePush: () => typedError<null, string>(__TAURI_INVOKE("code_push")),
+	/**  Runs one watch tick now and emits the notices. The background watch runs the same tick. */
+	codeWatchTick: () => typedError<WatchNotice_Serialize[], string>(__TAURI_INVOKE("code_watch_tick")),
+	codeWatchNotice: () => typedError<WatchNotice_Serialize | null, string>(__TAURI_INVOKE("code_watch_notice")),
 };
 
 /* Types */
@@ -74,6 +99,36 @@ export type Backlink_Serialize = {
 	title: string | null,
 };
 
+export type Branch = Branch_Serialize | Branch_Deserialize;
+
+export type BranchKind = "local" | "remote";
+
+export type Branch_Deserialize = {
+	/**  `main` for a local branch, `origin/main` for a remote one. */
+	name: string,
+	kind: BranchKind,
+	/**  The working branch. */
+	is_head: boolean,
+	upstream?: string | null,
+	ahead: number,
+	behind: number,
+	/**  Full id of the tip. */
+	tip: string,
+};
+
+export type Branch_Serialize = {
+	/**  `main` for a local branch, `origin/main` for a remote one. */
+	name: string,
+	kind: BranchKind,
+	/**  The working branch. */
+	is_head: boolean,
+	upstream: string | null,
+	ahead: number,
+	behind: number,
+	/**  Full id of the tip. */
+	tip: string,
+};
+
 export type BrokenCitation = {
 	target: string,
 	source: string,
@@ -86,6 +141,82 @@ export type Capabilities = {
 	comments: boolean,
 	timeTracking: boolean,
 	assignee: boolean,
+};
+
+/**  A file that has a staged and a later unstaged change is in both lists. */
+export type Changes = Changes_Serialize | Changes_Deserialize;
+
+/**  A file that has a staged and a later unstaged change is in both lists. */
+export type Changes_Deserialize = {
+	/**  `None` on a detached HEAD. */
+	branch?: string | null,
+	/**  Full id of HEAD, `None` before the first commit. */
+	head?: string | null,
+	/**  The upstream of the branch, for example `origin/main`. */
+	upstream?: string | null,
+	ahead: number,
+	behind: number,
+	staged: FileChange_Deserialize[],
+	unstaged: FileChange_Deserialize[],
+	untracked: FileChange_Deserialize[],
+	conflicted: FileChange_Deserialize[],
+};
+
+/**  A file that has a staged and a later unstaged change is in both lists. */
+export type Changes_Serialize = {
+	/**  `None` on a detached HEAD. */
+	branch: string | null,
+	/**  Full id of HEAD, `None` before the first commit. */
+	head: string | null,
+	/**  The upstream of the branch, for example `origin/main`. */
+	upstream: string | null,
+	ahead: number,
+	behind: number,
+	staged: FileChange_Serialize[],
+	unstaged: FileChange_Serialize[],
+	untracked: FileChange_Serialize[],
+	conflicted: FileChange_Serialize[],
+};
+
+export type Choice = "ours" | "theirs" | 
+/**  Ours, then theirs. */
+"both" | "neither";
+
+export type CommitDetail = CommitDetail_Serialize | CommitDetail_Deserialize;
+
+export type CommitDetail_Deserialize = {
+	info: CommitInfo,
+	files: FileChange_Deserialize[],
+};
+
+export type CommitDetail_Serialize = {
+	info: CommitInfo,
+	files: FileChange_Serialize[],
+};
+
+export type CommitInfo = {
+	/**  The full id. It is the `commit:<sha>` ref. */
+	sha: string,
+	short: string,
+	summary: string,
+	/**  The message after the summary line. Empty when there is none. */
+	description: string,
+	author_name: string,
+	author_email: string,
+	/**  Seconds since the Unix epoch. */
+	time: number,
+	parents: string[],
+	labels: RefLabel[],
+};
+
+export type ConflictFile = {
+	path: string,
+	/**
+	 *  Both sides are UTF-8 text, so `segments` is filled. False for binary files and for a
+	 *  side that deleted the file: take a whole side.
+	 */
+	text: boolean,
+	segments: Segment[],
 };
 
 /**  A connection as the views see it. It never holds a secret value. */
@@ -158,6 +289,41 @@ export type Contrast = "default" | "high";
 
 export type Density = "default" | "compact";
 
+export type DiffSide = 
+/**  HEAD against the index. */
+"staged" | 
+/**  The index against the working copy. An untracked file shows as all added. */
+"unstaged";
+
+export type FileChange = FileChange_Serialize | FileChange_Deserialize;
+
+export type FileChange_Deserialize = {
+	/**  Path from the working copy root, with `/` separators. */
+	path: string,
+	/**  The old path of a rename. */
+	old_path?: string | null,
+	state: FileState,
+};
+
+export type FileChange_Serialize = {
+	/**  Path from the working copy root, with `/` separators. */
+	path: string,
+	/**  The old path of a rename. */
+	old_path: string | null,
+	state: FileState,
+};
+
+export type FileDiff = {
+	path: string,
+	/**  Unified diff text. Empty for a binary file. */
+	text: string,
+	binary: boolean,
+	/**  The text was cut at `max_bytes`. */
+	truncated: boolean,
+};
+
+export type FileState = "added" | "modified" | "deleted" | "renamed" | "typechange" | "untracked" | "conflicted";
+
 export type Finding = Finding_Serialize | Finding_Deserialize;
 
 export type Finding_Deserialize = {
@@ -197,6 +363,37 @@ export type Group = "compliance" | "tools" | "refs" |
 /**  Reserved: no generated file exists yet. */
 "generated";
 
+/**  A remote branch whose tip moved between two fetches (REQ-017). */
+export type HeadChange = HeadChange_Serialize | HeadChange_Deserialize;
+
+/**  A remote branch whose tip moved between two fetches (REQ-017). */
+export type HeadChange_Deserialize = {
+	name: string,
+	/**  `None` for a new branch. */
+	old?: string | null,
+	new: string,
+	/**  New commits. For a new branch, commits that no other remote branch holds. */
+	count: number,
+	/**  Author of the new tip. */
+	author: string,
+	/**  Subject of the new tip. */
+	subject: string,
+};
+
+/**  A remote branch whose tip moved between two fetches (REQ-017). */
+export type HeadChange_Serialize = {
+	name: string,
+	/**  `None` for a new branch. */
+	old: string | null,
+	new: string,
+	/**  New commits. For a new branch, commits that no other remote branch holds. */
+	count: number,
+	/**  Author of the new tip. */
+	author: string,
+	/**  Subject of the new tip. */
+	subject: string,
+};
+
 export type ImportItem = {
 	path: string,
 	reason: string,
@@ -209,6 +406,12 @@ export type ImportReport = {
 };
 
 export type Lang = "en" | "fr";
+
+export type LogPage = {
+	commits: CommitInfo[],
+	/**  Older commits exist after this page. The view says that the log is cut when it is false. */
+	has_more: boolean,
+};
 
 export type OpenStatus = "opened" | 
 /**  The repository has no project file. A person confirms, then the call repeats with `init`. */
@@ -355,6 +558,15 @@ export type ProjectSettings_Serialize = {
 	overrides: Overrides_Serialize,
 };
 
+export type PullOutcome = "up-to-date" | "fast-forwarded" | "rebased";
+
+export type RefKind = "branch" | "remote" | "tag";
+
+export type RefLabel = {
+	name: string,
+	kind: RefKind,
+};
+
 /**  One page of repositories (REQ-019). */
 export type RepoPage = RepoPage_Serialize | RepoPage_Deserialize;
 
@@ -398,6 +610,15 @@ export type Repository_Serialize = {
 	canPush: boolean | null,
 };
 
+/**  How a person resolves one conflicted file (REQ-005). */
+export type Resolution = 
+/**  One choice for each block, in order. */
+{ kind: "blocks"; choices: Choice[] } | 
+/**  Take a whole side. The only way for a binary file or a deleted side. */
+{ kind: "whole"; side: Side } | 
+/**  The file was edited by hand. It must hold no conflict marker. */
+{ kind: "marked" };
+
 export type Resolved = Resolved_Serialize | Resolved_Deserialize;
 
 export type Resolved_Deserialize = {
@@ -428,7 +649,22 @@ export type SearchHit = {
 	title: string,
 };
 
+export type Segment = 
+/**  Lines both sides agree on. */
+{ kind: "text"; text: string } | 
+/**  One block. `base` is empty when the file has no common ancestor. */
+{ kind: "block"; ours: string; base: string; theirs: string };
+
 export type Severity = "info" | "warning" | "error";
+
+export type Side = "ours" | "theirs";
+
+export type Stash = {
+	/**  Position in the list: 0 is the newest. A drop moves the ones after it. */
+	index: number,
+	message: string,
+	id: string,
+};
 
 export type State = "resolved" | 
 /**  The target is not known yet. It stays unresolved until its source is indexed (Q-012). */
@@ -441,6 +677,21 @@ export type State = "resolved" |
 export type TestOutcome = { kind: "passed"; account: string } | { kind: "missing-scope"; scope: string } | { kind: "failed"; reason: string };
 
 export type Theme = "light" | "dark" | "system";
+
+/**  What the remote watch found: remote branches that moved between two fetches (REQ-017). */
+export type WatchNotice = WatchNotice_Serialize | WatchNotice_Deserialize;
+
+/**  What the remote watch found: remote branches that moved between two fetches (REQ-017). */
+export type WatchNotice_Deserialize = {
+	project: string,
+	changes: HeadChange_Deserialize[],
+};
+
+/**  What the remote watch found: remote branches that moved between two fetches (REQ-017). */
+export type WatchNotice_Serialize = {
+	project: string,
+	changes: HeadChange_Serialize[],
+};
 
 export type WorkState = "clean" | "changed" | "behind" | "ahead" | "missing";
 

@@ -3,7 +3,7 @@
 mod commands;
 pub mod connections;
 
-use commands::{AppState, app, connections as conn, health, legacy, prefs, projects, refs};
+use commands::{AppState, app, code, connections as conn, health, legacy, prefs, projects, refs};
 use tauri::Manager;
 use tauri_specta::{Builder, collect_commands};
 
@@ -38,8 +38,35 @@ fn specta_builder() -> Builder<tauri::Wry> {
         conn::connections_set_secret,
         conn::connections_test,
         conn::connections_repos,
+        code::code_status,
+        code::code_diff,
+        code::code_stage,
+        code::code_unstage,
+        code::code_discard,
+        code::code_commit,
+        code::code_log,
+        code::code_commit_detail,
+        code::code_commit_diff,
+        code::code_branches,
+        code::code_branch_create,
+        code::code_branch_switch,
+        code::code_branch_delete,
+        code::code_stash_push,
+        code::code_stash_list,
+        code::code_stash_apply,
+        code::code_stash_drop,
+        code::code_conflicts,
+        code::code_resolve,
+        code::code_fetch,
+        code::code_pull,
+        code::code_push,
+        code::code_watch_tick,
+        code::code_watch_notice,
     ])
 }
+
+/// The default remote watch interval (spec `code`, REQ-015).
+const WATCH_EVERY: std::time::Duration = std::time::Duration::from_secs(15 * 60);
 
 pub fn run() {
     let builder = specta_builder();
@@ -50,6 +77,7 @@ pub fn run() {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
             app.manage(AppState::new(dir));
+            code::spawn_watch(app.handle().clone(), WATCH_EVERY);
             Ok(())
         })
         .run(tauri::generate_context!())

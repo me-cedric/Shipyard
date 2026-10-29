@@ -44,6 +44,37 @@ pub struct HeadChange {
 }
 
 impl Repo {
+    /// The remote that a fetch and a push use, with its address: the upstream remote of the
+    /// working branch, else `origin`, else the first remote. `None` when there is no remote.
+    pub fn remote(&self) -> Result<Option<(String, String)>> {
+        let upstream = self
+            .repo
+            .head()
+            .ok()
+            .and_then(|h| h.name().ok().map(str::to_string))
+            .and_then(|n| self.repo.branch_upstream_remote(&n).ok())
+            .and_then(|b| b.as_str().ok().map(str::to_string));
+        let names: Vec<String> = self
+            .repo
+            .remotes()?
+            .iter()
+            .flatten()
+            .flatten()
+            .map(|n| n.to_string())
+            .collect();
+        let name = upstream
+            .or_else(|| names.iter().find(|n| *n == "origin").cloned())
+            .or_else(|| names.first().cloned());
+        let Some(name) = name else { return Ok(None) };
+        let url = self
+            .repo
+            .find_remote(&name)?
+            .url()
+            .unwrap_or_default()
+            .to_string();
+        Ok(Some((name, url)))
+    }
+
     /// The remote tracking branches of `remote`, sorted by name. `origin/HEAD` is left out.
     /// Call it before and after [`Repo::fetch`], then pass both lists to [`Repo::head_changes`].
     pub fn remote_heads(&self, remote: &str) -> Result<Vec<RemoteHead>> {

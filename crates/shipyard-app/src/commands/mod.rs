@@ -4,6 +4,7 @@
 //! The logic sits in plain functions that take `&AppState`, so tests need no Tauri runtime.
 
 pub mod app;
+pub mod code;
 pub mod connections;
 pub mod health;
 pub mod legacy;
@@ -11,6 +12,7 @@ pub mod prefs;
 pub mod projects;
 pub mod refs;
 
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
@@ -31,6 +33,8 @@ pub struct AppState {
     pub dir: PathBuf,
     pub connections: Connections,
     lock: Mutex<()>,
+    /// The remote watch notice of each project id, until the person syncs (spec `code`, REQ-017).
+    notices: Mutex<HashMap<String, code::WatchNotice>>,
     pub(crate) index: Mutex<Option<(String, RefIndex)>>,
 }
 
@@ -40,6 +44,7 @@ impl AppState {
             connections: Connections::system(&dir),
             dir,
             lock: Mutex::new(()),
+            notices: Mutex::new(HashMap::new()),
             index: Mutex::new(None),
         }
     }
@@ -47,6 +52,10 @@ impl AppState {
     /// One writer at a time for the files in the app data folder.
     pub fn guard(&self) -> MutexGuard<'_, ()> {
         self.lock.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    pub fn notices(&self) -> MutexGuard<'_, HashMap<String, code::WatchNotice>> {
+        self.notices.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     pub fn registry(&self) -> Res<Registry> {
