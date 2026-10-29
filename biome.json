@@ -1,0 +1,67 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"files": {
+		"includes": [
+			"**",
+			"!src/lib/ipc/bindings.ts",
+			"!docs",
+			"!.agents",
+			"!.claude",
+			"!.codex",
+			"!.github",
+			"!crates",
+			"!**/dist",
+			"!**/target",
+			"!**/node_modules",
+			"!pnpm-lock.yaml",
+			"!.mcp.json",
+			"!renovate.json",
+			"!.vscode",
+			"!**/*.md"
+		]
+	},
+	"formatter": {
+		"lineWidth": 100
+	},
+	"linter": {
+		"enabled": true
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["src/ui/icons/**"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"noSvgWithoutTitle": "off",
+						"noStaticElementInteractions": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/ui/atoms/checkbox.tsx", "src/ui/atoms/switch.tsx"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"noLabelWithoutControl": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/ui/tokens/**"],
+			"linter": {
+				"rules": {
+					"complexity": {
+						"noImportantStyles": "off"
+					}
+				}
+			}
+		}
+	]
+}

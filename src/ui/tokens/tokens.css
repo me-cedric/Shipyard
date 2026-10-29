@@ -1,0 +1,210 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+@font-face {
+	font-family: "Departure Mono";
+	src: url("./fonts/DepartureMono-Regular.woff2") format("woff2");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+/* Spacing is Tailwind's 4 px step (--spacing: 0.25rem). Only the tokens below exist. */
+@theme {
+	--color-*: initial;
+	--text-*: initial;
+	--radius-*: initial;
+	--shadow-*: initial;
+	--inset-shadow-*: initial;
+	--drop-shadow-*: initial;
+	--font-*: initial;
+
+	--color-transparent: transparent;
+	--color-current: currentColor;
+
+	--text-11: 11px;
+	--text-11--line-height: 16px;
+	--text-12: 12px;
+	--text-12--line-height: 16px;
+	--text-13: 13px;
+	--text-13--line-height: 20px;
+	--text-14: 14px;
+	--text-14--line-height: 20px;
+	--text-16: 16px;
+	--text-16--line-height: 24px;
+	--text-20: 20px;
+	--text-20--line-height: 28px;
+
+	--radius-sm: 4px;
+	--radius-md: 6px;
+	--radius-full: 9999px;
+
+	--font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+	--font-mono: "Departure Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+	--duration-fast: 120ms;
+	--duration-base: 200ms;
+	--ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+	--animate-status-pulse: status-pulse 1.6s ease-in-out infinite;
+	@keyframes status-pulse {
+		50% {
+			opacity: 0.35;
+		}
+	}
+}
+
+/* Runtime colour tokens: the value follows the theme through light-dark(). */
+@theme inline {
+	--color-n-1: var(--n-1);
+	--color-n-2: var(--n-2);
+	--color-n-3: var(--n-3);
+	--color-n-4: var(--n-4);
+	--color-n-5: var(--n-5);
+	--color-n-6: var(--n-6);
+	--color-n-7: var(--n-7);
+	--color-n-8: var(--n-8);
+	--color-n-9: var(--n-9);
+	--color-n-10: var(--n-10);
+	--color-n-11: var(--n-11);
+	--color-n-12: var(--n-12);
+
+	--color-accent: var(--accent);
+	--color-accent-hover: var(--accent-hover);
+	--color-accent-fg: var(--accent-fg);
+	--color-accent-subtle: var(--accent-subtle);
+	--color-accent-text: var(--accent-text);
+
+	--color-success: var(--success);
+	--color-success-subtle: var(--success-subtle);
+	--color-success-text: var(--success-text);
+	--color-warning: var(--warning);
+	--color-warning-subtle: var(--warning-subtle);
+	--color-warning-text: var(--warning-text);
+	--color-danger: var(--danger);
+	--color-danger-subtle: var(--danger-subtle);
+	--color-danger-text: var(--danger-text);
+	--color-info: var(--info);
+	--color-info-subtle: var(--info-subtle);
+	--color-info-text: var(--info-text);
+}
+
+/* Theme: data-theme="light|dark|system" on <html>. No attribute means system. */
+:root {
+	color-scheme: light dark;
+	--row-h: 28px;
+	--text-ui: 13px;
+
+	--n-1: light-dark(oklch(0.992 0.003 250), oklch(0.155 0.008 250));
+	--n-2: light-dark(oklch(0.98 0.004 250), oklch(0.18 0.009 250));
+	--n-3: light-dark(oklch(0.962 0.005 250), oklch(0.21 0.01 250));
+	--n-4: light-dark(oklch(0.945 0.006 250), oklch(0.235 0.011 250));
+	--n-5: light-dark(oklch(0.928 0.006 250), oklch(0.26 0.012 250));
+	--n-6: light-dark(oklch(0.905 0.007 250), oklch(0.29 0.013 250));
+	--n-7: light-dark(oklch(0.872 0.008 250), oklch(0.33 0.014 250));
+	--n-8: light-dark(oklch(0.82 0.01 250), oklch(0.395 0.016 250));
+	--n-9: light-dark(oklch(0.64 0.012 250), oklch(0.56 0.016 250));
+	--n-10: light-dark(oklch(0.595 0.012 250), oklch(0.62 0.015 250));
+	--n-11: light-dark(oklch(0.48 0.012 250), oklch(0.76 0.012 250));
+	--n-12: light-dark(oklch(0.23 0.01 250), oklch(0.96 0.005 250));
+
+	/* Accent: the logo blue #3BB9FD. */
+	--accent: oklch(0.757 0.147 238);
+	--accent-hover: light-dark(oklch(0.7 0.15 238), oklch(0.8 0.13 238));
+	--accent-fg: oklch(0.2 0.03 245);
+	--accent-subtle: light-dark(oklch(0.95 0.03 238), oklch(0.28 0.05 245));
+	--accent-text: light-dark(oklch(0.5 0.15 245), oklch(0.8 0.12 238));
+
+	--success: light-dark(oklch(0.62 0.16 150), oklch(0.72 0.17 150));
+	--success-subtle: light-dark(oklch(0.95 0.04 150), oklch(0.27 0.05 150));
+	--success-text: light-dark(oklch(0.42 0.12 150), oklch(0.8 0.15 150));
+	--warning: light-dark(oklch(0.75 0.15 80), oklch(0.82 0.15 85));
+	--warning-subtle: light-dark(oklch(0.96 0.05 90), oklch(0.29 0.05 80));
+	--warning-text: light-dark(oklch(0.45 0.1 70), oklch(0.85 0.13 85));
+	--danger: light-dark(oklch(0.6 0.21 25), oklch(0.68 0.2 25));
+	--danger-subtle: light-dark(oklch(0.95 0.03 25), oklch(0.28 0.07 25));
+	--danger-text: light-dark(oklch(0.48 0.19 25), oklch(0.8 0.13 25));
+	--info: light-dark(oklch(0.58 0.17 275), oklch(0.72 0.14 275));
+	--info-subtle: light-dark(oklch(0.95 0.03 275), oklch(0.28 0.06 275));
+	--info-text: light-dark(oklch(0.46 0.16 275), oklch(0.82 0.1 275));
+}
+
+:root[data-theme="light"] {
+	color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+	color-scheme: dark;
+}
+
+/* Stronger text and borders. */
+:root[data-contrast="high"] {
+	--n-6: light-dark(oklch(0.78 0.01 250), oklch(0.42 0.015 250));
+	--n-7: light-dark(oklch(0.62 0.012 250), oklch(0.52 0.016 250));
+	--n-8: light-dark(oklch(0.5 0.012 250), oklch(0.62 0.016 250));
+	--n-10: light-dark(oklch(0.42 0.012 250), oklch(0.82 0.012 250));
+	--n-11: light-dark(oklch(0.34 0.012 250), oklch(0.89 0.008 250));
+	--n-12: light-dark(oklch(0.14 0.01 250), oklch(0.99 0.003 250));
+}
+
+/* Density changes row height and text size, nothing else. */
+:root[data-density="compact"] {
+	--row-h: 24px;
+	--text-ui: 12px;
+}
+
+@utility h-row {
+	height: var(--row-h);
+}
+
+@utility min-h-row {
+	min-height: var(--row-h);
+}
+
+@utility text-ui {
+	font-size: var(--text-ui);
+	line-height: 1.5;
+}
+
+@layer base {
+	*,
+	::before,
+	::after {
+		border-color: var(--n-6);
+	}
+
+	html,
+	body,
+	#root {
+		height: 100%;
+	}
+
+	body {
+		background: var(--n-1);
+		color: var(--n-12);
+		font-family: var(--font-sans);
+		font-size: var(--text-ui);
+		line-height: 1.5;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 1px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	::before,
+	::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
+
+#root {
+	isolation: isolate;
+}
