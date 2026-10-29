@@ -23,10 +23,10 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - run: npm ci # edit: your install command
-      - run: npx playwright install --with-deps
+      - run: corepack enable && pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
       - name: Run the shard
-        run: npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=blob
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }} --reporter=blob
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
@@ -44,14 +44,14 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - run: npm ci # edit: your install command
+      - run: corepack enable && pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v8
         with:
           path: all-blob-reports
           pattern: blob-report-*
           merge-multiple: true
       - name: Merge the shard reports
-        run: npx playwright merge-reports --reporter=html,junit ./all-blob-reports
+        run: pnpm exec playwright merge-reports --reporter=html,junit ./all-blob-reports
         env:
           PLAYWRIGHT_JUNIT_OUTPUT_NAME: junit.xml
       - uses: actions/upload-artifact@v7

@@ -10,6 +10,7 @@ Design, specify, plan and ship a project with a team of people and agents. Every
 - Rules: [`docs/openspec/constitution.md`](docs/openspec/constitution.md), [`AGENTS.md`](AGENTS.md)
 - Decisions: [`docs/decisions/`](docs/decisions/)
 - Open questions: [`docs/delivery/questions/`](docs/delivery/questions/)
+- Developer guide: [`docs/guide/dev.md`](docs/guide/dev.md)
 
 ## Setup
 
