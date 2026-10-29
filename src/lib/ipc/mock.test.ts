@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { commands } from "./bindings";
-import { mockState } from "./mock";
+import { DEMO_FOLDER, installMockIpc, mockState, pickMock } from "./mock";
 import { unwrap } from "./result";
 
 describe("mock ipc", () => {
@@ -28,6 +28,27 @@ describe("mock ipc", () => {
 		expect((await unwrap(commands.projectsActive()))?.name).toBe("beta");
 		expect((await unwrap(commands.projectsSwitch(a.project?.id ?? ""))).name).toBe("alpha");
 		expect(await unwrap(commands.projectsList())).toHaveLength(2);
+	});
+
+	it("opens a demo project first in the browser build, with a tracker and every Work space filled", async () => {
+		installMockIpc({ demo: true });
+		expect(pickMock()).toBe(DEMO_FOLDER);
+		const demo = await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		expect(demo.status).toBe("opened");
+		const settings = await unwrap(commands.projectSettings());
+		expect(settings?.file?.connections).toMatchObject({
+			tracker: "demo-tracker",
+			trackerScope: "ACME",
+		});
+		expect((await unwrap(commands.syncItems({}))).length).toBeGreaterThan(0);
+		expect((await unwrap(commands.estimateList())).length).toBeGreaterThan(0);
+		expect((await unwrap(commands.workTeam())).team.members.length).toBeGreaterThan(0);
+		// The demo comes once. The next pick walks the folders.
+		expect(pickMock()).toBe("/mock/alpha");
+		// Without the option (tests, e2e) the picker starts with the first folder.
+		installMockIpc();
+		mockState().projects = [];
+		expect(pickMock()).toBe("/mock/beta");
 	});
 
 	it("keeps connections, flags and a write-only secret like the Rust commands", async () => {

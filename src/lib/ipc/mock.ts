@@ -121,6 +121,20 @@ const RELEASE_URL = "https://api.github.com/repos/me-cedric/Shipyard/releases/la
 
 const FOLDERS = ["/mock/alpha", "/mock/beta", "/mock/gamma"];
 
+/**
+ * The project that the browser build opens first. It has a Linear tracker, an imported mirror and
+ * the seeded team, sheets and time, so a reviewer reaches every space with one click. Tests and
+ * the e2e build run without it (`installMockIpc`).
+ */
+export const DEMO_FOLDER = "/mock/demo";
+let demo = false;
+
+const DEFAULT_PATHS = {
+	decisions: "docs/decisions",
+	questions: "docs/delivery/questions",
+	specs: "docs/openspec",
+};
+
 const fresh = (): State => ({
 	prefs: {
 		theme: "system",
@@ -155,7 +169,9 @@ export function resetMock(patch: Partial<State> = {}) {
 export const mockState = () => state;
 
 export function pickMock(): string | null {
-	const f = state.nextFolder ?? FOLDERS[state.cursor++ % FOLDERS.length] ?? null;
+	// The demo comes once, first. The next pick walks the folders as before.
+	const first = demo && !state.projects.some((p) => p.path === DEMO_FOLDER) ? DEMO_FOLDER : null;
+	const f = state.nextFolder ?? first ?? FOLDERS[state.cursor++ % FOLDERS.length] ?? null;
 	state.nextFolder = undefined;
 	return f;
 }
@@ -299,6 +315,33 @@ const deriveKey = (name: string) => {
 	return /^[A-Z]/.test(key) ? key : `P${key}`.slice(0, 6);
 };
 
+/** A tracker connection, a project file that names it, and the backlog in the mirror. */
+function seedDemo(p: ProjectEntry_Serialize) {
+	const id = "demo-tracker";
+	state.connections.push({
+		id,
+		name: "Demo tracker",
+		group: "tracker",
+		kind: "linear",
+		url: "",
+		user: null,
+		secret: true,
+		state: "untested",
+		capabilities: FLAGS.linear,
+	});
+	state.secrets[id] = "demo";
+	state.files[p.id] = {
+		name: p.name,
+		key: p.key,
+		paths: DEFAULT_PATHS,
+		defaultWorkflow: null,
+		gates: [],
+		connections: { tracker: id, trackerScope: "ACME" },
+	};
+	importPlan(state.sync);
+	importConfirm(state.sync);
+}
+
 const outcome = (
 	status: ProjectOutcome_Serialize["status"],
 	message: string | null,
@@ -436,7 +479,10 @@ const handlers: Handlers = {
 		if (path === "/mock/plain") return outcome("not-repository", path);
 		if (path === "/mock/bare" && !init) return outcome("needs-project-file", path);
 		const name = path.split("/").pop() ?? "project";
-		return activate(path, name, deriveKey(name));
+		const known = state.projects.some((p) => p.path === path);
+		const opened = activate(path, name, deriveKey(name));
+		if (path === DEMO_FOLDER && !known && opened.project) seedDemo(opened.project);
+		return opened;
 	},
 	projectsCreate: (path, name, key) => {
 		if (!/^[A-Z][A-Z0-9]{0,9}$/.test(key)) return outcome("invalid", `key: ${key}`);
@@ -464,11 +510,7 @@ const handlers: Handlers = {
 		const file = state.files[p.id] ?? {
 			name: p.name,
 			key: p.key,
-			paths: {
-				decisions: "docs/decisions",
-				questions: "docs/delivery/questions",
-				specs: "docs/openspec",
-			},
+			paths: DEFAULT_PATHS,
 			defaultWorkflow: null,
 			gates: [],
 		};
@@ -855,7 +897,9 @@ function needTracker<T>(f: () => T): T {
 
 const camel = (s: string) => s.replace(/_(\w)/g, (_, c: string) => c.toUpperCase());
 
-export function installMockIpc() {
+/** `demo`: the first folder that the picker returns is the demo project (`DEMO_FOLDER`). */
+export function installMockIpc(options: { demo?: boolean } = {}) {
+	demo = options.demo === true;
 	mockIPC((cmd, args) => {
 		const handler = (handlers as Record<string, ((...a: unknown[]) => unknown) | undefined>)[
 			camel(cmd)
