@@ -48,14 +48,14 @@ export function TextTab({
 				return a ? (
 					<FileFrame path={a.path} refId={a.reference} title={a.title} issue={a.issue}>
 						{(file, onError, error) => (
-							<div className="grid grid-cols-2 gap-3">
+							<div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-1 gap-3">
 								<CodeEditor
 									label={textLabel}
 									value={file.text}
 									errorLine={error?.line}
 									onChange={file.setText}
 								/>
-								{view(file.text, onError)}
+								<div className="min-h-0 overflow-auto">{view(file.text, onError)}</div>
 							</div>
 						)}
 					</FileFrame>

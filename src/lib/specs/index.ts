@@ -84,6 +84,53 @@ export const lastLine = (body: string) =>
 		.filter(Boolean)
 		.pop() ?? "";
 
+const KEYS = [
+	"id",
+	"kind",
+	"status",
+	"raisedAt",
+	"raisedBy",
+	"owner",
+	"specRef",
+	"taskRef",
+	"ticket",
+] as const;
+
+/** A RAID file as a question: the frontmatter keys, the `# ` title, then the body. */
+export function readQuestion(text: string): Question {
+	const clean = text.replace(/\r\n/g, "\n");
+	const m = /^---\n([\s\S]*?)\n---\n?/.exec(clean);
+	const q: Question = {
+		id: "",
+		kind: "",
+		status: "",
+		raisedAt: "",
+		raisedBy: "",
+		owner: "",
+		specRef: "",
+		taskRef: "",
+		ticket: "",
+		title: "",
+		body: "",
+	};
+	for (const l of (m?.[1] ?? "").split("\n")) {
+		const kv = /^([A-Za-z][\w-]*):(.*)$/.exec(l);
+		const key = KEYS.find((k) => k === kv?.[1]);
+		if (!key) continue;
+		const v = (kv?.[2] ?? "").trim();
+		try {
+			q[key] = v.startsWith('"') ? (JSON.parse(v) as string) : v;
+		} catch {
+			q[key] = v;
+		}
+	}
+	const rest = m ? clean.slice(m[0].length) : clean;
+	const t = /^# (.*)\n?/.exec(rest);
+	q.title = t?.[1] ?? "";
+	q.body = t ? rest.slice(t[0].length) : rest;
+	return q;
+}
+
 /** The open items that an archive refusal names, or null for another error. */
 export function openItems(message: string): string[] | null {
 	const m = /^open items: (.*)$/s.exec(message);
@@ -114,6 +161,9 @@ export function useFile(path: string | null) {
 		queryFn: () => unwrap(commands.specsRead(path ?? "")),
 		enabled: path !== null,
 		retry: false,
+		// The stamp is the one of the open: a read of a changed disk would hide the conflict.
+		refetchOnWindowFocus: false,
+		refetchOnReconnect: false,
 	});
 }
 

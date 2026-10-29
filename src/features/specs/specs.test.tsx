@@ -89,6 +89,22 @@ describe("Specs / Changes", () => {
 		await waitFor(() => expect(files()[path]?.text).toMatch(/Y$/));
 	});
 
+	it("keeps the stamp of the open: a disk change before the edit gives the conflict", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<SpecChanges />);
+		await open(user, "add-billing");
+		const path = `${CH}/add-billing/proposal.md`;
+		const box = await screen.findByRole("textbox", { name: "Proposal" });
+		await waitFor(() => expect(box).toHaveValue(files()[path]?.text ?? ""));
+		files()[path] = { text: "other", stamp: "99" };
+		// A focus read must not replace the stamp of the open.
+		window.dispatchEvent(new Event("visibilitychange"));
+		await user.type(box, "Y");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(await screen.findByText("The file changed on disk.")).toBeVisible();
+		expect(files()[path]?.text).toBe("other");
+	});
+
 	it("links a marker to its question and shows a marker with no question as unlinked", async () => {
 		const user = userEvent.setup();
 		const p = `${CH}/add-export/specs/export/spec.md`;
@@ -110,6 +126,15 @@ describe("Specs / Changes", () => {
 		(await row(/add-auth/)).focus();
 		await user.keyboard("{Enter}");
 		expect(await screen.findByRole("navigation", { name: "Artifacts" })).toBeVisible();
+	});
+
+	it("puts the change ref in the inspector when a change opens", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<SpecChanges />);
+		await open(user, "add-billing");
+		expect(screen.getByRole("status", { name: "Inspector" })).toHaveTextContent(
+			"change:add-billing",
+		);
 	});
 });
 

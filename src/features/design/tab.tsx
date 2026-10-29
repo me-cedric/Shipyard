@@ -174,12 +174,13 @@ export function ArtifactTab({
 				</div>
 			) : (
 				<div className="flex min-h-0 flex-1">
-					<ul aria-label={title} className="w-64 shrink-0 overflow-auto border-r">
+					<ul aria-label={title} className="w-80 shrink-0 overflow-auto border-r">
 						{all.map((r) => (
 							<li key={r.ref}>
 								<button
 									type="button"
 									data-nav=""
+									title={r.title}
 									aria-current={r.ref === selected ? "true" : undefined}
 									onClick={() => {
 										setSelected(r.ref);

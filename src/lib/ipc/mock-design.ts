@@ -237,14 +237,25 @@ const DIAGRAMS: Record<string, string> = {
 		elements: [
 			{ id: "a", type: "rectangle", x: 40, y: 40, width: 160, height: 70 },
 			{ id: "b", type: "rectangle", x: 320, y: 40, width: 160, height: 70 },
-			{ id: "c", type: "arrow", x: 200, y: 75, width: 120, height: 0 },
+			{
+				id: "c",
+				type: "arrow",
+				x: 200,
+				y: 75,
+				width: 120,
+				height: 0,
+				points: [
+					[0, 0],
+					[120, 0],
+				],
+			},
 		],
 		appState: {},
 	}),
 	"sync-flow.mmd":
 		"flowchart LR\n  Tracker --> Mirror\n  Mirror --> Work\n  Work -->|apply| Tracker\n",
 	"order-process.bpmn": `<?xml version="1.0" encoding="UTF-8"?>
-<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" id="d1">
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="d1">
   <process id="order" isExecutable="false">
     <startEvent id="s" />
     <task id="t" name="Check the order" />
@@ -252,6 +263,27 @@ const DIAGRAMS: Record<string, string> = {
     <sequenceFlow id="f1" sourceRef="s" targetRef="t" />
     <sequenceFlow id="f2" sourceRef="t" targetRef="e" />
   </process>
+  <bpmndi:BPMNDiagram id="dg">
+    <bpmndi:BPMNPlane id="pl" bpmnElement="order">
+      <bpmndi:BPMNShape id="s_di" bpmnElement="s">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t_di" bpmnElement="t">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e_di" bpmnElement="e">
+        <dc:Bounds x="392" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="f1_di" bpmnElement="f1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="f2_di" bpmnElement="f2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="392" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
 </definitions>
 `,
 	"network.drawio.svg": `<svg xmlns="http://www.w3.org/2000/svg" content="&lt;mxfile&gt;&lt;diagram name=&quot;Network&quot;&gt;&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=&quot;0&quot;/&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;&lt;/diagram&gt;&lt;/mxfile&gt;" width="200" height="80"><rect width="200" height="80" fill="none" stroke="#000"/></svg>\n`,

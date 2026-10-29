@@ -38,6 +38,8 @@ export function FileEditor({
 	const { error, run } = useGuard();
 	const [draft, setDraft] = useState<string | null>(null);
 	const [disk, setDisk] = useState<string | null>(null);
+	// The stamp when the edit started: a later read must not replace it.
+	const [opened, setOpened] = useState<string | null>(null);
 	const base = missing ? "" : file.data?.text;
 	const failed = file.error instanceof Error ? file.error.message : null;
 	const shown = error ?? failed;
@@ -59,7 +61,7 @@ export function FileEditor({
 			actions={actions}
 			primary={{
 				label: t.specs.save,
-				onClick: () => void save(file.data?.stamp ?? null),
+				onClick: () => void save(opened ?? file.data?.stamp ?? null),
 				disabled: !dirty || (base === undefined && !missing),
 			}}
 			save={disk !== null ? "conflict" : dirty ? "dirty" : "clean"}
@@ -76,7 +78,10 @@ export function FileEditor({
 				<CodeEditor
 					label={title}
 					value={text}
-					onChange={setDraft}
+					onChange={(v) => {
+						if (draft === null) setOpened(file.data?.stamp ?? null);
+						setDraft(v);
+					}}
 					errorLine={line ?? problem?.line}
 					readOnly={base === undefined && !missing}
 					className="flex-1"

@@ -59,11 +59,7 @@ export function EditorFrame({
 				<div className="ml-auto flex items-center gap-2">
 					{actions}
 					{primary ? (
-						<Button
-							variant="primary"
-							disabled={primary.disabled || save === "conflict"}
-							onClick={primary.onClick}
-						>
+						<Button disabled={primary.disabled || save === "conflict"} onClick={primary.onClick}>
 							{primary.label}
 						</Button>
 					) : null}

@@ -46,7 +46,7 @@ export function DesignAdrDecision({
 				<Button disabled={busy} onClick={decide(onReject)}>
 					{labels.reject}
 				</Button>
-				<Button variant="primary" disabled={busy} onClick={decide(onAccept)}>
+				<Button disabled={busy} onClick={decide(onAccept)}>
 					{labels.accept}
 				</Button>
 			</div>

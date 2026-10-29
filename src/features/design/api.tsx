@@ -28,9 +28,8 @@ function Try({ a, op, doc }: { a: Artifact; op: ApiOp; doc: ApiDoc }) {
 	const act = useDesignActions();
 	const [pending, setPending] = useState<Pending | null>(null);
 
-	const send = (r: TryRequest) => {
+	const send = (r: TryRequest, server: string) => {
 		// The panel joins the server and the path. The command wants them apart.
-		const server = doc.servers.find((s) => r.url.startsWith(s.replace(/\/$/, ""))) ?? "";
 		const call = () =>
 			act.send({
 				path: a.path,

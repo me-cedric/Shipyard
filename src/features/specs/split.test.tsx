@@ -29,6 +29,20 @@ describe("Specs / Split", () => {
 		expect(written()).toHaveLength(0);
 	});
 
+	it("removes the stories of a removed epic, so the apply has no missing parent", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await renderSpecs(<SpecChanges />);
+		const review = await startSplit(user);
+		await review.findByRole("group", { name: "sessions-req-001" });
+		await user.click(review.getByRole("button", { name: "Remove sessions" }));
+		expect(review.queryByRole("group", { name: "sessions-req-001" })).toBeNull();
+		expect(review.queryByRole("group", { name: "sessions-req-002" })).toBeNull();
+		await user.click(review.getByRole("button", { name: "Preview" }));
+		const apply = within(await screen.findByRole("dialog"));
+		await waitFor(() => expect(apply.queryByText(/parent missing/)).toBeNull());
+	});
+
 	it("adds an item and edits a title before the preview", async () => {
 		const user = userEvent.setup();
 		await withTracker();

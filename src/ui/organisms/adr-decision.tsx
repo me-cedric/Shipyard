@@ -36,7 +36,7 @@ export function AdrDecision({
 				<Button disabled={busy || !comment.trim()} onClick={() => onReject(comment.trim())}>
 					{labels.reject}
 				</Button>
-				<Button variant="primary" disabled={busy} onClick={onAccept}>
+				<Button disabled={busy} onClick={onAccept}>
 					{labels.accept}
 				</Button>
 			</div>

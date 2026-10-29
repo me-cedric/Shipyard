@@ -95,6 +95,24 @@ describe("Specs / Questions", () => {
 		await waitFor(() => expect(files()[`${QDIR}/Q-020.md`]?.text).toContain("owner: grace2"));
 	});
 
+	it("fills the form from the file that the stamp belongs to", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<Questions />);
+		const row = await screen.findByRole("row", { name: /^Q-020/ });
+		const path = `${QDIR}/Q-020.md`;
+		const f = files()[path];
+		if (!f) throw new Error("no Q-020");
+		// The file changed after the list was read.
+		files()[path] = { ...f, text: f.text.replace("owner: grace", "owner: zed") };
+		await user.click(row);
+		const dialog = within(await screen.findByRole("dialog"));
+		await waitFor(() => expect(dialog.getByLabelText("Owner")).toHaveValue("zed"));
+		await fill(user, "Title", "New title");
+		await user.click(dialog.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(files()[path]?.text).toContain("# New title"));
+		expect(files()[path]?.text).toContain("owner: zed");
+	});
+
 	it("folds an answer after a preview and one click, with no new section", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));

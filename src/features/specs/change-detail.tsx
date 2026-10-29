@@ -119,7 +119,7 @@ export function ChangeDetail({ change, onBack }: { change: Change; onBack: () =>
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
 			<h1 className="sr-only">{change.id}</h1>
-			<div className="flex gap-3">
+			<div className="flex min-h-0 flex-1 gap-3">
 				<nav aria-label={s.artifacts} className="flex w-56 shrink-0 flex-col gap-1">
 					<IconButton label={s.back} onClick={onBack}>
 						<ChevronLeftIcon size={14} />

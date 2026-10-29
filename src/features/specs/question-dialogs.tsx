@@ -6,6 +6,7 @@ import {
 	lastLine,
 	type Question,
 	type QuestionEntry,
+	readQuestion,
 	STATUSES,
 	useFile,
 	useFoldTargets,
@@ -50,8 +51,13 @@ export function QuestionDialog({
 	const act = useSpecsActions();
 	const { error, setError, run } = useGuard();
 	const file = useFile(entry?.path ?? null);
-	const [q, setQ] = useState<Question>(entry?.question ?? BLANK);
-	const set = (patch: Partial<Question>) => setQ((x) => ({ ...x, ...patch }));
+	// The fields come from the file that the stamp belongs to; the list entry shows until it loads.
+	const [edits, setEdits] = useState<Partial<Question>>({});
+	const q: Question = {
+		...(entry ? (file.data ? readQuestion(file.data.text) : entry.question) : BLANK),
+		...edits,
+	};
+	const set = (patch: Partial<Question>) => setEdits((x) => ({ ...x, ...patch }));
 	const field = (label: string, key: "id" | "title" | "kind" | "status" | "owner" | "specRef") => (
 		<Input
 			caption

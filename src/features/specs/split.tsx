@@ -158,7 +158,9 @@ function Review({
 							</span>
 							<IconButton
 								label={`${s.remove} ${i.rowId}`}
-								onClick={() => setItems((xs) => xs.filter((x) => x.rowId !== i.rowId))}
+								onClick={() =>
+									setItems((xs) => xs.filter((x) => x.rowId !== i.rowId && x.parent !== i.rowId))
+								}
 							>
 								<TrashIcon size={14} />
 							</IconButton>

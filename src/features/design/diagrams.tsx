@@ -53,14 +53,16 @@ function Diagram({ a }: { a: Artifact }) {
 					);
 				if (format === "mermaid")
 					return (
-						<div className="grid grid-cols-2 gap-3">
+						<div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-1 gap-3">
 							<CodeEditor
 								label={t.design.diagram.text}
 								value={file.text}
 								errorLine={error?.line}
 								onChange={file.setText}
 							/>
-							<MermaidView source={file.text} label={a.title} onError={onError} />
+							<div className="min-h-0 overflow-auto">
+								<MermaidView source={file.text} label={a.title} onError={onError} />
+							</div>
 						</div>
 					);
 				if (format === "bpmn")

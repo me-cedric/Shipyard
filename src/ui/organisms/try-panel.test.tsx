@@ -34,9 +34,30 @@ describe("TryPanel", () => {
 		setup(onSend);
 		await userEvent.type(screen.getByRole("textbox", { name: "id" }), "7");
 		await userEvent.click(screen.getByRole("button", { name: "Send" }));
-		expect(onSend).toHaveBeenCalledWith({ url: "https://api.test/o/7", method: "GET" });
+		expect(onSend).toHaveBeenCalledWith(
+			{ url: "https://api.test/o/7", method: "GET" },
+			"https://api.test",
+		);
 		expect(await screen.findByText('{"ok":true}')).toBeInTheDocument();
 		expect(screen.getByText("200")).toBeInTheDocument();
+	});
+
+	it("passes the selected server, also when another one is its prefix", async () => {
+		const onSend = vi.fn().mockResolvedValue({ status: 200, body: "{}" });
+		renderApp(
+			<TryPanel
+				servers={["http://h:80", "http://h:8080"]}
+				method="GET"
+				path="/o"
+				params={[]}
+				onSend={onSend}
+				labels={labels}
+			/>,
+		);
+		await userEvent.click(screen.getByRole("combobox", { name: "Server" }));
+		await userEvent.click(await screen.findByRole("option", { name: "http://h:8080" }));
+		await userEvent.click(screen.getByRole("button", { name: "Send" }));
+		expect(onSend).toHaveBeenCalledWith(expect.anything(), "http://h:8080");
 	});
 
 	it("shows a failure", async () => {

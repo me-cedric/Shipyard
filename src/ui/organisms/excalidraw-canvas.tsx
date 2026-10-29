@@ -1,15 +1,20 @@
-import { Excalidraw, serializeAsJSON } from "@excalidraw/excalidraw";
+import { Excalidraw, restore, serializeAsJSON } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import { useMemo, useRef } from "react";
 
 /** The scene of a text. The text is JSON, or empty for a new board. Throws on bad JSON. */
 export function parseScene(text: string) {
 	const scene = text.trim() ? JSON.parse(text) : {};
+	// `restore` fills the fields that a partial element lacks, so the canvas does not crash on it.
+	const restored = restore(
+		{ elements: scene.elements ?? [], appState: scene.appState ?? {}, files: scene.files ?? {} },
+		null,
+		null,
+	);
 	return {
-		elements: scene.elements ?? [],
+		...restored,
 		// A stored scene carries `collaborators` as an array. Excalidraw expects a Map.
-		appState: { ...(scene.appState ?? {}), collaborators: undefined },
-		files: scene.files ?? {},
+		appState: { ...restored.appState, collaborators: undefined },
 		scrollToContent: true,
 	};
 }

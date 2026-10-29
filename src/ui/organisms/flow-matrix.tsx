@@ -149,7 +149,7 @@ export function FlowMatrix({
 						className="pl-7"
 					/>
 				</div>
-				<Button variant="primary" className="ml-auto" onClick={() => start("", EMPTY)}>
+				<Button className="ml-auto" onClick={() => start("", EMPTY)}>
 					<PlusIcon size={14} />
 					{labels.add}
 				</Button>

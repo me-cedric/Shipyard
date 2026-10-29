@@ -34,6 +34,21 @@ test("copies the ref of a diagram and shows its backlinks in the inspector", asy
 	await expect(inspector(page).getByRole("heading", { name: "Screen (1)" })).toBeVisible();
 });
 
+test("draws the demo Excalidraw scene and the demo BPMN process", async ({ page }) => {
+	const errors: string[] = [];
+	page.on("pageerror", (e) => errors.push(e.message));
+	await openDesign(page, "Diagrams");
+	await list(page, "Diagrams")
+		.getByRole("button", { name: /context/ })
+		.click();
+	await expect(page.locator(".excalidraw")).toBeVisible();
+	await list(page, "Diagrams")
+		.getByRole("button", { name: /order-process/ })
+		.click();
+	await expect(page.locator("svg .djs-element").first()).toBeAttached();
+	expect(errors).toEqual([]);
+});
+
 test("accepts a proposed ADR with a comment", async ({ page }) => {
 	await openDesign(page, "Decisions");
 	await list(page, "Decisions").getByRole("button", { name: /0003/ }).click();

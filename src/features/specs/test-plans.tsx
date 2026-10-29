@@ -21,6 +21,8 @@ import { FileEditor } from "./file-editor";
 import { NameDialog } from "./name-dialog";
 import { WithProject } from "./no-project";
 
+// Two lines of chips; a longer list is clipped.
+const PLAN_ROW = 56;
 const DIR = "docs/delivery/test-plans";
 const slug = (name: string) =>
 	name
@@ -135,7 +137,7 @@ function PlanList() {
 				header: s.cited,
 				meta: { width: "2fr" },
 				cell: ({ row }) => (
-					<span className="flex gap-1">
+					<span className="flex flex-wrap gap-1">
 						{row.original.refs.map((r) => (
 							<RefChip
 								key={r}
@@ -172,8 +174,12 @@ function PlanList() {
 				</div>
 			) : (
 				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto">
-					<div className="flex h-56 shrink-0 flex-col">
+					<div
+						className="flex shrink-0 flex-col"
+						style={{ height: Math.min(224, (plans?.length ?? 0) * PLAN_ROW + 28 + 2) }}
+					>
 						<DataTable
+							rowHeight={PLAN_ROW}
 							label={t.tabs.specs["test-plans"]}
 							data={plans ?? []}
 							columns={columns}

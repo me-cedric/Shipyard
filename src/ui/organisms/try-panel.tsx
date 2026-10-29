@@ -26,7 +26,7 @@ export function TryPanel({
 	method: string;
 	path: string;
 	params: ApiParam[];
-	onSend: (request: TryRequest) => Promise<TryResponse>;
+	onSend: (request: TryRequest, server: string) => Promise<TryResponse>;
 	labels: {
 		server: string;
 		method: string;
@@ -49,7 +49,7 @@ export function TryPanel({
 		setBusy(true);
 		try {
 			setResult({
-				response: await onSend(buildRequest(server, method, path, params, values, body)),
+				response: await onSend(buildRequest(server, method, path, params, values, body), server),
 			});
 		} catch (e) {
 			setResult({ failure: e instanceof Error ? e.message : String(e) });

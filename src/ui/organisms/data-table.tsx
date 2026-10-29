@@ -37,6 +37,7 @@ export function DataTable<T extends RowData>({
 	onOpen,
 	selected,
 	footer,
+	rowHeight,
 }: {
 	columns: ColumnDef<T>[];
 	data: T[];
@@ -48,6 +49,8 @@ export function DataTable<T extends RowData>({
 	selected?: string | null;
 	/** The cells of a last row outside the scroll, one for each column: the totals. */
 	footer?: ReactNode[];
+	/** The height of a row in px, when a cell wraps. */
+	rowHeight?: number;
 }) {
 	const { t } = useI18n();
 	const table = useReactTable({
@@ -80,6 +83,7 @@ export function DataTable<T extends RowData>({
 				items={entries}
 				itemKey={(e) => (e.kind === "group" ? `g:${e.id}` : e.row.id)}
 				isRow={(e) => e.kind === "row"}
+				rowHeight={rowHeight}
 				header={
 					<div role="row" style={grid} className="grid h-row items-center gap-3 border-b px-3">
 						{table.getHeaderGroups().flatMap((hg) =>
@@ -126,7 +130,7 @@ export function DataTable<T extends RowData>({
 										}
 									: undefined
 							}
-							style={grid}
+							style={rowHeight ? { ...grid, height: rowHeight } : grid}
 							className={cn(
 								"grid h-row items-center gap-3 border-b px-3",
 								onOpen && "cursor-default hover:bg-n-3",

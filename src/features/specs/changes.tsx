@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useShell } from "@/lib/shell";
 import {
 	ARTIFACTS,
 	type Change,
@@ -34,6 +35,7 @@ function ChangeList() {
 	const { t } = useI18n();
 	const s = t.specs;
 	const act = useSpecsActions();
+	const { openRef } = useShell();
 	const list = useChanges().data;
 	const markers = useMarkerCounts(list ?? []);
 	const [open, setOpen] = useState<string | null>(null);
@@ -92,7 +94,10 @@ function ChangeList() {
 					data={list ?? []}
 					columns={columns}
 					rowId={(c) => c.id}
-					onOpen={(c) => setOpen(c.id)}
+					onOpen={(c) => {
+						setOpen(c.id);
+						openRef(`change:${c.id}`);
+					}}
 				/>
 			)}
 			{creating ? (
@@ -102,6 +107,7 @@ function ChangeList() {
 					onCreate={async (id) => {
 						const c = await act.createChange(id);
 						setOpen(c.id);
+						openRef(`change:${c.id}`);
 					}}
 					onClose={() => setCreating(false)}
 				/>
