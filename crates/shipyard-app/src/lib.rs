@@ -2,21 +2,48 @@
 
 mod commands;
 
-use commands::{app, health, projects};
+use commands::{AppState, app, health, legacy, prefs, projects, refs};
+use tauri::Manager;
 use tauri_specta::{Builder, collect_commands};
 
 fn specta_builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new().commands(collect_commands![
         app::app_info,
-        projects::projects_recent,
-        health::health_ping,
+        prefs::prefs_get,
+        prefs::prefs_set,
+        refs::refs_parse,
+        refs::refs_resolve,
+        refs::refs_backlinks,
+        refs::refs_search,
+        refs::refs_check,
+        refs::refs_reindex,
+        projects::projects_list,
+        projects::projects_active,
+        projects::projects_open,
+        projects::projects_create,
+        projects::projects_clone,
+        projects::projects_switch,
+        projects::projects_set_view,
+        projects::project_settings,
+        projects::project_file_save,
+        projects::project_overrides_save,
+        health::health_run,
+        health::health_fix,
+        legacy::project_import,
     ])
 }
 
 pub fn run() {
     let builder = specta_builder();
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(builder.invoke_handler())
+        .setup(|app| {
+            let dir = app.path().app_data_dir()?;
+            std::fs::create_dir_all(&dir)?;
+            app.manage(AppState::new(dir));
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running Shipyard");
 }

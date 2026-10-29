@@ -15,6 +15,11 @@ serde.workspace = true
 tauri.workspace = true
 tauri-specta.workspace = true
 specta.workspace = true
+shipyard-core = { path = "../shipyard-core" }
+shipyard-git = { path = "../shipyard-git" }
+shipyard-store = { path = "../shipyard-store" }
+tauri-plugin-dialog = "2"
 
 [dev-dependencies]
 specta-typescript.workspace = true
+tempfile = "3.27.0"

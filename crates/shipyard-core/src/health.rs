@@ -46,6 +46,8 @@ pub struct Finding {
 }
 
 pub enum FileState {
+    /// The project folder is gone.
+    FolderMissing,
     Missing,
     Valid,
     /// Each issue: the line, when known, and the value.
@@ -89,11 +91,20 @@ fn finding(id: String, group: Group, severity: Severity, code: &str, fix: Fix) -
 
 pub fn evaluate(i: &HealthInput) -> Vec<Finding> {
     let mut out = Vec::new();
+    if matches!(i.project_file, FileState::FolderMissing) {
+        return vec![finding(
+            "folder-missing".into(),
+            Group::Compliance,
+            Severity::Error,
+            "folder-missing",
+            Fix::Recheck,
+        )];
+    }
     let open_file = Fix::Open {
         target: format!("doc:{PROJECT_FILE}"),
     };
     match &i.project_file {
-        FileState::Valid => {}
+        FileState::Valid | FileState::FolderMissing => {}
         FileState::Missing => out.push(finding(
             "project-file-missing".into(),
             Group::Compliance,

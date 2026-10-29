@@ -126,6 +126,14 @@ impl RefIndex {
         Ok(tx.commit()?)
     }
 
+    /// The number of indexed sources.
+    pub fn count_sources(&self) -> Result<usize> {
+        Ok(self
+            .conn
+            .query_row("SELECT COUNT(*) FROM sources", [], |r| r.get::<_, i64>(0))?
+            as usize)
+    }
+
     /// Drops the whole index. The next `sync_repo` rebuilds it.
     pub fn clear(&mut self) -> Result<()> {
         Ok(self

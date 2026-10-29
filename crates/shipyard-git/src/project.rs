@@ -17,6 +17,18 @@ pub enum WorkState {
     Missing,
 }
 
+impl WorkState {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Clean => "clean",
+            Self::Changed => "changed",
+            Self::Behind => "behind",
+            Self::Ahead => "ahead",
+            Self::Missing => "missing",
+        }
+    }
+}
+
 fn git(dir: Option<&Path>, args: &[&str]) -> std::io::Result<Output> {
     let mut c = Command::new("git");
     if let Some(d) = dir {

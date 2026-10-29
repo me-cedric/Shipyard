@@ -6,20 +6,319 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 /** Commands */
 export const commands = {
 	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
-	projectsRecent: () => __TAURI_INVOKE<RecentProject[]>("projects_recent"),
-	healthPing: () => __TAURI_INVOKE<string>("health_ping"),
+	prefsGet: () => typedError<Prefs_Serialize, string>(__TAURI_INVOKE("prefs_get")),
+	prefsSet: (patch: PrefsPatch_Deserialize) => typedError<Prefs_Serialize, string>(__TAURI_INVOKE("prefs_set", { patch })),
+	refsParse: (text: string) => __TAURI_INVOKE<ParsedRef | null>("refs_parse", { text }),
+	refsResolve: (text: string) => typedError<Resolved_Serialize | null, string>(__TAURI_INVOKE("refs_resolve", { text })),
+	refsBacklinks: (text: string) => typedError<BacklinkGroup_Serialize[], string>(__TAURI_INVOKE("refs_backlinks", { text })),
+	refsSearch: (query: string, limit: number) => typedError<SearchHit[], string>(__TAURI_INVOKE("refs_search", { query, limit })),
+	refsCheck: () => typedError<BrokenCitation[], string>(__TAURI_INVOKE("refs_check")),
+	/**  Repair: drops the index and rebuilds it. Returns the number of indexed files. */
+	refsReindex: () => typedError<number, string>(__TAURI_INVOKE("refs_reindex")),
+	projectsList: () => typedError<ProjectEntry_Serialize[], string>(__TAURI_INVOKE("projects_list")),
+	projectsActive: () => typedError<ProjectEntry_Serialize | null, string>(__TAURI_INVOKE("projects_active")),
+	projectsOpen: (path: string, init: boolean) => typedError<ProjectOutcome_Serialize, string>(__TAURI_INVOKE("projects_open", { path, init })),
+	projectsCreate: (path: string, name: string, key: string) => typedError<ProjectOutcome_Serialize, string>(__TAURI_INVOKE("projects_create", { path, name, key })),
+	projectsClone: (url: string, path: string) => typedError<ProjectOutcome_Serialize, string>(__TAURI_INVOKE("projects_clone", { url, path })),
+	projectsSwitch: (id: string) => typedError<ProjectEntry_Serialize, string>(__TAURI_INVOKE("projects_switch", { id })),
+	projectsSetView: (id: string, view: string) => typedError<null, string>(__TAURI_INVOKE("projects_set_view", { id, view })),
+	projectSettings: () => typedError<ProjectSettings_Serialize | null, string>(__TAURI_INVOKE("project_settings")),
+	projectFileSave: (file: ProjectFile_Deserialize) => typedError<null, string>(__TAURI_INVOKE("project_file_save", { file })),
+	projectOverridesSave: (overrides: Overrides_Deserialize) => typedError<null, string>(__TAURI_INVOKE("project_overrides_save", { overrides })),
+	healthRun: () => typedError<Finding_Serialize[], string>(__TAURI_INVOKE("health_run")),
+	healthFix: (id: string, confirm: boolean) => typedError<FixResult, string>(__TAURI_INVOKE("health_fix", { id, confirm })),
+	/**  Reads nothing and writes nothing. W9 adds the codecs. */
+	projectImport: (source: string) => __TAURI_INVOKE<ImportReport>("project_import", { source }),
 };
 
 /* Types */
+export type Accent = "blue" | "violet" | "green" | "orange" | "rose";
+
 export type AppInfo = {
 	name: string,
 	version: string,
 	os: string,
 };
 
-export type RecentProject = {
+export type Backlink = Backlink_Serialize | Backlink_Deserialize;
+
+export type BacklinkGroup = BacklinkGroup_Serialize | BacklinkGroup_Deserialize;
+
+export type BacklinkGroup_Deserialize = {
+	kind: string,
+	count: number,
+	items: Backlink_Deserialize[],
+};
+
+export type BacklinkGroup_Serialize = {
+	kind: string,
+	count: number,
+	items: Backlink_Serialize[],
+};
+
+export type Backlink_Deserialize = {
+	source: string,
+	title?: string | null,
+};
+
+export type Backlink_Serialize = {
+	source: string,
+	title: string | null,
+};
+
+export type BrokenCitation = {
+	target: string,
+	source: string,
+};
+
+export type Contrast = "default" | "high";
+
+export type Density = "default" | "compact";
+
+export type Finding = Finding_Serialize | Finding_Deserialize;
+
+export type Finding_Deserialize = {
+	id: string,
+	group: Group,
+	severity: Severity,
+	/**  Message key. The UI translates it. */
+	code: string,
+	detail?: string | null,
+	/**  Ref of the entity that holds the problem. */
+	source?: string | null,
+	fix: Fix,
+};
+
+export type Finding_Serialize = {
+	id: string,
+	group: Group,
+	severity: Severity,
+	/**  Message key. The UI translates it. */
+	code: string,
+	detail: string | null,
+	/**  Ref of the entity that holds the problem. */
+	source: string | null,
+	fix: Fix,
+};
+
+/**  What a person can do about a finding. Only `Write` changes a file, and only after a confirm click. */
+export type Fix = { kind: "write"; path: string; content: string } | { kind: "open"; target: string } | { kind: "recheck" };
+
+export type FixResult = {
+	path: string,
+	content: string,
+	written: boolean,
+};
+
+export type Group = "compliance" | "tools" | "refs" | 
+/**  Reserved: no generated file exists yet. */
+"generated";
+
+export type ImportItem = {
+	path: string,
+	reason: string,
+};
+
+export type ImportReport = {
+	copied: string[],
+	skipped: ImportItem[],
+	conflicts: string[],
+};
+
+export type Lang = "en" | "fr";
+
+export type OpenStatus = "opened" | 
+/**  The repository has no project file. A person confirms, then the call repeats with `init`. */
+"needs-project-file" | "not-repository" | "folder-not-empty" | "invalid" | "failed";
+
+/**  A project value that takes the place of a personal preference while the project is active. */
+export type Overrides = Overrides_Serialize | Overrides_Deserialize;
+
+/**  A project value that takes the place of a personal preference while the project is active. */
+export type Overrides_Deserialize = {
+	theme?: Theme | null,
+	density?: Density | null,
+	contrast?: Contrast | null,
+	accent?: Accent | null,
+};
+
+/**  A project value that takes the place of a personal preference while the project is active. */
+export type Overrides_Serialize = {
+	theme: Theme | null,
+	density: Density | null,
+	contrast: Contrast | null,
+	accent: Accent | null,
+};
+
+export type ParsedRef = {
+	ref: string,
+	kind: string,
+};
+
+export type Prefs = Prefs_Serialize | Prefs_Deserialize;
+
+export type PrefsPatch = PrefsPatch_Serialize | PrefsPatch_Deserialize;
+
+export type PrefsPatch_Deserialize = {
+	theme?: Theme | null,
+	density?: Density | null,
+	contrast?: Contrast | null,
+	role?: Role | null,
+	sidebarOpen?: boolean | null,
+	lang?: Lang | null,
+};
+
+export type PrefsPatch_Serialize = {
+	theme: Theme | null,
+	density: Density | null,
+	contrast: Contrast | null,
+	role: Role | null,
+	sidebarOpen: boolean | null,
+	lang: Lang | null,
+};
+
+export type Prefs_Deserialize = {
+	theme: Theme,
+	density: Density,
+	contrast: Contrast,
+	role: Role,
+	sidebarOpen: boolean,
+	/**  `None` until the person picks one. The UI then follows the system language. */
+	lang?: Lang | null,
+};
+
+export type Prefs_Serialize = {
+	theme: Theme,
+	density: Density,
+	contrast: Contrast,
+	role: Role,
+	sidebarOpen: boolean,
+	/**  `None` until the person picks one. The UI then follows the system language. */
+	lang: Lang | null,
+};
+
+export type ProjectEntry = ProjectEntry_Serialize | ProjectEntry_Deserialize;
+
+export type ProjectEntry_Deserialize = {
 	id: string,
 	name: string,
+	key: string,
 	path: string,
+	state: WorkState,
+	active: boolean,
+	lastUsed: number,
+	lastView?: string | null,
+	overrides: Overrides_Deserialize,
 };
+
+export type ProjectEntry_Serialize = {
+	id: string,
+	name: string,
+	key: string,
+	path: string,
+	state: WorkState,
+	active: boolean,
+	lastUsed: number,
+	lastView: string | null,
+	overrides: Overrides_Serialize,
+};
+
+/**  The file holds no machine path, no secret and no personal preference. */
+export type ProjectFile = ProjectFile_Serialize | ProjectFile_Deserialize;
+
+/**  The file holds no machine path, no secret and no personal preference. */
+export type ProjectFile_Deserialize = {
+	name: string,
+	key: string,
+	paths?: { [key in string]: string },
+	defaultWorkflow?: string | null,
+	/**  Checks that a run must pass before a pull request (`q:Q-030`). */
+	gates?: string[],
+};
+
+/**  The file holds no machine path, no secret and no personal preference. */
+export type ProjectFile_Serialize = {
+	name: string,
+	key: string,
+	paths: { [key in string]: string },
+	defaultWorkflow: string | null,
+	/**  Checks that a run must pass before a pull request (`q:Q-030`). */
+	gates: string[],
+};
+
+export type ProjectOutcome = ProjectOutcome_Serialize | ProjectOutcome_Deserialize;
+
+export type ProjectOutcome_Deserialize = {
+	status: OpenStatus,
+	project?: ProjectEntry_Deserialize | null,
+	message?: string | null,
+};
+
+export type ProjectOutcome_Serialize = {
+	status: OpenStatus,
+	project: ProjectEntry_Serialize | null,
+	message: string | null,
+};
+
+export type ProjectSettings = ProjectSettings_Serialize | ProjectSettings_Deserialize;
+
+export type ProjectSettings_Deserialize = {
+	file?: ProjectFile_Deserialize | null,
+	overrides: Overrides_Deserialize,
+};
+
+export type ProjectSettings_Serialize = {
+	file: ProjectFile_Serialize | null,
+	overrides: Overrides_Serialize,
+};
+
+export type Resolved = Resolved_Serialize | Resolved_Deserialize;
+
+export type Resolved_Deserialize = {
+	ref: string,
+	kind: string,
+	state: State,
+	title?: string | null,
+	/**  The state of the entity itself, such as `accepted` for an ADR. */
+	status?: string | null,
+	location?: string | null,
+};
+
+export type Resolved_Serialize = {
+	ref: string,
+	kind: string,
+	state: State,
+	title: string | null,
+	/**  The state of the entity itself, such as `accepted` for an ADR. */
+	status: string | null,
+	location: string | null,
+};
+
+export type Role = "none" | "pm" | "architect" | "developer" | "qa" | "ba" | "lead" | "junior";
+
+export type SearchHit = {
+	ref: string,
+	kind: string,
+	title: string,
+};
+
+export type Severity = "info" | "warning" | "error";
+
+export type State = "resolved" | 
+/**  The target is not known yet. It stays unresolved until its source is indexed (Q-012). */
+"unresolved" | "broken";
+
+export type Theme = "light" | "dark" | "system";
+
+export type WorkState = "clean" | "changed" | "behind" | "ahead" | "missing";
+
+/* Tauri Specta runtime */
+async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
+    try {
+        return { status: "ok", data: await result };
+    } catch (e) {
+        if (e instanceof Error) throw e;
+        return { status: "error", error: e as any };
+    }
+}
 

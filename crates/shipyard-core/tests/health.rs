@@ -26,6 +26,19 @@ fn a_healthy_project_has_no_finding() {
 }
 
 #[test]
+fn a_missing_folder_is_the_only_finding() {
+    let mut i = healthy();
+    i.project_file = FileState::FolderMissing;
+    i.gitignore = None;
+    let f = evaluate(&i);
+    assert_eq!(f.len(), 1);
+    assert_eq!(
+        (f[0].code.as_str(), f[0].severity, &f[0].fix),
+        ("folder-missing", Severity::Error, &Fix::Recheck)
+    );
+}
+
+#[test]
 fn a_missing_project_file_offers_a_write_fix() {
     let mut i = healthy();
     i.project_file = FileState::Missing;
