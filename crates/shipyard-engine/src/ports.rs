@@ -178,7 +178,8 @@ pub trait Writer: Send + Sync {
 /// How a merge or a rebase ended.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Merge {
-    /// It went through and kept the history as it was (or there was nothing to do).
+    /// It went through and kept the history as it was (or there was nothing to do). A joined
+    /// child is a commit on the run branch.
     Clean,
     /// A rebase moved commits: a branch that is on the remote needs a force with lease.
     Rewrote,
@@ -210,10 +211,11 @@ pub struct ReviewInput {
 /// The local git work of delivery, on the folder and the branch of one run. The app wraps
 /// `shipyard_git::Repo` and runs the gate commands. An error is a message that a person can read.
 pub trait Git: Send + Sync {
-    /// Commit what the child left in its worktree, then apply its branch to the run folder. A
-    /// squash: the change stays uncommitted there, and [`Git::commit`] makes the one commit.
+    /// Join one child into the run branch. Commit what the child left in its worktree, with
+    /// `message`, then squash the child branch onto the run branch as one commit with `message`
+    /// (`shipyard_git::delivery::squash_child`). `message` follows `<type>(<scope>): <subject>`.
     /// Conflicts leave the run folder as it was.
-    fn merge_child(&self, run: &str, child: &str) -> PortResult<Merge>;
+    fn merge_child(&self, run: &str, child: &str, message: &str) -> PortResult<Merge>;
 
     /// Remove the worktree of a child and its branch. A fix round then starts a new child from
     /// the run branch.

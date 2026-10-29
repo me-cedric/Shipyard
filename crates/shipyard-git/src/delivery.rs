@@ -6,6 +6,7 @@
 
 use std::path::Path;
 
+use git2::build::CheckoutBuilder;
 use git2::{BranchType, Direction, Index, IndexEntry, IndexTime};
 use shipyard_core::code::{check_branch_name, check_summary};
 
@@ -40,6 +41,17 @@ fn check_message(summary: &str, description: &str) -> Result<()> {
         ));
     }
     Ok(())
+}
+
+/// Squash-merge `child_branch` into the branch of the worktree `run_worktree`: one new commit
+/// with `message` and one parent, that holds the whole change of the child. Returns its id, or
+/// `None` when the child brings nothing. See [`Repo::squash_child`].
+pub fn squash_child(
+    run_worktree: &Path,
+    child_branch: &str,
+    message: &str,
+) -> Result<Option<String>> {
+    Repo::open(run_worktree)?.squash_child(child_branch, message)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -95,6 +107,59 @@ impl Repo {
             .peel_to_commit()?;
         let up = self.repo.find_annotated_commit(target.id())?;
         self.integrate(&refname, &up)
+    }
+
+    /// Squash-merge the local branch `child_branch` into the working branch (`factory` REQ-013:
+    /// the join of the child worktrees). The commit has the working branch tip as its only parent,
+    /// so the history keeps one commit for each child. `message` is the whole commit message: its
+    /// first line follows `<type>(<scope>): <subject>` and no line is an AI attribution.
+    ///
+    /// `None`: the child adds nothing (already merged, or an empty change). A conflict is
+    /// `GitError::Conflicts` with the files; the branch, the index and the folder stay as they
+    /// were. A tracked file with a change refuses the merge (`DirtyTree`).
+    pub fn squash_child(&self, child_branch: &str, message: &str) -> Result<Option<String>> {
+        let (summary, description) = message.split_once('\n').unwrap_or((message, ""));
+        check_message(summary, description)?;
+        self.check_state()?;
+        let head = self.repo.head().map_err(|_| GitError::Detached)?;
+        if !head.is_branch() {
+            return Err(GitError::Detached);
+        }
+        self.check_tracked_clean()?;
+        let ours = head.peel_to_commit()?;
+        let theirs = self
+            .repo
+            .find_branch(child_branch, BranchType::Local)
+            .map_err(|_| GitError::NoBranch(child_branch.to_string()))?
+            .get()
+            .peel_to_commit()?;
+        if ours.id() == theirs.id() || self.repo.graph_descendant_of(ours.id(), theirs.id())? {
+            return Ok(None);
+        }
+        // In memory: a conflict touches nothing.
+        let mut merged = self.repo.merge_commits(&ours, &theirs, None)?;
+        if merged.has_conflicts() {
+            let files = merged
+                .conflicts()?
+                .filter_map(|c| c.ok())
+                .filter_map(|c| c.our.or(c.their).or(c.ancestor))
+                .map(|e| String::from_utf8_lossy(&e.path).into_owned())
+                .collect();
+            return Err(GitError::Conflicts(files));
+        }
+        let tree = self.repo.find_tree(merged.write_tree_to(&self.repo)?)?;
+        if tree.id() == ours.tree_id() {
+            return Ok(None);
+        }
+        let sig = self.repo.signature().map_err(|_| GitError::NoIdentity)?;
+        // The folder and the index take the new tree, then the branch moves: a refusal of the
+        // checkout (an untracked file in the way) leaves the branch where it was.
+        self.repo
+            .checkout_tree(tree.as_object(), Some(CheckoutBuilder::new().safe()))?;
+        let id = self
+            .repo
+            .commit(Some("HEAD"), &sig, &sig, message.trim(), &tree, &[&ours])?;
+        Ok(Some(id.to_string()))
     }
 
     /// Commit the given files, and only them (REQ-008). Another staged file, a change in

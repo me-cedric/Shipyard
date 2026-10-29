@@ -680,6 +680,7 @@ struct GitState {
     failing: Vec<String>,
     dirty: Option<String>,
     input: ReviewInput,
+    merge_messages: Vec<String>,
 }
 
 /// The local git work of a run, with no repository. Each call is one line in [`FakeGit::calls`]:
@@ -708,6 +709,7 @@ impl Default for FakeGit {
                 diff: "diff --git a/src/a.rs b/src/a.rs".into(),
                 specs: Vec::new(),
             },
+            merge_messages: Vec::new(),
         })))
     }
 }
@@ -715,6 +717,11 @@ impl Default for FakeGit {
 impl FakeGit {
     pub fn calls(&self) -> Vec<String> {
         lock(&self.0).calls.clone()
+    }
+
+    /// The commit message that each `merge_child` got, in order.
+    pub fn merge_messages(&self) -> Vec<String> {
+        lock(&self.0).merge_messages.clone()
     }
 
     pub fn count(&self, prefix: &str) -> usize {
@@ -800,9 +807,10 @@ impl GitState {
 }
 
 impl Git for FakeGit {
-    fn merge_child(&self, _run: &str, child: &str) -> PortResult<Merge> {
+    fn merge_child(&self, _run: &str, child: &str, message: &str) -> PortResult<Merge> {
         let mut s = lock(&self.0);
         s.check("merge_child", format!("merge_child {child}"))?;
+        s.merge_messages.push(message.into());
         Ok(match s.conflicts.get(child) {
             Some(files) => Merge::Conflicts(files.clone()),
             None => Merge::Clean,

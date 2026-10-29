@@ -1,13 +1,14 @@
 //! The join of the child worktrees at fan-in (spec `factory` REQ-013; `delivery` REQ-025).
 //!
 //! A step with `workspace: worktree` runs each child in its own worktree. When the last child
-//! ends, the engine merges each child into the run folder, in child order, as a squash: the
-//! change stays uncommitted there, and the pull request step makes the one commit. A conflict
+//! ends, the engine merges each child into the run branch, in child order, as a squash: one
+//! commit for each child (`Git::merge_child`). The pull request step commits what is left. A conflict
 //! blocks the run with the files in the event, and keeps every worktree. After a click on
 //! `unblock` the join tries again for the children that are not joined. When all are joined, the
 //! worktrees of the children go.
 
 use serde_json::json;
+use shipyard_core::delivery;
 use shipyard_core::workflow::StepState;
 use shipyard_store::run_log::kind;
 
@@ -20,7 +21,10 @@ impl Inner {
         let Some(git) = self.project_of(run_id).map(|p| p.git.clone()) else {
             return self.block(run_id, sid, "the project is not open");
         };
-        let ids: Vec<(String, bool)> = self.runs[run_id].steps[sid]
+        let rec = &self.runs[run_id];
+        let title = rec.title.lines().next().unwrap_or_default().to_string();
+        let ty = delivery::commit_type(rec.kind);
+        let ids: Vec<(String, bool)> = rec.steps[sid]
             .units
             .iter()
             .map(|u| (u.id.clone(), u.merged))
@@ -29,7 +33,10 @@ impl Inner {
             if *merged {
                 continue;
             }
-            let why = match git.merge_child(run_id, child) {
+            // One commit for each child: `feat(build): <ticket title> (build-1)`.
+            let message =
+                delivery::conventional(ty, &delivery::kebab(sid), &format!("{title} ({child})"));
+            let why = match git.merge_child(run_id, child, &message) {
                 Ok(Merge::Conflicts(files)) => {
                     format!("merge conflict: child {child}: {}", files.join(", "))
                 }

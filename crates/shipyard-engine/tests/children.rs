@@ -135,3 +135,18 @@ fn a_worktree_that_stays_is_logged_and_does_not_stop_the_run() {
             .any(|n| n["note"] == "worktree of fix stays: busy")
     );
 }
+
+#[test]
+fn each_child_joins_as_one_conventional_commit() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = two_of_three(&fx);
+    fx.done(&run, "build-3");
+    let messages = fx.git.merge_messages();
+    assert_eq!(messages.len(), 3);
+    // `SHIP-1` is a task in the fake tracker: the type comes from its kind, the scope from the step.
+    for (i, m) in messages.iter().enumerate() {
+        assert!(shipyard_core::code::check_summary(m).is_ok(), "{m}");
+        assert!(m.starts_with("feat(build): "), "{m}");
+        assert!(m.ends_with(&format!("(build-{})", i + 1)), "{m}");
+    }
+}
