@@ -3,3 +3,10 @@ name = "shipyard-mcp"
 version.workspace = true
 edition.workspace = true
 publish = false
+
+[dependencies]
+serde.workspace = true
+shipyard-store = { path = "../shipyard-store" }
+
+[dev-dependencies]
+serde_json = "1"

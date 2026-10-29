@@ -11,14 +11,14 @@ Plan: [plan.md](./plan.md)
 
 ## Tasks
 
-- [ ] T001 Write project file validation tests in `crates/shipyard-core/tests/project_file.rs`. Covers REQ-007, REQ-010.
-- [ ] T002 Implement the project types and validation in `crates/shipyard-core/src/project.rs`. Covers REQ-007, REQ-010, REQ-017.
-- [ ] T003 Write codec and registry tests in `crates/shipyard-store/tests/project_registry.rs`. Covers REQ-008, REQ-009, REQ-019.
-- [ ] T004 Implement the project file codec and the registry in `crates/shipyard-store/src/project.rs`. Covers REQ-007, REQ-008, REQ-009, REQ-019.
-- [ ] T005 Write clone, init and state tests with a fake remote in `crates/shipyard-git/tests/project_git.rs`. Covers REQ-002, REQ-003, REQ-004, REQ-005, REQ-006.
-- [ ] T006 Implement clone, init, ignore rules and state in `crates/shipyard-git/src/project.rs`. Covers REQ-002, REQ-003, REQ-004, REQ-005, REQ-006.
-- [ ] T007 Write health rule tests in `crates/shipyard-core/tests/health.rs`. Covers REQ-011, REQ-012, REQ-013, REQ-018.
-- [ ] T008 Implement the health rules and fix previews in `crates/shipyard-core/src/health.rs`. Covers REQ-011, REQ-012, REQ-013, REQ-018.
+- [x] T001 Write project file validation tests in `crates/shipyard-core/tests/project_file.rs`. Covers REQ-007, REQ-010.
+- [x] T002 Implement the project types and validation in `crates/shipyard-core/src/project.rs`. Covers REQ-007, REQ-010, REQ-017.
+- [x] T003 Write codec and registry tests in `crates/shipyard-store/tests/project_registry.rs`. Covers REQ-008, REQ-009, REQ-019.
+- [x] T004 Implement the project file codec and the registry in `crates/shipyard-store/src/project.rs`. Covers REQ-007, REQ-008, REQ-009, REQ-019.
+- [x] T005 Write clone, init and state tests with a fake remote in `crates/shipyard-git/tests/project_git.rs`. Covers REQ-002, REQ-003, REQ-004, REQ-005, REQ-006.
+- [x] T006 Implement clone, init, ignore rules and state in `crates/shipyard-git/src/project.rs`. Covers REQ-002, REQ-003, REQ-004, REQ-005, REQ-006.
+- [x] T007 Write health rule tests in `crates/shipyard-core/tests/health.rs`. Covers REQ-011, REQ-012, REQ-013, REQ-018.
+- [x] T008 Implement the health rules and fix previews in `crates/shipyard-core/src/health.rs`. Covers REQ-011, REQ-012, REQ-013, REQ-018.
 - [ ] T009 Write import tests with Legacy fixture files in `crates/shipyard-store/tests/project_import.rs`. Covers REQ-014, REQ-015.
 - [ ] T010 Implement the Legacy import in `crates/shipyard-store/src/project_import.rs`. Covers REQ-014, REQ-015.
 - [ ] T011 Add the IPC commands in `crates/shipyard-app/src/projects.rs`, then regenerate the bindings with the project command. Covers REQ-001 to REQ-017.

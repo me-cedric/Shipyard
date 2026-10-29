@@ -1,1 +1,3 @@
-//! Will hold the MCP server, its gates and its proxy.
+//! MCP server for the agents: the tools that a run calls. Read-only tools come first.
+
+pub mod tools;
