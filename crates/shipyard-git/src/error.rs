@@ -46,6 +46,12 @@ pub enum GitError {
     WorktreeDirty(String),
     #[error("worktree not found: {0}")]
     NoWorktree(String),
+    #[error("the branch is already on the remote: {0}")]
+    BranchPublished(String),
+    #[error("a run never pushes to this branch: {0}")]
+    ProtectedBranch(String),
+    #[error("{0}")]
+    BadSummary(String),
     #[error("{0}")]
     Credentials(String),
 }

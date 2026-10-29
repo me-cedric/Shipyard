@@ -4,6 +4,7 @@
 
 pub mod auth;
 pub mod code;
+pub mod delivery;
 pub mod error;
 pub mod project;
 pub mod worktree;

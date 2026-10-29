@@ -15,8 +15,8 @@ Plan: [plan.md](./plan.md)
 - [ ] T002 Implement those rules in `crates/shipyard-core/src/delivery.rs`. Covers REQ-007, REQ-009, REQ-010, REQ-011, REQ-021.
 - [ ] T003 Write engine tests with a fake forge and a fake reviewer in `crates/shipyard-engine/tests/review.rs`: fresh context, finding check, two rounds, gate. Covers REQ-001 to REQ-006.
 - [ ] T004 Implement the review step and the finding check in `crates/shipyard-engine/src/review.rs`. Covers REQ-001 to REQ-006.
-- [ ] T005 [P] Write git tests in `crates/shipyard-git/tests/delivery.rs`: tool branch rename, rebase, commit scope, force with lease, clean and dirty worktree removal. Covers REQ-007, REQ-008, REQ-015, REQ-025.
-- [ ] T006 Implement those git operations in `crates/shipyard-git/src/delivery.rs`. Covers REQ-007, REQ-008, REQ-015, REQ-025.
+- [x] T005 [P] Write git tests in `crates/shipyard-git/tests/delivery.rs`: tool branch rename, rebase, commit scope, force with lease, clean and dirty worktree removal. Covers REQ-007, REQ-008, REQ-015, REQ-025.
+- [x] T006 Implement those git operations in `crates/shipyard-git/src/delivery.rs`. Covers REQ-007, REQ-008, REQ-015, REQ-025.
 - [ ] T007 [P] Write forge contract tests in `crates/shipyard-forges/tests/pull_request.rs`: draft, labels, reviewers, thread reply, existing pull request lookup. Covers REQ-011 to REQ-013, REQ-016, REQ-019.
 - [ ] T008 Implement those calls in `crates/shipyard-forges/src/pull_request.rs`. Covers REQ-011 to REQ-013, REQ-016, REQ-019.
 - [ ] T009 Write engine tests in `crates/shipyard-engine/tests/pull_request.rs`: switches off and on, approvals, rejection, force approval, retry after a crash. Covers REQ-014 to REQ-017.

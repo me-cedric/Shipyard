@@ -159,11 +159,7 @@ impl Repo {
     /// the upstream. A conflict aborts the rebase and leaves the branch as it was. Refuses when
     /// a tracked file has uncommitted changes.
     pub fn pull_rebase(&self, auth: &Auth) -> Result<PullOutcome> {
-        if self.repo.state() != RepositoryState::Clean {
-            return Err(GitError::Busy(
-                format!("{:?}", self.repo.state()).to_lowercase(),
-            ));
-        }
+        self.check_state()?;
         let head = self.repo.head().map_err(|_| GitError::Detached)?;
         if !head.is_branch() {
             return Err(GitError::Detached);
@@ -178,21 +174,48 @@ impl Repo {
         let remote = self.repo.branch_upstream_remote(&refname)?;
         let remote = remote.as_str()?;
 
+        self.check_tracked_clean()?;
+
+        self.fetch(remote, auth)?;
+        let up = self
+            .repo
+            .reference_to_annotated_commit(&self.repo.find_reference(&up_name)?)?;
+        self.integrate(&refname, &up)
+    }
+
+    /// Refuse while a merge, a rebase or another operation runs.
+    pub(crate) fn check_state(&self) -> Result<()> {
+        if self.repo.state() != RepositoryState::Clean {
+            return Err(GitError::Busy(
+                format!("{:?}", self.repo.state()).to_lowercase(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Refuse a tracked file with a change. An untracked file does not count.
+    pub(crate) fn check_tracked_clean(&self) -> Result<()> {
         let status = self.status()?;
         let dirty: Vec<String> = [&status.staged, &status.unstaged, &status.conflicted]
             .into_iter()
             .flatten()
             .map(|f| f.path.clone())
             .collect();
-        if !dirty.is_empty() {
-            return Err(GitError::DirtyTree(dirty));
+        if dirty.is_empty() {
+            Ok(())
+        } else {
+            Err(GitError::DirtyTree(dirty))
         }
+    }
 
-        self.fetch(remote, auth)?;
-        let up = self
-            .repo
-            .reference_to_annotated_commit(&self.repo.find_reference(&up_name)?)?;
-        let (analysis, _) = self.repo.merge_analysis(&[&up])?;
+    /// Move the branch `refname` onto `up`: fast-forward, else rebase. A conflict aborts the
+    /// rebase and leaves the branch as it was.
+    pub(crate) fn integrate(
+        &self,
+        refname: &str,
+        up: &git2::AnnotatedCommit<'_>,
+    ) -> Result<PullOutcome> {
+        let (analysis, _) = self.repo.merge_analysis(&[up])?;
         if analysis.is_up_to_date() {
             return Ok(PullOutcome::UpToDate);
         }
@@ -201,13 +224,13 @@ impl Repo {
             self.repo
                 .checkout_tree(&target, Some(CheckoutBuilder::new().safe()))?;
             self.repo
-                .find_reference(&refname)?
+                .find_reference(refname)?
                 .set_target(up.id(), "pull: fast-forward")?;
             return Ok(PullOutcome::FastForwarded);
         }
 
         let sig = self.repo.signature().map_err(|_| GitError::NoIdentity)?;
-        let mut rebase = self.repo.rebase(None, Some(&up), None, None)?;
+        let mut rebase = self.repo.rebase(None, Some(up), None, None)?;
         // Any error leaves the branch as it was: abort the rebase before the error goes up.
         let run = (|| -> Result<()> {
             while let Some(op) = rebase.next() {
@@ -256,7 +279,12 @@ impl Repo {
             .filter(|m| m.starts_with("refs/heads/"))
             .unwrap_or_else(|| format!("refs/heads/{branch}"));
         let refspec = format!("refs/heads/{branch}:{dest}");
+        self.push_refspec(remote, &refspec, auth)?;
+        self.ensure_upstream(remote, &branch)
+    }
 
+    /// Send one refspec. A rejection of any reference is an error.
+    pub(crate) fn push_refspec(&self, remote: &str, refspec: &str, auth: &Auth) -> Result<()> {
         let rejected: Rc<RefCell<Option<String>>> = Rc::default();
         let mut cb = auth.callbacks(self.repo.config()?);
         let slot = rejected.clone();
@@ -271,7 +299,7 @@ impl Repo {
         po.proxy_options(proxy_options());
 
         let mut r = self.repo.find_remote(remote)?;
-        r.push(&[refspec.as_str()], Some(&mut po)).map_err(|e| {
+        r.push(&[refspec], Some(&mut po)).map_err(|e| {
             if e.code() == ErrorCode::NotFastForward {
                 GitError::PushRejected("the remote has newer commits: pull first".into())
             } else {
@@ -281,7 +309,12 @@ impl Repo {
         if let Some(msg) = rejected.take() {
             return Err(GitError::PushRejected(msg));
         }
-        let mut local = self.repo.find_branch(&branch, BranchType::Local)?;
+        Ok(())
+    }
+
+    /// A branch with no upstream gets `remote/<branch>` as its upstream.
+    pub(crate) fn ensure_upstream(&self, remote: &str, branch: &str) -> Result<()> {
+        let mut local = self.repo.find_branch(branch, BranchType::Local)?;
         if local.upstream().is_err() {
             local.set_upstream(Some(&format!("{remote}/{branch}")))?;
         }
