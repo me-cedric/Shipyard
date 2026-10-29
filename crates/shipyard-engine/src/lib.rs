@@ -2,13 +2,17 @@
 //! the adapters: the app runs [`tick::Engine::run`] on its own thread. The engine talks to the
 //! trackers, the forges and the factory through the traits in [`ports`], so a test uses the
 //! fakes in [`fake`] and the app wraps the real adapters.
-//! The factory itself (runs, workflows) is W6. It implements [`ports::Dispatch`].
+//! The factory ([`run_engine::Factory`]) implements [`ports::Dispatch`]: runs, workflows, clocks,
+//! approvals ([`approvals`]) and the questions loop ([`questions`]).
 
+pub mod approvals;
 pub mod claims;
 pub mod fake;
 pub mod handoff;
 pub mod import;
 pub mod ports;
+pub mod questions;
+pub mod run_engine;
 pub mod tick;
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};

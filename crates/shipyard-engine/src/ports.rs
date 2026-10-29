@@ -2,10 +2,13 @@
 //! `shipyard-trackers` and `shipyard-forges` in these traits. W6 implements [`Dispatch`].
 //! An error is a message that a person can read.
 
+use std::path::PathBuf;
 use std::time::Duration;
 
+pub use shipyard_agents::runner::Event as AgentEvent;
 use shipyard_core::pickup::{ActiveRun, PullSnapshot, SyncEvent, Ticket};
 use shipyard_core::work_item::Comment;
+use shipyard_core::workflow::{Effort, Mode, Workspace};
 
 pub type PortResult<T> = Result<T, String>;
 
@@ -112,4 +115,59 @@ pub fn collect_pages<T>(
         }
     }
     Ok((items, true))
+}
+
+// ---- factory ports (W6)
+
+/// What a step asks the runner to do. The app maps it to `shipyard_agents::runner::RunSpec`: it
+/// adds the secrets and the MCP entry, and binds the MCP session to `run` and `step`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Brief {
+    /// The ULID of `run:<ulid>`.
+    pub run: String,
+    /// The step id, or `<step>-<n>` for child n (from 1) of a `for_each` step.
+    pub step: String,
+    pub project: String,
+    /// The runner id (`claude`, `codex`, ...).
+    pub runner: String,
+    /// The model in the words of the runner. `None`: the runner default.
+    pub model: Option<String>,
+    pub effort: Option<Effort>,
+    pub mode: Mode,
+    /// The Shipyard tool names that the step may call (`report`, `ask_question`, ...).
+    pub tools: Vec<String>,
+    pub prompt: String,
+    pub dir: PathBuf,
+    /// The CLI session to resume ([`AgentEvent::Session`] of an earlier start).
+    pub resume: Option<String>,
+}
+
+/// One agent in progress. Dropping it must stop the agent.
+pub trait AgentRun: Send {
+    /// The next event, with no wait. `None`: no event now.
+    fn next(&mut self) -> Option<AgentEvent>;
+
+    fn cancel(&mut self);
+}
+
+/// The runners, as the factory sees them. The app wraps `shipyard_agents::runner::start`.
+pub trait Agents: Send + Sync {
+    fn start(&self, brief: &Brief) -> PortResult<Box<dyn AgentRun>>;
+}
+
+/// The folders of the steps. The app wraps `shipyard_git::Repo::child_worktree_add`.
+pub trait Workspaces: Send + Sync {
+    /// The folder of a step. `child` is set for `Workspace::Worktree`: one worktree for each.
+    fn dir(&self, run: &str, workspace: Workspace, child: Option<&str>) -> PortResult<PathBuf>;
+}
+
+/// The writes of a project: tracker, push, pull request. The factory calls `send` only when the
+/// switch is on or after a person approved the write.
+pub trait Writer: Send + Sync {
+    /// `false`: the tracker has no comments. A question then gets no comment.
+    fn can_comment(&self) -> bool;
+
+    /// Send one write. Returns the id that it made: the comment id, the pull request number, else
+    /// an empty string.
+    fn send(&self, write: &crate::approvals::Write) -> PortResult<String>;
 }

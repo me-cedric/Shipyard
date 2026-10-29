@@ -3850,7 +3850,12 @@ dependencies = [
 name = "shipyard-engine"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "shipyard-agents",
  "shipyard-core",
+ "shipyard-mcp",
  "shipyard-store",
  "tempfile",
 ]

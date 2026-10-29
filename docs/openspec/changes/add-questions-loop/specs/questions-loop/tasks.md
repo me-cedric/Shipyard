@@ -15,10 +15,10 @@ Plan: [plan.md](./plan.md)
 - [x] T002 Implement the reply parser and the question states in `crates/shipyard-core/src/question.rs`. Covers REQ-010, REQ-011, REQ-012, REQ-020.
 - [x] T003 Write RAID file codec tests in `crates/shipyard-store/tests/raid_question.rs`. Covers REQ-003, REQ-007.
 - [x] T004 Implement the RAID file codec and id allocation in `crates/shipyard-store/src/raid.rs`. Covers REQ-003, REQ-007.
-- [ ] T005 Write engine tests with a fake tracker in `crates/shipyard-engine/tests/questions.rs`. Covers REQ-001, REQ-002, REQ-004, REQ-005, REQ-006, REQ-009, REQ-013, REQ-014, REQ-016, REQ-017, REQ-018, REQ-019.
-- [ ] T006 Implement validation of `ask_question`, the wait, the ticket move and the comment in `crates/shipyard-engine/src/questions.rs`. Covers REQ-002, REQ-004, REQ-005, REQ-006, REQ-016.
-- [ ] T007 Implement detection, the one-answer rule, the edit rule and the unclear reply in `crates/shipyard-engine/src/answers.rs`. Covers REQ-009, REQ-011, REQ-012, REQ-013.
-- [ ] T008 Implement resume, several open questions, the terminal ticket rule and the reminder in `crates/shipyard-engine/src/resume.rs`. Covers REQ-001, REQ-014, REQ-017, REQ-018, REQ-019.
+- [x] T005 Write engine tests with a fake tracker in `crates/shipyard-engine/tests/questions.rs`. Covers REQ-001, REQ-002, REQ-004, REQ-005, REQ-006, REQ-009, REQ-013, REQ-014, REQ-016, REQ-017, REQ-018, REQ-019.
+- [x] T006 Implement validation of `ask_question`, the wait, the ticket move and the comment in `crates/shipyard-engine/src/questions.rs`. Covers REQ-002, REQ-004, REQ-005, REQ-006, REQ-016.
+- [x] T007 Implement detection, the one-answer rule, the edit rule and the unclear reply in `crates/shipyard-engine/src/questions.rs`. Covers REQ-009, REQ-011, REQ-012, REQ-013.
+- [x] T008 Implement resume, several open questions, the terminal ticket rule and the reminder in `crates/shipyard-engine/src/questions.rs`. Covers REQ-001, REQ-014, REQ-017, REQ-018, REQ-019.
 - [x] T009 Write fold preview tests in `crates/shipyard-store/tests/fold.rs`. Covers REQ-015.
 - [x] T010 Implement the fold preview in `crates/shipyard-store/src/fold.rs`. Covers REQ-015.
 - [ ] T011 Add the IPC commands and events in `crates/shipyard-app/src/questions.rs`, then regenerate the bindings with the project command. Covers REQ-008, REQ-011, REQ-015, REQ-020.

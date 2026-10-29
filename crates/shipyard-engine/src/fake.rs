@@ -506,3 +506,151 @@ impl Dispatch for FakeDispatch {
         Ok(())
     }
 }
+
+// ---- factory: agents, writer, workspaces
+
+#[derive(Default)]
+struct AgentsState {
+    briefs: Vec<crate::ports::Brief>,
+    queues: Vec<std::collections::VecDeque<crate::ports::AgentEvent>>,
+    live: Vec<bool>,
+    fail: Option<String>,
+}
+
+/// A runner with no process. Each start is one agent; a test pushes its events.
+#[derive(Clone, Default)]
+pub struct FakeAgents(Arc<Mutex<AgentsState>>);
+
+impl FakeAgents {
+    pub fn briefs(&self) -> Vec<crate::ports::Brief> {
+        lock(&self.0).briefs.clone()
+    }
+
+    /// The step ids of the agents that run now, in start order.
+    pub fn running(&self) -> Vec<String> {
+        let s = lock(&self.0);
+        s.briefs
+            .iter()
+            .zip(&s.live)
+            .filter(|(_, l)| **l)
+            .map(|(b, _)| b.step.clone())
+            .collect()
+    }
+
+    /// Give an event to the last agent started for `step`.
+    pub fn push(&self, step: &str, e: crate::ports::AgentEvent) {
+        let mut s = lock(&self.0);
+        let i = s
+            .briefs
+            .iter()
+            .rposition(|b| b.step == step)
+            .expect("an agent of the step");
+        s.queues[i].push_back(e);
+    }
+
+    pub fn fail_start(&self, message: Option<&str>) {
+        lock(&self.0).fail = message.map(Into::into);
+    }
+}
+
+struct FakeAgent(Arc<Mutex<AgentsState>>, usize);
+
+impl crate::ports::AgentRun for FakeAgent {
+    fn next(&mut self) -> Option<crate::ports::AgentEvent> {
+        lock(&self.0).queues[self.1].pop_front()
+    }
+
+    fn cancel(&mut self) {
+        lock(&self.0).live[self.1] = false;
+    }
+}
+
+impl Drop for FakeAgent {
+    fn drop(&mut self) {
+        lock(&self.0).live[self.1] = false;
+    }
+}
+
+impl crate::ports::Agents for FakeAgents {
+    fn start(&self, brief: &crate::ports::Brief) -> PortResult<Box<dyn crate::ports::AgentRun>> {
+        let mut s = lock(&self.0);
+        if let Some(e) = &s.fail {
+            return Err(e.clone());
+        }
+        s.briefs.push(brief.clone());
+        s.queues.push(Default::default());
+        s.live.push(true);
+        Ok(Box::new(FakeAgent(self.0.clone(), s.briefs.len() - 1)))
+    }
+}
+
+#[derive(Default)]
+struct WriterState {
+    sent: Vec<crate::approvals::Write>,
+    no_comments: bool,
+    fail: Option<String>,
+}
+
+/// Records each write. A comment gets the id `c<n>`, a pull request the number 7.
+#[derive(Clone, Default)]
+pub struct FakeWriter(Arc<Mutex<WriterState>>);
+
+impl FakeWriter {
+    pub fn sent(&self) -> Vec<crate::approvals::Write> {
+        lock(&self.0).sent.clone()
+    }
+
+    pub fn set_can_comment(&self, on: bool) {
+        lock(&self.0).no_comments = !on;
+    }
+
+    pub fn fail_with(&self, message: Option<&str>) {
+        lock(&self.0).fail = message.map(Into::into);
+    }
+}
+
+impl crate::ports::Writer for FakeWriter {
+    fn can_comment(&self) -> bool {
+        !lock(&self.0).no_comments
+    }
+
+    fn send(&self, w: &crate::approvals::Write) -> PortResult<String> {
+        use crate::approvals::Write;
+        let mut s = lock(&self.0);
+        if let Some(e) = &s.fail {
+            return Err(e.clone());
+        }
+        s.sent.push(w.clone());
+        Ok(match w {
+            Write::Comment { .. } => format!("c{}", s.sent.len()),
+            Write::OpenPr { .. } => "7".into(),
+            _ => String::new(),
+        })
+    }
+}
+
+/// `/wt/<run>/<child>` for a worktree, `/wt/<run>` for the shared one. Records the calls.
+#[derive(Clone, Default)]
+pub struct FakeWorkspaces(Arc<Mutex<Vec<Call>>>);
+
+/// `(run, child)` of one `dir` call.
+pub type Call = (String, Option<String>);
+
+impl FakeWorkspaces {
+    pub fn calls(&self) -> Vec<Call> {
+        lock(&self.0).clone()
+    }
+}
+
+impl crate::ports::Workspaces for FakeWorkspaces {
+    fn dir(
+        &self,
+        run: &str,
+        _workspace: shipyard_core::workflow::Workspace,
+        child: Option<&str>,
+    ) -> PortResult<std::path::PathBuf> {
+        lock(&self.0).push((run.into(), child.map(Into::into)));
+        let base = std::path::PathBuf::from("/wt").join(run);
+        Ok(child.map_or(base.clone(), |c| base.join(c)))
+    }
+}

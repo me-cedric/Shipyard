@@ -18,10 +18,10 @@ Plan: [plan.md](./plan.md)
 - [x] T005 Add the five default workflows and the seven default roles in `crates/shipyard-store/templates/factory/`, and validate them in `crates/shipyard-store/tests/factory_files.rs` (the store owns the templates). Covers REQ-011, REQ-014.
 - [x] T006 Write run log and codec tests in `crates/shipyard-store/tests/run_log.rs`. Covers REQ-008, REQ-021, REQ-025, REQ-034.
 - [x] T007 Implement the append-only run log, the automation file codec with the state mapping, and the workflow reload with last valid version in `crates/shipyard-store/src/run_log.rs` and `crates/shipyard-store/src/factory_files.rs`. Covers REQ-008, REQ-010, REQ-021, REQ-025.
-- [ ] T008 Write engine tests with a fake tracker, fake runner and fake clock in `crates/shipyard-engine/tests/engine.rs`. Covers REQ-006, REQ-007, REQ-009, REQ-013, REQ-022, REQ-023, REQ-024, REQ-035, REQ-036.
-- [ ] T009 Implement dispatch, retry, clocks, budgets, stall, max turns, fan-out and kill switches in `crates/shipyard-engine/src/run_engine.rs`. Covers REQ-006, REQ-007, REQ-009, REQ-013, REQ-022, REQ-023, REQ-024, REQ-035, REQ-036.
-- [ ] T010 Write approval tests in `crates/shipyard-engine/tests/approvals.rs`. Covers REQ-025, REQ-026.
-- [ ] T011 Implement the write switches and approvals in `crates/shipyard-engine/src/approvals.rs`. Covers REQ-025, REQ-026.
+- [x] T008 Write engine tests with a fake tracker, fake runner and fake clock in `crates/shipyard-engine/tests/engine.rs`. Covers REQ-006, REQ-007, REQ-009, REQ-013, REQ-022, REQ-023, REQ-024, REQ-035, REQ-036.
+- [x] T009 Implement dispatch, retry, clocks, budgets, stall, max turns, fan-out and kill switches in `crates/shipyard-engine/src/run_engine.rs`. Covers REQ-006, REQ-007, REQ-009, REQ-013, REQ-022, REQ-023, REQ-024, REQ-035, REQ-036.
+- [x] T010 Write approval tests in `crates/shipyard-engine/tests/approvals.rs`. Covers REQ-025, REQ-026.
+- [x] T011 Implement the write switches and approvals in `crates/shipyard-engine/src/approvals.rs`. Covers REQ-025, REQ-026.
 - [x] T012 Write runner tests with a fake CLI in `crates/shipyard-agents/tests/runner.rs`. Covers REQ-015.
 - [x] T013 Implement the runner trait, the streamed JSON reader and the first adapters in `crates/shipyard-agents/src/runner.rs`. Covers REQ-015.
 - [x] T014 Write worktree tests in `crates/shipyard-git/tests/worktree.rs`. Covers REQ-013.
