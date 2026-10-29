@@ -78,3 +78,77 @@ test("creates a branch in Code / Branches with the type, area and subject", asyn
 	);
 	await expect(heading(page, "Local (3)")).toBeVisible();
 });
+
+// The e2e build has no demo project: the list holds the factory pull requests (#40 to #47) and
+// the detail comes from the forge mock, which serves #41 to #43.
+const pull = (page: Page, n: number) => page.getByRole("button", { name: new RegExp(`^#${n} `) });
+
+test("lists the pull requests by state, opens one and comments", async ({ page }) => {
+	await openCode(page, "Pull requests");
+	await expect(heading(page, "Open (5)")).toBeVisible();
+	await expect(heading(page, "Merged (1)")).toBeVisible();
+	await expect(heading(page, "Closed (1)")).toBeVisible();
+	await expect(pull(page, 46)).toContainText("Draft");
+
+	await pull(page, 42).click();
+	await expect(heading(page, "fix(auth): refuse an empty token")).toBeVisible();
+	await expect(page.getByText("Grace Hopper: rename this")).toBeVisible();
+
+	await page.getByRole("textbox", { name: "Comment" }).fill("Looks right now.");
+	await page.getByRole("button", { name: "Comment", exact: true }).click();
+	await expect(page.getByText("Ada Lovelace: Looks right now.")).toBeVisible();
+	await expect(page.getByRole("textbox", { name: "Comment" })).toHaveValue("");
+});
+
+test("marks a draft ready", async ({ page }) => {
+	await openCode(page, "Pull requests");
+	await pull(page, 43).click();
+	const merge = page.getByRole("button", { name: "Merge", exact: true });
+	await expect(merge).toBeDisabled();
+	await page.getByRole("button", { name: "Mark ready" }).click();
+	await expect(page.getByRole("button", { name: "Mark ready" })).toHaveCount(0);
+	await expect(merge).toBeEnabled();
+});
+
+test("merges only after the confirm click", async ({ page }) => {
+	await openCode(page, "Pull requests");
+	await pull(page, 42).click();
+	const merge = page.getByRole("button", { name: "Merge", exact: true });
+	await merge.click();
+	// The first click only asks: the merge has not run.
+	const confirm = page.getByRole("button", { name: "Merge with Merge" });
+	await expect(confirm).toBeVisible();
+	await expect(page.getByRole("alert")).toHaveCount(0);
+	await confirm.click();
+	await expect(confirm).toHaveCount(0);
+	await expect(merge).toBeDisabled();
+});
+
+test("opens a file of a pull request in the viewer", async ({ page }) => {
+	await openCode(page, "Pull requests");
+	await pull(page, 42).click();
+	await page.getByRole("button", { name: "Open src/app.ts" }).click();
+	const dialog = page.getByRole("dialog");
+	await expect(dialog.getByRole("region", { name: "File src/app.ts" })).toBeVisible();
+	await page.keyboard.press("Escape");
+	await expect(dialog).toBeHidden();
+});
+
+test("analyzes a branch in Impacts and shows the plan and the digest", async ({ page }) => {
+	await openCode(page, "Impacts");
+	await page.getByRole("button", { name: "Analyze" }).click();
+	await expect(heading(page, "Axes (7)")).toBeVisible();
+	await expect(page.getByText("Update the contract.")).toBeVisible();
+	await expect(page.getByText(/moves the release by one week/)).toBeVisible();
+	await expect(page.getByRole("button", { name: /2026-10-29 main/ })).toBeVisible();
+});
+
+test("echoes a line in the terminal", async ({ page }) => {
+	await openCode(page, "Terminal");
+	const terminal = page.getByRole("region", { name: "Terminal" });
+	await expect(terminal).toContainText("/project $");
+	await terminal.locator(".xterm-helper-textarea").focus();
+	await page.keyboard.type("echo hello");
+	await page.keyboard.press("Enter");
+	await expect(terminal).toContainText("echo hello");
+});

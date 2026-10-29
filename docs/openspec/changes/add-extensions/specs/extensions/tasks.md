@@ -31,7 +31,7 @@ Plan: [plan.md](plan.md)
 - [x] T018 Implement the two views in `src/features/settings/extensions/` (REQ-001, REQ-002, REQ-006, REQ-008, REQ-009, REQ-012, REQ-015).
 - [x] T019 Write the keyboard, focus, label, contrast, reduced-motion and language tests in `src/features/settings/extensions/a11y.test.tsx` (REQ-019).
 - [x] T020 Implement the interface rules in `src/features/settings/extensions/` (REQ-019).
-- [ ] T021 Write the end-to-end test in `e2e/extensions.spec.ts` for apply, plugin import with review, and child deploy (REQ-003, REQ-011, REQ-012, REQ-016, REQ-017).
+- [x] T021 Write the end-to-end test in `e2e/extensions.spec.ts` for apply, plugin import with review, and child deploy (REQ-003, REQ-011, REQ-012, REQ-016, REQ-017). Done: three tests on the mock. Open: none.
 - [ ] T022 [P] Add the changelog entry in `CHANGELOG.md` and `CHANGELOG.fr.md` (REQ-001).
 - [ ] T023 Run `cd docs && npx -y @fission-ai/openspec@latest validate add-extensions --strict` and the commands of `plan.md` (REQ-001 to REQ-019).
 - [ ] T024 Compare the code with the spec and update stale artifacts in `docs/openspec/changes/add-extensions/`. Close Q-050, Q-051 and Q-052 (REQ-005, REQ-014, REQ-016).
