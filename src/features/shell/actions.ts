@@ -143,7 +143,9 @@ export function useShortcuts(list: Action[]) {
 	useEffect(() => {
 		const onKeyDown = (e: KeyboardEvent) => {
 			if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
-			const action = list.find((a) => a.key === e.key.toLowerCase());
+			// Digits by physical key: on AZERTY, Mod+1 sends "&" as e.key.
+			const key = /^Digit\d$/.test(e.code) ? e.code.slice(5) : e.key.toLowerCase();
+			const action = list.find((a) => a.key === key);
 			if (!action) return;
 			e.preventDefault();
 			action.run();

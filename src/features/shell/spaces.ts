@@ -45,15 +45,3 @@ export function orderedSpaces(role: Role): SpaceId[] {
 		(a, b) => Number(a === "settings") - Number(b === "settings"),
 	);
 }
-
-/** The ref kinds of the shared vocabulary (spec `refs`). */
-const REF_KINDS = new Set(
-	"project member diagram model adr api data flow screen change spec test q wi est wf run pr commit doc conn".split(
-		" ",
-	),
-);
-
-export function isRef(text: string): boolean {
-	const [kind = "", rest] = text.split(/:(.*)/s);
-	return REF_KINDS.has(kind) && !!rest && !/\s/.test(text);
-}

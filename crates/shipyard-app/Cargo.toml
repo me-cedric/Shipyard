@@ -15,4 +15,6 @@ serde.workspace = true
 tauri.workspace = true
 tauri-specta.workspace = true
 specta.workspace = true
+
+[dev-dependencies]
 specta-typescript.workspace = true

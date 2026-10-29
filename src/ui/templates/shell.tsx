@@ -26,7 +26,11 @@ export function Shell({
 				>
 					{sidebar}
 				</nav>
-				<main aria-label={t.nav.main} className="min-w-0 flex-1 overflow-auto">
+				<main
+					aria-label={t.nav.main}
+					tabIndex={-1}
+					className="min-w-0 flex-1 overflow-auto focus:outline-none"
+				>
 					{main}
 				</main>
 				{inspector}

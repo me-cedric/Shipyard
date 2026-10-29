@@ -30,6 +30,16 @@ describe("CommandPalette", () => {
 		expect(onOpenChange).toHaveBeenCalledWith(false);
 	});
 
+	it("clears the search after a select", async () => {
+		const groups = [
+			{ id: "g", heading: "Go", items: [{ id: "a", label: "Alpha", onSelect: () => {} }] },
+		];
+		renderApp(<CommandPalette open onOpenChange={() => {}} groups={groups} />);
+		await userEvent.type(screen.getByRole("combobox"), "alp");
+		await userEvent.click(screen.getByText("Alpha"));
+		expect(screen.getByRole("combobox")).toHaveValue("");
+	});
+
 	it("closes on Escape", async () => {
 		const onOpenChange = vi.fn();
 		renderApp(<CommandPalette open onOpenChange={onOpenChange} groups={[]} />);

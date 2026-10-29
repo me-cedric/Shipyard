@@ -72,6 +72,7 @@ export function CommandPalette({
 											value={item.id}
 											onSelect={() => {
 												item.onSelect();
+												setSearch("");
 												onOpenChange(false);
 											}}
 											className="flex h-row cursor-default items-center gap-2 rounded-sm px-2 text-ui text-n-12 data-[selected=true]:bg-n-4"

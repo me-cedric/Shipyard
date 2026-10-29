@@ -2,11 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands } from "@/lib/ipc";
+import { isRef } from "@/lib/refs";
 import { CodeBracketIcon, DocumentTextIcon } from "@/ui/icons";
 import { CommandPalette, type PaletteGroup } from "@/ui/organisms/command-palette";
 import type { Action } from "./actions";
 import { useShell } from "./shell-state";
-import { isRef } from "./spaces";
 
 export function PaletteHost({ actions }: { actions: Action[] }) {
 	const { t } = useI18n();
