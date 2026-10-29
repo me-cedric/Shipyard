@@ -149,10 +149,12 @@ pub fn write_new(root: &Path, files: &[(String, Vec<u8>)]) -> Result<WriteReport
     for rel in report.written {
         let path = root.join(&rel);
         let dir = path.parent().ok_or("path not allowed")?;
-        fs::create_dir_all(dir)?;
-        if !dir.canonicalize()?.starts_with(&base) {
+        // Check the nearest existing folder first: `create_dir_all` would follow a link out.
+        let near = dir.ancestors().find(|a| a.exists());
+        if !near.is_some_and(|a| a.canonicalize().is_ok_and(|a| a.starts_with(&base))) {
             return Err(format!("path not allowed: {rel}").into());
         }
+        fs::create_dir_all(dir)?;
         let bytes = &files.iter().find(|(p, _)| *p == rel).ok_or("file lost")?.1;
         match fs::OpenOptions::new()
             .write(true)

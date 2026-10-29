@@ -16,6 +16,7 @@ import {
 	scanRun,
 	seedPrs,
 	terminalClose,
+	terminalCloseAll,
 	terminalOpen,
 	terminalWrite,
 } from "./mock-code-prs";
@@ -25,11 +26,11 @@ const input = { title: "feat(code): x", body: "", draft: false, labels: ["feat",
 describe("the Code forge mock", () => {
 	it("needs a click for each write and a text for a comment and a request for changes", () => {
 		const p = seedPrs();
-		expect(() => pullComment(p, 41, "ok", false)).toThrow("click");
-		expect(() => pullComment(p, 41, "  ", true)).toThrow("some text");
-		expect(() => pullVerdict(p, 41, "request-changes", "", true)).toThrow("some text");
-		pullVerdict(p, 41, "request-changes", "rename", true);
-		expect(pullDetail(p, 41).verdicts.map((v) => v.state)).toEqual([
+		expect(() => pullComment(p, 141, "ok", false)).toThrow("click");
+		expect(() => pullComment(p, 141, "  ", true)).toThrow("some text");
+		expect(() => pullVerdict(p, 141, "request-changes", "", true)).toThrow("some text");
+		pullVerdict(p, 141, "request-changes", "rename", true);
+		expect(pullDetail(p, 141).verdicts.map((v) => v.state)).toEqual([
 			"approved",
 			"changes-requested",
 		]);
@@ -37,11 +38,11 @@ describe("the Code forge mock", () => {
 
 	it("keeps a draft from merging until it is marked ready", () => {
 		const p = seedPrs();
-		expect(() => pullMerge(p, 43, "squash", true)).toThrow("draft");
-		pullReady(p, 43, true);
-		pullMerge(p, 43, "squash", true);
-		expect(pullDetail(p, 43).state).toBe("merged");
-		expect(() => pullMerge(p, 43, "squash", true)).toThrow("not open");
+		expect(() => pullMerge(p, 143, "squash", true)).toThrow("draft");
+		pullReady(p, 143, true);
+		pullMerge(p, 143, "squash", true);
+		expect(pullDetail(p, 143).state).toBe("merged");
+		expect(() => pullMerge(p, 143, "squash", true)).toThrow("not open");
 	});
 
 	it("opens a pull request only from a published branch and reports the missing labels", () => {
@@ -57,7 +58,7 @@ describe("the Code forge mock", () => {
 	});
 
 	it("lists the two failed checks of a pull request", () => {
-		const failed = pullDetail(seedPrs(), 42).checks.filter((c) => c.state === "failing");
+		const failed = pullDetail(seedPrs(), 142).checks.filter((c) => c.state === "failing");
 		expect(failed.map((c) => c.name)).toEqual(["unit", "lint"]);
 	});
 });
@@ -96,5 +97,8 @@ describe("the fake terminal", () => {
 		expect(seen.join("")).toContain("ls\r\n");
 		terminalClose(p, "t1");
 		expect(() => terminalWrite(p, "t1", "x")).toThrow("closed");
+		terminalOpen(p, "t2", null);
+		terminalCloseAll(p);
+		expect(() => terminalWrite(p, "t2", "x")).toThrow("closed");
 	});
 });

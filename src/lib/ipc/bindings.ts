@@ -70,7 +70,7 @@ export const commands = {
 	codeFileRead: (path: string, rev: string | null) => typedError<FileView, string>(__TAURI_INVOKE("code_file_read", { path, rev })),
 	codePullDetail: (number: number) => typedError<PullDetail_Serialize, string>(__TAURI_INVOKE("code_pull_detail", { number })),
 	codePullLabels: () => typedError<string[], string>(__TAURI_INVOKE("code_pull_labels")),
-	codePullOpen: (input: OpenPull_Deserialize, click: boolean) => typedError<OpenedPull, string>(__TAURI_INVOKE("code_pull_open", { input, click })),
+	codePullOpen: (input: OpenPull_Deserialize, click: boolean) => typedError<OpenedPull_Serialize, string>(__TAURI_INVOKE("code_pull_open", { input, click })),
 	codePullComment: (number: number, body: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("code_pull_comment", { number, body, click })),
 	codePullVerdict: (number: number, verdict: Verdict, body: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("code_pull_verdict", { number, verdict, body, click })),
 	codePullMerge: (number: number, method: MergeMethod, click: boolean) => typedError<null, string>(__TAURI_INVOKE("code_pull_merge", { number, method, click })),
@@ -87,6 +87,8 @@ export const commands = {
 	terminalWrite: (id: string, data: string) => typedError<null, string>(__TAURI_INVOKE("terminal_write", { id, data })),
 	terminalResize: (id: string, cols: number, rows: number) => typedError<null, string>(__TAURI_INVOKE("terminal_resize", { id, cols, rows })),
 	terminalClose: (id: string) => typedError<null, string>(__TAURI_INVOKE("terminal_close", { id })),
+	/**  Ends the shells of an earlier page load: the page starts, and no shell of it is open. */
+	terminalCloseAll: () => typedError<null, string>(__TAURI_INVOKE("terminal_close_all")),
 	runnersList: () => typedError<Runner_Serialize[], string>(__TAURI_INVOKE("runners_list")),
 	providersList: () => typedError<Provider[], string>(__TAURI_INVOKE("providers_list")),
 	providersAdd: (draft: ProviderDraft) => typedError<Provider, string>(__TAURI_INVOKE("providers_add", { draft })),
@@ -1893,12 +1895,26 @@ export type OpenStatus = "opened" |
 /**  The repository has no project file. A person confirms, then the call repeats with `init`. */
 "needs-project-file" | "not-repository" | "folder-not-empty" | "invalid" | "failed";
 
-export type OpenedPull = {
+export type OpenedPull = OpenedPull_Serialize | OpenedPull_Deserialize;
+
+export type OpenedPull_Deserialize = {
 	reference: string,
 	number: number,
 	url: string,
 	/**  Labels that the forge does not have. Nothing created them. */
 	missingLabels: string[],
+	/**  The forge refused the labels. The pull request exists: this is not a failure of the open. */
+	labelError?: string | null,
+};
+
+export type OpenedPull_Serialize = {
+	reference: string,
+	number: number,
+	url: string,
+	/**  Labels that the forge does not have. Nothing created them. */
+	missingLabels: string[],
+	/**  The forge refused the labels. The pull request exists: this is not a failure of the open. */
+	labelError: string | null,
 };
 
 /**  A project value that takes the place of a personal preference while the project is active. */

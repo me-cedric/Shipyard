@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process::Command;
 
 use shipyard_git::Auth;
-use shipyard_git::child_deploy::{branch_new, commit_all};
+use shipyard_git::child_deploy::{branch_drop, branch_new, commit_all};
 use shipyard_git::project::clone_repo;
 
 fn git(dir: &Path, args: &[&str]) -> String {
@@ -95,4 +95,20 @@ fn a_dirty_clone_an_existing_branch_and_a_bad_name_are_refused() {
     assert!(branch_new(&clone, "b").is_err());
     std::fs::write(clone.join("own.txt"), "mine").unwrap();
     assert!(branch_new(&clone, "c").unwrap_err().contains("changes"));
+}
+
+#[test]
+fn a_dropped_branch_leaves_the_clone_clean_on_its_old_branch() {
+    let d = tempfile::tempdir().unwrap();
+    let (_, clone) = child(d.path());
+    let before = branch_new(&clone, "b").unwrap();
+    std::fs::write(clone.join("AGENTS.md"), "rules").unwrap();
+    std::fs::create_dir(clone.join("docs")).unwrap();
+    std::fs::write(clone.join("docs/a.md"), "a").unwrap();
+    branch_drop(&clone, &before, "b").unwrap();
+    assert_eq!(git(&clone, &["rev-parse", "--abbrev-ref", "HEAD"]), "main");
+    assert_eq!(git(&clone, &["status", "--porcelain"]), "");
+    assert_eq!(git(&clone, &["branch", "--list", "b"]), "");
+    // The clone takes a new deploy.
+    branch_new(&clone, "b").unwrap();
 }

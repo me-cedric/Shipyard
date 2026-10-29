@@ -79,18 +79,17 @@ test("creates a branch in Code / Branches with the type, area and subject", asyn
 	await expect(heading(page, "Local (3)")).toBeVisible();
 });
 
-// The e2e build has no demo project: the list holds the factory pull requests (#40 to #47) and
-// the detail comes from the forge mock, which serves #41 to #43.
+// The list holds the factory pull requests (#40 to #47) and the forge mock ones (#141 to #143).
 const pull = (page: Page, n: number) => page.getByRole("button", { name: new RegExp(`^#${n} `) });
 
 test("lists the pull requests by state, opens one and comments", async ({ page }) => {
 	await openCode(page, "Pull requests");
-	await expect(heading(page, "Open (5)")).toBeVisible();
+	await expect(heading(page, "Open (8)")).toBeVisible();
 	await expect(heading(page, "Merged (1)")).toBeVisible();
 	await expect(heading(page, "Closed (1)")).toBeVisible();
 	await expect(pull(page, 46)).toContainText("Draft");
 
-	await pull(page, 42).click();
+	await pull(page, 142).click();
 	await expect(heading(page, "fix(auth): refuse an empty token")).toBeVisible();
 	await expect(page.getByText("Grace Hopper: rename this")).toBeVisible();
 
@@ -102,7 +101,7 @@ test("lists the pull requests by state, opens one and comments", async ({ page }
 
 test("marks a draft ready", async ({ page }) => {
 	await openCode(page, "Pull requests");
-	await pull(page, 43).click();
+	await pull(page, 143).click();
 	const merge = page.getByRole("button", { name: "Merge", exact: true });
 	await expect(merge).toBeDisabled();
 	await page.getByRole("button", { name: "Mark ready" }).click();
@@ -112,7 +111,7 @@ test("marks a draft ready", async ({ page }) => {
 
 test("merges only after the confirm click", async ({ page }) => {
 	await openCode(page, "Pull requests");
-	await pull(page, 42).click();
+	await pull(page, 142).click();
 	const merge = page.getByRole("button", { name: "Merge", exact: true });
 	await merge.click();
 	// The first click only asks: the merge has not run.
@@ -126,7 +125,7 @@ test("merges only after the confirm click", async ({ page }) => {
 
 test("opens a file of a pull request in the viewer", async ({ page }) => {
 	await openCode(page, "Pull requests");
-	await pull(page, 42).click();
+	await pull(page, 142).click();
 	await page.getByRole("button", { name: "Open src/app.ts" }).click();
 	const dialog = page.getByRole("dialog");
 	await expect(dialog.getByRole("region", { name: "File src/app.ts" })).toBeVisible();

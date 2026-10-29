@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use shipyard_core::extensions::{Kind, WriteReport, current_keys, progress, proposed};
-use shipyard_git::child_deploy::{branch_new, commit_all};
+use shipyard_git::child_deploy::{branch_drop, branch_new, commit_all};
 use shipyard_git::project::clone_repo;
 use shipyard_store::catalog::{self, Component};
 use shipyard_store::compass::{self as store_compass, Compass};
@@ -346,13 +346,32 @@ fn deploy_one(
     if let Some(k) = keys.iter().find(|k| !view.proposed.contains(k)) {
         return Err(format!("not proposed: {k}"));
     }
-    branch_new(&dir, branch)?;
+    let before = branch_new(&dir, branch)?;
+    // A failed write leaves no new branch and no new file in the clone.
+    write_and_commit(parent, &dir, keys)
+        .inspect_err(|_| {
+            let _ = branch_drop(&dir, &before, branch);
+        })
+        .map(|(report, commit)| ChildResult {
+            id: id.into(),
+            branch: Some(branch.into()),
+            commit,
+            report,
+            error: None,
+        })
+}
+
+fn write_and_commit(
+    parent: &Path,
+    dir: &Path,
+    keys: &[String],
+) -> Res<(WriteReport, Option<String>)> {
     let mut report = WriteReport::default();
     let mut compass_keys = Vec::new();
     for k in keys {
         match k.strip_prefix("component:") {
             Some(c) => {
-                let done = catalog::deploy_to(parent, &dir, c).map_err(err)?;
+                let done = catalog::deploy_to(parent, dir, c).map_err(err)?;
                 report.written.extend(done.written);
                 report.kept.extend(done.kept);
             }
@@ -360,21 +379,15 @@ fn deploy_one(
         }
     }
     if !compass_keys.is_empty() {
-        let done = compass::apply_in(parent, &dir, &compass_keys)?;
+        let done = compass::apply_in(parent, dir, &compass_keys)?;
         report.written.extend(done.report.written);
         report.kept.extend(done.report.kept);
     }
     let commit = commit_all(
-        &dir,
+        dir,
         &format!("chore(extensions): deploy {} entries", keys.len()),
     )?;
-    Ok(ChildResult {
-        id: id.into(),
-        branch: Some(branch.into()),
-        commit,
-        report,
-        error: None,
-    })
+    Ok((report, commit))
 }
 
 /// Deploy to each chosen child (REQ-016, REQ-017, REQ-018). A child that fails does not stop the

@@ -106,6 +106,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             terminal::terminal_write,
             terminal::terminal_resize,
             terminal::terminal_close,
+            terminal::terminal_close_all,
             ag::runners_list,
             ag::providers_list,
             ag::providers_add,

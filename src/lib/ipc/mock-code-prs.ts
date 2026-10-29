@@ -7,7 +7,7 @@ import type {
 	ImpactEntry,
 	ImpactRefs,
 	MergeMethod,
-	OpenedPull,
+	OpenedPull_Serialize,
 	OpenPull_Deserialize,
 	PrRowView,
 	PullDetail_Serialize,
@@ -82,7 +82,7 @@ function pull(
 }
 
 export function seedPrs(): MockPrs {
-	const failed = pull(42, "fix(auth): refuse an empty token", {
+	const failed = pull(142, "fix(auth): refuse an empty token", {
 		ci: "failing",
 		checks: [
 			{ name: "build", state: "passing", url: "https://ci.example.com/build" },
@@ -103,12 +103,12 @@ export function seedPrs(): MockPrs {
 	});
 	return {
 		pulls: [
-			pull(41, "feat(api): add the health route", {
+			pull(141, "feat(api): add the health route", {
 				verdicts: [{ reviewer: "Grace Hopper", state: "approved" }],
 				links: ["wi:SHIP-41"],
 			}),
 			failed,
-			pull(43, "feat(code): show the pull requests", {
+			pull(143, "feat(code): show the pull requests", {
 				draft: true,
 				mergeable: "blocked",
 				links: ["wi:SHIP-43", "run:r-3"],
@@ -173,7 +173,22 @@ export function prRows(p: MockPrs): PrRowView[] {
 	}));
 }
 
-export const pullDetail = (p: MockPrs, number: number): PullDetail_Serialize => find(p, number);
+/** A row of the list that this mock does not hold gets a detail made from the row, so the list and the detail agree. */
+export function pullDetail(p: MockPrs, number: number, row?: PrRowView): PullDetail_Serialize {
+	if (row && !p.pulls.some((x) => x.number === number)) {
+		p.pulls.push(
+			pull(number, row.title, {
+				reference: row.reference,
+				state: row.state,
+				draft: row.draft,
+				ci: row.ci,
+				headSha: row.headSha,
+				url: row.url,
+			}),
+		);
+	}
+	return find(p, number);
+}
 
 export const pullLabels = (): string[] => [...LABELS];
 
@@ -183,7 +198,7 @@ export function pullOpen(
 	c: MockCode,
 	input: OpenPull_Deserialize,
 	click: boolean,
-): OpenedPull {
+): OpenedPull_Serialize {
 	need(click);
 	if (!c.remoteBranches.includes(`origin/${c.branch}`))
 		throw "publish the working branch before you open a pull request";
@@ -207,6 +222,7 @@ export function pullOpen(
 		number,
 		url: `https://github.com/acme/web/pull/${number}`,
 		missingLabels: wanted.filter((l) => !LABELS.some((x) => x.toLowerCase() === l.toLowerCase())),
+		labelError: null,
 	};
 }
 
@@ -391,6 +407,11 @@ export function terminalResize(p: MockPrs, id: string) {
 /** Closing the panel ends the shell (REQ-035). */
 export function terminalClose(p: MockPrs, id: string) {
 	delete p.terminals[id];
+	return null;
+}
+
+export function terminalCloseAll(p: MockPrs) {
+	p.terminals = {};
 	return null;
 }
 

@@ -169,14 +169,16 @@ pub fn read(bytes: &[u8]) -> Result<Plugin> {
         if f.unix_mode().is_some_and(|m| m & 0o170000 == 0o120000) {
             return Err(format!("a link is not allowed: {name}").into());
         }
-        total += f.size();
-        if total > MAX_BYTES {
-            return Err("the archive is too large".into());
-        }
+        // The declared size can lie: count the bytes that the inflate really made.
+        let left = MAX_BYTES - total;
         if name == "manifest.json" {
-            manifest = Some(read_limited(f, MAX_MANIFEST)?);
+            let b = read_limited(f, MAX_MANIFEST.min(left))?;
+            total += b.len() as u64;
+            manifest = Some(b);
         } else if name.starts_with("files/") {
-            payload.insert(name, read_limited(f, MAX_BYTES)?);
+            let b = read_limited(f, left)?;
+            total += b.len() as u64;
+            payload.insert(name, b);
         }
     }
     let manifest = manifest.ok_or("the archive has no manifest.json")?;
@@ -211,6 +213,11 @@ pub fn read(bytes: &[u8]) -> Result<Plugin> {
                 e.source
             )
         })?;
+        // A manifest can name one source for many targets: each copy counts.
+        total += bytes.len() as u64;
+        if total > MAX_BYTES {
+            return Err("the archive is too large".into());
+        }
         files.push((e.target, bytes.clone()));
     }
     for (k, v) in &m.settings {

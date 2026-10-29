@@ -50,23 +50,28 @@ pub(crate) enum Work {
         writer: Arc<dyn Writer>,
         slot: Option<Slot>,
     },
+    /// The impacts digest for the body of the pull request: 2 or 3 agent asks.
+    Digest { git: Arc<dyn Git>, base: String },
 }
 
 pub(crate) enum Done {
     Gate(PortResult<Vec<GateCheck>>),
     Write(PortResult<String>),
+    Digest(PortResult<Option<String>>),
 }
 
 fn run_one(job: &Job) -> Done {
     let work = AssertUnwindSafe(|| match &job.work {
         Work::Gate { git, gates, .. } => Done::Gate(git.gate(&job.run, gates)),
         Work::Write { write, writer, .. } => Done::Write(writer.send(write)),
+        Work::Digest { git, base } => Done::Digest(git.digest(&job.run, base)),
     });
     catch_unwind(work).unwrap_or_else(|_| {
         let e = "the call panicked".to_string();
         match job.work {
             Work::Gate { .. } => Done::Gate(Err(e)),
             Work::Write { .. } => Done::Write(Err(e)),
+            Work::Digest { .. } => Done::Digest(Err(e)),
         }
     })
 }
@@ -122,7 +127,8 @@ impl Inner {
             Work::Write {
                 write: Write::Push { .. } | Write::OpenPr { .. },
                 ..
-            } => Some(&mut self.delivering),
+            }
+            | Work::Digest { .. } => Some(&mut self.delivering),
             Work::Write { .. } => None,
         }
     }
@@ -171,6 +177,14 @@ impl Inner {
                 self.gate_done(&job.run, &step, findings, dropped, criteria, result);
                 if self.project_of(&job.run).is_some() {
                     self.pump_run(&job.run);
+                }
+            }
+            (Work::Digest { .. }, Done::Digest(result)) => {
+                // A failed digest never blocks the pull request: it opens with no impacts.
+                // A run that changed asks again from the next pump (`drive_pr`).
+                if same && !self.closing {
+                    self.rec(&job.run).d.digest = Some(result.ok().flatten());
+                    self.advance_pr(&job.run);
                 }
             }
             _ => unreachable!("a job and its result have the same kind"),

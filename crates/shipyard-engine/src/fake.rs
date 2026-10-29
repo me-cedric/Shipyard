@@ -701,6 +701,7 @@ struct GitState {
     merge_messages: Vec<String>,
     gate_delay: Duration,
     digest: Option<String>,
+    digest_delay: Duration,
 }
 
 /// The local git work of a run, with no repository. Each call is one line in [`FakeGit::calls`]:
@@ -732,6 +733,7 @@ impl Default for FakeGit {
             merge_messages: Vec::new(),
             gate_delay: Duration::ZERO,
             digest: None,
+            digest_delay: Duration::ZERO,
         })))
     }
 }
@@ -822,6 +824,11 @@ impl FakeGit {
         lock(&self.0).input = input;
     }
 
+    /// Each `digest` call takes this long, with no lock of the fake held.
+    pub fn set_digest_delay(&self, delay: Duration) {
+        lock(&self.0).digest_delay = delay;
+    }
+
     /// The digest that `digest` returns. `None`: no digest.
     pub fn set_digest(&self, digest: Option<&str>) {
         lock(&self.0).digest = digest.map(Into::into);
@@ -853,7 +860,13 @@ impl Git for FakeGit {
         lock(&self.0).check("remove_child", format!("remove_child {child}"))
     }
 
-    fn digest(&self, _run: &str, _base: &str) -> PortResult<Option<String>> {
+    fn digest(&self, _run: &str, base: &str) -> PortResult<Option<String>> {
+        let delay = {
+            let mut s = lock(&self.0);
+            s.check("digest", format!("digest {base}"))?;
+            s.digest_delay
+        };
+        std::thread::sleep(delay);
         Ok(lock(&self.0).digest.clone())
     }
 

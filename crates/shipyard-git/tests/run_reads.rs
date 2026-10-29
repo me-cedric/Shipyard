@@ -116,6 +116,15 @@ fn the_head_is_the_full_commit_id() {
 }
 
 #[test]
+fn a_file_above_the_limit_gives_its_size_only() {
+    let (_t, r, _) = fixture();
+    let n = 9 * 1024 * 1024;
+    fs::write(r.workdir().join("big.txt"), vec![b'a'; n]).unwrap();
+    let v = r.read_file("big.txt", None, 1000).unwrap();
+    assert!(v.binary && v.text.is_empty() && v.size as usize == n);
+}
+
+#[test]
 fn the_viewer_reads_the_working_copy_or_a_revision_and_stays_in_the_folder() {
     let (_t, r, base) = fixture();
     let now = r.read_file("src/lib.rs", None, 1000).unwrap();

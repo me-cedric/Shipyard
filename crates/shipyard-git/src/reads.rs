@@ -138,10 +138,23 @@ impl Repo {
     /// the working copy: a link that leaves it is refused. A binary file gives its size only.
     pub fn read_file(&self, path: &str, rev: Option<&str>, max_bytes: usize) -> Result<FileView> {
         check_paths(&[path.to_string()])?;
+        // A file above `MAX_FILE_BYTES` is not read: its size is all that the view gives.
+        let big = |n: u64| FileView {
+            path: path.to_string(),
+            size: u32::try_from(n).unwrap_or(u32::MAX),
+            binary: true,
+            truncated: false,
+            text: String::new(),
+        };
+        let too_big = |n: u64| n > MAX_FILE_BYTES.unsigned_abs();
         let bytes = match rev {
             Some(rev) => {
                 let tree = self.repo.revparse_single(rev)?.peel_to_tree()?;
                 let entry = tree.get_path(std::path::Path::new(path))?;
+                let (n, _) = self.repo.odb()?.read_header(entry.id())?;
+                if too_big(n as u64) {
+                    return Ok(big(n as u64));
+                }
                 self.repo.find_blob(entry.id())?.content().to_vec()
             }
             None => {
@@ -152,13 +165,17 @@ impl Repo {
                 if !file.starts_with(&root) || !file.is_file() {
                     return Err(GitError::BadPath(path.to_string()));
                 }
+                let n = file.metadata()?.len();
+                if too_big(n) {
+                    return Ok(big(n));
+                }
                 std::fs::read(file)?
             }
         };
         let size = u32::try_from(bytes.len()).unwrap_or(u32::MAX);
         let mut text =
             String::from_utf8_lossy(&bytes[..bytes.len().min(max_bytes + 4)]).into_owned();
-        let binary = bytes.contains(&0) || i64::from(size) > MAX_FILE_BYTES;
+        let binary = bytes.contains(&0);
         let truncated = !binary && cut(&mut text, max_bytes);
         Ok(FileView {
             path: path.to_string(),

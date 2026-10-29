@@ -18,6 +18,7 @@ use shipyard_store::pr;
 use shipyard_store::run_log::kind;
 
 use crate::approvals::Write;
+use crate::jobs::Work;
 use crate::ports::Merge;
 use crate::review::Finding;
 use crate::run_engine::Inner;
@@ -44,6 +45,9 @@ pub(crate) struct Delivered {
     pub feedback: Vec<String>,
     pub summarized: bool,
     pub kept: Option<String>,
+    /// The digest that the job brought for the pull request body: `Some(None)` is no digest.
+    #[serde(skip)]
+    pub digest: Option<Option<String>>,
 }
 
 /// Why a stage stopped.
@@ -236,6 +240,16 @@ impl Inner {
 
         let existing = pulls.labels().map_err(|e| Fail(format!("labels: {e}")))?;
         let labels = delivery::pr_labels(&existing, ty, &changes.files);
+        // The digest asks the agent for minutes: a job asks with no lock, and its result
+        // comes back here (`jobs`).
+        let Some(impacts) = self.rec(run_id).d.digest.take() else {
+            let work = Work::Digest {
+                git: git.clone(),
+                base,
+            };
+            self.queue(run_id, work);
+            return Ok(());
+        };
         let rec = &self.runs[run_id];
         let body = PrBody {
             opening: format!("Delivers {key}: {title}. Run: run:{run_id}"),
@@ -245,7 +259,7 @@ impl Inner {
                 title: title.clone(),
                 url,
             }],
-            impacts: git.digest(run_id, &base).ok().flatten(),
+            impacts,
         };
         let open = Write::OpenPr {
             run: run_id.into(),

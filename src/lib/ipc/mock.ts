@@ -948,7 +948,12 @@ const handlers: Handlers = {
 	codeWatchIntervalSet: (minutes) => codeWatchIntervalSet(code(), minutes),
 	codeFileRead: (path, rev) => codeFileRead(code(), path, rev),
 	codeWatchNotice: () => (active() ? (code().notice ?? null) : null),
-	codePullDetail: (number) => cp.pullDetail(prs(), number),
+	codePullDetail: (number) =>
+		cp.pullDetail(
+			prs(),
+			number,
+			fx.pullsList(state.factory, active()?.id ?? null).find((r) => r.number === number),
+		),
 	codePullLabels: () => cp.pullLabels(),
 	codePullOpen: (input, click) => cp.pullOpen(prs(), code(), input, click),
 	codePullComment: (number, body, click) => cp.pullComment(prs(), number, body, click),
@@ -967,6 +972,7 @@ const handlers: Handlers = {
 	terminalWrite: (id, data) => cp.terminalWrite(prs(), id, data),
 	terminalResize: (id) => cp.terminalResize(prs(), id),
 	terminalClose: (id) => cp.terminalClose(prs(), id),
+	terminalCloseAll: () => cp.terminalCloseAll(prs()),
 	designList: () => design.designList(need(state.design)),
 	designRead: (path) => design.designRead(need(state.design), path),
 	designWrite: (path, text, stamp, create) =>
@@ -1096,11 +1102,11 @@ const handlers: Handlers = {
 	approvalsList: () => fx.approvalsList(state.factory, active()?.id ?? null),
 	approvalApprove: (id) => fx.approvalApprove(state.factory, id),
 	approvalReject: (id) => fx.approvalReject(state.factory, id),
-	pullsList: () => [
-		...fx.pullsList(state.factory, active()?.id ?? null),
-		// The demo project has a forge mirror. A fresh project has none, as the real list.
-		...(active()?.id === "demo" ? cp.prRows(prs()) : []),
-	],
+	pullsList: () => {
+		const rows = fx.pullsList(state.factory, active()?.id ?? null);
+		// The mock forge mirror belongs to the project that owns the factory demo, as its rows do.
+		return rows.length ? [...rows, ...cp.prRows(prs())] : [];
+	},
 	assistantThreads: () => ai.threads(state.assistant, assistantEnv()),
 	assistantCreate: (title) => ai.create(state.assistant, assistantEnv(), title),
 	assistantGet: (id) => ai.get(state.assistant, assistantEnv(), id),

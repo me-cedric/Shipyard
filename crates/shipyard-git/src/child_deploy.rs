@@ -5,15 +5,15 @@
 
 use std::path::Path;
 
-use git2::{IndexAddOption, Repository, StatusOptions};
+use git2::{BranchType, IndexAddOption, Oid, Repository, StatusOptions, build::CheckoutBuilder};
 
 fn msg(e: git2::Error) -> String {
     e.message().to_string()
 }
 
 /// Create `branch` at HEAD and switch to it. It refuses a clone with changes (the commit would
-/// take them), a branch that exists and a bad name.
-pub fn branch_new(clone: &Path, branch: &str) -> Result<(), String> {
+/// take them), a branch that exists and a bad name. It returns the old HEAD for `branch_drop`.
+pub fn branch_new(clone: &Path, branch: &str) -> Result<String, String> {
     if !git2::Reference::is_valid_name(&format!("refs/heads/{branch}")) || branch.starts_with('-') {
         return Err(format!("invalid branch name: {branch}"));
     }
@@ -25,10 +25,33 @@ pub fn branch_new(clone: &Path, branch: &str) -> Result<(), String> {
     if dirty {
         return Err("the clone has changes".into());
     }
-    let head = repo.head().map_err(msg)?.peel_to_commit().map_err(msg)?;
+    let old = repo.head().map_err(msg)?;
+    let before = match old.is_branch() {
+        true => old.name().unwrap_or_default().to_string(),
+        false => old.peel_to_commit().map_err(msg)?.id().to_string(),
+    };
+    let head = old.peel_to_commit().map_err(msg)?;
     repo.branch(branch, &head, false).map_err(msg)?;
     // The new branch holds the commit of the working tree: no checkout is needed.
-    repo.set_head(&format!("refs/heads/{branch}")).map_err(msg)
+    repo.set_head(&format!("refs/heads/{branch}"))
+        .map_err(msg)?;
+    Ok(before)
+}
+
+/// Undo `branch_new` after a failed deploy: go back to `before`, remove the files that the
+/// deploy wrote and delete `branch`. Nothing was committed, so the clone is as it was.
+pub fn branch_drop(clone: &Path, before: &str, branch: &str) -> Result<(), String> {
+    let repo = Repository::open(clone).map_err(msg)?;
+    match before.starts_with("refs/") {
+        true => repo.set_head(before),
+        false => repo.set_head_detached(Oid::from_str(before).map_err(msg)?),
+    }
+    .map_err(msg)?;
+    repo.checkout_head(Some(CheckoutBuilder::new().force().remove_untracked(true)))
+        .map_err(msg)?;
+    repo.find_branch(branch, BranchType::Local)
+        .and_then(|mut b| b.delete())
+        .map_err(msg)
 }
 
 /// Commit every change of the working tree. Returns the commit id, or `None` when nothing changed.

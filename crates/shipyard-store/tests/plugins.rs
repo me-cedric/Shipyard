@@ -68,6 +68,50 @@ fn a_bad_archive_is_refused() {
     );
 }
 
+/// Set the declared size of every entry to 0 in the local and the central headers.
+fn lie_about_size(mut z: Vec<u8>) -> Vec<u8> {
+    for (sig, at) in [([0x50, 0x4b, 3, 4], 22), ([0x50, 0x4b, 1, 2], 24)] {
+        for i in 0..z.len().saturating_sub(at + 4) {
+            if z[i..i + 4] == sig {
+                z[i + at..i + at + 4].fill(0);
+            }
+        }
+    }
+    z
+}
+
+#[test]
+fn an_archive_that_declares_size_zero_is_still_limited() {
+    let big = "a".repeat(6 * 1024 * 1024);
+    let mut w = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+    let o = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    w.start_file("manifest.json", o).unwrap();
+    w.write_all(br#"{"name":"x","version":"1"}"#).unwrap();
+    w.start_file("files/a", o).unwrap();
+    w.write_all(big.as_bytes()).unwrap();
+    w.start_file("files/b", o).unwrap();
+    w.write_all(big.as_bytes()).unwrap();
+    let z = lie_about_size(w.finish().unwrap().into_inner());
+    let e = read(&z).err().unwrap();
+    assert!(e.to_string().contains("too large"), "{e}");
+}
+
+#[test]
+fn a_manifest_that_copies_one_source_many_times_is_limited() {
+    let one = "a".repeat(1024 * 1024);
+    let files: Vec<String> = (0..11)
+        .map(|i| format!(r#"{{"source":"files/a","target":"t{i}"}}"#))
+        .collect();
+    let m = format!(
+        r#"{{"name":"x","version":"1","files":[{}]}}"#,
+        files.join(",")
+    );
+    let e = read(&zip(&[("manifest.json", &m), ("files/a", &one)]))
+        .err()
+        .unwrap();
+    assert!(e.to_string().contains("too large"), "{e}");
+}
+
 #[test]
 fn a_path_outside_the_project_is_refused_and_named() {
     let m = r#"{"name":"x","version":"1","files":[{"source":"files/a","target":"../out"}]}"#;

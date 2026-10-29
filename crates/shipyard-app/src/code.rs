@@ -281,6 +281,8 @@ pub struct OpenedPull {
     pub url: String,
     /// Labels that the forge does not have. Nothing created them.
     pub missing_labels: Vec<String>,
+    /// The forge refused the labels. The pull request exists: this is not a failure of the open.
+    pub label_error: Option<String>,
 }
 
 /// Opens a pull request from the working branch. The branch must be published first.
@@ -313,18 +315,21 @@ pub fn pull_open(s: &AppState, input: OpenPull, click: bool) -> Res<OpenedPull> 
             },
         )
         .map_err(err)?;
-    let missing_labels = if input.labels.is_empty() {
-        Vec::new()
+    // The pull request exists now: a label error goes in the result, never in an `Err`.
+    let (missing_labels, label_error) = if input.labels.is_empty() {
+        (Vec::new(), None)
     } else {
-        api.add_labels(&slug, made.number, &input.labels)
-            .map_err(err)?
-            .missing
+        match api.add_labels(&slug, made.number, &input.labels) {
+            Ok(r) => (r.missing, None),
+            Err(e) => (Vec::new(), Some(err(e))),
+        }
     };
     Ok(OpenedPull {
         reference: format!("pr:{conn}:{}", made.number),
         number: made.number as u32,
         url: made.url,
         missing_labels,
+        label_error,
     })
 }
 

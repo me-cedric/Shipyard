@@ -277,6 +277,14 @@ pub async fn terminal_close(id: String) -> Res<()> {
     Ok(())
 }
 
+/// Ends the shells of an earlier page load: the page starts, and no shell of it is open.
+#[tauri::command]
+#[specta::specta]
+pub async fn terminal_close_all() -> Res<()> {
+    close_all();
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -54,11 +54,16 @@ function OpenDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
 	const [draft, setDraft] = useState(false);
 	const [labels, setLabels] = useState<string[]>([]);
 	const [missing, setMissing] = useState<string[]>([]);
+	const [labelError, setLabelError] = useState<string | null>(null);
+	// The pull request exists once the call returns: a second click would open a duplicate.
+	const [created, setCreated] = useState(false);
 	const submit = () =>
 		void run(async () => {
 			const out = await openPull({ title, body, base: base.trim() || null, draft, labels });
+			setCreated(true);
 			setMissing(out.missingLabels);
-			if (out.missingLabels.length === 0) onOpenChange(false);
+			setLabelError(out.labelError);
+			if (out.missingLabels.length === 0 && !out.labelError) onOpenChange(false);
 		});
 	return (
 		<Dialog
@@ -66,7 +71,7 @@ function OpenDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
 			onOpenChange={onOpenChange}
 			title={t.forge.openPull}
 			actions={
-				<Button variant="primary" onClick={submit}>
+				<Button variant="primary" onClick={submit} disabled={created}>
 					<PlusIcon size={14} />
 					{t.forge.openPull}
 				</Button>
@@ -106,7 +111,7 @@ function OpenDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
 					{format(t.forge.missingLabels, { names: missing.join(", ") })}
 				</p>
 			) : null}
-			<Alert error={error} />
+			<Alert error={error ?? labelError} />
 		</Dialog>
 	);
 }

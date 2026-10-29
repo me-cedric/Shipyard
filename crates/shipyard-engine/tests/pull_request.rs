@@ -4,10 +4,12 @@
 mod fx;
 
 use fx::{Fx, writes};
+use serde_json::json;
 use shipyard_core::pickup::Writes;
 use shipyard_core::run::RunState;
 use shipyard_engine::approvals::Write;
 use shipyard_engine::run_engine::Config;
+use shipyard_mcp::tools::agent::{Outcome, Report};
 
 const FILES: [&str; 2] = [
     "crates/shipyard-engine/src/a.rs",
@@ -140,6 +142,58 @@ fn the_digest_of_the_run_joins_the_pull_request_body() {
         body.contains("## Impacts") && body.contains("The login flow changes."),
         "{body}"
     );
+}
+
+#[test]
+fn a_failed_digest_opens_the_pull_request_with_no_impacts() {
+    let fx = Fx::new(writes(true), &[]);
+    fx.git.fail("digest", Some("the agent timed out"));
+    let run = to_pr(&fx);
+    let Some(Write::OpenPr { body, .. }) = open_pr(&fx) else {
+        panic!("no pull request was opened")
+    };
+    assert!(!body.contains("## Impacts"), "{body}");
+    assert_eq!(fx.state(&run), RunState::PROpen);
+}
+
+/// The digest runs with no lock: the factory answers while it runs (`factory` REQ-048).
+#[test]
+fn a_slow_digest_does_not_hold_the_factory() {
+    use std::time::{Duration, Instant};
+    let fx = Fx::new(writes(true), &[]);
+    fx.git.set_digest(Some("The login flow changes."));
+    fx.git.set_digest_delay(Duration::from_millis(800));
+    fx.git.set_changes(&FILES, &FILES);
+    let run = fx.start("SHIP-1", &["wf:bug"]);
+    fx.done(&run, "triage");
+    fx.done(&run, "fix");
+    std::thread::scope(|s| {
+        let (f, id) = (fx.f.clone(), run.clone());
+        let review = s.spawn(move || {
+            let report = Report {
+                outcome: Outcome::Done,
+                summary: "review report".into(),
+                refs: Vec::new(),
+                output: json!({}).as_object().cloned(),
+            };
+            f.report(&id, "review", report).unwrap();
+        });
+        let t = Instant::now();
+        while fx.git.count("digest") == 0 && t.elapsed() < Duration::from_secs(5) {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        let t = Instant::now();
+        assert_eq!(fx.f.runs().len(), 1);
+        fx.f.set_kill_switch(true);
+        assert!(
+            t.elapsed() < Duration::from_millis(400),
+            "{:?}",
+            t.elapsed()
+        );
+        assert!(!review.is_finished(), "the digest was still out");
+        review.join().unwrap();
+    });
+    assert_eq!(fx.git.count("digest"), 1);
 }
 
 #[test]

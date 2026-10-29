@@ -115,3 +115,13 @@ fn a_link_that_leaves_the_root_is_refused() {
     assert!(write_new(d.path(), &[("link/x.txt".into(), vec![1])]).is_err());
     assert!(!outside.path().join("x.txt").exists());
 }
+
+#[cfg(unix)]
+#[test]
+fn a_linked_folder_gets_no_new_folder_outside_the_root() {
+    let d = project();
+    let outside = tempfile::tempdir().unwrap();
+    std::os::unix::fs::symlink(outside.path(), d.path().join("link")).unwrap();
+    assert!(write_new(d.path(), &[("link/sub/x.txt".into(), vec![1])]).is_err());
+    assert!(!outside.path().join("sub").exists());
+}

@@ -3,7 +3,12 @@ import { type RefObject, useEffect } from "react";
 import { commands, isTauri, type TerminalOutput } from "@/lib/ipc";
 
 type Output = TerminalOutput;
-let counter = 0;
+// The page load that ran before this one may have left shells: close them once, before the first open.
+let cleared: Promise<unknown> | undefined;
+const closeOldShells = () => {
+	cleared ??= commands.terminalCloseAll().catch(() => {});
+	return cleared;
+};
 
 /**
  * The output of a shell, by id. This is the one place to switch to the typed terminal events:
@@ -34,7 +39,7 @@ export function useTerminal(
 	useEffect(() => {
 		const node = host.current;
 		if (!node) return;
-		const id = `shipyard-${++counter}`;
+		const id = `shipyard-${crypto.randomUUID()}`;
 		let stop = false;
 		let teardown = () => {};
 		void (async () => {
@@ -74,6 +79,7 @@ export function useTerminal(
 					commands.terminalClose(id).catch(() => {});
 					term.dispose();
 				};
+				await closeOldShells();
 				const out = await commands.terminalOpen(id, folder, term.cols, term.rows);
 				if (out.status === "error") onError(out.error);
 				if (stop) teardown();
