@@ -37,6 +37,10 @@
 - Knowledge space: Graph of refs and of the code with kinds, filter, focus, orphan and stale marks and a table view; Explain from the inspector and the palette; Handbook and Documents with a Markdown editor and exports to .docx and .xlsx that never hold a day rate; Slides with reveal.js; Learn paths; Dashboards with tiles that you can pin to Home. The Factory Agents map uses the same graph.
 - Settings / Agents and rules lists the compass rules, packs, skills and roles with their state, and applies or upgrades them without changing the pinned version. Settings / Extensions deploys catalog components, imports a plugin after a review of each item, and deploys to child projects on a branch, never with a push. Health offers Apply for a stale compass entry.
 - Code space: Pull requests with files, commits, checks, verdicts and the conversation, and comment, review, mark ready and merge after a click; Quality with scanner reports; Impacts with Analyze on seven axes; Terminal with your login shell; and a file viewer. Each project checks the remote at its own interval, and a pull request body now lists the impacts of its run.
+- Settings / Project imports a Legacy project folder (project, team, personas, costing sheets, decisions, RAID files and specs) and lists each copied, skipped and conflicting file. The import never replaces a file.
+- Settings / Connections creates a private repository on a forge after a click. Design / Screens shows the colour tokens next to the design doc.
+- Settings / Me turns each notification source on or off. After an update check finds a newer version, the notification centre shows its changes once. Nothing installs.
+- Every tab passes an automatic accessibility check in light and dark themes, and the slides renderer loads only when Slides opens. The release build ships the `shipyard` command next to the app for the agent bridge.
 
 ## [0.0.1]
 
