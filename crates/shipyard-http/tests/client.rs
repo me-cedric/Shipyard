@@ -1,7 +1,7 @@
 //! The client controls, tested against a local socket. No outside network.
 
 use shipyard_http::{
-    Auth, Client, Error, Http, MAX_BODY_BYTES, Request, TestOutcome, base_url, build_url,
+    Auth, Client, Error, Http, MAX_BODY_BYTES, Method, Request, TestOutcome, base_url, build_url,
     bypasses_proxy,
 };
 use shipyard_secrets::Secret;
@@ -183,4 +183,32 @@ fn a_per_request_read_timeout_cuts_a_slow_answer_or_lets_it_finish() {
             .is_none()
     );
     assert_eq!(shipyard_http::DEFAULT_READ_TIMEOUT, Duration::from_secs(30));
+}
+
+#[test]
+fn a_write_keeps_its_own_content_type_and_a_delete_sends_no_body() {
+    let (url, rx) = serve(http("200 OK", "", b"{}"));
+    let patch = Request::write(
+        Method::Patch,
+        format!("{url}/x"),
+        Auth::None,
+        serde_json::json!([{ "op": "add", "path": "/fields/System.State", "value": "Done" }]),
+    )
+    .header("Content-Type", "application/json-patch+json");
+    Client.send(&patch).unwrap();
+    let raw = rx.recv().unwrap().to_ascii_lowercase();
+    assert!(raw.starts_with("patch /x "), "{raw}");
+    assert!(
+        raw.contains("content-type: application/json-patch+json"),
+        "{raw}"
+    );
+    assert!(!raw.contains("content-type: application/json\r"), "{raw}");
+
+    let (url, rx) = serve(http("204 No Content", "", b""));
+    let res = Client
+        .send(&Request::delete(format!("{url}/x/1"), Auth::None))
+        .unwrap();
+    assert_eq!(res.status, 204);
+    let raw = rx.recv().unwrap().to_ascii_lowercase();
+    assert!(raw.starts_with("delete /x/1 "), "{raw}");
 }

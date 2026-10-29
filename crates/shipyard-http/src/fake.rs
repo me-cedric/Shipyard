@@ -55,6 +55,11 @@ impl FakeHttp {
         self.add(Method::Patch, url_has, body_has, status, &[], body)
     }
 
+    /// Answer a `DELETE` whose URL contains `url_has`.
+    pub fn delete(&self, url_has: &str, status: u16, body: &str) -> &Self {
+        self.add(Method::Delete, url_has, "", status, &[], body)
+    }
+
     fn add(
         &self,
         method: Method,

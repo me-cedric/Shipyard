@@ -105,6 +105,7 @@ impl Http for Client {
                     Method::Post => "POST",
                     Method::Put => "PUT",
                     Method::Patch => "PATCH",
+                    Method::Delete => "DELETE",
                 },
                 url.as_str(),
             )
@@ -126,9 +127,16 @@ impl Http for Client {
         let secret = req.auth.secret();
         let scrub = |text: String| secret.map_or(text.clone(), |s| s.scrub(&text));
         let sent = match &req.body {
-            Some(body) => call
-                .set("Content-Type", "application/json")
-                .send_bytes(body.to_string().as_bytes()),
+            Some(body) => {
+                let own = req
+                    .headers
+                    .iter()
+                    .any(|(n, _)| n.eq_ignore_ascii_case("content-type"));
+                if !own {
+                    call = call.set("Content-Type", "application/json");
+                }
+                call.send_bytes(body.to_string().as_bytes())
+            }
             None => call.call(),
         };
         // A 4xx or 5xx is an answer the adapter maps; only a transport fault is an error here.

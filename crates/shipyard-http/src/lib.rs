@@ -12,7 +12,8 @@
 //!
 //! An adapter reads from a service, so it sends `GET`, or `POST` for a read-only query
 //! (GraphQL, WIQL). A tracker write (`shipyard-trackers`, `work`) sends `POST`, `PUT` or `PATCH`
-//! with [`Request::write`], and only on the action of a person.
+//! with [`Request::write`], or `DELETE` with [`Request::delete`]. A request that sets its own
+//! `Content-Type` header keeps it (Azure DevOps needs `application/json-patch+json`).
 
 mod client;
 pub mod fake;
@@ -37,6 +38,7 @@ pub enum Method {
     Post,
     Put,
     Patch,
+    Delete,
 }
 
 /// How a request proves who sends it. Each secret stays in a `Secret` until the wire.
@@ -99,6 +101,14 @@ impl Request {
         Self {
             method,
             ..Self::post_json(url, auth, body)
+        }
+    }
+
+    /// A `DELETE` with no body.
+    pub fn delete(url: impl Into<String>, auth: Auth) -> Self {
+        Self {
+            method: Method::Delete,
+            ..Self::get(url, auth)
         }
     }
 
