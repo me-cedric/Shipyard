@@ -4,9 +4,6 @@
 //! its version. A provider is an OpenAI-style HTTP endpoint (`GET /models`,
 //! `POST /chat/completions`): LM Studio, Ollama, vLLM, LiteLLM, OpenRouter or a vendor API.
 //! A provider has no tools: it answers text and never edits a repository.
-//!
-//! shortcut: the HTTP client reads for 30 s at most (`shipyard-http`), so a local model that needs
-//! longer to load fails the first call. Add a per-request timeout there if that shows.
 
 use crate::AgentError;
 use crate::which::{quiet, search_dirs, which};
@@ -20,6 +17,9 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
 /// How long a runner has to print its version.
+/// A local model can need a while to load or to answer: the 30 s default is too short.
+const CHAT_TIMEOUT: Duration = Duration::from_secs(120);
+
 const VERSION_WAIT: Duration = Duration::from_secs(5);
 
 struct RunnerDef {
@@ -252,11 +252,10 @@ impl ModelProvider {
             "messages": [{ "role": "user", "content": prompt }],
             "stream": false,
         });
-        let reply = http.json(&Request::post_json(
-            self.url("/chat/completions")?,
-            auth.clone(),
-            body,
-        ))?;
+        let reply = http.json(
+            &Request::post_json(self.url("/chat/completions")?, auth.clone(), body)
+                .timeout(CHAT_TIMEOUT),
+        )?;
         let answer = text(&reply, "/choices/0/message/content");
         let answer = answer.trim();
         if !answer.is_empty() {

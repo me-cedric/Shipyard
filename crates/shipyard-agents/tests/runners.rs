@@ -167,6 +167,8 @@ fn chat_posts_the_model_and_the_prompt_and_returns_the_text() {
     assert_eq!(body["model"], "qwen");
     assert_eq!(body["stream"], false);
     assert_eq!(body["messages"][0], json!({"role":"user","content":"hi"}));
+    // A slow local model needs more than the 30 s default.
+    assert_eq!(http.requests()[0].timeout, Some(Duration::from_secs(120)));
 }
 
 #[test]
