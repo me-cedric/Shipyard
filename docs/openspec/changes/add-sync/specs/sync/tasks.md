@@ -33,6 +33,7 @@ Plan: [plan.md](./plan.md)
 - [x] T019 Write the end-to-end test in `e2e/sync.spec.ts`. Covers REQ-003, REQ-004, REQ-013.
 - [x] T020 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
 - [x] T021 Run the validation commands from `plan.md`.
+- [x] T022 Close three gaps. Add the setting `connections.trackerScope` to `.shipyard/project.yaml` (`crates/shipyard-core/src/project.rs`) and use it in `crates/shipyard-app/src/commands/sync.rs`. Resolve the pickup assignee through the team handles (`Filter::accounts` in `crates/shipyard-core/src/pickup.rs`). Write the mirror into the ref index so search and backlinks list `wi:` and `pr:` (`crates/shipyard-app/src/commands/sync.rs`, `crates/shipyard-store/src/mirror.rs`). Tests in `crates/shipyard-core/tests/`, `crates/shipyard-store/tests/mirror.rs` and `crates/shipyard-app/src/commands/sync.rs`. Covers REQ-006, REQ-016.
 
 ## Completion Check
 

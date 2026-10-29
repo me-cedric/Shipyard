@@ -33,7 +33,7 @@ A team works on several repositories. Legacy keeps a project registry, but setup
 - REQ-004: The system SHALL create a new project as a new repository with a project file.
 - REQ-005: The system SHALL add OS ignore rules only to a repository that Shipyard creates.
 - REQ-006: The system SHALL show a project switcher in the shell with the state of each working copy.
-- REQ-007: The system SHALL keep the name, the key, the artifact paths, the default workflow, the gate commands and the ids of the tracker and forge connections in `.shipyard/project.yaml`. [NEEDS CLARIFICATION: Q-014 Which value gives the id of `project:<id>`?] Working assumption: the key.
+- REQ-007: The system SHALL keep the name, the key, the artifact paths, the default workflow, the gate commands, the ids of the tracker and forge connections and the tracker scope in `.shipyard/project.yaml`. [NEEDS CLARIFICATION: Q-014 Which value gives the id of `project:<id>`?] Working assumption: the key.
 - REQ-008: The system SHALL keep a project registry in the app data folder, and MUST keep machine values out of the repository. The registry holds the project overrides of a personal preference. [NEEDS CLARIFICATION: Q-016 Where do the project overrides live?] Working assumption: the registry.
 - REQ-009: The system SHALL show Settings / Project with the paths, the default workflow and the overrides.
 - REQ-010: A project override SHALL take the place of the same preference of a person. The registry SHALL hold it. The view SHALL show which settings the project overrides.
@@ -203,7 +203,7 @@ The system SHALL show a switcher in the shell that lists the projects of the reg
 
 ### Requirement: REQ-007 Project file
 
-The system SHALL keep the name, the key, the artifact paths of each kind, the default workflow, the gate commands and the connection ids (`q:Q-018`) in `.shipyard/project.yaml`. The gate commands are the checks that a run must pass before a pull request (`q:Q-030`). [NEEDS CLARIFICATION: Q-014 Which value gives the id of `project:<id>`?] The working assumption is that the key gives the id. The file MUST NOT hold an override of a personal preference.
+The system SHALL keep the name, the key, the artifact paths of each kind, the default workflow, the gate commands, the connection ids (`q:Q-018`) and the tracker scope in `.shipyard/project.yaml`. The gate commands are the checks that a run must pass before a pull request (`q:Q-030`). [NEEDS CLARIFICATION: Q-014 Which value gives the id of `project:<id>`?] The working assumption is that the key gives the id. The file MUST NOT hold an override of a personal preference.
 
 #### Scenario: Read
 - GIVEN a valid project file

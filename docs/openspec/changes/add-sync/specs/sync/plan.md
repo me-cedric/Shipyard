@@ -23,8 +23,9 @@ The tick, reconcile, pickup and claims live in `shipyard-engine`. The mirror and
 | Failure | A failed poll keeps the mirror and backs off up to a maximum. A run with a pull request is not stopped while the forge poll fails. |
 | Host | `SyncHost` in `shipyard-app` keeps one engine for each open project: a project that names a tracker connection in `.shipyard/project.yaml`. The tick loop runs on its own thread and takes the engine lock for each tick, so the sync action and the import never overlap it (`Engine::run` holds the engine for the whole loop, so it is not used). A change of the connection, the repository or the automation file applies at the next `sync_state` call or save. An invalid automation file stops the engine. The mirror is `<app data>/mirror.sqlite`, and views open their own connection to it. |
 | Placeholder | Until `factory` lands, `Placeholder` implements `Dispatch`. A started run is a note "would start" and counts as an active run, so claims and limits stay true. It keeps the global kill switch. It runs no agent. |
-| Scope | The tracker container has no setting. GitHub and GitLab use the origin repository. The other trackers use the key of `.shipyard/project.yaml`. The forge repository is the origin repository. |
-| Entities | `wi:` and `pr:` resolve in `refs_resolve` straight from the mirror. They are not in the ref index, so search and backlinks do not list them. |
+| Scope | The tracker container is the setting `connections.trackerScope` of `.shipyard/project.yaml`: a Jira project key, `owner/repo`, an Azure DevOps project or a Linear team. Without it, GitHub and GitLab use the origin repository and the other trackers list the whole account. The forge repository is the origin repository. |
+| Assignee | The `assignee` of the pickup filter is a team handle. The app reads `.shipyard/team.yaml` (no passphrase: handles and accounts are not sealed) and puts every tracker account and the name of that member in `Filter::accounts`, which is never in the file. A ticket matches any of them. A handle that the team lacks still matches a tracker id or name. A change of the team file applies at the next sync command. |
+| Entities | `wi:` and `pr:` resolve in `refs_resolve` straight from the mirror, and the app also writes the mirror into the ref index (`mirror:<connection id>` sources), so search and backlinks list them. A ticket cites its assignee (`member:`), the refs in its labels and its parent. A local item that links to a ticket cites it. The app reads the mirror again only when the mirror or the team file changed (`Mirror::fingerprint`). A key that is no `wi:` ref (a GitHub issue) is left out. |
 | Events | The compare step writes each comment and pull request event to an outbox in the same transaction as the mirror update. The hand-off step sends the outbox and removes an event after the listener took it. A refusal or a crash keeps the event for the next tick. |
 | Risks | Rate limits and clock drift between machines. The stamp holds the claim time from the tracker, not the local clock. Q-020 and Q-021 stay open. |
 
@@ -60,7 +61,6 @@ cd docs && npx -y @fission-ai/openspec@latest validate add-sync --strict
 
 ## Known gaps
 
-- The assignee in the file is compared with the tracker person id or name. A team handle resolves only when it equals a tracker account. The resolution through `.shipyard/team.yaml` (REQ-006) needs a filter that holds several accounts.
 - The claim stamp and the stale takeover run against fake trackers only. Not verified on a live tracker: that GitHub and GitLab hide the stamp, that Jira, Azure DevOps and Linear keep its token (`add-work` progress note).
 - The component and priority filters match nothing: no adapter fills them. `PullSnapshot.changes_requested` stays `false`.
 - A pull request list reads the CI state of each open pull request on the page, one request each.
