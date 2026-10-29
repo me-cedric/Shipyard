@@ -15,11 +15,11 @@ The run state machine and the workflow model are pure code in `shipyard-core`. T
 | Dependencies | No new dependency. Reuse `serde_yaml`, `rusqlite` and `git2` (through `shipyard-git`). Validate workflows with a JSON Schema file and the `jsonschema` crate only if the workspace has none. xyflow draws the DAG and the Agents map. |
 | Data/storage | Run log and run state in the SQLite store of the app data folder. Workflows, roles and `.shipyard/automation.yaml` in the repository. |
 | APIs/contracts | IPC commands `runs_list`, `run_get`, `run_start`, `run_cancel`, `kill_switch_set`, `approval_decide`, `workflows_list`, `workflow_save`, `usage_get`, `budget_set`, `sessions_list`. Run events as IPC events. Bindings are generated. |
-| State machine | A transition table in `shipyard-core`. One function takes a state and an event and returns the next state or a refusal. No I/O. |
+| State machine | A transition table in `shipyard-core` (`run::Run::apply`). It takes an event and returns the next run or a refusal. No I/O. The event `Finished` moves a run from `Working` or `SelfReview` to `Done` when the workflow has no pull request step. `Cancel` works from every state that is not final. A second `Ask` in `WaitingForAnswer` keeps the first return state. |
 | Run log | One append-only table. The store exposes insert and read only. No update, no delete. |
-| Workflow check | JSON Schema in `crates/shipyard-core/schema/workflow.schema.json`. Extra checks in code for `needs` cycles and unknown roles. A file watcher reloads and keeps the last valid version. |
+| Workflow check | JSON Schema in `crates/shipyard-core/schema/workflow.schema.json`. `steps` is a list and each step has its `id` (REQ-012), not the map of the MASTER-PLAN example. `Workflow::check` adds the `needs` cycle, unknown roles, ids (`a-z`, `0-9`, `-`, `_`), one of `role` or `action`, and a `for_each` source that is a need (`<need>.<field>`). Defaults: `mode: auto`, `workspace: shared`, `gate: none`, `retry: 0`, `max_parallel: 2`. Empty `tools` allows no tool. A file watcher reloads and keeps the last valid version. |
 | Retry | Delay is `min(10 s * 2^(n-1), 300 s)`, computed in `shipyard-core`. |
-| Clocks | The engine holds a stall timer and a budget clock for each run. Entering `WaitingForAnswer` stops both. |
+| Clocks | The engine holds a stall timer and a budget clock for each run (`run::Stopwatch`). They run only in `Planning`, `Working` and `SelfReview` (`RunState::clocks_run`), so `WaitingForAnswer` and every state that waits for a person or the forge stop both. |
 | Runners | One `Runner` trait in `shipyard-agents` with a headless start and a streamed JSON parser. First adapters follow Q-024. |
 | Agent tools | `shipyard-mcp` serves the eight tools. It validates each input and writes one event. A step gets only the tools in its `tools` field. |
 | Worktrees | `shipyard-git` creates one worktree for each child when `workspace` is `worktree`. |

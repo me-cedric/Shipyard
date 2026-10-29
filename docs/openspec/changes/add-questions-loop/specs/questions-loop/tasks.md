@@ -11,8 +11,8 @@ Plan: [plan.md](./plan.md)
 
 ## Tasks
 
-- [ ] T001 Write reply parser tests in `crates/shipyard-core/tests/reply_parser.rs`. Covers REQ-010, REQ-011, REQ-012.
-- [ ] T002 Implement the reply parser and the question states in `crates/shipyard-core/src/question.rs`. Covers REQ-010, REQ-011, REQ-012, REQ-020.
+- [x] T001 Write reply parser tests in `crates/shipyard-core/tests/reply_parser.rs`. Covers REQ-010, REQ-011, REQ-012.
+- [x] T002 Implement the reply parser and the question states in `crates/shipyard-core/src/question.rs`. Covers REQ-010, REQ-011, REQ-012, REQ-020.
 - [ ] T003 Write RAID file codec tests in `crates/shipyard-store/tests/raid_question.rs`. Covers REQ-003, REQ-007.
 - [ ] T004 Implement the RAID file codec and id allocation in `crates/shipyard-store/src/raid.rs`. Covers REQ-003, REQ-007.
 - [ ] T005 Write engine tests with a fake tracker in `crates/shipyard-engine/tests/questions.rs`. Covers REQ-001, REQ-002, REQ-004, REQ-005, REQ-006, REQ-009, REQ-013, REQ-014, REQ-016, REQ-017, REQ-018, REQ-019.

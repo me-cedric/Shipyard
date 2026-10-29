@@ -11,10 +11,10 @@ Plan: [plan.md](./plan.md)
 
 ## Tasks
 
-- [ ] T001 Write transition table tests in `crates/shipyard-core/tests/run_state.rs`. Covers REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-007.
-- [ ] T002 Implement the run states, the transition table and the backoff in `crates/shipyard-core/src/run.rs`. Covers REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-007.
-- [ ] T003 Write workflow model and schema tests in `crates/shipyard-core/tests/workflow.rs`. Covers REQ-010, REQ-012, REQ-014, REQ-035.
-- [ ] T004 Implement the workflow model, `crates/shipyard-core/schema/workflow.schema.json` and the `needs` cycle check in `crates/shipyard-core/src/workflow.rs`. Covers REQ-010, REQ-012, REQ-014, REQ-035.
+- [x] T001 Write transition table tests in `crates/shipyard-core/tests/run_state.rs`. Covers REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-007.
+- [x] T002 Implement the run states, the transition table and the backoff in `crates/shipyard-core/src/run.rs`. Covers REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-007.
+- [x] T003 Write workflow model and schema tests in `crates/shipyard-core/tests/workflow.rs`. Covers REQ-010, REQ-012, REQ-014, REQ-035.
+- [x] T004 Implement the workflow model, `crates/shipyard-core/schema/workflow.schema.json` and the `needs` cycle check in `crates/shipyard-core/src/workflow.rs`. Covers REQ-010, REQ-012, REQ-014, REQ-035.
 - [ ] T005 Add the five default workflows and the seven default roles in `crates/shipyard-store/templates/factory/`, and validate them in `crates/shipyard-core/tests/workflow.rs`. Covers REQ-011, REQ-014.
 - [ ] T006 Write run log and codec tests in `crates/shipyard-store/tests/run_log.rs`. Covers REQ-008, REQ-021, REQ-025, REQ-034.
 - [ ] T007 Implement the append-only run log, the automation file codec with the state mapping, and the workflow reload with last valid version in `crates/shipyard-store/src/run_log.rs` and `crates/shipyard-store/src/factory_files.rs`. Covers REQ-008, REQ-010, REQ-021, REQ-025.

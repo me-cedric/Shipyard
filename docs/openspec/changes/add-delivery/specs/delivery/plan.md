@@ -16,7 +16,7 @@ The pull request flow, feedback loop and merge close live in `shipyard-engine`. 
 | Data/storage | Run log and `pr:` rows in the SQLite store of `shipyard-store`. Reviewer list in `.shipyard/automation.yaml`. Gate commands in `.shipyard/project.yaml` (Q-030). |
 | APIs/contracts | Uses the `Forge` and `Tracker` traits. IPC command `delivery_pr_state`. Approvals use `approval_decide` of `add-factory`. Events `pr_opened`, `review_round`. Bindings are generated. |
 | Review | A workflow step with role `reviewer` and `fresh_context: true`, `max_rounds: 2`. A pure function opens each cited path and line. |
-| Pull request | A pure function builds the branch, title, labels and body from the run log. The engine calls the forge only after the switch check. |
+| Pull request | Pure functions in `shipyard-core::delivery` build the branch, title, labels and body from the run log. The branch slug folds accents and keeps 60 characters at most. A base whose name starts with `release` is refused. The type label is the first existing one of a fixed list (for `fix`: `fix`, `bug`, `bugfix`). An area label matches a folder of a changed path, as `ui`, `area:ui` or `area/ui`. Every line with `Co-Authored-By:` or `Generated with` is removed. The engine calls the forge only after the switch check. |
 | Feedback | The engine takes the CI and review events of `sync`. It moves the run in the same worktree and passes the failed checks and threads as step input. |
 | Merge close | On a merge event the engine moves the run, then the ticket, then posts the summary, then removes the worktree. Each step is a logged write. |
 | Idempotence | Before a write, the engine looks for its trace in the run log and for the pull request of the branch on the forge. |

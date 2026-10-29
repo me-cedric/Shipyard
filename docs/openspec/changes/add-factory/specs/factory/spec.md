@@ -27,7 +27,7 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 
 ### Requirements
 
-- REQ-001: The system SHALL move a run along the main path `Queued`, `Claimed`, `Planning`, `PlanReview`, `Working`, `SelfReview`, `PROpen`, `Merged`, `Done`. The system SHALL refuse and log any transition that this requirement and REQ-002 to REQ-005 do not list.
+- REQ-001: The system SHALL move a run along the main path `Queued`, `Claimed`, `Planning`, `PlanReview`, `Working`, `SelfReview`, `PROpen`, `Merged`, `Done`. A run of a workflow with no pull request step SHALL move to `Done` when its last step ends. The system SHALL refuse and log any transition that this requirement and REQ-002 to REQ-005 do not list.
 - REQ-002: A run SHALL return to `Planning` when a person rejects the plan at `PlanReview`. A run SHALL return to `Working` from `SelfReview` for a fix round and from `ChangesRequested`, in the same worktree. A CI failure or a review comment on the pull request SHALL move a run from `PROpen` to `ChangesRequested`.
 - REQ-003: `PlanReview` SHALL be a human gate. A workflow SHALL be able to turn it off. Then a run SHALL move from `Planning` to `Working` without a person.
 - REQ-004: From any active state, a run SHALL be able to enter `WaitingForAnswer`, `Blocked`, `RetryQueued`, `Paused`, `Failed` or `Cancelled`. `Blocked` follows a missing connection or runner, a rejected approval, spent review rounds or a pull request closed without a merge (`add-delivery` REQ-026). The scenarios give `WaitingForAnswer`, `RetryQueued` and `Paused`. `Failed` follows exhausted retries or max turns. `Cancelled` follows a kill switch or a stop from `add-sync` REQ-004.
@@ -129,7 +129,7 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 
 ### Requirement: REQ-001 Main path
 
-The system SHALL move a run along the main path `Queued`, `Claimed`, `Planning`, `PlanReview`, `Working`, `SelfReview`, `PROpen`, `Merged`, `Done`. The system SHALL refuse and log any transition that this requirement and REQ-002 to REQ-005 do not list.
+The system SHALL move a run along the main path `Queued`, `Claimed`, `Planning`, `PlanReview`, `Working`, `SelfReview`, `PROpen`, `Merged`, `Done`. A run of a workflow with no pull request step SHALL move to `Done` when its last step ends. The system SHALL refuse and log any transition that this requirement and REQ-002 to REQ-005 do not list.
 
 #### Scenario: Forward path
 - GIVEN a run in `Queued` and a claim that succeeds
@@ -140,6 +140,11 @@ The system SHALL move a run along the main path `Queued`, `Claimed`, `Planning`,
 - GIVEN a run in `Working`
 - WHEN a caller asks for `Merged`
 - THEN the run stays in `Working` and the log holds the refusal
+
+#### Scenario: No pull request step
+- GIVEN a run of the workflow `spike` in `Working`
+- WHEN its last step ends
+- THEN the run moves to `Done`
 
 ### Requirement: REQ-002 Return transitions
 
