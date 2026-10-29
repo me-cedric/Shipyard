@@ -65,6 +65,9 @@ impl Factory {
     }
 }
 
+/// The most children of one step that run or wait. A subtask that an agent spawns adds one.
+const MAX_LIVE_CHILDREN: usize = 16;
+
 impl Inner {
     /// The step and the position of a running child by its id.
     pub(crate) fn locate(&self, run_id: &str, child: &str) -> Result<(String, usize), String> {
@@ -287,6 +290,16 @@ impl Inner {
         }
         let max = step.max_parallel() as usize;
         let units = &rec.steps[&sid].units;
+        let live = units
+            .iter()
+            .filter(|u| matches!(u.state, StepState::Pending | StepState::Running))
+            .count();
+        if live >= MAX_LIVE_CHILDREN {
+            return Err(format!(
+                "step `{sid}` holds {live} live children (running and waiting), the limit is \
+                 {MAX_LIVE_CHILDREN}: wait for some to end"
+            ));
+        }
         let running = units
             .iter()
             .filter(|u| u.state == StepState::Running)

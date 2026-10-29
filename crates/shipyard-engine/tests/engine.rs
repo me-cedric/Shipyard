@@ -258,6 +258,9 @@ fn token_budget_pauses() {
     fx.event("work", usage(0.0));
     fx.event("work", usage(0.0));
     assert_eq!(fx.state(&run), RunState::Paused);
+    // Money does not lift a token pause. Added tokens do.
+    assert_eq!(fx.f.resume(&run, 5.0), Ok(RunState::Paused));
+    assert_eq!(fx.f.resume_with(&run, 0.0, 200), Ok(RunState::Working));
 }
 
 #[test]

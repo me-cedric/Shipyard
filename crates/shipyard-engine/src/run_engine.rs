@@ -236,6 +236,9 @@ pub(crate) struct RunRec {
     pub tokens: u64,
     /// Budget that a person added at a resume (REQ-005).
     pub extra_usd: f64,
+    /// Tokens that a person added at a resume, on top of `Config::max_tokens`.
+    #[serde(default)]
+    pub extra_tokens: u64,
     pub alerted: bool,
     pub rounds: u32,
     pub questions: Vec<Asked>,
@@ -439,12 +442,23 @@ impl Factory {
 
     /// A person raises the budget and resumes a paused run (REQ-005, `q:Q-053`).
     pub fn resume(&self, run_id: &str, add_usd: f64) -> Result<RunState, String> {
+        self.resume_with(run_id, add_usd, 0)
+    }
+
+    /// `resume`, with tokens added to the token limit too. A pause for `max_tokens` needs them.
+    pub fn resume_with(
+        &self,
+        run_id: &str,
+        add_usd: f64,
+        add_tokens: u64,
+    ) -> Result<RunState, String> {
         let mut inner = self.lock();
         if !(add_usd >= 0.0 && add_usd.is_finite()) {
             return Err("the added budget must be a positive number".into());
         }
         inner.run(run_id)?;
         inner.rec(run_id).extra_usd += add_usd;
+        inner.rec(run_id).extra_tokens += add_tokens;
         let budget_left = inner.budget_level(run_id) != BudgetLevel::Spent;
         inner.checked(run_id, RunEvent::Resume { budget_left })?;
         Ok(inner.rec(run_id).run.state)
@@ -784,7 +798,7 @@ impl Inner {
         let rec = &self.runs[run_id];
         let money = run::budget_level(rec.cost, rec.wf.limits.budget_usd + rec.extra_usd);
         let tokens = self.cfg.max_tokens.map_or(BudgetLevel::Under, |m| {
-            run::budget_level(rec.tokens as f64, m as f64)
+            run::budget_level(rec.tokens as f64, (m + rec.extra_tokens) as f64)
         });
         let steps = rec.wf.steps.iter().filter_map(|s| {
             let spent: f64 = rec.steps[&s.id].units.iter().map(|u| u.cost).sum();
@@ -1198,6 +1212,7 @@ impl Inner {
             cost: 0.0,
             tokens: 0,
             extra_usd: 0.0,
+            extra_tokens: 0,
             alerted: false,
             rounds: 0,
             questions: Vec::new(),

@@ -339,6 +339,15 @@ fn a_subtask_waits_for_a_free_slot_under_max_parallel() {
 }
 
 #[test]
+fn a_step_holds_a_limited_number_of_live_children() {
+    let fx = Fx::new(writes(true), &[]);
+    // Two run and fifteen wait: the step holds 17 live children.
+    let run = building(&fx, 17);
+    let e = err(&fx, &run, "build-1", spawn("t", "b", "worker"));
+    assert!(e.contains("17 live children"), "{e}");
+}
+
+#[test]
 fn a_step_with_no_for_each_or_no_worktree_cannot_spawn() {
     const FAN: &str = "
 id: fan
