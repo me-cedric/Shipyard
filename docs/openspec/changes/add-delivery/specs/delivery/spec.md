@@ -30,7 +30,7 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - REQ-001: After the build steps end, the run SHALL be in `SelfReview` (`add-factory` REQ-036). The `reviewer` role SHALL review in a fresh context with the compass `review` skill. The reviewer SHALL get the base, the head, the criteria and the standards sources. The reviewer MUST NOT get the reasoning of the builder.
 - REQ-002: The review SHALL check the spec axis and the standards axis. The system SHALL take the criteria from the ticket and from the specs at the base commit. The reviewer SHALL mark each criterion OK, KO or not verified.
 - REQ-003: Each finding SHALL cite a path and a line. The system SHALL open the cited line before it accepts the finding. The system SHALL drop a finding whose citation does not exist.
-- REQ-004: A P0 or P1 finding SHALL send the run back to `Working` for a fix round. A P2 finding SHALL NOT block the pull request, and the run log SHALL keep it. The system SHALL allow two fix rounds at most. When a P0 or P1 finding remains after the second round, the run SHALL move to `Blocked`. Home / Inbox SHALL then show a card that lists the findings.
+- REQ-004: A P0 or P1 finding SHALL send the run back to `Working` for a fix round. A P2 finding SHALL NOT block the pull request, and the run log SHALL keep it. The system SHALL allow two fix rounds at most. When a P0 or P1 finding remains after the second round, the run SHALL move to `Blocked`. Home / Inbox SHALL then show a card that lists the findings (`RunInfo.findings`).
 - REQ-005: `SelfReview` SHALL post nothing to the forge and nothing to the tracker. The review report SHALL stay in the run log.
 - REQ-006: A pull request SHALL open only when `SelfReview` has no P0 or P1 finding and the gate is green. The gate SHALL run the gate commands of the project and the system SHALL keep the exact counts. A red gate SHALL count as a P1 finding. [NEEDS CLARIFICATION: Q-030 Where does a project declare its gate commands?] Working assumption: Q-030 option 1, in `.shipyard/project.yaml`.
 - REQ-007: The system SHALL name the branch `<type>/<area>/<kebab>`. The system SHALL rename a branch that a tool named, such as `claude/…` or `codex/…`, before the first push. The system SHALL rebase the branch onto the base before the push.
@@ -44,15 +44,15 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - REQ-015: A push that rewrites history SHALL use force with lease. It MUST NOT use a plain force. It SHALL always wait as an approval, also when `push` is on.
 - REQ-016: Before it opens a pull request, the system SHALL look for a pull request of the same branch. The system MUST NOT open a second pull request or post a second summary for one run. A retry or a repeated tick SHALL find the first one.
 - REQ-017: When the pull request exists, the run SHALL move to `PROpen`. The system SHALL record `pr:<forge>:<number>` on the run. The pull request SHALL link back to the run and to each ticket.
-- REQ-018: When `sync` hands a CI failure to delivery (`add-sync` REQ-012), a `PROpen` run SHALL move to `ChangesRequested`. It SHALL then move to `Working` in the same worktree (`add-factory` REQ-002). The run SHALL get the name of each failed check and the tail of its log.
-- REQ-019: A review that asks for changes SHALL move a `PROpen` run to `ChangesRequested`. A new review comment SHALL do the same. The run SHALL then move to `Working` in the same worktree and SHALL get each thread. After the fix and the push, the system SHALL reply on each thread with the fixing commit. Then it SHALL resolve the thread. These replies are `pull_request` writes.
-- REQ-020: A loop between `PROpen`, `ChangesRequested` and `Working` SHALL count against the budget and the max turns of the run. The run SHALL stop at those limits (`add-factory` REQ-022, REQ-023).
+- REQ-018: When `sync` hands a CI failure to delivery (`add-sync` REQ-012), a `PROpen` run SHALL move to `ChangesRequested`. It SHALL then move to `Working` in the same worktree (`add-factory` REQ-002). The run SHALL get the name and the URL of each failed check, and the tail of its log when the forge gives it.
+- REQ-019: A review that asks for changes SHALL move a `PROpen` run to `ChangesRequested`. A new review comment SHALL do the same. The run SHALL then move to `Working` in the same worktree and SHALL get each thread. After the fix and the push, the system SHALL reply on each thread with the fixing commit. Then it SHALL resolve the thread. These replies are one `pull_request` write for all threads of the round: one approval when the switch is off. The run does not wait for it.
+- REQ-020: A loop between `PROpen`, `ChangesRequested` and `Working` SHALL count against the budget and the max turns of the run. The run SHALL stop at those limits (`add-factory` REQ-022, REQ-023). Each feedback round gets its own count of review fix rounds (REQ-004).
 - REQ-021: For each `PROpen` run, the system SHALL give the CI state (passing, failing or pending). It SHALL also say whether a change request is open and whether the pull request is a draft. Factory / Runs SHALL use all three to place the run (`add-factory` REQ-038). A draft SHALL sit in In review, whatever its CI state.
-- REQ-022: When `sync` hands a merge event to delivery, the run SHALL move to `Merged` and then to `Done`. Delivery SHALL handle the event before `sync` stops runs for a terminal ticket (`add-sync` REQ-003, REQ-004).
+- REQ-022: When `sync` hands a merge event to delivery, the run SHALL move to `Merged` and then to `Done`. Delivery SHALL handle the event before `sync` stops runs for a terminal ticket (`add-sync` REQ-003, REQ-004). The run SHALL reach `Done` in the same step, also when a write of REQ-023 or REQ-024 waits for a click: that write goes out after the click.
 - REQ-023: After the merge, the system SHALL move each ticket of the run to the terminal status of the mapping. The move SHALL follow the `tracker_transition` switch. Without the switch it SHALL be an approval in Home / Inbox. The system MUST NOT move a ticket that the forge already closed.
 - REQ-024: After the merge, the system SHALL post the run summary on each ticket once. The summary SHALL hold the outcome, the `pr:` ref, the gate result, the review rounds and the cost. It SHALL follow the `tracker_comment` switch. It MUST NOT hold a secret or an AI attribution line.
 - REQ-025: After the merge, the system SHALL remove the worktree of the run. The system MUST NOT remove a worktree that holds uncommitted files. It SHALL keep the run log after the removal.
-- REQ-026: When a pull request closes without a merge, the run SHALL move to `Blocked`. The reason SHALL be pull request closed. The worktree and the ticket SHALL stay as they are. [NEEDS CLARIFICATION: Q-031 What happens to a run when its pull request closes without a merge?] Working assumption: Q-031 option 1, `Blocked`, and a person decides to reopen or cancel.
+- REQ-026: When a pull request closes without a merge, the run SHALL move to `Blocked`, also while it works on a fix. The reason SHALL be pull request closed. The worktree and the ticket SHALL stay as they are. [NEEDS CLARIFICATION: Q-031 What happens to a run when its pull request closes without a merge?] Working assumption: Q-031 option 1, `Blocked`, and a person decides to reopen or cancel.
 - REQ-027: When `add-code` gives an impacts digest, the pull request body SHALL include it as one section.
 - REQ-028: The system SHALL expose each pull request as a `pr:<forge>:<number>` entity. The entity SHALL show state, CI state and review state. The mirror of `sync` SHALL stay the source for reads.
 - REQ-029: The run cards in In review and Ready to merge SHALL show the `pr:` ref, CI state and review state. Status SHALL use shape and colour together. Delivery SHALL add no primary action to Factory / Runs. Each delivery view SHALL follow the interface rules of the constitution. It SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. It SHALL have a keyboard path, a focus ring, assistive labels, contrast and reduced motion. It SHALL show French and English text.
@@ -146,7 +146,7 @@ Each finding SHALL cite a path and a line. The system SHALL open the cited line 
 
 ### Requirement: REQ-004 Fix rounds
 
-A P0 or P1 finding SHALL send the run back to `Working` for a fix round. A P2 finding SHALL NOT block the pull request, and the run log SHALL keep it. The system SHALL allow two fix rounds at most. When a P0 or P1 finding remains after the second round, the run SHALL move to `Blocked`. Home / Inbox SHALL then show a card that lists the findings.
+A P0 or P1 finding SHALL send the run back to `Working` for a fix round. A P2 finding SHALL NOT block the pull request, and the run log SHALL keep it. The system SHALL allow two fix rounds at most. When a P0 or P1 finding remains after the second round, the run SHALL move to `Blocked`. Home / Inbox SHALL then show a card that lists the findings (`RunInfo.findings`).
 
 #### Scenario: One round
 - GIVEN a review finds one defect
@@ -322,17 +322,17 @@ When the pull request exists, the run SHALL move to `PROpen`. The system SHALL r
 
 ### Requirement: REQ-018 CI failure
 
-When `sync` hands a CI failure to delivery (`add-sync` REQ-012), a `PROpen` run SHALL move to `ChangesRequested`. It SHALL then move to `Working` in the same worktree (`add-factory` REQ-002). The run SHALL get the name of each failed check and the tail of its log.
+When `sync` hands a CI failure to delivery (`add-sync` REQ-012), a `PROpen` run SHALL move to `ChangesRequested`. It SHALL then move to `Working` in the same worktree (`add-factory` REQ-002). The run SHALL get the name and the URL of each failed check, and the tail of its log when the forge gives it.
 
 #### Scenario: Red check
 - GIVEN a `PROpen` run and a failed check
 - WHEN the tick hands the CI failure
 - THEN the run moves to `ChangesRequested`
-- AND the run returns to `Working` in the same worktree with the failed check
+- AND the run returns to `Working` in the same worktree with the name and URL of the failed check
 
 ### Requirement: REQ-019 Review comments
 
-A review that asks for changes SHALL move a `PROpen` run to `ChangesRequested`. A new review comment SHALL do the same. The run SHALL then move to `Working` in the same worktree and SHALL get each thread. After the fix and the push, the system SHALL reply on each thread with the fixing commit. Then it SHALL resolve the thread. These replies are `pull_request` writes.
+A review that asks for changes SHALL move a `PROpen` run to `ChangesRequested`. A new review comment SHALL do the same. The run SHALL then move to `Working` in the same worktree and SHALL get each thread. After the fix and the push, the system SHALL reply on each thread with the fixing commit. Then it SHALL resolve the thread. These replies are one `pull_request` write for all threads of the round: one approval when the switch is off. The run does not wait for it.
 
 #### Scenario: Thread fixed
 - GIVEN a thread that asks for a rename
@@ -341,7 +341,7 @@ A review that asks for changes SHALL move a `PROpen` run to `ChangesRequested`. 
 
 ### Requirement: REQ-020 Feedback limits
 
-A loop between `PROpen`, `ChangesRequested` and `Working` SHALL count against the budget and the max turns of the run. The run SHALL stop at those limits (`add-factory` REQ-022, REQ-023).
+A loop between `PROpen`, `ChangesRequested` and `Working` SHALL count against the budget and the max turns of the run. The run SHALL stop at those limits (`add-factory` REQ-022, REQ-023). Each feedback round gets its own count of review fix rounds (REQ-004).
 
 #### Scenario: Loop stops
 - GIVEN a run at its max turns
@@ -374,7 +374,7 @@ For each `PROpen` run, the system SHALL give the CI state (passing, failing or p
 
 ### Requirement: REQ-022 Merge detection
 
-When `sync` hands a merge event to delivery, the run SHALL move to `Merged` and then to `Done`. Delivery SHALL handle the event before `sync` stops runs for a terminal ticket (`add-sync` REQ-003, REQ-004).
+When `sync` hands a merge event to delivery, the run SHALL move to `Merged` and then to `Done`. Delivery SHALL handle the event before `sync` stops runs for a terminal ticket (`add-sync` REQ-003, REQ-004). The run SHALL reach `Done` in the same step, also when a write of REQ-023 or REQ-024 waits for a click: that write goes out after the click.
 
 #### Scenario: Merge
 - GIVEN a `PROpen` run and a merged pull request
@@ -423,11 +423,11 @@ After the merge, the system SHALL remove the worktree of the run. The system MUS
 - GIVEN a merged run whose worktree holds uncommitted files
 - WHEN the system removes worktrees
 - THEN the worktree stays
-- AND the Inbox shows a card that names the files
+- AND the Inbox shows a card that names the files (`RunInfo.worktree_kept`)
 
 ### Requirement: REQ-026 Closed without merge
 
-When a pull request closes without a merge, the run SHALL move to `Blocked`. The reason SHALL be pull request closed. The worktree and the ticket SHALL stay as they are. [NEEDS CLARIFICATION: Q-031 What happens to a run when its pull request closes without a merge?] Working assumption: Q-031 option 1, `Blocked`, and a person decides to reopen or cancel.
+When a pull request closes without a merge, the run SHALL move to `Blocked`, also while it works on a fix. The reason SHALL be pull request closed. The worktree and the ticket SHALL stay as they are. [NEEDS CLARIFICATION: Q-031 What happens to a run when its pull request closes without a merge?] Working assumption: Q-031 option 1, `Blocked`, and a person decides to reopen or cancel.
 
 #### Scenario: Closed
 - GIVEN a `PROpen` run

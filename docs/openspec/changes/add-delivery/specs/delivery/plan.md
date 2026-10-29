@@ -17,6 +17,8 @@ The pull request flow, feedback loop and merge close live in `shipyard-engine`. 
 | APIs/contracts | Uses the `Forge` and `Tracker` traits. IPC command `delivery_pr_state`. Approvals use `approval_decide` of `add-factory`. Events `pr_opened`, `review_round`. Bindings are generated. |
 | Review | A workflow step with role `reviewer` and `fresh_context: true`, `max_rounds: 2`. A pure function opens each cited path and line. |
 | Pull request | Pure functions in `shipyard-core::delivery` build the branch, title, labels and body from the run log. The branch slug folds accents and keeps 60 characters at most. A base whose name starts with `release` is refused. The type label is the first existing one of a fixed list (for `fix`: `fix`, `bug`, `bugfix`). An area label matches a folder of a changed path, as `ui`, `area:ui` or `area/ui`. Every line with `Co-Authored-By:` or `Generated with` is removed. The engine calls the forge only after the switch check. |
+| Engine ports | `shipyard-engine` does not depend on `shipyard-git` or `shipyard-forges`. It talks to three ports in `ports.rs`: `Git` (join of child worktrees, changes, review input, cited line, rename, commit, rebase, gate, worktree removal), `Pulls` (branches, labels, find by branch, failed checks, open threads) and `Writer` (`Write::Push`, `Write::OpenPr`, `Write::ResolveThreads`, tracker writes). The app wraps the crates in them (T018). Fakes: `FakeGit`, `FakePulls`, `FakeWriter`. |
+| Run steps | `review.rs` (reviewer brief, finding check, gate, fix rounds), `children.rs` (join at fan-in), `pull_request.rs` (rename, commit, rebase, push, find, open: each stage looks at the real state first), `feedback.rs` (events, rounds, limits, closed), `merge.rs` (summary, worktrees, `Done`). |
 | Forge calls | The `PullApi` trait in `shipyard-forges/src/pull_request.rs` (`connect_pull_api`): find by branch, create draft or ready, mark ready, add existing labels, request reviewers, threads (list, reply, resolve) and `status` (draft, CI, change request, merge state). GitHub uses GraphQL for threads. Azure DevOps has no label list (labels in use on the last 100 pull requests) and takes reviewers as identity ids. |
 | Git calls | `shipyard-git/src/delivery.rs`: `rename_branch`, `rebase_onto`, `commit_scope` (HEAD plus the given files only), `push_run_branch` (plain or force with lease; never the base, a default branch name or `release/*`). |
 | Feedback | The engine takes the CI and review events of `sync`. It moves the run in the same worktree and passes the failed checks and threads as step input. |
@@ -53,6 +55,14 @@ pnpm vitest run src/features/factory
 pnpm playwright test e2e/delivery.spec.ts
 cd docs && npx -y @fission-ai/openspec@latest validate add-delivery --strict
 ```
+
+## Open Items
+
+- The `reviewers` key of `automation.yaml` (REQ-012): the engine takes `Project.reviewers`. Add the key to the codec of `add-factory` REQ-025.
+- The assignee of the pull request (REQ-012) and the impacts digest (REQ-027): no port yet.
+- `PullApi` has no log tail for a failed check: `Pulls::failed_checks` returns names and URLs, and the tail when the adapter has it.
+- `shipyard-git` has no squash of a child branch into the run folder: the app adapter of `Git::merge_child` needs one (apply the diff from the merge base to the child tip to the working copy, uncommitted).
+- A pull request that merges while the run works on a fix is refused by the state machine (`PrMerged` is valid from `PROpen` only).
 
 ## Docs And Spec Sync
 

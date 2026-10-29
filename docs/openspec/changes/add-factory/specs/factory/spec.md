@@ -39,7 +39,7 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 - REQ-010: The system SHALL read workflows from `.shipyard/workflows/<id>.yaml` and validate each file with a JSON Schema. The system SHALL reload a changed file at once. It SHALL keep the last valid version when the new file is invalid.
 - REQ-011: The system SHALL ship the workflows `feature`, `bug`, `spike`, `spec-split` and `review-only`. `feature` SHALL grill, plan with a human gate, build with fan-out, review and open a pull request. `bug` SHALL triage, fix, review and open a pull request, with no `PlanReview`. `spike` SHALL grill, investigate and report, with no pull request. `spec-split` SHALL read a change and propose work items behind a human gate. `review-only` SHALL review an existing branch and report.
 - REQ-012: A step SHALL accept the fields `id`, `role`, `model`, `effort`, `tools`, `needs`, `skill` and `action`. A step SHALL accept the fields `for_each`, `max_parallel`, `retry`, `timeout`, `budget`, `fresh_context` and `max_rounds`. A step SHALL accept `mode` (plan or auto), `workspace` (worktree, shared or none) and `gate` (none or human). The system SHALL reject an unknown field and a `needs` cycle.
-- REQ-013: A `for_each` step SHALL start one child run for each item of its list. At most `max_parallel` children SHALL run at the same time (default 2). Each child SHALL get its own worktree when its `workspace` is `worktree`. The parent SHALL collect the outputs of the children.
+- REQ-013: A `for_each` step SHALL start one child run for each item of its list. At most `max_parallel` children SHALL run at the same time (default 2). Each child SHALL get its own worktree when its `workspace` is `worktree`. The parent SHALL collect the outputs of the children. After the last child, the system SHALL merge each child into the run folder in child order and remove the child worktrees. A conflict SHALL block the run and name the child and the files.
 - REQ-014: The system SHALL read each role as a Markdown profile at `.shipyard/roles/<role>.md`. The roles `scout`, `worker`, `reviewer`, `planner`, `tester`, `docs` and `triager` SHALL exist by default. A project SHALL be able to add roles.
 - REQ-015: The system SHALL run agents headless with streamed JSON, as far as the connections allow. The system SHALL support Claude Code, Codex, GitHub Copilot, Gemini CLI, OpenCode and HTTP model providers. A runner MUST NOT receive a secret value in its arguments. The log MUST NOT hold one. [NEEDS CLARIFICATION: Q-024 Which runners ship in the first release?] Working assumption: Q-024 option 1, Claude Code and Codex.
 - REQ-016: The system SHALL serve the eight tools `ask_question`, `post_progress`, `handoff`, `message`, `spawn_subtask`, `report`, `read_ticket` and `read_ref` to agents. A tool call SHALL write one structured event to the run bus. The system SHALL reject a call with an invalid input. A step SHALL call only the tools of its `tools` field.
@@ -88,6 +88,7 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 - [ ] A broken workflow file shows its error and the last valid version keeps running.
 - [ ] The five default workflows exist and validate against the schema.
 - [ ] A `for_each` step with `max_parallel` 2 runs at most two children, each in its own worktree.
+- [ ] The children of a worktree step join the run folder at fan-in, and a conflict blocks the run.
 - [ ] A role file in `.shipyard/roles/` changes the profile that its step uses.
 - [ ] A runner streams events to the run bus, and no secret value appears in its arguments or in the log.
 - [ ] Each of the eight tools writes one event with the effect named in its requirement, and a bad input is rejected.
@@ -317,7 +318,7 @@ A step SHALL accept the fields `id`, `role`, `model`, `effort`, `tools`, `needs`
 
 ### Requirement: REQ-013 Fan-out
 
-A `for_each` step SHALL start one child run for each item of its list. At most `max_parallel` children SHALL run at the same time (default 2). Each child SHALL get its own worktree when its `workspace` is `worktree`. The parent SHALL collect the outputs of the children.
+A `for_each` step SHALL start one child run for each item of its list. At most `max_parallel` children SHALL run at the same time (default 2). Each child SHALL get its own worktree when its `workspace` is `worktree`. The parent SHALL collect the outputs of the children. After the last child, the system SHALL merge each child into the run folder in child order and remove the child worktrees. A conflict SHALL block the run and name the child and the files.
 
 #### Scenario: Parallel limit
 - GIVEN a `for_each` over five items with `max_parallel` 2
@@ -328,6 +329,18 @@ A `for_each` step SHALL start one child run for each item of its list. At most `
 - GIVEN all children ended
 - WHEN the last child ends
 - THEN the parent step holds the five outputs
+
+#### Scenario: Join
+- GIVEN three children that ended with a change each
+- WHEN the last child ends
+- THEN the system merges the three children into the run folder in child order
+- AND the three child worktrees are gone
+
+#### Scenario: Join conflict
+- GIVEN the change of the second child conflicts with the first
+- WHEN the last child ends
+- THEN the run moves to `Blocked` and the event names the second child and its files
+- AND the child worktrees stay until a person clicks and the join succeeds
 
 ### Requirement: REQ-014 Roles
 
