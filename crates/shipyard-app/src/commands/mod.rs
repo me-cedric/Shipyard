@@ -13,14 +13,16 @@ pub mod prefs;
 pub mod projects;
 pub mod refs;
 pub mod shell;
+pub mod sync;
 
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::path::PathBuf;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::agents::Agents;
 use crate::connections::Connections;
+use crate::sync::SyncHost;
 use shipyard_store::project::Registry;
 use shipyard_store::ref_index::RefIndex;
 use tauri::{AppHandle, Manager};
@@ -34,8 +36,9 @@ pub fn err(e: impl Display) -> String {
 /// Shared state: the app data folder, a write lock and the open ref index.
 pub struct AppState {
     pub dir: PathBuf,
-    pub connections: Connections,
+    pub connections: Arc<Connections>,
     pub agents: Agents,
+    pub sync: SyncHost,
     lock: Mutex<()>,
     /// The remote watch notice of each project id, until the person syncs (spec `code`, REQ-017).
     notices: Mutex<HashMap<String, code::WatchNotice>>,
@@ -44,8 +47,20 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(dir: PathBuf) -> Self {
+        let connections = Arc::new(Connections::system(&dir));
+        Self::build(dir, connections, true)
+    }
+
+    /// A state over given connections, with no background sync thread. A test ticks by hand.
+    #[cfg(test)]
+    pub fn with_connections(dir: PathBuf, connections: Arc<Connections>) -> Self {
+        Self::build(dir, connections, false)
+    }
+
+    fn build(dir: PathBuf, connections: Arc<Connections>, background: bool) -> Self {
         Self {
-            connections: Connections::system(&dir),
+            sync: SyncHost::new(&dir, connections.clone(), background),
+            connections,
             agents: Agents::system(&dir),
             dir,
             lock: Mutex::new(()),

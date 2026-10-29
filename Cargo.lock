@@ -3810,6 +3810,7 @@ dependencies = [
  "serde_json",
  "shipyard-agents",
  "shipyard-core",
+ "shipyard-engine",
  "shipyard-forges",
  "shipyard-git",
  "shipyard-http",

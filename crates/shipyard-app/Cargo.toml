@@ -17,6 +17,7 @@ tauri-specta.workspace = true
 specta.workspace = true
 shipyard-agents = { path = "../shipyard-agents" }
 shipyard-core = { path = "../shipyard-core" }
+shipyard-engine = { path = "../shipyard-engine" }
 shipyard-forges = { path = "../shipyard-forges" }
 shipyard-git = { path = "../shipyard-git" }
 shipyard-http = { path = "../shipyard-http" }

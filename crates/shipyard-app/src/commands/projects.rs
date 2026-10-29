@@ -110,6 +110,7 @@ fn activate(s: &AppState, root: &Path, file: &ProjectFile) -> Res<ProjectOutcome
         let e = reg.get(&id).ok_or("unknown project")?;
         Ok(to_entry(e, true))
     })?;
+    super::sync::refresh(s);
     Ok(ProjectOutcome {
         status: OpenStatus::Opened,
         project: Some(project),
@@ -179,12 +180,14 @@ pub fn clone(s: &AppState, url: &str, path: &str) -> Res<ProjectOutcome> {
 }
 
 pub fn switch(s: &AppState, id: &str) -> Res<ProjectEntry> {
-    s.with_registry(|reg| {
+    let entry = s.with_registry(|reg| {
         if !reg.activate(id) {
             return Err(format!("unknown project: {id}"));
         }
         Ok(to_entry(reg.get(id).ok_or("unknown project")?, true))
-    })
+    })?;
+    super::sync::refresh(s);
+    Ok(entry)
 }
 
 /// The last view per project (`shell` REQ-015). A view is an app path.
@@ -225,7 +228,10 @@ pub fn save_file(s: &AppState, file: ProjectFile) -> Res<()> {
     s.with_registry(|reg| {
         reg.register(&e.path, &file);
         Ok(())
-    })
+    })?;
+    // The file can name another tracker or forge connection.
+    super::sync::refresh(s);
+    Ok(())
 }
 
 pub fn save_overrides(s: &AppState, overrides: Overrides) -> Res<()> {

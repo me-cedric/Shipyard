@@ -83,6 +83,16 @@ export const commands = {
 	mcpStop: (id: string) => typedError<null, string>(__TAURI_INVOKE("mcp_stop", { id })),
 	mcpState: (id: string) => typedError<McpState, string>(__TAURI_INVOKE("mcp_state", { id })),
 	mcpInstall: (command: string) => typedError<string, string>(__TAURI_INVOKE("mcp_install", { command })),
+	syncState: () => typedError<SyncConnection_Serialize[], string>(__TAURI_INVOKE("sync_state")),
+	syncNow: () => typedError<SyncReport, string>(__TAURI_INVOKE("sync_now")),
+	syncAutomationGet: () => typedError<AutomationView_Serialize, string>(__TAURI_INVOKE("sync_automation_get")),
+	syncAutomationSave: (automation: Automation_Deserialize) => typedError<null, string>(__TAURI_INVOKE("sync_automation_save", { automation })),
+	syncItems: (filter: ItemFilter_Deserialize) => typedError<WorkItemView_Serialize[], string>(__TAURI_INVOKE("sync_items", { filter })),
+	syncImportPlan: () => typedError<number, string>(__TAURI_INVOKE("sync_import_plan")),
+	syncImportConfirm: () => typedError<number, string>(__TAURI_INVOKE("sync_import_confirm")),
+	syncAdopt: (key: string) => typedError<WorkItemView_Serialize, string>(__TAURI_INVOKE("sync_adopt", { key })),
+	syncLink: (local: string, key: string) => typedError<null, string>(__TAURI_INVOKE("sync_link", { local, key })),
+	syncUnlink: (local: string) => typedError<boolean, string>(__TAURI_INVOKE("sync_unlink", { local })),
 	/**  Replaces the native menu with one in the language of the person. `labels` is keyed by item id. */
 	shellMenu: (labels: { [key in string]: string }) => typedError<null, string>(__TAURI_INVOKE("shell_menu", { labels })),
 	/**
@@ -104,6 +114,48 @@ export type AppInfo = {
 	name: string,
 	version: string,
 	os: string,
+};
+
+export type Automation = Automation_Serialize | Automation_Deserialize;
+
+export type AutomationFile = 
+/**  No file: the view shows the defaults. */
+"missing" | "valid" | 
+/**  The text of each issue is in `issues`. The view shows the defaults. */
+"invalid";
+
+export type AutomationView = AutomationView_Serialize | AutomationView_Deserialize;
+
+export type AutomationView_Deserialize = {
+	automation: Automation_Deserialize,
+	file: AutomationFile,
+	issues: string[],
+};
+
+export type AutomationView_Serialize = {
+	automation: Automation_Serialize,
+	file: AutomationFile,
+	issues: string[],
+};
+
+export type Automation_Deserialize = {
+	/**  Poll interval in seconds. At least 30. */
+	interval?: number,
+	pickup?: Filter_Deserialize,
+	concurrency?: Limits_Deserialize,
+	/**  Key: a run state name (`RunState::as_str`). */
+	status_map?: { [key in string]: StateMapping_Deserialize },
+	writes?: Writes_Deserialize,
+};
+
+export type Automation_Serialize = {
+	/**  Poll interval in seconds. At least 30. */
+	interval: number,
+	pickup: Filter_Serialize,
+	concurrency: Limits_Serialize,
+	/**  Key: a run state name (`RunState::as_str`). */
+	status_map: { [key in string]: StateMapping_Serialize },
+	writes: Writes_Serialize,
 };
 
 export type Backlink = Backlink_Serialize | Backlink_Deserialize;
@@ -364,6 +416,39 @@ export type FileDiff = {
 
 export type FileState = "added" | "modified" | "deleted" | "renamed" | "typechange" | "untracked" | "conflicted";
 
+/**  Which tickets an agent may take. A ticket must match every set part (REQ-006). */
+export type Filter = Filter_Serialize | Filter_Deserialize;
+
+/**  Which tickets an agent may take. A ticket must match every set part (REQ-006). */
+export type Filter_Deserialize = {
+	/**
+	 *  The file holds a team handle. The caller replaces it with the tracker person id or name
+	 *  before it picks up (`work` resolves handles).
+	 */
+	assignee?: string | null,
+	/**  `null` turns the label filter off. */
+	label?: string | null,
+	/**  Status names. Empty means the `Todo` category. */
+	statuses?: string[],
+	component?: string | null,
+	priority?: string | null,
+};
+
+/**  Which tickets an agent may take. A ticket must match every set part (REQ-006). */
+export type Filter_Serialize = {
+	/**
+	 *  The file holds a team handle. The caller replaces it with the tracker person id or name
+	 *  before it picks up (`work` resolves handles).
+	 */
+	assignee?: string,
+	/**  `null` turns the label filter off. */
+	label: string | null,
+	/**  Status names. Empty means the `Todo` category. */
+	statuses: string[],
+	component?: string,
+	priority?: string,
+};
+
 export type Finding = Finding_Serialize | Finding_Deserialize;
 
 export type Finding_Deserialize = {
@@ -445,7 +530,49 @@ export type ImportReport = {
 	conflicts: string[],
 };
 
+/**  The filter of the Work views. Every set part must match. */
+export type ItemFilter = ItemFilter_Serialize | ItemFilter_Deserialize;
+
+/**  The filter of the Work views. Every set part must match. */
+export type ItemFilter_Deserialize = {
+	/**  A part of the key or the title. */
+	text?: string | null,
+	status?: string | null,
+	/**  A person id or name. */
+	assignee?: string | null,
+	label?: string | null,
+};
+
+/**  The filter of the Work views. Every set part must match. */
+export type ItemFilter_Serialize = {
+	/**  A part of the key or the title. */
+	text: string | null,
+	status: string | null,
+	/**  A person id or name. */
+	assignee: string | null,
+	label: string | null,
+};
+
 export type Lang = "en" | "fr";
+
+/**  Run limits (REQ-007). `global` counts the active runs of every project on this machine. */
+export type Limits = Limits_Serialize | Limits_Deserialize;
+
+/**  Run limits (REQ-007). `global` counts the active runs of every project on this machine. */
+export type Limits_Deserialize = {
+	global?: number,
+	per_project?: number | null,
+	/**  By ticket status name at pickup. */
+	per_status?: { [key in string]: number },
+};
+
+/**  Run limits (REQ-007). `global` counts the active runs of every project on this machine. */
+export type Limits_Serialize = {
+	global: number,
+	per_project?: number,
+	/**  By ticket status name at pickup. */
+	per_status?: { [key in string]: number },
+};
 
 export type LogPage = {
 	commits: CommitInfo[],
@@ -858,6 +985,62 @@ export type State = "resolved" |
 /**  The target is not known yet. It stays unresolved until its source is indexed (Q-012). */
 "unresolved" | "broken";
 
+/**  The tracker status and labels of one run state. */
+export type StateMapping = StateMapping_Serialize | StateMapping_Deserialize;
+
+/**  The tracker status and labels of one run state. */
+export type StateMapping_Deserialize = {
+	status?: string | null,
+	labels?: string[],
+};
+
+/**  The tracker status and labels of one run state. */
+export type StateMapping_Serialize = {
+	status?: string,
+	labels?: string[],
+};
+
+/**  The sync state of one connection (REQ-013, REQ-014). */
+export type SyncConnection = SyncConnection_Serialize | SyncConnection_Deserialize;
+
+/**  The sync state of one connection (REQ-013, REQ-014). */
+export type SyncConnection_Deserialize = {
+	id: string,
+	status: SyncStatus,
+	/**  Seconds since the epoch of the last good poll. */
+	lastOk?: number | null,
+	failures: number,
+	error?: string | null,
+};
+
+/**  The sync state of one connection (REQ-013, REQ-014). */
+export type SyncConnection_Serialize = {
+	id: string,
+	status: SyncStatus,
+	/**  Seconds since the epoch of the last good poll. */
+	lastOk: number | null,
+	failures: number,
+	error: string | null,
+};
+
+export type SyncFailure = {
+	connection: string,
+	message: string,
+};
+
+/**  What one tick did. */
+export type SyncReport = {
+	polled: string[],
+	failed: SyncFailure[],
+	changed: number,
+	/**  Ticket keys that got a run. */
+	started: string[],
+	stopped: number,
+	errors: string[],
+};
+
+export type SyncStatus = "idle" | "running" | "failed";
+
 /**
  *  The result of a connection test. A failure names the missing scope or permission,
  *  or the reason when it is not a scope (REQ-012).
@@ -889,7 +1072,64 @@ export type WatchNotice_Serialize = {
 	changes: HeadChange_Serialize[],
 };
 
+export type WorkItemView = WorkItemView_Serialize | WorkItemView_Deserialize;
+
+export type WorkItemView_Deserialize = {
+	key: string,
+	title: string,
+	kind: string,
+	status: string,
+	/**  `todo`, `in-progress` or `done`. */
+	category: string,
+	assignee?: string | null,
+	labels: string[],
+	parent?: string | null,
+	url: string,
+	updated: string,
+	/**  The local item that the ticket is linked to. */
+	linked?: string | null,
+	/**  This machine holds a claim on the ticket. */
+	claimed: boolean,
+};
+
+export type WorkItemView_Serialize = {
+	key: string,
+	title: string,
+	kind: string,
+	status: string,
+	/**  `todo`, `in-progress` or `done`. */
+	category: string,
+	assignee: string | null,
+	labels: string[],
+	parent: string | null,
+	url: string,
+	updated: string,
+	/**  The local item that the ticket is linked to. */
+	linked: string | null,
+	/**  This machine holds a claim on the ticket. */
+	claimed: boolean,
+};
+
 export type WorkState = "clean" | "changed" | "behind" | "ahead" | "missing";
+
+/**  The four write switches of `factory`. All off by default (`q:Q-002`). */
+export type Writes = Writes_Serialize | Writes_Deserialize;
+
+/**  The four write switches of `factory`. All off by default (`q:Q-002`). */
+export type Writes_Deserialize = {
+	push?: boolean,
+	pull_request?: boolean,
+	tracker_transition?: boolean,
+	tracker_comment?: boolean,
+};
+
+/**  The four write switches of `factory`. All off by default (`q:Q-002`). */
+export type Writes_Serialize = {
+	push: boolean,
+	pull_request: boolean,
+	tracker_transition: boolean,
+	tracker_comment: boolean,
+};
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {

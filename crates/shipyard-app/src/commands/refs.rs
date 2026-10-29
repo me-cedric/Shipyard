@@ -89,6 +89,9 @@ pub fn resolve(s: &AppState, text: &str) -> Res<Option<Resolved>> {
     {
         return Ok(Some(resolve_connection(&id, &c)));
     }
+    if let Some(r) = super::sync::resolve_mirror(s, text)? {
+        return Ok(Some(r));
+    }
     let found = with_index(s, |i| i.resolve(text))?;
     Ok(match (found, parse(text)) {
         (Some(r), _) => Some(r),

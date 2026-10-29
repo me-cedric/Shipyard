@@ -4,10 +4,11 @@ pub mod agents;
 mod commands;
 pub mod connections;
 mod shell;
+pub mod sync;
 
 use commands::{
     AppState, agents as ag, app, code, connections as conn, health, legacy, prefs, projects, refs,
-    shell as sh,
+    shell as sh, sync as sy,
 };
 use tauri::{Emitter, Manager};
 use tauri_specta::{Builder, collect_commands};
@@ -86,6 +87,16 @@ fn specta_builder() -> Builder<tauri::Wry> {
         ag::mcp_stop,
         ag::mcp_state,
         ag::mcp_install,
+        sy::sync_state,
+        sy::sync_now,
+        sy::sync_automation_get,
+        sy::sync_automation_save,
+        sy::sync_items,
+        sy::sync_import_plan,
+        sy::sync_import_confirm,
+        sy::sync_adopt,
+        sy::sync_link,
+        sy::sync_unlink,
         sh::shell_menu,
         sh::notify_os,
         sh::update_check,
@@ -109,6 +120,14 @@ pub fn run() {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
             app.manage(AppState::new(dir.clone()));
+            // Each tick and each change of the mirror tells the views to read it again (REQ-016).
+            let handle = app.handle().clone();
+            let state = app.state::<AppState>();
+            state.sync.on_change(move || {
+                let _ = handle.emit(sy::TICK_EVENT, ());
+            });
+            // The engine of the active project starts with the app.
+            sy::refresh(&state);
             app.set_menu(shell::menu::build(app.handle(), &Default::default())?)?;
             code::spawn_watch(app.handle().clone(), WATCH_EVERY);
             // The relay answers `shipyard --mcp-relay <id>` with the open server (REQ-018).

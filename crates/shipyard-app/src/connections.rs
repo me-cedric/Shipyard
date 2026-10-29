@@ -15,6 +15,7 @@ use shipyard_git::{Auth, auth::https_host};
 use shipyard_http::{Client, Http, TestOutcome};
 use shipyard_secrets::{Keychain, Secret, SecretStore, conn_account};
 use shipyard_store::project::write_atomic;
+use shipyard_trackers::work::TrackerWrite;
 use shipyard_trackers::{Tracker, TrackerConfig};
 use specta::Type;
 
@@ -470,6 +471,22 @@ impl Connections {
         }
         shipyard_trackers::connect(&tracker_config(&r), self.secret(&r)?, self.http.clone())
             .map_err(|e| e.to_string())
+    }
+
+    /// The tracker adapter with its write calls. The sync engine reads through it and writes the
+    /// claim stamp (`add-sync` REQ-009). A write call needs a person's or a switch's permission:
+    /// the caller decides, this only builds the adapter.
+    pub fn tracker_write(&self, id: &str) -> Res<Box<dyn TrackerWrite>> {
+        let r = self.record(id)?;
+        if r.group != ConnectionGroup::Tracker {
+            return Err(format!("{id} is not a tracker"));
+        }
+        shipyard_trackers::work::connect_write(
+            &tracker_config(&r),
+            self.secret(&r)?,
+            self.http.clone(),
+        )
+        .map_err(|e| e.to_string())
     }
 
     /// The forge adapter of a connection.
