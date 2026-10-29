@@ -21,6 +21,7 @@ The `Tracker` trait and its six adapters live in `shipyard-trackers`. The `Forge
 | Credential sources | Keychain only (Q-017 assumption). A helper source is a later option. |
 | Connection test | Each adapter has a read-only `test` method that returns the missing scope or permission. |
 | MCP control | `shipyard-agents` spawns the process, tracks its state and stops it at app quit. A dependency check runs before spawn. |
+| MCP relay | A unix socket in an owner-only folder (macOS, Linux). The Windows named pipe is open: until then the relay starts the server itself. |
 | Risks | Tracker APIs drift. Contract tests with recorded fakes cover each adapter. Q-017 and Q-018 stay open. |
 
 ## Affected Surfaces
