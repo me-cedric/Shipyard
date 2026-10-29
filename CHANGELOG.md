@@ -34,3 +34,5 @@
 ### Added
 
 - Project plan, constitution and first architecture decisions.
+- Sealing the sheets and day rates now asks for the passphrase twice and seals nothing when the two differ. Send in Work / Time is disabled while an entry goes to the tracker, and the same entry never goes twice, even from two clicks. Today, the start of the plan and the default day of a time entry now follow your time zone and not UTC.
+- Each project now keeps its own sync cursor and claims for its tracker container, so two projects on one connection no longer mix. Only the open project polls, a cut-off poll no longer skips unread tickets, and an import never overwrites a newer ticket. A claim stamp counts only from your own account and ages by the clock of the tracker. The browser preview opens a demo project with a tracker, so every space is reachable.

@@ -34,3 +34,5 @@
 ### Ajouts
 
 - Plan du projet, constitution et premières décisions d’architecture.
+- Sceller les feuilles et les taux journaliers demande désormais la phrase secrète deux fois et ne scelle rien quand les deux diffèrent. Envoyer dans Travail / Temps est désactivé pendant qu’une saisie part vers le tracker, et la même saisie ne part jamais deux fois, même après deux clics. Aujourd’hui, le début du plan et le jour par défaut d’une saisie suivent désormais votre fuseau horaire et non l’UTC.
+- Chaque projet garde désormais son propre curseur de synchronisation et ses prises pour son conteneur de tracker, donc deux projets sur une même connexion ne se mélangent plus. Seul le projet ouvert interroge le tracker, un cycle interrompu ne saute plus de tickets non lus, et un import n’écrase jamais un ticket plus récent. Un repère de prise ne compte que depuis votre propre compte et vieillit selon l’horloge du tracker. L’aperçu dans le navigateur ouvre un projet de démonstration avec un tracker, donc chaque espace est accessible.

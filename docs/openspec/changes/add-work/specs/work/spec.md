@@ -40,16 +40,16 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 - REQ-011: Work / Estimates SHALL offer four views of a sheet: backlog, summary, monthly spread and portfolio. The backlog SHALL show lot, feature and task. The summary SHALL show price, cost and margin. The spread SHALL show effort and cost by month. The portfolio SHALL show all sheets together.
 - REQ-012: The system SHALL import an Excel file that follows the CGI costing layout into a sheet. The import SHALL show a preview with each row that it refuses and its reason. The system MUST NOT replace a sheet before the person confirms.
 - REQ-013: The system SHALL export a sheet to an Excel file that the CGI costing tool opens. The export SHALL hold the same totals as the summary.
-- REQ-014: The system SHALL seal all sheets with a project passphrase on request. It SHALL open them again on request. The passphrase MUST NOT appear in the repository. The system SHALL refuse a passphrase that does not open the sealed sheets. On a machine with no passphrase, a sealed sheet SHALL show a locked state.
+- REQ-014: The system SHALL seal all sheets with a project passphrase on request. It SHALL open them again on request. The passphrase MUST NOT appear in the repository. The system SHALL refuse a passphrase that does not open the sealed sheets. On a machine with no passphrase, a sealed sheet SHALL show a locked state. The seal action SHALL ask for the passphrase twice and SHALL seal nothing when the two differ.
 - REQ-015: A sheet task MAY carry a `wi:` ref. The view SHALL show the estimate of the task beside the original estimate of the ticket.
 - REQ-016: Work / Plan SHALL compute a Gantt from one chosen estimate sheet, the team and the calendar. The calendar SHALL hold the working days and the public holidays. The computation SHALL use the capacity and the availability of each member.
 - REQ-017: The system SHALL store only the decisions of a person: task order, a fixed start and a member choice. The system MUST NOT store a computed date. One decision file SHALL serve all sheets.
-- REQ-018: Work / Plan SHALL show bars on a time scale with a today marker. A person SHALL be able to move a bar and change a decision with the keyboard. The view SHALL have one primary action.
+- REQ-018: Work / Plan SHALL show bars on a time scale with a today marker. Today SHALL be the day of the screen of the person, not the day in UTC. A person SHALL be able to move a bar and change a decision with the keyboard. The view SHALL have one primary action.
 - REQ-019: Effort numbers SHALL live in estimate sheets only. Work / Plan and the plan-and-apply flow SHALL read them. They MUST NOT keep a copy of the effort.
 - REQ-020: Work / Time SHALL let a person add a time entry with a day, a duration and a note. The entry MAY name a ticket from the mirror. The system SHALL refuse an entry when it cannot resolve the member. The system MUST NOT run a timer.
 - REQ-021: The system SHALL keep time entries as text, one file for each member and month, in the repository. [NEEDS CLARIFICATION: Q-034 Do time entries live in the repository or in the app data folder?] Working assumption: Q-034 option 1, in the repository.
 - REQ-022: The system SHALL send a time entry to the tracker worklog only when a person acts on that entry. An agent, a run or a tick MUST NOT send a worklog. The person SHALL choose to reduce the remaining estimate or leave it. The system SHALL disable the send when the tracker lacks the time tracking capability.
-- REQ-023: The system SHALL write the entry first, send second and store the tracker receipt third. An entry with a receipt SHALL NOT be offered again. Each sent worklog SHALL carry a mark of the entry id. When a response is lost, the system SHALL find the worklog by its mark and SHALL NOT send it again.
+- REQ-023: The system SHALL write the entry first, send second and store the tracker receipt third. An entry with a receipt SHALL NOT be offered again. Each sent worklog SHALL carry a mark of the entry id. When a response is lost, the system SHALL find the worklog by its mark and SHALL NOT send it again. The system SHALL run one send of one entry at a time.
 - REQ-024: Each time row SHALL show one of three states: in the tracker, to send, or only in the tracker. The system MUST NOT add local and tracker hours together. The system SHALL flag a difference of duration and MUST NOT correct it.
 - REQ-025: Shipyard SHALL show the epics and stories to create or update from the estimate sheets. The preview SHALL mark each row create, update or unchanged against the mirror. The system MUST NOT write to the tracker before the PM applies. A reviewed split from `add-specs` SHALL use this preview and the apply of REQ-026, with one match mark. Work owns the apply code.
 - REQ-026: Apply SHALL write each row and SHALL show the result of each row. A failed row SHALL NOT undo the rows already written. A second apply SHALL NOT create a duplicate. Apply SHALL write the summary, description, estimate and parent. It MUST NOT write the status or the assignee. Apply SHALL match a row to its ticket by the row ref `est:<slug>#<row-id>`, which the ticket holds in a label. [NEEDS CLARIFICATION: Q-033 How does apply match a row to its ticket?] Working assumption: Q-033 option 1.
@@ -282,7 +282,13 @@ The system SHALL export a sheet to an Excel file that the CGI costing tool opens
 
 ### Requirement: REQ-014 Sealed sheets
 
-The system SHALL seal all sheets with a project passphrase on request. It SHALL open them again on request. The passphrase MUST NOT appear in the repository. The system SHALL refuse a passphrase that does not open the sealed sheets. On a machine with no passphrase, a sealed sheet SHALL show a locked state.
+The system SHALL seal all sheets with a project passphrase on request. It SHALL open them again on request. The passphrase MUST NOT appear in the repository. The system SHALL refuse a passphrase that does not open the sealed sheets. On a machine with no passphrase, a sealed sheet SHALL show a locked state. The seal action SHALL ask for the passphrase twice and SHALL seal nothing when the two differ: a typo would lock the files for good.
+
+#### Scenario: Typo
+- GIVEN a person types a passphrase and a different one to repeat it
+- WHEN the person seals
+- THEN nothing is sealed
+- AND the view says that the two differ
 
 #### Scenario: Seal
 - GIVEN readable sheets
@@ -338,7 +344,7 @@ The system SHALL store only the decisions of a person: task order, a fixed start
 
 ### Requirement: REQ-018 Plan view
 
-Work / Plan SHALL show bars on a time scale with a today marker. A person SHALL be able to move a bar and change a decision with the keyboard. The view SHALL have one primary action.
+Work / Plan SHALL show bars on a time scale with a today marker. Today SHALL be the day of the screen of the person, not the day in UTC. A person SHALL be able to move a bar and change a decision with the keyboard. The view SHALL have one primary action.
 
 #### Scenario: Keyboard
 - GIVEN a bar with focus
@@ -393,7 +399,17 @@ The system SHALL send a time entry to the tracker worklog only when a person act
 
 ### Requirement: REQ-023 No double count
 
-The system SHALL write the entry first, send second and store the tracker receipt third. An entry with a receipt SHALL NOT be offered again. Each sent worklog SHALL carry a mark of the entry id. When a response is lost, the system SHALL find the worklog by its mark and SHALL NOT send it again.
+The system SHALL write the entry first, send second and store the tracker receipt third. An entry with a receipt SHALL NOT be offered again. Each sent worklog SHALL carry a mark of the entry id. When a response is lost, the system SHALL find the worklog by its mark and SHALL NOT send it again. The system SHALL run one send of one entry at a time, and the view SHALL disable Send while an entry goes out.
+
+#### Scenario: Another write during the send
+- GIVEN another entry is written while a send waits for the tracker
+- WHEN the send ends
+- THEN the receipt is set on a fresh copy of the file and the other entry stays
+
+#### Scenario: Two clicks
+- GIVEN a send of an entry is in progress
+- WHEN a second send of the same entry starts
+- THEN the second waits, finds the receipt and sends nothing
 
 #### Scenario: Lost response
 - GIVEN a send whose response was lost

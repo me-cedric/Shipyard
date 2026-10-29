@@ -31,17 +31,17 @@ Agents must pick up work from the team tracker. The app must show the tracker st
 - REQ-002: The system SHALL let a person set the interval in Settings / Project, group Automation (`add-factory` REQ-025) and SHALL refuse a value under 30 s.
 - REQ-003: Each tick SHALL reconcile before it dispatches, in this order: fetch, compare, update the mirror, hand off events, stop runs, pick up new work.
 - REQ-004: The system SHALL stop each active run whose ticket became terminal, except a run whose pull request merged, and SHALL record the reason on the run.
-- REQ-005: The system SHALL keep a mirror of work items and pull requests in the app data folder. The tracker and the forge SHALL stay the source of truth. Views SHALL read the mirror and SHALL NOT call the tracker.
+- REQ-005: The system SHALL keep a mirror of work items and pull requests in the app data folder. The tracker and the forge SHALL stay the source of truth. Views SHALL read the mirror and SHALL NOT call the tracker. The mirror SHALL key the cursor, the claims and the items by connection and container (a Jira project key, a repository), so two projects on one connection never share a cursor or a claim table.
 - REQ-006: The system SHALL read the pickup filter from `.shipyard/automation.yaml`. A person edits it in Settings / Project, group Automation (`add-factory` REQ-025). The pickup filter SHALL have these parts: assignee, label, status set, component and priority. The default label SHALL be `shipyard`. The assignee SHALL come from the team handles of `work`. The system MUST NOT pick up while the global kill switch is on.
 - REQ-007: The system SHALL read the concurrency from `.shipyard/automation.yaml`. A person edits it in Settings / Project, group Automation (`add-factory` REQ-025). The concurrency SHALL have these parts: global, per project and per status. The default SHALL be 2 runs.
 - REQ-008: The system SHALL take a claim as an atomic lock in the local store before a run starts. Two runs on one machine MUST NOT claim the same ticket.
-- REQ-009: The system SHALL put a claim stamp on the ticket so that two machines never run the same ticket. The stamp is a tracker write. [NEEDS CLARIFICATION: Q-020 How does the claim stamp relate to the automation write switches?] Working assumption (option 2): the stamp follows the `tracker_comment` switch. With the switch off, the claim stays on this machine.
+- REQ-009: The system SHALL put a claim stamp on the ticket so that two machines never run the same ticket. The stamp is a tracker write. The system SHALL count a stamp only when the account of the connection wrote it, SHALL age it by the clock of the tracker (the `Date` header of the answer), and SHALL order stamps by first claim: a refresh keeps its place. [NEEDS CLARIFICATION: Q-020 How does the claim stamp relate to the automation write switches?] Working assumption (option 2): the stamp follows the `tracker_comment` switch. With the switch off, the claim stays on this machine.
 - REQ-010: The system SHALL release a claim when its run ends, and SHALL treat a claim as stale when its stamp is not refreshed. [NEEDS CLARIFICATION: Q-021 After how long is a claim stale?] Working assumption: 10 minutes without a refresh.
 - REQ-011: The system SHALL hand each new ticket comment to `questions-loop` once.
 - REQ-012: The system SHALL hand each pull request, CI and merge event to `delivery` once.
 - REQ-013: The system SHALL show one sync action in the status bar and the sync state of each connection. The action SHALL run one tick at once, then the git fetch and fast-forward of `add-code` REQ-014 (`q:Q-041`).
-- REQ-014: The system SHALL keep the last good mirror when a poll fails, SHALL show the failed state on the connection and SHALL retry with a longer delay.
-- REQ-015: The system SHALL let a person adopt a ticket, link a ticket to a local item and import the backlog of a tracker.
+- REQ-014: The system SHALL keep the last good mirror when a poll fails, SHALL show the failed state on the connection and SHALL retry with a longer delay. A poll that reads only part of a list SHALL NOT move the cursor.
+- REQ-015: The system SHALL let a person adopt a ticket, link a ticket to a local item and import the backlog of a tracker. An import SHALL NOT overwrite a newer mirror row.
 - REQ-016: The system SHALL expose the mirror as `wi:` and `pr:` entities, and SHALL send a tick event to the capabilities that listen.
 - REQ-017: Each sync view SHALL follow the interface rules of the constitution.
 
@@ -145,7 +145,12 @@ The system SHALL stop each active run whose ticket is in a terminal status, and 
 
 ### Requirement: REQ-005 Mirror
 
-The system SHALL keep a mirror of work items and pull requests in the app data folder. The tracker and the forge SHALL stay the source of truth. A view SHALL read the mirror, and MUST NOT call the tracker or the forge for a read.
+The system SHALL keep a mirror of work items and pull requests in the app data folder. The tracker and the forge SHALL stay the source of truth. A view SHALL read the mirror, and MUST NOT call the tracker or the forge for a read. The mirror SHALL key the cursor, the claims and the items by connection and container (a Jira project key, a repository). Only the engine of the open project SHALL poll.
+
+#### Scenario: One connection, two containers
+- GIVEN two projects use one tracker connection with two containers
+- WHEN the first project polls
+- THEN the cursor and the claims of the second project do not change
 
 #### Scenario: Offline read
 - GIVEN the network is off
@@ -201,7 +206,27 @@ The system SHALL take a claim as an atomic lock in the local store before a run 
 
 ### Requirement: REQ-009 Claim stamp
 
-The system SHALL put a claim stamp on the ticket so that two machines never run the same ticket. The system SHALL NOT start a run on a ticket that has a live stamp of another machine. The oldest live stamp SHALL win. The stamp is a tracker write. [NEEDS CLARIFICATION: Q-020 How does the claim stamp relate to the automation write switches?] Working assumption (option 2): the stamp follows the `tracker_comment` switch of `q:Q-002`.
+The system SHALL put a claim stamp on the ticket so that two machines never run the same ticket. The system SHALL NOT start a run on a ticket that has a live stamp of another machine. The oldest live stamp SHALL win. The stamp is a tracker write. Only the account of the connection SHALL stamp, and the tracker clock SHALL give the age. [NEEDS CLARIFICATION: Q-020 How does the claim stamp relate to the automation write switches?] Working assumption: the stamp follows the `tracker_comment` switch.
+
+#### Scenario: Look-alike
+- GIVEN another person wrote a comment that holds a claim marker
+- WHEN the system reads the stamps of the ticket
+- THEN the comment is not a stamp
+
+#### Scenario: Refresh keeps its place
+- GIVEN machine A refreshes its stamp while a leftover stamp of machine B is live
+- WHEN the system orders the stamps
+- THEN the stamp of A stays first, by its first claim time
+
+#### Scenario: Refresh with the switch off
+- GIVEN the `tracker_comment` switch is off and a claim holds a stamp
+- WHEN the heartbeat runs
+- THEN the system writes no stamp
+
+#### Scenario: Wrong local clock
+- GIVEN the clock of this machine is one hour off
+- WHEN the system reads a stamp that is 30 s old by the tracker
+- THEN the stamp is 30 s old
 
 #### Scenario: Two machines
 - GIVEN machine A stamped a ticket
@@ -296,7 +321,7 @@ The system SHALL show one sync action in the status bar. The action SHALL run on
 
 ### Requirement: REQ-014 Failed poll
 
-The system SHALL keep the last good mirror when a poll fails. The system SHALL show the failed state on the connection and SHALL retry with a longer delay, up to a set maximum.
+The system SHALL keep the last good mirror when a poll fails. The system SHALL show the failed state on the connection and SHALL retry with a longer delay, up to a set maximum. A poll that reads only part of a list (the page limit) SHALL NOT move the cursor, so no unread item falls behind it.
 
 #### Scenario: Network loss
 - GIVEN the network goes off
@@ -307,7 +332,12 @@ The system SHALL keep the last good mirror when a poll fails. The system SHALL s
 
 ### Requirement: REQ-015 Adopt, link and import
 
-The system SHALL let a person adopt a ticket, link a ticket to a local item and import the backlog of a tracker. The import SHALL show a count before it writes the mirror.
+The system SHALL let a person adopt a ticket, link a ticket to a local item and import the backlog of a tracker. The import SHALL show a count before it writes the mirror. The import SHALL NOT overwrite a row that the mirror holds with a later update time.
+
+#### Scenario: Newer row stays
+- GIVEN a tick wrote a ticket after the import was planned
+- WHEN a person confirms the import
+- THEN the newer row stays
 
 #### Scenario: Import backlog
 - GIVEN a tracker with 120 open tickets
