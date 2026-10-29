@@ -27,8 +27,8 @@ Plan: [plan.md](./plan.md)
 - [ ] T014 Implement the merge close in `crates/shipyard-engine/src/merge.rs`. Covers REQ-022 to REQ-025.
 - [x] T015 Write a test for the impacts digest section in `crates/shipyard-core/tests/delivery.rs`. Covers REQ-027.
 - [x] T016 Implement the digest section in `crates/shipyard-core/src/delivery.rs`. Covers REQ-027.
-- [ ] T017 [P] Write store and IPC tests for `pr:` entities in `crates/shipyard-store/tests/pr.rs`. Covers REQ-028.
-- [ ] T018 Implement the `pr:` rows in `crates/shipyard-store/src/pr.rs` and the IPC commands in `crates/shipyard-app/src/delivery.rs`. Covers REQ-028.
+- [x] T017 [P] Write store tests for `pr:` entities in `crates/shipyard-store/tests/pr.rs`. Covers REQ-028.
+- [ ] T018 Add the IPC commands and their tests in `crates/shipyard-app/src/delivery.rs`. The `pr:` rows are done in `crates/shipyard-store/src/pr.rs`. Covers REQ-028.
 - [ ] T019 Write component tests for the run cards and approvals in `src/features/factory/delivery.test.tsx`. Covers REQ-014, REQ-021, REQ-029.
 - [ ] T020 Build the cards and approvals in `src/features/factory/`. Add French and English keys. Covers REQ-014, REQ-021, REQ-029.
 - [ ] T021 Write the e2e test `e2e/delivery.spec.ts` with a fake tracker and forge: review, pull request, CI failure, merge, close. Covers REQ-001 to REQ-029.

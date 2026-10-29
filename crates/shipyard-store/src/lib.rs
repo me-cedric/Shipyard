@@ -9,6 +9,7 @@ pub mod fold;
 pub mod madr;
 pub mod mirror;
 pub mod openspec_validate;
+pub mod pr;
 pub mod prefs;
 pub mod project;
 pub mod raid;

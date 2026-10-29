@@ -23,6 +23,8 @@ pub mod kind {
     pub const RUNNER: &str = "runner";
     /// A write to a tracker, a forge or a remote, sent or held as an approval.
     pub const WRITE: &str = "write";
+    /// The pull request of a run: `{"ref": "pr:<forge>:<number>"}` (`delivery` REQ-017).
+    pub const PR: &str = "pr";
     /// A note for a person: a refused transition, a late answer, an edit.
     pub const NOTE: &str = "note";
 }
