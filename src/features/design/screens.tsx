@@ -9,6 +9,7 @@ import { EditorFrame } from "@/ui/organisms/editor-frame";
 import { FileFrame } from "./frame";
 import { useOpenOutside } from "./open";
 import { ArtifactTab } from "./tab";
+import { TokenView } from "./tokens";
 
 /** One screen: its artifacts and its design file. A local link that does not exist shows broken (REQ-019). */
 function ScreenView({ screen }: { screen: Screen }) {
@@ -88,7 +89,10 @@ export function Screens() {
 				) : (
 					<FileFrame path={doc} refId={row.ref} title={row.title} missing={TEMPLATE.doc}>
 						{(f) => (
-							<CodeEditor label={t.design.screens.docText} value={f.text} onChange={f.setText} />
+							<div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-1 gap-3">
+								<CodeEditor label={t.design.screens.docText} value={f.text} onChange={f.setText} />
+								<TokenView />
+							</div>
 						)}
 					</FileFrame>
 				);

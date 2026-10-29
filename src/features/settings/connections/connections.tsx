@@ -16,6 +16,7 @@ import { clock, useSyncState } from "@/lib/sync";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
+import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import type { Status } from "@/ui/atoms/status-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
@@ -50,6 +51,45 @@ const FLAGS = [
 	"assignee",
 ] as const;
 
+/** Creates a private repository on the forge. The click of the person is the write (REQ-019). */
+function CreateRepo({ id }: { id: string }) {
+	const { t } = useI18n();
+	const qc = useQueryClient();
+	const [slug, setSlug] = useState("");
+	const [error, setError] = useState<string | null>(null);
+	return (
+		<form
+			className="flex items-center gap-2 py-1"
+			onSubmit={(e) => {
+				e.preventDefault();
+				unwrap(commands.connectionsCreateRepo(id, slug.trim(), true))
+					.then(() => {
+						setSlug("");
+						setError(null);
+						return qc.invalidateQueries({ queryKey: connectionKeys.repos(id) });
+					})
+					.catch((err) => setError(message(err)));
+			}}
+		>
+			<Input
+				label={t.connections.repoName}
+				value={slug}
+				onChange={(e) => setSlug(e.target.value)}
+				className="w-64"
+			/>
+			<Button type="submit" disabled={!slug.trim()}>
+				<PlusIcon size={14} />
+				{t.connections.repoCreate}
+			</Button>
+			{error ? (
+				<p role="alert" className="text-ui text-danger-text">
+					{error}
+				</p>
+			) : null}
+		</form>
+	);
+}
+
 function Repos({ id }: { id: string }) {
 	const { t } = useI18n();
 	const repos = useQuery({
@@ -73,6 +113,7 @@ function Repos({ id }: { id: string }) {
 					{r.canPush === false ? <Badge variant="warning">{t.connections.noPush}</Badge> : null}
 				</SettingsRow>
 			))}
+			<CreateRepo id={id} />
 		</section>
 	);
 }

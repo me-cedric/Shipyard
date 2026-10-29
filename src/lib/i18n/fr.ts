@@ -221,6 +221,14 @@ export const fr: Messages = {
 		overrides: "Surcharges",
 		accent: "Accent",
 		overridden: "Défini par le projet",
+		legacy: {
+			title: "Legacy",
+			import: "Importer un projet Legacy",
+			copied: "Copiés",
+			skipped: "Ignorés",
+			conflicts: "Conflits",
+			exists: "Existe",
+		},
 		noOverride: "Aucune",
 		connections: "Connexions",
 		noConnection: "Aucune",
@@ -316,6 +324,8 @@ export const fr: Messages = {
 		repos: "Dépôts",
 		remove: "Supprimer",
 		noPush: "Pas d'écriture",
+		repoName: "Nom du dépôt",
+		repoCreate: "Créer un dépôt",
 		result: {
 			passed: "Réussi : {account}",
 			"missing-scope": "Portée manquante : {scope}",

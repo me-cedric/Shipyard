@@ -19,6 +19,7 @@ import { StatusDot } from "@/ui/atoms/status-dot";
 import { Cog6ToothIcon, FolderOpenIcon, LinkIcon, SunIcon, SwatchIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Settings } from "@/ui/templates/settings";
+import { ProjectImport } from "./project-import";
 
 const NONE = "none";
 const ACCENTS: Accent[] = ["blue", "violet", "green", "orange", "rose"];
@@ -232,6 +233,7 @@ function Form({
 					},
 				]}
 			/>
+			<ProjectImport />
 			{error ? (
 				<p role="alert" className="text-ui text-danger-text">
 					{error}

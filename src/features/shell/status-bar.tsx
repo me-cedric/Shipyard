@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useWatchNotice } from "@/lib/code";
+import { useRuns } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { useNotifications } from "@/lib/notifications";
 import { useHealth, worstStatus } from "@/lib/projects";
@@ -37,6 +38,10 @@ export function StatusBar({
 	const { items, unread, markRead, clear } = useNotifications();
 	const notice = useWatchNotice().data?.changes[0];
 	const health = useHealth();
+	// A run is active while it works or waits for the person.
+	const active = (useRuns().data ?? []).filter(
+		(r) => r.lane === "working" || r.lane === "needs_you",
+	).length;
 	const findings = health.data ?? [];
 	// The dot shows the worst finding by shape and colour. A click opens Settings / Health.
 	const status: Status = health.isError
@@ -70,7 +75,8 @@ export function StatusBar({
 			<NotificationCentre items={items} unread={unread} onOpen={markRead} onClear={clear} />
 			<span className="inline-flex items-center gap-1">
 				<CpuChipIcon size={12} />
-				<span className="sr-only">{t.shell.runs}</span>0
+				<span className="sr-only">{t.shell.runs}</span>
+				{active}
 			</span>
 			<Link to="/settings/health" className="inline-flex items-center gap-1 rounded-sm px-1">
 				<span className="sr-only">

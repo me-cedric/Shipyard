@@ -261,6 +261,25 @@ describe("Settings / Connections", () => {
 		).toBeNull();
 	});
 
+	it("creates a repository from the name and shows the refusal of a bad name", async () => {
+		const user = userEvent.setup();
+		await seed({ name: "Code", group: "forge", kind: "github", url: "https://github.com" });
+		mountApp("/settings/connections");
+		const code = await row("Code");
+		await user.click(within(code).getByRole("button", { name: "Repositories" }));
+		const field = await within(code).findByRole("textbox", { name: "Repository name" });
+		const create = within(code).getByRole("button", { name: "Create repository" });
+		expect(create).toBeDisabled();
+		await user.type(field, "web");
+		await user.click(create);
+		expect(await within(code).findByRole("alert")).toHaveTextContent("owner/name");
+		await user.clear(field);
+		await user.type(field, "acme/new");
+		await user.click(create);
+		await waitFor(() => expect(field).toHaveValue(""));
+		expect(within(code).queryByRole("alert")).toBeNull();
+	});
+
 	it("shows one form at a time", async () => {
 		const user = userEvent.setup();
 		await seed({ name: "Acme" });

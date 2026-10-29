@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
@@ -214,6 +215,42 @@ describe("Settings / Project", () => {
 	it("shows the first-run action when no project is active", async () => {
 		mountApp("/settings/project");
 		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
+	});
+});
+
+describe("Settings / Project, Legacy import", () => {
+	it("imports from a folder and lists the copied, skipped and conflicting files", async () => {
+		const user = userEvent.setup();
+		await open();
+		const spy = vi.spyOn(commands, "projectImport").mockResolvedValue({
+			status: "ok",
+			data: {
+				copied: ["docs/a.md"],
+				skipped: [{ path: "docs/b.md", reason: "not a Legacy file" }],
+				conflicts: ["docs/c.md"],
+			},
+		});
+		mountApp("/settings/project");
+		await user.click(await screen.findByRole("button", { name: "Import Legacy project" }));
+		expect(await screen.findByRole("heading", { name: "Copied (1)" })).toBeInTheDocument();
+		expect(spy).toHaveBeenCalledOnce();
+		expect(screen.getByRole("heading", { name: "Skipped (1)" })).toBeInTheDocument();
+		expect(screen.getByRole("group", { name: "docs/b.md" })).toHaveTextContent("not a Legacy file");
+		expect(screen.getByRole("heading", { name: "Conflicts (1)" })).toBeInTheDocument();
+		expect(screen.getByRole("group", { name: "docs/c.md" })).toHaveTextContent("Exists");
+		spy.mockRestore();
+	});
+
+	it("shows the refusal of the command", async () => {
+		const user = userEvent.setup();
+		await open();
+		const spy = vi
+			.spyOn(commands, "projectImport")
+			.mockResolvedValue({ status: "error", error: "no Legacy folder" });
+		mountApp("/settings/project");
+		await user.click(await screen.findByRole("button", { name: "Import Legacy project" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("no Legacy folder");
+		spy.mockRestore();
 	});
 });
 

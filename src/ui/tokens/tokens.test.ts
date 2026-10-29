@@ -84,7 +84,12 @@ describe("tokens (REQ-001)", () => {
 		for (const [path, text] of Object.entries(sources)) {
 			// A test names the values it forbids. The gallery holds a draw.io sample as data. The slide
 			// deck takes the colours and the font of the user's deck style (data, not component style).
-			if (/\.test\.tsx?$/.test(path) || /gallery\/|slide-deck\.tsx$/.test(path)) continue;
+			// The design token view parses the token values of tokens.css to show them.
+			if (
+				/\.test\.tsx?$/.test(path) ||
+				/gallery\/|slide-deck\.tsx$|design\/tokens\.tsx$/.test(path)
+			)
+				continue;
 			for (const re of rules) if (re.test(text)) hits.push(`${path}: ${re}`);
 		}
 		expect(hits).toEqual([]);

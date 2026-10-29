@@ -220,6 +220,14 @@ export const en = {
 		overrides: "Overrides",
 		accent: "Accent",
 		overridden: "Set by the project",
+		legacy: {
+			title: "Legacy",
+			import: "Import Legacy project",
+			copied: "Copied",
+			skipped: "Skipped",
+			conflicts: "Conflicts",
+			exists: "Exists",
+		},
 		noOverride: "None",
 		connections: "Connections",
 		noConnection: "None",
@@ -310,6 +318,8 @@ export const en = {
 		repos: "Repositories",
 		remove: "Remove",
 		noPush: "No push",
+		repoName: "Repository name",
+		repoCreate: "Create repository",
 		result: {
 			passed: "Passed: {account}",
 			"missing-scope": "Missing scope: {scope}",

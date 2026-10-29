@@ -90,6 +90,15 @@ export const designEn = {
 		openFigma: "Open outside",
 		broken: "Broken link",
 		none: "No link",
+		tokens: "Tokens",
+		tokenGroups: {
+			neutral: "Neutral",
+			accent: "Accent",
+			success: "Success",
+			warning: "Warning",
+			danger: "Danger",
+			info: "Info",
+		},
 	},
 };
 
@@ -183,5 +192,14 @@ export const designFr: typeof designEn = {
 		openFigma: "Ouvrir hors de l'app",
 		broken: "Lien rompu",
 		none: "Aucun lien",
+		tokens: "Jetons",
+		tokenGroups: {
+			neutral: "Neutre",
+			accent: "Accent",
+			success: "Succès",
+			warning: "Avertissement",
+			danger: "Danger",
+			info: "Info",
+		},
 	},
 };

@@ -1,8 +1,21 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import { mockState } from "@/lib/ipc/mock";
 import { mountDesign } from "./harness";
 import { Screens } from "./screens";
+
+// Vitest turns a CSS import into an empty string, so the test serves the real file.
+vi.mock("@/ui/tokens/tokens.css?raw", () => {
+	const { readFileSync } = (
+		globalThis as unknown as {
+			process: {
+				getBuiltinModule: (id: string) => { readFileSync: (p: string, e: "utf8") => string };
+			};
+		}
+	).process.getBuiltinModule("node:fs");
+	return { default: readFileSync("src/ui/tokens/tokens.css", "utf8") };
+});
 
 const files = () => mockState().design.files;
 const DOC = "docs/designs/design.md";
@@ -51,6 +64,28 @@ describe("Design / Screens", () => {
 		await user.type(text, "{Control>}{End}{/Control}\nNew line");
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(files()[DOC]?.text).toMatch(/New line$/));
+	});
+
+	it("shows the tokens of the app beside the design doc, by family with a count", async () => {
+		const user = userEvent.setup();
+		await mountDesign(<Screens />);
+		await user.click(await row(/Design doc/));
+		const tokens = within(await screen.findByRole("region", { name: "Tokens" }));
+		for (const heading of [
+			"Neutral (12)",
+			"Accent (5)",
+			"Success (3)",
+			"Warning (3)",
+			"Danger (3)",
+			"Info (3)",
+		])
+			expect(tokens.getByRole("heading", { name: heading })).toBeInTheDocument();
+		const item = tokens.getByText("--accent").closest("li");
+		expect(item).toHaveTextContent("oklch(0.757 0.147 238)");
+		// The view reads: the design doc stays as it was.
+		expect(await screen.findByRole("textbox", { name: "Design doc text" })).toHaveValue(
+			files()[DOC]?.text,
+		);
 	});
 
 	it("starts a missing design doc from the skeleton and creates the file on save", async () => {
