@@ -1497,8 +1497,12 @@ export type ParsedRef = {
 	kind: string,
 };
 
-/**  What an agent-mode thread may do in its worktree (Q-049: the person picks). */
-export type Permission = "read_only" | "edit" | "full";
+/**  What an agent-mode thread may do in its worktree (Q-049 option 1: two levels, no bypass). */
+export type Permission = 
+/**  Edit with approval: each write waits for the person. */
+"approve" | 
+/**  Auto inside the worktree: the edit tools are pre-approved. Never `Bash`. */
+"auto";
 
 export type PlanRow = {
 	path: string,

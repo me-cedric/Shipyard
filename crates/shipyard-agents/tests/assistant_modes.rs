@@ -95,7 +95,7 @@ fn ask_and_plan_run_read_only_in_the_project_folder() {
     for mode in [AssistantMode::Ask, AssistantMode::Plan] {
         let mut s = ThreadSettings::new("claude");
         s.mode = mode;
-        s.permission = Permission::Full;
+        s.permission = Permission::Auto;
         let spec = run_spec(
             &s,
             &["Edit".into()],
@@ -121,7 +121,7 @@ fn ask_and_plan_run_read_only_in_the_project_folder() {
 fn agent_mode_edits_in_its_own_worktree_and_the_main_checkout_stays_clean() {
     let f = fx();
     let mut t = thread(AssistantMode::Agent);
-    t.settings.permission = Permission::Edit;
+    t.settings.permission = Permission::Auto;
     let o = turn(&f, &mut t);
     assert_eq!(o.message.state, MessageState::Done);
     let w = t.worktree.clone().expect("a worktree");
@@ -166,9 +166,13 @@ fn the_permission_level_maps_to_the_allowed_tools_of_agent_mode() {
         };
         run_spec(&s, &[], "p".into(), Path::new("/x"), Path::new("/y"), None).allowed_tools
     };
-    assert_eq!(tools(Permission::ReadOnly), ["Read", "Grep", "Glob"]);
-    assert!(tools(Permission::Edit).contains(&"Write".into()));
-    assert!(tools(Permission::Full).contains(&"Bash".into()));
+    assert_eq!(tools(Permission::Approve), ["Read", "Grep", "Glob"]);
+    assert!(tools(Permission::Auto).contains(&"Write".into()));
+    assert!(
+        !tools(Permission::Auto)
+            .iter()
+            .any(|t| t.starts_with("Bash"))
+    );
     let spec = run_spec(
         &s,
         &["Bash(git diff:*)".into()],
@@ -182,4 +186,70 @@ fn the_permission_level_maps_to_the_allowed_tools_of_agent_mode() {
         (RunMode::Auto, Some("sess"))
     );
     assert!(spec.allowed_tools.contains(&"Bash(git diff:*)".into()));
+}
+
+/// The arguments that a runner gets for a mode and a level.
+fn launch_args(runner: &str, mode: AssistantMode, level: Permission) -> Vec<String> {
+    let mut s = ThreadSettings::new(runner);
+    s.mode = mode;
+    s.permission = level;
+    let spec = run_spec(&s, &[], "p".into(), Path::new("/x"), Path::new("/y"), None);
+    shipyard_agents::runner::runner(runner)
+        .unwrap()
+        .launch(&spec, PathBuf::from("cli"))
+        .unwrap()
+        .args
+}
+
+fn after(args: &[String], flag: &str) -> Option<String> {
+    let at = args.iter().position(|a| a == flag)?;
+    args.get(at + 1).cloned()
+}
+
+#[test]
+fn claude_launch_arguments_follow_the_mode_and_the_level() {
+    for mode in [AssistantMode::Ask, AssistantMode::Plan] {
+        for level in [Permission::Approve, Permission::Auto] {
+            let a = launch_args("claude", mode, level);
+            assert_eq!(after(&a, "--permission-mode").as_deref(), Some("plan"));
+            assert_eq!(after(&a, "--tools").as_deref(), Some("Read,Grep,Glob"));
+            assert_eq!(
+                after(&a, "--allowedTools").as_deref(),
+                Some("Read,Grep,Glob")
+            );
+        }
+    }
+    let a = launch_args("claude", AssistantMode::Agent, Permission::Approve);
+    assert_eq!(after(&a, "--permission-mode").as_deref(), Some("auto"));
+    assert_eq!(
+        after(&a, "--allowedTools").as_deref(),
+        Some("Read,Grep,Glob")
+    );
+    let a = launch_args("claude", AssistantMode::Agent, Permission::Auto);
+    assert_eq!(after(&a, "--permission-mode").as_deref(), Some("auto"));
+    let allowed = after(&a, "--allowedTools").unwrap();
+    assert!(allowed.contains("Edit") && allowed.contains("Write"));
+    assert!(
+        !a.iter().any(|x| x.contains("Bash")),
+        "no level pre-approves Bash: {a:?}"
+    );
+}
+
+#[test]
+fn codex_launch_arguments_follow_the_mode() {
+    for mode in [AssistantMode::Ask, AssistantMode::Plan] {
+        for level in [Permission::Approve, Permission::Auto] {
+            let a = launch_args("codex", mode, level);
+            assert_eq!(
+                after(&a, "--sandbox").as_deref(),
+                Some("read-only"),
+                "{mode:?}"
+            );
+            assert!(!a.iter().any(|x| x.contains("workspace-write")));
+        }
+    }
+    for level in [Permission::Approve, Permission::Auto] {
+        let a = launch_args("codex", AssistantMode::Agent, level);
+        assert_eq!(after(&a, "--sandbox").as_deref(), Some("workspace-write"));
+    }
 }

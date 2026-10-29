@@ -9,6 +9,7 @@
 //   "code"             the reply holds a code block
 //   "long"             the thread uses 60 % of the context window
 //   "deny"             agent mode only: a tool is denied and the turn waits; Grant resumes it
+//   "refuse"           Send to factory fails: the tracker refuses the item (an error, not a send)
 import type {
 	AssistantDefaults_Deserialize,
 	AssistantDefaults_Serialize,
@@ -122,7 +123,7 @@ export function create(a: MockAssistant, env: Env, title: string | null): Thread
 			model: d.model,
 			effort: d.effort,
 			mode: d.mode ?? "ask",
-			permission: d.permission ?? "read_only",
+			permission: d.permission ?? "approve",
 		},
 		context: { view: "", selected: null, refs: [] },
 		draft: "",
@@ -199,7 +200,7 @@ export function settingsSet(
 		model: same ? (s.model ?? null) : null,
 		effort: same ? (s.effort ?? null) : null,
 		mode: s.mode,
-		permission: s.permission ?? "read_only",
+		permission: s.permission ?? "approve",
 	};
 	if (next.model && !o.models.includes(next.model)) throw `unknown model: ${next.model}`;
 	if (next.effort && !o.efforts.includes(next.effort)) throw `unknown effort: ${next.effort}`;
@@ -451,6 +452,9 @@ export function toFactory(
 	if (!click) throw "Confirm the work item first.";
 	const preview = toFactoryPreview(a, env, id);
 	const r = find(a, env, id);
+	if (r.thread.messages.some((m) => m.role === "user" && /refuse/i.test(m.text))) {
+		throw "The tracker refused the item: 400.";
+	}
 	const action = r.sent ? "unchanged" : "create";
 	r.sent ??= `SHIP-${100 + a.seq}`;
 	return {

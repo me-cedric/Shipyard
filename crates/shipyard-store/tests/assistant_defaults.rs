@@ -24,7 +24,7 @@ fn a_default_sets_the_runner_model_effort_and_mode_of_a_new_thread_for_its_proje
             model: Some("gpt".into()),
             effort: Some("high".into()),
             mode: Some(AssistantMode::Plan),
-            permission: Some(Permission::Edit),
+            permission: Some(Permission::Auto),
         },
     )
     .unwrap();
@@ -36,7 +36,7 @@ fn a_default_sets_the_runner_model_effort_and_mode_of_a_new_thread_for_its_proje
     );
     assert_eq!(
         (s.mode, s.permission),
-        (AssistantMode::Plan, Permission::Edit)
+        (AssistantMode::Plan, Permission::Auto)
     );
     assert_eq!(load(dir.path(), "other").settings().runner, "claude");
     assert!(save(dir.path(), "../x", &AssistantDefaults::default()).is_err());

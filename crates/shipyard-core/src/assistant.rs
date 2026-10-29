@@ -22,14 +22,15 @@ pub enum AssistantMode {
     Agent,
 }
 
-/// What an agent-mode thread may do in its worktree (Q-049: the person picks).
+/// What an agent-mode thread may do in its worktree (Q-049 option 1: two levels, no bypass).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum Permission {
+    /// Edit with approval: each write waits for the person.
     #[default]
-    ReadOnly,
-    Edit,
-    Full,
+    Approve,
+    /// Auto inside the worktree: the edit tools are pre-approved. Never `Bash`.
+    Auto,
 }
 
 /// The tools that every mode may use.
@@ -45,13 +46,8 @@ impl AssistantMode {
     /// the permission says.
     pub fn tools(self, permission: Permission) -> Vec<String> {
         let mut out: Vec<&str> = READ_TOOLS.to_vec();
-        if self.writes() {
-            if permission != Permission::ReadOnly {
-                out.extend(["Edit", "Write", "MultiEdit"]);
-            }
-            if permission == Permission::Full {
-                out.push("Bash");
-            }
+        if self.writes() && permission == Permission::Auto {
+            out.extend(["Edit", "Write", "MultiEdit"]);
         }
         out.into_iter().map(String::from).collect()
     }
@@ -76,7 +72,7 @@ impl ThreadSettings {
             model: None,
             effort: None,
             mode: AssistantMode::Ask,
-            permission: Permission::ReadOnly,
+            permission: Permission::Approve,
         }
     }
 

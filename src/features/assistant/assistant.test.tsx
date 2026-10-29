@@ -211,6 +211,15 @@ describe("assistant panel: modes and failures", () => {
 		expect(await log().findByText(/^Plan:/)).toBeInTheDocument();
 	});
 
+	it("offers two permission levels and no bypass", async () => {
+		const user = userEvent.setup();
+		await mountAssistant();
+		await pick(user, "Mode", "Agent");
+		await user.click(screen.getByRole("combobox", { name: "Permission" }));
+		const levels = (await screen.findAllByRole("option")).map((o) => o.textContent);
+		expect(levels).toEqual(["Edit with approval", "Auto in worktree"]);
+	});
+
 	it("waits for a denied permission, grants it with one action and shows the diff", async () => {
 		const user = userEvent.setup();
 		await mountAssistant();
@@ -252,6 +261,21 @@ describe("assistant panel: modes and failures", () => {
 });
 
 describe("assistant panel: Explain and Send to factory", () => {
+	it("shows the error of a refused item and never says Sent", async () => {
+		const user = userEvent.setup();
+		await mountAssistant();
+		await say(user, "Refuse this one");
+		await log().findByText("Here is the answer.");
+		await user.click(screen.getByRole("button", { name: "Send to factory" }));
+		const dialog = within(await screen.findByRole("dialog"));
+		await dialog.findByText(/^doc:assistant\//);
+		await user.click(dialog.getByRole("button", { name: "Send" }));
+		expect(await dialog.findByRole("alert")).toHaveTextContent(
+			"The tracker refused the item: 400.",
+		);
+		expect(dialog.queryByRole("status")).toBeNull();
+	});
+
 	it("explains the selected entity in ask mode with a cited ref", async () => {
 		const user = userEvent.setup();
 		await mountAssistant({ selected: REF });

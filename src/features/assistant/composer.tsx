@@ -9,7 +9,7 @@ import { GaugeView } from "./gauge";
 import type { Assistant } from "./use-assistant";
 
 const MODES: AssistantMode[] = ["ask", "plan", "agent"];
-const PERMISSIONS: Permission[] = ["read_only", "edit", "full"];
+const PERMISSIONS: Permission[] = ["approve", "auto"];
 const DEFAULT = "default";
 // An `@` token that ends the text: the ref that the person typed.
 const TOKEN = /(^|\s)@(\S+)$/;

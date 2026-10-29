@@ -115,6 +115,12 @@ describe("mock assistant", () => {
 		expect(b).toMatchObject({ label: null, item: { action: "unchanged", key: a.item.key } });
 	});
 
+	it("fails the send when the tracker refuses the item", async () => {
+		const id = await thread();
+		await send(id, "Refuse this one");
+		await expect(unwrap(commands.assistantToFactory(id, null, true))).rejects.toThrow("refused");
+	});
+
 	it("keeps the defaults and starts a new thread with them", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const d = {

@@ -335,6 +335,17 @@ impl Connections {
             .ok_or_else(|| format!("unknown connection: {id}"))
     }
 
+    /// The keychain values of the connections, for the secret filter of the assistant (spec
+    /// `assistant` REQ-020). No command returns them.
+    pub fn secret_values(&self) -> Vec<String> {
+        let records = self.load().map(|f| f.connections).unwrap_or_default();
+        records
+            .iter()
+            .filter_map(|r| self.secrets.get(&conn_account(&r.id)).ok().flatten())
+            .map(|s| s.expose().to_string())
+            .collect()
+    }
+
     pub fn list(&self) -> Res<Vec<Connection>> {
         Ok(self
             .load()?

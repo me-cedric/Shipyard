@@ -6,7 +6,7 @@
 //!   a run is the label `wf:<id>` on that item. Q-048: a run always needs an item, so the item is
 //!   made first. Nothing here starts a run: the factory claims the item.
 //! - Explain (REQ-016): an ask-mode turn on one entity. Only refs that resolve stay cited.
-//! - Member budgets: a turn books under the member `""` until the person has a name in the app.
+//! - Member budgets: a turn books under the member `assistant`, apart from the unassigned runs.
 
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -33,6 +33,17 @@ use crate::work::ApplyRow;
 
 /// Threads with a turn in progress: a second turn on the same thread is refused.
 static BUSY: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+/// The member key of the turns. Not `""`: that key is the unassigned runs and their `*` budget.
+const MEMBER: &str = "assistant";
+
+/// The values that no text of the assistant may show: provider keys and connection secrets
+/// (REQ-020).
+fn secrets(s: &AppState) -> Vec<String> {
+    let mut all = s.agents.secret_values();
+    all.extend(s.connections.secret_values());
+    all
+}
 
 struct Busy(String);
 
@@ -342,7 +353,7 @@ pub fn save_draft(s: &AppState, thread: &str, draft: &str, context: Context) -> 
     let (id, _) = project(s)?;
     let st = Threads::new(&s.dir);
     let mut t = st.get(&id, thread).map_err(err)?;
-    t.draft = draft.into();
+    t.draft = scrub(draft, &secrets(s));
     t.context = context;
     st.save(&t).map_err(err)
 }
@@ -369,6 +380,10 @@ pub fn settings_set(s: &AppState, thread: &str, mut new: ThreadSettings) -> Res<
             new.effort = None;
         }
         // Another runner has no session of this one.
+        t.session = None;
+    }
+    // A session belongs to a folder: the project root, or the worktree of an agent thread.
+    if new.mode.writes() != t.settings.mode.writes() {
         t.session = None;
     }
     t.settings = new;
@@ -464,10 +479,10 @@ pub fn turn(s: &AppState, thread: &str, start: Start, program: Option<PathBuf>) 
     let _busy = Busy::take(thread)?;
     let st = Threads::new(&s.dir);
     let mut t = st.get(&pid, thread).map_err(err)?;
-    let secrets = s.agents.secret_values();
+    let secrets = secrets(s);
 
     // The budget first: at 100 % the turn does not start and the budget is named (REQ-012).
-    let gate = s.factory.factory.assistant_gate(&pid, "");
+    let gate = s.factory.factory.assistant_gate(&pid, MEMBER);
     if gate.level == BudgetLevel::Spent {
         return Err(format!(
             "The budget {} is spent. A new turn waits for the next budget.",
@@ -546,7 +561,9 @@ pub fn turn(s: &AppState, thread: &str, start: Start, program: Option<PathBuf>) 
             (TurnKind::Send, request, Vec::new(), AssistantMode::Ask)
         }
     };
-    if matches!(start, Start::Explain(_)) {
+    // Explain runs in the project folder with no session, and leaves the thread session as it is.
+    let explain = matches!(start, Start::Explain(_));
+    if explain {
         mode = AssistantMode::Ask;
     }
     t.updated = now();
@@ -577,7 +594,7 @@ pub fn turn(s: &AppState, thread: &str, start: Start, program: Option<PathBuf>) 
             rules: &rules,
             dir: &dir,
             scratch: &scratch,
-            session: t.session.as_deref(),
+            session: t.session.as_deref().filter(|_| !explain),
             granted: &t.granted,
             secrets: &secrets,
             program,
@@ -604,7 +621,9 @@ pub fn turn(s: &AppState, thread: &str, start: Start, program: Option<PathBuf>) 
     if worktree.is_some() {
         t.worktree = worktree;
     }
-    t.session = out.session;
+    if !explain {
+        t.session = out.session;
+    }
     t.usage.add(&message.usage);
     t.messages.push(message.clone());
     t.updated = now();
@@ -614,8 +633,8 @@ pub fn turn(s: &AppState, thread: &str, start: Start, program: Option<PathBuf>) 
     if u.input_tokens + u.output_tokens > 0 || u.cost_usd > 0.0 {
         let booked = s.factory.factory.book_assistant(
             &pid,
-            "",
-            (u.input_tokens + u.cached_tokens).into(),
+            MEMBER,
+            u.input_tokens.into(),
             u.output_tokens.into(),
             u.cost_usd,
         );
@@ -682,7 +701,7 @@ pub fn explain(s: &AppState, thread: &str, entity: &str) -> Res<TurnResult> {
 fn thread_row(s: &AppState, thread: &str) -> Res<(Thread, Row)> {
     let (id, _) = project(s)?;
     let t = Threads::new(&s.dir).get(&id, thread).map_err(err)?;
-    let row = work_item_row(&t, &s.agents.secret_values())?;
+    let row = work_item_row(&t, &secrets(s))?;
     Ok((t, row))
 }
 
@@ -714,7 +733,10 @@ pub fn to_factory(
     };
     let (_, row) = thread_row(s, thread)?;
     let item = crate::work::item_create(s, row, click)?;
-    if let (Some(id), Some(key), None) = (&workflow, &item.key, &item.error) {
+    if let Some(e) = &item.error {
+        return Err(e.clone());
+    }
+    if let (Some(id), Some(key)) = (&workflow, &item.key) {
         crate::work::mark_for_run(s, key, id, click)?;
     }
     Ok(FactorySend { item, label })
@@ -954,5 +976,122 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
         );
         assert!(to_factory(&f.s, &t.id, Some("../x".into()), true).is_err());
         assert!(to_factory(&f.s, &t.id, Some("nope".into()), true).is_err());
+    }
+
+    #[test]
+    fn a_tracker_error_is_an_error_not_a_send() {
+        use crate::work::tests::{NO_ISSUES, fx as tracker_fx};
+        let f = tracker_fx();
+        let t = thread_create(&f.s, None).unwrap().thread;
+        let (pid, _) = project(&f.s).unwrap();
+        let st = Threads::new(&f.s.dir);
+        let mut th = st.get(&pid, &t.id).unwrap();
+        th.messages
+            .push(ChatMessage::user("Plan the login", vec![], 1));
+        st.save(&th).unwrap();
+        f.http.get("/rest/api/2/search/jql", 200, NO_ISSUES).post(
+            "/rest/api/2/issue",
+            "",
+            400,
+            r#"{"errors":{"summary":"bad"}}"#,
+        );
+        let e = to_factory(&f.s, &t.id, None, true).unwrap_err();
+        assert!(e.contains("400"), "{e}");
+    }
+
+    #[test]
+    fn a_mode_change_across_the_worktree_drops_the_session_and_explain_uses_none() {
+        let f = fx();
+        let t = thread_create(&f.s, None).unwrap().thread;
+        send_text(&f, &t.id, "Hi", reply(&f, "Hello.")).unwrap();
+        let mut s = t.settings.clone();
+        s.mode = AssistantMode::Plan;
+        let v = settings_set(&f.s, &t.id, s.clone()).unwrap();
+        assert_eq!(
+            v.thread.session.as_deref(),
+            Some("s1"),
+            "ask to plan: same folder"
+        );
+        s.mode = AssistantMode::Agent;
+        let v = settings_set(&f.s, &t.id, s.clone()).unwrap();
+        assert_eq!(v.thread.session, None, "plan to agent: the worktree");
+        // A session of the worktree: Explain runs in the project folder and does not resume it.
+        let mut th = Threads::new(&f.s.dir).get(&f.pid, &t.id).unwrap();
+        th.session = Some("wt".into());
+        Threads::new(&f.s.dir).save(&th).unwrap();
+        let rec = f.data.path().join("argv");
+        let body = format!(
+            "printf '%s\\n' \"$@\" > '{}'\ncat > /dev/null\necho '{{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"session_id\":\"ex\",\"usage\":{{}}}}'",
+            rec.display()
+        );
+        let bin = program(f.data.path(), "fake-explain", &body);
+        let entity = format!("project:{}", f.pid);
+        turn(&f.s, &t.id, Start::Explain(entity), Some(bin)).unwrap();
+        let argv = std::fs::read_to_string(&rec).unwrap();
+        assert!(!argv.contains("--resume"), "{argv}");
+        let v = thread_get(&f.s, &t.id).unwrap();
+        assert_eq!(
+            v.thread.session.as_deref(),
+            Some("wt"),
+            "the thread session stays"
+        );
+        s.mode = AssistantMode::Ask;
+        let v = settings_set(&f.s, &t.id, s).unwrap();
+        assert_eq!(v.thread.session, None, "agent to ask: the project folder");
+    }
+
+    #[test]
+    fn a_connection_secret_never_stays_in_the_draft() {
+        use crate::connections::{ConnectionDraft, ConnectionGroup, ConnectionKind};
+        let f = fx();
+        let c =
+            f.s.connections
+                .add(ConnectionDraft {
+                    name: "Tracker".into(),
+                    group: ConnectionGroup::Tracker,
+                    kind: ConnectionKind::GitHub,
+                    url: "https://github.com".into(),
+                    user: None,
+                })
+                .unwrap();
+        f.s.connections
+            .set_secret(&c.id, shipyard_secrets::Secret::new("tok-fake-secret"))
+            .unwrap();
+        assert!(secrets(&f.s).contains(&"tok-fake-secret".to_string()));
+        let t = thread_create(&f.s, None).unwrap().thread;
+        save_draft(&f.s, &t.id, "use tok-fake-secret here", Context::default()).unwrap();
+        let t = thread_get(&f.s, &t.id).unwrap().thread;
+        assert_eq!(t.draft, "use *** here");
+    }
+
+    #[test]
+    fn a_turn_books_under_the_assistant_member_with_input_plus_output_tokens() {
+        let f = crate::factory::tests::fx(shipyard_core::pickup::Writes::default());
+        let t = thread_create(&f.s, None).unwrap().thread;
+        let tmp = tempfile::tempdir().unwrap();
+        let bin = program(
+            tmp.path(),
+            "fake-claude",
+            r#"cat > /dev/null
+echo '{"type":"result","subtype":"success","is_error":false,"session_id":"s1","usage":{"input_tokens":30,"output_tokens":12,"cache_read_input_tokens":500}}'"#,
+        );
+        turn(
+            &f.s,
+            &t.id,
+            Start::Send {
+                text: "Hi".into(),
+                quotes: vec![],
+                context: Context::default(),
+            },
+            Some(bin),
+        )
+        .unwrap();
+        let (_, members) = f.s.factory.factory.usage(&f.id);
+        let rows: Vec<_> = members.iter().map(|m| (m.key.as_str(), m.tokens)).collect();
+        assert_eq!(
+            rows,
+            [("assistant", 42)],
+            "the cache is not booked, and no `` member"
+        );
     }
 }

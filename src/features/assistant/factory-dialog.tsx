@@ -43,7 +43,7 @@ export function SendToFactory({ a }: { a: Assistant }) {
 	const send = () => {
 		if (!id) return;
 		unwrap(commands.assistantToFactory(id, workflow === NONE ? null : workflow, true))
-			.then(setSent)
+			.then((r) => (r.item.error ? setError(r.item.error) : setSent(r)))
 			.catch((e) => setError(e instanceof Error ? e.message : String(e)));
 	};
 	return (

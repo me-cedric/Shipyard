@@ -41,31 +41,32 @@ fn quoted_text_is_marked_as_data_and_cannot_close_its_tag() {
 #[test]
 fn ask_and_plan_get_read_tools_only_and_agent_gets_them_by_level() {
     for mode in [AssistantMode::Ask, AssistantMode::Plan] {
-        for level in [Permission::ReadOnly, Permission::Edit, Permission::Full] {
+        for level in [Permission::Approve, Permission::Auto] {
             assert_eq!(mode.tools(level), ["Read", "Grep", "Glob"], "{mode:?}");
         }
         assert!(!mode.writes());
     }
     assert!(AssistantMode::Agent.writes());
     assert_eq!(
-        AssistantMode::Agent.tools(Permission::ReadOnly),
+        AssistantMode::Agent.tools(Permission::Approve),
         ["Read", "Grep", "Glob"]
     );
+    let auto = AssistantMode::Agent.tools(Permission::Auto);
+    assert!(auto.contains(&"Edit".to_string()));
     assert!(
-        AssistantMode::Agent
-            .tools(Permission::Edit)
-            .contains(&"Edit".to_string())
+        !auto.iter().any(|t| t.starts_with("Bash")),
+        "no level pre-approves Bash"
     );
-    assert!(
-        !AssistantMode::Agent
-            .tools(Permission::Edit)
-            .contains(&"Bash".to_string())
-    );
-    assert!(
-        AssistantMode::Agent
-            .tools(Permission::Full)
-            .contains(&"Bash".to_string())
-    );
+}
+
+#[test]
+fn only_two_levels_exist() {
+    let read = |s: &str| serde_json::from_str::<Permission>(&format!("\"{s}\""));
+    assert_eq!(read("approve").unwrap(), Permission::Approve);
+    assert_eq!(read("auto").unwrap(), Permission::Auto);
+    for gone in ["full", "bypass"] {
+        assert!(read(gone).is_err(), "{gone}");
+    }
 }
 
 #[test]
