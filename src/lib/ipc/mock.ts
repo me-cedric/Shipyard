@@ -52,6 +52,20 @@ import {
 	seedCode,
 } from "./mock-code";
 import { parseRef } from "./mock-refs";
+import {
+	automationGet,
+	automationSave,
+	importConfirm,
+	importPlan,
+	type MockSync,
+	seedSync,
+	adopt as syncAdopt,
+	syncItems,
+	link as syncLink,
+	syncNow,
+	syncState,
+	unlink as syncUnlink,
+} from "./mock-sync";
 
 type Bindings = typeof commands;
 // A command with a Result returns its data in the mock. The generated wrapper adds the Result.
@@ -90,6 +104,8 @@ type State = {
 	/** The working copy of the active project. Seeded on first use. */
 	code?: MockCode;
 	agents: MockAgents;
+	/** The mirror of the fake tracker, the automation file and the ticks. */
+	sync: MockSync;
 	/** The system notifications that the app asked for. */
 	os: { title: string; body: string }[];
 	/** The labels of the last native menu. */
@@ -118,6 +134,7 @@ const fresh = (): State => ({
 	connections: [],
 	secrets: {},
 	agents: seedAgents(),
+	sync: seedSync(),
 	os: [],
 	menu: {},
 });
@@ -166,6 +183,17 @@ function code(): MockCode {
 	return state.code;
 }
 
+/** The connection ids that the engine of the active project polls: the tracker, then the forge. */
+function syncSources(): string[] {
+	const p = active();
+	const c = p ? state.files[p.id]?.connections : undefined;
+	if (!c?.tracker || !state.connections.some((x) => x.id === c.tracker)) return [];
+	return [
+		c.tracker,
+		...(c.forge && state.connections.some((x) => x.id === c.forge) ? [c.forge] : []),
+	];
+}
+
 function resolve(text: string): Resolved_Serialize | null {
 	const parsed = parseRef(text);
 	if (!parsed) return null;
@@ -188,6 +216,10 @@ function resolve(text: string): Resolved_Serialize | null {
 			status: `${conn.kind}: ${conn.state}`,
 			location: null,
 		};
+	// The mirror gives `wi:` entities (`add-sync` REQ-016).
+	const wi = text.startsWith("wi:") ? state.sync.mirror.find((t) => `wi:${t.key}` === text) : null;
+	if (wi)
+		return { ...base, state: "resolved", title: wi.title, status: wi.status, location: wi.url };
 	const hit = active() ? ENTITIES[text] : undefined;
 	if (hit)
 		return { ...base, state: "resolved", title: hit.title, status: hit.status, location: null };
@@ -606,6 +638,26 @@ const handlers: Handlers = {
 			url: "https://example.com/releases/latest",
 		};
 	},
+	syncState: () => syncState(state.sync, syncSources()),
+	syncNow: () => syncNow(state.sync, syncSources(), state.secrets),
+	syncAutomationGet: () => {
+		if (!active()) throw "no active project";
+		return automationGet(state.sync);
+	},
+	syncAutomationSave: (a) => {
+		if (!active()) throw "no active project";
+		automationSave(state.sync, a as Parameters<typeof automationSave>[1]);
+		return null;
+	},
+	syncItems: (filter) => (syncSources().length ? syncItems(state.sync, filter) : []),
+	syncImportPlan: () => needTracker(() => importPlan(state.sync)),
+	syncImportConfirm: () => needTracker(() => importConfirm(state.sync)),
+	syncAdopt: (key) => needTracker(() => syncAdopt(state.sync, key)),
+	syncLink: (local, key) => {
+		needTracker(() => syncLink(state.sync, local, key));
+		return null;
+	},
+	syncUnlink: (local) => needTracker(() => syncUnlink(state.sync, local)),
 	codeStatus: () => codeStatus(code()),
 	codeDiff: (path, side) => codeDiff(code(), path, side),
 	codeStage: (paths) => {
@@ -672,6 +724,11 @@ const handlers: Handlers = {
 		conflicts: [],
 	}),
 };
+
+function needTracker<T>(f: () => T): T {
+	if (syncSources().length === 0) throw "the project has no tracker connection";
+	return f();
+}
 
 const camel = (s: string) => s.replace(/_(\w)/g, (_, c: string) => c.toUpperCase());
 

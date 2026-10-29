@@ -6,6 +6,7 @@ import { errorDialog } from "@/lib/ipc";
 import { type Theme, usePrefs } from "@/lib/prefs";
 import { outcomeError, useProjectActions } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
+import { useSyncNow } from "@/lib/sync";
 import { useUpdateCheck } from "@/lib/updates";
 import {
 	ArrowDownTrayIcon,
@@ -73,6 +74,7 @@ export function useActions() {
 	const { openFolder } = useProjectActions();
 	const { inspectorOpen, setInspectorOpen, setPaletteOpen, sync, setCommitOpen } = shell;
 	const { pull } = useCodeActions();
+	const syncNow = useSyncNow();
 	const stageable = canCommit(useChanges().data);
 	const checkUpdate = useUpdateCheck();
 
@@ -100,12 +102,21 @@ export function useActions() {
 					if (error) void errorDialog(error);
 				}),
 		};
-		// The sync action fetches and brings the working branch up to date (`add-code` REQ-014).
+		// The sync action runs one tick, then fetches and brings the working branch up to date
+		// (`add-sync` REQ-013, `add-code` REQ-014). A failed tick does not skip the git part.
 		const syncAction: Action = {
 			id: "sync",
 			label: t.shell.sync,
 			Icon: ArrowPathIcon,
-			run: () => sync(pull),
+			run: () =>
+				sync(async () => {
+					const tick = await syncNow().then(
+						() => null,
+						(e: unknown) => e,
+					);
+					await pull();
+					if (tick) throw tick;
+				}),
 		};
 		// The one commit action (`add-code` REQ-007): it stays off with nothing staged.
 		const commit: Action = {
@@ -185,6 +196,7 @@ export function useActions() {
 		setInspectorOpen,
 		setPaletteOpen,
 		sync,
+		syncNow,
 		pull,
 		setCommitOpen,
 		stageable,

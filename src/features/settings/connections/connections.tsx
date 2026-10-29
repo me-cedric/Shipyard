@@ -12,6 +12,7 @@ import {
 import { copyText, useMenus } from "@/lib/menus";
 import { useBacklinks } from "@/lib/refs";
 import { useShell } from "@/lib/shell";
+import { clock, useSyncState } from "@/lib/sync";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -24,6 +25,7 @@ import { ConnectionRow } from "@/ui/molecules/connection-row";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { FlagList } from "@/ui/molecules/flag-list";
 import { SettingsRow } from "@/ui/molecules/settings-row";
+import { SyncStatus } from "@/ui/molecules/sync-status";
 import { ADD_TYPES, type AddType, ConnectionForm, GROUPS } from "./connection-form";
 import { connectionKeys, message, useMcpServers, useProviders } from "./keys";
 import { McpAddForm, McpGroup } from "./mcp-group";
@@ -35,6 +37,9 @@ const STATE_SHAPE: Record<ConnectionState, Status> = {
 	passed: "success",
 	failed: "danger",
 };
+
+/** Shape and colour of the sync state. A connection that never synced shows the dash. */
+const SYNC_SHAPE = { idle: "success", running: "active", failed: "danger" } as const;
 
 const FLAGS = [
 	"hierarchy",
@@ -147,8 +152,9 @@ function Row({
 	formOpen: boolean;
 	onForm: (open: boolean) => void;
 }) {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const qc = useQueryClient();
+	const sync = useSyncState().data?.find((x) => x.id === c.id);
 	const [panel, setPanel] = useState<Panel>(null);
 	const [result, setResult] = useState<TestOutcome | null>(null);
 	const [testing, setTesting] = useState(false);
@@ -231,6 +237,15 @@ function Row({
 				</>
 			}
 		>
+			{sync ? (
+				<SyncStatus
+					status={sync.status === "idle" && sync.lastOk === null ? "idle" : SYNC_SHAPE[sync.status]}
+					label={t.sync.state[sync.status]}
+					time={sync.lastOk === null ? undefined : clock(sync.lastOk, lang)}
+					dateTime={sync.lastOk === null ? undefined : new Date(sync.lastOk * 1000).toISOString()}
+					detail={sync.error ?? undefined}
+				/>
+			) : null}
 			{result && text ? (
 				<p role="status" className="flex items-center gap-2 px-3 pb-2 text-ui">
 					<StatusDot

@@ -20,6 +20,7 @@ import {
 	HomeIcon,
 	InboxIcon,
 	LanguageIcon,
+	LinkIcon,
 	MagnifyingGlassIcon,
 	MoonIcon,
 	SunIcon,
@@ -41,6 +42,8 @@ import { ProjectSwitcher } from "../molecules/project-switcher";
 import { RefChip } from "../molecules/ref-chip";
 import { SecretInput } from "../molecules/secret-input";
 import { SettingsRow } from "../molecules/settings-row";
+import { SyncStatus } from "../molecules/sync-status";
+import { WorkItemRow } from "../molecules/work-item-row";
 import { CommandPalette } from "../organisms/command-palette";
 import { CommitDialog } from "../organisms/commit-dialog";
 import { Inspector } from "../organisms/inspector";
@@ -298,6 +301,43 @@ function Molecules() {
 							</IconButton>
 						}
 					/>
+				</div>
+			</Row>
+			<Row name="SyncStatus">
+				<div className="w-full max-w-xl">
+					{(
+						[
+							["success", "idle", "10:42"],
+							["active", "running", undefined],
+							["danger", "failed", "10:30"],
+						] as const
+					).map(([status, state, time]) => (
+						<SyncStatus
+							key={state}
+							status={status}
+							label={t.sync.state[state]}
+							time={time}
+							detail={state === "failed" ? "offline" : undefined}
+						/>
+					))}
+				</div>
+			</Row>
+			<Row name="WorkItemRow">
+				<div className="w-full max-w-xl">
+					<WorkItemRow
+						itemKey="ACME-1"
+						title="Fix login redirect"
+						status="To Do"
+						category="todo"
+						assignee="Ada"
+						claimed={t.sync.backlog.claimed}
+						actions={
+							<IconButton label={t.sync.backlog.link}>
+								<LinkIcon size={14} />
+							</IconButton>
+						}
+					/>
+					<WorkItemRow itemKey="ACME-2" title="Bump deps" status="Done" category="done" />
 				</div>
 			</Row>
 			<Row name="ContextMenu">

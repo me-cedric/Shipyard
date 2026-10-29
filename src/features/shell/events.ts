@@ -5,6 +5,7 @@ import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
 import { useNotifications } from "@/lib/notifications";
 import { useShell } from "@/lib/shell";
+import { useSyncTick } from "@/lib/sync";
 import { useUpdateCheck } from "@/lib/updates";
 import type { Action } from "./actions";
 
@@ -78,6 +79,7 @@ export function useShellEvents() {
 	const { syncError } = useShell();
 	const notice = useWatchNotice().data?.changes[0];
 	const checkUpdate = useUpdateCheck();
+	useSyncTick();
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: one check at start
 	useEffect(() => {
