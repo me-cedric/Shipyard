@@ -203,7 +203,7 @@ The system SHALL show a switcher in the shell that lists the projects of the reg
 
 ### Requirement: REQ-007 Project file
 
-The system SHALL keep the name, the key, the artifact paths of each kind, the default workflow, the gate commands and the connection ids in `.shipyard/project.yaml`. The gate commands are the checks that a run must pass before a pull request (`q:Q-030`). The optional key `connections` holds the id of the tracker connection (`tracker`) and of the forge connection (`forge`), as in `conn:<id>` (`q:Q-018`, working assumption). It holds no address and no secret: the settings of a connection stay on the machine. [NEEDS CLARIFICATION: Q-014 Which value gives the id of `project:<id>`?] The working assumption is that the key gives the id. The file MUST NOT hold an override of a personal preference.
+The system SHALL keep the name, the key, the artifact paths of each kind, the default workflow, the gate commands and the connection ids (`q:Q-018`) in `.shipyard/project.yaml`. The gate commands are the checks that a run must pass before a pull request (`q:Q-030`). [NEEDS CLARIFICATION: Q-014 Which value gives the id of `project:<id>`?] The working assumption is that the key gives the id. The file MUST NOT hold an override of a personal preference.
 
 #### Scenario: Read
 - GIVEN a valid project file
@@ -214,6 +214,12 @@ The system SHALL keep the name, the key, the artifact paths of each kind, the de
 - GIVEN a project file with a bad value
 - WHEN the project opens
 - THEN Settings / Health shows a finding with the line and the value
+
+#### Scenario: Connection ids
+- GIVEN a person picks a tracker connection and a forge connection in Settings / Project
+- WHEN the person saves
+- THEN `.shipyard/project.yaml` holds the two ids under `connections`
+- AND it holds no address and no secret
 
 ### Requirement: REQ-008 Project registry
 
