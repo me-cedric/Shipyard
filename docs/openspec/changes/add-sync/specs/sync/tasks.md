@@ -32,10 +32,10 @@ Plan: [plan.md](./plan.md)
 - [x] T018 [P] Add French and English keys in `src/lib/i18n/` for `sync`. Covers REQ-017.
 - [x] T019 Write the end-to-end test in `e2e/sync.spec.ts`. Covers REQ-003, REQ-004, REQ-013.
 - [x] T020 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
-- [ ] T021 Run the validation commands from `plan.md`.
+- [x] T021 Run the validation commands from `plan.md`.
 
 ## Completion Check
 
-- [ ] All acceptance criteria are met.
-- [ ] Required validation passed or failures are marked pre-existing.
-- [ ] Specs, docs, and code agree.
+- [ ] All acceptance criteria are met. Two stay open: the claim of two machines and the stale takeover run against fakes only, not on a live tracker.
+- [x] Required validation passed or failures are marked pre-existing.
+- [x] Specs, docs, and code agree. The gaps are in `plan.md`, Known gaps.
