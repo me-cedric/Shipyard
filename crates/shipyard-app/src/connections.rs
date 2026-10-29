@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 use shipyard_core::work_item::{Capabilities, TrackerKind};
 use shipyard_forges::{Forge, ForgeConfig, ForgeKind, Repository};
+use shipyard_git::Auth;
 use shipyard_http::{Client, Http, TestOutcome};
 use shipyard_secrets::{Keychain, Secret, SecretStore, conn_account};
 use shipyard_store::project::write_atomic;
@@ -196,6 +197,14 @@ fn slug(name: &str, kind: ConnectionKind) -> String {
     let out: String = out.trim_end_matches('-').chars().take(40).collect();
     let out = out.trim_end_matches('-');
     if out.is_empty() { kind.as_str() } else { out }.to_string()
+}
+
+/// The lower case `host[:port]` of an `https` address, without user info. `None` for the rest.
+fn https_host(url: &str) -> Option<String> {
+    let rest = url.trim().strip_prefix("https://")?;
+    let auth = rest.split(['/', '?', '#']).next()?;
+    let host = auth.rsplit('@').next()?.to_ascii_lowercase();
+    (!host.is_empty()).then_some(host)
 }
 
 /// The adapter config of a record. It checks the address and the user without a request.
@@ -407,6 +416,25 @@ impl Connections {
         })
     }
 
+    /// Git credentials for a remote address: the saved secret of the forge connection that has
+    /// the same host. Only `https` gets one, so a token never goes out in clear text. No match
+    /// gives [`Auth::none`]: the git credential helper and the SSH agent apply then.
+    pub fn git_auth(&self, url: &str) -> Res<Auth> {
+        let Some(host) = https_host(url) else {
+            return Ok(Auth::none());
+        };
+        let hit = self.load()?.connections.into_iter().find(|r| {
+            r.group == ConnectionGroup::Forge
+                && r.secret
+                && https_host(&r.url).as_deref() == Some(host.as_str())
+        });
+        match hit {
+            Some(r) => Auth::from_store(&*self.secrets, &r.id, r.user.as_deref().unwrap_or(""))
+                .map_err(|e| e.to_string()),
+            None => Ok(Auth::none()),
+        }
+    }
+
     fn secret(&self, r: &Record) -> Res<Secret> {
         self.secrets
             .get(&conn_account(&r.id))
@@ -494,5 +522,51 @@ mod tests {
         assert_eq!(slug("  --  ", ConnectionKind::Linear), "linear");
         assert_eq!(slug("Été", ConnectionKind::GitHub), "t");
         assert!(slug(&"a".repeat(80), ConnectionKind::GitHub).len() <= 40);
+    }
+
+    #[test]
+    fn only_an_https_host_gets_a_stored_credential() {
+        assert_eq!(
+            https_host("https://me@GitHub.com/a/b.git").as_deref(),
+            Some("github.com")
+        );
+        assert_eq!(
+            https_host("https://git.example.com:8443").as_deref(),
+            Some("git.example.com:8443")
+        );
+        assert_eq!(https_host("http://github.com/a/b"), None);
+        assert_eq!(https_host("git@github.com:a/b.git"), None);
+        assert_eq!(https_host("/local/path"), None);
+    }
+
+    #[test]
+    fn git_auth_matches_the_forge_host_and_keeps_the_secret_out_of_debug() {
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::MemoryStore;
+        let dir = tempfile::tempdir().unwrap();
+        let c = Connections::new(
+            dir.path(),
+            Arc::new(MemoryStore::default()),
+            Arc::new(FakeHttp::new()),
+        );
+        let forge = c
+            .add(ConnectionDraft {
+                name: "Code".into(),
+                group: ConnectionGroup::Forge,
+                kind: ConnectionKind::GitHub,
+                url: "https://github.com".into(),
+                user: None,
+            })
+            .unwrap();
+        // No secret yet: no credential.
+        let none = c.git_auth("https://github.com/a/b.git").unwrap();
+        c.set_secret(&forge.id, Secret::new("tok-9")).unwrap();
+        let hit = c.git_auth("https://github.com/a/b.git").unwrap();
+        assert_ne!(format!("{none:?}"), format!("{hit:?}"));
+        assert!(!format!("{hit:?}").contains("tok-9"));
+        let other = c.git_auth("https://gitlab.com/a/b.git").unwrap();
+        assert_eq!(format!("{none:?}"), format!("{other:?}"));
+        let plain = c.git_auth("http://github.com/a/b.git").unwrap();
+        assert_eq!(format!("{none:?}"), format!("{plain:?}"));
     }
 }

@@ -171,7 +171,8 @@ pub fn clone(s: &AppState, url: &str, path: &str) -> Res<ProjectOutcome> {
     if !Path::new(path).is_absolute() {
         return Ok(outcome(OpenStatus::Invalid, path));
     }
-    match clone_repo(url.trim(), Path::new(path)) {
+    let auth = s.connections.git_auth(url.trim())?;
+    match clone_repo(url.trim(), Path::new(path), &auth) {
         Ok(()) => open(s, path, true),
         Err(e) => Ok(outcome(OpenStatus::Failed, e)),
     }

@@ -3,6 +3,7 @@
 use std::path::Path;
 use std::process::{Command, Output};
 
+use crate::auth::Auth;
 use serde::Serialize;
 use shipyard_core::project::ignore_block;
 use specta::Type;
@@ -105,8 +106,9 @@ pub fn init(path: &Path) -> Result<(), String> {
 }
 
 /// Clones into `dest`. On a failure it removes the folder that it made.
-// shortcut: no connection credentials yet. Git credential helpers apply. Wire the connection token when `connections` lands.
-pub fn clone_repo(url: &str, dest: &Path) -> Result<(), String> {
+/// The credentials come from `auth` (the one place, `crate::auth`): the token never goes in an
+/// argument, a URL or a log. `git2` runs the clone, and the git credential helper still applies.
+pub fn clone_repo(url: &str, dest: &Path, auth: &Auth) -> Result<(), String> {
     if url.trim().is_empty() || url.starts_with('-') {
         return Err("invalid address".into());
     }
@@ -119,23 +121,21 @@ pub fn clone_repo(url: &str, dest: &Path) -> Result<(), String> {
     {
         return Err("the folder is not empty".into());
     }
-    let dest_s = dest.to_str().ok_or("invalid folder")?;
-    // `ext::` runs a command. Refuse it.
-    let args = [
-        "-c",
-        "protocol.ext.allow=never",
-        "clone",
-        "--quiet",
-        "--",
-        url,
-        dest_s,
-    ];
-    let out = git(None, &args).map_err(|e| e.to_string())?;
-    if out.status.success() {
-        return Ok(());
+    let config = git2::Config::open_default()
+        .or_else(|_| git2::Config::new())
+        .map_err(|e| e.message().to_string())?;
+    let mut builder = git2::build::RepoBuilder::new();
+    builder.fetch_options(auth.fetch_options(config));
+    match builder.clone(url, dest) {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            if !existed {
+                let _ = std::fs::remove_dir_all(dest);
+            }
+            Err(match auth.scrub(e) {
+                crate::GitError::Git(m) => m,
+                other => other.to_string(),
+            })
+        }
     }
-    if !existed {
-        let _ = std::fs::remove_dir_all(dest);
-    }
-    Err(stderr(&out))
 }

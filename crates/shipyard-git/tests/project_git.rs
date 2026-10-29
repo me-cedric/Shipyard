@@ -3,6 +3,7 @@
 use std::path::Path;
 use std::process::Command;
 
+use shipyard_git::Auth;
 use shipyard_git::project::{WorkState, clone_repo, git_runs, init, is_repo, state};
 
 fn git(dir: &Path, args: &[&str]) {
@@ -66,7 +67,7 @@ fn state_follows_the_working_copy() {
     let dir = tempfile::tempdir().unwrap();
     let bare = remote(dir.path());
     let work = dir.path().join("work");
-    clone_repo(bare.to_str().unwrap(), &work).unwrap();
+    clone_repo(bare.to_str().unwrap(), &work, &Auth::none()).unwrap();
     assert_eq!(state(&work), WorkState::Clean);
     std::fs::write(work.join("new.txt"), "x").unwrap();
     assert_eq!(state(&work), WorkState::Changed);
@@ -75,7 +76,7 @@ fn state_follows_the_working_copy() {
     assert_eq!(state(&work), WorkState::Ahead);
     // Another clone pushes. The first one fetches and falls behind.
     let other = dir.path().join("other");
-    clone_repo(bare.to_str().unwrap(), &other).unwrap();
+    clone_repo(bare.to_str().unwrap(), &other, &Auth::none()).unwrap();
     commit(&other, "b");
     git(&other, &["push", "-q", "origin", "HEAD:main"]);
     git(&work, &["reset", "-q", "--hard", "origin/main"]);
@@ -95,7 +96,7 @@ fn a_missing_folder_or_a_folder_without_a_repository_is_missing() {
 fn a_failed_clone_removes_the_partial_folder_and_names_the_error() {
     let dir = tempfile::tempdir().unwrap();
     let dest = dir.path().join("dest");
-    let err = clone_repo("/nonexistent/none.git", &dest).unwrap_err();
+    let err = clone_repo("/nonexistent/none.git", &dest, &Auth::none()).unwrap_err();
     assert!(!err.is_empty());
     assert!(!dest.exists());
 }
@@ -103,8 +104,23 @@ fn a_failed_clone_removes_the_partial_folder_and_names_the_error() {
 #[test]
 fn a_clone_refuses_an_option_as_an_address_and_a_folder_with_files() {
     let dir = tempfile::tempdir().unwrap();
-    assert!(clone_repo("--upload-pack=x", &dir.path().join("a")).is_err());
+    assert!(clone_repo("--upload-pack=x", &dir.path().join("a"), &Auth::none()).is_err());
     std::fs::write(dir.path().join("f"), "x").unwrap();
-    assert!(clone_repo("/x.git", dir.path()).is_err());
+    assert!(clone_repo("/x.git", dir.path(), &Auth::none()).is_err());
     assert!(dir.path().join("f").exists(), "the folder keeps its files");
+}
+
+#[test]
+fn a_clone_with_a_stored_token_never_shows_it_in_the_error() {
+    use shipyard_secrets::{MemoryStore, Secret, SecretStore, conn_account};
+    let store = MemoryStore::default();
+    store
+        .set(&conn_account("c1"), &Secret::new("tok-123"))
+        .unwrap();
+    let auth = Auth::from_store(&store, "c1", "me").unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let dest = dir.path().join("dest");
+    let err = clone_repo("https://127.0.0.1:1/x.git", &dest, &auth).unwrap_err();
+    assert!(!err.contains("tok-123"));
+    assert!(!dest.exists());
 }
