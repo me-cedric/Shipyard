@@ -1,9 +1,10 @@
 //! Linked worktrees for the factory: one working copy per run (MASTER-PLAN section 6).
 //!
+//! A child run has one deterministic worktree under the app data folder (`child_*`).
 //! The main working copy is not listed. Removing a worktree deletes its folder but keeps its
 //! branch, because a pull request may still use the branch.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use git2::{
     BranchType, Repository, Worktree, WorktreeAddOptions, WorktreeLockStatus, WorktreePruneOptions,
@@ -134,5 +135,121 @@ impl Repo {
         opts.valid(true).working_tree(true).locked(force);
         wt.prune(Some(&mut opts))?;
         Ok(())
+    }
+}
+
+/// An id becomes a folder and a branch part: plain characters only, never `.`-led or `-`-led.
+fn check_id(id: &str) -> Result<()> {
+    check_name(id).map_err(|_| GitError::BadPath(id.to_string()))
+}
+
+/// `<data>/worktrees/<project>/<run>/<child>`: the same ids always give the same folder, so a
+/// retry after a crash finds the work again.
+pub fn child_path(data_dir: &Path, project: &str, run: &str, child: &str) -> Result<PathBuf> {
+    for id in [project, run, child] {
+        check_id(id)?;
+    }
+    Ok(data_dir
+        .join("worktrees")
+        .join(project)
+        .join(run)
+        .join(child))
+}
+
+/// The git worktree name `<run>.<child>`. A run id holds no `.`, so the run is the prefix.
+pub fn child_name(run: &str, child: &str) -> Result<String> {
+    check_id(run)?;
+    check_id(child)?;
+    if run.contains('.') {
+        return Err(GitError::BadPath(run.to_string()));
+    }
+    Ok(format!("{run}.{child}"))
+}
+
+/// The branch of a child: `shipyard/<run>/<child>`. Not the run's pull request branch.
+pub fn child_branch(run: &str, child: &str) -> Result<String> {
+    check_id(run)?;
+    check_id(child)?;
+    Ok(format!("shipyard/{run}/{child}"))
+}
+
+impl Repo {
+    /// The worktree of one child run, created at [`child_path`] on [`child_branch`]. A new branch
+    /// starts at `base` (HEAD when `None`). A second call for the same child returns the first
+    /// worktree as it is. A folder that is not that worktree is an error.
+    pub fn child_worktree_add(
+        &self,
+        data_dir: &Path,
+        project: &str,
+        run: &str,
+        child: &str,
+        base: Option<&str>,
+    ) -> Result<WorktreeInfo> {
+        let path = child_path(data_dir, project, run, child)?;
+        let name = child_name(run, child)?;
+        if let Some(found) = self.worktrees()?.into_iter().find(|w| w.name == name) {
+            let same = |a: &Path, b: &Path| match (a.canonicalize(), b.canonicalize()) {
+                (Ok(a), Ok(b)) => a == b,
+                _ => a == b,
+            };
+            return if same(Path::new(&found.path), &path) {
+                Ok(found)
+            } else {
+                Err(GitError::Git(format!(
+                    "worktree {name} is at {}",
+                    found.path
+                )))
+            };
+        }
+        self.worktree_add(&name, &path, &child_branch(run, child)?, base)
+    }
+
+    /// Remove the worktree of one child, then its empty parent folders (up to the project folder).
+    /// Refuses a dirty worktree unless `force`. The branch stays.
+    pub fn child_worktree_remove(
+        &self,
+        data_dir: &Path,
+        project: &str,
+        run: &str,
+        child: &str,
+        force: bool,
+    ) -> Result<()> {
+        let path = child_path(data_dir, project, run, child)?;
+        self.worktree_remove(&child_name(run, child)?, force)?;
+        // `remove_dir` only deletes an empty folder: nothing else is lost.
+        let _ = std::fs::remove_dir(&path);
+        if let Some(run_dir) = path.parent() {
+            let _ = std::fs::remove_dir(run_dir);
+        }
+        Ok(())
+    }
+
+    /// Remove every child worktree of a run. A dirty one stays (unless `force`) and the call
+    /// fails after it tried them all, with the names of the ones it kept.
+    pub fn run_worktrees_remove(
+        &self,
+        data_dir: &Path,
+        project: &str,
+        run: &str,
+        force: bool,
+    ) -> Result<()> {
+        check_id(run)?;
+        let prefix = format!("{run}.");
+        let mut kept = Vec::new();
+        for wt in self.worktrees()? {
+            let Some(child) = wt.name.strip_prefix(&prefix) else {
+                continue;
+            };
+            match self.child_worktree_remove(data_dir, project, run, child, force) {
+                Ok(()) => {}
+                Err(GitError::WorktreeDirty(_)) => kept.push(wt.name.clone()),
+                Err(e) => return Err(e),
+            }
+        }
+        if kept.is_empty() {
+            Ok(())
+        } else {
+            Err(GitError::WorktreeDirty(kept.join(", ")))
+        }
     }
 }

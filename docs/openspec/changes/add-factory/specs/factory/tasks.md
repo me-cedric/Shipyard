@@ -24,8 +24,8 @@ Plan: [plan.md](./plan.md)
 - [ ] T011 Implement the write switches and approvals in `crates/shipyard-engine/src/approvals.rs`. Covers REQ-025, REQ-026.
 - [ ] T012 Write runner tests with a fake CLI in `crates/shipyard-agents/tests/runner.rs`. Covers REQ-015.
 - [ ] T013 Implement the runner trait, the streamed JSON reader and the first adapters in `crates/shipyard-agents/src/runner.rs`. Covers REQ-015.
-- [ ] T014 Write worktree tests in `crates/shipyard-git/tests/worktree.rs`. Covers REQ-013.
-- [ ] T015 Implement one worktree per child in `crates/shipyard-git/src/worktree.rs`. Covers REQ-013.
+- [x] T014 Write worktree tests in `crates/shipyard-git/tests/worktree.rs`. Covers REQ-013.
+- [x] T015 Implement one worktree per child in `crates/shipyard-git/src/worktree.rs`. Covers REQ-013.
 - [ ] T016 Write tool tests in `crates/shipyard-mcp/tests/tools.rs`. Covers REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-037.
 - [ ] T017 Implement the eight tools in `crates/shipyard-mcp/src/tools.rs`. Covers REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-037.
 - [ ] T018 Add the IPC commands and events in `crates/shipyard-app/src/factory.rs`, then regenerate the bindings with the project command. Covers REQ-001 to REQ-038.
