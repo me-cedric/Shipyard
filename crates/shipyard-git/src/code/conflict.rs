@@ -14,6 +14,11 @@ use specta::Type;
 use super::{Repo, check_paths};
 use crate::error::{GitError, Result};
 
+const MODE_FILE: u32 = 0o100644;
+const MODE_EXEC: u32 = 0o100755;
+#[cfg(unix)]
+const MODE_LINK: u32 = 0o120000;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum Segment {
@@ -215,7 +220,14 @@ impl Repo {
                 },
             }
         }
-        fs::write(self.workdir().join(path), text)?;
+        // A text merge of a link or a gitlink has no meaning: take a whole side then.
+        let mode = c.our.as_ref().map_or(MODE_FILE, |e| e.mode);
+        if !matches!(mode, MODE_FILE | MODE_EXEC) {
+            return Err(GitError::Git(format!(
+                "not a regular file: take a side for {path}"
+            )));
+        }
+        self.write_entry(path, mode, text.as_bytes())?;
         self.clear(path, true)
     }
 
@@ -229,7 +241,7 @@ impl Repo {
             Side::Theirs => &c.their,
         } {
             Some(e) => {
-                fs::write(&abs, self.blob(e)?)?;
+                self.write_entry(path, e.mode, &self.blob(e)?)?;
                 self.clear(path, true)
             }
             None => {
@@ -260,6 +272,44 @@ impl Repo {
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => self.clear(path, false),
             Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Put `bytes` at `path` as the index mode says. The old entry goes first, so a link is never
+    /// followed and the mode is the index one. A link in a parent folder or a gitlink is refused.
+    fn write_entry(&self, path: &str, mode: u32, bytes: &[u8]) -> Result<()> {
+        let abs = self.workdir().join(path);
+        let mut dir = self.workdir().to_path_buf();
+        if let Some(parent) = Path::new(path).parent() {
+            for part in parent.components() {
+                dir.push(part);
+                if fs::symlink_metadata(&dir).is_ok_and(|m| m.file_type().is_symlink()) {
+                    return Err(GitError::BadPath(path.to_string()));
+                }
+            }
+        }
+        match fs::symlink_metadata(&abs) {
+            Ok(m) if m.is_dir() => return Err(GitError::BadPath(path.to_string())),
+            Ok(_) => fs::remove_file(&abs)?,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e.into()),
+        }
+        match mode {
+            MODE_FILE | MODE_EXEC => {
+                fs::write(&abs, bytes)?;
+                #[cfg(unix)]
+                if mode == MODE_EXEC {
+                    use std::os::unix::fs::PermissionsExt;
+                    fs::set_permissions(&abs, fs::Permissions::from_mode(0o755))?;
+                }
+                Ok(())
+            }
+            #[cfg(unix)]
+            MODE_LINK => Ok(std::os::unix::fs::symlink(
+                String::from_utf8_lossy(bytes).as_ref(),
+                &abs,
+            )?),
+            _ => Err(GitError::Git(format!("unsupported file mode for {path}"))),
         }
     }
 

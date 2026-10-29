@@ -841,6 +841,60 @@ fn a_conflict_without_a_text_side_takes_a_whole_side_only() {
     assert!(r.status().unwrap().conflicted.is_empty());
 }
 
+#[cfg(unix)]
+#[test]
+fn taking_a_side_replaces_a_link_and_keeps_the_index_mode() {
+    use std::os::unix::fs::{PermissionsExt, symlink};
+    // A link in the working copy is replaced, its target stays as it is.
+    let (_t, r) = two_block_merge();
+    let outside = TempDir::new().unwrap();
+    let target = outside.path().join("t.txt");
+    fs::write(&target, "outside").unwrap();
+    let f = r.workdir().join("f.txt");
+    fs::remove_file(&f).unwrap();
+    symlink(&target, &f).unwrap();
+    r.resolve_side("f.txt", Side::Theirs).unwrap();
+    assert_eq!(fs::read_to_string(&target).unwrap(), "outside");
+    assert!(!fs::symlink_metadata(&f).unwrap().file_type().is_symlink());
+    assert!(fs::read_to_string(&f).unwrap().contains("t2\n"));
+
+    // A link in a parent folder is refused.
+    let (_t, r) = two_block_merge();
+    let dir = TempDir::new().unwrap();
+    commit(&r, "sub/g.txt", "1\n", "chore: g");
+    fs::remove_dir_all(r.workdir().join("sub")).unwrap();
+    symlink(dir.path(), r.workdir().join("sub")).unwrap();
+    assert!(r.resolve_side("sub/g.txt", Side::Ours).is_err());
+    assert!(fs::read_dir(dir.path()).unwrap().next().is_none());
+
+    // The executable bit comes back from the index, also when the file is gone.
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    let exec = |t: &str, m: &str| {
+        write(&r, "run.sh", t);
+        fs::set_permissions(
+            r.workdir().join("run.sh"),
+            fs::Permissions::from_mode(0o755),
+        )
+        .unwrap();
+        r.stage(&[s("run.sh")]).unwrap();
+        r.commit(m, "").unwrap();
+    };
+    exec("1\n", "chore: run");
+    r.create_branch("other").unwrap();
+    exec("2\n", "fix: other");
+    r.switch_branch("main").unwrap();
+    exec("3\n", "fix: main");
+    merge_other(&r);
+    fs::remove_file(r.workdir().join("run.sh")).unwrap();
+    r.resolve_side("run.sh", Side::Theirs).unwrap();
+    let mode = fs::metadata(r.workdir().join("run.sh"))
+        .unwrap()
+        .permissions()
+        .mode();
+    assert_eq!(mode & 0o111, 0o111);
+}
+
 #[test]
 fn delete_branch_refuses_the_working_branch_and_an_unmerged_one() {
     let tmp = TempDir::new().unwrap();
