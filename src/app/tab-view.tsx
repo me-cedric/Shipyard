@@ -1,9 +1,11 @@
 import type { ComponentType } from "react";
 import { Branches, Changes, History } from "@/features/code";
+import { Api, Architecture, Data, Decisions, Diagrams, Flows, Screens } from "@/features/design";
 import { Inbox } from "@/features/home";
 import { FirstRun, Health, ProjectSettings } from "@/features/projects";
 import { Connections, Me } from "@/features/settings";
 import { type SpaceId, tabLabel } from "@/features/shell";
+import { Capabilities, Constitution, Questions, SpecChanges, TestPlans } from "@/features/specs";
 import { Automation } from "@/features/sync";
 import { Backlog, Board, Estimates, Plan, Team, Time } from "@/features/work";
 import { useI18n } from "@/lib/i18n";
@@ -41,6 +43,18 @@ const VIEWS: Partial<Record<string, ComponentType>> = {
 	"work/estimates": Estimates,
 	"work/team": Team,
 	"work/time": Time,
+	"design/diagrams": Diagrams,
+	"design/architecture": Architecture,
+	"design/decisions": Decisions,
+	"design/api": Api,
+	"design/data": Data,
+	"design/flows": Flows,
+	"design/screens": Screens,
+	"specs/changes": SpecChanges,
+	"specs/capabilities": Capabilities,
+	"specs/questions": Questions,
+	"specs/test-plans": TestPlans,
+	"specs/constitution": Constitution,
 	"settings/project": ProjectView,
 	"settings/health": Health,
 };

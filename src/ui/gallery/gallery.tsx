@@ -62,6 +62,7 @@ import { ListDetail } from "../templates/list-detail";
 import { Settings } from "../templates/settings";
 import { Shell } from "../templates/shell";
 import { DesignParts } from "./design-gallery";
+import { SpecsParts } from "./specs-gallery";
 
 const LAYERS = ["tokens", "atoms", "molecules", "organisms", "templates"] as const;
 type Layer = (typeof LAYERS)[number];
@@ -724,6 +725,7 @@ function Organisms() {
 				</div>
 			</Row>
 			<DesignParts />
+			<SpecsParts />
 		</div>
 	);
 }

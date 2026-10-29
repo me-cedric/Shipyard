@@ -21,18 +21,18 @@ Plan: [plan.md](./plan.md)
 - [x] T008 Implement safe write in `crates/shipyard-store/src/safe_write.rs`. Covers REQ-005, REQ-023.
 - [x] T009 Write IPC command tests in `crates/shipyard-app/tests/design_ipc.rs`. Covers REQ-001, REQ-002, REQ-003, REQ-008, REQ-009, REQ-010, REQ-011.
 - [x] T010 Add the IPC commands in `crates/shipyard-app/src/design.rs`, then regenerate the bindings with the project command. Covers REQ-001 to REQ-021.
-- [ ] T011 Write the end-to-end test in `e2e/design.spec.ts`. Covers REQ-006, REQ-010, REQ-017.
-- [ ] T012 Write view tests for diagrams, architecture and data in `src/features/design/render.test.tsx`. Covers REQ-003, REQ-004, REQ-006, REQ-007, REQ-014, REQ-015.
-- [ ] T013 Implement the Diagrams, Architecture and Data views in `src/features/design/`. Covers REQ-003, REQ-004, REQ-006, REQ-007, REQ-014, REQ-015.
-- [ ] T014 Write view tests for decisions, API and flows in `src/features/design/read.test.tsx`. Covers REQ-008, REQ-010, REQ-011, REQ-012, REQ-013, REQ-016, REQ-017, REQ-018.
-- [ ] T015 Implement the Decisions, API and Flows views in `src/features/design/`. Covers REQ-008, REQ-010, REQ-011, REQ-012, REQ-013, REQ-016, REQ-017, REQ-018.
+- [x] T011 Write the end-to-end test in `e2e/design.spec.ts`. Covers REQ-006, REQ-010, REQ-017.
+- [x] T012 Write view tests for diagrams, architecture and data in `src/features/design/render.test.tsx`. Covers REQ-003, REQ-004, REQ-006, REQ-007, REQ-014, REQ-015.
+- [x] T013 Implement the Diagrams, Architecture and Data views in `src/features/design/`. Covers REQ-003, REQ-004, REQ-006, REQ-007, REQ-014, REQ-015.
+- [x] T014 Write view tests for decisions, API and flows in `src/features/design/read.test.tsx`. Covers REQ-008, REQ-010, REQ-011, REQ-012, REQ-013, REQ-016, REQ-017, REQ-018.
+- [x] T015 Implement the Decisions, API and Flows views in `src/features/design/`. Covers REQ-008, REQ-010, REQ-011, REQ-012, REQ-013, REQ-016, REQ-017, REQ-018.
 - [ ] T016 Write Screens, design doc and token tests in `src/features/design/screens.test.tsx`. Covers REQ-019, REQ-021, REQ-024.
 - [ ] T017 Implement the Screens view, the design doc and the token view in `src/features/design/`. Covers REQ-019, REQ-021, REQ-024.
-- [ ] T018 Write backlink and ref action tests in `src/features/design/refs.test.tsx`. Covers REQ-001, REQ-002.
-- [ ] T019 Implement the copy ref action and the inspector backlinks in `src/features/design/`. Covers REQ-001, REQ-002.
-- [ ] T020 Write design to code tests in `src/features/design/design_to_code.test.tsx` after Q-038 is answered. Covers REQ-020.
-- [ ] T021 Implement the design to code action in `src/features/design/` after Q-038 is answered. Covers REQ-020.
-- [ ] T022 [P] Add French and English keys in `src/i18n/` for `design`. Covers REQ-022.
+- [x] T018 Write backlink and ref action tests in `src/features/design/refs.test.tsx`. Covers REQ-001, REQ-002.
+- [x] T019 Implement the copy ref action and the inspector backlinks in `src/features/design/`. Covers REQ-001, REQ-002.
+- [x] T020 Write design to code tests in `src/features/design/design_to_code.test.tsx` after Q-038 is answered. Covers REQ-020.
+- [x] T021 Implement the design to code action in `src/features/design/` after Q-038 is answered. Covers REQ-020.
+- [x] T022 [P] Add French and English keys in `src/i18n/` for `design`. Covers REQ-022.
 - [ ] T023 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-001 to REQ-024.
 - [ ] T024 Run the validation commands from `plan.md`. Covers REQ-001 to REQ-024.
 - [ ] T025 Compare the code with `spec.md` and update stale artifacts. Covers REQ-001 to REQ-024.

@@ -307,7 +307,11 @@ pub fn try_request(s: &AppState, r: &TryRequest, click: bool) -> Res<TryResponse
 
 // ---------------------------------------------------------------- open outside
 
-/// What the OS opens: an https address, or the absolute path of a `.fig` file in the repository.
+/// The files that the OS may open: design files and the diagram formats that the app shows
+/// read-only (Q-040).
+const OUTSIDE: [&str; 4] = [".fig", ".drawio", ".drawio.svg", ".bpmn"];
+
+/// What the OS opens: an https address, or the absolute path of an `OUTSIDE` file in the repository.
 fn outside_target(root: &Path, target: &str) -> Res<String> {
     if let Some(rest) = target.strip_prefix("https://") {
         let ok =
@@ -318,8 +322,9 @@ fn outside_target(root: &Path, target: &str) -> Res<String> {
             Err("bad address".into())
         };
     }
-    let bad = || format!("not an https address or a .fig file of the project: {target}");
-    if !design::plain(target) || !target.to_lowercase().ends_with(".fig") {
+    let bad = || format!("not an https address or a design file of the project: {target}");
+    let lower = target.to_lowercase();
+    if !design::plain(target) || !OUTSIDE.iter().any(|e| lower.ends_with(e)) {
         return Err(bad());
     }
     let full = root.join(target).canonicalize().map_err(|_| bad())?;

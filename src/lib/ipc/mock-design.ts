@@ -638,10 +638,10 @@ type TryRequestIn = TryRequest_Deserialize;
 // ---------------------------------------------------------------- open outside
 
 export function designOpen(d: MockDesign, target: string) {
-	const bad = `not an https address or a .fig file of the project: ${target}`;
+	const bad = `not an https address or a design file of the project: ${target}`;
 	if (target.startsWith("https://")) {
 		if (target.length === 8 || /[\s\p{Cc}]/u.test(target)) throw "bad address";
-	} else if (!(d.files[target] && target.toLowerCase().endsWith(".fig"))) throw bad;
+	} else if (!(d.files[target] && /\.(fig|drawio|drawio\.svg|bpmn)$/i.test(target))) throw bad;
 	d.opened.push(target);
 }
 
