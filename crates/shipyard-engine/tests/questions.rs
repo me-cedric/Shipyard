@@ -333,3 +333,20 @@ fn a_run_cancel_and_the_global_kill_withdraw_ticket_questions_like_a_terminal_ti
     assert_eq!(fx.state(&run), RunState::Cancelled);
     assert_eq!(fx.f.questions()[0].1.state, QuestionState::Withdrawn);
 }
+
+#[test]
+fn the_question_comment_has_no_mention_and_no_attribution() {
+    let (fx, run) = working(writes(true));
+    let mut q = ask(2, 1, None);
+    q.question = "@alice should we ship?\n🤖 Generated with a tool".into();
+    q.options = vec!["yes @bob".into(), "no".into()];
+    fx.f.ask(&run, "work", q).unwrap();
+    let body = comments(&fx).pop().unwrap();
+    assert!(!body.contains("@alice") && !body.contains("@bob"), "{body}");
+    assert!(body.contains("@\u{200B}alice"), "{body}");
+    assert!(!body.contains("Generated with"), "{body}");
+    assert!(
+        body.starts_with("<!-- shipyard:q "),
+        "the marker stays: {body}"
+    );
+}

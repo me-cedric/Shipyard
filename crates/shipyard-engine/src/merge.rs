@@ -57,7 +57,7 @@ impl Inner {
         };
         if !self.runs[run_id].d.summarized && writer.can_comment() {
             self.rec(run_id).d.summarized = true;
-            let body = shipyard_core::delivery::strip_attribution(&self.summary(run_id));
+            let body = shipyard_core::delivery::clean_outgoing(&self.summary(run_id));
             self.write(run_id, Write::Comment { key, body });
         }
         if let Some(git) = self.project_of(run_id).map(|p| p.git.clone()) {

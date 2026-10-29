@@ -10,6 +10,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use shipyard_core::delivery::clean_outgoing;
 use shipyard_core::question::{Choice, Outcome, Question, QuestionState, all_answered};
 use shipyard_core::run::RunEvent;
 use shipyard_core::work_item::Comment;
@@ -19,6 +20,7 @@ use shipyard_store::raid;
 use shipyard_store::run_log::kind;
 
 use crate::approvals::Write;
+use crate::fence::fence;
 use crate::iso;
 use crate::run_engine::{ALERT, Factory, Inner};
 
@@ -57,7 +59,8 @@ pub fn question_comment(q: &Question, lead: &str) -> String {
     if q.free_text {
         body.push_str(" Free text is also an answer.");
     }
-    body
+    // The agent wrote the question: no attribution line, no mention that notifies a person.
+    clean_outgoing(&body)
 }
 
 fn answer_text(q: &Question) -> String {
@@ -346,7 +349,14 @@ impl Inner {
             .questions
             .iter()
             .filter(|a| a.q.state == QuestionState::Answered)
-            .map(|a| format!("- {} {}: {}\n", a.q.id, a.q.question, answer_text(&a.q)))
+            .map(|a| {
+                // A free-text answer is a person's text from a ticket comment: data.
+                let text = match a.q.answer.as_ref().map(|x| &x.choice) {
+                    Some(Choice::Text { .. }) => fence("ticket reply", &answer_text(&a.q)),
+                    _ => answer_text(&a.q),
+                };
+                format!("- {} {}: {text}\n", a.q.id, a.q.question)
+            })
             .collect();
         match answered.is_empty() {
             true => String::new(),

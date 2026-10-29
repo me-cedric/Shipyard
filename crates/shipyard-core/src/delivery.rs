@@ -154,15 +154,45 @@ pub fn pr_labels(existing: &[String], ty: &str, paths: &[String]) -> Vec<String>
     out
 }
 
-/// Remove every line that holds an AI attribution (REQ-008, REQ-010, REQ-024).
+/// Remove every line that holds an AI attribution (REQ-008, REQ-010, REQ-024): a `Co-Authored-By`
+/// line or `generated with`. The robot sign is deleted from the line that holds it, so a title
+/// keeps its words and `check_message` of `shipyard-git` finds nothing to refuse.
 pub fn strip_attribution(text: &str) -> String {
     text.lines()
-        .filter(|l| {
-            let l = l.trim().to_lowercase();
-            !l.starts_with("co-authored-by:") && !l.contains("generated with")
+        .filter_map(|l| {
+            let plain = l.replace('\u{1F916}', "");
+            let lower = plain.trim().to_lowercase();
+            if lower.starts_with("co-authored-by:") || lower.contains("generated with") {
+                return None;
+            }
+            Some(if plain.len() == l.len() {
+                l.to_string()
+            } else {
+                plain.trim().to_string()
+            })
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// Break each `@name` and each `[~id]` (Jira) with a zero-width space: a tracker or a forge does
+/// not notify a person for text that an agent or a ticket wrote. An address (`a@b.c`) stays.
+pub fn neutralize_mentions(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut prev = None::<char>;
+    for c in text.chars() {
+        out.push(c);
+        if c == '@' && !prev.is_some_and(char::is_alphanumeric) {
+            out.push('\u{200B}');
+        }
+        prev = Some(c);
+    }
+    out.replace("[~", "[\u{200B}~")
+}
+
+/// The rule for text that Shipyard posts to a tracker or a forge: no attribution, no mention.
+pub fn clean_outgoing(text: &str) -> String {
+    neutralize_mentions(&strip_attribution(text))
 }
 
 /// One gate command and its exact counts from the run log (REQ-006).

@@ -428,3 +428,31 @@ fn the_reviewers_of_the_project_win_over_the_automation_file() {
     };
     assert_eq!(reviewers, ["alice"]);
 }
+
+#[test]
+fn the_pull_request_title_and_body_hold_no_mention_and_no_attribution() {
+    let fx = Fx::new(writes(true), &[]);
+    let mut ticket = shipyard_engine::fake::todo("SHIP-1");
+    ticket.item.title = "Fix login for @bob 🤖".into();
+    fx.git.set_branch("fix/engine/login");
+    let run = fx.start_ticket(ticket, &["wf:bug"]);
+    for step in ["triage", "fix", "review"] {
+        fx.done(&run, step);
+    }
+    let (title, body) = fx
+        .writer
+        .sent()
+        .into_iter()
+        .find_map(|w| match w {
+            Write::OpenPr { title, body, .. } => Some((title, body)),
+            _ => None,
+        })
+        .expect("a pull request");
+    for text in [&title, &body] {
+        assert!(
+            !text.contains("@bob") && !text.contains('\u{1F916}'),
+            "{text}"
+        );
+    }
+    assert!(title.contains("@\u{200B}bob"), "{title}");
+}

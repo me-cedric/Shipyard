@@ -35,6 +35,7 @@ use shipyard_store::run_log::{RunLog, kind};
 
 use crate::Clock;
 use crate::approvals::{Approval, Write};
+use crate::fence::{NOTICE, fence};
 use crate::persist::Replay;
 use crate::ports::{
     AgentEvent, AgentRun, Agents, Brief, Dispatch, Git, Pulls, StartRequest, Workspaces, Writer,
@@ -1127,12 +1128,16 @@ impl Inner {
         if !p.is_empty() {
             p.push_str("\n\n");
         }
+        p.push_str(NOTICE);
         if let Some(skill) = &step.skill {
             p.push_str(&format!("Use the skill `{skill}`.\n\n"));
         }
+        let ticket = format!("{}\n\n{}", rec.title, rec.description);
+        let source = format!("ticket {}", rec.key);
         p.push_str(&format!(
-            "Ticket {}: {}\n\n{}\n",
-            rec.key, rec.title, rec.description
+            "Ticket {}:\n{}\n",
+            rec.key,
+            fence(&source, &ticket)
         ));
         match review {
             Some(text) => p.push_str(text),

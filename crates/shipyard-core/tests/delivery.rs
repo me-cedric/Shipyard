@@ -146,6 +146,27 @@ fn attribution_lines_are_removed() {
     assert_eq!(strip_attribution(text), "Fix it.\nKeep this.");
 }
 
+#[test]
+fn the_robot_sign_is_deleted_and_the_words_stay() {
+    assert_eq!(
+        strip_attribution("Fix it.\n🤖 done by a bot\nKeep."),
+        "Fix it.\ndone by a bot\nKeep."
+    );
+}
+
+#[test]
+fn a_mention_is_broken_and_an_address_is_not() {
+    let out = neutralize_mentions("ping @alice, (@bob) and a@b.c or [~accountid:1]");
+    assert_eq!(
+        out,
+        "ping @\u{200B}alice, (@\u{200B}bob) and a@b.c or [\u{200B}~accountid:1]"
+    );
+    assert_eq!(
+        clean_outgoing("@dev look\n🤖 Generated with x\nok"),
+        "@\u{200B}dev look\nok"
+    );
+}
+
 fn pr(ci: Ci, changes_requested: bool, draft: bool) -> PrSignal {
     PrSignal {
         ci,

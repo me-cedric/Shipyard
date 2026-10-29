@@ -11,6 +11,7 @@ pub mod children;
 pub mod claims;
 pub mod fake;
 pub mod feedback;
+mod fence;
 pub mod handoff;
 pub mod import;
 pub mod merge;

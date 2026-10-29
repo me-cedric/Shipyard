@@ -199,7 +199,15 @@ impl Fx {
 
     /// Start a run on ticket `key` with these extra labels. Returns the run id.
     pub fn start(&self, key: &str, labels: &[&str]) -> String {
-        let mut ticket = todo(key);
+        self.start_ticket(todo(key), labels)
+    }
+
+    /// `start` with a ticket that the test built.
+    pub fn start_ticket(
+        &self,
+        mut ticket: shipyard_core::pickup::Ticket,
+        labels: &[&str],
+    ) -> String {
         ticket
             .item
             .labels

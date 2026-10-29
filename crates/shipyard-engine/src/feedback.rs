@@ -15,13 +15,14 @@ use shipyard_core::run::{RunEvent, RunState};
 use shipyard_core::workflow::Action;
 use shipyard_store::run_log::kind;
 
+use crate::fence::fence;
 use crate::ports::{FailedCheck, Thread};
 use crate::run_engine::{Inner, Kind, kind_of, reset};
 
 fn check_text(c: &FailedCheck) -> String {
     let mut t = format!("- check `{}` failed: {}", c.name, c.url);
     if let Some(tail) = c.tail.as_deref().filter(|t| !t.trim().is_empty()) {
-        t.push_str(&format!("\n  Log tail:\n{tail}"));
+        t.push_str(&format!("\n  Log tail:\n{}", fence("ci log", tail)));
     }
     t
 }
@@ -32,7 +33,11 @@ fn thread_text(t: &Thread) -> String {
         (Some(p), None) => p.clone(),
         _ => "the pull request".into(),
     };
-    format!("- thread `{}` on {at}: {}", t.id, t.text)
+    format!(
+        "- thread `{}` on {at}:\n{}",
+        t.id,
+        fence("review thread", &t.text)
+    )
 }
 
 impl Inner {
