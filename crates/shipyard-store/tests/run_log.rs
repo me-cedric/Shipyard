@@ -155,3 +155,36 @@ fn a_run_ref_and_a_step_are_plain_text_in_the_log() {
     let log = RunLog::open_memory().unwrap();
     assert!(log.append("", None, kind::STATE, &json!({}), 0).is_err());
 }
+
+#[test]
+fn a_snapshot_is_replaced_and_never_changes_the_log() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("runs.sqlite");
+    let log = RunLog::open(&path).unwrap();
+    let a = log.append("r1", None, kind::STATE, &json!({}), 1).unwrap();
+    log.save_snapshot("run:r1", a, &json!({"state": "Working"}))
+        .unwrap();
+    let b = log.append("r1", None, kind::NOTE, &json!({}), 2).unwrap();
+    log.save_snapshot("run:r1", b, &json!({"state": "Done"}))
+        .unwrap();
+    log.save_snapshot("meta", 0, &json!({"seq": 3})).unwrap();
+    drop(log);
+
+    // A reopen reads them, by key. The log is as it was.
+    let log = RunLog::open(&path).unwrap();
+    let all = log.snapshots().unwrap();
+    assert_eq!(
+        all.iter().map(|s| s.key.as_str()).collect::<Vec<_>>(),
+        ["meta", "run:r1"]
+    );
+    assert_eq!(
+        (all[1].event, &all[1].value),
+        (b, &json!({"state": "Done"}))
+    );
+    assert_eq!(log.run("r1").unwrap().len(), 2);
+    // The tail after a snapshot.
+    let tail = log.after("r1", a).unwrap();
+    assert_eq!(tail.len(), 1);
+    assert_eq!(tail[0].id, b);
+    assert!(log.after("r1", b).unwrap().is_empty());
+}

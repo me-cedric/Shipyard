@@ -2,6 +2,11 @@
 //! file for every run of every project. The store inserts and reads. It never updates or deletes:
 //! the file refuses both with triggers, so raw SQL fails too. The UI and the ticket summary read
 //! this one log.
+//!
+//! The file holds one more table, `snapshots`: the engine saves its in-memory state there after
+//! each change and reads it at the start. A snapshot is derived data that names the last log
+//! event that it covers (`event`). The events after it tell the engine which writes went out
+//! before a crash. The log stays the record; a snapshot can be replaced.
 
 use std::path::Path;
 
@@ -27,6 +32,15 @@ pub mod kind {
     pub const PR: &str = "pr";
     /// A note for a person: a refused transition, a late answer, an edit.
     pub const NOTE: &str = "note";
+}
+
+/// The saved engine state of one key, such as `run:<ulid>` or `meta`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Snapshot {
+    pub key: String,
+    /// The last log event that the snapshot covers. `0`: none of this key.
+    pub event: i64,
+    pub value: Value,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -78,6 +92,8 @@ impl RunLog {
                  payload TEXT NOT NULL,
                  ts INTEGER NOT NULL);
              CREATE INDEX IF NOT EXISTS events_run ON events(run, id);
+             CREATE TABLE IF NOT EXISTS snapshots(
+                 key TEXT PRIMARY KEY, event INTEGER NOT NULL, value TEXT NOT NULL);
              CREATE TRIGGER IF NOT EXISTS events_no_update BEFORE UPDATE ON events
                  BEGIN SELECT RAISE(ABORT, 'the run log is append-only'); END;
              CREATE TRIGGER IF NOT EXISTS events_no_delete BEFORE DELETE ON events
@@ -106,6 +122,43 @@ impl RunLog {
     /// Every event of a run, oldest first.
     pub fn run(&self, run: &str) -> Result<Vec<Event>> {
         self.query("WHERE run = ?1 ORDER BY id", params![run])
+    }
+
+    /// The events of a run after `id`, oldest first.
+    pub fn after(&self, run: &str, id: i64) -> Result<Vec<Event>> {
+        self.query("WHERE run = ?1 AND id > ?2 ORDER BY id", params![run, id])
+    }
+
+    /// Save or replace the snapshot of `key`. Never touches an event.
+    pub fn save_snapshot(&self, key: &str, event: i64, value: &Value) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO snapshots(key, event, value) VALUES (?1, ?2, ?3)
+             ON CONFLICT(key) DO UPDATE SET event = ?2, value = ?3",
+            params![key, event, serde_json::to_string(value)?],
+        )?;
+        Ok(())
+    }
+
+    /// Every snapshot, by key.
+    pub fn snapshots(&self) -> Result<Vec<Snapshot>> {
+        let mut st = self
+            .conn
+            .prepare("SELECT key, event, value FROM snapshots ORDER BY key")?;
+        let rows = st.query_map([], |r| {
+            let text: String = r.get(2)?;
+            Ok(Snapshot {
+                key: r.get(0)?,
+                event: r.get(1)?,
+                value: serde_json::from_str(&text).map_err(|e| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        2,
+                        rusqlite::types::Type::Text,
+                        Box::new(e),
+                    )
+                })?,
+            })
+        })?;
+        Ok(rows.collect::<std::result::Result<_, _>>()?)
     }
 
     /// The events after `id` in all runs, oldest first, at most `limit`. The tail of the UI.
