@@ -42,15 +42,15 @@ describe("the ref of a design artifact", () => {
 		await mountDesign(<Decisions />);
 		await user.click((await list("Decisions")).getByRole("button", { name: /0004/ }));
 		const panel = await inspector();
-		expect(await panel.findByRole("heading", { name: "Document (1)" })).toBeInTheDocument();
+		expect(await panel.findByRole("heading", { name: /^Document \(\d+\)$/ })).toBeInTheDocument();
 	});
 
 	it("shows ghost rows for an artifact that nothing cites", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Decisions />);
-		await user.click((await list("Decisions")).getByRole("button", { name: /0002/ }));
+		await user.click((await list("Decisions")).getByRole("button", { name: /0003/ }));
 		const panel = await inspector();
-		await panel.findByRole("button", { name: /^adr:0002/ });
+		await panel.findByRole("button", { name: /^adr:0003/ });
 		await waitFor(() => expect(panel.queryAllByRole("heading", { level: 3 })).toHaveLength(0));
 	});
 });

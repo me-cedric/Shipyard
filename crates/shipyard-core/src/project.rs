@@ -15,7 +15,7 @@ pub const DEFAULT_PATHS: [(&str, &str); 3] = [
 
 /// The paths that a project file can set but that a new file does not write (spec `design`,
 /// spec `specs` REQ-011 and Q-037).
-pub const MORE_PATHS: [(&str, &str); 7] = [
+pub const MORE_PATHS: [(&str, &str); 11] = [
     ("diagrams", "docs/diagrams"),
     ("models", "docs/models"),
     ("api", "docs/api"),
@@ -23,6 +23,10 @@ pub const MORE_PATHS: [(&str, &str); 7] = [
     ("flows", "docs/flows"),
     ("designs", "docs/designs"),
     ("test-plans", "docs/delivery/test-plans"),
+    ("handbook", "docs/handbook"),
+    ("documents", "docs/documents"),
+    ("slides", "docs/slides"),
+    ("dashboards", "docs/dashboards"),
 ];
 
 /// Ignore rules for the files that an OS writes.

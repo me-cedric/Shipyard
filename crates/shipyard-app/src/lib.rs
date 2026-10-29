@@ -7,6 +7,7 @@ pub mod connections;
 pub mod delivery;
 pub mod design;
 pub mod factory;
+pub mod knowledge;
 pub mod questions;
 mod shell;
 pub mod specs;
@@ -17,6 +18,7 @@ use commands::{
     AppState, agents as ag, app, assistant as asst, code, connections as conn, health, legacy,
     prefs, projects, refs, shell as sh, sync as sy,
 };
+use knowledge as kw;
 use tauri::{Emitter, Manager};
 use tauri_specta::{Builder, collect_commands};
 
@@ -213,6 +215,24 @@ fn specta_builder() -> Builder<tauri::Wry> {
         asst::assistant_defaults_get,
         asst::assistant_defaults_set,
         asst::assistant_options,
+        kw::graph_get,
+        kw::graph_code,
+        kw::graph_code_index,
+        kw::explain_context_get,
+        kw::doc_list_get,
+        kw::doc_read_one,
+        kw::doc_write_one,
+        kw::slide_theme_get,
+        kw::slide_theme_set,
+        kw::slide_parse,
+        kw::dashboard_list_get,
+        kw::dashboard_get_one,
+        kw::dashboard_save_one,
+        kw::dashboard_tile,
+        kw::learn_get,
+        kw::export_dossier_file,
+        kw::export_functional_file,
+        kw::export_sheet_file,
         sh::shell_menu,
         sh::notify_os,
         sh::update_check,

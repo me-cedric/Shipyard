@@ -259,7 +259,15 @@ describe("mock specs", () => {
 			);
 		expect(await kinds("adr:0004")).toEqual([
 			["change", ["change:add-auth"]],
-			["doc", ["doc:docs/designs/design.md"]],
+			[
+				"doc",
+				[
+					"doc:docs/designs/design.md",
+					"doc:docs/handbook/architecture/overview.md",
+					"doc:docs/documents/client-brief.md",
+					"doc:docs/slides/kickoff.md",
+				],
+			],
 			["spec", ["spec:auth", "spec:billing"]],
 		]);
 		expect(await kinds("spec:auth#REQ-003")).toEqual([

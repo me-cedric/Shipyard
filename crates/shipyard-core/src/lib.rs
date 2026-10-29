@@ -6,6 +6,7 @@ pub mod delivery;
 pub mod flows;
 pub mod gherkin;
 pub mod health;
+pub mod knowledge;
 pub mod pickup;
 pub mod project;
 pub mod question;

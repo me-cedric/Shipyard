@@ -641,6 +641,19 @@ pub struct SheetView {
     pub tickets: Vec<TaskTicket>,
 }
 
+/// Every sheet for an export: its slug and the sheet, or why it cannot be read (a sealed sheet
+/// with no passphrase in this session). A sheet holds no day rate.
+pub(crate) fn sheets_for_export(s: &AppState) -> Res<Vec<(String, Res<Sheet>)>> {
+    let c = ctx(s)?;
+    Ok(c.slugs()?
+        .into_iter()
+        .map(|slug| {
+            let sheet = c.sheet(&slug);
+            (slug, sheet)
+        })
+        .collect())
+}
+
 pub fn list_sheets(s: &AppState) -> Res<Vec<SheetItem>> {
     let c = ctx(s)?;
     let rates = work::role_rates(&c.team().team);

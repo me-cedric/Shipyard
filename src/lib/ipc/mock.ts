@@ -54,6 +54,7 @@ import {
 } from "./mock-code";
 import * as design from "./mock-design";
 import * as fx from "./mock-factory";
+import * as kw from "./mock-knowledge";
 import { parseRef } from "./mock-refs";
 import * as specs from "./mock-specs";
 import {
@@ -123,6 +124,8 @@ type State = {
 	factory: fx.MockFactory;
 	/** The assistant threads, their worktrees and the project defaults. */
 	assistant: ai.MockAssistant;
+	/** The handbook, documents, decks, dashboards and the code index of the Knowledge space. */
+	knowledge: kw.MockKnowledge;
 	/** The system notifications that the app asked for. */
 	os: { title: string; body: string }[];
 	/** The labels of the last native menu. */
@@ -173,6 +176,7 @@ const fresh = (): State => ({
 	specs: specs.seedSpecs(),
 	factory: fx.seedFactory(),
 	assistant: ai.seedAssistant(),
+	knowledge: kw.seedKnowledge(),
 	os: [],
 	menu: {},
 });
@@ -207,10 +211,12 @@ export const confirmMock = () => state.confirm;
 const entities = () => [
 	...design.designEntities(state.design),
 	...specs.specsEntities(state.specs),
+	...kw.knowledgeEntities(state.knowledge),
 ];
 const citations = (): [string, string][] => [
 	...design.designCitations(state.design),
 	...specs.specsCitations(state.specs),
+	...kw.knowledgeCitations(state.knowledge),
 ];
 const COVERED = ["adr", "q", "change", "spec", "wf", "doc"];
 
@@ -271,6 +277,42 @@ function resolve(text: string): Resolved_Serialize | null {
 	if (hit)
 		return { ...base, state: "resolved", title: hit.title, status: hit.status, location: null };
 	return { ...base, state: active() && COVERED.includes(parsed.kind) ? "broken" : "unresolved" };
+}
+
+/** What the Knowledge commands read from the other mocks: the whole graph and the tile sources. */
+function knowledgeEnv(): kw.Env {
+	need(state.knowledge);
+	const owned = work.workEntities(state.work);
+	const mirror = state.sync.mirror;
+	const statuses = (kind: string, all = false) =>
+		[...entities(), ...owned]
+			.filter((e) => e.ref.startsWith(`${kind}:`) && (all || !e.ref.includes("#")))
+			.map((e) => e.status ?? "-");
+	const project = active()?.id ?? null;
+	return {
+		entities: [
+			...entities(),
+			...owned,
+			...mirror.map((t) => ({ ref: `wi:${t.key}`, title: t.title, status: t.status })),
+		],
+		citations: [...citations(), ...work.workCitations(state.work, memberRows())],
+		resolve,
+		specs: Object.entries(state.specs.files)
+			.map(([p, f]) => [/\/specs\/([^/]+)\/spec\.md$/.exec(p)?.[1], f.text] as const)
+			.filter((x): x is readonly [string, string] => !!x[0])
+			.map(([cap, text]) => [`spec:${cap}`, text]),
+		tiles: {
+			work: mirror.map((t) => t.status),
+			runs: fx.runsList(state.factory, project).map((r) => r.state),
+			questions: statuses("q"),
+			specs: statuses("spec"),
+			estimates: owned
+				.filter((e) => /^est:[^#]+#/.test(e.ref))
+				.map((e) => e.ref.slice(4).split("#")[0] ?? ""),
+			quality: null,
+			impact: null,
+		},
+	};
 }
 
 function backlinks(text: string): BacklinkGroup_Serialize[] {
@@ -943,6 +985,28 @@ const handlers: Handlers = {
 			confirmed,
 			state.work.today,
 		),
+	graphGet: () => kw.graphGet(need(state.knowledge), knowledgeEnv()),
+	graphCode: () => kw.graphCode(need(state.knowledge)),
+	graphCodeIndex: () => kw.graphCodeIndex(need(state.knowledge)),
+	explainContextGet: (entity) => kw.explainContext(knowledgeEnv(), entity),
+	docListGet: () => kw.docListGet(need(state.knowledge)),
+	docReadOne: (path) => kw.docReadOne(need(state.knowledge), path),
+	docWriteOne: (path, text, stamp, create) =>
+		kw.docWriteOne(need(state.knowledge), path, text, stamp, create),
+	slideThemeGet: () => kw.themeGet(need(state.knowledge)),
+	slideThemeSet: (theme, stamp) => kw.themeSet(need(state.knowledge), theme, stamp),
+	slideParse: (text) => kw.slideParse(text),
+	dashboardListGet: () => kw.dashboardList(need(state.knowledge)),
+	dashboardGetOne: (slug) => kw.dashboardGet(need(state.knowledge), slug),
+	dashboardSaveOne: (slug, dashboard, stamp) =>
+		kw.dashboardSave(need(state.knowledge), slug, dashboard, stamp),
+	dashboardTile: (kind) => kw.dashboardTile(knowledgeEnv(), kind),
+	learnGet: () => kw.learnGet(knowledgeEnv()),
+	exportDossierFile: (text, views, path) =>
+		kw.exportDossier(need(state.knowledge), text, views, path),
+	exportFunctionalFile: (text, path) => kw.exportFunctional(need(state.knowledge), text, path),
+	exportSheetFile: (text, sheets, path) =>
+		kw.exportSheet(need(state.knowledge), text, sheets, path),
 	tiersGet: () => fx.tiersGet(state.factory),
 	tiersSet: (row) => fx.tiersSet(state.factory, row),
 	runsList: () => fx.runsList(state.factory, active()?.id ?? null),

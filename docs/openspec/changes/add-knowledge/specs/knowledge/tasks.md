@@ -11,14 +11,14 @@ Plan: [plan.md](./plan.md)
 
 ## Tasks
 
-- [ ] T001 Write unit tests in `crates/shipyard-core/tests/knowledge.rs`: orphan mark, stale mark, path order, glossary terms. Covers REQ-007, REQ-020, REQ-021.
-- [ ] T002 Implement those rules in `crates/shipyard-core/src/knowledge.rs`. Covers REQ-007, REQ-020, REQ-021.
-- [ ] T003 [P] Write codec tests in `crates/shipyard-store/tests/knowledge.rs`: page, deck, theme, dashboard, newer version stays read-only. Covers REQ-010, REQ-012, REQ-017, REQ-018, REQ-022, REQ-025.
-- [ ] T004 Implement the codecs in `crates/shipyard-store/src/knowledge.rs`. Covers REQ-010, REQ-012, REQ-017, REQ-018, REQ-022, REQ-025.
-- [ ] T005 [P] Write export tests in `crates/shipyard-store/tests/export.rs`: five sections, cover, empty section, unreadable source, no sealed day rate, `.xlsx`. Covers REQ-013 to REQ-016.
-- [ ] T006 Implement the exports in `crates/shipyard-store/src/export.rs`. Covers REQ-013 to REQ-016.
-- [ ] T007 [P] Write app tests in `crates/shipyard-app/tests/knowledge.rs`: code graph through a fake MCP server. Covers REQ-002, REQ-008.
-- [ ] T008 Implement the commands in `crates/shipyard-app/src/knowledge.rs`. Covers REQ-002, REQ-008, REQ-023.
+- [x] T001 Write unit tests in `crates/shipyard-core/tests/knowledge.rs`: orphan mark, stale mark, path order, glossary terms. Covers REQ-007, REQ-020, REQ-021.
+- [x] T002 Implement those rules in `crates/shipyard-core/src/knowledge.rs`. Covers REQ-007, REQ-020, REQ-021.
+- [x] T003 [P] Write codec tests in `crates/shipyard-store/tests/knowledge.rs`: page, deck, theme, dashboard, newer version stays read-only. Covers REQ-010, REQ-012, REQ-017, REQ-018, REQ-022, REQ-025.
+- [x] T004 Implement the codecs in `crates/shipyard-store/src/knowledge.rs`. Covers REQ-010, REQ-012, REQ-017, REQ-018, REQ-022, REQ-025.
+- [x] T005 [P] Write export tests in `crates/shipyard-store/tests/export.rs`: five sections, cover, empty section, unreadable source, no sealed day rate, `.xlsx`. Covers REQ-013 to REQ-016.
+- [x] T006 Implement the exports in `crates/shipyard-store/src/export.rs`. Covers REQ-013 to REQ-016.
+- [x] T007 [P] Write app tests in `crates/shipyard-app/tests/knowledge.rs`: code graph through a fake MCP server. Covers REQ-002, REQ-008.
+- [x] T008 Implement the commands in `crates/shipyard-app/src/knowledge.rs`. Covers REQ-002, REQ-008, REQ-023.
 - [ ] T009 [P] Write component tests for the renderer in `src/ui/graph-canvas.test.tsx`: selection, keyboard, table view, reduced motion. Covers REQ-003, REQ-005, REQ-006.
 - [ ] T010 Build `GraphCanvas` in `src/ui/graph-canvas.tsx` and switch the Agents map to it. Covers REQ-003.
 - [ ] T011 [P] Write component tests for Graph in `src/features/knowledge/graph.test.tsx`: kinds, filter, focus, source switch, marks. Covers REQ-001, REQ-002, REQ-004, REQ-005, REQ-007.

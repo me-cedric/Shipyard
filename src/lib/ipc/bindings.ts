@@ -215,6 +215,24 @@ export const commands = {
 	assistantDefaultsGet: () => typedError<AssistantDefaults_Serialize, string>(__TAURI_INVOKE("assistant_defaults_get")),
 	assistantDefaultsSet: (defaults: AssistantDefaults_Deserialize) => typedError<AssistantDefaults_Serialize, string>(__TAURI_INVOKE("assistant_defaults_set", { defaults })),
 	assistantOptions: () => typedError<RunnerOptions[], string>(__TAURI_INVOKE("assistant_options")),
+	graphGet: () => typedError<KGraph_Serialize, string>(__TAURI_INVOKE("graph_get")),
+	graphCode: () => typedError<CodeGraph_Serialize, string>(__TAURI_INVOKE("graph_code")),
+	graphCodeIndex: () => typedError<null, string>(__TAURI_INVOKE("graph_code_index")),
+	explainContextGet: (entity: string) => typedError<ExplainContext_Serialize, string>(__TAURI_INVOKE("explain_context_get", { entity })),
+	docListGet: () => typedError<DocList, string>(__TAURI_INVOKE("doc_list_get")),
+	docReadOne: (path: string) => typedError<Text, string>(__TAURI_INVOKE("doc_read_one", { path })),
+	docWriteOne: (path: string, text: string, stamp: string | null, create: boolean) => typedError<Written_Serialize, string>(__TAURI_INVOKE("doc_write_one", { path, text, stamp, create })),
+	slideThemeGet: () => typedError<ThemeView_Serialize, string>(__TAURI_INVOKE("slide_theme_get")),
+	slideThemeSet: (theme: DeckTheme_Deserialize, stamp: string | null) => typedError<Written_Serialize, string>(__TAURI_INVOKE("slide_theme_set", { theme, stamp })),
+	slideParse: (text: string) => __TAURI_INVOKE<Deck>("slide_parse", { text }),
+	dashboardListGet: () => typedError<DashEntry[], string>(__TAURI_INVOKE("dashboard_list_get")),
+	dashboardGetOne: (slug: string) => typedError<DashView_Serialize, string>(__TAURI_INVOKE("dashboard_get_one", { slug })),
+	dashboardSaveOne: (slug: string, dashboard: Dashboard_Deserialize, stamp: string | null) => typedError<Written_Serialize, string>(__TAURI_INVOKE("dashboard_save_one", { slug, dashboard, stamp })),
+	dashboardTile: (kind: string) => typedError<TileData_Serialize, string>(__TAURI_INVOKE("dashboard_tile", { kind })),
+	learnGet: () => typedError<Learn, string>(__TAURI_INVOKE("learn_get")),
+	exportDossierFile: (text: ExportText, views: ViewImage[], path: string) => typedError<null, string>(__TAURI_INVOKE("export_dossier_file", { text, views, path })),
+	exportFunctionalFile: (text: ExportText, path: string) => typedError<null, string>(__TAURI_INVOKE("export_functional_file", { text, path })),
+	exportSheetFile: (text: ExportText, sheets: SheetIn[], path: string) => typedError<null, string>(__TAURI_INVOKE("export_sheet_file", { text, sheets, path })),
 	/**  Replaces the native menu with one in the language of the person. `labels` is keyed by item id. */
 	shellMenu: (labels: { [key in string]: string }) => typedError<null, string>(__TAURI_INVOKE("shell_menu", { labels })),
 	/**
@@ -744,6 +762,28 @@ export type Choice = "ours" | "theirs" |
 /**  Ours, then theirs. */
 "both" | "neither";
 
+export type CodeGraph = CodeGraph_Serialize | CodeGraph_Deserialize;
+
+export type CodeGraph_Deserialize = {
+	state: CodeState,
+	nodes: GraphNode_Deserialize[],
+	edges: GraphEdge[],
+};
+
+export type CodeGraph_Serialize = {
+	state: CodeState,
+	nodes: GraphNode_Serialize[],
+	edges: GraphEdge[],
+};
+
+export type CodeState = 
+/**  The graph is there. */
+"ready" | 
+/**  The server answers but the project has no index. The view shows the Index action. */
+"unindexed" | 
+/**  The server is not active or does not answer. */
+"off";
+
 export type CommitDetail = CommitDetail_Serialize | CommitDetail_Deserialize;
 
 export type CommitDetail_Deserialize = {
@@ -873,6 +913,36 @@ export type Context_Serialize = {
 
 export type Contrast = "default" | "high";
 
+export type DashEntry = {
+	slug: string,
+	title: string,
+	readOnly: boolean,
+};
+
+export type DashView = DashView_Serialize | DashView_Deserialize;
+
+export type DashView_Deserialize = {
+	stamp: string,
+} & Loaded<Dashboard_Deserialize>;
+
+export type DashView_Serialize = {
+	stamp: string,
+} & Loaded<Dashboard_Serialize>;
+
+export type Dashboard = Dashboard_Serialize | Dashboard_Deserialize;
+
+export type Dashboard_Deserialize = {
+	version?: number,
+	title?: string,
+	tiles?: Tile[],
+};
+
+export type Dashboard_Serialize = {
+	version: number,
+	title: string,
+	tiles: Tile[],
+};
+
 export type Decision = "accept" | "reject";
 
 /**
@@ -899,6 +969,33 @@ export type Decisions_Serialize = {
 	/**  Task refs, the first gets capacity first. A task that is not here follows in sheet order. */
 	order: string[],
 	tasks: { [key in string]: TaskDecision_Serialize },
+};
+
+export type Deck = {
+	title: string,
+	slides: string[],
+};
+
+export type DeckTheme = DeckTheme_Serialize | DeckTheme_Deserialize;
+
+export type DeckTheme_Deserialize = {
+	version?: number,
+	background?: string,
+	text?: string,
+	accent?: string,
+	/**  Repository path of the logo. */
+	logo?: string | null,
+	font?: string,
+};
+
+export type DeckTheme_Serialize = {
+	version: number,
+	background: string,
+	text: string,
+	accent: string,
+	/**  Repository path of the logo. */
+	logo: string | null,
+	font: string,
 };
 
 export type Density = "default" | "compact";
@@ -951,6 +1048,12 @@ export type DiffSide =
 /**  The index against the working copy. An untracked file shows as all added. */
 "unstaged";
 
+export type DocList = {
+	handbook: PageEntry[],
+	documents: PageEntry[],
+	slides: PageEntry[],
+};
+
 export type Draft = Draft_Serialize | Draft_Deserialize;
 
 export type Draft_Deserialize = {
@@ -969,6 +1072,36 @@ export type Entry = {
 	path: string,
 	question: Question,
 	issues: string[],
+};
+
+export type ExplainContext = ExplainContext_Serialize | ExplainContext_Deserialize;
+
+export type ExplainContext_Deserialize = {
+	entity: string,
+	/**  False when the entity is not known: the answer then says that it found no source (REQ-009). */
+	found: boolean,
+	/**  The refs of the entity and of its neighbours at one hop, with title and status. */
+	refs: Resolved_Deserialize[],
+};
+
+export type ExplainContext_Serialize = {
+	entity: string,
+	/**  False when the entity is not known: the answer then says that it found no source (REQ-009). */
+	found: boolean,
+	/**  The refs of the entity and of its neighbours at one hop, with title and status. */
+	refs: Resolved_Serialize[],
+};
+
+/**
+ *  The words of a document, in the language of the person. `sections` holds one title for each
+ *  section: five for the dossier, four for the functional documentation.
+ */
+export type ExportText = {
+	title: string,
+	empty: string,
+	gap: string,
+	generated: string,
+	sections: string[],
 };
 
 export type FactorySend = FactorySend_Serialize | FactorySend_Deserialize;
@@ -1178,6 +1311,31 @@ export type Gauge = {
 	quotas: QuotaWindow[],
 };
 
+export type GraphEdge = {
+	source: string,
+	target: string,
+};
+
+export type GraphNode = GraphNode_Serialize | GraphNode_Deserialize;
+
+export type GraphNode_Deserialize = {
+	ref: string,
+	kind: string,
+	title: string,
+	status?: string | null,
+	/**  Repository path of the file of the entity. */
+	location?: string | null,
+};
+
+export type GraphNode_Serialize = {
+	ref: string,
+	kind: string,
+	title: string,
+	status: string | null,
+	/**  Repository path of the file of the entity. */
+	location: string | null,
+};
+
 export type Group = "compliance" | "tools" | "refs" | 
 /**  Reserved: no generated file exists yet. */
 "generated";
@@ -1290,12 +1448,57 @@ export type Item_Serialize = {
 	parent: string | null,
 };
 
+export type KGraph = KGraph_Serialize | KGraph_Deserialize;
+
+export type KGraph_Deserialize = {
+	nodes: KNode_Deserialize[],
+	edges: GraphEdge[],
+};
+
+export type KGraph_Serialize = {
+	nodes: KNode_Serialize[],
+	edges: GraphEdge[],
+};
+
+export type KNode = KNode_Serialize | KNode_Deserialize;
+
+export type KNode_Deserialize = {
+	ref: string,
+	kind: string,
+	title: string,
+	status?: string | null,
+	location?: string | null,
+	orphan: boolean,
+	stale: boolean,
+};
+
+export type KNode_Serialize = {
+	ref: string,
+	kind: string,
+	title: string,
+	status: string | null,
+	location: string | null,
+	orphan: boolean,
+	stale: boolean,
+};
+
 export type Kind = "epic" | "story";
 
 /**  The six lanes of Factory / Runs, in order. */
 export type Lane = "queued" | "working" | "needs_you" | "in_review" | "ready_to_merge" | "done";
 
 export type Lang = "en" | "fr";
+
+export type Learn = {
+	path: LearnStep[],
+	glossary: Term[],
+};
+
+export type LearnStep = {
+	ref: string,
+	kind: string,
+	title: string,
+};
 
 /**  Run limits (REQ-007). `global` counts the active runs of every project on this machine. */
 export type Limits = Limits_Serialize | Limits_Deserialize;
@@ -1314,6 +1517,12 @@ export type Limits_Serialize = {
 	per_project?: number,
 	/**  By ticket status name at pickup. */
 	per_status?: { [key in string]: number },
+};
+
+/**  A file value. `read_only` is set when a newer version wrote the file: show it, never write it. */
+export type Loaded<T> = {
+	value: T,
+	readOnly: boolean,
 };
 
 export type LogPage = {
@@ -1487,6 +1696,12 @@ export type Overrides_Serialize = {
 	density: Density | null,
 	contrast: Contrast | null,
 	accent: Accent | null,
+};
+
+export type PageEntry = {
+	/**  Repository path. The ref is `doc:<path>`. */
+	path: string,
+	title: string,
 };
 
 /**  The side of the window that the assistant panel sits on (spec `assistant`, REQ-025). */
@@ -2249,6 +2464,12 @@ export type Severity = "info" | "warning" | "error";
 /**  An estimate sheet: the features and tasks of one lot (REQ-009). It holds no total. */
 export type Sheet = Sheet_Serialize | Sheet_Deserialize;
 
+export type SheetIn = {
+	name: string,
+	headers: string[],
+	rows: string[][],
+};
+
 export type SheetItem = SheetItem_Serialize | SheetItem_Deserialize;
 
 export type SheetItem_Deserialize = {
@@ -2662,6 +2883,13 @@ export type Team_Serialize = {
 	members: Member_Serialize[],
 };
 
+export type Term = {
+	term: string,
+	meaning: string,
+	/**  The spec that defines it. */
+	spec: string,
+};
+
 /**
  *  The result of a connection test. A failure names the missing scope or permission,
  *  or the reason when it is not a scope (REQ-012).
@@ -2675,6 +2903,16 @@ export type Text = {
 };
 
 export type Theme = "light" | "dark" | "system";
+
+export type ThemeView = ThemeView_Serialize | ThemeView_Deserialize;
+
+export type ThemeView_Deserialize = {
+	stamp?: string | null,
+} & Loaded<DeckTheme_Deserialize>;
+
+export type ThemeView_Serialize = {
+	stamp: string | null,
+} & Loaded<DeckTheme_Serialize>;
 
 export type Thread = Thread_Serialize | Thread_Deserialize;
 
@@ -2753,6 +2991,37 @@ export type Thread_Serialize = {
 	worktree: Worktree | null,
 	created: number,
 	updated: number,
+};
+
+export type Tile = {
+	id: string,
+	kind: string,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+};
+
+export type TileData = TileData_Serialize | TileData_Deserialize;
+
+export type TileData_Deserialize = {
+	kind: string,
+	columns: string[],
+	rows: string[][],
+	/**  The answer holds more rows than shown. */
+	cut: boolean,
+	/**  The source is not available. Holds its name. The tile shows greyed (REQ-023). */
+	off?: string | null,
+};
+
+export type TileData_Serialize = {
+	kind: string,
+	columns: string[],
+	rows: string[][],
+	/**  The answer holds more rows than shown. */
+	cut: boolean,
+	/**  The source is not available. Holds its name. The tile shows greyed (REQ-023). */
+	off: string | null,
 };
 
 /**  A time entry that a person wrote (REQ-020, REQ-021). */
@@ -2959,6 +3228,13 @@ export type UsageView_Serialize = {
 	/**  Newest day first. */
 	days: SpendView_Serialize[],
 	members: SpendView_Serialize[],
+};
+
+/**  One architecture view that the view rendered at the click. */
+export type ViewImage = {
+	title: string,
+	/**  Base64 text of a PNG file. */
+	png: string,
 };
 
 /**  What the remote watch found: remote branches that moved between two fetches (REQ-017). */

@@ -32,6 +32,9 @@ pub fn roots(p: &ProjectFile) -> Vec<String> {
             "flows",
             "designs",
             "test-plans",
+            "handbook",
+            "documents",
+            "slides",
         ]
         .iter()
         .map(|k| p.path(k).to_string()),
@@ -110,7 +113,7 @@ fn front(text: &str, key: &str) -> Option<String> {
     })
 }
 
-fn title_of(text: &str) -> Option<String> {
+pub(crate) fn title_of(text: &str) -> Option<String> {
     let body = text
         .strip_prefix("---\n")
         .and_then(|r| r.split_once("\n---").map(|(_, b)| b))
@@ -120,7 +123,7 @@ fn title_of(text: &str) -> Option<String> {
         .filter(|t| !t.is_empty())
 }
 
-fn file_stem(rel: &str) -> &str {
+pub(crate) fn file_stem(rel: &str) -> &str {
     let name = rel.rsplit('/').next().unwrap_or(rel);
     let name = name.strip_suffix(".drawio.svg").unwrap_or(name);
     name.rsplit_once('.').map_or(name, |(s, _)| s)

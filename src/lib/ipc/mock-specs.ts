@@ -229,8 +229,15 @@ export function questionCreate(s: MockSpecs, q: Question): string {
 
 // ---------------------------------------------------------------- seed
 
-const spec = (cap: string, purpose: string, reqs: [string, string, boolean][]) =>
-	`# Spec: ${cap}\n\n## Purpose\n\n${purpose}\n\n## Requirements\n\n${reqs
+const spec = (
+	cap: string,
+	purpose: string,
+	reqs: [string, string, boolean][],
+	terms: [string, string][] = [],
+) =>
+	`# Spec: ${cap}\n\n## Purpose\n\n${purpose}\n\n${
+		terms.length ? `### Glossary\n\n${terms.map(([t, m]) => `- ${t}: ${m}`).join("\n")}\n\n` : ""
+	}## Requirements\n\n${reqs
 		.map(
 			([id, title, scenario]) =>
 				`### Requirement: ${id} ${title}\n\nThe system SHALL ${title.toLowerCase()}.\n\n${
@@ -292,6 +299,10 @@ export function seedSpecs(): MockSpecs {
 				["REQ-002", "Sign out", true],
 				["REQ-003", "Login", true],
 			],
+			[
+				["session", "the time between a sign in and a sign out"],
+				["login", "the act of a person who proves who they are"],
+			],
 		),
 		[`${SPEC}/specs/billing/spec.md`]: spec(
 			"billing",
@@ -300,6 +311,7 @@ export function seedSpecs(): MockSpecs {
 				["REQ-001", "Issue an invoice", true],
 				["REQ-002", "Send a receipt", true],
 			],
+			[["invoice", "the bill that a customer pays"]],
 		),
 		...change(
 			"add-auth",
