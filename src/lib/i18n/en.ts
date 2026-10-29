@@ -474,6 +474,8 @@ export const en = {
 		},
 		seal: {
 			passphrase: "Passphrase",
+			repeat: "Repeat the passphrase",
+			mismatch: "The two passphrases differ. Nothing was sealed.",
 			unlock: "Unlock",
 			lock: "Lock",
 			seal: "Seal",

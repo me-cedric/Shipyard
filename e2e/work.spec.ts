@@ -125,9 +125,10 @@ test("edits the team and seals the project, then unlocks it", async ({ page }) =
 
 	await tabs(page).getByRole("link", { name: "Estimates" }).click();
 	await page.getByRole("button", { name: "Seal" }).click();
-	const field = page.getByLabel("Passphrase");
+	const field = page.getByLabel("Passphrase", { exact: true });
 	await expect(field).toHaveAttribute("type", "password");
 	await field.fill("s3cret");
+	await page.getByLabel("Repeat the passphrase").fill("s3cret");
 	await page.getByRole("button", { name: "Seal" }).last().click();
 	await page.getByRole("button", { name: "Lock" }).click();
 	await expect(page.getByText("Sealed")).toBeVisible();

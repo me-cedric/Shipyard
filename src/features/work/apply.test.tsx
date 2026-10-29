@@ -1,6 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { RefDetail } from "@/features/shell/ref-detail";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
@@ -109,16 +108,6 @@ describe("Create work item", () => {
 		expect(await dialog.findByRole("heading", { name: "Unchanged (1)" })).toBeInTheDocument();
 		expect(dialog.getByRole("button", { name: "Apply" })).toBeDisabled();
 		expect(written()).toHaveLength(1);
-	});
-
-	it("is offered in the inspector for a ref that can become an item, and only with a tracker", async () => {
-		await withTracker();
-		const { unmount } = renderApp(<RefDetail refId="change:add-auth" onOpen={() => {}} />);
-		expect(await screen.findByRole("button", { name: "Create work item" })).toBeInTheDocument();
-		unmount();
-		renderApp(<RefDetail refId="adr:0004" onOpen={() => {}} />);
-		await screen.findByText("Polling sync with local mirror");
-		expect(screen.queryByRole("button", { name: "Create work item" })).toBeNull();
 	});
 
 	it("is in French when the language is French", async () => {

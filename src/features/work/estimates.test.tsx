@@ -109,6 +109,13 @@ describe("Work / Estimates", () => {
 		const field = screen.getByLabelText("Passphrase");
 		expect(field).toHaveAttribute("type", "password");
 		await user.type(field, "s3cret");
+		// A typo would lock the files for good: the second field must match.
+		await user.type(screen.getByLabelText("Repeat the passphrase"), "s3cert");
+		await user.click(screen.getAllByRole("button", { name: "Seal" }).at(-1) as HTMLElement);
+		expect(await screen.findByRole("alert")).toHaveTextContent("differ");
+		expect(mockState().work.sealed).toBeNull();
+		await user.type(screen.getByLabelText("Passphrase"), "s3cret");
+		await user.type(screen.getByLabelText("Repeat the passphrase"), "s3cret");
 		await user.click(screen.getAllByRole("button", { name: "Seal" }).at(-1) as HTMLElement);
 		await waitFor(() => expect(mockState().work.sealed).toBe("s3cret"));
 		// The sheet still works on this machine.

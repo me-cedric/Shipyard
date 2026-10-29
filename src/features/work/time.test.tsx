@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { commands } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 import { importAll, withTracker } from "@/test/tracker";
@@ -61,6 +62,33 @@ describe("Work / Time", () => {
 		expect(mockState().work.time.ada?.find((e) => e.id === "t2")?.worklog).toBeDefined();
 		expect(await group("In tracker (2)")).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: /^Send 2026-11-03 ACME-1$/ })).toBeNull();
+	});
+
+	it("disables Send while an entry goes to the tracker, so a second click sends nothing", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await importAll();
+		const real = commands.timeSend;
+		let release = () => {};
+		const gate = new Promise<void>((r) => {
+			release = r;
+		});
+		const spy = vi.spyOn(commands, "timeSend").mockImplementation(async (...args) => {
+			await gate;
+			return real(...args);
+		});
+		mountApp("/work/time");
+		await group("To send (2)");
+		const send = () => screen.getByRole("button", { name: /^Send 2026-11-03 ACME-1$/ });
+		await user.click(send());
+		await waitFor(() => expect(send()).toBeDisabled());
+		// The other Send buttons wait too: one send at a time.
+		for (const b of screen.getAllByRole("button", { name: /^Send / })) expect(b).toBeDisabled();
+		await user.click(send());
+		expect(spy).toHaveBeenCalledTimes(1);
+		release();
+		expect(await group("In tracker (2)")).toBeInTheDocument();
+		spy.mockRestore();
 	});
 
 	it("sends nothing for an entry with no ticket", async () => {

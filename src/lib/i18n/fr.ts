@@ -481,6 +481,8 @@ export const fr: Messages = {
 		},
 		seal: {
 			passphrase: "Phrase secrète",
+			repeat: "Répéter la phrase secrète",
+			mismatch: "Les deux phrases secrètes diffèrent. Rien n'a été scellé.",
 			unlock: "Déverrouiller",
 			lock: "Verrouiller",
 			seal: "Sceller",

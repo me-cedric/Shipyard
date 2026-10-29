@@ -12,14 +12,16 @@ type Mode = "unlock" | "seal" | "unseal";
 /**
  * The seal of the project: unlock, lock, seal and unseal with one passphrase. The field never
  * shows what a person types, and it empties after each try. A locked project shows the field at
- * once. Otherwise an icon opens it.
+ * once. Otherwise an icon opens it. A seal asks for the passphrase twice: a typo would lock the
+ * files for good.
  */
 export function SealBar({ state }: { state: Seal }) {
 	const { t } = useI18n();
 	const s = t.work.seal;
 	const act = useWorkActions();
-	const { error, run } = useGuard();
+	const { error, run, setError } = useGuard();
 	const [pass, setPass] = useState("");
+	const [again, setAgain] = useState("");
 	const [asking, setAsking] = useState<Mode | null>(null);
 	const locked = state.sealed && !state.unlocked;
 	const mode: Mode | null = locked ? "unlock" : asking;
@@ -52,7 +54,10 @@ export function SealBar({ state }: { state: Seal }) {
 					e.preventDefault();
 					// The passphrase leaves the field before the call: a refusal never leaves it on screen.
 					const typed = pass;
+					const repeated = again;
 					setPass("");
+					setAgain("");
+					if (mode === "seal" && typed !== repeated) return setError(s.mismatch);
 					if (await run(() => act[mode](typed))) setAsking(null);
 				}}
 			>
@@ -64,7 +69,17 @@ export function SealBar({ state }: { state: Seal }) {
 					placeholder={s.passphrase}
 					className="w-44"
 				/>
-				<Button type="submit" disabled={pass === ""}>
+				{mode === "seal" ? (
+					<SecretInput
+						label={s.repeat}
+						saved={false}
+						value={again}
+						onChange={setAgain}
+						placeholder={s.repeat}
+						className="w-44"
+					/>
+				) : null}
+				<Button type="submit" disabled={pass === "" || (mode === "seal" && again === "")}>
 					{s[mode]}
 				</Button>
 				{asking ? (

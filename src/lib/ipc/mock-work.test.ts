@@ -263,7 +263,7 @@ describe("mock work: the rules of the Rust commands", () => {
 
 	it("tells the views the tracker, the flags, the scope, the label and the member", async () => {
 		await withTracker("ACME");
-		expect(await unwrap(commands.workContext())).toMatchObject({
+		expect(await unwrap(commands.workContext(0))).toMatchObject({
 			tracker: "acme",
 			scope: "ACME",
 			pickupLabel: "shipyard",

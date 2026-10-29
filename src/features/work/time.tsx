@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import type { TimeState } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
@@ -65,6 +65,9 @@ export function Time() {
 	const [month, setMonth] = useState<string | null>(null);
 	const [adding, setAdding] = useState(false);
 	const [reduce, setReduce] = useState(false);
+	/** The entry that goes to the tracker now. One send at a time: a second click waits for it. */
+	const [sending, setSending] = useState<string | null>(null);
+	const sendingNow = useRef(false);
 	const [fetched, setFetched] = useState<Record<string, TimeRow[]>>({});
 	const [form, setForm] = useState({ day: "", duration: "", ticket: "", note: "" });
 	const shownMonth = month ?? ctx?.today.slice(0, 7) ?? "";
@@ -152,17 +155,23 @@ export function Time() {
 					return (
 						<Button
 							variant="ghost"
-							disabled={!data?.canSend || !r.ticket}
+							disabled={!data?.canSend || !r.ticket || sending !== null}
 							aria-label={format(r.lost ? e.storeReceipt : e.sendEntry, {
 								day: r.day,
 								ticket: r.ticket,
 							})}
-							onClick={() =>
+							onClick={() => {
+								if (sendingNow.current) return;
+								sendingNow.current = true;
+								setSending(r.entryId);
 								void run(async () => {
 									await act.sendTime(handle, r.day, r.entryId ?? "", reduce);
 									setFetched({});
-								})
-							}
+								}).finally(() => {
+									sendingNow.current = false;
+									setSending(null);
+								});
+							}}
 						>
 							{r.lost ? e.storeReceipt : e.send}
 						</Button>
@@ -170,7 +179,7 @@ export function Time() {
 				},
 			},
 		],
-		[e, data?.canSend, handle, reduce, act, run],
+		[e, data?.canSend, handle, reduce, act, run, sending],
 	);
 
 	if (active === undefined) return null;

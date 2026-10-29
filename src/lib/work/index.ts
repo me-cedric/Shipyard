@@ -78,9 +78,13 @@ export const workKeys = {
 	apply: (slugs: string[]) => ["work", "apply", slugs] as const,
 };
 
-/** The tracker flags, the pickup label, the scope and the member of this machine. */
+/** The tracker flags, the pickup label, the scope and the member of this machine. The offset is
+ * the one of this screen, so `today` is the day of the person and not the day of Greenwich. */
 export function useWorkContext() {
-	return useQuery({ queryKey: workKeys.context, queryFn: () => unwrap(commands.workContext()) });
+	return useQuery({
+		queryKey: workKeys.context,
+		queryFn: () => unwrap(commands.workContext(-new Date().getTimezoneOffset())),
+	});
 }
 
 export function useTeam() {
