@@ -140,6 +140,9 @@ pub struct RunInfo {
     pub id: String,
     pub project: String,
     pub key: String,
+    /// The ticket title and address, for the cards.
+    pub title: String,
+    pub url: String,
     pub workflow: String,
     pub run: Run,
     pub pr: Option<u64>,
@@ -551,6 +554,8 @@ impl Inner {
             id: r.id.clone(),
             project: r.project.clone(),
             key: r.key.clone(),
+            title: r.title.clone(),
+            url: r.url.clone(),
             workflow: r.wf.id.clone(),
             run: r.run,
             pr: r.pr,

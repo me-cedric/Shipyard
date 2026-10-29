@@ -56,7 +56,9 @@ pub fn seed(root: &Path) -> Result<Vec<String>> {
 
 /// A role profile. `model` is a tier (`top`, `mid`, `small`) that the runner config maps to a
 /// model. A step may name its own model and effort: they win over the profile.
+// `prefs::Role` has the name `Role` in the bindings: this rename is the type name there only.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename = "AgentRole")]
 pub struct Role {
     pub id: String,
     pub description: String,

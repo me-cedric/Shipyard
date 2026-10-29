@@ -12,7 +12,8 @@ pub const MAX_OPTIONS: usize = 4;
 
 /// An answer: an option number from 1, or free text.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(tag = "kind", rename_all = "snake_case")]
+// `shipyard_git::code::Choice` has the name `Choice` in the bindings: this rename is the type name there only.
+#[serde(rename = "QuestionChoice", tag = "kind", rename_all = "snake_case")]
 pub enum Choice {
     Option { n: u32 },
     Text { text: String },
@@ -128,7 +129,9 @@ impl fmt::Display for AskError {
 
 impl std::error::Error for AskError {}
 
+// `shipyard_store::raid::Question` has the name `Question` in the bindings: this rename is the type name there only.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename = "AskedQuestion")]
 pub struct Question {
     /// `Q-NNN`. The entity is `q:Q-NNN`.
     pub id: String,

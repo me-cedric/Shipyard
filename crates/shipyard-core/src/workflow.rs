@@ -111,7 +111,8 @@ pub enum Gate {
 
 /// A step that the engine does itself, with no agent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
-#[serde(rename_all = "snake_case")]
+// `work::Action` has the name `Action` in the bindings: the rename is the type name there only.
+#[serde(rename = "StepAction", rename_all = "snake_case")]
 pub enum Action {
     OpenPr,
 }
