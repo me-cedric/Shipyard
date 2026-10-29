@@ -35,7 +35,7 @@ Agents must pick up work from the team tracker. The app must show the tracker st
 - REQ-006: The system SHALL read the pickup filter from `.shipyard/automation.yaml`. A person edits it in Settings / Project, group Automation (`add-factory` REQ-025). The pickup filter SHALL have these parts: assignee, label, status set, component and priority. The default label SHALL be `shipyard`. The assignee SHALL come from the team handles of `work`. The system MUST NOT pick up while the global kill switch is on.
 - REQ-007: The system SHALL read the concurrency from `.shipyard/automation.yaml`. A person edits it in Settings / Project, group Automation (`add-factory` REQ-025). The concurrency SHALL have these parts: global, per project and per status. The default SHALL be 2 runs.
 - REQ-008: The system SHALL take a claim as an atomic lock in the local store before a run starts. Two runs on one machine MUST NOT claim the same ticket.
-- REQ-009: The system SHALL put a claim stamp on the ticket so that two machines never run the same ticket. The stamp is a tracker write. [NEEDS CLARIFICATION: Q-020 How does the claim stamp relate to the automation write switches?] Working assumption: the claim stamp is not one of the four switches, and pickup rules that a person turned on allow it.
+- REQ-009: The system SHALL put a claim stamp on the ticket so that two machines never run the same ticket. The stamp is a tracker write. [NEEDS CLARIFICATION: Q-020 How does the claim stamp relate to the automation write switches?] Working assumption (option 2): the stamp follows the `tracker_comment` switch. With the switch off, the claim stays on this machine.
 - REQ-010: The system SHALL release a claim when its run ends, and SHALL treat a claim as stale when its stamp is not refreshed. [NEEDS CLARIFICATION: Q-021 After how long is a claim stale?] Working assumption: 10 minutes without a refresh.
 - REQ-011: The system SHALL hand each new ticket comment to `questions-loop` once.
 - REQ-012: The system SHALL hand each pull request, CI and merge event to `delivery` once.
@@ -201,12 +201,18 @@ The system SHALL take a claim as an atomic lock in the local store before a run 
 
 ### Requirement: REQ-009 Claim stamp
 
-The system SHALL put a claim stamp on the ticket so that two machines never run the same ticket. The system SHALL check for a stamp of another machine before it starts a run. The stamp is a tracker write. [NEEDS CLARIFICATION: Q-020 How does the claim stamp relate to the automation write switches?] Working assumption: the claim stamp is not one of the four switches of `q:Q-002`, and pickup rules that a person turned on allow it.
+The system SHALL put a claim stamp on the ticket so that two machines never run the same ticket. The system SHALL NOT start a run on a ticket that has a live stamp of another machine. The oldest live stamp SHALL win. The stamp is a tracker write. [NEEDS CLARIFICATION: Q-020 How does the claim stamp relate to the automation write switches?] Working assumption (option 2): the stamp follows the `tracker_comment` switch of `q:Q-002`.
 
 #### Scenario: Two machines
 - GIVEN machine A stamped a ticket
 - WHEN machine B polls and matches the ticket
 - THEN machine B does not start a run on it
+
+#### Scenario: Same moment
+- GIVEN two machines write a stamp on one ticket at the same moment
+- WHEN each machine reads the stamps again
+- THEN both machines see the older stamp as the winner
+- AND the other machine removes its stamp and starts no run
 
 #### Scenario: Stamp fails
 - GIVEN the tracker refuses the stamp
@@ -214,9 +220,20 @@ The system SHALL put a claim stamp on the ticket so that two machines never run 
 - THEN the local claim is released
 - AND no run starts
 
+#### Scenario: Switch off
+- GIVEN the `tracker_comment` switch is off, or the tracker has no comments
+- WHEN the system claims a ticket
+- THEN the claim is a row in the local store only
+- AND the tracker gets no write
+
+#### Scenario: Switch off and a live stamp
+- GIVEN the `tracker_comment` switch is off and machine A stamped a ticket
+- WHEN machine B polls and matches the ticket
+- THEN machine B reads the stamp and starts no run
+
 ### Requirement: REQ-010 Release and stale claims
 
-The system SHALL release a claim when its run ends, and SHALL remove the stamp. A claim SHALL become stale when no refresh of its stamp occurs within the stale time. Another machine SHALL then be able to take it over. [NEEDS CLARIFICATION: Q-021 After how long is a claim stale?] Working assumption: 10 minutes without a refresh.
+The system SHALL release a claim when its run ends, and SHALL remove the stamp. A claim SHALL become stale when no refresh of its stamp occurs within the stale time. Another machine SHALL then be able to take it over. Each tick SHALL refresh the stamps of its active runs. A tick SHALL stop a run whose ticket has a live stamp of another machine. [NEEDS CLARIFICATION: Q-021 After how long is a claim stale?] Working assumption: 10 minutes without a refresh.
 
 #### Scenario: Release
 - GIVEN a run is Done
@@ -228,18 +245,29 @@ The system SHALL release a claim when its run ends, and SHALL remove the stamp. 
 - WHEN machine B polls
 - THEN machine B takes the claim
 
+#### Scenario: Claim lost
+- GIVEN machine B took the claim of machine A while A was off
+- WHEN machine A ticks again
+- THEN machine A stops its run with the reason claim lost
+- AND the stamp of machine B stays
+
 ### Requirement: REQ-011 Hand off comments
 
-The system SHALL hand each new ticket comment to `questions-loop` once. A comment that the mirror already holds MUST NOT go again.
+The system SHALL hand each new ticket comment to `questions-loop` once. A comment that the mirror already holds MUST NOT go again. A comment that exists when a run starts is not new, except an answer to a question marker. The hand-off SHALL send a comment that a listener refused at the next tick.
 
 #### Scenario: New comment
 - GIVEN a person answers on the tracker site
 - WHEN the next tick finds the comment
 - THEN `questions-loop` receives it once
 
+#### Scenario: Marker
+- GIVEN a ticket comment holds the marker `<!-- shipyard:q Q-007 -->`
+- WHEN the next tick finds a later comment
+- THEN `questions-loop` receives it with the question id Q-007
+
 ### Requirement: REQ-012 Hand off pull request events
 
-The system SHALL hand each pull request, CI and merge event to `delivery` once.
+The system SHALL hand each pull request, CI and merge event to `delivery` once. The events are: opened, merged, closed, changes requested, CI passed and CI failed. The first read of a forge SHALL send events only for the pull requests of runs. The hand-off SHALL send an event that a listener refused at the next tick.
 
 #### Scenario: Merge
 - GIVEN a pull request is merged on the forge
