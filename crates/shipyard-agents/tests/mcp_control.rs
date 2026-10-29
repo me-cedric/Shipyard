@@ -235,6 +235,44 @@ fn a_server_starts_shows_running_and_stops() {
 }
 
 #[test]
+fn stop_and_quit_end_a_grandchild_of_the_launcher_too() {
+    // A launcher like `npx` starts the real server as a child and may leave a helper behind.
+    for quit in [false, true] {
+        let lab = Lab::new();
+        let inner = mcp_server(lab.dir.path(), "inner-mcp", &lab.pid_file());
+        let gpid = lab.dir.path().join("gpid");
+        program(
+            lab.dir.path(),
+            "launcher",
+            &format!(
+                "sleep 300 >/dev/null 2>&1 &\necho $! > '{}'\nexec '{}'",
+                gpid.display(),
+                inner.display()
+            ),
+        );
+        let control = lab.control();
+        let id = control.add_custom(custom("L", "launcher")).unwrap().id;
+        control.start(&id).unwrap();
+        let grandchild = std::fs::read_to_string(&gpid).unwrap().trim().to_string();
+        assert!(!gone(&grandchild), "the helper runs while the server runs");
+        if quit {
+            control.stop_all();
+        } else {
+            control.stop(&id);
+        }
+        let mut tries = 0;
+        while !gone(&grandchild) && tries < 50 {
+            std::thread::sleep(Duration::from_millis(20));
+            tries += 1;
+        }
+        assert!(
+            gone(&grandchild),
+            "the helper ends with the group (quit: {quit})"
+        );
+    }
+}
+
+#[test]
 fn starting_a_running_server_does_not_start_a_second_process() {
     let lab = Lab::new();
     let (control, id) = lab.with_fake();

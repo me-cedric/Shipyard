@@ -11,9 +11,11 @@
 //! [`McpConfig`], not in a log (REQ-011). A catalogue server that needs a secret takes it by
 //! variable name (`-e VAR` for Docker), never by value.
 //!
-//! shortcut: a stop closes the child's input, waits 300 ms, then kills the child. A launcher that
-//! starts a grandchild (`npx`) and does not forward the close can leave the grandchild running.
-//! Put the child in its own process group and kill the group if that shows.
+//! A stop closes the child's input, waits 300 ms, then kills the child. On unix the child leads its
+//! own process group and the stop kills the whole group, so a grandchild of `npx` ends too.
+//!
+//! shortcut: Windows has no process group here: a stop kills the child only. Use a job object if
+//! a grandchild survives there.
 
 use crate::AgentError;
 use crate::which::{quiet, search_dirs, which};
@@ -666,16 +668,30 @@ impl Session {
     }
 }
 
+impl Session {
+    /// Kill every process of the child's group. The group id is the child's process id, so a
+    /// group with no member is an error that we ignore.
+    fn kill_group(&self) {
+        #[cfg(unix)]
+        if let Ok(pgid) = i32::try_from(self.child.id()) {
+            // SAFETY: `killpg` only sends a signal; it touches no memory.
+            unsafe { libc::killpg(pgid, libc::SIGKILL) };
+        }
+    }
+}
+
 impl Drop for Session {
     /// The shutdown the MCP specification asks for: close the input, wait, then kill.
     fn drop(&mut self) {
         self.stdin = None;
         for _ in 0..30 {
             if !matches!(self.child.try_wait(), Ok(None)) {
+                self.kill_group(); // the launcher left: a helper of it may stay
                 return;
             }
             std::thread::sleep(Duration::from_millis(10));
         }
+        self.kill_group();
         let _ = self.child.kill();
         let _ = self.child.wait();
     }
@@ -1024,6 +1040,8 @@ impl McpControl {
         for (var, value) in &env {
             cmd.env(var, value.expose());
         }
+        #[cfg(unix)]
+        std::os::unix::process::CommandExt::process_group(&mut cmd, 0);
         let mut child = quiet(&mut cmd)
             .spawn()
             .map_err(|e| AgentError::Server(format!("{} did not start: {e}", server.command)))?;
