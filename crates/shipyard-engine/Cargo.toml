@@ -3,3 +3,10 @@ name = "shipyard-engine"
 version.workspace = true
 edition.workspace = true
 publish = false
+
+[dependencies]
+shipyard-core = { version = "0.1.0", path = "../shipyard-core" }
+shipyard-store = { version = "0.1.0", path = "../shipyard-store" }
+
+[dev-dependencies]
+tempfile = "3.27.0"

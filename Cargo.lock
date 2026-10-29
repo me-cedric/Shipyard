@@ -3846,6 +3846,11 @@ dependencies = [
 [[package]]
 name = "shipyard-engine"
 version = "0.1.0"
+dependencies = [
+ "shipyard-core",
+ "shipyard-store",
+ "tempfile",
+]
 
 [[package]]
 name = "shipyard-forges"
