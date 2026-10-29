@@ -9,20 +9,14 @@ use std::path::Path;
 use git2::{BranchType, Direction, Index, IndexEntry, IndexTime};
 use shipyard_core::code::{check_branch_name, check_summary};
 
+pub use shipyard_core::delivery::is_tool_branch;
+
 use crate::auth::{Auth, proxy_options};
 use crate::code::{PullOutcome, Repo, check_paths};
 use crate::error::{GitError, Result};
 
-/// Branch prefixes that an agent tool picks for itself.
-const TOOL_PREFIXES: [&str; 5] = ["claude/", "codex/", "copilot/", "gemini/", "opencode/"];
-
 /// Branches that a run never pushes to, whatever the base is.
 const PROTECTED: [&str; 4] = ["main", "master", "develop", "trunk"];
-
-/// A branch that a tool named (`claude/fix-login`): REQ-007 renames it before the first push.
-pub fn is_tool_branch(name: &str) -> bool {
-    TOOL_PREFIXES.iter().any(|p| name.starts_with(p))
-}
 
 fn is_protected(branch: &str, base: &str) -> bool {
     // `base` can be a remote tracking name: `origin/develop`.

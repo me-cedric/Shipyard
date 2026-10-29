@@ -91,6 +91,7 @@ fn tool_branches_are_found_by_prefix() {
         "claude/fix-login",
         "codex/x",
         "copilot/x",
+        "cursor/x",
         "gemini/x",
         "opencode/x",
     ] {
