@@ -39,11 +39,65 @@ fn main_path_reaches_done() {
 #[test]
 fn refused_transition_keeps_the_state() {
     let run = walk(&TO_WORKING);
-    let err = run.apply(RunEvent::PrMerged).unwrap_err();
+    let err = run.apply(RunEvent::Closed).unwrap_err();
     assert_eq!(err.from, RunState::Working);
-    assert_eq!(err.event, RunEvent::PrMerged);
+    assert_eq!(err.event, RunEvent::Closed);
     assert_eq!(run.state, RunState::Working);
     assert!(err.to_string().contains("Working"));
+}
+
+#[test]
+fn a_merge_while_the_run_fixes_goes_to_merged_then_done() {
+    let fixing = |extra: &[RunEvent]| {
+        let mut events = TO_WORKING.to_vec();
+        events.extend([RunEvent::BuildDone, RunEvent::PrOpened]);
+        events.extend_from_slice(extra);
+        walk(&events)
+    };
+    let cases = [
+        // ChangesRequested, then Working after FixStarted, then SelfReview after the fix.
+        (
+            fixing(&[RunEvent::ChangesRequested]),
+            RunState::ChangesRequested,
+        ),
+        (
+            fixing(&[RunEvent::ChangesRequested, RunEvent::FixStarted]),
+            RunState::Working,
+        ),
+        (
+            fixing(&[
+                RunEvent::ChangesRequested,
+                RunEvent::FixStarted,
+                RunEvent::BuildDone,
+            ]),
+            RunState::SelfReview,
+        ),
+    ];
+    for (run, state) in cases {
+        assert_eq!(run.state, state);
+        let merged = run.apply(RunEvent::PrMerged).unwrap();
+        assert_eq!(merged.state, RunState::Merged, "from {state:?}");
+        assert_eq!(
+            merged.apply(RunEvent::Closed).unwrap().state,
+            RunState::Done
+        );
+    }
+}
+
+#[test]
+fn a_merge_is_refused_where_no_pull_request_can_exist() {
+    for state in [
+        RunState::Queued,
+        RunState::Claimed,
+        RunState::Planning,
+        RunState::PlanReview,
+    ] {
+        let run = Run {
+            state,
+            return_to: None,
+        };
+        assert!(run.apply(RunEvent::PrMerged).is_err(), "{state:?}");
+    }
 }
 
 #[test]

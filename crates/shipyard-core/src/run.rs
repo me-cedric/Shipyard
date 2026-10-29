@@ -121,6 +121,8 @@ pub enum RunEvent {
     /// A CI failure or a review comment (REQ-002).
     ChangesRequested,
     FixStarted,
+    /// The pull request merged. The engine sends it only to a run that holds a pull request, so
+    /// `Working` and `SelfReview` mean a fix round (the first build has no pull request yet).
     PrMerged,
     /// The merge close ended (`delivery` REQ-022).
     Closed,
@@ -204,7 +206,11 @@ impl Run {
             (S::SelfReview, E::FixRound) => to(S::Working),
             (S::SelfReview, E::PrOpened) => to(S::PROpen),
             (S::PROpen, E::ChangesRequested) => to(S::ChangesRequested),
-            (S::PROpen, E::PrMerged) => to(S::Merged),
+            // A pull request that merges while the run fixes it (`delivery` REQ-022): the fix is
+            // moot, the engine stops the agents and the close follows.
+            (S::PROpen | S::ChangesRequested | S::Working | S::SelfReview, E::PrMerged) => {
+                to(S::Merged)
+            }
             (S::ChangesRequested, E::FixStarted) => to(S::Working),
             (S::Merged, E::Closed) => to(S::Done),
             // Several questions: the return state stays the one before the first (questions-loop REQ-014).
