@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands } from "@/lib/ipc";
 import { DOC_DIR, useDocFile, useDocList, useSlideTheme } from "@/lib/knowledge";
@@ -7,8 +7,12 @@ import { Button } from "@/ui/atoms/button";
 import { PlayIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
-import { SlideDeck } from "@/ui/organisms/slide-deck";
 import { ListTab } from "./list-tab";
+
+// reveal.js loads on the first deck, not on the first screen.
+const SlideDeck = lazy(() =>
+	import("@/ui/organisms/slide-deck").then((m) => ({ default: m.SlideDeck })),
+);
 
 const TEMPLATE = (name: string) => `# ${name}\n\n---\n\n## Slide\n\n- Point\n`;
 
@@ -43,29 +47,31 @@ function DeckEditor({ path, title }: { path: string; title: string }) {
 			onKeepMine={() => void file.keepMine()}
 			labels={k.editor}
 		>
-			<div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-1 gap-3">
-				<CodeEditor label={k.editor.text} value={file.text} onChange={file.setText} />
-				{theme ? (
-					<div className="min-h-0 overflow-auto">
-						<SlideDeck
-							slides={slides}
-							style={theme}
-							label={`${k.slides.slides} (${slides.length})`}
-							slideLabel={(n) => format(k.slides.slide, { n })}
-						/>
-					</div>
+			<Suspense fallback={null}>
+				<div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-1 gap-3">
+					<CodeEditor label={k.editor.text} value={file.text} onChange={file.setText} />
+					{theme ? (
+						<div className="min-h-0 overflow-auto">
+							<SlideDeck
+								slides={slides}
+								style={theme}
+								label={`${k.slides.slides} (${slides.length})`}
+								slideLabel={(n) => format(k.slides.slide, { n })}
+							/>
+						</div>
+					) : null}
+				</div>
+				{present && theme ? (
+					<SlideDeck
+						present
+						slides={slides}
+						style={theme}
+						label={k.slides.present}
+						slideLabel={(n) => format(k.slides.slide, { n })}
+						onLeave={() => setPresent(false)}
+					/>
 				) : null}
-			</div>
-			{present && theme ? (
-				<SlideDeck
-					present
-					slides={slides}
-					style={theme}
-					label={k.slides.present}
-					slideLabel={(n) => format(k.slides.slide, { n })}
-					onLeave={() => setPresent(false)}
-				/>
-			) : null}
+			</Suspense>
 		</EditorFrame>
 	);
 }

@@ -200,9 +200,9 @@ export function Gantt({
 			renderItem={(e) =>
 				e.kind === "group" ? (
 					<div className="flex h-row items-center border-b bg-n-2" style={{ minWidth: width }}>
-						<h3 className="sticky left-0 px-3 text-12 font-medium text-n-11">
+						<h2 className="sticky left-0 px-3 text-12 font-medium text-n-11">
 							{format(t.count, { name: e.id, count: e.count })}
-						</h3>
+						</h2>
 					</div>
 				) : (
 					<div className="relative h-row border-b" style={{ minWidth: width }}>

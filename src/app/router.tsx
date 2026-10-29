@@ -34,7 +34,8 @@ function SpaceLayout({ space }: { space: SpaceId }) {
 	return (
 		<div className="flex h-full flex-col">
 			<TabsBar space={space} trailing={space === "code" ? <BranchSelector /> : undefined} />
-			<div className="flex min-h-0 flex-1 flex-col overflow-auto">
+			{/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable) */}
+			<div tabIndex={0} className="flex min-h-0 flex-1 flex-col overflow-auto">
 				<Outlet />
 			</div>
 		</div>

@@ -54,7 +54,7 @@ export function TileCard({
 			)}
 		>
 			<header className="flex items-center gap-1">
-				<h3 className="min-w-0 flex-1 truncate text-ui font-medium">{title}</h3>
+				<h2 className="min-w-0 flex-1 truncate text-ui font-medium">{title}</h2>
 				{actions}
 				{off ? null : (
 					<IconButton

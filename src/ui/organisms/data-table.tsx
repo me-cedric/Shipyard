@@ -80,6 +80,7 @@ export function DataTable<T extends RowData>({
 	return (
 		<div role="table" aria-label={label} className="flex min-h-0 flex-1 flex-col">
 			<VirtualList
+				role="rowgroup"
 				items={entries}
 				itemKey={(e) => (e.kind === "group" ? `g:${e.id}` : e.row.id)}
 				isRow={(e) => e.kind === "row"}
@@ -90,7 +91,8 @@ export function DataTable<T extends RowData>({
 							hg.headers.map((h) => (
 								<div
 									key={h.id}
-									role="columnheader"
+									// An empty header (a status dot, an action) is a plain cell: axe rejects a nameless columnheader.
+									role={h.column.columnDef.header === "" ? "cell" : "columnheader"}
 									className={cn(
 										"truncate text-12 font-medium text-n-11",
 										h.column.columnDef.meta?.numeric && "text-right",
@@ -107,9 +109,9 @@ export function DataTable<T extends RowData>({
 						return (
 							<div role="row" className="flex h-row items-center border-b bg-n-2 px-3">
 								<div role="cell">
-									<h3 className="text-12 font-medium text-n-11">
+									<h2 className="text-12 font-medium text-n-11">
 										{format(t.count, { name: groupLabel?.(e.id) ?? e.id, count: e.count })}
-									</h3>
+									</h2>
 								</div>
 							</div>
 						);

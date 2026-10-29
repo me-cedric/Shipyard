@@ -18,6 +18,7 @@ export function VirtualList<T>({
 	header,
 	width,
 	className,
+	role,
 	children,
 }: {
 	items: T[];
@@ -31,6 +32,8 @@ export function VirtualList<T>({
 	/** The width of the content in px, when it is wider than the list. */
 	width?: number;
 	className?: string;
+	/** `rowgroup` inside a table: a focusable scroller with no role is not a valid child of it. */
+	role?: "rowgroup";
 	/** Drawn behind the rows, over the whole content (the weekends of a plan). */
 	children?: ReactNode;
 }) {
@@ -65,6 +68,9 @@ export function VirtualList<T>({
 		// biome-ignore lint/a11y/noStaticElementInteractions: the key handler only moves the focus between the rows inside
 		<div
 			ref={scroller}
+			role={role}
+			// A scroll area needs a keyboard stop (axe scrollable-region-focusable).
+			tabIndex={0}
 			className={cn("relative min-h-0 flex-1 overflow-auto", className)}
 			onKeyDown={(e) => {
 				if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
