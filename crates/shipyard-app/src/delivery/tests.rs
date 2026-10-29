@@ -330,6 +330,21 @@ fn a_push_goes_from_the_run_folder_to_the_remote_and_a_protected_base_is_refused
         draft: true,
     };
     assert_eq!(w.send(&open).unwrap_err(), NO_FORGE);
+    // The branch must be the one of the run folder, and never the base.
+    let on = |branch: &str, base: &str| Write::OpenPr {
+        run: RUN.into(),
+        branch: branch.into(),
+        base: base.into(),
+        title: "feat: x".into(),
+        body: String::new(),
+        labels: vec![],
+        reviewers: vec![],
+        draft: true,
+    };
+    let wrong = w.send(&on("feat/src/other", "develop")).unwrap_err();
+    assert!(wrong.contains("not on `feat/src/other`"), "{wrong}");
+    let same = w.send(&on("feat/src/add-x", "feat/src/add-x")).unwrap_err();
+    assert!(same.contains("is the base"), "{same}");
 }
 
 #[test]

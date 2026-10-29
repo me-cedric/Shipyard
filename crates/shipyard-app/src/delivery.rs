@@ -577,6 +577,7 @@ impl Writer for ProjectWriter {
                 Ok(String::new())
             }
             Write::OpenPr {
+                run,
                 branch,
                 base,
                 title,
@@ -584,8 +585,21 @@ impl Writer for ProjectWriter {
                 labels,
                 reviewers,
                 draft,
-                ..
             } => {
+                // The approval names this branch: open a pull request for it and nothing else,
+                // and never from the base itself.
+                let head = self.folders.run_repo(run)?.status().map_err(e)?.branch;
+                if head.as_deref() != Some(branch.as_str()) {
+                    return Err(format!(
+                        "the run folder is on `{}`, not on `{branch}`: no pull request was opened",
+                        head.unwrap_or_default()
+                    ));
+                }
+                if branch == base {
+                    return Err(format!(
+                        "the branch `{branch}` is the base: no pull request was opened"
+                    ));
+                }
                 let (api, repo) = self.api()?;
                 let pull = api
                     .create_pull(
