@@ -339,6 +339,11 @@ The run SHALL return to its return state with the answer in its context. It SHAL
 - WHEN the answer arrives
 - THEN a new session starts with a brief from the run log and the answer
 
+#### Scenario: Restart
+- GIVEN an open question and the app restarts (`factory` REQ-039)
+- WHEN the answer arrives
+- THEN the question is still open and still a marker, and the run resumes with the answer and posts no second comment
+
 ### Requirement: REQ-018 Ticket became terminal
 
 When the ticket of a question becomes terminal, the system SHALL close each ticket-level question of that run as withdrawn. It SHALL post no comment. A spec-level question SHALL stay open until a person answers it or withdraws it.
