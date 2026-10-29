@@ -208,6 +208,31 @@ fn a_server_that_does_not_answer_gives_the_client_an_error_not_silence() {
 }
 
 #[test]
+fn an_app_that_drops_the_connection_after_the_request_is_not_replaced_by_a_second_run() {
+    use std::io::BufRead;
+    let lab = Lab::new();
+    let socket = lab.socket();
+    std::fs::create_dir_all(socket.parent().unwrap()).unwrap();
+    let listener = std::os::unix::net::UnixListener::bind(&socket).unwrap();
+    let app = std::thread::spawn(move || {
+        let (conn, _) = listener.accept().unwrap();
+        let mut line = String::new();
+        std::io::BufReader::new(&conn).read_line(&mut line).unwrap();
+        // The request is in; the answer never comes.
+    });
+    let fallback = Proxy::new(lab.control(true));
+    let answers = turn(
+        &lab,
+        "custom-fake",
+        &fallback,
+        &[json!({"jsonrpc":"2.0","id":1,"method":"tools/list"})],
+    );
+    app.join().unwrap();
+    assert_eq!(answers[0]["error"]["code"], -32603);
+    assert_eq!(lab.pids(), 0, "the relay did not start the server itself");
+}
+
+#[test]
 fn the_socket_is_private_and_goes_away_with_the_relay() {
     let lab = Lab::new();
     let window = Arc::new(Proxy::new(lab.control(true)));

@@ -6,9 +6,7 @@ use std::process::Command;
 /// `PATH`, plus the folders where a desktop app often finds no `PATH` entry: a person's tool
 /// folders, Homebrew and npm. An app started from the Dock or the Start menu has a short `PATH`.
 pub fn search_dirs() -> Vec<PathBuf> {
-    let mut dirs: Vec<PathBuf> = std::env::var_os("PATH")
-        .map(|p| std::env::split_paths(&p).collect())
-        .unwrap_or_default();
+    let mut dirs = path_dirs(std::env::var_os("PATH").as_deref());
     let home = std::env::var_os("HOME")
         .or_else(|| std::env::var_os("USERPROFILE"))
         .map(PathBuf::from);
@@ -35,6 +33,17 @@ pub fn search_dirs() -> Vec<PathBuf> {
         new
     });
     dirs
+}
+
+/// The absolute folders of a `PATH` value. A relative entry, and an empty one that means the
+/// current folder, would run a program of whatever folder the app sits in: they are dropped.
+fn path_dirs(path: Option<&std::ffi::OsStr>) -> Vec<PathBuf> {
+    path.map(|p| {
+        std::env::split_paths(p)
+            .filter(|d| d.is_absolute())
+            .collect()
+    })
+    .unwrap_or_default()
 }
 
 /// The path of an executable called `program`. A name with a folder part is checked as it is.
@@ -83,4 +92,19 @@ pub fn quiet(cmd: &mut Command) -> &mut Command {
         cmd.creation_flags(0x0800_0000);
     }
     cmd
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_absolute_path_entries_stay() {
+        let sep = if cfg!(windows) { ";" } else { ":" };
+        let abs = if cfg!(windows) { r"C:\bin" } else { "/usr/bin" };
+        let raw = format!("{sep}bin{sep}.{sep}{abs}{sep}../x");
+        let dirs = path_dirs(Some(std::ffi::OsStr::new(&raw)));
+        assert_eq!(dirs, [PathBuf::from(abs)]);
+        assert!(path_dirs(None).is_empty());
+    }
 }

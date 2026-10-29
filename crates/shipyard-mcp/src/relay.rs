@@ -98,6 +98,11 @@ pub fn run(server: &str) -> io::Result<()> {
 #[cfg(unix)]
 const WAIT: std::time::Duration = std::time::Duration::from_secs(120);
 
+/// How long the app waits for a relay to send its line, and to take the answer. A relay that
+/// connects and stays silent must not hold a thread for ever.
+#[cfg(unix)]
+const IO_WAIT: std::time::Duration = std::time::Duration::from_secs(10);
+
 /// Largest line that the app reads from a relay.
 #[cfg(unix)]
 const MAX_LINE: u64 = 8 * 1024 * 1024;
@@ -177,6 +182,8 @@ impl Drop for Relay {
 fn answer(conn: std::os::unix::net::UnixStream, proxy: &Proxy) {
     use std::io::Read;
     let _ = conn.set_nonblocking(false);
+    let _ = conn.set_read_timeout(Some(IO_WAIT));
+    let _ = conn.set_write_timeout(Some(IO_WAIT));
     let mut line = String::new();
     if io::BufReader::new((&conn).take(MAX_LINE))
         .read_line(&mut line)
@@ -194,19 +201,24 @@ fn answer(conn: std::os::unix::net::UnixStream, proxy: &Proxy) {
     let _ = writeln!(&conn, "{}", json!({ "response": response }));
 }
 
-/// Ask the app. `Err` when it cannot be reached. `Ok(None)` when it answered and the server did not.
+/// Ask the app. `Err` only when the app cannot be connected to: the one case where the caller
+/// may run the server itself. After the request is sent, the server may have run it, so any
+/// failure is `Ok(None)` (no answer), never a second run. `Ok(None)` also when the server did
+/// not answer.
 #[cfg(unix)]
 fn ask(socket: &Path, server: &str, method: &str, params: &Value) -> Result<Option<Value>, ()> {
     let conn = std::os::unix::net::UnixStream::connect(socket).map_err(|_| ())?;
-    conn.set_read_timeout(Some(WAIT)).map_err(|_| ())?;
     let request = json!({ "server": server, "method": method, "params": params });
-    writeln!(&conn, "{request}").map_err(|_| ())?;
-    let mut line = String::new();
-    io::BufReader::new(&conn)
-        .read_line(&mut line)
-        .map_err(|_| ())?;
-    let reply: Value = serde_json::from_str(&line).map_err(|_| ())?;
-    Ok(Some(reply["response"].clone()).filter(|r| !r.is_null()))
+    let reply = (|| -> Option<Value> {
+        conn.set_read_timeout(Some(WAIT)).ok()?;
+        writeln!(&conn, "{request}").ok()?;
+        let mut line = String::new();
+        io::BufReader::new(&conn).read_line(&mut line).ok()?;
+        serde_json::from_str::<Value>(&line).ok()
+    })();
+    Ok(reply
+        .map(|r| r["response"].clone())
+        .filter(|r| !r.is_null()))
 }
 
 #[cfg(not(unix))]

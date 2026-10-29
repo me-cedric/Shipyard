@@ -34,6 +34,43 @@ use std::time::{Duration, Instant};
 
 /* ---------- Definitions ---------- */
 
+/// The bridge for an HTTP server. A pinned version: a secret goes to this process, so a new
+/// release must not run unseen. Same rule for every package of the catalogue.
+const MCP_REMOTE: &str = "mcp-remote@0.15.2";
+
+/// The variables of the app that a child keeps: where its home and temporary folders are, and the
+/// proxy of the network. `PATH` is set from the search folders. Nothing else goes through.
+const CHILD_ENV: &[&str] = &[
+    "HOME",
+    "USER",
+    "LOGNAME",
+    "SHELL",
+    "TMPDIR",
+    "LANG",
+    "LC_ALL",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "NO_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "no_proxy",
+    // Windows: a launcher fails to start without these.
+    "SystemRoot",
+    "USERPROFILE",
+    "APPDATA",
+    "LOCALAPPDATA",
+    "TEMP",
+    "TMP",
+    "ComSpec",
+    "PATHEXT",
+];
+
+/// The longest secret a person can store, as for a connection.
+const MAX_SECRET: usize = 4096;
+
+/// How long a package manager runs for an install before it is stopped.
+const INSTALL_DEADLINE: Duration = Duration::from_secs(600);
+
 /// One input of a server. Each value is a keychain entry, secret or not.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
 #[serde(rename = "McpField")]
@@ -122,7 +159,7 @@ pub fn catalogue() -> Vec<ServerDef> {
         &[
             "npx",
             "-y",
-            "mcp-remote@latest",
+            MCP_REMOTE,
             "https://mcp.atlassian.com/v1/mcp",
             "--header",
             "Authorization:${ATLASSIAN_AUTH}",
@@ -144,7 +181,7 @@ pub fn catalogue() -> Vec<ServerDef> {
             "design",
             "Figma",
             "Reads Figma file layout, components and styles.",
-            &["npx", "-y", "figma-developer-mcp", "--stdio"],
+            &["npx", "-y", "figma-developer-mcp@0.13.2", "--stdio"],
             &[("FIGMA_API_KEY", "token")],
             &[("token", "Figma API token", true)],
         ),
@@ -154,7 +191,7 @@ pub fn catalogue() -> Vec<ServerDef> {
             "cloud",
             "Azure",
             "Microsoft Azure MCP server. Sign in with `az login` first.",
-            &["npx", "-y", "@azure/mcp@latest", "server", "start"],
+            &["npx", "-y", "@azure/mcp@3.0.0", "server", "start"],
             &[],
             &[],
         ),
@@ -163,7 +200,7 @@ pub fn catalogue() -> Vec<ServerDef> {
             "cloud",
             "AWS",
             "AWS API MCP server. Sign in with `aws sso login` first.",
-            &["uvx", "awslabs.aws-api-mcp-server@latest"],
+            &["uvx", "awslabs.aws-api-mcp-server@1.6.0"],
             &[],
             &[],
         ),
@@ -172,7 +209,7 @@ pub fn catalogue() -> Vec<ServerDef> {
             "cloud",
             "Google Cloud",
             "gcloud MCP server. Sign in with `gcloud auth login` first.",
-            &["npx", "-y", "@google-cloud/gcloud-mcp"],
+            &["npx", "-y", "@google-cloud/gcloud-mcp@0.5.3"],
             &[],
             &[],
         ),
@@ -190,7 +227,7 @@ pub fn catalogue() -> Vec<ServerDef> {
             "design",
             "LikeC4",
             "Reads the LikeC4 models of the project folder.",
-            &["npx", "-y", "@likec4/mcp"],
+            &["npx", "-y", "@likec4/mcp@1.60.0"],
             &[],
             &[],
         ),
@@ -199,7 +236,7 @@ pub fn catalogue() -> Vec<ServerDef> {
             "data",
             "Context7",
             "Current documentation for the libraries an agent uses.",
-            &["npx", "-y", "@upstash/context7-mcp"],
+            &["npx", "-y", "@upstash/context7-mcp@4.4.4"],
             &[],
             &[],
         ),
@@ -208,7 +245,7 @@ pub fn catalogue() -> Vec<ServerDef> {
             "browser",
             "Chrome DevTools",
             "Drives Chrome: console, network, screenshots. Starts with an empty profile.",
-            &["npx", "-y", "chrome-devtools-mcp@latest", "--isolated"],
+            &["npx", "-y", "chrome-devtools-mcp@1.12.0", "--isolated"],
             &[],
             &[],
         ),
@@ -217,7 +254,7 @@ pub fn catalogue() -> Vec<ServerDef> {
             "browser",
             "Playwright",
             "Drives a browser through the page structure. Starts with an empty profile.",
-            &["npx", "-y", "@playwright/mcp@latest", "--isolated"],
+            &["npx", "-y", "@playwright/mcp@0.0.83", "--isolated"],
             &[],
             &[],
         ),
@@ -226,7 +263,7 @@ pub fn catalogue() -> Vec<ServerDef> {
             "quality",
             "Semgrep",
             "Scans code for security issues on this machine.",
-            &["uvx", "semgrep", "mcp"],
+            &["uvx", "semgrep@1.182.1", "mcp"],
             &[],
             &[],
         ),
@@ -333,11 +370,7 @@ fn normalize(input: CustomInput) -> Result<(ServerDef, BTreeMap<String, Secret>)
     }
     let (command, args) = if command.starts_with("http://") || command.starts_with("https://") {
         // The address holds no credential or query: a secret never goes in a URL.
-        let mut args = vec![
-            "-y".to_string(),
-            "mcp-remote@latest".to_string(),
-            base_url(command)?,
-        ];
+        let mut args = vec!["-y".to_string(), MCP_REMOTE.to_string(), base_url(command)?];
         args.extend(input.args);
         ("npx".to_string(), args)
     } else {
@@ -513,9 +546,69 @@ pub fn install_plan(command: &str, dirs: &[PathBuf], os: Os) -> Option<InstallPl
     })
 }
 
+fn drain<R: std::io::Read + Send + 'static>(pipe: Option<R>) -> std::thread::JoinHandle<String> {
+    std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        if let Some(mut p) = pipe {
+            let _ = p.read_to_end(&mut bytes);
+        }
+        String::from_utf8_lossy(&bytes).into_owned()
+    })
+}
+
+/// Run `cmd` and give back its status and what it printed. A command that runs longer than
+/// `deadline` is killed, with its group on unix, and that is an error.
+fn run_with_deadline(
+    cmd: &mut Command,
+    deadline: Duration,
+) -> Result<(std::process::ExitStatus, String), String> {
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    #[cfg(unix)]
+    std::os::unix::process::CommandExt::process_group(cmd, 0);
+    let mut child = cmd.spawn().map_err(|e| format!("did not run: {e}"))?;
+    let out = drain(child.stdout.take());
+    let err = drain(child.stderr.take());
+    let end = Instant::now() + deadline;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if Instant::now() < end => std::thread::sleep(Duration::from_millis(20)),
+            other => {
+                #[cfg(unix)]
+                if let Ok(pgid) = i32::try_from(child.id()) {
+                    // SAFETY: `killpg` only sends a signal; it touches no memory.
+                    unsafe { libc::killpg(pgid, libc::SIGKILL) };
+                }
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(match other {
+                    Err(e) => format!("did not run: {e}"),
+                    _ => format!("did not finish in {deadline:?}"),
+                });
+            }
+        }
+    };
+    let said = format!(
+        "{}{}",
+        out.join().unwrap_or_default(),
+        err.join().unwrap_or_default()
+    );
+    Ok((status, said))
+}
+
 /// Run the plan for `command`, then check that the command is on the path. Returns what the
 /// manager printed. Blocks: call it off the UI thread.
 pub fn install_with(command: &str, dirs: &[PathBuf], os: Os) -> Result<String, AgentError> {
+    install_within(command, dirs, os, INSTALL_DEADLINE)
+}
+
+/// [`install_with`] with its own deadline: the manager is killed when it runs longer.
+pub fn install_within(
+    command: &str,
+    dirs: &[PathBuf],
+    os: Os,
+    deadline: Duration,
+) -> Result<String, AgentError> {
     let known = KNOWN
         .iter()
         .find(|k| k.command == command)
@@ -533,14 +626,8 @@ pub fn install_with(command: &str, dirs: &[PathBuf], os: Os) -> Result<String, A
     if let Ok(path) = std::env::join_paths(dirs) {
         cmd.env("PATH", path);
     }
-    let out = quiet(&mut cmd)
-        .output()
-        .map_err(|e| AgentError::Install(format!("{} did not run: {e}", plan.program)))?;
-    let said = format!(
-        "{}{}",
-        String::from_utf8_lossy(&out.stdout),
-        String::from_utf8_lossy(&out.stderr)
-    );
+    let (status, said) = run_with_deadline(quiet(&mut cmd), deadline)
+        .map_err(|e| AgentError::Install(format!("{} {e}", plan.program)))?;
     let said: String = said
         .trim()
         .chars()
@@ -550,7 +637,7 @@ pub fn install_with(command: &str, dirs: &[PathBuf], os: Os) -> Result<String, A
         .into_iter()
         .rev()
         .collect();
-    if !out.status.success() {
+    if !status.success() {
         return Err(AgentError::Install(format!(
             "{} failed: {said}",
             plan.program
@@ -716,6 +803,8 @@ fn alive(session: &Arc<Mutex<Session>>) -> bool {
 struct Slot {
     state: State,
     session: Option<Arc<Mutex<Session>>>,
+    /// The process group of `session`, known without its lock. Only `stop_all` reads it.
+    pgid: Option<u32>,
     /// One start at a time per server. A second caller waits, then finds it running.
     gate: Arc<Mutex<()>>,
 }
@@ -875,6 +964,12 @@ impl McpControl {
         if !self.def(id)?.fields.iter().any(|f| f.key == key) {
             return Err(AgentError::Invalid(format!("{id} has no field {key}")));
         }
+        let value = Secret::new(value.expose().trim());
+        if value.is_empty() || value.expose().len() > MAX_SECRET {
+            return Err(AgentError::Invalid(format!(
+                "the value needs 1 to {MAX_SECRET} characters"
+            )));
+        }
         self.store.set(&account(id, key), &value)?;
         Ok(())
     }
@@ -998,6 +1093,7 @@ impl McpControl {
             .or_insert_with(|| Slot {
                 state: State::Stopped,
                 session: None,
+                pgid: None,
                 gate: Arc::default(),
             })
             .gate
@@ -1009,7 +1105,11 @@ impl McpControl {
         self.set_state(id, State::Starting, None);
         match self.open(&server) {
             Ok(session) => {
+                let pgid = session.child.id();
                 self.set_state(id, State::Running, Some(Arc::new(Mutex::new(session))));
+                if let Some(slot) = lock(&self.slots).get_mut(id) {
+                    slot.pgid = Some(pgid);
+                }
                 Ok(())
             }
             Err(e) => {
@@ -1038,6 +1138,14 @@ impl McpControl {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null());
+        // The app environment holds no business with a package from the network: start clean,
+        // then give back what a launcher needs and the variables of this server.
+        cmd.env_clear();
+        for var in CHILD_ENV {
+            if let Some(value) = std::env::var_os(var) {
+                cmd.env(var, value);
+            }
+        }
         if let Ok(path) = std::env::join_paths(&self.dirs) {
             cmd.env("PATH", path);
         }
@@ -1104,12 +1212,26 @@ impl McpControl {
             .values_mut()
             .filter_map(|slot| {
                 slot.state = State::Stopped;
-                slot.session.take()
+                let pgid = slot.pgid.take();
+                slot.session.take().map(|s| (s, pgid))
             })
             .collect();
-        for session in &all {
-            if let Ok(mut s) = session.try_lock() {
-                s.stdin = None; // every process gets the close at once
+        for (session, pgid) in &all {
+            #[cfg(not(unix))]
+            let _ = pgid;
+            match session.try_lock() {
+                Ok(mut s) => s.stdin = None, // every process gets the close at once
+                // A request holds the session and may wait 30 s: the quit cannot. Its own
+                // `Session` drop comes too late, so end the group here. Nothing reaps the child
+                // while the request holds the lock, so the id still names our process group.
+                #[cfg(unix)]
+                Err(TryLockError::WouldBlock) => {
+                    if let Some(pgid) = pgid.and_then(|p| i32::try_from(p).ok()) {
+                        // SAFETY: `killpg` only sends a signal; it touches no memory.
+                        unsafe { libc::killpg(pgid, libc::SIGKILL) };
+                    }
+                }
+                Err(_) => {}
             }
         }
     }

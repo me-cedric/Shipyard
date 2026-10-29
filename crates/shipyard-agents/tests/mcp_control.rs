@@ -7,6 +7,7 @@ use shipyard_agents::AgentError;
 use shipyard_agents::fake::{mcp_server, program};
 use shipyard_agents::mcp_control::{
     CustomInput, McpConfig, McpControl, Os, State, Waits, catalogue, install_plan, install_with,
+    install_within,
 };
 use shipyard_agents::which::which;
 use shipyard_secrets::{MemoryStore, Secret, SecretStore};
@@ -85,6 +86,16 @@ fn gone(pid: &str) -> bool {
         .status()
         .unwrap()
         .success()
+}
+
+/// Gone, or killed and not yet reaped (a zombie answers `kill -0`).
+fn dead(pid: &str) -> bool {
+    let out = std::process::Command::new("ps")
+        .args(["-o", "stat=", "-p", pid])
+        .output()
+        .unwrap();
+    let stat = String::from_utf8_lossy(&out.stdout);
+    stat.trim().is_empty() || stat.trim().starts_with('Z')
 }
 
 #[test]
@@ -191,7 +202,7 @@ fn a_custom_server_is_checked_and_an_address_becomes_a_bridge() {
     assert_eq!(def.command, "npx");
     assert_eq!(
         def.args,
-        ["-y", "mcp-remote@latest", "https://mcp.example.com/v1/mcp"]
+        ["-y", "mcp-remote@0.15.2", "https://mcp.example.com/v1/mcp"]
     );
 }
 
@@ -270,6 +281,31 @@ fn stop_and_quit_end_a_grandchild_of_the_launcher_too() {
             "the helper ends with the group (quit: {quit})"
         );
     }
+}
+
+#[test]
+fn quitting_ends_a_server_that_is_busy_with_a_request() {
+    let lab = Lab::new();
+    let (control, id) = lab.with_fake();
+    let control = Arc::new(control);
+    control.start(&id).unwrap();
+    let pid = lab.pids().pop().unwrap();
+    let busy = {
+        let (control, id) = (control.clone(), id.clone());
+        std::thread::spawn(move || control.request(&id, "hang", json!({})))
+    };
+    std::thread::sleep(Duration::from_millis(200));
+    control.stop_all();
+    let mut tries = 0;
+    while !dead(&pid) && tries < 20 {
+        std::thread::sleep(Duration::from_millis(20));
+        tries += 1;
+    }
+    assert!(
+        dead(&pid),
+        "the busy server ends at the quit, not after its request"
+    );
+    let _ = busy.join();
 }
 
 #[test]
@@ -366,6 +402,38 @@ fn secrets_reach_the_process_in_its_environment() {
 }
 
 #[test]
+fn a_child_gets_a_clean_environment_and_the_catalogue_is_pinned() {
+    let lab = Lab::new();
+    mcp_server(lab.dir.path(), "fake-env", &lab.pid_file());
+    program(
+        lab.dir.path(),
+        "fake-leak",
+        &format!(
+            "echo \"$SHIPYARD_TEST_LEAK\" > '{}'\nexec '{}'",
+            lab.dir.path().join("leak").display(),
+            lab.dir.path().join("fake-env").display()
+        ),
+    );
+    // SAFETY: no other test of this binary reads or writes this variable.
+    unsafe { std::env::set_var("SHIPYARD_TEST_LEAK", "app-secret") };
+    let control = lab.control();
+    let id = control.add_custom(custom("Leak", "fake-leak")).unwrap().id;
+    control.start(&id).unwrap();
+    let leaked = std::fs::read_to_string(lab.dir.path().join("leak")).unwrap();
+    assert_eq!(
+        leaked.trim(),
+        "",
+        "the app environment stays out of the child"
+    );
+
+    for server in catalogue() {
+        for word in &server.args {
+            assert!(!word.ends_with("@latest"), "{}: {word}", server.id);
+        }
+    }
+}
+
+#[test]
 fn a_catalogue_field_is_stored_by_key_and_checked() {
     let lab = Lab::new();
     let control = lab.control();
@@ -394,6 +462,25 @@ fn a_catalogue_field_is_stored_by_key_and_checked() {
         control
             .set_field("nope", "token", Secret::new("x"))
             .is_err()
+    );
+    // Trimmed, not empty, not too long: as a connection secret.
+    control
+        .set_field("figma", "token", Secret::new("  padded  "))
+        .unwrap();
+    assert_eq!(
+        lab.store.get("conn:figma/token").unwrap().unwrap().expose(),
+        "padded"
+    );
+    for bad in [String::new(), "   ".into(), "x".repeat(4097)] {
+        assert!(
+            control
+                .set_field("figma", "token", Secret::new(bad))
+                .is_err()
+        );
+    }
+    assert_eq!(
+        lab.store.get("conn:figma/token").unwrap().unwrap().expose(),
+        "padded"
     );
 }
 
@@ -555,6 +642,16 @@ fn an_install_runs_the_manager_and_checks_that_the_command_exists_after() {
         .unwrap_err()
         .to_string();
     assert!(err.contains("still not"), "{err}");
+
+    // A manager that hangs is stopped at the deadline.
+    let lab = Lab::new();
+    program(lab.dir.path(), "brew", "sleep 30");
+    let began = std::time::Instant::now();
+    let err = install_within("npx", &lab.dirs(), Os::Mac, Duration::from_millis(300))
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("did not finish"), "{err}");
+    assert!(began.elapsed() < Duration::from_secs(5));
 
     // With no manager, the person gets the link.
     let lab = Lab::new();
