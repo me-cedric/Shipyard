@@ -1,0 +1,61 @@
+[
+  {
+    "id": 9012,
+    "number": 12,
+    "title": "Fix login redirect",
+    "body": "Users land on a blank page after login.",
+    "state": "open",
+    "repository_url": "https://api.github.com/repos/acme/web",
+    "html_url": "https://github.com/acme/web/issues/12",
+    "labels": [
+      {
+        "name": "bug"
+      },
+      {
+        "name": "shipyard"
+      }
+    ],
+    "assignees": [
+      {
+        "login": "ada"
+      }
+    ],
+    "user": {
+      "login": "ada"
+    },
+    "updated_at": "2026-10-28T09:30:00Z"
+  },
+  {
+    "id": 9014,
+    "number": 14,
+    "title": "Bump deps",
+    "body": "",
+    "state": "open",
+    "repository_url": "https://api.github.com/repos/acme/web",
+    "html_url": "https://github.com/acme/web/issues/14",
+    "labels": [],
+    "assignees": [],
+    "user": {
+      "login": "ada"
+    },
+    "updated_at": "2026-10-27T08:00:00Z",
+    "pull_request": {
+      "url": "https://api.github.com/repos/acme/web/pulls/14"
+    }
+  },
+  {
+    "id": 9013,
+    "number": 13,
+    "title": "Add export",
+    "body": null,
+    "state": "open",
+    "repository_url": "https://api.github.com/repos/acme/web",
+    "html_url": "https://github.com/acme/web/issues/13",
+    "labels": [],
+    "assignees": [],
+    "user": {
+      "login": "ada"
+    },
+    "updated_at": "2026-10-27T08:00:00Z"
+  }
+]

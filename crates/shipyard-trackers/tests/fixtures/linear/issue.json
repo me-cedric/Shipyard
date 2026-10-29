@@ -1,0 +1,34 @@
+{
+  "data": {
+    "issue": {
+      "id": "uuid-ENG-42",
+      "identifier": "ENG-42",
+      "title": "Fix login redirect",
+      "description": "Users land on a blank page after login.",
+      "url": "https://linear.app/acme/issue/ENG-42",
+      "updatedAt": "2026-10-28T09:30:00.000Z",
+      "estimate": 3,
+      "state": {
+        "name": "In Progress",
+        "type": "started"
+      },
+      "assignee": {
+        "id": "u1",
+        "name": "Ada Lovelace"
+      },
+      "labels": {
+        "nodes": [
+          {
+            "name": "bug"
+          },
+          {
+            "name": "shipyard"
+          }
+        ]
+      },
+      "parent": {
+        "identifier": "ENG-1"
+      }
+    }
+  }
+}

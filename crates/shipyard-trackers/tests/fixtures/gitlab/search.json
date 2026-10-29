@@ -1,0 +1,53 @@
+[
+  {
+    "id": 8012,
+    "iid": 12,
+    "title": "Fix login redirect",
+    "description": "Users land on a blank page after login.",
+    "state": "opened",
+    "labels": [
+      "bug",
+      "shipyard"
+    ],
+    "issue_type": "issue",
+    "assignees": [
+      {
+        "id": 1,
+        "username": "ada",
+        "name": "Ada Lovelace"
+      }
+    ],
+    "web_url": "https://gitlab.com/acme/web/-/issues/12",
+    "references": {
+      "short": "#12",
+      "relative": "#12",
+      "full": "acme/web#12"
+    },
+    "time_stats": {
+      "time_estimate": 7200,
+      "total_time_spent": 1800
+    },
+    "updated_at": "2026-10-28T09:30:00.000Z"
+  },
+  {
+    "id": 8013,
+    "iid": 13,
+    "title": "Add export",
+    "description": null,
+    "state": "opened",
+    "labels": [],
+    "issue_type": "issue",
+    "assignees": [],
+    "web_url": "https://gitlab.com/acme/web/-/issues/13",
+    "references": {
+      "short": "#13",
+      "relative": "#13",
+      "full": "acme/web#13"
+    },
+    "time_stats": {
+      "time_estimate": 0,
+      "total_time_spent": 0
+    },
+    "updated_at": "2026-10-27T08:00:00.000Z"
+  }
+]

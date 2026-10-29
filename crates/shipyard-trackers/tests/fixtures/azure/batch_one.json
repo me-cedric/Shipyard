@@ -1,0 +1,33 @@
+{
+  "count": 1,
+  "value": [
+    {
+      "id": 412,
+      "rev": 3,
+      "fields": {
+        "System.Id": 412,
+        "System.TeamProject": "Payments",
+        "System.Title": "Fix login redirect",
+        "System.Description": "<div>Users land on a blank page after login.</div>",
+        "System.WorkItemType": "Bug",
+        "System.State": "Active",
+        "System.Tags": "bug; shipyard",
+        "System.ChangedDate": "2026-10-28T09:30:00.37Z",
+        "System.AssignedTo": {
+          "displayName": "Ada Lovelace",
+          "uniqueName": "ada@example.com",
+          "id": "guid-1"
+        },
+        "System.Parent": 400,
+        "Microsoft.VSTS.Scheduling.OriginalEstimate": 2,
+        "Microsoft.VSTS.Scheduling.CompletedWork": 0.5
+      },
+      "_links": {
+        "html": {
+          "href": "https://dev.azure.com/acme/Payments/_workitems/edit/412"
+        }
+      },
+      "url": "https://dev.azure.com/acme/_apis/wit/workItems/412"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "data": {
+    "issue": {
+      "comments": {
+        "nodes": [
+          {
+            "id": "c1",
+            "body": "Reproduced on staging.",
+            "createdAt": "2026-10-28T10:00:00.000Z",
+            "user": {
+              "id": "u2",
+              "name": "Grace Hopper"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

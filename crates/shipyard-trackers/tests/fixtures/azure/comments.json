@@ -1,0 +1,15 @@
+{
+  "totalCount": 1,
+  "count": 1,
+  "comments": [
+    {
+      "id": 31,
+      "text": "<p>Reproduced on staging.</p>",
+      "createdBy": {
+        "displayName": "Grace Hopper",
+        "id": "guid-2"
+      },
+      "createdDate": "2026-10-28T10:00:00Z"
+    }
+  ]
+}

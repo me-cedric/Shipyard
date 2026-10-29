@@ -1,0 +1,26 @@
+{
+  "id": 9012,
+  "number": 12,
+  "title": "Fix login redirect",
+  "body": "Users land on a blank page after login.",
+  "state": "open",
+  "repository_url": "https://api.github.com/repos/acme/web",
+  "html_url": "https://github.com/acme/web/issues/12",
+  "labels": [
+    {
+      "name": "bug"
+    },
+    {
+      "name": "shipyard"
+    }
+  ],
+  "assignees": [
+    {
+      "login": "ada"
+    }
+  ],
+  "user": {
+    "login": "ada"
+  },
+  "updated_at": "2026-10-28T09:30:00Z"
+}

@@ -1,0 +1,76 @@
+{
+  "issues": [
+    {
+      "id": "10001",
+      "key": "PROJ-12",
+      "fields": {
+        "summary": "Fix login redirect",
+        "description": "Users land on a blank page after login.",
+        "labels": [
+          "bug",
+          "shipyard"
+        ],
+        "issuetype": {
+          "name": "Bug",
+          "subtask": false,
+          "hierarchyLevel": 0
+        },
+        "parent": {
+          "key": "PROJ-1",
+          "fields": {
+            "summary": "Auth epic"
+          }
+        },
+        "timetracking": {
+          "originalEstimate": "2h",
+          "originalEstimateSeconds": 7200,
+          "timeSpent": "30m",
+          "timeSpentSeconds": 1800
+        },
+        "status": {
+          "name": "In Progress",
+          "statusCategory": {
+            "key": "indeterminate",
+            "name": "In Progress"
+          }
+        },
+        "assignee": {
+          "accountId": "acc-1",
+          "displayName": "Ada Lovelace"
+        },
+        "updated": "2026-10-28T09:30:00.000+0000",
+        "customfield_10016": 8,
+        "customfield_10020": [
+          {
+            "id": 4,
+            "name": "Sprint 4"
+          }
+        ]
+      }
+    },
+    {
+      "id": "10002",
+      "key": "PROJ-13",
+      "fields": {
+        "summary": "Add export",
+        "description": null,
+        "labels": [],
+        "issuetype": {
+          "name": "Story",
+          "subtask": false
+        },
+        "status": {
+          "name": "To Do",
+          "statusCategory": {
+            "key": "new",
+            "name": "To Do"
+          }
+        },
+        "assignee": null,
+        "updated": "2026-10-27T08:00:00.000+0000"
+      }
+    }
+  ],
+  "nextPageToken": "tok-2",
+  "isLast": false
+}

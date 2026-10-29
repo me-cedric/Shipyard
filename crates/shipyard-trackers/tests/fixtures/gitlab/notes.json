@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "body": "assigned to @ada",
+    "system": true,
+    "author": {
+      "id": 1,
+      "name": "Ada Lovelace"
+    },
+    "created_at": "2026-10-28T09:00:00Z"
+  },
+  {
+    "id": 2,
+    "body": "Reproduced on staging.",
+    "system": false,
+    "author": {
+      "id": 2,
+      "name": "Grace Hopper"
+    },
+    "created_at": "2026-10-28T10:00:00Z"
+  }
+]

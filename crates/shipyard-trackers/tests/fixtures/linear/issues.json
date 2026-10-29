@@ -1,0 +1,60 @@
+{
+  "data": {
+    "issues": {
+      "nodes": [
+        {
+          "id": "uuid-ENG-42",
+          "identifier": "ENG-42",
+          "title": "Fix login redirect",
+          "description": "Users land on a blank page after login.",
+          "url": "https://linear.app/acme/issue/ENG-42",
+          "updatedAt": "2026-10-28T09:30:00.000Z",
+          "estimate": 3,
+          "state": {
+            "name": "In Progress",
+            "type": "started"
+          },
+          "assignee": {
+            "id": "u1",
+            "name": "Ada Lovelace"
+          },
+          "labels": {
+            "nodes": [
+              {
+                "name": "bug"
+              },
+              {
+                "name": "shipyard"
+              }
+            ]
+          },
+          "parent": {
+            "identifier": "ENG-1"
+          }
+        },
+        {
+          "id": "uuid-ENG-43",
+          "identifier": "ENG-43",
+          "title": "Add export",
+          "description": null,
+          "url": "https://linear.app/acme/issue/ENG-43",
+          "updatedAt": "2026-10-27T08:00:00.000Z",
+          "estimate": 3,
+          "state": {
+            "name": "Todo",
+            "type": "unstarted"
+          },
+          "assignee": null,
+          "labels": {
+            "nodes": []
+          },
+          "parent": null
+        }
+      ],
+      "pageInfo": {
+        "hasNextPage": true,
+        "endCursor": "cur-2"
+      }
+    }
+  }
+}
