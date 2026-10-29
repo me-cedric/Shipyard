@@ -13,12 +13,12 @@ Plan: [plan.md](./plan.md)
 
 - [ ] T001 Write flag and work item shape tests in `crates/shipyard-core/tests/work_item.rs`. Covers REQ-003, REQ-004.
 - [ ] T002 Implement the work item type and the flag set in `crates/shipyard-core/src/work_item.rs`. Covers REQ-003, REQ-004.
-- [ ] T003 Write the tracker contract suite and a fake in `crates/shipyard-trackers/tests/contract.rs`. Covers REQ-002, REQ-003, REQ-004, REQ-012.
-- [ ] T004 Implement the `Tracker` trait and the six adapters in `crates/shipyard-trackers/src/`. Covers REQ-002, REQ-003, REQ-004, REQ-012.
-- [ ] T005 Write forge contract tests in `crates/shipyard-forges/tests/contract.rs`. Covers REQ-005, REQ-012, REQ-019.
-- [ ] T006 Implement the `Forge` trait and three adapters in `crates/shipyard-forges/src/`. Covers REQ-005, REQ-012, REQ-019.
-- [ ] T007 Write keychain and redaction tests with a fake keychain in `crates/shipyard-agents/tests/secrets.rs`. Covers REQ-011, REQ-014.
-- [ ] T008 Implement the keychain module and log redaction in `crates/shipyard-agents/src/secrets.rs`. Covers REQ-011, REQ-014.
+- [x] T003 Write the tracker contract suite and a fake in `crates/shipyard-trackers/tests/contract.rs`. Covers REQ-002, REQ-003, REQ-004, REQ-012.
+- [x] T004 Implement the `Tracker` trait and the six adapters in `crates/shipyard-trackers/src/`. Covers REQ-002, REQ-003, REQ-004, REQ-012. The work item type lives in `crates/shipyard-trackers/src/model.rs` until T002 moves it to core.
+- [x] T005 Write forge contract tests in `crates/shipyard-forges/tests/contract.rs`. Covers REQ-005, REQ-012, REQ-019.
+- [ ] T006 Implement the `Forge` trait and three adapters in `crates/shipyard-forges/src/`. Covers REQ-005, REQ-012, REQ-019. Done except: create a remote repository (a write), and the Azure DevOps push marker.
+- [x] T007 Write keychain and redaction tests with a fake keychain in `crates/shipyard-secrets/tests/secrets.rs`. Covers REQ-011, REQ-014.
+- [x] T008 Implement the keychain module and log redaction in `crates/shipyard-secrets/src/lib.rs`. The one HTTP client is in `crates/shipyard-http/`. Covers REQ-011, REQ-014.
 - [ ] T009 Write runner detection and provider tests in `crates/shipyard-agents/tests/runners.rs`. Covers REQ-009, REQ-010.
 - [ ] T010 Implement runner detection and the HTTP provider client in `crates/shipyard-agents/src/runners.rs`. Covers REQ-009, REQ-010.
 - [ ] T011 Write MCP start, stop and dependency tests in `crates/shipyard-agents/tests/mcp_control.rs`. Covers REQ-006, REQ-007, REQ-008.
