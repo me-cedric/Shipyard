@@ -51,6 +51,13 @@ pub enum TrackerError {
     Config(String),
     #[error("not found: {0}")]
     NotFound(String),
+    /// The tracker refused a change that a person asked for, for example a transition that the
+    /// workflow does not allow. The text names the reason.
+    #[error("the tracker refused the change: {0}")]
+    Refused(String),
+    /// A write left and its answer did not come back. The change may be in the tracker.
+    #[error("the answer was lost, the change may be in the tracker: {0}")]
+    Lost(String),
 }
 
 impl From<Capability> for TrackerError {

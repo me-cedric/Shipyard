@@ -9,9 +9,9 @@ use shipyard_secrets::Secret;
 use std::sync::Arc;
 
 pub struct GitHub {
-    http: Arc<dyn Http>,
-    api: String,
-    token: Secret,
+    pub(crate) http: Arc<dyn Http>,
+    pub(crate) api: String,
+    pub(crate) token: Secret,
 }
 
 impl GitHub {
@@ -44,7 +44,7 @@ impl GitHub {
 }
 
 /// `owner/repo`, or an error. The check keeps a crafted scope out of the URL path.
-fn repo(scope: &str) -> Result<&str, TrackerError> {
+pub(crate) fn repo(scope: &str) -> Result<&str, TrackerError> {
     let ok = |s: &str| {
         !s.is_empty()
             && s.chars()
@@ -109,7 +109,7 @@ fn item(v: &Value) -> WorkItem {
 }
 
 /// `owner/repo#12` as (`owner/repo`, `12`).
-fn split_key(key: &str) -> Result<(&str, &str), TrackerError> {
+pub(crate) fn split_key(key: &str) -> Result<(&str, &str), TrackerError> {
     let (slug, number) = key
         .rsplit_once('#')
         .ok_or_else(|| TrackerError::NotFound(key.into()))?;

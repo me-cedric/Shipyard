@@ -45,6 +45,16 @@ impl FakeHttp {
         self.add(Method::Post, url_has, body_has, status, &[], body)
     }
 
+    /// Answer a `PUT` whose URL contains `url_has` and whose JSON body contains `body_has`.
+    pub fn put(&self, url_has: &str, body_has: &str, status: u16, body: &str) -> &Self {
+        self.add(Method::Put, url_has, body_has, status, &[], body)
+    }
+
+    /// Answer a `PATCH` whose URL contains `url_has` and whose JSON body contains `body_has`.
+    pub fn patch(&self, url_has: &str, body_has: &str, status: u16, body: &str) -> &Self {
+        self.add(Method::Patch, url_has, body_has, status, &[], body)
+    }
+
     fn add(
         &self,
         method: Method,

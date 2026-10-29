@@ -1,0 +1,757 @@
+//! Tracker writes for the Work space (spec `work`, REQ-002, REQ-006, REQ-008, REQ-022, REQ-023,
+//! REQ-026, REQ-029): assign, label, transition, worklog, and the apply of estimate rows.
+//!
+//! A write is a function that a person's action calls. The adapters in the other modules read only.
+//! A worklog needs a [`Click`]: nothing in a run or a tick builds one (REQ-022).
+//!
+//! Built for Jira (Cloud and Data Center) and GitHub Issues. The other kinds answer
+//! [`TrackerError::Config`] and send nothing.
+//!
+//! shortcut: calls run one after the other with no pause between them; add a spacing when a tracker
+//! answers 429 on a large apply.
+
+use crate::github::{self, GitHub};
+use crate::jira::{API, Flavor, Jira};
+use crate::model::*;
+use crate::{Tracker, TrackerConfig, connect};
+use serde::Serialize;
+use serde_json::{Value, json};
+use shipyard_core::work::{
+    Action, DiffRow, Field, MINUTES_PER_DAY, Row, RowKind, TimeEntry, parse_day, parse_mark,
+    plan_diff, worklog_note,
+};
+use shipyard_http::{Auth, Http, Method, Request, Response, build_url, encode, items, num, text};
+use shipyard_secrets::Secret;
+use std::collections::HashMap;
+use std::sync::Arc;
+
+/// The proof that a person acted. Only a command that a person invoked builds it. A worklog write
+/// takes one, so an agent, a run or a tick cannot send a worklog (REQ-022).
+pub struct Click(());
+
+impl Click {
+    pub fn by_person() -> Self {
+        Click(())
+    }
+}
+
+/// A worklog as the tracker holds it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Worklog {
+    pub id: String,
+    pub minutes: u32,
+    pub note: String,
+    pub started: String,
+}
+
+pub struct NewWorklog<'a> {
+    pub minutes: u32,
+    pub note: &'a str,
+    /// The instant of the work, in the format of the tracker. See [`started_at`].
+    pub started: &'a str,
+    /// Reduce the remaining estimate by the time. A person chooses (REQ-022).
+    pub reduce_remaining: bool,
+}
+
+/// The fields that a write sets. A field that is `None` is left as it is. The status and the
+/// assignee are not here: apply never writes them (REQ-026).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Fields {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub days: Option<f64>,
+    /// The key of the parent ticket.
+    pub parent: Option<String>,
+}
+
+/// What a create or an update wrote.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Written {
+    pub key: String,
+    /// The fields that this tracker cannot hold. They were not sent.
+    pub skipped: Vec<Field>,
+}
+
+pub trait TrackerWrite: Tracker {
+    /// Needs the `assignee` flag. `account` is the id that the tracker uses (`Team::resolve`).
+    fn assign(&self, key: &str, account: &str) -> Result<(), TrackerError>;
+
+    /// Needs the `labels` flag. The pickup label of REQ-008 goes through here.
+    fn add_label(&self, key: &str, label: &str) -> Result<(), TrackerError>;
+
+    /// Needs the `transitions` flag. A refusal is [`TrackerError::Refused`] with the reason (REQ-002).
+    fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError>;
+
+    /// Needs the `time_tracking` flag.
+    fn add_worklog(
+        &self,
+        click: &Click,
+        key: &str,
+        log: &NewWorklog,
+    ) -> Result<Worklog, TrackerError>;
+
+    /// Needs the `time_tracking` flag.
+    fn worklogs(&self, key: &str) -> Result<Vec<Worklog>, TrackerError>;
+
+    /// Create a ticket in `scope`, with `label` on it for the match of a later apply (Q-033).
+    fn create(
+        &self,
+        scope: &str,
+        epic: bool,
+        fields: &Fields,
+        label: &str,
+    ) -> Result<Written, TrackerError>;
+
+    fn update(&self, key: &str, fields: &Fields) -> Result<Written, TrackerError>;
+}
+
+/// Build the writer of a connection. Same checks as [`connect`].
+pub fn connect_write(
+    config: &TrackerConfig,
+    secret: Secret,
+    http: Arc<dyn Http>,
+) -> Result<Box<dyn TrackerWrite>, TrackerError> {
+    let base = || shipyard_http::base_url(&config.url).map_err(TrackerError::from);
+    Ok(match config.kind {
+        TrackerKind::JiraCloud => {
+            let user = config.user.clone().filter(|u| !u.trim().is_empty());
+            let user = user
+                .ok_or_else(|| TrackerError::Config("Jira Cloud needs the account email".into()))?;
+            Box::new(Jira::cloud(http, base()?, user, secret))
+        }
+        TrackerKind::JiraDataCenter => Box::new(Jira::data_center(http, base()?, secret)),
+        TrackerKind::GitHubIssues => Box::new(GitHub::new(http, &base()?, secret)),
+        _ => Box::new(NotBuilt(connect(config, secret, http)?)),
+    })
+}
+
+// ---------------------------------------------------------------- the sends of a person
+
+/// A time entry, sent or found (REQ-023).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub enum Sent {
+    /// The worklog went out. The id is the receipt to store.
+    Sent(Worklog),
+    /// The tracker already held a worklog with the mark of the entry. Nothing was sent.
+    AlreadyThere(Worklog),
+}
+
+/// `YYYY-MM-DDT09:00:00.000+0100`: the day anchors at 09:00 in the offset of the machine.
+/// The tracker then shows the day that the person meant, in any zone (Legacy `docs/jira-temps.md`).
+pub fn started_at(day: &str, offset_minutes: i32) -> Result<String, TrackerError> {
+    if parse_day(day).is_none() {
+        return Err(TrackerError::Config(format!("`{day}` is not a date")));
+    }
+    let sign = if offset_minutes < 0 { '-' } else { '+' };
+    let abs = offset_minutes.abs();
+    Ok(format!(
+        "{day}T09:00:00.000{sign}{:02}{:02}",
+        abs / 60,
+        abs % 60
+    ))
+}
+
+/// Send one time entry to the worklog of its ticket, on the action of a person (REQ-022).
+///
+/// The order is the one of REQ-023. The caller has written the entry. This function looks up the
+/// mark of the entry in the tracker first, and sends only when none has it. A failed lookup sends
+/// nothing. A lost answer is [`TrackerError::Lost`]: the next call finds the worklog by its mark.
+/// The caller stores the receipt third.
+pub fn send_worklog(
+    w: &dyn TrackerWrite,
+    click: &Click,
+    entry: &TimeEntry,
+    offset_minutes: i32,
+    reduce_remaining: bool,
+) -> Result<Sent, TrackerError> {
+    w.capabilities().require(Capability::TimeTracking)?;
+    if entry.worklog.is_some() {
+        return Err(TrackerError::Refused(
+            "the entry has a receipt: it is in the tracker".into(),
+        ));
+    }
+    let key = entry
+        .ticket
+        .as_deref()
+        .ok_or_else(|| TrackerError::Config("the entry names no ticket".into()))?;
+    if let Some(found) = w
+        .worklogs(key)?
+        .into_iter()
+        .find(|l| parse_mark(&l.note).as_deref() == Some(&entry.id))
+    {
+        return Ok(Sent::AlreadyThere(found));
+    }
+    let note = worklog_note(&entry.note, &entry.id);
+    let started = started_at(&entry.day, offset_minutes)?;
+    let log = NewWorklog {
+        minutes: entry.minutes,
+        note: &note,
+        started: &started,
+        reduce_remaining,
+    };
+    match w.add_worklog(click, key, &log) {
+        Ok(l) => Ok(Sent::Sent(l)),
+        Err(TrackerError::Http(shipyard_http::Error::Transport(e))) => Err(TrackerError::Lost(e)),
+        Err(e) => Err(e),
+    }
+}
+
+// ---------------------------------------------------------------- apply
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct RowResult {
+    pub reference: String,
+    pub action: Action,
+    pub key: Option<String>,
+    /// The reason that the row failed. The rows before it stay written (REQ-026).
+    pub error: Option<String>,
+    pub skipped: Vec<Field>,
+}
+
+fn fields(row: &Row, parent: Option<&str>, only: Option<&[Field]>) -> Fields {
+    let want = |f: Field| only.is_none_or(|o| o.contains(&f));
+    Fields {
+        title: want(Field::Title).then(|| row.title.clone()),
+        description: want(Field::Description).then(|| row.description.clone()),
+        days: row.days.filter(|_| want(Field::Estimate)),
+        parent: parent.filter(|_| want(Field::Parent)).map(String::from),
+    }
+}
+
+/// The preview of REQ-025 for one tracker: [`plan_diff`], without the fields that the tracker
+/// cannot hold. A flat tracker has no parent and no estimate, so they are no change there.
+pub fn diff(caps: &Capabilities, rows: Vec<Row>, mirror: &[WorkItem]) -> Vec<DiffRow> {
+    plan_diff(rows, mirror)
+        .into_iter()
+        .map(|d| fit(caps, d))
+        .collect()
+}
+
+fn fit(caps: &Capabilities, mut d: DiffRow) -> DiffRow {
+    if d.action == Action::Update {
+        d.changes.retain(|f| match f {
+            Field::Parent => caps.hierarchy,
+            Field::Estimate => caps.time_tracking,
+            _ => true,
+        });
+        if d.changes.is_empty() {
+            d.action = Action::Unchanged;
+        }
+    }
+    d
+}
+
+/// The ticket that holds `label`, from the tracker and not from the mirror.
+fn existing(
+    w: &dyn TrackerWrite,
+    scope: &str,
+    label: &str,
+) -> Result<Option<WorkItem>, TrackerError> {
+    let page = w.search(&WorkQuery {
+        scope: Some(scope.into()),
+        label: Some(label.into()),
+        limit: 5,
+        ..WorkQuery::default()
+    })?;
+    Ok(page
+        .items
+        .into_iter()
+        .find(|i| i.labels.iter().any(|l| l == label)))
+}
+
+/// Write the rows of a preview, one at a time, in order, on the action of a person (REQ-026).
+///
+/// Each result says what happened. A failed row stops nothing that is written: the rows before
+/// it stay, and a row after it runs unless it needs the ticket of the failed row. A row that has
+/// no ticket in the preview is looked up in the tracker by its label before it is created, so a
+/// second apply on a stale mirror, or after a lost answer, creates no duplicate. The status and
+/// the assignee are never written.
+pub fn apply(w: &dyn TrackerWrite, scope: &str, rows: &[DiffRow]) -> Vec<RowResult> {
+    let caps = w.capabilities();
+    let mut keys: HashMap<&str, String> = rows
+        .iter()
+        .filter_map(|d| d.key.clone().map(|k| (d.row.reference.as_str(), k)))
+        .collect();
+    let mut out = Vec::new();
+    for d in rows {
+        let row = &d.row;
+        let mut result = RowResult {
+            reference: row.reference.clone(),
+            action: d.action,
+            key: d.key.clone(),
+            error: None,
+            skipped: vec![],
+        };
+        let outcome = (|| -> Result<(), String> {
+            let (mut action, mut key, mut changes) = (d.action, d.key.clone(), d.changes.clone());
+            // The ticket of the epic: this run, or the preview. A row that does not write the parent
+            // does not need it.
+            let epic = |needed: bool| -> Result<Option<String>, String> {
+                match row.parent.as_deref() {
+                    Some(p) if caps.hierarchy && needed => {
+                        Ok(Some(keys.get(p).cloned().ok_or("its epic has no ticket")?))
+                    }
+                    _ => Ok(None),
+                }
+            };
+            if action == Action::Create
+                && let Some(item) = existing(w, scope, &row.reference).map_err(|e| e.to_string())?
+            {
+                let mut flat = row.clone();
+                flat.parent = None;
+                let found = fit(
+                    &caps,
+                    plan_diff(vec![flat], std::slice::from_ref(&item)).remove(0),
+                );
+                changes = found.changes;
+                if row.parent.is_some() && caps.hierarchy && item.parent != epic(true)? {
+                    changes.push(Field::Parent);
+                }
+                action = if changes.is_empty() {
+                    Action::Unchanged
+                } else {
+                    Action::Update
+                };
+                key = Some(item.key);
+            }
+            result.action = action;
+            result.key = key.clone();
+            match action {
+                Action::Unchanged => {}
+                Action::Create => {
+                    let parent = epic(true)?;
+                    let made = w
+                        .create(
+                            scope,
+                            row.kind == RowKind::Epic,
+                            &fields(row, parent.as_deref(), None),
+                            &row.reference,
+                        )
+                        .map_err(|e| e.to_string())?;
+                    result.key = Some(made.key);
+                    result.skipped = made.skipped;
+                }
+                Action::Update => {
+                    let key = key.as_deref().ok_or("no ticket to update")?;
+                    let parent = epic(changes.contains(&Field::Parent))?;
+                    let done = w
+                        .update(key, &fields(row, parent.as_deref(), Some(&changes)))
+                        .map_err(|e| e.to_string())?;
+                    result.skipped = done.skipped;
+                }
+            }
+            if row.parent.is_some() && !caps.hierarchy && result.action != Action::Unchanged {
+                result.skipped.push(Field::Parent);
+            }
+            Ok(())
+        })();
+        if let Err(e) = outcome {
+            result.error = Some(e);
+        } else if let Some(k) = &result.key {
+            keys.insert(row.reference.as_str(), k.clone());
+        }
+        out.push(result);
+    }
+    out
+}
+
+/// Create one work item from a ref after one click of a person (REQ-029). It is the apply of
+/// REQ-026 for one row. The row carries the source ref as its label, so a second click finds the
+/// ticket and creates none.
+pub fn create_from_ref(
+    w: &dyn TrackerWrite,
+    scope: &str,
+    row: Row,
+    mirror: &[WorkItem],
+) -> RowResult {
+    apply(w, scope, &diff(&w.capabilities(), vec![row], mirror)).remove(0)
+}
+
+// ---------------------------------------------------------------- Jira
+
+fn minutes(days: f64) -> u32 {
+    (days * f64::from(MINUTES_PER_DAY)).round() as u32
+}
+
+impl Jira {
+    fn send(
+        &self,
+        method: Method,
+        path: &str,
+        query: &[(&str, &str)],
+        body: Value,
+    ) -> Result<Response, TrackerError> {
+        let url = build_url(&self.base, path, query);
+        Ok(self
+            .http
+            .send(&Request::write(method, url, self.auth.clone(), body))?
+            .ok()?)
+    }
+
+    fn read(&self, path: &str, query: &[(&str, &str)]) -> Result<Value, TrackerError> {
+        let url = build_url(&self.base, path, query);
+        Ok(self.http.json(&Request::get(url, self.auth.clone()))?)
+    }
+}
+
+/// A 400 or 409 on a transition is the workflow saying no.
+fn refused(e: TrackerError) -> TrackerError {
+    match e {
+        TrackerError::Http(shipyard_http::Error::Status {
+            status: 400 | 409 | 422,
+            detail,
+            ..
+        }) => TrackerError::Refused(detail),
+        other => other,
+    }
+}
+
+fn jira_worklog(v: &Value) -> Worklog {
+    Worklog {
+        id: text(v, "/id"),
+        minutes: (num(v, "/timeSpentSeconds").unwrap_or(0) / 60) as u32,
+        note: text(v, "/comment"),
+        started: text(v, "/started"),
+    }
+}
+
+impl TrackerWrite for Jira {
+    fn assign(&self, key: &str, account: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Assignee)?;
+        let body = match self.flavor {
+            Flavor::Cloud => json!({ "accountId": account }),
+            Flavor::DataCenter => json!({ "name": account }),
+        };
+        self.send(
+            Method::Put,
+            &format!("{API}/issue/{}/assignee", encode(key)),
+            &[],
+            body,
+        )?;
+        Ok(())
+    }
+
+    fn add_label(&self, key: &str, label: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Labels)?;
+        let body = json!({ "update": { "labels": [{ "add": label }] } });
+        self.send(
+            Method::Put,
+            &format!("{API}/issue/{}", encode(key)),
+            &[],
+            body,
+        )?;
+        Ok(())
+    }
+
+    fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Transitions)?;
+        let path = format!("{API}/issue/{}/transitions", encode(key));
+        let listed = self.read(&path, &[])?;
+        let all = items(&listed, "/transitions");
+        let wanted = all.iter().find(|t| {
+            text(t, "/to/name").eq_ignore_ascii_case(to)
+                || text(t, "/name").eq_ignore_ascii_case(to)
+        });
+        let Some(t) = wanted else {
+            let names: Vec<String> = all.iter().map(|t| text(t, "/to/name")).collect();
+            return Err(TrackerError::Refused(format!(
+                "{key} cannot move to {to} from its status. It can move to: {}",
+                names.join(", ")
+            )));
+        };
+        self.send(
+            Method::Post,
+            &path,
+            &[],
+            json!({ "transition": { "id": text(t, "/id") } }),
+        )
+        .map(|_| ())
+        .map_err(refused)
+    }
+
+    fn add_worklog(
+        &self,
+        _click: &Click,
+        key: &str,
+        log: &NewWorklog,
+    ) -> Result<Worklog, TrackerError> {
+        self.capabilities().require(Capability::TimeTracking)?;
+        let adjust = if log.reduce_remaining {
+            "auto"
+        } else {
+            "leave"
+        };
+        let body = json!({
+            "timeSpentSeconds": u64::from(log.minutes) * 60,
+            "started": log.started,
+            "comment": log.note,
+        });
+        let res = self.send(
+            Method::Post,
+            &format!("{API}/issue/{}/worklog", encode(key)),
+            &[("adjustEstimate", adjust)],
+            body,
+        )?;
+        Ok(jira_worklog(&res.json()?))
+    }
+
+    fn worklogs(&self, key: &str) -> Result<Vec<Worklog>, TrackerError> {
+        self.capabilities().require(Capability::TimeTracking)?;
+        let v = self
+            .read(
+                &format!("{API}/issue/{}/worklog", encode(key)),
+                &[("maxResults", "1000")],
+            )
+            .map_err(|e| e.not_found(key))?;
+        Ok(items(&v, "/worklogs").iter().map(jira_worklog).collect())
+    }
+
+    fn create(
+        &self,
+        scope: &str,
+        epic: bool,
+        f: &Fields,
+        label: &str,
+    ) -> Result<Written, TrackerError> {
+        let mut skipped = Vec::new();
+        let mut fields = json!({
+            "project": { "key": scope },
+            "summary": f.title.clone().unwrap_or_default(),
+            "description": f.description.clone().unwrap_or_default(),
+            "issuetype": { "name": if epic { "Epic" } else { "Story" } },
+            "labels": [label],
+        });
+        self.set(&mut fields, f, &mut skipped);
+        let res = self.send(
+            Method::Post,
+            &format!("{API}/issue"),
+            &[],
+            json!({ "fields": fields }),
+        )?;
+        Ok(Written {
+            key: text(&res.json()?, "/key"),
+            skipped,
+        })
+    }
+
+    fn update(&self, key: &str, f: &Fields) -> Result<Written, TrackerError> {
+        let mut skipped = Vec::new();
+        let mut fields = json!({});
+        if let Some(t) = &f.title {
+            fields["summary"] = json!(t);
+        }
+        if let Some(d) = &f.description {
+            fields["description"] = json!(d);
+        }
+        self.set(
+            &mut fields,
+            &Fields {
+                title: None,
+                description: None,
+                ..f.clone()
+            },
+            &mut skipped,
+        );
+        self.send(
+            Method::Put,
+            &format!("{API}/issue/{}", encode(key)),
+            &[],
+            json!({ "fields": fields }),
+        )?;
+        Ok(Written {
+            key: key.into(),
+            skipped,
+        })
+    }
+}
+
+impl Jira {
+    /// The estimate and the parent. Data Center links a story to an epic through a custom field
+    /// that differs by instance, so the parent is skipped there.
+    fn set(&self, fields: &mut Value, f: &Fields, skipped: &mut Vec<Field>) {
+        if let Some(d) = f.days {
+            fields["timetracking"] = json!({ "originalEstimate": format!("{}m", minutes(d)) });
+        }
+        match (&f.parent, self.flavor) {
+            (Some(p), Flavor::Cloud) => fields["parent"] = json!({ "key": p }),
+            (Some(_), Flavor::DataCenter) => skipped.push(Field::Parent),
+            (None, _) => {}
+        }
+    }
+}
+
+// ---------------------------------------------------------------- GitHub
+
+impl GitHub {
+    fn send(&self, method: Method, path: &str, body: Value) -> Result<Response, TrackerError> {
+        let req = Request::write(
+            method,
+            format!("{}{path}", self.api),
+            Auth::Bearer(self.token.clone()),
+            body,
+        )
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28");
+        Ok(self.http.send(&req)?.ok()?)
+    }
+
+    fn patch(&self, key: &str, body: Value) -> Result<(), TrackerError> {
+        let (slug, number) = github::split_key(key)?;
+        self.send(
+            Method::Patch,
+            &format!("/repos/{slug}/issues/{number}"),
+            body,
+        )?;
+        Ok(())
+    }
+}
+
+impl TrackerWrite for GitHub {
+    fn assign(&self, key: &str, account: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Assignee)?;
+        self.patch(key, json!({ "assignees": [account] }))
+    }
+
+    fn add_label(&self, key: &str, label: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Labels)?;
+        let (slug, number) = github::split_key(key)?;
+        self.send(
+            Method::Post,
+            &format!("/repos/{slug}/issues/{number}/labels"),
+            json!({ "labels": [label] }),
+        )?;
+        Ok(())
+    }
+
+    fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Transitions)?;
+        match to.to_ascii_lowercase().as_str() {
+            state @ ("open" | "closed") => {
+                self.patch(key, json!({ "state": state })).map_err(refused)
+            }
+            _ => Err(TrackerError::Refused(
+                "a GitHub issue has two states: open and closed".into(),
+            )),
+        }
+    }
+
+    fn add_worklog(
+        &self,
+        _click: &Click,
+        _key: &str,
+        _log: &NewWorklog,
+    ) -> Result<Worklog, TrackerError> {
+        Err(Capability::TimeTracking.into())
+    }
+
+    fn worklogs(&self, _key: &str) -> Result<Vec<Worklog>, TrackerError> {
+        Err(Capability::TimeTracking.into())
+    }
+
+    fn create(
+        &self,
+        scope: &str,
+        _epic: bool,
+        f: &Fields,
+        label: &str,
+    ) -> Result<Written, TrackerError> {
+        let slug = github::repo(scope)?;
+        let body = json!({
+            "title": f.title.clone().unwrap_or_default(),
+            "body": f.description.clone().unwrap_or_default(),
+            "labels": [label],
+        });
+        let res = self
+            .send(Method::Post, &format!("/repos/{slug}/issues"), body)?
+            .json()?;
+        Ok(Written {
+            key: format!("{slug}#{}", res["number"]),
+            skipped: flat_skipped(f),
+        })
+    }
+
+    fn update(&self, key: &str, f: &Fields) -> Result<Written, TrackerError> {
+        let mut body = json!({});
+        if let Some(t) = &f.title {
+            body["title"] = json!(t);
+        }
+        if let Some(d) = &f.description {
+            body["body"] = json!(d);
+        }
+        if body.as_object().is_some_and(|o| !o.is_empty()) {
+            self.patch(key, body)?;
+        }
+        Ok(Written {
+            key: key.into(),
+            skipped: flat_skipped(f),
+        })
+    }
+}
+
+/// A flat tracker holds no estimate and no parent.
+fn flat_skipped(f: &Fields) -> Vec<Field> {
+    let mut out = Vec::new();
+    if f.days.is_some() {
+        out.push(Field::Estimate);
+    }
+    if f.parent.is_some() {
+        out.push(Field::Parent);
+    }
+    out
+}
+
+// ---------------------------------------------------------------- the other kinds
+
+/// Reads work. A write answers with the reason and sends nothing.
+struct NotBuilt(Box<dyn Tracker>);
+
+impl NotBuilt {
+    fn no<T>(&self) -> Result<T, TrackerError> {
+        Err(TrackerError::Config(format!(
+            "writes are not built for {:?} yet",
+            self.0.kind()
+        )))
+    }
+}
+
+impl Tracker for NotBuilt {
+    fn kind(&self) -> TrackerKind {
+        self.0.kind()
+    }
+    fn me(&self) -> Result<Person, TrackerError> {
+        self.0.me()
+    }
+    fn search(&self, query: &WorkQuery) -> Result<Page<WorkItem>, TrackerError> {
+        self.0.search(query)
+    }
+    fn get(&self, key: &str) -> Result<WorkItem, TrackerError> {
+        self.0.get(key)
+    }
+    fn comments(&self, key: &str) -> Result<Vec<Comment>, TrackerError> {
+        self.0.comments(key)
+    }
+}
+
+impl TrackerWrite for NotBuilt {
+    fn assign(&self, _: &str, _: &str) -> Result<(), TrackerError> {
+        self.no()
+    }
+    fn add_label(&self, _: &str, _: &str) -> Result<(), TrackerError> {
+        self.no()
+    }
+    fn transition(&self, _: &str, _: &str) -> Result<(), TrackerError> {
+        self.no()
+    }
+    fn add_worklog(&self, _: &Click, _: &str, _: &NewWorklog) -> Result<Worklog, TrackerError> {
+        self.no()
+    }
+    fn worklogs(&self, _: &str) -> Result<Vec<Worklog>, TrackerError> {
+        self.no()
+    }
+    fn create(&self, _: &str, _: bool, _: &Fields, _: &str) -> Result<Written, TrackerError> {
+        self.no()
+    }
+    fn update(&self, _: &str, _: &Fields) -> Result<Written, TrackerError> {
+        self.no()
+    }
+}

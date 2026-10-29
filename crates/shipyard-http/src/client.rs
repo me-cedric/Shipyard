@@ -100,10 +100,11 @@ impl Http for Client {
         let mut call = builder
             .build()
             .request(
-                if req.method == Method::Get {
-                    "GET"
-                } else {
-                    "POST"
+                match req.method {
+                    Method::Get => "GET",
+                    Method::Post => "POST",
+                    Method::Put => "PUT",
+                    Method::Patch => "PATCH",
                 },
                 url.as_str(),
             )

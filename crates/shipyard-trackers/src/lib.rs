@@ -4,7 +4,7 @@
 //! Each adapter maps its API to [`WorkItem`]. No adapter shares a type or a call with another
 //! (REQ-004). A caller checks [`Tracker::capabilities`] first; a call that needs an absent
 //! capability returns [`TrackerError::Unsupported`] and sends no request (REQ-003).
-//! The adapters send no write (Q-002). A secret stays in a [`Secret`] (REQ-011).
+//! The adapters send no write (Q-002). Writes live in [`work`]. A secret stays in a [`Secret`] (REQ-011).
 
 mod azure;
 mod github;
@@ -12,6 +12,7 @@ mod gitlab;
 mod jira;
 mod linear;
 mod model;
+pub mod work;
 
 use serde::{Deserialize, Serialize};
 use shipyard_http::Http;

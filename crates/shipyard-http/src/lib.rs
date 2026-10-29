@@ -11,7 +11,8 @@
 //! 6. The OS trust store, plus the bundle in `SHIPYARD_CA_BUNDLE` or `SSL_CERT_FILE`.
 //!
 //! An adapter reads from a service, so it sends `GET`, or `POST` for a read-only query
-//! (GraphQL, WIQL). The adapters never send a write.
+//! (GraphQL, WIQL). A tracker write (`shipyard-trackers`, `work`) sends `POST`, `PUT` or `PATCH`
+//! with [`Request::write`], and only on the action of a person.
 
 mod client;
 pub mod fake;
@@ -34,6 +35,8 @@ pub const DEFAULT_READ_TIMEOUT: Duration = Duration::from_secs(30);
 pub enum Method {
     Get,
     Post,
+    Put,
+    Patch,
 }
 
 /// How a request proves who sends it. Each secret stays in a `Secret` until the wire.
@@ -88,6 +91,14 @@ impl Request {
             headers: Vec::new(),
             body: Some(body),
             timeout: None,
+        }
+    }
+
+    /// A write with a JSON body: `POST`, `PUT` or `PATCH`.
+    pub fn write(method: Method, url: impl Into<String>, auth: Auth, body: Value) -> Self {
+        Self {
+            method,
+            ..Self::post_json(url, auth, body)
         }
     }
 

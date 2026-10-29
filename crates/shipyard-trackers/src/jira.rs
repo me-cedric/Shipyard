@@ -14,19 +14,19 @@ use std::sync::Arc;
 
 const FIELDS: &str =
     "summary,description,labels,issuetype,parent,timetracking,status,assignee,updated";
-const API: &str = "/rest/api/2";
+pub(crate) const API: &str = "/rest/api/2";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Flavor {
+pub(crate) enum Flavor {
     Cloud,
     DataCenter,
 }
 
 pub struct Jira {
-    http: Arc<dyn Http>,
-    base: String,
-    auth: Auth,
-    flavor: Flavor,
+    pub(crate) http: Arc<dyn Http>,
+    pub(crate) base: String,
+    pub(crate) auth: Auth,
+    pub(crate) flavor: Flavor,
 }
 
 impl Jira {
