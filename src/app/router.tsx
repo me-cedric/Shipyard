@@ -13,9 +13,13 @@ import { BranchSelector } from "@/features/code";
 import { AppShell, ROLE_HOME, SPACES, type SpaceId, TabsBar, tabPath } from "@/features/shell";
 import { usePrefs } from "@/lib/prefs";
 import { NotFound } from "./not-found";
+import { refActions } from "./ref-actions";
 import { TabView } from "./tab-view";
 
-const rootRoute = createRootRoute({ component: AppShell, notFoundComponent: NotFound });
+const rootRoute = createRootRoute({
+	component: () => <AppShell refActions={refActions} />,
+	notFoundComponent: NotFound,
+});
 
 const indexRoute = createRoute({
 	getParentRoute: () => rootRoute,

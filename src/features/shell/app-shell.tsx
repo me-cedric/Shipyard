@@ -4,7 +4,7 @@ import { useCodeActions } from "@/lib/code";
 import { useI18n } from "@/lib/i18n";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
 import { usePrefs } from "@/lib/prefs";
-import { ShellProvider, useShell } from "@/lib/shell";
+import { type RefActions, ShellProvider, useShell } from "@/lib/shell";
 import { CommitDialog } from "@/ui/organisms/commit-dialog";
 import { Inspector } from "@/ui/organisms/inspector";
 import { Toaster } from "@/ui/organisms/toaster";
@@ -75,9 +75,9 @@ function Frame() {
 	);
 }
 
-export function AppShell() {
+export function AppShell({ refActions }: { refActions?: RefActions }) {
 	return (
-		<ShellProvider>
+		<ShellProvider refActions={refActions}>
 			<NotificationsProvider>
 				<Frame />
 			</NotificationsProvider>

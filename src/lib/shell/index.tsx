@@ -20,11 +20,22 @@ type ShellState = {
 	sync: (job: () => Promise<unknown>) => void;
 	commitOpen: boolean;
 	setCommitOpen: (open: boolean) => void;
+	/** The actions that the inspector offers for a ref, or undefined. Set by `ShellProvider`. */
+	refActions?: RefActions;
 };
+
+/** What a ref offers beyond its backlinks, in the inspector. The app fills it: a feature never imports another. */
+export type RefActions = (refId: string, title: string) => ReactNode;
 
 const Ctx = createContext<ShellState | null>(null);
 
-export function ShellProvider({ children }: { children: ReactNode }) {
+export function ShellProvider({
+	children,
+	refActions,
+}: {
+	children: ReactNode;
+	refActions?: RefActions;
+}) {
 	const [inspectorOpen, setInspectorOpen] = useState(false);
 	const [selectedRef, setSelectedRef] = useState<string | null>(null);
 	const [detail, setDetail] = useState<{ title: string; node: ReactNode } | null>(null);
@@ -74,6 +85,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
 			sync,
 			commitOpen,
 			setCommitOpen,
+			refActions,
 		}),
 		[
 			inspectorOpen,
@@ -87,6 +99,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
 			syncError,
 			sync,
 			commitOpen,
+			refActions,
 		],
 	);
 	return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
