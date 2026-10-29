@@ -3701,6 +3701,7 @@ dependencies = [
  "serde",
  "serde_json",
  "shipyard-agents",
+ "shipyard-secrets",
  "shipyard-store",
  "tempfile",
 ]
