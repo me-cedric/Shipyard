@@ -14,6 +14,7 @@ import { useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
+import { Select } from "@/ui/atoms/select";
 import type { Status } from "@/ui/atoms/status-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowPathIcon, Cog6ToothIcon, FolderOpenIcon, PlusIcon, XMarkIcon } from "@/ui/icons";
@@ -22,8 +23,11 @@ import { ConnectionRow } from "@/ui/molecules/connection-row";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { FlagList } from "@/ui/molecules/flag-list";
 import { SettingsRow } from "@/ui/molecules/settings-row";
-import { ConnectionForm, GROUPS } from "./connection-form";
-import { connectionKeys } from "./keys";
+import { ADD_TYPES, type AddType, ConnectionForm, GROUPS } from "./connection-form";
+import { connectionKeys, message, useMcpServers, useProviders } from "./keys";
+import { McpAddForm, McpGroup } from "./mcp-group";
+import { ProviderForm, ProvidersGroup } from "./providers-group";
+import { RunnersGroup } from "./runners-group";
 
 const STATE_SHAPE: Record<ConnectionState, Status> = {
 	untested: "idle",
@@ -39,8 +43,6 @@ const FLAGS = [
 	"timeTracking",
 	"assignee",
 ] as const;
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 function Repos({ id }: { id: string }) {
 	const { t } = useI18n();
@@ -230,6 +232,27 @@ function Row({
 	);
 }
 
+/** The form of a tracker or a forge, or of a type that has its own form. Runners need none. */
+function AddForm({ onDone }: { onDone: () => void }) {
+	const { t } = useI18n();
+	const [type, setType] = useState<AddType>("tracker");
+	if (type === "tracker" || type === "forge")
+		return <ConnectionForm initialGroup={type} onType={setType} onDone={onDone} />;
+	return (
+		<div>
+			<SettingsRow label={t.connections.field.type}>
+				<Select
+					label={t.connections.field.type}
+					value={type}
+					onValueChange={(v) => setType(v as AddType)}
+					items={ADD_TYPES.map((v) => ({ value: v, label: t.connections.type[v] }))}
+				/>
+			</SettingsRow>
+			{type === "mcp" ? <McpAddForm onDone={onDone} /> : <ProviderForm onDone={onDone} />}
+		</div>
+	);
+}
+
 /** Settings / Connections: one list grouped by kind, and one primary action: add a connection. */
 export function Connections() {
 	const { t } = useI18n();
@@ -240,6 +263,8 @@ export function Connections() {
 	const [adding, setAdding] = useState(false);
 	const [editing, setEditing] = useState(false);
 	const conns = list.data;
+	const mcpCount = (useMcpServers().data ?? []).filter((m) => m.enabled).length;
+	const providerCount = (useProviders().data ?? []).length;
 	if (conns === undefined && !list.error) return null;
 	const formOpen = adding || editing;
 	const add = {
@@ -247,7 +272,8 @@ export function Connections() {
 		icon: <PlusIcon size={14} />,
 		onClick: () => setAdding(true),
 	};
-	const empty = (conns ?? []).length === 0 && !adding;
+	// The runners are not added by a person: they do not count.
+	const empty = (conns ?? []).length + mcpCount + providerCount === 0 && !adding;
 	return (
 		<div className="flex max-w-2xl flex-col gap-6 p-4">
 			<h1 className="sr-only">{t.tabs.settings.connections}</h1>
@@ -270,7 +296,7 @@ export function Connections() {
 					</Button>
 				</div>
 			)}
-			{adding ? <ConnectionForm onDone={() => setAdding(false)} /> : null}
+			{adding ? <AddForm onDone={() => setAdding(false)} /> : null}
 			{GROUPS.map((g: ConnectionGroup) => {
 				const rows = (conns ?? []).filter((c) => c.group === g);
 				if (rows.length === 0) return null;
@@ -285,6 +311,9 @@ export function Connections() {
 					</section>
 				);
 			})}
+			<McpGroup formOpen={formOpen} onForm={setEditing} />
+			<RunnersGroup />
+			<ProvidersGroup formOpen={formOpen} onForm={setEditing} />
 		</div>
 	);
 }

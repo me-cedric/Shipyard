@@ -16,7 +16,7 @@ export function ConnectionRow({
 	/** Replaces the generic name of the status shape. */
 	statusLabel: string;
 	name: string;
-	product: string;
+	product?: string;
 	flags?: ReactNode;
 	actions: ReactNode;
 	/** Under the row: a test result, a form or a list. */
@@ -28,7 +28,7 @@ export function ConnectionRow({
 			<div className="flex min-h-row flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1">
 				<StatusDot status={status} label={statusLabel} />
 				<span className="min-w-24 flex-1 text-ui">{name}</span>
-				<Badge>{product}</Badge>
+				{product ? <Badge>{product}</Badge> : null}
 				{flags}
 				<span className="flex items-center gap-1">{actions}</span>
 			</div>

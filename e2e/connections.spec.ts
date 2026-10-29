@@ -76,3 +76,29 @@ test("adds a connection with the keyboard", async ({ page }) => {
 	await page.keyboard.press("Enter");
 	await expect(page.getByRole("group", { name: "Acme" })).toBeVisible();
 });
+
+test("adds an MCP server with a secret, starts it and stops it", async ({ page }) => {
+	await page.goto("/settings/connections");
+	await page.getByRole("button", { name: "Connection" }).click();
+	await page.getByRole("combobox", { name: "Type" }).click();
+	await page.getByRole("option", { name: "MCP server" }).click();
+	await page.getByRole("combobox", { name: "Server" }).click();
+	await page.getByRole("option", { name: "Figma" }).click();
+	await page.getByLabel("Figma API token").and(page.locator("input")).fill(TOKEN);
+	await page.getByRole("button", { name: "Save" }).click();
+
+	const row = page.getByRole("group", { name: "Figma" });
+	await expect(page.getByRole("heading", { name: "MCP servers (1)" })).toBeVisible();
+	await expect(row.getByRole("img", { name: "Stopped" })).toBeVisible();
+	expect(await page.content()).not.toContain(TOKEN);
+
+	await row.getByRole("button", { name: "Start" }).click();
+	await expect(row.getByRole("img", { name: "Running" })).toBeVisible();
+	await row.getByRole("button", { name: "Stop" }).click();
+	await expect(row.getByRole("img", { name: "Stopped" })).toBeVisible();
+
+	// The runners show with no action of the person.
+	await expect(
+		page.getByRole("group", { name: "Claude Code" }).getByRole("img", { name: "Detected" }),
+	).toBeVisible();
+});

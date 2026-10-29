@@ -26,4 +26,11 @@ describe("SecretInput", () => {
 		expect(input).toHaveValue("");
 		expect(input).toHaveAttribute("autocomplete", "off");
 	});
+
+	it("shows the typed text of a plain field and still hides the saved value", async () => {
+		renderApp(<SecretInput label="Email" plain saved value="" onChange={() => {}} />);
+		const input = screen.getByLabelText("Email");
+		expect(input).toHaveAttribute("type", "text");
+		expect(input).toHaveAttribute("placeholder", MASK);
+	});
 });

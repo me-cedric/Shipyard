@@ -12,18 +12,21 @@ export function SecretInput({
 	saved,
 	value,
 	onChange,
+	plain,
 	className,
 }: {
 	label: string;
 	saved: boolean;
 	value: string;
 	onChange: (value: string) => void;
+	/** The value is not a secret (an email): the typed text shows. The saved value stays hidden. */
+	plain?: boolean;
 	className?: string;
 }) {
 	return (
 		<Input
 			label={label}
-			type="password"
+			type={plain ? "text" : "password"}
 			autoComplete="off"
 			spellCheck={false}
 			value={value}

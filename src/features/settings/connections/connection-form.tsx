@@ -17,6 +17,10 @@ import { connectionKeys } from "./keys";
 
 export const GROUPS: ConnectionGroup[] = ["tracker", "forge"];
 
+/** The types of the add form: the two groups of this form, then the types that have their own. */
+export const ADD_TYPES = [...GROUPS, "mcp", "provider"] as const;
+export type AddType = (typeof ADD_TYPES)[number];
+
 /** The products of each group. A Linear tracker has no address. */
 export const KINDS: Record<ConnectionGroup, ConnectionKind[]> = {
 	tracker: ["jira-cloud", "jira-data-center", "github", "gitlab", "azure-dev-ops", "linear"],
@@ -26,9 +30,14 @@ export const KINDS: Record<ConnectionGroup, ConnectionKind[]> = {
 /** Add form, or edit form of one connection. The secret field is write-only. */
 export function ConnectionForm({
 	connection,
+	initialGroup,
+	onType,
 	onDone,
 }: {
 	connection?: Connection_Serialize;
+	initialGroup?: ConnectionGroup;
+	/** The person picked a type that has another form: the parent swaps the form. */
+	onType?: (type: "mcp" | "provider") => void;
 	onDone: () => void;
 }) {
 	const { t } = useI18n();
@@ -36,7 +45,9 @@ export function ConnectionForm({
 	const editing = connection !== undefined;
 	// After an add, a retry edits the new connection, so a failed secret never makes a duplicate.
 	const [id, setId] = useState(connection?.id);
-	const [group, setGroup] = useState<ConnectionGroup>(connection?.group ?? "tracker");
+	const [group, setGroup] = useState<ConnectionGroup>(
+		connection?.group ?? initialGroup ?? "tracker",
+	);
 	const [kind, setKind] = useState<ConnectionKind>(connection?.kind ?? "jira-cloud");
 	const [name, setName] = useState(connection?.name ?? "");
 	const [url, setUrl] = useState(connection?.url ?? "");
@@ -90,8 +101,12 @@ export function ConnectionForm({
 						<Select
 							label={f.type}
 							value={group}
-							onValueChange={(v) => pickGroup(v === "forge" ? "forge" : "tracker")}
-							items={GROUPS.map((g) => ({ value: g, label: t.connections.type[g] }))}
+							onValueChange={(v) =>
+								v === "mcp" || v === "provider"
+									? onType?.(v)
+									: pickGroup(v === "forge" ? "forge" : "tracker")
+							}
+							items={ADD_TYPES.map((g) => ({ value: g, label: t.connections.type[g] }))}
 						/>
 					</SettingsRow>
 					<SettingsRow label={f.kind}>

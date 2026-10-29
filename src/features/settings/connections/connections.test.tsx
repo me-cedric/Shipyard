@@ -32,7 +32,12 @@ describe("Settings / Connections", () => {
 		const add = await within(main).findByRole("button", { name: "Connection" });
 		expect(add.className).toContain("bg-accent");
 		expect(main.querySelectorAll("[aria-hidden] > *").length).toBeGreaterThanOrEqual(5);
-		expect(within(main).queryAllByRole("heading", { level: 2 })).toHaveLength(0);
+		// The runners are detected, not added: they are the only group of an empty list.
+		expect(
+			within(main)
+				.getAllByRole("heading", { level: 2 })
+				.map((h) => h.textContent),
+		).toEqual(["Runners (5)"]);
 	});
 
 	it("groups the connections by kind with a count and one primary action", async () => {
