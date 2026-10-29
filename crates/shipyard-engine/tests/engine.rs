@@ -7,7 +7,7 @@ mod fx;
 use fx::{Fx, ONE, writes};
 use serde_json::json;
 use shipyard_core::pickup::{PrEvent, PrEventKind, SyncEvent};
-use shipyard_core::run::{RunEvent, RunState};
+use shipyard_core::run::RunState;
 use shipyard_core::workflow::{Effort, Mode, StepState};
 use shipyard_engine::approvals::Write;
 use shipyard_engine::ports::{AgentEvent, Dispatch};
@@ -88,13 +88,12 @@ fn feature_runs_the_whole_path() {
     // The pull request action, switch on: open at once.
     assert_eq!(fx.state(&run), RunState::PROpen);
     assert_eq!(fx.f.run_info(&run).unwrap().pr, Some(7));
-    assert!(
-        fx.writer
-            .sent()
-            .contains(&Write::OpenPr { run: run.clone() })
-    );
+    assert!(fx.writer.sent().iter().any(|w| matches!(
+        w,
+        Write::OpenPr { run: r, draft: true, .. } if *r == run
+    )));
 
-    // Merge, then `delivery` closes the run.
+    // Merge: `delivery` closes the run at once (Merged, then Done), and never cancels it.
     fx.f.event(&SyncEvent::Pr(PrEvent {
         number: 7,
         kind: PrEventKind::Merged,
@@ -103,10 +102,9 @@ fn feature_runs_the_whole_path() {
         url: String::new(),
     }))
     .unwrap();
-    assert_eq!(fx.state(&run), RunState::Merged);
-    // A merged run is never cancelled.
-    assert!(fx.f.stop(&run, "ticket terminal").is_err());
-    assert_eq!(fx.f.apply(&run, RunEvent::Closed), Ok(RunState::Done));
+    assert_eq!(fx.state(&run), RunState::Done);
+    assert!(fx.f.stop(&run, "ticket terminal").is_ok());
+    assert_eq!(fx.state(&run), RunState::Done);
     assert_eq!(
         fx.f.take_ended(),
         [("ship".to_string(), "SHIP-1".to_string())]

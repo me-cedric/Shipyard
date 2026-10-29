@@ -11,8 +11,11 @@ use shipyard_core::run::RunState;
 use shipyard_core::work_item::{Comment, Person, Status, StatusCategory, WorkItem, WorkKind};
 
 use crate::Clock;
+use shipyard_core::delivery::GateCheck;
+
 use crate::ports::{
-    Dispatch, ForgePort, ListQuery, Page, PortResult, Stamp, StartRequest, TrackerPort,
+    Branches, Changes, Dispatch, FailedCheck, ForgePort, Git, ListQuery, Merge, Page, PortResult,
+    Pulls, ReviewInput, Stamp, StartRequest, Thread, TrackerPort,
 };
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -589,6 +592,7 @@ struct WriterState {
     sent: Vec<crate::approvals::Write>,
     no_comments: bool,
     fail: Option<String>,
+    pulls: Option<FakePulls>,
 }
 
 /// Records each write. A comment gets the id `c<n>`, a pull request the number 7.
@@ -607,6 +611,11 @@ impl FakeWriter {
     pub fn fail_with(&self, message: Option<&str>) {
         lock(&self.0).fail = message.map(Into::into);
     }
+
+    /// A pull request that this writer opens is then found by `pulls`.
+    pub fn link(&self, pulls: &FakePulls) {
+        lock(&self.0).pulls = Some(pulls.clone());
+    }
 }
 
 impl crate::ports::Writer for FakeWriter {
@@ -621,6 +630,9 @@ impl crate::ports::Writer for FakeWriter {
             return Err(e.clone());
         }
         s.sent.push(w.clone());
+        if let (Write::OpenPr { branch, .. }, Some(pulls)) = (w, &s.pulls) {
+            pulls.put(branch, 7);
+        }
         Ok(match w {
             Write::Comment { .. } => format!("c{}", s.sent.len()),
             Write::OpenPr { .. } => "7".into(),
@@ -652,5 +664,339 @@ impl crate::ports::Workspaces for FakeWorkspaces {
         lock(&self.0).push((run.into(), child.map(Into::into)));
         let base = std::path::PathBuf::from("/wt").join(run);
         Ok(child.map_or(base.clone(), |c| base.join(c)))
+    }
+}
+
+// ---- delivery: git and forge reads
+
+struct GitState {
+    calls: Vec<String>,
+    conflicts: BTreeMap<String, Vec<String>>,
+    fail: BTreeMap<String, String>,
+    branch: String,
+    changes: Changes,
+    lines: BTreeMap<String, u32>,
+    rebase: Merge,
+    failing: Vec<String>,
+    dirty: Option<String>,
+    input: ReviewInput,
+}
+
+/// The local git work of a run, with no repository. Each call is one line in [`FakeGit::calls`]:
+/// `merge_child <child>`, `commit <paths>`, `rename <new>`, and so on. By default the branch is
+/// `claude/work`, one file `src/a.rs` of 10 lines changed, a clean rebase, a green gate.
+#[derive(Clone)]
+pub struct FakeGit(Arc<Mutex<GitState>>);
+
+impl Default for FakeGit {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(GitState {
+            calls: Vec::new(),
+            conflicts: BTreeMap::new(),
+            fail: BTreeMap::new(),
+            branch: "claude/work".into(),
+            changes: Changes {
+                uncommitted: vec!["src/a.rs".into()],
+                files: vec!["src/a.rs".into()],
+            },
+            lines: BTreeMap::from([("src/a.rs".to_string(), 10)]),
+            rebase: Merge::Clean,
+            failing: Vec::new(),
+            dirty: None,
+            input: ReviewInput {
+                head: "abc123".into(),
+                diff: "diff --git a/src/a.rs b/src/a.rs".into(),
+                specs: Vec::new(),
+            },
+        })))
+    }
+}
+
+impl FakeGit {
+    pub fn calls(&self) -> Vec<String> {
+        lock(&self.0).calls.clone()
+    }
+
+    pub fn count(&self, prefix: &str) -> usize {
+        self.calls()
+            .iter()
+            .filter(|c| c.starts_with(prefix))
+            .count()
+    }
+
+    /// `merge_child` of this child stops on these files. An empty list: it goes through again.
+    pub fn conflict(&self, child: &str, files: &[&str]) {
+        let mut s = lock(&self.0);
+        if files.is_empty() {
+            s.conflicts.remove(child);
+        } else {
+            s.conflicts
+                .insert(child.into(), files.iter().map(|f| f.to_string()).collect());
+        }
+    }
+
+    /// The operation fails with this message: `merge_child`, `commit`, `rename`, `rebase`,
+    /// `gate`, `changes`. `None`: it works again.
+    pub fn fail(&self, op: &str, message: Option<&str>) {
+        let mut s = lock(&self.0);
+        match message {
+            Some(m) => s.fail.insert(op.into(), m.into()),
+            None => s.fail.remove(op),
+        };
+    }
+
+    pub fn set_branch(&self, name: &str) {
+        lock(&self.0).branch = name.into();
+    }
+
+    pub fn branch_now(&self) -> String {
+        lock(&self.0).branch.clone()
+    }
+
+    pub fn set_changes(&self, uncommitted: &[&str], files: &[&str]) {
+        let to = |l: &[&str]| l.iter().map(|f| f.to_string()).collect();
+        lock(&self.0).changes = Changes {
+            uncommitted: to(uncommitted),
+            files: to(files),
+        };
+    }
+
+    /// A file of `n` lines in the run folder.
+    pub fn set_lines(&self, path: &str, n: u32) {
+        lock(&self.0).lines.insert(path.into(), n);
+    }
+
+    pub fn set_rebase(&self, m: Merge) {
+        lock(&self.0).rebase = m;
+    }
+
+    /// A gate command that fails.
+    pub fn fail_gate(&self, command: &str) {
+        lock(&self.0).failing.push(command.into());
+    }
+
+    pub fn clear_gate(&self) {
+        lock(&self.0).failing.clear();
+    }
+
+    /// `remove_worktrees` keeps a dirty worktree with these files.
+    pub fn set_dirty(&self, files: Option<&str>) {
+        lock(&self.0).dirty = files.map(Into::into);
+    }
+
+    pub fn set_input(&self, input: ReviewInput) {
+        lock(&self.0).input = input;
+    }
+}
+
+impl GitState {
+    fn check(&mut self, op: &str, line: String) -> PortResult<()> {
+        self.calls.push(line);
+        match self.fail.get(op) {
+            Some(m) => Err(m.clone()),
+            None => Ok(()),
+        }
+    }
+}
+
+impl Git for FakeGit {
+    fn merge_child(&self, _run: &str, child: &str) -> PortResult<Merge> {
+        let mut s = lock(&self.0);
+        s.check("merge_child", format!("merge_child {child}"))?;
+        Ok(match s.conflicts.get(child) {
+            Some(files) => Merge::Conflicts(files.clone()),
+            None => Merge::Clean,
+        })
+    }
+
+    fn remove_child(&self, _run: &str, child: &str) -> PortResult<()> {
+        lock(&self.0).check("remove_child", format!("remove_child {child}"))
+    }
+
+    fn changes(&self, _run: &str, base: &str) -> PortResult<Changes> {
+        let mut s = lock(&self.0);
+        s.check("changes", format!("changes {base}"))?;
+        Ok(s.changes.clone())
+    }
+
+    fn review_input(&self, _run: &str, base: &str) -> PortResult<ReviewInput> {
+        let mut s = lock(&self.0);
+        s.check("review_input", format!("review_input {base}"))?;
+        Ok(s.input.clone())
+    }
+
+    fn line(&self, _run: &str, path: &str, line: u32) -> PortResult<Option<String>> {
+        let mut s = lock(&self.0);
+        s.check("line", format!("line {path}:{line}"))?;
+        Ok(s.lines
+            .get(path)
+            .filter(|n| line >= 1 && line <= **n)
+            .map(|_| format!("line {line}")))
+    }
+
+    fn branch(&self, _run: &str) -> PortResult<String> {
+        Ok(lock(&self.0).branch.clone())
+    }
+
+    fn rename_branch(&self, _run: &str, new: &str) -> PortResult<()> {
+        let mut s = lock(&self.0);
+        s.check("rename", format!("rename {new}"))?;
+        s.branch = new.into();
+        Ok(())
+    }
+
+    fn commit(
+        &self,
+        _run: &str,
+        paths: &[String],
+        summary: &str,
+        description: &str,
+    ) -> PortResult<String> {
+        let mut s = lock(&self.0);
+        s.check(
+            "commit",
+            format!("commit {} | {summary} | {description}", paths.join(",")),
+        )?;
+        s.changes.uncommitted.clear();
+        Ok(format!("c0ffee{}", s.calls.len()))
+    }
+
+    fn rebase(&self, _run: &str, base: &str) -> PortResult<Merge> {
+        let mut s = lock(&self.0);
+        s.check("rebase", format!("rebase {base}"))?;
+        Ok(s.rebase.clone())
+    }
+
+    fn gate(&self, _run: &str, commands: &[String]) -> PortResult<Vec<GateCheck>> {
+        let mut s = lock(&self.0);
+        s.check("gate", format!("gate {}", commands.join(" && ")))?;
+        Ok(commands
+            .iter()
+            .map(|c| {
+                let passed = !s.failing.contains(c);
+                GateCheck {
+                    command: c.clone(),
+                    passed,
+                    counts: if passed {
+                        "12 passed"
+                    } else {
+                        "1 failed, 11 passed"
+                    }
+                    .into(),
+                }
+            })
+            .collect())
+    }
+
+    fn remove_worktrees(&self, _run: &str) -> PortResult<()> {
+        let mut s = lock(&self.0);
+        s.check("remove_worktrees", "remove_worktrees".into())?;
+        match &s.dirty {
+            Some(files) => Err(format!("the worktree has uncommitted changes: {files}")),
+            None => Ok(()),
+        }
+    }
+}
+
+struct PullsState {
+    branches: Branches,
+    labels: Vec<String>,
+    found: BTreeMap<String, u64>,
+    checks: Vec<FailedCheck>,
+    threads: Vec<Thread>,
+    fail: Option<String>,
+    calls: Vec<String>,
+}
+
+/// The forge reads of delivery. By default: branches `main` and `develop`, the labels `feat`,
+/// `fix` and `engine`, no pull request.
+#[derive(Clone)]
+pub struct FakePulls(Arc<Mutex<PullsState>>);
+
+impl Default for FakePulls {
+    fn default() -> Self {
+        let own = |l: &[&str]| l.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        Self(Arc::new(Mutex::new(PullsState {
+            branches: Branches {
+                names: own(&["main", "develop"]),
+                default: "main".into(),
+            },
+            labels: own(&["feat", "fix", "engine"]),
+            found: BTreeMap::new(),
+            checks: Vec::new(),
+            threads: Vec::new(),
+            fail: None,
+            calls: Vec::new(),
+        })))
+    }
+}
+
+impl FakePulls {
+    /// An open pull request of this source branch.
+    pub fn put(&self, branch: &str, number: u64) {
+        lock(&self.0).found.insert(branch.into(), number);
+    }
+
+    pub fn close(&self, branch: &str) {
+        lock(&self.0).found.remove(branch);
+    }
+
+    pub fn set_branches(&self, names: &[&str], default: &str) {
+        lock(&self.0).branches = Branches {
+            names: names.iter().map(|n| n.to_string()).collect(),
+            default: default.into(),
+        };
+    }
+
+    pub fn set_labels(&self, labels: &[&str]) {
+        lock(&self.0).labels = labels.iter().map(|l| l.to_string()).collect();
+    }
+
+    pub fn set_checks(&self, checks: Vec<FailedCheck>) {
+        lock(&self.0).checks = checks;
+    }
+
+    pub fn set_threads(&self, threads: Vec<Thread>) {
+        lock(&self.0).threads = threads;
+    }
+
+    /// Every read fails with this message. `None`: they work again.
+    pub fn fail_with(&self, message: Option<&str>) {
+        lock(&self.0).fail = message.map(Into::into);
+    }
+
+    pub fn calls(&self) -> Vec<String> {
+        lock(&self.0).calls.clone()
+    }
+
+    fn read<T>(&self, call: String, get: impl FnOnce(&PullsState) -> T) -> PortResult<T> {
+        let mut s = lock(&self.0);
+        s.calls.push(call);
+        match &s.fail {
+            Some(e) => Err(e.clone()),
+            None => Ok(get(&s)),
+        }
+    }
+}
+
+impl Pulls for FakePulls {
+    fn branches(&self) -> PortResult<Branches> {
+        self.read("branches".into(), |s| s.branches.clone())
+    }
+
+    fn labels(&self) -> PortResult<Vec<String>> {
+        self.read("labels".into(), |s| s.labels.clone())
+    }
+
+    fn find(&self, branch: &str) -> PortResult<Option<u64>> {
+        self.read(format!("find {branch}"), |s| s.found.get(branch).copied())
+    }
+
+    fn failed_checks(&self, number: u64) -> PortResult<Vec<FailedCheck>> {
+        self.read(format!("failed_checks {number}"), |s| s.checks.clone())
+    }
+
+    fn threads(&self, number: u64) -> PortResult<Vec<Thread>> {
+        self.read(format!("threads {number}"), |s| s.threads.clone())
     }
 }

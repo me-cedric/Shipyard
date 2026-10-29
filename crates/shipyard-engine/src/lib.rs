@@ -6,12 +6,17 @@
 //! approvals ([`approvals`]) and the questions loop ([`questions`]).
 
 pub mod approvals;
+pub mod children;
 pub mod claims;
 pub mod fake;
+pub mod feedback;
 pub mod handoff;
 pub mod import;
+pub mod merge;
 pub mod ports;
+pub mod pull_request;
 pub mod questions;
+pub mod review;
 pub mod run_engine;
 pub mod tick;
 

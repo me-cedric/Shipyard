@@ -24,9 +24,29 @@ pub enum Write {
     /// Post a comment (`tracker_comment`). A question comment holds its marker.
     Comment { key: String, body: String },
     /// Push the run branch (`push`). With lease: always an approval.
-    Push { run: String, force_with_lease: bool },
-    /// Open the pull request of the run (`pull_request`).
-    OpenPr { run: String },
+    Push {
+        run: String,
+        branch: String,
+        base: String,
+        force_with_lease: bool,
+    },
+    /// Open the pull request of the run as a draft (`pull_request`). The labels exist already.
+    OpenPr {
+        run: String,
+        branch: String,
+        base: String,
+        title: String,
+        body: String,
+        labels: Vec<String>,
+        reviewers: Vec<String>,
+        draft: bool,
+    },
+    /// Reply on each thread and resolve it (`pull_request`, `delivery` REQ-019).
+    ResolveThreads {
+        run: String,
+        threads: Vec<String>,
+        reply: String,
+    },
 }
 
 impl Write {
@@ -38,7 +58,7 @@ impl Write {
             Self::Push {
                 force_with_lease, ..
             } => w.push && !force_with_lease,
-            Self::OpenPr { .. } => w.pull_request,
+            Self::OpenPr { .. } | Self::ResolveThreads { .. } => w.pull_request,
         }
     }
 
@@ -106,7 +126,7 @@ impl Inner {
                     kind::WRITE,
                     json!({"state": "failed", "write": write, "error": e}),
                 );
-                if matches!(write, Write::OpenPr { .. }) {
+                if matches!(write, Write::OpenPr { .. } | Write::Push { .. }) {
                     self.action_failed(run_id, &e);
                 }
                 None
@@ -120,6 +140,11 @@ impl Inner {
             return;
         };
         match write {
+            Write::Push { .. } => {
+                rec.d.pushed = true;
+                rec.d.rewrote = false;
+                self.advance_pr(run_id);
+            }
             Write::Transition { status, .. } => rec.ticket_status = status.clone(),
             Write::Labels { labels, .. } => rec.labels = labels.clone(),
             Write::Comment { key, body } => {
@@ -138,7 +163,7 @@ impl Inner {
                 }
             }
             Write::OpenPr { .. } => self.pr_opened(run_id, made),
-            Write::Push { .. } => {}
+            Write::ResolveThreads { .. } => {}
         }
     }
 

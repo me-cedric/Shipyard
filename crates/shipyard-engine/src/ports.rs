@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 pub use shipyard_agents::runner::Event as AgentEvent;
+use shipyard_core::delivery::GateCheck;
 use shipyard_core::pickup::{ActiveRun, PullSnapshot, SyncEvent, Ticket};
 use shipyard_core::work_item::Comment;
 use shipyard_core::workflow::{Effort, Mode, Workspace};
@@ -170,4 +171,125 @@ pub trait Writer: Send + Sync {
     /// Send one write. Returns the id that it made: the comment id, the pull request number, else
     /// an empty string.
     fn send(&self, write: &crate::approvals::Write) -> PortResult<String>;
+}
+
+// ---- delivery ports (W6)
+
+/// How a merge or a rebase ended.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Merge {
+    /// It went through and kept the history as it was (or there was nothing to do).
+    Clean,
+    /// A rebase moved commits: a branch that is on the remote needs a force with lease.
+    Rewrote,
+    /// It stopped. The folder is as it was before. The files that conflict.
+    Conflicts(Vec<String>),
+}
+
+/// What the run changed, as paths of the working copy.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Changes {
+    /// Files with an uncommitted change in the run folder.
+    pub uncommitted: Vec<String>,
+    /// Every file that the run branch changes against the base, committed or not.
+    pub files: Vec<String>,
+}
+
+/// What the reviewer gets (`delivery` REQ-001, REQ-002).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ReviewInput {
+    /// The commit that the review judges.
+    pub head: String,
+    /// The change against the base, uncommitted files included.
+    pub diff: String,
+    /// `(path, text)` of the spec files at the base commit. A change that edits its own spec does
+    /// not judge itself.
+    pub specs: Vec<(String, String)>,
+}
+
+/// The local git work of delivery, on the folder and the branch of one run. The app wraps
+/// `shipyard_git::Repo` and runs the gate commands. An error is a message that a person can read.
+pub trait Git: Send + Sync {
+    /// Commit what the child left in its worktree, then apply its branch to the run folder. A
+    /// squash: the change stays uncommitted there, and [`Git::commit`] makes the one commit.
+    /// Conflicts leave the run folder as it was.
+    fn merge_child(&self, run: &str, child: &str) -> PortResult<Merge>;
+
+    /// Remove the worktree of a child and its branch. A fix round then starts a new child from
+    /// the run branch.
+    fn remove_child(&self, run: &str, child: &str) -> PortResult<()>;
+
+    fn changes(&self, run: &str, base: &str) -> PortResult<Changes>;
+
+    fn review_input(&self, run: &str, base: &str) -> PortResult<ReviewInput>;
+
+    /// The text of line `line` (from 1) of `path` in the run folder. `None`: no such file or line.
+    fn line(&self, run: &str, path: &str, line: u32) -> PortResult<Option<String>>;
+
+    /// The name of the run branch.
+    fn branch(&self, run: &str) -> PortResult<String>;
+
+    /// Refused for a branch that is on the remote already (`delivery` REQ-007).
+    fn rename_branch(&self, run: &str, new: &str) -> PortResult<()>;
+
+    /// Commit these files and only them. Returns the commit id.
+    fn commit(
+        &self,
+        run: &str,
+        paths: &[String],
+        summary: &str,
+        description: &str,
+    ) -> PortResult<String>;
+
+    /// Rebase the run branch onto the base.
+    fn rebase(&self, run: &str, base: &str) -> PortResult<Merge>;
+
+    /// Run the gate commands of the project in the run folder. One result for each command.
+    fn gate(&self, run: &str, commands: &[String]) -> PortResult<Vec<GateCheck>>;
+
+    /// Remove the child worktrees that are left. A dirty one stays and the error names its files
+    /// (`delivery` REQ-025).
+    fn remove_worktrees(&self, run: &str) -> PortResult<()>;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Branches {
+    pub names: Vec<String>,
+    pub default: String,
+}
+
+/// A failed check of a pull request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FailedCheck {
+    pub name: String,
+    pub url: String,
+    /// The end of the log, when the forge gives it.
+    pub tail: Option<String>,
+}
+
+/// An open review conversation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Thread {
+    pub id: String,
+    pub path: Option<String>,
+    pub line: Option<u32>,
+    /// The comments, oldest first, as one text.
+    pub text: String,
+}
+
+/// What delivery reads from the forge. The app wraps `shipyard_forges::PullApi`. The writes go
+/// through [`Writer`], behind the switches.
+pub trait Pulls: Send + Sync {
+    fn branches(&self) -> PortResult<Branches>;
+
+    /// The labels that exist on the forge.
+    fn labels(&self) -> PortResult<Vec<String>>;
+
+    /// The open pull request of a source branch (`delivery` REQ-016).
+    fn find(&self, branch: &str) -> PortResult<Option<u64>>;
+
+    fn failed_checks(&self, number: u64) -> PortResult<Vec<FailedCheck>>;
+
+    /// The threads that are not resolved.
+    fn threads(&self, number: u64) -> PortResult<Vec<Thread>>;
 }

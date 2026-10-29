@@ -98,7 +98,7 @@ fn pull_request_without_its_switch_waits_for_a_click() {
     }
     assert_eq!(fx.state(&run), RunState::SelfReview);
     let a = fx.f.approvals().pop().unwrap();
-    assert_eq!(a.write, Write::OpenPr { run: run.clone() });
+    assert!(matches!(&a.write, Write::OpenPr { run: r, draft: true, .. } if *r == run));
     fx.f.approve(a.id).unwrap();
     assert_eq!(fx.state(&run), RunState::PROpen);
     assert_eq!(fx.f.run_info(&run).unwrap().pr, Some(7));
@@ -110,11 +110,15 @@ fn force_with_lease_always_waits() {
     let run = fx.start("SHIP-1", &[]);
     let plain = Write::Push {
         run: run.clone(),
+        branch: "feat/x/y".into(),
+        base: "main".into(),
         force_with_lease: false,
     };
     assert_eq!(fx.f.write(&run, plain), Ok(Some(String::new())));
     let lease = Write::Push {
         run: run.clone(),
+        branch: "feat/x/y".into(),
+        base: "main".into(),
         force_with_lease: true,
     };
     assert_eq!(fx.f.write(&run, lease.clone()), Ok(None));

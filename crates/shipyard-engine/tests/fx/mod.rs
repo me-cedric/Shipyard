@@ -9,7 +9,9 @@ use serde_json::{Value, json};
 use shipyard_core::pickup::{Automation, Writes};
 use shipyard_core::run::RunState;
 use shipyard_core::workflow::DEFAULT_ROLES;
-use shipyard_engine::fake::{FakeAgents, FakeClock, FakeWorkspaces, FakeWriter, todo};
+use shipyard_engine::fake::{
+    FakeAgents, FakeClock, FakeGit, FakePulls, FakeWorkspaces, FakeWriter, todo,
+};
 use shipyard_engine::ports::{AgentEvent, Dispatch, StartRequest};
 use shipyard_engine::run_engine::{Config, Factory, Project};
 use shipyard_mcp::tools::agent::{Outcome, Report};
@@ -38,6 +40,8 @@ pub struct Fx {
     pub agents: FakeAgents,
     pub writer: FakeWriter,
     pub ws: FakeWorkspaces,
+    pub git: FakeGit,
+    pub pulls: FakePulls,
     pub clock: FakeClock,
     pub mirror: Arc<Mutex<Mirror>>,
     pub dir: tempfile::TempDir,
@@ -60,6 +64,16 @@ impl Fx {
     }
 
     pub fn with(writes: Writes, extra: &[&str], cfg: Config) -> Self {
+        Self::build(writes, extra, cfg, |_| {})
+    }
+
+    /// `tweak` changes the project before the factory gets it: gates, base, reviewers.
+    pub fn build(
+        writes: Writes,
+        extra: &[&str],
+        cfg: Config,
+        tweak: impl FnOnce(&mut Project),
+    ) -> Self {
         let roles: Vec<String> = DEFAULT_ROLES.iter().map(|r| r.to_string()).collect();
         let mut files = Loaded::default();
         for (id, text) in default_workflows() {
@@ -83,29 +97,39 @@ impl Fx {
         ));
         let writer = FakeWriter::default();
         let ws = FakeWorkspaces::default();
+        let git = FakeGit::default();
+        let pulls = FakePulls::default();
+        writer.link(&pulls);
         let mirror = Arc::new(Mutex::new(Mirror::open_memory().unwrap()));
         let automation = Automation {
             writes,
             ..Automation::default()
         };
-        f.set_project(
-            "ship",
-            Project {
-                automation,
-                files,
-                default_workflow: if extra.is_empty() { "feature" } else { "one" }.into(),
-                root: dir.path().to_path_buf(),
-                source: SOURCE.into(),
-                mirror: mirror.clone(),
-                writer: Arc::new(writer.clone()),
-                workspaces: Arc::new(ws.clone()),
-            },
-        );
+        let mut project = Project {
+            automation,
+            files,
+            default_workflow: if extra.is_empty() { "feature" } else { "one" }.into(),
+            root: dir.path().to_path_buf(),
+            source: SOURCE.into(),
+            mirror: mirror.clone(),
+            writer: Arc::new(writer.clone()),
+            workspaces: Arc::new(ws.clone()),
+            git: Arc::new(git.clone()),
+            pulls: Arc::new(pulls.clone()),
+            forge: "github".into(),
+            gates: Vec::new(),
+            base: None,
+            reviewers: vec!["alice".into()],
+        };
+        tweak(&mut project);
+        f.set_project("ship", project);
         Self {
             f,
             agents,
             writer,
             ws,
+            git,
+            pulls,
             clock,
             mirror,
             log: RunLog::open(&path).unwrap(),

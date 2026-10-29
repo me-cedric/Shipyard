@@ -22,9 +22,10 @@ use std::time::Duration;
 
 use serde::Serialize;
 use serde_json::{Value, json};
-use shipyard_core::pickup::{ActiveRun, Automation, PrEventKind, SyncEvent};
-use shipyard_core::run::{self, BudgetLevel, MAX_ROUNDS, Run, RunEvent, RunState};
-use shipyard_core::workflow::{self, Action, Gate, Mode, Step, StepState, Workflow, Workspace};
+use shipyard_core::pickup::{ActiveRun, Automation, SyncEvent};
+use shipyard_core::run::{self, BudgetLevel, Run, RunEvent, RunState};
+use shipyard_core::work_item::WorkKind;
+use shipyard_core::workflow::{self, Gate, Mode, Step, StepState, Workflow, Workspace};
 use shipyard_store::automation_file::status_map;
 use shipyard_store::factory_files::Loaded;
 use shipyard_store::mirror::Mirror;
@@ -33,9 +34,11 @@ use shipyard_store::run_log::{RunLog, kind};
 use crate::Clock;
 use crate::approvals::{Approval, Write};
 use crate::ports::{
-    AgentEvent, AgentRun, Agents, Brief, Dispatch, StartRequest, Workspaces, Writer,
+    AgentEvent, AgentRun, Agents, Brief, Dispatch, Git, Pulls, StartRequest, Workspaces, Writer,
 };
+use crate::pull_request::Delivered;
 use crate::questions::Asked;
+use crate::review::Finding;
 
 /// A ticket label `wf:<id>` picks the workflow (REQ-009).
 pub const WORKFLOW_LABEL: &str = "wf:";
@@ -103,6 +106,18 @@ pub struct Project {
     pub mirror: Arc<Mutex<Mirror>>,
     pub writer: Arc<dyn Writer>,
     pub workspaces: Arc<dyn Workspaces>,
+    /// The local git work of delivery.
+    pub git: Arc<dyn Git>,
+    /// The forge reads of delivery.
+    pub pulls: Arc<dyn Pulls>,
+    /// The connection id of the forge: it makes `pr:<forge>:<number>`.
+    pub forge: String,
+    /// The gate commands (`gates` of `.shipyard/project.yaml`, `q:Q-030`).
+    pub gates: Vec<String>,
+    /// The base branch that the project declares. `None`: `develop`, else the default branch.
+    pub base: Option<String>,
+    /// The reviewers of a pull request (`q:Q-029`). Empty: a run blocks before it opens one.
+    pub reviewers: Vec<String>,
 }
 
 /// A step as the views and `delivery` see it.
@@ -127,6 +142,10 @@ pub struct RunInfo {
     pub turns: u32,
     pub budget_usd: f64,
     pub steps: Vec<StepInfo>,
+    /// The P0 and P1 findings that are left when the review rounds are spent (the Inbox card).
+    pub findings: Vec<Finding>,
+    /// The worktrees that a merged run left behind, with their files (`delivery` REQ-025).
+    pub worktree_kept: Option<String>,
 }
 
 pub(crate) struct Unit {
@@ -146,6 +165,8 @@ pub(crate) struct Unit {
     pub output: Value,
     pub text: String,
     pub cost: f64,
+    /// The worktree of this child is joined into the run folder.
+    pub merged: bool,
 }
 
 impl Unit {
@@ -164,6 +185,7 @@ impl Unit {
             output: Value::Null,
             text: String::new(),
             cost: 0.0,
+            merged: false,
         }
     }
 }
@@ -175,6 +197,8 @@ pub(crate) struct StepRec {
     pub output: Value,
     /// Review findings of a fix round, a plan rejection: they go in the next brief.
     pub notes: Vec<String>,
+    /// A child conflict stopped the join of the worktrees: try again when the run comes back.
+    pub merge_pending: bool,
 }
 
 pub(crate) struct RunRec {
@@ -183,6 +207,8 @@ pub(crate) struct RunRec {
     pub key: String,
     pub title: String,
     pub description: String,
+    pub url: String,
+    pub kind: WorkKind,
     /// The ticket status at pickup.
     pub status: String,
     /// The ticket status and labels after the writes that went out.
@@ -200,17 +226,18 @@ pub(crate) struct RunRec {
     pub alerted: bool,
     pub rounds: u32,
     pub questions: Vec<Asked>,
+    pub d: Delivered,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Kind {
+pub(crate) enum Kind {
     Plan,
     Build,
     Review,
     Action,
 }
 
-fn kind_of(s: &Step) -> Kind {
+pub(crate) fn kind_of(s: &Step) -> Kind {
     if s.action.is_some() {
         Kind::Action
     } else if s.max_rounds.is_some() {
@@ -376,7 +403,7 @@ impl Factory {
 }
 
 /// A step back to `Pending` with fresh children and a note for the next brief.
-fn reset(s: &mut StepRec, note: &str) {
+pub(crate) fn reset(s: &mut StepRec, note: &str) {
     s.state = StepState::Pending;
     s.units.clear();
     s.output = Value::Null;
@@ -462,6 +489,8 @@ impl Inner {
                     }
                 })
                 .collect(),
+            findings: r.d.findings.clone(),
+            worktree_kept: r.d.kept.clone(),
         }
     }
 
@@ -520,7 +549,16 @@ impl Inner {
         let key = rec.key.clone();
         let target = map.get(state.as_str()).cloned().unwrap_or_default();
         let labels = run::staged_labels(&rec.labels, &map, state);
-        let status = target.status.filter(|s| *s != rec.ticket_status);
+        // The forge can close the ticket at the merge: no second move (`delivery` REQ-023).
+        let closed = matches!(state, RunState::Merged | RunState::Done)
+            && p.mirror
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .ticket(&p.source, &rec.key)
+                .ok()
+                .flatten()
+                .is_some_and(|t| p.automation.terminal(&t.item.status));
+        let status = target.status.filter(|s| *s != rec.ticket_status && !closed);
         let labels_changed = labels != rec.labels;
         if let Some(status) = status {
             self.write(
@@ -563,6 +601,9 @@ impl Inner {
         if self.clocks(run_id) {
             self.check_clocks(run_id, now);
         }
+        self.retry_merges(run_id);
+        self.drive_pr(run_id);
+        self.take_feedback(run_id);
         self.schedule(run_id, now);
     }
 
@@ -735,9 +776,12 @@ impl Inner {
         }
     }
 
-    fn step_done(&mut self, run_id: &str, sid: &str, blocking: bool) {
+    pub(crate) fn step_done(&mut self, run_id: &str, sid: &str, blocking: bool) {
         let step = self.runs[run_id].wf.step(sid).cloned().expect("step");
-        let rounds = self.runs[run_id].rounds;
+        // The children of a worktree step join the run folder before the step ends.
+        if step.workspace == Workspace::Worktree && !self.join_children(run_id, sid) {
+            return;
+        }
         let s = self.rec(run_id).steps.get_mut(sid).expect("step");
         s.output = match step.for_each {
             Some(_) => {
@@ -746,34 +790,15 @@ impl Inner {
             None => s.units.first().map_or(Value::Null, |u| u.output.clone()),
         };
         if kind_of(&step) == Kind::Review {
-            let findings = s.output["summary"].as_str().unwrap_or("").to_string();
-            let max = step.max_rounds.unwrap_or(MAX_ROUNDS);
-            match run::after_review(blocking, rounds, max) {
-                None => s.state = StepState::Done,
-                Some(RunEvent::FixRound) => {
-                    reset(s, "");
-                    let rec = self.rec(run_id);
-                    rec.rounds += 1;
-                    let note = format!("Fix round {}: {findings}", rec.rounds);
-                    for n in &step.needs {
-                        if let Some(need) = rec.steps.get_mut(n) {
-                            reset(need, &note);
-                        }
-                    }
-                    self.transition(run_id, RunEvent::FixRound);
-                }
-                Some(event) => {
-                    reset(s, "");
-                    self.transition(run_id, event);
-                }
-            }
+            self.review_done(run_id, &step, blocking);
         } else if step.gate == Gate::Human {
+            let s = self.rec(run_id).steps.get_mut(sid).expect("step");
             s.state = StepState::Gate;
             if self.runs[run_id].run.state == RunState::Planning {
                 self.transition(run_id, RunEvent::PlanReady { gate: true });
             }
         } else {
-            s.state = StepState::Done;
+            self.rec(run_id).steps.get_mut(sid).expect("step").state = StepState::Done;
         }
     }
 
@@ -849,13 +874,13 @@ impl Inner {
         if !self.clocks(run_id) {
             return;
         }
-        if step.action == Some(Action::OpenPr) {
+        if step.action.is_some() {
             let s = self.rec(run_id).steps.get_mut(sid).expect("step");
             let mut u = Unit::new(sid.into(), None);
             u.state = StepState::Running;
             s.units = vec![u];
             s.state = StepState::Running;
-            self.write(run_id, Write::OpenPr { run: run_id.into() });
+            self.advance_pr(run_id);
             return;
         }
         let units = match step.source() {
@@ -895,8 +920,16 @@ impl Inner {
 
     /// Start the agent of one unit. `false` when the run stopped.
     fn start_unit(&mut self, run_id: &str, sid: &str, i: usize, now: u64) -> bool {
+        let step = self.runs[run_id].wf.step(sid).cloned().expect("step");
+        let review = if kind_of(&step) == Kind::Review {
+            match self.review_context(run_id) {
+                Ok(text) => Some(text),
+                Err(e) => return self.block(run_id, sid, &e),
+            }
+        } else {
+            None
+        };
         let rec = &self.runs[run_id];
-        let step = rec.wf.step(sid).cloned().expect("step");
         let Some(p) = self.projects.get(&rec.project) else {
             return self.block(run_id, sid, "the project is not open");
         };
@@ -919,7 +952,10 @@ impl Inner {
             .filter(|_| u.parked && !step.fresh_context);
         let prompt = match resume {
             Some(_) => self.resume_prompt(run_id, sid),
-            None => self.brief(run_id, &step, i, role.map(|r| r.prompt).unwrap_or_default()),
+            None => {
+                let prompt = role.map(|r| r.prompt).unwrap_or_default();
+                self.brief(run_id, &step, i, prompt, review.as_deref())
+            }
         };
         let brief = Brief {
             run: run_id.into(),
@@ -956,14 +992,22 @@ impl Inner {
         }
     }
 
-    fn block(&mut self, run_id: &str, sid: &str, why: &str) -> bool {
+    pub(crate) fn block(&mut self, run_id: &str, sid: &str, why: &str) -> bool {
         self.log(run_id, Some(sid), kind::NOTE, json!({"blocked": why}));
         self.transition(run_id, RunEvent::Block);
         false
     }
 
     /// The first brief of a unit: role, skill, ticket, inputs, item, notes, answers.
-    fn brief(&self, run_id: &str, step: &Step, i: usize, role_prompt: String) -> String {
+    /// A reviewer gets `review` (the diff, the criteria) in place of the outputs of the builders.
+    fn brief(
+        &self,
+        run_id: &str,
+        step: &Step,
+        i: usize,
+        role_prompt: String,
+        review: Option<&str>,
+    ) -> String {
         let rec = &self.runs[run_id];
         let mut p = role_prompt;
         if !p.is_empty() {
@@ -976,9 +1020,14 @@ impl Inner {
             "Ticket {}: {}\n\n{}\n",
             rec.key, rec.title, rec.description
         ));
-        for n in &step.needs {
-            if let Some(s) = rec.steps.get(n) {
-                p.push_str(&format!("\nOutput of `{n}`:\n{}\n", s.output));
+        match review {
+            Some(text) => p.push_str(text),
+            None => {
+                for n in &step.needs {
+                    if let Some(s) = rec.steps.get(n) {
+                        p.push_str(&format!("\nOutput of `{n}`:\n{}\n", s.output));
+                    }
+                }
             }
         }
         if let Some(item) = &rec.steps[&step.id].units[i].item {
@@ -1001,75 +1050,6 @@ impl Inner {
         }
         p.push_str(&self.answers_text(run_id));
         p
-    }
-
-    /// The pull request is open: the action step ends (REQ-001).
-    pub(crate) fn pr_opened(&mut self, run_id: &str, made: &str) {
-        let rec = self.rec(run_id);
-        rec.pr = made.parse().ok();
-        let pr = rec.pr;
-        let actions: Vec<String> = rec
-            .wf
-            .steps
-            .iter()
-            .filter(|s| s.action.is_some())
-            .map(|s| s.id.clone())
-            .collect();
-        for (_, s) in rec.steps.iter_mut().filter(|(id, _)| actions.contains(id)) {
-            if s.state == StepState::Running {
-                for u in &mut s.units {
-                    u.state = StepState::Done;
-                }
-                s.state = StepState::Done;
-            }
-        }
-        self.log(run_id, None, kind::PR, json!({"number": pr}));
-        self.transition(run_id, RunEvent::PrOpened);
-    }
-
-    /// The pull request write failed: the action step failed, with its retries.
-    pub(crate) fn action_failed(&mut self, run_id: &str, why: &str) {
-        let action = self.runs[run_id]
-            .wf
-            .steps
-            .iter()
-            .find(|s| s.action.is_some())
-            .map(|s| s.id.clone());
-        if let Some(sid) = action
-            && self.runs[run_id].steps[&sid].state == StepState::Running
-        {
-            self.unit_failed(run_id, &sid, 0, why);
-        }
-    }
-
-    fn on_pr(&mut self, number: u64, kind_: PrEventKind) {
-        let ids: Vec<String> = self
-            .runs
-            .values()
-            .filter(|r| r.pr == Some(number) && !r.run.state.is_final())
-            .map(|r| r.id.clone())
-            .collect();
-        for id in ids {
-            self.log(
-                &id,
-                None,
-                kind::PR,
-                json!({"number": number, "event": format!("{kind_:?}")}),
-            );
-            let state = self.runs[&id].run.state;
-            let event = match kind_ {
-                PrEventKind::Merged => Some(RunEvent::PrMerged),
-                PrEventKind::ChangesRequested | PrEventKind::CiFailed => {
-                    (state == RunState::PROpen).then_some(RunEvent::ChangesRequested)
-                }
-                // A pull request closed with no merge (`delivery` REQ-026).
-                PrEventKind::Closed => (state == RunState::PROpen).then_some(RunEvent::Block),
-                PrEventKind::Opened | PrEventKind::CiPassed => None,
-            };
-            if let Some(e) = event {
-                self.transition(&id, e);
-            }
-        }
     }
 
     fn start(&mut self, req: &StartRequest) -> Result<(), String> {
@@ -1101,6 +1081,8 @@ impl Inner {
             key: item.key.clone(),
             title: item.title.clone(),
             description: item.description.clone(),
+            url: item.url.clone(),
+            kind: item.kind,
             status: req.status.clone(),
             ticket_status: item.status.name.clone(),
             labels: item.labels.clone(),
@@ -1119,6 +1101,7 @@ impl Inner {
             alerted: false,
             rounds: 0,
             questions: Vec::new(),
+            d: Delivered::default(),
         };
         let payload = json!({
             "ticket": format!("wi:{}", item.key), "workflow": format!("wf:{}", rec.wf.id),
