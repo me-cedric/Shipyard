@@ -11,12 +11,17 @@
 //! A report with no `findings` list keeps the earlier rule: an outcome that is not `done` blocks,
 //! and the summary is the finding.
 
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use shipyard_core::delivery::GateCheck;
 use shipyard_core::run::{self, MAX_ROUNDS, RunEvent};
 use shipyard_core::workflow::{Action, Step, StepState};
 use shipyard_store::run_log::kind;
 
+use crate::jobs::Work;
+use crate::ports::{Git, PortResult};
 use crate::run_engine::{Inner, reset};
 
 /// Run log kind of a review round: the kept findings, the dropped ones, the criteria, the gate.
@@ -180,9 +185,9 @@ impl Inner {
         (kept, dropped)
     }
 
-    /// The gate commands of the project, in the run folder (REQ-006). A red command is a P1
-    /// finding. Only a workflow with a pull request has a gate.
-    fn gate_findings(&mut self, run_id: &str) -> Vec<Finding> {
+    /// The gate commands of the project and the git port that runs them (REQ-006). Only a
+    /// workflow with a pull request has a gate.
+    fn gate_plan(&mut self, run_id: &str) -> Option<(Arc<dyn Git>, Vec<String>)> {
         self.rec(run_id).d.gate.clear();
         let rec = &self.runs[run_id];
         let opens_pr = rec
@@ -190,20 +195,19 @@ impl Inner {
             .steps
             .iter()
             .any(|s| s.action == Some(Action::OpenPr));
-        let Some(p) = self.project_of(run_id) else {
-            return Vec::new();
-        };
-        if !opens_pr || p.gates.is_empty() {
-            return Vec::new();
-        }
-        let (git, gates) = (p.git.clone(), p.gates.clone());
+        let p = self.project_of(run_id)?;
+        (opens_pr && !p.gates.is_empty()).then(|| (p.git.clone(), p.gates.clone()))
+    }
+
+    /// A red gate command is a P1 finding.
+    fn gate_findings(&mut self, run_id: &str, result: PortResult<Vec<GateCheck>>) -> Vec<Finding> {
         let p1 = |text: String| Finding {
             severity: Severity::P1,
             path: None,
             line: None,
             text,
         };
-        match git.gate(run_id, &gates) {
+        match result {
             Ok(checks) => {
                 let red = checks
                     .iter()
@@ -217,6 +221,42 @@ impl Inner {
         }
     }
 
+    /// The gate ran with no lock and the run did not change: its verdict joins the review.
+    pub(crate) fn gate_done(
+        &mut self,
+        run_id: &str,
+        step: &Step,
+        mut findings: Vec<Finding>,
+        dropped: Vec<Value>,
+        criteria: Value,
+        result: PortResult<Vec<GateCheck>>,
+    ) {
+        if let Some(s) = self.rec(run_id).steps.get_mut(&step.id) {
+            s.gating = false;
+        }
+        let red = self.gate_findings(run_id, result);
+        let blocking = !red.is_empty();
+        findings.extend(red);
+        self.review_finish(run_id, step, findings, dropped, criteria, blocking);
+    }
+
+    /// A review whose gate verdict was lost (a restart, a change of the run): run the gate again.
+    pub(crate) fn regate(&mut self, run_id: &str) {
+        if !self.runs[run_id].run.state.clocks_run() {
+            return;
+        }
+        let steps: Vec<Step> = self.runs[run_id]
+            .wf
+            .steps
+            .iter()
+            .filter(|s| self.runs[run_id].steps[&s.id].gating)
+            .cloned()
+            .collect();
+        for step in steps {
+            self.review_done(run_id, &step, false);
+        }
+    }
+
     /// The review step ended (REQ-004, REQ-006). `blocking` is the outcome of the report, used
     /// when the report has no `findings` list.
     pub(crate) fn review_done(&mut self, run_id: &str, step: &Step, outcome_blocks: bool) {
@@ -227,7 +267,7 @@ impl Inner {
         }
         // The findings decide. With no finding at all, the outcome decides: a reviewer that did
         // not end with `done` and left no usable finding does not pass the run.
-        let mut blocking =
+        let blocking =
             findings.iter().any(Finding::blocking) || (findings.is_empty() && outcome_blocks);
         if blocking && !findings.iter().any(Finding::blocking) {
             // The summary is the finding.
@@ -245,11 +285,38 @@ impl Inner {
                 text,
             });
         }
-        if !blocking {
-            let red = self.gate_findings(run_id);
-            blocking = !red.is_empty();
-            findings.extend(red);
+        let criteria = out["criteria"].clone();
+        if !blocking && let Some((git, gates)) = self.gate_plan(run_id) {
+            // The commands run with no lock (`jobs`): the review goes on from `gate_done`.
+            self.rec(run_id)
+                .steps
+                .get_mut(&step.id)
+                .expect("step")
+                .gating = true;
+            let work = Work::Gate {
+                git,
+                gates,
+                step: step.clone(),
+                findings,
+                dropped,
+                criteria,
+            };
+            self.queue(run_id, work);
+            return;
         }
+        self.review_finish(run_id, step, findings, dropped, criteria, blocking);
+    }
+
+    /// The end of a review: the log, the verdict, the fix round or the next step.
+    fn review_finish(
+        &mut self,
+        run_id: &str,
+        step: &Step,
+        findings: Vec<Finding>,
+        dropped: Vec<Value>,
+        criteria: Value,
+        blocking: bool,
+    ) {
         let notes = findings
             .iter()
             .map(Finding::describe)
@@ -258,7 +325,7 @@ impl Inner {
         let rounds = self.runs[run_id].rounds;
         let payload = json!({
             "round": rounds + 1, "blocking": blocking, "findings": findings,
-            "dropped": dropped, "criteria": out["criteria"], "gate": self.runs[run_id].d.gate,
+            "dropped": dropped, "criteria": criteria, "gate": self.runs[run_id].d.gate,
         });
         self.log(run_id, Some(&step.id), REVIEW, payload);
         self.rec(run_id).d.findings = findings.into_iter().filter(Finding::blocking).collect();

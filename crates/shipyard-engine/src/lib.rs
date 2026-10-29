@@ -14,6 +14,7 @@ pub mod feedback;
 mod fence;
 pub mod handoff;
 pub mod import;
+mod jobs;
 pub mod merge;
 pub mod persist;
 pub mod ports;

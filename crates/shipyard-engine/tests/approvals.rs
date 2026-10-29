@@ -238,3 +238,35 @@ fn a_delivery_approval_waits_while_the_run_is_in_a_side_state() {
     fx.f.approve(id).unwrap();
     assert_eq!(fx.state(&run), RunState::PROpen);
 }
+
+/// A slow tracker write goes out with no lock: the views answer while it runs.
+#[test]
+fn a_slow_write_does_not_hold_the_factory() {
+    use std::time::{Duration, Instant};
+    let fx = Fx::new(writes(true), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    fx.writer.set_delay(Duration::from_millis(600));
+    let before = fx.writer.sent().len();
+    std::thread::scope(|s| {
+        let f = fx.f.clone();
+        let run = run.clone();
+        let write = s.spawn(move || {
+            let comment = Write::Comment {
+                key: "SHIP-1".into(),
+                body: "hello".into(),
+            };
+            f.write(&run, comment).unwrap()
+        });
+        std::thread::sleep(Duration::from_millis(100));
+        let t = Instant::now();
+        assert_eq!(fx.f.runs().len(), 1);
+        assert!(
+            t.elapsed() < Duration::from_millis(300),
+            "{:?}",
+            t.elapsed()
+        );
+        assert!(!write.is_finished(), "the write was still out");
+        assert!(write.join().unwrap().is_some());
+    });
+    assert_eq!(fx.writer.sent().len(), before + 1);
+}

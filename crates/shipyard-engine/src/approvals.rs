@@ -11,7 +11,15 @@ use shipyard_core::pickup::{Writes, question_marker};
 use shipyard_core::run::RunEvent;
 use shipyard_store::run_log::kind;
 
+use crate::jobs::{Slot, Work};
+use crate::ports::PortResult;
 use crate::run_engine::{Factory, Inner};
+
+fn set(slot: Option<&Slot>, made: String) {
+    if let Some(s) = slot {
+        *s.lock().unwrap_or_else(|e| e.into_inner()) = Some(made);
+    }
+}
 
 /// One write of the factory. The approval names it exactly.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -91,13 +99,19 @@ pub struct Approval {
 }
 
 impl Inner {
-    /// Send the write when its switch is on, else queue it. `Some(id)` when it went out.
-    pub(crate) fn write(&mut self, run_id: &str, write: Write) -> Option<String> {
+    /// Send the write when its switch is on, else queue it.
+    pub(crate) fn write(&mut self, run_id: &str, write: Write) {
+        self.write_with(run_id, write, None);
+    }
+
+    /// `write`, and `slot` gets the id that the write made once it went out.
+    pub(crate) fn write_with(&mut self, run_id: &str, write: Write, slot: Option<Slot>) {
         let allowed = self
             .project_of(run_id)
             .is_some_and(|p| write.allowed(&p.automation.writes));
         if allowed {
-            return self.send(run_id, &write);
+            self.send(run_id, &write, slot);
+            return;
         }
         if let Some(old) = self
             .approvals
@@ -115,54 +129,74 @@ impl Inner {
             run: run_id.into(),
             write,
         });
-        None
     }
 
-    /// Send one write and apply what it made. An error is logged: the caller decides. A write
-    /// has an intent event before the send and a result event after it, both with its key. After
-    /// a restart a write that the log shows is not sent a second time (`persist`).
-    pub(crate) fn send(&mut self, run_id: &str, write: &Write) -> Option<String> {
-        let writer = self.project_of(run_id).map(|p| p.writer.clone())?;
+    /// Phase one of a write: log its intent and queue the call, which runs with no lock
+    /// (`jobs`). After a restart a write that the log shows is not sent a second time
+    /// (`persist`).
+    pub(crate) fn send(&mut self, run_id: &str, write: &Write, slot: Option<Slot>) {
+        let Some(writer) = self.project_of(run_id).map(|p| p.writer.clone()) else {
+            return;
+        };
         let key = crate::persist::key_of(write);
         match self.take_replay(run_id, write) {
             Some(Some(made)) => {
                 let payload =
                     json!({"state": "replayed", "key": key, "write": write, "made": made});
                 self.log(run_id, None, kind::WRITE, payload);
-                self.sent(run_id, write, &made);
-                return Some(made);
+                self.sent(run_id, write, &made, true);
+                set(slot.as_ref(), made);
+                return;
             }
             Some(None) => {
                 self.maybe_sent(run_id, write);
-                return None;
+                return;
             }
             None => {}
         }
         let intent = json!({"state": "sending", "key": key, "write": write});
         self.log(run_id, None, kind::WRITE, intent);
-        match writer.send(write) {
+        let work = Work::Write {
+            write: write.clone(),
+            writer,
+            slot,
+        };
+        self.queue(run_id, work);
+    }
+
+    /// Phase two of a write. An error is logged. A pull request that opened is a fact and is
+    /// recorded. The next stage runs only when the run did not change (`same`).
+    pub(crate) fn write_done(
+        &mut self,
+        run_id: &str,
+        write: &Write,
+        result: PortResult<String>,
+        same: bool,
+        slot: Option<Slot>,
+    ) {
+        match result {
             Ok(made) => {
                 self.log_write_made(run_id, write, &made);
-                self.sent(run_id, write, &made);
-                Some(made)
+                self.sent(run_id, write, &made, same);
+                set(slot.as_ref(), made);
             }
             Err(e) => {
+                let key = crate::persist::key_of(write);
                 self.log(
                     run_id,
                     None,
                     kind::WRITE,
                     json!({"state": "failed", "key": key, "write": write, "error": e}),
                 );
-                if matches!(write, Write::OpenPr { .. } | Write::Push { .. }) {
+                if same && matches!(write, Write::OpenPr { .. } | Write::Push { .. }) {
                     self.action_failed(run_id, &e);
                 }
-                None
             }
         }
     }
 
     /// What a sent write changes in the run.
-    fn sent(&mut self, run_id: &str, write: &Write, made: &str) {
+    fn sent(&mut self, run_id: &str, write: &Write, made: &str, same: bool) {
         let Some(rec) = self.runs.get_mut(run_id) else {
             return;
         };
@@ -170,7 +204,10 @@ impl Inner {
             Write::Push { .. } => {
                 rec.d.pushed = true;
                 rec.d.rewrote = false;
-                self.advance_pr(run_id);
+                // A run that changed goes on from the next pump (`drive_pr`).
+                if same {
+                    self.advance_pr(run_id);
+                }
             }
             Write::Transition { status, .. } => rec.ticket_status = status.clone(),
             Write::Labels { labels, .. } => rec.labels = labels.clone(),
@@ -221,7 +258,12 @@ impl Factory {
         inner.check_approvable(id)?;
         let a = inner.take_approval(id)?;
         inner.log_write(&a.run, Some(id), "approved", &a.write);
-        Ok(inner.send(&a.run, &a.write))
+        let slot = Slot::default();
+        inner.send(&a.run, &a.write, Some(slot.clone()));
+        // The lock goes at the end of the block and the call runs (`jobs`).
+        drop(inner);
+        let made = slot.lock().unwrap_or_else(|e| e.into_inner()).take();
+        Ok(made)
     }
 
     /// A person rejects the write: it is dropped and the run goes to `Blocked` (REQ-026).
@@ -238,7 +280,11 @@ impl Factory {
     pub fn write(&self, run_id: &str, write: Write) -> Result<Option<String>, String> {
         let mut inner = self.lock();
         inner.run(run_id)?;
-        Ok(inner.write(run_id, write))
+        let slot = Slot::default();
+        inner.write_with(run_id, write, Some(slot.clone()));
+        drop(inner);
+        let made = slot.lock().unwrap_or_else(|e| e.into_inner()).take();
+        Ok(made)
     }
 }
 

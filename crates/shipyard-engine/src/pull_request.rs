@@ -117,6 +117,10 @@ impl Inner {
         let Some(sid) = self.pr_step(run_id) else {
             return;
         };
+        // A push or a pull request is out: its result takes the next stage (`jobs`).
+        if self.is_delivering(run_id) {
+            return;
+        }
         match self.try_pr(run_id) {
             Ok(()) => {}
             Err(Stop::Block(why)) => {

@@ -36,6 +36,7 @@ use shipyard_store::run_log::{RunLog, kind};
 use crate::Clock;
 use crate::approvals::{Approval, Write};
 use crate::fence::{NOTICE, fence};
+use crate::jobs::{Job, Work, run_all};
 use crate::persist::Replay;
 use crate::ports::{
     AgentEvent, AgentRun, Agents, Brief, Dispatch, Git, Pulls, StartRequest, Workspaces, Writer,
@@ -215,6 +216,10 @@ pub(crate) struct StepRec {
     pub notes: Vec<String>,
     /// A child conflict stopped the join of the worktrees: try again when the run comes back.
     pub merge_pending: bool,
+    /// The gate commands of a review run outside the lock: the verdict is not in yet. After a
+    /// restart, or when the run changed in between, the next pump asks again.
+    #[serde(default)]
+    pub gating: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -301,33 +306,61 @@ pub(crate) struct Inner {
     pub replay: BTreeMap<String, Vec<Replay>>,
     /// The global state that the last save holds: `(seq, next_approval, kill)`.
     pub saved_meta: (u64, u64, bool),
+    /// Slow work that goes out when the lock goes (`jobs`).
+    pub jobs: Vec<Job>,
+    /// The gates of each run that are out.
+    pub busy: BTreeMap<String, u32>,
+    /// The pushes and pull requests of each run that are out.
+    pub delivering: BTreeMap<String, u32>,
+    /// A counter of the changes of each run: a job that ends after a change does not decide.
+    pub gens: BTreeMap<String, u64>,
+    /// The app quits: a gate that ends now was stopped, and its verdict is not a finding.
+    pub closing: bool,
 }
 
 pub struct Factory {
     inner: Mutex<Inner>,
 }
 
-/// The lock of the factory. A change is saved when the lock goes (`Inner::persist`): every public
-/// call is one change, so the save holds a whole change or none.
-pub(crate) struct Guard<'a>(MutexGuard<'a, Inner>);
+/// The lock of the factory. When it goes, the change is saved (`Inner::persist`) and the jobs of
+/// the change run with no lock (`jobs`): every public call is one change, so the save holds a
+/// whole change or none, and a slow call holds nobody.
+pub(crate) struct Guard<'a> {
+    inner: Option<MutexGuard<'a, Inner>>,
+    lock: &'a Mutex<Inner>,
+}
 
 impl Deref for Guard<'_> {
     type Target = Inner;
 
     fn deref(&self) -> &Inner {
-        &self.0
+        self.inner.as_deref().expect("the lock is held")
     }
 }
 
 impl DerefMut for Guard<'_> {
     fn deref_mut(&mut self) -> &mut Inner {
-        &mut self.0
+        self.inner.as_deref_mut().expect("the lock is held")
     }
 }
 
 impl Drop for Guard<'_> {
     fn drop(&mut self) {
-        self.0.persist();
+        let Some(mut inner) = self.inner.take() else {
+            return;
+        };
+        inner.persist();
+        // A panic unwinds: leave the jobs, do not run work in a drop that cannot fail.
+        while !std::thread::panicking() && !inner.jobs.is_empty() {
+            let jobs = std::mem::take(&mut inner.jobs);
+            drop(inner);
+            let done = run_all(&jobs);
+            inner = self.lock.lock().unwrap_or_else(|e| e.into_inner());
+            for (job, done) in jobs.into_iter().zip(done) {
+                inner.apply_job(job, done);
+            }
+            inner.persist();
+        }
     }
 }
 
@@ -354,6 +387,11 @@ impl Factory {
             dirty: BTreeSet::new(),
             replay: BTreeMap::new(),
             saved_meta: (0, 0, false),
+            jobs: Vec::new(),
+            busy: BTreeMap::new(),
+            delivering: BTreeMap::new(),
+            gens: BTreeMap::new(),
+            closing: false,
         };
         inner.recover();
         inner.persist();
@@ -363,7 +401,10 @@ impl Factory {
     }
 
     pub(crate) fn lock(&self) -> Guard<'_> {
-        Guard(self.inner.lock().unwrap_or_else(|e| e.into_inner()))
+        Guard {
+            inner: Some(self.inner.lock().unwrap_or_else(|e| e.into_inner())),
+            lock: &self.inner,
+        }
     }
 
     /// The ref index that `read_ref` reads (`factory` REQ-020). Without it the tool is an error.
@@ -428,6 +469,7 @@ impl Factory {
     /// next start takes each step back on its CLI session (`persist`).
     pub fn shutdown(&self) {
         let mut inner = self.lock();
+        inner.closing = true;
         let mut ended = Vec::new();
         for rec in inner.runs.values_mut() {
             for u in rec.steps.values_mut().flat_map(|s| &mut s.units) {
@@ -507,6 +549,7 @@ impl Factory {
 /// A step back to `Pending` with fresh children and a note for the next brief.
 pub(crate) fn reset(s: &mut StepRec, note: &str) {
     s.state = StepState::Pending;
+    s.gating = false;
     s.units.clear();
     s.output = Value::Null;
     if !note.is_empty() {
@@ -649,6 +692,7 @@ impl Inner {
         } else {
             park(rec)
         };
+        *self.gens.entry(run_id.into()).or_default() += 1;
         for step in stopped {
             self.agents.end(run_id, &step);
         }
@@ -679,7 +723,23 @@ impl Inner {
         let rec = &self.runs[run_id];
         let key = rec.key.clone();
         let target = map.get(state.as_str()).cloned().unwrap_or_default();
-        let labels = run::staged_labels(&rec.labels, &map, state);
+        // A move that waits in the queue of this change counts as made (`jobs`).
+        let (mut ticket_status, mut ticket_labels) =
+            (rec.ticket_status.clone(), rec.labels.clone());
+        for job in self.jobs.iter().filter(|j| j.run == run_id) {
+            match &job.work {
+                Work::Write {
+                    write: Write::Transition { status, .. },
+                    ..
+                } => ticket_status = status.clone(),
+                Work::Write {
+                    write: Write::Labels { labels, .. },
+                    ..
+                } => ticket_labels = labels.clone(),
+                _ => {}
+            }
+        }
+        let labels = run::staged_labels(&ticket_labels, &map, state);
         // The forge can close the ticket at the merge: no second move (`delivery` REQ-023).
         let closed = matches!(state, RunState::Merged | RunState::Done)
             && p.mirror
@@ -689,8 +749,8 @@ impl Inner {
                 .ok()
                 .flatten()
                 .is_some_and(|t| p.automation.terminal(&t.item.status));
-        let status = target.status.filter(|s| *s != rec.ticket_status && !closed);
-        let labels_changed = labels != rec.labels;
+        let status = target.status.filter(|s| *s != ticket_status && !closed);
+        let labels_changed = labels != ticket_labels;
         if let Some(status) = status {
             self.write(
                 run_id,
@@ -716,6 +776,10 @@ impl Inner {
     }
 
     pub(crate) fn pump_run(&mut self, run_id: &str) {
+        // A job of the run is out: its result moves the run.
+        if self.is_busy(run_id) {
+            return;
+        }
         // A crash between the merge and the close: the close is safe to repeat.
         if self.runs[run_id].run.state == RunState::Merged {
             self.close_merged(run_id);
@@ -740,6 +804,10 @@ impl Inner {
         }
         if self.clocks(run_id) {
             self.check_clocks(run_id, now);
+        }
+        self.regate(run_id);
+        if self.is_busy(run_id) {
+            return;
         }
         self.retry_merges(run_id);
         self.drive_pr(run_id);

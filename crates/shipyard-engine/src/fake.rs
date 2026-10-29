@@ -603,6 +603,7 @@ struct WriterState {
     no_comments: bool,
     fail: Option<String>,
     pulls: Option<FakePulls>,
+    delay: Duration,
 }
 
 /// Records each write. A comment gets the id `c<n>`, a pull request the number 7.
@@ -622,6 +623,11 @@ impl FakeWriter {
         lock(&self.0).fail = message.map(Into::into);
     }
 
+    /// Each `send` takes this long, with no lock of the fake held.
+    pub fn set_delay(&self, delay: Duration) {
+        lock(&self.0).delay = delay;
+    }
+
     /// A pull request that this writer opens is then found by `pulls`.
     pub fn link(&self, pulls: &FakePulls) {
         lock(&self.0).pulls = Some(pulls.clone());
@@ -635,6 +641,8 @@ impl crate::ports::Writer for FakeWriter {
 
     fn send(&self, w: &crate::approvals::Write) -> PortResult<String> {
         use crate::approvals::Write;
+        let delay = lock(&self.0).delay;
+        std::thread::sleep(delay);
         let mut s = lock(&self.0);
         if let Some(e) = &s.fail {
             return Err(e.clone());
@@ -691,6 +699,7 @@ struct GitState {
     dirty: Option<String>,
     input: ReviewInput,
     merge_messages: Vec<String>,
+    gate_delay: Duration,
 }
 
 /// The local git work of a run, with no repository. Each call is one line in [`FakeGit::calls`]:
@@ -720,6 +729,7 @@ impl Default for FakeGit {
                 specs: Vec::new(),
             },
             merge_messages: Vec::new(),
+            gate_delay: Duration::ZERO,
         })))
     }
 }
@@ -790,6 +800,11 @@ impl FakeGit {
     /// A gate command that fails.
     pub fn fail_gate(&self, command: &str) {
         lock(&self.0).failing.push(command.into());
+    }
+
+    /// Each `gate` call takes this long, with no lock of the fake held.
+    pub fn set_gate_delay(&self, delay: Duration) {
+        lock(&self.0).gate_delay = delay;
     }
 
     pub fn clear_gate(&self) {
@@ -886,8 +901,13 @@ impl Git for FakeGit {
     }
 
     fn gate(&self, _run: &str, commands: &[String]) -> PortResult<Vec<GateCheck>> {
-        let mut s = lock(&self.0);
-        s.check("gate", format!("gate {}", commands.join(" && ")))?;
+        let delay = {
+            let mut s = lock(&self.0);
+            s.check("gate", format!("gate {}", commands.join(" && ")))?;
+            s.gate_delay
+        };
+        std::thread::sleep(delay);
+        let s = lock(&self.0);
         Ok(commands
             .iter()
             .map(|c| {
