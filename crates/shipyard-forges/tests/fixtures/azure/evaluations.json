@@ -1,0 +1,38 @@
+{
+  "count": 3,
+  "value": [
+    {
+      "status": "approved",
+      "configuration": {
+        "type": {
+          "displayName": "Build"
+        },
+        "settings": {
+          "displayName": "build"
+        }
+      }
+    },
+    {
+      "status": "notApplicable",
+      "configuration": {
+        "type": {
+          "displayName": "Build"
+        },
+        "settings": {
+          "displayName": "docs"
+        }
+      }
+    },
+    {
+      "status": "rejected",
+      "configuration": {
+        "type": {
+          "displayName": "Minimum number of reviewers"
+        },
+        "settings": {
+          "minimumApproverCount": 2
+        }
+      }
+    }
+  ]
+}

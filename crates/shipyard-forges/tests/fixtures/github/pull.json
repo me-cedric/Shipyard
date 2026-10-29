@@ -1,0 +1,19 @@
+{
+  "number": 7,
+  "title": "Add export endpoint",
+  "state": "open",
+  "draft": false,
+  "merged_at": null,
+  "user": {
+    "login": "ada"
+  },
+  "head": {
+    "ref": "feature/export",
+    "sha": "abc123"
+  },
+  "base": {
+    "ref": "main"
+  },
+  "html_url": "https://github.com/acme/web/pull/7",
+  "updated_at": "2026-10-28T09:30:00Z"
+}

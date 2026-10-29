@@ -1,0 +1,35 @@
+{
+  "count": 3,
+  "value": [
+    {
+      "id": "r1",
+      "name": "web",
+      "project": {
+        "name": "Payments"
+      },
+      "webUrl": "https://dev.azure.com/acme/Payments/_git/web",
+      "defaultBranch": "refs/heads/main",
+      "isDisabled": false
+    },
+    {
+      "id": "r2",
+      "name": "docs",
+      "project": {
+        "name": "Payments"
+      },
+      "webUrl": "https://dev.azure.com/acme/Payments/_git/docs",
+      "defaultBranch": "refs/heads/main",
+      "isDisabled": false
+    },
+    {
+      "id": "r3",
+      "name": "old",
+      "project": {
+        "name": "Payments"
+      },
+      "webUrl": "https://dev.azure.com/acme/Payments/_git/old",
+      "defaultBranch": "refs/heads/main",
+      "isDisabled": true
+    }
+  ]
+}

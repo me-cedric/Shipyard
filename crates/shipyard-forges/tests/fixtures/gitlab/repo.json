@@ -1,0 +1,12 @@
+{
+  "path_with_namespace": "acme/docs",
+  "web_url": "https://gitlab.com/acme/docs",
+  "default_branch": "main",
+  "archived": false,
+  "permissions": {
+    "project_access": {
+      "access_level": 20
+    },
+    "group_access": null
+  }
+}

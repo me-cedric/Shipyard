@@ -1,0 +1,35 @@
+[
+  {
+    "full_name": "acme/web",
+    "html_url": "https://github.com/acme/web",
+    "default_branch": "main",
+    "archived": false,
+    "permissions": {
+      "admin": false,
+      "push": true,
+      "pull": true
+    }
+  },
+  {
+    "full_name": "acme/docs",
+    "html_url": "https://github.com/acme/docs",
+    "default_branch": "main",
+    "archived": false,
+    "permissions": {
+      "admin": false,
+      "push": false,
+      "pull": true
+    }
+  },
+  {
+    "full_name": "acme/old",
+    "html_url": "https://github.com/acme/old",
+    "default_branch": "main",
+    "archived": true,
+    "permissions": {
+      "admin": true,
+      "push": true,
+      "pull": true
+    }
+  }
+]

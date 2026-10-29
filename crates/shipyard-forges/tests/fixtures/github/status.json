@@ -1,0 +1,11 @@
+{
+  "state": "failure",
+  "total_count": 1,
+  "statuses": [
+    {
+      "context": "lint",
+      "state": "failure",
+      "target_url": "https://ci.example.com/lint/1"
+    }
+  ]
+}

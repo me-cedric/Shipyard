@@ -1,0 +1,20 @@
+[
+  {
+    "name": "build",
+    "status": "success",
+    "allow_failure": false,
+    "web_url": "https://gitlab.com/acme/web/-/jobs/1"
+  },
+  {
+    "name": "docs",
+    "status": "skipped",
+    "allow_failure": false,
+    "web_url": "https://gitlab.com/acme/web/-/jobs/2"
+  },
+  {
+    "name": "lint",
+    "status": "failed",
+    "allow_failure": false,
+    "web_url": "https://gitlab.com/acme/web/-/jobs/3"
+  }
+]

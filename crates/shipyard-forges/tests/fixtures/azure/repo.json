@@ -1,0 +1,10 @@
+{
+  "id": "r1",
+  "name": "web",
+  "project": {
+    "name": "Payments"
+  },
+  "webUrl": "https://dev.azure.com/acme/Payments/_git/web",
+  "defaultBranch": "refs/heads/main",
+  "isDisabled": false
+}

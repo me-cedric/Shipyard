@@ -1,0 +1,8 @@
+{
+  "id": 5,
+  "name": "shipyard",
+  "scopes": [
+    "read_api"
+  ],
+  "active": true
+}

@@ -1,0 +1,17 @@
+{
+  "total_count": 2,
+  "check_runs": [
+    {
+      "name": "build",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/acme/web/runs/1"
+    },
+    {
+      "name": "docs",
+      "status": "completed",
+      "conclusion": "skipped",
+      "html_url": "https://github.com/acme/web/runs/2"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+[
+  {
+    "path_with_namespace": "acme/web",
+    "web_url": "https://gitlab.com/acme/web",
+    "default_branch": "main",
+    "archived": false,
+    "permissions": {
+      "project_access": {
+        "access_level": 30
+      },
+      "group_access": null
+    }
+  },
+  {
+    "path_with_namespace": "acme/docs",
+    "web_url": "https://gitlab.com/acme/docs",
+    "default_branch": "main",
+    "archived": false,
+    "permissions": {
+      "project_access": {
+        "access_level": 20
+      },
+      "group_access": null
+    }
+  },
+  {
+    "path_with_namespace": "acme/old",
+    "web_url": "https://gitlab.com/acme/old",
+    "default_branch": "main",
+    "archived": true,
+    "permissions": {
+      "project_access": null,
+      "group_access": {
+        "access_level": 40
+      }
+    }
+  }
+]

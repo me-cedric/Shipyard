@@ -1,0 +1,19 @@
+{
+  "iid": 7,
+  "title": "Add export endpoint",
+  "state": "opened",
+  "draft": false,
+  "author": {
+    "username": "ada"
+  },
+  "source_branch": "feature/export",
+  "target_branch": "main",
+  "sha": "abc123",
+  "web_url": "https://gitlab.com/acme/web/-/merge_requests/7",
+  "updated_at": "2026-10-28T09:30:00.000Z",
+  "head_pipeline": {
+    "id": 99,
+    "status": "failed",
+    "web_url": "https://gitlab.com/acme/web/-/pipelines/99"
+  }
+}

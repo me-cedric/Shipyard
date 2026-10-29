@@ -1,0 +1,24 @@
+{
+  "pullRequestId": 7,
+  "title": "Add export endpoint",
+  "status": "active",
+  "isDraft": false,
+  "createdBy": {
+    "displayName": "ada",
+    "uniqueName": "ada@example.com"
+  },
+  "sourceRefName": "refs/heads/feature/export",
+  "targetRefName": "refs/heads/main",
+  "lastMergeSourceCommit": {
+    "commitId": "abc123"
+  },
+  "creationDate": "2026-10-28T09:30:00.123Z",
+  "repository": {
+    "id": "r1",
+    "name": "web",
+    "project": {
+      "id": "p-guid-1",
+      "name": "Payments"
+    }
+  }
+}

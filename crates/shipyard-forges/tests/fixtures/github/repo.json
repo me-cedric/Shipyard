@@ -1,0 +1,11 @@
+{
+  "full_name": "acme/web",
+  "html_url": "https://github.com/acme/web",
+  "default_branch": "main",
+  "archived": false,
+  "permissions": {
+    "admin": false,
+    "push": false,
+    "pull": true
+  }
+}

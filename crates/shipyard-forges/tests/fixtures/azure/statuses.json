@@ -1,0 +1,14 @@
+{
+  "count": 1,
+  "value": [
+    {
+      "id": 1,
+      "state": "failed",
+      "context": {
+        "name": "lint",
+        "genre": "ci"
+      },
+      "targetUrl": "https://ci.example.com/lint/1"
+    }
+  ]
+}
