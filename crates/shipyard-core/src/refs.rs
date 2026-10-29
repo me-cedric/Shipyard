@@ -23,14 +23,16 @@ macro_rules! slug_kinds {
 slug_kinds! {
     Project => "project", Member => "member", Diagram => "diagram", Model => "model",
     Api => "api", Data => "data", Flow => "flow", Screen => "screen", Change => "change",
-    Test => "test", Estimate => "est", Workflow => "wf", Connection => "conn",
+    Test => "test", Workflow => "wf", Connection => "conn",
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Ref {
     /// `project:`, `member:`, `diagram:`, `model:`, `api:`, `data:`, `flow:`, `screen:`,
-    /// `change:`, `test:`, `est:`, `wf:` and `conn:`.
+    /// `change:`, `test:`, `wf:` and `conn:`.
     Slug(SlugKind, String),
+    /// `est:<slug>` or `est:<slug>#<row-id>`.
+    Estimate { sheet: String, row: Option<String> },
     /// `adr:NNNN`. The digits stay text so that the form round-trips.
     Adr(String),
     /// `spec:<capability>` or `spec:<capability>#REQ-NNN`.
@@ -98,6 +100,16 @@ pub fn parse(s: &str) -> Option<Ref> {
         return is_name(rest).then(|| Ref::Slug(k, rest.to_string()));
     }
     match kind {
+        "est" => {
+            let (sheet, row) = match rest.split_once('#') {
+                Some((s, r)) => (s, Some(r)),
+                None => (rest, None),
+            };
+            (is_name(sheet) && row.is_none_or(is_name)).then(|| Ref::Estimate {
+                sheet: sheet.to_string(),
+                row: row.map(str::to_string),
+            })
+        }
         "adr" => (rest.len() == 4 && digits(rest)).then(|| Ref::Adr(rest.to_string())),
         "spec" => {
             let (cap, req) = match rest.split_once('#') {
@@ -152,6 +164,11 @@ impl fmt::Display for Ref {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Ref::Slug(k, n) => write!(f, "{}:{n}", k.as_str()),
+            Ref::Estimate { sheet, row: None } => write!(f, "est:{sheet}"),
+            Ref::Estimate {
+                sheet,
+                row: Some(r),
+            } => write!(f, "est:{sheet}#{r}"),
             Ref::Adr(n) => write!(f, "adr:{n}"),
             Ref::Spec {
                 capability,
@@ -247,6 +264,15 @@ mod tests {
         assert!(parse("pr:github:1x").is_none());
         assert!(parse("").is_none());
         assert!(parse("adr").is_none());
+        assert_eq!(
+            parse("est:auth#r3"),
+            Some(Ref::Estimate {
+                sheet: "auth".into(),
+                row: Some("r3".into())
+            })
+        );
+        assert!(parse("est:auth#").is_none());
+        assert!(parse("est:auth#R3").is_none());
     }
 
     #[test]
@@ -254,6 +280,7 @@ mod tests {
         for s in [
             "project:shipyard",
             "est:v1",
+            "est:auth#r3",
             "wf:deliver",
             "conn:gh",
             "adr:0004",

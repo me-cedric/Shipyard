@@ -17,7 +17,7 @@ const GRAMMAR: Record<string, RegExp> = {
 	test: new RegExp(`^${NAME}$`),
 	q: /^Q-\d{3,}$/,
 	wi: /^[A-Z][A-Z0-9]*-[1-9]\d*$/,
-	est: new RegExp(`^${NAME}$`),
+	est: new RegExp(`^${NAME}(#${NAME})?$`),
 	wf: new RegExp(`^${NAME}$`),
 	run: new RegExp(`^${ULID}(/${NAME})?$`),
 	pr: new RegExp(`^${NAME}:[1-9]\\d*$`),
