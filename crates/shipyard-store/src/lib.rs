@@ -1,13 +1,20 @@
 //! Stores in the app data folder and codecs for repository files.
 
+pub mod archive;
 pub mod automation_file;
+pub mod design;
 pub mod excel;
+pub mod fold;
+pub mod madr;
 pub mod mirror;
+pub mod openspec_validate;
 pub mod prefs;
 pub mod project;
+pub mod raid;
 pub mod ref_index;
 pub mod ref_query;
 mod repo_scan;
+pub mod safe_write;
 pub mod seal;
 pub mod work;
 

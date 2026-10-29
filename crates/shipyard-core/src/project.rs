@@ -13,6 +13,18 @@ pub const DEFAULT_PATHS: [(&str, &str); 3] = [
     ("specs", "docs/openspec"),
 ];
 
+/// The paths that a project file can set but that a new file does not write (spec `design`,
+/// spec `specs` REQ-011 and Q-037).
+pub const MORE_PATHS: [(&str, &str); 7] = [
+    ("diagrams", "docs/diagrams"),
+    ("models", "docs/models"),
+    ("api", "docs/api"),
+    ("data", "docs/data-models"),
+    ("flows", "docs/flows"),
+    ("designs", "docs/designs"),
+    ("test-plans", "docs/delivery/test-plans"),
+];
+
 /// Ignore rules for the files that an OS writes.
 pub const OS_IGNORE: [&str; 4] = [".DS_Store", "._*", "Thumbs.db", "Desktop.ini"];
 
@@ -82,6 +94,7 @@ impl ProjectFile {
             .or_else(|| {
                 DEFAULT_PATHS
                     .iter()
+                    .chain(&MORE_PATHS)
                     .find(|(k, _)| *k == kind)
                     .map(|(_, v)| *v)
             })
