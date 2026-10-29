@@ -4,7 +4,7 @@ import { canCommit, useChanges, useCodeActions } from "@/lib/code";
 import { format, type Lang, useI18n } from "@/lib/i18n";
 import { errorDialog } from "@/lib/ipc";
 import { type Theme, usePrefs } from "@/lib/prefs";
-import { outcomeError, useProjectActions } from "@/lib/projects";
+import { outcomeError, useActiveProject, useProjectActions } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { useSyncNow } from "@/lib/sync";
 import { useUpdateCheck } from "@/lib/updates";
@@ -28,6 +28,7 @@ import {
 	SunIcon,
 	SwatchIcon,
 	ViewColumnsIcon,
+	XMarkIcon,
 } from "@/ui/icons";
 import { orderedSpaces, type SpaceId } from "./spaces";
 
@@ -72,7 +73,8 @@ export function useActions() {
 	const { role, sidebarOpen, setPrefs } = usePrefs();
 	const navigate = useNavigate();
 	const shell = useShell();
-	const { openFolder } = useProjectActions();
+	const { openFolder, close } = useProjectActions();
+	const hasProject = Boolean(useActiveProject().data);
 	const {
 		inspectorOpen,
 		setInspectorOpen,
@@ -144,6 +146,13 @@ export function useActions() {
 			Icon: FolderOpenIcon,
 			run: () => setPaletteOpen(true),
 		};
+		const closeProject: Action = {
+			id: "project-close",
+			label: t.projects.close,
+			Icon: XMarkIcon,
+			disabled: !hasProject,
+			run: () => void close(),
+		};
 		const updateCheck: Action = {
 			id: "update-check",
 			label: t.menu.updateCheck,
@@ -209,6 +218,7 @@ export function useActions() {
 			),
 			openProject,
 			switchProject,
+			closeProject,
 			syncAction,
 			commit,
 			updateCheck,
@@ -232,6 +242,8 @@ export function useActions() {
 		setCommitOpen,
 		stageable,
 		openFolder,
+		close,
+		hasProject,
 		checkUpdate,
 		selectedRef,
 		explain,

@@ -63,3 +63,25 @@ describe("command palette (shell REQ-005)", () => {
 		expect(await screen.findByRole("option", { name: /Basculer l'inspecteur/ })).toBeVisible();
 	});
 });
+
+describe("project actions of the palette", () => {
+	it("lists Switch project and runs Close project", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mountApp("/home");
+		await openPalette(user);
+		const dialog = within(await screen.findByRole("dialog"));
+		expect(dialog.getByRole("option", { name: /^Switch project/ })).toBeVisible();
+		await user.keyboard("Close project{Enter}");
+		await waitFor(async () => expect(await unwrap(commands.projectsActive())).toBeNull());
+		expect(mockState().projects).toHaveLength(1);
+	});
+
+	it("hides Close project when no project is open", async () => {
+		const user = userEvent.setup();
+		mountApp("/home");
+		const input = await openPalette(user);
+		await user.type(input, "Close project");
+		expect(screen.queryByRole("option", { name: /^Close project/ })).toBeNull();
+	});
+});

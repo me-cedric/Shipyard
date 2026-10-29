@@ -46,6 +46,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             projects::projects_create,
             projects::projects_clone,
             projects::projects_switch,
+            projects::projects_close,
+            projects::projects_remove,
             projects::projects_set_view,
             projects::project_settings,
             projects::project_file_save,

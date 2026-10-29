@@ -210,6 +210,21 @@ impl Registry {
         true
     }
 
+    /// No project is active. The registry keeps every entry.
+    pub fn close(&mut self) {
+        self.data.active = None;
+    }
+
+    /// Drops the entry from the registry. It never touches a file of the project.
+    pub fn remove(&mut self, id: &str) -> bool {
+        let n = self.data.projects.len();
+        self.data.projects.retain(|p| p.id != id);
+        if self.data.active.as_deref() == Some(id) {
+            self.data.active = None;
+        }
+        self.data.projects.len() != n
+    }
+
     pub fn set_view(&mut self, id: &str, view: &str) {
         if let Some(e) = self.data.projects.iter_mut().find(|p| p.id == id) {
             e.last_view = Some(view.into());

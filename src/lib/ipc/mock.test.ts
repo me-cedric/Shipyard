@@ -50,6 +50,19 @@ describe("mock ipc", () => {
 		expect(await unwrap(commands.projectsList())).toHaveLength(2);
 	});
 
+	it("closes and removes a project like the Rust commands", async () => {
+		const a = await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await unwrap(commands.projectsOpen("/mock/beta", false));
+		await unwrap(commands.projectsClose());
+		expect(await unwrap(commands.projectsActive())).toBeNull();
+		expect(await unwrap(commands.projectsList())).toHaveLength(2);
+		await unwrap(commands.projectsSwitch(a.project?.id ?? ""));
+		await unwrap(commands.projectsRemove(a.project?.id ?? ""));
+		expect(await unwrap(commands.projectsActive())).toBeNull();
+		expect(await unwrap(commands.projectsList())).toHaveLength(1);
+		await expect(unwrap(commands.projectsRemove("none"))).rejects.toBeDefined();
+	});
+
 	it("opens a demo project first in the browser build, with a tracker and every Work space filled", async () => {
 		installMockIpc({ demo: true });
 		expect(pickMock()).toBe(DEMO_FOLDER);

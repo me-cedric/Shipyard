@@ -11,7 +11,7 @@ for (const scheme of ["light", "dark"] as const) {
 			await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
 			await page.goto("/");
 			await page.getByRole("button", { name: "Open a local folder" }).click();
-			await expect(page.getByRole("combobox", { name: "Project" })).toBeVisible();
+			await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
 			await page.locator(`nav a[href="/${space}"]`).first().click();
 			const found: string[] = [];
 			for (const tab of tabs) {

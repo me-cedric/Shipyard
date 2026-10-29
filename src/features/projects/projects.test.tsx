@@ -28,7 +28,7 @@ describe("first run", () => {
 		mountApp("/home/inbox");
 		await user.click(await screen.findByRole("button", { name: "Open a local folder" }));
 		expect(await screen.findByRole("heading", { name: "Needs you" })).toBeInTheDocument();
-		expect(screen.getByRole("combobox", { name: "Project" })).toHaveTextContent("alpha");
+		expect(screen.getByRole("button", { name: /^Project/ })).toHaveTextContent("alpha");
 		expect(mockState().projects).toHaveLength(1);
 	});
 
@@ -99,36 +99,161 @@ describe("project switcher", () => {
 		const beta = await open("/mock/beta");
 		Object.assign(mockState().projects[0] ?? {}, { state: "missing" });
 		mountApp("/home/inbox");
-		const switcher = await screen.findByRole("combobox", { name: "Project" });
-		expect(switcher).toHaveTextContent("beta");
+		const switcher = await screen.findByRole("button", { name: /^Project/ });
+		await waitFor(() => expect(switcher).toHaveTextContent("beta"));
 		await user.click(switcher);
-		const option = await screen.findByRole("option", { name: /alpha/ });
+		const option = await screen.findByRole("menuitemradio", { name: /alpha/ });
 		expect(within(option).getByRole("img", { name: "Missing" })).toBeInTheDocument();
 		expect(
-			within(screen.getByRole("option", { name: /beta/ })).getByRole("img", { name: "Clean" }),
+			within(screen.getByRole("menuitemradio", { name: /beta/ })).getByRole("img", {
+				name: "Clean",
+			}),
 		).toBeInTheDocument();
 		await user.click(option);
 		await waitFor(async () =>
 			expect((await unwrap(commands.projectsActive()))?.name).toBe("alpha"),
 		);
 		expect(beta.project?.id).toBe("beta");
+		await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 	});
 
-	it("changes the project with the arrow keys and Enter", async () => {
+	it("changes the project with the keyboard", async () => {
 		const user = userEvent.setup();
 		await open("/mock/alpha");
 		await open("/mock/beta");
 		mountApp("/home/inbox");
-		const switcher = await screen.findByRole("combobox", { name: "Project" });
+		const switcher = await screen.findByRole("button", { name: /^Project/ });
+		await waitFor(() => expect(switcher).toHaveTextContent("beta"));
 		switcher.focus();
 		await user.keyboard("{Enter}");
-		// The list loads after it opens: keys sent before the options exist are lost.
-		await screen.findByRole("option", { name: /alpha/ });
-		await screen.findByRole("option", { name: /beta/ });
-		await user.keyboard("{ArrowUp}{Enter}");
+		await screen.findByRole("menuitemradio", { name: /alpha/ });
+		// The focus starts on the first project.
+		await user.keyboard("{Enter}");
 		await waitFor(async () =>
 			expect((await unwrap(commands.projectsActive()))?.name).toBe("alpha"),
 		);
+	});
+
+	it("offers Open folder, Clone, Close project and Remove from list in the one menu", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		mountApp("/home/inbox");
+		await user.click(await screen.findByRole("button", { name: /^Project/ }));
+		const menu = within(await screen.findByRole("menu"));
+		expect(menu.getAllByRole("menuitem").map((i) => i.textContent)).toEqual([
+			"Open a local folder",
+			"Clone a repository",
+			"Close project",
+			"Remove from list",
+		]);
+	});
+
+	it("opens a folder from the menu", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		mockState().nextFolder = "/mock/beta";
+		mountApp("/home/inbox");
+		await user.click(await screen.findByRole("button", { name: /^Project/ }));
+		await user.click(await screen.findByRole("menuitem", { name: "Open a local folder" }));
+		await waitFor(async () => expect((await unwrap(commands.projectsActive()))?.name).toBe("beta"));
+	});
+
+	it("clones from the menu", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		mountApp("/home/inbox");
+		await user.click(await screen.findByRole("button", { name: /^Project/ }));
+		await user.click(await screen.findByRole("menuitem", { name: "Clone a repository" }));
+		const dialog = within(await screen.findByRole("dialog"));
+		await user.type(
+			dialog.getByRole("textbox", { name: "Repository address" }),
+			"git@host:team/shipyard.git",
+		);
+		await user.click(dialog.getByRole("button", { name: "Choose a folder" }));
+		await user.click(dialog.getByRole("button", { name: "Clone" }));
+		await waitFor(async () =>
+			expect((await unwrap(commands.projectsActive()))?.name).toBe("shipyard"),
+		);
+	});
+
+	it("closes the project, keeps it in the list and opens it again from the first run", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		mountApp("/home/inbox");
+		await user.click(await screen.findByRole("button", { name: /^Project/ }));
+		await user.click(await screen.findByRole("menuitem", { name: "Close project" }));
+		const recent = await screen.findByRole("list", { name: "Recent projects" });
+		expect(await unwrap(commands.projectsActive())).toBeNull();
+		expect(mockState().projects).toHaveLength(1);
+		await user.click(within(recent).getByRole("button", { name: /alpha/ }));
+		expect(await screen.findByRole("heading", { name: "Needs you" })).toBeInTheDocument();
+		expect((await unwrap(commands.projectsActive()))?.name).toBe("alpha");
+	});
+
+	// The submenu of Remove from list opens with the focus on its first project.
+	const removeFirst = async (user: ReturnType<typeof userEvent.setup>, name: RegExp) => {
+		await user.click(await screen.findByRole("button", { name: /^Project/ }));
+		await user.click(await screen.findByRole("menuitem", { name: "Remove from list" }));
+		await user.keyboard("{ArrowRight}");
+		await waitFor(() => expect(document.activeElement).toHaveTextContent(name));
+		await user.keyboard("{Enter}");
+	};
+
+	it("keeps the list when the person refuses the confirm", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		await open("/mock/beta");
+		mockState().confirm = false;
+		mountApp("/home/inbox");
+		await removeFirst(user, /alpha/);
+		await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+		expect(mockState().projects).toHaveLength(2);
+	});
+
+	it("removes a project from the list after a confirm", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		await open("/mock/beta");
+		mountApp("/home/inbox");
+		await removeFirst(user, /alpha/);
+		await waitFor(() => expect(mockState().projects.map((p) => p.id)).toEqual(["beta"]));
+		expect((await unwrap(commands.projectsActive()))?.name).toBe("beta");
+	});
+
+	it("removes the active project and shows the first run", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		mountApp("/home/inbox");
+		await removeFirst(user, /alpha/);
+		await screen.findByRole("button", { name: "Open a local folder" });
+		expect(await unwrap(commands.projectsActive())).toBeNull();
+		expect(mockState().projects).toHaveLength(0);
+	});
+
+	it("stays reachable as an icon button when the sidebar is collapsed", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		mockState().prefs.sidebarOpen = false;
+		mountApp("/home/inbox");
+		const trigger = await screen.findByRole("button", { name: /^Project/ });
+		expect(trigger).not.toHaveTextContent("alpha");
+		await user.click(trigger);
+		expect(await screen.findByRole("menuitemradio", { name: /alpha/ })).toBeInTheDocument();
+	});
+
+	it("shows the recent projects of the registry, the last used first, on the first run", async () => {
+		await open("/mock/alpha");
+		await open("/mock/beta");
+		await unwrap(commands.projectsClose());
+		Object.assign(mockState().projects[0] ?? {}, { lastUsed: 200 });
+		Object.assign(mockState().projects[1] ?? {}, { lastUsed: 100 });
+		mountApp("/home/inbox");
+		const recent = await screen.findByRole("list", { name: "Recent projects" });
+		expect(
+			within(recent)
+				.getAllByRole("button")
+				.map((b) => b.textContent),
+		).toEqual(["alpha", "beta"]);
 	});
 
 	it("goes back to the last view of the project", async () => {

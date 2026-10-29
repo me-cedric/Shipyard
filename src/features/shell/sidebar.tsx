@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactElement } from "react";
+import { type ReactElement, useState } from "react";
+import { CloneDialog } from "@/features/projects";
 import { useI18n } from "@/lib/i18n";
+import { errorDialog } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
-import { useActiveProject, useProjectActions, useProjects } from "@/lib/projects";
+import { outcomeError, useActiveProject, useProjectActions, useProjects } from "@/lib/projects";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Tooltip } from "@/ui/atoms/tooltip";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/ui/icons";
@@ -16,7 +18,8 @@ export function Sidebar({ toggle }: { toggle: Action }) {
 	const { role, sidebarOpen } = usePrefs();
 	const projects = useProjects().data ?? [];
 	const active = useActiveProject().data;
-	const { switchTo } = useProjectActions();
+	const { switchTo, openFolder, close, remove } = useProjectActions();
+	const [cloning, setCloning] = useState(false);
 	const entries = orderedSpaces(role).map((space, i) => {
 		const Icon = SPACE_ICON[space];
 		const name = t.space[space];
@@ -47,14 +50,23 @@ export function Sidebar({ toggle }: { toggle: Action }) {
 			<div className="flex h-8 items-center px-1">
 				<img src={logo} alt="Shipyard" className="size-6 shrink-0" />
 			</div>
-			{sidebarOpen && active ? (
-				<ProjectSwitcher
-					projects={projects}
-					value={active.id}
-					onChange={(id) => void switchTo(id)}
-					className="w-full"
-				/>
-			) : null}
+			<ProjectSwitcher
+				projects={projects}
+				value={active?.id ?? null}
+				compact={!sidebarOpen}
+				onChange={(id) => void switchTo(id)}
+				onOpen={() =>
+					void openFolder().then((o) => {
+						const error = o && outcomeError(t, o);
+						if (error) void errorDialog(error);
+					})
+				}
+				onClone={() => setCloning(true)}
+				onClose={() => void close()}
+				onRemove={(p) => void remove(p)}
+				className={sidebarOpen ? "w-full" : undefined}
+			/>
+			<CloneDialog open={cloning} onClose={() => setCloning(false)} />
 			<ul className="flex min-h-0 flex-1 flex-col gap-0.5">{entries}</ul>
 			<IconButton
 				label={sidebarOpen ? t.nav.collapse : t.nav.expand}

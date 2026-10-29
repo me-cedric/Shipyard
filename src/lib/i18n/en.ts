@@ -200,6 +200,10 @@ export const en = {
 		cloneRun: "Clone",
 		createRun: "Create",
 		confirmFile: "Create .shipyard/project.yaml in {path}?",
+		close: "Close project",
+		remove: "Remove from list",
+		confirmRemove: "Remove {name} from the list? The files stay on disk.",
+		recent: "Recent projects",
 		state: {
 			clean: "Clean",
 			changed: "Changed",

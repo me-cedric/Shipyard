@@ -569,6 +569,15 @@ const handlers: Handlers = {
 		for (const x of state.projects) x.active = x === p;
 		return p;
 	},
+	projectsClose: () => {
+		for (const x of state.projects) x.active = false;
+		return null;
+	},
+	projectsRemove: (id) => {
+		if (!state.projects.some((x) => x.id === id)) throw `unknown project: ${id}`;
+		state.projects = state.projects.filter((x) => x.id !== id);
+		return null;
+	},
 	projectsSetView: (id, view) => {
 		const p = state.projects.find((x) => x.id === id);
 		if (p) p.lastView = view;

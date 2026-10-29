@@ -200,6 +200,10 @@ export const fr: Messages = {
 		back: "Retour",
 		cloneRun: "Cloner",
 		createRun: "Créer",
+		close: "Fermer le projet",
+		remove: "Retirer de la liste",
+		confirmRemove: "Retirer {name} de la liste ? Les fichiers restent sur le disque.",
+		recent: "Projets récents",
 		confirmFile: "Créer .shipyard/project.yaml dans {path} ?",
 		state: {
 			clean: "Propre",

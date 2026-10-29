@@ -14,6 +14,7 @@ import type { Action } from "./actions";
 export const MENU_ACTIONS = [
 	"project-open",
 	"project-switch",
+	"project-close",
 	"sync",
 	"commit",
 	"palette",
@@ -44,6 +45,7 @@ export const menuLabels = (t: Messages): Record<string, string> => ({
 	closeWindow: t.menu.closeWindow,
 	"project-open": t.projects.open,
 	"project-switch": t.menu.projectSwitch,
+	"project-close": t.projects.close,
 	sync: t.shell.sync,
 	commit: t.shell.commit,
 	palette: t.palette.title,

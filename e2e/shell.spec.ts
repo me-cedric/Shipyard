@@ -12,7 +12,7 @@ test("keyboard path: space shortcut, palette action, inspector and a focus ring"
 }) => {
 	await page.goto("/");
 	await page.getByRole("button", { name: "Open a local folder" }).click();
-	await expect(page.getByRole("combobox", { name: "Project" })).toBeVisible();
+	await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
 
 	await page.keyboard.press("ControlOrMeta+2");
 	await expect(page.getByRole("link", { name: "Diagrams", exact: true })).toHaveAttribute(
@@ -44,7 +44,7 @@ test("keyboard path: space shortcut, palette action, inspector and a focus ring"
 test("keeps the view of each project apart and writes it on each move", async ({ page }) => {
 	await page.goto("/");
 	await page.getByRole("button", { name: "Open a local folder" }).click();
-	const switcher = page.getByRole("combobox", { name: "Project" });
+	const switcher = page.getByRole("button", { name: /^Project/ });
 	await expect(switcher).toHaveText(/alpha/);
 	await page.keyboard.press("ControlOrMeta+3");
 	await expect(page).toHaveURL(/\/specs/);

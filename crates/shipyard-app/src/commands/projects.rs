@@ -190,6 +190,32 @@ pub fn switch(s: &AppState, id: &str) -> Res<ProjectEntry> {
     Ok(entry)
 }
 
+/// Stops the sync engine of the active project and leaves no project active. The registry keeps
+/// every entry.
+pub fn close(s: &AppState) -> Res<()> {
+    if let Some(a) = s.registry()?.active() {
+        s.sync.apply(&a.id, None)?;
+    }
+    s.with_registry(|reg| {
+        reg.close();
+        Ok(())
+    })
+}
+
+/// Removes the entry from the registry. It never deletes a file. The active project closes first.
+pub fn remove(s: &AppState, id: &str) -> Res<()> {
+    if s.registry()?.active().is_some_and(|a| a.id == id) {
+        close(s)?;
+    }
+    s.with_registry(|reg| {
+        if reg.remove(id) {
+            Ok(())
+        } else {
+            Err(format!("unknown project: {id}"))
+        }
+    })
+}
+
 /// The last view per project (`shell` REQ-015). A view is an app path.
 pub fn set_view(s: &AppState, id: &str, view: &str) -> Res<()> {
     if !view.starts_with('/') || view.len() > 200 {
@@ -281,6 +307,18 @@ pub async fn projects_clone(app: AppHandle, url: String, path: String) -> Res<Pr
 #[specta::specta]
 pub async fn projects_switch(app: AppHandle, id: String) -> Res<ProjectEntry> {
     blocking(app, move |s| switch(s, &id)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn projects_close(app: AppHandle) -> Res<()> {
+    blocking(app, close).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn projects_remove(app: AppHandle, id: String) -> Res<()> {
+    blocking(app, move |s| remove(s, &id)).await
 }
 
 #[tauri::command]
@@ -455,6 +493,37 @@ mod tests {
             Some("/work/board")
         );
         assert!(switch(&s, "none").is_err());
+    }
+
+    #[test]
+    fn close_leaves_no_active_project_and_keeps_the_list() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = state_in(dir.path());
+        let p = repo(dir.path(), "one", true);
+        open(&s, &p, false).unwrap();
+        close(&s).unwrap();
+        assert!(active(&s).unwrap().is_none());
+        let all = list(&s).unwrap();
+        assert_eq!((all.len(), all[0].active), (1, false));
+        close(&s).unwrap();
+        assert_eq!(open(&s, &p, false).unwrap().status, OpenStatus::Opened);
+        assert_eq!(active(&s).unwrap().unwrap().id, "one");
+    }
+
+    #[test]
+    fn remove_drops_the_entry_and_never_a_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = state_in(dir.path());
+        let one = repo(dir.path(), "one", true);
+        open(&s, &one, false).unwrap();
+        open(&s, &repo(dir.path(), "two", true), false).unwrap();
+        remove(&s, "one").unwrap();
+        assert_eq!(list(&s).unwrap().len(), 1);
+        assert_eq!(active(&s).unwrap().unwrap().id, "two");
+        assert!(Path::new(&one).join(".shipyard/project.yaml").exists());
+        remove(&s, "two").unwrap();
+        assert!(active(&s).unwrap().is_none() && list(&s).unwrap().is_empty());
+        assert!(remove(&s, "two").is_err());
     }
 
     #[test]

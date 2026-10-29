@@ -55,7 +55,7 @@ export function outcomeError(t: Messages, o: ProjectOutcome): string | null {
 	return format(t.projects.error[o.status], { message: o.message ?? "" });
 }
 
-/** Open, clone, create and switch. Each change reloads every view and goes to the last view of the project. */
+/** Open, clone, create, switch, close and remove. Each change reloads every view and goes to the last view of the project. */
 export function useProjectActions() {
 	const qc = useQueryClient();
 	const router = useRouter();
@@ -74,7 +74,7 @@ export function useProjectActions() {
 	const switchTo = useCallback(
 		async (id: string) => {
 			const p = await unwrap(commands.projectsSwitch(id));
-			opened({ status: "opened", project: p, message: null });
+			return opened({ status: "opened", project: p, message: null });
 		},
 		[opened],
 	);
@@ -103,5 +103,23 @@ export function useProjectActions() {
 		[opened],
 	);
 
-	return { switchTo, openFolder, clone, create };
+	/** No project is active: the app shows the first run, with the recent projects. */
+	const close = useCallback(async () => {
+		await unwrap(commands.projectsClose());
+		router.history.push("/");
+		qc.invalidateQueries();
+	}, [qc, router]);
+
+	/** Asks first. It changes the list of the registry and never deletes a file. */
+	const remove = useCallback(
+		async (p: { id: string; name: string }) => {
+			if (!(await confirmDialog(format(t.projects.confirmRemove, { name: p.name })))) return;
+			await unwrap(commands.projectsRemove(p.id));
+			if (!(await unwrap(commands.projectsActive()))) router.history.push("/");
+			qc.invalidateQueries();
+		},
+		[qc, router, t],
+	);
+
+	return { switchTo, openFolder, clone, create, close, remove };
 }

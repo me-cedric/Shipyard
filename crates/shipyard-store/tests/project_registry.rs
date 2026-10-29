@@ -92,6 +92,24 @@ fn the_registry_keeps_path_last_use_view_and_overrides() {
 }
 
 #[test]
+fn close_and_remove_change_the_registry_only() {
+    let data = tempfile::tempdir().unwrap();
+    let mut reg = Registry::load(data.path()).unwrap();
+    reg.register("/work/a", &ProjectFile::new("Alpha", "ALPHA"));
+    reg.register("/work/b", &ProjectFile::new("Beta", "BETA"));
+    assert!(reg.activate("beta"));
+    reg.close();
+    assert!(reg.active().is_none() && reg.projects().len() == 2);
+    assert!(reg.activate("beta"));
+    assert!(reg.remove("beta") && !reg.remove("beta"));
+    assert!(reg.active().is_none());
+    reg.save().unwrap();
+    let reg = Registry::load(data.path()).unwrap();
+    assert_eq!(reg.projects().len(), 1);
+    assert!(reg.active().is_none());
+}
+
+#[test]
 fn registering_a_known_path_updates_it_and_a_taken_id_gets_a_suffix() {
     let data = tempfile::tempdir().unwrap();
     let mut reg = Registry::load(data.path()).unwrap();

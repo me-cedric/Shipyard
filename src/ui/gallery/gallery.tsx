@@ -235,6 +235,10 @@ function Molecules() {
 				<ProjectSwitcher
 					value={project}
 					onChange={setProject}
+					onOpen={noop}
+					onClone={noop}
+					onClose={noop}
+					onRemove={noop}
 					projects={[
 						{ id: "alpha", name: "Alpha", state: "clean" },
 						{ id: "beta", name: "Beta", state: "changed" },

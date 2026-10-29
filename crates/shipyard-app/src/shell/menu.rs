@@ -56,6 +56,7 @@ pub fn layout() -> Vec<(&'static str, &'static str, Vec<Entry>)> {
             vec![
                 Action("project-open", "Open a local folder"),
                 Action("project-switch", "Switch project"),
+                Action("project-close", "Close project"),
                 Separator,
                 Action("sync", "Sync"),
                 Action("commit", "Commit"),
@@ -169,6 +170,7 @@ mod tests {
         for want in [
             "project-open",
             "project-switch",
+            "project-close",
             "sync",
             "commit",
             "palette",

@@ -41,6 +41,7 @@
 - Settings / Connections creates a private repository on a forge after a click. Design / Screens shows the colour tokens next to the design doc.
 - Settings / Me turns each notification source on or off. After an update check finds a newer version, the notification centre shows its changes once. Nothing installs.
 - Every tab passes an automatic accessibility check in light and dark themes, and the slides renderer loads only when Slides opens. The release build ships the `shipyard` command next to the app for the agent bridge.
+- Project menu in the sidebar (an icon button when the sidebar is collapsed) to open a folder, clone, close the project and remove a project from the list without deleting a file, a Close project action in the palette and the native menu, and the recent projects on the first run.
 
 ## [0.0.1]
 

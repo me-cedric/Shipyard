@@ -2,16 +2,18 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { pickFolder } from "@/lib/ipc";
 import { ROLES, type Role, usePrefs } from "@/lib/prefs";
-import { outcomeError, type ProjectOutcome, useProjectActions } from "@/lib/projects";
+import { outcomeError, type ProjectOutcome, useProjectActions, useProjects } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
+import { StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowDownTrayIcon, FolderOpenIcon, PlusIcon } from "@/ui/icons";
+import { STATE_DOT } from "@/ui/molecules/project-switcher";
 
 type Step = "start" | "clone" | "create";
 
 /** `https://host/team/repo.git` and `git@host:team/repo.git` both give `repo`. */
-const repoName = (url: string) =>
+export const repoName = (url: string) =>
 	url
 		.trim()
 		.replace(/\/+$/, "")
@@ -19,7 +21,7 @@ const repoName = (url: string) =>
 		.pop()
 		?.replace(/\.git$/, "") ?? "";
 
-function FolderField({ path, onPick }: { path: string; onPick: (path: string) => void }) {
+export function FolderField({ path, onPick }: { path: string; onPick: (path: string) => void }) {
 	const { t } = useI18n();
 	return (
 		<div className="flex gap-2">
@@ -41,7 +43,10 @@ function FolderField({ path, onPick }: { path: string; onPick: (path: string) =>
 export function FirstRun() {
 	const { t } = useI18n();
 	const { role, setPrefs } = usePrefs();
-	const { openFolder, clone, create } = useProjectActions();
+	const { openFolder, clone, create, switchTo } = useProjectActions();
+	const recent = [...(useProjects().data ?? [])]
+		.sort((a, b) => b.lastUsed - a.lastUsed)
+		.slice(0, 5);
 	const [step, setStep] = useState<Step>("start");
 	const [error, setError] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
@@ -143,6 +148,18 @@ export function FirstRun() {
 							</Button>
 						</div>
 					</>
+				) : null}
+				{step === "start" && recent.length ? (
+					<ul aria-label={t.projects.recent} className="flex flex-col gap-1">
+						{recent.map((p) => (
+							<li key={p.id}>
+								<Button className="w-full justify-start" onClick={() => run(() => switchTo(p.id))}>
+									<StatusDot status={STATE_DOT[p.state]} label={t.projects.state[p.state]} />
+									{p.name}
+								</Button>
+							</li>
+						))}
+					</ul>
 				) : null}
 				{error ? (
 					<p role="alert" className="text-ui text-danger-text">
