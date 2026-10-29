@@ -11,10 +11,10 @@ Plan: [plan.md](./plan.md)
 
 ## Tasks
 
-- [ ] T001 Write flag and work item shape tests in `crates/shipyard-core/tests/work_item.rs`. Covers REQ-003, REQ-004.
-- [ ] T002 Implement the work item type and the flag set in `crates/shipyard-core/src/work_item.rs`. Covers REQ-003, REQ-004.
+- [x] T001 Write flag and work item shape tests in `crates/shipyard-core/tests/work_item.rs`. Covers REQ-003, REQ-004.
+- [x] T002 Implement the work item type and the flag set in `crates/shipyard-core/src/work_item.rs`. Covers REQ-003, REQ-004. `shipyard-trackers` re-exports them.
 - [x] T003 Write the tracker contract suite and a fake in `crates/shipyard-trackers/tests/contract.rs`. Covers REQ-002, REQ-003, REQ-004, REQ-012.
-- [x] T004 Implement the `Tracker` trait and the six adapters in `crates/shipyard-trackers/src/`. Covers REQ-002, REQ-003, REQ-004, REQ-012. The work item type lives in `crates/shipyard-trackers/src/model.rs` until T002 moves it to core.
+- [x] T004 Implement the `Tracker` trait and the six adapters in `crates/shipyard-trackers/src/`. Covers REQ-002, REQ-003, REQ-004, REQ-012.
 - [x] T005 Write forge contract tests in `crates/shipyard-forges/tests/contract.rs`. Covers REQ-005, REQ-012, REQ-019.
 - [ ] T006 Implement the `Forge` trait and three adapters in `crates/shipyard-forges/src/`. Covers REQ-005, REQ-012, REQ-019. Done except: create a remote repository (a write), and the Azure DevOps push marker.
 - [x] T007 Write keychain and redaction tests with a fake keychain in `crates/shipyard-secrets/tests/secrets.rs`. Covers REQ-011, REQ-014.
@@ -25,13 +25,13 @@ Plan: [plan.md](./plan.md)
 - [x] T012 Implement the MCP catalogue, custom servers, control and dependency install in `crates/shipyard-agents/src/mcp_control.rs`. Covers REQ-006, REQ-007, REQ-008.
 - [x] T012b Write MCP proxy and relay tests in `crates/shipyard-mcp/tests/proxy.rs`. Covers REQ-017, REQ-018.
 - [ ] T012c Implement the MCP proxy and the relay in `crates/shipyard-mcp/src/proxy.rs` and `crates/shipyard-mcp/src/relay.rs`. Covers REQ-017, REQ-018. Done except: the Windows named pipe. On Windows the relay starts the server itself.
-- [ ] T012a Write settings store and `conn:` entity tests in `crates/shipyard-app/tests/connections.rs`. Covers REQ-013, REQ-015.
-- [ ] T013 Add the connection settings store and the `conn:` entity in `crates/shipyard-app/src/connections.rs`, then regenerate the bindings with the project command. Covers REQ-013, REQ-014, REQ-015.
-- [ ] T014 Write view tests in `src/features/settings/connections/connections.test.tsx`. Covers REQ-001, REQ-003, REQ-012, REQ-014, REQ-016.
-- [ ] T015 Implement Settings / Connections in `src/features/settings/connections/`. Covers REQ-001, REQ-003, REQ-006, REQ-007, REQ-009, REQ-012, REQ-014, REQ-016.
-- [ ] T016 [P] Add French and English keys in `src/i18n/` for `connections`. Covers REQ-016.
-- [ ] T017 Write the end-to-end test in `e2e/connections.spec.ts`. Covers REQ-001, REQ-011, REQ-012, REQ-014.
-- [ ] T018 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
+- [x] T012a Write settings store and `conn:` entity tests in `crates/shipyard-app/tests/connections.rs`. Covers REQ-013, REQ-015. The `conn:` resolve test is in `crates/shipyard-app/src/commands/refs.rs`.
+- [x] T013 Add the connection settings store and the `conn:` entity in `crates/shipyard-app/src/connections.rs`, the commands in `crates/shipyard-app/src/commands/connections.rs`, then regenerate the bindings with the project command. Covers REQ-013, REQ-014, REQ-015. Open: `.shipyard/project.yaml` does not name the connection id yet (Q-018): the `projects` capability owns that file.
+- [x] T014 Write view tests in `src/features/settings/connections/connections.test.tsx`. Covers REQ-001, REQ-003, REQ-012, REQ-014, REQ-016.
+- [ ] T015 Implement Settings / Connections in `src/features/settings/connections/`. Covers REQ-001, REQ-003, REQ-006, REQ-007, REQ-009, REQ-012, REQ-014, REQ-016, REQ-019. Done for trackers and forges, with the repository list. Open: the MCP, runner and provider groups (REQ-006, REQ-007, REQ-009, REQ-010) and the create-remote action (REQ-019).
+- [x] T016 [P] Add French and English keys in `src/lib/i18n/` for `connections`. Covers REQ-016.
+- [x] T017 Write the end-to-end test in `e2e/connections.spec.ts`. Covers REQ-001, REQ-011, REQ-012, REQ-014.
+- [x] T018 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
 - [ ] T019 Run the validation commands from `plan.md`.
 
 ## Completion Check

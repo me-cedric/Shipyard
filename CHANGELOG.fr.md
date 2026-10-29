@@ -14,6 +14,7 @@
 - Réglages / Santé avec une correction pour chaque constat, et un voyant de santé dans la barre d’état.
 - Index des références : rétroliens groupés par type dans l’inspecteur, et recherche par référence ou par titre dans la palette de commandes.
 - Les préférences, la langue et la dernière vue de chaque projet sont désormais dans le dossier de données de l’application.
+- Réglages / Connexions pour ajouter, modifier, tester et supprimer des connexions de trackers et de forges (Jira, GitHub, GitLab, Azure DevOps, Linear), avec les capacités de chaque tracker, des secrets en écriture seule gardés dans le trousseau du système, et la liste des dépôts d’une forge avec un repère sur chaque dépôt où vous ne pouvez pas pousser.
 
 ## [0.0.1]
 

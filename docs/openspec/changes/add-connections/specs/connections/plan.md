@@ -13,8 +13,8 @@ The `Tracker` trait and its six adapters live in `shipyard-trackers`. The `Forge
 | ---- | -------- |
 | Stack/runtime | Rust workspace and React 19 (MASTER-PLAN 7.1, 7.3). |
 | Dependencies | No new dependency decided here. Use the `keyring` crate if the workspace has none for the OS keychain. Confirm in W2. |
-| Data/storage | Secrets in the OS keychain. Non-secret settings in the app data folder (Q-018 assumption). `.shipyard/project.yaml` names the connection id. |
-| APIs/contracts | `Tracker` trait with six capability flags and one work item type in `shipyard-core`. `Forge` trait. IPC commands `connections_list`, `connections_add`, `connections_test`, `connections_remove`, `mcp_start`, `mcp_stop`, `runners_detect`. Bindings are generated. |
+| Data/storage | Secrets in the OS keychain under `conn:<id>`. Non-secret settings in `connections.json` in the app data folder (Q-018 assumption). `.shipyard/project.yaml` names the connection id: the `projects` capability adds that field. A connection holds a `secret` flag, never the value. |
+| APIs/contracts | `Tracker` trait with six capability flags and one work item type in `shipyard-core`. `Forge` trait. IPC commands `connections_list`, `connections_add`, `connections_edit`, `connections_remove`, `connections_set_secret` (write-only), `connections_test`, `connections_repos`, `mcp_start`, `mcp_stop`, `runners_detect`. Bindings are generated. |
 | Tracker isolation | Each adapter maps its API shape to the work item type. Custom fields stay inside the adapter. |
 | Capability flags | The trait returns a flag set. Callers check a flag before a call. A call without the flag returns a typed unsupported error. |
 | Secrets | One keychain module. A secret never enters an argument, a URL or a log. Log lines pass through a redaction step. |
@@ -22,6 +22,8 @@ The `Tracker` trait and its six adapters live in `shipyard-trackers`. The `Forge
 | Connection test | Each adapter has a read-only `test` method that returns the missing scope or permission. |
 | MCP control | `shipyard-agents` spawns the process, tracks its state and stops it at app quit. A dependency check runs before spawn. |
 | MCP relay | A unix socket in an owner-only folder (macOS, Linux). The Windows named pipe is open: until then the relay starts the server itself. |
+| Usage list | The remove step lists the backlinks of `conn:<id>` from the ref index (REQ-014). |
+| Test text | A failure reason that an adapter writes is English. The view translates the frame only. |
 | Risks | Tracker APIs drift. Contract tests with recorded fakes cover each adapter. Q-017 and Q-018 stay open. |
 
 ## Affected Surfaces

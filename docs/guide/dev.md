@@ -37,7 +37,7 @@ Outside Tauri, `src/main.tsx` installs the mock, so Vite, Vitest and Playwright 
 
 ## App data
 
-Machine state lives in the app data folder: `prefs.json` (theme, language, role), `registry.json` (projects, last view, overrides) and `refs/<project id>.sqlite` (the ref index, rebuilt on demand). The repository holds `.shipyard/project.yaml` only.
+Machine state lives in the app data folder: `prefs.json` (theme, language, role), `registry.json` (projects, last view, overrides), `connections.json` (the settings of each connection, no secret) and `refs/<project id>.sqlite` (the ref index, rebuilt on demand). The repository holds `.shipyard/project.yaml` only. Each connection secret lives in the OS keychain under `conn:<id>`.
 
 ## Checks
 

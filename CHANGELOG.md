@@ -14,6 +14,7 @@
 - Settings / Health with one fix for each finding, and a health dot in the status bar.
 - Reference index: backlinks grouped by kind in the inspector, and search by ref or title in the command palette.
 - Preferences, language and the last view of each project now live in the app data folder.
+- Settings / Connections to add, edit, test and remove tracker and forge connections (Jira, GitHub, GitLab, Azure DevOps, Linear), with the capability flags of each tracker, write-only secrets kept in the system keychain, and the repository list of a forge with a mark on each repository you cannot push to.
 
 ## [0.0.1]
 
