@@ -21,7 +21,7 @@ pub enum FileRead {
     Invalid(Issues),
 }
 
-fn line_of(text: &str, field: &str, value: &str) -> Option<usize> {
+pub(crate) fn line_of(text: &str, field: &str, value: &str) -> Option<usize> {
     let name = field
         .rsplit('.')
         .next()

@@ -1,6 +1,8 @@
 //! Stores in the app data folder and codecs for repository files.
 
+pub mod automation_file;
 pub mod excel;
+pub mod mirror;
 pub mod prefs;
 pub mod project;
 pub mod ref_index;
