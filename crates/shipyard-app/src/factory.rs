@@ -17,7 +17,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use serde::Serialize;
 use shipyard_agents::runner::{self, McpEntry, Mode as RunMode, Recv, RunSpec};
@@ -94,6 +94,27 @@ struct Seen {
 
 // ---------------------------------------------------------------- the host
 
+/// The name, size and modified time of each workflow and role file.
+type Stamp = Vec<(String, u64, Option<SystemTime>)>;
+
+/// No file watcher: the files are small and few, so the loop reads their metadata.
+fn files_stamp(root: &Path) -> Stamp {
+    let mut out = Vec::new();
+    for dir in [WORKFLOWS_DIR, ROLES_DIR] {
+        let Ok(files) = std::fs::read_dir(root.join(dir)) else {
+            continue;
+        };
+        for f in files.flatten() {
+            if let Ok(m) = f.metadata() {
+                let name = format!("{dir}/{}", f.file_name().to_string_lossy());
+                out.push((name, m.len(), m.modified().ok()));
+            }
+        }
+    }
+    out.sort();
+    out
+}
+
 /// The address and the sessions of the agent tools endpoint, once it listens.
 pub struct Endpoint {
     pub sessions: Arc<Sessions>,
@@ -113,6 +134,9 @@ pub struct FactoryHost {
     /// The last valid workflows and roles of each project (`load` keeps them across a bad edit).
     loaded: Mutex<HashMap<String, Loaded>>,
     mirrors: Mutex<HashMap<String, Arc<Mutex<Mirror>>>>,
+    /// What `.shipyard/workflows` and `.shipyard/roles` looked like when each project took its
+    /// files. The loop compares it with the disk (`reload_changed`).
+    stamps: Mutex<HashMap<String, Stamp>>,
 }
 
 impl FactoryHost {
@@ -172,6 +196,7 @@ impl FactoryHost {
             seen: Mutex::new(None),
             loaded: Mutex::new(HashMap::new()),
             mirrors: Mutex::new(HashMap::new()),
+            stamps: Mutex::new(HashMap::new()),
         }
     }
 
@@ -299,6 +324,21 @@ impl FactoryHost {
 /// calls `read_ref` sees the files that a person just saved.
 const REINDEX_EVERY: u32 = 30;
 
+/// Take the workflow and role files of the active project again when a file changed on disk (a
+/// person edited it in an editor, or a branch switch brought another one).
+fn reload_changed(s: &AppState) {
+    let Ok(Some(a)) = active(s) else { return };
+    if files_changed(s, &a.entry.id, Path::new(&a.entry.path)) {
+        let _ = ensure(s);
+    }
+}
+
+fn files_changed(s: &AppState, id: &str, root: &Path) -> bool {
+    lock(&s.factory.stamps)
+        .get(id)
+        .is_some_and(|old| *old != files_stamp(root))
+}
+
 /// Bring up to date the ref index of each project that has an active run.
 fn reindex_active(s: &AppState) {
     let projects: BTreeSet<String> = s
@@ -329,6 +369,7 @@ pub fn spawn_loop(app: tauri::AppHandle) {
             std::thread::sleep(PUMP_EVERY);
             turn = turn.wrapping_add(1);
             let s = app.state::<AppState>();
+            reload_changed(&s);
             if turn.is_multiple_of(REINDEX_EVERY) {
                 reindex_active(&s);
             }
@@ -543,6 +584,8 @@ pub(crate) fn attach(s: &AppState, a: &Active, plan: &Plan) -> Res<()> {
     let id = a.entry.id.clone();
     let host = &s.factory;
     seed(root).map_err(err)?;
+    // Before the read: an edit during the read shows as a change at the next turn.
+    lock(&host.stamps).insert(id.clone(), files_stamp(root));
     let files = load(root, &host.last_loaded(&id)).map_err(err)?;
     lock(&host.loaded).insert(id.clone(), files.clone());
     let file = match read_project_file(root).map_err(err)? {

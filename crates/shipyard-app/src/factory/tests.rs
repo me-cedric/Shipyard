@@ -732,3 +732,27 @@ fn the_start_removes_the_scratch_folders_of_runs_that_are_not_live() {
     // No folder at all is no error.
     sweep_scratch(&dir.path().join("none"), &BTreeSet::new());
 }
+
+#[test]
+fn a_change_of_a_workflow_or_role_file_is_seen_and_taken_again() {
+    let fx = fx(Writes::default());
+    let (s, root) = (&fx.s, fx.repo.path());
+    let id = fx.id.as_str();
+    // A project that never took its files is not compared.
+    assert!(!files_changed(s, id, root));
+    let flows = root.join(WORKFLOWS_DIR);
+    std::fs::create_dir_all(&flows).unwrap();
+    std::fs::write(flows.join("one.yaml"), "id: one\n").unwrap();
+    lock(&s.factory.stamps).insert(id.into(), files_stamp(root));
+    assert!(!files_changed(s, id, root), "nothing changed");
+    // An edit, a new file and a removed file each show.
+    std::fs::write(flows.join("one.yaml"), "id: one\nsteps: []\n").unwrap();
+    assert!(files_changed(s, id, root));
+    lock(&s.factory.stamps).insert(id.into(), files_stamp(root));
+    std::fs::create_dir_all(root.join(ROLES_DIR)).unwrap();
+    std::fs::write(root.join(ROLES_DIR).join("new.md"), "---\n---\n").unwrap();
+    assert!(files_changed(s, id, root));
+    lock(&s.factory.stamps).insert(id.into(), files_stamp(root));
+    std::fs::remove_file(flows.join("one.yaml")).unwrap();
+    assert!(files_changed(s, id, root));
+}
