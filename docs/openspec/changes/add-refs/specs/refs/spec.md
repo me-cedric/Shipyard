@@ -256,7 +256,7 @@ A hover or a focus on a RefChip SHALL show a tooltip with the title and the stat
 
 ### Requirement: REQ-013 RefChip accessibility
 
-A RefChip SHALL have a keyboard path, a focus ring, an accessible name that holds the kind and the title, enough contrast, and no motion under reduced motion. Its text SHALL exist in French and English. Its state SHALL use shape and colour together.
+A RefChip SHALL have a keyboard path, a focus ring, enough contrast, and no motion under reduced motion. Its accessible name SHALL hold the kind and the title. Its text SHALL exist in French and English. Its state SHALL use shape and colour together.
 
 #### Scenario: Assistive technology
 - GIVEN a screen reader

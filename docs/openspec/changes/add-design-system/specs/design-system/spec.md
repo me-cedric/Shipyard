@@ -88,7 +88,7 @@ Legacy has 490 titles, 336 hints and 216 descriptions. Each page builds its own 
 
 ### Requirement: REQ-001 Design tokens
 
-The system SHALL define tokens for colour (a 12-step neutral scale, one accent, four status colours), a 4 px spacing grid, the type sizes 11, 12, 13, 14, 16 and 20, the radii 4 and 6, and borders in place of shadows. No component SHALL use a value outside the tokens.
+The system SHALL define colour tokens: a 12-step neutral scale, one accent and four status colours. The system SHALL define a 4 px spacing grid and the type sizes 11, 12, 13, 14, 16 and 20. The radii SHALL be 4 and 6, and borders SHALL replace shadows. No component SHALL use a value outside the tokens.
 
 #### Scenario: Component uses tokens only
 - GIVEN a component in the gallery

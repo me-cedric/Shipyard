@@ -247,7 +247,7 @@ The system SHALL test a connection on request. A passed test SHALL show a passed
 
 ### Requirement: REQ-013 Local settings
 
-The system SHALL keep the settings of a connection that are not secret on the machine of the person, and MUST NOT put a host or a token in the repository. [NEEDS CLARIFICATION: Q-018 Where do the non-secret settings of a connection live?] Working assumption: the app data folder, with the connection id named in `.shipyard/project.yaml`.
+The system SHALL keep the non-secret settings of a connection on the machine of the person. It MUST NOT put a host or a token in the repository. [NEEDS CLARIFICATION: Q-018 Where do the non-secret settings of a connection live?] Working assumption: the app data folder, with the connection id named in `.shipyard/project.yaml`.
 
 #### Scenario: Repository stays clean
 - GIVEN a connection with a host address

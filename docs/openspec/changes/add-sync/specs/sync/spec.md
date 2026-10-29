@@ -218,7 +218,7 @@ The system SHALL put a claim stamp on the ticket so that two machines never run 
 
 ### Requirement: REQ-010 Release and stale claims
 
-The system SHALL release a claim when its run ends, and SHALL remove the stamp. The system SHALL treat a claim as stale when its stamp is not refreshed in the stale time, and SHALL let another machine take it over. [NEEDS CLARIFICATION: Q-021 After how long is a claim stale?] Working assumption: 10 minutes without a refresh.
+The system SHALL release a claim when its run ends, and SHALL remove the stamp. A claim SHALL become stale when no refresh of its stamp occurs within the stale time. Another machine SHALL then be able to take it over. [NEEDS CLARIFICATION: Q-021 After how long is a claim stale?] Working assumption: 10 minutes without a refresh.
 
 #### Scenario: Release
 - GIVEN a run is Done
