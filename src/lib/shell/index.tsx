@@ -1,12 +1,4 @@
-import {
-	createContext,
-	type ReactNode,
-	useCallback,
-	useContext,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 
 type ShellState = {
 	inspectorOpen: boolean;
@@ -17,7 +9,12 @@ type ShellState = {
 	paletteOpen: boolean;
 	setPaletteOpen: (open: boolean) => void;
 	syncing: boolean;
-	sync: () => void;
+	/** The reason of the last failed sync, or null. */
+	syncError: string | null;
+	/** Runs `job` as the sync. A second call waits until the first ends. */
+	sync: (job: () => Promise<unknown>) => void;
+	commitOpen: boolean;
+	setCommitOpen: (open: boolean) => void;
 };
 
 const Ctx = createContext<ShellState | null>(null);
@@ -27,19 +24,24 @@ export function ShellProvider({ children }: { children: ReactNode }) {
 	const [selectedRef, setSelectedRef] = useState<string | null>(null);
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [syncing, setSyncing] = useState(false);
-
-	// Placeholder: the real sync comes with `add-sync`.
-	useEffect(() => {
-		if (!syncing) return;
-		const id = setTimeout(() => setSyncing(false), 1000);
-		return () => clearTimeout(id);
-	}, [syncing]);
+	const [syncError, setSyncError] = useState<string | null>(null);
+	const [commitOpen, setCommitOpen] = useState(false);
 
 	const openRef = useCallback((ref: string) => {
 		setSelectedRef(ref);
 		setInspectorOpen(true);
 	}, []);
-	const sync = useCallback(() => setSyncing(true), []);
+	const sync = useCallback(
+		(job: () => Promise<unknown>) => {
+			if (syncing) return;
+			setSyncing(true);
+			setSyncError(null);
+			job()
+				.catch((e) => setSyncError(e instanceof Error ? e.message : String(e)))
+				.finally(() => setSyncing(false));
+		},
+		[syncing],
+	);
 
 	const value = useMemo(
 		() => ({
@@ -50,9 +52,12 @@ export function ShellProvider({ children }: { children: ReactNode }) {
 			paletteOpen,
 			setPaletteOpen,
 			syncing,
+			syncError,
 			sync,
+			commitOpen,
+			setCommitOpen,
 		}),
-		[inspectorOpen, selectedRef, openRef, paletteOpen, syncing, sync],
+		[inspectorOpen, selectedRef, openRef, paletteOpen, syncing, syncError, sync, commitOpen],
 	);
 	return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

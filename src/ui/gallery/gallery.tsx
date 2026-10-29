@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from "react";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import { type Theme, usePrefs } from "@/lib/prefs";
 import { Avatar } from "../atoms/avatar";
 import { Badge } from "../atoms/badge";
@@ -12,6 +12,7 @@ import { Select } from "../atoms/select";
 import { Skeleton } from "../atoms/skeleton";
 import { type Status, StatusDot } from "../atoms/status-dot";
 import { Switch } from "../atoms/switch";
+import { Textarea } from "../atoms/textarea";
 import {
 	ArrowPathIcon,
 	Cog6ToothIcon,
@@ -25,8 +26,12 @@ import {
 	XMarkIcon,
 } from "../icons";
 import { BacklinkList } from "../molecules/backlink-list";
+import { CommitRow } from "../molecules/commit-row";
+import { ConflictBlock, type ConflictChoice } from "../molecules/conflict-block";
 import { ConnectionRow } from "../molecules/connection-row";
+import { DiffView } from "../molecules/diff-view";
 import { EmptyState } from "../molecules/empty-state";
+import { FileRow } from "../molecules/file-row";
 import { FilterBar } from "../molecules/filter-bar";
 import { FindingRow } from "../molecules/finding-row";
 import { FlagList } from "../molecules/flag-list";
@@ -35,6 +40,7 @@ import { RefChip } from "../molecules/ref-chip";
 import { SecretInput } from "../molecules/secret-input";
 import { SettingsRow } from "../molecules/settings-row";
 import { CommandPalette } from "../organisms/command-palette";
+import { CommitDialog } from "../organisms/commit-dialog";
 import { Inspector } from "../organisms/inspector";
 import { Settings } from "../templates/settings";
 import { Shell } from "../templates/shell";
@@ -132,6 +138,9 @@ function Atoms() {
 			<Row name="Input">
 				<Input label={t.common.search} className="w-48" />
 			</Row>
+			<Row name="Textarea">
+				<Textarea label={t.code.description} className="w-64" />
+			</Row>
 			<Row name="Select">
 				<Select
 					label={t.prefs.language}
@@ -177,6 +186,7 @@ function Molecules() {
 	const [active, setActive] = useState<string[]>([]);
 	const [project, setProject] = useState("alpha");
 	const [secret, setSecret] = useState("");
+	const [choice, setChoice] = useState<ConflictChoice | null>(null);
 	const noop = () => {};
 	return (
 		<div>
@@ -286,6 +296,75 @@ function Molecules() {
 					/>
 				</div>
 			</Row>
+			<Row name="FileRow">
+				<div className="w-72">
+					<FileRow name="src" depth={0} check={{ checked: false, label: "src", onChange: noop }} />
+					<FileRow
+						name="app.ts"
+						depth={1}
+						state="modified"
+						stateLabel={t.code.state.modified}
+						selected
+						check={{ checked: true, label: "app.ts", onChange: noop }}
+					/>
+					<FileRow
+						name="new.ts"
+						depth={1}
+						state="untracked"
+						stateLabel={t.code.state.untracked}
+						check={{ checked: false, label: "new.ts", onChange: noop }}
+					/>
+					<FileRow
+						name="old.ts"
+						depth={1}
+						state="conflicted"
+						stateLabel={t.code.state.conflicted}
+					/>
+				</div>
+			</Row>
+			<Row name="DiffView">
+				<div className="w-full max-w-xl">
+					<DiffView
+						text={"diff --git a/a b/a\n--- a/a\n+++ b/a\n@@ -1,3 +1,3 @@\n a\n-b\n+B\n c\n"}
+						label="a"
+						binaryLabel={t.code.binary}
+						truncatedLabel={t.code.truncated}
+					/>
+				</div>
+			</Row>
+			<Row name="CommitRow">
+				<div className="w-full max-w-xl">
+					<CommitRow
+						short="1a2b3c4"
+						summary="fix(auth): refuse an empty token"
+						author="Ada Lovelace"
+						date="29 Oct 2026"
+						labels={[
+							{ name: "main", kind: "branch" },
+							{ name: "origin/main", kind: "remote" },
+							{ name: "v0.1.0", kind: "tag" },
+						]}
+						onSelect={noop}
+					/>
+				</div>
+			</Row>
+			<Row name="ConflictBlock">
+				<div className="w-full max-w-xl">
+					<ConflictBlock
+						title={format(t.code.block, { n: 1 })}
+						ours={"const a = 1;\n"}
+						theirs={"const a = 2;\n"}
+						choice={choice}
+						onChoose={setChoice}
+						labels={{
+							ours: t.code.ours,
+							theirs: t.code.theirs,
+							both: t.code.both,
+							neither: t.code.neither,
+						}}
+					/>
+				</div>
+			</Row>
 			<Row name="FilterBar">
 				<FilterBar
 					query={query}
@@ -311,6 +390,7 @@ function Organisms() {
 	const { t } = useI18n();
 	const [open, setOpen] = useState(false);
 	const [panel, setPanel] = useState(true);
+	const [commit, setCommit] = useState(false);
 	const noop = () => {};
 	return (
 		<div>
@@ -344,6 +424,10 @@ function Organisms() {
 						},
 					]}
 				/>
+			</Row>
+			<Row name="CommitDialog">
+				<Button onClick={() => setCommit(true)}>{t.shell.commit}</Button>
+				<CommitDialog open={commit} onOpenChange={setCommit} onSubmit={async () => {}} />
 			</Row>
 			<Row name="Inspector">
 				<Button onClick={() => setPanel((p) => !p)}>{t.inspector.title}</Button>

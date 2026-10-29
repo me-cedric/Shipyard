@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { useWatchNotice } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { useHealth, worstStatus } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
@@ -8,12 +9,12 @@ import { CpuChipIcon } from "@/ui/icons";
 import type { Action } from "./actions";
 
 const button =
-	"inline-flex h-5 items-center gap-1.5 rounded-sm px-1.5 text-11 text-n-11 hover:bg-n-3 hover:text-n-12";
+	"inline-flex h-5 items-center gap-1.5 rounded-sm px-1.5 text-11 text-n-11 hover:bg-n-3 hover:text-n-12 disabled:pointer-events-none disabled:opacity-50";
 
 function ActionButton({ action, children }: { action: Action; children?: ReactNode }) {
 	const { Icon } = action;
 	return (
-		<button type="button" className={button} onClick={action.run}>
+		<button type="button" className={button} onClick={action.run} disabled={action.disabled}>
 			{children ?? <Icon size={12} />}
 			{action.label}
 		</button>
@@ -22,7 +23,8 @@ function ActionButton({ action, children }: { action: Action; children?: ReactNo
 
 export function StatusBar({ sync, commit }: { sync: Action; commit: Action }) {
 	const { t } = useI18n();
-	const { syncing } = useShell();
+	const { syncing, syncError } = useShell();
+	const notice = useWatchNotice().data?.changes[0];
 	const health = useHealth();
 	const findings = health.data ?? [];
 	// The dot shows the worst finding by shape and colour. A click opens Settings / Health.
@@ -36,6 +38,21 @@ export function StatusBar({ sync, commit }: { sync: Action; commit: Action }) {
 			<ActionButton action={sync}>
 				{syncing ? <StatusDot status="active" className="size-2" /> : undefined}
 			</ActionButton>
+			{notice ? (
+				<span role="status" className="truncate">
+					{format(t.code.notice, {
+						count: notice.count,
+						branch: notice.name,
+						author: notice.author,
+						subject: notice.subject,
+					})}
+				</span>
+			) : null}
+			{syncError ? (
+				<span role="alert" className="truncate text-danger-text">
+					{syncError}
+				</span>
+			) : null}
 			<ActionButton action={commit} />
 			<span className="flex-1" />
 			<span className="inline-flex items-center gap-1">

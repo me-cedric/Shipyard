@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { type ComponentType, useEffect, useMemo } from "react";
+import { canCommit, useChanges, useCodeActions } from "@/lib/code";
 import { format, type Lang, useI18n } from "@/lib/i18n";
 import { errorDialog } from "@/lib/ipc";
 import { type Theme, usePrefs } from "@/lib/prefs";
@@ -36,6 +37,8 @@ export type Action = {
 	shortcut?: string;
 	/** With Mod, the key that runs the action. */
 	key?: string;
+	/** The action cannot run now. The status bar shows it off and the palette hides it. */
+	disabled?: boolean;
 	run: () => void;
 };
 
@@ -66,7 +69,9 @@ export function useActions() {
 	const navigate = useNavigate();
 	const shell = useShell();
 	const { openFolder } = useProjectActions();
-	const { inspectorOpen, setInspectorOpen, setPaletteOpen, sync } = shell;
+	const { inspectorOpen, setInspectorOpen, setPaletteOpen, sync, setCommitOpen } = shell;
+	const { pull } = useCodeActions();
+	const stageable = canCommit(useChanges().data);
 
 	return useMemo(() => {
 		const withKey = (a: Omit<Action, "shortcut"> & { key: string }): Action => ({
@@ -92,9 +97,21 @@ export function useActions() {
 					if (error) void errorDialog(error);
 				}),
 		};
-		const syncAction: Action = { id: "sync", label: t.shell.sync, Icon: ArrowPathIcon, run: sync };
-		// Placeholder: the real commit comes with `add-code`.
-		const commit: Action = { id: "commit", label: t.shell.commit, Icon: CheckIcon, run: () => {} };
+		// The sync action fetches and brings the working branch up to date (`add-code` REQ-014).
+		const syncAction: Action = {
+			id: "sync",
+			label: t.shell.sync,
+			Icon: ArrowPathIcon,
+			run: () => sync(pull),
+		};
+		// The one commit action (`add-code` REQ-007): it stays off with nothing staged.
+		const commit: Action = {
+			id: "commit",
+			label: t.shell.commit,
+			Icon: CheckIcon,
+			disabled: !stageable,
+			run: () => setCommitOpen(true),
+		};
 		const list: Action[] = [
 			...spaces,
 			withKey({
@@ -150,6 +167,9 @@ export function useActions() {
 		setInspectorOpen,
 		setPaletteOpen,
 		sync,
+		pull,
+		setCommitOpen,
+		stageable,
 		openFolder,
 	]);
 }

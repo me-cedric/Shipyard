@@ -22,13 +22,15 @@ export function PaletteHost({ actions }: { actions: Action[] }) {
 		{
 			id: "actions",
 			heading: t.palette.actions,
-			items: actions.map((a) => ({
-				id: a.id,
-				label: a.label,
-				icon: <a.Icon size={14} />,
-				shortcut: a.shortcut,
-				onSelect: a.run,
-			})),
+			items: actions
+				.filter((a) => !a.disabled)
+				.map((a) => ({
+					id: a.id,
+					label: a.label,
+					icon: <a.Icon size={14} />,
+					shortcut: a.shortcut,
+					onSelect: a.run,
+				})),
 		},
 		{
 			id: "projects",

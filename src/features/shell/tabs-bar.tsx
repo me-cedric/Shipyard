@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import { SPACES, type SpaceId, tabLabel, tabPath } from "./spaces";
 
-export function TabsBar({ space }: { space: SpaceId }) {
+export function TabsBar({ space, trailing }: { space: SpaceId; trailing?: ReactNode }) {
 	const { t } = useI18n();
 	return (
 		<nav
@@ -18,6 +19,12 @@ export function TabsBar({ space }: { space: SpaceId }) {
 					{tabLabel(t, space, tab)}
 				</Link>
 			))}
+			{trailing ? (
+				<>
+					<span className="flex-1" />
+					{trailing}
+				</>
+			) : null}
 		</nav>
 	);
 }

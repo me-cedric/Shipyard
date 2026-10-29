@@ -16,6 +16,29 @@ import type {
 	SearchHit,
 	TestOutcome,
 } from "./bindings";
+import {
+	codeBranchCreate,
+	codeBranchDelete,
+	codeBranches,
+	codeBranchSwitch,
+	codeCommit,
+	codeCommitDetail,
+	codeCommitDiff,
+	codeDiff,
+	codeDiscard,
+	codeLog,
+	codePull,
+	codeResolve,
+	codeStage,
+	codeStashApply,
+	codeStashDrop,
+	codeStashList,
+	codeStashPush,
+	codeStatus,
+	codeUnstage,
+	type MockCode,
+	seedCode,
+} from "./mock-code";
 import { parseRef } from "./mock-refs";
 
 type Bindings = typeof commands;
@@ -52,6 +75,8 @@ type State = {
 	connections: Connection_Serialize[];
 	/** The keychain. No command returns a value from it: the tests read it to prove a write. */
 	secrets: Record<string, string>;
+	/** The working copy of the active project. Seeded on first use. */
+	code?: MockCode;
 };
 
 const FOLDERS = ["/mock/alpha", "/mock/beta", "/mock/gamma"];
@@ -110,6 +135,13 @@ const CITES: [source: string, target: string][] = [
 const COVERED = ["adr", "q", "change", "spec", "wf", "doc"];
 
 const active = () => state.projects.find((p) => p.active);
+
+/** The working copy of the active project. Without a project the Code commands fail as the real ones do. */
+function code(): MockCode {
+	if (!active()) throw "no active project";
+	state.code ??= seedCode();
+	return state.code;
+}
 
 function resolve(text: string): Resolved_Serialize | null {
 	const parsed = parseRef(text);
@@ -453,6 +485,66 @@ const handlers: Handlers = {
 			next: null,
 		};
 	},
+	codeStatus: () => codeStatus(code()),
+	codeDiff: (path, side) => codeDiff(code(), path, side),
+	codeStage: (paths) => {
+		codeStage(code(), paths);
+		return null;
+	},
+	codeUnstage: (paths) => {
+		codeUnstage(code(), paths);
+		return null;
+	},
+	codeDiscard: (paths, untracked) => {
+		codeDiscard(code(), paths, untracked);
+		return null;
+	},
+	codeCommit: (summary, description) => codeCommit(code(), summary, description),
+	codeLog: (skip, limit) => codeLog(code(), skip, Math.min(Math.max(limit, 1), 200)),
+	codeCommitDetail: (sha) => codeCommitDetail(code(), sha),
+	codeCommitDiff: (sha, path) => codeCommitDiff(code(), sha, path),
+	codeBranches: () => codeBranches(code()),
+	codeBranchCreate: (name) => {
+		codeBranchCreate(code(), name);
+		return null;
+	},
+	codeBranchSwitch: (name) => {
+		codeBranchSwitch(code(), name);
+		return null;
+	},
+	codeBranchDelete: (name, force) => {
+		codeBranchDelete(code(), name, force);
+		return null;
+	},
+	codeStashPush: (message) => codeStashPush(code(), message),
+	codeStashList: () => codeStashList(code()),
+	codeStashApply: (index) => {
+		codeStashApply(code(), index);
+		return null;
+	},
+	codeStashDrop: (index) => {
+		codeStashDrop(code(), index);
+		return null;
+	},
+	codeConflicts: () => code().conflicts,
+	codeResolve: (path, how) => {
+		codeResolve(code(), path, how);
+		return null;
+	},
+	codeFetch: () => {
+		code();
+		return null;
+	},
+	codePull: () => codePull(code()),
+	codePush: () => {
+		code();
+		return null;
+	},
+	codeWatchTick: () => {
+		const n = code().notice;
+		return n ? [n] : [];
+	},
+	codeWatchNotice: () => (active() ? (code().notice ?? null) : null),
 	projectImport: (source) => ({
 		copied: [],
 		skipped: [{ path: source, reason: "not-implemented" }],

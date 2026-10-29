@@ -9,6 +9,7 @@ import {
 	type RouterHistory,
 	redirect,
 } from "@tanstack/react-router";
+import { BranchSelector } from "@/features/code";
 import { AppShell, ROLE_HOME, SPACES, type SpaceId, TabsBar, tabPath } from "@/features/shell";
 import { usePrefs } from "@/lib/prefs";
 import { NotFound } from "./not-found";
@@ -28,7 +29,7 @@ const indexRoute = createRoute({
 function SpaceLayout({ space }: { space: SpaceId }) {
 	return (
 		<>
-			<TabsBar space={space} />
+			<TabsBar space={space} trailing={space === "code" ? <BranchSelector /> : undefined} />
 			<Outlet />
 		</>
 	);

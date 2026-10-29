@@ -5,9 +5,11 @@ import { CheckIcon } from "../icons";
 
 export type CheckboxProps = Omit<ComponentProps<typeof BaseCheckbox.Root>, "aria-label"> & {
 	label: string;
+	/** Keep the label for assistive technology only. */
+	hideLabel?: boolean;
 };
 
-export function Checkbox({ label, className, ...props }: CheckboxProps) {
+export function Checkbox({ label, hideLabel, className, ...props }: CheckboxProps) {
 	return (
 		<label className="inline-flex h-row items-center gap-2 text-ui">
 			<BaseCheckbox.Root
@@ -22,7 +24,7 @@ export function Checkbox({ label, className, ...props }: CheckboxProps) {
 					<CheckIcon size={12} />
 				</BaseCheckbox.Indicator>
 			</BaseCheckbox.Root>
-			{label}
+			<span className={hideLabel ? "sr-only" : undefined}>{label}</span>
 		</label>
 	);
 }

@@ -1,0 +1,44 @@
+import { Badge } from "../atoms/badge";
+
+export type CommitLabel = { name: string; kind: "branch" | "remote" | "tag" };
+
+const VARIANT = { branch: "accent", remote: "neutral", tag: "warning" } as const;
+
+/** One commit of the log: the short id, the summary, the labels, the author and the date. */
+export function CommitRow({
+	short,
+	summary,
+	author,
+	date,
+	labels,
+	selected,
+	onSelect,
+}: {
+	short: string;
+	summary: string;
+	author: string;
+	/** Already formatted for the language. */
+	date: string;
+	labels: CommitLabel[];
+	selected?: boolean;
+	onSelect: () => void;
+}) {
+	return (
+		<button
+			type="button"
+			onClick={onSelect}
+			aria-current={selected || undefined}
+			className="flex min-h-row w-full items-center gap-2 border-b px-3 py-1 text-left text-ui hover:bg-n-3 aria-[current=true]:bg-n-4"
+		>
+			<span className="w-14 shrink-0 font-mono text-12 text-n-10">{short}</span>
+			<span className="min-w-0 flex-1 truncate">{summary}</span>
+			{labels.map((l) => (
+				<Badge key={`${l.kind}:${l.name}`} variant={VARIANT[l.kind]}>
+					{l.name}
+				</Badge>
+			))}
+			<span className="shrink-0 text-12 text-n-11">{author}</span>
+			<span className="shrink-0 text-12 text-n-10">{date}</span>
+		</button>
+	);
+}
