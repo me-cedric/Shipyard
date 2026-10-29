@@ -42,7 +42,7 @@ An agent that guesses a decision that belongs to a person produces wrong work. L
 - REQ-013: Each question SHALL have one answer. The first answer in time SHALL win, from the Inbox or from the tracker site. The system SHALL log a later answer without effect.
 - REQ-014: A run MAY have several open questions. It SHALL stay in `WaitingForAnswer` until each one has an answer. Its return state SHALL be the state before the first question.
 - REQ-015: After an answer, the system SHALL offer the fold preview of a spec-level answer into the Clarifications of its spec. The system SHALL write nothing. After one click, `add-specs` REQ-015 SHALL write the answer.
-- REQ-016: With `tracker_comment` or `tracker_transition` off, the comment and the ticket move SHALL be approvals in the Inbox. An answer in the Inbox SHALL still resume the run. [NEEDS CLARIFICATION: Q-002 What is the default for automation writes?] Working assumption: Q-002 option 1, all off.
+- REQ-016: With `tracker_comment` or `tracker_transition` off, the comment and the ticket move SHALL be approvals in the Inbox. An answer in the Inbox SHALL still resume the run, and it SHALL also appear on the ticket: the click on the answer is the consent for one comment, so the system SHALL post at once a comment with the marker `<!-- shipyard:a Q-NNN -->` and the chosen option or text, whatever the switch says. The system SHALL store the id of that comment, so that it is never read as a human reply. A question comment that is still an approval SHALL be replaced by one comment that holds the question and the answer. A tracker with no comments SHALL get none, and the run log SHALL say so. [NEEDS CLARIFICATION: Q-002 What is the default for automation writes?] Working assumption: Q-002 option 1, all off.
 - REQ-017: The run SHALL return to its return state with the answer in its context. It SHALL resume the CLI session when the runner supports it. Otherwise it SHALL re-brief the agent from the run log. The ticket SHALL move to the status of the return state.
 - REQ-018: When the ticket of a question becomes terminal, the system SHALL close each ticket-level question of that run as withdrawn. It SHALL post no comment. A spec-level question SHALL stay open until a person answers it or withdraws it.
 - REQ-019: A question that nobody answers SHALL keep its run in `WaitingForAnswer`. The system SHALL remind the person once. [NEEDS CLARIFICATION: Q-028 What happens when nobody answers?] Working assumption: Q-028 option 1, one reminder after 24 h and no timeout.
@@ -232,6 +232,11 @@ On each tick the system SHALL look for the first human reply after the marker. A
 - WHEN the tick runs
 - THEN the system ignores it
 
+#### Scenario: Echo of an answer
+- GIVEN a later comment with the marker `<!-- shipyard:a Q-NNN -->` and an id that the system stored at a post
+- WHEN the tick runs
+- THEN the comment is no reply and the latest question marker stays the same
+
 #### Scenario: Same account
 - GIVEN a person who replies with the account that Shipyard writes with
 - WHEN the tick runs
@@ -321,9 +326,19 @@ After an answer, the system SHALL offer the fold preview of a spec-level answer 
 With `tracker_comment` or `tracker_transition` off, the comment and the ticket move SHALL be approvals in the Inbox. An answer in the Inbox SHALL still resume the run. [NEEDS CLARIFICATION: Q-002 What is the default for automation writes?] Working assumption: Q-002 option 1, all off.
 
 #### Scenario: Answer first
-- GIVEN an unsent comment approval and an answer in the Inbox
+- GIVEN an unsent question comment approval and an answer in the Inbox
 - WHEN the person sends the answer
-- THEN the run resumes and the comment approval stays pending
+- THEN the run resumes, the approval is gone, and one comment with the answer marker, the question and the answer is on the ticket
+
+#### Scenario: Answer after the question comment
+- GIVEN a question comment on the ticket and an answer in the Inbox
+- WHEN the person sends the answer
+- THEN one comment with the marker `<!-- shipyard:a Q-NNN -->` and the chosen option goes out at once, and the next tick does not read it as a reply
+
+#### Scenario: No comments
+- GIVEN a tracker that has no comments
+- WHEN the person answers in the Inbox
+- THEN the run resumes, no comment goes out, and the run log notes that the answer is not on the ticket
 
 ### Requirement: REQ-017 Resume
 

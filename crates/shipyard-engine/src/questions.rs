@@ -4,7 +4,9 @@
 //!
 //! Ask: check the shape, give the next Q-NNN, write the RAID file of a spec question, move the run
 //! to `WaitingForAnswer` (the ticket follows the state map), post the marked comment. Answer: the
-//! first reply after the marker (`pickup::answers`), or a choice in the Inbox. The run goes back
+//! first reply after the marker (`pickup::answers`), or a choice in the Inbox. A choice in the
+//! Inbox also goes on the ticket as one comment with the marker `<!-- shipyard:a Q-NNN -->`
+//! (REQ-016). The run goes back
 //! to its return state when no question of it is open; the agents start again with the answers,
 //! on their CLI session when they have one.
 
@@ -63,6 +65,21 @@ pub fn question_comment(q: &Question, lead: &str) -> String {
     clean_outgoing(&body)
 }
 
+/// The comment that an answer in the app posts (`questions-loop` REQ-016): the answer marker and
+/// the chosen option or text. It repeats the question when the question comment never went out
+/// (`lead`). The text is a person's: no mention that notifies anybody.
+fn answer_comment(q: &Question, with_question: bool) -> String {
+    let mut body = format!("<!-- shipyard:a {} -->\n**{}** ", q.id, q.id);
+    if with_question {
+        body.push_str(&format!("{}\n\n", q.question));
+    }
+    match q.answer.as_ref().map(|a| &a.choice) {
+        Some(Choice::Option { n }) => body.push_str(&format!("Answer: {n}. {}", answer_text(q))),
+        _ => body.push_str(&format!("Answer: {}", answer_text(q))),
+    }
+    clean_outgoing(&body)
+}
+
 fn answer_text(q: &Question) -> String {
     match q.answer.as_ref().map(|a| &a.choice) {
         Some(Choice::Option { n }) => q.options.get(*n as usize - 1).cloned().unwrap_or_default(),
@@ -95,6 +112,9 @@ impl Factory {
             return Err("the choice is not an option of the question".into());
         }
         inner.after_reply(run_id, i, out, "");
+        if out == Outcome::Answered {
+            inner.post_answer(run_id, i);
+        }
         Ok(())
     }
 
@@ -283,6 +303,26 @@ impl Inner {
             self.write(run_id, Write::Comment { key, body: comment });
         }
         Ok(id)
+    }
+
+    /// The answer of a person in the app goes on the ticket too (`questions-loop` REQ-016). The
+    /// click is the consent for this one comment: it goes at once, whatever the comment switch
+    /// says. A question comment that still waits for a click is replaced by one comment that
+    /// holds the question and the answer. A tracker with no comments gets none.
+    fn post_answer(&mut self, run_id: &str, i: usize) {
+        let q = self.runs[run_id].questions[i].q.clone();
+        if !self
+            .project_of(run_id)
+            .is_some_and(|p| p.writer.can_comment())
+        {
+            let note = json!({"note": format!("{}: the answer is not on the ticket: the tracker has no comments", q.id)});
+            self.log(run_id, None, kind::NOTE, note);
+            return;
+        }
+        let replaced = self.drop_question_approvals(run_id, &q.id);
+        let key = self.runs[run_id].key.clone();
+        let body = answer_comment(&q, replaced);
+        self.send(run_id, &Write::Comment { key, body }, None);
     }
 
     /// A new ticket comment from the tick (REQ-009).

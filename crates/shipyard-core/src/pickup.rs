@@ -476,8 +476,18 @@ pub fn pickup<'a>(input: &PickupInput<'a>) -> Vec<&'a Ticket> {
 
 /// The question id of a marker `<!-- shipyard:q Q-NNN -->` in a comment body (`adr:0008`).
 pub fn question_marker(body: &str) -> Option<&str> {
+    marker(body, "shipyard:q")
+}
+
+/// The question id of an answer marker `<!-- shipyard:a Q-NNN -->`: the comment that the system
+/// posts when a person answers in the app (`add-questions-loop` REQ-016).
+pub fn answer_marker(body: &str) -> Option<&str> {
+    marker(body, "shipyard:a")
+}
+
+fn marker<'a>(body: &'a str, tag: &str) -> Option<&'a str> {
     let rest = body[body.find("<!--")? + 4..].trim_start();
-    let rest = rest.strip_prefix("shipyard:q")?.trim_start();
+    let rest = rest.strip_prefix(tag)?.trim_start();
     let id = rest.split_whitespace().next()?;
     let digits = id.strip_prefix("Q-")?;
     let closed = rest[id.len()..].trim_start().starts_with("-->");
@@ -487,19 +497,24 @@ pub fn question_marker(body: &str) -> Option<&str> {
 /// For each comment, in order: the question that it answers. A marker counts only in a comment
 /// that the system posted (`posted` holds those ids, `add-questions-loop` REQ-009): a look-alike
 /// that another person wrote, or a quoted marker in a reply, is a plain comment. A comment after a
-/// marker answers the latest marker. A marker comment answers nothing.
+/// marker answers the latest marker. A marker comment answers nothing. A comment of the system
+/// with an answer marker (`answer_marker`) is the echo of an answer that a person gave in the app:
+/// it answers nothing and leaves the latest marker as it was.
 pub fn answers<'a>(comments: &'a [Comment], posted: &HashSet<String>) -> Vec<Option<&'a str>> {
     let mut open = None;
     comments
         .iter()
-        .map(
-            |c| match question_marker(&c.body).filter(|_| posted.contains(&c.id)) {
+        .map(|c| {
+            if posted.contains(&c.id) && answer_marker(&c.body).is_some() {
+                return None;
+            }
+            match question_marker(&c.body).filter(|_| posted.contains(&c.id)) {
                 Some(q) => {
                     open = Some(q);
                     None
                 }
                 None => open,
-            },
-        )
+            }
+        })
         .collect()
 }

@@ -5,8 +5,9 @@
 //! answer in the Inbox resumes the run even when the comment or the ticket move is still an
 //! approval. These functions only read the engine and pass a choice to it.
 //!
-//! An answer that a person gives in the Inbox posts no extra comment: the question comment is the
-//! one tracker write of the loop, and a later reply on the tracker is logged as late.
+//! An answer that a person gives in the Inbox also goes on the ticket (REQ-016): the click is the
+//! consent for one comment with the marker `<!-- shipyard:a Q-NNN -->` and the chosen option or
+//! text, and the engine posts it at once. A later reply on the tracker is logged as late.
 
 use serde::Serialize;
 use shipyard_core::question::{Choice, Question};

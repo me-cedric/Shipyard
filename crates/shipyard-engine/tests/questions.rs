@@ -350,3 +350,119 @@ fn the_question_comment_has_no_mention_and_no_attribution() {
         "the marker stays: {body}"
     );
 }
+
+// ---- an answer in the app is on the ticket too (REQ-016)
+
+fn posted_ids(fx: &Fx) -> HashSet<String> {
+    fx.mirror
+        .lock()
+        .unwrap()
+        .questions(SOURCE, "SHIP-1")
+        .unwrap()
+}
+
+#[test]
+fn an_answer_in_the_app_posts_one_marked_comment_that_is_no_reply() {
+    let (fx, run) = working(writes(true));
+    fx.f.ask(&run, "work", ask(3, 1, None)).unwrap();
+    fx.f.answer(&run, "Q-001", Choice::Option { n: 2 }).unwrap();
+    // The run goes on at once.
+    assert_eq!(fx.state(&run), RunState::Working);
+    let sent = comments(&fx);
+    assert_eq!(sent.len(), 2, "{sent:?}");
+    assert!(
+        sent[1].starts_with("<!-- shipyard:a Q-001 -->"),
+        "{}",
+        sent[1]
+    );
+    assert!(sent[1].contains("Answer: 2. option 2"), "{}", sent[1]);
+    assert!(
+        !sent[1].contains("Which scope?"),
+        "the question went out already"
+    );
+    // The id is stored: the echo is no human reply, and a later person is still a late reply.
+    let posted = posted_ids(&fx);
+    assert_eq!(posted.len(), 2, "{posted:?}");
+    let ids: Vec<String> = (1..=2)
+        .map(|n| format!("c{}", position_of(&fx, n)))
+        .collect();
+    let thread = [
+        comment(&ids[0], &sent[0]),
+        comment(&ids[1], &sent[1]),
+        comment("9", "I think 3"),
+    ];
+    let seen = HashSet::from(["#baseline".into()]);
+    let (events, _) = comment_events("SHIP-1", &thread, &seen, &posted);
+    let answered: Vec<_> = events
+        .iter()
+        .map(|e| match e {
+            SyncEvent::Comment {
+                comment, answers, ..
+            } => (comment.id.clone(), answers.clone()),
+            _ => unreachable!(),
+        })
+        .collect();
+    assert_eq!(answered.len(), 3);
+    assert_eq!(answered[1].1, None, "the echo answers nothing");
+    assert_eq!(answered[2].1.as_deref(), Some("Q-001"));
+}
+
+/// The id that the fake writer gave to the n-th comment.
+fn position_of(fx: &Fx, n: usize) -> usize {
+    fx.writer
+        .sent()
+        .iter()
+        .enumerate()
+        .filter(|(_, w)| matches!(w, Write::Comment { .. }))
+        .nth(n - 1)
+        .map(|(i, _)| i + 1)
+        .unwrap()
+}
+
+#[test]
+fn a_question_comment_that_still_waits_is_replaced_by_one_comment_with_the_answer() {
+    let (fx, run) = working(Writes::default());
+    fx.f.ask(&run, "work", ask(3, 1, None)).unwrap();
+    let waits = |fx: &Fx| {
+        fx.f.approvals()
+            .iter()
+            .filter(|a| matches!(a.write, Write::Comment { .. }))
+            .count()
+    };
+    assert_eq!(waits(&fx), 1);
+    // The switch is off: the click is the consent for this one comment.
+    fx.f.answer(&run, "Q-001", Choice::Option { n: 3 }).unwrap();
+    assert_eq!(waits(&fx), 0, "the question comment is gone");
+    let sent = comments(&fx);
+    assert_eq!(sent.len(), 1, "{sent:?}");
+    assert!(sent[0].starts_with("<!-- shipyard:a Q-001 -->"));
+    assert!(sent[0].contains("Which scope?"), "{}", sent[0]);
+    assert!(sent[0].contains("Answer: 3. option 3"), "{}", sent[0]);
+    assert!(!sent[0].contains("shipyard:q"), "{}", sent[0]);
+    assert_eq!(posted_ids(&fx).len(), 1);
+    assert_eq!(fx.state(&run), RunState::Working);
+}
+
+#[test]
+fn a_tracker_without_comments_gets_no_answer_comment_and_the_log_says_so() {
+    let (fx, run) = working(writes(true));
+    fx.writer.set_can_comment(false);
+    fx.f.ask(&run, "work", ask(2, 1, None)).unwrap();
+    fx.f.answer(&run, "Q-001", Choice::Option { n: 1 }).unwrap();
+    assert!(comments(&fx).is_empty());
+    assert_eq!(fx.state(&run), RunState::Working);
+    assert!(fx.logged(&run, "note").iter().any(|n| {
+        n["note"]
+            .as_str()
+            .is_some_and(|t| t.contains("the tracker has no comments"))
+    }));
+}
+
+#[test]
+fn a_reply_on_the_tracker_posts_no_answer_comment() {
+    let (fx, run) = working(writes(true));
+    fx.f.ask(&run, "work", ask(3, 1, None)).unwrap();
+    reply(&fx, "9", "2", "Q-001");
+    assert_eq!(fx.state(&run), RunState::Working);
+    assert_eq!(comments(&fx).len(), 1, "only the question");
+}

@@ -450,6 +450,32 @@ fn a_comment_after_a_marker_answers_the_latest_question() {
 }
 
 #[test]
+fn the_answer_comment_of_the_system_is_no_reply() {
+    assert_eq!(
+        answer_marker("<!-- shipyard:a Q-012 -->\nAnswer: 2"),
+        Some("Q-012")
+    );
+    assert_eq!(answer_marker("<!-- shipyard:q Q-012 -->"), None);
+    assert_eq!(question_marker("<!-- shipyard:a Q-012 -->"), None);
+    let comments = [
+        comment("1", "<!-- shipyard:q Q-001 -->\n1. a\n2. b"),
+        comment("2", "<!-- shipyard:a Q-001 -->\nAnswer: 2"),
+        comment("3", "a person writes later"),
+        // A look-alike that the system did not post is a plain comment.
+        comment("4", "<!-- shipyard:a Q-001 -->\nAnswer: 1"),
+    ];
+    let posted = ["1", "2"].map(String::from).into();
+    let got: Vec<_> = answers(&comments, &posted)
+        .into_iter()
+        .map(|a| a.map(str::to_string))
+        .collect();
+    assert_eq!(
+        got,
+        [None, None, Some("Q-001".into()), Some("Q-001".into())]
+    );
+}
+
+#[test]
 fn a_marker_counts_only_in_a_comment_that_the_system_posted() {
     let comments = [
         comment("1", "<!-- shipyard:q Q-001 -->\n1. a"),

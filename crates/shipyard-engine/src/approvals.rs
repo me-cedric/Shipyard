@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use shipyard_core::pickup::{Writes, question_marker};
+use shipyard_core::pickup::{Writes, answer_marker, question_marker};
 use shipyard_core::run::RunEvent;
 use shipyard_store::run_log::kind;
 
@@ -214,11 +214,16 @@ impl Inner {
             Write::Comment { key, body } => {
                 // A question comment: remember its id, so `answers` reads it as a marker.
                 let posted = match self.projects.get(&rec.project) {
-                    Some(p) if question_marker(body).is_some() => p
-                        .mirror
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .question_posted(&p.source, key, made),
+                    Some(p)
+                        if question_marker(body)
+                            .or_else(|| answer_marker(body))
+                            .is_some() =>
+                    {
+                        p.mirror
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner())
+                            .question_posted(&p.source, key, made)
+                    }
                     _ => Ok(()),
                 };
                 if let Err(e) = posted {
@@ -299,6 +304,22 @@ impl Inner {
         for a in gone {
             self.log_write(run_id, Some(a.id), "dropped", &a.write);
         }
+    }
+
+    /// A question comment that waits for a click is dropped: the answer comment holds the
+    /// question (`questions-loop` REQ-016). `true` when one was dropped.
+    pub(crate) fn drop_question_approvals(&mut self, run_id: &str, qid: &str) -> bool {
+        let (gone, kept): (Vec<_>, Vec<_>) = std::mem::take(&mut self.approvals)
+            .into_iter()
+            .partition(|a| {
+                a.run == run_id
+                    && matches!(&a.write, Write::Comment { body, .. } if question_marker(body) == Some(qid))
+            });
+        self.approvals = kept;
+        for a in &gone {
+            self.log_write(run_id, Some(a.id), "replaced", &a.write);
+        }
+        !gone.is_empty()
     }
 
     fn check_approvable(&mut self, id: u64) -> Result<(), String> {
