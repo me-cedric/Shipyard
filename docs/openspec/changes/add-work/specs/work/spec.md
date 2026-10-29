@@ -29,14 +29,14 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 
 - REQ-001: Work / Backlog SHALL list the work items of the mirror. Each row SHALL show the key, title, status, assignee and the run state of the item. The view SHALL filter by assignee, status, label, component, priority and run state. Group headings SHALL show a count. The view MUST NOT call the tracker for a read.
 - REQ-002: Work / Board SHALL show one column for each tracker status. A card SHALL show the key, title, assignee and run state. A person's move of a card SHALL send the transition to the tracker. The card SHALL return to its column when the tracker refuses the move.
-- REQ-003: The system SHALL read the team from `.shipyard/team.yaml`. Each member SHALL have a name, tracker handles, a role, a capacity, skills, a day rate and an availability. The system SHALL expose each member as `member:<handle>`. The system SHALL refuse a file with a duplicate handle.
+- REQ-003: The system SHALL read the team from `.shipyard/team.yaml`. Each member SHALL have a name, a handle, tracker accounts, a role, a capacity in days a week, skills, a day rate and an availability. The system SHALL expose each member as `member:<handle>`. The system SHALL refuse a file in which two members share a handle or a tracker account.
 - REQ-004: Work / Team SHALL list the members and SHALL edit the same file as REQ-003. A change SHALL appear in the file as text. Work / Team SHALL be the one place that edits the team.
 - REQ-005: When the project seal is on, the day rate of a member SHALL be stored as sealed text. The seal SHALL use the same passphrase as the estimate sheets. [NEEDS CLARIFICATION: Q-032 Is the day rate in the team file sealed?] Working assumption: Q-032 option 1, sealed with the project passphrase when the seal is on.
 - REQ-006: The PM SHALL assign a work item to a member. The assignment SHALL send the assignee to the tracker. The system MUST NOT assign by itself. The system SHALL disable the action when the connection lacks the assignee capability, and SHALL name the reason.
 - REQ-007: The system SHALL suggest members for an item from skills and capacity. The suggestion SHALL rank the members and SHALL show the reason for each. The suggestion SHALL NOT assign.
 - REQ-008: The PM SHALL be able to mark an item for agent work. Marking SHALL add the pickup label on the tracker. The pickup label SHALL come from `.shipyard/automation.yaml` (default `shipyard`). An item SHALL be eligible for a member's factory only when it is assigned to that member. It SHALL also hold the pickup label. Work SHALL resolve the member through the tracker handles of the team, and `add-sync` SHALL read the result (`add-sync` REQ-006).
 - REQ-009: The system SHALL keep one estimate sheet for each lot as a text file in the repository. The system SHALL expose each sheet as `est:<slug>`. A sheet SHALL hold the features and tasks of its lot with an effort in days.
-- REQ-010: A task effort SHALL be a fixed number of days or a percentage of the build effort. The system SHALL compute the totals from the entries and from the day rates of the members (REQ-003). The system MUST NOT store a computed total in the file. [NEEDS CLARIFICATION: Q-060 Which day rate applies to a task role when several members share that role?]
+- REQ-010: A task effort SHALL be a fixed number of days or a percentage of the build effort. The system SHALL compute the totals from the entries and from the day rates of the members (REQ-003). The system MUST NOT store a computed total in the file. The cost SHALL be the days of a task times the mean day rate of the members of its role. The price SHALL be the cost plus the margin rate of the sheet. [NEEDS CLARIFICATION: Q-060 Which day rate applies to a task role when several members share that role?]
 - REQ-011: Work / Estimates SHALL offer four views of a sheet: backlog, summary, monthly spread and portfolio. The backlog SHALL show lot, feature and task. The summary SHALL show price, cost and margin. The spread SHALL show effort and cost by month. The portfolio SHALL show all sheets together.
 - REQ-012: The system SHALL import an Excel file that follows the CGI costing layout into a sheet. The import SHALL show a preview with each row that it refuses and its reason. The system MUST NOT replace a sheet before the person confirms.
 - REQ-013: The system SHALL export a sheet to an Excel file that the CGI costing tool opens. The export SHALL hold the same totals as the summary.
@@ -147,7 +147,7 @@ Work / Board SHALL show one column for each tracker status. A card SHALL show th
 
 ### Requirement: REQ-003 Team file
 
-The system SHALL read the team from `.shipyard/team.yaml`. Each member SHALL have a name, tracker handles, a role, a capacity, skills, a day rate and an availability. The system SHALL expose each member as `member:<handle>`. The system SHALL refuse a file with a duplicate handle.
+The system SHALL read the team from `.shipyard/team.yaml`. Each member SHALL have a name, a handle, tracker accounts, a role, a capacity in days a week, skills, a day rate and an availability. The system SHALL expose each member as `member:<handle>`. The system SHALL refuse a file in which two members share a handle or a tracker account.
 
 #### Scenario: Duplicate
 - GIVEN a team file where two members share a handle
@@ -235,7 +235,7 @@ The system SHALL keep one estimate sheet for each lot as a text file in the repo
 
 ### Requirement: REQ-010 Effort entry
 
-A task effort SHALL be a fixed number of days or a percentage of the build effort. The system SHALL compute the totals from the entries and from the day rates of the members (REQ-003). The system MUST NOT store a computed total in the file. [NEEDS CLARIFICATION: Q-060 Which day rate applies to a task role when several members share that role?]
+A task effort SHALL be a fixed number of days or a percentage of the build effort. The system SHALL compute the totals from the entries and from the day rates of the members (REQ-003). The system MUST NOT store a computed total in the file. The cost SHALL be the days of a task times the mean day rate of the members of its role. The price SHALL be the cost plus the margin rate of the sheet. [NEEDS CLARIFICATION: Q-060 Which day rate applies to a task role when several members share that role?]
 
 #### Scenario: Percentage
 - GIVEN a build effort of 20 days and a test task of 25 %

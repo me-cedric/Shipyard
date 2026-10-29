@@ -11,16 +11,16 @@ Plan: [plan.md](./plan.md)
 
 ## Tasks
 
-- [ ] T001 Write unit tests in `crates/shipyard-core/tests/work.rs` for the suggestion, the effort maths, the Gantt and the plan diff. Covers REQ-007, REQ-010, REQ-011, REQ-016, REQ-017, REQ-025.
-- [ ] T002 Implement those rules in `crates/shipyard-core/src/work.rs`. Covers REQ-007, REQ-010, REQ-011, REQ-016, REQ-017, REQ-025.
-- [ ] T003 Write codec tests in `crates/shipyard-store/tests/work.rs`: duplicate handle, no computed total, no computed date, time file per member and month. Covers REQ-003, REQ-009, REQ-010, REQ-017, REQ-021.
-- [ ] T004 Implement the codecs in `crates/shipyard-store/src/work.rs`. Covers REQ-003, REQ-009, REQ-010, REQ-017, REQ-021.
-- [ ] T005 [P] Write seal tests in `crates/shipyard-store/tests/seal.rs`: seal, wrong passphrase, locked, day rate. Covers REQ-005, REQ-014.
-- [ ] T006 Implement the seal in `crates/shipyard-store/src/seal.rs`. Covers REQ-005, REQ-014.
-- [ ] T007 [P] Write Excel tests in `crates/shipyard-store/tests/excel.rs`: preview with a bad row, no replace before confirm, round trip. Covers REQ-012, REQ-013.
-- [ ] T008 Implement the Excel import and export in `crates/shipyard-store/src/excel.rs`. Covers REQ-012, REQ-013.
-- [ ] T009 Write tracker contract tests with a fake in `crates/shipyard-trackers/tests/work.rs`: assign, label, transition refusal, worklog, mark lookup, apply, one item from a ref. Covers REQ-002, REQ-006, REQ-008, REQ-022, REQ-023, REQ-026, REQ-029.
-- [ ] T010 Implement those calls in `crates/shipyard-trackers/src/work.rs`. Covers REQ-002, REQ-006, REQ-008, REQ-022, REQ-023, REQ-026, REQ-029. This is the one owner of the apply code; `add-specs` depends on it.
+- [x] T001 Write unit tests in `crates/shipyard-core/tests/work.rs` for the suggestion, the effort maths, the Gantt and the plan diff. Covers REQ-007, REQ-010, REQ-011, REQ-016, REQ-017, REQ-025.
+- [x] T002 Implement those rules in `crates/shipyard-core/src/work.rs`. Covers REQ-007, REQ-010, REQ-011, REQ-016, REQ-017, REQ-025.
+- [x] T003 Write codec tests in `crates/shipyard-store/tests/work.rs`: duplicate handle, no computed total, no computed date, time file per member and month. Covers REQ-003, REQ-009, REQ-010, REQ-017, REQ-021.
+- [x] T004 Implement the codecs in `crates/shipyard-store/src/work.rs`. Covers REQ-003, REQ-009, REQ-010, REQ-017, REQ-021.
+- [x] T005 [P] Write seal tests in `crates/shipyard-store/tests/seal.rs`: seal, wrong passphrase, locked, day rate. Covers REQ-005, REQ-014.
+- [x] T006 Implement the seal in `crates/shipyard-store/src/seal.rs`. Covers REQ-005, REQ-014.
+- [x] T007 [P] Write Excel tests in `crates/shipyard-store/tests/excel.rs`: preview with a bad row, no replace before confirm, round trip. Covers REQ-012, REQ-013.
+- [x] T008 Implement the Excel import and export in `crates/shipyard-store/src/excel.rs`. Covers REQ-012, REQ-013.
+- [x] T009 Write tracker contract tests with a fake in `crates/shipyard-trackers/tests/work.rs`: assign, label, transition refusal, worklog, mark lookup, apply, one item from a ref. Covers REQ-002, REQ-006, REQ-008, REQ-022, REQ-023, REQ-026, REQ-029.
+- [x] T010 Implement those calls in `crates/shipyard-trackers/src/work.rs`. Covers REQ-002, REQ-006, REQ-008, REQ-022, REQ-023, REQ-026, REQ-029. This is the one owner of the apply code; `add-specs` depends on it. Built for Jira (Cloud and Data Center) and GitHub Issues. GitLab, Azure DevOps and Linear answer that writes are not built.
 - [ ] T011 [P] Write IPC tests for `member:` and `est:` entities in `crates/shipyard-app/tests/work.rs`. Covers REQ-027.
 - [ ] T012 Implement the commands in `crates/shipyard-app/src/work.rs`. Covers REQ-027.
 - [ ] T013 [P] Write component tests for Backlog and Board in `src/features/work/backlog.test.tsx`. Covers REQ-001, REQ-002.

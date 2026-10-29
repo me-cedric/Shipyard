@@ -12,15 +12,15 @@ The team and estimate codecs live in `shipyard-store`. Pure rules (suggestion, e
 | Item | Decision |
 | ---- | -------- |
 | Stack/runtime | Rust workspace and React 19 (MASTER-PLAN 7.1, 7.3). TanStack Table and Virtual for lists. |
-| Dependencies | No new dependency. Excel read and write needs a crate or package. Reuse one that the workspace already holds, else raise an ADR before adding it. |
+| Dependencies | `calamine` and `rust_xlsxwriter` for Excel, `ring` for the seal (ADR 0011). |
 | Data/storage | `.shipyard/team.yaml`. Estimate sheets in `docs/costing/<slug>.yaml`. Plan decisions in `docs/planning/plan.yaml`, calendar in `docs/planning/calendar.yaml`. Time in `docs/time/<handle>/<yyyy-mm>.yaml`. All are text in the repository. The mirror stays in the app data folder. |
-| APIs/contracts | Uses the `Tracker` trait for assignee, labels, transitions, worklog and create or update. IPC commands `work_team`, `work_assign`, `work_suggest`, `estimate_*`, `plan_*`, `time_*`, `apply_preview`, `apply_run`, `work_item_create`. Bindings are generated. |
+| APIs/contracts | Uses the `Tracker` trait for assignee, labels, transitions, worklog and create or update. IPC commands `work_team`, `work_assign`, `work_suggest`, `estimate_*`, `plan_*`, `time_*`, `apply_preview`, `apply_run`, `work_item_create`. Bindings are generated. Tracker writes are built for Jira and GitHub Issues. The other kinds answer that writes are not built and send nothing. |
 | Suggestion | A pure function scores skill match and free capacity. It returns a ranked list with reasons. |
 | Estimates | A pure function computes totals from entries and role rates. No total reaches the file. |
-| Seal | Authenticated encryption of the sheet files and the day rate field. The passphrase lives in the keychain (`add-connections` REQ-011). |
-| Gantt | A pure function schedules tasks over capacity, availability and calendar. Only the decision file is written. |
+| Seal | AES-256-GCM with a PBKDF2 key, over a whole sheet file and over the day rate field. A sealed text is one line (ADR 0011). The passphrase lives in the keychain (`add-connections` REQ-011). |
+| Gantt | A pure function schedules tasks over capacity, availability and calendar. Tasks take capacity in the order of the decision file. There are no predecessor links. Only the decision file is written. |
 | Time | Write the local entry, send, then store the receipt. The worklog note carries `shipyard log=<id>`. The day anchors at 09:00 in the machine offset. |
-| Apply | A pure diff of rows against the mirror. Each row carries its `est:<slug>#<row-id>` ref as a ticket label for matching (Q-033). One item from a ref uses the same apply (REQ-029). Split apply code lives here only. |
+| Apply | A pure diff of rows against the mirror. Each row carries its `est:<slug>#<row-id>` ref as a ticket label for matching (Q-033). Before a create, apply looks the label up in the tracker, so a stale mirror or a lost answer makes no duplicate. One item from a ref uses the same apply (REQ-029). Split apply code lives here only. |
 | Risks | A sealed file cannot merge. A lost worklog response. Excel layout drift. The dedupe mark and the import preview cover the last two. |
 
 ## Affected Surfaces
