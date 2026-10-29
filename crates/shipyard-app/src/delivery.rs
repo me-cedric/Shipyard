@@ -15,7 +15,7 @@ use std::collections::BTreeSet;
 use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
@@ -315,9 +315,23 @@ impl Git for Folders {
     }
 }
 
+/// The process ids of the gate commands that run now: the shutdown of the app kills them.
+static LIVE_GATES: Mutex<BTreeSet<u32>> = Mutex::new(BTreeSet::new());
+
+fn live_gates() -> std::sync::MutexGuard<'static, BTreeSet<u32>> {
+    LIVE_GATES.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// Kill every gate command that runs, with its children (the app quits).
+pub fn kill_gates() {
+    for pid in std::mem::take(&mut *live_gates()) {
+        shipyard_agents::runner::kill_group(pid);
+    }
+}
+
 /// One gate command, in the run folder. The output goes to a file, so a chatty command cannot
-/// fill a pipe and hang. The counts are the last line of the output.
-/// shortcut: a timeout kills the shell only: a child of a gate command can outlive it.
+/// fill a pipe and hang. The counts are the last line of the output. The shell leads its own
+/// process group: a timeout or a shutdown kills the command and its children (`kill_group`).
 fn run_gate(dir: &Path, log: &Path, command: &str, limit: Duration) -> GateCheck {
     let fail = |counts: String| GateCheck {
         command: command.into(),
@@ -335,32 +349,47 @@ fn run_gate(dir: &Path, log: &Path, command: &str, limit: Duration) -> GateCheck
     } else {
         ("sh", "-c")
     };
-    let mut child = match Command::new(sh)
-        .arg(flag)
+    let mut cmd = Command::new(sh);
+    cmd.arg(flag)
         .arg(command)
         .current_dir(dir)
         .stdin(Stdio::null())
         .stdout(out)
-        .stderr(err_out)
-        .spawn()
+        .stderr(err_out);
+    #[cfg(unix)]
     {
+        use std::os::unix::process::CommandExt;
+        cmd.process_group(0);
+    }
+    let mut child = match cmd.spawn() {
         Ok(c) => c,
         Err(x) => return fail(format!("the gate did not start: {x}")),
     };
+    let pid = child.id();
+    live_gates().insert(pid);
     let start = Instant::now();
     let passed = loop {
         match child.try_wait() {
             Ok(Some(status)) => break status.success(),
             Ok(None) if start.elapsed() >= limit => {
+                live_gates().remove(&pid);
+                shipyard_agents::runner::kill_group(pid);
                 let _ = child.kill();
                 let _ = child.wait();
                 let _ = std::fs::remove_file(log);
                 return fail(format!("timeout after {} s", limit.as_secs()));
             }
-            Ok(None) => std::thread::sleep(Duration::from_millis(100)),
-            Err(x) => return fail(format!("the gate failed: {x}")),
+            Ok(None) => std::thread::sleep(Duration::from_millis(50)),
+            Err(x) => {
+                live_gates().remove(&pid);
+                return fail(format!("the gate failed: {x}"));
+            }
         }
     };
+    // The shell ended. Its group may hold a child that it left: kill it too.
+    if live_gates().remove(&pid) {
+        shipyard_agents::runner::kill_group(pid);
+    }
     let text = std::fs::read_to_string(log).unwrap_or_default();
     let _ = std::fs::remove_file(log);
     let last = text

@@ -596,7 +596,7 @@ fn spawn(launch: Launch, mut parser: Box<dyn Parser>, spec: &RunSpec) -> Result<
 }
 
 /// SIGKILL to the process group `pid` leads (Unix), or the process tree (Windows).
-fn kill_group(pid: u32) {
+pub fn kill_group(pid: u32) {
     #[cfg(unix)]
     {
         // SAFETY: `killpg` only sends a signal; it touches no memory. A group id that no longer

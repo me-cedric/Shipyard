@@ -204,6 +204,61 @@ fn a_gate_reports_pass_fail_counts_and_a_timeout() {
         "{slow:?}"
     );
     assert!(!log.exists(), "the output file goes");
+    #[cfg(unix)]
+    gate_kills_the_children_of_the_command();
+}
+
+/// A timeout and a shutdown kill the children of a gate command too. It runs inside the gate
+/// test: `kill_gates` stops every gate of the process, so no other test may run one meanwhile.
+#[cfg(unix)]
+fn gate_kills_the_children_of_the_command() {
+    let tmp = tempfile::tempdir().unwrap();
+    let pid_file = tmp.path().join("child.pid");
+    let alive = |pid: i32| {
+        std::process::Command::new("kill")
+            .args(["-0", &pid.to_string()])
+            .stderr(std::process::Stdio::null())
+            .status()
+            .is_ok_and(|s| s.success())
+    };
+    let read_pid = || {
+        for _ in 0..100 {
+            if let Ok(t) = fs::read_to_string(&pid_file)
+                && let Ok(p) = t.trim().parse::<i32>()
+            {
+                return p;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        panic!("the child did not start");
+    };
+    let gone = |pid: i32| {
+        (0..100).any(|_| {
+            !alive(pid) || {
+                std::thread::sleep(Duration::from_millis(20));
+                false
+            }
+        })
+    };
+    // A timeout: `sleep` is a child of the shell, in the same group.
+    let command = format!("sleep 30 & echo $! > {}; wait", pid_file.display());
+    let log = tmp.path().join("g.log");
+    let slow = run_gate(tmp.path(), &log, &command, Duration::from_millis(600));
+    assert!(slow.counts.starts_with("timeout"), "{slow:?}");
+    let pid = read_pid();
+    assert!(gone(pid), "the child of the gate command is still alive");
+
+    // A shutdown while the gate runs.
+    fs::remove_file(&pid_file).unwrap();
+    let dir = tmp.path().to_path_buf();
+    let run = std::thread::spawn(move || {
+        run_gate(&dir, &dir.join("h.log"), &command, Duration::from_secs(60))
+    });
+    let pid = read_pid();
+    kill_gates();
+    let done = run.join().unwrap();
+    assert!(!done.passed, "{done:?}");
+    assert!(gone(pid), "the child of the gate command is still alive");
 }
 
 fn writer(folders: Arc<Folders>) -> ProjectWriter {
