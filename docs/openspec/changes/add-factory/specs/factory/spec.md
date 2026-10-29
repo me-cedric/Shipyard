@@ -74,6 +74,10 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 - REQ-045: A click on an approval SHALL be refused while the global kill switch is on. An approval of a push, a pull request or a thread reply SHALL be dropped when its run reaches a final state. A click on such an approval SHALL be refused while its run is in a side state, and the approval SHALL stay.
 - REQ-046: A person MAY add tokens when they resume a paused run. A run paused for the token limit SHALL leave `Paused` only when the limit, with the added tokens, is above the token count.
 - REQ-047: The HTTP transport SHALL read the request line and each header line within one size limit. A request above the limit SHALL get the answer 431.
+- REQ-048: A call to a gate command, a tracker or a forge SHALL run with no lock of the factory. The factory SHALL decide and queue the call under its lock, run it outside the lock, and apply the result under the lock only when the run did not change in between. A view, an agent tool, the sync and the exit SHALL NOT wait for such a call.
+- REQ-049: A project SHALL have its own ref index. `read_ref` of a run SHALL read the index of the project of that run. A query on a busy index SHALL NOT hold the lock of the factory.
+- REQ-050: The system SHALL start at most one active run for each ticket of a project. The check and the creation of the run SHALL happen under one lock.
+- REQ-051: At the start the system SHALL remove each scratch folder under the app data whose run is not live. When the run log file does not open, the factory SHALL run on one scratch log that the views read too, and the app SHALL tell the person why.
 
 ### Non-Goals
 
@@ -892,3 +896,54 @@ The HTTP transport SHALL read the request line and each header line within one s
 - GIVEN the HTTP transport
 - WHEN a caller sends more bytes than the limit with no line end
 - THEN the system answers 431 and reads no more
+
+### Requirement: REQ-048 Slow calls outside the lock
+
+A call to a gate command, a tracker or a forge SHALL run with no lock of the factory. The factory SHALL decide and queue the call under its lock, run it outside the lock, and apply the result under the lock only when the run did not change in between. A view, an agent tool, the sync and the exit SHALL NOT wait for such a call.
+
+#### Scenario: Slow gate
+- GIVEN a gate command that runs for a long time
+- WHEN a view asks for the runs meanwhile
+- THEN the view gets its answer at once
+
+#### Scenario: Run changed during the gate
+- GIVEN a gate command that runs and a person who cancels the run
+- WHEN the gate ends
+- THEN the system drops its verdict
+
+### Requirement: REQ-049 Index of the project
+
+A project SHALL have its own ref index. `read_ref` of a run SHALL read the index of the project of that run. A query on a busy index SHALL NOT hold the lock of the factory.
+
+#### Scenario: Two projects
+- GIVEN two projects with different indexes
+- WHEN an agent of the second project calls `read_ref` for an entity of the first
+- THEN the answer is that the entity is broken
+
+#### Scenario: Scan in progress
+- GIVEN an index that a scan holds
+- WHEN a run calls `read_ref` and a view asks for the runs
+- THEN the view gets its answer while the call waits
+
+### Requirement: REQ-050 One active run for each ticket
+
+The system SHALL start at most one active run for each ticket of a project. The check and the creation of the run SHALL happen under one lock.
+
+#### Scenario: Two starts at once
+- GIVEN a click and a tick that start the same ticket at the same time
+- WHEN both reach the factory
+- THEN one run starts and the other start is refused
+
+### Requirement: REQ-051 Start clean
+
+At the start the system SHALL remove each scratch folder under the app data whose run is not live. When the run log file does not open, the factory SHALL run on one scratch log that the views read too, and the app SHALL tell the person why.
+
+#### Scenario: Folder of an ended run
+- GIVEN a scratch folder of a run that ended before a crash
+- WHEN the app starts
+- THEN the folder is gone
+
+#### Scenario: Run log that does not open
+- GIVEN a run log file that cannot open
+- WHEN the app starts
+- THEN the file stays as it was, the views read what the factory writes, and the command `run_log_degraded` gives the reason

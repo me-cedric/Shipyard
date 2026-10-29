@@ -59,6 +59,8 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - REQ-030: A P0 or P1 finding with no citation, or with an unknown severity, SHALL block the run. Only a finding with a bad citation SHALL be dropped. A review that ends with no usable finding and an outcome other than `done` SHALL block the run.
 - REQ-031: A title, a body, a comment or a summary that Shipyard posts to a tracker or a forge SHALL hold no AI attribution line and no mention that notifies a person. An attribution line is a `Co-Authored-By` line, a line with `generated with`, or the robot sign.
 - REQ-032: The lookup of the pull request of a branch SHALL return an open pull request or none. A merged or a closed pull request SHALL NOT be a target for a push or a thread reply.
+- REQ-033: A gate command SHALL run in its own process group. A timeout and the exit of the app SHALL kill the command and its children.
+- REQ-034: A write that opens a pull request SHALL name the branch of the run folder. The system SHALL refuse it when the run folder is on another branch, or when the branch is the base.
 
 ### Non-Goals
 
@@ -511,3 +513,21 @@ The lookup of the pull request of a branch SHALL return an open pull request or 
 - GIVEN a branch with one closed pull request
 - WHEN the system looks for its pull request
 - THEN the answer is none
+
+### Requirement: REQ-033 Gate process group
+
+A gate command SHALL run in its own process group. A timeout and the exit of the app SHALL kill the command and its children.
+
+#### Scenario: Timeout
+- GIVEN a gate command that starts a child and runs past the limit
+- WHEN the limit passes
+- THEN the command and its child are gone
+
+### Requirement: REQ-034 Pull request branch
+
+A write that opens a pull request SHALL name the branch of the run folder. The system SHALL refuse it when the run folder is on another branch, or when the branch is the base.
+
+#### Scenario: Other branch
+- GIVEN an approval that names a branch and a run folder on another branch
+- WHEN the person approves it
+- THEN no pull request opens and the error names both branches

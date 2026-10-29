@@ -262,7 +262,7 @@ fn report_on(f: &shipyard_engine::run_engine::Factory, run: &str, outcome: Outco
     f.report(run, "review", report).unwrap();
 }
 
-/// The gate runs with no lock: the views answer while it runs (`factory` REQ-046).
+/// The gate runs with no lock: the views answer while it runs (`factory` REQ-048).
 #[test]
 fn a_slow_gate_does_not_hold_the_factory() {
     use std::time::{Duration, Instant};
