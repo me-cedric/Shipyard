@@ -246,7 +246,7 @@ A generated mock layer serves the same contract to Vite, Vitest and Playwright. 
 ## 8. Design system
 
 - Atomic layers: tokens, atoms, molecules, organisms, templates, pages. The dev build has a gallery route for each layer.
-- Tokens: OKLCH colours (12-step neutral, one accent, four status colours), 4 px grid, type 11/12/13/14/16/20, radius 4 and 6, borders not shadows, motion 120 ms and 200 ms springs.
+- Tokens: OKLCH colours (12-step neutral, one accent, four status colours), 4 px grid, type 11/12/13/14/16/20. Visual language v2 (ADR 0014, `docs/design/visual-language-v2.md`): four surface levels with soft elevation, an accent gradient and glow, radius 8, 12 and 16, spring motion.
 - Fonts: Switzer (Fontshare) for text, Departure Mono for ids, numbers and code. Fallback Inter. See Q-001.
 - Atoms: Button, IconButton, Input, Select, Checkbox, Switch, Badge, StatusDot, Avatar, Kbd, Tooltip, Skeleton.
 - Molecules and organisms: CommandPalette, FilterBar, TicketRow, TicketCard, BoardColumn, RunStep, QuestionCard, ApprovalBar, RefChip, BacklinkList, Inspector, EditorFrame, SettingsRow, MemberRow.
@@ -258,7 +258,7 @@ A generated mock layer serves the same contract to Vite, Vitest and Playwright. 
   - Empty state: ghost rows and one primary action.
   - Tooltip: name and shortcut only.
   - One primary action per view. Details open in the inspector.
-  - Only state changes move. Nothing loops except an active run. `prefers-reduced-motion` is respected.
+  - Motion follows ADR 0014: springs on hover, press, panels and page change; only a live agent loops. `prefers-reduced-motion` turns all of it off.
 - Density: row 28 px, text 13 px, sidebar 48 px or 220 px, inspector 320 px.
 
 ## 9. Agent rules (AX)
