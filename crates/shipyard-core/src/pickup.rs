@@ -121,6 +121,12 @@ pub struct Automation {
     /// Key: a run state name (`RunState::as_str`).
     pub status_map: BTreeMap<String, StateMapping>,
     pub writes: Writes,
+    /// The reviewers of a pull request that a run opens (`delivery` REQ-012, `q:Q-029`).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub reviewers: Vec<String>,
+    /// The assignee of that pull request when the ticket names none (`delivery` REQ-012).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assignee: Option<String>,
 }
 
 impl Default for Automation {
@@ -131,6 +137,8 @@ impl Default for Automation {
             concurrency: Limits::default(),
             status_map: BTreeMap::new(),
             writes: Writes::default(),
+            reviewers: Vec::new(),
+            assignee: None,
         }
     }
 }

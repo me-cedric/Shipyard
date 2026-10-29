@@ -27,6 +27,8 @@ status_map:
 writes:
   push: true
   tracker_comment: true
+reviewers: [bob, carol]
+assignee: dave
 ";
 
 #[test]
@@ -50,6 +52,8 @@ fn every_part_is_read() {
     assert_eq!(a.concurrency.global, 3);
     assert_eq!(a.concurrency.per_project, Some(2));
     assert_eq!(a.concurrency.per_status["Ready"], 1);
+    assert_eq!(a.reviewers, ["bob", "carol"]);
+    assert_eq!(a.assignee.as_deref(), Some("dave"));
     assert_eq!(
         a.status_map["Working"],
         StateMapping {
@@ -86,6 +90,18 @@ fn an_unknown_key_a_bad_run_state_and_a_wrong_type_are_refused() {
     assert!(parse_automation("writes:\n  deploy: true\n").is_err());
     assert!(parse_automation("status_map:\n  Flying:\n    status: x\n").is_err());
     assert!(parse_automation("concurrency:\n  global: many\n").is_err());
+}
+
+#[test]
+fn reviewers_and_assignee_are_optional_and_stay_out_when_unset() {
+    let a = parse_automation("interval: 60\n").unwrap();
+    assert!(a.reviewers.is_empty() && a.assignee.is_none());
+    let text = render_automation(&a).unwrap();
+    assert!(
+        !text.contains("reviewers") && !text.contains("assignee"),
+        "{text}"
+    );
+    assert!(parse_automation("reviewers: alice\n").is_err());
 }
 
 #[test]
