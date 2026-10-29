@@ -2,6 +2,7 @@ import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { Badge, type badgeVariants } from "../atoms/badge";
 import { Checkbox } from "../atoms/checkbox";
+import { ContextMenu, type MenuItem } from "./context-menu";
 
 export type FileState =
 	| "added"
@@ -38,6 +39,7 @@ export function FileRow({
 	selected,
 	onSelect,
 	check,
+	menu,
 }: {
 	name: string;
 	state?: FileState;
@@ -48,43 +50,46 @@ export function FileRow({
 	selected?: boolean;
 	onSelect?: () => void;
 	check?: { checked: boolean; label: string; onChange: (checked: boolean) => void };
+	menu?: MenuItem[];
 }) {
 	const mark = state ? MARK[state] : null;
 	return (
-		<div
-			data-selected={selected || undefined}
-			className="flex min-h-row items-center gap-2 pr-2 data-[selected]:bg-n-4 hover:bg-n-3"
-			style={{ paddingLeft: `${0.5 + depth}rem` }}
-		>
-			{check ? (
-				<Checkbox
-					hideLabel
-					label={check.label}
-					checked={check.checked}
-					onCheckedChange={(v) => check.onChange(v === true)}
-				/>
-			) : null}
-			{mark ? (
-				<Badge
-					variant={mark.variant}
-					role="img"
-					aria-label={stateLabel}
-					className="w-5 justify-center px-0"
-				>
-					{mark.letter}
-				</Badge>
-			) : null}
-			<button
-				type="button"
-				onClick={onSelect}
-				aria-current={selected || undefined}
-				className={cn(
-					"min-w-0 flex-1 truncate text-left text-ui",
-					state ? "text-n-12" : "text-n-11",
-				)}
+		<ContextMenu items={menu}>
+			<div
+				data-selected={selected || undefined}
+				className="flex min-h-row items-center gap-2 pr-2 data-[selected]:bg-n-4 hover:bg-n-3"
+				style={{ paddingLeft: `${0.5 + depth}rem` }}
 			>
-				{name}
-			</button>
-		</div>
+				{check ? (
+					<Checkbox
+						hideLabel
+						label={check.label}
+						checked={check.checked}
+						onCheckedChange={(v) => check.onChange(v === true)}
+					/>
+				) : null}
+				{mark ? (
+					<Badge
+						variant={mark.variant}
+						role="img"
+						aria-label={stateLabel}
+						className="w-5 justify-center px-0"
+					>
+						{mark.letter}
+					</Badge>
+				) : null}
+				<button
+					type="button"
+					onClick={onSelect}
+					aria-current={selected || undefined}
+					className={cn(
+						"min-w-0 flex-1 truncate text-left text-ui",
+						state ? "text-n-12" : "text-n-11",
+					)}
+				>
+					{name}
+				</button>
+			</div>
+		</ContextMenu>
 	);
 }

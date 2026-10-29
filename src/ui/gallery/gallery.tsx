@@ -29,18 +29,22 @@ import { BacklinkList } from "../molecules/backlink-list";
 import { CommitRow } from "../molecules/commit-row";
 import { ConflictBlock, type ConflictChoice } from "../molecules/conflict-block";
 import { ConnectionRow } from "../molecules/connection-row";
+import { ContextMenu } from "../molecules/context-menu";
 import { DiffView } from "../molecules/diff-view";
 import { EmptyState } from "../molecules/empty-state";
 import { FileRow } from "../molecules/file-row";
 import { FilterBar } from "../molecules/filter-bar";
 import { FindingRow } from "../molecules/finding-row";
 import { FlagList } from "../molecules/flag-list";
+import { NotificationRow } from "../molecules/notification-row";
 import { ProjectSwitcher } from "../molecules/project-switcher";
 import { RefChip } from "../molecules/ref-chip";
 import { SecretInput } from "../molecules/secret-input";
 import { SettingsRow } from "../molecules/settings-row";
 import { CommandPalette } from "../organisms/command-palette";
 import { CommitDialog } from "../organisms/commit-dialog";
+import { NotificationCentre } from "../organisms/notification-centre";
+import { Toaster } from "../organisms/toaster";
 import { Inspector } from "../organisms/inspector";
 import { Settings } from "../templates/settings";
 import { Shell } from "../templates/shell";
@@ -296,6 +300,33 @@ function Molecules() {
 					/>
 				</div>
 			</Row>
+			<Row name="ContextMenu">
+				<ContextMenu
+					items={[
+						{ id: "open", label: t.context.open, onSelect: noop },
+						{ id: "copy", label: t.context.copyRef, shortcut: "C", onSelect: noop },
+					]}
+				>
+					<button type="button" className="rounded-md border px-3 py-1 text-ui">
+						wi:KEY-1
+					</button>
+				</ContextMenu>
+			</Row>
+			<Row name="NotificationRow">
+				<div className="w-full max-w-xl">
+					{(["info", "error", "needs-you"] as const).map((kind) => (
+						<NotificationRow
+							key={kind}
+							kind={kind}
+							kindLabel={t.notifications.kind[kind]}
+							title={format(t.notifications.update, { version: "0.2.0" })}
+							body="https://example.com/releases/latest"
+							time="10:42"
+							unread={kind !== "info"}
+						/>
+					))}
+				</div>
+			</Row>
 			<Row name="FileRow">
 				<div className="w-72">
 					<FileRow name="src" depth={0} check={{ checked: false, label: "src", onChange: noop }} />
@@ -428,6 +459,38 @@ function Organisms() {
 			<Row name="CommitDialog">
 				<Button onClick={() => setCommit(true)}>{t.shell.commit}</Button>
 				<CommitDialog open={commit} onOpenChange={setCommit} onSubmit={async () => {}} />
+			</Row>
+			<Row name="NotificationCentre">
+				<NotificationCentre
+					items={[
+						{
+							id: "a",
+							kind: "needs-you",
+							title: format(t.notifications.update, { version: "0.2.0" }),
+							time: Date.now(),
+							read: false,
+						},
+					]}
+					unread={1}
+					onOpen={noop}
+					onClear={noop}
+				/>
+			</Row>
+			<Row name="Toaster">
+				<div className="relative h-24 w-[28rem]">
+					<Toaster
+						toasts={[
+							{
+								id: "t",
+								kind: "info",
+								title: format(t.notifications.update, { version: "0.2.0" }),
+								time: Date.now(),
+								read: false,
+							},
+						]}
+						onDismiss={noop}
+					/>
+				</div>
 			</Row>
 			<Row name="Inspector">
 				<Button onClick={() => setPanel((p) => !p)}>{t.inspector.title}</Button>

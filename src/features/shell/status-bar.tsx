@@ -2,10 +2,12 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useWatchNotice } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
+import { useNotifications } from "@/lib/notifications";
 import { useHealth, worstStatus } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import { CpuChipIcon } from "@/ui/icons";
+import { NotificationCentre } from "@/ui/organisms/notification-centre";
 import type { Action } from "./actions";
 
 const button =
@@ -24,6 +26,7 @@ function ActionButton({ action, children }: { action: Action; children?: ReactNo
 export function StatusBar({ sync, commit }: { sync: Action; commit: Action }) {
 	const { t } = useI18n();
 	const { syncing, syncError } = useShell();
+	const { items, unread, markRead, clear } = useNotifications();
 	const notice = useWatchNotice().data?.changes[0];
 	const health = useHealth();
 	const findings = health.data ?? [];
@@ -55,6 +58,7 @@ export function StatusBar({ sync, commit }: { sync: Action; commit: Action }) {
 			) : null}
 			<ActionButton action={commit} />
 			<span className="flex-1" />
+			<NotificationCentre items={items} unread={unread} onOpen={markRead} onClear={clear} />
 			<span className="inline-flex items-center gap-1">
 				<CpuChipIcon size={12} />
 				<span className="sr-only">{t.shell.runs}</span>0

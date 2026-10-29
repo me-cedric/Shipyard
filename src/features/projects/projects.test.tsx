@@ -154,6 +154,43 @@ describe("Settings / Project", () => {
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
 	});
 
+	it("records the tracker and the forge of the project by connection id", async () => {
+		const user = userEvent.setup();
+		await unwrap(
+			commands.connectionsAdd({
+				name: "Acme",
+				group: "tracker",
+				kind: "linear",
+				url: "",
+				user: null,
+			}),
+		);
+		await unwrap(
+			commands.connectionsAdd({
+				name: "Code",
+				group: "forge",
+				kind: "github",
+				url: "https://github.com",
+				user: null,
+			}),
+		);
+		await open();
+		mountApp("/settings/project");
+		await user.click(await screen.findByRole("combobox", { name: "Tracker" }));
+		await user.click(await screen.findByRole("option", { name: "Acme" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().files.alpha?.connections).toEqual({ tracker: "acme" }));
+		// The forge list holds forges only, and no secret or address reaches the file.
+		await user.click(screen.getByRole("combobox", { name: "Forge" }));
+		expect(screen.queryByRole("option", { name: "Acme" })).toBeNull();
+		await user.click(await screen.findByRole("option", { name: "Code" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(mockState().files.alpha?.connections).toEqual({ tracker: "acme", forge: "code" }),
+		);
+		expect(JSON.stringify(mockState().files.alpha)).not.toContain("github.com");
+	});
+
 	it("marks an override and applies the accent while the project is active", async () => {
 		const user = userEvent.setup();
 		await open();

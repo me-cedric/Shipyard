@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useCommitDetail, useCommitDiff, useLog } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
+import { copyText, useMenus } from "@/lib/menus";
 import { Button } from "@/ui/atoms/button";
 import { CommitRow } from "@/ui/molecules/commit-row";
 import { DiffView } from "@/ui/molecules/diff-view";
@@ -10,6 +11,7 @@ import { withProject } from "./project-gate";
 /** One commit: its info, its changed files and the diff of one file at a time (REQ-010). */
 function Detail({ sha }: { sha: string }) {
 	const { t, lang } = useI18n();
+	const menu = useMenus();
 	const detail = useCommitDetail(sha).data;
 	const [file, setFile] = useState<string | null>(null);
 	const current =
@@ -43,6 +45,7 @@ function Detail({ sha }: { sha: string }) {
 						stateLabel={t.code.state[f.state]}
 						selected={f.path === current}
 						onSelect={() => setFile(f.path)}
+						menu={menu("file", { "copy-path": () => copyText(f.path) })}
 					/>
 				))}
 			</section>
@@ -62,6 +65,7 @@ function Detail({ sha }: { sha: string }) {
 
 function HistoryView() {
 	const { t, lang } = useI18n();
+	const menu = useMenus();
 	const log = useLog();
 	const [sha, setSha] = useState<string | null>(null);
 	const end = useRef<HTMLDivElement>(null);
@@ -94,6 +98,10 @@ function HistoryView() {
 						labels={c.labels}
 						selected={c.sha === sha}
 						onSelect={() => setSha(c.sha)}
+						menu={menu("commit", {
+							open: () => setSha(c.sha),
+							"copy-sha": () => copyText(c.sha),
+						})}
 					/>
 				))}
 				{hasNextPage ? (

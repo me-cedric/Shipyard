@@ -17,6 +17,7 @@ export {
 	ArrowDownTrayIcon,
 	BellIcon,
 	FolderOpenIcon,
+	LinkIcon,
 	PlayIcon,
 	PlusIcon,
 	StopIcon,

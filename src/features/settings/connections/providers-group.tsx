@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type Provider, type TestOutcome, unwrap } from "@/lib/ipc";
+import { useMenus } from "@/lib/menus";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
@@ -166,6 +167,7 @@ function ProviderRow({
 	const [result, setResult] = useState<TestOutcome | null>(null);
 	const [testing, setTesting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const menu = useMenus();
 
 	const show = (next: Panel) => {
 		const to = panel === next ? null : next;
@@ -203,6 +205,11 @@ function ProviderRow({
 
 	return (
 		<ConnectionRow
+			menu={menu("connection", {
+				test: () => void test(),
+				edit: () => show("edit"),
+				remove: () => show("remove"),
+			})}
 			status={STATE_SHAPE[p.state]}
 			statusLabel={t.connections.state[p.state]}
 			name={p.name}

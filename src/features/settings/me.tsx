@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { commands, unwrap } from "@/lib/ipc";
 import {
 	type Contrast,
 	type Density,
@@ -8,11 +10,44 @@ import {
 	type Theme,
 	usePrefs,
 } from "@/lib/prefs";
+import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { Switch } from "@/ui/atoms/switch";
-import { Cog6ToothIcon, ComputerDesktopIcon, LanguageIcon, SunIcon, SwatchIcon } from "@/ui/icons";
+import {
+	ArrowDownTrayIcon,
+	Cog6ToothIcon,
+	ComputerDesktopIcon,
+	LanguageIcon,
+	SunIcon,
+	SwatchIcon,
+} from "@/ui/icons";
 import { Settings } from "@/ui/templates/settings";
+
+/** Where the update check reads the latest release. It saves when the field loses focus. */
+function ReleaseUrl() {
+	const { t } = useI18n();
+	const [url, setUrl] = useState("");
+	useEffect(() => {
+		unwrap(commands.prefsGet())
+			.then((p) => setUrl(p.releaseUrl))
+			.catch((e) => console.error(e));
+	}, []);
+	return (
+		<Input
+			label={t.prefs.releaseUrl}
+			value={url}
+			onChange={(e) => setUrl(e.target.value)}
+			// An empty value restores the default address, and the field shows it.
+			onBlur={() =>
+				unwrap(commands.prefsSet({ releaseUrl: url }))
+					.then((p) => setUrl(p.releaseUrl))
+					.catch((e) => console.error(e))
+			}
+			className="w-80"
+		/>
+	);
+}
 
 export function Me() {
 	const { t, lang, setLang } = useI18n();
@@ -66,6 +101,12 @@ export function Me() {
 										]}
 									/>
 								),
+							},
+							{
+								id: "release",
+								icon: <ArrowDownTrayIcon size={14} />,
+								label: t.prefs.releaseUrl,
+								control: <ReleaseUrl />,
 							},
 							{
 								id: "role",

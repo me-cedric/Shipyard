@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type ConnectionDraft_Deserialize, commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
@@ -26,6 +26,24 @@ const row = (name: string) => screen.findByRole("group", { name });
 const open = () => unwrap(commands.projectsOpen("/mock/alpha", false));
 
 describe("Settings / Connections", () => {
+	it("offers the actions of a connection in its context menu", async () => {
+		const user = userEvent.setup();
+		await seed({ name: "Acme" });
+		mountApp("/settings/connections");
+		fireEvent.contextMenu(await row("Acme"));
+		const menu = await screen.findByRole("menu");
+		expect(
+			within(menu)
+				.getAllByRole("menuitem")
+				.map((i) => i.textContent),
+		).toEqual(["Test", "Edit", "Remove", "Copy ref"]);
+		await user.click(within(menu).getByRole("menuitem", { name: "Copy ref" }));
+		expect(await navigator.clipboard.readText()).toBe("conn:acme");
+		fireEvent.contextMenu(await row("Acme"));
+		await user.click(await screen.findByRole("menuitem", { name: "Test" }));
+		expect(await within(await row("Acme")).findByRole("status")).toHaveTextContent("Passed");
+	});
+
 	it("shows ghost rows and one primary action when no connection exists", async () => {
 		mountApp("/settings/connections");
 		const main = await screen.findByRole("main");
@@ -161,6 +179,26 @@ describe("Settings / Connections", () => {
 		expect(test).toHaveFocus();
 		await user.keyboard("{Enter}");
 		expect(await within(acme).findByRole("status")).toHaveTextContent("the token was rejected");
+	});
+
+	it("lists the project that names the connection before it removes it", async () => {
+		const user = userEvent.setup();
+		const c = await seed({ name: "Acme" });
+		await open();
+		await unwrap(
+			commands.projectFileSave({
+				name: "alpha",
+				key: "ALPHA",
+				paths: {},
+				defaultWorkflow: null,
+				gates: [],
+				connections: { tracker: c.id },
+			}),
+		);
+		mountApp("/settings/connections");
+		await user.click(within(await row("Acme")).getByRole("button", { name: "Remove" }));
+		expect(await screen.findByRole("heading", { name: "Project (1)" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: /project:alpha/ })).toBeInTheDocument();
 	});
 
 	it("lists the entities that use a connection, then removes it with its secret", async () => {

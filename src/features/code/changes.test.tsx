@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
@@ -18,6 +18,21 @@ async function changes() {
 }
 
 describe("Code / Changes", () => {
+	it("offers the actions of a file in its context menu and stages it", async () => {
+		const user = userEvent.setup();
+		await changes();
+		fireEvent.contextMenu(unstaged().getByRole("button", { name: "app.ts" }));
+		const menu = await screen.findByRole("menu");
+		expect(
+			within(menu)
+				.getAllByRole("menuitem")
+				.map((i) => i.textContent),
+		).toEqual(["Stage", "Discard", "Copy path"]);
+		await user.click(within(menu).getByRole("menuitem", { name: "Stage" }));
+		await group("Staged (2)");
+		expect(await group("Unstaged (3)")).toBeInTheDocument();
+	});
+
 	it("shows the groups with counts and the changed files as a folder tree", async () => {
 		await changes();
 		expect(await group("Unstaged (4)")).toBeInTheDocument();

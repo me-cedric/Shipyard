@@ -368,6 +368,7 @@ export const fr: Messages = {
 		notice: "{count} nouveaux sur {branch}, {author} : {subject}",
 	},
 	notifications: {
+		kind: { info: "Info", error: "Erreur", "needs-you": "À traiter" },
 		title: "Notifications",
 		unread: "{count} non lues",
 		empty: "Aucune notification",

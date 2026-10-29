@@ -12,9 +12,11 @@ import {
 } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
+import { copyText, type Handlers, useMenus } from "@/lib/menus";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { ConflictBlock, type ConflictChoice } from "@/ui/molecules/conflict-block";
+import type { MenuItem } from "@/ui/molecules/context-menu";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { FileRow } from "@/ui/molecules/file-row";
 import { SettingsRow } from "@/ui/molecules/settings-row";
@@ -31,6 +33,7 @@ function FileGroup({
 	selected,
 	onSelect,
 	actions,
+	menu,
 }: {
 	group: Group;
 	files: FileChange[];
@@ -38,6 +41,8 @@ function FileGroup({
 	onSelect: (path: string) => void;
 	/** The buttons of the group. They act on the checked files, or on all of them. */
 	actions?: (paths: string[], files: FileChange[]) => ReactNode;
+	/** The context menu of a file. */
+	menu?: (file: FileChange) => MenuItem[];
 }) {
 	const { t } = useI18n();
 	const [checked, setChecked] = useState<string[]>([]);
@@ -74,6 +79,7 @@ function FileGroup({
 						stateLabel={t.code.state[r.file.state]}
 						selected={selected === r.path}
 						onSelect={() => onSelect(r.path)}
+						menu={menu?.(r.file)}
 						check={{
 							checked: live.includes(r.path),
 							label: format(t.code.select, { name: r.path }),
@@ -237,6 +243,7 @@ function ChangesView() {
 	const changes = useChanges(true).data;
 	const conflicts = useConflicts().data ?? [];
 	const { stage, unstage, discard } = useCodeActions();
+	const menu = useMenus();
 	const { error, run: runJob } = useRun();
 	const [path, setPath] = useState<string | null>(null);
 	const run = (job: () => Promise<unknown>) => void runJob(job);
@@ -253,6 +260,13 @@ function ChangesView() {
 		await discard(paths, untracked);
 	};
 
+	// The same actions as the group buttons, for one file.
+	const fileMenu = (file: FileChange, own: Handlers) =>
+		menu("file", {
+			...own,
+			"copy-path": () => copyText(file.path),
+		});
+
 	return (
 		<div className="flex h-full">
 			<h1 className="sr-only">{t.tabs.code.changes}</h1>
@@ -263,6 +277,7 @@ function ChangesView() {
 						files={changes.conflicted}
 						selected={path}
 						onSelect={setPath}
+						menu={(f) => menu("file", { "copy-path": () => copyText(f.path) })}
 					/>
 				) : null}
 				<FileGroup
@@ -270,6 +285,7 @@ function ChangesView() {
 					files={changes.staged}
 					selected={path}
 					onSelect={setPath}
+					menu={(f) => fileMenu(f, { unstage: () => run(() => unstage([f.path])) })}
 					actions={(paths) => (
 						<Button variant="ghost" onClick={() => run(() => unstage(paths))}>
 							{format(t.count, { name: t.code.unstage, count: paths.length })}
@@ -281,6 +297,12 @@ function ChangesView() {
 					files={unstaged}
 					selected={path}
 					onSelect={setPath}
+					menu={(f) =>
+						fileMenu(f, {
+							stage: () => run(() => stage([f.path])),
+							discard: () => run(() => discardGroup([f.path], [f])),
+						})
+					}
 					actions={(paths, files) => (
 						<>
 							<Button variant="ghost" onClick={() => run(() => discardGroup(paths, files))}>

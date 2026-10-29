@@ -9,6 +9,8 @@ import {
 	type TestOutcome,
 	unwrap,
 } from "@/lib/ipc";
+import { copyText, useMenus } from "@/lib/menus";
+import { projectKeys } from "@/lib/projects";
 import { useBacklinks } from "@/lib/refs";
 import { useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
@@ -76,7 +78,22 @@ function RemovePanel({ id, onDone }: { id: string; onDone: () => void }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const { openRef } = useShell();
-	const uses = useBacklinks(`conn:${id}`).data ?? [];
+	const cited = useBacklinks(`conn:${id}`).data ?? [];
+	// The project file names the connection by id (`connections` in `.shipyard/project.yaml`).
+	const file = useQuery({
+		queryKey: projectKeys.settings,
+		queryFn: () => unwrap(commands.projectSettings()),
+	}).data?.file;
+	const uses =
+		file && (file.connections?.tracker === id || file.connections?.forge === id)
+			? [
+					...cited,
+					{
+						kind: "project",
+						items: [{ source: `project:${file.key.toLowerCase()}`, title: file.name }],
+					},
+				]
+			: cited;
 	const [error, setError] = useState<string | null>(null);
 	const confirm = async () => {
 		try {
@@ -131,6 +148,7 @@ function Row({
 	const [result, setResult] = useState<TestOutcome | null>(null);
 	const [testing, setTesting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const menu = useMenus();
 
 	const show = (p: Panel) => {
 		const next = panel === p ? null : p;
@@ -161,6 +179,12 @@ function Row({
 
 	return (
 		<ConnectionRow
+			menu={menu("connection", {
+				test: () => void test(),
+				edit: () => show("edit"),
+				remove: () => show("remove"),
+				"copy-ref": () => copyText(`conn:${c.id}`),
+			})}
 			status={STATE_SHAPE[c.state]}
 			statusLabel={t.connections.state[c.state]}
 			name={c.name}

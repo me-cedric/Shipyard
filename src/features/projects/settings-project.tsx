@@ -16,18 +16,24 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { Cog6ToothIcon, FolderOpenIcon, SunIcon, SwatchIcon } from "@/ui/icons";
+import { Cog6ToothIcon, FolderOpenIcon, LinkIcon, SunIcon, SwatchIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Settings } from "@/ui/templates/settings";
 
 const NONE = "none";
 const ACCENTS: Accent[] = ["blue", "violet", "green", "orange", "rose"];
 
-type Draft = { paths: Record<string, string>; workflow: string };
+type Draft = {
+	paths: Record<string, string>;
+	workflow: string;
+	/** The connection id for each purpose. Empty is none. */
+	connections: { tracker: string; forge: string };
+};
 
 const draftOf = (f: ProjectFile_Deserialize | null): Draft => ({
 	paths: { ...f?.paths },
 	workflow: f?.defaultWorkflow ?? "",
+	connections: { tracker: f?.connections?.tracker ?? "", forge: f?.connections?.forge ?? "" },
 });
 
 // An invalid or missing project file leaves only the overrides. Settings / Health shows the finding.
@@ -41,6 +47,21 @@ function Form({
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const [draft, setDraft] = useState<Draft>(() => draftOf(file));
+	// The same query as Settings / Connections: one cache.
+	const connections = useQuery({
+		queryKey: ["connections", "list"],
+		queryFn: () => unwrap(commands.connectionsList()),
+	}).data;
+	const connectionItems = (group: "tracker" | "forge") => {
+		const saved = draft.connections[group];
+		const rows = (connections ?? []).filter((c) => c.group === group);
+		return [
+			{ value: NONE, label: t.projects.noConnection },
+			...rows.map((c) => ({ value: c.id, label: c.name })),
+			// A saved id that is no longer in the list still shows, so a save does not drop it.
+			...(saved && !rows.some((c) => c.id === saved) ? [{ value: saved, label: saved }] : []),
+		];
+	};
 	const [error, setError] = useState<string | null>(null);
 	const saved = draftOf(file);
 	const dirty = file !== null && JSON.stringify(draft) !== JSON.stringify(saved);
@@ -54,6 +75,13 @@ function Form({
 					...file,
 					paths: draft.paths,
 					defaultWorkflow: draft.workflow.trim() || null,
+					connections:
+						draft.connections.tracker || draft.connections.forge
+							? {
+									tracker: draft.connections.tracker || null,
+									forge: draft.connections.forge || null,
+								}
+							: null,
 				}),
 			);
 			await qc.invalidateQueries();
@@ -119,6 +147,28 @@ function Form({
 												/>
 											),
 										})),
+								},
+								{
+									id: "connections",
+									title: t.projects.connections,
+									rows: (["tracker", "forge"] as const).map((group) => ({
+										id: group,
+										icon: <LinkIcon size={14} />,
+										label: t.connections.type[group],
+										control: (
+											<Select
+												label={t.connections.type[group]}
+												value={draft.connections[group] || NONE}
+												onValueChange={(v) =>
+													setDraft({
+														...draft,
+														connections: { ...draft.connections, [group]: v === NONE ? "" : v },
+													})
+												}
+												items={connectionItems(group)}
+											/>
+										),
+									})),
 								},
 								{
 									id: "workflow",

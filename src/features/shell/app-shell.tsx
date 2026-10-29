@@ -1,12 +1,15 @@
 import { Outlet } from "@tanstack/react-router";
 import { useCodeActions } from "@/lib/code";
 import { useI18n } from "@/lib/i18n";
+import { NotificationsProvider, useNotifications } from "@/lib/notifications";
 import { usePrefs } from "@/lib/prefs";
 import { ShellProvider, useShell } from "@/lib/shell";
 import { CommitDialog } from "@/ui/organisms/commit-dialog";
 import { Inspector } from "@/ui/organisms/inspector";
+import { Toaster } from "@/ui/organisms/toaster";
 import { Shell } from "@/ui/templates/shell";
 import { useActions, useShortcuts } from "./actions";
+import { useNativeMenu, useShellEvents } from "./events";
 import { PaletteHost } from "./palette-host";
 import { RefDetail } from "./ref-detail";
 import { Sidebar } from "./sidebar";
@@ -21,6 +24,9 @@ function Frame() {
 	const { commit: runCommit } = useCodeActions();
 	const { list, sync, commit } = useActions();
 	useShortcuts(list);
+	useNativeMenu(list);
+	useShellEvents();
+	const { toasts, dismiss } = useNotifications();
 	const toggle = list.find((a) => a.id === "toggle-sidebar");
 	if (!toggle) throw new Error("Missing action: toggle-sidebar");
 	return (
@@ -40,6 +46,7 @@ function Frame() {
 				}
 				statusbar={<StatusBar sync={sync} commit={commit} />}
 			/>
+			<Toaster toasts={toasts} onDismiss={dismiss} />
 			<PaletteHost actions={list} />
 			<CommitDialog open={commitOpen} onOpenChange={setCommitOpen} onSubmit={runCommit} />
 			<ViewMemory />
@@ -50,7 +57,9 @@ function Frame() {
 export function AppShell() {
 	return (
 		<ShellProvider>
-			<Frame />
+			<NotificationsProvider>
+				<Frame />
+			</NotificationsProvider>
 		</ShellProvider>
 	);
 }

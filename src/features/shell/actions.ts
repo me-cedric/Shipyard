@@ -6,7 +6,9 @@ import { errorDialog } from "@/lib/ipc";
 import { type Theme, usePrefs } from "@/lib/prefs";
 import { outcomeError, useProjectActions } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
+import { useUpdateCheck } from "@/lib/updates";
 import {
+	ArrowDownTrayIcon,
 	ArrowPathIcon,
 	BookOpenIcon,
 	CheckIcon,
@@ -72,6 +74,7 @@ export function useActions() {
 	const { inspectorOpen, setInspectorOpen, setPaletteOpen, sync, setCommitOpen } = shell;
 	const { pull } = useCodeActions();
 	const stageable = canCommit(useChanges().data);
+	const checkUpdate = useUpdateCheck();
 
 	return useMemo(() => {
 		const withKey = (a: Omit<Action, "shortcut"> & { key: string }): Action => ({
@@ -111,6 +114,19 @@ export function useActions() {
 			Icon: CheckIcon,
 			disabled: !stageable,
 			run: () => setCommitOpen(true),
+		};
+		// The palette lists the projects. This action opens it for the native menu (REQ-012).
+		const switchProject: Action = {
+			id: "project-switch",
+			label: t.menu.projectSwitch,
+			Icon: FolderOpenIcon,
+			run: () => setPaletteOpen(true),
+		};
+		const updateCheck: Action = {
+			id: "update-check",
+			label: t.menu.updateCheck,
+			Icon: ArrowDownTrayIcon,
+			run: () => void checkUpdate(true),
 		};
 		const list: Action[] = [
 			...spaces,
@@ -152,8 +168,10 @@ export function useActions() {
 				}),
 			),
 			openProject,
+			switchProject,
 			syncAction,
 			commit,
+			updateCheck,
 		];
 		return { list, sync: syncAction, commit };
 	}, [
@@ -171,6 +189,7 @@ export function useActions() {
 		setCommitOpen,
 		stageable,
 		openFolder,
+		checkUpdate,
 	]);
 }
 

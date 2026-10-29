@@ -112,9 +112,11 @@ describe("shell", () => {
 	it("shows one sync and one commit action in the status bar", async () => {
 		mount("/home");
 		const bar = (await screen.findByRole("contentinfo")) as HTMLElement;
+		// The bell is the notification centre, not a second action.
 		expect(
 			within(bar)
 				.getAllByRole("button")
+				.filter((b) => b.getAttribute("aria-label") !== "Notifications")
 				.map((b) => b.textContent),
 		).toEqual(["Sync", "Commit"]);
 		expect(await within(bar).findByRole("img", { name: "Success" })).toBeInTheDocument();

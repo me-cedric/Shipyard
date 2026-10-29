@@ -1,4 +1,5 @@
 import { Badge } from "../atoms/badge";
+import { ContextMenu, type MenuItem } from "./context-menu";
 
 export type CommitLabel = { name: string; kind: "branch" | "remote" | "tag" };
 
@@ -13,6 +14,7 @@ export function CommitRow({
 	labels,
 	selected,
 	onSelect,
+	menu,
 }: {
 	short: string;
 	summary: string;
@@ -22,23 +24,26 @@ export function CommitRow({
 	labels: CommitLabel[];
 	selected?: boolean;
 	onSelect: () => void;
+	menu?: MenuItem[];
 }) {
 	return (
-		<button
-			type="button"
-			onClick={onSelect}
-			aria-current={selected || undefined}
-			className="flex min-h-row w-full items-center gap-2 border-b px-3 py-1 text-left text-ui hover:bg-n-3 aria-[current=true]:bg-n-4"
-		>
-			<span className="w-14 shrink-0 font-mono text-12 text-n-10">{short}</span>
-			<span className="min-w-0 flex-1 truncate">{summary}</span>
-			{labels.map((l) => (
-				<Badge key={`${l.kind}:${l.name}`} variant={VARIANT[l.kind]}>
-					{l.name}
-				</Badge>
-			))}
-			<span className="shrink-0 text-12 text-n-11">{author}</span>
-			<span className="shrink-0 text-12 text-n-10">{date}</span>
-		</button>
+		<ContextMenu items={menu}>
+			<button
+				type="button"
+				onClick={onSelect}
+				aria-current={selected || undefined}
+				className="flex min-h-row w-full items-center gap-2 border-b px-3 py-1 text-left text-ui hover:bg-n-3 aria-[current=true]:bg-n-4"
+			>
+				<span className="w-14 shrink-0 font-mono text-12 text-n-10">{short}</span>
+				<span className="min-w-0 flex-1 truncate">{summary}</span>
+				{labels.map((l) => (
+					<Badge key={`${l.kind}:${l.name}`} variant={VARIANT[l.kind]}>
+						{l.name}
+					</Badge>
+				))}
+				<span className="shrink-0 text-12 text-n-11">{author}</span>
+				<span className="shrink-0 text-12 text-n-10">{date}</span>
+			</button>
+		</ContextMenu>
 	);
 }

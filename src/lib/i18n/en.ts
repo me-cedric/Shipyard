@@ -361,6 +361,7 @@ export const en = {
 		notice: "{count} new on {branch}, {author}: {subject}",
 	},
 	notifications: {
+		kind: { info: "Info", error: "Error", "needs-you": "Needs you" },
 		title: "Notifications",
 		unread: "{count} unread",
 		empty: "No notification",
