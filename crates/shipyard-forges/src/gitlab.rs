@@ -8,9 +8,9 @@ use shipyard_secrets::Secret;
 use std::sync::Arc;
 
 pub struct GitLab {
-    http: Arc<dyn Http>,
-    api: String,
-    token: Secret,
+    pub(crate) http: Arc<dyn Http>,
+    pub(crate) api: String,
+    pub(crate) token: Secret,
 }
 
 impl GitLab {
@@ -22,7 +22,7 @@ impl GitLab {
         }
     }
 
-    fn send(&self, path: &str, query: &[(&str, &str)]) -> Result<Response, ForgeError> {
+    pub(crate) fn send(&self, path: &str, query: &[(&str, &str)]) -> Result<Response, ForgeError> {
         let req = Request::get(
             build_url(&self.api, path, query),
             Auth::Header("PRIVATE-TOKEN", self.token.clone()),
@@ -30,18 +30,18 @@ impl GitLab {
         Ok(self.http.send(&req)?.ok()?)
     }
 
-    fn call(&self, path: &str, query: &[(&str, &str)]) -> Result<Value, ForgeError> {
+    pub(crate) fn call(&self, path: &str, query: &[(&str, &str)]) -> Result<Value, ForgeError> {
         Ok(self.send(path, query)?.json()?)
     }
 }
 
 /// `/projects/<encoded path>`. The whole path is one encoded segment.
-fn project_path(repo: &str) -> Result<String, ForgeError> {
+pub(crate) fn project_path(repo: &str) -> Result<String, ForgeError> {
     segments(repo, 2, 20)?;
     Ok(format!("/projects/{}", encode(repo)))
 }
 
-fn pull(v: &Value) -> PullRequest {
+pub(crate) fn pull(v: &Value) -> PullRequest {
     PullRequest {
         number: shipyard_http::num(v, "/iid").unwrap_or(0),
         title: text(v, "/title"),

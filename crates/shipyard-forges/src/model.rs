@@ -158,6 +158,9 @@ pub enum ForgeError {
     Config(String),
     #[error("not found: {0}")]
     NotFound(String),
+    /// The forge answered, but refused the write or sent an error object (GitHub GraphQL).
+    #[error("{0}")]
+    Rejected(String),
 }
 
 impl ForgeError {

@@ -9,9 +9,9 @@ use shipyard_secrets::Secret;
 use std::sync::Arc;
 
 pub struct GitHub {
-    http: Arc<dyn Http>,
-    api: String,
-    token: Secret,
+    pub(crate) http: Arc<dyn Http>,
+    pub(crate) api: String,
+    pub(crate) token: Secret,
 }
 
 impl GitHub {
@@ -41,12 +41,12 @@ impl GitHub {
 }
 
 /// `owner/repo` as a path.
-fn repo_path(repo: &str) -> Result<String, ForgeError> {
+pub(crate) fn repo_path(repo: &str) -> Result<String, ForgeError> {
     let parts = segments(repo, 2, 2)?;
     Ok(format!("/repos/{}/{}", encode(parts[0]), encode(parts[1])))
 }
 
-fn pull(v: &Value) -> PullRequest {
+pub(crate) fn pull(v: &Value) -> PullRequest {
     let state = if !text(v, "/merged_at").is_empty() {
         PullState::Merged
     } else if text(v, "/state") == "closed" {

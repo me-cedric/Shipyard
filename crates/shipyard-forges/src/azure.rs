@@ -9,12 +9,12 @@ use shipyard_http::{Auth, Http, Request, TestOutcome, build_url, encode, items, 
 use shipyard_secrets::Secret;
 use std::sync::Arc;
 
-const API: &str = "7.1";
+pub(crate) const API: &str = "7.1";
 
 pub struct Azure {
-    http: Arc<dyn Http>,
-    base: String,
-    token: Secret,
+    pub(crate) http: Arc<dyn Http>,
+    pub(crate) base: String,
+    pub(crate) token: Secret,
 }
 
 impl Azure {
@@ -22,7 +22,12 @@ impl Azure {
         Self { http, base, token }
     }
 
-    fn call(&self, path: &str, query: &[(&str, &str)], api: &str) -> Result<Value, ForgeError> {
+    pub(crate) fn call(
+        &self,
+        path: &str,
+        query: &[(&str, &str)],
+        api: &str,
+    ) -> Result<Value, ForgeError> {
         let mut q = query.to_vec();
         q.push(("api-version", api));
         let req = Request::get(
@@ -33,7 +38,7 @@ impl Azure {
     }
 
     /// The raw pull request: the policy call needs the project id that it holds.
-    fn raw_pull(&self, repo: &str, number: u64) -> Result<Value, ForgeError> {
+    pub(crate) fn raw_pull(&self, repo: &str, number: u64) -> Result<Value, ForgeError> {
         self.call(
             &format!("{}/pullrequests/{number}", repo_path(repo)?),
             &[],
@@ -42,7 +47,7 @@ impl Azure {
         .map_err(|e| e.not_found(&format!("{repo}!{number}")))
     }
 
-    fn pull_from(&self, v: &Value, repo: &str) -> PullRequest {
+    pub(crate) fn pull_from(&self, v: &Value, repo: &str) -> PullRequest {
         let number = shipyard_http::num(v, "/pullRequestId").unwrap_or(0);
         let (project, name) = repo.split_once('/').unwrap_or((repo, ""));
         let closed = text(v, "/closedDate");
@@ -81,7 +86,7 @@ impl Azure {
 }
 
 /// `/<project>/_apis/git/repositories/<repo>`.
-fn repo_path(repo: &str) -> Result<String, ForgeError> {
+pub(crate) fn repo_path(repo: &str) -> Result<String, ForgeError> {
     let parts = segments(repo, 2, 2)?;
     Ok(format!(
         "/{}/_apis/git/repositories/{}",

@@ -8,6 +8,7 @@ mod azure;
 mod github;
 mod gitlab;
 mod model;
+pub mod pull_request;
 
 use serde::{Deserialize, Serialize};
 use shipyard_http::Http;
@@ -15,6 +16,7 @@ use shipyard_secrets::Secret;
 use std::sync::Arc;
 
 pub use model::*;
+pub use pull_request::*;
 pub use shipyard_http::{Client, Error as HttpError, TestOutcome};
 
 /// The settings of a forge connection that are not secret (REQ-013).
@@ -61,6 +63,20 @@ pub fn connect(
     secret: Secret,
     http: Arc<dyn Http>,
 ) -> Result<Box<dyn Forge>, ForgeError> {
+    let base = shipyard_http::base_url(&config.url)?;
+    Ok(match config.kind {
+        ForgeKind::GitHub => Box::new(github::GitHub::new(http, &base, secret)),
+        ForgeKind::GitLab => Box::new(gitlab::GitLab::new(http, &base, secret)),
+        ForgeKind::AzureDevOps => Box::new(azure::Azure::new(http, base, secret)),
+    })
+}
+
+/// Like [`connect`], for the pull request calls. The result reads as a [`Forge`] too.
+pub fn connect_pull_api(
+    config: &ForgeConfig,
+    secret: Secret,
+    http: Arc<dyn Http>,
+) -> Result<Box<dyn PullApi>, ForgeError> {
     let base = shipyard_http::base_url(&config.url)?;
     Ok(match config.kind {
         ForgeKind::GitHub => Box::new(github::GitHub::new(http, &base, secret)),
