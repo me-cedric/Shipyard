@@ -373,6 +373,27 @@ fn every_runner_event_is_logged() {
 }
 
 #[test]
+fn a_new_tier_map_applies_to_the_next_step() {
+    use shipyard_engine::run_engine::Tiers;
+    let fx = Fx::new(writes(true), &[ONE]);
+    let mut tiers = Tiers::default();
+    tiers
+        .0
+        .get_mut("claude")
+        .unwrap()
+        .insert("mid".into(), "sonnet-x".into());
+    fx.f.set_tiers(tiers);
+    fx.start("SHIP-2", &[]);
+    let brief = fx
+        .agents
+        .briefs()
+        .into_iter()
+        .find(|b| b.step == "work")
+        .unwrap();
+    assert_eq!(brief.model.as_deref(), Some("sonnet-x"));
+}
+
+#[test]
 fn the_global_kill_switch_leaves_a_merged_run_to_close() {
     let fx = Fx::new(writes(true), &[ONE]);
     let run = fx.start("SHIP-1", &[]);

@@ -368,6 +368,11 @@ impl Factory {
         self.lock().refs = Some(index);
     }
 
+    /// The tier map after an edit. A step that starts later uses it; a running step keeps its model.
+    pub fn set_tiers(&self, tiers: Tiers) {
+        self.lock().cfg.tiers = tiers;
+    }
+
     /// Add a project, or replace it after a reload of its files.
     pub fn set_project(&self, id: &str, project: Project) {
         self.lock().projects.insert(id.into(), project);
