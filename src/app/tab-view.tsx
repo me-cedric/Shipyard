@@ -1,5 +1,13 @@
 import type { ComponentType } from "react";
-import { Branches, Changes, History } from "@/features/code";
+import {
+	Branches,
+	Changes,
+	History,
+	Impacts,
+	PullRequests,
+	Quality,
+	Terminal,
+} from "@/features/code";
 import { Api, Architecture, Data, Decisions, Diagrams, Flows, Screens } from "@/features/design";
 import { AgentsMap, Runs, Sessions, Usage, Workflows } from "@/features/factory";
 import { Activity, Inbox, MyWork } from "@/features/home";
@@ -39,6 +47,10 @@ const VIEWS: Partial<Record<string, ComponentType>> = {
 	"code/changes": Changes,
 	"code/history": History,
 	"code/branches": Branches,
+	"code/pull-requests": PullRequests,
+	"code/quality": Quality,
+	"code/impacts": Impacts,
+	"code/terminal": Terminal,
 	"settings/connections": Connections,
 	"settings/me": Me,
 	"settings/agents-rules": AgentsRules,

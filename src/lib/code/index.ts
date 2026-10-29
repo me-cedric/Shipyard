@@ -157,3 +157,4 @@ export function useCodeActions() {
 /** The commit action stays off with nothing staged or with a conflict left (REQ-007). */
 export const canCommit = (c: Changes | undefined) =>
 	c !== undefined && c.staged.length > 0 && c.conflicted.length === 0;
+export * from "./forge";
