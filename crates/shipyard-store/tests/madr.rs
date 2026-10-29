@@ -152,9 +152,16 @@ fn list_ignores_comments_in_the_front_matter() {
     fs::create_dir_all(&d).unwrap();
     let text = "\u{feff}---\n# optional metadata\nstatus: \"proposed\"\ndate: 2026-01-01\n---\n\n# Real title\n";
     fs::write(d.join("0001-a.md"), text).unwrap();
-    fs::write(d.join("0002-b.md"), "---\nstatus: accepted\ntitle: 'Named'\n---\n# Other\n").unwrap();
+    fs::write(
+        d.join("0002-b.md"),
+        "---\nstatus: accepted\ntitle: 'Named'\n---\n# Other\n",
+    )
+    .unwrap();
     let rows = list(dir.path(), &ProjectFile::new("Demo", "DEMO"));
-    assert_eq!((rows[0].title.as_str(), rows[0].status.as_str()), ("Real title", "proposed"));
+    assert_eq!(
+        (rows[0].title.as_str(), rows[0].status.as_str()),
+        ("Real title", "proposed")
+    );
     assert_eq!(rows[1].title, "Named");
 }
 

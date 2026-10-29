@@ -69,7 +69,11 @@ fn diagrams_list_four_formats() {
 #[test]
 fn drawio_svg_without_a_board_gets_an_issue() {
     let dir = tempfile::tempdir().unwrap();
-    put(dir.path(), "docs/diagrams/plain.drawio.svg", "<svg xmlns=\"x\"/>");
+    put(
+        dir.path(),
+        "docs/diagrams/plain.drawio.svg",
+        "<svg xmlns=\"x\"/>",
+    );
     put(
         dir.path(),
         "docs/diagrams/board.drawio.svg",

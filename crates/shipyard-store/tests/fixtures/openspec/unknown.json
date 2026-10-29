@@ -1,0 +1,9 @@
+{
+  "status": [
+    {
+      "severity": "error",
+      "code": "unknown_item",
+      "message": "Unknown item 'nope'. Did you mean: add-code, add-refs, add-specs, add-work, demo-bad?"
+    }
+  ]
+}
