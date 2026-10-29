@@ -21,7 +21,7 @@ Plan: [plan.md](./plan.md)
 - [ ] T008 Implement the status bar in `src/features/shell/statusbar.tsx`. REQ-007.
 - [ ] T009 Write event list tests in `crates/shipyard-app/src/shell/events.rs` (`cargo test -p shipyard-app`). REQ-008.
 - [ ] T010 Implement the event list, the notification centre and the system notifications in `crates/shipyard-app/src/shell/events.rs` and `src/features/shell/notifications.tsx`. REQ-008. Done except: the list lives in the UI (`src/lib/notifications/`, `src/features/shell/events.ts`) and the Rust side is the `notify_os` command only. The sources today are the update check, a failed sync and a moved remote head. No approval or question source exists yet, and Settings / Me does not choose the sources.
-- [ ] T011 Write Home tests in `src/features/home/home.test.tsx`. REQ-003, REQ-004.
+- [x] T011 Write Home tests in `src/features/home/home.test.tsx`. REQ-003, REQ-004.
 - [ ] T012 Implement Inbox, My work and Activity in `src/features/home/`. REQ-003, REQ-004.
 - [ ] T013 Write Settings / Me and language tests in `src/features/settings/me/me.test.tsx`. REQ-010, REQ-011.
 - [ ] T014 Implement Settings / Me and the language switch in `src/features/settings/me/` and `src/lib/i18n/`. REQ-010, REQ-011.

@@ -32,11 +32,11 @@ Plan: [plan.md](./plan.md)
 - [x] T014b Close a run whose pull request merges during a fix round, in `crates/shipyard-engine/src/merge.rs` and `crates/shipyard-engine/tests/feedback.rs`. Covers REQ-022.
 - [x] T010b Read the `reviewers` of `automation.yaml` when the project names none, in `crates/shipyard-engine/src/pull_request.rs`. Covers REQ-012.
 - [x] T018 Add the IPC commands and their tests in `crates/shipyard-app/src/delivery.rs`, and wrap `shipyard-git`, `shipyard-forges` and the gate commands in the engine ports `Git`, `Pulls` and `Writer` (`crates/shipyard-engine/src/ports.rs`). The `pr:` rows are done in `crates/shipyard-store/src/pr.rs`. Covers REQ-028.
-- [ ] T019 Write component tests for the run cards and approvals in `src/features/factory/delivery.test.tsx`. Covers REQ-014, REQ-021, REQ-029.
-- [ ] T020 Build the cards and approvals in `src/features/factory/`. Add French and English keys. Covers REQ-014, REQ-021, REQ-029.
+- [x] T019 Write component tests for the run cards and approvals in `src/features/factory/delivery.test.tsx`. Covers REQ-014, REQ-021, REQ-029.
+- [x] T020 Build the cards and approvals in `src/features/factory/`. Add French and English keys. Covers REQ-014, REQ-021, REQ-029.
 - [x] T021 Write the e2e test `e2e/delivery.spec.ts` with a fake tracker and forge: review, pull request, CI failure, merge, close. Covers REQ-001 to REQ-029.
-- [ ] T022 [P] Add one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-029.
-- [ ] T023 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-029.
+- [x] T022 [P] Add one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-029.
+- [x] T023 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-029.
 - [ ] T024 Compare the code with `spec.md` and update stale artifacts, then close Q-029, Q-030 and Q-031. Covers REQ-006, REQ-012, REQ-026.
 
 ## Completion Check

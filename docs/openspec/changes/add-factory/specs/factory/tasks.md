@@ -36,12 +36,12 @@ Plan: [plan.md](./plan.md)
 - [x] T017g Write a squash and port contract test in `crates/shipyard-git/tests/squash.rs` and `crates/shipyard-git/tests/merge_child_port.rs`, and join a child as one commit in `crates/shipyard-git/src/delivery.rs`. Covers REQ-013.
 - [x] T017h Move a run to `Merged` when its pull request merges during a fix round, in `crates/shipyard-core/src/run.rs` and `crates/shipyard-engine/tests/feedback.rs`. Covers REQ-002.
 - [x] T018 Add the IPC commands and events in `crates/shipyard-app/src/factory.rs`, then regenerate the bindings with the project command. Covers REQ-001 to REQ-039. Wire `Factory::set_refs`, the `Git` adapter, and the Inbox items of `Factory::messages`.
-- [ ] T019 Write view and Settings control tests in `src/features/factory/factory.test.tsx`. Covers the Settings controls of REQ-008 and REQ-025, and REQ-027, REQ-038, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033.
-- [ ] T020 Implement the six views in `src/features/factory/`. Covers the Settings controls of REQ-008 and REQ-025, and REQ-027, REQ-038, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-034.
-- [ ] T021 [P] Add French and English keys in `src/i18n/` for `factory`. Covers REQ-033.
+- [x] T019 Write view and Settings control tests in `src/features/factory/factory.test.tsx`. Covers the Settings controls of REQ-008 and REQ-025, and REQ-027, REQ-038, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033.
+- [x] T020 Implement the six views in `src/features/factory/`. Covers the Settings controls of REQ-008 and REQ-025, and REQ-027, REQ-038, REQ-028, REQ-029, REQ-030, REQ-031, REQ-032, REQ-033, REQ-034.
+- [x] T021 [P] Add French and English keys in `src/i18n/` for `factory`. Covers REQ-033.
 - [x] T022 Write the end-to-end test in `e2e/factory.spec.ts`. Covers REQ-003, REQ-024, REQ-026, REQ-027, REQ-028.
-- [ ] T023 [P] Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
-- [ ] T024 Run the validation commands from `plan.md`.
+- [x] T023 [P] Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
+- [x] T024 Run the validation commands from `plan.md`.
 - [ ] T025 Compare the code with `spec.md` and update stale artifacts.
 
 ## Completion Check

@@ -34,8 +34,8 @@ Plan: [plan.md](plan.md)
 - [x] T021 Write panel tests for the trace, the ring, the reply buttons, and the width and side in `src/features/assistant/panel_extras.test.tsx` (REQ-022, REQ-023, REQ-024, REQ-025).
 - [x] T022 Implement the trace, the ring, the reply buttons, and the width and side in `src/features/assistant/` (REQ-022, REQ-023, REQ-024, REQ-025).
 - [x] T023 Write the end-to-end test in `e2e/assistant.spec.ts` for ask, plan, agent, Send to factory and Explain (REQ-007, REQ-008, REQ-009, REQ-014, REQ-015, REQ-016, REQ-022 to REQ-025).
-- [ ] T024 [P] Add the changelog entry in `CHANGELOG.md` and `CHANGELOG.fr.md` (REQ-001).
-- [ ] T025 Run `cd docs && npx -y @fission-ai/openspec@latest validate add-assistant --strict` and the commands of `plan.md` (REQ-001 to REQ-025).
+- [x] T024 [P] Add the changelog entry in `CHANGELOG.md` and `CHANGELOG.fr.md` (REQ-001).
+- [x] T025 Run `cd docs && npx -y @fission-ai/openspec@latest validate add-assistant --strict` and the commands of `plan.md` (REQ-001 to REQ-025).
 - [ ] T026 Compare the code with the spec and update stale artifacts in `docs/openspec/changes/add-assistant/`. Close Q-047, Q-048 and Q-049 (REQ-009, REQ-015).
 
 ## Completion Check
