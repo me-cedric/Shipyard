@@ -1,4 +1,6 @@
+import { designFr } from "./design";
 import type { Messages } from "./en";
+import { specsFr } from "./specs";
 
 export const fr: Messages = {
 	common: { close: "Fermer", search: "Rechercher", open: "Ouvrir", loading: "Chargement" },
@@ -645,4 +647,6 @@ export const fr: Messages = {
 		copySha: "Copier l'id",
 	},
 	count: "{name} ({count})",
+	design: designFr,
+	specs: specsFr,
 };

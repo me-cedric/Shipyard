@@ -17,8 +17,8 @@ describe("the inspector actions of a ref", () => {
 		const { unmount } = renderApp(detail("change:add-auth"));
 		expect(await screen.findByRole("button", { name: "Create work item" })).toBeInTheDocument();
 		unmount();
-		renderApp(detail("adr:0004"));
-		await screen.findByText("Polling sync with local mirror");
+		renderApp(detail("test:auth-login"));
+		await screen.findByText("Login");
 		expect(screen.queryByRole("button", { name: "Create work item" })).toBeNull();
 	});
 });

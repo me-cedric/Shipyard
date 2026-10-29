@@ -3,6 +3,7 @@ import type { RefActions } from "@/lib/shell";
 
 /** The refs that a person turns into a work item with one click (`work` REQ-029). */
 const ITEM_KINDS = new Set([
+	"adr",
 	"diagram",
 	"flow",
 	"screen",

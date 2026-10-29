@@ -51,7 +51,9 @@ import {
 	type MockCode,
 	seedCode,
 } from "./mock-code";
+import * as design from "./mock-design";
 import { parseRef } from "./mock-refs";
+import * as specs from "./mock-specs";
 import {
 	automationGet,
 	automationSave,
@@ -111,6 +113,10 @@ type State = {
 	sync: MockSync;
 	/** The team, the sheets, the plan, the time entries and the worklogs of the Work space. */
 	work: work.MockWork;
+	/** The files of the Design space: diagrams, models, contracts, ADRs, flows and screens. */
+	design: design.MockDesign;
+	/** The files of the Specs space: changes, specs, questions and test plans. */
+	specs: specs.MockSpecs;
 	/** The system notifications that the app asked for. */
 	os: { title: string; body: string }[];
 	/** The labels of the last native menu. */
@@ -155,6 +161,8 @@ const fresh = (): State => ({
 	agents: seedAgents(),
 	sync: seedSync(),
 	work: work.seedWork(),
+	design: design.seedDesign(),
+	specs: specs.seedSpecs(),
 	os: [],
 	menu: {},
 });
@@ -185,21 +193,14 @@ export function pickFileMock(): string | null {
 
 export const confirmMock = () => state.confirm;
 
-// Demo refs. The app indexes the repository files, and the mock holds a few entities.
-const ENTITIES: Record<string, { title: string; status: string | null }> = {
-	"adr:0004": { title: "Polling sync with local mirror", status: "accepted" },
-	"spec:auth": { title: "Spec: auth", status: "Draft" },
-	"spec:auth#REQ-003": { title: "Login", status: null },
-	"spec:billing": { title: "Spec: billing", status: "Draft" },
-	"change:add-auth": { title: "add-auth", status: null },
-	"q:Q-012": { title: "Which tracker first?", status: "open" },
-};
-const CITES: [source: string, target: string][] = [
-	["spec:auth", "adr:0004"],
-	["spec:billing", "adr:0004"],
-	["change:add-auth", "adr:0004"],
-	["adr:0004", "q:Q-012"],
-	["spec:auth", "conn:linear"],
+// The refs of the app come from the repository files. The mock reads its seeded files.
+const entities = () => [
+	...design.designEntities(state.design),
+	...specs.specsEntities(state.specs),
+];
+const citations = (): [string, string][] => [
+	...design.designCitations(state.design),
+	...specs.specsCitations(state.specs),
 ];
 const COVERED = ["adr", "q", "change", "spec", "wf", "doc"];
 
@@ -256,7 +257,7 @@ function resolve(text: string): Resolved_Serialize | null {
 	const owned = active() ? work.workEntities(state.work).find((e) => e.ref === text) : undefined;
 	if (owned)
 		return { ...base, state: "resolved", title: owned.title, status: owned.status, location: null };
-	const hit = active() ? ENTITIES[text] : undefined;
+	const hit = active() ? entities().find((e) => e.ref === text) : undefined;
 	if (hit)
 		return { ...base, state: "resolved", title: hit.title, status: hit.status, location: null };
 	return { ...base, state: active() && COVERED.includes(parsed.kind) ? "broken" : "unresolved" };
@@ -265,13 +266,12 @@ function resolve(text: string): Resolved_Serialize | null {
 function backlinks(text: string): BacklinkGroup_Serialize[] {
 	if (!active()) return [];
 	const groups = new Map<string, { source: string; title: string | null }[]>();
-	const owned = work.workEntities(state.work);
-	const cites = [...CITES, ...work.workCitations(state.work, memberRows())];
+	const owned = [...entities(), ...work.workEntities(state.work)];
+	const cites = [...citations(), ...work.workCitations(state.work, memberRows())];
 	for (const [source, target] of cites) {
 		if (target !== text) continue;
 		const kind = source.slice(0, source.indexOf(":"));
 		const title =
-			ENTITIES[source]?.title ??
 			owned.find((e) => e.ref === source)?.title ??
 			state.sync.mirror.find((t) => `wi:${t.key}` === source)?.title ??
 			null;
@@ -287,7 +287,7 @@ function search(query: string, limit: number): SearchHit[] {
 	const q = query.trim().toLowerCase();
 	if (!q || !active()) return [];
 	const all = [
-		...Object.entries(ENTITIES).map(([ref, e]) => [ref, e] as const),
+		...entities().map((e) => [e.ref, e] as const),
 		...work.workEntities(state.work).map((e) => [e.ref, e] as const),
 	];
 	const hits = all.flatMap(([ref, e]) => {
@@ -877,6 +877,62 @@ const handlers: Handlers = {
 		return n ? [n] : [];
 	},
 	codeWatchNotice: () => (active() ? (code().notice ?? null) : null),
+	designList: () => design.designList(need(state.design)),
+	designRead: (path) => design.designRead(need(state.design), path),
+	designWrite: (path, text, stamp, create) =>
+		design.designWrite(need(state.design), path, text, stamp, create),
+	designAdrCreate: (title) => design.adrCreate(need(state.design), title, state.work.today),
+	designAdrDecide: (path, decision, comment, stamp) =>
+		design.adrDecide(need(state.design), path, decision, comment, stamp, state.work.today),
+	designFlowsSave: (path, rows, stamp) => design.flowsSave(need(state.design), path, rows, stamp),
+	designTry: (request, click) => design.designTry(need(state.design), request, click),
+	designOpen: (target) => {
+		design.designOpen(need(state.design), target);
+		return null;
+	},
+	specsChanges: () => specs.changes(need(state.specs)),
+	specsChangeCreate: (id) => specs.changeCreate(need(state.specs), id, state.work.today),
+	specsRead: (path) => specs.specsRead(need(state.specs), path),
+	specsWrite: (path, text, stamp, create) =>
+		specs.specsWrite(need(state.specs), path, text, stamp, create),
+	specsValidate: (id) => specs.validate(need(state.specs), id),
+	specsCapabilities: () => specs.capabilities(need(state.specs)),
+	specsSpec: (path) => specs.specView(need(state.specs), path),
+	specsQuestions: () => specs.questions(need(state.specs)),
+	specsQuestionSave: (path, question, stamp) =>
+		specs.questionSave(need(state.specs), path, question, stamp),
+	specsQuestionCreate: (question) => specs.questionCreate(need(state.specs), question),
+	specsTestplans: () => specs.testplans(need(state.specs)),
+	specsCoverage: (capability) => specs.coverage(need(state.specs), capability),
+	specsFold: (specPath, questionId, answer, stamp, click) =>
+		specs.foldAnswer(need(state.specs), specPath, questionId, answer, stamp, click),
+	specsSplitDraft: (change) => specs.splitDraft(need(state.specs), change),
+	specsSplitSave: (draft) => {
+		specs.splitSave(need(state.specs), draft);
+		return null;
+	},
+	specsSplitPreview: (change) =>
+		needTracker(() => specs.splitPreview(need(state.specs), state.work, change)),
+	specsSplitApply: (change, click) =>
+		needTracker(() =>
+			specs.splitApply(
+				need(state.specs),
+				state.work,
+				state.sync.mirror,
+				change,
+				click,
+				new Date().toISOString(),
+			),
+		),
+	// No tracker means no mirrored items.
+	specsArchive: (id, confirmed) =>
+		specs.archive(
+			need(state.specs),
+			syncSources().length ? state.sync.mirror : [],
+			id,
+			confirmed,
+			state.work.today,
+		),
 	projectImport: (source) => ({
 		copied: [],
 		skipped: [{ path: source, reason: "not-implemented" }],

@@ -1,3 +1,6 @@
+import { designEn } from "./design";
+import { specsEn } from "./specs";
+
 export const en = {
 	common: { close: "Close", search: "Search", open: "Open", loading: "Loading" },
 	status: {
@@ -623,6 +626,8 @@ export const en = {
 	},
 	context: { open: "Open", copyRef: "Copy ref", copyPath: "Copy path", copySha: "Copy id" },
 	count: "{name} ({count})",
+	design: designEn,
+	specs: specsEn,
 };
 
 export type Messages = typeof en;
