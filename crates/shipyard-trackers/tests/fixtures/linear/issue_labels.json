@@ -1,0 +1,17 @@
+{
+  "data": {
+    "issue": {
+      "id": "uuid-ENG-42",
+      "team": {
+        "id": "team-1"
+      },
+      "labels": {
+        "nodes": [
+          {
+            "name": "bug"
+          }
+        ]
+      }
+    }
+  }
+}

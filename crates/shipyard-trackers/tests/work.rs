@@ -558,14 +558,11 @@ fn an_update_row_writes_the_changed_fields_only() {
 }
 
 #[test]
-fn data_center_skips_the_parent_and_says_so() {
+fn data_center_without_an_epic_link_field_skips_the_parent_and_says_so() {
     let fake = Arc::new(FakeHttp::new());
-    fake.get("/rest/api/2/search?", 200, NO_ISSUES).post(
-        "/rest/api/2/issue",
-        "",
-        201,
-        r#"{"key":"PROJ-10"}"#,
-    );
+    fake.get("/rest/api/2/search?", 200, NO_ISSUES)
+        .get("/rest/api/2/field", 200, "[]")
+        .post("/rest/api/2/issue", "", 201, r#"{"key":"PROJ-10"}"#);
     let results = apply(
         &*jira(TrackerKind::JiraDataCenter, &fake),
         "PROJ",
@@ -573,6 +570,93 @@ fn data_center_skips_the_parent_and_says_so() {
     );
     assert_eq!(results[1].skipped, [Field::Parent]);
     assert!(!sent(&fake, Method::Post)[1].1.contains("parent"));
+}
+
+fn dc_fields(fake: &FakeHttp) -> &FakeHttp {
+    fake.get(
+        "/rest/api/2/field",
+        200,
+        include_str!("fixtures/jira/fields_dc.json"),
+    )
+}
+
+#[test]
+fn data_center_names_the_epic_and_links_the_story_through_the_epic_link_field() {
+    let fake = Arc::new(FakeHttp::new());
+    dc_fields(&fake)
+        .get("/rest/api/2/search?", 200, NO_ISSUES)
+        .post(
+            "/rest/api/2/issue",
+            r#""name":"Epic""#,
+            201,
+            r#"{"key":"PROJ-10"}"#,
+        )
+        .post("/rest/api/2/issue", "", 201, r#"{"key":"PROJ-11"}"#);
+    let results = apply(
+        &*jira(TrackerKind::JiraDataCenter, &fake),
+        "PROJ",
+        &preview(&[]),
+    );
+    assert!(
+        results
+            .iter()
+            .all(|r| r.error.is_none() && r.skipped.is_empty()),
+        "{results:?}"
+    );
+    let posts = sent(&fake, Method::Post);
+    let epic: Value = serde_json::from_str(&posts[0].1).unwrap();
+    assert_eq!(
+        epic["fields"]["customfield_10101"], "Login",
+        "Epic Name is required"
+    );
+    let story: Value = serde_json::from_str(&posts[1].1).unwrap();
+    assert_eq!(story["fields"]["customfield_10100"], "PROJ-10", "Epic Link");
+    assert!(
+        story["fields"].get("parent").is_none()
+            && story["fields"].get("customfield_10101").is_none()
+    );
+    let lookups = fake
+        .requests()
+        .iter()
+        .filter(|r| r.url.contains("/field"))
+        .count();
+    assert_eq!(lookups, 1, "the field ids are read once for the connection");
+}
+
+#[test]
+fn data_center_moves_a_story_to_another_epic_by_the_epic_link_field() {
+    let fake = Arc::new(FakeHttp::new());
+    dc_fields(&fake).put("/rest/api/2/issue/PROJ-11", "", 204, "");
+    let done = jira(TrackerKind::JiraDataCenter, &fake)
+        .update(
+            "PROJ-11",
+            &Fields {
+                parent: Some("PROJ-12".into()),
+                ..Fields::default()
+            },
+        )
+        .unwrap();
+    assert!(done.skipped.is_empty());
+    assert_eq!(
+        sent(&fake, Method::Put)[0].1,
+        r#"{"fields":{"customfield_10100":"PROJ-12"}}"#
+    );
+}
+
+#[test]
+fn jira_cloud_never_reads_the_field_list_nor_names_the_epic() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.get("/rest/api/2/search/jql", 200, NO_ISSUES)
+        .post(
+            "/rest/api/2/issue",
+            r#""name":"Epic""#,
+            201,
+            r#"{"key":"PROJ-10"}"#,
+        )
+        .post("/rest/api/2/issue", "", 201, r#"{"key":"PROJ-11"}"#);
+    apply(&*jira(TrackerKind::JiraCloud, &fake), "PROJ", &preview(&[]));
+    assert!(fake.requests().iter().all(|r| !r.url.contains("/field")));
+    assert!(!sent(&fake, Method::Post)[0].1.contains("customfield"));
 }
 
 #[test]
@@ -688,24 +772,6 @@ fn one_click_creates_one_item_with_the_ref_as_its_label_and_a_second_click_creat
         fake.requests().is_empty(),
         "nothing is sent for an item that exists"
     );
-}
-
-// ---- the kinds without writes
-
-#[test]
-fn a_kind_without_writes_answers_with_the_reason_and_sends_nothing() {
-    let fake = Arc::new(FakeHttp::new());
-    let w = writer(
-        TrackerKind::AzureDevOps,
-        "https://dev.azure.com/acme",
-        &fake,
-    );
-    let err = w.assign("412", "x").unwrap_err();
-    assert!(
-        matches!(&err, TrackerError::Config(m) if m.contains("AzureDevOps")),
-        "{err:?}"
-    );
-    assert!(fake.requests().is_empty());
 }
 
 #[test]

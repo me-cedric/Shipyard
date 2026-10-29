@@ -1,0 +1,14 @@
+{
+  "id": 412,
+  "rev": 3,
+  "relations": [
+    {
+      "rel": "AttachedFile",
+      "url": "https://dev.azure.com/acme/_apis/wit/attachments/x"
+    },
+    {
+      "rel": "System.LinkTypes.Hierarchy-Reverse",
+      "url": "https://dev.azure.com/acme/_apis/wit/workItems/400"
+    }
+  ]
+}

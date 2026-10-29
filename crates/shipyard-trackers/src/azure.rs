@@ -5,33 +5,53 @@
 //! returns the fields. The cursor is the offset in the id list.
 
 use crate::Tracker;
+use crate::marker;
 use crate::model::*;
 use serde_json::{Value, json};
 use shipyard_http::{Auth, Http, Request, build_url, encode, items, num, text};
 use shipyard_secrets::Secret;
-use std::sync::Arc;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
-const API: &str = "7.1";
+pub(crate) const API: &str = "7.1";
+/// The comments API of 7.1 is a preview: the call fails without the suffix.
+pub(crate) const COMMENTS_API: &str = "7.1-preview.4";
 const FIELDS: &str = "System.Id,System.Title,System.Description,System.WorkItemType,System.State,System.AssignedTo,System.Tags,System.Parent,System.ChangedDate,System.TeamProject,Microsoft.VSTS.Scheduling.OriginalEstimate,Microsoft.VSTS.Scheduling.CompletedWork";
 
 pub struct Azure {
-    http: Arc<dyn Http>,
-    base: String,
-    token: Secret,
+    pub(crate) http: Arc<dyn Http>,
+    pub(crate) base: String,
+    pub(crate) token: Secret,
+    /// The story type of each project: see `write_azure`.
+    pub(crate) types: Mutex<HashMap<String, String>>,
 }
 
 impl Azure {
     pub fn new(http: Arc<dyn Http>, base: String, token: Secret) -> Self {
-        Self { http, base, token }
+        Self {
+            http,
+            base,
+            token,
+            types: Mutex::default(),
+        }
     }
 
-    fn auth(&self) -> Auth {
+    pub(crate) fn auth(&self) -> Auth {
         Auth::Basic(String::new(), self.token.clone())
     }
 
-    fn call(&self, path: &str, query: &[(&str, &str)]) -> Result<Value, TrackerError> {
+    pub(crate) fn call(&self, path: &str, query: &[(&str, &str)]) -> Result<Value, TrackerError> {
+        self.call_api(API, path, query)
+    }
+
+    fn call_api(
+        &self,
+        api: &str,
+        path: &str,
+        query: &[(&str, &str)],
+    ) -> Result<Value, TrackerError> {
         let mut q = query.to_vec();
-        q.push(("api-version", API));
+        q.push(("api-version", api));
         Ok(self
             .http
             .json(&Request::get(build_url(&self.base, path, &q), self.auth()))?)
@@ -211,27 +231,50 @@ impl Tracker for Azure {
     }
 
     fn comments(&self, key: &str) -> Result<Vec<Comment>, TrackerError> {
-        self.capabilities().require(Capability::Comments)?;
-        // The comments call needs the project, which the item holds.
-        let project = self
+        every(|cursor| self.comment_page(key, cursor))
+    }
+}
+
+impl Azure {
+    /// The project of a work item. The comment calls live under the project.
+    pub(crate) fn project(&self, key: &str) -> Result<String, TrackerError> {
+        let id = digits("work item", key).map_err(|_| TrackerError::NotFound(key.into()))?;
+        let item = self
             .call(
-                &format!("/_apis/wit/workitems/{key}"),
+                &format!("/_apis/wit/workitems/{id}"),
                 &[("fields", "System.TeamProject")],
             )
             .map_err(|e| e.not_found(key))?;
-        let project = text(&project, "/fields/System.TeamProject");
-        let v = self.call(
+        Ok(text(&item, "/fields/System.TeamProject"))
+    }
+
+    /// One page of comments, oldest first. The cursor is the continuation token.
+    pub(crate) fn comment_page(
+        &self,
+        key: &str,
+        cursor: Option<&str>,
+    ) -> Result<Page<Comment>, TrackerError> {
+        self.capabilities().require(Capability::Comments)?;
+        let project = self.project(key)?;
+        let mut query = vec![("$top", "100"), ("order", "asc")];
+        if let Some(token) = cursor {
+            query.push(("continuationToken", token));
+        }
+        let v = self.call_api(
+            COMMENTS_API,
             &format!("/{}/_apis/wit/workItems/{key}/comments", encode(&project)),
-            &[],
+            &query,
         )?;
-        Ok(items(&v, "/comments")
+        let found = items(&v, "/comments")
             .iter()
             .map(|c| Comment {
                 id: c["id"].to_string(),
                 author: person(&c["createdBy"]),
-                body: plain_text(&text(c, "/text")),
+                body: marker::from_wire(&plain_text(&text(c, "/text"))),
                 created: text(c, "/createdDate"),
             })
-            .collect())
+            .collect();
+        let next = Some(text(&v, "/continuationToken")).filter(|t| !t.is_empty());
+        Ok(Page { items: found, next })
     }
 }

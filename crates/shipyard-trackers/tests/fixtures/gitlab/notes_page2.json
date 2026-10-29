@@ -1,0 +1,12 @@
+[
+  {
+    "id": 502,
+    "body": "Option 2.",
+    "system": false,
+    "author": {
+      "id": 2,
+      "name": "Grace Hopper"
+    },
+    "created_at": "2026-10-28T12:00:00Z"
+  }
+]

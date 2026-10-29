@@ -1,0 +1,32 @@
+{
+  "data": {
+    "issue": {
+      "comments": {
+        "nodes": [
+          {
+            "id": "c1",
+            "body": "Reproduced on staging.",
+            "createdAt": "2026-10-28T10:00:00.000Z",
+            "user": {
+              "id": "u2",
+              "name": "Grace Hopper"
+            }
+          },
+          {
+            "id": "c2",
+            "body": "Which option?\n\n1. a (recommended)\n2. b\n\nReply with the number.\n\n(shipyard:q Q-007)",
+            "createdAt": "2026-10-28T11:00:00.000Z",
+            "user": {
+              "id": "u1",
+              "name": "Ada Lovelace"
+            }
+          }
+        ],
+        "pageInfo": {
+          "hasNextPage": true,
+          "endCursor": "cur-2"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "id": 9001,
+    "user": {
+      "login": "grace",
+      "id": 1
+    },
+    "body": "Reproduced on staging.",
+    "created_at": "2026-10-28T10:00:00Z"
+  },
+  {
+    "id": 9002,
+    "user": {
+      "login": "ada",
+      "id": 1
+    },
+    "body": "Which option?\n\n1. a (recommended)\n2. b\n\nReply with the number.\n\n<!-- shipyard:q Q-007 -->",
+    "created_at": "2026-10-28T11:00:00Z"
+  }
+]

@@ -78,6 +78,36 @@ impl TrackerError {
     }
 }
 
+/// A page of 100 comments or more is rare. This cap stops a loop on a tracker that never ends.
+const MAX_PAGES: usize = 50;
+
+/// Read every page: `page` gets the cursor, `None` first, then each `next`.
+pub(crate) fn every<T>(
+    mut page: impl FnMut(Option<&str>) -> Result<Page<T>, TrackerError>,
+) -> Result<Vec<T>, TrackerError> {
+    let (mut out, mut cursor) = (Vec::new(), None::<String>);
+    for _ in 0..MAX_PAGES {
+        let p = page(cursor.as_deref())?;
+        out.extend(p.items);
+        match p.next {
+            Some(next) => cursor = Some(next),
+            None => break,
+        }
+    }
+    Ok(out)
+}
+
+/// A comment or ticket id that goes into a URL path: digits only, so a crafted id cannot reach
+/// another path.
+pub(crate) fn digits<'a>(what: &str, id: &'a str) -> Result<&'a str, TrackerError> {
+    if id.is_empty() || !id.chars().all(|c| c.is_ascii_digit()) {
+        return Err(TrackerError::Config(format!(
+            "a {what} id is digits, not {id}"
+        )));
+    }
+    Ok(id)
+}
+
 /// Check the query against the flags, and its text, before any request.
 pub(crate) fn check_query(caps: &Capabilities, q: &WorkQuery) -> Result<(), TrackerError> {
     if q.label.is_some() {

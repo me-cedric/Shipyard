@@ -1,7 +1,8 @@
 //! Linear, GraphQL. The personal API key goes in `Authorization` with no `Bearer` prefix.
-//! Every query is a read. A request body never holds a `mutation`.
+//! The adapter sends queries. A request body never holds a `mutation`: the writes of `work` do.
 
 use crate::Tracker;
+use crate::marker;
 use crate::model::*;
 use serde_json::{Value, json};
 use shipyard_http::{Auth, Error, Http, Request, items, text};
@@ -12,8 +13,8 @@ const ENDPOINT: &str = "https://api.linear.app/graphql";
 const ISSUE: &str = "id identifier title description url updatedAt estimate state { name type } assignee { id name } labels { nodes { name } } parent { identifier }";
 
 pub struct Linear {
-    http: Arc<dyn Http>,
-    key: Secret,
+    pub(crate) http: Arc<dyn Http>,
+    pub(crate) key: Secret,
 }
 
 impl Linear {
@@ -21,7 +22,7 @@ impl Linear {
         Self { http, key }
     }
 
-    fn gql(&self, query: &str, variables: Value) -> Result<Value, TrackerError> {
+    pub(crate) fn gql(&self, query: &str, variables: Value) -> Result<Value, TrackerError> {
         let body = json!({ "query": query, "variables": variables });
         let res = self.http.send(&Request::post_json(
             ENDPOINT,
@@ -55,7 +56,7 @@ impl Linear {
     }
 }
 
-fn person(v: &Value) -> Person {
+pub(crate) fn person(v: &Value) -> Person {
     Person {
         id: text(v, "/id"),
         name: text(v, "/name"),
@@ -146,20 +147,35 @@ impl Tracker for Linear {
     }
 
     fn comments(&self, key: &str) -> Result<Vec<Comment>, TrackerError> {
+        every(|cursor| self.comment_page(key, cursor))
+    }
+}
+
+impl Linear {
+    /// One page of comments, oldest first. The cursor is the `endCursor` of the page before.
+    pub(crate) fn comment_page(
+        &self,
+        key: &str,
+        cursor: Option<&str>,
+    ) -> Result<Page<Comment>, TrackerError> {
         self.capabilities().require(Capability::Comments)?;
-        let query = "query($id: String!) { issue(id: $id) { comments(first: 100) { nodes { id body createdAt user { id name } } } } }";
-        let v = self.gql(query, json!({ "id": key }))?;
-        if !v["data"]["issue"].is_object() {
+        let query = "query($id: String!, $after: String) { issue(id: $id) { comments(first: 100, after: $after) { nodes { id body createdAt user { id name } } pageInfo { hasNextPage endCursor } } } }";
+        let v = self.gql(query, json!({ "id": key, "after": cursor }))?;
+        let issue = &v["data"]["issue"];
+        if !issue.is_object() {
             return Err(TrackerError::NotFound(key.into()));
         }
-        Ok(items(&v["data"]["issue"], "/comments/nodes")
+        let found = items(issue, "/comments/nodes")
             .iter()
             .map(|c| Comment {
                 id: text(c, "/id"),
                 author: person(&c["user"]),
-                body: text(c, "/body"),
+                body: marker::from_wire(&text(c, "/body")),
                 created: text(c, "/createdAt"),
             })
-            .collect())
+            .collect();
+        let next = (issue["comments"]["pageInfo"]["hasNextPage"].as_bool() == Some(true))
+            .then(|| text(issue, "/comments/pageInfo/endCursor"));
+        Ok(Page { items: found, next })
     }
 }

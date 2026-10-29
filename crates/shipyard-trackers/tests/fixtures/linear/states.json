@@ -1,0 +1,25 @@
+{
+  "data": {
+    "issue": {
+      "id": "uuid-ENG-42",
+      "team": {
+        "states": {
+          "nodes": [
+            {
+              "id": "s1",
+              "name": "Todo"
+            },
+            {
+              "id": "s2",
+              "name": "In Progress"
+            },
+            {
+              "id": "s3",
+              "name": "Done"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

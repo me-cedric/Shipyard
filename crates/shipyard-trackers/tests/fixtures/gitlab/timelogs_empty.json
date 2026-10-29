@@ -1,0 +1,15 @@
+{
+  "data": {
+    "project": {
+      "issue": {
+        "timelogs": {
+          "nodes": [],
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": null
+          }
+        }
+      }
+    }
+  }
+}

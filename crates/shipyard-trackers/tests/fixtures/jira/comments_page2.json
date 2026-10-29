@@ -1,0 +1,16 @@
+{
+  "startAt": 2,
+  "maxResults": 2,
+  "total": 3,
+  "comments": [
+    {
+      "id": "10003",
+      "author": {
+        "accountId": "acc-2",
+        "displayName": "Grace Hopper"
+      },
+      "body": "Option 2.",
+      "created": "2026-10-28T12:00:00.000+0000"
+    }
+  ]
+}

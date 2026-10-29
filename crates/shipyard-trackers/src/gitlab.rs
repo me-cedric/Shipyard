@@ -1,6 +1,7 @@
 //! GitLab Issues, REST v4. Works for gitlab.com and a self-managed host.
 
 use crate::Tracker;
+use crate::marker;
 use crate::model::*;
 use serde_json::Value;
 use shipyard_http::{Auth, Http, Request, build_url, encode, items, num, text};
@@ -8,9 +9,9 @@ use shipyard_secrets::Secret;
 use std::sync::Arc;
 
 pub struct GitLab {
-    http: Arc<dyn Http>,
-    api: String,
-    token: Secret,
+    pub(crate) http: Arc<dyn Http>,
+    pub(crate) api: String,
+    pub(crate) token: Secret,
 }
 
 impl GitLab {
@@ -39,7 +40,7 @@ impl GitLab {
     }
 }
 
-fn person(v: &Value) -> Person {
+pub(crate) fn person(v: &Value) -> Person {
     Person {
         id: v["id"].to_string(),
         name: text(v, "/name"),
@@ -90,7 +91,7 @@ fn item(v: &Value, scope_hint: &str) -> WorkItem {
 }
 
 /// `group/project#7` as (`group/project`, `7`).
-fn split_key(key: &str) -> Result<(&str, &str), TrackerError> {
+pub(crate) fn split_key(key: &str) -> Result<(&str, &str), TrackerError> {
     match key.rsplit_once('#') {
         Some((slug, iid))
             if !slug.is_empty() && !iid.is_empty() && iid.chars().all(|c| c.is_ascii_digit()) =>
@@ -160,24 +161,43 @@ impl Tracker for GitLab {
     }
 
     fn comments(&self, key: &str) -> Result<Vec<Comment>, TrackerError> {
+        every(|cursor| self.comment_page(key, cursor))
+    }
+}
+
+impl GitLab {
+    /// One page of comments, oldest first, with no system note. The cursor is the page number.
+    pub(crate) fn comment_page(
+        &self,
+        key: &str,
+        cursor: Option<&str>,
+    ) -> Result<Page<Comment>, TrackerError> {
         self.capabilities().require(Capability::Comments)?;
         let (slug, iid) = split_key(key)?;
-        let v = self
-            .call(
+        let page = digits("page", cursor.unwrap_or("1"))?;
+        let res = self
+            .send(
                 &format!("/projects/{}/issues/{iid}/notes", encode(slug)),
-                &[("sort", "asc"), ("per_page", "100")],
+                &[("sort", "asc"), ("per_page", "100"), ("page", page)],
             )
             .map_err(|e| e.not_found(key))?;
-        Ok(v.as_array()
+        let next = res
+            .header("x-next-page")
+            .filter(|n| !n.is_empty())
+            .map(String::from);
+        let found = res
+            .json()?
+            .as_array()
             .into_iter()
             .flatten()
             .filter(|n| n["system"].as_bool() != Some(true))
             .map(|n| Comment {
                 id: n["id"].to_string(),
                 author: person(&n["author"]),
-                body: text(n, "/body"),
+                body: marker::from_wire(&text(n, "/body")),
                 created: text(n, "/created_at"),
             })
-            .collect())
+            .collect();
+        Ok(Page { items: found, next })
     }
 }

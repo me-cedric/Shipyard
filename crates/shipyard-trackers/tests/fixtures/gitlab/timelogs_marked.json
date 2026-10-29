@@ -1,0 +1,28 @@
+{
+  "data": {
+    "project": {
+      "issue": {
+        "timelogs": {
+          "nodes": [
+            {
+              "id": "gid://gitlab/Timelog/3",
+              "spentAt": "2026-10-28T09:00:00Z",
+              "summary": "by hand",
+              "timeSpent": 1800
+            },
+            {
+              "id": "gid://gitlab/Timelog/4",
+              "spentAt": "2026-10-29T09:00:00Z",
+              "summary": "review of the login\n\nshipyard log=e1",
+              "timeSpent": 5400
+            }
+          ],
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": null
+          }
+        }
+      }
+    }
+  }
+}

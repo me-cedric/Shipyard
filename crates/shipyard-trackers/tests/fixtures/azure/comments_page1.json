@@ -1,0 +1,25 @@
+{
+  "totalCount": 3,
+  "count": 2,
+  "continuationToken": "tok-2",
+  "comments": [
+    {
+      "id": 31,
+      "text": "<p>Reproduced on staging.</p>",
+      "createdBy": {
+        "displayName": "Grace Hopper",
+        "id": "guid-2"
+      },
+      "createdDate": "2026-10-28T10:00:00Z"
+    },
+    {
+      "id": 32,
+      "text": "Which option?<br>1. a &amp; b<br>(shipyard:q Q-007)",
+      "createdBy": {
+        "displayName": "Ada Lovelace",
+        "id": "guid-1"
+      },
+      "createdDate": "2026-10-28T11:00:00Z"
+    }
+  ]
+}

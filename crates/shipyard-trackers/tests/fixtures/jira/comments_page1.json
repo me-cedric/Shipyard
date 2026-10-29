@@ -1,0 +1,25 @@
+{
+  "startAt": 0,
+  "maxResults": 2,
+  "total": 3,
+  "comments": [
+    {
+      "id": "10001",
+      "author": {
+        "accountId": "acc-2",
+        "displayName": "Grace Hopper"
+      },
+      "body": "Reproduced on staging.",
+      "created": "2026-10-28T10:00:00.000+0000"
+    },
+    {
+      "id": "10002",
+      "author": {
+        "accountId": "acc-1",
+        "displayName": "Ada Lovelace"
+      },
+      "body": "Which option?\n\n1. a (recommended)\n2. b\n\nReply with the number.\n\n(shipyard:q Q-007)",
+      "created": "2026-10-28T11:00:00.000+0000"
+    }
+  ]
+}

@@ -4,16 +4,21 @@
 //! A write is a function that a person's action calls. The adapters in the other modules read only.
 //! A worklog needs a [`Click`]: nothing in a run or a tick builds one (REQ-022).
 //!
-//! Built for Jira (Cloud and Data Center) and GitHub Issues. The other kinds answer
-//! [`TrackerError::Config`] and send nothing.
+//! Built for every kind: Jira (Cloud and Data Center), GitHub Issues, GitLab Issues, Azure DevOps
+//! and Linear. A call that needs a capability that the kind lacks answers
+//! [`TrackerError::Unsupported`] and sends nothing (REQ-003). The comment calls also serve the claim
+//! stamp of `add-sync` and the questions of `add-questions-loop`: see [`crate::marker`].
 //!
 //! shortcut: calls run one after the other with no pause between them; add a spacing when a tracker
 //! answers 429 on a large apply.
 
 use crate::github::{self, GitHub};
-use crate::jira::{API, Flavor, Jira};
+use crate::gitlab::GitLab;
+use crate::jira::{API, EpicFields, Flavor, Jira};
+use crate::linear::Linear;
+use crate::marker;
 use crate::model::*;
-use crate::{Tracker, TrackerConfig, connect};
+use crate::{Tracker, TrackerConfig, azure::Azure};
 use serde::Serialize;
 use serde_json::{Value, json};
 use shipyard_core::work::{
@@ -103,9 +108,31 @@ pub trait TrackerWrite: Tracker {
     ) -> Result<Written, TrackerError>;
 
     fn update(&self, key: &str, fields: &Fields) -> Result<Written, TrackerError>;
+
+    /// One page of comments, oldest first, with id, author, created time and body. `cursor` is
+    /// `Page::next` of the page before, `None` for the first. Needs the `comments` flag. The body
+    /// holds the canonical marker, never the wire form ([`crate::marker`]).
+    fn comments_page(&self, key: &str, cursor: Option<&str>)
+    -> Result<Page<Comment>, TrackerError>;
+
+    /// Post a comment and return its id. Write the marker of [`crate::marker::make`] in `body`.
+    /// Needs the `comments` flag. A comment is not a worklog: no [`Click`].
+    fn add_comment(&self, key: &str, body: &str) -> Result<String, TrackerError>;
+
+    /// Replace the body of a comment. A comment of another person is [`TrackerError::Refused`].
+    fn edit_comment(&self, key: &str, id: &str, body: &str) -> Result<(), TrackerError>;
+
+    /// Delete a comment. A comment of another person is [`TrackerError::Refused`].
+    fn delete_comment(&self, key: &str, id: &str) -> Result<(), TrackerError>;
 }
 
-/// Build the writer of a connection. Same checks as [`connect`].
+/// Every comment of a ticket, oldest first. It follows the cursor of [`TrackerWrite::comments_page`].
+/// shortcut: it stops after 50 pages (5,000 comments).
+pub fn all_comments(w: &dyn TrackerWrite, key: &str) -> Result<Vec<Comment>, TrackerError> {
+    every(|cursor| w.comments_page(key, cursor))
+}
+
+/// Build the writer of a connection. Same checks as [`crate::connect`].
 pub fn connect_write(
     config: &TrackerConfig,
     secret: Secret,
@@ -121,7 +148,9 @@ pub fn connect_write(
         }
         TrackerKind::JiraDataCenter => Box::new(Jira::data_center(http, base()?, secret)),
         TrackerKind::GitHubIssues => Box::new(GitHub::new(http, &base()?, secret)),
-        _ => Box::new(NotBuilt(connect(config, secret, http)?)),
+        TrackerKind::GitLabIssues => Box::new(GitLab::new(http, &base()?, secret)),
+        TrackerKind::AzureDevOps => Box::new(Azure::new(http, base()?, secret)),
+        TrackerKind::Linear => Box::new(Linear::new(http, secret)),
     })
 }
 
@@ -392,10 +421,53 @@ impl Jira {
         let url = build_url(&self.base, path, query);
         Ok(self.http.json(&Request::get(url, self.auth.clone()))?)
     }
+
+    fn remove(&self, path: &str) -> Result<(), TrackerError> {
+        let url = build_url(&self.base, path, &[]);
+        self.http
+            .send(&Request::delete(url, self.auth.clone()))?
+            .ok()?;
+        Ok(())
+    }
+
+    /// The ids of the epic fields. Data Center keeps them in custom fields that differ by
+    /// instance, so one `GET /field` finds them. The answer is kept for the connection.
+    fn epic_fields(&self) -> Result<EpicFields, TrackerError> {
+        let mut cache = self.epic.lock().expect("epic lock");
+        if let Some(found) = cache.as_ref() {
+            return Ok(found.clone());
+        }
+        let all = self.read(&format!("{API}/field"), &[])?;
+        let by = |custom: &str| {
+            all.as_array()?
+                .iter()
+                .find(|f| text(f, "/schema/custom") == custom)
+                .map(|f| text(f, "/id"))
+                .filter(|id| !id.is_empty())
+        };
+        let found = EpicFields {
+            link: by("com.pyxis.greenhopper.jira:gh-epic-link"),
+            name: by("com.pyxis.greenhopper.jira:gh-epic-label"),
+        };
+        *cache = Some(found.clone());
+        Ok(found)
+    }
+}
+
+/// A 403 on the edit or the delete of a comment: the tracker lets a person change their own only.
+pub(crate) fn own(e: TrackerError) -> TrackerError {
+    match e {
+        TrackerError::Http(shipyard_http::Error::Status {
+            status: 403,
+            detail,
+            ..
+        }) => TrackerError::Refused(format!("only the author can change this comment: {detail}")),
+        other => other,
+    }
 }
 
 /// A 400 or 409 on a transition is the workflow saying no.
-fn refused(e: TrackerError) -> TrackerError {
+pub(crate) fn refused(e: TrackerError) -> TrackerError {
     match e {
         TrackerError::Http(shipyard_http::Error::Status {
             status: 400 | 409 | 422,
@@ -521,7 +593,14 @@ impl TrackerWrite for Jira {
             "issuetype": { "name": if epic { "Epic" } else { "Story" } },
             "labels": [label],
         });
-        self.set(&mut fields, f, &mut skipped);
+        if epic
+            && self.flavor == Flavor::DataCenter
+            && let Some(id) = self.epic_fields()?.name
+        {
+            // Data Center refuses an epic with no `Epic Name`.
+            fields[id] = json!(f.title.clone().unwrap_or_default());
+        }
+        self.set(&mut fields, f, &mut skipped)?;
         let res = self.send(
             Method::Post,
             &format!("{API}/issue"),
@@ -551,7 +630,7 @@ impl TrackerWrite for Jira {
                 ..f.clone()
             },
             &mut skipped,
-        );
+        )?;
         self.send(
             Method::Put,
             &format!("{API}/issue/{}", encode(key)),
@@ -563,20 +642,68 @@ impl TrackerWrite for Jira {
             skipped,
         })
     }
+
+    fn comments_page(
+        &self,
+        key: &str,
+        cursor: Option<&str>,
+    ) -> Result<Page<Comment>, TrackerError> {
+        self.comment_page(key, cursor)
+    }
+
+    fn add_comment(&self, key: &str, body: &str) -> Result<String, TrackerError> {
+        self.capabilities().require(Capability::Comments)?;
+        let res = self.send(
+            Method::Post,
+            &format!("{API}/issue/{}/comment", encode(key)),
+            &[],
+            json!({ "body": marker::to_wire(body, true) }),
+        )?;
+        Ok(text(&res.json()?, "/id"))
+    }
+
+    fn edit_comment(&self, key: &str, id: &str, body: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Comments)?;
+        let id = digits("comment", id)?;
+        self.send(
+            Method::Put,
+            &format!("{API}/issue/{}/comment/{id}", encode(key)),
+            &[],
+            json!({ "body": marker::to_wire(body, true) }),
+        )
+        .map(|_| ())
+        .map_err(own)
+    }
+
+    fn delete_comment(&self, key: &str, id: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Comments)?;
+        let id = digits("comment", id)?;
+        self.remove(&format!("{API}/issue/{}/comment/{id}", encode(key)))
+            .map_err(own)
+    }
 }
 
 impl Jira {
-    /// The estimate and the parent. Data Center links a story to an epic through a custom field
-    /// that differs by instance, so the parent is skipped there.
-    fn set(&self, fields: &mut Value, f: &Fields, skipped: &mut Vec<Field>) {
+    /// The estimate and the parent. Data Center links a story to an epic through the `Epic Link`
+    /// custom field. A Data Center without that field cannot hold the parent: it is skipped.
+    fn set(
+        &self,
+        fields: &mut Value,
+        f: &Fields,
+        skipped: &mut Vec<Field>,
+    ) -> Result<(), TrackerError> {
         if let Some(d) = f.days {
             fields["timetracking"] = json!({ "originalEstimate": format!("{}m", minutes(d)) });
         }
         match (&f.parent, self.flavor) {
             (Some(p), Flavor::Cloud) => fields["parent"] = json!({ "key": p }),
-            (Some(_), Flavor::DataCenter) => skipped.push(Field::Parent),
+            (Some(p), Flavor::DataCenter) => match self.epic_fields()?.link {
+                Some(id) => fields[id] = json!(p),
+                None => skipped.push(Field::Parent),
+            },
             (None, _) => {}
         }
+        Ok(())
     }
 }
 
@@ -593,6 +720,17 @@ impl GitHub {
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28");
         Ok(self.http.send(&req)?.ok()?)
+    }
+
+    fn remove(&self, path: &str) -> Result<(), TrackerError> {
+        let req = Request::delete(
+            format!("{}{path}", self.api),
+            Auth::Bearer(self.token.clone()),
+        )
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2022-11-28");
+        self.http.send(&req)?.ok()?;
+        Ok(())
     }
 
     fn patch(&self, key: &str, body: Value) -> Result<(), TrackerError> {
@@ -686,6 +824,46 @@ impl TrackerWrite for GitHub {
             skipped: flat_skipped(f),
         })
     }
+
+    fn comments_page(
+        &self,
+        key: &str,
+        cursor: Option<&str>,
+    ) -> Result<Page<Comment>, TrackerError> {
+        self.comment_page(key, cursor)
+    }
+
+    fn add_comment(&self, key: &str, body: &str) -> Result<String, TrackerError> {
+        self.capabilities().require(Capability::Comments)?;
+        let (slug, number) = github::split_key(key)?;
+        let res = self.send(
+            Method::Post,
+            &format!("/repos/{slug}/issues/{number}/comments"),
+            json!({ "body": body }),
+        )?;
+        Ok(res.json()?["id"].to_string())
+    }
+
+    fn edit_comment(&self, key: &str, id: &str, body: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Comments)?;
+        let (slug, _) = github::split_key(key)?;
+        let id = digits("comment", id)?;
+        self.send(
+            Method::Patch,
+            &format!("/repos/{slug}/issues/comments/{id}"),
+            json!({ "body": body }),
+        )
+        .map(|_| ())
+        .map_err(own)
+    }
+
+    fn delete_comment(&self, key: &str, id: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Comments)?;
+        let (slug, _) = github::split_key(key)?;
+        let id = digits("comment", id)?;
+        self.remove(&format!("/repos/{slug}/issues/comments/{id}"))
+            .map_err(own)
+    }
 }
 
 /// A flat tracker holds no estimate and no parent.
@@ -698,60 +876,4 @@ fn flat_skipped(f: &Fields) -> Vec<Field> {
         out.push(Field::Parent);
     }
     out
-}
-
-// ---------------------------------------------------------------- the other kinds
-
-/// Reads work. A write answers with the reason and sends nothing.
-struct NotBuilt(Box<dyn Tracker>);
-
-impl NotBuilt {
-    fn no<T>(&self) -> Result<T, TrackerError> {
-        Err(TrackerError::Config(format!(
-            "writes are not built for {:?} yet",
-            self.0.kind()
-        )))
-    }
-}
-
-impl Tracker for NotBuilt {
-    fn kind(&self) -> TrackerKind {
-        self.0.kind()
-    }
-    fn me(&self) -> Result<Person, TrackerError> {
-        self.0.me()
-    }
-    fn search(&self, query: &WorkQuery) -> Result<Page<WorkItem>, TrackerError> {
-        self.0.search(query)
-    }
-    fn get(&self, key: &str) -> Result<WorkItem, TrackerError> {
-        self.0.get(key)
-    }
-    fn comments(&self, key: &str) -> Result<Vec<Comment>, TrackerError> {
-        self.0.comments(key)
-    }
-}
-
-impl TrackerWrite for NotBuilt {
-    fn assign(&self, _: &str, _: &str) -> Result<(), TrackerError> {
-        self.no()
-    }
-    fn add_label(&self, _: &str, _: &str) -> Result<(), TrackerError> {
-        self.no()
-    }
-    fn transition(&self, _: &str, _: &str) -> Result<(), TrackerError> {
-        self.no()
-    }
-    fn add_worklog(&self, _: &Click, _: &str, _: &NewWorklog) -> Result<Worklog, TrackerError> {
-        self.no()
-    }
-    fn worklogs(&self, _: &str) -> Result<Vec<Worklog>, TrackerError> {
-        self.no()
-    }
-    fn create(&self, _: &str, _: bool, _: &Fields, _: &str) -> Result<Written, TrackerError> {
-        self.no()
-    }
-    fn update(&self, _: &str, _: &Fields) -> Result<Written, TrackerError> {
-        self.no()
-    }
 }

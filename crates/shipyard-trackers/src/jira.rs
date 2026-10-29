@@ -6,11 +6,12 @@
 //! an offset), and the account id (`accountId` against `name`).
 
 use crate::Tracker;
+use crate::marker;
 use crate::model::{self, *};
 use serde_json::Value;
 use shipyard_http::{Auth, Http, Request, build_url, encode, items, text};
 use shipyard_secrets::Secret;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 const FIELDS: &str =
     "summary,description,labels,issuetype,parent,timetracking,status,assignee,updated";
@@ -27,6 +28,17 @@ pub struct Jira {
     pub(crate) base: String,
     pub(crate) auth: Auth,
     pub(crate) flavor: Flavor,
+    /// The custom fields of epics, read once from `/field` (Data Center only).
+    pub(crate) epic: Mutex<Option<EpicFields>>,
+}
+
+/// The ids of the two custom fields that Data Center needs for epics.
+#[derive(Clone, Default)]
+pub(crate) struct EpicFields {
+    /// `Epic Link`: set on a story to link it to its epic.
+    pub(crate) link: Option<String>,
+    /// `Epic Name`: required when an epic is created.
+    pub(crate) name: Option<String>,
 }
 
 impl Jira {
@@ -36,6 +48,7 @@ impl Jira {
             base,
             auth: Auth::Basic(email, token),
             flavor: Flavor::Cloud,
+            epic: Mutex::default(),
         }
     }
 
@@ -45,6 +58,7 @@ impl Jira {
             base,
             auth: Auth::Bearer(token),
             flavor: Flavor::DataCenter,
+            epic: Mutex::default(),
         }
     }
 
@@ -210,21 +224,40 @@ impl Tracker for Jira {
     }
 
     fn comments(&self, key: &str) -> Result<Vec<Comment>, TrackerError> {
+        every(|cursor| self.comment_page(key, cursor))
+    }
+}
+
+impl Jira {
+    /// One page of comments, oldest first. The cursor is the offset.
+    pub(crate) fn comment_page(
+        &self,
+        key: &str,
+        cursor: Option<&str>,
+    ) -> Result<Page<Comment>, TrackerError> {
         self.capabilities().require(Capability::Comments)?;
+        let start: u64 = cursor.map_or(Ok(0), |c| {
+            c.parse()
+                .map_err(|_| TrackerError::Config(format!("`{c}` is not a page cursor")))
+        })?;
         let v = self
             .call(
                 &format!("{API}/issue/{}/comment", encode(key)),
-                &[("maxResults", "100")],
+                &[("startAt", &start.to_string()), ("maxResults", "100")],
             )
             .map_err(|e| e.not_found(key))?;
-        Ok(items(&v, "/comments")
+        let found: Vec<Comment> = items(&v, "/comments")
             .iter()
             .map(|c| Comment {
                 id: text(c, "/id"),
                 author: person(c.pointer("/author").unwrap_or(&Value::Null)),
-                body: text(c, "/body"),
+                body: marker::from_wire(&text(c, "/body")),
                 created: text(c, "/created"),
             })
-            .collect())
+            .collect();
+        let end = start + found.len() as u64;
+        let total = shipyard_http::num(&v, "/total").unwrap_or(0);
+        let next = (end < total && !found.is_empty()).then(|| end.to_string());
+        Ok(Page { items: found, next })
     }
 }

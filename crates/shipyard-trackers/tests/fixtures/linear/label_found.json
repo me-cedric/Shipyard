@@ -1,0 +1,18 @@
+{
+  "data": {
+    "issueLabels": {
+      "nodes": [
+        {
+          "id": "lab-other",
+          "team": {
+            "id": "team-2"
+          }
+        },
+        {
+          "id": "lab-ws",
+          "team": null
+        }
+      ]
+    }
+  }
+}

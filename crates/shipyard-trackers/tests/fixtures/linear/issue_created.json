@@ -1,0 +1,10 @@
+{
+  "data": {
+    "issueCreate": {
+      "success": true,
+      "issue": {
+        "identifier": "ENG-77"
+      }
+    }
+  }
+}

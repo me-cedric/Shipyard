@@ -1,0 +1,31 @@
+[
+  {
+    "id": "summary",
+    "name": "Summary",
+    "custom": false,
+    "schema": {
+      "type": "string",
+      "system": "summary"
+    }
+  },
+  {
+    "id": "customfield_10100",
+    "name": "Epic Link",
+    "custom": true,
+    "schema": {
+      "type": "any",
+      "custom": "com.pyxis.greenhopper.jira:gh-epic-link",
+      "customId": 10100
+    }
+  },
+  {
+    "id": "customfield_10101",
+    "name": "Epic Name",
+    "custom": true,
+    "schema": {
+      "type": "string",
+      "custom": "com.pyxis.greenhopper.jira:gh-epic-label",
+      "customId": 10101
+    }
+  }
+]

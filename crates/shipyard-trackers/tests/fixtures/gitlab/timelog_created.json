@@ -1,0 +1,13 @@
+{
+  "data": {
+    "timelogCreate": {
+      "errors": [],
+      "timelog": {
+        "id": "gid://gitlab/Timelog/9",
+        "spentAt": "2026-10-29T09:00:00+01:00",
+        "summary": "x",
+        "timeSpent": 5400
+      }
+    }
+  }
+}

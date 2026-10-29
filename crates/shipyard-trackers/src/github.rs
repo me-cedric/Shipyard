@@ -2,6 +2,7 @@
 //! The issues endpoints list pull requests too. The adapter drops them.
 
 use crate::Tracker;
+use crate::marker;
 use crate::model::*;
 use serde_json::Value;
 use shipyard_http::{Auth, Http, Request, build_url, items, text};
@@ -184,23 +185,44 @@ impl Tracker for GitHub {
     }
 
     fn comments(&self, key: &str) -> Result<Vec<Comment>, TrackerError> {
+        every(|cursor| self.comment_page(key, cursor))
+    }
+}
+
+impl GitHub {
+    /// One page of comments, oldest first. The cursor is the page number.
+    pub(crate) fn comment_page(
+        &self,
+        key: &str,
+        cursor: Option<&str>,
+    ) -> Result<Page<Comment>, TrackerError> {
         self.capabilities().require(Capability::Comments)?;
         let (slug, number) = split_key(key)?;
-        let v = self
-            .call(
+        let page = digits("page", cursor.unwrap_or("1"))?;
+        let res = self
+            .http
+            .send(&self.request(
                 &format!("/repos/{slug}/issues/{number}/comments"),
-                &[("per_page", "100")],
-            )
-            .map_err(|e| e.not_found(key))?;
-        Ok(v.as_array()
+                &[("per_page", "100"), ("page", page)],
+            ))?
+            .ok()
+            .map_err(|e| TrackerError::from(e).not_found(key))?;
+        let more = res
+            .header("link")
+            .is_some_and(|l| l.contains("rel=\"next\""));
+        let found = res
+            .json()?
+            .as_array()
             .into_iter()
             .flatten()
             .map(|c| Comment {
                 id: c["id"].to_string(),
                 author: person(&c["user"]),
-                body: text(c, "/body"),
+                body: marker::from_wire(&text(c, "/body")),
                 created: text(c, "/created_at"),
             })
-            .collect())
+            .collect();
+        let next = more.then(|| (page.parse::<u64>().unwrap_or(1) + 1).to_string());
+        Ok(Page { items: found, next })
     }
 }
