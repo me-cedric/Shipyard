@@ -9,12 +9,14 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use shipyard_core::pickup::{AUTOMATION_FILE, Automation, Ticket};
-use shipyard_core::refs::{Ref, parse};
+use shipyard_core::refs::{Ref, detect, parse};
+use shipyard_core::work::Team;
 use shipyard_core::work_item::StatusCategory;
 use shipyard_engine::tick::TickReport;
 use shipyard_git::Repo;
 use shipyard_store::automation_file::{AutomationRead, read_automation, write_automation};
 use shipyard_store::project::{Entry, FileRead, read_project_file};
+use shipyard_store::ref_index::{Citation, Entity, RefIndex};
 use shipyard_store::ref_query::{Resolved, State};
 use specta::Type;
 use tauri::AppHandle;
@@ -28,13 +30,15 @@ pub const TICK_EVENT: &str = "sync-tick";
 
 // ---------------------------------------------------------------- the active project
 
-struct Active {
-    entry: Entry,
-    tracker: Option<String>,
-    forge: Option<String>,
+pub(crate) struct Active {
+    pub entry: Entry,
+    pub tracker: Option<String>,
+    pub forge: Option<String>,
+    /// `connections.trackerScope` of `.shipyard/project.yaml`.
+    scope: Option<String>,
 }
 
-fn active(s: &AppState) -> Res<Option<Active>> {
+pub(crate) fn active(s: &AppState) -> Res<Option<Active>> {
     let Some(entry) = s.registry()?.active().cloned() else {
         return Ok(None);
     };
@@ -46,10 +50,11 @@ fn active(s: &AppState) -> Res<Option<Active>> {
         entry,
         tracker: conns.tracker,
         forge: conns.forge,
+        scope: conns.tracker_scope,
     }))
 }
 
-fn automation_in(root: &Path) -> Res<Automation> {
+pub(crate) fn automation_in(root: &Path) -> Res<Automation> {
     match read_automation(root).map_err(err)? {
         AutomationRead::Missing => Ok(Automation::default()),
         AutomationRead::Valid(a) => Ok(a),
@@ -64,38 +69,77 @@ fn automation_in(root: &Path) -> Res<Automation> {
     }
 }
 
-/// What the engine of the active project needs, or `None` when the project names no tracker
-/// connection that exists.
-///
-/// shortcut: the tracker scope has no setting. GitHub and GitLab use the origin repository. The
-/// other trackers use the key of the project (`.shipyard/project.yaml`), which must then be the
-/// Jira project key, the Azure DevOps project or the Linear team. Add a setting when it is not.
-fn plan(s: &AppState, a: &Active) -> Res<Option<Plan>> {
+/// The tracker connection of the active project and its container, or `None` when the project
+/// names no tracker connection that exists. The container is the setting
+/// `connections.trackerScope` of `.shipyard/project.yaml`. Without it, GitHub and GitLab use the
+/// origin repository and the other trackers list the whole account.
+pub(crate) fn tracker_target(
+    s: &AppState,
+    a: &Active,
+) -> Res<Option<(String, Option<String>, ConnectionKind)>> {
     let Some(tracker) = a.tracker.clone() else {
         return Ok(None);
     };
     let Some(conn) = s.connections.get(&tracker)? else {
         return Ok(None);
     };
-    let root = Path::new(&a.entry.path);
-    let remote = Repo::open(root)
+    let scope = match (&a.scope, conn.kind) {
+        (Some(set), _) => Some(set.clone()),
+        (None, ConnectionKind::GitHub | ConnectionKind::GitLab) => origin_slug(&a.entry),
+        (None, _) => None,
+    };
+    Ok(Some((tracker, scope, conn.kind)))
+}
+
+fn origin_slug(e: &Entry) -> Option<String> {
+    Repo::open(Path::new(&e.path))
         .ok()
         .and_then(|r| r.remote().ok().flatten())
-        .and_then(|(_, url)| repo_slug(&url));
-    let scope = match conn.kind {
-        ConnectionKind::GitHub | ConnectionKind::GitLab => remote.clone(),
-        _ => Some(a.entry.key.clone()),
+        .and_then(|(_, url)| repo_slug(&url))
+}
+
+/// The pickup filter names a team handle. The tracker ids and names of that member go in
+/// `accounts`, so the filter matches each account of the member (REQ-006). A handle that the team
+/// lacks stays as it is and matches a tracker id or name directly. A sealed day rate does not
+/// matter here: no passphrase is needed for handles and accounts.
+fn resolve_assignee(root: &Path, auto: &mut Automation) {
+    let Some(handle) = auto.pickup.assignee.clone() else {
+        return;
     };
-    let forge = match (&a.forge, remote) {
+    let Ok(text) = std::fs::read_to_string(root.join(shipyard_store::work::TEAM_PATH)) else {
+        return;
+    };
+    if let Ok(team) = shipyard_store::work::read_team(&text, None)
+        && let Some(m) = team.resolve(&handle)
+    {
+        auto.pickup.accounts = m
+            .trackers
+            .iter()
+            .cloned()
+            .chain(std::iter::once(m.name.clone()))
+            .collect();
+    }
+}
+
+/// What the engine of the active project needs, or `None` when the project names no tracker
+/// connection that exists.
+fn plan(s: &AppState, a: &Active) -> Res<Option<Plan>> {
+    let Some((tracker, scope, _)) = tracker_target(s, a)? else {
+        return Ok(None);
+    };
+    let root = Path::new(&a.entry.path);
+    let forge = match (&a.forge, origin_slug(&a.entry)) {
         (Some(id), Some(repo)) if s.connections.get(id)?.is_some() => Some((id.clone(), repo)),
         _ => None,
     };
+    let mut automation = automation_in(root)?;
+    resolve_assignee(root, &mut automation);
     Ok(Some(Plan {
         project: a.entry.id.clone(),
         tracker,
         scope,
         forge,
-        automation: automation_in(root)?,
+        automation,
     }))
 }
 
@@ -302,6 +346,10 @@ pub struct WorkItemView {
     /// `todo`, `in-progress` or `done`.
     pub category: String,
     pub assignee: Option<String>,
+    /// The team handle of the assignee, found through the tracker accounts of `team.yaml`. `None`
+    /// when the item has no assignee or the team lacks the assignee: the row shows an unknown
+    /// member (`work` REQ-008).
+    pub member: Option<String>,
     pub labels: Vec<String>,
     pub parent: Option<String>,
     pub url: String,
@@ -320,7 +368,7 @@ fn category(c: StatusCategory) -> &'static str {
     }
 }
 
-fn view(t: &Ticket, linked: Option<&str>, claimed: bool) -> WorkItemView {
+fn view(t: &Ticket, team: &Team, linked: Option<&str>, claimed: bool) -> WorkItemView {
     let i = &t.item;
     WorkItemView {
         key: i.key.clone(),
@@ -329,6 +377,11 @@ fn view(t: &Ticket, linked: Option<&str>, claimed: bool) -> WorkItemView {
         status: i.status.name.clone(),
         category: category(i.status.category).into(),
         assignee: i.assignee.as_ref().map(|p| p.name.clone()),
+        member: i.assignee.as_ref().and_then(|p| {
+            team.resolve(&p.id)
+                .or_else(|| team.resolve(&p.name))
+                .map(|m| m.handle.clone())
+        }),
         labels: i.labels.clone(),
         parent: i.parent.clone(),
         url: i.url.clone(),
@@ -354,18 +407,28 @@ fn keep(f: &ItemFilter, t: &Ticket) -> bool {
         && set(&f.label).is_none_or(|x| i.labels.iter().any(|l| l.eq_ignore_ascii_case(x)))
 }
 
+/// The members of `team.yaml`. A missing or invalid file is an empty team: a row then shows an
+/// unknown member. No passphrase is needed for handles and accounts.
+pub(crate) fn team_of(root: &Path) -> Team {
+    std::fs::read_to_string(root.join(shipyard_store::work::TEAM_PATH))
+        .ok()
+        .and_then(|t| shipyard_store::work::read_team(&t, None).ok())
+        .unwrap_or_default()
+}
+
 /// At most this many rows. The views filter first.
 const MAX_ITEMS: usize = 1000;
 
 /// The mirrored tickets of the tracker of the active project, newest update first. No request
 /// leaves the machine.
 pub fn items(s: &AppState, f: &ItemFilter) -> Res<Vec<WorkItemView>> {
-    let Some(src) = active(s)?.and_then(|a| a.tracker) else {
+    let Some(a) = active(s)? else {
         return Ok(Vec::new());
     };
-    if !s.sync.mirror_exists() {
+    let (Some(src), true) = (a.tracker, s.sync.mirror_exists()) else {
         return Ok(Vec::new());
-    }
+    };
+    let team = team_of(Path::new(&a.entry.path));
     let m = s.sync.mirror().map_err(err)?;
     let links = m.links(&src).map_err(err)?;
     let claims = m.claims(&src).map_err(err)?;
@@ -380,7 +443,7 @@ pub fn items(s: &AppState, f: &ItemFilter) -> Res<Vec<WorkItemView>> {
                 .iter()
                 .find(|(_, k)| k == key)
                 .map(|(l, _)| l.as_str());
-            view(t, linked, claims.iter().any(|c| c.key == *key))
+            view(t, &team, linked, claims.iter().any(|c| c.key == *key))
         })
         .collect();
     rows.sort_by(|a, b| (&b.updated, &a.key).cmp(&(&a.updated, &b.key)));
@@ -435,6 +498,88 @@ enum Mirrored {
     Pull(u64),
 }
 
+// ---------------------------------------------------------------- the ref index
+
+/// Puts the mirror into the ref index, so search and backlinks include `wi:` and `pr:` (REQ-016).
+/// A ticket cites its assignee (`member:`, found through `team.yaml`), each ref in its labels, its
+/// parent and, in reverse, the local item that links to it. A key that is no `wi:` ref (a GitHub
+/// issue) is left out, as the grammar leaves it out. The read is skipped while the mirror and the
+/// team file are as the last read left them.
+pub(crate) fn index_mirror(s: &AppState, root: &Path, index: &mut RefIndex) -> Res<()> {
+    let Some(a) = active(s)? else {
+        return Ok(());
+    };
+    if !s.sync.mirror_exists() {
+        return Ok(());
+    }
+    let m = s.sync.mirror().map_err(err)?;
+    let team_file = std::fs::metadata(root.join(shipyard_store::work::TEAM_PATH))
+        .ok()
+        .map(|f| (f.len(), f.modified().ok()));
+    let mut sources: Vec<(String, bool)> = a.tracker.iter().map(|t| (t.clone(), true)).collect();
+    sources.extend(a.forge.iter().map(|f| (f.clone(), false)));
+    let team = team_of(root);
+    for (id, tracker) in sources {
+        let key = format!("mirror:{id}");
+        let fp = format!("{}|{team_file:?}", m.fingerprint(&id).map_err(err)?);
+        if index.fingerprint(&key).map_err(err)?.as_deref() == Some(fp.as_str()) {
+            continue;
+        }
+        let (mut ents, mut cites) = (Vec::new(), Vec::new());
+        if tracker {
+            let links = m.links(&id).map_err(err)?;
+            for t in m.tickets(&id).map_err(err)? {
+                let i = &t.item;
+                let me = format!("wi:{}", i.key);
+                if parse(&me).is_none() {
+                    continue;
+                }
+                ents.push(Entity::new(
+                    &me,
+                    &i.title,
+                    Some(&i.status.name),
+                    Some(&i.url),
+                ));
+                let member = i
+                    .assignee
+                    .as_ref()
+                    .and_then(|p| team.resolve(&p.id).or_else(|| team.resolve(&p.name)));
+                let cited = member
+                    .map(|m| format!("member:{}", m.handle))
+                    .into_iter()
+                    .chain(i.labels.iter().filter(|l| parse(l).is_some()).cloned())
+                    .chain(i.parent.iter().map(|p| format!("wi:{p}")))
+                    .map(|target| Citation {
+                        source: me.clone(),
+                        target,
+                    });
+                cites.extend(cited);
+                cites.extend(links.iter().filter(|(_, k)| *k == i.key).map(|(local, _)| {
+                    Citation {
+                        source: local.clone(),
+                        target: me.clone(),
+                    }
+                }));
+            }
+        } else {
+            for p in m.pulls(&id).map_err(err)? {
+                let me = format!("pr:{id}:{}", p.number);
+                if parse(&me).is_none() {
+                    continue;
+                }
+                let state = format!("{:?}", p.state).to_ascii_lowercase();
+                ents.push(Entity::new(&me, &p.title, Some(&state), Some(&p.url)));
+                cites.extend(detect(&p.title).into_iter().map(|f| Citation {
+                    source: me.clone(),
+                    target: f.target.to_string(),
+                }));
+            }
+        }
+        index.set_source(&key, &fp, &ents, &cites).map_err(err)?;
+    }
+    Ok(())
+}
+
 // ---------------------------------------------------------------- adopt, link, import
 
 /// Reads the open tickets and keeps them for `import_confirm`. Writes nothing. Returns the count
@@ -456,7 +601,7 @@ pub fn adopt(s: &AppState, key: &str) -> Res<WorkItemView> {
     }
     let t = running(s)?.with(|e| e.adopt(key))?;
     s.sync.changed();
-    Ok(view(&t, None, false))
+    Ok(view(&t, &team_of(&active_root(s)?), None, false))
 }
 
 /// Links a ticket to a local item, a ref such as `change:add-sync`.
@@ -641,6 +786,7 @@ mod tests {
         f.connections = Some(ProjectConnections {
             tracker: Some("issues".into()),
             forge: Some("code".into()),
+            tracker_scope: None,
         });
         write_project_file(repo.path(), &f).unwrap();
         Fixture {
@@ -836,5 +982,159 @@ mod tests {
         assert!(unlink(&f.s, "change:add-sync").unwrap());
         assert!(!unlink(&f.s, "change:add-sync").unwrap());
         assert_eq!(items(&f.s, &ItemFilter::default()).unwrap()[0].linked, None);
+    }
+
+    fn write_team(root: &Path, trackers: &str) {
+        std::fs::write(
+            root.join(".shipyard/team.yaml"),
+            format!(
+                "members:\n  - name: Ana Lopez\n    handle: ana\n    trackers: [{trackers}]\n    role: dev\n    capacity: 5\n"
+            ),
+        )
+        .unwrap();
+    }
+
+    fn sources(s: &AppState, target: &str) -> Vec<String> {
+        crate::commands::refs::with_index(s, |i| i.backlinks(target))
+            .unwrap()
+            .into_iter()
+            .flat_map(|g| g.items.into_iter().map(|b| b.source))
+            .collect()
+    }
+
+    #[test]
+    fn the_mirror_is_in_the_ref_index_for_search_and_backlinks() {
+        use crate::commands::refs::with_index;
+        use shipyard_core::work_item::Person;
+        let f = fixture();
+        run_tick(&f.s).unwrap();
+        write_team(f.repo.path(), "U1");
+        let m = f.s.sync.mirror().unwrap();
+        let base = m.ticket("issues", "acme/web#13").unwrap().unwrap();
+        let mut one = Ticket::new(base.item.clone());
+        one.item.key = "ACME-1".into();
+        one.item.assignee = Some(Person {
+            id: "U1".into(),
+            name: "Ada".into(),
+        });
+        one.item.labels = vec!["est:mvp-1#form".into(), "plain".into()];
+        one.item.parent = Some("ACME-2".into());
+        let mut two = Ticket::new(base.item);
+        two.item.key = "ACME-2".into();
+        two.item.title = "Epic".into();
+        two.item.assignee = None;
+        m.put_tickets("issues", &[one, two]).unwrap();
+        m.link("issues", "change:add-sync", "ACME-1").unwrap();
+
+        let hit = |q: &str| -> Vec<String> {
+            with_index(&f.s, |i| i.search(q, 20))
+                .unwrap()
+                .into_iter()
+                .map(|h| h.target)
+                .collect()
+        };
+        assert!(hit("export").contains(&"wi:ACME-1".to_string()));
+        assert_eq!(hit("epic"), ["wi:ACME-2"]);
+        // The pull request of the forge connection `code`. A key that is no ref stays out.
+        assert!(hit("endpoint").contains(&"pr:code:7".to_string()));
+        assert!(!hit("acme/web").iter().any(|r| r.starts_with("wi:")));
+
+        assert_eq!(sources(&f.s, "member:ana"), ["wi:ACME-1"]);
+        assert_eq!(sources(&f.s, "est:mvp-1#form"), ["wi:ACME-1"]);
+        assert_eq!(sources(&f.s, "wi:ACME-2"), ["wi:ACME-1"]);
+        assert_eq!(sources(&f.s, "wi:ACME-1"), ["change:add-sync"]);
+
+        // A new link and a changed team show at the next query, with no manual refresh.
+        m.unlink("issues", "change:add-sync").unwrap();
+        assert!(sources(&f.s, "wi:ACME-1").is_empty());
+        write_team(f.repo.path(), "U9");
+        assert!(sources(&f.s, "member:ana").is_empty());
+        // `refs_resolve` still answers from the mirror first.
+        let r = crate::commands::refs::resolve(&f.s, "wi:ACME-2")
+            .unwrap()
+            .unwrap();
+        assert_eq!(r.title.as_deref(), Some("Epic"));
+    }
+
+    #[test]
+    fn the_tracker_scope_comes_from_the_project_file_and_not_from_a_guess() {
+        let f = fixture();
+        let a = active(&f.s).unwrap().unwrap();
+        // GitHub with no setting: the origin repository.
+        let (_, scope, _) = tracker_target(&f.s, &a).unwrap().unwrap();
+        assert_eq!(scope.as_deref(), Some("acme/web"));
+        let FileRead::Valid(mut file) = read_project_file(f.repo.path()).unwrap() else {
+            panic!("a valid file")
+        };
+        file.connections.as_mut().unwrap().tracker_scope = Some("other/repo".into());
+        write_project_file(f.repo.path(), &file).unwrap();
+        let a = active(&f.s).unwrap().unwrap();
+        let (_, scope, _) = tracker_target(&f.s, &a).unwrap().unwrap();
+        assert_eq!(scope.as_deref(), Some("other/repo"), "the setting wins");
+        // The engine follows the setting.
+        assert_eq!(
+            ensure(&f.s).unwrap().unwrap().plan().scope.as_deref(),
+            Some("other/repo")
+        );
+    }
+
+    #[test]
+    fn the_pickup_assignee_resolves_through_the_team_handles() {
+        let f = fixture();
+        let mut a = Automation::default();
+        a.pickup.assignee = Some("ana".into());
+        automation_save(&f.s, &a).unwrap();
+        // No team file: the handle stays and matches a tracker id or name by itself.
+        assert!(
+            ensure(&f.s)
+                .unwrap()
+                .unwrap()
+                .plan()
+                .automation
+                .pickup
+                .accounts
+                .is_empty()
+        );
+        write_team(f.repo.path(), "U1, ada-l");
+        let plan = ensure(&f.s).unwrap().unwrap().plan();
+        assert_eq!(
+            plan.automation.pickup.accounts,
+            ["U1", "ada-l", "Ana Lopez"]
+        );
+        // The file on disk still holds the handle only.
+        assert!(
+            automation_get(&f.s)
+                .unwrap()
+                .automation
+                .pickup
+                .accounts
+                .is_empty()
+        );
+        let text = std::fs::read_to_string(f.repo.path().join(AUTOMATION_FILE)).unwrap();
+        assert!(text.contains("ana") && !text.contains("U1"));
+    }
+
+    #[test]
+    fn a_row_names_the_member_of_its_assignee() {
+        let f = fixture();
+        run_tick(&f.s).unwrap();
+        let m = f.s.sync.mirror().unwrap();
+        let mut t = m.ticket("issues", "acme/web#13").unwrap().unwrap();
+        t.item.assignee = Some(shipyard_core::work_item::Person {
+            id: "U1".into(),
+            name: "Ada".into(),
+        });
+        m.put_tickets("issues", &[t]).unwrap();
+        let member = |s: &AppState| {
+            items(s, &ItemFilter::default())
+                .unwrap()
+                .into_iter()
+                .find(|i| i.key == "acme/web#13")
+                .unwrap()
+                .member
+        };
+        assert_eq!(member(&f.s), None, "no team: an unknown member");
+        write_team(f.repo.path(), "U1");
+        assert_eq!(member(&f.s).as_deref(), Some("ana"));
     }
 }

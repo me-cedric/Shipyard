@@ -39,6 +39,7 @@ pub struct AppState {
     pub connections: Arc<Connections>,
     pub agents: Agents,
     pub sync: SyncHost,
+    pub work: crate::work::Session,
     lock: Mutex<()>,
     /// The remote watch notice of each project id, until the person syncs (spec `code`, REQ-017).
     notices: Mutex<HashMap<String, code::WatchNotice>>,
@@ -62,6 +63,7 @@ impl AppState {
             sync: SyncHost::new(&dir, connections.clone(), background),
             connections,
             agents: Agents::system(&dir),
+            work: Default::default(),
             dir,
             lock: Mutex::new(()),
             notices: Mutex::new(HashMap::new()),

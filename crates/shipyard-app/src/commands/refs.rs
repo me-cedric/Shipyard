@@ -51,6 +51,8 @@ pub fn with_index<T: Default>(
     }
     let (_, index) = slot.as_mut().ok_or("no index")?;
     index.sync_repo(&root, &file).map_err(err)?;
+    // A broken mirror must not break every ref query: the next query reads it again.
+    let _ = super::sync::index_mirror(s, &root, index);
     f(index).map_err(err)
 }
 

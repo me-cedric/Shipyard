@@ -136,6 +136,7 @@ mod tests {
             f.connections = Some(ProjectConnections {
                 tracker: tracker.map(String::from),
                 forge: forge.map(String::from),
+                tracker_scope: None,
             });
             write_project_file(root, &f).unwrap();
         };
