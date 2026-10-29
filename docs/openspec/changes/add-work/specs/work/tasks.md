@@ -25,18 +25,18 @@ Plan: [plan.md](./plan.md)
 - [x] T010b Write tests in `crates/shipyard-trackers/tests/writes.rs`, then implement the writes for GitLab Issues, Azure DevOps and Linear in `crates/shipyard-trackers/src/write_{gitlab,azure,linear}.rs`: assign, label, transition with refusal, comments, create, update, apply. Worklog for GitLab only (GraphQL timelogs). Azure DevOps and Linear answer `Unsupported` for a worklog. Jira Data Center sets the parent of a story through the `Epic Link` field and names an epic through `Epic Name` (tests in `crates/shipyard-trackers/tests/work.rs`).
 - [x] T011 [P] Write IPC tests for the Work commands and for the `member:` and `est:` entities in `crates/shipyard-app/src/work/tests.rs` (they need the app state, which is private to the crate), and the entity scan tests in `crates/shipyard-store/tests/work_refs.rs`. Covers REQ-003 to REQ-008, REQ-010, REQ-012 to REQ-014, REQ-016, REQ-017, REQ-020 to REQ-027, REQ-029.
 - [x] T012 Implement the commands in `crates/shipyard-app/src/work.rs`: team, suggestion, assign, mark, transition, seal, estimates, Excel, plan, time, apply preview and apply, one item from a ref. The `member:` and `est:` entities come from the scan of `crates/shipyard-store/src/repo_scan.rs`. This is the backend of T014, T016, T018, T020 and T022. Covers REQ-002, REQ-003 to REQ-008, REQ-010, REQ-012 to REQ-014, REQ-016, REQ-017, REQ-020 to REQ-027, REQ-029.
-- [ ] T013 [P] Write component tests for Backlog and Board in `src/features/work/backlog.test.tsx`. Covers REQ-001, REQ-002.
-- [ ] T014 Build Backlog and Board in `src/features/work/`. Covers REQ-001, REQ-002.
-- [ ] T015 [P] Write component tests for Team and assignment in `src/features/work/team.test.tsx`. Covers REQ-004, REQ-005, REQ-006, REQ-007, REQ-008.
-- [ ] T016 Build Team and assignment in `src/features/work/`. Covers REQ-004 to REQ-008.
-- [ ] T017 [P] Write component tests for Estimates in `src/features/work/estimates.test.tsx`. Covers REQ-009 to REQ-015.
-- [ ] T018 Build Estimates in `src/features/work/`. Covers REQ-009 to REQ-015.
-- [ ] T019 [P] Write component tests for Plan and Time in `src/features/work/plan.test.tsx` and `time.test.tsx`. Covers REQ-016 to REQ-024.
-- [ ] T020 Build Plan and Time in `src/features/work/`. Covers REQ-016 to REQ-024.
-- [ ] T021 [P] Write component tests for the apply flow in `src/features/work/apply.test.tsx`. Covers REQ-019, REQ-025, REQ-026, REQ-029.
-- [ ] T022 Build the apply preview and apply in `src/features/work/`. Covers REQ-019, REQ-025, REQ-026, REQ-029.
-- [ ] T023 Write the e2e test `e2e/work.spec.ts` with a fake tracker: assign, estimate, plan, time, apply. Covers REQ-001 to REQ-029.
-- [ ] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-028.
+- [x] T013 [P] Write component tests for Backlog and Board in `src/features/work/backlog.test.tsx`. Covers REQ-001, REQ-002.
+- [x] T014 Build Backlog and Board in `src/features/work/` on the new `src/ui/` parts (`TicketRow`, `TicketCard`, `BoardColumn`, `VirtualList`, `Board`, `ListDetail`). The ticket opens in the inspector (`TicketDetail`). Covers REQ-001, REQ-002.
+- [x] T015 [P] Write component tests for Team and assignment in `src/features/work/team.test.tsx`. Covers REQ-004, REQ-005, REQ-006, REQ-007, REQ-008.
+- [x] T016 Build Team and assignment in `src/features/work/` (`MemberRow`, `SuggestionRow`, `SealBar`). Covers REQ-004 to REQ-008.
+- [x] T017 [P] Write component tests for Estimates in `src/features/work/estimates.test.tsx`. Covers REQ-009 to REQ-015.
+- [x] T018 Build Estimates in `src/features/work/` (`DataTable`, `ViewTabs`, `Stat`, the Excel preview dialog). Covers REQ-009 to REQ-015.
+- [x] T019 [P] Write component tests for Plan and Time in `src/features/work/plan.test.tsx` and `time.test.tsx`. Covers REQ-016 to REQ-024.
+- [x] T020 Build Plan and Time in `src/features/work/` (the `Gantt` organism). Covers REQ-016 to REQ-024.
+- [x] T021 [P] Write component tests for the apply flow in `src/features/work/apply.test.tsx`. Covers REQ-019, REQ-025, REQ-026, REQ-029.
+- [x] T022 Build the apply preview and apply in `src/features/work/apply.tsx` on the `ApplyDialog` organism. Apply sits in Work / Plan. `CreateWorkItem` sits in the inspector of a ref. Covers REQ-019, REQ-025, REQ-026, REQ-029.
+- [x] T023 Write the e2e test `e2e/work.spec.ts` with a fake tracker: assign, estimate, plan, time, apply. Covers REQ-001 to REQ-029.
+- [x] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-028.
 - [ ] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-029.
 - [ ] T026 Compare the code with `spec.md`, update stale artifacts, then close Q-032, Q-033, Q-034 and Q-060. Covers REQ-005, REQ-010, REQ-021, REQ-026.
 

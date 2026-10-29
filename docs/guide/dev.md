@@ -11,7 +11,7 @@
 |---|---|
 | `crates/` | Rust workspace. Domain logic in `shipyard-core` has no I/O. |
 | `crates/shipyard-app/` | Tauri shell: `tauri.conf.json`, `capabilities/`, `icons/`, commands in `src/commands/`. |
-| `src/ui/` | Design system: `tokens`, `icons`, `atoms`, `molecules`, `organisms`, `templates`, `gallery`. |
+| `src/ui/` | Design system: `tokens`, `icons`, `atoms`, `molecules`, `organisms`, `templates`, `gallery`. Long lists use `VirtualList` and `DataTable` (TanStack Virtual and Table). |
 | `src/features/<space>/` | One folder per space. A feature imports only `@/ui`, `@/lib` and its own folder. |
 | `src/lib/ipc/` | Generated bindings and the mock layer. |
 | `src/lib/i18n/` | English and French catalogues. `fr.ts` has the type of `en.ts`. |
@@ -33,7 +33,7 @@ The gallery is at `/dev/gallery` in the dev build only.
 2. Run `pnpm ipc:gen`. It runs `cargo test --workspace` and writes `src/lib/ipc/bindings.ts`. Do not edit that file.
 3. Add the mock handler in `src/lib/ipc/mock.ts`. A handler gets the arguments in order and returns the data. `pnpm typecheck` fails until each command has a handler. Tests start from an empty mock (`resetMock`) and read it with `mockState()`.
 
-Outside Tauri, `src/main.tsx` installs the mock, so Vite, Vitest and Playwright run with no Rust. The mock folder picker returns `/mock/alpha`, `/mock/beta` and `/mock/gamma` in turn.
+Outside Tauri, `src/main.tsx` installs the mock, so Vite, Vitest and Playwright run with no Rust. The mock folder picker returns `/mock/alpha`, `/mock/beta` and `/mock/gamma` in turn. The mock file dialog for Excel returns `/mock/costing.xlsx`, or the path in `mockState().nextFile` once. A path with `bad` in it gives a workbook with one refused row.
 
 ## App data
 

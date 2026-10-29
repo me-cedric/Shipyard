@@ -27,8 +27,8 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 
 ### Requirements
 
-- REQ-001: Work / Backlog SHALL list the work items of the mirror. Each row SHALL show the key, title, status, assignee and the run state of the item. The view SHALL filter by assignee, status, label, component, priority and run state. Group headings SHALL show a count. The view MUST NOT call the tracker for a read.
-- REQ-002: Work / Board SHALL show one column for each tracker status. A card SHALL show the key, title, assignee and run state. A person's move of a card SHALL send the transition to the tracker. The card SHALL return to its column when the tracker refuses the move.
+- REQ-001: Work / Backlog SHALL list the work items of the mirror. Each row SHALL show the key, title, status, assignee and the run state of the item. The view SHALL filter by assignee, status, label, component, priority and run state. Group headings SHALL show a count. The view MUST NOT call the tracker for a read. Until the tracker adapters fill components and priority, the view filters by assignee, status, label and run state, and the run state is the claim of this machine.
+- REQ-002: Work / Board SHALL show one column for each tracker status. A card SHALL show the key, title, assignee and run state. A person's move of a card, by drag or with Shift and Left or Right, SHALL send the transition to the tracker. The card SHALL return to its column when the tracker refuses the move.
 - REQ-003: The system SHALL read the team from `.shipyard/team.yaml`. Each member SHALL have a name, a handle, tracker accounts, a role, a capacity in days a week, skills, a day rate and an availability. The system SHALL expose each member as `member:<handle>`. The system SHALL refuse a file in which two members share a handle or a tracker account.
 - REQ-004: Work / Team SHALL list the members and SHALL edit the same file as REQ-003. A change SHALL appear in the file as text. Work / Team SHALL be the one place that edits the team.
 - REQ-005: When the project seal is on, the day rate of a member SHALL be stored as sealed text. The seal SHALL use the same passphrase as the estimate sheets. [NEEDS CLARIFICATION: Q-032 Is the day rate in the team file sealed?] Working assumption: Q-032 option 1, sealed with the project passphrase when the seal is on.
@@ -119,7 +119,7 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 
 ### Requirement: REQ-001 Backlog
 
-Work / Backlog SHALL list the work items of the mirror. Each row SHALL show the key, title, status, assignee and the run state of the item. The view SHALL filter by assignee, status, label, component, priority and run state. Group headings SHALL show a count. The view MUST NOT call the tracker for a read.
+Work / Backlog SHALL list the work items of the mirror. Each row SHALL show the key, title, status, assignee and the run state of the item. The view SHALL filter by assignee, status, label, component, priority and run state. Group headings SHALL show a count. The view MUST NOT call the tracker for a read. Until the tracker adapters fill components and priority, the view filters by assignee, status, label and run state, and the run state is the claim of this machine.
 
 #### Scenario: Filter
 - GIVEN a mirror with items of two assignees
@@ -133,7 +133,7 @@ Work / Backlog SHALL list the work items of the mirror. Each row SHALL show the 
 
 ### Requirement: REQ-002 Board
 
-Work / Board SHALL show one column for each tracker status. A card SHALL show the key, title, assignee and run state. A person's move of a card SHALL send the transition to the tracker. The card SHALL return to its column when the tracker refuses the move.
+Work / Board SHALL show one column for each tracker status. A card SHALL show the key, title, assignee and run state. A person's move of a card, by drag or with Shift and Left or Right, SHALL send the transition to the tracker. The card SHALL return to its column when the tracker refuses the move.
 
 #### Scenario: Move
 - GIVEN a card in To do
