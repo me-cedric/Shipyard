@@ -2,6 +2,7 @@
 
 pub mod code;
 pub mod health;
+pub mod pickup;
 pub mod project;
 pub mod refs;
 pub mod run;
