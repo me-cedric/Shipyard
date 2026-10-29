@@ -22,9 +22,9 @@ The run state machine and the workflow model are pure code in `shipyard-core`. T
 | Seed | `seed` writes the defaults into `.shipyard/workflows/` and `.shipyard/roles/` when the directory does not exist. A directory that exists is a person's: a deleted file stays deleted. A role with no file falls back to the bundled profile. |
 | Retry | Delay is `min(10 s * 2^(n-1), 300 s)`, computed in `shipyard-core`. |
 | Clocks | The engine holds a stall timer and a budget clock for each run (`run::Stopwatch`). They run only in `Planning`, `Working` and `SelfReview` (`RunState::clocks_run`), so `WaitingForAnswer` and every state that waits for a person or the forge stop both. |
-| Runners | One `Runner` trait in `shipyard-agents` with a headless start and a streamed JSON parser. First adapters follow Q-024. |
+| Runners | One `Runner` trait in `shipyard-agents/src/runner.rs`: `launch` builds the command, a `Parser` reads the streamed JSON line by line, one driver spawns the process in its own group and sends `Event`s (session, turn, text, tool call, tool result, usage, error, exit). First adapters: Claude Code (`stream-json`), Codex (`exec --json`), Gemini CLI, OpenCode, Copilot (ACP) and HTTP providers. Codex `app-server` is not built. The caller enforces the limits through `recv_timeout`, `Event::Turn`, `elapsed` and `CancelHandle`. |
 | Agent tools | `shipyard-mcp` serves the eight tools. It validates each input and writes one event. A step gets only the tools in its `tools` field. |
-| Worktrees | `shipyard-git` creates one worktree for each child when `workspace` is `worktree`. |
+| Worktrees | `shipyard-git` gives one worktree per child at `<data>/worktrees/<project>/<run>/<child>`, on the branch `shipyard/<run>/<child>`. The same ids return the same worktree. Removal refuses a dirty tree unless forced. |
 | Secrets | Runners read keys from the keychain through `connections`. No key goes in arguments or in the log. |
 | Risks | The state machine drifts from ADR 0005. Cover each transition with a unit test. A runner changes its JSON format. Pin fixtures and parse with a tolerant reader. Q-002, Q-023, Q-024 and Q-025 stay open. |
 

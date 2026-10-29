@@ -22,8 +22,8 @@ Plan: [plan.md](./plan.md)
 - [ ] T009 Implement dispatch, retry, clocks, budgets, stall, max turns, fan-out and kill switches in `crates/shipyard-engine/src/run_engine.rs`. Covers REQ-006, REQ-007, REQ-009, REQ-013, REQ-022, REQ-023, REQ-024, REQ-035, REQ-036.
 - [ ] T010 Write approval tests in `crates/shipyard-engine/tests/approvals.rs`. Covers REQ-025, REQ-026.
 - [ ] T011 Implement the write switches and approvals in `crates/shipyard-engine/src/approvals.rs`. Covers REQ-025, REQ-026.
-- [ ] T012 Write runner tests with a fake CLI in `crates/shipyard-agents/tests/runner.rs`. Covers REQ-015.
-- [ ] T013 Implement the runner trait, the streamed JSON reader and the first adapters in `crates/shipyard-agents/src/runner.rs`. Covers REQ-015.
+- [x] T012 Write runner tests with a fake CLI in `crates/shipyard-agents/tests/runner.rs`. Covers REQ-015.
+- [x] T013 Implement the runner trait, the streamed JSON reader and the first adapters in `crates/shipyard-agents/src/runner.rs`. Covers REQ-015.
 - [x] T014 Write worktree tests in `crates/shipyard-git/tests/worktree.rs`. Covers REQ-013.
 - [x] T015 Implement one worktree per child in `crates/shipyard-git/src/worktree.rs`. Covers REQ-013.
 - [ ] T016 Write tool tests in `crates/shipyard-mcp/tests/tools.rs`. Covers REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-037.

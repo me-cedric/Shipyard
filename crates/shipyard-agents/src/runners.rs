@@ -149,6 +149,14 @@ fn parse_version(text: &str) -> Option<String> {
     })
 }
 
+/// The answer of [`ModelProvider::chat_full`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Chat {
+    pub text: String,
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+}
+
 /// An OpenAI-style HTTP provider. The key is not here: it is in the keychain under
 /// `conn_account(id)` (REQ-011). A local runtime needs no key.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -243,6 +251,17 @@ impl ModelProvider {
         store: &dyn SecretStore,
         prompt: &str,
     ) -> Result<String, AgentError> {
+        Ok(self.chat_full(http, store, prompt)?.text)
+    }
+
+    /// [`ModelProvider::chat`] with the token counts that the server reports (0 when it reports
+    /// none).
+    pub fn chat_full(
+        &self,
+        http: &dyn Http,
+        store: &dyn SecretStore,
+        prompt: &str,
+    ) -> Result<Chat, AgentError> {
         if prompt.trim().is_empty() {
             return Err(AgentError::Invalid("the prompt is empty".into()));
         }
@@ -259,7 +278,12 @@ impl ModelProvider {
         let answer = text(&reply, "/choices/0/message/content");
         let answer = answer.trim();
         if !answer.is_empty() {
-            return Ok(answer.to_string());
+            let count = |p: &str| shipyard_http::num(&reply, p).unwrap_or_default();
+            return Ok(Chat {
+                text: answer.to_string(),
+                input_tokens: count("/usage/prompt_tokens"),
+                output_tokens: count("/usage/completion_tokens"),
+            });
         }
         // Some servers answer an error with HTTP 200 and an `error` object.
         let said = text(&reply, "/error/message");

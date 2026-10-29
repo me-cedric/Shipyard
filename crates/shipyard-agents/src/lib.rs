@@ -5,6 +5,7 @@
 //! in environment variables of its own process, and nowhere else.
 
 pub mod mcp_control;
+pub mod runner;
 pub mod runners;
 pub mod which;
 
@@ -36,6 +37,9 @@ pub enum AgentError {
     /// A running server failed: it did not answer, it exited or it refused.
     #[error("{0}")]
     Server(String),
+    /// A runner could not start, or could not write its files.
+    #[error("{0}")]
+    Run(String),
 }
 
 fn names(deps: &[Dependency]) -> String {
