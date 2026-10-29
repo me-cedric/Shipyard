@@ -37,7 +37,9 @@ Outside Tauri, `src/main.tsx` installs the mock, so Vite, Vitest and Playwright 
 
 ## App data
 
-Machine state lives in the app data folder: `prefs.json` (theme, language, role), `registry.json` (projects, last view, overrides), `connections.json` (the settings of each connection, no secret) and `refs/<project id>.sqlite` (the ref index, rebuilt on demand). The repository holds `.shipyard/project.yaml` only. Each connection secret lives in the OS keychain under `conn:<id>`.
+Machine state lives in the app data folder: `prefs.json` (theme, language, role), `registry.json` (projects, last view, overrides), `connections.json` (the settings of each tracker and forge connection, no secret), `agents.json` (the MCP config and the model providers, no secret) and `refs/<project id>.sqlite` (the ref index, rebuilt on demand). The repository holds `.shipyard/project.yaml` only. Each connection secret lives in the OS keychain under `conn:<id>`; an MCP field under `conn:<server>/<field>`. `prefs.json` also holds `releaseUrl`, the address that the update check reads. `.shipyard/project.yaml` may name the tracker and forge connection ids.
+
+The app answers `shipyard --mcp-relay <server-id>` (binary `shipyard`, crate `shipyard-cli`) on a socket in `relay/` of the app data folder. `SHIPYARD_DATA_DIR` replaces the folder.
 
 ## Checks
 

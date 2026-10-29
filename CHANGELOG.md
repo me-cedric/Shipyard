@@ -16,6 +16,10 @@
 - Preferences, language and the last view of each project now live in the app data folder.
 - Settings / Connections to add, edit, test and remove tracker and forge connections (Jira, GitHub, GitLab, Azure DevOps, Linear), with the capability flags of each tracker, write-only secrets kept in the system keychain, and the repository list of a forge with a mark on each repository you cannot push to.
 - Code space with Changes (folder tree, staged and unstaged diffs, stage, unstage, discard after a confirmation, stash, conflict blocks), History and Branches, a working branch selector in the header, one commit action in the status bar, a sync action that updates the working branch, and a notice when a colleague pushes. A clone uses the saved token of the forge connection with the same host.
+- Settings / Connections now also lists MCP servers (catalogue and custom, start, stop, Start all, live state, missing dependencies with an install action), the agent runners detected on this machine, and model providers with a test and a model list. Keys and secret fields stay write-only. The app keeps started servers open for agents through a relay and stops them when it quits.
+- Notification centre with a bell in the status bar and toasts, a system notification for events that need you while the window is in the background, a native menu in your language that runs the same actions as the palette, and an update check that only tells you when a newer version exists. The release address is set in Settings / Me.
+- Context menus on files, commits, refs and connections, with the actions of the row, from the secondary click or the keyboard.
+- Settings / Project can record the tracker and forge connection of a project in `.shipyard/project.yaml`, by id only.
 
 ## [0.0.1]
 

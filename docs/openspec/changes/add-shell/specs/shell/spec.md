@@ -251,7 +251,7 @@ A context menu SHALL open on a secondary click or a keyboard shortcut on an enti
 
 ### Requirement: REQ-014 Update check
 
-The app SHALL check for a new version at start and on request. When a new version exists, the app SHALL tell the person through the notification centre. After an update, the app SHALL show the changelog sections of the versions since the last one that ran. The install behaviour is open (working assumption: Q-009, option 1). [NEEDS CLARIFICATION: Q-009 Does the app install an update by itself?]
+The app SHALL check for a new version at start and on request. The release address is a preference of the person (`releaseUrl`, default the latest release of the Shipyard repository). When a new version exists, the app SHALL tell the person through the notification centre. After an update, the app SHALL show the changelog sections of the versions since the last one that ran. The install behaviour is open (working assumption: Q-009, option 1). [NEEDS CLARIFICATION: Q-009 Does the app install an update by itself?]
 
 #### Scenario: New version found
 - GIVEN a newer version exists
