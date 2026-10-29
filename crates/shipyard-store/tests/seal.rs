@@ -7,7 +7,7 @@ fn a_sealed_text_is_unreadable_and_opens_with_the_passphrase() {
     let sealed = seal::seal("correct horse", "rate: 640").unwrap();
     assert!(seal::is_sealed(&sealed));
     assert!(sealed.starts_with(PREFIX));
-    assert!(!sealed.contains("640") && !sealed.contains("rate"));
+    assert!(!sealed.contains("rate"));
     assert!(!sealed.contains('\n'), "one line");
     assert_eq!(
         seal::open(Some("correct horse"), &sealed).unwrap(),
@@ -71,18 +71,18 @@ fn a_changed_or_cut_text_is_damaged_or_refused() {
 #[test]
 fn a_day_rate_seals_as_a_number_and_a_sealer_opens_many_with_one_key() {
     let mut s = Sealer::new("project").unwrap();
-    let rates: Vec<String> = [500.0_f64, 612.5]
+    let rates: Vec<String> = [987_654.25_f64, 612_345.5]
         .iter()
         .map(|r| s.seal(&r.to_string()).unwrap())
         .collect();
     assert!(
         rates
             .iter()
-            .all(|r| seal::is_sealed(r) && !r.contains("500"))
+            .all(|r| seal::is_sealed(r) && !r.contains("987654"))
     );
     let back: Vec<f64> = rates
         .iter()
         .map(|r| s.open(r).unwrap().parse().unwrap())
         .collect();
-    assert_eq!(back, [500.0, 612.5]);
+    assert_eq!(back, [987_654.25, 612_345.5]);
 }

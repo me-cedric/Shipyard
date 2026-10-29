@@ -84,7 +84,9 @@ pub struct Span {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct Availability {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub from: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub until: Option<String>,
     pub absences: Vec<Span>,
 }
@@ -102,6 +104,7 @@ pub struct Member {
     pub capacity: f64,
     pub skills: Vec<String>,
     /// `None` when the file has none, or when the seal is on and this machine has no passphrase.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub day_rate: Option<f64>,
     pub availability: Availability,
 }
@@ -251,11 +254,15 @@ pub struct Task {
     pub name: String,
     pub description: String,
     pub role: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub days: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub percent: Option<f64>,
     /// A task in days feeds the build effort unless it says `other`. A percent task never does.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub other: bool,
     /// The `wi:` key of the ticket of this task (REQ-015).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub ticket: Option<String>,
     pub note: String,
 }
@@ -465,8 +472,10 @@ impl Calendar {
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct TaskDecision {
     /// A fixed start date.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub start: Option<String>,
     /// A member handle.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub member: Option<String>,
 }
 
@@ -832,8 +841,10 @@ pub struct TimeEntry {
     pub minutes: u32,
     pub note: String,
     /// The `wi:` key of the ticket.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub ticket: Option<String>,
     /// The tracker worklog id: the receipt (REQ-023).
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub worklog: Option<String>,
 }
 
