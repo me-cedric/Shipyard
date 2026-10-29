@@ -797,6 +797,30 @@
       "owner": "project",
       "sha": "e30058cb853d1f33"
     },
+    "docs/openspec/schemas/shipyard-delivery/schema.yaml": {
+      "owner": "compass",
+      "sha": "005cb0e291b3657e"
+    },
+    "docs/openspec/schemas/shipyard-delivery/templates/checklist.md": {
+      "owner": "compass",
+      "sha": "8acf12a906239db7"
+    },
+    "docs/openspec/schemas/shipyard-delivery/templates/plan.md": {
+      "owner": "compass",
+      "sha": "2c05f4f8adfe617e"
+    },
+    "docs/openspec/schemas/shipyard-delivery/templates/proposal.md": {
+      "owner": "compass",
+      "sha": "4f9b7a203e1f4dfd"
+    },
+    "docs/openspec/schemas/shipyard-delivery/templates/spec.md": {
+      "owner": "compass",
+      "sha": "4099358617f9b8b1"
+    },
+    "docs/openspec/schemas/shipyard-delivery/templates/tasks.md": {
+      "owner": "compass",
+      "sha": "85417821ace80864"
+    },
     "renovate.json": {
       "owner": "project",
       "sha": "b01c76833c00e061"
