@@ -1,0 +1,15 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+tauri = { version = "2", features = [] }
+tauri-build = { version = "2", features = [] }
+tauri-specta = { version = "=2.0.0-rc.26", features = ["derive", "typescript"] }
+specta = "=2.0.0-rc.26"
+specta-typescript = "=0.0.13"

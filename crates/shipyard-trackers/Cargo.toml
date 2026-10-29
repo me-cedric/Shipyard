@@ -1,0 +1,5 @@
+[package]
+name = "shipyard-trackers"
+version.workspace = true
+edition.workspace = true
+publish = false

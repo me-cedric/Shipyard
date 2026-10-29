@@ -1,0 +1,18 @@
+[package]
+name = "shipyard-app"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lib]
+name = "shipyard_app"
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[dependencies]
+serde.workspace = true
+tauri.workspace = true
+tauri-specta.workspace = true
+specta.workspace = true
+specta-typescript.workspace = true

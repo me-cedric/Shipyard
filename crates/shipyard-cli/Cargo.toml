@@ -1,0 +1,9 @@
+[package]
+name = "shipyard-cli"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[[bin]]
+name = "shipyard"
+path = "src/main.rs"

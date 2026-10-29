@@ -1,0 +1,5 @@
+[package]
+name = "shipyard-agents"
+version.workspace = true
+edition.workspace = true
+publish = false

@@ -1,0 +1,5 @@
+[package]
+name = "shipyard-mcp"
+version.workspace = true
+edition.workspace = true
+publish = false
