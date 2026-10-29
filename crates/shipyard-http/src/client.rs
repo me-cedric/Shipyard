@@ -1,6 +1,6 @@
 //! The real client on `ureq`. One agent per request, because the proxy choice is per host.
 
-use crate::{Auth, Error, Http, MAX_BODY_BYTES, Method, Request, Response};
+use crate::{Auth, DEFAULT_READ_TIMEOUT, Error, Http, MAX_BODY_BYTES, Method, Request, Response};
 use base64::Engine;
 use std::io::Read;
 use std::sync::Arc;
@@ -91,7 +91,7 @@ impl Http for Client {
             .unwrap_or_default();
         let mut builder = ureq::AgentBuilder::new()
             .timeout_connect(Duration::from_secs(10))
-            .timeout_read(Duration::from_secs(30))
+            .timeout_read(req.timeout.unwrap_or(DEFAULT_READ_TIMEOUT))
             .redirects(0)
             .try_proxy_from_env(!is_loopback(&host) && !bypasses_proxy(&host, &no_proxy));
         if let Some(config) = tls_config()? {

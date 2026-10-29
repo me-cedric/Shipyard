@@ -4,7 +4,8 @@
 //!
 //! 1. No redirects. A redirect re-sends custom auth headers (`PRIVATE-TOKEN`) to the new host.
 //! 2. A response size cap ([`MAX_BODY_BYTES`]).
-//! 3. Connect and read timeouts.
+//! 3. Connect and read timeouts. The read timeout is [`DEFAULT_READ_TIMEOUT`]; a request can ask for
+//!    a longer one with [`Request::timeout`] (a slow local model).
 //! 4. A credential goes only over `https`, or to a loopback host.
 //! 5. Proxy from `ALL_PROXY`, `HTTPS_PROXY` and `HTTP_PROXY`, with `NO_PROXY`.
 //! 6. The OS trust store, plus the bundle in `SHIPYARD_CA_BUNDLE` or `SSL_CERT_FILE`.
@@ -19,11 +20,15 @@ use serde::Serialize;
 use serde_json::Value;
 use shipyard_secrets::Secret;
 use specta::Type;
+use std::time::Duration;
 
 pub use client::{Client, bypasses_proxy};
 
 /// Largest response body the client reads.
 pub const MAX_BODY_BYTES: usize = 8 * 1024 * 1024;
+
+/// How long the client waits for each read, unless the request sets its own.
+pub const DEFAULT_READ_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Method {
@@ -58,6 +63,8 @@ pub struct Request {
     pub auth: Auth,
     pub headers: Vec<(&'static str, String)>,
     pub body: Option<Value>,
+    /// Read timeout. `None` is [`DEFAULT_READ_TIMEOUT`].
+    pub timeout: Option<Duration>,
 }
 
 impl Request {
@@ -68,6 +75,7 @@ impl Request {
             auth,
             headers: Vec::new(),
             body: None,
+            timeout: None,
         }
     }
 
@@ -79,7 +87,14 @@ impl Request {
             auth,
             headers: Vec::new(),
             body: Some(body),
+            timeout: None,
         }
+    }
+
+    /// Wait up to `timeout` for each read, in place of the default.
+    pub fn timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = Some(timeout);
+        self
     }
 
     pub fn header(mut self, name: &'static str, value: impl Into<String>) -> Self {

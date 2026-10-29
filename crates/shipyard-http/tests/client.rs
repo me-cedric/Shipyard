@@ -9,6 +9,7 @@ use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::sync::mpsc;
 use std::thread;
+use std::time::Duration;
 
 /// Serve one canned answer; send back the raw request text.
 fn serve(answer: Vec<u8>) -> (String, mpsc::Receiver<String>) {
@@ -143,4 +144,43 @@ fn urls_are_validated_and_encoded() {
         build_url("https://h", "/s", &[("q", "a b&c"), ("n", "1")]),
         "https://h/s?q=a%20b%26c&n=1"
     );
+}
+
+/// Accept one call, wait `delay`, then answer `{"a":1}`.
+fn slow(delay: Duration) -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        let mut buf = [0u8; 4096];
+        let _ = stream.read(&mut buf);
+        thread::sleep(delay);
+        let _ = stream.write_all(&http("200 OK", "", br#"{"a":1}"#));
+    });
+    url
+}
+
+#[test]
+fn a_per_request_read_timeout_cuts_a_slow_answer_or_lets_it_finish() {
+    let short = Request::get(
+        format!("{}/x", slow(Duration::from_millis(1500))),
+        Auth::None,
+    )
+    .timeout(Duration::from_millis(200));
+    assert!(matches!(Client.send(&short), Err(Error::Transport(_))));
+
+    let long = Request::get(
+        format!("{}/x", slow(Duration::from_millis(500))),
+        Auth::None,
+    )
+    .timeout(Duration::from_secs(5));
+    assert_eq!(Client.json(&long).unwrap()["a"], 1);
+
+    // The default stays 30 s.
+    assert!(
+        Request::get("http://localhost/", Auth::None)
+            .timeout
+            .is_none()
+    );
+    assert_eq!(shipyard_http::DEFAULT_READ_TIMEOUT, Duration::from_secs(30));
 }
