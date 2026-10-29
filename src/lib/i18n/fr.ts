@@ -1,5 +1,6 @@
 import { designFr } from "./design";
 import type { Messages } from "./en";
+import { homeFr } from "./home";
 import { specsFr } from "./specs";
 
 export const fr: Messages = {
@@ -141,7 +142,7 @@ export const fr: Messages = {
 		junior: "Junior",
 	},
 	lang: { en: "Anglais", fr: "Français" },
-	home: { needsYou: "À traiter" },
+	home: homeFr,
 	notFound: { title: "Introuvable", home: "Accueil" },
 	shell: {
 		sync: "Synchroniser",

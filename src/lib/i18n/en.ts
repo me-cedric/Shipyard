@@ -1,4 +1,5 @@
 import { designEn } from "./design";
+import { homeEn } from "./home";
 import { specsEn } from "./specs";
 
 export const en = {
@@ -140,7 +141,7 @@ export const en = {
 		junior: "Junior",
 	},
 	lang: { en: "English", fr: "French" },
-	home: { needsYou: "Needs you" },
+	home: homeEn,
 	notFound: { title: "Not found", home: "Home" },
 	shell: {
 		sync: "Sync",

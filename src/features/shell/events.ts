@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 import { useWatchNotice } from "@/lib/code";
+import { needsYouNotice, useFactoryEvents } from "@/lib/home";
 import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
 import { useNotifications } from "@/lib/notifications";
@@ -71,8 +72,8 @@ export function useNativeMenu(list: Action[]) {
 	}, []);
 }
 
-/** The sources of the notification centre that this app has today: the update check, a failed
- * sync and a moved remote head. The others (approvals, questions) come with their capabilities. */
+/** The sources of the notification centre: the update check, a failed sync, a moved remote head
+ * and the factory events that need the person. */
 export function useShellEvents() {
 	const { t } = useI18n();
 	const { push } = useNotifications();
@@ -80,6 +81,13 @@ export function useShellEvents() {
 	const notice = useWatchNotice().data?.changes[0];
 	const checkUpdate = useUpdateCheck();
 	useSyncTick();
+
+	// A question, an approval or a run that needs the person: one entry and one system notice (REQ-008).
+	useFactoryEvents((event, payload) => {
+		void needsYouNotice(event, payload, t)
+			.then((n) => n && push(n))
+			.catch((e) => console.error(e));
+	});
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: one check at start
 	useEffect(() => {
