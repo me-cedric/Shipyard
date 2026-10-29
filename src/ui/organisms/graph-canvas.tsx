@@ -265,6 +265,8 @@ export function GraphCanvas({
 			) : (
 				<div className="min-h-0 flex-1">
 					<ReactFlow
+						// A new node set mounts a new canvas, so `fitView` frames the nodes after a filter.
+						key={graph.nodes.map((n) => n.id).join(" ")}
 						nodes={graph.nodes}
 						edges={graph.edges}
 						nodeTypes={NODE_TYPES}
