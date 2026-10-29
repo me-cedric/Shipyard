@@ -3815,6 +3815,8 @@ dependencies = [
 name = "shipyard-store"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
+ "ring",
  "rusqlite",
  "serde",
  "serde_json",
@@ -3822,6 +3824,7 @@ dependencies = [
  "shipyard-core",
  "specta",
  "tempfile",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
