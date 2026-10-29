@@ -168,6 +168,11 @@ fn valid_id(id: &str) -> bool {
 
 /// The file text: nine keys in order, then the title and the body.
 pub fn write(q: &Question) -> std::result::Result<String, String> {
+    write_over(q, "")
+}
+
+/// `write`, and the front matter lines of `old` that are not one of the nine keys stay after them.
+pub fn write_over(q: &Question, old: &str) -> std::result::Result<String, String> {
     if !valid_id(&q.id) {
         return Err(format!("invalid id: {}", q.id));
     }
@@ -191,6 +196,13 @@ pub fn write(q: &Question) -> std::result::Result<String, String> {
     let mut out = String::from("---\n");
     for (k, v) in KEYS.iter().zip(vals) {
         out.push_str(&format!("{k}: {}\n", scalar(v)));
+    }
+    let clean = old.trim_start_matches('\u{feff}').replace("\r\n", "\n");
+    for l in split(&clean).map_or("", |(y, _)| y).lines() {
+        if !key_value(l).is_some_and(|(k, _)| KEYS.contains(&k)) {
+            out.push_str(l);
+            out.push('\n');
+        }
     }
     out.push_str("---\n");
     if !q.title.is_empty() {

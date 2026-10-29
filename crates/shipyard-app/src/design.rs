@@ -209,7 +209,14 @@ pub fn flows_save(s: &AppState, rel: &str, rows: &[FlowRow], stamp: Option<&str>
     for r in rows {
         flows::check(r).map_err(|e| format!("row {}: {e}", r.id))?;
     }
-    put(s, &full, &design::write_flows(rows), stamp, !full.exists())
+    let old = std::fs::read_to_string(&full).unwrap_or_default();
+    put(
+        s,
+        &full,
+        &design::write_flows(rows, &old)?,
+        stamp,
+        !full.exists(),
+    )
 }
 
 // ---------------------------------------------------------------- try
@@ -290,11 +297,11 @@ pub fn try_request(s: &AppState, r: &TryRequest, click: bool) -> Res<TryResponse
         timeout: Some(Duration::from_secs(20)),
     };
     let start = Instant::now();
-    let res = s
-        .connections
-        .http()
-        .send(&req)
-        .map_err(|e| e.to_string().replace(&url, "the server"))?;
+    let res = s.connections.http().send(&req).map_err(|e| match e {
+        // The text of a transport error can hold the normalised URL.
+        shipyard_http::Error::Transport(_) => "the server did not answer".to_string(),
+        e => e.to_string().replace(&url, "the server"),
+    })?;
     let truncated = res.body.len() > TRY_BODY_MAX;
     let cut = &res.body[..res.body.len().min(TRY_BODY_MAX)];
     Ok(TryResponse {

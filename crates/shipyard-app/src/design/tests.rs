@@ -257,10 +257,7 @@ fn a_big_body_is_cut_and_a_network_failure_is_an_error_without_the_address() {
         false,
     )
     .unwrap_err();
-    assert!(
-        !e.contains("token=abc") && !e.contains("example.com"),
-        "{e}"
-    );
+    assert_eq!(e, "the server did not answer");
 }
 
 #[test]

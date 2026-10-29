@@ -2,13 +2,18 @@
 //! artifacts (spec `specs`, REQ-004). The mapper is pure; `run` starts the CLI.
 
 use std::fs;
+use std::io::Read;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::thread;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use shipyard_core::specs::{ARTIFACTS, artifact_path, valid_change_id};
 use specta::Type;
+
+const TIMEOUT: Duration = Duration::from_secs(120);
 
 /// Named `SpecFinding` in the bindings: `health::Finding` has the name `Finding`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -108,8 +113,39 @@ fn read_files(root: &Path, dir: &Path, out: &mut Vec<(String, String)>) {
     }
 }
 
-/// Runs `npx -y @fission-ai/openspec@latest validate <id> --strict --json` in the parent of the
-/// openspec folder. A missing `npx` or a failed run gives one finding `validator missing`.
+/// Runs the command and gives its stdout, or the finding text on a start error or after `limit`.
+/// On a timeout the child is killed.
+fn output_within(mut cmd: Command, limit: Duration) -> Result<String, &'static str> {
+    const MISSING: &str = "validator missing";
+    let mut child = cmd
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|_| MISSING)?;
+    let mut pipe = child.stdout.take().ok_or(MISSING)?;
+    let reader = thread::spawn(move || {
+        let mut buf = Vec::new();
+        let _ = pipe.read_to_end(&mut buf);
+        buf
+    });
+    let start = Instant::now();
+    while child.try_wait().map_err(|_| MISSING)?.is_none() {
+        if start.elapsed() >= limit {
+            let _ = child.kill();
+            let _ = child.wait();
+            // No join: a grandchild may hold the pipe open.
+            return Err("validator missing: no answer within 120 s");
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+    let out = reader.join().map_err(|_| MISSING)?;
+    Ok(String::from_utf8_lossy(&out).into_owned())
+}
+
+/// Runs `npx -y --registry=<npm> @fission-ai/openspec@1.15.0 validate <id> --strict --json` in the
+/// parent of the openspec folder. The version is fixed and the registry is set, so a repository
+/// `.npmrc` cannot redirect it. A missing `npx`, a failed run or a run over 120 s gives one finding
+/// `validator missing`.
 pub fn run(openspec_dir: &Path, change_id: &str) -> Vec<Finding> {
     if !valid_change_id(change_id) {
         return one("invalid change id");
@@ -117,22 +153,44 @@ pub fn run(openspec_dir: &Path, change_id: &str) -> Vec<Finding> {
     let Some(cwd) = openspec_dir.parent() else {
         return one("validator missing");
     };
-    let out = Command::new("npx")
-        .args([
-            "-y",
-            "@fission-ai/openspec@latest",
-            "validate",
-            change_id,
-            "--strict",
-            "--json",
-        ])
-        .current_dir(cwd)
-        .output();
-    let Ok(out) = out else {
-        return one("validator missing");
+    let mut cmd = Command::new("npx");
+    cmd.args([
+        "-y",
+        "--registry=https://registry.npmjs.org/",
+        "@fission-ai/openspec@1.15.0",
+        "validate",
+        change_id,
+        "--strict",
+        "--json",
+    ])
+    .current_dir(cwd);
+    let out = match output_within(cmd, TIMEOUT) {
+        Ok(o) => o,
+        Err(m) => return one(m),
     };
     let root = openspec_dir.join("changes").join(change_id);
     let mut files = Vec::new();
     read_files(&root, &root, &mut files);
-    map(&String::from_utf8_lossy(&out.stdout), &files)
+    map(&out, &files)
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_slow_command_is_killed_at_the_limit() {
+        let mut slow = Command::new("sleep");
+        slow.arg("5");
+        let t = Instant::now();
+        assert!(
+            output_within(slow, Duration::from_millis(200))
+                .unwrap_err()
+                .contains("120 s")
+        );
+        assert!(t.elapsed() < Duration::from_secs(3));
+        let mut fast = Command::new("echo");
+        fast.arg("hi");
+        assert_eq!(output_within(fast, TIMEOUT).as_deref(), Ok("hi\n"));
+    }
 }

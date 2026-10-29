@@ -263,11 +263,18 @@ fn flow_file_round_trips() {
             note: None,
         },
     ];
-    let text = write_flows(&rows);
+    let text = write_flows(&rows, "").unwrap();
     assert!(text.starts_with("rows:"), "{text}");
     assert_eq!(read_flows(&text).unwrap(), rows);
-    assert_eq!(read_flows(&write_flows(&[])).unwrap(), vec![]);
+    assert_eq!(
+        read_flows(&write_flows(&[], &text).unwrap()).unwrap(),
+        vec![]
+    );
     assert!(read_flows("rows: 3").is_err());
+    for old in ["# note\nrows: []\n", "rows: []\nowner: me\n"] {
+        let e = write_flows(&rows, old).unwrap_err();
+        assert!(e.contains("would drop"), "{e}");
+    }
 }
 
 #[test]

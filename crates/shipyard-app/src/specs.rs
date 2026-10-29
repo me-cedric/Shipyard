@@ -291,7 +291,8 @@ pub fn question_save(s: &AppState, rel: &str, q: &Question, stamp: Option<&str>)
     {
         return Err(format!("duplicate id {}", q.id));
     }
-    put(s, &full, &raid::write(q)?, stamp, false)
+    let old = std::fs::read_to_string(&full).unwrap_or_default();
+    put(s, &full, &raid::write_over(q, &old)?, stamp, false)
 }
 
 /// Create a question file. An empty id takes the next free one. It returns the path.

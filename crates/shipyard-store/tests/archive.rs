@@ -13,7 +13,7 @@ fn setup() -> tempfile::TempDir {
         ("changes/add-x/specs/alpha/spec.md", "new alpha"),
         ("changes/add-x/specs/alpha/plan.md", "plan"),
         ("changes/add-x/specs/beta/spec.md", "new beta"),
-        ("specs/alpha/spec.md", "old alpha"),
+        ("specs/gamma/spec.md", "old gamma"),
     ] {
         let f = o.join(p);
         fs::create_dir_all(f.parent().unwrap()).unwrap();
@@ -32,6 +32,8 @@ fn moves_the_capabilities_and_the_change() {
     let caps = archive(d.path(), "add-x", "2026-10-29", &[], false).unwrap();
     assert_eq!(caps, ["alpha", "beta"]);
     assert_eq!(read(d.path(), "specs/alpha/spec.md"), "new alpha");
+    assert_eq!(read(d.path(), "specs/gamma/spec.md"), "old gamma");
+    assert!(!d.path().join(".archive-add-x").exists());
     assert_eq!(read(d.path(), "specs/alpha/plan.md"), "plan");
     assert_eq!(read(d.path(), "specs/beta/spec.md"), "new beta");
     assert!(!d.path().join("changes/add-x").exists());
@@ -47,7 +49,7 @@ fn open_items_need_a_confirmation() {
     let open = vec!["WI-1 Login".to_string(), "WI-2 Logout".to_string()];
     let e = archive(d.path(), "add-x", "2026-10-29", &open, false).unwrap_err();
     assert!(e.contains("WI-1 Login") && e.contains("WI-2 Logout"), "{e}");
-    assert_eq!(read(d.path(), "specs/alpha/spec.md"), "old alpha");
+    assert!(!d.path().join("specs/alpha").exists());
     assert!(d.path().join("changes/add-x").exists());
     archive(d.path(), "add-x", "2026-10-29", &open, true).unwrap();
 }
@@ -57,8 +59,21 @@ fn a_taken_archive_name_leaves_the_old_files() {
     let d = setup();
     fs::create_dir_all(d.path().join("changes/archive/2026-10-29-add-x")).unwrap();
     assert!(archive(d.path(), "add-x", "2026-10-29", &[], false).is_err());
-    assert_eq!(read(d.path(), "specs/alpha/spec.md"), "old alpha");
+    assert!(!d.path().join("specs/alpha").exists());
     assert!(d.path().join("changes/add-x").exists());
+}
+
+#[test]
+fn a_settled_capability_is_refused_and_nothing_moves() {
+    let d = setup();
+    let f = d.path().join("specs/beta/spec.md");
+    fs::create_dir_all(f.parent().unwrap()).unwrap();
+    fs::write(f, "old beta").unwrap();
+    let e = archive(d.path(), "add-x", "2026-10-29", &[], false).unwrap_err();
+    assert!(e.contains("beta"), "{e}");
+    assert_eq!(read(d.path(), "specs/beta/spec.md"), "old beta");
+    assert!(!d.path().join("specs/alpha").exists());
+    assert!(d.path().join("changes/add-x/proposal.md").exists());
 }
 
 #[test]

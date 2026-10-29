@@ -260,11 +260,18 @@ pub fn read_flows(text: &str) -> Result<Vec<FlowRow>, String> {
         .map_err(|e| e.to_string())
 }
 
-pub fn write_flows(rows: &[FlowRow]) -> String {
+/// The file text for the rows. `old` is the text now in the file. A save drops a comment and a
+/// key other than `rows`, so a file that holds one is refused.
+pub fn write_flows(rows: &[FlowRow], old: &str) -> Result<String, String> {
+    let extra = serde_yaml::from_str::<serde_yaml::Mapping>(old)
+        .is_ok_and(|m| m.keys().any(|k| k.as_str() != Some("rows")));
+    if extra || old.lines().any(|l| l.trim_start().starts_with('#')) {
+        return Err("the file holds content that a save would drop".into());
+    }
     serde_yaml::to_string(&FlowFile {
         rows: rows.to_vec(),
     })
-    .unwrap_or_default()
+    .map_err(|e| e.to_string())
 }
 
 pub(crate) fn screens_path(p: &ProjectFile) -> String {

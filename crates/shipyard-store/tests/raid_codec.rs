@@ -1,6 +1,6 @@
 //! RAID file codec tests (spec `specs`, REQ-008 to REQ-010).
 
-use shipyard_store::raid::{Question, create, list, next_id, read, write};
+use shipyard_store::raid::{Question, create, list, next_id, read, write, write_over};
 
 const Q002: &str = include_str!("../../../docs/delivery/questions/Q-002.md");
 
@@ -127,4 +127,17 @@ fn create_rejects_a_duplicate_id() {
     assert!(e.to_string().contains("duplicate"), "{e}");
     std::fs::write(dir.path().join("odd.md"), "---\nid: Q-006\n---\n").unwrap();
     assert!(create(dir.path(), &question("Q-006")).is_err());
+}
+
+#[test]
+fn an_extra_frontmatter_line_survives_a_save() {
+    let old = write(&question("Q-010")).unwrap().replacen(
+        "ticket: \n---",
+        "ticket: \nanswerAt: 2026-11-01\n# keep\n---",
+        1,
+    );
+    assert!(old.contains("answerAt"), "{old}");
+    let (q, _) = read(&old);
+    assert_eq!(write_over(&q, &old).unwrap(), old);
+    assert!(!write(&q).unwrap().contains("answerAt"));
 }
