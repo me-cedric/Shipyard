@@ -719,3 +719,16 @@ fn a_run_log_that_does_not_open_gives_a_shared_scratch_log_and_says_so() {
             .is_none()
     );
 }
+
+#[test]
+fn the_start_removes_the_scratch_folders_of_runs_that_are_not_live() {
+    let dir = tempfile::tempdir().unwrap();
+    for sub in ["LIVE/work", "OLD/work", "OLD/review"] {
+        std::fs::create_dir_all(dir.path().join("agents").join(sub)).unwrap();
+    }
+    sweep_scratch(dir.path(), &BTreeSet::from(["LIVE".to_string()]));
+    assert!(dir.path().join("agents/LIVE/work").is_dir());
+    assert!(!dir.path().join("agents/OLD").exists());
+    // No folder at all is no error.
+    sweep_scratch(&dir.path().join("none"), &BTreeSet::new());
+}

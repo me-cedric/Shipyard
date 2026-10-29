@@ -149,13 +149,21 @@ impl FactoryHost {
             tiers,
             ..Config::default()
         };
+        let factory = Arc::new(Factory::new(
+            cfg,
+            agents,
+            Arc::new(shipyard_engine::SystemClock),
+            write,
+        ));
+        // A crash leaves the scratch folder of an agent behind: it holds a dead token.
+        let live = factory
+            .active_runs()
+            .into_iter()
+            .map(|r| r.run_id)
+            .collect();
+        sweep_scratch(dir, &live);
         Self {
-            factory: Arc::new(Factory::new(
-                cfg,
-                agents,
-                Arc::new(shipyard_engine::SystemClock),
-                write,
-            )),
+            factory,
             log: Mutex::new(read),
             degraded,
             endpoint,
@@ -407,6 +415,20 @@ pub fn cli_path() -> PathBuf {
         .and_then(|p| Some(p.parent()?.join(name)))
         .filter(|p| p.exists())
         .unwrap_or_else(|| name.into())
+}
+
+/// Remove each folder `<app data>/agents/<run>` of a run that is not live. No agent process
+/// survives a start, so a folder of a run that ended or is gone is left over from a crash.
+fn sweep_scratch(data: &Path, live: &BTreeSet<String>) {
+    let Ok(runs) = std::fs::read_dir(data.join("agents")) else {
+        return;
+    };
+    for run in runs.flatten() {
+        let dead = run.file_name().to_str().is_none_or(|n| !live.contains(n));
+        if dead && run.path().is_dir() {
+            let _ = std::fs::remove_dir_all(run.path());
+        }
+    }
 }
 
 /// One agent process, as the factory reads it.
