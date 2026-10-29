@@ -22,6 +22,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::agents::Agents;
 use crate::connections::Connections;
+use crate::factory::FactoryHost;
 use crate::sync::SyncHost;
 use shipyard_store::project::Registry;
 use shipyard_store::ref_index::RefIndex;
@@ -39,31 +40,56 @@ pub struct AppState {
     pub connections: Arc<Connections>,
     pub agents: Agents,
     pub sync: SyncHost,
+    pub factory: Arc<FactoryHost>,
     pub work: crate::work::Session,
     pub specs: crate::specs::Session,
     lock: Mutex<()>,
     /// The remote watch notice of each project id, until the person syncs (spec `code`, REQ-017).
     notices: Mutex<HashMap<String, code::WatchNotice>>,
-    pub(crate) index: Mutex<Option<(String, RefIndex)>>,
+    /// The ref index of the active project. The factory reads the same one (`read_ref`).
+    pub(crate) index: Mutex<Option<(String, Arc<Mutex<RefIndex>>)>>,
 }
 
 impl AppState {
     pub fn new(dir: PathBuf) -> Self {
         let connections = Arc::new(Connections::system(&dir));
-        Self::build(dir, connections, true)
+        Self::build(dir, connections, true, None)
     }
 
-    /// A state over given connections, with no background sync thread. A test ticks by hand.
+    /// A state over given connections, with no background sync thread and fake runners. A test
+    /// ticks and pumps by hand.
     #[cfg(test)]
     pub fn with_connections(dir: PathBuf, connections: Arc<Connections>) -> Self {
-        Self::build(dir, connections, false)
+        Self::with_agents(
+            dir,
+            connections,
+            Arc::new(shipyard_engine::fake::FakeAgents::default()),
+        )
     }
 
-    fn build(dir: PathBuf, connections: Arc<Connections>, background: bool) -> Self {
+    /// `with_connections` with the runner port that the test gives, to read what it started.
+    #[cfg(test)]
+    pub fn with_agents(
+        dir: PathBuf,
+        connections: Arc<Connections>,
+        agents: Arc<dyn shipyard_engine::ports::Agents>,
+    ) -> Self {
+        Self::build(dir, connections, false, Some(agents))
+    }
+
+    fn build(
+        dir: PathBuf,
+        connections: Arc<Connections>,
+        background: bool,
+        runners: Option<Arc<dyn shipyard_engine::ports::Agents>>,
+    ) -> Self {
+        let agents = Agents::system(&dir);
+        let factory = Arc::new(FactoryHost::new(&dir, agents.tier_map(), runners));
         Self {
-            sync: SyncHost::new(&dir, connections.clone(), background),
+            sync: SyncHost::new(&dir, connections.clone(), background, factory.clone()),
+            factory,
             connections,
-            agents: Agents::system(&dir),
+            agents,
             work: Default::default(),
             specs: Default::default(),
             dir,

@@ -163,7 +163,16 @@ pub fn ensure(s: &AppState) -> Res<Option<Arc<Running>>> {
     };
     let id = a.entry.id.clone();
     match plan(s, &a) {
-        Ok(p) => s.sync.apply(&id, p)?,
+        Ok(p) => {
+            s.sync.apply(&id, p.clone())?;
+            // The factory takes the files and the connections of the project (T018). A failure
+            // here must not stop the sync engine: the runs of the project wait for the next call.
+            if let Some(p) = &p
+                && let Err(e) = crate::factory::attach(s, &a, p)
+            {
+                eprintln!("factory: {}: {e}", a.entry.id);
+            }
+        }
         Err(e) => {
             s.sync.apply(&id, None)?;
             return Err(e);
@@ -849,10 +858,11 @@ mod tests {
         let report = run_tick(&f.s).unwrap();
         assert_eq!(report.polled, ["issues", "code"]);
         assert!(report.failed.is_empty(), "{:?}", report.failed);
-        // The labelled ticket is picked up: the placeholder holds the run.
+        // The labelled ticket is picked up: the factory starts a run.
         assert_eq!(report.started, ["acme/web#12"]);
-        let notes = f.s.sync.dispatch.notes();
-        assert_eq!(notes[0].text, "would start a run on acme/web#12");
+        let runs = f.s.factory.factory.runs();
+        assert_eq!(runs.len(), 1, "the factory holds the run");
+        assert_eq!(runs[0].key, "acme/web#12");
 
         let state = state(&f.s).unwrap();
         assert_eq!(
@@ -932,6 +942,32 @@ mod tests {
             (Some("Add export"), Some("open"))
         );
         assert!(resolve_mirror(&f.s, "wi:ACME-2").unwrap().is_none());
+    }
+
+    #[test]
+    fn a_run_starts_by_hand_on_a_mirrored_ticket_and_only_once() {
+        let f = fixture();
+        run_tick(&f.s).unwrap();
+        let err = crate::factory::start(&f.s, "acme/web#99").unwrap_err();
+        assert!(err.contains("not in the mirror"), "{err}");
+        let run = crate::factory::start(&f.s, "acme/web#13").unwrap();
+        let v = crate::factory::run_get(&f.s, &run).unwrap().unwrap();
+        assert_eq!(v.key, "acme/web#13");
+        let err = crate::factory::start(&f.s, "acme/web#13").unwrap_err();
+        assert!(err.contains("a run is active"), "{err}");
+        // The tick took #12 by itself: two runs in all.
+        assert_eq!(crate::factory::runs(&f.s).unwrap().len(), 2);
+        // The pull request rows come from the mirror, with the lane of each one and its runs.
+        let rows = crate::delivery::pr_rows(&f.s).unwrap();
+        let open = rows.iter().find(|r| r.reference == "pr:code:7").unwrap();
+        assert_eq!(open.state, "open");
+        assert!(open.runs.is_empty());
+        assert!(matches!(
+            open.lane,
+            shipyard_core::delivery::Lane::InReview | shipyard_core::delivery::Lane::ReadyToMerge
+        ));
+        let merged = rows.iter().find(|r| r.reference == "pr:code:6").unwrap();
+        assert_eq!(merged.lane, shipyard_core::delivery::Lane::Done);
     }
 
     #[test]

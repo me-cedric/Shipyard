@@ -36,6 +36,7 @@ pub fn with_index<T: Default>(
     s: &AppState,
     f: impl FnOnce(&RefIndex) -> shipyard_store::Result<T>,
 ) -> Res<T> {
+    use std::sync::{Arc, Mutex};
     let Some(entry) = s.registry()?.active().cloned() else {
         return Ok(T::default());
     };
@@ -44,16 +45,23 @@ pub fn with_index<T: Default>(
         Ok(FileRead::Valid(f)) => f,
         _ => ProjectFile::new(&entry.name, &entry.key),
     };
-    let mut slot = s.index.lock().unwrap_or_else(|e| e.into_inner());
-    if slot.as_ref().is_none_or(|(id, _)| *id != entry.id) {
-        let db = s.dir.join("refs").join(format!("{}.sqlite", entry.id));
-        *slot = Some((entry.id.clone(), RefIndex::open(&db).map_err(err)?));
-    }
-    let (_, index) = slot.as_mut().ok_or("no index")?;
+    // The slot lock is for the choice of the index only. A query holds the index lock, so the
+    // factory (`read_ref`) and the views take turns.
+    let shared = {
+        let mut slot = s.index.lock().unwrap_or_else(|e| e.into_inner());
+        if slot.as_ref().is_none_or(|(id, _)| *id != entry.id) {
+            let db = s.dir.join("refs").join(format!("{}.sqlite", entry.id));
+            let index = Arc::new(Mutex::new(RefIndex::open(&db).map_err(err)?));
+            s.factory.factory.set_refs(index.clone());
+            *slot = Some((entry.id.clone(), index));
+        }
+        slot.as_ref().ok_or("no index")?.1.clone()
+    };
+    let mut index = shared.lock().unwrap_or_else(|e| e.into_inner());
     index.sync_repo(&root, &file).map_err(err)?;
     // A broken mirror must not break every ref query: the next query reads it again.
-    let _ = super::sync::index_mirror(s, &root, index);
-    f(index).map_err(err)
+    let _ = super::sync::index_mirror(s, &root, &mut index);
+    f(&index).map_err(err)
 }
 
 /// A registered project resolves from the registry (`projects` REQ-017).
@@ -90,6 +98,9 @@ pub fn resolve(s: &AppState, text: &str) -> Res<Option<Resolved>> {
         && let Some(c) = s.connections.get(&id)?
     {
         return Ok(Some(resolve_connection(&id, &c)));
+    }
+    if let Some(r) = crate::factory::resolve_run(s, text) {
+        return Ok(Some(r));
     }
     if let Some(r) = super::sync::resolve_mirror(s, text)? {
         return Ok(Some(r));
@@ -152,8 +163,18 @@ pub async fn refs_check(app: AppHandle) -> Res<Vec<BrokenCitation>> {
 #[specta::specta]
 pub async fn refs_reindex(app: AppHandle) -> Res<u32> {
     blocking(app, |s| {
-        if let Some(slot) = s.index.lock().unwrap_or_else(|e| e.into_inner()).as_mut() {
-            slot.1.clear().map_err(err)?;
+        let shared = s
+            .index
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_ref()
+            .map(|slot| slot.1.clone());
+        if let Some(index) = shared {
+            index
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .clear()
+                .map_err(err)?;
         }
         let mut n = 0u32;
         with_index(s, |i| {

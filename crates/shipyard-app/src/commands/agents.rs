@@ -8,7 +8,7 @@ use shipyard_secrets::Secret;
 use tauri::AppHandle;
 
 use super::{Res, blocking};
-use crate::agents::{McpCustom, Provider, ProviderDraft};
+use crate::agents::{McpCustom, Provider, ProviderDraft, RunnerTiers};
 
 #[tauri::command]
 #[specta::specta]
@@ -128,4 +128,23 @@ pub async fn mcp_state(app: AppHandle, id: String) -> Res<State> {
 #[specta::specta]
 pub async fn mcp_install(app: AppHandle, command: String) -> Res<String> {
     blocking(app, move |s| s.agents.mcp_install(&command)).await
+}
+
+/// The model of each tier for each runner (`factory` REQ-012). Settings / Connections edits it.
+#[tauri::command]
+#[specta::specta]
+pub async fn tiers_get(app: AppHandle) -> Res<Vec<RunnerTiers>> {
+    blocking(app, |s| s.agents.tiers()).await
+}
+
+/// Saves the row of one runner. A step that starts after the edit uses it.
+#[tauri::command]
+#[specta::specta]
+pub async fn tiers_set(app: AppHandle, row: RunnerTiers) -> Res<Vec<RunnerTiers>> {
+    blocking(app, move |s| {
+        let rows = s.agents.tiers_set(row)?;
+        s.factory.factory.set_tiers(s.agents.tier_map());
+        Ok(rows)
+    })
+    .await
 }

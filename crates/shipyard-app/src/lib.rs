@@ -3,7 +3,10 @@
 pub mod agents;
 mod commands;
 pub mod connections;
+pub mod delivery;
 pub mod design;
+pub mod factory;
+pub mod questions;
 mod shell;
 pub mod specs;
 pub mod sync;
@@ -90,6 +93,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
         ag::mcp_stop,
         ag::mcp_state,
         ag::mcp_install,
+        ag::tiers_get,
+        ag::tiers_set,
         sy::sync_state,
         sy::sync_now,
         sy::sync_automation_get,
@@ -130,6 +135,32 @@ fn specta_builder() -> Builder<tauri::Wry> {
         work::apply_run,
         work::work_item_preview,
         work::work_item_create,
+        factory::runs_list,
+        factory::run_get_one,
+        factory::run_log_page,
+        factory::run_start,
+        factory::run_cancel,
+        factory::run_resume,
+        factory::run_unblock,
+        factory::run_plan_approve,
+        factory::run_plan_reject,
+        factory::kill_switch_get,
+        factory::kill_switch_set,
+        factory::workflows_list,
+        factory::workflow_get,
+        factory::workflow_check,
+        factory::workflow_write,
+        factory::roles_list,
+        factory::role_get,
+        factory::role_write,
+        questions::questions_list,
+        questions::question_answer,
+        questions::messages_list,
+        questions::message_read_mark,
+        delivery::approvals_list,
+        delivery::approval_approve,
+        delivery::approval_reject,
+        delivery::pulls_list,
         design::design_list,
         design::design_read,
         design::design_write,
@@ -185,8 +216,18 @@ pub fn run() {
             state.sync.on_change(move || {
                 let _ = handle.emit(sy::TICK_EVENT, ());
             });
+            // The views read the factory again on these events (T018).
+            let handle = app.handle().clone();
+            state.factory.on_event(move |name, ping| {
+                let _ = handle.emit(name, ping);
+            });
+            // The agent tools endpoint listens on 127.0.0.1 before the first run starts.
+            if let Err(e) = state.factory.start_mcp(state.agents.proxy.clone()) {
+                eprintln!("agent tools endpoint: {e}");
+            }
             // The engine of the active project starts with the app.
             sy::refresh(&state);
+            factory::spawn_loop(app.handle().clone());
             app.set_menu(shell::menu::build(app.handle(), &Default::default())?)?;
             code::spawn_watch(app.handle().clone(), WATCH_EVERY);
             // The relay answers `shipyard --mcp-relay <id>` with the open server (REQ-018).
@@ -208,7 +249,10 @@ pub fn run() {
         .run(|app, event| {
             // Each server that the app started ends with it (REQ-007).
             if let tauri::RunEvent::Exit = event {
-                app.state::<AppState>().agents.mcp.stop_all();
+                let state = app.state::<AppState>();
+                // The agent processes stop, the runs keep their state: the next start resumes them.
+                state.factory.factory.shutdown();
+                state.agents.mcp.stop_all();
             }
         });
 }

@@ -1,5 +1,6 @@
 //! The sync host (spec `sync`, REQ-001, REQ-005, REQ-013, REQ-014): the adapters that give the
-//! engine its ports, a placeholder for the factory, and one engine for each open project.
+//! engine its ports, and one engine for each open project. The factory (`crate::factory`) is the
+//! `Dispatch` of every engine.
 //!
 //! The engine is synchronous, like the adapters. A project engine runs its tick loop on its own
 //! thread; the sync action and the import run on the thread of the caller (a blocking task).
@@ -8,14 +9,14 @@
 //! The adapters build the connection adapter for each call. A secret or an address that a person
 //! changes then applies at once, and a removed connection shows as a failed poll.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard, OnceLock};
 use std::time::Duration;
 
-use shipyard_core::pickup::{ActiveRun, Automation, Ci, PrState, PullSnapshot, SyncEvent, Ticket};
-use shipyard_core::run::RunState;
+use shipyard_core::pickup::{ActiveRun, SyncEvent};
+use shipyard_core::pickup::{Automation, Ci, PrState, PullSnapshot, Ticket};
 use shipyard_core::work_item::StatusCategory;
 use shipyard_engine::ports::{
     Dispatch, ForgePort, ListQuery, Page, PortResult, Stamp, StartRequest, TrackerPort,
@@ -32,8 +33,6 @@ use crate::connections::{Connections, Res};
 
 /// Items for each request. The adapters cap a page at 100.
 const PAGE: usize = 100;
-/// The notes that the placeholder keeps.
-const MAX_NOTES: usize = 200;
 /// The wait after a store error, so a broken file does not loop hot.
 const STORE_RETRY: Duration = Duration::from_secs(30);
 
@@ -386,125 +385,48 @@ impl ForgePort for ForgeAdapter {
     }
 }
 
-// ---------------------------------------------------------------- the placeholder
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NoteKind {
-    WouldStart,
-    Stopped,
-    Comment,
-    Pull,
-}
-
-/// What the placeholder recorded.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Note {
-    pub kind: NoteKind,
-    pub key: String,
-    pub text: String,
-}
+// ---------------------------------------------------------------- the dispatch
 
 type Listener = Box<dyn Fn() + Send + Sync>;
 
-/// The factory is W6. Until it lands, this holds its place: a started run is a record that no
-/// agent runs, and it counts as an active run so that the claim and the limits stay true. It keeps
-/// the global kill switch. W6 replaces it with a `Dispatch` that runs agents.
-#[derive(Default)]
-pub struct Placeholder {
-    kill: AtomicBool,
-    runs: Mutex<Vec<ActiveRun>>,
-    notes: Mutex<VecDeque<Note>>,
-    tick: OnceLock<Listener>,
+/// The dispatch of the engines. It passes everything to the factory and tells the views after
+/// each tick (the `sync-tick` event).
+struct Notify {
+    inner: Arc<dyn Dispatch>,
+    listener: OnceLock<Listener>,
 }
 
-impl Placeholder {
-    pub fn set_kill_switch(&self, on: bool) {
-        self.kill.store(on, Ordering::SeqCst);
-    }
-
-    /// The last records, oldest first.
-    pub fn notes(&self) -> Vec<Note> {
-        lock(&self.notes).iter().cloned().collect()
-    }
-
-    fn note(&self, kind: NoteKind, key: &str, text: String) {
-        let mut notes = lock(&self.notes);
-        if notes.len() == MAX_NOTES {
-            notes.pop_front();
-        }
-        notes.push_back(Note {
-            kind,
-            key: key.into(),
-            text,
-        });
-    }
-
+impl Notify {
     fn changed(&self) {
-        if let Some(f) = self.tick.get() {
+        if let Some(f) = self.listener.get() {
             f();
         }
     }
 }
 
-impl Dispatch for Placeholder {
+impl Dispatch for Notify {
     fn kill_switch(&self) -> bool {
-        self.kill.load(Ordering::SeqCst)
+        self.inner.kill_switch()
     }
 
     fn active_runs(&self) -> Vec<ActiveRun> {
-        lock(&self.runs).clone()
+        self.inner.active_runs()
     }
 
-    fn start(&self, r: &StartRequest) -> Result<(), String> {
-        let key = &r.ticket.item.key;
-        {
-            let mut runs = lock(&self.runs);
-            if !runs.iter().any(|a| a.project == r.project && a.key == *key) {
-                runs.push(ActiveRun {
-                    run_id: format!("placeholder:{}:{key}", r.project),
-                    project: r.project.clone(),
-                    key: key.clone(),
-                    state: RunState::Queued,
-                    status: r.status.clone(),
-                    pr: None,
-                });
-            }
-        }
-        self.note(
-            NoteKind::WouldStart,
-            key,
-            format!("would start a run on {key}"),
-        );
-        Ok(())
+    fn start(&self, request: &StartRequest) -> Result<(), String> {
+        self.inner.start(request)
     }
 
     fn stop(&self, run_id: &str, reason: &str) -> Result<(), String> {
-        let mut runs = lock(&self.runs);
-        if let Some(at) = runs.iter().position(|a| a.run_id == run_id) {
-            let run = runs.remove(at);
-            drop(runs);
-            self.note(
-                NoteKind::Stopped,
-                &run.key,
-                format!("stopped {}: {reason}", run.key),
-            );
-        }
-        Ok(())
+        self.inner.stop(run_id, reason)
     }
 
     fn event(&self, event: &SyncEvent) -> Result<(), String> {
-        match event {
-            SyncEvent::Tick { .. } => self.changed(),
-            SyncEvent::Comment { key, .. } => {
-                self.note(NoteKind::Comment, key, format!("new comment on {key}"))
-            }
-            SyncEvent::Pr(e) => self.note(
-                NoteKind::Pull,
-                &e.number.to_string(),
-                format!("pull request {} {:?}", e.number, e.kind),
-            ),
+        let out = self.inner.event(event);
+        if matches!(event, SyncEvent::Tick { .. }) {
+            self.changed();
         }
-        Ok(())
+        out
     }
 }
 
@@ -666,7 +588,7 @@ pub struct SyncHost {
     mirror: PathBuf,
     conns: Arc<Connections>,
     machine: String,
-    pub dispatch: Arc<Placeholder>,
+    dispatch: Arc<Notify>,
     /// Run each engine on its own thread. A test turns it off and ticks by hand.
     background: bool,
     engines: Mutex<HashMap<String, Arc<Running>>>,
@@ -688,12 +610,21 @@ fn machine_id(dir: &Path) -> String {
 }
 
 impl SyncHost {
-    pub fn new(dir: &Path, conns: Arc<Connections>, background: bool) -> Self {
+    /// `dispatch` is the factory (`crate::factory::FactoryHost`), or a fake in a test.
+    pub fn new(
+        dir: &Path,
+        conns: Arc<Connections>,
+        background: bool,
+        dispatch: Arc<dyn Dispatch>,
+    ) -> Self {
         Self {
             mirror: dir.join("mirror.sqlite"),
             conns,
             machine: machine_id(dir),
-            dispatch: Arc::new(Placeholder::default()),
+            dispatch: Arc::new(Notify {
+                inner: dispatch,
+                listener: OnceLock::new(),
+            }),
             background,
             engines: Mutex::new(HashMap::new()),
         }
@@ -702,7 +633,12 @@ impl SyncHost {
     /// Called after each tick and each change of the mirror. The app sends the `sync-tick` event.
     /// Only the first call counts.
     pub fn on_change(&self, f: impl Fn() + Send + Sync + 'static) {
-        let _ = self.dispatch.tick.set(Box::new(f));
+        let _ = self.dispatch.listener.set(Box::new(f));
+    }
+
+    /// The name of this installation in a claim stamp.
+    pub fn machine(&self) -> &str {
+        &self.machine
     }
 
     pub fn changed(&self) {
@@ -887,52 +823,5 @@ mod tests {
         ] {
             assert_eq!(repo_slug(url).as_deref(), slug, "{url}");
         }
-    }
-
-    #[test]
-    fn the_placeholder_counts_a_started_run_and_forgets_a_stopped_one() {
-        use shipyard_core::work_item::{Status, WorkItem, WorkKind};
-        let item = WorkItem {
-            key: "ACME-1".into(),
-            title: "t".into(),
-            description: String::new(),
-            kind: WorkKind::Task,
-            status: Status {
-                name: "To Do".into(),
-                category: StatusCategory::Todo,
-            },
-            assignee: None,
-            labels: vec![],
-            parent: None,
-            url: String::new(),
-            updated: String::new(),
-            time: None,
-        };
-        let p = Placeholder::default();
-        let req = StartRequest {
-            project: "acme".into(),
-            ticket: Ticket::new(item),
-            status: "To Do".into(),
-            machine: "m".into(),
-            stamped: false,
-        };
-        p.start(&req).unwrap();
-        p.start(&req).unwrap();
-        let runs = p.active_runs();
-        assert_eq!(runs.len(), 1, "one run for each ticket");
-        assert!(!p.kill_switch());
-        p.set_kill_switch(true);
-        assert!(p.kill_switch());
-        p.stop(&runs[0].run_id, "ticket terminal").unwrap();
-        assert!(p.active_runs().is_empty());
-        let kinds: Vec<_> = p.notes().iter().map(|n| n.kind).collect();
-        assert_eq!(
-            kinds,
-            [
-                NoteKind::WouldStart,
-                NoteKind::WouldStart,
-                NoteKind::Stopped
-            ]
-        );
     }
 }

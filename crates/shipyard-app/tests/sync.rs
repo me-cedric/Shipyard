@@ -33,6 +33,14 @@ struct Fixture {
     conns: Arc<Connections>,
 }
 
+/// A sync host over a fake factory: a started run is a record, nothing runs.
+fn host(f: &Fixture, background: bool) -> SyncHost {
+    let dispatch = Arc::new(shipyard_engine::fake::FakeDispatch::new(
+        &shipyard_engine::fake::Log::default(),
+    ));
+    SyncHost::new(f.dir.path(), f.conns.clone(), background, dispatch)
+}
+
 fn fixture() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let http = Arc::new(FakeHttp::new());
@@ -178,7 +186,7 @@ fn the_forge_adapter_maps_pull_requests_and_ci() {
 #[test]
 fn the_host_keeps_one_engine_for_a_plan_and_replaces_it_for_a_new_one() {
     let f = fixture();
-    let host = SyncHost::new(f.dir.path(), f.conns.clone(), false);
+    let host = host(&f, false);
     host.apply("web", Some(plan(Automation::default())))
         .unwrap();
     let first = host.running("web").unwrap();
@@ -207,7 +215,7 @@ fn the_host_keeps_one_engine_for_a_plan_and_replaces_it_for_a_new_one() {
 #[test]
 fn two_projects_on_one_connection_keep_their_own_cursor_and_only_the_open_one_runs() {
     let f = fixture();
-    let host = SyncHost::new(f.dir.path(), f.conns.clone(), false);
+    let host = host(&f, false);
     host.apply("web", Some(plan(Automation::default())))
         .unwrap();
     host.running("web").unwrap().tick(true).unwrap();
@@ -236,7 +244,7 @@ fn two_projects_on_one_connection_keep_their_own_cursor_and_only_the_open_one_ru
 #[test]
 fn a_background_engine_ticks_by_itself_and_tells_the_views() {
     let f = fixture();
-    let host = SyncHost::new(f.dir.path(), f.conns.clone(), true);
+    let host = host(&f, true);
     let changes = Arc::new(AtomicU32::new(0));
     let seen = changes.clone();
     host.on_change(move || {
@@ -455,7 +463,7 @@ fn a_tick_with_the_comment_switch_on_stamps_the_ticket_it_claims() {
         201,
         tracker_fx_created(),
     );
-    let host = SyncHost::new(f.dir.path(), f.conns.clone(), false);
+    let host = host(&f, false);
     let mut auto = Automation::default();
     auto.writes.tracker_comment = true;
     host.apply("web", Some(plan(auto))).unwrap();
@@ -484,7 +492,7 @@ fn a_tick_with_the_comment_switch_on_stamps_the_ticket_it_claims() {
 #[test]
 fn a_tick_with_the_switch_off_writes_nothing_to_the_tracker() {
     let f = fixture();
-    let host = SyncHost::new(f.dir.path(), f.conns.clone(), false);
+    let host = host(&f, false);
     host.apply("web", Some(plan(Automation::default())))
         .unwrap();
     let report = host.running("web").unwrap().tick(true).unwrap();

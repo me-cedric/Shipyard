@@ -78,6 +78,52 @@ struct File {
     mcp: McpConfig,
     #[serde(default)]
     providers: Vec<Record>,
+    /// The rows that a person saved. A runner with no row uses [`default_tiers`].
+    #[serde(default)]
+    tiers: Vec<RunnerTiers>,
+}
+
+/// The runners that have a tier row, in the order of Settings.
+pub const TIER_RUNNERS: [&str; 5] = ["claude", "codex", "copilot", "gemini", "opencode"];
+
+/// The model of each tier (`top`, `mid`, `small`) of one runner (`factory` REQ-012: a step names
+/// a tier, never a vendor id). An empty text means that the runner uses its own default model.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+pub struct RunnerTiers {
+    pub runner: String,
+    pub top: String,
+    pub mid: String,
+    pub small: String,
+}
+
+/// Claude Code maps to its three aliases. The other runners start with no row: their own default
+/// model runs until a person names one.
+pub fn default_tiers(runner: &str) -> RunnerTiers {
+    let [top, mid, small] = match runner {
+        "claude" => ["opus", "sonnet", "haiku"],
+        _ => ["", "", ""],
+    };
+    RunnerTiers {
+        runner: runner.into(),
+        top: top.into(),
+        mid: mid.into(),
+        small: small.into(),
+    }
+}
+
+/// A model id: the characters that the runner CLIs accept (`claude-opus-4-1`, `anthropic/x`,
+/// `llama3:8b`). It goes to the CLI as an argument, so no space, no control character and no
+/// leading `-` (the CLI would read a flag).
+fn model_id(text: &str) -> Res<String> {
+    let id = text.trim();
+    let plain =
+        |c: char| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | ':' | '/' | '@' | '+');
+    if id.len() > 100 || id.starts_with('-') || !id.chars().all(plain) {
+        return Err(format!(
+            "`{id}` is not a model id: use letters, digits and . _ - : / @ +"
+        ));
+    }
+    Ok(id.into())
 }
 
 /// One environment variable of a custom MCP server. An empty value keeps the stored one.
@@ -175,6 +221,61 @@ impl Agents {
     /// Looks for each runner CLI and asks it for its version. Blocks.
     pub fn runners(&self) -> Vec<Runner> {
         runners::detect()
+    }
+
+    /* ----- Model tiers ----- */
+
+    /// One row for each runner: the saved row, else the default.
+    pub fn tiers(&self) -> Res<Vec<RunnerTiers>> {
+        let saved = Self::read(&self.path)?.tiers;
+        Ok(TIER_RUNNERS
+            .iter()
+            .map(|r| {
+                saved
+                    .iter()
+                    .find(|t| t.runner == *r)
+                    .cloned()
+                    .unwrap_or_else(|| default_tiers(r))
+            })
+            .collect())
+    }
+
+    /// Saves the row of one runner. Empty texts clear the tiers: the runner default applies.
+    pub fn tiers_set(&self, row: RunnerTiers) -> Res<Vec<RunnerTiers>> {
+        if !TIER_RUNNERS.contains(&row.runner.as_str()) {
+            return Err(format!("unknown runner: {}", row.runner));
+        }
+        let row = RunnerTiers {
+            runner: row.runner,
+            top: model_id(&row.top)?,
+            mid: model_id(&row.mid)?,
+            small: model_id(&row.small)?,
+        };
+        self.with_file(|file| {
+            file.tiers.retain(|t| t.runner != row.runner);
+            file.tiers.push(row);
+            Ok(())
+        })?;
+        self.tiers()
+    }
+
+    /// The map that the engine reads. A tier with no model is left out.
+    pub fn tier_map(&self) -> shipyard_engine::run_engine::Tiers {
+        let rows = self
+            .tiers()
+            .unwrap_or_else(|_| TIER_RUNNERS.iter().map(|r| default_tiers(r)).collect());
+        shipyard_engine::run_engine::Tiers(
+            rows.into_iter()
+                .map(|t| {
+                    let map = [("top", t.top), ("mid", t.mid), ("small", t.small)]
+                        .into_iter()
+                        .filter(|(_, m)| !m.is_empty())
+                        .map(|(k, m)| (k.to_string(), m))
+                        .collect();
+                    (t.runner, map)
+                })
+                .collect(),
+        )
     }
 
     /* ----- Providers ----- */
@@ -364,5 +465,94 @@ impl Agents {
         self.mcp
             .install_dependency(command)
             .map_err(|e| e.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use shipyard_http::fake::FakeHttp;
+    use shipyard_secrets::MemoryStore;
+
+    fn agents(dir: &Path) -> Agents {
+        Agents::new(
+            dir,
+            Arc::new(MemoryStore::default()),
+            Arc::new(FakeHttp::new()),
+            |c| c,
+        )
+    }
+
+    #[test]
+    fn the_tiers_start_with_the_claude_aliases_and_nothing_for_the_others() {
+        let dir = tempfile::tempdir().unwrap();
+        let rows = agents(dir.path()).tiers().unwrap();
+        assert_eq!(rows.len(), 5);
+        assert_eq!(
+            (
+                rows[0].top.as_str(),
+                rows[0].mid.as_str(),
+                rows[0].small.as_str()
+            ),
+            ("opus", "sonnet", "haiku")
+        );
+        assert!(
+            rows[1..]
+                .iter()
+                .all(|r| r.top.is_empty() && r.mid.is_empty() && r.small.is_empty())
+        );
+    }
+
+    #[test]
+    fn an_edit_is_saved_in_agents_json_and_feeds_the_engine_map() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = agents(dir.path());
+        let row = RunnerTiers {
+            runner: "codex".into(),
+            top: " gpt-5 ".into(),
+            mid: "gpt-5-mini".into(),
+            small: String::new(),
+        };
+        a.tiers_set(row).unwrap();
+        // A new process reads the same file.
+        let again = agents(dir.path());
+        let codex = again
+            .tiers()
+            .unwrap()
+            .into_iter()
+            .find(|r| r.runner == "codex")
+            .unwrap();
+        assert_eq!((codex.top.as_str(), codex.small.as_str()), ("gpt-5", ""));
+        let map = again.tier_map();
+        assert_eq!(map.model("codex", "top").as_deref(), Some("gpt-5"));
+        assert_eq!(
+            map.model("codex", "small"),
+            None,
+            "an empty tier is the runner default"
+        );
+        assert_eq!(map.model("claude", "mid").as_deref(), Some("sonnet"));
+        // The MCP config and the providers in the same file are not touched.
+        let text = std::fs::read_to_string(dir.path().join(CONFIG_FILE)).unwrap();
+        assert!(
+            text.contains("\"tiers\"") && text.contains("\"mcp\""),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn a_bad_runner_or_model_is_refused_and_nothing_is_saved() {
+        let dir = tempfile::tempdir().unwrap();
+        let a = agents(dir.path());
+        let row = |runner: &str, top: &str| RunnerTiers {
+            runner: runner.into(),
+            top: top.into(),
+            mid: String::new(),
+            small: String::new(),
+        };
+        assert!(a.tiers_set(row("nope", "x")).is_err());
+        for bad in ["a b", "x;rm", "--model", "é", &"m".repeat(101)] {
+            assert!(a.tiers_set(row("claude", bad)).is_err(), "{bad}");
+        }
+        assert_eq!(a.tiers().unwrap()[0].top, "opus");
     }
 }

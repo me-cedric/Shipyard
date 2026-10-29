@@ -424,6 +424,24 @@ impl Factory {
         }
     }
 
+    /// The app quits: stop every agent process and end its session. No run changes state, so the
+    /// next start takes each step back on its CLI session (`persist`).
+    pub fn shutdown(&self) {
+        let mut inner = self.lock();
+        let mut ended = Vec::new();
+        for rec in inner.runs.values_mut() {
+            for u in rec.steps.values_mut().flat_map(|s| &mut s.units) {
+                if let Some(mut a) = u.agent.take() {
+                    a.cancel();
+                    ended.push((rec.id.clone(), u.id.clone()));
+                }
+            }
+        }
+        for (run, step) in ended {
+            inner.agents.end(&run, &step);
+        }
+    }
+
     /// A person approves the plan at `PlanReview`.
     pub fn approve_plan(&self, run_id: &str) -> Result<(), String> {
         let mut inner = self.lock();

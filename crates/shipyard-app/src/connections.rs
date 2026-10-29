@@ -550,6 +550,17 @@ impl Connections {
             .map_err(|e| e.to_string())
     }
 
+    /// The forge adapter with its pull request calls (`delivery`). A call that writes needs a
+    /// switch or a person's click: the caller decides, this only builds the adapter.
+    pub fn pull_api(&self, id: &str) -> Res<Box<dyn shipyard_forges::PullApi>> {
+        let r = self.record(id)?;
+        if r.group != ConnectionGroup::Forge {
+            return Err(format!("{id} is not a forge"));
+        }
+        shipyard_forges::connect_pull_api(&forge_config(&r)?, self.secret(&r)?, self.http.clone())
+            .map_err(|e| e.to_string())
+    }
+
     /// A read-only test (REQ-012). It saves the result as the state of the connection.
     /// Blocks on the network: call it in `spawn_blocking`.
     pub fn test(&self, id: &str) -> Res<TestOutcome> {

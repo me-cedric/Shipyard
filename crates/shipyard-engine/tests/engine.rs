@@ -394,6 +394,22 @@ fn a_new_tier_map_applies_to_the_next_step() {
 }
 
 #[test]
+fn a_shutdown_stops_the_agents_and_leaves_the_run_as_it_is() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    assert_eq!(fx.agents.running(), ["work"]);
+    fx.f.shutdown();
+    assert!(fx.agents.running().is_empty());
+    assert!(
+        fx.agents
+            .ended()
+            .iter()
+            .any(|(r, s)| *r == run && s == "work")
+    );
+    assert_eq!(fx.state(&run), RunState::Working);
+}
+
+#[test]
 fn the_global_kill_switch_leaves_a_merged_run_to_close() {
     let fx = Fx::new(writes(true), &[ONE]);
     let run = fx.start("SHIP-1", &[]);
