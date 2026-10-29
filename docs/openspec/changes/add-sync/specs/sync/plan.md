@@ -14,13 +14,17 @@ The tick, reconcile, pickup and claims live in `shipyard-engine`. The mirror and
 | Stack/runtime | Rust workspace and React 19 (MASTER-PLAN 7.1, 7.3). The engine is synchronous, like the adapters: the app runs `Engine::run` on its own thread. A `Clock` trait gives the time, so a test uses a fake clock. |
 | Dependencies | No new dependency. `shipyard-engine` depends on `shipyard-core` and `shipyard-store` only. Jitter uses a small generator in the engine: it needs no quality, and no random crate is a direct dependency of the workspace. |
 | Data/storage | SQLite mirror, claim table, event outbox and links in one file, `mirror.sqlite`, in the app data folder (ADR 0007). Rows are keyed by connection id. Pickup rules in `.shipyard/automation.yaml` (snake_case keys): `interval`, `pickup`, `concurrency`, `status_map`, `writes`. |
-| APIs/contracts | The engine reads its sources through the ports `TrackerPort`, `ForgePort` and `Dispatch` (`crates/shipyard-engine/src/ports.rs`). The app wraps the `Tracker` and `Forge` adapters of `add-connections` in the first two, and `factory` implements `Dispatch`. The ports keep the engine free of the HTTP crates and of the tracker write work. IPC commands `sync_now`, `sync_state`, `sync_import_backlog`, `sync_adopt`, `sync_link`. Events `sync_tick`, `comment_new`, `pr_event`. Bindings are generated. |
+| APIs/contracts | The engine reads its sources through the ports `TrackerPort`, `ForgePort` and `Dispatch` (`crates/shipyard-engine/src/ports.rs`). `shipyard-app` wraps the connections of `add-connections` in the first two (`TrackerAdapter`, `ForgeAdapter`), and `factory` implements `Dispatch`. IPC commands: `sync_state`, `sync_now`, `sync_automation_get`, `sync_automation_save`, `sync_items` (mirror query with filters), `sync_import_plan`, `sync_import_confirm`, `sync_adopt`, `sync_link`, `sync_unlink`. One event, `sync-tick`, after each tick and each change of the mirror: the comment and pull request events go to `Dispatch`, not to the UI. Bindings are generated. |
 | Tick | One timer per connection. The interval has a floor of 30 s. Jitter adds up to 20 % of the interval. A poll sends the start time of the last good poll, minus 2 minutes. A failed poll waits `min(interval x 2^n, 5 min)`, or the interval when it is longer. |
 | Reconcile | Pure functions in `shipyard-core::pickup` take the mirror and the fetched items. They return the changed tickets, the pull request events and the runs to stop. The order is fixed by the engine. A ticket of an active run that the list leaves out is read by key. |
 | Pickup | A pure function takes the mirror, the filter, the limits and the active runs. It returns the tickets to claim, oldest update first. The engine reads each ticket again before it claims it. Nothing is picked up while the last poll of the tracker failed. An empty status set means the `Todo` category. |
-| Claim | A row in the store with a primary key on the connection and the ticket. The stamp is a comment that holds the machine id, written through `TrackerPort`. The oldest live stamp wins. The port gives the age of a stamp by the clock of the tracker. The stale time is 10 minutes (Q-021, working assumption). |
+| Claim | A row in the store with a primary key on the connection and the ticket. The stamp is a comment that holds the hidden marker `<!-- shipyard:claim <machine> -->` (`shipyard_trackers::marker`), written through `TrackerWrite`. The oldest live stamp wins, ties by comment id. The age of a stamp is its creation time against the clock of this machine (the tracker gives none). A tick writes a stamp again only when it is older than 3 minutes, as add then delete. The stale time is 10 minutes (Q-021, working assumption). `comments` leaves stamp comments out, so `questions-loop` never reads one. |
 | Write switches | The claim stamp follows the `tracker_comment` switch (Q-020, option 2). Without it the claim stays in the local store and the engine still reads stamps. The four switches stay in `factory`. |
 | Failure | A failed poll keeps the mirror and backs off up to a maximum. A run with a pull request is not stopped while the forge poll fails. |
+| Host | `SyncHost` in `shipyard-app` keeps one engine for each open project: a project that names a tracker connection in `.shipyard/project.yaml`. The tick loop runs on its own thread and takes the engine lock for each tick, so the sync action and the import never overlap it (`Engine::run` holds the engine for the whole loop, so it is not used). A change of the connection, the repository or the automation file applies at the next `sync_state` call or save. An invalid automation file stops the engine. The mirror is `<app data>/mirror.sqlite`, and views open their own connection to it. |
+| Placeholder | Until `factory` lands, `Placeholder` implements `Dispatch`. A started run is a note "would start" and counts as an active run, so claims and limits stay true. It keeps the global kill switch. It runs no agent. |
+| Scope | The tracker container has no setting. GitHub and GitLab use the origin repository. The other trackers use the key of `.shipyard/project.yaml`. The forge repository is the origin repository. |
+| Entities | `wi:` and `pr:` resolve in `refs_resolve` straight from the mirror. They are not in the ref index, so search and backlinks do not list them. |
 | Events | The compare step writes each comment and pull request event to an outbox in the same transaction as the mirror update. The hand-off step sends the outbox and removes an event after the listener took it. A refusal or a crash keeps the event for the next tick. |
 | Risks | Rate limits and clock drift between machines. The stamp holds the claim time from the tracker, not the local clock. Q-020 and Q-021 stay open. |
 
@@ -50,12 +54,20 @@ cargo test -p shipyard-store
 cargo test -p shipyard-engine
 pnpm vitest run src/features/sync
 pnpm playwright test e2e/sync.spec.ts
+cargo test -p shipyard-app
 cd docs && npx -y @fission-ai/openspec@latest validate add-sync --strict
 ```
 
+## Known gaps
+
+- The assignee in the file is compared with the tracker person id or name. A team handle resolves only when it equals a tracker account. The resolution through `.shipyard/team.yaml` (REQ-006) needs a filter that holds several accounts.
+- The claim stamp and the stale takeover run against fake trackers only. Not verified on a live tracker: that GitHub and GitLab hide the stamp, that Jira, Azure DevOps and Linear keep its token (`add-work` progress note).
+- The component and priority filters match nothing: no adapter fills them. `PullSnapshot.changes_requested` stays `false`.
+- A pull request list reads the CI state of each open pull request on the page, one request each.
+
 ## Docs And Spec Sync
 
-- [ ] Spec still matches intended behavior.
-- [ ] Module/project README updated if behavior or setup changed.
-- [ ] API contracts updated if endpoints, payloads, or status codes changed.
-- [ ] Env examples updated if config changed.
+- [x] Spec still matches intended behavior.
+- [x] Module/project README updated if behavior or setup changed: `docs/guide/dev.md` lists `mirror.sqlite` and `machine-id`.
+- [x] API contracts updated if endpoints, payloads, or status codes changed: the bindings are generated.
+- [x] Env examples updated if config changed: no config changed.

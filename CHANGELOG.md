@@ -21,6 +21,7 @@
 - Context menus on files, commits, refs and connections, with the actions of the row, from the secondary click or the keyboard.
 - Settings / Project can record the tracker and forge connection of a project in `.shipyard/project.yaml`, by id only.
 - Removing a connection now lists every registered project that uses it, and waits for the list. Changing the host of a connection clears its saved secret. A health fix writes only the content you previewed.
+- Work / Backlog shows the tickets of the project tracker from a local mirror that a tick keeps current, with an import after a count, adopt by key and link to a local ref. The sync action in the status bar now runs a tick, then updates the working branch. Each tracker and forge connection shows its sync state (idle, running, failed) with the last good time, and a failed poll keeps the last mirror. Settings / Project has an Automation group for the interval (30 s at least), the pickup filter, the concurrency, the status mapping and the four write switches, all off by default.
 
 ## [0.0.1]
 

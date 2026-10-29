@@ -25,13 +25,13 @@ Plan: [plan.md](./plan.md)
 - [x] T012 Implement the comment and pull request event hand-off in `crates/shipyard-engine/src/handoff.rs`. Covers REQ-011, REQ-012.
 - [x] T013 Write adopt, link and import tests in `crates/shipyard-engine/tests/import.rs`. Covers REQ-015.
 - [x] T014 Implement adopt, link and import in `crates/shipyard-engine/src/import.rs`. Covers REQ-015.
-- [ ] T014a Write IPC and entity tests in `crates/shipyard-app/tests/sync.rs`. Covers REQ-016.
-- [ ] T015 Add the IPC commands and entities in `crates/shipyard-app/src/sync.rs`, then regenerate the bindings with the project command. Covers REQ-013, REQ-016.
-- [ ] T016 Write view tests in `src/features/sync/sync.test.tsx`. Covers REQ-013, REQ-017.
-- [ ] T017 Implement the connection state rows and the status bar sync action in `src/features/sync/`. Covers REQ-013, REQ-017.
-- [ ] T018 [P] Add French and English keys in `src/i18n/` for `sync`. Covers REQ-017.
-- [ ] T019 Write the end-to-end test in `e2e/sync.spec.ts`. Covers REQ-003, REQ-004, REQ-013.
-- [ ] T020 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
+- [x] T014a Write IPC and entity tests in `crates/shipyard-app/tests/sync.rs` (adapters, stamps, host) and `crates/shipyard-app/src/commands/sync.rs` (commands over a fake tracker and forge). Covers REQ-016.
+- [x] T015 Add the adapters, the placeholder dispatch and the engine host in `crates/shipyard-app/src/sync.rs`, the IPC commands and the `wi:` and `pr:` entities in `crates/shipyard-app/src/commands/sync.rs`, then regenerate the bindings with the project command. Covers REQ-013, REQ-016.
+- [x] T016 Write view tests in `src/features/sync/sync.test.tsx`. Covers REQ-013, REQ-017.
+- [x] T017 Implement the connection state rows, the Work / Backlog view, the Automation group and the status bar sync action in `src/features/sync/`, `src/lib/sync/`, `src/ui/molecules/` (`SyncStatus`, `WorkItemRow`) and `src/features/shell/actions.ts`. Covers REQ-013, REQ-015, REQ-017.
+- [x] T018 [P] Add French and English keys in `src/lib/i18n/` for `sync`. Covers REQ-017.
+- [x] T019 Write the end-to-end test in `e2e/sync.spec.ts`. Covers REQ-003, REQ-004, REQ-013.
+- [x] T020 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`.
 - [ ] T021 Run the validation commands from `plan.md`.
 
 ## Completion Check

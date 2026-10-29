@@ -21,6 +21,7 @@
 - Menus contextuels sur les fichiers, les commits, les références et les connexions, avec les actions de la ligne, au clic secondaire ou au clavier.
 - Réglages / Projet peut enregistrer la connexion de tracker et de forge d’un projet dans `.shipyard/project.yaml`, par identifiant seulement.
 - Supprimer une connexion liste désormais tous les projets enregistrés qui l’utilisent, et attend la liste. Changer l’hôte d’une connexion efface son secret enregistré. Une correction de santé n’écrit que le contenu que vous avez prévisualisé.
+- Travail / Backlog affiche les tickets du tracker du projet depuis un miroir local qu’un cycle garde à jour, avec un import après un décompte, l’adoption par clé et le lien vers une référence locale. L’action de synchronisation de la barre d’état lance désormais un cycle, puis met à jour la branche de travail. Chaque connexion de tracker et de forge affiche son état de synchronisation (au repos, en cours, en échec) avec l’heure du dernier succès, et un échec garde le dernier miroir. Réglages / Projet a un groupe Automatisation pour l’intervalle (30 s au minimum), le filtre de prise en charge, la concurrence, la correspondance des statuts et les quatre écritures autorisées, toutes désactivées par défaut.
 
 ## [0.0.1]
 

@@ -55,20 +55,20 @@ Agents must pick up work from the team tracker. The app must show the tracker st
 
 ### Acceptance Criteria
 
-- [ ] A new connection polls every 60 s with jitter and asks only for changes since the last tick.
-- [ ] An interval under 30 s is refused.
-- [ ] A tick runs the six steps of REQ-003 in order.
-- [ ] A ticket that becomes terminal stops its active run in the same tick, unless its pull request merged.
-- [ ] With the network off, views still show the mirror and the connection shows the failed state.
-- [ ] No ticket file appears in the repository.
-- [ ] Only tickets that match the filter are picked up. Nothing is picked up while the global kill switch is on.
-- [ ] A project with no concurrency setting runs at most 2 runs.
-- [ ] Two machines with the same filter never run one ticket.
-- [ ] A stale claim is taken over after the stale time.
-- [ ] A new comment reaches `questions-loop` once. A merge event reaches `delivery` once.
-- [ ] One sync action in the status bar starts one tick. No other view has one.
-- [ ] A person adopts, links and imports from the sync view.
-- [ ] Every view works with the keyboard, shows a focus ring and has French and English text.
+- [x] A new connection polls every 60 s with jitter and asks only for changes since the last tick.
+- [x] An interval under 30 s is refused.
+- [x] A tick runs the six steps of REQ-003 in order.
+- [x] A ticket that becomes terminal stops its active run in the same tick, unless its pull request merged.
+- [x] With the network off, views still show the mirror and the connection shows the failed state.
+- [x] No ticket file appears in the repository.
+- [x] Only tickets that match the filter are picked up. Nothing is picked up while the global kill switch is on.
+- [x] A project with no concurrency setting runs at most 2 runs.
+- [ ] Two machines with the same filter never run one ticket. (Proved with two fake machines and with the stamp adapter on a fake tracker. Not run on a live tracker.)
+- [ ] A stale claim is taken over after the stale time. (Same: fakes only.)
+- [x] A new comment reaches `questions-loop` once. A merge event reaches `delivery` once.
+- [x] One sync action in the status bar starts one tick. No other view has one.
+- [x] A person adopts, links and imports from the sync view.
+- [x] Every view works with the keyboard, shows a focus ring and has French and English text.
 
 ### Links
 
@@ -317,7 +317,7 @@ The system SHALL let a person adopt a ticket, link a ticket to a local item and 
 
 ### Requirement: REQ-016 Entities and events
 
-The system SHALL expose the mirror as `wi:<KEY-N>` and `pr:<forge>:<number>` entities. The system SHALL send a tick event after each tick to the capabilities that listen.
+The system SHALL expose the mirror as `wi:<KEY-N>` and `pr:<forge>:<number>` entities. The system SHALL send a tick event after each tick to the capabilities that listen: the views read it as the event `sync-tick`, and `factory` receives it through `Dispatch`.
 
 #### Scenario: Resolve
 - GIVEN a mirrored ticket
