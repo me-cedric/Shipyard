@@ -4,9 +4,11 @@ import {
 	codeBranchSwitch,
 	codeCommit,
 	codeDiff,
+	codeFileRead,
 	codeStage,
 	codeStatus,
 	codeUnstage,
+	codeWatchIntervalSet,
 	seedCode,
 	unifiedDiff,
 } from "./mock-code";
@@ -44,6 +46,23 @@ describe("the Code mock", () => {
 		expect(c.branch).toBe("fix/auth/login-timeout");
 		expect(() => codeBranchDelete(c, "fix/auth/login-timeout", true)).toThrow("working branch");
 		expect(() => codeBranchSwitch(c, "feat/auth/login")).toThrow("src/app.ts");
+	});
+
+	it("reads a file for the viewer and refuses a path out of the project", () => {
+		const c = seedCode();
+		expect(codeFileRead(c, "src/app.ts", null).text).toContain("a\nB");
+		expect(codeFileRead(c, "src/app.ts", "HEAD").path).toBe("src/app.ts");
+		expect(() => codeFileRead(c, "../x", null)).toThrow("not a path");
+		expect(() => codeFileRead(c, "/etc/passwd", null)).toThrow("not a path");
+		expect(() => codeFileRead(c, "nope.ts", null)).toThrow("no such file");
+	});
+
+	it("keeps the watch interval between 1 and 1440 minutes", () => {
+		const c = seedCode();
+		expect(c.watchMinutes).toBe(15);
+		expect(codeWatchIntervalSet(c, 5)).toBe(5);
+		expect(() => codeWatchIntervalSet(c, 0)).toThrow("1 to 1440");
+		expect(c.watchMinutes).toBe(5);
 	});
 
 	it("writes a unified diff with context", () => {

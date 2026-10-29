@@ -231,6 +231,12 @@ pub trait Git: Send + Sync {
 
     fn review_input(&self, run: &str, base: &str) -> PortResult<ReviewInput>;
 
+    /// The impacts digest of the run against `base`, for the pull request body (`code` REQ-032,
+    /// Q-079). `None`: this port gives no digest. An error is not fatal: the body has no digest.
+    fn digest(&self, _run: &str, _base: &str) -> PortResult<Option<String>> {
+        Ok(None)
+    }
+
     /// The text of line `line` (from 1) of `path` in the run folder. `None`: no such file or line.
     fn line(&self, run: &str, path: &str, line: u32) -> PortResult<Option<String>>;
 

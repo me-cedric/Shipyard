@@ -245,7 +245,7 @@ impl Inner {
                 title: title.clone(),
                 url,
             }],
-            impacts: None,
+            impacts: git.digest(run_id, &base).ok().flatten(),
         };
         let open = Write::OpenPr {
             run: run_id.into(),

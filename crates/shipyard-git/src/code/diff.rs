@@ -30,6 +30,17 @@ pub struct FileDiff {
     pub truncated: bool,
 }
 
+/// A file for the read-only viewer (REQ-036). A binary file has a size and no text.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+pub struct FileView {
+    pub path: String,
+    pub size: u32,
+    pub binary: bool,
+    /// The text was cut at `max_bytes`.
+    pub truncated: bool,
+    pub text: String,
+}
+
 fn render(diff: &Diff<'_>, path: &str, max_bytes: usize) -> Result<FileDiff> {
     let mut out = FileDiff {
         path: path.to_string(),

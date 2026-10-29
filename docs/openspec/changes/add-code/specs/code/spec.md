@@ -291,7 +291,7 @@ The system SHALL publish the working branch with a person's click and MUST NOT u
 
 ### Requirement: REQ-015 Remote watch
 
-In the background, the system SHALL fetch the remote heads of each project that has a remote. It SHALL watch the working branch and each branch that the project lists. Each project SHALL set its own interval. The default SHALL be 15 minutes. [NEEDS CLARIFICATION: Q-042 Where does the watch interval live?] This version has the default only: no setting changes the interval yet.
+In the background, the system SHALL fetch the remote heads of each project that has a remote. It SHALL watch the working branch and each branch that the project lists. Each project SHALL set its own interval. The default SHALL be 15 minutes. [NEEDS CLARIFICATION: Q-042 Where does the watch interval live?] The interval is a per-machine value for each project (Q-042 option 1). The commands set it. No view sets it yet (Q-085).
 
 #### Scenario: Default interval
 - GIVEN a project with no interval set

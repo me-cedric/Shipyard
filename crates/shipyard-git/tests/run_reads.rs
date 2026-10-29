@@ -114,3 +114,35 @@ fn the_head_is_the_full_commit_id() {
     assert_eq!(head.len(), 40);
     assert_eq!(head, r.status().unwrap().head.unwrap());
 }
+
+#[test]
+fn the_viewer_reads_the_working_copy_or_a_revision_and_stays_in_the_folder() {
+    let (_t, r, base) = fixture();
+    let now = r.read_file("src/lib.rs", None, 1000).unwrap();
+    assert_eq!(
+        (now.text.as_str(), now.size, now.binary),
+        ("one\nTWO\n", 8, false)
+    );
+    let old = r.read_file("src/lib.rs", Some(&base), 1000).unwrap();
+    assert_eq!(old.text, "one\ntwo\n");
+    assert!(
+        r.read_file("src/lib.rs", Some("main"), 3)
+            .unwrap()
+            .truncated
+    );
+    fs::write(r.workdir().join("a.bin"), [0u8, 1, 2]).unwrap();
+    let bin = r.read_file("a.bin", None, 1000).unwrap();
+    assert!(bin.binary && bin.text.is_empty() && bin.size == 3);
+    assert!(r.read_file("../x", None, 10).is_err());
+    assert!(r.read_file("nope.rs", None, 10).is_err());
+    #[cfg(unix)]
+    {
+        let outside = tempfile::tempdir().unwrap();
+        fs::write(outside.path().join("s.txt"), "secret").unwrap();
+        std::os::unix::fs::symlink(outside.path().join("s.txt"), r.workdir().join("link")).unwrap();
+        assert!(
+            r.read_file("link", None, 10).is_err(),
+            "a link out of the folder is refused"
+        );
+    }
+}

@@ -21,8 +21,10 @@ use crate::commands::{AppState, Res, blocking, err};
 pub const OUTPUT_EVENT: &str = "terminal-output";
 pub const EXIT_EVENT: &str = "terminal-exit";
 
+/// The payload of the event `terminal-output`. The event `terminal-exit` has the shell id as its
+/// payload (a string). A panel reads only the events with its own id.
 #[derive(Debug, Clone, Serialize, Type)]
-pub struct Output {
+pub struct TerminalOutput {
     pub id: String,
     pub data: String,
 }
@@ -170,7 +172,7 @@ pub fn open(
                 && app
                     .emit(
                         OUTPUT_EVENT,
-                        Output {
+                        TerminalOutput {
                             id: id.clone(),
                             data,
                         },

@@ -19,7 +19,7 @@ mod status;
 pub use branch::{Branch, BranchKind};
 pub use commit::{CommitInfo, LogPage, RefKind, RefLabel};
 pub use conflict::{Choice, ConflictFile, Segment, Side};
-pub use diff::{DiffSide, FileDiff};
+pub use diff::{DiffSide, FileDiff, FileView};
 pub use remote::{HeadChange, PullOutcome, RemoteHead};
 pub use stash::Stash;
 pub use status::{Changes, FileChange, FileState};

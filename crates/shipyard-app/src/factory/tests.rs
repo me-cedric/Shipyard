@@ -831,6 +831,7 @@ fn the_run_diff_lists_each_changed_file_of_the_run_folder_and_refuses_a_foreign_
         runner: RUNNER.into(),
         declared_base: None,
         specs: String::new(),
+        secrets: Vec::new(),
     };
     // The run folder is made on first use.
     let path = shipyard_engine::ports::Workspaces::dir(

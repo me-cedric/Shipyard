@@ -129,6 +129,20 @@ fn a_tool_branch_is_renamed_committed_rebased_pushed_and_opened_as_a_draft() {
 }
 
 #[test]
+fn the_digest_of_the_run_joins_the_pull_request_body() {
+    let fx = Fx::new(writes(true), &[]);
+    fx.git.set_digest(Some("The login flow changes."));
+    to_pr(&fx);
+    let Some(Write::OpenPr { body, .. }) = open_pr(&fx) else {
+        panic!("no pull request was opened")
+    };
+    assert!(
+        body.contains("## Impacts") && body.contains("The login flow changes."),
+        "{body}"
+    );
+}
+
+#[test]
 fn a_branch_that_follows_the_pattern_keeps_its_name() {
     let fx = Fx::new(writes(true), &[]);
     fx.git.set_branch("fix/engine/login");

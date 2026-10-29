@@ -3,15 +3,18 @@
 //! Each command works on the active project. The git calls block, so a command runs them on a
 //! blocking thread. The logic is in plain functions over `&AppState`, so a test needs no runtime.
 
+use std::collections::HashMap;
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use shipyard_core::code::{check_branch_name, check_summary};
 use shipyard_git::Repo;
 use shipyard_git::code::{
-    Branch, Changes, Choice, CommitInfo, ConflictFile, DiffSide, FileChange, FileDiff, HeadChange,
-    LogPage, PullOutcome, Side, Stash,
+    Branch, Changes, Choice, CommitInfo, ConflictFile, DiffSide, FileChange, FileDiff, FileView,
+    HeadChange, LogPage, PullOutcome, Side, Stash,
 };
+use shipyard_store::code::{set_watch_minutes, watch_minutes};
 use specta::Type;
 use tauri::{AppHandle, Emitter};
 
@@ -20,6 +23,8 @@ use super::{AppState, Res, blocking, err};
 /// A diff above this size is cut. The view says so.
 const MAX_DIFF: usize = 256 * 1024;
 const MAX_PAGE: u32 = 200;
+/// A file in the viewer is cut at this size. The view says so.
+const MAX_FILE: usize = 512 * 1024;
 /// The event that the watch emits. The status bar listens to it.
 pub const NOTICE_EVENT: &str = "code-notice";
 
@@ -200,8 +205,21 @@ pub struct WatchNotice {
 /// project whose heads moved (REQ-015, REQ-017). It moves the remote tracking refs only
 /// (REQ-016). A project that fails, for example offline, is skipped.
 pub fn watch_tick(s: &AppState) -> Res<Vec<WatchNotice>> {
+    watch_due(s, &mut |_| true)
+}
+
+/// A project is due when it was never fetched or its own interval has passed (REQ-015, Q-042).
+pub(crate) fn is_due(last: Option<Instant>, every: Duration, now: Instant) -> bool {
+    last.is_none_or(|l| now.saturating_duration_since(l) >= every)
+}
+
+/// The tick for the projects that `due` accepts. It gets the project id.
+pub(crate) fn watch_due(s: &AppState, due: &mut dyn FnMut(&str) -> bool) -> Res<Vec<WatchNotice>> {
     let mut out = Vec::new();
     for e in s.registry()?.projects() {
+        if !due(&e.id) {
+            continue;
+        }
         let Ok(r) = Repo::open(Path::new(&e.path)) else {
             continue;
         };
@@ -240,17 +258,50 @@ pub fn watch_notice(s: &AppState) -> Res<Option<WatchNotice>> {
     Ok(s.notices().get(&id).cloned())
 }
 
-/// Starts the background watch: one tick each `every`. A notice goes out as an event.
-pub fn spawn_watch(app: AppHandle, every: std::time::Duration) {
+/// How often the watch checks which project is due.
+const POLL: Duration = Duration::from_secs(60);
+
+/// Starts the background watch. Each project is fetched at its own interval. A notice goes out as
+/// an event.
+pub fn spawn_watch(app: AppHandle) {
     std::thread::spawn(move || {
+        let mut last: HashMap<String, Instant> = HashMap::new();
         loop {
-            std::thread::sleep(every);
+            std::thread::sleep(POLL);
             let state = tauri::Manager::state::<AppState>(&app);
-            for n in watch_tick(&state).unwrap_or_default() {
+            let now = Instant::now();
+            let found = watch_due(&state, &mut |id| {
+                let every = Duration::from_secs(u64::from(watch_minutes(&state.dir, id)) * 60);
+                let due = is_due(last.get(id).copied(), every, now);
+                if due {
+                    last.insert(id.to_string(), now);
+                }
+                due
+            });
+            for n in found.unwrap_or_default() {
                 let _ = app.emit(NOTICE_EVENT, n);
             }
         }
     });
+}
+
+/// The minutes between two fetches of the active project.
+pub fn watch_interval(s: &AppState) -> Res<u32> {
+    let e = s.registry()?.active().cloned().ok_or("no active project")?;
+    Ok(watch_minutes(&s.dir, &e.id))
+}
+
+pub fn watch_interval_set(s: &AppState, minutes: u32) -> Res<u32> {
+    let e = s.registry()?.active().cloned().ok_or("no active project")?;
+    set_watch_minutes(&s.dir, &e.id, minutes).map_err(err)?;
+    Ok(minutes)
+}
+
+/// A file of the working copy, or at `rev`, for the read-only viewer (REQ-036).
+pub fn file_read(s: &AppState, path: &str, rev: Option<&str>) -> Res<FileView> {
+    repo(s)?
+        .read_file(path, rev.filter(|r| !r.is_empty()), MAX_FILE)
+        .map_err(err)
 }
 
 #[tauri::command]
@@ -395,6 +446,26 @@ pub async fn code_watch_tick(app: AppHandle) -> Res<Vec<WatchNotice>> {
         let _ = emitter.emit(NOTICE_EVENT, n);
     }
     Ok(found)
+}
+
+/// The minutes between two fetches of the active project (default 15).
+#[tauri::command]
+#[specta::specta]
+pub async fn code_watch_interval(app: AppHandle) -> Res<u32> {
+    blocking(app, watch_interval).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_watch_interval_set(app: AppHandle, minutes: u32) -> Res<u32> {
+    blocking(app, move |s| watch_interval_set(s, minutes)).await
+}
+
+/// A file for the viewer: the working copy when `rev` is empty, else the file at that revision.
+#[tauri::command]
+#[specta::specta]
+pub async fn code_file_read(app: AppHandle, path: String, rev: Option<String>) -> Res<FileView> {
+    blocking(app, move |s| file_read(s, &path, rev.as_deref())).await
 }
 
 #[tauri::command]
@@ -686,5 +757,40 @@ mod tests {
         assert_eq!(push(&s).unwrap_err(), "the project has no remote");
         assert_eq!(fetch(&s).unwrap_err(), "the project has no remote");
         assert!(watch_tick(&s).unwrap().is_empty());
+    }
+
+    #[test]
+    fn the_watch_fetches_a_project_only_when_its_interval_has_passed() {
+        let (t0, every) = (Instant::now(), Duration::from_secs(15 * 60));
+        assert!(is_due(None, every, t0), "never fetched");
+        assert!(!is_due(Some(t0), every, t0 + Duration::from_secs(899)));
+        assert!(is_due(Some(t0), every, t0 + every));
+
+        let dir = tempfile::tempdir().unwrap();
+        let (s, _a, b) = with_remote(dir.path());
+        assert_eq!(watch_interval(&s).unwrap(), 15, "the default");
+        colleague_pushes(&b, "c1.txt");
+        assert!(
+            watch_due(&s, &mut |_| false).unwrap().is_empty(),
+            "not due: no fetch"
+        );
+        assert_eq!(watch_due(&s, &mut |_| true).unwrap().len(), 1);
+
+        assert_eq!(watch_interval_set(&s, 5).unwrap(), 5);
+        assert_eq!(watch_interval(&s).unwrap(), 5);
+        assert!(watch_interval_set(&s, 0).is_err());
+        assert_eq!(watch_interval(&s).unwrap(), 5);
+    }
+
+    #[test]
+    fn the_viewer_reads_a_file_at_a_revision_and_refuses_a_path_out_of_the_project() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, root) = project(dir.path(), "p");
+        write(&root, "a.txt", "two\n");
+        let now = file_read(&s, "a.txt", None).unwrap();
+        assert_eq!(now.text, "two\n");
+        assert_eq!(file_read(&s, "a.txt", Some("HEAD")).unwrap().text, "one\n");
+        assert!(file_read(&s, "../a.txt", None).is_err());
+        assert!(file_read(&s, "/etc/passwd", None).is_err());
     }
 }

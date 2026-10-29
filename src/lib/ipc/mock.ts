@@ -39,6 +39,7 @@ import {
 	codeCommitDiff,
 	codeDiff,
 	codeDiscard,
+	codeFileRead,
 	codeLog,
 	codePull,
 	codePush,
@@ -50,6 +51,7 @@ import {
 	codeStashPush,
 	codeStatus,
 	codeUnstage,
+	codeWatchIntervalSet,
 	type MockCode,
 	seedCode,
 } from "./mock-code";
@@ -942,6 +944,9 @@ const handlers: Handlers = {
 		const n = code().notice;
 		return n ? [n] : [];
 	},
+	codeWatchInterval: () => code().watchMinutes,
+	codeWatchIntervalSet: (minutes) => codeWatchIntervalSet(code(), minutes),
+	codeFileRead: (path, rev) => codeFileRead(code(), path, rev),
 	codeWatchNotice: () => (active() ? (code().notice ?? null) : null),
 	codePullDetail: (number) => cp.pullDetail(prs(), number),
 	codePullLabels: () => cp.pullLabels(),
@@ -1148,7 +1153,7 @@ function needTracker<T>(f: () => T): T {
 
 const camel = (s: string) => s.replace(/_(\w)/g, (_, c: string) => c.toUpperCase());
 
-/** The output of the fake terminal. The real app sends the event `terminal-output` instead. */
+/** The output of the fake terminal. The real app sends the event `terminal-output`, payload `TerminalOutput` (`{ id, data }`). */
 export function onMockTerminalOutput(listener: (id: string, data: string) => void) {
 	return cp.onTerminalOutput(prs(), listener);
 }

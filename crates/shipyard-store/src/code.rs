@@ -226,3 +226,39 @@ pub fn index_commit(index: &mut RefIndex, c: &CommitLink) -> Result<()> {
         .collect();
     index.set_source(&format!("git:{me}"), &c.sha, &[entity], &citations)
 }
+
+// ---------------------------------------------------------------- watch interval (REQ-015, Q-042)
+
+/// The minutes between two fetches of a project when it sets none.
+pub const DEFAULT_WATCH_MINUTES: u32 = 15;
+const MAX_WATCH_MINUTES: u32 = 24 * 60;
+
+/// The interval is personal: `<data>/code/<project>/watch.json`, never in the repository (Q-042).
+fn watch_file(data: &Path, project: &str) -> Result<PathBuf> {
+    let plain = !project.is_empty()
+        && !project.starts_with(['-', '.'])
+        && project
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'));
+    if !plain {
+        return Err(format!("not a plain project id: {project}").into());
+    }
+    Ok(data.join("code").join(project).join("watch.json"))
+}
+
+/// A missing or unreadable file gives the default.
+pub fn watch_minutes(data: &Path, project: &str) -> u32 {
+    watch_file(data, project)
+        .ok()
+        .and_then(|f| fs::read(f).ok())
+        .and_then(|b| serde_json::from_slice::<u32>(&b).ok())
+        .filter(|m| (1..=MAX_WATCH_MINUTES).contains(m))
+        .unwrap_or(DEFAULT_WATCH_MINUTES)
+}
+
+pub fn set_watch_minutes(data: &Path, project: &str, minutes: u32) -> Result<()> {
+    if !(1..=MAX_WATCH_MINUTES).contains(&minutes) {
+        return Err(format!("the interval is 1 to {MAX_WATCH_MINUTES} minutes").into());
+    }
+    crate::project::write_atomic(&watch_file(data, project)?, minutes.to_string().as_bytes())
+}

@@ -101,3 +101,19 @@ fn a_commit_links_to_work_items_and_runs() {
     assert_eq!(idx.backlinks("wi:SHIP-42").unwrap()[0].items.len(), 1);
     assert!(idx.backlinks("run:r-1").unwrap().is_empty());
 }
+
+#[test]
+fn the_watch_interval_is_per_project_personal_and_bounded() {
+    let d = tempfile::tempdir().unwrap();
+    assert_eq!(watch_minutes(d.path(), "a"), DEFAULT_WATCH_MINUTES);
+    set_watch_minutes(d.path(), "a", 5).unwrap();
+    assert_eq!(watch_minutes(d.path(), "a"), 5);
+    assert_eq!(watch_minutes(d.path(), "b"), DEFAULT_WATCH_MINUTES);
+    assert!(set_watch_minutes(d.path(), "a", 0).is_err());
+    assert!(set_watch_minutes(d.path(), "../x", 5).is_err());
+    assert_eq!(
+        watch_minutes(d.path(), "a"),
+        5,
+        "a refused value changes nothing"
+    );
+}

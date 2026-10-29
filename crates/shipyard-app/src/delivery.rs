@@ -75,6 +75,8 @@ pub struct Folders {
     pub declared_base: Option<String>,
     /// The folder of the spec files, from the paths of `project.yaml`.
     pub specs: String,
+    /// The secret values that a digest prompt must not carry.
+    pub secrets: Vec<String>,
 }
 
 impl Folders {
@@ -264,6 +266,24 @@ impl Git for Folders {
                 .files_at(&rev, &self.specs, MAX_SPECS, MAX_SPEC_BYTES)
                 .map_err(e)?,
         })
+    }
+
+    /// One agent turn for each run (Q-079). A run with no change has no digest.
+    fn digest(&self, run: &str, base: &str) -> PortResult<Option<String>> {
+        let repo = self.run_repo(run)?;
+        let rev = Self::rev(&repo, base)?;
+        if repo.changed_since(&rev).map_err(e)?.is_empty() {
+            return Ok(None);
+        }
+        let scratch = self.data.join("scratch").join(format!("digest-{run}"));
+        let out = crate::code::digest_of(
+            &self.runner,
+            scratch,
+            &self.run_path(run)?,
+            &rev,
+            &self.secrets,
+        );
+        out.map(Some)
     }
 
     fn line(&self, run: &str, path: &str, line: u32) -> PortResult<Option<String>> {

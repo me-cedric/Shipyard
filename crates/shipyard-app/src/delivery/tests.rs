@@ -58,6 +58,7 @@ fn fixture() -> (tempfile::TempDir, Folders) {
         runner: "claude".into(),
         declared_base: None,
         specs: "docs/openspec".into(),
+        secrets: Vec::new(),
     };
     (tmp, folders)
 }
@@ -124,6 +125,21 @@ fn changes_review_input_line_commit_and_rename_work_in_the_run_folder() {
     assert_eq!(f.branch(RUN).unwrap(), "feat/src/add-new");
     // The rebase onto an unmoved base changes nothing.
     assert_eq!(f.rebase(RUN, "main").unwrap(), Merge::Clean);
+}
+
+#[test]
+fn the_digest_waits_for_a_change_and_an_unknown_runner_is_an_error_not_a_hang() {
+    let (_t, mut f) = fixture();
+    let dir = f.dir(RUN, Workspace::Shared, None).unwrap();
+    assert_eq!(f.digest(RUN, "main").unwrap(), None, "no change, no digest");
+    write(&dir, "src/lib.rs", "one\nTWO\n");
+    f.runner = "no-such-runner".into();
+    // The engine drops this error: the pull request body has no digest.
+    assert!(
+        f.digest(RUN, "main")
+            .unwrap_err()
+            .contains("unknown runner")
+    );
 }
 
 #[test]

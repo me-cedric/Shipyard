@@ -10,6 +10,7 @@ import type {
 	DiffSide,
 	FileChange_Serialize,
 	FileDiff,
+	FileView,
 	LogPage,
 	PullOutcome,
 	Resolution,
@@ -30,6 +31,8 @@ export type MockCode = {
 	stashes: { id: string; message: string; files: Record<string, MockFile> }[];
 	conflicts: ConflictFile[];
 	notice: WatchNotice_Serialize | null;
+	/** Minutes between two fetches of the project (default 15, 1 to 1440). */
+	watchMinutes: number;
 	counter: number;
 };
 
@@ -91,6 +94,7 @@ export function seedCode(): MockCode {
 		stashes: [],
 		conflicts: [],
 		notice: null,
+		watchMinutes: 15,
 		counter: 4,
 	};
 }
@@ -167,6 +171,24 @@ export function codeDiff(c: MockCode, path: string, side: DiffSide): FileDiff {
 				? ""
 				: unifiedDiff(path, f.index, f.work);
 	return { path, text, binary: false, truncated: false };
+}
+
+/** A file for the viewer: the working copy, or at a commit (else the head). Same path rule as Rust. */
+export function codeFileRead(c: MockCode, path: string, rev: string | null): FileView {
+	if (!path || path.startsWith("/") || path.split("/").includes(".."))
+		throw `not a path inside the project: ${path}`;
+	const f = c.files[path];
+	const at = rev ? c.commits[rev] : undefined;
+	const text = rev ? (at ? (at.changes[path]?.[1] ?? null) : (f?.head ?? null)) : (f?.work ?? null);
+	if (text === null) throw `no such file: ${path}`;
+	return { path, size: text.length, binary: false, truncated: false, text };
+}
+
+export function codeWatchIntervalSet(c: MockCode, minutes: number): number {
+	if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440)
+		throw "the interval is 1 to 1440 minutes";
+	c.watchMinutes = minutes;
+	return minutes;
 }
 
 export function codeStage(c: MockCode, paths: string[]) {

@@ -63,6 +63,11 @@ export const commands = {
 	/**  Runs one watch tick now and emits the notices. The background watch runs the same tick. */
 	codeWatchTick: () => typedError<WatchNotice_Serialize[], string>(__TAURI_INVOKE("code_watch_tick")),
 	codeWatchNotice: () => typedError<WatchNotice_Serialize | null, string>(__TAURI_INVOKE("code_watch_notice")),
+	/**  The minutes between two fetches of the active project (default 15). */
+	codeWatchInterval: () => typedError<number, string>(__TAURI_INVOKE("code_watch_interval")),
+	codeWatchIntervalSet: (minutes: number) => typedError<number, string>(__TAURI_INVOKE("code_watch_interval_set", { minutes })),
+	/**  A file for the viewer: the working copy when `rev` is empty, else the file at that revision. */
+	codeFileRead: (path: string, rev: string | null) => typedError<FileView, string>(__TAURI_INVOKE("code_file_read", { path, rev })),
 	codePullDetail: (number: number) => typedError<PullDetail_Serialize, string>(__TAURI_INVOKE("code_pull_detail", { number })),
 	codePullLabels: () => typedError<string[], string>(__TAURI_INVOKE("code_pull_labels")),
 	codePullOpen: (input: OpenPull_Deserialize, click: boolean) => typedError<OpenedPull, string>(__TAURI_INVOKE("code_pull_open", { input, click })),
@@ -1324,6 +1329,16 @@ export type FileDiff = {
 };
 
 export type FileState = "added" | "modified" | "deleted" | "renamed" | "typechange" | "untracked" | "conflicted";
+
+/**  A file for the read-only viewer (REQ-036). A binary file has a size and no text. */
+export type FileView = {
+	path: string,
+	size: number,
+	binary: boolean,
+	/**  The text was cut at `max_bytes`. */
+	truncated: boolean,
+	text: string,
+};
 
 /**  Which tickets an agent may take. A ticket must match every set part (REQ-006). */
 export type Filter = Filter_Serialize | Filter_Deserialize;
@@ -3364,6 +3379,15 @@ export type Term = {
 	meaning: string,
 	/**  The spec that defines it. */
 	spec: string,
+};
+
+/**
+ *  The payload of the event `terminal-output`. The event `terminal-exit` has the shell id as its
+ *  payload (a string). A panel reads only the events with its own id.
+ */
+export type TerminalOutput = {
+	id: string,
+	data: string,
 };
 
 /**

@@ -675,34 +675,53 @@ pub fn impact_analyze(s: &AppState, base: &str, click: bool) -> Res<ImpactEntry>
 }
 
 /// The digest of the diff of a run against its base, for the pull request body (REQ-032).
-/// `base` is the base branch of the run, `folder` its worktree.
-pub fn run_digest(s: &AppState, folder: &Path, base: &str) -> Res<String> {
-    let e = s.registry()?.active().cloned().ok_or("no active project")?;
-    let runner = shipyard_store::assistant_defaults::load(&s.dir, &e.id)
-        .settings()
-        .runner;
+/// `rev` is the base of the run, `folder` its worktree. `runner` is an agent CLI id.
+pub fn digest_of(
+    runner: &str,
+    scratch: PathBuf,
+    folder: &Path,
+    rev: &str,
+    secrets: &[String],
+) -> Res<String> {
     let repo = Repo::open(folder).map_err(err)?;
-    let files = repo.changed_since(base).map_err(err)?;
-    let diff = repo.diff_since(base, MAX_DIFF).map_err(err)?;
-    let secrets = secrets(s);
+    let files = repo.changed_since(rev).map_err(err)?;
+    let diff = repo.diff_since(rev, MAX_DIFF).map_err(err)?;
     let ask = RunnerAsk {
-        runner,
+        runner: runner.to_string(),
         dir: folder.to_path_buf(),
-        scratch: s.dir.join("scratch").join(format!("digest-{}", e.id)),
+        scratch,
         program: None,
     };
     analyze(
         &ask,
         &Comparison {
-            base,
+            base: rev,
             files: &files,
             diff: &diff,
             refs: &[],
-            secrets: &secrets,
+            secrets,
         },
     )
     .map(|a| a.digest)
     .map_err(err)
+}
+
+pub fn run_digest(s: &AppState, folder: &Path, base: &str) -> Res<String> {
+    let e = s.registry()?.active().cloned().ok_or("no active project")?;
+    let runner = shipyard_store::assistant_defaults::load(&s.dir, &e.id)
+        .settings()
+        .runner;
+    let scratch = s.dir.join("scratch").join(format!("digest-{}", e.id));
+    digest_of(&runner, scratch, folder, base, &secrets(s))
+}
+
+/// A pull request that opened or merged tells the mirror at once: one sync tick, so the Code and
+/// Work views read it again. A failed tick never fails the write, which went through.
+fn synced<T>(s: &AppState, written: Res<T>) -> Res<T> {
+    if written.is_ok() {
+        let _ = crate::commands::sync::run_tick(s);
+    }
+    written
 }
 
 // ---------------------------------------------------------------- commands
@@ -716,13 +735,13 @@ pub async fn code_pull_detail(app: AppHandle, number: u32) -> Res<PullDetail> {
 #[tauri::command]
 #[specta::specta]
 pub async fn code_pull_labels(app: AppHandle) -> Res<Vec<String>> {
-    blocking(app, move |s| pull_labels(s)).await
+    blocking(app, pull_labels).await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn code_pull_open(app: AppHandle, input: OpenPull, click: bool) -> Res<OpenedPull> {
-    blocking(app, move |s| pull_open(s, input, click)).await
+    blocking(app, move |s| synced(s, pull_open(s, input, click))).await
 }
 
 #[tauri::command]
@@ -751,7 +770,10 @@ pub async fn code_pull_merge(
     method: MergeMethod,
     click: bool,
 ) -> Res<()> {
-    blocking(app, move |s| pull_merge(s, number, method, click)).await
+    blocking(app, move |s| {
+        synced(s, pull_merge(s, number, method, click))
+    })
+    .await
 }
 
 #[tauri::command]
@@ -763,7 +785,7 @@ pub async fn code_pull_ready(app: AppHandle, number: u32, click: bool) -> Res<()
 #[tauri::command]
 #[specta::specta]
 pub async fn code_quality(app: AppHandle) -> Res<QualityView> {
-    blocking(app, move |s| quality_view(s)).await
+    blocking(app, quality_view).await
 }
 
 #[tauri::command]
@@ -781,13 +803,13 @@ pub async fn code_scan_run(app: AppHandle, name: String, click: bool) -> Res<Qua
 #[tauri::command]
 #[specta::specta]
 pub async fn code_impact_refs(app: AppHandle) -> Res<ImpactRefs> {
-    blocking(app, move |s| impact_refs(s)).await
+    blocking(app, impact_refs).await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn code_impact_list(app: AppHandle) -> Res<Vec<ImpactEntry>> {
-    blocking(app, move |s| impact_list(s)).await
+    blocking(app, impact_list).await
 }
 
 #[tauri::command]
@@ -922,7 +944,7 @@ mod tests {
         let digest = std::fs::read_to_string(root.join(&entry.digest)).unwrap();
         assert!(plan.contains("- data: high") && !digest.contains("data: high"));
         assert_eq!(a.digest, digest);
-        assert_eq!(impact_list(&s).unwrap(), [entry.clone()]);
+        assert_eq!(impact_list(&s).unwrap(), std::slice::from_ref(&entry));
         assert_eq!(impact_read(&s, &entry.digest).unwrap(), digest);
         assert!(impact_read(&s, "a.txt").is_err());
         let refs = impact_refs(&s).unwrap();
@@ -945,5 +967,16 @@ mod tests {
         let index = shared.lock().unwrap();
         let groups = index.backlinks("run:r-7").unwrap();
         assert_eq!(groups[0].items[0].source, format!("commit:{sha}"));
+    }
+
+    #[test]
+    fn a_write_keeps_its_result_when_the_sync_tick_has_nothing_to_do() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = AppState::new(dir.path().join("data"));
+        assert_eq!(synced(&s, Ok(7)).unwrap(), 7);
+        assert_eq!(
+            synced::<u8>(&s, Err("refused".into())).unwrap_err(),
+            "refused"
+        );
     }
 }

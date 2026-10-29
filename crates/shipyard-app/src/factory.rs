@@ -603,6 +603,11 @@ pub(crate) fn attach(s: &AppState, a: &Active, plan: &Plan) -> Res<()> {
         runner: RUNNER.into(),
         declared_base: None,
         specs: file.path("specs").to_string(),
+        secrets: {
+            let mut all = s.agents.secret_values();
+            all.extend(s.connections.secret_values());
+            all
+        },
     });
     let writer = ProjectWriter {
         conns: s.connections.clone(),
@@ -983,6 +988,7 @@ pub fn diff_of_run(s: &AppState, run: &str) -> Res<Vec<FileDiff>> {
         runner: RUNNER.into(),
         declared_base: None,
         specs: String::new(),
+        secrets: Vec::new(),
     }
     .run_diff(run, MAX_RUN_DIFF)
 }

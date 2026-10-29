@@ -700,6 +700,7 @@ struct GitState {
     input: ReviewInput,
     merge_messages: Vec<String>,
     gate_delay: Duration,
+    digest: Option<String>,
 }
 
 /// The local git work of a run, with no repository. Each call is one line in [`FakeGit::calls`]:
@@ -730,6 +731,7 @@ impl Default for FakeGit {
             },
             merge_messages: Vec::new(),
             gate_delay: Duration::ZERO,
+            digest: None,
         })))
     }
 }
@@ -819,6 +821,11 @@ impl FakeGit {
     pub fn set_input(&self, input: ReviewInput) {
         lock(&self.0).input = input;
     }
+
+    /// The digest that `digest` returns. `None`: no digest.
+    pub fn set_digest(&self, digest: Option<&str>) {
+        lock(&self.0).digest = digest.map(Into::into);
+    }
 }
 
 impl GitState {
@@ -844,6 +851,10 @@ impl Git for FakeGit {
 
     fn remove_child(&self, _run: &str, child: &str) -> PortResult<()> {
         lock(&self.0).check("remove_child", format!("remove_child {child}"))
+    }
+
+    fn digest(&self, _run: &str, _base: &str) -> PortResult<Option<String>> {
+        Ok(lock(&self.0).digest.clone())
     }
 
     fn changes(&self, _run: &str, base: &str) -> PortResult<Changes> {
