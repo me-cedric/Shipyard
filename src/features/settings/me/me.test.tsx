@@ -34,6 +34,21 @@ describe("Settings / Me (shell REQ-010)", () => {
 	});
 });
 
+describe("Settings / Me notifications (shell REQ-008)", () => {
+	it("turns a source off and on through notifyOff", async () => {
+		const user = userEvent.setup();
+		mountApp("/settings/me");
+		const sw = await screen.findByRole("switch", { name: "Approval" });
+		expect(sw).toBeChecked();
+		await user.click(sw);
+		await waitFor(() => expect(mockState().prefs.notifyOff).toEqual(["approval"]));
+		await user.click(screen.getByRole("switch", { name: "Failed sync" }));
+		await waitFor(() => expect(mockState().prefs.notifyOff).toEqual(["approval", "sync-failure"]));
+		await user.click(screen.getByRole("switch", { name: "Approval" }));
+		await waitFor(() => expect(mockState().prefs.notifyOff).toEqual(["sync-failure"]));
+	});
+});
+
 describe("language switch (shell REQ-011)", () => {
 	it("applies French to the sidebar and the palette without a restart, and keeps it", async () => {
 		const user = userEvent.setup();

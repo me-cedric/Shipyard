@@ -8,7 +8,17 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { commands, unwrap } from "@/lib/ipc";
+import { commands, type EventSource, unwrap } from "@/lib/ipc";
+
+/** The source of an event, from the first part of its id. An id with another prefix has no source. */
+const SOURCES: Record<string, EventSource> = {
+	question: "question",
+	approval: "approval",
+	run: "run",
+	sync: "sync-failure",
+	update: "update",
+	remote: "remote-head",
+};
 
 /** `needs-you` is the class that also goes to the system (spec `shell`, REQ-008). */
 export type NoticeKind = "info" | "error" | "needs-you";
@@ -28,8 +38,11 @@ type Ctx = {
 	/** The entries that show as a toast now. */
 	toasts: Notice[];
 	unread: number;
-	/** Adds an event. A second call with the same id does nothing. */
-	push: (n: Pick<Notice, "id" | "kind" | "title" | "body">) => void;
+	/**
+	 * Adds an event. A second call with the same id does nothing. A source in `Prefs.notifyOff`
+	 * adds nothing, to the centre and to the system alike. Resolves true when it added the event.
+	 */
+	push: (n: Pick<Notice, "id" | "kind" | "title" | "body">) => Promise<boolean>;
 	markRead: () => void;
 	clear: () => void;
 	dismiss: (id: string) => void;
@@ -51,14 +64,26 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 	// Not state: an update function can run twice, and an id seen must never come back.
 	const seen = useRef(new Set<string>());
 
-	const push = useCallback((n: Pick<Notice, "id" | "kind" | "title" | "body">) => {
-		if (seen.current.has(n.id)) return;
+	const push = useCallback(async (n: Pick<Notice, "id" | "kind" | "title" | "body">) => {
+		if (seen.current.has(n.id)) return false;
 		seen.current.add(n.id);
+		const source = SOURCES[n.id.split(":")[0] ?? ""];
+		if (source) {
+			// Read at each push, so a change in Settings counts at once.
+			const off = await unwrap(commands.prefsGet())
+				.then((p) => p.notifyOff)
+				.catch((): EventSource[] => []);
+			if (off.includes(source)) {
+				seen.current.delete(n.id);
+				return false;
+			}
+		}
 		const notice: Notice = { ...n, time: Date.now(), read: false };
 		setItems((list) => [notice, ...list]);
 		setToasts((list) => [...list, notice]);
 		if (n.kind === "needs-you" && !document.hasFocus())
 			unwrap(commands.notifyOs(n.title, n.body ?? "")).catch((e) => console.error(e));
+		return true;
 	}, []);
 
 	useEffect(() => {

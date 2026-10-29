@@ -621,6 +621,15 @@ export const en = {
 		updateFailed: "Update check failed",
 		remote: "{count} new on {branch}",
 		syncFailed: "Sync failed",
+		notes: "What changed in {version}",
+		source: {
+			question: "Question",
+			approval: "Approval",
+			run: "Run",
+			"sync-failure": "Failed sync",
+			update: "Update",
+			"remote-head": "Remote branch",
+		},
 	},
 	menu: {
 		app: "Shipyard",

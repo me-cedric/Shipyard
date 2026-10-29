@@ -25,7 +25,7 @@ describe("Notification centre", () => {
 		expect(await within(toast).findByText("Update available: 0.2.0")).toBeInTheDocument();
 
 		const bell = screen.getByRole("button", { name: "Notifications" });
-		expect(bell).toHaveTextContent("1 unread");
+		expect(bell).toHaveTextContent("2 unread");
 		await user.click(bell);
 		const list = await screen.findByRole("dialog");
 		expect(within(list).getAllByText("Update available: 0.2.0")).toHaveLength(1);
@@ -38,6 +38,25 @@ describe("Notification centre", () => {
 		expect(
 			within(await screen.findByRole("dialog")).getAllByText("Update available: 0.2.0"),
 		).toHaveLength(1);
+	});
+
+	it("shows the changelog once and records the seen version", async () => {
+		mockState().prefs.releaseUrl = NEWER;
+		mountApp("/home/inbox");
+		const toast = await screen.findByRole("status", { name: "Notifications" });
+		expect(await within(toast).findByText("What changed in 0.2.0")).toBeInTheDocument();
+		expect(within(toast).getByText(/A change\./)).toBeInTheDocument();
+		await waitFor(() => expect(mockState().prefs.seenVersion).toBe("0.2.0"));
+	});
+
+	it("keeps the changelog back and the version unseen when the update source is off", async () => {
+		mockState().prefs.releaseUrl = NEWER;
+		mockState().prefs.notifyOff = ["update"];
+		mountApp("/home/inbox");
+		await screen.findByRole("navigation", { name: "Sidebar" });
+		await new Promise((r) => setTimeout(r, 50));
+		expect(screen.queryByText("What changed in 0.2.0")).toBeNull();
+		expect(mockState().prefs.seenVersion).toBeNull();
 	});
 
 	it("says that the app is up to date on a manual check and stays quiet at start", async () => {
@@ -101,7 +120,25 @@ describe("Notifications store", () => {
 		);
 		await userEvent.click(screen.getByRole("button", { name: "push" }));
 		await userEvent.click(screen.getByRole("button", { name: "push" }));
-		expect(screen.getByTestId("count")).toHaveTextContent("1");
+		await waitFor(() => expect(screen.getByTestId("count")).toHaveTextContent("1"));
+	});
+
+	it("skips a source in notifyOff, in the centre and for the system", async () => {
+		focus(false);
+		mockState().prefs.notifyOff = ["approval"];
+		render(
+			<NotificationsProvider>
+				<Probe id="approval:1" kind="needs-you" />
+				<Probe id="question:1" kind="needs-you" />
+			</NotificationsProvider>,
+		);
+		const [approval, question] = screen.getAllByRole("button", { name: "push" });
+		await act(async () => {
+			await userEvent.click(approval as HTMLElement);
+			await userEvent.click(question as HTMLElement);
+		});
+		await waitFor(() => expect(mockState().os).toHaveLength(1));
+		expect(screen.getAllByTestId("count")[0]).toHaveTextContent("1");
 	});
 
 	it("asks the system for a needs-you event in the background only, once", async () => {

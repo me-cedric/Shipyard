@@ -6,7 +6,7 @@ import { useNotifications } from "@/lib/notifications";
 /**
  * Checks the release address and tells the person (spec `shell`, REQ-014). A newer version shows
  * once in the notification centre. The app never installs it. A manual check also says when the
- * app is up to date or when the check failed. The start check stays quiet in those cases.
+ * app is up to date or when the check failed. The start check stays quiet in those cases. A manual answer is not an update event: it ignores `notifyOff`.
  */
 export function useUpdateCheck() {
 	const { t } = useI18n();
@@ -15,6 +15,17 @@ export function useUpdateCheck() {
 		async (manual: boolean) => {
 			try {
 				const info = await unwrap(commands.updateCheck());
+				// The changelog shows once. It counts as seen only when it showed.
+				if (
+					info.notes &&
+					(await push({
+						id: `update:notes:${info.latest}`,
+						kind: "info",
+						title: format(t.notifications.notes, { version: info.latest }),
+						body: info.notes,
+					}))
+				)
+					await unwrap(commands.prefsSet({ seenVersion: info.latest }));
 				if (info.newer)
 					push({
 						id: `update:${info.latest}`,
@@ -24,14 +35,14 @@ export function useUpdateCheck() {
 					});
 				else if (manual)
 					push({
-						id: `update:none:${Date.now()}`,
+						id: `check:none:${Date.now()}`,
 						kind: "info",
 						title: format(t.notifications.upToDate, { version: info.current }),
 					});
 			} catch (e) {
 				if (manual)
 					push({
-						id: `update:error:${Date.now()}`,
+						id: `check:error:${Date.now()}`,
 						kind: "error",
 						title: t.notifications.updateFailed,
 						body: e instanceof Error ? e.message : String(e),

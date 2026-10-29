@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { commands, unwrap } from "@/lib/ipc";
+import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import {
 	type Contrast,
 	type Density,
@@ -16,6 +16,7 @@ import { StatusDot } from "@/ui/atoms/status-dot";
 import { Switch } from "@/ui/atoms/switch";
 import {
 	ArrowDownTrayIcon,
+	BellIcon,
 	Cog6ToothIcon,
 	ComputerDesktopIcon,
 	LanguageIcon,
@@ -49,6 +50,48 @@ function ReleaseUrl() {
 	);
 }
 
+const SOURCES: EventSource[] = [
+	"question",
+	"approval",
+	"run",
+	"sync-failure",
+	"update",
+	"remote-head",
+];
+
+/** One switch for a source of notifications. Off adds the source to `Prefs.notifyOff` (REQ-008). */
+function NotifySwitch({ source }: { source: EventSource }) {
+	const { t } = useI18n();
+	const [off, setOff] = useState<EventSource[]>([]);
+	useEffect(() => {
+		unwrap(commands.prefsGet())
+			.then((p) => setOff(p.notifyOff))
+			.catch((e) => console.error(e));
+	}, []);
+	return (
+		<Switch
+			label={t.notifications.source[source]}
+			iconOnly
+			checked={!off.includes(source)}
+			onCheckedChange={(on) => {
+				// Read the stored list first, so a switch never overwrites another one.
+				unwrap(commands.prefsGet())
+					.then((p) =>
+						unwrap(
+							commands.prefsSet({
+								notifyOff: on
+									? p.notifyOff.filter((s) => s !== source)
+									: [...p.notifyOff.filter((s) => s !== source), source],
+							}),
+						),
+					)
+					.then((p) => setOff(p.notifyOff))
+					.catch((e) => console.error(e));
+			}}
+		/>
+	);
+}
+
 export function Me() {
 	const { t, lang, setLang } = useI18n();
 	const { theme, density, contrast, role, overridden, setPrefs } = usePrefs();
@@ -62,6 +105,7 @@ export function Me() {
 	);
 	return (
 		<div className="p-4">
+			<h1 className="sr-only">{t.tabs.settings.me}</h1>
 			<Settings
 				sections={[
 					{
@@ -154,6 +198,16 @@ export function Me() {
 								),
 							},
 						],
+					},
+					{
+						id: "notifications",
+						title: t.notifications.title,
+						rows: SOURCES.map((s) => ({
+							id: s,
+							icon: <BellIcon size={14} />,
+							label: t.notifications.source[s],
+							control: <NotifySwitch source={s} />,
+						})),
 					},
 				]}
 			/>

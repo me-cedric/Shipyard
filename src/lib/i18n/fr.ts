@@ -637,6 +637,15 @@ export const fr: Messages = {
 		updateFailed: "Échec de la recherche de mise à jour",
 		remote: "{count} nouveaux sur {branch}",
 		syncFailed: "Échec de la synchronisation",
+		notes: "Nouveautés de la {version}",
+		source: {
+			question: "Question",
+			approval: "Approbation",
+			run: "Exécution",
+			"sync-failure": "Échec de synchronisation",
+			update: "Mise à jour",
+			"remote-head": "Branche distante",
+		},
 	},
 	menu: {
 		app: "Shipyard",

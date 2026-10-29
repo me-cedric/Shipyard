@@ -164,12 +164,10 @@ describe("Home / Activity", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/activity");
 		expect(await screen.findByRole("heading", { name: /^Events \([1-9]/ })).toBeInTheDocument();
-		expect(await screen.findByRole("heading", { name: "Notifications (1)" })).toBeInTheDocument();
-		expect(
-			within(screen.getByRole("region", { name: "Notifications" })).getByText(
-				"Update available: 0.2.0",
-			),
-		).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Notifications (2)" })).toBeInTheDocument();
+		const region = within(screen.getByRole("region", { name: "Notifications" }));
+		expect(region.getByText("Update available: 0.2.0")).toBeInTheDocument();
+		expect(region.getByText("What changed in 0.2.0")).toBeInTheDocument();
 	});
 
 	it("shows ghost rows and one action without a project", async () => {
