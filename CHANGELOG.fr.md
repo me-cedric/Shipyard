@@ -20,6 +20,7 @@
 - Centre de notifications avec une cloche dans la barre d’état et des toasts, une notification système pour les événements qui vous attendent quand la fenêtre est en arrière-plan, un menu natif dans votre langue qui lance les mêmes actions que la palette, et une recherche de mise à jour qui vous prévient seulement quand une version plus récente existe. L’adresse des versions se règle dans Réglages / Moi.
 - Menus contextuels sur les fichiers, les commits, les références et les connexions, avec les actions de la ligne, au clic secondaire ou au clavier.
 - Réglages / Projet peut enregistrer la connexion de tracker et de forge d’un projet dans `.shipyard/project.yaml`, par identifiant seulement.
+- Supprimer une connexion liste désormais tous les projets enregistrés qui l’utilisent, et attend la liste. Changer l’hôte d’une connexion efface son secret enregistré. Une correction de santé n’écrit que le contenu que vous avez prévisualisé.
 
 ## [0.0.1]
 

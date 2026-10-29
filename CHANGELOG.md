@@ -20,6 +20,7 @@
 - Notification centre with a bell in the status bar and toasts, a system notification for events that need you while the window is in the background, a native menu in your language that runs the same actions as the palette, and an update check that only tells you when a newer version exists. The release address is set in Settings / Me.
 - Context menus on files, commits, refs and connections, with the actions of the row, from the secondary click or the keyboard.
 - Settings / Project can record the tracker and forge connection of a project in `.shipyard/project.yaml`, by id only.
+- Removing a connection now lists every registered project that uses it, and waits for the list. Changing the host of a connection clears its saved secret. A health fix writes only the content you previewed.
 
 ## [0.0.1]
 
