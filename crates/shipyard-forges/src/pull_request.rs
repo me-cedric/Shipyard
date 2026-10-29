@@ -77,8 +77,8 @@ pub struct PullStatus {
 }
 
 pub trait PullApi: Forge {
-    /// The pull request of a source branch: the open one first, else the newest (REQ-016).
-    /// `None` when there is none.
+    /// The open pull request of a source branch (REQ-016). `None` when none is open: a merged or
+    /// a closed one is not returned.
     fn find_pull(&self, repo: &str, branch: &str) -> Result<Option<PullRequest>, ForgeError>;
 
     fn create_pull(&self, repo: &str, new: &NewPull) -> Result<PullRequest, ForgeError>;
@@ -160,10 +160,10 @@ pub(crate) fn check_reply(body: &str) -> Result<(), ForgeError> {
     Ok(())
 }
 
-/// The open pull request first, else the first one (the adapters list the newest first).
+/// The open pull request of the branch, or `None`. A merged or closed one is no target for a
+/// push or a thread reply: the caller opens a new one.
 pub(crate) fn prefer_open(found: Vec<PullRequest>) -> Option<PullRequest> {
-    let open = found.iter().position(|p| p.state == PullState::Open);
-    found.into_iter().nth(open.unwrap_or(0))
+    found.into_iter().find(|p| p.state == PullState::Open)
 }
 
 pub(crate) fn split_labels(existing: &[String], wanted: &[String]) -> Labeled {
@@ -193,4 +193,33 @@ pub(crate) fn json_or_null(res: Response) -> Result<Value, ForgeError> {
 
 pub(crate) fn line(v: &Value, pointer: &str) -> Option<u32> {
     shipyard_http::num(v, pointer).and_then(|n| u32::try_from(n).ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn pr(number: u64, state: PullState) -> PullRequest {
+        PullRequest {
+            number,
+            title: String::new(),
+            state,
+            draft: false,
+            author: String::new(),
+            source_branch: "b".into(),
+            target_branch: "main".into(),
+            head_sha: String::new(),
+            url: String::new(),
+            updated: String::new(),
+        }
+    }
+
+    #[test]
+    fn only_an_open_pull_request_is_found() {
+        let closed = pr(3, PullState::Closed);
+        let merged = pr(2, PullState::Merged);
+        assert!(prefer_open(vec![closed.clone(), merged.clone()]).is_none());
+        let found = prefer_open(vec![closed, pr(1, PullState::Open), merged]);
+        assert_eq!(found.map(|p| p.number), Some(1));
+    }
 }
