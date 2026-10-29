@@ -13,6 +13,7 @@ export function SecretInput({
 	value,
 	onChange,
 	plain,
+	placeholder,
 	className,
 }: {
 	label: string;
@@ -21,6 +22,8 @@ export function SecretInput({
 	onChange: (value: string) => void;
 	/** The value is not a secret (an email): the typed text shows. The saved value stays hidden. */
 	plain?: boolean;
+	/** The noun of the field, shown while it is empty and nothing is saved. */
+	placeholder?: string;
 	className?: string;
 }) {
 	return (
@@ -30,7 +33,7 @@ export function SecretInput({
 			autoComplete="off"
 			spellCheck={false}
 			value={value}
-			placeholder={saved ? MASK : undefined}
+			placeholder={saved ? MASK : placeholder}
 			onChange={(e) => onChange(e.target.value)}
 			className={className}
 		/>

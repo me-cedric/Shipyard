@@ -20,13 +20,13 @@ import {
 	HomeIcon,
 	InboxIcon,
 	LanguageIcon,
-	LinkIcon,
 	MagnifyingGlassIcon,
 	MoonIcon,
 	SunIcon,
 	XMarkIcon,
 } from "../icons";
 import { BacklinkList } from "../molecules/backlink-list";
+import { BoardColumn } from "../molecules/board-column";
 import { CommitRow } from "../molecules/commit-row";
 import { ConflictBlock, type ConflictChoice } from "../molecules/conflict-block";
 import { ConnectionRow } from "../molecules/connection-row";
@@ -37,18 +37,28 @@ import { FileRow } from "../molecules/file-row";
 import { FilterBar } from "../molecules/filter-bar";
 import { FindingRow } from "../molecules/finding-row";
 import { FlagList } from "../molecules/flag-list";
+import { MemberRow, SuggestionRow } from "../molecules/member-row";
 import { NotificationRow } from "../molecules/notification-row";
 import { ProjectSwitcher } from "../molecules/project-switcher";
 import { RefChip } from "../molecules/ref-chip";
 import { SecretInput } from "../molecules/secret-input";
 import { SettingsRow } from "../molecules/settings-row";
+import { Stat } from "../molecules/stat";
 import { SyncStatus } from "../molecules/sync-status";
-import { WorkItemRow } from "../molecules/work-item-row";
+import { TicketCard } from "../molecules/ticket-card";
+import { TicketRow } from "../molecules/ticket-row";
+import { ViewTabs } from "../molecules/view-tabs";
+import { ApplyDialog } from "../organisms/apply-dialog";
 import { CommandPalette } from "../organisms/command-palette";
 import { CommitDialog } from "../organisms/commit-dialog";
+import { DataTable } from "../organisms/data-table";
+import { Dialog } from "../organisms/dialog";
+import { Gantt } from "../organisms/gantt";
 import { Inspector } from "../organisms/inspector";
 import { NotificationCentre } from "../organisms/notification-centre";
 import { Toaster } from "../organisms/toaster";
+import { Board } from "../templates/board";
+import { ListDetail } from "../templates/list-detail";
 import { Settings } from "../templates/settings";
 import { Shell } from "../templates/shell";
 
@@ -322,23 +332,95 @@ function Molecules() {
 					))}
 				</div>
 			</Row>
-			<Row name="WorkItemRow">
+			<Row name="TicketRow">
 				<div className="w-full max-w-xl">
-					<WorkItemRow
+					<TicketRow
 						itemKey="ACME-1"
 						title="Fix login redirect"
+						status="In Progress"
+						category="in-progress"
+						assignee="Ada Lovelace"
+						claimed={t.sync.backlog.claimed}
+						onOpen={noop}
+					/>
+					<TicketRow
+						itemKey="ACME-2"
+						title="Bump deps"
+						status="Done"
+						category="done"
+						assignee="Ghost"
+						unknown={t.work.unknownMember}
+						onOpen={noop}
+					/>
+					<TicketRow
+						itemKey="ACME-3"
+						title="Plan"
 						status="To Do"
 						category="todo"
-						assignee="Ada"
-						claimed={t.sync.backlog.claimed}
-						actions={
-							<IconButton label={t.sync.backlog.link}>
-								<LinkIcon size={14} />
-							</IconButton>
-						}
+						selected
+						onOpen={noop}
 					/>
-					<WorkItemRow itemKey="ACME-2" title="Bump deps" status="Done" category="done" />
 				</div>
+			</Row>
+			<Row name="TicketCard, BoardColumn">
+				<BoardColumn title="In Progress" category="in-progress" count={1} onDropKey={noop}>
+					<TicketCard
+						itemKey="ACME-1"
+						title="Fix login redirect"
+						assignee="Ada Lovelace"
+						claimed={t.sync.backlog.claimed}
+						onOpen={noop}
+						onMove={noop}
+					/>
+				</BoardColumn>
+			</Row>
+			<Row name="MemberRow, SuggestionRow">
+				<div className="w-full max-w-2xl">
+					<MemberRow
+						name="Ada Lovelace"
+						handle="ada"
+						job="dev"
+						capacity={format(t.work.team.perWeek, { days: 5 })}
+						skills={["api", "rust"]}
+						rate="520"
+						onOpen={noop}
+					/>
+					<MemberRow
+						name="Grace Hopper"
+						handle="grace"
+						job="dev"
+						capacity={format(t.work.team.perWeek, { days: 4 })}
+						skills={["web"]}
+						lockedLabel={t.work.team.lockedRate}
+						onOpen={noop}
+					/>
+					<div className="w-72">
+						<SuggestionRow
+							name="Ada Lovelace"
+							reasons={[
+								{ id: "a", text: "api", tone: "success" },
+								{ id: "b", text: format(t.work.reason.missing, { skill: "ui" }), tone: "neutral" },
+								{ id: "c", text: t.work.reason.full, tone: "warning" },
+							]}
+							action={<Button variant="ghost">{t.work.ticket.assignShort}</Button>}
+						/>
+					</div>
+				</div>
+			</Row>
+			<Row name="ViewTabs, Stat">
+				<ViewTabs
+					label={t.tabs.work.estimates}
+					value="summary"
+					onValueChange={noop}
+					tabs={[
+						{ value: "backlog", label: t.work.estimates.views.backlog },
+						{ value: "summary", label: t.work.estimates.views.summary },
+					]}
+				/>
+				<dl className="flex gap-6">
+					<Stat label={t.work.estimates.days} value="34.5" />
+					<Stat label={t.work.estimates.price} value="€21,000" />
+				</dl>
 			</Row>
 			<Row name="ContextMenu">
 				<ContextMenu
@@ -462,6 +544,8 @@ function Organisms() {
 	const [open, setOpen] = useState(false);
 	const [panel, setPanel] = useState(true);
 	const [commit, setCommit] = useState(false);
+	const [dialog, setDialog] = useState(false);
+	const [apply, setApply] = useState(false);
 	const noop = () => {};
 	return (
 		<div>
@@ -499,6 +583,103 @@ function Organisms() {
 			<Row name="CommitDialog">
 				<Button onClick={() => setCommit(true)}>{t.shell.commit}</Button>
 				<CommitDialog open={commit} onOpenChange={setCommit} onSubmit={async () => {}} />
+			</Row>
+			<Row name="Dialog">
+				<Button onClick={() => setDialog(true)}>{t.work.estimates.import}</Button>
+				<Dialog
+					open={dialog}
+					onOpenChange={setDialog}
+					title={t.work.estimates.import}
+					actions={<Button variant="primary">{t.work.estimates.import}</Button>}
+				>
+					<Skeleton className="h-row" />
+				</Dialog>
+			</Row>
+			<Row name="DataTable, VirtualList">
+				<div className="flex h-60 w-full max-w-xl flex-col border">
+					<DataTable
+						label={t.work.estimates.views.portfolio}
+						data={Array.from({ length: 2000 }, (_, i) => ({
+							id: `row-${i}`,
+							group: `G${Math.floor(i / 500)}`,
+						}))}
+						rowId={(r) => r.id}
+						group={(r) => r.group}
+						onOpen={noop}
+						columns={[
+							{ id: "id", header: t.work.estimates.task, cell: ({ row }) => row.original.id },
+						]}
+						footer={[t.work.estimates.total]}
+					/>
+				</div>
+			</Row>
+			<Row name="Gantt">
+				<div className="flex h-60 w-full max-w-3xl flex-col border">
+					<Gantt
+						today="2026-11-04"
+						isOff={(d) =>
+							["Sat", "Sun"].includes(new Date(`${d}T00:00:00Z`).toUTCString().slice(0, 3))
+						}
+						todayLabel={t.work.plan.today}
+						barLabel={(b) => b.name}
+						onMove={noop}
+						onOpen={noop}
+						bars={[
+							{
+								id: "a",
+								name: "Login screens",
+								group: "Authentication",
+								owner: "Edsger",
+								start: "2026-11-02",
+								end: "2026-11-06",
+							},
+							{
+								id: "b",
+								name: "Token API",
+								group: "Authentication",
+								owner: "Ada",
+								start: "2026-11-03",
+								end: "2026-11-12",
+								fixed: true,
+							},
+							{ id: "c", name: "Export", group: "Export", start: "2026-11-09", end: "2026-11-11" },
+						]}
+					/>
+				</div>
+			</Row>
+			<Row name="ApplyDialog">
+				<Button onClick={() => setApply(true)}>{t.work.apply.title}</Button>
+				<ApplyDialog
+					open={apply}
+					onOpenChange={setApply}
+					title={t.work.apply.title}
+					onApply={noop}
+					rows={[
+						{
+							reference: "est:a#auth",
+							kind: "epic",
+							title: "Authentication",
+							action: "create",
+							changes: [],
+						},
+						{
+							reference: "est:a#api",
+							kind: "story",
+							title: "Token API",
+							action: "update",
+							changes: ["estimate"],
+							key: "ACME-2",
+						},
+						{
+							reference: "est:a#web",
+							kind: "story",
+							title: "Login form",
+							action: "unchanged",
+							changes: [],
+							key: "ACME-1",
+						},
+					]}
+				/>
 			</Row>
 			<Row name="NotificationCentre">
 				<NotificationCentre
@@ -568,6 +749,30 @@ function Templates() {
 						main={<div className="p-3" />}
 						statusbar={<StatusDot status="success" />}
 					/>
+				</div>
+			</Row>
+			<Row name="ListDetail">
+				<div className="flex h-40 w-full flex-col border">
+					<ListDetail
+						title={t.tabs.work.backlog}
+						toolbar={<Button variant="primary">{t.sync.backlog.import}</Button>}
+					>
+						<div className="p-3">
+							<Skeleton className="h-row" />
+						</div>
+					</ListDetail>
+				</div>
+			</Row>
+			<Row name="Board">
+				<div className="flex h-56 w-full flex-col border">
+					<Board title={t.tabs.work.board}>
+						<BoardColumn title="To Do" category="todo" count={1} onDropKey={() => {}}>
+							<TicketCard itemKey="ACME-3" title="Plan" onOpen={() => {}} onMove={() => {}} />
+						</BoardColumn>
+						<BoardColumn title="Done" category="done" count={0} onDropKey={() => {}}>
+							{null}
+						</BoardColumn>
+					</Board>
 				</div>
 			</Row>
 			<Row name="Settings">

@@ -23,7 +23,7 @@ export function FilterBar({
 	const { t } = useI18n();
 	return (
 		<search className="flex items-center gap-2">
-			<div className="relative w-56">
+			<div className="relative w-44">
 				<span
 					aria-hidden="true"
 					className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-n-10"

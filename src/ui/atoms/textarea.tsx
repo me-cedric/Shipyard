@@ -1,13 +1,16 @@
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
+import { Caption } from "./input";
 
 export type TextareaProps = Omit<ComponentProps<"textarea">, "aria-label"> & {
 	/** Accessible name. */
 	label: string;
+	/** Show the name above the field. */
+	caption?: boolean;
 };
 
-export function Textarea({ label, className, ...props }: TextareaProps) {
-	return (
+export function Textarea({ label, caption, className, ...props }: TextareaProps) {
+	const area = (
 		<textarea
 			aria-label={label}
 			className={cn(
@@ -17,4 +20,5 @@ export function Textarea({ label, className, ...props }: TextareaProps) {
 			{...props}
 		/>
 	);
+	return caption ? <Caption label={label}>{area}</Caption> : area;
 }

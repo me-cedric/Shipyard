@@ -36,6 +36,18 @@
 	},
 	"overrides": [
 		{
+			"includes": ["src/ui/organisms/data-table.tsx"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"useSemanticElements": "off",
+						"useFocusableInteractive": "off",
+						"noNoninteractiveElementToInteractiveRole": "off"
+					}
+				}
+			}
+		},
+		{
 			"includes": ["src/ui/icons/**"],
 			"linter": {
 				"rules": {

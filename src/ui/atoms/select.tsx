@@ -2,6 +2,7 @@ import { Select as BaseSelect } from "@base-ui/react/select";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CheckIcon, ChevronRightIcon } from "../icons";
+import { Caption } from "./input";
 
 export type SelectItem = { value: string; label: string; icon?: ReactNode };
 
@@ -10,17 +11,23 @@ export function Select({
 	items,
 	value,
 	onValueChange,
+	disabled,
+	caption,
 	className,
 }: {
 	label: string;
 	items: SelectItem[];
 	value: string;
 	onValueChange: (value: string) => void;
+	disabled?: boolean;
+	/** Show the name above the select. */
+	caption?: boolean;
 	className?: string;
 }) {
-	return (
+	const select = (
 		<BaseSelect.Root
 			items={items}
+			disabled={disabled}
 			value={value}
 			onValueChange={(v) => {
 				if (v !== null) onValueChange(v);
@@ -29,7 +36,7 @@ export function Select({
 			<BaseSelect.Trigger
 				aria-label={label}
 				className={cn(
-					"inline-flex h-row min-w-24 items-center justify-between gap-2 rounded-md border border-n-7 bg-n-1 px-2 text-ui text-n-12",
+					"inline-flex h-row min-w-24 shrink-0 items-center justify-between gap-2 rounded-md whitespace-nowrap border border-n-7 bg-n-1 px-2 text-ui text-n-12",
 					className,
 				)}
 			>
@@ -61,4 +68,5 @@ export function Select({
 			</BaseSelect.Portal>
 		</BaseSelect.Root>
 	);
+	return caption ? <Caption label={label}>{select}</Caption> : select;
 }
