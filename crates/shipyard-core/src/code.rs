@@ -74,3 +74,103 @@ pub fn check_branch_name(name: &str) -> Result<(), NameError> {
         _ => Err(NameError::BadBranch),
     }
 }
+
+/// The first key of `known` that the text holds as a whole key: `SHIP-42` in
+/// `feat/auth/SHIP-42-login` or in `fix(auth): SHIP-42 refuse`. `SHIP-4` never matches `SHIP-42`
+/// and `XSHIP-42` never matches `SHIP-42` (REQ-009).
+pub fn work_item_key<'a>(text: &str, known: &'a [String]) -> Option<&'a str> {
+    let bytes = text.as_bytes();
+    let word = |b: u8| b.is_ascii_alphanumeric();
+    known.iter().map(String::as_str).find(|k| {
+        !k.is_empty()
+            && text.match_indices(k).any(|(i, _)| {
+                let before = i == 0 || !word(bytes[i - 1]);
+                let after = bytes.get(i + k.len()).is_none_or(|b| !word(*b));
+                before && after
+            })
+    })
+}
+
+/// The refs of a commit (REQ-009): `wi:<key>` from the branch or the message, `run:<id>` when a
+/// run made it. A work item that is not in `known` is no link.
+pub fn commit_refs(
+    branch: &str,
+    message: &str,
+    known: &[String],
+    run: Option<&str>,
+) -> Vec<String> {
+    let mut out = Vec::new();
+    for text in [branch, message] {
+        if let Some(k) = work_item_key(text, known) {
+            let r = format!("wi:{k}");
+            if !out.contains(&r) {
+                out.push(r);
+            }
+        }
+    }
+    if let Some(id) = run.filter(|r| !r.is_empty()) {
+        out.push(format!("run:{id}"));
+    }
+    out
+}
+
+/// The run id of a commit that a run made: the `run:<id>` token in its message (REQ-009).
+pub fn run_in_message(message: &str) -> Option<&str> {
+    let at = message.find("run:")?;
+    let id: &str = message[at + 4..]
+        .split(|c: char| !(c.is_ascii_alphanumeric() || c == '-' || c == '_'))
+        .next()?;
+    (!id.is_empty()).then_some(id)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DigestError {
+    /// The digest holds a file path (REQ-031).
+    Path(String),
+    /// The digest holds a technical trace.
+    Trace(String),
+    /// The digest holds a secret value.
+    Secret,
+}
+
+impl DigestError {
+    pub fn message(&self) -> String {
+        match self {
+            Self::Path(p) => format!("the digest holds a file path: {p}"),
+            Self::Trace(t) => format!("the digest holds a technical trace: {t}"),
+            Self::Secret => "the digest holds a secret value".into(),
+        }
+    }
+}
+
+/// Checks a PM digest: no secret value, no file path, no technical trace (REQ-031).
+/// shortcut: a path is a word with a `/` or `\` and a dot or a leading `.`, `~` or drive; a
+/// plain fraction like `3/4` passes. Tighten it if a real digest slips through.
+pub fn check_digest(text: &str, secrets: &[&str]) -> Result<(), DigestError> {
+    if secrets.iter().any(|s| s.len() >= 4 && text.contains(s)) {
+        return Err(DigestError::Secret);
+    }
+    for marker in [
+        "Traceback",
+        "stack backtrace",
+        "panicked at",
+        "Exception in",
+        "\n    at ",
+    ] {
+        if text.contains(marker) {
+            return Err(DigestError::Trace(marker.trim().into()));
+        }
+    }
+    for w in text.split_whitespace() {
+        let w = w.trim_matches(|c: char| "()[]{}<>\"'`,;:".contains(c));
+        let sep = w.contains('/') || w.contains('\\');
+        let pathy = w.starts_with(['.', '~'])
+            || w.contains('.')
+            || w.as_bytes().get(1) == Some(&b':')
+            || w.starts_with('/');
+        if sep && pathy && w.len() > 2 && !w.starts_with("http") {
+            return Err(DigestError::Path(w.into()));
+        }
+    }
+    Ok(())
+}

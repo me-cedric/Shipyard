@@ -26,6 +26,7 @@ shipyard-secrets = { path = "../shipyard-secrets" }
 shipyard-store = { path = "../shipyard-store" }
 shipyard-trackers = { path = "../shipyard-trackers" }
 serde_json = "1"
+portable-pty = "0.9"
 tauri-plugin-dialog = "2"
 tauri-plugin-notification = "2"
 

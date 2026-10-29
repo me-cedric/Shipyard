@@ -23,6 +23,19 @@ fn cut(text: &mut String, max: usize) -> bool {
 }
 
 impl Repo {
+    /// The tag names, sorted (spec `code`, REQ-029: a tag is a base to compare with).
+    pub fn tags(&self) -> Result<Vec<String>> {
+        let names = self.repo.tag_names(None)?;
+        let mut out: Vec<String> = names
+            .iter()
+            .flatten()
+            .flatten()
+            .map(str::to_string)
+            .collect();
+        out.sort();
+        Ok(out)
+    }
+
     /// Full id of HEAD.
     pub fn head_sha(&self) -> Result<String> {
         Ok(self.repo.head()?.peel_to_commit()?.id().to_string())

@@ -5,6 +5,7 @@
 //! request and push are later, and need an approval (Q-002).
 
 mod azure;
+pub mod code;
 mod github;
 mod gitlab;
 mod model;
@@ -15,6 +16,7 @@ use shipyard_http::Http;
 use shipyard_secrets::Secret;
 use std::sync::Arc;
 
+pub use code::*;
 pub use model::*;
 pub use pull_request::*;
 pub use shipyard_http::{Client, Error as HttpError, TestOutcome};
@@ -77,6 +79,20 @@ pub fn connect_pull_api(
     secret: Secret,
     http: Arc<dyn Http>,
 ) -> Result<Box<dyn PullApi>, ForgeError> {
+    let base = shipyard_http::base_url(&config.url)?;
+    Ok(match config.kind {
+        ForgeKind::GitHub => Box::new(github::GitHub::new(http, &base, secret)),
+        ForgeKind::GitLab => Box::new(gitlab::GitLab::new(http, &base, secret)),
+        ForgeKind::AzureDevOps => Box::new(azure::Azure::new(http, base, secret)),
+    })
+}
+
+/// Like [`connect_pull_api`], with the review and merge calls of Code / Pull requests.
+pub fn connect_code_api(
+    config: &ForgeConfig,
+    secret: Secret,
+    http: Arc<dyn Http>,
+) -> Result<Box<dyn CodeApi>, ForgeError> {
     let base = shipyard_http::base_url(&config.url)?;
     Ok(match config.kind {
         ForgeKind::GitHub => Box::new(github::GitHub::new(http, &base, secret)),

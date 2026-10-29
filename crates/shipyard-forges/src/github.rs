@@ -29,7 +29,7 @@ impl GitHub {
         Self { http, api, token }
     }
 
-    fn call(&self, path: &str, query: &[(&str, &str)]) -> Result<Value, ForgeError> {
+    pub(crate) fn call(&self, path: &str, query: &[(&str, &str)]) -> Result<Value, ForgeError> {
         let req = Request::get(
             build_url(&self.api, path, query),
             Auth::Bearer(self.token.clone()),

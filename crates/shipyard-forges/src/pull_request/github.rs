@@ -8,7 +8,12 @@ use serde_json::json;
 use shipyard_http::{Auth, Method, Request, build_url, items, text};
 
 impl GitHub {
-    fn write(&self, method: Method, path: &str, body: Value) -> Result<Value, ForgeError> {
+    pub(crate) fn write(
+        &self,
+        method: Method,
+        path: &str,
+        body: Value,
+    ) -> Result<Value, ForgeError> {
         let req = Request::write(
             method,
             build_url(&self.api, path, &[]),

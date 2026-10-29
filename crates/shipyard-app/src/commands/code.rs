@@ -53,7 +53,10 @@ pub fn discard(s: &AppState, paths: &[String], untracked: bool) -> Res<()> {
 /// Commits the staged files. The summary follows `<type>(<scope>): <subject>` (REQ-008).
 pub fn commit(s: &AppState, summary: &str, description: &str) -> Res<String> {
     check_summary(summary).map_err(|e| e.message())?;
-    repo(s)?.commit(summary, description).map_err(err)
+    let sha = repo(s)?.commit(summary, description).map_err(err)?;
+    // The commit exists. A failure of the link index must not hide it: History links it later.
+    let _ = crate::code::index_new_commit(s, &sha);
+    Ok(sha)
 }
 
 pub fn log(s: &AppState, skip: u32, limit: u32) -> Res<LogPage> {

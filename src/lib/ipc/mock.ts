@@ -41,6 +41,7 @@ import {
 	codeDiscard,
 	codeLog,
 	codePull,
+	codePush,
 	codeResolve,
 	codeStage,
 	codeStashApply,
@@ -52,6 +53,7 @@ import {
 	type MockCode,
 	seedCode,
 } from "./mock-code";
+import * as cp from "./mock-code-prs";
 import * as design from "./mock-design";
 import * as ex from "./mock-extensions";
 import * as fx from "./mock-factory";
@@ -112,6 +114,8 @@ type State = {
 	secrets: Record<string, string>;
 	/** The working copy of the active project. Seeded on first use. */
 	code?: MockCode;
+	/** The demo pull requests, reports and fake terminal of Code. Seeded on first use. */
+	prs?: cp.MockPrs;
 	agents: MockAgents;
 	/** The mirror of the fake tracker, the automation file and the ticks. */
 	sync: MockSync;
@@ -231,6 +235,12 @@ function code(): MockCode {
 	if (!active()) throw "no active project";
 	state.code ??= seedCode();
 	return state.code;
+}
+
+function prs(): cp.MockPrs {
+	if (!active()) throw "no active project";
+	state.prs ??= cp.seedPrs();
+	return state.prs;
 }
 
 /** The connection ids that the engine of the active project polls: the tracker, then the forge. */
@@ -925,7 +935,7 @@ const handlers: Handlers = {
 	},
 	codePull: () => codePull(code()),
 	codePush: () => {
-		code();
+		codePush(code());
 		return null;
 	},
 	codeWatchTick: () => {
@@ -933,6 +943,25 @@ const handlers: Handlers = {
 		return n ? [n] : [];
 	},
 	codeWatchNotice: () => (active() ? (code().notice ?? null) : null),
+	codePullDetail: (number) => cp.pullDetail(prs(), number),
+	codePullLabels: () => cp.pullLabels(),
+	codePullOpen: (input, click) => cp.pullOpen(prs(), code(), input, click),
+	codePullComment: (number, body, click) => cp.pullComment(prs(), number, body, click),
+	codePullVerdict: (number, verdict, body, click) =>
+		cp.pullVerdict(prs(), number, verdict, body, click),
+	codePullMerge: (number, method, click) => cp.pullMerge(prs(), number, method, click),
+	codePullReady: (number, click) => cp.pullReady(prs(), number, click),
+	codeQuality: () => cp.qualityView(prs()),
+	codeCheckRun: (command, click) => cp.checkRun(prs(), command, click),
+	codeScanRun: (name, click) => cp.scanRun(prs(), name, click),
+	codeImpactRefs: () => cp.impactRefs(code()),
+	codeImpactList: () => cp.impactList(prs()),
+	codeImpactRead: (path) => cp.impactRead(prs(), path),
+	codeImpactAnalyze: (base, click) => cp.impactAnalyze(prs(), code(), base, click),
+	terminalOpen: (id, folder) => cp.terminalOpen(prs(), id, folder),
+	terminalWrite: (id, data) => cp.terminalWrite(prs(), id, data),
+	terminalResize: (id) => cp.terminalResize(prs(), id),
+	terminalClose: (id) => cp.terminalClose(prs(), id),
 	designList: () => design.designList(need(state.design)),
 	designRead: (path) => design.designRead(need(state.design), path),
 	designWrite: (path, text, stamp, create) =>
@@ -1062,7 +1091,11 @@ const handlers: Handlers = {
 	approvalsList: () => fx.approvalsList(state.factory, active()?.id ?? null),
 	approvalApprove: (id) => fx.approvalApprove(state.factory, id),
 	approvalReject: (id) => fx.approvalReject(state.factory, id),
-	pullsList: () => fx.pullsList(state.factory, active()?.id ?? null),
+	pullsList: () => [
+		...fx.pullsList(state.factory, active()?.id ?? null),
+		// The demo project has a forge mirror. A fresh project has none, as the real list.
+		...(active()?.id === "demo" ? cp.prRows(prs()) : []),
+	],
 	assistantThreads: () => ai.threads(state.assistant, assistantEnv()),
 	assistantCreate: (title) => ai.create(state.assistant, assistantEnv(), title),
 	assistantGet: (id) => ai.get(state.assistant, assistantEnv(), id),
@@ -1114,6 +1147,11 @@ function needTracker<T>(f: () => T): T {
 }
 
 const camel = (s: string) => s.replace(/_(\w)/g, (_, c: string) => c.toUpperCase());
+
+/** The output of the fake terminal. The real app sends the event `terminal-output` instead. */
+export function onMockTerminalOutput(listener: (id: string, data: string) => void) {
+	return cp.onTerminalOutput(prs(), listener);
+}
 
 /** `demo`: the first folder that the picker returns is the demo project (`DEMO_FOLDER`). */
 export function installMockIpc(options: { demo?: boolean } = {}) {

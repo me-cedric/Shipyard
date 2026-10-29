@@ -4,6 +4,7 @@ pub mod archive;
 pub mod assistant_defaults;
 pub mod automation_file;
 pub mod catalog;
+pub mod code;
 pub mod compass;
 pub mod design;
 pub mod excel;

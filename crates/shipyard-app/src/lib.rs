@@ -2,6 +2,7 @@
 
 pub mod agents;
 pub mod assistant;
+pub mod code;
 mod commands;
 pub mod connections;
 pub mod delivery;
@@ -13,11 +14,12 @@ pub mod questions;
 mod shell;
 pub mod specs;
 pub mod sync;
+pub mod terminal;
 pub mod work;
 
 use commands::{
-    AppState, agents as ag, app, assistant as asst, code, connections as conn, health, legacy,
-    prefs, projects, refs, shell as sh, sync as sy,
+    AppState, agents as ag, app, assistant as asst, code as git, connections as conn, health,
+    legacy, prefs, projects, refs, shell as sh, sync as sy,
 };
 use extensions as ex;
 use knowledge as kw;
@@ -56,30 +58,48 @@ fn specta_builder() -> Builder<tauri::Wry> {
         conn::connections_set_secret,
         conn::connections_test,
         conn::connections_repos,
-        code::code_status,
-        code::code_diff,
-        code::code_stage,
-        code::code_unstage,
-        code::code_discard,
-        code::code_commit,
-        code::code_log,
-        code::code_commit_detail,
-        code::code_commit_diff,
-        code::code_branches,
-        code::code_branch_create,
-        code::code_branch_switch,
-        code::code_branch_delete,
-        code::code_stash_push,
-        code::code_stash_list,
-        code::code_stash_apply,
-        code::code_stash_drop,
-        code::code_conflicts,
-        code::code_resolve,
-        code::code_fetch,
-        code::code_pull,
-        code::code_push,
-        code::code_watch_tick,
-        code::code_watch_notice,
+        git::code_status,
+        git::code_diff,
+        git::code_stage,
+        git::code_unstage,
+        git::code_discard,
+        git::code_commit,
+        git::code_log,
+        git::code_commit_detail,
+        git::code_commit_diff,
+        git::code_branches,
+        git::code_branch_create,
+        git::code_branch_switch,
+        git::code_branch_delete,
+        git::code_stash_push,
+        git::code_stash_list,
+        git::code_stash_apply,
+        git::code_stash_drop,
+        git::code_conflicts,
+        git::code_resolve,
+        git::code_fetch,
+        git::code_pull,
+        git::code_push,
+        git::code_watch_tick,
+        git::code_watch_notice,
+        crate::code::code_pull_detail,
+        crate::code::code_pull_labels,
+        crate::code::code_pull_open,
+        crate::code::code_pull_comment,
+        crate::code::code_pull_verdict,
+        crate::code::code_pull_merge,
+        crate::code::code_pull_ready,
+        crate::code::code_quality,
+        crate::code::code_check_run,
+        crate::code::code_scan_run,
+        crate::code::code_impact_refs,
+        crate::code::code_impact_list,
+        crate::code::code_impact_read,
+        crate::code::code_impact_analyze,
+        terminal::terminal_open,
+        terminal::terminal_write,
+        terminal::terminal_resize,
+        terminal::terminal_close,
         ag::runners_list,
         ag::providers_list,
         ag::providers_add,
@@ -292,7 +312,7 @@ pub fn run() {
             sy::refresh(&state);
             factory::spawn_loop(app.handle().clone());
             app.set_menu(shell::menu::build(app.handle(), &Default::default())?)?;
-            code::spawn_watch(app.handle().clone(), WATCH_EVERY);
+            git::spawn_watch(app.handle().clone(), WATCH_EVERY);
             // The relay answers `shipyard --mcp-relay <id>` with the open server (REQ-018).
             // A failure leaves each agent turn to start its own server.
             #[cfg(unix)]
@@ -317,6 +337,7 @@ pub fn run() {
                 state.factory.factory.shutdown();
                 // A gate command and its children stop too (`delivery::kill_gates`).
                 delivery::kill_gates();
+                terminal::close_all();
                 state.agents.mcp.stop_all();
             }
         });

@@ -103,7 +103,7 @@ pub(crate) fn forge_source(a: &Active) -> Option<String> {
         .map(|id| source_key(id, origin_slug(&a.entry).as_deref()))
 }
 
-fn origin_slug(e: &Entry) -> Option<String> {
+pub(crate) fn origin_slug(e: &Entry) -> Option<String> {
     Repo::open(Path::new(&e.path))
         .ok()
         .and_then(|r| r.remote().ok().flatten())

@@ -63,6 +63,25 @@ export const commands = {
 	/**  Runs one watch tick now and emits the notices. The background watch runs the same tick. */
 	codeWatchTick: () => typedError<WatchNotice_Serialize[], string>(__TAURI_INVOKE("code_watch_tick")),
 	codeWatchNotice: () => typedError<WatchNotice_Serialize | null, string>(__TAURI_INVOKE("code_watch_notice")),
+	codePullDetail: (number: number) => typedError<PullDetail_Serialize, string>(__TAURI_INVOKE("code_pull_detail", { number })),
+	codePullLabels: () => typedError<string[], string>(__TAURI_INVOKE("code_pull_labels")),
+	codePullOpen: (input: OpenPull_Deserialize, click: boolean) => typedError<OpenedPull, string>(__TAURI_INVOKE("code_pull_open", { input, click })),
+	codePullComment: (number: number, body: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("code_pull_comment", { number, body, click })),
+	codePullVerdict: (number: number, verdict: Verdict, body: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("code_pull_verdict", { number, verdict, body, click })),
+	codePullMerge: (number: number, method: MergeMethod, click: boolean) => typedError<null, string>(__TAURI_INVOKE("code_pull_merge", { number, method, click })),
+	codePullReady: (number: number, click: boolean) => typedError<null, string>(__TAURI_INVOKE("code_pull_ready", { number, click })),
+	codeQuality: () => typedError<QualityView_Serialize, string>(__TAURI_INVOKE("code_quality")),
+	codeCheckRun: (command: string, click: boolean) => typedError<QualityReport_Serialize, string>(__TAURI_INVOKE("code_check_run", { command, click })),
+	codeScanRun: (name: string, click: boolean) => typedError<QualityReport_Serialize, string>(__TAURI_INVOKE("code_scan_run", { name, click })),
+	codeImpactRefs: () => typedError<ImpactRefs, string>(__TAURI_INVOKE("code_impact_refs")),
+	codeImpactList: () => typedError<ImpactEntry[], string>(__TAURI_INVOKE("code_impact_list")),
+	codeImpactRead: (path: string) => typedError<string, string>(__TAURI_INVOKE("code_impact_read", { path })),
+	codeImpactAnalyze: (base: string, click: boolean) => typedError<ImpactEntry, string>(__TAURI_INVOKE("code_impact_analyze", { base, click })),
+	/**  Opens a terminal. `folder` is relative to the project root. Returns the id of the shell. */
+	terminalOpen: (id: string, folder: string | null, cols: number, rows: number) => typedError<string, string>(__TAURI_INVOKE("terminal_open", { id, folder, cols, rows })),
+	terminalWrite: (id: string, data: string) => typedError<null, string>(__TAURI_INVOKE("terminal_write", { id, data })),
+	terminalResize: (id: string, cols: number, rows: number) => typedError<null, string>(__TAURI_INVOKE("terminal_resize", { id, cols, rows })),
+	terminalClose: (id: string) => typedError<null, string>(__TAURI_INVOKE("terminal_close", { id })),
 	runnersList: () => typedError<Runner_Serialize[], string>(__TAURI_INVOKE("runners_list")),
 	providersList: () => typedError<Provider[], string>(__TAURI_INVOKE("providers_list")),
 	providersAdd: (draft: ProviderDraft) => typedError<Provider, string>(__TAURI_INVOKE("providers_add", { draft })),
@@ -1512,6 +1531,23 @@ export type HeadChange_Serialize = {
 	subject: string,
 };
 
+/**  One saved analysis: the two files stay apart (REQ-033). */
+export type ImpactEntry = {
+	/**  `YYYY-MM-DD`. */
+	date: string,
+	slug: string,
+	/**  Paths relative to the repository root. */
+	plan: string,
+	digest: string,
+};
+
+export type ImpactRefs = {
+	branches: string[],
+	tags: string[],
+	/**  The default base: `main`, else `master`, else the first branch. */
+	default: string,
+};
+
 export type ImportItem = {
 	path: string,
 	reason: string,
@@ -1789,6 +1825,8 @@ export type Member_Serialize = {
 	availability: Availability_Serialize,
 };
 
+export type MergeMethod = "merge" | "squash" | "rebase";
+
 export type MessageState = { state: "done" } | 
 /**  The runner stopped for a permission. `permission` is the tool, as the runner names it. */
 { state: "waiting"; permission: string } | { state: "failed"; kind: FailKind; message: string };
@@ -1816,9 +1854,37 @@ export type MonthSpend = {
 	cost: number | null,
 };
 
+export type OpenPull = OpenPull_Serialize | OpenPull_Deserialize;
+
+export type OpenPull_Deserialize = {
+	title: string,
+	body: string,
+	/**  The base branch. Default: the default branch of the repository (`delivery` REQ-009). */
+	base?: string | null,
+	draft: boolean,
+	labels: string[],
+};
+
+export type OpenPull_Serialize = {
+	title: string,
+	body: string,
+	/**  The base branch. Default: the default branch of the repository (`delivery` REQ-009). */
+	base: string | null,
+	draft: boolean,
+	labels: string[],
+};
+
 export type OpenStatus = "opened" | 
 /**  The repository has no project file. A person confirms, then the call repeats with `init`. */
 "needs-project-file" | "not-repository" | "folder-not-empty" | "invalid" | "failed";
+
+export type OpenedPull = {
+	reference: string,
+	number: number,
+	url: string,
+	/**  Labels that the forge does not have. Nothing created them. */
+	missingLabels: string[],
+};
 
 /**  A project value that takes the place of a personal preference while the project is active. */
 export type Overrides = Overrides_Serialize | Overrides_Deserialize;
@@ -2174,7 +2240,171 @@ export type ProviderDraft = {
 	model: string,
 };
 
+export type PullCheck = {
+	name: string,
+	/**  `pending`, `passing`, `failing` or `skipped`. */
+	state: string,
+	url: string,
+};
+
+export type PullCommitRef = {
+	reference: string,
+	summary: string,
+};
+
+export type PullDetail = PullDetail_Serialize | PullDetail_Deserialize;
+
+export type PullDetail_Deserialize = {
+	/**  `pr:<connection>:<number>`. */
+	reference: string,
+	number: number,
+	title: string,
+	description: string,
+	state: string,
+	draft: boolean,
+	author: string,
+	sourceBranch: string,
+	targetBranch: string,
+	headSha: string,
+	url: string,
+	files: PullFile_Deserialize[],
+	/**  The commits as `commit:<sha>` refs with their summary. */
+	commits: PullCommitRef[],
+	checks: PullCheck[],
+	/**  `none`, `pending`, `passing` or `failing`. */
+	ci: string,
+	threads: PullThread_Deserialize[],
+	verdicts: ReviewerVerdict[],
+	/**  `clean`, `conflict`, `blocked` or `unknown`. */
+	mergeable: string,
+	mergeMethods: MergeMethod[],
+	/**  `wi:` and `run:` refs of the pull request (REQ-024). */
+	links: string[],
+};
+
+export type PullDetail_Serialize = {
+	/**  `pr:<connection>:<number>`. */
+	reference: string,
+	number: number,
+	title: string,
+	description: string,
+	state: string,
+	draft: boolean,
+	author: string,
+	sourceBranch: string,
+	targetBranch: string,
+	headSha: string,
+	url: string,
+	files: PullFile_Serialize[],
+	/**  The commits as `commit:<sha>` refs with their summary. */
+	commits: PullCommitRef[],
+	checks: PullCheck[],
+	/**  `none`, `pending`, `passing` or `failing`. */
+	ci: string,
+	threads: PullThread_Serialize[],
+	verdicts: ReviewerVerdict[],
+	/**  `clean`, `conflict`, `blocked` or `unknown`. */
+	mergeable: string,
+	mergeMethods: MergeMethod[],
+	/**  `wi:` and `run:` refs of the pull request (REQ-024). */
+	links: string[],
+};
+
+export type PullFile = PullFile_Serialize | PullFile_Deserialize;
+
+export type PullFile_Deserialize = {
+	path: string,
+	/**  `added`, `modified`, `removed` or `renamed`. */
+	status: string,
+	/**  The unified diff. `None` when the forge sends none (Azure DevOps). */
+	patch?: string | null,
+};
+
+export type PullFile_Serialize = {
+	path: string,
+	/**  `added`, `modified`, `removed` or `renamed`. */
+	status: string,
+	/**  The unified diff. `None` when the forge sends none (Azure DevOps). */
+	patch: string | null,
+};
+
 export type PullOutcome = "up-to-date" | "fast-forwarded" | "rebased";
+
+export type PullThread = PullThread_Serialize | PullThread_Deserialize;
+
+export type PullThread_Deserialize = {
+	id: string,
+	resolved: boolean,
+	path?: string | null,
+	line?: number | null,
+	/**  `author: text`, oldest first. */
+	comments: string[],
+};
+
+export type PullThread_Serialize = {
+	id: string,
+	resolved: boolean,
+	path: string | null,
+	line: number | null,
+	/**  `author: text`, oldest first. */
+	comments: string[],
+};
+
+export type QualityReport = QualityReport_Serialize | QualityReport_Deserialize;
+
+export type QualityReport_Deserialize = {
+	kind: ReportKind,
+	name: string,
+	/**  ISO 8601 date and time of the run. */
+	at: string,
+	passed: boolean,
+	durationMs: number,
+	/**  The last lines of the output. */
+	tail: string,
+	findings: ScanFinding_Deserialize[],
+};
+
+export type QualityReport_Serialize = {
+	kind: ReportKind,
+	name: string,
+	/**  ISO 8601 date and time of the run. */
+	at: string,
+	passed: boolean,
+	durationMs: number,
+	/**  The last lines of the output. */
+	tail: string,
+	findings: ScanFinding_Serialize[],
+};
+
+export type QualityRow = QualityRow_Serialize | QualityRow_Deserialize;
+
+export type QualityRow_Deserialize = {
+	/**  The declared command, or the scanner name. */
+	name: string,
+	/**  `false` for a scanner that the app does not ship (Q-043). */
+	available: boolean,
+	last?: QualityReport_Deserialize | null,
+};
+
+export type QualityRow_Serialize = {
+	/**  The declared command, or the scanner name. */
+	name: string,
+	/**  `false` for a scanner that the app does not ship (Q-043). */
+	available: boolean,
+	last: QualityReport_Serialize | null,
+};
+
+export type QualityView = QualityView_Serialize | QualityView_Deserialize;
+
+export type QualityView_Deserialize = {
+	checks: QualityRow_Deserialize[],
+	scanners: QualityRow_Deserialize[],
+};
+
+export type QualityView_Serialize = {
+	checks: QualityRow_Serialize[],
+	scanners: QualityRow_Serialize[],
+};
 
 export type Question = {
 	id: string,
@@ -2266,6 +2496,8 @@ export type RepoPage_Serialize = {
 	next: string | null,
 };
 
+export type ReportKind = "check" | "scanner";
+
 export type Repository = Repository_Serialize | Repository_Deserialize;
 
 export type Repository_Deserialize = {
@@ -2329,6 +2561,13 @@ export type Resolved_Serialize = {
 	/**  The state of the entity itself, such as `accepted` for an ADR. */
 	status: string | null,
 	location: string | null,
+};
+
+/**  The verdict of one reviewer (REQ-021). */
+export type ReviewerVerdict = {
+	reviewer: string,
+	/**  `approved` or `changes-requested`. */
+	state: string,
 };
 
 export type Role = "none" | "pm" | "architect" | "developer" | "qa" | "ba" | "lead" | "junior";
@@ -2602,6 +2841,27 @@ export type Runner_Serialize = {
 	/**  How to install it. Shown beside a missing runner. */
 	install: string,
 };
+
+/**  A scanner finding. It has a place and no value (REQ-027). */
+export type ScanFinding = ScanFinding_Serialize | ScanFinding_Deserialize;
+
+/**  A scanner finding. It has a place and no value (REQ-027). */
+export type ScanFinding_Deserialize = {
+	severity: ScanSeverity,
+	path: string,
+	line?: number | null,
+	message: string,
+};
+
+/**  A scanner finding. It has a place and no value (REQ-027). */
+export type ScanFinding_Serialize = {
+	severity: ScanSeverity,
+	path: string,
+	line: number | null,
+	message: string,
+};
+
+export type ScanSeverity = "low" | "medium" | "high" | "critical";
 
 export type Screen = Screen_Serialize | Screen_Deserialize;
 
@@ -3445,6 +3705,8 @@ export type UsageView_Serialize = {
 	days: SpendView_Serialize[],
 	members: SpendView_Serialize[],
 };
+
+export type Verdict = "approve" | "request-changes";
 
 /**  One architecture view that the view rendered at the click. */
 export type ViewImage = {

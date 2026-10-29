@@ -1076,3 +1076,22 @@ fn the_remote_is_the_upstream_remote_else_origin_else_none() {
     let (_t, a, url) = with_remote();
     assert_eq!(a.remote().unwrap(), Some((s("origin"), url)));
 }
+
+#[test]
+fn tags_list_by_name_and_compare_with_uncommitted_work() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    commit(&r, "a.txt", "1\n", "feat: a");
+    let raw = Repository::open(tmp.path()).unwrap();
+    let head = raw.head().unwrap().peel_to_commit().unwrap();
+    raw.tag_lightweight("v1.0", head.as_object(), false)
+        .unwrap();
+    raw.tag_lightweight("v0.9", head.as_object(), false)
+        .unwrap();
+    assert_eq!(r.tags().unwrap(), ["v0.9", "v1.0"]);
+    write(&r, "b.txt", "new\n");
+    write(&r, "a.txt", "2\n");
+    let mut files = r.changed_since("v1.0").unwrap();
+    files.sort();
+    assert_eq!(files, ["a.txt", "b.txt"]);
+}

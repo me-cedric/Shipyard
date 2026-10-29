@@ -40,3 +40,73 @@ fn a_branch_name_is_type_area_kebab() {
         assert_eq!(check_branch_name(bad), Err(NameError::BadBranch), "{bad}");
     }
 }
+
+use shipyard_core::code::{DigestError, check_digest, commit_refs, run_in_message, work_item_key};
+
+fn keys(k: &[&str]) -> Vec<String> {
+    k.iter().map(|s| s.to_string()).collect()
+}
+
+#[test]
+fn a_work_item_key_matches_as_a_whole_word() {
+    let known = keys(&["SHIP-4", "SHIP-42"]);
+    assert_eq!(
+        work_item_key("feat/auth/SHIP-42-login", &known),
+        Some("SHIP-42")
+    );
+    assert_eq!(work_item_key("fix: SHIP-4 refuse", &known), Some("SHIP-4"));
+    assert_eq!(work_item_key("fix: XSHIP-42 refuse", &known), None);
+    assert_eq!(work_item_key("fix: SHIP-421", &known), None);
+    assert_eq!(work_item_key("fix: SHIP-99", &known), None);
+}
+
+#[test]
+fn the_ref_list_has_each_link_once() {
+    let known = keys(&["SHIP-42"]);
+    let refs = commit_refs(
+        "feat/auth/SHIP-42-login",
+        "fix: SHIP-42",
+        &known,
+        Some("r-1"),
+    );
+    assert_eq!(refs, ["wi:SHIP-42", "run:r-1"]);
+    assert!(commit_refs("main", "chore: x", &known, None).is_empty());
+}
+
+#[test]
+fn a_digest_has_no_path_trace_or_secret() {
+    assert_eq!(
+        check_digest(
+            "Login ships next week. Risk: low, 3/4 done.",
+            &["tok-abcdef"]
+        ),
+        Ok(())
+    );
+    assert!(matches!(
+        check_digest("changed src/lib.rs", &[]),
+        Err(DigestError::Path(_))
+    ));
+    assert!(matches!(
+        check_digest("see C:\\work\\a", &[]),
+        Err(DigestError::Path(_))
+    ));
+    assert!(matches!(
+        check_digest("thread panicked at x", &[]),
+        Err(DigestError::Trace(_))
+    ));
+    assert_eq!(
+        check_digest("token tok-abcdef", &["tok-abcdef"]),
+        Err(DigestError::Secret)
+    );
+    assert!(DigestError::Secret.message().contains("secret"));
+}
+
+#[test]
+fn a_run_commit_names_its_run_in_the_message() {
+    assert_eq!(
+        run_in_message("Shipyard run run:r-12_a: merged.\n\nGate: ok"),
+        Some("r-12_a")
+    );
+    assert_eq!(run_in_message("feat: add login"), None);
+    assert_eq!(run_in_message("see run: nothing"), None);
+}

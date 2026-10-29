@@ -7,6 +7,7 @@
 pub mod assistant;
 pub mod assistant_modes;
 pub mod assistant_rules;
+pub mod impacts;
 pub mod mcp_control;
 pub mod runner;
 pub mod runners;

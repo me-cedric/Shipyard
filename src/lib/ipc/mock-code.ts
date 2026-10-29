@@ -265,7 +265,7 @@ export function codeBranches(c: MockCode): Branch_Serialize[] {
 				name,
 				kind: "local",
 				is_head: name === c.branch,
-				upstream: name === "main" ? "origin/main" : null,
+				upstream: c.remoteBranches.includes(`origin/${name}`) ? `origin/${name}` : null,
 				ahead: 0,
 				behind: 0,
 				tip: tip(name),
@@ -387,4 +387,10 @@ export function codePull(c: MockCode): PullOutcome {
 		throw `uncommitted changes would be overwritten: ${dirty.map(([p]) => p).join(", ")}`;
 	c.notice = null;
 	return "up-to-date";
+}
+
+/** Publishes the working branch: it gets a remote branch and an upstream (REQ-014). */
+export function codePush(c: MockCode) {
+	const remote = `origin/${c.branch}`;
+	if (!c.remoteBranches.includes(remote)) c.remoteBranches.push(remote);
 }

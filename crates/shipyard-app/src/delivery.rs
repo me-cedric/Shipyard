@@ -345,7 +345,7 @@ pub fn kill_gates() {
 /// One gate command, in the run folder. The output goes to a file, so a chatty command cannot
 /// fill a pipe and hang. The counts are the last line of the output. The shell leads its own
 /// process group: a timeout or a shutdown kills the command and its children (`kill_group`).
-fn run_gate(dir: &Path, log: &Path, command: &str, limit: Duration) -> GateCheck {
+pub(crate) fn run_gate(dir: &Path, log: &Path, command: &str, limit: Duration) -> GateCheck {
     let fail = |counts: String| GateCheck {
         command: command.into(),
         passed: false,

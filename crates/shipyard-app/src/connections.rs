@@ -572,6 +572,17 @@ impl Connections {
             .map_err(|e| e.to_string())
     }
 
+    /// The forge adapter with the review and merge calls of Code / Pull requests. The caller
+    /// asks for the click of a person before a write.
+    pub fn code_api(&self, id: &str) -> Res<Box<dyn shipyard_forges::CodeApi>> {
+        let r = self.record(id)?;
+        if r.group != ConnectionGroup::Forge {
+            return Err(format!("{id} is not a forge"));
+        }
+        shipyard_forges::connect_code_api(&forge_config(&r)?, self.secret(&r)?, self.http.clone())
+            .map_err(|e| e.to_string())
+    }
+
     /// A read-only test (REQ-012). It saves the result as the state of the connection.
     /// Blocks on the network: call it in `spawn_blocking`.
     pub fn test(&self, id: &str) -> Res<TestOutcome> {
