@@ -79,7 +79,12 @@ pub fn run(s: &AppState) -> Res<Vec<Finding>> {
             })
             .collect(),
     };
-    Ok(evaluate(&input))
+    let mut found = evaluate(&input);
+    // A stale compass entry is a finding with one apply fix (spec `extensions`, REQ-007).
+    if let Ok(Some(c)) = shipyard_store::compass::read(&root) {
+        found.extend(shipyard_core::compass_health::findings(&c.entries));
+    }
+    Ok(found)
 }
 
 #[derive(Debug, Serialize, Type)]

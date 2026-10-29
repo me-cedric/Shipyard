@@ -6,6 +6,7 @@ mod commands;
 pub mod connections;
 pub mod delivery;
 pub mod design;
+pub mod extensions;
 pub mod factory;
 pub mod knowledge;
 pub mod questions;
@@ -18,6 +19,7 @@ use commands::{
     AppState, agents as ag, app, assistant as asst, code, connections as conn, health, legacy,
     prefs, projects, refs, shell as sh, sync as sy,
 };
+use extensions as ex;
 use knowledge as kw;
 use tauri::{Emitter, Manager};
 use tauri_specta::{Builder, collect_commands};
@@ -233,6 +235,21 @@ fn specta_builder() -> Builder<tauri::Wry> {
         kw::export_dossier_file,
         kw::export_functional_file,
         kw::export_sheet_file,
+        ex::compass_get,
+        ex::compass_preview,
+        ex::compass_apply,
+        ex::compass_upgrade,
+        ex::roles_skills_get,
+        ex::catalog_get,
+        ex::catalog_preview,
+        ex::catalog_deploy,
+        ex::plugin_review,
+        ex::plugin_apply,
+        ex::child_list,
+        ex::child_add,
+        ex::child_remove,
+        ex::child_clone,
+        ex::child_deploy,
         sh::shell_menu,
         sh::notify_os,
         sh::update_check,

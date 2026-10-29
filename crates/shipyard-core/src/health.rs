@@ -27,8 +27,17 @@ pub enum Group {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum Fix {
-    Write { path: String, content: String },
-    Open { target: String },
+    Write {
+        path: String,
+        content: String,
+    },
+    Open {
+        target: String,
+    },
+    /// Apply a compass entry (`kind:id`) through `compass_apply` (spec `extensions`, REQ-007).
+    Apply {
+        entry: String,
+    },
     Recheck,
 }
 

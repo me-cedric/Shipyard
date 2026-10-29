@@ -53,6 +53,7 @@ import {
 	seedCode,
 } from "./mock-code";
 import * as design from "./mock-design";
+import * as ex from "./mock-extensions";
 import * as fx from "./mock-factory";
 import * as kw from "./mock-knowledge";
 import { parseRef } from "./mock-refs";
@@ -126,6 +127,8 @@ type State = {
 	assistant: ai.MockAssistant;
 	/** The handbook, documents, decks, dashboards and the code index of the Knowledge space. */
 	knowledge: kw.MockKnowledge;
+	/** The compass entries, roles, catalog, plugin and child projects of the Extensions views. */
+	extensions: ex.MockExtensions;
 	/** The system notifications that the app asked for. */
 	os: { title: string; body: string }[];
 	/** The labels of the last native menu. */
@@ -177,6 +180,7 @@ const fresh = (): State => ({
 	factory: fx.seedFactory(),
 	assistant: ai.seedAssistant(),
 	knowledge: kw.seedKnowledge(),
+	extensions: ex.seedExtensions(),
 	os: [],
 	menu: {},
 });
@@ -985,6 +989,21 @@ const handlers: Handlers = {
 			confirmed,
 			state.work.today,
 		),
+	compassGet: () => ex.compassGet(need(state.extensions)),
+	compassPreview: (kind, id) => ex.compassPreview(need(state.extensions), kind, id),
+	compassApply: (entries) => ex.compassApply(need(state.extensions), entries),
+	compassUpgrade: (selection) => ex.compassUpgrade(need(state.extensions), selection),
+	rolesSkillsGet: () => ex.rolesSkillsGet(need(state.extensions)),
+	catalogGet: () => need(state.extensions).catalog,
+	catalogPreview: (id) => ex.catalogPreview(need(state.extensions), id),
+	catalogDeploy: (id) => ex.catalogDeploy(need(state.extensions), id),
+	pluginReview: (path) => ex.pluginReview(need(state.extensions), path),
+	pluginApply: (path, accepted) => ex.pluginApply(need(state.extensions), path, accepted),
+	childList: () => ex.childList(need(state.extensions)),
+	childAdd: (name, url) => ex.childAdd(need(state.extensions), name, url),
+	childRemove: (id) => ex.childRemove(need(state.extensions), id),
+	childClone: (id) => ex.childClone(need(state.extensions), id),
+	childDeploy: (ids, keys) => ex.childDeploy(need(state.extensions), ids, keys),
 	graphGet: () => kw.graphGet(need(state.knowledge), knowledgeEnv()),
 	graphCode: () => kw.graphCode(need(state.knowledge)),
 	graphCodeIndex: () => kw.graphCodeIndex(need(state.knowledge)),

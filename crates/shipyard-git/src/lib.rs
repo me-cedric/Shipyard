@@ -3,6 +3,7 @@
 //! (`code`) and the worktrees (`worktree`). `auth` is the one place for credentials and proxy.
 
 pub mod auth;
+pub mod child_deploy;
 pub mod code;
 pub mod delivery;
 pub mod error;

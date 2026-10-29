@@ -2,7 +2,9 @@
 
 pub mod assistant;
 pub mod code;
+pub mod compass_health;
 pub mod delivery;
+pub mod extensions;
 pub mod flows;
 pub mod gherkin;
 pub mod health;

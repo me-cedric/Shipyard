@@ -1,0 +1,98 @@
+//! Child project clone, branch and commit (spec `extensions`, REQ-015 to REQ-018).
+
+use std::path::Path;
+use std::process::Command;
+
+use shipyard_git::Auth;
+use shipyard_git::child_deploy::{branch_new, commit_all};
+use shipyard_git::project::clone_repo;
+
+fn git(dir: &Path, args: &[&str]) -> String {
+    let out = Command::new("git")
+        .arg("-C")
+        .arg(dir)
+        .args([
+            "-c",
+            "user.name=t",
+            "-c",
+            "user.email=t@t",
+            "-c",
+            "commit.gpgsign=false",
+        ])
+        .args(args)
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "git {args:?}: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    String::from_utf8_lossy(&out.stdout).trim().to_string()
+}
+
+/// A bare remote with one commit on `main`, and a clone of it that has an identity.
+fn child(root: &Path) -> (std::path::PathBuf, std::path::PathBuf) {
+    let seed = root.join("seed");
+    std::fs::create_dir_all(&seed).unwrap();
+    git(&seed, &["init", "-q", "-b", "main"]);
+    std::fs::write(seed.join("README.md"), "x").unwrap();
+    git(&seed, &["add", "-A"]);
+    git(&seed, &["commit", "-q", "-m", "init"]);
+    let bare = root.join("remote.git");
+    git(
+        root,
+        &[
+            "clone",
+            "-q",
+            "--bare",
+            seed.to_str().unwrap(),
+            bare.to_str().unwrap(),
+        ],
+    );
+    let clone = root.join("clone");
+    clone_repo(bare.to_str().unwrap(), &clone, &Auth::none()).unwrap();
+    git(&clone, &["config", "user.name", "t"]);
+    git(&clone, &["config", "user.email", "t@t"]);
+    (bare, clone)
+}
+
+#[test]
+fn a_deploy_makes_a_branch_with_one_commit_and_does_not_push() {
+    let d = tempfile::tempdir().unwrap();
+    let (bare, clone) = child(d.path());
+    branch_new(&clone, "shipyard/extensions").unwrap();
+    std::fs::write(clone.join("AGENTS.md"), "rules").unwrap();
+    let id = commit_all(&clone, "chore: deploy").unwrap().unwrap();
+    assert_eq!(
+        git(&clone, &["rev-parse", "--abbrev-ref", "HEAD"]),
+        "shipyard/extensions"
+    );
+    assert_eq!(git(&clone, &["rev-parse", "HEAD"]), id);
+    assert_eq!(git(&clone, &["rev-list", "--count", "main..HEAD"]), "1");
+    assert_eq!(
+        git(&bare, &["branch", "--list", "shipyard/extensions"]),
+        "",
+        "nothing was pushed"
+    );
+}
+
+#[test]
+fn nothing_to_commit_gives_none() {
+    let d = tempfile::tempdir().unwrap();
+    let (_, clone) = child(d.path());
+    branch_new(&clone, "b").unwrap();
+    assert_eq!(commit_all(&clone, "m").unwrap(), None);
+}
+
+#[test]
+fn a_dirty_clone_an_existing_branch_and_a_bad_name_are_refused() {
+    let d = tempfile::tempdir().unwrap();
+    let (_, clone) = child(d.path());
+    assert!(branch_new(&clone, "bad name").is_err());
+    assert!(branch_new(&clone, "-x").is_err());
+    branch_new(&clone, "b").unwrap();
+    git(&clone, &["checkout", "-q", "main"]);
+    assert!(branch_new(&clone, "b").is_err());
+    std::fs::write(clone.join("own.txt"), "mine").unwrap();
+    assert!(branch_new(&clone, "c").unwrap_err().contains("changes"));
+}

@@ -11,22 +11,22 @@ Plan: [plan.md](plan.md)
 
 ## Tasks
 
-- [ ] T001 Write tests for the no-overwrite write and the entry states in `crates/shipyard-core/tests/extensions.rs` (REQ-003, REQ-004, REQ-010).
-- [ ] T002 Implement entries, states and the no-overwrite write in `crates/shipyard-core/src/extensions.rs` (REQ-003, REQ-004, REQ-010).
-- [ ] T003 Write tests for reading the compass tree, the lock, the patterns and the stack mark in `crates/shipyard-store/tests/compass.rs` (REQ-001, REQ-002, REQ-004).
-- [ ] T004 Implement the compass reader, the patterns list and the stack mark in `crates/shipyard-store/src/compass.rs` (REQ-001, REQ-002, REQ-004).
-- [ ] T005 Write tests for apply, upgrade and no silent pin change in `crates/shipyard-app/tests/compass_apply.rs` (REQ-003, REQ-005, REQ-006).
-- [ ] T006 Implement the apply and upgrade commands in `crates/shipyard-app/src/extensions/compass.rs` (REQ-003, REQ-005, REQ-006).
-- [ ] T007 Write tests for the compass Health findings and fixes in `crates/shipyard-core/tests/compass_health.rs` (REQ-007).
-- [ ] T008 Implement the compass check for Health in `crates/shipyard-core/src/compass_health.rs` (REQ-007).
-- [ ] T009 Write tests for the roles and skills list in `crates/shipyard-store/tests/roles_skills.rs` (REQ-008).
-- [ ] T010 Implement the roles and skills list in `crates/shipyard-store/src/roles_skills.rs` (REQ-008).
-- [ ] T011 Write tests for the catalog and deploy in `crates/shipyard-store/tests/catalog.rs` (REQ-009, REQ-010).
-- [ ] T012 Implement the catalog reader and the deploy writer in `crates/shipyard-store/src/catalog.rs` (REQ-009, REQ-010).
-- [ ] T013 Write tests for plugin import, bad paths, review and MCP servers in `crates/shipyard-store/tests/plugins.rs` (REQ-011, REQ-012, REQ-013, REQ-014).
-- [ ] T014 Implement the plugin reader and the review model in `crates/shipyard-store/src/plugins.rs` (REQ-011, REQ-012, REQ-013, REQ-014).
-- [ ] T015 Write tests for child project clone, branch and commit in `crates/shipyard-git/tests/child_deploy.rs` (REQ-015, REQ-016, REQ-017, REQ-018).
-- [ ] T016 Implement the child deploy in `crates/shipyard-git/src/child_deploy.rs` (REQ-015, REQ-016, REQ-017, REQ-018).
+- [x] T001 Write tests for the no-overwrite write and the entry states in `crates/shipyard-core/tests/extensions.rs` (REQ-003, REQ-004, REQ-010).
+- [x] T002 Implement entries, states and the no-overwrite write in `crates/shipyard-core/src/extensions.rs` (REQ-003, REQ-004, REQ-010).
+- [x] T003 Write tests for reading the compass tree, the lock, the patterns and the stack mark in `crates/shipyard-store/tests/compass.rs` (REQ-001, REQ-002, REQ-004).
+- [x] T004 Implement the compass reader, the patterns list and the stack mark in `crates/shipyard-store/src/compass.rs` (REQ-001, REQ-002, REQ-004).
+- [x] T005 Write tests for apply, upgrade and no silent pin change in `crates/shipyard-app/tests/compass_apply.rs` (REQ-003, REQ-005, REQ-006).
+- [x] T006 Implement the apply and upgrade commands in `crates/shipyard-app/src/extensions/compass.rs` (REQ-003, REQ-005, REQ-006).
+- [x] T007 Write tests for the compass Health findings and fixes in `crates/shipyard-core/tests/compass_health.rs` (REQ-007).
+- [x] T008 Implement the compass check for Health in `crates/shipyard-core/src/compass_health.rs` (REQ-007).
+- [x] T009 Write tests for the roles and skills list in `crates/shipyard-store/tests/roles_skills.rs` (REQ-008).
+- [x] T010 Implement the roles and skills list in `crates/shipyard-store/src/roles_skills.rs` (REQ-008).
+- [x] T011 Write tests for the catalog and deploy in `crates/shipyard-store/tests/catalog.rs` (REQ-009, REQ-010).
+- [x] T012 Implement the catalog reader and the deploy writer in `crates/shipyard-store/src/catalog.rs` (REQ-009, REQ-010).
+- [x] T013 Write tests for plugin import, bad paths, review and MCP servers in `crates/shipyard-store/tests/plugins.rs` (REQ-011, REQ-012, REQ-013, REQ-014).
+- [x] T014 Implement the plugin reader and the review model in `crates/shipyard-store/src/plugins.rs` (REQ-011, REQ-012, REQ-013, REQ-014).
+- [x] T015 Write tests for child project clone, branch and commit in `crates/shipyard-git/tests/child_deploy.rs` (REQ-015, REQ-016, REQ-017, REQ-018).
+- [x] T016 Implement the child deploy in `crates/shipyard-git/src/child_deploy.rs` (REQ-015, REQ-016, REQ-017, REQ-018).
 - [ ] T017 Write view tests in `src/features/settings/extensions/extensions.test.tsx` (REQ-001, REQ-002, REQ-009, REQ-012, REQ-015).
 - [ ] T018 Implement the two views in `src/features/settings/extensions/` (REQ-001, REQ-002, REQ-006, REQ-008, REQ-009, REQ-012, REQ-015).
 - [ ] T019 Write the keyboard, focus, label, contrast, reduced-motion and language tests in `src/features/settings/extensions/a11y.test.tsx` (REQ-019).

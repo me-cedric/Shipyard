@@ -4056,6 +4056,7 @@ dependencies = [
  "specta",
  "tempfile",
  "thiserror 2.0.21",
+ "zip 8.6.0",
 ]
 
 [[package]]

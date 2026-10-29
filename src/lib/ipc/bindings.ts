@@ -233,6 +233,34 @@ export const commands = {
 	exportDossierFile: (text: ExportText, views: ViewImage[], path: string) => typedError<null, string>(__TAURI_INVOKE("export_dossier_file", { text, views, path })),
 	exportFunctionalFile: (text: ExportText, path: string) => typedError<null, string>(__TAURI_INVOKE("export_functional_file", { text, path })),
 	exportSheetFile: (text: ExportText, sheets: SheetIn[], path: string) => typedError<null, string>(__TAURI_INVOKE("export_sheet_file", { text, sheets, path })),
+	compassGet: () => typedError<Compass_Serialize | null, string>(__TAURI_INVOKE("compass_get")),
+	compassPreview: (kind: EntryKind, id: string) => typedError<string, string>(__TAURI_INVOKE("compass_preview", { kind, id })),
+	compassApply: (entries: string[]) => typedError<CompassApplied, string>(__TAURI_INVOKE("compass_apply", { entries })),
+	compassUpgrade: (selection: string[] | null) => typedError<CompassApplied, string>(__TAURI_INVOKE("compass_upgrade", { selection })),
+	rolesSkillsGet: () => typedError<RoleSkillRow_Serialize[], string>(__TAURI_INVOKE("roles_skills_get")),
+	catalogGet: () => typedError<Component[], string>(__TAURI_INVOKE("catalog_get")),
+	/**  The files that a deploy would write and keep. It writes nothing (REQ-010). */
+	catalogPreview: (id: string) => typedError<WriteReport, string>(__TAURI_INVOKE("catalog_preview", { id })),
+	catalogDeploy: (id: string) => typedError<WriteReport, string>(__TAURI_INVOKE("catalog_deploy", { id })),
+	/**  Read the `.zip` as data and list what it would write. Nothing is written (REQ-011, REQ-012). */
+	pluginReview: (path: string) => typedError<PluginReview_Serialize, string>(__TAURI_INVOKE("plugin_review", { path })),
+	/**
+	 *  Write the accepted items. An MCP server goes to connections as an address: a header value
+	 *  stays a `${VAR}` reference that the person fills there (REQ-013).
+	 */
+	pluginApply: (path: string, accepted: string[]) => typedError<PluginApplied, string>(__TAURI_INVOKE("plugin_apply", { path, accepted })),
+	childList: () => typedError<Child[], string>(__TAURI_INVOKE("child_list")),
+	/**  Record a child project. It clones nothing: the clone is a separate click. */
+	childAdd: (name: string, url: string) => typedError<Child, string>(__TAURI_INVOKE("child_add", { name, url })),
+	/**  Forget a child. The clone on disk stays: the app deletes no folder of a person. */
+	childRemove: (id: string) => typedError<null, string>(__TAURI_INVOKE("child_remove", { id })),
+	/**  Clone the child into the app data folder (REQ-016). It reads the remote and writes there. */
+	childClone: (id: string) => typedError<Child, string>(__TAURI_INVOKE("child_clone", { id })),
+	/**
+	 *  Deploy to each chosen child (REQ-016, REQ-017, REQ-018). A child that fails does not stop the
+	 *  others: its result holds the error. A Health fix runs here with the key of the finding.
+	 */
+	childDeploy: (ids: string[], keys: string[]) => typedError<ChildResult_Serialize[], string>(__TAURI_INVOKE("child_deploy", { ids, keys })),
 	/**  Replaces the native menu with one in the language of the person. `labels` is keyed by item id. */
 	shellMenu: (labels: { [key in string]: string }) => typedError<null, string>(__TAURI_INVOKE("shell_menu", { labels })),
 	/**
@@ -688,6 +716,8 @@ export type CapabilityRow = {
 	requirements: number,
 };
 
+export type CatalogGroup = "devcontainers" | "agents" | "devops-security";
+
 export type ChangeView = ChangeView_Serialize | ChangeView_Deserialize;
 
 export type ChangeView_Deserialize = {
@@ -758,6 +788,36 @@ export type ChatMessage = {
 
 export type ChatRole = "user" | "assistant";
 
+export type Child = {
+	id: string,
+	name: string,
+	url: string,
+	cloned: boolean,
+	/**  n of m (REQ-015). */
+	held: number,
+	total: number,
+	/**  The current parent entries that the child lacks, as keys. */
+	proposed: string[],
+};
+
+export type ChildResult = ChildResult_Serialize | ChildResult_Deserialize;
+
+export type ChildResult_Deserialize = {
+	id: string,
+	branch?: string | null,
+	commit?: string | null,
+	report: WriteReport,
+	error?: string | null,
+};
+
+export type ChildResult_Serialize = {
+	id: string,
+	branch: string | null,
+	commit: string | null,
+	report: WriteReport,
+	error: string | null,
+};
+
 export type Choice = "ours" | "theirs" | 
 /**  Ours, then theirs. */
 "both" | "neither";
@@ -809,6 +869,83 @@ export type CommitInfo = {
 	time: number,
 	parents: string[],
 	labels: RefLabel[],
+};
+
+export type Compass = Compass_Serialize | Compass_Deserialize;
+
+export type CompassApplied = {
+	report: WriteReport,
+	/**  The pinned version after the call. It is the version before. */
+	version: string,
+};
+
+export type CompassEntry = CompassEntry_Serialize | CompassEntry_Deserialize;
+
+export type CompassEntry_Deserialize = {
+	kind: EntryKind,
+	id: string,
+	title: string,
+	/**  The `risk_level` of a skill. */
+	risk?: string | null,
+	/**  The `writes_files` flag of a skill. */
+	writes: boolean,
+	/**  The skill suits a stack of the project. */
+	suits: boolean,
+	state: SyncState,
+	/**  The compass version that the lock pins, when it has an entry. */
+	pinned?: string | null,
+	/**  The compass version of the tree. */
+	expected: string,
+};
+
+export type CompassEntry_Serialize = {
+	kind: EntryKind,
+	id: string,
+	title: string,
+	/**  The `risk_level` of a skill. */
+	risk: string | null,
+	/**  The `writes_files` flag of a skill. */
+	writes: boolean,
+	/**  The skill suits a stack of the project. */
+	suits: boolean,
+	state: SyncState,
+	/**  The compass version that the lock pins, when it has an entry. */
+	pinned: string | null,
+	/**  The compass version of the tree. */
+	expected: string,
+};
+
+export type Compass_Deserialize = {
+	/**  The path of the tree, relative to the project root. */
+	tree: string,
+	/**  The version of the tree. */
+	version: string,
+	/**  The version that the lock pins. `None` before the first sync. */
+	pinned?: string | null,
+	stacks: string[],
+	entries: CompassEntry_Deserialize[],
+};
+
+export type Compass_Serialize = {
+	/**  The path of the tree, relative to the project root. */
+	tree: string,
+	/**  The version of the tree. */
+	version: string,
+	/**  The version that the lock pins. `None` before the first sync. */
+	pinned: string | null,
+	stacks: string[],
+	entries: CompassEntry_Serialize[],
+};
+
+export type Component = {
+	/**  `<group folder>/<name>`. */
+	id: string,
+	name: string,
+	group: CatalogGroup,
+	files: string[],
+	version: string,
+	/**  Absent: not deployed. Current: deployed at this version. Stale: deployed at another one. */
+	state: SyncState,
 };
 
 export type ConflictFile = {
@@ -1074,6 +1211,8 @@ export type Entry = {
 	issues: string[],
 };
 
+export type EntryKind = "skill" | "pack" | "guide" | "pattern" | "contract";
+
 export type ExplainContext = ExplainContext_Serialize | ExplainContext_Deserialize;
 
 export type ExplainContext_Deserialize = {
@@ -1248,7 +1387,9 @@ export type Finding_Serialize = {
 };
 
 /**  What a person can do about a finding. Only `Write` changes a file, and only after a confirm click. */
-export type Fix = { kind: "write"; path: string; content: string } | { kind: "open"; target: string } | { kind: "recheck" };
+export type Fix = { kind: "write"; path: string; content: string } | { kind: "open"; target: string } | 
+/**  Apply a compass entry (`kind:id`) through `compass_apply` (spec `extensions`, REQ-007). */
+{ kind: "apply"; entry: string } | { kind: "recheck" };
 
 export type FixResult = {
 	path: string,
@@ -1748,6 +1889,53 @@ export type PlanView_Serialize = {
 	today: string,
 };
 
+export type PluginApplied = {
+	report: WriteReport,
+	/**  The servers that now show in Settings / Connections. */
+	mcpAdded: string[],
+	/**  `<name>: <reason>`. */
+	mcpFailed: string[],
+};
+
+/**  What an item does against the applied version of the plugin (REQ-014). */
+export type PluginChange = "new" | "same" | "changed" | 
+/**  In the applied version, not in this one. Informational: it is never written. */
+"removed";
+
+export type PluginItem = {
+	/**  `file:<target>`, `setting:<key>`, `mcp:<name>`. */
+	id: string,
+	kind: PluginItemKind,
+	label: string,
+	/**  A file that exists is kept at apply, and the report names it. */
+	exists: boolean,
+	change: PluginChange,
+};
+
+export type PluginItemKind = "file" | "setting" | "mcp";
+
+export type PluginReview = PluginReview_Serialize | PluginReview_Deserialize;
+
+export type PluginReview_Deserialize = {
+	name: string,
+	version: string,
+	/**  The version in the project, when the plugin is applied. */
+	applied?: string | null,
+	items: PluginItem[],
+	/**  `<id>: <reason>`. A refused server is never an item. */
+	refused: string[],
+};
+
+export type PluginReview_Serialize = {
+	name: string,
+	version: string,
+	/**  The version in the project, when the plugin is applied. */
+	applied: string | null,
+	items: PluginItem[],
+	/**  `<id>: <reason>`. A refused server is never an item. */
+	refused: string[],
+};
+
 export type Portfolio = {
 	/**  One row for each sheet, by slug. */
 	sheets: ([string, Totals])[],
@@ -2187,6 +2375,32 @@ export type RoleItem_Serialize = {
 	file: boolean,
 	/**  A default role ships with the app. */
 	bundled: boolean,
+};
+
+export type RoleSkillKind = "role" | "skill";
+
+export type RoleSkillRow = RoleSkillRow_Serialize | RoleSkillRow_Deserialize;
+
+export type RoleSkillRow_Deserialize = {
+	kind: RoleSkillKind,
+	name: string,
+	/**  `factory`, `assistant`. */
+	loaders: string[],
+	/**  The workflows that name a role. */
+	usedBy: string[],
+	/**  The file, relative to the project root. `None` for a bundled role with no project file. */
+	path?: string | null,
+};
+
+export type RoleSkillRow_Serialize = {
+	kind: RoleSkillKind,
+	name: string,
+	/**  `factory`, `assistant`. */
+	loaders: string[],
+	/**  The workflows that name a role. */
+	usedBy: string[],
+	/**  The file, relative to the project root. `None` for a bundled role with no project file. */
+	path: string | null,
 };
 
 /**  One ticket that the sheets ask for. A feature is an epic. A task is a story. */
@@ -2765,6 +2979,8 @@ export type SyncReport = {
 	stopped: number,
 	errors: string[],
 };
+
+export type SyncState = "absent" | "stale" | "current";
 
 export type SyncStatus = "idle" | "running" | "failed";
 
@@ -3412,6 +3628,12 @@ export type Worktree = {
 	branch: string,
 	/**  The commit that the diff reads against. */
 	base: string,
+};
+
+/**  What a write did: the files that it wrote and the files that it kept. */
+export type WriteReport = {
+	written: string[],
+	kept: string[],
 };
 
 /**  The four write switches of `factory`. All off by default (`q:Q-002`). */
