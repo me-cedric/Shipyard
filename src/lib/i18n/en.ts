@@ -1,5 +1,6 @@
 import { assistantEn } from "./assistant";
 import { designEn } from "./design";
+import { extensionsEn } from "./extensions";
 import { factoryEn } from "./factory";
 import { homeEn } from "./home";
 import { knowledgeEn } from "./knowledge";
@@ -146,6 +147,7 @@ export const en = {
 	},
 	lang: { en: "English", fr: "French" },
 	home: homeEn,
+	extensions: extensionsEn,
 	knowledge: knowledgeEn,
 	notFound: { title: "Not found", home: "Home" },
 	shell: {

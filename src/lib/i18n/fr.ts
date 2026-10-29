@@ -1,6 +1,7 @@
 import { assistantFr } from "./assistant";
 import { designFr } from "./design";
 import type { Messages } from "./en";
+import { extensionsFr } from "./extensions";
 import { factoryFr } from "./factory";
 import { homeFr } from "./home";
 import { knowledgeFr } from "./knowledge";
@@ -147,6 +148,7 @@ export const fr: Messages = {
 	},
 	lang: { en: "Anglais", fr: "Français" },
 	home: homeFr,
+	extensions: extensionsFr,
 	knowledge: knowledgeFr,
 	notFound: { title: "Introuvable", home: "Accueil" },
 	shell: {

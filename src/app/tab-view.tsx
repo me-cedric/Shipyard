@@ -5,7 +5,7 @@ import { AgentsMap, Runs, Sessions, Usage, Workflows } from "@/features/factory"
 import { Activity, Inbox, MyWork } from "@/features/home";
 import { Dashboards, Documents, Graph, Handbook, Learn, Slides } from "@/features/knowledge";
 import { FirstRun, Health, ProjectSettings } from "@/features/projects";
-import { AgentsRules, Connections, Me } from "@/features/settings";
+import { AgentsRules, Connections, Extensions, Me } from "@/features/settings";
 import { type SpaceId, tabLabel } from "@/features/shell";
 import { Capabilities, Constitution, Questions, SpecChanges, TestPlans } from "@/features/specs";
 import { Automation } from "@/features/sync";
@@ -42,6 +42,7 @@ const VIEWS: Partial<Record<string, ComponentType>> = {
 	"settings/connections": Connections,
 	"settings/me": Me,
 	"settings/agents-rules": AgentsRules,
+	"settings/extensions": Extensions,
 	"work/backlog": Backlog,
 	"work/board": Board,
 	"work/plan": Plan,

@@ -6,6 +6,7 @@ import { commands, type RunnerTiers, unwrap } from "@/lib/ipc";
 import { Caption, Input } from "@/ui/atoms/input";
 import { GroupSection } from "@/ui/molecules/group-section";
 import { SettingsRow } from "@/ui/molecules/settings-row";
+import { Compass } from "./extensions/compass";
 
 const TIERS = ["top", "mid", "small"] as const;
 const tiersKey = ["tiers"] as const;
@@ -44,19 +45,18 @@ function TierRow({ row }: { row: RunnerTiers }) {
 	);
 }
 
-/** Settings / Agents and rules: the model of each tier of each runner (factory REQ-012). */
+/** Settings / Agents and rules: the compass part, then the model of each tier of each runner (factory REQ-012). */
 export function AgentsRules() {
 	const { t } = useI18n();
 	const tiers = useQuery({ queryKey: tiersKey, queryFn: () => unwrap(commands.tiersGet()) });
 	return (
-		<div className="max-w-2xl p-4">
-			<h1 className="sr-only">{t.tabs.settings["agents-rules"]}</h1>
+		<Compass>
 			<GroupSection name={t.settings.tiers.name} count={tiers.data?.length ?? 0}>
 				{(tiers.data ?? []).map((row) => (
 					// The saved row keys the draft: a refused edit keeps the typed text until the person fixes it.
 					<TierRow key={row.runner} row={row} />
 				))}
 			</GroupSection>
-		</div>
+		</Compass>
 	);
 }

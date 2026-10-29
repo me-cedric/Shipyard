@@ -27,10 +27,10 @@ Plan: [plan.md](plan.md)
 - [x] T014 Implement the plugin reader and the review model in `crates/shipyard-store/src/plugins.rs` (REQ-011, REQ-012, REQ-013, REQ-014).
 - [x] T015 Write tests for child project clone, branch and commit in `crates/shipyard-git/tests/child_deploy.rs` (REQ-015, REQ-016, REQ-017, REQ-018).
 - [x] T016 Implement the child deploy in `crates/shipyard-git/src/child_deploy.rs` (REQ-015, REQ-016, REQ-017, REQ-018).
-- [ ] T017 Write view tests in `src/features/settings/extensions/extensions.test.tsx` (REQ-001, REQ-002, REQ-009, REQ-012, REQ-015).
-- [ ] T018 Implement the two views in `src/features/settings/extensions/` (REQ-001, REQ-002, REQ-006, REQ-008, REQ-009, REQ-012, REQ-015).
-- [ ] T019 Write the keyboard, focus, label, contrast, reduced-motion and language tests in `src/features/settings/extensions/a11y.test.tsx` (REQ-019).
-- [ ] T020 Implement the interface rules in `src/features/settings/extensions/` (REQ-019).
+- [x] T017 Write view tests in `src/features/settings/extensions/extensions.test.tsx` (REQ-001, REQ-002, REQ-009, REQ-012, REQ-015).
+- [x] T018 Implement the two views in `src/features/settings/extensions/` (REQ-001, REQ-002, REQ-006, REQ-008, REQ-009, REQ-012, REQ-015).
+- [x] T019 Write the keyboard, focus, label, contrast, reduced-motion and language tests in `src/features/settings/extensions/a11y.test.tsx` (REQ-019).
+- [x] T020 Implement the interface rules in `src/features/settings/extensions/` (REQ-019).
 - [ ] T021 Write the end-to-end test in `e2e/extensions.spec.ts` for apply, plugin import with review, and child deploy (REQ-003, REQ-011, REQ-012, REQ-016, REQ-017).
 - [ ] T022 [P] Add the changelog entry in `CHANGELOG.md` and `CHANGELOG.fr.md` (REQ-001).
 - [ ] T023 Run `cd docs && npx -y @fission-ai/openspec@latest validate add-extensions --strict` and the commands of `plan.md` (REQ-001 to REQ-019).
