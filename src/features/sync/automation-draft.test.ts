@@ -25,6 +25,16 @@ describe("the automation draft", () => {
 		expect(fromDraft(toDraft(a), en)).toEqual({ automation: a });
 	});
 
+	it("keeps the budgets, the reviewers and the assignee that the form does not edit", () => {
+		const a = {
+			...defaultAutomation(),
+			reviewers: ["ada"],
+			assignee: "bob",
+			budgets: { day: { "*": 5 }, member: { ada: 2 } },
+		};
+		expect(fromDraft(toDraft(a), en)).toEqual({ automation: a });
+	});
+
 	it("has one mapping row for each run state", () => {
 		expect(Object.keys(toDraft(defaultAutomation()).map)).toEqual([...RUN_STATES]);
 	});

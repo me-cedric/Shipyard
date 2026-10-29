@@ -149,6 +149,8 @@ fn is_day(key: &str) -> bool {
                 c.is_ascii_digit()
             }
         })
+        && (1..=12).contains(&key[5..7].parse::<u8>().unwrap_or(0))
+        && (1..=31).contains(&key[8..10].parse::<u8>().unwrap_or(0))
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]

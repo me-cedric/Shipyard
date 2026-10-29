@@ -41,7 +41,11 @@ function Form({ view }: { view: AutomationView }) {
 		}
 	};
 
-	const field = (id: keyof Omit<Draft, "map" | "writes">, label: string, type?: "number") => ({
+	const field = (
+		id: keyof Omit<Draft, "map" | "writes" | "kept">,
+		label: string,
+		type?: "number",
+	) => ({
 		id,
 		icon: ICON,
 		label,

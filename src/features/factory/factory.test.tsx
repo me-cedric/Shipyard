@@ -124,6 +124,20 @@ describe("Factory tabs", () => {
 		);
 	});
 
+	it("Usage: a member scope sets the default member budget", async () => {
+		const user = userEvent.setup();
+		await renderTab(<Usage />);
+		await user.click(await screen.findByRole("combobox", { name: "Budget for" }));
+		await user.click(await screen.findByRole("option", { name: "Per member" }));
+		await user.type(screen.getByRole("textbox", { name: "Day or member" }), "*");
+		await user.type(screen.getByRole("spinbutton", { name: "Budget (USD)" }), "4");
+		await user.click(screen.getByRole("button", { name: "Set budget" }));
+		await waitFor(async () => {
+			const { members } = await unwrap(commands.usageGet());
+			expect(members.some((m) => m.budget === 4)).toBe(true);
+		});
+	});
+
 	it("Usage: status colour at 80 % and 100 %", () => {
 		expect(spendStatus(1, null)).toBeNull();
 		expect(spendStatus(7.9, 10)).toBe("success");

@@ -76,6 +76,7 @@ export const factoryEn = {
 	spend: "Spend",
 	setBudget: "Set budget",
 	budgetKey: "Day or member",
+	budgetScope: "Budget for",
 	budgetAmount: "Budget (USD)",
 	noAssignee: "No assignee",
 };
@@ -163,6 +164,7 @@ export const factoryFr: typeof factoryEn = {
 	spend: "Dépense",
 	setBudget: "Fixer le budget",
 	budgetKey: "Jour ou membre",
+	budgetScope: "Budget pour",
 	budgetAmount: "Budget (USD)",
 	noAssignee: "Sans assigné",
 };

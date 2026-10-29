@@ -546,3 +546,17 @@ fn a_resolved_handle_matches_every_account_of_the_member() {
     auto.pickup.assignee = None;
     assert_eq!(pick(&auto, &[todo("A-1")], &[], &[], false), ["A-1"]);
 }
+
+#[test]
+fn a_day_budget_key_needs_a_real_month_and_day() {
+    let issues = |day: &str| {
+        let mut auto = Automation::default();
+        auto.budgets.day.insert(day.into(), 5.0);
+        auto.validate().len()
+    };
+    assert_eq!(issues("2026-10-29"), 0);
+    assert_eq!(issues("*"), 0);
+    for bad in ["2026-13-45", "2026-00-10", "2026-12-32", "2026-01-00"] {
+        assert_eq!(issues(bad), 1, "{bad}");
+    }
+}

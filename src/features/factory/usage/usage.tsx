@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { Select } from "@/ui/atoms/select";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { SpendMeter } from "@/ui/molecules/spend-meter";
 import { DataTable } from "@/ui/organisms/data-table";
@@ -23,8 +24,6 @@ type Row = {
 	budget: number | null;
 };
 
-const DAY = /^(\d{4}-\d{2}-\d{2}|\*)$/;
-
 /** Factory / Usage: spend against budget per run, day and member. The one action sets a budget (factory REQ-032). */
 export function Usage() {
 	const { t } = useI18n();
@@ -33,6 +32,7 @@ export function Usage() {
 	const usage = useUsage();
 	const writes = useFactoryWrites();
 	const { error, run } = useGuard();
+	const [scope, setScope] = useState<"day" | "member">("day");
 	const [key, setKey] = useState("");
 	const [amount, setAmount] = useState("");
 	const field = useRef<HTMLInputElement>(null);
@@ -103,7 +103,7 @@ export function Usage() {
 	const set = () =>
 		void run(async () => {
 			const usd = amount.trim() === "" ? null : Number(amount);
-			await writes.budget(DAY.test(key.trim()) ? "day" : "member", key.trim(), usd);
+			await writes.budget(scope, key.trim(), usd);
 			setKey("");
 			setAmount("");
 		});
@@ -113,6 +113,15 @@ export function Usage() {
 			title={f.usage}
 			toolbar={
 				<>
+					<Select
+						label={f.budgetScope}
+						items={[
+							{ value: "day", label: f.perDay },
+							{ value: "member", label: f.perMember },
+						]}
+						value={scope}
+						onValueChange={(v) => setScope(v === "member" ? "member" : "day")}
+					/>
 					<Input
 						ref={field}
 						label={f.budgetKey}
@@ -153,7 +162,9 @@ export function Usage() {
 					group={(r) => r.kind}
 					groupLabel={(g) => label[g] ?? g}
 					onOpen={(r) => {
-						if (r.kind !== "run") setKey(r.key);
+						if (r.kind === "run") return;
+						setScope(r.kind);
+						setKey(r.key);
 					}}
 				/>
 			)}

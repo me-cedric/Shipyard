@@ -35,6 +35,8 @@ export type Draft = {
 	priority: string;
 	map: Record<string, { status: string; labels: string }>;
 	writes: Automation["writes"];
+	/** The fields that this form does not edit. They go back as they came. */
+	kept: Pick<Automation, "reviewers" | "assignee" | "budgets">;
 };
 
 const list = (text: string) =>
@@ -65,6 +67,7 @@ export const toDraft = (a: Automation): Draft => ({
 		]),
 	),
 	writes: a.writes,
+	kept: { reviewers: a.reviewers, assignee: a.assignee, budgets: a.budgets },
 });
 
 const whole = /^\d+$/;
@@ -117,6 +120,7 @@ export function fromDraft(d: Draft, t: Messages): { automation: Automation } | {
 			},
 			status_map,
 			writes: d.writes,
+			...d.kept,
 		},
 	};
 }
