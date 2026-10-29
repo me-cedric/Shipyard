@@ -31,10 +31,14 @@ fn finding(severity: &str, path: &str, line: u32, text: &str) -> Value {
 }
 
 fn review(fx: &Fx, run: &str, findings: Vec<Value>) {
+    review_as(fx, run, Outcome::Partial, findings);
+}
+
+fn review_as(fx: &Fx, run: &str, outcome: Outcome, findings: Vec<Value>) {
     fx.report(
         run,
         "review",
-        Outcome::Partial,
+        outcome,
         json!({"findings": findings, "criteria": [{"id": "REQ-1", "verdict": "OK"}]}),
     );
 }
@@ -90,17 +94,18 @@ fn the_reviewer_starts_fresh_with_the_diff_the_base_the_criteria_and_the_checkli
 fn a_finding_that_cites_a_missing_line_is_dropped_and_logged() {
     let fx = Fx::new(writes(true), &[]);
     let run = built(&fx);
-    review(
+    review_as(
         &fx,
         &run,
+        Outcome::Done,
         vec![
             finding("P1", "src/a.rs", 99, "line 99 does not exist"),
             finding("P1", "src/gone.rs", 1, "no such file"),
             finding("P0", "../secret", 1, "outside the working copy"),
-            json!({"severity": "P1", "text": "no citation"}),
+            json!({"severity": "P2", "text": "no citation"}),
         ],
     );
-    // Nothing is left to block: the run goes on to the pull request.
+    // Nothing is left to block and the reviewer is done: the run goes on to the pull request.
     assert_eq!(fx.state(&run), RunState::PROpen);
     let round = &reviews(&fx, &run)[0];
     assert_eq!(round["findings"], json!([]));
@@ -215,7 +220,7 @@ fn a_red_gate_is_a_p1_finding_and_a_green_gate_with_p2_opens_the_pull_request() 
     let run = built(&fx);
     fx.git.fail_gate("cargo test");
     // No finding at all, and a failing test.
-    review(&fx, &run, vec![]);
+    review_as(&fx, &run, Outcome::Done, vec![]);
     assert_eq!(fx.state(&run), RunState::Working);
     let fix = fx.agents.briefs().pop().unwrap();
     assert!(
@@ -254,7 +259,7 @@ fn a_gate_that_cannot_run_is_a_p1_finding() {
     });
     let run = built(&fx);
     fx.git.fail("gate", Some("no such command"));
-    review(&fx, &run, vec![]);
+    review_as(&fx, &run, Outcome::Done, vec![]);
     assert_eq!(fx.state(&run), RunState::Working);
     let round = &reviews(&fx, &run)[0];
     assert_eq!(
@@ -304,4 +309,54 @@ fn a_report_with_no_findings_list_keeps_the_outcome_rule() {
         fx.f.run_info(&run).unwrap().findings[0].text,
         "missing test"
     );
+}
+
+#[test]
+fn an_uncited_p0_or_p1_finding_still_blocks() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = built(&fx);
+    review_as(
+        &fx,
+        &run,
+        Outcome::Done,
+        vec![
+            json!({"severity": "P1", "text": "the login skips the check"}),
+            json!({"severity": "P0", "path": "src/a.rs", "text": "no line"}),
+        ],
+    );
+    assert_eq!(fx.state(&run), RunState::Working);
+    let round = &reviews(&fx, &run)[0];
+    assert_eq!(round["blocking"], true);
+    assert_eq!(round["findings"].as_array().unwrap().len(), 2);
+    assert_eq!(round["findings"][0]["text"], "the login skips the check");
+    assert!(round["dropped"].as_array().unwrap().is_empty());
+}
+
+#[test]
+fn an_unknown_severity_blocks_as_p1() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = built(&fx);
+    review_as(
+        &fx,
+        &run,
+        Outcome::Done,
+        vec![json!({"severity": "critical", "text": "data loss"})],
+    );
+    assert_eq!(fx.state(&run), RunState::Working);
+    assert_eq!(reviews(&fx, &run)[0]["findings"][0]["severity"], "P1");
+}
+
+#[test]
+fn a_review_with_no_usable_finding_and_an_outcome_that_is_not_done_blocks() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = built(&fx);
+    // Every citation is bad, and the reviewer did not finish.
+    review_as(
+        &fx,
+        &run,
+        Outcome::Partial,
+        vec![finding("P1", "src/a.rs", 99, "line 99 does not exist")],
+    );
+    assert_eq!(fx.state(&run), RunState::Working);
+    assert_eq!(reviews(&fx, &run)[0]["blocking"], true);
 }

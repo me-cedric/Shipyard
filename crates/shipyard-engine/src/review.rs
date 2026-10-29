@@ -130,10 +130,32 @@ impl Inner {
         let (mut kept, mut dropped) = (Vec::new(), Vec::new());
         for v in list {
             let verdict = (|| {
-                let raw: Raw = serde_json::from_value(v.clone()).map_err(|e| e.to_string())?;
-                let severity = severity(&raw.severity).ok_or("unknown severity")?;
+                // A finding that cannot be read, or that has an unknown severity, fails closed.
+                let raw: Raw = match serde_json::from_value(v.clone()) {
+                    Ok(raw) => raw,
+                    Err(_) => {
+                        return Ok(Finding {
+                            severity: Severity::P1,
+                            path: None,
+                            line: None,
+                            text: v.to_string(),
+                        });
+                    }
+                };
+                let severity = severity(&raw.severity).unwrap_or(Severity::P1);
+                let text = raw.text.unwrap_or_default();
                 let (Some(path), Some(line)) = (raw.path, raw.line) else {
-                    return Err("no path and line".to_string());
+                    // An uncited P0 or P1 finding blocks. Only a bad citation is dropped.
+                    return if severity == Severity::P2 {
+                        Err("no path and line".to_string())
+                    } else {
+                        Ok(Finding {
+                            severity,
+                            path: None,
+                            line: None,
+                            text,
+                        })
+                    };
                 };
                 if !inside(&path) || line == 0 {
                     return Err("the citation is not a path in the working copy".into());
@@ -143,7 +165,7 @@ impl Inner {
                         severity,
                         path: Some(path),
                         line: Some(line),
-                        text: raw.text.unwrap_or_default(),
+                        text,
                     }),
                     Some(Ok(None)) => Err("the cited line does not exist".to_string()),
                     Some(Err(e)) => Err(format!("the cited line cannot be read: {e}")),
@@ -197,20 +219,25 @@ impl Inner {
 
     /// The review step ended (REQ-004, REQ-006). `blocking` is the outcome of the report, used
     /// when the report has no `findings` list.
-    pub(crate) fn review_done(&mut self, run_id: &str, step: &Step, blocking: bool) {
+    pub(crate) fn review_done(&mut self, run_id: &str, step: &Step, outcome_blocks: bool) {
         let out = self.runs[run_id].steps[&step.id].output.clone();
         let (mut findings, mut dropped) = (Vec::new(), Vec::new());
-        let blocking = match out["findings"].as_array() {
-            Some(list) => {
-                (findings, dropped) = self.check_findings(run_id, list);
-                findings.iter().any(Finding::blocking)
-            }
-            None => blocking,
-        };
-        let mut blocking = blocking;
-        if out["findings"].is_null() && blocking {
-            // The earlier rule: the summary is the finding.
-            let text = out["summary"].as_str().unwrap_or("").to_string();
+        if let Some(list) = out["findings"].as_array() {
+            (findings, dropped) = self.check_findings(run_id, list);
+        }
+        // The findings decide. With no finding at all, the outcome decides: a reviewer that did
+        // not end with `done` and left no usable finding does not pass the run.
+        let mut blocking =
+            findings.iter().any(Finding::blocking) || (findings.is_empty() && outcome_blocks);
+        if blocking && !findings.iter().any(Finding::blocking) {
+            // The summary is the finding.
+            let text = out["summary"]
+                .as_str()
+                .filter(|t| !t.is_empty())
+                .unwrap_or(
+                    "the review ended with no usable finding and an outcome that is not done",
+                )
+                .to_string();
             findings.push(Finding {
                 severity: Severity::P1,
                 path: None,
