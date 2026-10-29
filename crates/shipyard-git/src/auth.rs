@@ -24,6 +24,9 @@ pub struct Credential {
 #[derive(Clone, Debug, Default)]
 pub struct Auth {
     credentials: Vec<Credential>,
+    /// The host the stored credentials belong to ([`https_host`]). A stored credential goes out
+    /// only to an `https` address with this host, also after a redirect. `None` sends none.
+    host: Option<String>,
 }
 
 impl Auth {
@@ -37,13 +40,27 @@ impl Auth {
         self
     }
 
-    /// The secret of connection `conn:<id>` from the store. No secret gives [`Auth::none`].
-    pub fn from_store(store: &dyn SecretStore, conn_id: &str, username: &str) -> Result<Self> {
+    /// Bind the stored credentials to the host of `url`. A non-`https` address binds none.
+    pub fn for_url(mut self, url: &str) -> Self {
+        self.host = https_host(url);
+        self
+    }
+
+    /// The secret of connection `conn:<id>` from the store, bound to the host of `url`. No
+    /// secret gives [`Auth::none`].
+    pub fn from_store(
+        store: &dyn SecretStore,
+        conn_id: &str,
+        username: &str,
+        url: &str,
+    ) -> Result<Self> {
         Ok(match store.get(&conn_account(conn_id))? {
-            Some(secret) => Self::none().with(Credential {
-                username: username.to_string(),
-                secret,
-            }),
+            Some(secret) => Self::none()
+                .with(Credential {
+                    username: username.to_string(),
+                    secret,
+                })
+                .for_url(url),
             None => Self::none(),
         })
     }
@@ -58,7 +75,7 @@ impl Auth {
     }
 
     pub(crate) fn callbacks(&self, config: Config) -> RemoteCallbacks<'static> {
-        let mut picker = Picker::new(self.credentials.clone(), Some(config));
+        let mut picker = Picker::new(self.credentials.clone(), self.host.clone(), Some(config));
         let mut cb = RemoteCallbacks::new();
         cb.credentials(move |url, user, allowed| picker.pick(url, user, allowed));
         cb
@@ -74,6 +91,14 @@ impl Auth {
     }
 }
 
+/// The lower-case host (with the port) of an `https` address. Anything else gives `None`.
+pub fn https_host(url: &str) -> Option<String> {
+    let rest = url.trim().strip_prefix("https://")?;
+    let auth = rest.split(['/', '?', '#']).next()?;
+    let host = auth.rsplit('@').next()?.to_ascii_lowercase();
+    (!host.is_empty()).then_some(host)
+}
+
 /// `auto` reads `http.proxy` from the git configuration, so a company proxy that the command
 /// line `git` already uses applies here too. libgit2 uses no proxy unless it is told to.
 pub(crate) fn proxy_options() -> ProxyOptions<'static> {
@@ -84,6 +109,7 @@ pub(crate) fn proxy_options() -> ProxyOptions<'static> {
 
 struct Picker {
     credentials: Vec<Credential>,
+    host: Option<String>,
     /// The git config for the helper. `None` turns the helper off.
     config: Option<Config>,
     stored: usize,
@@ -93,9 +119,10 @@ struct Picker {
 }
 
 impl Picker {
-    fn new(credentials: Vec<Credential>, config: Option<Config>) -> Self {
+    fn new(credentials: Vec<Credential>, host: Option<String>, config: Option<Config>) -> Self {
         Self {
             credentials,
+            host,
             config,
             stored: 0,
             helper_done: false,
@@ -113,7 +140,9 @@ impl Picker {
         allowed: CredentialType,
     ) -> std::result::Result<Cred, git2::Error> {
         if allowed.contains(CredentialType::USER_PASS_PLAINTEXT) {
-            if let Some(c) = self.credentials.get(self.stored) {
+            let here = https_host(url);
+            let trusted = here.is_some() && here == self.host;
+            if let Some(c) = self.credentials.get(self.stored).filter(|_| trusted) {
                 self.stored += 1;
                 let name = [c.username.as_str(), user.unwrap_or(""), "git"]
                     .into_iter()
@@ -169,6 +198,7 @@ mod tests {
                     secret: Secret::new("two"),
                 },
             ],
+            Some("h".into()),
             None,
         );
         assert!(p.pick("https://h/x", None, plain()).is_ok());
@@ -178,8 +208,27 @@ mod tests {
     }
 
     #[test]
+    fn a_stored_credential_goes_only_to_its_https_host() {
+        let cred = || {
+            vec![Credential {
+                username: "a".into(),
+                secret: Secret::new("one"),
+            }]
+        };
+        let mut p = Picker::new(cred(), Some("github.com".into()), None);
+        // A redirect to another host, to clear text or to ssh gets nothing.
+        assert!(p.pick("https://evil.test/x", None, plain()).is_err());
+        assert!(p.pick("http://github.com/x", None, plain()).is_err());
+        assert!(p.pick("ssh://github.com/x", None, plain()).is_err());
+        assert!(p.pick("https://GitHub.com/x", None, plain()).is_ok());
+        // No bound host: no credential at all.
+        let mut p = Picker::new(cred(), None, None);
+        assert!(p.pick("https://github.com/x", None, plain()).is_err());
+    }
+
+    #[test]
     fn ssh_agent_and_default_are_tried_once() {
-        let mut p = Picker::new(vec![], None);
+        let mut p = Picker::new(vec![], None, None);
         assert!(
             p.pick("ssh://h/x", Some("git"), CredentialType::USERNAME)
                 .is_ok()
@@ -202,7 +251,7 @@ mod tests {
         store
             .set(&conn_account("c1"), &Secret::new("tok-123"))
             .unwrap();
-        let auth = Auth::from_store(&store, "c1", "me").unwrap();
+        let auth = Auth::from_store(&store, "c1", "me", "https://h/x").unwrap();
         assert!(!format!("{auth:?}").contains("tok-123"));
         let e = git2::Error::from_str("auth failed for tok-123 on host");
         assert_eq!(
@@ -210,7 +259,7 @@ mod tests {
             "git: auth failed for *** on host"
         );
         assert!(
-            Auth::from_store(&store, "missing", "me")
+            Auth::from_store(&store, "missing", "me", "https://h/x")
                 .unwrap()
                 .credentials
                 .is_empty()

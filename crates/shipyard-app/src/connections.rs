@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use serde::{Deserialize, Serialize};
 use shipyard_core::work_item::{Capabilities, TrackerKind};
 use shipyard_forges::{Forge, ForgeConfig, ForgeKind, Repository};
-use shipyard_git::Auth;
+use shipyard_git::{Auth, auth::https_host};
 use shipyard_http::{Client, Http, TestOutcome};
 use shipyard_secrets::{Keychain, Secret, SecretStore, conn_account};
 use shipyard_store::project::write_atomic;
@@ -206,14 +206,6 @@ fn slug(name: &str, kind: ConnectionKind) -> String {
     } else {
         out
     }
-}
-
-/// The lower case `host[:port]` of an `https` address, without user info. `None` for the rest.
-fn https_host(url: &str) -> Option<String> {
-    let rest = url.trim().strip_prefix("https://")?;
-    let auth = rest.split(['/', '?', '#']).next()?;
-    let host = auth.rsplit('@').next()?.to_ascii_lowercase();
-    (!host.is_empty()).then_some(host)
 }
 
 /// The adapter config of a record. It checks the address and the user without a request.
@@ -438,8 +430,10 @@ impl Connections {
                 && https_host(&r.url).as_deref() == Some(host.as_str())
         });
         match hit {
-            Some(r) => Auth::from_store(&*self.secrets, &r.id, r.user.as_deref().unwrap_or(""))
-                .map_err(|e| e.to_string()),
+            Some(r) => {
+                Auth::from_store(&*self.secrets, &r.id, r.user.as_deref().unwrap_or(""), url)
+                    .map_err(|e| e.to_string())
+            }
             None => Ok(Auth::none()),
         }
     }

@@ -117,7 +117,7 @@ fn a_clone_with_a_stored_token_never_shows_it_in_the_error() {
     store
         .set(&conn_account("c1"), &Secret::new("tok-123"))
         .unwrap();
-    let auth = Auth::from_store(&store, "c1", "me").unwrap();
+    let auth = Auth::from_store(&store, "c1", "me", "https://127.0.0.1:1/x.git").unwrap();
     let dir = tempfile::tempdir().unwrap();
     let dest = dir.path().join("dest");
     let err = clone_repo("https://127.0.0.1:1/x.git", &dest, &auth).unwrap_err();
