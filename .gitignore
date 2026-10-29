@@ -10,3 +10,6 @@ test-results/
 playwright-report/
 .vitest/
 blob-report/
+
+# Sidecar copy of the shipyard CLI (scripts/build-sidecar.mjs)
+crates/shipyard-app/binaries/

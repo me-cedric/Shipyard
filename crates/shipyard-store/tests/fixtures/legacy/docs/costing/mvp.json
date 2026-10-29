@@ -1,0 +1,6 @@
+{"version":2,"meta":{"name":"MVP 1","status":"draft","currency":"CHF","marginRate":0.15,"startDate":"2026-11-01","notes":""},
+ "groups":[],"plan":{},
+ "features":[{"id":"f-login","name":"Login","groupId":"","collapsed":false,"macroSize":"","macroMandays":0,
+  "tasks":[
+   {"id":"t-form","name":"Form","mandays":4,"chargeType":"days","kind":"build","description":"The form","comments":"check","personaId":"p-dev"},
+   {"id":"t-pm","name":"Management","mandays":10,"chargeType":"ratio","kind":"other","description":"","comments":"","personaId":""}]}]}

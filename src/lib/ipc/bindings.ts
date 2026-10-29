@@ -27,8 +27,8 @@ export const commands = {
 	projectOverridesSave: (overrides: Overrides_Deserialize) => typedError<null, string>(__TAURI_INVOKE("project_overrides_save", { overrides })),
 	healthRun: () => typedError<Finding_Serialize[], string>(__TAURI_INVOKE("health_run")),
 	healthFix: (id: string, expected: string | null) => typedError<FixResult, string>(__TAURI_INVOKE("health_fix", { id, expected })),
-	/**  Reads nothing and writes nothing. W9 adds the codecs. */
-	projectImport: (source: string) => __TAURI_INVOKE<ImportReport>("project_import", { source }),
+	/**  Reads the Legacy folder and writes the matching files into the active project. It replaces no file. */
+	projectImport: (source: string) => typedError<ImportReport, string>(__TAURI_INVOKE("project_import", { source })),
 	connectionsList: () => typedError<Connection_Serialize[], string>(__TAURI_INVOKE("connections_list")),
 	connectionsAdd: (draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_add", { draft })),
 	connectionsEdit: (id: string, draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_edit", { id, draft })),

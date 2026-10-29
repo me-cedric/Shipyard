@@ -14,6 +14,8 @@
 		"test": "vitest run",
 		"test:e2e": "playwright test",
 		"tauri": "tauri",
+		"build:sidecar": "node scripts/build-sidecar.mjs",
+		"tauri:release": "tauri build --config crates/shipyard-app/tauri.release.conf.json",
 		"ipc:gen": "cargo test --workspace",
 		"ipc:check": "pnpm ipc:gen && git diff --exit-code -- src/lib/ipc/bindings.ts"
 	},
@@ -44,6 +46,7 @@
 		"yaml": "^2.9.1"
 	},
 	"devDependencies": {
+		"@axe-core/playwright": "^4.14.0",
 		"@biomejs/biome": "^2.6.3",
 		"@playwright/test": "^1.64.1",
 		"@tailwindcss/vite": "^4.3.3",

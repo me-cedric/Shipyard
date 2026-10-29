@@ -41,6 +41,30 @@ Machine state lives in the app data folder: `prefs.json` (theme, language, role)
 
 The app answers `shipyard --mcp-relay <server-id>` (binary `shipyard`, crate `shipyard-cli`) on a socket in `relay/` of the app data folder. `SHIPYARD_DATA_DIR` replaces the folder.
 
+## Legacy import
+
+`shipyard_store::project_import::import(source, root)` reads a Legacy repository and writes Shipyard files into the project (command `project_import`, spec `projects` REQ-014, REQ-015). It reads the default Legacy paths only (Q-091).
+
+| Legacy | Shipyard |
+|---|---|
+| folder name and `docs/delivery/tickets.config.json` (`projectKey`) | `.shipyard/project.yaml` (name, key, `connections.trackerScope` for Jira) |
+| `docs/planning/team.json`, `docs/personas/personas.json` | `.shipyard/team.yaml` (the persona name is the role) |
+| `docs/costing/<name>.json` | `docs/costing/<name>.yaml` |
+| `docs/decisions/`, `docs/delivery/questions/`, `docs/openspec/` | same path, same text |
+
+The import never replaces a file and never changes the source. A target that exists is a conflict (Q-090). A file that it cannot read or convert is skipped with a reason. A symlink and a file over 2 MiB are skipped.
+
+## Sidecar
+
+The MCP bridge entry starts the `shipyard` binary (crate `shipyard-cli`) next to the app binary (`cli_path` in `crates/shipyard-app/src/factory.rs`). A release build ships it as a Tauri `externalBin` sidecar:
+
+```bash
+pnpm tauri:release   # tauri build with crates/shipyard-app/tauri.release.conf.json
+pnpm build:sidecar   # only the sidecar: crates/shipyard-app/binaries/shipyard-<triple>
+```
+
+`scripts/build-sidecar.mjs` builds the CLI in release mode for the target triple and copies it to `crates/shipyard-app/binaries/` (git ignores the folder). `tauri.release.conf.json` runs it as `beforeBuildCommand`. `tauri.conf.json` has no `externalBin`, so `pnpm build`, `pnpm tauri dev` and `cargo test` need no sidecar (Q-092). A dev build uses `shipyard` from the `PATH`.
+
 ## Checks
 
 ```bash

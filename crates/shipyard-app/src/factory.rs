@@ -447,8 +447,8 @@ fn plain(id: &str) -> bool {
 }
 
 /// The path of the `shipyard` binary that the bridge entry of a CLI starts. It sits next to the
-/// app binary. shortcut: the installers do not ship it yet (`externalBin`), so a build that lacks
-/// it falls back to `shipyard` on the `PATH`.
+/// app binary: the release build ships it as the `externalBin` sidecar (`tauri.release.conf.json`).
+/// A dev build has none and falls back to `shipyard` on the `PATH`.
 pub fn cli_path() -> PathBuf {
     let name = if cfg!(windows) {
         "shipyard.exe"

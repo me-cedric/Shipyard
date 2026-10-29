@@ -1132,11 +1132,7 @@ const handlers: Handlers = {
 	assistantDefaultsGet: () => ai.defaultsGet(state.assistant),
 	assistantDefaultsSet: (d) => ai.defaultsSet(state.assistant, d),
 	assistantOptions: () => ai.options(),
-	projectImport: (source) => ({
-		copied: [],
-		skipped: [{ path: source, reason: "not-implemented" }],
-		conflicts: [],
-	}),
+	projectImport: () => ({ copied: [], skipped: [], conflicts: [] }),
 };
 
 /** The active project and the ref index, for the assistant commands. */

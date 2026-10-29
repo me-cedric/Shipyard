@@ -1,7 +1,14 @@
-//! Legacy import. A stub until W9 (spec `projects`, REQ-014, REQ-015, Q-003).
+//! The Legacy import command (spec `projects`, REQ-014, REQ-015). The codecs live in
+//! `shipyard_store::project_import`.
+
+use std::path::Path;
 
 use serde::Serialize;
+use shipyard_store::project_import;
 use specta::Type;
+use tauri::AppHandle;
+
+use super::{AppState, Res, blocking};
 
 #[derive(Debug, Serialize, Type)]
 pub struct ImportItem {
@@ -16,30 +23,40 @@ pub struct ImportReport {
     pub conflicts: Vec<String>,
 }
 
-pub fn report(source: &str) -> ImportReport {
-    ImportReport {
-        copied: Vec::new(),
-        skipped: vec![ImportItem {
-            path: source.into(),
-            reason: "not-implemented".into(),
-        }],
-        conflicts: Vec::new(),
-    }
+/// Imports the Legacy repository `source` into the active project.
+pub fn report(s: &AppState, source: &str) -> Res<ImportReport> {
+    let root = s
+        .registry()?
+        .active()
+        .map(|e| e.path.clone())
+        .ok_or("no active project")?;
+    let r = project_import::import(Path::new(source), Path::new(&root));
+    Ok(ImportReport {
+        copied: r.copied,
+        skipped: r
+            .skipped
+            .into_iter()
+            .map(|(path, reason)| ImportItem { path, reason })
+            .collect(),
+        conflicts: r.conflicts,
+    })
 }
 
-/// Reads nothing and writes nothing. W9 adds the codecs.
+/// Reads the Legacy folder and writes the matching files into the active project. It replaces no file.
 #[tauri::command]
 #[specta::specta]
-pub async fn project_import(source: String) -> ImportReport {
-    report(&source)
+pub async fn project_import(app: AppHandle, source: String) -> Res<ImportReport> {
+    blocking(app, move |s| report(s, &source)).await
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn the_stub_skips_the_source_and_changes_nothing() {
-        let r = super::report("/legacy");
-        assert!(r.copied.is_empty() && r.conflicts.is_empty());
-        assert_eq!(r.skipped[0].reason, "not-implemented");
+    fn the_import_needs_an_active_project() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = AppState::new(dir.path().join("data"));
+        assert!(report(&s, "/legacy").is_err());
     }
 }

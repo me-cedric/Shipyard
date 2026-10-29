@@ -19,8 +19,8 @@ Plan: [plan.md](./plan.md)
 - [x] T006 Implement clone, init, ignore rules and state in `crates/shipyard-git/src/project.rs`. Covers REQ-002, REQ-003, REQ-004, REQ-005, REQ-006.
 - [x] T007 Write health rule tests in `crates/shipyard-core/tests/health.rs`. Covers REQ-011, REQ-012, REQ-013, REQ-018.
 - [x] T008 Implement the health rules and fix previews in `crates/shipyard-core/src/health.rs`. Covers REQ-011, REQ-012, REQ-013, REQ-018.
-- [ ] T009 (W9: only a stub exists, see `legacy.rs`) Write import tests with Legacy fixture files in `crates/shipyard-store/tests/project_import.rs`. Covers REQ-014, REQ-015.
-- [ ] T010 (W9) Implement the Legacy import in `crates/shipyard-store/src/project_import.rs`. Covers REQ-014, REQ-015.
+- [x] T009 (W9) Write import tests with Legacy fixture files in `crates/shipyard-store/tests/project_import.rs`. Covers REQ-014, REQ-015.
+- [x] T010 (W9) Implement the Legacy import in `crates/shipyard-store/src/project_import.rs`. Covers REQ-014, REQ-015.
 - [x] T011 Add the IPC commands in `crates/shipyard-app/src/commands/projects.rs`, then regenerate the bindings with the project command. Covers REQ-001 to REQ-017.
 - [x] T012 Write view tests in `src/features/projects/projects.test.tsx`. Covers REQ-001, REQ-006, REQ-009, REQ-011, REQ-013, REQ-016, REQ-019.
 - [x] T013 Implement first run, the switcher, Settings / Project, Settings / Health and the status dot in `src/features/projects/`. Covers REQ-001, REQ-006, REQ-009, REQ-010, REQ-011, REQ-012, REQ-013, REQ-016, REQ-018, REQ-019.

@@ -12,6 +12,7 @@ pub mod export;
 pub mod factory_files;
 pub mod fold;
 pub mod knowledge;
+pub mod project_import;
 pub mod madr;
 pub mod mirror;
 pub mod openspec_validate;

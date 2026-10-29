@@ -1,0 +1,5 @@
+{"version":1,"members":[
+{"id":"m1","name":"Ana Diaz","email":"Ana@Example.com","personaId":"p-dev","tjm":0,
+ "windows":[{"from":"2026-11-02","to":"2027-03-31","load":0.8,"note":""},{"from":"2026-10-01","to":"2026-10-31","load":0.5,"note":""}],
+ "absences":[{"from":"2026-12-24","to":"2026-12-31","reason":"leave"}]},
+{"id":"m2","name":"Ana Diaz","email":"","personaId":"p-gone","tjm":550,"windows":[],"absences":[]}]}
