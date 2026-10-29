@@ -401,3 +401,30 @@ fn a_failed_forge_read_fails_the_step_and_pushes_nothing() {
     assert_eq!(fx.state(&run), RunState::Failed);
     assert!(pushes(&fx).is_empty());
 }
+
+#[test]
+fn the_reviewers_of_the_automation_file_open_the_pull_request() {
+    let fx = Fx::build(writes(true), &[], Config::default(), |p| {
+        p.reviewers.clear();
+        p.automation.reviewers = vec!["bob".into(), "carol".into()];
+    });
+    let run = to_pr(&fx);
+    assert_eq!(fx.state(&run), RunState::PROpen);
+    let Some(Write::OpenPr { reviewers, .. }) = open_pr(&fx) else {
+        panic!("no pull request")
+    };
+    assert_eq!(reviewers, ["bob", "carol"]);
+}
+
+#[test]
+fn the_reviewers_of_the_project_win_over_the_automation_file() {
+    let fx = Fx::build(writes(true), &[], Config::default(), |p| {
+        p.automation.reviewers = vec!["bob".into()];
+    });
+    let run = to_pr(&fx);
+    assert_eq!(fx.state(&run), RunState::PROpen);
+    let Some(Write::OpenPr { reviewers, .. }) = open_pr(&fx) else {
+        panic!("no pull request")
+    };
+    assert_eq!(reviewers, ["alice"]);
+}

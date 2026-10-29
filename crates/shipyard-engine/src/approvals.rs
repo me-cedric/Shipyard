@@ -5,7 +5,7 @@
 //! force with lease always waits (`delivery` REQ-015). Each step of the life of a write is one
 //! `write` event in the run log.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use shipyard_core::pickup::{Writes, question_marker};
 use shipyard_core::run::RunEvent;
@@ -14,7 +14,7 @@ use shipyard_store::run_log::kind;
 use crate::run_engine::{Factory, Inner};
 
 /// One write of the factory. The approval names it exactly.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Write {
     /// Move the ticket to a status (`tracker_transition`).
@@ -74,7 +74,7 @@ impl Write {
 }
 
 /// A write that waits for a person.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Approval {
     pub id: u64,
     /// The ULID of the run.
@@ -110,9 +110,28 @@ impl Inner {
         None
     }
 
-    /// Send one write and apply what it made. An error is logged: the caller decides.
+    /// Send one write and apply what it made. An error is logged: the caller decides. A write
+    /// has an intent event before the send and a result event after it, both with its key. After
+    /// a restart a write that the log shows is not sent a second time (`persist`).
     pub(crate) fn send(&mut self, run_id: &str, write: &Write) -> Option<String> {
         let writer = self.project_of(run_id).map(|p| p.writer.clone())?;
+        let key = crate::persist::key_of(write);
+        match self.take_replay(run_id, write) {
+            Some(Some(made)) => {
+                let payload =
+                    json!({"state": "replayed", "key": key, "write": write, "made": made});
+                self.log(run_id, None, kind::WRITE, payload);
+                self.sent(run_id, write, &made);
+                return Some(made);
+            }
+            Some(None) => {
+                self.maybe_sent(run_id, write);
+                return None;
+            }
+            None => {}
+        }
+        let intent = json!({"state": "sending", "key": key, "write": write});
+        self.log(run_id, None, kind::WRITE, intent);
         match writer.send(write) {
             Ok(made) => {
                 self.log_write_made(run_id, write, &made);
@@ -124,7 +143,7 @@ impl Inner {
                     run_id,
                     None,
                     kind::WRITE,
-                    json!({"state": "failed", "write": write, "error": e}),
+                    json!({"state": "failed", "key": key, "write": write, "error": e}),
                 );
                 if matches!(write, Write::OpenPr { .. } | Write::Push { .. }) {
                     self.action_failed(run_id, &e);
@@ -173,7 +192,8 @@ impl Inner {
     }
 
     fn log_write_made(&mut self, run_id: &str, write: &Write, made: &str) {
-        let payload = json!({"state": "sent", "write": write, "made": made});
+        let key = crate::persist::key_of(write);
+        let payload = json!({"state": "sent", "key": key, "write": write, "made": made});
         self.log(run_id, None, kind::WRITE, payload);
     }
 }
@@ -211,6 +231,24 @@ impl Factory {
 }
 
 impl Inner {
+    /// The pull request merged: a push, a pull request or a thread reply that waits for a click
+    /// has no target now. Drop them. The ticket move and the summary stay: they are the close.
+    pub(crate) fn drop_delivery_approvals(&mut self, run_id: &str) {
+        let (gone, kept): (Vec<_>, Vec<_>) = std::mem::take(&mut self.approvals)
+            .into_iter()
+            .partition(|a| {
+                a.run == run_id
+                    && matches!(
+                        a.write,
+                        Write::Push { .. } | Write::OpenPr { .. } | Write::ResolveThreads { .. }
+                    )
+            });
+        self.approvals = kept;
+        for a in gone {
+            self.log_write(run_id, Some(a.id), "dropped", &a.write);
+        }
+    }
+
     fn take_approval(&mut self, id: u64) -> Result<Approval, String> {
         let at = self
             .approvals

@@ -9,6 +9,7 @@
 //! A git problem (a rename, a conflict, a release base, no reviewer) blocks the run. A forge read
 //! that fails fails the step, with its retries.
 
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use shipyard_core::delivery::{self, GateCheck, PrBody, TicketLine};
 use shipyard_core::run::RunEvent;
@@ -22,7 +23,8 @@ use crate::review::Finding;
 use crate::run_engine::Inner;
 
 /// What the run knows about its delivery.
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
 pub(crate) struct Delivered {
     pub base: Option<String>,
     /// The branch went to the remote in this round of delivery.
@@ -152,7 +154,12 @@ impl Inner {
         let p = self
             .project_of(run_id)
             .ok_or_else(|| Block("the project is not open".into()))?;
-        let (git, pulls, reviewers) = (p.git.clone(), p.pulls.clone(), p.reviewers.clone());
+        // The project list wins; the list of `automation.yaml` is the default (`q:Q-029`).
+        let reviewers = match p.reviewers.is_empty() {
+            true => p.automation.reviewers.clone(),
+            false => p.reviewers.clone(),
+        };
+        let (git, pulls) = (p.git.clone(), p.pulls.clone());
         let rec = &self.runs[run_id];
         let (ty, title, key, url) = (
             delivery::commit_type(rec.kind),

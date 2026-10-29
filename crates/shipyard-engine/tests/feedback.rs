@@ -4,7 +4,7 @@
 mod fx;
 
 use fx::{Fx, writes};
-use shipyard_core::pickup::{PrEvent, PrEventKind, SyncEvent};
+use shipyard_core::pickup::{PrEvent, PrEventKind, SyncEvent, Writes};
 use shipyard_core::run::RunState;
 use shipyard_engine::approvals::Write;
 use shipyard_engine::ports::{AgentEvent, Dispatch, FailedCheck, Merge, Thread};
@@ -399,4 +399,95 @@ fn passing_ci_and_a_new_pull_request_change_nothing() {
     pr_event(&fx, PrEventKind::CiPassed);
     pr_event(&fx, PrEventKind::Opened);
     assert_eq!(fx.state(&run), RunState::PROpen);
+}
+
+#[test]
+fn a_merge_while_the_run_fixes_stops_the_agents_and_closes_the_run() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = open(&fx);
+    fx.pulls.set_checks(vec![failed("build")]);
+    pr_event(&fx, PrEventKind::CiFailed);
+    assert_eq!(fx.state(&run), RunState::Working);
+    assert_eq!(fx.agents.running(), ["fix"]);
+    let pushes = count(&fx, |w| matches!(w, Write::Push { .. }));
+
+    // The reviewer merged the pull request as it was: the fix is moot.
+    pr_event(&fx, PrEventKind::Merged);
+    assert_eq!(fx.state(&run), RunState::Done);
+    assert!(fx.agents.running().is_empty());
+    let s = states(&fx, &run);
+    assert_eq!(s[s.len() - 3..], ["Working", "Merged", "Done"]);
+    assert_eq!(fx.git.count("remove_worktrees"), 1);
+    assert_eq!(
+        fx.f.take_ended(),
+        [("ship".to_string(), "SHIP-1".to_string())]
+    );
+    // Nothing goes on: no push of the fix, no second summary.
+    fx.f.pump();
+    assert_eq!(count(&fx, |w| matches!(w, Write::Push { .. })), pushes);
+    let summaries = count(
+        &fx,
+        |w| matches!(w, Write::Comment { body, .. } if body.contains("merged")),
+    );
+    assert_eq!(summaries, 1);
+}
+
+#[test]
+fn a_merge_during_the_review_of_the_fix_closes_the_run() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = open(&fx);
+    fx.pulls.set_checks(vec![failed("build")]);
+    pr_event(&fx, PrEventKind::CiFailed);
+    fx.git.set_changes(&[FILE], &[FILE]);
+    fx.done(&run, "fix");
+    assert_eq!(fx.state(&run), RunState::SelfReview);
+    assert_eq!(fx.agents.running(), ["review"]);
+    pr_event(&fx, PrEventKind::Merged);
+    assert_eq!(fx.state(&run), RunState::Done);
+    assert!(fx.agents.running().is_empty());
+}
+
+#[test]
+fn a_push_that_waits_for_a_click_is_dropped_when_the_pull_request_merges() {
+    let w = Writes {
+        push: false,
+        ..writes(true)
+    };
+    let fx = Fx::new(w, &[]);
+    fx.git.set_branch("fix/engine/login");
+    let run = fx.start("SHIP-1", &["wf:bug"]);
+    for step in ["triage", "fix", "review"] {
+        fx.done(&run, step);
+    }
+    // The first push waits for a click, then the pull request opens.
+    let first =
+        fx.f.approvals()
+            .into_iter()
+            .find(|a| matches!(a.write, Write::Push { .. }))
+            .unwrap();
+    fx.f.approve(first.id).unwrap();
+    assert_eq!(fx.state(&run), RunState::PROpen);
+
+    fx.pulls.set_checks(vec![failed("build")]);
+    pr_event(&fx, PrEventKind::CiFailed);
+    fix_round(&fx, &run);
+    assert!(
+        fx.f.approvals()
+            .iter()
+            .any(|a| matches!(a.write, Write::Push { .. }))
+    );
+
+    pr_event(&fx, PrEventKind::Merged);
+    assert_eq!(fx.state(&run), RunState::Done);
+    assert!(
+        fx.f.approvals()
+            .iter()
+            .all(|a| !matches!(a.write, Write::Push { .. })),
+        "a push to a merged branch must not wait for a click"
+    );
+    assert!(
+        fx.logged(&run, "write")
+            .iter()
+            .any(|w| w["state"] == "dropped" && w["write"]["kind"] == "push")
+    );
 }

@@ -48,6 +48,7 @@ impl Inner {
 
     /// Summary, worktrees, then `Done`. The run is `Merged` already.
     pub(crate) fn close_merged(&mut self, run_id: &str) {
+        self.drop_delivery_approvals(run_id);
         let (Some(writer), key) = (
             self.project_of(run_id).map(|p| p.writer.clone()),
             self.runs[run_id].key.clone(),

@@ -3,7 +3,8 @@
 //! trackers, the forges and the factory through the traits in [`ports`], so a test uses the
 //! fakes in [`fake`] and the app wraps the real adapters.
 //! The factory ([`run_engine::Factory`]) implements [`ports::Dispatch`]: runs, workflows, clocks,
-//! approvals ([`approvals`]) and the questions loop ([`questions`]).
+//! approvals ([`approvals`]) and the questions loop ([`questions`]). A restart takes the runs back
+//! from the run log file ([`persist`]). The agent tools that need the run are in [`tools`].
 
 pub mod approvals;
 pub mod children;
@@ -13,12 +14,14 @@ pub mod feedback;
 pub mod handoff;
 pub mod import;
 pub mod merge;
+pub mod persist;
 pub mod ports;
 pub mod pull_request;
 pub mod questions;
 pub mod review;
 pub mod run_engine;
 pub mod tick;
+pub mod tools;
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 

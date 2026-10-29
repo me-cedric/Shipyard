@@ -8,6 +8,7 @@
 //! to its return state when no question of it is open; the agents start again with the answers,
 //! on their CLI session when they have one.
 
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use shipyard_core::question::{Choice, Outcome, Question, QuestionState, all_answered};
 use shipyard_core::run::RunEvent;
@@ -25,7 +26,7 @@ use crate::run_engine::{ALERT, Factory, Inner};
 pub const QUESTION: &str = "question";
 
 /// A question of a run.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Asked {
     pub q: Question,
     /// The step that asked.
@@ -129,18 +130,7 @@ impl Factory {
     pub fn tool(&self, run_id: &str, step: &str, payload: Value) -> Result<(), String> {
         let mut inner = self.lock();
         inner.run(run_id)?;
-        let now = inner.now_s();
-        for u in inner
-            .rec(run_id)
-            .steps
-            .values_mut()
-            .flat_map(|s| &mut s.units)
-        {
-            if u.id == step {
-                u.last = now;
-            }
-        }
-        inner.log(run_id, Some(step), kind::TOOL, payload);
+        inner.tool_event(run_id, step, payload);
         Ok(())
     }
 
@@ -148,17 +138,7 @@ impl Factory {
     /// blocking finding (REQ-036). A `failed` report is a failed step, with its retries.
     pub fn report(&self, run_id: &str, step: &str, r: agent::Report) -> Result<(), String> {
         let mut inner = self.lock();
-        let (sid, i) = inner
-            .run(run_id)?
-            .steps
-            .iter()
-            .find_map(|(sid, s)| {
-                let i = s.units.iter().position(|u| {
-                    u.id == step && u.state == shipyard_core::workflow::StepState::Running
-                })?;
-                Some((sid.clone(), i))
-            })
-            .ok_or_else(|| format!("step {step} is not running"))?;
+        let (sid, i) = inner.locate(run_id, step)?;
         let mut out = r.output.clone().unwrap_or_default();
         out.entry("summary")
             .or_insert_with(|| r.summary.clone().into());
@@ -183,7 +163,7 @@ impl Factory {
 }
 
 impl AgentEvents for Factory {
-    /// The run bus. `read_ref` needs the ref index of the app: the app serves it before this.
+    /// The run bus. `read_ref` reads the index that `Factory::set_refs` gave.
     fn emit(&self, who: &Binding, event: AgentEvent) -> Result<Value, String> {
         let (run, step) = (who.run.as_str(), who.step.as_str());
         match event {
@@ -199,14 +179,10 @@ impl AgentEvents for Factory {
                 self.report(run, step, r)?;
                 Ok(json!({"ok": true}))
             }
-            AgentEvent::Message(m) if m.to == "person" => {
-                self.tool(
-                    run,
-                    step,
-                    json!({"tool": "message", "to": m.to, "text": m.text}),
-                )?;
-                Ok(json!({"ok": true}))
-            }
+            AgentEvent::Message(m) => self.lock().message(run, step, m),
+            AgentEvent::Handoff(h) => self.lock().handoff(run, step, h),
+            AgentEvent::SpawnSubtask(t) => self.lock().spawn(run, step, t),
+            AgentEvent::ReadRef(r) => self.lock().read_ref(run, step, &r.reference),
             AgentEvent::ReadTicket(t) => {
                 let inner = self.lock();
                 let key = t
@@ -222,13 +198,6 @@ impl AgentEvents for Factory {
                     .map_err(|e| e.to_string())?
                     .ok_or_else(|| format!("{} is not in the mirror", t.reference))?;
                 serde_json::to_value(ticket).map_err(|e| e.to_string())
-            }
-            other => {
-                // shortcut: handoff, a message to a step and spawn_subtask are logged only; build
-                // them with the run view (factory REQ-019).
-                let tool = other.tool();
-                self.tool(run, step, json!({"tool": tool, "built": false}))?;
-                Err(format!("`{tool}` is not available in this release"))
             }
         }
     }

@@ -17,7 +17,7 @@ use shipyard_engine::run_engine::{Config, Factory, Project};
 use shipyard_mcp::tools::agent::{Outcome, Report};
 use shipyard_store::factory_files::{Loaded, default_workflows, parse_workflow};
 use shipyard_store::mirror::Mirror;
-use shipyard_store::run_log::RunLog;
+use shipyard_store::run_log::{RunLog, Snapshot};
 
 /// 2026-10-29T10:00:00Z.
 pub const START: u64 = 1_793_268_000;
@@ -36,6 +36,7 @@ limits: { max_turns: 3, budget_usd: 1, stall_s: 300 }
 ";
 
 pub struct Fx {
+    /// A restart replaces it.
     pub f: Arc<Factory>,
     pub agents: FakeAgents,
     pub writer: FakeWriter,
@@ -46,6 +47,9 @@ pub struct Fx {
     pub mirror: Arc<Mutex<Mirror>>,
     pub dir: tempfile::TempDir,
     log: RunLog,
+    writes: Writes,
+    extra: Vec<String>,
+    cfg: Config,
 }
 
 pub fn writes(on: bool) -> Writes {
@@ -74,6 +78,40 @@ impl Fx {
         cfg: Config,
         tweak: impl FnOnce(&mut Project),
     ) -> Self {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("runs.sqlite");
+        let clock = FakeClock::new(Duration::from_secs(START));
+        let agents = FakeAgents::default();
+        let f = Arc::new(Factory::new(
+            cfg.clone(),
+            Arc::new(agents.clone()),
+            Arc::new(clock.clone()),
+            RunLog::open(&path).unwrap(),
+        ));
+        let writer = FakeWriter::default();
+        let pulls = FakePulls::default();
+        writer.link(&pulls);
+        let fx = Self {
+            f,
+            agents,
+            writer,
+            ws: FakeWorkspaces::default(),
+            git: FakeGit::default(),
+            pulls,
+            clock,
+            mirror: Arc::new(Mutex::new(Mirror::open_memory().unwrap())),
+            log: RunLog::open(&path).unwrap(),
+            dir,
+            writes,
+            extra: extra.iter().map(|t| t.to_string()).collect(),
+            cfg,
+        };
+        fx.f.set_project("ship", fx.project(tweak));
+        fx
+    }
+
+    /// The project of the test: the five default workflows and `extra`, the fakes of this `Fx`.
+    fn project(&self, tweak: impl FnOnce(&mut Project)) -> Project {
         let roles: Vec<String> = DEFAULT_ROLES.iter().map(|r| r.to_string()).collect();
         let mut files = Loaded::default();
         for (id, text) in default_workflows() {
@@ -81,60 +119,82 @@ impl Fx {
                 .workflows
                 .insert(id.to_string(), parse_workflow(id, text, &roles).unwrap());
         }
-        for text in extra {
+        for text in &self.extra {
             let wf: shipyard_core::workflow::Workflow = workflow_of(text);
             files.workflows.insert(wf.id.clone(), wf);
         }
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("runs.sqlite");
-        let clock = FakeClock::new(Duration::from_secs(START));
-        let agents = FakeAgents::default();
-        let f = Arc::new(Factory::new(
-            cfg,
-            Arc::new(agents.clone()),
-            Arc::new(clock.clone()),
-            RunLog::open(&path).unwrap(),
-        ));
-        let writer = FakeWriter::default();
-        let ws = FakeWorkspaces::default();
-        let git = FakeGit::default();
-        let pulls = FakePulls::default();
-        writer.link(&pulls);
-        let mirror = Arc::new(Mutex::new(Mirror::open_memory().unwrap()));
         let automation = Automation {
-            writes,
+            writes: self.writes.clone(),
             ..Automation::default()
         };
         let mut project = Project {
             automation,
             files,
-            default_workflow: if extra.is_empty() { "feature" } else { "one" }.into(),
-            root: dir.path().to_path_buf(),
+            default_workflow: if self.extra.is_empty() {
+                "feature"
+            } else {
+                "one"
+            }
+            .into(),
+            root: self.dir.path().to_path_buf(),
             source: SOURCE.into(),
-            mirror: mirror.clone(),
-            writer: Arc::new(writer.clone()),
-            workspaces: Arc::new(ws.clone()),
-            git: Arc::new(git.clone()),
-            pulls: Arc::new(pulls.clone()),
+            mirror: self.mirror.clone(),
+            writer: Arc::new(self.writer.clone()),
+            workspaces: Arc::new(self.ws.clone()),
+            git: Arc::new(self.git.clone()),
+            pulls: Arc::new(self.pulls.clone()),
             forge: "github".into(),
             gates: Vec::new(),
             base: None,
             reviewers: vec!["alice".into()],
         };
         tweak(&mut project);
-        f.set_project("ship", project);
-        Self {
-            f,
-            agents,
-            writer,
-            ws,
-            git,
-            pulls,
-            clock,
-            mirror,
-            log: RunLog::open(&path).unwrap(),
-            dir,
+        project
+    }
+
+    /// The process ends and starts again: the factory goes, a new one reads the same run log file
+    /// and gets the same project. The fakes live on: they stand for the outside world. The agents
+    /// of the old factory are stopped when it drops.
+    pub fn restart(&mut self) {
+        self.restart_with(|_| {});
+    }
+
+    pub fn restart_with(&mut self, tweak: impl FnOnce(&mut Project)) {
+        let path = self.dir.path().join("runs.sqlite");
+        self.f = Arc::new(Factory::new(
+            self.cfg.clone(),
+            Arc::new(self.agents.clone()),
+            Arc::new(self.clock.clone()),
+            RunLog::open(&path).unwrap(),
+        ));
+        self.f.set_project("ship", self.project(tweak));
+    }
+
+    /// A restart before the project is open: only the factory.
+    pub fn restart_without_project(&mut self) {
+        let path = self.dir.path().join("runs.sqlite");
+        self.f = Arc::new(Factory::new(
+            self.cfg.clone(),
+            Arc::new(self.agents.clone()),
+            Arc::new(self.clock.clone()),
+            RunLog::open(&path).unwrap(),
+        ));
+    }
+
+    /// The saved state now, to put it back with [`Fx::rewind`].
+    pub fn snapshots(&self) -> Vec<Snapshot> {
+        self.log.snapshots().unwrap()
+    }
+
+    /// Put old snapshots back: a crash between a change and its save.
+    pub fn rewind(&self, old: &[Snapshot]) {
+        for s in old {
+            self.log.save_snapshot(&s.key, s.event, &s.value).unwrap();
         }
+    }
+
+    pub fn log(&self) -> &RunLog {
+        &self.log
     }
 
     /// Start a run on ticket `key` with these extra labels. Returns the run id.

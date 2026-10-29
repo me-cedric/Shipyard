@@ -15,12 +15,13 @@
 //!   them; each one keeps its CLI session and starts again, resumed, when the run comes back.
 //! - Every run change goes through `Run::apply`. A refusal is a `note` event in the run log.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use shipyard_core::pickup::{ActiveRun, Automation, SyncEvent};
 use shipyard_core::run::{self, BudgetLevel, Run, RunEvent, RunState};
@@ -29,16 +30,19 @@ use shipyard_core::workflow::{self, Gate, Mode, Step, StepState, Workflow, Works
 use shipyard_store::automation_file::status_map;
 use shipyard_store::factory_files::Loaded;
 use shipyard_store::mirror::Mirror;
+use shipyard_store::ref_index::RefIndex;
 use shipyard_store::run_log::{RunLog, kind};
 
 use crate::Clock;
 use crate::approvals::{Approval, Write};
+use crate::persist::Replay;
 use crate::ports::{
     AgentEvent, AgentRun, Agents, Brief, Dispatch, Git, Pulls, StartRequest, Workspaces, Writer,
 };
 use crate::pull_request::Delivered;
 use crate::questions::Asked;
 use crate::review::Finding;
+use crate::tools::Message;
 
 /// A ticket label `wf:<id>` picks the workflow (REQ-009).
 pub const WORKFLOW_LABEL: &str = "wf:";
@@ -116,7 +120,8 @@ pub struct Project {
     pub gates: Vec<String>,
     /// The base branch that the project declares. `None`: `develop`, else the default branch.
     pub base: Option<String>,
-    /// The reviewers of a pull request (`q:Q-029`). Empty: a run blocks before it opens one.
+    /// The reviewers of a pull request (`q:Q-029`). Empty: the `reviewers` of `automation`. Both
+    /// empty: a run blocks before it opens one.
     pub reviewers: Vec<String>,
 }
 
@@ -148,13 +153,19 @@ pub struct RunInfo {
     pub worktree_kept: Option<String>,
 }
 
+#[derive(Serialize, Deserialize)]
 pub(crate) struct Unit {
     pub id: String,
     pub item: Option<Value>,
+    /// The role of a subtask (`spawn_subtask`). `None`: the role of the step.
+    #[serde(default)]
+    pub role: Option<String>,
     pub state: StepState,
     pub failures: u32,
     /// Seconds. Not before this time after a failure.
     pub retry_at: Option<u64>,
+    /// A process: it does not survive a restart. The unit starts again from `session`.
+    #[serde(skip)]
     pub agent: Option<Box<dyn AgentRun>>,
     pub started: u64,
     /// The last event, in seconds: the stall timer.
@@ -170,10 +181,11 @@ pub(crate) struct Unit {
 }
 
 impl Unit {
-    fn new(id: String, item: Option<Value>) -> Self {
+    pub(crate) fn new(id: String, item: Option<Value>) -> Self {
         Self {
             id,
             item,
+            role: None,
             state: StepState::Pending,
             failures: 0,
             retry_at: None,
@@ -190,7 +202,7 @@ impl Unit {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 pub(crate) struct StepRec {
     pub state: StepState,
     pub units: Vec<Unit>,
@@ -201,6 +213,7 @@ pub(crate) struct StepRec {
     pub merge_pending: bool,
 }
 
+#[derive(Serialize, Deserialize)]
 pub(crate) struct RunRec {
     pub id: String,
     pub project: String,
@@ -227,6 +240,9 @@ pub(crate) struct RunRec {
     pub rounds: u32,
     pub questions: Vec<Asked>,
     pub d: Delivered,
+    /// What agents told the person (`message` to `person`).
+    #[serde(default)]
+    pub messages: Vec<Message>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -269,35 +285,83 @@ pub(crate) struct Inner {
     pub next_approval: u64,
     pub ended: Vec<(String, String)>,
     pub errors: Vec<String>,
-    seq: u64,
+    pub seq: u64,
+    /// The ref index of the app (`read_ref`).
+    pub refs: Option<Arc<Mutex<RefIndex>>>,
+    /// Runs that changed since their last save (`persist`).
+    pub dirty: BTreeSet<String>,
+    /// Writes that the log shows after the last save of a run (`persist::recover`).
+    pub replay: BTreeMap<String, Vec<Replay>>,
+    /// The global state that the last save holds: `(seq, next_approval, kill)`.
+    pub saved_meta: (u64, u64, bool),
 }
 
 pub struct Factory {
     inner: Mutex<Inner>,
 }
 
+/// The lock of the factory. A change is saved when the lock goes (`Inner::persist`): every public
+/// call is one change, so the save holds a whole change or none.
+pub(crate) struct Guard<'a>(MutexGuard<'a, Inner>);
+
+impl Deref for Guard<'_> {
+    type Target = Inner;
+
+    fn deref(&self) -> &Inner {
+        &self.0
+    }
+}
+
+impl DerefMut for Guard<'_> {
+    fn deref_mut(&mut self) -> &mut Inner {
+        &mut self.0
+    }
+}
+
+impl Drop for Guard<'_> {
+    fn drop(&mut self) {
+        self.0.persist();
+    }
+}
+
 impl Factory {
+    /// A factory over a run log file. It takes back what the file holds: the runs, the approval
+    /// queue and the open questions come from the saves, and a running step starts again, on its
+    /// CLI session when it has one, when its project is open (`set_project`) and the pump runs.
+    /// A read that fails is in [`Factory::take_errors`].
     pub fn new(cfg: Config, agents: Arc<dyn Agents>, clock: Arc<dyn Clock>, log: RunLog) -> Self {
+        let mut inner = Inner {
+            cfg,
+            agents,
+            clock,
+            log,
+            kill: false,
+            projects: BTreeMap::new(),
+            runs: BTreeMap::new(),
+            approvals: Vec::new(),
+            next_approval: 0,
+            ended: Vec::new(),
+            errors: Vec::new(),
+            seq: 0,
+            refs: None,
+            dirty: BTreeSet::new(),
+            replay: BTreeMap::new(),
+            saved_meta: (0, 0, false),
+        };
+        inner.recover();
+        inner.persist();
         Self {
-            inner: Mutex::new(Inner {
-                cfg,
-                agents,
-                clock,
-                log,
-                kill: false,
-                projects: BTreeMap::new(),
-                runs: BTreeMap::new(),
-                approvals: Vec::new(),
-                next_approval: 0,
-                ended: Vec::new(),
-                errors: Vec::new(),
-                seq: 0,
-            }),
+            inner: Mutex::new(inner),
         }
     }
 
-    pub(crate) fn lock(&self) -> MutexGuard<'_, Inner> {
-        self.inner.lock().unwrap_or_else(|e| e.into_inner())
+    pub(crate) fn lock(&self) -> Guard<'_> {
+        Guard(self.inner.lock().unwrap_or_else(|e| e.into_inner()))
+    }
+
+    /// The ref index that `read_ref` reads (`factory` REQ-020). Without it the tool is an error.
+    pub fn set_refs(&self, index: Arc<Mutex<RefIndex>>) {
+        self.lock().refs = Some(index);
     }
 
     /// Add a project, or replace it after a reload of its files.
@@ -458,6 +522,7 @@ impl Inner {
     }
 
     pub(crate) fn log(&mut self, run_id: &str, step: Option<&str>, kind: &str, payload: Value) {
+        self.dirty.insert(run_id.to_string());
         let ts = self.clock.now().as_millis() as u64;
         if let Err(e) = self.log.append(run_id, step, kind, &payload, ts) {
             self.errors.push(format!("run log {run_id}: {e}"));
@@ -576,11 +641,20 @@ impl Inner {
 
     pub(crate) fn pump(&mut self) {
         for id in self.live_ids() {
-            self.pump_run(&id);
+            // A run that came back from a restart waits for its project. Until then it is not
+            // blocked: it only does not move.
+            if self.project_of(&id).is_some() {
+                self.pump_run(&id);
+            }
         }
     }
 
     pub(crate) fn pump_run(&mut self, run_id: &str) {
+        // A crash between the merge and the close: the close is safe to repeat.
+        if self.runs[run_id].run.state == RunState::Merged {
+            self.close_merged(run_id);
+            return;
+        }
         let now = self.now_s();
         let due = {
             let rec = &self.runs[run_id];
@@ -933,8 +1007,9 @@ impl Inner {
         let Some(p) = self.projects.get(&rec.project) else {
             return self.block(run_id, sid, "the project is not open");
         };
-        let role = step.role.as_deref().and_then(|r| p.files.role(r));
         let u = &rec.steps[sid].units[i];
+        let role_name = u.role.as_deref().or(step.role.as_deref());
+        let role = role_name.and_then(|r| p.files.role(r));
         let child = (step.workspace == Workspace::Worktree).then_some(u.id.as_str());
         let dir = match p.workspaces.dir(run_id, step.workspace, child) {
             Ok(d) => d,
@@ -963,9 +1038,7 @@ impl Inner {
             project: rec.project.clone(),
             runner,
             model,
-            effort: step
-                .effort
-                .or_else(|| p.files.role(step.role.as_deref()?)?.effort),
+            effort: step.effort.or_else(|| p.files.role(role_name?)?.effort),
             mode: step.mode,
             tools: step.tools.clone(),
             prompt,
@@ -1102,6 +1175,7 @@ impl Inner {
             rounds: 0,
             questions: Vec::new(),
             d: Delivered::default(),
+            messages: Vec::new(),
         };
         let payload = json!({
             "ticket": format!("wi:{}", item.key), "workflow": format!("wf:{}", rec.wf.id),
