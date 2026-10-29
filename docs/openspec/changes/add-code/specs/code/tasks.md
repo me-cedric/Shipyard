@@ -13,8 +13,8 @@ Plan: [plan.md](./plan.md)
 
 - [ ] T001 Write unit tests in `crates/shipyard-core/tests/code.rs`: summary type, branch name, work item key, ref list, digest check. Covers REQ-008, REQ-009, REQ-012, REQ-031.
 - [ ] T002 Implement those rules in `crates/shipyard-core/src/code.rs`. Covers REQ-008, REQ-009, REQ-012, REQ-031.
-- [ ] T003 Write git tests on temporary repositories in `crates/shipyard-git/tests/code.rs`: status, two diffs, stage, discard, stash, conflict, commit, log, branches, fetch of heads. Covers REQ-001 to REQ-007, REQ-010 to REQ-016.
-- [ ] T004 Implement the operations in `crates/shipyard-git/src/code.rs`. Covers REQ-001 to REQ-007, REQ-010 to REQ-016.
+- [ ] T003 Write git tests on temporary repositories in `crates/shipyard-git/tests/code.rs`: status, two diffs, stage, discard, stash, conflict, commit, log, branches, fetch of heads. Covers REQ-001 to REQ-007, REQ-010 to REQ-016. Done: status, two diffs, stage, unstage, commit, log, branches, fetch, pull --rebase, push, worktrees. Open: discard, stash, conflict blocks, delete branch, remote head watch.
+- [ ] T004 Implement the operations in `crates/shipyard-git/src/code.rs`. Covers REQ-001 to REQ-007, REQ-010 to REQ-016. Done: the same list, in `crates/shipyard-git/src/code/`, with credentials and proxy in `src/auth.rs` and worktrees in `src/worktree.rs`. Open: discard, stash, conflict blocks, delete branch, remote head watch.
 - [ ] T005 [P] Write forge contract tests with a fake in `crates/shipyard-forges/tests/code.rs`: list, detail, open, comment, verdict, merge, mark ready, refused write. Covers REQ-018 to REQ-023, REQ-025.
 - [ ] T006 Implement those calls in `crates/shipyard-forges/src/code.rs`. Covers REQ-018 to REQ-023, REQ-025.
 - [ ] T007 [P] Write store tests in `crates/shipyard-store/tests/code.rs`: report codecs, no secret in a report, dated impact files, commit link index. Covers REQ-009, REQ-024, REQ-028, REQ-033.
