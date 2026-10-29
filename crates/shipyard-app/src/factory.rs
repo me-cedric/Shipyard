@@ -45,7 +45,6 @@ use shipyard_store::project::{FileRead, read_project_file, write_atomic};
 use shipyard_store::run_log::RunLog;
 use specta::Type;
 
-use crate::commands::refs::with_index;
 use crate::commands::sync::{Active, active, ensure, tracker_source};
 use crate::commands::{AppState, Res, err};
 use crate::delivery::{Folders, ForgePulls, PrRowView, ProjectWriter, pr_rows};
@@ -269,15 +268,29 @@ impl FactoryHost {
     }
 }
 
-fn lock_index(
-    s: &AppState,
-) -> MutexGuard<'_, Option<(String, Arc<Mutex<shipyard_store::ref_index::RefIndex>>)>> {
-    s.index.lock().unwrap_or_else(|e| e.into_inner())
-}
-
 /// The index is read again this often (in turns of the loop) while a run is active: an agent that
 /// calls `read_ref` sees the files that a person just saved.
 const REINDEX_EVERY: u32 = 30;
+
+/// Bring up to date the ref index of each project that has an active run.
+fn reindex_active(s: &AppState) {
+    let projects: BTreeSet<String> = s
+        .factory
+        .factory
+        .active_runs()
+        .into_iter()
+        .map(|r| r.project)
+        .collect();
+    let Ok(registry) = s.registry() else { return };
+    let entries: Vec<_> = projects
+        .iter()
+        .filter_map(|id| registry.get(id).cloned())
+        .collect();
+    drop(registry);
+    for entry in entries {
+        let _ = crate::commands::refs::reindex_repo(s, &entry);
+    }
+}
 
 /// The background loop (`PUMP_EVERY`): one thread for the life of the app. A run that ends frees
 /// the claim of its ticket in the sync engine of its project.
@@ -289,8 +302,8 @@ pub fn spawn_loop(app: tauri::AppHandle) {
             std::thread::sleep(PUMP_EVERY);
             turn = turn.wrapping_add(1);
             let s = app.state::<AppState>();
-            if turn.is_multiple_of(REINDEX_EVERY) && !s.factory.factory.active_runs().is_empty() {
-                let _ = with_index(&s, |_| Ok::<(), shipyard_store::Error>(()));
+            if turn.is_multiple_of(REINDEX_EVERY) {
+                reindex_active(&s);
             }
             s.factory.tick(|project, key| {
                 if let Some(r) = s.sync.running(project)
@@ -536,13 +549,10 @@ pub(crate) fn attach(s: &AppState, a: &Active, plan: &Plan) -> Res<()> {
             gates: file.gates.clone(),
             base: None,
             reviewers: Vec::new(),
+            // `read_ref` of a run reads the index of its own project.
+            refs: Some(s.index_of(&id)?),
         },
     );
-    // `read_ref` reads the index of the app: make it once for the project, and the factory has it.
-    let have = lock_index(s).as_ref().is_some_and(|(i, _)| *i == id);
-    if !have {
-        with_index(s, |_| Ok(()))?;
-    }
     Ok(())
 }
 

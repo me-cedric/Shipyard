@@ -125,6 +125,9 @@ pub struct Project {
     /// The reviewers of a pull request (`q:Q-029`). Empty: the `reviewers` of `automation`. Both
     /// empty: a run blocks before it opens one.
     pub reviewers: Vec<String>,
+    /// The ref index of this project: `read_ref` of its runs reads it, never the index of
+    /// another project (`factory` REQ-049). `None`: the tool is an error.
+    pub refs: Option<Arc<Mutex<RefIndex>>>,
 }
 
 /// A step as the views and `delivery` see it.
@@ -298,8 +301,6 @@ pub(crate) struct Inner {
     pub ended: Vec<(String, String)>,
     pub errors: Vec<String>,
     pub seq: u64,
-    /// The ref index of the app (`read_ref`).
-    pub refs: Option<Arc<Mutex<RefIndex>>>,
     /// Runs that changed since their last save (`persist`).
     pub dirty: BTreeSet<String>,
     /// Writes that the log shows after the last save of a run (`persist::recover`).
@@ -383,7 +384,6 @@ impl Factory {
             ended: Vec::new(),
             errors: Vec::new(),
             seq: 0,
-            refs: None,
             dirty: BTreeSet::new(),
             replay: BTreeMap::new(),
             saved_meta: (0, 0, false),
@@ -407,9 +407,12 @@ impl Factory {
         }
     }
 
-    /// The ref index that `read_ref` reads (`factory` REQ-020). Without it the tool is an error.
-    pub fn set_refs(&self, index: Arc<Mutex<RefIndex>>) {
-        self.lock().refs = Some(index);
+    /// The ref index of a project, for the `read_ref` of its runs (`factory` REQ-020). A project
+    /// that gets its index with `Project::refs` needs no call.
+    pub fn set_refs(&self, project: &str, index: Arc<Mutex<RefIndex>>) {
+        if let Some(p) = self.lock().projects.get_mut(project) {
+            p.refs = Some(index);
+        }
     }
 
     /// The tier map after an edit. A step that starts later uses it; a running step keeps its model.

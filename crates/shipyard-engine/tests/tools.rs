@@ -9,7 +9,7 @@ use fx::{Fx, ONE, writes};
 use serde_json::json;
 use shipyard_core::run::RunState;
 use shipyard_core::workflow::StepState;
-use shipyard_engine::ports::AgentEvent;
+use shipyard_engine::ports::{AgentEvent, Dispatch, StartRequest};
 use shipyard_mcp::session::Binding;
 use shipyard_mcp::tools::agent::{
     AgentEvent as Tool, AgentEvents, Handoff, Message, ReadRef, SpawnSubtask,
@@ -443,7 +443,7 @@ fn read_ref(r: &str) -> Tool {
 fn read_ref_returns_the_resolved_entity_and_its_backlinks() {
     let fx = Fx::new(writes(true), &[ONE]);
     let run = fx.start("SHIP-1", &[]);
-    fx.f.set_refs(index());
+    fx.f.set_refs("ship", index());
     let out = fx.f.emit(&who(&run, "work"), read_ref("adr:0003")).unwrap();
     assert_eq!(out["ref"], "adr:0003");
     assert_eq!(out["title"], "Use SQLite");
@@ -461,7 +461,7 @@ fn read_ref_returns_the_resolved_entity_and_its_backlinks() {
 fn a_ref_that_does_not_resolve_is_an_error_not_a_guess() {
     let fx = Fx::new(writes(true), &[ONE]);
     let run = fx.start("SHIP-1", &[]);
-    fx.f.set_refs(index());
+    fx.f.set_refs("ship", index());
     // Broken (a known kind, no such entity), unresolved (a kind that is not indexed), not a ref.
     for (r, word) in [
         ("adr:0009", "broken"),
@@ -471,6 +471,66 @@ fn a_ref_that_does_not_resolve_is_an_error_not_a_guess() {
         let e = err(&fx, &run, "work", read_ref(r));
         assert!(e.contains(word), "{r}: {e}");
     }
+}
+
+/// One project never reads the index of another (`factory` REQ-049).
+#[test]
+fn a_run_reads_the_index_of_its_own_project() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    fx.f.set_refs("ship", index());
+    // A second project with an index that has no entity.
+    let empty = Arc::new(Mutex::new(RefIndex::open_memory().unwrap()));
+    fx.f.set_project("other", fx.project(|p| p.refs = Some(empty)));
+    fx.f.start(&StartRequest {
+        project: "other".into(),
+        ticket: shipyard_engine::fake::todo("OTH-1"),
+        status: "To Do".into(),
+        machine: "m1".into(),
+        stamped: false,
+    })
+    .unwrap();
+    let other =
+        fx.f.active_runs()
+            .into_iter()
+            .find(|r| r.project == "other")
+            .unwrap()
+            .run_id;
+    fx.f.pump();
+    assert_eq!(
+        fx.f.emit(&who(&run, "work"), read_ref("adr:0003")).unwrap()["title"],
+        "Use SQLite"
+    );
+    let e = err(&fx, &other, "work", read_ref("adr:0003"));
+    assert!(e.contains("broken"), "{e}");
+}
+
+/// A long scan holds the index, not the factory (`factory` REQ-049).
+#[test]
+fn a_busy_index_does_not_hold_the_factory() {
+    use std::time::{Duration, Instant};
+    let fx = Fx::new(writes(true), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    let idx = index();
+    fx.f.set_refs("ship", idx.clone());
+    let scan = idx.lock().unwrap();
+    std::thread::scope(|s| {
+        let f = fx.f.clone();
+        let id = run.clone();
+        let read = s.spawn(move || f.emit(&who(&id, "work"), read_ref("adr:0003")));
+        std::thread::sleep(Duration::from_millis(150));
+        let t = Instant::now();
+        assert_eq!(fx.f.runs().len(), 1);
+        fx.f.pump();
+        assert!(
+            t.elapsed() < Duration::from_millis(100),
+            "{:?}",
+            t.elapsed()
+        );
+        assert!(!read.is_finished(), "the read waits for the scan");
+        drop(scan);
+        assert!(read.join().unwrap().is_ok());
+    });
 }
 
 #[test]

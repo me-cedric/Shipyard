@@ -40,6 +40,37 @@ pub struct Message {
 }
 
 impl Factory {
+    /// `read_ref` (REQ-020, REQ-049): the resolved entity, or an error. The index of the project
+    /// of the run is taken under a short lock of the factory. The query then waits on that
+    /// index only: a long scan of the index holds no view and no other tool.
+    pub(crate) fn read_ref(
+        &self,
+        run_id: &str,
+        from: &str,
+        reference: &str,
+    ) -> Result<Value, String> {
+        let index = {
+            let mut inner = self.lock();
+            inner.run(run_id)?;
+            inner.tool_event(run_id, from, json!({"tool": "read_ref", "ref": reference}));
+            inner
+                .project_of(run_id)
+                .and_then(|p| p.refs.clone())
+                .ok_or("the ref index is not open")?
+        };
+        let found = {
+            let index = index.lock().unwrap_or_else(|e| e.into_inner());
+            read_ref::read_ref(&index, reference)?
+        };
+        match found.resolved.state {
+            State::Resolved => serde_json::to_value(found).map_err(|e| e.to_string()),
+            State::Unresolved => Err(format!(
+                "{reference} is unresolved: its source is not indexed"
+            )),
+            State::Broken => Err(format!("{reference} is broken: no such entity")),
+        }
+    }
+
     /// Every message to the person, with its run id, oldest first in each run.
     pub fn messages(&self) -> Vec<(String, Message)> {
         let inner = self.lock();
@@ -324,28 +355,5 @@ impl Inner {
         self.tool_event(run_id, from, payload);
         self.pump_run(run_id);
         Ok(json!({"child": child, "state": "queued"}))
-    }
-
-    /// `read_ref` (REQ-020): the resolved entity, or an error.
-    pub(crate) fn read_ref(
-        &mut self,
-        run_id: &str,
-        from: &str,
-        reference: &str,
-    ) -> Result<Value, String> {
-        self.run(run_id)?;
-        self.tool_event(run_id, from, json!({"tool": "read_ref", "ref": reference}));
-        let index = self.refs.clone().ok_or("the ref index is not open")?;
-        let found = {
-            let index = index.lock().unwrap_or_else(|e| e.into_inner());
-            read_ref::read_ref(&index, reference)?
-        };
-        match found.resolved.state {
-            State::Resolved => serde_json::to_value(found).map_err(|e| e.to_string()),
-            State::Unresolved => Err(format!(
-                "{reference} is unresolved: its source is not indexed"
-            )),
-            State::Broken => Err(format!("{reference} is broken: no such entity")),
-        }
     }
 }

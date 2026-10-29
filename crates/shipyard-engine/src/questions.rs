@@ -166,7 +166,7 @@ impl Factory {
 }
 
 impl AgentEvents for Factory {
-    /// The run bus. `read_ref` reads the index that `Factory::set_refs` gave.
+    /// The run bus. `read_ref` reads the index of the project of the run.
     fn emit(&self, who: &Binding, event: AgentEvent) -> Result<Value, String> {
         let (run, step) = (who.run.as_str(), who.step.as_str());
         match event {
@@ -185,7 +185,7 @@ impl AgentEvents for Factory {
             AgentEvent::Message(m) => self.lock().message(run, step, m),
             AgentEvent::Handoff(h) => self.lock().handoff(run, step, h),
             AgentEvent::SpawnSubtask(t) => self.lock().spawn(run, step, t),
-            AgentEvent::ReadRef(r) => self.lock().read_ref(run, step, &r.reference),
+            AgentEvent::ReadRef(r) => self.read_ref(run, step, &r.reference),
             AgentEvent::ReadTicket(t) => {
                 let inner = self.lock();
                 let key = t

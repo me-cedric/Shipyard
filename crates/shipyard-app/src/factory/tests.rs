@@ -85,6 +85,7 @@ pub(crate) fn fx(writes: Writes) -> Fx {
             gates: Vec::new(),
             base: None,
             reviewers: vec!["alice".into()],
+            refs: s.index_of(&id).ok(),
         },
     );
     let events: Arc<Mutex<Vec<(String, Ping)>>> = Arc::default();
@@ -310,6 +311,7 @@ fn a_run_with_a_plan_gate_waits_for_a_click_and_a_rejection_runs_the_plan_again(
             gates: Vec::new(),
             base: None,
             reviewers: vec![],
+            refs: None,
         }
     });
     let run = fx.start("SHIP-1");

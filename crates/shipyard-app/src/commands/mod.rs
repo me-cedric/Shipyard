@@ -46,11 +46,24 @@ pub struct AppState {
     lock: Mutex<()>,
     /// The remote watch notice of each project id, until the person syncs (spec `code`, REQ-017).
     notices: Mutex<HashMap<String, code::WatchNotice>>,
-    /// The ref index of the active project. The factory reads the same one (`read_ref`).
-    pub(crate) index: Mutex<Option<(String, Arc<Mutex<RefIndex>>)>>,
+    /// The ref index of each project that was opened, by project id. The factory reads the index
+    /// of the project of a run (`read_ref`), never the one of another project.
+    index: Mutex<HashMap<String, Arc<Mutex<RefIndex>>>>,
 }
 
 impl AppState {
+    /// The ref index of a project: opened once, then shared by the views and the factory.
+    pub(crate) fn index_of(&self, id: &str) -> Res<Arc<Mutex<RefIndex>>> {
+        let mut map = self.index.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(index) = map.get(id) {
+            return Ok(index.clone());
+        }
+        let db = self.dir.join("refs").join(format!("{id}.sqlite"));
+        let index = Arc::new(Mutex::new(RefIndex::open(&db).map_err(err)?));
+        map.insert(id.into(), index.clone());
+        Ok(index)
+    }
+
     pub fn new(dir: PathBuf) -> Self {
         let connections = Arc::new(Connections::system(&dir));
         Self::build(dir, connections, true, None)
@@ -95,7 +108,7 @@ impl AppState {
             dir,
             lock: Mutex::new(()),
             notices: Mutex::new(HashMap::new()),
-            index: Mutex::new(None),
+            index: Mutex::new(HashMap::new()),
         }
     }
 

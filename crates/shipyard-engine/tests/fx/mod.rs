@@ -111,7 +111,7 @@ impl Fx {
     }
 
     /// The project of the test: the five default workflows and `extra`, the fakes of this `Fx`.
-    fn project(&self, tweak: impl FnOnce(&mut Project)) -> Project {
+    pub fn project(&self, tweak: impl FnOnce(&mut Project)) -> Project {
         let roles: Vec<String> = DEFAULT_ROLES.iter().map(|r| r.to_string()).collect();
         let mut files = Loaded::default();
         for (id, text) in default_workflows() {
@@ -147,6 +147,7 @@ impl Fx {
             gates: Vec::new(),
             base: None,
             reviewers: vec!["alice".into()],
+            refs: None,
         };
         tweak(&mut project);
         project

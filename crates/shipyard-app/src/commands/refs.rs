@@ -36,7 +36,6 @@ pub fn with_index<T: Default>(
     s: &AppState,
     f: impl FnOnce(&RefIndex) -> shipyard_store::Result<T>,
 ) -> Res<T> {
-    use std::sync::{Arc, Mutex};
     let Some(entry) = s.registry()?.active().cloned() else {
         return Ok(T::default());
     };
@@ -45,23 +44,26 @@ pub fn with_index<T: Default>(
         Ok(FileRead::Valid(f)) => f,
         _ => ProjectFile::new(&entry.name, &entry.key),
     };
-    // The slot lock is for the choice of the index only. A query holds the index lock, so the
-    // factory (`read_ref`) and the views take turns.
-    let shared = {
-        let mut slot = s.index.lock().unwrap_or_else(|e| e.into_inner());
-        if slot.as_ref().is_none_or(|(id, _)| *id != entry.id) {
-            let db = s.dir.join("refs").join(format!("{}.sqlite", entry.id));
-            let index = Arc::new(Mutex::new(RefIndex::open(&db).map_err(err)?));
-            s.factory.factory.set_refs(index.clone());
-            *slot = Some((entry.id.clone(), index));
-        }
-        slot.as_ref().ok_or("no index")?.1.clone()
-    };
+    // A query holds the index lock, so the factory (`read_ref`) and the views take turns.
+    let shared = s.index_of(&entry.id)?;
     let mut index = shared.lock().unwrap_or_else(|e| e.into_inner());
     index.sync_repo(&root, &file).map_err(err)?;
     // A broken mirror must not break every ref query: the next query reads it again.
     let _ = super::sync::index_mirror(s, &root, &mut index);
     f(&index).map_err(err)
+}
+
+/// Brings the index of any project up to date from its repository, active or not. The mirror
+/// entries (`wi:`, `pr:`) follow only for the active project (`with_index`).
+pub fn reindex_repo(s: &AppState, entry: &Entry) -> Res<()> {
+    let root = PathBuf::from(&entry.path);
+    let file = match read_project_file(&root) {
+        Ok(FileRead::Valid(f)) => f,
+        _ => ProjectFile::new(&entry.name, &entry.key),
+    };
+    let shared = s.index_of(&entry.id)?;
+    let mut index = shared.lock().unwrap_or_else(|e| e.into_inner());
+    index.sync_repo(&root, &file).map(|_| ()).map_err(err)
 }
 
 /// A registered project resolves from the registry (`projects` REQ-017).
@@ -163,12 +165,10 @@ pub async fn refs_check(app: AppHandle) -> Res<Vec<BrokenCitation>> {
 #[specta::specta]
 pub async fn refs_reindex(app: AppHandle) -> Res<u32> {
     blocking(app, |s| {
-        let shared = s
-            .index
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .as_ref()
-            .map(|slot| slot.1.clone());
+        let shared = match s.registry()?.active() {
+            Some(e) => Some(s.index_of(&e.id)?),
+            None => None,
+        };
         if let Some(index) = shared {
             index
                 .lock()
@@ -188,6 +188,8 @@ pub async fn refs_reindex(app: AppHandle) -> Res<u32> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::*;
     use crate::commands::projects;
 
@@ -224,6 +226,15 @@ mod tests {
         assert_eq!(broken(&s).unwrap()[0].target, "adr:0009");
         std::fs::write(repo.path().join("docs/decisions/0009-y.md"), "# Other\n").unwrap();
         assert!(broken(&s).unwrap().is_empty(), "no manual refresh");
+    }
+
+    #[test]
+    fn each_project_has_its_own_index() {
+        let data = tempfile::tempdir().unwrap();
+        let s = AppState::new(data.path().into());
+        let (a, b) = (s.index_of("a").unwrap(), s.index_of("b").unwrap());
+        assert!(!Arc::ptr_eq(&a, &b), "one index for two projects");
+        assert!(Arc::ptr_eq(&a, &s.index_of("a").unwrap()));
     }
 
     #[test]
