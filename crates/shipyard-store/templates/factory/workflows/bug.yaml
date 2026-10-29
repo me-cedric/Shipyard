@@ -1,0 +1,31 @@
+# A bug: triage, fix, review, open a pull request. No plan gate.
+id: bug
+steps:
+  - id: triage
+    role: triager
+    model: small
+    effort: low
+    tools: [read_ticket, read_ref, ask_question, post_progress, report]
+  - id: fix
+    role: worker
+    model: mid
+    effort: medium
+    needs: [triage]
+    workspace: worktree
+    retry: 2
+    tools: [read_ticket, read_ref, ask_question, post_progress, handoff, report]
+  - id: review
+    role: reviewer
+    model: top
+    effort: high
+    needs: [fix]
+    fresh_context: true
+    max_rounds: 2
+    tools: [read_ref, post_progress, report]
+  - id: pr
+    action: open_pr
+    needs: [review]
+limits:
+  max_turns: 30
+  budget_usd: 3
+  stall_s: 300

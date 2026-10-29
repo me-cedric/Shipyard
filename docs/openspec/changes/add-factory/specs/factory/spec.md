@@ -252,6 +252,11 @@ The system SHALL map each of the sixteen run states to a tracker status and labe
 #### Scenario: Missing row
 - GIVEN a mapping file without a row for a state
 - WHEN the file loads
+- THEN the state keeps its default row
+
+#### Scenario: Invalid mapping
+- GIVEN a mapping file with a row for a name that is not a run state
+- WHEN the file loads
 - THEN the system shows an error and keeps the last valid mapping
 
 ### Requirement: REQ-009 Pickup and terminal tickets
@@ -428,8 +433,8 @@ The system SHALL keep an append-only run log. The log SHALL hold one event for e
 
 #### Scenario: Append only
 - GIVEN a run log with ten events
-- WHEN any caller tries to change event three
-- THEN the system refuses and the log holds eleven events
+- WHEN any caller tries to change or delete event three
+- THEN the system refuses and the log still holds the ten events, with event three as it was
 
 #### Scenario: Same source
 - GIVEN a run with progress events
