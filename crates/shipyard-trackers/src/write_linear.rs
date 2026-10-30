@@ -134,6 +134,10 @@ impl TrackerWrite for Linear {
         self.update_issue(&self.issue_id(key)?, json!({ "priority": n }))
     }
 
+    fn set_due_date(&self, key: &str, day: Option<&str>) -> Result<(), TrackerError> {
+        self.update_issue(&self.issue_id(key)?, json!({ "dueDate": day }))
+    }
+
     fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError> {
         self.capabilities().require(Capability::Transitions)?;
         let v = self.gql(

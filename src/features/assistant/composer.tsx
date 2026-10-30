@@ -12,6 +12,8 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
 import { PaperAirplaneIcon, PlusIcon, XMarkIcon } from "@/ui/icons";
+import { Dialog } from "@/ui/organisms/dialog";
+import { CodexTrust } from "./codex-trust";
 import { ComposerMenu, type MenuItem } from "./composer-menu";
 import { GaugeView } from "./gauge";
 import type { Assistant } from "./use-assistant";
@@ -66,6 +68,8 @@ export function Composer({
 		);
 		setFiles([]);
 	};
+	// Auto pre-approves the edit tools: one warning with the effect, and a click, before it applies.
+	const [warnAuto, setWarnAuto] = useState(false);
 	const levels = readOnly ? PERMISSIONS.filter((p) => p === "read_only") : PERMISSIONS;
 	// The slash menu and the `@` menu share one list. Escape closes it until the draft changes.
 	const [active, setActive] = useState(0);
@@ -160,10 +164,31 @@ export function Composer({
 						value={s.permission}
 						disabled={s.mode !== "agent"}
 						items={levels.map((p) => ({ value: p, label: t.assistant.permission[p] }))}
-						onValueChange={(p) => void a.setSettings({ permission: p as Permission })}
+						onValueChange={(p) =>
+							p === "auto" ? setWarnAuto(true) : void a.setSettings({ permission: p as Permission })
+						}
 					/>
 				</div>
 			) : null}
+			{s?.runner === "codex" ? <CodexTrust /> : null}
+			<Dialog
+				open={warnAuto}
+				onOpenChange={setWarnAuto}
+				title={t.assistant.autoWarn.title}
+				actions={
+					<Button
+						variant="primary"
+						onClick={() => {
+							void a.setSettings({ permission: "auto" });
+							setWarnAuto(false);
+						}}
+					>
+						{t.assistant.autoWarn.accept}
+					</Button>
+				}
+			>
+				<p className="text-ui text-n-11">{t.assistant.autoWarn.body}</p>
+			</Dialog>
 			<div className="relative">
 				{menuOpen ? (
 					<ComposerMenu

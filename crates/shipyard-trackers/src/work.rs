@@ -96,6 +96,19 @@ pub trait TrackerWrite: Tracker {
         ))
     }
 
+    /// The issue type by its name in the tracker (`Bug`, `Story`; `issue`, `incident` on GitLab).
+    /// A tracker with no type field refuses (Q-125).
+    fn set_issue_type(&self, _key: &str, _name: &str) -> Result<(), TrackerError> {
+        Err(TrackerError::Refused(
+            "this tracker has no issue type to change".into(),
+        ))
+    }
+
+    /// The due day as `YYYY-MM-DD`. `None` clears it. A tracker with no due date refuses (Q-125).
+    fn set_due_date(&self, _key: &str, _day: Option<&str>) -> Result<(), TrackerError> {
+        Err(TrackerError::Refused("this tracker has no due date".into()))
+    }
+
     /// Needs the `transitions` flag. A refusal is [`TrackerError::Refused`] with the reason (REQ-002).
     fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError>;
 
@@ -578,6 +591,27 @@ impl TrackerWrite for Jira {
             &format!("{API}/issue/{}", encode(key)),
             &[],
             json!({ "fields": { "priority": { "name": name } } }),
+        )?;
+        Ok(())
+    }
+
+    fn set_issue_type(&self, key: &str, name: &str) -> Result<(), TrackerError> {
+        self.send(
+            Method::Put,
+            &format!("{API}/issue/{}", encode(key)),
+            &[],
+            json!({ "fields": { "issuetype": { "name": name } } }),
+        )
+        .map(|_| ())
+        .map_err(refused)
+    }
+
+    fn set_due_date(&self, key: &str, day: Option<&str>) -> Result<(), TrackerError> {
+        self.send(
+            Method::Put,
+            &format!("{API}/issue/{}", encode(key)),
+            &[],
+            json!({ "fields": { "duedate": day } }),
         )?;
         Ok(())
     }

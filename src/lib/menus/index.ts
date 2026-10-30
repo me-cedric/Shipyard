@@ -4,6 +4,7 @@ import type { MenuItem } from "@/ui/molecules/context-menu";
 
 export type MenuAction =
 	| "open"
+	| "switch"
 	| "copy-ref"
 	| "copy-path"
 	| "copy-sha"
@@ -14,7 +15,17 @@ export type MenuAction =
 	| "edit"
 	| "remove";
 
-export type EntityKind = "ref" | "file" | "commit" | "connection";
+export type EntityKind =
+	| "ref"
+	| "file"
+	| "commit"
+	| "connection"
+	| "ticket"
+	| "run"
+	| "pull"
+	| "branch"
+	| "adr"
+	| "spec";
 
 /**
  * The one table (spec `shell`, REQ-013): the actions that each kind of entity offers, in order.
@@ -25,6 +36,12 @@ export const MENU: Record<EntityKind, MenuAction[]> = {
 	file: ["stage", "unstage", "discard", "copy-path"],
 	commit: ["open", "copy-sha"],
 	connection: ["test", "edit", "remove", "copy-ref"],
+	ticket: ["open", "copy-ref"],
+	run: ["open", "copy-ref"],
+	pull: ["open", "copy-ref"],
+	branch: ["switch", "copy-ref"],
+	adr: ["open", "copy-ref", "copy-path"],
+	spec: ["open", "copy-ref", "copy-path"],
 };
 
 export const copyText = (text: string) => void navigator.clipboard?.writeText(text);
@@ -37,6 +54,7 @@ export function useMenus() {
 	return useMemo(() => {
 		const label: Record<MenuAction, string> = {
 			open: t.context.open,
+			switch: t.code.switch,
 			"copy-ref": t.context.copyRef,
 			"copy-path": t.context.copyPath,
 			"copy-sha": t.context.copySha,

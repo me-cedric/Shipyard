@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useNotifications } from "@/lib/notifications";
+import { setVersion, showNotes } from "./whats-new";
 
 /**
  * Checks the release address and tells the person (spec `shell`, REQ-014). A newer version shows
@@ -15,18 +16,20 @@ export function useUpdateCheck() {
 		async (manual: boolean) => {
 			try {
 				const info = await unwrap(commands.updateCheck());
+				setVersion(info.current);
 				// The changelog of the version that now runs shows once. `seenVersion` is the last version
 				// that ran: it moves to `current` when the notes showed, or when there are none.
-				if (
+				const shown =
 					!info.notes ||
 					(await push({
 						id: `update:notes:${info.current}`,
 						kind: "info",
 						title: format(t.notifications.notes, { version: info.current }),
 						body: info.notes,
-					}))
-				)
-					await unwrap(commands.prefsSet({ seenVersion: info.current }));
+					}));
+				// The dialog opens with the entry, once, and the status bar badge opens it again.
+				if (shown && info.notes) showNotes(info.current, info.notes);
+				if (shown) await unwrap(commands.prefsSet({ seenVersion: info.current }));
 				if (info.newer)
 					push({
 						id: `update:${info.latest}`,

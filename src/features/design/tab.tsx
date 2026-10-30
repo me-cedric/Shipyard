@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Fragment, type ReactNode, useState } from "react";
 import { message, useDesignList } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
+import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject, useProjectActions } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
@@ -13,6 +14,7 @@ import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { FolderOpenIcon, PlusIcon, QueueListIcon, ViewColumnsIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
+import { ContextMenu } from "@/ui/molecules/context-menu";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { LIST, useEnter } from "@/ui/motion";
@@ -32,6 +34,8 @@ export type Row = {
 	tone?: VariantProps<typeof badgeVariants>["variant"];
 	/** A date under the title on the time line, already formatted. */
 	time?: string;
+	/** The repository path of the file, for the copy action of the menu. */
+	path?: string;
 };
 
 export type Create = {
@@ -155,6 +159,7 @@ export function ArtifactTab({
 	const list = useDesignList();
 	const { openRef } = useShell();
 	const { openFolder } = useProjectActions();
+	const menu = useMenus();
 	const all = pinned ? [pinned, ...rows] : rows;
 	// The first artifact opens by default, and the choice stays with the tab.
 	const [selected, setSelected] = useTabSelection(
@@ -188,6 +193,12 @@ export function ArtifactTab({
 		setView("list");
 		openRef(ref);
 	};
+	const rowMenu = (r: Row) =>
+		menu(r.ref.startsWith("adr:") ? "adr" : "ref", {
+			open: () => pick(r.ref),
+			"copy-ref": () => copyText(r.ref),
+			"copy-path": r.path ? () => copyText(r.path as string) : undefined,
+		});
 	return (
 		<ListDetail
 			title={title}
@@ -234,23 +245,25 @@ export function ArtifactTab({
 				>
 					{rows.map((r) => (
 						<li key={r.ref}>
-							<Card interactive className="overflow-hidden p-0">
-								<button
-									type="button"
-									title={r.title}
-									onClick={() => pick(r.ref)}
-									className="flex w-full flex-col rounded-lg text-left"
-								>
-									<span className="flex h-32 items-center justify-center border-b bg-surface-1 bg-dots">
-										{thumb(r)}
-									</span>
-									<span className="flex h-10 items-center gap-2 px-3 text-ui">
-										<span className="min-w-0 flex-1 truncate text-n-12">{r.title}</span>
-										{r.issue ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
-										{r.tag ? <Badge variant={r.tone}>{r.tag}</Badge> : null}
-									</span>
-								</button>
-							</Card>
+							<ContextMenu items={rowMenu(r)}>
+								<Card interactive className="overflow-hidden p-0">
+									<button
+										type="button"
+										title={r.title}
+										onClick={() => pick(r.ref)}
+										className="flex w-full flex-col rounded-lg text-left"
+									>
+										<span className="flex h-32 items-center justify-center border-b bg-surface-1 bg-dots">
+											{thumb(r)}
+										</span>
+										<span className="flex h-10 items-center gap-2 px-3 text-ui">
+											<span className="min-w-0 flex-1 truncate text-n-12">{r.title}</span>
+											{r.issue ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
+											{r.tag ? <Badge variant={r.tone}>{r.tag}</Badge> : null}
+										</span>
+									</button>
+								</Card>
+							</ContextMenu>
 						</li>
 					))}
 				</motion.ul>
@@ -270,48 +283,50 @@ export function ArtifactTab({
 										"before:absolute before:inset-y-0 before:left-[11.5px] before:w-px before:bg-n-7 first:before:top-4.5 last:before:bottom-auto last:before:h-4.5",
 								)}
 							>
-								<button
-									type="button"
-									data-nav=""
-									title={r.title}
-									aria-current={r.ref === selected ? "true" : undefined}
-									onClick={() => pick(r.ref)}
-									className={cn(
-										"flex min-h-row w-full items-center gap-2 rounded-md px-2 py-1 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3",
-										r.ref === selected && "bg-accent-soft",
-									)}
-								>
-									{timeline ? (
-										<span
-											aria-hidden="true"
-											className={cn(
-												"z-10 mt-2.5 size-2 shrink-0 self-start rounded-full ring-4 ring-surface-1",
-												DOT[r.tone ?? "neutral"],
-											)}
-										/>
-									) : null}
-									{timeline ? (
-										<span className="flex min-w-0 flex-1 flex-col gap-1 py-1">
-											<span className="flex items-center gap-2">
-												<span className="font-mono text-12 text-n-11">{r.lead}</span>
+								<ContextMenu items={rowMenu(r)}>
+									<button
+										type="button"
+										data-nav=""
+										title={r.title}
+										aria-current={r.ref === selected ? "true" : undefined}
+										onClick={() => pick(r.ref)}
+										className={cn(
+											"flex min-h-row w-full items-center gap-2 rounded-md px-2 py-1 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3",
+											r.ref === selected && "bg-accent-soft",
+										)}
+									>
+										{timeline ? (
+											<span
+												aria-hidden="true"
+												className={cn(
+													"z-10 mt-2.5 size-2 shrink-0 self-start rounded-full ring-4 ring-surface-1",
+													DOT[r.tone ?? "neutral"],
+												)}
+											/>
+										) : null}
+										{timeline ? (
+											<span className="flex min-w-0 flex-1 flex-col gap-1 py-1">
+												<span className="flex items-center gap-2">
+													<span className="font-mono text-12 text-n-11">{r.lead}</span>
+													<span className="min-w-0 flex-1 truncate">{r.title}</span>
+												</span>
+												<span className="flex items-center gap-2">
+													{r.tag ? <Badge variant={r.tone}>{r.tag}</Badge> : null}
+													<span className="font-mono text-11 text-n-11">{r.time}</span>
+												</span>
+											</span>
+										) : (
+											<>
+												{r.lead ? (
+													<span className="font-mono text-12 text-n-11">{r.lead}</span>
+												) : null}
 												<span className="min-w-0 flex-1 truncate">{r.title}</span>
-											</span>
-											<span className="flex items-center gap-2">
+												{r.issue ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
 												{r.tag ? <Badge variant={r.tone}>{r.tag}</Badge> : null}
-												<span className="font-mono text-11 text-n-11">{r.time}</span>
-											</span>
-										</span>
-									) : (
-										<>
-											{r.lead ? (
-												<span className="font-mono text-12 text-n-11">{r.lead}</span>
-											) : null}
-											<span className="min-w-0 flex-1 truncate">{r.title}</span>
-											{r.issue ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
-											{r.tag ? <Badge variant={r.tone}>{r.tag}</Badge> : null}
-										</>
-									)}
-								</button>
+											</>
+										)}
+									</button>
+								</ContextMenu>
 							</li>
 						))}
 						{rows.length === 0 ? (

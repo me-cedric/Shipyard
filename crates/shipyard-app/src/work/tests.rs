@@ -1562,6 +1562,8 @@ fn a_ticket_thread_reads_comments_posts_one_edits_the_title_and_adds_a_label() {
         .put("/rest/api/2/issue/PROJ-5", "summary", 204, "")
         .put("/rest/api/2/issue/PROJ-5", "labels", 204, "")
         .put("/rest/api/2/issue/PROJ-5", "priority", 204, "")
+        .put("/rest/api/2/issue/PROJ-5", "issuetype", 204, "")
+        .put("/rest/api/2/issue/PROJ-5", "duedate", 204, "")
         .get(
             "/rest/api/2/issue/PROJ-5",
             200,
@@ -1608,6 +1610,13 @@ fn a_ticket_thread_reads_comments_posts_one_edits_the_title_and_adds_a_label() {
     assert!(ticket_priority_set(&f.s, "PROJ-5", "high", false).is_err());
     ticket_label_remove(&f.s, "PROJ-5", "urgent", true).unwrap();
     ticket_priority_set(&f.s, "PROJ-5", "high", true).unwrap();
+    // Q-125: the type and the due date need a click and a valid day, and the flags name them.
+    assert!(caps.issue_type && caps.due_date && caps.estimate);
+    assert!(ticket_type_set(&f.s, "PROJ-5", "Bug", false).is_err());
+    assert!(ticket_type_set(&f.s, "PROJ-5", " ", true).is_err());
+    assert!(ticket_due_set(&f.s, "PROJ-5", Some("30/11/2026"), true).is_err());
+    ticket_type_set(&f.s, "PROJ-5", "Bug", true).unwrap();
+    ticket_due_set(&f.s, "PROJ-5", Some("2026-11-30"), true).unwrap();
     let sent: Vec<_> = f
         .http
         .requests()
@@ -1619,4 +1628,9 @@ fn a_ticket_thread_reads_comments_posts_one_edits_the_title_and_adds_a_label() {
         sent.iter()
             .any(|b| b.contains(r#""priority":{"name":"High"}"#))
     );
+    assert!(
+        sent.iter()
+            .any(|b| b.contains(r#""issuetype":{"name":"Bug"}"#))
+    );
+    assert!(sent.iter().any(|b| b.contains(r#""duedate":"2026-11-30""#)));
 }

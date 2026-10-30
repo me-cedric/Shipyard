@@ -63,6 +63,7 @@ export function Decisions() {
 				tag: t.design.decisions.status[a.status] ?? a.status,
 				tone: TONE[a.status] ?? "neutral",
 				time: a.date || undefined,
+				path: a.path,
 			}))}
 			create={{ run: async (title) => `adr:${(await act.createAdr(title)).number}` }}
 		>

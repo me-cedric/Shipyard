@@ -11,11 +11,13 @@ import {
 	useConflicts,
 } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
+import { copyText, useMenus } from "@/lib/menus";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { ArrowPathIcon, CheckIcon, PlusIcon, ShareIcon } from "@/ui/icons";
+import { ContextMenu } from "@/ui/molecules/context-menu";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
@@ -60,6 +62,7 @@ function CreateBranch({ run }: { run: (job: () => Promise<unknown>) => void }) {
 
 function BranchesView() {
 	const { t } = useI18n();
+	const menu = useMenus();
 	const branches = useBranches().data ?? [];
 	const {
 		switchBranch,
@@ -191,62 +194,66 @@ function BranchesView() {
 						className="self-start"
 					>
 						{g.items.map((b) => (
-							<SettingsRow
+							<ContextMenu
 								key={b.name}
-								icon={b.is_head ? <CheckIcon size={14} /> : undefined}
-								label={b.name}
+								items={menu("branch", {
+									switch: b.is_head ? undefined : () => run(() => switchBranch(b.name)),
+									"copy-ref": () => copyText(b.name),
+								})}
 							>
-								{b.ahead ? (
-									<Badge variant="success">{format(t.code.ahead, { count: b.ahead })}</Badge>
-								) : null}
-								{b.behind ? (
-									<Badge variant="warning">{format(t.code.behind, { count: b.behind })}</Badge>
-								) : null}
-								<Button
-									variant="ghost"
-									disabled={b.is_head}
-									onClick={() => run(() => switchBranch(b.name))}
-								>
-									{t.code.switch}
-								</Button>
-								{!b.is_head && !busy ? (
-									<>
-										<Button
-											variant="ghost"
-											aria-label={format(t.code.mergeBranch, { name: b.name })}
-											onClick={() => run(async () => setMerged(await mergeBranch(b.name)))}
-										>
-											{t.code.merge}
-										</Button>
-										<Button
-											variant="ghost"
-											aria-label={format(t.code.rebaseBranch, { name: b.name })}
-											onClick={() => run(async () => setRebased(await rebaseBranch(b.name)))}
-										>
-											{t.code.rebase}
-										</Button>
-									</>
-								) : null}
-								{b.kind === "local" && !b.is_head ? (
-									confirming === b.name ? (
-										<Button
-											variant="danger"
-											onClick={() =>
-												run(async () => {
-													setConfirming(null);
-													await deleteBranch(b.name, false);
-												})
-											}
-										>
-											{format(t.code.confirmDelete, { name: b.name })}
-										</Button>
-									) : (
-										<Button variant="ghost" onClick={() => setConfirming(b.name)}>
-											{t.code.delete}
-										</Button>
-									)
-								) : null}
-							</SettingsRow>
+								<SettingsRow icon={b.is_head ? <CheckIcon size={14} /> : undefined} label={b.name}>
+									{b.ahead ? (
+										<Badge variant="success">{format(t.code.ahead, { count: b.ahead })}</Badge>
+									) : null}
+									{b.behind ? (
+										<Badge variant="warning">{format(t.code.behind, { count: b.behind })}</Badge>
+									) : null}
+									<Button
+										variant="ghost"
+										disabled={b.is_head}
+										onClick={() => run(() => switchBranch(b.name))}
+									>
+										{t.code.switch}
+									</Button>
+									{!b.is_head && !busy ? (
+										<>
+											<Button
+												variant="ghost"
+												aria-label={format(t.code.mergeBranch, { name: b.name })}
+												onClick={() => run(async () => setMerged(await mergeBranch(b.name)))}
+											>
+												{t.code.merge}
+											</Button>
+											<Button
+												variant="ghost"
+												aria-label={format(t.code.rebaseBranch, { name: b.name })}
+												onClick={() => run(async () => setRebased(await rebaseBranch(b.name)))}
+											>
+												{t.code.rebase}
+											</Button>
+										</>
+									) : null}
+									{b.kind === "local" && !b.is_head ? (
+										confirming === b.name ? (
+											<Button
+												variant="danger"
+												onClick={() =>
+													run(async () => {
+														setConfirming(null);
+														await deleteBranch(b.name, false);
+													})
+												}
+											>
+												{format(t.code.confirmDelete, { name: b.name })}
+											</Button>
+										) : (
+											<Button variant="ghost" onClick={() => setConfirming(b.name)}>
+												{t.code.delete}
+											</Button>
+										)
+									) : null}
+								</SettingsRow>
+							</ContextMenu>
 						))}
 					</Panel>
 				))}

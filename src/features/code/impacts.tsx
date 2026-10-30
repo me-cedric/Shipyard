@@ -17,6 +17,7 @@ import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { Assignments } from "./assignments";
+import { ChainWatch } from "./chain-watch";
 import { DeliveryNotes } from "./delivery-notes";
 import { withProject } from "./project-gate";
 import { useRun } from "./use-run";
@@ -170,6 +171,7 @@ function ImpactsView() {
 			) : null}
 			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-1 pb-4">
 				<div className="flex w-[24rem] shrink-0 flex-col gap-3 overflow-y-auto">
+					<ChainWatch base={current} />
 					<DeliveryNotes />
 					<Panel
 						title={i18n.past}

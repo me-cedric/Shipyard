@@ -1,9 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
+import { usePrefs } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { rememberSelection } from "@/lib/shell/selection";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -15,9 +16,13 @@ import {
 	CodeBracketIcon,
 	DocumentTextIcon,
 	FolderOpenIcon,
+	PencilIcon,
+	PlusIcon,
+	TrashIcon,
 	XMarkIcon,
 } from "@/ui/icons";
 import { ContextMenu } from "@/ui/molecules/context-menu";
+import { type FileAction, FileActionDialog } from "./file-actions";
 import { FileDialog } from "./viewer";
 
 /** Search results that show at once. The search narrows the rest. */
@@ -31,9 +36,11 @@ export function fileRows(paths: string[], open: ReadonlySet<string>): FileRowIte
 	const root: Node = new Map();
 	for (const p of paths) {
 		let node = root;
-		const parts = p.split("/");
+		// A path with a trailing slash is a folder with no file yet (a new folder).
+		const empty = p.endsWith("/");
+		const parts = p.replace(/\/$/, "").split("/");
 		parts.forEach((part, i) => {
-			if (i === parts.length - 1) node.set(part, node.get(part) ?? null);
+			if (i === parts.length - 1) node.set(part, node.get(part) ?? (empty ? new Map() : null));
 			else {
 				const next = node.get(part) ?? new Map();
 				node.set(part, next);
@@ -77,8 +84,9 @@ export function findFiles(paths: string[], query: string): string[] {
 
 /**
  * The working copy as files, in a drawer beside the view. ⌘P opens it on the search. A file opens
- * in the viewer; its menu shows it in Code / Changes or copies its path. Read only: the drawer
- * never writes. Legacy source: `src/components/file-browser.tsx` and
+ * in the viewer; its menu shows it in Code / Changes, copies its path, makes a new file or folder,
+ * renames it or moves it to the trash. Each write is one click and a read-only project takes none
+ * (`file-actions.tsx`). Legacy source: `src/components/file-browser.tsx` and
  * `src-tauri/src/infrastructure/browse.rs`; Shipyard lists the files once, the ignore rules
  * applied, so the search covers the whole tree.
  */
@@ -95,9 +103,17 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
 	const [viewing, setViewing] = useState<string | null>(null);
+	const [action, setAction] = useState<FileAction | null>(null);
+	// New folders with no file yet: git lists none, so the drawer keeps them until it closes.
+	const [made, setMade] = useState<string[]>([]);
+	const qc = useQueryClient();
+	const readOnly = usePrefs().profile.readOnly;
 	const search = useRef<HTMLInputElement>(null);
 	useEffect(() => search.current?.focus(), []);
-	const paths = files.data ?? [];
+	const paths = useMemo(
+		() => [...(files.data ?? []), ...made.map((m) => `${m}/`)],
+		[files.data, made],
+	);
 	const found = useMemo(() => (query.trim() ? findFiles(paths, query) : null), [paths, query]);
 	const rows = useMemo(() => fileRows(paths, open), [paths, open]);
 	const toggle = (path: string) => {
@@ -108,6 +124,45 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 	const reveal = (path: string) => {
 		rememberSelection("code:changes", path);
 		void navigate({ to: "/code/changes" });
+	};
+	const parentOf = (p: string) => p.slice(0, Math.max(p.lastIndexOf("/"), 0));
+	/** The write items of a row. A folder makes new items inside, a file beside it. */
+	const writeItems = (path: string, folder: boolean) => {
+		if (readOnly) return [];
+		const here = folder ? path : parentOf(path);
+		return [
+			{
+				id: "new-file",
+				label: t.personal.files.newFile,
+				icon: <PlusIcon size={14} />,
+				onSelect: () => setAction({ kind: "file", path: here }),
+			},
+			{
+				id: "new-folder",
+				label: t.personal.files.newFolder,
+				icon: <FolderOpenIcon size={14} />,
+				onSelect: () => setAction({ kind: "folder", path: here }),
+			},
+			{
+				id: "rename",
+				label: t.personal.files.rename,
+				icon: <PencilIcon size={14} />,
+				onSelect: () => setAction({ kind: "rename", path, folder }),
+			},
+			{
+				id: "delete",
+				label: t.personal.files.delete,
+				icon: <TrashIcon size={14} />,
+				onSelect: () => setAction({ kind: "delete", path, folder }),
+			},
+		];
+	};
+	const done = (a: FileAction, path: string) => {
+		if (a.kind === "folder") setMade((m) => [...m, path]);
+		if (a.kind === "folder" || a.kind === "file")
+			setOpen((o) => new Set([...o, a.path].filter(Boolean)));
+		setAction(null);
+		void qc.invalidateQueries({ queryKey: ["code"] });
 	};
 	const fileRow = (path: string, label: string, depth: number, dir = "") => (
 		<li key={path}>
@@ -131,6 +186,7 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 						icon: <ClipboardIcon size={14} />,
 						onSelect: () => copyText(path),
 					},
+					...writeItems(path, false),
 				]}
 			>
 				<button
@@ -161,6 +217,22 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 					<FolderOpenIcon size={14} />
 				</span>
 				<h2 className="flex-1 truncate text-ui font-medium text-n-12">{active?.name ?? f.title}</h2>
+				{readOnly ? null : (
+					<>
+						<IconButton
+							label={t.personal.files.newFile}
+							onClick={() => setAction({ kind: "file", path: "" })}
+						>
+							<PlusIcon size={14} />
+						</IconButton>
+						<IconButton
+							label={t.personal.files.newFolder}
+							onClick={() => setAction({ kind: "folder", path: "" })}
+						>
+							<FolderOpenIcon size={14} />
+						</IconButton>
+					</>
+				)}
 				<IconButton label={f.close} onClick={onClose}>
 					<XMarkIcon size={14} />
 				</IconButton>
@@ -200,27 +272,29 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 					: rows.map((r) =>
 							r.folder ? (
 								<li key={r.path}>
-									<button
-										type="button"
-										aria-expanded={open.has(r.path)}
-										onClick={() => toggle(r.path)}
-										style={{ paddingLeft: 4 + r.depth * 12 }}
-										className="flex h-7 w-full items-center gap-1 rounded-md pr-2 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3"
-									>
-										{open.has(r.path) ? (
-											<span className="flex shrink-0 text-n-10">
-												<ChevronDownIcon size={12} />
+									<ContextMenu items={writeItems(r.path, true)}>
+										<button
+											type="button"
+											aria-expanded={open.has(r.path)}
+											onClick={() => toggle(r.path)}
+											style={{ paddingLeft: 4 + r.depth * 12 }}
+											className="flex h-7 w-full items-center gap-1 rounded-md pr-2 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3"
+										>
+											{open.has(r.path) ? (
+												<span className="flex shrink-0 text-n-10">
+													<ChevronDownIcon size={12} />
+												</span>
+											) : (
+												<span className="flex shrink-0 text-n-10">
+													<ChevronRightIcon size={12} />
+												</span>
+											)}
+											<span className="flex shrink-0 text-accent-text">
+												<FolderOpenIcon size={14} />
 											</span>
-										) : (
-											<span className="flex shrink-0 text-n-10">
-												<ChevronRightIcon size={12} />
-											</span>
-										)}
-										<span className="flex shrink-0 text-accent-text">
-											<FolderOpenIcon size={14} />
-										</span>
-										<span className="min-w-0 flex-1 truncate">{r.name}</span>
-									</button>
+											<span className="min-w-0 flex-1 truncate">{r.name}</span>
+										</button>
+									</ContextMenu>
 								</li>
 							) : (
 								fileRow(r.path, r.name, r.depth)
@@ -236,6 +310,9 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 				) : null}
 			</ul>
 			{viewing ? <FileDialog path={viewing} onClose={() => setViewing(null)} /> : null}
+			{action ? (
+				<FileActionDialog action={action} onClose={() => setAction(null)} onDone={done} />
+			) : null}
 		</aside>
 	);
 }

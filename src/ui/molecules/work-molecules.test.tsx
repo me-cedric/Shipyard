@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderApp } from "../test-utils";
 import { BoardColumn } from "./board-column";
@@ -81,5 +81,42 @@ describe("MemberRow", () => {
 			/>,
 		);
 		expect(screen.getByRole("img", { name: "Passphrase missing" })).toBeInTheDocument();
+	});
+});
+
+describe("context menus on entity rows", () => {
+	const items = (id: string, onSelect = vi.fn()) => [{ id, label: "Copy ref", onSelect }];
+
+	it("opens the menu of a ticket row and of a card, and Escape returns the focus", async () => {
+		const copy = vi.fn();
+		renderApp(
+			<>
+				<TicketRow
+					itemKey="ACME-1"
+					title="Fix login"
+					status="To Do"
+					category="todo"
+					onOpen={() => {}}
+					menu={items("copy-ref", copy)}
+				/>
+				<TicketCard
+					itemKey="ACME-2"
+					title="Card"
+					onOpen={() => {}}
+					onMove={() => {}}
+					menu={items("copy-ref")}
+				/>
+			</>,
+		);
+		const row = within(screen.getByRole("group", { name: "ACME-1" })).getByRole("button");
+		row.focus();
+		fireEvent.contextMenu(row);
+		await userEvent.click(await screen.findByRole("menuitem", { name: "Copy ref" }));
+		expect(copy).toHaveBeenCalledOnce();
+		expect(row).toHaveFocus();
+		fireEvent.contextMenu(screen.getByRole("button", { name: /ACME-2/ }));
+		await screen.findByRole("menu");
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 	});
 });

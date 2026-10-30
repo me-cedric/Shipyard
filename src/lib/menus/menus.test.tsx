@@ -21,6 +21,17 @@ describe("context menu table", () => {
 	});
 
 	it("has one entry for each kind of row", () => {
-		expect(Object.keys(MENU).sort()).toEqual(["commit", "connection", "file", "ref"]);
+		expect(Object.keys(MENU).sort()).toEqual([
+			"adr",
+			"branch",
+			"commit",
+			"connection",
+			"file",
+			"pull",
+			"ref",
+			"run",
+			"spec",
+			"ticket",
+		]);
 	});
 });

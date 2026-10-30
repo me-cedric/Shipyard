@@ -55,8 +55,8 @@ const TOAST_MS = 6000;
 
 /**
  * One list of events feeds the notification centre, the toast and the system notification.
- * An event shows once in each. The system one is only for the "needs you" class, and only while
- * the window is in the background: in the foreground the toast is enough.
+ * An event shows once in each. The system one is for the "needs you" class and for each source
+ * that the person left on (Settings), and only while the window is in the background.
  */
 export function NotificationsProvider({ children }: { children: ReactNode }) {
 	const [items, setItems] = useState<Notice[]>([]);
@@ -89,7 +89,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 		const notice: Notice = { ...n, time: Date.now(), read: false };
 		setItems((list) => [notice, ...list]);
 		setToasts((list) => [...list, notice]);
-		if (n.kind === "needs-you" && !document.hasFocus())
+		// A needs-you event or any chosen source (sync, update, remote head) goes to the system.
+		if ((n.kind === "needs-you" || source) && !document.hasFocus())
 			unwrap(commands.notifyOs(n.title, n.body ?? "")).catch((e) => console.error(e));
 		return true;
 	}, []);

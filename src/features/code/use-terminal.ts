@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { type RefObject, useEffect } from "react";
-import { commands, isTauri, type TerminalOutput } from "@/lib/ipc";
+import { commands, isTauri, type TerminalOutput, unwrap } from "@/lib/ipc";
+import { CODE_FONTS } from "@/lib/prefs";
 
 type Output = TerminalOutput;
 // The page load that ran before this one may have left shells: close them once, before the first open.
@@ -50,7 +51,15 @@ export function useTerminal(
 					import("@xterm/xterm/css/xterm.css"),
 				]);
 				if (stop) return;
-				const term = new Terminal({ cursorBlink: true, scrollback: 10000, fontSize: 13 });
+				// The font and the size of Settings / Me, read once for each shell.
+				const prefs = await unwrap(commands.prefsGet()).catch(() => null);
+				const stack = CODE_FONTS[prefs?.codeFont ?? ""] ?? CODE_FONTS.system;
+				const term = new Terminal({
+					cursorBlink: true,
+					scrollback: 10000,
+					fontSize: prefs?.terminalFontSize ?? 13,
+					fontFamily: prefs?.terminalFont ? `${prefs.terminalFont}, ${stack}` : stack,
+				});
 				const fit = new FitAddon();
 				term.loadAddon(fit);
 				term.open(node);

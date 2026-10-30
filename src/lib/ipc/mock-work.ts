@@ -769,6 +769,20 @@ export function ticketPrioritySet(mirror: Mirror, key: string, priority: string,
 	if (!PRIORITIES.includes(priority.toLowerCase())) throw `\`${priority}\` is not a priority`;
 }
 
+/** The mock keeps no type or due day: it checks the click and the value, as the real command does. */
+export function ticketTypeSet(mirror: Mirror, key: string, name: string, click: boolean) {
+	needClick(click);
+	if (!mirror.some((t) => t.key === key)) throw `not found: ${key}`;
+	if (!name.trim()) throw "the issue type is a name of 60 characters or fewer";
+}
+
+export function ticketDueSet(mirror: Mirror, key: string, day: string | null, click: boolean) {
+	needClick(click);
+	if (!mirror.some((t) => t.key === key)) throw `not found: ${key}`;
+	if (day?.trim() && !/^\d{4}-\d{2}-\d{2}$/.test(day.trim()))
+		throw "the due date is a day as YYYY-MM-DD";
+}
+
 // ---- estimates
 
 function readSheet(w: MockWork, slug: string): Sheet_Serialize {

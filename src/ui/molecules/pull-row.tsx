@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "../atoms/badge";
 import { type Status, StatusDot } from "../atoms/status-dot";
+import { ContextMenu, type MenuItem } from "./context-menu";
 
 /** The chip tint of a status. */
 const TINT: Record<Status, "success" | "warning" | "danger" | "info" | "neutral"> = {
@@ -38,6 +39,7 @@ export function PullRow({
 	meta,
 	selected,
 	onSelect,
+	menu,
 }: {
 	reference: string;
 	title: string;
@@ -51,27 +53,30 @@ export function PullRow({
 	meta?: ReactNode;
 	selected?: boolean;
 	onSelect: () => void;
+	menu?: MenuItem[];
 }) {
 	return (
-		<button
-			type="button"
-			onClick={onSelect}
-			aria-current={selected || undefined}
-			className={cn(
-				"flex w-full flex-col gap-1.5 border-b px-3 py-2 text-left text-ui transition-colors duration-(--duration-fast) last:border-b-0 hover:bg-n-3",
-				selected && "bg-accent-soft",
-			)}
-		>
-			<span className="flex w-full items-center gap-2">
-				<span className="shrink-0 font-mono text-12 text-n-11">{reference}</span>
-				<span className="min-w-0 flex-1 truncate text-n-12">{title}</span>
-				{draft ? <Badge>{draft}</Badge> : null}
-			</span>
-			<span className="flex w-full items-center gap-1.5">
-				<StateChip status={ci} label={ciLabel} />
-				<StateChip status={review} label={reviewLabel} />
-				<span className="ml-auto flex items-center gap-2 text-12 text-n-11">{meta}</span>
-			</span>
-		</button>
+		<ContextMenu items={menu}>
+			<button
+				type="button"
+				onClick={onSelect}
+				aria-current={selected || undefined}
+				className={cn(
+					"flex w-full flex-col gap-1.5 border-b px-3 py-2 text-left text-ui transition-colors duration-(--duration-fast) last:border-b-0 hover:bg-n-3",
+					selected && "bg-accent-soft",
+				)}
+			>
+				<span className="flex w-full items-center gap-2">
+					<span className="shrink-0 font-mono text-12 text-n-11">{reference}</span>
+					<span className="min-w-0 flex-1 truncate text-n-12">{title}</span>
+					{draft ? <Badge>{draft}</Badge> : null}
+				</span>
+				<span className="flex w-full items-center gap-1.5">
+					<StateChip status={ci} label={ciLabel} />
+					<StateChip status={review} label={reviewLabel} />
+					<span className="ml-auto flex items-center gap-2 text-12 text-n-11">{meta}</span>
+				</span>
+			</button>
+		</ContextMenu>
 	);
 }

@@ -1,6 +1,6 @@
 # Legacy to Shipyard gap audit
 
-Date: 2026-10-30. Source: re-audit of the 2026-10-29 gap list against Shipyard `main` bbec969, after wave W10. 162 Legacy features checked: 117 present, 36 partial, 9 missing.
+Date: 2026-10-30. Source: re-audit of the 2026-10-29 gap list against Shipyard `526239f` plus the uncommitted stage 8 work (the audit at 526239f found 133 present, 28 partial, 1 missing). 162 Legacy features checked: 136 present, 25 partial, 1 missing.
 
 Status: `missing` (no UI and no backend), `partial` (part of it, or backend only). P0 = a core flow is broken; P1 = a Legacy user relies on it; P2 = minor.
 
@@ -8,35 +8,22 @@ Status: `missing` (no UI and no backend), `partial` (part of it, or backend only
 
 None open. W10 closed all core flows (open in place, registry, close, remove, paths, merge, tracker scope).
 
-## P1 (23)
+## P1 (10)
 
 | Area | Feature | State | Gap | Legacy source | Shipyard |
 |---|---|---|---|---|---|
-| Agents | Composer attachments | partial | / prompts and @ files done. No attachments. | pick_files, save_attachment | src/features/assistant/composer.tsx |
-| Agents | FinOps: ccusage history, request tree, prices | partial | Own runs plus machine usage. Q-124: request tree for each run, nested by step. No flame graph. | pages/Finops.tsx | src/features/factory/usage/machine-usage.tsx |
-| Assistant | Bypass-permission warning, Codex trust | partial | No-CLI panel with install done. No bypass warning, no Codex trust button. | bypass-warning-dialog.tsx, codex-trust-button.tsx | src/features/assistant/no-cli.tsx |
 | Designs | List and preview docs/designs files (HTML, images, .fig) | partial | Q-122: the folder scan lists HTML, image and .fig files as screens, opened outside. No inline preview. | paths.designs | crates/shipyard-store/src/design.rs read_screens |
-| Doctor | Custom CA certificates (import, enable, remove) | partial | Env bundle and OS roots only. No UI. | certs_import, certs_set_enabled | crates/shipyard-http/src/client.rs |
-| Doctor | Compliance, tooling, propagation, bootstrap | partial | Tools list, install and findings ledger done. No bootstrap, no propagation, no upgrade view. | pages/Doctor.tsx | src/features/projects/doctor-tools.tsx, doctor-ledger.tsx |
-| Doctor | Compliance registry: absent, stale, current per item | partial | Ledger records finding changes. No per-skill status, no stack detection. | provision_ledger, upgrade_report | src/features/projects/doctor-ledger.tsx |
 | Extensions | Compass browse (skills, goals, knowledge, docs) | partial | Rules and tiers only. No goals or knowledge panel. | Compass.tsx | src/features/settings/extensions/compass.tsx |
 | Import | Import a Legacy repo into a Shipyard project | partial | Open in place works. The import adds calendar and plan (Q-122). Still not copied: slides, dashboards, worklog. | n/a | crates/shipyard-store/src/project_import.rs |
 | Import | Legacy import covers all artifacts | partial | Q-122: calendar.json, plan.json and the designs folder are read. Skips slides, dashboards, worklog, .agents/legacy.json. | whole docs/ tree | project_import.rs |
-| MCP | Legacy MCP server for outside agents | partial | Read, write, git, forge, check, delivery diff done. No ticket tools, no ADR decide, no QA. | legacy_server.rs | crates/shipyard-mcp/src/outside.rs |
-| Planning | Working week, holidays (calendar.json), arbitrations (plan.json) | present | Q-122: calendar.json and plan.json are read in place and saved in the Legacy format; the import copies them. | docs/planning/calendar.json, plan.json | work.rs CALENDAR_PATH, DECISIONS_PATH |
-| Scanners | Security: SBOM, score, saved scans | present | Q-124: CycloneDX SBOM from the lock files, security score in Code / Quality, saved scans. | security_sbom | crates/shipyard-app/src/scanners.rs |
-| Scanners | QA: BDD view | partial | Q-124: scenarios with the last verdict in Specs / Test plans. No BDD lint, no coverage graph. | pages/Qa.tsx | src/features/code/quality.tsx |
 | Settings | Preferences: 7 groups | partial | Theme, language, role, density, contrast done. No fonts, terminal, default CLI, shortcut editor in me.tsx. | pages/Preferences.tsx | src/features/settings/me.tsx |
 | Shell | File browser drawer (tree, new, rename, delete, reveal) | partial | Stage 6: drawer with tree, ⌘P search, viewer, show in Changes, copy path. Read only: no new, rename, delete (Q-127). | file-browser.tsx | src/features/code/file-drawer.tsx, code_file_list |
-| Shell | Page tours and tour button | replaced | No tours (constitution). The Get started checklist and Explain replace them. | src/lib/tour | src/features/home/get-started.tsx |
-| Shell | Get started checklist | present | Stage 6: five steps on Home from the real state, one click each, gone when done. | Welcome.tsx | src/features/home/get-started.tsx |
 | Shell | Terminal drawer from any page | partial | Stage 6: bottom drawer with tabs on every view (⌘`, Q-088 option 1); the Code / Terminal tab stays. No external mode. | terminal-panel.tsx | src/features/code/terminal-drawer.tsx |
-| Shell | Context menu on any row | partial | Menu atom exists. Not on every row. No open-in-editor or copy-path everywhere. | item-menu.tsx | src/ui/molecules/context-menu.tsx |
 | Slides | reveal.js decks, CGI HTML template | partial | Markdown decks only. HTML decks and template not matched. | paths.slides | crates/shipyard-store/src/knowledge.rs parse_deck |
 | Specs | Chain watch: documents to check downstream | partial | Gate on push done. No chain watch view. | chain-watch.tsx | src/features/code/push-target.tsx |
 | Trackers | Edit a ticket (type, priority, due, estimate, description) | partial | Q-123: title, description, labels (add, remove), assignee, status and priority with capability flags. No type, due date or estimate. | ticket-edit.tsx | src/features/sync/ticket-thread.tsx |
 
-## P2 (22)
+## P2 (16)
 
 | Area | Feature | State | Gap | Legacy source | Shipyard |
 |---|---|---|---|---|---|
@@ -49,21 +36,15 @@ None open. W10 closed all core flows (open in place, registry, close, remove, pa
 | Compass | Goals and knowledge panels | partial | No goals panel. | GoalsPanel.tsx | compass.tsx |
 | Design | Designs .fig viewer, Figma import, design.md validate | partial | Open in Figma only. | fig-viewer.tsx | src/features/design/screens.tsx |
 | Design | Drawings: draw.io and BPMN edit, convert | partial | Path fixed (docs/drawings). draw.io and BPMN read-only. | Drawings.tsx | src/features/design/diagrams.tsx |
-| Doctor | Bootstrap new project form | missing | Create project only. | bootstrap_project | none |
-| Doctor | Propagate parent items to linked projects | missing | Absent. | Doctor propagation | none |
 | MCP | MCP resources and prompts | partial | Ref resource only. | mcpresources.rs | crates/shipyard-mcp/src/server.rs |
-| Projects | Screens toggle per project | present | Stage 6: spaces and tabs per project in the profile; Settings stays (Q-128). | SurfacesCard.tsx | src/features/projects/screens-card.tsx |
 | Scanners | Secrets scan (gitleaks) | partial | Built-in regex scan. | security_leaks | scan_run |
 | Shell | OS notifications when unfocused | partial | Plugin registered in Rust. No send path found in src. | system-notify.ts | crates/shipyard-app/src/lib.rs |
-| Shell | Feedback button | missing | Absent. | feedback-button.tsx | none |
-| Shell | Debug console | missing | Absent. | debug-console.tsx | none |
-| Shell | What's new dialog, version badge | partial | Check works. No dialog, no badge. | whats-new.tsx | src/lib/updates/index.ts |
 | Test plans | Verdict .json sibling | partial | Compatibility not verified. | docs/delivery/test-plans | src/features/specs/test-plans.tsx |
 | Trackers | Workflow guide page | partial | No explainer page. | workflow-view.tsx | src/features/factory/workflows/workflows.tsx |
 | UX design doc | docs/design.md | partial | Reads docs/designs/design.md only. | docs/design.md | design.rs design_doc_path |
 | Workflows | docs/workflows and docs/architecture markdown | partial | In no Shipyard list. | none | Handbook, Documents |
 
-## Present (117)
+## Present (136)
 
 | Area | Feature |
 |---|---|
@@ -73,44 +54,120 @@ None open. W10 closed all core flows (open in place, registry, close, remove, pa
 | Agents | Permission levels (ask, edit, auto) and grant-and-resume when the CLI refuses a tool |
 | Agents | Factory runs, workflows, agents map, plan approve, kill switch |
 | Agents | Notification centre with quick actions and OS notifications per category |
+| Agents | Selection toolbar: explain, improve, shorten, rephrase, fix |
+| Agents | AI sessions bar: every agent CLI on the machine |
+| Agents | AI CLIs detected, install from the no-CLI panel |
+| Agents | Composer attachments |
+| Agents | FinOps: ccusage history, request tree, prices |
 | Assistant | Drawer with CLI runner (Claude/Codex/Copilot), model + effort lists, mode, permission |
 | Assistant | Multiple conversation tabs, rename, delete, per-thread session |
 | Assistant | Tool trace, changed-file cards with diff, copy/insert code, retry, grant permission |
 | Assistant | Context ring + quota windows, new conversation when full |
 | Assistant | Resize drawer, move left/right |
 | Assistant | Send to factory (work item from chat) |
+| Assistant | Selection toolbar: explain, improve, shorten, rewrite, fix |
+| Assistant | / prompts and @ file mentions in the composer |
+| Assistant | Follow-up suggestion buttons |
+| Assistant | Bypass-permission warning, Codex trust |
 | Catalog | Catalog: devcontainers, agents instructions, DevOps (GitLab, GitHub, Ansible, Terraform), security (Sonar, grype, syft, Renovate); preview and deploy |
 | Child projects | Linked child repos: add, clone, deploy catalog or compass items, commit and push |
+| Child projects | Remove a child |
 | Code | Git changes tree, stage/unstage/discard, commit, stash, conflict resolver, history graph |
 | Code | Pull requests: list, detail, create, comment, approve, merge, AI actions |
+| Code | Merge a branch |
 | Compass | Browse skills, packs, guides, patterns, contract; search; preview SKILL.md; apply selected |
+| Compass | Import own skills, remove user skills |
+| Costing | Legacy docs/costing/*.json sheets read in place |
 | Data models | DBML models in docs/data-models |
+| Delivery | Assignments per profile with brief |
+| Delivery | Impact notes and digests in docs/delivery |
 | Design | ADRs: list, create from template, edit, accept/refuse with comment |
 | Design | OpenAPI Redoc/Swagger toggle; DBML; IPAM flows with filters |
+| Design | Models (LikeC4) editor, .c4 in docs/diagrams |
+| Diagrams | LikeC4 files in docs/diagrams listed and rendered |
+| Doctor | Tooling: run and install tools |
+| Doctor | Custom CA certificates (import, enable, remove) |
+| Doctor | Compliance, tooling, propagation, bootstrap |
+| Doctor | Compliance registry: absent, stale, current per item |
+| Doctor | Bootstrap new project form |
+| Doctor | Propagate parent items to linked projects |
+| Drawings | Boards in docs/drawings listed |
 | Forges | Pull requests list, detail, files diff, commits, CI checks, conversation, verdicts |
 | Forges | Open PR, comment, approve, request changes, merge/squash/rebase, ready |
+| Forges | AI actions on a PR |
+| Forges | Add forge account: gh/glab login detection |
+| Forges | Repo picker with create repo |
 | Git | Working copy as folder tree: stage, unstage, discard per file/folder/selection, staged vs working diff |
 | Git | Commit with summary counter (50 chars advisory) and description; commit all |
 | Git | Pull, push, fetch, fast-forward |
 | Git | Stash: save (with untracked), apply, pop, drop, diff |
 | Git | Branches: list local/remote, create, switch, delete, ahead/behind |
+| Git | Merge a chosen branch, abort merge |
+| Git | Rebase, continue, abort |
+| Git | History with branch graph |
+| Git | Force push with lease |
+| Git | Blame |
+| Git | Docs-chain gate before push |
+| Git | Conflict resolver with hand-off to the factory |
+| Git | Remote watch with per-project interval |
 | Impacts | Impacts: diff vs ref, dev analysis (7 axes), PO digest, saved files |
 | Knowledge | Graph, Handbook, Documents (+docx dossiers), Slides, Learn, Dashboards |
 | MCP | MCP catalogue, enable, start, stop, secrets, deps install, custom server add/remove |
 | MCP | Relay for stdio servers and proxy of third-party servers |
+| MCP | MCP gates and settings for outside agents |
+| MCP | Import custom MCP servers, list servers elsewhere |
+| MCP | Legacy MCP server for outside agents |
+| Network flows | IPAM flows from docs/network/flows.json |
 | OpenAPI | View OpenAPI in docs/api (Redoc read / Swagger try) |
 | OpenSpec | Changes, capabilities, constitution, schema shipyard-delivery in docs/openspec |
+| Personas | Personas with TJM |
+| Planning | Team members in docs/planning/team.json, read in place |
+| Planning | Working week, holidays (calendar.json), arbitrations (plan.json) |
 | Plugins | Import .zip plugin: review files, accept, apply, MCP and config |
+| Plugins | Plugin list, delete, config |
+| Project open | Open a Legacy repo with no project file (layout detected) |
+| Project paths | Per-project path override from the Legacy registry |
+| Project registry | Legacy project list read, project opens in place |
 | Projects | Clone a repo (URL + folder) |
 | Projects | Open the page the project was on when switching/reopening |
 | Projects | Remote watch: poll remote per project, notify moved branch with Sync button |
+| Projects | Close the open project |
+| Projects | Remove a project from the list |
+| Projects | Auto-detect Legacy paths (drawings, diagrams, flows) |
+| Projects | Switch project from the top bar |
+| Projects | Add project from the switcher (folder, clone) |
+| Projects | Edit all artifact paths (14 kinds) |
+| Projects | Projects page with cards |
+| Projects | Repo picker with search and push-target check |
+| Projects | Project details and open remote |
+| Projects | Recent projects on first run |
+| Projects | Per-project overrides |
+| Projects | Role and profile per project |
+| Projects | Screens toggle per project |
 | RAID / questions | RAID register: one md file per question/risk/assumption in docs/delivery/questions |
+| Scanners | Security: SBOM, score, saved scans |
+| Scanners | QA: BDD view |
 | Sessions | AI sessions bar: running/idle sessions on machine, open terminal |
+| Settings | Settings / Team tab |
+| Settings | Repo connection, tracker card, auto-commit, costing seal |
+| Settings | Auto-commit and close guard |
 | Shell | Command palette (nav, actions, projects, refs) |
 | Shell | Native menu |
 | Shell | Theme toggle, language switch in top bar |
+| Shell | Branch switcher in the top bar |
+| Shell | Keyboard shortcuts with help overlay and rebind |
+| Shell | Notification centre (bell, unread, clear) |
+| Shell | Close guard |
+| Shell | Sidebar counts |
+| Shell | Page tours and tour button |
+| Shell | Get started checklist |
+| Shell | Context menu on any row |
+| Shell | Feedback button |
+| Shell | Debug console |
+| Shell | What's new dialog, version badge |
 | Specs | OpenSpec: tree, change stages (propose/apply/archive), journey greenfield/brownfield, delegate |
 | Specs | Questions RAID, Test plans (Gherkin), constitution |
+| Tickets | Legacy ticket links and config |
 | Trackers | Test the tracker connection and show the reason |
 | Trackers | Tracker kinds: Jira Cloud, GitHub Issues, GitLab Issues, Azure DevOps |
 | Trackers | Ticket list / registry with key, status, assignee, updated, time spent, Jira-only state |
@@ -120,67 +177,10 @@ None open. W10 closed all core flows (open in place, registry, close, remove, pa
 | Trackers | Plan and apply: project epics and stories from costing, review, apply, apply log, dup warning |
 | Trackers | Worklog: log work on a ticket, pull worklogs, push to tracker, month stats |
 | Trackers | Delegate a ticket or change to an agent run |
-| Update | App update check and release notes |
-| Work | Backlog/Board, Tickets plan+apply+sync, Estimates (sheets, Excel), Plan (Gantt), Team, Time/worklog |
-| Project open | Open a Legacy repo with no project file (layout detected) |
-| Project registry | Legacy project list read, project opens in place |
-| Projects | Close the open project |
-| Projects | Remove a project from the list |
-| Projects | Auto-detect Legacy paths (drawings, diagrams, flows) |
-| Projects | Switch project from the top bar |
-| Projects | Add project from the switcher (folder, clone) |
-| Projects | Edit all artifact paths (14 kinds) |
 | Trackers | Set the tracker project key and repo scope |
-| Design | Models (LikeC4) editor, .c4 in docs/diagrams |
-| Diagrams | LikeC4 files in docs/diagrams listed and rendered |
-| Drawings | Boards in docs/drawings listed |
-| Git | Merge a chosen branch, abort merge |
-| Agents | Selection toolbar: explain, improve, shorten, rephrase, fix |
-| Assistant | Selection toolbar: explain, improve, shorten, rewrite, fix |
-| Agents | AI sessions bar: every agent CLI on the machine |
-| Assistant | / prompts and @ file mentions in the composer |
-| Code | Merge a branch |
-| Costing | Legacy docs/costing/*.json sheets read in place |
-| Delivery | Assignments per profile with brief |
-| Delivery | Impact notes and digests in docs/delivery |
-| Forges | AI actions on a PR |
-| Forges | Add forge account: gh/glab login detection |
-| Git | Rebase, continue, abort |
-| Git | History with branch graph |
-| MCP | MCP gates and settings for outside agents |
-| Network flows | IPAM flows from docs/network/flows.json |
-| Personas | Personas with TJM |
-| Planning | Team members in docs/planning/team.json, read in place |
-| Project paths | Per-project path override from the Legacy registry |
-| Projects | Projects page with cards |
-| Projects | Repo picker with search and push-target check |
-| Settings | Settings / Team tab |
-| Settings | Repo connection, tracker card, auto-commit, costing seal |
-| Shell | Branch switcher in the top bar |
-| Shell | Keyboard shortcuts with help overlay and rebind |
-| Shell | Notification centre (bell, unread, clear) |
-| Tickets | Legacy ticket links and config |
 | Trackers | Ticket setup form (issue types, estimate field, hours per day) |
 | Trackers | Comments on a ticket |
-| Agents | AI CLIs detected, install from the no-CLI panel |
-| Assistant | Follow-up suggestion buttons |
-| Child projects | Remove a child |
-| Compass | Import own skills, remove user skills |
-| Doctor | Tooling: run and install tools |
-| Forges | Repo picker with create repo |
-| Git | Force push with lease |
-| Git | Blame |
-| Git | Docs-chain gate before push |
-| Git | Conflict resolver with hand-off to the factory |
-| Git | Remote watch with per-project interval |
-| MCP | Import custom MCP servers, list servers elsewhere |
-| Plugins | Plugin list, delete, config |
-| Projects | Project details and open remote |
-| Projects | Recent projects on first run |
-| Projects | Per-project overrides |
-| Projects | Role and profile per project |
-| Settings | Auto-commit and close guard |
-| Shell | Close guard |
-| Shell | Sidebar counts |
 | Trackers | Budget bar on tickets |
 | Trackers | Add and remove labels |
+| Update | App update check and release notes |
+| Work | Backlog/Board, Tickets plan+apply+sync, Estimates (sheets, Excel), Plan (Gantt), Team, Time/worklog |

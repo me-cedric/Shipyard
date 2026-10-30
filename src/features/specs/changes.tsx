@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
+import { copyText, useMenus } from "@/lib/menus";
 import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
 import {
@@ -21,6 +22,7 @@ import { Progress } from "@/ui/atoms/progress";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { DocumentTextIcon, PlusIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
+import { ContextMenu } from "@/ui/molecules/context-menu";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { LIST, useEnter } from "@/ui/motion";
 import { ListDetail } from "@/ui/templates/list-detail";
@@ -114,6 +116,7 @@ function ChangeList() {
 	const { t } = useI18n();
 	const s = t.specs;
 	const act = useSpecsActions();
+	const menu = useMenus();
 	const { openRef } = useShell();
 	const list = useChanges().data;
 	const markers = useMarkerCounts(list ?? []);
@@ -160,43 +163,53 @@ function ChangeList() {
 						const done = tasks[c.id];
 						return (
 							<li key={c.id}>
-								<Card interactive className="p-0">
-									<button
-										type="button"
-										onClick={() => {
+								<ContextMenu
+									items={menu("spec", {
+										open: () => {
 											setOpen(c.id);
 											openRef(`change:${c.id}`);
-										}}
-										className="flex w-full flex-col gap-3 p-3 rounded-lg text-left"
-									>
-										<span className="flex items-center gap-2">
-											<span className="min-w-0 flex-1 truncate font-mono text-14 text-n-12">
-												{c.id}
-											</span>
-											{n ? (
-												<Badge variant="warning" className="font-mono">
-													<span className="sr-only">{s.markers} </span>
-													{n}
-												</Badge>
-											) : null}
-										</span>
-										<Stepper change={c} />
-										{done?.total ? (
-											<span className="flex items-center gap-2 text-12 text-n-11">
-												{s.artifact.tasks}
-												<Progress
-													value={done.done}
-													max={done.total}
-													label={format(t.count, { name: s.artifact.tasks, count: done.done })}
-													className="flex-1"
-												/>
-												<span className="font-mono">
-													{done.done}/{done.total}
+										},
+										"copy-ref": () => copyText(`change:${c.id}`),
+									})}
+								>
+									<Card interactive className="p-0">
+										<button
+											type="button"
+											onClick={() => {
+												setOpen(c.id);
+												openRef(`change:${c.id}`);
+											}}
+											className="flex w-full flex-col gap-3 p-3 rounded-lg text-left"
+										>
+											<span className="flex items-center gap-2">
+												<span className="min-w-0 flex-1 truncate font-mono text-14 text-n-12">
+													{c.id}
 												</span>
+												{n ? (
+													<Badge variant="warning" className="font-mono">
+														<span className="sr-only">{s.markers} </span>
+														{n}
+													</Badge>
+												) : null}
 											</span>
-										) : null}
-									</button>
-								</Card>
+											<Stepper change={c} />
+											{done?.total ? (
+												<span className="flex items-center gap-2 text-12 text-n-11">
+													{s.artifact.tasks}
+													<Progress
+														value={done.done}
+														max={done.total}
+														label={format(t.count, { name: s.artifact.tasks, count: done.done })}
+														className="flex-1"
+													/>
+													<span className="font-mono">
+														{done.done}/{done.total}
+													</span>
+												</span>
+											) : null}
+										</button>
+									</Card>
+								</ContextMenu>
 							</li>
 						);
 					})}

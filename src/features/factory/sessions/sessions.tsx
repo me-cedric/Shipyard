@@ -18,6 +18,7 @@ import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { MachineSessions } from "./machine-sessions";
+import { OrcaSessions } from "./orca-sessions";
 
 const STATE_BADGE = {
 	pending: "neutral",
@@ -129,6 +130,7 @@ export function Sessions() {
 						}}
 					/>
 					<MachineSessions />
+					<OrcaSessions />
 				</div>
 			) : (
 				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
@@ -164,6 +166,7 @@ export function Sessions() {
 						/>
 					</Panel>
 					<MachineSessions />
+					<OrcaSessions />
 				</div>
 			)}
 		</ListDetail>

@@ -44,6 +44,7 @@ export const commands = {
 	projectOpenRemote: (id: string) => typedError<null, string>(__TAURI_INVOKE("project_open_remote", { id })),
 	codePushTarget: () => typedError<PushTarget_Serialize, string>(__TAURI_INVOKE("code_push_target")),
 	codeChainGate: (push: boolean) => typedError<ChainWarning[], string>(__TAURI_INVOKE("code_chain_gate", { push })),
+	codeChainWatch: (base: string | null) => typedError<ChainWatch, string>(__TAURI_INVOKE("code_chain_watch", { base })),
 	connectionsList: () => typedError<Connection_Serialize[], string>(__TAURI_INVOKE("connections_list")),
 	connectionsAdd: (draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_add", { draft })),
 	connectionsEdit: (id: string, draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_edit", { id, draft })),
@@ -189,6 +190,15 @@ export const commands = {
 	workTicketLabelAdd: (key: string, label: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_ticket_label_add", { key, label, click })),
 	workTicketLabelRemove: (key: string, label: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_ticket_label_remove", { key, label, click })),
 	workTicketPrioritySet: (key: string, priority: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_ticket_priority_set", { key, priority, click })),
+	workTicketTypeSet: (key: string, name: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_ticket_type_set", { key, name, click })),
+	workTicketDueSet: (key: string, day: string | null, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_ticket_due_set", { key, day, click })),
+	filesCreateFile: (path: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("files_create_file", { path, click })),
+	filesCreateFolder: (path: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("files_create_folder", { path, click })),
+	filesRename: (from: string, to: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("files_rename", { from, to, click })),
+	/**  Moves a path to the system trash. */
+	filesDelete: (path: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("files_delete", { path, click })),
+	orcaStatus: () => typedError<OrcaStatus_Serialize, string>(__TAURI_INVOKE("orca_status")),
+	orcaOpen: (terminal: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("orca_open", { terminal, click })),
 	workTicketEditCaps: () => typedError<TicketEditCaps, string>(__TAURI_INVOKE("work_ticket_edit_caps")),
 	workSealState: () => typedError<SealState, string>(__TAURI_INVOKE("work_seal_state")),
 	workUnlock: (passphrase: string) => typedError<SealState, string>(__TAURI_INVOKE("work_unlock", { passphrase })),
@@ -372,6 +382,8 @@ export const commands = {
 	/**  Close past the guard. `destroy` does not raise a second request. */
 	closeAnyway: () => typedError<null, string>(__TAURI_INVOKE("close_anyway")),
 	runnerInstall: (id: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("runner_install", { id, click })),
+	codexTrustState: () => typedError<boolean, string>(__TAURI_INVOKE("codex_trust_state")),
+	codexTrust: (click: boolean) => typedError<null, string>(__TAURI_INVOKE("codex_trust", { click })),
 	/**  Replaces the native menu with one in the language of the person. `labels` is keyed by item id. */
 	shellMenu: (labels: { [key in string]: string }) => typedError<null, string>(__TAURI_INVOKE("shell_menu", { labels })),
 	/**
@@ -951,6 +963,13 @@ export type ChainWarning = {
 	/**  The path kind that did not follow. */
 	to: string,
 	changed: string[],
+};
+
+/**  The docs chain against a base branch: which artifacts are stale against their source. */
+export type ChainWatch = {
+	/**  The revision that the changes are counted from. */
+	base: string,
+	warnings: ChainWarning[],
 };
 
 export type ChangeView = ChangeView_Serialize | ChangeView_Deserialize;
@@ -2332,6 +2351,70 @@ export type OpenedPull_Serialize = {
 	labelError: string | null,
 };
 
+export type OrcaSession = OrcaSession_Serialize | OrcaSession_Deserialize;
+
+export type OrcaSession_Deserialize = {
+	id: string,
+	/**  The title of the terminal, as Orca shows it. */
+	title: string,
+	/**  `claude`, `codex`, `copilot`, `gemini`, `opencode`, `cursor`, or empty. */
+	agent: string,
+	/**  The last part of the worktree folder. */
+	worktree: string,
+	project: string,
+	branch: string,
+	/**  What the agent does or asks, in the words of Orca. */
+	activity: string,
+	since: string,
+	/**  The share of the context window in use, 0 to 100. */
+	context?: number | null,
+	/**  `working`, `idle`, `done` or `unknown`. */
+	state: string,
+};
+
+export type OrcaSession_Serialize = {
+	id: string,
+	/**  The title of the terminal, as Orca shows it. */
+	title: string,
+	/**  `claude`, `codex`, `copilot`, `gemini`, `opencode`, `cursor`, or empty. */
+	agent: string,
+	/**  The last part of the worktree folder. */
+	worktree: string,
+	project: string,
+	branch: string,
+	/**  What the agent does or asks, in the words of Orca. */
+	activity: string,
+	since: string,
+	/**  The share of the context window in use, 0 to 100. */
+	context: number | null,
+	/**  `working`, `idle`, `done` or `unknown`. */
+	state: string,
+};
+
+export type OrcaStatus = OrcaStatus_Serialize | OrcaStatus_Deserialize;
+
+export type OrcaStatus_Deserialize = {
+	/**  The `orca` CLI is on the path. */
+	installed: boolean,
+	/**  The CLI answered: the Orca app runs. */
+	running: boolean,
+	sessions: OrcaSession_Deserialize[],
+	/**  Why the list is empty when it should not be, in the words of Orca. */
+	message: string,
+	downloadUrl: string,
+};
+
+export type OrcaStatus_Serialize = {
+	/**  The `orca` CLI is on the path. */
+	installed: boolean,
+	/**  The CLI answered: the Orca app runs. */
+	running: boolean,
+	sessions: OrcaSession_Serialize[],
+	/**  Why the list is empty when it should not be, in the words of Orca. */
+	message: string,
+	downloadUrl: string,
+};
+
 /**  A project value that takes the place of a personal preference while the project is active. */
 export type Overrides = Overrides_Serialize | Overrides_Deserialize;
 
@@ -2573,6 +2656,13 @@ export type PrefsPatch_Deserialize = {
 	notifyOff?: EventSource[] | null,
 	seenVersion?: string | null,
 	shortcuts?: { [key in string]: string } | null,
+	uiFont?: string | null,
+	codeFont?: string | null,
+	terminalShell?: string | null,
+	terminalFont?: string | null,
+	terminalFontSize?: number | null,
+	defaultAgent?: string | null,
+	defaultModel?: string | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -2588,6 +2678,13 @@ export type PrefsPatch_Serialize = {
 	notifyOff: EventSource[] | null,
 	seenVersion: string | null,
 	shortcuts: { [key in string]: string } | null,
+	uiFont: string | null,
+	codeFont: string | null,
+	terminalShell: string | null,
+	terminalFont: string | null,
+	terminalFontSize: number | null,
+	defaultAgent: string | null,
+	defaultModel: string | null,
 };
 
 export type Prefs_Deserialize = {
@@ -2612,6 +2709,18 @@ export type Prefs_Deserialize = {
 	 *  keeps its default chord.
 	 */
 	shortcuts?: { [key in string]: string },
+	/**  Interface font: a key of `UI_FONTS`. Empty is the system font. */
+	uiFont?: string,
+	/**  Code font: a key of `CODE_FONTS`. Empty is the system monospace font. */
+	codeFont?: string,
+	/**  Path of the shell that the terminal starts. Empty is `$SHELL`. */
+	terminalShell?: string,
+	/**  Extra font family for the terminal, ahead of the code font. */
+	terminalFont?: string,
+	terminalFontSize?: number,
+	/**  Id of the agent CLI that new work starts with. Empty means the first one found. */
+	defaultAgent?: string,
+	defaultModel?: string,
 };
 
 export type Prefs_Serialize = {
@@ -2636,6 +2745,18 @@ export type Prefs_Serialize = {
 	 *  keeps its default chord.
 	 */
 	shortcuts: { [key in string]: string },
+	/**  Interface font: a key of `UI_FONTS`. Empty is the system font. */
+	uiFont: string,
+	/**  Code font: a key of `CODE_FONTS`. Empty is the system monospace font. */
+	codeFont: string,
+	/**  Path of the shell that the terminal starts. Empty is `$SHELL`. */
+	terminalShell: string,
+	/**  Extra font family for the terminal, ahead of the code font. */
+	terminalFont: string,
+	terminalFontSize: number,
+	/**  Id of the agent CLI that new work starts with. Empty means the first one found. */
+	defaultAgent: string,
+	defaultModel: string,
 };
 
 export type Preview = Preview_Serialize | Preview_Deserialize;
@@ -4165,6 +4286,12 @@ export type TicketEditCaps = {
 	assignee: boolean,
 	status: boolean,
 	priority: boolean,
+	/**  The issue type changes (Jira, GitLab, Azure DevOps). Source: Legacy `application/tickets/plan.rs`. */
+	issueType: boolean,
+	/**  The due date changes (all but GitHub Issues). Source: Legacy `infrastructure/repoissues.rs`. */
+	dueDate: boolean,
+	/**  The estimate in days changes (a tracker with time tracking). */
+	estimate: boolean,
 };
 
 /**  The link of a Legacy ticket to its Jira issue (`docs/delivery/tickets.json`, read only). */

@@ -300,10 +300,17 @@ pub fn threads_list(s: &AppState) -> Res<Vec<ThreadSummary>> {
     Threads::new(&s.dir).list(&id).map_err(err)
 }
 
-/// A new thread with the defaults of the project (REQ-019).
+/// A new thread with the defaults of the project (REQ-019). With no runner set there, the personal
+/// default agent and model (Settings / Me) apply, when that agent is known.
 pub fn thread_create(s: &AppState, title: Option<String>) -> Res<ThreadView> {
     let (id, _) = project(s)?;
-    let settings = assistant_defaults::load(&s.dir, &id).settings();
+    let mut d = assistant_defaults::load(&s.dir, &id);
+    let me = shipyard_store::prefs::Prefs::load(&s.dir);
+    if d.runner.is_none() && known_runner(&me.default_agent).is_ok() {
+        d.runner = Some(me.default_agent);
+        d.model = d.model.or(Some(me.default_model).filter(|m| !m.is_empty()));
+    }
+    let settings = d.settings();
     let t = Threads::new(&s.dir)
         .create(&id, title.as_deref().unwrap_or("").trim(), settings)
         .map_err(err)?;
@@ -1014,6 +1021,21 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
         let claude = o.iter().find(|r| r.runner == "claude").unwrap();
         assert_eq!(claude.models, ["opus", "sonnet", "haiku"]);
         assert!(!claude.efforts.is_empty());
+    }
+
+    #[test]
+    fn the_personal_default_agent_starts_a_thread_when_the_project_sets_none() {
+        let f = fx();
+        shipyard_store::prefs::Prefs {
+            default_agent: "codex".into(),
+            default_model: "gpt-x".into(),
+            ..Default::default()
+        }
+        .save(&f.s.dir)
+        .unwrap();
+        let t = thread_create(&f.s, Some("x".into())).unwrap().thread;
+        assert_eq!(t.settings.runner, "codex");
+        assert_eq!(t.settings.model.as_deref(), Some("gpt-x"));
     }
 
     #[test]

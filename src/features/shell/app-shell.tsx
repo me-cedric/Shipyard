@@ -22,6 +22,7 @@ import { ShortcutHelp } from "./shortcut-help";
 import { Sidebar } from "./sidebar";
 import { StatusBar } from "./status-bar";
 import { ViewMemory } from "./view-memory";
+import { WhatsNew } from "./whats-new";
 
 function Frame() {
 	const { t } = useI18n();
@@ -139,6 +140,7 @@ function Frame() {
 			<ShortcutHelp actions={list} />
 			<SelectionActions onAsk={ask} />
 			<CloseGuard />
+			<WhatsNew />
 			<CommitDialog open={commitOpen} onOpenChange={setCommitOpen} onSubmit={runCommit} />
 			<ViewMemory />
 		</>

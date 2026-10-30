@@ -51,7 +51,11 @@ fn size(cols: u16, rows: u16) -> PtySize {
     }
 }
 
-fn shell_program() -> String {
+/// The shell of the preferences when that file exists, else `$SHELL`.
+fn shell_program(chosen: &str) -> String {
+    if !chosen.is_empty() && Path::new(chosen).is_file() {
+        return chosen.into();
+    }
     if cfg!(windows) {
         return "powershell.exe".into();
     }
@@ -135,6 +139,7 @@ pub fn open(
     id: &str,
     cwd: &Path,
     secrets: &[String],
+    shell: &str,
     cols: u16,
     rows: u16,
 ) -> Res<()> {
@@ -144,7 +149,7 @@ pub fn open(
     let pair = NativePtySystem::default()
         .openpty(size(cols, rows))
         .map_err(|e| format!("failed to open a terminal: {e}"))?;
-    let program = shell_program();
+    let program = shell_program(shell);
     let child = pair
         .slave
         .spawn_command(shell_command(&program, cwd, secrets))
@@ -252,7 +257,8 @@ pub async fn terminal_open(
     let handle = app.clone();
     blocking(app, move |s| {
         let dir = start_dir(s, folder.as_deref())?;
-        open(handle, &id, &dir, &secrets(s), cols, rows)?;
+        let shell = shipyard_store::prefs::Prefs::load(&s.dir).terminal_shell;
+        open(handle, &id, &dir, &secrets(s), &shell, cols, rows)?;
         Ok(id)
     })
     .await
@@ -311,6 +317,12 @@ mod tests {
             kept.iter_full_env_as_str()
                 .any(|(k, _)| k == "SHIPYARD_TEST_LEAK")
         );
+    }
+
+    #[test]
+    fn a_missing_chosen_shell_falls_back_to_the_default() {
+        assert_eq!(shell_program("/bin/sh"), "/bin/sh");
+        assert_ne!(shell_program("/no/such/shell"), "/no/such/shell");
     }
 
     #[test]

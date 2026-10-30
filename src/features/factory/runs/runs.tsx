@@ -5,6 +5,7 @@ import { NoProject } from "@/features/work/no-project";
 import { useKillSwitch, useRunActions, useRuns, useUsage } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import type { Lane, RunState, RunView } from "@/lib/ipc";
+import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -79,6 +80,7 @@ function RunStats({ runs }: { runs: RunView[] }) {
 /** Factory / Runs: six lanes of runs, the kill switch and one action, start a run (factory REQ-027, REQ-038). */
 export function Runs() {
 	const { t } = useI18n();
+	const menu = useMenus();
 	const f = t.factory;
 	const active = useActiveProject().data;
 	const runs = useRuns();
@@ -184,6 +186,10 @@ export function Runs() {
 													pr={lane === "in_review" || lane === "ready_to_merge" ? r.pr : null}
 													selected={selected === r.id}
 													onOpen={() => setSelected(r.id)}
+													menu={menu("run", {
+														open: () => setSelected(r.id),
+														"copy-ref": () => copyText(`run:${r.id}`),
+													})}
 												/>
 											);
 										})}

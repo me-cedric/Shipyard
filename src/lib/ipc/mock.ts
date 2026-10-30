@@ -61,6 +61,7 @@ import {
 	codeUnstage,
 	codeWatchIntervalSet,
 	conflictToFactory,
+	filesAction,
 	type MockCode,
 	seedCode,
 } from "./mock-code";
@@ -164,6 +165,8 @@ type State = {
 	os: { title: string; body: string }[];
 	/** The labels of the last native menu. */
 	menu: Record<string, string>;
+	/** The Orca terminals that a click brought forward. */
+	orcaOpened: string[];
 	/** The AI sessions and spend of this computer. */
 	machine: mc.MockMachine;
 	/** The Doctor tools and ledger, and the MCP server for outside agents. */
@@ -174,6 +177,8 @@ type State = {
 	autoCommit: boolean;
 	inFlight: { runs: number; turns: number };
 	closed: boolean;
+	/** Whether Codex trusts the project folder. */
+	codexTrusted: boolean;
 };
 
 const RELEASE_URL = "https://api.github.com/repos/me-cedric/Shipyard/releases/latest";
@@ -211,6 +216,13 @@ const fresh = (): State => ({
 		notifyOff: [],
 		seenVersion: null,
 		shortcuts: {},
+		uiFont: "",
+		codeFont: "",
+		terminalShell: "",
+		terminalFont: "",
+		terminalFontSize: 13,
+		defaultAgent: "",
+		defaultModel: "",
 	},
 	projects: [],
 	files: {},
@@ -232,6 +244,7 @@ const fresh = (): State => ({
 	extensions: ex.seedExtensions(),
 	delivery: dv.seedDelivery(),
 	os: [],
+	orcaOpened: [],
 	menu: {},
 	machine: mc.seedMachine(),
 	doctor: dr.seedDoctor(),
@@ -240,6 +253,7 @@ const fresh = (): State => ({
 	autoCommit: false,
 	inFlight: { runs: 0, turns: 0 },
 	closed: false,
+	codexTrusted: false,
 });
 
 let state = fresh();
@@ -284,6 +298,18 @@ const COVERED = ["adr", "q", "change", "spec", "wf", "doc"];
 const active = () => state.projects.find((p) => p.active);
 
 /** The working copy of the active project. Without a project the Code commands fail as the real ones do. */
+/** A file action of the drawer: the read-only lock and the click, then the mock working copy. */
+function fileWrite(
+	kind: "file" | "folder" | "rename" | "delete",
+	path: string,
+	click: boolean,
+	to?: string,
+) {
+	if (active()?.overrides.readOnly === true) throw "the profile of this project is read only";
+	filesAction(code(), click, kind, path, to);
+	return null;
+}
+
 function code(): MockCode {
 	if (!active()) throw "no active project";
 	state.code ??= seedCode();
@@ -584,6 +610,7 @@ const handlers: Handlers = {
 			if (v != null) Object.assign(state.prefs, { [k]: v });
 		// An empty release address goes back to the default.
 		if (!state.prefs.releaseUrl.trim()) state.prefs.releaseUrl = RELEASE_URL;
+		state.prefs.terminalFontSize = Math.min(24, Math.max(9, state.prefs.terminalFontSize));
 		// An empty chord resets its action.
 		state.prefs.shortcuts = Object.fromEntries(
 			Object.entries(state.prefs.shortcuts).filter(([, v]) => v.trim()),
@@ -898,6 +925,32 @@ const handlers: Handlers = {
 		state.menu = labels;
 		return null;
 	},
+	orcaStatus: () => ({
+		installed: true,
+		running: true,
+		message: "",
+		downloadUrl: "https://www.onorca.dev/download",
+		sessions: [
+			{
+				id: "t1",
+				title: "Claude Code",
+				agent: "claude",
+				worktree: "feat-login",
+				project: "alpha",
+				branch: "feat/login",
+				activity: "Approve file edit",
+				since: "",
+				context: 34,
+				state: "idle",
+			},
+		],
+	}),
+	orcaOpen: (terminal, click) => {
+		if (!click) throw "this change needs the click of a person";
+		if (!terminal.trim() || terminal.startsWith("-")) throw "not an Orca terminal handle";
+		state.orcaOpened.push(terminal);
+		return null;
+	},
 	notifyOs: (title, body) => {
 		state.os.push({ title, body });
 		return null;
@@ -1003,6 +1056,14 @@ const handlers: Handlers = {
 		needTracker(() => work.ticketPrioritySet(state.sync.mirror, key, priority, click));
 		return null;
 	},
+	workTicketTypeSet: (key, name, click) => {
+		needTracker(() => work.ticketTypeSet(state.sync.mirror, key, name, click));
+		return null;
+	},
+	workTicketDueSet: (key, day, click) => {
+		needTracker(() => work.ticketDueSet(state.sync.mirror, key, day, click));
+		return null;
+	},
 	workTicketEditCaps: () =>
 		needTracker(() => ({
 			title: true,
@@ -1012,6 +1073,9 @@ const handlers: Handlers = {
 			assignee: true,
 			status: true,
 			priority: true,
+			issueType: true,
+			dueDate: true,
+			estimate: true,
 		})),
 	workSealState: () => work.sealState(need(state.work)),
 	workUnlock: (passphrase) => work.sealUnlock(need(state.work), passphrase),
@@ -1133,6 +1197,10 @@ const handlers: Handlers = {
 	codeWatchIntervalSet: (minutes) => codeWatchIntervalSet(code(), minutes),
 	codeFileRead: (path, rev) => codeFileRead(code(), path, rev),
 	codeFileList: () => codeFileList(code()),
+	filesCreateFile: (path, click) => fileWrite("file", path, click),
+	filesCreateFolder: (path, click) => fileWrite("folder", path, click),
+	filesRename: (from, to, click) => fileWrite("rename", from, click, to),
+	filesDelete: (path, click) => fileWrite("delete", path, click),
 	codeWatchNotice: () => (active() ? (code().notice ?? null) : null),
 	codePullDetail: (number) =>
 		cp.pullDetail(
@@ -1247,6 +1315,12 @@ const handlers: Handlers = {
 	closeGuardState: () => state.inFlight,
 	closeAnyway: () => {
 		state.closed = true;
+		return null;
+	},
+	codexTrustState: () => state.codexTrusted,
+	codexTrust: (click) => {
+		if (!click) throw "this change needs the click of a person";
+		state.codexTrusted = true;
 		return null;
 	},
 	runnerInstall: (id, click) => {
@@ -1379,6 +1453,13 @@ const handlers: Handlers = {
 	codePushTarget: () => {
 		const branch = need(code()).branch;
 		return { remote: "origin", branch, canPush: true, onDefault: branch === "main" };
+	},
+	codeChainWatch: () => {
+		const c = codeStatus(code());
+		return {
+			base: "main",
+			warnings: chainGate([...c.staged, ...c.unstaged, ...c.untracked].map((f) => f.path)),
+		};
 	},
 	codeChainGate: (push) => chainGate(push ? [] : codeStatus(code()).staged.map((f) => f.path)),
 	projectImport: () => ({ copied: [], skipped: [], conflicts: [] }),

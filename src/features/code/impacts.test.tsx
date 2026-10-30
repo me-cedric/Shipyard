@@ -45,6 +45,21 @@ describe("Code / Impacts", () => {
 		await waitFor(() => expect(screen.getByText(/moves the release/)).toBeInTheDocument());
 	});
 
+	it("watches the docs chain: a spec moved, its test plans did not, then they follow", async () => {
+		const user = userEvent.setup();
+		await open();
+		await unwrap(commands.filesCreateFile("docs/openspec/x/spec.md", true));
+		mountApp("/code/impacts");
+		expect(await screen.findByRole("heading", { name: "Docs chain (1)" })).toBeInTheDocument();
+		expect(screen.getByText("Behind Specs: 1 changed files")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Update" })).toBeInTheDocument();
+		await unwrap(commands.filesCreateFile("docs/delivery/test-plans/a.md", true));
+		await user.click(screen.getByRole("button", { name: "Analyze" }));
+		await waitFor(() =>
+			expect(screen.getByRole("heading", { name: "Docs chain (0)" })).toBeInTheDocument(),
+		);
+	});
+
 	it("lists the profiles of the assignments and copies the brief of one", async () => {
 		const user = userEvent.setup();
 		const writeText = vi.fn();

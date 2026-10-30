@@ -34,6 +34,29 @@ describe("Settings / Me (shell REQ-010)", () => {
 	});
 });
 
+describe("Settings / Me fonts, terminal and agent (Legacy preferences)", () => {
+	it("saves the fonts, the shell, the terminal size and the default agent", async () => {
+		const user = userEvent.setup();
+		mountApp("/settings/me");
+		await choose(user, "Interface font", "Serif");
+		await choose(user, "Code font", "Menlo");
+		await waitFor(() => expect(mockState().prefs.uiFont).toBe("serif"));
+		expect(mockState().prefs.codeFont).toBe("menlo");
+		expect(document.documentElement.style.getPropertyValue("--font-sans")).toContain("Charter");
+		const shell = await screen.findByRole("textbox", { name: "Shell" });
+		await user.type(shell, "/bin/zsh");
+		await user.tab();
+		await waitFor(() => expect(mockState().prefs.terminalShell).toBe("/bin/zsh"));
+		const size = screen.getByRole("spinbutton", { name: "Terminal font size" });
+		await user.clear(size);
+		await user.type(size, "90");
+		await user.tab();
+		await waitFor(() => expect(mockState().prefs.terminalFontSize).toBe(24));
+		await choose(user, "Default agent", "codex");
+		await waitFor(() => expect(mockState().prefs.defaultAgent).toBe("codex"));
+	});
+});
+
 describe("Settings / Me notifications (shell REQ-008)", () => {
 	it("turns a source off and on through notifyOff", async () => {
 		const user = userEvent.setup();

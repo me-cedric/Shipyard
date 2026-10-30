@@ -7,6 +7,7 @@ import { factoryEn } from "./factory";
 import { homeEn } from "./home";
 import { knowledgeEn } from "./knowledge";
 import { panelsEn } from "./panels";
+import { personalEn } from "./personal";
 import { settingsEn } from "./settings";
 import { specsEn } from "./specs";
 import { uiEn } from "./ui";
@@ -161,6 +162,8 @@ export const en = {
 		commit: "Commit",
 		runs: "Active runs",
 		health: "Health",
+		version: "Version {version}",
+		whatsNew: { title: "What's new in {version}", none: "No notes for this version." },
 		toggleSidebar: "Toggle sidebar",
 		toggleInspector: "Toggle inspector",
 		openRef: "Open {ref}",
@@ -761,6 +764,7 @@ export const en = {
 		closeWindow: "Close window",
 		projectSwitch: "Switch project",
 		updateCheck: "Check for updates",
+		whatsNew: "What's new",
 	},
 	context: { open: "Open", copyRef: "Copy ref", copyPath: "Copy path", copySha: "Copy id" },
 	count: "{name} ({count})",
@@ -771,6 +775,7 @@ export const en = {
 	specs: specsEn,
 	ui: uiEn,
 	workspace: workspaceEn,
+	personal: personalEn,
 	doctor: doctorEn,
 	panels: panelsEn,
 };

@@ -41,6 +41,8 @@ export type MockCode = {
 	notice: WatchNotice_Serialize | null;
 	/** Minutes between two fetches of the project (default 15, 1 to 1440). */
 	watchMinutes: number;
+	/** The paths that a delete moved to the system trash. Nothing is removed for good. */
+	trash: string[];
 	counter: number;
 };
 
@@ -105,6 +107,7 @@ export function seedCode(): MockCode {
 		rebasing: false,
 		notice: null,
 		watchMinutes: 15,
+		trash: [],
 		counter: 4,
 	};
 }
@@ -202,6 +205,51 @@ export const codeFileList = (c: MockCode): string[] =>
 		.filter(([, f]) => f.work !== null)
 		.map(([p]) => p)
 		.sort();
+
+/** The path rule of Rust `files::resolve`: inside the project, never `.git`, one `Normal` part at least. */
+function filePath(path: string): string {
+	const parts = path.trim().split("/");
+	if (
+		parts.some((p) => !p || p === "." || p === ".." || p.toLowerCase() === ".git") ||
+		path.startsWith("/")
+	)
+		throw `${path} is not a path of the project`;
+	return parts.join("/");
+}
+
+/** The four actions of the file drawer. Each needs a click; the caller checks the read-only lock. */
+export function filesAction(
+	c: MockCode,
+	click: boolean,
+	kind: "file" | "folder" | "rename" | "delete",
+	path: string,
+	to = "",
+) {
+	if (!click) throw "this change needs the click of a person";
+	const p = filePath(path);
+	const family = Object.keys(c.files).filter((f) => f === p || f.startsWith(`${p}/`));
+	if (kind === "file" || kind === "folder") {
+		if (family.length) throw `${p} already exists`;
+		if (kind === "file") c.files[p] = { head: null, index: null, work: "" };
+		return;
+	}
+	if (!family.length) throw `${p} does not exist`;
+	if (kind === "delete") {
+		for (const f of family) delete c.files[f];
+		c.trash.push(p);
+		return;
+	}
+	const dst = filePath(to);
+	if (Object.keys(c.files).some((f) => f === dst || f.startsWith(`${dst}/`)))
+		throw `${dst} already exists`;
+	if (dst.startsWith(`${p}/`)) throw "a folder does not move into itself";
+	for (const f of family) {
+		const file = c.files[f];
+		if (!file) continue;
+		delete c.files[f];
+		c.files[dst + f.slice(p.length)] = file;
+	}
+}
 
 export function codeWatchIntervalSet(c: MockCode, minutes: number): number {
 	if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440)

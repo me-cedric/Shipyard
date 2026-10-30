@@ -253,6 +253,29 @@ impl TrackerWrite for Azure {
         Ok(())
     }
 
+    fn set_issue_type(&self, key: &str, name: &str) -> Result<(), TrackerError> {
+        self.patch(
+            key,
+            vec![op("add", "/fields/System.WorkItemType", json!(name))],
+        )
+        .map(|_| ())
+        .map_err(refused)
+    }
+
+    fn set_due_date(&self, key: &str, day: Option<&str>) -> Result<(), TrackerError> {
+        let ops = match day {
+            Some(d) => vec![op(
+                "add",
+                "/fields/Microsoft.VSTS.Scheduling.DueDate",
+                json!(d),
+            )],
+            None => {
+                vec![json!({ "op": "remove", "path": "/fields/Microsoft.VSTS.Scheduling.DueDate" })]
+            }
+        };
+        self.patch(key, ops).map(|_| ()).map_err(refused)
+    }
+
     fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError> {
         self.capabilities().require(Capability::Transitions)?;
         self.patch(key, vec![op("add", "/fields/System.State", json!(to))])

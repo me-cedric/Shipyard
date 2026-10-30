@@ -167,6 +167,9 @@ describe("Home / Activity", () => {
 		mockState().prefs.seenVersion = "0.0.9";
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/activity");
+		// The update opens What's new once. Close it to reach the page.
+		await screen.findByRole("dialog", { name: "What's new in 0.1.0" });
+		await userEvent.keyboard("{Escape}");
 		expect(await screen.findByRole("heading", { name: /^Events \([1-9]/ })).toBeInTheDocument();
 		expect(await screen.findByRole("heading", { name: "Notifications (2)" })).toBeInTheDocument();
 		for (const label of ["Events", "Notifications", "Runs", "Live runs"])

@@ -9,6 +9,7 @@ import {
 	usePulls,
 } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
+import { copyText, useMenus } from "@/lib/menus";
 import { useTabSelection } from "@/lib/shell/selection";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
@@ -339,6 +340,7 @@ function Detail({ number }: { number: number }) {
 
 function PullRequestsView() {
 	const { t } = useI18n();
+	const menu = useMenus();
 	const navigate = useNavigate();
 	const pulls = usePulls();
 	const [opening, setOpening] = useState(false);
@@ -423,6 +425,10 @@ function PullRequestsView() {
 										meta={<span className="font-mono">{r.updated.slice(0, 10)}</span>}
 										selected={r.reference === selected}
 										onSelect={() => setSelected(r.reference)}
+										menu={menu("pull", {
+											open: () => setSelected(r.reference),
+											"copy-ref": () => copyText(r.reference),
+										})}
 									/>
 								))}
 							</Panel>

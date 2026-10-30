@@ -112,7 +112,7 @@ describe("Notification centre", () => {
 	});
 });
 
-function Probe({ id, kind }: { id: string; kind: "info" | "needs-you" }) {
+function Probe({ id, kind }: { id: string; kind: "info" | "error" | "needs-you" }) {
 	const { push, items } = useNotifications();
 	const [settled, setSettled] = useState(0);
 	return (
@@ -165,6 +165,21 @@ describe("Notifications store", () => {
 		});
 		await waitFor(() => expect(mockState().os).toHaveLength(1));
 		expect(screen.getAllByTestId("count")[0]).toHaveTextContent("1");
+	});
+
+	it("asks the system for a sync failure, an update and a moved head in the background", async () => {
+		focus(false);
+		render(
+			<NotificationsProvider>
+				<Probe id="sync:1" kind="error" />
+				<Probe id="update:2" kind="info" />
+				<Probe id="remote:main:x" kind="info" />
+			</NotificationsProvider>,
+		);
+		await act(async () => {
+			for (const b of screen.getAllByRole("button", { name: "push" })) await userEvent.click(b);
+		});
+		await waitFor(() => expect(mockState().os).toHaveLength(3));
 	});
 
 	it("asks the system for a needs-you event in the background only, once", async () => {

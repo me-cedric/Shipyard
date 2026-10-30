@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
-import { DEMO_FOLDER } from "@/lib/ipc/mock";
+import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { ShellProvider } from "@/lib/shell";
 import { renderApp } from "@/ui/test-utils";
 import { Sessions, Usage } from "./index";
@@ -35,6 +35,17 @@ describe("Factory / machine-wide AI sessions and spend", () => {
 			expect((await unwrap(commands.machineSessions())).map((s) => s.pid)).toEqual([4188, null]),
 		);
 		await waitFor(() => expect(screen.queryByText("Fix the login")).not.toBeInTheDocument());
+	});
+
+	it("Sessions: lists the Orca sessions and brings one forward after a click", async () => {
+		const user = userEvent.setup();
+		await renderTab(<Sessions />);
+		const table = await screen.findByRole("table", { name: "Orca sessions" });
+		expect(within(table).getByText("Approve file edit")).toBeInTheDocument();
+		expect(within(table).getByText("34%")).toBeInTheDocument();
+		await user.click(within(table).getByRole("button", { name: "Open in Orca Claude Code" }));
+		await waitFor(() => expect(mockState().orcaOpened).toEqual(["t1"]));
+		await expect(unwrap(commands.orcaOpen("t1", false))).rejects.toThrow(/click/);
 	});
 
 	it("Sessions: a stop of a process that is gone shows the reason", async () => {

@@ -247,6 +247,60 @@ pub fn chain_gate(s: &AppState, push: bool) -> Res<Vec<ChainWarning>> {
     Ok(stale(&file, &changed))
 }
 
+/// The docs chain against a base branch: which artifacts are stale against their source.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+pub struct ChainWatch {
+    /// The revision that the changes are counted from.
+    pub base: String,
+    pub warnings: Vec<ChainWarning>,
+}
+
+/// Watches the docs chain over the whole branch: every file that changed since `base` (committed or
+/// not) puts its downstream folders out of date until they move too. `base` defaults to the first of
+/// `develop`, `main` and `master`, as a remote branch when there is one. Nothing is written.
+/// Legacy source: `src/lib/chain.ts` (`chainWarnings`) and `chain-watch.tsx`.
+pub fn chain_watch(s: &AppState, base: Option<&str>) -> Res<ChainWatch> {
+    let e = s.registry()?.active().cloned().ok_or("no active project")?;
+    let root = Path::new(&e.path);
+    let FileRead::Valid(file) = read_project_file(root).map_err(err)? else {
+        return Ok(ChainWatch {
+            base: String::new(),
+            warnings: Vec::new(),
+        });
+    };
+    let r = Repo::open(root).map_err(err)?;
+    let all: std::collections::BTreeSet<String> = r
+        .branches()
+        .map_err(err)?
+        .into_iter()
+        .map(|b| b.name)
+        .collect();
+    let pick = |b: &str| {
+        let remote = format!("origin/{b}");
+        [remote, b.to_string()]
+            .into_iter()
+            .find(|n| all.contains(n))
+    };
+    let rev = match base.filter(|b| !b.is_empty()) {
+        Some(b) => pick(b).ok_or(format!("the base branch `{b}` does not exist"))?,
+        None => ["develop", "main", "master"]
+            .into_iter()
+            .find_map(pick)
+            .ok_or("no base branch: develop, main or master")?,
+    };
+    let changed = r.changed_since(&rev).map_err(err)?;
+    Ok(ChainWatch {
+        base: rev,
+        warnings: stale(&file, &changed),
+    })
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_chain_watch(app: AppHandle, base: Option<String>) -> Res<ChainWatch> {
+    blocking(app, move |s| chain_watch(s, base.as_deref())).await
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn projects_overview(app: AppHandle) -> Res<Vec<ProjectCard>> {
@@ -315,5 +369,48 @@ mod tests {
         assert!(open_remote(&s, "nope").is_err());
         assert!(push_target(&s).is_err());
         assert!(chain_gate(&s, true).unwrap().is_empty());
+    }
+
+    #[test]
+    fn the_watch_counts_the_branch_against_its_base_and_clears_when_the_downstream_moves() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = AppState::new(dir.path().join("data"));
+        let p = dir.path().join("one");
+        shipyard_git::project::init(&p).unwrap();
+        super::super::projects::open(&s, p.to_str().unwrap()).unwrap();
+        let git = |args: &[&str]| {
+            let out = std::process::Command::new("git")
+                .arg("-C")
+                .arg(&p)
+                .args(["-c", "user.name=t", "-c", "user.email=t@t"])
+                .args(args)
+                .output()
+                .unwrap();
+            assert!(out.status.success(), "{args:?}: {out:?}");
+        };
+        git(&["add", "-A"]);
+        git(&["commit", "-qm", "base"]);
+        git(&["branch", "-M", "main"]);
+        git(&["switch", "-qc", "topic"]);
+        assert!(chain_watch(&s, None).unwrap().warnings.is_empty());
+        assert!(chain_watch(&s, Some("nope")).is_err());
+        std::fs::create_dir_all(p.join("docs/openspec/x")).unwrap();
+        std::fs::write(p.join("docs/openspec/x/spec.md"), "# s\n").unwrap();
+        git(&["add", "-A"]);
+        git(&["commit", "-qm", "spec"]);
+        let w = chain_watch(&s, None).unwrap();
+        assert_eq!(w.base, "main");
+        assert!(
+            w.warnings
+                .iter()
+                .any(|w| w.from == "specs" && w.to == "test-plans")
+        );
+        std::fs::create_dir_all(p.join("docs/delivery/test-plans")).unwrap();
+        std::fs::write(p.join("docs/delivery/test-plans/a.md"), "# t\n").unwrap();
+        let w = chain_watch(&s, Some("main")).unwrap();
+        assert!(
+            !w.warnings.iter().any(|w| w.to == "test-plans"),
+            "an untracked file counts"
+        );
     }
 }

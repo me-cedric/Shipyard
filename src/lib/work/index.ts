@@ -198,6 +198,10 @@ export function useWorkActions() {
 			addLabel: (key: string, label: string) => run(commands.workTicketLabelAdd(key, label, true)),
 			removeLabel: (key: string, label: string) =>
 				run(commands.workTicketLabelRemove(key, label, true)),
+			setEstimate: (key: string, days: number) =>
+				run(commands.workTicketEdit(key, null, null, days, true)),
+			setType: (key: string, name: string) => run(commands.workTicketTypeSet(key, name, true)),
+			setDue: (key: string, day: string | null) => run(commands.workTicketDueSet(key, day, true)),
 			setPriority: (key: string, priority: string) =>
 				run(commands.workTicketPrioritySet(key, priority, true)),
 			transition: (key: string, to: string) => run(commands.workTransition(key, to, true)),

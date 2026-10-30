@@ -285,3 +285,81 @@ fn the_calendar_and_the_plan_decisions_are_imported_with_their_sheet() {
         Some("2026-11-02")
     );
 }
+
+#[test]
+fn slides_dashboards_and_the_work_log_are_imported_and_the_source_stays_intact() {
+    let source = tempfile::tempdir().unwrap();
+    let put = |rel: &str, text: &str| {
+        let p = source.path().join(rel);
+        fs::create_dir_all(p.parent().unwrap()).unwrap();
+        fs::write(p, text).unwrap();
+    };
+    put("docs/slides/intro.md", "# Intro\n\n---\n\n# Two\n");
+    put(
+        "docs/planning/team.json",
+        r#"{"members":[{"id":"m1","name":"Ana Diaz","email":"Ana@Example.com"}]}"#,
+    );
+    put(
+        "docs/delivery/dashboards/overview.json",
+        r#"{"version":1,"id":"d","name":"Overview","widgets":[
+          {"id":"w1","x":0,"y":0,"w":6,"h":3,"shape":"bar","source":"tickets.ageing"},
+          {"id":"w2","x":6,"y":0,"w":6,"h":3,"shape":"kpi","source":"tickets.list"},
+          {"id":"w3","x":0,"y":3,"w":6,"h":3,"shape":"bar","source":"git.contributors"},
+          {"id":"n","x":0,"y":6,"w":6,"h":1,"shape":"note","source":"","text":"hi"}]}"#,
+    );
+    put(
+        "docs/delivery/worklog/2026-10.json",
+        r#"{"version":1,"entries":[
+          {"id":"a","date":"2026-10-05","author":"ANA@example.com","minutes":90,"what":"Spec","ticket":"DEMO-1","jiraId":"77"},
+          {"id":"b","date":"2026-10-06","author":"bob@example.com","minutes":30,"what":"Review"},
+          {"id":"c","date":"bad","author":"bob@example.com","minutes":30,"what":"x"},
+          {"id":"d","date":"2026-10-07","author":"","minutes":30,"what":"x"}]}"#,
+    );
+    let before = tree(source.path());
+    let root = tempfile::tempdir().unwrap();
+    let r = import(source.path(), root.path());
+    for p in [
+        "docs/slides/intro.md",
+        "docs/dashboards/overview.yaml",
+        "docs/time/ana-diaz/2026-10.yaml",
+        "docs/time/bob/2026-10.yaml",
+    ] {
+        assert!(r.copied.contains(&p.to_string()), "{p}: {r:?}");
+    }
+    let dash = shipyard_store::knowledge::parse_dashboard(
+        &fs::read_to_string(root.path().join("docs/dashboards/overview.yaml")).unwrap(),
+    )
+    .unwrap();
+    let kinds: Vec<_> = dash.value.tiles.iter().map(|t| t.kind.as_str()).collect();
+    assert_eq!(kinds, ["work", "work"], "a git source has no tile");
+    assert!(
+        r.skipped
+            .iter()
+            .any(|(_, why)| why.contains("git.contributors"))
+    );
+    let ana = shipyard_store::work::read_time(
+        &fs::read_to_string(root.path().join("docs/time/ana-diaz/2026-10.yaml")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(ana.len(), 1, "the team email maps to the handle");
+    assert_eq!(
+        (
+            ana[0].minutes,
+            ana[0].ticket.as_deref(),
+            ana[0].worklog.as_deref()
+        ),
+        (90, Some("DEMO-1"), Some("77"))
+    );
+    let bob = shipyard_store::work::read_time(
+        &fs::read_to_string(root.path().join("docs/time/bob/2026-10.yaml")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(bob.len(), 1, "a bad day and a missing author are left out");
+    assert_eq!(tree(source.path()), before);
+    // A second import changes nothing: each target is a conflict.
+    let again = import(source.path(), root.path());
+    assert!(
+        again.copied.is_empty() && again.conflicts.len() >= 4,
+        "{again:?}"
+    );
+}

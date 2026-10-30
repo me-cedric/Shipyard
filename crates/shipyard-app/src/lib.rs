@@ -8,6 +8,7 @@ pub mod auto_commit;
 pub mod certs;
 pub mod close_guard;
 pub mod code;
+pub mod codex_trust;
 mod commands;
 pub mod connections;
 pub mod delivery;
@@ -17,8 +18,10 @@ pub mod doctor_bootstrap;
 pub mod extensions;
 pub mod factory;
 pub mod feedback;
+pub mod files;
 pub mod knowledge;
 pub mod machine;
+pub mod orca;
 pub mod outside;
 pub mod questions;
 pub mod request_tree;
@@ -82,6 +85,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             overview::project_open_remote,
             overview::code_push_target,
             overview::code_chain_gate,
+            overview::code_chain_watch,
             conn::connections_list,
             conn::connections_add,
             conn::connections_edit,
@@ -214,6 +218,14 @@ fn specta_builder() -> Builder<tauri::Wry> {
             work::work_ticket_label_add,
             work::work_ticket_label_remove,
             work::work_ticket_priority_set,
+            work::work_ticket_type_set,
+            work::work_ticket_due_set,
+            files::files_create_file,
+            files::files_create_folder,
+            files::files_rename,
+            files::files_delete,
+            orca::orca_status,
+            orca::orca_open,
             work::work_ticket_edit_caps,
             work::work_seal_state,
             work::work_unlock,
@@ -365,6 +377,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             close_guard::close_guard_state,
             close_guard::close_anyway,
             runner_setup::runner_install,
+            codex_trust::codex_trust_state,
+            codex_trust::codex_trust,
             sh::shell_menu,
             sh::notify_os,
             sh::update_check,

@@ -9,6 +9,7 @@ import { useShell } from "@/lib/shell";
 import { chordOf, chordText, useShortcutBindings } from "@/lib/shell/shortcuts";
 import { useSyncNow } from "@/lib/sync";
 import { useUpdateCheck } from "@/lib/updates";
+import { openWhatsNew } from "@/lib/updates/whats-new";
 import {
 	ArrowDownTrayIcon,
 	ArrowPathIcon,
@@ -179,6 +180,12 @@ export function useActions() {
 			Icon: ArrowDownTrayIcon,
 			run: () => void checkUpdate(true),
 		};
+		const whatsNew: Action = {
+			id: "whats-new",
+			label: t.menu.whatsNew,
+			Icon: ArrowDownTrayIcon,
+			run: openWhatsNew,
+		};
 		const assistant = withKey({
 			id: "toggle-assistant",
 			label: t.assistant.title,
@@ -278,6 +285,7 @@ export function useActions() {
 			syncAction,
 			commit,
 			updateCheck,
+			whatsNew,
 		];
 		return { list, sync: syncAction, commit, assistant, palette, files, terminal };
 	}, [

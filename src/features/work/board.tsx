@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
+import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { useWorkItems, type WorkItem } from "@/lib/sync";
@@ -21,6 +22,7 @@ import { TicketDetail } from "./ticket-detail";
 /** Work / Board: one column for each tracker status. A move sends the transition (REQ-002). */
 export function Board() {
 	const { t, lang } = useI18n();
+	const menu = useMenus();
 	const active = useActiveProject().data;
 	const { openDetail } = useShell();
 	const members = useTeam().data?.team.members ?? [];
@@ -132,6 +134,11 @@ export function Board() {
 									openDetail(item.key, <TicketDetail key={item.key} itemKey={item.key} />);
 								}}
 								onMove={(by) => step(item, by)}
+								menu={menu("ticket", {
+									open: () =>
+										openDetail(item.key, <TicketDetail key={item.key} itemKey={item.key} />),
+									"copy-ref": () => copyText(`wi:${item.key}`),
+								})}
 							/>
 						))}
 					</BoardColumn>

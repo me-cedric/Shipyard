@@ -125,6 +125,25 @@ impl TrackerWrite for GitLab {
         Ok(())
     }
 
+    fn set_issue_type(&self, key: &str, name: &str) -> Result<(), TrackerError> {
+        self.write(
+            Method::Put,
+            &Self::issue_path(key)?,
+            json!({ "issue_type": name.to_lowercase() }),
+        )?;
+        Ok(())
+    }
+
+    fn set_due_date(&self, key: &str, day: Option<&str>) -> Result<(), TrackerError> {
+        // An empty due date clears the field on GitLab.
+        self.write(
+            Method::Put,
+            &Self::issue_path(key)?,
+            json!({ "due_date": day.unwrap_or("") }),
+        )?;
+        Ok(())
+    }
+
     fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError> {
         self.capabilities().require(Capability::Transitions)?;
         let event = match to.to_ascii_lowercase().as_str() {

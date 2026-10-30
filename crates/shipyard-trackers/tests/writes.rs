@@ -261,6 +261,38 @@ fn a_gitlab_update_writes_the_changed_fields_only() {
     assert_eq!(body(&writes(&fake)[0]), r#"{"title":"New"}"#);
 }
 
+#[test]
+fn gitlab_and_azure_set_the_type_and_the_due_date_and_linear_the_due_date_only() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.put("/issues/12", "", 200, "{}");
+    let w = gitlab(&fake);
+    w.set_issue_type("acme/web#12", "Incident").unwrap();
+    w.set_due_date("acme/web#12", Some("2026-11-30")).unwrap();
+    w.set_due_date("acme/web#12", None).unwrap();
+    let sent = writes(&fake);
+    assert_eq!(body(&sent[0]), r#"{"issue_type":"incident"}"#);
+    assert_eq!(body(&sent[1]), r#"{"due_date":"2026-11-30"}"#);
+    assert_eq!(body(&sent[2]), r#"{"due_date":""}"#);
+
+    let fake = Arc::new(FakeHttp::new());
+    fake.patch("/_apis/wit/workitems/412", "", 200, "{}");
+    let w = azure(&fake);
+    w.set_issue_type("412", "Bug").unwrap();
+    w.set_due_date("412", Some("2026-11-30")).unwrap();
+    w.set_due_date("412", None).unwrap();
+    let p = patches(&fake);
+    assert!(body(&p[0]).contains("System.WorkItemType"));
+    assert!(body(&p[1]).contains(r#""value":"2026-11-30""#));
+    assert!(body(&p[2]).contains(r#""op":"remove""#));
+
+    let fake = Arc::new(FakeHttp::new());
+    assert!(matches!(
+        linear(&fake).set_issue_type("ENG-1", "Bug"),
+        Err(TrackerError::Refused(_))
+    ));
+    assert!(writes(&fake).is_empty());
+}
+
 fn sheet() -> Sheet {
     Sheet {
         name: "Lot".into(),

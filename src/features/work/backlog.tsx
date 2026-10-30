@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useRuns } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
+import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { useBacklogActions, useWorkItems, type WorkItem } from "@/lib/sync";
@@ -71,6 +72,7 @@ export function statusesOf(items: WorkItem[]): { status: string; category: WorkC
 /** Work / Backlog: the mirror of the tracker in groups by status, with import, adopt and filters. */
 export function Backlog() {
 	const { t, lang } = useI18n();
+	const menu = useMenus();
 	const active = useActiveProject().data;
 	const { openDetail } = useShell();
 	const { planImport, confirmImport, adopt } = useBacklogActions();
@@ -245,6 +247,10 @@ export function Backlog() {
 										: undefined
 								}
 								onOpen={() => open(e.item)}
+								menu={menu("ticket", {
+									open: () => open(e.item),
+									"copy-ref": () => copyText(`wi:${e.item.key}`),
+								})}
 							/>
 						)
 					}

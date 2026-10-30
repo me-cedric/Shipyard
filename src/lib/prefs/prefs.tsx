@@ -17,8 +17,33 @@ export const ROLES = ["pm", "architect", "developer", "qa", "ba", "lead", "junio
 export type Overridable = "theme" | "density" | "contrast";
 export type Prefs = Pick<
 	Prefs_Serialize,
-	"theme" | "density" | "contrast" | "role" | "sidebarOpen"
+	| "theme"
+	| "density"
+	| "contrast"
+	| "role"
+	| "sidebarOpen"
+	| "uiFont"
+	| "codeFont"
+	| "terminalShell"
+	| "terminalFont"
+	| "terminalFontSize"
+	| "defaultAgent"
+	| "defaultModel"
 >;
+
+/** Font stacks that are on the machine already. Nothing is fetched (copied from Legacy `src/lib/appearance.ts`). */
+export const UI_FONTS: Record<string, string> = {
+	system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+	grotesk: '"Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif',
+	humanist: 'Optima, Candara, "Gill Sans", "Trebuchet MS", sans-serif',
+	serif: 'Charter, Georgia, "Times New Roman", "Liberation Serif", serif',
+	mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+};
+export const CODE_FONTS: Record<string, string> = {
+	system: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+	menlo: 'Menlo, Monaco, "Courier New", monospace',
+	courier: '"Courier New", Courier, monospace',
+};
 
 const DEFAULTS: Prefs = {
 	theme: "system",
@@ -26,6 +51,13 @@ const DEFAULTS: Prefs = {
 	contrast: "default",
 	role: "none",
 	sidebarOpen: true,
+	uiFont: "",
+	codeFont: "",
+	terminalShell: "",
+	terminalFont: "",
+	terminalFontSize: 13,
+	defaultAgent: "",
+	defaultModel: "",
 };
 
 type Ctx = Prefs & {
@@ -87,6 +119,17 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 		if (accent) el.dataset.accent = accent;
 		else delete el.dataset.accent;
 	}, [value.theme, value.density, value.contrast, accent]);
+
+	// An empty key keeps the font of the theme.
+	useEffect(() => {
+		const el = document.documentElement.style;
+		const ui = UI_FONTS[value.uiFont];
+		const code = CODE_FONTS[value.codeFont];
+		if (ui) el.setProperty("--font-sans", ui);
+		else el.removeProperty("--font-sans");
+		if (code) el.setProperty("--font-mono", code);
+		else el.removeProperty("--font-mono");
+	}, [value.uiFont, value.codeFont]);
 
 	return <PrefsContext.Provider value={value}>{children}</PrefsContext.Provider>;
 }

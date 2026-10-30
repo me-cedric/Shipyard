@@ -86,6 +86,16 @@ export const assistantEn = {
 		installing: "Installing",
 		detect: "Detect again",
 	},
+	autoWarn: {
+		title: "Allow edits without approval",
+		body: "The assistant edits files in the worktree of this thread with Edit, Write and MultiEdit and does not wait for you. It never runs shell commands. Your working copy stays as it is until you apply the changes.",
+		accept: "Allow auto edits",
+	},
+	codexTrust: {
+		body: 'Codex does not trust this folder. Shipyard adds it to the Codex config file with trust_level = "trusted". Codex then runs here without asking again.',
+		button: "Trust this folder",
+		done: "Folder trusted for Codex",
+	},
 };
 
 export const assistantFr: typeof assistantEn = {
@@ -174,5 +184,15 @@ export const assistantFr: typeof assistantEn = {
 		installName: "Installer {name}",
 		installing: "Installation",
 		detect: "Détecter à nouveau",
+	},
+	autoWarn: {
+		title: "Autoriser les éditions sans accord",
+		body: "L'assistant modifie les fichiers du worktree de ce fil avec Edit, Write et MultiEdit et n'attend pas votre accord. Il ne lance jamais de commande shell. Votre copie de travail reste intacte jusqu'à ce que vous appliquiez les changements.",
+		accept: "Autoriser les éditions auto",
+	},
+	codexTrust: {
+		body: "Codex ne fait pas confiance à ce dossier. Shipyard l'ajoute au fichier de configuration de Codex avec trust_level = \"trusted\". Codex s'exécute ensuite ici sans redemander.",
+		button: "Faire confiance à ce dossier",
+		done: "Dossier de confiance pour Codex",
 	},
 };

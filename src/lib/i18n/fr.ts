@@ -8,6 +8,7 @@ import { factoryFr } from "./factory";
 import { homeFr } from "./home";
 import { knowledgeFr } from "./knowledge";
 import { panelsFr } from "./panels";
+import { personalFr } from "./personal";
 import { settingsFr } from "./settings";
 import { specsFr } from "./specs";
 import { uiFr } from "./ui";
@@ -167,6 +168,11 @@ export const fr: Messages = {
 		commit: "Commit",
 		runs: "Exécutions actives",
 		health: "Santé",
+		version: "Version {version}",
+		whatsNew: {
+			title: "Nouveautés de la version {version}",
+			none: "Aucune note pour cette version.",
+		},
 		toggleSidebar: "Basculer la barre latérale",
 		toggleInspector: "Basculer l'inspecteur",
 		openRef: "Ouvrir {ref}",
@@ -787,6 +793,7 @@ export const fr: Messages = {
 		closeWindow: "Fermer la fenêtre",
 		projectSwitch: "Changer de projet",
 		updateCheck: "Rechercher les mises à jour",
+		whatsNew: "Nouveautés",
 	},
 	context: {
 		open: "Ouvrir",
@@ -802,6 +809,7 @@ export const fr: Messages = {
 	specs: specsFr,
 	ui: uiFr,
 	workspace: workspaceFr,
+	personal: personalFr,
 	doctor: doctorFr,
 	panels: panelsFr,
 };

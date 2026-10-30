@@ -18,6 +18,7 @@ import { TicketBudget } from "./ticket-budget";
 export function TicketThread({ itemKey }: { itemKey: string }) {
 	const { t } = useI18n();
 	const d = t.work.thread;
+	const x = t.personal.thread;
 	const item = (useWorkItems({}).data ?? []).find((i) => i.key === itemKey);
 	const caps = useWorkContext().data?.capabilities;
 	const edit = useTicketEditCaps().data;
@@ -30,6 +31,9 @@ export function TicketThread({ itemKey }: { itemKey: string }) {
 	// `null` until the person edits: the field shows the description of the tracker.
 	const [description, setDescription] = useState<string | null>(null);
 	const [priority, setPriority] = useState("");
+	const [type, setType] = useState("");
+	const [due, setDue] = useState("");
+	const [days, setDays] = useState("");
 	if (!(item && caps && edit)) return null;
 
 	return (
@@ -119,6 +123,53 @@ export function TicketThread({ itemKey }: { itemKey: string }) {
 					}
 					items={Object.entries(d.priorities).map(([value, label]) => ({ value, label }))}
 				/>
+			) : null}
+			{edit.issueType ? (
+				<form
+					className="flex items-center gap-2"
+					onSubmit={async (e) => {
+						e.preventDefault();
+						if (await run(() => act.setType(itemKey, type))) setType("");
+					}}
+				>
+					<Input label={x.type} value={type} onChange={(e) => setType(e.target.value)} />
+					<Button type="submit" disabled={type.trim() === ""}>
+						{x.setType}
+					</Button>
+				</form>
+			) : null}
+			{edit.dueDate ? (
+				<form
+					className="flex items-center gap-2"
+					onSubmit={async (e) => {
+						e.preventDefault();
+						await run(() => act.setDue(itemKey, due || null));
+					}}
+				>
+					<Input label={x.due} type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+					<Button type="submit">{due ? x.setDue : x.clearDue}</Button>
+				</form>
+			) : null}
+			{edit.estimate ? (
+				<form
+					className="flex items-center gap-2"
+					onSubmit={async (e) => {
+						e.preventDefault();
+						if (await run(() => act.setEstimate(itemKey, Number(days)))) setDays("");
+					}}
+				>
+					<Input
+						label={x.estimate}
+						type="number"
+						min={0}
+						step="0.5"
+						value={days}
+						onChange={(e) => setDays(e.target.value)}
+					/>
+					<Button type="submit" disabled={days.trim() === "" || !(Number(days) >= 0)}>
+						{x.setEstimate}
+					</Button>
+				</form>
 			) : null}
 			{caps.comments ? (
 				<>

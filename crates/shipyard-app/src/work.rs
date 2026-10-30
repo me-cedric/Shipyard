@@ -20,7 +20,7 @@ use shipyard_core::work::{
     self, Action, Calendar, Decisions, DiffRow, Field, Gantt, MonthSpend, Portfolio, Row, Sheet,
     Suggestion, Team, TimeEntry, TimeRow, Totals, TrackerLog,
 };
-use shipyard_core::work_item::{Capabilities, WorkItem};
+use shipyard_core::work_item::{Capabilities, TrackerKind, WorkItem};
 use shipyard_engine::tick::source_key;
 use shipyard_store::excel::{self, MAX_BYTES, Preview};
 use shipyard_store::project::write_atomic;
@@ -339,6 +339,7 @@ pub(crate) struct Target {
     pub(crate) caps: Capabilities,
     /// The tracker has a priority field that an edit can set.
     priority: bool,
+    kind: shipyard_core::work_item::TrackerKind,
 }
 
 impl Target {
@@ -361,6 +362,7 @@ pub(crate) fn tracker(s: &AppState) -> Res<Target> {
             shipyard_core::work_item::TrackerKind::GitHubIssues
                 | shipyard_core::work_item::TrackerKind::GitLabIssues
         ),
+        kind: kind.tracker(),
     })
 }
 
@@ -721,11 +723,20 @@ pub struct TicketEditCaps {
     pub assignee: bool,
     pub status: bool,
     pub priority: bool,
+    /// The issue type changes (Jira, GitLab, Azure DevOps). Source: Legacy `application/tickets/plan.rs`.
+    pub issue_type: bool,
+    /// The due date changes (all but GitHub Issues). Source: Legacy `infrastructure/repoissues.rs`.
+    pub due_date: bool,
+    /// The estimate in days changes (a tracker with time tracking).
+    pub estimate: bool,
 }
 
 pub fn ticket_edit_caps(s: &AppState) -> Res<TicketEditCaps> {
-    let t = tracker(s)?;
-    Ok(TicketEditCaps {
+    Ok(ticket_edit_caps_of(&tracker(s)?))
+}
+
+fn ticket_edit_caps_of(t: &Target) -> TicketEditCaps {
+    TicketEditCaps {
         title: true,
         description: true,
         labels: t.caps.labels,
@@ -733,7 +744,45 @@ pub fn ticket_edit_caps(s: &AppState) -> Res<TicketEditCaps> {
         assignee: t.caps.assignee,
         status: t.caps.transitions,
         priority: t.priority,
-    })
+        issue_type: !matches!(t.kind, TrackerKind::GitHubIssues | TrackerKind::Linear),
+        due_date: t.kind != TrackerKind::GitHubIssues,
+        estimate: t.caps.time_tracking,
+    }
+}
+
+/// Sets the issue type by name. A blank name is refused, and a tracker with no type field refuses
+/// before it sends anything.
+pub fn ticket_type_set(s: &AppState, key: &str, name: &str, click: bool) -> Res<()> {
+    need_click(s, click)?;
+    let name = name.trim();
+    if name.is_empty() || name.len() > 60 {
+        return Err("the issue type is a name of 60 characters or fewer".into());
+    }
+    let t = tracker(s)?;
+    if !ticket_edit_caps_of(&t).issue_type {
+        return Err("this tracker has no issue type to change".into());
+    }
+    let w = writer(s, &t)?;
+    w.set_issue_type(key, name).map_err(err)?;
+    refresh(s, &t, &*w, [key.to_string()]);
+    Ok(())
+}
+
+/// Sets the due day (`YYYY-MM-DD`). `None` or a blank value clears it.
+pub fn ticket_due_set(s: &AppState, key: &str, day: Option<&str>, click: bool) -> Res<()> {
+    need_click(s, click)?;
+    let day = day.map(str::trim).filter(|d| !d.is_empty());
+    if day.is_some_and(|d| shipyard_core::work::parse_day(d).is_none()) {
+        return Err("the due date is a day as YYYY-MM-DD".into());
+    }
+    let t = tracker(s)?;
+    if !ticket_edit_caps_of(&t).due_date {
+        return Err("this tracker has no due date".into());
+    }
+    let w = writer(s, &t)?;
+    w.set_due_date(key, day).map_err(err)?;
+    refresh(s, &t, &*w, [key.to_string()]);
+    Ok(())
 }
 
 /// Removes a label. A blank label or one with a space or a comma is refused, as for the add.
@@ -1593,6 +1642,28 @@ pub async fn work_ticket_priority_set(
     click: bool,
 ) -> Res<()> {
     blocking(app, move |s| ticket_priority_set(s, &key, &priority, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_ticket_type_set(
+    app: AppHandle,
+    key: String,
+    name: String,
+    click: bool,
+) -> Res<()> {
+    blocking(app, move |s| ticket_type_set(s, &key, &name, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_ticket_due_set(
+    app: AppHandle,
+    key: String,
+    day: Option<String>,
+    click: bool,
+) -> Res<()> {
+    blocking(app, move |s| ticket_due_set(s, &key, day.as_deref(), click)).await
 }
 
 #[tauri::command]

@@ -154,6 +154,32 @@ fn a_label_is_removed_and_a_priority_is_set_where_the_tracker_has_them() {
     assert_eq!(writes(&fake), 1);
 }
 
+#[test]
+fn a_type_and_a_due_date_are_set_on_jira_and_refused_on_github_with_no_request() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.put("/rest/api/2/issue/PROJ-1", "", 204, "");
+    let w = jira(TrackerKind::JiraCloud, &fake);
+    w.set_issue_type("PROJ-1", "Bug").unwrap();
+    w.set_due_date("PROJ-1", Some("2026-11-30")).unwrap();
+    w.set_due_date("PROJ-1", None).unwrap();
+    let puts = sent(&fake, Method::Put);
+    assert_eq!(puts[0].1, r#"{"fields":{"issuetype":{"name":"Bug"}}}"#);
+    assert_eq!(puts[1].1, r#"{"fields":{"duedate":"2026-11-30"}}"#);
+    assert_eq!(puts[2].1, r#"{"fields":{"duedate":null}}"#);
+
+    let fake = Arc::new(FakeHttp::new());
+    let w = github(&fake);
+    assert!(matches!(
+        w.set_issue_type("acme/web#5", "Bug"),
+        Err(TrackerError::Refused(_))
+    ));
+    assert!(matches!(
+        w.set_due_date("acme/web#5", None),
+        Err(TrackerError::Refused(_))
+    ));
+    assert_eq!(writes(&fake), 0);
+}
+
 // ---- transition (REQ-002)
 
 const TRANSITIONS: &str = r#"{"transitions":[

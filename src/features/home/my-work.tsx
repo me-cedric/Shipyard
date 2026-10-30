@@ -4,6 +4,7 @@ import { NoProject } from "@/features/work/no-project";
 import { TicketDetail } from "@/features/work/ticket-detail";
 import { useRuns } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
+import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { useWorkItems } from "@/lib/sync";
@@ -27,6 +28,7 @@ export function useMyItems() {
 /** Home / My work: the mirrored items assigned to the person, and the runs on those items (shell REQ-003). */
 export function MyWork() {
 	const { t } = useI18n();
+	const menu = useMenus();
 	const qc = useQueryClient();
 	const active = useActiveProject().data;
 	const { openDetail, openRef } = useShell();
@@ -86,6 +88,10 @@ export function MyWork() {
 								assignee={memberName(members, i.member)}
 								claimed={i.claimed ? t.sync.runState.Claimed : undefined}
 								onOpen={() => openDetail(i.key, <TicketDetail key={i.key} itemKey={i.key} />)}
+								menu={menu("ticket", {
+									open: () => openDetail(i.key, <TicketDetail key={i.key} itemKey={i.key} />),
+									"copy-ref": () => copyText(`wi:${i.key}`),
+								})}
 							/>
 						))}
 					</Panel>

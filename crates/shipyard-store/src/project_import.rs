@@ -2,6 +2,9 @@
 //! repository and writes the matching Shipyard files into a project. It never changes the source.
 //! It never replaces a file: a target that exists is a conflict and stays as it is (Q-090).
 //!
+//! Slides copy as they are (same `docs/slides`). A dashboard becomes tiles and the work log becomes
+//! one time file for each member and month (Q-129).
+//!
 //! Legacy keeps the default paths only. A path that the Legacy registry overrode is not read (Q-091).
 //! Sources: Legacy `src/lib/planning.ts` (team), `src/lib/costing.ts` (sheets),
 //! `src/lib/tickets/model.ts` (tickets config) and `src/lib/personas.ts` (roles).
@@ -14,13 +17,20 @@ use serde_json::Value;
 use shipyard_core::project::{PROJECT_FILE, ProjectConnections, ProjectFile};
 use shipyard_core::work::{Availability, Feature, Member, Sheet, Span, Task, Team};
 
-use crate::{legacy, project, safe_write, work};
+use crate::{knowledge, legacy, project, safe_write, work};
 
 const MAX_BYTES: u64 = 2 * 1024 * 1024;
 const MAX_DEPTH: usize = 8;
 const MAX_FILES: usize = 2000;
 /// The folders that have the same layout in Legacy and in Shipyard. Files are copied as they are.
-const SAME: [&str; 3] = ["docs/decisions", "docs/delivery/questions", "docs/openspec"];
+const SAME: [&str; 4] = [
+    "docs/decisions",
+    "docs/delivery/questions",
+    "docs/openspec",
+    "docs/slides",
+];
+const DASHBOARDS: &str = "docs/delivery/dashboards";
+const WORKLOG: &str = "docs/delivery/worklog";
 
 /// Paths are relative to the project root. `skipped` holds the source path and the reason.
 #[derive(Debug, Default, PartialEq)]
@@ -293,6 +303,125 @@ fn project_file(source: &Path, tickets: Option<&Value>) -> ProjectFile {
     file
 }
 
+/// The Shipyard tile that shows what a Legacy data source answers. A source with no such tile
+/// (git, release, forge, provision, custom files) has none, and its widget is skipped.
+fn tile_kind(source: &str) -> Option<&'static str> {
+    Some(match source.split('.').next()? {
+        "tickets" | "worklog" | "team" | "schedule" => "work",
+        "delivery" if source == "delivery.notes" => "impact",
+        "delivery" => "work",
+        "costing" => "estimates",
+        "qa" | "gates" => "quality",
+        "specs" => "specs",
+        "raid" => "questions",
+        _ => return None,
+    })
+}
+
+/// A Legacy dashboard (`widgets` with a `source`) as Shipyard tiles. A widget with no tile for its
+/// source, and a note, are left out and named in the second value.
+pub fn dashboard(v: &Value, fallback: &str) -> (knowledge::Dashboard, Vec<String>) {
+    let mut left = Vec::new();
+    let mut tiles: Vec<knowledge::Tile> = Vec::new();
+    for (i, w) in list(v, "widgets").iter().enumerate() {
+        let source = text(w, "source");
+        let Some(kind) = tile_kind(source) else {
+            left.push(format!("{}: no tile for `{source}`", text(w, "id")));
+            continue;
+        };
+        let base = Some(slug(text(w, "id")))
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| format!("tile-{}", i + 1));
+        let id = (1..)
+            .map(|n| {
+                if n == 1 {
+                    base.clone()
+                } else {
+                    format!("{base}-{n}")
+                }
+            })
+            .find(|c| tiles.iter().all(|t| &t.id != c))
+            .unwrap_or_default();
+        let n = |k: &str, d: u64| w.get(k).and_then(Value::as_u64).unwrap_or(d).min(48) as u32;
+        tiles.push(knowledge::Tile {
+            id,
+            kind: kind.into(),
+            x: n("x", 0),
+            y: n("y", 0),
+            w: n("w", 4).max(1),
+            h: n("h", 3).max(1),
+        });
+    }
+    let title = Some(text(v, "name"))
+        .filter(|t| !t.is_empty())
+        .unwrap_or(fallback);
+    (
+        knowledge::Dashboard {
+            title: title.into(),
+            tiles,
+            ..Default::default()
+        },
+        left,
+    )
+}
+
+/// The handle of the member whose tracker account is `email`, else the part before the `@`.
+fn handle_of(team: &Team, email: &str) -> String {
+    let email = email.trim().to_lowercase();
+    team.members
+        .iter()
+        .find(|m| m.trackers.contains(&email))
+        .map(|m| m.handle.clone())
+        .or_else(|| Some(slug(email.split('@').next().unwrap_or(""))).filter(|h| !h.is_empty()))
+        .unwrap_or_else(|| "member".into())
+}
+
+/// One Legacy month of the work log (`entries` with `date`, `author`, `minutes`, `what`, `ticket`,
+/// `jiraId`) as time entries by member handle. An entry with no valid day, no author or no minutes
+/// is left out, as Legacy `parseWorklog` leaves it out.
+pub fn worklog(v: &Value, team: &Team) -> BTreeMap<String, Vec<shipyard_core::work::TimeEntry>> {
+    let mut out: BTreeMap<String, Vec<shipyard_core::work::TimeEntry>> = BTreeMap::new();
+    for (i, e) in list(v, "entries").iter().enumerate() {
+        let day = text(e, "date").get(..10).unwrap_or("");
+        let minutes = e
+            .get("minutes")
+            .and_then(Value::as_f64)
+            .unwrap_or(0.0)
+            .round();
+        let author = text(e, "author");
+        if shipyard_core::work::parse_day(day).is_none()
+            || author.trim().is_empty()
+            || minutes < 1.0
+        {
+            continue;
+        }
+        let list = out.entry(handle_of(team, author)).or_default();
+        let base = Some(text(e, "id").to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| format!("{day}-{i}"));
+        let id = (1..)
+            .map(|n| {
+                if n == 1 {
+                    base.clone()
+                } else {
+                    format!("{base}-{n}")
+                }
+            })
+            .find(|c| list.iter().all(|t| &t.id != c))
+            .unwrap_or_default();
+        let some = |k: &str| Some(text(e, k).to_string()).filter(|t| !t.is_empty());
+        list.push(shipyard_core::work::TimeEntry {
+            id,
+            day: day.into(),
+            minutes: minutes as u32,
+            note: text(e, "what").into(),
+            ticket: some("ticket"),
+            worklog: some("jiraId"),
+        });
+    }
+    out
+}
+
 /// Imports the Legacy repository `source` into the project `root`.
 pub fn import(source: &Path, root: &Path) -> Report {
     let mut r = Report::default();
@@ -311,9 +440,12 @@ pub fn import(source: &Path, root: &Path) -> Report {
             "docs/planning/plan.json",
             "docs/costing",
             "docs/personas",
+            DASHBOARDS,
+            WORKLOG,
         ]
         .iter()
-        .chain(&SAME)
+        // Slides alone say nothing: Shipyard keeps its decks in the same folder.
+        .chain(SAME.iter().filter(|p| **p != "docs/slides"))
         .any(|p| source.join(p).exists());
     if has_legacy {
         let file = project_file(source, tickets.as_ref().and_then(|t| t.as_ref().ok()));
@@ -396,6 +528,60 @@ pub fn import(source: &Path, root: &Path) -> Report {
         }) {
             Ok(t) => r.put("docs/planning/plan.json", work::DECISIONS_PATH, root, &t),
             Err(e) => r.skipped.push(("docs/planning/plan.json".into(), e)),
+        }
+    }
+
+    // Dashboards (Q-129): the tiles that Shipyard has a data source for.
+    let mut found = Vec::new();
+    files(source, DASHBOARDS, 0, &mut found, &mut r.skipped);
+    for rel in found.iter().filter(|p| p.ends_with(".json")) {
+        let stem = slug(
+            rel.trim_start_matches(DASHBOARDS)
+                .trim_matches('/')
+                .trim_end_matches(".json"),
+        );
+        let loaded = json(source, rel).unwrap_or(Err("gone".into()));
+        let v = match loaded {
+            Ok(v) => v,
+            Err(e) => {
+                r.skipped.push((rel.clone(), e));
+                continue;
+            }
+        };
+        let (d, left) = dashboard(&v, &stem);
+        r.skipped.extend(left.into_iter().map(|l| (rel.clone(), l)));
+        if stem.is_empty() || d.tiles.is_empty() {
+            r.skipped.push((rel.clone(), "no tile to keep".into()));
+            continue;
+        }
+        match knowledge::dashboard_text(&d) {
+            Ok(t) => r.put(rel, &format!("docs/dashboards/{stem}.yaml"), root, &t),
+            Err(e) => r.skipped.push((rel.clone(), e.to_string())),
+        }
+    }
+
+    // The work log (Q-129): one Legacy file for each month becomes one time file for each member.
+    let members = match json(source, "docs/planning/team.json") {
+        Some(Ok(v)) => team(&v, &roles),
+        _ => Team::default(),
+    };
+    let mut found = Vec::new();
+    files(source, WORKLOG, 0, &mut found, &mut r.skipped);
+    for rel in found.iter().filter(|p| p.ends_with(".json")) {
+        let v = match json(source, rel).unwrap_or(Err("gone".into())) {
+            Ok(v) => v,
+            Err(e) => {
+                r.skipped.push((rel.clone(), e));
+                continue;
+            }
+        };
+        for (handle, entries) in worklog(&v, &members) {
+            let out = work::time_path(&handle, &entries[0].day)
+                .and_then(|path| Ok((path, work::write_time(&entries)?)));
+            match out {
+                Ok((path, t)) => r.put(rel, &path, root, &t),
+                Err(e) => r.skipped.push((rel.clone(), e.to_string())),
+            }
         }
     }
 

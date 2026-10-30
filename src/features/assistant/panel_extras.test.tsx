@@ -143,3 +143,35 @@ describe("assistant panel: width and side", () => {
 		expect(screen.getByRole("button", { name: "Move to the right" })).toBeInTheDocument();
 	});
 });
+
+describe("assistant panel: warnings before a risky step", () => {
+	const permission = () => screen.getByRole("combobox", { name: "Permission", hidden: true });
+
+	it("names the effect of Auto and applies it only after the click", async () => {
+		const user = userEvent.setup();
+		await mountAssistant();
+		await user.click(
+			within(screen.getByRole("group", { name: "Mode" })).getByRole("button", { name: "Agent" }),
+		);
+		await user.click(permission());
+		await user.click(await screen.findByRole("option", { name: "Auto in worktree" }));
+		const dialog = await screen.findByRole("dialog", { name: "Allow edits without approval" });
+		expect(dialog).toHaveTextContent("It never runs shell commands");
+		expect(permission()).toHaveTextContent("Edit with approval");
+		await user.click(within(dialog).getByRole("button", { name: "Allow auto edits" }));
+		await waitFor(() => expect(permission()).toHaveTextContent("Auto in worktree"));
+	});
+
+	it("asks for the Codex trust and writes it on the click", async () => {
+		const user = userEvent.setup();
+		await mountAssistant();
+		expect(screen.queryByText(/Codex does not trust/)).toBeNull();
+		await user.click(screen.getByRole("combobox", { name: "Runner" }));
+		await user.click(await screen.findByRole("option", { name: "codex" }));
+		expect(await screen.findByText(/Codex does not trust this folder/)).toBeInTheDocument();
+		expect(mockState().codexTrusted).toBe(false);
+		await user.click(screen.getByRole("button", { name: "Trust this folder" }));
+		await waitFor(() => expect(screen.queryByText(/Codex does not trust/)).toBeNull());
+		expect(mockState().codexTrusted).toBe(true);
+	});
+});

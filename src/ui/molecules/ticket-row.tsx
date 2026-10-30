@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { Avatar } from "../atoms/avatar";
 import { Badge } from "../atoms/badge";
 import { type Status, StatusDot } from "../atoms/status-dot";
+import { ContextMenu, type MenuItem } from "./context-menu";
 
 export type WorkCategory = "todo" | "in-progress" | "done";
 
@@ -94,6 +95,7 @@ export function TicketRow({
 	run,
 	estimate,
 	onOpen,
+	menu,
 }: {
 	itemKey: string;
 	title: string;
@@ -113,77 +115,85 @@ export function TicketRow({
 	/** The estimate as text: `3 d`. */
 	estimate?: string;
 	onOpen: () => void;
+	menu?: MenuItem[];
 }) {
 	if (rich)
 		return (
-			// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
+			<ContextMenu items={menu}>
+				{/* biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box */}
+				<div
+					role="group"
+					aria-label={itemKey}
+					className={cn(
+						"relative flex h-10 items-center border-b transition-colors duration-(--duration-fast) hover:bg-n-3",
+						selected && "bg-accent-soft",
+					)}
+				>
+					{selected ? (
+						<span
+							aria-hidden="true"
+							className="absolute inset-y-0 left-0 w-0.5 bg-accent-gradient"
+						/>
+					) : null}
+					<button
+						type="button"
+						data-nav=""
+						aria-current={selected ? "true" : undefined}
+						onClick={onOpen}
+						className="flex h-full min-w-0 flex-1 items-center gap-3 px-4 text-left"
+					>
+						<span className="flex w-3 shrink-0 justify-center">
+							{priority ? <PriorityGlyph level={priority.level} label={priority.label} /> : null}
+						</span>
+						<CategoryDot category={category} label={status} />
+						<span className="w-20 shrink-0 truncate font-mono text-11 text-n-11">{itemKey}</span>
+						<span className="min-w-0 truncate text-ui text-n-12">{title}</span>
+						<span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+							{labels?.map((l) => (
+								<Badge key={l} className="rounded-full">
+									{l}
+								</Badge>
+							))}
+						</span>
+						{claimed ? <StatusDot status="active" label={claimed} /> : null}
+						{run ? (
+							<Badge variant={RUN_BADGE[run.status]}>
+								<StatusDot status={run.status} label={run.label} className="size-2" />
+								{run.label}
+							</Badge>
+						) : null}
+						<span className="w-12 shrink-0 text-right font-mono text-11 text-n-11">
+							{estimate ?? ""}
+						</span>
+						<span className="flex w-36 shrink-0 justify-end">
+							{assignee ? <Assignee name={assignee} unknown={unknown} /> : null}
+						</span>
+					</button>
+				</div>
+			</ContextMenu>
+		);
+	return (
+		<ContextMenu items={menu}>
+			{/* biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box */}
 			<div
 				role="group"
 				aria-label={itemKey}
-				className={cn(
-					"relative flex h-10 items-center border-b transition-colors duration-(--duration-fast) hover:bg-n-3",
-					selected && "bg-accent-soft",
-				)}
+				className={cn("flex h-row items-center border-b hover:bg-n-3", selected && "bg-n-4")}
 			>
-				{selected ? (
-					<span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-accent-gradient" />
-				) : null}
 				<button
 					type="button"
 					data-nav=""
 					aria-current={selected ? "true" : undefined}
 					onClick={onOpen}
-					className="flex h-full min-w-0 flex-1 items-center gap-3 px-4 text-left"
+					className="flex h-full min-w-0 flex-1 items-center gap-3 px-3 text-left"
 				>
-					<span className="flex w-3 shrink-0 justify-center">
-						{priority ? <PriorityGlyph level={priority.level} label={priority.label} /> : null}
-					</span>
 					<CategoryDot category={category} label={status} />
 					<span className="w-20 shrink-0 truncate font-mono text-11 text-n-11">{itemKey}</span>
-					<span className="min-w-0 truncate text-ui text-n-12">{title}</span>
-					<span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-						{labels?.map((l) => (
-							<Badge key={l} className="rounded-full">
-								{l}
-							</Badge>
-						))}
-					</span>
+					<span className="min-w-0 flex-1 truncate text-ui">{title}</span>
 					{claimed ? <StatusDot status="active" label={claimed} /> : null}
-					{run ? (
-						<Badge variant={RUN_BADGE[run.status]}>
-							<StatusDot status={run.status} label={run.label} className="size-2" />
-							{run.label}
-						</Badge>
-					) : null}
-					<span className="w-12 shrink-0 text-right font-mono text-11 text-n-11">
-						{estimate ?? ""}
-					</span>
-					<span className="flex w-36 shrink-0 justify-end">
-						{assignee ? <Assignee name={assignee} unknown={unknown} /> : null}
-					</span>
+					{assignee ? <Assignee name={assignee} unknown={unknown} /> : null}
 				</button>
 			</div>
-		);
-	return (
-		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
-		<div
-			role="group"
-			aria-label={itemKey}
-			className={cn("flex h-row items-center border-b hover:bg-n-3", selected && "bg-n-4")}
-		>
-			<button
-				type="button"
-				data-nav=""
-				aria-current={selected ? "true" : undefined}
-				onClick={onOpen}
-				className="flex h-full min-w-0 flex-1 items-center gap-3 px-3 text-left"
-			>
-				<CategoryDot category={category} label={status} />
-				<span className="w-20 shrink-0 truncate font-mono text-11 text-n-11">{itemKey}</span>
-				<span className="min-w-0 flex-1 truncate text-ui">{title}</span>
-				{claimed ? <StatusDot status="active" label={claimed} /> : null}
-				{assignee ? <Assignee name={assignee} unknown={unknown} /> : null}
-			</button>
-		</div>
+		</ContextMenu>
 	);
 }

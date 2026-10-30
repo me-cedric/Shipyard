@@ -26,6 +26,7 @@ import {
 } from "@/ui/icons";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Settings } from "@/ui/templates/settings";
+import { usePersonalSections } from "./me/personal";
 
 /** Where the update check reads the latest release. It saves when the field loses focus. */
 function ReleaseUrl() {
@@ -101,6 +102,7 @@ export function Me() {
 	const { t, lang, setLang } = useI18n();
 	const { theme, density, contrast, role, overridden, setPrefs } = usePrefs();
 	const roles: Role[] = ["none", ...ROLES];
+	const personal = usePersonalSections();
 	// The mark: the active project sets this value, and it replaces the one below.
 	const marked = (key: Overridable, control: React.ReactNode) => (
 		<span className="flex items-center gap-2">
@@ -205,6 +207,7 @@ export function Me() {
 								},
 							],
 						},
+						...personal,
 						{
 							id: "notifications",
 							title: t.notifications.title,
