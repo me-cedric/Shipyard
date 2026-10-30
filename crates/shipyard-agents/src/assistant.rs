@@ -17,7 +17,7 @@ use shipyard_core::assistant::{
 };
 
 use crate::assistant_modes::run_spec;
-use crate::runner::{Event, Recv, runner, start};
+use crate::runner::{CancelHandle, Event, Recv, runner, start};
 
 /// No event for this long ends the turn.
 const IDLE: Duration = Duration::from_secs(600);
@@ -87,6 +87,12 @@ fn failed(
 }
 
 pub fn run_turn(i: TurnInput) -> TurnOutput {
+    run_turn_with(i, &|_| {})
+}
+
+/// Like [`run_turn`]. `on_start` gets the kill switch once the process runs. A cancelled turn
+/// ends as `Done` and keeps the text that came before.
+pub fn run_turn_with(i: TurnInput, on_start: &dyn Fn(CancelHandle)) -> TurnOutput {
     let keep = i.session.map(String::from);
     let resumed = i.session.is_some() && i.kind != TurnKind::Send;
     let request = match (&i.kind, resumed) {
@@ -150,6 +156,7 @@ pub fn run_turn(i: TurnInput) -> TurnOutput {
         }
     };
 
+    on_start(run.cancel_handle());
     let (mut texts, mut trace, mut usage) = (Vec::new(), Vec::<TraceStep>::new(), Usage::default());
     let (mut session, mut error, mut denied) = (keep.clone(), None::<String>, None::<String>);
     let mut open: HashMap<String, (usize, Instant)> = HashMap::new();

@@ -160,6 +160,19 @@ describe("Home / My work", () => {
 		expect(screen.queryByText("Bump dependencies")).toBeNull();
 	});
 
+	it("adds a tile to Home and removes it with its pin", async () => {
+		const user = userEvent.setup();
+		localStorage.clear();
+		await withTracker();
+		mountApp("/home/my-work");
+		await user.click(await screen.findByRole("button", { name: "Add tile" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Open items" }));
+		const tile = within(await screen.findByRole("region", { name: "Open items" }));
+		expect(screen.getByRole("heading", { name: "Pinned (1)" })).toBeInTheDocument();
+		await user.click(tile.getByRole("button", { name: "Unpin from Home" }));
+		await waitFor(() => expect(screen.queryByRole("heading", { name: /^Pinned/ })).toBeNull());
+	});
+
 	it("shows ghost rows and one action without a project", async () => {
 		mountApp("/home/my-work");
 		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();

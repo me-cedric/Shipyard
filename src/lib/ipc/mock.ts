@@ -93,6 +93,7 @@ import {
 	syncState,
 	unlink as syncUnlink,
 } from "./mock-sync";
+import * as deliveryActions from "./mock-delivery-actions";
 import * as work from "./mock-work";
 
 type Bindings = typeof commands;
@@ -165,6 +166,8 @@ type State = {
 	extensions: ex.MockExtensions;
 	/** The personas, the work split by profile and the tickets config. */
 	delivery: dv.MockDelivery;
+	/** The origin, the editor launches and the browser sign-ins. */
+	deliveryActions: deliveryActions.MockDeliveryActions;
 	/** The system notifications that the app asked for. */
 	os: { title: string; body: string }[];
 	/** The labels of the last native menu. */
@@ -248,6 +251,7 @@ const fresh = (): State => ({
 	knowledge: kw.seedKnowledge(),
 	extensions: ex.seedExtensions(),
 	delivery: dv.seedDelivery(),
+	deliveryActions: deliveryActions.seedDeliveryActions(),
 	os: [],
 	orcaOpened: [],
 	reports: rp.seedReports(),
@@ -1132,6 +1136,19 @@ const handlers: Handlers = {
 	estimateSave: (slug, sheet) =>
 		work.estimateSave(need(state.work), state.sync.mirror, slug, sheet),
 	estimatePortfolio: () => work.estimatePortfolio(need(state.work)),
+	estimateProfiles: (slug) => work.estimateProfiles(need(state.work), slug),
+	estimateDelete: (slug, click) => {
+		work.estimateDelete(need(state.work), slug, click);
+		return null;
+	},
+	planCalendarGet: () => need(state.work).calendar,
+	planPngSave: (path, bytes, click) => {
+		if (!click) throw "this change needs the click of a person";
+		if (!path.toLowerCase().endsWith(".png")) throw "the file is not a .png file";
+		if (bytes[0] !== 0x89 || bytes[1] !== 0x50) throw "the image is not a PNG file";
+		reports().exported.push({ kind: "gantt", path });
+		return null;
+	},
 	excelPreview: (path, scope) => work.excelPreview(need(state.work), path, scope),
 	excelConfirm: (slug, confirmed) =>
 		work.excelConfirm(need(state.work), state.sync.mirror, slug, confirmed),
@@ -1502,6 +1519,46 @@ const handlers: Handlers = {
 	assistantRefRemove: (id, text) => ai.refRemove(state.assistant, assistantEnv(), id, text),
 	assistantSend: (id, text, quotes, context) =>
 		ai.send(state.assistant, assistantEnv(), id, text, quotes, context),
+	assistantStop: () => null,
+	codeOrigin: () => (active() ? state.deliveryActions.origin : null),
+	codeRemoteSet: (url, click) => deliveryActions.remoteSet(state.deliveryActions, url, click),
+	codePublish: (connection, slug, click) =>
+		deliveryActions.publish(state.deliveryActions, state.connections, connection, slug, click),
+	codePullClose: (number, reason, click) => {
+		const p = prs();
+		if (!click) throw "this change needs the click of a person";
+		if (cp.pullDetail(p, number).state !== "open") throw "the pull request is not open";
+		if (reason.trim()) cp.pullComment(p, number, reason, true);
+		cp.pullClose(p, number);
+		return null;
+	},
+	codePullSendBack: (number, text, click) =>
+		cp.pullVerdict(prs(), number, "request-changes", text, click),
+	codePullArchiveSpec: (number, change, confirmed, click) => {
+		const p = prs();
+		if (!click) throw "this change needs the click of a person";
+		if (cp.pullDetail(p, number).state !== "open") throw "the pull request is not open";
+		specs.archive(
+			need(state.specs),
+			syncSources().length ? state.sync.mirror : [],
+			change,
+			confirmed,
+			state.work.today,
+		);
+		return `${change}0000000`;
+	},
+	deviceLoginStart: (id, click) => deliveryActions.deviceStart(state.deliveryActions, state.connections, id, click),
+	deviceLoginPoll: (id, deviceCode) => {
+		const done = deliveryActions.devicePoll(state.deliveryActions, deviceCode);
+		const c = conn(id);
+		state.secrets[id] = "device-token";
+		c.secret = true;
+		c.state = "untested";
+		return done;
+	},
+	editorsList: () => deliveryActions.editors(),
+	editorOpen: (editor, path, line) => deliveryActions.editorOpen(state.deliveryActions, editor, path, line),
+	openLink: (url) => deliveryActions.link(state.openedPages, url),
 	assistantGrant: (id) => ai.grant(state.assistant, assistantEnv(), id),
 	assistantRetry: (id) => ai.retry(state.assistant, assistantEnv(), id),
 	assistantExplain: (id, entity) => ai.explain(state.assistant, assistantEnv(), id, entity),

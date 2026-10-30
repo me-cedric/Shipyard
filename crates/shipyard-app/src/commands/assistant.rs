@@ -106,6 +106,14 @@ pub async fn assistant_send(
     blocking(app, move |s| a::send(s, &thread, text, quotes, context)).await
 }
 
+/// Stops the running turn of a thread. The turn ends with the reply that came so far.
+#[tauri::command]
+#[specta::specta]
+pub async fn assistant_stop(thread: String) -> Api<()> {
+    a::stop(&thread);
+    Ok(())
+}
+
 /// Grants the tool that the last message waits for and resumes the session.
 #[tauri::command]
 #[specta::specta]

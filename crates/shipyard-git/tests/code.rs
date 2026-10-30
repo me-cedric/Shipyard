@@ -1289,3 +1289,22 @@ fn a_force_push_needs_the_lease_and_blame_names_the_commit_of_each_line() {
     a.fetch("origin", &auth).unwrap();
     assert_eq!(a.status().unwrap().ahead, 0);
 }
+
+#[test]
+fn set_remote_adds_then_changes_the_address() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(&tmp.path().join("a"));
+    assert_eq!(r.remote().unwrap(), None);
+    r.set_remote("origin", "https://example.com/a/b.git")
+        .unwrap();
+    assert_eq!(
+        r.remote().unwrap(),
+        Some((s("origin"), s("https://example.com/a/b.git")))
+    );
+    r.set_remote("origin", "https://example.com/c/d.git")
+        .unwrap();
+    assert_eq!(
+        r.remote().unwrap(),
+        Some((s("origin"), s("https://example.com/c/d.git")))
+    );
+}

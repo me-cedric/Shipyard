@@ -38,6 +38,12 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		git_no_upstream: "This branch is not on the server yet. Push it first.",
 		no_terminal: "No terminal app was found. Pick one in your settings.",
 		terminal_gone: "This terminal app is not installed. Pick another in your settings.",
+		device_not_set: "Browser sign-in is not set up for this host. Use a token instead.",
+		no_editor: "No code editor was found. Install VS Code, Cursor, Zed, JetBrains or Sublime Text.",
+		no_first_commit: "Make a first commit before you publish the project.",
+		remote_address: "Use an https address with no user name or password.",
+		remote_exists: "This project already has a remote. Change it instead.",
+		sheet_frozen: "This sheet is frozen. Unfreeze it first.",
 	},
 	fr: {
 		no_project: "Ouvrez ou créez d'abord un projet.",
@@ -72,6 +78,14 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		no_terminal: "Aucune application de terminal trouvée. Choisissez-en une dans vos réglages.",
 		terminal_gone:
 			"Cette application de terminal n'est pas installée. Choisissez-en une autre dans vos réglages.",
+		device_not_set:
+			"La connexion par le navigateur n'est pas prévue pour cet hôte. Utilisez un jeton.",
+		no_editor:
+			"Aucun éditeur de code trouvé. Installez VS Code, Cursor, Zed, JetBrains ou Sublime Text.",
+		no_first_commit: "Faites un premier commit avant de publier le projet.",
+		remote_address: "Utilisez une adresse https sans nom d'utilisateur ni mot de passe.",
+		remote_exists: "Ce projet a déjà un dépôt distant. Modifiez-le plutôt.",
+		sheet_frozen: "Cette feuille est figée. Défigez-la d'abord.",
 	},
 };
 
@@ -129,6 +143,12 @@ export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["the branch has no upstream", "git_no_upstream"],
 	["no terminal app was found", "no_terminal"],
 	["terminal app is not installed", "terminal_gone"],
+	["browser sign-in is not set up", "device_not_set"],
+	["no code editor was found", "no_editor"],
+	["make a first commit before", "no_first_commit"],
+	["bad remote address", "remote_address"],
+	["the project already has a remote", "remote_exists"],
+	["the sheet is frozen", "sheet_frozen"],
 ];
 
 const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {

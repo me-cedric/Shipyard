@@ -221,3 +221,30 @@ fn another_error_keeps_its_first_sentence() {
         }
     );
 }
+
+#[test]
+fn a_stopped_turn_keeps_the_partial_reply() {
+    let f = fx(
+        r#"echo '{"type":"assistant","message":{"content":[{"type":"text","text":"Half."}]}}'
+touch "$REC/ready"
+sleep 30"#,
+    );
+    let (s, c) = (ThreadSettings::new("claude"), Context::default());
+    let ready = f.rec.join("ready");
+    let o = run_turn_with(input(&f, TurnKind::Send, &s, &c), &|h| {
+        let ready = ready.clone();
+        std::thread::spawn(move || {
+            // Stop only after the reply started, so the test does not depend on the speed of the machine.
+            for _ in 0..200 {
+                if ready.exists() {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            h.cancel();
+        });
+    });
+    assert_eq!(o.message.state, MessageState::Done);
+    assert_eq!(o.message.text, "Half.");
+}

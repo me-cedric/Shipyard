@@ -33,6 +33,37 @@ const UNSTAFFED = "border-dashed border-n-8 bg-n-4 text-n-11";
 /** A drag of fewer pixels is a click. */
 const DRAG = 4;
 
+/** The used share of the capacity of each day, by `YYYY-MM-DD`. Above 1 is over capacity. */
+export type Band = Record<string, number>;
+
+const bandTone = (ratio: number) =>
+	ratio > 1 + 1e-6 ? "bg-danger" : ratio >= 1 - 1e-6 ? "bg-accent" : "bg-accent/40";
+
+/** One strip of load: a cell for each day with work, red over capacity. */
+function LoadStrip({
+	band,
+	x,
+	dayWidth,
+}: {
+	band: Band;
+	x: (day: string) => number;
+	dayWidth: number;
+}) {
+	return (
+		<>
+			{Object.entries(band).map(([day, ratio]) => (
+				<span
+					key={day}
+					aria-hidden="true"
+					data-over={ratio > 1 + 1e-6 || undefined}
+					className={cn("absolute bottom-0 h-1", bandTone(ratio))}
+					style={{ left: x(day), width: Math.max(1, dayWidth - 1) }}
+				/>
+			))}
+		</>
+	);
+}
+
 function BarButton({
 	bar,
 	tone,
@@ -139,6 +170,9 @@ export function Gantt({
 	todayLabel,
 	milestoneLabel,
 	dayWidth = 18,
+	band,
+	bandLabel,
+	groupBand,
 	onMove,
 	onOpen,
 }: {
@@ -152,6 +186,12 @@ export function Gantt({
 	/** The name of the diamond at the end of a group: its last day. */
 	milestoneLabel?: (group: string, day: string) => string;
 	dayWidth?: number;
+	/** The load of the whole team, under the dates. */
+	band?: Band;
+	/** The name of the band, in the first column. */
+	bandLabel?: string;
+	/** The load of one group, in its heading row: a member in the resource view. */
+	groupBand?: (group: string) => Band | undefined;
 	onMove: (id: string, days: number) => void;
 	onOpen: (id: string) => void;
 }) {
@@ -192,7 +232,10 @@ export function Gantt({
 			isRow={(e) => e.kind === "bar"}
 			header={
 				<div className="relative h-10 border-b bg-surface-1" style={{ minWidth: width }}>
-					<div className="sticky left-0 z-10 h-full w-56 border-r bg-surface-1" />
+					<div className="sticky left-0 z-10 flex h-full w-56 items-end border-r bg-surface-1 px-3 pb-0.5 text-11 text-n-11">
+						{band ? bandLabel : null}
+					</div>
+					{band ? <LoadStrip band={band} x={x} dayWidth={dayWidth} /> : null}
 					<span
 						aria-hidden="true"
 						className="absolute bottom-0.5 z-10 -translate-x-1/2 rounded-full bg-accent-gradient px-1.5 font-mono text-11 text-accent-fg shadow-glow"
@@ -214,7 +257,7 @@ export function Gantt({
 						</span>
 					))}
 					{dayList
-						.filter((d) => isoWeekday(d) === 1)
+						.filter((d) => dayWidth >= 6 && isoWeekday(d) === 1)
 						.map((d) => (
 							<span
 								key={d}
@@ -235,6 +278,9 @@ export function Gantt({
 						<h2 className="sticky left-0 z-10 px-3 text-12 font-medium text-n-11">
 							{format(t.count, { name: e.id, count: e.count })}
 						</h2>
+						{groupBand?.(e.id) ? (
+							<LoadStrip band={groupBand(e.id) ?? {}} x={x} dayWidth={dayWidth} />
+						) : null}
 						{ends.get(e.id) ? (
 							<span
 								role="img"

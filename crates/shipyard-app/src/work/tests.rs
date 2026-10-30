@@ -203,6 +203,7 @@ fn lot() -> Sheet {
             description: "Sign in".into(),
             tasks: vec![task("a", "Build", "dev", 2.0), task("b", "Test", "qa", 1.0)],
         }],
+        frozen: false,
     }
 }
 

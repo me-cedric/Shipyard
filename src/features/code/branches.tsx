@@ -22,6 +22,7 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { ConflictPane } from "./changes";
+import { OriginPanel } from "./origin-panel";
 import { withProject } from "./project-gate";
 import { GateNotice } from "./push-target";
 import { useRun } from "./use-run";
@@ -135,6 +136,7 @@ function BranchesView() {
 					</Button>
 				)}
 			</div>
+			<OriginPanel />
 			<GateNotice push />
 			{error ? (
 				<p role="alert" className="px-3 py-2 text-ui text-danger-text">

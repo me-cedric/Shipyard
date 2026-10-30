@@ -248,3 +248,30 @@ fn azure_votes_and_completes() {
     api.merge("proj/web", 5, MergeMethod::Squash).unwrap();
     assert_eq!(bodies(&fake, Method::Patch, root).len(), 1);
 }
+
+#[test]
+fn close_sends_the_close_write_for_an_open_pull_request_only() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.get("/repos/acme/web/pulls/12", 200, &gh_pull(false))
+        .patch("/pulls/12", "\"state\":\"closed\"", 200, "{}");
+    let api = build(ForgeKind::GitHub, "https://github.com", fake.clone());
+    api.close("acme/web", 12).unwrap();
+    assert_eq!(bodies(&fake, Method::Patch, "/pulls/12").len(), 1);
+
+    let fake = Arc::new(FakeHttp::new());
+    let merged = gh_pull(false).replace("\"open\"", "\"closed\"");
+    fake.get("/repos/acme/web/pulls/12", 200, &merged);
+    let api = build(ForgeKind::GitHub, "https://github.com", fake.clone());
+    let e = api.close("acme/web", 12).unwrap_err();
+    assert!(e.to_string().contains("not open"), "{e}");
+    assert!(bodies(&fake, Method::Patch, "/pulls").is_empty());
+
+    let fake = Arc::new(FakeHttp::new());
+    let root = "/api/v4/projects/acme%2Fweb/merge_requests/9";
+    let mr = json!({"iid": 9, "state": "opened", "draft": false, "title": "t"}).to_string();
+    fake.get(root, 200, &mr)
+        .put(root, "\"state_event\":\"close\"", 200, "{}");
+    let api = build(ForgeKind::GitLab, "https://gitlab.com", fake.clone());
+    api.close("acme/web", 9).unwrap();
+    assert_eq!(bodies(&fake, Method::Put, root).len(), 1);
+}

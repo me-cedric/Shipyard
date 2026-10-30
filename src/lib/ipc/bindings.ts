@@ -108,6 +108,18 @@ export const commands = {
 	codePullVerdict: (number: number, verdict: Verdict, body: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_verdict", { number, verdict, body, click })),
 	codePullMerge: (number: number, method: MergeMethod, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_merge", { number, method, click })),
 	codePullReady: (number: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_ready", { number, click })),
+	codePullClose: (number: number, reason: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_close", { number, reason, click })),
+	codePullSendBack: (number: number, text: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_send_back", { number, text, click })),
+	codePullArchiveSpec: (number: number, change: string, confirmed: boolean, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("code_pull_archive_spec", { number, change, confirmed, click })),
+	deviceLoginStart: (id: string, click: boolean) => typedError<DeviceStart, AppError_Serialize>(__TAURI_INVOKE("device_login_start", { id, click })),
+	deviceLoginPoll: (id: string, deviceCode: string) => typedError<DeviceState, AppError_Serialize>(__TAURI_INVOKE("device_login_poll", { id, deviceCode })),
+	codeOrigin: () => typedError<Origin_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("code_origin")),
+	codeRemoteSet: (url: string, click: boolean) => typedError<Origin_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_remote_set", { url, click })),
+	codePublish: (connection: string, slug: string, click: boolean) => typedError<Origin_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_publish", { connection, slug, click })),
+	editorsList: () => typedError<Editor[], AppError_Serialize>(__TAURI_INVOKE("editors_list")),
+	editorOpen: (editor: string | null, path: string, line: number | null) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("editor_open", { editor, path, line })),
+	/**  Opens a web link of a Markdown text in the browser of the system. `http` and `https` only. */
+	openLink: (url: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("open_link", { url })),
 	codeQuality: () => typedError<QualityView_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_quality")),
 	codeCheckRun: (command: string, click: boolean) => typedError<QualityReport_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_check_run", { command, click })),
 	codeScanRun: (name: string, click: boolean) => typedError<QualityReport_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_scan_run", { name, click })),
@@ -219,6 +231,11 @@ export const commands = {
 	excelConfirm: (slug: string, confirmed: boolean) => typedError<SheetView_Serialize, AppError_Serialize>(__TAURI_INVOKE("excel_confirm", { slug, confirmed })),
 	excelExport: (slug: string, path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("excel_export", { slug, path })),
 	planGet: (slug: string) => typedError<PlanView_Serialize, AppError_Serialize>(__TAURI_INVOKE("plan_get", { slug })),
+	estimateProfiles: (slug: string | null) => typedError<ProfileSum_Serialize[], AppError_Serialize>(__TAURI_INVOKE("estimate_profiles", { slug })),
+	/**  Moves a sheet to the system trash, after the confirm of a person. */
+	estimateDelete: (slug: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("estimate_delete", { slug, click })),
+	planPngSave: (path: string, bytes: number[], click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("plan_png_save", { path, bytes, click })),
+	planCalendarGet: () => typedError<Calendar_Serialize, AppError_Serialize>(__TAURI_INVOKE("plan_calendar_get")),
 	planDecisionsSave: (decisions: Decisions_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("plan_decisions_save", { decisions })),
 	planCalendarSave: (calendar: Calendar_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("plan_calendar_save", { calendar })),
 	timeList: (member: string | null, month: string) => typedError<TimeView_Serialize, AppError_Serialize>(__TAURI_INVOKE("time_list", { member, month })),
@@ -309,6 +326,8 @@ export const commands = {
 	 *  A runner failure is not an error: it is a message with the state `failed`.
 	 */
 	assistantSend: (thread: string, text: string, quotes: Quote[], context: Context_Deserialize) => typedError<TurnResult_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_send", { thread, text, quotes, context })),
+	/**  Stops the running turn of a thread. The turn ends with the reply that came so far. */
+	assistantStop: (thread: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("assistant_stop", { thread })),
 	/**  Grants the tool that the last message waits for and resumes the session. */
 	assistantGrant: (thread: string) => typedError<TurnResult_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_grant", { thread })),
 	/**  Resumes the session after a failed turn. It does not send the first request again. */
@@ -976,14 +995,20 @@ export type Calendar = Calendar_Serialize | Calendar_Deserialize;
 export type Calendar_Deserialize = {
 	/**  1 is Monday, 7 is Sunday. */
 	workingDays?: number[],
+	/**  The days off that the team adds. The public holidays of `country` come on top. */
 	holidays?: string[],
+	/**  The country of the public holidays (`holidays::COUNTRIES`). Empty for none. */
+	country?: string,
 };
 
 /**  Working days and public holidays (REQ-016). */
 export type Calendar_Serialize = {
 	/**  1 is Monday, 7 is Sunday. */
 	workingDays: number[],
+	/**  The days off that the team adds. The public holidays of `country` come on top. */
 	holidays: string[],
+	/**  The country of the public holidays (`holidays::COUNTRIES`). Empty for none. */
+	country: string,
 };
 
 export type Capabilities = {
@@ -1293,6 +1318,9 @@ export type Component = {
 	state: SyncState,
 };
 
+/**  How sure the person is of an estimate. */
+export type Confidence = "low" | "medium" | "high";
+
 export type ConflictFile = {
 	path: string,
 	/**
@@ -1432,13 +1460,13 @@ export type Dashboard = Dashboard_Serialize | Dashboard_Deserialize;
 export type Dashboard_Deserialize = {
 	version?: number,
 	title?: string,
-	tiles?: Tile[],
+	tiles?: Tile_Deserialize[],
 };
 
 export type Dashboard_Serialize = {
 	version: number,
 	title: string,
-	tiles: Tile[],
+	tiles: Tile_Serialize[],
 };
 
 export type Decision = "accept" | "reject";
@@ -1529,6 +1557,21 @@ export type DesignList_Serialize = {
 	doc: string,
 };
 
+export type DeviceStart = {
+	/**  What the person types in the browser. */
+	userCode: string,
+	/**  The page to open. */
+	verificationUri: string,
+	deviceCode: string,
+	/**  Seconds between two polls. */
+	interval: number,
+	expiresIn: number,
+};
+
+export type DeviceState = "pending" | 
+/**  The host asked for a longer gap between polls: add five seconds. */
+"slow_down" | "authorized" | "denied" | "expired";
+
 export type DiffRow = DiffRow_Serialize | DiffRow_Deserialize;
 
 export type DiffRow_Deserialize = {
@@ -1573,6 +1616,11 @@ export type Draft_Serialize = {
 	items: Item_Serialize[],
 };
 
+export type Editor = {
+	id: string,
+	name: string,
+};
+
 export type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 
 /**  A server that another tool runs. */
@@ -1600,7 +1648,7 @@ export type ErrorAction = {
 
 export type ErrorCode = 
 /**  Not in the table: the view shows the details. */
-"unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_id_invalid" | "change_exists" | "run_not_started" | "merge_draft" | "merge_closed" | "merge_method" | "forge_unreachable" | "forge_denied" | "forge_missing" | "git_nothing_staged" | "git_identity" | "git_busy" | "git_no_upstream" | "no_terminal" | "terminal_gone";
+"unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_id_invalid" | "change_exists" | "run_not_started" | "merge_draft" | "merge_closed" | "merge_method" | "forge_unreachable" | "forge_denied" | "forge_missing" | "git_nothing_staged" | "git_identity" | "git_busy" | "git_no_upstream" | "no_terminal" | "terminal_gone" | "device_not_set" | "no_editor" | "no_first_commit" | "remote_address" | "remote_exists" | "sheet_frozen";
 
 /**
  *  A source of events that can notify the person (spec `shell`, REQ-008). One list feeds the
@@ -2112,6 +2160,19 @@ export type Limits_Serialize = {
 	per_status?: { [key in string]: number },
 };
 
+export type Load = {
+	members: MemberLoad[],
+	/**  Every member together, each working day from the first to the last busy day. */
+	team: LoadDay[],
+};
+
+/**  One day of a member, or of the whole team: the days given and the days the capacity allows. */
+export type LoadDay = {
+	day: string,
+	used: number | null,
+	capacity: number | null,
+};
+
 /**  A file value. `read_only` is set when a newer version wrote the file: show it, never write it. */
 export type Loaded<T> = {
 	value: T,
@@ -2328,6 +2389,12 @@ export type McpState = { state: "stopped" } | { state: "starting" } | { state: "
 
 export type Member = Member_Serialize | Member_Deserialize;
 
+export type MemberLoad = {
+	handle: string,
+	/**  The days with work, in date order. */
+	days: LoadDay[],
+};
+
 export type Member_Deserialize = {
 	name?: string,
 	/**  The `<handle>` of `member:<handle>`. */
@@ -2503,6 +2570,30 @@ export type OrcaStatus_Serialize = {
 	downloadUrl: string,
 };
 
+export type Origin = Origin_Serialize | Origin_Deserialize;
+
+export type Origin_Deserialize = {
+	name: string,
+	/**  The address, with no user name or password. */
+	url: string,
+	webUrl?: string | null,
+	/**  `owner/repo` on the forge. */
+	slug?: string | null,
+	/**  The forge connection whose host is the host of the address. */
+	connection?: string | null,
+};
+
+export type Origin_Serialize = {
+	name: string,
+	/**  The address, with no user name or password. */
+	url: string,
+	webUrl: string | null,
+	/**  `owner/repo` on the forge. */
+	slug: string | null,
+	/**  The forge connection whose host is the host of the address. */
+	connection: string | null,
+};
+
 /**  A project value that takes the place of a personal preference while the project is active. */
 export type Overrides = Overrides_Serialize | Overrides_Deserialize;
 
@@ -2605,6 +2696,10 @@ export type PlanView_Deserialize = {
 	decisions: Decisions_Deserialize,
 	calendar: Calendar_Deserialize,
 	today: string,
+	/**  The public holidays of the country of the calendar, near today. Computed, never written. */
+	publicHolidays: string[],
+	/**  The load of each member over all sheets (REQ-016). */
+	load: Load,
 };
 
 export type PlanView_Serialize = {
@@ -2613,6 +2708,10 @@ export type PlanView_Serialize = {
 	decisions: Decisions_Serialize,
 	calendar: Calendar_Serialize,
 	today: string,
+	/**  The public holidays of the country of the calendar, near today. Computed, never written. */
+	publicHolidays: string[],
+	/**  The load of each member over all sheets (REQ-016). */
+	load: Load,
 };
 
 export type PlannedFile = {
@@ -2877,6 +2976,32 @@ export type Preview_Serialize = {
 	/**  The lot that `sheet` reads. Other lots are left out, not refused. */
 	scope: string | null,
 	refused: RefusedRow[],
+};
+
+/**
+ *  The days and the cost of one profile (a role). `cost` is `None` when no member rate covers the
+ *  role: a locked seal hides every rate.
+ */
+export type ProfileSum = ProfileSum_Serialize | ProfileSum_Deserialize;
+
+/**
+ *  The days and the cost of one profile (a role). `cost` is `None` when no member rate covers the
+ *  role: a locked seal hides every rate.
+ */
+export type ProfileSum_Deserialize = {
+	role: string,
+	days: number | null,
+	cost?: number | null,
+};
+
+/**
+ *  The days and the cost of one profile (a role). `cost` is `None` when no member rate covers the
+ *  role: a locked seal hides every rate.
+ */
+export type ProfileSum_Serialize = {
+	role: string,
+	days: number | null,
+	cost: number | null,
 };
 
 export type ProjectCard = ProjectCard_Serialize | ProjectCard_Deserialize;
@@ -3869,6 +3994,8 @@ export type Sheet_Deserialize = {
 	/**  A fraction of the cost: `0.15` makes the price 15 % above the cost. */
 	marginRate?: number | null,
 	features?: Feature_Deserialize[],
+	/**  A frozen sheet takes no change, except the one that unfreezes it. */
+	frozen?: boolean,
 };
 
 /**  An estimate sheet: the features and tasks of one lot (REQ-009). It holds no total. */
@@ -3878,6 +4005,8 @@ export type Sheet_Serialize = {
 	/**  A fraction of the cost: `0.15` makes the price 15 % above the cost. */
 	marginRate: number | null,
 	features: Feature_Serialize[],
+	/**  A frozen sheet takes no change, except the one that unfreezes it. */
+	frozen?: boolean,
 };
 
 export type Side = "ours" | "theirs";
@@ -4204,6 +4333,15 @@ export type Task_Deserialize = {
 	/**  The `wi:` key of the ticket of this task (REQ-015). */
 	ticket?: string | null,
 	note?: string,
+	/**
+	 *  A three-point estimate: `days` is the likely value. With both ends set, the task counts
+	 *  the expected value `(optimistic + 4 × likely + pessimistic) / 6`.
+	 */
+	optimistic?: number | null,
+	pessimistic?: number | null,
+	confidence?: Confidence | null,
+	/**  What the estimate takes for granted. */
+	assumptions?: string,
 };
 
 /**
@@ -4222,6 +4360,15 @@ export type Task_Serialize = {
 	/**  The `wi:` key of the ticket of this task (REQ-015). */
 	ticket?: string,
 	note: string,
+	/**
+	 *  A three-point estimate: `days` is the likely value. With both ends set, the task counts
+	 *  the expected value `(optimistic + 4 × likely + pessimistic) / 6`.
+	 */
+	optimistic?: number | null,
+	pessimistic?: number | null,
+	confidence?: Confidence,
+	/**  What the estimate takes for granted. */
+	assumptions?: string,
 };
 
 export type Team = Team_Serialize | Team_Deserialize;
@@ -4431,14 +4578,7 @@ export type TicketsConfig = {
 	hierarchy: string,
 };
 
-export type Tile = {
-	id: string,
-	kind: string,
-	x: number,
-	y: number,
-	w: number,
-	h: number,
-};
+export type Tile = Tile_Serialize | Tile_Deserialize;
 
 export type TileData = TileData_Serialize | TileData_Deserialize;
 
@@ -4460,6 +4600,28 @@ export type TileData_Serialize = {
 	cut: boolean,
 	/**  The source is not available. Holds its name. The tile shows greyed (REQ-023). */
 	off: string | null,
+};
+
+export type Tile_Deserialize = {
+	id: string,
+	kind: string,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	/**  A name that a person gave the tile. Empty for the name of its kind. */
+	title?: string,
+};
+
+export type Tile_Serialize = {
+	id: string,
+	kind: string,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	/**  A name that a person gave the tile. Empty for the name of its kind. */
+	title?: string,
 };
 
 /**  A time entry that a person wrote (REQ-020, REQ-021). */

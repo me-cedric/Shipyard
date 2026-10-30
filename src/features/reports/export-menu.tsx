@@ -10,7 +10,11 @@ export type ExportItem = {
 	id: string;
 	label: string;
 	/** A save dialog, then the job. */
-	save?: { name: string; ext: "xlsx" | "docx" | "svg"; job: (path: string) => Promise<unknown> };
+	save?: {
+		name: string;
+		ext: "xlsx" | "docx" | "svg" | "png";
+		job: (path: string) => Promise<unknown>;
+	};
 	/** A form in a dialog. `done` shows a note. */
 	form?: (done: (note: string) => void, close: () => void) => ReactNode;
 };

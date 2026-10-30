@@ -77,6 +77,16 @@ impl Repo {
         Ok(Some((name, url)))
     }
 
+    /// Create the remote `name`, or point it at `url`. libgit2 reads the address: no shell runs.
+    pub fn set_remote(&self, name: &str, url: &str) -> Result<()> {
+        if self.repo.find_remote(name).is_ok() {
+            self.repo.remote_set_url(name, url)?;
+        } else {
+            self.repo.remote(name, url)?;
+        }
+        Ok(())
+    }
+
     /// The remote tracking branches of `remote`, sorted by name. `origin/HEAD` is left out.
     /// Call it before and after [`Repo::fetch`], then pass both lists to [`Repo::head_changes`].
     pub fn remote_heads(&self, remote: &str) -> Result<Vec<RemoteHead>> {

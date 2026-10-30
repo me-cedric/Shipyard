@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -9,6 +10,7 @@ import {
 	usePulls,
 } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
+import { commands, toFailure, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
 import { useTabSelection } from "@/lib/shell/selection";
 import { Avatar } from "@/ui/atoms/avatar";
@@ -29,6 +31,7 @@ import {
 } from "@/ui/icons";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FileRow, type FileState } from "@/ui/molecules/file-row";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
@@ -197,9 +200,9 @@ function MergeBar({ d }: { d: PullDetail }) {
 }
 
 /** The comment box with the verdicts. A request for changes needs the text: the call refuses without it. */
-function Reply({ number }: { number: number }) {
+function Reply({ number, agent, open }: { number: number; agent: boolean; open: boolean }) {
 	const { t } = useI18n();
-	const { comment, verdict } = useForgeActions();
+	const { comment, verdict, close, sendBack } = useForgeActions();
 	const { error, run } = useRun();
 	const [body, setBody] = useState("");
 	const send = (job: () => Promise<unknown>) =>
@@ -218,8 +221,69 @@ function Reply({ number }: { number: number }) {
 				<Button onClick={() => send(() => verdict(number, "request-changes", body))}>
 					{t.forge.requestChanges}
 				</Button>
+				{agent && open ? (
+					<Button onClick={() => send(() => sendBack(number, body))}>{t.forge.sendBack}</Button>
+				) : null}
+				{open ? (
+					<Button variant="danger" onClick={() => send(() => close(number, body))}>
+						{t.forge.close}
+					</Button>
+				) : null}
 			</div>
 			<Alert error={error} />
+		</div>
+	);
+}
+
+/**
+ * Archives a spec change in the branch of the pull request: one commit and a push. A change with
+ * open items asks for a second click that says so.
+ */
+function ArchiveBar({ number }: { number: number }) {
+	const { t } = useI18n();
+	const { archiveSpec } = useForgeActions();
+	const changes = useQuery({
+		queryKey: ["specs", "changes"],
+		queryFn: () => unwrap(commands.specsChanges()),
+	}).data;
+	const [change, setChange] = useState("");
+	const [error, setError] = useState<unknown>(null);
+	const [done, setDone] = useState<string | null>(null);
+	const [open, setOpen] = useState(false);
+	if (!changes?.length) return null;
+	const chosen = change || changes[0]?.id || "";
+	const go = async (confirmed: boolean) => {
+		try {
+			setError(null);
+			setDone(await archiveSpec(number, chosen, confirmed));
+			setOpen(false);
+		} catch (e) {
+			setError(e);
+			setOpen(toFailure(e).details.includes("open items"));
+		}
+	};
+	return (
+		<div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
+			<Select
+				label={t.forge.change}
+				value={chosen}
+				onValueChange={(v) => {
+					setChange(v);
+					setOpen(false);
+				}}
+				items={changes.map((c) => ({ value: c.id, label: c.id }))}
+				className="min-w-40"
+			/>
+			<Button onClick={() => void go(false)}>{t.forge.archiveChange}</Button>
+			{open ? (
+				<Button variant="danger" onClick={() => void go(true)}>
+					{t.forge.archiveAnyway}
+				</Button>
+			) : null}
+			{done ? (
+				<span role="status">{format(t.forge.archived, { sha: done.slice(0, 7) })}</span>
+			) : null}
+			<ErrorNotice error={error} />
 		</div>
 	);
 }
@@ -253,6 +317,7 @@ function Detail({ number }: { number: number }) {
 				</div>
 			</div>
 			<MergeBar key={`${d.number}${d.state}${d.draft}`} d={d} />
+			{d.state === "open" ? <ArchiveBar number={d.number} /> : null}
 			<PrAi d={d} />
 			<Panel
 				title={t.forge.files}
@@ -345,7 +410,11 @@ function Detail({ number }: { number: number }) {
 					</div>
 				))}
 			</Panel>
-			<Reply number={d.number} />
+			<Reply
+				number={d.number}
+				agent={d.links.some((l) => l.startsWith("run:"))}
+				open={d.state === "open"}
+			/>
 			{viewing ? <FileDialog path={viewing} onClose={() => setViewing(null)} /> : null}
 		</div>
 	);

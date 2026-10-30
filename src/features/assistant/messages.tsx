@@ -15,6 +15,8 @@ import {
 } from "@/ui/icons";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { MarkdownView } from "@/ui/organisms/markdown-view";
+import { MermaidView } from "@/ui/organisms/mermaid-view";
 import { parseReply, replyOptions } from "./reply";
 import type { Assistant } from "./use-assistant";
 
@@ -96,13 +98,16 @@ function Reply({
 			<Trace steps={m.trace} />
 			{parseReply(m.text).map((p, i) =>
 				p.kind === "code" ? (
-					// biome-ignore lint/suspicious/noArrayIndexKey: the parts never reorder
-					<Code key={i} {...p} />
+					p.lang === "mermaid" ? (
+						// biome-ignore lint/suspicious/noArrayIndexKey: the parts never reorder
+						<MermaidView key={i} source={p.text} label={t.ui.diagram} />
+					) : (
+						// biome-ignore lint/suspicious/noArrayIndexKey: the parts never reorder
+						<Code key={i} {...p} />
+					)
 				) : (
 					// biome-ignore lint/suspicious/noArrayIndexKey: the parts never reorder
-					<p key={i} className="whitespace-pre-wrap text-ui">
-						{p.text}
-					</p>
+					<MarkdownView key={i} source={p.text} label={t.assistant.assistant} refs={false} />
 				),
 			)}
 			{s.state === "waiting" ? (

@@ -243,6 +243,7 @@ pub fn sheet(v: &Value, stem: &str, roles: &BTreeMap<String, String>) -> Sheet {
                         other: text(t, "kind") == "other",
                         ticket: None,
                         note: text(t, "comments").into(),
+                        ..Task::default()
                     }
                 })
                 .collect(),
@@ -263,6 +264,7 @@ pub fn sheet(v: &Value, stem: &str, roles: &BTreeMap<String, String>) -> Sheet {
             .and_then(Value::as_f64)
             .unwrap_or(0.0),
         features,
+        frozen: false,
     }
 }
 
@@ -348,6 +350,7 @@ pub fn dashboard(v: &Value, fallback: &str) -> (knowledge::Dashboard, Vec<String
             y: n("y", 0),
             w: n("w", 4).max(1),
             h: n("h", 3).max(1),
+            title: String::new(),
         });
     }
     let title = Some(text(v, "name"))

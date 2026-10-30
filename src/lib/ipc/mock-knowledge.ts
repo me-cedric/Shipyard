@@ -40,7 +40,18 @@ const VERSION = 1;
 const FOLDERS = { handbook: "docs/handbook", documents: "docs/documents", slides: "docs/slides" };
 const DASH = "docs/dashboards";
 const THEME = `${FOLDERS.slides}/theme.yaml`;
-const TILES = ["work", "runs", "questions", "specs", "estimates", "quality", "impact"];
+const TILES = [
+	"work",
+	"runs",
+	"questions",
+	"specs",
+	"estimates",
+	"quality",
+	"impact",
+	"tracker-open",
+	"tracker-status",
+	"tracker-assignee",
+];
 const TILE_ROWS = 50;
 
 export type MockKnowledge = {

@@ -3,6 +3,7 @@ import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { useShell } from "@/lib/shell";
 import {
+	type Confidence,
 	figure,
 	type Sheet,
 	slugify,
@@ -21,6 +22,7 @@ import { TrashIcon } from "@/ui/icons";
 import { useGuard } from "./guard";
 
 const NEW = "@@new";
+const UNSET = "@@unset";
 const MINUTES_PER_DAY = 480;
 
 /** A task id that no task of the sheet uses. */
@@ -63,8 +65,19 @@ export function TaskForm({ slug, taskId }: { slug: string; taskId: string | null
 	const [other, setOther] = useState(found?.x.other ?? false);
 	const [ticket, setTicket] = useState(found?.x.ticket ?? "");
 	const [note, setNote] = useState(found?.x.note ?? "");
+	const [three, setThree] = useState(found?.x.optimistic != null);
+	const [low, setLow] = useState(String(found?.x.optimistic ?? ""));
+	const [high, setHigh] = useState(String(found?.x.pessimistic ?? ""));
+	const [confidence, setConfidence] = useState<Confidence | "">(found?.x.confidence ?? "");
+	const [assumptions, setAssumptions] = useState(found?.x.assumptions ?? "");
+	const c = t.costing.task;
 	if (!view || !sheet) return null;
 	const linked = view.tickets.find((x) => x.task === taskId);
+	const points = mode === "days" && three;
+	const expected =
+		points && low !== "" && high !== "" && effort !== ""
+			? Math.round(((Number(low) + 4 * Number(effort) + Number(high)) / 6) * 8) / 8
+			: null;
 
 	const save = async () => {
 		const featureId = feature === NEW ? freeFeature(sheet, newFeature) : feature;
@@ -79,6 +92,9 @@ export function TaskForm({ slug, taskId }: { slug: string; taskId: string | null
 			...(mode === "days" && other ? { other: true } : {}),
 			...(ticket.trim() ? { ticket: ticket.trim() } : {}),
 			note,
+			...(points ? { optimistic: Number(low), pessimistic: Number(high) } : {}),
+			...(confidence ? { confidence } : {}),
+			...(assumptions.trim() ? { assumptions } : {}),
 		};
 		const withFeature = sheet.features.some((f) => f.id === featureId)
 			? sheet.features
@@ -146,7 +162,7 @@ export function TaskForm({ slug, taskId }: { slug: string; taskId: string | null
 				/>
 				<Input
 					caption
-					label={mode === "days" ? e.days : e.percent}
+					label={points ? c.likely : mode === "days" ? e.days : e.percent}
 					type="number"
 					min={0}
 					step={0.25}
@@ -154,6 +170,46 @@ export function TaskForm({ slug, taskId }: { slug: string; taskId: string | null
 					onChange={(ev) => setEffort(ev.target.value)}
 				/>
 			</div>
+			{mode === "days" ? (
+				<Checkbox label={c.threePoint} checked={three} onCheckedChange={setThree} />
+			) : null}
+			{points ? (
+				<div className="flex gap-2">
+					<Input
+						caption
+						label={c.optimistic}
+						type="number"
+						min={0}
+						step={0.25}
+						value={low}
+						onChange={(ev) => setLow(ev.target.value)}
+					/>
+					<Input
+						caption
+						label={c.pessimistic}
+						type="number"
+						min={0}
+						step={0.25}
+						value={high}
+						onChange={(ev) => setHigh(ev.target.value)}
+					/>
+				</div>
+			) : null}
+			{expected != null ? (
+				<output className="font-mono text-12 text-n-11">
+					{format(c.expected, { days: figure(expected, lang) })}
+				</output>
+			) : null}
+			<Select
+				caption
+				label={c.confidence}
+				value={confidence || UNSET}
+				onValueChange={(v) => setConfidence(v === UNSET ? "" : (v as Confidence))}
+				items={[
+					{ value: UNSET, label: c.unset },
+					...(["low", "medium", "high"] as const).map((v) => ({ value: v, label: c.level[v] })),
+				]}
+			/>
 			{found && mode === "percent" ? (
 				<p className="font-mono text-12 text-n-11">
 					{format(t.work.estimates.computed, { days: figure(view.days[found.x.id], lang) })}
@@ -187,13 +243,23 @@ export function TaskForm({ slug, taskId }: { slug: string; taskId: string | null
 					</div>
 				</dl>
 			) : null}
+			<Textarea
+				caption
+				label={c.assumptions}
+				value={assumptions}
+				onChange={(ev) => setAssumptions(ev.target.value)}
+			/>
 			<Textarea caption label={e.note} value={note} onChange={(ev) => setNote(ev.target.value)} />
 			<Alert text={error} />
 			<div className="flex items-center gap-2">
 				<Button
 					type="submit"
 					disabled={
-						name.trim() === "" || effort === "" || (feature === NEW && newFeature.trim() === "")
+						name.trim() === "" ||
+						effort === "" ||
+						(feature === NEW && newFeature.trim() === "") ||
+						(points && (low === "" || high === "")) ||
+						sheet.frozen === true
 					}
 				>
 					{t.work.save}
@@ -201,6 +267,7 @@ export function TaskForm({ slug, taskId }: { slug: string; taskId: string | null
 				{found ? (
 					<IconButton
 						label={t.work.remove}
+						disabled={sheet.frozen === true}
 						onClick={() =>
 							void run(async () => {
 								if (!(await confirmDialog(format(e.confirmRemove, { name: found.x.name })))) return;
@@ -293,7 +360,10 @@ export function SheetForm({
 			/>
 			<Alert text={error} />
 			<div>
-				<Button type="submit" disabled={name.trim() === "" || target === ""}>
+				<Button
+					type="submit"
+					disabled={name.trim() === "" || target === "" || view?.sheet.frozen === true}
+				>
 					{t.work.save}
 				</Button>
 			</div>

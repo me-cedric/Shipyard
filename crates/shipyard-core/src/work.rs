@@ -265,6 +265,26 @@ pub struct Task {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ticket: Option<String>,
     pub note: String,
+    /// A three-point estimate: `days` is the likely value. With both ends set, the task counts
+    /// the expected value `(optimistic + 4 × likely + pessimistic) / 6`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub optimistic: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pessimistic: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<Confidence>,
+    /// What the estimate takes for granted.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub assumptions: String,
+}
+
+/// How sure the person is of an estimate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "kebab-case")]
+pub enum Confidence {
+    Low,
+    Medium,
+    High,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, Type)]
@@ -285,6 +305,9 @@ pub struct Sheet {
     /// A fraction of the cost: `0.15` makes the price 15 % above the cost.
     pub margin_rate: f64,
     pub features: Vec<Feature>,
+    /// A frozen sheet takes no change, except the one that unfreezes it.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub frozen: bool,
 }
 
 impl Sheet {
@@ -321,6 +344,17 @@ impl Sheet {
                     (None, Some(p)) if p >= 0.0 && p.is_finite() => {}
                     _ => return Err(format!("task `{}` needs days or percent, not both", t.id)),
                 }
+                match (t.optimistic, t.days, t.pessimistic) {
+                    (None, _, None) => {}
+                    (Some(o), Some(m), Some(p))
+                        if 0.0 <= o && o <= m && m <= p && p.is_finite() => {}
+                    _ => {
+                        return Err(format!(
+                            "task `{}`: the three-point estimate needs optimistic <= likely <= pessimistic",
+                            t.id
+                        ));
+                    }
+                }
             }
         }
         Ok(())
@@ -332,17 +366,27 @@ pub fn round_to_hour(days: f64) -> f64 {
     (days * 8.0).round() / 8.0
 }
 
+/// The days of a task in days: the expected value of a three-point estimate, on a whole hour, or
+/// the days as written.
+pub fn fixed_days(task: &Task) -> Option<f64> {
+    let m = task.days?;
+    Some(match (task.optimistic, task.pessimistic) {
+        (Some(o), Some(p)) => round_to_hour((o + 4.0 * m + p) / 6.0),
+        _ => m,
+    })
+}
+
 /// The days of the tasks in days that count as build.
 pub fn build_days(sheet: &Sheet) -> f64 {
     sheet
         .tasks()
         .filter(|(_, t)| !t.other)
-        .filter_map(|(_, t)| t.days)
+        .filter_map(|(_, t)| fixed_days(t))
         .sum()
 }
 
 pub fn task_days(task: &Task, build: f64) -> f64 {
-    match (task.days, task.percent) {
+    match (fixed_days(task), task.percent) {
         (Some(d), _) => d,
         (None, Some(p)) => round_to_hour(build * p / 100.0),
         _ => 0.0,
@@ -438,7 +482,10 @@ pub fn portfolio(sheets: &[(String, Sheet)], rates: &BTreeMap<String, f64>) -> P
 pub struct Calendar {
     /// 1 is Monday, 7 is Sunday.
     pub working_days: Vec<u8>,
+    /// The days off that the team adds. The public holidays of `country` come on top.
     pub holidays: Vec<String>,
+    /// The country of the public holidays (`holidays::COUNTRIES`). Empty for none.
+    pub country: String,
 }
 
 impl Default for Calendar {
@@ -446,14 +493,31 @@ impl Default for Calendar {
         Self {
             working_days: vec![1, 2, 3, 4, 5],
             holidays: Vec::new(),
+            country: "FR".into(),
         }
     }
 }
 
 impl Calendar {
+    /// The public holidays of the country from the year before `today` to four years after: the
+    /// span that the scheduler can reach.
+    pub fn public_holidays(&self, today: &str) -> Vec<String> {
+        let year = today.get(..4).and_then(|y| y.parse().ok()).unwrap_or(2026);
+        (year - 1..=year + 4)
+            .flat_map(|y| crate::holidays::public(&self.country, y))
+            .collect()
+    }
+
+    /// The calendar with the public holidays in `holidays`, for the scheduler. Never written.
+    fn effective(&self, today: &str) -> Calendar {
+        let mut c = self.clone();
+        c.holidays.extend(self.public_holidays(today));
+        c
+    }
+
     fn works(&self, day: i32) -> bool {
-        self.working_days.contains(&(weekday(day) + 1))
-            && !self.holidays.iter().any(|h| parse_day(h) == Some(day))
+        // A stored holiday is a valid `YYYY-MM-DD`, so the text compares as the day.
+        self.working_days.contains(&(weekday(day) + 1)) && !self.holidays.contains(&iso(day))
     }
 
     fn next_working(&self, mut day: i32) -> i32 {
@@ -632,6 +696,97 @@ pub fn booked(
     out
 }
 
+/// One day of a member, or of the whole team: the days given and the days the capacity allows.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadDay {
+    pub day: String,
+    pub used: f64,
+    pub capacity: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MemberLoad {
+    pub handle: String,
+    /// The days with work, in date order.
+    pub days: Vec<LoadDay>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct Load {
+    pub members: Vec<MemberLoad>,
+    /// Every member together, each working day from the first to the last busy day.
+    pub team: Vec<LoadDay>,
+}
+
+/// The days that each member gives to all sheets, day by day, beside the capacity (REQ-016). A
+/// sheet is scheduled alone, so `used` can be above `capacity`: the member is over capacity on
+/// that day. Computed, never written.
+pub fn load(
+    sheets: &[(String, Sheet)],
+    team: &Team,
+    cal: &Calendar,
+    decisions: &Decisions,
+    today: &str,
+) -> Load {
+    let eff = cal.effective(today);
+    let mut used: Used = HashMap::new();
+    for (slug, sheet) in sheets {
+        for (k, v) in schedule(slug, sheet, team, cal, decisions, today).1 {
+            *used.entry(k).or_default() += v;
+        }
+    }
+    let round = |n: f64| (n * 1e6).round() / 1e6;
+    let (Some(lo), Some(hi)) = (
+        used.keys().map(|k| k.1).min(),
+        used.keys().map(|k| k.1).max(),
+    ) else {
+        return Load::default();
+    };
+    let members = team
+        .members
+        .iter()
+        .enumerate()
+        .filter_map(|(i, m)| {
+            let mut days: Vec<(i32, f64)> = used
+                .iter()
+                .filter(|((j, _), _)| *j == i)
+                .map(|((_, d), u)| (*d, *u))
+                .collect();
+            days.sort_by_key(|d| d.0);
+            (!days.is_empty()).then(|| MemberLoad {
+                handle: m.handle.clone(),
+                days: days
+                    .into_iter()
+                    .map(|(d, u)| LoadDay {
+                        day: iso(d),
+                        used: round(u),
+                        capacity: round(day_capacity(m, &eff, d)),
+                    })
+                    .collect(),
+            })
+        })
+        .collect();
+    let team_days = (lo..=hi)
+        .map(|d| LoadDay {
+            day: iso(d),
+            used: round(
+                (0..team.members.len())
+                    .filter_map(|i| used.get(&(i, d)))
+                    .sum(),
+            ),
+            capacity: round(team.members.iter().map(|m| day_capacity(m, &eff, d)).sum()),
+        })
+        .filter(|d| d.capacity > 0.0 || d.used > 0.0)
+        .collect();
+    Load {
+        members,
+        team: team_days,
+    }
+}
+
 fn schedule(
     slug: &str,
     sheet: &Sheet,
@@ -640,6 +795,7 @@ fn schedule(
     decisions: &Decisions,
     today: &str,
 ) -> (Gantt, Used) {
+    let cal = &cal.effective(today);
     let rates = role_rates(team);
     let build = build_days(sheet);
     let first = cal.next_working(parse_day(today).unwrap_or(0));

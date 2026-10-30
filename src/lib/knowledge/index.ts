@@ -39,6 +39,9 @@ export const TILE_KINDS = [
 	"estimates",
 	"quality",
 	"impact",
+	"tracker-open",
+	"tracker-status",
+	"tracker-assignee",
 ] as const;
 
 export const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -78,8 +81,14 @@ export function useIndexCode() {
 }
 
 /** The numbers behind one tile. A tile whose source is off comes back with `off` set. */
-export const useTile = (kind: string) =>
-	useProjectQuery(key("tile", kind), () => unwrap(commands.dashboardTile(kind)));
+export function useTile(kind: string, enabled = true) {
+	const active = useActiveProject().data;
+	return useQuery({
+		queryKey: key("tile", kind),
+		queryFn: () => unwrap(commands.dashboardTile(kind)),
+		enabled: !!active && enabled,
+	});
+}
 
 /**
  * One page, document or deck with its stamp. A write sends the stamp of the read, so a change on
@@ -175,7 +184,8 @@ export function useDashboard(slugName: string) {
 
 // ---------------------------------------------------------------- pins
 
-export type Pin = { slug: string; id: string; kind: string };
+/** `person` is the team handle that a tracker tile follows. */
+export type Pin = { slug: string; id: string; kind: string; person?: string };
 // shortcut: the pins live in the webview storage of this machine; upgrade when the preferences hold a list (Q-070).
 const PINS = "shipyard.pins";
 const listeners = new Set<() => void>();

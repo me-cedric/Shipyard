@@ -1093,7 +1093,21 @@ pub fn sheet_get(s: &AppState, slug: &str) -> Res<SheetView> {
 pub fn sheet_save(s: &AppState, slug: &str, sheet: Sheet) -> Res<SheetView> {
     let c = ctx(s)?;
     let rel = sheet_path(slug).map_err(err)?;
+    // A frozen sheet takes one change: the unfreeze, with every entry as it was.
+    if let Ok(old) = c.sheet(slug)
+        && old.frozen
+        && sheet
+            != (Sheet {
+                frozen: false,
+                ..old
+            })
+    {
+        return Err(FROZEN.into());
+    }
     if c.json_sheet(slug) {
+        if sheet.frozen {
+            return Err("a JSON sheet cannot be frozen: save it as YAML first".into());
+        }
         let old = c.sheet_text(slug)?;
         let roles = project_import::roles(&c.root);
         c.write(
@@ -1109,6 +1123,8 @@ pub fn sheet_save(s: &AppState, slug: &str, sheet: Sheet) -> Res<SheetView> {
     c.write(&rel, &text)?;
     sheet_view(&c, slug)
 }
+
+pub(crate) const FROZEN: &str = "the sheet is frozen: unfreeze it first";
 
 pub fn portfolio(s: &AppState) -> Res<Portfolio> {
     let c = ctx(s)?;
@@ -1158,6 +1174,9 @@ pub fn excel_read(s: &AppState, path: &str, scope: Option<&str>) -> Res<Preview>
 pub fn excel_replace(s: &AppState, slug: &str, confirmed: bool) -> Res<SheetView> {
     refuse_read_only(s)?;
     let c = ctx(s)?;
+    if c.sheet(slug).is_ok_and(|old| old.frozen) {
+        return Err(FROZEN.into());
+    }
     let rel = sheet_path(slug).map_err(err)?;
     if c.json_sheet(slug) {
         return Err("a JSON sheet takes no Excel import".into());
@@ -1202,6 +1221,10 @@ pub struct PlanView {
     pub decisions: Decisions,
     pub calendar: Calendar,
     pub today: String,
+    /// The public holidays of the country of the calendar, near today. Computed, never written.
+    pub public_holidays: Vec<String>,
+    /// The load of each member over all sheets (REQ-016).
+    pub load: work::Load,
 }
 
 /// The Gantt of a sheet, from the team and the calendar now. Only the decisions of a person are
@@ -1210,13 +1233,21 @@ pub fn plan(s: &AppState, slug: &str) -> Res<PlanView> {
     let c = ctx(s)?;
     let sheet = c.sheet(slug)?;
     let (decisions, calendar, today) = (c.decisions()?, c.calendar()?, today(s));
+    let team = c.team().team;
     Ok(PlanView {
         slug: slug.into(),
-        gantt: work::gantt(slug, &sheet, &c.team().team, &calendar, &decisions, &today),
+        gantt: work::gantt(slug, &sheet, &team, &calendar, &decisions, &today),
+        load: work::load(&c.readable()?, &team, &calendar, &decisions, &today),
+        public_holidays: calendar.public_holidays(&today),
         decisions,
         calendar,
         today,
     })
+}
+
+/// The calendar of the project, for Settings / Project.
+pub(crate) fn calendar_get(s: &AppState) -> Res<Calendar> {
+    ctx(s)?.calendar()
 }
 
 pub fn decisions_save(s: &AppState, decisions: &Decisions) -> Res<()> {

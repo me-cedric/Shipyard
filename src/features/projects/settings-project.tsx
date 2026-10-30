@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { AutoCommit } from "@/features/settings/project/auto-commit";
+import { HolidayCountry } from "@/features/work/holiday-country";
 import { useI18n } from "@/lib/i18n";
 import {
 	type Accent,
@@ -274,6 +275,7 @@ function Form({
 			<ProjectOverrides />
 			<ScreensCard />
 			<AutoCommit />
+			<HolidayCountry row />
 			<ProjectImport />
 			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 			{dirty ? (

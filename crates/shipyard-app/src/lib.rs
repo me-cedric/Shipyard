@@ -11,9 +11,11 @@ pub mod code;
 pub mod codex_trust;
 mod commands;
 pub mod connections;
+pub mod costing;
 pub mod delivery;
 pub mod design;
 pub mod design_preview;
+pub mod device_login;
 pub mod doctor;
 pub mod doctor_bootstrap;
 pub mod errors;
@@ -23,8 +25,10 @@ pub mod feedback;
 pub mod files;
 pub mod knowledge;
 pub mod machine;
+pub mod openers;
 pub mod orca;
 pub mod outside;
+pub mod publish;
 pub mod questions;
 mod reports;
 pub mod request_tree;
@@ -146,6 +150,17 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::code::code_pull_verdict,
             crate::code::code_pull_merge,
             crate::code::code_pull_ready,
+            crate::code::code_pull_close,
+            crate::code::code_pull_send_back,
+            crate::code::code_pull_archive_spec,
+            crate::device_login::device_login_start,
+            crate::device_login::device_login_poll,
+            crate::publish::code_origin,
+            crate::publish::code_remote_set,
+            crate::publish::code_publish,
+            crate::openers::editors_list,
+            crate::openers::editor_open,
+            crate::openers::open_link,
             crate::code::code_quality,
             crate::code::code_check_run,
             crate::code::code_scan_run,
@@ -248,6 +263,10 @@ fn specta_builder() -> Builder<tauri::Wry> {
             work::excel_confirm,
             work::excel_export,
             work::plan_get,
+            costing::estimate_profiles,
+            costing::estimate_delete,
+            costing::plan_png_save,
+            costing::plan_calendar_get,
             work::plan_decisions_save,
             work::plan_calendar_save,
             work::time_list,
@@ -330,6 +349,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             asst::assistant_ref_add,
             asst::assistant_ref_remove,
             asst::assistant_send,
+            asst::assistant_stop,
             asst::assistant_grant,
             asst::assistant_retry,
             asst::assistant_explain,

@@ -45,6 +45,7 @@ fn sheet(tasks: Vec<Task>) -> Sheet {
             description: String::new(),
             tasks,
         }],
+        frozen: false,
     }
 }
 
@@ -336,9 +337,16 @@ fn a_fixed_start_and_a_member_choice_are_kept() {
         )]),
         ..Decisions::default()
     };
-    let g = plan(&s, &t, &Calendar::default(), &d);
+    let no_country = Calendar {
+        country: String::new(),
+        ..Calendar::default()
+    };
+    let g = plan(&s, &t, &no_country, &d);
     assert_eq!(g.bars[0].member.as_deref(), Some("bob"));
     assert_eq!(g.bars[0].start, "2026-11-11");
+    // France is the default country: 11 November is a public holiday, so the work starts the next day.
+    let g = plan(&s, &t, &Calendar::default(), &d);
+    assert_eq!(g.bars[0].start, "2026-11-12");
 }
 
 #[test]
@@ -642,4 +650,61 @@ fn booked_days_feed_the_suggestion() {
     let ranked = suggest(&["api".to_string()], &t, &b);
     assert_eq!(ranked[0].handle, "bob");
     assert!(ranked[1].reasons.contains(&Reason::Full));
+}
+
+// ---- three-point estimate, freeze and load
+
+#[test]
+fn a_three_point_task_counts_its_expected_days_and_checks_its_order() {
+    let mut t = task("a", "dev", 2.0);
+    t.optimistic = Some(1.0);
+    t.pessimistic = Some(6.0);
+    // (1 + 4 × 2 + 6) / 6 = 2.5
+    assert_eq!(fixed_days(&t), Some(2.5));
+    let s = sheet(vec![t.clone(), task("b", "dev", 1.0)]);
+    assert_eq!(totals(&s, &rates(&[("dev", 100.0)])).days, 3.5);
+    assert!(s.check().is_ok());
+    t.optimistic = Some(3.0);
+    assert!(sheet(vec![t.clone()]).check().is_err());
+    t.pessimistic = None;
+    assert!(sheet(vec![t]).check().is_err());
+}
+
+#[test]
+fn the_load_sums_the_sheets_and_shows_a_member_over_capacity() {
+    let t = team(vec![member("ana", "dev", 5.0, &[], 500.0)]);
+    let two = vec![
+        ("lot".to_string(), sheet(vec![task("a", "dev", 2.0)])),
+        ("other".to_string(), sheet(vec![task("c", "dev", 1.0)])),
+    ];
+    let l = load(
+        &two,
+        &t,
+        &Calendar::default(),
+        &Decisions::default(),
+        "2026-11-02",
+    );
+    let ana = &l.members[0];
+    assert_eq!(ana.handle, "ana");
+    // Monday holds one day of each lot: two days on a capacity of one.
+    assert_eq!(
+        (
+            ana.days[0].day.as_str(),
+            ana.days[0].used,
+            ana.days[0].capacity
+        ),
+        ("2026-11-02", 2.0, 1.0)
+    );
+    assert_eq!(l.team.len(), 2);
+    assert!(
+        load(
+            &[],
+            &t,
+            &Calendar::default(),
+            &Decisions::default(),
+            "2026-11-02"
+        )
+        .team
+        .is_empty()
+    );
 }

@@ -64,6 +64,11 @@ fn openspec(p: &Proj) -> PathBuf {
     p.root.join(p.file.path("specs"))
 }
 
+/// The folder of the specs, relative to the project root.
+pub(crate) fn specs_folder(s: &AppState) -> Res<String> {
+    Ok(project(s)?.file.path("specs").to_string())
+}
+
 fn change_id(id: &str) -> Res<()> {
     if valid_change_id(id) && id != "archive" {
         Ok(())

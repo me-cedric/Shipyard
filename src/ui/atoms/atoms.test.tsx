@@ -189,13 +189,13 @@ describe("atoms (REQ-004, REQ-014)", () => {
 
 	it("Badge renders every variant", () => {
 		renderApp(
-			<>
+			<div>
 				{(["neutral", "accent", "success", "warning", "danger", "info"] as const).map((v) => (
 					<Badge key={v} variant={v}>
 						{v}
 					</Badge>
 				))}
-			</>,
+			</div>,
 		);
 		expect(screen.getAllByText(/neutral|accent|success|warning|danger|info/)).toHaveLength(6);
 	});

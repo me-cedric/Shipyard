@@ -17,12 +17,14 @@ import type {
 	Feature_Deserialize,
 	Feature_Serialize,
 	Field,
+	Load,
 	Member_Deserialize,
 	Member_Serialize,
 	MonthSpend,
 	PlanView_Serialize,
 	Portfolio,
 	Preview_Serialize,
+	ProfileSum_Serialize,
 	Reason,
 	Row_Deserialize,
 	Row_Serialize,
@@ -211,7 +213,7 @@ export const seedWork = (): MockWork => ({
 		order: ["est:mvp-1#auth-api", "est:mvp-1#auth-web"],
 		tasks: { "est:mvp-1#auth-web": { member: "grace", start: "2026-11-09" } },
 	},
-	calendar: { workingDays: [1, 2, 3, 4, 5], holidays: ["2026-11-11"] },
+	calendar: { workingDays: [1, 2, 3, 4, 5], holidays: ["2026-11-11"], country: "FR" },
 	time: seedTime(),
 	logs: seedLogs(),
 	sealed: null,
@@ -242,7 +244,7 @@ export const emptyWork = (): MockWork => ({
 	team: { members: [] },
 	sheets: {},
 	decisions: { order: [], tasks: {} },
-	calendar: { workingDays: [1, 2, 3, 4, 5], holidays: [] },
+	calendar: { workingDays: [1, 2, 3, 4, 5], holidays: [], country: "FR" },
 	time: {},
 	logs: {},
 	me: null,
@@ -301,12 +303,17 @@ const roundToHour = (days: number) => Math.round(days * 8) / 8;
 
 const sheetTasks = (s: Sheet_Serialize) =>
 	s.features.flatMap((f) => f.tasks.map((t) => ({ f, t })));
+/** The expected value of a three-point task, or its days. */
+const fixedDays = (t: Task_Serialize) =>
+	t.days != null && t.optimistic != null && t.pessimistic != null
+		? roundToHour((t.optimistic + 4 * t.days + t.pessimistic) / 6)
+		: t.days;
 const buildDays = (s: Sheet_Serialize) =>
 	sheetTasks(s)
 		.filter(({ t }) => !t.other && t.days != null)
-		.reduce((n, { t }) => n + (t.days ?? 0), 0);
+		.reduce((n, { t }) => n + (fixedDays(t) ?? 0), 0);
 const taskDays = (t: Task_Serialize, build: number) =>
-	t.days ?? (t.percent != null ? roundToHour((build * t.percent) / 100) : 0);
+	fixedDays(t) ?? (t.percent != null ? roundToHour((build * t.percent) / 100) : 0);
 
 /** The mean day rate of the members of a role (Q-060, option 1). */
 function roleRates(team: Team_Serialize): Map<string, number> {
@@ -352,6 +359,38 @@ const weekday = (day: number) => (day + 3) % 7;
 
 const works = (cal: Calendar_Serialize, day: number) =>
 	cal.workingDays.includes(weekday(day) + 1) && !cal.holidays.some((h) => parseDay(h) === day);
+
+/** Easter Sunday as a day number (anonymous Gregorian algorithm). */
+function easter(y: number) {
+	const a = y % 19;
+	const b = Math.floor(y / 100);
+	const c = y % 100;
+	const h =
+		(19 * a + b - Math.floor(b / 4) - Math.floor((b - Math.floor((b + 8) / 25) + 1) / 3) + 15) % 30;
+	const l = (32 + 2 * (b % 4) + 2 * Math.floor(c / 4) - h - (c % 4)) % 7;
+	const m = Math.floor((a + 11 * h + 22 * l) / 451);
+	const n = h + l - 7 * m + 114;
+	return Date.UTC(y, Math.floor(n / 31) - 1, (n % 31) + 1) / 86_400_000;
+}
+
+/** shortcut: the mock knows the rules of France only; the Rust core holds the other countries. */
+export function publicHolidays(cal: Calendar_Serialize, today: string) {
+	if (cal.country !== "FR") return [];
+	const year = Number(today.slice(0, 4)) || 2026;
+	const out: string[] = [];
+	for (let y = year - 1; y <= year + 4; y++) {
+		const e = easter(y);
+		const fixed = ["01-01", "05-01", "05-08", "07-14", "08-15", "11-01", "11-11", "12-25"];
+		const days = [...fixed.map((d) => parseDay(`${y}-${d}`) ?? 0), e + 1, e + 39, e + 50];
+		out.push(...days.sort((a, b) => a - b).map(iso));
+	}
+	return out;
+}
+
+const effective = (w: MockWork): Calendar_Serialize => ({
+	...w.calendar,
+	holidays: [...w.calendar.holidays, ...publicHolidays(w.calendar, w.today)],
+});
 
 function nextWorking(cal: Calendar_Serialize, from: number) {
 	let day = from;
@@ -412,9 +451,10 @@ function unstaffed(cal: Calendar_Serialize, start: number, days: number): Spend 
 
 /** Schedule one sheet over the team, the calendar and the decisions. Returns the bars and the days used. */
 function schedule(w: MockWork, slug: string, s: Sheet_Serialize) {
+	const cal = effective(w);
 	const rates = roleRates(w.team);
 	const build = buildDays(s);
-	const first = nextWorking(w.calendar, parseDay(w.today) ?? 0);
+	const first = nextWorking(cal, parseDay(w.today) ?? 0);
 	const ref = (id: string) => `est:${slug}#${id}`;
 	const rank = (id: string) => {
 		const i = w.decisions.order.indexOf(ref(id));
@@ -428,9 +468,7 @@ function schedule(w: MockWork, slug: string, s: Sheet_Serialize) {
 	for (const { f, t } of tasks) {
 		const days = taskDays(t, build);
 		const decision = w.decisions.tasks[ref(t.id)];
-		const start = decision?.start
-			? nextWorking(w.calendar, parseDay(decision.start) ?? first)
-			: first;
+		const start = decision?.start ? nextWorking(cal, parseDay(decision.start) ?? first) : first;
 		const chosen = decision?.member;
 		let best: { i: number; spend: Spend } | null = null;
 		const end = (sp: Spend) => sp[sp.length - 1]?.[0] ?? start;
@@ -439,7 +477,7 @@ function schedule(w: MockWork, slug: string, s: Sheet_Serialize) {
 				? m.handle.toLowerCase() === chosen.toLowerCase()
 				: m.role.toLowerCase() === t.role.toLowerCase();
 			if (!fits) continue;
-			const spend = place(m, w.calendar, used, i, start, days);
+			const spend = place(m, cal, used, i, start, days);
 			if (!spend) continue;
 			const better =
 				!best ||
@@ -456,7 +494,7 @@ function schedule(w: MockWork, slug: string, s: Sheet_Serialize) {
 				const k = `${best.i}:${day}`;
 				used.set(k, (used.get(k) ?? 0) + take);
 			}
-		} else spend = unstaffed(w.calendar, start, days);
+		} else spend = unstaffed(cal, start, days);
 		const rate = rates.get(t.role.toLowerCase()) ?? 0;
 		const months = new Map<string, number>();
 		for (const [day, take] of spend) {
@@ -523,6 +561,10 @@ const normTask = (t: Task_Deserialize): Task_Serialize => ({
 	...(t.other ? { other: true } : {}),
 	...(t.ticket ? { ticket: t.ticket } : {}),
 	note: t.note ?? "",
+	...(t.optimistic != null ? { optimistic: t.optimistic } : {}),
+	...(t.pessimistic != null ? { pessimistic: t.pessimistic } : {}),
+	...(t.confidence ? { confidence: t.confidence } : {}),
+	...(t.assumptions ? { assumptions: t.assumptions } : {}),
 });
 
 const normFeature = (f: Feature_Deserialize): Feature_Serialize => ({
@@ -537,6 +579,7 @@ const normSheet = (s: Sheet_Deserialize): Sheet_Serialize => ({
 	currency: s.currency ?? "",
 	marginRate: s.marginRate ?? 0,
 	features: (s.features ?? []).map(normFeature),
+	...(s.frozen ? { frozen: true } : {}),
 });
 
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
@@ -553,9 +596,16 @@ function checkSheet(s: Sheet_Serialize) {
 			if (ids.has(id)) throw `duplicate row id \`${id}\``;
 			ids.add(id);
 		}
-		for (const t of f.tasks)
+		for (const t of f.tasks) {
 			if ((t.days != null) === (t.percent != null))
 				throw `task \`${t.id}\` needs days or percent, not both`;
+			const [o, m, p] = [t.optimistic, t.days, t.pessimistic];
+			if (
+				(o != null || p != null) &&
+				!(o != null && m != null && p != null && o >= 0 && o <= m && m <= p)
+			)
+				throw `task \`${t.id}\`: the three-point estimate needs optimistic <= likely <= pessimistic`;
+		}
 	}
 }
 
@@ -847,8 +897,42 @@ export function estimateSave(
 	writable(w);
 	const s = normSheet(sheet);
 	checkSheet(s);
+	const old = w.sheets[slug];
+	if (old?.frozen && JSON.stringify(s) !== JSON.stringify({ ...old, frozen: undefined }))
+		throw FROZEN;
 	w.sheets[slug] = s;
 	return estimateGet(w, mirror, slug);
+}
+
+const FROZEN = "the sheet is frozen: unfreeze it first";
+
+/** The days and cost of each role, the largest first. No day rate leaves the mock. */
+export function estimateProfiles(w: MockWork, slug: string | null): ProfileSum_Serialize[] {
+	const sheets = slug ? [readSheet(w, slug)] : isLocked(w) ? [] : Object.values(w.sheets);
+	const rates = roleRates(w.team);
+	const by = new Map<string, ProfileSum_Serialize>();
+	for (const s of sheets) {
+		const build = buildDays(s);
+		for (const { t } of sheetTasks(s)) {
+			const key = t.role.toLowerCase();
+			const e = by.get(key) ?? { role: t.role, days: 0, cost: 0 };
+			const days = taskDays(t, build);
+			const rate = rates.get(key);
+			e.days = round((e.days ?? 0) + days);
+			e.cost = e.cost == null || rate === undefined ? null : round(e.cost + days * rate);
+			by.set(key, e);
+		}
+	}
+	return [...by.values()].sort(
+		(a, b) => (b.days ?? 0) - (a.days ?? 0) || a.role.localeCompare(b.role),
+	);
+}
+
+export function estimateDelete(w: MockWork, slug: string, click: boolean) {
+	needClick(click);
+	if (!w.sheets[slug]) throw `no sheet \`${slug}\``;
+	if (w.sheets[slug]?.frozen) throw FROZEN;
+	delete w.sheets[slug];
 }
 
 export function estimatePortfolio(w: MockWork): Portfolio {
@@ -919,6 +1003,7 @@ export function excelConfirm(
 	if (!SLUG.test(slug)) throw `\`${slug}\` is not a sheet name`;
 	writable(w);
 	if (!w.pending) throw "no import is planned: read the workbook first";
+	if (w.sheets[slug]?.frozen) throw FROZEN;
 	if (!confirmed) throw "the import needs the confirmation of a person";
 	w.sheets[slug] = w.pending.sheet;
 	w.pending = null;
@@ -941,7 +1026,45 @@ export function planGet(w: MockWork, slug: string): PlanView_Serialize {
 		decisions: w.decisions,
 		calendar: w.calendar,
 		today: w.today,
+		publicHolidays: publicHolidays(w.calendar, w.today),
+		load: loadOf(w),
 	};
+}
+
+/** The days of each member over all sheets beside the capacity, as the Rust `work::load`. */
+function loadOf(w: MockWork): Load {
+	const cal = effective(w);
+	const used = new Map<string, number>();
+	for (const [slug, s] of Object.entries(w.sheets))
+		for (const [k, v] of schedule(w, slug, s).used) used.set(k, (used.get(k) ?? 0) + v);
+	const days = [...used.keys()].map((k) => Number(k.split(":")[1]));
+	if (days.length === 0) return { members: [], team: [] };
+	const [lo, hi] = [Math.min(...days), Math.max(...days)];
+	const members = w.team.members.flatMap((m, i) => {
+		const mine = [...used]
+			.filter(([k]) => k.startsWith(`${i}:`))
+			.map(([k, u]) => [Number(k.split(":")[1]), u] as const)
+			.sort((a, b) => a[0] - b[0]);
+		return mine.length
+			? [
+					{
+						handle: m.handle,
+						days: mine.map(([d, u]) => ({
+							day: iso(d),
+							used: round(u),
+							capacity: round(dayCapacity(m, cal, d)),
+						})),
+					},
+				]
+			: [];
+	});
+	const team = [];
+	for (let d = lo; d <= hi; d++) {
+		const capacity = round(w.team.members.reduce((n, m) => n + dayCapacity(m, cal, d), 0));
+		const u = round(w.team.members.reduce((n, _, i) => n + (used.get(`${i}:${d}`) ?? 0), 0));
+		if (capacity > 0 || u > 0) team.push({ day: iso(d), used: u, capacity });
+	}
+	return { members, team };
 }
 
 export function decisionsSave(w: MockWork, d: Decisions_Deserialize) {
@@ -971,8 +1094,14 @@ export function calendarSave(w: MockWork, c: Calendar_Deserialize) {
 		throw "a working day is a number from 1 (Monday) to 7 (Sunday)";
 	const bad = holidays.find((h) => parseDay(h) === null);
 	if (bad) throw `\`${bad}\` is not a date`;
-	w.calendar = { workingDays, holidays };
+	const country = c.country ?? "FR";
+	if (country && !COUNTRIES.includes(country))
+		throw `\`${country}\` is not a country with public holidays`;
+	w.calendar = { workingDays, holidays, country };
 }
+
+/** The countries of `crates/shipyard-core/src/holidays.rs`. */
+export const COUNTRIES = ["FR", "BE", "LU", "CH", "DE", "NL", "ES", "IT", "GB", "US"];
 
 // ---- time
 

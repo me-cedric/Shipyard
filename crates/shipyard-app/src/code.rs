@@ -366,6 +366,62 @@ pub fn pull_ready(s: &AppState, number: u32, click: bool) -> Res<()> {
     api.mark_ready(&slug, u64::from(number)).map_err(err)
 }
 
+/// Closes an open pull request without a merge. A reason, when given, goes in a comment first.
+pub fn pull_close(s: &AppState, number: u32, reason: &str, click: bool) -> Res<()> {
+    need_click(s, click)?;
+    let (api, slug, _) = forge(s)?;
+    let n = u64::from(number);
+    if api.pull(&slug, n).map_err(err)?.state != PullState::Open {
+        return Err("the pull request is not open".into());
+    }
+    if !reason.trim().is_empty() {
+        api.comment(&slug, n, reason).map_err(err)?;
+    }
+    api.close(&slug, n).map_err(err)
+}
+
+/// Sends the pull request back to the agent: a request for changes with the text. The factory
+/// reads it as a review and starts a feedback round on the same pull request.
+pub fn pull_send_back(s: &AppState, number: u32, text: &str, click: bool) -> Res<()> {
+    pull_verdict(s, number, Verdict::RequestChanges, text, click)
+}
+
+/// Archives the spec change `change` in the branch of the pull request: the archive, one commit
+/// and a push. The working branch must be the branch of the pull request, and nothing else may be
+/// staged, so the commit holds the archive only. Open items of the change need `confirmed`.
+pub fn pull_archive_spec(
+    s: &AppState,
+    number: u32,
+    change: &str,
+    confirmed: bool,
+    click: bool,
+) -> Res<String> {
+    need_click(s, click)?;
+    let (api, slug, _) = forge(s)?;
+    let source = api
+        .pull(&slug, u64::from(number))
+        .map_err(err)?
+        .source_branch;
+    let r = Repo::open(&root(s)?).map_err(err)?;
+    let st = r.status().map_err(err)?;
+    if st.branch.as_deref() != Some(source.as_str()) {
+        return Err(format!(
+            "switch to the branch {source} of the pull request first"
+        ));
+    }
+    if !st.staged.is_empty() {
+        return Err("unstage your changes first: the archive makes its own commit".into());
+    }
+    let folder = crate::specs::specs_folder(s)?;
+    crate::specs::archive_change(s, change, confirmed)?;
+    r.stage(&[folder]).map_err(err)?;
+    let sha = r
+        .commit(&format!("docs(spec): archive {change}"), "")
+        .map_err(err)?;
+    crate::commands::code::push(s)?;
+    Ok(sha)
+}
+
 // ---------------------------------------------------------------- quality (REQ-026 to REQ-028)
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -787,6 +843,44 @@ pub async fn code_pull_merge(
 #[specta::specta]
 pub async fn code_pull_ready(app: AppHandle, number: u32, click: bool) -> Api<()> {
     blocking(app, move |s| pull_ready(s, number, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_pull_close(app: AppHandle, number: u32, reason: String, click: bool) -> Api<()> {
+    blocking(app, move |s| {
+        synced(s, pull_close(s, number, &reason, click))
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_pull_send_back(
+    app: AppHandle,
+    number: u32,
+    text: String,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| {
+        synced(s, pull_send_back(s, number, &text, click))
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_pull_archive_spec(
+    app: AppHandle,
+    number: u32,
+    change: String,
+    confirmed: bool,
+    click: bool,
+) -> Api<String> {
+    blocking(app, move |s| {
+        pull_archive_spec(s, number, &change, confirmed, click)
+    })
+    .await
 }
 
 #[tauri::command]

@@ -11,7 +11,7 @@ import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
-import { PaperAirplaneIcon, PlusIcon, XMarkIcon } from "@/ui/icons";
+import { PaperAirplaneIcon, PlusIcon, StopIcon, XMarkIcon } from "@/ui/icons";
 import { Dialog } from "@/ui/organisms/dialog";
 import { CodexTrust } from "./codex-trust";
 import { ComposerMenu, type MenuItem } from "./composer-menu";
@@ -215,6 +215,11 @@ export function Composer({
 					}}
 					onKeyDown={(e) => {
 						if (e.nativeEvent.isComposing) return;
+						if (e.key === "Escape" && a.busy && !menuOpen) {
+							e.preventDefault();
+							a.stop();
+							return;
+						}
 						if (menuOpen) {
 							const move = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
 							if (move) {
@@ -282,14 +287,17 @@ export function Composer({
 				>
 					<PlusIcon size={14} />
 				</IconButton>
-				<Button
-					variant="primary"
-					disabled={!a.current || a.busy || !a.draft.trim()}
-					onClick={submit}
-				>
-					<PaperAirplaneIcon size={14} />
-					{t.assistant.send}
-				</Button>
+				{a.busy ? (
+					<Button onClick={a.stop}>
+						<StopIcon size={14} />
+						{t.assistant.stop}
+					</Button>
+				) : (
+					<Button variant="primary" disabled={!a.current || !a.draft.trim()} onClick={submit}>
+						<PaperAirplaneIcon size={14} />
+						{t.assistant.send}
+					</Button>
+				)}
 			</div>
 		</div>
 	);

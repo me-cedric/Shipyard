@@ -17,28 +17,26 @@ import {
 	useSheets,
 	useWorkActions,
 } from "@/lib/work";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import {
-	ArrowDownTrayIcon,
-	Cog6ToothIcon,
-	CurrencyIcon,
-	LockClosedIcon,
-	PlusIcon,
-} from "@/ui/icons";
+import { ArrowDownTrayIcon, CurrencyIcon, LockClosedIcon, PlusIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
+import { EstimateBacklog } from "./estimate-backlog";
 import { SheetForm, TaskForm } from "./estimate-forms";
 import { ExcelDialog } from "./excel-dialog";
 import { useGuard } from "./guard";
 import { NoProject } from "./no-project";
 import { SealBar } from "./seal";
+import { ProfileTable, SheetMenu } from "./sheet-menu";
 
 type View = "backlog" | "summary" | "spread" | "portfolio";
 const NEW = "@@new";
@@ -55,7 +53,7 @@ export function Estimates() {
 	const portfolio = usePortfolio().data;
 	const act = useWorkActions();
 	const { openDetail } = useShell();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [chosen, setChosen] = useState<string | null>(null);
 	const [view, setView] = useState<View>("backlog");
 	const [selected, setSelected] = useState<string | null>(null);
@@ -72,45 +70,6 @@ export function Estimates() {
 		() =>
 			(sheet?.sheet.features ?? []).flatMap((f) => f.tasks.map((task) => ({ feature: f, task }))),
 		[sheet],
-	);
-
-	const columns = useMemo<ColumnDef<Line>[]>(
-		() => [
-			{
-				id: "task",
-				header: e.task,
-				meta: { width: "minmax(12rem, 28rem)" },
-				cell: ({ row }) => row.original.task.name,
-			},
-			{
-				id: "role",
-				header: e.role,
-				meta: { width: "6rem" },
-				cell: ({ row }) => row.original.task.role,
-			},
-			{
-				id: "days",
-				header: e.days,
-				meta: { width: "6rem", numeric: true },
-				cell: ({ row }) => figure(sheet?.days[row.original.task.id], lang),
-			},
-			{
-				id: "percent",
-				header: e.percent,
-				meta: { width: "5rem", numeric: true },
-				cell: ({ row }) =>
-					row.original.task.percent == null ? "" : `${row.original.task.percent} %`,
-			},
-			{
-				id: "ticket",
-				header: e.ticket,
-				meta: { width: "8rem" },
-				cell: ({ row }) => (
-					<span className="font-mono text-11">{row.original.task.ticket ?? ""}</span>
-				),
-			},
-		],
-		[e, lang, sheet],
 	);
 
 	const spread = useMemo<ColumnDef<{ month: string; days: number | null; cost: number | null }>[]>(
@@ -221,7 +180,11 @@ export function Estimates() {
 			icon={<CurrencyIcon size={16} />}
 			count={lines.length}
 			action={
-				<Button variant="primary" disabled={!sheet} onClick={() => openTask(null)}>
+				<Button
+					variant="primary"
+					disabled={!sheet || sheet.sheet.frozen === true}
+					onClick={() => openTask(null)}
+				>
 					<PlusIcon size={14} />
 					{e.task}
 				</Button>
@@ -237,9 +200,16 @@ export function Estimates() {
 							{ value: NEW, label: e.newSheet },
 						]}
 					/>
-					<IconButton label={e.settings} disabled={!sheet} onClick={() => openSheet(slug)}>
-						<Cog6ToothIcon size={14} />
-					</IconButton>
+					{sheet ? (
+						<SheetMenu
+							view={sheet}
+							slugs={list.map((s) => s.slug)}
+							onRename={() => openSheet(slug)}
+							onChosen={setChosen}
+							run={run}
+						/>
+					) : null}
+					{sheet?.sheet.frozen ? <Badge variant="info">{t.costing.sheet.frozen}</Badge> : null}
 					<ViewTabs
 						label={t.tabs.work.estimates}
 						value={view}
@@ -278,11 +248,7 @@ export function Estimates() {
 				</>
 			}
 		>
-			{error ? (
-				<p role="alert" className="px-3 py-1 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-3 py-1" />
 			{item?.state === "invalid" ? (
 				<p role="alert" className="px-3 py-1 text-ui text-danger-text">
 					{item.error}
@@ -322,19 +288,9 @@ export function Estimates() {
 							}}
 						/>
 					</div>
-				) : (
-					<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
-						<DataTable
-							label={e.views.backlog}
-							data={lines}
-							columns={columns}
-							rowId={(r) => r.task.id}
-							group={(r) => r.feature.name}
-							onOpen={(r) => openTask(r.task.id)}
-							selected={selected}
-						/>
-					</div>
-				)
+				) : slug ? (
+					<EstimateBacklog slug={slug} view={sheet} selected={selected} onOpen={openTask} />
+				) : null
 			) : null}
 			{view === "summary" && sheet && totals ? (
 				<div className="flex flex-col gap-4 px-4 pb-4">
@@ -372,6 +328,9 @@ export function Estimates() {
 							))}
 						</Panel>
 					</div>
+					<Panel title={t.costing.summary.byProfile} flush>
+						<ProfileTable slug={slug} currency={currency} />
+					</Panel>
 					{totals.unrated.length > 0 ? (
 						<p className="flex items-center gap-2 text-ui">
 							<StatusDot status="warning" label={e.unrated} />
@@ -392,7 +351,7 @@ export function Estimates() {
 				</div>
 			) : null}
 			{view === "portfolio" && portfolio ? (
-				<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
+				<div className="mx-4 mb-2 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
 					<DataTable
 						label={e.views.portfolio}
 						data={portfolio.sheets.map(([name, tt]) => ({ name, ...tt }))}
@@ -406,6 +365,11 @@ export function Estimates() {
 							money(portfolio.total.margin, currency, lang),
 						]}
 					/>
+				</div>
+			) : null}
+			{view === "portfolio" && portfolio ? (
+				<div className="mx-4 mb-4">
+					<ProfileTable slug={null} currency={currency} />
 				</div>
 			) : null}
 			{excel ? (

@@ -1,5 +1,6 @@
 import { assistantEn } from "./assistant";
 import { forgeEn } from "./code";
+import { costingEn } from "./costing";
 import { designEn } from "./design";
 import { doctorEn } from "./doctor";
 import { editingEn } from "./editing";
@@ -157,6 +158,7 @@ export const en = {
 	extensions: extensionsEn,
 	forge: forgeEn,
 	knowledge: knowledgeEn,
+	costing: costingEn,
 	notFound: { title: "Not found", home: "Home" },
 	routeError: {
 		message: "This page did not load. Check the network, then try again.",

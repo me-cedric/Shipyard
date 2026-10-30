@@ -1,22 +1,34 @@
 import { Fragment, type ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
+import { commands, unwrap } from "@/lib/ipc";
 import { useResolvedRef } from "@/lib/refs";
 import { cn } from "@/lib/utils";
 import { RefChip } from "../molecules/ref-chip";
+import { MermaidView } from "./mermaid-view";
 
 type Block =
 	| { type: "h"; level: number; text: string }
 	| { type: "p"; text: string }
 	| { type: "ul" | "ol"; items: string[] }
-	| { type: "code"; text: string };
+	| { type: "code"; lang: string; text: string }
+	| { type: "table"; head: string[]; rows: string[][]; sep: boolean };
 
-/** shortcut: headings, lists, code fences and paragraphs only, no tables or links; add a Markdown library when a page needs them. */
+const cells = (line: string) =>
+	line
+		.trim()
+		.replace(/^\||\|$/g, "")
+		.split("|")
+		.map((c) => c.trim());
+
+/** shortcut: headings, lists, tables, code fences and paragraphs; a link is `[text](https://…)`; no column alignment, no nested lists. */
 export function blocks(source: string): Block[] {
 	const out: Block[] = [];
 	let fence: string[] | null = null;
+	let lang = "";
 	for (const line of source.split("\n")) {
 		if (line.trimStart().startsWith("```")) {
-			if (fence) out.push({ type: "code", text: fence.join("\n") });
+			if (fence) out.push({ type: "code", lang, text: fence.join("\n") });
+			else lang = line.trim().slice(3).trim().split(/\s+/)[0] ?? "";
 			fence = fence ? null : [];
 			continue;
 		}
@@ -25,6 +37,13 @@ export function blocks(source: string): Block[] {
 			continue;
 		}
 		const last = out.at(-1);
+		if (/^\s*\|.*\|\s*$/.test(line)) {
+			if (last?.type !== "table")
+				out.push({ type: "table", head: cells(line), rows: [], sep: false });
+			else if (!last.sep && last.rows.length === 0 && /^[\s|:-]+$/.test(line)) last.sep = true;
+			else last.rows.push(cells(line));
+			continue;
+		}
 		const head = /^(#{1,3})\s+(.*)$/.exec(line);
 		const item = /^\s*(?:([-*])|\d+\.)\s+(.*)$/.exec(line);
 		if (head) out.push({ type: "h", level: (head[1] ?? "#").length, text: head[2] ?? "" });
@@ -36,7 +55,7 @@ export function blocks(source: string): Block[] {
 		else if (last?.type === "p" && last.text) last.text += ` ${line.trim()}`;
 		else out.push({ type: "p", text: line.trim() });
 	}
-	if (fence) out.push({ type: "code", text: fence.join("\n") });
+	if (fence) out.push({ type: "code", lang, text: fence.join("\n") });
 	return out.filter((b) => b.type !== "p" || b.text);
 }
 
@@ -51,20 +70,46 @@ function Ref({ refId }: { refId: string }) {
 	);
 }
 
-/** A ref in the text shows as a RefChip. The kinds are the ones that the app names. */
-function Inline({ text, kinds }: { text: string; kinds: RegExp }) {
+/** The key of a part that never reorders: its place in the text. */
+const at = (...n: number[]) => n.join("-");
+
+const LINK = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/;
+
+/** A link opens in the browser of the system, never in the window of the app. */
+export function Link({ url, children }: { url: string; children: ReactNode }) {
+	return (
+		<a
+			href={url}
+			rel="noreferrer"
+			className="text-accent-text underline focus-visible:outline-2 focus-visible:outline-accent-9"
+			onClick={(e) => {
+				e.preventDefault();
+				unwrap(commands.openLink(url)).catch((err) => console.error(err));
+			}}
+		>
+			{children}
+		</a>
+	);
+}
+
+/** A ref in the text shows as a RefChip, a link as a link. The kinds are the ones that the app names. */
+function Inline({ text, kinds }: { text: string; kinds: RegExp | null }) {
+	// The split keeps the two groups of a link: text, label, address, text, ...
+	const parts = text.split(new RegExp(LINK.source, "g"));
 	return (
 		<>
-			{text.split(kinds).map((p, i) =>
-				// An odd part is a ref: the regex has one group.
-				i % 2 ? (
-					// biome-ignore lint/suspicious/noArrayIndexKey: the parts never reorder
-					<Ref key={i} refId={p} />
-				) : (
-					// biome-ignore lint/suspicious/noArrayIndexKey: the parts never reorder
-					<Fragment key={i}>{p}</Fragment>
-				),
-			)}
+			{parts.map((part, i) => {
+				if (i % 3 === 1)
+					return (
+						<Link key={at(i)} url={parts[i + 1] ?? ""}>
+							{part}
+						</Link>
+					);
+				if (i % 3 === 2) return null;
+				return (kinds ? part.split(kinds) : [part]).map((p, j) =>
+					j % 2 ? <Ref key={at(i, j)} refId={p} /> : <Fragment key={at(i, j)}>{p}</Fragment>,
+				);
+			})}
 		</>
 	);
 }
@@ -80,15 +125,18 @@ export function MarkdownView({
 	label,
 	anchor,
 	reading,
+	refs = true,
 }: {
 	source: string;
 	label: string;
 	anchor?: string;
 	reading?: boolean;
+	/** False keeps a ref as plain text: the assistant lists its refs apart. */
+	refs?: boolean;
 }) {
 	const { t } = useI18n();
 	const kinds = new RegExp(`\\b((?:${Object.keys(t.refKind).join("|")}):[\\w./#@-]*[\\w/#])`);
-	const inline = (text: string): ReactNode => <Inline text={text} kinds={kinds} />;
+	const inline = (text: string): ReactNode => <Inline text={text} kinds={refs ? kinds : null} />;
 	return (
 		<article
 			aria-label={label}
@@ -111,6 +159,35 @@ export function MarkdownView({
 						</H>
 					);
 				}
+				if (b.type === "table")
+					return (
+						<div key={key} className="overflow-x-auto">
+							<table className="w-full border-collapse text-left">
+								<thead>
+									<tr>
+										{b.head.map((c, j) => (
+											<th key={at(j)} className="border-b px-2 py-1 font-medium">
+												{inline(c)}
+											</th>
+										))}
+									</tr>
+								</thead>
+								<tbody>
+									{b.rows.map((r, j) => (
+										<tr key={at(j)}>
+											{r.map((c, k) => (
+												<td key={at(k)} className="border-b px-2 py-1">
+													{inline(c)}
+												</td>
+											))}
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					);
+				if (b.type === "code" && b.lang === "mermaid")
+					return <MermaidView key={key} source={b.text} label={t.ui.diagram} />;
 				if (b.type === "code")
 					return (
 						<pre key={key} className="overflow-x-auto rounded-md bg-n-3 p-2 font-mono text-12">

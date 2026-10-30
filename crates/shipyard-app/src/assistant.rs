@@ -12,9 +12,10 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 use serde::Serialize;
-use shipyard_agents::assistant::{TurnInput, TurnKind, run_turn};
+use shipyard_agents::assistant::{TurnInput, TurnKind, run_turn_with};
 use shipyard_agents::assistant_modes;
 use shipyard_agents::assistant_rules;
+use shipyard_agents::runner::CancelHandle;
 use shipyard_core::assistant::{
     AssistantMode, ChatMessage, ChatRole, Context, MessageState, Quote, Thread, ThreadSettings,
     ThreadSummary, failure, scrub,
@@ -33,6 +34,21 @@ use crate::work::ApplyRow;
 
 /// Threads with a turn in progress: a second turn on the same thread is refused.
 static BUSY: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+/// The kill switch of the turn of each thread, while the turn runs.
+static STOPS: Mutex<Vec<(String, CancelHandle)>> = Mutex::new(Vec::new());
+
+/// Stops the running turn of a thread. The turn ends with the reply that came so far. Nothing
+/// runs: nothing happens. shortcut: a stop before the process starts is lost, the button shows
+/// only once the turn runs.
+pub fn stop(thread: &str) {
+    let stops = STOPS.lock().unwrap_or_else(|e| e.into_inner());
+    for (id, h) in stops.iter() {
+        if id == thread {
+            h.cancel();
+        }
+    }
+}
 
 /// The member key of the turns. Not `""`: that key is the unassigned runs and their `*` budget.
 const MEMBER: &str = "assistant";
@@ -68,6 +84,10 @@ impl Drop for Busy {
         BUSY.lock()
             .unwrap_or_else(|e| e.into_inner())
             .retain(|x| *x != self.0);
+        STOPS
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .retain(|(id, _)| *id != self.0);
     }
 }
 
@@ -597,20 +617,28 @@ pub fn turn(s: &AppState, thread: &str, start: Start, program: Option<PathBuf>) 
         .join("scratch")
         .join(&t.id);
     let out = match dir {
-        Ok(dir) => run_turn(TurnInput {
-            kind: kind.clone(),
-            settings: &settings,
-            context: &t.context,
-            quotes: &quotes,
-            text: &text,
-            rules: &rules,
-            dir: &dir,
-            scratch: &scratch,
-            session: t.session.as_deref().filter(|_| !explain),
-            granted: &t.granted,
-            secrets: &secrets,
-            program,
-        }),
+        Ok(dir) => run_turn_with(
+            TurnInput {
+                kind: kind.clone(),
+                settings: &settings,
+                context: &t.context,
+                quotes: &quotes,
+                text: &text,
+                rules: &rules,
+                dir: &dir,
+                scratch: &scratch,
+                session: t.session.as_deref().filter(|_| !explain),
+                granted: &t.granted,
+                secrets: &secrets,
+                program,
+            },
+            &|h| {
+                STOPS
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .push((thread.to_string(), h));
+            },
+        ),
         Err(e) => shipyard_agents::assistant::TurnOutput {
             message: fail_message(&scrub(&e.to_string(), &secrets)),
             session: t.session.clone(),

@@ -173,6 +173,7 @@ fn sheet() -> Sheet {
                 ..Default::default()
             }],
         }],
+        frozen: false,
     }
 }
 

@@ -8,6 +8,7 @@ pub mod extensions;
 pub mod flows;
 pub mod gherkin;
 pub mod health;
+pub mod holidays;
 pub mod knowledge;
 pub mod pickup;
 pub mod project;

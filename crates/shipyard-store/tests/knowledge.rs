@@ -102,6 +102,7 @@ fn a_dashboard_round_trips_and_checks_its_tiles() {
         y: 1,
         w: 2,
         h: 3,
+        title: String::new(),
     };
     let d = Dashboard {
         title: "Team".into(),

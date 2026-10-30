@@ -1,6 +1,7 @@
 /** The strings of the shared shell and the visual language v2 components. */
 export const uiEn = {
 	more: "More",
+	diagram: "Diagram",
 	back: "Back",
 	repo: "Repository",
 	ahead: "Ahead",
@@ -39,6 +40,7 @@ export const uiEn = {
 
 export const uiFr: typeof uiEn = {
 	more: "Plus",
+	diagram: "Schéma",
 	back: "Retour",
 	repo: "Dépôt",
 	ahead: "En avance",

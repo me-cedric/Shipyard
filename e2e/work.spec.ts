@@ -56,7 +56,7 @@ test("estimates a task and sees the summary move", async ({ page }) => {
 	await openWork(page, "Estimates");
 	const table = page.getByRole("table", { name: "Backlog" });
 	await expect(table.getByRole("heading", { name: "Authentication (4)" })).toBeVisible();
-	await table.getByText("Export endpoint").click();
+	await table.getByRole("cell", { name: "Export endpoint", exact: true }).click();
 	const panel = inspector(page, "Task");
 	const days = panel.getByRole("spinbutton", { name: "Days" });
 	await expect(days).toHaveValue("6");

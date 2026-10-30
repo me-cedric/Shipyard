@@ -4,6 +4,7 @@ import { format, useI18n } from "@/lib/i18n";
 import { Button } from "@/ui/atoms/button";
 import { Dialog } from "@/ui/organisms/dialog";
 import { FileViewer } from "@/ui/organisms/file-viewer";
+import { OpenInEditor } from "./open-in-editor";
 import { useFile } from "./use-file";
 
 /** A read-only file at a line, in a dialog. It opens from a pull request file, a finding or a ref. */
@@ -40,10 +41,11 @@ export function FileDialog({
 				/>
 			) : null}
 			{rev === null ? (
-				<div className="pt-2">
+				<div className="flex flex-wrap items-center gap-2 pt-2">
 					<Button variant="ghost" aria-pressed={blaming} onClick={() => setBlaming(!blaming)}>
 						{t.forge.viewer.blame}
 					</Button>
+					<OpenInEditor path={path} line={line} />
 				</div>
 			) : null}
 			{blame.error ? (

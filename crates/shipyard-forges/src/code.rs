@@ -78,6 +78,17 @@ pub trait CodeApi: PullApi {
 
     fn send_merge(&self, repo: &str, number: u64, method: MergeMethod) -> Result<(), ForgeError>;
 
+    /// The write that closes the pull request without a merge.
+    fn send_close(&self, repo: &str, number: u64) -> Result<(), ForgeError>;
+
+    /// Close an open pull request without a merge. A merged or closed one is refused.
+    fn close(&self, repo: &str, number: u64) -> Result<(), ForgeError> {
+        if self.pull(repo, number)?.state != PullState::Open {
+            return Err(ForgeError::Config("the pull request is not open".into()));
+        }
+        self.send_close(repo, number)
+    }
+
     /// Merge with a method that the forge offers. A draft or a closed pull request is refused
     /// before any write (REQ-022).
     fn merge(&self, repo: &str, number: u64, method: MergeMethod) -> Result<(), ForgeError> {
@@ -211,6 +222,15 @@ impl CodeApi for GitHub {
         )?;
         Ok(())
     }
+
+    fn send_close(&self, repo: &str, number: u64) -> Result<(), ForgeError> {
+        self.write(
+            Method::Patch,
+            &format!("{}/pulls/{number}", gh_repo(repo)?),
+            json!({ "state": "closed" }),
+        )?;
+        Ok(())
+    }
 }
 
 impl CodeApi for GitLab {
@@ -314,6 +334,15 @@ impl CodeApi for GitLab {
             Method::Put,
             &format!("{}/merge_requests/{number}/merge", project_path(repo)?),
             json!({ "squash": method == MergeMethod::Squash }),
+        )?;
+        Ok(())
+    }
+
+    fn send_close(&self, repo: &str, number: u64) -> Result<(), ForgeError> {
+        self.write(
+            Method::Put,
+            &format!("{}/merge_requests/{number}", project_path(repo)?),
+            json!({ "state_event": "close" }),
         )?;
         Ok(())
     }
@@ -437,6 +466,15 @@ impl CodeApi for Azure {
                 "lastMergeSourceCommit": { "commitId": text(&raw, "/lastMergeSourceCommit/commitId") },
                 "completionOptions": { "mergeStrategy": strategy },
             }),
+        )?;
+        Ok(())
+    }
+
+    fn send_close(&self, repo: &str, number: u64) -> Result<(), ForgeError> {
+        self.write(
+            Method::Patch,
+            &format!("{}/pullrequests/{number}", az_repo(repo)?),
+            json!({ "status": "abandoned" }),
         )?;
         Ok(())
     }

@@ -270,8 +270,9 @@ pub fn theme_text(t: &DeckTheme) -> Result<String> {
 
 // ---------------------------------------------------------------- dashboards
 
-/// The fixed catalogue of tiles (REQ-023). Each tile reads data that the project holds.
-pub const TILES: [&str; 7] = [
+/// The fixed catalogue of tiles (REQ-023). Each tile reads data that the project holds. The
+/// `tracker-` tiles read the tracker mirror in the view and can follow one person.
+pub const TILES: [&str; 10] = [
     "work",
     "runs",
     "questions",
@@ -279,6 +280,9 @@ pub const TILES: [&str; 7] = [
     "estimates",
     "quality",
     "impact",
+    "tracker-open",
+    "tracker-status",
+    "tracker-assignee",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -289,6 +293,9 @@ pub struct Tile {
     pub y: u32,
     pub w: u32,
     pub h: u32,
+    /// A name that a person gave the tile. Empty for the name of its kind.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub title: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]

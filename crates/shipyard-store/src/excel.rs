@@ -15,7 +15,7 @@ use crate::work::{WorkError, write_sheet};
 use calamine::{Data, Range, Reader, Xlsx};
 use rust_xlsxwriter::{Format, Workbook};
 use serde::Serialize;
-use shipyard_core::work::{Feature, Sheet, Task, totals};
+use shipyard_core::work::{Feature, Sheet, Task, fixed_days, totals};
 use specta::Type;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Cursor;
@@ -278,6 +278,7 @@ pub fn preview(bytes: &[u8], scope: Option<&str>) -> Result<Preview, ExcelError>
             .and_then(|m| m.parse().ok())
             .unwrap_or(0.0),
         features,
+        frozen: false,
     };
     Ok(Preview {
         sheet,
@@ -306,11 +307,7 @@ fn task(cols: &Columns, row: &[Data], id: String, title: String) -> Result<Task,
     if bad(days) || bad(percent) {
         return Err("the effort is negative or too large".into());
     }
-    let note = [cols.text(row, "hypotheses"), cols.text(row, "comments")]
-        .into_iter()
-        .filter(|s| !s.is_empty())
-        .collect::<Vec<_>>()
-        .join("\n");
+    let note = cols.text(row, "comments");
     let ticket = Some(cols.text(row, "ticket")).filter(|t| !t.is_empty());
     Ok(Task {
         id,
@@ -323,6 +320,8 @@ fn task(cols: &Columns, row: &[Data], id: String, title: String) -> Result<Task,
         other: cols.text(row, "kind").eq_ignore_ascii_case("other"),
         ticket,
         note,
+        assumptions: cols.text(row, "hypotheses"),
+        ..Task::default()
     })
 }
 
@@ -392,7 +391,9 @@ pub fn export(sheet: &Sheet, rates: &BTreeMap<String, f64>) -> Result<Vec<u8>, E
             xlsx(ws.write(r, 2, t.name.as_str()))?;
             xlsx(ws.write(r, 3, t.description.as_str()))?;
             xlsx(ws.write(r, 4, t.role.as_str()))?;
-            match (t.days, t.percent) {
+            xlsx(ws.write(r, 5, t.assumptions.as_str()))?;
+            // A three-point task writes its expected days, the number that the totals count.
+            match (fixed_days(t), t.percent) {
                 (Some(d), _) => {
                     xlsx(ws.write(r, 6, "Days"))?;
                     xlsx(ws.write(r, 7, d))?;

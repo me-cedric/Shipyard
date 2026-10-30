@@ -97,6 +97,69 @@ describe("Work / Plan", () => {
 		expect(JSON.stringify(mockState().work.decisions)).toBe(plan);
 	});
 
+	it("zooms, groups the bars by member and shows the load and the warnings", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/plan");
+		await bars();
+		const plan = await unwrap(commands.planGet("mvp-1"));
+		const over = plan.load.members.filter((m) =>
+			m.days.some((d) => (d.used ?? 0) > (d.capacity ?? 0)),
+		);
+		// Two lots book the same people on the same days.
+		expect(over.length).toBeGreaterThan(0);
+		const warnings = await screen.findByRole("region", { name: "Warnings" });
+		expect(within(warnings).getAllByText(/is over capacity on \d+ days/)).toHaveLength(over.length);
+		await user.click(screen.getByRole("tab", { name: "Month" }));
+		expect(screen.getByRole("tab", { name: "Month" })).toHaveAttribute("aria-selected", "true");
+		expect(await bars()).toHaveLength(6);
+		await user.click(screen.getByRole("tab", { name: "People" }));
+		expect(
+			await screen.findByRole("heading", { name: /^Ada Lovelace \(\d+\)$/ }),
+		).toBeInTheDocument();
+	});
+
+	it("takes the public holidays of the country of the calendar, France by default", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const plan = await unwrap(commands.planGet("mvp-1"));
+		expect(plan.publicHolidays).toContain("2026-12-25");
+		mountApp("/work/plan");
+		await bars();
+		await user.click(screen.getByRole("button", { name: "Calendar" }));
+		const panel = await aside("Calendar");
+		await user.click(panel.getByRole("combobox", { name: "Public holidays" }));
+		await user.click(await screen.findByRole("option", { name: "None" }));
+		await waitFor(() => expect(mockState().work.calendar.country).toBe(""));
+		expect((await unwrap(commands.planGet("mvp-1"))).publicHolidays).toEqual([]);
+	});
+
+	it("exports the chart as a PNG image", async () => {
+		const user = userEvent.setup();
+		const ctx = new Proxy(
+			{},
+			{ get: (_, k) => (k === "measureText" ? () => ({ width: 10 }) : () => {}) },
+		);
+		const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+		vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(ctx as never);
+		vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation((done) =>
+			done(new Blob([png])),
+		);
+		await withTracker();
+		mountApp("/work/plan");
+		await bars();
+		await user.click(screen.getByRole("button", { name: "Export" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Image (PNG)" }));
+		await waitFor(() =>
+			expect(mockState().reports.exported).toContainEqual({
+				kind: "gantt",
+				path: "/mock/mvp-1.png",
+			}),
+		);
+		await expect(unwrap(commands.planPngSave("/mock/x.png", [1, 2], true))).rejects.toThrow(/PNG/);
+		vi.restoreAllMocks();
+	});
+
 	it("has one primary action and is in French when the language is French", async () => {
 		mockState().prefs.lang = "fr";
 		await withTracker();

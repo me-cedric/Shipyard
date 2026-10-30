@@ -66,6 +66,12 @@ pub enum ErrorCode {
     GitNoUpstream,
     NoTerminal,
     TerminalGone,
+    DeviceNotSet,
+    NoEditor,
+    NoFirstCommit,
+    RemoteAddress,
+    RemoteExists,
+    SheetFrozen,
 }
 
 impl ErrorCode {
@@ -129,6 +135,12 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("the branch has no upstream", ErrorCode::GitNoUpstream),
     ("no terminal app was found", ErrorCode::NoTerminal),
     ("terminal app is not installed", ErrorCode::TerminalGone),
+    ("browser sign-in is not set up", ErrorCode::DeviceNotSet),
+    ("no code editor was found", ErrorCode::NoEditor),
+    ("make a first commit before", ErrorCode::NoFirstCommit),
+    ("bad remote address", ErrorCode::RemoteAddress),
+    ("the project already has a remote", ErrorCode::RemoteExists),
+    ("the sheet is frozen", ErrorCode::SheetFrozen),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]

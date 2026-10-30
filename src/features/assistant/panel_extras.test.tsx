@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { commands } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountAssistant } from "./harness";
 
@@ -173,5 +174,28 @@ describe("assistant panel: warnings before a risky step", () => {
 		await user.click(screen.getByRole("button", { name: "Trust this folder" }));
 		await waitFor(() => expect(screen.queryByText(/Codex does not trust/)).toBeNull());
 		expect(mockState().codexTrusted).toBe(true);
+	});
+});
+
+describe("assistant panel: stop", () => {
+	it("shows Stop while the turn runs and stops it with the button or Escape", async () => {
+		const user = userEvent.setup();
+		await mountAssistant();
+		type Turn = Awaited<ReturnType<typeof commands.assistantSend>>;
+		let release: (v: Turn) => void = () => {};
+		const send = vi
+			.spyOn(commands, "assistantSend")
+			.mockImplementation(() => new Promise<Turn>((r) => (release = r)));
+		const stop = vi.spyOn(commands, "assistantStop");
+		await say(user, "long job");
+		expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+		await user.click(await screen.findByRole("button", { name: "Stop" }));
+		expect(stop).toHaveBeenCalledOnce();
+		await user.type(input(), "{Escape}");
+		expect(stop).toHaveBeenCalledTimes(2);
+		release({ status: "error", error: { code: "unknown", details: "stopped", action: null } });
+		await waitFor(() => expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument());
+		send.mockRestore();
+		stop.mockRestore();
 	});
 });

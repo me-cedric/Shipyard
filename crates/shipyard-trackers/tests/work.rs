@@ -448,6 +448,7 @@ fn sheet() -> Sheet {
                 },
             ],
         }],
+        frozen: false,
     }
 }
 

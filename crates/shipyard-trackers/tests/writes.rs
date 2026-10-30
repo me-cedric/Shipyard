@@ -310,6 +310,7 @@ fn sheet() -> Sheet {
                 ..Task::default()
             }],
         }],
+        frozen: false,
     }
 }
 

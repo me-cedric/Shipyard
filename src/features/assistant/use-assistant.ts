@@ -227,6 +227,9 @@ export function useAssistant({
 			);
 			if (!ok && fromDraft) setDrafts((d) => ({ ...d, [to]: d[to] || body }));
 		},
+		stop: () => {
+			if (current && busy) unwrap(commands.assistantStop(id)).catch(fail);
+		},
 		grant: () => current && !busy && run(null, () => unwrap(commands.assistantGrant(id))),
 		retry: () => current && !busy && run(null, () => unwrap(commands.assistantRetry(id))),
 		explain: async (entity: string) => {

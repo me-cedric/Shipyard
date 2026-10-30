@@ -59,6 +59,12 @@ fn valid_host(h: &str) -> bool {
 /// installed, does not run or fails.
 type Runner<'a> = &'a dyn Fn(&str, &[&str]) -> Option<String>;
 
+/// `glab auth status` exits non-zero when one host fails, yet it still lists the other hosts. Its
+/// text is read whatever the exit code. Any other call (a token) must succeed.
+fn accept(args: &[&str], success: bool) -> bool {
+    success || args == ["auth", "status"]
+}
+
 fn run_tool(tool: &str, args: &[&str]) -> Option<String> {
     let path = which(tool, &search_dirs())?;
     let mut cmd = Command::new(path);
@@ -66,7 +72,7 @@ fn run_tool(tool: &str, args: &[&str]) -> Option<String> {
     let out = cmd.output().ok()?;
     let mut text = String::from_utf8_lossy(&out.stdout).into_owned();
     text.push_str(&String::from_utf8_lossy(&out.stderr));
-    out.status.success().then_some(text)
+    accept(args, out.status.success()).then_some(text)
 }
 
 pub fn detect_with(run: Runner) -> Vec<CliLogin> {
@@ -183,6 +189,17 @@ mod tests {
         assert_eq!(glab[0].host, "gitlab.example.com");
         assert_eq!(glab[0].user, "bob");
         assert!(parse_status("gh", "You are not logged in").is_empty());
+    }
+
+    #[test]
+    fn one_broken_host_does_not_hide_the_others() {
+        let text = "gitlab.bad.example\n  x gitlab.bad.example: API call failed: 401\ngitlab.com\n  ✓ Logged in to gitlab.com as cy (/home/c/config.yml)\n";
+        let got = parse_status("glab", text);
+        assert_eq!(got.len(), 1);
+        assert_eq!(got[0].host, "gitlab.com");
+        // A non-zero exit of the status call keeps its text. A token call must succeed.
+        assert!(accept(&["auth", "status"], false));
+        assert!(!accept(&["config", "get", "token", "--host", "h"], false));
     }
 
     #[test]

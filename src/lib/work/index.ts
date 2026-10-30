@@ -5,6 +5,7 @@ import {
 	type Bar_Serialize,
 	type Calendar_Deserialize,
 	type Calendar_Serialize,
+	type Confidence,
 	commands,
 	type Decisions_Deserialize,
 	type Decisions_Serialize,
@@ -14,6 +15,7 @@ import {
 	type PlanView_Serialize,
 	type Portfolio,
 	type Preview_Serialize,
+	type ProfileSum_Serialize,
 	type Row_Deserialize,
 	type SealState,
 	type Sheet_Deserialize,
@@ -50,6 +52,7 @@ export type Preview = Preview_Serialize;
 export type TimeView = TimeView_Serialize;
 export type TimeRow = TimeRow_Serialize;
 export type Seal = SealState;
+export type ProfileSum = ProfileSum_Serialize;
 export {
 	addDays,
 	addMonths,
@@ -63,6 +66,7 @@ export {
 	parseDuration,
 	slugify,
 } from "./dates";
+export type { Confidence };
 
 export const workKeys = {
 	all: ["work"] as const,
@@ -72,6 +76,8 @@ export const workKeys = {
 	sheets: ["work", "sheets"] as const,
 	sheet: (slug: string) => ["work", "sheet", slug] as const,
 	portfolio: ["work", "portfolio"] as const,
+	profiles: (slug: string | null) => ["work", "profiles", slug] as const,
+	calendar: ["work", "calendar"] as const,
 	plan: (slug: string) => ["work", "plan", slug] as const,
 	time: (member: string | null, month: string) => ["work", "time", member, month] as const,
 	suggest: (key: string) => ["work", "suggest", key] as const,
@@ -112,6 +118,22 @@ export function usePortfolio() {
 	return useQuery({
 		queryKey: workKeys.portfolio,
 		queryFn: () => unwrap(commands.estimatePortfolio()),
+	});
+}
+
+/** The days and cost of each profile: of one sheet, or of every sheet with `null`. No day rate. */
+export function useProfiles(slug: string | null) {
+	return useQuery({
+		queryKey: workKeys.profiles(slug),
+		queryFn: () => unwrap(commands.estimateProfiles(slug)),
+	});
+}
+
+/** The working days, the team holidays and the country of the public holidays. */
+export function useCalendar() {
+	return useQuery({
+		queryKey: workKeys.calendar,
+		queryFn: () => unwrap(commands.planCalendarGet()),
 	});
 }
 
@@ -212,6 +234,8 @@ export function useWorkActions() {
 			unseal: (passphrase: string) => run(commands.workUnseal(passphrase)),
 			saveSheet: (slug: string, sheet: Sheet_Deserialize) =>
 				run(commands.estimateSave(slug, sheet)),
+			deleteSheet: (slug: string) => run(commands.estimateDelete(slug, true)),
+			savePng: (path: string, bytes: number[]) => run(commands.planPngSave(path, bytes, true)),
 			previewExcel: (path: string, scope: string | null) => run(commands.excelPreview(path, scope)),
 			confirmExcel: (slug: string) => run(commands.excelConfirm(slug, true)),
 			exportExcel: (slug: string, path: string) => run(commands.excelExport(slug, path)),

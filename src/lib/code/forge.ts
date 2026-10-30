@@ -49,6 +49,23 @@ export function usePullLabels() {
 	});
 }
 
+/** The origin of the project: `null` for a local project. */
+export function useOrigin() {
+	return useQuery({
+		queryKey: ["code", "origin"],
+		queryFn: () => unwrap(commands.codeOrigin()),
+	});
+}
+
+/** The code editors that the machine has. Empty when none is found. */
+export function useEditors() {
+	return useQuery({
+		queryKey: ["editors"],
+		queryFn: () => unwrap(commands.editorsList()),
+		staleTime: 60_000,
+	});
+}
+
 export function useQuality() {
 	return useQuery({ queryKey: forgeKeys.quality, queryFn: () => unwrap(commands.codeQuality()) });
 }
@@ -95,6 +112,13 @@ export function useForgeActions() {
 				run(commands.codePullVerdict(n, verdict, body, true)),
 			merge: (n: number, method: MergeMethod) => run(commands.codePullMerge(n, method, true)),
 			ready: (n: number) => run(commands.codePullReady(n, true)),
+			close: (n: number, reason: string) => run(commands.codePullClose(n, reason, true)),
+			sendBack: (n: number, text: string) => run(commands.codePullSendBack(n, text, true)),
+			archiveSpec: (n: number, change: string, confirmed: boolean) =>
+				run(commands.codePullArchiveSpec(n, change, confirmed, true)),
+			publish: (connection: string, slug: string) =>
+				run(commands.codePublish(connection, slug, true)),
+			setRemote: (url: string) => run(commands.codeRemoteSet(url, true)),
 			check: (command: string) => run(commands.codeCheckRun(command, true)),
 			scan: (name: string) => run(commands.codeScanRun(name, true)),
 			install: (name: string) => run(commands.codeScannerInstall(name, true)),

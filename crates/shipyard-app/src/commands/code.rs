@@ -355,7 +355,7 @@ pub fn remote_url(s: &AppState) -> Res<Option<String>> {
 }
 
 /// `https://user:token@host/x` gives `https://host/x`. An address with no `://` stays as it is.
-fn without_userinfo(url: &str) -> String {
+pub(crate) fn without_userinfo(url: &str) -> String {
     let Some((scheme, rest)) = url.split_once("://") else {
         return url.to_string();
     };

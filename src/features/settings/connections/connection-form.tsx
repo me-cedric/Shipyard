@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import {
 	type Connection_Serialize,
@@ -97,6 +97,14 @@ export function ConnectionForm({
 	const [busy, setBusy] = useState(false);
 	// The id of a new tracker connection that passed its test: the next step picks its scope.
 	const [scopeFor, setScopeFor] = useState<string | null>(null);
+	const [device, setDevice] = useState<string | null>(null);
+	const alive = useRef(true);
+	useEffect(() => {
+		alive.current = true;
+		return () => {
+			alive.current = false;
+		};
+	}, []);
 	// The name and the address come from the git remote of the project, once, into empty fields.
 	const suggestion = useQuery({
 		queryKey: [...connectionKeys.list, "suggest"],
@@ -139,36 +147,72 @@ export function ConnectionForm({
 	};
 	const canOpenPage = noUrl || kind === "jira-cloud" || url.trim().startsWith("https://");
 
+	const persist = async () => {
+		const draft = { name, group, kind, url: noUrl ? "" : url, user: needsUser ? user : null };
+		const saved = await unwrap(
+			id ? commands.connectionsEdit(id, draft) : commands.connectionsAdd(draft),
+		);
+		setId(saved.id);
+		return saved;
+	};
+
+	/** The test that follows a new secret. A failed test keeps the form open with its reason. */
+	const verify = async (saved: Connection_Serialize) => {
+		const out = await unwrap(commands.connectionsTest(saved.id));
+		if (out.kind !== "passed") {
+			setError(
+				format(t.connections.result[out.kind], {
+					account: "",
+					scope: out.kind === "missing-scope" ? out.scope : "",
+					reason: out.kind === "failed" ? out.reason : "",
+				}),
+			);
+			return;
+		}
+		if (!editing && group === "tracker") return setScopeFor(saved.id);
+		onDone();
+	};
+
 	const save = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setBusy(true);
 		setError(null);
 		try {
-			const draft = { name, group, kind, url: noUrl ? "" : url, user: needsUser ? user : null };
-			const saved = await unwrap(
-				id ? commands.connectionsEdit(id, draft) : commands.connectionsAdd(draft),
-			);
-			setId(saved.id);
+			const saved = await persist();
 			if (secret.trim()) await unwrap(commands.connectionsSetSecret(saved.id, secret));
-			// Save runs the test: a wrong token shows here, and the form stays for the fix.
-			if (secret.trim() || saved.secret) {
-				const out = await unwrap(commands.connectionsTest(saved.id));
-				if (out.kind !== "passed") {
-					setError(
-						format(t.connections.result[out.kind], {
-							account: "",
-							scope: out.kind === "missing-scope" ? out.scope : "",
-							reason: out.kind === "failed" ? out.reason : "",
-						}),
-					);
-					return;
-				}
-				if (!editing && group === "tracker") return setScopeFor(saved.id);
-			}
+			if (secret.trim() || saved.secret) return await verify(saved);
 			onDone();
 		} catch (err) {
 			setError(err);
 		} finally {
+			setBusy(false);
+			await qc.invalidateQueries({ queryKey: connectionKeys.list });
+		}
+	};
+
+	const signIn = async () => {
+		setBusy(true);
+		setError(null);
+		try {
+			const saved = await persist();
+			const d = await unwrap(commands.deviceLoginStart(saved.id, true));
+			setDevice(d.userCode);
+			await unwrap(commands.openLink(d.verificationUri));
+			let wait = d.interval;
+			for (const end = Date.now() + d.expiresIn * 1000; Date.now() < end; ) {
+				await new Promise((r) => setTimeout(r, wait * 1000));
+				if (!alive.current) return;
+				const state = await unwrap(commands.deviceLoginPoll(saved.id, d.deviceCode));
+				if (state === "authorized") return await verify({ ...saved, secret: true });
+				if (state === "slow_down") wait += 5;
+				if (state === "denied" || state === "expired")
+					return setError(state === "denied" ? t.forge.device.denied : t.forge.device.expired);
+			}
+			setError(t.forge.device.expired);
+		} catch (err) {
+			setError(err);
+		} finally {
+			setDevice(null);
 			setBusy(false);
 			await qc.invalidateQueries({ queryKey: connectionKeys.list });
 		}
@@ -248,6 +292,20 @@ export function ConnectionForm({
 					</Button>
 				</span>
 			</SettingsRow>
+			{kind === "github" || kind === "gitlab" ? (
+				<SettingsRow label={t.forge.device.signIn}>
+					<span className="flex items-center gap-2">
+						<Button disabled={busy || !name.trim() || !url.trim()} onClick={() => void signIn()}>
+							{t.forge.device.signIn}
+						</Button>
+						{device ? (
+							<span role="status" className="font-mono">
+								{format(t.forge.device.code, { code: device })}
+							</span>
+						) : null}
+					</span>
+				</SettingsRow>
+			) : null}
 			<ErrorNotice error={error} className="px-3 pt-2" />
 			<div className="flex gap-2 px-3 py-2">
 				<Button type="submit" variant="primary" disabled={busy || !name.trim()}>

@@ -1,5 +1,6 @@
 import { assistantFr } from "./assistant";
 import { forgeFr } from "./code";
+import { costingFr } from "./costing";
 import { designFr } from "./design";
 import { doctorFr } from "./doctor";
 import { editingFr } from "./editing";
@@ -163,6 +164,7 @@ export const fr: Messages = {
 	extensions: extensionsFr,
 	forge: forgeFr,
 	knowledge: knowledgeFr,
+	costing: costingFr,
 	notFound: { title: "Introuvable", home: "Accueil" },
 	routeError: {
 		message: "Cette page ne s'est pas chargée. Vérifiez le réseau, puis réessayez.",

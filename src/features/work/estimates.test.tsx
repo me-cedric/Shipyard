@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
@@ -40,7 +40,7 @@ describe("Work / Estimates", () => {
 		const sheet = await unwrap(commands.estimateGet("mvp-1"));
 		await user.click(await screen.findByRole("tab", { name: "Summary" }));
 		for (const label of ["Days", "Cost", "Price", "Margin"])
-			expect(await screen.findByText(label)).toBeInTheDocument();
+			expect(await screen.findByText(label, { selector: "dt" })).toBeInTheDocument();
 		const price = eur(sheet.totals.price ?? 0);
 		const cost = eur(sheet.totals.cost ?? 0);
 		expect(screen.getByText(price)).toBeInTheDocument();
@@ -156,6 +156,121 @@ describe("Work / Estimates", () => {
 		await waitFor(() =>
 			expect(mockState().work.exports).toEqual([{ slug: "mvp-1", path: "/mock/mvp-1.xlsx" }]),
 		);
+	});
+
+	it("saves a three-point estimate with its confidence and assumptions, and counts the expected days", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/estimates");
+		await user.click(within(await screen.findByRole("table")).getByText("Export endpoint"));
+		const panel = await aside("Task");
+		await user.click(panel.getByRole("checkbox", { name: "Three-point estimate" }));
+		await user.type(panel.getByRole("spinbutton", { name: "Optimistic" }), "3");
+		await user.type(panel.getByRole("spinbutton", { name: "Pessimistic" }), "15");
+		// (3 + 4 × 6 + 15) / 6 = 7
+		expect(panel.getByText("Expected: 7 d")).toBeInTheDocument();
+		await user.click(panel.getByRole("combobox", { name: "Confidence" }));
+		await user.click(await screen.findByRole("option", { name: "Low" }));
+		await user.type(panel.getByRole("textbox", { name: "Assumptions" }), "The API exists");
+		await user.click(panel.getByRole("button", { name: "Save" }));
+		await waitFor(() => {
+			const t = mockState()
+				.work.sheets["mvp-1"]?.features.flatMap((f) => f.tasks)
+				.find((x) => x.id === "export-api");
+			expect(t).toMatchObject({
+				days: 6,
+				optimistic: 3,
+				pessimistic: 15,
+				confidence: "low",
+				assumptions: "The API exists",
+			});
+		});
+		expect((await unwrap(commands.estimateGet("mvp-1"))).days["export-api"]).toBe(7);
+	});
+
+	it("searches, filters, edits rows in bulk and moves a row with the keyboard", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/estimates");
+		const table = await screen.findByRole("table", { name: "Backlog" });
+		await user.type(screen.getByRole("textbox", { name: "Search" }), "api");
+		await waitFor(() => expect(within(table).queryByText("Login form")).toBeNull());
+		expect(within(table).getByText("Token API")).toBeInTheDocument();
+		await user.clear(screen.getByRole("textbox", { name: "Search" }));
+		await user.click(screen.getByRole("button", { name: "qa" }));
+		await waitFor(() => expect(within(table).queryByText("Token API")).toBeNull());
+		await user.click(screen.getByRole("button", { name: "qa" }));
+
+		await user.click(await within(table).findByRole("checkbox", { name: "Select Token API" }));
+		await user.click(within(table).getByRole("checkbox", { name: "Select Login form" }));
+		const bulk = within(screen.getByRole("region", { name: "2 selected" }));
+		await user.type(bulk.getByRole("textbox", { name: "Set role" }), "backend");
+		await user.click(bulk.getByRole("button", { name: "Apply" }));
+		await waitFor(() => {
+			const tasks = mockState().work.sheets["mvp-1"]?.features[0]?.tasks ?? [];
+			expect(tasks.filter((x) => x.role === "backend").map((x) => x.id)).toEqual([
+				"auth-api",
+				"auth-web",
+			]);
+		});
+
+		const handle = await within(table).findByRole("button", { name: "Move Login form" });
+		fireEvent.keyDown(handle, { key: "ArrowUp", altKey: true });
+		await waitFor(() =>
+			expect(mockState().work.sheets["mvp-1"]?.features[0]?.tasks.map((x) => x.id)).toEqual([
+				"auth-design",
+				"auth-web",
+				"auth-api",
+				"auth-test",
+			]),
+		);
+	});
+
+	it("duplicates and freezes a sheet, refuses a change to it, and deletes a sheet after the confirm", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/estimates");
+		const menu = async (item: string) => {
+			await user.click(await screen.findByRole("button", { name: "Sheet actions" }));
+			await user.click(await screen.findByRole("menuitem", { name: item }));
+		};
+		await menu("Duplicate");
+		await waitFor(() => expect(mockState().work.sheets["mvp-1-copy"]?.name).toBe("MVP 1 (copy)"));
+		await menu("Freeze");
+		await waitFor(() => expect(mockState().work.sheets["mvp-1-copy"]?.frozen).toBe(true));
+		expect(await screen.findByText("Frozen")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Task" })).toBeDisabled();
+		await expect(
+			unwrap(commands.estimateSave("mvp-1-copy", { name: "Changed", features: [], frozen: true })),
+		).rejects.toThrow(/frozen/);
+		await menu("Unfreeze");
+		await waitFor(() => expect(mockState().work.sheets["mvp-1-copy"]?.frozen).toBeUndefined());
+		mockState().confirm = false;
+		await menu("Delete");
+		expect(mockState().work.sheets["mvp-1-copy"]).toBeDefined();
+		mockState().confirm = true;
+		await menu("Delete");
+		await waitFor(() => expect(mockState().work.sheets["mvp-1-copy"]).toBeUndefined());
+	});
+
+	it("sums days and cost by profile, for the lot and for every lot, with no day rate", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/estimates");
+		await user.click(await screen.findByRole("tab", { name: "Summary" }));
+		const lot = await screen.findByRole("table", { name: "By profile" });
+		const dev = (await within(lot).findByText("dev")).closest("[role=row]") as HTMLElement;
+		const [mine] = await unwrap(commands.estimateProfiles("mvp-1"));
+		expect(mine?.role).toBe("dev");
+		expect(dev).toHaveTextContent(eur(mine?.cost ?? 0));
+		// No day rate column: a rate stays with the team, sealed or not.
+		expect(
+			within(lot)
+				.getAllByRole("columnheader")
+				.map((h) => h.textContent),
+		).toEqual(["Profile", "Days", "Cost"]);
+		await user.click(view("Portfolio"));
+		expect(await screen.findByRole("table", { name: "By profile, Portfolio" })).toBeInTheDocument();
 	});
 
 	it("is in French when the language is French", async () => {

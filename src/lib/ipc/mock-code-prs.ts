@@ -262,6 +262,10 @@ export function pullVerdict(
 	return null;
 }
 
+export function pullClose(p: MockPrs, number: number) {
+	find(p, number).state = "closed";
+}
+
 export function pullMerge(p: MockPrs, number: number, method: MergeMethod, click: boolean) {
 	need(click);
 	const d = find(p, number);

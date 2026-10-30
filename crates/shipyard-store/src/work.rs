@@ -7,6 +7,7 @@
 use crate::seal::{self, SealError, Sealer};
 use serde::{Serialize, de::DeserializeOwned};
 use serde_yaml::Value;
+use shipyard_core::holidays::COUNTRIES;
 use shipyard_core::refs::{self, Ref};
 use shipyard_core::work::{Calendar, Decisions, Sheet, Team, TimeEntry, parse_day};
 use std::collections::BTreeSet;
@@ -229,6 +230,12 @@ pub fn write_decisions(d: &Decisions) -> Result<String> {
 fn check_calendar(c: &Calendar) -> Result<()> {
     if c.working_days.iter().any(|d| !(1..=7).contains(d)) {
         return invalid("a working day is a number from 1 (Monday) to 7 (Sunday)");
+    }
+    if !c.country.is_empty() && !COUNTRIES.contains(&c.country.as_str()) {
+        return invalid(format!(
+            "`{}` is not a country with public holidays",
+            c.country
+        ));
     }
     match c.holidays.iter().find(|h| parse_day(h).is_none()) {
         Some(h) => invalid(format!("`{h}` is not a date")),
