@@ -9,6 +9,32 @@ export const uiEn = {
 	myItems: "My items",
 	spendToday: "Spend today",
 	welcome: "Welcome",
+	menu: {
+		go: "Go",
+		toggleAssistant: "Toggle assistant",
+		toggleTheme: "Change theme",
+		shortcuts: "Keyboard shortcuts",
+	},
+	shortcuts: {
+		title: "Keyboard shortcuts",
+		change: "Change",
+		changeName: "Change {name}",
+		reset: "Reset",
+		resetName: "Reset {name}",
+		press: "Press the keys",
+		cancel: "Cancel",
+		needMod: "Use Ctrl or Cmd with another key.",
+		taken: "{chord} is used by {name}.",
+		saved: "{name}: {chord}",
+	},
+	closeGuard: {
+		title: "Work is still running",
+		body: "{runs} runs and {turns} assistant turns are in progress.",
+		keep: "Keep working",
+		close: "Close anyway",
+	},
+	autoCommit: "Auto-commit",
+	activity: { system: "System" },
 };
 
 export const uiFr: typeof uiEn = {
@@ -21,4 +47,30 @@ export const uiFr: typeof uiEn = {
 	myItems: "Mes éléments",
 	spendToday: "Dépense du jour",
 	welcome: "Bienvenue",
+	menu: {
+		go: "Aller à",
+		toggleAssistant: "Afficher l'assistant",
+		toggleTheme: "Changer de thème",
+		shortcuts: "Raccourcis clavier",
+	},
+	shortcuts: {
+		title: "Raccourcis clavier",
+		change: "Changer",
+		changeName: "Changer {name}",
+		reset: "Réinitialiser",
+		resetName: "Réinitialiser {name}",
+		press: "Appuyez sur les touches",
+		cancel: "Annuler",
+		needMod: "Utilisez Ctrl ou Cmd avec une autre touche.",
+		taken: "{chord} est utilisé par {name}.",
+		saved: "{name} : {chord}",
+	},
+	closeGuard: {
+		title: "Du travail est en cours",
+		body: "{runs} runs et {turns} tours d'assistant sont en cours.",
+		keep: "Continuer le travail",
+		close: "Fermer quand même",
+	},
+	autoCommit: "Commit automatique",
+	activity: { system: "Système" },
 };

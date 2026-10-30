@@ -5,6 +5,7 @@
 //! The agent tools: [`tools::agent`] (the eight tools and [`tools::agent::AgentEvents`]),
 //! [`server`] (JSON-RPC core), [`transport`] (stdio and loopback HTTP), [`session`] (per-run tokens).
 
+pub mod outside;
 pub mod proxy;
 pub mod relay;
 pub mod schema;

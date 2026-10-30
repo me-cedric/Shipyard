@@ -2,15 +2,21 @@
 
 pub mod agents;
 pub mod assistant;
+pub mod auto_commit;
+pub mod close_guard;
 pub mod code;
 mod commands;
 pub mod connections;
 pub mod delivery;
 pub mod design;
+pub mod doctor;
 pub mod extensions;
 pub mod factory;
 pub mod knowledge;
+pub mod machine;
+pub mod outside;
 pub mod questions;
+pub mod runner_setup;
 pub mod scanners;
 mod shell;
 pub mod specs;
@@ -153,6 +159,19 @@ fn specta_builder() -> Builder<tauri::Wry> {
             ag::mcp_stop,
             ag::mcp_state,
             ag::mcp_install,
+            crate::machine::machine_sessions,
+            crate::machine::machine_session_stop,
+            crate::machine::machine_spend,
+            crate::machine::machine_budget_set,
+            crate::outside::mcp_outside_get,
+            crate::outside::mcp_outside_set,
+            crate::outside::mcp_outside_wire,
+            crate::outside::mcp_outside_token,
+            crate::outside::mcp_elsewhere_list,
+            crate::outside::mcp_elsewhere_import,
+            crate::doctor::doctor_tools,
+            crate::doctor::doctor_tool_install,
+            crate::doctor::doctor_ledger,
             ag::tiers_get,
             ag::tiers_set,
             sy::sync_state,
@@ -310,6 +329,20 @@ fn specta_builder() -> Builder<tauri::Wry> {
             ex::child_remove,
             ex::child_clone,
             ex::child_deploy,
+            ex::manage::compass_policies,
+            ex::manage::compass_policy_apply,
+            ex::manage::compass_import,
+            ex::manage::compass_remove,
+            ex::manage::catalog_undeploy,
+            ex::manage::plugin_list,
+            ex::manage::plugin_set_enabled,
+            ex::manage::plugin_remove,
+            auto_commit::auto_commit_get,
+            auto_commit::auto_commit_set,
+            auto_commit::auto_commit_run,
+            close_guard::close_guard_state,
+            close_guard::close_anyway,
+            runner_setup::runner_install,
             sh::shell_menu,
             sh::notify_os,
             sh::update_check,
@@ -322,6 +355,12 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(builder.invoke_handler())
+        // A run or an assistant turn in flight holds the window until the person answers.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                close_guard::on_close_requested(window.app_handle(), window, api);
+            }
+        })
         // A menu item runs the palette action with the same id (REQ-012).
         .on_menu_event(|app, event| {
             let _ = app.emit("menu-action", event.id().as_ref());
@@ -345,6 +384,8 @@ pub fn run() {
             if let Err(e) = state.factory.start_mcp(state.agents.proxy.clone()) {
                 eprintln!("agent tools endpoint: {e}");
             }
+            // The server for outside agents starts only when the person turned it on.
+            outside::start_saved(&state);
             // The engine of the active project starts with the app.
             sy::refresh(&state);
             factory::spawn_loop(app.handle().clone());

@@ -1,17 +1,21 @@
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
-import type { ReactNode, RefObject } from "react";
+import { type ReactNode, type RefObject, useEffect, useId, useState } from "react";
+import { mentionAt, slashFor, slashQuery } from "@/lib/assistant/slash";
 import { useI18n } from "@/lib/i18n";
 import type { AssistantMode, Permission } from "@/lib/ipc";
+import { usePrefs } from "@/lib/prefs";
+import { useRefSearch } from "@/lib/refs";
 import { Button } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
 import { PaperAirplaneIcon } from "@/ui/icons";
+import { ComposerMenu, type MenuItem } from "./composer-menu";
 import { GaugeView } from "./gauge";
 import type { Assistant } from "./use-assistant";
 
 const MODES: AssistantMode[] = ["ask", "plan", "agent"];
-const PERMISSIONS: Permission[] = ["approve", "auto"];
+const PERMISSIONS: Permission[] = ["approve", "auto", "read_only"];
 const DEFAULT = "default";
 // An `@` token that ends the text: the ref that the person typed.
 const TOKEN = /(^|\s)@(\S+)$/;
@@ -25,7 +29,43 @@ export function Composer({
 	inputRef: RefObject<HTMLTextAreaElement | null>;
 }): ReactNode {
 	const { t } = useI18n();
+	const listId = useId();
+	const readOnly = usePrefs().profile.readOnly;
 	const s = a.current?.thread.settings;
+	// A project with a read only profile gets the read only level and no other.
+	const { setSettings } = a;
+	const stuck = readOnly && s !== undefined && s.permission !== "read_only";
+	useEffect(() => {
+		if (stuck) void setSettings({ permission: "read_only" });
+	}, [stuck, setSettings]);
+	const levels = readOnly ? PERMISSIONS.filter((p) => p === "read_only") : PERMISSIONS;
+	// The slash menu and the `@` menu share one list. Escape closes it until the draft changes.
+	const [active, setActive] = useState(0);
+	const [closed, setClosed] = useState<string | null>(null);
+	const slash = slashQuery(a.draft);
+	const at = slash === null ? mentionAt(a.draft) : null;
+	const hits = useRefSearch(at?.query ?? "").data;
+	const items: MenuItem[] =
+		slash !== null
+			? slashFor(a.view, slash).map((id) => ({
+					id,
+					label: `/${id}`,
+					pick: () => a.setDraft(t.assistant.slash[id]),
+				}))
+			: at?.query
+				? [...(hits ?? [])]
+						.sort((x, y) => Number(y.ref === at.query) - Number(x.ref === at.query))
+						.map((h) => ({
+							id: h.ref,
+							label: `${h.ref} ${h.title}`,
+							pick: () => {
+								a.setDraft(a.draft.slice(0, at.start));
+								void a.addRef(h.ref);
+							},
+						}))
+				: [];
+	const menuOpen = items.length > 0 && closed !== a.draft;
+	const current = Math.min(active, Math.max(items.length - 1, 0));
 	const runner = a.runners.find((r) => r.runner === s?.runner);
 	const pick = (list: string[]) => [
 		{ value: DEFAULT, label: t.assistant.default },
@@ -83,31 +123,64 @@ export function Composer({
 						label={t.assistant.permission.label}
 						value={s.permission}
 						disabled={s.mode !== "agent"}
-						items={PERMISSIONS.map((p) => ({ value: p, label: t.assistant.permission[p] }))}
+						items={levels.map((p) => ({ value: p, label: t.assistant.permission[p] }))}
 						onValueChange={(p) => void a.setSettings({ permission: p as Permission })}
 					/>
 				</div>
 			) : null}
-			<Textarea
-				ref={inputRef}
-				label={t.assistant.message}
-				rows={3}
-				value={a.draft}
-				onChange={(e) => {
-					const text = e.target.value;
-					const done = TOKEN.exec(text.trimEnd());
-					// A space after the token ends it. Without it the person is still typing.
-					if (done && /\s$/.test(text)) takeRef(text.trimEnd(), done);
-					else a.setDraft(text);
-				}}
-				onKeyDown={(e) => {
-					if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
-					e.preventDefault();
-					const token = TOKEN.exec(a.draft);
-					if (token) takeRef(a.draft, token);
-					else void a.send(a.draft, true);
-				}}
-			/>
+			<div className="relative">
+				{menuOpen ? (
+					<ComposerMenu
+						label={slash !== null ? t.assistant.slash.menu : t.assistant.mention.menu}
+						listId={listId}
+						items={items}
+						active={current}
+					/>
+				) : null}
+				<Textarea
+					ref={inputRef}
+					label={t.assistant.message}
+					rows={3}
+					value={a.draft}
+					aria-controls={menuOpen ? listId : undefined}
+					aria-activedescendant={menuOpen ? `${listId}-${current}` : undefined}
+					onChange={(e) => {
+						const text = e.target.value;
+						setActive(0);
+						const done = TOKEN.exec(text.trimEnd());
+						// A space after the token ends it. Without it the person is still typing.
+						if (done && /\s$/.test(text)) takeRef(text.trimEnd(), done);
+						else a.setDraft(text);
+					}}
+					onKeyDown={(e) => {
+						if (e.nativeEvent.isComposing) return;
+						if (menuOpen) {
+							const move = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+							if (move) {
+								e.preventDefault();
+								setActive((current + move + items.length) % items.length);
+								return;
+							}
+							if (e.key === "Escape") {
+								e.preventDefault();
+								e.stopPropagation();
+								setClosed(a.draft);
+								return;
+							}
+							if ((e.key === "Enter" && !e.shiftKey) || e.key === "Tab") {
+								e.preventDefault();
+								items[current]?.pick();
+								return;
+							}
+						}
+						if (e.key !== "Enter" || e.shiftKey) return;
+						e.preventDefault();
+						const token = TOKEN.exec(a.draft);
+						if (token) takeRef(a.draft, token);
+						else void a.send(a.draft, true);
+					}}
+				/>
+			</div>
 			<div className="flex items-center justify-between gap-2">
 				{a.current ? <GaugeView gauge={a.current.gauge} /> : <span />}
 				<Button

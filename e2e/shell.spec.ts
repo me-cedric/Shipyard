@@ -4,7 +4,7 @@ test("first run shows one primary action and no tour or help text", async ({ pag
 	await page.goto("/");
 	await expect(page.getByRole("button", { name: "Open a local folder" })).toBeVisible();
 	await expect(page.getByRole("navigation", { name: "Sidebar" }).getByRole("link")).toHaveCount(8);
-	await expect(page.getByText(/tour|welcome|tip/i)).toHaveCount(0);
+	await expect(page.getByText(/tour|tip/i)).toHaveCount(0);
 });
 
 test("keyboard path: space shortcut, palette action, inspector and a focus ring", async ({
@@ -56,4 +56,20 @@ test("keeps the view of each project apart and writes it on each move", async ({
 	await expect(switcher).toHaveText(/beta/);
 	await expect(page).not.toHaveURL(/\/specs/);
 	// The mock keeps no state across a reload: the vitest `projects.test.tsx` covers the restart.
+});
+
+test("shows the shortcuts overlay and rebinds an action", async ({ page }) => {
+	await page.goto("/");
+	await page.getByRole("button", { name: "Open a local folder" }).click();
+	await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
+	await page.keyboard.press("ControlOrMeta+Shift+k");
+	const dialog = page.getByRole("dialog", { name: "Keyboard shortcuts" });
+	await expect(dialog).toBeVisible();
+	await dialog.getByRole("button", { name: "Change Toggle inspector" }).click();
+	await page.keyboard.press("ControlOrMeta+Shift+u");
+	await expect(dialog.getByText(/⇧U|Shift\+U/)).toBeVisible();
+	await page.keyboard.press("Escape");
+	const inspector = page.getByLabel("Inspector", { exact: true });
+	await page.keyboard.press("ControlOrMeta+Shift+u");
+	await expect(inspector).toHaveAttribute("data-open", "true");
 });

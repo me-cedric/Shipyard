@@ -15,6 +15,7 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { RUN_STATUS } from "@/ui/molecules/run-card";
+import { StatStrip } from "@/ui/molecules/stat-strip";
 import { TicketRow, type WorkCategory } from "@/ui/molecules/ticket-row";
 
 /** The mirrored items assigned to the person. */
@@ -43,6 +44,29 @@ export function MyWork() {
 				title={t.tabs.home["my-work"]}
 				count={items.length}
 				menu={[{ label: t.home.refresh, icon: <ArrowPathIcon size={12} />, onClick: refresh }]}
+			/>
+			<StatStrip
+				className="px-4"
+				items={[
+					{ label: t.ui.myItems, value: String(items.length), tone: "accent" },
+					{
+						label: t.home.stat.inProgress,
+						value: String(items.filter((i) => i.category === "in-progress").length),
+						tone: "info",
+					},
+					{
+						label: t.home.stat.done,
+						value: String(items.filter((i) => i.category === "done").length),
+						tone: "success",
+					},
+					{
+						label: t.home.stat.live,
+						value: String(
+							runs.filter((r) => r.lane === "working" || r.lane === "needs_you").length,
+						),
+						tone: "warning",
+					},
+				]}
 			/>
 			<PinnedTiles />
 			{items.length === 0 && runs.length === 0 ? (

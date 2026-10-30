@@ -8,6 +8,7 @@ import { ContextBar } from "./context";
 import { SendToFactory } from "./factory-dialog";
 import { useEditorTarget } from "./insert";
 import { Messages } from "./messages";
+import { NoCli, useRunnersMissing } from "./no-cli";
 import { Threads } from "./threads";
 import { type Assistant, MAX_WIDTH, MIN_WIDTH } from "./use-assistant";
 
@@ -77,6 +78,7 @@ export function AssistantPanel({
 	const panel = useRef<HTMLElement>(null);
 	const input = useRef<HTMLTextAreaElement>(null);
 	const editor = useEditorTarget(panel);
+	const missing = useRunnersMissing();
 	// Opening puts the focus in the input (REQ-001).
 	useEffect(() => {
 		if (open) input.current?.focus();
@@ -142,7 +144,7 @@ export function AssistantPanel({
 				</p>
 			) : null}
 			<ContextBar a={a} onOpenRef={onOpenRef} />
-			<Composer a={a} inputRef={input} />
+			{missing.none ? <NoCli runners={missing.runners} /> : <Composer a={a} inputRef={input} />}
 		</aside>
 	);
 }

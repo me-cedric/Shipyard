@@ -216,13 +216,13 @@ describe("assistant panel: modes and failures", () => {
 		expect(await log().findByText(/^Plan:/)).toBeInTheDocument();
 	});
 
-	it("offers two permission levels and no bypass", async () => {
+	it("offers two writing levels, read only and no bypass", async () => {
 		const user = userEvent.setup();
 		await mountAssistant();
 		await pick(user, "Mode", "Agent");
 		await user.click(screen.getByRole("combobox", { name: "Permission" }));
 		const levels = (await screen.findAllByRole("option")).map((o) => o.textContent);
-		expect(levels).toEqual(["Edit with approval", "Auto in worktree"]);
+		expect(levels).toEqual(["Edit with approval", "Auto in worktree", "Read only"]);
 	});
 
 	it("waits for a denied permission, grants it with one action and shows the diff", async () => {

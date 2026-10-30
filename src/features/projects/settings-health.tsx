@@ -14,6 +14,8 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { StatStrip } from "@/ui/molecules/stat-strip";
+import { DoctorLedger } from "./doctor-ledger";
+import { DoctorTools } from "./doctor-tools";
 
 const GROUPS: Group[] = ["compliance", "tools", "refs", "generated"];
 const GHOST_ROWS = [0, 1, 2, 3, 4];
@@ -161,6 +163,8 @@ export function Health() {
 						</Panel>
 					);
 				})}
+				<DoctorTools />
+				<DoctorLedger findings={findings} />
 			</div>
 		</div>
 	);

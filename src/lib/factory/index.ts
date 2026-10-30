@@ -150,3 +150,45 @@ export function useFactoryWrites() {
 		};
 	}, [qc]);
 }
+
+export const machineKeys = {
+	sessions: ["machine", "sessions"] as const,
+	spend: (days: number) => ["machine", "spend", days] as const,
+};
+
+/** Every AI session on this computer, not only the factory runs. It reads again every 5 s. */
+export function useMachineSessions() {
+	return useQuery({
+		queryKey: machineKeys.sessions,
+		queryFn: () => unwrap(commands.machineSessions()),
+		refetchInterval: 5000,
+	});
+}
+
+/** The spend of the last `days` days on this computer, with the monthly budgets. */
+export function useMachineSpend(days: number) {
+	return useQuery({
+		queryKey: machineKeys.spend(days),
+		queryFn: () => unwrap(commands.machineSpend(days)),
+	});
+}
+
+/** A stop and a budget write read the machine again, also when they fail. */
+export function useMachineWrites() {
+	const qc = useQueryClient();
+	return useMemo(() => {
+		const run = async <T>(
+			call: Promise<{ status: "ok"; data: T } | { status: "error"; error: string }>,
+		) => {
+			try {
+				return await unwrap(call);
+			} finally {
+				await qc.invalidateQueries({ queryKey: ["machine"] });
+			}
+		};
+		return {
+			stop: (pid: number) => run(commands.machineSessionStop(pid)),
+			budget: (runner: string, usd: number | null) => run(commands.machineBudgetSet(runner, usd)),
+		};
+	}, [qc]);
+}

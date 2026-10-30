@@ -38,6 +38,7 @@ import { SyncStatus } from "@/ui/molecules/sync-status";
 import { ADD_TYPES, type AddType, ConnectionForm, GROUPS } from "./connection-form";
 import { connectionKeys, message, useMcpServers, useProviders } from "./keys";
 import { McpAddForm, McpGroup } from "./mcp-group";
+import { McpOutsideGroup } from "./mcp-outside-group";
 import { ProviderForm, ProvidersGroup } from "./providers-group";
 import { RunnersGroup } from "./runners-group";
 
@@ -413,6 +414,7 @@ export function Connections() {
 					);
 				})}
 				<McpGroup formOpen={formOpen} onForm={setEditing} />
+				<McpOutsideGroup />
 				<RunnersGroup />
 				<ProvidersGroup formOpen={formOpen} onForm={setEditing} />
 			</div>

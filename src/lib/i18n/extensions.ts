@@ -26,6 +26,15 @@ export const extensionsEn = {
 		loadedBy: "Loaded by {names}",
 		role: "Role",
 		skill: "Skill",
+		importPath: "Rules file path",
+		import: "Import",
+		imported: "Imported {key}",
+		remove: "Remove",
+		removeName: "Remove {name}",
+		policy: "Policy packs",
+		policyApply: "Apply {name}",
+		policyApplied: "Applied",
+		policyWrote: "Written: {files}",
 	},
 	catalog: {
 		groups: {
@@ -36,6 +45,9 @@ export const extensionsEn = {
 		deploy: "Deploy",
 		files: "Files",
 		inspector: "Inspector",
+		undeploy: "Undeploy",
+		removed: "Removed",
+		kept: "Kept (edited)",
 	},
 	plugin: {
 		name: "Plugin",
@@ -47,6 +59,11 @@ export const extensionsEn = {
 		refused: "Refused",
 		mcp: "MCP servers added: {names}",
 		mcpFailed: "MCP servers failed: {names}",
+		installed: "Installed plugins",
+		enable: "Enable {name}",
+		remove: "Remove",
+		removeName: "Remove {name}",
+		removed: "Removed {name}",
 	},
 	children: {
 		name: "Child projects",
@@ -61,6 +78,8 @@ export const extensionsEn = {
 		proposed: "Proposed",
 		branch: "Branch {branch}",
 		commit: "Commit {commit}",
+		remove: "Remove",
+		removeName: "Remove {name}",
 	},
 	report: { written: "Written", kept: "Kept" },
 };
@@ -92,6 +111,15 @@ export const extensionsFr: typeof extensionsEn = {
 		loadedBy: "Chargé par {names}",
 		role: "Rôle",
 		skill: "Compétence",
+		importPath: "Chemin du fichier de règles",
+		import: "Importer",
+		imported: "Importé {key}",
+		remove: "Retirer",
+		removeName: "Retirer {name}",
+		policy: "Packs de politique",
+		policyApply: "Appliquer {name}",
+		policyApplied: "Appliquée",
+		policyWrote: "Écrits : {files}",
 	},
 	catalog: {
 		groups: {
@@ -102,6 +130,9 @@ export const extensionsFr: typeof extensionsEn = {
 		deploy: "Déployer",
 		files: "Fichiers",
 		inspector: "Inspecteur",
+		undeploy: "Retirer le déploiement",
+		removed: "Retirés",
+		kept: "Conservés (modifiés)",
 	},
 	plugin: {
 		name: "Plugin",
@@ -113,6 +144,11 @@ export const extensionsFr: typeof extensionsEn = {
 		refused: "Refusé",
 		mcp: "Serveurs MCP ajoutés : {names}",
 		mcpFailed: "Serveurs MCP en échec : {names}",
+		installed: "Plugins installés",
+		enable: "Activer {name}",
+		remove: "Retirer",
+		removeName: "Retirer {name}",
+		removed: "{name} retiré",
 	},
 	children: {
 		name: "Projets enfants",
@@ -127,6 +163,8 @@ export const extensionsFr: typeof extensionsEn = {
 		proposed: "Proposé",
 		branch: "Branche {branch}",
 		commit: "Commit {commit}",
+		remove: "Retirer",
+		removeName: "Retirer {name}",
 	},
 	report: { written: "Écrit", kept: "Conservé" },
 };

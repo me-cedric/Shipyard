@@ -84,8 +84,24 @@ pub fn layout() -> Vec<(&'static str, &'static str, Vec<Entry>)> {
                 Action("palette", "Command palette"),
                 Action("toggle-sidebar", "Toggle sidebar"),
                 Action("toggle-inspector", "Toggle inspector"),
+                Action("toggle-assistant", "Toggle assistant"),
+                Action("toggle-theme", "Change theme"),
                 Separator,
                 Sys(Native::Fullscreen, "fullscreen", "Full screen"),
+            ],
+        ),
+        (
+            "go",
+            "Go",
+            vec![
+                Action("go-home", "Home"),
+                Action("go-design", "Design"),
+                Action("go-specs", "Specs"),
+                Action("go-work", "Work"),
+                Action("go-factory", "Factory"),
+                Action("go-code", "Code"),
+                Action("go-knowledge", "Knowledge"),
+                Action("go-settings", "Settings"),
             ],
         ),
         (
@@ -99,7 +115,10 @@ pub fn layout() -> Vec<(&'static str, &'static str, Vec<Entry>)> {
         (
             "help",
             "Help",
-            vec![Action("update-check", "Check for updates")],
+            vec![
+                Action("shortcuts-help", "Keyboard shortcuts"),
+                Action("update-check", "Check for updates"),
+            ],
         ),
     ]
 }
@@ -175,6 +194,11 @@ mod tests {
             "commit",
             "palette",
             "toggle-inspector",
+            "toggle-assistant",
+            "toggle-theme",
+            "go-home",
+            "go-settings",
+            "shortcuts-help",
             "update-check",
         ] {
             assert!(ids.contains(&want), "{want}");

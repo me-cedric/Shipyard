@@ -67,6 +67,22 @@ impl Sessions {
         Ok((token, session))
     }
 
+    /// Open a session with a token that the caller keeps between starts (the outside agents).
+    /// A short token is refused: 64 hex characters or more.
+    pub fn open_known(&self, token: &str, binding: Binding) -> Result<Arc<Session>, String> {
+        if token.len() < 64 {
+            return Err("the token is too short".into());
+        }
+        let session = Arc::new(Session {
+            binding,
+            window: Mutex::new((0, 0)),
+        });
+        let mut list = self.list.lock().unwrap_or_else(|e| e.into_inner());
+        list.retain(|(t, _)| t != token);
+        list.push((token.to_string(), session.clone()));
+        Ok(session)
+    }
+
     pub fn resolve(&self, token: &str) -> Option<Arc<Session>> {
         let list = self.list.lock().unwrap_or_else(|e| e.into_inner());
         let mut found = None;

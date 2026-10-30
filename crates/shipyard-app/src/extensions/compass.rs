@@ -29,7 +29,7 @@ fn compass(root: &Path) -> Res<Compass> {
 }
 
 /// One `ac` call on `target` with the tool of the tree in `parent`. Returns the JSON result.
-fn ac(parent: &Path, tree: &str, target: &Path, args: &[&str]) -> Res<Value> {
+pub(super) fn ac(parent: &Path, tree: &str, target: &Path, args: &[&str]) -> Res<Value> {
     let out = Command::new("node")
         .arg(parent.join(tree).join("bin/ac.mjs"))
         .args(args)

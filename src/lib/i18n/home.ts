@@ -28,6 +28,15 @@ export const homeEn = {
 	planReject: "Reject plan",
 	note: "Note",
 	markRead: "Mark read",
+	stat: {
+		inProgress: "In progress",
+		done: "Done",
+		runs: "Runs",
+		live: "Live runs",
+		events: "Events",
+		notices: "Notifications",
+		by: "By {name}",
+	},
 	notice: {
 		question: "{key}: question",
 		approval: "{key}: approval",
@@ -64,6 +73,15 @@ export const homeFr: typeof homeEn = {
 	planReject: "Refuser le plan",
 	note: "Note",
 	markRead: "Marquer lu",
+	stat: {
+		inProgress: "En cours",
+		done: "Terminés",
+		runs: "Runs",
+		live: "Runs actifs",
+		events: "Événements",
+		notices: "Notifications",
+		by: "Par {name}",
+	},
 	notice: {
 		question: "{key} : question",
 		approval: "{key} : approbation",

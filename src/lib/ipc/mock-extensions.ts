@@ -3,16 +3,21 @@
 // a write keeps each file that exists, a plugin writes only the accepted items, and a deploy to a
 // child makes a branch and a commit and never pushes.
 import type {
+	CatalogUndeployed,
 	Child,
 	ChildResult_Serialize,
 	Compass_Serialize,
 	CompassApplied,
 	CompassEntry_Serialize,
+	CompassPolicy,
 	Component,
 	EntryKind,
 	PluginApplied,
+	PluginInstalled,
 	PluginItem,
+	PluginRemoved,
 	PluginReview_Serialize,
+	PolicyPacks_Serialize,
 	RoleSkillRow_Serialize,
 	SyncState,
 	WriteReport,
@@ -36,6 +41,10 @@ export type MockExtensions = {
 	files: string[];
 	/** The version of the applied plugin, or `null`. */
 	plugin: string | null;
+	/** The plugins that the project holds, with their switch. */
+	installed: PluginInstalled[];
+	/** The id of the applied policy pack. */
+	policy: string | null;
 	children: MockChild[];
 };
 
@@ -120,6 +129,8 @@ export function seedExtensions(): MockExtensions {
 		].map((c) => (c.id === "agents/openspec-guidance" ? { ...c, id: GUIDANCE } : c)),
 		files: ["AGENTS.md", "README.md"],
 		plugin: null,
+		installed: [],
+		policy: null,
 		children: [
 			{
 				id: "api-gateway",
@@ -263,11 +274,127 @@ export function pluginApply(m: MockExtensions, path: string, accepted: string[])
 		}
 	}
 	m.plugin = "1.0.0";
+	m.installed = [
+		{
+			name: "team-kit",
+			version: "1.0.0",
+			files: items.filter((i) => i.kind === "file" && accepted.includes(i.id)).map((i) => i.label),
+			settings: accepted.filter((a) => a.startsWith("setting:")).map((a) => a.slice(8)),
+			mcp: accepted.filter((a) => a.startsWith("mcp:")).map((a) => a.slice(4)),
+			enabled: true,
+		},
+	];
 	return {
 		report,
 		mcpAdded: accepted.filter((a) => a.startsWith("mcp:")).map((a) => a.slice(4)),
 		mcpFailed: [],
 	};
+}
+
+// ---------------------------------------------------------------- manage
+
+const click = (ok: boolean) => {
+	if (!ok) throw "this change needs the click of a person";
+};
+
+const PACKS: CompassPolicy[] = [
+	{
+		id: "solo-dev",
+		description: "Personal setup with strong defaults and little ceremony.",
+		gates: ["provider-verify", "recommend", "dashboard"],
+		constraints: [],
+	},
+	{
+		id: "safe-local-work",
+		description: "Local-only work: inspect, edit, validate and report.",
+		gates: ["provider-verify", "quality-gates", "redact"],
+		constraints: ["no commit unless explicitly requested", "no push unless explicitly requested"],
+	},
+	{
+		id: "strict-enterprise",
+		description: "High-control setup for multi-team or regulated repositories.",
+		gates: ["provider-verify --strict", "quality-gates --strict", "agent-conformance --strict"],
+		constraints: [],
+	},
+];
+
+export const compassPolicies = (m: MockExtensions): PolicyPacks_Serialize => ({
+	packs: PACKS,
+	applied: m.policy,
+});
+
+/** A policy replaces the one before it. */
+export function compassPolicyApply(m: MockExtensions, id: string, ok: boolean): string[] {
+	click(ok);
+	if (!PACKS.some((p) => p.id === id)) throw `unknown policy pack: ${id}`;
+	m.policy = id;
+	return [".agents/policy.json", ".agents/policy.md"];
+}
+
+/** A rules file becomes one pattern, once. */
+export function compassImport(m: MockExtensions, path: string, ok: boolean): string {
+	click(ok);
+	const name = path.split("/").pop() ?? "";
+	const dot = name.lastIndexOf(".");
+	if (!["md", "markdown", "txt"].includes(name.slice(dot + 1).toLowerCase()))
+		throw "a rules file is a .md or .txt file";
+	if (!path.startsWith("/mock/")) throw "the rules file is not a file or is too large";
+	const id = name
+		.slice(0, dot)
+		.toLowerCase()
+		.replace(/[^a-z0-9_]/g, "-")
+		.replace(/^-+|-+$/g, "");
+	if (m.entries.some((e) => e.kind === "pattern" && e.id === id)) throw `${id} exists`;
+	m.entries.push(entry("pattern", id, "current", { writes: true }));
+	m.texts[`pattern:${id}`] = `# ${id}\n`;
+	return `pattern:${id}`;
+}
+
+/** A pattern goes. A skill or a pack goes back to absent. A guide and the contract stay. */
+export function compassRemove(m: MockExtensions, kind: EntryKind, id: string, ok: boolean): null {
+	click(ok);
+	const e = m.entries.find((x) => x.kind === kind && x.id === id);
+	if (!e) throw `unknown entry: ${id}`;
+	if (kind === "guide" || kind === "contract") throw "this entry cannot be removed";
+	if (kind === "pattern") m.entries = m.entries.filter((x) => x !== e);
+	else {
+		e.state = "absent";
+		e.pinned = null;
+	}
+	return null;
+}
+
+export function catalogUndeploy(m: MockExtensions, id: string, ok: boolean): CatalogUndeployed {
+	click(ok);
+	const c = m.catalog.find((x) => x.id === id);
+	if (!c || c.state === "absent") throw `${id} is not deployed`;
+	const removed = c.files.filter((f) => m.files.includes(f));
+	m.files = m.files.filter((f) => !removed.includes(f));
+	c.state = "absent";
+	return { removed, kept: [] };
+}
+
+export const pluginList = (m: MockExtensions) => m.installed;
+
+const plugin = (m: MockExtensions, name: string) => {
+	const p = m.installed.find((x) => x.name === name);
+	if (!p) throw `unknown plugin: ${name}`;
+	return p;
+};
+
+export function pluginSetEnabled(m: MockExtensions, name: string, on: boolean, ok: boolean): null {
+	click(ok);
+	plugin(m, name).enabled = on;
+	return null;
+}
+
+export function pluginRemove(m: MockExtensions, name: string, ok: boolean): PluginRemoved {
+	click(ok);
+	const p = plugin(m, name);
+	m.files = m.files.filter((f) => !p.files.includes(f));
+	m.installed = m.installed.filter((x) => x !== p);
+	m.plugin = null;
+	return { removed: p.files, kept: [], mcp: p.mcp };
 }
 
 // ---------------------------------------------------------------- child projects

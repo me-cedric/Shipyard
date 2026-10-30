@@ -60,10 +60,19 @@ fn ask_and_plan_get_read_tools_only_and_agent_gets_them_by_level() {
 }
 
 #[test]
-fn only_two_levels_exist() {
+fn only_two_writing_levels_and_read_only_exist() {
     let read = |s: &str| serde_json::from_str::<Permission>(&format!("\"{s}\""));
     assert_eq!(read("approve").unwrap(), Permission::Approve);
     assert_eq!(read("auto").unwrap(), Permission::Auto);
+    assert_eq!(read("read_only").unwrap(), Permission::ReadOnly);
+    // Read only stops the writes of an agent thread: no worktree, no edit tool.
+    let mut s = ThreadSettings::new("claude");
+    s.mode = AssistantMode::Agent;
+    s.permission = Permission::Auto;
+    assert!(s.writes());
+    s.permission = Permission::ReadOnly;
+    assert!(!s.writes());
+    assert_eq!(s.mode.tools(s.permission), ["Read", "Grep", "Glob"]);
     for gone in ["full", "bypass"] {
         assert!(read(gone).is_err(), "{gone}");
     }

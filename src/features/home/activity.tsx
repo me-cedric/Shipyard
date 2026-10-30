@@ -2,10 +2,12 @@ import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { PinnedTiles } from "@/features/knowledge";
 import { NoProject } from "@/features/work/no-project";
 import { useRuns } from "@/lib/factory";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useNotifications } from "@/lib/notifications";
 import { useActiveProject } from "@/lib/projects";
+import { useWorkItems } from "@/lib/sync";
+import { memberName, useTeam } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowPathIcon, ClockIcon } from "@/ui/icons";
@@ -13,6 +15,7 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { SHAPE } from "@/ui/molecules/notification-row";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
+import { StatStrip } from "@/ui/molecules/stat-strip";
 import { Timeline, TimelineItem } from "@/ui/molecules/timeline";
 
 const SHOWN = 20;
@@ -26,6 +29,8 @@ export function Activity() {
 	const active = useActiveProject().data;
 	const runs = useRuns().data ?? [];
 	const { items: notices } = useNotifications();
+	const members = useTeam().data?.team.members ?? [];
+	const mirrored = useWorkItems({}).data ?? [];
 	const logs = useQueries({
 		queries: runs.map((r) => ({
 			queryKey: ["home", "activity", r.id] as const,
@@ -33,7 +38,9 @@ export function Activity() {
 		})),
 	});
 	const events = runs
-		.flatMap((r, n) => (logs[n]?.data?.events ?? []).map((e) => ({ ...e, run: r.id, key: r.key })))
+		.flatMap((r, n) =>
+			(logs[n]?.data?.events ?? []).map((e) => ({ ...e, run: r.id, key: r.key, title: r.title })),
+		)
 		.sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0))
 		.slice(0, SHOWN);
 	if (active === undefined) return null;
@@ -48,6 +55,21 @@ export function Activity() {
 				count={events.length + notices.length}
 				menu={[{ label: t.home.refresh, icon: <ArrowPathIcon size={12} />, onClick: refresh }]}
 			/>
+			<StatStrip
+				className="px-4"
+				items={[
+					{ label: t.home.stat.events, value: String(events.length), tone: "accent" },
+					{ label: t.home.stat.notices, value: String(notices.length), tone: "info" },
+					{ label: t.home.stat.runs, value: String(runs.length), tone: "success" },
+					{
+						label: t.home.stat.live,
+						value: String(
+							runs.filter((r) => r.lane === "working" || r.lane === "needs_you").length,
+						),
+						tone: "warning",
+					},
+				]}
+			/>
 			<PinnedTiles />
 			{events.length === 0 && notices.length === 0 ? (
 				<EmptyState
@@ -57,15 +79,24 @@ export function Activity() {
 				<div className="grid items-start gap-4 px-4 xl:grid-cols-2">
 					<Panel title={t.factory.log} count={events.length} flush>
 						<Timeline>
-							{events.map((e) => (
-								<TimelineItem
-									key={`${e.run}:${e.id}`}
-									// The step is the agent at work: its avatar leads the event.
-									lead={<Avatar name={e.step ?? e.key} className="size-6" />}
-									title={`${e.key} ${e.step ? `${e.step} ` : ""}${e.kind}`}
-									time={e.ts === null ? "" : time.format(e.ts)}
-								/>
-							))}
+							{events.map((e) => {
+								// The actor is the step at work, or the system when no step acts. The body names the
+								// item and the person it belongs to.
+								const actor = e.step ?? t.ui.activity.system;
+								const owner = mirrored.find((i) => i.key === e.key)?.member;
+								const by = owner
+									? ` · ${format(t.home.stat.by, { name: memberName(members, owner) })}`
+									: "";
+								return (
+									<TimelineItem
+										key={`${e.run}:${e.id}`}
+										lead={<Avatar name={actor} className="size-6" />}
+										title={`${actor}: ${e.kind}`}
+										body={`${e.key} ${e.title}${by}`}
+										time={e.ts === null ? "" : time.format(e.ts)}
+									/>
+								);
+							})}
 						</Timeline>
 					</Panel>
 					<Panel title={t.notifications.title} count={notices.length} flush>

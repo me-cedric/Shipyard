@@ -4,6 +4,7 @@ import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
 import {
 	type CatalogGroup,
+	type CatalogUndeployed,
 	commands,
 	type PluginApplied,
 	type PluginChange,
@@ -19,12 +20,20 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
-import { ArrowDownTrayIcon, ArrowUpTrayIcon, PlusIcon, PuzzlePieceIcon } from "@/ui/icons";
+import { Switch } from "@/ui/atoms/switch";
+import {
+	ArrowDownTrayIcon,
+	ArrowUpTrayIcon,
+	PlusIcon,
+	PuzzlePieceIcon,
+	TrashIcon,
+} from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { EntryRow } from "@/ui/molecules/entry-row";
 import { GroupSection } from "@/ui/molecules/group-section";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
+import { SettingsRow } from "@/ui/molecules/settings-row";
 import { WriteReportView } from "@/ui/molecules/write-report";
 
 const GROUPS: CatalogGroup[] = ["devcontainers", "agents", "devops-security"];
@@ -53,6 +62,11 @@ function ComponentDetail({ id }: { id: string }) {
 		queryFn: () => unwrap(commands.catalogPreview(id)),
 	});
 	const [done, setDone] = useState<WriteReport | null>(null);
+	const [gone, setGone] = useState<CatalogUndeployed | null>(null);
+	const state = useQuery({
+		queryKey: ["catalog"],
+		queryFn: () => unwrap(commands.catalogGet()),
+	}).data?.find((c) => c.id === id)?.state;
 	return (
 		<>
 			{error ? (
@@ -72,6 +86,41 @@ function ComponentDetail({ id }: { id: string }) {
 				{t.extensions.catalog.deploy}
 			</Button>
 			{done ? <WriteReportView report={done} /> : null}
+			{state && state !== "absent" ? (
+				<Button
+					variant="ghost"
+					onClick={() =>
+						void run(async () => {
+							setGone(await unwrap(commands.catalogUndeploy(id, true)));
+							setDone(null);
+							await qc.invalidateQueries({ queryKey: ["catalog"] });
+						})
+					}
+				>
+					<TrashIcon size={14} />
+					{t.extensions.catalog.undeploy}
+				</Button>
+			) : null}
+			{gone ? (
+				<>
+					<GroupSection name={t.extensions.catalog.removed} count={gone.removed.length}>
+						<ul className="font-mono text-12">
+							{gone.removed.map((f) => (
+								<li key={f}>{f}</li>
+							))}
+						</ul>
+					</GroupSection>
+					{gone.kept.length ? (
+						<GroupSection name={t.extensions.catalog.kept} count={gone.kept.length}>
+							<ul className="font-mono text-12">
+								{gone.kept.map((f) => (
+									<li key={f}>{f}</li>
+								))}
+							</ul>
+						</GroupSection>
+					) : null}
+				</>
+			) : null}
 		</>
 	);
 }
@@ -105,6 +154,10 @@ export function Extensions() {
 	const children = useQuery({
 		queryKey: ["children"],
 		queryFn: () => unwrap(commands.childList()),
+	});
+	const plugins = useQuery({
+		queryKey: ["plugins"],
+		queryFn: () => unwrap(commands.pluginList()),
 	});
 	const { openDetail } = useShell();
 
@@ -265,6 +318,7 @@ export function Extensions() {
 										setApplied(await unwrap(commands.pluginApply(path.trim(), [...accepted])));
 										setReview(null);
 										await qc.invalidateQueries({ queryKey: ["catalog"] });
+										await qc.invalidateQueries({ queryKey: ["plugins"] });
 									})
 								}
 							>
@@ -287,6 +341,38 @@ export function Extensions() {
 							) : null}
 						</>
 					) : null}
+				</Panel>
+
+				<Panel title={x.plugin.installed} count={plugins.data?.length ?? 0} flush>
+					{(plugins.data ?? []).map((p) => (
+						<SettingsRow key={p.name} label={`${p.name} ${p.version}`}>
+							<Switch
+								label={format(x.plugin.enable, { name: p.name })}
+								iconOnly
+								checked={p.enabled}
+								onCheckedChange={(on) =>
+									void run(async () => {
+										await unwrap(commands.pluginSetEnabled(p.name, on, true));
+										await qc.invalidateQueries({ queryKey: ["plugins"] });
+									})
+								}
+							/>
+							<Button
+								variant="ghost"
+								aria-label={format(x.plugin.removeName, { name: p.name })}
+								onClick={() =>
+									void run(async () => {
+										await unwrap(commands.pluginRemove(p.name, true));
+										await qc.invalidateQueries({ queryKey: ["plugins"] });
+										await qc.invalidateQueries({ queryKey: ["catalog"] });
+									})
+								}
+							>
+								<TrashIcon size={14} />
+								{x.plugin.remove}
+							</Button>
+						</SettingsRow>
+					))}
 				</Panel>
 
 				<Panel
@@ -335,6 +421,20 @@ export function Extensions() {
 										: undefined
 								}
 							>
+								<Button
+									variant="ghost"
+									aria-label={format(x.children.removeName, { name: c.name })}
+									onClick={() =>
+										void run(async () => {
+											await unwrap(commands.childRemove(c.id));
+											setChosen(flip(chosen, c.id, false));
+											await refresh();
+										})
+									}
+								>
+									<TrashIcon size={14} />
+									{x.children.remove}
+								</Button>
 								{c.cloned ? null : (
 									<Button
 										aria-label={format(x.children.cloneName, { name: c.name })}

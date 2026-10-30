@@ -5,6 +5,7 @@
 //! `application/mcp/rpc.rs` (`rpc_response`, `PROTOCOL_VERSIONS`, `tool_result`). Legacy gates by
 //! global switches. Here each call is bound to a run and a step through its token.
 
+use crate::outside::{self, Outside};
 use crate::proxy::{self, Proxy};
 use crate::session::{Session, Sessions};
 use crate::tools::agent::{self, AgentEvents};
@@ -44,6 +45,8 @@ pub struct Server {
     events: Arc<dyn AgentEvents>,
     sessions: Arc<Sessions>,
     proxy: Option<Arc<Proxy>>,
+    /// The open project and the switches of the outside agents, read at each call.
+    outside: Option<Arc<dyn Fn() -> Option<Outside> + Send + Sync>>,
     limits: Limits,
     /// Milliseconds. A test replaces it.
     clock: Box<dyn Fn() -> u64 + Send + Sync>,
@@ -82,6 +85,7 @@ impl Server {
             events,
             sessions: Arc::default(),
             proxy: None,
+            outside: None,
             limits: Limits::default(),
             clock: Box::new(move || start.elapsed().as_millis() as u64),
         }
@@ -90,6 +94,15 @@ impl Server {
     /// Merge the tools of the connected MCP servers into `tools/list` (REQ-017 of connections).
     pub fn with_proxy(mut self, proxy: Arc<Proxy>) -> Self {
         self.proxy = Some(proxy);
+        self
+    }
+
+    /// Serve the tools of [`outside`] to the sessions that may call them.
+    pub fn with_outside(
+        mut self,
+        source: impl Fn() -> Option<Outside> + Send + Sync + 'static,
+    ) -> Self {
+        self.outside = Some(Arc::new(source));
         self
     }
 
@@ -135,6 +148,13 @@ impl Server {
                             .and_then(Value::as_str)
                             .is_some_and(|n| session.allows(n))
                     }));
+                }
+                if let Some(o) = self.outside.as_ref().and_then(|f| f()) {
+                    tools.extend(
+                        outside::definitions(&o)
+                            .into_iter()
+                            .filter(|t| t["name"].as_str().is_some_and(|n| session.allows(n))),
+                    );
                 }
                 json!({ "tools": tools })
             }
@@ -197,6 +217,21 @@ impl Server {
             return proxy
                 .call(name, &args)
                 .unwrap_or_else(|e| tool_error(e.to_string()));
+        }
+        if outside::NAMES.contains(&name) {
+            if !session.allows(name) {
+                return tool_error(format!(
+                    "the step {} may not call {name}",
+                    session.binding.step
+                ));
+            }
+            if let Err(why) = self.admit(session, size) {
+                return tool_error(why);
+            }
+            let Some(o) = self.outside.as_ref().and_then(|f| f()) else {
+                return tool_error("no project is open in Shipyard");
+            };
+            return outside::call(&o, name, &args).unwrap_or_else(tool_error);
         }
         if !agent::NAMES.contains(&name) {
             return tool_error(format!("unknown tool: {name}"));

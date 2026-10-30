@@ -20,6 +20,17 @@ export const MENU_ACTIONS = [
 	"palette",
 	"toggle-sidebar",
 	"toggle-inspector",
+	"toggle-assistant",
+	"toggle-theme",
+	"go-home",
+	"go-design",
+	"go-specs",
+	"go-work",
+	"go-factory",
+	"go-code",
+	"go-knowledge",
+	"go-settings",
+	"shortcuts-help",
 	"update-check",
 ] as const;
 
@@ -31,6 +42,7 @@ export const menuLabels = (t: Messages): Record<string, string> => ({
 	view: t.menu.view,
 	window: t.menu.window,
 	help: t.menu.help,
+	go: t.ui.menu.go,
 	about: t.menu.about,
 	quit: t.menu.quit,
 	undo: t.menu.undo,
@@ -51,6 +63,17 @@ export const menuLabels = (t: Messages): Record<string, string> => ({
 	palette: t.palette.title,
 	"toggle-sidebar": t.shell.toggleSidebar,
 	"toggle-inspector": t.shell.toggleInspector,
+	"toggle-assistant": t.ui.menu.toggleAssistant,
+	"toggle-theme": t.ui.menu.toggleTheme,
+	"go-home": t.space.home,
+	"go-design": t.space.design,
+	"go-specs": t.space.specs,
+	"go-work": t.space.work,
+	"go-factory": t.space.factory,
+	"go-code": t.space.code,
+	"go-knowledge": t.space.knowledge,
+	"go-settings": t.space.settings,
+	"shortcuts-help": t.ui.menu.shortcuts,
 	"update-check": t.menu.updateCheck,
 });
 
@@ -72,6 +95,16 @@ export function useNativeMenu(list: Action[]) {
 		});
 		return () => void off.then((f) => f());
 	}, []);
+}
+
+/** The window asks to close while a run or an assistant turn works: the shell shows the guard. */
+export function useCloseGuardEvent() {
+	const { setCloseGuardOpen } = useShell();
+	useEffect(() => {
+		if (!isTauri()) return;
+		const off = listen("close-guard", () => setCloseGuardOpen(true));
+		return () => void off.then((f) => f());
+	}, [setCloseGuardOpen]);
 }
 
 /** The sources of the notification centre: the update check, a failed sync, a moved remote head

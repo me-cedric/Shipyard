@@ -17,6 +17,7 @@ import { STEP_STATUS } from "@/ui/molecules/run-step";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
+import { MachineSessions } from "./machine-sessions";
 
 const STATE_BADGE = {
 	pending: "neutral",
@@ -120,16 +121,17 @@ export function Sessions() {
 			}
 		>
 			{rows.length === 0 && !sessions.isPending ? (
-				<div className="p-4">
+				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
 					<EmptyState
 						action={{
 							label: kill ? f.killRelease : f.killAll,
 							onClick: () => void run(() => writes.killSwitch(!kill)),
 						}}
 					/>
+					<MachineSessions />
 				</div>
 			) : (
-				<div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4">
+				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
 					<StatStrip
 						items={[
 							{ label: f.step.running, value: String(running), icon: <LiveDot />, tone: "accent" },
@@ -151,7 +153,7 @@ export function Sessions() {
 						title={f.sessions}
 						count={rows.length}
 						flush
-						className="min-h-0 flex-1"
+						className="min-h-64 flex-1"
 						bodyClassName="min-h-0 flex-1"
 					>
 						<DataTable
@@ -161,6 +163,7 @@ export function Sessions() {
 							rowId={(r) => `${r.run}/${r.step}`}
 						/>
 					</Panel>
+					<MachineSessions />
 				</div>
 			)}
 		</ListDetail>

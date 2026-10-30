@@ -32,13 +32,13 @@ pub fn run_spec(
     spec.model = settings.model.clone();
     spec.effort = settings.effort.clone();
     spec.resume = session.map(String::from);
-    spec.mode = if settings.mode.writes() {
+    spec.mode = if settings.writes() {
         Mode::Auto
     } else {
         Mode::Plan
     };
     spec.allowed_tools = settings.mode.tools(settings.permission);
-    if settings.mode.writes() {
+    if settings.writes() {
         for g in granted {
             if !spec.allowed_tools.contains(g) {
                 spec.allowed_tools.push(g.clone());
@@ -51,7 +51,7 @@ pub fn run_spec(
 /// The folder that the runner works in. Ask and plan: the project folder. Agent: the worktree of
 /// the thread, made once on the first agent turn and found again after (`thread.worktree`).
 pub fn workdir(data: &Path, root: &Path, thread: &mut Thread) -> Result<PathBuf, AgentError> {
-    if !thread.settings.mode.writes() {
+    if !thread.settings.writes() {
         return Ok(root.to_path_buf());
     }
     if let Some(w) = &thread.worktree

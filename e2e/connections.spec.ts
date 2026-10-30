@@ -103,3 +103,16 @@ test("adds an MCP server with a secret, starts it and stops it", async ({ page }
 		page.getByRole("group", { name: "Claude Code" }).getByRole("img", { name: "Detected" }),
 	).toBeVisible();
 });
+
+test("turns on the server for outside agents and imports a server of another tool", async ({
+	page,
+}) => {
+	await page.goto("/settings/connections");
+	const box = page.getByRole("heading", { name: "Outside agents" }).locator("..");
+	await box.getByRole("switch", { name: "Server on" }).click();
+	await box.getByRole("switch", { name: "Read files" }).click();
+	await box.getByRole("button", { name: "Apply" }).click();
+	await expect(box.getByRole("img", { name: "Running" })).toBeVisible();
+	await box.getByRole("button", { name: "Import git" }).click();
+	await expect(box.getByRole("status")).toHaveText("Imported git");
+});

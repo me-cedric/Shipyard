@@ -31,6 +31,9 @@ pub enum Permission {
     Approve,
     /// Auto inside the worktree: the edit tools are pre-approved. Never `Bash`.
     Auto,
+    /// Read only, whatever the mode: the thread makes no worktree and no write. A project with a
+    /// read only profile uses it.
+    ReadOnly,
 }
 
 /// The tools that every mode may use.
@@ -66,6 +69,11 @@ pub struct ThreadSettings {
 }
 
 impl ThreadSettings {
+    /// Agent mode with a level above read only: the turn works in a worktree and may write.
+    pub fn writes(&self) -> bool {
+        self.mode.writes() && self.permission != Permission::ReadOnly
+    }
+
     pub fn new(runner: &str) -> Self {
         Self {
             runner: runner.into(),

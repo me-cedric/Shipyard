@@ -15,6 +15,7 @@ import { SpendMeter, spendStatus } from "@/ui/molecules/spend-meter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
+import { MachineUsage } from "./machine-usage";
 
 type Kind = "run" | "day" | "member";
 type Row = {
@@ -170,11 +171,12 @@ export function Usage() {
 			}
 		>
 			{rows.length === 0 && !usage.isPending ? (
-				<div className="p-4">
+				<div className="flex flex-col gap-3 overflow-y-auto p-4">
 					<EmptyState action={{ label: f.setBudget, onClick: () => field.current?.focus() }} />
+					<MachineUsage />
 				</div>
 			) : (
-				<div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4">
+				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
 					<StatStrip
 						items={[
 							{
@@ -209,7 +211,7 @@ export function Usage() {
 						title={f.usage}
 						count={rows.length}
 						flush
-						className="min-h-0 flex-1"
+						className="min-h-64 flex-1"
 						bodyClassName="min-h-0 flex-1"
 					>
 						<DataTable
@@ -226,6 +228,7 @@ export function Usage() {
 							}}
 						/>
 					</Panel>
+					<MachineUsage />
 				</div>
 			)}
 		</ListDetail>

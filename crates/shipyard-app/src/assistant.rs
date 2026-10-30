@@ -45,6 +45,11 @@ fn secrets(s: &AppState) -> Vec<String> {
     all
 }
 
+/// The number of threads with a turn in progress. The close guard reads it.
+pub fn busy_turns() -> usize {
+    BUSY.lock().unwrap_or_else(|e| e.into_inner()).len()
+}
+
 struct Busy(String);
 
 impl Busy {
@@ -383,7 +388,7 @@ pub fn settings_set(s: &AppState, thread: &str, mut new: ThreadSettings) -> Res<
         t.session = None;
     }
     // A session belongs to a folder: the project root, or the worktree of an agent thread.
-    if new.mode.writes() != t.settings.mode.writes() {
+    if new.writes() != t.settings.writes() {
         t.session = None;
     }
     t.settings = new;
@@ -524,7 +529,7 @@ pub fn turn(s: &AppState, thread: &str, start: Start, program: Option<PathBuf>) 
             else {
                 return Err("the thread waits for no permission".into());
             };
-            if !t.settings.mode.writes() {
+            if !t.settings.writes() {
                 return Err("switch the thread to agent mode to grant a tool".into());
             }
             let (text, quotes) = last_request(&t);

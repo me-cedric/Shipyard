@@ -15,7 +15,13 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import type { Status } from "@/ui/atoms/status-dot";
-import { ArrowPathIcon, CpuChipIcon, MagnifyingGlassIcon } from "@/ui/icons";
+import {
+	ArrowPathIcon,
+	ArrowUpTrayIcon,
+	CpuChipIcon,
+	MagnifyingGlassIcon,
+	TrashIcon,
+} from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { EntryRow } from "@/ui/molecules/entry-row";
 import { PageHeader } from "@/ui/molecules/page-header";
@@ -48,6 +54,12 @@ export function Compass({ children }: { children: ReactNode }) {
 		queryKey: ["roles-skills"],
 		queryFn: () => unwrap(commands.rolesSkillsGet()),
 	});
+	const policies = useQuery({
+		queryKey: ["compass-policies"],
+		queryFn: () => unwrap(commands.compassPolicies()),
+	});
+	const [rules, setRules] = useState("");
+	const [imported, setImported] = useState<string | null>(null);
 	const [picked, setPicked] = useState<Set<string>>(new Set());
 	const { openDetail } = useShell();
 	const [query, setQuery] = useState("");
@@ -58,6 +70,13 @@ export function Compass({ children }: { children: ReactNode }) {
 			setReport((await job()).report);
 			setPicked(new Set());
 			await qc.invalidateQueries({ queryKey: compassKey });
+		});
+	/** A change of the project that returns no report: the lists read again. */
+	const change = (job: () => Promise<unknown>) =>
+		run(async () => {
+			await job();
+			await qc.invalidateQueries({ queryKey: compassKey });
+			await qc.invalidateQueries({ queryKey: ["compass-policies"] });
 		});
 	const data = compass.data;
 	const stale = (data?.entries ?? []).filter((e) => e.state === "stale").length;
@@ -123,6 +142,33 @@ export function Compass({ children }: { children: ReactNode }) {
 				) : (
 					<>
 						{report ? <WriteReportView report={report} /> : null}
+						<div className="flex items-end gap-2">
+							<Input
+								label={x.compass.importPath}
+								value={rules}
+								onChange={(e) => setRules(e.target.value)}
+								className="w-72"
+							/>
+							<Button
+								disabled={!rules.trim()}
+								onClick={() =>
+									void change(async () => {
+										const key = await unwrap(commands.compassImport(rules.trim(), true));
+										setReport(null);
+										setRules("");
+										setImported(key);
+									})
+								}
+							>
+								<ArrowUpTrayIcon size={14} />
+								{x.compass.import}
+							</Button>
+						</div>
+						{imported ? (
+							<p role="status" className="text-12 text-n-11">
+								{format(x.compass.imported, { key: imported })}
+							</p>
+						) : null}
 						<div className="relative w-72">
 							<span
 								aria-hidden="true"
@@ -166,6 +212,22 @@ export function Compass({ children }: { children: ReactNode }) {
 												) : null}
 												{e.writes ? <Badge>{x.compass.writes}</Badge> : null}
 												{e.suits ? <Badge variant="success">{x.compass.suits}</Badge> : null}
+												{e.kind === "pattern" || e.kind === "skill" || e.kind === "pack" ? (
+													e.state === "absent" ? null : (
+														<Button
+															variant="ghost"
+															aria-label={format(x.compass.removeName, { name: e.title })}
+															onClick={() =>
+																void change(() =>
+																	unwrap(commands.compassRemove(e.kind, e.id, true)),
+																)
+															}
+														>
+															<TrashIcon size={14} />
+															{x.compass.remove}
+														</Button>
+													)
+												) : null}
 												{e.state === "current" ? null : (
 													<Button
 														aria-label={format(x.compass.applyName, { name: e.title })}
@@ -184,6 +246,29 @@ export function Compass({ children }: { children: ReactNode }) {
 						})}
 					</>
 				)}
+				<Panel title={x.compass.policy} count={policies.data?.packs.length ?? 0} flush>
+					{(policies.data?.packs ?? []).map((p) => (
+						<SettingsRow key={p.id} label={p.id}>
+							{policies.data?.applied === p.id ? (
+								<Badge variant="success">{x.compass.policyApplied}</Badge>
+							) : (
+								<Button
+									aria-label={format(x.compass.policyApply, { name: p.id })}
+									onClick={() =>
+										void change(async () =>
+											setReport({
+												written: await unwrap(commands.compassPolicyApply(p.id, true)),
+												kept: [],
+											}),
+										)
+									}
+								>
+									{x.compass.apply}
+								</Button>
+							)}
+						</SettingsRow>
+					))}
+				</Panel>
 				<Panel title={x.compass.roles} count={roles.data?.length ?? 0} flush>
 					{(roles.data ?? []).map((r) => (
 						<SettingsRow key={`${r.kind}:${r.name}`} label={r.name}>

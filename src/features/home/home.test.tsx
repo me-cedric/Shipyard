@@ -149,6 +149,9 @@ describe("Home / My work", () => {
 		).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: `Runs (${runs.length})` })).toBeInTheDocument();
 		for (const i of mine) expect(screen.getByRole("group", { name: i.key })).toBeInTheDocument();
+		// The four figures sit above the panels.
+		for (const label of ["My items", "In progress", "Done", "Live runs"])
+			expect(screen.getByText(label)).toBeInTheDocument();
 		expect(screen.queryByText("Bump dependencies")).toBeNull();
 	});
 
@@ -166,6 +169,11 @@ describe("Home / Activity", () => {
 		mountApp("/home/activity");
 		expect(await screen.findByRole("heading", { name: /^Events \([1-9]/ })).toBeInTheDocument();
 		expect(await screen.findByRole("heading", { name: "Notifications (2)" })).toBeInTheDocument();
+		for (const label of ["Events", "Notifications", "Runs", "Live runs"])
+			expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+		// An event names the actor that did it: a step, or the system.
+		const log = within(screen.getByRole("region", { name: "Events" }));
+		expect(log.getAllByText(/^[\w-]+: [\w.:-]+$/).length).toBeGreaterThan(0);
 		const region = within(screen.getByRole("region", { name: "Notifications" }));
 		expect(region.getByText("Update available: 0.2.0")).toBeInTheDocument();
 		expect(region.getByText("What changed in 0.1.0")).toBeInTheDocument();

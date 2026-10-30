@@ -3,6 +3,7 @@
 //! runs only from its own command, which the view calls after a click. Nothing pushes (Q-051).
 
 pub mod compass;
+pub mod manage;
 
 use std::path::{Path, PathBuf};
 
@@ -21,7 +22,7 @@ use crate::agents::McpCustom;
 use crate::commands::{AppState, Res, blocking, err};
 use compass::Applied;
 
-fn root(s: &AppState) -> Res<PathBuf> {
+pub(crate) fn root(s: &AppState) -> Res<PathBuf> {
     Ok(crate::design::project(s)?.root)
 }
 

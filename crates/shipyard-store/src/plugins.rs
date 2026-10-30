@@ -124,7 +124,7 @@ pub struct Applied {
     pub mcp: Vec<String>,
 }
 
-fn sha(b: &[u8]) -> String {
+pub(crate) fn sha(b: &[u8]) -> String {
     digest(&SHA256, b)
         .as_ref()
         .iter()

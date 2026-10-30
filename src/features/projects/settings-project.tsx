@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { AutoCommit } from "@/features/settings/project/auto-commit";
 import { useI18n } from "@/lib/i18n";
 import {
 	type Accent,
@@ -269,6 +270,7 @@ function Form({
 				</>
 			) : null}
 			<ProjectOverrides />
+			<AutoCommit />
 			<ProjectImport />
 			{error ? (
 				<p role="alert" className="text-ui text-danger-text">

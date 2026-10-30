@@ -1,5 +1,6 @@
 //! Personal preferences in the app data folder (spec `shell` REQ-015: not in the browser storage).
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
@@ -108,6 +109,10 @@ pub struct Prefs {
     /// The version whose changelog the person has seen. `None` until the first check records it.
     #[serde(default)]
     pub seen_version: Option<String>,
+    /// The chords that the person set, by action id (`mod+shift+s`). An action with no entry
+    /// keeps its default chord.
+    #[serde(default)]
+    pub shortcuts: BTreeMap<String, String>,
 }
 
 /// The latest release of the Shipyard repository, in the GitHub API form.
@@ -132,6 +137,7 @@ impl Default for Prefs {
             assistant_side: default_panel_side(),
             notify_off: Vec::new(),
             seen_version: None,
+            shortcuts: BTreeMap::new(),
         }
     }
 }
@@ -150,6 +156,7 @@ pub struct PrefsPatch {
     pub assistant_side: Option<PanelSide>,
     pub notify_off: Option<Vec<EventSource>>,
     pub seen_version: Option<String>,
+    pub shortcuts: Option<BTreeMap<String, String>>,
 }
 
 const FILE: &str = "prefs.json";
@@ -187,6 +194,13 @@ impl Prefs {
             }
         }
         self.seen_version = p.seen_version.or(self.seen_version.take());
+        if let Some(map) = p.shortcuts {
+            // An empty chord resets the action. A chord has at most 40 characters.
+            self.shortcuts = map
+                .into_iter()
+                .filter(|(k, v)| !v.trim().is_empty() && v.len() <= 40 && k.len() <= 60)
+                .collect();
+        }
         if let Some(url) = p.release_url {
             // An empty value goes back to the default.
             self.release_url = if url.trim().is_empty() {
@@ -235,6 +249,25 @@ mod tests {
             (q.assistant_width, q.assistant_side),
             (900, PanelSide::Left)
         );
+    }
+
+    #[test]
+    fn the_shortcuts_persist_and_an_empty_chord_resets_the_action() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut p = Prefs::default();
+        let map = |a: &str, b: &str| {
+            BTreeMap::from([
+                ("sync".to_string(), a.to_string()),
+                ("commit".to_string(), b.to_string()),
+            ])
+        };
+        p.apply(PrefsPatch {
+            shortcuts: Some(map("mod+shift+s", "")),
+            ..Default::default()
+        });
+        assert_eq!(p.shortcuts.len(), 1);
+        p.save(dir.path()).unwrap();
+        assert_eq!(Prefs::load(dir.path()).shortcuts["sync"], "mod+shift+s");
     }
 
     #[test]

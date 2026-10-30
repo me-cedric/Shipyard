@@ -50,12 +50,13 @@ describe("Settings / Connections", () => {
 		const add = await within(main).findByRole("button", { name: "Connection" });
 		expect(add.className).toContain("bg-accent");
 		expect(main.querySelectorAll("[aria-hidden] > *").length).toBeGreaterThanOrEqual(5);
-		// The runners are detected, not added: they are the only group of an empty list.
+		// The runners are detected, not added, and the outside agents server has switches: they are
+		// the only groups of an empty list.
 		expect(
 			within(main)
 				.getAllByRole("heading", { level: 2 })
 				.map((h) => h.textContent),
-		).toEqual(["Runners (5)"]);
+		).toEqual(["Outside agents", "Runners (5)"]);
 	});
 
 	it("groups the connections by kind with a count and one primary action", async () => {

@@ -137,6 +137,20 @@ export const commands = {
 	mcpStop: (id: string) => typedError<null, string>(__TAURI_INVOKE("mcp_stop", { id })),
 	mcpState: (id: string) => typedError<McpState, string>(__TAURI_INVOKE("mcp_state", { id })),
 	mcpInstall: (command: string) => typedError<string, string>(__TAURI_INVOKE("mcp_install", { command })),
+	machineSessions: () => typedError<MachineSession_Serialize[], string>(__TAURI_INVOKE("machine_sessions")),
+	machineSessionStop: (pid: number) => typedError<null, string>(__TAURI_INVOKE("machine_session_stop", { pid })),
+	machineSpend: (days: number) => typedError<Spend, string>(__TAURI_INVOKE("machine_spend", { days })),
+	machineBudgetSet: (runner: string, usd: number | null) => typedError<Budget[], string>(__TAURI_INVOKE("machine_budget_set", { runner, usd })),
+	mcpOutsideGet: () => typedError<McpOutside_Serialize, string>(__TAURI_INVOKE("mcp_outside_get")),
+	mcpOutsideSet: (gates: McpGates_Deserialize) => typedError<McpOutside_Serialize, string>(__TAURI_INVOKE("mcp_outside_set", { gates })),
+	mcpOutsideWire: () => typedError<string, string>(__TAURI_INVOKE("mcp_outside_wire")),
+	/**  The token that an agent sends. It is the person's own secret, shown only to copy. */
+	mcpOutsideToken: () => typedError<string, string>(__TAURI_INVOKE("mcp_outside_token")),
+	mcpElsewhereList: () => typedError<Elsewhere[], string>(__TAURI_INVOKE("mcp_elsewhere_list")),
+	mcpElsewhereImport: (source: string, name: string) => typedError<string, string>(__TAURI_INVOKE("mcp_elsewhere_import", { source, name })),
+	doctorTools: () => typedError<ToolCheck[], string>(__TAURI_INVOKE("doctor_tools")),
+	doctorToolInstall: (id: string) => typedError<ToolCheck[], string>(__TAURI_INVOKE("doctor_tool_install", { id })),
+	doctorLedger: () => typedError<LedgerEntry[], string>(__TAURI_INVOKE("doctor_ledger")),
 	/**  The model of each tier for each runner (`factory` REQ-012). Settings / Connections edits it. */
 	tiersGet: () => typedError<RunnerTiers[], string>(__TAURI_INVOKE("tiers_get")),
 	/**  Saves the row of one runner. A step that starts after the edit uses it. */
@@ -321,6 +335,27 @@ export const commands = {
 	 *  others: its result holds the error. A Health fix runs here with the key of the finding.
 	 */
 	childDeploy: (ids: string[], keys: string[]) => typedError<ChildResult_Serialize[], string>(__TAURI_INVOKE("child_deploy", { ids, keys })),
+	compassPolicies: () => typedError<PolicyPacks_Serialize, string>(__TAURI_INVOKE("compass_policies")),
+	/**  Replaces the policy of the project. Returns the files that it wrote. */
+	compassPolicyApply: (id: string, click: boolean) => typedError<string[], string>(__TAURI_INVOKE("compass_policy_apply", { id, click })),
+	/**  Copies a rules file into the instincts of the project. Returns the key `pattern:<id>`. */
+	compassImport: (path: string, click: boolean) => typedError<string, string>(__TAURI_INVOKE("compass_import", { path, click })),
+	/**  Removes an entry from the project: an instinct file, or a skill or pack through `ac`. */
+	compassRemove: (kind: EntryKind, id: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("compass_remove", { kind, id, click })),
+	catalogUndeploy: (id: string, click: boolean) => typedError<CatalogUndeployed, string>(__TAURI_INVOKE("catalog_undeploy", { id, click })),
+	pluginList: () => typedError<PluginInstalled[], string>(__TAURI_INVOKE("plugin_list")),
+	/**  A disabled plugin has its MCP servers off. Its files stay. */
+	pluginSetEnabled: (name: string, on: boolean, click: boolean) => typedError<null, string>(__TAURI_INVOKE("plugin_set_enabled", { name, on, click })),
+	/**  Removes the unchanged files of a plugin, its MCP servers and its record. */
+	pluginRemove: (name: string, click: boolean) => typedError<PluginRemoved, string>(__TAURI_INVOKE("plugin_remove", { name, click })),
+	autoCommitGet: () => typedError<boolean, string>(__TAURI_INVOKE("auto_commit_get")),
+	autoCommitSet: (on: boolean) => typedError<boolean, string>(__TAURI_INVOKE("auto_commit_set", { on })),
+	/**  The commit of the sync action. It does nothing when the option is off. */
+	autoCommitRun: () => typedError<string | null, string>(__TAURI_INVOKE("auto_commit_run")),
+	closeGuardState: () => typedError<InFlight, string>(__TAURI_INVOKE("close_guard_state")),
+	/**  Close past the guard. `destroy` does not raise a second request. */
+	closeAnyway: () => typedError<null, string>(__TAURI_INVOKE("close_anyway")),
+	runnerInstall: (id: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("runner_install", { id, click })),
 	/**  Replaces the native menu with one in the language of the person. `labels` is keyed by item id. */
 	shellMenu: (labels: { [key in string]: string }) => typedError<null, string>(__TAURI_INVOKE("shell_menu", { labels })),
 	/**
@@ -772,6 +807,12 @@ export type BrokenCitation = {
 	source: string,
 };
 
+/**  A budget for one month. An empty `runner` is the budget of all runners together. */
+export type Budget = {
+	runner: string,
+	usd: number | null,
+};
+
 /**
  *  Money budgets in USD (`factory` REQ-022, REQ-032). Key `*` is the budget of every day or of
  *  every member that has no key of its own. No entry means no budget (`q:Q-023`, option 1).
@@ -833,6 +874,12 @@ export type CapabilityRow = {
 };
 
 export type CatalogGroup = "devcontainers" | "agents" | "devops-security";
+
+export type CatalogUndeployed = {
+	removed: string[],
+	/**  Files that differ from the catalog: a person changed them, so they stay. */
+	kept: string[],
+};
 
 export type ChainWarning = {
 	/**  The path kind that changed. */
@@ -1052,6 +1099,13 @@ export type CompassEntry_Serialize = {
 	pinned: string | null,
 	/**  The compass version of the tree. */
 	expected: string,
+};
+
+export type CompassPolicy = {
+	id: string,
+	description: string,
+	gates: string[],
+	constraints: string[],
 };
 
 export type Compass_Deserialize = {
@@ -1352,6 +1406,16 @@ export type Draft_Serialize = {
 };
 
 export type Effort = "low" | "medium" | "high" | "xhigh" | "max";
+
+/**  A server that another tool runs. */
+export type Elsewhere = {
+	source: string,
+	name: string,
+	command: string,
+	args: string[],
+	/**  The names of the variables only: a value never reaches the view. */
+	envKeys: string[],
+};
 
 export type Entry = {
 	path: string,
@@ -1710,6 +1774,12 @@ export type ImportReport = {
 	conflicts: string[],
 };
 
+/**  What runs now, for the sentence of the dialog. */
+export type InFlight = {
+	runs: number,
+	turns: number,
+};
+
 /**  One reason to refuse a workflow or role file, with the line of its field (`factory` REQ-010). */
 export type IssueView = IssueView_Serialize | IssueView_Deserialize;
 
@@ -1834,6 +1904,22 @@ export type LearnStep = {
 	title: string,
 };
 
+/**  One snapshot of the findings. */
+export type LedgerEntry = {
+	/**  RFC 3339, UTC. */
+	at: string,
+	items: LedgerItem[],
+	/**  Findings that are new since the entry before, and findings that left. */
+	added: number,
+	resolved: number,
+};
+
+export type LedgerItem = {
+	id: string,
+	code: string,
+	severity: string,
+};
+
 /**  Run limits (REQ-007). `global` counts the active runs of every project on this machine. */
 export type Limits = Limits_Serialize | Limits_Deserialize;
 
@@ -1863,6 +1949,51 @@ export type LogPage = {
 	commits: CommitInfo[],
 	/**  Older commits exist after this page. The view says that the log is cut when it is false. */
 	has_more: boolean,
+};
+
+/**  One AI session on this computer. */
+export type MachineSession = MachineSession_Serialize | MachineSession_Deserialize;
+
+/**  One AI session on this computer. */
+export type MachineSession_Deserialize = {
+	/**  `pid:<n>` for a running session, `log:<id>` for a finished one. */
+	key: string,
+	/**  `claude`, `codex`, `copilot`, `gemini`, `opencode` or `cursor`. */
+	runner: string,
+	/**  The last model that the history names, or `""`. */
+	model: string,
+	/**  The last segment of the working folder. */
+	project: string,
+	cwd: string,
+	title: string,
+	/**  `working`, `idle` or `done`. */
+	state: string,
+	tokens: number | null,
+	/**  An estimate from the list price. `0` for a model with no price. */
+	costUsd: number | null,
+	/**  The process to stop, for a running session. */
+	pid?: number | null,
+};
+
+/**  One AI session on this computer. */
+export type MachineSession_Serialize = {
+	/**  `pid:<n>` for a running session, `log:<id>` for a finished one. */
+	key: string,
+	/**  `claude`, `codex`, `copilot`, `gemini`, `opencode` or `cursor`. */
+	runner: string,
+	/**  The last model that the history names, or `""`. */
+	model: string,
+	/**  The last segment of the working folder. */
+	project: string,
+	cwd: string,
+	title: string,
+	/**  `working`, `idle` or `done`. */
+	state: string,
+	tokens: number | null,
+	/**  An estimate from the list price. `0` for a model with no price. */
+	costUsd: number | null,
+	/**  The process to stop, for a running session. */
+	pid: number | null,
 };
 
 export type Marker = Marker_Serialize | Marker_Deserialize;
@@ -1930,6 +2061,64 @@ export type McpField = {
 	label: string,
 	/**  The view masks a secret field. */
 	secret: boolean,
+};
+
+/**  The switches of the outside server. Each group is off until the person turns it on. */
+export type McpGates = McpGates_Serialize | McpGates_Deserialize;
+
+/**  The switches of the outside server. Each group is off until the person turns it on. */
+export type McpGates_Deserialize = {
+	enabled?: boolean,
+	reads?: boolean,
+	writes?: boolean,
+	git?: boolean,
+	forge?: boolean,
+	exec?: boolean,
+	delivery?: boolean,
+	port?: number,
+	/**  When it is not empty, only these tools run. */
+	allowedTools?: string[],
+};
+
+/**  The switches of the outside server. Each group is off until the person turns it on. */
+export type McpGates_Serialize = {
+	enabled: boolean,
+	reads: boolean,
+	writes: boolean,
+	git: boolean,
+	forge: boolean,
+	exec: boolean,
+	delivery: boolean,
+	port: number,
+	/**  When it is not empty, only these tools run. */
+	allowedTools: string[],
+};
+
+/**  What Settings shows. */
+export type McpOutside = McpOutside_Serialize | McpOutside_Deserialize;
+
+/**  What Settings shows. */
+export type McpOutside_Deserialize = {
+	gates: McpGates_Deserialize,
+	running: boolean,
+	url: string,
+	/**  Why the server does not run, when it is turned on. */
+	error: string,
+	/**  Every tool name, and the ones that are on. */
+	tools: string[],
+	active: string[],
+};
+
+/**  What Settings shows. */
+export type McpOutside_Serialize = {
+	gates: McpGates_Serialize,
+	running: boolean,
+	url: string,
+	/**  Why the server does not run, when it is turned on. */
+	error: string,
+	/**  Every tool name, and the ones that are on. */
+	tools: string[],
+	active: string[],
 };
 
 /**  One row of the MCP list. */
@@ -2123,7 +2312,12 @@ export type Permission =
 /**  Edit with approval: each write waits for the person. */
 "approve" | 
 /**  Auto inside the worktree: the edit tools are pre-approved. Never `Bash`. */
-"auto";
+"auto" | 
+/**
+ *  Read only, whatever the mode: the thread makes no worktree and no write. A project with a
+ *  read only profile uses it.
+ */
+"read_only";
 
 export type Persona = {
 	id: string,
@@ -2179,6 +2373,16 @@ export type PluginChange = "new" | "same" | "changed" |
 /**  In the applied version, not in this one. Informational: it is never written. */
 "removed";
 
+export type PluginInstalled = {
+	name: string,
+	version: string,
+	files: string[],
+	settings: string[],
+	/**  The names of the MCP servers that the plugin added. */
+	mcp: string[],
+	enabled: boolean,
+};
+
 export type PluginItem = {
 	/**  `file:<target>`, `setting:<key>`, `mcp:<name>`. */
 	id: string,
@@ -2190,6 +2394,12 @@ export type PluginItem = {
 };
 
 export type PluginItemKind = "file" | "setting" | "mcp";
+
+export type PluginRemoved = {
+	removed: string[],
+	kept: string[],
+	mcp: string[],
+};
 
 export type PluginReview = PluginReview_Serialize | PluginReview_Deserialize;
 
@@ -2211,6 +2421,20 @@ export type PluginReview_Serialize = {
 	items: PluginItem[],
 	/**  `<id>: <reason>`. A refused server is never an item. */
 	refused: string[],
+};
+
+export type PolicyPacks = PolicyPacks_Serialize | PolicyPacks_Deserialize;
+
+export type PolicyPacks_Deserialize = {
+	packs: CompassPolicy[],
+	/**  The id of the pack that the project holds. */
+	applied?: string | null,
+};
+
+export type PolicyPacks_Serialize = {
+	packs: CompassPolicy[],
+	/**  The id of the pack that the project holds. */
+	applied: string | null,
 };
 
 export type Portfolio = {
@@ -2257,6 +2481,7 @@ export type PrefsPatch_Deserialize = {
 	assistantSide?: PanelSide | null,
 	notifyOff?: EventSource[] | null,
 	seenVersion?: string | null,
+	shortcuts?: { [key in string]: string } | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -2271,6 +2496,7 @@ export type PrefsPatch_Serialize = {
 	assistantSide: PanelSide | null,
 	notifyOff: EventSource[] | null,
 	seenVersion: string | null,
+	shortcuts: { [key in string]: string } | null,
 };
 
 export type Prefs_Deserialize = {
@@ -2290,6 +2516,11 @@ export type Prefs_Deserialize = {
 	notifyOff?: EventSource[],
 	/**  The version whose changelog the person has seen. `None` until the first check records it. */
 	seenVersion?: string | null,
+	/**
+	 *  The chords that the person set, by action id (`mod+shift+s`). An action with no entry
+	 *  keeps its default chord.
+	 */
+	shortcuts?: { [key in string]: string },
 };
 
 export type Prefs_Serialize = {
@@ -2309,6 +2540,11 @@ export type Prefs_Serialize = {
 	notifyOff: EventSource[],
 	/**  The version whose changelog the person has seen. `None` until the first check records it. */
 	seenVersion: string | null,
+	/**
+	 *  The chords that the person set, by action id (`mod+shift+s`). An action with no entry
+	 *  keeps its default chord.
+	 */
+	shortcuts: { [key in string]: string },
 };
 
 export type Preview = Preview_Serialize | Preview_Deserialize;
@@ -3352,6 +3588,22 @@ export type SpecView_Serialize = {
 	markers: Marker_Serialize[],
 };
 
+export type Spend = {
+	rows: SpendRow[],
+	budgets: Budget[],
+};
+
+/**  The use of one model by one runner on one day in one project. */
+export type SpendRow = {
+	/**  `YYYY-MM-DD`, UTC. */
+	day: string,
+	runner: string,
+	model: string,
+	project: string,
+	tokens: number | null,
+	costUsd: number | null,
+};
+
 /**  Tokens and money of a day or a member, with its budget (`null`: none). */
 export type SpendView = SpendView_Serialize | SpendView_Deserialize;
 
@@ -3923,6 +4175,17 @@ export type TimeView_Serialize = {
 	rows: TimeRow_Serialize[],
 	/**  The tracker has the time tracking flag (REQ-022). */
 	canSend: boolean,
+};
+
+export type ToolCheck = {
+	id: string,
+	/**  `base`, `forge`, `agent` or `scanner`. */
+	group: string,
+	installed: boolean,
+	/**  The first line of `--version`, or `""`. */
+	version: string,
+	/**  A package manager is here to install it. */
+	canInstall: boolean,
 };
 
 export type Totals = {

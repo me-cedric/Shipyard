@@ -1,6 +1,6 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { AssistantPanel, useAssistant } from "@/features/assistant";
+import { AssistantPanel, SelectionActions, useAssistant } from "@/features/assistant";
 import { useCodeActions } from "@/lib/code";
 import { useI18n } from "@/lib/i18n";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
@@ -11,10 +11,12 @@ import { Inspector } from "@/ui/organisms/inspector";
 import { Toaster } from "@/ui/organisms/toaster";
 import { Shell } from "@/ui/templates/shell";
 import { useActions, useShortcuts } from "./actions";
+import { CloseGuard } from "./close-guard";
 import { ContextBar } from "./context-bar";
-import { useNativeMenu, useShellEvents } from "./events";
+import { useCloseGuardEvent, useNativeMenu, useShellEvents } from "./events";
 import { PaletteHost } from "./palette-host";
 import { RefDetail } from "./ref-detail";
+import { ShortcutHelp } from "./shortcut-help";
 import { Sidebar } from "./sidebar";
 import { StatusBar } from "./status-bar";
 import { ViewMemory } from "./view-memory";
@@ -37,12 +39,14 @@ function Frame() {
 		clearExplain,
 		prefill,
 		clearPrefill,
+		ask,
 	} = useShell();
 	const { commit: runCommit } = useCodeActions();
 	const { list, sync, commit, assistant, palette } = useActions();
 	useShortcuts(list);
 	useNativeMenu(list);
 	useShellEvents();
+	useCloseGuardEvent();
 	const { toasts, dismiss } = useNotifications();
 	// A detail belongs to the view that opened it: leaving the view closes it.
 	const path = useRouterState({ select: (s) => s.location.pathname });
@@ -103,6 +107,9 @@ function Frame() {
 			/>
 			<Toaster toasts={toasts} onDismiss={dismiss} />
 			<PaletteHost actions={list} />
+			<ShortcutHelp actions={list} />
+			<SelectionActions onAsk={ask} />
+			<CloseGuard />
 			<CommitDialog open={commitOpen} onOpenChange={setCommitOpen} onSubmit={runCommit} />
 			<ViewMemory />
 		</>

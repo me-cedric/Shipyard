@@ -65,9 +65,11 @@ import {
 import * as cp from "./mock-code-prs";
 import * as dv from "./mock-delivery";
 import * as design from "./mock-design";
+import * as dr from "./mock-doctor";
 import * as ex from "./mock-extensions";
 import * as fx from "./mock-factory";
 import * as kw from "./mock-knowledge";
+import * as mc from "./mock-machine";
 import { cards, chainGate, seedLinks, seedNotes } from "./mock-overview";
 import { parseRef } from "./mock-refs";
 import * as specs from "./mock-specs";
@@ -158,6 +160,14 @@ type State = {
 	os: { title: string; body: string }[];
 	/** The labels of the last native menu. */
 	menu: Record<string, string>;
+	/** The AI sessions and spend of this computer. */
+	machine: mc.MockMachine;
+	/** The Doctor tools and ledger, and the MCP server for outside agents. */
+	doctor: dr.MockDoctor;
+	/** The auto-commit option of the active project, the work in flight and the close answer. */
+	autoCommit: boolean;
+	inFlight: { runs: number; turns: number };
+	closed: boolean;
 };
 
 const RELEASE_URL = "https://api.github.com/repos/me-cedric/Shipyard/releases/latest";
@@ -194,6 +204,7 @@ const fresh = (): State => ({
 		assistantSide: "right",
 		notifyOff: [],
 		seenVersion: null,
+		shortcuts: {},
 	},
 	projects: [],
 	files: {},
@@ -216,6 +227,11 @@ const fresh = (): State => ({
 	delivery: dv.seedDelivery(),
 	os: [],
 	menu: {},
+	machine: mc.seedMachine(),
+	doctor: dr.seedDoctor(),
+	autoCommit: false,
+	inFlight: { runs: 0, turns: 0 },
+	closed: false,
 });
 
 let state = fresh();
@@ -560,6 +576,10 @@ const handlers: Handlers = {
 			if (v != null) Object.assign(state.prefs, { [k]: v });
 		// An empty release address goes back to the default.
 		if (!state.prefs.releaseUrl.trim()) state.prefs.releaseUrl = RELEASE_URL;
+		// An empty chord resets its action.
+		state.prefs.shortcuts = Object.fromEntries(
+			Object.entries(state.prefs.shortcuts).filter(([, v]) => v.trim()),
+		);
 		return state.prefs;
 	},
 	refsParse: parseRef,
@@ -837,6 +857,19 @@ const handlers: Handlers = {
 		for (const s of state.agents.mcp) s.missing = s.missing.filter((d) => d.command !== command);
 		return `installed ${command}`;
 	},
+	machineSessions: () => state.machine.sessions,
+	machineSessionStop: (pid) => mc.machineStop(state.machine, pid),
+	machineSpend: (days) => mc.machineSpend(state.machine, days),
+	machineBudgetSet: (runner, usd) => mc.machineBudgetSet(state.machine, runner, usd),
+	mcpOutsideGet: () => dr.outsideStatus(state.doctor),
+	mcpOutsideSet: (gates) => dr.outsideSet(state.doctor, gates),
+	mcpOutsideWire: () => dr.outsideWire(state.doctor, active()?.path ?? null),
+	mcpOutsideToken: () => dr.outsideToken(state.doctor),
+	mcpElsewhereList: () => state.doctor.elsewhere,
+	mcpElsewhereImport: (source, name) => dr.elsewhereImport(state.doctor, source, name),
+	doctorTools: () => state.doctor.tools,
+	doctorToolInstall: (id) => dr.doctorInstall(state.doctor, id),
+	doctorLedger: () => dr.doctorLedger(state.doctor),
 	shellMenu: (labels) => {
 		state.menu = labels;
 		return null;
@@ -1150,6 +1183,34 @@ const handlers: Handlers = {
 	catalogDeploy: (id) => ex.catalogDeploy(need(state.extensions), id),
 	pluginReview: (path) => ex.pluginReview(need(state.extensions), path),
 	pluginApply: (path, accepted) => ex.pluginApply(need(state.extensions), path, accepted),
+	compassPolicies: () => ex.compassPolicies(need(state.extensions)),
+	compassPolicyApply: (id, click) => ex.compassPolicyApply(need(state.extensions), id, click),
+	compassImport: (path, click) => ex.compassImport(need(state.extensions), path, click),
+	compassRemove: (kind, id, click) => ex.compassRemove(need(state.extensions), kind, id, click),
+	catalogUndeploy: (id, click) => ex.catalogUndeploy(need(state.extensions), id, click),
+	pluginList: () => ex.pluginList(need(state.extensions)),
+	pluginSetEnabled: (name, on, click) =>
+		ex.pluginSetEnabled(need(state.extensions), name, on, click),
+	pluginRemove: (name, click) => ex.pluginRemove(need(state.extensions), name, click),
+	autoCommitGet: () => state.autoCommit,
+	autoCommitSet: (on) => {
+		state.autoCommit = on;
+		return on;
+	},
+	// The commit of the sync action: nothing when the option is off.
+	autoCommitRun: () => (state.autoCommit ? "a1b2c3d" : null),
+	closeGuardState: () => state.inFlight,
+	closeAnyway: () => {
+		state.closed = true;
+		return null;
+	},
+	runnerInstall: (id, click) => {
+		if (!click) throw "this change needs the click of a person";
+		const r = state.agents.runners.find((x) => x.id === id);
+		if (!r) throw `\`${id}\` is not a runner`;
+		Object.assign(r, { state: "detected", path: `/usr/local/bin/${id}`, version: "1.0.0" });
+		return null;
+	},
 	childList: () => ex.childList(need(state.extensions)),
 	childAdd: (name, url) => ex.childAdd(need(state.extensions), name, url),
 	childRemove: (id) => ex.childRemove(need(state.extensions), id),

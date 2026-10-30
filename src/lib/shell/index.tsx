@@ -32,6 +32,11 @@ type ShellState = {
 	sync: (job: () => Promise<unknown>) => void;
 	commitOpen: boolean;
 	setCommitOpen: (open: boolean) => void;
+	shortcutsOpen: boolean;
+	setShortcutsOpen: (open: boolean) => void;
+	/** The window asked to close while work runs. The shell shows the guard. */
+	closeGuardOpen: boolean;
+	setCloseGuardOpen: (open: boolean) => void;
 	/** The actions that the inspector offers for a ref, or undefined. Set by `ShellProvider`. */
 	refActions?: RefActions;
 };
@@ -58,6 +63,8 @@ export function ShellProvider({
 	const [syncing, setSyncing] = useState(false);
 	const [syncError, setSyncError] = useState<string | null>(null);
 	const [commitOpen, setCommitOpen] = useState(false);
+	const [shortcutsOpen, setShortcutsOpen] = useState(false);
+	const [closeGuardOpen, setCloseGuardOpen] = useState(false);
 
 	const openRef = useCallback((ref: string) => {
 		setSelectedRef(ref);
@@ -119,6 +126,10 @@ export function ShellProvider({
 			sync,
 			commitOpen,
 			setCommitOpen,
+			shortcutsOpen,
+			setShortcutsOpen,
+			closeGuardOpen,
+			setCloseGuardOpen,
 			refActions,
 		}),
 		[
@@ -140,6 +151,8 @@ export function ShellProvider({
 			syncError,
 			sync,
 			commitOpen,
+			shortcutsOpen,
+			closeGuardOpen,
 			refActions,
 		],
 	);

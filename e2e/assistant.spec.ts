@@ -123,3 +123,24 @@ test("resizes by keyboard and moves to the left side", async ({ page }) => {
 	await expect(panel(page).getByRole("button", { name: "Move to the right" })).toBeVisible();
 	expect((await panel(page).boundingBox())?.x).toBeLessThan((await main.boundingBox())?.x ?? 0);
 });
+
+test("fills the draft from a slash command and adds a ref found with @", async ({ page }) => {
+	await openPanel(page);
+	await input(page).fill("/");
+	await expect(panel(page).getByRole("listbox", { name: "Commands" })).toBeVisible();
+	await input(page).press("ArrowDown");
+	await input(page).press("Enter");
+	await expect(input(page)).toHaveValue("Find the problem here and fix it.");
+	await input(page).fill("see @REQ-001");
+	await panel(page)
+		.getByRole("option", { name: new RegExp(REF) })
+		.click();
+	await expect(panel(page).getByRole("list", { name: "Context" }).getByText(REF)).toBeVisible();
+});
+
+test("offers the read only level in agent mode", async ({ page }) => {
+	await openPanel(page);
+	await pick(page, "Mode", "Agent");
+	await panel(page).getByRole("combobox", { name: "Permission", exact: true }).click();
+	await expect(page.getByRole("option", { name: "Read only", exact: true })).toBeVisible();
+});

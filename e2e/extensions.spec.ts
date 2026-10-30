@@ -65,3 +65,21 @@ test("deploys to a child project on a branch and never pushes", async ({ page })
 	).toBeVisible();
 	await expect(page.getByText(".agents/pattern/small-steps")).toBeVisible();
 });
+
+test("imports a rules file, applies a policy pack and removes the entry", async ({ page }) => {
+	await openSettings(page, "Agents and rules");
+	await page.getByRole("textbox", { name: "Rules file path" }).fill("/mock/rules/team-rules.md");
+	await page.getByRole("button", { name: "Import" }).click();
+	await expect(page.getByText("Imported pattern:team-rules")).toBeVisible();
+	await page.getByRole("button", { name: "Remove team-rules" }).click();
+	await expect(page.getByRole("button", { name: "Remove team-rules" })).toHaveCount(0);
+	await page.getByRole("button", { name: "Apply strict-enterprise" }).click();
+	await expect(page.getByText(".agents/policy.json")).toBeVisible();
+	await expect(page.getByRole("button", { name: "Apply strict-enterprise" })).toHaveCount(0);
+});
+
+test("removes a child project", async ({ page }) => {
+	await openSettings(page, "Extensions");
+	await page.getByRole("button", { name: "Remove API gateway" }).click();
+	await expect(page.getByRole("heading", { name: "Child projects (0)" })).toBeVisible();
+});

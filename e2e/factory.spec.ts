@@ -69,3 +69,19 @@ test("shows a check error with its line for a broken workflow", async ({ page })
 	await expect(alert).toContainText("differs from the file name");
 	await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
 });
+
+test("lists every AI session on the computer and stops a running one", async ({ page }) => {
+	await openFactory(page, "Sessions");
+	const machine = page.getByRole("table", { name: "This computer" });
+	await expect(machine.getByText("Fix the login")).toBeVisible();
+	await page.getByRole("button", { name: "Stop claude alpha" }).click();
+	await expect(machine.getByText("Fix the login")).toHaveCount(0);
+});
+
+test("shows the spend of the computer as a chart and keeps a monthly budget", async ({ page }) => {
+	await openFactory(page, "Usage");
+	await expect(page.getByRole("img", { name: "Spend by day" })).toBeVisible();
+	await page.getByRole("spinbutton", { name: "Monthly budget (USD)" }).fill("1000");
+	await page.getByRole("button", { name: "Save" }).click();
+	await expect(page.getByRole("meter", { name: /Monthly budget/ })).toBeVisible();
+});
