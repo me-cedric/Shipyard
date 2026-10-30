@@ -32,6 +32,7 @@ import {
 	XMarkIcon,
 } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { StatStrip } from "@/ui/molecules/stat-strip";
 import { Gantt, type GanttBar } from "@/ui/organisms/gantt";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { ApplyFlow } from "./apply";
@@ -236,7 +237,7 @@ export function Plan() {
 	if (active === null) return <NoProject title={t.tabs.work.plan} />;
 	if (!slug || !plan)
 		return (
-			<ListDetail title={t.tabs.work.plan}>
+			<ListDetail title={t.tabs.work.plan} icon={<CalendarDaysIcon size={16} />}>
 				<div className="p-4">
 					<EmptyState
 						action={{
@@ -273,6 +274,14 @@ export function Plan() {
 	return (
 		<ListDetail
 			title={t.tabs.work.plan}
+			icon={<CalendarDaysIcon size={16} />}
+			count={bars.length}
+			action={
+				<Button variant="primary" disabled={!ctx?.tracker} onClick={() => setApplying(true)}>
+					<ArrowUpTrayIcon size={14} />
+					{p.apply}
+				</Button>
+			}
 			toolbar={
 				<>
 					<Select
@@ -292,37 +301,60 @@ export function Plan() {
 							{error}
 						</p>
 					) : null}
-					<span className="flex-1" />
-					<Button variant="primary" disabled={!ctx?.tracker} onClick={() => setApplying(true)}>
-						<ArrowUpTrayIcon size={14} />
-						{p.apply}
-					</Button>
 				</>
 			}
 		>
-			<Gantt
-				bars={bars}
-				today={plan.today}
-				isOff={(d) => !cal.workingDays.includes(isoWeekday(d)) || cal.holidays.includes(d)}
-				selected={selected}
-				todayLabel={p.today}
-				barLabel={(b) =>
-					format(p.bar, {
-						name: b.name,
-						member: b.owner ?? p.unstaffed,
-						start: b.start,
-						end: b.end,
-					})
-				}
-				onMove={move}
-				onOpen={(id) => {
-					setSelected(id);
-					openDetail(
-						bars.find((b) => b.id === id)?.name ?? p.bar,
-						<BarDetail key={id} slug={slug} task={id} />,
-					);
-				}}
+			<StatStrip
+				className="px-4 pb-3"
+				items={[
+					{ label: p.tasks, value: String(bars.length), tone: "accent" },
+					{
+						label: p.features,
+						value: String(new Set(bars.map((b) => b.group)).size),
+						tone: "info",
+					},
+					{
+						label: p.unstaffed,
+						value: String(bars.filter((b) => !b.owner).length),
+						tone: bars.some((b) => !b.owner) ? "warning" : "success",
+					},
+					{
+						label: p.finish,
+						value:
+							bars
+								.map((b) => b.end)
+								.sort()
+								.at(-1) ?? "-",
+						tone: "success",
+					},
+				]}
 			/>
+			<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
+				<Gantt
+					bars={bars}
+					milestoneLabel={(name, day) => format(t.work.milestone, { name, day })}
+					today={plan.today}
+					isOff={(d) => !cal.workingDays.includes(isoWeekday(d)) || cal.holidays.includes(d)}
+					selected={selected}
+					todayLabel={p.today}
+					barLabel={(b) =>
+						format(p.bar, {
+							name: b.name,
+							member: b.owner ?? p.unstaffed,
+							start: b.start,
+							end: b.end,
+						})
+					}
+					onMove={move}
+					onOpen={(id) => {
+						setSelected(id);
+						openDetail(
+							bars.find((b) => b.id === id)?.name ?? p.bar,
+							<BarDetail key={id} slug={slug} task={id} />,
+						);
+					}}
+				/>
+			</div>
 			{applying ? <ApplyFlow slugs={[slug]} onClose={() => setApplying(false)} /> : null}
 		</ListDetail>
 	);

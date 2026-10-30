@@ -23,12 +23,12 @@ type Entry = { kind: "group"; id: string; count: number } | { kind: "bar"; bar: 
 
 const LABEL = 224;
 const TONES = [
-	"border-accent bg-accent-subtle text-accent-text",
-	"border-success bg-success-subtle text-success-text",
-	"border-warning bg-warning-subtle text-warning-text",
-	"border-info bg-info-subtle text-info-text",
+	"border-accent/60 bg-accent-subtle text-accent-text",
+	"border-success/60 bg-success-subtle text-success-text",
+	"border-warning/60 bg-warning-subtle text-warning-text",
+	"border-info/60 bg-info-subtle text-info-text",
 ] as const;
-const UNSTAFFED = "border-n-8 bg-n-4 text-n-11";
+const UNSTAFFED = "border-dashed border-n-8 bg-n-4 text-n-11";
 
 /** A drag of fewer pixels is a click. */
 const DRAG = 4;
@@ -98,10 +98,10 @@ function BarButton({
 				}}
 				style={{ left: left + dx, width }}
 				className={cn(
-					"absolute top-1 flex h-5 touch-none items-center overflow-hidden rounded-sm border px-1.5 text-left text-11 whitespace-nowrap",
+					"absolute top-1 flex h-5 touch-none items-center overflow-hidden rounded-full border px-2 text-left text-11 font-medium whitespace-nowrap shadow-1 transition-shadow duration-(--duration-fast) hover:shadow-2",
 					tone,
 					bar.fixed && "border-l-4",
-					selected && "outline-2 outline-offset-1 outline-n-12",
+					selected && "shadow-glow outline-2 outline-offset-1 outline-n-12",
 				)}
 			>
 				<span className="truncate">{bar.owner ?? ""}</span>
@@ -122,6 +122,7 @@ export function Gantt({
 	selected,
 	barLabel,
 	todayLabel,
+	milestoneLabel,
 	dayWidth = 18,
 	onMove,
 	onOpen,
@@ -133,6 +134,8 @@ export function Gantt({
 	selected?: string | null;
 	barLabel: (bar: GanttBar) => string;
 	todayLabel: string;
+	/** The name of the diamond at the end of a group: its last day. */
+	milestoneLabel?: (group: string, day: string) => string;
 	dayWidth?: number;
 	onMove: (id: string, days: number) => void;
 	onOpen: (id: string) => void;
@@ -150,7 +153,11 @@ export function Gantt({
 
 	const entries: Entry[] = [];
 	const counts = new Map<string, number>();
-	for (const b of bars) counts.set(b.group, (counts.get(b.group) ?? 0) + 1);
+	const ends = new Map<string, string>();
+	for (const b of bars) {
+		counts.set(b.group, (counts.get(b.group) ?? 0) + 1);
+		if (b.end > (ends.get(b.group) ?? "")) ends.set(b.group, b.end);
+	}
 	let lastGroup: string | null = null;
 	for (const b of bars) {
 		if (b.group !== lastGroup)
@@ -169,8 +176,15 @@ export function Gantt({
 			itemKey={(e) => (e.kind === "group" ? `g:${e.id}` : e.bar.id)}
 			isRow={(e) => e.kind === "bar"}
 			header={
-				<div className="relative h-10 border-b" style={{ minWidth: width }}>
-					<div className="sticky left-0 z-10 h-full w-56 border-r bg-n-1" />
+				<div className="relative h-10 border-b bg-surface-1" style={{ minWidth: width }}>
+					<div className="sticky left-0 z-10 h-full w-56 border-r bg-surface-1" />
+					<span
+						aria-hidden="true"
+						className="absolute bottom-0.5 z-10 -translate-x-1/2 rounded-full bg-accent-gradient px-1.5 font-mono text-11 text-accent-fg shadow-glow"
+						style={{ left: x(today) + dayWidth / 2 }}
+					>
+						{today.slice(8)}
+					</span>
 					{monthStarts.map((d) => (
 						<span
 							key={d}
@@ -199,14 +213,27 @@ export function Gantt({
 			}
 			renderItem={(e) =>
 				e.kind === "group" ? (
-					<div className="flex h-row items-center border-b bg-n-2" style={{ minWidth: width }}>
-						<h2 className="sticky left-0 px-3 text-12 font-medium text-n-11">
+					<div
+						className="relative flex h-row items-center border-b bg-n-2"
+						style={{ minWidth: width }}
+					>
+						<h2 className="sticky left-0 z-10 px-3 text-12 font-medium text-n-11">
 							{format(t.count, { name: e.id, count: e.count })}
 						</h2>
+						{ends.get(e.id) ? (
+							<span
+								role="img"
+								aria-label={
+									milestoneLabel?.(e.id, ends.get(e.id) ?? "") ?? `${e.id} ${ends.get(e.id)}`
+								}
+								className="absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[2px] bg-accent-gradient shadow-glow"
+								style={{ left: x(ends.get(e.id) ?? today) + dayWidth }}
+							/>
+						) : null}
 					</div>
 				) : (
 					<div className="relative h-row border-b" style={{ minWidth: width }}>
-						<div className="sticky left-0 z-10 flex h-full w-56 items-center border-r bg-n-1 px-3 text-ui">
+						<div className="sticky left-0 z-10 flex h-full w-56 items-center border-r bg-surface-1 px-3 text-ui">
 							<span className="truncate">{e.bar.name}</span>
 						</div>
 						<BarButton
@@ -239,9 +266,14 @@ export function Gantt({
 					/>
 				))}
 			<div
+				aria-hidden="true"
+				className="pointer-events-none absolute top-0 bottom-0 bg-linear-to-b from-accent-soft to-transparent"
+				style={{ left: x(today), width: dayWidth }}
+			/>
+			<div
 				role="img"
 				aria-label={`${todayLabel} ${today}`}
-				className="pointer-events-none absolute top-0 bottom-0 z-10 w-px bg-accent-text"
+				className="pointer-events-none absolute top-0 bottom-0 z-10 w-0.5 -translate-x-1/2 bg-accent shadow-glow"
 				style={{ left: x(today) + dayWidth / 2 }}
 			/>
 		</VirtualList>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TicketThread } from "@/features/sync/ticket-thread";
 import { format, useI18n } from "@/lib/i18n";
 import { useResolvedRef } from "@/lib/refs";
 import { useShell } from "@/lib/shell";
@@ -183,6 +184,8 @@ export function TicketDetail({ itemKey }: { itemKey: string }) {
 					</div>
 				)}
 			</section>
+
+			<TicketThread itemKey={item.key} />
 
 			{error ? (
 				<p role="alert" className="text-ui text-danger-text">

@@ -1,16 +1,18 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { useWorkItems, type WorkItem } from "@/lib/sync";
-import { memberName, useTeam, useWorkActions } from "@/lib/work";
+import { figure, memberName, useTeam, useWorkActions } from "@/lib/work";
+import { ViewColumnsIcon } from "@/ui/icons";
 import { BoardColumn } from "@/ui/molecules/board-column";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { RUN_STATUS } from "@/ui/molecules/run-card";
 import { TicketCard } from "@/ui/molecules/ticket-card";
-import type { WorkCategory } from "@/ui/molecules/ticket-row";
+import { priorityOf, type WorkCategory } from "@/ui/molecules/ticket-row";
 import { Board as BoardTemplate } from "@/ui/templates/board";
-import { statusesOf } from "./backlog";
+import { statusesOf, useEstimateDays, useRunOf } from "./backlog";
 import { applyFilters, type Filters, ItemFilters, NO_FILTER } from "./filters";
 import { useGuard } from "./guard";
 import { NoProject } from "./no-project";
@@ -18,7 +20,7 @@ import { TicketDetail } from "./ticket-detail";
 
 /** Work / Board: one column for each tracker status. A move sends the transition (REQ-002). */
 export function Board() {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const active = useActiveProject().data;
 	const { openDetail } = useShell();
 	const members = useTeam().data?.team.members ?? [];
@@ -36,12 +38,14 @@ export function Board() {
 		[all, filters, moving],
 	);
 	const columns = useMemo(() => statusesOf(all), [all]);
+	const days = useEstimateDays();
+	const runOf = useRunOf();
 
 	if (active === undefined || everything.isLoading) return null;
 	if (active === null) return <NoProject title={t.tabs.work.board} />;
 	if (all.length === 0)
 		return (
-			<BoardTemplate title={t.tabs.work.board}>
+			<BoardTemplate title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />} count={0}>
 				<EmptyState
 					action={{
 						label: t.tabs.work.backlog,
@@ -68,6 +72,8 @@ export function Board() {
 	return (
 		<BoardTemplate
 			title={t.tabs.work.board}
+			icon={<ViewColumnsIcon size={16} />}
+			count={items.length}
 			toolbar={
 				<>
 					<ItemFilters
@@ -105,6 +111,22 @@ export function Board() {
 								unknown={item.assignee && !item.member ? t.work.unknownMember : undefined}
 								claimed={item.claimed ? t.sync.runState.Claimed : undefined}
 								selected={selected === item.key}
+								labels={item.labels}
+								priority={(() => {
+									const level = priorityOf(item.labels);
+									return level === null ? undefined : { level, label: t.work.priority[level] };
+								})()}
+								run={(() => {
+									const r = runOf.get(item.key);
+									return r
+										? { label: t.factory.state[r.state], status: RUN_STATUS[r.state] }
+										: undefined;
+								})()}
+								estimate={
+									days.has(item.key)
+										? format(t.work.daysShort, { days: figure(days.get(item.key), lang) })
+										: undefined
+								}
 								onOpen={() => {
 									setSelected(item.key);
 									openDetail(item.key, <TicketDetail key={item.key} itemKey={item.key} />);

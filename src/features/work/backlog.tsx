@@ -1,15 +1,23 @@
 import { useMemo, useState } from "react";
+import { useRuns } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { useBacklogActions, useWorkItems, type WorkItem } from "@/lib/sync";
-import { memberName, useTeam } from "@/lib/work";
+import { figure, memberName, useSheet, useSheets, useTeam } from "@/lib/work";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
-import { PlusIcon } from "@/ui/icons";
+import { PlusIcon, QueueListIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
-import { CategoryDot, TicketRow, type WorkCategory } from "@/ui/molecules/ticket-row";
+import { RUN_STATUS } from "@/ui/molecules/run-card";
+import {
+	CategoryDot,
+	type PriorityLevel,
+	priorityOf,
+	TicketRow,
+	type WorkCategory,
+} from "@/ui/molecules/ticket-row";
 import { VirtualList } from "@/ui/organisms/virtual-list";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { applyFilters, type Filters, ItemFilters, NO_FILTER } from "./filters";
@@ -22,6 +30,30 @@ const CATEGORY_ORDER: WorkCategory[] = ["todo", "in-progress", "done"];
 type Entry =
 	| { kind: "head"; status: string; category: WorkCategory; count: number }
 	| { kind: "row"; item: WorkItem };
+
+/**
+ * The days of each ticket in the first ready estimate sheet, keyed by the ticket key.
+ * shortcut: one sheet only; read every sheet when a project links tickets from several lots.
+ */
+export function useEstimateDays(): Map<string, number> {
+	const slug = (useSheets().data ?? []).find((s) => s.state === "ready")?.slug ?? null;
+	const sheet = useSheet(slug).data;
+	return useMemo(() => {
+		const out = new Map<string, number>();
+		for (const f of sheet?.sheet.features ?? [])
+			for (const task of f.tasks) {
+				const days = sheet?.days[task.id];
+				if (task.ticket && days != null) out.set(task.ticket.replace(/^wi:/, ""), days);
+			}
+		return out;
+	}, [sheet]);
+}
+
+/** The last run of each ticket, keyed by the ticket key. */
+export function useRunOf() {
+	const runs = useRuns().data;
+	return useMemo(() => new Map((runs ?? []).map((r) => [r.key, r])), [runs]);
+}
 
 /** The statuses in board order: by category, then by name. */
 export function statusesOf(items: WorkItem[]): { status: string; category: WorkCategory }[] {
@@ -38,7 +70,7 @@ export function statusesOf(items: WorkItem[]): { status: string; category: WorkC
 
 /** Work / Backlog: the mirror of the tracker in groups by status, with import, adopt and filters. */
 export function Backlog() {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const active = useActiveProject().data;
 	const { openDetail } = useShell();
 	const { planImport, confirmImport, adopt } = useBacklogActions();
@@ -52,6 +84,9 @@ export function Backlog() {
 	const everything = useWorkItems({});
 	const all = everything.data ?? [];
 	const shown = useMemo(() => applyFilters(all, filters), [all, filters]);
+	const days = useEstimateDays();
+	const runOf = useRunOf();
+	const priorityName: Record<PriorityLevel, string> = t.work.priority;
 
 	const entries = useMemo(() => {
 		const out: Entry[] = [];
@@ -69,7 +104,7 @@ export function Backlog() {
 	const startImport = () => run(async () => setPlanned(await planImport()));
 	if (all.length === 0 && planned === null)
 		return (
-			<ListDetail title={t.tabs.work.backlog}>
+			<ListDetail title={t.tabs.work.backlog} icon={<QueueListIcon size={16} />} count={0}>
 				<div className="p-4">
 					<EmptyState
 						action={{
@@ -95,6 +130,8 @@ export function Backlog() {
 	return (
 		<ListDetail
 			title={t.tabs.work.backlog}
+			icon={<QueueListIcon size={16} />}
+			count={all.length}
 			toolbar={
 				<>
 					<ItemFilters
@@ -162,35 +199,57 @@ export function Backlog() {
 					{error}
 				</p>
 			) : null}
-			<VirtualList
-				items={entries}
-				itemKey={(e) => (e.kind === "head" ? `h:${e.status}` : e.item.key)}
-				isRow={(e) => e.kind === "row"}
-				renderItem={(e) =>
-					e.kind === "head" ? (
-						<h2 className="flex h-row items-center gap-2 border-b bg-n-2 px-3 text-12 font-medium text-n-11">
-							<span aria-hidden="true">
-								<CategoryDot category={e.category} label={e.status} />
-							</span>
-							{format(t.count, { name: e.status, count: e.count })}
-						</h2>
-					) : (
-						<TicketRow
-							itemKey={e.item.key}
-							title={e.item.title}
-							status={e.item.status}
-							category={e.item.category as WorkCategory}
-							assignee={
-								e.item.assignee ? memberName(members, e.item.member ?? e.item.assignee) : undefined
-							}
-							unknown={e.item.assignee && !e.item.member ? t.work.unknownMember : undefined}
-							claimed={e.item.claimed ? t.sync.runState.Claimed : undefined}
-							selected={selected === e.item.key}
-							onOpen={() => open(e.item)}
-						/>
-					)
-				}
-			/>
+			<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
+				<VirtualList
+					items={entries}
+					rowHeight={40}
+					itemKey={(e) => (e.kind === "head" ? `h:${e.status}` : e.item.key)}
+					isRow={(e) => e.kind === "row"}
+					renderItem={(e) =>
+						e.kind === "head" ? (
+							<h2 className="flex h-10 items-center gap-2 border-b bg-n-2 px-4 text-12 font-medium text-n-11">
+								<span aria-hidden="true">
+									<CategoryDot category={e.category} label={e.status} />
+								</span>
+								{format(t.count, { name: e.status, count: e.count })}
+							</h2>
+						) : (
+							<TicketRow
+								itemKey={e.item.key}
+								title={e.item.title}
+								status={e.item.status}
+								category={e.item.category as WorkCategory}
+								assignee={
+									e.item.assignee
+										? memberName(members, e.item.member ?? e.item.assignee)
+										: undefined
+								}
+								unknown={e.item.assignee && !e.item.member ? t.work.unknownMember : undefined}
+								claimed={e.item.claimed ? t.sync.runState.Claimed : undefined}
+								selected={selected === e.item.key}
+								rich
+								labels={e.item.labels}
+								priority={(() => {
+									const level = priorityOf(e.item.labels);
+									return level === null ? undefined : { level, label: priorityName[level] };
+								})()}
+								run={(() => {
+									const r = runOf.get(e.item.key);
+									return r
+										? { label: t.factory.state[r.state], status: RUN_STATUS[r.state] }
+										: undefined;
+								})()}
+								estimate={
+									days.has(e.item.key)
+										? format(t.work.daysShort, { days: figure(days.get(e.item.key), lang) })
+										: undefined
+								}
+								onOpen={() => open(e.item)}
+							/>
+						)
+					}
+				/>
+			</div>
 		</ListDetail>
 	);
 }

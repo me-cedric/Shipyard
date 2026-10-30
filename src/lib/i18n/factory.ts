@@ -79,6 +79,11 @@ export const factoryEn = {
 	budgetScope: "Budget for",
 	budgetAmount: "Budget (USD)",
 	noAssignee: "No assignee",
+	liveRuns: "Live runs",
+	successRate: "Success rate",
+	steps: "Steps",
+	stepsDone: "{done} of {total} steps",
+	overBudget: "Over budget",
 };
 
 export const factoryFr: typeof factoryEn = {
@@ -167,4 +172,9 @@ export const factoryFr: typeof factoryEn = {
 	budgetScope: "Budget pour",
 	budgetAmount: "Budget (USD)",
 	noAssignee: "Sans assigné",
+	liveRuns: "Exécutions en direct",
+	successRate: "Taux de réussite",
+	steps: "Étapes",
+	stepsDone: "{done} étapes sur {total}",
+	overBudget: "Hors budget",
 };

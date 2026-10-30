@@ -8,16 +8,17 @@ import {
 	ReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { useReducedMotion } from "motion/react";
 import { useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { RunStep, type StepStatus } from "../molecules/run-step";
-import { useDark } from "./use-dark";
 
 export type GraphStep = { id: string; needs: string[]; state: StepStatus; units?: number };
 
 type Data = { step: GraphStep };
 
-const COL = 170;
-const ROW = 64;
+const COL = 180;
+const ROW = 72;
 
 function StepNode({ data }: NodeProps<Node<Data>>) {
 	const { step } = data;
@@ -38,7 +39,10 @@ function StepNode({ data }: NodeProps<Node<Data>>) {
 const NODE_TYPES = { step: StepNode };
 
 /** A step sits one row below its deepest need. A cycle or an unknown need counts as no need. */
-export function layout(steps: GraphStep[]): { nodes: Node<Data>[]; edges: Edge[] } {
+export function layout(
+	steps: GraphStep[],
+	animate = false,
+): { nodes: Node<Data>[]; edges: Edge[] } {
 	const ids = new Set(steps.map((s) => s.id));
 	const depth = new Map<string, number>();
 	const depthOf = (s: GraphStep, seen: Set<string>): number => {
@@ -60,28 +64,57 @@ export function layout(steps: GraphStep[]): { nodes: Node<Data>[]; edges: Edge[]
 		used.set(d, col + 1);
 		return { id: step.id, type: "step", position: { x: col * COL, y: d * ROW }, data: { step } };
 	});
+	// The edge into a running step carries the flow: accent and, unless motion is reduced, moving.
 	const edges = steps.flatMap((s) =>
 		s.needs
 			.filter((n) => ids.has(n))
-			.map((n): Edge => ({ id: `${n}>${s.id}`, source: n, target: s.id })),
+			.map((n): Edge => {
+				const live = s.state === "running";
+				const done = s.state === "done";
+				return {
+					id: `${n}>${s.id}`,
+					source: n,
+					target: s.id,
+					animated: live && animate,
+					style: {
+						stroke: live ? "var(--accent)" : done ? "var(--success)" : "var(--n-8)",
+						strokeWidth: live ? 2 : 1.5,
+					},
+				};
+			}),
 	);
 	return { nodes, edges };
 }
 
 /**
- * The workflow of a run as a graph, one node for each step. Nothing is draggable and no edge moves:
- * only the dot of a running step pulses, and reduced motion stops that.
+ * The workflow of a run as a graph on a dark canvas, one node for each step. Nothing is draggable.
+ * A running step glows and the edges into it flow; reduced motion stops the flow.
  */
-export function RunGraph({ steps, label }: { steps: GraphStep[]; label: string }) {
-	const dark = useDark();
-	const { nodes, edges } = useMemo(() => layout(steps), [steps]);
+export function RunGraph({
+	steps,
+	label,
+	className,
+}: {
+	steps: GraphStep[];
+	label: string;
+	className?: string;
+}) {
+	const animate = !useReducedMotion();
+	const { nodes, edges } = useMemo(() => layout(steps, animate), [steps, animate]);
 	return (
-		<section aria-label={label} className="h-64 rounded-md border border-n-7">
+		<section
+			aria-label={label}
+			className={cn(
+				"h-72 overflow-hidden rounded-lg border bg-surface-0 bg-radial-[at_50%_0%] from-accent-soft to-transparent to-70% canvas-dark",
+				className,
+			)}
+		>
 			<ReactFlow
 				nodes={nodes}
 				edges={edges}
 				nodeTypes={NODE_TYPES}
-				colorMode={dark ? "dark" : "light"}
+				colorMode="dark"
+				style={{ background: "transparent" }}
 				fitView
 				nodesDraggable={false}
 				nodesConnectable={false}
@@ -89,7 +122,7 @@ export function RunGraph({ steps, label }: { steps: GraphStep[]; label: string }
 				zoomOnScroll={false}
 				proOptions={{ hideAttribution: true }}
 			>
-				<Background />
+				<Background color="var(--n-6)" gap={16} />
 			</ReactFlow>
 		</section>
 	);

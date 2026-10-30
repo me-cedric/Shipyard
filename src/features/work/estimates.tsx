@@ -24,11 +24,13 @@ import {
 	ArrowDownTrayIcon,
 	ArrowUpTrayIcon,
 	Cog6ToothIcon,
+	CurrencyIcon,
 	LockClosedIcon,
 	PlusIcon,
 } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
-import { Stat } from "@/ui/molecules/stat";
+import { Panel } from "@/ui/molecules/panel";
+import { StatStrip } from "@/ui/molecules/stat-strip";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
@@ -191,7 +193,7 @@ export function Estimates() {
 
 	if (locked && seal)
 		return (
-			<ListDetail title={t.tabs.work.estimates}>
+			<ListDetail title={t.tabs.work.estimates} icon={<CurrencyIcon size={16} />}>
 				<div className="flex items-center gap-2 p-4">
 					<LockClosedIcon size={14} />
 					<span className="text-ui text-n-11">{e.locked}</span>
@@ -201,7 +203,7 @@ export function Estimates() {
 		);
 	if (list.length === 0)
 		return (
-			<ListDetail title={t.tabs.work.estimates}>
+			<ListDetail title={t.tabs.work.estimates} icon={<CurrencyIcon size={16} />}>
 				<div className="flex flex-col gap-2 p-4">
 					<EmptyState
 						action={{
@@ -216,9 +218,23 @@ export function Estimates() {
 
 	const item = list.find((s) => s.slug === slug);
 	const totals = sheet?.totals;
+	const dayOf = (id: string) => sheet?.days[id] ?? 0;
+	const byFeature = (sheet?.sheet.features ?? [])
+		.map((f) => ({ name: f.name, days: f.tasks.reduce((a, x) => a + dayOf(x.id), 0) }))
+		.sort((a, b) => b.days - a.days);
+	const largest = [...lines].sort((a, b) => dayOf(b.task.id) - dayOf(a.task.id)).slice(0, 5);
+	const maxDays = Math.max(1, ...byFeature.map((f) => f.days));
 	return (
 		<ListDetail
 			title={t.tabs.work.estimates}
+			icon={<CurrencyIcon size={16} />}
+			count={lines.length}
+			action={
+				<Button variant="primary" disabled={!sheet} onClick={() => openTask(null)}>
+					<PlusIcon size={14} />
+					{e.task}
+				</Button>
+			}
 			toolbar={
 				<>
 					<Select
@@ -252,10 +268,6 @@ export function Estimates() {
 					<IconButton label={e.export} disabled={!sheet} onClick={() => void exportExcel()}>
 						<ArrowUpTrayIcon size={14} />
 					</IconButton>
-					<Button variant="primary" disabled={!sheet} onClick={() => openTask(null)}>
-						<PlusIcon size={14} />
-						{e.task}
-					</Button>
 				</>
 			}
 		>
@@ -274,6 +286,29 @@ export function Estimates() {
 					{item.error}
 				</p>
 			) : null}
+			{sheet && totals ? (
+				<StatStrip
+					className="px-4 pb-3 lg:grid-cols-5"
+					items={[
+						{ label: e.days, value: figure(totals.days, lang), tone: "accent" },
+						{ label: e.cost, value: money(totals.cost, currency, lang), tone: "info" },
+						{ label: e.price, value: money(totals.price, currency, lang), tone: "accent" },
+						{
+							label: e.marginAmount,
+							value: money(totals.margin, currency, lang),
+							tone: (totals.margin ?? 0) < 0 ? "danger" : "success",
+						},
+						{
+							label: e.margin,
+							value:
+								sheet.sheet.marginRate == null
+									? "—"
+									: `${figure(sheet.sheet.marginRate * 100, lang)} %`,
+							tone: "success",
+						},
+					]}
+				/>
+			) : null}
 			{view === "backlog" && sheet ? (
 				lines.length === 0 ? (
 					<div className="p-4">
@@ -286,33 +321,55 @@ export function Estimates() {
 						/>
 					</div>
 				) : (
-					<DataTable
-						label={e.views.backlog}
-						data={lines}
-						columns={columns}
-						rowId={(r) => r.task.id}
-						group={(r) => r.feature.name}
-						onOpen={(r) => openTask(r.task.id)}
-						selected={selected}
-					/>
+					<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
+						<DataTable
+							label={e.views.backlog}
+							data={lines}
+							columns={columns}
+							rowId={(r) => r.task.id}
+							group={(r) => r.feature.name}
+							onOpen={(r) => openTask(r.task.id)}
+							selected={selected}
+						/>
+					</div>
 				)
 			) : null}
 			{view === "summary" && sheet && totals ? (
-				<div className="flex flex-col gap-4 p-4">
-					<dl className="flex flex-wrap gap-x-8 gap-y-4">
-						<Stat label={e.days} value={figure(totals.days, lang)} />
-						<Stat label={e.cost} value={money(totals.cost, currency, lang)} />
-						<Stat label={e.price} value={money(totals.price, currency, lang)} />
-						<Stat label={e.marginAmount} value={money(totals.margin, currency, lang)} />
-						<Stat
-							label={e.margin}
-							value={
-								sheet.sheet.marginRate == null
-									? "—"
-									: `${figure(sheet.sheet.marginRate * 100, lang)} %`
-							}
-						/>
-					</dl>
+				<div className="flex flex-col gap-4 px-4 pb-4">
+					<div className="grid gap-4 xl:grid-cols-2">
+						<Panel title={e.feature} count={byFeature.length}>
+							{byFeature.map((f) => (
+								<div key={f.name} className="flex items-center gap-3 px-1 text-ui">
+									<span className="w-40 shrink-0 truncate">{f.name}</span>
+									<span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-n-4">
+										<span
+											className="block h-full rounded-full bg-accent-gradient"
+											style={{ width: `${(f.days / maxDays) * 100}%` }}
+										/>
+									</span>
+									<span className="w-16 shrink-0 text-right font-mono text-12">
+										{format(e.computed, { days: figure(f.days, lang) })}
+									</span>
+								</div>
+							))}
+						</Panel>
+						<Panel title={e.task} count={largest.length} flush>
+							{largest.map((l) => (
+								<button
+									key={l.task.id}
+									type="button"
+									onClick={() => openTask(l.task.id)}
+									className="flex h-10 items-center gap-3 border-b px-3 text-left text-ui last:border-b-0 hover:bg-n-3"
+								>
+									<span className="min-w-0 flex-1 truncate">{l.task.name}</span>
+									<span className="truncate text-12 text-n-11">{l.feature.name}</span>
+									<span className="w-16 shrink-0 text-right font-mono text-12">
+										{format(e.computed, { days: figure(dayOf(l.task.id), lang) })}
+									</span>
+								</button>
+							))}
+						</Panel>
+					</div>
 					{totals.unrated.length > 0 ? (
 						<p className="flex items-center gap-2 text-ui">
 							<StatusDot status="warning" label={e.unrated} />
@@ -322,28 +379,32 @@ export function Estimates() {
 				</div>
 			) : null}
 			{view === "spread" && sheet ? (
-				<DataTable
-					label={e.views.spread}
-					data={sheet.spread.map((m) => ({ month: m.month, days: m.days, cost: m.cost }))}
-					columns={spread}
-					rowId={(r) => r.month}
-					footer={[e.total, figure(totals?.days, lang), money(totals?.cost, currency, lang)]}
-				/>
+				<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
+					<DataTable
+						label={e.views.spread}
+						data={sheet.spread.map((m) => ({ month: m.month, days: m.days, cost: m.cost }))}
+						columns={spread}
+						rowId={(r) => r.month}
+						footer={[e.total, figure(totals?.days, lang), money(totals?.cost, currency, lang)]}
+					/>
+				</div>
 			) : null}
 			{view === "portfolio" && portfolio ? (
-				<DataTable
-					label={e.views.portfolio}
-					data={portfolio.sheets.map(([name, tt]) => ({ name, ...tt }))}
-					columns={portfolioCols}
-					rowId={(r) => r.name}
-					footer={[
-						e.total,
-						figure(portfolio.total.days, lang),
-						money(portfolio.total.cost, currency, lang),
-						money(portfolio.total.price, currency, lang),
-						money(portfolio.total.margin, currency, lang),
-					]}
-				/>
+				<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
+					<DataTable
+						label={e.views.portfolio}
+						data={portfolio.sheets.map(([name, tt]) => ({ name, ...tt }))}
+						columns={portfolioCols}
+						rowId={(r) => r.name}
+						footer={[
+							e.total,
+							figure(portfolio.total.days, lang),
+							money(portfolio.total.cost, currency, lang),
+							money(portfolio.total.price, currency, lang),
+							money(portfolio.total.margin, currency, lang),
+						]}
+					/>
+				</div>
 			) : null}
 			{excel ? (
 				<ExcelDialog

@@ -107,7 +107,12 @@
 	--shadow-glow: var(--accent-glow);
 }
 
-/* Theme: data-theme="light|dark|system" on <html>. No attribute means system. */
+/*
+ * Theme: data-theme="light|dark|system" on <html>. No attribute means system.
+ * A `.canvas-dark` block declares the tokens again under its own dark scheme, so the light-dark()
+ * pairs resolve dark inside it in both themes: the run graph, the agents map, the event tail.
+ */
+.canvas-dark,
 :root {
 	color-scheme: light dark;
 	--row-h: 28px;
@@ -198,7 +203,12 @@
 	color-scheme: dark;
 }
 
+.canvas-dark {
+	color-scheme: dark;
+}
+
 /* A project can override the accent. Only the hue changes. */
+:root[data-accent] .canvas-dark,
 :root[data-accent] {
 	--accent: oklch(0.757 0.147 var(--accent-hue));
 	--accent-hover: light-dark(oklch(0.7 0.15 var(--accent-hue)), oklch(0.8 0.13 var(--accent-hue)));
@@ -230,6 +240,7 @@
 }
 
 /* Stronger text and borders. */
+:root[data-contrast="high"] .canvas-dark,
 :root[data-contrast="high"] {
 	--n-6: light-dark(oklch(0.78 0.01 250), oklch(0.42 0.015 250));
 	--n-7: light-dark(oklch(0.62 0.012 250), oklch(0.52 0.016 250));

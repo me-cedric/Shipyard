@@ -24,12 +24,14 @@ async function renderTab(tab: React.ReactNode) {
 }
 
 describe("Factory tabs", () => {
-	// jsdom has no matchMedia: the graph reads the colour scheme.
+	// jsdom has no matchMedia: the graph reads the colour scheme and the motion preference.
 	beforeEach(() => {
 		window.matchMedia = ((query: string) => ({
 			matches: false,
 			media: query,
-		})) as typeof window.matchMedia;
+			addEventListener: () => {},
+			removeEventListener: () => {},
+		})) as unknown as typeof window.matchMedia;
 	});
 
 	it("Workflows: two groups with counts, from the mock", async () => {

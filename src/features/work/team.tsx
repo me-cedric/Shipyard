@@ -1,3 +1,4 @@
+import { motion } from "motion/react";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
@@ -7,9 +8,10 @@ import { type Member, useSealState, useTeam, useWorkActions } from "@/lib/work";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
-import { LockClosedIcon, PlusIcon, TrashIcon } from "@/ui/icons";
+import { LockClosedIcon, PlusIcon, TrashIcon, UsersIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
-import { MemberRow } from "@/ui/molecules/member-row";
+import { MemberCard } from "@/ui/molecules/member-card";
+import { LIST, useEnter } from "@/ui/motion";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { useGuard } from "./guard";
 import { NoProject } from "./no-project";
@@ -224,6 +226,7 @@ export function Team() {
 	const [selected, setSelected] = useState<string | null>(null);
 	const members = view.data?.team.members ?? [];
 	const locked = view.data?.locked ?? false;
+	const enter = useEnter();
 
 	if (active === undefined || view.isLoading) return null;
 	if (active === null) return <NoProject title={t.tabs.work.team} />;
@@ -235,23 +238,24 @@ export function Team() {
 	return (
 		<ListDetail
 			title={t.tabs.work.team}
+			icon={<UsersIcon size={16} />}
+			count={members.length}
+			action={
+				empty ? null : (
+					<Button variant="primary" onClick={add}>
+						<PlusIcon size={14} />
+						{t.work.team.add}
+					</Button>
+				)
+			}
 			toolbar={
-				<>
-					{locked && seal ? (
-						<>
-							<LockClosedIcon size={14} />
-							<span className="text-ui text-n-11">{t.work.team.lockedRate}</span>
-							<SealBar state={seal} />
-						</>
-					) : null}
-					<span className="flex-1" />
-					{empty ? null : (
-						<Button variant="primary" onClick={add}>
-							<PlusIcon size={14} />
-							{t.work.team.add}
-						</Button>
-					)}
-				</>
+				locked && seal ? (
+					<>
+						<LockClosedIcon size={14} />
+						<span className="text-ui text-n-11">{t.work.team.lockedRate}</span>
+						<SealBar state={seal} />
+					</>
+				) : undefined
 			}
 		>
 			{view.data?.error ? (
@@ -266,14 +270,21 @@ export function Team() {
 					/>
 				</div>
 			) : (
-				<div className="min-h-0 flex-1 overflow-auto">
+				<motion.div
+					variants={LIST}
+					initial={enter}
+					animate="shown"
+					className="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-3 overflow-auto px-4 pb-4"
+				>
 					{members.map((m) => (
-						<MemberRow
+						<MemberCard
 							key={m.handle}
 							name={m.name}
 							handle={m.handle}
 							job={m.role}
-							capacity={format(t.work.team.perWeek, { days: m.capacity ?? 0 })}
+							capacity={m.capacity ?? 0}
+							capacityText={format(t.work.team.perWeek, { days: m.capacity ?? 0 })}
+							capacityLabel={format(t.work.capacity, { days: m.capacity ?? 0 })}
 							skills={m.skills}
 							rate={m.dayRate != null ? format(t.work.team.perDay, { rate: m.dayRate }) : undefined}
 							lockedLabel={m.dayRate == null && locked ? t.work.team.lockedRate : undefined}
@@ -284,7 +295,7 @@ export function Team() {
 							}}
 						/>
 					))}
-				</div>
+				</motion.div>
 			)}
 		</ListDetail>
 	);

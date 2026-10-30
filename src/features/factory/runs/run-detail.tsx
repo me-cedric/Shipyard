@@ -2,18 +2,33 @@ import { useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { useRunActions, useRunDiff, useRunLog, useRuns, useWorkflow } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
-import type { RunState } from "@/lib/ipc";
+import type { RunState, RunView } from "@/lib/ipc";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { Progress } from "@/ui/atoms/progress";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { FindingRow } from "@/ui/molecules/finding-row";
-import { RUN_STATUS } from "@/ui/molecules/run-card";
-import { Stat } from "@/ui/molecules/stat";
+import { Panel } from "@/ui/molecules/panel";
+import { RUN_STATUS, STATUS_BADGE } from "@/ui/molecules/run-card";
+import { SpendMeter } from "@/ui/molecules/spend-meter";
+import { StatStrip } from "@/ui/molecules/stat-strip";
 import { RunGraph } from "@/ui/organisms/run-graph";
 
 const ENDED: RunState[] = ["Merged", "Done", "Failed", "Cancelled"];
 const SEVERITY = { P0: "danger", P1: "warning", P2: "info" } as const;
+
+/** The steps done out of all steps, and the step that works now. */
+export function progressOf(run: RunView) {
+	const running = run.steps.find((s) => s.state === "running");
+	return {
+		done: run.steps.filter((s) => s.state === "done").length,
+		total: run.steps.length,
+		agent: running?.id,
+		live: running !== undefined,
+	};
+}
 
 /** Pretty-prints a JSON payload. A text that is not JSON stays as it is. */
 export function pretty(payload: string): string {
@@ -24,7 +39,7 @@ export function pretty(payload: string): string {
 	}
 }
 
-/** The run view, in the inspector: graph, actions, cost, findings, diff and event tail (factory REQ-027, REQ-028). */
+/** The run view: actions, cost, graph, findings, diff and event tail (factory REQ-027, REQ-028). */
 export function RunDetail({ id }: { id: string }) {
 	const { t } = useI18n();
 	const f = t.factory;
@@ -39,14 +54,21 @@ export function RunDetail({ id }: { id: string }) {
 	if (!run) return null;
 	const n = (v: number | null, fmt: (x: number) => string) => (v === null ? "-" : fmt(v));
 	const usd = (x: number) => `$${x.toFixed(2)}`;
+	const status = RUN_STATUS[run.state];
+	const p = progressOf(run);
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="flex items-center gap-2">
-				<span className="font-mono text-12 text-n-11">{run.key}</span>
-				<StatusDot status={RUN_STATUS[run.state]} label={f.state[run.state]} />
-				<span className="text-12">{f.state[run.state]}</span>
+			<div className="flex flex-col gap-1.5">
+				<div className="flex items-center gap-2">
+					<span className="font-mono text-12 text-n-11">{run.key}</span>
+					<Badge variant={STATUS_BADGE[status]}>
+						<StatusDot status={status} label={f.state[run.state]} className="size-2" />
+						{f.state[run.state]}
+					</Badge>
+					<Badge className="font-mono">{run.workflow}</Badge>
+				</div>
+				<p className="text-16 font-semibold text-n-12">{run.title}</p>
 			</div>
-			<p className="text-ui font-medium">{run.title}</p>
 			<div className="flex flex-wrap items-center gap-2">
 				{run.state === "PlanReview" ? (
 					<>
@@ -96,12 +118,37 @@ export function RunDetail({ id }: { id: string }) {
 					{error}
 				</p>
 			) : null}
-			<dl className="flex flex-wrap gap-3">
-				<Stat label={f.cost} value={n(run.costUsd, usd)} />
-				<Stat label={f.budget} value={n(run.budgetUsd, usd)} />
-				<Stat label={f.tokens} value={String(run.tokens)} />
-				<Stat label={f.turns} value={String(run.turns)} />
-			</dl>
+			<StatStrip
+				items={[
+					{
+						label: f.cost,
+						value: n(run.costUsd, usd),
+						delta: run.budgetUsd === null ? undefined : `/ ${usd(run.budgetUsd)}`,
+						tone: "info",
+						extra: (
+							<SpendMeter
+								usd={run.costUsd ?? 0}
+								budget={run.budgetUsd}
+								label={`${f.cost} ${run.key}`}
+							/>
+						),
+					},
+					{
+						label: f.steps,
+						value: `${p.done}/${p.total}`,
+						tone: "accent",
+						extra: (
+							<Progress
+								value={p.done}
+								max={p.total}
+								label={format(f.stepsDone, { done: p.done, total: p.total })}
+							/>
+						),
+					},
+					{ label: f.tokens, value: run.tokens.toLocaleString(), tone: "accent" },
+					{ label: f.turns, value: String(run.turns), tone: "accent" },
+				]}
+			/>
 			{workflow ? (
 				<RunGraph
 					label={f.workflow}
@@ -117,10 +164,7 @@ export function RunDetail({ id }: { id: string }) {
 				/>
 			) : null}
 			{run.findings.length ? (
-				<section aria-label={f.findings}>
-					<h3 className="text-12 font-medium text-n-11">
-						{format(t.count, { name: f.findings, count: run.findings.length })}
-					</h3>
+				<Panel title={f.findings} count={run.findings.length} tone="warning" flush>
 					{run.findings.map((x, i) => (
 						<FindingRow
 							// biome-ignore lint/suspicious/noArrayIndexKey: the findings never reorder
@@ -137,16 +181,13 @@ export function RunDetail({ id }: { id: string }) {
 							}
 						/>
 					))}
-				</section>
+				</Panel>
 			) : null}
 			{diff.length ? (
-				<section aria-label={f.diff}>
-					<h3 className="text-12 font-medium text-n-11">
-						{format(t.count, { name: f.diff, count: diff.length })}
-					</h3>
+				<Panel title={f.diff} count={diff.length} flush>
 					{diff.map((d) => (
-						<div key={d.path}>
-							<p className="font-mono text-11 text-n-11">{d.path}</p>
+						<div key={d.path} className="border-b last:border-b-0">
+							<p className="bg-n-2 px-3 py-1 font-mono text-11 text-n-11">{d.path}</p>
 							<DiffView
 								text={d.text}
 								binary={d.binary}
@@ -157,27 +198,37 @@ export function RunDetail({ id }: { id: string }) {
 							/>
 						</div>
 					))}
-				</section>
+				</Panel>
 			) : null}
-			<section aria-label={f.log}>
-				<h3 className="text-12 font-medium text-n-11">
-					{format(t.count, { name: f.log, count: log.events.length })}
-				</h3>
-				<ol className="flex flex-col gap-1">
+			<Panel
+				title={f.log}
+				count={log.events.length}
+				flush
+				className="canvas-dark"
+				bodyClassName="bg-surface-0"
+			>
+				<ol className="flex flex-col p-3 font-mono text-11 leading-5 text-n-12">
 					{log.events.map((e) => (
-						<li key={e.id} className="border-b pb-1">
-							<span className="font-mono text-11 text-n-11">
-								{e.step ? `${e.step} ` : ""}
-								{e.kind}
+						<li key={e.id} className="flex gap-2 whitespace-pre-wrap">
+							<span aria-hidden="true" className="select-none text-n-9">
+								$
 							</span>
-							<pre className="overflow-x-auto font-mono text-11">{pretty(e.payload)}</pre>
+							<span className="min-w-0 flex-1">
+								<span className="text-accent-text">{e.step ? `${e.step} ` : ""}</span>
+								<span className="text-success-text">{e.kind}</span>
+								<pre className="overflow-x-auto text-n-11">{pretty(e.payload)}</pre>
+							</span>
 						</li>
 					))}
 				</ol>
 				{log.hasNextPage ? (
-					<Button onClick={() => void log.fetchNextPage()}>{f.more}</Button>
+					<div className="border-t p-2">
+						<Button variant="ghost" onClick={() => void log.fetchNextPage()}>
+							{f.more}
+						</Button>
+					</div>
 				) : null}
-			</section>
+			</Panel>
 		</div>
 	);
 }

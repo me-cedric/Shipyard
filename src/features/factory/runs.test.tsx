@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER } from "@/lib/ipc/mock";
-import { ShellProvider, useShell } from "@/lib/shell";
+import { ShellProvider } from "@/lib/shell";
 import { renderApp } from "@/ui/test-utils";
 import { Runs } from "./index";
 
@@ -15,18 +15,11 @@ const LANES = [
 	["done", "Done"],
 ] as const;
 
-/** Stands in for the inspector of the shell. */
-function Panel() {
-	const { detail } = useShell();
-	return <aside aria-label="panel">{detail?.node}</aside>;
-}
-
 async function renderRuns() {
 	await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 	return renderApp(
 		<ShellProvider>
 			<Runs />
-			<Panel />
 		</ShellProvider>,
 	);
 }
@@ -37,12 +30,14 @@ const find = async (key: string) => {
 };
 
 describe("Factory / Runs", () => {
-	// jsdom has no matchMedia: the graph reads the colour scheme.
+	// jsdom has no matchMedia: the graph reads the colour scheme and the motion preference.
 	beforeEach(() => {
 		window.matchMedia = ((query: string) => ({
 			matches: false,
 			media: query,
-		})) as typeof window.matchMedia;
+			addEventListener: () => {},
+			removeEventListener: () => {},
+		})) as unknown as typeof window.matchMedia;
 	});
 
 	it("shows six lanes with a count each, from the mock dataset", async () => {
@@ -81,7 +76,8 @@ describe("Factory / Runs", () => {
 		const card = await screen.findByRole("button", { name: /ACME-2/ });
 		card.focus();
 		await user.keyboard("{Enter}");
-		const panel = await screen.findByRole("complementary", { name: "panel" });
+		// The run view opens wide, next to the lanes.
+		const panel = await screen.findByRole("complementary", { name: "ACME-2" });
 		const graph = await within(panel).findByRole("region", { name: "Workflow" });
 		// jsdom measures no node, so xyflow keeps each one hidden.
 		const node = (id: string) => within(graph).findByTestId(`rf__node-${id}`);
@@ -98,7 +94,7 @@ describe("Factory / Runs", () => {
 		const user = userEvent.setup();
 		await renderRuns();
 		await user.click(await screen.findByRole("button", { name: /ACME-2/ }));
-		const panel = await screen.findByRole("complementary", { name: "panel" });
+		const panel = await screen.findByRole("complementary", { name: "ACME-2" });
 		await user.click(await within(panel).findByRole("button", { name: "Kill run" }));
 		await waitFor(async () => expect((await find("ACME-2")).state).toBe("Cancelled"));
 	});
@@ -106,12 +102,12 @@ describe("Factory / Runs", () => {
 	it("unblocks and resumes from the run view", async () => {
 		const user = userEvent.setup();
 		await renderRuns();
-		const panel = await screen.findByRole("complementary", { name: "panel" });
 		for (const [key, button, to] of [
 			["ACME-9", "Unblock", "Working"],
 			["ACME-6", "Resume", "Working"],
 		] as const) {
 			await user.click(await screen.findByRole("button", { name: new RegExp(key) }));
+			const panel = await screen.findByRole("complementary", { name: key });
 			if (button === "Resume")
 				await user.type(
 					await within(panel).findByRole("textbox", { name: "Added budget (USD)" }),

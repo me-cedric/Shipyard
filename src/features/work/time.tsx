@@ -5,8 +5,10 @@ import type { TimeState } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { useWorkItems } from "@/lib/sync";
 import {
+	addDays,
 	addMonths,
 	formatMinutes,
+	isoWeekday,
 	monthLabel,
 	parseDuration,
 	type TimeRow,
@@ -21,8 +23,10 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
-import { ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon } from "@/ui/icons";
+import { ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, PlusIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Panel } from "@/ui/molecules/panel";
+import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { useGuard } from "./guard";
@@ -50,6 +54,78 @@ type Line = {
 };
 
 const firstLine = (s: string) => s.split("\n")[0] ?? "";
+
+/** The weeks of a month, Monday first: each cell is a day of the month or null. */
+export function monthWeeks(month: string): (string | null)[][] {
+	const first = `${month}-01`;
+	const cells: (string | null)[] = Array(isoWeekday(first) - 1).fill(null);
+	for (let d = first; d.startsWith(month); d = addDays(d, 1)) cells.push(d);
+	while (cells.length % 7) cells.push(null);
+	return Array.from({ length: cells.length / 7 }, (_, i) => cells.slice(i * 7, i * 7 + 7));
+}
+
+/** The logged hours of each day of the month, as a heatmap: the more hours, the stronger the accent. */
+function Heatmap({ month, lines, title }: { month: string; lines: Line[]; title: string }) {
+	const { t, lang } = useI18n();
+	const total = new Map<string, number>();
+	for (const l of lines) if (l.day) total.set(l.day, (total.get(l.day) ?? 0) + l.minutes);
+	const max = Math.max(480, ...total.values());
+	const weeks = monthWeeks(month);
+	const names = (weeks[1] ?? weeks[0] ?? []).map((d) =>
+		d
+			? new Date(`${d}T00:00:00Z`).toLocaleDateString(lang, { weekday: "narrow", timeZone: "UTC" })
+			: "",
+	);
+	return (
+		<Panel title={title} className="self-start">
+			<table className="w-full border-separate border-spacing-1 text-center">
+				<thead>
+					<tr>
+						{names.map((n, i) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: seven fixed weekdays
+							<th key={i} scope="col" className="text-11 font-medium text-n-10">
+								{n}
+							</th>
+						))}
+					</tr>
+				</thead>
+				<tbody>
+					{weeks.map((w) => (
+						<tr key={w.find(Boolean) ?? ""}>
+							{w.map((d, i) => {
+								const m = d ? (total.get(d) ?? 0) : 0;
+								return (
+									<td
+										// biome-ignore lint/suspicious/noArrayIndexKey: seven fixed weekdays
+										key={i}
+										className="h-11 rounded-md p-0 align-middle"
+										style={
+											d
+												? {
+														background: `color-mix(in oklch, var(--accent) ${m ? 18 + Math.round((m / max) * 62) : 0}%, var(--n-3))`,
+														boxShadow: m >= max ? "var(--accent-glow)" : undefined,
+													}
+												: undefined
+										}
+									>
+										{d ? (
+											<span className="flex flex-col leading-4">
+												<span className="text-11 text-n-11">{Number(d.slice(8))}</span>
+												<span className="font-mono text-11 text-n-12">
+													{m ? format(t.work.hoursShort, { hours: +(m / 60).toFixed(1) }) : ""}
+												</span>
+											</span>
+										) : null}
+									</td>
+								);
+							})}
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</Panel>
+	);
+}
 
 /** Work / Time: the entries of one member and month. A send is one click on one entry (REQ-020 to REQ-024). */
 export function Time() {
@@ -214,6 +290,16 @@ export function Time() {
 	return (
 		<ListDetail
 			title={t.tabs.work.time}
+			icon={<ClockIcon size={16} />}
+			count={lines.length}
+			action={
+				adding ? null : (
+					<Button variant="primary" disabled={!data} onClick={() => setAdding(true)}>
+						<PlusIcon size={14} />
+						{e.add}
+					</Button>
+				)
+			}
 			toolbar={
 				<>
 					<IconButton label={e.previous} onClick={() => setMonth(addMonths(shownMonth, -1))}>
@@ -241,12 +327,6 @@ export function Time() {
 							{format(t.work.missing, { name: t.connections.flag.timeTracking })}
 						</span>
 					) : null}
-					{adding ? null : (
-						<Button variant="primary" disabled={!data} onClick={() => setAdding(true)}>
-							<PlusIcon size={14} />
-							{e.add}
-						</Button>
-					)}
 				</>
 			}
 		>
@@ -314,14 +394,45 @@ export function Time() {
 				</div>
 			) : null}
 			{data && lines.length > 0 ? (
-				<DataTable
-					label={t.tabs.work.time}
-					data={lines}
-					columns={columns}
-					rowId={(r) => r.id}
-					group={(r) => r.state}
-					groupLabel={(g) => e.state[g as TimeState]}
-				/>
+				<div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4">
+					<StatStrip
+						items={[
+							{
+								label: e.duration,
+								value: formatMinutes(lines.reduce((a, l) => a + l.minutes, 0)),
+								icon: <ClockIcon size={12} />,
+								tone: "accent",
+							},
+							...STATE_ORDER.map((s) => ({
+								label: e.state[s],
+								value: String(lines.filter((l) => l.state === s).length),
+								tone: (s === "to-send" ? "warning" : s === "in-tracker" ? "success" : "info") as
+									| "warning"
+									| "success"
+									| "info",
+							})),
+						]}
+					/>
+					<div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[22rem_1fr]">
+						<Heatmap month={shownMonth} lines={lines} title={t.work.heatmap} />
+						<Panel
+							title={t.tabs.work.time}
+							count={lines.length}
+							flush
+							className="min-h-0"
+							bodyClassName="min-h-0 flex-1"
+						>
+							<DataTable
+								label={t.tabs.work.time}
+								data={lines}
+								columns={columns}
+								rowId={(r) => r.id}
+								group={(r) => r.state}
+								groupLabel={(g) => e.state[g as TimeState]}
+							/>
+						</Panel>
+					</div>
+				</div>
 			) : null}
 		</ListDetail>
 	);

@@ -38,13 +38,17 @@ export function PageHeader({
 			{icon ? (
 				<span
 					aria-hidden="true"
-					className="flex size-8 items-center justify-center rounded-md border bg-surface-2 text-accent-text shadow-1"
+					className="relative flex size-8 items-center justify-center rounded-md bg-accent-gradient text-accent-fg shadow-glow"
 				>
 					{icon}
 				</span>
 			) : null}
 			<h1 className="text-20 font-semibold text-n-12">{title}</h1>
-			{count === undefined ? null : <Badge>{count}</Badge>}
+			{count === undefined ? null : (
+				<Badge variant="accent" className="font-mono">
+					{count}
+				</Badge>
+			)}
 			{chips ? <div className="flex flex-wrap items-center gap-1.5">{chips}</div> : null}
 			<span className="flex-1" />
 			{action}
