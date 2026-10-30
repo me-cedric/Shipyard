@@ -660,6 +660,29 @@ fn jira_cloud_never_reads_the_field_list_nor_names_the_epic() {
 }
 
 #[test]
+fn jira_creates_with_the_issue_types_of_the_project() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.get("/rest/api/2/search/jql", 200, NO_ISSUES)
+        .post(
+            "/rest/api/2/issue",
+            r#""name":"Initiative""#,
+            201,
+            r#"{"key":"PROJ-10"}"#,
+        )
+        .post(
+            "/rest/api/2/issue",
+            r#""name":"Récit""#,
+            201,
+            r#"{"key":"PROJ-11"}"#,
+        );
+    let w = jira(TrackerKind::JiraCloud, &fake);
+    w.set_issue_types("Initiative", "Récit");
+    apply(&*w, "PROJ", &preview(&[]));
+    assert!(sent(&fake, Method::Post)[0].1.contains("Initiative"));
+    assert!(sent(&fake, Method::Post)[1].1.contains("Récit"));
+}
+
+#[test]
 fn a_flat_tracker_reports_what_it_cannot_hold() {
     let fake = Arc::new(FakeHttp::new());
     fake.get("/repos/acme/web/issues?", 200, "[]")

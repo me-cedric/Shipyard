@@ -255,7 +255,8 @@ pub(crate) fn is_due(last: Option<Instant>, every: Duration, now: Instant) -> bo
 pub(crate) fn watch_due(s: &AppState, due: &mut dyn FnMut(&str) -> bool) -> Res<Vec<WatchNotice>> {
     let mut out = Vec::new();
     for e in s.registry()?.projects() {
-        if !due(&e.id) {
+        // A project that opted out of the watch is never fetched in the background.
+        if e.overrides.remote_watch == Some(false) || !due(&e.id) {
             continue;
         }
         let Ok(r) = Repo::open(Path::new(&e.path)) else {
@@ -908,6 +909,22 @@ mod tests {
         assert_eq!(pull(&s).unwrap(), PullOutcome::FastForwarded);
         assert!(a.join("c2.txt").exists());
         assert!(watch_notice(&s).unwrap().is_none());
+    }
+
+    #[test]
+    fn a_project_that_opted_out_is_not_watched() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, _a, b) = with_remote(dir.path());
+        colleague_pushes(&b, "c1.txt");
+        crate::commands::projects::save_overrides(
+            &s,
+            shipyard_store::project::Overrides {
+                remote_watch: Some(false),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert!(watch_tick(&s).unwrap().is_empty());
     }
 
     #[test]

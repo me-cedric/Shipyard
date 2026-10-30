@@ -1,18 +1,29 @@
 import { useState } from "react";
 import { type QualityReport, useForgeActions, useQuality } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { ArrowPathIcon } from "@/ui/icons";
+import { ArrowPathIcon, CheckIcon, LockClosedIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { FindingRow } from "@/ui/molecules/finding-row";
-import { GroupSection } from "@/ui/molecules/group-section";
-import { SettingsRow } from "@/ui/molecules/settings-row";
+import { PageHeader } from "@/ui/molecules/page-header";
+import { Panel } from "@/ui/molecules/panel";
 import { withProject } from "./project-gate";
 import { SEVERITY_STATUS } from "./status";
 import { useRun } from "./use-run";
 import { FileDialog } from "./viewer";
 
 type Row = { name: string; available: boolean; last: QualityReport | null };
+
+const GRID = "grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-3 p-3";
+const LINE = { success: "bg-success", danger: "bg-danger", idle: "bg-n-7" } as const;
+const TILE = {
+	success: "bg-success-soft text-success-text",
+	danger: "bg-danger-soft text-danger-text",
+	idle: "bg-n-3 text-n-11",
+} as const;
 
 function QualityView() {
 	const { t, lang } = useI18n();
@@ -31,16 +42,37 @@ function QualityView() {
 		items.map((r) => {
 			const key = `${kind}:${r.name}`;
 			const last = r.last;
+			const status = last ? (last.passed ? "success" : "danger") : "idle";
+			const label = last ? (last.passed ? q18.passed : q18.failed) : q18.never;
 			return (
-				<div key={key}>
-					<SettingsRow label={r.name}>
-						<StatusDot
-							status={last ? (last.passed ? "success" : "danger") : "idle"}
-							label={last ? (last.passed ? q18.passed : q18.failed) : q18.never}
-						/>
+				<Card
+					key={key}
+					className={cn(
+						"relative flex flex-col gap-2 overflow-hidden p-3",
+						shown === key && "col-span-full",
+					)}
+				>
+					<span aria-hidden="true" className={cn("absolute inset-x-0 top-0 h-0.5", LINE[status])} />
+					<div className="flex items-center gap-2">
+						<span
+							aria-hidden="true"
+							className={cn(
+								"flex size-8 shrink-0 items-center justify-center rounded-md",
+								TILE[status],
+							)}
+						>
+							{kind === "check" ? <CheckIcon size={14} /> : <LockClosedIcon size={14} />}
+						</span>
+						<h3 className="min-w-0 flex-1 truncate font-mono text-ui text-n-12">{r.name}</h3>
+						<Badge variant={status === "idle" ? "neutral" : status}>
+							<StatusDot status={status} label={label} className="size-2" />
+							<span aria-hidden="true">{label}</span>
+						</Badge>
+					</div>
+					<div className="flex min-h-row items-center gap-2">
 						{last ? (
 							<>
-								<span className="text-12 text-n-11">
+								<span className="flex-1 text-12 text-n-11">
 									{format(q18.duration, { ms: last.durationMs })} ·{" "}
 									{format(q18.at, { date: date.format(new Date(last.at)) })}
 								</span>
@@ -48,10 +80,13 @@ function QualityView() {
 									{q18.findings}
 								</Button>
 							</>
-						) : null}
+						) : (
+							<span className="flex-1" />
+						)}
 						{r.available ? (
 							confirming === key ? (
 								<Button
+									variant="primary"
 									onClick={() =>
 										void run(async () => {
 											setConfirming(null);
@@ -63,7 +98,6 @@ function QualityView() {
 								</Button>
 							) : (
 								<Button
-									variant="ghost"
 									aria-label={format(q18.runName, { name: r.name })}
 									onClick={() => setConfirming(key)}
 								>
@@ -74,9 +108,9 @@ function QualityView() {
 						) : (
 							<span className="text-12 text-n-11">{q18.notInstalled}</span>
 						)}
-					</SettingsRow>
+					</div>
 					{last && shown === key ? (
-						<div>
+						<div className="-mx-3 -mb-3 border-t">
 							{last.findings.map((f, i) => (
 								<FindingRow
 									// biome-ignore lint/suspicious/noArrayIndexKey: the findings never reorder
@@ -100,24 +134,30 @@ function QualityView() {
 							) : null}
 						</div>
 					) : null}
-				</div>
+				</Card>
 			);
 		});
 
 	return (
-		<div>
-			<h1 className="sr-only">{t.tabs.code.quality}</h1>
+		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+			<PageHeader
+				icon={<CheckIcon size={16} />}
+				title={t.tabs.code.quality}
+				count={q.checks.length + q.scanners.length}
+			/>
 			{error ? (
-				<p role="alert" className="px-3 py-2 text-ui text-danger-text">
+				<p role="alert" className="px-4 py-2 text-ui text-danger-text">
 					{error}
 				</p>
 			) : null}
-			<GroupSection name={q18.checks} count={q.checks.length}>
-				{rows("check", q.checks)}
-			</GroupSection>
-			<GroupSection name={q18.scanners} count={q.scanners.length}>
-				{rows("scanner", q.scanners)}
-			</GroupSection>
+			<div className="flex flex-col gap-3 px-4 pt-1 pb-4">
+				<Panel title={q18.checks} count={q.checks.length} bodyClassName={GRID}>
+					{rows("check", q.checks)}
+				</Panel>
+				<Panel title={q18.scanners} count={q.scanners.length} bodyClassName={GRID}>
+					{rows("scanner", q.scanners)}
+				</Panel>
+			</div>
 			{viewing ? (
 				<FileDialog path={viewing.path} line={viewing.line} onClose={() => setViewing(null)} />
 			) : null}

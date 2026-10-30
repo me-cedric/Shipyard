@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { NoProject } from "@/features/work/no-project";
 import { useKillSwitch, useRunActions, useRuns, useUsage } from "@/lib/factory";
@@ -8,11 +8,10 @@ import type { Lane, RunState, RunView } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { CheckIcon, CpuChipIcon, InboxIcon, PlayIcon, XMarkIcon } from "@/ui/icons";
+import { CheckIcon, ChevronLeftIcon, CpuChipIcon, InboxIcon, PlayIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Panel, type PanelTone } from "@/ui/molecules/panel";
 import { RunCard } from "@/ui/molecules/run-card";
@@ -89,6 +88,11 @@ export function Runs() {
 	const [key, setKey] = useState("");
 	const [selected, setSelected] = useState<string | null>(null);
 	const field = useRef<HTMLInputElement>(null);
+	const back = useRef<HTMLButtonElement>(null);
+	// The sheet covers the lanes: move the focus into it when it opens.
+	useEffect(() => {
+		if (selected) back.current?.focus();
+	}, [selected]);
 	if (active === null) return <NoProject title={f.runs} />;
 	const all = runs.data ?? [];
 	const open = all.find((r) => r.id === selected);
@@ -148,7 +152,7 @@ export function Runs() {
 			) : (
 				<>
 					<RunStats runs={all} />
-					<div className="flex min-h-0 flex-1 gap-3 px-4 pt-3 pb-4">
+					<div className="relative flex min-h-0 flex-1 px-4 pt-3 pb-4">
 						<div className="flex min-h-0 min-w-0 flex-1 gap-3 overflow-x-auto pb-1">
 							{LANES.map(([lane, tone]) => {
 								const rows = all.filter((r) => r.lane === lane);
@@ -192,27 +196,31 @@ export function Runs() {
 								<motion.aside
 									key="run"
 									aria-label={open.key}
-									initial={{ opacity: 0, x: 24 }}
-									animate={{ opacity: 1, x: 0 }}
-									exit={{ opacity: 0, x: 24 }}
+									initial={{ opacity: 0, y: 16, scale: 0.99 }}
+									animate={{ opacity: 1, y: 0, scale: 1 }}
+									exit={{ opacity: 0, y: 16, scale: 0.99 }}
 									transition={SPRING.smooth}
 									onKeyDown={(e) => {
 										if (e.key === "Escape") setSelected(null);
 									}}
-									className="flex w-[min(58%,60rem)] shrink-0 flex-col overflow-hidden rounded-xl border bg-surface-1 shadow-3"
+									className="absolute inset-x-4 top-3 bottom-4 z-10 flex flex-col overflow-hidden rounded-xl border bg-surface-1 shadow-3"
 								>
-									<div className="flex h-10 shrink-0 items-center gap-2 border-b px-3">
-										<span className="flex-1 font-mono text-12 text-n-11">{open.reference}</span>
-										<IconButton
-											label={t.common.close}
-											shortcut="Esc"
+									<div className="flex h-11 shrink-0 items-center gap-2 border-b px-2">
+										<Button
+											ref={back}
+											variant="ghost"
+											aria-keyshortcuts="Escape"
 											onClick={() => setSelected(null)}
 										>
-											<XMarkIcon size={14} />
-										</IconButton>
+											<ChevronLeftIcon size={14} />
+											{t.ui.back}
+										</Button>
+										<span className="font-mono text-12 text-n-11">{open.reference}</span>
 									</div>
-									<div className="min-h-0 flex-1 overflow-y-auto p-4">
-										<RunDetail key={open.id} id={open.id} />
+									<div className="min-h-0 flex-1 overflow-y-auto">
+										<div className="mx-auto max-w-6xl p-5">
+											<RunDetail key={open.id} id={open.id} />
+										</div>
 									</div>
 								</motion.aside>
 							) : null}

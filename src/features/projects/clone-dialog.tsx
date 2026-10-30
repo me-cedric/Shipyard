@@ -5,6 +5,7 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Dialog } from "@/ui/organisms/dialog";
 import { FolderField, repoName } from "./first-run";
+import { RepoPicker } from "./repo-picker";
 
 /** Clones a repository into a folder and opens it. The switcher menu opens it. */
 export function CloneDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -46,6 +47,7 @@ export function CloneDialog({ open, onClose }: { open: boolean; onClose: () => v
 				</Button>
 			}
 		>
+			<RepoPicker onPick={setUrl} onDone={onClose} />
 			<Input
 				label={t.projects.address}
 				placeholder={t.projects.address}

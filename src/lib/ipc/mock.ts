@@ -67,6 +67,7 @@ import * as design from "./mock-design";
 import * as ex from "./mock-extensions";
 import * as fx from "./mock-factory";
 import * as kw from "./mock-knowledge";
+import { cards, chainGate, seedLinks, seedNotes } from "./mock-overview";
 import { parseRef } from "./mock-refs";
 import * as specs from "./mock-specs";
 import {
@@ -105,6 +106,11 @@ const NO_OVERRIDES: Overrides_Serialize = {
 	density: null,
 	contrast: null,
 	accent: null,
+	remoteWatch: null,
+	notifications: null,
+	profileRole: null,
+	profileTabs: null,
+	readOnly: null,
 };
 
 type State = {
@@ -642,6 +648,11 @@ const handlers: Handlers = {
 			density: o.density ?? null,
 			contrast: o.contrast ?? null,
 			accent: o.accent ?? null,
+			remoteWatch: o.remoteWatch ?? null,
+			notifications: o.notifications ?? null,
+			profileRole: o.profileRole ?? null,
+			profileTabs: o.profileTabs ?? null,
+			readOnly: o.readOnly ?? null,
 		};
 		return null;
 	},
@@ -1243,6 +1254,18 @@ const handlers: Handlers = {
 		dv.ticketsConfigSave(state.delivery, c);
 		return null;
 	},
+	ticketsLinks: () => need(seedLinks()),
+	deliveryNotes: () => need(seedNotes()),
+	projectsOverview: () => cards(state.projects),
+	projectOpenRemote: (id) => {
+		if (!cards(state.projects).find((c) => c.id === id)?.webUrl) throw "the project has no remote";
+		return null;
+	},
+	codePushTarget: () => {
+		const branch = need(code()).branch;
+		return { remote: "origin", branch, canPush: true, onDefault: branch === "main" };
+	},
+	codeChainGate: (push) => chainGate(push ? [] : codeStatus(code()).staged.map((f) => f.path)),
 	projectImport: () => ({ copied: [], skipped: [], conflicts: [] }),
 	legacyProjects: () => LEGACY.filter((k) => !state.projects.some((p) => p.path === k.path)),
 	legacyProjectOpen: (id) => {

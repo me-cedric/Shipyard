@@ -711,6 +711,8 @@ export function splitApply(
 					updated: now,
 					linked: null,
 					claimed: false,
+					estimateMinutes: null,
+					spentMinutes: null,
 				});
 		}
 		return out;

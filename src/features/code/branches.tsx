@@ -15,10 +15,13 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
-import { ArrowPathIcon, CheckIcon, PlusIcon } from "@/ui/icons";
+import { ArrowPathIcon, CheckIcon, PlusIcon, ShareIcon } from "@/ui/icons";
+import { PageHeader } from "@/ui/molecules/page-header";
+import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { ConflictPane } from "./changes";
 import { withProject } from "./project-gate";
+import { GateNotice } from "./push-target";
 import { useRun } from "./use-run";
 
 /** Create a branch as `<type>/<area>/<kebab>` from the current head (REQ-012). */
@@ -37,7 +40,7 @@ function CreateBranch({ run }: { run: (job: () => Promise<unknown>) => void }) {
 		});
 	};
 	return (
-		<form onSubmit={submit} className="flex items-center gap-2 border-b px-3 py-2">
+		<form onSubmit={submit} className="flex flex-wrap items-center gap-2">
 			<Select
 				label={t.code.type}
 				items={COMMIT_TYPES.map((c) => ({ value: c, label: c }))}
@@ -86,10 +89,14 @@ function BranchesView() {
 		{ id: "remote", title: t.code.remote, items: branches.filter((b) => b.kind === "remote") },
 	];
 	return (
-		<div>
-			<h1 className="sr-only">{t.tabs.code.branches}</h1>
-			<CreateBranch run={run} />
-			<div className="flex items-center gap-2 border-b px-3 py-1">
+		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+			<PageHeader
+				icon={<ShareIcon size={16} />}
+				title={t.tabs.code.branches}
+				count={branches.length}
+				action={<CreateBranch run={run} />}
+			/>
+			<div className="flex items-center gap-2 px-4 pb-2">
 				<Button variant="ghost" onClick={() => run(fetch)}>
 					<ArrowPathIcon size={14} />
 					{t.code.fetch}
@@ -115,6 +122,7 @@ function BranchesView() {
 					</Button>
 				)}
 			</div>
+			<GateNotice push />
 			{error ? (
 				<p role="alert" className="px-3 py-2 text-ui text-danger-text">
 					{error}
@@ -172,67 +180,77 @@ function BranchesView() {
 				</p>
 			) : null}
 			{busy ? conflicts.map((c) => <ConflictPane key={c.path} file={c} run={run} />) : null}
-			{groups.map((g) => (
-				<section key={g.id} aria-label={g.title}>
-					<h2 className="px-3 py-1 text-12 font-medium text-n-11">
-						{format(t.count, { name: g.title, count: g.items.length })}
-					</h2>
-					{g.items.map((b) => (
-						<SettingsRow
-							key={b.name}
-							icon={b.is_head ? <CheckIcon size={14} /> : undefined}
-							label={b.name}
-						>
-							{b.ahead ? <Badge>{format(t.code.ahead, { count: b.ahead })}</Badge> : null}
-							{b.behind ? <Badge>{format(t.code.behind, { count: b.behind })}</Badge> : null}
-							<Button
-								variant="ghost"
-								disabled={b.is_head}
-								onClick={() => run(() => switchBranch(b.name))}
+			<div className="grid gap-3 px-4 pt-1 pb-4 xl:grid-cols-2">
+				{groups.map((g) => (
+					<Panel
+						key={g.id}
+						title={g.title}
+						count={g.items.length}
+						tone={g.id === "local" ? "accent" : "info"}
+						flush
+						className="self-start"
+					>
+						{g.items.map((b) => (
+							<SettingsRow
+								key={b.name}
+								icon={b.is_head ? <CheckIcon size={14} /> : undefined}
+								label={b.name}
 							>
-								{t.code.switch}
-							</Button>
-							{!b.is_head && !busy ? (
-								<>
-									<Button
-										variant="ghost"
-										aria-label={format(t.code.mergeBranch, { name: b.name })}
-										onClick={() => run(async () => setMerged(await mergeBranch(b.name)))}
-									>
-										{t.code.merge}
-									</Button>
-									<Button
-										variant="ghost"
-										aria-label={format(t.code.rebaseBranch, { name: b.name })}
-										onClick={() => run(async () => setRebased(await rebaseBranch(b.name)))}
-									>
-										{t.code.rebase}
-									</Button>
-								</>
-							) : null}
-							{b.kind === "local" && !b.is_head ? (
-								confirming === b.name ? (
-									<Button
-										variant="danger"
-										onClick={() =>
-											run(async () => {
-												setConfirming(null);
-												await deleteBranch(b.name, false);
-											})
-										}
-									>
-										{format(t.code.confirmDelete, { name: b.name })}
-									</Button>
-								) : (
-									<Button variant="ghost" onClick={() => setConfirming(b.name)}>
-										{t.code.delete}
-									</Button>
-								)
-							) : null}
-						</SettingsRow>
-					))}
-				</section>
-			))}
+								{b.ahead ? (
+									<Badge variant="success">{format(t.code.ahead, { count: b.ahead })}</Badge>
+								) : null}
+								{b.behind ? (
+									<Badge variant="warning">{format(t.code.behind, { count: b.behind })}</Badge>
+								) : null}
+								<Button
+									variant="ghost"
+									disabled={b.is_head}
+									onClick={() => run(() => switchBranch(b.name))}
+								>
+									{t.code.switch}
+								</Button>
+								{!b.is_head && !busy ? (
+									<>
+										<Button
+											variant="ghost"
+											aria-label={format(t.code.mergeBranch, { name: b.name })}
+											onClick={() => run(async () => setMerged(await mergeBranch(b.name)))}
+										>
+											{t.code.merge}
+										</Button>
+										<Button
+											variant="ghost"
+											aria-label={format(t.code.rebaseBranch, { name: b.name })}
+											onClick={() => run(async () => setRebased(await rebaseBranch(b.name)))}
+										>
+											{t.code.rebase}
+										</Button>
+									</>
+								) : null}
+								{b.kind === "local" && !b.is_head ? (
+									confirming === b.name ? (
+										<Button
+											variant="danger"
+											onClick={() =>
+												run(async () => {
+													setConfirming(null);
+													await deleteBranch(b.name, false);
+												})
+											}
+										>
+											{format(t.code.confirmDelete, { name: b.name })}
+										</Button>
+									) : (
+										<Button variant="ghost" onClick={() => setConfirming(b.name)}>
+											{t.code.delete}
+										</Button>
+									)
+								) : null}
+							</SettingsRow>
+						))}
+					</Panel>
+				))}
+			</div>
 		</div>
 	);
 }

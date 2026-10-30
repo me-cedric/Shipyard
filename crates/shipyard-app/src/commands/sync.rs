@@ -379,6 +379,9 @@ pub struct WorkItemView {
     pub linked: Option<String>,
     /// This machine holds a claim on the ticket.
     pub claimed: bool,
+    /// The estimate and the time spent, in minutes, when the tracker holds them.
+    pub estimate_minutes: Option<u32>,
+    pub spent_minutes: Option<u32>,
 }
 
 fn category(c: StatusCategory) -> &'static str {
@@ -409,6 +412,16 @@ fn view(t: &Ticket, team: &Team, linked: Option<&str>, claimed: bool) -> WorkIte
         updated: i.updated.clone(),
         linked: linked.map(String::from),
         claimed,
+        estimate_minutes: i
+            .time
+            .as_ref()
+            .and_then(|x| x.estimate_minutes)
+            .map(|m| m as u32),
+        spent_minutes: i
+            .time
+            .as_ref()
+            .and_then(|x| x.spent_minutes)
+            .map(|m| m as u32),
     }
 }
 

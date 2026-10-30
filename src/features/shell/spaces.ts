@@ -3,7 +3,7 @@ import type { Role } from "@/lib/prefs";
 
 /** Spaces in default order, each with its tabs (master plan section 4). */
 export const SPACES = {
-	home: ["inbox", "my-work", "activity"],
+	home: ["inbox", "my-work", "activity", "projects"],
 	design: ["diagrams", "architecture", "decisions", "api", "data", "flows", "screens"],
 	specs: ["changes", "capabilities", "questions", "test-plans", "constitution"],
 	work: ["backlog", "board", "plan", "estimates", "team", "time"],
@@ -39,9 +39,9 @@ export const ROLE_HOME: Record<Role, SpaceId> = {
 	junior: "knowledge",
 };
 
-/** Home first, the role home next, the rest in default order, Settings last. No space is hidden. */
-export function orderedSpaces(role: Role): SpaceId[] {
-	return [...new Set<SpaceId>(["home", ROLE_HOME[role], ...SPACE_IDS])].sort(
-		(a, b) => Number(a === "settings") - Number(b === "settings"),
-	);
+/** Home first, the role home next, the rest in default order, Settings last. Home and Settings stay; a project profile can hide the others. */
+export function orderedSpaces(role: Role, only: string[] | null = null): SpaceId[] {
+	return [...new Set<SpaceId>(["home", ROLE_HOME[role], ...SPACE_IDS])]
+		.filter((s) => !only || s === "home" || s === "settings" || only.includes(s))
+		.sort((a, b) => Number(a === "settings") - Number(b === "settings"));
 }

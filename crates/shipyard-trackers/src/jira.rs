@@ -30,6 +30,8 @@ pub struct Jira {
     pub(crate) flavor: Flavor,
     /// The custom fields of epics, read once from `/field` (Data Center only).
     pub(crate) epic: Mutex<Option<EpicFields>>,
+    /// The names of the epic and story issue types of the project. `None` keeps `Epic` and `Story`.
+    pub(crate) types: Mutex<Option<(String, String)>>,
 }
 
 /// The ids of the two custom fields that Data Center needs for epics.
@@ -49,6 +51,7 @@ impl Jira {
             auth: Auth::Basic(email, token),
             flavor: Flavor::Cloud,
             epic: Mutex::default(),
+            types: Mutex::default(),
         }
     }
 
@@ -59,6 +62,7 @@ impl Jira {
             auth: Auth::Bearer(token),
             flavor: Flavor::DataCenter,
             epic: Mutex::default(),
+            types: Mutex::default(),
         }
     }
 

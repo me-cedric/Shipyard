@@ -70,7 +70,7 @@ export const shortcutText = (key: string) => `${MAC ? "⌘" : "Ctrl+"}${key.toUp
 /** The one registry. The palette, the context bar and the status bar read it. */
 export function useActions() {
 	const { t, setLang } = useI18n();
-	const { role, sidebarOpen, setPrefs } = usePrefs();
+	const { role, sidebarOpen, setPrefs, profile } = usePrefs();
 	const navigate = useNavigate();
 	const shell = useShell();
 	const { openFolder, close } = useProjectActions();
@@ -96,7 +96,7 @@ export function useActions() {
 			...a,
 			shortcut: shortcutText(a.key),
 		});
-		const spaces = orderedSpaces(role).map((space, i) =>
+		const spaces = orderedSpaces(role, profile.tabs).map((space, i) =>
 			withKey({
 				id: `go-${space}`,
 				label: t.space[space],
@@ -136,7 +136,8 @@ export function useActions() {
 			id: "commit",
 			label: t.shell.commit,
 			Icon: CheckIcon,
-			disabled: !stageable,
+			// A read only profile makes no commit.
+			disabled: !stageable || profile.readOnly,
 			run: () => setCommitOpen(true),
 		};
 		// The palette lists the projects. This action opens it for the native menu (REQ-012).
@@ -242,6 +243,7 @@ export function useActions() {
 		pull,
 		setCommitOpen,
 		stageable,
+		profile,
 		openFolder,
 		close,
 		hasProject,

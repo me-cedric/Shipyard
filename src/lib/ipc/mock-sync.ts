@@ -50,6 +50,8 @@ const ticket = (
 	updated: `2026-10-${String(10 + n).padStart(2, "0")}T09:00:00Z`,
 	linked: null,
 	claimed: false,
+	estimateMinutes: n % 3 === 0 ? 480 : null,
+	spentMinutes: n % 3 === 0 ? 360 : null,
 });
 
 /** The fake tracker data set: ten open tickets and two closed ones. */

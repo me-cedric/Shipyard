@@ -45,6 +45,9 @@ export const projectKeys = {
 	personas: ["projects", "personas"] as const,
 	tickets: ["projects", "tickets-config"] as const,
 	assignments: ["projects", "assignments"] as const,
+	overview: ["projects", "overview"] as const,
+	links: ["projects", "ticket-links"] as const,
+	notes: ["projects", "delivery-notes"] as const,
 };
 
 export function useProjects() {
@@ -80,6 +83,27 @@ export function useAssignments() {
 	return useQuery({
 		queryKey: projectKeys.assignments,
 		queryFn: () => unwrap(commands.assignmentsRead()),
+	});
+}
+
+/** One card for each project: the branch, the last commit, ahead and behind, the changes and the host. */
+export function useProjectCards() {
+	return useQuery({
+		queryKey: projectKeys.overview,
+		queryFn: () => unwrap(commands.projectsOverview()),
+	});
+}
+
+/** The Legacy ticket links of the project (`docs/delivery/tickets.json`). */
+export function useTicketLinks() {
+	return useQuery({ queryKey: projectKeys.links, queryFn: () => unwrap(commands.ticketsLinks()) });
+}
+
+/** The delivery notes of the project (`docs/delivery/impacts`). */
+export function useDeliveryNotes() {
+	return useQuery({
+		queryKey: projectKeys.notes,
+		queryFn: () => unwrap(commands.deliveryNotes()),
 	});
 }
 

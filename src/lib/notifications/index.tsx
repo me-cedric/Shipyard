@@ -67,6 +67,14 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 	const push = useCallback(async (n: Pick<Notice, "id" | "kind" | "title" | "body">) => {
 		if (seen.current.has(n.id)) return false;
 		seen.current.add(n.id);
+		// A project can mute its notices (project overrides). Read at each push, as the sources are.
+		const muted = await unwrap(commands.projectsActive())
+			.then((p) => p?.overrides.notifications === false)
+			.catch(() => false);
+		if (muted) {
+			seen.current.delete(n.id);
+			return false;
+		}
 		const source = SOURCES[n.id.split(":")[0] ?? ""];
 		if (source) {
 			// Read at each push, so a change in Settings counts at once.

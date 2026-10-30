@@ -3,7 +3,7 @@ import { copyText } from "@/lib/menus";
 import { useAssignments } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { ClipboardIcon } from "@/ui/icons";
-import { GroupSection } from "@/ui/molecules/group-section";
+import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
 /**
@@ -17,7 +17,7 @@ export function Assignments() {
 	const rows = useAssignments().data?.assignments ?? [];
 	if (!rows.length) return null;
 	return (
-		<GroupSection name={i18n.assignments} count={rows.length}>
+		<Panel title={i18n.assignments} count={rows.length} flush className="shrink-0">
 			{rows.map((a) => (
 				<SettingsRow key={a.personaId || a.personaName} label={a.personaName}>
 					<span className="font-mono text-12 text-n-11">
@@ -33,6 +33,6 @@ export function Assignments() {
 					</Button>
 				</SettingsRow>
 			))}
-		</GroupSection>
+		</Panel>
 	);
 }

@@ -9,6 +9,7 @@ import { knowledgeFr } from "./knowledge";
 import { settingsFr } from "./settings";
 import { specsFr } from "./specs";
 import { uiFr } from "./ui";
+import { workspaceFr } from "./workspace";
 
 export const fr: Messages = {
 	common: { close: "Fermer", search: "Rechercher", open: "Ouvrir", loading: "Chargement" },
@@ -69,7 +70,12 @@ export const fr: Messages = {
 		settings: "Réglages",
 	},
 	tabs: {
-		home: { inbox: "Boîte de réception", "my-work": "Mon travail", activity: "Activité" },
+		home: {
+			inbox: "Boîte de réception",
+			"my-work": "Mon travail",
+			activity: "Activité",
+			projects: "Projets",
+		},
 		design: {
 			diagrams: "Diagrammes",
 			architecture: "Architecture",
@@ -782,4 +788,5 @@ export const fr: Messages = {
 	settings: settingsFr,
 	specs: specsFr,
 	ui: uiFr,
+	workspace: workspaceFr,
 };

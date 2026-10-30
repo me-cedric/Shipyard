@@ -35,6 +35,8 @@ function Frame() {
 		setAssistantOpen,
 		explainRef,
 		clearExplain,
+		prefill,
+		clearPrefill,
 	} = useShell();
 	const { commit: runCommit } = useCodeActions();
 	const { list, sync, commit, assistant, palette } = useActions();
@@ -53,6 +55,13 @@ function Frame() {
 		clearExplain();
 		void explain(explainRef);
 	}, [explainRef, assistantOpen, current, busy, explain, clearExplain]);
+	// A view that asks the assistant (a pull request, a conflict) leaves its text in the draft.
+	const { setDraft } = chat;
+	useEffect(() => {
+		if (prefill === null || !assistantOpen || !current) return;
+		setDraft(prefill);
+		clearPrefill();
+	}, [prefill, assistantOpen, current, setDraft, clearPrefill]);
 	const open = useRef(detail);
 	open.current = detail;
 	// biome-ignore lint/correctness/useExhaustiveDependencies: only a change of view closes the detail

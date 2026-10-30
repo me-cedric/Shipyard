@@ -9,19 +9,25 @@ import {
 	usePulls,
 } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
+import { Avatar } from "@/ui/atoms/avatar";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { Textarea } from "@/ui/atoms/textarea";
-import { CheckIcon, PlusIcon } from "@/ui/icons";
+import { ArrowsRightLeftIcon, CheckIcon, PlusIcon } from "@/ui/icons";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { FileRow, type FileState } from "@/ui/molecules/file-row";
 import { GroupSection } from "@/ui/molecules/group-section";
+import { PageHeader } from "@/ui/molecules/page-header";
+import { Panel } from "@/ui/molecules/panel";
 import { PullRow } from "@/ui/molecules/pull-row";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { StatStrip } from "@/ui/molecules/stat-strip";
 import { Dialog } from "@/ui/organisms/dialog";
+import { PrAi } from "./pr-ai";
 import { withProject } from "./project-gate";
 import { CI_STATUS, REVIEW_STATUS } from "./status";
 import { useRun } from "./use-run";
@@ -206,12 +212,15 @@ function Detail({ number }: { number: number }) {
 	const current = d.files.find((f) => f.path === file) ?? d.files[0];
 	return (
 		<div>
-			<div className="border-b px-3 py-2">
-				<h2 className="text-14 font-medium">{d.title}</h2>
-				<p className="py-1 text-ui whitespace-pre-wrap">{d.description}</p>
-				<p className="text-12 text-n-11">
-					{d.author} · {d.sourceBranch} → {d.targetBranch}
+			<div className="flex flex-col gap-2 border-b px-4 py-3">
+				<h2 className="text-16 font-semibold text-n-12">{d.title}</h2>
+				<p className="flex flex-wrap items-center gap-2 text-12 text-n-11">
+					<Avatar name={d.author} className="size-5" />
+					{d.author}
+					<Badge className="font-mono">{d.sourceBranch}</Badge>→
+					<Badge className="font-mono">{d.targetBranch}</Badge>
 				</p>
+				<p className="text-ui whitespace-pre-wrap text-n-12">{d.description}</p>
 				<div className="flex flex-wrap gap-1 pt-1">
 					{d.links.map((l) => (
 						<RefChip key={l} refId={l} state="resolved" />
@@ -219,6 +228,7 @@ function Detail({ number }: { number: number }) {
 				</div>
 			</div>
 			<MergeBar key={`${d.number}${d.state}${d.draft}`} d={d} />
+			<PrAi d={d} />
 			<GroupSection name={t.forge.files} count={d.files.length}>
 				{d.files.map((f) => (
 					<FileRow
@@ -308,8 +318,8 @@ function PullRequestsView() {
 	if (!rows) return null;
 	if (rows.length === 0)
 		return (
-			<div className="p-4">
-				<h1 className="sr-only">{t.tabs.code["pull-requests"]}</h1>
+			<div className="flex flex-col">
+				<PageHeader icon={<ArrowsRightLeftIcon size={16} />} title={t.tabs.code["pull-requests"]} />
 				<EmptyState
 					action={{
 						label: t.forge.connect,
@@ -318,40 +328,76 @@ function PullRequestsView() {
 				/>
 			</div>
 		);
+	const open = rows.filter((r) => r.state === "open");
 	return (
-		<div className="flex h-full">
-			<h1 className="sr-only">{t.tabs.code["pull-requests"]}</h1>
-			<div className="w-[32rem] shrink-0 overflow-y-auto border-r">
-				<div className="flex items-center justify-end border-b px-3 py-1">
+		<div className="flex min-h-0 flex-1 flex-col">
+			<PageHeader
+				icon={<ArrowsRightLeftIcon size={16} />}
+				title={t.tabs.code["pull-requests"]}
+				count={rows.length}
+				action={
 					<Button variant="primary" onClick={() => setOpening(true)}>
 						<PlusIcon size={14} />
 						{t.forge.openPull}
 					</Button>
+				}
+			/>
+			<StatStrip
+				className="px-4"
+				items={[
+					{ label: t.forge.state.open, value: String(open.length), tone: "accent" },
+					{
+						label: t.forge.draft,
+						value: String(open.filter((r) => r.draft).length),
+						tone: "info",
+					},
+					{
+						label: t.forge.ci.failing,
+						value: String(open.filter((r) => r.ci === "failing").length),
+						tone: "danger",
+					},
+					{
+						label: t.forge.review.changes_requested,
+						value: String(open.filter((r) => r.review === "changes_requested").length),
+						tone: "warning",
+					},
+				]}
+			/>
+			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-3 pb-4">
+				<div className="flex w-[30rem] shrink-0 flex-col gap-3 overflow-y-auto">
+					{STATES.map((s) => {
+						const items = rows.filter((r) => r.state === s);
+						return (
+							<Panel
+								key={s}
+								title={t.forge.state[s]}
+								count={items.length}
+								tone={s === "open" ? "accent" : s === "merged" ? "success" : "neutral"}
+								flush
+								className="shrink-0"
+							>
+								{items.map((r) => (
+									<PullRow
+										key={r.reference}
+										reference={`#${r.number}`}
+										title={r.title}
+										draft={r.draft ? t.forge.draft : undefined}
+										ci={CI_STATUS[r.ci] ?? "idle"}
+										ciLabel={t.forge.ci[r.ci as "none"]}
+										review={REVIEW_STATUS[r.review] ?? "idle"}
+										reviewLabel={t.forge.review[r.review as "clear"]}
+										meta={<span className="font-mono">{r.updated.slice(0, 10)}</span>}
+										selected={r.reference === selected}
+										onSelect={() => setSelected(r.reference)}
+									/>
+								))}
+							</Panel>
+						);
+					})}
 				</div>
-				{STATES.map((s) => {
-					const items = rows.filter((r) => r.state === s);
-					return (
-						<GroupSection key={s} name={t.forge.state[s]} count={items.length}>
-							{items.map((r) => (
-								<PullRow
-									key={r.reference}
-									reference={`#${r.number}`}
-									title={r.title}
-									draft={r.draft ? t.forge.draft : undefined}
-									ci={CI_STATUS[r.ci] ?? "idle"}
-									ciLabel={t.forge.ci[r.ci as "none"]}
-									review={REVIEW_STATUS[r.review] ?? "idle"}
-									reviewLabel={t.forge.review[r.review as "clear"]}
-									selected={r.reference === selected}
-									onSelect={() => setSelected(r.reference)}
-								/>
-							))}
-						</GroupSection>
-					);
-				})}
-			</div>
-			<div className="min-w-0 flex-1 overflow-auto">
-				{number ? <Detail number={number} /> : null}
+				<div className="min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
+					{number ? <Detail number={number} /> : null}
+				</div>
 			</div>
 			{opening ? <OpenDialog open onOpenChange={setOpening} /> : null}
 		</div>

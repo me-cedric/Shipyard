@@ -22,6 +22,7 @@ import { Settings } from "@/ui/templates/settings";
 import { ProjectImport } from "./project-import";
 import { PersonasEditor } from "./personas";
 import { ProjectDetails } from "./project-details";
+import { ProjectOverrides } from "./project-overrides";
 import { TicketsConfigEditor } from "./tickets-config";
 
 const NONE = "none";
@@ -109,7 +110,7 @@ function Form({
 		await unwrap(commands.projectOverridesSave({ ...overrides, ...patch }));
 		await qc.invalidateQueries();
 	};
-	const override = <K extends keyof Overrides_Serialize>(
+	const override = <K extends "theme" | "density" | "contrast" | "accent">(
 		key: K,
 		label: string,
 		icon: React.ReactNode,
@@ -266,6 +267,7 @@ function Form({
 					<PersonasEditor />
 				</>
 			) : null}
+			<ProjectOverrides />
 			<ProjectImport />
 			{error ? (
 				<p role="alert" className="text-ui text-danger-text">

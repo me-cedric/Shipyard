@@ -109,6 +109,10 @@ pub trait TrackerWrite: Tracker {
 
     fn update(&self, key: &str, fields: &Fields) -> Result<Written, TrackerError>;
 
+    /// The issue type names that a create uses for an epic and for a story. Only Jira has such
+    /// types: the other trackers ignore the call.
+    fn set_issue_types(&self, _epic: &str, _story: &str) {}
+
     /// One page of comments, oldest first, with id, author, created time and body. `cursor` is
     /// `Page::next` of the page before, `None` for the first. Needs the `comments` flag. The body
     /// holds the canonical marker, never the wire form ([`crate::marker`]).
@@ -403,6 +407,13 @@ fn minutes(days: f64) -> u32 {
 }
 
 impl Jira {
+    fn issue_type(&self, epic: bool) -> String {
+        match self.types.lock().expect("types lock").as_ref() {
+            Some((e, s)) => if epic { e } else { s }.clone(),
+            None => if epic { "Epic" } else { "Story" }.into(),
+        }
+    }
+
     fn send(
         &self,
         method: Method,
@@ -488,6 +499,13 @@ fn jira_worklog(v: &Value) -> Worklog {
 }
 
 impl TrackerWrite for Jira {
+    fn set_issue_types(&self, epic: &str, story: &str) {
+        let (epic, story) = (epic.trim(), story.trim());
+        if !epic.is_empty() && !story.is_empty() {
+            *self.types.lock().expect("types lock") = Some((epic.into(), story.into()));
+        }
+    }
+
     fn assign(&self, key: &str, account: &str) -> Result<(), TrackerError> {
         self.capabilities().require(Capability::Assignee)?;
         let body = match self.flavor {
@@ -590,7 +608,7 @@ impl TrackerWrite for Jira {
             "project": { "key": scope },
             "summary": f.title.clone().unwrap_or_default(),
             "description": f.description.clone().unwrap_or_default(),
-            "issuetype": { "name": if epic { "Epic" } else { "Story" } },
+            "issuetype": { "name": self.issue_type(epic) },
             "labels": [label],
         });
         if epic

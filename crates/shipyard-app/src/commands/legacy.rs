@@ -5,7 +5,9 @@ use std::path::Path;
 
 use serde::Serialize;
 use shipyard_store::legacy::{self, registry_file};
-use shipyard_store::delivery_docs::{self, Assignments, Persona, TicketsConfig};
+use shipyard_store::delivery_docs::{
+    self, Assignments, DeliveryNote, Persona, TicketLink, TicketsConfig,
+};
 use shipyard_store::project_import;
 use specta::Type;
 use tauri::AppHandle;
@@ -147,6 +149,28 @@ pub fn tickets_config_set(s: &AppState, config: &TicketsConfig) -> Res<()> {
     delivery_docs::save_tickets_config(&root, config).map_err(|e| e.to_string())
 }
 
+/// The Legacy ticket links of the active project (`docs/delivery/tickets.json`).
+pub fn tickets_links_of(s: &AppState) -> Res<Vec<TicketLink>> {
+    Ok(delivery_docs::ticket_links(&root(s)?))
+}
+
+/// The delivery notes of the active project (`docs/delivery/impacts`).
+pub fn delivery_notes_of(s: &AppState) -> Res<Vec<DeliveryNote>> {
+    Ok(delivery_docs::delivery_notes(&root(s)?))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn tickets_links(app: AppHandle) -> Res<Vec<TicketLink>> {
+    blocking(app, tickets_links_of).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn delivery_notes(app: AppHandle) -> Res<Vec<DeliveryNote>> {
+    blocking(app, delivery_notes_of).await
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn personas_list(app: AppHandle) -> Res<Vec<Persona>> {
@@ -213,6 +237,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let s = AppState::new(dir.path().join("data"));
         assert!(personas(&s).is_err() && assignments(&s).is_err() && tickets_config(&s).is_err());
+        assert!(tickets_links_of(&s).is_err() && delivery_notes_of(&s).is_err());
         let repo = dir.path().join("p");
         shipyard_git::project::init(&repo).unwrap();
         open_with(&s, repo.to_str().unwrap(), &Default::default()).unwrap();
@@ -224,6 +249,9 @@ mod tests {
         c.hours_per_day = 99.0;
         assert!(tickets_config_set(&s, &c).is_err());
         assert!(assignments(&s).unwrap().assignments.is_empty());
+        assert!(
+            tickets_links_of(&s).unwrap().is_empty() && delivery_notes_of(&s).unwrap().is_empty()
+        );
     }
 
     #[test]

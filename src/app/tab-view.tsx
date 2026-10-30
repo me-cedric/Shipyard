@@ -12,7 +12,7 @@ import { Api, Architecture, Data, Decisions, Diagrams, Flows, Screens } from "@/
 import { AgentsMap, Runs, Sessions, Usage, Workflows } from "@/features/factory";
 import { Activity, Inbox, MyWork } from "@/features/home";
 import { Dashboards, Documents, Graph, Handbook, Learn, Slides } from "@/features/knowledge";
-import { FirstRun, Health, ProjectSettings } from "@/features/projects";
+import { FirstRun, Health, ProjectSettings, ProjectsPage } from "@/features/projects";
 import { AgentsRules, Connections, Extensions, Me } from "@/features/settings";
 import { type SpaceId, tabLabel } from "@/features/shell";
 import { Capabilities, Constitution, Questions, SpecChanges, TestPlans } from "@/features/specs";
@@ -44,6 +44,7 @@ const VIEWS: Partial<Record<string, ComponentType>> = {
 	"home/inbox": HomeInbox,
 	"home/my-work": MyWork,
 	"home/activity": Activity,
+	"home/projects": ProjectsPage,
 	"code/changes": Changes,
 	"code/history": History,
 	"code/branches": Branches,

@@ -7,6 +7,7 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Textarea } from "@/ui/atoms/textarea";
+import { TicketBudget } from "./ticket-budget";
 
 /**
  * What a person does with the words of a ticket: edit the title, add a label, read the comments
@@ -29,6 +30,7 @@ export function TicketThread({ itemKey }: { itemKey: string }) {
 	return (
 		<section aria-label={d.title} className="flex flex-col gap-3">
 			<h3 className="text-12 font-medium text-n-11">{d.title}</h3>
+			<TicketBudget item={item} />
 			<form
 				className="flex items-center gap-2"
 				onSubmit={async (e) => {

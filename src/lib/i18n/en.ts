@@ -8,6 +8,7 @@ import { knowledgeEn } from "./knowledge";
 import { settingsEn } from "./settings";
 import { specsEn } from "./specs";
 import { uiEn } from "./ui";
+import { workspaceEn } from "./workspace";
 
 export const en = {
 	common: { close: "Close", search: "Search", open: "Open", loading: "Loading" },
@@ -68,7 +69,7 @@ export const en = {
 		settings: "Settings",
 	},
 	tabs: {
-		home: { inbox: "Inbox", "my-work": "My work", activity: "Activity" },
+		home: { inbox: "Inbox", "my-work": "My work", activity: "Activity", projects: "Projects" },
 		design: {
 			diagrams: "Diagrams",
 			architecture: "Architecture",
@@ -756,6 +757,7 @@ export const en = {
 	settings: settingsEn,
 	specs: specsEn,
 	ui: uiEn,
+	workspace: workspaceEn,
 };
 
 export type Messages = typeof en;

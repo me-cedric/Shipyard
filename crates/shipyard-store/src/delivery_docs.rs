@@ -18,6 +18,8 @@ use crate::{Result, project::write_atomic};
 pub const PERSONAS: &str = "docs/personas/personas.json";
 pub const ASSIGNMENTS: &str = "docs/delivery/assignments.json";
 pub const TICKETS_CONFIG: &str = "docs/delivery/tickets.config.json";
+pub const TICKETS: &str = "docs/delivery/tickets.json";
+pub const IMPACT_NOTES: &str = "docs/delivery/impacts";
 const MAX_BYTES: u64 = 2 * 1024 * 1024;
 
 fn read(root: &Path, rel: &str) -> Option<Value> {
@@ -441,6 +443,105 @@ pub fn save_tickets_config(root: &Path, c: &TicketsConfig) -> Result<()> {
     write(root, TICKETS_CONFIG, &Value::Object(top))
 }
 
+// ---------------------------------------------------------------- tickets registry
+
+/// The link of a Legacy ticket to its Jira issue (`docs/delivery/tickets.json`, read only).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TicketLink {
+    /// The Legacy key of the ticket.
+    pub key: String,
+    /// The Jira key, empty before the first write.
+    pub issue_key: String,
+    pub level: String,
+    pub state: String,
+    pub spec_ref: String,
+}
+
+/// The links of `tickets.json`, sorted by Legacy key. Legacy source: `src/lib/tickets/store.ts`
+/// `parseRegistry`. A missing or broken file gives none.
+pub fn ticket_links(root: &Path) -> Vec<TicketLink> {
+    let Some(v) = read(root, TICKETS) else {
+        return Vec::new();
+    };
+    let mut out: Vec<TicketLink> = v
+        .get("entries")
+        .and_then(Value::as_object)
+        .map(|m| {
+            m.iter()
+                .map(|(key, e)| TicketLink {
+                    key: key.clone(),
+                    issue_key: str_of(e, "issueKey"),
+                    level: str_of(e, "level"),
+                    state: str_of(e, "state"),
+                    spec_ref: str_of(e, "specRef"),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    out.sort_by(|a, b| a.key.cmp(&b.key));
+    out
+}
+
+// ---------------------------------------------------------------- delivery notes
+
+/// One note of `docs/delivery/impacts`: the title, date, base and audience of its front matter.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+pub struct DeliveryNote {
+    pub path: String,
+    pub title: String,
+    pub date: String,
+    pub base: String,
+    pub audience: String,
+}
+
+fn front(text: &str, key: &str) -> String {
+    let Some(rest) = text.strip_prefix("---\n") else {
+        return String::new();
+    };
+    let head = rest.split("\n---").next().unwrap_or("");
+    head.lines()
+        .find_map(|l| l.strip_prefix(key)?.strip_prefix(':'))
+        .map(|v| v.trim().trim_matches('"').to_string())
+        .unwrap_or_default()
+}
+
+/// The notes of `docs/delivery/impacts`, newest first. The title comes from the front matter,
+/// else the first heading, else the file name. Legacy source: `infrastructure/delivery.rs`
+/// `list_notes`.
+pub fn delivery_notes(root: &Path) -> Vec<DeliveryNote> {
+    let Ok(dir) = fs::read_dir(root.join(IMPACT_NOTES)) else {
+        return Vec::new();
+    };
+    let mut out: Vec<DeliveryNote> = dir
+        .flatten()
+        .filter_map(|e| {
+            let name = e.file_name().to_string_lossy().into_owned();
+            let meta = e.metadata().ok()?;
+            if !name.ends_with(".md") || !meta.is_file() || meta.len() > MAX_BYTES {
+                return None;
+            }
+            let text = fs::read_to_string(e.path()).ok()?;
+            let title = Some(front(&text, "title"))
+                .filter(|t| !t.is_empty())
+                .or_else(|| {
+                    text.lines()
+                        .find_map(|l| l.strip_prefix("# ").map(|h| h.trim().to_string()))
+                })
+                .unwrap_or_else(|| name.clone());
+            Some(DeliveryNote {
+                path: format!("{IMPACT_NOTES}/{name}"),
+                title,
+                date: front(&text, "date"),
+                base: front(&text, "base"),
+                audience: front(&text, "audience"),
+            })
+        })
+        .collect();
+    out.sort_by(|a, b| b.date.cmp(&a.date).then(a.path.cmp(&b.path)));
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -570,5 +671,37 @@ mod tests {
         ] {
             assert!(save_tickets_config(root, &bad).is_err());
         }
+    }
+
+    #[test]
+    fn the_legacy_ticket_links_and_the_delivery_notes_are_read() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        assert!(ticket_links(root).is_empty() && delivery_notes(root).is_empty());
+        put(
+            root,
+            TICKETS,
+            r#"{"version":1,"entries":{"b":{"issueKey":"K-2","level":"story","state":"synced"},"a":{"issueKey":"K-1","specRef":"s"}}}"#,
+        );
+        let links = ticket_links(root);
+        assert_eq!(
+            (links[0].key.as_str(), links[0].issue_key.as_str()),
+            ("a", "K-1")
+        );
+        assert_eq!(links[1].state, "synced");
+        put(
+            root,
+            "docs/delivery/impacts/a.md",
+            "---\ntitle: \"Old\"\ndate: 2026-01-01\n---\nx",
+        );
+        put(root, "docs/delivery/impacts/b.md", "# Heading\n");
+        put(root, "docs/delivery/impacts/c.txt", "no");
+        let notes = delivery_notes(root);
+        assert_eq!(notes.len(), 2);
+        assert_eq!(
+            (notes[0].title.as_str(), notes[0].date.as_str()),
+            ("Old", "2026-01-01")
+        );
+        assert_eq!(notes[1].title, "Heading");
     }
 }

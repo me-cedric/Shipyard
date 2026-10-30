@@ -32,6 +32,8 @@ type Ctx = Prefs & {
 	setPrefs: (patch: Partial<Prefs>) => void;
 	/** The settings that the active project overrides. They show the project value. */
 	overridden: Overridable[];
+	/** The profile of the project: the spaces that stay visible (null is all) and read only. */
+	profile: { tabs: string[] | null; readOnly: boolean };
 	loaded: boolean;
 };
 const PrefsContext = createContext<Ctx | null>(null);
@@ -57,6 +59,12 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 		const overridden = (["theme", "density", "contrast"] as const).filter((k) => o?.[k]);
 		return {
 			...personal,
+			// The role of the project profile wins over the personal role.
+			role: (o?.profileRole as Role | null | undefined) ?? personal.role,
+			profile: {
+				tabs: o?.profileTabs?.length ? o.profileTabs : null,
+				readOnly: o?.readOnly === true,
+			},
 			theme: o?.theme ?? personal.theme,
 			density: o?.density ?? personal.density,
 			contrast: o?.contrast ?? personal.contrast,

@@ -320,7 +320,13 @@ pub(crate) fn tracker(s: &AppState) -> Res<Target> {
 }
 
 fn writer(s: &AppState, t: &Target) -> Res<Box<dyn TrackerWrite>> {
-    s.connections.tracker_write(&t.id)
+    let w = s.connections.tracker_write(&t.id)?;
+    // The issue types of the project (`docs/delivery/tickets.config.json`) name the Jira types.
+    if let Some(e) = s.registry()?.active() {
+        let c = shipyard_store::delivery_docs::tickets_config(std::path::Path::new(&e.path));
+        w.set_issue_types(&c.epic, &c.story);
+    }
+    Ok(w)
 }
 
 /// The mirrored items of a tracker. No request leaves the machine.

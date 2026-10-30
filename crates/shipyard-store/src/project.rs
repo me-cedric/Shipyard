@@ -103,11 +103,21 @@ pub enum Accent {
 
 /// A project value that takes the place of a personal preference while the project is active.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct Overrides {
     pub theme: Option<Theme>,
     pub density: Option<Density>,
     pub contrast: Option<Contrast>,
     pub accent: Option<Accent>,
+    /// `Some(false)` stops the remote watch for this project.
+    pub remote_watch: Option<bool>,
+    /// `Some(false)` mutes the notices of this project.
+    pub notifications: Option<bool>,
+    /// The profile of this machine in this project: the role, the tabs that stay visible (empty
+    /// means all) and read only.
+    pub profile_role: Option<String>,
+    pub profile_tabs: Option<Vec<String>>,
+    pub read_only: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -4,10 +4,17 @@ import { graph } from "@/lib/code/graph";
 import { format, useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
 import { Button } from "@/ui/atoms/button";
+import { ClockIcon } from "@/ui/icons";
 import { CommitRow } from "@/ui/molecules/commit-row";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { FileRow } from "@/ui/molecules/file-row";
+import { PageHeader } from "@/ui/molecules/page-header";
 import { withProject } from "./project-gate";
+
+/** One colour per lane of the graph, in turn. */
+const LANE = ["bg-accent", "bg-success", "bg-warning", "bg-info", "bg-danger"];
+const lane = (i: number) => LANE[i % LANE.length];
+const STEP = 14;
 
 /** One commit: its info, its changed files and the diff of one file at a time (REQ-010). */
 function Detail({ sha }: { sha: string }) {
@@ -22,8 +29,8 @@ function Detail({ sha }: { sha: string }) {
 	const { info } = detail;
 	return (
 		<div>
-			<div className="border-b px-3 py-2">
-				<h2 className="text-14 font-medium">{info.summary}</h2>
+			<div className="border-b px-4 py-3">
+				<h2 className="text-16 font-semibold text-n-12">{info.summary}</h2>
 				{info.description ? (
 					<p className="py-1 text-ui whitespace-pre-wrap">{info.description}</p>
 				) : null}
@@ -88,59 +95,67 @@ function HistoryView() {
 
 	const date = new Intl.DateTimeFormat(lang, { dateStyle: "medium" });
 	return (
-		<div className="flex h-full">
-			<h1 className="sr-only">{t.tabs.code.history}</h1>
-			<div className="w-[32rem] shrink-0 overflow-y-auto border-r">
-				{commits.map((c, n) => (
-					<div key={c.sha} className="flex items-stretch">
-						<span
-							aria-hidden="true"
-							data-lane={rows[n]?.lane}
-							className="relative shrink-0"
-							style={{ width: lanes * 12 + 8 }}
-						>
-							{rows[n]?.through.map((i) => (
-								<span
-									key={i}
-									className="absolute inset-y-0 w-px bg-n-7"
-									style={{ left: i * 12 + 10 }}
-								/>
-							))}
+		<div className="flex min-h-0 flex-1 flex-col">
+			<PageHeader
+				icon={<ClockIcon size={16} />}
+				title={t.tabs.code.history}
+				count={commits.length}
+			/>
+			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-1 pb-4">
+				<div className="w-[34rem] shrink-0 overflow-y-auto rounded-lg border bg-surface-1 py-1 shadow-1">
+					{commits.map((c, n) => (
+						<div key={c.sha} className="flex items-stretch">
 							<span
-								className="absolute top-1/2 size-2 -translate-y-1/2 rounded-full bg-accent"
-								style={{ left: (rows[n]?.lane ?? 0) * 12 + 7 }}
-							/>
-						</span>
-						<div className="min-w-0 flex-1">
-							<CommitRow
-								short={c.short}
-								summary={c.summary}
-								author={c.author_name}
-								date={date.format(c.time * 1000)}
-								labels={c.labels}
-								selected={c.sha === sha}
-								onSelect={() => setSha(c.sha)}
-								menu={menu("commit", {
-									open: () => setSha(c.sha),
-									"copy-sha": () => copyText(c.sha),
-								})}
-							/>
+								aria-hidden="true"
+								data-lane={rows[n]?.lane}
+								className="relative shrink-0"
+								style={{ width: lanes * STEP + 12 }}
+							>
+								{rows[n]?.through.map((i) => (
+									<span
+										key={i}
+										className={`absolute inset-y-0 w-0.5 opacity-60 ${lane(i)}`}
+										style={{ left: i * STEP + 11 }}
+									/>
+								))}
+								<span
+									className={`absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full ring-2 ring-surface-1 ${lane(rows[n]?.lane ?? 0)}`}
+									style={{ left: (rows[n]?.lane ?? 0) * STEP + 7 }}
+								/>
+							</span>
+							<div className="min-w-0 flex-1">
+								<CommitRow
+									short={c.short}
+									summary={c.summary}
+									author={c.author_name}
+									date={date.format(c.time * 1000)}
+									labels={c.labels}
+									selected={c.sha === sha}
+									onSelect={() => setSha(c.sha)}
+									menu={menu("commit", {
+										open: () => setSha(c.sha),
+										"copy-sha": () => copyText(c.sha),
+									})}
+								/>
+							</div>
 						</div>
-					</div>
-				))}
-				{hasNextPage ? (
-					<div ref={end} className="p-2">
-						<Button
-							variant="ghost"
-							disabled={isFetchingNextPage}
-							onClick={() => void fetchNextPage()}
-						>
-							{t.code.older}
-						</Button>
-					</div>
-				) : null}
+					))}
+					{hasNextPage ? (
+						<div ref={end} className="p-2">
+							<Button
+								variant="ghost"
+								disabled={isFetchingNextPage}
+								onClick={() => void fetchNextPage()}
+							>
+								{t.code.older}
+							</Button>
+						</div>
+					) : null}
+				</div>
+				<div className="min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
+					{sha ? <Detail sha={sha} /> : null}
+				</div>
 			</div>
-			<div className="min-w-0 flex-1 overflow-auto">{sha ? <Detail sha={sha} /> : null}</div>
 		</div>
 	);
 }

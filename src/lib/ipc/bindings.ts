@@ -38,6 +38,12 @@ export const commands = {
 	assignmentsRead: () => typedError<Assignments, string>(__TAURI_INVOKE("assignments_read")),
 	ticketsConfigGet: () => typedError<TicketsConfig, string>(__TAURI_INVOKE("tickets_config_get")),
 	ticketsConfigSave: (config: TicketsConfig) => typedError<null, string>(__TAURI_INVOKE("tickets_config_save", { config })),
+	ticketsLinks: () => typedError<TicketLink[], string>(__TAURI_INVOKE("tickets_links")),
+	deliveryNotes: () => typedError<DeliveryNote[], string>(__TAURI_INVOKE("delivery_notes")),
+	projectsOverview: () => typedError<ProjectCard_Serialize[], string>(__TAURI_INVOKE("projects_overview")),
+	projectOpenRemote: (id: string) => typedError<null, string>(__TAURI_INVOKE("project_open_remote", { id })),
+	codePushTarget: () => typedError<PushTarget_Serialize, string>(__TAURI_INVOKE("code_push_target")),
+	codeChainGate: (push: boolean) => typedError<ChainWarning[], string>(__TAURI_INVOKE("code_chain_gate", { push })),
 	connectionsList: () => typedError<Connection_Serialize[], string>(__TAURI_INVOKE("connections_list")),
 	connectionsAdd: (draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_add", { draft })),
 	connectionsEdit: (id: string, draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_edit", { id, draft })),
@@ -825,6 +831,14 @@ export type CapabilityRow = {
 
 export type CatalogGroup = "devcontainers" | "agents" | "devops-security";
 
+export type ChainWarning = {
+	/**  The path kind that changed. */
+	from: string,
+	/**  The path kind that did not follow. */
+	to: string,
+	changed: string[],
+};
+
 export type ChangeView = ChangeView_Serialize | ChangeView_Deserialize;
 
 export type ChangeView_Deserialize = {
@@ -1255,6 +1269,15 @@ export type DeckTheme_Serialize = {
 	/**  Repository path of the logo. */
 	logo: string | null,
 	font: string,
+};
+
+/**  One note of `docs/delivery/impacts`: the title, date, base and audience of its front matter. */
+export type DeliveryNote = {
+	path: string,
+	title: string,
+	date: string,
+	base: string,
+	audience: string,
 };
 
 export type Density = "default" | "compact";
@@ -2046,6 +2069,17 @@ export type Overrides_Deserialize = {
 	density?: Density | null,
 	contrast?: Contrast | null,
 	accent?: Accent | null,
+	/**  `Some(false)` stops the remote watch for this project. */
+	remoteWatch?: boolean | null,
+	/**  `Some(false)` mutes the notices of this project. */
+	notifications?: boolean | null,
+	/**
+	 *  The profile of this machine in this project: the role, the tabs that stay visible (empty
+	 *  means all) and read only.
+	 */
+	profileRole?: string | null,
+	profileTabs?: string[] | null,
+	readOnly?: boolean | null,
 };
 
 /**  A project value that takes the place of a personal preference while the project is active. */
@@ -2054,6 +2088,17 @@ export type Overrides_Serialize = {
 	density: Density | null,
 	contrast: Contrast | null,
 	accent: Accent | null,
+	/**  `Some(false)` stops the remote watch for this project. */
+	remoteWatch: boolean | null,
+	/**  `Some(false)` mutes the notices of this project. */
+	notifications: boolean | null,
+	/**
+	 *  The profile of this machine in this project: the role, the tabs that stay visible (empty
+	 *  means all) and read only.
+	 */
+	profileRole: string | null,
+	profileTabs: string[] | null,
+	readOnly: boolean | null,
 };
 
 export type PageEntry = {
@@ -2281,6 +2326,40 @@ export type Preview_Serialize = {
 	/**  The lot that `sheet` reads. Other lots are left out, not refused. */
 	scope: string | null,
 	refused: RefusedRow[],
+};
+
+export type ProjectCard = ProjectCard_Serialize | ProjectCard_Deserialize;
+
+export type ProjectCard_Deserialize = {
+	id: string,
+	name: string,
+	path: string,
+	/**  The host of the remote, or `None` for a local project. */
+	host?: string | null,
+	webUrl?: string | null,
+	branch?: string | null,
+	lastCommit?: string | null,
+	/**  Seconds since the Unix epoch. */
+	lastCommitTime?: number | null,
+	ahead: number,
+	behind: number,
+	changes: number,
+};
+
+export type ProjectCard_Serialize = {
+	id: string,
+	name: string,
+	path: string,
+	/**  The host of the remote, or `None` for a local project. */
+	host: string | null,
+	webUrl: string | null,
+	branch: string | null,
+	lastCommit: string | null,
+	/**  Seconds since the Unix epoch. */
+	lastCommitTime: number | null,
+	ahead: number,
+	behind: number,
+	changes: number,
 };
 
 /**
@@ -2523,6 +2602,32 @@ export type PullThread_Serialize = {
 	line: number | null,
 	/**  `author: text`, oldest first. */
 	comments: string[],
+};
+
+export type PushTarget = PushTarget_Serialize | PushTarget_Deserialize;
+
+export type PushTarget_Deserialize = {
+	remote: string,
+	branch?: string | null,
+	/**
+	 *  `Some(false)`: the account cannot push to this repository. `None`: the forge does not say,
+	 *  or no connection matches the host.
+	 */
+	canPush?: boolean | null,
+	/**  The working branch is the default branch of the repository. */
+	onDefault: boolean,
+};
+
+export type PushTarget_Serialize = {
+	remote: string,
+	branch: string | null,
+	/**
+	 *  `Some(false)`: the account cannot push to this repository. `None`: the forge does not say,
+	 *  or no connection matches the host.
+	 */
+	canPush: boolean | null,
+	/**  The working branch is the default branch of the repository. */
+	onDefault: boolean,
 };
 
 export type QualityReport = QualityReport_Serialize | QualityReport_Deserialize;
@@ -3667,6 +3772,17 @@ export type TicketComment = {
 	created: string,
 };
 
+/**  The link of a Legacy ticket to its Jira issue (`docs/delivery/tickets.json`, read only). */
+export type TicketLink = {
+	/**  The Legacy key of the ticket. */
+	key: string,
+	/**  The Jira key, empty before the first write. */
+	issueKey: string,
+	level: string,
+	state: string,
+	specRef: string,
+};
+
 export type TicketsConfig = {
 	epic: string,
 	story: string,
@@ -4001,6 +4117,9 @@ export type WorkItemView_Deserialize = {
 	linked?: string | null,
 	/**  This machine holds a claim on the ticket. */
 	claimed: boolean,
+	/**  The estimate and the time spent, in minutes, when the tracker holds them. */
+	estimateMinutes?: number | null,
+	spentMinutes?: number | null,
 };
 
 export type WorkItemView_Serialize = {
@@ -4025,6 +4144,9 @@ export type WorkItemView_Serialize = {
 	linked: string | null,
 	/**  This machine holds a claim on the ticket. */
 	claimed: boolean,
+	/**  The estimate and the time spent, in minutes, when the tracker holds them. */
+	estimateMinutes: number | null,
+	spentMinutes: number | null,
 };
 
 export type WorkState = "clean" | "changed" | "behind" | "ahead" | "missing";

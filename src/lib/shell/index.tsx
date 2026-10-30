@@ -19,6 +19,11 @@ type ShellState = {
 	/** Opens the assistant with the entity as context and asks for the Explain answer (knowledge REQ-008). */
 	explain: (ref: string) => void;
 	clearExplain: () => void;
+	/** A text for the draft of the assistant. The shell puts it in the draft and clears it. */
+	prefill: string | null;
+	/** Opens the assistant with the text in its draft. A person reads it, edits it and sends it. */
+	ask: (text: string) => void;
+	clearPrefill: () => void;
 	setAssistantOpen: (open: boolean) => void;
 	syncing: boolean;
 	/** The reason of the last failed sync, or null. */
@@ -49,6 +54,7 @@ export function ShellProvider({
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [assistantOpen, setAssistantOpen] = useState(false);
 	const [explainRef, setExplainRef] = useState<string | null>(null);
+	const [prefill, setPrefill] = useState<string | null>(null);
 	const [syncing, setSyncing] = useState(false);
 	const [syncError, setSyncError] = useState<string | null>(null);
 	const [commitOpen, setCommitOpen] = useState(false);
@@ -64,6 +70,11 @@ export function ShellProvider({
 		setExplainRef(ref);
 	}, []);
 	const clearExplain = useCallback(() => setExplainRef(null), []);
+	const ask = useCallback((text: string) => {
+		setAssistantOpen(true);
+		setPrefill(text);
+	}, []);
+	const clearPrefill = useCallback(() => setPrefill(null), []);
 	const openDetail = useCallback((title: string, node: ReactNode) => {
 		setDetail({ title, node });
 		setInspectorOpen(true);
@@ -100,6 +111,9 @@ export function ShellProvider({
 			explainRef,
 			explain,
 			clearExplain,
+			prefill,
+			ask,
+			clearPrefill,
 			syncing,
 			syncError,
 			sync,
@@ -119,6 +133,9 @@ export function ShellProvider({
 			explainRef,
 			explain,
 			clearExplain,
+			prefill,
+			ask,
+			clearPrefill,
 			syncing,
 			syncError,
 			sync,
