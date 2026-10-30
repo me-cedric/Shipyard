@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Shipyard">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#262B36"/>
+      <stop offset="0.55" stop-color="#14171E"/>
+      <stop offset="1" stop-color="#0A0C10"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.46" r="0.42">
+      <stop offset="0" stop-color="#3D8BFF" stop-opacity="0.32"/>
+      <stop offset="0.6" stop-color="#5B5CF6" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#5B5CF6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.25" stop-color="#FFFFFF" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.07"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="drop" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="markShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity="0.45"/>
+    </filter>
+    <clipPath id="tile"><rect x="100" y="100" width="824" height="824" rx="186"/></clipPath>
+  </defs>
+  <g filter="url(#drop)">
+    <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)"/>
+  </g>
+  <g clip-path="url(#tile)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#glow)"/>
+    <rect x="100" y="100" width="824" height="412" fill="url(#sheen)"/>
+  </g>
+  <rect x="101.5" y="101.5" width="821" height="821" rx="184.5" fill="none" stroke="url(#rim)" stroke-width="3"/>
+  <svg x="222" y="214" width="580" height="580" viewBox="584 250 364 364" filter="url(#markShadow)">
+  <defs>
+    <linearGradient id="sy-blkL" gradientUnits="userSpaceOnUse" x1="735.2" y1="279.9" x2="754.7" y2="310"><stop offset="0.05" stop-color="#44C8F9"/><stop offset="0.15" stop-color="#3FC0FD"/><stop offset="0.25" stop-color="#3BB9FD"/><stop offset="0.35" stop-color="#37B2FD"/><stop offset="0.45" stop-color="#33ABFC"/><stop offset="0.55" stop-color="#31A3FD"/><stop offset="0.65" stop-color="#309DFD"/><stop offset="0.75" stop-color="#2E96FB"/><stop offset="0.85" stop-color="#2D8EFC"/><stop offset="0.95" stop-color="#2E84FA"/></linearGradient>
+    <linearGradient id="sy-blkR" gradientUnits="userSpaceOnUse" x1="782.6" y1="264" x2="780.2" y2="311.6"><stop offset="0.05" stop-color="#A1B1FA"/><stop offset="0.15" stop-color="#99A4FB"/><stop offset="0.25" stop-color="#929CFA"/><stop offset="0.35" stop-color="#8D97FB"/><stop offset="0.45" stop-color="#858DFB"/><stop offset="0.55" stop-color="#7D84FA"/><stop offset="0.65" stop-color="#757BF9"/><stop offset="0.75" stop-color="#6E72FB"/><stop offset="0.85" stop-color="#6969FB"/><stop offset="0.95" stop-color="#605FF5"/></linearGradient>
+    <linearGradient id="sy-deckL" gradientUnits="userSpaceOnUse" x1="662.4" y1="344" x2="735.5" y2="403.2"><stop offset="0.05" stop-color="#11B5FC"/><stop offset="0.15" stop-color="#0FADFD"/><stop offset="0.25" stop-color="#0EA6FC"/><stop offset="0.35" stop-color="#0E9BFC"/><stop offset="0.45" stop-color="#108EFD"/><stop offset="0.55" stop-color="#1381FB"/><stop offset="0.65" stop-color="#1676F6"/><stop offset="0.75" stop-color="#186AEF"/><stop offset="0.85" stop-color="#155FE5"/><stop offset="0.95" stop-color="#1455D9"/></linearGradient>
+    <linearGradient id="sy-deckR" gradientUnits="userSpaceOnUse" x1="842.6" y1="339.4" x2="831.8" y2="407.3"><stop offset="0.05" stop-color="#AAA6FA"/><stop offset="0.15" stop-color="#9D93FA"/><stop offset="0.25" stop-color="#9988FB"/><stop offset="0.35" stop-color="#9480FB"/><stop offset="0.45" stop-color="#8C77FB"/><stop offset="0.55" stop-color="#846EFB"/><stop offset="0.65" stop-color="#7C65FB"/><stop offset="0.75" stop-color="#765BFB"/><stop offset="0.85" stop-color="#7352FB"/><stop offset="0.95" stop-color="#7D54F9"/></linearGradient>
+    <linearGradient id="sy-hullL" gradientUnits="userSpaceOnUse" x1="661.8" y1="417.8" x2="739.7" y2="525"><stop offset="0.05" stop-color="#1AEAFC"/><stop offset="0.15" stop-color="#14DDFD"/><stop offset="0.25" stop-color="#0FCFFD"/><stop offset="0.35" stop-color="#0BBFFD"/><stop offset="0.45" stop-color="#07AEFD"/><stop offset="0.55" stop-color="#049EFD"/><stop offset="0.65" stop-color="#028FFD"/><stop offset="0.75" stop-color="#0182FD"/><stop offset="0.85" stop-color="#0276FD"/><stop offset="0.95" stop-color="#0269FA"/></linearGradient>
+    <linearGradient id="sy-hullR" gradientUnits="userSpaceOnUse" x1="865.8" y1="413.3" x2="788.1" y2="520.3"><stop offset="0.05" stop-color="#5350FA"/><stop offset="0.15" stop-color="#373AEB"/><stop offset="0.25" stop-color="#2833CA"/><stop offset="0.35" stop-color="#202FB3"/><stop offset="0.45" stop-color="#18289C"/><stop offset="0.55" stop-color="#12238A"/><stop offset="0.65" stop-color="#0C1F78"/><stop offset="0.75" stop-color="#081C6A"/><stop offset="0.85" stop-color="#04185E"/><stop offset="0.95" stop-color="#021553"/></linearGradient>
+    <linearGradient id="sy-wave" gradientUnits="userSpaceOnUse" x1="927.3" y1="515.4" x2="639.2" y2="592.6"><stop offset="0.05" stop-color="#2FC5FC"/><stop offset="0.15" stop-color="#26B0FC"/><stop offset="0.25" stop-color="#1D98FC"/><stop offset="0.35" stop-color="#1284FB"/><stop offset="0.45" stop-color="#097AFA"/><stop offset="0.55" stop-color="#047FFB"/><stop offset="0.65" stop-color="#0390FC"/><stop offset="0.75" stop-color="#09A2FC"/><stop offset="0.85" stop-color="#10B6FD"/><stop offset="0.95" stop-color="#1CCCFC"/></linearGradient>
+  </defs>
+  <path d="M768 308L718 326L718 289.7Q718 286.7 720.6 285.1L762 259.5Q766.5 256.8 768 257Z" fill="url(#sy-blkL)"/>
+  <path d="M768 257Q769.5 256.8 774 259.6L792.3 267.1Q795 268.3 795 271.3L795 318.1L768 308Z" fill="url(#sy-blkR)"/>
+  <path d="M768 318.7L634 366.5Q626.5 369.2 626.5 377.2L626.5 425.1Q626.5 427.1 628.4 426.5L768 379Z" fill="url(#sy-deckL)"/>
+  <path d="M768 318.7L900.5 367.7Q908 370.4 908 378.4L908 425.9Q908 427.9 906.1 427.2L768 379Z" fill="url(#sy-deckR)"/>
+  <path d="M768 394.6L600.4 450.1Q589 453.8 589 465.8L589 501.5Q589 507.5 595 507.2L597.5 507C601.3 505.5 612.5 500.1 620.5 498.1C628.5 496.2 637.2 495.1 645.5 495.2C653.8 495.2 662.2 496 670.5 498.5C678.8 500.9 687.2 505.3 695.5 509.7C703.8 514.1 712.2 520.6 720.5 525C728.8 529.5 737.6 534.4 745.5 536.5C753.4 538.6 764.2 537.6 768 537.8Z" fill="url(#sy-hullL)"/>
+  <path d="M768 394.6L933.5 451.7Q943 455 943 465L943 486.2Q943 490.2 939 489.6L939.5 489.7C935.5 488.4 923.7 483.9 915.5 482.4C907.3 480.9 898.8 480.5 890.5 480.5C882.2 480.6 873.8 480.6 865.5 482.8C857.2 484.9 848.8 488.8 840.5 493.5C832.2 498.3 823.8 505.5 815.5 511.4C807.2 517.3 798.4 524.6 790.5 529C782.6 533.4 771.8 536.3 768 537.8Z" fill="url(#sy-hullR)"/>
+  <path d="M602.5 529.3C604.2 528.4 607.8 525.6 612.5 523.9C617.2 522.1 623.3 519.7 630.5 518.9C637.7 518.2 647.2 518 655.5 519.4C663.8 520.8 672.2 523.8 680.5 527.3C688.8 530.8 697.2 536.1 705.5 540.4C713.8 544.6 720.1 550 730.5 552.9C740.9 555.8 755.5 559.8 768 557.7C780.5 555.7 795.1 546.3 805.5 540.6C815.9 534.9 822.2 528.8 830.5 523.6C838.8 518.5 847.2 513.3 855.5 510C863.8 506.6 872.2 504.7 880.5 503.7C888.8 502.7 897.2 503.1 905.5 504C913.8 504.9 926.3 508.1 930.5 509A13 10.6 0 0 1 930.5 530.1C926.3 531.3 913.8 533.6 905.5 537.3C897.2 540.9 888.8 546.2 880.5 551.9C872.2 557.6 863.8 565.3 855.5 571.5C847.2 577.7 838.8 584.2 830.5 589.1C822.2 594 815.9 597.7 805.5 600.9C795.1 604.1 780.5 607.5 768 608.3C755.5 609 740.9 607.1 730.5 605.3C720.1 603.5 713.8 600.9 705.5 597.6C697.2 594.2 688.8 589.9 680.5 585.1C672.2 580.3 663.8 574.7 655.5 568.8C647.2 563 637.7 555.7 630.5 550.2C623.3 544.8 617.2 539.7 612.5 536.2C607.8 532.7 604.2 530.4 602.5 529.3Z" fill="url(#sy-wave)"/>
+</svg>
+</svg>
