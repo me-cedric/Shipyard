@@ -10,6 +10,7 @@ import {
 } from "@/lib/design";
 import { format, useI18n } from "@/lib/i18n";
 import { Button } from "@/ui/atoms/button";
+import { CodeBracketIcon } from "@/ui/icons";
 import { Dialog } from "@/ui/organisms/dialog";
 import type { ApiDoc, ApiOp, TryRequest } from "@/ui/organisms/openapi";
 import { OpenApiView } from "@/ui/organisms/openapi-view";
@@ -95,6 +96,7 @@ export function Api() {
 	return (
 		<ArtifactTab
 			title={t.tabs.design.api}
+			icon={<CodeBracketIcon size={16} />}
 			noun={t.design.noun.api}
 			rows={rows.map((a) => ({ ref: a.reference, title: a.title, tag: a.version, issue: a.issue }))}
 			create={{

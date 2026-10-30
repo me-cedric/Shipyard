@@ -1,13 +1,18 @@
+import { useQueries } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
+import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import type { Requirement } from "@/lib/ipc";
+import { commands, type Requirement, unwrap } from "@/lib/ipc";
 import { useShell } from "@/lib/shell";
 import { type Capability, useCapabilities, useFile, useSpecView } from "@/lib/specs";
-import { IconButton } from "@/ui/atoms/icon-button";
-import { ChevronLeftIcon } from "@/ui/icons";
+import { Badge } from "@/ui/atoms/badge";
+import { Button } from "@/ui/atoms/button";
+import { BookOpenIcon, ChevronLeftIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
+import { LIST, useEnter } from "@/ui/motion";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { WithProject } from "./no-project";
@@ -30,28 +35,54 @@ function CapabilityDetail({ cap, onBack }: { cap: Capability; onBack: () => void
 	const view = useSpecView(cap.path).data;
 	const [file, setFile] = useState<(typeof FILES)[number]>("spec");
 	const [selected, setSelected] = useState<string | null>(null);
+	const reqs = view?.requirements ?? [];
+	const refOf = (r: Requirement) => `spec:${cap.capability}#${r.id}`;
+	const links = useQueries({
+		queries: reqs.map((r) => ({
+			queryKey: ["refs", "backlinks", refOf(r)],
+			queryFn: () => unwrap(commands.refsBacklinks(refOf(r))),
+		})),
+	});
+	const kinds = t.refKind as Record<string, string>;
 	const columns = useMemo<ColumnDef<Requirement>[]>(
 		() => [
 			{
 				id: "id",
 				header: s.requirementId,
 				meta: { width: "6rem" },
-				cell: ({ row }) => row.original.id,
+				cell: ({ row }) => <span className="font-mono text-12">{row.original.id}</span>,
 			},
 			{ id: "title", header: s.requirement, cell: ({ row }) => row.original.title },
+			{
+				id: "links",
+				header: s.backlinks,
+				meta: { width: "14rem" },
+				cell: ({ row }) => (
+					<span className="flex flex-wrap gap-1">
+						{(links[row.index]?.data ?? []).map((g) => (
+							<Badge key={g.kind} variant="accent" className="font-mono">
+								{kinds[g.kind] ?? g.kind} {g.count}
+							</Badge>
+						))}
+					</span>
+				),
+			},
 		],
-		[s],
+		[s, links, kinds],
 	);
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
-			<h1 className="sr-only">{cap.capability}</h1>
+		<div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pt-3 pb-4">
 			<div className="flex items-center gap-2">
-				<IconButton label={s.back} onClick={onBack}>
+				<Button variant="ghost" onClick={onBack}>
 					<ChevronLeftIcon size={14} />
-				</IconButton>
-				<h2 className="text-14 font-medium">{cap.capability}</h2>
+					{s.back}
+				</Button>
+				<h1 className="font-mono text-20 font-semibold text-n-12">{cap.capability}</h1>
+				<Badge variant="accent" className="font-mono">
+					{cap.requirements}
+				</Badge>
 			</div>
-			<div className="flex h-56 shrink-0 flex-col rounded-md border border-n-7">
+			<div className="flex h-64 shrink-0 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
 				<DataTable
 					label={s.requirements}
 					data={view?.requirements ?? []}
@@ -94,29 +125,51 @@ function CapabilityList() {
 	const s = t.specs;
 	const list = useCapabilities().data ?? [];
 	const [open, setOpen] = useState<string | null>(null);
-	const columns = useMemo<ColumnDef<Capability>[]>(
-		() => [
-			{ id: "name", header: s.capability, cell: ({ row }) => row.original.capability },
-			{
-				id: "count",
-				header: s.requirements,
-				meta: { width: "8rem", numeric: true },
-				cell: ({ row }) => String(row.original.requirements),
-			},
-		],
-		[s],
-	);
+	const enter = useEnter();
+	const max = Math.max(1, ...list.map((c) => c.requirements));
 	const current = list.find((c) => c.capability === open);
 	if (current) return <CapabilityDetail cap={current} onBack={() => setOpen(null)} />;
 	return (
-		<ListDetail title={t.tabs.specs.capabilities}>
-			<DataTable
-				label={t.tabs.specs.capabilities}
-				data={list}
-				columns={columns}
-				rowId={(c) => c.capability}
-				onOpen={(c) => setOpen(c.capability)}
-			/>
+		<ListDetail
+			title={t.tabs.specs.capabilities}
+			icon={<BookOpenIcon size={16} />}
+			count={list.length}
+		>
+			<motion.ul
+				aria-label={t.tabs.specs.capabilities}
+				variants={LIST}
+				initial={enter}
+				animate="shown"
+				className="grid min-h-0 auto-rows-min grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3 overflow-auto px-4 pt-1 pb-4"
+			>
+				{list.map((c) => (
+					<li key={c.capability}>
+						<Card interactive className="p-0">
+							<button
+								type="button"
+								onClick={() => setOpen(c.capability)}
+								className="flex w-full flex-col gap-3 rounded-lg p-3 text-left"
+							>
+								<span className="flex items-baseline gap-2">
+									<span className="min-w-0 flex-1 truncate font-mono text-14 text-n-12">
+										{c.capability}
+									</span>
+									<span className="font-mono text-20 text-n-12">{c.requirements}</span>
+								</span>
+								<span aria-hidden="true" className="flex items-center gap-2 text-12 text-n-11">
+									{s.requirements}
+									<span className="h-1.5 flex-1 overflow-hidden rounded-full bg-n-4">
+										<span
+											className="block h-full rounded-full bg-accent-gradient"
+											style={{ width: `${(c.requirements / max) * 100}%` }}
+										/>
+									</span>
+								</span>
+							</button>
+						</Card>
+					</li>
+				))}
+			</motion.ul>
 		</ListDetail>
 	);
 }

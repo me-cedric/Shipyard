@@ -1,7 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useFile, useSpecsActions } from "@/lib/specs";
-import { CodeEditor } from "@/ui/molecules/code-editor";
+import { CodeEditor, type Token } from "@/ui/molecules/code-editor";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
 import { type EditorError, errorLine } from "@/ui/organisms/error-line";
 import { useGuard } from "./guard";
@@ -19,6 +19,7 @@ export function FileEditor({
 	actions,
 	problem,
 	line,
+	highlight,
 	children,
 }: {
 	path: string;
@@ -30,6 +31,7 @@ export function FileEditor({
 	problem?: EditorError | null;
 	/** The line to mark, when the person picked one. */
 	line?: number | null;
+	highlight?: (line: string) => Token[];
 	children?: ReactNode;
 }) {
 	const { t } = useI18n();
@@ -84,6 +86,7 @@ export function FileEditor({
 					}}
 					errorLine={line ?? problem?.line}
 					readOnly={base === undefined && !missing}
+					highlight={highlight}
 					className="flex-1"
 				/>
 				{children}

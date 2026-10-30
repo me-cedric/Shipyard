@@ -8,7 +8,7 @@ import { renderSpecs } from "./test-harness";
 type User = ReturnType<typeof userEvent.setup>;
 const written = () => Object.keys(mockState().work.written);
 const startSplit = async (user: User) => {
-	await user.click(await screen.findByRole("row", { name: /add-auth/ }));
+	await user.click(await screen.findByRole("button", { name: /^add-auth/ }));
 	await user.click(await screen.findByRole("button", { name: "Split" }));
 	return within(await screen.findByRole("dialog"));
 };
@@ -102,10 +102,10 @@ describe("Specs / Archive", () => {
 	it("archives a change with no work item and moves its capability to the settled ones", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<SpecChanges />);
-		await user.click(await screen.findByRole("row", { name: /add-billing/ }));
+		await user.click(await screen.findByRole("button", { name: /^add-billing/ }));
 		await user.click(await screen.findByRole("button", { name: "Archive" }));
-		expect(await screen.findByRole("row", { name: /add-auth/ })).toBeVisible();
-		expect(screen.queryByRole("row", { name: /add-billing/ })).toBeNull();
+		expect(await screen.findByRole("button", { name: /^add-auth/ })).toBeVisible();
+		expect(screen.queryByRole("button", { name: /^add-billing/ })).toBeNull();
 		expect(mockState().specs.files["docs/openspec/specs/invoices/spec.md"]).toBeDefined();
 	});
 
@@ -130,6 +130,6 @@ describe("Specs / Archive", () => {
 			expect(mockState().specs.files["docs/openspec/changes/add-auth/proposal.md"]).toBeUndefined(),
 		);
 		review = within(document.body);
-		expect(await screen.findByRole("row", { name: /add-billing/ })).toBeVisible();
+		expect(await screen.findByRole("button", { name: /^add-billing/ })).toBeVisible();
 	});
 });

@@ -1,5 +1,6 @@
 import { TEMPLATE } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
+import { QueueListIcon } from "@/ui/icons";
 import { DbmlView } from "@/ui/organisms/dbml-view";
 import { TextTab } from "./text-tab";
 
@@ -10,6 +11,7 @@ export function Data() {
 		<TextTab
 			kind="data"
 			title={t.tabs.design.data}
+			icon={<QueueListIcon size={16} />}
 			noun={t.design.noun.data}
 			ext="dbml"
 			template={TEMPLATE.data}

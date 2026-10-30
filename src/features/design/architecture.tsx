@@ -1,5 +1,6 @@
 import { TEMPLATE } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
+import { CpuChipIcon } from "@/ui/icons";
 import { LikeC4View } from "@/ui/organisms/likec4-view";
 import { TextTab } from "./text-tab";
 
@@ -10,6 +11,7 @@ export function Architecture() {
 		<TextTab
 			kind="model"
 			title={t.tabs.design.architecture}
+			icon={<CpuChipIcon size={16} />}
 			noun={t.design.noun.model}
 			ext="c4"
 			template={TEMPLATE.model}

@@ -7,14 +7,15 @@ import { renderSpecs } from "./test-harness";
 
 const files = () => mockState().specs.files;
 const CH = "docs/openspec/changes";
-const row = (name: RegExp) => screen.findByRole("row", { name });
+// Each change is a card: a button with the change id first.
+const row = (name: RegExp) => screen.findByRole("button", { name });
 const open = async (user: ReturnType<typeof userEvent.setup>, id: string) => {
 	await user.click(await row(new RegExp(id)));
 	return screen.findByRole("navigation", { name: "Artifacts" });
 };
 
 describe("Specs / Changes", () => {
-	it("lists each change with the status of its five artifacts and its open markers", async () => {
+	it("lists each change as a card with the stepper of its five artifacts and its open markers", async () => {
 		await renderSpecs(<SpecChanges />);
 		for (const id of ["add-auth", "add-billing", "add-export"])
 			expect(await row(new RegExp(id))).toBeVisible();
@@ -25,7 +26,7 @@ describe("Specs / Changes", () => {
 		expect(
 			within(await row(/add-billing/)).getByRole("img", { name: "Plan: Draft" }),
 		).toBeInTheDocument();
-		await waitFor(() => expect(within(exp).getByRole("cell", { name: "1" })).toBeInTheDocument());
+		await waitFor(() => expect(exp).toHaveTextContent(/Open markers\s*1/));
 	});
 
 	it("shows ghost rows and one action when there is no change", async () => {
@@ -142,6 +143,7 @@ describe("Specs / Capabilities", () => {
 	it("lists the capabilities with their counts, and a requirement shows its backlinks by kind", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Capabilities />);
+		// Each capability is a card: a button with its name and its requirement count.
 		expect(await row(/auth\s*3/)).toBeVisible();
 		expect(await row(/billing\s*2/)).toBeVisible();
 		await user.click(await row(/auth/));

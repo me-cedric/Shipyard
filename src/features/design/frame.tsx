@@ -1,6 +1,8 @@
 import { type ReactNode, useState } from "react";
 import { useDesignFile } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
+import { Badge } from "@/ui/atoms/badge";
+import { DocumentTextIcon } from "@/ui/icons";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
 import type { EditorError } from "@/ui/organisms/error-line";
 
@@ -47,7 +49,15 @@ export function FileFrame({
 		<EditorFrame
 			title={title}
 			refId={refId}
-			actions={actions}
+			actions={
+				<>
+					<Badge title={path} className="max-w-44 shrink-0 font-mono">
+						<DocumentTextIcon size={12} />
+						<span className="truncate">{path.split("/").pop()}</span>
+					</Badge>
+					{actions}
+				</>
+			}
 			primary={
 				readOnly || issue || !file.ready
 					? undefined

@@ -9,6 +9,7 @@ import {
 } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/ui/atoms/button";
+import { ShareIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { BpmnViewer } from "@/ui/organisms/bpmn-viewer";
 import { DrawioViewer } from "@/ui/organisms/drawio-viewer";
@@ -19,6 +20,34 @@ import { useOpenOutside } from "./open";
 import { ArtifactTab } from "./tab";
 
 const EXT = { excalidraw: "excalidraw", mermaid: "mmd" } as const;
+
+/** The tint and the shape of a format in the grid. */
+const FACE: Record<string, { tone: "accent" | "info" | "warning" | "success"; text: string }> = {
+	excalidraw: { tone: "accent", text: "text-accent" },
+	mermaid: { tone: "info", text: "text-info" },
+	drawio: { tone: "warning", text: "text-warning" },
+	bpmn: { tone: "success", text: "text-success" },
+};
+
+/** A ghost of a diagram in the colour of its format: three nodes and two edges. */
+function Thumb({ format }: { format: string }) {
+	const round = format === "bpmn" || format === "excalidraw";
+	return (
+		<svg
+			aria-hidden="true"
+			viewBox="0 0 160 80"
+			className={`h-20 w-40 ${FACE[format]?.text ?? "text-n-9"}`}
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.5"
+		>
+			<path d="M46 40h24M106 40h12" strokeDasharray={format === "mermaid" ? "3 3" : undefined} />
+			<rect x="6" y="28" width="40" height="24" rx={round ? 12 : 4} className="fill-current/15" />
+			<rect x="70" y="12" width="36" height="56" rx="4" className="fill-current/10" />
+			<rect x="118" y="28" width="36" height="24" rx={round ? 12 : 4} className="fill-current/15" />
+		</svg>
+	);
+}
 
 function Diagram({ a }: { a: Artifact }) {
 	const { t } = useI18n();
@@ -90,13 +119,16 @@ export function Diagrams() {
 	return (
 		<ArtifactTab
 			title={t.tabs.design.diagrams}
+			icon={<ShareIcon size={16} />}
 			noun={t.design.noun.diagram}
 			rows={rows.map((a) => ({
 				ref: a.reference,
 				title: a.title,
 				tag: (t.design.formats as Record<string, string>)[a.format ?? ""] ?? a.format,
+				tone: FACE[a.format ?? ""]?.tone,
 				issue: a.issue,
 			}))}
+			thumb={(row) => <Thumb format={rows.find((x) => x.reference === row.ref)?.format ?? ""} />}
 			create={{
 				formats: (["excalidraw", "mermaid"] as const).map((f) => ({
 					value: f,

@@ -4,6 +4,7 @@ export const designEn = {
 	create: "Create",
 	name: "Name",
 	format: "Format",
+	view: { list: "List", grid: "Grid" },
 	/** The nouns of the primary actions. */
 	noun: {
 		diagram: "Diagram",
@@ -107,6 +108,7 @@ export const designFr: typeof designEn = {
 	create: "Créer",
 	name: "Nom",
 	format: "Format",
+	view: { list: "Liste", grid: "Grille" },
 	noun: {
 		diagram: "Diagramme",
 		model: "Modèle",

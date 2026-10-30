@@ -11,9 +11,10 @@ import {
 	useTestPlans,
 } from "@/lib/specs";
 import { Button } from "@/ui/atoms/button";
-import { IconButton } from "@/ui/atoms/icon-button";
-import { ChevronLeftIcon, PlusIcon } from "@/ui/icons";
+import { CheckIcon, ChevronLeftIcon, PlusIcon } from "@/ui/icons";
+import { gherkin } from "@/ui/molecules/code-editor";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
@@ -58,12 +59,13 @@ function PlanEditor({ plan, onBack }: { plan: Plan; onBack: () => void }) {
 	const [line, setLine] = useState<number | null>(null);
 	const first = plan.errors[0];
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
+		<div className="flex min-h-0 flex-1 flex-col gap-2 px-4 pt-3 pb-4">
 			<h1 className="sr-only">{plan.title}</h1>
 			<div>
-				<IconButton label={t.specs.back} onClick={onBack}>
+				<Button variant="ghost" onClick={onBack}>
 					<ChevronLeftIcon size={14} />
-				</IconButton>
+					{t.specs.back}
+				</Button>
 			</div>
 			<FileEditor
 				key={plan.path}
@@ -72,6 +74,7 @@ function PlanEditor({ plan, onBack }: { plan: Plan; onBack: () => void }) {
 				refId={planRef(plan.path)}
 				problem={first ?? null}
 				line={line}
+				highlight={gherkin}
 			>
 				{plan.errors.length ? (
 					<ul aria-label={t.specs.errors} className="flex flex-col">
@@ -157,9 +160,11 @@ function PlanList() {
 	return (
 		<ListDetail
 			title={t.tabs.specs["test-plans"]}
-			toolbar={
+			icon={<CheckIcon size={16} />}
+			count={plans?.length}
+			action={
 				plans?.length ? (
-					<Button variant="primary" className="ml-auto" onClick={create}>
+					<Button variant="primary" onClick={create}>
 						<PlusIcon size={14} />
 						{s.newPlan}
 					</Button>
@@ -173,9 +178,9 @@ function PlanList() {
 					/>
 				</div>
 			) : (
-				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto">
+				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto px-4 pt-1 pb-4">
 					<div
-						className="flex shrink-0 flex-col"
+						className="flex shrink-0 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1"
 						style={{ height: Math.min(224, (plans?.length ?? 0) * PLAN_ROW + 28 + 2) }}
 					>
 						<DataTable
@@ -188,12 +193,11 @@ function PlanList() {
 						/>
 					</div>
 					{caps.length ? (
-						<div className="flex flex-col gap-2 px-3 pb-3">
-							<h2 className="text-14 font-medium">{s.coverage}</h2>
+						<Panel title={s.coverage} bodyClassName="gap-3 p-3">
 							{caps.map((c) => (
 								<Coverage key={c.capability} cap={c.capability} />
 							))}
-						</div>
+						</Panel>
 					) : null}
 				</div>
 			)}

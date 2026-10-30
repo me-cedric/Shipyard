@@ -30,7 +30,7 @@ test("shows a validation finding on the artifact that holds it, with its line", 
 	page,
 }) => {
 	await openSpecs(page, "Changes");
-	await page.getByRole("row", { name: /add-billing/ }).click();
+	await page.getByRole("button", { name: /^add-billing/ }).click();
 	await page.getByRole("button", { name: "Validate" }).click();
 	const artifacts = page.getByRole("navigation", { name: "Artifacts" });
 	await expect(artifacts.getByRole("img", { name: "Proposal: Done" })).toBeVisible();
@@ -42,11 +42,11 @@ test("shows a validation finding on the artifact that holds it, with its line", 
 
 test("folds an answer into its spec after the preview and one click", async ({ page }) => {
 	await openSpecs(page, "Questions");
-	await page.getByRole("row", { name: /^Q-035/ }).click();
+	await page.getByRole("button", { name: /^Q-035/ }).click();
 	await page.getByRole("dialog").getByRole("combobox", { name: "Status" }).fill("answered");
 	await page.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByRole("dialog")).toHaveCount(0);
-	await page.getByRole("row", { name: /^Q-035/ }).click();
+	await page.getByRole("button", { name: /^Q-035/ }).click();
 	await page.getByRole("button", { name: "Fold" }).click();
 	const dialog = page.getByRole("dialog");
 	await dialog.getByRole("textbox", { name: "Answer" }).fill("CSV first");
@@ -55,7 +55,7 @@ test("folds an answer into its spec after the preview and one click", async ({ p
 	await dialog.getByRole("button", { name: "Fold" }).click();
 	await expect(page.getByRole("dialog")).toHaveCount(0);
 	await tabs(page).getByRole("link", { name: "Changes" }).click();
-	await page.getByRole("row", { name: /add-export/ }).click();
+	await page.getByRole("button", { name: /^add-export/ }).click();
 	await page
 		.getByRole("navigation", { name: "Artifacts" })
 		.getByRole("button", { name: /Spec \/ export/ })
@@ -67,7 +67,7 @@ test("folds an answer into its spec after the preview and one click", async ({ p
 
 test("applies a split once and a second apply creates no duplicate", async ({ page }) => {
 	await openSpecs(page, "Changes");
-	await page.getByRole("row", { name: /add-auth/ }).click();
+	await page.getByRole("button", { name: /^add-auth/ }).click();
 	const open = async () => {
 		await page.getByRole("button", { name: "Split" }).click();
 		await page.getByRole("button", { name: "Preview" }).click();

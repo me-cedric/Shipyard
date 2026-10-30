@@ -1,8 +1,32 @@
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "../atoms/badge";
 import { type Status, StatusDot } from "../atoms/status-dot";
 
-/** One pull request: its ref, title, draft mark, CI state and review state. Each state has a shape. */
+/** The chip tint of a status. */
+const TINT: Record<Status, "success" | "warning" | "danger" | "info" | "neutral"> = {
+	success: "success",
+	warning: "warning",
+	danger: "danger",
+	info: "info",
+	active: "info",
+	idle: "neutral",
+};
+
+/** A status as a tinted chip. The shape names the state; the text repeats it for the eye. */
+function StateChip({ status, label }: { status: Status; label: string }) {
+	return (
+		<Badge variant={TINT[status]}>
+			<StatusDot status={status} label={label} className="size-2" />
+			<span aria-hidden="true">{label}</span>
+		</Badge>
+	);
+}
+
+/**
+ * One pull request on two lines: its ref, title and draft mark, then the CI and review states as
+ * tinted chips and the meta (time, runs). Each state has a shape.
+ */
 export function PullRow({
 	reference,
 	title,
@@ -11,6 +35,7 @@ export function PullRow({
 	ciLabel,
 	review,
 	reviewLabel,
+	meta,
 	selected,
 	onSelect,
 }: {
@@ -22,6 +47,8 @@ export function PullRow({
 	ciLabel: string;
 	review: Status;
 	reviewLabel: string;
+	/** Right of the chips: the update time, the runs. */
+	meta?: ReactNode;
 	selected?: boolean;
 	onSelect: () => void;
 }) {
@@ -31,15 +58,20 @@ export function PullRow({
 			onClick={onSelect}
 			aria-current={selected || undefined}
 			className={cn(
-				"flex min-h-row w-full items-center gap-2 border-b px-3 py-1 text-left text-ui hover:bg-n-3",
-				selected && "bg-n-4",
+				"flex w-full flex-col gap-1.5 border-b px-3 py-2 text-left text-ui transition-colors duration-(--duration-fast) last:border-b-0 hover:bg-n-3",
+				selected && "bg-accent-soft",
 			)}
 		>
-			<span className="shrink-0 font-mono text-12 text-n-11">{reference}</span>
-			<span className="min-w-0 flex-1 truncate">{title}</span>
-			{draft ? <Badge>{draft}</Badge> : null}
-			<StatusDot status={ci} label={ciLabel} />
-			<StatusDot status={review} label={reviewLabel} />
+			<span className="flex w-full items-center gap-2">
+				<span className="shrink-0 font-mono text-12 text-n-11">{reference}</span>
+				<span className="min-w-0 flex-1 truncate text-n-12">{title}</span>
+				{draft ? <Badge>{draft}</Badge> : null}
+			</span>
+			<span className="flex w-full items-center gap-1.5">
+				<StateChip status={ci} label={ciLabel} />
+				<StateChip status={review} label={reviewLabel} />
+				<span className="ml-auto flex items-center gap-2 text-12 text-n-10">{meta}</span>
+			</span>
 		</button>
 	);
 }

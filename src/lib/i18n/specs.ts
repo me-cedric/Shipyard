@@ -51,6 +51,7 @@ export const specsEn = {
 	requirements: "Requirements",
 	requirement: "Requirement",
 	requirementId: "Id",
+	backlinks: "Backlinks",
 	files: "Files",
 	question: {
 		new: "New question",
@@ -130,6 +131,7 @@ export const specsFr: typeof specsEn = {
 	requirements: "Exigences",
 	requirement: "Exigence",
 	requirementId: "Id",
+	backlinks: "Liens entrants",
 	files: "Fichiers",
 	question: {
 		new: "Nouvelle question",

@@ -12,6 +12,7 @@ import {
 } from "@/lib/design";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type FlowRow_Deserialize, unwrap } from "@/lib/ipc";
+import { ArrowsRightLeftIcon } from "@/ui/icons";
 import { type FlowDraft, type FlowError, FlowMatrix } from "@/ui/organisms/flow-matrix";
 import type { FlowField } from "@/ui/organisms/flow-rows";
 import { FileFrame } from "./frame";
@@ -92,6 +93,7 @@ export function Flows() {
 	return (
 		<ArtifactTab
 			title={t.tabs.design.flows}
+			icon={<ArrowsRightLeftIcon size={16} />}
 			noun={t.design.noun.flow}
 			rows={rows.map((a) => ({ ref: a.reference, title: a.title, issue: a.issue }))}
 			create={{

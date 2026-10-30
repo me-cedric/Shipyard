@@ -13,6 +13,7 @@ import { ArtifactTab } from "./tab";
 export function TextTab({
 	kind,
 	title,
+	icon,
 	noun,
 	ext,
 	template,
@@ -21,6 +22,7 @@ export function TextTab({
 }: {
 	kind: "model" | "data";
 	title: string;
+	icon: ReactNode;
 	noun: string;
 	ext: string;
 	template: string;
@@ -33,6 +35,7 @@ export function TextTab({
 	return (
 		<ArtifactTab
 			title={title}
+			icon={icon}
 			noun={noun}
 			rows={rows.map((a) => ({ ref: a.reference, title: a.title, issue: a.issue }))}
 			create={{

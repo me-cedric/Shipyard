@@ -8,7 +8,8 @@ import { renderSpecs } from "./test-harness";
 type User = ReturnType<typeof userEvent.setup>;
 const files = () => mockState().specs.files;
 const QDIR = "docs/delivery/questions";
-const rows = () => screen.findAllByRole("row", { name: /Q-\d+/ });
+// Each question is a card: a button with its id first.
+const rows = () => screen.findAllByRole("button", { name: /^Q-\d+/ });
 const pick = async (user: User, name: string, option: string) => {
 	await user.click(screen.getByRole("combobox", { name }));
 	await user.click(await screen.findByRole("option", { name: option }));
@@ -30,7 +31,7 @@ describe("Specs / Questions", () => {
 		await waitFor(async () => expect(await rows()).toHaveLength(2));
 		await pick(user, "Kind", "question");
 		await waitFor(async () => expect(await rows()).toHaveLength(1));
-		expect(screen.getByRole("row", { name: /Q-035/ })).toHaveTextContent("ada");
+		expect(screen.getByRole("button", { name: /^Q-035/ })).toHaveTextContent("ada");
 		await pick(user, "Kind", "All kinds");
 		await pick(user, "Owner", "All owners");
 		await pick(user, "Status", "All statuses");
@@ -88,7 +89,7 @@ describe("Specs / Questions", () => {
 	it("saves the changed owner of a question", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Questions />);
-		await user.click(await screen.findByRole("row", { name: /^Q-020/ }));
+		await user.click(await screen.findByRole("button", { name: /^Q-020/ }));
 		const dialog = within(await screen.findByRole("dialog"));
 		await fill(user, "Owner", "grace2");
 		await user.click(dialog.getByRole("button", { name: "Save" }));
@@ -98,7 +99,7 @@ describe("Specs / Questions", () => {
 	it("fills the form from the file that the stamp belongs to", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Questions />);
-		const row = await screen.findByRole("row", { name: /^Q-020/ });
+		const row = await screen.findByRole("button", { name: /^Q-020/ });
 		const path = `${QDIR}/Q-020.md`;
 		const f = files()[path];
 		if (!f) throw new Error("no Q-020");
@@ -132,7 +133,7 @@ describe("Specs / Questions", () => {
 		const spec = "docs/openspec/changes/add-export/specs/export/spec.md";
 		const before = files()[spec]?.text ?? "";
 		await renderSpecs(<Questions />);
-		await user.click(await screen.findByRole("row", { name: /Q-035/ }));
+		await user.click(await screen.findByRole("button", { name: /^Q-035/ }));
 		await user.click(await screen.findByRole("button", { name: "Fold" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		const preview = await dialog.findByRole("region", { name: "Preview" });

@@ -3,6 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
+import { ComputerDesktopIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
@@ -67,6 +68,7 @@ export function Screens() {
 	return (
 		<ArtifactTab
 			title={t.tabs.design.screens}
+			icon={<ComputerDesktopIcon size={16} />}
 			noun={t.design.noun.screen}
 			notice={list?.screensError}
 			pinned={doc ? { ref: `doc:${doc}`, title: t.design.screens.doc } : undefined}
@@ -74,6 +76,7 @@ export function Screens() {
 				ref: `screen:${s.slug}`,
 				title: s.title,
 				tag: s.broken ? t.design.screens.broken : null,
+				tone: s.broken ? "danger" : undefined,
 			}))}
 			create={{
 				run: async (name) => {

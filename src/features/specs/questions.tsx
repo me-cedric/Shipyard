@@ -1,20 +1,39 @@
-import type { ColumnDef } from "@tanstack/react-table";
-import { useMemo, useState } from "react";
+import { motion } from "motion/react";
+import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { KINDS, type QuestionEntry, STATUSES, useQuestions } from "@/lib/specs";
+import { cn } from "@/lib/utils";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { PlusIcon } from "@/ui/icons";
+import { ChatBubbleIcon, PlusIcon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { FilterBar } from "@/ui/molecules/filter-bar";
-import { DataTable } from "@/ui/organisms/data-table";
+import { LIST, useEnter } from "@/ui/motion";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { WithProject } from "./no-project";
 import { FoldDialog, QuestionDialog } from "./question-dialogs";
 
 const ALL = "all";
+
+type Tone = "neutral" | "accent" | "success" | "warning" | "danger" | "info";
+/** The tint of a status: the chip and the line on top of the card. */
+const STATUS: Record<string, { tone: Tone; line: string }> = {
+	open: { tone: "warning", line: "bg-warning" },
+	answered: { tone: "success", line: "bg-success" },
+	withdrawn: { tone: "neutral", line: "bg-n-8" },
+};
+const KIND: Record<string, Tone> = {
+	risk: "danger",
+	assumption: "info",
+	issue: "warning",
+	dependency: "accent",
+	question: "accent",
+	decision: "success",
+};
 
 /** Specs / Questions: the RAID register with combined filters, create, edit and fold. */
 export function Questions() {
@@ -47,45 +66,7 @@ function Register() {
 			(status === ALL || q.status === status) &&
 			(owner === ALL || q.owner === owner),
 	);
-	const columns = useMemo<ColumnDef<QuestionEntry>[]>(
-		() => [
-			{
-				id: "id",
-				header: s.id,
-				meta: { width: "5rem" },
-				cell: ({ row }) => row.original.question.id,
-			},
-			{ id: "title", header: s.title, cell: ({ row }) => row.original.question.title },
-			{
-				id: "kind",
-				header: s.kind,
-				meta: { width: "8rem" },
-				cell: ({ row }) => <Badge>{row.original.question.kind}</Badge>,
-			},
-			{
-				id: "status",
-				header: s.status,
-				meta: { width: "7rem" },
-				cell: ({ row }) => row.original.question.status,
-			},
-			{
-				id: "owner",
-				header: s.owner,
-				meta: { width: "8rem" },
-				cell: ({ row }) => row.original.question.owner,
-			},
-			{
-				id: "issues",
-				header: "",
-				meta: { width: "1rem" },
-				cell: ({ row }) =>
-					row.original.issues.length ? (
-						<StatusDot status="warning" label={row.original.issues.join(", ")} />
-					) : null,
-			},
-		],
-		[s],
-	);
+	const enter = useEnter();
 	const options = (all: string, values: string[]) => [
 		{ value: ALL, label: all },
 		...values.map((v) => ({ value: v, label: v })),
@@ -94,6 +75,16 @@ function Register() {
 	return (
 		<ListDetail
 			title={t.tabs.specs.questions}
+			icon={<ChatBubbleIcon size={16} />}
+			count={all?.length}
+			action={
+				all?.length ? (
+					<Button variant="primary" onClick={create}>
+						<PlusIcon size={14} />
+						{s.new}
+					</Button>
+				) : null
+			}
 			toolbar={
 				<>
 					<FilterBar
@@ -121,12 +112,6 @@ function Register() {
 						onValueChange={setOwner}
 						items={options(s.allOwners, owners)}
 					/>
-					{all?.length ? (
-						<Button variant="primary" className="ml-auto" onClick={create}>
-							<PlusIcon size={14} />
-							{s.new}
-						</Button>
-					) : null}
 				</>
 			}
 		>
@@ -135,13 +120,50 @@ function Register() {
 					<EmptyState action={{ label: s.new, icon: <PlusIcon size={14} />, onClick: create }} />
 				</div>
 			) : (
-				<DataTable
-					label={t.tabs.specs.questions}
-					data={shown}
-					columns={columns}
-					rowId={(e) => e.path}
-					onOpen={setEdit}
-				/>
+				<motion.ul
+					aria-label={t.tabs.specs.questions}
+					variants={LIST}
+					initial={enter}
+					animate="shown"
+					className="grid min-h-0 auto-rows-min grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-3 overflow-auto px-4 pt-1 pb-4"
+				>
+					{shown.map((e) => {
+						const q = e.question;
+						const st = STATUS[q.status] ?? { tone: "neutral", line: "bg-n-8" };
+						return (
+							<li key={e.path}>
+								<Card interactive className="relative overflow-hidden p-0">
+									<span
+										aria-hidden="true"
+										className={cn("absolute inset-x-0 top-0 h-0.5", st.line)}
+									/>
+									<button
+										type="button"
+										onClick={() => setEdit(e)}
+										className="flex h-full w-full flex-col gap-2 rounded-lg p-3 text-left"
+									>
+										<span className="flex items-center gap-2">
+											<span className="font-mono text-12 text-n-11">{q.id}</span>
+											<Badge variant={KIND[q.kind] ?? "neutral"}>{q.kind}</Badge>
+											<span className="flex-1" />
+											{e.issues.length ? (
+												<StatusDot status="warning" label={e.issues.join(", ")} />
+											) : null}
+											<Badge variant={st.tone}>{q.status}</Badge>
+										</span>
+										<span className="line-clamp-2 min-h-10 text-ui text-n-12">{q.title}</span>
+										{q.owner ? (
+											<span className="flex items-center gap-2 text-12 text-n-11">
+												<Avatar name={q.owner} className="size-5" />
+												{q.owner}
+											</span>
+										) : null}
+									</button>
+								</Card>
+							</li>
+						);
+					})}
+				</motion.ul>
 			)}
 			{edit ? (
 				<QuestionDialog

@@ -1,4 +1,6 @@
 import { useI18n } from "@/lib/i18n";
+import { LockClosedIcon } from "@/ui/icons";
+import { ListDetail } from "@/ui/templates/list-detail";
 import { FileEditor } from "./file-editor";
 import { WithProject } from "./no-project";
 
@@ -10,10 +12,11 @@ export function Constitution() {
 	const title = t.tabs.specs.constitution;
 	return (
 		<WithProject title={title}>
-			<div className="flex min-h-0 flex-1 flex-col p-3">
-				<h1 className="sr-only">{title}</h1>
-				<FileEditor path={PATH} title={title} refId={PATH} />
-			</div>
+			<ListDetail title={title} icon={<LockClosedIcon size={16} />}>
+				<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col rounded-lg border bg-surface-1 p-3 shadow-1">
+					<FileEditor path={PATH} title={title} refId={PATH} />
+				</div>
+			</ListDetail>
 		</WithProject>
 	);
 }
