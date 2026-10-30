@@ -51,6 +51,15 @@ export function useFactoryEvents(handler: (event: FactoryEvent, payload: Factory
 	}, []);
 }
 
+const THURSDAY = 4;
+const localDay = (d: Date) =>
+	`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** Legacy shows "Timesheet day" on Thursday (`topbar.tsx`). Here it is one item, until a time entry of that day exists. */
+export function timesheetDue(now: Date, loggedDays: string[]): boolean {
+	return now.getDay() === THURSDAY && !loggedDays.includes(localDay(now));
+}
+
 /** What waits for the person: open questions first, approvals, plans to review, messages. */
 export function useInbox() {
 	const qc = useQueryClient();
@@ -68,8 +77,21 @@ export function useInbox() {
 		queryKey: homeKeys.messages,
 		queryFn: () => unwrap(commands.messagesList()),
 	});
+	const now = new Date();
+	// Only on the day: other days ask the tracker nothing.
+	const time = useQuery({
+		queryKey: ["work", "time", null, localDay(now).slice(0, 7)],
+		queryFn: () => unwrap(commands.timeList(null, localDay(now).slice(0, 7))),
+		enabled: now.getDay() === THURSDAY,
+	});
 	return {
 		loading: [questions, approvals, runs, messages].some((q) => q.isPending),
+		timesheet: time.data
+			? timesheetDue(
+					now,
+					time.data.rows.flatMap((r) => (r.entry ? [r.entry.day] : [])),
+				)
+			: false,
 		questions: questions.data ?? [],
 		approvals: approvals.data ?? [],
 		plans: (runs.data ?? []).filter((r) => r.state === "PlanReview"),

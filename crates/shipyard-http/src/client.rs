@@ -35,17 +35,39 @@ pub fn bypasses_proxy(host: &str, no_proxy: &str) -> bool {
     })
 }
 
-/// The OS trust store plus the PEM bundle that a variable names. `None` without a variable.
-/// A named file that cannot be read is an error: a silent fallback hides the real fault.
+static EXTRA_CA: std::sync::Mutex<Option<std::path::PathBuf>> = std::sync::Mutex::new(None);
+
+/// The PEM bundle that a person added in Settings. `None` removes it. The env bundle wins when both exist.
+pub fn set_extra_ca(path: Option<std::path::PathBuf>) {
+    *EXTRA_CA.lock().unwrap_or_else(|e| e.into_inner()) = path;
+}
+
+/// How many certificates a PEM text holds. Zero means the file is not a bundle.
+pub fn count_pem_certs(pem: &[u8]) -> usize {
+    rustls_pemfile::certs(&mut std::io::BufReader::new(pem))
+        .filter(Result::is_ok)
+        .count()
+}
+
+/// The OS trust store plus the PEM bundle that a variable names, or the one added in Settings.
+/// `None` without either. A named file that cannot be read is an error: a silent fallback hides the real fault.
 fn tls_config() -> Result<Option<Arc<rustls::ClientConfig>>, Error> {
-    let Some((var, path)) = ["SHIPYARD_CA_BUNDLE", "SSL_CERT_FILE"]
+    let from_env = ["SHIPYARD_CA_BUNDLE", "SSL_CERT_FILE"]
         .iter()
         .find_map(|var| {
             let value = std::env::var(var).ok()?;
             let value = value.trim().to_string();
-            (!value.is_empty()).then_some((*var, value))
+            (!value.is_empty()).then_some((var.to_string(), value))
+        });
+    let extra = EXTRA_CA.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    let Some((var, path)) = from_env.or_else(|| {
+        extra.map(|p| {
+            (
+                "the added certificate".to_string(),
+                p.to_string_lossy().into_owned(),
+            )
         })
-    else {
+    }) else {
         return Ok(None);
     };
     let fail = |why: String| Error::Transport(format!("{var} names {path}: {why}"));
@@ -173,5 +195,24 @@ impl Http for Client {
             headers,
             body,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn text_without_a_certificate_counts_zero() {
+        assert_eq!(count_pem_certs(b"not a certificate"), 0);
+    }
+
+    #[test]
+    fn an_added_bundle_that_cannot_be_read_is_an_error() {
+        set_extra_ca(Some("/no/such/bundle.pem".into()));
+        let result = tls_config();
+        set_extra_ca(None);
+        let message = result.err().map(|e| e.to_string()).unwrap_or_default();
+        assert!(message.contains("the added certificate"), "{message}");
     }
 }

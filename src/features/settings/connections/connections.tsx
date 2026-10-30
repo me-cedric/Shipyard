@@ -35,6 +35,7 @@ import { FlagList } from "@/ui/molecules/flag-list";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { SyncStatus } from "@/ui/molecules/sync-status";
+import { CertsGroup } from "./certs-group";
 import { ADD_TYPES, type AddType, ConnectionForm, GROUPS } from "./connection-form";
 import { connectionKeys, message, useMcpServers, useProviders } from "./keys";
 import { McpAddForm, McpGroup } from "./mcp-group";
@@ -415,6 +416,7 @@ export function Connections() {
 				})}
 				<McpGroup formOpen={formOpen} onForm={setEditing} />
 				<McpOutsideGroup />
+				<CertsGroup />
 				<RunnersGroup />
 				<ProvidersGroup formOpen={formOpen} onForm={setEditing} />
 			</div>

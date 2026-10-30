@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { type ComponentProps, type ReactNode, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import {
@@ -23,14 +24,18 @@ import { QuestionCard } from "@/ui/molecules/question-card";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { HomeStats } from "../stats";
 
-/** Home / Inbox: what waits for the person, in four groups (shell REQ-003, questions-loop REQ-008). */
-export function Inbox() {
+/**
+ * Home / Inbox: what waits for the person, in four groups (shell REQ-003, questions-loop REQ-008).
+ * `start` shows under the header: the Get started steps of a new project.
+ */
+export function Inbox({ start }: { start?: ReactNode }) {
 	const { t } = useI18n();
 	const active = useActiveProject().data;
 	const { openFolder } = useProjectActions();
 	const act = useInboxActions();
-	const { loading, questions, approvals, plans, messages } = useInbox();
-	const total = questions.length + approvals.length + plans.length + messages.length;
+	const { loading, questions, approvals, plans, messages, timesheet } = useInbox();
+	const total =
+		questions.length + approvals.length + plans.length + messages.length + Number(timesheet);
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
 			<PageHeader
@@ -59,6 +64,7 @@ export function Inbox() {
 				/>
 			) : (
 				<>
+					{start}
 					<HomeStats />
 					{total === 0 && !loading ? (
 						<EmptyState
@@ -85,6 +91,9 @@ export function Inbox() {
 								{plans.map((r) => (
 									<PlanRow key={r.id} run={r.id} ticket={r.key} title={r.title} />
 								))}
+							</Group>
+							<Group name={t.home.timesheet} count={Number(timesheet)}>
+								<TimesheetRow />
 							</Group>
 							<Group name={t.home.messages} count={messages.length}>
 								{messages.map((m) => (
@@ -226,6 +235,19 @@ function PlanRow({ run, ticket, title }: { run: string; ticket: string; title: s
 				</Button>
 			</div>
 			<Failure error={error} />
+		</Card>
+	);
+}
+
+function TimesheetRow() {
+	const { t } = useI18n();
+	const navigate = useNavigate();
+	return (
+		<Card>
+			<div className="flex items-center gap-2 px-3 py-2">
+				<span className="flex-1 text-ui">{t.home.timesheetDay}</span>
+				<Button onClick={() => void navigate({ to: "/work/time" })}>{t.home.timesheetOpen}</Button>
+			</div>
 		</Card>
 	);
 }

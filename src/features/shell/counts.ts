@@ -11,7 +11,11 @@ export function useCounts() {
 	const runs = useRuns().data ?? [];
 	const changes = useChanges().data;
 	const needsYou = project
-		? inbox.questions.length + inbox.approvals.length + inbox.plans.length + inbox.messages.length
+		? inbox.questions.length +
+			inbox.approvals.length +
+			inbox.plans.length +
+			inbox.messages.length +
+			Number(inbox.timesheet)
 		: 0;
 	// A run is live while it works or waits for the person.
 	const live = runs.filter((r) => r.lane === "working" || r.lane === "needs_you").length;

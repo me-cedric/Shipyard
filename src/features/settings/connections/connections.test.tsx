@@ -56,7 +56,7 @@ describe("Settings / Connections", () => {
 			within(main)
 				.getAllByRole("heading", { level: 2 })
 				.map((h) => h.textContent),
-		).toEqual(["Outside agents", "Runners (5)"]);
+		).toEqual(["Outside agents", "Certificates", "Runners (5)"]);
 	});
 
 	it("groups the connections by kind with a count and one primary action", async () => {

@@ -24,7 +24,7 @@ use shipyard_secrets::Secret;
 use specta::Type;
 use std::time::Duration;
 
-pub use client::{Client, bypasses_proxy};
+pub use client::{Client, bypasses_proxy, count_pem_certs, set_extra_ca};
 
 /// Largest response body the client reads.
 pub const MAX_BODY_BYTES: usize = 8 * 1024 * 1024;

@@ -29,6 +29,13 @@ export const settingsEn = {
 		import: "Import {name}",
 		imported: "Imported {name}",
 	},
+	certs: {
+		title: "Certificates",
+		add: "Add PEM bundle",
+		remove: "Remove certificates",
+		count: "{count} certificates added",
+		none: "None added",
+	},
 	tools: {
 		title: "Toolchain",
 		install: "Install {name}",
@@ -72,6 +79,13 @@ export const settingsFr: typeof settingsEn = {
 		elsewhere: "Serveurs des autres outils",
 		import: "Importer {name}",
 		imported: "{name} importé",
+	},
+	certs: {
+		title: "Certificats",
+		add: "Ajouter un bundle PEM",
+		remove: "Retirer les certificats",
+		count: "{count} certificats ajoutés",
+		none: "Aucun ajouté",
 	},
 	tools: {
 		title: "Chaîne d’outils",

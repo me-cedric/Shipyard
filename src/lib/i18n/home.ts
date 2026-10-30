@@ -5,6 +5,9 @@ export const homeEn = {
 	approvals: "Approvals",
 	planReview: "Plan review",
 	messages: "Messages",
+	timesheet: "Timesheet",
+	timesheetDay: "Timesheet day: no time logged today",
+	timesheetOpen: "Log time",
 	items: "Items",
 	refresh: "Refresh",
 	send: "Send",
@@ -42,6 +45,15 @@ export const homeEn = {
 		approval: "{key}: approval",
 		run: "{key}: needs you",
 	},
+	start: {
+		title: "Get started",
+		tracker: "Connect a tracker",
+		forge: "Connect a forge",
+		team: "Set the team",
+		spec: "Write the first spec",
+		run: "Start the first run",
+		done: "Done",
+	},
 };
 
 export const homeFr: typeof homeEn = {
@@ -50,6 +62,9 @@ export const homeFr: typeof homeEn = {
 	approvals: "Approbations",
 	planReview: "Revue du plan",
 	messages: "Messages",
+	timesheet: "Feuille de temps",
+	timesheetDay: "Jour de feuille de temps : aucun temps saisi aujourd’hui",
+	timesheetOpen: "Saisir le temps",
 	items: "Éléments",
 	refresh: "Actualiser",
 	send: "Envoyer",
@@ -86,5 +101,14 @@ export const homeFr: typeof homeEn = {
 		question: "{key} : question",
 		approval: "{key} : approbation",
 		run: "{key} : à traiter",
+	},
+	start: {
+		title: "Pour commencer",
+		tracker: "Connecter un tracker",
+		forge: "Connecter une forge",
+		team: "Définir l'équipe",
+		spec: "Écrire la première spec",
+		run: "Lancer le premier run",
+		done: "Fait",
 	},
 };
