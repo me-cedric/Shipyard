@@ -24,6 +24,7 @@ import { usePrefs } from "@/lib/prefs";
 import { SPRING } from "@/ui/motion";
 import { NotFound } from "./not-found";
 import { refActions } from "./ref-actions";
+import { RouteError } from "./route-error";
 import { preloadTab, TabView } from "./tab-view";
 
 const rootRoute = createRootRoute({
@@ -137,7 +138,7 @@ const routeTree = rootRoute.addChildren([
 ]);
 
 export function createAppRouter(history?: RouterHistory) {
-	return createRouter({ routeTree, history });
+	return createRouter({ routeTree, history, defaultErrorComponent: RouteError });
 }
 
 declare module "@tanstack/react-router" {

@@ -193,7 +193,7 @@ export function terminalLaunch(
 	if (!id) throw "no terminal app was found on this machine";
 	if (!KNOWN.includes(id)) throw `unknown terminal app: ${id}`;
 	const app = r.installed.find((a) => a.id === id);
-	if (!app) throw `${id} is not installed`;
+	if (!app) throw `the terminal app is not installed: ${id}`;
 	r.launched.push({ id, folder });
 	return null;
 }

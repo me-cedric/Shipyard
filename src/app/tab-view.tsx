@@ -1,4 +1,4 @@
-import { type ComponentType, lazy, Suspense } from "react";
+import { type ComponentType, type LazyExoticComponent, lazy, Suspense } from "react";
 import { type SpaceId, tabLabel } from "@/features/shell";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState } from "@/ui/molecules/empty-state";
@@ -60,12 +60,25 @@ const LOADERS: Partial<Record<string, Load>> = {
 };
 
 const loaded = new Map<string, ComponentType>();
-const LAZY = new Map(
-	Object.entries(LOADERS).map(([key, load]) => [
-		key,
-		lazy(async () => ({ default: await (load as Load)() })),
-	]),
-);
+const LAZY = new Map<string, LazyExoticComponent<ComponentType>>();
+
+/** One lazy view for each tab. A failed load drops it: React.lazy keeps a failed promise for good, so Retry needs a new one. */
+function lazyView(key: string, load: Load) {
+	let view = LAZY.get(key);
+	if (!view) {
+		view = lazy(() =>
+			load().then(
+				(c) => ({ default: c }),
+				(e: unknown) => {
+					LAZY.delete(key);
+					throw e;
+				},
+			),
+		);
+		LAZY.set(key, view);
+	}
+	return view;
+}
 
 /** Loads the code of a tab. The router calls it before it shows the tab and when a pointer rests on a link to the tab. */
 export async function preloadTab(space: SpaceId, tab: string) {
@@ -78,7 +91,8 @@ export function TabView({ space, tab }: { space: SpaceId; tab: string }) {
 	const { t } = useI18n();
 	const key = `${space}/${tab}`;
 	// A preloaded view renders at once; the lazy one covers a render before the preload ends.
-	const View = loaded.get(key) ?? LAZY.get(key);
+	const load = LOADERS[key];
+	const View = loaded.get(key) ?? (load && lazyView(key, load));
 	if (View)
 		return (
 			<Suspense fallback={null}>

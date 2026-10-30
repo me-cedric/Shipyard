@@ -38,6 +38,20 @@ describe("the error contract", () => {
 		}
 	});
 
+	it("gives each source its own message and action", () => {
+		expect(classify("invalid change id: Bad Id")).toEqual({
+			code: "change_id_invalid",
+			action: null,
+		});
+		expect(classify("the title needs a letter or a digit: !!").code).toBe("title_invalid");
+		// A forge outage never reads the tracker again.
+		expect(classify("network error: refused")).toEqual({ code: "forge_unreachable", action: null });
+		expect(classify("the terminal app is not installed: Kitty")).toEqual({
+			code: "terminal_gone",
+			action: { kind: "setting", target: "terminalApp" },
+		});
+	});
+
 	it("shows the details of a text that has no code, and no action", () => {
 		expect(classify("odd failure")).toEqual({ code: "unknown", action: null });
 		expect(toFailure("odd failure").message).toBe("odd failure");

@@ -17,6 +17,13 @@ vi.mock("@/ui/organisms/excalidraw-board", () => ({
 	ExcalidrawBoard: ({ label }: { label: string }) => <div role="img" aria-label={label} />,
 }));
 
+// A view whose chunk fails to load until the flag turns off.
+const chunk = vi.hoisted(() => ({ fail: false }));
+vi.mock("@/features/work/estimates", async (orig) => {
+	if (chunk.fail) throw new Error("Failed to fetch dynamically imported module: /assets/x.js");
+	return orig();
+});
+
 const sidebar = () => screen.findByRole("navigation", { name: "Sidebar" });
 const current = (nav: HTMLElement) =>
 	within(nav)
@@ -146,5 +153,18 @@ describe("shell", () => {
 				.map((b) => b.textContent),
 		).toEqual(["Commit"]);
 		expect(await within(bar).findByRole("img", { name: "Success" })).toBeInTheDocument();
+	});
+
+	it("shows one plain sentence and a Retry when a view fails to load, and loads it on Retry", async () => {
+		const user = userEvent.setup();
+		chunk.fail = true;
+		mount("/work/estimates");
+		const notice = await screen.findByRole("alert");
+		expect(notice).toHaveTextContent(en.routeError.message);
+		expect(document.body).not.toHaveTextContent("dynamically imported");
+		chunk.fail = false;
+		await user.click(screen.getByRole("button", { name: en.routeError.retry }));
+		await waitFor(() => expect(screen.queryByText(en.routeError.message)).toBeNull());
+		expect(screen.queryByRole("button", { name: en.routeError.retry })).toBeNull();
 	});
 });

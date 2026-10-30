@@ -4,6 +4,8 @@ import { useDark } from "./use-dark";
 
 /** The only origin that can show in a frame (CSP `frame-src`) and send a message (ADR 0015). */
 export const DRAWIO_ORIGIN = "https://embed.diagrams.net";
+// shortcut: off until the app CSP allows frame-src https://embed.diagrams.net (ADR 0015); then turn it on
+export const DRAWIO_EMBED = false;
 /** The editor that does not answer in this time shows the read-only view. */
 const WAIT_MS = 15_000;
 
@@ -38,6 +40,7 @@ export function DrawioEditor({
 	lang,
 	onChange,
 	fallback,
+	embed = DRAWIO_EMBED,
 }: {
 	text: string;
 	/** True for a `.drawio.svg` file. */
@@ -48,6 +51,8 @@ export function DrawioEditor({
 	onChange: (text: string) => void;
 	/** The read-only view. */
 	fallback: ReactNode;
+	/** For a test: the embed on or off. */
+	embed?: boolean;
 }) {
 	const online = useSyncExternalStore(subscribe, () => navigator.onLine);
 	const dark = useDark();
@@ -60,7 +65,7 @@ export function DrawioEditor({
 		[svg, text],
 	);
 	useEffect(() => {
-		if (!online || !xml) return;
+		if (!embed || !online || !xml) return;
 		const timer = setTimeout(() => setSilent(true), WAIT_MS);
 		const send = (m: object) =>
 			frame.current?.contentWindow?.postMessage(JSON.stringify(m), DRAWIO_ORIGIN);
@@ -88,8 +93,8 @@ export function DrawioEditor({
 			clearTimeout(timer);
 			removeEventListener("message", receive);
 		};
-	}, [online, xml, svg]);
-	if (!online || silent || !xml) return fallback;
+	}, [embed, online, xml, svg]);
+	if (!embed || !online || silent || !xml) return fallback;
 	const query = `embed=1&proto=json&spin=1&noSaveBtn=1&noExitBtn=1&saveAndExit=0&ui=min&dark=${dark ? 1 : 0}&lang=${lang}`;
 	return (
 		<iframe

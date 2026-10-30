@@ -23,6 +23,7 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		connection_address: "Use an https address.",
 		secret_invalid: "The token is empty or too long.",
 		title_invalid: "Use a title with at least one letter or digit.",
+		change_id_invalid: "This change id is not valid. Use lowercase letters, digits and hyphens.",
 		change_exists: "A change with this title exists. Use another title.",
 		run_not_started: "The run did not start.",
 		merge_draft: "This pull request is a draft. Mark it ready first.",
@@ -36,6 +37,7 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		git_busy: "The repository is busy. Finish the merge or the rebase first.",
 		git_no_upstream: "This branch is not on the server yet. Push it first.",
 		no_terminal: "No terminal app was found. Pick one in your settings.",
+		terminal_gone: "This terminal app is not installed. Pick another in your settings.",
 	},
 	fr: {
 		no_project: "Ouvrez ou créez d'abord un projet.",
@@ -52,6 +54,8 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		connection_address: "Utilisez une adresse https.",
 		secret_invalid: "Le jeton est vide ou trop long.",
 		title_invalid: "Utilisez un titre avec au moins une lettre ou un chiffre.",
+		change_id_invalid:
+			"Cet identifiant de changement n'est pas valide. Utilisez des minuscules, des chiffres et des tirets.",
 		change_exists: "Un changement porte déjà ce titre. Utilisez un autre titre.",
 		run_not_started: "L'exécution n'a pas démarré.",
 		merge_draft: "Cette pull request est un brouillon. Marquez-la d'abord comme prête.",
@@ -66,6 +70,8 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		git_busy: "Le dépôt est occupé. Terminez d'abord la fusion ou le rebase.",
 		git_no_upstream: "Cette branche n'est pas encore sur le serveur. Poussez-la d'abord.",
 		no_terminal: "Aucune application de terminal trouvée. Choisissez-en une dans vos réglages.",
+		terminal_gone:
+			"Cette application de terminal n'est pas installée. Choisissez-en une autre dans vos réglages.",
 	},
 };
 
@@ -106,7 +112,8 @@ export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["the name needs", "connection_name"],
 	["bad address", "connection_address"],
 	["the secret needs", "secret_invalid"],
-	["invalid change id", "title_invalid"],
+	["the title needs", "title_invalid"],
+	["invalid change id", "change_id_invalid"],
 	["change exists", "change_exists"],
 	["the run did not start", "run_not_started"],
 	["a draft pull request cannot merge", "merge_draft"],
@@ -121,6 +128,7 @@ export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["the repository is busy with", "git_busy"],
 	["the branch has no upstream", "git_no_upstream"],
 	["no terminal app was found", "no_terminal"],
+	["terminal app is not installed", "terminal_gone"],
 ];
 
 const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {
@@ -136,10 +144,10 @@ const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {
 	merge_closed: { kind: "open", target: "/code/pull-requests" },
 	merge_method: { kind: "open", target: "/code/pull-requests" },
 	forge_denied: { kind: "setting", target: "connections" },
-	forge_unreachable: { kind: "sync", target: "" },
 	git_nothing_staged: { kind: "open", target: "/code/changes" },
 	git_no_upstream: { kind: "open", target: "/code/branches" },
 	no_terminal: { kind: "setting", target: "terminalApp" },
+	terminal_gone: { kind: "setting", target: "terminalApp" },
 };
 
 /** What the mock gives to a raw text, the way `AppError::from` does in Rust. */

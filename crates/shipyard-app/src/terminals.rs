@@ -235,7 +235,8 @@ pub fn launch(s: &AppState, folder: &str, click: bool) -> Res<()> {
             .find(|d| d.id == chosen)
             .ok_or_else(|| format!("unknown terminal app: {chosen}"))?
     };
-    let found = find(def).ok_or_else(|| format!("{} is not installed", def.label))?;
+    let found =
+        find(def).ok_or_else(|| format!("the terminal app is not installed: {}", def.label))?;
     let l = plan(def.id, &found, &dir);
     let mut cmd = Command::new(&l.program);
     cmd.args(&l.args)

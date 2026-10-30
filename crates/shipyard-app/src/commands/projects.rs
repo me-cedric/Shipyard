@@ -197,8 +197,14 @@ pub fn make(s: &AppState, path: &str, commit: bool) -> Res<ProjectOutcome> {
     let name = folder_name(&root);
     let file = match read_project_file(&root).map_err(err)? {
         FileRead::Valid(f) => f,
-        _ => layout_file(&root, &name, &derive_key(&name)),
+        // A file that does not parse is the work of a person: write nothing, not even `git init`.
+        FileRead::Invalid(issues) => {
+            let lines: Vec<_> = issues.into_iter().map(|(_, m)| m).collect();
+            return Ok(outcome(OpenStatus::Failed, lines.join("; ")));
+        }
+        FileRead::Missing => layout_file(&root, &name, &derive_key(&name)),
     };
+    let own_ignore = !root.join(".gitignore").exists();
     if let Err(e) = init(&root)
         .and_then(|()| write_project_file(&root, &file).map_err(err))
         .and_then(|()| seed_automation(&root))
@@ -207,8 +213,15 @@ pub fn make(s: &AppState, path: &str, commit: bool) -> Res<ProjectOutcome> {
     }
     if commit {
         let repo = Repo::open(&root).map_err(err)?;
-        repo.stage(&[".gitignore".into(), ".shipyard".into()])
-            .map_err(err)?;
+        // Only the files that Shipyard made. A `.gitignore` of the person stays out.
+        let mut files = vec![
+            ".shipyard/project.yaml".into(),
+            ".shipyard/automation.yaml".into(),
+        ];
+        if own_ignore {
+            files.push(".gitignore".into());
+        }
+        repo.stage(&files).map_err(err)?;
         repo.commit("chore(shipyard): start the project", "")
             .map_err(err)?;
     }
@@ -532,6 +545,53 @@ mod tests {
         assert!(st.head.is_some());
         assert_eq!(st.untracked.len(), 1);
         assert_eq!(st.untracked[0].path, "notes.txt");
+    }
+
+    #[test]
+    fn a_plain_folder_with_an_invalid_project_file_is_refused_and_unchanged() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = state_in(dir.path());
+        let plain = dir.path().join("plain");
+        std::fs::create_dir_all(plain.join(".shipyard")).unwrap();
+        let bad = "name: P\nkey: bad\n";
+        std::fs::write(plain.join(".shipyard/project.yaml"), bad).unwrap();
+        let o = make(&s, plain.to_str().unwrap(), true).unwrap();
+        assert_eq!(o.status, OpenStatus::Failed);
+        assert!(o.message.is_some_and(|m| !m.is_empty()));
+        assert_eq!(
+            std::fs::read_to_string(plain.join(".shipyard/project.yaml")).unwrap(),
+            bad
+        );
+        assert!(!plain.join(".git").exists(), "no git init");
+        assert!(list(&s).unwrap().is_empty());
+    }
+
+    #[test]
+    fn the_first_commit_holds_only_the_files_that_shipyard_made() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = state_in(dir.path());
+        let plain = dir.path().join("plain");
+        std::fs::create_dir_all(plain.join(".shipyard")).unwrap();
+        std::fs::write(plain.join(".shipyard/mine.txt"), "mine").unwrap();
+        std::fs::write(plain.join(".gitignore"), "secret\n").unwrap();
+        make(&s, plain.to_str().unwrap(), true).unwrap();
+        let st = Repo::open(&plain).unwrap().status().unwrap();
+        assert!(st.head.is_some());
+        let left: Vec<_> = st.untracked.iter().map(|f| f.path.as_str()).collect();
+        assert!(left.contains(&".shipyard/mine.txt"), "{left:?}");
+        assert!(left.contains(&".gitignore"), "{left:?}");
+        // A new folder: Shipyard made the `.gitignore`, so it goes in.
+        let fresh = dir.path().join("fresh");
+        std::fs::create_dir(&fresh).unwrap();
+        make(&s, fresh.to_str().unwrap(), true).unwrap();
+        assert!(
+            Repo::open(&fresh)
+                .unwrap()
+                .status()
+                .unwrap()
+                .untracked
+                .is_empty()
+        );
     }
 
     #[test]

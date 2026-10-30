@@ -239,5 +239,16 @@ mod tests {
         );
         assert!(token_page(ConnectionKind::GitHub, "http://github.com").is_err());
         assert!(open_page("file:///etc/passwd").is_err());
+        // No character that a Windows shell reads gets to a command line.
+        for bad in [
+            "https://dev.azure.com/acme&calc&",
+            "https://a.example/x|calc",
+            "https://a.example/x^y",
+            "https://a.example/x y",
+            "https://a.example/\"x",
+            "https:///path",
+        ] {
+            assert!(open_page(bad).is_err(), "{bad}");
+        }
     }
 }

@@ -51,6 +51,7 @@ pub enum ErrorCode {
     ConnectionAddress,
     SecretInvalid,
     TitleInvalid,
+    ChangeIdInvalid,
     ChangeExists,
     RunNotStarted,
     MergeDraft,
@@ -64,6 +65,7 @@ pub enum ErrorCode {
     GitBusy,
     GitNoUpstream,
     NoTerminal,
+    TerminalGone,
 }
 
 impl ErrorCode {
@@ -82,10 +84,9 @@ impl ErrorCode {
                 (ActionKind::Open, "/code/pull-requests")
             }
             Self::ForgeDenied => (ActionKind::Setting, "connections"),
-            Self::ForgeUnreachable => (ActionKind::Sync, ""),
             Self::GitNothingStaged => (ActionKind::Open, "/code/changes"),
             Self::GitNoUpstream => (ActionKind::Open, "/code/branches"),
-            Self::NoTerminal => (ActionKind::Setting, "terminalApp"),
+            Self::NoTerminal | Self::TerminalGone => (ActionKind::Setting, "terminalApp"),
             _ => return None,
         };
         Some(ErrorAction {
@@ -111,7 +112,8 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("the name needs", ErrorCode::ConnectionName),
     ("bad address", ErrorCode::ConnectionAddress),
     ("the secret needs", ErrorCode::SecretInvalid),
-    ("invalid change id", ErrorCode::TitleInvalid),
+    ("the title needs", ErrorCode::TitleInvalid),
+    ("invalid change id", ErrorCode::ChangeIdInvalid),
     ("change exists", ErrorCode::ChangeExists),
     ("the run did not start", ErrorCode::RunNotStarted),
     ("a draft pull request cannot merge", ErrorCode::MergeDraft),
@@ -126,6 +128,7 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("the repository is busy with", ErrorCode::GitBusy),
     ("the branch has no upstream", ErrorCode::GitNoUpstream),
     ("no terminal app was found", ErrorCode::NoTerminal),
+    ("terminal app is not installed", ErrorCode::TerminalGone),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -197,6 +200,13 @@ mod tests {
         assert_eq!(e.action.unwrap().kind, ActionKind::Open);
         let e = AppError::from("HTTP 401: bad credentials");
         assert_eq!(e.action.unwrap().target, "connections");
+        // An outage has no action: a forge outage must not read the tracker again.
+        let e = AppError::from("network error: connection refused");
+        assert_eq!((e.code, e.action), (ErrorCode::ForgeUnreachable, None));
+        let e = AppError::from("invalid change id: Bad Id");
+        assert_eq!((e.code, e.action), (ErrorCode::ChangeIdInvalid, None));
+        let e = AppError::from("the terminal app is not installed: Kitty");
+        assert_eq!(e.action.unwrap().target, "terminalApp");
         // Each entry of the table is reached: an earlier needle never hides a later one.
         for (needle, code) in KNOWN {
             assert_eq!(AppError::from(*needle).code, *code, "{needle}");

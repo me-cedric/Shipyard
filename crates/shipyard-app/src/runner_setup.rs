@@ -2,6 +2,8 @@
 //! of a runner comes from `shipyard_agents::runners`. Only an `npm install -g <package>` line
 //! runs, with no shell, so no text of the UI reaches a command line but the runner id.
 
+use std::path::PathBuf;
+
 use shipyard_agents::runners::detect;
 use shipyard_agents::which::{quiet, search_dirs, which};
 use tauri::AppHandle;
@@ -18,17 +20,26 @@ fn npm_args(line: &str) -> Result<Vec<&str>, String> {
     }
 }
 
+/// The `npm` program. A runner needs it: install Node the way Settings / Health does, then look
+/// again. Node without npm is a broken install: a second Node install changes nothing, so stop.
+fn npm(dirs: &[PathBuf]) -> Result<PathBuf, String> {
+    if let Some(npm) = which("npm", dirs) {
+        return Ok(npm);
+    }
+    if which("node", dirs).is_some() {
+        return Err("no package manager found: Node is here but npm is not".into());
+    }
+    crate::doctor::install("node")?;
+    which("npm", &search_dirs()).ok_or_else(|| "npm is not installed: install Node first".into())
+}
+
 pub fn install(id: &str) -> Res<()> {
     let runner = detect()
         .into_iter()
         .find(|r| r.id == id)
         .ok_or_else(|| format!("`{id}` is not a runner"))?;
     let args = npm_args(runner.install)?;
-    // A runner needs npm: install Node the way Settings / Health does, then look again.
-    if which("npm", &search_dirs()).is_none() {
-        crate::doctor::install("node")?;
-    }
-    let npm = which("npm", &search_dirs()).ok_or("npm is not installed: install Node first")?;
+    let npm = npm(&search_dirs())?;
     let out = quiet(std::process::Command::new(npm).args(&args))
         .output()
         .map_err(|e| e.to_string())?;
@@ -68,6 +79,19 @@ mod tests {
         assert!(npm_args("npm install -g --foo").is_err());
         assert!(npm_args("curl x | sh").is_err());
         assert!(npm_args("npm install -g a; evil").is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn node_without_npm_is_an_error_and_never_an_install() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let node = dir.path().join("node");
+        std::fs::write(&node, "#!/bin/sh\n").unwrap();
+        std::fs::set_permissions(&node, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let e = npm(&[dir.path().to_path_buf()]).unwrap_err();
+        let e = crate::errors::AppError::from(e);
+        assert_eq!(e.code, crate::errors::ErrorCode::NoPackageManager);
     }
 
     #[test]

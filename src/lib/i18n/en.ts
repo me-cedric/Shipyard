@@ -158,6 +158,10 @@ export const en = {
 	forge: forgeEn,
 	knowledge: knowledgeEn,
 	notFound: { title: "Not found", home: "Home" },
+	routeError: {
+		message: "This page did not load. Check the network, then try again.",
+		retry: "Retry",
+	},
 	shell: {
 		sync: "Sync",
 		commit: "Commit",

@@ -6,9 +6,9 @@
 export type FieldKind = "title" | "status" | "people";
 
 const FIELD: Record<FieldKind, RegExp> = {
-	title: /^(# )(.*)$/,
-	status: /^(status:[ \t]*)(.*)$/i,
-	people: /^((?:decision-makers|deciders|owners?):[ \t]*)(.*)$/i,
+	title: /^(# )([^\r]*)\r?$/,
+	status: /^(status:[ \t]*)([^\r]*)\r?$/i,
+	people: /^((?:decision-makers|deciders|owners?):[ \t]*)([^\r]*)\r?$/i,
 };
 
 /** The lines of a text, each with a flag for fenced code. */
@@ -37,7 +37,9 @@ export function setField(text: string, kind: FieldKind, value: string): string {
 	if (!f) return text;
 	const lines = text.split("\n");
 	const prefix = FIELD[kind].exec(lines[f.index] ?? "")?.[1] ?? "";
-	lines[f.index] = prefix + value.replace(/\n/g, " ");
+	// A CRLF line keeps its `\r`.
+	const cr = lines[f.index]?.endsWith("\r") ? "\r" : "";
+	lines[f.index] = prefix + value.replace(/\r?\n/g, " ") + cr;
 	return lines.join("\n");
 }
 
@@ -61,7 +63,7 @@ export function sections(text: string): { heading: string; body: string }[] {
 			const nl = c.indexOf("\n");
 			return nl < 0
 				? { heading: c.slice(3), body: "" }
-				: { heading: c.slice(3, nl), body: c.slice(nl + 1) };
+				: { heading: c.slice(3, nl).replace(/\r$/, ""), body: c.slice(nl + 1) };
 		});
 }
 
@@ -79,7 +81,7 @@ export function setSection(text: string, index: number, body: string): string {
 export function trimBody(body: string) {
 	const lead = /^\s*\n/.exec(body)?.[0] ?? "";
 	const rest = body.slice(lead.length);
-	const trail = /\n\s*$/.exec(rest)?.[0] ?? "";
+	const trail = /\r?\n\s*$/.exec(rest)?.[0] ?? "";
 	return { lead, core: rest.slice(0, rest.length - trail.length), trail };
 }
 

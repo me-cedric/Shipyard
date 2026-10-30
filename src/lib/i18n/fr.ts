@@ -164,6 +164,10 @@ export const fr: Messages = {
 	forge: forgeFr,
 	knowledge: knowledgeFr,
 	notFound: { title: "Introuvable", home: "Accueil" },
+	routeError: {
+		message: "Cette page ne s'est pas chargée. Vérifiez le réseau, puis réessayez.",
+		retry: "Réessayer",
+	},
 	shell: {
 		sync: "Synchroniser",
 		commit: "Commit",

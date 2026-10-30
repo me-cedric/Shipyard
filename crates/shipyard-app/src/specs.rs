@@ -169,7 +169,8 @@ pub fn change_create(s: &AppState, title: &str) -> Res<ChangeView> {
     let title = title.trim();
     let id = slug_text(title);
     let id = id.as_str();
-    change_id(id)?;
+    // The id of a title is not an id that a person typed: this error asks for another title.
+    change_id(id).map_err(|_| format!("the title needs a letter or a digit: {title}"))?;
     let p = project(s)?;
     let base = openspec(&p);
     let dir = base.join("changes").join(id);

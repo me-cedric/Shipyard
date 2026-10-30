@@ -37,6 +37,25 @@ describe("doc form parts", () => {
 		expect(setSection(text, 0, joinBody(trimBody(body), "Text"))).toBe("# T\n## A\n\nText\n## B\n");
 	});
 
+	it("reads and writes a CRLF document and keeps its bytes", () => {
+		const crlf = ADR.replace(/\n/g, "\r\n");
+		expect(field(crlf, "title")?.value).toBe("Title");
+		expect(field(crlf, "status")?.value).toBe("proposed");
+		expect(field(crlf, "people")?.value).toBe("[Ann]");
+		expect(sections(crlf).map((s) => s.heading)).toEqual([
+			"Context and problem statement",
+			"Considered options",
+			"Decision outcome",
+		]);
+		expect(setField(crlf, "status", "proposed")).toBe(crlf);
+		expect(setField(crlf, "status", "accepted")).toBe(
+			crlf.replace("status: proposed", "status: accepted"),
+		);
+		const body = sections(crlf)[0]?.body ?? "";
+		expect(setSection(crlf, 0, joinBody(trimBody(body), trimBody(body).core))).toBe(crlf);
+		expect(trimBody("\r\nWhy.\r\n").core).toBe("Why.");
+	});
+
 	it("finds the status and owner lines of a spec", () => {
 		const spec = "# Spec: code\n\n## Purpose\n\nStatus: Draft\nOwner: Ann\n";
 		expect(setField(spec, "status", "Approved")).toContain("Status: Approved\n");

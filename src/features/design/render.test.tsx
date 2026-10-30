@@ -1,10 +1,10 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useEffect, useState } from "react";
+import { type ComponentProps, useEffect, useState } from "react";
 import { vi } from "vitest";
 import { commands } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
-import { DRAWIO_ORIGIN } from "@/ui/organisms/drawio-editor";
+import { DRAWIO_EMBED, DRAWIO_ORIGIN } from "@/ui/organisms/drawio-editor";
 import type { EditorError } from "@/ui/organisms/error-line";
 import { Architecture } from "./architecture";
 import { Data } from "./data";
@@ -50,6 +50,21 @@ vi.mock("@/ui/organisms/bpmn-viewer", () => ({
 vi.mock("@/ui/organisms/excalidraw-board", () => ({
 	ExcalidrawBoard: ({ label }: { label: string }) => <div role="img" aria-label={label} />,
 }));
+
+// The embed is off in the app (`DRAWIO_EMBED`). A test turns it on through the prop.
+const draw = vi.hoisted(() => ({ embed: undefined as boolean | undefined }));
+vi.mock("@/ui/organisms/drawio-editor", async (orig) => {
+	const m = await orig<typeof import("@/ui/organisms/drawio-editor")>();
+	return {
+		...m,
+		DrawioEditor: (p: ComponentProps<typeof m.DrawioEditor>) => (
+			<m.DrawioEditor {...p} embed={draw.embed} />
+		),
+	};
+});
+afterEach(() => {
+	draw.embed = undefined;
+});
 
 const files = () => mockState().design.files;
 // The list comes first: the open artifact can hold a button with the same name.
@@ -137,7 +152,17 @@ describe("Design / Diagrams", () => {
 		expect(open).toHaveBeenCalledWith("docs/diagrams/order-process.bpmn");
 	});
 
+	it("shows draw.io read-only at once, with no frame, while the embed is off", async () => {
+		expect(DRAWIO_EMBED).toBe(false);
+		const user = userEvent.setup();
+		await mountDesign(<Diagrams />);
+		await user.click(await row("network"));
+		expect(await screen.findByRole("img", { name: "network" })).toBeInTheDocument();
+		expect(document.querySelector("iframe")).toBeNull();
+	});
+
 	it("edits draw.io in the embed through its messages, and saves the SVG with its model", async () => {
+		draw.embed = true;
 		const user = userEvent.setup();
 		await mountDesign(<Diagrams />);
 		await user.click(await row("network"));
@@ -171,6 +196,7 @@ describe("Design / Diagrams", () => {
 	});
 
 	it("shows draw.io read-only when offline", async () => {
+		draw.embed = true;
 		const user = userEvent.setup();
 		const offline = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
 		await mountDesign(<Diagrams />);

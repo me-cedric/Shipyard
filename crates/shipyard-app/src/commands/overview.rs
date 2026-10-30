@@ -107,15 +107,29 @@ pub fn open_remote(s: &AppState, id: &str) -> Res<()> {
     open_page(&page)
 }
 
-/// Opens an `https` page in the browser of the system.
-pub(crate) fn open_page(page: &str) -> Res<()> {
-    if !page.starts_with("https://") {
+/// A web address that is safe to hand to the system: `http` or `https`, a host, and only the
+/// characters of a plain address. `&`, `|`, `^`, a quote or a space never pass.
+fn checked_url(page: &str) -> Res<&str> {
+    let rest = page
+        .strip_prefix("https://")
+        .or_else(|| page.strip_prefix("http://"));
+    let host = rest
+        .and_then(|r| r.split(['/', '?', '#']).next())
+        .unwrap_or("");
+    let plain = |c: char| c.is_ascii_alphanumeric() || "-._~:/?#@%=+".contains(c);
+    if host.is_empty() || !page.chars().all(plain) {
         return Err("bad address: use an https address".into());
     }
+    Ok(page)
+}
+
+/// Opens a web page in the browser of the system. No shell reads the address.
+pub(crate) fn open_page(page: &str) -> Res<()> {
+    let page = checked_url(page)?;
     let (program, args): (&str, Vec<&str>) = if cfg!(target_os = "macos") {
         ("open", vec![page])
     } else if cfg!(windows) {
-        ("cmd", vec!["/C", "start", "", page])
+        ("rundll32", vec!["url.dll,FileProtocolHandler", page])
     } else {
         ("xdg-open", vec![page])
     };

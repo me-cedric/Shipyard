@@ -83,6 +83,13 @@ fn a_new_change_has_the_proposal_from_the_template_and_the_schema_file() {
     for bad in ["add-auth", "Add  Auth", "archive", "!!", ""] {
         assert!(change_create(&f.s, bad).is_err(), "{bad}");
     }
+    let e = change_create(&f.s, "!!").unwrap_err();
+    assert_eq!(
+        crate::errors::AppError::from(e).code,
+        crate::errors::ErrorCode::TitleInvalid
+    );
+    let e = crate::errors::AppError::from(change_id("Bad Id").unwrap_err());
+    assert_eq!(e.code, crate::errors::ErrorCode::ChangeIdInvalid);
 }
 
 #[test]

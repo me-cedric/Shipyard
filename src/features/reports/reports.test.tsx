@@ -95,7 +95,8 @@ describe("The error contract for merge, forge, git and sync", () => {
 			kind: "setting",
 			target: "connections",
 		});
-		expect(toFailure("network error: timed out").action?.kind).toBe("sync");
+		// An outage offers no sync: a forge outage must not read the tracker again.
+		expect(toFailure("network error: timed out").action).toBeNull();
 		expect(toFailure("nothing is staged").code).toBe("git_nothing_staged");
 	});
 });
