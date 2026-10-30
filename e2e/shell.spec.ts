@@ -32,7 +32,8 @@ test("keyboard path: space shortcut, palette action, inspector and a focus ring"
 	await expect(page.getByRole("dialog")).toHaveCount(0);
 	// Tab reaches the sidebar and the focus shows a ring (keyboard focus).
 	const sidebar = page.getByRole("navigation", { name: "Sidebar" });
-	for (let i = 0; i < 12; i++) {
+	// The context bar comes first: about 16 stops.
+	for (let i = 0; i < 24; i++) {
 		await page.keyboard.press("Tab");
 		if (await sidebar.locator(":focus").count()) break;
 	}

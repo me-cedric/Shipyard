@@ -42,6 +42,7 @@ import {
 	codeCommitDiff,
 	codeDiff,
 	codeDiscard,
+	codeFileList,
 	codeFileRead,
 	codeLog,
 	codeMergeAbort,
@@ -113,6 +114,7 @@ const NO_OVERRIDES: Overrides_Serialize = {
 	notifications: null,
 	profileRole: null,
 	profileTabs: null,
+	hiddenTabs: null,
 	readOnly: null,
 };
 
@@ -673,6 +675,7 @@ const handlers: Handlers = {
 			notifications: o.notifications ?? null,
 			profileRole: o.profileRole ?? null,
 			profileTabs: o.profileTabs ?? null,
+			hiddenTabs: o.hiddenTabs ?? null,
 			readOnly: o.readOnly ?? null,
 		};
 		return null;
@@ -864,6 +867,9 @@ const handlers: Handlers = {
 	},
 	machineSpend: (days) => mc.machineSpend(state.machine, days),
 	machineBudgetSet: (runner, usd) => mc.machineBudgetSet(state.machine, runner, usd),
+	certsStatus: () => dr.certsStatus(state.doctor),
+	certsImport: (path, click) => dr.certsImport(state.doctor, path, click),
+	certsRemove: (click) => dr.certsRemove(state.doctor, click),
 	mcpOutsideGet: () => dr.outsideStatus(state.doctor),
 	mcpOutsideSet: (gates) => dr.outsideSet(state.doctor, gates),
 	mcpOutsideWire: () => dr.outsideWire(state.doctor, active()?.path ?? null),
@@ -1096,6 +1102,7 @@ const handlers: Handlers = {
 	codeWatchInterval: () => code().watchMinutes,
 	codeWatchIntervalSet: (minutes) => codeWatchIntervalSet(code(), minutes),
 	codeFileRead: (path, rev) => codeFileRead(code(), path, rev),
+	codeFileList: () => codeFileList(code()),
 	codeWatchNotice: () => (active() ? (code().notice ?? null) : null),
 	codePullDetail: (number) =>
 		cp.pullDetail(
@@ -1283,7 +1290,12 @@ const handlers: Handlers = {
 	pullsList: () => {
 		const rows = fx.pullsList(state.factory, active()?.id ?? null);
 		// The mock forge mirror belongs to the project that owns the factory demo, as its rows do.
-		return rows.length ? [...rows, ...cp.prRows(prs())] : [];
+		// A row that a detail copied into the forge mock shows once, in its place, with its state.
+		const own = cp.prRows(prs());
+		const mirror = rows.map((r) => own.find((o) => o.reference === r.reference) ?? r);
+		return rows.length
+			? [...mirror, ...own.filter((o) => !rows.some((r) => r.reference === o.reference))]
+			: [];
 	},
 	assistantThreads: () => ai.threads(state.assistant, assistantEnv()),
 	assistantCreate: (title) => ai.create(state.assistant, assistantEnv(), title),

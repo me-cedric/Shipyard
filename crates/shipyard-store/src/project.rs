@@ -117,6 +117,8 @@ pub struct Overrides {
     /// means all) and read only.
     pub profile_role: Option<String>,
     pub profile_tabs: Option<Vec<String>>,
+    /// The tabs that this project hides, as `space/tab` (the screens toggle). Settings keeps its tabs.
+    pub hidden_tabs: Option<Vec<String>>,
     pub read_only: Option<bool>,
 }
 

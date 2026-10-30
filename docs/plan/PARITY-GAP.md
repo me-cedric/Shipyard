@@ -27,10 +27,10 @@ None open. W10 closed all core flows (open in place, registry, close, remove, pa
 | Scanners | Security: SBOM, score, saved scans | partial | osv-scanner, semgrep, skillspector run with install. No SBOM, no score. | security_sbom | crates/shipyard-app/src/scanners.rs |
 | Scanners | QA: BDD view | partial | Checks and last report. No BDD view. | pages/Qa.tsx | src/features/code/quality.tsx |
 | Settings | Preferences: 7 groups | partial | Theme, language, role, density, contrast done. No fonts, terminal, default CLI, shortcut editor in me.tsx. | pages/Preferences.tsx | src/features/settings/me.tsx |
-| Shell | File browser drawer (tree, new, rename, delete, reveal) | missing | No working-copy file tree. | file-browser.tsx | none |
-| Shell | Page tours and tour button | missing | No tour code. | src/lib/tour | none |
-| Shell | Get started checklist | missing | First run has open, clone, create only. | Welcome.tsx | src/features/projects/first-run.tsx |
-| Shell | Terminal drawer from any page | partial | Code / Terminal tab only. No drawer, no external mode. | terminal-panel.tsx | src/features/code/terminal.tsx |
+| Shell | File browser drawer (tree, new, rename, delete, reveal) | partial | Stage 6: drawer with tree, ⌘P search, viewer, show in Changes, copy path. Read only: no new, rename, delete (Q-127). | file-browser.tsx | src/features/code/file-drawer.tsx, code_file_list |
+| Shell | Page tours and tour button | replaced | No tours (constitution). The Get started checklist and Explain replace them. | src/lib/tour | src/features/home/get-started.tsx |
+| Shell | Get started checklist | present | Stage 6: five steps on Home from the real state, one click each, gone when done. | Welcome.tsx | src/features/home/get-started.tsx |
+| Shell | Terminal drawer from any page | partial | Stage 6: bottom drawer with tabs on every view (⌘`, Q-088 option 1); the Code / Terminal tab stays. No external mode. | terminal-panel.tsx | src/features/code/terminal-drawer.tsx |
 | Shell | Context menu on any row | partial | Menu atom exists. Not on every row. No open-in-editor or copy-path everywhere. | item-menu.tsx | src/ui/molecules/context-menu.tsx |
 | Slides | reveal.js decks, CGI HTML template | partial | Markdown decks only. HTML decks and template not matched. | paths.slides | crates/shipyard-store/src/knowledge.rs parse_deck |
 | Specs | Chain watch: documents to check downstream | partial | Gate on push done. No chain watch view. | chain-watch.tsx | src/features/code/push-target.tsx |
@@ -52,7 +52,7 @@ None open. W10 closed all core flows (open in place, registry, close, remove, pa
 | Doctor | Bootstrap new project form | missing | Create project only. | bootstrap_project | none |
 | Doctor | Propagate parent items to linked projects | missing | Absent. | Doctor propagation | none |
 | MCP | MCP resources and prompts | partial | Ref resource only. | mcpresources.rs | crates/shipyard-mcp/src/server.rs |
-| Projects | Screens toggle per project | missing | Absent. | SurfacesCard.tsx | none |
+| Projects | Screens toggle per project | present | Stage 6: spaces and tabs per project in the profile; Settings stays (Q-128). | SurfacesCard.tsx | src/features/projects/screens-card.tsx |
 | Scanners | Secrets scan (gitleaks) | partial | Built-in regex scan. | security_leaks | scan_run |
 | Shell | OS notifications when unfocused | partial | Plugin registered in Rust. No send path found in src. | system-notify.ts | crates/shipyard-app/src/lib.rs |
 | Shell | Feedback button | missing | Absent. | feedback-button.tsx | none |

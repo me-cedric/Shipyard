@@ -78,6 +78,7 @@ export const workspaceEn = {
 		role: "Role",
 		tabs: "Spaces",
 		readOnly: "Read only",
+		screens: "Screens",
 	},
 };
 
@@ -160,5 +161,6 @@ export const workspaceFr: typeof workspaceEn = {
 		role: "Rôle",
 		tabs: "Espaces",
 		readOnly: "Lecture seule",
+		screens: "Écrans",
 	},
 };

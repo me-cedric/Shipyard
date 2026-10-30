@@ -9,6 +9,7 @@ import {
 	usePulls,
 } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
+import { useTabSelection } from "@/lib/shell/selection";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -340,9 +341,13 @@ function PullRequestsView() {
 	const { t } = useI18n();
 	const navigate = useNavigate();
 	const pulls = usePulls();
-	const [selected, setSelected] = useState<string | null>(null);
 	const [opening, setOpening] = useState(false);
 	const rows = pulls.data;
+	// The first pull request in the order of the list opens by default; the choice stays with the tab.
+	const [selected, setSelected] = useTabSelection(
+		"code:pull-requests",
+		STATES.flatMap((s) => (rows ?? []).filter((r) => r.state === s).map((r) => r.reference)),
+	);
 	const number = rows?.find((r) => r.reference === selected)?.number ?? null;
 	if (!rows) return null;
 	if (rows.length === 0)

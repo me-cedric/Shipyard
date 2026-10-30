@@ -6,6 +6,7 @@ import { extensionsFr } from "./extensions";
 import { factoryFr } from "./factory";
 import { homeFr } from "./home";
 import { knowledgeFr } from "./knowledge";
+import { panelsFr } from "./panels";
 import { settingsFr } from "./settings";
 import { specsFr } from "./specs";
 import { uiFr } from "./ui";
@@ -789,4 +790,5 @@ export const fr: Messages = {
 	specs: specsFr,
 	ui: uiFr,
 	workspace: workspaceFr,
+	panels: panelsFr,
 };

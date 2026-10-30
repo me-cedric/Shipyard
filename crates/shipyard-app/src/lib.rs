@@ -3,6 +3,7 @@
 pub mod agents;
 pub mod assistant;
 pub mod auto_commit;
+pub mod certs;
 pub mod close_guard;
 pub mod code;
 mod commands;
@@ -121,6 +122,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             git::code_watch_interval_set,
             git::code_remote_url,
             git::code_file_read,
+            git::code_file_list,
             crate::code::code_pull_detail,
             crate::code::code_pull_labels,
             crate::code::code_pull_open,
@@ -169,6 +171,9 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::outside::mcp_outside_token,
             crate::outside::mcp_elsewhere_list,
             crate::outside::mcp_elsewhere_import,
+            crate::certs::certs_status,
+            crate::certs::certs_import,
+            crate::certs::certs_remove,
             crate::doctor::doctor_tools,
             crate::doctor::doctor_tool_install,
             crate::doctor::doctor_ledger,
@@ -369,6 +374,7 @@ pub fn run() {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
             app.manage(AppState::new(dir.clone()));
+            certs::apply(&app.state::<AppState>());
             // Each tick and each change of the mirror tells the views to read it again (REQ-016).
             let handle = app.handle().clone();
             let state = app.state::<AppState>();

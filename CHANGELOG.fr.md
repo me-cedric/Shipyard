@@ -4,6 +4,8 @@
 
 ### Ajouts
 
+- Les listes ouvrent leur premier élément et gardent le choix de chaque onglet ; la barre de contexte montre les sessions IA actives avec un arrêt, un tiroir de fichiers (⌘P) et un tiroir de terminaux (⌘`) s’ouvrent sur chaque vue, l’accueil liste les étapes « Pour commencer » d’un nouveau projet, et Réglages / Projet masque des espaces et des onglets pour ce projet.
+- Réglages / Connexions ajoute un bundle PEM de certificats racine pour le client HTTP, et l’accueil affiche un élément « Jour de feuille de temps » un jeudi sans temps saisi.
 - Squelette de l’application de bureau sur Tauri v2, avec un espace de travail Rust de 10 crates.
 - Barre latérale avec les sept espaces et les Réglages, chaque espace avec ses onglets.
 - Palette de commandes, panneau d’inspection et barre d’état avec synchronisation et commit.

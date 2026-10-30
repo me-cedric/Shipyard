@@ -21,7 +21,9 @@ import { LiveDot } from "@/ui/atoms/live-dot";
 import {
 	ArrowPathIcon,
 	ChatBubbleIcon,
+	CommandLineIcon,
 	ComputerDesktopIcon,
+	FolderOpenIcon,
 	InboxIcon,
 	MagnifyingGlassIcon,
 	MoonIcon,
@@ -30,6 +32,7 @@ import {
 import { ProjectSwitcher } from "@/ui/molecules/project-switcher";
 import { NotificationCentre } from "@/ui/organisms/notification-centre";
 import type { Action } from "./actions";
+import { ActiveSessions } from "./active-sessions";
 import { useCounts } from "./counts";
 
 const NEXT: Record<Theme, Theme> = { light: "dark", dark: "system", system: "light" };
@@ -46,10 +49,14 @@ export function ContextBar({
 	sync,
 	assistant,
 	palette,
+	files,
+	terminal,
 }: {
 	sync: Action;
 	assistant: Action;
 	palette: Action;
+	files: Action;
+	terminal: Action;
 }) {
 	const { t } = useI18n();
 	const { theme, setPrefs } = usePrefs();
@@ -58,7 +65,7 @@ export function ContextBar({
 	const { switchTo, openFolder, openLegacy, close, remove } = useProjectActions();
 	const legacy = useLegacyProjects().data ?? [];
 	const [cloning, setCloning] = useState(false);
-	const { syncing, assistantOpen } = useShell();
+	const { syncing, assistantOpen, filesOpen, terminalOpen } = useShell();
 	const { items, unread, markRead, clear } = useNotifications();
 	const { needsYou, live, changes, changed } = useCounts();
 	const ThemeIcon = THEME_ICON[theme];
@@ -117,6 +124,7 @@ export function ContextBar({
 					{live}
 				</span>
 			</Link>
+			<ActiveSessions className={chip} />
 			<Link to="/home/inbox" className={chip}>
 				<span className="sr-only">
 					{format(t.count, { name: t.home.needsYou, count: needsYou })}
@@ -136,6 +144,26 @@ export function ContextBar({
 				<span className="flex-1 text-left">{t.common.search}</span>
 				<Kbd aria-hidden="true">{palette.shortcut}</Kbd>
 			</button>
+			<IconButton
+				label={files.label}
+				shortcut={files.shortcut}
+				aria-pressed={filesOpen}
+				disabled={files.disabled}
+				onClick={files.run}
+				className="aria-pressed:bg-n-4 aria-pressed:text-n-12"
+			>
+				<FolderOpenIcon size={16} />
+			</IconButton>
+			<IconButton
+				label={terminal.label}
+				shortcut={terminal.shortcut}
+				aria-pressed={terminalOpen}
+				disabled={terminal.disabled}
+				onClick={terminal.run}
+				className="aria-pressed:bg-n-4 aria-pressed:text-n-12"
+			>
+				<CommandLineIcon size={16} />
+			</IconButton>
 			<IconButton
 				label={assistant.label}
 				shortcut={assistant.shortcut}

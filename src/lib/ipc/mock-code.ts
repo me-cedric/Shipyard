@@ -196,6 +196,13 @@ export function codeFileRead(c: MockCode, path: string, rev: string | null): Fil
 	return { path, size: text.length, binary: false, truncated: false, text };
 }
 
+/** The files of the working copy for the file drawer, sorted by path, like Rust `code_file_list`. */
+export const codeFileList = (c: MockCode): string[] =>
+	Object.entries(c.files)
+		.filter(([, f]) => f.work !== null)
+		.map(([p]) => p)
+		.sort();
+
 export function codeWatchIntervalSet(c: MockCode, minutes: number): number {
 	if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440)
 		throw "the interval is 1 to 1440 minutes";

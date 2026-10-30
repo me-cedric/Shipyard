@@ -56,14 +56,16 @@ describe("Code / Changes", () => {
 		const user = userEvent.setup();
 		await changes();
 		await user.click(unstaged().getByRole("button", { name: "util.ts" }));
-		const diffs = await screen.findAllByRole("region", { name: "Diff of src/lib/util.ts" });
+		const diffs = await screen.findAllByRole("region", { name: /^Diff of src\/lib\/util\.ts/ });
 		expect(diffs).toHaveLength(2);
 		expect(diffs[0]).toHaveTextContent("y");
 		expect(diffs[1]).toHaveTextContent("z");
 		// A file with one kind of change shows one diff.
 		await user.click(unstaged().getByRole("button", { name: "guide.md" }));
-		expect(await screen.findAllByRole("region", { name: "Diff of docs/guide.md" })).toHaveLength(1);
-		expect(screen.queryByRole("region", { name: "Diff of src/lib/util.ts" })).toBeNull();
+		expect(await screen.findAllByRole("region", { name: /^Diff of docs\/guide\.md/ })).toHaveLength(
+			1,
+		);
+		expect(screen.queryByRole("region", { name: /^Diff of src\/lib\/util\.ts/ })).toBeNull();
 	});
 
 	it("stages the checked files, then all of a group", async () => {

@@ -32,8 +32,8 @@ type Ctx = Prefs & {
 	setPrefs: (patch: Partial<Prefs>) => void;
 	/** The settings that the active project overrides. They show the project value. */
 	overridden: Overridable[];
-	/** The profile of the project: the spaces that stay visible (null is all) and read only. */
-	profile: { tabs: string[] | null; readOnly: boolean };
+	/** The profile of the project: the spaces that stay visible (null is all), the hidden tabs as `space/tab`, and read only. */
+	profile: { tabs: string[] | null; hiddenTabs: string[]; readOnly: boolean };
 	loaded: boolean;
 };
 const PrefsContext = createContext<Ctx | null>(null);
@@ -63,6 +63,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 			role: (o?.profileRole as Role | null | undefined) ?? personal.role,
 			profile: {
 				tabs: o?.profileTabs?.length ? o.profileTabs : null,
+				hiddenTabs: o?.hiddenTabs ?? [],
 				readOnly: o?.readOnly === true,
 			},
 			theme: o?.theme ?? personal.theme,

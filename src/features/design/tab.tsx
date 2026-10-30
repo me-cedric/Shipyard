@@ -5,6 +5,7 @@ import { message, useDesignList } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
 import { useActiveProject, useProjectActions } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
+import { useTabSelection } from "@/lib/shell/selection";
 import { cn } from "@/lib/utils";
 import { Badge, type badgeVariants } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -154,7 +155,12 @@ export function ArtifactTab({
 	const list = useDesignList();
 	const { openRef } = useShell();
 	const { openFolder } = useProjectActions();
-	const [selected, setSelected] = useState<string | null>(null);
+	const all = pinned ? [pinned, ...rows] : rows;
+	// The first artifact opens by default, and the choice stays with the tab.
+	const [selected, setSelected] = useTabSelection(
+		`design:${title}`,
+		all.map((r) => r.ref),
+	);
 	const [adding, setAdding] = useState(false);
 	const [view, setView] = useState<"list" | "grid">("list");
 	const enter = useEnter();
@@ -175,7 +181,6 @@ export function ArtifactTab({
 			</ListDetail>
 		);
 	if (list.isLoading) return null;
-	const all = pinned ? [pinned, ...rows] : rows;
 	const open = all.find((r) => r.ref === selected);
 	const add = () => setAdding(true);
 	const pick = (ref: string) => {
@@ -293,7 +298,7 @@ export function ArtifactTab({
 											</span>
 											<span className="flex items-center gap-2">
 												{r.tag ? <Badge variant={r.tone}>{r.tag}</Badge> : null}
-												<span className="font-mono text-11 text-n-10">{r.time}</span>
+												<span className="font-mono text-11 text-n-11">{r.time}</span>
 											</span>
 										</span>
 									) : (

@@ -14,6 +14,8 @@ import {
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { copyText, type Handlers, useMenus } from "@/lib/menus";
+import { useShell } from "@/lib/shell";
+import { useTabSelection } from "@/lib/shell/selection";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
@@ -21,6 +23,7 @@ import { CodeBracketIcon } from "@/ui/icons";
 import { ConflictBlock, type ConflictChoice } from "@/ui/molecules/conflict-block";
 import type { MenuItem } from "@/ui/molecules/context-menu";
 import { DiffView } from "@/ui/molecules/diff-view";
+import { EmptyState } from "@/ui/molecules/empty-state";
 import { FileRow } from "@/ui/molecules/file-row";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
@@ -169,7 +172,8 @@ function DiffPane({ path, side }: { path: string; side: DiffSide }) {
 				text={diff.text}
 				binary={diff.binary}
 				truncated={diff.truncated}
-				label={format(t.code.diff, { path })}
+				// The staged and the unstaged diff of one file are two regions: the side tells them apart.
+				label={`${format(t.code.diff, { path })} ${t.code[side === "staged" ? "staged" : "unstaged"]}`}
 				binaryLabel={t.code.binary}
 				truncatedLabel={t.code.truncated}
 			/>
@@ -260,7 +264,16 @@ function ChangesView() {
 	const { stage, unstage, discard } = useCodeActions();
 	const menu = useMenus();
 	const { error, run: runJob } = useRun();
-	const [path, setPath] = useState<string | null>(null);
+	// The first changed file opens by default, and the choice stays with the tab.
+	const [path, setPath] = useTabSelection(
+		"code:changes",
+		changes
+			? [...changes.conflicted, ...changes.staged, ...changes.unstaged, ...changes.untracked].map(
+					(f) => f.path,
+				)
+			: [],
+	);
+	const { setFilesOpen } = useShell();
 	const run = (job: () => Promise<unknown>) => void runJob(job);
 	if (!changes) return null;
 	const unstaged = [...changes.unstaged, ...changes.untracked];
@@ -368,6 +381,11 @@ function ChangesView() {
 					{conflict ? <ConflictPane key={conflict.path} file={conflict} run={run} /> : null}
 					{path && here?.staged ? <DiffPane path={path} side="staged" /> : null}
 					{path && here?.unstaged ? <DiffPane path={path} side="unstaged" /> : null}
+					{path ? null : (
+						<EmptyState
+							action={{ label: t.panels.files.toggle, onClick: () => setFilesOpen(true) }}
+						/>
+					)}
 				</div>
 			</div>
 		</div>

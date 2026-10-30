@@ -6,6 +6,7 @@ import type { PageEntry } from "@/lib/ipc";
 import { message, slug, useCreateDoc } from "@/lib/knowledge";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
+import { useTabSelection } from "@/lib/shell/selection";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
@@ -110,7 +111,11 @@ export function ListTab({
 	const { openRef } = useShell();
 	const createDoc = useCreateDoc();
 	const enter = useEnter();
-	const [selected, setSelected] = useState<string | null>(null);
+	// A list opens its first page by default; a grid of thumbnails is the overview until a pick.
+	const [selected, setSelected] = useTabSelection(
+		`knowledge:${base}`,
+		thumb ? undefined : rows?.map((r) => r.path),
+	);
 	const [adding, setAdding] = useState(false);
 	if (active === undefined) return null;
 	if (active === null) return <NoProject title={title} />;

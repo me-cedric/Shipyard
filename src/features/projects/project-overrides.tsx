@@ -15,13 +15,12 @@ import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
 const NONE = "none";
-const SPACES = ["design", "specs", "work", "factory", "code", "knowledge"] as const;
 
 /**
  * What a project sets for this machine: the assistant defaults of its new threads, the remote
- * watch, the notices and the profile (role, spaces, read only). It all stays in the app data
- * folder and never reaches the repository. Legacy source: `components/project-overrides.tsx`,
- * `components/project-profiles.tsx` and `lib/profiles.ts`.
+ * watch, the notices and the profile (role, read only). The spaces and tabs are in `ScreensCard`.
+ * It all stays in the app data folder and never reaches the repository. Legacy source:
+ * `components/project-overrides.tsx`, `components/project-profiles.tsx` and `lib/profiles.ts`.
  */
 export function ProjectOverrides() {
 	const { t } = useI18n();
@@ -56,7 +55,6 @@ export function ProjectOverrides() {
 		...values.map((v) => ({ value: v, label: v })),
 	];
 	const runner = runners.find((r) => r.runner === defaults?.runner);
-	const tabs = o.profileTabs ?? [];
 	return (
 		<Panel title={w.title} flush>
 			<SettingsRow label={w.remoteWatch}>
@@ -123,21 +121,6 @@ export function ProjectOverrides() {
 					]}
 				/>
 			</SettingsRow>
-			{SPACES.map((s) => (
-				<SettingsRow key={s} label={`${p.tabs} ${t.space[s]}`}>
-					<Switch
-						iconOnly
-						label={`${p.tabs} ${t.space[s]}`}
-						checked={tabs.length === 0 || tabs.includes(s)}
-						onCheckedChange={(v) => {
-							const all: string[] = tabs.length === 0 ? [...SPACES] : tabs;
-							const next = v ? [...new Set([...all, s])] : all.filter((x) => x !== s);
-							// Every space on is the same as no list.
-							void setOverride({ profileTabs: next.length === SPACES.length ? null : next });
-						}}
-					/>
-				</SettingsRow>
-			))}
 			<SettingsRow label={p.readOnly}>
 				<Switch
 					iconOnly

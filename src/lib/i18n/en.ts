@@ -5,6 +5,7 @@ import { extensionsEn } from "./extensions";
 import { factoryEn } from "./factory";
 import { homeEn } from "./home";
 import { knowledgeEn } from "./knowledge";
+import { panelsEn } from "./panels";
 import { settingsEn } from "./settings";
 import { specsEn } from "./specs";
 import { uiEn } from "./ui";
@@ -758,6 +759,7 @@ export const en = {
 	specs: specsEn,
 	ui: uiEn,
 	workspace: workspaceEn,
+	panels: panelsEn,
 };
 
 export type Messages = typeof en;

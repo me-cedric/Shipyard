@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, type Requirement, unwrap } from "@/lib/ipc";
 import { useShell } from "@/lib/shell";
+import { useTabSelection } from "@/lib/shell/selection";
 import { type Capability, useCapabilities, useFile, useSpecView } from "@/lib/specs";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -124,7 +125,8 @@ function CapabilityList() {
 	const { t } = useI18n();
 	const s = t.specs;
 	const list = useCapabilities().data ?? [];
-	const [open, setOpen] = useState<string | null>(null);
+	// The open item stays with the tab; the cards are the overview.
+	const [open, setOpen] = useTabSelection("specs:capabilities");
 	const enter = useEnter();
 	const max = Math.max(1, ...list.map((c) => c.requirements));
 	const current = list.find((c) => c.capability === open);

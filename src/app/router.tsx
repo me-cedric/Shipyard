@@ -8,8 +8,17 @@ import {
 	Outlet,
 	type RouterHistory,
 	redirect,
+	useRouterState,
 } from "@tanstack/react-router";
-import { AppShell, ROLE_HOME, SPACES, type SpaceId, TabsBar, tabPath } from "@/features/shell";
+import {
+	AppShell,
+	ROLE_HOME,
+	SPACES,
+	type SpaceId,
+	TabsBar,
+	tabPath,
+	visibleTabs,
+} from "@/features/shell";
 import { usePrefs } from "@/lib/prefs";
 import { NotFound } from "./not-found";
 import { refActions } from "./ref-actions";
@@ -30,6 +39,13 @@ const indexRoute = createRoute({
 });
 
 function SpaceLayout({ space }: { space: SpaceId }) {
+	const { profile } = usePrefs();
+	const path = useRouterState({ select: (s) => s.location.pathname });
+	// A tab that the project hides goes to the first tab that it keeps.
+	const shown = visibleTabs(space, profile.hiddenTabs);
+	const first = shown[0];
+	const hidden = space !== "settings" && profile.hiddenTabs.some((h) => path === `/${h}`);
+	if (first && hidden) return <Navigate to={tabPath(space, first)} replace />;
 	return (
 		<div className="flex h-full flex-col">
 			<TabsBar space={space} />

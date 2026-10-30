@@ -2,6 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { useShell } from "@/lib/shell";
+import { useTabSelection } from "@/lib/shell/selection";
 import {
 	type Plan,
 	planRef,
@@ -124,7 +125,8 @@ function PlanList() {
 	const act = useSpecsActions();
 	const plans = useTestPlans().data;
 	const caps = useCapabilities().data ?? [];
-	const [open, setOpen] = useState<string | null>(null);
+	// The open item stays with the tab; the cards are the overview.
+	const [open, setOpen] = useTabSelection("specs:test-plans");
 	const [creating, setCreating] = useState(false);
 	const columns = useMemo<ColumnDef<Plan>[]>(
 		() => [

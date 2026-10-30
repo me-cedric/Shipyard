@@ -25,6 +25,7 @@ import { ProjectImport } from "./project-import";
 import { PersonasEditor } from "./personas";
 import { ProjectDetails } from "./project-details";
 import { ProjectOverrides } from "./project-overrides";
+import { ScreensCard } from "./screens-card";
 import { TicketsConfigEditor } from "./tickets-config";
 
 const NONE = "none";
@@ -270,6 +271,7 @@ function Form({
 				</>
 			) : null}
 			<ProjectOverrides />
+			<ScreensCard />
 			<AutoCommit />
 			<ProjectImport />
 			{error ? (

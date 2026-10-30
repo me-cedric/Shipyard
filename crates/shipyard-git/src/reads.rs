@@ -2,7 +2,9 @@
 //! REQ-005): the files and the diff against a base, one line of a file, a folder at a revision.
 //! Reads only: no call here changes the repository.
 
-use git2::{DiffFormat, DiffOptions, ObjectType, Patch, TreeWalkMode, TreeWalkResult};
+use git2::{
+    DiffFormat, DiffOptions, ObjectType, Patch, Status, StatusOptions, TreeWalkMode, TreeWalkResult,
+};
 
 use crate::code::{FileDiff, FileView, Repo, check_paths};
 use crate::error::{GitError, Result};
@@ -184,6 +186,34 @@ impl Repo {
             truncated,
             text: if binary { String::new() } else { text },
         })
+    }
+
+    /// The files of the working copy for the file drawer, sorted by path: the tracked files that
+    /// still exist and the untracked files that the ignore rules keep, at most `max`. Repo-relative
+    /// paths only, so no absolute path reaches the webview.
+    pub fn files(&self, max: usize) -> Result<Vec<String>> {
+        // A submodule is a commit in the index, not a file.
+        const GITLINK: u32 = 0o160_000;
+        let mut out: std::collections::BTreeSet<String> = self
+            .repo
+            .index()?
+            .iter()
+            .filter(|e| e.mode != GITLINK)
+            .filter_map(|e| String::from_utf8(e.path).ok())
+            .collect();
+        let mut opts = StatusOptions::new();
+        opts.include_untracked(true)
+            .recurse_untracked_dirs(true)
+            .include_ignored(false);
+        for e in self.repo.statuses(Some(&mut opts))?.iter() {
+            let Ok(path) = e.path() else { continue };
+            if e.status().contains(Status::WT_NEW) {
+                out.insert(path.to_string());
+            } else if e.status().contains(Status::WT_DELETED) {
+                out.remove(path);
+            }
+        }
+        Ok(out.into_iter().take(max).collect())
     }
 
     /// The text files under `dir` at `rev`, sorted by path: at most `max_files`, each cut at

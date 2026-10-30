@@ -1,14 +1,17 @@
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useCommitDetail, useCommitDiff, useLog } from "@/lib/code";
 import { graph } from "@/lib/code/graph";
 import { format, useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
+import { useTabSelection } from "@/lib/shell/selection";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { ClockIcon, DocumentTextIcon } from "@/ui/icons";
 import { CommitRow } from "@/ui/molecules/commit-row";
 import { DiffView } from "@/ui/molecules/diff-view";
+import { EmptyState } from "@/ui/molecules/empty-state";
 import { FileRow } from "@/ui/molecules/file-row";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
@@ -84,11 +87,16 @@ function Detail({ sha }: { sha: string }) {
 function HistoryView() {
 	const { t, lang } = useI18n();
 	const menu = useMenus();
+	const navigate = useNavigate();
 	const log = useLog();
-	const [sha, setSha] = useState<string | null>(null);
 	const end = useRef<HTMLDivElement>(null);
 	const { hasNextPage, isFetchingNextPage, fetchNextPage } = log;
 	const commits = log.data?.pages.flatMap((p) => p.commits) ?? [];
+	// The newest commit opens by default, and the choice stays with the tab.
+	const [sha, setSha] = useTabSelection(
+		"code:history",
+		commits.map((c) => c.sha),
+	);
 	const rows = graph(commits);
 	const lanes = Math.max(1, ...rows.map((r) => r.width));
 
@@ -163,7 +171,16 @@ function HistoryView() {
 					) : null}
 				</div>
 				<div className="min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
-					{sha ? <Detail sha={sha} /> : null}
+					{sha ? (
+						<Detail sha={sha} />
+					) : (
+						<EmptyState
+							action={{
+								label: t.tabs.code.changes,
+								onClick: () => void navigate({ to: "/code/changes" }),
+							}}
+						/>
+					)}
 				</div>
 			</div>
 		</div>

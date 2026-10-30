@@ -11,6 +11,8 @@ export function Shell({
 	sidebarOpen = true,
 	assistant,
 	assistantSide = "right",
+	drawer,
+	bottom,
 }: {
 	/** The bar of the project, the branch, the factory pulse and the global actions. */
 	contextbar?: ReactNode;
@@ -22,6 +24,10 @@ export function Shell({
 	/** A side panel that sits left or right of the main view. */
 	assistant?: ReactNode;
 	assistantSide?: "left" | "right";
+	/** A drawer between the sidebar and the main view, such as the files. */
+	drawer?: ReactNode;
+	/** A drawer under the main view, such as the terminals. */
+	bottom?: ReactNode;
 }) {
 	const { t } = useI18n();
 	return (
@@ -39,6 +45,7 @@ export function Shell({
 				>
 					{sidebar}
 				</nav>
+				{drawer}
 				{assistantSide === "left" ? assistant : null}
 				<main
 					aria-label={t.nav.main}
@@ -50,6 +57,7 @@ export function Shell({
 				{assistantSide === "right" ? assistant : null}
 				{inspector}
 			</div>
+			{bottom ? <div className="flex shrink-0 flex-col bg-canvas">{bottom}</div> : null}
 			{statusbar ? (
 				<footer className="flex h-5 shrink-0 items-center gap-3 border-t bg-surface-1 px-3 text-11 text-n-11">
 					{statusbar}

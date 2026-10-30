@@ -4,6 +4,8 @@
 
 ### Added
 
+- List views open their first item and keep the choice of each tab; the context bar shows the active AI sessions with a stop, a files drawer (⌘P) and a terminal drawer (⌘`) open on every view, Home lists the Get started steps of a new project, and Settings / Project hides spaces and tabs for this project.
+- Settings / Connections adds a PEM bundle of root certificates for the HTTP client, and Home shows a "Timesheet day" item on a Thursday without logged time.
 - Desktop app skeleton on Tauri v2 with a Rust workspace of 10 crates.
 - Sidebar with the seven spaces and Settings, each space with its tabs.
 - Command palette, inspector panel and status bar with sync and commit.

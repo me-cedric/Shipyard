@@ -37,6 +37,12 @@ type ShellState = {
 	/** The window asked to close while work runs. The shell shows the guard. */
 	closeGuardOpen: boolean;
 	setCloseGuardOpen: (open: boolean) => void;
+	/** The drawer of the working copy files. */
+	filesOpen: boolean;
+	setFilesOpen: (open: boolean) => void;
+	/** The bottom drawer of terminals, on every view. */
+	terminalOpen: boolean;
+	setTerminalOpen: (open: boolean) => void;
 	/** The actions that the inspector offers for a ref, or undefined. Set by `ShellProvider`. */
 	refActions?: RefActions;
 };
@@ -65,6 +71,8 @@ export function ShellProvider({
 	const [commitOpen, setCommitOpen] = useState(false);
 	const [shortcutsOpen, setShortcutsOpen] = useState(false);
 	const [closeGuardOpen, setCloseGuardOpen] = useState(false);
+	const [filesOpen, setFilesOpen] = useState(false);
+	const [terminalOpen, setTerminalOpen] = useState(false);
 
 	const openRef = useCallback((ref: string) => {
 		setSelectedRef(ref);
@@ -130,6 +138,10 @@ export function ShellProvider({
 			setShortcutsOpen,
 			closeGuardOpen,
 			setCloseGuardOpen,
+			filesOpen,
+			setFilesOpen,
+			terminalOpen,
+			setTerminalOpen,
 			refActions,
 		}),
 		[
@@ -153,6 +165,8 @@ export function ShellProvider({
 			commitOpen,
 			shortcutsOpen,
 			closeGuardOpen,
+			filesOpen,
+			terminalOpen,
 			refActions,
 		],
 	);

@@ -12,6 +12,11 @@ function mount(path: string, role?: string) {
 	return mountApp(path);
 }
 
+// Design opens its first drawing, and Excalidraw needs a browser.
+vi.mock("@/ui/organisms/excalidraw-board", () => ({
+	ExcalidrawBoard: ({ label }: { label: string }) => <div role="img" aria-label={label} />,
+}));
+
 const sidebar = () => screen.findByRole("navigation", { name: "Sidebar" });
 const current = (nav: HTMLElement) =>
 	within(nav)
@@ -123,10 +128,9 @@ describe("shell", () => {
 		await user.keyboard("{Control>}2{/Control}");
 		await screen.findByRole("link", { name: "Diagrams", current: "page" });
 		expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("keep me");
-		// The shell button closes it again.
-		await user.click(
-			within(await screen.findByRole("banner")).getByRole("button", { name: "Assistant" }),
-		);
+		// The shell button closes it again. The open diagram has an editor header too: the shell one is first.
+		const [bar] = await screen.findAllByRole("banner");
+		await user.click(within(bar as HTMLElement).getByRole("button", { name: "Assistant" }));
 		expect(panel).toHaveAttribute("data-open", "false");
 	});
 

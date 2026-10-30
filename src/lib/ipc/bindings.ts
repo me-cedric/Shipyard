@@ -95,6 +95,8 @@ export const commands = {
 	codeRemoteUrl: () => typedError<string | null, string>(__TAURI_INVOKE("code_remote_url")),
 	/**  A file for the viewer: the working copy when `rev` is empty, else the file at that revision. */
 	codeFileRead: (path: string, rev: string | null) => typedError<FileView, string>(__TAURI_INVOKE("code_file_read", { path, rev })),
+	/**  The files of the working copy, repo-relative, the ignore rules applied (the file drawer). */
+	codeFileList: () => typedError<string[], string>(__TAURI_INVOKE("code_file_list")),
 	codePullDetail: (number: number) => typedError<PullDetail_Serialize, string>(__TAURI_INVOKE("code_pull_detail", { number })),
 	codePullLabels: () => typedError<string[], string>(__TAURI_INVOKE("code_pull_labels")),
 	codePullOpen: (input: OpenPull_Deserialize, click: boolean) => typedError<OpenedPull_Serialize, string>(__TAURI_INVOKE("code_pull_open", { input, click })),
@@ -148,6 +150,9 @@ export const commands = {
 	mcpOutsideToken: () => typedError<string, string>(__TAURI_INVOKE("mcp_outside_token")),
 	mcpElsewhereList: () => typedError<Elsewhere[], string>(__TAURI_INVOKE("mcp_elsewhere_list")),
 	mcpElsewhereImport: (source: string, name: string) => typedError<string, string>(__TAURI_INVOKE("mcp_elsewhere_import", { source, name })),
+	certsStatus: () => typedError<CertStatus, string>(__TAURI_INVOKE("certs_status")),
+	certsImport: (path: string, click: boolean) => typedError<CertStatus, string>(__TAURI_INVOKE("certs_import", { path, click })),
+	certsRemove: (click: boolean) => typedError<CertStatus, string>(__TAURI_INVOKE("certs_remove", { click })),
 	doctorTools: () => typedError<ToolCheck[], string>(__TAURI_INVOKE("doctor_tools")),
 	doctorToolInstall: (id: string, click: boolean) => typedError<ToolCheck[], string>(__TAURI_INVOKE("doctor_tool_install", { id, click })),
 	doctorLedger: () => typedError<LedgerEntry[], string>(__TAURI_INVOKE("doctor_ledger")),
@@ -879,6 +884,11 @@ export type CatalogUndeployed = {
 	removed: string[],
 	/**  Files that differ from the catalog: a person changed them, so they stay. */
 	kept: string[],
+};
+
+export type CertStatus = {
+	added: boolean,
+	count: number,
 };
 
 export type ChainWarning = {
@@ -2271,6 +2281,8 @@ export type Overrides_Deserialize = {
 	 */
 	profileRole?: string | null,
 	profileTabs?: string[] | null,
+	/**  The tabs that this project hides, as `space/tab` (the screens toggle). Settings keeps its tabs. */
+	hiddenTabs?: string[] | null,
 	readOnly?: boolean | null,
 };
 
@@ -2290,6 +2302,8 @@ export type Overrides_Serialize = {
 	 */
 	profileRole: string | null,
 	profileTabs: string[] | null,
+	/**  The tabs that this project hides, as `space/tab` (the screens toggle). Settings keeps its tabs. */
+	hiddenTabs: string[] | null,
 	readOnly: boolean | null,
 };
 

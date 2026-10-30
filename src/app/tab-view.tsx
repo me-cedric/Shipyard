@@ -10,7 +10,7 @@ import {
 } from "@/features/code";
 import { Api, Architecture, Data, Decisions, Diagrams, Flows, Screens } from "@/features/design";
 import { AgentsMap, Runs, Sessions, Usage, Workflows } from "@/features/factory";
-import { Activity, Inbox, MyWork } from "@/features/home";
+import { Activity, GetStarted, Inbox, MyWork } from "@/features/home";
 import { Dashboards, Documents, Graph, Handbook, Learn, Slides } from "@/features/knowledge";
 import { FirstRun, Health, ProjectSettings, ProjectsPage } from "@/features/projects";
 import { AgentsRules, Connections, Extensions, Me } from "@/features/settings";
@@ -26,7 +26,7 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 function HomeInbox() {
 	const active = useActiveProject().data;
 	if (active === undefined) return null;
-	return active ? <Inbox /> : <FirstRun />;
+	return active ? <Inbox start={<GetStarted />} /> : <FirstRun />;
 }
 
 /** Settings / Project holds the project settings, then the Automation group of `add-sync`. */

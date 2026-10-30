@@ -4,6 +4,7 @@ import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useShell } from "@/lib/shell";
+import { useTabSelection } from "@/lib/shell/selection";
 import {
 	ARTIFACTS,
 	artifactPath,
@@ -116,7 +117,8 @@ function ChangeList() {
 	const { openRef } = useShell();
 	const list = useChanges().data;
 	const markers = useMarkerCounts(list ?? []);
-	const [open, setOpen] = useState<string | null>(null);
+	// The open item stays with the tab; the cards are the overview.
+	const [open, setOpen] = useTabSelection("specs:changes");
 	const [creating, setCreating] = useState(false);
 
 	const tasks = useTaskCounts(list ?? []);

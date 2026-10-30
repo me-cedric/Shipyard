@@ -384,6 +384,21 @@ pub fn file_read(s: &AppState, path: &str, rev: Option<&str>) -> Res<FileView> {
         .map_err(err)
 }
 
+// shortcut: the drawer lists 20 000 files at most; a page of results when a repository needs more.
+const MAX_LIST: usize = 20_000;
+
+/// The files of the working copy for the file drawer, the ignore rules applied.
+pub fn file_list(s: &AppState) -> Res<Vec<String>> {
+    repo(s)?.files(MAX_LIST).map_err(err)
+}
+
+/// The files of the working copy, repo-relative, the ignore rules applied (the file drawer).
+#[tauri::command]
+#[specta::specta]
+pub async fn code_file_list(app: AppHandle) -> Res<Vec<String>> {
+    blocking(app, file_list).await
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn code_status(app: AppHandle) -> Res<Changes> {
@@ -667,6 +682,29 @@ mod tests {
         assert_eq!(
             std::fs::read_to_string(root.join("a.txt")).unwrap(),
             "ours\n"
+        );
+    }
+
+    #[test]
+    fn the_file_list_keeps_tracked_and_new_files_and_drops_ignored_and_deleted_ones() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, root) = project(dir.path(), "p");
+        write(&root, ".gitignore", "target/\n");
+        std::fs::create_dir_all(root.join("target")).unwrap();
+        write(&root, "target/out.bin", "x");
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        write(&root, "src/new.rs", "fn main() {}\n");
+        write(&root, "b.txt", "two\n");
+        git(&root, &["add", "b.txt"]);
+        std::fs::remove_file(root.join("a.txt")).unwrap();
+        assert_eq!(
+            file_list(&s).unwrap(),
+            paths(&[
+                ".gitignore",
+                ".shipyard/project.yaml",
+                "b.txt",
+                "src/new.rs"
+            ])
         );
     }
 

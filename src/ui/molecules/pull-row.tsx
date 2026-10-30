@@ -70,7 +70,7 @@ export function PullRow({
 			<span className="flex w-full items-center gap-1.5">
 				<StateChip status={ci} label={ciLabel} />
 				<StateChip status={review} label={reviewLabel} />
-				<span className="ml-auto flex items-center gap-2 text-12 text-n-10">{meta}</span>
+				<span className="ml-auto flex items-center gap-2 text-12 text-n-11">{meta}</span>
 			</span>
 		</button>
 	);

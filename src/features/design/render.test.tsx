@@ -45,7 +45,9 @@ vi.mock("@/ui/organisms/excalidraw-board", () => ({
 }));
 
 const files = () => mockState().design.files;
-const row = (name: string) => screen.findByRole("button", { name: new RegExp(name) });
+// The list comes first: the open artifact can hold a button with the same name.
+const row = async (name: string) =>
+	(await screen.findAllByRole("button", { name: new RegExp(name) }))[0] as HTMLElement;
 
 describe("Design / Diagrams", () => {
 	it("lists the four formats, each with its title and format", async () => {

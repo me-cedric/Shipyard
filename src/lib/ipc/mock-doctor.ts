@@ -2,6 +2,7 @@
 // the Rust commands: an install finds the tool afterwards, a port is 1024 or more, a tool name is
 // known, and the token is shown only after the server was on.
 import type {
+	CertStatus,
 	Elsewhere,
 	LedgerEntry,
 	McpGates_Deserialize,
@@ -42,6 +43,7 @@ export type MockDoctor = {
 	wired: boolean;
 	elsewhere: Elsewhere[];
 	imported: string[];
+	certs: number;
 };
 
 const tool = (id: string, group: string, version: string, canInstall = true): ToolCheck => ({
@@ -99,6 +101,7 @@ export const seedDoctor = (): MockDoctor => ({
 		},
 	],
 	imported: [],
+	certs: 0,
 });
 
 export function doctorInstall(d: MockDoctor, id: string): ToolCheck[] {
@@ -166,3 +169,19 @@ export function elsewhereImport(d: MockDoctor, source: string, name: string): st
 	d.imported.push(name);
 	return `custom-${name}`;
 }
+
+/** The rules of the Rust commands: a click, a file with a PEM certificate. The mock counts a file named `*.pem`. */
+export function certsImport(d: MockDoctor, path: string, click: boolean): CertStatus {
+	if (!click) throw "this change needs the click of a person";
+	if (!path.endsWith(".pem")) throw "the file holds no PEM certificate";
+	d.certs = 1;
+	return certsStatus(d);
+}
+
+export function certsRemove(d: MockDoctor, click: boolean): CertStatus {
+	if (!click) throw "this change needs the click of a person";
+	d.certs = 0;
+	return certsStatus(d);
+}
+
+export const certsStatus = (d: MockDoctor): CertStatus => ({ added: d.certs > 0, count: d.certs });

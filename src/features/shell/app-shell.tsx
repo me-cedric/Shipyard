@@ -1,10 +1,12 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { AssistantPanel, SelectionActions, useAssistant } from "@/features/assistant";
+import { FileDrawer, TerminalDrawer } from "@/features/code";
 import { useCodeActions } from "@/lib/code";
 import { useI18n } from "@/lib/i18n";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
 import { usePrefs } from "@/lib/prefs";
+import { useActiveProject } from "@/lib/projects";
 import { type RefActions, ShellProvider, useShell } from "@/lib/shell";
 import { CommitDialog } from "@/ui/organisms/commit-dialog";
 import { Inspector } from "@/ui/organisms/inspector";
@@ -40,9 +42,14 @@ function Frame() {
 		prefill,
 		clearPrefill,
 		ask,
+		filesOpen,
+		setFilesOpen,
+		terminalOpen,
+		setTerminalOpen,
 	} = useShell();
+	const project = useActiveProject().data;
 	const { commit: runCommit } = useCodeActions();
-	const { list, sync, commit, assistant, palette } = useActions();
+	const { list, sync, commit, assistant, palette, files, terminal } = useActions();
 	useShortcuts(list);
 	useNativeMenu(list);
 	useShellEvents();
@@ -78,9 +85,31 @@ function Frame() {
 		<>
 			<Shell
 				sidebarOpen={sidebarOpen}
-				contextbar={<ContextBar sync={sync} assistant={assistant} palette={palette} />}
+				contextbar={
+					<ContextBar
+						sync={sync}
+						assistant={assistant}
+						palette={palette}
+						files={files}
+						terminal={terminal}
+					/>
+				}
 				sidebar={<Sidebar toggle={toggle} />}
 				main={<Outlet />}
+				drawer={
+					project && filesOpen ? (
+						<FileDrawer key={project.id} onClose={() => setFilesOpen(false)} />
+					) : null
+				}
+				bottom={
+					project ? (
+						<TerminalDrawer
+							key={project.id}
+							open={terminalOpen}
+							onHide={() => setTerminalOpen(false)}
+						/>
+					) : null
+				}
 				assistantSide={chat.side}
 				assistant={
 					<AssistantPanel

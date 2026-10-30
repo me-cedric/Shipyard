@@ -72,6 +72,7 @@ fn the_registry_keeps_path_last_use_view_and_overrides() {
         Overrides {
             theme: Some(Theme::Dark),
             accent: Some(Accent::Violet),
+            hidden_tabs: Some(vec!["code/terminal".into()]),
             ..Default::default()
         },
     );
@@ -88,6 +89,10 @@ fn the_registry_keeps_path_last_use_view_and_overrides() {
         ("beta", "/work/b", Some("/work/board"))
     );
     assert_eq!(beta.overrides.accent, Some(Accent::Violet));
+    assert_eq!(
+        beta.overrides.hidden_tabs.as_deref(),
+        Some(&["code/terminal".to_string()][..])
+    );
     assert!(beta.last_used > 0);
 }
 

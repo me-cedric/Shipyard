@@ -88,6 +88,10 @@ export function useActions() {
 		setCommitOpen,
 		selectedRef,
 		explain,
+		filesOpen,
+		setFilesOpen,
+		terminalOpen,
+		setTerminalOpen,
 	} = shell;
 	const { pull } = useCodeActions();
 	const syncNow = useSyncNow();
@@ -189,6 +193,23 @@ export function useActions() {
 			key: "k",
 			run: () => setPaletteOpen(true),
 		});
+		// The drawers need a working copy.
+		const files = withKey({
+			id: "toggle-files",
+			label: t.panels.files.toggle,
+			Icon: FolderOpenIcon,
+			key: "p",
+			disabled: !hasProject,
+			run: () => setFilesOpen(!filesOpen),
+		});
+		const terminal = withKey({
+			id: "toggle-terminal",
+			label: t.panels.terminal.toggle,
+			Icon: CommandLineIcon,
+			key: "`",
+			disabled: !hasProject,
+			run: () => setTerminalOpen(!terminalOpen),
+		});
 		const NEXT_THEME: Record<Theme, Theme> = { light: "dark", dark: "system", system: "light" };
 		const shortcuts = withKey({
 			id: "shortcuts-help",
@@ -201,6 +222,8 @@ export function useActions() {
 			...spaces,
 			assistant,
 			palette,
+			files,
+			terminal,
 			shortcuts,
 			withKey({
 				id: "toggle-theme",
@@ -256,7 +279,7 @@ export function useActions() {
 			commit,
 			updateCheck,
 		];
-		return { list, sync: syncAction, commit, assistant, palette };
+		return { list, sync: syncAction, commit, assistant, palette, files, terminal };
 	}, [
 		t,
 		role,
@@ -284,6 +307,10 @@ export function useActions() {
 		bindings,
 		setShortcutsOpen,
 		theme,
+		filesOpen,
+		setFilesOpen,
+		terminalOpen,
+		setTerminalOpen,
 	]);
 }
 

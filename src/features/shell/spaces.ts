@@ -45,3 +45,9 @@ export function orderedSpaces(role: Role, only: string[] | null = null): SpaceId
 		.filter((s) => !only || s === "home" || s === "settings" || only.includes(s))
 		.sort((a, b) => Number(a === "settings") - Number(b === "settings"));
 }
+
+/** The tabs of a space that the project profile keeps. Settings keeps every tab. */
+export const visibleTabs = <S extends SpaceId>(space: S, hidden: readonly string[]) =>
+	SPACES[space].filter(
+		(tab) => space === "settings" || !hidden.includes(`${space}/${tab}`),
+	) as (typeof SPACES)[S][number][];
