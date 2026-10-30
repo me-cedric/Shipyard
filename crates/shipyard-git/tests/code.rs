@@ -1238,6 +1238,12 @@ fn rebase_replays_the_branch_stops_on_a_conflict_and_continues_or_aborts() {
 fn a_force_push_needs_the_lease_and_blame_names_the_commit_of_each_line() {
     let (tmp, a, url) = with_remote();
     let auth = Auth::none();
+    // No force push replaces a protected branch: `main` here. The work goes on a feature branch.
+    assert!(matches!(
+        a.push_force_with_lease("origin", &auth),
+        Err(GitError::ProtectedBranch(_))
+    ));
+    a.create_branch("feat/x/f").unwrap();
     commit(&a, "f.txt", "l1\nl2\n", "feat: f");
     a.push("origin", &auth).unwrap();
     let sha = commit(&a, "f.txt", "l1\nchanged\n", "fix: f");
@@ -1267,7 +1273,12 @@ fn a_force_push_needs_the_lease_and_blame_names_the_commit_of_each_line() {
     // Someone else pushed after our fetch: the lease refuses.
     let b = clone(&url, &tmp.path().join("b"));
     commit(&b, "g.txt", "g\n", "feat: g");
-    b.push("origin", &auth).unwrap();
+    Repository::open(b.workdir())
+        .unwrap()
+        .find_remote("origin")
+        .unwrap()
+        .push(&["+refs/heads/main:refs/heads/feat/x/f"], None)
+        .unwrap();
     assert!(matches!(
         a.push_force_with_lease("origin", &auth),
         Err(GitError::PushRejected(_))

@@ -36,6 +36,7 @@ pub fn run(s: &AppState, message: &str) -> Res<Option<String>> {
     if !ids(&s.dir).contains(&id) {
         return Ok(None);
     }
+    crate::work::refuse_read_only(s)?;
     commit_all(&root, message)
 }
 

@@ -1270,6 +1270,7 @@ pub fn workflow_validate(s: &AppState, id: &str, text: &str) -> Res<Option<Issue
 /// Write the file after the check. An invalid text is refused: the file never holds one that the
 /// reload would drop.
 pub fn workflow_save(s: &AppState, id: &str, text: &str) -> Res<()> {
+    crate::work::refuse_read_only(s)?;
     if let Some(i) = workflow_validate(s, id, text)? {
         return Err(match i.line {
             Some(l) => format!("{}:{l}: {}", i.file, i.message),
@@ -1362,6 +1363,7 @@ pub fn role_read(s: &AppState, id: &str) -> Res<RoleFile> {
 
 /// Write a role file after the check. The next brief of a step with this role uses it.
 pub fn role_save(s: &AppState, id: &str, text: &str) -> Res<()> {
+    crate::work::refuse_read_only(s)?;
     let id = file_id(id)?;
     too_big(text)?;
     if let Err((line, msg)) = parse_role(id, text) {

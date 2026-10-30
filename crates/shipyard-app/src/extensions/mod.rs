@@ -46,13 +46,18 @@ pub async fn compass_preview(app: AppHandle, kind: Kind, id: String) -> Res<Stri
 #[tauri::command]
 #[specta::specta]
 pub async fn compass_apply(app: AppHandle, entries: Vec<String>) -> Res<Applied> {
-    blocking(app, move |s| compass::apply(&root(s)?, &entries)).await
+    blocking(app, move |s| {
+        crate::work::refuse_read_only(s)?;
+        compass::apply(&root(s)?, &entries)
+    })
+    .await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn compass_upgrade(app: AppHandle, selection: Option<Vec<String>>) -> Res<Applied> {
     blocking(app, move |s| {
+        crate::work::refuse_read_only(s)?;
         compass::upgrade(&root(s)?, selection.as_deref())
     })
     .await
@@ -82,7 +87,11 @@ pub async fn catalog_preview(app: AppHandle, id: String) -> Res<WriteReport> {
 #[tauri::command]
 #[specta::specta]
 pub async fn catalog_deploy(app: AppHandle, id: String) -> Res<WriteReport> {
-    blocking(app, move |s| catalog::deploy(&root(s)?, &id).map_err(err)).await
+    blocking(app, move |s| {
+        crate::work::refuse_read_only(s)?;
+        catalog::deploy(&root(s)?, &id).map_err(err)
+    })
+    .await
 }
 
 // ---------------------------------------------------------------- plugins
@@ -126,6 +135,7 @@ pub async fn plugin_apply(
     accepted: Vec<String>,
 ) -> Res<PluginApplied> {
     blocking(app, move |s| {
+        crate::work::refuse_read_only(s)?;
         let done = plugins::apply(&root(s)?, &plugin_at(&path)?, &accepted).map_err(err)?;
         let (mut mcp_added, mut mcp_failed) = (Vec::new(), Vec::new());
         for (name, server) in done.mcp {

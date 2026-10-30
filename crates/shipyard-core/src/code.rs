@@ -62,6 +62,17 @@ fn is_kebab(s: &str) -> bool {
         })
 }
 
+/// A file name that no automatic commit and no outside agent takes: `.git`, the environment
+/// files, `*.pem`, `*.key` and a private key such as `id_rsa`. The case does not count.
+pub fn is_secret_name(name: &str) -> bool {
+    let n = name.to_ascii_lowercase();
+    n == ".git"
+        || n.starts_with(concat!(".", "env"))
+        || n.ends_with(".pem")
+        || n.ends_with(".key")
+        || (n.starts_with("id_") && !n.contains('.'))
+}
+
 /// Checks `<type>/<area>/<kebab>` for a branch that a person creates.
 pub fn check_branch_name(name: &str) -> Result<(), NameError> {
     let mut parts = name.split('/');

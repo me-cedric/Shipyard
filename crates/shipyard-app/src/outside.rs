@@ -117,13 +117,19 @@ fn token(dir: &Path) -> Option<String> {
 }
 
 fn write_token(path: &Path, token: &str) -> std::io::Result<()> {
-    write_atomic(path, token.as_bytes()).map_err(std::io::Error::other)?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))?;
+    use std::io::Write;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
     }
-    Ok(())
+    let tmp = path.with_extension("tmp");
+    // `mode` applies at creation only: a stale temp file would keep its mode.
+    let _ = std::fs::remove_file(&tmp);
+    let mut o = std::fs::OpenOptions::new();
+    o.write(true).create_new(true);
+    #[cfg(unix)]
+    std::os::unix::fs::OpenOptionsExt::mode(&mut o, 0o600);
+    o.open(&tmp)?.write_all(token.as_bytes())?;
+    std::fs::rename(tmp, path)
 }
 
 fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -146,10 +152,12 @@ fn start(dir: &Path, g: &McpGates) -> Result<(), String> {
     let (switches, only, dir_of) = (g.switches(), g.allowed_tools.clone(), dir.to_path_buf());
     let server = Server::new(Arc::new(NoRun)).with_outside(move || {
         let reg = shipyard_store::project::Registry::load(&dir_of).ok()?;
+        let e = reg.active()?;
         Some(Outside {
-            root: PathBuf::from(&reg.active()?.path),
+            root: PathBuf::from(&e.path),
             switches,
             only: only.clone(),
+            read_only: e.overrides.read_only == Some(true),
         })
     });
     let binding = Binding {
@@ -184,6 +192,7 @@ pub fn status(s: &AppState) -> McpOutside {
         root: PathBuf::new(),
         switches: g.switches(),
         only: g.allowed_tools.clone(),
+        read_only: false,
     };
     McpOutside {
         running: live.is_some(),
@@ -404,6 +413,19 @@ pub async fn mcp_elsewhere_import(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn the_token_file_is_private_from_its_creation() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("t");
+        std::fs::write(path.with_extension("tmp"), "old").unwrap();
+        write_token(&path, "secret").unwrap();
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o600);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "secret");
+    }
 
     #[test]
     fn other_configs_list_without_values_and_skip_shipyard_itself() {

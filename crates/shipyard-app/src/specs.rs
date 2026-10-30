@@ -564,6 +564,7 @@ pub fn split_apply(s: &AppState, change: &str, click: bool) -> Res<Vec<ApplyRow>
 /// Archive a change after the click of a person. Work items of the change that are not done are
 /// open items: they need `confirmed` (REQ-020).
 pub fn archive_change(s: &AppState, id: &str, confirmed: bool) -> Res<Vec<String>> {
+    crate::work::refuse_read_only(s)?;
     change_id(id)?;
     let p = project(s)?;
     // No tracker means no mirrored items.

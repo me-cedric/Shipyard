@@ -19,7 +19,7 @@ use crate::error::{GitError, Result};
 /// Branches that a run never pushes to, whatever the base is.
 const PROTECTED: [&str; 4] = ["main", "master", "develop", "trunk"];
 
-fn is_protected(branch: &str, base: &str) -> bool {
+pub(crate) fn is_protected(branch: &str, base: &str) -> bool {
     // `base` can be a remote tracking name: `origin/develop`.
     branch == base
         || base.ends_with(&format!("/{branch}"))

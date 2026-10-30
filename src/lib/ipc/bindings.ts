@@ -138,7 +138,7 @@ export const commands = {
 	mcpState: (id: string) => typedError<McpState, string>(__TAURI_INVOKE("mcp_state", { id })),
 	mcpInstall: (command: string) => typedError<string, string>(__TAURI_INVOKE("mcp_install", { command })),
 	machineSessions: () => typedError<MachineSession_Serialize[], string>(__TAURI_INVOKE("machine_sessions")),
-	machineSessionStop: (pid: number) => typedError<null, string>(__TAURI_INVOKE("machine_session_stop", { pid })),
+	machineSessionStop: (pid: number, click: boolean) => typedError<null, string>(__TAURI_INVOKE("machine_session_stop", { pid, click })),
 	machineSpend: (days: number) => typedError<Spend, string>(__TAURI_INVOKE("machine_spend", { days })),
 	machineBudgetSet: (runner: string, usd: number | null) => typedError<Budget[], string>(__TAURI_INVOKE("machine_budget_set", { runner, usd })),
 	mcpOutsideGet: () => typedError<McpOutside_Serialize, string>(__TAURI_INVOKE("mcp_outside_get")),
@@ -149,7 +149,7 @@ export const commands = {
 	mcpElsewhereList: () => typedError<Elsewhere[], string>(__TAURI_INVOKE("mcp_elsewhere_list")),
 	mcpElsewhereImport: (source: string, name: string) => typedError<string, string>(__TAURI_INVOKE("mcp_elsewhere_import", { source, name })),
 	doctorTools: () => typedError<ToolCheck[], string>(__TAURI_INVOKE("doctor_tools")),
-	doctorToolInstall: (id: string) => typedError<ToolCheck[], string>(__TAURI_INVOKE("doctor_tool_install", { id })),
+	doctorToolInstall: (id: string, click: boolean) => typedError<ToolCheck[], string>(__TAURI_INVOKE("doctor_tool_install", { id, click })),
 	doctorLedger: () => typedError<LedgerEntry[], string>(__TAURI_INVOKE("doctor_ledger")),
 	/**  The model of each tier for each runner (`factory` REQ-012). Settings / Connections edits it. */
 	tiersGet: () => typedError<RunnerTiers[], string>(__TAURI_INVOKE("tiers_get")),

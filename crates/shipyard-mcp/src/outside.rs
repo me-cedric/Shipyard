@@ -34,6 +34,8 @@ pub struct Outside {
     pub switches: Switches,
     /// When it is not empty, only these tools of the switched-on groups run.
     pub only: Vec<String>,
+    /// The profile of the project is read only: `project_write_file` and `run_check` refuse.
+    pub read_only: bool,
 }
 
 impl Outside {
@@ -154,10 +156,7 @@ fn inside(root: &Path, rel: &str) -> Result<PathBuf, String> {
     if rel.is_absolute()
         || rel.components().any(|c| match c {
             Component::ParentDir | Component::Prefix(_) | Component::RootDir => true,
-            Component::Normal(n) => {
-                let n = n.to_string_lossy();
-                n == ".git" || n.starts_with(".env")
-            }
+            Component::Normal(n) => shipyard_core::code::is_secret_name(&n.to_string_lossy()),
             Component::CurDir => false,
         })
     {
@@ -248,6 +247,9 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
     if !o.allows(name) {
         return Err(format!("{name} is turned off in the Shipyard settings"));
     }
+    if o.read_only && matches!(name, "project_write_file" | "run_check") {
+        return Err("the profile of this project is read only".into());
+    }
     let root = o.root.as_path();
     let text = match name {
         "project_list_files" => {
@@ -259,7 +261,7 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
                     let slash = if e.path().is_dir() { "/" } else { "" };
                     format!("{}{slash}", e.file_name().to_string_lossy())
                 })
-                .filter(|n| n != ".git/" && !n.starts_with(".env"))
+                .filter(|n| !shipyard_core::code::is_secret_name(n.trim_end_matches('/')))
                 .collect();
             names.sort();
             names.join("\n")
@@ -357,6 +359,7 @@ mod tests {
             root: dir.to_path_buf(),
             switches: s,
             only: Vec::new(),
+            read_only: false,
         }
     }
 
@@ -397,6 +400,46 @@ mod tests {
         }
         let list = call(&o, "project_list_files", &json!({})).unwrap();
         assert!(!list.to_string().contains(".env"));
+    }
+
+    #[test]
+    fn a_secret_name_is_refused_whatever_its_case() {
+        let dir = tempfile::tempdir().unwrap();
+        let o = open(dir.path(), all());
+        for bad in [
+            ".ENV",
+            ".Env.local",
+            ".GIT/config",
+            "a/.Git",
+            "k.PEM",
+            "id_rsa",
+        ] {
+            assert!(
+                call(&o, "project_read_file", &json!({ "path": bad })).is_err(),
+                "{bad}"
+            );
+            let w = json!({ "path": bad, "text": "x" });
+            assert!(call(&o, "project_write_file", &w).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn a_read_only_project_takes_no_write_and_no_check() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut o = open(dir.path(), all());
+        o.read_only = true;
+        let w = json!({ "path": "a.md", "text": "x" });
+        assert!(
+            call(&o, "project_write_file", &w)
+                .unwrap_err()
+                .contains("read only")
+        );
+        assert!(
+            call(&o, "run_check", &json!({ "name": "test" }))
+                .unwrap_err()
+                .contains("read only")
+        );
+        assert!(!dir.path().join("a.md").exists());
     }
 
     #[test]

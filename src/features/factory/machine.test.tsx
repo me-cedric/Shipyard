@@ -39,7 +39,10 @@ describe("Factory / machine-wide AI sessions and spend", () => {
 
 	it("Sessions: a stop of a process that is gone shows the reason", async () => {
 		await renderTab(<Sessions />);
-		await expect(unwrap(commands.machineSessionStop(1))).rejects.toThrow("no AI session runs");
+		await expect(unwrap(commands.machineSessionStop(1, true))).rejects.toThrow(
+			"no AI session runs",
+		);
+		await expect(unwrap(commands.machineSessionStop(4188, false))).rejects.toThrow("click");
 	});
 
 	it("Usage: a chart by day, spend by runner, and a monthly budget with its meter", async () => {

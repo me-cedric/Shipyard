@@ -107,6 +107,9 @@ fn relative(path: &str) -> bool {
 /// still gives that content: the project may have changed since the preview.
 /// Only a `Write` fix changes a file.
 pub fn fix(s: &AppState, id: &str, expected: Option<&str>) -> Res<FixResult> {
+    if expected.is_some() {
+        crate::work::refuse_read_only(s)?;
+    }
     let root = PathBuf::from(&s.registry()?.active().ok_or("no active project")?.path);
     let finding = run(s)?
         .into_iter()

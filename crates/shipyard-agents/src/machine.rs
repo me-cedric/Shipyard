@@ -97,7 +97,16 @@ pub struct Transcript {
 /// `None` for a model that this table does not know.
 pub fn price(model: &str) -> Option<[f64; 4]> {
     let m = model.to_ascii_lowercase();
-    let table: [(&str, [f64; 4]); 7] = [
+    // Opus 4.5 and later cost 5 and 25. The older Opus models keep the generic row below.
+    let opus_now = [5.0, 25.0, 0.5, 6.25];
+    let table: &[(&str, [f64; 4])] = &[
+        ("claude-opus-4-5", opus_now),
+        ("claude-opus-4-6", opus_now),
+        ("claude-opus-4-7", opus_now),
+        ("claude-opus-4-8", opus_now),
+        ("claude-opus-4-9", opus_now),
+        ("claude-opus-5", opus_now),
+        ("claude-opus-6", opus_now),
         ("claude-opus", [15.0, 75.0, 1.5, 18.75]),
         ("claude-sonnet", [3.0, 15.0, 0.3, 3.75]),
         ("claude-haiku", [1.0, 5.0, 0.1, 1.25]),
@@ -432,21 +441,29 @@ pub fn agent_of_command(command: &str) -> Option<&'static str> {
             return Some(agent);
         }
     }
-    // `node /…/bin/claude --resume`: the first two words cover a launcher and its script.
-    for word in command.split_whitespace().take(2) {
-        let base = word.rsplit(['/', '\\']).next().unwrap_or(word);
-        let agent = match base.to_ascii_lowercase().as_str() {
-            "claude" => "claude",
-            "codex" => "codex",
-            "copilot" => "copilot",
-            "gemini" => "gemini",
-            "opencode" => "opencode",
-            "cursor-agent" => "cursor",
-            _ => continue,
-        };
-        return Some(agent);
-    }
-    None
+    // The first word is the agent, or a launcher and then the second word is its script:
+    // `node /…/bin/claude --resume`. `vim claude` and `python ./codex` are not agents.
+    let base = |w: &str| {
+        w.rsplit(['/', '\\'])
+            .next()
+            .unwrap_or(w)
+            .to_ascii_lowercase()
+    };
+    let mut words = command.split_whitespace();
+    let first = base(words.next()?);
+    let word = match first.as_str() {
+        "node" | "bun" | "deno" | "npx" => base(words.next()?),
+        _ => first,
+    };
+    Some(match word.as_str() {
+        "claude" => "claude",
+        "codex" => "codex",
+        "copilot" => "copilot",
+        "gemini" => "gemini",
+        "opencode" => "opencode",
+        "cursor-agent" => "cursor",
+        _ => return None,
+    })
 }
 
 /// An agent binary started as a tool server, not as a session: `claude mcp serve`.
@@ -749,6 +766,27 @@ not json"#;
         assert_eq!(day_string(at(0)), "1970-01-01");
         assert_eq!(day_string(at(1_782_864_000)), "2026-07-01");
         assert_eq!(day_string(at(1_709_164_800 + 86_399)), "2024-02-29");
+    }
+
+    #[test]
+    fn opus_45_and_later_cost_less_than_the_older_opus() {
+        assert_eq!(price("claude-opus-4-5-20251101").unwrap()[..2], [5.0, 25.0]);
+        assert_eq!(price("claude-opus-5").unwrap()[..2], [5.0, 25.0]);
+        assert_eq!(price("claude-opus-4-1").unwrap()[..2], [15.0, 75.0]);
+        assert_eq!(price("claude-opus-4").unwrap()[..2], [15.0, 75.0]);
+    }
+
+    #[test]
+    fn only_a_launcher_makes_its_second_word_an_agent() {
+        assert_eq!(
+            agent_of_command("node /x/bin/claude --resume"),
+            Some("claude")
+        );
+        assert_eq!(agent_of_command("/usr/bin/bun codex"), Some("codex"));
+        assert_eq!(agent_of_command("/opt/bin/claude"), Some("claude"));
+        for not_agent in ["vim claude", "less codex", "python ./codex", "node"] {
+            assert_eq!(agent_of_command(not_agent), None, "{not_agent}");
+        }
     }
 
     #[test]

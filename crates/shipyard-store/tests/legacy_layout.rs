@@ -193,6 +193,33 @@ fn a_legacy_team_round_trips() {
     assert_eq!(team(&back, &r), t);
 }
 
+#[test]
+fn a_renamed_member_keeps_its_entry_and_the_unknown_keys_of_the_team_file() {
+    let dir = tempfile::tempdir().unwrap();
+    put(dir.path(), "docs/personas/personas.json", PERSONAS);
+    let r = roles(dir.path());
+    let old = r#"{"version":1,"theme":"x","members":[{"id":"m1","name":"Ana Diaz","personaId":"p1","color":"teal",
+      "windows":[{"from":"2026-01-01","to":"2026-06-30","load":0.8},{"from":"2026-07-01","to":"2026-12-31","load":0.5}],"absences":[]}]}"#;
+    let mut t = team(&serde_json::from_str(old).unwrap(), &r);
+    t.members[0].name = "Ana Moreau".into();
+    t.members[0].availability.until = Some("2026-05-31".into());
+    let back: serde_json::Value = serde_json::from_str(&team_json(&t, Some(old), &r)).unwrap();
+    let m = &back["members"];
+    assert_eq!(m.as_array().unwrap().len(), 1, "no second member");
+    assert_eq!(
+        (m[0]["id"].as_str(), m[0]["name"].as_str()),
+        (Some("m1"), Some("Ana Moreau"))
+    );
+    assert_eq!(
+        (m[0]["color"].as_str(), back["theme"].as_str()),
+        (Some("teal"), Some("x"))
+    );
+    assert_eq!(m[0]["personaId"], "p1");
+    assert_eq!(m[0]["windows"][0]["to"], "2026-05-31");
+    assert_eq!(m[0]["windows"][0]["load"], 0.8);
+    assert_eq!(m[0]["windows"][1]["load"], 0.5);
+}
+
 /// A real Legacy repository. The test reads a copy and skips when the repository is not on this
 /// machine.
 #[test]

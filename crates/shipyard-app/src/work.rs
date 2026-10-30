@@ -123,6 +123,7 @@ impl Ctx<'_> {
     }
 
     fn write(&self, rel: &str, text: &str) -> Res<()> {
+        refuse_read_only(self.s)?;
         let _g = self.s.guard();
         write_atomic(&self.root.join(rel), text.as_bytes()).map_err(err)
     }
@@ -285,12 +286,8 @@ pub(crate) fn today(s: &AppState) -> String {
     local_day(secs, s.work.offset.load(Ordering::Relaxed))
 }
 
-/// A write needs the click of a person, and a project in a read-only profile takes no write
-/// (`Overrides.read_only`).
-pub(crate) fn need_click(s: &AppState, click: bool) -> Res<()> {
-    if !click {
-        return Err("this change needs the click of a person".into());
-    }
+/// A project in a read-only profile takes no write (`Overrides.read_only`).
+pub(crate) fn refuse_read_only(s: &AppState) -> Res<()> {
     if s.registry()?
         .active()
         .is_some_and(|e| e.overrides.read_only == Some(true))
@@ -298,6 +295,14 @@ pub(crate) fn need_click(s: &AppState, click: bool) -> Res<()> {
         return Err("the profile of this project is read only".into());
     }
     Ok(())
+}
+
+/// A write needs the click of a person, and a read-only project takes no write.
+pub(crate) fn need_click(s: &AppState, click: bool) -> Res<()> {
+    if !click {
+        return Err("this change needs the click of a person".into());
+    }
+    refuse_read_only(s)
 }
 
 // ---------------------------------------------------------------- the tracker
@@ -973,6 +978,7 @@ pub fn excel_read(s: &AppState, path: &str, scope: Option<&str>) -> Res<Preview>
 
 /// Replace a sheet with the previewed one. Without `confirmed` the sheet stays (REQ-012).
 pub fn excel_replace(s: &AppState, slug: &str, confirmed: bool) -> Res<SheetView> {
+    refuse_read_only(s)?;
     let c = ctx(s)?;
     let rel = sheet_path(slug).map_err(err)?;
     if c.json_sheet(slug) {

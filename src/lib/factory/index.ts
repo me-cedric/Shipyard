@@ -187,7 +187,7 @@ export function useMachineWrites() {
 			}
 		};
 		return {
-			stop: (pid: number) => run(commands.machineSessionStop(pid)),
+			stop: (pid: number) => run(commands.machineSessionStop(pid, true)),
 			budget: (runner: string, usd: number | null) => run(commands.machineBudgetSet(runner, usd)),
 		};
 	}, [qc]);

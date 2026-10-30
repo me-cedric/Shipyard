@@ -79,6 +79,7 @@ pub(crate) fn put(
     stamp: Option<&str>,
     create: bool,
 ) -> Res<Written> {
+    crate::work::refuse_read_only(s)?;
     if text.len() as u64 > MAX_BYTES {
         return Err("the text is too big".into());
     }

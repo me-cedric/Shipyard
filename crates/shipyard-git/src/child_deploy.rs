@@ -5,7 +5,11 @@
 
 use std::path::Path;
 
-use git2::{BranchType, IndexAddOption, Oid, Repository, StatusOptions, build::CheckoutBuilder};
+use git2::{
+    BranchType, IndexAddOption, Oid, Repository, RepositoryState, StatusOptions,
+    build::CheckoutBuilder,
+};
+use shipyard_core::code::is_secret_name;
 
 fn msg(e: git2::Error) -> String {
     e.message().to_string()
@@ -57,9 +61,20 @@ pub fn branch_drop(clone: &Path, before: &str, branch: &str) -> Result<(), Strin
 /// Commit every change of the working tree. Returns the commit id, or `None` when nothing changed.
 pub fn commit_all(clone: &Path, message: &str) -> Result<Option<String>, String> {
     let repo = Repository::open(clone).map_err(msg)?;
+    // A rebase, merge or cherry-pick in progress is not ours to commit.
+    if repo.state() != RepositoryState::Clean {
+        return Err(format!("the repository is busy: {:?}", repo.state()));
+    }
     let mut index = repo.index().map_err(msg)?;
+    // A secret file is never staged: the callback returns 1 to skip a path.
+    let mut skip_secret = |path: &Path, _: &[u8]| {
+        i32::from(
+            path.components()
+                .any(|c| is_secret_name(&c.as_os_str().to_string_lossy())),
+        )
+    };
     index
-        .add_all(["*"], IndexAddOption::DEFAULT, None)
+        .add_all(["*"], IndexAddOption::DEFAULT, Some(&mut skip_secret))
         .map_err(msg)?;
     index.write().map_err(msg)?;
     let tree = repo

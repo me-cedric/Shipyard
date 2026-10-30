@@ -25,7 +25,7 @@ export function DoctorTools() {
 		setBusy(tool.id);
 		setError(null);
 		try {
-			qc.setQueryData(toolsKey, await unwrap(commands.doctorToolInstall(tool.id)));
+			qc.setQueryData(toolsKey, await unwrap(commands.doctorToolInstall(tool.id, true)));
 			await qc.invalidateQueries({ queryKey: ["doctor", "ledger"] });
 		} catch (e) {
 			setError(e instanceof Error ? e.message : String(e));

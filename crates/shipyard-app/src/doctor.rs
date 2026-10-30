@@ -259,8 +259,16 @@ pub async fn doctor_tools(app: tauri::AppHandle) -> Res<Vec<ToolCheck>> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn doctor_tool_install(app: tauri::AppHandle, id: String) -> Res<Vec<ToolCheck>> {
-    blocking(app, move |_| install(&id)).await
+pub async fn doctor_tool_install(
+    app: tauri::AppHandle,
+    id: String,
+    click: bool,
+) -> Res<Vec<ToolCheck>> {
+    blocking(app, move |s| {
+        crate::work::need_click(s, click)?;
+        install(&id)
+    })
+    .await
 }
 
 #[tauri::command]

@@ -247,8 +247,8 @@ pub fn sheet_json(sheet: &Sheet, old: Option<&str>, roles: &BTreeMap<String, Str
     serde_json::to_string_pretty(&Value::Object(top)).unwrap_or_default() + "\n"
 }
 
-/// The Legacy `team.json` text for `team`. A member of `old` with the same name keeps its windows,
-/// its persona and every other key.
+/// The Legacy `team.json` text for `team`. A member of `old` matches by id (the handle), then by
+/// name, then by the slug of its name. A match keeps every key that Shipyard does not own.
 pub fn team_json(team: &Team, old: Option<&str>, roles: &BTreeMap<String, String>) -> String {
     let old: Value = old
         .and_then(|t| serde_json::from_str(t).ok())
@@ -259,19 +259,39 @@ pub fn team_json(team: &Team, old: Option<&str>, roles: &BTreeMap<String, String
         .members
         .iter()
         .map(|m| {
+            // The handle is the Legacy `id`: a renamed member keeps its entry. The name is the fallback.
             let prev = old.get("members").and_then(Value::as_array).and_then(|a| {
-                a.iter()
-                    .find(|x| x.get("name").and_then(Value::as_str) == Some(&m.name))
+                let by = |k: &str, v: &str| {
+                    a.iter()
+                        .find(|x| x.get(k).and_then(Value::as_str) == Some(v))
+                };
+                // `team` derives the handle from the name, so a Legacy member with its own id
+                // still matches through the slug of its old name.
+                by("id", &m.handle)
+                    .or_else(|| by("name", &m.name))
+                    .or_else(|| {
+                        a.iter().find(|x| {
+                            slug(x.get("name").and_then(Value::as_str).unwrap_or("")) == m.handle
+                        })
+                    })
             });
             let mut o = obj(prev);
-            if prev.is_none() {
-                o.insert("id".into(), json!(m.handle));
-                o.insert("personaId".into(), json!(persona_id(&m.role, roles)));
-                o.insert(
-                    "windows".into(),
-                    json!([{"from": m.availability.from, "to": m.availability.until, "load": 1}]),
-                );
+            o.entry("id").or_insert(json!(m.handle));
+            o.insert("personaId".into(), json!(persona_id(&m.role, roles)));
+            // The first window carries the availability. Other windows and their load stay.
+            let mut windows = o
+                .get("windows")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            if windows.is_empty() {
+                windows.push(json!({"load": 1}));
             }
+            if let Some(w) = windows[0].as_object_mut() {
+                w.insert("from".into(), json!(m.availability.from));
+                w.insert("to".into(), json!(m.availability.until));
+            }
+            o.insert("windows".into(), Value::Array(windows));
             o.insert("name".into(), json!(m.name));
             if let Some(e) = m.trackers.iter().find(|t| t.contains('@')) {
                 o.insert("email".into(), json!(e));

@@ -48,7 +48,7 @@ pub enum GitError {
     NoWorktree(String),
     #[error("the branch is already on the remote: {0}")]
     BranchPublished(String),
-    #[error("a run never pushes to this branch: {0}")]
+    #[error("this branch is protected, nothing replaces it by push: {0}")]
     ProtectedBranch(String),
     #[error("{0}")]
     BadSummary(String),

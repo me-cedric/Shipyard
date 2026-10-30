@@ -258,6 +258,7 @@ pub fn settings(s: &AppState) -> Res<Option<ProjectSettings>> {
 
 /// Writes paths, default workflow and gates to the project file. Nothing personal goes there.
 pub fn save_file(s: &AppState, file: ProjectFile) -> Res<()> {
+    crate::work::refuse_read_only(s)?;
     let e = s.registry()?.active().cloned().ok_or("no active project")?;
     write_project_file(Path::new(&e.path), &file).map_err(err)?;
     s.with_registry(|reg| {

@@ -121,6 +121,9 @@ impl Repo {
             return Err(GitError::Detached);
         }
         let branch = head.shorthand()?.to_string();
+        if crate::delivery::is_protected(&branch, "") {
+            return Err(GitError::ProtectedBranch(branch));
+        }
         let dest = format!("refs/heads/{branch}");
         let seen = self
             .repo

@@ -112,3 +112,25 @@ fn a_dropped_branch_leaves_the_clone_clean_on_its_old_branch() {
     // The clone takes a new deploy.
     branch_new(&clone, "b").unwrap();
 }
+
+#[test]
+fn a_commit_skips_secret_files_and_refuses_a_merge_in_progress() {
+    let d = tempfile::tempdir().unwrap();
+    let (_, clone) = child(d.path());
+    branch_new(&clone, "b").unwrap();
+    std::fs::write(clone.join("ok.txt"), "x").unwrap();
+    std::fs::write(clone.join(format!(".{}.local", "ENV")), "T=x").unwrap();
+    std::fs::write(clone.join("cert.pem"), "x").unwrap();
+    std::fs::write(clone.join("id_rsa"), "x").unwrap();
+    commit_all(&clone, "chore: save").unwrap().unwrap();
+    let files = git(&clone, &["ls-tree", "-r", "--name-only", "HEAD"]);
+    assert!(files.contains("ok.txt"), "{files}");
+    for secret in ["ENV", "pem", "id_rsa"] {
+        assert!(!files.contains(secret), "{files}");
+    }
+    // MERGE_HEAD makes the state a merge in progress.
+    let head = git(&clone, &["rev-parse", "HEAD"]);
+    std::fs::write(clone.join(".git/MERGE_HEAD"), format!("{head}\n")).unwrap();
+    std::fs::write(clone.join("more.txt"), "y").unwrap();
+    assert!(commit_all(&clone, "m").unwrap_err().contains("busy"));
+}

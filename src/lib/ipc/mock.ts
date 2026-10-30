@@ -858,7 +858,10 @@ const handlers: Handlers = {
 		return `installed ${command}`;
 	},
 	machineSessions: () => state.machine.sessions,
-	machineSessionStop: (pid) => mc.machineStop(state.machine, pid),
+	machineSessionStop: (pid, click) => {
+		if (!click) throw "this change needs the click of a person";
+		return mc.machineStop(state.machine, pid);
+	},
 	machineSpend: (days) => mc.machineSpend(state.machine, days),
 	machineBudgetSet: (runner, usd) => mc.machineBudgetSet(state.machine, runner, usd),
 	mcpOutsideGet: () => dr.outsideStatus(state.doctor),
@@ -868,7 +871,10 @@ const handlers: Handlers = {
 	mcpElsewhereList: () => state.doctor.elsewhere,
 	mcpElsewhereImport: (source, name) => dr.elsewhereImport(state.doctor, source, name),
 	doctorTools: () => state.doctor.tools,
-	doctorToolInstall: (id) => dr.doctorInstall(state.doctor, id),
+	doctorToolInstall: (id, click) => {
+		if (!click) throw "this change needs the click of a person";
+		return dr.doctorInstall(state.doctor, id);
+	},
 	doctorLedger: () => dr.doctorLedger(state.doctor),
 	shellMenu: (labels) => {
 		state.menu = labels;

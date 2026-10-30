@@ -101,8 +101,14 @@ pub fn remove(root: &Path, name: &str) -> Result<Removed> {
             continue;
         }
         let path = root.join(&rel);
+        // A linked folder can lead out of the project: its files are never ours to delete.
+        let inside = path
+            .parent()
+            .and_then(|p| p.canonicalize().ok())
+            .zip(root.canonicalize().ok())
+            .is_some_and(|(p, r)| p.starts_with(r));
         match path.symlink_metadata() {
-            Ok(m) if m.is_file() && fs::read(&path).is_ok_and(|b| sha(&b) == hash) => {
+            Ok(m) if inside && m.is_file() && fs::read(&path).is_ok_and(|b| sha(&b) == hash) => {
                 fs::remove_file(&path)?;
                 out.removed.push(rel);
             }
@@ -157,5 +163,27 @@ mod tests {
         );
         assert!(list(dir.path()).is_empty());
         assert!(dir.path().join("b.txt").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_file_behind_a_linked_folder_is_kept() {
+        let (dir, out) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        fs::write(out.path().join("x.txt"), "one").unwrap();
+        std::os::unix::fs::symlink(out.path(), dir.path().join("linked")).unwrap();
+        let mut rec = Applied::default();
+        rec.files.insert("linked/x.txt".into(), sha(b"one"));
+        let all = BTreeMap::from([("tools".to_string(), rec)]);
+        write_atomic(
+            &dir.path().join(RECORD),
+            serde_json::to_string(&all).unwrap().as_bytes(),
+        )
+        .unwrap();
+        let done = remove(dir.path(), "tools").unwrap();
+        assert_eq!(
+            (done.removed.len(), done.kept),
+            (0, vec!["linked/x.txt".to_string()])
+        );
+        assert!(out.path().join("x.txt").exists());
     }
 }

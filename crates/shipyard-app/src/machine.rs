@@ -75,8 +75,12 @@ pub async fn machine_sessions(app: tauri::AppHandle) -> Res<Vec<MachineSession>>
 
 #[tauri::command]
 #[specta::specta]
-pub async fn machine_session_stop(app: tauri::AppHandle, pid: u32) -> Res<()> {
-    blocking(app, move |_| machine::stop(pid)).await
+pub async fn machine_session_stop(app: tauri::AppHandle, pid: u32, click: bool) -> Res<()> {
+    blocking(app, move |s| {
+        crate::work::need_click(s, click)?;
+        machine::stop(pid)
+    })
+    .await
 }
 
 #[tauri::command]
