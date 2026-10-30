@@ -1,6 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { type RefObject, useEffect } from "react";
-import { commands, isTauri, type TerminalOutput, unwrap } from "@/lib/ipc";
+import { commands, isTauri, type TerminalOutput, toFailure, unwrap } from "@/lib/ipc";
 import { CODE_FONTS } from "@/lib/prefs";
 
 type Output = TerminalOutput;
@@ -90,7 +90,7 @@ export function useTerminal(
 				};
 				await closeOldShells();
 				const out = await commands.terminalOpen(id, folder, term.cols, term.rows);
-				if (out.status === "error") onError(out.error);
+				if (out.status === "error") onError(toFailure(out.error).message);
 				if (stop) teardown();
 				else term.focus();
 			} catch (e) {

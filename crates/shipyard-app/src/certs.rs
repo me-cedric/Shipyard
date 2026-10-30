@@ -8,7 +8,7 @@ use shipyard_http::{count_pem_certs, set_extra_ca};
 use shipyard_store::project::write_atomic;
 use specta::Type;
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 
 const MAX_BYTES: u64 = 1_000_000;
 
@@ -69,19 +69,19 @@ pub fn remove(s: &AppState, click: bool) -> Res<CertStatus> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn certs_status(app: tauri::AppHandle) -> Res<CertStatus> {
+pub async fn certs_status(app: tauri::AppHandle) -> Api<CertStatus> {
     blocking(app, |s| Ok(status(s))).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn certs_import(app: tauri::AppHandle, path: String, click: bool) -> Res<CertStatus> {
+pub async fn certs_import(app: tauri::AppHandle, path: String, click: bool) -> Api<CertStatus> {
     blocking(app, move |s| import(s, Path::new(&path), click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn certs_remove(app: tauri::AppHandle, click: bool) -> Res<CertStatus> {
+pub async fn certs_remove(app: tauri::AppHandle, click: bool) -> Api<CertStatus> {
     blocking(app, move |s| remove(s, click)).await
 }
 

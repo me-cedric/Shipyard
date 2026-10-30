@@ -10,7 +10,7 @@ export const SPACES = {
 	factory: ["runs", "workflows", "agents-map", "sessions", "usage"],
 	code: ["changes", "history", "branches", "pull-requests", "quality", "impacts", "terminal"],
 	knowledge: ["graph", "handbook", "documents", "slides", "learn", "dashboards"],
-	settings: ["project", "connections", "agents-rules", "extensions", "team", "me", "health"],
+	settings: ["project", "connections", "agents-rules", "extensions", "me", "health"],
 } as const;
 
 export type SpaceId = keyof typeof SPACES;
@@ -46,8 +46,18 @@ export function orderedSpaces(role: Role, only: string[] | null = null): SpaceId
 		.sort((a, b) => Number(a === "settings") - Number(b === "settings"));
 }
 
-/** The tabs of a space that the project profile keeps. Settings keeps every tab. */
-export const visibleTabs = <S extends SpaceId>(space: S, hidden: readonly string[]) =>
-	SPACES[space].filter(
-		(tab) => space === "settings" || !hidden.includes(`${space}/${tab}`),
-	) as (typeof SPACES)[S][number][];
+/** The tab that a role sees first in its space: a junior learns, a PM plans on the board. */
+export const ROLE_TAB: Partial<Record<Role, string>> = {
+	junior: "knowledge/learn",
+	pm: "work/board",
+};
+
+/** The tabs of a space that the project profile keeps, the tab of the role first. Settings keeps every tab. */
+export const visibleTabs = <S extends SpaceId>(space: S, hidden: readonly string[], role?: Role) =>
+	SPACES[space]
+		.filter((tab) => space === "settings" || !hidden.includes(`${space}/${tab}`))
+		.sort(
+			(a, b) =>
+				Number(ROLE_TAB[role ?? "none"] === `${space}/${b}`) -
+				Number(ROLE_TAB[role ?? "none"] === `${space}/${a}`),
+		) as (typeof SPACES)[S][number][];

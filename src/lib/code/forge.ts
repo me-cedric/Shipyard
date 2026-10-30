@@ -72,7 +72,7 @@ export function useImpactText(path: string | null) {
 	});
 }
 
-type Result<T> = { status: "ok"; data: T } | { status: "error"; error: string };
+type Result<T> = { status: "ok"; data: T } | { status: "error"; error: unknown };
 
 /**
  * Each forge write, check run, scan and Analyze. Each one is a person's click, so each sends

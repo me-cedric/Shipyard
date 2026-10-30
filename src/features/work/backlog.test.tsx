@@ -142,6 +142,34 @@ describe("Work / Backlog", () => {
 		expect(await aside.findByText("Eligible for pickup")).toBeInTheDocument();
 	});
 
+	it("starts a run from the ticket", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await importAll();
+		mountApp("/work/backlog");
+		await rows();
+		await user.click(within(screen.getByRole("group", { name: "ACME-3" })).getByRole("button"));
+		const aside = within(await screen.findByRole("complementary", { name: "ACME-3" }));
+		await user.click(await aside.findByRole("button", { name: "Start run" }));
+		await waitFor(async () =>
+			expect((await unwrap(commands.runsList())).some((r) => r.key === "ACME-3")).toBe(true),
+		);
+	});
+
+	it("links the reason of a pickup label that is off to the setting", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await importAll();
+		const view = mockState().sync.automation;
+		await unwrap(commands.syncAutomationSave({ ...view, pickup: { ...view.pickup, label: null } }));
+		const router = mountApp("/work/backlog");
+		await rows();
+		await user.click(within(screen.getByRole("group", { name: "ACME-3" })).getByRole("button"));
+		const aside = within(await screen.findByRole("complementary", { name: "ACME-3" }));
+		await user.click(await aside.findByRole("button", { name: "Pickup label is off" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/project"));
+	});
+
 	it("names the reason when the project has no tracker", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/work/backlog");

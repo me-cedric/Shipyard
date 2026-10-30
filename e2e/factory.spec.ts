@@ -8,7 +8,7 @@ const lane = (page: Page, name: string) => page.getByRole("region", { name });
 async function openFactory(page: Page, tab: string) {
 	await page.goto("/home/inbox");
 	await page.getByRole("button", { name: "Open a local folder" }).click();
-	await expect(page.getByRole("heading", { name: "Questions (3)" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Agent questions (3)" })).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Factory" }).click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }
@@ -52,11 +52,11 @@ test("approves a plan on ACME-4 from the run view", async ({ page }) => {
 
 test("the global kill switch cancels the runs and releases", async ({ page }) => {
 	await openFactory(page, "Sessions");
-	await expect(page.getByText("Kill switch off")).toBeVisible();
-	await page.getByRole("button", { name: "Kill all" }).click();
-	await expect(page.getByText("Kill switch on")).toBeVisible();
-	await page.getByRole("button", { name: "Release" }).click();
-	await expect(page.getByText("Kill switch off")).toBeVisible();
+	await expect(page.getByRole("switch", { name: "Agents on" })).toBeChecked();
+	await page.getByRole("switch", { name: "Agents on" }).click();
+	await expect(page.getByRole("switch", { name: "Agents stopped" })).not.toBeChecked();
+	await page.getByRole("switch", { name: "Agents stopped" }).click();
+	await expect(page.getByRole("switch", { name: "Agents on" })).toBeChecked();
 });
 
 test("shows a check error with its line for a broken workflow", async ({ page }) => {

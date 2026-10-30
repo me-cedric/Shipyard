@@ -39,7 +39,7 @@ use specta::Type;
 use crate::commands::sync::{active, forge_source};
 use tauri::AppHandle;
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::connections::Connections;
 
 /// The child id of the run folder. A step child is `<step>-<n>` or the step id.
@@ -895,25 +895,25 @@ pub fn pr_rows(s: &AppState) -> Res<Vec<PrRowView>> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn approvals_list(app: AppHandle) -> Res<Vec<ApprovalView>> {
+pub async fn approvals_list(app: AppHandle) -> Api<Vec<ApprovalView>> {
     blocking(app, approvals).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn approval_approve(app: AppHandle, id: u32) -> Res<Option<String>> {
+pub async fn approval_approve(app: AppHandle, id: u32) -> Api<Option<String>> {
     blocking(app, move |s| approve(s, id)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn approval_reject(app: AppHandle, id: u32) -> Res<()> {
+pub async fn approval_reject(app: AppHandle, id: u32) -> Api<()> {
     blocking(app, move |s| reject(s, id)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn pulls_list(app: AppHandle) -> Res<Vec<PrRowView>> {
+pub async fn pulls_list(app: AppHandle) -> Api<Vec<PrRowView>> {
     blocking(app, pr_rows).await
 }
 

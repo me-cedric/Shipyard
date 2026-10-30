@@ -26,13 +26,12 @@ describe("assistant panel: open", () => {
 		await waitFor(() => expect(input()).toHaveFocus());
 	});
 
-	it("starts a thread for a project that has none", async () => {
+	it("starts a thread for a project that has none, and names it once", async () => {
 		await mountAssistant();
-		expect(threads().getAllByRole("button")).toHaveLength(1);
-		expect(threads().getByRole("button", { name: "Untitled" })).toHaveAttribute(
-			"aria-current",
-			"true",
-		);
+		expect(screen.getByRole("heading", { name: "Untitled" })).toBeInTheDocument();
+		// One thread is the heading: no list repeats its name.
+		expect(screen.queryByRole("list", { name: "Threads" })).toBeNull();
+		expect(screen.getAllByText("Untitled")).toHaveLength(1);
 	});
 });
 
@@ -42,7 +41,7 @@ describe("assistant panel: threads", () => {
 		await mountAssistant();
 		await say(user, "What is the plan?");
 		expect(await log().findByText("Here is the answer.")).toBeInTheDocument();
-		expect(threads().getByRole("button", { name: "What is the plan?" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "What is the plan?" })).toBeInTheDocument();
 		expect(input()).toHaveValue("");
 	});
 
@@ -67,7 +66,7 @@ describe("assistant panel: threads", () => {
 		await user.click(screen.getByRole("button", { name: "Rename" }));
 		await user.clear(screen.getByRole("textbox", { name: "Rename" }));
 		await user.type(screen.getByRole("textbox", { name: "Rename" }), "Export plan{Enter}");
-		expect(await threads().findByRole("button", { name: "Export plan" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Export plan" })).toBeInTheDocument();
 	});
 
 	it("deletes a thread after a confirm and keeps the others", async () => {
@@ -83,8 +82,8 @@ describe("assistant panel: threads", () => {
 		await user.click(screen.getByRole("button", { name: "Delete" }));
 		const dialog = within(await screen.findByRole("dialog"));
 		await user.click(dialog.getByRole("button", { name: "Delete" }));
-		await waitFor(() => expect(threads().getAllByRole("button")).toHaveLength(1));
-		expect(threads().getByRole("button", { name: "Keep this one" })).toBeInTheDocument();
+		await waitFor(() => expect(screen.queryByRole("list", { name: "Threads" })).toBeNull());
+		expect(screen.getByRole("heading", { name: "Keep this one" })).toBeInTheDocument();
 	});
 });
 

@@ -18,7 +18,7 @@ describe("Settings / Project screens", () => {
 		);
 		await user.click(screen.getByRole("link", { name: /Code/ }));
 		// The first visit of Code loads its views on demand: wait for its tabs before the next query.
-		await screen.findByRole("link", { name: "Changes" }, { timeout: 10_000 });
+		await screen.findByRole("link", { name: "Local changes" }, { timeout: 10_000 });
 		const tabs = screen.getByRole("navigation", { name: "Tabs" });
 		expect(within(tabs).queryByRole("link", { name: "Terminal" })).toBeNull();
 	}, 15_000);

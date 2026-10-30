@@ -9,7 +9,7 @@ use specta::Type;
 use tauri::AppHandle;
 
 use super::{plans, project};
-use crate::commands::{AppState, Res, blocking};
+use crate::commands::{Api, AppState, Res, blocking};
 
 const VERDICTS: [&str; 5] = ["pass", "fail", "partial", "blocked", "not-covered"];
 
@@ -89,7 +89,7 @@ pub fn bdd(s: &AppState) -> Res<Vec<BddRow>> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_bdd(app: AppHandle) -> Res<Vec<BddRow>> {
+pub async fn specs_bdd(app: AppHandle) -> Api<Vec<BddRow>> {
     blocking(app, bdd).await
 }
 

@@ -14,6 +14,7 @@ const art = (
 });
 const change = (artifacts: Change["artifacts"]): Change => ({
 	id: "c",
+	title: "c",
 	path: "p",
 	validated: false,
 	artifacts,

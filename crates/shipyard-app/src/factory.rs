@@ -48,7 +48,7 @@ use shipyard_store::run_log::RunLog;
 use specta::Type;
 
 use crate::commands::sync::{Active, active, ensure, tracker_source};
-use crate::commands::{AppState, Res, err};
+use crate::commands::{Api, AppState, Res, err};
 use crate::delivery::{Folders, ForgePulls, PrRowView, ProjectWriter, pr_rows};
 use crate::sync::Plan;
 
@@ -1391,56 +1391,56 @@ use crate::commands::blocking;
 
 #[tauri::command]
 #[specta::specta]
-pub async fn runs_list(app: AppHandle) -> Res<Vec<RunView>> {
+pub async fn runs_list(app: AppHandle) -> Api<Vec<RunView>> {
     blocking(app, runs).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn run_get_one(app: AppHandle, run: String) -> Res<Option<RunView>> {
+pub async fn run_get_one(app: AppHandle, run: String) -> Api<Option<RunView>> {
     blocking(app, move |s| run_get(s, &run)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn run_log_page(app: AppHandle, run: String, after: u32, limit: u32) -> Res<RunLogPage> {
+pub async fn run_log_page(app: AppHandle, run: String, after: u32, limit: u32) -> Api<RunLogPage> {
     blocking(app, move |s| run_log(s, &run, after, limit)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn sessions_list(app: AppHandle) -> Res<Vec<SessionView>> {
+pub async fn sessions_list(app: AppHandle) -> Api<Vec<SessionView>> {
     blocking(app, sessions).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn usage_get(app: AppHandle) -> Res<UsageView> {
+pub async fn usage_get(app: AppHandle) -> Api<UsageView> {
     blocking(app, usage).await
 }
 
 /// `usd` of `null` clears the budget.
 #[tauri::command]
 #[specta::specta]
-pub async fn budget_set(app: AppHandle, scope: String, key: String, usd: Option<f64>) -> Res<()> {
+pub async fn budget_set(app: AppHandle, scope: String, key: String, usd: Option<f64>) -> Api<()> {
     blocking(app, move |s| budget_save(s, &scope, &key, usd)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn run_diff(app: AppHandle, run: String) -> Res<Vec<FileDiff>> {
+pub async fn run_diff(app: AppHandle, run: String) -> Api<Vec<FileDiff>> {
     blocking(app, move |s| diff_of_run(s, &run)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn run_start(app: AppHandle, key: String) -> Res<String> {
+pub async fn run_start(app: AppHandle, key: String) -> Api<String> {
     blocking(app, move |s| start(s, &key)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn run_cancel(app: AppHandle, run: String) -> Res<()> {
+pub async fn run_cancel(app: AppHandle, run: String) -> Api<()> {
     blocking(app, move |s| cancel(s, &run)).await
 }
 
@@ -1451,86 +1451,86 @@ pub async fn run_resume(
     run: String,
     add_usd: f64,
     add_tokens: u32,
-) -> Res<RunState> {
+) -> Api<RunState> {
     blocking(app, move |s| resume(s, &run, add_usd, add_tokens)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn run_unblock(app: AppHandle, run: String) -> Res<()> {
+pub async fn run_unblock(app: AppHandle, run: String) -> Api<()> {
     blocking(app, move |s| unblock(s, &run)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn run_plan_approve(app: AppHandle, run: String) -> Res<()> {
+pub async fn run_plan_approve(app: AppHandle, run: String) -> Api<()> {
     blocking(app, move |s| approve_plan(s, &run)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn run_plan_reject(app: AppHandle, run: String, note: String) -> Res<()> {
+pub async fn run_plan_reject(app: AppHandle, run: String, note: String) -> Api<()> {
     blocking(app, move |s| reject_plan(s, &run, &note)).await
 }
 
 /// Why the run log file did not open, or `null`. The runs of this session are then not kept.
 #[tauri::command]
 #[specta::specta]
-pub async fn run_log_degraded(app: AppHandle) -> Res<Option<String>> {
+pub async fn run_log_degraded(app: AppHandle) -> Api<Option<String>> {
     blocking(app, |s| Ok(s.factory.degraded().map(str::to_string))).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn kill_switch_get(app: AppHandle) -> Res<bool> {
+pub async fn kill_switch_get(app: AppHandle) -> Api<bool> {
     blocking(app, |s| Ok(kill_switch(s))).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn kill_switch_set(app: AppHandle, on: bool) -> Res<bool> {
+pub async fn kill_switch_set(app: AppHandle, on: bool) -> Api<bool> {
     blocking(app, move |s| Ok(set_kill_switch(s, on))).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn workflows_list(app: AppHandle) -> Res<Vec<WorkflowItem>> {
+pub async fn workflows_list(app: AppHandle) -> Api<Vec<WorkflowItem>> {
     blocking(app, workflows).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn workflow_get(app: AppHandle, id: String) -> Res<WorkflowFile> {
+pub async fn workflow_get(app: AppHandle, id: String) -> Api<WorkflowFile> {
     blocking(app, move |s| workflow_read(s, &id)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn workflow_check(app: AppHandle, id: String, text: String) -> Res<Option<IssueView>> {
+pub async fn workflow_check(app: AppHandle, id: String, text: String) -> Api<Option<IssueView>> {
     blocking(app, move |s| workflow_validate(s, &id, &text)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn workflow_write(app: AppHandle, id: String, text: String) -> Res<()> {
+pub async fn workflow_write(app: AppHandle, id: String, text: String) -> Api<()> {
     blocking(app, move |s| workflow_save(s, &id, &text)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn roles_list(app: AppHandle) -> Res<Vec<RoleItem>> {
+pub async fn roles_list(app: AppHandle) -> Api<Vec<RoleItem>> {
     blocking(app, roles).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn role_get(app: AppHandle, id: String) -> Res<RoleFile> {
+pub async fn role_get(app: AppHandle, id: String) -> Api<RoleFile> {
     blocking(app, move |s| role_read(s, &id)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn role_write(app: AppHandle, id: String, text: String) -> Res<()> {
+pub async fn role_write(app: AppHandle, id: String, text: String) -> Api<()> {
     blocking(app, move |s| role_save(s, &id, &text)).await
 }
 

@@ -8,7 +8,7 @@ use shipyard_store::project::write_atomic;
 use specta::Type;
 use std::path::Path;
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 
 /// A budget for one month. An empty `runner` is the budget of all runners together.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
@@ -69,13 +69,13 @@ pub fn budget_set(s: &AppState, runner: &str, usd: Option<f64>) -> Res<Vec<Budge
 
 #[tauri::command]
 #[specta::specta]
-pub async fn machine_sessions(app: tauri::AppHandle) -> Res<Vec<MachineSession>> {
+pub async fn machine_sessions(app: tauri::AppHandle) -> Api<Vec<MachineSession>> {
     blocking(app, |_| Ok(machine::sessions(&Roots::from_env()))).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn machine_session_stop(app: tauri::AppHandle, pid: u32, click: bool) -> Res<()> {
+pub async fn machine_session_stop(app: tauri::AppHandle, pid: u32, click: bool) -> Api<()> {
     blocking(app, move |s| {
         crate::work::need_click(s, click)?;
         machine::stop(pid)
@@ -85,7 +85,7 @@ pub async fn machine_session_stop(app: tauri::AppHandle, pid: u32, click: bool) 
 
 #[tauri::command]
 #[specta::specta]
-pub async fn machine_spend(app: tauri::AppHandle, days: u32) -> Res<Spend> {
+pub async fn machine_spend(app: tauri::AppHandle, days: u32) -> Api<Spend> {
     blocking(app, move |s| Ok(spend(s, days))).await
 }
 
@@ -95,7 +95,7 @@ pub async fn machine_budget_set(
     app: tauri::AppHandle,
     runner: String,
     usd: Option<f64>,
-) -> Res<Vec<Budget>> {
+) -> Api<Vec<Budget>> {
     blocking(app, move |s| budget_set(s, &runner, usd)).await
 }
 

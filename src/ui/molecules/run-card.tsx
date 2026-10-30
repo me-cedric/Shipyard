@@ -124,14 +124,17 @@ export function RunCard({
 					aria-hidden="true"
 					className={cn("absolute inset-y-0 left-0 w-1", STATUS_RAIL[status])}
 				/>
-				<span className="flex items-center gap-2">
-					<span className="flex-1 font-mono text-11 text-n-11">{itemKey}</span>
+				{/* The title leads; the ref stays for assistive tools and behind Copy reference in the menu. */}
+				<span className="flex items-start gap-2">
+					<span className="line-clamp-2 flex-1 text-ui font-medium text-n-12">
+						{title}
+						<span className="sr-only"> {itemKey}</span>
+					</span>
 					<Badge variant={STATUS_BADGE[status]}>
 						<StatusDot status={status} label={f.state[state]} className="size-2" />
 						{f.state[state]}
 					</Badge>
 				</span>
-				<span className="line-clamp-2 text-ui font-medium text-n-12">{title}</span>
 				<span className="flex items-center gap-2 text-12 text-n-11">
 					<span className="relative flex">
 						<Avatar name={agent ?? workflow} className="size-5 text-11" />

@@ -5,7 +5,7 @@ import { message, useDesignList } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject, useProjectActions } from "@/lib/projects";
-import { useShell } from "@/lib/shell";
+import { useFormIntent, useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
 import { cn } from "@/lib/utils";
 import { Badge, type badgeVariants } from "@/ui/atoms/badge";
@@ -138,9 +138,12 @@ export function ArtifactTab({
 	notice,
 	thumb,
 	timeline,
+	form = "",
 	children,
 }: {
 	title: string;
+	/** The name of the create form that a link can open (Get started). */
+	form?: string;
 	icon: ReactNode;
 	noun: string;
 	rows: Row[];
@@ -167,6 +170,7 @@ export function ArtifactTab({
 		all.map((r) => r.ref),
 	);
 	const [adding, setAdding] = useState(false);
+	useFormIntent(form, () => setAdding(true));
 	const [view, setView] = useState<"list" | "grid">("list");
 	const enter = useEnter();
 

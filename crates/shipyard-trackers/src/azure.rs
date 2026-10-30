@@ -176,6 +176,17 @@ impl Tracker for Azure {
         Ok(person(v.get("authenticatedUser").unwrap_or(&Value::Null)))
     }
 
+    fn scopes(&self) -> Result<Vec<Scope>, TrackerError> {
+        let v = self.call("/_apis/projects", &[("$top", "100")])?;
+        Ok(items(&v, "/value")
+            .iter()
+            .map(|p| Scope {
+                id: text(p, "/name"),
+                name: text(p, "/name"),
+            })
+            .collect())
+    }
+
     fn search(&self, q: &WorkQuery) -> Result<Page<WorkItem>, TrackerError> {
         check_query(&self.capabilities(), q)?;
         let size = q.page_size();

@@ -83,7 +83,7 @@ export const en = {
 			screens: "Screens",
 		},
 		specs: {
-			changes: "Changes",
+			changes: "Proposals",
 			capabilities: "Capabilities",
 			questions: "Questions",
 			"test-plans": "Test plans",
@@ -105,7 +105,7 @@ export const en = {
 			usage: "Usage",
 		},
 		code: {
-			changes: "Changes",
+			changes: "Local changes",
 			history: "History",
 			branches: "Branches",
 			"pull-requests": "Pull requests",
@@ -126,7 +126,6 @@ export const en = {
 			connections: "Connections",
 			"agents-rules": "Agents and rules",
 			extensions: "Extensions",
-			team: "Team",
 			me: "Me",
 			health: "Health",
 		},
@@ -142,12 +141,12 @@ export const en = {
 		settings: "Connection",
 	},
 	role: {
-		none: "None",
-		pm: "PM",
+		none: "Other",
+		pm: "Project manager",
 		architect: "Architect",
 		developer: "Developer",
-		qa: "QA",
-		ba: "BA",
+		qa: "Tester",
+		ba: "Business analyst",
 		lead: "Functional lead",
 		junior: "Junior",
 	},
@@ -203,6 +202,7 @@ export const en = {
 		choose: "Choose a folder",
 		name: "Name",
 		key: "Key",
+		makeProject: "Make it a project",
 		back: "Back",
 		cloneRun: "Clone",
 		createRun: "Create",
@@ -310,6 +310,7 @@ export const en = {
 	},
 	connections: {
 		add: "Connection",
+		advanced: "Advanced",
 		group: {
 			tracker: "Trackers",
 			forge: "Forges",

@@ -55,6 +55,7 @@ export function Decisions() {
 			title={t.tabs.design.decisions}
 			icon={<DocumentTextIcon size={16} />}
 			noun={t.design.noun.adr}
+			form="adr"
 			timeline
 			rows={adrs.map((a) => ({
 				ref: `adr:${a.number}`,

@@ -1,17 +1,16 @@
-import { motion } from "motion/react";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
-import { useShell } from "@/lib/shell";
+import { useFormIntent, useShell } from "@/lib/shell";
 import { type Member, useSealState, useTeam, useWorkActions } from "@/lib/work";
+import { Avatar } from "@/ui/atoms/avatar";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { LockClosedIcon, PlusIcon, TrashIcon, UsersIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
-import { MemberCard } from "@/ui/molecules/member-card";
-import { LIST, useEnter } from "@/ui/motion";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { useGuard } from "./guard";
 import { NoProject } from "./no-project";
@@ -219,6 +218,7 @@ function MemberForm({ handle }: { handle: string | null }) {
 /** Work / Team: the members of `.shipyard/team.yaml`. The one place that edits the team. */
 export function Team() {
 	const { t } = useI18n();
+	const m = t.work.team;
 	const active = useActiveProject().data;
 	const view = useTeam();
 	const seal = useSealState().data;
@@ -226,7 +226,9 @@ export function Team() {
 	const [selected, setSelected] = useState<string | null>(null);
 	const members = view.data?.team.members ?? [];
 	const locked = view.data?.locked ?? false;
-	const enter = useEnter();
+	useFormIntent("member", () =>
+		openDetail(t.work.team.add, <MemberForm key="new" handle={null} />),
+	);
 
 	if (active === undefined || view.isLoading) return null;
 	if (active === null) return <NoProject title={t.tabs.work.team} />;
@@ -270,32 +272,72 @@ export function Team() {
 					/>
 				</div>
 			) : (
-				<motion.div
-					variants={LIST}
-					initial={enter}
-					animate="shown"
-					className="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-3 overflow-auto px-4 pb-4"
-				>
-					{members.map((m) => (
-						<MemberCard
-							key={m.handle}
-							name={m.name}
-							handle={m.handle}
-							job={m.role}
-							capacity={m.capacity ?? 0}
-							capacityText={format(t.work.team.perWeek, { days: m.capacity ?? 0 })}
-							capacityLabel={format(t.work.capacity, { days: m.capacity ?? 0 })}
-							skills={m.skills}
-							rate={m.dayRate != null ? format(t.work.team.perDay, { rate: m.dayRate }) : undefined}
-							lockedLabel={m.dayRate == null && locked ? t.work.team.lockedRate : undefined}
-							selected={selected === m.handle}
-							onOpen={() => {
-								setSelected(m.handle);
-								openDetail(m.name, <MemberForm key={m.handle} handle={m.handle} />);
-							}}
-						/>
-					))}
-				</motion.div>
+				<div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
+					<table
+						aria-label={t.tabs.work.team}
+						className="w-full border-separate border-spacing-0 overflow-hidden rounded-lg border bg-surface-1 text-ui shadow-1"
+					>
+						<thead>
+							<tr className="text-left text-12 text-n-11 [&>th]:h-row [&>th]:border-b [&>th]:px-3 [&>th]:font-medium">
+								<th scope="col">{m.name}</th>
+								<th scope="col">{m.role}</th>
+								<th scope="col" className="text-right">
+									{m.capacity}
+								</th>
+								<th scope="col" className="text-right">
+									{m.dayRate}
+								</th>
+								<th scope="col">{m.skills}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{members.map((x) => (
+								<tr
+									key={x.handle}
+									aria-label={x.handle}
+									aria-current={selected === x.handle ? "true" : undefined}
+									className="hover:bg-n-3 aria-[current=true]:bg-accent-soft [&>td]:border-b [&>td]:px-3 [&>td]:py-1.5 last:[&>td]:border-b-0"
+								>
+									<td>
+										<button
+											type="button"
+											data-nav=""
+											onClick={() => {
+												setSelected(x.handle);
+												openDetail(x.name, <MemberForm key={x.handle} handle={x.handle} />);
+											}}
+											className="flex items-center gap-2 text-left"
+										>
+											<Avatar name={x.name} className="size-6 text-11" />
+											<span className="font-medium text-n-12">{x.name}</span>
+											<span className="font-mono text-11 text-n-11">{x.handle}</span>
+										</button>
+									</td>
+									<td>{x.role}</td>
+									<td className="text-right font-mono">{x.capacity ?? 0}</td>
+									<td className="text-right font-mono">
+										{x.dayRate != null ? (
+											format(m.perDay, { rate: x.dayRate })
+										) : locked ? (
+											<span role="img" aria-label={m.lockedRate} className="text-n-10">
+												<LockClosedIcon size={12} />
+											</span>
+										) : null}
+									</td>
+									<td>
+										<span className="flex flex-wrap gap-1">
+											{x.skills.map((k) => (
+												<Badge key={k} className="rounded-full">
+													{k}
+												</Badge>
+											))}
+										</span>
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
 			)}
 		</ListDetail>
 	);

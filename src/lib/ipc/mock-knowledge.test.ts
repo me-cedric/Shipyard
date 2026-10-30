@@ -20,7 +20,9 @@ describe("mock knowledge", () => {
 
 	it("fails without a project", async () => {
 		resetMock();
-		await expect(unwrap(commands.graphGet())).rejects.toThrow("no active project");
+		await expect(unwrap(commands.graphGet())).rejects.toMatchObject({
+			details: expect.stringContaining("no active project"),
+		});
 	});
 
 	it("draws the graph with the orphan and stale marks and no dangling edge", async () => {
@@ -72,10 +74,10 @@ describe("mock knowledge", () => {
 		expect((await unwrap(commands.docListGet())).handbook).toHaveLength(4);
 		await expect(
 			unwrap(commands.docWriteOne("docs/decisions/x.md", "x", null, true)),
-		).rejects.toThrow(/path not allowed/);
+		).rejects.toMatchObject({ details: expect.stringMatching(/path not allowed/) });
 		await expect(
 			unwrap(commands.docWriteOne("docs/handbook/x.txt", "x", null, true)),
-		).rejects.toThrow("a page is a .md file");
+		).rejects.toMatchObject({ details: expect.stringContaining("a page is a .md file") });
 	});
 
 	it("splits a deck on separators outside code and keeps the project theme", async () => {
@@ -85,9 +87,9 @@ describe("mock knowledge", () => {
 		expect((await commands.slideParse(kickoff.text)).slides).toHaveLength(5);
 		const t = await unwrap(commands.slideThemeGet());
 		expect(t).toMatchObject({ readOnly: false, value: { accent: "#2563eb" } });
-		await expect(unwrap(commands.slideThemeSet({ accent: "red" }, t.stamp))).rejects.toThrow(
-			"not a colour: red",
-		);
+		await expect(unwrap(commands.slideThemeSet({ accent: "red" }, t.stamp))).rejects.toMatchObject({
+			details: expect.stringContaining("not a colour: red"),
+		});
 	});
 
 	it("saves a dashboard and refuses a file of a newer version", async () => {
@@ -99,10 +101,12 @@ describe("mock knowledge", () => {
 		expect((await unwrap(commands.dashboardGetOne("team"))).value.tiles[0]?.x).toBe(1);
 		await unwrap(commands.docWriteOne("docs/handbook/a.md", "# A\n", null, true));
 		const bad = { ...moved, tiles: [{ id: "a", kind: "nope", x: 0, y: 0, w: 1, h: 1 }] };
-		await expect(unwrap(commands.dashboardSaveOne("team", bad, null))).rejects.toThrow(
-			"unknown tile: nope",
-		);
-		await expect(unwrap(commands.dashboardGetOne("../x"))).rejects.toThrow(/not a dashboard name/);
+		await expect(unwrap(commands.dashboardSaveOne("team", bad, null))).rejects.toMatchObject({
+			details: expect.stringContaining("unknown tile: nope"),
+		});
+		await expect(unwrap(commands.dashboardGetOne("../x"))).rejects.toMatchObject({
+			details: expect.stringMatching(/not a dashboard name/),
+		});
 	});
 
 	it("gives a tile its numbers as a table and names a source that is off", async () => {
@@ -110,7 +114,9 @@ describe("mock knowledge", () => {
 		expect(t.columns).toEqual(["status", "count"]);
 		expect(t.rows).toEqual(expect.arrayContaining([["open", "3"]]));
 		expect(await unwrap(commands.dashboardTile("quality"))).toMatchObject({ off: "quality" });
-		await expect(unwrap(commands.dashboardTile("nope"))).rejects.toThrow("unknown tile: nope");
+		await expect(unwrap(commands.dashboardTile("nope"))).rejects.toMatchObject({
+			details: expect.stringContaining("unknown tile: nope"),
+		});
 	});
 
 	it("orders the learning path and reads the glossary", async () => {
@@ -128,12 +134,12 @@ describe("mock knowledge", () => {
 
 	it("checks the export titles and the file kind", async () => {
 		expect(await unwrap(commands.exportDossierFile(text(5), [], "/tmp/d.docx"))).toBeNull();
-		await expect(unwrap(commands.exportDossierFile(text(4), [], "/tmp/d.docx"))).rejects.toThrow(
-			"expected 5 section titles",
-		);
-		await expect(unwrap(commands.exportFunctionalFile(text(4), "/tmp/d.pdf"))).rejects.toThrow(
-			"the file is not a .docx file",
-		);
+		await expect(
+			unwrap(commands.exportDossierFile(text(4), [], "/tmp/d.docx")),
+		).rejects.toMatchObject({ details: expect.stringContaining("expected 5 section titles") });
+		await expect(
+			unwrap(commands.exportFunctionalFile(text(4), "/tmp/d.pdf")),
+		).rejects.toMatchObject({ details: expect.stringContaining("the file is not a .docx file") });
 		expect(await unwrap(commands.exportSheetFile(text(0), [], "/tmp/s.xlsx"))).toBeNull();
 	});
 });

@@ -24,7 +24,7 @@ use shipyard_store::{code, delivery_docs, design, madr, raid};
 use specta::Type;
 use tauri::AppHandle;
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::design::{Proj, project};
 use crate::knowledge::{ExportText, meta, write_export};
 use crate::work::refuse_read_only;
@@ -496,7 +496,7 @@ pub async fn export_costing_file(
     text: ExportText,
     path: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| export_costing(s, &text, &path, click)).await
 }
 
@@ -508,7 +508,7 @@ pub async fn export_flows_file(
     text: ExportText,
     path: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| export_flows(s, &text, &path, click)).await
 }
 
@@ -520,7 +520,7 @@ pub async fn export_raid_file(
     text: ExportText,
     path: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| export_raid(s, &text, &path, click)).await
 }
 
@@ -533,7 +533,7 @@ pub async fn export_schedule_file(
     slug: String,
     path: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| export_schedule(s, &text, &slug, &path, click)).await
 }
 
@@ -546,7 +546,7 @@ pub async fn export_gantt_file(
     slug: String,
     path: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| export_gantt(s, &text, &slug, &path, click)).await
 }
 
@@ -558,7 +558,7 @@ pub async fn export_security_file(
     text: ExportText,
     path: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| export_security(s, &text, &path, click)).await
 }
 
@@ -575,7 +575,7 @@ pub async fn export_work_done_file(
     to: String,
     path: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| {
         export_work_done(s, &text, &base, &head, (&from, &to), &path, click)
     })
@@ -592,7 +592,7 @@ pub async fn export_change_request_files(
     head: String,
     approvers: Vec<String>,
     click: bool,
-) -> Res<ChangeRequestOut> {
+) -> Api<ChangeRequestOut> {
     blocking(app, move |s| {
         export_change_request(s, &title, &base, &head, &approvers, click)
     })

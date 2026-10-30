@@ -14,7 +14,7 @@ use specta::Type;
 use tauri::AppHandle;
 
 use super::projects::derive_key;
-use super::{AppState, Res, blocking, err, refs};
+use super::{Api, AppState, Res, blocking, err, refs};
 
 /// Compass Node helpers that run on the working copy, by repository path and arguments.
 const COMPASS_HELPERS: [(&str, &[&str]); 1] = [("docs/agent-compass/bin/ac.mjs", &["check"])];
@@ -146,13 +146,13 @@ pub fn fix(s: &AppState, id: &str, expected: Option<&str>) -> Res<FixResult> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn health_run(app: AppHandle) -> Res<Vec<Finding>> {
+pub async fn health_run(app: AppHandle) -> Api<Vec<Finding>> {
     blocking(app, run).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn health_fix(app: AppHandle, id: String, expected: Option<String>) -> Res<FixResult> {
+pub async fn health_fix(app: AppHandle, id: String, expected: Option<String>) -> Api<FixResult> {
     blocking(app, move |s| fix(s, &id, expected.as_deref())).await
 }
 

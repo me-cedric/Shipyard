@@ -25,6 +25,7 @@ import { PersonasEditor } from "./personas";
 import { ProjectDetails } from "./project-details";
 import { ProjectImport } from "./project-import";
 import { ProjectOverrides } from "./project-overrides";
+import { ScopePicker } from "./scope-picker";
 import { ScreensCard } from "./screens-card";
 import { TicketsConfigEditor } from "./tickets-config";
 
@@ -191,11 +192,10 @@ function Form({
 											icon: <LinkIcon size={14} />,
 											label: t.projects.trackerScope,
 											control: (
-												<Input
-													label={t.projects.trackerScope}
+												<ScopePicker
+													tracker={draft.connections.tracker}
 													value={draft.scope}
-													onChange={(e) => setDraft({ ...draft, scope: e.target.value })}
-													className="w-64"
+													onChange={(scope) => setDraft({ ...draft, scope })}
 												/>
 											),
 										},

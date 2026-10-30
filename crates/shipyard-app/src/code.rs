@@ -23,7 +23,7 @@ use specta::Type;
 use tauri::AppHandle;
 
 use crate::commands::sync::{active, origin_slug, tracker_source};
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::scanners;
 use crate::work::need_click;
 
@@ -735,25 +735,25 @@ fn synced<T>(s: &AppState, written: Res<T>) -> Res<T> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_pull_detail(app: AppHandle, number: u32) -> Res<PullDetail> {
+pub async fn code_pull_detail(app: AppHandle, number: u32) -> Api<PullDetail> {
     blocking(app, move |s| pull_detail(s, number)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_pull_labels(app: AppHandle) -> Res<Vec<String>> {
+pub async fn code_pull_labels(app: AppHandle) -> Api<Vec<String>> {
     blocking(app, pull_labels).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_pull_open(app: AppHandle, input: OpenPull, click: bool) -> Res<OpenedPull> {
+pub async fn code_pull_open(app: AppHandle, input: OpenPull, click: bool) -> Api<OpenedPull> {
     blocking(app, move |s| synced(s, pull_open(s, input, click))).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_pull_comment(app: AppHandle, number: u32, body: String, click: bool) -> Res<()> {
+pub async fn code_pull_comment(app: AppHandle, number: u32, body: String, click: bool) -> Api<()> {
     blocking(app, move |s| pull_comment(s, number, &body, click)).await
 }
 
@@ -765,7 +765,7 @@ pub async fn code_pull_verdict(
     verdict: Verdict,
     body: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| pull_verdict(s, number, verdict, &body, click)).await
 }
 
@@ -776,7 +776,7 @@ pub async fn code_pull_merge(
     number: u32,
     method: MergeMethod,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| {
         synced(s, pull_merge(s, number, method, click))
     })
@@ -785,31 +785,31 @@ pub async fn code_pull_merge(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_pull_ready(app: AppHandle, number: u32, click: bool) -> Res<()> {
+pub async fn code_pull_ready(app: AppHandle, number: u32, click: bool) -> Api<()> {
     blocking(app, move |s| pull_ready(s, number, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_quality(app: AppHandle) -> Res<QualityView> {
+pub async fn code_quality(app: AppHandle) -> Api<QualityView> {
     blocking(app, quality_view).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_check_run(app: AppHandle, command: String, click: bool) -> Res<QualityReport> {
+pub async fn code_check_run(app: AppHandle, command: String, click: bool) -> Api<QualityReport> {
     blocking(app, move |s| check_run(s, &command, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_scan_run(app: AppHandle, name: String, click: bool) -> Res<QualityReport> {
+pub async fn code_scan_run(app: AppHandle, name: String, click: bool) -> Api<QualityReport> {
     blocking(app, move |s| scan_run(s, &name, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_scanner_install(app: AppHandle, name: String, click: bool) -> Res<()> {
+pub async fn code_scanner_install(app: AppHandle, name: String, click: bool) -> Api<()> {
     blocking(app, move |s| {
         need_click(s, click)?;
         scanners::install(&name)
@@ -819,25 +819,25 @@ pub async fn code_scanner_install(app: AppHandle, name: String, click: bool) -> 
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_impact_refs(app: AppHandle) -> Res<ImpactRefs> {
+pub async fn code_impact_refs(app: AppHandle) -> Api<ImpactRefs> {
     blocking(app, impact_refs).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_impact_list(app: AppHandle) -> Res<Vec<ImpactEntry>> {
+pub async fn code_impact_list(app: AppHandle) -> Api<Vec<ImpactEntry>> {
     blocking(app, impact_list).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_impact_read(app: AppHandle, path: String) -> Res<String> {
+pub async fn code_impact_read(app: AppHandle, path: String) -> Api<String> {
     blocking(app, move |s| impact_read(s, &path)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_impact_analyze(app: AppHandle, base: String, click: bool) -> Res<ImpactEntry> {
+pub async fn code_impact_analyze(app: AppHandle, base: String, click: bool) -> Api<ImpactEntry> {
     blocking(app, move |s| impact_analyze(s, &base, click)).await
 }
 

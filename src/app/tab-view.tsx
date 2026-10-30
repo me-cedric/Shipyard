@@ -29,8 +29,6 @@ const LOADERS: Partial<Record<string, Load>> = {
 	"work/plan": () => import("@/features/work/plan").then((m) => m.Plan),
 	"work/estimates": () => import("@/features/work/estimates").then((m) => m.Estimates),
 	"work/team": () => import("@/features/work/team").then((m) => m.Team),
-	// One team file, one editor: Settings / Team opens the same view as Work / Team.
-	"settings/team": () => import("@/features/work/team").then((m) => m.Team),
 	"work/time": () => import("@/features/work/time").then((m) => m.Time),
 	"factory/runs": () => import("@/features/factory/runs/runs").then((m) => m.Runs),
 	"factory/workflows": () =>

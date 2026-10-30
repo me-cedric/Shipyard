@@ -690,7 +690,7 @@ export function workAssign(
 
 export function workMark(mirror: Mirror, label: string | null, key: string, click: boolean) {
 	needClick(click);
-	if (!label) throw "the pickup label is off in automation.yaml";
+	if (!label) throw "the pickup label is off";
 	const item = mirror.find((t) => t.key === key);
 	if (!item) throw `not found: ${key}`;
 	if (!item.labels.includes(label)) item.labels.push(label);

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use tauri::AppHandle;
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::work::need_click;
 
 fn config() -> Res<PathBuf> {
@@ -78,7 +78,7 @@ fn root(s: &AppState) -> Res<PathBuf> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn codex_trust_state(app: AppHandle) -> Res<bool> {
+pub async fn codex_trust_state(app: AppHandle) -> Api<bool> {
     blocking(app, |s| {
         let text = std::fs::read_to_string(config()?).unwrap_or_default();
         Ok(trusted_in(&text, &root(s)?))
@@ -88,7 +88,7 @@ pub async fn codex_trust_state(app: AppHandle) -> Res<bool> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn codex_trust(app: AppHandle, click: bool) -> Res<()> {
+pub async fn codex_trust(app: AppHandle, click: bool) -> Api<()> {
     blocking(app, move |s| {
         need_click(s, click)?;
         trust_in(&config()?, &root(s)?)

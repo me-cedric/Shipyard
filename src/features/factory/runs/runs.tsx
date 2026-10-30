@@ -2,23 +2,32 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { NoProject } from "@/features/work/no-project";
-import { useKillSwitch, useRunActions, useRuns, useUsage } from "@/lib/factory";
+import { useRunActions, useRuns, useUsage } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import type { Lane, RunState, RunView } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
-import { Badge } from "@/ui/atoms/badge";
+import { useFormIntent } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
-import { Input } from "@/ui/atoms/input";
+import { IconButton } from "@/ui/atoms/icon-button";
 import { LiveDot } from "@/ui/atoms/live-dot";
-import { StatusDot } from "@/ui/atoms/status-dot";
-import { CheckIcon, ChevronLeftIcon, CpuChipIcon, InboxIcon, PlayIcon } from "@/ui/icons";
+import {
+	CheckIcon,
+	ChevronLeftIcon,
+	ClipboardIcon,
+	CpuChipIcon,
+	InboxIcon,
+	PlayIcon,
+} from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel, type PanelTone } from "@/ui/molecules/panel";
 import { RunCard } from "@/ui/molecules/run-card";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { SPRING } from "@/ui/motion";
 import { ListDetail } from "@/ui/templates/list-detail";
+import { AgentsToggle } from "../agents-toggle";
+import { TicketPicker } from "../ticket-picker";
 import { progressOf, RunDetail } from "./run-detail";
 
 const LANES: [Lane, PanelTone][] = [
@@ -84,9 +93,8 @@ export function Runs() {
 	const f = t.factory;
 	const active = useActiveProject().data;
 	const runs = useRuns();
-	const kill = useKillSwitch().data;
 	const act = useRunActions();
-	const { error, run: guard } = useGuard();
+	const { failure, run: guard } = useGuard();
 	const [key, setKey] = useState("");
 	const [selected, setSelected] = useState<string | null>(null);
 	const field = useRef<HTMLInputElement>(null);
@@ -95,6 +103,7 @@ export function Runs() {
 	useEffect(() => {
 		if (selected) back.current?.focus();
 	}, [selected]);
+	useFormIntent("run", () => field.current?.focus());
 	if (active === null) return <NoProject title={f.runs} />;
 	const all = runs.data ?? [];
 	const open = all.find((r) => r.id === selected);
@@ -108,27 +117,16 @@ export function Runs() {
 			title={f.runs}
 			icon={<CpuChipIcon size={16} />}
 			count={all.length}
-			chips={
-				<Badge variant={kill ? "danger" : "success"}>
-					<StatusDot
-						status={kill ? "danger" : "success"}
-						label={kill ? f.killOn : f.killOff}
-						className="size-2"
-					/>
-					{kill ? f.killOn : f.killOff}
-				</Badge>
-			}
+			chips={<AgentsToggle />}
 			action={
 				<span className="flex items-center gap-2">
-					<Input
+					<TicketPicker
 						ref={field}
 						label={f.ticket}
-						className="w-40"
+						className="w-56"
 						value={key}
-						onChange={(e) => setKey(e.target.value)}
-						onKeyDown={(e) => {
-							if (e.key === "Enter" && key.trim()) start();
-						}}
+						onChange={setKey}
+						onSubmit={start}
 					/>
 					<Button variant="primary" disabled={!key.trim()} onClick={start}>
 						<PlayIcon size={14} />
@@ -136,13 +134,7 @@ export function Runs() {
 					</Button>
 				</span>
 			}
-			toolbar={
-				error ? (
-					<p role="alert" className="w-full text-ui text-danger-text">
-						{error}
-					</p>
-				) : undefined
-			}
+			toolbar={failure ? <ErrorNotice error={failure} className="w-full" /> : undefined}
 		>
 			{all.length === 0 && !runs.isPending ? (
 				<div className="p-4">
@@ -221,7 +213,15 @@ export function Runs() {
 											<ChevronLeftIcon size={14} />
 											{t.ui.back}
 										</Button>
-										<span className="font-mono text-12 text-n-11">{open.reference}</span>
+										<span className="min-w-0 flex-1 truncate text-ui font-medium text-n-12">
+											{open.title}
+										</span>
+										<IconButton
+											label={t.context.copyRef}
+											onClick={() => copyText(`run:${open.id}`)}
+										>
+											<ClipboardIcon size={14} />
+										</IconButton>
 									</div>
 									<div className="min-h-0 flex-1 overflow-y-auto">
 										<div className="mx-auto max-w-6xl p-5">

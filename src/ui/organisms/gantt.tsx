@@ -73,40 +73,55 @@ function BarButton({
 		if (d?.moved && dx !== 0) onMove(Math.round(dx / dayWidth));
 		setDx(0);
 	};
+	const owner = bar.owner ?? "";
+	// shortcut: about 7 px a character at 11 px, plus the padding; a measure would need a layout pass.
+	const fits = owner.length * 7 + 16 <= width;
 	return (
-		<Tooltip label={bar.name} shortcut="← →">
-			<button
-				type="button"
-				data-nav=""
-				aria-label={name}
-				aria-current={selected ? "true" : undefined}
-				onPointerDown={down}
-				onPointerMove={track}
-				onPointerUp={up}
-				onPointerCancel={() => {
-					drag.current = null;
-					setDx(0);
-				}}
-				onClick={() => {
-					if (dx === 0) onOpen();
-				}}
-				onKeyDown={(e) => {
-					if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-					e.preventDefault();
-					e.stopPropagation();
-					onMove((e.key === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 7 : 1));
-				}}
-				style={{ left: left + dx, width }}
-				className={cn(
-					"absolute top-1 flex h-5 touch-none items-center overflow-hidden rounded-full border px-2 text-left text-11 font-medium whitespace-nowrap shadow-1 transition-shadow duration-(--duration-fast) hover:shadow-2",
-					tone,
-					bar.fixed && "border-l-4",
-					selected && "shadow-glow outline-2 outline-offset-1 outline-n-12",
-				)}
-			>
-				<span className="truncate">{bar.owner ?? ""}</span>
-			</button>
-		</Tooltip>
+		<>
+			<Tooltip label={bar.name} shortcut="← →">
+				<button
+					type="button"
+					data-nav=""
+					aria-label={name}
+					aria-current={selected ? "true" : undefined}
+					onPointerDown={down}
+					onPointerMove={track}
+					onPointerUp={up}
+					onPointerCancel={() => {
+						drag.current = null;
+						setDx(0);
+					}}
+					onClick={() => {
+						if (dx === 0) onOpen();
+					}}
+					onKeyDown={(e) => {
+						if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+						e.preventDefault();
+						e.stopPropagation();
+						onMove((e.key === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 7 : 1));
+					}}
+					style={{ left: left + dx, width }}
+					className={cn(
+						"absolute top-1 flex h-5 touch-none items-center overflow-hidden rounded-full border px-2 text-left text-11 font-medium whitespace-nowrap shadow-1 transition-shadow duration-(--duration-fast) hover:shadow-2",
+						tone,
+						bar.fixed && "border-l-4",
+						selected && "shadow-glow outline-2 outline-offset-1 outline-n-12",
+					)}
+				>
+					{fits ? <span className="truncate">{owner}</span> : null}
+				</button>
+			</Tooltip>
+			{/* A short bar puts the name beside it, so the name is never cut. */}
+			{fits || !owner ? null : (
+				<span
+					aria-hidden="true"
+					className="pointer-events-none absolute top-1 flex h-5 items-center text-11 whitespace-nowrap text-n-11"
+					style={{ left: left + dx + width + 4 }}
+				>
+					{owner}
+				</span>
+			)}
+		</>
 	);
 }
 

@@ -7,7 +7,6 @@ import type { SessionView } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
-import { Button } from "@/ui/atoms/button";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { CommandLineIcon, CpuChipIcon } from "@/ui/icons";
@@ -17,6 +16,7 @@ import { STEP_STATUS } from "@/ui/molecules/run-step";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
+import { AgentsToggle } from "../agents-toggle";
 import { MachineSessions } from "./machine-sessions";
 import { OrcaSessions } from "./orca-sessions";
 
@@ -95,24 +95,7 @@ export function Sessions() {
 			title={f.sessions}
 			icon={<CommandLineIcon size={16} />}
 			count={rows.length}
-			chips={
-				<Badge variant={kill ? "danger" : "success"}>
-					<StatusDot
-						status={kill ? "danger" : "success"}
-						label={kill ? f.killOn : f.killOff}
-						className="size-2"
-					/>
-					{kill ? f.killOn : f.killOff}
-				</Badge>
-			}
-			action={
-				<Button
-					variant={kill ? "secondary" : "danger"}
-					onClick={() => void run(() => writes.killSwitch(!kill))}
-				>
-					{kill ? f.killRelease : f.killAll}
-				</Button>
-			}
+			action={<AgentsToggle />}
 			toolbar={
 				error ? (
 					<p role="alert" className="w-full text-ui text-danger-text">

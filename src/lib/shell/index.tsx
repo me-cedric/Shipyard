@@ -178,3 +178,5 @@ export function useShell() {
 	if (!ctx) throw new Error("useShell needs ShellProvider");
 	return ctx;
 }
+
+export { askForm, useFormIntent } from "./intent";

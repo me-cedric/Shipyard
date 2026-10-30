@@ -7,7 +7,6 @@ import {
 	Navigate,
 	Outlet,
 	type RouterHistory,
-	redirect,
 	useRouterState,
 } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "motion/react";
@@ -41,11 +40,11 @@ const indexRoute = createRoute({
 });
 
 function SpaceLayout({ space }: { space: SpaceId }) {
-	const { profile } = usePrefs();
+	const { profile, role } = usePrefs();
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	const still = useReducedMotion();
 	// A tab that the project hides goes to the first tab that it keeps.
-	const shown = visibleTabs(space, profile.hiddenTabs);
+	const shown = visibleTabs(space, profile.hiddenTabs, role);
 	const first = shown[0];
 	const hidden = space !== "settings" && profile.hiddenTabs.some((h) => path === `/${h}`);
 	if (first && hidden) return <Navigate to={tabPath(space, first)} replace />;
@@ -69,6 +68,17 @@ function SpaceLayout({ space }: { space: SpaceId }) {
 	);
 }
 
+/** The space opens on its first tab: the tab of the role, else the first tab that the project keeps. */
+function FirstTab({ space }: { space: SpaceId }) {
+	const { profile, role } = usePrefs();
+	const path = useRouterState({ select: (s) => s.location.pathname });
+	const first = visibleTabs(space, profile.hiddenTabs, role)[0] ?? SPACES[space][0];
+	// The layout keeps this view while the next location loads: only the space index redirects.
+	return path.replace(/\/$/, "") === `/${space}` ? (
+		<Navigate to={tabPath(space, first)} replace />
+	) : null;
+}
+
 /** A space route, its index redirect to the first tab, and one child route for each tab. */
 function spaceRoute<S extends SpaceId>(space: S) {
 	const route = createRoute({
@@ -79,9 +89,7 @@ function spaceRoute<S extends SpaceId>(space: S) {
 	const index = createRoute({
 		getParentRoute: () => route,
 		path: "/",
-		beforeLoad: () => {
-			throw redirect({ to: tabPath(space, SPACES[space][0]) });
-		},
+		component: () => <FirstTab space={space} />,
 	});
 	const names: readonly (typeof SPACES)[S][number][] = SPACES[space];
 	const tabs = names.map((tab) =>

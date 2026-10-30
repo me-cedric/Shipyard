@@ -50,13 +50,14 @@ describe("Settings / Connections", () => {
 		const add = await within(main).findByRole("button", { name: "Connection" });
 		expect(add.className).toContain("bg-accent");
 		expect(main.querySelectorAll("[aria-hidden] > *").length).toBeGreaterThanOrEqual(5);
-		// The runners are detected, not added, and the outside agents server has switches: they are
-		// the only groups of an empty list.
+		// The runners are detected, not added: they come first. The outside agents server and the
+		// certificates have switches: they wait in Advanced.
 		expect(
 			within(main)
 				.getAllByRole("heading", { level: 2 })
 				.map((h) => h.textContent),
-		).toEqual(["Outside agents", "Certificates", "Runners (5)"]);
+		).toEqual(["Runners (5)", "Outside agents", "Certificates"]);
+		expect(within(main).getByText("Advanced").closest("details")).not.toHaveAttribute("open");
 	});
 
 	it("groups the connections by kind with a count and one primary action", async () => {
@@ -96,7 +97,7 @@ describe("Settings / Connections", () => {
 		await user.click(screen.getByRole("combobox", { name: "Product" }));
 		await user.click(await screen.findByRole("option", { name: "Linear" }));
 		expect(screen.queryByRole("textbox", { name: "Address" })).toBeNull();
-		const secret = screen.getByLabelText("Secret", { selector: "input" });
+		const secret = screen.getByLabelText("API key", { selector: "input" });
 		expect(secret).toHaveAttribute("type", "password");
 		await user.type(secret, TOKEN);
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -106,10 +107,57 @@ describe("Settings / Connections", () => {
 		expect(screen.queryByDisplayValue(TOKEN)).toBeNull();
 		// Open the connection again: the field is empty and shows the mask.
 		await user.click(within(created).getByRole("button", { name: "Edit" }));
-		const again = screen.getByLabelText("Secret", { selector: "input" });
+		const again = screen.getByLabelText("API key", { selector: "input" });
 		expect(again).toHaveValue("");
 		expect(again).toHaveAttribute("placeholder", "••••••••");
 		expect(document.body.innerHTML).not.toContain(TOKEN);
+	});
+
+	it("fills the name and the address from the git remote, and a token link opens the product page", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/settings/connections");
+		await user.click(await screen.findByRole("button", { name: "Connection" }));
+		await waitFor(() =>
+			expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("GitHub"),
+		);
+		expect(screen.getByRole("textbox", { name: "Address" })).toHaveValue("https://github.com");
+		expect(screen.getByRole("combobox", { name: "Product" })).toHaveTextContent("GitHub Issues");
+		expect(screen.getByLabelText("Personal access token", { selector: "input" })).toBeVisible();
+		await user.click(screen.getByRole("button", { name: "Create a token" }));
+		await waitFor(() =>
+			expect(mockState().openedPages).toEqual(["https://github.com/settings/tokens"]),
+		);
+	});
+
+	it("runs the test on Save and keeps the form when the token is refused", async () => {
+		const user = userEvent.setup();
+		mountApp("/settings/connections");
+		await user.click(await screen.findByRole("button", { name: "Connection" }));
+		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme");
+		await user.click(screen.getByRole("combobox", { name: "Product" }));
+		await user.click(await screen.findByRole("option", { name: "Linear" }));
+		await user.type(screen.getByLabelText("API key", { selector: "input" }), "revoked");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("the token was rejected");
+		expect(screen.getByRole("textbox", { name: "Name" })).toBeVisible();
+		expect(mockState().connections[0]?.state).toBe("failed");
+	});
+
+	it("links the only tracker connection to the open project", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/settings/connections");
+		await user.click(await screen.findByRole("button", { name: "Connection" }));
+		// Another product drops the name and the address that the remote gave.
+		await user.click(screen.getByRole("combobox", { name: "Product" }));
+		await user.click(await screen.findByRole("option", { name: "Linear" }));
+		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme");
+		await user.type(screen.getByLabelText("API key", { selector: "input" }), TOKEN);
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await row("Acme");
+		const project = (await unwrap(commands.projectSettings()))?.file;
+		expect(project?.connections?.tracker).toBe("acme");
 	});
 
 	it("names a bad value and keeps the form", async () => {
@@ -316,9 +364,7 @@ describe("Settings / Connections", () => {
 		await user.click(await screen.findByRole("option", { name: "Forge" }));
 		const login = await screen.findByRole("group", { name: "ana-dev on github.com (gh)" });
 		await user.click(within(login).getByRole("button", { name: "Use this login" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent(
-			"github.com refused the token of gh",
-		);
+		expect(await screen.findByRole("alert")).toHaveTextContent("The token was refused");
 		expect(mockState().connections).toHaveLength(0);
 
 		mockState().refusedLogins = [];

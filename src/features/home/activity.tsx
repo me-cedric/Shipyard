@@ -2,7 +2,7 @@ import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { PinnedTiles } from "@/features/knowledge/pinned";
 import { NoProject } from "@/features/work/no-project";
 import { useRuns } from "@/lib/factory";
-import { format, useI18n } from "@/lib/i18n";
+import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useNotifications } from "@/lib/notifications";
 import { useActiveProject } from "@/lib/projects";
@@ -19,6 +19,27 @@ import { StatStrip } from "@/ui/molecules/stat-strip";
 import { Timeline, TimelineItem } from "@/ui/molecules/timeline";
 
 const SHOWN = 20;
+
+type Said = Messages["home"]["event"];
+
+/** One event as one sentence: a state change names the new state, the other kinds name what happened. */
+export function eventSentence(
+	said: Said,
+	states: Record<string, string>,
+	e: { kind: string; payload: string; key: string },
+) {
+	if (e.kind === "state") {
+		let to = "";
+		try {
+			to = String(JSON.parse(e.payload).to ?? "");
+		} catch {
+			// A payload that does not parse still gives a sentence.
+		}
+		if (to) return format(said.state, { key: e.key, state: states[to] ?? to });
+	}
+	const kind = e.kind in said && e.kind !== "state" ? (e.kind as keyof Said) : "other";
+	return format(said[kind], { key: e.key, state: "" });
+}
 // shortcut: one page of 50 events for each run, so a very long run misses its newest events; upgrade with a log tail command.
 const PAGE = 50;
 
@@ -94,8 +115,8 @@ export function Activity() {
 									<TimelineItem
 										key={`${e.run}:${e.id}`}
 										lead={<Avatar name={actor} className="size-6" />}
-										title={`${actor}: ${e.kind}`}
-										body={`${e.key} ${e.title}${by}`}
+										title={eventSentence(t.home.event, t.factory.state, e)}
+										body={`${e.title}${by}`}
 										time={e.ts === null ? "" : time.format(e.ts)}
 									/>
 								);

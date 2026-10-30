@@ -133,7 +133,7 @@ export function useWatchNotice() {
 	});
 }
 
-type Result<T> = { status: "ok"; data: T } | { status: "error"; error: string };
+type Result<T> = { status: "ok"; data: T } | { status: "error"; error: unknown };
 
 /** Each git action. After it runs, every Code view reads its data again, so one place decides. */
 export function useCodeActions() {

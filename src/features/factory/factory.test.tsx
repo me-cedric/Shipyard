@@ -90,11 +90,13 @@ describe("Factory tabs", () => {
 		expect(rows.length).toBeGreaterThan(0);
 		expect(await screen.findByRole("table", { name: "Sessions" })).toBeInTheDocument();
 		expect(await screen.findAllByText(rows[0]?.key ?? "")).not.toHaveLength(0);
-		expect(screen.getByText("Kill switch off")).toBeInTheDocument();
-		await user.click(screen.getByRole("button", { name: "Kill all" }));
+		const on = await screen.findByRole("switch", { name: "Agents on" });
+		expect(on).toBeChecked();
+		await user.click(on);
 		await waitFor(async () => expect(await unwrap(commands.killSwitchGet())).toBe(true));
-		expect(await screen.findByText("Kill switch on")).toBeInTheDocument();
-		await user.click(screen.getByRole("button", { name: "Release" }));
+		const stopped = await screen.findByRole("switch", { name: "Agents stopped" });
+		expect(stopped).not.toBeChecked();
+		await user.click(stopped);
 		await waitFor(async () => expect(await unwrap(commands.killSwitchGet())).toBe(false));
 	});
 

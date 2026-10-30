@@ -3,10 +3,10 @@ import { expect, test } from "@playwright/test";
 const SPACES = [
 	["Home", "Inbox"],
 	["Design", "Diagrams"],
-	["Specs", "Changes"],
+	["Specs", "Proposals"],
 	["Work", "Backlog"],
 	["Factory", "Runs"],
-	["Code", "Changes"],
+	["Code", "Local changes"],
 	["Knowledge", "Graph"],
 	["Settings", "Project"],
 ] as const;

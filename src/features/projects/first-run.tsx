@@ -1,18 +1,68 @@
-import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
+import { type ComponentType, useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { pickFolder } from "@/lib/ipc";
+import { commands, isTauri, pickFolder, unwrap } from "@/lib/ipc";
 import { ROLES, type Role, usePrefs } from "@/lib/prefs";
 import { outcomeError, type ProjectOutcome, useProjectActions, useProjects } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
-import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { ArrowDownTrayIcon, FolderOpenIcon, PlusIcon } from "@/ui/icons";
+import {
+	AcademicCapIcon,
+	ArrowDownTrayIcon,
+	ChatBubbleIcon,
+	CodeBracketIcon,
+	DocumentTextIcon,
+	FolderOpenIcon,
+	PlusIcon,
+	ShieldCheckIcon,
+	Squares2X2Icon,
+	UserCircleIcon,
+	ViewColumnsIcon,
+} from "@/ui/icons";
 import { STATE_DOT } from "@/ui/molecules/project-switcher";
 import logo from "../../../docs/assets/logo.svg";
 
 type Step = "start" | "clone" | "create";
+
+type IconProps = { size?: number };
+const ROLE_ICON: Record<Role, ComponentType<IconProps>> = {
+	pm: ViewColumnsIcon,
+	architect: Squares2X2Icon,
+	developer: CodeBracketIcon,
+	qa: ShieldCheckIcon,
+	ba: DocumentTextIcon,
+	lead: ChatBubbleIcon,
+	junior: AcademicCapIcon,
+	none: UserCircleIcon,
+};
+
+/** The project key from the name, as the app derives it: six letters or digits, a letter first. */
+export const keyOf = (name: string) => {
+	const key = name
+		.replace(/[^a-z0-9]/gi, "")
+		.toUpperCase()
+		.slice(0, 6);
+	return /^[A-Z]/.test(key) ? key : `P${key}`.slice(0, 6);
+};
+
+/** The folder name of a new project: `My App` gives `my-app`. */
+export const folderOf = (name: string) =>
+	name
+		.normalize("NFD")
+		.replace(/\p{M}/gu, "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "") || "project";
+
+/** `~/Projects` on this machine: the default parent folder of a new project. */
+async function projectsHome() {
+	if (!isTauri()) return "/mock/Projects";
+	const { homeDir, join } = await import("@tauri-apps/api/path");
+	return join(await homeDir(), "Projects");
+}
 
 /** `https://host/team/repo.git` and `git@host:team/repo.git` both give `repo`. */
 export const repoName = (url: string) =>
@@ -41,11 +91,13 @@ export function FolderField({ path, onPick }: { path: string; onPick: (path: str
 	);
 }
 
-/** The first run: the role, then three starts. Open a local folder is the one primary action. */
+/** The first run: the role as named cards, then three starts. Open a local folder is the one primary action. */
 export function FirstRun() {
 	const { t } = useI18n();
 	const { role, setPrefs } = usePrefs();
 	const { openFolder, clone, create, switchTo } = useProjectActions();
+	const qc = useQueryClient();
+	const router = useRouter();
 	const recent = [...(useProjects().data ?? [])]
 		.sort((a, b) => b.lastUsed - a.lastUsed)
 		.slice(0, 5);
@@ -55,20 +107,36 @@ export function FirstRun() {
 	const [url, setUrl] = useState("");
 	const [folder, setFolder] = useState("");
 	const [name, setName] = useState("");
-	const [key, setKey] = useState("");
+	// A folder without Git: the error offers to make it a project.
+	const [plain, setPlain] = useState<string | null>(null);
+	useEffect(() => {
+		void projectsHome().then((home) => setFolder((f) => f || home));
+	}, []);
 
 	const run = async (start: () => Promise<ProjectOutcome | null>) => {
 		setBusy(true);
 		setError(null);
+		setPlain(null);
 		try {
 			const outcome = await start();
 			setError(outcome && outcomeError(t, outcome));
+			if (outcome?.status === "not-repository") setPlain(outcome.message);
 		} catch (e) {
 			setError(e instanceof Error ? e.message : String(e));
 		} finally {
 			setBusy(false);
 		}
 	};
+	const makeProject = (path: string) =>
+		run(async () => {
+			// The click on the button is the consent for the first commit.
+			const o = await unwrap(commands.projectsInit(path, true));
+			if (o.project) {
+				router.history.push(o.project.lastView ?? "/");
+				await qc.invalidateQueries();
+			}
+			return o;
+		});
 
 	const back = (
 		<Button variant="ghost" onClick={() => setStep("start")}>
@@ -88,53 +156,100 @@ export function FirstRun() {
 						<img src={logo} alt="" className="size-8" />
 					</span>
 					<h1 className="flex-1 text-20 font-semibold text-n-12">{t.ui.welcome}</h1>
-					{step === "start" ? (
-						<Select
-							label={t.prefs.role}
-							value={role}
-							onValueChange={(v) => setPrefs({ role: v as Role })}
-							items={(["none", ...ROLES] as const).map((r) => ({ value: r, label: t.role[r] }))}
-							className="w-48"
-						/>
-					) : null}
 				</div>
 				{step === "start" ? (
-					<div className="grid gap-3 sm:grid-cols-3">
-						<button
-							type="button"
-							disabled={busy}
-							onClick={() => run(openFolder)}
-							className={cn(
-								big,
-								"border-transparent bg-accent-gradient text-accent-fg shadow-glow hover:brightness-110",
-							)}
+					<section aria-labelledby="first-run-role" className="flex flex-col gap-2">
+						<h2
+							id="first-run-role"
+							className="flex items-center gap-2 text-14 font-medium text-n-12"
 						>
-							<span aria-hidden="true" className={cn(tile, "bg-surface-0/25")}>
-								<FolderOpenIcon size={20} />
+							<span
+								aria-hidden="true"
+								className="flex size-5 items-center justify-center rounded-full bg-n-4 font-mono text-11"
+							>
+								1
 							</span>
-							{t.projects.open}
-						</button>
-						<button
-							type="button"
-							onClick={() => setStep("clone")}
-							className={cn(big, "bg-surface-2 text-n-12")}
+							{t.prefs.role}
+						</h2>
+						<div
+							role="radiogroup"
+							aria-labelledby="first-run-role"
+							className="grid grid-cols-2 gap-2 sm:grid-cols-4"
 						>
-							<span aria-hidden="true" className={cn(tile, "bg-info-soft text-info-text")}>
-								<ArrowDownTrayIcon size={20} />
-							</span>
-							{t.projects.clone}
-						</button>
-						<button
-							type="button"
-							onClick={() => setStep("create")}
-							className={cn(big, "bg-surface-2 text-n-12")}
+							{([...ROLES, "none"] as const).map((r) => {
+								const Icon = ROLE_ICON[r];
+								return (
+									<label
+										key={r}
+										className="flex h-12 cursor-pointer items-center gap-2.5 rounded-lg border bg-surface-2 px-3 text-ui text-n-12 shadow-1 transition-colors duration-(--duration-fast) hover:bg-n-3 has-checked:border-accent has-checked:bg-accent-soft has-checked:shadow-glow has-focus-visible:outline-2 has-focus-visible:outline-accent"
+									>
+										<input
+											type="radio"
+											name="role"
+											value={r}
+											checked={role === r}
+											onChange={() => setPrefs({ role: r })}
+											className="sr-only"
+										/>
+										<Icon size={16} />
+										<span className="min-w-0 truncate">{t.role[r]}</span>
+									</label>
+								);
+							})}
+						</div>
+					</section>
+				) : null}
+				{step === "start" ? (
+					<section aria-labelledby="first-run-start" className="flex flex-col gap-2">
+						<h2
+							id="first-run-start"
+							className="flex items-center gap-2 text-14 font-medium text-n-12"
 						>
-							<span aria-hidden="true" className={cn(tile, "bg-success-soft text-success-text")}>
-								<PlusIcon size={20} />
+							<span
+								aria-hidden="true"
+								className="flex size-5 items-center justify-center rounded-full bg-n-4 font-mono text-11"
+							>
+								2
 							</span>
-							{t.projects.create}
-						</button>
-					</div>
+							{t.projects.switcher}
+						</h2>
+						<div className="grid gap-3 sm:grid-cols-3">
+							<button
+								type="button"
+								disabled={busy}
+								onClick={() => run(openFolder)}
+								className={cn(
+									big,
+									"border-transparent bg-accent-gradient text-accent-fg shadow-glow hover:brightness-110",
+								)}
+							>
+								<span aria-hidden="true" className={cn(tile, "bg-surface-0/25")}>
+									<FolderOpenIcon size={20} />
+								</span>
+								{t.projects.open}
+							</button>
+							<button
+								type="button"
+								onClick={() => setStep("clone")}
+								className={cn(big, "bg-surface-2 text-n-12")}
+							>
+								<span aria-hidden="true" className={cn(tile, "bg-info-soft text-info-text")}>
+									<ArrowDownTrayIcon size={20} />
+								</span>
+								{t.projects.clone}
+							</button>
+							<button
+								type="button"
+								onClick={() => setStep("create")}
+								className={cn(big, "bg-surface-2 text-n-12")}
+							>
+								<span aria-hidden="true" className={cn(tile, "bg-success-soft text-success-text")}>
+									<PlusIcon size={20} />
+								</span>
+								{t.projects.create}
+							</button>
+						</div>
+					</section>
 				) : (
 					<div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-xl border bg-surface-1 p-4 shadow-2">
 						<h2 className="flex items-center gap-2 text-14 font-medium text-n-12">
@@ -169,19 +284,15 @@ export function FirstRun() {
 									value={name}
 									onChange={(e) => setName(e.target.value)}
 								/>
-								<Input
-									label={t.projects.key}
-									placeholder={t.projects.key}
-									value={key}
-									onChange={(e) => setKey(e.target.value.toUpperCase())}
-								/>
 								<FolderField path={folder} onPick={setFolder} />
 								<div className="flex justify-between">
 									{back}
 									<Button
 										variant="primary"
-										disabled={busy || !name.trim() || !key || !folder}
-										onClick={() => run(() => create(folder, name.trim(), key))}
+										disabled={busy || !name.trim() || !folder}
+										onClick={() =>
+											run(() => create(`${folder}/${folderOf(name)}`, name.trim(), keyOf(name)))
+										}
 									>
 										{t.projects.createRun}
 									</Button>
@@ -191,9 +302,16 @@ export function FirstRun() {
 					</div>
 				)}
 				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
+					<div className="flex items-center gap-3">
+						<p role="alert" className="flex-1 text-ui text-danger-text">
+							{error}
+						</p>
+						{plain ? (
+							<Button variant="primary" disabled={busy} onClick={() => void makeProject(plain)}>
+								{t.projects.makeProject}
+							</Button>
+						) : null}
+					</div>
 				) : null}
 				{step === "start" && recent.length ? (
 					<section aria-labelledby="recent-projects" className="flex flex-col gap-2">

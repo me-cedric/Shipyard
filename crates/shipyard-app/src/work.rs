@@ -37,7 +37,7 @@ use specta::Type;
 use tauri::AppHandle;
 
 use crate::commands::sync::{active, automation_in, tracker_target};
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::connections::Connection;
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -574,7 +574,7 @@ pub fn mark(s: &AppState, key: &str, click: bool) -> Res<()> {
     let label = automation_in(&c.root)?
         .pickup
         .label
-        .ok_or("the pickup label is off in automation.yaml")?;
+        .ok_or("the pickup label is off")?;
     let t = tracker(s)?;
     let w = writer(s, &t)?;
     w.add_label(key, &label).map_err(err)?;
@@ -1507,9 +1507,9 @@ pub fn preview(s: &AppState, slugs: &[String]) -> Res<Vec<DiffRow>> {
 }
 
 pub(crate) fn container(t: &Target) -> Res<&str> {
-    t.scope.as_deref().ok_or_else(|| {
-        "set the tracker scope in .shipyard/project.yaml (connections.trackerScope)".to_string()
-    })
+    t.scope
+        .as_deref()
+        .ok_or_else(|| "the tracker scope is not set".to_string())
 }
 
 /// Write the rows to the tracker, on the click of a person (REQ-026). The preview is computed
@@ -1579,43 +1579,43 @@ pub fn item_create(s: &AppState, row: Row, click: bool) -> Res<ApplyRow> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_context(app: AppHandle, offset_minutes: i32) -> Res<WorkContext> {
+pub async fn work_context(app: AppHandle, offset_minutes: i32) -> Api<WorkContext> {
     blocking(app, move |s| context(s, offset_minutes)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_team(app: AppHandle) -> Res<TeamView> {
+pub async fn work_team(app: AppHandle) -> Api<TeamView> {
     blocking(app, team_get).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_team_save(app: AppHandle, team: Team) -> Res<TeamView> {
+pub async fn work_team_save(app: AppHandle, team: Team) -> Api<TeamView> {
     blocking(app, move |s| team_save(s, team)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_suggest(app: AppHandle, key: String) -> Res<Vec<Suggestion>> {
+pub async fn work_suggest(app: AppHandle, key: String) -> Api<Vec<Suggestion>> {
     blocking(app, move |s| suggest(s, &key)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_assign(app: AppHandle, key: String, member: String, click: bool) -> Res<()> {
+pub async fn work_assign(app: AppHandle, key: String, member: String, click: bool) -> Api<()> {
     blocking(app, move |s| assign(s, &key, &member, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_mark(app: AppHandle, key: String, click: bool) -> Res<()> {
+pub async fn work_mark(app: AppHandle, key: String, click: bool) -> Api<()> {
     blocking(app, move |s| mark(s, &key, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_ticket_comments(app: AppHandle, key: String) -> Res<Vec<TicketComment>> {
+pub async fn work_ticket_comments(app: AppHandle, key: String) -> Api<Vec<TicketComment>> {
     blocking(app, move |s| ticket_comments(s, &key)).await
 }
 
@@ -1626,7 +1626,7 @@ pub async fn work_ticket_comment_add(
     key: String,
     body: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| ticket_comment_add(s, &key, &body, click)).await
 }
 
@@ -1639,7 +1639,7 @@ pub async fn work_ticket_edit(
     description: Option<String>,
     days: Option<f64>,
     click: bool,
-) -> Res<Vec<String>> {
+) -> Api<Vec<String>> {
     blocking(app, move |s| {
         ticket_edit(s, &key, title, description, days, click)
     })
@@ -1653,13 +1653,13 @@ pub async fn work_ticket_label_add(
     key: String,
     label: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| ticket_label_add(s, &key, &label, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_ticket_edit_caps(app: AppHandle) -> Res<TicketEditCaps> {
+pub async fn work_ticket_edit_caps(app: AppHandle) -> Api<TicketEditCaps> {
     blocking(app, ticket_edit_caps).await
 }
 
@@ -1670,7 +1670,7 @@ pub async fn work_ticket_label_remove(
     key: String,
     label: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| ticket_label_remove(s, &key, &label, click)).await
 }
 
@@ -1681,7 +1681,7 @@ pub async fn work_ticket_priority_set(
     key: String,
     priority: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| ticket_priority_set(s, &key, &priority, click)).await
 }
 
@@ -1692,7 +1692,7 @@ pub async fn work_ticket_type_set(
     key: String,
     name: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| ticket_type_set(s, &key, &name, click)).await
 }
 
@@ -1703,109 +1703,109 @@ pub async fn work_ticket_due_set(
     key: String,
     day: Option<String>,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| ticket_due_set(s, &key, day.as_deref(), click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_transition(app: AppHandle, key: String, to: String, click: bool) -> Res<()> {
+pub async fn work_transition(app: AppHandle, key: String, to: String, click: bool) -> Api<()> {
     blocking(app, move |s| transition(s, &key, &to, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_seal_state(app: AppHandle) -> Res<SealState> {
+pub async fn work_seal_state(app: AppHandle) -> Api<SealState> {
     blocking(app, seal_state).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_unlock(app: AppHandle, passphrase: String) -> Res<SealState> {
+pub async fn work_unlock(app: AppHandle, passphrase: String) -> Api<SealState> {
     blocking(app, move |s| unlock(s, &passphrase)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_lock(app: AppHandle) -> Res<SealState> {
+pub async fn work_lock(app: AppHandle) -> Api<SealState> {
     blocking(app, lock_session).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_seal(app: AppHandle, passphrase: String) -> Res<SealState> {
+pub async fn work_seal(app: AppHandle, passphrase: String) -> Api<SealState> {
     blocking(app, move |s| seal_all(s, &passphrase)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_unseal(app: AppHandle, passphrase: String) -> Res<SealState> {
+pub async fn work_unseal(app: AppHandle, passphrase: String) -> Api<SealState> {
     blocking(app, move |s| unseal_all(s, &passphrase)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn estimate_list(app: AppHandle) -> Res<Vec<SheetItem>> {
+pub async fn estimate_list(app: AppHandle) -> Api<Vec<SheetItem>> {
     blocking(app, list_sheets).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn estimate_get(app: AppHandle, slug: String) -> Res<SheetView> {
+pub async fn estimate_get(app: AppHandle, slug: String) -> Api<SheetView> {
     blocking(app, move |s| sheet_get(s, &slug)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn estimate_save(app: AppHandle, slug: String, sheet: Sheet) -> Res<SheetView> {
+pub async fn estimate_save(app: AppHandle, slug: String, sheet: Sheet) -> Api<SheetView> {
     blocking(app, move |s| sheet_save(s, &slug, sheet)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn estimate_portfolio(app: AppHandle) -> Res<Portfolio> {
+pub async fn estimate_portfolio(app: AppHandle) -> Api<Portfolio> {
     blocking(app, portfolio).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn excel_preview(app: AppHandle, path: String, scope: Option<String>) -> Res<Preview> {
+pub async fn excel_preview(app: AppHandle, path: String, scope: Option<String>) -> Api<Preview> {
     blocking(app, move |s| excel_read(s, &path, scope.as_deref())).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn excel_confirm(app: AppHandle, slug: String, confirmed: bool) -> Res<SheetView> {
+pub async fn excel_confirm(app: AppHandle, slug: String, confirmed: bool) -> Api<SheetView> {
     blocking(app, move |s| excel_replace(s, &slug, confirmed)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn excel_export(app: AppHandle, slug: String, path: String) -> Res<()> {
+pub async fn excel_export(app: AppHandle, slug: String, path: String) -> Api<()> {
     blocking(app, move |s| excel_write(s, &slug, &path)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn plan_get(app: AppHandle, slug: String) -> Res<PlanView> {
+pub async fn plan_get(app: AppHandle, slug: String) -> Api<PlanView> {
     blocking(app, move |s| plan(s, &slug)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn plan_decisions_save(app: AppHandle, decisions: Decisions) -> Res<()> {
+pub async fn plan_decisions_save(app: AppHandle, decisions: Decisions) -> Api<()> {
     blocking(app, move |s| decisions_save(s, &decisions)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn plan_calendar_save(app: AppHandle, calendar: Calendar) -> Res<()> {
+pub async fn plan_calendar_save(app: AppHandle, calendar: Calendar) -> Api<()> {
     blocking(app, move |s| calendar_save(s, &calendar)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn time_list(app: AppHandle, member: Option<String>, month: String) -> Res<TimeView> {
+pub async fn time_list(app: AppHandle, member: Option<String>, month: String) -> Api<TimeView> {
     blocking(app, move |s| time_month(s, member.as_deref(), &month)).await
 }
 
@@ -1818,7 +1818,7 @@ pub async fn time_add(
     minutes: u32,
     note: String,
     ticket: Option<String>,
-) -> Res<TimeEntry> {
+) -> Api<TimeEntry> {
     blocking(app, move |s| {
         time_write(
             s,
@@ -1838,7 +1838,7 @@ pub async fn time_fetch(
     app: AppHandle,
     member: Option<String>,
     ticket: String,
-) -> Res<Vec<TimeRow>> {
+) -> Api<Vec<TimeRow>> {
     blocking(app, move |s| time_rows(s, member.as_deref(), &ticket)).await
 }
 
@@ -1852,7 +1852,7 @@ pub async fn time_send(
     offset_minutes: i32,
     reduce_remaining: bool,
     click: bool,
-) -> Res<TimeSent> {
+) -> Api<TimeSent> {
     blocking(app, move |s| {
         worklog_send(
             s,
@@ -1869,25 +1869,25 @@ pub async fn time_send(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn apply_preview(app: AppHandle, slugs: Vec<String>) -> Res<Vec<DiffRow>> {
+pub async fn apply_preview(app: AppHandle, slugs: Vec<String>) -> Api<Vec<DiffRow>> {
     blocking(app, move |s| preview(s, &slugs)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn apply_run(app: AppHandle, slugs: Vec<String>, click: bool) -> Res<Vec<ApplyRow>> {
+pub async fn apply_run(app: AppHandle, slugs: Vec<String>, click: bool) -> Api<Vec<ApplyRow>> {
     blocking(app, move |s| apply(s, &slugs, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_item_preview(app: AppHandle, row: Row) -> Res<DiffRow> {
+pub async fn work_item_preview(app: AppHandle, row: Row) -> Api<DiffRow> {
     blocking(app, move |s| item_preview(s, row)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn work_item_create(app: AppHandle, row: Row, click: bool) -> Res<ApplyRow> {
+pub async fn work_item_create(app: AppHandle, row: Row, click: bool) -> Api<ApplyRow> {
     blocking(app, move |s| item_create(s, row, click)).await
 }
 

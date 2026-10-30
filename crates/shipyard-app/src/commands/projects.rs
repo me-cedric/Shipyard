@@ -3,14 +3,17 @@
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
+use shipyard_core::pickup::Automation;
 use shipyard_core::project::{ProjectFile, validate};
+use shipyard_git::Repo;
 use shipyard_git::project::{WorkState, clone_repo, init, is_repo, state};
+use shipyard_store::automation_file::{AutomationRead, read_automation, write_automation};
 use shipyard_store::docs_layout::layout_file;
 use shipyard_store::project::{Entry, FileRead, Overrides, read_project_file, write_project_file};
 use specta::Type;
 use tauri::AppHandle;
 
-use super::{AppState, Res, blocking, err};
+use super::{Api, AppState, Res, blocking, err};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -159,10 +162,59 @@ pub fn create(s: &AppState, path: &str, name: &str, key: &str) -> Res<ProjectOut
     if taken {
         return Ok(outcome(OpenStatus::FolderNotEmpty, path));
     }
-    if let Err(e) = init(&root).and_then(|()| write_project_file(&root, &file).map_err(err)) {
+    if let Err(e) = init(&root)
+        .and_then(|()| write_project_file(&root, &file).map_err(err))
+        .and_then(|()| seed_automation(&root))
+    {
         return Ok(outcome(OpenStatus::Failed, e));
     }
-    activate(s, &std::fs::canonicalize(&root).map_err(err)?, &file)
+    let out = activate(s, &std::fs::canonicalize(&root).map_err(err)?, &file)?;
+    // The only tracker connection of the machine becomes the tracker of the new project.
+    let _ = super::setup::auto_link(s);
+    Ok(out)
+}
+
+/// A new project gets the default pickup rules, so the pickup label shows in Settings.
+fn seed_automation(root: &Path) -> Result<(), String> {
+    if matches!(read_automation(root), Ok(AutomationRead::Missing)) {
+        write_automation(root, &Automation::default()).map_err(err)?;
+    }
+    Ok(())
+}
+
+/// Turns a plain folder into a project: `git init` and a project file. The first commit holds only
+/// the files of Shipyard, never a file of the person, and it needs the click (`commit`).
+pub fn make(s: &AppState, path: &str, commit: bool) -> Res<ProjectOutcome> {
+    let Ok(root) = std::fs::canonicalize(path) else {
+        return Ok(outcome(OpenStatus::Invalid, path));
+    };
+    if !root.is_dir() {
+        return Ok(outcome(OpenStatus::Invalid, path));
+    }
+    if is_repo(&root) {
+        return open(s, path);
+    }
+    let name = folder_name(&root);
+    let file = match read_project_file(&root).map_err(err)? {
+        FileRead::Valid(f) => f,
+        _ => layout_file(&root, &name, &derive_key(&name)),
+    };
+    if let Err(e) = init(&root)
+        .and_then(|()| write_project_file(&root, &file).map_err(err))
+        .and_then(|()| seed_automation(&root))
+    {
+        return Ok(outcome(OpenStatus::Failed, e));
+    }
+    if commit {
+        let repo = Repo::open(&root).map_err(err)?;
+        repo.stage(&[".gitignore".into(), ".shipyard".into()])
+            .map_err(err)?;
+        repo.commit("chore(shipyard): start the project", "")
+            .map_err(err)?;
+    }
+    let out = activate(s, &root, &file)?;
+    let _ = super::setup::auto_link(s);
+    Ok(out)
 }
 
 /// Clones a repository into a folder that the person picked, then opens it.
@@ -269,13 +321,13 @@ pub fn save_overrides(s: &AppState, overrides: Overrides) -> Res<()> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn projects_list(app: AppHandle) -> Res<Vec<ProjectEntry>> {
+pub async fn projects_list(app: AppHandle) -> Api<Vec<ProjectEntry>> {
     blocking(app, list).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn projects_active(app: AppHandle) -> Res<Option<ProjectEntry>> {
+pub async fn projects_active(app: AppHandle) -> Api<Option<ProjectEntry>> {
     blocking(app, active).await
 }
 
@@ -283,8 +335,15 @@ pub async fn projects_active(app: AppHandle) -> Res<Option<ProjectEntry>> {
 #[specta::specta]
 // `init` stays for the IPC contract. The file is written without a confirm.
 #[allow(unused_variables)]
-pub async fn projects_open(app: AppHandle, path: String, init: bool) -> Res<ProjectOutcome> {
+pub async fn projects_open(app: AppHandle, path: String, init: bool) -> Api<ProjectOutcome> {
     blocking(app, move |s| open(s, &path)).await
+}
+
+/// Turns a plain folder into a project. `commit` is the click for the first commit.
+#[tauri::command]
+#[specta::specta]
+pub async fn projects_init(app: AppHandle, path: String, commit: bool) -> Api<ProjectOutcome> {
+    blocking(app, move |s| make(s, &path, commit)).await
 }
 
 #[tauri::command]
@@ -294,55 +353,55 @@ pub async fn projects_create(
     path: String,
     name: String,
     key: String,
-) -> Res<ProjectOutcome> {
+) -> Api<ProjectOutcome> {
     blocking(app, move |s| create(s, &path, &name, &key)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn projects_clone(app: AppHandle, url: String, path: String) -> Res<ProjectOutcome> {
+pub async fn projects_clone(app: AppHandle, url: String, path: String) -> Api<ProjectOutcome> {
     blocking(app, move |s| clone(s, &url, &path)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn projects_switch(app: AppHandle, id: String) -> Res<ProjectEntry> {
+pub async fn projects_switch(app: AppHandle, id: String) -> Api<ProjectEntry> {
     blocking(app, move |s| switch(s, &id)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn projects_close(app: AppHandle) -> Res<()> {
+pub async fn projects_close(app: AppHandle) -> Api<()> {
     blocking(app, close).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn projects_remove(app: AppHandle, id: String) -> Res<()> {
+pub async fn projects_remove(app: AppHandle, id: String) -> Api<()> {
     blocking(app, move |s| remove(s, &id)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn projects_set_view(app: AppHandle, id: String, view: String) -> Res<()> {
+pub async fn projects_set_view(app: AppHandle, id: String, view: String) -> Api<()> {
     blocking(app, move |s| set_view(s, &id, &view)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn project_settings(app: AppHandle) -> Res<Option<ProjectSettings>> {
+pub async fn project_settings(app: AppHandle) -> Api<Option<ProjectSettings>> {
     blocking(app, settings).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn project_file_save(app: AppHandle, file: ProjectFile) -> Res<()> {
+pub async fn project_file_save(app: AppHandle, file: ProjectFile) -> Api<()> {
     blocking(app, move |s| save_file(s, file)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn project_overrides_save(app: AppHandle, overrides: Overrides) -> Res<()> {
+pub async fn project_overrides_save(app: AppHandle, overrides: Overrides) -> Api<()> {
     blocking(app, move |s| save_overrides(s, overrides)).await
 }
 
@@ -446,6 +505,33 @@ mod tests {
             open(&s, "/does/not/exist").unwrap().status,
             OpenStatus::NotRepository
         );
+    }
+
+    #[test]
+    fn a_plain_folder_becomes_a_project_and_the_commit_waits_for_the_click() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = state_in(dir.path());
+        let plain = dir.path().join("plain");
+        std::fs::create_dir(&plain).unwrap();
+        std::fs::write(plain.join("notes.txt"), "mine").unwrap();
+        let p = plain.to_str().unwrap();
+        assert_eq!(make(&s, p, false).unwrap().status, OpenStatus::Opened);
+        let repo = Repo::open(&plain).unwrap();
+        assert!(repo.status().unwrap().head.is_none(), "no commit yet");
+        assert!(plain.join(".shipyard/project.yaml").exists());
+        assert!(plain.join(".shipyard/automation.yaml").exists());
+        // The click commits the files of Shipyard and leaves the file of the person alone.
+        let other = dir.path().join("other");
+        std::fs::create_dir(&other).unwrap();
+        std::fs::write(other.join("notes.txt"), "mine").unwrap();
+        assert_eq!(
+            make(&s, other.to_str().unwrap(), true).unwrap().status,
+            OpenStatus::Opened
+        );
+        let st = Repo::open(&other).unwrap().status().unwrap();
+        assert!(st.head.is_some());
+        assert_eq!(st.untracked.len(), 1);
+        assert_eq!(st.untracked[0].path, "notes.txt");
     }
 
     #[test]

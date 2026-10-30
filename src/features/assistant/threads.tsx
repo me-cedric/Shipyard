@@ -49,23 +49,26 @@ export function Threads({ a }: { a: Assistant }) {
 					<PlusIcon size={14} />
 				</IconButton>
 			</div>
-			<ul aria-label={t.assistant.threads} className="flex max-h-24 flex-col overflow-y-auto">
-				{a.threads.map((th) => (
-					<li key={th.id}>
-						<button
-							type="button"
-							aria-current={th.id === id ? "true" : undefined}
-							onClick={() => void a.select(th.id)}
-							className={cn(
-								"h-row w-full truncate rounded-sm px-2 text-left text-ui text-n-11 hover:bg-n-3",
-								th.id === id && "bg-n-3 text-n-12",
-							)}
-						>
-							{th.title || t.assistant.untitled}
-						</button>
-					</li>
-				))}
-			</ul>
+			{/* One thread is the heading already: the list shows once there is a choice. */}
+			{a.threads.length > 1 ? (
+				<ul aria-label={t.assistant.threads} className="flex max-h-24 flex-col overflow-y-auto">
+					{a.threads.map((th) => (
+						<li key={th.id}>
+							<button
+								type="button"
+								aria-current={th.id === id ? "true" : undefined}
+								onClick={() => void a.select(th.id)}
+								className={cn(
+									"h-row w-full truncate rounded-sm px-2 text-left text-ui text-n-11 hover:bg-n-3",
+									th.id === id && "bg-n-3 text-n-12",
+								)}
+							>
+								{th.title || t.assistant.untitled}
+							</button>
+						</li>
+					))}
+				</ul>
+			) : null}
 			<Dialog
 				open={confirm}
 				onOpenChange={setConfirm}

@@ -62,7 +62,9 @@ describe("mock specs", () => {
 		expect(partial[0]?.line).toBeGreaterThan(0);
 		const marked = await unwrap(commands.specsValidate("add-export"));
 		expect(marked[0]?.message).toContain("Q-035");
-		await expect(unwrap(commands.specsValidate("Bad Id"))).rejects.toThrow("invalid change id");
+		await expect(unwrap(commands.specsValidate("Bad Id"))).rejects.toMatchObject({
+			details: expect.stringContaining("invalid change id"),
+		});
 	});
 
 	it("forgets a validation after a write and creates a change once", async () => {
@@ -76,12 +78,18 @@ describe("mock specs", () => {
 		expect(
 			(await unwrap(commands.specsChanges())).find((c) => c.id === "add-auth")?.validated,
 		).toBe(false);
-		expect((await unwrap(commands.specsChangeCreate("add-new"))).artifacts[0]?.status).toBe(
+		const made = await unwrap(commands.specsChangeCreate("Add new!"));
+		expect([made.id, made.title, made.artifacts[0]?.status]).toEqual([
+			"add-new",
+			"Add new!",
 			"draft",
-		);
-		await expect(unwrap(commands.specsChangeCreate("add-new"))).rejects.toThrow(
-			"change add-new exists",
-		);
+		]);
+		await expect(unwrap(commands.specsChangeCreate("add  new"))).rejects.toMatchObject({
+			code: "change_exists",
+		});
+		await expect(unwrap(commands.specsChangeCreate("!!"))).rejects.toMatchObject({
+			code: "title_invalid",
+		});
 	});
 
 	it("keeps the RAID file when a save names an unknown kind or status", async () => {
@@ -95,10 +103,10 @@ describe("mock specs", () => {
 		const before = await unwrap(commands.specsRead(e.path));
 		await expect(
 			unwrap(commands.specsQuestionSave(e.path, { ...e.question, kind: "idea" }, before.stamp)),
-		).rejects.toThrow("unknown kind: idea");
+		).rejects.toMatchObject({ details: expect.stringContaining("unknown kind: idea") });
 		await expect(
 			unwrap(commands.specsQuestionSave(e.path, { ...e.question, status: "closed" }, before.stamp)),
-		).rejects.toThrow("unknown status: closed");
+		).rejects.toMatchObject({ details: expect.stringContaining("unknown status: closed") });
 		expect(await unwrap(commands.specsRead(e.path))).toEqual(before);
 		const ok = await unwrap(
 			commands.specsQuestionSave(e.path, { ...e.question, status: "answered" }, before.stamp),
@@ -106,7 +114,7 @@ describe("mock specs", () => {
 		expect(ok.conflict).toBe(false);
 		await expect(
 			unwrap(commands.specsQuestionSave(e.path, { ...e.question, id: "Q-012" }, ok.stamp)),
-		).rejects.toThrow("duplicate id Q-012");
+		).rejects.toMatchObject({ details: expect.stringContaining("duplicate id Q-012") });
 	});
 
 	it("creates a question with the next id and refuses a duplicate", async () => {
@@ -124,8 +132,8 @@ describe("mock specs", () => {
 			body: "",
 		};
 		expect(await unwrap(commands.specsQuestionCreate(q))).toBe("docs/delivery/questions/Q-036.md");
-		await expect(unwrap(commands.specsQuestionCreate({ ...q, id: "Q-012" }))).rejects.toThrow(
-			"duplicate id Q-012",
+		await expect(unwrap(commands.specsQuestionCreate({ ...q, id: "Q-012" }))).rejects.toMatchObject(
+			{ details: expect.stringContaining("duplicate id Q-012") },
 		);
 	});
 
@@ -148,24 +156,26 @@ describe("mock specs", () => {
 			(await unwrap(commands.specsFold(SPEC, "Q-035", "CSV", first.stamp, true))).conflict,
 		).toBe(true);
 		expect((await unwrap(commands.specsRead(SPEC))).text).toContain("NEEDS CLARIFICATION");
-		await expect(unwrap(commands.specsFold(SPEC, "Q-035", "CSV", stamp, false))).rejects.toThrow(
-			"this change needs the click of a person",
-		);
+		await expect(
+			unwrap(commands.specsFold(SPEC, "Q-035", "CSV", stamp, false)),
+		).rejects.toMatchObject({
+			details: expect.stringContaining("this change needs the click of a person"),
+		});
 		const w = await unwrap(commands.specsFold(SPEC, "Q-035", "CSV", stamp, true));
 		expect(w.conflict).toBe(false);
 		const { text } = await unwrap(commands.specsRead(SPEC));
 		expect(text).toContain("export a report in CSV.");
 		expect(text).not.toContain("NEEDS CLARIFICATION");
 		expect(text).toContain("### Clarifications\n\n- Q-035 Which export formats ship first?: CSV");
-		await expect(unwrap(commands.specsFold(SPEC, "Q-035", "CSV", stamp, true))).rejects.toThrow(
-			"no marker cites Q-035",
-		);
+		await expect(
+			unwrap(commands.specsFold(SPEC, "Q-035", "CSV", stamp, true)),
+		).rejects.toMatchObject({ details: expect.stringContaining("no marker cites Q-035") });
 		await expect(
 			unwrap(commands.specsFold(SPEC, "Q-099", "x", w.stamp ?? "", true)),
-		).rejects.toThrow("no question Q-099");
+		).rejects.toMatchObject({ details: expect.stringContaining("no question Q-099") });
 		await expect(
 			unwrap(commands.specsFold("docs/openspec/constitution.md", "Q-035", "x", "1", true)),
-		).rejects.toThrow("not a spec");
+		).rejects.toMatchObject({ details: expect.stringContaining("not a spec") });
 	});
 
 	it("puts the line of a second answer in the same block", () => {
@@ -178,9 +188,9 @@ describe("mock specs", () => {
 	});
 
 	it("applies a split once, with the row ref as a label, and creates no duplicate", async () => {
-		await expect(unwrap(commands.specsSplitPreview("add-auth"))).rejects.toThrow(
-			"the project has no tracker connection",
-		);
+		await expect(unwrap(commands.specsSplitPreview("add-auth"))).rejects.toMatchObject({
+			details: expect.stringContaining("the project has no tracker connection"),
+		});
 		await withTracker();
 		const draft = await unwrap(commands.specsSplitDraft("add-auth"));
 		expect(draft.items.map((i) => i.rowId)).toEqual([
@@ -191,9 +201,9 @@ describe("mock specs", () => {
 		const preview = await unwrap(commands.specsSplitPreview("add-auth"));
 		expect(preview.problems).toEqual([]);
 		expect(preview.rows.map((r) => r.action)).toEqual(["create", "create", "create"]);
-		await expect(unwrap(commands.specsSplitApply("add-auth", false))).rejects.toThrow(
-			"this change needs the click of a person",
-		);
+		await expect(unwrap(commands.specsSplitApply("add-auth", false))).rejects.toMatchObject({
+			details: expect.stringContaining("this change needs the click of a person"),
+		});
 		const before = mockState().sync.mirror.length;
 		const first = await unwrap(commands.specsSplitApply("add-auth", true));
 		expect(first.map((r) => r.action)).toEqual(["create", "create", "create"]);
@@ -230,17 +240,17 @@ describe("mock specs", () => {
 			}),
 		);
 		expect((await unwrap(commands.specsSplitDraft("add-auth"))).items).toHaveLength(4);
-		await expect(unwrap(commands.specsSplitApply("add-auth", true))).rejects.toThrow(
-			"x: parent missing; x: unknown ref spec:auth#REQ-099",
-		);
+		await expect(unwrap(commands.specsSplitApply("add-auth", true))).rejects.toMatchObject({
+			details: expect.stringContaining("x: parent missing; x: unknown ref spec:auth#REQ-099"),
+		});
 	});
 
 	it("archives a change with open items only when confirmed", async () => {
 		await withTracker();
 		await unwrap(commands.specsSplitApply("add-auth", true));
-		await expect(unwrap(commands.specsArchive("add-auth", false))).rejects.toThrow(
-			"open items: ACME-1",
-		);
+		await expect(unwrap(commands.specsArchive("add-auth", false))).rejects.toMatchObject({
+			details: expect.stringContaining("open items: ACME-1"),
+		});
 		expect(await unwrap(commands.specsArchive("add-auth", true))).toEqual(["sessions"]);
 		expect((await unwrap(commands.specsChanges())).map((c) => c.id)).toEqual([
 			"add-billing",

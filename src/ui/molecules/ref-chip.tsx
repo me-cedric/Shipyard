@@ -28,12 +28,15 @@ export function RefChip({
 	refId,
 	state,
 	title,
+	text,
 	onOpen,
 	className,
 }: {
 	refId: string;
 	state: RefState;
 	title?: string;
+	/** A shorter text in place of a long ref, such as the ticket of a run. */
+	text?: string;
 	onOpen?: (refId: string) => void;
 	className?: string;
 }) {
@@ -41,8 +44,8 @@ export function RefChip({
 	const menu = useMenus();
 	const kind = refId.split(":")[0] ?? "";
 	const stateLabel = t.ref[state];
-	// The ref holds the kind. The name adds the title, then the state.
-	const name = [refId, title, stateLabel].filter(Boolean).join(", ");
+	// The ref holds the kind. The name starts with the visible text, then adds the title and the state.
+	const name = [text, refId, title, stateLabel].filter(Boolean).join(", ");
 	return (
 		<ContextMenu
 			items={menu("ref", {
@@ -69,7 +72,7 @@ export function RefChip({
 					<span aria-hidden="true" className="text-n-10">
 						{KIND_ICON[kind] ?? <DocumentTextIcon size={12} />}
 					</span>
-					<span className="min-w-0 truncate">{refId}</span>
+					<span className="min-w-0 truncate">{text ?? refId}</span>
 					<span aria-hidden="true">
 						<StatusDot status={STATE_DOT[state]} className="size-2" />
 					</span>

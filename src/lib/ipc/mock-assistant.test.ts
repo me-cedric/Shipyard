@@ -17,12 +17,16 @@ describe("mock assistant", () => {
 	beforeEach(() => resetMock());
 
 	it("fails without a project and keeps the threads of each project apart", async () => {
-		await expect(unwrap(commands.assistantThreads())).rejects.toThrow("no active project");
+		await expect(unwrap(commands.assistantThreads())).rejects.toMatchObject({
+			details: expect.stringContaining("no active project"),
+		});
 		const id = await thread();
 		expect(await unwrap(commands.assistantThreads())).toHaveLength(1);
 		await unwrap(commands.projectsOpen("/mock/beta", false));
 		expect(await unwrap(commands.assistantThreads())).toEqual([]);
-		await expect(unwrap(commands.assistantGet(id))).rejects.toThrow("no thread");
+		await expect(unwrap(commands.assistantGet(id))).rejects.toMatchObject({
+			details: expect.stringContaining("no thread"),
+		});
 	});
 
 	it("titles a thread from its first line and answers with a trace", async () => {
@@ -39,8 +43,12 @@ describe("mock assistant", () => {
 		const id = await thread();
 		const c = await unwrap(commands.assistantRefAdd(id, `@${REF}`));
 		expect(c.refs).toEqual([REF]);
-		await expect(unwrap(commands.assistantRefAdd(id, "wi:NONE-1"))).rejects.toThrow("resolve");
-		await expect(unwrap(commands.assistantRefAdd(id, "nope"))).rejects.toThrow("not a ref");
+		await expect(unwrap(commands.assistantRefAdd(id, "wi:NONE-1"))).rejects.toMatchObject({
+			details: expect.stringContaining("resolve"),
+		});
+		await expect(unwrap(commands.assistantRefAdd(id, "nope"))).rejects.toMatchObject({
+			details: expect.stringContaining("not a ref"),
+		});
 		expect((await unwrap(commands.assistantRefRemove(id, REF))).refs).toEqual([]);
 	});
 
@@ -62,8 +70,12 @@ describe("mock assistant", () => {
 		expect(failed.message.state).toMatchObject({ state: "failed", kind: "quota" });
 		const ok = await unwrap(commands.assistantRetry(id));
 		expect(ok.message.state.state).toBe("done");
-		await expect(unwrap(commands.assistantRetry(id))).rejects.toThrow("did not fail");
-		await expect(send(id, "spent")).rejects.toThrow("is spent");
+		await expect(unwrap(commands.assistantRetry(id))).rejects.toMatchObject({
+			details: expect.stringContaining("did not fail"),
+		});
+		await expect(send(id, "spent")).rejects.toMatchObject({
+			details: expect.stringContaining("is spent"),
+		});
 		expect((await send(id, "alert")).alert).toBe("day 2026-10-29");
 	});
 
@@ -87,7 +99,9 @@ describe("mock assistant", () => {
 		);
 		const g = await unwrap(commands.assistantGrant(id));
 		expect(g.thread.thread.granted).toEqual(["Bash(pnpm test)"]);
-		await expect(unwrap(commands.assistantDelete(id))).rejects.toThrow("Discard");
+		await expect(unwrap(commands.assistantDelete(id))).rejects.toMatchObject({
+			details: expect.stringContaining("Discard"),
+		});
 		await unwrap(commands.assistantWorktreeDiscard(id, true));
 		await unwrap(commands.assistantDelete(id));
 		expect(await unwrap(commands.assistantThreads())).toEqual([]);
@@ -104,11 +118,15 @@ describe("mock assistant", () => {
 
 	it("previews and sends to the factory once", async () => {
 		const id = await thread();
-		await expect(unwrap(commands.assistantToFactoryPreview(id))).rejects.toThrow("empty");
+		await expect(unwrap(commands.assistantToFactoryPreview(id))).rejects.toMatchObject({
+			details: expect.stringContaining("empty"),
+		});
 		await send(id, "Plan the export");
 		const p = await unwrap(commands.assistantToFactoryPreview(id));
 		expect(p).toMatchObject({ action: "create", row: { reference: `doc:assistant/${id}` } });
-		await expect(unwrap(commands.assistantToFactory(id, null, false))).rejects.toThrow("Confirm");
+		await expect(unwrap(commands.assistantToFactory(id, null, false))).rejects.toMatchObject({
+			details: expect.stringContaining("Confirm"),
+		});
 		const a = await unwrap(commands.assistantToFactory(id, "feature", true));
 		expect(a).toMatchObject({ label: "wf:feature", item: { action: "create" } });
 		const b = await unwrap(commands.assistantToFactory(id, null, true));
@@ -118,7 +136,9 @@ describe("mock assistant", () => {
 	it("fails the send when the tracker refuses the item", async () => {
 		const id = await thread();
 		await send(id, "Refuse this one");
-		await expect(unwrap(commands.assistantToFactory(id, null, true))).rejects.toThrow("refused");
+		await expect(unwrap(commands.assistantToFactory(id, null, true))).rejects.toMatchObject({
+			details: expect.stringContaining("refused"),
+		});
 	});
 
 	it("keeps the defaults and starts a new thread with them", async () => {
@@ -138,9 +158,9 @@ describe("mock assistant", () => {
 			"claude",
 			"codex",
 		]);
-		await expect(unwrap(commands.assistantDefaultsSet({ ...d, runner: "nope" }))).rejects.toThrow(
-			"unknown runner",
-		);
+		await expect(
+			unwrap(commands.assistantDefaultsSet({ ...d, runner: "nope" })),
+		).rejects.toMatchObject({ details: expect.stringContaining("unknown runner") });
 	});
 
 	it("keeps the width and the side in the preferences", async () => {

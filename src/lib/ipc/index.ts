@@ -8,4 +8,4 @@ export {
 	pickWorkbook,
 	saveWorkbook,
 } from "./dialog";
-export { unwrap } from "./result";
+export { AppFailure, toFailure, unwrap } from "./result";

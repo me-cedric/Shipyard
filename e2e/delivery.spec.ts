@@ -10,8 +10,9 @@ test("approvals wait for a click, and the runs show the review, CI and merge sta
 	await expect(page.getByRole("heading", { name: "Approvals (4)" })).toBeVisible();
 
 	// The force push waits: nothing sends it until one click.
-	const force = page.getByRole("region", { name: "Force push fix/ACME-10 with lease" });
-	await expect(force.getByText("Force push", { exact: true })).toBeVisible();
+	const force = page.getByRole("region", { name: "Replace the code of ACME-10 on the server" });
+	// The command stays behind Details.
+	await expect(force.getByText("git push --force-with-lease origin fix/ACME-10")).toBeHidden();
 	await force.getByRole("button", { name: "Approve" }).click();
 	await expect(force).toHaveCount(0);
 	await expect(page.getByRole("heading", { name: "Approvals (3)" })).toBeVisible();

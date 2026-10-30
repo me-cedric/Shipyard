@@ -89,7 +89,7 @@ export const fr: Messages = {
 			screens: "Écrans",
 		},
 		specs: {
-			changes: "Changements",
+			changes: "Propositions",
 			capabilities: "Capacités",
 			questions: "Questions",
 			"test-plans": "Plans de test",
@@ -111,7 +111,7 @@ export const fr: Messages = {
 			usage: "Consommation",
 		},
 		code: {
-			changes: "Changements",
+			changes: "Modifications locales",
 			history: "Historique",
 			branches: "Branches",
 			"pull-requests": "Pull requests",
@@ -132,7 +132,6 @@ export const fr: Messages = {
 			connections: "Connexions",
 			"agents-rules": "Agents et règles",
 			extensions: "Extensions",
-			team: "Équipe",
 			me: "Moi",
 			health: "Santé",
 		},
@@ -148,11 +147,11 @@ export const fr: Messages = {
 		settings: "Connexion",
 	},
 	role: {
-		none: "Aucun",
+		none: "Autre",
 		pm: "Chef de projet",
 		architect: "Architecte",
 		developer: "Développeur",
-		qa: "QA",
+		qa: "Testeur",
 		ba: "Analyste métier",
 		lead: "Responsable fonctionnel",
 		junior: "Junior",
@@ -212,6 +211,7 @@ export const fr: Messages = {
 		choose: "Choisir un dossier",
 		name: "Nom",
 		key: "Clé",
+		makeProject: "En faire un projet",
 		back: "Retour",
 		cloneRun: "Cloner",
 		createRun: "Créer",
@@ -324,6 +324,7 @@ export const fr: Messages = {
 	},
 	connections: {
 		add: "Connexion",
+		advanced: "Avancé",
 		group: {
 			tracker: "Trackers",
 			forge: "Forges",

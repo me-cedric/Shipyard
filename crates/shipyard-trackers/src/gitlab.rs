@@ -110,6 +110,25 @@ impl Tracker for GitLab {
         Ok(person(&self.call("/user", &[])?))
     }
 
+    fn scopes(&self) -> Result<Vec<Scope>, TrackerError> {
+        let v = self.call(
+            "/projects",
+            &[
+                ("membership", "true"),
+                ("simple", "true"),
+                ("per_page", "100"),
+                ("order_by", "last_activity_at"),
+            ],
+        )?;
+        Ok(items(&v, "")
+            .iter()
+            .map(|r| Scope {
+                id: text(r, "/path_with_namespace"),
+                name: text(r, "/path_with_namespace"),
+            })
+            .collect())
+    }
+
     fn search(&self, q: &WorkQuery) -> Result<Page<WorkItem>, TrackerError> {
         check_query(&self.capabilities(), q)?;
         let per_page = q.page_size().to_string();

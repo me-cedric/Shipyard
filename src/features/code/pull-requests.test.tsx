@@ -46,6 +46,16 @@ describe("Code / Pull requests", () => {
 		expect(await screen.findByRole("region", { name: "Diff of src/app.ts" })).toBeInTheDocument();
 	});
 
+	it("names the risk of a merge with failing checks in a danger confirmation", async () => {
+		const user = userEvent.setup();
+		await demo();
+		mountApp("/code/pull-requests");
+		await user.click(await row(/refuse an empty token/));
+		await user.click(await screen.findByRole("button", { name: "Merge" }));
+		const confirm = await screen.findByRole("button", { name: "Merge with failing checks" });
+		expect(confirm.className).toContain("bg-danger");
+	});
+
 	it("keeps Merge off for a draft, marks it ready, then merges after a confirmation that names the method", async () => {
 		const user = userEvent.setup();
 		await demo();

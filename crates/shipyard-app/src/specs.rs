@@ -27,7 +27,8 @@ use shipyard_trackers::work as writes;
 use specta::Type;
 use tauri::AppHandle;
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
+use crate::connections::slug_text;
 use crate::design::{Proj, Text, Written, project, put, read_text};
 use crate::work::{ApplyRow, mirror_items, need_click, tracker, write_diff};
 
@@ -89,11 +90,25 @@ pub struct ArtifactState {
 #[serde(rename_all = "camelCase")]
 pub struct ChangeView {
     pub id: String,
+    /// The plain title that the person typed. The id when the change has none.
+    pub title: String,
     /// Repository path of the change folder.
     pub path: String,
     /// `true` after a validation since the app started.
     pub validated: bool,
     pub artifacts: Vec<ArtifactState>,
+}
+
+/// The `title` of `.openspec.yaml`, a JSON string, or the id.
+fn change_title(dir: &Path, id: &str) -> String {
+    std::fs::read_to_string(dir.join(".openspec.yaml"))
+        .ok()
+        .and_then(|t| {
+            let line = t.lines().find_map(|l| l.strip_prefix("title: "))?;
+            serde_json::from_str::<String>(line).ok()
+        })
+        .filter(|t| !t.is_empty())
+        .unwrap_or_else(|| id.into())
 }
 
 fn change_view(s: &AppState, p: &Proj, id: &str) -> ChangeView {
@@ -132,6 +147,7 @@ fn change_view(s: &AppState, p: &Proj, id: &str) -> ChangeView {
     }
     ChangeView {
         id: id.into(),
+        title: change_title(&dir, id),
         path: format!("{}/changes/{id}", p.file.path("specs")),
         validated: found.is_some(),
         artifacts,
@@ -147,22 +163,27 @@ pub fn changes(s: &AppState) -> Res<Vec<ChangeView>> {
         .collect())
 }
 
-/// A new change: the proposal from the schema template and `.openspec.yaml` (REQ-003).
-pub fn change_create(s: &AppState, id: &str) -> Res<ChangeView> {
+/// A new change from a plain title: the id is the slug of the title. The proposal comes from the
+/// schema template and the title goes to `.openspec.yaml` (REQ-003).
+pub fn change_create(s: &AppState, title: &str) -> Res<ChangeView> {
+    let title = title.trim();
+    let id = slug_text(title);
+    let id = id.as_str();
     change_id(id)?;
     let p = project(s)?;
     let base = openspec(&p);
     let dir = base.join("changes").join(id);
     if dir.exists() {
-        return Err(format!("change {id} exists"));
+        return Err(format!("change exists: {id}"));
     }
     let tpl = base.join("schemas/shipyard-delivery/templates/proposal.md");
     let proposal = std::fs::read_to_string(&tpl)
         .map_err(|e| format!("template {}: {e}", tpl.display()))?
-        .replace("[CHANGE]", id);
+        .replace("[CHANGE]", title);
     let meta = format!(
-        "schema: shipyard-delivery\ncreated: {}\n",
-        crate::work::today(s)
+        "schema: shipyard-delivery\ncreated: {}\ntitle: {}\n",
+        crate::work::today(s),
+        serde_json::to_string(title).map_err(err)?
     );
     put(s, &dir.join("proposal.md"), &proposal, None, true)?;
     put(s, &dir.join(".openspec.yaml"), &meta, None, true)?;
@@ -591,19 +612,19 @@ pub fn archive_change(s: &AppState, id: &str, confirmed: bool) -> Res<Vec<String
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_changes(app: AppHandle) -> Res<Vec<ChangeView>> {
+pub async fn specs_changes(app: AppHandle) -> Api<Vec<ChangeView>> {
     blocking(app, changes).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_change_create(app: AppHandle, id: String) -> Res<ChangeView> {
-    blocking(app, move |s| change_create(s, &id)).await
+pub async fn specs_change_create(app: AppHandle, title: String) -> Api<ChangeView> {
+    blocking(app, move |s| change_create(s, &title)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_read(app: AppHandle, path: String) -> Res<Text> {
+pub async fn specs_read(app: AppHandle, path: String) -> Api<Text> {
     blocking(app, move |s| read(s, &path)).await
 }
 
@@ -615,7 +636,7 @@ pub async fn specs_write(
     text: String,
     stamp: Option<String>,
     create: bool,
-) -> Res<Written> {
+) -> Api<Written> {
     blocking(app, move |s| {
         write(s, &path, &text, stamp.as_deref(), create)
     })
@@ -624,25 +645,25 @@ pub async fn specs_write(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_validate(app: AppHandle, id: String) -> Res<Vec<Finding>> {
+pub async fn specs_validate(app: AppHandle, id: String) -> Api<Vec<Finding>> {
     blocking(app, move |s| validate(s, &id)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_capabilities(app: AppHandle) -> Res<Vec<CapabilityRow>> {
+pub async fn specs_capabilities(app: AppHandle) -> Api<Vec<CapabilityRow>> {
     blocking(app, capabilities).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_spec(app: AppHandle, path: String) -> Res<SpecView> {
+pub async fn specs_spec(app: AppHandle, path: String) -> Api<SpecView> {
     blocking(app, move |s| spec(s, &path)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_questions(app: AppHandle) -> Res<Vec<Entry>> {
+pub async fn specs_questions(app: AppHandle) -> Api<Vec<Entry>> {
     blocking(app, questions).await
 }
 
@@ -653,7 +674,7 @@ pub async fn specs_question_save(
     path: String,
     question: Question,
     stamp: Option<String>,
-) -> Res<Written> {
+) -> Api<Written> {
     blocking(app, move |s| {
         question_save(s, &path, &question, stamp.as_deref())
     })
@@ -662,19 +683,19 @@ pub async fn specs_question_save(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_question_create(app: AppHandle, question: Question) -> Res<String> {
+pub async fn specs_question_create(app: AppHandle, question: Question) -> Api<String> {
     blocking(app, move |s| question_create(s, question)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_testplans(app: AppHandle) -> Res<Vec<PlanRow>> {
+pub async fn specs_testplans(app: AppHandle) -> Api<Vec<PlanRow>> {
     blocking(app, testplans).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_coverage(app: AppHandle, capability: String) -> Res<Vec<String>> {
+pub async fn specs_coverage(app: AppHandle, capability: String) -> Api<Vec<String>> {
     blocking(app, move |s| coverage(s, &capability)).await
 }
 
@@ -687,7 +708,7 @@ pub async fn specs_fold(
     answer: String,
     stamp: String,
     click: bool,
-) -> Res<Written> {
+) -> Api<Written> {
     blocking(app, move |s| {
         fold_answer(s, &spec_path, &question_id, &answer, &stamp, click)
     })
@@ -696,31 +717,31 @@ pub async fn specs_fold(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_split_draft(app: AppHandle, change: String) -> Res<Draft> {
+pub async fn specs_split_draft(app: AppHandle, change: String) -> Api<Draft> {
     blocking(app, move |s| split_draft(s, &change)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_split_save(app: AppHandle, draft: Draft) -> Res<()> {
+pub async fn specs_split_save(app: AppHandle, draft: Draft) -> Api<()> {
     blocking(app, move |s| split_save(s, &draft)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_split_preview(app: AppHandle, change: String) -> Res<SplitPreview> {
+pub async fn specs_split_preview(app: AppHandle, change: String) -> Api<SplitPreview> {
     blocking(app, move |s| split_preview(s, &change)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_split_apply(app: AppHandle, change: String, click: bool) -> Res<Vec<ApplyRow>> {
+pub async fn specs_split_apply(app: AppHandle, change: String, click: bool) -> Api<Vec<ApplyRow>> {
     blocking(app, move |s| split_apply(s, &change, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn specs_archive(app: AppHandle, id: String, confirmed: bool) -> Res<Vec<String>> {
+pub async fn specs_archive(app: AppHandle, id: String, confirmed: bool) -> Api<Vec<String>> {
     blocking(app, move |s| archive_change(s, &id, confirmed)).await
 }
 

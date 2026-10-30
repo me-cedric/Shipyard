@@ -16,7 +16,7 @@ const unstaged = (page: Page) => page.getByRole("region", { name: "Unstaged" });
 const heading = (page: Page, name: string) => page.getByRole("heading", { name });
 
 test("stages a file, commits it from the status bar and finds it in History", async ({ page }) => {
-	await openCode(page, "Changes");
+	await openCode(page, "Local changes");
 	await expect(heading(page, "Staged (1)")).toBeVisible();
 	const commit = page.getByRole("contentinfo").getByRole("button", { name: "Commit" });
 	await expect(commit).toBeEnabled();
@@ -48,7 +48,7 @@ test("stages a file, commits it from the status bar and finds it in History", as
 test("refuses a switch that would overwrite a change, then switches after a discard", async ({
 	page,
 }) => {
-	await openCode(page, "Changes");
+	await openCode(page, "Local changes");
 	const selector = page.getByRole("combobox", { name: "Working branch" });
 	await expect(selector).toHaveText("main");
 
@@ -87,7 +87,7 @@ test("merges a branch with one click in Code / Branches", async ({ page }) => {
 
 	await page
 		.getByRole("navigation", { name: "Tabs" })
-		.getByRole("link", { name: "Changes" })
+		.getByRole("link", { name: "Local changes" })
 		.click();
 	await page
 		.getByRole("region", { name: "Stashes" })
@@ -149,8 +149,8 @@ test("merges only after the confirm click", async ({ page }) => {
 	await pull(page, 142).click();
 	const merge = page.getByRole("button", { name: "Merge", exact: true });
 	await merge.click();
-	// The first click only asks: the merge has not run.
-	const confirm = page.getByRole("button", { name: "Merge with Merge" });
+	// The first click only asks: the merge has not run. The checks fail: the confirm names the risk.
+	const confirm = page.getByRole("button", { name: "Merge with failing checks" });
 	await expect(confirm).toBeVisible();
 	await expect(page.getByRole("alert")).toHaveCount(0);
 	await confirm.click();

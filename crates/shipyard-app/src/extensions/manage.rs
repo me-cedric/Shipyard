@@ -15,7 +15,7 @@ use tauri::AppHandle;
 
 use super::compass::ac;
 use super::root;
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::work::need_click;
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -27,7 +27,7 @@ pub struct PolicyPacks {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn compass_policies(app: AppHandle) -> Res<PolicyPacks> {
+pub async fn compass_policies(app: AppHandle) -> Api<PolicyPacks> {
     blocking(app, |s| {
         Ok(PolicyPacks {
             packs: compass_user::policies(),
@@ -40,7 +40,7 @@ pub async fn compass_policies(app: AppHandle) -> Res<PolicyPacks> {
 /// Replaces the policy of the project. Returns the files that it wrote.
 #[tauri::command]
 #[specta::specta]
-pub async fn compass_policy_apply(app: AppHandle, id: String, click: bool) -> Res<Vec<String>> {
+pub async fn compass_policy_apply(app: AppHandle, id: String, click: bool) -> Api<Vec<String>> {
     blocking(app, move |s| {
         need_click(s, click)?;
         compass_user::policy_apply(&root(s)?, &id).map_err(err)
@@ -51,7 +51,7 @@ pub async fn compass_policy_apply(app: AppHandle, id: String, click: bool) -> Re
 /// Copies a rules file into the instincts of the project. Returns the key `pattern:<id>`.
 #[tauri::command]
 #[specta::specta]
-pub async fn compass_import(app: AppHandle, path: String, click: bool) -> Res<String> {
+pub async fn compass_import(app: AppHandle, path: String, click: bool) -> Api<String> {
     blocking(app, move |s| {
         need_click(s, click)?;
         let id = compass_user::import_rules(&root(s)?, &PathBuf::from(path)).map_err(err)?;
@@ -83,7 +83,7 @@ fn remove_entry(root: &Path, kind: Kind, id: &str) -> Res<()> {
 /// Removes an entry from the project: an instinct file, or a skill or pack through `ac`.
 #[tauri::command]
 #[specta::specta]
-pub async fn compass_remove(app: AppHandle, kind: Kind, id: String, click: bool) -> Res<()> {
+pub async fn compass_remove(app: AppHandle, kind: Kind, id: String, click: bool) -> Api<()> {
     blocking(app, move |s| {
         need_click(s, click)?;
         remove_entry(&root(s)?, kind, &id)
@@ -93,7 +93,7 @@ pub async fn compass_remove(app: AppHandle, kind: Kind, id: String, click: bool)
 
 #[tauri::command]
 #[specta::specta]
-pub async fn catalog_undeploy(app: AppHandle, id: String, click: bool) -> Res<Undeployed> {
+pub async fn catalog_undeploy(app: AppHandle, id: String, click: bool) -> Api<Undeployed> {
     blocking(app, move |s| {
         need_click(s, click)?;
         catalog_undeploy::undeploy(&root(s)?, &id).map_err(err)
@@ -103,7 +103,7 @@ pub async fn catalog_undeploy(app: AppHandle, id: String, click: bool) -> Res<Un
 
 #[tauri::command]
 #[specta::specta]
-pub async fn plugin_list(app: AppHandle) -> Res<Vec<Installed>> {
+pub async fn plugin_list(app: AppHandle) -> Api<Vec<Installed>> {
     blocking(app, |s| Ok(plugin_manage::list(&root(s)?))).await
 }
 
@@ -120,7 +120,7 @@ fn servers_of(s: &AppState, names: &[String]) -> Vec<String> {
 /// A disabled plugin has its MCP servers off. Its files stay.
 #[tauri::command]
 #[specta::specta]
-pub async fn plugin_set_enabled(app: AppHandle, name: String, on: bool, click: bool) -> Res<()> {
+pub async fn plugin_set_enabled(app: AppHandle, name: String, on: bool, click: bool) -> Api<()> {
     blocking(app, move |s| {
         need_click(s, click)?;
         let names = plugin_manage::set_enabled(&root(s)?, &name, on).map_err(err)?;
@@ -135,7 +135,7 @@ pub async fn plugin_set_enabled(app: AppHandle, name: String, on: bool, click: b
 /// Removes the unchanged files of a plugin, its MCP servers and its record.
 #[tauri::command]
 #[specta::specta]
-pub async fn plugin_remove(app: AppHandle, name: String, click: bool) -> Res<Removed> {
+pub async fn plugin_remove(app: AppHandle, name: String, click: bool) -> Api<Removed> {
     blocking(app, move |s| {
         need_click(s, click)?;
         let out = plugin_manage::remove(&root(s)?, &name).map_err(err)?;

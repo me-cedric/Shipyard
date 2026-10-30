@@ -6,7 +6,7 @@ use shipyard_agents::runners::detect;
 use shipyard_agents::which::{quiet, search_dirs, which};
 use tauri::AppHandle;
 
-use crate::commands::{Res, blocking};
+use crate::commands::{Api, Res, blocking};
 use crate::work::need_click;
 
 /// The arguments of `npm` for an install line, or why it is refused.
@@ -24,6 +24,10 @@ pub fn install(id: &str) -> Res<()> {
         .find(|r| r.id == id)
         .ok_or_else(|| format!("`{id}` is not a runner"))?;
     let args = npm_args(runner.install)?;
+    // A runner needs npm: install Node the way Settings / Health does, then look again.
+    if which("npm", &search_dirs()).is_none() {
+        crate::doctor::install("node")?;
+    }
     let npm = which("npm", &search_dirs()).ok_or("npm is not installed: install Node first")?;
     let out = quiet(std::process::Command::new(npm).args(&args))
         .output()
@@ -46,7 +50,7 @@ pub fn install(id: &str) -> Res<()> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn runner_install(app: AppHandle, id: String, click: bool) -> Res<()> {
+pub async fn runner_install(app: AppHandle, id: String, click: bool) -> Api<()> {
     blocking(app, move |s| {
         need_click(s, click)?;
         install(&id)

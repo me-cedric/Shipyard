@@ -22,7 +22,7 @@ use shipyard_store::project::write_atomic;
 use specta::Type;
 
 use crate::agents::{McpCustom, McpEnv};
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 
 const FILE: &str = "mcp-outside.json";
 const TOKEN_FILE: &str = "mcp-outside.token";
@@ -450,26 +450,26 @@ pub fn elsewhere_import(s: &AppState, source: &str, name: &str) -> Res<String> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn mcp_outside_get(app: tauri::AppHandle) -> Res<McpOutside> {
+pub async fn mcp_outside_get(app: tauri::AppHandle) -> Api<McpOutside> {
     blocking(app, |s| Ok(status(s))).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn mcp_outside_set(app: tauri::AppHandle, gates: McpGates) -> Res<McpOutside> {
+pub async fn mcp_outside_set(app: tauri::AppHandle, gates: McpGates) -> Api<McpOutside> {
     blocking(app, move |s| gates_set(s, gates)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn mcp_outside_wire(app: tauri::AppHandle) -> Res<String> {
+pub async fn mcp_outside_wire(app: tauri::AppHandle) -> Api<String> {
     blocking(app, wire).await
 }
 
 /// The token that an agent sends. It is the person's own secret, shown only to copy.
 #[tauri::command]
 #[specta::specta]
-pub async fn mcp_outside_token(app: tauri::AppHandle) -> Res<String> {
+pub async fn mcp_outside_token(app: tauri::AppHandle) -> Api<String> {
     blocking(app, |s| {
         token(&s.dir).ok_or_else(|| "turn the server on first".to_string())
     })
@@ -478,7 +478,7 @@ pub async fn mcp_outside_token(app: tauri::AppHandle) -> Res<String> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn mcp_elsewhere_list(app: tauri::AppHandle) -> Res<Vec<Elsewhere>> {
+pub async fn mcp_elsewhere_list(app: tauri::AppHandle) -> Api<Vec<Elsewhere>> {
     blocking(app, |s| Ok(elsewhere_list(s))).await
 }
 
@@ -488,7 +488,7 @@ pub async fn mcp_elsewhere_import(
     app: tauri::AppHandle,
     source: String,
     name: String,
-) -> Res<String> {
+) -> Api<String> {
     blocking(app, move |s| elsewhere_import(s, &source, &name)).await
 }
 

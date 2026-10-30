@@ -15,7 +15,7 @@ use serde_json::Value;
 use specta::Type;
 use tauri::AppHandle;
 
-use crate::commands::{Res, blocking, err};
+use crate::commands::{Api, Res, blocking, err};
 
 /// Where the desktop app is downloaded from. The CLI comes with it.
 pub const DOWNLOAD_URL: &str = "https://www.onorca.dev/download";
@@ -276,13 +276,13 @@ pub fn state_of(raw: &str) -> String {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn orca_status(app: AppHandle) -> Res<OrcaStatus> {
+pub async fn orca_status(app: AppHandle) -> Api<OrcaStatus> {
     blocking(app, |_| Ok(status())).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn orca_open(app: AppHandle, terminal: String, click: bool) -> Res<()> {
+pub async fn orca_open(app: AppHandle, terminal: String, click: bool) -> Api<()> {
     blocking(app, move |_| open(&terminal, click).map_err(err)).await
 }
 

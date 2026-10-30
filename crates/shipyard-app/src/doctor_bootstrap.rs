@@ -10,7 +10,7 @@ use shipyard_core::project::{PROJECT_FILE, ProjectFile, validate};
 use shipyard_store::project::render_project_file;
 use specta::Type;
 
-use crate::commands::{Res, blocking, err};
+use crate::commands::{Api, Res, blocking, err};
 use crate::doctor::{ToolCheck, tools};
 
 const PROMPT: &str = "BOOTSTRAP_PROMPT.md";
@@ -170,7 +170,7 @@ fn root(s: &crate::commands::AppState) -> Res<PathBuf> {
 pub async fn doctor_bootstrap_plan(
     app: tauri::AppHandle,
     answers: BootstrapAnswers,
-) -> Res<BootstrapPlan> {
+) -> Api<BootstrapPlan> {
     blocking(app, move |s| plan(&root(s)?, &answers)).await
 }
 
@@ -180,7 +180,7 @@ pub async fn doctor_bootstrap_apply(
     app: tauri::AppHandle,
     answers: BootstrapAnswers,
     click: bool,
-) -> Res<Vec<String>> {
+) -> Api<Vec<String>> {
     blocking(app, move |s| {
         crate::work::need_click(s, click)?;
         apply(&root(s)?, &answers)

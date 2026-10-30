@@ -51,7 +51,8 @@ export function Graph() {
 				(n): CanvasNode => ({
 					id: n.ref,
 					kind: n.kind,
-					label: n.ref,
+					// The title reads; the ref stays in the accessible name and the inspector.
+					label: n.title || n.ref,
 					name: `${kindNames[n.kind] ?? n.kind} ${n.ref}, ${n.title}`,
 					orphan: n.orphan,
 					stale: n.stale,

@@ -59,7 +59,9 @@ describe("mock design", () => {
 
 	it("fails without a project", async () => {
 		resetMock();
-		await expect(unwrap(commands.designList())).rejects.toThrow("no active project");
+		await expect(unwrap(commands.designList())).rejects.toMatchObject({
+			details: expect.stringContaining("no active project"),
+		});
 	});
 
 	it("stamps a write and returns the conflict for an old stamp", async () => {
@@ -76,8 +78,10 @@ describe("mock design", () => {
 		});
 		await expect(
 			unwrap(commands.designWrite("docs/api/new.yaml", "x", null, true)),
-		).rejects.toThrow("exists");
-		await expect(unwrap(commands.designRead("../secret"))).rejects.toThrow("path not allowed");
+		).rejects.toMatchObject({ details: expect.stringContaining("exists") });
+		await expect(unwrap(commands.designRead("../secret"))).rejects.toMatchObject({
+			details: expect.stringContaining("path not allowed"),
+		});
 	});
 
 	it("creates the next ADR as proposed and decides it", async () => {
@@ -88,15 +92,17 @@ describe("mock design", () => {
 			path: "docs/decisions/0005-use-a-queue.md",
 		});
 		const { stamp } = await unwrap(commands.designRead(adr.path));
-		await expect(unwrap(commands.designAdrDecide(adr.path, "reject", "  ", stamp))).rejects.toThrow(
-			"a comment is required",
-		);
+		await expect(
+			unwrap(commands.designAdrDecide(adr.path, "reject", "  ", stamp)),
+		).rejects.toMatchObject({ details: expect.stringContaining("a comment is required") });
 		await unwrap(commands.designAdrDecide(adr.path, "reject", "too costly", stamp));
 		const l = await unwrap(commands.designList());
 		expect(l.adrs.find((a) => a.number === "0005")?.status).toBe("rejected");
-		await expect(unwrap(commands.designAdrDecide(adr.path, "accept", "x", stamp))).rejects.toThrow(
-			"only a proposed ADR can be decided",
-		);
+		await expect(
+			unwrap(commands.designAdrDecide(adr.path, "accept", "x", stamp)),
+		).rejects.toMatchObject({
+			details: expect.stringContaining("only a proposed ADR can be decided"),
+		});
 	});
 
 	it("saves the flow table and names a row with a missing field", async () => {
@@ -112,10 +118,14 @@ describe("mock design", () => {
 		};
 		await expect(
 			unwrap(commands.designFlowsSave(FLOWS, [{ ...row, protocol: " " }], stamp)),
-		).rejects.toThrow("row 21: missing field: protocol");
+		).rejects.toMatchObject({
+			details: expect.stringContaining("row 21: missing field: protocol"),
+		});
 		await expect(
 			unwrap(commands.designFlowsSave(FLOWS, [{ ...row, source: "10.10.0" }], stamp)),
-		).rejects.toThrow("row 21: invalid source: 10.10.0");
+		).rejects.toMatchObject({
+			details: expect.stringContaining("row 21: invalid source: 10.10.0"),
+		});
 		expect((await unwrap(commands.designRead(FLOWS))).text).toBe(text);
 		const ok = await unwrap(commands.designFlowsSave(FLOWS, [row], stamp));
 		expect(ok.conflict).toBe(false);
@@ -136,23 +146,25 @@ describe("mock design", () => {
 		expect((await unwrap(commands.designTry({ ...req, route: "/nope" }, false))).status).toBe(404);
 		await expect(
 			unwrap(commands.designTry({ ...req, method: "POST", route: "/orders" }, false)),
-		).rejects.toThrow("this change needs the click of a person");
+		).rejects.toMatchObject({
+			details: expect.stringContaining("this change needs the click of a person"),
+		});
 		expect(
 			(await unwrap(commands.designTry({ ...req, method: "POST", route: "/orders" }, true))).status,
 		).toBe(201);
 		await expect(
 			unwrap(commands.designTry({ ...req, server: "https://evil.test" }, false)),
-		).rejects.toThrow("does not list");
-		await expect(unwrap(commands.designTry({ ...req, method: "TRACE" }, true))).rejects.toThrow(
-			"not allowed",
-		);
+		).rejects.toMatchObject({ details: expect.stringContaining("does not list") });
+		await expect(
+			unwrap(commands.designTry({ ...req, method: "TRACE" }, true)),
+		).rejects.toMatchObject({ details: expect.stringContaining("not allowed") });
 	});
 
 	it("records an open target and refuses a broken .fig link", async () => {
 		await unwrap(commands.designOpen("https://www.figma.com/file/abc123/Home"));
-		await expect(unwrap(commands.designOpen("docs/designs/checkout.fig"))).rejects.toThrow(
-			"not an https",
-		);
+		await expect(unwrap(commands.designOpen("docs/designs/checkout.fig"))).rejects.toMatchObject({
+			details: expect.stringContaining("not an https"),
+		});
 	});
 
 	it("lists the entities and the backlinks of the design files", async () => {

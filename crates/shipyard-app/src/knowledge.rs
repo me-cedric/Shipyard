@@ -27,7 +27,7 @@ use specta::Type;
 use tauri::AppHandle;
 
 use crate::commands::refs::{resolve, with_index};
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::design::{Text, Written, project, put, read_text};
 
 // ---------------------------------------------------------------- reference graph
@@ -961,13 +961,13 @@ pub(crate) fn write_export(path: &str, ext: &str, bytes: &[u8]) -> Res<()> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn graph_get(app: AppHandle) -> Res<KGraph> {
+pub async fn graph_get(app: AppHandle) -> Api<KGraph> {
     blocking(app, graph).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn graph_code(app: AppHandle) -> Res<CodeGraph> {
+pub async fn graph_code(app: AppHandle) -> Api<CodeGraph> {
     blocking(app, |s| {
         Ok(code_graph(s.agents.proxy.as_ref(), &project(s)?.root))
     })
@@ -976,7 +976,7 @@ pub async fn graph_code(app: AppHandle) -> Res<CodeGraph> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn graph_code_index(app: AppHandle) -> Res<()> {
+pub async fn graph_code_index(app: AppHandle) -> Api<()> {
     blocking(app, |s| {
         code_index(s.agents.proxy.as_ref(), &project(s)?.root)
     })
@@ -985,19 +985,19 @@ pub async fn graph_code_index(app: AppHandle) -> Res<()> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn explain_context_get(app: AppHandle, entity: String) -> Res<ExplainContext> {
+pub async fn explain_context_get(app: AppHandle, entity: String) -> Api<ExplainContext> {
     blocking(app, move |s| explain_context(s, &entity)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn doc_list_get(app: AppHandle) -> Res<DocList> {
+pub async fn doc_list_get(app: AppHandle) -> Api<DocList> {
     blocking(app, doc_list).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn doc_read_one(app: AppHandle, path: String) -> Res<Text> {
+pub async fn doc_read_one(app: AppHandle, path: String) -> Api<Text> {
     blocking(app, move |s| doc_read(s, &path)).await
 }
 
@@ -1009,7 +1009,7 @@ pub async fn doc_write_one(
     text: String,
     stamp: Option<String>,
     create: bool,
-) -> Res<Written> {
+) -> Api<Written> {
     blocking(app, move |s| {
         doc_write(s, &path, &text, stamp.as_deref(), create)
     })
@@ -1018,7 +1018,7 @@ pub async fn doc_write_one(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn slide_theme_get(app: AppHandle) -> Res<ThemeView> {
+pub async fn slide_theme_get(app: AppHandle) -> Api<ThemeView> {
     blocking(app, theme_get).await
 }
 
@@ -1028,7 +1028,7 @@ pub async fn slide_theme_set(
     app: AppHandle,
     theme: DeckTheme,
     stamp: Option<String>,
-) -> Res<Written> {
+) -> Api<Written> {
     blocking(app, move |s| theme_set(s, &theme, stamp.as_deref())).await
 }
 
@@ -1040,13 +1040,13 @@ pub async fn slide_parse(text: String) -> kn::Deck {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn dashboard_list_get(app: AppHandle) -> Res<Vec<DashEntry>> {
+pub async fn dashboard_list_get(app: AppHandle) -> Api<Vec<DashEntry>> {
     blocking(app, dashboard_list).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn dashboard_get_one(app: AppHandle, slug: String) -> Res<DashView> {
+pub async fn dashboard_get_one(app: AppHandle, slug: String) -> Api<DashView> {
     blocking(app, move |s| dashboard_get(s, &slug)).await
 }
 
@@ -1057,7 +1057,7 @@ pub async fn dashboard_save_one(
     slug: String,
     dashboard: Dashboard,
     stamp: Option<String>,
-) -> Res<Written> {
+) -> Api<Written> {
     blocking(app, move |s| {
         dashboard_save(s, &slug, &dashboard, stamp.as_deref())
     })
@@ -1066,13 +1066,13 @@ pub async fn dashboard_save_one(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn dashboard_tile(app: AppHandle, kind: String) -> Res<TileData> {
+pub async fn dashboard_tile(app: AppHandle, kind: String) -> Api<TileData> {
     blocking(app, move |s| tile_data(s, &kind)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn learn_get(app: AppHandle) -> Res<Learn> {
+pub async fn learn_get(app: AppHandle) -> Api<Learn> {
     blocking(app, learn).await
 }
 
@@ -1083,7 +1083,7 @@ pub async fn export_dossier_file(
     text: ExportText,
     views: Vec<ViewImage>,
     path: String,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| export_dossier(s, &text, &views, &path)).await
 }
 
@@ -1097,7 +1097,7 @@ pub async fn export_dossier_complete_file(
     views: Vec<ViewImage>,
     path: String,
     click: bool,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| {
         export_dossier_complete(s, &text, &views, &path, click)
     })
@@ -1106,7 +1106,7 @@ pub async fn export_dossier_complete_file(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn export_functional_file(app: AppHandle, text: ExportText, path: String) -> Res<()> {
+pub async fn export_functional_file(app: AppHandle, text: ExportText, path: String) -> Api<()> {
     blocking(app, move |s| export_functional(s, &text, &path)).await
 }
 
@@ -1117,7 +1117,7 @@ pub async fn export_sheet_file(
     text: ExportText,
     sheets: Vec<SheetIn>,
     path: String,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| export_sheet(s, &text, sheets, &path)).await
 }
 

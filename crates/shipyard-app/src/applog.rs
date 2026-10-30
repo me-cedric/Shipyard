@@ -11,7 +11,7 @@ use std::sync::Mutex;
 use serde::Serialize;
 use specta::Type;
 
-use crate::commands::{Res, blocking};
+use crate::commands::{Api, blocking};
 
 const CAP: usize = 500;
 const LEVELS: [&str; 3] = ["info", "warn", "error"];
@@ -73,7 +73,7 @@ pub fn lines() -> Vec<LogLine> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn debug_log(app: tauri::AppHandle) -> Res<Vec<LogLine>> {
+pub async fn debug_log(app: tauri::AppHandle) -> Api<Vec<LogLine>> {
     blocking(app, |_| Ok(lines())).await
 }
 

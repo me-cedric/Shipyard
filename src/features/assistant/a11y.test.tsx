@@ -98,7 +98,7 @@ describe("assistant panel: language", () => {
 		await unwrap(commands.prefsSet({ lang: "fr" }));
 		await mountAssistant();
 		expect(screen.getByRole("complementary", { name: "Assistant" })).toBeInTheDocument();
-		expect(screen.getByRole("list", { name: "Fils" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Sans titre" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Envoyer" })).toBeInTheDocument();
 		expect(screen.getByRole("textbox", { name: "Message" })).toBeInTheDocument();
 		expect(screen.getByRole("separator", { name: "Largeur" })).toBeInTheDocument();

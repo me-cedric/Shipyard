@@ -104,7 +104,7 @@ export function useInboxActions() {
 	const qc = useQueryClient();
 	return useMemo(() => {
 		const run = async <T>(
-			call: Promise<{ status: "ok"; data: T } | { status: "error"; error: string }>,
+			call: Promise<{ status: "ok"; data: T } | { status: "error"; error: unknown }>,
 		) => {
 			try {
 				return await unwrap(call);

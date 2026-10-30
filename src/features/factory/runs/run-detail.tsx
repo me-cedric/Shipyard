@@ -59,6 +59,7 @@ export function RunDetail({ id }: { id: string }) {
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-col gap-1.5">
+				<p className="text-16 font-semibold text-n-12">{run.title}</p>
 				<div className="flex items-center gap-2">
 					<span className="font-mono text-12 text-n-11">{run.key}</span>
 					<Badge variant={STATUS_BADGE[status]}>
@@ -67,7 +68,6 @@ export function RunDetail({ id }: { id: string }) {
 					</Badge>
 					<Badge className="font-mono">{run.workflow}</Badge>
 				</div>
-				<p className="text-16 font-semibold text-n-12">{run.title}</p>
 			</div>
 			<div className="flex flex-wrap items-center gap-2">
 				{run.state === "PlanReview" ? (

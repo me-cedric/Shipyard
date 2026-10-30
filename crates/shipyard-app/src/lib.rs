@@ -15,6 +15,7 @@ pub mod delivery;
 pub mod design;
 pub mod doctor;
 pub mod doctor_bootstrap;
+pub mod errors;
 pub mod extensions;
 pub mod factory;
 pub mod feedback;
@@ -63,6 +64,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             projects::projects_active,
             projects::projects_open,
             projects::projects_create,
+            projects::projects_init,
             projects::projects_clone,
             projects::projects_switch,
             projects::projects_close,
@@ -95,6 +97,9 @@ fn specta_builder() -> Builder<tauri::Wry> {
             conn::connections_test,
             conn::connections_repos,
             conn::connections_create_repo,
+            crate::commands::setup::connections_suggest,
+            crate::commands::setup::connections_scopes,
+            crate::commands::setup::connections_open_token_page,
             crate::commands::logins::connections_detect,
             crate::commands::logins::connections_use_login,
             git::code_status,

@@ -438,8 +438,28 @@ function states(s: MockSpecs, id: string, found: SpecFinding_Serialize[] | undef
 	);
 }
 
+/** The slug of a title: `[a-z0-9-]`, up to 40 characters, the same as `slug_text` in Rust. */
+const slugOf = (title: string) =>
+	title
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+/, "")
+		.slice(0, 40)
+		.replace(/-+$/, "");
+
+/** The `title` of `.openspec.yaml`, a JSON string, or the id. */
+function titleOf(s: MockSpecs, id: string): string {
+	const line = s.files[`${CH}/${id}/.openspec.yaml`]?.text.match(/^title: (.+)$/m)?.[1];
+	try {
+		return (line && JSON.parse(line)) || id;
+	} catch {
+		return id;
+	}
+}
+
 const view = (s: MockSpecs, id: string): ChangeView_Serialize => ({
 	id,
+	title: titleOf(s, id),
 	path: `${CH}/${id}`,
 	validated: id in s.validated,
 	artifacts: states(s, id, s.validated[id]),
@@ -451,20 +471,22 @@ export const changes = (s: MockSpecs) =>
 		.sort()
 		.map((id) => view(s, id));
 
-export function changeCreate(s: MockSpecs, id: string, today: string): ChangeView_Serialize {
+export function changeCreate(s: MockSpecs, title: string, today: string): ChangeView_Serialize {
+	title = title.trim();
+	const id = slugOf(title);
 	needChange(id);
-	if (names(s.files, CH).includes(id)) throw `change ${id} exists`;
+	if (names(s.files, CH).includes(id)) throw `change exists: ${id}`;
 	putText(
 		s.files,
 		`${CH}/${id}/proposal.md`,
-		`# ${id}\n\n## Why\n\n## What Changes\n\n## Impact\n`,
+		`# ${title}\n\n## Why\n\n## What Changes\n\n## Impact\n`,
 		null,
 		true,
 	);
 	putText(
 		s.files,
 		`${CH}/${id}/.openspec.yaml`,
-		`schema: shipyard-delivery\ncreated: ${today}\n`,
+		`schema: shipyard-delivery\ncreated: ${today}\ntitle: ${JSON.stringify(title)}\n`,
 		null,
 		true,
 	);

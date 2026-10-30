@@ -51,6 +51,18 @@ export const settingsEn = {
 		added: "+{count} new",
 		resolved: "-{count} fixed",
 	},
+	/** The word of each product for the secret of a connection, and the link to make one. */
+	setup: {
+		token: {
+			"jira-cloud": "API token",
+			"jira-data-center": "Personal access token",
+			github: "Personal access token",
+			gitlab: "Personal access token",
+			"azure-dev-ops": "Personal access token",
+			linear: "API key",
+		},
+		getToken: "Create a token",
+	},
 };
 
 export const settingsFr: typeof settingsEn = {
@@ -104,5 +116,16 @@ export const settingsFr: typeof settingsEn = {
 		title: "Constats dans le temps",
 		added: "+{count} nouveaux",
 		resolved: "-{count} corrigés",
+	},
+	setup: {
+		token: {
+			"jira-cloud": "Jeton d'API",
+			"jira-data-center": "Jeton d'accès personnel",
+			github: "Jeton d'accès personnel",
+			gitlab: "Jeton d'accès personnel",
+			"azure-dev-ops": "Jeton d'accès personnel",
+			linear: "Clé d'API",
+		},
+		getToken: "Créer un jeton",
 	},
 };

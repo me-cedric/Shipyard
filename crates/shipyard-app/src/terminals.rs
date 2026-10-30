@@ -14,7 +14,7 @@ use shipyard_store::prefs::Prefs;
 use specta::Type;
 use tauri::AppHandle;
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 pub struct TerminalApp {
@@ -261,14 +261,14 @@ pub fn launch(s: &AppState, folder: &str, click: bool) -> Res<()> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn terminal_apps(app: AppHandle) -> Res<Vec<TerminalApp>> {
+pub async fn terminal_apps(app: AppHandle) -> Api<Vec<TerminalApp>> {
     blocking(app, |_| Ok(available())).await
 }
 
 /// Opens the terminal app of the preferences in a folder of the open project.
 #[tauri::command]
 #[specta::specta]
-pub async fn terminal_launch(app: AppHandle, folder: String, click: bool) -> Res<()> {
+pub async fn terminal_launch(app: AppHandle, folder: String, click: bool) -> Api<()> {
     blocking(app, move |s| launch(s, &folder, click)).await
 }
 

@@ -45,15 +45,19 @@ describe("Factory / machine-wide AI sessions and spend", () => {
 		expect(within(table).getByText("34%")).toBeInTheDocument();
 		await user.click(within(table).getByRole("button", { name: "Open in Orca Claude Code" }));
 		await waitFor(() => expect(mockState().orcaOpened).toEqual(["t1"]));
-		await expect(unwrap(commands.orcaOpen("t1", false))).rejects.toThrow(/click/);
+		await expect(unwrap(commands.orcaOpen("t1", false))).rejects.toMatchObject({
+			details: expect.stringMatching(/click/),
+		});
 	});
 
 	it("Sessions: a stop of a process that is gone shows the reason", async () => {
 		await renderTab(<Sessions />);
-		await expect(unwrap(commands.machineSessionStop(1, true))).rejects.toThrow(
-			"no AI session runs",
-		);
-		await expect(unwrap(commands.machineSessionStop(4188, false))).rejects.toThrow("click");
+		await expect(unwrap(commands.machineSessionStop(1, true))).rejects.toMatchObject({
+			details: expect.stringContaining("no AI session runs"),
+		});
+		await expect(unwrap(commands.machineSessionStop(4188, false))).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
 	});
 
 	it("Usage: a chart by day, spend by runner, and a monthly budget with its meter", async () => {
@@ -83,7 +87,9 @@ describe("Factory / machine-wide AI sessions and spend", () => {
 	});
 
 	it("a negative budget is refused", async () => {
-		await expect(unwrap(commands.machineBudgetSet("claude", -1))).rejects.toThrow("0 or more");
+		await expect(unwrap(commands.machineBudgetSet("claude", -1))).rejects.toMatchObject({
+			details: expect.stringContaining("0 or more"),
+		});
 	});
 
 	it("groups spend by key and sorts days newest first and the rest by spend", () => {

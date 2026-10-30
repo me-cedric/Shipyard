@@ -106,6 +106,20 @@ impl Tracker for Linear {
         Ok(person(&v["data"]["viewer"]))
     }
 
+    fn scopes(&self) -> Result<Vec<Scope>, TrackerError> {
+        let v = self.gql(
+            "query { teams(first: 100) { nodes { key name } } }",
+            json!({}),
+        )?;
+        Ok(items(&v, "/data/teams/nodes")
+            .iter()
+            .map(|t| Scope {
+                id: text(t, "/key"),
+                name: text(t, "/name"),
+            })
+            .collect())
+    }
+
     fn search(&self, q: &WorkQuery) -> Result<Page<WorkItem>, TrackerError> {
         check_query(&self.capabilities(), q)?;
         let mut filter = serde_json::Map::new();

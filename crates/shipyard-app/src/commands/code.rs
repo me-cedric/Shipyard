@@ -18,7 +18,7 @@ use shipyard_store::code::{set_watch_minutes, watch_minutes};
 use specta::Type;
 use tauri::{AppHandle, Emitter};
 
-use super::{AppState, Res, blocking, err};
+use super::{Api, AppState, Res, blocking, err};
 use crate::work::refuse_read_only;
 
 /// A diff above this size is cut. The view says so.
@@ -395,194 +395,194 @@ pub fn file_list(s: &AppState) -> Res<Vec<String>> {
 /// The files of the working copy, repo-relative, the ignore rules applied (the file drawer).
 #[tauri::command]
 #[specta::specta]
-pub async fn code_file_list(app: AppHandle) -> Res<Vec<String>> {
+pub async fn code_file_list(app: AppHandle) -> Api<Vec<String>> {
     blocking(app, file_list).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_status(app: AppHandle) -> Res<Changes> {
+pub async fn code_status(app: AppHandle) -> Api<Changes> {
     blocking(app, status).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_diff(app: AppHandle, path: String, side: DiffSide) -> Res<FileDiff> {
+pub async fn code_diff(app: AppHandle, path: String, side: DiffSide) -> Api<FileDiff> {
     blocking(app, move |s| diff(s, &path, side)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_stage(app: AppHandle, paths: Vec<String>) -> Res<()> {
+pub async fn code_stage(app: AppHandle, paths: Vec<String>) -> Api<()> {
     blocking(app, move |s| stage(s, &paths)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_unstage(app: AppHandle, paths: Vec<String>) -> Res<()> {
+pub async fn code_unstage(app: AppHandle, paths: Vec<String>) -> Api<()> {
     blocking(app, move |s| unstage(s, &paths)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_discard(app: AppHandle, paths: Vec<String>, untracked: bool) -> Res<()> {
+pub async fn code_discard(app: AppHandle, paths: Vec<String>, untracked: bool) -> Api<()> {
     blocking(app, move |s| discard(s, &paths, untracked)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_commit(app: AppHandle, summary: String, description: String) -> Res<String> {
+pub async fn code_commit(app: AppHandle, summary: String, description: String) -> Api<String> {
     blocking(app, move |s| commit(s, &summary, &description)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_log(app: AppHandle, skip: u32, limit: u32) -> Res<LogPage> {
+pub async fn code_log(app: AppHandle, skip: u32, limit: u32) -> Api<LogPage> {
     blocking(app, move |s| log(s, skip, limit)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_commit_detail(app: AppHandle, sha: String) -> Res<CommitDetail> {
+pub async fn code_commit_detail(app: AppHandle, sha: String) -> Api<CommitDetail> {
     blocking(app, move |s| commit_detail(s, &sha)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_commit_diff(app: AppHandle, sha: String, path: String) -> Res<FileDiff> {
+pub async fn code_commit_diff(app: AppHandle, sha: String, path: String) -> Api<FileDiff> {
     blocking(app, move |s| commit_diff(s, &sha, &path)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_branches(app: AppHandle) -> Res<Vec<Branch>> {
+pub async fn code_branches(app: AppHandle) -> Api<Vec<Branch>> {
     blocking(app, branches).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_branch_create(app: AppHandle, name: String) -> Res<()> {
+pub async fn code_branch_create(app: AppHandle, name: String) -> Api<()> {
     blocking(app, move |s| branch_create(s, &name)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_branch_switch(app: AppHandle, name: String) -> Res<()> {
+pub async fn code_branch_switch(app: AppHandle, name: String) -> Api<()> {
     blocking(app, move |s| branch_switch(s, &name)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_branch_merge(app: AppHandle, name: String) -> Res<MergeOutcome> {
+pub async fn code_branch_merge(app: AppHandle, name: String) -> Api<MergeOutcome> {
     blocking(app, move |s| branch_merge(s, &name)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_branch_rebase(app: AppHandle, onto: String) -> Res<RebaseOutcome> {
+pub async fn code_branch_rebase(app: AppHandle, onto: String) -> Api<RebaseOutcome> {
     blocking(app, move |s| branch_rebase(s, &onto)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_rebase_continue(app: AppHandle) -> Res<RebaseOutcome> {
+pub async fn code_rebase_continue(app: AppHandle) -> Api<RebaseOutcome> {
     blocking(app, rebase_continue).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_rebase_abort(app: AppHandle) -> Res<()> {
+pub async fn code_rebase_abort(app: AppHandle) -> Api<()> {
     blocking(app, rebase_abort).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_blame(app: AppHandle, path: String) -> Res<Vec<BlameLine>> {
+pub async fn code_blame(app: AppHandle, path: String) -> Api<Vec<BlameLine>> {
     blocking(app, move |s| blame(s, &path)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_push_force(app: AppHandle) -> Res<()> {
+pub async fn code_push_force(app: AppHandle) -> Api<()> {
     blocking(app, push_force).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_merge_abort(app: AppHandle) -> Res<()> {
+pub async fn code_merge_abort(app: AppHandle) -> Api<()> {
     blocking(app, merge_abort).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_branch_delete(app: AppHandle, name: String, force: bool) -> Res<()> {
+pub async fn code_branch_delete(app: AppHandle, name: String, force: bool) -> Api<()> {
     blocking(app, move |s| branch_delete(s, &name, force)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_stash_push(app: AppHandle, message: Option<String>) -> Res<String> {
+pub async fn code_stash_push(app: AppHandle, message: Option<String>) -> Api<String> {
     blocking(app, move |s| stash_push(s, message.as_deref())).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_stash_list(app: AppHandle) -> Res<Vec<Stash>> {
+pub async fn code_stash_list(app: AppHandle) -> Api<Vec<Stash>> {
     blocking(app, stash_list).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_stash_apply(app: AppHandle, index: u32) -> Res<()> {
+pub async fn code_stash_apply(app: AppHandle, index: u32) -> Api<()> {
     blocking(app, move |s| stash_apply(s, index)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_stash_drop(app: AppHandle, id: String) -> Res<()> {
+pub async fn code_stash_drop(app: AppHandle, id: String) -> Api<()> {
     blocking(app, move |s| stash_drop(s, &id)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_conflicts(app: AppHandle) -> Res<Vec<ConflictFile>> {
+pub async fn code_conflicts(app: AppHandle) -> Api<Vec<ConflictFile>> {
     blocking(app, conflicts).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_resolve(app: AppHandle, path: String, how: Resolution) -> Res<()> {
+pub async fn code_resolve(app: AppHandle, path: String, how: Resolution) -> Api<()> {
     blocking(app, move |s| resolve(s, &path, &how)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_remote_url(app: AppHandle) -> Res<Option<String>> {
+pub async fn code_remote_url(app: AppHandle) -> Api<Option<String>> {
     blocking(app, remote_url).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_fetch(app: AppHandle) -> Res<()> {
+pub async fn code_fetch(app: AppHandle) -> Api<()> {
     blocking(app, fetch).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_pull(app: AppHandle) -> Res<PullOutcome> {
+pub async fn code_pull(app: AppHandle) -> Api<PullOutcome> {
     blocking(app, pull).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_push(app: AppHandle) -> Res<()> {
+pub async fn code_push(app: AppHandle) -> Api<()> {
     blocking(app, push).await
 }
 
 /// Runs one watch tick now and emits the notices. The background watch runs the same tick.
 #[tauri::command]
 #[specta::specta]
-pub async fn code_watch_tick(app: AppHandle) -> Res<Vec<WatchNotice>> {
+pub async fn code_watch_tick(app: AppHandle) -> Api<Vec<WatchNotice>> {
     let emitter = app.clone();
     let found = blocking(app, watch_tick).await?;
     for n in &found {
@@ -594,26 +594,26 @@ pub async fn code_watch_tick(app: AppHandle) -> Res<Vec<WatchNotice>> {
 /// The minutes between two fetches of the active project (default 15).
 #[tauri::command]
 #[specta::specta]
-pub async fn code_watch_interval(app: AppHandle) -> Res<u32> {
+pub async fn code_watch_interval(app: AppHandle) -> Api<u32> {
     blocking(app, watch_interval).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_watch_interval_set(app: AppHandle, minutes: u32) -> Res<u32> {
+pub async fn code_watch_interval_set(app: AppHandle, minutes: u32) -> Api<u32> {
     blocking(app, move |s| watch_interval_set(s, minutes)).await
 }
 
 /// A file for the viewer: the working copy when `rev` is empty, else the file at that revision.
 #[tauri::command]
 #[specta::specta]
-pub async fn code_file_read(app: AppHandle, path: String, rev: Option<String>) -> Res<FileView> {
+pub async fn code_file_read(app: AppHandle, path: String, rev: Option<String>) -> Api<FileView> {
     blocking(app, move |s| file_read(s, &path, rev.as_deref())).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_watch_notice(app: AppHandle) -> Res<Option<WatchNotice>> {
+pub async fn code_watch_notice(app: AppHandle) -> Api<Option<WatchNotice>> {
     blocking(app, watch_notice).await
 }
 

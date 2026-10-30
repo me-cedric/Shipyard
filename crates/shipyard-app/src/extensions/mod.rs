@@ -19,7 +19,7 @@ use specta::Type;
 use tauri::AppHandle;
 
 use crate::agents::McpCustom;
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 use compass::Applied;
 
 pub(crate) fn root(s: &AppState) -> Res<PathBuf> {
@@ -30,13 +30,13 @@ pub(crate) fn root(s: &AppState) -> Res<PathBuf> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn compass_get(app: AppHandle) -> Res<Option<Compass>> {
+pub async fn compass_get(app: AppHandle) -> Api<Option<Compass>> {
     blocking(app, |s| store_compass::read(&root(s)?).map_err(err)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn compass_preview(app: AppHandle, kind: Kind, id: String) -> Res<String> {
+pub async fn compass_preview(app: AppHandle, kind: Kind, id: String) -> Api<String> {
     blocking(app, move |s| {
         store_compass::preview(&root(s)?, kind, &id).map_err(err)
     })
@@ -45,7 +45,7 @@ pub async fn compass_preview(app: AppHandle, kind: Kind, id: String) -> Res<Stri
 
 #[tauri::command]
 #[specta::specta]
-pub async fn compass_apply(app: AppHandle, entries: Vec<String>) -> Res<Applied> {
+pub async fn compass_apply(app: AppHandle, entries: Vec<String>) -> Api<Applied> {
     blocking(app, move |s| {
         crate::work::refuse_read_only(s)?;
         compass::apply(&root(s)?, &entries)
@@ -55,7 +55,7 @@ pub async fn compass_apply(app: AppHandle, entries: Vec<String>) -> Res<Applied>
 
 #[tauri::command]
 #[specta::specta]
-pub async fn compass_upgrade(app: AppHandle, selection: Option<Vec<String>>) -> Res<Applied> {
+pub async fn compass_upgrade(app: AppHandle, selection: Option<Vec<String>>) -> Api<Applied> {
     blocking(app, move |s| {
         crate::work::refuse_read_only(s)?;
         compass::upgrade(&root(s)?, selection.as_deref())
@@ -65,7 +65,7 @@ pub async fn compass_upgrade(app: AppHandle, selection: Option<Vec<String>>) -> 
 
 #[tauri::command]
 #[specta::specta]
-pub async fn roles_skills_get(app: AppHandle) -> Res<Vec<Row>> {
+pub async fn roles_skills_get(app: AppHandle) -> Api<Vec<Row>> {
     blocking(app, |s| roles_skills::list(&root(s)?).map_err(err)).await
 }
 
@@ -73,20 +73,20 @@ pub async fn roles_skills_get(app: AppHandle) -> Res<Vec<Row>> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn catalog_get(app: AppHandle) -> Res<Vec<Component>> {
+pub async fn catalog_get(app: AppHandle) -> Api<Vec<Component>> {
     blocking(app, |s| catalog::list(&root(s)?).map_err(err)).await
 }
 
 /// The files that a deploy would write and keep. It writes nothing (REQ-010).
 #[tauri::command]
 #[specta::specta]
-pub async fn catalog_preview(app: AppHandle, id: String) -> Res<WriteReport> {
+pub async fn catalog_preview(app: AppHandle, id: String) -> Api<WriteReport> {
     blocking(app, move |s| catalog::preview(&root(s)?, &id).map_err(err)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn catalog_deploy(app: AppHandle, id: String) -> Res<WriteReport> {
+pub async fn catalog_deploy(app: AppHandle, id: String) -> Api<WriteReport> {
     blocking(app, move |s| {
         crate::work::refuse_read_only(s)?;
         catalog::deploy(&root(s)?, &id).map_err(err)
@@ -108,7 +108,7 @@ fn plugin_at(path: &str) -> Res<plugins::Plugin> {
 /// Read the `.zip` as data and list what it would write. Nothing is written (REQ-011, REQ-012).
 #[tauri::command]
 #[specta::specta]
-pub async fn plugin_review(app: AppHandle, path: String) -> Res<Review> {
+pub async fn plugin_review(app: AppHandle, path: String) -> Api<Review> {
     blocking(app, move |s| {
         Ok(plugins::review(&root(s)?, &plugin_at(&path)?))
     })
@@ -133,7 +133,7 @@ pub async fn plugin_apply(
     app: AppHandle,
     path: String,
     accepted: Vec<String>,
-) -> Res<PluginApplied> {
+) -> Api<PluginApplied> {
     blocking(app, move |s| {
         crate::work::refuse_read_only(s)?;
         let done = plugins::apply(&root(s)?, &plugin_at(&path)?, &accepted).map_err(err)?;
@@ -267,7 +267,7 @@ fn child_view(s: &AppState, parent: &Path, r: &ChildRec) -> Res<Child> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn child_list(app: AppHandle) -> Res<Vec<Child>> {
+pub async fn child_list(app: AppHandle) -> Api<Vec<Child>> {
     blocking(app, |s| {
         let parent = root(s)?;
         recs(s)?.iter().map(|r| child_view(s, &parent, r)).collect()
@@ -278,7 +278,7 @@ pub async fn child_list(app: AppHandle) -> Res<Vec<Child>> {
 /// Record a child project. It clones nothing: the clone is a separate click.
 #[tauri::command]
 #[specta::specta]
-pub async fn child_add(app: AppHandle, name: String, url: String) -> Res<Child> {
+pub async fn child_add(app: AppHandle, name: String, url: String) -> Api<Child> {
     blocking(app, move |s| {
         let id: String = name
             .to_lowercase()
@@ -309,7 +309,7 @@ pub async fn child_add(app: AppHandle, name: String, url: String) -> Res<Child> 
 /// Forget a child. The clone on disk stays: the app deletes no folder of a person.
 #[tauri::command]
 #[specta::specta]
-pub async fn child_remove(app: AppHandle, id: String) -> Res<()> {
+pub async fn child_remove(app: AppHandle, id: String) -> Api<()> {
     blocking(app, move |s| {
         let mut all = recs(s)?;
         all.retain(|r| r.id != id);
@@ -328,7 +328,7 @@ fn rec(s: &AppState, id: &str) -> Res<ChildRec> {
 /// Clone the child into the app data folder (REQ-016). It reads the remote and writes there.
 #[tauri::command]
 #[specta::specta]
-pub async fn child_clone(app: AppHandle, id: String) -> Res<Child> {
+pub async fn child_clone(app: AppHandle, id: String) -> Api<Child> {
     blocking(app, move |s| {
         let r = rec(s, &id)?;
         let dest = clone_dir(s, &id)?;
@@ -409,7 +409,7 @@ pub async fn child_deploy(
     app: AppHandle,
     ids: Vec<String>,
     keys: Vec<String>,
-) -> Res<Vec<ChildResult>> {
+) -> Api<Vec<ChildResult>> {
     blocking(app, move |s| {
         let parent = root(s)?;
         let at = std::time::SystemTime::now()

@@ -15,7 +15,7 @@ use specta::Type;
 use tauri::AppHandle;
 
 use crate::commands::sync::active;
-use crate::commands::{AppState, Res, blocking};
+use crate::commands::{Api, AppState, Res, blocking};
 
 /// A question with the run that asked it (`questions-loop` REQ-020).
 #[derive(Debug, Clone, PartialEq, Serialize, Type)]
@@ -118,25 +118,25 @@ pub fn message_read(s: &AppState, run: &str, n: u32) -> Res<()> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn questions_list(app: AppHandle) -> Res<Vec<QuestionView>> {
+pub async fn questions_list(app: AppHandle) -> Api<Vec<QuestionView>> {
     blocking(app, questions).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn question_answer(app: AppHandle, run: String, id: String, choice: Choice) -> Res<()> {
+pub async fn question_answer(app: AppHandle, run: String, id: String, choice: Choice) -> Api<()> {
     blocking(app, move |s| answer(s, &run, &id, choice)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn messages_list(app: AppHandle) -> Res<Vec<MessageView>> {
+pub async fn messages_list(app: AppHandle) -> Api<Vec<MessageView>> {
     blocking(app, messages).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn message_read_mark(app: AppHandle, run: String, n: u32) -> Res<()> {
+pub async fn message_read_mark(app: AppHandle, run: String, n: u32) -> Api<()> {
     blocking(app, move |s| message_read(s, &run, n)).await
 }
 

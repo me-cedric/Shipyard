@@ -117,13 +117,13 @@ function Group({ name, count, children }: { name: string; count: number; childre
 	);
 }
 
-/** The run chip and the ticket key of a row. */
+/** The run chip of a row, named by its ticket key. */
 function RunLink({ run, ticket }: { run: string; ticket: string }) {
 	const { openRef } = useShell();
 	return (
 		<>
-			<RefChip refId={`run:${run}`} state="resolved" onOpen={openRef} />
-			<span className="font-mono text-12 text-n-11">{ticket}</span>
+			{/* The ticket names the run; the run id stays in the accessible name and behind Copy ref. */}
+			<RefChip refId={`run:${run}`} text={ticket || undefined} state="resolved" onOpen={openRef} />
 		</>
 	);
 }

@@ -15,7 +15,7 @@ use serde::Serialize;
 use specta::Type;
 use tauri::{AppHandle, Emitter};
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 
 /// One event name for every shell. The payload holds the id: a panel reads only its own.
 pub const OUTPUT_EVENT: &str = "terminal-output";
@@ -253,7 +253,7 @@ pub async fn terminal_open(
     folder: Option<String>,
     cols: u16,
     rows: u16,
-) -> Res<String> {
+) -> Api<String> {
     let handle = app.clone();
     blocking(app, move |s| {
         let dir = start_dir(s, folder.as_deref())?;
@@ -266,19 +266,19 @@ pub async fn terminal_open(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn terminal_write(id: String, data: String) -> Res<()> {
-    write(&id, &data)
+pub async fn terminal_write(id: String, data: String) -> Api<()> {
+    Ok(write(&id, &data)?)
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn terminal_resize(id: String, cols: u16, rows: u16) -> Res<()> {
-    resize(&id, cols, rows)
+pub async fn terminal_resize(id: String, cols: u16, rows: u16) -> Api<()> {
+    Ok(resize(&id, cols, rows)?)
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn terminal_close(id: String) -> Res<()> {
+pub async fn terminal_close(id: String) -> Api<()> {
     close(&id);
     Ok(())
 }
@@ -286,7 +286,7 @@ pub async fn terminal_close(id: String) -> Res<()> {
 /// Ends the shells of an earlier page load: the page starts, and no shell of it is open.
 #[tauri::command]
 #[specta::specta]
-pub async fn terminal_close_all() -> Res<()> {
+pub async fn terminal_close_all() -> Api<()> {
     close_all();
     Ok(())
 }

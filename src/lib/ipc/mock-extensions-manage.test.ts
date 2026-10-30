@@ -11,11 +11,15 @@ describe("mock extensions: manage", () => {
 	});
 
 	it("needs a click for each change", async () => {
-		await expect(unwrap(commands.compassPolicyApply("solo-dev", false))).rejects.toThrow("click");
-		await expect(unwrap(commands.compassImport("/mock/r.md", false))).rejects.toThrow("click");
-		await expect(unwrap(commands.catalogUndeploy("devops-security/scan", false))).rejects.toThrow(
-			"click",
-		);
+		await expect(unwrap(commands.compassPolicyApply("solo-dev", false))).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
+		await expect(unwrap(commands.compassImport("/mock/r.md", false))).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
+		await expect(
+			unwrap(commands.catalogUndeploy("devops-security/scan", false)),
+		).rejects.toMatchObject({ details: expect.stringContaining("click") });
 	});
 
 	it("replaces the policy pack on a second apply", async () => {
@@ -23,17 +27,21 @@ describe("mock extensions: manage", () => {
 		await unwrap(commands.compassPolicyApply("solo-dev", true));
 		await unwrap(commands.compassPolicyApply("strict-enterprise", true));
 		expect((await unwrap(commands.compassPolicies())).applied).toBe("strict-enterprise");
-		await expect(unwrap(commands.compassPolicyApply("nope", true))).rejects.toThrow("unknown");
+		await expect(unwrap(commands.compassPolicyApply("nope", true))).rejects.toMatchObject({
+			details: expect.stringContaining("unknown"),
+		});
 	});
 
 	it("imports a rules file once as a pattern and removes it", async () => {
 		expect(await unwrap(commands.compassImport("/mock/rules/Team Rules.md", true))).toBe(
 			"pattern:team-rules",
 		);
-		await expect(unwrap(commands.compassImport("/mock/rules/Team Rules.md", true))).rejects.toThrow(
-			"exists",
-		);
-		await expect(unwrap(commands.compassImport("/mock/a.exe", true))).rejects.toThrow(".md");
+		await expect(
+			unwrap(commands.compassImport("/mock/rules/Team Rules.md", true)),
+		).rejects.toMatchObject({ details: expect.stringContaining("exists") });
+		await expect(unwrap(commands.compassImport("/mock/a.exe", true))).rejects.toMatchObject({
+			details: expect.stringContaining(".md"),
+		});
 		await unwrap(commands.compassRemove("pattern", "team-rules", true));
 		const entries = (await unwrap(commands.compassGet()))?.entries ?? [];
 		expect(entries.some((e) => e.id === "team-rules")).toBe(false);
@@ -43,18 +51,20 @@ describe("mock extensions: manage", () => {
 		await unwrap(commands.compassRemove("skill", "review", true));
 		const skill = (await unwrap(commands.compassGet()))?.entries.find((e) => e.id === "review");
 		expect(skill?.state).toBe("absent");
-		await expect(unwrap(commands.compassRemove("guide", "ui", true))).rejects.toThrow("cannot");
-		await expect(unwrap(commands.compassRemove("contract", "contract", true))).rejects.toThrow(
-			"cannot",
-		);
+		await expect(unwrap(commands.compassRemove("guide", "ui", true))).rejects.toMatchObject({
+			details: expect.stringContaining("cannot"),
+		});
+		await expect(
+			unwrap(commands.compassRemove("contract", "contract", true)),
+		).rejects.toMatchObject({ details: expect.stringContaining("cannot") });
 	});
 
 	it("undeploys a component and refuses one that is not deployed", async () => {
 		const out = await unwrap(commands.catalogUndeploy("devops-security/scan", true));
 		expect(out.removed).toEqual([]);
-		await expect(unwrap(commands.catalogUndeploy("devops-security/scan", true))).rejects.toThrow(
-			"not deployed",
-		);
+		await expect(
+			unwrap(commands.catalogUndeploy("devops-security/scan", true)),
+		).rejects.toMatchObject({ details: expect.stringContaining("not deployed") });
 		await unwrap(commands.catalogDeploy("devcontainers/node"));
 		const gone = await unwrap(commands.catalogUndeploy("devcontainers/node", true));
 		expect(gone.removed).toEqual([".devcontainer/devcontainer.json"]);
@@ -71,6 +81,8 @@ describe("mock extensions: manage", () => {
 		const out = await unwrap(commands.pluginRemove("team-kit", true));
 		expect(out.removed).toEqual(["docs/team.md"]);
 		expect(await unwrap(commands.pluginList())).toEqual([]);
-		await expect(unwrap(commands.pluginRemove("team-kit", true))).rejects.toThrow("unknown");
+		await expect(unwrap(commands.pluginRemove("team-kit", true))).rejects.toMatchObject({
+			details: expect.stringContaining("unknown"),
+		});
 	});
 });

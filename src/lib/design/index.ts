@@ -10,6 +10,7 @@ import {
 	type FlowRow_Serialize,
 	type Screen_Serialize,
 	type TryRequest_Deserialize,
+	toFailure,
 	unwrap,
 	type Written_Serialize,
 } from "@/lib/ipc";
@@ -159,8 +160,11 @@ export function useDesignActions() {
 				after(
 					(async () => {
 						const read = await commands.designRead(file);
-						if (read.status === "error" && !/no such file|not found/i.test(read.error))
-							throw new Error(read.error);
+						if (
+							read.status === "error" &&
+							!/no such file|not found/i.test(toFailure(read.error).details)
+						)
+							throw toFailure(read.error);
 						const now = read.status === "ok" ? read.data : null;
 						const json = now ? (JSON.parse(now.text) as { screens: unknown[] }) : { screens: [] };
 						json.screens.push({ slug: slug(title), title, artifacts: [], figma: null });

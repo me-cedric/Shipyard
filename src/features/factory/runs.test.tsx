@@ -50,9 +50,42 @@ describe("Factory / Runs", () => {
 		expect(runs).toHaveLength(14);
 	});
 
-	it("shows the kill switch state", async () => {
+	it("shows the kill switch as an agents toggle", async () => {
 		await renderRuns();
-		expect(await screen.findByText("Kill switch off")).toBeInTheDocument();
+		expect(await screen.findByRole("switch", { name: "Agents on" })).toBeChecked();
+	});
+
+	it("starts a run from the title of a ticket of the mirror", async () => {
+		const user = userEvent.setup();
+		await renderRuns();
+		await unwrap(commands.runCancel((await find("ACME-3")).id));
+		const title = (await unwrap(commands.syncItems({}))).find((i) => i.key === "ACME-3")?.title;
+		const before = (await unwrap(commands.runsList())).filter((r) => r.lane === "queued").length;
+		const field = await screen.findByRole("combobox", { name: "Ticket" });
+		await waitFor(() =>
+			expect(document.querySelector(`datalist option[value="${title}"]`)).not.toBeNull(),
+		);
+		await user.type(field, title ?? "");
+		await user.click(screen.getByRole("button", { name: "Start run" }));
+		await waitFor(async () =>
+			expect((await unwrap(commands.runsList())).filter((r) => r.lane === "queued").length).toBe(
+				before + 1,
+			),
+		);
+	});
+
+	it("names a ticket that the mirror lacks and offers to sync", async () => {
+		const user = userEvent.setup();
+		await renderRuns();
+		const sync = vi.spyOn(commands, "syncNow");
+		await user.type(await screen.findByRole("combobox", { name: "Ticket" }), "ACME-99");
+		await user.click(screen.getByRole("button", { name: "Start run" }));
+		const alert = await screen.findByRole("alert");
+		expect(alert).toHaveTextContent("This ticket is not here yet");
+		expect(alert).not.toHaveTextContent("mirror");
+		await user.click(within(alert).getByRole("button", { name: "Sync" }));
+		await waitFor(() => expect(sync).toHaveBeenCalled());
+		sync.mockRestore();
 	});
 
 	it("starts a run from a ticket key, and the Queued count grows", async () => {
@@ -60,7 +93,7 @@ describe("Factory / Runs", () => {
 		await renderRuns();
 		await unwrap(commands.runCancel((await find("ACME-3")).id));
 		const before = (await unwrap(commands.runsList())).filter((r) => r.lane === "queued").length;
-		await user.type(await screen.findByRole("textbox", { name: "Ticket" }), "ACME-3");
+		await user.type(await screen.findByRole("combobox", { name: "Ticket" }), "ACME-3");
 		await user.click(screen.getByRole("button", { name: "Start run" }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.runsList())).filter((r) => r.lane === "queued").length).toBe(

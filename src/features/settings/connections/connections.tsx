@@ -11,7 +11,7 @@ import {
 } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
 import { useBacklinks } from "@/lib/refs";
-import { useShell } from "@/lib/shell";
+import { useFormIntent, useShell } from "@/lib/shell";
 import { clock, useSyncState } from "@/lib/sync";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -22,6 +22,7 @@ import type { Status } from "@/ui/atoms/status-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import {
 	ArrowPathIcon,
+	ChevronRightIcon,
 	Cog6ToothIcon,
 	FolderOpenIcon,
 	LinkIcon,
@@ -357,6 +358,7 @@ export function Connections() {
 	});
 	const [adding, setAdding] = useState(false);
 	const [editing, setEditing] = useState(false);
+	useFormIntent("connection", () => setAdding(true));
 	const conns = list.data;
 	const mcpCount = (useMcpServers().data ?? []).filter((m) => m.enabled).length;
 	const providerCount = (useProviders().data ?? []).length;
@@ -395,6 +397,7 @@ export function Connections() {
 					</p>
 				) : null}
 				{empty ? <EmptyState action={add} /> : null}
+				<RunnersGroup />
 				{adding ? (
 					<div className="rounded-lg border bg-surface-1 shadow-1">
 						<AddForm onDone={() => setAdding(false)} />
@@ -414,11 +417,18 @@ export function Connections() {
 						</section>
 					);
 				})}
-				<McpGroup formOpen={formOpen} onForm={setEditing} />
-				<McpOutsideGroup />
-				<CertsGroup />
-				<RunnersGroup />
 				<ProvidersGroup formOpen={formOpen} onForm={setEditing} />
+				<details className="group flex flex-col gap-5">
+					<summary className="flex h-row w-fit cursor-pointer items-center gap-1.5 px-1 text-12 font-medium text-n-11 select-none hover:text-n-12">
+						<ChevronRightIcon size={12} className="transition-transform group-open:rotate-90" />
+						{t.connections.advanced}
+					</summary>
+					<div className="flex flex-col gap-5 pt-3">
+						<McpGroup formOpen={formOpen} onForm={setEditing} />
+						<McpOutsideGroup />
+						<CertsGroup />
+					</div>
+				</details>
 			</div>
 		</div>
 	);

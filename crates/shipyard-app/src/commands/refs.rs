@@ -12,7 +12,7 @@ use shipyard_store::ref_query::{BacklinkGroup, BrokenCitation, Resolved, SearchH
 use specta::Type;
 use tauri::AppHandle;
 
-use super::{AppState, Res, blocking, err};
+use super::{Api, AppState, Res, blocking, err};
 use crate::connections::Connection;
 
 #[derive(Debug, Serialize, Type)]
@@ -135,19 +135,19 @@ pub async fn refs_parse(text: String) -> Option<ParsedRef> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn refs_resolve(app: AppHandle, text: String) -> Res<Option<Resolved>> {
+pub async fn refs_resolve(app: AppHandle, text: String) -> Api<Option<Resolved>> {
     blocking(app, move |s| resolve(s, &text)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn refs_backlinks(app: AppHandle, text: String) -> Res<Vec<BacklinkGroup>> {
+pub async fn refs_backlinks(app: AppHandle, text: String) -> Api<Vec<BacklinkGroup>> {
     blocking(app, move |s| with_index(s, |i| i.backlinks(&text))).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn refs_search(app: AppHandle, query: String, limit: u32) -> Res<Vec<SearchHit>> {
+pub async fn refs_search(app: AppHandle, query: String, limit: u32) -> Api<Vec<SearchHit>> {
     blocking(app, move |s| {
         with_index(s, |i| i.search(&query, limit as usize))
     })
@@ -156,14 +156,14 @@ pub async fn refs_search(app: AppHandle, query: String, limit: u32) -> Res<Vec<S
 
 #[tauri::command]
 #[specta::specta]
-pub async fn refs_check(app: AppHandle) -> Res<Vec<BrokenCitation>> {
+pub async fn refs_check(app: AppHandle) -> Api<Vec<BrokenCitation>> {
     blocking(app, broken).await
 }
 
 /// Repair: drops the index and rebuilds it. Returns the number of indexed files.
 #[tauri::command]
 #[specta::specta]
-pub async fn refs_reindex(app: AppHandle) -> Res<u32> {
+pub async fn refs_reindex(app: AppHandle) -> Api<u32> {
     blocking(app, |s| {
         let shared = match s.registry()?.active() {
             Some(e) => Some(s.index_of(&e.id)?),

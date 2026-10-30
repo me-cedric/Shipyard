@@ -173,6 +173,17 @@ impl Tracker for Jira {
         Ok(person(&self.call(&format!("{API}/myself"), &[])?))
     }
 
+    fn scopes(&self) -> Result<Vec<Scope>, TrackerError> {
+        let v = self.call(&format!("{API}/project"), &[])?;
+        Ok(items(&v, "")
+            .iter()
+            .map(|p| Scope {
+                id: text(p, "/key"),
+                name: text(p, "/name"),
+            })
+            .collect())
+    }
+
     fn search(&self, q: &WorkQuery) -> Result<Page<WorkItem>, TrackerError> {
         check_query(&self.capabilities(), q)?;
         let jql = jql(q);

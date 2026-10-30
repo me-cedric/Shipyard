@@ -12,7 +12,9 @@ describe("mock Doctor bootstrap", () => {
 		const plan = await unwrap(commands.doctorBootstrapPlan(answers));
 		expect(plan.files.every((f) => f.state === "new")).toBe(true);
 		expect(plan.tools.map((t) => t.id)).toEqual(expect.arrayContaining(["git", "rust", "claude"]));
-		await expect(unwrap(commands.doctorBootstrapApply(answers, false))).rejects.toThrow("click");
+		await expect(unwrap(commands.doctorBootstrapApply(answers, false))).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
 		const written = await unwrap(commands.doctorBootstrapApply(answers, true));
 		expect(written).toContain("BOOTSTRAP_PROMPT.md");
 		expect(await unwrap(commands.doctorBootstrapApply(answers, true))).toEqual([]);
@@ -36,11 +38,13 @@ describe("mock feedback and debug console", () => {
 	it("builds a prefilled issue address after a click and refuses a secret", async () => {
 		const url = await unwrap(commands.feedbackOpen("bug", "A & B", "it breaks", true));
 		expect(url).toContain("/issues/new?labels=bug&title=A%20%26%20B");
-		await expect(unwrap(commands.feedbackOpen("bug", "x", "", false))).rejects.toThrow("click");
+		await expect(unwrap(commands.feedbackOpen("bug", "x", "", false))).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
 		await expect(unwrap(commands.feedbackOpen("bug", "a\nb", "", true))).rejects.toBeTruthy();
 		await expect(
 			unwrap(commands.feedbackOpen("idea", "x", "ghp_abcdefghijklmnopqrstuvwxyz0123456789", true)),
-		).rejects.toThrow("secret");
+		).rejects.toMatchObject({ details: expect.stringContaining("secret") });
 	});
 
 	it("lists the log lines", async () => {
@@ -66,9 +70,9 @@ describe("mock composer attachments", () => {
 			["big.txt", new Array(200 * 1024 + 1).fill(97)],
 		] as const)
 			await expect(unwrap(commands.assistantAttach(id, name, [...data]))).rejects.toBeTruthy();
-		await expect(unwrap(commands.assistantAttach("T9999", "a.txt", []))).rejects.toThrow(
-			"no thread",
-		);
+		await expect(unwrap(commands.assistantAttach("T9999", "a.txt", []))).rejects.toMatchObject({
+			details: expect.stringContaining("no thread"),
+		});
 	});
 });
 

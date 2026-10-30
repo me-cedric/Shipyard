@@ -8,7 +8,7 @@ use specta::Type;
 use tauri::AppHandle;
 
 use crate::commands::sync::active;
-use crate::commands::{AppState, Res, blocking};
+use crate::commands::{Api, AppState, Res, blocking};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -93,7 +93,7 @@ pub fn usage_tree(s: &AppState, run: &str) -> Res<RunTree> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn usage_tree_get(app: AppHandle, run: String) -> Res<RunTree> {
+pub async fn usage_tree_get(app: AppHandle, run: String) -> Api<RunTree> {
     blocking(app, move |s| usage_tree(s, &run)).await
 }
 

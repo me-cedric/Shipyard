@@ -220,3 +220,10 @@ pub(crate) fn plain_text(html: &str) -> String {
         .trim()
         .to_string()
 }
+
+/// A container to pick as the tracker scope. `id` is the text that the scope setting holds.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Scope {
+    pub id: String,
+    pub name: String,
+}

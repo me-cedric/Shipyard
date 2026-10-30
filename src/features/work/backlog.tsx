@@ -3,7 +3,7 @@ import { useRuns } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
-import { useShell } from "@/lib/shell";
+import { useFormIntent, useShell } from "@/lib/shell";
 import { useBacklogActions, useWorkItems, type WorkItem } from "@/lib/sync";
 import { figure, memberName, useSheet, useSheets, useTeam } from "@/lib/work";
 import { Button } from "@/ui/atoms/button";
@@ -89,6 +89,17 @@ export function Backlog() {
 	const days = useEstimateDays();
 	const runOf = useRunOf();
 	const priorityName: Record<PriorityLevel, string> = t.work.priority;
+	// Get started asks to assign: the first ticket without an assignee opens with its assignee field.
+	useFormIntent(
+		"assign",
+		() => {
+			const item = all.find((i) => !i.assignee);
+			if (!item) return;
+			setSelected(item.key);
+			openDetail(item.key, <TicketDetail key={item.key} itemKey={item.key} />);
+		},
+		!everything.isLoading,
+	);
 
 	const entries = useMemo(() => {
 		const out: Entry[] = [];

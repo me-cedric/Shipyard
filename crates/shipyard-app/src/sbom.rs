@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use specta::Type;
 use tauri::AppHandle;
 
-use crate::commands::{AppState, Res, blocking};
+use crate::commands::{Api, AppState, Res, blocking};
 use crate::work::need_click;
 
 /// Where the export goes.
@@ -151,7 +151,7 @@ pub fn export(s: &AppState, click: bool) -> Res<SbomReport> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_sbom_export(app: AppHandle, click: bool) -> Res<SbomReport> {
+pub async fn code_sbom_export(app: AppHandle, click: bool) -> Api<SbomReport> {
     blocking(app, move |s| export(s, click)).await
 }
 

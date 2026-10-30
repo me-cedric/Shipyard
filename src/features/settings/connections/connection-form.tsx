@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import {
 	type Connection_Serialize,
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { connectionKeys } from "./keys";
@@ -38,7 +39,7 @@ function CliLogins({ onDone }: { onDone: () => void }) {
 		queryKey: [...connectionKeys.list, "logins"],
 		queryFn: () => unwrap(commands.connectionsDetect()),
 	}).data;
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	if (!logins?.length) return null;
 	return (
 		<div className="flex flex-col border-b">
@@ -52,7 +53,7 @@ function CliLogins({ onDone }: { onDone: () => void }) {
 								await qc.invalidateQueries({ queryKey: connectionKeys.list });
 								onDone();
 							} catch (e) {
-								setError(e instanceof Error ? e.message : String(e));
+								setError(e);
 							}
 						}}
 					>
@@ -60,11 +61,7 @@ function CliLogins({ onDone }: { onDone: () => void }) {
 					</Button>
 				</SettingsRow>
 			))}
-			{error ? (
-				<p role="alert" className="px-3 py-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={error} className="px-3 py-2" />
 		</div>
 	);
 }
@@ -95,16 +92,49 @@ export function ConnectionForm({
 	const [url, setUrl] = useState(connection?.url ?? "");
 	const [user, setUser] = useState(connection?.user ?? "");
 	const [secret, setSecret] = useState("");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
+	// The name and the address come from the git remote of the project, once, into empty fields.
+	const suggestion = useQuery({
+		queryKey: [...connectionKeys.list, "suggest"],
+		queryFn: () => unwrap(commands.connectionsSuggest()),
+		enabled: !editing,
+	}).data;
+	const [prefilled, setPrefilled] = useState(false);
+	useEffect(() => {
+		if (!suggestion || prefilled || editing || name || url) return;
+		setPrefilled(true);
+		setName(suggestion.name);
+		setUrl(suggestion.url);
+		const k = suggestion.kind;
+		if (k && KINDS[group].includes(k)) setKind(k);
+	}, [suggestion, prefilled, editing, name, url, group]);
 
 	const noUrl = group === "tracker" && kind === "linear";
 	const needsUser = group === "tracker" && kind === "jira-cloud";
 
 	const pickGroup = (g: ConnectionGroup) => {
+		setPrefilled(true);
 		setGroup(g);
 		if (!KINDS[g].includes(kind)) setKind(KINDS[g][0] ?? kind);
 	};
+	// Another product is not at the address of the remote: drop what the remote gave.
+	const pickKind = (k: ConnectionKind) => {
+		setPrefilled(true);
+		setKind(k);
+		if (suggestion && k !== suggestion.kind) {
+			if (url === suggestion.url) setUrl("");
+			if (name === suggestion.name) setName("");
+		}
+	};
+	const tokenPage = async () => {
+		try {
+			await unwrap(commands.connectionsOpenTokenPage(kind, noUrl ? "" : url));
+		} catch (err) {
+			setError(err);
+		}
+	};
+	const canOpenPage = noUrl || kind === "jira-cloud" || url.trim().startsWith("https://");
 
 	const save = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -117,9 +147,23 @@ export function ConnectionForm({
 			);
 			setId(saved.id);
 			if (secret.trim()) await unwrap(commands.connectionsSetSecret(saved.id, secret));
+			// Save runs the test: a wrong token shows here, and the form stays for the fix.
+			if (secret.trim() || saved.secret) {
+				const out = await unwrap(commands.connectionsTest(saved.id));
+				if (out.kind !== "passed") {
+					setError(
+						format(t.connections.result[out.kind], {
+							account: "",
+							scope: out.kind === "missing-scope" ? out.scope : "",
+							reason: out.kind === "failed" ? out.reason : "",
+						}),
+					);
+					return;
+				}
+			}
 			onDone();
 		} catch (err) {
-			setError(err instanceof Error ? err.message : String(err));
+			setError(err);
 		} finally {
 			setBusy(false);
 			await qc.invalidateQueries({ queryKey: connectionKeys.list });
@@ -156,7 +200,7 @@ export function ConnectionForm({
 						<Select
 							label={f.kind}
 							value={kind}
-							onValueChange={(v) => setKind(v as ConnectionKind)}
+							onValueChange={(v) => pickKind(v as ConnectionKind)}
 							items={KINDS[group].map((k) => ({
 								value: k,
 								label: (t.connections.kind[group] as Record<string, string>)[k] ?? k,
@@ -185,20 +229,21 @@ export function ConnectionForm({
 					/>
 				</SettingsRow>
 			) : null}
-			<SettingsRow label={f.secret}>
-				<SecretInput
-					label={f.secret}
-					saved={connection?.secret ?? false}
-					value={secret}
-					onChange={setSecret}
-					className="w-64"
-				/>
+			<SettingsRow label={t.settings.setup.token[kind]}>
+				<span className="flex items-center gap-2">
+					<SecretInput
+						label={t.settings.setup.token[kind]}
+						saved={connection?.secret ?? false}
+						value={secret}
+						onChange={setSecret}
+						className="w-64"
+					/>
+					<Button variant="ghost" disabled={!canOpenPage} onClick={() => void tokenPage()}>
+						{t.settings.setup.getToken}
+					</Button>
+				</span>
 			</SettingsRow>
-			{error ? (
-				<p role="alert" className="px-3 pt-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={error} className="px-3 pt-2" />
 			<div className="flex gap-2 px-3 py-2">
 				<Button type="submit" variant="primary" disabled={busy || !name.trim()}>
 					{t.connections.save}

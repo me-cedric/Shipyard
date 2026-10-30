@@ -1,4 +1,5 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
+import { en } from "@/lib/i18n/en";
 import { mockState } from "@/lib/ipc/mock";
 import { ROLES } from "@/lib/prefs";
 import { mountApp } from "@/test/mount";
@@ -29,18 +30,36 @@ describe("role homes (shell REQ-009)", () => {
 		expect(order.indexOf(ROLE_HOME[role])).toBeLessThanOrEqual(1);
 	});
 
-	it("opens Knowledge for a junior and still lists the seven spaces and Settings", async () => {
+	it("opens Knowledge on Learn for a junior and still lists the seven spaces and Settings", async () => {
 		mockState().prefs.role = "junior";
-		mountApp("/");
+		const router = mountApp("/");
 		const nav = await sidebar();
 		const links = within(nav).getAllByRole("link");
 		expect(links).toHaveLength(8);
-		await within(await screen.findByRole("navigation", { name: "Tabs" })).findByRole("link", {
-			name: "Graph",
-		});
+		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+		await within(tabs).findByRole("link", { name: "Graph" });
+		// The tab of the role comes first and opens first.
+		expect(within(tabs).getAllByRole("link")[0]).toHaveAccessibleName("Learn");
+		await waitFor(() => expect(router.state.location.pathname).toBe("/knowledge/learn"));
 		expect(links.find((l) => l.getAttribute("aria-current") === "page")).toHaveAccessibleName(
 			"Knowledge",
 		);
+	});
+});
+
+describe("tab names", () => {
+	it("opens Work on the Board for a PM, and Settings has no Team: Work / Team is the one place", async () => {
+		mockState().prefs.role = "pm";
+		const router = mountApp("/work");
+		await waitFor(() => expect(router.state.location.pathname).toBe("/work/board"));
+		expect(SPACES.settings).not.toContain("team");
+	});
+
+	it("gives each tab a name that no other space uses", () => {
+		const names = SPACE_IDS.flatMap((s) =>
+			SPACES[s].map((tab) => (en.tabs[s] as Record<string, string>)[tab]),
+		);
+		expect(new Set(names).size).toBe(names.length);
 	});
 });
 

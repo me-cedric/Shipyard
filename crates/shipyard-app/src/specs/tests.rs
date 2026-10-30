@@ -70,17 +70,17 @@ fn a_new_change_has_the_proposal_from_the_template_and_the_schema_file() {
         "docs/openspec/schemas/shipyard-delivery/templates/proposal.md",
         "# [CHANGE]\n\n## Why\n",
     );
-    let v = change_create(&f.s, "add-auth").unwrap();
-    assert_eq!(v.id, "add-auth");
+    let v = change_create(&f.s, "Add auth!").unwrap();
+    assert_eq!((v.id.as_str(), v.title.as_str()), ("add-auth", "Add auth!"));
     assert_eq!(
         file(&f, "docs/openspec/changes/add-auth/proposal.md"),
-        "# add-auth\n\n## Why\n"
+        "# Add auth!\n\n## Why\n"
     );
     assert!(
         file(&f, "docs/openspec/changes/add-auth/.openspec.yaml")
             .starts_with("schema: shipyard-delivery\n")
     );
-    for bad in ["add-auth", "Bad_Id", "archive", "a/b", ""] {
+    for bad in ["add-auth", "Add  Auth", "archive", "!!", ""] {
         assert!(change_create(&f.s, bad).is_err(), "{bad}");
     }
 }

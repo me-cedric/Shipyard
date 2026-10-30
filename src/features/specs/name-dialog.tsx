@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Dialog } from "@/ui/organisms/dialog";
 import { useGuard } from "./guard";
 
@@ -19,7 +20,7 @@ export function NameDialog({
 }) {
 	const { t } = useI18n();
 	const [name, setName] = useState("");
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	return (
 		<Dialog
 			open
@@ -36,11 +37,7 @@ export function NameDialog({
 			}
 		>
 			<Input label={label} value={name} onChange={(e) => setName(e.target.value)} />
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</Dialog>
 	);
 }

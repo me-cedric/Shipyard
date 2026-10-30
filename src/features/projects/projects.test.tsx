@@ -9,11 +9,26 @@ const open = (path = "/mock/alpha") => unwrap(commands.projectsOpen(path, false)
 const firstRunButtons = () => within(screen.getByRole("main")).getAllByRole("button");
 
 describe("first run", () => {
-	it("shows the role choice and three starts, with one primary action", async () => {
+	it("shows the role as named cards, then three starts, with one primary action", async () => {
+		const user = userEvent.setup();
 		mountApp("/home/inbox");
 		await screen.findByRole("button", { name: "Open a local folder" });
-		expect(screen.getByRole("combobox", { name: "Role" })).toBeInTheDocument();
-		const buttons = firstRunButtons().filter((b) => b.getAttribute("role") !== "combobox");
+		const roles = within(screen.getByRole("radiogroup", { name: "Role" })).getAllByRole("radio");
+		expect(roles.map((r) => r.closest("label")?.textContent)).toEqual([
+			"Project manager",
+			"Architect",
+			"Developer",
+			"Tester",
+			"Business analyst",
+			"Functional lead",
+			"Junior",
+			"Other",
+		]);
+		expect(screen.getByRole("radio", { name: "Other" })).toBeChecked();
+		await user.click(screen.getByRole("radio", { name: "Junior" }));
+		await waitFor(() => expect(screen.getByRole("radio", { name: "Junior" })).toBeChecked());
+		expect(mockState().prefs.role).toBe("junior");
+		const buttons = firstRunButtons();
 		expect(buttons.map((b) => b.textContent)).toEqual([
 			"Open a local folder",
 			"Clone a repository",
@@ -41,26 +56,33 @@ describe("first run", () => {
 		expect(mockState().projects[0]?.path).toBe("/mock/bare");
 	});
 
-	it("names the missing repository and opens nothing", async () => {
+	it("names the missing repository, opens nothing and offers to make it a project", async () => {
 		const user = userEvent.setup();
 		mockState().nextFolder = "/mock/plain";
 		mountApp("/home/inbox");
 		await user.click(await screen.findByRole("button", { name: "Open a local folder" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("No Git repository in /mock/plain");
 		expect(mockState().projects).toHaveLength(0);
+		await user.click(screen.getByRole("button", { name: "Make it a project" }));
+		expect(await screen.findByRole("heading", { name: "Needs you" })).toBeInTheDocument();
+		expect(mockState().projects[0]?.path).toBe("/mock/plain");
 	});
 
-	it("creates a project from a name, a key and a folder, with the keyboard", async () => {
+	it("creates a project from a name alone: the key comes from the name, the folder from Projects", async () => {
 		const user = userEvent.setup();
 		mountApp("/home/inbox");
 		await user.click(await screen.findByRole("button", { name: "Create a project" }));
-		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme");
-		await user.type(screen.getByRole("textbox", { name: "Key" }), "acme");
+		expect(await screen.findByDisplayValue("/mock/Projects")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Create" })).toBeDisabled();
-		await user.click(screen.getByRole("button", { name: "Choose a folder" }));
+		expect(screen.queryByRole("textbox", { name: "Key" })).toBeNull();
+		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme Web");
 		await user.click(screen.getByRole("button", { name: "Create" }));
 		expect(await screen.findByRole("heading", { name: "Needs you" })).toBeInTheDocument();
-		expect(mockState().projects[0]).toMatchObject({ name: "Acme", key: "ACME" });
+		expect(mockState().projects[0]).toMatchObject({
+			name: "Acme Web",
+			key: "ACMEWE",
+			path: "/mock/Projects/acme-web",
+		});
 	});
 
 	it("clones into a folder named after the repository", async () => {
@@ -310,6 +332,27 @@ describe("Settings / Project", () => {
 		expect(mockState().files.alpha?.connections?.trackerScope).toBe("PROJ");
 	});
 
+	it("links the only tracker and picks its scope from the projects that it lists", async () => {
+		const user = userEvent.setup();
+		await open();
+		const c = await unwrap(
+			commands.connectionsAdd({
+				name: "Acme",
+				group: "tracker",
+				kind: "jira-cloud",
+				url: "https://acme.atlassian.net",
+				user: "ada@example.com",
+			}),
+		);
+		await unwrap(commands.connectionsSetSecret(c.id, "tok-scope-1"));
+		mountApp("/settings/project");
+		await user.click(await screen.findByRole("combobox", { name: "Tracker scope" }));
+		await user.click(await screen.findByRole("option", { name: "OPS" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().files.alpha?.connections?.trackerScope).toBe("OPS"));
+		expect(mockState().files.alpha?.connections?.tracker).toBe(c.id);
+	});
+
 	it("records the tracker and the forge of the project by connection id", async () => {
 		const user = userEvent.setup();
 		await unwrap(
@@ -398,9 +441,10 @@ describe("Settings / Project, project import", () => {
 	it("shows the refusal of the command", async () => {
 		const user = userEvent.setup();
 		await open();
-		const spy = vi
-			.spyOn(commands, "projectImport")
-			.mockResolvedValue({ status: "error", error: "no source folder" });
+		const spy = vi.spyOn(commands, "projectImport").mockResolvedValue({
+			status: "error",
+			error: { code: "unknown", details: "no source folder", action: null },
+		});
 		mountApp("/settings/project");
 		await user.click(await screen.findByRole("button", { name: "Import a project" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("no source folder");

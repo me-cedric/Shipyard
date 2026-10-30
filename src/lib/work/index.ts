@@ -170,7 +170,7 @@ export function useApplyPreview(slugs: string[], enabled: boolean) {
 	});
 }
 
-type Call<T> = Promise<{ status: "ok"; data: T } | { status: "error"; error: string }>;
+type Call<T> = Promise<{ status: "ok"; data: T } | { status: "error"; error: unknown }>;
 
 /**
  * Every write of the Work space. Each one is called from a click, so each one passes `click`.

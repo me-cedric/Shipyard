@@ -19,6 +19,7 @@ use super::*;
 use crate::commands::sync::tracker_source;
 use crate::commands::{projects, refs};
 use crate::connections::{ConnectionDraft, ConnectionGroup, ConnectionKind, Connections};
+use crate::errors::{AppError, ErrorCode};
 
 const PASS: &str = "correct horse battery";
 
@@ -1256,7 +1257,7 @@ fn a_failed_row_keeps_the_rows_before_it_and_apply_needs_a_container() {
     let g = fx_with(ConnectionKind::JiraCloud, None);
     sheet_save(&g.s, "lot", lot()).unwrap();
     let e = apply(&g.s, &["lot".into()], true).unwrap_err();
-    assert!(e.contains("trackerScope"), "{e}");
+    assert_eq!(AppError::from(e).code, ErrorCode::ScopeMissing);
     assert_eq!(g.writes(), 0);
     // The preview needs no scope.
     assert_eq!(preview(&g.s, &["lot".into()]).unwrap().len(), 3);

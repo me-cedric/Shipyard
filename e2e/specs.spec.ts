@@ -14,14 +14,15 @@ async function openSpecs(page: Page, tab: string) {
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme");
 	await page.getByRole("combobox", { name: "Product" }).click();
 	await page.getByRole("option", { name: "Linear" }).click();
-	await page.getByLabel("Secret", { exact: true }).and(page.locator("input")).fill("tok-e2e-specs");
+	await page
+		.getByLabel("API key", { exact: true })
+		.and(page.locator("input"))
+		.fill("tok-e2e-specs");
 	await page.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByRole("group", { name: "Acme" })).toBeVisible();
+	// The only tracker links itself to the project.
 	await tabs(page).getByRole("link", { name: "Project" }).click();
-	await page.getByRole("combobox", { name: "Tracker" }).click();
-	await page.getByRole("option", { name: "Acme" }).click();
-	await page.getByRole("button", { name: "Save" }).click();
-	await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
+	await expect(page.getByRole("combobox", { name: "Tracker", exact: true })).toContainText("Acme");
 	await sidebar.getByRole("link", { name: "Specs" }).click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }
@@ -29,7 +30,7 @@ async function openSpecs(page: Page, tab: string) {
 test("shows a validation finding on the artifact that holds it, with its line", async ({
 	page,
 }) => {
-	await openSpecs(page, "Changes");
+	await openSpecs(page, "Proposals");
 	await page.getByRole("button", { name: /^add-billing/ }).click();
 	await page.getByRole("button", { name: "Validate" }).click();
 	const artifacts = page.getByRole("navigation", { name: "Artifacts" });
@@ -54,7 +55,7 @@ test("folds an answer into its spec after the preview and one click", async ({ p
 	await expect(preview).toContainText("NEEDS CLARIFICATION");
 	await dialog.getByRole("button", { name: "Fold" }).click();
 	await expect(page.getByRole("dialog")).toHaveCount(0);
-	await tabs(page).getByRole("link", { name: "Changes" }).click();
+	await tabs(page).getByRole("link", { name: "Proposals" }).click();
 	await page.getByRole("button", { name: /^add-export/ }).click();
 	await page
 		.getByRole("navigation", { name: "Artifacts" })
@@ -66,7 +67,7 @@ test("folds an answer into its spec after the preview and one click", async ({ p
 });
 
 test("applies a split once and a second apply creates no duplicate", async ({ page }) => {
-	await openSpecs(page, "Changes");
+	await openSpecs(page, "Proposals");
 	await page.getByRole("button", { name: /^add-auth/ }).click();
 	const open = async () => {
 		await page.getByRole("button", { name: "Split" }).click();

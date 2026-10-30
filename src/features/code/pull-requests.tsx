@@ -131,7 +131,11 @@ function OpenDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
 	);
 }
 
-/** Merge names its method in a confirmation. It stays off for a draft or a pull request that is not open. */
+/**
+ * Merge names its method in a confirmation. Failing checks or requested changes make the confirmation
+ * a danger action that names the risk. The method choice shows only when the forge offers more than one.
+ * Merge stays off for a draft or a pull request that is not open.
+ */
 function MergeBar({ d }: { d: PullDetail }) {
 	const { t } = useI18n();
 	const { merge, ready } = useForgeActions();
@@ -142,6 +146,12 @@ function MergeBar({ d }: { d: PullDetail }) {
 	const review = d.verdicts.some((v) => v.state === "changes-requested")
 		? "changes_requested"
 		: "clear";
+	const risk =
+		d.ci === "failing"
+			? t.forge.confirmFailing
+			: review === "changes_requested"
+				? t.forge.confirmChanges
+				: null;
 	return (
 		<div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
 			<StatusDot status={CI_STATUS[d.ci] ?? "idle"} label={t.forge.ci[d.ci as "none"]} />
@@ -152,18 +162,21 @@ function MergeBar({ d }: { d: PullDetail }) {
 					{t.forge.markReady}
 				</Button>
 			) : null}
-			<Select
-				label={t.forge.method}
-				items={d.mergeMethods.map((m) => ({ value: m, label: t.forge.methods[m] }))}
-				value={current}
-				onValueChange={(v) => {
-					setMethod(v as MergeMethod);
-					setConfirming(false);
-				}}
-				className="min-w-28"
-			/>
+			{d.mergeMethods.length > 1 ? (
+				<Select
+					label={t.forge.method}
+					items={d.mergeMethods.map((m) => ({ value: m, label: t.forge.methods[m] }))}
+					value={current}
+					onValueChange={(v) => {
+						setMethod(v as MergeMethod);
+						setConfirming(false);
+					}}
+					className="min-w-28"
+				/>
+			) : null}
 			{confirming ? (
 				<Button
+					variant={risk ? "danger" : "secondary"}
 					onClick={() =>
 						void run(async () => {
 							setConfirming(false);
@@ -171,7 +184,7 @@ function MergeBar({ d }: { d: PullDetail }) {
 						})
 					}
 				>
-					{format(t.forge.confirmMerge, { method: t.forge.methods[current] })}
+					{risk ?? format(t.forge.confirmMerge, { method: t.forge.methods[current] })}
 				</Button>
 			) : (
 				<Button disabled={d.draft || d.state !== "open"} onClick={() => setConfirming(true)}>

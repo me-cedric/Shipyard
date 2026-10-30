@@ -77,6 +77,7 @@ import * as mc from "./mock-machine";
 import { cards, chainGate, seedLinks, seedNotes } from "./mock-overview";
 import { parseRef } from "./mock-refs";
 import * as rp from "./mock-reports";
+import { SUGGESTION, scopesOf, tokenPage } from "./mock-setup";
 import * as specs from "./mock-specs";
 import {
 	automationGet,
@@ -134,6 +135,8 @@ type State = {
 	cursor: number;
 	confirm: boolean;
 	connections: Connection_Serialize[];
+	/** The pages that the app opened in the browser: the token pages. */
+	openedPages: string[];
 	/** The logins of the gh and glab tools on this machine, and the hosts that refuse their token. */
 	logins: { tool: string; host: string; user: string }[];
 	refusedLogins: string[];
@@ -231,6 +234,7 @@ const fresh = (): State => ({
 	cursor: 0,
 	confirm: true,
 	connections: [],
+	openedPages: [],
 	logins: [],
 	refusedLogins: [],
 	secrets: {},
@@ -518,6 +522,30 @@ function activate(path: string, name: string, key: string): ProjectOutcome_Seria
 	return outcome("opened", null, entry);
 }
 
+/** The project file of the active project, with the defaults when nothing was saved. */
+function fileOf(p: ProjectEntry_Serialize): ProjectFile_Serialize {
+	return (
+		state.files[p.id] ?? {
+			name: p.name,
+			key: p.key,
+			paths: DEFAULT_PATHS,
+			defaultWorkflow: null,
+			gates: [],
+		}
+	);
+}
+
+/** The only tracker connection becomes the tracker of the active project (the rule of `auto_link`). */
+function autoLink() {
+	const p = active();
+	if (!p) return;
+	const file = fileOf(p);
+	const trackers = state.connections.filter((c) => c.group === "tracker");
+	const [only] = trackers;
+	if (file.connections?.tracker || trackers.length !== 1 || !only) return;
+	state.files[p.id] = { ...file, connections: { ...file.connections, tracker: only.id } };
+}
+
 const FIX_CONTENT = "# OS files\n.DS_Store\n._*\nThumbs.db\nDesktop.ini\n";
 const FINDINGS: Finding_Serialize[] = [
 	{
@@ -640,7 +668,15 @@ const handlers: Handlers = {
 	projectsCreate: (path, name, key) => {
 		if (!/^[A-Z][A-Z0-9]{0,9}$/.test(key)) return outcome("invalid", `key: ${key}`);
 		if (path === "/mock/full") return outcome("folder-not-empty", path);
-		return activate(path, name, key);
+		const created = activate(path, name, key);
+		autoLink();
+		return created;
+	},
+	projectsInit: (path) => {
+		const name = path.split("/").pop() ?? "project";
+		const made = activate(path, name, deriveKey(name));
+		autoLink();
+		return made;
 	},
 	projectsClone: (url, path) =>
 		url.includes("missing")
@@ -669,14 +705,7 @@ const handlers: Handlers = {
 	projectSettings: () => {
 		const p = active();
 		if (!p) return null;
-		const file = state.files[p.id] ?? {
-			name: p.name,
-			key: p.key,
-			paths: DEFAULT_PATHS,
-			defaultWorkflow: null,
-			gates: [],
-		};
-		return { file, overrides: p.overrides };
+		return { file: fileOf(p), overrides: p.overrides };
 	},
 	projectFileSave: (file) => {
 		const p = active();
@@ -744,6 +773,7 @@ const handlers: Handlers = {
 			capabilities: d.group === "tracker" ? FLAGS[d.kind] : null,
 		};
 		state.connections.push(c);
+		autoLink();
 		return c;
 	},
 	connectionsEdit: (id, d) => {
@@ -778,6 +808,17 @@ const handlers: Handlers = {
 		return c;
 	},
 	connectionsTest: testConnection,
+	connectionsSuggest: () => (active() ? SUGGESTION : null),
+	connectionsScopes: (id) => {
+		const c = conn(id);
+		if (c.group !== "tracker") throw `${id} is not a tracker`;
+		if (!state.secrets[id]) throw "no secret saved";
+		return scopesOf(c.kind);
+	},
+	connectionsOpenTokenPage: (kind, url) => {
+		state.openedPages.push(tokenPage(kind, url));
+		return null;
+	},
 	connectionsDetect: () => state.logins,
 	connectionsUseLogin: (tool, host, click) => {
 		if (!click) throw "this change needs the click of a person";

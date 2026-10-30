@@ -9,7 +9,7 @@ use shipyard_store::project::{FileRead, read_project_file};
 use specta::Type;
 use tauri::AppHandle;
 
-use super::{AppState, Res, blocking, err};
+use super::{Api, AppState, Res, blocking, err};
 
 /// `https://user@host/a/b.git` and `git@host:a/b.git` both give `("host", "a/b")`.
 pub fn host_slug(url: &str) -> Option<(String, String)> {
@@ -104,12 +104,20 @@ pub fn open_remote(s: &AppState, id: &str) -> Res<()> {
         .map_err(err)?
         .ok_or("the project has no remote")?;
     let page = web_url(&url).ok_or("the remote address is not a web address")?;
+    open_page(&page)
+}
+
+/// Opens an `https` page in the browser of the system.
+pub(crate) fn open_page(page: &str) -> Res<()> {
+    if !page.starts_with("https://") {
+        return Err("bad address: use an https address".into());
+    }
     let (program, args): (&str, Vec<&str>) = if cfg!(target_os = "macos") {
-        ("open", vec![&page])
+        ("open", vec![page])
     } else if cfg!(windows) {
-        ("cmd", vec!["/C", "start", "", &page])
+        ("cmd", vec!["/C", "start", "", page])
     } else {
-        ("xdg-open", vec![&page])
+        ("xdg-open", vec![page])
     };
     std::process::Command::new(program)
         .args(args)
@@ -293,31 +301,31 @@ pub fn chain_watch(s: &AppState, base: Option<&str>) -> Res<ChainWatch> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_chain_watch(app: AppHandle, base: Option<String>) -> Res<ChainWatch> {
+pub async fn code_chain_watch(app: AppHandle, base: Option<String>) -> Api<ChainWatch> {
     blocking(app, move |s| chain_watch(s, base.as_deref())).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn projects_overview(app: AppHandle) -> Res<Vec<ProjectCard>> {
+pub async fn projects_overview(app: AppHandle) -> Api<Vec<ProjectCard>> {
     blocking(app, overview).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn project_open_remote(app: AppHandle, id: String) -> Res<()> {
+pub async fn project_open_remote(app: AppHandle, id: String) -> Api<()> {
     blocking(app, move |s| open_remote(s, &id)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_push_target(app: AppHandle) -> Res<PushTarget> {
+pub async fn code_push_target(app: AppHandle) -> Api<PushTarget> {
     blocking(app, push_target).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn code_chain_gate(app: AppHandle, push: bool) -> Res<Vec<ChainWarning>> {
+pub async fn code_chain_gate(app: AppHandle, push: bool) -> Api<Vec<ChainWarning>> {
     blocking(app, move |s| chain_gate(s, push)).await
 }
 

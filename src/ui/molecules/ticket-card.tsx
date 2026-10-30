@@ -85,18 +85,27 @@ export function TicketCard({
 						selected && "border-accent shadow-glow",
 					)}
 				>
-					<span className="flex items-center gap-2">
-						{priority ? <PriorityGlyph level={priority.level} label={priority.label} /> : null}
-						<span className="flex-1 font-mono text-11 text-n-11">{itemKey}</span>
+					{/* The title leads; the ref stays for assistive tools and behind Copy reference in the menu. */}
+					<span className="flex items-start gap-2">
+						{priority ? (
+							<span className="flex h-5 items-center">
+								<PriorityGlyph level={priority.level} label={priority.label} />
+							</span>
+						) : null}
+						<span className="line-clamp-2 flex-1 text-ui font-medium text-n-12">
+							{title}
+							<span className="sr-only"> {itemKey}</span>
+						</span>
 						{claimed ? <StatusDot status="active" label={claimed} /> : null}
-						{run ? (
+					</span>
+					{run ? (
+						<span className="flex">
 							<Badge variant={RUN_BADGE[run.status]}>
 								<StatusDot status={run.status} label={run.label} className="size-2" />
 								{run.label}
 							</Badge>
-						) : null}
-					</span>
-					<span className="line-clamp-2 text-ui font-medium text-n-12">{title}</span>
+						</span>
+					) : null}
 					{labels?.length ? (
 						<span className="flex flex-wrap gap-1">
 							{labels.map((l) => (

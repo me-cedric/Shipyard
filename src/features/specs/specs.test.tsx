@@ -35,19 +35,19 @@ describe("Specs / Changes", () => {
 		expect(await screen.findAllByRole("button", { name: "New change" })).toHaveLength(1);
 	});
 
-	it("creates a change from a kebab-case id and refuses another id", async () => {
+	it("creates a change from a plain title and refuses a title with no letter", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<SpecChanges />);
 		await user.click(await screen.findByRole("button", { name: "New change" }));
-		await user.type(screen.getByRole("textbox", { name: "Change id" }), "Bad Id");
+		await user.type(screen.getByRole("textbox", { name: "Title" }), "!!");
 		await user.click(screen.getByRole("button", { name: "Create" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("invalid change id: Bad Id");
-		expect(files()[`${CH}/Bad Id/proposal.md`]).toBeUndefined();
-		await user.clear(screen.getByRole("textbox", { name: "Change id" }));
-		await user.type(screen.getByRole("textbox", { name: "Change id" }), "add-search");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Use a title with at least one");
+		await user.clear(screen.getByRole("textbox", { name: "Title" }));
+		await user.type(screen.getByRole("textbox", { name: "Title" }), "Add search");
 		await user.click(screen.getByRole("button", { name: "Create" }));
 		await screen.findByRole("navigation", { name: "Artifacts" });
-		expect(files()[`${CH}/add-search/proposal.md`]).toBeDefined();
+		expect(files()[`${CH}/add-search/proposal.md`]?.text).toContain("# Add search");
+		expect(await screen.findAllByText("Add search")).not.toHaveLength(0);
 	});
 
 	it("shows a finding on the artifact that holds it, with its line", async () => {

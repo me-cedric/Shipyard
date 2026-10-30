@@ -91,7 +91,9 @@ describe("mock work: the seed", () => {
 		const dup = structuredClone(view.team);
 		const second = dup.members[1];
 		if (second) second.handle = "ada";
-		await expect(unwrap(commands.workTeamSave(dup))).rejects.toThrow("ada");
+		await expect(unwrap(commands.workTeamSave(dup))).rejects.toMatchObject({
+			details: expect.stringContaining("ada"),
+		});
 	});
 });
 
@@ -103,20 +105,22 @@ describe("mock work: the rules of the Rust commands", () => {
 		const ranked = await unwrap(commands.workSuggest("ACME-3"));
 		expect(ranked).toHaveLength(5);
 		expect(mockState().sync.mirror.find((t) => t.key === "ACME-3")?.assignee).toBeNull();
-		await expect(unwrap(commands.workAssign("ACME-3", "grace", false))).rejects.toThrow("click");
+		await expect(unwrap(commands.workAssign("ACME-3", "grace", false))).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
 		await unwrap(commands.workAssign("ACME-3", "grace", true));
 		const rows = await unwrap(commands.syncItems({}));
 		expect(rows.find((t) => t.key === "ACME-3")).toMatchObject({
 			assignee: "Grace Hopper",
 			member: "grace",
 		});
-		await expect(unwrap(commands.workAssign("ACME-3", "zed", true))).rejects.toThrow(
-			"unknown member",
-		);
+		await expect(unwrap(commands.workAssign("ACME-3", "zed", true))).rejects.toMatchObject({
+			details: expect.stringContaining("unknown member"),
+		});
 		await unwrap(commands.workMark("ACME-3", true));
 		expect(mockState().sync.mirror.find((t) => t.key === "ACME-3")?.labels).toContain("shipyard");
-		await expect(unwrap(commands.workTransition("ACME-3", "Archived", true))).rejects.toThrow(
-			"refused",
+		await expect(unwrap(commands.workTransition("ACME-3", "Archived", true))).rejects.toMatchObject(
+			{ details: expect.stringContaining("refused") },
 		);
 		await unwrap(commands.workTransition("ACME-3", "Done", true));
 		expect(mockState().sync.mirror.find((t) => t.key === "ACME-3")?.category).toBe("done");
@@ -125,18 +129,18 @@ describe("mock work: the rules of the Rust commands", () => {
 	it("removes a label and sets a priority only on a click and with a known value", async () => {
 		await withTracker();
 		await unwrap(commands.workTicketLabelAdd("ACME-3", "old", true));
-		await expect(unwrap(commands.workTicketLabelRemove("ACME-3", "old", false))).rejects.toThrow(
-			"click",
-		);
+		await expect(
+			unwrap(commands.workTicketLabelRemove("ACME-3", "old", false)),
+		).rejects.toMatchObject({ details: expect.stringContaining("click") });
 		await expect(
 			unwrap(commands.workTicketLabelRemove("ACME-3", "two words", true)),
-		).rejects.toThrow("one word");
+		).rejects.toMatchObject({ details: expect.stringContaining("one word") });
 		await unwrap(commands.workTicketLabelRemove("ACME-3", "old", true));
 		expect(mockState().sync.mirror.find((t) => t.key === "ACME-3")?.labels).not.toContain("old");
 		await unwrap(commands.workTicketPrioritySet("ACME-3", "high", true));
-		await expect(unwrap(commands.workTicketPrioritySet("ACME-3", "urgent", true))).rejects.toThrow(
-			"not a priority",
-		);
+		await expect(
+			unwrap(commands.workTicketPrioritySet("ACME-3", "urgent", true)),
+		).rejects.toMatchObject({ details: expect.stringContaining("not a priority") });
 		expect((await unwrap(commands.workTicketEditCaps())).priority).toBe(true);
 	});
 
@@ -146,12 +150,18 @@ describe("mock work: the rules of the Rust commands", () => {
 		await unwrap(commands.workLock());
 		expect(await unwrap(commands.workSealState())).toEqual({ sealed: true, unlocked: false });
 		expect((await unwrap(commands.estimateList())).every((s) => s.state === "locked")).toBe(true);
-		await expect(unwrap(commands.estimateGet("mvp-1"))).rejects.toThrow("no passphrase");
+		await expect(unwrap(commands.estimateGet("mvp-1"))).rejects.toMatchObject({
+			details: expect.stringContaining("no passphrase"),
+		});
 		const team = await unwrap(commands.workTeam());
 		expect(team.locked).toBe(true);
 		expect(team.team.members.every((m) => m.dayRate == null)).toBe(true);
-		await expect(unwrap(commands.workTeamSave(team.team))).rejects.toThrow("no passphrase");
-		await expect(unwrap(commands.workUnlock("wrong"))).rejects.toThrow("does not open");
+		await expect(unwrap(commands.workTeamSave(team.team))).rejects.toMatchObject({
+			details: expect.stringContaining("no passphrase"),
+		});
+		await expect(unwrap(commands.workUnlock("wrong"))).rejects.toMatchObject({
+			details: expect.stringContaining("does not open"),
+		});
 		expect((await unwrap(commands.workUnlock("pass phrase"))).unlocked).toBe(true);
 		expect((await unwrap(commands.estimateGet("mvp-1"))).totals.price).toBeGreaterThan(0);
 		await unwrap(commands.workUnseal("pass phrase"));
@@ -163,11 +173,15 @@ describe("mock work: the rules of the Rust commands", () => {
 		const pv = await unwrap(commands.excelPreview("/files/bad.xlsx", null));
 		expect(pv.refused).toEqual([{ row: 7, reason: "the effort is not a number" }]);
 		expect(mockState().work.sheets.import).toBeUndefined();
-		await expect(unwrap(commands.excelConfirm("import", false))).rejects.toThrow("confirmation");
+		await expect(unwrap(commands.excelConfirm("import", false))).rejects.toMatchObject({
+			details: expect.stringContaining("confirmation"),
+		});
 		expect(mockState().work.sheets.import).toBeUndefined();
 		const v = await unwrap(commands.excelConfirm("import", true));
 		expect(v.sheet.name).toBe("Imported lot");
-		await expect(unwrap(commands.excelConfirm("import", true))).rejects.toThrow("no import");
+		await expect(unwrap(commands.excelConfirm("import", true))).rejects.toMatchObject({
+			details: expect.stringContaining("no import"),
+		});
 		for (const bad of ["lot.xlsx", "/files/a.csv", "/files/missing.xlsx"])
 			await expect(unwrap(commands.excelPreview(bad, null))).rejects.toThrow();
 		await unwrap(commands.excelExport("mvp-1", "/files/out.xlsx"));
@@ -179,7 +193,9 @@ describe("mock work: the rules of the Rust commands", () => {
 		const pv = await unwrap(commands.applyPreview(slugs));
 		expect(pv.every((d) => d.action === "create")).toBe(true);
 		expect(Object.keys(mockState().work.written)).toHaveLength(0);
-		await expect(unwrap(commands.applyRun(slugs, false))).rejects.toThrow("click");
+		await expect(unwrap(commands.applyRun(slugs, false))).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
 		mockState().work.failRows = ["est:mvp-1#auth-api"];
 		const out = await unwrap(commands.applyRun(slugs, true));
 		expect(out.filter((r) => r.error)).toHaveLength(1);
@@ -212,29 +228,31 @@ describe("mock work: the rules of the Rust commands", () => {
 			days: null,
 			parent: null,
 		};
-		await expect(unwrap(commands.workItemCreate(row, false))).rejects.toThrow("click");
+		await expect(unwrap(commands.workItemCreate(row, false))).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
 		const made = await unwrap(commands.workItemCreate(row, true));
 		expect(made.key).toMatch(/^ACME-/);
 		expect((await unwrap(commands.workItemPreview(row))).action).toBe("unchanged");
 		expect((await unwrap(commands.workItemCreate(row, true))).action).toBe("unchanged");
 		await expect(
 			unwrap(commands.workItemCreate({ ...row, reference: "not a ref" }, true)),
-		).rejects.toThrow("not a ref");
+		).rejects.toMatchObject({ details: expect.stringContaining("not a ref") });
 	});
 
 	it("never double counts a worklog: a lost answer is found again by its mark", async () => {
 		await withTracker();
 		const e = await unwrap(commands.timeAdd(null, "2026-11-04", 90, "review", "wi:ACME-1"));
-		await expect(unwrap(commands.timeAdd(null, "2026-11-04", 90, "x", "ACME-404"))).rejects.toThrow(
-			"not in the mirror",
-		);
-		await expect(unwrap(commands.timeSend(null, e.day, e.id, 60, true, false))).rejects.toThrow(
-			"click",
-		);
+		await expect(
+			unwrap(commands.timeAdd(null, "2026-11-04", 90, "x", "ACME-404")),
+		).rejects.toMatchObject({ details: expect.stringContaining("not in the mirror") });
+		await expect(
+			unwrap(commands.timeSend(null, e.day, e.id, 60, true, false)),
+		).rejects.toMatchObject({ details: expect.stringContaining("click") });
 		mockState().work.loseNextAnswer = true;
-		await expect(unwrap(commands.timeSend(null, e.day, e.id, 60, true, true))).rejects.toThrow(
-			"answer was lost",
-		);
+		await expect(
+			unwrap(commands.timeSend(null, e.day, e.id, 60, true, true)),
+		).rejects.toMatchObject({ details: expect.stringContaining("answer was lost") });
 		const rows = await unwrap(commands.timeFetch(null, "ACME-1"));
 		const mine = rows.find((r) => r.entry?.id === e.id);
 		expect(mine).toMatchObject({ lostReceipt: true, state: "in-tracker" });
@@ -244,17 +262,17 @@ describe("mock work: the rules of the Rust commands", () => {
 		expect(mockState().work.logs["ACME-1"]?.length).toBe(logs);
 		// A worklog that only the tracker holds shows as such. An entry with a receipt is not sent again.
 		expect(rows.some((r) => r.state === "only-in-tracker")).toBe(true);
-		await expect(unwrap(commands.timeSend(null, e.day, e.id, 60, true, true))).rejects.toThrow(
-			"receipt",
-		);
+		await expect(
+			unwrap(commands.timeSend(null, e.day, e.id, 60, true, true)),
+		).rejects.toMatchObject({ details: expect.stringContaining("receipt") });
 	});
 
 	it("refuses a time entry that has no member", async () => {
 		resetMock({ work: emptyWork() });
 		await withTracker();
-		await expect(unwrap(commands.timeAdd(null, "2026-11-04", 30, "", null))).rejects.toThrow(
-			"cannot resolve the member",
-		);
+		await expect(unwrap(commands.timeAdd(null, "2026-11-04", 30, "", null))).rejects.toMatchObject({
+			details: expect.stringContaining("cannot resolve the member"),
+		});
 		expect(await unwrap(commands.estimateList())).toEqual([]);
 		expect((await unwrap(commands.workTeam())).team.members).toEqual([]);
 	});

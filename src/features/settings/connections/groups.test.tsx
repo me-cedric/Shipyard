@@ -25,6 +25,18 @@ describe("Settings / Connections / Runners", () => {
 		expect(within(gemini).getByRole("img", { name: "Missing" })).toBeInTheDocument();
 		expect(await screen.findByRole("heading", { name: "Runners (5)" })).toBeInTheDocument();
 	});
+
+	it("installs a missing runner on one click", async () => {
+		const user = userEvent.setup();
+		mountApp("/settings/connections");
+		const gemini = await row("Gemini CLI");
+		expect(within(await row("Claude Code")).queryByRole("button", { name: /Install/ })).toBeNull();
+		await user.click(within(gemini).getByRole("button", { name: "Install Gemini CLI" }));
+		await waitFor(() =>
+			expect(within(gemini).getByRole("img", { name: "Detected" })).toBeInTheDocument(),
+		);
+		expect(within(gemini).queryByRole("button", { name: /Install/ })).toBeNull();
+	});
 });
 
 describe("Settings / Connections / MCP servers", () => {
@@ -158,7 +170,7 @@ describe("Settings / Connections / Model providers", () => {
 		await user.type(screen.getByRole("textbox", { name: "Address" }), "http://example.com/v1");
 		await user.type(screen.getByRole("textbox", { name: "Model" }), "qwen");
 		await user.click(screen.getByRole("button", { name: "Save" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("use an https address");
+		expect(await screen.findByRole("alert")).toHaveTextContent("Use an https address");
 		expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("Remote");
 	});
 });

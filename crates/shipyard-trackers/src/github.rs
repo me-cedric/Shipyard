@@ -129,6 +129,17 @@ impl Tracker for GitHub {
         Ok(person(&self.call("/user", &[])?))
     }
 
+    fn scopes(&self) -> Result<Vec<Scope>, TrackerError> {
+        let v = self.call("/user/repos", &[("per_page", "100"), ("sort", "pushed")])?;
+        Ok(items(&v, "")
+            .iter()
+            .map(|r| Scope {
+                id: text(r, "/full_name"),
+                name: text(r, "/full_name"),
+            })
+            .collect())
+    }
+
     fn search(&self, q: &WorkQuery) -> Result<Page<WorkItem>, TrackerError> {
         check_query(&self.capabilities(), q)?;
         let per_page = q.page_size().to_string();

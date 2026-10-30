@@ -7,7 +7,7 @@ use std::path::{Component, Path, PathBuf};
 
 use tauri::AppHandle;
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::work::need_click;
 
 /// The project root and the full path of `rel`, which must stay under the root and outside `.git`.
@@ -190,26 +190,26 @@ fn iso_now() -> String {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn files_create_file(app: AppHandle, path: String, click: bool) -> Res<()> {
+pub async fn files_create_file(app: AppHandle, path: String, click: bool) -> Api<()> {
     blocking(app, move |s| create_file(s, &path, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn files_create_folder(app: AppHandle, path: String, click: bool) -> Res<()> {
+pub async fn files_create_folder(app: AppHandle, path: String, click: bool) -> Api<()> {
     blocking(app, move |s| create_folder(s, &path, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn files_rename(app: AppHandle, from: String, to: String, click: bool) -> Res<()> {
+pub async fn files_rename(app: AppHandle, from: String, to: String, click: bool) -> Api<()> {
     blocking(app, move |s| rename(s, &from, &to, click)).await
 }
 
 /// Moves a path to the system trash.
 #[tauri::command]
 #[specta::specta]
-pub async fn files_delete(app: AppHandle, path: String, click: bool) -> Res<()> {
+pub async fn files_delete(app: AppHandle, path: String, click: bool) -> Api<()> {
     blocking(app, move |s| delete(s, &path, click)).await
 }
 

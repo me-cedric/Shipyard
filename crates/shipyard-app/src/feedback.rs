@@ -5,7 +5,7 @@
 
 use specta::Type;
 
-use crate::commands::{Res, blocking};
+use crate::commands::{Api, Res, blocking};
 
 const REPO: &str = "https://github.com/me-cedric/Shipyard";
 const MAX: usize = 4000;
@@ -81,7 +81,7 @@ pub async fn feedback_open(
     title: String,
     details: String,
     click: bool,
-) -> Res<String> {
+) -> Api<String> {
     blocking(app, move |_| {
         if !click {
             return Err("this action needs the click of a person".into());

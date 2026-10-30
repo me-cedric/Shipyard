@@ -19,7 +19,7 @@ use shipyard_store::safe_write::{self, Saved};
 use specta::Type;
 use tauri::AppHandle;
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 
 /// The active project: its folder and its project file.
 pub(crate) struct Proj {
@@ -373,13 +373,13 @@ pub fn open_outside(s: &AppState, target: &str) -> Res<()> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn design_list(app: AppHandle) -> Res<DesignList> {
+pub async fn design_list(app: AppHandle) -> Api<DesignList> {
     blocking(app, list).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn design_read(app: AppHandle, path: String) -> Res<Text> {
+pub async fn design_read(app: AppHandle, path: String) -> Api<Text> {
     blocking(app, move |s| read(s, &path)).await
 }
 
@@ -391,7 +391,7 @@ pub async fn design_write(
     text: String,
     stamp: Option<String>,
     create: bool,
-) -> Res<Written> {
+) -> Api<Written> {
     blocking(app, move |s| {
         write(s, &path, &text, stamp.as_deref(), create)
     })
@@ -400,7 +400,7 @@ pub async fn design_write(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn design_adr_create(app: AppHandle, title: String) -> Res<Adr> {
+pub async fn design_adr_create(app: AppHandle, title: String) -> Api<Adr> {
     blocking(app, move |s| adr_create(s, &title)).await
 }
 
@@ -412,7 +412,7 @@ pub async fn design_adr_decide(
     decision: Decision,
     comment: String,
     stamp: String,
-) -> Res<Written> {
+) -> Api<Written> {
     blocking(app, move |s| {
         adr_decide(s, &path, decision, &comment, &stamp)
     })
@@ -426,19 +426,19 @@ pub async fn design_flows_save(
     path: String,
     rows: Vec<FlowRow>,
     stamp: Option<String>,
-) -> Res<Written> {
+) -> Api<Written> {
     blocking(app, move |s| flows_save(s, &path, &rows, stamp.as_deref())).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn design_try(app: AppHandle, request: TryRequest, click: bool) -> Res<TryResponse> {
+pub async fn design_try(app: AppHandle, request: TryRequest, click: bool) -> Api<TryResponse> {
     blocking(app, move |s| try_request(s, &request, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn design_open(app: AppHandle, target: String) -> Res<()> {
+pub async fn design_open(app: AppHandle, target: String) -> Api<()> {
     blocking(app, move |s| open_outside(s, &target)).await
 }
 

@@ -54,6 +54,12 @@ pub trait Tracker: Send + Sync {
 
     fn get(&self, key: &str) -> Result<WorkItem, TrackerError>;
 
+    /// The containers that a person can pick as the scope: Jira projects, repositories, Azure
+    /// projects or Linear teams. The most recent 100. Empty when the API lists none.
+    fn scopes(&self) -> Result<Vec<Scope>, TrackerError> {
+        Ok(Vec::new())
+    }
+
     /// Needs the `comments` flag.
     fn comments(&self, key: &str) -> Result<Vec<Comment>, TrackerError>;
 

@@ -10,7 +10,7 @@ use serde::Serialize;
 use shipyard_core::code::is_secret_name;
 use specta::Type;
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 
 pub const MAX_TEXT: usize = 200 * 1024;
 pub const MAX_IMAGE: usize = 2 * 1024 * 1024;
@@ -85,7 +85,7 @@ pub async fn assistant_attach(
     thread: String,
     name: String,
     bytes: Vec<u8>,
-) -> Res<Attachment> {
+) -> Api<Attachment> {
     blocking(app, move |s: &AppState| {
         let e = s
             .registry()?

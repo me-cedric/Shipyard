@@ -9,7 +9,7 @@ use shipyard_git::child_deploy::commit_all;
 use shipyard_store::project::write_atomic;
 use tauri::AppHandle;
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, Res, blocking, err};
 
 const FILE: &str = "auto-commit.json";
 
@@ -42,13 +42,13 @@ pub fn run(s: &AppState, message: &str) -> Res<Option<String>> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn auto_commit_get(app: AppHandle) -> Res<bool> {
+pub async fn auto_commit_get(app: AppHandle) -> Api<bool> {
     blocking(app, |s| Ok(enabled(s))).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn auto_commit_set(app: AppHandle, on: bool) -> Res<bool> {
+pub async fn auto_commit_set(app: AppHandle, on: bool) -> Api<bool> {
     blocking(app, move |s| {
         let _g = s.guard();
         let (id, _) = active(s)?;
@@ -70,7 +70,7 @@ pub async fn auto_commit_set(app: AppHandle, on: bool) -> Res<bool> {
 /// The commit of the sync action. It does nothing when the option is off.
 #[tauri::command]
 #[specta::specta]
-pub async fn auto_commit_run(app: AppHandle) -> Res<Option<String>> {
+pub async fn auto_commit_run(app: AppHandle) -> Api<Option<String>> {
     blocking(app, |s| {
         run(s, "chore: save changes before sync [shipyard]")
     })

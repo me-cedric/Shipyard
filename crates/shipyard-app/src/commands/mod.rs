@@ -15,6 +15,7 @@ pub mod overview;
 pub mod prefs;
 pub mod projects;
 pub mod refs;
+pub mod setup;
 pub mod shell;
 pub mod sync;
 
@@ -32,6 +33,8 @@ use shipyard_store::ref_index::RefIndex;
 use tauri::{AppHandle, Manager};
 
 pub type Res<T> = Result<T, String>;
+/// What a command returns: the error has a code and an action (`crate::errors`).
+pub type Api<T> = Result<T, crate::errors::AppError>;
 
 pub fn err(e: impl Display) -> String {
     e.to_string()
@@ -142,13 +145,13 @@ impl AppState {
 pub async fn blocking<T: Send + 'static>(
     app: AppHandle,
     f: impl FnOnce(&AppState) -> Res<T> + Send + 'static,
-) -> Res<T> {
+) -> Api<T> {
     let done = tauri::async_runtime::spawn_blocking(move || f(&app.state::<AppState>()))
         .await
-        .map_err(err)?;
+        .map_err(|e| crate::errors::AppError::from(e.to_string()))?;
     // A failed command is a line of the debug console in Settings / Health.
     if let Err(e) = &done {
         crate::applog::record("warn", e);
     }
-    done
+    done.map_err(Into::into)
 }

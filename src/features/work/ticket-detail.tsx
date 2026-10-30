@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { TicketThread } from "@/features/sync/ticket-thread";
+import { useRunActions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { useResolvedRef } from "@/lib/refs";
 import { useShell } from "@/lib/shell";
@@ -11,9 +12,11 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { CpuChipIcon, LinkIcon, XMarkIcon } from "@/ui/icons";
+import { CpuChipIcon, LinkIcon, PlayIcon, XMarkIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SuggestionRow } from "@/ui/molecules/member-row";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { SettingLink } from "@/ui/molecules/setting-link";
 import { useGuard } from "./guard";
 import { reasonsOf } from "./reasons";
 
@@ -44,7 +47,8 @@ export function TicketDetail({ itemKey }: { itemKey: string }) {
 	const suggestions = useSuggestions(itemKey).data ?? [];
 	const act = useWorkActions();
 	const { link, unlink } = useBacklogActions();
-	const { error, run } = useGuard();
+	const runs = useRunActions();
+	const { failure, run } = useGuard();
 	const [linking, setLinking] = useState(false);
 	const [local, setLocal] = useState("");
 
@@ -132,6 +136,10 @@ export function TicketDetail({ itemKey }: { itemKey: string }) {
 						<CpuChipIcon size={14} />
 						{d.mark}
 					</Button>
+					<Button onClick={() => void run(() => runs.start(item.key))}>
+						<PlayIcon size={14} />
+						{t.factory.start}
+					</Button>
 					{eligible ? (
 						<span role="status" className="flex items-center gap-1.5 text-12">
 							<StatusDot status="success" label={d.eligible} className="size-2" />
@@ -139,7 +147,11 @@ export function TicketDetail({ itemKey }: { itemKey: string }) {
 						</span>
 					) : null}
 				</div>
-				{markReason ? <p className="text-12 text-n-11">{markReason}</p> : null}
+				{markReason === d.noLabel ? (
+					<SettingLink target="pickupLabel">{markReason}</SettingLink>
+				) : markReason ? (
+					<p className="text-12 text-n-11">{markReason}</p>
+				) : null}
 			</section>
 
 			<section className="flex flex-col gap-1">
@@ -187,11 +199,7 @@ export function TicketDetail({ itemKey }: { itemKey: string }) {
 
 			<TicketThread itemKey={item.key} />
 
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} />
 		</div>
 	);
 }

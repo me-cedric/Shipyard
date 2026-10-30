@@ -8,11 +8,11 @@ import { type SpaceId, tabLabel, tabPath, visibleTabs } from "./spaces";
 /** The tabs of a space as a segmented control. A pill slides under the active tab. */
 export function TabsBar({ space }: { space: SpaceId }) {
 	const { t } = useI18n();
-	const { profile } = usePrefs();
+	const { profile, role } = usePrefs();
 	return (
 		<nav aria-label={t.nav.tabs} className="flex shrink-0 overflow-x-auto px-4 pt-3">
 			<div className="flex items-center gap-0.5 rounded-lg border bg-surface-1 p-0.5 shadow-1">
-				{visibleTabs(space, profile.hiddenTabs).map((tab) => (
+				{visibleTabs(space, profile.hiddenTabs, role).map((tab) => (
 					<Link
 						key={tab}
 						to={tabPath(space, tab)}

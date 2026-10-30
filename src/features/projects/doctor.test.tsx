@@ -30,10 +30,14 @@ describe("Settings / Health / tools and ledger", () => {
 	});
 
 	it("an unknown tool and a tool with no installer fail with a reason", async () => {
-		await expect(unwrap(commands.doctorToolInstall("nope", true))).rejects.toThrow("unknown tool");
-		await expect(unwrap(commands.doctorToolInstall("skillspector", true))).rejects.toThrow(
-			"no package manager",
-		);
-		await expect(unwrap(commands.doctorToolInstall("pnpm", false))).rejects.toThrow("click");
+		await expect(unwrap(commands.doctorToolInstall("nope", true))).rejects.toMatchObject({
+			details: expect.stringContaining("unknown tool"),
+		});
+		await expect(unwrap(commands.doctorToolInstall("skillspector", true))).rejects.toMatchObject({
+			details: expect.stringContaining("no package manager"),
+		});
+		await expect(unwrap(commands.doctorToolInstall("pnpm", false))).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
 	});
 });

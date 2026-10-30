@@ -15,14 +15,12 @@ async function openWithTracker(page: Page, secret: string | null = "tok-e2e-sync
 	await page.getByRole("combobox", { name: "Product" }).click();
 	await page.getByRole("option", { name: "Linear" }).click();
 	if (secret)
-		await page.getByLabel("Secret", { exact: true }).and(page.locator("input")).fill(secret);
+		await page.getByLabel("API key", { exact: true }).and(page.locator("input")).fill(secret);
 	await page.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByRole("group", { name: "Acme" })).toBeVisible();
+	// The only tracker links itself to the project.
 	await tabs(page).getByRole("link", { name: "Project" }).click();
-	await page.getByRole("combobox", { name: "Tracker" }).click();
-	await page.getByRole("option", { name: "Acme" }).click();
-	await page.getByRole("button", { name: "Save" }).click();
-	await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
+	await expect(page.getByRole("combobox", { name: "Tracker", exact: true })).toContainText("Acme");
 }
 
 test("imports the backlog after a count, then reads it from the mirror with no tick", async ({

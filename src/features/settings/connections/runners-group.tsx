@@ -1,10 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
+import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { ArrowPathIcon } from "@/ui/icons";
 import { ConnectionRow } from "@/ui/molecules/connection-row";
-import { message, runnerKeys } from "./keys";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { runnerKeys } from "./keys";
 
 /** The agent CLIs on this machine: detected with a version, or missing. No manual step. */
 export function RunnersGroup() {
@@ -13,7 +16,22 @@ export function RunnersGroup() {
 		queryKey: runnerKeys.list,
 		queryFn: () => unwrap(commands.runnersList()),
 	});
+	const [busy, setBusy] = useState<string | null>(null);
+	const [failure, setFailure] = useState<unknown>(null);
 	if (!runners.data && !runners.error) return null;
+	// One click installs the CLI. Node comes first when the machine lacks it, as in Settings / Health.
+	const install = async (id: string) => {
+		setBusy(id);
+		setFailure(null);
+		try {
+			await unwrap(commands.runnerInstall(id, true));
+			await runners.refetch();
+		} catch (e) {
+			setFailure(e);
+		} finally {
+			setBusy(null);
+		}
+	};
 	return (
 		<section aria-labelledby="connections-runner" className="flex flex-col gap-2">
 			<div className="flex items-center justify-between px-1">
@@ -31,11 +49,7 @@ export function RunnersGroup() {
 					<ArrowPathIcon size={14} />
 				</IconButton>
 			</div>
-			{runners.error ? (
-				<p role="alert" className="px-3 text-ui text-danger-text">
-					{message(runners.error)}
-				</p>
-			) : null}
+			<ErrorNotice error={runners.error ?? failure} className="px-3" />
 			{(runners.data ?? []).map((r) => (
 				<ConnectionRow
 					key={r.id}
@@ -43,7 +57,13 @@ export function RunnersGroup() {
 					statusLabel={t.connections.runner.state[r.state]}
 					name={r.label}
 					product={r.version ?? undefined}
-					actions={null}
+					actions={
+						r.state === "missing" ? (
+							<Button disabled={busy !== null} onClick={() => void install(r.id)}>
+								{format(t.settings.tools.install, { name: r.label })}
+							</Button>
+						) : null
+					}
 				/>
 			))}
 		</section>

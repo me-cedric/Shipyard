@@ -5,7 +5,7 @@ export const specsEn = {
 	back: "Back",
 	newChange: "New change",
 	change: "Change",
-	changeId: "Change id",
+	changeId: "Title",
 	artifacts: "Artifacts",
 	artifact: {
 		proposal: "Proposal",
@@ -94,7 +94,7 @@ export const specsFr: typeof specsEn = {
 	back: "Retour",
 	newChange: "Nouveau changement",
 	change: "Changement",
-	changeId: "Id du changement",
+	changeId: "Titre",
 	artifacts: "Artefacts",
 	artifact: {
 		proposal: "Proposition",

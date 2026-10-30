@@ -148,13 +148,13 @@ describe("mock factory: questions and messages", () => {
 			{ kind: "option", n: 4 },
 			{ kind: "text", text: "elsewhere" },
 		] as const)
-			await expect(unwrap(commands.questionAnswer(run.id, "Q-101", choice))).rejects.toThrow(
-				"the choice is not an option of the question",
-			);
+			await expect(unwrap(commands.questionAnswer(run.id, "Q-101", choice))).rejects.toMatchObject({
+				details: expect.stringContaining("the choice is not an option of the question"),
+			});
 		expect((await one("ACME-1")).state).toBe("WaitingForAnswer");
 		await expect(
 			unwrap(commands.questionAnswer(run.id, "Q-999", { kind: "option", n: 1 })),
-		).rejects.toThrow("no question Q-999");
+		).rejects.toMatchObject({ details: expect.stringContaining("no question Q-999") });
 		await unwrap(commands.questionAnswer(run.id, "Q-101", { kind: "option", n: 1 }));
 		// The first answer wins. A second one changes nothing and is no error.
 		await unwrap(commands.questionAnswer(run.id, "Q-101", { kind: "option", n: 2 }));
@@ -169,7 +169,7 @@ describe("mock factory: questions and messages", () => {
 		need(mockState().factory.questions.find((x) => x.q.id === "Q-101")).q.free_text = true;
 		await expect(
 			unwrap(commands.questionAnswer(run.id, "Q-101", { kind: "text", text: "  " })),
-		).rejects.toThrow("not an option");
+		).rejects.toMatchObject({ details: expect.stringContaining("not an option") });
 		await unwrap(commands.questionAnswer(run.id, "Q-101", { kind: "text", text: "Home" }));
 		expect(await stateOf(run.id)).toBe("Working");
 	});
@@ -180,8 +180,12 @@ describe("mock factory: questions and messages", () => {
 		await unwrap(commands.messageReadMark(unread.run, unread.n));
 		const after = await unwrap(commands.messagesList());
 		expect(after.filter((m) => !m.read)).toHaveLength(1);
-		await expect(unwrap(commands.messageReadMark(unread.run, 9))).rejects.toThrow("no message 9");
-		await expect(unwrap(commands.messageReadMark("nope", 0))).rejects.toThrow("no run nope");
+		await expect(unwrap(commands.messageReadMark(unread.run, 9))).rejects.toMatchObject({
+			details: expect.stringContaining("no message 9"),
+		});
+		await expect(unwrap(commands.messageReadMark("nope", 0))).rejects.toMatchObject({
+			details: expect.stringContaining("no run nope"),
+		});
 	});
 });
 
@@ -228,9 +232,9 @@ describe("mock factory: the run log", () => {
 	});
 
 	it("refuses an id that is not a run id", async () => {
-		await expect(unwrap(commands.runLogPage("run-1", 0, 10))).rejects.toThrow(
-			"`run-1` is not a run id",
-		);
+		await expect(unwrap(commands.runLogPage("run-1", 0, 10))).rejects.toMatchObject({
+			details: expect.stringContaining("`run-1` is not a run id"),
+		});
 	});
 });
 
@@ -245,14 +249,16 @@ describe("mock factory: run actions", () => {
 		await unwrap(commands.runCancel(live.id));
 		expect(await one("ACME-3")).toMatchObject({ state: "Cancelled", lane: "done" });
 		await unwrap(commands.runCancel(live.id));
-		await expect(unwrap(commands.runCancel("nope"))).rejects.toThrow("no run nope");
+		await expect(unwrap(commands.runCancel("nope"))).rejects.toMatchObject({
+			details: expect.stringContaining("no run nope"),
+		});
 		const f = mockState().factory;
 		const merged = f.runs.find((r) => r.state === "Done");
 		if (!merged) throw new Error("no done run");
 		merged.state = "Merged";
-		await expect(unwrap(commands.runCancel(merged.id))).rejects.toThrow(
-			"a merged run goes to Done, not Cancelled",
-		);
+		await expect(unwrap(commands.runCancel(merged.id))).rejects.toMatchObject({
+			details: expect.stringContaining("a merged run goes to Done, not Cancelled"),
+		});
 	});
 
 	it("withdraws the open question of a cancelled run", async () => {
@@ -265,25 +271,25 @@ describe("mock factory: run actions", () => {
 		const blocked = await one("ACME-9");
 		await unwrap(commands.runUnblock(blocked.id));
 		expect(await one("ACME-9")).toMatchObject({ state: "Working", lane: "working" });
-		await expect(unwrap(commands.runUnblock(blocked.id))).rejects.toThrow(
-			"refused Unblock in Working",
-		);
+		await expect(unwrap(commands.runUnblock(blocked.id))).rejects.toMatchObject({
+			details: expect.stringContaining("refused Unblock in Working"),
+		});
 	});
 
 	it("resumes a paused run with a budget, and refuses a bad budget", async () => {
 		const paused = await one("ACME-6");
 		expect(paused).toMatchObject({ state: "Paused", lane: "needs_you" });
 		for (const add of [-1, Number.NaN, null])
-			await expect(unwrap(commands.runResume(paused.id, add, 0))).rejects.toThrow(
-				"the added budget must be a positive number",
-			);
+			await expect(unwrap(commands.runResume(paused.id, add, 0))).rejects.toMatchObject({
+				details: expect.stringContaining("the added budget must be a positive number"),
+			});
 		// No budget added: the run stays paused.
 		expect(await unwrap(commands.runResume(paused.id, 0, 0))).toBe("Paused");
 		expect(await unwrap(commands.runResume(paused.id, 2, 0))).toBe("Working");
 		expect(await one("ACME-6")).toMatchObject({ state: "Working", budgetUsd: 5 });
-		await expect(unwrap(commands.runResume(paused.id, 1, 0))).rejects.toThrow(
-			"refused Resume in Working",
-		);
+		await expect(unwrap(commands.runResume(paused.id, 1, 0))).rejects.toMatchObject({
+			details: expect.stringContaining("refused Resume in Working"),
+		});
 	});
 
 	it("approves or rejects a plan only in PlanReview", async () => {
@@ -292,12 +298,12 @@ describe("mock factory: run actions", () => {
 		let r = await one("ACME-4");
 		expect(r.state).toBe("Planning");
 		expect(r.steps.find((s) => s.id === "plan")?.state).toBe("pending");
-		await expect(unwrap(commands.runPlanApprove(plan.id))).rejects.toThrow(
-			"refused PlanApproved in Planning",
-		);
-		await expect(unwrap(commands.runPlanReject(plan.id, ""))).rejects.toThrow(
-			"refused PlanRejected in Planning",
-		);
+		await expect(unwrap(commands.runPlanApprove(plan.id))).rejects.toMatchObject({
+			details: expect.stringContaining("refused PlanApproved in Planning"),
+		});
+		await expect(unwrap(commands.runPlanReject(plan.id, ""))).rejects.toMatchObject({
+			details: expect.stringContaining("refused PlanRejected in Planning"),
+		});
 		need(mockState().factory.runs.find((x) => x.id === plan.id)).state = "PlanReview";
 		await unwrap(commands.runPlanApprove(plan.id));
 		r = await one("ACME-4");
@@ -305,10 +311,12 @@ describe("mock factory: run actions", () => {
 	});
 
 	it("starts a run on a ticket of the mirror", async () => {
-		await expect(unwrap(commands.runStart("ACME-3"))).rejects.toThrow("a run is active on ACME-3");
-		await expect(unwrap(commands.runStart("ACME-99"))).rejects.toThrow(
-			"ACME-99 is not in the mirror: sync first",
-		);
+		await expect(unwrap(commands.runStart("ACME-3"))).rejects.toMatchObject({
+			details: expect.stringContaining("a run is active on ACME-3"),
+		});
+		await expect(unwrap(commands.runStart("ACME-99"))).rejects.toMatchObject({
+			details: expect.stringContaining("ACME-99 is not in the mirror: sync first"),
+		});
 		await unwrap(commands.runCancel((await one("ACME-3")).id));
 		const id = await unwrap(commands.runStart("ACME-3"));
 		expect(id).toMatch(/^[0-7][0-9A-HJKMNP-TV-Z]{25}$/);
@@ -321,7 +329,9 @@ describe("mock factory: run actions", () => {
 
 	it("starts nothing without a project", async () => {
 		resetMock();
-		await expect(unwrap(commands.runStart("ACME-3"))).rejects.toThrow("no project is open");
+		await expect(unwrap(commands.runStart("ACME-3"))).rejects.toMatchObject({
+			details: expect.stringContaining("no project is open"),
+		});
 		expect(await runs()).toEqual([]);
 	});
 
@@ -337,7 +347,9 @@ describe("mock factory: run actions", () => {
 		}
 		expect(after.every((r) => r.lane === "done" || r.state === "Failed")).toBe(true);
 		// A write cannot go out while the switch is on.
-		await expect(unwrap(commands.approvalApprove(1))).rejects.toThrow("kill switch");
+		await expect(unwrap(commands.approvalApprove(1))).rejects.toMatchObject({
+			details: expect.stringContaining("kill switch"),
+		});
 		await unwrap(commands.killSwitchSet(false));
 		expect(await unwrap(commands.killSwitchGet())).toBe(false);
 	});
@@ -347,9 +359,9 @@ describe("mock factory: run actions", () => {
 		expect(comment?.kind).toBe("comment");
 		// A pull request write waits while the run waits for an answer or when it is final.
 		expect(await unwrap(commands.approvalApprove(openPr?.id ?? 0))).toBe("48");
-		await expect(unwrap(commands.approvalApprove(openPr?.id ?? 0))).rejects.toThrow(
-			`no approval ${openPr?.id} waits`,
-		);
+		await expect(unwrap(commands.approvalApprove(openPr?.id ?? 0))).rejects.toMatchObject({
+			details: expect.stringContaining(`no approval ${openPr?.id} waits`),
+		});
 		await unwrap(commands.approvalReject(push?.id ?? 0));
 		expect(await one("ACME-10")).toMatchObject({ state: "Blocked", returnTo: "ChangesRequested" });
 		expect((await unwrap(commands.approvalsList())).map((a) => a.kind)).toEqual([
@@ -382,7 +394,9 @@ describe("mock factory: workflows, roles and tiers", () => {
 		expect(file.workflow?.steps.find((s) => s.id === "plan")?.gate).toBe("human");
 		expect(file.workflow?.steps.find((s) => s.id === "build")?.for_each).toBe("plan.tasks");
 		expect(file.workflow?.limits).toEqual({ max_turns: 40, budget_usd: 5, stall_s: 300 });
-		await expect(unwrap(commands.workflowGet("nope"))).rejects.toThrow("no workflow `nope`");
+		await expect(unwrap(commands.workflowGet("nope"))).rejects.toMatchObject({
+			details: expect.stringContaining("no workflow `nope`"),
+		});
 	});
 
 	it("checks a workflow and refuses an invalid save", async () => {
@@ -400,22 +414,24 @@ describe("mock factory: workflows, roles and tiers", () => {
 			message:
 				"step `fix` names the role `ghost`, which has no file in .shipyard/roles and is not a default role",
 		});
-		await expect(unwrap(commands.workflowWrite("bug", renamed))).rejects.toThrow(
-			".shipyard/workflows/bug.yaml:2: id `other` differs",
-		);
-		await expect(unwrap(commands.workflowWrite("bug", "id: bug\n"))).rejects.toThrow(
-			".shipyard/workflows/bug.yaml: the workflow has no step",
-		);
+		await expect(unwrap(commands.workflowWrite("bug", renamed))).rejects.toMatchObject({
+			details: expect.stringContaining(".shipyard/workflows/bug.yaml:2: id `other` differs"),
+		});
+		await expect(unwrap(commands.workflowWrite("bug", "id: bug\n"))).rejects.toMatchObject({
+			details: expect.stringContaining(".shipyard/workflows/bug.yaml: the workflow has no step"),
+		});
 		// The refused text left the file as it was.
 		expect((await unwrap(commands.workflowGet("bug"))).text).toBe(text);
 	});
 
 	it("refuses a bad id and a file that is too big", async () => {
 		for (const id of ["Bug", "-x", "a b", "a".repeat(65), ""])
-			await expect(unwrap(commands.workflowWrite(id, "id: x"))).rejects.toThrow("is not an id");
-		await expect(unwrap(commands.workflowWrite("big", "x".repeat(65 * 1024)))).rejects.toThrow(
-			"over 64 KiB",
-		);
+			await expect(unwrap(commands.workflowWrite(id, "id: x"))).rejects.toMatchObject({
+				details: expect.stringContaining("is not an id"),
+			});
+		await expect(
+			unwrap(commands.workflowWrite("big", "x".repeat(65 * 1024))),
+		).rejects.toMatchObject({ details: expect.stringContaining("over 64 KiB") });
 	});
 
 	it("saves a new workflow, and a role that it needs", async () => {
@@ -424,9 +440,11 @@ describe("mock factory: workflows, roles and tiers", () => {
 		const body = "---\nname: linter\ndescription: Runs the linter.\nmodel: small\n---\n\nLint.\n";
 		await expect(
 			unwrap(commands.roleWrite("linter", body.replace("linter", "other"))),
-		).rejects.toThrow(
-			".shipyard/roles/linter.md:2: name `other` differs from the file name `linter`",
-		);
+		).rejects.toMatchObject({
+			details: expect.stringContaining(
+				".shipyard/roles/linter.md:2: name `other` differs from the file name `linter`",
+			),
+		});
 		await unwrap(commands.roleWrite("linter", body));
 		await unwrap(commands.workflowWrite("lint", text));
 		const list = await unwrap(commands.workflowsList());
@@ -449,7 +467,9 @@ describe("mock factory: workflows, roles and tiers", () => {
 		const planner = await unwrap(commands.roleGet("planner"));
 		expect(planner.text).toContain("name: planner");
 		expect(planner.role?.prompt).toContain("You are the planner");
-		await expect(unwrap(commands.roleGet("ghost"))).rejects.toThrow("no role `ghost`");
+		await expect(unwrap(commands.roleGet("ghost"))).rejects.toMatchObject({
+			details: expect.stringContaining("no role `ghost`"),
+		});
 		await unwrap(
 			commands.roleWrite("planner", planner.text.replace("effort: high", "effort: low")),
 		);
@@ -472,11 +492,11 @@ describe("mock factory: workflows, roles and tiers", () => {
 		expect(saved[1]).toEqual({ runner: "codex", top: "gpt-5@2026+x/y:1", mid: "", small: "m.1_2" });
 		await expect(
 			unwrap(commands.tiersSet({ runner: "vim", top: "", mid: "", small: "" })),
-		).rejects.toThrow("unknown runner: vim");
+		).rejects.toMatchObject({ details: expect.stringContaining("unknown runner: vim") });
 		for (const bad of ["-flag", "has space", "a".repeat(101), "x;y"])
 			await expect(
 				unwrap(commands.tiersSet({ runner: "claude", top: bad, mid: "", small: "" })),
-			).rejects.toThrow("is not a model id");
+			).rejects.toMatchObject({ details: expect.stringContaining("is not a model id") });
 		expect((await unwrap(commands.tiersGet()))[0]?.top).toBe("opus");
 	});
 });
@@ -550,7 +570,11 @@ describe("mock factory: sessions, usage, budgets and the run diff", () => {
 		expect(files[0]).toMatchObject({ binary: false, truncated: false });
 		expect(files[0]?.text).toContain("+export const acme_2");
 		expect(await unwrap(commands.runDiff((await one("ACME-3")).id))).toEqual([]);
-		await expect(unwrap(commands.runDiff("nope"))).rejects.toThrow("is not a run id");
-		await expect(unwrap(commands.runDiff("0".repeat(26)))).rejects.toThrow("no run");
+		await expect(unwrap(commands.runDiff("nope"))).rejects.toMatchObject({
+			details: expect.stringContaining("is not a run id"),
+		});
+		await expect(unwrap(commands.runDiff("0".repeat(26)))).rejects.toMatchObject({
+			details: expect.stringContaining("no run"),
+		});
 	});
 });

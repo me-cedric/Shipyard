@@ -57,7 +57,7 @@ describe("the sync action and the connection state rows", () => {
 	});
 
 	it("shows no sync state for a connection that no project uses", async () => {
-		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		// Added before a project opens: the only tracker connection links itself to an open project.
 		await unwrap(
 			commands.connectionsAdd({
 				name: "Acme",
@@ -67,6 +67,7 @@ describe("the sync action and the connection state rows", () => {
 				user: null,
 			}),
 		);
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/settings/connections");
 		const row = await screen.findByRole("group", { name: "Acme" });
 		expect(within(row).queryByRole("status")).toBeNull();

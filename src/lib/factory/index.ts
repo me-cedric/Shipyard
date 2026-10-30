@@ -67,7 +67,7 @@ export function useRunActions() {
 	const qc = useQueryClient();
 	return useMemo(() => {
 		const run = async <T>(
-			call: Promise<{ status: "ok"; data: T } | { status: "error"; error: string }>,
+			call: Promise<{ status: "ok"; data: T } | { status: "error"; error: unknown }>,
 		) => {
 			try {
 				return await unwrap(call);
@@ -141,7 +141,7 @@ export function useFactoryWrites() {
 	const qc = useQueryClient();
 	return useMemo(() => {
 		const run = async <T>(
-			call: Promise<{ status: "ok"; data: T } | { status: "error"; error: string }>,
+			call: Promise<{ status: "ok"; data: T } | { status: "error"; error: unknown }>,
 		) => {
 			try {
 				return await unwrap(call);
@@ -187,7 +187,7 @@ export function useMachineWrites() {
 	const qc = useQueryClient();
 	return useMemo(() => {
 		const run = async <T>(
-			call: Promise<{ status: "ok"; data: T } | { status: "error"; error: string }>,
+			call: Promise<{ status: "ok"; data: T } | { status: "error"; error: unknown }>,
 		) => {
 			try {
 				return await unwrap(call);

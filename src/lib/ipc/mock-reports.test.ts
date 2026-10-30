@@ -20,18 +20,18 @@ describe("mock client exports", () => {
 
 	it("fails without a project", async () => {
 		resetMock();
-		await expect(unwrap(commands.exportRaidFile(text(), "/tmp/r.xlsx", true))).rejects.toThrow(
-			"no active project",
-		);
+		await expect(
+			unwrap(commands.exportRaidFile(text(), "/tmp/r.xlsx", true)),
+		).rejects.toMatchObject({ details: expect.stringContaining("no active project") });
 	});
 
 	it("writes nothing without a click and checks the kind of the file", async () => {
-		await expect(unwrap(commands.exportCostingFile(text(), "/tmp/c.xlsx", false))).rejects.toThrow(
-			"click",
-		);
-		await expect(unwrap(commands.exportFlowsFile(text(), "/tmp/f.xls", true))).rejects.toThrow(
-			".xlsx",
-		);
+		await expect(
+			unwrap(commands.exportCostingFile(text(), "/tmp/c.xlsx", false)),
+		).rejects.toMatchObject({ details: expect.stringContaining("click") });
+		await expect(
+			unwrap(commands.exportFlowsFile(text(), "/tmp/f.xls", true)),
+		).rejects.toMatchObject({ details: expect.stringContaining(".xlsx") });
 		await expect(
 			unwrap(commands.exportGanttFile(text(), "plan", "/tmp/g.xlsx", true)),
 		).rejects.toThrow();
@@ -50,14 +50,14 @@ describe("mock client exports", () => {
 		await unwrap(commands.exportGanttFile(text(), slug, "/tmp/p.svg", true));
 		await expect(
 			unwrap(commands.exportScheduleFile(text(), "nope", "/tmp/n.xlsx", true)),
-		).rejects.toThrow("no sheet");
+		).rejects.toMatchObject({ details: expect.stringContaining("no sheet") });
 		expect(done().exported.map((e) => e.kind)).toEqual(["schedule", "gantt"]);
 	});
 
 	it("needs seven titles for the complete dossier", async () => {
 		await expect(
 			unwrap(commands.exportDossierCompleteFile(text(5), [], "/tmp/d.docx", true)),
-		).rejects.toThrow("expected 7 section titles");
+		).rejects.toMatchObject({ details: expect.stringContaining("expected 7 section titles") });
 		await unwrap(commands.exportDossierCompleteFile(text(7), [], "/tmp/d.docx", true));
 		expect(done().exported[0]).toEqual({ kind: "dossier-complete", path: "/tmp/d.docx" });
 	});
@@ -70,8 +70,13 @@ describe("mock client exports", () => {
 			["2026-10-31", "2026-10-01"],
 			["2026-02-30", "2026-03-01"],
 		];
-		for (const [from, to] of bad) await expect(run("main", from, to)).rejects.toThrow("period");
-		await expect(run("--all", "2026-10-01", "2026-10-31")).rejects.toThrow("not a ref");
+		for (const [from, to] of bad)
+			await expect(run("main", from, to)).rejects.toMatchObject({
+				details: expect.stringContaining("period"),
+			});
+		await expect(run("--all", "2026-10-01", "2026-10-31")).rejects.toMatchObject({
+			details: expect.stringContaining("not a ref"),
+		});
 		await run("main", "2026-10-01", "2026-10-31");
 		expect(done().exported).toHaveLength(1);
 	});
@@ -79,8 +84,10 @@ describe("mock client exports", () => {
 	it("numbers the change requests and keeps the read-only lock", async () => {
 		const run = (title: string, click = true) =>
 			unwrap(commands.exportChangeRequestFiles(title, "main", "HEAD", ["Ada"], click));
-		await expect(run("Add export", false)).rejects.toThrow("click");
-		await expect(run("   ")).rejects.toThrow("title");
+		await expect(run("Add export", false)).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
+		await expect(run("   ")).rejects.toMatchObject({ details: expect.stringContaining("title") });
 		expect(await run("Add  export")).toEqual({
 			id: "CR-001",
 			markdown: "docs/delivery/change-requests/CR-001.md",
@@ -92,10 +99,12 @@ describe("mock client exports", () => {
 		mockState().projects.forEach((p) => {
 			if (p.active) p.overrides.readOnly = true;
 		});
-		await expect(run("Third")).rejects.toThrow("read only");
+		await expect(run("Third")).rejects.toMatchObject({
+			details: expect.stringContaining("read only"),
+		});
 		await expect(
 			unwrap(commands.exportCostingFile(text(), "/mock/alpha/docs/c.xlsx", true)),
-		).rejects.toThrow("read only");
+		).rejects.toMatchObject({ details: expect.stringContaining("read only") });
 		await unwrap(commands.exportCostingFile(text(), "/tmp/c.xlsx", true));
 	});
 });
@@ -118,19 +127,25 @@ describe("mock terminal launcher", () => {
 	});
 
 	it("needs a click, a known and installed app, and a folder inside the project", async () => {
-		await expect(unwrap(commands.terminalLaunch("", false))).rejects.toThrow("click");
+		await expect(unwrap(commands.terminalLaunch("", false))).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
 		for (const bad of ["..", "../x", "/etc", "src/../../x"])
-			await expect(unwrap(commands.terminalLaunch(bad, true))).rejects.toThrow(
-				"not a folder of the project",
-			);
+			await expect(unwrap(commands.terminalLaunch(bad, true))).rejects.toMatchObject({
+				details: expect.stringContaining("not a folder of the project"),
+			});
 		await unwrap(commands.terminalLaunch("src", true));
 		expect(done().launched).toEqual([{ id: "apple-terminal", folder: "src" }]);
 		await unwrap(commands.prefsSet({ terminalApp: "kitty" }));
 		await unwrap(commands.terminalLaunch("/mock/alpha/docs", true));
 		await unwrap(commands.prefsSet({ terminalApp: "warp" }));
-		await expect(unwrap(commands.terminalLaunch("", true))).rejects.toThrow("not installed");
+		await expect(unwrap(commands.terminalLaunch("", true))).rejects.toMatchObject({
+			details: expect.stringContaining("not installed"),
+		});
 		await unwrap(commands.prefsSet({ terminalApp: "nope" }));
-		await expect(unwrap(commands.terminalLaunch("", true))).rejects.toThrow("unknown terminal app");
+		await expect(unwrap(commands.terminalLaunch("", true))).rejects.toMatchObject({
+			details: expect.stringContaining("unknown terminal app"),
+		});
 		expect(done().launched.map((l) => l.id)).toEqual(["apple-terminal", "kitty"]);
 	});
 });

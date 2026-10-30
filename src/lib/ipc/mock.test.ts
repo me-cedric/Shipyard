@@ -100,7 +100,9 @@ describe("mock ipc", () => {
 		expect((await unwrap(commands.refsResolve("conn:acme-linear")))?.title).toBe("Acme Linear");
 		await unwrap(commands.connectionsRemove("acme-linear"));
 		expect(mockState().secrets).toEqual({});
-		await expect(unwrap(commands.connectionsTest("acme-linear"))).rejects.toThrow("unknown");
+		await expect(unwrap(commands.connectionsTest("acme-linear"))).rejects.toMatchObject({
+			details: expect.stringContaining("unknown"),
+		});
 	});
 
 	it("refuses a bad draft", async () => {
@@ -115,11 +117,15 @@ describe("mock ipc", () => {
 				}),
 			);
 		await expect(bad({ name: " " })).rejects.toThrow();
-		await expect(bad({ url: "http://github.com" })).rejects.toThrow("https");
-		await expect(bad({ kind: "jira-cloud", url: "https://a.atlassian.net" })).rejects.toThrow(
-			"email",
+		await expect(bad({ url: "http://github.com" })).rejects.toMatchObject({
+			details: expect.stringContaining("https"),
+		});
+		await expect(bad({ kind: "jira-cloud", url: "https://a.atlassian.net" })).rejects.toMatchObject(
+			{ details: expect.stringContaining("email") },
 		);
-		await expect(bad({ group: "forge", kind: "linear" })).rejects.toThrow("not a forge");
+		await expect(bad({ group: "forge", kind: "linear" })).rejects.toMatchObject({
+			details: expect.stringContaining("not a forge"),
+		});
 		expect(mockState().connections).toEqual([]);
 	});
 });

@@ -18,7 +18,7 @@ use shipyard_agents::which::{quiet, search_dirs, which};
 use shipyard_store::project::write_atomic;
 use specta::Type;
 
-use crate::commands::{AppState, Res, blocking, err, health};
+use crate::commands::{Api, AppState, Res, blocking, err, health};
 
 const KEEP: usize = 100;
 
@@ -251,7 +251,7 @@ pub fn ledger_record(s: &AppState) -> Res<Vec<LedgerEntry>> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn doctor_tools(app: tauri::AppHandle) -> Res<Vec<ToolCheck>> {
+pub async fn doctor_tools(app: tauri::AppHandle) -> Api<Vec<ToolCheck>> {
     blocking(app, |_| Ok(tools())).await
 }
 
@@ -261,7 +261,7 @@ pub async fn doctor_tool_install(
     app: tauri::AppHandle,
     id: String,
     click: bool,
-) -> Res<Vec<ToolCheck>> {
+) -> Api<Vec<ToolCheck>> {
     blocking(app, move |s| {
         crate::work::need_click(s, click)?;
         install(&id)
@@ -271,7 +271,7 @@ pub async fn doctor_tool_install(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn doctor_ledger(app: tauri::AppHandle) -> Res<Vec<LedgerEntry>> {
+pub async fn doctor_ledger(app: tauri::AppHandle) -> Api<Vec<LedgerEntry>> {
     blocking(app, ledger_record).await
 }
 

@@ -7,38 +7,38 @@ use shipyard_git::code::FileDiff;
 use shipyard_store::assistant_defaults::AssistantDefaults;
 use tauri::AppHandle;
 
-use super::{Res, blocking};
+use super::{Api, blocking};
 use crate::assistant as a;
 use a::{FactorySend, RunnerOptions, ThreadView, TurnResult};
 
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_threads(app: AppHandle) -> Res<Vec<ThreadSummary>> {
+pub async fn assistant_threads(app: AppHandle) -> Api<Vec<ThreadSummary>> {
     blocking(app, a::threads_list).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_create(app: AppHandle, title: Option<String>) -> Res<ThreadView> {
+pub async fn assistant_create(app: AppHandle, title: Option<String>) -> Api<ThreadView> {
     blocking(app, move |s| a::thread_create(s, title)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_get(app: AppHandle, thread: String) -> Res<ThreadView> {
+pub async fn assistant_get(app: AppHandle, thread: String) -> Api<ThreadView> {
     blocking(app, move |s| a::thread_get(s, &thread)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_rename(app: AppHandle, thread: String, title: String) -> Res<ThreadSummary> {
+pub async fn assistant_rename(app: AppHandle, thread: String, title: String) -> Api<ThreadSummary> {
     blocking(app, move |s| a::thread_rename(s, &thread, &title)).await
 }
 
 /// Fails when the worktree of the thread holds changes: discard it first.
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_delete(app: AppHandle, thread: String) -> Res<()> {
+pub async fn assistant_delete(app: AppHandle, thread: String) -> Api<()> {
     blocking(app, move |s| a::thread_delete(s, &thread)).await
 }
 
@@ -48,13 +48,13 @@ pub async fn assistant_worktree_discard(
     app: AppHandle,
     thread: String,
     force: bool,
-) -> Res<ThreadView> {
+) -> Api<ThreadView> {
     blocking(app, move |s| a::worktree_discard(s, &thread, force)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_diff(app: AppHandle, thread: String) -> Res<Vec<FileDiff>> {
+pub async fn assistant_diff(app: AppHandle, thread: String) -> Api<Vec<FileDiff>> {
     blocking(app, move |s| a::thread_diff(s, &thread)).await
 }
 
@@ -65,7 +65,7 @@ pub async fn assistant_save_draft(
     thread: String,
     draft: String,
     context: Context,
-) -> Res<()> {
+) -> Api<()> {
     blocking(app, move |s| a::save_draft(s, &thread, &draft, context)).await
 }
 
@@ -75,20 +75,20 @@ pub async fn assistant_settings_set(
     app: AppHandle,
     thread: String,
     settings: ThreadSettings,
-) -> Res<ThreadView> {
+) -> Api<ThreadView> {
     blocking(app, move |s| a::settings_set(s, &thread, settings)).await
 }
 
 /// Adds the ref only when it resolves. An error text says why it did not.
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_ref_add(app: AppHandle, thread: String, text: String) -> Res<Context> {
+pub async fn assistant_ref_add(app: AppHandle, thread: String, text: String) -> Api<Context> {
     blocking(app, move |s| a::ref_add(s, &thread, &text)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_ref_remove(app: AppHandle, thread: String, text: String) -> Res<Context> {
+pub async fn assistant_ref_remove(app: AppHandle, thread: String, text: String) -> Api<Context> {
     blocking(app, move |s| a::ref_remove(s, &thread, &text)).await
 }
 
@@ -102,33 +102,33 @@ pub async fn assistant_send(
     text: String,
     quotes: Vec<Quote>,
     context: Context,
-) -> Res<TurnResult> {
+) -> Api<TurnResult> {
     blocking(app, move |s| a::send(s, &thread, text, quotes, context)).await
 }
 
 /// Grants the tool that the last message waits for and resumes the session.
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_grant(app: AppHandle, thread: String) -> Res<TurnResult> {
+pub async fn assistant_grant(app: AppHandle, thread: String) -> Api<TurnResult> {
     blocking(app, move |s| a::grant(s, &thread)).await
 }
 
 /// Resumes the session after a failed turn. It does not send the first request again.
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_retry(app: AppHandle, thread: String) -> Res<TurnResult> {
+pub async fn assistant_retry(app: AppHandle, thread: String) -> Api<TurnResult> {
     blocking(app, move |s| a::retry(s, &thread)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_explain(app: AppHandle, thread: String, entity: String) -> Res<TurnResult> {
+pub async fn assistant_explain(app: AppHandle, thread: String, entity: String) -> Api<TurnResult> {
     blocking(app, move |s| a::explain(s, &thread, &entity)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_to_factory_preview(app: AppHandle, thread: String) -> Res<DiffRow> {
+pub async fn assistant_to_factory_preview(app: AppHandle, thread: String) -> Api<DiffRow> {
     blocking(app, move |s| a::to_factory_preview(s, &thread)).await
 }
 
@@ -140,7 +140,7 @@ pub async fn assistant_to_factory(
     thread: String,
     workflow: Option<String>,
     click: bool,
-) -> Res<FactorySend> {
+) -> Api<FactorySend> {
     blocking(app, move |s| a::to_factory(s, &thread, workflow, click)).await
 }
 
@@ -151,13 +151,13 @@ pub async fn conflict_to_factory(
     app: AppHandle,
     workflow: String,
     click: bool,
-) -> Res<FactorySend> {
+) -> Api<FactorySend> {
     blocking(app, move |s| a::conflict_to_factory(s, workflow, click)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_defaults_get(app: AppHandle) -> Res<AssistantDefaults> {
+pub async fn assistant_defaults_get(app: AppHandle) -> Api<AssistantDefaults> {
     blocking(app, a::defaults_get).await
 }
 
@@ -166,12 +166,12 @@ pub async fn assistant_defaults_get(app: AppHandle) -> Res<AssistantDefaults> {
 pub async fn assistant_defaults_set(
     app: AppHandle,
     defaults: AssistantDefaults,
-) -> Res<AssistantDefaults> {
+) -> Api<AssistantDefaults> {
     blocking(app, move |s| a::defaults_set(s, defaults)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn assistant_options(app: AppHandle) -> Res<Vec<RunnerOptions>> {
+pub async fn assistant_options(app: AppHandle) -> Api<Vec<RunnerOptions>> {
     blocking(app, a::options).await
 }

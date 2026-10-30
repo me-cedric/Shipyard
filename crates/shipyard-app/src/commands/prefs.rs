@@ -3,7 +3,7 @@
 use shipyard_store::prefs::{Prefs, PrefsPatch};
 use tauri::AppHandle;
 
-use super::{AppState, Res, blocking, err};
+use super::{Api, AppState, Res, blocking, err};
 
 pub fn get(s: &AppState) -> Res<Prefs> {
     Ok(Prefs::load(&s.dir))
@@ -19,13 +19,13 @@ pub fn set(s: &AppState, patch: PrefsPatch) -> Res<Prefs> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn prefs_get(app: AppHandle) -> Res<Prefs> {
+pub async fn prefs_get(app: AppHandle) -> Api<Prefs> {
     blocking(app, get).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn prefs_set(app: AppHandle, patch: PrefsPatch) -> Res<Prefs> {
+pub async fn prefs_set(app: AppHandle, patch: PrefsPatch) -> Api<Prefs> {
     blocking(app, move |s| set(s, patch)).await
 }
 

@@ -8,7 +8,7 @@ test("adds a tracker with a secret, tests it and removes it", async ({ page }) =
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme");
 	await page.getByRole("combobox", { name: "Product" }).click();
 	await page.getByRole("option", { name: "Linear" }).click();
-	await page.getByLabel("Secret", { exact: true }).and(page.locator("input")).fill(TOKEN);
+	await page.getByLabel("API key", { exact: true }).and(page.locator("input")).fill(TOKEN);
 	await page.getByRole("button", { name: "Save" }).click();
 
 	const row = page.getByRole("group", { name: "Acme" });
@@ -17,7 +17,7 @@ test("adds a tracker with a secret, tests it and removes it", async ({ page }) =
 
 	// The secret is masked, empty and never in the page (REQ-011).
 	await row.getByRole("button", { name: "Edit" }).click();
-	const secret = page.getByLabel("Secret", { exact: true }).and(page.locator("input"));
+	const secret = page.getByLabel("API key", { exact: true }).and(page.locator("input"));
 	await expect(secret).toHaveValue("");
 	await expect(secret).toHaveAttribute("placeholder", "••••••••");
 	expect(await page.content()).not.toContain(TOKEN);
@@ -50,8 +50,14 @@ test("names a missing secret and the missing scope of a forge", async ({ page })
 	await expect(row.getByRole("status")).toHaveText("no secret saved");
 
 	await row.getByRole("button", { name: "Edit" }).click();
-	await page.getByLabel("Secret", { exact: true }).and(page.locator("input")).fill("any");
+	await page
+		.getByLabel("Personal access token", { exact: true })
+		.and(page.locator("input"))
+		.fill("any");
 	await page.getByRole("button", { name: "Save" }).click();
+	// Save runs the test: the missing scope shows in the form, and Cancel closes it.
+	await expect(page.getByRole("alert")).toHaveText("Missing scope: Pull requests: read");
+	await page.getByRole("button", { name: "Cancel" }).click();
 	await row.getByRole("button", { name: "Test" }).click();
 	await expect(row.getByRole("status")).toHaveText("Missing scope: Pull requests: read");
 
@@ -87,6 +93,8 @@ test("adds an MCP server with a secret, starts it and stops it", async ({ page }
 	await page.getByLabel("Figma API token").and(page.locator("input")).fill(TOKEN);
 	await page.getByRole("button", { name: "Save" }).click();
 
+	// MCP servers wait in Advanced.
+	await page.getByText("Advanced", { exact: true }).click();
 	const row = page.getByRole("group", { name: "Figma" });
 	await expect(page.getByRole("heading", { name: "MCP servers (1)" })).toBeVisible();
 	await expect(row.getByRole("img", { name: "Stopped" })).toBeVisible();
@@ -108,6 +116,7 @@ test("turns on the server for outside agents and imports a server of another too
 	page,
 }) => {
 	await page.goto("/settings/connections");
+	await page.getByText("Advanced", { exact: true }).click();
 	const box = page.getByRole("heading", { name: "Outside agents" }).locator("..");
 	await box.getByRole("switch", { name: "Server on" }).click();
 	await box.getByRole("switch", { name: "Read files" }).click();

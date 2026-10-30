@@ -6,7 +6,7 @@ test("answers Q-101 with the keyboard, and the run leaves Needs you", async ({ p
 	const card = page.getByRole("region", { name: "Q-101" });
 	await expect(card).toContainText("ACME-1");
 	await expect(card.getByRole("radio")).toHaveCount(3);
-	await expect(page.getByRole("heading", { name: "Questions (3)" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Agent questions (3)" })).toBeVisible();
 
 	await card.getByRole("radio").first().focus();
 	await page.keyboard.press("3");

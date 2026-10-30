@@ -21,7 +21,7 @@ use shipyard_store::ref_query::{Resolved, State};
 use specta::Type;
 use tauri::AppHandle;
 
-use super::{AppState, Res, blocking, err};
+use super::{Api, AppState, Res, blocking, err};
 use crate::connections::ConnectionKind;
 use crate::sync::{Plan, Running, repo_slug};
 
@@ -681,61 +681,61 @@ pub fn unlink(s: &AppState, local: &str) -> Res<bool> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn sync_state(app: AppHandle) -> Res<Vec<SyncConnection>> {
+pub async fn sync_state(app: AppHandle) -> Api<Vec<SyncConnection>> {
     blocking(app, state).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn sync_now(app: AppHandle) -> Res<SyncReport> {
+pub async fn sync_now(app: AppHandle) -> Api<SyncReport> {
     blocking(app, run_tick).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn sync_automation_get(app: AppHandle) -> Res<AutomationView> {
+pub async fn sync_automation_get(app: AppHandle) -> Api<AutomationView> {
     blocking(app, automation_get).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn sync_automation_save(app: AppHandle, automation: Automation) -> Res<()> {
+pub async fn sync_automation_save(app: AppHandle, automation: Automation) -> Api<()> {
     blocking(app, move |s| automation_save(s, &automation)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn sync_items(app: AppHandle, filter: ItemFilter) -> Res<Vec<WorkItemView>> {
+pub async fn sync_items(app: AppHandle, filter: ItemFilter) -> Api<Vec<WorkItemView>> {
     blocking(app, move |s| items(s, &filter)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn sync_import_plan(app: AppHandle) -> Res<u32> {
+pub async fn sync_import_plan(app: AppHandle) -> Api<u32> {
     blocking(app, import_plan).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn sync_import_confirm(app: AppHandle) -> Res<u32> {
+pub async fn sync_import_confirm(app: AppHandle) -> Api<u32> {
     blocking(app, import_confirm).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn sync_adopt(app: AppHandle, key: String) -> Res<WorkItemView> {
+pub async fn sync_adopt(app: AppHandle, key: String) -> Api<WorkItemView> {
     blocking(app, move |s| adopt(s, &key)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn sync_link(app: AppHandle, local: String, key: String) -> Res<()> {
+pub async fn sync_link(app: AppHandle, local: String, key: String) -> Api<()> {
     blocking(app, move |s| link(s, &local, &key)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn sync_unlink(app: AppHandle, local: String) -> Res<bool> {
+pub async fn sync_unlink(app: AppHandle, local: String) -> Api<bool> {
     blocking(app, move |s| unlink(s, &local)).await
 }
 

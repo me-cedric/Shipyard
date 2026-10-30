@@ -4,7 +4,7 @@ import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
-import { useShell } from "@/lib/shell";
+import { useFormIntent, useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
 import {
 	ARTIFACTS,
@@ -123,6 +123,7 @@ function ChangeList() {
 	// The open item stays with the tab; the cards are the overview.
 	const [open, setOpen] = useTabSelection("specs:changes");
 	const [creating, setCreating] = useState(false);
+	useFormIntent("change", () => setCreating(true));
 
 	const tasks = useTaskCounts(list ?? []);
 	const enter = useEnter();
@@ -182,9 +183,7 @@ function ChangeList() {
 											className="flex w-full flex-col gap-3 p-3 rounded-lg text-left"
 										>
 											<span className="flex items-center gap-2">
-												<span className="min-w-0 flex-1 truncate font-mono text-14 text-n-12">
-													{c.id}
-												</span>
+												<span className="min-w-0 flex-1 truncate text-14 text-n-12">{c.title}</span>
 												{n ? (
 													<Badge variant="warning" className="font-mono">
 														<span className="sr-only">{s.markers} </span>

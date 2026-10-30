@@ -15,14 +15,12 @@ async function openWork(page: Page, tab: string) {
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme");
 	await page.getByRole("combobox", { name: "Product" }).click();
 	await page.getByRole("option", { name: "Linear" }).click();
-	await page.getByLabel("Secret", { exact: true }).and(page.locator("input")).fill("tok-e2e-work");
+	await page.getByLabel("API key", { exact: true }).and(page.locator("input")).fill("tok-e2e-work");
 	await page.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByRole("group", { name: "Acme" })).toBeVisible();
+	// The only tracker links itself to the project.
 	await tabs(page).getByRole("link", { name: "Project" }).click();
-	await page.getByRole("combobox", { name: "Tracker" }).click();
-	await page.getByRole("option", { name: "Acme" }).click();
-	await page.getByRole("button", { name: "Save" }).click();
-	await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
+	await expect(page.getByRole("combobox", { name: "Tracker", exact: true })).toContainText("Acme");
 	await sidebar(page).getByRole("link", { name: "Work" }).click();
 	await tabs(page).getByRole("link", { name: "Backlog" }).click();
 	await page.getByRole("button", { name: "Import" }).click();
@@ -116,12 +114,12 @@ test("adds a time entry and sends it with one click", async ({ page }) => {
 
 test("edits the team and seals the project, then unlocks it", async ({ page }) => {
 	await openWork(page, "Team");
-	await page.getByRole("group", { name: "grace" }).getByRole("button").click();
+	await page.getByRole("row", { name: "grace" }).getByRole("button").click();
 	const panel = inspector(page, "Grace Hopper");
 	const capacity = panel.getByRole("spinbutton", { name: "Capacity (days a week)" });
 	await capacity.fill("3");
 	await panel.getByRole("button", { name: "Save" }).click();
-	await expect(page.getByRole("group", { name: "grace" })).toContainText("3 d/w");
+	await expect(page.getByRole("row", { name: "grace" }).getByRole("cell").nth(2)).toHaveText("3");
 
 	await tabs(page).getByRole("link", { name: "Estimates" }).click();
 	await page.getByRole("button", { name: "Seal" }).click();

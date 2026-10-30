@@ -34,7 +34,7 @@ describe("Home / Inbox", () => {
 			unwrap(commands.messagesList()),
 		]);
 		for (const [name, list] of [
-			["Questions", questions],
+			["Agent questions", questions],
 			["Approvals", approvals],
 			["Plan review", plans],
 			["Messages", messages],
@@ -65,16 +65,21 @@ describe("Home / Inbox", () => {
 		const user = userEvent.setup();
 		await renderInbox();
 		const before = (await unwrap(commands.approvalsList())).length;
-		const bar = await screen.findByRole("region", { name: "Comment on ACME-1: the question" });
+		const bar = await screen.findByRole("region", { name: "Post a comment on ACME-1" });
 		await user.click(within(bar).getByRole("button", { name: "Approve" }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.approvalsList())).length).toBe(before - 1),
 		);
 	});
 
-	it("shows the force flag of a force push", async () => {
+	it("names a force push in plain words, in the danger colour, with the command hidden", async () => {
 		await renderInbox();
-		expect(await screen.findAllByText("Force push")).toHaveLength(1);
+		const bar = await screen.findByRole("region", {
+			name: "Replace the code of ACME-10 on the server",
+		});
+		expect(within(bar).getByRole("button", { name: "Approve" }).className).toContain("bg-danger");
+		const command = within(bar).getByText("git push --force-with-lease origin fix/ACME-10");
+		expect(command.closest("details")).not.toHaveAttribute("open");
 	});
 
 	it("approves a plan, and the run goes on", async () => {
@@ -174,9 +179,10 @@ describe("Home / Activity", () => {
 		expect(await screen.findByRole("heading", { name: "Notifications (2)" })).toBeInTheDocument();
 		for (const label of ["Events", "Notifications", "Runs", "Live runs"])
 			expect(screen.getAllByText(label).length).toBeGreaterThan(0);
-		// An event names the actor that did it: a step, or the system.
+		// Each event is one sentence, with the state in words: no event code shows.
 		const log = within(screen.getByRole("region", { name: "Events" }));
-		expect(log.getAllByText(/^[\w-]+: [\w.:-]+$/).length).toBeGreaterThan(0);
+		expect(log.getAllByText(/^ACME-\d+ moved to [A-Z][a-z ]+$/).length).toBeGreaterThan(0);
+		expect(log.queryAllByText(/: (state|note|pr|question|message)$/)).toHaveLength(0);
 		const region = within(screen.getByRole("region", { name: "Notifications" }));
 		expect(region.getByText("Update available: 0.2.0")).toBeInTheDocument();
 		expect(region.getByText("What changed in 0.1.0")).toBeInTheDocument();

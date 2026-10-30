@@ -9,7 +9,7 @@ use shipyard_engine::ports::Dispatch;
 use specta::Type;
 use tauri::{AppHandle, Emitter, Manager, Window};
 
-use crate::commands::{AppState, Res, blocking, err};
+use crate::commands::{Api, AppState, blocking, err};
 
 /// Set once the person answered "close anyway": the second close request goes through.
 static FORCED: AtomicBool = AtomicBool::new(false);
@@ -47,16 +47,16 @@ pub fn on_close_requested(app: &AppHandle, window: &Window, api: &tauri::CloseRe
 
 #[tauri::command]
 #[specta::specta]
-pub async fn close_guard_state(app: AppHandle) -> Res<InFlight> {
+pub async fn close_guard_state(app: AppHandle) -> Api<InFlight> {
     blocking(app, |s| Ok(in_flight(s))).await
 }
 
 /// Close past the guard. `destroy` does not raise a second request.
 #[tauri::command]
 #[specta::specta]
-pub async fn close_anyway(window: Window) -> Res<()> {
+pub async fn close_anyway(window: Window) -> Api<()> {
     FORCED.store(true, Ordering::SeqCst);
-    window.destroy().map_err(err)
+    window.destroy().map_err(|e| err(e).into())
 }
 
 #[cfg(test)]

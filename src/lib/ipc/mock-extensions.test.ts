@@ -12,7 +12,9 @@ describe("mock extensions", () => {
 
 	it("fails without a project", async () => {
 		resetMock();
-		await expect(unwrap(commands.compassGet())).rejects.toThrow("no active project");
+		await expect(unwrap(commands.compassGet())).rejects.toMatchObject({
+			details: expect.stringContaining("no active project"),
+		});
 	});
 
 	it("lists the entries with a state each and the pin", async () => {
@@ -27,7 +29,9 @@ describe("mock extensions", () => {
 
 	it("previews a text, refuses a bad id, and keeps the pin on apply", async () => {
 		await expect(unwrap(commands.compassPreview("skill", "review"))).resolves.toContain("review");
-		await expect(unwrap(commands.compassPreview("skill", "../x"))).rejects.toThrow("not allowed");
+		await expect(unwrap(commands.compassPreview("skill", "../x"))).rejects.toMatchObject({
+			details: expect.stringContaining("not allowed"),
+		});
 		const done = await unwrap(commands.compassApply(["contract:contract"]));
 		expect(done.report.kept).toContain("AGENTS.md");
 		expect(done.version).toBe("1.0.2");
@@ -36,7 +40,9 @@ describe("mock extensions", () => {
 	});
 
 	it("upgrades the stale entries and refuses a current selection", async () => {
-		await expect(unwrap(commands.compassUpgrade(["skill:review"]))).rejects.toThrow("current");
+		await expect(unwrap(commands.compassUpgrade(["skill:review"]))).rejects.toMatchObject({
+			details: expect.stringContaining("current"),
+		});
 		await unwrap(commands.compassUpgrade(null));
 		const c = await unwrap(commands.compassGet());
 		expect(c?.entries.some((e) => e.state === "stale")).toBe(false);
@@ -60,14 +66,18 @@ describe("mock extensions", () => {
 	});
 
 	it("reviews a plugin without a write and writes only the accepted items", async () => {
-		await expect(unwrap(commands.pluginReview("/mock/x.zip"))).rejects.toThrow("not a valid zip");
-		await expect(unwrap(commands.pluginReview("/a/../b.zip"))).rejects.toThrow("path not allowed");
+		await expect(unwrap(commands.pluginReview("/mock/x.zip"))).rejects.toMatchObject({
+			details: expect.stringContaining("not a valid zip"),
+		});
+		await expect(unwrap(commands.pluginReview("/a/../b.zip"))).rejects.toMatchObject({
+			details: expect.stringContaining("path not allowed"),
+		});
 		const r = await unwrap(commands.pluginReview(PLUGIN_PATH));
 		expect(r.items.map((i) => i.id)).toContain("mcp:docs");
 		expect(r.refused).toEqual(["mcp:shell: a local command"]);
-		await expect(unwrap(commands.pluginApply(PLUGIN_PATH, ["file:../x"]))).rejects.toThrow(
-			"unknown item",
-		);
+		await expect(unwrap(commands.pluginApply(PLUGIN_PATH, ["file:../x"]))).rejects.toMatchObject({
+			details: expect.stringContaining("unknown item"),
+		});
 		const done = await unwrap(commands.pluginApply(PLUGIN_PATH, ["file:docs/team.md", "mcp:docs"]));
 		expect(done.report.written).toEqual(["docs/team.md"]);
 		expect(done.mcpAdded).toEqual(["docs"]);

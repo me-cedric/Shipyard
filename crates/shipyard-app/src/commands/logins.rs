@@ -11,7 +11,7 @@ use shipyard_secrets::Secret;
 use specta::Type;
 use tauri::AppHandle;
 
-use super::{AppState, Res, blocking};
+use super::{Api, AppState, Res, blocking};
 use crate::connections::{Connection, ConnectionDraft, ConnectionGroup, ConnectionKind};
 use crate::work::need_click;
 
@@ -136,7 +136,7 @@ pub fn use_login_with(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn connections_detect(app: AppHandle) -> Res<Vec<CliLogin>> {
+pub async fn connections_detect(app: AppHandle) -> Api<Vec<CliLogin>> {
     blocking(app, |_| Ok(detect())).await
 }
 
@@ -147,7 +147,7 @@ pub async fn connections_use_login(
     tool: String,
     host: String,
     click: bool,
-) -> Res<Connection> {
+) -> Api<Connection> {
     blocking(app, move |s| {
         use_login_with(s, &run_tool, &tool, &host, click)
     })

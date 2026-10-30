@@ -9,7 +9,7 @@ use shipyard_store::project::{FileRead, read_project_file};
 use specta::Type;
 use tauri::AppHandle;
 
-use super::{AppState, Res, blocking};
+use super::{Api, AppState, Res, blocking};
 use crate::connections::{Connection, ConnectionDraft, RepoPage};
 
 /// A registered project whose `.shipyard/project.yaml` names a connection.
@@ -52,20 +52,26 @@ pub fn users(s: &AppState, id: &str) -> Res<Vec<ConnectionUser>> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn connections_users(app: AppHandle, id: String) -> Res<Vec<ConnectionUser>> {
+pub async fn connections_users(app: AppHandle, id: String) -> Api<Vec<ConnectionUser>> {
     blocking(app, move |s| users(s, &id)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn connections_list(app: AppHandle) -> Res<Vec<Connection>> {
+pub async fn connections_list(app: AppHandle) -> Api<Vec<Connection>> {
     blocking(app, |s| s.connections.list()).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn connections_add(app: AppHandle, draft: ConnectionDraft) -> Res<Connection> {
-    blocking(app, move |s| s.connections.add(draft)).await
+pub async fn connections_add(app: AppHandle, draft: ConnectionDraft) -> Api<Connection> {
+    blocking(app, move |s| {
+        let added = s.connections.add(draft)?;
+        // The connection exists: a link that fails (a read only profile) must not hide it.
+        let _ = super::setup::auto_link(s);
+        Ok(added)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -74,20 +80,20 @@ pub async fn connections_edit(
     app: AppHandle,
     id: String,
     draft: ConnectionDraft,
-) -> Res<Connection> {
+) -> Api<Connection> {
     blocking(app, move |s| s.connections.edit(&id, draft)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn connections_remove(app: AppHandle, id: String) -> Res<()> {
+pub async fn connections_remove(app: AppHandle, id: String) -> Api<()> {
     blocking(app, move |s| s.connections.remove(&id)).await
 }
 
 /// Write-only: the secret goes to the keychain and no command returns it.
 #[tauri::command]
 #[specta::specta]
-pub async fn connections_set_secret(app: AppHandle, id: String, secret: String) -> Res<Connection> {
+pub async fn connections_set_secret(app: AppHandle, id: String, secret: String) -> Api<Connection> {
     blocking(app, move |s| {
         s.connections.set_secret(&id, Secret::new(secret))
     })
@@ -96,7 +102,7 @@ pub async fn connections_set_secret(app: AppHandle, id: String, secret: String) 
 
 #[tauri::command]
 #[specta::specta]
-pub async fn connections_test(app: AppHandle, id: String) -> Res<TestOutcome> {
+pub async fn connections_test(app: AppHandle, id: String) -> Api<TestOutcome> {
     blocking(app, move |s| s.connections.test(&id)).await
 }
 
@@ -106,7 +112,7 @@ pub async fn connections_repos(
     app: AppHandle,
     id: String,
     cursor: Option<String>,
-) -> Res<RepoPage> {
+) -> Api<RepoPage> {
     blocking(app, move |s| {
         s.connections.repos(&id, cursor.as_deref(), 100)
     })
@@ -121,7 +127,7 @@ pub async fn connections_create_repo(
     id: String,
     slug: String,
     click: bool,
-) -> Res<Repository> {
+) -> Api<Repository> {
     blocking(app, move |s| create_repo(s, &id, &slug, click)).await
 }
 

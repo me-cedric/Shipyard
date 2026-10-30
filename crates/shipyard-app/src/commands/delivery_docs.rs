@@ -11,7 +11,7 @@ use shipyard_store::project_import;
 use specta::Type;
 use tauri::AppHandle;
 
-use super::{AppState, Res, blocking};
+use super::{Api, AppState, Res, blocking};
 
 #[derive(Debug, Serialize, Type)]
 pub struct ImportItem {
@@ -48,7 +48,7 @@ pub fn report(s: &AppState, source: &str) -> Res<ImportReport> {
 /// Reads the folder `source` and writes the matching files into the active project. It replaces no file.
 #[tauri::command]
 #[specta::specta]
-pub async fn project_import(app: AppHandle, source: String) -> Res<ImportReport> {
+pub async fn project_import(app: AppHandle, source: String) -> Api<ImportReport> {
     blocking(app, move |s| report(s, &source)).await
 }
 
@@ -98,43 +98,43 @@ pub fn delivery_notes_of(s: &AppState) -> Res<Vec<DeliveryNote>> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn tickets_links(app: AppHandle) -> Res<Vec<TicketLink>> {
+pub async fn tickets_links(app: AppHandle) -> Api<Vec<TicketLink>> {
     blocking(app, tickets_links_of).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn delivery_notes(app: AppHandle) -> Res<Vec<DeliveryNote>> {
+pub async fn delivery_notes(app: AppHandle) -> Api<Vec<DeliveryNote>> {
     blocking(app, delivery_notes_of).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn personas_list(app: AppHandle) -> Res<Vec<Persona>> {
+pub async fn personas_list(app: AppHandle) -> Api<Vec<Persona>> {
     blocking(app, personas).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn personas_save(app: AppHandle, personas: Vec<Persona>) -> Res<()> {
+pub async fn personas_save(app: AppHandle, personas: Vec<Persona>) -> Api<()> {
     blocking(app, move |s| personas_set(s, &personas)).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn assignments_read(app: AppHandle) -> Res<Assignments> {
+pub async fn assignments_read(app: AppHandle) -> Api<Assignments> {
     blocking(app, assignments).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn tickets_config_get(app: AppHandle) -> Res<TicketsConfig> {
+pub async fn tickets_config_get(app: AppHandle) -> Api<TicketsConfig> {
     blocking(app, tickets_config).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn tickets_config_save(app: AppHandle, config: TicketsConfig) -> Res<()> {
+pub async fn tickets_config_save(app: AppHandle, config: TicketsConfig) -> Api<()> {
     blocking(app, move |s| tickets_config_set(s, &config)).await
 }
 
