@@ -1,6 +1,5 @@
 //! The own rules of a project (spec `extensions`): import a rules file as an instinct, remove an
-//! instinct, and apply a guardrail policy pack. The policy packs and their gates are copied from
-//! Legacy `resources/compass/templates/policies/*.json` (`apply_policy` in `compass/contract.rs`).
+//! instinct, and apply a guardrail policy pack.
 //! A policy is replaced on a second apply, so a switch of pack takes effect.
 
 use std::fs;

@@ -38,7 +38,7 @@ fn fold(c: char) -> &'static str {
 }
 
 /// Lowercase ASCII words joined by `-`, 60 characters at most. Accents fold, every other
-/// character is a separator. Port of Legacy `slugifyBranch` (`src/components/branch-switcher.tsx`).
+/// character is a separator.
 pub fn kebab(text: &str) -> String {
     let mut out = String::new();
     for c in text.chars().flat_map(char::to_lowercase) {

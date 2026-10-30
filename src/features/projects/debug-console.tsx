@@ -14,7 +14,7 @@ const TONE = { info: "neutral", warn: "warning", error: "danger" } as const;
 
 /**
  * Settings / Health: the app log with a level filter and a copy button. The backend hides a line
- * that holds a secret, so the copy never holds a value. Source: Legacy `debug-console.tsx`.
+ * that holds a secret, so the copy never holds a value.
  */
 export function DebugConsole() {
 	const { t } = useI18n();

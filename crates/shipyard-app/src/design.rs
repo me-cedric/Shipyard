@@ -132,7 +132,7 @@ pub fn list(s: &AppState) -> Res<DesignList> {
 pub fn read(s: &AppState, rel: &str) -> Res<Text> {
     let p = project(s)?;
     let mut t = read_text(&design::resolve(&p.root, &p.file, rel)?, rel)?;
-    // The view reads rows as YAML. A Legacy JSON flow file gives the same rows (Q-102).
+    // The view reads rows as YAML. A JSON flow file gives the same rows (Q-102).
     if rel.ends_with(".json") && is_flow_file(&p.file, rel) {
         t.text = design::write_flows(&design::read_flows(&t.text)?, "")?;
     }
@@ -352,8 +352,7 @@ fn outside_target(root: &Path, target: &str) -> Res<String> {
     }
 }
 
-/// Open a `.fig` link outside the app, with the default application of the OS (REQ-019). Ported
-/// from Legacy `open_repo_file`: the path is checked against the repository first, and no shell
+/// Open a `.fig` link outside the app, with the default application of the OS (REQ-019). The path is checked against the repository first, and no shell
 /// parses the argument.
 pub fn open_outside(s: &AppState, target: &str) -> Res<()> {
     let p = project(s)?;

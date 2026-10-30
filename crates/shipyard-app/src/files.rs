@@ -1,7 +1,6 @@
 //! File actions of the file drawer: new file, new folder, rename and delete. Every action needs the
 //! click of a person and a project that is not read only. A delete moves the path to the system
-//! trash: nothing is removed for good. Source of the logic: Legacy `src-tauri/src/infrastructure/
-//! browse.rs` (`create_file`, `create_dir`, `rename_path`, `remove_path`); Shipyard keeps its path
+//! trash: nothing is removed for good. Shipyard keeps its path
 //! checks, refuses `.git`, and moves to the trash instead of a hard delete.
 
 use std::path::{Component, Path, PathBuf};

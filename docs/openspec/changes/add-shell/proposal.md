@@ -2,7 +2,7 @@
 
 ## Why
 
-Legacy has 40 routes, 12 sidebar groups and four stacked filters that hide pages. The same action (commit, pull) is in many places.
+The earlier tool has 40 routes, 12 sidebar groups and four stacked filters that hide pages. The same action (commit, pull) is in many places.
 Shipyard needs one frame with seven spaces, one place for each action, and a home view per role, so that each person finds their work without a map.
 
 ## What Changes
@@ -22,5 +22,5 @@ Shipyard needs one frame with seven spaces, one place for each action, and a hom
 - Affected capability: `shell`
 - Consumes: `design-system` (Shell template, CommandPalette, Inspector), `refs` (search and backlinks), events of `sync`, `factory`, `questions-loop` and `delivery`, the commit operation of `code`, the sync operation of `sync`, the health of `projects`, the assistant panel of `assistant`.
 - Produces: navigation, the palette action registry, the notification centre, Home, Settings / Me.
-- Legacy parity: sidebar and routes, top bar, notifications centre, Préférences, i18n FR and EN, tours, context menus, native menu, update check, Nouveautés, Home widgets of Dashboards.
+- Feature list: sidebar and routes, top bar, notifications centre, Préférences, i18n FR and EN, tours, context menus, native menu, update check, Nouveautés, Home widgets of Dashboards.
 - Affected code/docs: `src/features/home/`, `src/features/shell/`, `src/ui/templates/`, `crates/shipyard-app`.

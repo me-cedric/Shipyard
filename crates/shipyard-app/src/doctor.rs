@@ -1,7 +1,5 @@
 //! Doctor beyond the project checks: the tools that Shipyard works with, an install after a click,
-//! and a ledger of the findings over time. Source: Legacy `infrastructure/prereqs.rs`
-//! (`check_prereqs`, `install_prereq`) and the provision ledger of `pages/Doctor.tsx`. Legacy
-//! installs with a shell line; here each install is a fixed command with no shell and no input
+//! and a ledger of the findings over time. Each install is a fixed command with no shell and no input
 //! from the view, tried through the first package manager that exists.
 //!
 //! The ledger is `doctor-ledger/<project id>.json` in the app data folder: one entry each time the

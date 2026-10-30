@@ -49,17 +49,6 @@ describe("mock ipc", () => {
 		expect((await unwrap(commands.projectsOpen("/mock/bare", false))).status).toBe("opened");
 	});
 
-	it("offers the Legacy projects once and opens one with its paths", async () => {
-		const [k] = await unwrap(commands.legacyProjects());
-		expect(k?.name).toBe("StoryArc");
-		await expect(unwrap(commands.legacyProjectOpen("none"))).rejects.toBeDefined();
-		const o = await unwrap(commands.legacyProjectOpen(k?.id ?? ""));
-		expect(o.status).toBe("opened");
-		const file = (await unwrap(commands.projectSettings()))?.file;
-		expect(file?.paths).toMatchObject({ diagrams: "docs/drawings", models: "docs/diagrams" });
-		expect(await unwrap(commands.legacyProjects())).toEqual([]);
-	});
-
 	it("closes and removes a project like the Rust commands", async () => {
 		const a = await unwrap(commands.projectsOpen("/mock/alpha", false));
 		await unwrap(commands.projectsOpen("/mock/beta", false));

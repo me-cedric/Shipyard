@@ -207,7 +207,7 @@ pub enum Sent {
 }
 
 /// `YYYY-MM-DDT09:00:00.000+0100`: the day anchors at 09:00 in the offset of the machine.
-/// The tracker then shows the day that the person meant, in any zone (Legacy `docs/jira-temps.md`).
+/// The tracker then shows the day that the person meant, in any zone.
 pub fn started_at(day: &str, offset_minutes: i32) -> Result<String, TrackerError> {
     if parse_day(day).is_none() {
         return Err(TrackerError::Config(format!("`{day}` is not a date")));

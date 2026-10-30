@@ -1,4 +1,4 @@
-// The mock of the Projects page, the push-target check, the docs-chain gate and the Legacy ticket
+// The mock of the Projects page, the push-target check, the docs-chain gate and the ticket
 // links. It applies the rules of `crates/shipyard-app/src/commands/overview.rs`.
 import type {
 	ChainWarning,

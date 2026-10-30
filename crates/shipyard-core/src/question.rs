@@ -64,8 +64,8 @@ pub fn parse_reply(text: &str, options: usize, free_text: bool) -> Option<Choice
     }
 }
 
-/// REQ-020. Adapted from the lifecycle of Legacy `src/lib/raid.ts` (`ALLOWED_NEXT`): Shipyard
-/// has no `assigned` state, and the fold (`specs`) is not a question state.
+/// REQ-020. The lifecycle of a question: there is
+/// no `assigned` state, and the fold (`specs`) is not a question state.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum QuestionState {

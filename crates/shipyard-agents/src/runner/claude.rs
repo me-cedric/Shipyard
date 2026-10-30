@@ -1,8 +1,7 @@
 //! Claude Code: `claude -p --output-format stream-json --verbose`, the brief on stdin.
 //!
 //! Stream: `system` (init, session id), `assistant` (text and `tool_use` blocks), `user`
-//! (`tool_result` blocks), `result` (usage and cost for the whole run). Adapted from Legacy
-//! (`cli/stream.rs`: `claude_result`, `claude_usage`).
+//! (`tool_result` blocks), `result` (usage and cost for the whole run).
 
 use super::*;
 
@@ -21,7 +20,7 @@ impl Runner for Claude {
         let mut args: Vec<String> = ["-p", "--output-format", "stream-json", "--verbose"]
             .map(String::from)
             .into();
-        // Legacy: `auto` keeps Claude's safety classifier; `plan` is read only.
+        // `auto` keeps Claude's safety classifier; `plan` is read only.
         args.push("--permission-mode".into());
         args.push(
             match spec.mode {

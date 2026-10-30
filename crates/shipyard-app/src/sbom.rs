@@ -1,5 +1,4 @@
-//! SBOM export (CycloneDX 1.5 JSON) from the lock files of the project. Legacy runs osv-scanner
-//! for this (`infrastructure/security.rs sbom`); Shipyard reads the lock files itself, so the
+//! SBOM export (CycloneDX 1.5 JSON) from the lock files of the project. The app reads the lock files itself, so the
 //! export needs no tool. Cargo.lock, package-lock.json and pnpm-lock.yaml are read.
 
 use std::collections::BTreeSet;
@@ -13,7 +12,7 @@ use tauri::AppHandle;
 use crate::commands::{AppState, Res, blocking};
 use crate::work::need_click;
 
-/// Where the export goes, the same file as Legacy.
+/// Where the export goes.
 pub const SBOM_FILE: &str = "docs/security/sbom.cdx.json";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]

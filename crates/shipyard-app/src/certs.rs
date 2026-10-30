@@ -1,5 +1,4 @@
 //! Settings / Connections: add a PEM bundle of certificates that `shipyard-http` trusts next to the OS roots.
-//! Source: Legacy `certs_import`, `certs_remove_custom` (`commands/projects.rs`, `portable.rs`).
 //! The bundle is a copy in `ca/custom.pem` of the app data folder. A bad file is refused before the copy.
 
 use std::path::{Path, PathBuf};

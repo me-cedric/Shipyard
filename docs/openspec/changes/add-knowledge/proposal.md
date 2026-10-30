@@ -2,7 +2,7 @@
 
 ## Why
 
-A junior or a new member needs to understand the project from its decisions, specs and architecture. Legacy has a wiki, a knowledge graph, learning pages and dashboards, but they do not read the same graph.
+A junior or a new member needs to understand the project from its decisions, specs and architecture. The earlier tool has a wiki, a knowledge graph, learning pages and dashboards, but they do not read the same graph.
 Shipyard needs one Knowledge space that draws the reference graph, explains any entity with refs, and builds the handbook, documents, slides and learning paths from the project artifacts.
 
 ## What Changes
@@ -20,5 +20,5 @@ Shipyard needs one Knowledge space that draws the reference graph, explains any 
 - Affected capability: `knowledge`
 - Consumes: `refs` (graph and backlinks), `design`, `specs`, `code` (quality, impacts), `factory` (run metrics for dashboards), `assistant` (the Explain answer).
 - Produces: `doc:` entities, the graph view used by `factory` (Agents map renderer), dashboards and Home widgets for `shell`.
-- Legacy parity: Knowledge graph, Wiki handbook, Documents, Slides, Learning, Learning path, Dashboards, Dossier d'architecture, Documentation fonctionnelle.
+- Feature list: Knowledge graph, Wiki handbook, Documents, Slides, Learning, Learning path, Dashboards, Dossier d'architecture, Documentation fonctionnelle.
 - Affected code/docs: `src/features/knowledge/`, `crates/shipyard-store`.

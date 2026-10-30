@@ -8,7 +8,7 @@ import { Dialog } from "@/ui/organisms/dialog";
 import type { Action } from "./actions";
 
 /**
- * The overlay of all shortcuts, with a rebind for each (Legacy `shortcut-help.tsx`). The chords
+ * The overlay of all shortcuts, with a rebind for each. The chords
  * are stored in the preferences. A chord needs Mod, and one chord belongs to one action.
  */
 export function ShortcutHelp({ actions }: { actions: Action[] }) {

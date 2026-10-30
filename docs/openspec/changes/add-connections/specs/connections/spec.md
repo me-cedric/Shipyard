@@ -13,7 +13,7 @@ A person adds, tests and removes each external system in one place: Settings / C
 
 ### Why
 
-Legacy is Jira-shaped. Its credentials, MCP servers and assistants sit on different pages. Shipyard serves teams on Jira, GitHub, GitLab, Azure DevOps and Linear. It needs one place to connect each system, one contract for all trackers, and no secret in a repository.
+The earlier tool is Jira-shaped. Its credentials, MCP servers and assistants sit on different pages. Shipyard serves teams on Jira, GitHub, GitLab, Azure DevOps and Linear. It needs one place to connect each system, one contract for all trackers, and no secret in a repository.
 
 ### Users And Scenarios
 
@@ -82,16 +82,16 @@ Legacy is Jira-shaped. Its credentials, MCP servers and assistants sit on differ
 - Used by: `add-sync` (Tracker and Forge adapters), `add-factory` (runners, MCP servers), `add-questions-loop` (comments through the Tracker), `add-delivery` (Forge), `add-code` (Forge), `add-work` (flags), `add-assistant` (runners, providers), `add-projects` (clone credentials, REQ-003 of `spec:projects`).
 - Related: `spec:shell` REQ-010 (Settings / Me, no connection setting there), `q:Q-002` (writes are off by default; this capability only provides the adapters).
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 | --- | --- | --- |
 | MCP servers (catalogue, custom, start, stop, deps) | Settings / Connections / MCP | REQ-006, REQ-007, REQ-008 |
 | Identifiants (keychain, test button) | Settings / Connections | REQ-005, REQ-011, REQ-012 |
 | Tickets setup | Settings / Connections / Trackers | REQ-002, REQ-003, REQ-004, REQ-012 |
 | Assistant CLI detection | Settings / Connections / Runners and providers | REQ-009, REQ-010 |
 | PR forge setup | Settings / Connections / Forges | REQ-005 |
-| Legacy MCP server relay and proxy | Shipyard MCP endpoint | REQ-017, REQ-018 |
+| MCP server relay and proxy | Shipyard MCP endpoint | REQ-017, REQ-018 |
 | Repository picker (list, push-impossible marker, push-target check, create) | Settings / Connections / Forges | REQ-019 |
 
 ### Existing References

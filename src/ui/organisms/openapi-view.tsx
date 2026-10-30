@@ -14,7 +14,7 @@ const TONE = {
 /**
  * A read view of an OpenAPI contract, grouped by tag: method, path, parameters, responses.
  * An invalid contract shows no endpoint and reports its error.
- * Legacy uses Redoc here. Redoc brings its own styles and a large bundle, so this view is plain.
+ * Redoc brings its own styles and a large bundle, so this view is plain.
  */
 export function OpenApiView({
 	source,

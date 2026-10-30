@@ -1,6 +1,5 @@
-//! Files and images that a person adds to an assistant turn. Source: Legacy `pick_files` and
-//! `save_attachment` (`commands/editor.rs`, `commands/logo.rs`), which save the bytes and give the
-//! path back. A text file goes to the runner as a quote, which is data (REQ-006). An image is kept
+//! Files and images that a person adds to an assistant turn. The bytes are saved and the
+//! path is given back. A text file goes to the runner as a quote, which is data (REQ-006). An image is kept
 //! in the scratch folder of the thread and its path goes in a quote: the CLI reads an image from a
 //! path. Too big, a secret file name and a text that holds a secret are refused.
 //!

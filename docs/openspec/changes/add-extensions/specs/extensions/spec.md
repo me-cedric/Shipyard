@@ -13,7 +13,7 @@ One place manages the agent rules and the add-ons of a project. It also pushes t
 
 ### Why
 
-Agents follow the compass rules, and teams reuse accelerators across repositories. Legacy spreads these on four pages. Shipyard needs one place to apply the rules, deploy add-ons safely, and keep child repositories in line.
+Agents follow the compass rules, and teams reuse accelerators across repositories. The earlier tool spreads these on four pages. Shipyard needs one place to apply the rules, deploy add-ons safely, and keep child repositories in line.
 
 ### Users And Scenarios
 
@@ -54,7 +54,7 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 - Running plugin code, install hooks and a plugin sandbox.
 - Editing the compass files in the submodule. They are read only.
 - Creating child repositories and opening pull requests in a forge.
-- Running the compass Node helpers on the working copy (Legacy Doctor Outillage). `add-projects` REQ-018 owns it in Settings / Health.
+- Running the compass Node helpers on the working copy (Doctor Outillage). `add-projects` REQ-018 owns it in Settings / Health.
 - A catalog repository setting. The catalog comes from the pinned compass version (ADR 0010), so one source keeps the pin reproducible.
 
 ### Acceptance Criteria
@@ -81,9 +81,9 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 - Consumes: `add-projects` REQ-017, REQ-008, REQ-011 and REQ-012 (active project, Health, fix actions), `add-connections` REQ-006 and REQ-011 (MCP servers, secrets), ADR 0010 (pinned compass).
 - Produces: compass rules, roles and skills for `add-factory` (REQ-014) and `add-assistant` (REQ-013), the compass check for `add-projects` Health, catalog components and OpenSpec guidance for child projects.
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 |---|---|---|
 | Compass (skills, packs, guides, contract) | Settings / Agents and rules | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006 |
 | Compass patterns (instincts) | Settings / Agents and rules | REQ-001, REQ-003 |
@@ -98,8 +98,7 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 ### Existing References
 
 - `docs/plan/MASTER-PLAN.md` sections 4, 6 and 9; ADR 0010; `docs/openspec/constitution.md` section 4.
-- Legacy `docs/features.md`, sections Agent Compass, Catalog, Doctor; Legacy `docs/plugins.md`.
-- `add-specs` Legacy parity row for OpenSpec guidance (REQ-017 here owns it).
+- `add-specs` feature list row for OpenSpec guidance (REQ-017 here owns it).
 
 ## ADDED Requirements
 

@@ -1,8 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * The version that runs and the changelog sections of the last update (Legacy `whats-new.tsx`,
- * `version-status.tsx`). The update check fills it. The status bar shows the version and opens the
+ * The version that runs and the changelog sections of the last update. The update check fills it. The status bar shows the version and opens the
  * dialog; the dialog also opens by itself once after an update.
  */
 type State = { current: string; notes: string; open: boolean };

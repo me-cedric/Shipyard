@@ -5,7 +5,7 @@ import { commands, unwrap } from "@/lib/ipc";
 /**
  * Warns before a commit or a push. It reads the repository on the forge (can the account push,
  * is the branch the default one) and the docs chain (a spec changed and its test plan did not).
- * It warns and never blocks. Legacy source: `check_push_target`, `chain-gate.tsx`.
+ * It warns and never blocks.
  */
 export function GateNotice({ push }: { push: boolean }) {
 	const { t } = useI18n();

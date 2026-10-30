@@ -31,7 +31,7 @@ use shipyard_store::work::{
     time_path, write_calendar, write_decisions, write_sheet, write_sheet_with, write_team,
     write_team_with, write_time,
 };
-use shipyard_store::{legacy, project_import};
+use shipyard_store::{docs_layout, project_import};
 use shipyard_trackers::work::{self as writes, Click, RowResult, Sent, TrackerWrite};
 use specta::Type;
 use tauri::AppHandle;
@@ -50,10 +50,10 @@ fn json_sheet_path(slug: &str) -> String {
     format!("docs/costing/{slug}.json")
 }
 
-/// The Legacy team file. It is the team when `.shipyard/team.yaml` does not exist (Q-102).
-const LEGACY_TEAM: &str = "docs/planning/team.json";
-const LEGACY_PLAN: &str = "docs/planning/plan.json";
-const LEGACY_CALENDAR: &str = "docs/planning/calendar.json";
+/// The team file of the existing layout. It is the team when `.shipyard/team.yaml` does not exist (Q-102).
+const LAYOUT_TEAM: &str = "docs/planning/team.json";
+const LAYOUT_PLAN: &str = "docs/planning/plan.json";
+const LAYOUT_CALENDAR: &str = "docs/planning/calendar.json";
 
 /// What the app keeps in memory for Work, by project id.
 ///
@@ -140,7 +140,7 @@ impl Ctx<'_> {
         }
     }
 
-    /// The slugs of `docs/costing/*.yaml` and of the Legacy `*.json` sheets, sorted. A YAML sheet
+    /// The slugs of `docs/costing/*.yaml` and of the `*.json` sheets, sorted. A YAML sheet
     /// hides the JSON sheet of the same slug.
     fn slugs(&self) -> Res<Vec<String>> {
         let Ok(rd) = std::fs::read_dir(self.root.join("docs/costing")) else {
@@ -159,7 +159,7 @@ impl Ctx<'_> {
         Ok(out)
     }
 
-    /// The sheet is a Legacy JSON file: there is no YAML file for it (Q-102).
+    /// The sheet is a JSON file: there is no YAML file for it (Q-102).
     fn json_sheet(&self, slug: &str) -> bool {
         sheet_path(slug).is_ok_and(|p| !self.root.join(p).exists())
             && self.root.join(json_sheet_path(slug)).is_file()
@@ -215,30 +215,30 @@ impl Ctx<'_> {
         }
     }
 
-    /// The text of the team: the YAML file, or the Legacy `team.json` as YAML.
+    /// The text of the team: the YAML file, or the `team.json` as YAML.
     fn team_text(&self) -> Option<String> {
         self.read(TEAM_PATH).unwrap_or_default().or_else(|| {
-            let v = serde_json::from_str(&self.read(LEGACY_TEAM).ok()??).ok()?;
+            let v = serde_json::from_str(&self.read(LAYOUT_TEAM).ok()??).ok()?;
             let team = project_import::team(&v, &project_import::roles(&self.root));
             write_team(&team, None).ok()
         })
     }
 
-    /// The Legacy team file is the team now, so a save writes it in its own format.
+    /// The `team.json` file is the team now, so a save writes it in its own format.
     fn json_team(&self) -> bool {
-        !self.root.join(TEAM_PATH).exists() && self.root.join(LEGACY_TEAM).is_file()
+        !self.root.join(TEAM_PATH).exists() && self.root.join(LAYOUT_TEAM).is_file()
     }
 
-    /// The file is a Legacy JSON file: there is no YAML file for it (Q-122).
+    /// The file is a JSON file: there is no YAML file for it (Q-122).
     fn json_only(&self, yaml: &str, json: &str) -> bool {
         !self.root.join(yaml).exists() && self.root.join(json).is_file()
     }
 
     fn decisions(&self) -> Res<Decisions> {
-        if self.json_only(DECISIONS_PATH, LEGACY_PLAN) {
-            let text = self.read(LEGACY_PLAN)?.unwrap_or_default();
+        if self.json_only(DECISIONS_PATH, LAYOUT_PLAN) {
+            let text = self.read(LAYOUT_PLAN)?.unwrap_or_default();
             let sheets = self.readable()?;
-            return Ok(legacy::decisions_from_json(&text, |id| {
+            return Ok(docs_layout::decisions_from_json(&text, |id| {
                 sheets
                     .iter()
                     .find(|(_, s)| {
@@ -254,9 +254,9 @@ impl Ctx<'_> {
     }
 
     fn calendar(&self) -> Res<Calendar> {
-        if self.json_only(CALENDAR_PATH, LEGACY_CALENDAR) {
-            let text = self.read(LEGACY_CALENDAR)?.unwrap_or_default();
-            let cal = legacy::calendar_from_json(&text);
+        if self.json_only(CALENDAR_PATH, LAYOUT_CALENDAR) {
+            let text = self.read(LAYOUT_CALENDAR)?.unwrap_or_default();
+            let cal = docs_layout::calendar_from_json(&text);
             return read_calendar(&write_calendar(&cal).map_err(err)?).map_err(err);
         }
         let text = self.read(CALENDAR_PATH)?.unwrap_or_default();
@@ -491,10 +491,10 @@ pub fn team_save(s: &AppState, mut team: Team) -> Res<TeamView> {
     c.write_pass()?;
     if c.json_team() {
         let roles = project_import::roles(&c.root);
-        let old = c.read(LEGACY_TEAM)?;
+        let old = c.read(LAYOUT_TEAM)?;
         c.write(
-            LEGACY_TEAM,
-            &legacy::team_json(&team, old.as_deref(), &roles),
+            LAYOUT_TEAM,
+            &docs_layout::team_json(&team, old.as_deref(), &roles),
         )?;
         return Ok(c.team());
     }
@@ -622,8 +622,7 @@ pub struct TicketComment {
 }
 
 /// The comments of a ticket, oldest first. It reads the tracker: a person asked for it. A
-/// comment that holds only a Shipyard marker (a claim stamp) is left out. Source of the logic:
-/// Legacy `tickets_issue` (`src-tauri/src/infrastructure/jira.rs`).
+/// comment that holds only a Shipyard marker (a claim stamp) is left out.
 pub fn ticket_comments(s: &AppState, key: &str) -> Res<Vec<TicketComment>> {
     let t = tracker(s)?;
     if !t.caps.comments {
@@ -723,9 +722,9 @@ pub struct TicketEditCaps {
     pub assignee: bool,
     pub status: bool,
     pub priority: bool,
-    /// The issue type changes (Jira, GitLab, Azure DevOps). Source: Legacy `application/tickets/plan.rs`.
+    /// The issue type changes (Jira, GitLab, Azure DevOps).
     pub issue_type: bool,
-    /// The due date changes (all but GitHub Issues). Source: Legacy `infrastructure/repoissues.rs`.
+    /// The due date changes (all but GitHub Issues).
     pub due_date: bool,
     /// The estimate in days changes (a tracker with time tracking).
     pub estimate: bool,
@@ -856,7 +855,7 @@ pub fn seal_all(s: &AppState, passphrase: &str) -> Res<SealState> {
     }
     c.verify(passphrase)?;
     for slug in c.slugs()? {
-        // shortcut: a Legacy JSON sheet is not sealed. Move it to YAML first.
+        // shortcut: a JSON sheet is not sealed. Move it to YAML first.
         let Some(text) = c
             .sheet_text(&slug)?
             .filter(|t| !is_sealed(t) && !c.json_sheet(&slug))
@@ -1057,7 +1056,7 @@ pub fn sheet_save(s: &AppState, slug: &str, sheet: Sheet) -> Res<SheetView> {
         let roles = project_import::roles(&c.root);
         c.write(
             &json_sheet_path(slug),
-            &legacy::sheet_json(&sheet, old.as_deref(), &roles),
+            &docs_layout::sheet_json(&sheet, old.as_deref(), &roles),
         )?;
         return sheet_view(&c, slug);
     }
@@ -1119,7 +1118,7 @@ pub fn excel_replace(s: &AppState, slug: &str, confirmed: bool) -> Res<SheetView
     let c = ctx(s)?;
     let rel = sheet_path(slug).map_err(err)?;
     if c.json_sheet(slug) {
-        return Err("a Legacy JSON sheet takes no Excel import".into());
+        return Err("a JSON sheet takes no Excel import".into());
     }
     let pass = c.write_pass()?;
     {
@@ -1181,11 +1180,11 @@ pub fn plan(s: &AppState, slug: &str) -> Res<PlanView> {
 pub fn decisions_save(s: &AppState, decisions: &Decisions) -> Res<()> {
     let c = ctx(s)?;
     let text = write_decisions(decisions).map_err(err)?;
-    if c.json_only(DECISIONS_PATH, LEGACY_PLAN) {
-        let (old, before) = (c.read(LEGACY_PLAN)?, c.decisions()?);
+    if c.json_only(DECISIONS_PATH, LAYOUT_PLAN) {
+        let (old, before) = (c.read(LAYOUT_PLAN)?, c.decisions()?);
         return c.write(
-            LEGACY_PLAN,
-            &legacy::plan_json(decisions, &before, old.as_deref()),
+            LAYOUT_PLAN,
+            &docs_layout::plan_json(decisions, &before, old.as_deref()),
         );
     }
     c.write(DECISIONS_PATH, &text)
@@ -1194,11 +1193,11 @@ pub fn decisions_save(s: &AppState, decisions: &Decisions) -> Res<()> {
 pub fn calendar_save(s: &AppState, calendar: &Calendar) -> Res<()> {
     let c = ctx(s)?;
     let text = write_calendar(calendar).map_err(err)?;
-    if c.json_only(CALENDAR_PATH, LEGACY_CALENDAR) {
-        let old = c.read(LEGACY_CALENDAR)?;
+    if c.json_only(CALENDAR_PATH, LAYOUT_CALENDAR) {
+        let old = c.read(LAYOUT_CALENDAR)?;
         return c.write(
-            LEGACY_CALENDAR,
-            &legacy::calendar_json(calendar, old.as_deref()),
+            LAYOUT_CALENDAR,
+            &docs_layout::calendar_json(calendar, old.as_deref()),
         );
     }
     c.write(CALENDAR_PATH, &text)

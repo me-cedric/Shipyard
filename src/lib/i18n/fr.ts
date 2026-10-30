@@ -218,7 +218,6 @@ export const fr: Messages = {
 		close: "Fermer le projet",
 		remove: "Retirer de la liste",
 		confirmRemove: "Retirer {name} de la liste ? Les fichiers restent sur le disque.",
-		legacyGroup: "Projets Legacy",
 		recent: "Projets récents",
 		state: {
 			clean: "Propre",
@@ -256,9 +255,9 @@ export const fr: Messages = {
 		overrides: "Surcharges",
 		accent: "Accent",
 		overridden: "Défini par le projet",
-		legacy: {
-			title: "Legacy",
-			import: "Importer un projet Legacy",
+		projectImport: {
+			title: "Import",
+			import: "Importer un projet",
 			copied: "Copiés",
 			skipped: "Ignorés",
 			conflicts: "Conflits",

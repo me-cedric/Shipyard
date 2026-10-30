@@ -1,9 +1,7 @@
 //! The JSON-RPC 2.0 core of the Shipyard MCP server (REQ-016, REQ-037). The transports
 //! ([`crate::transport`]) only carry messages to [`Server::handle`].
 //!
-//! Source: the methods, the version negotiation and the result shape come from Legacy
-//! `application/mcp/rpc.rs` (`rpc_response`, `PROTOCOL_VERSIONS`, `tool_result`). Legacy gates by
-//! global switches. Here each call is bound to a run and a step through its token.
+//! Each call is bound to a run and a step through its token.
 
 use crate::outside::{self, Outside};
 use crate::proxy::{self, Proxy};

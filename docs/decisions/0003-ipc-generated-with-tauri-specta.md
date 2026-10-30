@@ -5,12 +5,12 @@ decision-makers: [Cédric Meyer]
 ---
 # IPC generated with tauri-specta
 ## Context and problem statement
-Legacy generates types with ts-rs but keeps about 250 hand-written invoke wrappers.
+The earlier tool generated types with ts-rs but kept about 250 hand-written invoke wrappers.
 ## Decision drivers
 - No hand-written contract code.
 - The UI must run in a browser for tests.
 ## Considered options
-- ts-rs plus hand-written wrappers (Legacy).
+- ts-rs plus hand-written wrappers.
 - tauri-specta for types, commands and events.
 ## Decision outcome
 Chosen option: "tauri-specta", because it generates the command functions and events too. A generated mock layer serves the same contract to Vitest and Playwright.

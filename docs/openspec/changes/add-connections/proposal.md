@@ -2,7 +2,7 @@
 
 ## Why
 
-Legacy is Jira-shaped: its repository issues depend on the Jira API, and credentials, MCP servers and assistants are set up on different pages.
+The earlier tool is Jira-shaped: its repository issues depend on the Jira API, and credentials, MCP servers and assistants are set up on different pages.
 Shipyard serves teams on Jira, GitHub, GitLab, Azure DevOps and Linear. It needs one place to connect each external system, with secrets kept out of the repository.
 
 ## What Changes
@@ -21,5 +21,5 @@ Shipyard serves teams on Jira, GitHub, GitLab, Azure DevOps and Linear. It needs
 - Affected capability: `connections`
 - Consumes: nothing.
 - Produces: `conn:` entities and the tracker, forge, runner and provider adapters that `sync`, `factory`, `questions-loop`, `delivery`, `code`, `work`, `assistant` and `projects` use.
-- Legacy parity: MCP servers (catalogue, custom, start, stop, deps), the relay and the proxy of the Legacy MCP server, Identifiants, Tickets setup, the assistant CLI detection, the PR forge setup, the repository picker.
+- Feature list: MCP servers (catalogue, custom, start, stop, deps), the relay and the proxy of the MCP server, Identifiants, Tickets setup, the assistant CLI detection, the PR forge setup, the repository picker.
 - Affected code/docs: `crates/shipyard-trackers`, `crates/shipyard-forges`, `crates/shipyard-agents`, `src/features/settings/connections/`.

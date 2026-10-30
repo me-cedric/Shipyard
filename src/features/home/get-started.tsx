@@ -21,8 +21,7 @@ type Step = { id: "tracker" | "forge" | "team" | "spec" | "run"; done: boolean; 
 
 /**
  * The first steps of a new project, each one done from the real state of the project and one click
- * from its place. The panel goes away when every step is done. It replaces the page tours of Legacy
- * (`src/pages/Welcome.tsx`, `src/lib/tour`): the constitution has no tours, and Explain answers a
+ * from its place. The panel goes away when every step is done. There are no page tours: the constitution has none, and Explain answers a
  * question about any entity.
  */
 export function GetStarted() {

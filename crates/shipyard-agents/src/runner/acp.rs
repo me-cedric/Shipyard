@@ -5,7 +5,7 @@
 //! `session/prompt`. The answer streams as `session/update` notifications and Copilot asks
 //! before each tool (`session/request_permission`): this client answers from the run mode, so
 //! no person is needed. The process stays alive after the answer, so the parser ends the run on
-//! the prompt response and the driver kills the group. Adapted from Legacy (`cli/acp.rs`).
+//! the prompt response and the driver kills the group.
 
 use super::*;
 use serde_json::json;

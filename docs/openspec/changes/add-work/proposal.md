@@ -2,7 +2,7 @@
 
 ## Why
 
-In Legacy, the costing "Plan" tab, the Gantt page and the tickets "Generate" tab do the same job, and team data sits in three files and four pages.
+The costing "Plan" tab, the Gantt page and the tickets "Generate" tab do the same job, and team data sits in three files and four pages.
 Shipyard needs one Work space where the PM sees the backlog, assigns people and agents, estimates, plans and tracks time, with the tracker as the source of truth.
 
 ## What Changes
@@ -20,5 +20,5 @@ Shipyard needs one Work space where the PM sees the backlog, assigns people and 
 - Affected capability: `work`
 - Consumes: `sync` (the `wi:` mirror), `specs` (work items from a split), `connections` (tracker writes), `factory` (run state per item).
 - Produces: `member:` and `est:` entities, assignments that drive pickup in `sync`, the plan, time entries.
-- Legacy parity: Team, Personas, Availability, Assignments (Répartition), Costing (sheets, Excel, sealed), Planning (Gantt), Tickets (plan and apply, labels), Imputations and worklog.
+- Feature list: Team, Personas, Availability, Assignments (Répartition), Costing (sheets, Excel, sealed), Planning (Gantt), Tickets (plan and apply, labels), Imputations and worklog.
 - Affected code/docs: `crates/shipyard-store` (team and estimate codecs), `src/features/work/`.

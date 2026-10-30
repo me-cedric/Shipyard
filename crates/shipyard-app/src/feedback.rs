@@ -1,5 +1,5 @@
-//! The Feedback action: open a prefilled issue of the Shipyard repository in the browser. Source:
-//! Legacy `feedback-button.tsx`, which opens a `mailto:` with the version in the subject. Nothing
+//! The Feedback action: open a prefilled issue of the Shipyard repository in the browser.
+//! Nothing
 //! is sent by the app: the person reads the form in the browser and submits it there. It runs
 //! after a click, and a text that holds a secret is refused.
 

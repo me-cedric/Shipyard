@@ -1,6 +1,6 @@
 //! Archive a change: settle its capability specs, then move the change folder (spec `specs`,
 //! REQ-020, REQ-023). The copy comes first and the rename last, so a failure keeps the old files.
-//! The folder listing follows the Legacy OpenSpec reader: sorted names, empty on error.
+//! The folder listing follows the OpenSpec reader: sorted names, empty on error.
 
 use std::fs;
 use std::path::Path;

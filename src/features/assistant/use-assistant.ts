@@ -1,5 +1,5 @@
-// The logic of the working parts (draft kept per thread, the turn that waits, the options of a
-// reply) follows the assistant drawer of Legacy. The panel and its styles are new.
+// The logic of the working parts: the draft kept per thread, the turn that waits, the options of a
+// reply.
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	commands,

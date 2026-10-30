@@ -2,7 +2,7 @@
 
 ## Why
 
-Agents follow the rules of agent-compass, and teams reuse accelerators across repositories. Legacy has Compass, Catalog, Plugins and Child projects on four pages.
+Agents follow the rules of agent-compass, and teams reuse accelerators across repositories. The earlier tool has Compass, Catalog, Plugins and Child projects on four pages.
 Shipyard needs one place to manage the agent rules and the add-ons of a project, and to push them to child repositories.
 
 ## What Changes
@@ -18,5 +18,5 @@ Shipyard needs one place to manage the agent rules and the add-ons of a project,
 - Affected capability: `extensions`
 - Consumes: `projects` (the active project), `connections` (MCP servers that a plugin declares).
 - Produces: compass rules, roles and skills for `factory` and `assistant`, the compass check for `projects` (health), catalog components for child projects.
-- Legacy parity: Compass (skills, packs, guides, contract), Catalog, Plugins, Child projects, OpenSpec guidance for child repos, Doctor propagation to linked projects.
+- Feature list: Compass (skills, packs, guides, contract), Catalog, Plugins, Child projects, OpenSpec guidance for child repos, Doctor propagation to linked projects.
 - Affected code/docs: `src/features/settings/extensions/`, `docs/agent-compass` (submodule, read only), ADR 0010.

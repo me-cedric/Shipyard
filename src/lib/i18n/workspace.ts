@@ -31,7 +31,7 @@ export const workspaceEn = {
 		label: "Budget {key}",
 		used: "{used} h of {estimate} h",
 		over: "{n} h over",
-		link: "Legacy ticket {key}",
+		link: "Ticket {key}",
 	},
 	picker: {
 		account: "Account",
@@ -114,7 +114,7 @@ export const workspaceFr: typeof workspaceEn = {
 		label: "Budget {key}",
 		used: "{used} h sur {estimate} h",
 		over: "{n} h de trop",
-		link: "Ticket Legacy {key}",
+		link: "Ticket {key}",
 	},
 	picker: {
 		account: "Compte",

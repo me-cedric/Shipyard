@@ -1,5 +1,5 @@
 //! The RAID file codec and the id allocation (spec `questions-loop`, REQ-003, REQ-007; spec
-//! `specs`, REQ-009, REQ-010). Cases adapted from Legacy `src/lib/raid.test.ts`.
+//! `specs`, REQ-009, REQ-010).
 
 use shipyard_core::question::Question;
 use shipyard_store::raid::{

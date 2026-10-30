@@ -1,5 +1,5 @@
-// The slash commands of the composer (Legacy `composer-menu.tsx`: the prompts of the current
-// screen). A command inserts its prompt in the draft. The person reads it and sends it.
+// The slash commands of the composer: the prompts of the current
+// screen. A command inserts its prompt in the draft. The person reads it and sends it.
 
 export type SlashId =
 	| "explain"

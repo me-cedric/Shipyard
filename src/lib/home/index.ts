@@ -55,7 +55,7 @@ const THURSDAY = 4;
 const localDay = (d: Date) =>
 	`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-/** Legacy shows "Timesheet day" on Thursday (`topbar.tsx`). Here it is one item, until a time entry of that day exists. */
+/** "Timesheet day" shows on Thursday. It is one item, until a time entry of that day exists. */
 export function timesheetDue(now: Date, loggedDays: string[]): boolean {
 	return now.getDay() === THURSDAY && !loggedDays.includes(localDay(now));
 }

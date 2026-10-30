@@ -4,8 +4,6 @@
 //! that time, and never reads it back. A source that cannot be read gives a named gap and does
 //! not fail the export. A day rate is never an input, so no export can hold one.
 //!
-//! Source: the block model and the Markdown reader follow Legacy `src/lib/exports/doc-blocks.ts`,
-//! the section order follows `architecture-docx.ts`.
 
 use std::io::Cursor;
 

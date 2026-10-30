@@ -1,7 +1,6 @@
 //! The external scanners of Code / Quality: `osv-scanner` (dependencies), `semgrep` (code) and
-//! `skillspector` (agent skills). They run only when installed. Copied in shape from Legacy
-//! `src-tauri/src/infrastructure/security.rs` (`parse`, `parse_semgrep`, `parse_skills`), cut to
-//! the findings that the Quality view shows.
+//! `skillspector` (agent skills). They run only when installed. Only the
+//! findings that the Quality view shows are kept.
 
 use std::path::Path;
 use std::process::Command;

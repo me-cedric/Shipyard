@@ -16,7 +16,7 @@ State on 2026-10-29: waves W0 to W9 are on local `main`. Nothing after a3f8b97 i
 | W0 to W6 | Plan, specs, skeleton, core, Work, Design and Specs, factory engine. See `.agents/progress/w1.md` to `w6.md`. |
 | W7 | Factory views (Runs lanes, run view with the xyflow DAG, event tail, diff, cost; Workflows and Roles; Agents map; Sessions; Usage), budgets per day and per member, Home / Inbox (questions, approvals, plan review, messages), "needs you" notifications, the assistant panel. |
 | W8 | Knowledge (graph, Explain, handbook, documents with `.docx` and `.xlsx` exports, slides with reveal.js, learn, dashboards), extensions (compass rules, catalog, plugins with review, child projects), Code remainder (pull requests, quality, impacts with Analyze, terminal on `portable-pty` and xterm, file viewer), My work, Activity, model tiers. |
-| W9 | Legacy import, `shipyard` sidecar for release builds, design-system and shell tests, axe on every tab, lazy slides, forge repository create, notification sources, update notes, spec sync, guide pages. |
+| W9 | Project import, `shipyard` sidecar for release builds, design-system and shell tests, axe on every tab, lazy slides, forge repository create, notification sources, update notes, spec sync, guide pages. |
 
 Checks on the W9 merge, all passed: `cargo fmt`, `cargo clippy -D warnings`, 1300 Rust tests, typecheck, lint, 761 vitest tests, `pnpm build`, the full Playwright suite (18 spec files), `ipc:check`, OpenSpec strict 16 of 16, `ac check --docs`.
 

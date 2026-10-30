@@ -35,8 +35,8 @@ pub mod terminal;
 pub mod work;
 
 use commands::{
-    AppState, agents as ag, app, assistant as asst, code as git, connections as conn, health,
-    legacy, overview, prefs, projects, refs, shell as sh, sync as sy,
+    AppState, agents as ag, app, assistant as asst, code as git, connections as conn,
+    delivery_docs, health, overview, prefs, projects, refs, shell as sh, sync as sy,
 };
 use extensions as ex;
 use knowledge as kw;
@@ -71,16 +71,14 @@ fn specta_builder() -> Builder<tauri::Wry> {
             projects::project_overrides_save,
             health::health_run,
             health::health_fix,
-            legacy::project_import,
-            legacy::legacy_projects,
-            legacy::legacy_project_open,
-            legacy::personas_list,
-            legacy::personas_save,
-            legacy::assignments_read,
-            legacy::tickets_config_get,
-            legacy::tickets_config_save,
-            legacy::tickets_links,
-            legacy::delivery_notes,
+            delivery_docs::project_import,
+            delivery_docs::personas_list,
+            delivery_docs::personas_save,
+            delivery_docs::assignments_read,
+            delivery_docs::tickets_config_get,
+            delivery_docs::tickets_config_save,
+            delivery_docs::tickets_links,
+            delivery_docs::delivery_notes,
             overview::projects_overview,
             overview::project_open_remote,
             overview::code_push_target,

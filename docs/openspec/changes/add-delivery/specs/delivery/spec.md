@@ -13,7 +13,7 @@ A run takes its change from a reviewed worktree to a merged pull request and a c
 
 ### Why
 
-Agent work has value only when it is reviewed, merged and closed on the tracker. Legacy lists pull requests. No run takes a change from a worktree to a merged pull request and a closed ticket.
+Agent work has value only when it is reviewed, merged and closed on the tracker. The earlier tool lists pull requests. No run takes a change from a worktree to a merged pull request and a closed ticket.
 
 ### Users And Scenarios
 
@@ -95,9 +95,9 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - Produces: `pr:` entities for `add-code` and `add-refs`, ticket moves and the run summary for the tracker, CI and review feedback for `add-factory`, the lane data for In review and Ready to merge.
 - Related: `add-shell` REQ-004 (approvals in the Inbox).
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 | --- | --- | --- |
 | Pull requests: open | Factory / Runs (In review, Ready to merge); Home / Inbox approvals | REQ-007 to REQ-014, REQ-017, REQ-021, REQ-028, REQ-029 |
 | Pull requests: comment, approve, request changes, merge | Code / Pull requests (`add-code`); delivery reads the result | REQ-018, REQ-019, REQ-022 |

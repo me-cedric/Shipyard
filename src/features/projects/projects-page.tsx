@@ -96,7 +96,7 @@ function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: string) 
 	);
 }
 
-/** Home / Projects: one card for each project, grouped by the host of its remote. Legacy source: `pages/Home.tsx` `ProjectCard`. */
+/** Home / Projects: one card for each project, grouped by the host of its remote. */
 export function ProjectsPage() {
 	const { t } = useI18n();
 	const cards = useProjectCards().data;

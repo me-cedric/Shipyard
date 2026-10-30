@@ -16,7 +16,7 @@ import processMod from "./process.js";
  * `likec4` bundles `langium`, which bundles the `vscode-languageserver` Node
  * transport, and that transport calls `createRequire()(…)` at module scope for
  * several Node builtins. The imports run on every launch; the code behind them
- * never does, because Legacy parses LikeC4 in the browser with no language
+ * never does, because the app parses LikeC4 in the browser with no language
  * server to talk to.
  */
 const REGISTRY = {
@@ -61,10 +61,10 @@ function note(id, key) {
 	if (why) {
 		// Expected. Kept at `debug` so it is there when somebody looks for it and
 		// not in the way when they are looking for something else.
-		console.debug(`[legacy] require(${id}) → {} in the browser. ${why}`);
+		console.debug(`[shipyard] require(${id}) → {} in the browser. ${why}`);
 	} else {
 		console.warn(
-			`[legacy] require(${id}) is stubbed as {} in the browser and nothing provides it. ` +
+			`[shipyard] require(${id}) is stubbed as {} in the browser and nothing provides it. ` +
 				`Add it to REGISTRY in src/shims/module.js if it is used, or to KNOWN_ABSENT if it is not.`,
 		);
 	}

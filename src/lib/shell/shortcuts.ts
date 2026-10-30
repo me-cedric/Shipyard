@@ -2,8 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { commands, unwrap } from "@/lib/ipc";
 
 // The chord notation is `mod+shift+s`: lowercase, `mod` is Cmd or Ctrl, the key comes last.
-// Legacy `src/lib/shortcuts.ts` stores the same idea in the browser. Shipyard stores it in the
-// preferences of the app data folder, with the other preferences.
+// The chords are stored in the preferences of the app data folder, with the other preferences.
 
 const MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 const MODIFIERS = new Set(["Control", "Shift", "Alt", "Meta", "Dead"]);

@@ -13,7 +13,7 @@ A claimed ticket becomes a run. The run follows a state machine and a YAML workf
 
 ### Why
 
-Legacy delegation only sets a label. It has no run engine, no worktree per agent and no budget. Shipyard must take a ticket, run the right agents with the right model and effort, and keep each run safe and visible.
+Delegation only sets a label. It has no run engine, no worktree per agent and no budget. Shipyard must take a ticket, run the right agents with the right model and effort, and keep each run safe and visible.
 
 ### Users And Scenarios
 
@@ -124,15 +124,15 @@ Legacy delegation only sets a label. It has no run engine, no worktree per agent
 - Consumes: `add-sync` REQ-003, REQ-004, REQ-008 and REQ-009 (ticks, terminal tickets, claims), `add-connections` REQ-003, REQ-009, REQ-010 and REQ-011 (capability flags, runners, providers, secrets), `add-extensions` (compass roles and skills), `add-specs` (the `spec-split` workflow reads a change), `add-refs` REQ-014 (`read_ref`), `add-shell` REQ-003 and REQ-004 (Inbox) and REQ-007 (active runs in the status bar), `add-design-system` REQ-005 (RunStep, ApprovalBar).
 - Produces: `run:` and `wf:` entities (indexed by `add-refs` REQ-003), the run log, approvals for the Inbox, questions for `add-questions-loop`, a reviewed worktree for `add-delivery`, run state for `add-work` and `add-refs`.
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 |---|---|---|
 | Specifications, delegate (sets a label) | Factory / Runs, Workflows | REQ-001, REQ-008, REQ-009, REQ-010, REQ-011, REQ-012, REQ-013, REQ-014 |
 | AI sessions bar | Factory / Sessions | REQ-015, REQ-024, REQ-031 |
 | Orca (worktree per task) | Factory / Agents map, run view | REQ-013, REQ-028, REQ-030 |
 | FinOps | Factory / Usage | REQ-022, REQ-032, REQ-035 |
-| Legacy MCP server (HTTP, stdio, relay, gates, proxy) | Agent tools and approvals | REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-025, REQ-026, REQ-037 |
+| MCP server (HTTP, stdio, relay, gates, proxy) | Agent tools and approvals | REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-025, REQ-026, REQ-037 |
 | Répartition gates | PlanReview gate and approvals | REQ-003, REQ-026 |
 
 ### Existing References

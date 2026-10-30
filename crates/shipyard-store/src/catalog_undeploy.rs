@@ -1,5 +1,4 @@
-//! Undeploy a catalog component (spec `extensions`). Copied in intent from Legacy
-//! `undeploy_component` (`commands/plugins.rs`): remove what the deploy wrote, then forget the
+//! Undeploy a catalog component (spec `extensions`). Remove what the deploy wrote, then forget the
 //! record. The improvement: a file that a person edited after the deploy stays, and the report
 //! names it. The record keeps no file list, so the files come from the catalog and are compared.
 

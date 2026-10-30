@@ -17,8 +17,7 @@ const known = (s: string): s is keyof typeof SHAPE => s in SHAPE;
 
 /**
  * Factory / Sessions, third block: the agent sessions that Orca runs, read with its `orca` command.
- * A row opens in Orca on a click. Shipyard never starts, stops or removes an Orca session. Legacy
- * source: `src-tauri/src/infrastructure/orca.rs` and `src/components/ai-sessions.tsx`. Nothing
+ * A row opens in Orca on a click. Shipyard never starts, stops or removes an Orca session. Nothing
  * shows while Orca is not installed, except the address to get it.
  */
 export function OrcaSessions() {

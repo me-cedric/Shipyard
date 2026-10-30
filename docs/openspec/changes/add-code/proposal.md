@@ -2,7 +2,7 @@
 
 ## Why
 
-Developers and QA testers need the working copy, the history, the pull requests and the quality reports next to the tickets and runs that caused them. Legacy has these features, but commit is in 11 pages and pull in three places.
+Developers and QA testers need the working copy, the history, the pull requests and the quality reports next to the tickets and runs that caused them. The earlier tool has these features, but commit is in 11 pages and pull in three places.
 Shipyard needs one Code space with one commit action and one sync action, and links from each commit and pull request to its work item and run.
 
 ## What Changes
@@ -21,5 +21,5 @@ Shipyard needs one Code space with one commit action and one sync action, and li
 - Affected capability: `code`
 - Consumes: `connections` (Forge adapter, git credentials), `delivery` (pull requests opened by runs), `refs` (links from commits to `wi:` and `run:`), `sync` (the `pr:` mirror).
 - Produces: `commit:` entities, the commit and branch operations used by `delivery` and `shell`, quality and impact reports for `knowledge` and `specs`.
-- Legacy parity: Git (changes, conflicts, history, stash, branches), Pull requests (GitHub, GitLab), QA, Security scanners, Impacts, Embedded terminal, La branche de travail, Surveillance des dépôts distants, Les fichiers.
+- Feature list: Git (changes, conflicts, history, stash, branches), Pull requests (GitHub, GitLab), QA, Security scanners, Impacts, Embedded terminal, La branche de travail, Surveillance des dépôts distants, Les fichiers.
 - Affected code/docs: `crates/shipyard-git`, `crates/shipyard-forges`, `src/features/code/`.

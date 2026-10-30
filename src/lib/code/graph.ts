@@ -9,7 +9,7 @@ export type GraphRow = {
 };
 
 /**
- * The lanes of a log, newest first, from the parents of each commit (Legacy `git-graph.ts`). A
+ * The lanes of a log, newest first, from the parents of each commit. A
  * lane waits for the commit that it expects next. The first parent keeps the lane of its child. A
  * merge opens a lane for each other parent that no lane waits for.
  * shortcut: a merge draws no diagonal, only its lanes. Add the curves when a design asks for them.

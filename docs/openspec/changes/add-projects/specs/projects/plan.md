@@ -5,7 +5,7 @@ Date: 2026-10-29
 
 ## Summary
 
-Project file codecs and the registry live in `shipyard-store`. Git operations (clone, init, state) live in `shipyard-git/src/project.rs` and run the `git` command. Health rules are pure functions in `shipyard-core`. The views are in `src/features/projects/`, the hooks in `src/lib/projects/`. This covers REQ-001 to REQ-017, except the Legacy import (W9) and the credentials of a connection for a clone.
+Project file codecs and the registry live in `shipyard-store`. Git operations (clone, init, state) live in `shipyard-git/src/project.rs` and run the `git` command. Health rules are pure functions in `shipyard-core`. The views are in `src/features/projects/`, the hooks in `src/lib/projects/`. This covers REQ-001 to REQ-017, except the project import (W9) and the credentials of a connection for a clone.
 
 ## Technical Context
 
@@ -19,8 +19,8 @@ Project file codecs and the registry live in `shipyard-store`. Git operations (c
 | Health rules | Pure functions in `shipyard-core` return findings with a fix id. `shipyard-store` and `shipyard-git` run the I/O. |
 | Health inputs | Broken refs from `refs_check`. Compliance: the project file, the invalid values with their line, the OS ignore rules. Tool checks: `git`, `node` and the compass helper `docs/agent-compass/bin/ac.mjs check` when the working copy holds it. The group of generated files stays empty until a capability generates files. |
 | Ignore rules | `shipyard-git` writes an ignore file at creation only. A fix action can add rules on an existing repository after a click. |
-| Import | Stub: `project_import` returns a report with one skipped item. W9 adds a codec for each Legacy file in `shipyard-store`. The import stays read-only on the source. |
-| Risks | The Legacy file formats drift. Pin fixtures from the Legacy repository and read them only. Q-003 stays open. |
+| Import | Stub: `project_import` returns a report with one skipped item. W9 adds a codec for each file of the existing layout in `shipyard-store`. The import stays read-only on the source. |
+| Risks | The file formats of the existing layout drift. Pin fixtures from a sample repository and read them only. Q-003 stays open. |
 
 ## Affected Surfaces
 
@@ -34,7 +34,7 @@ Project file codecs and the registry live in `shipyard-store`. Git operations (c
 2. Add the project file codec and the registry in `shipyard-store`.
 3. Add clone, init and working copy state in `shipyard-git`. Write the OS ignore rules at creation only.
 4. Add the health rules and the fix actions. Each fix returns a preview before it writes.
-5. Legacy import: stub until W9.
+5. Project import: stub until W9.
 6. Add the IPC commands.
 7. Build first run, the switcher, Settings / Project, Settings / Health and the status bar dot. Add French and English keys.
 

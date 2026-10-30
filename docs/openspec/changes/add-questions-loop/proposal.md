@@ -2,7 +2,7 @@
 
 ## Why
 
-An agent that guesses a decision that belongs to a person produces wrong work. Legacy keeps a RAID register, but no agent can stop, ask and wait.
+An agent that guesses a decision that belongs to a person produces wrong work. The earlier tool keeps a RAID register, but no agent can stop, ask and wait.
 Shipyard needs a loop where an agent asks a question with options, the person answers in the app or on the tracker site, and the run resumes with the answer.
 
 ## What Changes
@@ -21,5 +21,5 @@ Shipyard needs a loop where an agent asks a question with options, the person an
 - Affected capability: `questions-loop`
 - Consumes: `factory` (the `ask_question` tool, run states, resume), `sync` (new comments on the tick), `connections` (tracker comment write), `specs` (the RAID register and the spec to fold into).
 - Produces: `q:` entities, Inbox cards for `shell`, answers that resume runs in `factory`, folded clarifications in `specs`.
-- Legacy parity: Questions (RAID register, fold into `## Clarifications`).
+- Feature list: Questions (RAID register, fold into `## Clarifications`).
 - Affected code/docs: `crates/shipyard-engine`, `crates/shipyard-store` (RAID codec), `src/features/home/inbox/`, ADR 0008.

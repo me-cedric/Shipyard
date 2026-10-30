@@ -1,4 +1,4 @@
-/** The strings of writer A in W10 stage 8: personal preferences, file actions, Legacy import, docs chain, Orca sessions. */
+/** The strings of writer A in W10 stage 8: personal preferences, file actions, project import, docs chain, Orca sessions. */
 export const personalEn = {
 	orca: {
 		title: "Orca sessions",

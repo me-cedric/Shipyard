@@ -31,7 +31,7 @@ export type Prefs = Pick<
 	| "defaultModel"
 >;
 
-/** Font stacks that are on the machine already. Nothing is fetched (copied from Legacy `src/lib/appearance.ts`). */
+/** Font stacks that are on the machine already. Nothing is fetched. */
 export const UI_FONTS: Record<string, string> = {
 	system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
 	grotesk: '"Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif',

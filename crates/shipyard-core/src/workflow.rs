@@ -175,8 +175,7 @@ pub enum WorkflowIssue {
     },
 }
 
-/// Adapted from Legacy `checked()` (`src-tauri/src/application/tickets/delegate.rs`), without
-/// `.` and `:`, which the `for_each` path and the refs use.
+/// An id has no `.` and no `:`, which the `for_each` path and the refs use.
 fn valid_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 64

@@ -9,7 +9,7 @@ import { ArrowUpTrayIcon, ChatBubbleIcon } from "@/ui/icons";
 
 /**
  * Hands the conflicted files to the assistant (the draft names them, a person sends it) or to a
- * factory run (one work item with the `wf:` label). Legacy source: `conflict-dialog.tsx` (agent).
+ * factory run (one work item with the `wf:` label).
  */
 export function ConflictAgent() {
 	const { t } = useI18n();

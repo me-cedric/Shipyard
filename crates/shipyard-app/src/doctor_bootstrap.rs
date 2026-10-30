@@ -1,7 +1,6 @@
 //! Doctor bootstrap form: set up the tools and the files of a new project in one guided step.
-//! Source: Legacy `application/provision/bootstrap.rs` (`bootstrap_project`: answers in
-//! `agent-compass.answers.json`, a spec-first `BOOTSTRAP_PROMPT.md`). Legacy runs a Node script;
-//! here the files are built in Rust. The preview shows each file and says if it is new. The write
+//! The answers go in `agent-compass.answers.json`, with a spec-first `BOOTSTRAP_PROMPT.md`. The
+//! files are built in Rust. The preview shows each file and says if it is new. The write
 //! follows one click, never replaces a file, and a read-only project takes none.
 
 use std::path::{Path, PathBuf};

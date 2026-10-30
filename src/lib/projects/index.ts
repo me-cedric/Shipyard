@@ -41,7 +41,6 @@ export const projectKeys = {
 	active: ["projects", "active"] as const,
 	settings: ["projects", "settings"] as const,
 	health: ["health"] as const,
-	legacy: ["projects", "legacy"] as const,
 	personas: ["projects", "personas"] as const,
 	tickets: ["projects", "tickets-config"] as const,
 	assignments: ["projects", "assignments"] as const,
@@ -52,14 +51,6 @@ export const projectKeys = {
 
 export function useProjects() {
 	return useQuery({ queryKey: projectKeys.list, queryFn: () => unwrap(commands.projectsList()) });
-}
-
-/** The projects of the Legacy registry on this machine that are not in the list yet. */
-export function useLegacyProjects() {
-	return useQuery({
-		queryKey: projectKeys.legacy,
-		queryFn: () => unwrap(commands.legacyProjects()),
-	});
 }
 
 /** The personas of the project (`docs/personas/personas.json`). */
@@ -94,7 +85,7 @@ export function useProjectCards() {
 	});
 }
 
-/** The Legacy ticket links of the project (`docs/delivery/tickets.json`). */
+/** The ticket links of the project (`docs/delivery/tickets.json`). */
 export function useTicketLinks() {
 	return useQuery({ queryKey: projectKeys.links, queryFn: () => unwrap(commands.ticketsLinks()) });
 }
@@ -167,12 +158,6 @@ export function useProjectActions() {
 		return opened(await unwrap(commands.projectsOpen(path, false)));
 	}, [opened]);
 
-	/** Opens a project of the Legacy registry with its Legacy paths. */
-	const openLegacy = useCallback(
-		async (id: string) => opened(await unwrap(commands.legacyProjectOpen(id))),
-		[opened],
-	);
-
 	const clone = useCallback(
 		async (url: string, path: string) => opened(await unwrap(commands.projectsClone(url, path))),
 		[opened],
@@ -202,5 +187,5 @@ export function useProjectActions() {
 		[qc, router, t],
 	);
 
-	return { switchTo, openFolder, openLegacy, clone, create, close, remove };
+	return { switchTo, openFolder, clone, create, close, remove };
 }

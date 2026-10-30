@@ -48,7 +48,7 @@ Write text only. Create the ticket only after the user says yes.
 6. Add no scope. Give a case that the spec does not name to `grill` as a question.
 7. Keep rates, day counts, personas and internal disagreements out of the ticket.
 8. Do not copy the spec into the ticket. Link to it, not to a commit.
-9. Do not edit `docs/delivery/tickets.json`. Legacy writes it.
+9. Do not edit `docs/delivery/tickets.json`. An outside tool writes it.
 
 ## Assign by profile
 

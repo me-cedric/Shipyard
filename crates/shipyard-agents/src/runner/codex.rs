@@ -4,8 +4,7 @@
 //! (the subcommand must come right after `exec`, or `resume` is read as the prompt). A resume
 //! takes no `--sandbox`, so the mode travels as `-c` config keys there. MCP servers go in a
 //! profile file in the Codex home, selected with `--profile`, mode `0600`, removed at the end.
-//! The session id is named by Codex on `thread.started`. Adapted from Legacy
-//! (`cli/registry.rs` Codex entry, `mcpcli.rs` `codex_profile`, `cli/stream.rs` Codex readers).
+//! The session id is named by Codex on `thread.started`.
 
 use super::*;
 use std::collections::HashSet;

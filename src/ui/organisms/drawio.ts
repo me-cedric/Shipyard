@@ -1,6 +1,6 @@
 /**
  * The mxGraph model that a `.drawio.svg` carries in the `content` attribute of its root, or "".
- * Ported from Legacy `src/lib/diagrams/drawio.ts`. A plain SVG has no model: it is not a board.
+ * A plain SVG has no model: it is not a board.
  */
 export function xmlFromDrawioSvg(svg: string): string {
 	try {

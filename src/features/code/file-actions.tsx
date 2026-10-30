@@ -19,8 +19,7 @@ const parent = (p: string) => p.slice(0, Math.max(p.lastIndexOf("/"), 0));
 /**
  * The name prompt of a new file, a new folder and a rename, and the confirm of a delete. The
  * button is the click: the command refuses a call with no click, and a read-only project refuses
- * all four. A delete moves the path to the system trash. Legacy source: `file-browser.tsx` and
- * `infrastructure/browse.rs`.
+ * all four. A delete moves the path to the system trash.
  */
 export function FileActionDialog({
 	action,

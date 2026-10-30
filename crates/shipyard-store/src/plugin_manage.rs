@@ -1,5 +1,4 @@
-//! The plugins that a project holds (spec `extensions`): list, enable, disable and remove.
-//! Copied in intent from Legacy `list_plugins` and `delete_plugin` (`commands/plugins.rs`). The
+//! The plugins that a project holds (spec `extensions`): list, enable, disable and remove. The
 //! record of `plugins.rs` says what each plugin wrote, with the SHA-256 of each file. The
 //! disabled names live in `.shipyard/plugins-off.json`. A removal deletes only the files that
 //! still have the recorded hash: a file that a person changed stays.

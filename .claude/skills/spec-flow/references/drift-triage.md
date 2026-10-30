@@ -13,5 +13,5 @@ Use this when a spec changes after tickets exist.
    - Finished work needs rework.
    - A date or scope moves.
 7. Write the flag. The contract owner makes the decision.
-8. Do not edit `docs/delivery/tickets.json`. Legacy writes it. For a ticket that a human edited, comment only.
+8. Do not edit `docs/delivery/tickets.json`. An outside tool writes it. For a ticket that a human edited, comment only.
 9. Write the note to `docs/delivery/drift/<YYYY-MM-DD>-<slug>.md`.

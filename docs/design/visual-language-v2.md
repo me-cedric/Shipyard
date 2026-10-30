@@ -50,4 +50,4 @@ ADR 0014. Goal: a workspace that feels alive and premium (Cabinet, Linear, Rayca
 
 - Load the `minimalist-skill` (product UI) and the `soft-skill` (high-end visual design) taste skills before UI work. Never the landing-page skills.
 - Use only tokens. A new primitive goes in `src/ui/`. Keep axe green in light and dark.
-- Compare each page with Legacy's screenshot in `legacy-app/shots/` and with the references; the Shipyard page must hold at least the same information and actions.
+- Compare each page with the references; the Shipyard page must hold at least the same information and actions.

@@ -9,7 +9,7 @@ const key = ["auto-commit"] as const;
 
 /**
  * Settings / Project: commit the pending changes before a sync and when the window closes
- * (Legacy `set_auto_commit`). The choice is personal, so it is kept in the app data folder.
+ *. The choice is personal, so it is kept in the app data folder.
  */
 export function AutoCommit() {
 	const { t } = useI18n();

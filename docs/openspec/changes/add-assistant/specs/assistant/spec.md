@@ -13,7 +13,7 @@ One assistant panel opens from every space. It keeps threads per project, takes 
 
 ### Why
 
-Legacy has an assistant drawer with its own runner. It does not know the project graph and it does not share budgets with delegation. People need quick answers and small changes without a full run. Shipyard needs one assistant on one runner layer.
+The earlier tool has an assistant drawer with its own runner. It does not know the project graph and it does not share budgets with delegation. People need quick answers and small changes without a full run. Shipyard needs one assistant on one runner layer.
 
 ### Users And Scenarios
 
@@ -90,9 +90,9 @@ Legacy has an assistant drawer with its own runner. It does not know the project
 - Consumes also: `add-work` REQ-029 (one work item from a ref).
 - Produces: threads, the Explain answer for `add-knowledge`, work items through `add-work` (REQ-029), runs through the label `wf:<id>` and `add-factory` pickup.
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 |---|---|---|
 | Assistant drawer (Claude Code, Codex, Copilot, API providers) | Assistant panel in every space | REQ-001, REQ-002, REQ-004, REQ-011, REQ-012 |
 | Permission level and the wait for an answer | Assistant panel, agent mode | REQ-009, REQ-010 |
@@ -109,7 +109,6 @@ Legacy has an assistant drawer with its own runner. It does not know the project
 ### Existing References
 
 - `docs/plan/MASTER-PLAN.md` sections 4, 5.8 and 7; `docs/openspec/constitution.md` sections 4 and 6.
-- Legacy `docs/features.md`, section Assistant.
 - Q-023, Q-024 and Q-053 (budgets, runners, defaults).
 
 ## ADDED Requirements

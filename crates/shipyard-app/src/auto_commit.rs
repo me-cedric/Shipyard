@@ -1,5 +1,5 @@
-//! The auto-commit option of a project (Legacy `set_auto_commit`, `commands/connection.rs`).
-//! Legacy keeps it in the connection. Shipyard keeps it in the app data folder by project id,
+//! The auto-commit option of a project.
+//! It is kept in the app data folder by project id,
 //! so a repository file carries no personal choice. When on, the app commits the pending
 //! changes of the project before a sync and when the window closes.
 

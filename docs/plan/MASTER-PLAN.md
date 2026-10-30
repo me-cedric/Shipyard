@@ -1,13 +1,13 @@
 # Shipyard master plan
 
 Status: proposed, 2026-10-29. Owner: Cédric Meyer.
-Source: a full read of Legacy 0.2.0 (`legacy-app`), agent-compass 1.0.2, and the reference projects in section 12.
+Source: a full read of the earlier desktop tool, agent-compass 1.0.2, and the reference projects in section 12.
 
 ## 1. Goal
 
 Shipyard is one desktop app for the whole project team.
 It runs one loop: design, specify, split into work items, assign, build with agents, review, merge, close.
-Every project artifact lives in the Git repository (Project-as-a-Git, kept from Legacy).
+Every project artifact lives in the Git repository (Project-as-a-Git).
 
 Users: project manager, architect, developer, QA tester, business analyst, functional lead, junior.
 
@@ -17,12 +17,12 @@ Three quality axes apply to each decision:
 - DX: generated contracts, feature folders, small crates, fast tests.
 - AX: specs first, agent rules from agent-compass, structured agent tools, budgets.
 
-## 2. What Legacy does, and what is wrong
+## 2. Problems to solve
 
-Legacy has 40 routes, 281 Tauri commands, about 63,000 TSX lines and 70,000 Rust lines.
+The earlier structure has 40 routes, 281 Tauri commands, about 63,000 TSX lines and 70,000 Rust lines.
 The features are good. The structure is not.
 
-| Problem | Example in Legacy |
+| Problem | Example |
 |---|---|
 | Too many pages | 40 routes, 12 sidebar groups, 4 stacked filters that hide pages |
 | Overlap | Costing "Plan" tab, Gantt page and Tickets "Generate" tab do the same job |
@@ -33,7 +33,7 @@ The features are good. The structure is not.
 | Hand-written IPC | About 250 hand-written `invoke` wrappers over ts-rs types |
 | Jira-shaped trackers | `repoissues.rs` depends on `jira::Api` |
 | God files | `MCPServers.tsx` 1,287 lines, `finops.rs` 1,857 lines, one 281-command handler list |
-| No agent factory | Delegation sets a label. Legacy has no run engine, no worktrees per agent, no question loop |
+| No agent factory | Delegation sets a label. There is no run engine, no worktrees per agent, no question loop |
 
 ## 3. Concept model
 
@@ -56,7 +56,7 @@ Every view shows the backlinks of its entity. The knowledge graph is this graph,
 
 ## 4. Information architecture
 
-Legacy's 40 routes become 7 spaces and one settings area. Tabs inside a space replace pages.
+The 40 routes become 7 spaces and one settings area. Tabs inside a space replace pages.
 
 | Space | Views | Main roles |
 |---|---|---|
@@ -72,9 +72,9 @@ Legacy's 40 routes become 7 spaces and one settings area. Tabs inside a space re
 Global, in every space: the command palette (search and actions), the assistant panel, the inspector panel, notifications.
 One commit action exists, in the shell status bar. One sync action exists, in the shell status bar.
 
-### Feature parity (Legacy to Shipyard)
+### Features
 
-| Legacy | Shipyard |
+| Feature | Where in Shipyard |
 |---|---|
 | Drawings (Excalidraw, draw.io, Mermaid, BPMN) | Design / Diagrams |
 | Models (LikeC4) | Design / Architecture |
@@ -108,7 +108,7 @@ One commit action exists, in the shell status bar. One sync action exists, in th
 | Doctor | Settings / Health; status bar |
 | Settings, Preferences | Settings / Project, Me |
 | Welcome, Home (project list) | First run; project switcher |
-| Legacy MCP server (HTTP, stdio, relay, gates, proxy) | `shipyard-mcp` crate |
+| MCP server (HTTP, stdio, relay, gates, proxy) | `shipyard-mcp` crate |
 | i18n FR and EN, tours, context menus, native menu, update check | Kept |
 
 ## 5. The factory loop
@@ -198,7 +198,7 @@ limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }
 - Budgets per run, per day, per member: tokens and money. Alert at 80 %. Hard stop moves the run to `Paused`.
 - Limits: stall timeout, max turns, kill switch per run and global.
 - Secrets live in the OS keychain. They never go in arguments, files in the repo, or logs.
-- Never a worklog write without the person's action (kept from Legacy and compass).
+- Never a worklog write without the person's action (kept from compass).
 
 ### 5.9 Visualization
 
@@ -283,7 +283,7 @@ Each wave keeps a progress file at `.agents/progress/<wave>.md` (compass `harnes
 | W6 | Factory engine | Workflows, runners, worktrees, MCP server, question loop, review, PR, merge detection, budgets | Opus designs; Sonnet builds; Opus reviews | engine tests with fake tracker, forge and CLI |
 | W7 | Factory UI | Runs lanes, run DAG, agents map, inbox, notifications | Sonnet | e2e |
 | W8 | Knowledge and roles | Graph, explain, handbook, documents, slides, learn, dashboards, quality, extensions | Sonnet; Haiku for i18n | e2e |
-| W9 | Release | a11y, performance, packaging, Legacy import, docs | Sonnet; Opus final review | full suite, signed builds |
+| W9 | Release | a11y, performance, packaging, project import, docs | Sonnet; Opus final review | full suite, signed builds |
 
 Token rules for the build:
 
@@ -297,7 +297,7 @@ Token rules for the build:
 ## 11. Capabilities for W1
 
 1. `shell` — app shell, navigation, palette, inspector, notifications, i18n, role homes.
-2. `projects` — open, create, switch, health, Legacy import.
+2. `projects` — open, create, switch, health, project import.
 3. `connections` — trackers, forges, MCP servers, model providers, secrets.
 4. `refs` — reference graph, backlinks, search.
 5. `design` — diagrams, architecture, decisions, API, data, flows, screens.
@@ -315,7 +315,6 @@ Token rules for the build:
 
 ## 12. References
 
-- Legacy 0.2.0: `legacy-app` (feature source).
 - agent-compass 1.0.2: rules, skills, OpenSpec schema `shipyard-delivery`.
 - openai/symphony: tick, claims, retries, `WORKFLOW.md`, workspace hooks.
 - paperclipai/paperclip: goal ancestry, atomic checkout, budgets, approval gates.

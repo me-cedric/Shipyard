@@ -7,8 +7,7 @@ import { TerminalScreen } from "./terminal";
 
 /**
  * The terminals under every view, in tabs (Q-088). Hiding the drawer keeps the shells; closing a
- * tab ends its shell. The first open starts one shell. Legacy source:
- * `src/components/terminal-panel.tsx`; Shipyard keeps one shell per tab and the Code / Terminal tab.
+ * tab ends its shell. The first open starts one shell. One shell for each tab, and the Code / Terminal tab.
  */
 export function TerminalDrawer({ open, onHide }: { open: boolean; onHide: () => void }) {
 	const { t } = useI18n();

@@ -332,7 +332,6 @@ impl Stopwatch {
 
 /// The ticket labels after a move to `state`: each label that the map gives to another state
 /// goes, the labels of `state` come, every other label stays (REQ-008).
-/// Adapted from Legacy `staged()` (`src-tauri/src/application/tickets/delegate.rs`).
 pub fn staged_labels(
     current: &[String],
     map: &BTreeMap<String, StateMapping>,

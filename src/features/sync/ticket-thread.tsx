@@ -13,7 +13,6 @@ import { TicketBudget } from "./ticket-budget";
 /**
  * What a person does with the words of a ticket: edit the title, add a label, read the comments
  * and post one. Each write is one click. A tracker without comments says so and shows no box.
- * Legacy source: `pages/tickets/ticket-edit.tsx` and `tickets_issue` (`jira.rs`).
  */
 export function TicketThread({ itemKey }: { itemKey: string }) {
 	const { t } = useI18n();

@@ -6,8 +6,7 @@
 //! `## Answer`, `## Consequence`) is the view of the engine. `Question` and `Entry` (a `# Title` line
 //! and a free body, the layout of the files in this repository) are the view of the Specs space.
 //!
-//! Ported from Legacy `src/lib/raid.ts` (the codec and the lifecycle) and
-//! `src-tauri/src/infrastructure/raid.rs` (id allocation). A file is never deleted: nothing here
+//! A file is never deleted: nothing here
 //! removes one. An answered question stays as `folded`.
 
 use std::fs;

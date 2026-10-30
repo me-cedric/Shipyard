@@ -1,10 +1,9 @@
 //! The coding-agent sessions that Orca runs (<https://www.onorca.dev>), read for Factory / Sessions.
 //!
-//! Orca is an outside agent environment, not a Legacy feature: its `orca` CLI comes with the desktop
-//! app. Source of the logic: Legacy `src-tauri/src/infrastructure/orca.rs` (`status`, `open`,
-//! `sessions_of`, `state_of`, `agent_of`). Like Legacy, Shipyard only reads `orca terminal list
+//! Orca is an outside agent environment: its `orca` CLI comes with the desktop
+//! app. Shipyard only reads `orca terminal list
 //! --json` and brings a terminal forward with `orca terminal switch`. It never starts, stops, removes
-//! or types into a session. Shipyard improves on Legacy in two places: the program is found in the
+//! or types into a session. The program is found in the
 //! tool folders of a desktop app (`which::search_dirs`), and a click is the proof of an open.
 
 use std::io::Read;

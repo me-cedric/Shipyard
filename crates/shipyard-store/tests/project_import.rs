@@ -1,9 +1,9 @@
-//! Legacy import tests (spec `projects`, REQ-014, REQ-015). The fixtures follow the Legacy types
-//! `TeamDoc`, `CostingDoc`, `TicketsConfig` and `PersonasDoc`.
+//! Project import tests (spec `projects`, REQ-014, REQ-015). The fixtures hold a team, costing
+//! sheets, a tickets config and personas.
 
 use shipyard_core::project::ProjectConnections;
-use shipyard_store::project_import::import;
 use shipyard_store::project::{FileRead, read_project_file};
+use shipyard_store::project_import::import;
 use shipyard_store::work::{read_sheet, read_team};
 use std::fs;
 use std::path::Path;
@@ -11,7 +11,7 @@ use std::path::Path;
 fn fixture() -> &'static Path {
     Path::new(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/tests/fixtures/legacy"
+        "/tests/fixtures/legacy-layout"
     ))
 }
 
@@ -64,7 +64,7 @@ fn the_project_file_takes_the_name_and_the_jira_key() {
     let FileRead::Valid(f) = read_project_file(root.path()).unwrap() else {
         panic!("the project file is not valid");
     };
-    assert_eq!((f.name.as_str(), f.key.as_str()), ("legacy", "DEMO"));
+    assert_eq!((f.name.as_str(), f.key.as_str()), ("legacy-layout", "DEMO"));
     assert_eq!(
         f.connections,
         Some(ProjectConnections {
@@ -142,7 +142,7 @@ fn an_existing_file_is_a_conflict_and_stays_unchanged() {
 }
 
 #[test]
-fn a_folder_with_no_legacy_file_gives_an_empty_report() {
+fn a_folder_with_no_source_file_gives_an_empty_report() {
     let src = tempfile::tempdir().unwrap();
     let root = tempfile::tempdir().unwrap();
     let r = import(src.path(), root.path());

@@ -13,7 +13,7 @@ One Work space where the PM sees the backlog, assigns people and agents, estimat
 
 ### Why
 
-In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do the same job. Team data sits in three files and four pages. Shipyard keeps one source of effort and one place for the team.
+The costing Plan tab, the Gantt page and the tickets Generate tab do the same job. Team data sits in three files and four pages. Shipyard keeps one source of effort and one place for the team.
 
 ### Users And Scenarios
 
@@ -63,7 +63,7 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 - Running the agent and the write switches. `add-factory` owns them.
 - Creating work items from a spec split. `add-specs` owns the split. This change applies the result (REQ-025, REQ-026).
 - Tracker adapters and credentials. `add-connections` owns them.
-- The Legacy Répartition scopes, one writer for each file, gates and brief. Work covers the assignment of tickets only.
+- The Répartition scopes, one writer for each file, gates and brief. Work covers the assignment of tickets only.
 - A timer or any automatic time capture.
 - A second estimate mode for the remaining estimate. The person reduces it or leaves it.
 - A second team editor in Settings / Team. Work / Team is the one editor.
@@ -90,11 +90,11 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 
 - Consumes: `add-sync` (the `wi:` mirror and the pickup filter; REQ-005, REQ-006, REQ-015), `add-specs` (work items from a split), `add-connections` (tracker writes and capability flags; REQ-003, REQ-004, REQ-011), `add-factory` (run state per item; REQ-034).
 - Produces: `member:` and `est:` entities, assignments and the label that drive pickup in `add-sync`, the plan, the time entries, and one work item from a ref (REQ-029) for `add-design` REQ-020 and `add-assistant` REQ-014.
-- Related: `add-projects` REQ-014 (the Legacy import brings team, costing sheets and tickets config; `q:Q-003`), `add-shell` REQ-003 (My work), `add-factory` REQ-022 (budget per member).
+- Related: `add-projects` REQ-014 (the project import brings team, costing sheets and tickets config; `q:Q-003`), `add-shell` REQ-003 (My work), `add-factory` REQ-022 (budget per member).
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 | --- | --- | --- |
 | Team, Personas, Availability | Work / Team | REQ-003, REQ-004, REQ-005 |
 | Assignments (ticket assignment only; Répartition scopes and brief are out) | Work / Backlog and Board; assignment and suggestion | REQ-006, REQ-007, REQ-008 |
@@ -113,7 +113,6 @@ In Legacy, the costing Plan tab, the Gantt page and the tickets Generate tab do 
 - `docs/delivery/questions/Q-033.md`
 - `docs/delivery/questions/Q-034.md`
 - `docs/delivery/questions/Q-060.md`
-- Legacy `docs/features.md` (Planning, Chiffrage, Répartition) and `docs/jira-temps.md`, read only.
 
 ## ADDED Requirements
 

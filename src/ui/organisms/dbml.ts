@@ -8,7 +8,7 @@
  * `/* *\/` comments. `Enum`, `Project`, `Note` and `indexes` blocks are
  * skipped, not parsed.
  *
- * Ported from Legacy `src/lib/dbml.ts`. It replaces `@dbml/core` (a 15 MB chunk) for a surface this small.
+ * It replaces `@dbml/core` (a 15 MB chunk) for a surface this small.
  */
 
 export interface ParsedField {

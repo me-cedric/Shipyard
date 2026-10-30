@@ -119,7 +119,7 @@ fn the_watch_interval_is_per_project_personal_and_bounded() {
 }
 
 #[test]
-fn legacy_impact_notes_and_digests_are_listed() {
+fn impact_notes_and_digests_are_listed() {
     let dir = tempfile::tempdir().unwrap();
     let w = |rel: &str| {
         let p = dir.path().join(rel);

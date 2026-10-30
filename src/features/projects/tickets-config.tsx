@@ -14,7 +14,7 @@ const HIERARCHIES = ["feature", "group"] as const;
 const TYPES = ["epic", "story", "task", "subtask"] as const;
 
 /**
- * The ticket setup of the project (`docs/delivery/tickets.config.json`, the Legacy file): the
+ * The ticket setup of the project (`docs/delivery/tickets.config.json`): the
  * issue types, the estimate field, the hours of a day, the labels and the spec address.
  */
 function Editor({ saved }: { saved: TicketsConfig }) {

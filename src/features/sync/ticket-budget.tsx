@@ -7,8 +7,8 @@ import { Progress } from "@/ui/atoms/progress";
 const hours = (minutes: number) => String(Math.round(minutes / 6) / 10);
 
 /**
- * The time spent against the estimate of a ticket, and its Legacy link when `tickets.json` names
- * it. Legacy sources: `components/tickets/budget-bar.tsx` and `lib/tickets/budget.ts`.
+ * The time spent against the estimate of a ticket, and its link when `tickets.json` names
+ * it.
  */
 export function TicketBudget({ item }: { item: WorkItemView_Serialize }) {
 	const { t } = useI18n();

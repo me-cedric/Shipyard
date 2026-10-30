@@ -9,12 +9,12 @@ import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
 /**
- * The Legacy import: one action. The command copies the files that do not exist and replaces none,
+ * The project import: one action. The command copies the files that do not exist and replaces none,
  * so the report lists what it copied, what it skipped and each file that already exists (Q-090).
  */
 export function ProjectImport() {
 	const { t } = useI18n();
-	const k = t.projects.legacy;
+	const k = t.projects.projectImport;
 	const qc = useQueryClient();
 	const [report, setReport] = useState<ImportReport | null>(null);
 	const [error, setError] = useState<string | null>(null);

@@ -2,7 +2,7 @@
 
 ## Why
 
-Legacy has 490 titles, 336 hints and 216 descriptions, and each page builds its own controls. The result is text load and drift between pages.
+The earlier tool has 490 titles, 336 hints and 216 descriptions, and each page builds its own controls. The result is text load and drift between pages.
 Shipyard needs one set of components so that every space looks and acts the same, and so that the rules "no taglines, no helper text, no secondary labels" apply in one place.
 
 ## What Changes
@@ -21,5 +21,5 @@ Shipyard needs one set of components so that every space looks and acts the same
 - Affected capability: `design-system`
 - Consumes: nothing.
 - Produces: the components of every UI capability (`shell`, `design`, `specs`, `work`, `factory`, `questions-loop`, `delivery`, `code`, `knowledge`, `assistant`, `extensions`, `projects`, `connections`). `RefChip` and `BacklinkList` show the refs of `refs`. `QuestionCard` serves `questions-loop`. `ApprovalBar` serves the approvals of `factory`. `RunStep` serves `factory`.
-- Legacy parity: the Legacy themes, contrast, density, fonts and reduced-motion preferences.
+- Feature list: the themes, contrast, density, fonts and reduced-motion preferences.
 - Affected code/docs: `src/ui/`, `docs/plan/MASTER-PLAN.md` section 8, ADR 0009, Q-001.

@@ -18,7 +18,7 @@ export function useRunnersMissing() {
 }
 
 /**
- * The panel when no agent CLI is installed (Legacy `no-cli-overlay.tsx`, `install-cli-button.tsx`).
+ * The panel when no agent CLI is installed.
  * It names each CLI with its install command and installs one on a click, then detects again.
  */
 export function NoCli({

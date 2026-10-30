@@ -1,11 +1,10 @@
-//! The Legacy layout, read in place (Q-102): the path detection for a folder with no project file,
-//! the Legacy project registry, and the writers that keep a Legacy JSON file in its own format.
+//! The existing project layout, read in place (Q-102): the path detection for a folder with no
+//! project file, and the writers that keep a JSON file of that layout in its own format.
 
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use shipyard_core::project::{ProjectFile, validate};
 use shipyard_core::work::{Calendar, Decisions, Sheet, TaskDecision, Team};
@@ -32,7 +31,7 @@ fn holds(root: &Path, dir: &str, exts: &[&str], depth: usize) -> bool {
     })
 }
 
-/// The paths of a Legacy layout that differ from the Shipyard defaults, for what exists on disk.
+/// The paths of the existing layout that differ from the Shipyard defaults, for what exists on disk.
 /// A plain folder gives an empty map.
 pub fn detect_paths(root: &Path) -> BTreeMap<String, String> {
     let mut out = BTreeMap::new();
@@ -49,17 +48,10 @@ pub fn detect_paths(root: &Path) -> BTreeMap<String, String> {
     out
 }
 
-/// The project file for a folder without one: the defaults, then the detected Legacy paths, then
-/// `extra` (the paths that the Legacy registry holds).
-pub fn layout_file(
-    root: &Path,
-    name: &str,
-    key: &str,
-    extra: &BTreeMap<String, String>,
-) -> ProjectFile {
+/// The project file for a folder without one: the defaults, then the detected layout paths.
+pub fn layout_file(root: &Path, name: &str, key: &str) -> ProjectFile {
     let mut f = ProjectFile::new(name, key);
     f.paths.extend(detect_paths(root));
-    f.paths.extend(extra.clone());
     // A path that fails the rule is dropped: the default stays.
     let bad: Vec<String> = validate(&f)
         .into_iter()
@@ -69,100 +61,6 @@ pub fn layout_file(
         f.paths.remove(&k);
     }
     f
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LegacyProject {
-    pub id: String,
-    pub name: String,
-    pub path: String,
-    /// Shipyard keys. Only the paths that the Legacy entry sets.
-    pub paths: BTreeMap<String, String>,
-}
-
-/// The Legacy key of an artifact folder, and the Shipyard key that holds it.
-const KEYS: [(&str, &str); 12] = [
-    ("diagrams", "models"),
-    ("drawings", "diagrams"),
-    ("adr", "decisions"),
-    ("openapi", "api"),
-    ("data_models", "data"),
-    ("openspec", "specs"),
-    ("test_plans", "test-plans"),
-    ("designs", "designs"),
-    ("flows", "flows"),
-    ("slides", "slides"),
-    ("dashboards", "dashboards"),
-    ("delivery", "questions"),
-];
-
-/// Reads `projects.json` of Legacy. Only the id, the name, the path and the paths are read: the
-/// other fields (address, user, overrides) never leave the file. A missing or bad file gives none.
-pub fn read_registry(file: &Path) -> Vec<LegacyProject> {
-    #[derive(Deserialize)]
-    struct Raw {
-        #[serde(default)]
-        projects: Vec<Item>,
-    }
-    #[derive(Deserialize)]
-    struct Item {
-        #[serde(default)]
-        id: String,
-        #[serde(default)]
-        name: String,
-        #[serde(default)]
-        path: String,
-        #[serde(default)]
-        paths: BTreeMap<String, Value>,
-    }
-    let Ok(raw) = fs::read(file)
-        .map_err(drop)
-        .and_then(|b| serde_json::from_slice::<Raw>(&b).map_err(drop))
-    else {
-        return Vec::new();
-    };
-    raw.projects
-        .into_iter()
-        .filter(|p| !p.id.is_empty() && Path::new(&p.path).is_absolute())
-        .map(|p| {
-            let paths = KEYS
-                .iter()
-                .filter_map(|(k, s)| {
-                    let v = p.paths.get(*k)?.as_str()?.trim().trim_end_matches('/');
-                    // Legacy keeps the delivery folder. The questions are one level below it.
-                    let v = if *k == "delivery" {
-                        format!("{v}/questions")
-                    } else {
-                        v.into()
-                    };
-                    (!v.is_empty() && !v.starts_with('/')).then(|| ((*s).to_string(), v))
-                })
-                .collect();
-            LegacyProject {
-                name: if p.name.is_empty() {
-                    p.id.clone()
-                } else {
-                    p.name
-                },
-                id: p.id,
-                path: p.path,
-                paths,
-            }
-        })
-        .collect()
-}
-
-/// Where Legacy keeps `projects.json` on this machine.
-pub fn registry_file() -> Option<PathBuf> {
-    let var = |k: &str| std::env::var_os(k).map(PathBuf::from);
-    let base = if cfg!(target_os = "macos") {
-        var("HOME")?.join("Library/Application Support")
-    } else if cfg!(windows) {
-        var("APPDATA")?
-    } else {
-        var("XDG_DATA_HOME").or_else(|| var("HOME").map(|h| h.join(".local/share")))?
-    };
-    Some(base.join("legacy/projects.json"))
 }
 
 // ---------------------------------------------------------------- JSON write-back
@@ -187,7 +85,7 @@ fn persona_id(role: &str, roles: &BTreeMap<String, String>) -> String {
         .map_or_else(|| role.to_string(), |(id, _)| id.clone())
 }
 
-/// The Legacy sheet text for `sheet`. An entry of `old` keeps every key that Shipyard does not own
+/// The sheet text for `sheet`. An entry of `old` keeps every key that Shipyard does not own
 /// (groups, macro sizes, the plan). JSON keys come out sorted.
 pub fn sheet_json(sheet: &Sheet, old: Option<&str>, roles: &BTreeMap<String, String>) -> String {
     let old: Value = old
@@ -247,7 +145,7 @@ pub fn sheet_json(sheet: &Sheet, old: Option<&str>, roles: &BTreeMap<String, Str
     serde_json::to_string_pretty(&Value::Object(top)).unwrap_or_default() + "\n"
 }
 
-/// The Legacy `team.json` text for `team`. A member of `old` matches by id (the handle), then by
+/// The `team.json` text for `team`. A member of `old` matches by id (the handle), then by
 /// name, then by the slug of its name. A match keeps every key that Shipyard does not own.
 pub fn team_json(team: &Team, old: Option<&str>, roles: &BTreeMap<String, String>) -> String {
     let old: Value = old
@@ -259,13 +157,13 @@ pub fn team_json(team: &Team, old: Option<&str>, roles: &BTreeMap<String, String
         .members
         .iter()
         .map(|m| {
-            // The handle is the Legacy `id`: a renamed member keeps its entry. The name is the fallback.
+            // The handle is the `id`: a renamed member keeps its entry. The name is the fallback.
             let prev = old.get("members").and_then(Value::as_array).and_then(|a| {
                 let by = |k: &str, v: &str| {
                     a.iter()
                         .find(|x| x.get(k).and_then(Value::as_str) == Some(v))
                 };
-                // `team` derives the handle from the name, so a Legacy member with its own id
+                // `team` derives the handle from the name, so a member with its own id
                 // still matches through the slug of its old name.
                 by("id", &m.handle)
                     .or_else(|| by("name", &m.name))
@@ -315,7 +213,7 @@ pub fn team_json(team: &Team, old: Option<&str>, roles: &BTreeMap<String, String
 
 // ---------------------------------------------------------------- calendar.json and plan.json
 
-/// The calendar of a Legacy `docs/planning/calendar.json`. Legacy writes a holiday as
+/// The calendar of a `docs/planning/calendar.json`. It writes a holiday as
 /// `{date, name}`. A text that is not valid gives the default week.
 pub fn calendar_from_json(text: &str) -> Calendar {
     let v: Value = serde_json::from_str(text).unwrap_or(Value::Null);
@@ -326,7 +224,7 @@ pub fn calendar_from_json(text: &str) -> Calendar {
             .filter_map(|d| d.as_u64().filter(|d| (1..=7).contains(d)))
             .map(|d| d as u8)
             .collect();
-        // An empty week is a mistake in Legacy too: it keeps the default.
+        // An empty week is a mistake: it keeps the default.
         if !days.is_empty() {
             c.working_days = days;
         }
@@ -341,7 +239,7 @@ pub fn calendar_from_json(text: &str) -> Calendar {
     c
 }
 
-/// The Legacy calendar text for `cal`. A holiday that `old` knows keeps its name.
+/// The calendar text for `cal`. A holiday that `old` knows keeps its name.
 pub fn calendar_json(cal: &Calendar, old: Option<&str>) -> String {
     let old: Value = old
         .and_then(|t| serde_json::from_str(t).ok())
@@ -368,7 +266,7 @@ pub fn calendar_json(cal: &Calendar, old: Option<&str>) -> String {
     serde_json::to_string_pretty(&Value::Object(top)).unwrap_or_default() + "\n"
 }
 
-/// The decisions of a Legacy `docs/planning/plan.json`. `slug_of` finds the sheet that holds a
+/// The decisions of a `docs/planning/plan.json`. `slug_of` finds the sheet that holds a
 /// task id. A task that no sheet holds is left out. The first member and a pinned start are kept
 /// (`start-on`); the other fields stay in the file.
 pub fn decisions_from_json(text: &str, slug_of: impl Fn(&str) -> Option<String>) -> Decisions {
@@ -393,7 +291,7 @@ pub fn decisions_from_json(text: &str, slug_of: impl Fn(&str) -> Option<String>)
     d
 }
 
-/// The Legacy plan text for `d`. A task entry of `old` keeps its duration, predecessors, note and
+/// The plan text for `d`. A task entry of `old` keeps its duration, predecessors, note and
 /// members after the first. `before` is what Shipyard read from `old`: only a task that `before`
 /// holds and `d` dropped is cleared. A task that Shipyard did not read stays as it is.
 pub fn plan_json(d: &Decisions, before: &Decisions, old: Option<&str>) -> String {

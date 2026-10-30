@@ -2,13 +2,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { pickFolder } from "@/lib/ipc";
 import { ROLES, type Role, usePrefs } from "@/lib/prefs";
-import {
-	outcomeError,
-	type ProjectOutcome,
-	useLegacyProjects,
-	useProjectActions,
-	useProjects,
-} from "@/lib/projects";
+import { outcomeError, type ProjectOutcome, useProjectActions, useProjects } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
@@ -51,8 +45,7 @@ export function FolderField({ path, onPick }: { path: string; onPick: (path: str
 export function FirstRun() {
 	const { t } = useI18n();
 	const { role, setPrefs } = usePrefs();
-	const { openFolder, openLegacy, clone, create, switchTo } = useProjectActions();
-	const legacy = useLegacyProjects().data ?? [];
+	const { openFolder, clone, create, switchTo } = useProjectActions();
 	const recent = [...(useProjects().data ?? [])]
 		.sort((a, b) => b.lastUsed - a.lastUsed)
 		.slice(0, 5);
@@ -231,32 +224,6 @@ export function FirstRun() {
 										</Button>
 										<span className="truncate font-mono text-11 text-n-10">{p.path}</span>
 									</span>
-								</li>
-							))}
-						</ul>
-					</section>
-				) : null}
-				{step === "start" && legacy.length ? (
-					<section aria-labelledby="legacy-projects" className="flex flex-col gap-2">
-						<h2 id="legacy-projects" className="text-12 font-medium text-n-11">
-							{t.projects.legacy.title}
-						</h2>
-						<ul aria-labelledby="legacy-projects" className="grid gap-2 sm:grid-cols-2">
-							{legacy.map((p) => (
-								<li key={p.id}>
-									<button
-										type="button"
-										className="flex h-12 w-full items-center gap-3 rounded-lg border bg-surface-2 px-3 text-left text-ui font-medium text-n-12 shadow-1 transition-shadow duration-(--duration-base) hover:shadow-2"
-										onClick={() => run(() => openLegacy(p.id))}
-									>
-										<span
-											aria-hidden="true"
-											className="flex size-7 items-center justify-center rounded-md bg-warning-soft text-warning-text"
-										>
-											<FolderOpenIcon size={14} />
-										</span>
-										{p.name}
-									</button>
 								</li>
 							))}
 						</ul>

@@ -10,8 +10,7 @@ import { ComputerDesktopIcon, StopIcon } from "@/ui/icons";
 
 /**
  * The AI sessions that run on this computer, from the context bar: the count, then a popover with
- * each session and its stop. Legacy source: `src/components/ai-sessions.tsx` (`AiSessionsMenu`).
- * Shipyard reads the same sessions as Factory / Sessions, so both show the same rows.
+ * each session and its stop. It reads the same sessions as Factory / Sessions, so both show the same rows.
  */
 export function ActiveSessions({ className }: { className: string }) {
 	const { t, lang } = useI18n();

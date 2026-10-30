@@ -7,7 +7,7 @@ import { Button } from "@/ui/atoms/button";
 import { GroupSection } from "@/ui/molecules/group-section";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 
-/** The notes of `docs/delivery/impacts` that Legacy wrote: a list and the text of the one that a person opens. */
+/** The notes of `docs/delivery/impacts` of the project: a list and the text of the one that a person opens. */
 export function DeliveryNotes() {
 	const { t } = useI18n();
 	const notes = useDeliveryNotes().data ?? [];

@@ -2,7 +2,7 @@
 
 ## Why
 
-Architects keep diagrams, models, decisions, API contracts, data models, network flows and screens in the repository. Legacy has a page for each kind, and nothing links a decision to the spec or the code it shapes.
+Architects keep diagrams, models, decisions, API contracts, data models, network flows and screens in the repository. The earlier tool has a page for each kind, and nothing links a decision to the spec or the code it shapes.
 Shipyard needs one Design space where each artifact has a ref, an editor and its backlinks.
 
 ## What Changes
@@ -21,5 +21,5 @@ Shipyard needs one Design space where each artifact has a ref, an editor and its
 - Affected capability: `design`
 - Consumes: `refs` (backlinks), `design-system` (EditorFrame).
 - Produces: `diagram:`, `model:`, `adr:`, `api:`, `data:`, `flow:` and `screen:` entities for `specs` (citations), `knowledge` (graph, learn), `factory` (`read_ref`) and `assistant` (context).
-- Legacy parity: Drawings (Excalidraw, draw.io, Mermaid, BPMN), Models (LikeC4), ADRs, OpenAPI, Data models (DBML), Flows (IPAM), Designs, Design doc, design to code.
+- Feature list: Drawings (Excalidraw, draw.io, Mermaid, BPMN), Models (LikeC4), ADRs, OpenAPI, Data models (DBML), Flows (IPAM), Designs, Design doc, design to code.
 - Affected code/docs: `src/features/design/`, `crates/shipyard-store` (MADR codec), `docs/decisions/`.

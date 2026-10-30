@@ -1,20 +1,15 @@
 # shipyard-delivery — OpenSpec custom schema
 #
-# GENERATED FILE. Do not edit by hand.
-# Run: node scripts/gen-openspec-schema.mjs
-#
-# The templates are byte-for-byte copies of
-# src-tauri/resources/compass/templates/specs/. One source, no third copy.
-# Legacy-specific guidance lives in the "instruction" fields below.
+# The templates in templates/ are the single source of the artifact shapes.
+# Project-specific guidance lives in the "instruction" fields below.
 #
 # Install target: <RepoPaths.openspec>/schemas/shipyard-delivery/ — by default
-# docs/openspec/schemas/shipyard-delivery/. Provisioning does not copy it there
-# yet. Legacy reads this schema itself; the OpenSpec CLI only finds a schema
-# under a repository-root openspec/, which Legacy does not use
-# (PLAN-DELIVERY-COCKPIT §15 decision 2).
+# docs/openspec/schemas/shipyard-delivery/. The app reads this schema itself;
+# the OpenSpec CLI only finds a schema under a repository-root openspec/, which
+# the app does not use.
 #
 # Three files another design would generate are absent, on purpose:
-#   estimate — man-days already live in Legacy's costing model. A per-change
+#   estimate — man-days already live in the costing model. A per-change
 #              estimate.json would be a second place the same numbers live.
 #   questions — OpenSpec forbids an artifact writing outside its change
 #              directory, and the plan puts questions in the CENTRAL RAID
@@ -56,7 +51,7 @@ artifacts:
       Keep a requirement identifier stable after you publish it.
       Write [NEEDS CLARIFICATION: question] for each unknown.
       Do not guess an unknown.
-      Legacy reads these files itself and does not run the OpenSpec CLI.
+      The app reads these files itself and does not run the OpenSpec CLI.
       Therefore this artifact keeps the spec-kit headings and does not use the OpenSpec delta headings.
   - id: plan
     generates: "specs/**/plan.md"
@@ -93,7 +88,7 @@ artifacts:
       Name the file or the command that each task touches.
       Put the test task before the implementation task.
       Do not write an estimate here.
-      Legacy holds the man-days in its costing model.
+      The app holds the man-days in its costing model.
 
 apply:
   requires: [tasks, checklist]

@@ -1,5 +1,4 @@
-//! Trust the open project for Codex (Legacy `codex_repo_trusted`, `codex_trust_repo` in
-//! `editor.rs`). Codex keeps trusted folders in `$CODEX_HOME/config.toml` and treats any other
+//! Trust the open project for Codex. Codex keeps trusted folders in `$CODEX_HOME/config.toml` and treats any other
 //! folder more strictly. The write only appends a section: the rest of the file stays as it is.
 //! It needs a click and obeys the read-only lock.
 

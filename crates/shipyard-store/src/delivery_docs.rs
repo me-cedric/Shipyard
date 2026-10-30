@@ -1,10 +1,9 @@
-//! The Legacy delivery files, read and written in place (Q-106): the personas
+//! The delivery files, read and written in place (Q-106): the personas
 //! (`docs/personas/personas.json`), the work split by profile (`docs/delivery/assignments.json`,
 //! read only) and the tickets config (`docs/delivery/tickets.config.json`).
 //!
 //! A save merges into the file that exists, so a key that Shipyard does not own stays. JSON keys
-//! come out sorted (Q-103). Sources: Legacy `src/lib/personas.ts`, `src/lib/delivery.ts`,
-//! `src/lib/tickets/model.ts`.
+//! come out sorted (Q-103).
 
 use std::fs;
 use std::path::Path;
@@ -332,7 +331,7 @@ pub struct TicketsConfig {
 }
 
 impl Default for TicketsConfig {
-    /// The defaults of Legacy `src/lib/tickets/model.ts`.
+    /// The default ticket setup.
     fn default() -> Self {
         Self {
             epic: "Epic".into(),
@@ -445,11 +444,11 @@ pub fn save_tickets_config(root: &Path, c: &TicketsConfig) -> Result<()> {
 
 // ---------------------------------------------------------------- tickets registry
 
-/// The link of a Legacy ticket to its Jira issue (`docs/delivery/tickets.json`, read only).
+/// The link of a ticket to its Jira issue (`docs/delivery/tickets.json`, read only).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct TicketLink {
-    /// The Legacy key of the ticket.
+    /// The key of the ticket.
     pub key: String,
     /// The Jira key, empty before the first write.
     pub issue_key: String,
@@ -458,8 +457,7 @@ pub struct TicketLink {
     pub spec_ref: String,
 }
 
-/// The links of `tickets.json`, sorted by Legacy key. Legacy source: `src/lib/tickets/store.ts`
-/// `parseRegistry`. A missing or broken file gives none.
+/// The links of `tickets.json`, sorted by key. A missing or broken file gives none.
 pub fn ticket_links(root: &Path) -> Vec<TicketLink> {
     let Some(v) = read(root, TICKETS) else {
         return Vec::new();
@@ -507,8 +505,7 @@ fn front(text: &str, key: &str) -> String {
 }
 
 /// The notes of `docs/delivery/impacts`, newest first. The title comes from the front matter,
-/// else the first heading, else the file name. Legacy source: `infrastructure/delivery.rs`
-/// `list_notes`.
+/// else the first heading, else the file name.
 pub fn delivery_notes(root: &Path) -> Vec<DeliveryNote> {
     let Ok(dir) = fs::read_dir(root.join(IMPACT_NOTES)) else {
         return Vec::new();
@@ -674,7 +671,7 @@ mod tests {
     }
 
     #[test]
-    fn the_legacy_ticket_links_and_the_delivery_notes_are_read() {
+    fn the_ticket_links_and_the_delivery_notes_are_read() {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         assert!(ticket_links(root).is_empty() && delivery_notes(root).is_empty());

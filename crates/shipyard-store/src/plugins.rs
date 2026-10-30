@@ -1,7 +1,6 @@
 //! The plugin reader and the review model (spec `extensions`, REQ-011 to REQ-014). A plugin is a
 //! `.zip` with `manifest.json` and a `files/` payload. It is read as data: no code runs and no
-//! file is written before the person accepts items. The archive is bounded (Legacy
-//! `plugins.rs` `import_from_bytes` holds the same limits).
+//! file is written before the person accepts items. The archive is bounded.
 
 use std::collections::BTreeMap;
 use std::io::Read;

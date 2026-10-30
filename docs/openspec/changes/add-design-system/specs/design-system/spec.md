@@ -13,7 +13,7 @@ Give every Shipyard view one set of tokens and components. Every space looks and
 
 ### Why
 
-Legacy has 490 titles, 336 hints and 216 descriptions. Each page builds its own controls. The result is text load and drift. One component set applies the rules "no taglines, no helper text, no secondary labels" in one place.
+The earlier tool has 490 titles, 336 hints and 216 descriptions. Each page builds its own controls. The result is text load and drift. One component set applies the rules "no taglines, no helper text, no secondary labels" in one place.
 
 ### Users And Scenarios
 
@@ -67,9 +67,9 @@ Legacy has 490 titles, 336 hints and 216 descriptions. Each page builds its own 
 - Produces: tokens, atoms, molecules, organisms and templates for `add-shell`, `add-design`, `add-specs`, `add-work`, `add-factory`, `add-questions-loop`, `add-delivery`, `add-code`, `add-knowledge`, `add-assistant`, `add-extensions`, `add-projects` and `add-connections`.
 - `RefChip` and `BacklinkList` show the refs of `add-refs`. `QuestionCard` serves `add-questions-loop`. `ApprovalBar` and `RunStep` serve `add-factory`.
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 | --- | --- | --- |
 | Themes (light, dark) | Settings / Me, theme | REQ-011 |
 | Contrast preference | Settings / Me, contrast | REQ-012, REQ-014 |

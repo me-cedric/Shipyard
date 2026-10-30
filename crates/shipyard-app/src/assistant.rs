@@ -765,7 +765,7 @@ fn create_and_mark(
 }
 
 /// Hand the conflicted files to the factory: one work item that names them, labelled `wf:<id>` so
-/// the factory claims it. Legacy has an agent button only (`conflict-dialog.tsx`). A second click
+/// the factory claims it. A second click
 /// finds the item by its ref `doc:conflict/merge` and creates none.
 pub fn conflict_to_factory(s: &AppState, workflow: String, click: bool) -> Res<FactorySend> {
     crate::work::need_click(s, click)?;

@@ -13,7 +13,7 @@ Code is one space for the working copy, the history, the branches, the pull requ
 
 ### Why
 
-Legacy has these features, but commit sits in 11 pages and pull sits in three places. A developer or a QA tester then loses time on where to act. Shipyard keeps the code next to the tickets and runs that caused it. The reader can follow a change from `wi:` to `run:` to `pr:` to `commit:`.
+The earlier tool has these features, but commit sits in 11 pages and pull sits in three places. A developer or a QA tester then loses time on where to act. Shipyard keeps the code next to the tickets and runs that caused it. The reader can follow a change from `wi:` to `run:` to `pr:` to `commit:`.
 
 ### Users And Scenarios
 
@@ -75,7 +75,7 @@ Legacy has these features, but commit sits in 11 pages and pull sits in three pl
 - A file editor, a rename, a delete and a new file in the file viewer. The viewer reads only.
 - A terminal that starts an external terminal program. Only the panel exists.
 - A conflict resolver that uses an agent. A person resolves each conflict.
-- Writing the change request document and the work-done sheet that Legacy exports from Impacts. The digest goes into the pull request (`add-delivery` REQ-027), and `add-knowledge` REQ-013 to REQ-016 export client documents.
+- Writing the change request document and the work-done sheet that the earlier tool exported from Impacts. The digest goes into the pull request (`add-delivery` REQ-027), and `add-knowledge` REQ-013 to REQ-016 export client documents.
 
 ### Acceptance Criteria
 
@@ -104,9 +104,9 @@ Legacy has these features, but commit sits in 11 pages and pull sits in three pl
 - Produces: quality and impact reports for `add-knowledge` (dashboards) and `add-specs`.
 - Related: `add-shell` REQ-008 (the watch notice), `add-design` REQ-023 (safe save), `add-projects` REQ-007 (the project file).
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 | --- | --- | --- |
 | Git: changes, diffs, stage, unstage, discard | Code / Changes | REQ-001, REQ-002, REQ-003, REQ-004 |
 | Git: conflict resolver | Code / Changes, group Conflicts | REQ-005 |
@@ -129,7 +129,6 @@ Legacy has these features, but commit sits in 11 pages and pull sits in three pl
 - `docs/delivery/questions/Q-041.md`
 - `docs/delivery/questions/Q-042.md`
 - `docs/delivery/questions/Q-043.md`
-- Legacy `docs/features.md` (Gestion de version, Surveillance, La branche de travail, Impacts, Les fichiers), read only.
 
 ## ADDED Requirements
 

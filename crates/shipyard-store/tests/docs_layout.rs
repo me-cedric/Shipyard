@@ -1,15 +1,14 @@
-//! The Legacy layout, read in place (Q-102, Q-103): path detection, the registry, the JSON
-//! formats and a real Legacy repository.
+//! The existing layout, read in place (Q-102, Q-103): path detection, the JSON formats and a
+//! real repository.
 
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
 use shipyard_core::flows::Action;
 use shipyard_store::design::{self, list, read_flows, write_flows_json};
-use shipyard_store::legacy::{detect_paths, layout_file, read_registry, sheet_json, team_json};
-use shipyard_store::project_import::{roles, sheet, team};
+use shipyard_store::docs_layout::{detect_paths, layout_file, sheet_json, team_json};
 use shipyard_store::madr;
+use shipyard_store::project_import::{roles, sheet, team};
 
 fn put(root: &Path, rel: &str, text: &str) {
     let p = root.join(rel);
@@ -30,15 +29,10 @@ fn copy(from: &Path, to: &Path) {
 }
 
 #[test]
-fn a_plain_folder_gets_the_defaults_and_a_legacy_folder_its_paths() {
+fn a_plain_folder_gets_the_defaults_and_a_folder_with_the_old_layout_its_paths() {
     let dir = tempfile::tempdir().unwrap();
     assert!(detect_paths(dir.path()).is_empty());
-    assert_eq!(
-        layout_file(dir.path(), "A", "A", &BTreeMap::new())
-            .paths
-            .len(),
-        3
-    );
+    assert_eq!(layout_file(dir.path(), "A", "A").paths.len(), 3);
     put(dir.path(), "docs/drawings/a.excalidraw", "{}");
     put(dir.path(), "docs/diagrams/x/m.c4", "model {}");
     put(dir.path(), "docs/network/flows.json", "{}");
@@ -56,52 +50,12 @@ fn a_shipyard_layout_is_not_moved() {
     assert!(detect_paths(dir.path()).is_empty());
 }
 
-#[test]
-fn a_registry_path_that_breaks_the_rule_is_dropped() {
-    let dir = tempfile::tempdir().unwrap();
-    let extra = BTreeMap::from([
-        ("api".to_string(), "../out".to_string()),
-        ("data".to_string(), "db".to_string()),
-    ]);
-    let f = layout_file(dir.path(), "A", "A", &extra);
-    assert_eq!((f.path("api"), f.path("data")), ("docs/api", "db"));
-}
-
-#[test]
-fn the_registry_reads_four_fields_and_maps_the_keys() {
-    let dir = tempfile::tempdir().unwrap();
-    let file = dir.path().join("projects.json");
-    let abs = dir.path().to_str().unwrap();
-    fs::write(
-        &file,
-        serde_json::json!({"active": "a", "projects": [
-            {"id": "a", "name": "Alpha", "path": abs, "username": "u", "url": "https://x",
-             "paths": {"drawings": "docs/d", "diagrams": "docs/c", "delivery": "docs/dl/", "costing": "docs/cost", "adr": 3}},
-            {"id": "b", "name": "Rel", "path": "relative"},
-            {"id": "", "name": "No id", "path": abs},
-        ]})
-        .to_string(),
-    )
-    .unwrap();
-    let all = read_registry(&file);
-    assert_eq!(all.len(), 1);
-    let p = &all[0];
-    assert_eq!((p.id.as_str(), p.name.as_str()), ("a", "Alpha"));
-    assert_eq!(p.paths["diagrams"], "docs/d");
-    assert_eq!(p.paths["models"], "docs/c");
-    assert_eq!(p.paths["questions"], "docs/dl/questions");
-    assert!(!p.paths.contains_key("decisions") && !p.paths.contains_key("costing"));
-    assert!(read_registry(&dir.path().join("none.json")).is_empty());
-    fs::write(&file, "not json").unwrap();
-    assert!(read_registry(&file).is_empty());
-}
-
 const FLOWS: &str = r#"{"version":1,"flows":[
  {"id":"f-1","name":"web","description":"front","sourceName":"Web","source":"10.0.1.0/24","destinationName":"Db","destination":"10.0.2.5/32","vlan":"vlan10","subnet":"s1","protocol":"TCP","ports":"5432","action":"Allow"},
  {"id":"f-2","name":"out","description":"","source":"Internet","destination":"10.0.1.0/24","vlan":"","subnet":"s2","protocol":"TCP","ports":"","action":"Deny"}]}"#;
 
 #[test]
-fn legacy_flows_read_as_rows_and_write_back_in_json() {
+fn json_flows_read_as_rows_and_write_back_in_json() {
     let rows = read_flows(FLOWS).unwrap();
     assert_eq!(rows.len(), 2);
     assert_eq!((rows[0].id, rows[0].network.as_str()), (1, "vlan10"));
@@ -129,7 +83,7 @@ fn legacy_flows_read_as_rows_and_write_back_in_json() {
 fn a_flows_file_path_lists_as_one_artifact() {
     let dir = tempfile::tempdir().unwrap();
     put(dir.path(), "docs/network/flows.json", FLOWS);
-    let mut f = layout_file(dir.path(), "A", "A", &BTreeMap::new());
+    let mut f = layout_file(dir.path(), "A", "A");
     f.paths.extend(detect_paths(dir.path()));
     let a = list(dir.path(), &f);
     let flows: Vec<_> = a.iter().filter(|a| a.kind == "flow").collect();
@@ -148,7 +102,7 @@ const COSTING: &str = r#"{"version":1,"groups":[{"id":"g","name":"G"}],"meta":{"
  "plan":{"p1":[1,2]}}"#;
 
 #[test]
-fn a_legacy_sheet_round_trips_and_keeps_the_keys_it_does_not_own() {
+fn a_sheet_round_trips_and_keeps_the_keys_it_does_not_own() {
     let dir = tempfile::tempdir().unwrap();
     put(dir.path(), "docs/personas/personas.json", PERSONAS);
     let r = roles(dir.path());
@@ -177,7 +131,7 @@ fn a_legacy_sheet_round_trips_and_keeps_the_keys_it_does_not_own() {
 }
 
 #[test]
-fn a_legacy_team_round_trips() {
+fn a_team_round_trips() {
     let dir = tempfile::tempdir().unwrap();
     put(dir.path(), "docs/personas/personas.json", PERSONAS);
     let r = roles(dir.path());
@@ -220,7 +174,7 @@ fn a_renamed_member_keeps_its_entry_and_the_unknown_keys_of_the_team_file() {
     assert_eq!(m[0]["windows"][1]["load"], 0.5);
 }
 
-/// A real Legacy repository. The test reads a copy and skips when the repository is not on this
+/// A real repository with the existing layout. The test reads a copy and skips when the repository is not on this
 /// machine.
 #[test]
 fn every_artifact_folder_of_storyarc_lists_its_files() {
@@ -237,7 +191,7 @@ fn every_artifact_folder_of_storyarc_lists_its_files() {
         "docs/designs/screens.json",
         &fs::read_to_string(src.join("designs/screens.json")).unwrap(),
     );
-    let f = layout_file(dir.path(), "StoryArc", "STORY", &BTreeMap::new());
+    let f = layout_file(dir.path(), "StoryArc", "STORY");
     assert_eq!(f.path("diagrams"), "docs/drawings");
     assert_eq!(f.path("models"), "docs/diagrams");
     let a = list(dir.path(), &f);

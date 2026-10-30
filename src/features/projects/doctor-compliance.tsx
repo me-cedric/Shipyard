@@ -14,8 +14,7 @@ const key = (e: Entry) => `${e.kind}:${e.id}`;
 
 /**
  * Settings / Health: each compass skill is applied, stale or missing, with its fix, and the
- * linked child projects take what the parent holds. Nothing is pushed. Source: Legacy
- * `pages/Doctor.tsx` (compliance registry) and `ChildProjects.tsx` (propagation).
+ * linked child projects take what the parent holds. Nothing is pushed.
  */
 export function DoctorCompliance() {
 	const { t } = useI18n();

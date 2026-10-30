@@ -2,7 +2,7 @@
 
 ## Why
 
-People ask questions about the project and want small changes done without a full run. Legacy has an assistant drawer for Claude Code, Codex, Copilot and API providers, but it uses a different runner from the delegation and it does not know the project graph.
+People ask questions about the project and want small changes done without a full run. The earlier tool has an assistant drawer for Claude Code, Codex, Copilot and API providers, but it uses a different runner from the delegation and it does not know the project graph.
 Shipyard needs one assistant panel, available in every space, that uses the same runners as the factory and takes refs as context.
 
 ## What Changes
@@ -21,5 +21,5 @@ Shipyard needs one assistant panel, available in every space, that uses the same
 - Affected capability: `assistant`
 - Consumes: `connections` (runners and providers), `factory` (the runner layer and the budgets), `refs` (context and citations), `extensions` (skills and rules).
 - Produces: threads, the Explain answer for `knowledge`, work items through `work`, runs through the `wf:<id>` label and `factory` pickup.
-- Legacy parity: Assistant drawer (Claude Code, Codex, Copilot, API providers), the reply actions, the per-project assistant settings.
+- Feature list: Assistant drawer (Claude Code, Codex, Copilot, API providers), the reply actions, the per-project assistant settings.
 - Affected code/docs: `crates/shipyard-agents`, `src/features/assistant/`.

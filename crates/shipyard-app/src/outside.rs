@@ -1,5 +1,5 @@
 //! The Shipyard MCP server for agents that Shipyard did not start (Settings / Connections / MCP).
-//! Source: Legacy `application/mcp/mcpwiring.rs` and the `set_legacy_mcp_*` commands. The tools are
+//! The tools are
 //! `shipyard_mcp::outside`; this module keeps the switches in `mcp-outside.json`, runs the loopback
 //! server, writes the entry of an agent's `.mcp.json`, and lists the servers that other tools use.
 //!
@@ -109,7 +109,7 @@ pub fn set_app(app: tauri::AppHandle) {
 }
 
 /// The ticket tools. The group switch is the click of the person; a read-only project is refused
-/// before this runs. Source: Legacy `mcptools/dispatch.rs` ticket tools.
+/// before this runs.
 fn ticket_tool(name: &str, args: &Value) -> Result<String, String> {
     use tauri::Manager;
     let app = APP.get().ok_or("the app is not ready")?;

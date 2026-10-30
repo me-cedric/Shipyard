@@ -1,6 +1,6 @@
 # Delta section
 
-`openspec validate --strict` reads only the delta headings. Legacy reads the spec-kit headings. Each `spec.md` keeps both.
+`openspec validate --strict` reads only the delta headings. The app reads the spec-kit headings. Each `spec.md` keeps both.
 
 1. Keep the spec-kit headings and their text. Do not change or move them.
 2. Append `## ADDED Requirements` at the end of `spec.md`.

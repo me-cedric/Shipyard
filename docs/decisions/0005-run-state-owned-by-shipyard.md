@@ -10,7 +10,7 @@ Trackers have different status models. Agent work needs states that trackers do 
 - Works with Jira, GitHub, GitLab, Azure DevOps, Linear.
 - Clear human-in-the-loop state.
 ## Considered options
-- Drive the agent from tracker labels (Legacy ADE labels).
+- Drive the agent from tracker labels.
 - A Shipyard run state machine with a per-project mapping to tracker statuses and labels.
 ## Decision outcome
 Chosen option: "A Shipyard run state machine", because the engine needs states such as WaitingForAnswer, RetryQueued and Paused that a tracker cannot hold.

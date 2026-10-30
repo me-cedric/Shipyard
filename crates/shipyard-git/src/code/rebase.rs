@@ -1,5 +1,5 @@
-//! Rebase the working branch onto another branch, continue after a conflict, abort (Legacy
-//! `git_rebase`, `git_rebase_continue`, `git_rebase_abort`). A force push with a lease and the
+//! Rebase the working branch onto another branch, continue after a conflict, abort).
+//! A force push with a lease and the
 //! blame of a file live here too: both change or read history.
 
 use std::cell::RefCell;

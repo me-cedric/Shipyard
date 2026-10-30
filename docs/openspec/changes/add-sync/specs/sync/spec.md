@@ -13,7 +13,7 @@ A tick keeps a local mirror of work items and pull requests current. It stops ru
 
 ### Why
 
-Agents must pick up work from the team tracker. The app must show the tracker state with no network call on each view. Legacy syncs tickets on a click only, and it cannot stop work when a ticket closes.
+Agents must pick up work from the team tracker. The app must show the tracker state with no network call on each view. The earlier tool syncs tickets on a click only, and it cannot stop work when a ticket closes.
 
 ### Users And Scenarios
 
@@ -76,9 +76,9 @@ Agents must pick up work from the team tracker. The app must show the tracker st
 - Produces: the `wi:` and `pr:` mirror for `add-work`, `add-code`, `add-delivery` and `add-refs`; claimed tickets for `add-factory`; new comments for `add-questions-loop`; pull request, CI and merge events for `add-delivery`.
 - Related: `spec:shell` REQ-007 (the status bar holds the sync action), `spec:refs` REQ-009 (a ref to an item the mirror lacks is unresolved until the next sync completes; `q:Q-012`).
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 | --- | --- | --- |
 | Tickets sync (adopt, link, import backlog) | Work / Backlog; status bar sync action | REQ-005, REQ-013, REQ-015 |
 | Tickets sync on a click only | Tick, reconcile, stop runs | REQ-001, REQ-003, REQ-004 |

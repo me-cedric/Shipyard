@@ -14,7 +14,7 @@ const LISTED: SpaceId[] = ["home", ...HIDEABLE];
 /**
  * The screens of this project on this machine: each space and each of its tabs on or off. It lives
  * with the project profile in the app data folder. Settings is never hidden, and a space keeps one
- * tab at least. Legacy source: `src/pages/settings/SurfacesCard.tsx`.
+ * tab at least.
  */
 export function ScreensCard() {
 	const { t } = useI18n();

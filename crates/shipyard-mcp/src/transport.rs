@@ -2,9 +2,7 @@
 //! HTTP on the loopback address. Both give each message to [`Server::handle`], so both serve the
 //! same tools with the same inputs.
 //!
-//! Source: Legacy `application/mcp/stdio.rs` (`serve`) and `rpc.rs` (`handle_http`, the Host and
-//! Origin guard, the close without a reset). Legacy has one server for the machine. Here each call
-//! needs the bearer token of a run, so a web page cannot call a tool even from a local origin.
+//! Each call needs the bearer token of a run, so a web page cannot call a tool even from a local origin.
 //!
 //! shortcut: HTTP answers each request with one JSON body and keeps no stream. `GET` is `405`.
 

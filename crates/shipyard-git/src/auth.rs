@@ -1,6 +1,6 @@
 //! Credentials and proxy for every libgit2 transfer: the ONE place.
 //!
-//! Legacy built the callbacks and the proxy in three files. Here `fetch`, `pull` and `push`
+//! `fetch`, `pull` and `push`
 //! (and later a clone) take their options from this module only.
 //!
 //! A secret stays in a [`Secret`]. It never goes in a URL, an argument, a file or a log

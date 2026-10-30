@@ -1,6 +1,6 @@
 import type { QualityReport } from "@/lib/code";
 
-/** Points lost for one finding. Legacy `security.rs` `penalty`: a critical costs 25, so four end at 0. */
+/** Points lost for one finding. A critical costs 25, so four end at 0. */
 const PENALTY: Record<string, number> = { critical: 25, high: 10, medium: 4, low: 1 };
 
 /** 100 minus the penalty of each finding of the last scanner reports, never below 0. `null`: no scan ran. */

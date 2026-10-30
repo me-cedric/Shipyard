@@ -15,7 +15,7 @@ async function openDrawer(user: ReturnType<typeof userEvent.setup>) {
 	return screen.findByRole("complementary", { name: "Files" });
 }
 
-describe("File drawer actions (Legacy file browser)", () => {
+describe("File drawer actions", () => {
 	it("makes a new file and a new folder, renames, and moves to the trash after a click", async () => {
 		const user = userEvent.setup();
 		const drawer = await openDrawer(user);

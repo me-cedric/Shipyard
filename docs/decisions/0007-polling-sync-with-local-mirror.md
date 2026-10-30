@@ -13,4 +13,4 @@ A desktop app is often behind NAT and offline. Webhooks need a public endpoint.
 Chosen option: "Polling with reconcile", because it works offline and behind NAT. The interval is configurable, 60 s by default, 30 s minimum.
 ### Consequences
 - The mirror and run logs live in SQLite in the app data folder, not in the repository.
-- Legacy wrote tickets.json to the repository. Shipyard does not.
+- Shipyard does not write tickets.json to the repository.

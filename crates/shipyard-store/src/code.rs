@@ -19,8 +19,8 @@ use crate::safe_write;
 
 pub const QUALITY_DIR: &str = ".shipyard/quality";
 pub const IMPACTS_DIR: &str = ".shipyard/impacts";
-const LEGACY_IMPACTS: &str = "docs/delivery/impacts";
-const LEGACY_DIGESTS: &str = "docs/delivery/digests";
+const LAYOUT_IMPACTS: &str = "docs/delivery/impacts";
+const LAYOUT_DIGESTS: &str = "docs/delivery/digests";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "kebab-case")]
@@ -200,26 +200,26 @@ pub fn list_impacts(root: &Path) -> Vec<ImpactEntry> {
             })
         })
         .collect();
-    out.extend(legacy_notes(root));
+    out.extend(layout_notes(root));
     out.sort_by(|a, b| (&b.date, &b.slug).cmp(&(&a.date, &a.slug)));
     out
 }
 
-/// The notes of a Legacy project: `docs/delivery/impacts/<date>-<slug>.md`, with the digest of the
+/// The notes of a project with the existing layout: `docs/delivery/impacts/<date>-<slug>.md`, with the digest of the
 /// same name in `docs/delivery/digests/` when it exists (else an empty `digest`).
-fn legacy_notes(root: &Path) -> Vec<ImpactEntry> {
-    let Ok(dir) = fs::read_dir(root.join(LEGACY_IMPACTS)) else {
+fn layout_notes(root: &Path) -> Vec<ImpactEntry> {
+    let Ok(dir) = fs::read_dir(root.join(LAYOUT_IMPACTS)) else {
         return Vec::new();
     };
     dir.flatten()
         .filter_map(|e| {
             let name = e.file_name().to_string_lossy().into_owned();
             let stem = name.strip_suffix(".md")?;
-            let digest = format!("{LEGACY_DIGESTS}/{name}");
+            let digest = format!("{LAYOUT_DIGESTS}/{name}");
             date_ok(stem.get(..10)?).then(|| ImpactEntry {
                 date: stem[..10].into(),
                 slug: stem.get(11..).unwrap_or_default().into(),
-                plan: format!("{LEGACY_IMPACTS}/{name}"),
+                plan: format!("{LAYOUT_IMPACTS}/{name}"),
                 digest: if root.join(&digest).exists() {
                     digest
                 } else {

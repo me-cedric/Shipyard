@@ -18,7 +18,7 @@ function readSelection(): { text: string; x: number; y: number } | null {
 }
 
 /**
- * The toolbar of a selection (Legacy `selection-actions.tsx`): explain, fix, or send it to the
+ * The toolbar of a selection: explain, fix, or send it to the
  * factory. Each action opens the assistant with a prompt and the quoted text in the draft. The
  * person reads it and sends it. The keyboard path is the slash commands of the composer.
  */

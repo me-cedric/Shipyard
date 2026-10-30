@@ -2,7 +2,7 @@
 
 ## Why
 
-Specs come before code, for people and for agents. Legacy shows OpenSpec changes, RAID questions and Gherkin test plans on separate pages, and the split into tickets lives in the costing tool.
+Specs come before code, for people and for agents. The earlier tool shows OpenSpec changes, RAID questions and Gherkin test plans on separate pages, and the split into tickets lives in the costing tool.
 Shipyard needs one Specs space where the BA and the functional lead write and review changes, answer questions, write test plans, and split a change into work items.
 
 ## What Changes
@@ -21,5 +21,5 @@ Shipyard needs one Specs space where the BA and the functional lead write and re
 - Affected capability: `specs`
 - Consumes: `design` (ADR, diagram, API and data refs that a spec cites), `questions-loop` (answers to fold), `factory` (the `spec-split` workflow), `connections` (tracker writes for the split).
 - Produces: `change:`, `spec:` and `test:` entities, the RAID register for `questions-loop`, work items for `work` and `sync`.
-- Legacy parity: Specifications (OpenSpec), delegate, Questions (RAID), Test plans (Gherkin), OpenSpec guidance for child repos (with `extensions`).
+- Feature list: Specifications (OpenSpec), delegate, Questions (RAID), Test plans (Gherkin), OpenSpec guidance for child repos (with `extensions`).
 - Affected code/docs: `crates/shipyard-store` (OpenSpec and RAID codecs), `src/features/specs/`, `docs/openspec/`.

@@ -34,7 +34,7 @@ describe("Settings / Me (shell REQ-010)", () => {
 	});
 });
 
-describe("Settings / Me fonts, terminal and agent (Legacy preferences)", () => {
+describe("Settings / Me fonts, terminal and agent", () => {
 	it("saves the fonts, the shell, the terminal size and the default agent", async () => {
 		const user = userEvent.setup();
 		mountApp("/settings/me");

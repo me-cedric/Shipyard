@@ -286,7 +286,7 @@ fn the_open_action_takes_an_https_address_or_a_fig_file_of_the_project() {
 }
 
 #[test]
-fn a_legacy_flows_file_reads_as_rows_and_saves_as_json() {
+fn a_json_flows_file_reads_as_rows_and_saves_as_json() {
     let f = fx();
     let mut file_ = project(&f.s).unwrap().file;
     file_

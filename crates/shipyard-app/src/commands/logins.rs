@@ -1,5 +1,4 @@
-//! The logins of the `gh` and `glab` command line tools on this machine (Legacy
-//! `list_forge_accounts`, `probe_credentials`, `verify_forge_account`). A person picks a login:
+//! The logins of the `gh` and `glab` command line tools on this machine. A person picks a login:
 //! the app reads the token from the tool, saves it in the keychain and tests it. The token never
 //! reaches the screen, a log or an error text. A token that the forge refuses leaves no connection.
 

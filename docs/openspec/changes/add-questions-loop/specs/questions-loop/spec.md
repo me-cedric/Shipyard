@@ -13,7 +13,7 @@ An agent asks a question with options when a decision belongs to a person. The p
 
 ### Why
 
-An agent that guesses a decision that belongs to a person produces wrong work. Legacy keeps a RAID register, but no agent can stop, ask and wait. Shipyard needs a loop that works where the person already is.
+An agent that guesses a decision that belongs to a person produces wrong work. The earlier tool keeps a RAID register, but no agent can stop, ask and wait. Shipyard needs a loop that works where the person already is.
 
 ### Users And Scenarios
 
@@ -82,9 +82,9 @@ An agent that guesses a decision that belongs to a person produces wrong work. L
 - Consumes: `add-factory` REQ-004, REQ-005, REQ-006, REQ-008, REQ-009, REQ-017, REQ-021, REQ-025 and REQ-026 (states, return state, clocks, mapping, terminal tickets, `ask_question`, run log, switches, approvals), `add-sync` REQ-004 and REQ-011 (terminal tickets, new comments on the tick), `add-connections` REQ-003 (comment and transition capability flags), `add-specs` REQ-009 and REQ-015 (the RAID file format, the register, the fold write), `add-shell` REQ-004 (Inbox), `add-design-system` REQ-005 (QuestionCard, ApprovalBar).
 - Produces: `q:` entities, Inbox cards for `add-shell`, answers that resume runs in `add-factory`, folded clarifications in `add-specs`, RAID files that `add-refs` indexes.
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 |---|---|---|
 | Questions (RAID register, one file for each question) | Home / Inbox, Specs / Questions | REQ-003, REQ-007, REQ-008, REQ-020 |
 | Fold an answer into `## Clarifications` | Fold action on an answered question | REQ-015 |

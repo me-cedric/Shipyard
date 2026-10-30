@@ -1,4 +1,4 @@
-//! Install an agent CLI from the assistant (Legacy `install-cli-button.tsx`). The install text
+//! Install an agent CLI from the assistant. The install text
 //! of a runner comes from `shipyard_agents::runners`. Only an `npm install -g <package>` line
 //! runs, with no shell, so no text of the UI reaches a command line but the runner id.
 

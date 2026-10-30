@@ -50,7 +50,7 @@ function useRunners() {
 	return runners;
 }
 
-/** Fonts, terminal and default agent: the Legacy preferences (appearance, terminal, assistant tabs). */
+/** Fonts, terminal and default agent: the personal preferences (appearance, terminal, assistant tabs). */
 export function usePersonalSections(): SettingsSection[] {
 	const { t } = useI18n();
 	const p = t.personal.prefs;

@@ -2,7 +2,7 @@
 
 | Tab | Content |
 |---|---|
-| Project | Paths, the default workflow, per-project overrides, automation and the Legacy import. |
+| Project | Paths, the default workflow, per-project overrides, automation and the project import. |
 | Connections | Trackers, forges, MCP servers, agent runners and model providers. |
 | Agents and rules | The compass entries, with an Upgrade action. |
 | Extensions | The catalog, plugins and child projects. |
@@ -14,9 +14,9 @@
 
 A connection stores its secret in the OS keychain. The app never shows a secret again. Each tracker shows six capability flags. A test names the missing scope or permission. Removing a connection lists the projects that use it first.
 
-## Legacy import
+## Project import
 
-In Project, choose a Legacy repository. The app writes Shipyard files into the project. It never replaces a file and never changes the source. A file that exists is a conflict. A file that the app cannot read is skipped with a reason.
+In Project, choose a repository with the existing project layout. The app writes Shipyard files into the project. It never replaces a file and never changes the source. A file that exists is a conflict. A file that the app cannot read is skipped with a reason.
 
 ## Agents and rules
 

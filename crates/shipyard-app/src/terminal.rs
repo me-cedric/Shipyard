@@ -1,5 +1,5 @@
 //! The terminal of Code (spec `code`, REQ-034, REQ-035): a login shell on a PTY, streamed to the
-//! webview as Tauri events. Adapted from Legacy `infrastructure/pty.rs` (ADR 0012).
+//! webview as Tauri events. (ADR 0012).
 //!
 //! The app never writes a secret to the shell: a variable of the environment that holds a value
 //! of a connection or a provider is removed before the shell starts. Closing the panel ends the

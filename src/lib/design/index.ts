@@ -211,6 +211,6 @@ export const TEMPLATE = {
 		`openapi: 3.0.3\ninfo:\n  title: ${JSON.stringify(title)}\n  version: 0.1.0\nservers:\n  - url: https://api.example.com\npaths:\n  /health:\n    get:\n      tags: [health]\n      summary: Health\n      responses:\n        "200":\n          description: OK\n`,
 	data: "Table items {\n  id integer [pk]\n}\n",
 	flow: "rows: []\n",
-	/** The design doc skeleton, from Legacy `DesignDoc.tsx`. */
+	/** The design doc skeleton. */
 	doc: "# Design\n\n## Context and scope\n\n## Goals and non-goals\n\n## Overview\n\n## Detailed design\n\n## Alternatives considered\n\n## Open questions\n",
 };

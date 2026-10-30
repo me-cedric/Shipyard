@@ -21,7 +21,6 @@ const keyOf = (name: string) =>
 /**
  * Picks the repository to clone: a forge account, its repositories with a search and a marker
  * for the ones that the account cannot push to, a new remote repository and a new local one.
- * Legacy source: `components/repo-picker.tsx` and `new-repo-forms.tsx`.
  */
 export function RepoPicker({
 	onPick,

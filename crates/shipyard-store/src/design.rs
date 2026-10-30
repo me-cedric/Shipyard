@@ -97,7 +97,7 @@ fn files(root: &Path, dir: &str) -> Vec<String> {
         }
     }
     let mut out = Vec::new();
-    // A path can name one file (the Legacy flows file).
+    // A path can name one file (the JSON flows file).
     if root.join(dir).is_file() {
         out.push(dir.to_string());
     } else {
@@ -270,7 +270,7 @@ struct FlowFile {
     rows: Vec<FlowRow>,
 }
 
-/// Reads the rows of a flow file: the Shipyard YAML, or the Legacy JSON (`{"flows": [...]}`). A
+/// Reads the rows of a flow file: the Shipyard YAML, or the JSON (`{"flows": [...]}`). A
 /// JSON row takes its id from its place in the file.
 pub fn read_flows(text: &str) -> Result<Vec<FlowRow>, String> {
     if text.trim_start().starts_with('{') {
@@ -313,7 +313,7 @@ fn read_flows_json(text: &str) -> Result<Vec<FlowRow>, String> {
         .collect()
 }
 
-/// The Legacy JSON text for the rows. The flow at the place `id` of `old` keeps its other keys
+/// The JSON text for the rows. The flow at the place `id` of `old` keeps its other keys
 /// (name, brick names, subnet). JSON keys come out sorted.
 pub fn write_flows_json(rows: &[FlowRow], old: &str) -> Result<String, String> {
     use serde_json::{Map, Value, json};
@@ -448,7 +448,7 @@ pub fn read_screens(root: &Path, p: &ProjectFile) -> Result<Vec<Screen>, String>
     Ok(screens)
 }
 
-/// The design files of the designs folder that no screen names: Legacy lists them as screens.
+/// The design files of the designs folder that no screen names.
 /// Two levels deep. A slug that a screen already holds is skipped, and the entry of
 /// `screens.json` wins.
 fn scan_designs(root: &Path, p: &ProjectFile, screens: &mut Vec<Screen>) {

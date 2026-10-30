@@ -13,7 +13,7 @@ The BA and the functional lead write and review OpenSpec changes in one Specs sp
 
 ### Why
 
-Specs come before code, for people and for agents. Legacy shows changes, RAID questions and Gherkin plans on separate pages. The split into tickets lives in the costing tool. One space joins them, and each requirement keeps its id from spec to ticket.
+Specs come before code, for people and for agents. The earlier tool shows changes, RAID questions and Gherkin plans on separate pages. The split into tickets lives in the costing tool. One space joins them, and each requirement keeps its id from spec to ticket.
 
 ### Users And Scenarios
 
@@ -82,9 +82,9 @@ Specs come before code, for people and for agents. Legacy shows changes, RAID qu
 - Produces: `change:`, `spec:` and `test:` entities for `add-refs`; the RAID register for `add-questions-loop`; the reviewed split for the `add-work` apply; `spec-split` input for `add-factory`.
 - Related: `q:Q-033` (the match mark), `q:Q-002` (all automation writes off by default; the apply of a split is a click, not a switch), `spec:factory` REQ-025 and REQ-026.
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 |---|---|---|
 | Specifications (OpenSpec) | Specs / Changes and Capabilities | REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007 |
 | Delegate | Split action on a change, then Factory / Runs | REQ-016, REQ-017, REQ-018, REQ-019 |

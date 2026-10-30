@@ -5,7 +5,7 @@ decision-makers: [Cédric Meyer]
 ---
 # agent-compass as a pinned submodule
 ## Context and problem statement
-Legacy vendored a 0.x copy of the compass rules. It drifted.
+A vendored 0.x copy of the compass rules. It drifted.
 ## Considered options
 - Vendor a copy.
 - Git submodule at `docs/agent-compass`, pinned to a tag, synced with `ac sync`.

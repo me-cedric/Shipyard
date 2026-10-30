@@ -1,4 +1,4 @@
-//! The app log that Settings / Health shows. Source: Legacy `infrastructure/debuglog.rs`: a capped
+//! The app log that Settings / Health shows. A capped
 //! ring buffer that any thread writes and the view reads. A line that holds a secret shape is
 //! replaced, so the console and its copy never show a value.
 //!

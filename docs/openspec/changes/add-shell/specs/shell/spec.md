@@ -13,7 +13,7 @@ Give Shipyard one frame: seven spaces and Settings, one place for each action, a
 
 ### Why
 
-Legacy has 40 routes, 12 sidebar groups and four stacked filters that hide pages. The same action (commit, pull) sits in many places. People need to find their work without a map.
+The earlier tool has 40 routes, 12 sidebar groups and four stacked filters that hide pages. The same action (commit, pull) sits in many places. People need to find their work without a map.
 
 ### Users And Scenarios
 
@@ -76,9 +76,9 @@ Legacy has 40 routes, 12 sidebar groups and four stacked filters that hide pages
 - Consumes: `add-design-system` (Shell template, CommandPalette, Inspector), `add-refs` (search and backlinks), events of `add-sync`, `add-factory`, `add-questions-loop` and `add-delivery`, the commit operation of `add-code`, the sync operation of `add-sync`, the health of `add-projects`, the assistant panel of `add-assistant`.
 - Produces: navigation, the palette action registry, the inspector, the notification centre, Home and Settings / Me.
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 | --- | --- | --- |
 | Sidebar and routes | Sidebar, seven spaces and Settings | REQ-001, REQ-009 |
 | Top bar | Status bar and palette | REQ-005, REQ-007 |
@@ -284,7 +284,7 @@ The app SHALL store the last view of each project on the machine. On open, the a
 
 ### Requirement: REQ-016 No tour, no hidden tab
 
-The app SHALL NOT show a tour, a help bubble or an onboarding text. The app MUST NOT let a project hide a tab or a space. The first run SHALL be the first-run view of `add-projects` (REQ-001), which owns the role choice and the primary action (working assumption: Q-008, option 1). [NEEDS CLARIFICATION: Q-008 Does Shipyard keep the Legacy tours and the per-project visible tabs?]
+The app SHALL NOT show a tour, a help bubble or an onboarding text. The app MUST NOT let a project hide a tab or a space. The first run SHALL be the first-run view of `add-projects` (REQ-001), which owns the role choice and the primary action (working assumption: Q-008, option 1). [NEEDS CLARIFICATION: Q-008 Does Shipyard keep the tours and the per-project visible tabs?]
 
 #### Scenario: First run
 - GIVEN the app starts for the first time

@@ -209,7 +209,6 @@ export const en = {
 		close: "Close project",
 		remove: "Remove from list",
 		confirmRemove: "Remove {name} from the list? The files stay on disk.",
-		legacyGroup: "Legacy projects",
 		recent: "Recent projects",
 		state: {
 			clean: "Clean",
@@ -247,9 +246,9 @@ export const en = {
 		overrides: "Overrides",
 		accent: "Accent",
 		overridden: "Set by the project",
-		legacy: {
-			title: "Legacy",
-			import: "Import Legacy project",
+		projectImport: {
+			title: "Import",
+			import: "Import a project",
 			copied: "Copied",
 			skipped: "Skipped",
 			conflicts: "Conflicts",

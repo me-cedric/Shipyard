@@ -1,5 +1,4 @@
 //! The request tree of FinOps: the requests of one run, with tokens and cost, nested by step.
-//! Legacy builds it from session transcripts (`infrastructure/finops.rs`, `FinopsFlameNode`);
 //! Shipyard reads the usage events of its own run log, so the tree holds only runs of this
 //! project. A child of a `for_each` step is a step of its own, `step/child`.
 

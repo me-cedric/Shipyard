@@ -20,7 +20,6 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 /**
  * Settings / Health: set up the tools and the files of a new project in one form. The preview
  * shows each file and whether it is new. One click writes the new files and keeps the others.
- * Source: Legacy `pages/doctor/bootstrap-view.tsx`.
  */
 export function DoctorBootstrap() {
 	const { t } = useI18n();

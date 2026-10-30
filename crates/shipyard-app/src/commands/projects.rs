@@ -2,12 +2,10 @@
 
 use std::path::{Path, PathBuf};
 
-use std::collections::BTreeMap;
-
 use serde::Serialize;
 use shipyard_core::project::{ProjectFile, validate};
 use shipyard_git::project::{WorkState, clone_repo, init, is_repo, state};
-use shipyard_store::legacy::layout_file;
+use shipyard_store::docs_layout::layout_file;
 use shipyard_store::project::{Entry, FileRead, Overrides, read_project_file, write_project_file};
 use specta::Type;
 use tauri::AppHandle;
@@ -120,17 +118,8 @@ fn activate(s: &AppState, root: &Path, file: &ProjectFile) -> Res<ProjectOutcome
 }
 
 /// Opens a folder that holds a repository. It never runs `git init`. Without a project file it
-/// writes one: the Legacy layout that it finds, or the defaults (Q-102).
+/// writes one: the existing layout that it finds, or the defaults (Q-102).
 pub fn open(s: &AppState, path: &str) -> Res<ProjectOutcome> {
-    open_with(s, path, &BTreeMap::new())
-}
-
-/// `open`, with the artifact paths of a Legacy registry entry.
-pub fn open_with(
-    s: &AppState,
-    path: &str,
-    paths: &BTreeMap<String, String>,
-) -> Res<ProjectOutcome> {
     let Ok(root) = std::fs::canonicalize(path) else {
         return Ok(outcome(OpenStatus::NotRepository, path));
     };
@@ -138,7 +127,7 @@ pub fn open_with(
         return Ok(outcome(OpenStatus::NotRepository, path));
     }
     let name = folder_name(&root);
-    let fallback = || layout_file(&root, &name, &derive_key(&name), paths);
+    let fallback = || layout_file(&root, &name, &derive_key(&name));
     let file = match read_project_file(&root).map_err(err)? {
         FileRead::Valid(f) => f,
         FileRead::Missing => {
@@ -414,10 +403,10 @@ mod tests {
     }
 
     #[test]
-    fn a_legacy_folder_gets_the_legacy_paths() {
+    fn a_folder_with_the_old_layout_gets_its_paths() {
         let dir = tempfile::tempdir().unwrap();
         let s = state_in(dir.path());
-        let p = repo(dir.path(), "kvy", false);
+        let p = repo(dir.path(), "legacy", false);
         let root = Path::new(&p);
         for (rel, text) in [
             ("docs/drawings/a.mmd", "graph TD"),
@@ -435,11 +424,11 @@ mod tests {
         assert_eq!(f.path("models"), "docs/diagrams");
         assert_eq!(f.path("flows"), "docs/network/flows.json");
         // A project file that exists is never changed.
-        std::fs::write(root.join(".shipyard/project.yaml"), "name: K\nkey: KVY\n").unwrap();
+        std::fs::write(root.join(".shipyard/project.yaml"), "name: L\nkey: LGC\n").unwrap();
         open(&s, &p).unwrap();
         assert_eq!(
             std::fs::read_to_string(root.join(".shipyard/project.yaml")).unwrap(),
-            "name: K\nkey: KVY\n"
+            "name: L\nkey: LGC\n"
         );
     }
 

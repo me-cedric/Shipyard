@@ -9,11 +9,11 @@ Change: `change:add-projects`
 
 ### Goal
 
-A person opens, clones, creates and switches projects from one place. One health view lists what is wrong in the active project and offers one fix for each finding. A team that leaves Legacy imports its data.
+A person opens, clones, creates and switches projects from one place. One health view lists what is wrong in the active project and offers one fix for each finding. A team with an existing project imports its data.
 
 ### Why
 
-A team works on several repositories. Legacy keeps a project registry, but setup, health (Doctor) and preferences sit on separate pages. Shipyard needs one way to start and switch, one health view, and one import path.
+A team works on several repositories. The earlier tool keeps a project registry, but setup, health (Doctor) and preferences sit on separate pages. Shipyard needs one way to start and switch, one health view, and one import path.
 
 ### Users And Scenarios
 
@@ -22,7 +22,7 @@ A team works on several repositories. Legacy keeps a project registry, but setup
 - Developer: clones a repository on first run and starts work in minutes.
 - QA: opens Settings / Health to check that the tools run.
 - BA: sets the default workflow of the project once, for the team.
-- Functional lead: imports the Legacy RAID and specs of an existing project.
+- Functional lead: imports the RAID and specs of an existing project.
 - Junior: follows the first run and finds the project ready, with no manual setup.
 
 ### Requirements
@@ -40,8 +40,8 @@ A team works on several repositories. Legacy keeps a project registry, but setup
 - REQ-011: The system SHALL show Settings / Health with compliance checks, tool checks, broken refs and stale generated files.
 - REQ-012: The system SHALL offer one fix action for each finding in Settings / Health.
 - REQ-013: The system SHALL show a health dot in the status bar that reflects the worst finding.
-- REQ-014: The system SHALL import Legacy project config, team, costing sheets, tickets config, RAID, ADRs and specs. [NEEDS CLARIFICATION: Q-003 Which Legacy data does the import cover in W9?] Working assumption: Q-003 option 1.
-- REQ-015: The Legacy import SHALL show a report and MUST NOT overwrite an existing file without a person's confirmation.
+- REQ-014: The system SHALL import project config, team, costing sheets, tickets config, RAID, ADRs and specs. [NEEDS CLARIFICATION: Q-003 Which data of an existing project does the import cover in W9?] Working assumption: Q-003 option 1.
+- REQ-015: The project import SHALL show a report and MUST NOT overwrite an existing file without a person's confirmation.
 - REQ-016: Each projects view SHALL follow the interface rules of the constitution.
 - REQ-017: The system SHALL expose each project as a `project:` entity and the active project to every other capability.
 - REQ-018: Settings / Health SHALL run the compass Node helpers on the working copy and SHALL show each result as a finding in the tool checks group.
@@ -53,8 +53,8 @@ A team works on several repositories. Legacy keeps a project registry, but setup
 - Changing a repository that exists, except the project file and the files a fix action writes.
 - Storing secrets. The `connections` capability owns them.
 - Child projects and plugins. The `extensions` capability owns them.
-- Importing Legacy run history or time entries.
-- Running `git init` on a folder that holds no repository (Legacy Dossier local git init). Opening never changes a folder outside the project file. Creation (REQ-004) is the only way to start a repository.
+- Importing run history or time entries.
+- Running `git init` on a folder that holds no repository (Dossier local git init). Opening never changes a folder outside the project file. Creation (REQ-004) is the only way to start a repository.
 - Bootstrap (the `bootstrap.mjs --schema` form, `BOOTSTRAP_PROMPT.md` and `specs/000-project`). A new project starts from REQ-004 and the `add-specs` flow, so a second start path adds nothing.
 - Stack detection that marks skills as suited. The `extensions` capability owns the skill lists.
 - A default provisioning template for the next projects. REQ-004 writes the project file only. A template waits for a real need.
@@ -75,17 +75,17 @@ A team works on several repositories. Legacy keeps a project registry, but setup
 - [ ] A project accent override in the registry changes the accent while that project is active.
 - [ ] Each finding in Settings / Health has one fix action, and the fix clears the finding.
 - [ ] The status bar dot changes colour and shape with the worst finding.
-- [ ] The Legacy import lists what it copied, what it skipped and why.
+- [ ] The project import lists what it copied, what it skipped and why.
 - [ ] Every view works with the keyboard only, in French and in English.
 
 ### Links
 
 - Consumes: `add-connections` (remote credentials for a clone), `add-refs` (broken-ref report), `add-extensions` (compass check for health).
-- Produces: `project:` entities and the active project for every capability; Settings / Project and Settings / Health for `add-shell`; the project key for `add-sync` and `add-work`; the import of Legacy data for `add-specs`, `add-design` and `add-work` entities.
+- Produces: `project:` entities and the active project for every capability; Settings / Project and Settings / Health for `add-shell`; the project key for `add-sync` and `add-work`; the import of project data for `add-specs`, `add-design` and `add-work` entities.
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 |---|---|---|
 | Welcome | First run | REQ-001, REQ-002, REQ-003, REQ-004 |
 | Home (project list) | Project switcher | REQ-006 |
@@ -96,7 +96,7 @@ A team works on several repositories. Legacy keeps a project registry, but setup
 | Per-project accent colour | Settings / Project overrides | REQ-019 |
 | Settings | Settings / Project | REQ-007, REQ-009 |
 | Per-project overrides of Préférences | Settings / Project overrides | REQ-010 |
-| Legacy data of a leaving team | Legacy import | REQ-014, REQ-015 |
+| Data of an existing project | Project import | REQ-014, REQ-015 |
 
 ### Existing References
 
@@ -302,23 +302,23 @@ The system SHALL show a health dot in the status bar. The dot SHALL reflect the 
 - WHEN focus lands on the dot
 - THEN it announces the worst state and the finding count
 
-### Requirement: REQ-014 Legacy import
+### Requirement: REQ-014 Project import
 
-The system SHALL import the Legacy project config, team, costing sheets, tickets config, RAID, ADRs and specs into a Shipyard project. [NEEDS CLARIFICATION: Q-003 Which Legacy data does the import cover in W9?] The working assumption is Q-003 option 1, the full list.
+The system SHALL import the project config, team, costing sheets, tickets config, RAID, ADRs and specs into a Shipyard project. [NEEDS CLARIFICATION: Q-003 Which data of an existing project does the import cover in W9?] The working assumption is Q-003 option 1, the full list.
 
-#### Scenario: Import a Legacy repository
-- GIVEN a repository with Legacy files
+#### Scenario: Import a repository
+- GIVEN a repository with project files
 - WHEN a person runs the import
 - THEN the system writes the matching Shipyard files and shows a report
 
 #### Scenario: Nothing to import
-- GIVEN a repository with no Legacy file
+- GIVEN a repository with no project file
 - WHEN a person opens the import
 - THEN the view shows ghost rows and one primary action, Choose a folder
 
 ### Requirement: REQ-015 Import report and safety
 
-The Legacy import SHALL list each item as copied, skipped or conflicting. It MUST NOT overwrite an existing file without a person's confirmation. It MUST NOT change the Legacy source files.
+The project import SHALL list each item as copied, skipped or conflicting. It MUST NOT overwrite an existing file without a person's confirmation. It MUST NOT change the source files.
 
 #### Scenario: Conflict
 - GIVEN a target file that exists
@@ -327,7 +327,7 @@ The Legacy import SHALL list each item as copied, skipped or conflicting. It MUS
 
 #### Scenario: Source intact
 - GIVEN a finished import
-- WHEN a person compares the Legacy files
+- WHEN a person compares the source files
 - THEN they have no change
 
 ### Requirement: REQ-016 Interface rules

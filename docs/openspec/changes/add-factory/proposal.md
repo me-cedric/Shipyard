@@ -2,7 +2,7 @@
 
 ## Why
 
-Legacy "delegation" only sets a label. It has no run engine, no worktree per agent and no budget.
+Delegation only sets a label. It has no run engine, no worktree per agent and no budget.
 Shipyard is a software factory: it must take a ticket, run a workflow of agents with the right model and effort, keep each run inside its budget, and stop for a person when a decision belongs to a person.
 
 ## What Changes
@@ -23,5 +23,5 @@ Shipyard is a software factory: it must take a ticket, run a workflow of agents 
 - Affected capability: `factory`
 - Consumes: `sync` (claimed tickets, terminal tickets), `connections` (runners and providers), `extensions` (roles and skills from compass), `specs` (the `spec-split` workflow reads a change), `refs` (`read_ref`).
 - Produces: `run:` and `wf:` entities, the run log, approvals for `shell` (Inbox), questions for `questions-loop`, a reviewed worktree for `delivery`, run state for `work` and `refs`.
-- Legacy parity: Specifications delegate, AI sessions bar, Orca, FinOps, the Legacy MCP server (HTTP, stdio, relay, gates, proxy), Répartition gates.
+- Feature list: Specifications delegate, AI sessions bar, Orca, FinOps, the MCP server (HTTP, stdio, relay, gates, proxy), Répartition gates.
 - Affected code/docs: `crates/shipyard-core`, `crates/shipyard-engine`, `crates/shipyard-agents`, `crates/shipyard-mcp`, `src/features/factory/`, ADR 0005, ADR 0006, Q-002.

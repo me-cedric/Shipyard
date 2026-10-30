@@ -13,7 +13,7 @@ Each entity of a project has one stable ref. A person sees, for each entity, whi
 
 ### Why
 
-Legacy pages connect only through a staleness graph. A person cannot see which spec cites an ADR, or which run touched a ticket. One reference graph fixes this. The knowledge graph is this graph, drawn.
+Pages connect only through a staleness graph. A person cannot see which spec cites an ADR, or which run touched a ticket. One reference graph fixes this. The knowledge graph is this graph, drawn.
 
 ### Users And Scenarios
 
@@ -66,9 +66,9 @@ Legacy pages connect only through a staleness graph. A person cannot see which s
 - Consumes: the entities of `add-projects`, `add-work`, `add-design`, `add-specs`, `add-questions-loop`, `add-factory`, `add-delivery`, `add-code`, `add-knowledge`, `add-connections`; the tracker mirror of `add-sync`.
 - Produces: the ref parser, the ref index, backlinks and search for `add-shell` (palette, inspector), `add-knowledge` (graph, explain), `add-assistant` (context) and `add-factory` (`read_ref`); the broken-ref report for `add-projects` (health); the RefChip behaviour for `add-design-system`.
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 |---|---|---|
 | "Chain" staleness graph | Backlinks in the inspector of every entity | REQ-003, REQ-007 |
 | Cross-page links | RefChip in every view | REQ-005, REQ-006, REQ-011, REQ-012 |

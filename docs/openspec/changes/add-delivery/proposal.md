@@ -2,7 +2,7 @@
 
 ## Why
 
-Agent work has value only when it is reviewed, merged and closed on the tracker. Legacy lists pull requests, but no run takes a change from a worktree to a merged pull request and a closed ticket.
+Agent work has value only when it is reviewed, merged and closed on the tracker. The earlier tool lists pull requests, but no run takes a change from a worktree to a merged pull request and a closed ticket.
 Shipyard needs the last part of the loop: a fresh-context review, a pull request that follows the team rules, feedback from CI and reviewers, and the close.
 
 ## What Changes
@@ -19,5 +19,5 @@ Shipyard needs the last part of the loop: a fresh-context review, a pull request
 - Affected capability: `delivery`
 - Consumes: `factory` (the run, its worktree, the write switches), `sync` (pull request, CI and merge events), `connections` (Forge adapter), `code` (git push and branch operations), `extensions` (compass `review` and `pr-flow` skills).
 - Produces: `pr:` entities, ticket transitions to the terminal status, the run summary comment, CI feedback to `factory`, pull request links for `code` and `refs`.
-- Legacy parity: Pull requests (open, comment, approve, request changes, merge), Impacts digest attached to a pull request.
+- Feature list: Pull requests (open, comment, approve, request changes, merge), Impacts digest attached to a pull request.
 - Affected code/docs: `crates/shipyard-engine`, `crates/shipyard-forges`, `crates/shipyard-git`, `src/features/factory/`.

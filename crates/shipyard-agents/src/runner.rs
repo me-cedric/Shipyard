@@ -11,13 +11,13 @@
 //!   or in an owner-only file (MCP configuration, mode `0600`). Every event and every error text
 //!   passes through [`Secret::scrub`] first, so a CLI that echoes a key writes `***` to the log.
 //! - A line that is not JSON is dropped. A field that moved is skipped: a missing field costs a
-//!   detail of an event, never the run (the parsers read by name, as Legacy's do).
+//!   detail of an event, never the run (the parsers read by name).
 //! - The caller owns the limits. [`Run::recv_timeout`] returns [`Recv::Idle`] when the stall
 //!   timeout passes, [`Event::Turn`] counts turns, [`Run::elapsed`] gives the wall clock, and
 //!   [`CancelHandle`] is the kill switch. Nothing here stops a run by itself.
 //!
-//! Adapted from Legacy: `application/cli/{run,stream,acp}.rs` (arguments, stream parsing, process
-//! group kill) and `application/mcpcli.rs` (per-CLI MCP injection into owner-only files).
+//! It covers the arguments, the stream parsing, the process group kill and the per-CLI MCP
+//! injection into owner-only files.
 
 mod acp;
 mod claude;
@@ -760,7 +760,7 @@ pub(crate) fn n(v: &Value, key: &str) -> u64 {
 }
 
 /// The first number named `key`, anywhere in the value. The CLIs move counters between versions;
-/// the name stays (Legacy's `find_i64`).
+/// the name stays.
 pub(crate) fn find_u64(v: &Value, key: &str) -> Option<u64> {
     match v {
         Value::Object(map) => map

@@ -3,8 +3,7 @@
 //!
 //! The caller checks the write switches and asks for approvals first (`add-factory` REQ-025,
 //! REQ-026). A call here sends its write. The calls only add: no label, reviewer or thread is
-//! removed, and a label is never created. The shape of the draft title on GitLab, the merge
-//! state mapping and the create bodies come from Legacy (`infrastructure/pulls`).
+//! removed, and a label is never created.
 
 mod azure;
 mod github;

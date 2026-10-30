@@ -7,7 +7,7 @@ import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
 /**
- * The work split by profile (`docs/delivery/assignments.json`, the Legacy file). One row for each
+ * The work split by profile (`docs/delivery/assignments.json`). One row for each
  * profile with its days and its cost. The action copies the brief that a lead shares. Nothing
  * shows when the file has no profile.
  */

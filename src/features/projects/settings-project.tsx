@@ -21,9 +21,9 @@ import { Cog6ToothIcon, FolderOpenIcon, LinkIcon, SunIcon, SwatchIcon } from "@/
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Settings } from "@/ui/templates/settings";
-import { ProjectImport } from "./project-import";
 import { PersonasEditor } from "./personas";
 import { ProjectDetails } from "./project-details";
+import { ProjectImport } from "./project-import";
 import { ProjectOverrides } from "./project-overrides";
 import { ScreensCard } from "./screens-card";
 import { TicketsConfigEditor } from "./tickets-config";

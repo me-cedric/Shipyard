@@ -7,8 +7,7 @@ import { Panel } from "@/ui/molecules/panel";
 type Run = { run: string; key: string };
 
 /**
- * FinOps request tree: the requests of one run with tokens and cost, nested by step. Legacy source:
- * `infrastructure/finops.rs` (`FinopsFlameNode`, the request tree behind the flame graph).
+ * FinOps request tree: the requests of one run with tokens and cost, nested by step.
  */
 export function RequestTree({ runs }: { runs: Run[] }) {
 	const { t, lang } = useI18n();

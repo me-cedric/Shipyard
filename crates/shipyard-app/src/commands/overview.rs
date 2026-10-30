@@ -1,7 +1,4 @@
 //! The Projects page, the push-target check and the docs-chain gate (W10, Q-111 to Q-113).
-//!
-//! Legacy sources: `src/pages/Home.tsx` `ProjectCard` (the cards), `check_push_target` and
-//! `src/lib/chain.ts` (the gate).
 
 use std::path::Path;
 
@@ -134,7 +131,7 @@ pub struct PushTarget {
 }
 
 /// Looks up the repository of the remote on the forge connection of its host. It reads, it never
-/// writes. Legacy source: `check_push_target`.
+/// writes.
 pub fn push_target(s: &AppState) -> Res<PushTarget> {
     let e = s.registry()?.active().cloned().ok_or("no active project")?;
     let r = Repo::open(Path::new(&e.path)).map_err(err)?;
@@ -189,7 +186,7 @@ pub struct ChainWarning {
 }
 
 /// A change in the first kind puts each listed kind out of date. Shortcut: a fixed chain of the
-/// kinds that Shipyard lists, not the page guides of Legacy.
+/// kinds that Shipyard lists, not page guides.
 const CHAIN: [(&str, &[&str]); 2] = [
     ("specs", &["designs", "models", "api", "data", "test-plans"]),
     ("api", &["test-plans"]),
@@ -258,7 +255,6 @@ pub struct ChainWatch {
 /// Watches the docs chain over the whole branch: every file that changed since `base` (committed or
 /// not) puts its downstream folders out of date until they move too. `base` defaults to the first of
 /// `develop`, `main` and `master`, as a remote branch when there is one. Nothing is written.
-/// Legacy source: `src/lib/chain.ts` (`chainWarnings`) and `chain-watch.tsx`.
 pub fn chain_watch(s: &AppState, base: Option<&str>) -> Res<ChainWatch> {
     let e = s.registry()?.active().cloned().ok_or("no active project")?;
     let root = Path::new(&e.path);

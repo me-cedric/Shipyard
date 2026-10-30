@@ -7,7 +7,7 @@ import { ChatBubbleIcon } from "@/ui/icons";
 /**
  * The three questions to the assistant about a pull request: write the description, review it,
  * reply to its threads. Each one opens the assistant with the context in the draft. The person
- * reads it and sends it. Legacy source: `ask-assistant.tsx` and the `pr-workflow` skill.
+ * reads it and sends it.
  */
 export function PrAi({ d }: { d: PullDetail }) {
 	const { t } = useI18n();

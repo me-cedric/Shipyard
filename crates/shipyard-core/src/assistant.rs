@@ -1,8 +1,7 @@
 //! The assistant: threads, messages, context, modes and the prompt (spec `assistant`, REQ-002,
 //! REQ-004 to REQ-008, REQ-011, REQ-020). No I/O.
 //!
-//! Adapted from Legacy: the quota phrases and the permission sentences of `application/cli/run.rs`
-//! (`hit_usage_limit`) and `application/cli/stream.rs` (`claude_denied`).
+//! It holds the quota phrases and the permission sentences of the agent CLIs.
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -355,7 +354,7 @@ pub fn is_quota(text: &str) -> bool {
     .any(|n| t.contains(n))
 }
 
-/// A tool result that says a permission was refused (Legacy `claude_denied`).
+/// A tool result that says a permission was refused.
 pub fn is_denial(text: &str) -> bool {
     let t = text.to_lowercase();
     t.contains("requested permission") || t.contains("permission to use")

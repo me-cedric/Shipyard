@@ -86,8 +86,7 @@ export function findFiles(paths: string[], query: string): string[] {
  * The working copy as files, in a drawer beside the view. ⌘P opens it on the search. A file opens
  * in the viewer; its menu shows it in Code / Changes, copies its path, makes a new file or folder,
  * renames it or moves it to the trash. Each write is one click and a read-only project takes none
- * (`file-actions.tsx`). Legacy source: `src/components/file-browser.tsx` and
- * `src-tauri/src/infrastructure/browse.rs`; Shipyard lists the files once, the ignore rules
+ * (`file-actions.tsx`). The app lists the files once, the ignore rules
  * applied, so the search covers the whole tree.
  */
 export function FileDrawer({ onClose }: { onClose: () => void }) {

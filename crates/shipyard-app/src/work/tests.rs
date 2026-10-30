@@ -1459,7 +1459,7 @@ fn no_error_and_no_file_holds_the_passphrase_or_the_token() {
 }
 
 #[test]
-fn legacy_json_sheets_and_team_open_in_place_and_save_in_their_format() {
+fn json_sheets_and_team_open_in_place_and_save_in_their_format() {
     let f = fx();
     let put = |rel: &str, text: &str| {
         let p = f.repo.path().join(rel);
@@ -1477,10 +1477,7 @@ fn legacy_json_sheets_and_team_open_in_place_and_save_in_their_format() {
     );
     let v = sheet_get(&f.s, "mvp").unwrap();
     assert_eq!(v.sheet.features[0].tasks[0].days, Some(3.0));
-    assert!(
-        v.totals.price > 0.0,
-        "the team rate prices the Legacy sheet"
-    );
+    assert!(v.totals.price > 0.0, "the team rate prices the JSON sheet");
     let mut sheet = v.sheet;
     sheet.features[0].tasks[0].days = Some(5.0);
     sheet_save(&f.s, "mvp", sheet).unwrap();
@@ -1502,7 +1499,7 @@ fn legacy_json_sheets_and_team_open_in_place_and_save_in_their_format() {
 }
 
 #[test]
-fn legacy_calendar_and_plan_json_open_in_place_and_save_in_their_format() {
+fn calendar_and_plan_json_open_in_place_and_save_in_their_format() {
     let f = fx();
     let put = |rel: &str, text: &str| {
         let p = f.repo.path().join(rel);

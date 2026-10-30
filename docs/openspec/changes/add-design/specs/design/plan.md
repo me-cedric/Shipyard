@@ -12,7 +12,7 @@ Design files stay in the repository. `shipyard-store` holds the MADR codec and t
 | Item | Decision |
 | ---- | -------- |
 | Stack/runtime | Rust workspace and React 19 (MASTER-PLAN 7.1, 7.3). |
-| Dependencies | `@excalidraw/excalidraw`, `mermaid`, `bpmn-js` (viewer), `@likec4/language-services` (browser build with Node shims) and `yaml` run in the webview, each in its own lazy chunk. The DBML parser and the OpenAPI read view are ported from Legacy: `@dbml/core` builds a 15 MB chunk, and the Redoc and Swagger UIs break the interface rules. |
+| Dependencies | `@excalidraw/excalidraw`, `mermaid`, `bpmn-js` (viewer), `@likec4/language-services` (browser build with Node shims) and `yaml` run in the webview, each in its own lazy chunk. The DBML parser and the OpenAPI read view are written in the app: `@dbml/core` builds a 15 MB chunk, and the Redoc and Swagger UIs break the interface rules. |
 | Data/storage | Files only. Default folders (`MORE_PATHS` in `shipyard-core`, a project file can change them): `docs/decisions`, `docs/diagrams`, `docs/models`, `docs/api`, `docs/data-models`, `docs/flows`, `docs/designs` (`screens.json`, `design.md`). No database table. |
 | APIs/contracts | IPC commands `design_list`, `design_read`, `design_write`, `design_adr_create`, `design_adr_decide`, `design_flows_save`, `design_try`, `design_open`. Bindings are generated. |
 | Refs | The slug is the file name without extension. The ADR number is the file prefix. `add-refs` indexes them. |

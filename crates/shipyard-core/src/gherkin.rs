@@ -1,5 +1,5 @@
 //! Gherkin test plans: parser and requirement coverage (spec `specs`, REQ-011 to REQ-013).
-//! Tag, step, Background, Outline and Examples rules follow the Legacy reader. No I/O.
+//! Tag, step, Background, Outline and Examples rules follow the usual Gherkin reader. No I/O.
 
 use serde::{Deserialize, Serialize};
 use specta::Type;

@@ -5,7 +5,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 
 /**
- * The Codex trust step (Legacy `codex-trust-button.tsx`). Codex treats a folder that is not in its
+ * The Codex trust step. Codex treats a folder that is not in its
  * trusted list more strictly. One notice names the exact effect, and one click adds the folder.
  * Nothing is written before the click.
  */

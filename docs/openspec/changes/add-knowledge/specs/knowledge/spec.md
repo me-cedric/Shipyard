@@ -13,7 +13,7 @@ Knowledge is one space that draws the reference graph and explains any entity. I
 
 ### Why
 
-A junior or a new member must understand the project from its decisions, specs and architecture. Legacy has a wiki, a graph, learning pages and dashboards, but they do not read the same graph. Shipyard reads one reference graph (`add-refs`) and draws every view from it.
+A junior or a new member must understand the project from its decisions, specs and architecture. The earlier tool has a wiki, a graph, learning pages and dashboards, but they do not read the same graph. Shipyard reads one reference graph (`add-refs`) and draws every view from it.
 
 ### Users And Scenarios
 
@@ -59,9 +59,9 @@ A junior or a new member must understand the project from its decisions, specs a
 - Editing an entity in the graph. The view that owns the entity edits it.
 - The assistant panel, its threads and its modes. `add-assistant` owns them. This change owns the Explain action and its rules.
 - The reference index and the backlinks. `add-refs` owns them.
-- The Legacy My learning page with RSS feeds. The learning path replaces it.
+- The My learning page with RSS feeds. The learning path replaces it.
 - Parsing a `.docx` or an `.xlsx` back into the project. Exports are one-way.
-- The change request document and the work-done sheet that Legacy exports from Impacts. The digest goes into the pull request (`add-delivery` REQ-027), and REQ-013 to REQ-016 cover the client documents.
+- The change request document and the work-done sheet that the earlier tool exported from Impacts. The digest goes into the pull request (`add-delivery` REQ-027), and REQ-013 to REQ-016 cover the client documents.
 - A custom theme editor. One project theme serves all decks.
 - A hand-written block language for dashboards. Tiles come from a fixed catalogue.
 
@@ -96,9 +96,9 @@ A junior or a new member must understand the project from its decisions, specs a
 - Produces: dashboards and Home widgets for `add-shell` (REQ-003).
 - Related: `add-delivery` REQ-027 (the impacts digest sits in the pull request, not in a document).
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 | --- | --- | --- |
 | Knowledge graph | Knowledge / Graph | REQ-001 to REQ-007 |
 | Assistant on a page (Explain, new) | Explain action on every entity | REQ-008, REQ-009 |
@@ -118,7 +118,6 @@ A junior or a new member must understand the project from its decisions, specs a
 - `docs/delivery/questions/Q-044.md`
 - `docs/delivery/questions/Q-045.md`
 - `docs/delivery/questions/Q-046.md`
-- Legacy `docs/features.md` (Les dossiers client, Slides) and `docs/dashboards.md`, read only.
 
 ## ADDED Requirements
 

@@ -92,7 +92,7 @@ fn names(dir: &Path, dirs: bool, ext: &str) -> Vec<String> {
 }
 
 /// The stacks of the project, from its files. shortcut: root markers and the root `package.json`
-/// only; a monorepo that keeps its apps deeper needs a walk (Legacy `stacks.rs` has one).
+/// only; a monorepo that keeps its apps deeper needs a walk.
 pub fn detect_stacks(root: &Path) -> Vec<String> {
     let deps: Vec<String> = json(&root.join("package.json"))
         .into_iter()

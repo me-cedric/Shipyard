@@ -1,5 +1,5 @@
-//! The close guard (Legacy `commands/closing.rs`, `close_guard_should_hold`). Legacy holds the
-//! window while files are uncommitted. Shipyard holds it while work is in flight: a factory run
+//! The close guard. It holds the
+//! window while work is in flight: a factory run
 //! or an assistant turn. The window asks, and `close_anyway` answers once.
 
 use std::sync::atomic::{AtomicBool, Ordering};

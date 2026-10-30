@@ -26,7 +26,7 @@ async function onOutput(listener: (e: Output) => void): Promise<() => void> {
 
 /**
  * Starts a shell in `folder` and draws it with xterm in `host`. Closing the panel ends the shell
- * (REQ-035). Copied from the logic of Legacy `src/components/terminal-panel.tsx`, with one shell
+ * (REQ-035). One shell
  * for each panel and no WebGL or link addon (ADR 0012).
  */
 export function useTerminal(

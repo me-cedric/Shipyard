@@ -2,7 +2,7 @@
 //
 // Reached from `vscode-jsonrpc/node`, which `likec4` drags in through
 // `langium`: its `generateRandomPipeName` names the pipe a language server
-// talks to an editor over. Legacy parses LikeC4 in the browser with no such
+// talks to an editor over. the app parses LikeC4 in the browser with no such
 // server, so nothing here has ever been called — but it used to resolve to `{}`,
 // and `{}` fails on the *use* rather than on the import, which is the worst
 // place to find out.

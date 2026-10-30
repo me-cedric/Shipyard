@@ -1,9 +1,8 @@
 //! The AI sessions of this computer and what they cost, whatever started them.
 //!
-//! Source: Legacy `infrastructure/ai_sessions.rs` (process list, folder of a process, agent and
-//! helper detection) and `infrastructure/finops.rs` (the transcript formats of Claude Code and
-//! Codex, the de-duplication of Claude entries). Legacy asks `ccusage` for prices; this reader
-//! needs no network and prices from [`price`], a list price that is only indicative.
+//! It covers the process list, the folder of a process, agent and helper detection, and the
+//! transcript formats of Claude Code and Codex (with the de-duplication of Claude entries). This
+//! reader needs no network and prices from [`price`], a list price that is only indicative.
 //!
 //! Read-only, except [`stop`]. A transcript is the agent's own history, so the tokens of a session
 //! are exact and its cost is an estimate.

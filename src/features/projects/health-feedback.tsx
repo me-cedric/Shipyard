@@ -12,7 +12,7 @@ const KINDS: FeedbackKind[] = ["bug", "idea"];
 
 /**
  * Settings / Health: open a prefilled issue of the Shipyard repository in the browser. The app
- * sends nothing: the person submits it there. Source: Legacy `feedback-button.tsx`.
+ * sends nothing: the person submits it there.
  */
 export function HealthFeedback() {
 	const { t } = useI18n();

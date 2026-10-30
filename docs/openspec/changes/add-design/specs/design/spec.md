@@ -13,7 +13,7 @@ The architect keeps diagrams, models, decisions, API contracts, data models, net
 
 ### Why
 
-Legacy has one page for each kind of artifact. Nothing links a decision to the spec or the code that it shapes. One Design space gives each artifact one ref, so specs, work items and runs cite it.
+The earlier tool has one page for each kind of artifact. Nothing links a decision to the spec or the code that it shapes. One Design space gives each artifact one ref, so specs, work items and runs cite it.
 
 ### Users And Scenarios
 
@@ -83,9 +83,9 @@ Legacy has one page for each kind of artifact. Nothing links a decision to the s
 - Produces: `diagram:`, `model:`, `adr:`, `api:`, `data:`, `flow:` and `screen:` entities for `add-refs` (index), `add-specs` (citations), `add-knowledge` (graph, learn), `add-factory` (`read_ref`) and `add-assistant` (context).
 - Related: `q:Q-002` (all automation writes off by default), `docs/decisions/` (the ADR files).
 
-### Legacy parity
+### Feature list
 
-| Legacy feature | Shipyard view | REQ ids |
+| Feature | Shipyard view | REQ ids |
 |---|---|---|
 | Drawings (Excalidraw, draw.io, Mermaid, BPMN) | Design / Diagrams | REQ-003, REQ-004, REQ-005 |
 | Models (LikeC4) | Design / Architecture | REQ-006, REQ-007 |

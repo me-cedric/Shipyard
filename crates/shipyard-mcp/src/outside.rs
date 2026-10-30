@@ -2,11 +2,10 @@
 //! a terminal. They work on the folder of the open project, and each group is a switch that the
 //! person turns on in Settings (all off by default).
 //!
-//! Source: Legacy `application/mcp/mcptools.rs` and `mcpwiring.rs`: the same groups (reads, writes,
-//! git, forge, exec, delivery). Legacy has no path guard on its read tool; here a path stays inside
+//! The groups are reads, writes, git, forge, exec and delivery. A path stays inside
 //! the folder, and a secret file (`.env*`, `.git`) is never read or written.
 //!
-//! The ticket, ADR and QA groups follow the same rule (Legacy `mcptools/dispatch.rs`): off by
+//! The ticket, ADR and QA groups follow the same rule: off by
 //! default, and a read-only project takes no comment, no proposal and no check.
 //!
 //! shortcut: no resources. Add them when an outside agent needs them.

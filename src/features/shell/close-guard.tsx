@@ -6,7 +6,7 @@ import { Button } from "@/ui/atoms/button";
 import { Dialog } from "@/ui/organisms/dialog";
 
 /**
- * The window asked to close while a run or an assistant turn works (Legacy `close-guard.tsx`).
+ * The window asked to close while a run or an assistant turn works.
  * The person keeps working, or closes anyway.
  */
 export function CloseGuard() {

@@ -1,13 +1,11 @@
-//! The Legacy import (spec `projects`, REQ-014, REQ-015, Q-003 option 1). It reads a Legacy
-//! repository and writes the matching Shipyard files into a project. It never changes the source.
+//! The project import (spec `projects`, REQ-014, REQ-015, Q-003 option 1). It reads a repository
+//! with the existing layout and writes the matching Shipyard files into a project. It never changes the source.
 //! It never replaces a file: a target that exists is a conflict and stays as it is (Q-090).
 //!
 //! Slides copy as they are (same `docs/slides`). A dashboard becomes tiles and the work log becomes
 //! one time file for each member and month (Q-129).
 //!
-//! Legacy keeps the default paths only. A path that the Legacy registry overrode is not read (Q-091).
-//! Sources: Legacy `src/lib/planning.ts` (team), `src/lib/costing.ts` (sheets),
-//! `src/lib/tickets/model.ts` (tickets config) and `src/lib/personas.ts` (roles).
+//! The import reads the default paths only. A path that a project overrode is not read (Q-091).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -17,12 +15,12 @@ use serde_json::Value;
 use shipyard_core::project::{PROJECT_FILE, ProjectConnections, ProjectFile};
 use shipyard_core::work::{Availability, Feature, Member, Sheet, Span, Task, Team};
 
-use crate::{knowledge, legacy, project, safe_write, work};
+use crate::{docs_layout, knowledge, project, safe_write, work};
 
 const MAX_BYTES: u64 = 2 * 1024 * 1024;
 const MAX_DEPTH: usize = 8;
 const MAX_FILES: usize = 2000;
-/// The folders that have the same layout in Legacy and in Shipyard. Files are copied as they are.
+/// The folders that have the same layout in the source and in Shipyard. Files are copied as they are.
 const SAME: [&str; 4] = [
     "docs/decisions",
     "docs/delivery/questions",
@@ -145,7 +143,7 @@ fn slug(s: &str) -> String {
     s.trim_matches('-').to_string()
 }
 
-/// A Legacy persona is a role. Its name is the role in Shipyard (`role_rates` keys on it).
+/// A persona is a role. Its name is the role in Shipyard (`role_rates` keys on it).
 pub fn roles(source: &Path) -> BTreeMap<String, String> {
     let Some(Ok(v)) = json(source, "docs/personas/personas.json") else {
         return BTreeMap::new();
@@ -255,7 +253,7 @@ pub fn sheet(v: &Value, stem: &str, roles: &BTreeMap<String, String>) -> Sheet {
             .filter(|n| !n.is_empty())
             .unwrap_or(stem)
             .into(),
-        // A version 1 sheet has no currency. Legacy shows the CGI tool default.
+        // A version 1 sheet has no currency. The default currency is used.
         currency: Some(text(meta, "currency"))
             .filter(|c| !c.is_empty())
             .unwrap_or("EUR")
@@ -289,7 +287,7 @@ fn project_file(source: &Path, tickets: Option<&Value>) -> ProjectFile {
         .iter()
         .any(|i| i.field == "key")
     {
-        file.key = "KVY".into();
+        file.key = "PRJ".into();
     }
     let scope = tickets
         .map(|t| text(t, "projectKey"))
@@ -303,7 +301,7 @@ fn project_file(source: &Path, tickets: Option<&Value>) -> ProjectFile {
     file
 }
 
-/// The Shipyard tile that shows what a Legacy data source answers. A source with no such tile
+/// The Shipyard tile that shows what a data source answers. A source with no such tile
 /// (git, release, forge, provision, custom files) has none, and its widget is skipped.
 fn tile_kind(source: &str) -> Option<&'static str> {
     Some(match source.split('.').next()? {
@@ -318,7 +316,7 @@ fn tile_kind(source: &str) -> Option<&'static str> {
     })
 }
 
-/// A Legacy dashboard (`widgets` with a `source`) as Shipyard tiles. A widget with no tile for its
+/// A dashboard (`widgets` with a `source`) as Shipyard tiles. A widget with no tile for its
 /// source, and a note, are left out and named in the second value.
 pub fn dashboard(v: &Value, fallback: &str) -> (knowledge::Dashboard, Vec<String>) {
     let mut left = Vec::new();
@@ -376,9 +374,9 @@ fn handle_of(team: &Team, email: &str) -> String {
         .unwrap_or_else(|| "member".into())
 }
 
-/// One Legacy month of the work log (`entries` with `date`, `author`, `minutes`, `what`, `ticket`,
+/// One month of the work log (`entries` with `date`, `author`, `minutes`, `what`, `ticket`,
 /// `jiraId`) as time entries by member handle. An entry with no valid day, no author or no minutes
-/// is left out, as Legacy `parseWorklog` leaves it out.
+/// is left out.
 pub fn worklog(v: &Value, team: &Team) -> BTreeMap<String, Vec<shipyard_core::work::TimeEntry>> {
     let mut out: BTreeMap<String, Vec<shipyard_core::work::TimeEntry>> = BTreeMap::new();
     for (i, e) in list(v, "entries").iter().enumerate() {
@@ -422,7 +420,7 @@ pub fn worklog(v: &Value, team: &Team) -> BTreeMap<String, Vec<shipyard_core::wo
     out
 }
 
-/// Imports the Legacy repository `source` into the project `root`.
+/// Imports the repository `source` into the project `root`.
 pub fn import(source: &Path, root: &Path) -> Report {
     let mut r = Report::default();
     let roles = roles(source);
@@ -433,7 +431,7 @@ pub fn import(source: &Path, root: &Path) -> Report {
         r.skipped
             .push(("docs/delivery/tickets.config.json".into(), e.clone()));
     }
-    let has_legacy = tickets.is_some()
+    let has_layout = tickets.is_some()
         || [
             "docs/planning/team.json",
             "docs/planning/calendar.json",
@@ -447,7 +445,7 @@ pub fn import(source: &Path, root: &Path) -> Report {
         // Slides alone say nothing: Shipyard keeps its decks in the same folder.
         .chain(SAME.iter().filter(|p| **p != "docs/slides"))
         .any(|p| source.join(p).exists());
-    if has_legacy {
+    if has_layout {
         let file = project_file(source, tickets.as_ref().and_then(|t| t.as_ref().ok()));
         match project::render_project_file(&file) {
             Ok(t) => r.put("docs/delivery/tickets.config.json", PROJECT_FILE, root, &t),
@@ -491,7 +489,8 @@ pub fn import(source: &Path, root: &Path) -> Report {
     match json(source, "docs/planning/calendar.json") {
         None => {}
         Some(Err(e)) => r.skipped.push(("docs/planning/calendar.json".into(), e)),
-        Some(Ok(v)) => match work::write_calendar(&legacy::calendar_from_json(&v.to_string())) {
+        Some(Ok(v)) => match work::write_calendar(&docs_layout::calendar_from_json(&v.to_string()))
+        {
             Ok(t) => r.put("docs/planning/calendar.json", work::CALENDAR_PATH, root, &t),
             Err(e) => r
                 .skipped
@@ -523,7 +522,7 @@ pub fn import(source: &Path, root: &Path) -> Report {
                 .map(|(slug, _)| slug.clone())
         };
         match res.map_err(|e| e.to_string()).and_then(|v| {
-            work::write_decisions(&legacy::decisions_from_json(&v.to_string(), slug_of))
+            work::write_decisions(&docs_layout::decisions_from_json(&v.to_string(), slug_of))
                 .map_err(|e| e.to_string())
         }) {
             Ok(t) => r.put("docs/planning/plan.json", work::DECISIONS_PATH, root, &t),
@@ -560,7 +559,7 @@ pub fn import(source: &Path, root: &Path) -> Report {
         }
     }
 
-    // The work log (Q-129): one Legacy file for each month becomes one time file for each member.
+    // The work log (Q-129): one file for each month becomes one time file for each member.
     let members = match json(source, "docs/planning/team.json") {
         Some(Ok(v)) => team(&v, &roles),
         _ => Team::default(),

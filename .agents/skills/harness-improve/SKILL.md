@@ -55,7 +55,7 @@ ac reflect owner <path>...
 - Edit a path only when the command exits 0.
 - `project`: edit the file.
 - `shared`: edit only the text outside the compass block (`<!-- compass:begin -->` to `<!-- compass:end -->`) and outside the compass keys.
-- `compass` or `legacy`: do not edit. Report the finding to the user as a follow-up for that tool.
+- `compass`: do not edit. Report the finding to the user as a follow-up for that tool.
 
 After the edits, run `ac check`. It must stay green.
 
@@ -91,7 +91,7 @@ Rules:
 6. Set `confidence` to `low` unless several sessions agree.
 7. Earlier lessons: update their verdicts only from the before and after signals. A side with fewer than 2 sessions stays `unclear`.
 
-The command refuses a compass or Legacy path, a secret, an e-mail address, and an existing lesson file.
+The command refuses a compass path, a secret, an e-mail address, and an existing lesson file.
 
 ## 6. Hand off
 

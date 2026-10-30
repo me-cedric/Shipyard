@@ -1,6 +1,5 @@
-//! The BDD view of Specs / Test plans: every scenario of every plan with its last run. Source of
-//! the logic: Legacy `src/lib/test-plan.ts` (`parsePlanRuns`, `planDataPath`) and
-//! `src/pages/qa/bdd-view.tsx`. A plan `x.feature` has `x.json` beside it with the last verdict of
+//! The BDD view of Specs / Test plans: every scenario of every plan with its last run.
+//! A plan `x.feature` has `x.json` beside it with the last verdict of
 //! each scenario. An unknown verdict, or no run, is `not-covered`: a guess upward would hide a gap.
 
 use serde::Serialize;

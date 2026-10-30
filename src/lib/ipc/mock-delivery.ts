@@ -1,4 +1,4 @@
-// The mock of the Legacy delivery files: personas, the work split by profile (read only) and the
+// The mock of the delivery files: personas, the work split by profile (read only) and the
 // tickets config. It applies the rules of `crates/shipyard-store/src/delivery_docs.rs`.
 import type { Assignments, Persona, TicketsConfig } from "./bindings";
 

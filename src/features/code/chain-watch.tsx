@@ -10,8 +10,7 @@ import { Panel } from "@/ui/molecules/panel";
 /**
  * The docs chain over the whole branch: each artifact folder that is stale against its source, since
  * `base`. Each row asks the assistant to bring the folder up to date: a click, never a write. A clean
- * chain says so. Legacy source: `src/lib/chain.ts` and `src/components/chain-watch.tsx`; Legacy
- * pushes a notification, Shipyard keeps the list in view and counts the whole branch.
+ * chain says so. The list stays in view and counts the whole branch.
  */
 export function ChainWatch({ base }: { base: string }) {
 	const { t } = useI18n();

@@ -19,8 +19,7 @@ const NONE = "none";
 /**
  * What a project sets for this machine: the assistant defaults of its new threads, the remote
  * watch, the notices and the profile (role, read only). The spaces and tabs are in `ScreensCard`.
- * It all stays in the app data folder and never reaches the repository. Legacy source:
- * `components/project-overrides.tsx`, `components/project-profiles.tsx` and `lib/profiles.ts`.
+ * It all stays in the app data folder and never reaches the repository.
  */
 export function ProjectOverrides() {
 	const { t } = useI18n();

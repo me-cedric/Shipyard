@@ -42,11 +42,11 @@ Machine state lives in the app data folder: `prefs.json` (theme, language, role)
 
 The app answers `shipyard --mcp-relay <server-id>` (binary `shipyard`, crate `shipyard-cli`) on a socket in `relay/` of the app data folder. `SHIPYARD_DATA_DIR` replaces the folder.
 
-## Legacy import
+## Project import
 
-`shipyard_store::project_import::import(source, root)` reads a Legacy repository and writes Shipyard files into the project (command `project_import`, spec `projects` REQ-014, REQ-015). It reads the default Legacy paths only (Q-091).
+`shipyard_store::project_import::import(source, root)` reads a repository with the existing layout and writes Shipyard files into the project (command `project_import`, spec `projects` REQ-014, REQ-015). It reads the default paths only (Q-091).
 
-| Legacy | Shipyard |
+| Source | Shipyard |
 |---|---|
 | folder name and `docs/delivery/tickets.config.json` (`projectKey`) | `.shipyard/project.yaml` (name, key, `connections.trackerScope` for Jira) |
 | `docs/planning/team.json`, `docs/personas/personas.json` | `.shipyard/team.yaml` (the persona name is the role) |

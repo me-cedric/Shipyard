@@ -29,10 +29,8 @@ export const commands = {
 	projectOverridesSave: (overrides: Overrides_Deserialize) => typedError<null, string>(__TAURI_INVOKE("project_overrides_save", { overrides })),
 	healthRun: () => typedError<Finding_Serialize[], string>(__TAURI_INVOKE("health_run")),
 	healthFix: (id: string, expected: string | null) => typedError<FixResult, string>(__TAURI_INVOKE("health_fix", { id, expected })),
-	/**  Reads the Legacy folder and writes the matching files into the active project. It replaces no file. */
+	/**  Reads the folder `source` and writes the matching files into the active project. It replaces no file. */
 	projectImport: (source: string) => typedError<ImportReport, string>(__TAURI_INVOKE("project_import", { source })),
-	legacyProjects: () => typedError<LegacyProject[], string>(__TAURI_INVOKE("legacy_projects")),
-	legacyProjectOpen: (id: string) => typedError<ProjectOutcome_Serialize, string>(__TAURI_INVOKE("legacy_project_open", { id })),
 	personasList: () => typedError<Persona[], string>(__TAURI_INVOKE("personas_list")),
 	personasSave: (personas: Persona[]) => typedError<null, string>(__TAURI_INVOKE("personas_save", { personas })),
 	assignmentsRead: () => typedError<Assignments, string>(__TAURI_INVOKE("assignments_read")),
@@ -1967,12 +1965,6 @@ export type KNode_Serialize = {
 
 export type Kind = "epic" | "story";
 
-export type LegacyProject = {
-	id: string,
-	name: string,
-	path: string,
-};
-
 /**  The six lanes of Factory / Runs, in order. */
 export type Lane = "queued" | "working" | "needs_you" | "in_review" | "ready_to_merge" | "done";
 
@@ -3156,8 +3148,8 @@ export type Question = {
 export type QuestionChoice = { kind: "option"; n: number } | { kind: "text"; text: string };
 
 /**
- *  REQ-020. Adapted from the lifecycle of Legacy `src/lib/raid.ts` (`ALLOWED_NEXT`): Shipyard
- *  has no `assigned` state, and the fold (`specs`) is not a question state.
+ *  REQ-020. The lifecycle of a question: there is
+ *  no `assigned` state, and the fold (`specs`) is not a question state.
  */
 export type QuestionState = "open" | "answered" | 
 /**  The ticket became terminal before an answer (REQ-018). */
@@ -4286,17 +4278,17 @@ export type TicketEditCaps = {
 	assignee: boolean,
 	status: boolean,
 	priority: boolean,
-	/**  The issue type changes (Jira, GitLab, Azure DevOps). Source: Legacy `application/tickets/plan.rs`. */
+	/**  The issue type changes (Jira, GitLab, Azure DevOps). */
 	issueType: boolean,
-	/**  The due date changes (all but GitHub Issues). Source: Legacy `infrastructure/repoissues.rs`. */
+	/**  The due date changes (all but GitHub Issues). */
 	dueDate: boolean,
 	/**  The estimate in days changes (a tracker with time tracking). */
 	estimate: boolean,
 };
 
-/**  The link of a Legacy ticket to its Jira issue (`docs/delivery/tickets.json`, read only). */
+/**  The link of a ticket to its Jira issue (`docs/delivery/tickets.json`, read only). */
 export type TicketLink = {
-	/**  The Legacy key of the ticket. */
+	/**  The key of the ticket. */
 	key: string,
 	/**  The Jira key, empty before the first write. */
 	issueKey: string,

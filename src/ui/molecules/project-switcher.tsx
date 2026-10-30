@@ -54,8 +54,6 @@ export function ProjectSwitcher({
 	onClone,
 	onClose,
 	onRemove,
-	legacy = [],
-	onLegacy,
 	className,
 }: {
 	projects: SwitcherProject[];
@@ -67,9 +65,6 @@ export function ProjectSwitcher({
 	onClone: () => void;
 	onClose: () => void;
 	onRemove: (project: SwitcherProject) => void;
-	/** The projects of the Legacy registry that are not in the list yet. */
-	legacy?: { id: string; name: string }[];
-	onLegacy?: (id: string) => void;
 	className?: string;
 }) {
 	const { t } = useI18n();
@@ -129,18 +124,6 @@ export function ProjectSwitcher({
 						<Menu.Item className={ITEM} disabled={!active} onClick={onClose}>
 							<Entry icon={<XMarkIcon size={12} />}>{t.projects.close}</Entry>
 						</Menu.Item>
-						{legacy.length && onLegacy ? (
-							<Menu.Group>
-								<Menu.GroupLabel className="px-2 py-1 text-12 text-n-10">
-									{t.projects.legacyGroup}
-								</Menu.GroupLabel>
-								{legacy.map((k) => (
-									<Menu.Item key={k.id} className={ITEM} onClick={() => onLegacy(k.id)}>
-										<Entry icon={<FolderOpenIcon size={12} />}>{k.name}</Entry>
-									</Menu.Item>
-								))}
-							</Menu.Group>
-						) : null}
 						{projects.length ? (
 							<Menu.SubmenuRoot>
 								<Menu.SubmenuTrigger className={ITEM}>

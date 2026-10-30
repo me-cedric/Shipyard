@@ -1,7 +1,7 @@
 # Shipyard constitution
 
 These rules govern every spec, plan and task in this repository. A change that breaks a rule needs an ADR first.
-Source: the owner's brief of 2026-10-29 and the Legacy principles kept in `docs/plan/MASTER-PLAN.md`.
+Source: the owner's brief of 2026-10-29 and the principles kept in `docs/plan/MASTER-PLAN.md`.
 
 ## 1. Project-as-a-Git
 
