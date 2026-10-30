@@ -132,7 +132,7 @@ export function Usage() {
 			title={f.usage}
 			icon={<ChartBarIcon size={16} />}
 			action={
-				<span className="flex flex-wrap items-center gap-2">
+				<span className="flex items-center gap-2">
 					<Select
 						label={f.budgetScope}
 						items={[
@@ -145,7 +145,7 @@ export function Usage() {
 					<Input
 						ref={field}
 						label={f.budgetKey}
-						className="max-w-48"
+						className="w-48"
 						value={key}
 						onChange={(e) => setKey(e.target.value)}
 					/>
@@ -154,7 +154,7 @@ export function Usage() {
 						type="number"
 						min="0"
 						step="any"
-						className="max-w-32"
+						className="w-28"
 						value={amount}
 						onChange={(e) => setAmount(e.target.value)}
 					/>

@@ -123,7 +123,7 @@ export function Runs() {
 					<Input
 						ref={field}
 						label={f.ticket}
-						className="max-w-40"
+						className="w-40"
 						value={key}
 						onChange={(e) => setKey(e.target.value)}
 						onKeyDown={(e) => {

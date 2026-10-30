@@ -207,7 +207,9 @@ export function Compass({ children }: { children: ReactNode }) {
 											>
 												{e.risk ? (
 													<Badge variant={e.risk === "high" ? "danger" : "neutral"}>
-														{format(x.compass.risk, { level: e.risk })}
+														{format(x.compass.risk, {
+															level: x.compass.riskLevel[e.risk] ?? e.risk,
+														})}
 													</Badge>
 												) : null}
 												{e.writes ? <Badge>{x.compass.writes}</Badge> : null}

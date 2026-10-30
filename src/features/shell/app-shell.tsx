@@ -1,7 +1,8 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { AssistantPanel, SelectionActions, useAssistant } from "@/features/assistant";
-import { FileDrawer, TerminalDrawer } from "@/features/code";
+import { FileDrawer } from "@/features/code/file-drawer";
+import { TerminalDrawer } from "@/features/code/terminal-drawer";
 import { useCodeActions } from "@/lib/code";
 import { useI18n } from "@/lib/i18n";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";

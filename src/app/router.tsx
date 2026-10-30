@@ -10,6 +10,7 @@ import {
 	redirect,
 	useRouterState,
 } from "@tanstack/react-router";
+import { motion, useReducedMotion } from "motion/react";
 import {
 	AppShell,
 	ROLE_HOME,
@@ -20,9 +21,10 @@ import {
 	visibleTabs,
 } from "@/features/shell";
 import { usePrefs } from "@/lib/prefs";
+import { SPRING } from "@/ui/motion";
 import { NotFound } from "./not-found";
 import { refActions } from "./ref-actions";
-import { TabView } from "./tab-view";
+import { preloadTab, TabView } from "./tab-view";
 
 const rootRoute = createRootRoute({
 	component: () => <AppShell refActions={refActions} />,
@@ -41,6 +43,7 @@ const indexRoute = createRoute({
 function SpaceLayout({ space }: { space: SpaceId }) {
 	const { profile } = usePrefs();
 	const path = useRouterState({ select: (s) => s.location.pathname });
+	const still = useReducedMotion();
 	// A tab that the project hides goes to the first tab that it keeps.
 	const shown = visibleTabs(space, profile.hiddenTabs);
 	const first = shown[0];
@@ -51,7 +54,16 @@ function SpaceLayout({ space }: { space: SpaceId }) {
 			<TabsBar space={space} />
 			{/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable) */}
 			<div tabIndex={0} className="flex min-h-0 flex-1 flex-col overflow-auto">
-				<Outlet />
+				{/* A new tab rises into place. Only the position moves, so the text never hides. */}
+				<motion.div
+					key={path}
+					initial={still ? false : { y: 8 }}
+					animate={{ y: 0 }}
+					transition={SPRING.gentle}
+					className="flex min-h-0 flex-1 flex-col"
+				>
+					<Outlet />
+				</motion.div>
 			</div>
 		</div>
 	);
@@ -76,6 +88,7 @@ function spaceRoute<S extends SpaceId>(space: S) {
 		createRoute({
 			getParentRoute: () => route,
 			path: tab,
+			loader: () => preloadTab(space, tab),
 			component: () => <TabView space={space} tab={tab} />,
 		}),
 	);

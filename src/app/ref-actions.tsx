@@ -1,5 +1,5 @@
-import { KnowledgeActions } from "@/features/knowledge";
-import { CreateWorkItem } from "@/features/work";
+import { KnowledgeActions } from "@/features/knowledge/explain";
+import { CreateWorkItem } from "@/features/work/apply";
 import type { RefActions } from "@/lib/shell";
 
 /** The refs that a person turns into a work item with one click (`work` REQ-029). */

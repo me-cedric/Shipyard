@@ -42,7 +42,7 @@ function CreateBranch({ run }: { run: (job: () => Promise<unknown>) => void }) {
 		});
 	};
 	return (
-		<form onSubmit={submit} className="flex flex-wrap items-center gap-2">
+		<form onSubmit={submit} className="flex items-center gap-2">
 			<Select
 				label={t.code.type}
 				items={COMMIT_TYPES.map((c) => ({ value: c, label: c }))}
@@ -50,8 +50,18 @@ function CreateBranch({ run }: { run: (job: () => Promise<unknown>) => void }) {
 				onValueChange={setType}
 				className="min-w-28"
 			/>
-			<Input label={t.code.area} value={area} onChange={(e) => setArea(e.target.value)} />
-			<Input label={t.code.subject} value={subject} onChange={(e) => setSubject(e.target.value)} />
+			<Input
+				label={t.code.area}
+				className="w-32"
+				value={area}
+				onChange={(e) => setArea(e.target.value)}
+			/>
+			<Input
+				label={t.code.subject}
+				className="w-48"
+				value={subject}
+				onChange={(e) => setSubject(e.target.value)}
+			/>
 			<Button type="submit" variant="primary">
 				<PlusIcon size={14} />
 				{t.code.create}

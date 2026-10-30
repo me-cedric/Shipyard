@@ -186,7 +186,7 @@ export function Extensions() {
 				title={t.tabs.settings.extensions}
 				count={catalog.data?.length}
 			/>
-			<div className="flex max-w-5xl flex-col gap-4 px-4 pt-1 pb-4">
+			<div className="flex max-w-4xl flex-col gap-4 px-4 pt-1 pb-4">
 				{error ? (
 					<p role="alert" className="text-ui text-danger-text">
 						{error}

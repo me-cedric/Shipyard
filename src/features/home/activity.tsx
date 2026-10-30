@@ -1,5 +1,5 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { PinnedTiles } from "@/features/knowledge";
+import { PinnedTiles } from "@/features/knowledge/pinned";
 import { NoProject } from "@/features/work/no-project";
 import { useRuns } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
@@ -76,7 +76,10 @@ export function Activity() {
 					action={{ label: t.home.refresh, icon: <ArrowPathIcon size={14} />, onClick: refresh }}
 				/>
 			) : (
-				<div className="grid items-start gap-4 px-4 xl:grid-cols-2">
+				<div
+					// Without notifications the log takes the full width: an empty panel adds only a blank box.
+					className={`grid items-start gap-4 px-4 ${notices.length ? "xl:grid-cols-2" : ""}`}
+				>
 					<Panel title={t.factory.log} count={events.length} flush>
 						<Timeline>
 							{events.map((e) => {
@@ -99,19 +102,21 @@ export function Activity() {
 							})}
 						</Timeline>
 					</Panel>
-					<Panel title={t.notifications.title} count={notices.length} flush>
-						<Timeline>
-							{notices.map((n) => (
-								<TimelineItem
-									key={n.id}
-									lead={<StatusDot status={SHAPE[n.kind]} label={t.notifications.kind[n.kind]} />}
-									title={n.title}
-									body={n.body}
-									time={time.format(n.time)}
-								/>
-							))}
-						</Timeline>
-					</Panel>
+					{notices.length ? (
+						<Panel title={t.notifications.title} count={notices.length} flush>
+							<Timeline>
+								{notices.map((n) => (
+									<TimelineItem
+										key={n.id}
+										lead={<StatusDot status={SHAPE[n.kind]} label={t.notifications.kind[n.kind]} />}
+										title={n.title}
+										body={n.body}
+										time={time.format(n.time)}
+									/>
+								))}
+							</Timeline>
+						</Panel>
+					) : null}
 				</div>
 			)}
 		</div>

@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { BranchSelector } from "@/features/code";
-import { CloneDialog } from "@/features/projects";
+import { BranchSelector } from "@/features/code/branch-selector";
+import { CloneDialog } from "@/features/projects/clone-dialog";
 import { format, useI18n } from "@/lib/i18n";
 import { errorDialog } from "@/lib/ipc";
 import { useNotifications } from "@/lib/notifications";

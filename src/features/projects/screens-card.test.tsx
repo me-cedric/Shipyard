@@ -17,10 +17,11 @@ describe("Settings / Project screens", () => {
 			expect(mockState().projects[0]?.overrides.hiddenTabs).toEqual(["code/terminal"]),
 		);
 		await user.click(screen.getByRole("link", { name: /Code/ }));
-		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
-		await within(tabs).findByRole("link", { name: "Changes" });
+		// The first visit of Code loads its views on demand: wait for its tabs before the next query.
+		await screen.findByRole("link", { name: "Changes" }, { timeout: 10_000 });
+		const tabs = screen.getByRole("navigation", { name: "Tabs" });
 		expect(within(tabs).queryByRole("link", { name: "Terminal" })).toBeNull();
-	});
+	}, 15_000);
 
 	it("sends a visit of a hidden tab to the first kept tab, and keeps the last tab of a space", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));

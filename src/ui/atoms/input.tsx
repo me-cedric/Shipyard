@@ -13,6 +13,8 @@ export function Input({ label, caption, className, ...props }: InputProps) {
 	const input = (
 		<BaseInput
 			aria-label={label}
+			// An empty field shows its noun, so a field without a caption never looks blank.
+			placeholder={caption ? undefined : label}
 			className={cn(
 				"h-row w-full min-w-0 rounded-md border border-n-7 bg-n-1 px-2 text-ui text-n-12 placeholder:text-n-10 disabled:opacity-50",
 				className,

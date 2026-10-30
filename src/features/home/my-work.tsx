@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { PinnedTiles } from "@/features/knowledge";
+import { PinnedTiles } from "@/features/knowledge/pinned";
 import { NoProject } from "@/features/work/no-project";
 import { TicketDetail } from "@/features/work/ticket-detail";
 import { useRuns } from "@/lib/factory";

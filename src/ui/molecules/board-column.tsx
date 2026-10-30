@@ -47,7 +47,7 @@ export function BoardColumn({
 				if (key) onDropKey(key);
 			}}
 			className={cn(
-				"relative flex w-72 shrink-0 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1 transition-shadow duration-(--duration-base)",
+				"relative flex min-w-72 max-w-96 flex-1 shrink-0 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1 transition-shadow duration-(--duration-base)",
 				over && "shadow-glow",
 			)}
 		>
