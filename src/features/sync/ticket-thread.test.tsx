@@ -63,10 +63,13 @@ describe("the ticket thread", () => {
 		const save = screen.getByRole("button", { name: "Save description" });
 		expect(save).toBeDisabled();
 		await user.type(screen.getByRole("textbox", { name: "Description" }), "Steps to reproduce");
-		await user.click(save);
-		await waitFor(() =>
-			expect(screen.getByRole("textbox", { name: "Description" })).toHaveValue(""),
+		// The field opens with the text of the tracker, so the edit adds to it.
+		expect(screen.getByRole("textbox", { name: "Description" })).toHaveValue(
+			"Fix login redirect.Steps to reproduce",
 		);
+		await user.click(save);
+		// After the save the edit is over: Save is off again.
+		await waitFor(() => expect(save).toBeDisabled());
 		expect(screen.getByRole("combobox", { name: "Priority" })).toBeInTheDocument();
 	}, 20_000);
 

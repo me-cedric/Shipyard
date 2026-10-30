@@ -27,7 +27,8 @@ export function TicketThread({ itemKey }: { itemKey: string }) {
 	const [title, setTitle] = useState<string | null>(null);
 	const [label, setLabel] = useState("");
 	const [body, setBody] = useState("");
-	const [description, setDescription] = useState("");
+	// `null` until the person edits: the field shows the description of the tracker.
+	const [description, setDescription] = useState<string | null>(null);
 	const [priority, setPriority] = useState("");
 	if (!(item && caps && edit)) return null;
 
@@ -87,16 +88,23 @@ export function TicketThread({ itemKey }: { itemKey: string }) {
 					className="flex flex-col gap-2"
 					onSubmit={async (e) => {
 						e.preventDefault();
-						if (await run(() => act.editTicket(itemKey, null, description))) setDescription("");
+						if (
+							description !== null &&
+							(await run(() => act.editTicket(itemKey, null, description)))
+						)
+							setDescription(null);
 					}}
 				>
 					<Textarea
 						label={d.description}
-						value={description}
+						value={description ?? item.description}
 						onChange={(e) => setDescription(e.target.value)}
 					/>
 					<div>
-						<Button type="submit" disabled={description.trim() === ""}>
+						<Button
+							type="submit"
+							disabled={description === null || description === item.description}
+						>
 							{d.saveDescription}
 						</Button>
 					</div>

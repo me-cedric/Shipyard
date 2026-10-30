@@ -37,6 +37,7 @@ const ticket = (
 ): WorkItemView_Serialize => ({
 	key: `ACME-${n}`,
 	title,
+	description: `${title}.`,
 	kind: "task",
 	status,
 	category,

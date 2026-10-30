@@ -4504,6 +4504,8 @@ export type WorkItemView = WorkItemView_Serialize | WorkItemView_Deserialize;
 export type WorkItemView_Deserialize = {
 	key: string,
 	title: string,
+	/**  Plain text or Markdown, as the tracker holds it: an edit starts from it. */
+	description: string,
 	kind: string,
 	status: string,
 	/**  `todo`, `in-progress` or `done`. */
@@ -4531,6 +4533,8 @@ export type WorkItemView_Deserialize = {
 export type WorkItemView_Serialize = {
 	key: string,
 	title: string,
+	/**  Plain text or Markdown, as the tracker holds it: an edit starts from it. */
+	description: string,
 	kind: string,
 	status: string,
 	/**  `todo`, `in-progress` or `done`. */

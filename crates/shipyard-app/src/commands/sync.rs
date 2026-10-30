@@ -362,6 +362,8 @@ pub struct ItemFilter {
 pub struct WorkItemView {
     pub key: String,
     pub title: String,
+    /// Plain text or Markdown, as the tracker holds it: an edit starts from it.
+    pub description: String,
     pub kind: String,
     pub status: String,
     /// `todo`, `in-progress` or `done`.
@@ -397,6 +399,7 @@ fn view(t: &Ticket, team: &Team, linked: Option<&str>, claimed: bool) -> WorkIte
     WorkItemView {
         key: i.key.clone(),
         title: i.title.clone(),
+        description: i.description.clone(),
         kind: format!("{:?}", i.kind).to_ascii_lowercase(),
         status: i.status.name.clone(),
         category: category(i.status.category).into(),

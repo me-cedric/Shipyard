@@ -761,6 +761,7 @@ export function splitApply(
 				mirror.push({
 					key: out.key,
 					title: row.title,
+					description: "",
 					kind: row.kind === "epic" ? "epic" : "story",
 					status: "To Do",
 					category: "todo",
