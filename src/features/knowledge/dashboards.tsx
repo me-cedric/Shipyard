@@ -14,7 +14,7 @@ import {
 import { useActiveProject } from "@/lib/projects";
 import { Badge } from "@/ui/atoms/badge";
 import { IconButton } from "@/ui/atoms/icon-button";
-import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from "@/ui/icons";
+import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, Squares2X2Icon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { TileCard } from "@/ui/organisms/tile-card";
@@ -78,7 +78,7 @@ function DashboardView({ slug }: { slug: string }) {
 		}
 	};
 	return (
-		<div className="flex flex-col gap-2 p-3">
+		<div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto px-4 pt-1 pb-4">
 			{view.readOnly ? <Badge variant="warning">{k.readOnly}</Badge> : null}
 			{failure ? (
 				<p role="alert" className="text-ui text-danger-text">
@@ -87,7 +87,7 @@ function DashboardView({ slug }: { slug: string }) {
 			) : null}
 			<ul
 				aria-label={`${k.tiles} (${dash.tiles.length})`}
-				className="grid gap-2"
+				className="grid gap-3"
 				style={{ gridTemplateColumns: `repeat(${COLUMNS}, minmax(0, 1fr))` }}
 			>
 				{dash.tiles.map((x) => (
@@ -161,8 +161,10 @@ export function Dashboards() {
 	return (
 		<ListDetail
 			title={k.title}
-			toolbar={
-				entries.length ? (
+			icon={<Squares2X2Icon size={16} />}
+			count={entries.length}
+			chips={
+				entries.length > 1 ? (
 					<ViewTabs
 						label={k.title}
 						value={slug ?? ""}
@@ -173,7 +175,7 @@ export function Dashboards() {
 			}
 		>
 			{failure ? (
-				<p role="alert" className="px-3 py-1 text-ui text-danger-text">
+				<p role="alert" className="px-4 pb-2 text-ui text-danger-text">
 					{failure}
 				</p>
 			) : null}

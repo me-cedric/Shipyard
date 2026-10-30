@@ -18,6 +18,7 @@ import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { Cog6ToothIcon, FolderOpenIcon, LinkIcon, SunIcon, SwatchIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { PageHeader } from "@/ui/molecules/page-header";
 import { Settings } from "@/ui/templates/settings";
 import { ProjectImport } from "./project-import";
 import { PersonasEditor } from "./personas";
@@ -134,7 +135,7 @@ function Form({
 	});
 
 	return (
-		<div className="flex flex-col gap-4 p-4">
+		<div className="flex max-w-3xl flex-col gap-4 px-4 pt-1 pb-4">
 			<Settings
 				sections={[
 					...(file
@@ -297,7 +298,7 @@ export function ProjectSettings() {
 	if (data === undefined) return null;
 	return (
 		<>
-			<h1 className="sr-only">{t.tabs.settings.project}</h1>
+			<PageHeader icon={<Cog6ToothIcon size={16} />} title={t.tabs.settings.project} />
 			{data ? (
 				// A saved file resets the draft.
 				<Form key={JSON.stringify(data.file)} file={data.file} overrides={data.overrides} />

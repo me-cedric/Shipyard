@@ -1,14 +1,29 @@
 import { format, useI18n } from "@/lib/i18n";
 import type { ChatMessage, FileDiff } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
+import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
+import { LiveDot } from "@/ui/atoms/live-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { ArrowDownTrayIcon, ArrowPathIcon, CheckIcon, ClipboardIcon } from "@/ui/icons";
+import {
+	ArrowDownTrayIcon,
+	ArrowPathIcon,
+	CheckIcon,
+	ChevronRightIcon,
+	ClipboardIcon,
+} from "@/ui/icons";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { parseReply, replyOptions } from "./reply";
 import type { Assistant } from "./use-assistant";
+
+/** A message as a bubble: the person on the right in the accent tint, the assistant on the left. */
+const BUBBLE = {
+	user: "flex max-w-[85%] flex-col gap-1 self-end rounded-2xl rounded-br-sm bg-accent-soft px-3 py-2 text-n-12",
+	assistant:
+		"flex max-w-[92%] flex-col gap-2 self-start rounded-2xl rounded-bl-sm border bg-surface-2 px-3 py-2 shadow-1",
+};
 
 /** One line when the turn ends. The person expands it to see each tool call. */
 function Trace({ steps }: { steps: ChatMessage["trace"] }) {
@@ -16,11 +31,17 @@ function Trace({ steps }: { steps: ChatMessage["trace"] }) {
 	if (!steps.length) return null;
 	const total = steps.reduce((sum, s) => sum + s.ms, 0);
 	return (
-		<details className="text-12 text-n-11">
-			<summary className="cursor-pointer">
+		<details className="group text-12 text-n-11">
+			<summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-full border bg-n-2 px-2 py-0.5 hover:text-n-12 [&::-webkit-details-marker]:hidden">
+				<span
+					aria-hidden="true"
+					className="transition-transform duration-(--duration-fast) group-open:rotate-90"
+				>
+					<ChevronRightIcon size={10} />
+				</span>
 				{t.assistant.trace} · {format(t.assistant.tools, { count: steps.length })} · {total} ms
 			</summary>
-			<ul className="flex flex-col font-mono text-11">
+			<ul className="mt-1 flex flex-col gap-0.5 rounded-md border bg-n-2 p-1.5 font-mono text-11">
 				{steps.map((s, i) => (
 					// biome-ignore lint/suspicious/noArrayIndexKey: the steps never reorder
 					<li key={i} className="flex gap-2">
@@ -37,8 +58,8 @@ function Trace({ steps }: { steps: ChatMessage["trace"] }) {
 function Code({ lang, file, text }: { lang: string; file: string; text: string }) {
 	const { t } = useI18n();
 	return (
-		<figure className="rounded-md border border-n-7">
-			<figcaption className="flex items-center gap-2 border-b border-n-7 px-2 text-12 text-n-11">
+		<figure className="overflow-hidden rounded-md border bg-surface-0">
+			<figcaption className="flex items-center gap-2 border-b bg-n-2 px-2 text-12 text-n-11">
 				<span className="min-w-0 flex-1 truncate font-mono">{file}</span>
 				<span>{lang}</span>
 				<IconButton label={t.assistant.copyCode} className="size-6" onClick={() => copyText(text)}>
@@ -121,22 +142,37 @@ function Reply({
 				</ul>
 			) : null}
 			{s.state === "done" && m.text ? (
-				<div className="flex gap-1">
-					<Button variant="ghost" onClick={() => copyText(m.text)}>
-						<ClipboardIcon size={14} />
+				<div className="-mb-1 flex gap-0.5">
+					<Button
+						variant="ghost"
+						className="h-6 px-1.5 text-12 text-n-11"
+						onClick={() => copyText(m.text)}
+					>
+						<ClipboardIcon size={12} />
 						{t.assistant.copy}
 					</Button>
-					<Button variant="ghost" disabled={!canInsert} onClick={() => insert(m.text)}>
-						<ArrowDownTrayIcon size={14} />
+					<Button
+						variant="ghost"
+						className="h-6 px-1.5 text-12 text-n-11"
+						disabled={!canInsert}
+						onClick={() => insert(m.text)}
+					>
+						<ArrowDownTrayIcon size={12} />
 						{t.assistant.insert}
 					</Button>
 				</div>
 			) : null}
 			{options.length ? (
-				<ul aria-label={t.assistant.options} className="flex flex-col items-start gap-1">
+				<ul aria-label={t.assistant.options} className="flex flex-wrap gap-1.5 pt-1">
 					{options.map((o) => (
 						<li key={o}>
-							<Button onClick={() => void a.send(o)}>{o}</Button>
+							<button
+								type="button"
+								onClick={() => void a.send(o)}
+								className="rounded-full border border-accent/40 bg-accent-soft px-2.5 py-1 text-left text-12 text-n-12 transition-colors duration-(--duration-fast) hover:bg-accent-subtle"
+							>
+								{o}
+							</button>
 						</li>
 					))}
 				</ul>
@@ -186,18 +222,16 @@ export function Messages({
 		<div
 			role="log"
 			aria-label={t.assistant.messages}
-			className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-2"
+			className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3"
 		>
 			{list.map((m, i) => (
 				<article
 					// biome-ignore lint/suspicious/noArrayIndexKey: the transcript only grows
 					key={i}
 					aria-label={m.role === "user" ? t.assistant.you : t.assistant.assistant}
-					className="flex flex-col gap-1"
+					className={m.role === "user" ? BUBBLE.user : BUBBLE.assistant}
 				>
-					<h3 className="text-11 text-n-10">
-						{m.role === "user" ? t.assistant.you : t.assistant.assistant}
-					</h3>
+					<h3 className="sr-only">{m.role === "user" ? t.assistant.you : t.assistant.assistant}</h3>
 					{m.role === "user" ? (
 						<p className="whitespace-pre-wrap text-ui">{m.text}</p>
 					) : (
@@ -213,14 +247,20 @@ export function Messages({
 				</article>
 			))}
 			{a.pending !== null ? (
-				<article className="flex flex-col gap-1">
-					<h3 className="text-11 text-n-10">{t.assistant.you}</h3>
-					<p className="whitespace-pre-wrap text-ui">{a.pending}</p>
-					<p role="status" className="flex items-center gap-2 text-12 text-n-11">
+				<>
+					<article className={BUBBLE.user}>
+						<h3 className="sr-only">{t.assistant.you}</h3>
+						<p className="whitespace-pre-wrap text-ui">{a.pending}</p>
+					</article>
+					<p
+						role="status"
+						className={cn(BUBBLE.assistant, "flex-row items-center text-12 text-n-11")}
+					>
 						<StatusDot status="active" />
 						{t.assistant.working}
+						<LiveDot className="h-3.5 w-1.5 rounded-xs" />
 					</p>
-				</article>
+				</>
 			) : null}
 			<Changed files={a.changed} />
 		</div>

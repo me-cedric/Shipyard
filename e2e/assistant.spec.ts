@@ -21,6 +21,14 @@ const say = async (page: Page, text: string) => {
 };
 
 const pick = async (page: Page, select: string, option: string) => {
+	// The mode is a row of pills; the other pickers are selects.
+	if (select === "Mode") {
+		await panel(page)
+			.getByRole("group", { name: select })
+			.getByRole("button", { name: option })
+			.click();
+		return;
+	}
 	await panel(page).getByRole("combobox", { name: select, exact: true }).click();
 	await page.getByRole("option", { name: option, exact: true }).click();
 };

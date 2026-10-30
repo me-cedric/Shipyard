@@ -1,6 +1,7 @@
+import { motion } from "motion/react";
 import { Fragment, type ReactNode, useState } from "react";
 import { NoProject } from "@/features/work/no-project";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import type { PageEntry } from "@/lib/ipc";
 import { message, slug, useCreateDoc } from "@/lib/knowledge";
 import { useActiveProject } from "@/lib/projects";
@@ -8,9 +9,10 @@ import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
-import { PlusIcon } from "@/ui/icons";
+import { PlusIcon, Squares2X2Icon } from "@/ui/icons";
+import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
-import { GroupSection } from "@/ui/molecules/group-section";
+import { LIST, useEnter } from "@/ui/motion";
 import { Dialog } from "@/ui/organisms/dialog";
 import { ListDetail } from "@/ui/templates/list-detail";
 
@@ -67,11 +69,13 @@ function NewDialog({
 }
 
 /**
- * The frame of a Knowledge view of files: the page tree, the one primary action to create a file,
- * and the open file beside the tree. A row opens its `doc:<path>` entity in the inspector (REQ-025).
+ * The frame of a Knowledge view of files: the page header with the one primary action, the page
+ * tree in a panel and the open file on a panel beside it. With `thumb`, the files show first as a
+ * grid of cards. A row opens its `doc:<path>` entity in the inspector (REQ-025).
  */
 export function ListTab({
 	title,
+	icon,
 	noun,
 	nameLabel,
 	base,
@@ -79,9 +83,11 @@ export function ListTab({
 	template,
 	toolbar,
 	notice,
+	thumb,
 	children,
 }: {
 	title: string;
+	icon: ReactNode;
 	/** The label of the one primary action. */
 	noun: string;
 	nameLabel: string;
@@ -91,15 +97,19 @@ export function ListTab({
 	rows: PageEntry[] | undefined;
 	/** The text of a new file, from its name. */
 	template: (name: string) => string;
-	/** Secondary actions, left of the primary one. */
+	/** Secondary content under the header: a strip of figures or exports. */
 	toolbar?: ReactNode;
 	/** The result of a secondary action. */
 	notice?: ReactNode;
+	/** The face of a file in the grid. Without it the tab has no grid. */
+	thumb?: (row: PageEntry) => ReactNode;
 	children: (row: PageEntry) => ReactNode;
 }) {
+	const { t } = useI18n();
 	const active = useActiveProject().data;
 	const { openRef } = useShell();
 	const createDoc = useCreateDoc();
+	const enter = useEnter();
 	const [selected, setSelected] = useState<string | null>(null);
 	const [adding, setAdding] = useState(false);
 	if (active === undefined) return null;
@@ -107,6 +117,10 @@ export function ListTab({
 	if (!rows) return null;
 	const open = rows.find((r) => r.path === selected);
 	const add = () => setAdding(true);
+	const pick = (path: string) => {
+		setSelected(path);
+		openRef(`doc:${path}`);
+	};
 
 	// A folder is a group. A page at the root has no heading.
 	const groups = new Map<string, PageEntry[]>();
@@ -122,13 +136,10 @@ export function ListTab({
 				data-nav=""
 				title={r.path}
 				aria-current={r.path === selected ? "true" : undefined}
-				onClick={() => {
-					setSelected(r.path);
-					openRef(`doc:${r.path}`);
-				}}
+				onClick={() => pick(r.path)}
 				className={cn(
-					"flex h-row w-full items-center gap-2 border-b px-3 text-left text-ui hover:bg-n-3",
-					r.path === selected && "bg-n-4",
+					"flex h-row w-full items-center gap-2 rounded-md px-2 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3",
+					r.path === selected && "bg-accent-soft",
 				)}
 			>
 				<span className="min-w-0 flex-1 truncate">{r.title}</span>
@@ -138,41 +149,90 @@ export function ListTab({
 	return (
 		<ListDetail
 			title={title}
-			toolbar={
-				<>
-					<span className="flex-1" />
-					{toolbar}
-					{rows.length === 0 ? null : (
-						<Button variant="primary" onClick={add}>
-							<PlusIcon size={14} />
-							{noun}
-						</Button>
-					)}
-				</>
+			icon={icon}
+			count={rows.length}
+			chips={
+				open && thumb ? (
+					<Button variant="ghost" onClick={() => setSelected(null)}>
+						<Squares2X2Icon size={14} />
+						{t.design.view.grid}
+					</Button>
+				) : undefined
+			}
+			action={
+				rows.length === 0 ? undefined : (
+					<Button variant="primary" onClick={add}>
+						<PlusIcon size={14} />
+						{noun}
+					</Button>
+				)
 			}
 		>
+			{toolbar ? <div className="px-4 pb-3">{toolbar}</div> : null}
 			{notice}
 			{rows.length === 0 ? (
 				<div className="p-4">
-					<EmptyState action={{ label: noun, icon: <PlusIcon size={14} />, onClick: add }} />
+					<EmptyState
+						layout={thumb ? "cards" : "rows"}
+						action={{ label: noun, icon: <PlusIcon size={14} />, onClick: add }}
+					/>
 				</div>
+			) : thumb && !open ? (
+				<motion.ul
+					aria-label={title}
+					variants={LIST}
+					initial={enter}
+					animate="shown"
+					className="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3 overflow-auto px-4 pt-1 pb-4"
+				>
+					{rows.map((r) => (
+						<li key={r.path}>
+							<Card interactive className="overflow-hidden p-0">
+								<button
+									type="button"
+									data-nav=""
+									title={r.path}
+									onClick={() => pick(r.path)}
+									className="flex w-full flex-col rounded-lg text-left"
+								>
+									<span aria-hidden="true" className="block border-b bg-surface-1 p-3">
+										{thumb(r)}
+									</span>
+									<span className="flex h-10 items-center px-3 text-ui text-n-12">
+										<span className="min-w-0 flex-1 truncate">{r.title}</span>
+									</span>
+								</button>
+							</Card>
+						</li>
+					))}
+				</motion.ul>
 			) : (
-				<div className="flex min-h-0 flex-1">
-					<nav aria-label={title} className="w-72 shrink-0 overflow-auto border-r">
+				<div className="flex min-h-0 flex-1 gap-3 px-4 pt-1 pb-4">
+					<nav
+						aria-label={title}
+						className="flex w-64 shrink-0 flex-col gap-2 overflow-auto rounded-lg border bg-surface-1 p-1.5 shadow-1"
+					>
 						{[...groups].map(([dir, list]) => (
 							<Fragment key={dir}>
 								{dir ? (
-									<GroupSection name={dir} count={list.length}>
-										<ul>{list.map(line)}</ul>
-									</GroupSection>
+									<section aria-label={dir}>
+										<h2 className="px-2 pt-1 pb-0.5 text-12 font-medium text-n-11">
+											{format(t.count, { name: dir, count: list.length })}
+										</h2>
+										<ul className="flex flex-col gap-0.5">{list.map(line)}</ul>
+									</section>
 								) : (
-									<ul>{list.map(line)}</ul>
+									<ul className="flex flex-col gap-0.5">{list.map(line)}</ul>
 								)}
 							</Fragment>
 						))}
 					</nav>
-					<div className="flex min-w-0 flex-1 flex-col overflow-auto p-3">
-						{open ? <Fragment key={open.path}>{children(open)}</Fragment> : null}
+					<div className="@container flex min-w-0 flex-1 flex-col overflow-auto rounded-lg border bg-surface-1 p-3 shadow-1">
+						{open ? (
+							<Fragment key={open.path}>{children(open)}</Fragment>
+						) : (
+							<div aria-hidden="true" className="flex-1 rounded-md bg-dots mask-radial-from-20%" />
+						)}
 					</div>
 				</div>
 			)}
@@ -184,8 +244,7 @@ export function ListTab({
 					create={async (name) => {
 						const path = `${base}/${slug(name)}.md`;
 						await createDoc(path, template(name));
-						setSelected(path);
-						openRef(`doc:${path}`);
+						pick(path);
 					}}
 				/>
 			) : null}

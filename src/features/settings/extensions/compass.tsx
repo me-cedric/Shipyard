@@ -15,10 +15,11 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import type { Status } from "@/ui/atoms/status-dot";
-import { ArrowPathIcon } from "@/ui/icons";
+import { ArrowPathIcon, CpuChipIcon, MagnifyingGlassIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { EntryRow } from "@/ui/molecules/entry-row";
-import { GroupSection } from "@/ui/molecules/group-section";
+import { PageHeader } from "@/ui/molecules/page-header";
+import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { WriteReportView } from "@/ui/molecules/write-report";
 
@@ -72,32 +73,26 @@ export function Compass({ children }: { children: ReactNode }) {
 		});
 
 	return (
-		<div className="max-w-2xl p-4">
-			<h1 className="sr-only">{t.tabs.settings["agents-rules"]}</h1>
-			{error ? (
-				<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
-			{data === undefined ? null : data === null ? (
-				<EmptyState
-					action={{
-						label: x.compass.add,
-						icon: <ArrowPathIcon size={14} />,
-						onClick: () => void write(() => unwrap(commands.compassUpgrade(null))),
-					}}
-				/>
-			) : (
-				<>
-					<div className="flex min-h-row items-center gap-2 px-3">
-						<span className="flex-1 text-ui font-medium">
-							{format(x.compass.version, { version: data.pinned ?? data.version })}
-						</span>
-						{data.stacks.map((s) => (
-							<Badge key={s} variant="info">
-								{format(x.compass.stack, { name: s })}
+		<div className="flex flex-col">
+			<PageHeader
+				icon={<CpuChipIcon size={16} />}
+				title={t.tabs.settings["agents-rules"]}
+				chips={
+					data ? (
+						<>
+							<Badge variant="accent">
+								{format(x.compass.version, { version: data.pinned ?? data.version })}
 							</Badge>
-						))}
+							{data.stacks.map((s) => (
+								<Badge key={s} variant="info">
+									{format(x.compass.stack, { name: s })}
+								</Badge>
+							))}
+						</>
+					) : undefined
+				}
+				action={
+					data ? (
 						<Button
 							variant="primary"
 							disabled={count === 0}
@@ -108,73 +103,99 @@ export function Compass({ children }: { children: ReactNode }) {
 							<ArrowPathIcon size={14} />
 							{format(x.compass.upgradeCount, { count })}
 						</Button>
-					</div>
-					{report ? <WriteReportView report={report} /> : null}
-					<div className="p-3">
-						<Input
-							label={x.compass.search}
-							value={query}
-							onChange={(e) => setQuery(e.target.value)}
-						/>
-					</div>
-					{KINDS.map((kind) => {
-						const rows = data.entries.filter((e) => e.kind === kind && match(e));
-						return (
-							<GroupSection key={kind} name={x.compass.kind[kind]} count={rows.length}>
-								<ul>
-									{rows.map((e) => (
-										<EntryRow
-											key={keyOf(e)}
-											name={e.title}
-											status={STATUS[e.state]}
-											statusLabel={x.compass.state[e.state]}
-											onOpen={() => openDetail(e.title, <EntryDetail entry={e} />)}
-											check={
-												e.state === "current"
-													? undefined
-													: {
-															label: format(x.compass.select, { name: e.title }),
-															checked: picked.has(keyOf(e)),
-															onChange: (on) => toggle(keyOf(e), on),
+					) : undefined
+				}
+			/>
+			<div className="flex max-w-4xl flex-col gap-4 px-4 pt-1 pb-4">
+				{error ? (
+					<p role="alert" className="text-ui text-danger-text">
+						{error}
+					</p>
+				) : null}
+				{data === undefined ? null : data === null ? (
+					<EmptyState
+						action={{
+							label: x.compass.add,
+							icon: <ArrowPathIcon size={14} />,
+							onClick: () => void write(() => unwrap(commands.compassUpgrade(null))),
+						}}
+					/>
+				) : (
+					<>
+						{report ? <WriteReportView report={report} /> : null}
+						<div className="relative w-72">
+							<span
+								aria-hidden="true"
+								className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-n-10"
+							>
+								<MagnifyingGlassIcon size={14} />
+							</span>
+							<Input
+								className="pl-7"
+								label={x.compass.search}
+								value={query}
+								onChange={(e) => setQuery(e.target.value)}
+							/>
+						</div>
+						{KINDS.map((kind) => {
+							const rows = data.entries.filter((e) => e.kind === kind && match(e));
+							return (
+								<Panel key={kind} title={x.compass.kind[kind]} count={rows.length} flush>
+									<ul>
+										{rows.map((e) => (
+											<EntryRow
+												key={keyOf(e)}
+												name={e.title}
+												status={STATUS[e.state]}
+												statusLabel={x.compass.state[e.state]}
+												onOpen={() => openDetail(e.title, <EntryDetail entry={e} />)}
+												check={
+													e.state === "current"
+														? undefined
+														: {
+																label: format(x.compass.select, { name: e.title }),
+																checked: picked.has(keyOf(e)),
+																onChange: (on) => toggle(keyOf(e), on),
+															}
+												}
+											>
+												{e.risk ? (
+													<Badge variant={e.risk === "high" ? "danger" : "neutral"}>
+														{format(x.compass.risk, { level: e.risk })}
+													</Badge>
+												) : null}
+												{e.writes ? <Badge>{x.compass.writes}</Badge> : null}
+												{e.suits ? <Badge variant="success">{x.compass.suits}</Badge> : null}
+												{e.state === "current" ? null : (
+													<Button
+														aria-label={format(x.compass.applyName, { name: e.title })}
+														onClick={() =>
+															void write(() => unwrap(commands.compassApply([keyOf(e)])))
 														}
-											}
-										>
-											{e.risk ? (
-												<Badge variant={e.risk === "high" ? "danger" : "neutral"}>
-													{format(x.compass.risk, { level: e.risk })}
-												</Badge>
-											) : null}
-											{e.writes ? <Badge>{x.compass.writes}</Badge> : null}
-											{e.suits ? <Badge variant="success">{x.compass.suits}</Badge> : null}
-											{e.state === "current" ? null : (
-												<Button
-													aria-label={format(x.compass.applyName, { name: e.title })}
-													onClick={() =>
-														void write(() => unwrap(commands.compassApply([keyOf(e)])))
-													}
-												>
-													{x.compass.apply}
-												</Button>
-											)}
-										</EntryRow>
-									))}
-								</ul>
-							</GroupSection>
-						);
-					})}
-				</>
-			)}
-			<GroupSection name={x.compass.roles} count={roles.data?.length ?? 0}>
-				{(roles.data ?? []).map((r) => (
-					<SettingsRow key={`${r.kind}:${r.name}`} label={r.name}>
-						<Badge>{r.kind === "role" ? x.compass.role : x.compass.skill}</Badge>
-						<span className="text-12 text-n-11">
-							{format(x.compass.loadedBy, { names: r.loaders.join(", ") })}
-						</span>
-					</SettingsRow>
-				))}
-			</GroupSection>
-			{children}
+													>
+														{x.compass.apply}
+													</Button>
+												)}
+											</EntryRow>
+										))}
+									</ul>
+								</Panel>
+							);
+						})}
+					</>
+				)}
+				<Panel title={x.compass.roles} count={roles.data?.length ?? 0} flush>
+					{(roles.data ?? []).map((r) => (
+						<SettingsRow key={`${r.kind}:${r.name}`} label={r.name}>
+							<Badge>{r.kind === "role" ? x.compass.role : x.compass.skill}</Badge>
+							<span className="text-12 text-n-11">
+								{format(x.compass.loadedBy, { names: r.loaders.join(", ") })}
+							</span>
+						</SettingsRow>
+					))}
+				</Panel>
+				{children}
+			</div>
 		</div>
 	);
 }

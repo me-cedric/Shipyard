@@ -41,7 +41,7 @@ export async function mountAssistant(props: HostProps = {}, project = true) {
 			</Providers>,
 		);
 	// The mode picker shows once the first thread is loaded. Its name is the same in both languages.
-	if (props.open !== false) await screen.findByRole("combobox", { name: "Mode" });
+	if (props.open !== false) await screen.findByRole("group", { name: "Mode" });
 	return { ...view, again };
 }
 

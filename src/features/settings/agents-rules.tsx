@@ -4,7 +4,7 @@ import { useGuard } from "@/features/work/guard";
 import { useI18n } from "@/lib/i18n";
 import { commands, type RunnerTiers, unwrap } from "@/lib/ipc";
 import { Caption, Input } from "@/ui/atoms/input";
-import { GroupSection } from "@/ui/molecules/group-section";
+import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { Compass } from "./extensions/compass";
 
@@ -51,12 +51,12 @@ export function AgentsRules() {
 	const tiers = useQuery({ queryKey: tiersKey, queryFn: () => unwrap(commands.tiersGet()) });
 	return (
 		<Compass>
-			<GroupSection name={t.settings.tiers.name} count={tiers.data?.length ?? 0}>
+			<Panel title={t.settings.tiers.name} count={tiers.data?.length ?? 0} flush>
 				{(tiers.data ?? []).map((row) => (
 					// The saved row keys the draft: a refused edit keeps the typed text until the person fixes it.
 					<TierRow key={row.runner} row={row} />
 				))}
-			</GroupSection>
+			</Panel>
 		</Compass>
 	);
 }

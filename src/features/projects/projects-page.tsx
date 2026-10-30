@@ -4,7 +4,8 @@ import { commands, type ProjectCard, unwrap } from "@/lib/ipc";
 import { useProjectActions, useProjectCards } from "@/lib/projects";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { FolderOpenIcon, LinkIcon, TrashIcon } from "@/ui/icons";
+import { IconButton } from "@/ui/atoms/icon-button";
+import { ClockIcon, FolderOpenIcon, LinkIcon, TrashIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { PageHeader } from "@/ui/molecules/page-header";
@@ -19,24 +20,47 @@ function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: string) 
 	const { switchTo, remove } = useProjectActions();
 	const [open, setOpen] = useState(false);
 	return (
-		<Card className="flex flex-col gap-2 p-3">
-			<div className="flex items-center gap-2">
-				<span className="truncate text-14 font-medium text-n-12">{p.name}</span>
-				{p.branch ? <Badge className="font-mono">{p.branch}</Badge> : null}
+		<Card className="flex flex-col overflow-hidden">
+			<div className="flex items-start gap-3 p-3">
+				<span
+					aria-hidden="true"
+					className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent-gradient font-mono text-16 text-accent-fg shadow-glow"
+				>
+					{p.name.slice(0, 1).toUpperCase()}
+				</span>
+				<span className="flex min-w-0 flex-1 flex-col gap-0.5">
+					<span className="flex items-center gap-2">
+						<span className="truncate text-14 font-medium text-n-12">{p.name}</span>
+						{p.branch ? <Badge className="font-mono">{p.branch}</Badge> : null}
+					</span>
+					<span className="truncate font-mono text-11 text-n-10">{p.path}</span>
+				</span>
 			</div>
-			<p className="truncate text-ui text-n-11">
-				{p.lastCommit
-					? `${p.lastCommit}${p.lastCommitTime ? ` · ${when(p.lastCommitTime, lang)}` : ""}`
-					: w.noCommit}
+			<p className="flex items-center gap-1.5 truncate px-3 text-ui text-n-11">
+				<ClockIcon size={12} />
+				<span className="truncate">
+					{p.lastCommit
+						? `${p.lastCommit}${p.lastCommitTime ? ` · ${when(p.lastCommitTime, lang)}` : ""}`
+						: w.noCommit}
+				</span>
 			</p>
-			<div className="flex flex-wrap items-center gap-1">
-				{p.ahead > 0 ? <Badge>{format(w.ahead, { count: p.ahead })}</Badge> : null}
-				{p.behind > 0 ? <Badge>{format(w.behind, { count: p.behind })}</Badge> : null}
-				{p.changes > 0 ? <Badge>{format(w.changes, { count: p.changes })}</Badge> : null}
+			<div className="flex min-h-7 flex-wrap items-center gap-1 px-3 pt-2">
+				{p.ahead > 0 ? <Badge variant="info">{format(w.ahead, { count: p.ahead })}</Badge> : null}
+				{p.behind > 0 ? (
+					<Badge variant="warning">{format(w.behind, { count: p.behind })}</Badge>
+				) : null}
+				{p.changes > 0 ? (
+					<Badge variant="accent">{format(w.changes, { count: p.changes })}</Badge>
+				) : null}
 			</div>
-			<div className="flex flex-wrap items-center gap-1">
+			{open ? (
+				<dl className="mx-3 mt-2 grid grid-cols-[auto_1fr] gap-x-3 rounded-md bg-n-2 px-2 py-1.5 text-12 text-n-11">
+					<dt>{w.remote}</dt>
+					<dd className="truncate font-mono">{p.webUrl ?? "—"}</dd>
+				</dl>
+			) : null}
+			<div className="mt-3 flex items-center gap-1 border-t bg-surface-1 px-2 py-1.5">
 				<Button
-					variant="primary"
 					aria-label={format(w.openName, { name: p.name })}
 					onClick={() => void switchTo(p.id).catch((e: unknown) => onError(String(e)))}
 				>
@@ -51,10 +75,10 @@ function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: string) 
 				>
 					{open ? w.hideDetails : w.details}
 				</Button>
+				<span className="flex-1" />
 				{p.webUrl ? (
-					<Button
-						variant="ghost"
-						aria-label={`${w.openRemote} ${p.name}`}
+					<IconButton
+						label={`${w.openRemote} ${p.name}`}
 						onClick={() =>
 							void unwrap(commands.projectOpenRemote(p.id)).catch((e: unknown) =>
 								onError(String(e)),
@@ -62,26 +86,12 @@ function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: string) 
 						}
 					>
 						<LinkIcon size={14} />
-						{w.openRemote}
-					</Button>
+					</IconButton>
 				) : null}
-				<Button variant="ghost" aria-label={`${w.remove} ${p.name}`} onClick={() => void remove(p)}>
+				<IconButton label={`${w.remove} ${p.name}`} onClick={() => void remove(p)}>
 					<TrashIcon size={14} />
-					{w.remove}
-				</Button>
+				</IconButton>
 			</div>
-			{open ? (
-				<dl className="grid grid-cols-[auto_1fr] gap-x-3 text-12 text-n-11">
-					<dt>{w.folder}</dt>
-					<dd className="truncate font-mono">{p.path}</dd>
-					{p.webUrl ? (
-						<>
-							<dt>{w.remote}</dt>
-							<dd className="truncate font-mono">{p.webUrl}</dd>
-						</>
-					) : null}
-				</dl>
-			) : null}
 		</Card>
 	);
 }
@@ -124,7 +134,7 @@ export function ProjectsPage() {
 				<div className="flex flex-col gap-4 px-4">
 					{[...groups].map(([host, list]) => (
 						<Panel key={host} title={host || t.workspace.page.local} count={list.length}>
-							<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+							<div className="grid gap-3 p-1 md:grid-cols-2 xl:grid-cols-3">
 								{list.map((p) => (
 									<ProjectCardView key={p.id} p={p} onError={setError} />
 								))}

@@ -3,12 +3,15 @@ import { useCommitDetail, useCommitDiff, useLog } from "@/lib/code";
 import { graph } from "@/lib/code/graph";
 import { format, useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
+import { Avatar } from "@/ui/atoms/avatar";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { ClockIcon } from "@/ui/icons";
+import { ClockIcon, DocumentTextIcon } from "@/ui/icons";
 import { CommitRow } from "@/ui/molecules/commit-row";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { FileRow } from "@/ui/molecules/file-row";
 import { PageHeader } from "@/ui/molecules/page-header";
+import { Panel } from "@/ui/molecules/panel";
 import { withProject } from "./project-gate";
 
 /** One colour per lane of the graph, in turn. */
@@ -28,23 +31,30 @@ function Detail({ sha }: { sha: string }) {
 	if (!detail) return null;
 	const { info } = detail;
 	return (
-		<div>
-			<div className="border-b px-4 py-3">
+		<div className="flex flex-col gap-3 p-3">
+			<div className="flex flex-col gap-2 rounded-lg border bg-surface-2 p-3 shadow-1">
 				<h2 className="text-16 font-semibold text-n-12">{info.summary}</h2>
 				{info.description ? (
-					<p className="py-1 text-ui whitespace-pre-wrap">{info.description}</p>
+					<p className="text-ui whitespace-pre-wrap text-n-12">{info.description}</p>
 				) : null}
-				<p className="text-12 text-n-11">
-					<span className="font-mono">{info.short}</span> · {info.author_name} ·{" "}
-					{new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" }).format(
-						info.time * 1000,
-					)}
+				<p className="flex flex-wrap items-center gap-2 text-12 text-n-11">
+					<Avatar name={info.author_name} className="size-5" />
+					{info.author_name}
+					<Badge className="font-mono">{info.short}</Badge>
+					<span className="flex items-center gap-1">
+						<ClockIcon size={12} />
+						{new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" }).format(
+							info.time * 1000,
+						)}
+					</span>
 				</p>
 			</div>
-			<section aria-label={t.code.files}>
-				<h3 className="px-3 py-1 text-12 font-medium text-n-11">
-					{format(t.count, { name: t.code.files, count: detail.files.length })}
-				</h3>
+			<Panel
+				title={t.code.files}
+				count={detail.files.length}
+				icon={<DocumentTextIcon size={14} />}
+				flush
+			>
 				{detail.files.map((f) => (
 					<FileRow
 						key={f.path}
@@ -56,7 +66,7 @@ function Detail({ sha }: { sha: string }) {
 						menu={menu("file", { "copy-path": () => copyText(f.path) })}
 					/>
 				))}
-			</section>
+			</Panel>
 			{diff ? (
 				<DiffView
 					text={diff.text}

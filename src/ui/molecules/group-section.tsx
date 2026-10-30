@@ -14,7 +14,7 @@ export function GroupSection({
 	const { t } = useI18n();
 	return (
 		<section aria-label={name}>
-			<h2 className="border-b bg-n-2 px-3 py-1 text-12 font-medium text-n-11">
+			<h2 className="flex h-8 items-center gap-2 px-3 pt-2 text-12 font-medium text-n-11">
 				{format(t.count, { name, count })}
 			</h2>
 			{children}

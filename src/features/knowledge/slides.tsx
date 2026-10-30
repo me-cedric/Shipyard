@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
-import { commands } from "@/lib/ipc";
+import { commands, unwrap } from "@/lib/ipc";
 import { DOC_DIR, useDocFile, useDocList, useSlideTheme } from "@/lib/knowledge";
 import { Button } from "@/ui/atoms/button";
-import { PlayIcon } from "@/ui/icons";
+import { PlayIcon, PresentationChartIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
 import { ListTab } from "./list-tab";
@@ -76,7 +76,48 @@ function DeckEditor({ path, title }: { path: string; title: string }) {
 	);
 }
 
-/** Knowledge / Slides: the decks of the repository, one theme for all (REQ-017). */
+/** The face of a deck in the grid: its first slide on a 16:9 frame in the deck theme, and the count. */
+function DeckThumb({ path }: { path: string }) {
+	const theme = useSlideTheme().data?.value;
+	const text = useQuery({
+		queryKey: ["knowledge", "thumb", path],
+		queryFn: () => unwrap(commands.docReadOne(path)),
+	}).data?.text;
+	const deck = useQuery({
+		queryKey: ["knowledge", "deck", text],
+		queryFn: () => commands.slideParse(text ?? ""),
+		enabled: text !== undefined,
+	}).data;
+	const first = (deck?.slides[0] ?? "").split("\n").filter((l) => l.trim());
+	const head = first.find((l) => l.startsWith("#"))?.replace(/^#+\s*/, "") ?? deck?.title ?? "";
+	const rest = first.filter((l) => !l.startsWith("#")).slice(0, 3);
+	return (
+		<span
+			className="relative flex aspect-video flex-col justify-center gap-1.5 overflow-hidden rounded-md border px-4 shadow-1"
+			style={
+				theme
+					? { background: theme.background, color: theme.text, fontFamily: theme.font }
+					: undefined
+			}
+		>
+			<span
+				className="absolute inset-x-0 top-0 h-1"
+				style={{ background: theme?.accent ?? "var(--accent)" }}
+			/>
+			<span className="truncate text-16 font-semibold">{head}</span>
+			{rest.map((l) => (
+				<span key={l} className="truncate text-11 opacity-70">
+					{l.replace(/^[-*]\s*/, "")}
+				</span>
+			))}
+			<span className="absolute right-2 bottom-1.5 rounded-full bg-surface-0/70 px-1.5 font-mono text-11 text-n-12">
+				{deck?.slides.length ?? 0}
+			</span>
+		</span>
+	);
+}
+
+/** Knowledge / Slides: the decks of the repository as a grid, one theme for all (REQ-017). */
 export function Slides() {
 	const { t } = useI18n();
 	const k = t.knowledge.slides;
@@ -84,11 +125,13 @@ export function Slides() {
 	return (
 		<ListTab
 			title={k.title}
+			icon={<PresentationChartIcon size={16} />}
 			noun={k.newDeck}
 			nameLabel={k.name}
 			base={DOC_DIR.slides}
 			rows={rows}
 			template={TEMPLATE}
+			thumb={(row) => <DeckThumb path={row.path} />}
 		>
 			{(row) => <DeckEditor path={row.path} title={row.title} />}
 		</ListTab>

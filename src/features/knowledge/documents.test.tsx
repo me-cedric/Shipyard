@@ -21,11 +21,11 @@ describe("Knowledge / Documents", () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
 		const exported = () => mockState().knowledge.exported.map((e) => e.kind);
-		await user.click(await screen.findByRole("button", { name: "Architecture dossier" }));
+		await user.click(await screen.findByRole("button", { name: "Export Architecture dossier" }));
 		await waitFor(() => expect(exported()).toEqual(["dossier"]));
-		await user.click(screen.getByRole("button", { name: "Functional documentation" }));
+		await user.click(screen.getByRole("button", { name: "Export Functional documentation" }));
 		await waitFor(() => expect(exported()).toEqual(["dossier", "functional"]));
-		await user.click(screen.getByRole("button", { name: "Quality sheet" }));
+		await user.click(screen.getByRole("button", { name: "Export Quality sheet" }));
 		await waitFor(() => expect(exported()).toEqual(["dossier", "functional", "sheet"]));
 		expect(await screen.findByText("Exported: /mock/costing.xlsx")).toBeInTheDocument();
 	});
@@ -34,7 +34,7 @@ describe("Knowledge / Documents", () => {
 		const user = userEvent.setup();
 		await mountKnowledge("documents");
 		mockState().nextFile = "/mock/quality.txt";
-		await user.click(await screen.findByRole("button", { name: "Quality sheet" }));
+		await user.click(await screen.findByRole("button", { name: "Export Quality sheet" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent(".xlsx");
 		expect(mockState().knowledge.exported).toHaveLength(0);
 	});

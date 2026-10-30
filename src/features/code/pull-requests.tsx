@@ -16,11 +16,18 @@ import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { Textarea } from "@/ui/atoms/textarea";
-import { ArrowsRightLeftIcon, CheckIcon, PlusIcon } from "@/ui/icons";
+import {
+	ArrowsRightLeftIcon,
+	ChatBubbleIcon,
+	CheckIcon,
+	ClockIcon,
+	DocumentTextIcon,
+	PlusIcon,
+	UsersIcon,
+} from "@/ui/icons";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { FileRow, type FileState } from "@/ui/molecules/file-row";
-import { GroupSection } from "@/ui/molecules/group-section";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { PullRow } from "@/ui/molecules/pull-row";
@@ -202,6 +209,9 @@ function Reply({ number }: { number: number }) {
 	);
 }
 
+/** One line of a detail panel. */
+const ROW = "flex min-h-row items-center gap-2 border-b px-3 text-ui last:border-b-0";
+
 /** One pull request: description, links, files with a diff, commits, checks, conversation, verdicts. */
 function Detail({ number }: { number: number }) {
 	const { t } = useI18n();
@@ -211,8 +221,8 @@ function Detail({ number }: { number: number }) {
 	if (!d) return null;
 	const current = d.files.find((f) => f.path === file) ?? d.files[0];
 	return (
-		<div>
-			<div className="flex flex-col gap-2 border-b px-4 py-3">
+		<div className="flex flex-col gap-3 p-3">
+			<div className="flex flex-col gap-2 rounded-lg border bg-surface-2 p-3 shadow-1">
 				<h2 className="text-16 font-semibold text-n-12">{d.title}</h2>
 				<p className="flex flex-wrap items-center gap-2 text-12 text-n-11">
 					<Avatar name={d.author} className="size-5" />
@@ -229,7 +239,12 @@ function Detail({ number }: { number: number }) {
 			</div>
 			<MergeBar key={`${d.number}${d.state}${d.draft}`} d={d} />
 			<PrAi d={d} />
-			<GroupSection name={t.forge.files} count={d.files.length}>
+			<Panel
+				title={t.forge.files}
+				count={d.files.length}
+				icon={<DocumentTextIcon size={14} />}
+				flush
+			>
 				{d.files.map((f) => (
 					<FileRow
 						key={f.path}
@@ -240,9 +255,9 @@ function Detail({ number }: { number: number }) {
 						onSelect={() => setFile(f.path)}
 					/>
 				))}
-			</GroupSection>
+			</Panel>
 			{current ? (
-				<div className="px-3 py-1">
+				<div>
 					<Button variant="ghost" onClick={() => setViewing(current.path)}>
 						{format(t.forge.openFile, { path: current.path })}
 					</Button>
@@ -256,17 +271,17 @@ function Detail({ number }: { number: number }) {
 					truncatedLabel=""
 				/>
 			) : null}
-			<GroupSection name={t.forge.commits} count={d.commits.length}>
+			<Panel title={t.forge.commits} count={d.commits.length} icon={<ClockIcon size={14} />} flush>
 				{d.commits.map((c) => (
-					<div key={c.reference} className="flex min-h-row items-center gap-2 px-3 text-ui">
+					<div key={c.reference} className={ROW}>
 						<RefChip refId={c.reference} state="resolved" />
 						<span className="truncate">{c.summary}</span>
 					</div>
 				))}
-			</GroupSection>
-			<GroupSection name={t.forge.checks} count={d.checks.length}>
+			</Panel>
+			<Panel title={t.forge.checks} count={d.checks.length} icon={<CheckIcon size={14} />} flush>
 				{d.checks.map((c) => (
-					<div key={c.name} className="flex min-h-row items-center gap-2 px-3 text-ui">
+					<div key={c.name} className={ROW}>
 						<StatusDot
 							status={CI_STATUS[c.state] ?? "idle"}
 							label={t.forge.check[c.state as "passing"]}
@@ -274,10 +289,16 @@ function Detail({ number }: { number: number }) {
 						{c.name}
 					</div>
 				))}
-			</GroupSection>
-			<GroupSection name={t.forge.verdicts} count={d.verdicts.length}>
+			</Panel>
+			<Panel
+				title={t.forge.verdicts}
+				count={d.verdicts.length}
+				icon={<UsersIcon size={14} />}
+				flush
+			>
 				{d.verdicts.map((v) => (
-					<div key={v.reviewer} className="flex min-h-row items-center gap-2 px-3 text-ui">
+					<div key={v.reviewer} className={ROW}>
+						<Avatar name={v.reviewer} className="size-5" />
 						<StatusDot
 							status={REVIEW_STATUS[v.state] ?? "idle"}
 							label={t.forge.verdict[v.state as "approved"]}
@@ -285,10 +306,18 @@ function Detail({ number }: { number: number }) {
 						{v.reviewer}
 					</div>
 				))}
-			</GroupSection>
-			<GroupSection name={t.forge.threads} count={d.threads.length}>
+			</Panel>
+			<Panel
+				title={t.forge.threads}
+				count={d.threads.length}
+				icon={<ChatBubbleIcon size={14} />}
+				flush
+			>
 				{d.threads.map((th) => (
-					<div key={th.id} className="border-b px-3 py-1 text-ui">
+					<div
+						key={th.id}
+						className="flex flex-col gap-1 border-b px-3 py-2 text-ui last:border-b-0"
+					>
 						{th.path ? (
 							<p className="font-mono text-12 text-n-11">
 								{th.path}
@@ -300,7 +329,7 @@ function Detail({ number }: { number: number }) {
 						))}
 					</div>
 				))}
-			</GroupSection>
+			</Panel>
 			<Reply number={d.number} />
 			{viewing ? <FileDialog path={viewing} onClose={() => setViewing(null)} /> : null}
 		</div>

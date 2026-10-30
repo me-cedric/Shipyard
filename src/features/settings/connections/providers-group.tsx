@@ -285,8 +285,8 @@ export function ProvidersGroup({
 	const rows = useProviders().data ?? [];
 	if (rows.length === 0) return null;
 	return (
-		<section aria-labelledby="connections-provider">
-			<h2 id="connections-provider" className="px-3 py-1 text-12 font-medium text-n-11">
+		<section aria-labelledby="connections-provider" className="flex flex-col gap-2">
+			<h2 id="connections-provider" className="px-1 text-12 font-medium text-n-11">
 				{format(t.count, { name: t.connections.group.provider, count: rows.length })}
 			</h2>
 			{rows.map((p) => (

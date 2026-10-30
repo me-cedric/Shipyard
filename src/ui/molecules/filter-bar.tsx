@@ -22,7 +22,7 @@ export function FilterBar({
 }) {
 	const { t } = useI18n();
 	return (
-		<search className="flex items-center gap-2">
+		<search className="flex flex-wrap items-center gap-1.5">
 			<div className="relative w-44">
 				<span
 					aria-hidden="true"
@@ -43,7 +43,7 @@ export function FilterBar({
 					pressed={active.includes(f.id)}
 					onPressedChange={() => onToggle(f.id)}
 					className={cn(
-						"inline-flex h-row items-center gap-1.5 rounded-md border border-n-7 px-2 text-ui text-n-11 transition-colors duration-(--duration-fast) hover:bg-n-3 data-[pressed]:bg-accent-subtle data-[pressed]:text-accent-text",
+						"inline-flex h-7 items-center gap-1.5 rounded-full border border-n-7 px-2.5 text-12 whitespace-nowrap text-n-11 transition-colors duration-(--duration-fast) hover:bg-n-3 data-[pressed]:border-accent/40 data-[pressed]:bg-accent-soft data-[pressed]:text-n-12",
 					)}
 				>
 					{f.icon}

@@ -216,8 +216,8 @@ export function McpGroup({
 		await qc.invalidateQueries({ queryKey: mcpKeys.list });
 	};
 	return (
-		<section aria-labelledby="connections-mcp">
-			<div className="flex items-center justify-between px-3">
+		<section aria-labelledby="connections-mcp" className="flex flex-col gap-2">
+			<div className="flex items-center justify-between px-1">
 				<h2 id="connections-mcp" className="py-1 text-12 font-medium text-n-11">
 					{format(t.count, { name: t.connections.group.mcp, count: rows.length })}
 				</h2>

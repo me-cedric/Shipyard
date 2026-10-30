@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useResolvedRef } from "@/lib/refs";
+import { cn } from "@/lib/utils";
 import { RefChip } from "../molecules/ref-chip";
 
 type Block =
@@ -70,19 +71,42 @@ function Inline({ text, kinds }: { text: string; kinds: RegExp }) {
 
 const HEAD = ["text-16", "text-14", "text-ui"];
 
-/** The preview of a Markdown text. */
-export function MarkdownView({ source, label }: { source: string; label: string }) {
+/**
+ * The preview of a Markdown text. With `anchor`, the heading of block `i` gets the id
+ * `<anchor>-<i>`, so a table of contents can scroll to it. `reading` sets the reading type.
+ */
+export function MarkdownView({
+	source,
+	label,
+	anchor,
+	reading,
+}: {
+	source: string;
+	label: string;
+	anchor?: string;
+	reading?: boolean;
+}) {
 	const { t } = useI18n();
 	const kinds = new RegExp(`\\b((?:${Object.keys(t.refKind).join("|")}):[\\w./#@-]*[\\w/#])`);
 	const inline = (text: string): ReactNode => <Inline text={text} kinds={kinds} />;
 	return (
-		<article aria-label={label} className="flex flex-col gap-2 text-ui">
+		<article
+			aria-label={label}
+			className={cn(
+				"flex flex-col gap-2 text-ui",
+				reading && "gap-3 text-14 leading-6 text-n-12 [&_h2]:mt-2 [&_h2]:text-20",
+			)}
+		>
 			{blocks(source).map((b, i) => {
 				const key = i;
 				if (b.type === "h") {
 					const H = `h${b.level + 1}` as "h2" | "h3" | "h4";
 					return (
-						<H key={key} className={`font-medium ${HEAD[b.level - 1]}`}>
+						<H
+							key={key}
+							id={anchor ? `${anchor}-${i}` : undefined}
+							className={`scroll-mt-3 font-medium ${HEAD[b.level - 1]}`}
+						>
 							{inline(b.text)}
 						</H>
 					);

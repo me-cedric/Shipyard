@@ -3,7 +3,8 @@ import { format, useI18n } from "@/lib/i18n";
 import { commands, type ExportText, saveWorkbook, unwrap } from "@/lib/ipc";
 import { DOC_DIR, message, saveDocx, useDocList } from "@/lib/knowledge";
 import { Button } from "@/ui/atoms/button";
-import { ArrowDownTrayIcon } from "@/ui/icons";
+import { ArrowDownTrayIcon, DocumentTextIcon } from "@/ui/icons";
+import { StatStrip } from "@/ui/molecules/stat-strip";
 import { ListTab } from "./list-tab";
 import { PageEditor } from "./pages";
 
@@ -39,6 +40,8 @@ export function Documents() {
 		{
 			id: "dossier",
 			label: k.dossier,
+			ext: "DOCX",
+			tone: "accent" as const,
 			go: run("dossier", "docx", async (path) =>
 				unwrap(commands.exportDossierFile(words(k.dossier, k.text.dossier), [], path)),
 			),
@@ -46,6 +49,8 @@ export function Documents() {
 		{
 			id: "functional",
 			label: k.functional,
+			ext: "DOCX",
+			tone: "info" as const,
 			go: run("functional", "docx", async (path) =>
 				unwrap(commands.exportFunctionalFile(words(k.functional, k.text.functional), path)),
 			),
@@ -53,6 +58,8 @@ export function Documents() {
 		{
 			id: "sheet",
 			label: k.sheet,
+			ext: "XLSX",
+			tone: "success" as const,
 			go: run("quality", "xlsx", async (path) => {
 				// The sheet is the quality tile: the numbers that the project already holds.
 				const tile = await unwrap(commands.dashboardTile("quality"));
@@ -69,22 +76,39 @@ export function Documents() {
 	return (
 		<ListTab
 			title={k.title}
+			icon={<DocumentTextIcon size={16} />}
 			noun={k.newDocument}
 			nameLabel={k.name}
 			base={DOC_DIR.documents}
 			rows={rows}
 			template={(name) => `# ${name}\n`}
-			toolbar={exports.map((x) => (
-				<Button key={x.id} onClick={() => void x.go()}>
-					<ArrowDownTrayIcon size={14} />
-					{x.label}
-				</Button>
-			))}
+			toolbar={
+				<StatStrip
+					items={exports.map((x) => ({
+						label: x.label,
+						value: x.ext,
+						tone: x.tone,
+						icon: <DocumentTextIcon size={12} />,
+						extra: (
+							<Button
+								variant="ghost"
+								aria-label={`${k.export} ${x.label}`}
+								className="-ml-2 h-6 px-2 text-12"
+								onClick={() => void x.go()}
+							>
+								<ArrowDownTrayIcon size={12} />
+								{k.export}
+							</Button>
+						),
+					}))}
+					className="lg:grid-cols-3"
+				/>
+			}
 			notice={
 				note ? (
 					<p
 						role={note.ok ? "status" : "alert"}
-						className={`px-3 py-1 text-ui ${note.ok ? "text-n-11" : "text-danger-text"}`}
+						className={`px-4 pb-2 text-ui ${note.ok ? "text-n-11" : "text-danger-text"}`}
 					>
 						{note.text}
 					</p>

@@ -61,6 +61,8 @@ const VIEWS: Partial<Record<string, ComponentType>> = {
 	"work/plan": Plan,
 	"work/estimates": Estimates,
 	"work/team": Team,
+	// One team file, one editor: Settings / Team opens the same view as Work / Team.
+	"settings/team": Team,
 	"work/time": Time,
 	"factory/runs": Runs,
 	"factory/workflows": Workflows,

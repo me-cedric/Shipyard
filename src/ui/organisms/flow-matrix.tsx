@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Badge } from "../atoms/badge";
 import { Button } from "../atoms/button";
 import { IconButton } from "../atoms/icon-button";
 import { Input } from "../atoms/input";
@@ -24,6 +25,9 @@ import {
 export type FlowDraft = Omit<FlowRow, "id">;
 /** The error of one field. The id of a new row is `""`. */
 export type FlowError = { id: string; field: FlowField; message: string };
+
+/** Allow and deny as tinted chips. Another action stays neutral. */
+const TINT: Record<string, "success" | "danger"> = { allow: "success", deny: "danger" };
 
 const TEXT: FlowField[] = ["source", "destination", "network", "protocol", "port"];
 const EMPTY: FlowDraft = {
@@ -177,7 +181,9 @@ export function FlowMatrix({
 										{r[f]}
 									</td>
 								))}
-								<td className="px-2 py-1">{actionName(r.action)}</td>
+								<td className="px-2 py-1">
+									<Badge variant={TINT[r.action] ?? "neutral"}>{actionName(r.action)}</Badge>
+								</td>
 								<td className="px-2 py-1">
 									<div className="flex justify-end">
 										<IconButton

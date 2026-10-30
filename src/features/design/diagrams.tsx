@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import {
 	type Artifact,
 	DESIGN_DIR,
@@ -8,6 +9,7 @@ import {
 	useDesignList,
 } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
+import { commands, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { ShareIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
@@ -46,6 +48,25 @@ function Thumb({ format }: { format: string }) {
 			<rect x="70" y="12" width="36" height="56" rx="4" className="fill-current/10" />
 			<rect x="118" y="28" width="36" height="24" rx={round ? 12 : 4} className="fill-current/15" />
 		</svg>
+	);
+}
+
+/** The face of a diagram in the grid: the real picture when the app renders the format, else the ghost. */
+function Face({ a }: { a: Artifact | undefined }) {
+	const mermaid = a?.format === "mermaid" && !a.issue;
+	const text = useQuery({
+		queryKey: ["design", "thumb", a?.path],
+		queryFn: () => unwrap(commands.designRead(a?.path ?? "")),
+		enabled: mermaid,
+	}).data?.text;
+	if (!mermaid || !text) return <Thumb format={a?.format ?? ""} />;
+	return (
+		<span
+			aria-hidden="true"
+			className="pointer-events-none block h-28 w-full overflow-hidden px-2 [&_[role=img]]:min-h-0 [&_[role=img]]:overflow-hidden [&_[role=img]]:border-0 [&_[role=img]]:bg-transparent [&_[role=img]]:p-0 [&_svg]:max-h-28"
+		>
+			<MermaidView source={text} label={a.title} />
+		</span>
 	);
 }
 
@@ -128,7 +149,7 @@ export function Diagrams() {
 				tone: FACE[a.format ?? ""]?.tone,
 				issue: a.issue,
 			}))}
-			thumb={(row) => <Thumb format={rows.find((x) => x.reference === row.ref)?.format ?? ""} />}
+			thumb={(row) => <Face a={rows.find((x) => x.reference === row.ref)} />}
 			create={{
 				formats: (["excalidraw", "mermaid"] as const).map((f) => ({
 					value: f,

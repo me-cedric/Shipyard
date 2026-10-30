@@ -15,8 +15,9 @@ import {
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
+import { Progress } from "@/ui/atoms/progress";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { ChevronLeftIcon } from "@/ui/icons";
+import { ChevronLeftIcon, DocumentTextIcon } from "@/ui/icons";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { Dialog } from "@/ui/organisms/dialog";
 import { FileEditor } from "./file-editor";
@@ -116,14 +117,30 @@ export function ChangeDetail({ change, onBack }: { change: Change; onBack: () =>
 			}
 		});
 
+	const done = change.artifacts.filter((a) => a.status === "done").length;
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
-			<h1 className="sr-only">{change.id}</h1>
-			<div className="flex min-h-0 flex-1 gap-3">
-				<nav aria-label={s.artifacts} className="flex w-56 shrink-0 flex-col gap-1">
-					<IconButton label={s.back} onClick={onBack}>
-						<ChevronLeftIcon size={14} />
-					</IconButton>
+		<div className="flex min-h-0 flex-1 flex-col">
+			<div className="flex min-h-14 items-center gap-3 px-4 pt-3 pb-1">
+				<IconButton label={s.back} onClick={onBack}>
+					<ChevronLeftIcon size={16} />
+				</IconButton>
+				<span
+					aria-hidden="true"
+					className="flex size-8 items-center justify-center rounded-md bg-accent-gradient text-accent-fg shadow-glow"
+				>
+					<DocumentTextIcon size={16} />
+				</span>
+				<h1 className="font-mono text-20 text-n-12">{change.id}</h1>
+				<Progress value={done} max={change.artifacts.length} label={s.artifacts} className="w-32" />
+				<span className="font-mono text-12 text-n-11">
+					{done}/{change.artifacts.length}
+				</span>
+			</div>
+			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-1 pb-4">
+				<nav
+					aria-label={s.artifacts}
+					className="flex w-60 shrink-0 flex-col gap-0.5 overflow-auto rounded-lg border bg-surface-1 p-1.5 shadow-1"
+				>
 					{change.artifacts.map((a) => (
 						<button
 							type="button"
@@ -133,7 +150,7 @@ export function ChangeDetail({ change, onBack }: { change: Change; onBack: () =>
 								setPath(a.path);
 								setLine(null);
 							}}
-							className="flex h-row items-center gap-2 rounded-md px-2 text-left text-ui hover:bg-n-3 aria-[current]:bg-n-4"
+							className="flex h-row items-center gap-2 rounded-md px-2 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3 aria-[current]:bg-accent-soft"
 						>
 							<StatusDot status={DOT[a.status]} label={`${nameOf(a)}: ${s.status[a.status]}`} />
 							<span className="min-w-0 flex-1 truncate">{nameOf(a)}</span>
@@ -142,7 +159,7 @@ export function ChangeDetail({ change, onBack }: { change: Change; onBack: () =>
 					))}
 				</nav>
 				{current ? (
-					<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
+					<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-auto rounded-lg border bg-surface-1 p-3 shadow-1">
 						<FileEditor
 							key={current.path}
 							path={artifactPath(change, current)}

@@ -1,14 +1,19 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, type Finding_Serialize, type Group, unwrap } from "@/lib/ipc";
+import { commands, type Finding_Serialize, type Group, type Severity, unwrap } from "@/lib/ipc";
 import { projectKeys, useHealth, worstStatus } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
+import { Ring } from "@/ui/atoms/ring";
 import { Skeleton } from "@/ui/atoms/skeleton";
 import { StatusDot } from "@/ui/atoms/status-dot";
+import { CommandLineIcon, DocumentTextIcon, LinkIcon, ShieldCheckIcon } from "@/ui/icons";
 import { FindingRow } from "@/ui/molecules/finding-row";
+import { PageHeader } from "@/ui/molecules/page-header";
+import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { StatStrip } from "@/ui/molecules/stat-strip";
 
 const GROUPS: Group[] = ["compliance", "tools", "refs", "generated"];
 const GHOST_ROWS = [0, 1, 2, 3, 4];
@@ -84,38 +89,79 @@ function Finding({ finding }: { finding: Finding_Serialize }) {
 	);
 }
 
-/** Settings / Health: four groups with a count each, and one fix action for each finding. */
+const ICON: Record<Group, ReactNode> = {
+	compliance: <ShieldCheckIcon size={14} />,
+	tools: <CommandLineIcon size={14} />,
+	refs: <LinkIcon size={14} />,
+	generated: <DocumentTextIcon size={14} />,
+};
+const SEVERITIES: Severity[] = ["error", "warning", "info"];
+const TONE = { error: "danger", warning: "warning", info: "info" } as const;
+
+/**
+ * Settings / Health: a score ring (the groups with no finding), the count of each severity, then
+ * four groups with a count each, and one fix action for each finding.
+ */
 export function Health() {
 	const { t } = useI18n();
+	const s = t.settings.health;
 	const health = useHealth();
 	const findings = health.data;
 	if (findings === undefined) return null;
+	const clean = GROUPS.filter((g) => !findings.some((f) => f.group === g)).length;
 	return (
-		<div className="flex max-w-2xl flex-col gap-6 p-4">
-			<h1 className="sr-only">{t.tabs.settings.health}</h1>
-			{findings.length === 0 ? (
-				<div className="flex flex-col gap-1">
-					<StatusDot status="success" className="size-4" />
-					<div aria-hidden="true" className="flex flex-col gap-1">
-						{GHOST_ROWS.map((i) => (
-							<Skeleton key={i} className="h-row" style={{ opacity: 1 - i * 0.18 }} />
-						))}
+		<div className="flex flex-col">
+			<PageHeader
+				icon={<ShieldCheckIcon size={16} />}
+				title={t.tabs.settings.health}
+				count={findings.length}
+			/>
+			<div className="flex max-w-4xl flex-col gap-4 px-4 pt-1 pb-4">
+				<div className="flex flex-wrap items-stretch gap-3">
+					<div className="flex items-center gap-3 rounded-lg border bg-surface-2 px-4 py-3 shadow-1">
+						<Ring value={clean} max={GROUPS.length} label={s.score} className="size-14">
+							{clean}/{GROUPS.length}
+						</Ring>
+						<span className="text-12 text-n-11">{s.score}</span>
 					</div>
+					<StatStrip
+						className="min-w-0 flex-1 lg:grid-cols-3"
+						items={SEVERITIES.map((v) => ({
+							label: s[v],
+							value: String(findings.filter((f) => f.severity === v).length),
+							tone: TONE[v],
+						}))}
+					/>
 				</div>
-			) : null}
-			{GROUPS.map((g) => {
-				const rows = findings.filter((f) => f.group === g);
-				return (
-					<section key={g} aria-labelledby={`health-${g}`}>
-						<h2 id={`health-${g}`} className="px-3 py-1 text-12 font-medium text-n-11">
-							{format(t.count, { name: t.health.group[g], count: rows.length })}
-						</h2>
-						{rows.map((f) => (
-							<Finding key={f.id} finding={f} />
-						))}
-					</section>
-				);
-			})}
+				{findings.length === 0 ? (
+					<div className="flex flex-col gap-1">
+						<StatusDot status="success" className="size-4" />
+						<div aria-hidden="true" className="flex flex-col gap-1">
+							{GHOST_ROWS.map((i) => (
+								<Skeleton key={i} className="h-row" style={{ opacity: 1 - i * 0.18 }} />
+							))}
+						</div>
+					</div>
+				) : null}
+				{GROUPS.map((g) => {
+					const rows = findings.filter((f) => f.group === g);
+					const worst = worstStatus(rows.map((f) => f.severity));
+					return (
+						<Panel
+							key={g}
+							title={t.health.group[g]}
+							count={rows.length}
+							icon={ICON[g]}
+							tone={rows.length ? (worst === "danger" ? "danger" : worst) : undefined}
+							flush
+						>
+							{rows.map((f) => (
+								<Finding key={f.id} finding={f} />
+							))}
+						</Panel>
+					);
+				})}
+			</div>
 		</div>
 	);
 }

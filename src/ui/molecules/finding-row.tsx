@@ -18,12 +18,16 @@ export function FindingRow({
 	children?: ReactNode;
 }) {
 	return (
-		<div className="border-b">
-			<div className="flex min-h-row items-center gap-3 px-3 py-1">
+		<div className="border-b last:border-b-0">
+			<div className="flex min-h-11 items-center gap-3 px-3 py-1.5">
 				<StatusDot status={status} />
-				<span className="flex-1 text-ui">{title}</span>
+				<span className="flex-1 text-ui text-n-12">{title}</span>
 				{source}
-				{action ? <Button onClick={action.onClick}>{action.label}</Button> : null}
+				{action ? (
+					<Button variant="ghost" className="border-n-7" onClick={action.onClick}>
+						{action.label}
+					</Button>
+				) : null}
 			</div>
 			{children}
 		</div>

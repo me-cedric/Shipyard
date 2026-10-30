@@ -14,6 +14,7 @@ export { LanguageIcon } from "./language";
 export { MagnifyingGlassIcon } from "./magnifying-glass";
 export { MoonIcon } from "./moon";
 export {
+	AcademicCapIcon,
 	ArrowDownTrayIcon,
 	ArrowsRightLeftIcon,
 	ArrowUpTrayIcon,
@@ -35,10 +36,16 @@ export {
 	PencilIcon,
 	PlayIcon,
 	PlusIcon,
+	PresentationChartIcon,
+	PuzzlePieceIcon,
 	QueueListIcon,
 	ShareIcon,
+	ShieldCheckIcon,
+	SparklesIcon,
+	Squares2X2Icon,
 	StopIcon,
 	TrashIcon,
+	UserCircleIcon,
 	UsersIcon,
 } from "./outline";
 export { SunIcon } from "./sun";

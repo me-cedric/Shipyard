@@ -6,6 +6,7 @@ import { projectKeys, useTicketsConfig } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
+import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
 const MODES = ["timetracking", "points", "none"] as const;
@@ -33,8 +34,7 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 		}
 	};
 	return (
-		<section aria-label={k.title} className="flex flex-col gap-2">
-			<h2 className="text-12 font-medium text-n-11">{k.title}</h2>
+		<Panel title={k.title} bodyClassName="gap-2 p-3">
 			{TYPES.map((type) => (
 				<SettingsRow key={type} label={k.type[type]}>
 					<Input
@@ -102,7 +102,7 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 					{error}
 				</p>
 			) : null}
-		</section>
+		</Panel>
 	);
 }
 

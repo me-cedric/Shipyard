@@ -73,11 +73,13 @@ const COLORS = [
 	"text-n-11",
 ];
 
-function KindMark({ index, label }: { index: number; label: string }) {
+/** The shape and colour of a kind. Without a label it is decoration: a legend chip names the kind. */
+export function KindMark({ index, label }: { index: number; label?: string }) {
 	return (
 		<svg
-			role="img"
+			role={label ? "img" : undefined}
 			aria-label={label}
+			aria-hidden={label ? undefined : true}
 			viewBox="0 0 10 10"
 			className={cn("size-2.5 shrink-0", COLORS[index % COLORS.length])}
 		>

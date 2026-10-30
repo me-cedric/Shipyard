@@ -62,14 +62,14 @@ export function RefChip({
 					// An unresolved chip has no entity to open.
 					onClick={() => state !== "unresolved" && onOpen?.(refId)}
 					className={cn(
-						"inline-flex h-5 items-center gap-1.5 rounded-sm border border-n-7 bg-n-2 px-1.5 font-mono text-11 text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-4",
+						"inline-flex h-5 max-w-full min-w-0 items-center gap-1.5 rounded-sm border border-n-7 bg-n-2 px-1.5 font-mono text-11 text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-4",
 						className,
 					)}
 				>
 					<span aria-hidden="true" className="text-n-10">
 						{KIND_ICON[kind] ?? <DocumentTextIcon size={12} />}
 					</span>
-					<span>{refId}</span>
+					<span className="min-w-0 truncate">{refId}</span>
 					<span aria-hidden="true">
 						<StatusDot status={STATE_DOT[state]} className="size-2" />
 					</span>

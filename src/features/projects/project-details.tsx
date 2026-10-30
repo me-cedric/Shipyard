@@ -6,6 +6,7 @@ import { useActiveProject } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
 import { ClipboardIcon } from "@/ui/icons";
+import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
 const EVERY = [5, 15, 30, 60, 360, 1440];
@@ -30,8 +31,7 @@ export function ProjectDetails() {
 	if (!active) return null;
 	const options = [...new Set([...EVERY, ...(minutes ? [minutes] : [])])].sort((a, b) => a - b);
 	return (
-		<section aria-label={d.title} className="flex flex-col">
-			<h2 className="pb-1 text-12 font-medium text-n-11">{d.title}</h2>
+		<Panel title={d.title} flush>
 			<SettingsRow label={d.folder}>
 				<span className="font-mono text-12 text-n-11">{active.path}</span>
 			</SettingsRow>
@@ -60,6 +60,6 @@ export function ProjectDetails() {
 					/>
 				</SettingsRow>
 			) : null}
-		</section>
+		</Panel>
 	);
 }

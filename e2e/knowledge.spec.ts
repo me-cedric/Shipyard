@@ -44,6 +44,7 @@ test("filters the graph by kind and explains an entity from the inspector", asyn
 test("edits a handbook page and saves it", async ({ page }) => {
 	await openKnowledge(page, "Handbook");
 	await page.getByRole("button", { name: "Getting started" }).click();
+	await page.getByRole("tab", { name: "Edit" }).click();
 	const text = page.getByRole("textbox", { name: "Markdown" });
 	await expect(text).toHaveValue(/^# Getting started/);
 	const save = page.getByRole("button", { name: "Save", exact: true });
@@ -57,7 +58,7 @@ test("edits a handbook page and saves it", async ({ page }) => {
 
 test("exports the architecture dossier to a .docx path", async ({ page }) => {
 	await openKnowledge(page, "Documents");
-	await page.getByRole("button", { name: "Architecture dossier" }).click();
+	await page.getByRole("button", { name: "Export Architecture dossier" }).click();
 	await expect(page.getByText("Exported: /mock/dossier.docx")).toBeVisible();
 });
 

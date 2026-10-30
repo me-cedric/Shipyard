@@ -1,12 +1,13 @@
 import { format, useI18n } from "@/lib/i18n";
 import type { Gauge as GaugeData } from "@/lib/ipc";
+import { cn } from "@/lib/utils";
 
 /** A ring and its text value. The value reads "60 %" for assistive tools too. */
 function Meter({ label, percent, ring }: { label: string; percent: number; ring?: boolean }) {
 	const { t } = useI18n();
 	const value = Math.min(100, Math.max(0, Math.round(percent)));
 	const text = format(t.assistant.percent, { percent: value });
-	const c = 2 * Math.PI * 7;
+	const c = 2 * Math.PI * 9;
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: a <meter> cannot hold the ring
 		<span
@@ -19,17 +20,21 @@ function Meter({ label, percent, ring }: { label: string; percent: number; ring?
 			className="inline-flex items-center gap-1 text-11 text-n-11"
 		>
 			{ring ? (
-				<svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" className="-rotate-90">
-					<circle cx="9" cy="9" r="7" fill="none" strokeWidth="2" className="stroke-n-5" />
+				<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" className="-rotate-90">
+					<circle cx="12" cy="12" r="9" fill="none" strokeWidth="2.5" className="stroke-n-5" />
 					<circle
-						cx="9"
-						cy="9"
-						r="7"
+						cx="12"
+						cy="12"
+						r="9"
 						fill="none"
-						strokeWidth="2"
+						strokeWidth="2.5"
+						strokeLinecap="round"
 						strokeDasharray={c}
 						strokeDashoffset={c * (1 - value / 100)}
-						className={value >= 80 ? "stroke-danger" : "stroke-accent"}
+						className={cn(
+							"transition-[stroke-dashoffset] duration-(--duration-base)",
+							value >= 80 ? "stroke-danger" : value >= 60 ? "stroke-warning" : "stroke-accent",
+						)}
 					/>
 				</svg>
 			) : (

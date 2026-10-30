@@ -2,7 +2,7 @@ import { type KeyboardEvent, type PointerEvent, useEffect, useRef } from "react"
 import { format, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/ui/atoms/icon-button";
-import { ChatBubbleIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from "@/ui/icons";
+import { ChevronLeftIcon, ChevronRightIcon, SparklesIcon, XMarkIcon } from "@/ui/icons";
 import { Composer } from "./composer";
 import { ContextBar } from "./context";
 import { SendToFactory } from "./factory-dialog";
@@ -96,17 +96,22 @@ export function AssistantPanel({
 				if (text) void a.addRef(text);
 			}}
 			className={cn(
-				"relative min-h-0 shrink-0 flex-col bg-n-1",
+				"relative min-h-0 shrink-0 flex-col bg-surface-3/85 shadow-3 backdrop-blur-xl",
 				a.side === "right" ? "border-l" : "border-r",
 				open ? "flex" : "hidden",
 			)}
 		>
 			<Resizer a={a} />
-			<div className="flex items-center gap-1 border-b pr-1 pl-3">
-				<span aria-hidden="true">
-					<ChatBubbleIcon size={14} />
+			<div className="flex h-11 shrink-0 items-center gap-2 border-b pr-1 pl-3">
+				<span
+					aria-hidden="true"
+					className="flex size-6 items-center justify-center rounded-md bg-accent-gradient text-accent-fg shadow-glow"
+				>
+					<SparklesIcon size={14} />
 				</span>
-				<h1 className="min-w-0 flex-1 truncate text-ui font-medium">{t.assistant.title}</h1>
+				<h1 className="min-w-0 flex-1 truncate text-14 font-medium text-n-12">
+					{t.assistant.title}
+				</h1>
 				<SendToFactory a={a} />
 				<IconButton
 					label={format(t.assistant.side.move, { side: t.assistant.side[other] })}
@@ -121,12 +126,18 @@ export function AssistantPanel({
 			<Threads a={a} />
 			<Messages a={a} insert={editor.insert} canInsert={editor.canInsert} onOpenRef={onOpenRef} />
 			{a.alert ? (
-				<p role="alert" className="border-t px-2 py-1 text-12 text-warning-text">
+				<p
+					role="alert"
+					className="mx-2 mb-2 rounded-md bg-warning-soft px-2 py-1 text-12 text-warning-text"
+				>
 					{format(t.assistant.alert, { name: a.alert })}
 				</p>
 			) : null}
 			{a.error ? (
-				<p role="alert" className="border-t px-2 py-1 text-12 text-danger-text">
+				<p
+					role="alert"
+					className="mx-2 mb-2 rounded-md bg-danger-soft px-2 py-1 text-12 text-danger-text"
+				>
 					{a.error}
 				</p>
 			) : null}

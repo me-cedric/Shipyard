@@ -20,11 +20,19 @@ import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import type { Status } from "@/ui/atoms/status-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { ArrowPathIcon, Cog6ToothIcon, FolderOpenIcon, PlusIcon, XMarkIcon } from "@/ui/icons";
+import {
+	ArrowPathIcon,
+	Cog6ToothIcon,
+	FolderOpenIcon,
+	LinkIcon,
+	PlusIcon,
+	XMarkIcon,
+} from "@/ui/icons";
 import { BacklinkList } from "@/ui/molecules/backlink-list";
 import { ConnectionRow } from "@/ui/molecules/connection-row";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { FlagList } from "@/ui/molecules/flag-list";
+import { PageHeader } from "@/ui/molecules/page-header";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { SyncStatus } from "@/ui/molecules/sync-status";
 import { ADD_TYPES, type AddType, ConnectionForm, GROUPS } from "./connection-form";
@@ -360,45 +368,54 @@ export function Connections() {
 	// The runners are not added by a person: they do not count.
 	const empty = (conns ?? []).length + mcpCount + providerCount === 0 && !adding;
 	return (
-		<div className="flex max-w-2xl flex-col gap-6 p-4">
-			<h1 className="sr-only">{t.tabs.settings.connections}</h1>
-			{list.error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{message(list.error)}
-				</p>
-			) : null}
-			{empty ? (
-				<EmptyState action={add} />
-			) : (
-				<div>
-					<Button
-						variant={formOpen ? "secondary" : "primary"}
-						disabled={adding}
-						onClick={add.onClick}
-					>
-						{add.icon}
-						{add.label}
-					</Button>
-				</div>
-			)}
-			{adding ? <AddForm onDone={() => setAdding(false)} /> : null}
-			{GROUPS.map((g: ConnectionGroup) => {
-				const rows = (conns ?? []).filter((c) => c.group === g);
-				if (rows.length === 0) return null;
-				return (
-					<section key={g} aria-labelledby={`connections-${g}`}>
-						<h2 id={`connections-${g}`} className="px-3 py-1 text-12 font-medium text-n-11">
-							{format(t.count, { name: t.connections.group[g], count: rows.length })}
-						</h2>
-						{rows.map((c) => (
-							<Row key={c.id} connection={c} formOpen={formOpen} onForm={setEditing} />
-						))}
-					</section>
-				);
-			})}
-			<McpGroup formOpen={formOpen} onForm={setEditing} />
-			<RunnersGroup />
-			<ProvidersGroup formOpen={formOpen} onForm={setEditing} />
+		<div className="flex flex-col">
+			<PageHeader
+				icon={<LinkIcon size={16} />}
+				title={t.tabs.settings.connections}
+				count={(conns ?? []).length + mcpCount + providerCount}
+				action={
+					empty ? undefined : (
+						<Button
+							variant={formOpen ? "secondary" : "primary"}
+							disabled={adding}
+							onClick={add.onClick}
+						>
+							{add.icon}
+							{add.label}
+						</Button>
+					)
+				}
+			/>
+			<div className="flex max-w-4xl flex-col gap-5 px-4 pt-1 pb-4">
+				{list.error ? (
+					<p role="alert" className="text-ui text-danger-text">
+						{message(list.error)}
+					</p>
+				) : null}
+				{empty ? <EmptyState action={add} /> : null}
+				{adding ? (
+					<div className="rounded-lg border bg-surface-1 shadow-1">
+						<AddForm onDone={() => setAdding(false)} />
+					</div>
+				) : null}
+				{GROUPS.map((g: ConnectionGroup) => {
+					const rows = (conns ?? []).filter((c) => c.group === g);
+					if (rows.length === 0) return null;
+					return (
+						<section key={g} aria-labelledby={`connections-${g}`} className="flex flex-col gap-2">
+							<h2 id={`connections-${g}`} className="px-1 text-12 font-medium text-n-11">
+								{format(t.count, { name: t.connections.group[g], count: rows.length })}
+							</h2>
+							{rows.map((c) => (
+								<Row key={c.id} connection={c} formOpen={formOpen} onForm={setEditing} />
+							))}
+						</section>
+					);
+				})}
+				<McpGroup formOpen={formOpen} onForm={setEditing} />
+				<RunnersGroup />
+				<ProvidersGroup formOpen={formOpen} onForm={setEditing} />
+			</div>
 		</div>
 	);
 }

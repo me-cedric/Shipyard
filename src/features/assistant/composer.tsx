@@ -1,3 +1,5 @@
+import { Toggle } from "@base-ui/react/toggle";
+import { ToggleGroup } from "@base-ui/react/toggle-group";
 import type { ReactNode, RefObject } from "react";
 import { useI18n } from "@/lib/i18n";
 import type { AssistantMode, Permission } from "@/lib/ipc";
@@ -37,15 +39,28 @@ export function Composer({
 		if (end[2]) void a.addRef(end[2]);
 	};
 	return (
-		<div className="flex flex-col gap-2 border-t p-2">
+		<div className="m-2 mt-0 flex flex-col gap-2 rounded-xl border bg-surface-2 p-2 shadow-1">
 			{s ? (
 				<div className="flex flex-wrap gap-1">
-					<Select
-						label={t.assistant.mode.label}
-						value={s.mode}
-						items={MODES.map((m) => ({ value: m, label: t.assistant.mode[m] }))}
-						onValueChange={(mode) => void a.setSettings({ mode: mode as AssistantMode })}
-					/>
+					<ToggleGroup
+						aria-label={t.assistant.mode.label}
+						value={[s.mode]}
+						onValueChange={(v) => {
+							// A pressed pill stays pressed: one mode is always on.
+							if (v[0]) void a.setSettings({ mode: v[0] as AssistantMode });
+						}}
+						className="flex w-full items-center gap-0.5 rounded-full border bg-n-2 p-0.5"
+					>
+						{MODES.map((m) => (
+							<Toggle
+								key={m}
+								value={m}
+								className="h-6 flex-1 rounded-full px-2 text-12 text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 data-[pressed]:bg-accent-gradient data-[pressed]:text-accent-fg data-[pressed]:shadow-1"
+							>
+								{t.assistant.mode[m]}
+							</Toggle>
+						))}
+					</ToggleGroup>
 					<Select
 						label={t.assistant.runner}
 						value={s.runner}

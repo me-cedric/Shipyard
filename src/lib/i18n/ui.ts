@@ -8,6 +8,7 @@ export const uiEn = {
 	changes: "Changes",
 	myItems: "My items",
 	spendToday: "Spend today",
+	welcome: "Welcome",
 };
 
 export const uiFr: typeof uiEn = {
@@ -19,4 +20,5 @@ export const uiFr: typeof uiEn = {
 	changes: "Modifications",
 	myItems: "Mes éléments",
 	spendToday: "Dépense du jour",
+	welcome: "Bienvenue",
 };

@@ -5,11 +5,11 @@ import { message, useCodeGraph, useGraph, useGraphFocus, useIndexCode } from "@/
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
-import { ArrowPathIcon, XMarkIcon } from "@/ui/icons";
+import { ArrowPathIcon, ShareIcon, XMarkIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { FilterBar } from "@/ui/molecules/filter-bar";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
-import { type CanvasNode, GraphCanvas } from "@/ui/organisms/graph-canvas";
+import { type CanvasNode, GraphCanvas, KindMark } from "@/ui/organisms/graph-canvas";
 import { ListDetail } from "@/ui/templates/list-detail";
 
 type Source = "refs" | "code";
@@ -92,22 +92,30 @@ export function Graph() {
 	return (
 		<ListDetail
 			title={k.graph.title}
+			icon={<ShareIcon size={16} />}
+			count={shown.nodes.length}
+			chips={
+				<ViewTabs<Source>
+					label={k.graph.source}
+					value={source}
+					onValueChange={setSource}
+					tabs={[
+						{ value: "refs", label: k.graph.refs },
+						{ value: "code", label: k.graph.code },
+					]}
+				/>
+			}
 			toolbar={
 				<>
-					<ViewTabs<Source>
-						label={k.graph.source}
-						value={source}
-						onValueChange={setSource}
-						tabs={[
-							{ value: "refs", label: k.graph.refs },
-							{ value: "code", label: k.graph.code },
-						]}
-					/>
 					{wantsIndex ? null : (
 						<FilterBar
 							query={query}
 							onQueryChange={setQuery}
-							filters={kinds.map((x) => ({ id: x.id, label: `${kindName(x.id)} ${x.n}` }))}
+							filters={kinds.map((x, i) => ({
+								id: x.id,
+								label: `${kindName(x.id)} ${x.n}`,
+								icon: <KindMark index={i} />,
+							}))}
 							active={kinds.map((x) => x.id).filter((id) => !hidden.includes(id))}
 							onToggle={(id) =>
 								setHidden((h) => (h.includes(id) ? h.filter((x) => x !== id) : [...h, id]))
@@ -145,6 +153,7 @@ export function Graph() {
 					kinds={kinds.map((x) => ({ id: x.id, label: kindName(x.id) }))}
 					label={k.graph.title}
 					labels={k.canvas}
+					glow
 					selected={selectedRef}
 					onOpen={(id) => openRef(source === "code" ? `code:${id}` : id)}
 				/>

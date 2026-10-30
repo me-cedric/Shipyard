@@ -18,13 +18,13 @@ export function ContextBar({ a, onOpenRef }: { a: Assistant; onOpenRef: (ref: st
 		</IconButton>
 	);
 	return (
-		<div className="flex flex-wrap items-center gap-1 px-2 pt-2">
+		<div className="flex items-start gap-1 px-3 pt-2 pb-2">
 			<ul
 				aria-label={t.assistant.context}
 				className="flex min-w-0 flex-1 flex-wrap items-center gap-1"
 			>
 				{a.view && !a.dropped.view ? (
-					<li className="inline-flex items-center">
+					<li className="inline-flex min-w-0 max-w-full items-center">
 						<Badge>
 							{t.assistant.view} {a.view}
 						</Badge>
@@ -32,13 +32,13 @@ export function ContextBar({ a, onOpenRef }: { a: Assistant; onOpenRef: (ref: st
 					</li>
 				) : null}
 				{selected ? (
-					<li className="inline-flex items-center">
+					<li className="inline-flex min-w-0 max-w-full items-center">
 						<RefChip refId={selected} state="resolved" onOpen={onOpenRef} />
 						{remove(selected, () => a.dropContext("selected"))}
 					</li>
 				) : null}
 				{refs.map((r) => (
-					<li key={r} className="inline-flex items-center">
+					<li key={r} className="inline-flex min-w-0 max-w-full items-center">
 						<RefChip refId={r} state="resolved" onOpen={onOpenRef} />
 						{remove(r, () => void a.removeRef(r))}
 					</li>
@@ -46,6 +46,7 @@ export function ContextBar({ a, onOpenRef }: { a: Assistant; onOpenRef: (ref: st
 			</ul>
 			<Button
 				variant="ghost"
+				className="h-6 px-2 text-12"
 				disabled={!target || a.busy}
 				onClick={() => target && void a.explain(target)}
 			>

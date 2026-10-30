@@ -74,9 +74,9 @@ describe("templates (REQ-006)", () => {
 			/>,
 		);
 		expect(screen.getByRole("heading", { name: "Me (2)" })).toBeInTheDocument();
-		expect(
-			within(screen.getByRole("region", { name: "Me (2)" })).getAllByRole("button"),
-		).toHaveLength(2);
+		expect(within(screen.getByRole("region", { name: "Me" })).getAllByRole("button")).toHaveLength(
+			2,
+		);
 	});
 
 	// The fifth template is the Editor: EditorFrame holds the one frame of every artifact (Q-094).

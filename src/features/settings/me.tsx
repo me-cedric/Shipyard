@@ -22,7 +22,9 @@ import {
 	LanguageIcon,
 	SunIcon,
 	SwatchIcon,
+	UserCircleIcon,
 } from "@/ui/icons";
+import { PageHeader } from "@/ui/molecules/page-header";
 import { Settings } from "@/ui/templates/settings";
 
 /** Where the update check reads the latest release. It saves when the field loses focus. */
@@ -107,113 +109,115 @@ export function Me() {
 		</span>
 	);
 	return (
-		<div className="p-4">
-			<h1 className="sr-only">{t.tabs.settings.me}</h1>
-			<Settings
-				sections={[
-					{
-						id: "me",
-						title: t.tabs.settings.me,
-						rows: [
-							{
-								id: "theme",
-								icon: <SunIcon size={14} />,
-								label: t.prefs.theme,
-								control: marked(
-									"theme",
-									<Select
-										label={t.prefs.theme}
-										value={theme}
-										onValueChange={(v) => setPrefs({ theme: v as Theme })}
-										items={[
-											{ value: "light", label: t.theme.light },
-											{ value: "dark", label: t.theme.dark },
-											{ value: "system", label: t.theme.system },
-										]}
-									/>,
-								),
-							},
-							{
-								id: "language",
-								icon: <LanguageIcon size={14} />,
-								label: t.prefs.language,
-								control: (
-									<Select
-										label={t.prefs.language}
-										value={lang}
-										onValueChange={(v) => setLang(v === "fr" ? "fr" : "en")}
-										items={[
-											{ value: "en", label: t.lang.en },
-											{ value: "fr", label: t.lang.fr },
-										]}
-									/>
-								),
-							},
-							{
-								id: "release",
-								icon: <ArrowDownTrayIcon size={14} />,
-								label: t.prefs.releaseUrl,
-								control: <ReleaseUrl />,
-							},
-							{
-								id: "role",
-								icon: <SwatchIcon size={14} />,
-								label: t.prefs.role,
-								control: (
-									<Select
-										label={t.prefs.role}
-										value={role}
-										onValueChange={(v) => setPrefs({ role: v as Role })}
-										items={roles.map((r) => ({ value: r, label: t.role[r] }))}
-									/>
-								),
-							},
-							{
-								id: "density",
-								icon: <Cog6ToothIcon size={14} />,
-								label: t.prefs.compact,
-								control: marked(
-									"density",
-									<Switch
-										label={t.prefs.compact}
-										iconOnly
-										checked={density === "compact"}
-										onCheckedChange={(c) =>
-											setPrefs({ density: (c ? "compact" : "default") satisfies Density })
-										}
-									/>,
-								),
-							},
-							{
-								id: "contrast",
-								icon: <ComputerDesktopIcon size={14} />,
-								label: t.prefs.contrast,
-								control: marked(
-									"contrast",
-									<Switch
-										label={t.prefs.contrast}
-										iconOnly
-										checked={contrast === "high"}
-										onCheckedChange={(c) =>
-											setPrefs({ contrast: (c ? "high" : "default") satisfies Contrast })
-										}
-									/>,
-								),
-							},
-						],
-					},
-					{
-						id: "notifications",
-						title: t.notifications.title,
-						rows: SOURCES.map((s) => ({
-							id: s,
-							icon: <BellIcon size={14} />,
-							label: t.notifications.source[s],
-							control: <NotifySwitch source={s} />,
-						})),
-					},
-				]}
-			/>
+		<div className="flex flex-col">
+			<PageHeader icon={<UserCircleIcon size={16} />} title={t.tabs.settings.me} />
+			<div className="px-4 pt-1 pb-4">
+				<Settings
+					sections={[
+						{
+							id: "me",
+							title: t.tabs.settings.me,
+							rows: [
+								{
+									id: "theme",
+									icon: <SunIcon size={14} />,
+									label: t.prefs.theme,
+									control: marked(
+										"theme",
+										<Select
+											label={t.prefs.theme}
+											value={theme}
+											onValueChange={(v) => setPrefs({ theme: v as Theme })}
+											items={[
+												{ value: "light", label: t.theme.light },
+												{ value: "dark", label: t.theme.dark },
+												{ value: "system", label: t.theme.system },
+											]}
+										/>,
+									),
+								},
+								{
+									id: "language",
+									icon: <LanguageIcon size={14} />,
+									label: t.prefs.language,
+									control: (
+										<Select
+											label={t.prefs.language}
+											value={lang}
+											onValueChange={(v) => setLang(v === "fr" ? "fr" : "en")}
+											items={[
+												{ value: "en", label: t.lang.en },
+												{ value: "fr", label: t.lang.fr },
+											]}
+										/>
+									),
+								},
+								{
+									id: "release",
+									icon: <ArrowDownTrayIcon size={14} />,
+									label: t.prefs.releaseUrl,
+									control: <ReleaseUrl />,
+								},
+								{
+									id: "role",
+									icon: <SwatchIcon size={14} />,
+									label: t.prefs.role,
+									control: (
+										<Select
+											label={t.prefs.role}
+											value={role}
+											onValueChange={(v) => setPrefs({ role: v as Role })}
+											items={roles.map((r) => ({ value: r, label: t.role[r] }))}
+										/>
+									),
+								},
+								{
+									id: "density",
+									icon: <Cog6ToothIcon size={14} />,
+									label: t.prefs.compact,
+									control: marked(
+										"density",
+										<Switch
+											label={t.prefs.compact}
+											iconOnly
+											checked={density === "compact"}
+											onCheckedChange={(c) =>
+												setPrefs({ density: (c ? "compact" : "default") satisfies Density })
+											}
+										/>,
+									),
+								},
+								{
+									id: "contrast",
+									icon: <ComputerDesktopIcon size={14} />,
+									label: t.prefs.contrast,
+									control: marked(
+										"contrast",
+										<Switch
+											label={t.prefs.contrast}
+											iconOnly
+											checked={contrast === "high"}
+											onCheckedChange={(c) =>
+												setPrefs({ contrast: (c ? "high" : "default") satisfies Contrast })
+											}
+										/>,
+									),
+								},
+							],
+						},
+						{
+							id: "notifications",
+							title: t.notifications.title,
+							rows: SOURCES.map((s) => ({
+								id: s,
+								icon: <BellIcon size={14} />,
+								label: t.notifications.source[s],
+								control: <NotifySwitch source={s} />,
+							})),
+						},
+					]}
+				/>
+			</div>
 		</div>
 	);
 }

@@ -5,6 +5,7 @@ import { commands, type ImportReport, pickFolder, unwrap } from "@/lib/ipc";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { ArrowDownTrayIcon, DocumentTextIcon } from "@/ui/icons";
+import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
 /**
@@ -38,21 +39,25 @@ export function ProjectImport() {
 			]
 		: [];
 	return (
-		<section aria-label={k.title} className="flex flex-col gap-2">
-			<div>
-				<Button onClick={() => void run()}>
+		<Panel
+			title={k.title}
+			icon={<ArrowDownTrayIcon size={14} />}
+			toolbar={
+				<Button variant="ghost" onClick={() => void run()}>
 					<ArrowDownTrayIcon size={14} />
 					{k.import}
 				</Button>
-			</div>
+			}
+			flush
+		>
 			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
+				<p role="alert" className="px-3 py-2 text-ui text-danger-text">
 					{error}
 				</p>
 			) : null}
 			{groups.map((g) => (
 				<section key={g.id} aria-label={k[g.id as "copied"]}>
-					<h3 className="py-1 text-12 font-medium text-n-11">
+					<h3 className="px-3 pt-2 pb-1 text-12 font-medium text-n-11">
 						{format(t.count, { name: k[g.id as "copied"], count: g.rows.length })}
 					</h3>
 					{g.rows.map((r) => (
@@ -64,6 +69,6 @@ export function ProjectImport() {
 					))}
 				</section>
 			))}
-		</section>
+		</Panel>
 	);
 }

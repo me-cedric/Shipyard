@@ -197,6 +197,11 @@ describe("assistant panel: reply actions", () => {
 });
 
 async function pick(user: ReturnType<typeof userEvent.setup>, select: string, option: string) {
+	// The mode is a row of pills; the other pickers are selects.
+	if (select === "Mode") {
+		const pills = within(screen.getByRole("group", { name: select }));
+		return user.click(pills.getByRole("button", { name: option }));
+	}
 	await user.click(screen.getByRole("combobox", { name: select }));
 	await user.click(await screen.findByRole("option", { name: option }));
 }
@@ -282,7 +287,9 @@ describe("assistant panel: Explain and Send to factory", () => {
 		await pick(user, "Mode", "Plan");
 		await user.click(screen.getByRole("button", { name: "Explain" }));
 		expect(await log().findByText(/part of the project graph/)).toBeInTheDocument();
-		expect(screen.getByRole("combobox", { name: "Mode" })).toHaveTextContent("Ask");
+		expect(
+			within(screen.getByRole("group", { name: "Mode" })).getByRole("button", { name: "Ask" }),
+		).toHaveAttribute("aria-pressed", "true");
 		expect(log().getAllByRole("button", { name: new RegExp(`^${REF}`) })).not.toHaveLength(0);
 	});
 

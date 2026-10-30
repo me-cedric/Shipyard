@@ -1,28 +1,26 @@
 import type { ReactNode } from "react";
-import { format, useI18n } from "@/lib/i18n";
+import { Panel } from "../molecules/panel";
 import { SettingsRow } from "../molecules/settings-row";
 
 export type SettingsSection = {
 	id: string;
 	title: string;
+	icon?: ReactNode;
 	rows: { id: string; icon?: ReactNode; label: string; control: ReactNode }[];
 };
 
+/** Settings as grouped panels: one panel for each section, one row for each setting, the control on the right. */
 export function Settings({ sections }: { sections: SettingsSection[] }) {
-	const { t } = useI18n();
 	return (
-		<div className="flex max-w-2xl flex-col gap-6">
+		<div className="flex max-w-3xl flex-col gap-4">
 			{sections.map((s) => (
-				<section key={s.id} aria-labelledby={`settings-${s.id}`}>
-					<h2 id={`settings-${s.id}`} className="px-3 py-1 text-12 font-medium text-n-11">
-						{format(t.count, { name: s.title, count: s.rows.length })}
-					</h2>
+				<Panel key={s.id} title={s.title} count={s.rows.length} icon={s.icon} flush>
 					{s.rows.map((r) => (
 						<SettingsRow key={r.id} icon={r.icon} label={r.label}>
 							{r.control}
 						</SettingsRow>
 					))}
-				</section>
+				</Panel>
 			))}
 		</div>
 	);

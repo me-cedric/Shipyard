@@ -19,6 +19,10 @@ describe("Knowledge / Handbook", () => {
 		const user = userEvent.setup();
 		await mountKnowledge("handbook");
 		await user.click(await screen.findByRole("button", { name: "Getting started" }));
+		// A page opens in the reading layout; Edit shows the editor.
+		expect(await screen.findByRole("article", { name: "Getting started" })).toBeInTheDocument();
+		expect(screen.getByRole("region", { name: "Backlinks" })).toBeInTheDocument();
+		await user.click(screen.getByRole("tab", { name: "Edit" }));
 		expect(await screen.findByRole("textbox", { name: "Markdown" })).toHaveValue(
 			files()[PAGE]?.text ?? "x",
 		);
@@ -31,6 +35,7 @@ describe("Knowledge / Handbook", () => {
 		const user = userEvent.setup();
 		await mountKnowledge("handbook");
 		await user.click(await screen.findByRole("button", { name: "Getting started" }));
+		await user.click(await screen.findByRole("tab", { name: "Edit" }));
 		const text = await screen.findByRole("textbox", { name: "Markdown" });
 		await user.type(text, " More.");
 		await user.click(screen.getByRole("button", { name: "Save" }));
@@ -41,6 +46,7 @@ describe("Knowledge / Handbook", () => {
 		const user = userEvent.setup();
 		await mountKnowledge("handbook");
 		await user.click(await screen.findByRole("button", { name: "Getting started" }));
+		await user.click(await screen.findByRole("tab", { name: "Edit" }));
 		const text = await screen.findByRole("textbox", { name: "Markdown" });
 		await user.type(text, " Mine.");
 		files()[PAGE] = { text: "# Theirs\n", stamp: "9" };

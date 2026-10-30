@@ -7,6 +7,7 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Switch } from "@/ui/atoms/switch";
 import { PlusIcon } from "@/ui/icons";
+import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
 const rate = (v: string) => (v.trim() === "" ? 0 : Number(v));
@@ -34,8 +35,7 @@ function Editor({ saved }: { saved: Persona[] }) {
 		}
 	};
 	return (
-		<section aria-label={p.title} className="flex flex-col gap-2">
-			<h2 className="text-12 font-medium text-n-11">{p.title}</h2>
+		<Panel title={p.title} bodyClassName="gap-2 p-3">
 			{rows.map((r, i) => (
 				<SettingsRow key={r.id} label={r.name || r.id}>
 					<Input label={p.name} value={r.name} onChange={(e) => set(i, { name: e.target.value })} />
@@ -93,7 +93,7 @@ function Editor({ saved }: { saved: Persona[] }) {
 					{error}
 				</p>
 			) : null}
-		</section>
+		</Panel>
 	);
 }
 

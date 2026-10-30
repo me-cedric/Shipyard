@@ -11,6 +11,7 @@ import { ROLES } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { Select } from "@/ui/atoms/select";
 import { Switch } from "@/ui/atoms/switch";
+import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
 const NONE = "none";
@@ -57,8 +58,7 @@ export function ProjectOverrides() {
 	const runner = runners.find((r) => r.runner === defaults?.runner);
 	const tabs = o.profileTabs ?? [];
 	return (
-		<section aria-label={w.title} className="flex flex-col">
-			<h2 className="pb-1 text-12 font-medium text-n-11">{w.title}</h2>
+		<Panel title={w.title} flush>
 			<SettingsRow label={w.remoteWatch}>
 				<Switch
 					iconOnly
@@ -146,6 +146,6 @@ export function ProjectOverrides() {
 					onCheckedChange={(v) => void setOverride({ readOnly: v ? true : null })}
 				/>
 			</SettingsRow>
-		</section>
+		</Panel>
 	);
 }

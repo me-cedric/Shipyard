@@ -9,7 +9,9 @@ export async function mountKnowledge(tab: string) {
 	window.matchMedia = ((query: string) => ({
 		matches: false,
 		media: query,
-	})) as typeof window.matchMedia;
+		addEventListener: () => {},
+		removeEventListener: () => {},
+	})) as unknown as typeof window.matchMedia;
 	localStorage.clear();
 	await unwrap(commands.projectsOpen("/mock/alpha", false));
 	return mountApp(`/knowledge/${tab}`);
@@ -29,7 +31,9 @@ export function mountView(view: React.ReactElement) {
 	window.matchMedia = ((query: string) => ({
 		matches: false,
 		media: query,
-	})) as typeof window.matchMedia;
+		addEventListener: () => {},
+		removeEventListener: () => {},
+	})) as unknown as typeof window.matchMedia;
 	localStorage.clear();
 	return mountDesign(view);
 }

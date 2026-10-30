@@ -15,8 +15,8 @@ export function RunnersGroup() {
 	});
 	if (!runners.data && !runners.error) return null;
 	return (
-		<section aria-labelledby="connections-runner">
-			<div className="flex items-center justify-between px-3">
+		<section aria-labelledby="connections-runner" className="flex flex-col gap-2">
+			<div className="flex items-center justify-between px-1">
 				<h2 id="connections-runner" className="py-1 text-12 font-medium text-n-11">
 					{format(t.count, {
 						name: t.connections.group.runner,

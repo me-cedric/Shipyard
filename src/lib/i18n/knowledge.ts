@@ -21,7 +21,16 @@ export const knowledgeEn = {
 		file: "File",
 		symbol: "Symbol",
 	},
-	handbook: { title: "Handbook", newPage: "New page", name: "Page name" },
+	handbook: {
+		title: "Handbook",
+		newPage: "New page",
+		name: "Page name",
+		mode: "Mode",
+		read: "Read",
+		edit: "Edit",
+		contents: "Contents",
+		backlinks: "Backlinks",
+	},
 	documents: {
 		title: "Documents",
 		newDocument: "New document",
@@ -29,6 +38,7 @@ export const knowledgeEn = {
 		dossier: "Architecture dossier",
 		functional: "Functional documentation",
 		sheet: "Quality sheet",
+		export: "Export",
 		exported: "Exported: {path}",
 		text: {
 			empty: "No content.",
@@ -57,7 +67,7 @@ export const knowledgeEn = {
 		slide: "Slide {n}",
 		slides: "Slides",
 	},
-	learn: { title: "Learn", path: "Path", glossary: "Glossary" },
+	learn: { title: "Learn", path: "Path", glossary: "Glossary", progress: "Progress" },
 	dashboards: {
 		title: "Dashboards",
 		tiles: "Tiles",
@@ -105,7 +115,16 @@ export const knowledgeFr: typeof knowledgeEn = {
 		file: "Fichier",
 		symbol: "Symbole",
 	},
-	handbook: { title: "Manuel", newPage: "Nouvelle page", name: "Nom de la page" },
+	handbook: {
+		title: "Manuel",
+		newPage: "Nouvelle page",
+		name: "Nom de la page",
+		mode: "Mode",
+		read: "Lire",
+		edit: "Modifier",
+		contents: "Sommaire",
+		backlinks: "Rétroliens",
+	},
 	documents: {
 		title: "Documents",
 		newDocument: "Nouveau document",
@@ -113,6 +132,7 @@ export const knowledgeFr: typeof knowledgeEn = {
 		dossier: "Dossier d'architecture",
 		functional: "Documentation fonctionnelle",
 		sheet: "Feuille qualité",
+		export: "Exporter",
 		exported: "Exporté : {path}",
 		text: {
 			empty: "Aucun contenu.",
@@ -141,7 +161,7 @@ export const knowledgeFr: typeof knowledgeEn = {
 		slide: "Diapositive {n}",
 		slides: "Diapositives",
 	},
-	learn: { title: "Apprendre", path: "Parcours", glossary: "Glossaire" },
+	learn: { title: "Apprendre", path: "Parcours", glossary: "Glossaire", progress: "Progression" },
 	dashboards: {
 		title: "Tableaux de bord",
 		tiles: "Tuiles",
