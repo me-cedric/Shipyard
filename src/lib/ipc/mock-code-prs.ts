@@ -14,6 +14,7 @@ import type {
 	QualityReport_Serialize,
 	QualityRow_Serialize,
 	QualityView_Serialize,
+	SbomReport,
 	Verdict,
 } from "./bindings";
 import type { MockCode } from "./mock-code";
@@ -334,6 +335,16 @@ export function scanRun(p: MockPrs, name: string, click: boolean): QualityReport
 }
 
 /** One install click: the scanner row turns available. */
+/** The export of the lock files: the mock lists the lock files of the demo project. */
+export function sbomExport(click: boolean): SbomReport {
+	need(click);
+	return {
+		path: "docs/security/sbom.cdx.json",
+		components: 312,
+		sources: ["Cargo.lock", "pnpm-lock.yaml"],
+	};
+}
+
 export function scannerInstall(p: MockPrs, name: string, click: boolean): null {
 	need(click);
 	if (!SCANNERS.some(([n]) => n === name)) throw `\`${name}\` is not a scanner`;

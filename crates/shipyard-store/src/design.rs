@@ -52,6 +52,9 @@ pub struct Screen {
     /// A local `figma` path that does not exist.
     #[serde(default)]
     pub broken: bool,
+    /// A design file that the folder scan found (HTML, image or `.fig`), not named in `screens.json`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub file: Option<String>,
 }
 
 /// File name without its extension, then `a-z0-9` runs joined with `-`.
@@ -441,7 +444,56 @@ pub fn read_screens(root: &Path, p: &ProjectFile) -> Result<Vec<Screen>, String>
             .as_deref()
             .is_some_and(|f| !f.starts_with("https://") && !(plain(f) && root.join(f).exists()));
     }
+    scan_designs(root, p, &mut screens);
     Ok(screens)
+}
+
+/// The design files of the designs folder that no screen names: Legacy lists them as screens.
+/// Two levels deep. A slug that a screen already holds is skipped, and the entry of
+/// `screens.json` wins.
+fn scan_designs(root: &Path, p: &ProjectFile, screens: &mut Vec<Screen>) {
+    const KINDS: [&str; 8] = ["html", "htm", "png", "jpg", "jpeg", "svg", "webp", "fig"];
+    let dir = p.path("designs");
+    let mut found = Vec::new();
+    let mut stack = vec![(dir.to_string(), 0)];
+    while let Some((rel, depth)) = stack.pop() {
+        let Ok(rd) = fs::read_dir(root.join(&rel)) else {
+            continue;
+        };
+        for e in rd.flatten() {
+            let Ok(kind) = e.file_type() else { continue };
+            let name = e.file_name().to_string_lossy().into_owned();
+            let path = format!("{rel}/{name}");
+            if kind.is_dir() && depth < 1 {
+                stack.push((path, depth + 1));
+            } else if kind.is_file()
+                && Path::new(&name)
+                    .extension()
+                    .and_then(|x| x.to_str())
+                    .is_some_and(|x| KINDS.contains(&x.to_lowercase().as_str()))
+            {
+                found.push((name, path));
+            }
+        }
+    }
+    found.sort_by(|a, b| a.1.cmp(&b.1));
+    for (name, path) in found {
+        let stem = name.rsplit_once('.').map_or(name.as_str(), |(s, _)| s);
+        let slug = slug(stem);
+        let named = screens
+            .iter()
+            .any(|s| s.slug == slug || s.figma.as_deref() == Some(path.as_str()));
+        if !slug.is_empty() && !named {
+            screens.push(Screen {
+                slug,
+                title: stem.into(),
+                artifacts: Vec::new(),
+                figma: None,
+                broken: false,
+                file: Some(path),
+            });
+        }
+    }
 }
 
 /// Repository path of the design doc.

@@ -1,6 +1,7 @@
 import { assistantFr } from "./assistant";
 import { forgeFr } from "./code";
 import { designFr } from "./design";
+import { doctorFr } from "./doctor";
 import type { Messages } from "./en";
 import { extensionsFr } from "./extensions";
 import { factoryFr } from "./factory";
@@ -573,6 +574,17 @@ export const fr: Messages = {
 			comment: "Commentaire",
 			post: "Publier le commentaire",
 			noComments: "Ce tracker ne gère pas les commentaires.",
+			description: "Description",
+			saveDescription: "Enregistrer la description",
+			removeLabel: "Retirer {label}",
+			priority: "Priorité",
+			priorities: {
+				highest: "Très haute",
+				high: "Haute",
+				medium: "Moyenne",
+				low: "Basse",
+				lowest: "Très basse",
+			},
 		},
 		ticket: {
 			assignee: "Assigné",
@@ -790,5 +802,6 @@ export const fr: Messages = {
 	specs: specsFr,
 	ui: uiFr,
 	workspace: workspaceFr,
+	doctor: doctorFr,
 	panels: panelsFr,
 };

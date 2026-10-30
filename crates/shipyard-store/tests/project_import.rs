@@ -234,3 +234,54 @@ fn a_dotfile_and_a_file_over_the_limit_are_skipped() {
     assert!(!root.path().join("docs/decisions/.hiddendir").exists());
     assert!(!root.path().join("docs/decisions/0002-big.md").exists());
 }
+
+#[test]
+fn the_calendar_and_the_plan_decisions_are_imported_with_their_sheet() {
+    let source = tempfile::tempdir().unwrap();
+    let put = |rel: &str, text: &str| {
+        let p = source.path().join(rel);
+        fs::create_dir_all(p.parent().unwrap()).unwrap();
+        fs::write(p, text).unwrap();
+    };
+    put(
+        "docs/costing/mvp.json",
+        &fs::read_to_string(fixture().join("docs/costing/mvp.json")).unwrap(),
+    );
+    put(
+        "docs/planning/calendar.json",
+        r#"{"version":1,"workingDays":[1,2,3],"holidays":[{"date":"2026-12-24","name":"Bridge"}]}"#,
+    );
+    put(
+        "docs/planning/plan.json",
+        r#"{"version":1,"tasks":[{"taskId":"t-form","memberIds":["ana"],"anchor":"start-on","anchorDate":"2026-11-02"},{"taskId":"gone","memberIds":["bob"]}]}"#,
+    );
+    let root = tempfile::tempdir().unwrap();
+    let r = import(source.path(), root.path());
+    assert!(
+        r.copied
+            .contains(&"docs/planning/calendar.yaml".to_string()),
+        "{r:?}"
+    );
+    assert!(
+        r.copied.contains(&"docs/planning/plan.yaml".to_string()),
+        "{r:?}"
+    );
+    let cal = shipyard_store::work::read_calendar(
+        &fs::read_to_string(root.path().join("docs/planning/calendar.yaml")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(
+        (cal.working_days, cal.holidays),
+        (vec![1, 2, 3], vec!["2026-12-24".to_string()])
+    );
+    let d = shipyard_store::work::read_decisions(
+        &fs::read_to_string(root.path().join("docs/planning/plan.yaml")).unwrap(),
+    )
+    .unwrap();
+    // A task that no sheet holds has no ref to hold a decision.
+    assert_eq!(d.tasks.keys().collect::<Vec<_>>(), ["est:mvp#t-form"]);
+    assert_eq!(
+        d.tasks["est:mvp#t-form"].start.as_deref(),
+        Some("2026-11-02")
+    );
+}

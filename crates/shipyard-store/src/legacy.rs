@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use shipyard_core::project::{ProjectFile, validate};
-use shipyard_core::work::{Sheet, Team};
+use shipyard_core::work::{Calendar, Decisions, Sheet, TaskDecision, Team};
 
 const DRAWINGS: [&str; 6] = ["excalidraw", "drawio", "mmd", "mermaid", "bpmn", "svg"];
 const MODELS: [&str; 2] = ["c4", "likec4"];
@@ -311,4 +311,177 @@ pub fn team_json(team: &Team, old: Option<&str>, roles: &BTreeMap<String, String
         .collect();
     top.insert("members".into(), Value::Array(members));
     serde_json::to_string_pretty(&Value::Object(top)).unwrap_or_default() + "\n"
+}
+
+// ---------------------------------------------------------------- calendar.json and plan.json
+
+/// The calendar of a Legacy `docs/planning/calendar.json`. Legacy writes a holiday as
+/// `{date, name}`. A text that is not valid gives the default week.
+pub fn calendar_from_json(text: &str) -> Calendar {
+    let v: Value = serde_json::from_str(text).unwrap_or(Value::Null);
+    let mut c = Calendar::default();
+    if let Some(days) = v["workingDays"].as_array() {
+        let days: Vec<u8> = days
+            .iter()
+            .filter_map(|d| d.as_u64().filter(|d| (1..=7).contains(d)))
+            .map(|d| d as u8)
+            .collect();
+        // An empty week is a mistake in Legacy too: it keeps the default.
+        if !days.is_empty() {
+            c.working_days = days;
+        }
+    }
+    c.holidays = v["holidays"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|h| h["date"].as_str().or(h.as_str()))
+        .map(String::from)
+        .collect();
+    c
+}
+
+/// The Legacy calendar text for `cal`. A holiday that `old` knows keeps its name.
+pub fn calendar_json(cal: &Calendar, old: Option<&str>) -> String {
+    let old: Value = old
+        .and_then(|t| serde_json::from_str(t).ok())
+        .unwrap_or(Value::Null);
+    let name = |d: &str| {
+        old["holidays"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|h| h["date"] == d)
+            .and_then(|h| h["name"].as_str())
+            .unwrap_or("")
+            .to_string()
+    };
+    let mut top = obj(Some(&old));
+    top.insert("version".into(), json!(1));
+    top.insert("workingDays".into(), json!(cal.working_days));
+    let holidays: Vec<Value> = cal
+        .holidays
+        .iter()
+        .map(|d| json!({"date": d, "name": name(d)}))
+        .collect();
+    top.insert("holidays".into(), Value::Array(holidays));
+    serde_json::to_string_pretty(&Value::Object(top)).unwrap_or_default() + "\n"
+}
+
+/// The decisions of a Legacy `docs/planning/plan.json`. `slug_of` finds the sheet that holds a
+/// task id. A task that no sheet holds is left out. The first member and a pinned start are kept
+/// (`start-on`); the other fields stay in the file.
+pub fn decisions_from_json(text: &str, slug_of: impl Fn(&str) -> Option<String>) -> Decisions {
+    let v: Value = serde_json::from_str(text).unwrap_or(Value::Null);
+    let mut d = Decisions::default();
+    for t in v["tasks"].as_array().into_iter().flatten() {
+        let Some(id) = t["taskId"].as_str().map(slug) else {
+            continue;
+        };
+        let Some(sheet) = slug_of(&id) else { continue };
+        let key = format!("est:{sheet}#{id}");
+        let start = (t["anchor"] == "start-on")
+            .then(|| t["anchorDate"].as_str().filter(|s| !s.is_empty()))
+            .flatten()
+            .map(String::from);
+        let member = t["memberIds"][0].as_str().map(slug);
+        if start.is_some() || member.is_some() {
+            d.order.push(key.clone());
+            d.tasks.insert(key, TaskDecision { start, member });
+        }
+    }
+    d
+}
+
+/// The Legacy plan text for `d`. A task entry of `old` keeps its duration, predecessors and note.
+pub fn plan_json(d: &Decisions, old: Option<&str>) -> String {
+    let old: Value = old
+        .and_then(|t| serde_json::from_str(t).ok())
+        .unwrap_or(Value::Null);
+    let mut top = obj(Some(&old));
+    top.insert("version".into(), json!(1));
+    let mut tasks: Vec<Value> = old["tasks"].as_array().cloned().unwrap_or_default();
+    let id_of = |k: &str| k.rsplit_once('#').map(|(_, id)| id.to_string());
+    for t in &mut tasks {
+        let Some(o) = t.as_object_mut() else { continue };
+        let id = o.get("taskId").and_then(Value::as_str).map(slug);
+        // A decision that was dropped clears the pin and the member only.
+        if !d.tasks.keys().any(|k| id_of(k) == id) {
+            o.insert("memberIds".into(), json!([]));
+            o.insert("anchor".into(), json!("auto"));
+            o.insert("anchorDate".into(), json!(""));
+        }
+    }
+    for (key, dec) in &d.tasks {
+        let Some(id) = id_of(key) else { continue };
+        let at = tasks
+            .iter()
+            .position(|t| t["taskId"].as_str().map(slug).as_deref() == Some(id.as_str()));
+        let mut o = at
+            .and_then(|i| tasks[i].as_object().cloned())
+            .unwrap_or_else(|| {
+                let mut o = Map::new();
+                o.insert("taskId".into(), json!(id));
+                o.insert("alsoAfter".into(), json!([]));
+                o.insert("durationDays".into(), json!(0));
+                o.insert("note".into(), json!(""));
+                o
+            });
+        o.insert(
+            "memberIds".into(),
+            json!(dec.member.iter().collect::<Vec<_>>()),
+        );
+        o.insert(
+            "anchor".into(),
+            json!(if dec.start.is_some() {
+                "start-on"
+            } else {
+                "auto"
+            }),
+        );
+        o.insert(
+            "anchorDate".into(),
+            json!(dec.start.clone().unwrap_or_default()),
+        );
+        match at {
+            Some(i) => tasks[i] = Value::Object(o),
+            None => tasks.push(Value::Object(o)),
+        }
+    }
+    top.insert("tasks".into(), Value::Array(tasks));
+    serde_json::to_string_pretty(&Value::Object(top)).unwrap_or_default() + "\n"
+}
+
+#[cfg(test)]
+mod plan_tests {
+    use super::*;
+
+    #[test]
+    fn calendar_and_plan_round_trip_and_keep_what_shipyard_does_not_own() {
+        let cal = calendar_from_json(
+            r#"{"version":1,"workingDays":[1,2,3],"holidays":[{"date":"2026-12-24","name":"Bridge"}]}"#,
+        );
+        assert_eq!(cal.working_days, [1, 2, 3]);
+        assert_eq!(cal.holidays, ["2026-12-24"]);
+        let out = calendar_json(
+            &cal,
+            Some(r#"{"holidays":[{"date":"2026-12-24","name":"Bridge"}]}"#),
+        );
+        assert!(out.contains("Bridge"));
+        assert_eq!(calendar_from_json("{").working_days, [1, 2, 3, 4, 5]);
+
+        let old = r#"{"version":1,"tasks":[{"taskId":"T1","memberIds":["ada","bob"],"anchor":"start-on","anchorDate":"2026-11-02","durationDays":4,"alsoAfter":[],"note":"keep"},{"taskId":"zz","memberIds":["ada"]}]}"#;
+        let d = decisions_from_json(old, |id| (id == "t1").then(|| "app".to_string()));
+        assert_eq!(d.order, ["est:app#t1"]);
+        assert_eq!(d.tasks["est:app#t1"].start.as_deref(), Some("2026-11-02"));
+        assert_eq!(d.tasks["est:app#t1"].member.as_deref(), Some("ada"));
+        let mut d2 = d.clone();
+        d2.tasks.get_mut("est:app#t1").unwrap().start = None;
+        let back: Value = serde_json::from_str(&plan_json(&d2, Some(old))).unwrap();
+        assert_eq!(back["tasks"][0]["note"], "keep");
+        assert_eq!(back["tasks"][0]["durationDays"], 4);
+        assert_eq!(back["tasks"][0]["anchor"], "auto");
+        // A task that the decisions do not name loses only its member and pin.
+        assert_eq!(back["tasks"][1]["memberIds"], json!([]));
+    }
 }

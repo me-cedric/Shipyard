@@ -16,6 +16,16 @@ describe("Specs / Test plans", () => {
 		expect(await screen.findByRole("row", { name: /Invoice/ })).toHaveTextContent("2");
 	});
 
+	it("shows each scenario with its last verdict, and a scenario never run as not covered", async () => {
+		await renderSpecs(<TestPlans />);
+		await screen.findByText("A session starts");
+		const row = (name: string) => screen.getByText(name).closest("li") as HTMLElement;
+		expect(row("A session starts")).toHaveTextContent("Pass");
+		expect(row("A person signs in")).toHaveTextContent("Fail");
+		expect(row("An old rule")).toHaveTextContent("Not covered");
+		expect(row("An invoice is issued")).toHaveTextContent("Not covered");
+	});
+
 	it("lists the requirements that no scenario cites, for each capability", async () => {
 		await renderSpecs(<TestPlans />);
 		const auth = await screen.findByRole("region", { name: "Coverage: auth" });

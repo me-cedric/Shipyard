@@ -122,6 +122,15 @@ export function useSessions() {
 	});
 }
 
+/** The requests of one run nested by step, read when a person picks the run. */
+export function useUsageTree(run: string | null) {
+	return useQuery({
+		queryKey: [...factoryKeys.usage, "tree", run ?? ""],
+		queryFn: () => unwrap(commands.usageTreeGet(run ?? "")),
+		enabled: run !== null,
+	});
+}
+
 export function useUsage() {
 	useFresh();
 	return useQuery({ queryKey: factoryKeys.usage, queryFn: () => unwrap(commands.usageGet()) });

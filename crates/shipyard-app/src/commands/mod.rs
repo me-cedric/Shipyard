@@ -143,7 +143,12 @@ pub async fn blocking<T: Send + 'static>(
     app: AppHandle,
     f: impl FnOnce(&AppState) -> Res<T> + Send + 'static,
 ) -> Res<T> {
-    tauri::async_runtime::spawn_blocking(move || f(&app.state::<AppState>()))
+    let done = tauri::async_runtime::spawn_blocking(move || f(&app.state::<AppState>()))
         .await
-        .map_err(err)?
+        .map_err(err)?;
+    // A failed command is a line of the debug console in Settings / Health.
+    if let Err(e) = &done {
+        crate::applog::record("warn", e);
+    }
+    done
 }

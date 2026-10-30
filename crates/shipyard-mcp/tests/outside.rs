@@ -37,6 +37,7 @@ fn the_switches_decide_which_tools_list_and_run_and_a_change_acts_at_once() {
             switches: *seen.lock().unwrap(),
             only: Vec::new(),
             read_only: false,
+            tickets: None,
         })
     });
     let binding = Binding {

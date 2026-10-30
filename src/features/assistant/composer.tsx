@@ -1,15 +1,17 @@
 import { Toggle } from "@base-ui/react/toggle";
 import { ToggleGroup } from "@base-ui/react/toggle-group";
-import { type ReactNode, type RefObject, useEffect, useId, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useId, useRef, useState } from "react";
 import { mentionAt, slashFor, slashQuery } from "@/lib/assistant/slash";
-import { useI18n } from "@/lib/i18n";
-import type { AssistantMode, Permission } from "@/lib/ipc";
+import { format, useI18n } from "@/lib/i18n";
+import { type AssistantMode, type Attachment, commands, type Permission, unwrap } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
 import { useRefSearch } from "@/lib/refs";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
+import { IconButton } from "@/ui/atoms/icon-button";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
-import { PaperAirplaneIcon } from "@/ui/icons";
+import { PaperAirplaneIcon, PlusIcon, XMarkIcon } from "@/ui/icons";
 import { ComposerMenu, type MenuItem } from "./composer-menu";
 import { GaugeView } from "./gauge";
 import type { Assistant } from "./use-assistant";
@@ -38,6 +40,32 @@ export function Composer({
 	useEffect(() => {
 		if (stuck) void setSettings({ permission: "read_only" });
 	}, [stuck, setSettings]);
+	// Files and images join the next turn as quotes: data, never an instruction.
+	const [files, setFiles] = useState<Attachment[]>([]);
+	const [attachError, setAttachError] = useState<string | null>(null);
+	const picker = useRef<HTMLInputElement>(null);
+	const thread = a.current?.thread.id;
+	const attach = async (list: FileList | File[]) => {
+		if (!thread) return;
+		setAttachError(null);
+		for (const f of Array.from(list)) {
+			try {
+				const bytes = Array.from(new Uint8Array(await f.arrayBuffer()));
+				const done = await unwrap(commands.assistantAttach(thread, f.name, bytes));
+				setFiles((x) => [...x, done]);
+			} catch (e) {
+				setAttachError(e instanceof Error ? e.message : String(e));
+			}
+		}
+	};
+	const submit = () => {
+		void a.send(
+			a.draft,
+			true,
+			files.map((f) => ({ source: f.name, text: f.quote })),
+		);
+		setFiles([]);
+	};
 	const levels = readOnly ? PERMISSIONS.filter((p) => p === "read_only") : PERMISSIONS;
 	// The slash menu and the `@` menu share one list. Escape closes it until the draft changes.
 	const [active, setActive] = useState(0);
@@ -79,7 +107,15 @@ export function Composer({
 		if (end[2]) void a.addRef(end[2]);
 	};
 	return (
-		<div className="m-2 mt-0 flex flex-col gap-2 rounded-xl border bg-surface-2 p-2 shadow-1">
+		// biome-ignore lint/a11y/noStaticElementInteractions: a drop target; the Attach file button is the keyboard path
+		<div
+			className="m-2 mt-0 flex flex-col gap-2 rounded-xl border bg-surface-2 p-2 shadow-1"
+			onDragOver={(e) => e.preventDefault()}
+			onDrop={(e) => {
+				e.preventDefault();
+				void attach(e.dataTransfer.files);
+			}}
+		>
 			{s ? (
 				<div className="flex flex-wrap gap-1">
 					<ToggleGroup
@@ -177,16 +213,54 @@ export function Composer({
 						e.preventDefault();
 						const token = TOKEN.exec(a.draft);
 						if (token) takeRef(a.draft, token);
-						else void a.send(a.draft, true);
+						else submit();
 					}}
 				/>
 			</div>
+			{files.length > 0 || attachError ? (
+				<div className="flex flex-wrap items-center gap-1">
+					{files.map((f) => (
+						<Badge key={f.name} variant="accent" className="gap-1">
+							{f.name}
+							<IconButton
+								label={format(t.doctor.attach.remove, { name: f.name })}
+								onClick={() => setFiles((x) => x.filter((y) => y !== f))}
+							>
+								<XMarkIcon size={12} />
+							</IconButton>
+						</Badge>
+					))}
+					{attachError ? (
+						<span role="alert" className="text-12 text-danger-text">
+							{attachError}
+						</span>
+					) : null}
+				</div>
+			) : null}
 			<div className="flex items-center justify-between gap-2">
+				<input
+					ref={picker}
+					type="file"
+					multiple
+					hidden
+					data-testid="attach-input"
+					onChange={(e) => {
+						if (e.target.files) void attach(e.target.files);
+						e.target.value = "";
+					}}
+				/>
 				{a.current ? <GaugeView gauge={a.current.gauge} /> : <span />}
+				<IconButton
+					label={t.doctor.attach.add}
+					disabled={!a.current || a.busy}
+					onClick={() => picker.current?.click()}
+				>
+					<PlusIcon size={14} />
+				</IconButton>
 				<Button
 					variant="primary"
 					disabled={!a.current || a.busy || !a.draft.trim()}
-					onClick={() => void a.send(a.draft, true)}
+					onClick={submit}
 				>
 					<PaperAirplaneIcon size={14} />
 					{t.assistant.send}

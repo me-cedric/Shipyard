@@ -38,6 +38,18 @@ pub struct SessionInfo {
     pub started: u64,
 }
 
+/// One request of a run: a usage event of the runner, with the step that it belongs to.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Request {
+    /// The unit id: the step id, or the child id of a `for_each` step. Empty: no step.
+    pub step: String,
+    /// Unix milliseconds.
+    pub ts: u64,
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+    pub cost_usd: f64,
+}
+
 /// The sessions that `Factory::sessions` keeps of the finished steps, newest first.
 const RECENT: usize = 50;
 
@@ -222,6 +234,28 @@ impl Factory {
             days,
             rows(inner.member_spend(project), &|m| b.for_member(m)),
         )
+    }
+
+    /// The requests of one run, oldest first: its usage events from the run log.
+    pub fn requests(&self, run: &str) -> Vec<Request> {
+        let inner = self.lock();
+        inner
+            .log
+            .usage_events()
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|e| e.run == run)
+            .map(|e| {
+                let n = |k: &str| e.payload[k].as_u64().unwrap_or(0);
+                Request {
+                    step: e.step.clone().unwrap_or_default(),
+                    ts: e.ts,
+                    input_tokens: n("input_tokens"),
+                    output_tokens: n("output_tokens"),
+                    cost_usd: e.payload["cost_usd"].as_f64().unwrap_or(0.0),
+                }
+            })
+            .collect()
     }
 
     /// The live sessions and the most recent ended ones, newest first. A step that never started

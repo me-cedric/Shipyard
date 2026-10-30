@@ -29,6 +29,7 @@ import {
 	seedAgents,
 } from "./mock-agents";
 import * as ai from "./mock-assistant";
+import * as bs from "./mock-bootstrap";
 import {
 	codeBlame,
 	codeBranchCreate,
@@ -69,6 +70,7 @@ import * as design from "./mock-design";
 import * as dr from "./mock-doctor";
 import * as ex from "./mock-extensions";
 import * as fx from "./mock-factory";
+import * as fl from "./mock-feedback-log";
 import * as kw from "./mock-knowledge";
 import * as mc from "./mock-machine";
 import { cards, chainGate, seedLinks, seedNotes } from "./mock-overview";
@@ -166,6 +168,8 @@ type State = {
 	machine: mc.MockMachine;
 	/** The Doctor tools and ledger, and the MCP server for outside agents. */
 	doctor: dr.MockDoctor;
+	bootstrap: bs.MockBootstrap;
+	log: fl.MockLog;
 	/** The auto-commit option of the active project, the work in flight and the close answer. */
 	autoCommit: boolean;
 	inFlight: { runs: number; turns: number };
@@ -231,6 +235,8 @@ const fresh = (): State => ({
 	menu: {},
 	machine: mc.seedMachine(),
 	doctor: dr.seedDoctor(),
+	bootstrap: bs.seedBootstrap(),
+	log: fl.seedLog(),
 	autoCommit: false,
 	inFlight: { runs: 0, turns: 0 },
 	closed: false,
@@ -882,6 +888,12 @@ const handlers: Handlers = {
 		return dr.doctorInstall(state.doctor, id);
 	},
 	doctorLedger: () => dr.doctorLedger(state.doctor),
+	doctorBootstrapPlan: (answers) => bs.bootstrapPlan(state.bootstrap, answers, state.doctor.tools),
+	doctorBootstrapApply: (answers, click) =>
+		bs.bootstrapApply(state.bootstrap, answers, state.doctor.tools, click),
+	feedbackOpen: (kind, title, details, click) => fl.feedbackOpen(kind, title, details, click),
+	debugLog: () => state.log.lines,
+	assistantAttach: (id, name, bytes) => ai.attach(state.assistant, assistantEnv(), id, name, bytes),
 	shellMenu: (labels) => {
 		state.menu = labels;
 		return null;
@@ -983,6 +995,24 @@ const handlers: Handlers = {
 		needTracker(() => work.ticketLabelAdd(state.sync.mirror, key, label, click));
 		return null;
 	},
+	workTicketLabelRemove: (key, label, click) => {
+		needTracker(() => work.ticketLabelRemove(state.sync.mirror, key, label, click));
+		return null;
+	},
+	workTicketPrioritySet: (key, priority, click) => {
+		needTracker(() => work.ticketPrioritySet(state.sync.mirror, key, priority, click));
+		return null;
+	},
+	workTicketEditCaps: () =>
+		needTracker(() => ({
+			title: true,
+			description: true,
+			labels: true,
+			removeLabel: true,
+			assignee: true,
+			status: true,
+			priority: true,
+		})),
 	workSealState: () => work.sealState(need(state.work)),
 	workUnlock: (passphrase) => work.sealUnlock(need(state.work), passphrase),
 	workLock: () => work.sealLock(need(state.work)),
@@ -1121,6 +1151,7 @@ const handlers: Handlers = {
 	codeCheckRun: (command, click) => cp.checkRun(prs(), command, click),
 	codeScanRun: (name, click) => cp.scanRun(prs(), name, click),
 	codeScannerInstall: (name, click) => cp.scannerInstall(prs(), name, click),
+	codeSbomExport: (click) => cp.sbomExport(click),
 	codeImpactRefs: () => cp.impactRefs(code()),
 	codeImpactList: () => cp.impactList(prs()),
 	codeImpactRead: (path) => cp.impactRead(prs(), path),
@@ -1156,6 +1187,7 @@ const handlers: Handlers = {
 		specs.questionSave(need(state.specs), path, question, stamp),
 	specsQuestionCreate: (question) => specs.questionCreate(need(state.specs), question),
 	specsTestplans: () => specs.testplans(need(state.specs)),
+	specsBdd: () => specs.bdd(need(state.specs)),
 	specsCoverage: (capability) => specs.coverage(need(state.specs), capability),
 	specsFold: (specPath, questionId, answer, stamp, click) =>
 		specs.foldAnswer(need(state.specs), specPath, questionId, answer, stamp, click),
@@ -1258,6 +1290,7 @@ const handlers: Handlers = {
 	runLogPage: (run, after, limit) => fx.runLogPage(state.factory, run, after, limit),
 	sessionsList: () => fx.sessionsList(state.factory, active()?.id ?? null),
 	usageGet: () => fx.usageGet(state.factory, active()?.id ?? null),
+	usageTreeGet: (run) => fx.usageTreeGet(state.factory, active()?.id ?? null, run),
 	budgetSet: (scope, key, usd) => fx.budgetSet(state.factory, scope, key, usd),
 	runDiff: (run) => fx.runDiff(state.factory, active()?.id ?? null, run),
 	runStart: (key) => {

@@ -1502,6 +1502,46 @@ fn legacy_json_sheets_and_team_open_in_place_and_save_in_their_format() {
 }
 
 #[test]
+fn legacy_calendar_and_plan_json_open_in_place_and_save_in_their_format() {
+    let f = fx();
+    let put = |rel: &str, text: &str| {
+        let p = f.repo.path().join(rel);
+        std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+        std::fs::write(p, text).unwrap();
+    };
+    put(
+        "docs/costing/mvp.json",
+        r#"{"version":1,"meta":{"name":"MVP","currency":"EUR"},
+        "features":[{"id":"f1","name":"Login","tasks":[{"id":"t1","name":"Form","personaId":"dev","mandays":3,"chargeType":"days","kind":"build"}]}]}"#,
+    );
+    put(
+        "docs/planning/calendar.json",
+        r#"{"version":1,"workingDays":[1,2,3,4],"holidays":[{"date":"2026-12-24","name":"Bridge"}]}"#,
+    );
+    put(
+        "docs/planning/plan.json",
+        r#"{"version":1,"tasks":[{"taskId":"t1","memberIds":["ana"],"anchor":"start-on","anchorDate":"2026-11-02","durationDays":2,"alsoAfter":[],"note":"n"}]}"#,
+    );
+    let v = plan(&f.s, "mvp").unwrap();
+    assert_eq!(v.calendar.working_days, [1, 2, 3, 4]);
+    assert_eq!(v.calendar.holidays, ["2026-12-24"]);
+    assert_eq!(
+        v.decisions.tasks["est:mvp#t1"].start.as_deref(),
+        Some("2026-11-02")
+    );
+    let mut cal = v.calendar;
+    cal.holidays.push("2026-12-31".into());
+    calendar_save(&f.s, &cal).unwrap();
+    let mut d = v.decisions;
+    d.tasks.get_mut("est:mvp#t1").unwrap().member = Some("bob".into());
+    decisions_save(&f.s, &d).unwrap();
+    assert!(!f.exists("docs/planning/calendar.yaml") && !f.exists("docs/planning/plan.yaml"));
+    assert!(f.file("docs/planning/calendar.json").contains("Bridge"));
+    let plan_text = f.file("docs/planning/plan.json");
+    assert!(plan_text.contains("\"bob\"") && plan_text.contains("\"durationDays\": 2"));
+}
+
+#[test]
 fn a_ticket_thread_reads_comments_posts_one_edits_the_title_and_adds_a_label() {
     let f = fx();
     f.put(vec![ticket("PROJ-5", "T", &[])]);
@@ -1521,6 +1561,7 @@ fn a_ticket_thread_reads_comments_posts_one_edits_the_title_and_adds_a_label() {
         )
         .put("/rest/api/2/issue/PROJ-5", "summary", 204, "")
         .put("/rest/api/2/issue/PROJ-5", "labels", 204, "")
+        .put("/rest/api/2/issue/PROJ-5", "priority", 204, "")
         .get(
             "/rest/api/2/issue/PROJ-5",
             200,
@@ -1556,4 +1597,24 @@ fn a_ticket_thread_reads_comments_posts_one_edits_the_title_and_adds_a_label() {
         .collect();
     assert!(sent.iter().any(|b| b.contains(r#""summary":"New""#)));
     assert!(sent.iter().any(|b| b.contains(r#"{"add":"urgent"}"#)));
+
+    // Q-123: the capability flags, the label remove and the priority.
+    let caps = ticket_edit_caps(&f.s).unwrap();
+    assert!(caps.remove_label && caps.priority && caps.status && caps.assignee);
+    assert!(ticket_label_remove(&f.s, "PROJ-5", "urgent", false).is_err());
+    assert!(ticket_label_remove(&f.s, "PROJ-5", "two words", true).is_err());
+    assert!(ticket_priority_set(&f.s, "PROJ-5", "high", false).is_err());
+    ticket_label_remove(&f.s, "PROJ-5", "urgent", true).unwrap();
+    ticket_priority_set(&f.s, "PROJ-5", "high", true).unwrap();
+    let sent: Vec<_> = f
+        .http
+        .requests()
+        .into_iter()
+        .filter_map(|r| r.body.map(|b| b.to_string()))
+        .collect();
+    assert!(sent.iter().any(|b| b.contains(r#"{"remove":"urgent"}"#)));
+    assert!(
+        sent.iter()
+            .any(|b| b.contains(r#""priority":{"name":"High"}"#))
+    );
 }

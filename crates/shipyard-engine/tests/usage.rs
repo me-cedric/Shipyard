@@ -177,6 +177,31 @@ fn usage_sums_by_day_and_member_with_budgets_and_sessions_show_the_steps() {
 }
 
 #[test]
+fn the_requests_of_a_run_come_from_its_usage_events_with_their_step() {
+    let fx = fx(Budgets::default());
+    fx.start("SHIP-1", &[]);
+    let id = run_of(&fx, "SHIP-1");
+    fx.event("work", usage(1.0));
+    fx.advance(2);
+    fx.event("work", usage(0.5));
+    fx.start("SHIP-2", &[]);
+    fx.event("work", usage(9.0));
+    let r = fx.f.requests(&id);
+    assert_eq!(
+        r.iter()
+            .map(|x| (
+                x.step.as_str(),
+                x.input_tokens + x.output_tokens,
+                x.cost_usd
+            ))
+            .collect::<Vec<_>>(),
+        [("work", 150, 1.0), ("work", 150, 0.5)]
+    );
+    assert!(r[0].ts < r[1].ts);
+    assert!(fx.f.requests("none").is_empty());
+}
+
+#[test]
 fn sessions_keep_a_live_one_older_than_the_newest_ended_ones() {
     let fx = fx(Budgets::default());
     fx.start("SHIP-0", &[]);

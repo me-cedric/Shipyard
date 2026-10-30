@@ -84,6 +84,18 @@ pub trait TrackerWrite: Tracker {
     /// Needs the `labels` flag. The pickup label of REQ-008 goes through here.
     fn add_label(&self, key: &str, label: &str) -> Result<(), TrackerError>;
 
+    /// Needs the `labels` flag. A label that the ticket does not hold is not an error.
+    fn remove_label(&self, _key: &str, _label: &str) -> Result<(), TrackerError> {
+        Err(Capability::Labels.into())
+    }
+
+    /// `priority` is one of [`PRIORITIES`]. A tracker with no priority field refuses (Q-123).
+    fn set_priority(&self, _key: &str, _priority: &str) -> Result<(), TrackerError> {
+        Err(TrackerError::Refused(
+            "this tracker has no priority field".into(),
+        ))
+    }
+
     /// Needs the `transitions` flag. A refusal is [`TrackerError::Refused`] with the reason (REQ-002).
     fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError>;
 
@@ -128,6 +140,18 @@ pub trait TrackerWrite: Tracker {
 
     /// Delete a comment. A comment of another person is [`TrackerError::Refused`].
     fn delete_comment(&self, key: &str, id: &str) -> Result<(), TrackerError>;
+}
+
+/// The priorities of the edit, highest first. A tracker maps them to its own scale.
+pub const PRIORITIES: [&str; 5] = ["highest", "high", "medium", "low", "lowest"];
+
+/// The place of a priority in [`PRIORITIES`], from 1 (highest) to 5.
+pub(crate) fn rank(priority: &str) -> Result<u8, TrackerError> {
+    PRIORITIES
+        .iter()
+        .position(|p| p.eq_ignore_ascii_case(priority.trim()))
+        .map(|i| i as u8 + 1)
+        .ok_or_else(|| TrackerError::Config(format!("`{priority}` is not a priority")))
 }
 
 /// Every comment of a ticket, oldest first. It follows the cursor of [`TrackerWrite::comments_page`].
@@ -533,6 +557,31 @@ impl TrackerWrite for Jira {
         Ok(())
     }
 
+    fn remove_label(&self, key: &str, label: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Labels)?;
+        let body = json!({ "update": { "labels": [{ "remove": label }] } });
+        self.send(
+            Method::Put,
+            &format!("{API}/issue/{}", encode(key)),
+            &[],
+            body,
+        )?;
+        Ok(())
+    }
+
+    fn set_priority(&self, key: &str, priority: &str) -> Result<(), TrackerError> {
+        // The default Jira scheme names: Highest, High, Medium, Low, Lowest.
+        let name = PRIORITIES[usize::from(rank(priority)? - 1)];
+        let name = format!("{}{}", name[..1].to_uppercase(), &name[1..]);
+        self.send(
+            Method::Put,
+            &format!("{API}/issue/{}", encode(key)),
+            &[],
+            json!({ "fields": { "priority": { "name": name } } }),
+        )?;
+        Ok(())
+    }
+
     fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError> {
         self.capabilities().require(Capability::Transitions)?;
         let path = format!("{API}/issue/{}/transitions", encode(key));
@@ -777,6 +826,15 @@ impl TrackerWrite for GitHub {
             json!({ "labels": [label] }),
         )?;
         Ok(())
+    }
+
+    fn remove_label(&self, key: &str, label: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Labels)?;
+        let (slug, number) = github::split_key(key)?;
+        self.remove(&format!(
+            "/repos/{slug}/issues/{number}/labels/{}",
+            encode(label)
+        ))
     }
 
     fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError> {

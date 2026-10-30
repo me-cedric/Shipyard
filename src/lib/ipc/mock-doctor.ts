@@ -20,6 +20,14 @@ const OUTSIDE_TOOLS = [
 	"forge_remote",
 	"run_check",
 	"delivery_diff",
+	"ticket_list",
+	"ticket_read",
+	"ticket_comment",
+	"adr_list",
+	"adr_read",
+	"adr_propose",
+	"qa_run_check",
+	"qa_read_report",
 ];
 
 const GROUP_OF: Record<string, keyof McpGates_Deserialize> = {
@@ -32,6 +40,14 @@ const GROUP_OF: Record<string, keyof McpGates_Deserialize> = {
 	forge_remote: "forge",
 	run_check: "exec",
 	delivery_diff: "delivery",
+	ticket_list: "tickets",
+	ticket_read: "tickets",
+	ticket_comment: "tickets",
+	adr_list: "adrs",
+	adr_read: "adrs",
+	adr_propose: "adrs",
+	qa_run_check: "qa",
+	qa_read_report: "qa",
 };
 
 type Gates = Required<McpGates_Deserialize>;
@@ -87,6 +103,9 @@ export const seedDoctor = (): MockDoctor => ({
 		forge: false,
 		exec: false,
 		delivery: false,
+		tickets: false,
+		adrs: false,
+		qa: false,
 		port: 47821,
 		allowedTools: [],
 	},

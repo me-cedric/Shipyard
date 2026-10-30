@@ -1,6 +1,7 @@
 import { assistantEn } from "./assistant";
 import { forgeEn } from "./code";
 import { designEn } from "./design";
+import { doctorEn } from "./doctor";
 import { extensionsEn } from "./extensions";
 import { factoryEn } from "./factory";
 import { homeEn } from "./home";
@@ -557,6 +558,17 @@ export const en = {
 			comment: "Comment",
 			post: "Post comment",
 			noComments: "This tracker does not hold comments.",
+			description: "Description",
+			saveDescription: "Save description",
+			removeLabel: "Remove {label}",
+			priority: "Priority",
+			priorities: {
+				highest: "Highest",
+				high: "High",
+				medium: "Medium",
+				low: "Low",
+				lowest: "Lowest",
+			},
 		},
 		ticket: {
 			assignee: "Assignee",
@@ -759,6 +771,7 @@ export const en = {
 	specs: specsEn,
 	ui: uiEn,
 	workspace: workspaceEn,
+	doctor: doctorEn,
 	panels: panelsEn,
 };
 

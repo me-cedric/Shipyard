@@ -75,6 +75,15 @@ export const specsEn = {
 	scenarios: "Scenarios",
 	cited: "Requirements",
 	coverage: "Coverage",
+	behaviour: "Behaviour",
+	verdict: {
+		pass: "Pass",
+		fail: "Fail",
+		partial: "Partial",
+		blocked: "Blocked",
+		"not-covered": "Not covered",
+	},
+	lastRun: "Last run {date}",
 	errors: "Syntax errors",
 	broken: "Broken citations",
 };
@@ -155,6 +164,15 @@ export const specsFr: typeof specsEn = {
 	scenarios: "Scénarios",
 	cited: "Exigences",
 	coverage: "Couverture",
+	behaviour: "Comportement",
+	verdict: {
+		pass: "Réussi",
+		fail: "Échec",
+		partial: "Partiel",
+		blocked: "Bloqué",
+		"not-covered": "Non couvert",
+	},
+	lastRun: "Dernier passage {date}",
 	errors: "Erreurs de syntaxe",
 	broken: "Citations cassées",
 };

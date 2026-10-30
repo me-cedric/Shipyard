@@ -324,3 +324,24 @@ fn resolve_rejects_a_link_that_leaves_the_repository() {
     std::os::unix::fs::symlink(out.path(), dir.path().join("docs/diagrams")).unwrap();
     assert!(resolve(dir.path(), &project(), "docs/diagrams/a.mmd").is_err());
 }
+
+#[test]
+fn the_designs_folder_scan_adds_files_that_no_screen_names() {
+    let dir = tempfile::tempdir().unwrap();
+    put(dir.path(), "docs/designs/ui/home.fig", "x");
+    put(dir.path(), "docs/designs/mock/Landing Page.html", "<p/>");
+    put(dir.path(), "docs/designs/mock/deep/too/far.png", "x");
+    put(dir.path(), "docs/designs/design.md", "# d");
+    put(
+        dir.path(),
+        "docs/designs/screens.json",
+        r#"{"screens":[{"slug":"home","title":"Home","figma":"docs/designs/ui/home.fig"}]}"#,
+    );
+    let screens = read_screens(dir.path(), &project()).unwrap();
+    let slugs: Vec<_> = screens.iter().map(|s| s.slug.as_str()).collect();
+    assert_eq!(slugs, ["home", "landing-page"]);
+    assert_eq!(
+        screens[1].file.as_deref(),
+        Some("docs/designs/mock/Landing Page.html")
+    );
+}

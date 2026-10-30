@@ -151,6 +151,9 @@ export const useCapabilities = () =>
 export const useQuestions = () =>
 	useQuery({ queryKey: specsKeys.questions, queryFn: () => unwrap(commands.specsQuestions()) });
 
+export const useBdd = () =>
+	useQuery({ queryKey: [...specsKeys.all, "bdd"], queryFn: () => unwrap(commands.specsBdd()) });
+
 export const useTestPlans = () =>
 	useQuery({ queryKey: specsKeys.plans, queryFn: () => unwrap(commands.specsTestplans()) });
 

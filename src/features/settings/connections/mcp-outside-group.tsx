@@ -12,7 +12,17 @@ import { ArrowDownTrayIcon, ClipboardIcon } from "@/ui/icons";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { message } from "./keys";
 
-const GROUPS = ["reads", "writes", "git", "forge", "exec", "delivery"] as const;
+const GROUPS = [
+	"reads",
+	"writes",
+	"git",
+	"forge",
+	"exec",
+	"delivery",
+	"tickets",
+	"adrs",
+	"qa",
+] as const;
 const outsideKey = ["mcp", "outside"] as const;
 const elsewhereKey = ["mcp", "elsewhere"] as const;
 

@@ -104,6 +104,36 @@ impl TrackerWrite for Linear {
         Ok(())
     }
 
+    fn remove_label(&self, key: &str, label: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Labels)?;
+        let v = self.gql(
+            "query($id: String!) { issue(id: $id) { id labels { nodes { id name } } } }",
+            json!({ "id": key }),
+        )?;
+        let issue = &v["data"]["issue"];
+        if !issue.is_object() {
+            return Err(TrackerError::NotFound(key.into()));
+        }
+        let Some(l) = items(issue, "/labels/nodes")
+            .iter()
+            .find(|l| text(l, "/name").eq_ignore_ascii_case(label))
+        else {
+            return Ok(());
+        };
+        self.mutate(
+            "mutation($id: String!, $labelId: String!) { issueRemoveLabel(id: $id, labelId: $labelId) { success } }",
+            json!({ "id": text(issue, "/id"), "labelId": text(l, "/id") }),
+            "issueRemoveLabel",
+        )?;
+        Ok(())
+    }
+
+    fn set_priority(&self, key: &str, priority: &str) -> Result<(), TrackerError> {
+        // Linear priority: 1 urgent, 2 high, 3 medium, 4 low. Lowest shares the last place.
+        let n = super::work::rank(priority)?.min(4);
+        self.update_issue(&self.issue_id(key)?, json!({ "priority": n }))
+    }
+
     fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError> {
         self.capabilities().require(Capability::Transitions)?;
         let v = self.gql(

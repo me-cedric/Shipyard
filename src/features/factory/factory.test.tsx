@@ -126,6 +126,23 @@ describe("Factory tabs", () => {
 		);
 	});
 
+	it("Usage: the request tree nests the requests of a run under its steps", async () => {
+		await renderTab(<Usage />);
+		const u = await unwrap(commands.usageGet());
+		const trees = await Promise.all(u.runs.map((r) => unwrap(commands.usageTreeGet(r.run))));
+		// The totals of a tree are the ones of its run when a step has started.
+		const tree = trees.find((x) => x.steps.length > 0);
+		if (!tree) throw new Error("the demo has a started run");
+		const run = u.runs.find((r) => r.run === tree.run);
+		expect(tree.tokens).toBe(run?.tokens);
+		expect(tree.usd).toBeCloseTo(run?.usd ?? 0, 1);
+		await screen.findByText("Request tree");
+		// The view shows the first run.
+		const shown = trees[0]?.steps.reduce((n, s) => n + s.requests.length, 0) ?? 0;
+		await waitFor(() => expect(document.querySelectorAll("details li")).toHaveLength(shown));
+		await expect(unwrap(commands.usageTreeGet("nope"))).rejects.toThrow("no run");
+	});
+
 	it("Usage: a member scope sets the default member budget", async () => {
 		const user = userEvent.setup();
 		await renderTab(<Usage />);

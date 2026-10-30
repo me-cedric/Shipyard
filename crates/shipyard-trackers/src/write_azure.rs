@@ -215,6 +215,44 @@ impl TrackerWrite for Azure {
         Ok(())
     }
 
+    fn remove_label(&self, key: &str, label: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Labels)?;
+        let item = self
+            .call(
+                &format!("/_apis/wit/workitems/{}", digits("work item", key)?),
+                &[("fields", "System.Tags")],
+            )
+            .map_err(|e| e.not_found(key))?;
+        let tags = text(&item, "/fields/System.Tags");
+        let all: Vec<&str> = tags
+            .split(';')
+            .map(str::trim)
+            .filter(|t| !t.is_empty() && !t.eq_ignore_ascii_case(label))
+            .collect();
+        self.patch(
+            key,
+            vec![
+                op("test", "/rev", json!(num(&item, "/rev").unwrap_or(0))),
+                op("add", "/fields/System.Tags", json!(all.join("; "))),
+            ],
+        )?;
+        Ok(())
+    }
+
+    fn set_priority(&self, key: &str, priority: &str) -> Result<(), TrackerError> {
+        // Azure DevOps priority is 1 to 4: lowest and low share the last place.
+        let n = super::work::rank(priority)?.min(4);
+        self.patch(
+            key,
+            vec![op(
+                "add",
+                "/fields/Microsoft.VSTS.Common.Priority",
+                json!(n),
+            )],
+        )?;
+        Ok(())
+    }
+
     fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError> {
         self.capabilities().require(Capability::Transitions)?;
         self.patch(key, vec![op("add", "/fields/System.State", json!(to))])

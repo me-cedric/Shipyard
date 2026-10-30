@@ -447,7 +447,10 @@ describe("Settings / Health", () => {
 		mountApp("/settings/health");
 		const main = await screen.findByRole("main");
 		expect(await within(main).findByRole("img", { name: "Success" })).toBeInTheDocument();
-		expect(within(main).queryAllByRole("button")).toHaveLength(0);
+		// No fix button of a finding: the bootstrap, console and feedback panels have their own.
+		expect(
+			within(main).queryAllByRole("button", { name: /^(Write|Open|Apply|Recheck)$/ }),
+		).toHaveLength(0);
 	});
 
 	it("shows the worst finding in the status bar and opens Health from it", async () => {

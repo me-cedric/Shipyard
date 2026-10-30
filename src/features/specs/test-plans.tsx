@@ -6,17 +6,20 @@ import { useTabSelection } from "@/lib/shell/selection";
 import {
 	type Plan,
 	planRef,
+	useBdd,
 	useCapabilities,
 	useCoverage,
 	useSpecsActions,
 	useTestPlans,
 } from "@/lib/specs";
+import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { CheckIcon, ChevronLeftIcon, PlusIcon } from "@/ui/icons";
 import { gherkin } from "@/ui/molecules/code-editor";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { FileEditor } from "./file-editor";
@@ -51,6 +54,64 @@ function Coverage({ cap }: { cap: string }) {
 				))}
 			</ul>
 		</section>
+	);
+}
+
+const VERDICT_BADGE = {
+	pass: "success",
+	fail: "danger",
+	partial: "warning",
+	blocked: "warning",
+	"not-covered": "neutral",
+} as const;
+
+/** Every scenario of every plan with the verdict of its last run (the `.json` beside the plan). */
+function Behaviour() {
+	const { t, lang } = useI18n();
+	const s = t.specs;
+	const rows = useBdd().data ?? [];
+	if (rows.length === 0) return null;
+	const date = new Intl.DateTimeFormat(lang, { dateStyle: "medium" });
+	const count = (v: string) => rows.filter((r) => r.verdict === v).length;
+	const known = (v: string): v is keyof typeof VERDICT_BADGE => v in VERDICT_BADGE;
+	return (
+		<>
+			<StatStrip
+				items={[
+					{ label: s.scenarios, value: String(rows.length), icon: <CheckIcon size={14} /> },
+					{
+						label: s.verdict.pass,
+						value: String(count("pass")),
+						tone: "success",
+					},
+					{ label: s.verdict.fail, value: String(count("fail")), tone: "danger" },
+					{ label: s.verdict["not-covered"], value: String(count("not-covered")), tone: "info" },
+				]}
+			/>
+			<Panel title={s.behaviour} count={rows.length} flush>
+				<ul className="flex flex-col">
+					{rows.map((r) => (
+						<li
+							key={`${r.plan}:${r.line}`}
+							className="flex min-h-row items-center gap-3 border-b px-3 text-ui"
+						>
+							<span className="min-w-0 flex-1 truncate">{r.scenario}</span>
+							<span className="hidden font-mono text-12 text-n-11 md:inline">
+								{r.plan.slice(r.plan.lastIndexOf("/") + 1)}
+							</span>
+							{r.at ? (
+								<span className="text-12 text-n-11">
+									{format(s.lastRun, { date: date.format(new Date(r.at)) })}
+								</span>
+							) : null}
+							<Badge variant={known(r.verdict) ? VERDICT_BADGE[r.verdict] : "neutral"}>
+								{known(r.verdict) ? s.verdict[r.verdict] : r.verdict}
+							</Badge>
+						</li>
+					))}
+				</ul>
+			</Panel>
+		</>
 	);
 }
 
@@ -194,6 +255,7 @@ function PlanList() {
 							onOpen={(p) => setOpen(p.path)}
 						/>
 					</div>
+					<Behaviour />
 					{caps.length ? (
 						<Panel title={s.coverage} bodyClassName="gap-3 p-3">
 							{caps.map((c) => (

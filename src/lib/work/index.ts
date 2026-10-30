@@ -151,6 +151,15 @@ export function useTicketComments(key: string, enabled = true) {
 	});
 }
 
+/** What the edit of a ticket can do on this tracker: a control with its flag off is not shown. */
+export function useTicketEditCaps() {
+	return useQuery({
+		queryKey: [...workKeys.all, "edit-caps"],
+		queryFn: () => unwrap(commands.workTicketEditCaps()),
+		retry: false,
+	});
+}
+
 /** The rows that an apply would write, for the sheets. Nothing is written (REQ-025). */
 export function useApplyPreview(slugs: string[], enabled: boolean) {
 	return useQuery({
@@ -187,6 +196,10 @@ export function useWorkActions() {
 			editTicket: (key: string, title: string | null, description: string | null) =>
 				run(commands.workTicketEdit(key, title, description, null, true)),
 			addLabel: (key: string, label: string) => run(commands.workTicketLabelAdd(key, label, true)),
+			removeLabel: (key: string, label: string) =>
+				run(commands.workTicketLabelRemove(key, label, true)),
+			setPriority: (key: string, priority: string) =>
+				run(commands.workTicketPrioritySet(key, priority, true)),
 			transition: (key: string, to: string) => run(commands.workTransition(key, to, true)),
 			saveTeam: (team: Team_Deserialize) => run(commands.workTeamSave(team)),
 			unlock: (passphrase: string) => run(commands.workUnlock(passphrase)),

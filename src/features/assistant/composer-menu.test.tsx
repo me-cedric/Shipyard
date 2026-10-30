@@ -134,3 +134,18 @@ describe("selection actions", () => {
 		expect(screen.queryByRole("toolbar")).toBeNull();
 	});
 });
+
+describe("assistant composer: attachments", () => {
+	it("attaches a text file, sends it as a quote and shows a refusal for a secret file", async () => {
+		const user = userEvent.setup();
+		await mountAssistant();
+		const pick = screen.getByTestId("attach-input");
+		await user.upload(pick, new File(["hello"], "notes.md", { type: "text/markdown" }));
+		expect(await screen.findByText("notes.md")).toBeInTheDocument();
+		await user.upload(pick, new File(["x"], "key.pem"));
+		expect(await screen.findByText("a secret file is never attached")).toBeInTheDocument();
+		await user.type(input(), "Read it{Enter}");
+		await waitFor(() => expect(screen.queryByText("notes.md")).toBeNull());
+		await user.click(screen.getByRole("button", { name: "Attach file" }));
+	});
+});

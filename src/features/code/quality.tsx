@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { type QualityReport, useForgeActions, useQuality } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
+import type { SbomReport } from "@/lib/ipc";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -10,7 +11,9 @@ import { Card } from "@/ui/molecules/card";
 import { FindingRow } from "@/ui/molecules/finding-row";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
+import { StatStrip } from "@/ui/molecules/stat-strip";
 import { withProject } from "./project-gate";
+import { securityScore } from "./security-score";
 import { SEVERITY_STATUS } from "./status";
 import { useRun } from "./use-run";
 import { FileDialog } from "./viewer";
@@ -28,10 +31,11 @@ const TILE = {
 function QualityView() {
 	const { t, lang } = useI18n();
 	const q = useQuality().data;
-	const { check, scan, install } = useForgeActions();
+	const { check, scan, install, sbom } = useForgeActions();
 	const { error, run } = useRun();
 	const [confirming, setConfirming] = useState<string | null>(null);
 	const [shown, setShown] = useState<string | null>(null);
+	const [exported, setExported] = useState<SbomReport | null>(null);
 	const [viewing, setViewing] = useState<{ path: string; line: number | null } | null>(null);
 	if (!q) return null;
 	const date = new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" });
@@ -146,6 +150,10 @@ function QualityView() {
 			);
 		});
 
+	const reports = q.scanners.map((r) => r.last);
+	const score = securityScore(reports);
+	const found = reports.reduce((n, r) => n + (r?.findings.length ?? 0), 0);
+
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 			<PageHeader
@@ -159,6 +167,47 @@ function QualityView() {
 				</p>
 			) : null}
 			<div className="flex flex-col gap-3 px-4 pt-1 pb-4">
+				<StatStrip
+					items={[
+						{
+							label: q18.score,
+							value: score === null ? "-" : String(score),
+							icon: <LockClosedIcon size={14} />,
+							tone:
+								score === null
+									? "info"
+									: score >= 80
+										? "success"
+										: score >= 50
+											? "warning"
+											: "danger",
+						},
+						{
+							label: q18.scanned,
+							value: `${reports.filter(Boolean).length}/${q.scanners.length}`,
+							icon: <CheckIcon size={14} />,
+						},
+						{
+							label: q18.findingsTotal,
+							value: String(found),
+							icon: <ArrowPathIcon size={14} />,
+							tone: found > 0 ? "danger" : "success",
+						},
+					]}
+				/>
+				<Panel title={q18.sbom} bodyClassName="flex items-center gap-3 p-3">
+					<Button
+						aria-label={q18.exportSbom}
+						onClick={() => void run(async () => setExported(await sbom()))}
+					>
+						{q18.exportSbom}
+					</Button>
+					{exported ? (
+						<span role="status" className="text-ui text-n-11">
+							{format(q18.sbomDone, { count: exported.components, path: exported.path })}
+						</span>
+					) : null}
+				</Panel>
 				<Panel title={q18.checks} count={q.checks.length} bodyClassName={GRID}>
 					{rows("check", q.checks)}
 				</Panel>

@@ -751,6 +751,24 @@ export function ticketLabelAdd(mirror: Mirror, key: string, label: string, click
 	if (!item.labels.includes(one)) item.labels.push(one);
 }
 
+export const PRIORITIES = ["highest", "high", "medium", "low", "lowest"];
+
+export function ticketLabelRemove(mirror: Mirror, key: string, label: string, click: boolean) {
+	needClick(click);
+	const one = label.trim();
+	if (!one || /\s/.test(one)) throw "a label is one word";
+	const item = mirror.find((t) => t.key === key);
+	if (!item) throw `not found: ${key}`;
+	item.labels = item.labels.filter((l) => l !== one);
+}
+
+/** The mock has no priority field to keep: it checks the value and the click, as the real command does. */
+export function ticketPrioritySet(mirror: Mirror, key: string, priority: string, click: boolean) {
+	needClick(click);
+	if (!mirror.some((t) => t.key === key)) throw `not found: ${key}`;
+	if (!PRIORITIES.includes(priority.toLowerCase())) throw `\`${priority}\` is not a priority`;
+}
+
 // ---- estimates
 
 function readSheet(w: MockWork, slug: string): Sheet_Serialize {

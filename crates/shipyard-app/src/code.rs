@@ -424,7 +424,7 @@ pub fn quality_view(s: &AppState) -> Res<QualityView> {
 }
 
 /// `YYYY-MM-DDTHH:MM:SSZ` of now.
-fn now_iso() -> String {
+pub(crate) fn now_iso() -> String {
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs());

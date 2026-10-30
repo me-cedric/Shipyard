@@ -4,6 +4,7 @@
 import type {
 	ApplyRow_Serialize,
 	ArtifactState_Serialize,
+	BddRow,
 	CapabilityRow,
 	ChangeView_Serialize,
 	Draft_Deserialize,
@@ -358,6 +359,25 @@ export function seedSpecs(): MockSpecs {
 			["spec:auth#REQ-003", "A person signs in"],
 			["spec:auth#REQ-009", "An old rule"],
 		]),
+		[`${PDIR}/auth-login.json`]: JSON.stringify({
+			version: 1,
+			base: "main",
+			runs: [
+				{
+					scenario: "A session starts",
+					verdict: "pass",
+					at: "2026-10-28T10:00:00Z",
+					by: "automated",
+					evidence: "pnpm test",
+				},
+				{
+					scenario: "A person signs in",
+					verdict: "fail",
+					at: "2026-10-28T10:00:00Z",
+					by: "manual",
+				},
+			],
+		}),
 		[`${PDIR}/billing-invoice.feature`]: feature("Invoice", [
 			["spec:billing#REQ-001", "An invoice is issued"],
 			["spec:billing#REQ-002", "A receipt is sent"],
@@ -577,6 +597,47 @@ export function testplans(s: MockSpecs): PlanRow[] {
 			errors: [],
 			broken: refs.filter((r) => r.startsWith("spec:") && !known.has(r)),
 		};
+	});
+}
+
+const VERDICTS = ["pass", "fail", "partial", "blocked", "not-covered"];
+
+/** Every scenario of every plan with its last run from the `.json` beside the plan. A gap stays a gap. */
+export function bdd(s: MockSpecs): BddRow[] {
+	return plans(s).flatMap((plan) => {
+		let runs: {
+			scenario?: string;
+			verdict?: string;
+			at?: string;
+			by?: string;
+			evidence?: string;
+		}[] = [];
+		try {
+			runs = JSON.parse(s.files[plan.replace(/\.feature$/, ".json")]?.text ?? "{}").runs ?? [];
+		} catch {
+			/* a broken sibling is no run */
+		}
+		const lines = (s.files[plan]?.text ?? "").split("\n");
+		const out: BddRow[] = [];
+		lines.forEach((l, i) => {
+			const name = /^\s*Scenario( Outline)?:\s*(.*)$/.exec(l)?.[2]?.trim();
+			if (name === undefined) return;
+			const run = runs.find((r) => r.scenario === name);
+			const end = lines.findIndex((x, j) => j > i && /^\s*(@|Scenario)/.test(x));
+			const body = lines.slice(i + 1, end < 0 ? undefined : end);
+			out.push({
+				plan,
+				scenario: name,
+				line: i + 1,
+				steps: body.filter((x) => /^\s*(Given|When|Then|And|But)\b/.test(x)).length,
+				refs: scanRefs([lines[i - 1] ?? "", l, ...body].join("\n")),
+				verdict: VERDICTS.includes(run?.verdict ?? "") ? (run?.verdict ?? "") : "not-covered",
+				at: run?.at ?? "",
+				by: run?.by ?? "",
+				evidence: run?.evidence ?? "",
+			});
+		});
+		return out;
 	});
 }
 

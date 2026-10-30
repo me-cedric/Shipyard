@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useGuard } from "@/features/work/guard";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import { useWorkItems } from "@/lib/sync";
-import { useTicketComments, useWorkActions, useWorkContext } from "@/lib/work";
+import { useTicketComments, useTicketEditCaps, useWorkActions, useWorkContext } from "@/lib/work";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
 import { TicketBudget } from "./ticket-budget";
 
@@ -19,13 +20,16 @@ export function TicketThread({ itemKey }: { itemKey: string }) {
 	const d = t.work.thread;
 	const item = (useWorkItems({}).data ?? []).find((i) => i.key === itemKey);
 	const caps = useWorkContext().data?.capabilities;
+	const edit = useTicketEditCaps().data;
 	const comments = useTicketComments(itemKey, caps?.comments === true);
 	const act = useWorkActions();
 	const { error, run } = useGuard();
 	const [title, setTitle] = useState<string | null>(null);
 	const [label, setLabel] = useState("");
 	const [body, setBody] = useState("");
-	if (!(item && caps)) return null;
+	const [description, setDescription] = useState("");
+	const [priority, setPriority] = useState("");
+	if (!(item && caps && edit)) return null;
 
 	return (
 		<section aria-label={d.title} className="flex flex-col gap-3">
@@ -48,23 +52,66 @@ export function TicketThread({ itemKey }: { itemKey: string }) {
 					{d.save}
 				</Button>
 			</form>
-			<form
-				className="flex items-center gap-2"
-				onSubmit={async (e) => {
-					e.preventDefault();
-					if (await run(() => act.addLabel(itemKey, label))) setLabel("");
-				}}
-			>
-				<Input label={d.label} value={label} onChange={(e) => setLabel(e.target.value)} />
-				<Button type="submit" disabled={!caps.labels || label.trim() === ""}>
-					{d.addLabel}
-				</Button>
-			</form>
-			<div className="flex flex-wrap gap-1">
-				{item.labels.map((l) => (
-					<Badge key={l}>{l}</Badge>
-				))}
+			{edit.labels ? (
+				<form
+					className="flex items-center gap-2"
+					onSubmit={async (e) => {
+						e.preventDefault();
+						if (await run(() => act.addLabel(itemKey, label))) setLabel("");
+					}}
+				>
+					<Input label={d.label} value={label} onChange={(e) => setLabel(e.target.value)} />
+					<Button type="submit" disabled={label.trim() === ""}>
+						{d.addLabel}
+					</Button>
+				</form>
+			) : null}
+			<div className="flex flex-wrap items-center gap-1">
+				{item.labels.map((l) =>
+					edit.removeLabel ? (
+						<Button
+							key={l}
+							variant="ghost"
+							aria-label={format(d.removeLabel, { label: l })}
+							onClick={() => void run(() => act.removeLabel(itemKey, l))}
+						>
+							{l}
+						</Button>
+					) : (
+						<Badge key={l}>{l}</Badge>
+					),
+				)}
 			</div>
+			{edit.description ? (
+				<form
+					className="flex flex-col gap-2"
+					onSubmit={async (e) => {
+						e.preventDefault();
+						if (await run(() => act.editTicket(itemKey, null, description))) setDescription("");
+					}}
+				>
+					<Textarea
+						label={d.description}
+						value={description}
+						onChange={(e) => setDescription(e.target.value)}
+					/>
+					<div>
+						<Button type="submit" disabled={description.trim() === ""}>
+							{d.saveDescription}
+						</Button>
+					</div>
+				</form>
+			) : null}
+			{edit.priority ? (
+				<Select
+					label={d.priority}
+					value={priority}
+					onValueChange={(p) =>
+						void run(() => act.setPriority(itemKey, p)).then((ok) => ok && setPriority(p))
+					}
+					items={Object.entries(d.priorities).map(([value, label]) => ({ value, label }))}
+				/>
+			) : null}
 			{caps.comments ? (
 				<>
 					<ul aria-label={d.comments} className="flex flex-col gap-2">

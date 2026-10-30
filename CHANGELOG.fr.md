@@ -4,6 +4,8 @@
 
 ### Ajouts
 
+- Un dossier Legacy s’ouvre avec ses fichiers de calendrier et de plan en place et ses fichiers de design comme écrans ; le détail d’un ticket modifie la description, les étiquettes, la priorité et plus sur les trackers qui le permettent ; Code / Qualité ajoute un score de sécurité et un export SBOM CycloneDX ; Spécifications / Plans de test ajoute une vue des scénarios avec le dernier verdict ; Usine / Consommation ajoute un arbre des requêtes pour chaque exécution.
+- Réglages / Santé ajoute un formulaire d’amorçage Doctor avec aperçu des fichiers, un état pour chaque compétence compass avec sa correction, la propagation vers les projets liés, une console de débogage et une action Retour qui ouvre un ticket GitHub prérempli ; le serveur MCP externe ajoute les groupes d’outils tickets, ADR et QA (désactivés par défaut), et le composeur de l’assistant joint des fichiers et des images.
 - Les listes ouvrent leur premier élément et gardent le choix de chaque onglet ; la barre de contexte montre les sessions IA actives avec un arrêt, un tiroir de fichiers (⌘P) et un tiroir de terminaux (⌘`) s’ouvrent sur chaque vue, l’accueil liste les étapes « Pour commencer » d’un nouveau projet, et Réglages / Projet masque des espaces et des onglets pour ce projet.
 - Réglages / Connexions ajoute un bundle PEM de certificats racine pour le client HTTP, et l’accueil affiche un élément « Jour de feuille de temps » un jeudi sans temps saisi.
 - Squelette de l’application de bureau sur Tauri v2, avec un espace de travail Rust de 10 crates.

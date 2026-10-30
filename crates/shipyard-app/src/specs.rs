@@ -724,5 +724,6 @@ pub async fn specs_archive(app: AppHandle, id: String, confirmed: bool) -> Res<V
     blocking(app, move |s| archive_change(s, &id, confirmed)).await
 }
 
+pub mod bdd;
 #[cfg(test)]
 mod tests;

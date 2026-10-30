@@ -1,7 +1,9 @@
 //! Tauri shell. Commands live in `commands/`, one module for each feature.
 
 pub mod agents;
+pub mod applog;
 pub mod assistant;
+pub mod assistant_attach;
 pub mod auto_commit;
 pub mod certs;
 pub mod close_guard;
@@ -11,13 +13,17 @@ pub mod connections;
 pub mod delivery;
 pub mod design;
 pub mod doctor;
+pub mod doctor_bootstrap;
 pub mod extensions;
 pub mod factory;
+pub mod feedback;
 pub mod knowledge;
 pub mod machine;
 pub mod outside;
 pub mod questions;
+pub mod request_tree;
 pub mod runner_setup;
+pub mod sbom;
 pub mod scanners;
 mod shell;
 pub mod specs;
@@ -134,6 +140,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::code::code_check_run,
             crate::code::code_scan_run,
             crate::code::code_scanner_install,
+            crate::sbom::code_sbom_export,
             crate::code::code_impact_refs,
             crate::code::code_impact_list,
             crate::code::code_impact_read,
@@ -177,6 +184,11 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::doctor::doctor_tools,
             crate::doctor::doctor_tool_install,
             crate::doctor::doctor_ledger,
+            crate::doctor_bootstrap::doctor_bootstrap_plan,
+            crate::doctor_bootstrap::doctor_bootstrap_apply,
+            crate::assistant_attach::assistant_attach,
+            crate::feedback::feedback_open,
+            crate::applog::debug_log,
             ag::tiers_get,
             ag::tiers_set,
             sy::sync_state,
@@ -200,6 +212,9 @@ fn specta_builder() -> Builder<tauri::Wry> {
             work::work_ticket_comment_add,
             work::work_ticket_edit,
             work::work_ticket_label_add,
+            work::work_ticket_label_remove,
+            work::work_ticket_priority_set,
+            work::work_ticket_edit_caps,
             work::work_seal_state,
             work::work_unlock,
             work::work_lock,
@@ -228,6 +243,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             factory::run_log_page,
             factory::sessions_list,
             factory::usage_get,
+            request_tree::usage_tree_get,
             factory::budget_set,
             factory::run_diff,
             factory::run_start,
@@ -274,6 +290,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             specs::specs_question_create,
             specs::specs_testplans,
             specs::specs_coverage,
+            specs::bdd::specs_bdd,
             specs::specs_fold,
             specs::specs_split_draft,
             specs::specs_split_save,
@@ -389,8 +406,14 @@ pub fn run() {
             // The agent tools endpoint listens on 127.0.0.1 before the first run starts.
             if let Err(e) = state.factory.start_mcp(state.agents.proxy.clone()) {
                 eprintln!("agent tools endpoint: {e}");
+                applog::record("error", &format!("agent tools endpoint: {e}"));
             }
             // The server for outside agents starts only when the person turned it on.
+            applog::record(
+                "info",
+                &format!("Shipyard {} started", env!("CARGO_PKG_VERSION")),
+            );
+            outside::set_app(app.handle().clone());
             outside::start_saved(&state);
             // The engine of the active project starts with the app.
             sy::refresh(&state);
@@ -407,7 +430,10 @@ pub fn run() {
                 Ok(relay) => {
                     app.manage(relay);
                 }
-                Err(e) => eprintln!("MCP relay: {e}"),
+                Err(e) => {
+                    eprintln!("MCP relay: {e}");
+                    applog::record("error", &format!("MCP relay: {e}"));
+                }
             }
             Ok(())
         })

@@ -112,6 +112,16 @@ impl TrackerWrite for GitLab {
         Ok(())
     }
 
+    fn remove_label(&self, key: &str, label: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::Labels)?;
+        self.write(
+            Method::Put,
+            &Self::issue_path(key)?,
+            json!({ "remove_labels": label }),
+        )?;
+        Ok(())
+    }
+
     fn transition(&self, key: &str, to: &str) -> Result<(), TrackerError> {
         self.capabilities().require(Capability::Transitions)?;
         let event = match to.to_ascii_lowercase().as_str() {

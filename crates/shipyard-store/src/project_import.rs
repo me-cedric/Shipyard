@@ -14,7 +14,7 @@ use serde_json::Value;
 use shipyard_core::project::{PROJECT_FILE, ProjectConnections, ProjectFile};
 use shipyard_core::work::{Availability, Feature, Member, Sheet, Span, Task, Team};
 
-use crate::{project, safe_write, work};
+use crate::{legacy, project, safe_write, work};
 
 const MAX_BYTES: u64 = 2 * 1024 * 1024;
 const MAX_DEPTH: usize = 8;
@@ -305,10 +305,16 @@ pub fn import(source: &Path, root: &Path) -> Report {
             .push(("docs/delivery/tickets.config.json".into(), e.clone()));
     }
     let has_legacy = tickets.is_some()
-        || ["docs/planning/team.json", "docs/costing", "docs/personas"]
-            .iter()
-            .chain(&SAME)
-            .any(|p| source.join(p).exists());
+        || [
+            "docs/planning/team.json",
+            "docs/planning/calendar.json",
+            "docs/planning/plan.json",
+            "docs/costing",
+            "docs/personas",
+        ]
+        .iter()
+        .chain(&SAME)
+        .any(|p| source.join(p).exists());
     if has_legacy {
         let file = project_file(source, tickets.as_ref().and_then(|t| t.as_ref().ok()));
         match project::render_project_file(&file) {
@@ -346,6 +352,50 @@ pub fn import(source: &Path, root: &Path) -> Report {
         match out {
             Ok((target, t)) => r.put(rel, &target, root, &t),
             Err(e) => r.skipped.push((rel.clone(), e)),
+        }
+    }
+
+    // Calendar and plan decisions (Q-122): the working week, the holidays and the pinned tasks.
+    match json(source, "docs/planning/calendar.json") {
+        None => {}
+        Some(Err(e)) => r.skipped.push(("docs/planning/calendar.json".into(), e)),
+        Some(Ok(v)) => match work::write_calendar(&legacy::calendar_from_json(&v.to_string())) {
+            Ok(t) => r.put("docs/planning/calendar.json", work::CALENDAR_PATH, root, &t),
+            Err(e) => r
+                .skipped
+                .push(("docs/planning/calendar.json".into(), e.to_string())),
+        },
+    }
+    if let Some(res) = json(source, "docs/planning/plan.json") {
+        let held: Vec<(String, Sheet)> = sheets
+            .iter()
+            .filter(|p| p.ends_with(".json"))
+            .filter_map(|rel| {
+                let stem = slug(
+                    rel.trim_start_matches("docs/costing/")
+                        .trim_end_matches(".json"),
+                );
+                Some((
+                    stem.clone(),
+                    sheet(&json(source, rel)?.ok()?, &stem, &roles),
+                ))
+            })
+            .collect();
+        let slug_of = |id: &str| {
+            held.iter()
+                .find(|(_, s)| {
+                    s.features
+                        .iter()
+                        .any(|f| f.tasks.iter().any(|t| t.id == id))
+                })
+                .map(|(slug, _)| slug.clone())
+        };
+        match res.map_err(|e| e.to_string()).and_then(|v| {
+            work::write_decisions(&legacy::decisions_from_json(&v.to_string(), slug_of))
+                .map_err(|e| e.to_string())
+        }) {
+            Ok(t) => r.put("docs/planning/plan.json", work::DECISIONS_PATH, root, &t),
+            Err(e) => r.skipped.push(("docs/planning/plan.json".into(), e)),
         }
     }
 

@@ -25,6 +25,7 @@ import type {
 	RunnerTiers,
 	RunSpendView_Serialize,
 	RunState,
+	RunTree,
 	RunView_Serialize,
 	SessionView_Serialize,
 	SpendView_Serialize,
@@ -1258,6 +1259,50 @@ export function sessionsList(f: MockFactory, project: string | null): SessionVie
 			});
 	}
 	return out.slice(0, 50);
+}
+
+/**
+ * The requests of one run nested by step, as the run log gives them: each started unit holds
+ * three requests, and the run total is shared between the units. The last request takes the rest.
+ */
+export function usageTreeGet(f: MockFactory, project: string | null, run: string): RunTree {
+	const r = runsOf(f, project).find((x) => x.id === run);
+	if (!r) throw `no run \`${run}\` in this project`;
+	const units = r.steps
+		.filter((s) => s.state !== "pending")
+		.flatMap((s) => (s.units.length ? s.units : [{ id: s.id, state: s.state }]));
+	const REQUESTS = 3;
+	const count = units.length * REQUESTS;
+	const share = (n: number, i: number, k: number) => {
+		const total = Math.round(n * k);
+		const part = Math.floor(total / count);
+		return (i === count - 1 ? total - part * i : part) / k;
+	};
+	const steps = units.map((u, ui) => {
+		const requests = Array.from({ length: REQUESTS }, (_, q) => {
+			const i = ui * REQUESTS + q;
+			const tokens = share(r.tokens, i, 1);
+			return {
+				at: Math.floor(T0 / 1000) + i * 40,
+				inputTokens: Math.round(tokens * 0.8),
+				outputTokens: tokens - Math.round(tokens * 0.8),
+				usd: share(r.costUsd, i, 100),
+			};
+		});
+		return {
+			step: u.id,
+			tokens: requests.reduce((a, x) => a + x.inputTokens + x.outputTokens, 0),
+			usd: cents(requests.reduce((a, x) => a + x.usd, 0)),
+			requests,
+		};
+	});
+	return {
+		run: r.id,
+		key: r.key,
+		tokens: steps.reduce((a, x) => a + x.tokens, 0),
+		usd: cents(steps.reduce((a, x) => a + x.usd, 0)),
+		steps,
+	};
 }
 
 /** Tokens and money per run, per UTC day and per member, each with its budget (`null`: none). */

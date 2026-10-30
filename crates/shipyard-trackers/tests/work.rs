@@ -124,6 +124,36 @@ fn the_pickup_label_is_added_without_replacing_the_others() {
     assert_eq!(writes(&fake), 1);
 }
 
+// ---- ticket edit (Q-123)
+
+#[test]
+fn a_label_is_removed_and_a_priority_is_set_where_the_tracker_has_them() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.put("/rest/api/2/issue/PROJ-1", "", 204, "");
+    let w = jira(TrackerKind::JiraCloud, &fake);
+    w.remove_label("PROJ-1", "old").unwrap();
+    w.set_priority("PROJ-1", "high").unwrap();
+    let puts = sent(&fake, Method::Put);
+    assert_eq!(puts[0].1, r#"{"update":{"labels":[{"remove":"old"}]}}"#);
+    assert_eq!(puts[1].1, r#"{"fields":{"priority":{"name":"High"}}}"#);
+    assert!(matches!(
+        w.set_priority("PROJ-1", "urgent"),
+        Err(TrackerError::Config(_))
+    ));
+
+    let fake = Arc::new(FakeHttp::new());
+    fake.delete("/repos/acme/web/issues/5/labels/old", 200, "[]");
+    let w = github(&fake);
+    w.remove_label("acme/web#5", "old").unwrap();
+    assert_eq!(writes(&fake), 1);
+    // GitHub has no priority field: nothing is sent.
+    assert!(matches!(
+        w.set_priority("acme/web#5", "high"),
+        Err(TrackerError::Refused(_))
+    ));
+    assert_eq!(writes(&fake), 1);
+}
+
 // ---- transition (REQ-002)
 
 const TRANSITIONS: &str = r#"{"transitions":[

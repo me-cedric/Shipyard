@@ -98,6 +98,7 @@ export function useForgeActions() {
 			check: (command: string) => run(commands.codeCheckRun(command, true)),
 			scan: (name: string) => run(commands.codeScanRun(name, true)),
 			install: (name: string) => run(commands.codeScannerInstall(name, true)),
+			sbom: () => run(commands.codeSbomExport(true)),
 			analyze: (base: string) => run(commands.codeImpactAnalyze(base, true)),
 		};
 	}, [qc]);

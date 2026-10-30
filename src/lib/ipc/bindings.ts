@@ -108,6 +108,7 @@ export const commands = {
 	codeCheckRun: (command: string, click: boolean) => typedError<QualityReport_Serialize, string>(__TAURI_INVOKE("code_check_run", { command, click })),
 	codeScanRun: (name: string, click: boolean) => typedError<QualityReport_Serialize, string>(__TAURI_INVOKE("code_scan_run", { name, click })),
 	codeScannerInstall: (name: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("code_scanner_install", { name, click })),
+	codeSbomExport: (click: boolean) => typedError<SbomReport, string>(__TAURI_INVOKE("code_sbom_export", { click })),
 	codeImpactRefs: () => typedError<ImpactRefs, string>(__TAURI_INVOKE("code_impact_refs")),
 	codeImpactList: () => typedError<ImpactEntry[], string>(__TAURI_INVOKE("code_impact_list")),
 	codeImpactRead: (path: string) => typedError<string, string>(__TAURI_INVOKE("code_impact_read", { path })),
@@ -156,6 +157,11 @@ export const commands = {
 	doctorTools: () => typedError<ToolCheck[], string>(__TAURI_INVOKE("doctor_tools")),
 	doctorToolInstall: (id: string, click: boolean) => typedError<ToolCheck[], string>(__TAURI_INVOKE("doctor_tool_install", { id, click })),
 	doctorLedger: () => typedError<LedgerEntry[], string>(__TAURI_INVOKE("doctor_ledger")),
+	doctorBootstrapPlan: (answers: BootstrapAnswers) => typedError<BootstrapPlan, string>(__TAURI_INVOKE("doctor_bootstrap_plan", { answers })),
+	doctorBootstrapApply: (answers: BootstrapAnswers, click: boolean) => typedError<string[], string>(__TAURI_INVOKE("doctor_bootstrap_apply", { answers, click })),
+	assistantAttach: (thread: string, name: string, bytes: number[]) => typedError<Attachment, string>(__TAURI_INVOKE("assistant_attach", { thread, name, bytes })),
+	feedbackOpen: (kind: FeedbackKind, title: string, details: string, click: boolean) => typedError<string, string>(__TAURI_INVOKE("feedback_open", { kind, title, details, click })),
+	debugLog: () => typedError<LogLine[], string>(__TAURI_INVOKE("debug_log")),
 	/**  The model of each tier for each runner (`factory` REQ-012). Settings / Connections edits it. */
 	tiersGet: () => typedError<RunnerTiers[], string>(__TAURI_INVOKE("tiers_get")),
 	/**  Saves the row of one runner. A step that starts after the edit uses it. */
@@ -181,6 +187,9 @@ export const commands = {
 	workTicketCommentAdd: (key: string, body: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_ticket_comment_add", { key, body, click })),
 	workTicketEdit: (key: string, title: string | null, description: string | null, days: number | null, click: boolean) => typedError<string[], string>(__TAURI_INVOKE("work_ticket_edit", { key, title, description, days, click })),
 	workTicketLabelAdd: (key: string, label: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_ticket_label_add", { key, label, click })),
+	workTicketLabelRemove: (key: string, label: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_ticket_label_remove", { key, label, click })),
+	workTicketPrioritySet: (key: string, priority: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_ticket_priority_set", { key, priority, click })),
+	workTicketEditCaps: () => typedError<TicketEditCaps, string>(__TAURI_INVOKE("work_ticket_edit_caps")),
 	workSealState: () => typedError<SealState, string>(__TAURI_INVOKE("work_seal_state")),
 	workUnlock: (passphrase: string) => typedError<SealState, string>(__TAURI_INVOKE("work_unlock", { passphrase })),
 	workLock: () => typedError<SealState, string>(__TAURI_INVOKE("work_lock")),
@@ -209,6 +218,7 @@ export const commands = {
 	runLogPage: (run: string, after: number, limit: number) => typedError<RunLogPage_Serialize, string>(__TAURI_INVOKE("run_log_page", { run, after, limit })),
 	sessionsList: () => typedError<SessionView_Serialize[], string>(__TAURI_INVOKE("sessions_list")),
 	usageGet: () => typedError<UsageView_Serialize, string>(__TAURI_INVOKE("usage_get")),
+	usageTreeGet: (run: string) => typedError<RunTree, string>(__TAURI_INVOKE("usage_tree_get", { run })),
 	/**  `usd` of `null` clears the budget. */
 	budgetSet: (scope: string, key: string, usd: number | null) => typedError<null, string>(__TAURI_INVOKE("budget_set", { scope, key, usd })),
 	runDiff: (run: string) => typedError<FileDiff[], string>(__TAURI_INVOKE("run_diff", { run })),
@@ -257,6 +267,7 @@ export const commands = {
 	specsQuestionCreate: (question: Question) => typedError<string, string>(__TAURI_INVOKE("specs_question_create", { question })),
 	specsTestplans: () => typedError<PlanRow[], string>(__TAURI_INVOKE("specs_testplans")),
 	specsCoverage: (capability: string) => typedError<string[], string>(__TAURI_INVOKE("specs_coverage", { capability })),
+	specsBdd: () => typedError<BddRow[], string>(__TAURI_INVOKE("specs_bdd")),
 	specsFold: (specPath: string, questionId: string, answer: string, stamp: string, click: boolean) => typedError<Written_Serialize, string>(__TAURI_INVOKE("specs_fold", { specPath, questionId, answer, stamp, click })),
 	specsSplitDraft: (change: string) => typedError<Draft_Serialize, string>(__TAURI_INVOKE("specs_split_draft", { change })),
 	specsSplitSave: (draft: Draft_Deserialize) => typedError<null, string>(__TAURI_INVOKE("specs_split_save", { draft })),
@@ -644,6 +655,16 @@ export type AssistantMode =
 /**  Edits files, in a worktree of the thread only. */
 "agent";
 
+/**  What the composer holds for one attachment. */
+export type Attachment = {
+	name: string,
+	/**  `text` or `image`. */
+	kind: string,
+	/**  The text of a text file, or the line that names the image path for the runner. */
+	quote: string,
+	bytes: number,
+};
+
 export type Automation = Automation_Serialize | Automation_Deserialize;
 
 export type AutomationFile = 
@@ -767,6 +788,23 @@ export type Bar_Serialize = {
 	months: MonthSpend[],
 };
 
+export type BddRow = {
+	/**  The path of the plan. */
+	plan: string,
+	scenario: string,
+	line: number,
+	steps: number,
+	/**  The refs that the scenario cites. */
+	refs: string[],
+	/**  `pass`, `fail`, `partial`, `blocked` or `not-covered`. */
+	verdict: string,
+	/**  The instant of the last run, or empty. */
+	at: string,
+	/**  `manual` or `automated`, or empty. */
+	by: string,
+	evidence: string,
+};
+
 /**  One line of a file with the commit that last changed it. */
 export type BlameLine = {
 	line: number,
@@ -775,6 +813,22 @@ export type BlameLine = {
 	author: string,
 	/**  Seconds since the epoch. */
 	time: number | null,
+};
+
+export type BootstrapAnswers = {
+	name: string,
+	key: string,
+	summary: string,
+	/**  `rust`, `node`, `python` or `other`. */
+	stack: string,
+	/**  `claude` or `codex`. */
+	agent: string,
+};
+
+export type BootstrapPlan = {
+	files: PlannedFile[],
+	/**  The tools that this stack and this agent need, with their state. */
+	tools: ToolCheck[],
 };
 
 export type Branch = Branch_Serialize | Branch_Deserialize;
@@ -1509,6 +1563,8 @@ export type Feature_Serialize = {
 	tasks: Task_Serialize[],
 };
 
+export type FeedbackKind = "bug" | "idea";
+
 export type Field = "title" | "description" | "estimate" | "parent";
 
 export type FileChange = FileChange_Serialize | FileChange_Deserialize;
@@ -1955,6 +2011,14 @@ export type Loaded<T> = {
 	readOnly: boolean,
 };
 
+export type LogLine = {
+	/**  `HH:MM:SS` of the day, UTC. */
+	at: string,
+	/**  `info`, `warn` or `error`. */
+	level: string,
+	message: string,
+};
+
 export type LogPage = {
 	commits: CommitInfo[],
 	/**  Older commits exist after this page. The view says that the log is cut when it is false. */
@@ -2085,6 +2149,9 @@ export type McpGates_Deserialize = {
 	forge?: boolean,
 	exec?: boolean,
 	delivery?: boolean,
+	tickets?: boolean,
+	adrs?: boolean,
+	qa?: boolean,
 	port?: number,
 	/**  When it is not empty, only these tools run. */
 	allowedTools?: string[],
@@ -2099,6 +2166,9 @@ export type McpGates_Serialize = {
 	forge: boolean,
 	exec: boolean,
 	delivery: boolean,
+	tickets: boolean,
+	adrs: boolean,
+	qa: boolean,
 	port: number,
 	/**  When it is not empty, only these tools run. */
 	allowedTools: string[],
@@ -2372,6 +2442,13 @@ export type PlanView_Serialize = {
 	decisions: Decisions_Serialize,
 	calendar: Calendar_Serialize,
 	today: string,
+};
+
+export type PlannedFile = {
+	path: string,
+	/**  `new`, or `exists` (it stays as it is). */
+	state: string,
+	content: string,
 };
 
 export type PluginApplied = {
@@ -3065,6 +3142,14 @@ export type Repository_Serialize = {
 	canPush: boolean | null,
 };
 
+export type RequestView = {
+	/**  Unix seconds. */
+	at: number,
+	inputTokens: number,
+	outputTokens: number,
+	usd: number | null,
+};
+
 export type Requirement = {
 	id: string,
 	title: string,
@@ -3275,6 +3360,15 @@ export type RunSpendView_Serialize = {
 
 export type RunState = "Queued" | "Claimed" | "Planning" | "PlanReview" | "Working" | "SelfReview" | "PROpen" | "ChangesRequested" | "Merged" | "Done" | "WaitingForAnswer" | "Blocked" | "RetryQueued" | "Paused" | "Failed" | "Cancelled";
 
+export type RunTree = {
+	run: string,
+	key: string,
+	tokens: number,
+	usd: number | null,
+	/**  In order of the first request. */
+	steps: StepTree[],
+};
+
 /**  A run with what a card needs (`factory` REQ-027, REQ-038). */
 export type RunView = RunView_Serialize | RunView_Deserialize;
 
@@ -3381,6 +3475,13 @@ export type Runner_Serialize = {
 	install: string,
 };
 
+export type SbomReport = {
+	path: string,
+	components: number,
+	/**  The lock files that were read. */
+	sources: string[],
+};
+
 /**  A scanner finding. It has a place and no value (REQ-027). */
 export type ScanFinding = ScanFinding_Serialize | ScanFinding_Deserialize;
 
@@ -3412,6 +3513,8 @@ export type Screen_Deserialize = {
 	figma?: string | null,
 	/**  A local `figma` path that does not exist. */
 	broken?: boolean,
+	/**  A design file that the folder scan found (HTML, image or `.fig`), not named in `screens.json`. */
+	file?: string | null,
 };
 
 export type Screen_Serialize = {
@@ -3422,6 +3525,8 @@ export type Screen_Serialize = {
 	figma: string | null,
 	/**  A local `figma` path that does not exist. */
 	broken: boolean,
+	/**  A design file that the folder scan found (HTML, image or `.fig`), not named in `screens.json`. */
+	file?: string,
 };
 
 export type SealState = {
@@ -3689,6 +3794,13 @@ export type StepAction = "open_pr";
 export type StepState = "pending" | "running" | 
 /**  Output ready, `gate: human`: waits for a person. A rejection sets it back to `Pending`. */
 "gate" | "done" | "failed";
+
+export type StepTree = {
+	step: string,
+	tokens: number,
+	usd: number | null,
+	requests: RequestView[],
+};
 
 export type StepView = {
 	id: string,
@@ -4039,6 +4151,20 @@ export type TicketComment = {
 	author: string,
 	body: string,
 	created: string,
+};
+
+/**
+ *  What the edit of a ticket can do on this tracker. The view shows no control for a flag that is
+ *  off, and no request leaves for it (Q-123).
+ */
+export type TicketEditCaps = {
+	title: boolean,
+	description: boolean,
+	labels: boolean,
+	removeLabel: boolean,
+	assignee: boolean,
+	status: boolean,
+	priority: boolean,
 };
 
 /**  The link of a Legacy ticket to its Jira issue (`docs/delivery/tickets.json`, read only). */

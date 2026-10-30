@@ -122,6 +122,24 @@ describe("mock work: the rules of the Rust commands", () => {
 		expect(mockState().sync.mirror.find((t) => t.key === "ACME-3")?.category).toBe("done");
 	});
 
+	it("removes a label and sets a priority only on a click and with a known value", async () => {
+		await withTracker();
+		await unwrap(commands.workTicketLabelAdd("ACME-3", "old", true));
+		await expect(unwrap(commands.workTicketLabelRemove("ACME-3", "old", false))).rejects.toThrow(
+			"click",
+		);
+		await expect(
+			unwrap(commands.workTicketLabelRemove("ACME-3", "two words", true)),
+		).rejects.toThrow("one word");
+		await unwrap(commands.workTicketLabelRemove("ACME-3", "old", true));
+		expect(mockState().sync.mirror.find((t) => t.key === "ACME-3")?.labels).not.toContain("old");
+		await unwrap(commands.workTicketPrioritySet("ACME-3", "high", true));
+		await expect(unwrap(commands.workTicketPrioritySet("ACME-3", "urgent", true))).rejects.toThrow(
+			"not a priority",
+		);
+		expect((await unwrap(commands.workTicketEditCaps())).priority).toBe(true);
+	});
+
 	it("seals, locks and refuses a wrong passphrase", async () => {
 		await withTracker();
 		await unwrap(commands.workSeal("pass phrase"));

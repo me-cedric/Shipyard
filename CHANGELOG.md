@@ -4,6 +4,8 @@
 
 ### Added
 
+- A Legacy folder opens with its calendar and plan files in place and its design files as screens; the ticket detail edits the description, labels, priority and more on the trackers that support it; Code / Quality adds a security score and a CycloneDX SBOM export; Specs / Test plans adds a scenario view with the last verdict; Factory / Usage adds a request tree for each run.
+- Settings / Health adds a Doctor bootstrap form with a file preview, a status for each compass skill with its fix, propagation to linked projects, a debug console and a Feedback action that opens a prefilled GitHub issue; the outside MCP server adds ticket, ADR and QA tool groups (off by default), and the assistant composer attaches files and images.
 - List views open their first item and keep the choice of each tab; the context bar shows the active AI sessions with a stop, a files drawer (⌘P) and a terminal drawer (⌘`) open on every view, Home lists the Get started steps of a new project, and Settings / Project hides spaces and tabs for this project.
 - Settings / Connections adds a PEM bundle of root certificates for the HTTP client, and Home shows a "Timesheet day" item on a Thursday without logged time.
 - Desktop app skeleton on Tauri v2 with a Rust workspace of 10 crates.

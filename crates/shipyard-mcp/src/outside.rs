@@ -6,14 +6,17 @@
 //! git, forge, exec, delivery). Legacy has no path guard on its read tool; here a path stays inside
 //! the folder, and a secret file (`.env*`, `.git`) is never read or written.
 //!
-//! shortcut: no ticket, QA or ADR tools, and no resources. Add them as new groups when an outside
-//! agent needs them.
+//! The ticket, ADR and QA groups follow the same rule (Legacy `mcptools/dispatch.rs`): off by
+//! default, and a read-only project takes no comment, no proposal and no check.
+//!
+//! shortcut: no resources. Add them when an outside agent needs them.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 /// The groups of tools that an outside agent may call.
@@ -25,6 +28,22 @@ pub struct Switches {
     pub forge: bool,
     pub exec: bool,
     pub delivery: bool,
+    pub tickets: bool,
+    pub adrs: bool,
+    pub qa: bool,
+}
+
+/// How the app answers a ticket tool: the tool name and its arguments give a text or a message.
+/// The tracker is in the app, not in this crate.
+#[derive(Clone)]
+pub struct TicketPort(pub Arc<TicketFn>);
+
+pub type TicketFn = dyn Fn(&str, &Value) -> Result<String, String> + Send + Sync;
+
+impl std::fmt::Debug for TicketPort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("TicketPort")
+    }
 }
 
 /// The open project and the switches, read at each call so a switch acts at once.
@@ -36,6 +55,8 @@ pub struct Outside {
     pub only: Vec<String>,
     /// The profile of the project is read only: `project_write_file` and `run_check` refuse.
     pub read_only: bool,
+    /// The ticket tools answer through it. `None`: they say that no tracker is wired.
+    pub tickets: Option<TicketPort>,
 }
 
 impl Outside {
@@ -45,7 +66,7 @@ impl Outside {
 }
 
 /// The tool names. One group each.
-pub const NAMES: [&str; 9] = [
+pub const NAMES: [&str; 17] = [
     "project_list_files",
     "project_read_file",
     "project_write_file",
@@ -55,6 +76,14 @@ pub const NAMES: [&str; 9] = [
     "forge_remote",
     "run_check",
     "delivery_diff",
+    "ticket_list",
+    "ticket_read",
+    "ticket_comment",
+    "adr_list",
+    "adr_read",
+    "adr_propose",
+    "qa_run_check",
+    "qa_read_report",
 ];
 
 const MAX_READ: u64 = 256 * 1024;
@@ -69,6 +98,9 @@ fn group(name: &str, s: &Switches) -> bool {
         "forge_remote" => s.forge,
         "run_check" => s.exec,
         "delivery_diff" => s.delivery,
+        "ticket_list" | "ticket_read" | "ticket_comment" => s.tickets,
+        "adr_list" | "adr_read" | "adr_propose" => s.adrs,
+        "qa_run_check" | "qa_read_report" => s.qa,
         _ => false,
     }
 }
@@ -142,6 +174,54 @@ pub fn definitions(o: &Outside) -> Vec<Value> {
             "delivery_diff",
             "The changes of the branch against its base.",
             json!({ "base": { "type": "string" } }),
+            &[],
+        ),
+        tool(
+            "ticket_list",
+            "List the tickets of the open project that the app has synced.",
+            json!({ "limit": { "type": "integer", "minimum": 1, "maximum": 200 } }),
+            &[],
+        ),
+        tool(
+            "ticket_read",
+            "Read one ticket and its comments.",
+            json!({ "key": { "type": "string" } }),
+            &["key"],
+        ),
+        tool(
+            "ticket_comment",
+            "Add a comment to a ticket.",
+            json!({ "key": { "type": "string" }, "body": { "type": "string" } }),
+            &["key", "body"],
+        ),
+        tool(
+            "adr_list",
+            "List the ADRs of the open project.",
+            json!({}),
+            &[],
+        ),
+        tool(
+            "adr_read",
+            "Read one ADR by its number.",
+            json!({ "number": { "type": "string" } }),
+            &["number"],
+        ),
+        tool(
+            "adr_propose",
+            "Write a new ADR with the status proposed. A person accepts or rejects it.",
+            json!({ "title": { "type": "string" } }),
+            &["title"],
+        ),
+        tool(
+            "qa_run_check",
+            "Run the tests, the linter or the type check and keep the report.",
+            json!({ "name": { "type": "string", "enum": ["test", "lint", "typecheck"] } }),
+            &["name"],
+        ),
+        tool(
+            "qa_read_report",
+            "Read the last quality reports of the open project.",
+            json!({}),
             &[],
         ),
     ];
@@ -239,6 +319,91 @@ fn check_command(root: &Path, name: &str) -> Result<(&'static str, Vec<&'static 
     })
 }
 
+fn project_file(root: &Path) -> shipyard_core::project::ProjectFile {
+    match shipyard_store::project::read_project_file(root) {
+        Ok(shipyard_store::project::FileRead::Valid(f)) => f,
+        _ => shipyard_core::project::ProjectFile::new("", ""),
+    }
+}
+
+fn adr(root: &Path, name: &str, args: &Value) -> Result<String, String> {
+    use shipyard_store::madr;
+    let p = project_file(root);
+    let all = madr::list(root, &p);
+    match name {
+        "adr_list" => Ok(all
+            .iter()
+            .map(|a| format!("{} [{}] {}", a.number, a.status, a.title))
+            .collect::<Vec<_>>()
+            .join("\n")),
+        "adr_read" => {
+            let n = arg(args, "number").ok_or("number is required")?;
+            let a = all
+                .iter()
+                .find(|a| a.number == n)
+                .ok_or_else(|| format!("no ADR {n}"))?;
+            std::fs::read_to_string(root.join(&a.path)).map_err(|e| e.to_string())
+        }
+        _ => {
+            let title = arg(args, "title").ok_or("title is required")?.trim();
+            if title.is_empty() || title.contains(['\n', '\r']) {
+                return Err("the title must be one line".into());
+            }
+            let date = shipyard_core::work::iso(
+                (std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map_or(0, |d| d.as_secs())
+                    / 86_400) as i32,
+            );
+            let (file, text) = madr::new_adr(&madr::next_number(&all), title, &date);
+            let rel = format!("{}/{file}", p.path("decisions"));
+            let full = inside(root, &rel)?;
+            if let Some(dir) = full.parent() {
+                std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+            }
+            std::fs::write(&full, text).map_err(|e| e.to_string())?;
+            Ok(format!("proposed {rel}"))
+        }
+    }
+}
+
+/// Run a check and keep its report, as the Code page does. The output stays here as its last lines.
+fn qa_run(root: &Path, name: &str) -> Result<String, String> {
+    use shipyard_store::code::{QualityReport, ReportKind};
+    let (program, a) = check_command(root, name)?;
+    let start = Instant::now();
+    let out = run(root, program, &a, CHECK_DEADLINE);
+    let (passed, text) = match out {
+        Ok(t) => (true, t),
+        Err(e) => (false, e),
+    };
+    let lines: Vec<&str> = text.lines().collect();
+    let tail = lines[lines.len().saturating_sub(40)..].join("\n");
+    let at = {
+        let secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs());
+        format!(
+            "{}T00:00:00Z",
+            shipyard_core::work::iso((secs / 86_400) as i32)
+        )
+    };
+    let report = QualityReport {
+        kind: ReportKind::Check,
+        name: format!("{program} {}", a.join(" ")),
+        at,
+        passed,
+        duration_ms: start.elapsed().as_millis().min(u128::from(u32::MAX)) as u32,
+        tail: tail.clone(),
+        findings: Vec::new(),
+    };
+    shipyard_store::code::save_quality(root, &report, &[]).map_err(|e| e.to_string())?;
+    Ok(format!(
+        "{}\n{tail}",
+        if passed { "passed" } else { "failed" }
+    ))
+}
+
 /// Run one tool. `Err` is a message for the agent. A switch that is off refuses the call.
 pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
     if !NAMES.contains(&name) {
@@ -247,7 +412,11 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
     if !o.allows(name) {
         return Err(format!("{name} is turned off in the Shipyard settings"));
     }
-    if o.read_only && matches!(name, "project_write_file" | "run_check") {
+    let writes = matches!(
+        name,
+        "project_write_file" | "run_check" | "ticket_comment" | "adr_propose" | "qa_run_check"
+    );
+    if o.read_only && writes {
         return Err("the profile of this project is read only".into());
     }
     let root = o.root.as_path();
@@ -321,6 +490,22 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
             let (program, a) = check_command(root, arg(args, "name").ok_or("name is required")?)?;
             run(root, program, &a, CHECK_DEADLINE)?
         }
+        "ticket_list" | "ticket_read" | "ticket_comment" => {
+            if name == "ticket_comment" && arg(args, "body").is_none_or(|b| b.trim().is_empty()) {
+                return Err("body is required".into());
+            }
+            let port = o
+                .tickets
+                .as_ref()
+                .ok_or("no tracker is wired to this server")?;
+            (port.0)(name, args)?
+        }
+        "adr_list" | "adr_read" | "adr_propose" => adr(root, name, args)?,
+        "qa_run_check" => qa_run(root, arg(args, "name").ok_or("name is required")?)?,
+        "qa_read_report" => {
+            let all = shipyard_store::code::list_quality(root);
+            serde_json::to_string_pretty(&all).map_err(|e| e.to_string())?
+        }
         _ => {
             let base = arg(args, "base").unwrap_or("main");
             // A base that starts with `-` would be an option of git.
@@ -351,6 +536,9 @@ mod tests {
             forge: true,
             exec: true,
             delivery: true,
+            tickets: true,
+            adrs: true,
+            qa: true,
         }
     }
 
@@ -360,6 +548,7 @@ mod tests {
             switches: s,
             only: Vec::new(),
             read_only: false,
+            tickets: Some(TicketPort(Arc::new(|name, _| Ok(format!("ran {name}"))))),
         }
     }
 
@@ -472,5 +661,59 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let o = open(dir.path(), all());
         assert!(call(&o, "delivery_diff", &json!({ "base": "--output=x" })).is_err());
+    }
+
+    #[test]
+    fn the_new_groups_are_off_by_default_and_a_read_only_project_refuses_them() {
+        let dir = tempfile::tempdir().unwrap();
+        let off = open(dir.path(), Switches::default());
+        assert!(enabled(&off).is_empty());
+        let err = call(&off, "ticket_list", &json!({})).unwrap_err();
+        assert!(err.contains("turned off"));
+        let mut o = open(dir.path(), all());
+        o.read_only = true;
+        for (tool, args) in [
+            ("ticket_comment", json!({ "key": "A-1", "body": "x" })),
+            ("adr_propose", json!({ "title": "Use X" })),
+            ("qa_run_check", json!({ "name": "test" })),
+        ] {
+            assert!(
+                call(&o, tool, &args).unwrap_err().contains("read only"),
+                "{tool}"
+            );
+        }
+        assert!(call(&o, "ticket_list", &json!({})).is_ok());
+        assert!(call(&o, "qa_read_report", &json!({})).is_ok());
+    }
+
+    #[test]
+    fn a_ticket_call_goes_to_the_app_and_an_empty_comment_is_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let o = open(dir.path(), all());
+        let got = call(&o, "ticket_read", &json!({ "key": "A-1" })).unwrap();
+        assert_eq!(got["content"][0]["text"], "ran ticket_read");
+        assert!(call(&o, "ticket_comment", &json!({ "key": "A-1", "body": " " })).is_err());
+    }
+
+    #[test]
+    fn an_adr_is_proposed_listed_and_read() {
+        let dir = tempfile::tempdir().unwrap();
+        let o = open(dir.path(), all());
+        call(&o, "adr_propose", &json!({ "title": "Use SQLite" })).unwrap();
+        let list = call(&o, "adr_list", &json!({})).unwrap();
+        assert!(
+            list["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("[proposed] Use SQLite")
+        );
+        let text = call(&o, "adr_read", &json!({ "number": "0001" })).unwrap();
+        assert!(
+            text["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("status: proposed")
+        );
+        assert!(call(&o, "adr_propose", &json!({ "title": "a\nb" })).is_err());
     }
 }

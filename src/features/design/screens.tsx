@@ -36,6 +36,13 @@ function ScreenView({ screen }: { screen: Screen }) {
 						))}
 					</ul>
 				</section>
+				{screen.file ? (
+					<section aria-label={s.file} className="flex items-center gap-2">
+						<h3 className="text-12 font-medium text-n-11">{s.file}</h3>
+						<span className="font-mono text-12">{screen.file}</span>
+						<Button onClick={() => void outside.open(screen.file ?? "")}>{s.openFigma}</Button>
+					</section>
+				) : null}
 				<section aria-label={s.figma} className="flex items-center gap-2">
 					<h3 className="text-12 font-medium text-n-11">{s.figma}</h3>
 					{screen.figma ? (

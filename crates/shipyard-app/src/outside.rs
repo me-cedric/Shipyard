@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use shipyard_mcp::outside::{self, Outside, Switches};
+use shipyard_mcp::outside::{self, Outside, Switches, TicketPort};
 use shipyard_mcp::server::Server;
 use shipyard_mcp::session::Binding;
 use shipyard_mcp::tools::agent::{AgentEvent, AgentEvents};
@@ -39,6 +39,9 @@ pub struct McpGates {
     pub forge: bool,
     pub exec: bool,
     pub delivery: bool,
+    pub tickets: bool,
+    pub adrs: bool,
+    pub qa: bool,
     pub port: u16,
     /// When it is not empty, only these tools run.
     pub allowed_tools: Vec<String>,
@@ -54,6 +57,9 @@ impl Default for McpGates {
             forge: false,
             exec: false,
             delivery: false,
+            tickets: false,
+            adrs: false,
+            qa: false,
             port: DEFAULT_PORT,
             allowed_tools: Vec::new(),
         }
@@ -69,6 +75,9 @@ impl McpGates {
             forge: self.forge,
             exec: self.exec,
             delivery: self.delivery,
+            tickets: self.tickets,
+            adrs: self.adrs,
+            qa: self.qa,
         }
     }
 }
@@ -90,6 +99,63 @@ pub struct McpOutside {
 struct Live {
     // Dropping it stops the listener.
     http: Http,
+}
+
+/// The tracker lives in the app state: the ticket tools reach it through this handle.
+static APP: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
+
+pub fn set_app(app: tauri::AppHandle) {
+    let _ = APP.set(app);
+}
+
+/// The ticket tools. The group switch is the click of the person; a read-only project is refused
+/// before this runs. Source: Legacy `mcptools/dispatch.rs` ticket tools.
+fn ticket_tool(name: &str, args: &Value) -> Result<String, String> {
+    use tauri::Manager;
+    let app = APP.get().ok_or("the app is not ready")?;
+    let s = app.state::<AppState>();
+    let key = args.get("key").and_then(Value::as_str).unwrap_or("");
+    match name {
+        "ticket_list" => {
+            let limit = args
+                .get("limit")
+                .and_then(Value::as_u64)
+                .unwrap_or(50)
+                .min(200) as usize;
+            let t = crate::work::tracker(&s)?;
+            Ok(crate::work::mirror_items(&s, &t)?
+                .iter()
+                .take(limit)
+                .map(|i| format!("{} [{}] {}", i.key, i.status.name, i.title))
+                .collect::<Vec<_>>()
+                .join("\n"))
+        }
+        "ticket_read" => {
+            let t = crate::work::tracker(&s)?;
+            let item = crate::work::mirror_items(&s, &t)?
+                .into_iter()
+                .find(|i| i.key == key)
+                .ok_or_else(|| format!("no ticket {key}"))?;
+            let comments = crate::work::ticket_comments(&s, key).unwrap_or_default();
+            let thread: Vec<String> = comments
+                .iter()
+                .map(|c| format!("{} ({}): {}", c.author, c.created, c.body))
+                .collect();
+            Ok(format!(
+                "{} [{}] {}\n\n{}\n\n{}",
+                item.key,
+                item.status.name,
+                item.title,
+                item.description,
+                thread.join("\n")
+            ))
+        }
+        _ => {
+            let body = args.get("body").and_then(Value::as_str).unwrap_or("");
+            crate::work::ticket_comment_add(&s, key, body, true)?;
+            Ok("comment added".into())
+        }
+    }
 }
 
 static LIVE: Mutex<Option<Live>> = Mutex::new(None);
@@ -158,6 +224,7 @@ fn start(dir: &Path, g: &McpGates) -> Result<(), String> {
             switches,
             only: only.clone(),
             read_only: e.overrides.read_only == Some(true),
+            tickets: Some(TicketPort(Arc::new(ticket_tool))),
         })
     });
     let binding = Binding {
@@ -193,6 +260,7 @@ pub fn status(s: &AppState) -> McpOutside {
         switches: g.switches(),
         only: g.allowed_tools.clone(),
         read_only: false,
+        tickets: None,
     };
     McpOutside {
         running: live.is_some(),

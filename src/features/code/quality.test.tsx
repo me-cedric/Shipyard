@@ -66,4 +66,22 @@ describe("Code / Quality", () => {
 		expect(await screen.findByRole("region", { name: "File src/config.ts" })).toBeInTheDocument();
 		expect(document.querySelector("[data-marked]")).toHaveTextContent("40");
 	});
+
+	it("shows a security score from the last scans and exports the SBOM after a click", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/code/quality");
+		const score = await screen.findByText("Security score");
+		expect(score.parentElement).toHaveTextContent("-");
+		await user.click(screen.getByRole("button", { name: "Run secrets" }));
+		await user.click(screen.getByRole("button", { name: "Run secrets?" }));
+		// One high finding costs 10 points.
+		await waitFor(() =>
+			expect(screen.getByText("Security score").parentElement).toHaveTextContent("90"),
+		);
+		await user.click(screen.getByRole("button", { name: "Export SBOM" }));
+		expect(
+			await screen.findByText("312 components in docs/security/sbom.cdx.json"),
+		).toBeInTheDocument();
+	});
 });

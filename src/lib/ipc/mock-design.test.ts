@@ -47,6 +47,16 @@ describe("mock design", () => {
 		expect(l.doc).toBe("docs/designs/design.md");
 	});
 
+	it("lists a design file of the folder as a screen when no screen names it", async () => {
+		await unwrap(commands.designWrite("docs/designs/mockups/Landing Page.html", "<p/>", "", true));
+		const l = await unwrap(commands.designList());
+		expect(l.screens.at(-1)).toMatchObject({
+			slug: "landing-page",
+			file: "docs/designs/mockups/Landing Page.html",
+		});
+		expect(l.screens.map((s) => s.slug)).toEqual(["home", "checkout", "landing-page"]);
+	});
+
 	it("fails without a project", async () => {
 		resetMock();
 		await expect(unwrap(commands.designList())).rejects.toThrow("no active project");

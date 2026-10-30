@@ -13,19 +13,19 @@ None open. W10 closed all core flows (open in place, registry, close, remove, pa
 | Area | Feature | State | Gap | Legacy source | Shipyard |
 |---|---|---|---|---|---|
 | Agents | Composer attachments | partial | / prompts and @ files done. No attachments. | pick_files, save_attachment | src/features/assistant/composer.tsx |
-| Agents | FinOps: ccusage history, request tree, prices | partial | Own runs plus machine usage. No request tree, no flame graph. | pages/Finops.tsx | src/features/factory/usage/machine-usage.tsx |
+| Agents | FinOps: ccusage history, request tree, prices | partial | Own runs plus machine usage. Q-124: request tree for each run, nested by step. No flame graph. | pages/Finops.tsx | src/features/factory/usage/machine-usage.tsx |
 | Assistant | Bypass-permission warning, Codex trust | partial | No-CLI panel with install done. No bypass warning, no Codex trust button. | bypass-warning-dialog.tsx, codex-trust-button.tsx | src/features/assistant/no-cli.tsx |
-| Designs | List and preview docs/designs files (HTML, images, .fig) | partial | Only screens.json entries. No folder scan. | paths.designs | crates/shipyard-store/src/design.rs read_screens |
+| Designs | List and preview docs/designs files (HTML, images, .fig) | partial | Q-122: the folder scan lists HTML, image and .fig files as screens, opened outside. No inline preview. | paths.designs | crates/shipyard-store/src/design.rs read_screens |
 | Doctor | Custom CA certificates (import, enable, remove) | partial | Env bundle and OS roots only. No UI. | certs_import, certs_set_enabled | crates/shipyard-http/src/client.rs |
 | Doctor | Compliance, tooling, propagation, bootstrap | partial | Tools list, install and findings ledger done. No bootstrap, no propagation, no upgrade view. | pages/Doctor.tsx | src/features/projects/doctor-tools.tsx, doctor-ledger.tsx |
 | Doctor | Compliance registry: absent, stale, current per item | partial | Ledger records finding changes. No per-skill status, no stack detection. | provision_ledger, upgrade_report | src/features/projects/doctor-ledger.tsx |
 | Extensions | Compass browse (skills, goals, knowledge, docs) | partial | Rules and tiers only. No goals or knowledge panel. | Compass.tsx | src/features/settings/extensions/compass.tsx |
-| Import | Import a Legacy repo into a Shipyard project | partial | Open in place works. The import copies only project file, team, costing, personas, tickets config. | n/a | crates/shipyard-store/src/project_import.rs |
-| Import | Legacy import covers all artifacts | partial | Skips plan, calendar, designs, slides, dashboards, worklog, .agents/legacy.json. | whole docs/ tree | project_import.rs |
+| Import | Import a Legacy repo into a Shipyard project | partial | Open in place works. The import adds calendar and plan (Q-122). Still not copied: slides, dashboards, worklog. | n/a | crates/shipyard-store/src/project_import.rs |
+| Import | Legacy import covers all artifacts | partial | Q-122: calendar.json, plan.json and the designs folder are read. Skips slides, dashboards, worklog, .agents/legacy.json. | whole docs/ tree | project_import.rs |
 | MCP | Legacy MCP server for outside agents | partial | Read, write, git, forge, check, delivery diff done. No ticket tools, no ADR decide, no QA. | legacy_server.rs | crates/shipyard-mcp/src/outside.rs |
-| Planning | Working week, holidays (calendar.json), arbitrations (plan.json) | partial | Only yaml read. Legacy json not read. | docs/planning/calendar.json, plan.json | work.rs CALENDAR_PATH, DECISIONS_PATH |
-| Scanners | Security: SBOM, score, saved scans | partial | osv-scanner, semgrep, skillspector run with install. No SBOM, no score. | security_sbom | crates/shipyard-app/src/scanners.rs |
-| Scanners | QA: BDD view | partial | Checks and last report. No BDD view. | pages/Qa.tsx | src/features/code/quality.tsx |
+| Planning | Working week, holidays (calendar.json), arbitrations (plan.json) | present | Q-122: calendar.json and plan.json are read in place and saved in the Legacy format; the import copies them. | docs/planning/calendar.json, plan.json | work.rs CALENDAR_PATH, DECISIONS_PATH |
+| Scanners | Security: SBOM, score, saved scans | present | Q-124: CycloneDX SBOM from the lock files, security score in Code / Quality, saved scans. | security_sbom | crates/shipyard-app/src/scanners.rs |
+| Scanners | QA: BDD view | partial | Q-124: scenarios with the last verdict in Specs / Test plans. No BDD lint, no coverage graph. | pages/Qa.tsx | src/features/code/quality.tsx |
 | Settings | Preferences: 7 groups | partial | Theme, language, role, density, contrast done. No fonts, terminal, default CLI, shortcut editor in me.tsx. | pages/Preferences.tsx | src/features/settings/me.tsx |
 | Shell | File browser drawer (tree, new, rename, delete, reveal) | partial | Stage 6: drawer with tree, ⌘P search, viewer, show in Changes, copy path. Read only: no new, rename, delete (Q-127). | file-browser.tsx | src/features/code/file-drawer.tsx, code_file_list |
 | Shell | Page tours and tour button | replaced | No tours (constitution). The Get started checklist and Explain replace them. | src/lib/tour | src/features/home/get-started.tsx |
@@ -34,7 +34,7 @@ None open. W10 closed all core flows (open in place, registry, close, remove, pa
 | Shell | Context menu on any row | partial | Menu atom exists. Not on every row. No open-in-editor or copy-path everywhere. | item-menu.tsx | src/ui/molecules/context-menu.tsx |
 | Slides | reveal.js decks, CGI HTML template | partial | Markdown decks only. HTML decks and template not matched. | paths.slides | crates/shipyard-store/src/knowledge.rs parse_deck |
 | Specs | Chain watch: documents to check downstream | partial | Gate on push done. No chain watch view. | chain-watch.tsx | src/features/code/push-target.tsx |
-| Trackers | Edit a ticket (type, priority, due, estimate, description) | partial | Title and labels only. | ticket-edit.tsx | src/features/sync/ticket-thread.tsx |
+| Trackers | Edit a ticket (type, priority, due, estimate, description) | partial | Q-123: title, description, labels (add, remove), assignee, status and priority with capability flags. No type, due date or estimate. | ticket-edit.tsx | src/features/sync/ticket-thread.tsx |
 
 ## P2 (22)
 

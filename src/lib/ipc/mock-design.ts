@@ -449,25 +449,38 @@ function adrs(files: Files): Adr[] {
 		});
 }
 
+/** The design files of the folder that no screen names (HTML, images, .fig), two levels deep. */
+function scanned(files: Files, named: Screen_Serialize[]): Screen_Serialize[] {
+	const out: Screen_Serialize[] = [];
+	for (const path of Object.keys(files).sort()) {
+		const rest = isUnder(path, DIR.design) ? path.slice(DIR.design.length + 1) : "";
+		if (!rest || rest.split("/").length > 2 || !/\.(html?|png|jpe?g|svg|webp|fig)$/i.test(rest))
+			continue;
+		const stem = rest.slice(rest.lastIndexOf("/") + 1).replace(/\.[^.]+$/, "");
+		const key = slug(stem);
+		if (key && ![...named, ...out].some((s) => s.slug === key || s.figma === path))
+			out.push({ slug: key, title: stem, artifacts: [], figma: null, broken: false, file: path });
+	}
+	return out;
+}
+
 function screens(files: Files): { screens: Screen_Serialize[]; error: string | null } {
 	const text = files[SCREENS]?.text;
-	if (text === undefined) return { screens: [], error: null };
+	if (text === undefined) return { screens: scanned(files, []), error: null };
 	try {
 		const list = (JSON.parse(text) as { screens: Partial<Screen_Serialize>[] }).screens;
 		if (!Array.isArray(list)) throw new Error("missing field `screens`");
-		return {
-			screens: list.map((s) => {
-				const figma = s.figma ?? null;
-				return {
-					slug: s.slug ?? "",
-					title: s.title ?? "",
-					artifacts: s.artifacts ?? [],
-					figma,
-					broken: figma !== null && !figma.startsWith("https://") && !files[figma],
-				};
-			}),
-			error: null,
-		};
+		const named = list.map((s): Screen_Serialize => {
+			const figma = s.figma ?? null;
+			return {
+				slug: s.slug ?? "",
+				title: s.title ?? "",
+				artifacts: s.artifacts ?? [],
+				figma,
+				broken: figma !== null && !figma.startsWith("https://") && !files[figma],
+			};
+		});
+		return { screens: [...named, ...scanned(files, named)], error: null };
 	} catch (e) {
 		return { screens: [], error: String(e instanceof Error ? e.message : e) };
 	}

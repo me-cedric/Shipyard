@@ -13,6 +13,7 @@
 import type {
 	AssistantDefaults_Deserialize,
 	AssistantDefaults_Serialize,
+	Attachment,
 	ChatMessage,
 	Context_Deserialize,
 	Context_Serialize,
@@ -138,6 +139,40 @@ export function create(a: MockAssistant, env: Env, title: string | null): Thread
 	const r: Rec = { thread, used: 0, files: [], sent: null };
 	a.threads.push(r);
 	return view(r);
+}
+
+const MAX_TEXT = 200 * 1024;
+const MAX_IMAGE = 2 * 1024 * 1024;
+
+/** The rules of `assistant_attach`: no secret file, a size limit, a text goes inline, an image by path. */
+export function attach(
+	a: MockAssistant,
+	env: Env,
+	id: string,
+	path: string,
+	bytes: number[],
+): Attachment {
+	find(a, env, id);
+	const name = path.split(/[/\\]/).pop()?.trim() ?? "";
+	if (!name || name.startsWith(".") || [...name].some((c) => c.charCodeAt(0) < 32))
+		throw "the file name is not valid";
+	if (/\.(pem|key)$/i.test(name) || /^id_[^.]*$/i.test(name))
+		throw "a secret file is never attached";
+	const ext = name.split(".").pop()?.toLowerCase() ?? "";
+	if (["png", "jpg", "jpeg", "gif", "webp"].includes(ext)) {
+		if (bytes.length > MAX_IMAGE) throw `${name} is larger than ${MAX_IMAGE / 1024} KiB`;
+		return {
+			name,
+			kind: "image",
+			quote: `Image file for this request: /mock/scratch/${id}/attachments/${name}`,
+			bytes: bytes.length,
+		};
+	}
+	if (bytes.length > MAX_TEXT) throw `${name} is larger than ${MAX_TEXT / 1024} KiB`;
+	const text = new TextDecoder().decode(new Uint8Array(bytes));
+	if (/ghp_[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY/.test(text))
+		throw `${name} holds what looks like a secret`;
+	return { name, kind: "text", quote: text, bytes: bytes.length };
 }
 
 export const get = (a: MockAssistant, env: Env, id: string) => view(find(a, env, id));

@@ -52,6 +52,8 @@ fn json_sheet_path(slug: &str) -> String {
 
 /// The Legacy team file. It is the team when `.shipyard/team.yaml` does not exist (Q-102).
 const LEGACY_TEAM: &str = "docs/planning/team.json";
+const LEGACY_PLAN: &str = "docs/planning/plan.json";
+const LEGACY_CALENDAR: &str = "docs/planning/calendar.json";
 
 /// What the app keeps in memory for Work, by project id.
 ///
@@ -227,12 +229,36 @@ impl Ctx<'_> {
         !self.root.join(TEAM_PATH).exists() && self.root.join(LEGACY_TEAM).is_file()
     }
 
+    /// The file is a Legacy JSON file: there is no YAML file for it (Q-122).
+    fn json_only(&self, yaml: &str, json: &str) -> bool {
+        !self.root.join(yaml).exists() && self.root.join(json).is_file()
+    }
+
     fn decisions(&self) -> Res<Decisions> {
+        if self.json_only(DECISIONS_PATH, LEGACY_PLAN) {
+            let text = self.read(LEGACY_PLAN)?.unwrap_or_default();
+            let sheets = self.readable()?;
+            return Ok(legacy::decisions_from_json(&text, |id| {
+                sheets
+                    .iter()
+                    .find(|(_, s)| {
+                        s.features
+                            .iter()
+                            .any(|f| f.tasks.iter().any(|t| t.id == id))
+                    })
+                    .map(|(slug, _)| slug.clone())
+            }));
+        }
         let text = self.read(DECISIONS_PATH)?.unwrap_or_default();
         read_decisions(&text).map_err(|e| format!("{DECISIONS_PATH}: {e}"))
     }
 
     fn calendar(&self) -> Res<Calendar> {
+        if self.json_only(CALENDAR_PATH, LEGACY_CALENDAR) {
+            let text = self.read(LEGACY_CALENDAR)?.unwrap_or_default();
+            let cal = legacy::calendar_from_json(&text);
+            return read_calendar(&write_calendar(&cal).map_err(err)?).map_err(err);
+        }
         let text = self.read(CALENDAR_PATH)?.unwrap_or_default();
         read_calendar(&text).map_err(|e| format!("{CALENDAR_PATH}: {e}"))
     }
@@ -311,6 +337,8 @@ pub(crate) struct Target {
     id: String,
     scope: Option<String>,
     pub(crate) caps: Capabilities,
+    /// The tracker has a priority field that an edit can set.
+    priority: bool,
 }
 
 impl Target {
@@ -328,6 +356,11 @@ pub(crate) fn tracker(s: &AppState) -> Res<Target> {
         id,
         scope,
         caps: kind.tracker().capabilities(),
+        priority: !matches!(
+            kind.tracker(),
+            shipyard_core::work_item::TrackerKind::GitHubIssues
+                | shipyard_core::work_item::TrackerKind::GitLabIssues
+        ),
     })
 }
 
@@ -672,6 +705,61 @@ pub fn ticket_label_add(s: &AppState, key: &str, label: &str, click: bool) -> Re
     let t = tracker(s)?;
     let w = writer(s, &t)?;
     w.add_label(key, label).map_err(err)?;
+    refresh(s, &t, &*w, [key.to_string()]);
+    Ok(())
+}
+
+/// What the edit of a ticket can do on this tracker. The view shows no control for a flag that is
+/// off, and no request leaves for it (Q-123).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TicketEditCaps {
+    pub title: bool,
+    pub description: bool,
+    pub labels: bool,
+    pub remove_label: bool,
+    pub assignee: bool,
+    pub status: bool,
+    pub priority: bool,
+}
+
+pub fn ticket_edit_caps(s: &AppState) -> Res<TicketEditCaps> {
+    let t = tracker(s)?;
+    Ok(TicketEditCaps {
+        title: true,
+        description: true,
+        labels: t.caps.labels,
+        remove_label: t.caps.labels,
+        assignee: t.caps.assignee,
+        status: t.caps.transitions,
+        priority: t.priority,
+    })
+}
+
+/// Removes a label. A blank label or one with a space is refused, as for the add.
+pub fn ticket_label_remove(s: &AppState, key: &str, label: &str, click: bool) -> Res<()> {
+    need_click(s, click)?;
+    let label = label.trim();
+    if label.is_empty() || label.contains(char::is_whitespace) {
+        return Err("a label is one word".into());
+    }
+    let t = tracker(s)?;
+    let w = writer(s, &t)?;
+    w.remove_label(key, label).map_err(err)?;
+    refresh(s, &t, &*w, [key.to_string()]);
+    Ok(())
+}
+
+/// Sets the priority: highest, high, medium, low or lowest. A tracker with no priority field
+/// refuses before it sends anything.
+pub fn ticket_priority_set(s: &AppState, key: &str, priority: &str, click: bool) -> Res<()> {
+    need_click(s, click)?;
+    let t = tracker(s)?;
+    if !t.priority {
+        return Err("this tracker has no priority field".into());
+    }
+    let w = writer(s, &t)?;
+    w.set_priority(key, priority).map_err(err)?;
     refresh(s, &t, &*w, [key.to_string()]);
     Ok(())
 }
@@ -1043,12 +1131,25 @@ pub fn plan(s: &AppState, slug: &str) -> Res<PlanView> {
 
 pub fn decisions_save(s: &AppState, decisions: &Decisions) -> Res<()> {
     let c = ctx(s)?;
-    c.write(DECISIONS_PATH, &write_decisions(decisions).map_err(err)?)
+    let text = write_decisions(decisions).map_err(err)?;
+    if c.json_only(DECISIONS_PATH, LEGACY_PLAN) {
+        let old = c.read(LEGACY_PLAN)?;
+        return c.write(LEGACY_PLAN, &legacy::plan_json(decisions, old.as_deref()));
+    }
+    c.write(DECISIONS_PATH, &text)
 }
 
 pub fn calendar_save(s: &AppState, calendar: &Calendar) -> Res<()> {
     let c = ctx(s)?;
-    c.write(CALENDAR_PATH, &write_calendar(calendar).map_err(err)?)
+    let text = write_calendar(calendar).map_err(err)?;
+    if c.json_only(CALENDAR_PATH, LEGACY_CALENDAR) {
+        let old = c.read(LEGACY_CALENDAR)?;
+        return c.write(
+            LEGACY_CALENDAR,
+            &legacy::calendar_json(calendar, old.as_deref()),
+        );
+    }
+    c.write(CALENDAR_PATH, &text)
 }
 
 // ---------------------------------------------------------------- time
@@ -1461,6 +1562,34 @@ pub async fn work_ticket_label_add(
     click: bool,
 ) -> Res<()> {
     blocking(app, move |s| ticket_label_add(s, &key, &label, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_ticket_edit_caps(app: AppHandle) -> Res<TicketEditCaps> {
+    blocking(app, ticket_edit_caps).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_ticket_label_remove(
+    app: AppHandle,
+    key: String,
+    label: String,
+    click: bool,
+) -> Res<()> {
+    blocking(app, move |s| ticket_label_remove(s, &key, &label, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_ticket_priority_set(
+    app: AppHandle,
+    key: String,
+    priority: String,
+    click: bool,
+) -> Res<()> {
+    blocking(app, move |s| ticket_priority_set(s, &key, &priority, click)).await
 }
 
 #[tauri::command]

@@ -16,6 +16,7 @@ import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { MachineUsage } from "./machine-usage";
+import { RequestTree } from "./request-tree";
 
 type Kind = "run" | "day" | "member";
 type Row = {
@@ -228,6 +229,7 @@ export function Usage() {
 							}}
 						/>
 					</Panel>
+					<RequestTree runs={u?.runs ?? []} />
 					<MachineUsage />
 				</div>
 			)}

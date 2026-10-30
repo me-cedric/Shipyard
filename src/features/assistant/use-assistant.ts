@@ -5,6 +5,7 @@ import {
 	commands,
 	type FileDiff,
 	type PanelSide,
+	type Quote,
 	type RunnerOptions,
 	type ThreadSettings,
 	type ThreadSummary,
@@ -214,14 +215,16 @@ export function useAssistant({
 				if (!next) setCurrent(null);
 				await refresh(next);
 			}),
-		send: async (text: string, fromDraft = false) => {
+		send: async (text: string, fromDraft = false, quotes: Quote[] = []) => {
 			const v = live.current.current;
 			const body = text.trim();
 			if (!v || !body || busy) return;
 			// The draft goes at once, so text typed during the turn is not lost. A failed send gives it back.
 			const to = v.thread.id;
 			if (fromDraft) setDrafts((d) => ({ ...d, [to]: "" }));
-			const ok = await run(body, () => unwrap(commands.assistantSend(to, body, [], contextFor(v))));
+			const ok = await run(body, () =>
+				unwrap(commands.assistantSend(to, body, quotes, contextFor(v))),
+			);
 			if (!ok && fromDraft) setDrafts((d) => ({ ...d, [to]: d[to] || body }));
 		},
 		grant: () => current && !busy && run(null, () => unwrap(commands.assistantGrant(id))),
