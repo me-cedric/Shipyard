@@ -10,6 +10,7 @@ pub mod code;
 pub mod connections;
 pub mod health;
 pub mod legacy;
+pub mod logins;
 pub mod prefs;
 pub mod projects;
 pub mod refs;

@@ -6,7 +6,13 @@ import { format, useI18n } from "@/lib/i18n";
 import { errorDialog } from "@/lib/ipc";
 import { useNotifications } from "@/lib/notifications";
 import { type Theme, usePrefs } from "@/lib/prefs";
-import { outcomeError, useActiveProject, useProjectActions, useProjects } from "@/lib/projects";
+import {
+	outcomeError,
+	useActiveProject,
+	useLegacyProjects,
+	useProjectActions,
+	useProjects,
+} from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { AnimatedIcon } from "@/ui/atoms/animated-icon";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -49,7 +55,8 @@ export function ContextBar({
 	const { theme, setPrefs } = usePrefs();
 	const projects = useProjects().data ?? [];
 	const active = useActiveProject().data;
-	const { switchTo, openFolder, close, remove } = useProjectActions();
+	const { switchTo, openFolder, openLegacy, close, remove } = useProjectActions();
+	const legacy = useLegacyProjects().data ?? [];
 	const [cloning, setCloning] = useState(false);
 	const { syncing, assistantOpen } = useShell();
 	const { items, unread, markRead, clear } = useNotifications();
@@ -70,6 +77,13 @@ export function ContextBar({
 				onClone={() => setCloning(true)}
 				onClose={() => void close()}
 				onRemove={(p) => void remove(p)}
+				legacy={legacy}
+				onLegacy={(id) =>
+					void openLegacy(id).then((o) => {
+						const error = outcomeError(t, o);
+						if (error) void errorDialog(error);
+					})
+				}
 				className="max-w-56 border-transparent bg-transparent hover:bg-n-3"
 			/>
 			<CloneDialog open={cloning} onClose={() => setCloning(false)} />

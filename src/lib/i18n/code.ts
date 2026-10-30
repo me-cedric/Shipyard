@@ -47,6 +47,10 @@ export const forgeEn = {
 	},
 	impacts: {
 		base: "Compare with",
+		assignments: "Assignments",
+		days: "{count} d",
+		copy: "Copy brief",
+		copyBrief: "Copy brief of {name}",
 		branches: "Branches",
 		tags: "Tags",
 		analyze: "Analyze",
@@ -73,6 +77,7 @@ export const forgeEn = {
 		line: "Line {n}",
 		binary: "Binary file, {size} bytes",
 		view: "View",
+		blame: "Blame",
 	},
 };
 
@@ -124,6 +129,10 @@ export const forgeFr: typeof forgeEn = {
 	},
 	impacts: {
 		base: "Comparer avec",
+		assignments: "Répartition",
+		days: "{count} j",
+		copy: "Copier le brief",
+		copyBrief: "Copier le brief de {name}",
 		branches: "Branches",
 		tags: "Tags",
 		analyze: "Analyser",
@@ -150,5 +159,6 @@ export const forgeFr: typeof forgeEn = {
 		line: "Ligne {n}",
 		binary: "Fichier binaire, {size} octets",
 		view: "Voir",
+		blame: "Annoter",
 	},
 };

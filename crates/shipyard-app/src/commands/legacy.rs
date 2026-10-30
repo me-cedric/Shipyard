@@ -5,6 +5,7 @@ use std::path::Path;
 
 use serde::Serialize;
 use shipyard_store::legacy::{self, registry_file};
+use shipyard_store::delivery_docs::{self, Assignments, Persona, TicketsConfig};
 use shipyard_store::project_import;
 use specta::Type;
 use tauri::AppHandle;
@@ -114,6 +115,68 @@ pub async fn project_import(app: AppHandle, source: String) -> Res<ImportReport>
     blocking(app, move |s| report(s, &source)).await
 }
 
+fn root(s: &AppState) -> Res<std::path::PathBuf> {
+    let e = s.registry()?.active().cloned().ok_or("no active project")?;
+    Ok(e.path.into())
+}
+
+/// The personas of the active project (`docs/personas/personas.json`).
+pub fn personas(s: &AppState) -> Res<Vec<Persona>> {
+    Ok(delivery_docs::personas(&root(s)?))
+}
+
+/// Saves the personas. It keeps the keys of the file that Shipyard does not own.
+pub fn personas_set(s: &AppState, list: &[Persona]) -> Res<()> {
+    let root = root(s)?;
+    let _g = s.guard();
+    delivery_docs::save_personas(&root, list).map_err(|e| e.to_string())
+}
+
+/// The work split by profile (`docs/delivery/assignments.json`), with days, cost and brief.
+pub fn assignments(s: &AppState) -> Res<Assignments> {
+    Ok(delivery_docs::assignments(&root(s)?))
+}
+
+pub fn tickets_config(s: &AppState) -> Res<TicketsConfig> {
+    Ok(delivery_docs::tickets_config(&root(s)?))
+}
+
+pub fn tickets_config_set(s: &AppState, config: &TicketsConfig) -> Res<()> {
+    let root = root(s)?;
+    let _g = s.guard();
+    delivery_docs::save_tickets_config(&root, config).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn personas_list(app: AppHandle) -> Res<Vec<Persona>> {
+    blocking(app, personas).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn personas_save(app: AppHandle, personas: Vec<Persona>) -> Res<()> {
+    blocking(app, move |s| personas_set(s, &personas)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn assignments_read(app: AppHandle) -> Res<Assignments> {
+    blocking(app, assignments).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn tickets_config_get(app: AppHandle) -> Res<TicketsConfig> {
+    blocking(app, tickets_config).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn tickets_config_save(app: AppHandle, config: TicketsConfig) -> Res<()> {
+    blocking(app, move |s| tickets_config_set(s, &config)).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -143,6 +206,24 @@ mod tests {
         assert!(text.contains("decisions: adr") && text.contains("diagrams: d/x"));
         assert!(text.contains("models: c4") && !text.contains("secret"));
         assert!(projects(&s, &reg).unwrap().is_empty());
+    }
+
+    #[test]
+    fn the_delivery_files_need_an_active_project_and_round_trip() {
+        let dir = tempfile::tempdir().unwrap();
+        let s = AppState::new(dir.path().join("data"));
+        assert!(personas(&s).is_err() && assignments(&s).is_err() && tickets_config(&s).is_err());
+        let repo = dir.path().join("p");
+        shipyard_git::project::init(&repo).unwrap();
+        open_with(&s, repo.to_str().unwrap(), &Default::default()).unwrap();
+        assert!(personas(&s).unwrap().is_empty());
+        let mut c = tickets_config(&s).unwrap();
+        c.story = "Récit".into();
+        tickets_config_set(&s, &c).unwrap();
+        assert_eq!(tickets_config(&s).unwrap().story, "Récit");
+        c.hours_per_day = 99.0;
+        assert!(tickets_config_set(&s, &c).is_err());
+        assert!(assignments(&s).unwrap().assignments.is_empty());
     }
 
     #[test]

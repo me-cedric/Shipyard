@@ -102,6 +102,18 @@ test("merges a branch with one click in Code / Branches", async ({ page }) => {
 	await expect(page.getByText("Already up to date")).toBeVisible();
 });
 
+test("rebases a branch in Code / Branches and asks before a force publish", async ({ page }) => {
+	await openCode(page, "Branches");
+	const row = page.getByRole("group", { name: "feat/auth/login" });
+	await row.getByRole("button", { name: "Rebase onto feat/auth/login" }).click();
+	await expect(page.getByRole("alert")).toContainText("uncommitted changes");
+
+	// A force publish needs a second click on the button that names what it does.
+	await page.getByRole("button", { name: "Force publish" }).click();
+	await expect(page.getByRole("button", { name: "Replace the remote branch" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Force publish" })).toHaveCount(0);
+});
+
 // The list holds the factory pull requests (#40 to #47) and the forge mock ones (#141 to #143).
 const pull = (page: Page, n: number) => page.getByRole("button", { name: new RegExp(`^#${n} `) });
 

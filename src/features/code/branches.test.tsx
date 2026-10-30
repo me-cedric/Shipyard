@@ -18,6 +18,8 @@ describe("Code / History", () => {
 		expect(row).toHaveTextContent("main");
 		expect(row).toHaveTextContent("origin/main");
 		expect(screen.getAllByRole("button", { name: /Ada Lovelace/ })).toHaveLength(3);
+		// One dot for each commit, on the lane of its line of history.
+		expect(main().querySelectorAll("[data-lane]")).toHaveLength(3);
 		await user.click(await screen.findByRole("button", { name: /chore: first commit/ }));
 		expect(await screen.findByRole("heading", { name: "chore: first commit" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Files (2)" })).toBeInTheDocument();
@@ -167,5 +169,33 @@ describe("Code / Branches", () => {
 			await screen.findByRole("button", { name: "Merge feat/auth/login" }),
 		).toBeInTheDocument();
 		expect(screen.queryByRole("region", { name: "src/app.ts" })).toBeNull();
+	}, 20_000);
+	it("rebases onto a branch, continues after the conflict is resolved and force publishes after a confirm", async () => {
+		const user = userEvent.setup();
+		await open();
+		await unwrap(commands.codeStatus());
+		const code = mockState().code;
+		if (!code) throw new Error("no code state");
+		await unwrap(commands.codeUnstage(["src"]));
+		await unwrap(commands.codeDiscard(["src", "docs"], false));
+		mountApp("/code/branches");
+		const row = await screen.findByRole("group", { name: "feat/auth/login" });
+		await user.click(within(row).getByRole("button", { name: "Rebase onto feat/auth/login" }));
+		expect(await screen.findByText("Already up to date")).toBeInTheDocument();
+
+		const side = code.branches["feat/auth/login"];
+		side?.log.unshift("s".repeat(40));
+		side?.touches.push("src/app.ts");
+		code.branches.main?.touches.push("src/app.ts");
+		await user.click(within(row).getByRole("button", { name: "Rebase onto feat/auth/login" }));
+		expect(await screen.findByText("Rebase in progress, 1 files in conflict")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Continue rebase" })).toBeDisabled();
+		expect(screen.queryByRole("button", { name: "Rebase onto feat/auth/login" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Abort rebase" }));
+		await waitFor(() => expect(mockState().code?.rebasing).toBe(false));
+
+		await user.click(await screen.findByRole("button", { name: "Force publish" }));
+		await user.click(screen.getByRole("button", { name: "Replace the remote branch" }));
+		await waitFor(() => expect(code.remoteBranches).toContain("origin/main"));
 	}, 20_000);
 });

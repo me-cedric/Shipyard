@@ -14,6 +14,7 @@ import {
 	isTauri,
 	type MergeOutcome,
 	type PullOutcome,
+	type RebaseOutcome,
 	type Resolution,
 	type Stash,
 	unwrap,
@@ -32,6 +33,7 @@ export type {
 	FileDiff,
 	MergeOutcome,
 	PullOutcome,
+	RebaseOutcome,
 	Resolution,
 	Stash,
 };
@@ -155,6 +157,9 @@ export function useCodeActions() {
 			deleteBranch: (name: string, force: boolean) => run(commands.codeBranchDelete(name, force)),
 			mergeBranch: (name: string) => run(commands.codeBranchMerge(name)),
 			abortMerge: () => run(commands.codeMergeAbort()),
+			rebaseBranch: (onto: string) => run(commands.codeBranchRebase(onto)),
+			continueRebase: () => run(commands.codeRebaseContinue()),
+			abortRebase: () => run(commands.codeRebaseAbort()),
 			stash: (message: string | null) => run(commands.codeStashPush(message)),
 			applyStash: (index: number) => run(commands.codeStashApply(index)),
 			dropStash: (id: string) => run(commands.codeStashDrop(id)),
@@ -162,13 +167,27 @@ export function useCodeActions() {
 			fetch: () => run(commands.codeFetch()),
 			pull: () => run(commands.codePull()),
 			push: () => run(commands.codePush()),
+			pushForce: () => run(commands.codePushForce()),
 		};
 	}, [qc]);
+}
+
+/** The commit and the author of each line of a file at HEAD. Off until the person asks. */
+export function useBlame(path: string, enabled: boolean) {
+	return useQuery({
+		queryKey: [...codeKeys.all, "blame", path],
+		queryFn: () => unwrap(commands.codeBlame(path)),
+		enabled,
+		retry: false,
+	});
 }
 
 /** The key of the message for a merge result. */
 export const mergeKey = (o: MergeOutcome) =>
 	typeof o === "string" ? o : "merged" in o ? "merged" : "conflicts";
+
+/** The key of the message for a rebase result. */
+export const rebaseKey = (o: RebaseOutcome) => (typeof o === "string" ? o : "conflicts");
 
 /** The commit action stays off with nothing staged or with a conflict left (REQ-007). */
 export const canCommit = (c: Changes | undefined) =>

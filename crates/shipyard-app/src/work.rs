@@ -557,6 +557,107 @@ pub fn transition(s: &AppState, key: &str, to: &str, click: bool) -> Res<()> {
     Ok(())
 }
 
+// ---------------------------------------------------------------- ticket thread
+
+/// One comment of a ticket, as the person reads it. A hidden marker of Shipyard is not shown.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+pub struct TicketComment {
+    pub id: String,
+    pub author: String,
+    pub body: String,
+    pub created: String,
+}
+
+/// The comments of a ticket, oldest first. It reads the tracker: a person asked for it. A
+/// comment that holds only a Shipyard marker (a claim stamp) is left out. Source of the logic:
+/// Legacy `tickets_issue` (`src-tauri/src/infrastructure/jira.rs`).
+pub fn ticket_comments(s: &AppState, key: &str) -> Res<Vec<TicketComment>> {
+    let t = tracker(s)?;
+    if !t.caps.comments {
+        return Err("the tracker does not hold comments".into());
+    }
+    let w = writer(s, &t)?;
+    Ok(writes::all_comments(&*w, key)
+        .map_err(err)?
+        .into_iter()
+        .filter(|c| {
+            let b = c.body.trim();
+            !(b.starts_with("<!-- shipyard:")
+                && b.ends_with("-->")
+                && b.matches("<!--").count() == 1)
+        })
+        .map(|c| TicketComment {
+            id: c.id,
+            author: c.author.name,
+            body: c.body,
+            created: c.created,
+        })
+        .collect())
+}
+
+/// Posts a comment. An empty body is refused.
+pub fn ticket_comment_add(s: &AppState, key: &str, body: &str, click: bool) -> Res<()> {
+    need_click(click)?;
+    if body.trim().is_empty() {
+        return Err("the comment is empty".into());
+    }
+    let t = tracker(s)?;
+    let w = writer(s, &t)?;
+    w.add_comment(key, body.trim()).map_err(err)?;
+    Ok(())
+}
+
+/// Sets the title, the description or the estimate in days of a ticket. A field left `None` stays.
+/// A title that is empty after trim is refused. A tracker that cannot hold a field lists it in the
+/// answer (`skipped`).
+pub fn ticket_edit(
+    s: &AppState,
+    key: &str,
+    title: Option<String>,
+    description: Option<String>,
+    days: Option<f64>,
+    click: bool,
+) -> Res<Vec<String>> {
+    need_click(click)?;
+    let title = title.map(|t| t.trim().to_string());
+    if title.as_deref() == Some("") {
+        return Err("the title is empty".into());
+    }
+    if days.is_some_and(|d| !d.is_finite() || d < 0.0) {
+        return Err("the estimate must be zero or more days".into());
+    }
+    let t = tracker(s)?;
+    let w = writer(s, &t)?;
+    let done = w
+        .update(
+            key,
+            &writes::Fields {
+                title,
+                description,
+                days,
+                parent: None,
+            },
+        )
+        .map_err(err)?;
+    refresh(s, &t, &*w, [key.to_string()]);
+    Ok(done.skipped.iter().map(|f| format!("{f:?}")).collect())
+}
+
+/// Adds a label. A blank label or one with a space is refused: no tracker keeps a label with a
+/// space in the same way.
+pub fn ticket_label_add(s: &AppState, key: &str, label: &str, click: bool) -> Res<()> {
+    need_click(click)?;
+    let label = label.trim();
+    if label.is_empty() || label.contains(char::is_whitespace) {
+        return Err("a label is one word".into());
+    }
+    let t = tracker(s)?;
+    let w = writer(s, &t)?;
+    w.add_label(key, label).map_err(err)?;
+    refresh(s, &t, &*w, [key.to_string()]);
+    Ok(())
+}
+
 // ---------------------------------------------------------------- seal
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
@@ -1297,6 +1398,50 @@ pub async fn work_assign(app: AppHandle, key: String, member: String, click: boo
 #[specta::specta]
 pub async fn work_mark(app: AppHandle, key: String, click: bool) -> Res<()> {
     blocking(app, move |s| mark(s, &key, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_ticket_comments(app: AppHandle, key: String) -> Res<Vec<TicketComment>> {
+    blocking(app, move |s| ticket_comments(s, &key)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_ticket_comment_add(
+    app: AppHandle,
+    key: String,
+    body: String,
+    click: bool,
+) -> Res<()> {
+    blocking(app, move |s| ticket_comment_add(s, &key, &body, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_ticket_edit(
+    app: AppHandle,
+    key: String,
+    title: Option<String>,
+    description: Option<String>,
+    days: Option<f64>,
+    click: bool,
+) -> Res<Vec<String>> {
+    blocking(app, move |s| {
+        ticket_edit(s, &key, title, description, days, click)
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_ticket_label_add(
+    app: AppHandle,
+    key: String,
+    label: String,
+    click: bool,
+) -> Res<()> {
+    blocking(app, move |s| ticket_label_add(s, &key, &label, click)).await
 }
 
 #[tauri::command]

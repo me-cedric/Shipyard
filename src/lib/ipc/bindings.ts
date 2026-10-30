@@ -33,6 +33,11 @@ export const commands = {
 	projectImport: (source: string) => typedError<ImportReport, string>(__TAURI_INVOKE("project_import", { source })),
 	legacyProjects: () => typedError<LegacyProject[], string>(__TAURI_INVOKE("legacy_projects")),
 	legacyProjectOpen: (id: string) => typedError<ProjectOutcome_Serialize, string>(__TAURI_INVOKE("legacy_project_open", { id })),
+	personasList: () => typedError<Persona[], string>(__TAURI_INVOKE("personas_list")),
+	personasSave: (personas: Persona[]) => typedError<null, string>(__TAURI_INVOKE("personas_save", { personas })),
+	assignmentsRead: () => typedError<Assignments, string>(__TAURI_INVOKE("assignments_read")),
+	ticketsConfigGet: () => typedError<TicketsConfig, string>(__TAURI_INVOKE("tickets_config_get")),
+	ticketsConfigSave: (config: TicketsConfig) => typedError<null, string>(__TAURI_INVOKE("tickets_config_save", { config })),
 	connectionsList: () => typedError<Connection_Serialize[], string>(__TAURI_INVOKE("connections_list")),
 	connectionsAdd: (draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_add", { draft })),
 	connectionsEdit: (id: string, draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_edit", { id, draft })),
@@ -44,6 +49,8 @@ export const commands = {
 	connectionsRepos: (id: string, cursor: string | null) => typedError<RepoPage_Serialize, string>(__TAURI_INVOKE("connections_repos", { id, cursor })),
 	/**  Creates a private repository on a forge connection. It is a write: it needs the click of a person. */
 	connectionsCreateRepo: (id: string, slug: string, click: boolean) => typedError<Repository_Serialize, string>(__TAURI_INVOKE("connections_create_repo", { id, slug, click })),
+	connectionsDetect: () => typedError<CliLogin[], string>(__TAURI_INVOKE("connections_detect")),
+	connectionsUseLogin: (tool: string, host: string, click: boolean) => typedError<Connection_Serialize, string>(__TAURI_INVOKE("connections_use_login", { tool, host, click })),
 	codeStatus: () => typedError<Changes_Serialize, string>(__TAURI_INVOKE("code_status")),
 	codeDiff: (path: string, side: DiffSide) => typedError<FileDiff, string>(__TAURI_INVOKE("code_diff", { path, side })),
 	codeStage: (paths: string[]) => typedError<null, string>(__TAURI_INVOKE("code_stage", { paths })),
@@ -59,6 +66,11 @@ export const commands = {
 	codeBranchDelete: (name: string, force: boolean) => typedError<null, string>(__TAURI_INVOKE("code_branch_delete", { name, force })),
 	codeBranchMerge: (name: string) => typedError<MergeOutcome, string>(__TAURI_INVOKE("code_branch_merge", { name })),
 	codeMergeAbort: () => typedError<null, string>(__TAURI_INVOKE("code_merge_abort")),
+	codeBranchRebase: (onto: string) => typedError<RebaseOutcome, string>(__TAURI_INVOKE("code_branch_rebase", { onto })),
+	codeRebaseContinue: () => typedError<RebaseOutcome, string>(__TAURI_INVOKE("code_rebase_continue")),
+	codeRebaseAbort: () => typedError<null, string>(__TAURI_INVOKE("code_rebase_abort")),
+	codeBlame: (path: string) => typedError<BlameLine[], string>(__TAURI_INVOKE("code_blame", { path })),
+	codePushForce: () => typedError<null, string>(__TAURI_INVOKE("code_push_force")),
 	codeStashPush: (message: string | null) => typedError<string, string>(__TAURI_INVOKE("code_stash_push", { message })),
 	codeStashList: () => typedError<Stash[], string>(__TAURI_INVOKE("code_stash_list")),
 	codeStashApply: (index: number) => typedError<null, string>(__TAURI_INVOKE("code_stash_apply", { index })),
@@ -74,6 +86,7 @@ export const commands = {
 	/**  The minutes between two fetches of the active project (default 15). */
 	codeWatchInterval: () => typedError<number, string>(__TAURI_INVOKE("code_watch_interval")),
 	codeWatchIntervalSet: (minutes: number) => typedError<number, string>(__TAURI_INVOKE("code_watch_interval_set", { minutes })),
+	codeRemoteUrl: () => typedError<string | null, string>(__TAURI_INVOKE("code_remote_url")),
 	/**  A file for the viewer: the working copy when `rev` is empty, else the file at that revision. */
 	codeFileRead: (path: string, rev: string | null) => typedError<FileView, string>(__TAURI_INVOKE("code_file_read", { path, rev })),
 	codePullDetail: (number: number) => typedError<PullDetail_Serialize, string>(__TAURI_INVOKE("code_pull_detail", { number })),
@@ -138,6 +151,10 @@ export const commands = {
 	workAssign: (key: string, member: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_assign", { key, member, click })),
 	workMark: (key: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_mark", { key, click })),
 	workTransition: (key: string, to: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_transition", { key, to, click })),
+	workTicketComments: (key: string) => typedError<TicketComment[], string>(__TAURI_INVOKE("work_ticket_comments", { key })),
+	workTicketCommentAdd: (key: string, body: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_ticket_comment_add", { key, body, click })),
+	workTicketEdit: (key: string, title: string | null, description: string | null, days: number | null, click: boolean) => typedError<string[], string>(__TAURI_INVOKE("work_ticket_edit", { key, title, description, days, click })),
+	workTicketLabelAdd: (key: string, label: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("work_ticket_label_add", { key, label, click })),
 	workSealState: () => typedError<SealState, string>(__TAURI_INVOKE("work_seal_state")),
 	workUnlock: (passphrase: string) => typedError<SealState, string>(__TAURI_INVOKE("work_unlock", { passphrase })),
 	workLock: () => typedError<SealState, string>(__TAURI_INVOKE("work_lock")),
@@ -505,6 +522,52 @@ export type AskedQuestion_Serialize = {
 	edited: boolean,
 };
 
+/**  The scope of one profile. */
+export type Assignment = {
+	personaId: string,
+	personaName: string,
+	scope: string[],
+	brief: string,
+	items: AssignmentItem[],
+	seams: AssignmentSeam[],
+	mandays: number | null,
+	/**  The man-days at the sale rate of the persona. Zero when the persona has no rate. */
+	cost: number | null,
+	/**  The text that a lead pastes into a chat or a ticket. */
+	briefText: string,
+};
+
+export type AssignmentGate = {
+	what: string,
+	blocks: string[],
+	unblockedBy: string,
+	approver: string,
+};
+
+export type AssignmentItem = {
+	id: string,
+	title: string,
+	why: string,
+	firstSteps: string[],
+	specRef: string,
+	mandays: number | null,
+	/**  The `what` of a gate, or empty. */
+	gate: string,
+};
+
+export type AssignmentSeam = {
+	with: string,
+	contract: string,
+	rule: string,
+};
+
+export type Assignments = {
+	generatedAt: string,
+	assignments: Assignment[],
+	gates: AssignmentGate[],
+	overlapRisk: string,
+};
+
 export type AssistantDefaults = AssistantDefaults_Serialize | AssistantDefaults_Deserialize;
 
 export type AssistantDefaults_Deserialize = {
@@ -655,6 +718,16 @@ export type Bar_Serialize = {
 	months: MonthSpend[],
 };
 
+/**  One line of a file with the commit that last changed it. */
+export type BlameLine = {
+	line: number,
+	/**  Full id of the commit. */
+	sha: string,
+	author: string,
+	/**  Seconds since the epoch. */
+	time: number | null,
+};
+
 export type Branch = Branch_Serialize | Branch_Deserialize;
 
 export type BranchKind = "local" | "remote";
@@ -791,6 +864,8 @@ export type Changes_Deserialize = {
 	conflicted: FileChange_Deserialize[],
 	/**  A merge is in progress: the person resolves the conflicts, or aborts it. */
 	merging: boolean,
+	/**  A rebase is in progress: the person resolves the conflicts and continues, or aborts it. */
+	rebasing: boolean,
 };
 
 /**  A file that has a staged and a later unstaged change is in both lists. */
@@ -809,6 +884,8 @@ export type Changes_Serialize = {
 	conflicted: FileChange_Serialize[],
 	/**  A merge is in progress: the person resolves the conflicts, or aborts it. */
 	merging: boolean,
+	/**  A rebase is in progress: the person resolves the conflicts and continues, or aborts it. */
+	rebasing: boolean,
 };
 
 export type ChatMessage = {
@@ -859,6 +936,13 @@ export type ChildResult_Serialize = {
 export type Choice = "ours" | "theirs" | 
 /**  Ours, then theirs. */
 "both" | "neither";
+
+export type CliLogin = {
+	/**  `gh` or `glab`. */
+	tool: string,
+	host: string,
+	user: string,
+};
 
 export type CodeGraph = CodeGraph_Serialize | CodeGraph_Deserialize;
 
@@ -1993,6 +2077,18 @@ export type Permission =
 /**  Auto inside the worktree: the edit tools are pre-approved. Never `Bash`. */
 "auto";
 
+export type Persona = {
+	id: string,
+	name: string,
+	description: string,
+	/**  The sale daily rate. */
+	tjm: number | null,
+	/**  The internal daily cost. */
+	cjm: number | null,
+	username: string,
+	active: boolean,
+};
+
 export type PlanRow = {
 	path: string,
 	title: string,
@@ -2546,6 +2642,12 @@ export type Quote = {
 };
 
 export type Reason = { kind: "skill"; skill: string } | { kind: "missing-skill"; skill: string } | { kind: "free-days"; days: number | null } | { kind: "full" };
+
+/**
+ *  The result of a rebase step. With `Conflicts` the rebase stays in progress: the files show in
+ *  [`Repo::conflicts`], and [`Repo::rebase_abort`] ends it.
+ */
+export type RebaseOutcome = "up-to-date" | "done" | { conflicts: string[] };
 
 export type RefKind = "branch" | "remote" | "tag";
 
@@ -3555,6 +3657,29 @@ export type Thread_Serialize = {
 	worktree: Worktree | null,
 	created: number,
 	updated: number,
+};
+
+/**  One comment of a ticket, as the person reads it. A hidden marker of Shipyard is not shown. */
+export type TicketComment = {
+	id: string,
+	author: string,
+	body: string,
+	created: string,
+};
+
+export type TicketsConfig = {
+	epic: string,
+	story: string,
+	task: string,
+	subtask: string,
+	/**  `timetracking`, `points` or `none`. */
+	estimateMode: string,
+	estimateField: string,
+	hoursPerDay: number | null,
+	labels: string[],
+	specBaseUrl: string,
+	/**  `feature` or `group`. */
+	hierarchy: string,
 };
 
 export type Tile = {

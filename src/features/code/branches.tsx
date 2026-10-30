@@ -3,6 +3,8 @@ import {
 	COMMIT_TYPES,
 	type MergeOutcome,
 	mergeKey,
+	type RebaseOutcome,
+	rebaseKey,
 	useBranches,
 	useChanges,
 	useCodeActions,
@@ -56,8 +58,24 @@ function CreateBranch({ run }: { run: (job: () => Promise<unknown>) => void }) {
 function BranchesView() {
 	const { t } = useI18n();
 	const branches = useBranches().data ?? [];
-	const { switchBranch, deleteBranch, mergeBranch, abortMerge, fetch, push } = useCodeActions();
-	const merging = useChanges().data?.merging ?? false;
+	const {
+		switchBranch,
+		deleteBranch,
+		mergeBranch,
+		abortMerge,
+		rebaseBranch,
+		continueRebase,
+		abortRebase,
+		fetch,
+		push,
+		pushForce,
+	} = useCodeActions();
+	const changes = useChanges().data;
+	const merging = changes?.merging ?? false;
+	const rebasing = changes?.rebasing ?? false;
+	const busy = merging || rebasing;
+	const [rebased, setRebased] = useState<RebaseOutcome | null>(null);
+	const [forcing, setForcing] = useState(false);
 	const conflicts = useConflicts().data ?? [];
 	const [merged, setMerged] = useState<MergeOutcome | null>(null);
 	const { error, run: runJob } = useRun();
@@ -79,6 +97,23 @@ function BranchesView() {
 				<Button variant="ghost" onClick={() => run(push)}>
 					{t.code.publish}
 				</Button>
+				{forcing ? (
+					<Button
+						variant="danger"
+						onClick={() =>
+							run(async () => {
+								setForcing(false);
+								await pushForce();
+							})
+						}
+					>
+						{t.code.confirmForcePublish}
+					</Button>
+				) : (
+					<Button variant="ghost" onClick={() => setForcing(true)}>
+						{t.code.forcePublish}
+					</Button>
+				)}
 			</div>
 			{error ? (
 				<p role="alert" className="px-3 py-2 text-ui text-danger-text">
@@ -107,7 +142,36 @@ function BranchesView() {
 					{t.code.mergeResult[mergeKey(merged)]}
 				</p>
 			) : null}
-			{merging ? conflicts.map((c) => <ConflictPane key={c.path} file={c} run={run} />) : null}
+			{rebasing ? (
+				<div className="flex items-center gap-2 border-b px-3 py-2">
+					<p role="status" className="flex-1 text-ui">
+						{format(t.code.rebaseProgress, { count: conflicts.length })}
+					</p>
+					<Button
+						variant="primary"
+						disabled={conflicts.length > 0}
+						onClick={() => run(async () => setRebased(await continueRebase()))}
+					>
+						{t.code.rebaseContinue}
+					</Button>
+					<Button
+						variant="danger"
+						onClick={() =>
+							run(async () => {
+								setRebased(null);
+								await abortRebase();
+							})
+						}
+					>
+						{t.code.rebaseAbort}
+					</Button>
+				</div>
+			) : rebased ? (
+				<p role="status" className="px-3 py-2 text-ui">
+					{t.code.rebaseResult[rebaseKey(rebased)]}
+				</p>
+			) : null}
+			{busy ? conflicts.map((c) => <ConflictPane key={c.path} file={c} run={run} />) : null}
 			{groups.map((g) => (
 				<section key={g.id} aria-label={g.title}>
 					<h2 className="px-3 py-1 text-12 font-medium text-n-11">
@@ -128,14 +192,23 @@ function BranchesView() {
 							>
 								{t.code.switch}
 							</Button>
-							{!b.is_head && !merging ? (
-								<Button
-									variant="ghost"
-									aria-label={format(t.code.mergeBranch, { name: b.name })}
-									onClick={() => run(async () => setMerged(await mergeBranch(b.name)))}
-								>
-									{t.code.merge}
-								</Button>
+							{!b.is_head && !busy ? (
+								<>
+									<Button
+										variant="ghost"
+										aria-label={format(t.code.mergeBranch, { name: b.name })}
+										onClick={() => run(async () => setMerged(await mergeBranch(b.name)))}
+									>
+										{t.code.merge}
+									</Button>
+									<Button
+										variant="ghost"
+										aria-label={format(t.code.rebaseBranch, { name: b.name })}
+										onClick={() => run(async () => setRebased(await rebaseBranch(b.name)))}
+									>
+										{t.code.rebase}
+									</Button>
+								</>
 							) : null}
 							{b.kind === "local" && !b.is_head ? (
 								confirming === b.name ? (

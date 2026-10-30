@@ -20,6 +20,9 @@ import { Cog6ToothIcon, FolderOpenIcon, LinkIcon, SunIcon, SwatchIcon } from "@/
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Settings } from "@/ui/templates/settings";
 import { ProjectImport } from "./project-import";
+import { PersonasEditor } from "./personas";
+import { ProjectDetails } from "./project-details";
+import { TicketsConfigEditor } from "./tickets-config";
 
 const NONE = "none";
 const ACCENTS: Accent[] = ["blue", "violet", "green", "orange", "rose"];
@@ -256,6 +259,13 @@ function Form({
 					},
 				]}
 			/>
+			{file ? (
+				<>
+					<ProjectDetails />
+					<TicketsConfigEditor />
+					<PersonasEditor />
+				</>
+			) : null}
 			<ProjectImport />
 			{error ? (
 				<p role="alert" className="text-ui text-danger-text">

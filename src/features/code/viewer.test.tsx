@@ -1,4 +1,6 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { commands, unwrap } from "@/lib/ipc";
 import { colour } from "@/ui/organisms/file-viewer";
 import { renderApp } from "@/ui/test-utils";
 import { FileDialog } from "./viewer";
@@ -47,5 +49,19 @@ describe("File viewer", () => {
 		file.value = { data: undefined as never, error: new Error("not a file of the project") };
 		renderApp(<FileDialog path="../x" onClose={() => {}} />);
 		expect(await screen.findByRole("alert")).toHaveTextContent("not a file of the project");
+	});
+
+	it("shows the commit and the author of each line when the person asks for the blame", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await unwrap(commands.codeStatus());
+		file.value = {
+			data: { ...file.value.data, binary: false, text: "a\nb\n" },
+			error: null,
+		};
+		renderApp(<FileDialog path="src/app.ts" onClose={() => {}} />);
+		expect(screen.queryByRole("list", { name: "Blame" })).toBeNull();
+		await userEvent.click(await screen.findByRole("button", { name: "Blame" }));
+		const list = await screen.findByRole("list", { name: "Blame" });
+		expect(within(list).getAllByText("Ada Lovelace").length).toBeGreaterThan(0);
 	});
 });

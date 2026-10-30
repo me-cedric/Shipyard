@@ -42,6 +42,9 @@ export const projectKeys = {
 	settings: ["projects", "settings"] as const,
 	health: ["health"] as const,
 	legacy: ["projects", "legacy"] as const,
+	personas: ["projects", "personas"] as const,
+	tickets: ["projects", "tickets-config"] as const,
+	assignments: ["projects", "assignments"] as const,
 };
 
 export function useProjects() {
@@ -53,6 +56,30 @@ export function useLegacyProjects() {
 	return useQuery({
 		queryKey: projectKeys.legacy,
 		queryFn: () => unwrap(commands.legacyProjects()),
+	});
+}
+
+/** The personas of the project (`docs/personas/personas.json`). */
+export function usePersonas() {
+	return useQuery({
+		queryKey: projectKeys.personas,
+		queryFn: () => unwrap(commands.personasList()),
+	});
+}
+
+/** The tickets config of the project (`docs/delivery/tickets.config.json`). */
+export function useTicketsConfig() {
+	return useQuery({
+		queryKey: projectKeys.tickets,
+		queryFn: () => unwrap(commands.ticketsConfigGet()),
+	});
+}
+
+/** The work split by profile (`docs/delivery/assignments.json`). */
+export function useAssignments() {
+	return useQuery({
+		queryKey: projectKeys.assignments,
+		queryFn: () => unwrap(commands.assignmentsRead()),
 	});
 }
 

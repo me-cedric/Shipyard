@@ -30,10 +30,12 @@ import {
 } from "./mock-agents";
 import * as ai from "./mock-assistant";
 import {
+	codeBlame,
 	codeBranchCreate,
 	codeBranchDelete,
 	codeBranches,
 	codeBranchMerge,
+	codeBranchRebase,
 	codeBranchSwitch,
 	codeCommit,
 	codeCommitDetail,
@@ -45,6 +47,8 @@ import {
 	codeMergeAbort,
 	codePull,
 	codePush,
+	codeRebaseAbort,
+	codeRebaseContinue,
 	codeResolve,
 	codeStage,
 	codeStashApply,
@@ -58,6 +62,7 @@ import {
 	seedCode,
 } from "./mock-code";
 import * as cp from "./mock-code-prs";
+import * as dv from "./mock-delivery";
 import * as design from "./mock-design";
 import * as ex from "./mock-extensions";
 import * as fx from "./mock-factory";
@@ -114,6 +119,9 @@ type State = {
 	cursor: number;
 	confirm: boolean;
 	connections: Connection_Serialize[];
+	/** The logins of the gh and glab tools on this machine, and the hosts that refuse their token. */
+	logins: { tool: string; host: string; user: string }[];
+	refusedLogins: string[];
 	/** The keychain. No command returns a value from it: the tests read it to prove a write. */
 	secrets: Record<string, string>;
 	/** The working copy of the active project. Seeded on first use. */
@@ -137,6 +145,8 @@ type State = {
 	knowledge: kw.MockKnowledge;
 	/** The compass entries, roles, catalog, plugin and child projects of the Extensions views. */
 	extensions: ex.MockExtensions;
+	/** The personas, the work split by profile and the tickets config. */
+	delivery: dv.MockDelivery;
 	/** The system notifications that the app asked for. */
 	os: { title: string; body: string }[];
 	/** The labels of the last native menu. */
@@ -184,6 +194,8 @@ const fresh = (): State => ({
 	cursor: 0,
 	confirm: true,
 	connections: [],
+	logins: [],
+	refusedLogins: [],
 	secrets: {},
 	agents: seedAgents(),
 	sync: seedSync(),
@@ -194,6 +206,7 @@ const fresh = (): State => ({
 	assistant: ai.seedAssistant(),
 	knowledge: kw.seedKnowledge(),
 	extensions: ex.seedExtensions(),
+	delivery: dv.seedDelivery(),
 	os: [],
 	menu: {},
 });
@@ -693,6 +706,30 @@ const handlers: Handlers = {
 		return c;
 	},
 	connectionsTest: testConnection,
+	connectionsDetect: () => state.logins,
+	connectionsUseLogin: (tool, host, click) => {
+		if (!click) throw "this change needs the click of a person";
+		const kind = tool === "gh" ? "github" : tool === "glab" ? "gitlab" : null;
+		if (!kind) throw `unknown tool: ${tool}`;
+		if (!state.logins.some((l) => l.tool === tool && l.host === host))
+			throw `${tool} gave no token for ${host}`;
+		if (state.refusedLogins.includes(host)) throw `${host} refused the token of ${tool}: 401`;
+		const name = `${host} (${tool})`;
+		const c: Connection_Serialize = {
+			id: slug(name, kind),
+			name,
+			group: "forge",
+			kind,
+			url: `https://${host}`,
+			user: null,
+			secret: true,
+			state: "passed",
+			capabilities: null,
+		};
+		state.connections.push(c);
+		state.secrets[c.id] = "from the tool";
+		return c;
+	},
 	connectionsCreateRepo: (id, slug, click) => {
 		if (conn(id).group !== "forge") throw `${id} is not a forge`;
 		if (!click) throw "this change needs the click of a person";
@@ -878,6 +915,17 @@ const handlers: Handlers = {
 		needTracker(() => work.workTransition(state.sync.mirror, key, to, click));
 		return null;
 	},
+	workTicketComments: (key) => needTracker(() => work.ticketComments(need(state.work), key)),
+	workTicketCommentAdd: (key, body, click) => {
+		needTracker(() => work.ticketCommentAdd(need(state.work), key, body, click));
+		return null;
+	},
+	workTicketEdit: (key, title, _description, _days, click) =>
+		needTracker(() => work.ticketEdit(state.sync.mirror, key, title, click)),
+	workTicketLabelAdd: (key, label, click) => {
+		needTracker(() => work.ticketLabelAdd(state.sync.mirror, key, label, click));
+		return null;
+	},
 	workSealState: () => work.sealState(need(state.work)),
 	workUnlock: (passphrase) => work.sealUnlock(need(state.work), passphrase),
 	workLock: () => work.sealLock(need(state.work)),
@@ -950,6 +998,17 @@ const handlers: Handlers = {
 		codeMergeAbort(code());
 		return null;
 	},
+	codeBranchRebase: (onto) => codeBranchRebase(code(), onto),
+	codeRebaseContinue: () => codeRebaseContinue(code()),
+	codeRebaseAbort: () => {
+		codeRebaseAbort(code());
+		return null;
+	},
+	codeBlame: (path) => codeBlame(code(), path),
+	codePushForce: () => {
+		codePush(code());
+		return null;
+	},
 	codeBranchDelete: (name, force) => {
 		codeBranchDelete(code(), name, force);
 		return null;
@@ -982,6 +1041,7 @@ const handlers: Handlers = {
 		const n = code().notice;
 		return n ? [n] : [];
 	},
+	codeRemoteUrl: () => (need(code()).branch ? "https://example.com/acme/project.git" : null),
 	codeWatchInterval: () => code().watchMinutes,
 	codeWatchIntervalSet: (minutes) => codeWatchIntervalSet(code(), minutes),
 	codeFileRead: (path, rev) => codeFileRead(code(), path, rev),
@@ -1170,6 +1230,19 @@ const handlers: Handlers = {
 	assistantDefaultsGet: () => ai.defaultsGet(state.assistant),
 	assistantDefaultsSet: (d) => ai.defaultsSet(state.assistant, d),
 	assistantOptions: () => ai.options(),
+	personasList: () => need(state.delivery.personas),
+	personasSave: (list) => {
+		need(null);
+		dv.personasSave(state.delivery, list);
+		return null;
+	},
+	assignmentsRead: () => need(state.delivery.assignments),
+	ticketsConfigGet: () => need(state.delivery.tickets),
+	ticketsConfigSave: (c) => {
+		need(null);
+		dv.ticketsConfigSave(state.delivery, c);
+		return null;
+	},
 	projectImport: () => ({ copied: [], skipped: [], conflicts: [] }),
 	legacyProjects: () => LEGACY.filter((k) => !state.projects.some((p) => p.path === k.path)),
 	legacyProjectOpen: (id) => {

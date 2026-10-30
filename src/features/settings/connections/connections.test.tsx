@@ -302,4 +302,28 @@ describe("Settings / Connections", () => {
 		expect(within(acme).getByRole("list", { name: "Capacités" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Connexion" })).toBeInTheDocument();
 	});
+
+	it("makes a forge connection from a gh login, and a refused token leaves none", async () => {
+		const user = userEvent.setup();
+		mockState().logins = [{ tool: "gh", host: "github.com", user: "ana-dev" }];
+		mockState().refusedLogins = ["github.com"];
+		mountApp("/settings/connections");
+		await user.click(await screen.findByRole("button", { name: "Connection" }));
+		// The add form opens on a tracker: the logins belong to a forge.
+		expect(screen.queryByText("ana-dev on github.com (gh)")).toBeNull();
+		await user.click(screen.getByRole("combobox", { name: "Type" }));
+		await user.click(await screen.findByRole("option", { name: "Forge" }));
+		const login = await screen.findByRole("group", { name: "ana-dev on github.com (gh)" });
+		await user.click(within(login).getByRole("button", { name: "Use this login" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"github.com refused the token of gh",
+		);
+		expect(mockState().connections).toHaveLength(0);
+
+		mockState().refusedLogins = [];
+		await user.click(within(login).getByRole("button", { name: "Use this login" }));
+		expect(await row("github.com (gh)")).toBeInTheDocument();
+		expect(mockState().connections[0]?.group).toBe("forge");
+		expect(screen.queryByText("from the tool")).toBeNull();
+	}, 20_000);
 });

@@ -1,12 +1,16 @@
 import {
+	codeBlame,
 	codeBranchCreate,
 	codeBranchDelete,
 	codeBranchMerge,
+	codeBranchRebase,
 	codeBranchSwitch,
 	codeCommit,
 	codeDiff,
 	codeFileRead,
 	codeMergeAbort,
+	codeRebaseAbort,
+	codeRebaseContinue,
 	codeStage,
 	codeStatus,
 	codeUnstage,
@@ -96,5 +100,31 @@ describe("the Code mock", () => {
 		codeMergeAbort(c);
 		expect(codeStatus(c)).toMatchObject({ merging: false, conflicted: [] });
 		expect(() => codeMergeAbort(c)).toThrow("no merge");
+	});
+
+	it("rebases, stops on a clash, refuses a continue with a conflict and aborts", () => {
+		const c = seedCode();
+		for (const f of Object.values(c.files)) {
+			f.index = f.head;
+			f.work = f.head;
+		}
+		expect(codeBranchRebase(c, "feat/auth/login")).toBe("up-to-date");
+		expect(() => codeBranchRebase(c, "nope")).toThrow("branch not found");
+		expect(() => codeRebaseContinue(c)).toThrow("no rebase");
+		codeBranchCreate(c, "feat/x/side");
+		c.branches["feat/x/side"]?.touches.push("x.ts");
+		c.branches["feat/x/side"]?.log.unshift("s".repeat(40));
+		c.branches.main?.touches.push("y.ts");
+		c.branches.main?.log.unshift("m".repeat(40));
+		expect(codeBranchRebase(c, "main")).toBe("done");
+		c.branches.main?.touches.push("x.ts");
+		c.branches.main?.log.unshift("n".repeat(40));
+		expect(codeBranchRebase(c, "main")).toEqual({ conflicts: expect.arrayContaining(["x.ts"]) });
+		expect(codeStatus(c)).toMatchObject({ rebasing: true });
+		expect(() => codeRebaseContinue(c)).toThrow("conflicts");
+		codeRebaseAbort(c);
+		expect(codeStatus(c)).toMatchObject({ rebasing: false });
+		expect(() => codeRebaseAbort(c)).toThrow("no rebase");
+		expect(codeBlame(c, "src/app.ts").length).toBeGreaterThan(0);
 	});
 });

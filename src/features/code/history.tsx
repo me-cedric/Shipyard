@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useCommitDetail, useCommitDiff, useLog } from "@/lib/code";
+import { graph } from "@/lib/code/graph";
 import { format, useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
 import { Button } from "@/ui/atoms/button";
@@ -71,6 +72,8 @@ function HistoryView() {
 	const end = useRef<HTMLDivElement>(null);
 	const { hasNextPage, isFetchingNextPage, fetchNextPage } = log;
 	const commits = log.data?.pages.flatMap((p) => p.commits) ?? [];
+	const rows = graph(commits);
+	const lanes = Math.max(1, ...rows.map((r) => r.width));
 
 	// Older commits load when the end of the list scrolls into view. The button does the same by keyboard.
 	useEffect(() => {
@@ -88,21 +91,42 @@ function HistoryView() {
 		<div className="flex h-full">
 			<h1 className="sr-only">{t.tabs.code.history}</h1>
 			<div className="w-[32rem] shrink-0 overflow-y-auto border-r">
-				{commits.map((c) => (
-					<CommitRow
-						key={c.sha}
-						short={c.short}
-						summary={c.summary}
-						author={c.author_name}
-						date={date.format(c.time * 1000)}
-						labels={c.labels}
-						selected={c.sha === sha}
-						onSelect={() => setSha(c.sha)}
-						menu={menu("commit", {
-							open: () => setSha(c.sha),
-							"copy-sha": () => copyText(c.sha),
-						})}
-					/>
+				{commits.map((c, n) => (
+					<div key={c.sha} className="flex items-stretch">
+						<span
+							aria-hidden="true"
+							data-lane={rows[n]?.lane}
+							className="relative shrink-0"
+							style={{ width: lanes * 12 + 8 }}
+						>
+							{rows[n]?.through.map((i) => (
+								<span
+									key={i}
+									className="absolute inset-y-0 w-px bg-n-7"
+									style={{ left: i * 12 + 10 }}
+								/>
+							))}
+							<span
+								className="absolute top-1/2 size-2 -translate-y-1/2 rounded-full bg-accent"
+								style={{ left: (rows[n]?.lane ?? 0) * 12 + 7 }}
+							/>
+						</span>
+						<div className="min-w-0 flex-1">
+							<CommitRow
+								short={c.short}
+								summary={c.summary}
+								author={c.author_name}
+								date={date.format(c.time * 1000)}
+								labels={c.labels}
+								selected={c.sha === sha}
+								onSelect={() => setSha(c.sha)}
+								menu={menu("commit", {
+									open: () => setSha(c.sha),
+									"copy-sha": () => copyText(c.sha),
+								})}
+							/>
+						</div>
+					</div>
 				))}
 				{hasNextPage ? (
 					<div ref={end} className="p-2">

@@ -47,6 +47,8 @@ pub struct Changes {
     pub conflicted: Vec<FileChange>,
     /// A merge is in progress: the person resolves the conflicts, or aborts it.
     pub merging: bool,
+    /// A rebase is in progress: the person resolves the conflicts and continues, or aborts it.
+    pub rebasing: bool,
 }
 
 impl Changes {
@@ -85,6 +87,12 @@ impl Repo {
     pub fn status(&self) -> Result<Changes> {
         let mut out = Changes {
             merging: self.repo.state() == git2::RepositoryState::Merge,
+            rebasing: matches!(
+                self.repo.state(),
+                git2::RepositoryState::RebaseMerge
+                    | git2::RepositoryState::Rebase
+                    | git2::RepositoryState::RebaseInteractive
+            ),
             ..Changes::default()
         };
         let head = self.repo.head().ok();

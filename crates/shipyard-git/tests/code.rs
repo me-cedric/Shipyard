@@ -1182,3 +1182,99 @@ fn merge_branch_refuses_a_dirty_tracked_file_and_an_unknown_branch() {
     r.discard(&[s("a.txt")], false).unwrap();
     assert!(matches!(r.merge_branch("nope"), Err(GitError::NoBranch(_))));
 }
+
+#[test]
+fn rebase_replays_the_branch_stops_on_a_conflict_and_continues_or_aborts() {
+    use shipyard_git::code::RebaseOutcome;
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    commit(&r, "a.txt", "one\n", "chore: base");
+    r.create_branch("feat/x/side").unwrap();
+    commit(&r, "a.txt", "theirs\n", "feat: theirs");
+    r.switch_branch("main").unwrap();
+    commit(&r, "b.txt", "b\n", "feat: b");
+    r.switch_branch("feat/x/side").unwrap();
+    assert!(matches!(
+        r.rebase_branch("nope"),
+        Err(GitError::NoBranch(_))
+    ));
+    assert!(r.rebase_continue().is_err(), "no rebase runs");
+
+    // No conflict: done, and the branch holds the commit of main.
+    assert_eq!(r.rebase_branch("main").unwrap(), RebaseOutcome::Done);
+    assert!(r.workdir().join("b.txt").exists());
+    assert_eq!(r.rebase_branch("main").unwrap(), RebaseOutcome::UpToDate);
+
+    // A conflict stays in progress. Abort puts the branch back.
+    r.switch_branch("main").unwrap();
+    let head = commit(&r, "a.txt", "ours\n", "feat: ours");
+    r.switch_branch("feat/x/side").unwrap();
+    let before = r.status().unwrap().head;
+    assert_eq!(
+        r.rebase_branch("main").unwrap(),
+        RebaseOutcome::Conflicts(vec![s("a.txt")])
+    );
+    assert!(r.status().unwrap().rebasing);
+    assert!(matches!(r.rebase_continue(), Err(GitError::Conflicts(_))));
+    r.rebase_abort().unwrap();
+    let st = r.status().unwrap();
+    assert!(!st.rebasing && st.is_clean());
+    assert_eq!(st.head, before);
+    assert!(r.rebase_abort().is_err());
+
+    // Resolve, then continue.
+    r.rebase_branch("main").unwrap();
+    r.resolve_blocks("a.txt", &[Choice::Theirs]).unwrap();
+    assert_eq!(r.rebase_continue().unwrap(), RebaseOutcome::Done);
+    assert!(!r.status().unwrap().rebasing);
+    assert_ne!(r.status().unwrap().head.as_deref(), Some(head.as_str()));
+    assert_eq!(
+        fs::read_to_string(r.workdir().join("a.txt")).unwrap(),
+        "theirs\n"
+    );
+}
+
+#[test]
+fn a_force_push_needs_the_lease_and_blame_names_the_commit_of_each_line() {
+    let (tmp, a, url) = with_remote();
+    let auth = Auth::none();
+    commit(&a, "f.txt", "l1\nl2\n", "feat: f");
+    a.push("origin", &auth).unwrap();
+    let sha = commit(&a, "f.txt", "l1\nchanged\n", "fix: f");
+    let lines = a.blame("f.txt").unwrap();
+    assert_eq!(lines.len(), 2);
+    assert_eq!(lines[1].sha, sha);
+    assert_ne!(lines[0].sha, sha);
+    assert_eq!(lines[1].author, "Test User");
+    assert!(a.blame("none.txt").is_err());
+    a.push("origin", &auth).unwrap();
+
+    // A plain push is refused after a rewrite. The forced one goes through.
+    a.fetch("origin", &auth).unwrap();
+    let git = Repository::open(a.workdir()).unwrap();
+    let parent = git
+        .head()
+        .unwrap()
+        .peel_to_commit()
+        .unwrap()
+        .parent(0)
+        .unwrap();
+    git.reset(parent.as_object(), git2::ResetType::Hard, None)
+        .unwrap();
+    commit(&a, "f.txt", "l1\nrewritten\n", "fix: rewritten");
+    assert!(a.push("origin", &auth).is_err());
+
+    // Someone else pushed after our fetch: the lease refuses.
+    let b = clone(&url, &tmp.path().join("b"));
+    commit(&b, "g.txt", "g\n", "feat: g");
+    b.push("origin", &auth).unwrap();
+    assert!(matches!(
+        a.push_force_with_lease("origin", &auth),
+        Err(GitError::PushRejected(_))
+    ));
+    a.fetch("origin", &auth).unwrap();
+    // The fetch took the push of b: the lease holds on the new tip, and the force replaces it.
+    a.push_force_with_lease("origin", &auth).unwrap();
+    a.fetch("origin", &auth).unwrap();
+    assert_eq!(a.status().unwrap().ahead, 0);
+}

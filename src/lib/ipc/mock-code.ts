@@ -2,6 +2,7 @@
 // rules as the Rust commands: staged files only in a commit, the summary rule, the branch name
 // rule, a switch that names the files it would overwrite.
 import type {
+	BlameLine,
 	Branch_Serialize,
 	Changes_Serialize,
 	CommitDetail_Serialize,
@@ -14,6 +15,7 @@ import type {
 	LogPage,
 	MergeOutcome,
 	PullOutcome,
+	RebaseOutcome,
 	Resolution,
 	Stash,
 	WatchNotice_Serialize,
@@ -33,6 +35,8 @@ export type MockCode = {
 	conflicts: ConflictFile[];
 	/** A merge is in progress: the person resolves the conflicts or aborts it. */
 	merging: boolean;
+	/** A rebase is in progress: the person resolves the conflicts and continues, or aborts it. */
+	rebasing: boolean;
 	notice: WatchNotice_Serialize | null;
 	/** Minutes between two fetches of the project (default 15, 1 to 1440). */
 	watchMinutes: number;
@@ -97,6 +101,7 @@ export function seedCode(): MockCode {
 		stashes: [],
 		conflicts: [],
 		merging: false,
+		rebasing: false,
 		notice: null,
 		watchMinutes: 15,
 		counter: 4,
@@ -161,6 +166,7 @@ export function codeStatus(c: MockCode): Changes_Serialize {
 			.map(([p]) => make(p, "untracked")),
 		conflicted,
 		merging: c.merging,
+		rebasing: c.rebasing,
 	};
 }
 
@@ -386,6 +392,75 @@ export function codeMergeAbort(c: MockCode) {
 	if (!c.merging) throw "git: no merge is in progress";
 	c.merging = false;
 	c.conflicts = [];
+}
+
+/** The rules of `Repo::rebase_branch`: no tracked change, up to date, done, or conflicts. */
+export function codeBranchRebase(c: MockCode, name: string): RebaseOutcome {
+	if (c.merging || c.rebasing) throw "the repository is busy with a merge";
+	const dirty = Object.entries(c.files)
+		.filter(([, f]) => inHead(f) && (f.work !== f.head || f.index !== f.head))
+		.map(([p]) => p);
+	if (dirty.length) throw `uncommitted changes would be overwritten: ${dirty.join(", ")}`;
+	const ours = c.branches[c.branch];
+	const theirs =
+		c.branches[name] ?? (c.remoteBranches.includes(name) ? c.branches.main : undefined);
+	if (!(ours && theirs)) throw `branch not found: ${name}`;
+	if (theirs.log.every((sha) => ours.log.includes(sha))) return "up-to-date";
+	const clash = [...new Set(theirs.touches)].filter((p) => ours.touches.includes(p));
+	if (clash.length) {
+		c.rebasing = true;
+		c.conflicts = clash.map((path) => ({
+			path,
+			text: true,
+			segments: [{ kind: "block", ours: "ours\n", base: "base\n", theirs: "theirs\n" }],
+		}));
+		return { conflicts: clash };
+	}
+	return rebased(c, ours, theirs);
+}
+
+function rebased(
+	c: MockCode,
+	ours: MockCode["branches"][string],
+	theirs: MockCode["branches"][string],
+): RebaseOutcome {
+	const own = ours.log.filter((sha) => !theirs.log.includes(sha));
+	ours.log = [...own, ...theirs.log];
+	ours.touches.push(...theirs.touches);
+	c.rebasing = false;
+	return "done";
+}
+
+export function codeRebaseContinue(c: MockCode): RebaseOutcome {
+	if (!c.rebasing) throw "git: no rebase is in progress";
+	if (c.conflicts.length) throw `conflicts: ${c.conflicts.map((f) => f.path).join(", ")}`;
+	const ours = c.branches[c.branch];
+	if (!ours) throw "no branch";
+	c.rebasing = false;
+	return "done";
+}
+
+export function codeRebaseAbort(c: MockCode) {
+	if (!c.rebasing) throw "git: no rebase is in progress";
+	c.rebasing = false;
+	c.conflicts = [];
+}
+
+/** One line per line of the file. The head commit of the branch is the author of every line. */
+export function codeBlame(c: MockCode, path: string): BlameLine[] {
+	const f = c.files[path];
+	if (!(f && inHead(f))) throw `git: ${path} is not in HEAD`;
+	const sha = c.branches[c.branch]?.log[0] ?? "";
+	const info = c.commits[sha]?.info;
+	return (f.head ?? "")
+		.split("\n")
+		.filter((_, i, a) => i < a.length - 1 || a[i] !== "")
+		.map((_, i) => ({
+			line: i + 1,
+			sha,
+			author: info?.author_name ?? "",
+			time: info?.time ?? 0,
+		}));
 }
 
 export function codeBranchDelete(c: MockCode, name: string, force: boolean) {

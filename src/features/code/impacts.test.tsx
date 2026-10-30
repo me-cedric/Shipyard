@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import { commands, unwrap } from "@/lib/ipc";
 import { mountApp } from "@/test/mount";
 import { parsePlan } from "./impacts";
@@ -42,5 +43,19 @@ describe("Code / Impacts", () => {
 		expect(screen.getByText("spec:auth")).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Actions (2)" })).toBeInTheDocument();
 		await waitFor(() => expect(screen.getByText(/moves the release/)).toBeInTheDocument());
+	});
+
+	it("lists the profiles of the assignments and copies the brief of one", async () => {
+		const user = userEvent.setup();
+		const writeText = vi.fn();
+		Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+		await open();
+		mountApp("/code/impacts");
+		const group = await screen.findByRole("region", { name: "Assignments" });
+		expect(within(group).getByText("3 d")).toBeInTheDocument();
+		await user.click(
+			within(group).getByRole("button", { name: "Copy brief of Backend developer" }),
+		);
+		expect(writeText).toHaveBeenCalledWith(expect.stringContaining("# Backend developer"));
 	});
 });

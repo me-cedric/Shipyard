@@ -14,6 +14,7 @@ import { CpuChipIcon } from "@/ui/icons";
 import { GroupSection } from "@/ui/molecules/group-section";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
+import { Assignments } from "./assignments";
 import { withProject } from "./project-gate";
 import { useRun } from "./use-run";
 
@@ -144,6 +145,7 @@ function ImpactsView() {
 						</button>
 					))}
 				</GroupSection>
+				<Assignments />
 			</div>
 			<div className="min-w-0 flex-1 overflow-auto">{entry ? <Report entry={entry} /> : null}</div>
 		</div>

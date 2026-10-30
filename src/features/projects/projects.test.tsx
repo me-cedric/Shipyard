@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { commands, unwrap } from "@/lib/ipc";
@@ -149,6 +149,7 @@ describe("project switcher", () => {
 			"Open a local folder",
 			"Clone a repository",
 			"Close project",
+			"StoryArc",
 			"Remove from list",
 		]);
 	});
@@ -466,5 +467,60 @@ describe("Settings / Health", () => {
 		mountApp("/settings/health");
 		expect(await screen.findByRole("heading", { name: "Conformité (1)" })).toBeInTheDocument();
 		expect(screen.getByText("Référence rompue adr:0009")).toBeInTheDocument();
+	});
+});
+
+describe("Settings / Project, delivery files", () => {
+	it("edits a persona rate and refuses a negative one with the reason", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/settings/project");
+		const section = await screen.findByRole("region", { name: "Personas" });
+		const rates = within(section).getAllByRole("spinbutton", { name: "Daily sale rate" });
+		await user.clear(rates[0] as HTMLElement);
+		await user.type(rates[0] as HTMLElement, "650");
+		await user.click(within(section).getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().delivery.personas[0]?.tjm).toBe(650));
+		// A save resets the draft: the region is a new element.
+		const again = () => within(screen.getByRole("region", { name: "Personas" }));
+		await user.click(await screen.findByRole("button", { name: "Add persona" }));
+		await user.click(again().getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().delivery.personas).toHaveLength(3));
+		const low = await screen.findAllByRole("spinbutton", { name: "Daily cost" });
+		fireEvent.change(low[0] as HTMLElement, { target: { value: "-5" } });
+		await user.click(again().getByRole("button", { name: "Save" }));
+		expect(await again().findByRole("alert")).toHaveTextContent("must be zero or more");
+	}, 20_000);
+
+	it("saves the issue types and the hours of a day, and refuses 0 hours", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/settings/project");
+		const section = within(await screen.findByRole("region", { name: "Tickets" }));
+		const story = section.getByRole("textbox", { name: "Story type" });
+		await user.clear(story);
+		await user.type(story, "Récit");
+		const hours = section.getByRole("spinbutton", { name: "Hours per day" });
+		await user.clear(hours);
+		await user.type(hours, "0");
+		await user.click(section.getByRole("button", { name: "Save" }));
+		expect(await section.findByRole("alert")).toHaveTextContent("between 1 and 24");
+		await user.clear(hours);
+		await user.type(hours, "8");
+		await user.click(section.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().delivery.tickets.story).toBe("Récit"));
+		expect(mockState().delivery.tickets.hoursPerDay).toBe(8);
+	});
+
+	it("shows the folder and the remote, and saves how often the app looks at the remote", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/settings/project");
+		const section = within(await screen.findByRole("region", { name: "Project" }));
+		expect(await section.findByText("/mock/alpha")).toBeInTheDocument();
+		expect(await section.findByText("https://example.com/acme/project.git")).toBeInTheDocument();
+		await user.click(await section.findByRole("combobox", { name: "Look at the remote every" }));
+		await user.click(await screen.findByRole("option", { name: "60 min" }));
+		await waitFor(() => expect(mockState().code?.watchMinutes).toBe(60));
 	});
 });

@@ -1,4 +1,7 @@
+import { useState } from "react";
+import { useBlame } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
+import { Button } from "@/ui/atoms/button";
 import { Dialog } from "@/ui/organisms/dialog";
 import { FileViewer } from "@/ui/organisms/file-viewer";
 import { useFile } from "./use-file";
@@ -17,6 +20,8 @@ export function FileDialog({
 }) {
 	const { t } = useI18n();
 	const file = useFile(path, rev);
+	const [blaming, setBlaming] = useState(false);
+	const blame = useBlame(path, blaming);
 	const title = line ? `${path} · ${format(t.forge.viewer.line, { n: line })}` : path;
 	return (
 		<Dialog open onOpenChange={(o) => !o && onClose()} title={title} wide>
@@ -33,6 +38,29 @@ export function FileDialog({
 					binary={file.data.binary}
 					binaryLabel={format(t.forge.viewer.binary, { size: file.data.size })}
 				/>
+			) : null}
+			{rev === null ? (
+				<div className="pt-2">
+					<Button variant="ghost" aria-pressed={blaming} onClick={() => setBlaming(!blaming)}>
+						{t.forge.viewer.blame}
+					</Button>
+				</div>
+			) : null}
+			{blame.error ? (
+				<p role="alert" className="text-ui text-danger-text">
+					{String(blame.error)}
+				</p>
+			) : null}
+			{blaming && blame.data ? (
+				<ol aria-label={t.forge.viewer.blame} className="max-h-48 overflow-auto font-mono text-12">
+					{blame.data.map((b) => (
+						<li key={b.line} className="flex gap-3">
+							<span className="w-8 text-right text-n-10">{b.line}</span>
+							<span className="w-16 text-n-11">{b.sha.slice(0, 7)}</span>
+							<span>{b.author}</span>
+						</li>
+					))}
+				</ol>
 			) : null}
 		</Dialog>
 	);

@@ -1,6 +1,6 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import {
 	type Connection_Serialize,
 	type ConnectionGroup,
@@ -26,6 +26,48 @@ export const KINDS: Record<ConnectionGroup, ConnectionKind[]> = {
 	tracker: ["jira-cloud", "jira-data-center", "github", "gitlab", "azure-dev-ops", "linear"],
 	forge: ["github", "gitlab", "azure-dev-ops"],
 };
+
+/**
+ * The logins of `gh` and `glab` on this machine. One click makes a forge connection from a login:
+ * the token goes from the tool to the keychain and is tested, and it never shows.
+ */
+function CliLogins({ onDone }: { onDone: () => void }) {
+	const { t } = useI18n();
+	const qc = useQueryClient();
+	const logins = useQuery({
+		queryKey: [...connectionKeys.list, "logins"],
+		queryFn: () => unwrap(commands.connectionsDetect()),
+	}).data;
+	const [error, setError] = useState<string | null>(null);
+	if (!logins?.length) return null;
+	return (
+		<div className="flex flex-col border-b">
+			{logins.map((l) => (
+				<SettingsRow key={`${l.tool}:${l.host}`} label={format(t.connections.login, l)}>
+					<Button
+						onClick={async () => {
+							try {
+								setError(null);
+								await unwrap(commands.connectionsUseLogin(l.tool, l.host, true));
+								await qc.invalidateQueries({ queryKey: connectionKeys.list });
+								onDone();
+							} catch (e) {
+								setError(e instanceof Error ? e.message : String(e));
+							}
+						}}
+					>
+						{t.connections.useLogin}
+					</Button>
+				</SettingsRow>
+			))}
+			{error ? (
+				<p role="alert" className="px-3 py-2 text-ui text-danger-text">
+					{error}
+				</p>
+			) : null}
+		</div>
+	);
+}
 
 /** Add form, or edit form of one connection. The secret field is write-only. */
 export function ConnectionForm({
@@ -87,6 +129,7 @@ export function ConnectionForm({
 	const f = t.connections.field;
 	return (
 		<form onSubmit={save} className="flex flex-col border-b">
+			{editing || group !== "forge" ? null : <CliLogins onDone={onDone} />}
 			<SettingsRow label={f.name}>
 				<Input
 					label={f.name}

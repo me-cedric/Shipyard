@@ -37,6 +37,7 @@ import type {
 	Team_Deserialize,
 	Team_Serialize,
 	TeamView_Serialize,
+	TicketComment,
 	TimeEntry_Serialize,
 	TimeRow_Serialize,
 	TimeSent_Serialize,
@@ -73,6 +74,8 @@ export type MockWork = {
 	failRows: string[];
 	/** The next worklog send reaches the tracker and loses its answer. */
 	loseNextAnswer: boolean;
+	/** The comments that the fake tracker holds, by ticket key. */
+	comments: Record<string, TicketComment[]>;
 	/** The workbooks that an export wrote: the mock keeps the sheet that was exported. */
 	exports: { slug: string; path: string }[];
 	/** The member of this machine. `null` makes a time entry refuse. */
@@ -217,6 +220,16 @@ export const seedWork = (): MockWork => ({
 	written: {},
 	failRows: [],
 	loseNextAnswer: false,
+	comments: {
+		"ACME-1": [
+			{
+				id: "1",
+				author: "Grace Hopper",
+				body: "Seen on staging.",
+				created: "2026-10-28T10:00:00Z",
+			},
+		],
+	},
 	exports: [],
 	me: "ada",
 	today: "2026-11-02",
@@ -694,6 +707,48 @@ export function workTransition(mirror: Mirror, key: string, to: string, click: b
 		.map((s) => s.replace(/\b\w/g, (c) => c.toUpperCase()))
 		.find((s) => s.toLowerCase() === to.toLowerCase()) as string;
 	item.category = category;
+}
+
+// ---- ticket thread
+
+export function ticketComments(w: MockWork, key: string): TicketComment[] {
+	return w.comments[key] ?? [];
+}
+
+export function ticketCommentAdd(w: MockWork, key: string, body: string, click: boolean) {
+	needClick(click);
+	if (!body.trim()) throw "the comment is empty";
+	const list = w.comments[key] ?? [];
+	list.push({
+		id: String(list.length + 1),
+		author: "Ana Mendes",
+		body: body.trim(),
+		created: "2026-10-30T09:00:00Z",
+	});
+	w.comments[key] = list;
+}
+
+export function ticketEdit(
+	mirror: Mirror,
+	key: string,
+	title: string | null,
+	click: boolean,
+): string[] {
+	needClick(click);
+	if (title !== null && !title.trim()) throw "the title is empty";
+	const item = mirror.find((t) => t.key === key);
+	if (!item) throw `not found: ${key}`;
+	if (title !== null) item.title = title.trim();
+	return [];
+}
+
+export function ticketLabelAdd(mirror: Mirror, key: string, label: string, click: boolean) {
+	needClick(click);
+	const one = label.trim();
+	if (!one || /\s/.test(one)) throw "a label is one word";
+	const item = mirror.find((t) => t.key === key);
+	if (!item) throw `not found: ${key}`;
+	if (!item.labels.includes(one)) item.labels.push(one);
 }
 
 // ---- estimates

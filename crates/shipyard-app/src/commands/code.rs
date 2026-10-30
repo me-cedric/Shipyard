@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use shipyard_core::code::{check_branch_name, check_summary};
 use shipyard_git::Repo;
 use shipyard_git::code::{
-    Branch, Changes, Choice, CommitInfo, ConflictFile, DiffSide, FileChange, FileDiff, FileView,
-    HeadChange, LogPage, MergeOutcome, PullOutcome, Side, Stash,
+    BlameLine, Branch, Changes, Choice, CommitInfo, ConflictFile, DiffSide, FileChange, FileDiff,
+    FileView, HeadChange, LogPage, MergeOutcome, PullOutcome, RebaseOutcome, Side, Stash,
 };
 use shipyard_store::code::{set_watch_minutes, watch_minutes};
 use specta::Type;
@@ -110,6 +110,26 @@ pub fn merge_abort(s: &AppState) -> Res<()> {
     repo(s)?.merge_abort().map_err(err)
 }
 
+/// Rebases the working branch onto a branch. Conflicts leave the rebase in progress.
+pub fn branch_rebase(s: &AppState, onto: &str) -> Res<RebaseOutcome> {
+    repo(s)?.rebase_branch(onto).map_err(err)
+}
+
+/// Commits the step that a person resolved and runs the next steps.
+pub fn rebase_continue(s: &AppState) -> Res<RebaseOutcome> {
+    repo(s)?.rebase_continue().map_err(err)
+}
+
+/// Ends a rebase in progress. The branch goes back as it was.
+pub fn rebase_abort(s: &AppState) -> Res<()> {
+    repo(s)?.rebase_abort().map_err(err)
+}
+
+/// The commit and the author of each line of a file.
+pub fn blame(s: &AppState, path: &str) -> Res<Vec<BlameLine>> {
+    repo(s)?.blame(path).map_err(err)
+}
+
 /// The caller asks for the confirmation that names the branch (REQ-013).
 pub fn branch_delete(s: &AppState, name: &str, force: bool) -> Res<()> {
     repo(s)?.delete_branch(name, force).map_err(err)
@@ -204,6 +224,14 @@ pub fn push(s: &AppState) -> Res<()> {
     r.push(&name, &auth).map_err(err)
 }
 
+/// Replaces the remote branch with the working branch while the remote still holds the commit of
+/// the last fetch. The caller asks for the confirmation.
+pub fn push_force(s: &AppState) -> Res<()> {
+    let r = repo(s)?;
+    let (name, auth) = remote(&r, s)?;
+    r.push_force_with_lease(&name, &auth).map_err(err)
+}
+
 /// What the remote watch found: remote branches that moved between two fetches (REQ-017).
 #[derive(Debug, Clone, PartialEq, Serialize, Type)]
 pub struct WatchNotice {
@@ -296,6 +324,27 @@ pub fn spawn_watch(app: AppHandle) {
 }
 
 /// The minutes between two fetches of the active project.
+/// The address of the remote of the active project, with no user name or password in it. `None`
+/// when the project has no remote.
+pub fn remote_url(s: &AppState) -> Res<Option<String>> {
+    Ok(repo(s)?
+        .remote()
+        .map_err(err)?
+        .map(|(_, url)| without_userinfo(&url)))
+}
+
+/// `https://user:token@host/x` gives `https://host/x`. An address with no `://` stays as it is.
+fn without_userinfo(url: &str) -> String {
+    let Some((scheme, rest)) = url.split_once("://") else {
+        return url.to_string();
+    };
+    let end = rest.find('/').unwrap_or(rest.len());
+    let host = rest[..end]
+        .rsplit_once('@')
+        .map_or(&rest[..end], |(_, h)| h);
+    format!("{scheme}://{host}{}", &rest[end..])
+}
+
 pub fn watch_interval(s: &AppState) -> Res<u32> {
     let e = s.registry()?.active().cloned().ok_or("no active project")?;
     Ok(watch_minutes(&s.dir, &e.id))
@@ -394,6 +443,36 @@ pub async fn code_branch_merge(app: AppHandle, name: String) -> Res<MergeOutcome
 
 #[tauri::command]
 #[specta::specta]
+pub async fn code_branch_rebase(app: AppHandle, onto: String) -> Res<RebaseOutcome> {
+    blocking(app, move |s| branch_rebase(s, &onto)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_rebase_continue(app: AppHandle) -> Res<RebaseOutcome> {
+    blocking(app, rebase_continue).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_rebase_abort(app: AppHandle) -> Res<()> {
+    blocking(app, rebase_abort).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_blame(app: AppHandle, path: String) -> Res<Vec<BlameLine>> {
+    blocking(app, move |s| blame(s, &path)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_push_force(app: AppHandle) -> Res<()> {
+    blocking(app, push_force).await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn code_merge_abort(app: AppHandle) -> Res<()> {
     blocking(app, merge_abort).await
 }
@@ -438,6 +517,12 @@ pub async fn code_conflicts(app: AppHandle) -> Res<Vec<ConflictFile>> {
 #[specta::specta]
 pub async fn code_resolve(app: AppHandle, path: String, how: Resolution) -> Res<()> {
     blocking(app, move |s| resolve(s, &path, &how)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_remote_url(app: AppHandle) -> Res<Option<String>> {
+    blocking(app, remote_url).await
 }
 
 #[tauri::command]
@@ -562,6 +647,54 @@ mod tests {
             std::fs::read_to_string(root.join("a.txt")).unwrap(),
             "ours\n"
         );
+    }
+
+    #[test]
+    fn the_remote_address_never_holds_a_user_name_or_a_password() {
+        assert_eq!(
+            without_userinfo("https://ana:tok-secret@github.com/acme/x.git"),
+            "https://github.com/acme/x.git"
+        );
+        assert_eq!(
+            without_userinfo("https://github.com/a@b/x"),
+            "https://github.com/a@b/x"
+        );
+        assert_eq!(
+            without_userinfo("git@github.com:acme/x.git"),
+            "git@github.com:acme/x.git"
+        );
+        let dir = tempfile::tempdir().unwrap();
+        let (s, root) = project(dir.path(), "p");
+        assert_eq!(remote_url(&s).unwrap(), None);
+        git(
+            &root,
+            &["remote", "add", "origin", "https://u:p@example.com/x.git"],
+        );
+        assert_eq!(
+            remote_url(&s).unwrap().as_deref(),
+            Some("https://example.com/x.git")
+        );
+    }
+
+    #[test]
+    fn a_rebase_conflict_stays_in_progress_until_abort_and_blame_reads_a_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, root) = project(dir.path(), "p");
+        git(&root, &["switch", "-q", "-c", "feat/x/side"]);
+        write(&root, "a.txt", "theirs\n");
+        git(&root, &["commit", "-q", "-am", "feat: theirs"]);
+        git(&root, &["switch", "-q", "main"]);
+        write(&root, "a.txt", "ours\n");
+        git(&root, &["commit", "-q", "-am", "feat: ours"]);
+        git(&root, &["switch", "-q", "feat/x/side"]);
+        assert!(branch_rebase(&s, "nope").is_err());
+        let out = branch_rebase(&s, "main").unwrap();
+        assert_eq!(out, RebaseOutcome::Conflicts(paths(&["a.txt"])));
+        assert!(status(&s).unwrap().rebasing);
+        rebase_abort(&s).unwrap();
+        assert!(!status(&s).unwrap().rebasing);
+        assert!(rebase_continue(&s).is_err());
+        assert_eq!(blame(&s, "a.txt").unwrap().len(), 1);
     }
 
     #[test]

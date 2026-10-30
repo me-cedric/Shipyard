@@ -1500,3 +1500,60 @@ fn legacy_json_sheets_and_team_open_in_place_and_save_in_their_format() {
         Some(600.0)
     );
 }
+
+#[test]
+fn a_ticket_thread_reads_comments_posts_one_edits_the_title_and_adds_a_label() {
+    let f = fx();
+    f.put(vec![ticket("PROJ-5", "T", &[])]);
+    f.http
+        .get(
+            "/rest/api/2/issue/PROJ-5/comment",
+            200,
+            r#"{"startAt":0,"maxResults":100,"total":2,"comments":[
+            {"id":"1","author":{"accountId":"a","displayName":"Grace"},"body":"Seen.","created":"2026-10-28T10:00:00.000+0000"},
+            {"id":"2","author":{"accountId":"a","displayName":"Grace"},"body":"(shipyard:claim m.1)","created":"2026-10-28T11:00:00.000+0000"}]}"#,
+        )
+        .post(
+            "/rest/api/2/issue/PROJ-5/comment",
+            "",
+            201,
+            r#"{"id":"3","author":{"accountId":"a","displayName":"Ana"},"body":"ok","created":"2026-10-29T10:00:00.000+0000"}"#,
+        )
+        .put("/rest/api/2/issue/PROJ-5", "summary", 204, "")
+        .put("/rest/api/2/issue/PROJ-5", "labels", 204, "")
+        .get(
+            "/rest/api/2/issue/PROJ-5",
+            200,
+            &issue("PROJ-5", "New", "", "", None, 0),
+        );
+    let comments = ticket_comments(&f.s, "PROJ-5").unwrap();
+    assert_eq!(comments.len(), 1, "a claim stamp is not a comment");
+    assert_eq!(
+        (comments[0].author.as_str(), comments[0].body.as_str()),
+        ("Grace", "Seen.")
+    );
+
+    // A write needs the click of a person, and each value is checked before the tracker is called.
+    let writes = f.writes();
+    assert!(ticket_comment_add(&f.s, "PROJ-5", "ok", false).is_err());
+    assert!(ticket_comment_add(&f.s, "PROJ-5", "  ", true).is_err());
+    assert!(ticket_edit(&f.s, "PROJ-5", Some(" ".into()), None, None, true).is_err());
+    assert!(ticket_edit(&f.s, "PROJ-5", None, None, Some(-1.0), true).is_err());
+    assert!(ticket_label_add(&f.s, "PROJ-5", "two words", true).is_err());
+    assert!(ticket_label_add(&f.s, "PROJ-5", "x", false).is_err());
+    assert_eq!(f.writes(), writes, "no refused call reached the tracker");
+
+    ticket_comment_add(&f.s, "PROJ-5", " ok ", true).unwrap();
+    ticket_edit(&f.s, "PROJ-5", Some("New".into()), None, None, true).unwrap();
+    assert_eq!(f.item("PROJ-5").title, "New");
+    ticket_label_add(&f.s, "PROJ-5", "urgent", true).unwrap();
+    let sent: Vec<_> = f
+        .http
+        .requests()
+        .into_iter()
+        .filter(|r| r.method != Method::Get)
+        .map(|r| r.body.map(|b| b.to_string()).unwrap_or_default())
+        .collect();
+    assert!(sent.iter().any(|b| b.contains(r#""summary":"New""#)));
+    assert!(sent.iter().any(|b| b.contains(r#"{"add":"urgent"}"#)));
+}

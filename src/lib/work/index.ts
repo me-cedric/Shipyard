@@ -75,6 +75,7 @@ export const workKeys = {
 	plan: (slug: string) => ["work", "plan", slug] as const,
 	time: (member: string | null, month: string) => ["work", "time", member, month] as const,
 	suggest: (key: string) => ["work", "suggest", key] as const,
+	comments: (key: string) => ["work", "comments", key] as const,
 	apply: (slugs: string[]) => ["work", "apply", slugs] as const,
 };
 
@@ -140,6 +141,16 @@ export function useSuggestions(key: string) {
 	});
 }
 
+/** The comments of one ticket, read from the tracker. Off until the thread opens. */
+export function useTicketComments(key: string, enabled = true) {
+	return useQuery({
+		queryKey: workKeys.comments(key),
+		queryFn: () => unwrap(commands.workTicketComments(key)),
+		enabled,
+		retry: false,
+	});
+}
+
 /** The rows that an apply would write, for the sheets. Nothing is written (REQ-025). */
 export function useApplyPreview(slugs: string[], enabled: boolean) {
 	return useQuery({
@@ -172,6 +183,10 @@ export function useWorkActions() {
 		return {
 			assign: (key: string, member: string) => run(commands.workAssign(key, member, true)),
 			mark: (key: string) => run(commands.workMark(key, true)),
+			comment: (key: string, body: string) => run(commands.workTicketCommentAdd(key, body, true)),
+			editTicket: (key: string, title: string | null, description: string | null) =>
+				run(commands.workTicketEdit(key, title, description, null, true)),
+			addLabel: (key: string, label: string) => run(commands.workTicketLabelAdd(key, label, true)),
 			transition: (key: string, to: string) => run(commands.workTransition(key, to, true)),
 			saveTeam: (team: Team_Deserialize) => run(commands.workTeamSave(team)),
 			unlock: (passphrase: string) => run(commands.workUnlock(passphrase)),
