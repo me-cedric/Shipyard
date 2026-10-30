@@ -25,6 +25,7 @@ import { ListDetail } from "@/ui/templates/list-detail";
 import { FileEditor } from "./file-editor";
 import { NameDialog } from "./name-dialog";
 import { WithProject } from "./no-project";
+import { PlanChecks } from "./test-plans-lint";
 
 // Two lines of chips; a longer list is clipped.
 const PLAN_ROW = 56;
@@ -256,6 +257,7 @@ function PlanList() {
 						/>
 					</div>
 					<Behaviour />
+					<PlanChecks plans={plans ?? []} onOpen={setOpen} />
 					{caps.length ? (
 						<Panel title={s.coverage} bodyClassName="gap-3 p-3">
 							{caps.map((c) => (

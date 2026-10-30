@@ -1,4 +1,4 @@
-import { Excalidraw, restore, serializeAsJSON } from "@excalidraw/excalidraw";
+import { Excalidraw, exportToSvg, restore, serializeAsJSON } from "@excalidraw/excalidraw";
 import "@excalidraw/excalidraw/index.css";
 import { useEffect, useMemo, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
@@ -18,6 +18,17 @@ export function parseScene(text: string) {
 		appState: { ...restored.appState, collaborators: undefined },
 		scrollToContent: true,
 	};
+}
+
+/** The scene of a text as SVG text with no background, for a thumbnail. Throws on bad JSON. */
+export async function sceneSvg(text: string): Promise<string> {
+	const scene = parseScene(text);
+	const svg = await exportToSvg({
+		elements: scene.elements,
+		appState: { ...scene.appState, exportBackground: false },
+		files: scene.files,
+	});
+	return new XMLSerializer().serializeToString(svg);
 }
 
 /** The canvas. It reads `text` once and reports each change as JSON text. */

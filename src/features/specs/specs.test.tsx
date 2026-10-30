@@ -73,6 +73,7 @@ describe("Specs / Changes", () => {
 		await renderSpecs(<SpecChanges />);
 		await open(user, "add-billing");
 		const path = `${CH}/add-billing/proposal.md`;
+		await user.click(await screen.findByRole("tab", { name: "Text" }));
 		const box = await screen.findByRole("textbox", { name: "Proposal" });
 		await waitFor(() => expect(box).toHaveValue(files()[path]?.text ?? ""));
 		await user.type(box, "X");
@@ -90,11 +91,29 @@ describe("Specs / Changes", () => {
 		await waitFor(() => expect(files()[path]?.text).toMatch(/Y$/));
 	});
 
+	it("opens a markdown artifact in a form that saves one section and keeps the rest", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<SpecChanges />);
+		await open(user, "add-billing");
+		const path = `${CH}/add-billing/proposal.md`;
+		const before = files()[path]?.text ?? "";
+		const why = await screen.findByRole("textbox", { name: "Why" });
+		expect(why).toHaveValue("Invoices need totals.");
+		await user.type(why, " And taxes.");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(files()[path]?.text).toBe(
+				before.replace("Invoices need totals.", "Invoices need totals. And taxes."),
+			),
+		);
+	});
+
 	it("keeps the stamp of the open: a disk change before the edit gives the conflict", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<SpecChanges />);
 		await open(user, "add-billing");
 		const path = `${CH}/add-billing/proposal.md`;
+		await user.click(await screen.findByRole("tab", { name: "Text" }));
 		const box = await screen.findByRole("textbox", { name: "Proposal" });
 		await waitFor(() => expect(box).toHaveValue(files()[path]?.text ?? ""));
 		files()[path] = { text: "other", stamp: "99" };

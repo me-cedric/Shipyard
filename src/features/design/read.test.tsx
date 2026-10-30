@@ -74,8 +74,10 @@ describe("Design / Decisions", () => {
 		const user = userEvent.setup();
 		await mountDesign(<Decisions />);
 		await user.click(await row(/0003/));
-		const text = await screen.findByRole("textbox", { name: "ADR text" });
-		await user.type(text, "{Control>}a{/Control}# Mock in the browser");
+		// The record opens in its form: the title is one field.
+		const title = await screen.findByRole("textbox", { name: "Title" });
+		await user.clear(title);
+		await user.type(title, "Mock in the browser");
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		const item = await row(/0003/);
 		await waitFor(() => expect(item).toHaveTextContent("Mock in the browser"));

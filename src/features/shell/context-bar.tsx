@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { BranchSelector } from "@/features/code/branch-selector";
 import { CloneDialog } from "@/features/projects/clone-dialog";
+import { OpenInTerminal } from "@/features/reports/open-in-terminal";
 import { format, useI18n } from "@/lib/i18n";
 import { errorDialog } from "@/lib/ipc";
 import { useNotifications } from "@/lib/notifications";
@@ -150,6 +151,7 @@ export function ContextBar({
 			>
 				<CommandLineIcon size={16} />
 			</IconButton>
+			{active ? <OpenInTerminal /> : null}
 			<IconButton
 				label={assistant.label}
 				shortcut={assistant.shortcut}

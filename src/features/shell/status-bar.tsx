@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useWatchNotice } from "@/lib/code";
+import { useErrorNotice } from "@/lib/errors";
 import { format, useI18n } from "@/lib/i18n";
 import { useHealth, worstStatus } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
@@ -23,7 +24,8 @@ function ActionButton({ action }: { action: Action }) {
 /** The thin bar at the bottom: the one commit action, the watch notice, the sync error and the health. */
 export function StatusBar({ commit }: { commit: Action }) {
 	const { t } = useI18n();
-	const { syncError } = useShell();
+	const { syncFailure } = useShell();
+	const failed = useErrorNotice(syncFailure);
 	const notice = useWatchNotice().data?.changes[0];
 	const health = useHealth();
 	const { current } = useWhatsNew();
@@ -47,10 +49,22 @@ export function StatusBar({ commit }: { commit: Action }) {
 					})}
 				</span>
 			) : null}
-			{syncError ? (
-				<span role="alert" className="truncate text-danger-text">
-					{syncError}
-				</span>
+			{failed ? (
+				<>
+					<span role="alert" className="truncate text-danger-text">
+						{failed.message}
+					</span>
+					{failed.action ? (
+						<button
+							type="button"
+							className={button}
+							disabled={failed.action.busy}
+							onClick={() => void failed.action?.run()}
+						>
+							{failed.action.label}
+						</button>
+					) : null}
+				</>
 			) : null}
 			<span className="flex-1" />
 			{current ? (

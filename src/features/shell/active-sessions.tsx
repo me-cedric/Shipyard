@@ -7,6 +7,7 @@ import { Avatar } from "@/ui/atoms/avatar";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { ComputerDesktopIcon, StopIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 
 /**
  * The AI sessions that run on this computer, from the context bar: the count, then a popover with
@@ -18,7 +19,7 @@ export function ActiveSessions({ className }: { className: string }) {
 	const m = t.factory.machine;
 	const live = (useMachineSessions().data ?? []).filter((s) => s.state !== "done");
 	const writes = useMachineWrites();
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const compact = new Intl.NumberFormat(lang, { notation: "compact" });
 	const stop = (pid: number) => {
 		setError(null);
@@ -53,11 +54,7 @@ export function ActiveSessions({ className }: { className: string }) {
 								{p.all}
 							</Link>
 						</div>
-						{error ? (
-							<p role="alert" className="px-3 py-2 text-danger-text">
-								{error}
-							</p>
-						) : null}
+						{error ? <ErrorNotice error={error} className="px-3 py-2 text-danger-text" /> : null}
 						{live.length === 0 ? (
 							<p className="px-3 py-3 text-n-10">{p.none}</p>
 						) : (

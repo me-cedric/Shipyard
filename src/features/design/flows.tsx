@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { PageExport } from "@/features/reports/page-export";
 import {
 	type Artifact,
 	DESIGN_DIR,
@@ -95,6 +96,7 @@ export function Flows() {
 			title={t.tabs.design.flows}
 			icon={<ArrowsRightLeftIcon size={16} />}
 			noun={t.design.noun.flow}
+			toolbar={rows.length ? <PageExport page="flows" /> : undefined}
 			rows={rows.map((a) => ({ ref: a.reference, title: a.title, issue: a.issue }))}
 			create={{
 				run: async (name) => {

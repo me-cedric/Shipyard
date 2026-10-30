@@ -38,9 +38,44 @@ describe("Design / Screens", () => {
 		await user.click(await row(/Home/));
 		const view = await main();
 		expect(await view.findByRole("button", { name: /^diagram:context/ })).toBeInTheDocument();
-		await user.click(view.getByRole("button", { name: "Open outside" }));
+		await user.click(view.getByRole("button", { name: "Open in Figma" }));
 		await waitFor(() =>
 			expect(mockState().design.opened).toEqual(["https://www.figma.com/file/abc123/Home"]),
+		);
+	});
+
+	it("shows an HTML mockup inline in a frame with no script and no request, and an image", async () => {
+		const user = userEvent.setup();
+		files()["docs/designs/login.html"] = {
+			text: "<h1>Login</h1><script>parent.alert(1)</script>",
+			stamp: "1",
+		};
+		files()["docs/designs/hero.png"] = { text: "PNG", stamp: "1" };
+		files()["docs/designs/cart.svg"] = {
+			text: '<svg xmlns="http://www.w3.org/2000/svg"/>',
+			stamp: "1",
+		};
+		await mountDesign(<Screens />);
+		await user.click(await row(/login/));
+		const frame = await waitFor(() => {
+			const f = document.querySelector<HTMLIFrameElement>('iframe[title="login"]');
+			if (!f) throw new Error("no frame");
+			return f;
+		});
+		expect(frame.getAttribute("sandbox")).toBe("");
+		expect(frame.getAttribute("srcdoc")).toMatch(
+			/^<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none';[^"]*">.*<h1>Login<\/h1>/,
+		);
+		await user.click(await row(/cart/));
+		const view = await main();
+		expect(await view.findByRole("img", { name: "cart" })).toHaveAttribute(
+			"src",
+			expect.stringMatching(/^data:image\/svg\+xml/),
+		);
+		await user.click(await row(/hero/));
+		expect(await view.findByRole("img", { name: "hero" })).toHaveAttribute(
+			"src",
+			`data:image/png;base64,${btoa("PNG")}`,
 		);
 	});
 
@@ -51,7 +86,7 @@ describe("Design / Screens", () => {
 		const view = await main();
 		expect(await view.findByText("docs/designs/checkout.fig")).toBeInTheDocument();
 		expect(view.getAllByText("Broken link").length).toBeGreaterThan(0);
-		expect(view.queryByRole("button", { name: "Open outside" })).toBeNull();
+		expect(view.queryByRole("button", { name: /Open outside|Open in Figma/ })).toBeNull();
 		expect(view.getByRole("button", { name: /^api:orders/ })).toBeInTheDocument();
 	});
 

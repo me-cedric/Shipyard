@@ -6,6 +6,7 @@ import { projectKeys, useTicketsConfig } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
@@ -22,7 +23,7 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 	const k = t.projects.ticketsConfig;
 	const qc = useQueryClient();
 	const [c, setC] = useState(saved);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const dirty = JSON.stringify(c) !== JSON.stringify(saved);
 	const save = async () => {
 		try {
@@ -30,7 +31,7 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 			await unwrap(commands.ticketsConfigSave(c));
 			await qc.invalidateQueries({ queryKey: projectKeys.tickets });
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		}
 	};
 	return (
@@ -97,11 +98,7 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 					</Button>
 				</div>
 			) : null}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 		</Panel>
 	);
 }

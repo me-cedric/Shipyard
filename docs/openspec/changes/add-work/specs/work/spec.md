@@ -66,7 +66,7 @@ The costing Plan tab, the Gantt page and the tickets Generate tab do the same jo
 - The Répartition scopes, one writer for each file, gates and brief. Work covers the assignment of tickets only.
 - A timer or any automatic time capture.
 - A second estimate mode for the remaining estimate. The person reduces it or leaves it.
-- A second team editor in Settings / Team. Work / Team is the one editor.
+- A second team editor. Work / Team is the one editor, and `/settings/team` redirects to it.
 
 ### Acceptance Criteria
 

@@ -5,6 +5,7 @@ import { commands, type ImportReport, pickFolder, unwrap } from "@/lib/ipc";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { ArrowDownTrayIcon, DocumentTextIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
@@ -17,7 +18,7 @@ export function ProjectImport() {
 	const k = t.projects.projectImport;
 	const qc = useQueryClient();
 	const [report, setReport] = useState<ImportReport | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 
 	const run = async () => {
 		try {
@@ -27,7 +28,7 @@ export function ProjectImport() {
 			setReport(await unwrap(commands.projectImport(source)));
 			await qc.invalidateQueries();
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		}
 	};
 
@@ -50,11 +51,7 @@ export function ProjectImport() {
 			}
 			flush
 		>
-			{error ? (
-				<p role="alert" className="px-3 py-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="px-3 py-2 text-ui text-danger-text" /> : null}
 			{groups.map((g) => (
 				<section key={g.id} aria-label={k[g.id as "copied"]}>
 					<h3 className="px-3 pt-2 pb-1 text-12 font-medium text-n-11">

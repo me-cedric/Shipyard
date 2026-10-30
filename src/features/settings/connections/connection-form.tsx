@@ -15,6 +15,7 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { connectionKeys } from "./keys";
+import { ScopeStep } from "./scope-step";
 
 export const GROUPS: ConnectionGroup[] = ["tracker", "forge"];
 
@@ -94,6 +95,8 @@ export function ConnectionForm({
 	const [secret, setSecret] = useState("");
 	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
+	// The id of a new tracker connection that passed its test: the next step picks its scope.
+	const [scopeFor, setScopeFor] = useState<string | null>(null);
 	// The name and the address come from the git remote of the project, once, into empty fields.
 	const suggestion = useQuery({
 		queryKey: [...connectionKeys.list, "suggest"],
@@ -160,6 +163,7 @@ export function ConnectionForm({
 					);
 					return;
 				}
+				if (!editing && group === "tracker") return setScopeFor(saved.id);
 			}
 			onDone();
 		} catch (err) {
@@ -171,6 +175,7 @@ export function ConnectionForm({
 	};
 
 	const f = t.connections.field;
+	if (scopeFor) return <ScopeStep tracker={scopeFor} onDone={onDone} />;
 	return (
 		<form onSubmit={save} className="flex flex-col border-b">
 			{editing || group !== "forge" ? null : <CliLogins onDone={onDone} />}

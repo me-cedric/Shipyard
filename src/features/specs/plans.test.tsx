@@ -58,6 +58,24 @@ describe("Specs / Test plans", () => {
 		expect(files()[PLAN]?.text).toBe("Scenario: no feature");
 	});
 
+	it("lints a scenario with no Then and draws the scenario coverage", async () => {
+		const user = userEvent.setup();
+		files()[PLAN] = {
+			text: "Feature: Login\n  Scenario: weak\n    When a person signs in\n",
+			stamp: "s1",
+		};
+		await renderSpecs(<TestPlans />);
+		const lint = await screen.findByRole("button", { name: /weak: no Then step/ });
+		await user.click(lint);
+		expect(await screen.findByRole("textbox", { name: "Login" })).toBeVisible();
+	});
+
+	it("draws one bar for each requirement, and a gap for a requirement with no scenario", async () => {
+		await renderSpecs(<TestPlans />);
+		expect(await screen.findByText("Scenario coverage")).toBeVisible();
+		expect(await screen.findByLabelText(/spec:auth#REQ-002: no scenario/)).toBeVisible();
+	});
+
 	it("creates a plan from a name", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<TestPlans />);

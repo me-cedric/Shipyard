@@ -58,7 +58,7 @@ A team works on several repositories. The earlier tool keeps a project registry,
 - Bootstrap (the `bootstrap.mjs --schema` form, `BOOTSTRAP_PROMPT.md` and `specs/000-project`). A new project starts from REQ-004 and the `add-specs` flow, so a second start path adds nothing.
 - Stack detection that marks skills as suited. The `extensions` capability owns the skill lists.
 - A default provisioning template for the next projects. REQ-004 writes the project file only. A template waits for a real need.
-- A team editor. Work / Team (`add-work`) is the one team editor. Settings / Team, if shown, opens Work / Team.
+- A team editor. Work / Team (`add-work`) is the one team editor. Settings / Team does not exist: the path `/settings/team` redirects to Work / Team.
 
 ### Acceptance Criteria
 

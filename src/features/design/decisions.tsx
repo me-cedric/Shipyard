@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { type Adr, useDesignActions, useDesignList } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { DocumentTextIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
+import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { DesignAdrDecision } from "@/ui/organisms/design-adr-decision";
+import { DocForm } from "@/ui/organisms/doc-form";
 import { FileFrame } from "./frame";
 import { ArtifactTab } from "./tab";
 
@@ -13,14 +16,44 @@ const TONE: Record<string, "success" | "warning" | "danger"> = {
 	rejected: "danger",
 };
 
+/** The MADR status values of the picker. */
+const STATUSES = ["proposed", "accepted", "rejected", "deprecated", "superseded"];
+
 function Decision({ adr }: { adr: Adr }) {
 	const { t } = useI18n();
 	const d = t.design.decisions;
+	const e = t.editing;
+	const [view, setView] = useState<"form" | "text">("form");
 	return (
-		<FileFrame path={adr.path} refId={`adr:${adr.number}`} title={adr.title}>
+		<FileFrame
+			path={adr.path}
+			refId={`adr:${adr.number}`}
+			title={adr.title}
+			actions={
+				<ViewTabs
+					label={e.view.label}
+					value={view}
+					onValueChange={setView}
+					tabs={[
+						{ value: "form", label: e.view.form },
+						{ value: "text", label: e.view.text },
+					]}
+				/>
+			}
+		>
 			{(file) => (
 				<div className="flex flex-col gap-3">
-					<CodeEditor label={d.text} value={file.text} onChange={file.setText} />
+					{view === "form" ? (
+						<DocForm
+							text={file.text}
+							onChange={file.setText}
+							statuses={STATUSES}
+							statusLabel={{ ...e.adrStatus, ...d.status }}
+							labels={{ ...e.field, form: d.text }}
+						/>
+					) : (
+						<CodeEditor label={d.text} value={file.text} onChange={file.setText} />
+					)}
 					{adr.status === "proposed" ? (
 						<DesignAdrDecision
 							// A change that is not saved would be lost: save it first.

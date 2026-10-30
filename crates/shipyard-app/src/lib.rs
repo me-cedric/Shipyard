@@ -13,6 +13,7 @@ mod commands;
 pub mod connections;
 pub mod delivery;
 pub mod design;
+pub mod design_preview;
 pub mod doctor;
 pub mod doctor_bootstrap;
 pub mod errors;
@@ -297,6 +298,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             design::design_flows_save,
             design::design_try,
             design::design_open,
+            design_preview::design_bytes,
             specs::specs_changes,
             specs::specs_change_create,
             specs::specs_read,

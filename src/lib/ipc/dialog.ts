@@ -36,6 +36,16 @@ export async function saveWorkbook(name: string): Promise<string | null> {
 	return save({ defaultPath: `${name}.xlsx`, filters: EXCEL });
 }
 
+/** The native dialog for a file of any one extension to write. Returns null when the person cancels. */
+export async function saveAs(name: string, ext: string): Promise<string | null> {
+	if (!isTauri()) return `/mock/${name}.${ext}`;
+	const { save } = await import("@tauri-apps/plugin-dialog");
+	return save({
+		defaultPath: `${name}.${ext}`,
+		filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
+	});
+}
+
 export async function confirmDialog(message: string): Promise<boolean> {
 	if (!isTauri()) return confirmMock();
 	const { ask } = await import("@tauri-apps/plugin-dialog");

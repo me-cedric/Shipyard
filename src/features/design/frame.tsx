@@ -11,7 +11,7 @@ type File = ReturnType<typeof useDesignFile>;
 /**
  * One design file in the editor frame: the stamp, the conflict choice, the read error and the
  * error of the view. A file that is not readable shows its error and no editor (REQ-005).
- * `readOnly` gives no save: draw.io and BPMN open only (Q-040).
+ * `readOnly` gives no save.
  */
 export function FileFrame({
 	path,

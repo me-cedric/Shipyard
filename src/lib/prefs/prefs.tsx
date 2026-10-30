@@ -26,6 +26,7 @@ export type Prefs = Pick<
 	| "codeFont"
 	| "terminalShell"
 	| "terminalFont"
+	| "terminalApp"
 	| "terminalFontSize"
 	| "defaultAgent"
 	| "defaultModel"
@@ -55,6 +56,7 @@ const DEFAULTS: Prefs = {
 	codeFont: "",
 	terminalShell: "",
 	terminalFont: "",
+	terminalApp: "",
 	terminalFontSize: 13,
 	defaultAgent: "",
 	defaultModel: "",

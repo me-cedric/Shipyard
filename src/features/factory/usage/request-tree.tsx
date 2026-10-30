@@ -3,6 +3,7 @@ import { useUsageTree } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { Select } from "@/ui/atoms/select";
 import { Panel } from "@/ui/molecules/panel";
+import { SpendFlame } from "./spend-flame";
 
 type Run = { run: string; key: string };
 
@@ -31,6 +32,7 @@ export function RequestTree({ runs }: { runs: Run[] }) {
 			}
 			flush
 		>
+			<SpendFlame name={runs.find((r) => r.run === run)?.key ?? ""} steps={tree?.steps ?? []} />
 			<ul className="flex flex-col">
 				{(tree?.steps ?? []).map((s) => (
 					<li key={s.step} className="border-b">

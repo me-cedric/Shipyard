@@ -62,6 +62,13 @@ test("exports the architecture dossier to a .docx path", async ({ page }) => {
 	await expect(page.getByText("Exported: /mock/dossier.docx")).toBeVisible();
 });
 
+test("exports the complete dossier from the Export menu", async ({ page }) => {
+	await openKnowledge(page, "Documents");
+	await page.getByRole("button", { name: "Export", exact: true }).click();
+	await page.getByRole("menuitem", { name: "Complete dossier" }).click();
+	await expect(page.getByText("Exported: /mock/dossier.docx").first()).toBeVisible();
+});
+
 test("edits a deck and presents it", async ({ page }) => {
 	await openKnowledge(page, "Slides");
 	await page.getByRole("button", { name: "Kickoff" }).click();

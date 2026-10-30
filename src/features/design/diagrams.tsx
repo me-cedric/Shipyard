@@ -14,6 +14,8 @@ import { Button } from "@/ui/atoms/button";
 import { ShareIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { BpmnViewer } from "@/ui/organisms/bpmn-viewer";
+import { svgDataUri } from "@/ui/organisms/drawio";
+import { DrawioEditor } from "@/ui/organisms/drawio-editor";
 import { DrawioViewer } from "@/ui/organisms/drawio-viewer";
 import { ExcalidrawBoard } from "@/ui/organisms/excalidraw-board";
 import { MermaidView } from "@/ui/organisms/mermaid-view";
@@ -51,41 +53,60 @@ function Thumb({ format }: { format: string }) {
 	);
 }
 
-/** The face of a diagram in the grid: the real picture when the app renders the format, else the ghost. */
+/** The face of a diagram in the grid: the real picture when the app renders the file, else the ghost. */
 function Face({ a }: { a: Artifact | undefined }) {
-	const mermaid = a?.format === "mermaid" && !a.issue;
+	const format = a?.format ?? "";
+	const path = a?.path ?? "";
+	const drawn =
+		!!a &&
+		!a.issue &&
+		(["mermaid", "bpmn", "excalidraw"].includes(format) ||
+			(format === "drawio" && path.endsWith(".svg")));
 	const text = useQuery({
-		queryKey: ["design", "thumb", a?.path],
-		queryFn: () => unwrap(commands.designRead(a?.path ?? "")),
-		enabled: mermaid,
+		queryKey: ["design", "thumb", path],
+		queryFn: () => unwrap(commands.designRead(path)),
+		enabled: drawn,
 	}).data?.text;
-	if (!mermaid || !text) return <Thumb format={a?.format ?? ""} />;
-	return (
-		<span
-			aria-hidden="true"
-			className="pointer-events-none block h-28 w-full overflow-hidden px-2 [&_[role=img]]:min-h-0 [&_[role=img]]:overflow-hidden [&_[role=img]]:border-0 [&_[role=img]]:bg-transparent [&_[role=img]]:p-0 [&_svg]:max-h-28"
-		>
-			<MermaidView source={text} label={a.title} />
-		</span>
-	);
+	const scene = useQuery({
+		queryKey: ["design", "thumb", path, "svg", text],
+		queryFn: async () => (await import("@/ui/organisms/excalidraw-canvas")).sceneSvg(text ?? ""),
+		enabled: format === "excalidraw" && !!text,
+	}).data;
+	if (!a || !drawn || !text) return <Thumb format={format} />;
+	const box = "pointer-events-none block h-28 w-full overflow-hidden px-2";
+	if (format === "mermaid" || format === "bpmn")
+		return (
+			<span
+				aria-hidden="true"
+				className={`${box} [&_[role=img]]:h-28 [&_[role=img]]:min-h-0 [&_[role=img]]:overflow-hidden [&_[role=img]]:border-0 [&_[role=img]]:bg-transparent [&_[role=img]]:p-0 [&_svg]:max-h-28`}
+			>
+				{format === "mermaid" ? (
+					<MermaidView source={text} label={a.title} />
+				) : (
+					<BpmnViewer text={text} label={a.title} />
+				)}
+			</span>
+		);
+	const svg = format === "excalidraw" ? scene : text;
+	if (!svg) return <Thumb format={format} />;
+	return <img alt="" src={svgDataUri(svg)} className="h-28 w-full object-contain px-2" />;
 }
 
 function Diagram({ a }: { a: Artifact }) {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const outside = useOpenOutside();
 	const format = a.format ?? "";
-	// Q-040: Excalidraw and Mermaid edit. draw.io and BPMN show, and open in another app.
-	const readOnly = format === "drawio" || format === "bpmn";
+	// Every format edits. draw.io and BPMN also open in another app (ADR 0015).
+	const outsideApp = format === "drawio" || format === "bpmn";
 	return (
 		<FileFrame
 			path={a.path}
 			refId={a.reference}
 			title={a.title}
 			issue={a.issue}
-			readOnly={readOnly}
 			notice={outside.error}
 			actions={
-				readOnly ? (
+				outsideApp ? (
 					<Button onClick={() => void outside.open(a.path)}>{t.design.openOutside}</Button>
 				) : undefined
 			}
@@ -116,14 +137,33 @@ function Diagram({ a }: { a: Artifact }) {
 						</div>
 					);
 				if (format === "bpmn")
-					return <BpmnViewer text={file.saved} label={a.title} onError={onError} />;
+					return (
+						<BpmnViewer
+							key={file.stamp}
+							text={file.saved}
+							label={a.title}
+							onChange={file.setText}
+							onError={onError}
+						/>
+					);
+				const svg = a.path.endsWith(".svg");
 				return (
-					<DrawioViewer
+					<DrawioEditor
+						key={file.stamp}
 						text={file.saved}
-						svg={a.path.endsWith(".svg")}
+						svg={svg}
 						label={a.title}
-						invalid={t.design.diagram.invalid}
-						onError={onError}
+						lang={lang}
+						onChange={file.setText}
+						fallback={
+							<DrawioViewer
+								text={file.saved}
+								svg={svg}
+								label={a.title}
+								invalid={t.design.diagram.invalid}
+								onError={onError}
+							/>
+						}
 					/>
 				);
 			}}

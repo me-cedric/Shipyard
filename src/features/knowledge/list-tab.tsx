@@ -3,7 +3,7 @@ import { Fragment, type ReactNode, useState } from "react";
 import { NoProject } from "@/features/work/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import type { PageEntry } from "@/lib/ipc";
-import { message, slug, useCreateDoc } from "@/lib/knowledge";
+import { slug, useCreateDoc } from "@/lib/knowledge";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
@@ -13,6 +13,7 @@ import { Input } from "@/ui/atoms/input";
 import { PlusIcon, Squares2X2Icon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { LIST, useEnter } from "@/ui/motion";
 import { Dialog } from "@/ui/organisms/dialog";
 import { ListDetail } from "@/ui/templates/list-detail";
@@ -30,14 +31,14 @@ function NewDialog({
 }) {
 	const { t } = useI18n();
 	const [name, setName] = useState("");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const submit = async () => {
 		try {
 			setError(null);
 			await create(name.trim());
 			onClose();
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		}
 	};
 	return (
@@ -59,11 +60,7 @@ function NewDialog({
 				}}
 			>
 				<Input caption label={nameLabel} value={name} onChange={(e) => setName(e.target.value)} />
-				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 			</form>
 		</Dialog>
 	);

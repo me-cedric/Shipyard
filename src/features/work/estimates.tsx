@@ -1,7 +1,8 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
+import { PageExport } from "@/features/reports/page-export";
 import { format, useI18n } from "@/lib/i18n";
-import { pickWorkbook, saveWorkbook, type Totals } from "@/lib/ipc";
+import { pickWorkbook, type Totals } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import {
@@ -22,7 +23,6 @@ import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import {
 	ArrowDownTrayIcon,
-	ArrowUpTrayIcon,
 	Cog6ToothIcon,
 	CurrencyIcon,
 	LockClosedIcon,
@@ -60,7 +60,6 @@ export function Estimates() {
 	const [view, setView] = useState<View>("backlog");
 	const [selected, setSelected] = useState<string | null>(null);
 	const [excel, setExcel] = useState<{ path: string; preview: Preview } | null>(null);
-	const [note, setNote] = useState<string | null>(null);
 	const list = sheets.data ?? [];
 	const slug = chosen && list.some((s) => s.slug === chosen) ? chosen : (list[0]?.slug ?? null);
 	const current = useSheet(
@@ -182,14 +181,6 @@ export function Estimates() {
 			const path = await pickWorkbook();
 			if (path) setExcel({ path, preview: await act.previewExcel(path, null) });
 		});
-	const exportExcel = () =>
-		run(async () => {
-			if (!slug) return;
-			const path = await saveWorkbook(slug);
-			if (!path) return;
-			await act.exportExcel(slug, path);
-			setNote(format(e.exported, { path }));
-		});
 
 	if (locked && seal)
 		return (
@@ -265,20 +256,31 @@ export function Estimates() {
 					<IconButton label={e.import} onClick={() => void importExcel()}>
 						<ArrowDownTrayIcon size={14} />
 					</IconButton>
-					<IconButton label={e.export} disabled={!sheet} onClick={() => void exportExcel()}>
-						<ArrowUpTrayIcon size={14} />
-					</IconButton>
+					<PageExport
+						page="costing"
+						disabled={!sheet}
+						extra={
+							slug
+								? [
+										{
+											id: "sheet",
+											label: t.reports.sheet,
+											save: {
+												name: slug,
+												ext: "xlsx",
+												job: (path) => act.exportExcel(slug, path),
+											},
+										},
+									]
+								: []
+						}
+					/>
 				</>
 			}
 		>
 			{error ? (
 				<p role="alert" className="px-3 py-1 text-ui text-danger-text">
 					{error}
-				</p>
-			) : null}
-			{note ? (
-				<p role="status" className="px-3 py-1 font-mono text-12 text-n-11">
-					{note}
 				</p>
 			) : null}
 			{item?.state === "invalid" ? (

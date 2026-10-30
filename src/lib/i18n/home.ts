@@ -18,7 +18,6 @@ export const homeEn = {
 	state: { open: "Open", answered: "Answered", withdrawn: "Withdrawn" },
 	approve: "Approve",
 	reject: "Reject",
-	force: "Force push",
 	details: "Details",
 	approval: {
 		transition: "Change the status of {key}",
@@ -29,14 +28,6 @@ export const homeEn = {
 		open_pr: "Open a pull request for {key}",
 		resolve_threads: "Close the review threads of {key}",
 		other: "Send a change for {key}",
-	},
-	kind: {
-		transition: "Transition",
-		labels: "Labels",
-		comment: "Comment",
-		push: "Push",
-		open_pr: "Pull request",
-		resolve_threads: "Resolve threads",
 	},
 	event: {
 		state: "{key} moved to {state}",
@@ -104,7 +95,6 @@ export const homeFr: typeof homeEn = {
 	state: { open: "Ouverte", answered: "Répondue", withdrawn: "Retirée" },
 	approve: "Approuver",
 	reject: "Refuser",
-	force: "Push forcé",
 	details: "Détails",
 	approval: {
 		transition: "Changer le statut de {key}",
@@ -115,14 +105,6 @@ export const homeFr: typeof homeEn = {
 		open_pr: "Ouvrir une pull request pour {key}",
 		resolve_threads: "Fermer les fils de revue de {key}",
 		other: "Envoyer une modification pour {key}",
-	},
-	kind: {
-		transition: "Transition",
-		labels: "Étiquettes",
-		comment: "Commentaire",
-		push: "Push",
-		open_pr: "Pull request",
-		resolve_threads: "Résoudre les fils",
 	},
 	event: {
 		state: "{key} est passé à {state}",

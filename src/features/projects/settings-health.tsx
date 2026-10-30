@@ -9,6 +9,7 @@ import { Ring } from "@/ui/atoms/ring";
 import { Skeleton } from "@/ui/atoms/skeleton";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { CommandLineIcon, DocumentTextIcon, LinkIcon, ShieldCheckIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FindingRow } from "@/ui/molecules/finding-row";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
@@ -31,7 +32,7 @@ function Finding({ finding }: { finding: Finding_Serialize }) {
 	const qc = useQueryClient();
 	const { openRef } = useShell();
 	const [preview, setPreview] = useState<Preview | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const { fix } = finding;
 
 	const attempt = async (work: () => Promise<void>) => {
@@ -39,7 +40,7 @@ function Finding({ finding }: { finding: Finding_Serialize }) {
 			setError(null);
 			await work();
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		}
 	};
 	const message = (t.health.finding as Record<string, string>)[finding.code] ?? finding.code;
@@ -86,11 +87,7 @@ function Finding({ finding }: { finding: Finding_Serialize }) {
 					</div>
 				</div>
 			) : null}
-			{error ? (
-				<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="px-3 pb-2 text-ui text-danger-text" /> : null}
 		</FindingRow>
 	);
 }

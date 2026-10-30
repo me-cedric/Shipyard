@@ -150,11 +150,11 @@ describe("Work / Estimates", () => {
 	it("exports the sheet to a workbook", async () => {
 		const user = userEvent.setup();
 		await withTracker();
-		mockState().nextFile = "/mock/out.xlsx";
 		mountApp("/work/estimates");
 		await user.click(await screen.findByRole("button", { name: "Export" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Sheet workbook" }));
 		await waitFor(() =>
-			expect(mockState().work.exports).toEqual([{ slug: "mvp-1", path: "/mock/out.xlsx" }]),
+			expect(mockState().work.exports).toEqual([{ slug: "mvp-1", path: "/mock/mvp-1.xlsx" }]),
 		);
 	});
 

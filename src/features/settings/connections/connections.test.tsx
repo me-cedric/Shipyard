@@ -160,6 +160,26 @@ describe("Settings / Connections", () => {
 		expect(project?.connections?.tracker).toBe("acme");
 	});
 
+	it("offers the projects of the new tracker and saves the pick as the scope", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/settings/connections");
+		await user.click(await screen.findByRole("button", { name: "Connection" }));
+		await user.click(screen.getByRole("combobox", { name: "Product" }));
+		await user.click(await screen.findByRole("option", { name: "Linear" }));
+		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme");
+		await user.type(screen.getByLabelText("API key", { selector: "input" }), TOKEN);
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await user.click(await screen.findByRole("combobox", { name: "Tracker scope" }));
+		await user.click(await screen.findByRole("option", { name: "OPS" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(async () =>
+			expect((await unwrap(commands.projectSettings()))?.file?.connections?.trackerScope).toBe(
+				"OPS",
+			),
+		);
+	});
+
 	it("names a bad value and keeps the form", async () => {
 		const user = userEvent.setup();
 		mountApp("/settings/connections");

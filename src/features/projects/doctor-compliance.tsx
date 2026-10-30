@@ -5,9 +5,9 @@ import { commands, type CompassEntry_Serialize as Entry, type SyncState, unwrap 
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { LinkIcon, ShieldCheckIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const STATUS = { current: "applied", stale: "stale", absent: "missing" } as const;
 const TONE = { current: "success", stale: "warning", absent: "danger" } as const;
 const key = (e: Entry) => `${e.kind}:${e.id}`;
@@ -28,7 +28,7 @@ export function DoctorCompliance() {
 		queryKey: ["doctor", "children"],
 		queryFn: () => unwrap(commands.childList()),
 	});
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const [note, setNote] = useState<string | null>(null);
 	const attempt = async (job: () => Promise<void>) => {
 		setError(null);
@@ -37,7 +37,7 @@ export function DoctorCompliance() {
 			await job();
 			await qc.invalidateQueries();
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		}
 	};
 	const skills = (compass.data?.entries ?? []).filter((e) => e.kind === "skill");
@@ -112,11 +112,7 @@ export function DoctorCompliance() {
 					{note}
 				</p>
 			) : null}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 		</>
 	);
 }

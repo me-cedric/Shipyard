@@ -1,9 +1,10 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect, useState } from "react";
 import { vi } from "vitest";
 import { commands } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
+import { DRAWIO_ORIGIN } from "@/ui/organisms/drawio-editor";
 import type { EditorError } from "@/ui/organisms/error-line";
 import { Architecture } from "./architecture";
 import { Data } from "./data";
@@ -38,7 +39,13 @@ function Stub({
 vi.mock("@/ui/organisms/mermaid-view", () => ({ MermaidView: Stub }));
 vi.mock("@/ui/organisms/likec4-view", () => ({ LikeC4View: Stub }));
 vi.mock("@/ui/organisms/bpmn-viewer", () => ({
-	BpmnViewer: ({ label }: { label: string }) => <div role="img" aria-label={label} />,
+	BpmnViewer: ({ label, onChange }: { label: string; onChange?: (xml: string) => void }) => (
+		<div role="img" aria-label={label}>
+			<button type="button" onClick={() => onChange?.("<definitions/>")}>
+				Move a task
+			</button>
+		</div>
+	),
 }));
 vi.mock("@/ui/organisms/excalidraw-board", () => ({
 	ExcalidrawBoard: ({ label }: { label: string }) => <div role="img" aria-label={label} />,
@@ -114,18 +121,63 @@ describe("Design / Diagrams", () => {
 		await waitFor(() => expect(text).toHaveValue("flowchart LR\n  X --> Y\n"));
 	});
 
-	it("shows draw.io and BPMN read-only, with an action to open the file outside", async () => {
+	it("edits BPMN with the modeler and saves on the click, with an action to open the file outside", async () => {
 		const user = userEvent.setup();
 		const open = vi.spyOn(commands, "designOpen").mockResolvedValue({ status: "ok", data: null });
 		await mountDesign(<Diagrams />);
 		await user.click(await row("order-process"));
 		expect(await screen.findByRole("img", { name: "order-process" })).toBeInTheDocument();
-		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+		expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+		await user.click(screen.getByRole("button", { name: "Move a task" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(files()["docs/diagrams/order-process.bpmn"]?.text).toBe("<definitions/>"),
+		);
 		await user.click(screen.getByRole("button", { name: "Open outside" }));
 		expect(open).toHaveBeenCalledWith("docs/diagrams/order-process.bpmn");
+	});
+
+	it("edits draw.io in the embed through its messages, and saves the SVG with its model", async () => {
+		const user = userEvent.setup();
+		await mountDesign(<Diagrams />);
+		await user.click(await row("network"));
+		const frame = await waitFor(() => {
+			const f = document.querySelector<HTMLIFrameElement>('iframe[title="network"]');
+			if (!f) throw new Error("no frame");
+			return f;
+		});
+		expect(frame.src).toMatch(/^https:\/\/embed\.diagrams\.net\/\?embed=1&proto=json/);
+		const win = frame.contentWindow as Window;
+		const post = vi.spyOn(win, "postMessage").mockImplementation(() => undefined);
+		const say = (data: object, origin = DRAWIO_ORIGIN) =>
+			act(() => {
+				window.dispatchEvent(
+					new MessageEvent("message", { data: JSON.stringify(data), origin, source: win }),
+				);
+			});
+		say({ event: "init" });
+		expect(JSON.parse(post.mock.calls[0]?.[0] as string)).toMatchObject({ action: "load" });
+		say({ event: "autosave", xml: "<mxfile/>" });
+		expect(JSON.parse(post.mock.calls[1]?.[0] as string)).toEqual({
+			action: "export",
+			format: "xmlsvg",
+		});
+		// A message from another origin changes nothing.
+		say({ event: "export", data: "data:image/svg+xml;base64,PHN2Zy8+" }, "https://evil.example");
+		expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+		say({ event: "export", data: "data:image/svg+xml;base64,PHN2Zy8+" });
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(files()["docs/diagrams/network.drawio.svg"]?.text).toBe("<svg/>"));
+	});
+
+	it("shows draw.io read-only when offline", async () => {
+		const user = userEvent.setup();
+		const offline = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+		await mountDesign(<Diagrams />);
 		await user.click(await row("network"));
 		expect(await screen.findByRole("img", { name: "network" })).toBeInTheDocument();
-		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+		expect(document.querySelector("iframe")).toBeNull();
+		offline.mockRestore();
 	});
 
 	it("shows an error for a file that cannot be read, and never writes it", async () => {

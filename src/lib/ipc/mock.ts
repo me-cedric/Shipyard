@@ -1287,6 +1287,8 @@ const handlers: Handlers = {
 		design.designOpen(need(state.design), target);
 		return null;
 	},
+	designBytes: (path) =>
+		Array.from(new TextEncoder().encode(design.designRead(need(state.design), path).text)),
 	specsChanges: () => specs.changes(need(state.specs)),
 	specsChangeCreate: (id) => specs.changeCreate(need(state.specs), id, state.work.today),
 	specsRead: (path) => specs.specsRead(need(state.specs), path),

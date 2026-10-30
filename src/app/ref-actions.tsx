@@ -1,27 +1,11 @@
 import { KnowledgeActions } from "@/features/knowledge/explain";
-import { CreateWorkItem } from "@/features/work/apply";
+import { NextStepAction } from "@/features/specs/next-step";
 import type { RefActions } from "@/lib/shell";
 
-/** The refs that a person turns into a work item with one click (`work` REQ-029). */
-const ITEM_KINDS = new Set([
-	"adr",
-	"diagram",
-	"flow",
-	"screen",
-	"api",
-	"data",
-	"model",
-	"spec",
-	"change",
-	"q",
-]);
-
-/** The inspector actions of a ref. This is the one place that joins Shell, Knowledge and Work. */
+/** The inspector actions of a ref: the one next step along the loop, then Explain and Open in graph. */
 export const refActions: RefActions = (refId, title) => (
 	<div className="flex flex-col gap-2">
+		<NextStepAction refId={refId} title={title} />
 		<KnowledgeActions refId={refId} />
-		{ITEM_KINDS.has(refId.split(":")[0] ?? "") ? (
-			<CreateWorkItem refId={refId} title={title} />
-		) : null}
 	</div>
 );

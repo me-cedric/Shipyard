@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
+import { askForm } from "@/lib/shell";
 import { mountApp } from "@/test/mount";
 import { withTracker } from "@/test/tracker";
 
@@ -42,7 +43,17 @@ describe("the sync action and the connection state rows", () => {
 		await user.click((await top()).getByRole("button", { name: "Sync" }));
 		await waitFor(() => expect(within(row).getByRole("status")).toHaveTextContent("Failed"));
 		expect(within(row).getByRole("status")).toHaveTextContent("no secret saved");
-		expect((await bar()).getAllByRole("alert")[0]).toHaveTextContent("acme: no secret saved");
+		expect((await bar()).getAllByRole("alert")[0]).toHaveTextContent(
+			"This connection has no token yet.",
+		);
+		expect((await bar()).getByRole("button", { name: "Open settings" })).toBeVisible();
+	});
+
+	it("focuses the pickup label field when a link asks for it", async () => {
+		await withTracker();
+		askForm("pickupLabel");
+		mountApp("/settings/project");
+		await waitFor(() => expect(screen.getByRole("textbox", { name: "Label" })).toHaveFocus());
 	});
 
 	it("keeps the mirror when a later tick fails", async () => {

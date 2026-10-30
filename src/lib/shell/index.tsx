@@ -28,6 +28,8 @@ type ShellState = {
 	syncing: boolean;
 	/** The reason of the last failed sync, or null. */
 	syncError: string | null;
+	/** The error that `syncError` tells, for its action. */
+	syncFailure: unknown;
 	/** Runs `job` as the sync. A second call waits until the first ends. */
 	sync: (job: () => Promise<unknown>) => void;
 	commitOpen: boolean;
@@ -68,6 +70,7 @@ export function ShellProvider({
 	const [prefill, setPrefill] = useState<string | null>(null);
 	const [syncing, setSyncing] = useState(false);
 	const [syncError, setSyncError] = useState<string | null>(null);
+	const [syncFailure, setSyncFailure] = useState<unknown>(null);
 	const [commitOpen, setCommitOpen] = useState(false);
 	const [shortcutsOpen, setShortcutsOpen] = useState(false);
 	const [closeGuardOpen, setCloseGuardOpen] = useState(false);
@@ -103,8 +106,12 @@ export function ShellProvider({
 			if (syncing) return;
 			setSyncing(true);
 			setSyncError(null);
+			setSyncFailure(null);
 			job()
-				.catch((e) => setSyncError(e instanceof Error ? e.message : String(e)))
+				.catch((e) => {
+					setSyncError(e instanceof Error ? e.message : String(e));
+					setSyncFailure(e);
+				})
 				.finally(() => setSyncing(false));
 		},
 		[syncing],
@@ -131,6 +138,7 @@ export function ShellProvider({
 			clearPrefill,
 			syncing,
 			syncError,
+			syncFailure,
 			sync,
 			commitOpen,
 			setCommitOpen,
@@ -161,6 +169,7 @@ export function ShellProvider({
 			clearPrefill,
 			syncing,
 			syncError,
+			syncFailure,
 			sync,
 			commitOpen,
 			shortcutsOpen,

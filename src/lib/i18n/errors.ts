@@ -25,6 +25,17 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		title_invalid: "Use a title with at least one letter or digit.",
 		change_exists: "A change with this title exists. Use another title.",
 		run_not_started: "The run did not start.",
+		merge_draft: "This pull request is a draft. Mark it ready first.",
+		merge_closed: "This pull request is not open.",
+		merge_method: "This forge does not offer this merge method.",
+		forge_unreachable: "The server did not answer. Check the network, then try again.",
+		forge_denied: "The server refused the token. Make a new token.",
+		forge_missing: "The server does not know this item. Check the address and the token rights.",
+		git_nothing_staged: "No file is staged. Stage a file first.",
+		git_identity: "Git has no name and email. Set user.name and user.email.",
+		git_busy: "The repository is busy. Finish the merge or the rebase first.",
+		git_no_upstream: "This branch is not on the server yet. Push it first.",
+		no_terminal: "No terminal app was found. Pick one in your settings.",
 	},
 	fr: {
 		no_project: "Ouvrez ou créez d'abord un projet.",
@@ -43,6 +54,18 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		title_invalid: "Utilisez un titre avec au moins une lettre ou un chiffre.",
 		change_exists: "Un changement porte déjà ce titre. Utilisez un autre titre.",
 		run_not_started: "L'exécution n'a pas démarré.",
+		merge_draft: "Cette pull request est un brouillon. Marquez-la d'abord comme prête.",
+		merge_closed: "Cette pull request n'est pas ouverte.",
+		merge_method: "Ce forge ne propose pas cette méthode de fusion.",
+		forge_unreachable: "Le serveur n'a pas répondu. Vérifiez le réseau, puis réessayez.",
+		forge_denied: "Le serveur a refusé le jeton. Créez un nouveau jeton.",
+		forge_missing:
+			"Le serveur ne connaît pas cet élément. Vérifiez l'adresse et les droits du jeton.",
+		git_nothing_staged: "Aucun fichier n'est indexé. Indexez d'abord un fichier.",
+		git_identity: "Git n'a ni nom ni e-mail. Définissez user.name et user.email.",
+		git_busy: "Le dépôt est occupé. Terminez d'abord la fusion ou le rebase.",
+		git_no_upstream: "Cette branche n'est pas encore sur le serveur. Poussez-la d'abord.",
+		no_terminal: "Aucune application de terminal trouvée. Choisissez-en une dans vos réglages.",
 	},
 };
 
@@ -53,12 +76,14 @@ export const actionLabels: Record<Lang, Record<ActionKind, string>> = {
 		sync: "Sync",
 		install: "Install",
 		create_project: "Create a project",
+		open: "Open",
 	},
 	fr: {
 		setting: "Ouvrir les réglages",
 		sync: "Synchroniser",
 		install: "Installer",
 		create_project: "Créer un projet",
+		open: "Ouvrir",
 	},
 };
 
@@ -84,6 +109,18 @@ export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["invalid change id", "title_invalid"],
 	["change exists", "change_exists"],
 	["the run did not start", "run_not_started"],
+	["a draft pull request cannot merge", "merge_draft"],
+	["the pull request is not open", "merge_closed"],
+	["does not offer the method", "merge_method"],
+	["HTTP 401", "forge_denied"],
+	["HTTP 403", "forge_denied"],
+	["HTTP 404", "forge_missing"],
+	["network error:", "forge_unreachable"],
+	["nothing is staged", "git_nothing_staged"],
+	["no git identity", "git_identity"],
+	["the repository is busy with", "git_busy"],
+	["the branch has no upstream", "git_no_upstream"],
+	["no terminal app was found", "no_terminal"],
 ];
 
 const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {
@@ -95,6 +132,14 @@ const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {
 	pickup_off: { kind: "setting", target: "pickupLabel" },
 	ticket_not_in_mirror: { kind: "sync", target: "" },
 	node_missing: { kind: "install", target: "node" },
+	merge_draft: { kind: "open", target: "/code/pull-requests" },
+	merge_closed: { kind: "open", target: "/code/pull-requests" },
+	merge_method: { kind: "open", target: "/code/pull-requests" },
+	forge_denied: { kind: "setting", target: "connections" },
+	forge_unreachable: { kind: "sync", target: "" },
+	git_nothing_staged: { kind: "open", target: "/code/changes" },
+	git_no_upstream: { kind: "open", target: "/code/branches" },
+	no_terminal: { kind: "setting", target: "terminalApp" },
 };
 
 /** What the mock gives to a raw text, the way `AppError::from` does in Rust. */

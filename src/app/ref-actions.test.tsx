@@ -12,13 +12,16 @@ const detail = (refId: string) => (
 );
 
 describe("the inspector actions of a ref", () => {
-	it("is offered in the inspector for a ref that can become an item, and only with a tracker", async () => {
+	it("offers the one next step of an item, and none for a ref with no step", async () => {
 		await withTracker();
 		const { unmount } = renderApp(detail("change:add-auth"));
-		expect(await screen.findByRole("button", { name: "Create work item" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("button", { name: "Split into work items" }),
+		).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Create work item" })).toBeNull();
 		unmount();
 		renderApp(detail("test:auth-login"));
 		await screen.findByText("Login");
-		expect(screen.queryByRole("button", { name: "Create work item" })).toBeNull();
+		expect(screen.queryByRole("button", { name: /Write plan|Split into work items/ })).toBeNull();
 	});
 });

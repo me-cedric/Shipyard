@@ -18,6 +18,7 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Progress } from "@/ui/atoms/progress";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ChevronLeftIcon, DocumentTextIcon } from "@/ui/icons";
+import { NextStep } from "@/ui/molecules/next-step";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { Dialog } from "@/ui/organisms/dialog";
 import { FileEditor } from "./file-editor";
@@ -167,12 +168,13 @@ export function ChangeDetail({ change, onBack }: { change: Change; onBack: () =>
 							refId={`change:${change.id}`}
 							missing={current.status === "missing"}
 							line={line}
+							form={current.path.endsWith(".md")}
 							actions={
 								<>
 									<Button onClick={() => void run(() => act.validate(change.id))}>
 										{s.validate}
 									</Button>
-									<Button onClick={() => setSplitting(true)}>{s.split.open}</Button>
+									<NextStep label={t.editing.next.split} onClick={() => setSplitting(true)} />
 									<Button onClick={() => void archive(false)}>{s.archive.open}</Button>
 								</>
 							}

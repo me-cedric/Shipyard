@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { PageExport } from "@/features/reports/page-export";
 import { format, useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
@@ -296,6 +297,7 @@ export function Plan() {
 					>
 						<CalendarDaysIcon size={14} />
 					</IconButton>
+					<PageExport page="plan" slug={slug} />
 					{error ? (
 						<p role="alert" className="text-ui text-danger-text">
 							{error}

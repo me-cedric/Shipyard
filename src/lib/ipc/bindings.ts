@@ -271,6 +271,7 @@ export const commands = {
 	designFlowsSave: (path: string, rows: FlowRow_Deserialize[], stamp: string | null) => typedError<Written_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_flows_save", { path, rows, stamp })),
 	designTry: (request: TryRequest_Deserialize, click: boolean) => typedError<TryResponse, AppError_Serialize>(__TAURI_INVOKE("design_try", { request, click })),
 	designOpen: (target: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("design_open", { target })),
+	designBytes: (path: string) => typedError<number[], AppError_Serialize>(__TAURI_INVOKE("design_bytes", { path })),
 	specsChanges: () => typedError<ChangeView_Serialize[], AppError_Serialize>(__TAURI_INVOKE("specs_changes")),
 	specsChangeCreate: (title: string) => typedError<ChangeView_Serialize, AppError_Serialize>(__TAURI_INVOKE("specs_change_create", { title })),
 	specsRead: (path: string) => typedError<Text, AppError_Serialize>(__TAURI_INVOKE("specs_read", { path })),
@@ -432,14 +433,16 @@ export type Action = "create" | "update" | "unchanged";
 
 /**  What a person can do about an error. The view maps each kind to a button. */
 export type ActionKind = 
-/**  Open a Settings field. `target` is `connections`, `trackerScope` or `pickupLabel`. */
+/**  Open a Settings field. `target` is `connections`, `trackerScope`, `pickupLabel` or `terminalApp`. */
 "setting" | 
 /**  Read the tracker again. */
 "sync" | 
 /**  Install a tool. `target` is the tool id of Settings / Health. */
 "install" | 
 /**  Create a project. */
-"create_project";
+"create_project" | 
+/**  Go to a page. `target` is its path, such as `/code/changes`. */
+"open";
 
 export type Adr = {
 	/**  `0004`. */
@@ -1597,7 +1600,7 @@ export type ErrorAction = {
 
 export type ErrorCode = 
 /**  Not in the table: the view shows the details. */
-"unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_exists" | "run_not_started";
+"unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_exists" | "run_not_started" | "merge_draft" | "merge_closed" | "merge_method" | "forge_unreachable" | "forge_denied" | "forge_missing" | "git_nothing_staged" | "git_identity" | "git_busy" | "git_no_upstream" | "no_terminal";
 
 /**
  *  A source of events that can notify the person (spec `shell`, REQ-008). One list feeds the

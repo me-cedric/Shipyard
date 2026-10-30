@@ -2,6 +2,7 @@ import { assistantFr } from "./assistant";
 import { forgeFr } from "./code";
 import { designFr } from "./design";
 import { doctorFr } from "./doctor";
+import { editingFr } from "./editing";
 import type { Messages } from "./en";
 import { extensionsFr } from "./extensions";
 import { factoryFr } from "./factory";
@@ -9,6 +10,7 @@ import { homeFr } from "./home";
 import { knowledgeFr } from "./knowledge";
 import { panelsFr } from "./panels";
 import { personalFr } from "./personal";
+import { reportsFr } from "./reports";
 import { settingsFr } from "./settings";
 import { specsFr } from "./specs";
 import { uiFr } from "./ui";
@@ -210,7 +212,6 @@ export const fr: Messages = {
 		folder: "Dossier",
 		choose: "Choisir un dossier",
 		name: "Nom",
-		key: "Clé",
 		makeProject: "En faire un projet",
 		back: "Retour",
 		cloneRun: "Cloner",
@@ -643,8 +644,6 @@ export const fr: Messages = {
 				portfolio: "Portefeuille",
 			},
 			import: "Importer",
-			export: "Exporter",
-			exported: "Écrit dans {path}",
 			task: "Tâche",
 			role: "Rôle",
 			days: "Jours",
@@ -812,4 +811,6 @@ export const fr: Messages = {
 	personal: personalFr,
 	doctor: doctorFr,
 	panels: panelsFr,
+	reports: reportsFr,
+	editing: editingFr,
 };

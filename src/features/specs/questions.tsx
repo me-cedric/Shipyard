@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { useState } from "react";
+import { PageExport } from "@/features/reports/page-export";
 import { useI18n } from "@/lib/i18n";
 import { KINDS, type QuestionEntry, STATUSES, useQuestions } from "@/lib/specs";
 import { cn } from "@/lib/utils";
@@ -112,6 +113,7 @@ function Register() {
 						onValueChange={setOwner}
 						items={options(s.allOwners, owners)}
 					/>
+					<PageExport page="raid" />
 				</>
 			}
 		>

@@ -9,9 +9,10 @@ import { Input } from "@/ui/atoms/input";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowPathIcon, CheckIcon, Cog6ToothIcon, CpuChipIcon, XMarkIcon } from "@/ui/icons";
 import { ConnectionRow } from "@/ui/molecules/connection-row";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { SettingsRow } from "@/ui/molecules/settings-row";
-import { message, providerKeys, useProviders } from "./keys";
+import { providerKeys, useProviders } from "./keys";
 
 const STATE_SHAPE: Record<Provider["state"], Status> = {
 	untested: "idle",
@@ -29,7 +30,7 @@ export function ProviderForm({ provider, onDone }: { provider?: Provider; onDone
 	const [url, setUrl] = useState(provider?.url ?? "");
 	const [model, setModel] = useState(provider?.model ?? "");
 	const [secret, setSecret] = useState("");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
 	const f = t.connections.field;
 
@@ -46,7 +47,7 @@ export function ProviderForm({ provider, onDone }: { provider?: Provider; onDone
 			if (secret.trim()) await unwrap(commands.providersSetSecret(saved.id, secret));
 			onDone();
 		} catch (err) {
-			setError(message(err));
+			setError(err);
 		} finally {
 			setBusy(false);
 			await qc.invalidateQueries({ queryKey: providerKeys.list });
@@ -88,11 +89,7 @@ export function ProviderForm({ provider, onDone }: { provider?: Provider; onDone
 					className="w-64"
 				/>
 			</SettingsRow>
-			{error ? (
-				<p role="alert" className="px-3 pt-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="px-3 pt-2 text-ui text-danger-text" /> : null}
 			<div className="flex gap-2 px-3 py-2">
 				<Button
 					type="submit"
@@ -113,7 +110,7 @@ export function ProviderForm({ provider, onDone }: { provider?: Provider; onDone
 function Models({ provider: p }: { provider: Provider }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const models = useQuery({
 		queryKey: providerKeys.models(p.id),
 		queryFn: () => unwrap(commands.providersModels(p.id)),
@@ -124,16 +121,12 @@ function Models({ provider: p }: { provider: Provider }) {
 			await unwrap(commands.providersEdit(p.id, { name: p.name, url: p.url, model }));
 			await qc.invalidateQueries({ queryKey: providerKeys.list });
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		}
 	};
 	return (
 		<section aria-label={t.connections.provider.models} className="px-3 pb-2">
-			{models.error || error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error ?? message(models.error)}
-				</p>
-			) : null}
+			{models.error || error ? <ErrorNotice error={error ?? models.error} /> : null}
 			{(models.data ?? []).map((m) => (
 				<SettingsRow key={m} icon={m === p.model ? <CheckIcon size={14} /> : undefined} label={m}>
 					<Button
@@ -166,7 +159,7 @@ function ProviderRow({
 	const [panel, setPanel] = useState<Panel>(null);
 	const [result, setResult] = useState<TestOutcome | null>(null);
 	const [testing, setTesting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const menu = useMenus();
 
 	const show = (next: Panel) => {
@@ -180,7 +173,7 @@ function ProviderRow({
 		try {
 			setResult(await unwrap(commands.providersTest(p.id)));
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		} finally {
 			setTesting(false);
 			await qc.invalidateQueries({ queryKey: providerKeys.list });
@@ -192,7 +185,7 @@ function ProviderRow({
 			await unwrap(commands.providersRemove(p.id));
 			await qc.invalidateQueries({ queryKey: providerKeys.list });
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		}
 	};
 	const text = result
@@ -244,11 +237,7 @@ function ProviderRow({
 					{text}
 				</p>
 			) : null}
-			{error ? (
-				<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="px-3 pb-2 text-ui text-danger-text" /> : null}
 			{panel === "edit" ? (
 				<ProviderForm
 					provider={p}

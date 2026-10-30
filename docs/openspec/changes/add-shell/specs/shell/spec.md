@@ -50,7 +50,7 @@ The earlier tool has 40 routes, 12 sidebar groups and four stacked filters that 
 - No page content of a space. Each space capability owns its views.
 - No second commit or sync control in a view.
 - No setting that hides a view.
-- A team editor. Work / Team (`add-work`) is the one team editor. Settings / Team, if shown, opens Work / Team and holds no second editor.
+- A team editor. Work / Team (`add-work`) is the one team editor. Settings / Team does not exist: the path `/settings/team` redirects to Work / Team and holds no second editor.
 - Project overrides of a personal preference. `add-projects` owns them, in the project registry (Q-016).
 
 ### Acceptance Criteria

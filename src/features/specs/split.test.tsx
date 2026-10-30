@@ -9,7 +9,7 @@ type User = ReturnType<typeof userEvent.setup>;
 const written = () => Object.keys(mockState().work.written);
 const startSplit = async (user: User) => {
 	await user.click(await screen.findByRole("button", { name: /^add-auth/ }));
-	await user.click(await screen.findByRole("button", { name: "Split" }));
+	await user.click(await screen.findByRole("button", { name: "Split into work items" }));
 	return within(await screen.findByRole("dialog"));
 };
 
@@ -73,7 +73,7 @@ describe("Specs / Split", () => {
 		expect(written()).toContain("est:add-auth#sessions");
 		await user.keyboard("{Escape}");
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-		await user.click(screen.getByRole("button", { name: "Split" }));
+		await user.click(screen.getByRole("button", { name: "Split into work items" }));
 		review = within(await screen.findByRole("dialog"));
 		await user.click(await review.findByRole("button", { name: "Preview" }));
 		apply = within(await screen.findByRole("dialog"));

@@ -6,6 +6,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
 import { ArrowUpTrayIcon, ChatBubbleIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 
 /**
  * Hands the conflicted files to the assistant (the draft names them, a person sends it) or to a
@@ -16,7 +17,7 @@ export function ConflictAgent() {
 	const { ask } = useShell();
 	const workflow = useWorkflows().data?.find((w) => !w.issue)?.id;
 	const [sent, setSent] = useState<string | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const files = (useConflicts().data ?? []).map((c) => c.path);
 	if (files.length === 0) return null;
 	const c = t.workspace.conflict;
@@ -35,7 +36,7 @@ export function ConflictAgent() {
 								setError(null);
 								setSent(r.item.key ?? r.item.reference);
 							})
-							.catch((e) => setError(e instanceof Error ? e.message : String(e)))
+							.catch((e) => setError(e))
 					}
 				>
 					<ArrowUpTrayIcon size={14} />
@@ -47,11 +48,7 @@ export function ConflictAgent() {
 					{format(c.sent, { key: sent })}
 				</span>
 			) : null}
-			{error ? (
-				<span role="alert" className="text-12 text-danger-text">
-					{error}
-				</span>
-			) : null}
+			{error ? <ErrorNotice error={error} className="text-12 text-danger-text" /> : null}
 		</div>
 	);
 }

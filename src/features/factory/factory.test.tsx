@@ -145,6 +145,28 @@ describe("Factory tabs", () => {
 		await expect(unwrap(commands.usageTreeGet("nope"))).rejects.toThrow("no run");
 	});
 
+	it("Usage: the spend flame graph has one keyboard reachable bar for each step", async () => {
+		const user = userEvent.setup();
+		await renderTab(<Usage />);
+		const u = await unwrap(commands.usageGet());
+		const trees = await Promise.all(u.runs.map((r) => unwrap(commands.usageTreeGet(r.run))));
+		const at = trees.findIndex((x) => x.steps.some((s) => s.tokens > 0));
+		const run = u.runs[at];
+		const step = trees[at]?.steps.find((s) => s.tokens > 0);
+		if (!run || !step) throw new Error("the demo has a started run");
+		await screen.findByText("Request tree");
+		if (at > 0) {
+			await user.click(screen.getByRole("combobox", { name: "Run" }));
+			await user.click(await screen.findByRole("option", { name: run.key }));
+		}
+		const graph = await screen.findByRole("region", { name: "Spend flame graph" });
+		const bar = await within(graph).findByRole("button", {
+			name: `${step.step}: ${step.tokens} tokens`,
+		});
+		bar.focus();
+		expect(bar).toHaveFocus();
+	});
+
 	it("Usage: a member scope sets the default member budget", async () => {
 		const user = userEvent.setup();
 		await renderTab(<Usage />);

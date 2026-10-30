@@ -2,12 +2,14 @@ import { assistantEn } from "./assistant";
 import { forgeEn } from "./code";
 import { designEn } from "./design";
 import { doctorEn } from "./doctor";
+import { editingEn } from "./editing";
 import { extensionsEn } from "./extensions";
 import { factoryEn } from "./factory";
 import { homeEn } from "./home";
 import { knowledgeEn } from "./knowledge";
 import { panelsEn } from "./panels";
 import { personalEn } from "./personal";
+import { reportsEn } from "./reports";
 import { settingsEn } from "./settings";
 import { specsEn } from "./specs";
 import { uiEn } from "./ui";
@@ -201,7 +203,6 @@ export const en = {
 		folder: "Folder",
 		choose: "Choose a folder",
 		name: "Name",
-		key: "Key",
 		makeProject: "Make it a project",
 		back: "Back",
 		cloneRun: "Clone",
@@ -619,8 +620,6 @@ export const en = {
 			settings: "Sheet settings",
 			views: { backlog: "Backlog", summary: "Summary", spread: "Spread", portfolio: "Portfolio" },
 			import: "Import",
-			export: "Export",
-			exported: "Written to {path}",
 			task: "Task",
 			role: "Role",
 			days: "Days",
@@ -778,6 +777,8 @@ export const en = {
 	personal: personalEn,
 	doctor: doctorEn,
 	panels: panelsEn,
+	reports: reportsEn,
+	editing: editingEn,
 };
 
 export type Messages = typeof en;

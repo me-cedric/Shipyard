@@ -32,6 +32,7 @@ import {
 import { BacklinkList } from "@/ui/molecules/backlink-list";
 import { ConnectionRow } from "@/ui/molecules/connection-row";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FlagList } from "@/ui/molecules/flag-list";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { SettingsRow } from "@/ui/molecules/settings-row";
@@ -67,7 +68,7 @@ function CreateRepo({ id }: { id: string }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const [slug, setSlug] = useState("");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	return (
 		<form
 			className="flex items-center gap-2 py-1"
@@ -79,7 +80,7 @@ function CreateRepo({ id }: { id: string }) {
 						setError(null);
 						return qc.invalidateQueries({ queryKey: connectionKeys.repos(id) });
 					})
-					.catch((err) => setError(message(err)));
+					.catch((err) => setError(err));
 			}}
 		>
 			<Input
@@ -92,11 +93,7 @@ function CreateRepo({ id }: { id: string }) {
 				<PlusIcon size={14} />
 				{t.connections.repoCreate}
 			</Button>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 		</form>
 	);
 }
@@ -156,14 +153,14 @@ function RemovePanel({ id, onDone }: { id: string; onDone: () => void }) {
 				},
 			]
 		: cited;
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const confirm = async () => {
 		try {
 			setError(null);
 			await unwrap(commands.connectionsRemove(id));
 			await qc.invalidateQueries();
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		}
 	};
 	return (
@@ -175,11 +172,7 @@ function RemovePanel({ id, onDone }: { id: string; onDone: () => void }) {
 				}))}
 				onOpen={openRef}
 			/>
-			{error || users.error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error ?? message(users.error)}
-				</p>
-			) : null}
+			{error || users.error ? <ErrorNotice error={error ?? users.error} /> : null}
 			<div className="flex gap-2">
 				<Button variant="danger" disabled={!ready} onClick={confirm}>
 					{t.connections.confirm}
@@ -210,7 +203,7 @@ function Row({
 	const [panel, setPanel] = useState<Panel>(null);
 	const [result, setResult] = useState<TestOutcome | null>(null);
 	const [testing, setTesting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const menu = useMenus();
 
 	const show = (p: Panel) => {
@@ -225,7 +218,7 @@ function Row({
 		try {
 			setResult(await unwrap(commands.connectionsTest(c.id)));
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		} finally {
 			setTesting(false);
 			await qc.invalidateQueries({ queryKey: connectionKeys.list });
@@ -307,11 +300,7 @@ function Row({
 					{text}
 				</p>
 			) : null}
-			{error ? (
-				<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="px-3 pb-2 text-ui text-danger-text" /> : null}
 			{panel === "edit" ? (
 				<ConnectionForm
 					connection={c}

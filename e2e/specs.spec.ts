@@ -61,6 +61,7 @@ test("folds an answer into its spec after the preview and one click", async ({ p
 		.getByRole("navigation", { name: "Artifacts" })
 		.getByRole("button", { name: /Spec \/ export/ })
 		.click();
+	await page.getByRole("tab", { name: "Text" }).click();
 	await expect(page.getByRole("textbox", { name: "Spec / export" })).toHaveValue(
 		/### Clarifications[\s\S]*Q-035 .*: CSV first/,
 	);
@@ -70,7 +71,7 @@ test("applies a split once and a second apply creates no duplicate", async ({ pa
 	await openSpecs(page, "Proposals");
 	await page.getByRole("button", { name: /^add-auth/ }).click();
 	const open = async () => {
-		await page.getByRole("button", { name: "Split" }).click();
+		await page.getByRole("main").getByRole("button", { name: "Split into work items" }).click();
 		await page.getByRole("button", { name: "Preview" }).click();
 	};
 	await open();

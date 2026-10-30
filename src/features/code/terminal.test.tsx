@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { I18nProvider } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
@@ -40,9 +41,11 @@ vi.mock("@xterm/addon-fit", () => ({
 
 const view = (folder?: string) =>
 	render(
-		<I18nProvider>
-			<TerminalPanel folder={folder} />
-		</I18nProvider>,
+		<QueryClientProvider client={new QueryClient()}>
+			<I18nProvider>
+				<TerminalPanel folder={folder} />
+			</I18nProvider>
+		</QueryClientProvider>,
 	);
 
 describe("Code / Terminal", () => {

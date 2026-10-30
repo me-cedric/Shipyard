@@ -8,6 +8,7 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { ClockIcon, FolderOpenIcon, LinkIcon, TrashIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 
@@ -101,7 +102,7 @@ export function ProjectsPage() {
 	const { t } = useI18n();
 	const cards = useProjectCards().data;
 	const { openFolder } = useProjectActions();
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	if (!cards) return null;
 	const groups = new Map<string, ProjectCard[]>();
 	for (const c of cards) groups.set(c.host ?? "", [...(groups.get(c.host ?? "") ?? []), c]);
@@ -123,11 +124,7 @@ export function ProjectsPage() {
 					</Button>
 				}
 			/>
-			{error ? (
-				<p role="alert" className="px-4 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="px-4 text-ui text-danger-text" /> : null}
 			{cards.length === 0 ? (
 				<EmptyState layout="cards" action={open} />
 			) : (

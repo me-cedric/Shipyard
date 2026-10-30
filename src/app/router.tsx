@@ -7,6 +7,7 @@ import {
 	Navigate,
 	Outlet,
 	type RouterHistory,
+	redirect,
 	useRouterState,
 } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "motion/react";
@@ -112,6 +113,15 @@ const galleryRoute = import.meta.env.DEV
 		})
 	: null;
 
+/** Settings / Team moved to Work / Team: a stored last view must not show Not found. */
+const teamRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "settings/team",
+	beforeLoad: () => {
+		throw redirect({ to: "/work/team", replace: true });
+	},
+});
+
 const routeTree = rootRoute.addChildren([
 	indexRoute,
 	spaceRoute("home"),
@@ -122,6 +132,7 @@ const routeTree = rootRoute.addChildren([
 	spaceRoute("code"),
 	spaceRoute("knowledge"),
 	spaceRoute("settings"),
+	teamRoute,
 	...(galleryRoute ? [galleryRoute] : []),
 ]);
 

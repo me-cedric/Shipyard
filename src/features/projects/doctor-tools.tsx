@@ -6,6 +6,7 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowDownTrayIcon, CommandLineIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 
 const GROUPS = ["base", "forge", "agent", "scanner"] as const;
@@ -18,7 +19,7 @@ export function DoctorTools() {
 	const qc = useQueryClient();
 	const tools = useQuery({ queryKey: toolsKey, queryFn: () => unwrap(commands.doctorTools()) });
 	const [busy, setBusy] = useState<string | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const list = tools.data;
 	if (!list) return null;
 	const install = async (tool: ToolCheck) => {
@@ -28,7 +29,7 @@ export function DoctorTools() {
 			qc.setQueryData(toolsKey, await unwrap(commands.doctorToolInstall(tool.id, true)));
 			await qc.invalidateQueries({ queryKey: ["doctor", "ledger"] });
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		} finally {
 			setBusy(null);
 		}
@@ -76,11 +77,7 @@ export function DoctorTools() {
 						))}
 				</section>
 			))}
-			{error ? (
-				<p role="alert" className="px-3 py-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="px-3 py-2 text-ui text-danger-text" /> : null}
 		</Panel>
 	);
 }

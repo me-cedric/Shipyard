@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { message } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Dialog } from "@/ui/organisms/dialog";
 
 /** What the dialog asks. `path` is the parent folder for a new item and the item for rename and delete. */
@@ -33,7 +33,7 @@ export function FileActionDialog({
 	const { t } = useI18n();
 	const f = t.personal.files;
 	const [name, setName] = useState(action.kind === "rename" ? action.path.split("/").pop() : "");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const next = action.kind === "rename" ? join(parent(action.path), name ?? "") : "";
 	const target =
 		action.kind === "file" || action.kind === "folder" ? join(action.path, name ?? "") : next;
@@ -46,7 +46,7 @@ export function FileActionDialog({
 			else await unwrap(commands.filesDelete(action.path, true));
 			onDone(action, target);
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		}
 	};
 	const title =
@@ -76,11 +76,7 @@ export function FileActionDialog({
 					<Input label={f.name} value={name ?? ""} onChange={(e) => setName(e.target.value)} />
 				</form>
 			)}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 		</Dialog>
 	);
 }

@@ -22,6 +22,7 @@ import {
 	UserCircleIcon,
 	ViewColumnsIcon,
 } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { STATE_DOT } from "@/ui/molecules/project-switcher";
 import logo from "../../../docs/assets/logo.svg";
 
@@ -102,7 +103,7 @@ export function FirstRun() {
 		.sort((a, b) => b.lastUsed - a.lastUsed)
 		.slice(0, 5);
 	const [step, setStep] = useState<Step>("start");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
 	const [url, setUrl] = useState("");
 	const [folder, setFolder] = useState("");
@@ -122,7 +123,7 @@ export function FirstRun() {
 			setError(outcome && outcomeError(t, outcome));
 			if (outcome?.status === "not-repository") setPlain(outcome.message);
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		} finally {
 			setBusy(false);
 		}
@@ -303,9 +304,7 @@ export function FirstRun() {
 				)}
 				{error ? (
 					<div className="flex items-center gap-3">
-						<p role="alert" className="flex-1 text-ui text-danger-text">
-							{error}
-						</p>
+						<ErrorNotice error={error} className="flex-1 text-ui text-danger-text" />
 						{plain ? (
 							<Button variant="primary" disabled={busy} onClick={() => void makeProject(plain)}>
 								{t.projects.makeProject}

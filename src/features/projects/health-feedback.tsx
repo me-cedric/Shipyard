@@ -6,6 +6,7 @@ import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
 import { ChatBubbleIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 
 const KINDS: FeedbackKind[] = ["bug", "idea"];
@@ -20,13 +21,13 @@ export function HealthFeedback() {
 	const [kind, setKind] = useState<FeedbackKind>("bug");
 	const [title, setTitle] = useState("");
 	const [details, setDetails] = useState("");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const open = async () => {
 		setError(null);
 		try {
 			await unwrap(commands.feedbackOpen(kind, title, details, true));
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		}
 	};
 	return (
@@ -52,11 +53,7 @@ export function HealthFeedback() {
 						{d.open}
 					</Button>
 				</div>
-				{error ? (
-					<p role="alert" className="text-ui text-danger-text">
-						{error}
-					</p>
-				) : null}
+				{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 			</div>
 		</Panel>
 	);

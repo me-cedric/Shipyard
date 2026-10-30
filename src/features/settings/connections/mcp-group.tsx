@@ -16,6 +16,7 @@ import {
 	XMarkIcon,
 } from "@/ui/icons";
 import { ConnectionRow } from "@/ui/molecules/connection-row";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { mcpKeys, message, useMcpServers } from "./keys";
@@ -79,7 +80,7 @@ function McpRow({
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const [panel, setPanel] = useState<Panel>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
 	const live = s.state.state === "running" || s.state.state === "starting";
 
@@ -89,7 +90,7 @@ function McpRow({
 		try {
 			await job();
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		} finally {
 			setBusy(false);
 			await qc.invalidateQueries({ queryKey: mcpKeys.list });
@@ -158,9 +159,10 @@ function McpRow({
 				</p>
 			))}
 			{s.state.state === "failed" || error ? (
-				<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
-					{error ?? (s.state.state === "failed" ? s.state.reason : "")}
-				</p>
+				<ErrorNotice
+					error={error ?? (s.state.state === "failed" ? s.state.reason : "")}
+					className="px-3 pb-2"
+				/>
 			) : null}
 			{panel === "edit" ? (
 				<Fields
@@ -204,7 +206,7 @@ export function McpGroup({
 }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const rows = (useMcpServers().data ?? []).filter((s) => s.enabled);
 	if (rows.length === 0) return null;
 	const startable = rows.filter((s) => s.state.state !== "running" && s.missing.length === 0);
@@ -226,11 +228,7 @@ export function McpGroup({
 					{t.connections.mcp.startAll}
 				</Button>
 			</div>
-			{error ? (
-				<p role="alert" className="px-3 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="px-3 text-ui text-danger-text" /> : null}
 			{rows.map((s) => (
 				<McpRow key={s.id} server={s} formOpen={formOpen} onForm={onForm} />
 			))}
@@ -252,7 +250,7 @@ export function McpAddForm({ onDone }: { onDone: () => void }) {
 	const [command, setCommand] = useState("");
 	const [args, setArgs] = useState("");
 	const [vars, setVars] = useState<Variable[]>([{ key: "", value: "" }]);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const f = t.connections.field;
 
 	const finish = async (job: () => Promise<void>) => {
@@ -261,7 +259,7 @@ export function McpAddForm({ onDone }: { onDone: () => void }) {
 			await job();
 			onDone();
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		} finally {
 			await qc.invalidateQueries({ queryKey: mcpKeys.list });
 		}
@@ -371,11 +369,7 @@ export function McpAddForm({ onDone }: { onDone: () => void }) {
 					</div>
 				</>
 			)}
-			{error ? (
-				<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="px-3 pb-2 text-ui text-danger-text" /> : null}
 			<div className="px-3 pb-2">
 				<Button variant="ghost" onClick={onDone}>
 					{t.connections.cancel}

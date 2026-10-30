@@ -50,12 +50,24 @@ function useRunners() {
 	return runners;
 }
 
+/** The terminal apps that are installed on this machine. */
+function useTerminalApps() {
+	const [apps, setApps] = useState<{ id: string; label: string }[]>([]);
+	useEffect(() => {
+		unwrap(commands.terminalApps())
+			.then(setApps)
+			.catch((e) => console.error(e));
+	}, []);
+	return apps;
+}
+
 /** Fonts, terminal and default agent: the personal preferences (appearance, terminal, assistant tabs). */
 export function usePersonalSections(): SettingsSection[] {
 	const { t } = useI18n();
 	const p = t.personal.prefs;
 	const prefs = usePrefs();
 	const runners = useRunners();
+	const apps = useTerminalApps();
 	const models = runners.find((r) => r.runner === prefs.defaultAgent)?.models ?? [];
 	const keys = (map: Record<string, string>) =>
 		Object.keys(map).map((k) => ({
@@ -109,6 +121,22 @@ export function usePersonalSections(): SettingsSection[] {
 							placeholder={p.shellHint}
 							value={prefs.terminalShell}
 							onSave={(v) => prefs.setPrefs({ terminalShell: v })}
+						/>
+					),
+				},
+				{
+					id: "terminal-app",
+					icon: <CommandLineIcon size={14} />,
+					label: t.reports.terminal.app,
+					control: (
+						<Select
+							label={t.reports.terminal.app}
+							value={prefs.terminalApp || DEFAULT}
+							onValueChange={(v) => prefs.setPrefs({ terminalApp: back(v) })}
+							items={[
+								{ value: DEFAULT, label: t.reports.terminal.auto },
+								...apps.map((a) => ({ value: a.id, label: a.label })),
+							]}
 						/>
 					),
 				},

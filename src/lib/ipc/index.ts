@@ -6,6 +6,7 @@ export {
 	pickCertificate,
 	pickFolder,
 	pickWorkbook,
+	saveAs,
 	saveWorkbook,
 } from "./dialog";
 export { AppFailure, toFailure, unwrap } from "./result";

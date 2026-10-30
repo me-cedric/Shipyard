@@ -4,6 +4,7 @@ import { usePrefs } from "@/lib/prefs";
 export function useDark(): boolean {
 	const { theme } = usePrefs();
 	return (
-		theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches)
+		theme === "dark" ||
+		(theme === "system" && !!window.matchMedia?.("(prefers-color-scheme: dark)").matches)
 	);
 }

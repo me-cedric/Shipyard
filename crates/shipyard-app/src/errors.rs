@@ -14,7 +14,7 @@ use specta::Type;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum ActionKind {
-    /// Open a Settings field. `target` is `connections`, `trackerScope` or `pickupLabel`.
+    /// Open a Settings field. `target` is `connections`, `trackerScope`, `pickupLabel` or `terminalApp`.
     Setting,
     /// Read the tracker again.
     Sync,
@@ -22,6 +22,8 @@ pub enum ActionKind {
     Install,
     /// Create a project.
     CreateProject,
+    /// Go to a page. `target` is its path, such as `/code/changes`.
+    Open,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -51,6 +53,17 @@ pub enum ErrorCode {
     TitleInvalid,
     ChangeExists,
     RunNotStarted,
+    MergeDraft,
+    MergeClosed,
+    MergeMethod,
+    ForgeUnreachable,
+    ForgeDenied,
+    ForgeMissing,
+    GitNothingStaged,
+    GitIdentity,
+    GitBusy,
+    GitNoUpstream,
+    NoTerminal,
 }
 
 impl ErrorCode {
@@ -65,6 +78,14 @@ impl ErrorCode {
             Self::PickupOff => (ActionKind::Setting, "pickupLabel"),
             Self::TicketNotInMirror => (ActionKind::Sync, ""),
             Self::NodeMissing => (ActionKind::Install, "node"),
+            Self::MergeDraft | Self::MergeClosed | Self::MergeMethod => {
+                (ActionKind::Open, "/code/pull-requests")
+            }
+            Self::ForgeDenied => (ActionKind::Setting, "connections"),
+            Self::ForgeUnreachable => (ActionKind::Sync, ""),
+            Self::GitNothingStaged => (ActionKind::Open, "/code/changes"),
+            Self::GitNoUpstream => (ActionKind::Open, "/code/branches"),
+            Self::NoTerminal => (ActionKind::Setting, "terminalApp"),
             _ => return None,
         };
         Some(ErrorAction {
@@ -93,6 +114,18 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("invalid change id", ErrorCode::TitleInvalid),
     ("change exists", ErrorCode::ChangeExists),
     ("the run did not start", ErrorCode::RunNotStarted),
+    ("a draft pull request cannot merge", ErrorCode::MergeDraft),
+    ("the pull request is not open", ErrorCode::MergeClosed),
+    ("does not offer the method", ErrorCode::MergeMethod),
+    ("HTTP 401", ErrorCode::ForgeDenied),
+    ("HTTP 403", ErrorCode::ForgeDenied),
+    ("HTTP 404", ErrorCode::ForgeMissing),
+    ("network error:", ErrorCode::ForgeUnreachable),
+    ("nothing is staged", ErrorCode::GitNothingStaged),
+    ("no git identity", ErrorCode::GitIdentity),
+    ("the repository is busy with", ErrorCode::GitBusy),
+    ("the branch has no upstream", ErrorCode::GitNoUpstream),
+    ("no terminal app was found", ErrorCode::NoTerminal),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -160,6 +193,10 @@ mod tests {
         let e = AppError::from("set the tracker scope: the tracker scope is not set");
         assert_eq!(e.action.unwrap().target, "trackerScope");
         assert_eq!(AppError::from("odd").code, ErrorCode::Unknown);
+        let e = AppError::from("a draft pull request cannot merge: mark it ready first");
+        assert_eq!(e.action.unwrap().kind, ActionKind::Open);
+        let e = AppError::from("HTTP 401: bad credentials");
+        assert_eq!(e.action.unwrap().target, "connections");
         // Each entry of the table is reached: an earlier needle never hides a later one.
         for (needle, code) in KNOWN {
             assert_eq!(AppError::from(*needle).code, *code, "{needle}");

@@ -3,8 +3,8 @@ import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, pickCertificate, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SettingsRow } from "@/ui/molecules/settings-row";
-import { message } from "./keys";
 
 const certsKey = ["certs"] as const;
 
@@ -17,7 +17,7 @@ export function CertsGroup() {
 		queryKey: certsKey,
 		queryFn: () => unwrap(commands.certsStatus()),
 	});
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	if (!status.data) return null;
 	const run = async (job: () => Promise<unknown>) => {
 		setError(null);
@@ -25,7 +25,7 @@ export function CertsGroup() {
 			await job();
 			await qc.invalidateQueries({ queryKey: certsKey });
 		} catch (e) {
-			setError(message(e));
+			setError(e);
 		}
 	};
 	const add = () =>
@@ -54,11 +54,7 @@ export function CertsGroup() {
 						{c.remove}
 					</Button>
 				</SettingsRow>
-				{error && (
-					<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
-						{error}
-					</p>
-				)}
+				{error ? <ErrorNotice error={error} className="px-3 pb-2" /> : null}
 			</div>
 		</section>
 	);

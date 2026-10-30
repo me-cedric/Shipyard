@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useTeam } from "@/lib/work";
 import { Progress } from "@/ui/atoms/progress";
 import { CheckIcon, ChevronRightIcon, SparklesIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 
 type Place =
@@ -52,7 +53,7 @@ export function GetStarted() {
 	const s = t.home.start;
 	const qc = useQueryClient();
 	const [busy, setBusy] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const settings = useQuery({
 		queryKey: projectKeys.settings,
 		queryFn: () => unwrap(commands.projectSettings()),
@@ -141,7 +142,7 @@ export function GetStarted() {
 			await job();
 			await qc.invalidateQueries();
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		} finally {
 			setBusy(false);
 		}
@@ -221,11 +222,7 @@ export function GetStarted() {
 					);
 				})}
 			</ol>
-			{error ? (
-				<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="px-3 pb-2 text-ui text-danger-text" /> : null}
 		</Panel>
 	);
 }

@@ -7,6 +7,7 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Switch } from "@/ui/atoms/switch";
 import { PlusIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
@@ -21,7 +22,7 @@ function Editor({ saved }: { saved: Persona[] }) {
 	const p = t.projects.personas;
 	const qc = useQueryClient();
 	const [rows, setRows] = useState(saved);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const set = (i: number, patch: Partial<Persona>) =>
 		setRows(rows.map((r, n) => (n === i ? { ...r, ...patch } : r)));
 	const dirty = JSON.stringify(rows) !== JSON.stringify(saved);
@@ -31,7 +32,7 @@ function Editor({ saved }: { saved: Persona[] }) {
 			await unwrap(commands.personasSave(rows));
 			await qc.invalidateQueries({ queryKey: projectKeys.personas });
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		}
 	};
 	return (
@@ -88,11 +89,7 @@ function Editor({ saved }: { saved: Persona[] }) {
 					</Button>
 				) : null}
 			</div>
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 		</Panel>
 	);
 }

@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { PageExport } from "@/features/reports/page-export";
 import { useCommitDetail, useCommitDiff, useLog } from "@/lib/code";
 import { graph } from "@/lib/code/graph";
 import { format, useI18n } from "@/lib/i18n";
@@ -118,6 +119,7 @@ function HistoryView() {
 				icon={<ClockIcon size={16} />}
 				title={t.tabs.code.history}
 				count={commits.length}
+				action={<PageExport page="workDone" />}
 			/>
 			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-1 pb-4">
 				<div className="w-[34rem] shrink-0 overflow-y-auto rounded-lg border bg-surface-1 py-1 shadow-1">

@@ -138,6 +138,7 @@ export function ArtifactTab({
 	notice,
 	thumb,
 	timeline,
+	toolbar,
 	form = "",
 	children,
 }: {
@@ -155,6 +156,8 @@ export function ArtifactTab({
 	/** The face of a row in the grid view. Without it the tab has no grid. */
 	thumb?: (row: Row) => ReactNode;
 	timeline?: boolean;
+	/** A row of controls under the header, such as an Export menu. */
+	toolbar?: ReactNode;
 	children: (row: Row) => ReactNode;
 }) {
 	const { t } = useI18n();
@@ -208,6 +211,7 @@ export function ArtifactTab({
 			title={title}
 			icon={icon}
 			count={rows.length}
+			toolbar={toolbar}
 			chips={
 				thumb && rows.length ? (
 					<ViewTabs

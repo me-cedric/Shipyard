@@ -12,6 +12,7 @@ const SETTING = {
 	connections: { to: "/settings/connections", form: "connection" },
 	trackerScope: { to: "/settings/project", form: "trackerScope" },
 	pickupLabel: { to: "/settings/project", form: "pickupLabel" },
+	terminalApp: { to: "/settings/me", form: "terminalApp" },
 } as const;
 
 /** Opens a Settings field: the page of the field, then its form. */
@@ -52,7 +53,8 @@ export function useErrorNotice(error: unknown, onDone?: () => void) {
 			else if (a.kind === "install") {
 				await unwrap(commands.doctorToolInstall(a.target, true));
 				await qc.invalidateQueries({ queryKey: ["doctor"] });
-			} else void router?.navigate({ to: "/home/inbox" });
+			} else if (a.kind === "open") router?.history.push(a.target);
+			else void router?.navigate({ to: "/home/inbox" });
 			onDone?.();
 		} catch (err) {
 			setFailed(err);

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { CommandLineIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { withProject } from "./project-gate";
 import { useTerminal } from "./use-terminal";
@@ -16,15 +17,11 @@ export function TerminalScreen({
 }) {
 	const { t } = useI18n();
 	const host = useRef<HTMLDivElement>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	useTerminal(host, folder, setError, t.forge.terminal.ended);
 	return (
 		<>
-			{error ? (
-				<p role="alert" className="px-4 py-2 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="px-4 py-2 text-ui text-danger-text" /> : null}
 			{/* Dark in both themes, a frame around the black screen of the shell. */}
 			<div
 				className={cn(

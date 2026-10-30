@@ -1,13 +1,15 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
+import { useFormIntent } from "@/lib/shell";
 import { type AutomationView, syncKeys, useAutomation } from "@/lib/sync";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Switch } from "@/ui/atoms/switch";
 import { Cog6ToothIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Settings } from "@/ui/templates/settings";
 import { type Draft, fromDraft, RUN_STATES, toDraft } from "./automation-draft";
 
@@ -26,7 +28,10 @@ function Form({ view }: { view: AutomationView }) {
 	const a = t.sync.automation;
 	const saved = toDraft(view.automation);
 	const [draft, setDraft] = useState<Draft>(saved);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
+	// The reason that a ticket cannot be marked links here: it lands on the label field.
+	const labelBox = useRef<HTMLSpanElement>(null);
+	useFormIntent("pickupLabel", () => labelBox.current?.querySelector("input")?.focus());
 	const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
 
 	const save = async () => {
@@ -37,7 +42,7 @@ function Form({ view }: { view: AutomationView }) {
 			await unwrap(commands.syncAutomationSave(parsed.automation));
 			await qc.invalidateQueries({ queryKey: syncKeys.all });
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		}
 	};
 
@@ -45,11 +50,8 @@ function Form({ view }: { view: AutomationView }) {
 		id: keyof Omit<Draft, "map" | "writes" | "kept">,
 		label: string,
 		type?: "number",
-	) => ({
-		id,
-		icon: ICON,
-		label,
-		control: (
+	) => {
+		const input = (
 			<Input
 				label={label}
 				type={type}
@@ -58,8 +60,14 @@ function Form({ view }: { view: AutomationView }) {
 				onChange={(e) => setDraft({ ...draft, [id]: e.target.value })}
 				className="w-64"
 			/>
-		),
-	});
+		);
+		return {
+			id,
+			icon: ICON,
+			label,
+			control: id === "label" ? <span ref={labelBox}>{input}</span> : input,
+		};
+	};
 
 	return (
 		<div className="flex flex-col gap-4 px-4 pb-4">
@@ -145,11 +153,7 @@ function Form({ view }: { view: AutomationView }) {
 					))}
 				</ul>
 			) : null}
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 			{dirty ? (
 				<div>
 					<Button variant="primary" onClick={() => void save()}>

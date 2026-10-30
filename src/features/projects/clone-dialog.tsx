@@ -3,6 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { outcomeError, useProjectActions } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Dialog } from "@/ui/organisms/dialog";
 import { FolderField, repoName } from "./first-run";
 import { RepoPicker } from "./repo-picker";
@@ -13,7 +14,7 @@ export function CloneDialog({ open, onClose }: { open: boolean; onClose: () => v
 	const { clone } = useProjectActions();
 	const [url, setUrl] = useState("");
 	const [folder, setFolder] = useState("");
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
 
 	const run = async () => {
@@ -24,7 +25,7 @@ export function CloneDialog({ open, onClose }: { open: boolean; onClose: () => v
 			if (message) setError(message);
 			else onClose();
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		} finally {
 			setBusy(false);
 		}
@@ -55,11 +56,7 @@ export function CloneDialog({ open, onClose }: { open: boolean; onClose: () => v
 				onChange={(e) => setUrl(e.target.value)}
 			/>
 			<FolderField path={folder} onPick={setFolder} />
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 		</Dialog>
 	);
 }

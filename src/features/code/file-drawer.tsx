@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { OpenInTerminal } from "@/features/reports/open-in-terminal";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
@@ -232,6 +233,7 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 						</IconButton>
 					</>
 				)}
+				{active ? <OpenInTerminal /> : null}
 				<IconButton label={f.close} onClick={onClose}>
 					<XMarkIcon size={14} />
 				</IconButton>

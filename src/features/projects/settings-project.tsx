@@ -19,6 +19,7 @@ import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { Cog6ToothIcon, FolderOpenIcon, LinkIcon, SunIcon, SwatchIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Settings } from "@/ui/templates/settings";
 import { PersonasEditor } from "./personas";
@@ -75,7 +76,7 @@ function Form({
 			...(saved && !rows.some((c) => c.id === saved) ? [{ value: saved, label: saved }] : []),
 		];
 	};
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<unknown>(null);
 	const saved = draftOf(file);
 	const dirty = file !== null && JSON.stringify(draft) !== JSON.stringify(saved);
 
@@ -105,7 +106,7 @@ function Form({
 			);
 			await qc.invalidateQueries();
 		} catch (e) {
-			setError(e instanceof Error ? e.message : String(e));
+			setError(e);
 		}
 	};
 
@@ -274,11 +275,7 @@ function Form({
 			<ScreensCard />
 			<AutoCommit />
 			<ProjectImport />
-			{error ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 			{dirty ? (
 				<div>
 					<Button variant="primary" onClick={save}>

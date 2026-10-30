@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageExport } from "@/features/reports/page-export";
 import { type QualityReport, useForgeActions, useQuality } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import type { SbomReport } from "@/lib/ipc";
@@ -160,6 +161,7 @@ function QualityView() {
 				icon={<CheckIcon size={16} />}
 				title={t.tabs.code.quality}
 				count={q.checks.length + q.scanners.length}
+				action={<PageExport page="security" />}
 			/>
 			{error ? (
 				<p role="alert" className="px-4 py-2 text-ui text-danger-text">
