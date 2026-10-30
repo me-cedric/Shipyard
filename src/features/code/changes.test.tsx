@@ -165,6 +165,17 @@ describe("Code / Changes", () => {
 		await waitFor(() => expect(screen.queryByRole("heading", { name: /^Conflicts/ })).toBeNull());
 	});
 
+	it("hands the conflicted files to a factory run and shows the new item", async () => {
+		const user = userEvent.setup();
+		await open();
+		const code = seedCode();
+		code.conflicts = [{ path: "x.txt", text: false, segments: [] }];
+		mockState().code = code;
+		mountApp("/code/changes");
+		await user.click(await screen.findByRole("button", { name: "Hand to factory" }));
+		expect(await screen.findByText("Work item SHIP-200 created")).toBeInTheDocument();
+	});
+
 	it("shows the empty state with one action when no project is active", async () => {
 		mountApp("/code/changes");
 		const add = await screen.findByRole("button", { name: "Open a local folder" });

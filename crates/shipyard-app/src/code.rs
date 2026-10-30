@@ -24,6 +24,7 @@ use tauri::AppHandle;
 
 use crate::commands::sync::{active, origin_slug, tracker_source};
 use crate::commands::{AppState, Res, blocking, err};
+use crate::scanners;
 use crate::work::need_click;
 
 /// The message when the project has no forge connection: the view shows one Connect action.
@@ -287,7 +288,7 @@ pub struct OpenedPull {
 
 /// Opens a pull request from the working branch. The branch must be published first.
 pub fn pull_open(s: &AppState, input: OpenPull, click: bool) -> Res<OpenedPull> {
-    need_click(click)?;
+    need_click(s, click)?;
     let (api, slug, conn) = forge(s)?;
     let repo = Repo::open(&root(s)?).map_err(err)?;
     let head = repo
@@ -334,7 +335,7 @@ pub fn pull_open(s: &AppState, input: OpenPull, click: bool) -> Res<OpenedPull> 
 }
 
 pub fn pull_comment(s: &AppState, number: u32, body: &str, click: bool) -> Res<()> {
-    need_click(click)?;
+    need_click(s, click)?;
     let (api, slug, _) = forge(s)?;
     api.comment(&slug, u64::from(number), body).map_err(err)
 }
@@ -346,7 +347,7 @@ pub fn pull_verdict(
     body: &str,
     click: bool,
 ) -> Res<()> {
-    need_click(click)?;
+    need_click(s, click)?;
     let (api, slug, _) = forge(s)?;
     api.verdict(&slug, u64::from(number), verdict, body)
         .map_err(err)
@@ -354,13 +355,13 @@ pub fn pull_verdict(
 
 /// The click is the confirmation that names the method (REQ-022). A draft is refused.
 pub fn pull_merge(s: &AppState, number: u32, method: MergeMethod, click: bool) -> Res<()> {
-    need_click(click)?;
+    need_click(s, click)?;
     let (api, slug, _) = forge(s)?;
     api.merge(&slug, u64::from(number), method).map_err(err)
 }
 
 pub fn pull_ready(s: &AppState, number: u32, click: bool) -> Res<()> {
-    need_click(click)?;
+    need_click(s, click)?;
     let (api, slug, _) = forge(s)?;
     api.mark_ready(&slug, u64::from(number)).map_err(err)
 }
@@ -415,7 +416,7 @@ pub fn quality_view(s: &AppState) -> Res<QualityView> {
             .iter()
             .map(|(n, available)| QualityRow {
                 name: (*n).into(),
-                available: *available,
+                available: *available || scanners::program(n).is_some_and(scanners::installed),
                 last: last(ReportKind::Scanner, n),
             })
             .collect(),
@@ -438,7 +439,7 @@ fn now_iso() -> String {
 
 /// Runs one declared check after the click that names it. It runs nothing else (REQ-026).
 pub fn check_run(s: &AppState, command: &str, click: bool) -> Res<QualityReport> {
-    need_click(click)?;
+    need_click(s, click)?;
     let root = root(s)?;
     if !declared_checks(&root).iter().any(|c| c == command) {
         return Err(format!("`{command}` is not a check of this project"));
@@ -546,24 +547,25 @@ fn scan_files(root: &Path) -> Res<Vec<String>> {
 }
 
 pub fn scan_run(s: &AppState, name: &str, click: bool) -> Res<QualityReport> {
-    need_click(click)?;
-    let Some((_, available)) = SCANNERS.iter().find(|(n, _)| *n == name) else {
+    need_click(s, click)?;
+    let Some((_, builtin)) = SCANNERS.iter().find(|(n, _)| *n == name) else {
         return Err(format!("`{name}` is not a scanner"));
     };
-    if !available {
-        return Err(format!("the scanner `{name}` is not installed"));
-    }
     let root = root(s)?;
     let start = Instant::now();
     let mut findings = Vec::new();
-    for rel in scan_files(&root)? {
-        let Ok(text) = std::fs::read_to_string(root.join(&rel)) else {
-            continue; // binary or unreadable
-        };
-        // The reports of the scanner hold no value, but a report is a file: skip it.
-        if !rel.starts_with(".shipyard/quality/") && text.len() < 2_000_000 {
-            findings.extend(scan_text(&rel, &text));
+    if *builtin {
+        for rel in scan_files(&root)? {
+            let Ok(text) = std::fs::read_to_string(root.join(&rel)) else {
+                continue; // binary or unreadable
+            };
+            // The reports of the scanner hold no value, but a report is a file: skip it.
+            if !rel.starts_with(".shipyard/quality/") && text.len() < 2_000_000 {
+                findings.extend(scan_text(&rel, &text));
+            }
         }
+    } else {
+        findings = scanners::run(name, &root)?;
     }
     let report = QualityReport {
         kind: ReportKind::Scanner,
@@ -665,7 +667,7 @@ pub fn analyze_with(
 }
 
 pub fn impact_analyze(s: &AppState, base: &str, click: bool) -> Res<ImpactEntry> {
-    need_click(click)?;
+    need_click(s, click)?;
     let e = s.registry()?.active().cloned().ok_or("no active project")?;
     let runner = shipyard_store::assistant_defaults::load(&s.dir, &e.id)
         .settings()
@@ -807,6 +809,16 @@ pub async fn code_scan_run(app: AppHandle, name: String, click: bool) -> Res<Qua
 
 #[tauri::command]
 #[specta::specta]
+pub async fn code_scanner_install(app: AppHandle, name: String, click: bool) -> Res<()> {
+    blocking(app, move |s| {
+        need_click(s, click)?;
+        scanners::install(&name)
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn code_impact_refs(app: AppHandle) -> Res<ImpactRefs> {
     blocking(app, impact_refs).await
 }
@@ -893,16 +905,36 @@ mod tests {
         assert!(r.passed && r.tail == "all-green", "{r:?}");
         let v = quality_view(&s).unwrap();
         assert_eq!(v.checks[0].last.as_ref().map(|r| r.passed), Some(true));
+        // The row follows the machine: available exactly when the tool is installed.
+        assert!(v.scanners.iter().any(|x| {
+            x.name == "dependencies" && x.available == scanners::installed("osv-scanner")
+        }));
         assert!(
-            v.scanners
-                .iter()
-                .any(|x| x.name == "dependencies" && !x.available)
-        );
-        assert!(
-            scan_run(&s, "dependencies", true)
+            scan_run(&s, "nope", true)
                 .unwrap_err()
-                .contains("not installed")
+                .contains("not a scanner")
         );
+        if !scanners::installed("osv-scanner") {
+            assert!(
+                scan_run(&s, "dependencies", true)
+                    .unwrap_err()
+                    .contains("not installed")
+            );
+        }
+    }
+
+    #[test]
+    fn a_read_only_profile_blocks_a_write_in_the_backend() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, _) = project(dir.path());
+        assert!(scan_run(&s, "secrets", true).is_ok());
+        let on = shipyard_store::project::Overrides {
+            read_only: Some(true),
+            ..Default::default()
+        };
+        crate::commands::projects::save_overrides(&s, on).unwrap();
+        let e = scan_run(&s, "secrets", true).unwrap_err();
+        assert!(e.contains("read only"), "{e}");
     }
 
     #[test]

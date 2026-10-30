@@ -11,6 +11,7 @@ pub mod extensions;
 pub mod factory;
 pub mod knowledge;
 pub mod questions;
+pub mod scanners;
 mod shell;
 pub mod specs;
 pub mod sync;
@@ -124,6 +125,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::code::code_quality,
             crate::code::code_check_run,
             crate::code::code_scan_run,
+            crate::code::code_scanner_install,
             crate::code::code_impact_refs,
             crate::code::code_impact_list,
             crate::code::code_impact_read,
@@ -271,6 +273,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             asst::assistant_explain,
             asst::assistant_to_factory_preview,
             asst::assistant_to_factory,
+            asst::conflict_to_factory,
             asst::assistant_defaults_get,
             asst::assistant_defaults_set,
             asst::assistant_options,

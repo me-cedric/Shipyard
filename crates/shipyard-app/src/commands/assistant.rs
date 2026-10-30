@@ -144,6 +144,17 @@ pub async fn assistant_to_factory(
     blocking(app, move |s| a::to_factory(s, &thread, workflow, click)).await
 }
 
+/// Hand the conflicted files to a workflow: one work item with the label `wf:<id>`.
+#[tauri::command]
+#[specta::specta]
+pub async fn conflict_to_factory(
+    app: AppHandle,
+    workflow: String,
+    click: bool,
+) -> Res<FactorySend> {
+    blocking(app, move |s| a::conflict_to_factory(s, workflow, click)).await
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn assistant_defaults_get(app: AppHandle) -> Res<AssistantDefaults> {

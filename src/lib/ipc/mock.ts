@@ -58,6 +58,7 @@ import {
 	codeStatus,
 	codeUnstage,
 	codeWatchIntervalSet,
+	conflictToFactory,
 	type MockCode,
 	seedCode,
 } from "./mock-code";
@@ -1073,6 +1074,7 @@ const handlers: Handlers = {
 	codeQuality: () => cp.qualityView(prs()),
 	codeCheckRun: (command, click) => cp.checkRun(prs(), command, click),
 	codeScanRun: (name, click) => cp.scanRun(prs(), name, click),
+	codeScannerInstall: (name, click) => cp.scannerInstall(prs(), name, click),
 	codeImpactRefs: () => cp.impactRefs(code()),
 	codeImpactList: () => cp.impactList(prs()),
 	codeImpactRead: (path) => cp.impactRead(prs(), path),
@@ -1238,6 +1240,7 @@ const handlers: Handlers = {
 	assistantToFactoryPreview: (id) => ai.toFactoryPreview(state.assistant, assistantEnv(), id),
 	assistantToFactory: (id, workflow, click) =>
 		ai.toFactory(state.assistant, assistantEnv(), id, workflow, click),
+	conflictToFactory: (workflow, click) => conflictToFactory(code(), workflow, click),
 	assistantDefaultsGet: () => ai.defaultsGet(state.assistant),
 	assistantDefaultsSet: (d) => ai.defaultsSet(state.assistant, d),
 	assistantOptions: () => ai.options(),

@@ -13,6 +13,7 @@ import {
 	pullReady,
 	pullVerdict,
 	qualityView,
+	scannerInstall,
 	scanRun,
 	seedPrs,
 	terminalClose,
@@ -68,6 +69,10 @@ describe("the Code quality and impact mock", () => {
 		const p = seedPrs();
 		expect(() => checkRun(p, "make-everything-vanish", true)).toThrow("not a check");
 		expect(() => scanRun(p, "dependencies", true)).toThrow("not installed");
+		scannerInstall(p, "dependencies", true);
+		expect(qualityView(p).scanners.find((s) => s.name === "dependencies")?.available).toBe(true);
+		expect(() => scannerInstall(p, "nope", true)).toThrow("not a scanner");
+		expect(scanRun(p, "dependencies", true).findings).toHaveLength(1);
 		const r = scanRun(p, "secrets", true);
 		expect(JSON.stringify(r)).not.toMatch(/ghp_/);
 		expect(qualityView(p).scanners[0]?.last?.findings).toHaveLength(1);

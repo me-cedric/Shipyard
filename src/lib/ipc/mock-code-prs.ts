@@ -41,6 +41,8 @@ export type MockPrs = {
 	terminals: Record<string, string>;
 	listeners: ((id: string, data: string) => void)[];
 	counter: number;
+	/** The scanners that an install click added. */
+	installed: string[];
 };
 
 const sha = (n: number) => `${n}`.padStart(7, "0").padEnd(40, "c");
@@ -141,6 +143,7 @@ export function seedPrs(): MockPrs {
 		terminals: {},
 		listeners: [],
 		counter: 1,
+		installed: [],
 	};
 }
 
@@ -291,7 +294,7 @@ const row = (
 
 export const qualityView = (p: MockPrs): QualityView_Serialize => ({
 	checks: CHECKS.map((n) => row(p, "check", n, true)),
-	scanners: SCANNERS.map(([n, a]) => row(p, "scanner", n, a)),
+	scanners: SCANNERS.map(([n, a]) => row(p, "scanner", n, a || p.installed.includes(n))),
 });
 
 function keep(p: MockPrs, r: QualityReport_Serialize) {
@@ -318,7 +321,7 @@ export function scanRun(p: MockPrs, name: string, click: boolean): QualityReport
 	need(click);
 	const s = SCANNERS.find(([n]) => n === name);
 	if (!s) throw `\`${name}\` is not a scanner`;
-	if (!s[1]) throw `the scanner \`${name}\` is not installed`;
+	if (!s[1] && !p.installed.includes(name)) throw `the scanner \`${name}\` is not installed`;
 	return keep(p, {
 		kind: "scanner",
 		name,
@@ -328,6 +331,14 @@ export function scanRun(p: MockPrs, name: string, click: boolean): QualityReport
 		tail: "1 finding(s)",
 		findings: [{ severity: "high", path: "src/config.ts", line: 40, message: "GitHub token" }],
 	});
+}
+
+/** One install click: the scanner row turns available. */
+export function scannerInstall(p: MockPrs, name: string, click: boolean): null {
+	need(click);
+	if (!SCANNERS.some(([n]) => n === name)) throw `\`${name}\` is not a scanner`;
+	if (!p.installed.includes(name)) p.installed.push(name);
+	return null;
 }
 
 // ------------------------------------------------------------------ impacts

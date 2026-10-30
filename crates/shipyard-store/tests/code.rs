@@ -117,3 +117,21 @@ fn the_watch_interval_is_per_project_personal_and_bounded() {
         "a refused value changes nothing"
     );
 }
+
+#[test]
+fn legacy_impact_notes_and_digests_are_listed() {
+    let dir = tempfile::tempdir().unwrap();
+    let w = |rel: &str| {
+        let p = dir.path().join(rel);
+        std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+        std::fs::write(p, "x").unwrap();
+    };
+    w("docs/delivery/impacts/2026-01-02-login.md");
+    w("docs/delivery/digests/2026-01-02-login.md");
+    w("docs/delivery/impacts/2026-01-03-solo.md");
+    w("docs/delivery/impacts/notes.md");
+    let l = list_impacts(dir.path());
+    assert_eq!(l.len(), 2);
+    assert_eq!((l[0].slug.as_str(), l[0].digest.as_str()), ("solo", ""));
+    assert_eq!(l[1].digest, "docs/delivery/digests/2026-01-02-login.md");
+}

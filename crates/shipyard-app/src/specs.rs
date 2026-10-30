@@ -441,7 +441,7 @@ pub fn fold_answer(
     stamp: &str,
     click: bool,
 ) -> Res<Written> {
-    need_click(click)?;
+    need_click(s, click)?;
     let p = project(s)?;
     let full = path_of(&p, rel)?;
     if !design::is_under(rel, p.file.path("specs")) || !rel.ends_with("/spec.md") {
@@ -547,7 +547,7 @@ pub fn split_preview(s: &AppState, change: &str) -> Res<SplitPreview> {
 /// again from the draft and the mirror, so a second apply finds each ticket by its row ref and
 /// creates none.
 pub fn split_apply(s: &AppState, change: &str, click: bool) -> Res<Vec<ApplyRow>> {
-    need_click(click)?;
+    need_click(s, click)?;
     let d = split_draft(s, change)?;
     let p = project(s)?;
     let problems = split::check(&d, &known_reqs(&p));

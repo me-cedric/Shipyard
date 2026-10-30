@@ -720,7 +720,7 @@ pub fn to_factory(
     workflow: Option<String>,
     click: bool,
 ) -> Res<FactorySend> {
-    crate::work::need_click(click)?;
+    crate::work::need_click(s, click)?;
     let label = match &workflow {
         Some(id) => {
             let label = run_label(id)?;
@@ -732,6 +732,16 @@ pub fn to_factory(
         None => None,
     };
     let (_, row) = thread_row(s, thread)?;
+    create_and_mark(s, row, workflow, label, click)
+}
+
+fn create_and_mark(
+    s: &AppState,
+    row: Row,
+    workflow: Option<String>,
+    label: Option<String>,
+    click: bool,
+) -> Res<FactorySend> {
     let item = crate::work::item_create(s, row, click)?;
     if let Some(e) = &item.error {
         return Err(e.clone());
@@ -740,6 +750,42 @@ pub fn to_factory(
         crate::work::mark_for_run(s, key, id, click)?;
     }
     Ok(FactorySend { item, label })
+}
+
+/// Hand the conflicted files to the factory: one work item that names them, labelled `wf:<id>` so
+/// the factory claims it. Legacy has an agent button only (`conflict-dialog.tsx`). A second click
+/// finds the item by its ref `doc:conflict/merge` and creates none.
+pub fn conflict_to_factory(s: &AppState, workflow: String, click: bool) -> Res<FactorySend> {
+    crate::work::need_click(s, click)?;
+    let label = run_label(&workflow)?;
+    if !crate::factory::workflows(s)?
+        .iter()
+        .any(|w| w.id == workflow)
+    {
+        return Err(format!("no workflow `{workflow}` in this project"));
+    }
+    let files: Vec<String> = crate::commands::code::conflicts(s)?
+        .into_iter()
+        .map(|c| c.path)
+        .collect();
+    if files.is_empty() {
+        return Err("no file is in conflict".into());
+    }
+    let list: String = files.iter().map(|f| format!("- {f}\n")).collect();
+    let row = Row {
+        reference: "doc:conflict/merge".into(),
+        kind: RowKind::Story,
+        title: format!("Resolve the merge conflict in {} file(s)", files.len()),
+        description: scrub(
+            &format!(
+                "Resolve the conflict markers. Keep the intent of both sides.\n\nFiles:\n{list}"
+            ),
+            &secrets(s),
+        ),
+        days: None,
+        parent: None,
+    };
+    create_and_mark(s, row, Some(workflow), Some(label), click)
 }
 
 #[cfg(test)]
@@ -963,6 +1009,15 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
         let claude = o.iter().find(|r| r.runner == "claude").unwrap();
         assert_eq!(claude.models, ["opus", "sonnet", "haiku"]);
         assert!(!claude.efforts.is_empty());
+    }
+
+    #[test]
+    fn a_conflict_hand_off_needs_a_click_a_known_workflow_and_a_conflict() {
+        let f = fx();
+        assert!(conflict_to_factory(&f.s, "w".into(), false).is_err());
+        assert!(conflict_to_factory(&f.s, "../x".into(), true).is_err());
+        let e = conflict_to_factory(&f.s, "nope".into(), true).unwrap_err();
+        assert!(e.contains("no workflow"), "{e}");
     }
 
     #[test]

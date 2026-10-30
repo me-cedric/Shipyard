@@ -68,7 +68,7 @@ export function useImpactText(path: string | null) {
 	return useQuery({
 		queryKey: forgeKeys.impact(path ?? ""),
 		queryFn: () => unwrap(commands.codeImpactRead(path ?? "")),
-		enabled: path !== null,
+		enabled: !!path,
 	});
 }
 
@@ -97,6 +97,7 @@ export function useForgeActions() {
 			ready: (n: number) => run(commands.codePullReady(n, true)),
 			check: (command: string) => run(commands.codeCheckRun(command, true)),
 			scan: (name: string) => run(commands.codeScanRun(name, true)),
+			install: (name: string) => run(commands.codeScannerInstall(name, true)),
 			analyze: (base: string) => run(commands.codeImpactAnalyze(base, true)),
 		};
 	}, [qc]);

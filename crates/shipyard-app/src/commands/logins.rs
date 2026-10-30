@@ -91,7 +91,7 @@ pub fn use_login_with(
     host: &str,
     click: bool,
 ) -> Res<Connection> {
-    need_click(click)?;
+    need_click(s, click)?;
     let kind = match tool {
         "gh" => ConnectionKind::GitHub,
         "glab" => ConnectionKind::GitLab,

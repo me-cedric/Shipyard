@@ -28,7 +28,7 @@ const TILE = {
 function QualityView() {
 	const { t, lang } = useI18n();
 	const q = useQuality().data;
-	const { check, scan } = useForgeActions();
+	const { check, scan, install } = useForgeActions();
 	const { error, run } = useRun();
 	const [confirming, setConfirming] = useState<string | null>(null);
 	const [shown, setShown] = useState<string | null>(null);
@@ -106,7 +106,15 @@ function QualityView() {
 								</Button>
 							)
 						) : (
-							<span className="text-12 text-n-11">{q18.notInstalled}</span>
+							<>
+								<span className="text-12 text-n-11">{q18.notInstalled}</span>
+								<Button
+									aria-label={format(q18.installName, { name: r.name })}
+									onClick={() => void run(() => install(r.name))}
+								>
+									{q18.install}
+								</Button>
+							</>
 						)}
 					</div>
 					{last && shown === key ? (

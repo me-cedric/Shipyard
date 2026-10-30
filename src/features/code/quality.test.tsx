@@ -32,6 +32,15 @@ describe("Code / Quality", () => {
 		expect(screen.queryByRole("button", { name: "Run dependencies" })).toBeNull();
 	});
 
+	it("installs a missing scanner with one click and then offers to run it", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/code/quality");
+		await user.click(await screen.findByRole("button", { name: "Install dependencies" }));
+		expect(await screen.findByRole("button", { name: "Run dependencies" })).toBeInTheDocument();
+		expect(screen.getAllByText("Not installed")).toHaveLength(2);
+	});
+
 	it("runs a check only after a confirmation that names it", async () => {
 		const user = userEvent.setup();
 		await open();

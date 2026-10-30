@@ -9,6 +9,7 @@ import type {
 	CommitInfo,
 	ConflictFile,
 	DiffSide,
+	FactorySend_Serialize,
 	FileChange_Serialize,
 	FileDiff,
 	FileView,
@@ -347,6 +348,26 @@ export function codeBranchSwitch(c: MockCode, name: string) {
 	if (dirty.length) throw `uncommitted changes would be overwritten: ${dirty.join(", ")}`;
 	if (!c.branches[local]) c.branches[local] = { log: [...target.log], touches: [] };
 	c.branch = local;
+}
+
+/** The rules of `conflict_to_factory`: a click, a conflict, a label `wf:<id>`. */
+export function conflictToFactory(
+	c: MockCode,
+	workflow: string,
+	click: boolean,
+): FactorySend_Serialize {
+	if (!click) throw "this change needs the click of a person";
+	if (!c.conflicts.length) throw "no file is in conflict";
+	return {
+		item: {
+			reference: "doc:conflict/merge",
+			action: "create",
+			key: "SHIP-200",
+			error: null,
+			skipped: [],
+		},
+		label: `wf:${workflow}`,
+	};
 }
 
 /** The rules of `Repo::merge_branch`: no tracked change, fast-forward, a merge commit, or conflicts. */

@@ -285,12 +285,19 @@ pub(crate) fn today(s: &AppState) -> String {
     local_day(secs, s.work.offset.load(Ordering::Relaxed))
 }
 
-pub(crate) fn need_click(click: bool) -> Res<()> {
-    if click {
-        Ok(())
-    } else {
-        Err("this change needs the click of a person".into())
+/// A write needs the click of a person, and a project in a read-only profile takes no write
+/// (`Overrides.read_only`).
+pub(crate) fn need_click(s: &AppState, click: bool) -> Res<()> {
+    if !click {
+        return Err("this change needs the click of a person".into());
     }
+    if s.registry()?
+        .active()
+        .is_some_and(|e| e.overrides.read_only == Some(true))
+    {
+        return Err("the profile of this project is read only".into());
+    }
+    Ok(())
 }
 
 // ---------------------------------------------------------------- the tracker
@@ -501,7 +508,7 @@ pub fn suggest(s: &AppState, key: &str) -> Res<Vec<Suggestion>> {
 /// Assign an item to a member: the first tracker account of the member goes to the tracker
 /// (REQ-006). The system never assigns by itself.
 pub fn assign(s: &AppState, key: &str, handle: &str, click: bool) -> Res<()> {
-    need_click(click)?;
+    need_click(s, click)?;
     let c = ctx(s)?;
     let team = c.team().team;
     let m = team
@@ -522,7 +529,7 @@ pub fn assign(s: &AppState, key: &str, handle: &str, click: bool) -> Res<()> {
 
 /// Mark an item for agent work: add the pickup label of `automation.yaml` (REQ-008).
 pub fn mark(s: &AppState, key: &str, click: bool) -> Res<()> {
-    need_click(click)?;
+    need_click(s, click)?;
     let c = ctx(s)?;
     let label = automation_in(&c.root)?
         .pickup
@@ -539,7 +546,7 @@ pub fn mark(s: &AppState, key: &str, click: bool) -> Res<()> {
 /// has one, the pickup label. The factory claims the item. Nothing here starts a run (`assistant`
 /// REQ-015). The caller checks the workflow id.
 pub fn mark_for_run(s: &AppState, key: &str, workflow: &str, click: bool) -> Res<()> {
-    need_click(click)?;
+    need_click(s, click)?;
     let c = ctx(s)?;
     let pickup = automation_in(&c.root)?.pickup.label;
     let t = tracker(s)?;
@@ -555,7 +562,7 @@ pub fn mark_for_run(s: &AppState, key: &str, workflow: &str, click: bool) -> Res
 /// Move an item to a status. The tracker may refuse: the text names the reason and the card
 /// returns (REQ-002).
 pub fn transition(s: &AppState, key: &str, to: &str, click: bool) -> Res<()> {
-    need_click(click)?;
+    need_click(s, click)?;
     let t = tracker(s)?;
     let w = writer(s, &t)?;
     w.transition(key, to).map_err(err)?;
@@ -603,7 +610,7 @@ pub fn ticket_comments(s: &AppState, key: &str) -> Res<Vec<TicketComment>> {
 
 /// Posts a comment. An empty body is refused.
 pub fn ticket_comment_add(s: &AppState, key: &str, body: &str, click: bool) -> Res<()> {
-    need_click(click)?;
+    need_click(s, click)?;
     if body.trim().is_empty() {
         return Err("the comment is empty".into());
     }
@@ -624,7 +631,7 @@ pub fn ticket_edit(
     days: Option<f64>,
     click: bool,
 ) -> Res<Vec<String>> {
-    need_click(click)?;
+    need_click(s, click)?;
     let title = title.map(|t| t.trim().to_string());
     if title.as_deref() == Some("") {
         return Err("the title is empty".into());
@@ -652,7 +659,7 @@ pub fn ticket_edit(
 /// Adds a label. A blank label or one with a space is refused: no tracker keeps a label with a
 /// space in the same way.
 pub fn ticket_label_add(s: &AppState, key: &str, label: &str, click: bool) -> Res<()> {
-    need_click(click)?;
+    need_click(s, click)?;
     let label = label.trim();
     if label.is_empty() || label.contains(char::is_whitespace) {
         return Err("a label is one word".into());
@@ -1198,7 +1205,7 @@ pub fn worklog_send(
     reduce_remaining: bool,
     click: bool,
 ) -> Res<TimeSent> {
-    need_click(click)?;
+    need_click(s, click)?;
     if !(-14 * 60..=14 * 60).contains(&offset_minutes) {
         return Err("the offset is not a time zone offset".into());
     }
@@ -1309,7 +1316,7 @@ pub(crate) fn container(t: &Target) -> Res<&str> {
 /// again from the sheets and the mirror, so a stale preview writes nothing that the sheets no
 /// longer say. A failed row keeps the rows before it. Status and assignee are never written.
 pub fn apply(s: &AppState, slugs: &[String], click: bool) -> Res<Vec<ApplyRow>> {
-    need_click(click)?;
+    need_click(s, click)?;
     let c = ctx(s)?;
     let t = tracker(s)?;
     container(&t)?;
@@ -1356,7 +1363,7 @@ pub fn item_preview(s: &AppState, row: Row) -> Res<DiffRow> {
 /// Create one work item after one click. A second click finds the ticket by its label and
 /// creates none (REQ-029).
 pub fn item_create(s: &AppState, row: Row, click: bool) -> Res<ApplyRow> {
-    need_click(click)?;
+    need_click(s, click)?;
     item_row(&row)?;
     let t = tracker(s)?;
     let scope = container(&t)?;

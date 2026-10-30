@@ -268,7 +268,7 @@ pub fn try_request(s: &AppState, r: &TryRequest, click: bool) -> Res<TryResponse
         m => return Err(format!("method not allowed: {m}")),
     };
     if method != Method::Get {
-        crate::work::need_click(click)?;
+        crate::work::need_click(s, click)?;
     }
     if !r.route.starts_with('/')
         || r.route.starts_with("//")

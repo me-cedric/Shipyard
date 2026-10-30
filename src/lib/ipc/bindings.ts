@@ -105,6 +105,7 @@ export const commands = {
 	codeQuality: () => typedError<QualityView_Serialize, string>(__TAURI_INVOKE("code_quality")),
 	codeCheckRun: (command: string, click: boolean) => typedError<QualityReport_Serialize, string>(__TAURI_INVOKE("code_check_run", { command, click })),
 	codeScanRun: (name: string, click: boolean) => typedError<QualityReport_Serialize, string>(__TAURI_INVOKE("code_scan_run", { name, click })),
+	codeScannerInstall: (name: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("code_scanner_install", { name, click })),
 	codeImpactRefs: () => typedError<ImpactRefs, string>(__TAURI_INVOKE("code_impact_refs")),
 	codeImpactList: () => typedError<ImpactEntry[], string>(__TAURI_INVOKE("code_impact_list")),
 	codeImpactRead: (path: string) => typedError<string, string>(__TAURI_INVOKE("code_impact_read", { path })),
@@ -269,6 +270,8 @@ export const commands = {
 	assistantToFactoryPreview: (thread: string) => typedError<DiffRow_Serialize, string>(__TAURI_INVOKE("assistant_to_factory_preview", { thread })),
 	/**  `workflow` of `null`: a work item. A workflow id: the item gets the label `wf:<id>`. */
 	assistantToFactory: (thread: string, workflow: string | null, click: boolean) => typedError<FactorySend_Serialize, string>(__TAURI_INVOKE("assistant_to_factory", { thread, workflow, click })),
+	/**  Hand the conflicted files to a workflow: one work item with the label `wf:<id>`. */
+	conflictToFactory: (workflow: string, click: boolean) => typedError<FactorySend_Serialize, string>(__TAURI_INVOKE("conflict_to_factory", { workflow, click })),
 	assistantDefaultsGet: () => typedError<AssistantDefaults_Serialize, string>(__TAURI_INVOKE("assistant_defaults_get")),
 	assistantDefaultsSet: (defaults: AssistantDefaults_Deserialize) => typedError<AssistantDefaults_Serialize, string>(__TAURI_INVOKE("assistant_defaults_set", { defaults })),
 	assistantOptions: () => typedError<RunnerOptions[], string>(__TAURI_INVOKE("assistant_options")),

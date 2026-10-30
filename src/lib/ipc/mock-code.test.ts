@@ -15,6 +15,7 @@ import {
 	codeStatus,
 	codeUnstage,
 	codeWatchIntervalSet,
+	conflictToFactory,
 	seedCode,
 	unifiedDiff,
 } from "./mock-code";
@@ -126,5 +127,15 @@ describe("the Code mock", () => {
 		expect(codeStatus(c)).toMatchObject({ rebasing: false });
 		expect(() => codeRebaseAbort(c)).toThrow("no rebase");
 		expect(codeBlame(c, "src/app.ts").length).toBeGreaterThan(0);
+	});
+});
+
+describe("the conflict hand-off to the factory", () => {
+	it("needs a click and a conflict, and labels the item with the workflow", () => {
+		const c = seedCode();
+		expect(() => conflictToFactory(c, "build", false)).toThrow("click");
+		expect(() => conflictToFactory(c, "build", true)).toThrow("no file is in conflict");
+		c.conflicts = [{ path: "a.ts", text: true, segments: [] }];
+		expect(conflictToFactory(c, "build", true).label).toBe("wf:build");
 	});
 });
