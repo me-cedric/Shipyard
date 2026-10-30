@@ -20,7 +20,11 @@ export type MockDeliveryActions = {
 	devices: string[];
 };
 
-export const seedDeliveryActions = (): MockDeliveryActions => ({ origin: null, editors: [], devices: [] });
+export const seedDeliveryActions = (): MockDeliveryActions => ({
+	origin: null,
+	editors: [],
+	devices: [],
+});
 
 const need = (click: boolean) => {
 	if (!click) throw CLICK;
@@ -95,7 +99,12 @@ export function devicePoll(w: MockDeliveryActions, deviceCode: string): DeviceSt
 
 export const editors = (): Editor[] => [{ id: "vscode", name: "Visual Studio Code" }];
 
-export function editorOpen(w: MockDeliveryActions, editor: string | null, path: string, line: number | null) {
+export function editorOpen(
+	w: MockDeliveryActions,
+	editor: string | null,
+	path: string,
+	line: number | null,
+) {
 	if (!path || path.startsWith("-") || path.startsWith("/") || path.split("/").includes(".."))
 		throw `path not allowed: ${path}`;
 	w.editors.push({ editor, path, line });

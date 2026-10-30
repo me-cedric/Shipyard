@@ -67,6 +67,7 @@ import {
 } from "./mock-code";
 import * as cp from "./mock-code-prs";
 import * as dv from "./mock-delivery";
+import * as deliveryActions from "./mock-delivery-actions";
 import * as design from "./mock-design";
 import * as dr from "./mock-doctor";
 import * as ex from "./mock-extensions";
@@ -93,7 +94,6 @@ import {
 	syncState,
 	unlink as syncUnlink,
 } from "./mock-sync";
-import * as deliveryActions from "./mock-delivery-actions";
 import * as work from "./mock-work";
 
 type Bindings = typeof commands;
@@ -1547,7 +1547,8 @@ const handlers: Handlers = {
 		);
 		return `${change}0000000`;
 	},
-	deviceLoginStart: (id, click) => deliveryActions.deviceStart(state.deliveryActions, state.connections, id, click),
+	deviceLoginStart: (id, click) =>
+		deliveryActions.deviceStart(state.deliveryActions, state.connections, id, click),
 	deviceLoginPoll: (id, deviceCode) => {
 		const done = deliveryActions.devicePoll(state.deliveryActions, deviceCode);
 		const c = conn(id);
@@ -1557,7 +1558,8 @@ const handlers: Handlers = {
 		return done;
 	},
 	editorsList: () => deliveryActions.editors(),
-	editorOpen: (editor, path, line) => deliveryActions.editorOpen(state.deliveryActions, editor, path, line),
+	editorOpen: (editor, path, line) =>
+		deliveryActions.editorOpen(state.deliveryActions, editor, path, line),
 	openLink: (url) => deliveryActions.link(state.openedPages, url),
 	assistantGrant: (id) => ai.grant(state.assistant, assistantEnv(), id),
 	assistantRetry: (id) => ai.retry(state.assistant, assistantEnv(), id),

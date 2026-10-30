@@ -102,7 +102,9 @@ describe("Code: open a file in the editor", () => {
 		renderApp(<OpenInEditor path="src/app.ts" line={12} />);
 		await user.click(await screen.findByRole("button", { name: "Open in Visual Studio Code" }));
 		await waitFor(() =>
-			expect(mockState().deliveryActions.editors).toEqual([{ editor: "vscode", path: "src/app.ts", line: 12 }]),
+			expect(mockState().deliveryActions.editors).toEqual([
+				{ editor: "vscode", path: "src/app.ts", line: 12 },
+			]),
 		);
 	});
 
