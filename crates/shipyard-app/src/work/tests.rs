@@ -1581,6 +1581,7 @@ fn a_ticket_thread_reads_comments_posts_one_edits_the_title_and_adds_a_label() {
     assert!(ticket_edit(&f.s, "PROJ-5", Some(" ".into()), None, None, true).is_err());
     assert!(ticket_edit(&f.s, "PROJ-5", None, None, Some(-1.0), true).is_err());
     assert!(ticket_label_add(&f.s, "PROJ-5", "two words", true).is_err());
+    assert!(ticket_label_add(&f.s, "PROJ-5", "a,b", true).is_err());
     assert!(ticket_label_add(&f.s, "PROJ-5", "x", false).is_err());
     assert_eq!(f.writes(), writes, "no refused call reached the tracker");
 
@@ -1603,6 +1604,7 @@ fn a_ticket_thread_reads_comments_posts_one_edits_the_title_and_adds_a_label() {
     assert!(caps.remove_label && caps.priority && caps.status && caps.assignee);
     assert!(ticket_label_remove(&f.s, "PROJ-5", "urgent", false).is_err());
     assert!(ticket_label_remove(&f.s, "PROJ-5", "two words", true).is_err());
+    assert!(ticket_label_remove(&f.s, "PROJ-5", "a,b", true).is_err());
     assert!(ticket_priority_set(&f.s, "PROJ-5", "high", false).is_err());
     ticket_label_remove(&f.s, "PROJ-5", "urgent", true).unwrap();
     ticket_priority_set(&f.s, "PROJ-5", "high", true).unwrap();

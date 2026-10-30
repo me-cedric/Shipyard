@@ -393,8 +393,10 @@ pub fn decisions_from_json(text: &str, slug_of: impl Fn(&str) -> Option<String>)
     d
 }
 
-/// The Legacy plan text for `d`. A task entry of `old` keeps its duration, predecessors and note.
-pub fn plan_json(d: &Decisions, old: Option<&str>) -> String {
+/// The Legacy plan text for `d`. A task entry of `old` keeps its duration, predecessors, note and
+/// members after the first. `before` is what Shipyard read from `old`: only a task that `before`
+/// holds and `d` dropped is cleared. A task that Shipyard did not read stays as it is.
+pub fn plan_json(d: &Decisions, before: &Decisions, old: Option<&str>) -> String {
     let old: Value = old
         .and_then(|t| serde_json::from_str(t).ok())
         .unwrap_or(Value::Null);
@@ -405,8 +407,9 @@ pub fn plan_json(d: &Decisions, old: Option<&str>) -> String {
     for t in &mut tasks {
         let Some(o) = t.as_object_mut() else { continue };
         let id = o.get("taskId").and_then(Value::as_str).map(slug);
-        // A decision that was dropped clears the pin and the member only.
-        if !d.tasks.keys().any(|k| id_of(k) == id) {
+        // A decision that was dropped clears the pin and the members only.
+        let has = |x: &Decisions| x.tasks.keys().any(|k| id_of(k) == id);
+        if has(before) && !has(d) {
             o.insert("memberIds".into(), json!([]));
             o.insert("anchor".into(), json!("auto"));
             o.insert("anchorDate".into(), json!(""));
@@ -427,10 +430,21 @@ pub fn plan_json(d: &Decisions, old: Option<&str>) -> String {
                 o.insert("note".into(), json!(""));
                 o
             });
-        o.insert(
-            "memberIds".into(),
-            json!(dec.member.iter().collect::<Vec<_>>()),
-        );
+        // Only the first member is a decision of Shipyard: the others stay.
+        let mut members: Vec<Value> = o
+            .get("memberIds")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
+        match &dec.member {
+            Some(m) if members.is_empty() => members.push(json!(m)),
+            Some(m) => members[0] = json!(m),
+            None if !members.is_empty() => {
+                members.remove(0);
+            }
+            None => {}
+        }
+        o.insert("memberIds".into(), Value::Array(members));
         o.insert(
             "anchor".into(),
             json!(if dec.start.is_some() {
@@ -476,12 +490,21 @@ mod plan_tests {
         assert_eq!(d.tasks["est:app#t1"].start.as_deref(), Some("2026-11-02"));
         assert_eq!(d.tasks["est:app#t1"].member.as_deref(), Some("ada"));
         let mut d2 = d.clone();
-        d2.tasks.get_mut("est:app#t1").unwrap().start = None;
-        let back: Value = serde_json::from_str(&plan_json(&d2, Some(old))).unwrap();
+        let t1 = d2.tasks.get_mut("est:app#t1").unwrap();
+        t1.start = None;
+        t1.member = Some("cy".into());
+        let back: Value = serde_json::from_str(&plan_json(&d2, &d, Some(old))).unwrap();
         assert_eq!(back["tasks"][0]["note"], "keep");
         assert_eq!(back["tasks"][0]["durationDays"], 4);
         assert_eq!(back["tasks"][0]["anchor"], "auto");
-        // A task that the decisions do not name loses only its member and pin.
-        assert_eq!(back["tasks"][1]["memberIds"], json!([]));
+        // Only the first member changes.
+        assert_eq!(back["tasks"][0]["memberIds"], json!(["cy", "bob"]));
+        // A task that Shipyard did not read keeps its fields.
+        assert_eq!(back["tasks"][1]["memberIds"], json!(["ada"]));
+        // A task that had a decision and lost it loses its members and pin.
+        let gone = plan_json(&Decisions::default(), &d, Some(old));
+        let gone: Value = serde_json::from_str(&gone).unwrap();
+        assert_eq!(gone["tasks"][0]["memberIds"], json!([]));
+        assert_eq!(gone["tasks"][1]["memberIds"], json!(["ada"]));
     }
 }

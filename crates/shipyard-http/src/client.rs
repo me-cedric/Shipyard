@@ -42,11 +42,12 @@ pub fn set_extra_ca(path: Option<std::path::PathBuf>) {
     *EXTRA_CA.lock().unwrap_or_else(|e| e.into_inner()) = path;
 }
 
-/// How many certificates a PEM text holds. Zero means the file is not a bundle.
-pub fn count_pem_certs(pem: &[u8]) -> usize {
+/// How many certificates a PEM text holds. Zero means the file is not a bundle. A block that does
+/// not parse is an error: `tls_config` would refuse the same bundle.
+pub fn count_pem_certs(pem: &[u8]) -> Result<usize, String> {
     rustls_pemfile::certs(&mut std::io::BufReader::new(pem))
-        .filter(Result::is_ok)
-        .count()
+        .try_fold(0, |n, c| c.map(|_| n + 1))
+        .map_err(|e| e.to_string())
 }
 
 /// The OS trust store plus the PEM bundle that a variable names, or the one added in Settings.
@@ -204,7 +205,13 @@ mod tests {
 
     #[test]
     fn text_without_a_certificate_counts_zero() {
-        assert_eq!(count_pem_certs(b"not a certificate"), 0);
+        assert_eq!(count_pem_certs(b"not a certificate"), Ok(0));
+    }
+
+    #[test]
+    fn a_truncated_block_is_an_error() {
+        let pem = b"-----BEGIN CERTIFICATE-----\nMIIB\n";
+        assert!(count_pem_certs(pem).is_err());
     }
 
     #[test]

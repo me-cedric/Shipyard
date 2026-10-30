@@ -694,13 +694,13 @@ pub fn ticket_edit(
     Ok(done.skipped.iter().map(|f| format!("{f:?}")).collect())
 }
 
-/// Adds a label. A blank label or one with a space is refused: no tracker keeps a label with a
-/// space in the same way.
+/// Adds a label. A blank label or one with a space or a comma is refused: no tracker keeps such a
+/// label in the same way, and GitLab splits a list at the comma.
 pub fn ticket_label_add(s: &AppState, key: &str, label: &str, click: bool) -> Res<()> {
     need_click(s, click)?;
     let label = label.trim();
-    if label.is_empty() || label.contains(char::is_whitespace) {
-        return Err("a label is one word".into());
+    if label.is_empty() || label.contains(|c: char| c.is_whitespace() || c == ',') {
+        return Err("a label is one word without a comma".into());
     }
     let t = tracker(s)?;
     let w = writer(s, &t)?;
@@ -736,12 +736,12 @@ pub fn ticket_edit_caps(s: &AppState) -> Res<TicketEditCaps> {
     })
 }
 
-/// Removes a label. A blank label or one with a space is refused, as for the add.
+/// Removes a label. A blank label or one with a space or a comma is refused, as for the add.
 pub fn ticket_label_remove(s: &AppState, key: &str, label: &str, click: bool) -> Res<()> {
     need_click(s, click)?;
     let label = label.trim();
-    if label.is_empty() || label.contains(char::is_whitespace) {
-        return Err("a label is one word".into());
+    if label.is_empty() || label.contains(|c: char| c.is_whitespace() || c == ',') {
+        return Err("a label is one word without a comma".into());
     }
     let t = tracker(s)?;
     let w = writer(s, &t)?;
@@ -1133,8 +1133,11 @@ pub fn decisions_save(s: &AppState, decisions: &Decisions) -> Res<()> {
     let c = ctx(s)?;
     let text = write_decisions(decisions).map_err(err)?;
     if c.json_only(DECISIONS_PATH, LEGACY_PLAN) {
-        let old = c.read(LEGACY_PLAN)?;
-        return c.write(LEGACY_PLAN, &legacy::plan_json(decisions, old.as_deref()));
+        let (old, before) = (c.read(LEGACY_PLAN)?, c.decisions()?);
+        return c.write(
+            LEGACY_PLAN,
+            &legacy::plan_json(decisions, &before, old.as_deref()),
+        );
     }
     c.write(DECISIONS_PATH, &text)
 }

@@ -342,7 +342,7 @@ fn adr(root: &Path, name: &str, args: &Value) -> Result<String, String> {
                 .iter()
                 .find(|a| a.number == n)
                 .ok_or_else(|| format!("no ADR {n}"))?;
-            std::fs::read_to_string(root.join(&a.path)).map_err(|e| e.to_string())
+            std::fs::read_to_string(inside(root, &a.path)?).map_err(|e| e.to_string())
         }
         _ => {
             let title = arg(args, "title").ok_or("title is required")?.trim();
@@ -715,5 +715,21 @@ mod tests {
                 .contains("status: proposed")
         );
         assert!(call(&o, "adr_propose", &json!({ "title": "a\nb" })).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn an_adr_that_links_out_of_the_project_is_not_read() {
+        let (dir, other) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let o = open(dir.path(), all());
+        call(&o, "adr_propose", &json!({ "title": "Use SQLite" })).unwrap();
+        let outside = other.path().join("secret.md");
+        std::fs::write(&outside, "---\nstatus: proposed\n---\n# Out\n").unwrap();
+        let dec = std::fs::read_dir(dir.path().join("docs/decisions")).unwrap();
+        let adr = dec.flatten().next().unwrap().path();
+        std::fs::remove_file(&adr).unwrap();
+        std::os::unix::fs::symlink(&outside, &adr).unwrap();
+        let err = call(&o, "adr_read", &json!({ "number": "0001" })).unwrap_err();
+        assert!(err.contains("leaves the project"), "{err}");
     }
 }

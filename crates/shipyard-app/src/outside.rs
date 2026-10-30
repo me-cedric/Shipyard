@@ -151,11 +151,25 @@ fn ticket_tool(name: &str, args: &Value) -> Result<String, String> {
             ))
         }
         _ => {
+            let root = s.registry()?.active().map(|e| PathBuf::from(&e.path));
+            comment_switch(&root.ok_or("no active project")?)?;
             let body = args.get("body").and_then(Value::as_str).unwrap_or("");
             crate::work::ticket_comment_add(&s, key, body, true)?;
             Ok("comment added".into())
         }
     }
+}
+
+/// A tracker write needs a durable permission: the `tracker_comment` switch of `automation.yaml`.
+/// The group switch of this server is not that permission.
+fn comment_switch(root: &Path) -> Result<(), String> {
+    if crate::commands::sync::automation_in(root)?
+        .writes
+        .tracker_comment
+    {
+        return Ok(());
+    }
+    Err("tracker_comment is off in automation.yaml".into())
 }
 
 static LIVE: Mutex<Option<Live>> = Mutex::new(None);
@@ -493,6 +507,24 @@ mod tests {
         let mode = std::fs::metadata(&path).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o600);
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "secret");
+    }
+
+    #[test]
+    fn a_comment_needs_the_tracker_comment_switch() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(
+            comment_switch(dir.path())
+                .unwrap_err()
+                .contains("tracker_comment")
+        );
+        let file = dir.path().join(".shipyard");
+        std::fs::create_dir_all(&file).unwrap();
+        std::fs::write(
+            file.join("automation.yaml"),
+            "writes:\n  tracker_comment: true\n",
+        )
+        .unwrap();
+        assert!(comment_switch(dir.path()).is_ok());
     }
 
     #[test]

@@ -25,7 +25,7 @@ fn bundle(s: &AppState) -> PathBuf {
 }
 
 pub fn status(s: &AppState) -> CertStatus {
-    let count = std::fs::read(bundle(s)).map_or(0, |b| count_pem_certs(&b));
+    let count = std::fs::read(bundle(s)).map_or(0, |b| count_pem_certs(&b).unwrap_or(0));
     CertStatus {
         added: count > 0,
         count: u32::try_from(count).unwrap_or(u32::MAX),
@@ -47,7 +47,7 @@ pub fn import(s: &AppState, source: &Path, click: bool) -> Res<CertStatus> {
         return Err("the certificate file is not a file under 1 MB".into());
     }
     let bytes = std::fs::read(source).map_err(err)?;
-    if count_pem_certs(&bytes) == 0 {
+    if count_pem_certs(&bytes).map_err(|e| format!("a PEM block is not valid: {e}"))? == 0 {
         return Err("the file holds no PEM certificate".into());
     }
     write_atomic(&bundle(s), &bytes).map_err(err)?;
@@ -98,6 +98,16 @@ mod tests {
         std::fs::write(&file, "hello").unwrap();
         assert!(import(&s, &file, true).is_err());
         assert!(!status(&s).added);
+    }
+
+    #[test]
+    fn a_bundle_with_a_truncated_block_is_refused_and_nothing_is_copied() {
+        let tmp = tempfile::tempdir().unwrap();
+        let s = AppState::new(tmp.path().join("data"));
+        let file = tmp.path().join("x.pem");
+        std::fs::write(&file, "-----BEGIN CERTIFICATE-----\nMIIB\n").unwrap();
+        assert!(import(&s, &file, true).unwrap_err().contains("not valid"));
+        assert!(!bundle(&s).exists());
     }
 
     #[test]

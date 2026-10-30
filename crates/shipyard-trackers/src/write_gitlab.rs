@@ -114,6 +114,9 @@ impl TrackerWrite for GitLab {
 
     fn remove_label(&self, key: &str, label: &str) -> Result<(), TrackerError> {
         self.capabilities().require(Capability::Labels)?;
+        if label.contains(',') {
+            return Err(TrackerError::Config("a GitLab label holds no comma".into()));
+        }
         self.write(
             Method::Put,
             &Self::issue_path(key)?,

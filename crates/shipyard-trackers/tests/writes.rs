@@ -78,6 +78,10 @@ fn gitlab_assigns_by_user_id_and_adds_a_label_without_replacing_the_others() {
         w.add_label("acme/web#12", "a,b"),
         Err(TrackerError::Config(_))
     ));
+    assert!(matches!(
+        w.remove_label("acme/web#12", "a,b"),
+        Err(TrackerError::Config(_))
+    ));
     assert_eq!(writes(&fake).len(), 2);
     assert_eq!(fake.requests()[0].method, Method::Put);
 }
