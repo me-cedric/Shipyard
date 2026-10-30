@@ -119,6 +119,9 @@ export const commands = {
 	terminalClose: (id: string) => typedError<null, string>(__TAURI_INVOKE("terminal_close", { id })),
 	/**  Ends the shells of an earlier page load: the page starts, and no shell of it is open. */
 	terminalCloseAll: () => typedError<null, string>(__TAURI_INVOKE("terminal_close_all")),
+	terminalApps: () => typedError<TerminalApp[], string>(__TAURI_INVOKE("terminal_apps")),
+	/**  Opens the terminal app of the preferences in a folder of the open project. */
+	terminalLaunch: (folder: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("terminal_launch", { folder, click })),
 	runnersList: () => typedError<Runner_Serialize[], string>(__TAURI_INVOKE("runners_list")),
 	providersList: () => typedError<Provider[], string>(__TAURI_INVOKE("providers_list")),
 	providersAdd: (draft: ProviderDraft) => typedError<Provider, string>(__TAURI_INVOKE("providers_add", { draft })),
@@ -331,6 +334,27 @@ export const commands = {
 	exportDossierFile: (text: ExportText, views: ViewImage[], path: string) => typedError<null, string>(__TAURI_INVOKE("export_dossier_file", { text, views, path })),
 	exportFunctionalFile: (text: ExportText, path: string) => typedError<null, string>(__TAURI_INVOKE("export_functional_file", { text, path })),
 	exportSheetFile: (text: ExportText, sheets: SheetIn[], path: string) => typedError<null, string>(__TAURI_INVOKE("export_sheet_file", { text, sheets, path })),
+	/**
+	 *  The dossier with every section gathered by the app. Seven titles in `text.sections`. It needs
+	 *  the click of a person. `views` may be empty.
+	 */
+	exportDossierCompleteFile: (text: ExportText, views: ViewImage[], path: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("export_dossier_complete_file", { text, views, path, click })),
+	/**  The estimate sheets as an `.xlsx`: days, no money. */
+	exportCostingFile: (text: ExportText, path: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("export_costing_file", { text, path, click })),
+	/**  The network flows as an `.xlsx`, one worksheet for each flow file. */
+	exportFlowsFile: (text: ExportText, path: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("export_flows_file", { text, path, click })),
+	/**  The RAID register as an `.xlsx`. */
+	exportRaidFile: (text: ExportText, path: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("export_raid_file", { text, path, click })),
+	/**  The plan of one estimate sheet as an `.xlsx`. */
+	exportScheduleFile: (text: ExportText, slug: string, path: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("export_schedule_file", { text, slug, path, click })),
+	/**  The Gantt of one estimate sheet as an `.svg`. */
+	exportGanttFile: (text: ExportText, slug: string, path: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("export_gantt_file", { text, slug, path, click })),
+	/**  The security findings as an `.xlsx`, one worksheet for each scanner. */
+	exportSecurityFile: (text: ExportText, path: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("export_security_file", { text, path, click })),
+	/**  The work done between two refs as an `.xlsx`. `from` and `to` are `YYYY-MM-DD` and required. */
+	exportWorkDoneFile: (text: ExportText, base: string, head: string, from: string, to: string, path: string, click: boolean) => typedError<null, string>(__TAURI_INVOKE("export_work_done_file", { text, base, head, from, to, path, click })),
+	/**  Writes the change request files in the delivery folder of the project. */
+	exportChangeRequestFiles: (title: string, base: string, head: string, approvers: string[], click: boolean) => typedError<ChangeRequestOut, string>(__TAURI_INVOKE("export_change_request_files", { title, base, head, approvers, click })),
 	compassGet: () => typedError<Compass_Serialize | null, string>(__TAURI_INVOKE("compass_get")),
 	compassPreview: (kind: EntryKind, id: string) => typedError<string, string>(__TAURI_INVOKE("compass_preview", { kind, id })),
 	compassApply: (entries: string[]) => typedError<CompassApplied, string>(__TAURI_INVOKE("compass_apply", { entries })),
@@ -968,6 +992,14 @@ export type ChainWatch = {
 	/**  The revision that the changes are counted from. */
 	base: string,
 	warnings: ChainWarning[],
+};
+
+/**  The files of one change request, as paths relative to the project. */
+export type ChangeRequestOut = {
+	/**  `CR-003`. */
+	id: string,
+	markdown: string,
+	docx: string,
 };
 
 export type ChangeView = ChangeView_Serialize | ChangeView_Deserialize;
@@ -2652,6 +2684,7 @@ export type PrefsPatch_Deserialize = {
 	codeFont?: string | null,
 	terminalShell?: string | null,
 	terminalFont?: string | null,
+	terminalApp?: string | null,
 	terminalFontSize?: number | null,
 	defaultAgent?: string | null,
 	defaultModel?: string | null,
@@ -2674,6 +2707,7 @@ export type PrefsPatch_Serialize = {
 	codeFont: string | null,
 	terminalShell: string | null,
 	terminalFont: string | null,
+	terminalApp: string | null,
 	terminalFontSize: number | null,
 	defaultAgent: string | null,
 	defaultModel: string | null,
@@ -2709,6 +2743,11 @@ export type Prefs_Deserialize = {
 	terminalShell?: string,
 	/**  Extra font family for the terminal, ahead of the code font. */
 	terminalFont?: string,
+	/**
+	 *  Id of the outside terminal app that "open a terminal here" starts (`iterm2`, `warp`...).
+	 *  Empty means the first one found on the machine.
+	 */
+	terminalApp?: string,
 	terminalFontSize?: number,
 	/**  Id of the agent CLI that new work starts with. Empty means the first one found. */
 	defaultAgent?: string,
@@ -2745,6 +2784,11 @@ export type Prefs_Serialize = {
 	terminalShell: string,
 	/**  Extra font family for the terminal, ahead of the code font. */
 	terminalFont: string,
+	/**
+	 *  Id of the outside terminal app that "open a terminal here" starts (`iterm2`, `warp`...).
+	 *  Empty means the first one found on the machine.
+	 */
+	terminalApp: string,
 	terminalFontSize: number,
 	/**  Id of the agent CLI that new work starts with. Empty means the first one found. */
 	defaultAgent: string,
@@ -4144,6 +4188,12 @@ export type Term = {
 	meaning: string,
 	/**  The spec that defines it. */
 	spec: string,
+};
+
+export type TerminalApp = {
+	/**  The value of `Prefs::terminal_app`. */
+	id: string,
+	label: string,
 };
 
 /**

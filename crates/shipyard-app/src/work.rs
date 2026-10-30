@@ -963,6 +963,48 @@ pub(crate) fn sheets_for_export(s: &AppState) -> Res<Vec<(String, Res<Sheet>)>> 
         .collect())
 }
 
+/// The estimate sheets as the files of `docs/costing` stood at `rev`: the slug and the sheet, or
+/// why it cannot be read. A YAML sheet hides the JSON sheet of the same slug, as on disk.
+pub(crate) fn sheets_at(
+    s: &AppState,
+    repo: &shipyard_git::Repo,
+    rev: &str,
+) -> Res<Vec<(String, Res<Sheet>)>> {
+    let c = ctx(s)?;
+    let files = repo
+        .files_at(rev, "docs/costing", 500, MAX_BYTES)
+        .map_err(err)?;
+    let mut found: BTreeMap<String, (bool, String)> = BTreeMap::new();
+    for (path, text) in files {
+        let Some(name) = path.strip_prefix("docs/costing/") else {
+            continue;
+        };
+        let (slug, yaml) = match (name.strip_suffix(".yaml"), name.strip_suffix(".json")) {
+            (Some(slug), _) => (slug, true),
+            (_, Some(slug)) => (slug, false),
+            _ => continue,
+        };
+        if sheet_path(slug).is_ok() && !found.get(slug).is_some_and(|(y, _)| *y) {
+            found.insert(slug.into(), (yaml, text));
+        }
+    }
+    let roles = project_import::roles(&c.root);
+    Ok(found
+        .into_iter()
+        .map(|(slug, (yaml, text))| {
+            let sheet = if yaml {
+                c.with_sealer(|sealer| read_sheet_with(&text, sealer))
+                    .map_err(err)
+            } else {
+                serde_json::from_str(&text)
+                    .map(|v| project_import::sheet(&v, &slug, &roles))
+                    .map_err(|e| format!("{slug}: {e}"))
+            };
+            (slug, sheet)
+        })
+        .collect())
+}
+
 pub fn list_sheets(s: &AppState) -> Res<Vec<SheetItem>> {
     let c = ctx(s)?;
     let rates = work::role_rates(&c.team().team);

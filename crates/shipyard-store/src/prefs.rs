@@ -125,6 +125,10 @@ pub struct Prefs {
     /// Extra font family for the terminal, ahead of the code font.
     #[serde(default)]
     pub terminal_font: String,
+    /// Id of the outside terminal app that "open a terminal here" starts (`iterm2`, `warp`...).
+    /// Empty means the first one found on the machine.
+    #[serde(default)]
+    pub terminal_app: String,
     #[serde(default = "default_terminal_font_size")]
     pub terminal_font_size: u8,
     /// Id of the agent CLI that new work starts with. Empty means the first one found.
@@ -179,6 +183,7 @@ impl Default for Prefs {
             code_font: String::new(),
             terminal_shell: String::new(),
             terminal_font: String::new(),
+            terminal_app: String::new(),
             terminal_font_size: default_terminal_font_size(),
             default_agent: String::new(),
             default_model: String::new(),
@@ -205,6 +210,7 @@ pub struct PrefsPatch {
     pub code_font: Option<String>,
     pub terminal_shell: Option<String>,
     pub terminal_font: Option<String>,
+    pub terminal_app: Option<String>,
     pub terminal_font_size: Option<u8>,
     pub default_agent: Option<String>,
     pub default_model: Option<String>,
@@ -269,6 +275,15 @@ impl Prefs {
         }
         if let Some(f) = p.terminal_font {
             self.terminal_font = clean_font(&f);
+        }
+        // An id is lower case letters, digits and `-`. The launcher refuses an id that it does not know.
+        if let Some(v) = p.terminal_app {
+            self.terminal_app = v
+                .trim()
+                .chars()
+                .filter(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '-')
+                .take(40)
+                .collect();
         }
         if let Some(n) = p.terminal_font_size {
             self.terminal_font_size =
@@ -408,6 +423,7 @@ mod tests {
             terminal_font: Some("Meslo{};LGS".into()),
             terminal_font_size: Some(90),
             terminal_shell: Some(" /bin/zsh ".into()),
+            terminal_app: Some(" iterm2;rm ".into()),
             default_agent: Some("claude".into()),
             default_model: Some("opus".into()),
             ..Default::default()
@@ -416,6 +432,7 @@ mod tests {
         assert_eq!(p.terminal_font, "MesloLGS");
         assert_eq!(p.terminal_font_size, 24);
         assert_eq!(p.terminal_shell, "/bin/zsh");
+        assert_eq!(p.terminal_app, "iterm2rm", "only a-z, 0-9 and `-` stay");
         let dir = tempfile::tempdir().unwrap();
         p.save(dir.path()).unwrap();
         let q = Prefs::load(dir.path());

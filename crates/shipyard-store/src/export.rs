@@ -183,6 +183,39 @@ pub fn api_rows(text: &str) -> std::result::Result<Vec<Vec<String>>, String> {
     Ok(rows)
 }
 
+/// The tables of a DBML file: a name and the rows column, type and attributes. A `Note`, an
+/// `indexes` block and any block that is not a `Table` are left out.
+pub fn dbml_tables(text: &str) -> Vec<(String, Vec<Vec<String>>)> {
+    let mut out: Vec<(String, Vec<Vec<String>>)> = Vec::new();
+    let (mut depth, mut in_table) = (0i32, false);
+    for raw in text.lines() {
+        let l = raw.trim();
+        if l.starts_with("//") {
+            continue;
+        }
+        let delta = l.matches('{').count() as i32 - l.matches('}').count() as i32;
+        if depth == 0 {
+            in_table = l.starts_with("Table ") || l.starts_with("table ");
+            if in_table {
+                let name = l[6..].split(['{', ' ']).next().unwrap_or("");
+                out.push((name.trim_matches('"').to_string(), Vec::new()));
+            }
+        } else if in_table && depth == 1 && delta == 0 && !l.is_empty() && !l.starts_with("Note") {
+            let (name, rest) = l.split_once(char::is_whitespace).unwrap_or((l, ""));
+            let (ty, attrs) = rest.split_once('[').unwrap_or((rest, ""));
+            if let Some((_, rows)) = out.last_mut() {
+                rows.push(vec![
+                    name.trim_matches('"').into(),
+                    ty.trim().into(),
+                    attrs.trim_end().trim_end_matches(']').into(),
+                ]);
+            }
+        }
+        depth = (depth + delta).max(0);
+    }
+    out
+}
+
 // ---------------------------------------------------------------- Markdown
 
 fn cells(line: &str) -> Vec<String> {
@@ -425,4 +458,23 @@ pub fn xlsx_bytes(m: &Meta, sheets: &[SheetOut]) -> Result<Vec<u8>> {
     }
     wb.save_to_buffer()
         .map_err(|e| crate::Error::from(e.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::dbml_tables;
+
+    #[test]
+    fn dbml_tables_give_columns_and_skip_notes_indexes_and_other_blocks() {
+        let t = dbml_tables(
+            "Enum kind {\n  a\n}\nTable users as U {\n  id integer [pk, not null]\n  \"name\" varchar\n  Note: 'x'\n  indexes {\n    id\n  }\n}\nTable b {\n  x int\n}\n",
+        );
+        assert_eq!(t.len(), 2);
+        assert_eq!(t[0].0, "users");
+        assert_eq!(
+            t[0].1,
+            [["id", "integer", "pk, not null"], ["name", "varchar", ""]]
+        );
+        assert_eq!(t[1].1.len(), 1);
+    }
 }

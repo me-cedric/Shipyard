@@ -29,6 +29,7 @@ pub mod raid;
 pub mod ref_index;
 pub mod ref_query;
 mod repo_scan;
+pub mod reports;
 pub mod roles_skills;
 pub mod run_log;
 pub mod safe_write;

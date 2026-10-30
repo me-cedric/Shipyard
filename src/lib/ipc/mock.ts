@@ -76,6 +76,7 @@ import * as kw from "./mock-knowledge";
 import * as mc from "./mock-machine";
 import { cards, chainGate, seedLinks, seedNotes } from "./mock-overview";
 import { parseRef } from "./mock-refs";
+import * as rp from "./mock-reports";
 import * as specs from "./mock-specs";
 import {
 	automationGet,
@@ -167,6 +168,8 @@ type State = {
 	menu: Record<string, string>;
 	/** The Orca terminals that a click brought forward. */
 	orcaOpened: string[];
+	/** The client exports that were written, the change requests and the outside terminal starts. */
+	reports: rp.MockReports;
 	/** The AI sessions and spend of this computer. */
 	machine: mc.MockMachine;
 	/** The Doctor tools and ledger, and the MCP server for outside agents. */
@@ -217,6 +220,7 @@ const fresh = (): State => ({
 		codeFont: "",
 		terminalShell: "",
 		terminalFont: "",
+		terminalApp: "",
 		terminalFontSize: 13,
 		defaultAgent: "",
 		defaultModel: "",
@@ -242,6 +246,7 @@ const fresh = (): State => ({
 	delivery: dv.seedDelivery(),
 	os: [],
 	orcaOpened: [],
+	reports: rp.seedReports(),
 	menu: {},
 	machine: mc.seedMachine(),
 	doctor: dr.seedDoctor(),
@@ -608,6 +613,8 @@ const handlers: Handlers = {
 		// An empty release address goes back to the default.
 		if (!state.prefs.releaseUrl.trim()) state.prefs.releaseUrl = RELEASE_URL;
 		state.prefs.terminalFontSize = Math.min(24, Math.max(9, state.prefs.terminalFontSize));
+		// An app id is a-z, 0-9 and `-`.
+		state.prefs.terminalApp = state.prefs.terminalApp.trim().replace(/[^a-z0-9-]/g, "");
 		// An empty chord resets its action.
 		state.prefs.shortcuts = Object.fromEntries(
 			Object.entries(state.prefs.shortcuts).filter(([, v]) => v.trim()),
@@ -1354,6 +1361,41 @@ const handlers: Handlers = {
 	exportFunctionalFile: (text, path) => kw.exportFunctional(need(state.knowledge), text, path),
 	exportSheetFile: (text, sheets, path) =>
 		kw.exportSheet(need(state.knowledge), text, sheets, path),
+	exportDossierCompleteFile: (text, _views, path, click) =>
+		rp.exportDossierComplete(reports(), reportEnv(), text, path, click),
+	exportCostingFile: (_text, path, click) =>
+		rp.exportPage(reports(), reportEnv(), "costing", path, click),
+	exportFlowsFile: (_text, path, click) =>
+		rp.exportPage(reports(), reportEnv(), "flows", path, click),
+	exportRaidFile: (_text, path, click) =>
+		rp.exportPage(reports(), reportEnv(), "raid", path, click),
+	exportSecurityFile: (_text, path, click) =>
+		rp.exportPage(reports(), reportEnv(), "security", path, click),
+	exportScheduleFile: (_text, slug, path, click) =>
+		rp.exportPlan(
+			reports(),
+			reportEnv(),
+			"schedule",
+			() => work.planGet(need(state.work), slug),
+			path,
+			click,
+		),
+	exportGanttFile: (_text, slug, path, click) =>
+		rp.exportPlan(
+			reports(),
+			reportEnv(),
+			"gantt",
+			() => work.planGet(need(state.work), slug),
+			path,
+			click,
+		),
+	exportWorkDoneFile: (_text, base, head, from, to, path, click) =>
+		rp.exportWorkDone(reports(), reportEnv(), base, head, from, to, path, click),
+	exportChangeRequestFiles: (title, base, head, _approvers, click) =>
+		rp.exportChangeRequest(reports(), reportEnv(), title, base, head, click),
+	terminalApps: () => rp.terminalApps(state.reports),
+	terminalLaunch: (folder, click) =>
+		rp.terminalLaunch(state.reports, reportEnv(), state.prefs.terminalApp, folder, click),
 	tiersGet: () => fx.tiersGet(state.factory),
 	tiersSet: (row) => fx.tiersSet(state.factory, row),
 	runsList: () => fx.runsList(state.factory, active()?.id ?? null),
@@ -1467,6 +1509,16 @@ function assistantEnv(): ai.Env {
 	const p = active();
 	if (!p) throw "no active project";
 	return { project: p.id, resolves: (ref) => resolve(ref)?.state === "resolved" };
+}
+
+/** The exports need an open project. */
+function reports(): rp.MockReports {
+	return need(state.reports);
+}
+
+function reportEnv(): rp.Env {
+	const p = active();
+	return { root: p?.path ?? "", readOnly: p?.overrides.readOnly === true };
 }
 
 /** The Work data of the active project. Without a project the commands fail as the real ones do. */

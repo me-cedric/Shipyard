@@ -421,12 +421,12 @@ export function learnGet(env: Env): Learn {
 
 // ---------------------------------------------------------------- exports
 
-function checkExport(path: string, ext: string) {
+export function checkExport(path: string, ext: string) {
 	if (!path.startsWith("/") || path.endsWith("/")) throw "the path is not an absolute file path";
 	if (!path.toLowerCase().endsWith(`.${ext}`)) throw `the file is not a .${ext} file`;
 }
 
-const checkTitles = (text: ExportText, n: number) => {
+export const checkTitles = (text: ExportText, n: number) => {
 	if (text.sections.length !== n) throw `expected ${n} section titles`;
 };
 

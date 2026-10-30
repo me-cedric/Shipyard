@@ -24,6 +24,7 @@ pub mod machine;
 pub mod orca;
 pub mod outside;
 pub mod questions;
+mod reports;
 pub mod request_tree;
 pub mod runner_setup;
 pub mod sbom;
@@ -32,6 +33,7 @@ mod shell;
 pub mod specs;
 pub mod sync;
 pub mod terminal;
+pub mod terminals;
 pub mod work;
 
 use commands::{
@@ -152,6 +154,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             terminal::terminal_resize,
             terminal::terminal_close,
             terminal::terminal_close_all,
+            crate::terminals::terminal_apps,
+            crate::terminals::terminal_launch,
             ag::runners_list,
             ag::providers_list,
             ag::providers_add,
@@ -346,6 +350,15 @@ fn specta_builder() -> Builder<tauri::Wry> {
             kw::export_dossier_file,
             kw::export_functional_file,
             kw::export_sheet_file,
+            kw::export_dossier_complete_file,
+            crate::reports::export_costing_file,
+            crate::reports::export_flows_file,
+            crate::reports::export_raid_file,
+            crate::reports::export_schedule_file,
+            crate::reports::export_gantt_file,
+            crate::reports::export_security_file,
+            crate::reports::export_work_done_file,
+            crate::reports::export_change_request_files,
             ex::compass_get,
             ex::compass_preview,
             ex::compass_apply,

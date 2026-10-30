@@ -613,7 +613,7 @@ pub struct ViewImage {
     pub png: String,
 }
 
-fn meta(s: &AppState, p: &crate::design::Proj, t: &ExportText) -> Meta {
+pub(crate) fn meta(s: &AppState, p: &crate::design::Proj, t: &ExportText) -> Meta {
     Meta {
         title: t.title.clone(),
         project: p.file.name.clone(),
@@ -649,12 +649,26 @@ fn named(sections: &[String], n: usize) -> Res<Vec<&str>> {
 pub fn export_dossier(s: &AppState, t: &ExportText, views: &[ViewImage], path: &str) -> Res<()> {
     let titles = named(&t.sections, 5)?;
     let p = project(s)?;
+    let sections = dossier_sections(
+        &p,
+        &titles,
+        views.iter().map(|v| image_item(&v.title, &v.png)).collect(),
+    );
+    write_export(
+        path,
+        "docx",
+        &docx_bytes(&meta(s, &p, t), &assemble(&meta(s, &p, t), &sections)).map_err(err)?,
+    )
+}
+
+/// The five sections of the dossier. `views` are the rendered architecture views.
+fn dossier_sections(p: &crate::design::Proj, titles: &[&str], views: Vec<Item>) -> Vec<Section> {
     let arts = design::list(&p.root, &p.file);
     let of = |kind: &str| arts.iter().filter(|a| a.kind == kind).collect::<Vec<_>>();
-    let sections = vec![
+    vec![
         Section {
             title: titles[0].into(),
-            items: views.iter().map(|v| image_item(&v.title, &v.png)).collect(),
+            items: views,
         },
         Section {
             title: titles[1].into(),
@@ -662,7 +676,7 @@ pub fn export_dossier(s: &AppState, t: &ExportText, views: &[ViewImage], path: &
                 .iter()
                 .map(|a| {
                     read_item(
-                        &p,
+                        p,
                         &format!("{} {}", a.number, a.title),
                         &a.path,
                         Content::Markdown,
@@ -675,8 +689,8 @@ pub fn export_dossier(s: &AppState, t: &ExportText, views: &[ViewImage], path: &
             items: of("data")
                 .into_iter()
                 .map(|a| {
-                    read_item(&p, &a.title, &a.path, |x| {
-                        Content::Markdown(format!("```\n{x}\n```"))
+                    read_item(p, &a.title, &a.path, |x| {
+                        Content::Markdown(dbml_markdown(&x))
                     })
                 })
                 .collect(),
@@ -734,12 +748,106 @@ pub fn export_dossier(s: &AppState, t: &ExportText, views: &[ViewImage], path: &
                 })
                 .collect(),
         },
-    ];
+    ]
+}
+
+/// The tables of a DBML file as a Markdown text, one heading and one table for each. A file with no
+/// table keeps its text as a code block, so no source is lost.
+fn dbml_markdown(text: &str) -> String {
+    let tables = export::dbml_tables(text);
+    if tables.is_empty() {
+        return format!("```\n{text}\n```");
+    }
+    let cell = |s: &str| s.replace('|', "/");
+    tables
+        .iter()
+        .map(|(name, rows)| {
+            let mut md =
+                format!("### {name}\n\n| Column | Type | Attributes |\n| --- | --- | --- |\n");
+            for r in rows {
+                md.push_str(&format!(
+                    "| {} | {} | {} |\n",
+                    cell(&r[0]),
+                    cell(&r[1]),
+                    cell(&r[2])
+                ));
+            }
+            md
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// The whole dossier from the project, with no help from the view (REQ-013, REQ-014). Seven
+/// section titles: views, decisions, data models, flows, API contracts, personas and the
+/// estimate annex. A person has a name and a role there and never a day rate. The annex holds
+/// tasks and days. `views` are the architecture views that the view rendered as PNG when it could
+/// (the C4 layout runs in the webview). With no view, the section lists the source of each C4
+/// model instead, so the section is never empty while the project has a model.
+pub fn export_dossier_complete(
+    s: &AppState,
+    t: &ExportText,
+    views: &[ViewImage],
+    path: &str,
+    click: bool,
+) -> Res<()> {
+    let titles = named(&t.sections, 7)?;
+    crate::reports::need_export_click(s, path, click)?;
+    let p = project(s)?;
+    let sections = dossier_complete_sections(s, &p, &titles, views)?;
     write_export(
         path,
         "docx",
         &docx_bytes(&meta(s, &p, t), &assemble(&meta(s, &p, t), &sections)).map_err(err)?,
     )
+}
+
+fn dossier_complete_sections(
+    s: &AppState,
+    p: &crate::design::Proj,
+    titles: &[&str],
+    views: &[ViewImage],
+) -> Res<Vec<Section>> {
+    let mut images: Vec<Item> = views.iter().map(|v| image_item(&v.title, &v.png)).collect();
+    if images.is_empty() {
+        images = design::list(&p.root, &p.file)
+            .iter()
+            .filter(|a| a.kind == "model")
+            .map(|a| {
+                read_item(p, &a.title, &a.path, |x| {
+                    Content::Markdown(format!("```\n{x}\n```"))
+                })
+            })
+            .collect();
+    }
+    let mut sections = dossier_sections(p, &titles[..5], images);
+    let people: Vec<Vec<String>> = shipyard_store::delivery_docs::personas(&p.root)
+        .into_iter()
+        .filter(|x| x.active)
+        .map(|x| vec![x.name, x.description])
+        .collect();
+    sections.push(Section {
+        title: titles[5].into(),
+        items: if people.is_empty() {
+            vec![]
+        } else {
+            vec![Item {
+                name: titles[5].into(),
+                source: Ok(Content::Table {
+                    headers: ["Name", "Description"].map(String::from).to_vec(),
+                    rows: people,
+                }),
+            }]
+        },
+    });
+    sections.push(Section {
+        title: titles[6].into(),
+        items: crate::work::sheets_for_export(s)?
+            .iter()
+            .map(|(slug, sheet)| annex_item(slug, sheet.as_ref().map_err(Clone::clone)))
+            .collect(),
+    });
+    Ok(sections)
 }
 
 /// The functional documentation: the specs, the design document, the screens and the estimate
@@ -835,7 +943,7 @@ pub fn export_sheet(s: &AppState, t: &ExportText, sheets: Vec<SheetIn>, path: &s
 }
 
 /// An absolute path with the right extension, in a folder that exists. The write is atomic.
-fn write_export(path: &str, ext: &str, bytes: &[u8]) -> Res<()> {
+pub(crate) fn write_export(path: &str, ext: &str, bytes: &[u8]) -> Res<()> {
     let p = std::path::PathBuf::from(path);
     if !p.is_absolute() || p.is_dir() {
         return Err("the path is not an absolute file path".into());
@@ -977,6 +1085,23 @@ pub async fn export_dossier_file(
     path: String,
 ) -> Res<()> {
     blocking(app, move |s| export_dossier(s, &text, &views, &path)).await
+}
+
+/// The dossier with every section gathered by the app. Seven titles in `text.sections`. It needs
+/// the click of a person. `views` may be empty.
+#[tauri::command]
+#[specta::specta]
+pub async fn export_dossier_complete_file(
+    app: AppHandle,
+    text: ExportText,
+    views: Vec<ViewImage>,
+    path: String,
+    click: bool,
+) -> Res<()> {
+    blocking(app, move |s| {
+        export_dossier_complete(s, &text, &views, &path, click)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -1141,6 +1266,74 @@ mod tests {
             Some("quality")
         );
         assert!(tile_data(&s, "nope").is_err());
+    }
+
+    #[test]
+    fn the_complete_dossier_gathers_every_section_and_holds_no_day_rate() {
+        let (repo, out, s) = setup();
+        write(
+            repo.path(),
+            "docs/data-models/shop.dbml",
+            "Table orders {\n  id int [pk]\n  total int\n}\n",
+        );
+        write(
+            repo.path(),
+            "docs/personas/personas.json",
+            r#"{"personas":[{"id":"p1","name":"Developer","description":"Builds","tjm":777,"cjm":555}]}"#,
+        );
+        let p = project(&s).unwrap();
+        let titles = ["V", "D", "M", "F", "A", "P", "X"];
+        let sections = dossier_complete_sections(&s, &p, &titles, &[]).unwrap();
+        assert_eq!(sections.len(), 7);
+        let md = |sec: usize| match &sections[sec].items[0].source {
+            Ok(Content::Markdown(m)) => m.clone(),
+            _ => panic!("section {sec} holds no Markdown"),
+        };
+        assert!(
+            md(0).contains("model {}"),
+            "no view: the model source stands in"
+        );
+        assert!(md(2).contains("### orders") && md(2).contains("| id | int | pk |"));
+        let Ok(Content::Table { headers, rows }) = &sections[5].items[0].source else {
+            panic!("no personas table")
+        };
+        assert_eq!(
+            (headers.len(), rows[0].as_slice()),
+            (
+                2,
+                ["Developer".to_string(), "Builds".to_string()].as_slice()
+            )
+        );
+        assert!(!format!("{rows:?}").contains("777") && !format!("{rows:?}").contains("555"));
+        let view = ViewImage {
+            title: "Context".into(),
+            png: String::new(),
+        };
+        let with = dossier_complete_sections(&s, &p, &titles, &[view]).unwrap();
+        assert_eq!(with[0].items.len(), 1, "a view replaces the model sources");
+        assert_eq!(with[0].items[0].name, "Context");
+
+        let file = out.path().join("full.docx");
+        let t = ExportText {
+            title: "Dossier".into(),
+            empty: "Nothing".into(),
+            gap: "Gap".into(),
+            generated: "Generated".into(),
+            sections: titles.map(String::from).to_vec(),
+        };
+        let go = |click| export_dossier_complete(&s, &t, &[], file.to_str().unwrap(), click);
+        assert!(go(false).unwrap_err().contains("click"));
+        assert!(!file.exists());
+        go(true).unwrap();
+        assert!(std::fs::read(&file).unwrap().starts_with(b"PK"));
+        let five = ExportText {
+            sections: t.sections[..5].to_vec(),
+            ..t.clone()
+        };
+        assert!(
+            export_dossier_complete(&s, &five, &[], file.to_str().unwrap(), true).is_err(),
+            "seven titles"
+        );
     }
 
     #[test]

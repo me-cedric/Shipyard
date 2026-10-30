@@ -8,9 +8,11 @@ pub mod code;
 pub mod delivery;
 pub mod error;
 pub mod project;
+mod range;
 mod reads;
 pub mod worktree;
 
 pub use auth::{Auth, Credential};
 pub use code::Repo;
 pub use error::{GitError, Result};
+pub use range::{MAX_COMMITS, RangeCommit, RangeFile, work_item_keys};
