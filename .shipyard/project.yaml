@@ -1,0 +1,15 @@
+name: Shipyard
+key: SHIP
+paths:
+  decisions: docs/decisions
+  questions: docs/delivery/questions
+  specs: docs/openspec
+  handbook: docs/guide
+defaultWorkflow: feature
+gates:
+  - pnpm lint
+  - pnpm typecheck
+  - pnpm test
+  - cargo fmt --all --check
+  - cargo clippy --workspace --all-targets -- -D warnings
+  - cargo test --workspace

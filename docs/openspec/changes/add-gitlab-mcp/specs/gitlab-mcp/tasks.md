@@ -1,6 +1,7 @@
-# Tasks: GitLab MCP server through the browser sign-in
+# Tasks: gitlab-mcp
 
 Spec: [spec.md](./spec.md)
+Plan: [plan.md](./plan.md)
 
 ## Task Rules
 

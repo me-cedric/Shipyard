@@ -19,7 +19,7 @@ Plan: [plan.md](./plan.md)
 - [x] T006 Implement flow rules and filters in `crates/shipyard-core/src/flows.rs`. Covers REQ-016, REQ-017, REQ-018.
 - [x] T007 Write safe write tests in `crates/shipyard-store/tests/safe_write.rs`. Covers REQ-005, REQ-023.
 - [x] T008 Implement safe write in `crates/shipyard-store/src/safe_write.rs`. Covers REQ-005, REQ-023.
-- [x] T009 Write IPC command tests in `crates/shipyard-app/tests/design_ipc.rs`. Covers REQ-001, REQ-002, REQ-003, REQ-008, REQ-009, REQ-010, REQ-011.
+- [x] T009 Write IPC command tests in `crates/shipyard-app/src/design/tests.rs`. Covers REQ-001, REQ-002, REQ-003, REQ-008, REQ-009, REQ-010, REQ-011.
 - [x] T010 Add the IPC commands in `crates/shipyard-app/src/design.rs`, then regenerate the bindings with the project command. Covers REQ-001 to REQ-021.
 - [x] T011 Write the end-to-end test in `e2e/design.spec.ts`. Covers REQ-006, REQ-010, REQ-017.
 - [x] T012 Write view tests for diagrams, architecture and data in `src/features/design/render.test.tsx`. Covers REQ-003, REQ-004, REQ-006, REQ-007, REQ-014, REQ-015.
@@ -32,7 +32,7 @@ Plan: [plan.md](./plan.md)
 - [x] T019 Implement the copy ref action and the inspector backlinks in `src/features/design/`. Covers REQ-001, REQ-002.
 - [x] T020 Write design to code tests in `src/features/design/design_to_code.test.tsx` after Q-038 is answered. Covers REQ-020.
 - [x] T021 Implement the design to code action in `src/features/design/` after Q-038 is answered. Covers REQ-020.
-- [x] T022 [P] Add French and English keys in `src/i18n/` for `design`. Covers REQ-022.
+- [x] T022 [P] Add French and English keys in `src/lib/i18n/design.ts` for `design`. Covers REQ-022.
 - [x] T023 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-001 to REQ-024.
 - [x] T024 Run the validation commands from `plan.md`. Covers REQ-001 to REQ-024.
 - [x] T025 Compare the code with `spec.md` and update stale artifacts. Covers REQ-001 to REQ-024.

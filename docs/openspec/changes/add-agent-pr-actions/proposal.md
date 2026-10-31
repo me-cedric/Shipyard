@@ -12,5 +12,5 @@ Today an agent reviews a pull request only inside a run. A person who opens a pu
 
 ## Impact
 
-- Affected capability: `code`
+- Affected capability: `agent-pr`
 - Affected code/docs: `crates/shipyard-app/src/code.rs`, `crates/shipyard-engine/src/review.rs`, `crates/shipyard-core/src/pickup.rs`, `src/features/code/pull-requests.tsx`, `docs/guide/code.md`

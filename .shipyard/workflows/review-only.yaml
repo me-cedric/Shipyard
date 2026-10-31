@@ -1,0 +1,21 @@
+# A review: review an existing branch in a fresh context, then report.
+id: review-only
+steps:
+  - id: review
+    role: reviewer
+    model: top
+    effort: high
+    mode: plan
+    fresh_context: true
+    max_rounds: 2
+    tools: [read_ticket, read_ref, post_progress, report]
+  - id: report
+    role: docs
+    model: mid
+    effort: medium
+    needs: [review]
+    tools: [read_ref, post_progress, report]
+limits:
+  max_turns: 20
+  budget_usd: 2
+  stall_s: 300

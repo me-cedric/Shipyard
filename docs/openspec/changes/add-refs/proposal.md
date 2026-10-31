@@ -20,4 +20,4 @@ Shipyard needs one reference graph. Each entity gets a stable ref, and each view
 - Consumes: the entities of `projects`, `work`, `design`, `specs`, `questions-loop`, `factory`, `delivery`, `code`, `knowledge`, `connections`.
 - Produces: the ref parser, the ref index, backlinks and search for `shell` (palette, inspector), `knowledge` (graph, explain), `assistant` (context), `factory` (`read_ref` tool), and the broken-ref report for `projects` (health).
 - Feature list: the "chain" staleness graph, the cross-page links, the search.
-- Affected code/docs: `crates/shipyard-core` (ref types), `crates/shipyard-store` (index), `src/features/refs/`.
+- Affected code/docs: `crates/shipyard-core` (ref types), `crates/shipyard-store` (index), `src/lib/refs/`, `src/features/shell/ref-detail.tsx`.

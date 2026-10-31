@@ -27,7 +27,7 @@ Plan: [plan.md](./plan.md)
 - [x] T014 Write worktree tests in `crates/shipyard-git/tests/worktree.rs`. Covers REQ-013.
 - [x] T015 Implement one worktree per child in `crates/shipyard-git/src/worktree.rs`. Covers REQ-013.
 - [x] T016 Write tool tests in `crates/shipyard-mcp/tests/tools.rs` and `crates/shipyard-mcp/tests/transport.rs`. Covers REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-037.
-- [x] T017 Implement the eight tools in `crates/shipyard-mcp/src/tools/agent.rs`, the server in `src/server.rs` and the transports in `src/transport.rs`. Covers REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-037.
+- [x] T017 Implement the eight tools in `crates/shipyard-mcp/src/tools/agent.rs`, the server in `crates/shipyard-mcp/src/server.rs` and the transports in `crates/shipyard-mcp/src/transport.rs`. Covers REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-037.
 - [x] T017b Write bridge and entry tests in `crates/shipyard-cli/tests/bridge.rs`, `crates/shipyard-cli/src/bridge.rs` and `crates/shipyard-agents/tests/runner.rs`. Covers REQ-037.
 - [x] T017c Implement `shipyard --mcp-bridge` in `crates/shipyard-cli/src/bridge.rs` and the `shipyard` MCP entry of a run in `crates/shipyard-agents/src/runner/shipyard.rs`. Covers REQ-037.
 - [x] T017d Write join tests in `crates/shipyard-engine/tests/children.rs` and join the child worktrees at fan-in in `crates/shipyard-engine/src/children.rs`. Covers REQ-013.

@@ -1,0 +1,11 @@
+interval: 60
+pickup:
+  label: agent
+  statuses: []
+concurrency:
+  global: 2
+writes:
+  push: false
+  pull_request: false
+  tracker_transition: false
+  tracker_comment: false

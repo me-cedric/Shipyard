@@ -23,16 +23,16 @@ Plan: [plan.md](./plan.md)
 - [x] T010 Implement the fold in `crates/shipyard-store/src/fold.rs`. Covers REQ-015.
 - [x] T011 Write split model tests in `crates/shipyard-core/tests/split.rs`. Covers REQ-016, REQ-017.
 - [x] T012 Implement the split model in `crates/shipyard-core/src/split.rs`. It does no I/O. Covers REQ-016, REQ-017.
-- [x] T013 Write hand-off tests with a fake tracker in `crates/shipyard-app/tests/split_apply.rs`: no write before the click, one row ref, no duplicate on a second apply. Depends on `add-work` T010. Covers REQ-018, REQ-019.
-- [x] T014 Implement the hand-off to the `add-work` apply in `crates/shipyard-app/src/split_apply.rs`. It calls the apply of `add-work` T010 and adds no tracker code. Covers REQ-018, REQ-019.
+- [x] T013 Write hand-off tests with a fake tracker in `crates/shipyard-app/src/specs/tests.rs`: no write before the click, one row ref, no duplicate on a second apply. Depends on `add-work` T010. Covers REQ-018, REQ-019.
+- [x] T014 Implement the hand-off to the `add-work` apply in `crates/shipyard-app/src/specs.rs` (`split_apply`). It calls the apply of `add-work` T010 and adds no tracker code. Covers REQ-018, REQ-019.
 - [x] T015 Write archive and safe write tests in `crates/shipyard-store/tests/archive.rs`. Covers REQ-020, REQ-023.
 - [x] T016 Implement archive and safe write in `crates/shipyard-store/src/archive.rs`. Covers REQ-020, REQ-023.
-- [x] T017 Write IPC command tests in `crates/shipyard-app/tests/specs_ipc.rs`. Covers REQ-001, REQ-003, REQ-021.
+- [x] T017 Write IPC command tests in `crates/shipyard-app/src/specs/tests.rs`. Covers REQ-001, REQ-003, REQ-021.
 - [x] T018 Add the IPC commands in `crates/shipyard-app/src/specs.rs`, then regenerate the bindings with the project command. Covers REQ-001 to REQ-021.
 - [x] T019 Write the end-to-end test in `e2e/specs.spec.ts`. Covers REQ-004, REQ-015, REQ-018.
 - [x] T020 Write view tests in `src/features/specs/specs.test.tsx`. Covers REQ-001, REQ-003, REQ-005, REQ-006, REQ-008, REQ-011, REQ-014, REQ-017, REQ-021, REQ-022.
 - [x] T021 Implement the five views in `src/features/specs/`. Covers REQ-001, REQ-003, REQ-005, REQ-006, REQ-008, REQ-011, REQ-014, REQ-017, REQ-021, REQ-022.
-- [x] T022 [P] Add French and English keys in `src/i18n/` for `specs`. Covers REQ-022.
+- [x] T022 [P] Add French and English keys in `src/lib/i18n/specs.ts` for `specs`. Covers REQ-022.
 - [x] T023 Add one entry to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-001 to REQ-023.
 - [x] T024 Run the validation commands from `plan.md`. Covers REQ-001 to REQ-023.
 - [x] T025 Compare the code with `spec.md` and update stale artifacts. Covers REQ-001 to REQ-023.

@@ -1,6 +1,7 @@
-# Tasks: agent review and agent-written pull requests
+# Tasks: agent-pr
 
 Spec: [spec.md](./spec.md)
+Plan: [plan.md](./plan.md)
 
 ## Task Rules
 

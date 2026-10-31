@@ -13,5 +13,5 @@ A person who signs in to GitLab with the browser must also get the GitLab tools 
 
 ## Impact
 
-- Affected capability: `connections`
+- Affected capability: `gitlab-mcp`
 - Affected code/docs: `crates/shipyard-app/src/device_login.rs`, `crates/shipyard-app/src/mcp_tools.rs`, `src/features/settings/connections/`, `docs/guide/settings.md`

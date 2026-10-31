@@ -1,0 +1,21 @@
+# A split: read a change, propose work items, wait for a person.
+id: spec-split
+steps:
+  - id: read
+    role: scout
+    model: small
+    effort: low
+    mode: plan
+    tools: [read_ticket, read_ref, report]
+  - id: propose
+    role: planner
+    model: top
+    effort: high
+    mode: plan
+    needs: [read]
+    gate: human
+    tools: [read_ref, ask_question, post_progress, report]
+limits:
+  max_turns: 20
+  budget_usd: 2
+  stall_s: 300

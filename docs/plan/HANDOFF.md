@@ -1,6 +1,8 @@
 # Shipyard handoff
 
-State on 2026-10-29: waves W0 to W9 are on local `main`. Nothing after a3f8b97 is pushed: `origin/main` waits for the owner's yes. The build plan of MASTER-PLAN section 10 is done except the owner-only items of section 6.
+The current state lives in `.agents/progress/w12.md` (the last features) and `.agents/progress/w13.md` (acceptance on a real project). Read them first. The numbers below are from W9 and are out of date.
+
+State on 2026-10-29: waves W0 to W9 are on local `main`. Nothing after a3f8b97 is pushed: `origin/main` waits for the owner's yes.
 
 ## 1. Read first
 
@@ -25,7 +27,7 @@ Open tasks: only `add-connections` T012c (Windows named pipe of the MCP relay, Q
 ## 3. Owner-only next steps
 
 1. Push: `git push origin main` (SSH; see section 6). Delete remote `feat/app/skeleton` if you agree.
-2. Decide the RAID questions in `docs/delivery/questions/` (87 files). The code follows the recommended option of each. Then close them in the compare tasks of each change.
+2. Decide the RAID questions in `docs/delivery/questions/` (117 files at W13). The code follows the recommended option of each. Then close them in the compare tasks of each change.
 3. Decide ADR 0011, 0012 and 0013 (status `proposed`).
 4. First runs against a real tracker, forge and Claude Code: check the `type: http` entry, the MCP bridge, the gate commands and a push with a credential. Nothing has run against a real service.
 5. Signed builds: certificates, signing and notarisation of the app and the `shipyard` sidecar (`pnpm tauri:release`, not run end to end).

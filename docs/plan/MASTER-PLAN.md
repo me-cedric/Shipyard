@@ -284,6 +284,10 @@ Each wave keeps a progress file at `.agents/progress/<wave>.md` (compass `harnes
 | W7 | Factory UI | Runs lanes, run DAG, agents map, inbox, notifications | Sonnet | e2e |
 | W8 | Knowledge and roles | Graph, explain, handbook, documents, slides, learn, dashboards, quality, extensions | Sonnet; Haiku for i18n | e2e |
 | W9 | Release | a11y, performance, packaging, project import, docs | Sonnet; Opus final review | full suite, signed builds |
+| W10 | Compatibility and visual v2 | Open a folder with an existing layout in place, editable paths, issue trackers, git, code hosts, agents, MCP, FinOps, scanners, visual language v2 (ADR 0014) | Sonnet writes gaps; Opus writes v2 and reviews | full suite, a11y e2e, screenshot comparison |
+| W11 | Easy for everyone | Error contract, plain titles for specs, run picker, setup wizard and role cards, Get started, form views, next-step button, lazy tabs | Sonnet backend; Opus UI and review | full suite, a11y e2e |
+| W12 | The last features | Feature sweep rows: markdown, device login, costing and planning detail, QA, dashboards, profiles per page, assistant, GitLab MCP, agent pull request actions, plain words | Sonnet (writer A); Opus (writer B, review) | full suite, OpenSpec strict, `ac check` |
+| W13 | Acceptance on a real project | Shipyard as its own project, seed project script, live backend tests, persona walkthroughs, ease-of-use review, guided run with the owner | Sonnet builds; Opus reviews | seed and walkthrough scripts, pass list |
 
 Token rules for the build:
 

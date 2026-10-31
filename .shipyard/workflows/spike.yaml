@@ -1,0 +1,27 @@
+# A spike: grill, investigate, report. No pull request.
+id: spike
+steps:
+  - id: grill
+    role: planner
+    model: top
+    effort: high
+    skill: grill-me
+    mode: plan
+    tools: [read_ticket, read_ref, ask_question, post_progress, report]
+  - id: investigate
+    role: scout
+    model: small
+    effort: low
+    mode: plan
+    needs: [grill]
+    tools: [read_ticket, read_ref, post_progress, report]
+  - id: report
+    role: docs
+    model: mid
+    effort: medium
+    needs: [investigate]
+    tools: [read_ref, post_progress, report]
+limits:
+  max_turns: 30
+  budget_usd: 2
+  stall_s: 300

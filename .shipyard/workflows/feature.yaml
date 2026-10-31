@@ -1,0 +1,45 @@
+# A feature: grill, plan behind a human gate, build in parallel, review, open a pull request.
+# Models are tiers (top, mid, small). The config maps each tier to a model of each runner.
+id: feature
+steps:
+  - id: grill
+    role: planner
+    model: top
+    effort: high
+    skill: grill-me
+    mode: plan
+    tools: [read_ticket, read_ref, ask_question, post_progress, report]
+  - id: plan
+    role: planner
+    model: top
+    effort: high
+    mode: plan
+    needs: [grill]
+    gate: human
+    tools: [read_ticket, read_ref, ask_question, post_progress, report]
+  - id: build
+    role: worker
+    model: mid
+    effort: medium
+    needs: [plan]
+    workspace: worktree
+    for_each: plan.tasks
+    max_parallel: 2
+    retry: 2
+    tools: [read_ticket, read_ref, ask_question, post_progress, handoff, report]
+  - id: review
+    role: reviewer
+    model: top
+    effort: high
+    mode: plan
+    needs: [build]
+    fresh_context: true
+    max_rounds: 2
+    tools: [read_ref, post_progress, report]
+  - id: pr
+    action: open_pr
+    needs: [review]
+limits:
+  max_turns: 40
+  budget_usd: 5
+  stall_s: 300

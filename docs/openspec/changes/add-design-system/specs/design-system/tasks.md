@@ -20,7 +20,7 @@ Plan: [plan.md](./plan.md)
 - [x] T007 Implement the molecules and organisms in `src/ui/molecules/` and `src/ui/organisms/`. REQ-005, REQ-008, REQ-009, REQ-010.
 - [x] T008 Write template tests in `src/ui/templates/templates.test.tsx`. REQ-006.
 - [x] T009 Implement the five templates in `src/ui/templates/`. REQ-006, REQ-013. The Editor is `EditorFrame` (Q-094).
-- [x] T010 [P] Add the French and English label catalogues in `src/lib/i18n/ui.fr.json` and `src/lib/i18n/ui.en.json`. REQ-015. Kept as typed TS files in `src/lib/i18n/` (Q-093).
+- [x] T010 [P] Add the French and English label catalogues in `src/lib/i18n/fr.ts` and `src/lib/i18n/en.ts`. REQ-015. Kept as typed TS files in `src/lib/i18n/` (Q-093).
 - [x] T011 Write the gallery e2e (layers, axe, keyboard, release build) in `e2e/design-system.spec.ts`. REQ-007, REQ-014, REQ-015.
 - [x] T012 Implement the gallery route in `src/ui/gallery/`. REQ-007.
 - [x] T013 Add one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. All REQ. Entries exist in both files: "Design system with tokens, components and a gallery in the dev build" and the accessibility pass (`CHANGELOG.md` and `CHANGELOG.fr.md`, 40 bullets each).
