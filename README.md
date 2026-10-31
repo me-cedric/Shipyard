@@ -1,12 +1,13 @@
 <div align="center">
 <br />
-<img src="docs/assets/app-icon.svg" width="128" height="128" alt="Shipyard app icon">
+<img src="docs/assets/app-icon.png" width="128" height="128" alt="Shipyard app icon">
 <h1>Shipyard</h1>
 <p><strong>One desktop app to design, specify, plan and ship a project with a team of people and agents.</strong></p>
 <p>
-<a href="https://github.com/me-cedric/Shipyard/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/me-cedric/Shipyard/ci.yml?branch=main&label=CI&logo=github&style=flat" alt="CI Status" /></a>
-<a href="https://github.com/me-cedric/Shipyard/releases/latest"><img src="https://img.shields.io/github/v/release/me-cedric/Shipyard?display_name=tag&label=Release&logo=github&style=flat" alt="Latest Release" /></a>
-<a href="LICENSE"><img src="https://img.shields.io/github/license/me-cedric/Shipyard?label=License&style=flat" alt="MIT License" /></a>
+<a href="https://github.com/me-cedric/Shipyard/actions/workflows/ci.yml"><img src="https://github.com/me-cedric/Shipyard/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status" /></a>
+<a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.0-5B5CF6?style=flat" alt="Version 0.1.0" /></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=flat" alt="MIT License" /></a>
+<a href="https://ko-fi.com/mecedric"><img src="https://img.shields.io/badge/Ko--fi-Support%20Shipyard-ff5f5f?logo=kofi&logoColor=white&style=flat" alt="Support Shipyard on Ko-fi" /></a>
 </p>
 <p>
 <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-edition%202024-orange?logo=rust&style=flat" alt="Rust edition 2024" /></a>
@@ -15,6 +16,13 @@
 <a href="https://tauri.app"><img src="https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=white&style=flat" alt="Tauri 2" /></a>
 <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-blue?style=flat" alt="macOS, Windows and Linux" />
 <img src="https://img.shields.io/badge/UI-English%20%7C%20French-informational?style=flat" alt="English and French interface" />
+</p>
+<p>
+<a href="#features">Features</a> ·
+<a href="#build-from-source">Install</a> ·
+<a href="#how-it-works">How it works</a> ·
+<a href="#documentation-map">Docs</a> ·
+<a href="#contributing">Contributing</a>
 </p>
 <br />
 </div>
