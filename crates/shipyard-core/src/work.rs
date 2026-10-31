@@ -484,8 +484,14 @@ pub struct Calendar {
     pub working_days: Vec<u8>,
     /// The days off that the team adds. The public holidays of `country` come on top.
     pub holidays: Vec<String>,
-    /// The country of the public holidays (`holidays::COUNTRIES`). Empty for none.
+    /// The country of the public holidays (`holidays::COUNTRIES`). Empty for none. A file with no
+    /// country (written before the field existed) has none; a new project starts with France.
+    #[serde(default = "no_country")]
     pub country: String,
+}
+
+fn no_country() -> String {
+    String::new()
 }
 
 impl Default for Calendar {

@@ -85,6 +85,12 @@ fn under(paths: &[String], p: &str) -> bool {
 
 impl Repo {
     pub fn status(&self) -> Result<Changes> {
+        self.status_with(true)
+    }
+
+    /// `renames` pairs a deleted file with an added file of the same content. A pair hides the
+    /// added path, so `stage` reads the status without it.
+    fn status_with(&self, renames: bool) -> Result<Changes> {
         let mut out = Changes {
             merging: self.repo.state() == git2::RepositoryState::Merge,
             rebasing: matches!(
@@ -121,8 +127,8 @@ impl Repo {
         let mut opts = StatusOptions::new();
         opts.include_untracked(true)
             .recurse_untracked_dirs(true)
-            .renames_head_to_index(true)
-            .renames_index_to_workdir(true);
+            .renames_head_to_index(renames)
+            .renames_index_to_workdir(renames);
         let statuses = self.repo.statuses(Some(&mut opts))?;
         for e in statuses.iter() {
             let path = String::from_utf8_lossy(e.path_bytes()).replace('\\', "/");
@@ -166,7 +172,7 @@ impl Repo {
     /// The match is literal: a file, or a folder and what is under it. No glob.
     pub fn stage(&self, paths: &[String]) -> Result<()> {
         super::check_paths(paths)?;
-        let st = self.status()?;
+        let st = self.status_with(false)?;
         let mut index = self.repo.index()?;
         for f in [&st.unstaged, &st.untracked, &st.conflicted]
             .into_iter()

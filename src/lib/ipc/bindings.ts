@@ -1031,7 +1031,10 @@ export type Calendar_Deserialize = {
 	workingDays?: number[],
 	/**  The days off that the team adds. The public holidays of `country` come on top. */
 	holidays?: string[],
-	/**  The country of the public holidays (`holidays::COUNTRIES`). Empty for none. */
+	/**
+	 *  The country of the public holidays (`holidays::COUNTRIES`). Empty for none. A file with no
+	 *  country (written before the field existed) has none; a new project starts with France.
+	 */
 	country?: string,
 };
 
@@ -1041,7 +1044,10 @@ export type Calendar_Serialize = {
 	workingDays: number[],
 	/**  The days off that the team adds. The public holidays of `country` come on top. */
 	holidays: string[],
-	/**  The country of the public holidays (`holidays::COUNTRIES`). Empty for none. */
+	/**
+	 *  The country of the public holidays (`holidays::COUNTRIES`). Empty for none. A file with no
+	 *  country (written before the field existed) has none; a new project starts with France.
+	 */
 	country: string,
 };
 
@@ -3300,13 +3306,15 @@ export type Preview_Serialize = {
 
 /**
  *  The days and the cost of one profile (a role). `cost` is `None` when no member rate covers the
- *  role: a locked seal hides every rate.
+ *  role: a locked seal hides every rate. It is also `None` when fewer than two members with a
+ *  rate have the role: the cost over the days would show the day rate of one member.
  */
 export type ProfileSum = ProfileSum_Serialize | ProfileSum_Deserialize;
 
 /**
  *  The days and the cost of one profile (a role). `cost` is `None` when no member rate covers the
- *  role: a locked seal hides every rate.
+ *  role: a locked seal hides every rate. It is also `None` when fewer than two members with a
+ *  rate have the role: the cost over the days would show the day rate of one member.
  */
 export type ProfileSum_Deserialize = {
 	role: string,
@@ -3316,7 +3324,8 @@ export type ProfileSum_Deserialize = {
 
 /**
  *  The days and the cost of one profile (a role). `cost` is `None` when no member rate covers the
- *  role: a locked seal hides every rate.
+ *  role: a locked seal hides every rate. It is also `None` when fewer than two members with a
+ *  rate have the role: the cost over the days would show the day rate of one member.
  */
 export type ProfileSum_Serialize = {
 	role: string,

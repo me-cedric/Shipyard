@@ -386,6 +386,26 @@ pub fn pull_send_back(s: &AppState, number: u32, text: &str, click: bool) -> Res
     pull_verdict(s, number, Verdict::RequestChanges, text, click)
 }
 
+/// Stages what the archive of `change` moved or wrote: the removed change folder, the new archive
+/// folders (`archived`, names inside `changes/archive`) and each settled capability. A stray file of the specs folder stays out of the commit.
+fn stage_archive(
+    r: &Repo,
+    folder: &str,
+    change: &str,
+    archived: &[String],
+    caps: &[String],
+) -> Res<()> {
+    let base = folder.trim_end_matches('/');
+    let mut paths = vec![format!("{base}/changes/{change}")];
+    paths.extend(
+        archived
+            .iter()
+            .map(|a| format!("{base}/changes/archive/{a}")),
+    );
+    paths.extend(caps.iter().map(|c| format!("{base}/specs/{c}")));
+    r.stage(&paths).map_err(err)
+}
+
 /// Archives the spec change `change` in the branch of the pull request: the archive, one commit
 /// and a push. The working branch must be the branch of the pull request, and nothing else may be
 /// staged, so the commit holds the archive only. Open items of the change need `confirmed`.
@@ -413,8 +433,24 @@ pub fn pull_archive_spec(
         return Err("unstage your changes first: the archive makes its own commit".into());
     }
     let folder = crate::specs::specs_folder(s)?;
-    crate::specs::archive_change(s, change, confirmed)?;
-    r.stage(&[folder]).map_err(err)?;
+    // The archive names its folder with its own date: stage the folders that it added, so a run
+    // across midnight does not matter.
+    let archive_dir = root(s)?.join(&folder).join("changes/archive");
+    let names = || -> Vec<String> {
+        std::fs::read_dir(&archive_dir)
+            .into_iter()
+            .flatten()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect()
+    };
+    let before = names();
+    let caps = crate::specs::archive_change(s, change, confirmed)?;
+    let added: Vec<String> = names()
+        .into_iter()
+        .filter(|n| !before.contains(n))
+        .collect();
+    stage_archive(&r, &folder, change, &added, &caps)?;
     let sha = r
         .commit(&format!("docs(spec): archive {change}"), "")
         .map_err(err)?;
@@ -983,6 +1019,50 @@ mod tests {
         git(&root, &["commit", "-q", "-m", "chore: base"]);
         projects::open(&s, root.to_str().unwrap()).unwrap();
         (s, std::fs::canonicalize(&root).unwrap())
+    }
+
+    #[test]
+    fn an_archive_stages_its_own_paths_and_not_a_stray_file_of_the_specs_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let (_s, root) = project(dir.path());
+        let put = |rel: &str| {
+            let p = root.join(rel);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, "x\n").unwrap();
+        };
+        put("specs/changes/add-auth/proposal.md");
+        git(&root, &["add", "-A"]);
+        git(&root, &["commit", "-q", "-m", "docs: change"]);
+        // What the archive does: the change leaves, the archive folder and the capability come.
+        std::fs::remove_dir_all(root.join("specs/changes/add-auth")).unwrap();
+        put("specs/changes/archive/2026-01-02-add-auth/proposal.md");
+        put("specs/specs/auth/spec.md");
+        // Strays under the same folder.
+        put("specs/notes.md");
+        put("specs/changes/other/proposal.md");
+        let r = Repo::open(&root).unwrap();
+        let added = ["2026-01-02-add-auth".to_string()];
+        stage_archive(&r, "specs/", "add-auth", &added, &["auth".into()]).unwrap();
+        let list = |args: &[&str]| {
+            let out = Command::new("git")
+                .arg("-C")
+                .arg(&root)
+                .args(args)
+                .output()
+                .unwrap();
+            String::from_utf8(out.stdout).unwrap()
+        };
+        // Same content in the three places: a rename pair must not hide a path.
+        assert_eq!(
+            list(&["diff", "--cached", "--name-only", "--no-renames"]),
+            "specs/changes/add-auth/proposal.md\n\
+             specs/changes/archive/2026-01-02-add-auth/proposal.md\n\
+             specs/specs/auth/spec.md\n"
+        );
+        assert_eq!(
+            list(&["ls-files", "--others", "--exclude-standard"]),
+            "specs/changes/other/proposal.md\nspecs/notes.md\n"
+        );
     }
 
     #[test]

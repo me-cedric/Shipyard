@@ -8,7 +8,7 @@ use std::path::{Component, Path, PathBuf};
 use tauri::AppHandle;
 
 use crate::commands::{Api, AppState, Res, blocking, err};
-use crate::work::need_click;
+use crate::work::{FROZEN, need_click};
 
 /// The project root and the full path of `rel`, which must stay under the root and outside `.git`.
 /// The parent folder is resolved, so a symlink that leaves the project is refused.
@@ -40,6 +40,31 @@ fn resolve(s: &AppState, rel: &str) -> Res<(PathBuf, PathBuf)> {
     Ok((root, full))
 }
 
+/// Refuses a path that is, or holds, a frozen costing sheet (`<slug>.yaml` or `<slug>.json`): a
+/// frozen sheet stays where it is. The paths are canonical, so a different case on a case
+/// insensitive disk or a symlink does not skip the check.
+fn keep_frozen(s: &AppState, root: &Path, path: &Path) -> Res<()> {
+    let (Ok(costing), Ok(path)) = (
+        root.join("docs/costing").canonicalize(),
+        path.canonicalize(),
+    ) else {
+        return Ok(());
+    };
+    let Ok(entries) = std::fs::read_dir(&costing) else {
+        return Ok(());
+    };
+    for file in entries.flatten().map(|e| e.path()) {
+        let slug = file.file_stem().and_then(|n| n.to_str());
+        if file.starts_with(&path)
+            && file.extension().is_some_and(|e| e == "yaml" || e == "json")
+            && slug.is_some_and(|n| crate::work::sheet_get(s, n).is_ok_and(|v| v.sheet.frozen))
+        {
+            return Err(FROZEN.into());
+        }
+    }
+    Ok(())
+}
+
 /// An empty file. An existing path is refused, so the action never empties a file.
 pub fn create_file(s: &AppState, rel: &str, click: bool) -> Res<()> {
     need_click(s, click)?;
@@ -66,11 +91,12 @@ pub fn create_folder(s: &AppState, rel: &str, click: bool) -> Res<()> {
 /// itself.
 pub fn rename(s: &AppState, from: &str, to: &str, click: bool) -> Res<()> {
     need_click(s, click)?;
-    let (_, src) = resolve(s, from)?;
+    let (root, src) = resolve(s, from)?;
     let (_, dst) = resolve(s, to)?;
     if !src.exists() {
         return Err(format!("{from} does not exist"));
     }
+    keep_frozen(s, &root, &src)?;
     if dst.exists() {
         return Err(format!("{to} already exists"));
     }
@@ -86,10 +112,11 @@ pub fn rename(s: &AppState, from: &str, to: &str, click: bool) -> Res<()> {
 /// Moves a file or a folder to the system trash. A failure leaves the path where it is.
 pub fn delete(s: &AppState, rel: &str, click: bool) -> Res<()> {
     need_click(s, click)?;
-    let (_, full) = resolve(s, rel)?;
+    let (root, full) = resolve(s, rel)?;
     if !full.exists() {
         return Err(format!("{rel} does not exist"));
     }
+    keep_frozen(s, &root, &full)?;
     to_trash(&full)
 }
 
@@ -245,6 +272,54 @@ mod tests {
             std::fs::read_to_string(root.join("src/a.txt")).unwrap(),
             "keep"
         );
+    }
+
+    #[test]
+    fn a_frozen_sheet_is_neither_renamed_nor_deleted_alone_or_in_its_folder() {
+        use shipyard_core::work::Sheet;
+        let (_t, s, root) = fx();
+        let sheet = |frozen| Sheet {
+            name: "Lot".into(),
+            currency: "EUR".into(),
+            frozen,
+            ..Sheet::default()
+        };
+        crate::work::sheet_save(&s, "lot", sheet(true)).unwrap();
+        let file = root.join("docs/costing/lot.yaml");
+        for from in ["docs/costing/lot.yaml", "docs/costing", "docs"] {
+            assert_eq!(
+                rename(&s, from, "moved", true).unwrap_err(),
+                FROZEN,
+                "{from}"
+            );
+            assert_eq!(delete(&s, from, true).unwrap_err(), FROZEN, "{from}");
+        }
+        assert!(file.is_file() && !root.join("moved").exists());
+        // Another file next to it is free, and so is the sheet once it is unfrozen.
+        create_file(&s, "docs/costing/note.txt", true).unwrap();
+        rename(&s, "docs/costing/note.txt", "docs/costing/n2.txt", true).unwrap();
+        // The JSON file of the same sheet, a folder alias and another case are refused too.
+        std::fs::write(root.join("docs/costing/lot.json"), "{}").unwrap();
+        assert_eq!(
+            delete(&s, "docs/costing/lot.json", true).unwrap_err(),
+            FROZEN
+        );
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(root.join("docs/costing"), root.join("alias")).unwrap();
+            for from in ["alias", "alias/lot.yaml"] {
+                assert_eq!(delete(&s, from, true).unwrap_err(), FROZEN, "{from}");
+            }
+        }
+        if root.join("DOCS").exists() {
+            for from in ["Docs/costing/lot.yaml", "docs/costing/LOT.yaml", "DOCS"] {
+                assert_eq!(delete(&s, from, true).unwrap_err(), FROZEN, "{from}");
+            }
+        }
+        std::fs::remove_file(root.join("docs/costing/lot.json")).unwrap();
+        crate::work::sheet_save(&s, "lot", sheet(false)).unwrap();
+        rename(&s, "docs/costing/lot.yaml", "docs/costing/lot2.yaml", true).unwrap();
+        assert!(root.join("docs/costing/lot2.yaml").is_file());
     }
 
     #[test]

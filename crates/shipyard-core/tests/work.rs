@@ -708,3 +708,13 @@ fn the_load_sums_the_sheets_and_shows_a_member_over_capacity() {
         .is_empty()
     );
 }
+
+#[test]
+fn an_old_calendar_has_no_country_and_a_new_one_has_france() {
+    let old: Calendar = serde_json::from_str(r#"{"workingDays":[1,2,3],"holidays":[]}"#).unwrap();
+    assert_eq!(old.country, "");
+    assert!(old.public_holidays("2026-01-01").is_empty());
+    let set: Calendar = serde_json::from_str(r#"{"country":"DE"}"#).unwrap();
+    assert_eq!(set.country, "DE");
+    assert_eq!(Calendar::default().country, "FR");
+}

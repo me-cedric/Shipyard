@@ -22,6 +22,8 @@ use shipyard_trackers::work::TrackerWrite;
 use shipyard_trackers::{Tracker, TrackerConfig};
 use specta::Type;
 
+use crate::device_login::{Bearer, Oauth, oauth_account};
+
 pub type Res<T> = Result<T, String>;
 
 const FILE: &str = "connections.json";
@@ -185,7 +187,8 @@ pub struct Connections {
     path: PathBuf,
     secrets: Arc<dyn SecretStore>,
     http: Arc<dyn Http>,
-    lock: Mutex<()>,
+    /// Shared with `Bearer`: a token refresh saves under it, like an edit.
+    lock: Arc<Mutex<()>>,
     /// Per connection: the server clock minus the local clock, in seconds.
     skews: Mutex<HashMap<String, Arc<AtomicI64>>>,
 }
@@ -198,7 +201,7 @@ struct Clocked {
     skew: Arc<AtomicI64>,
 }
 
-fn local_secs() -> i64 {
+pub(crate) fn local_secs() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |d| d.as_secs() as i64)
@@ -276,7 +279,7 @@ impl Connections {
             path: dir.join(FILE),
             secrets,
             http,
-            lock: Mutex::new(()),
+            lock: Arc::new(Mutex::new(())),
             skews: Mutex::new(HashMap::new()),
         }
     }
@@ -341,8 +344,14 @@ impl Connections {
         let records = self.load().map(|f| f.connections).unwrap_or_default();
         records
             .iter()
-            .filter_map(|r| self.secrets.get(&conn_account(&r.id)).ok().flatten())
-            .map(|s| s.expose().to_string())
+            .flat_map(|r| {
+                let access = self.secrets.get(&conn_account(&r.id)).ok().flatten();
+                let refresh = Oauth::of(&*self.secrets, &r.id).map(|o| o.refresh);
+                access
+                    .map(|s| s.expose().to_string())
+                    .into_iter()
+                    .chain(refresh.filter(|t| !t.is_empty()))
+            })
             .collect()
     }
 
@@ -446,6 +455,9 @@ impl Connections {
                 self.secrets
                     .delete(&conn_account(id))
                     .map_err(|e| e.to_string())?;
+                self.secrets
+                    .delete(&oauth_account(id))
+                    .map_err(|e| e.to_string())?;
                 new.secret = false;
             }
             new.state = if (&new.url, &new.user) == (&old.url, &old.user) {
@@ -460,6 +472,17 @@ impl Connections {
 
     /// Saves the secret in the keychain. The value is not stored anywhere else.
     pub fn set_secret(&self, id: &str, secret: Secret) -> Res<Connection> {
+        self.store_secret(id, secret, None)
+    }
+
+    /// Saves the secret, and the browser sign-in state of a GitLab token (`oauth`). A pasted
+    /// secret (`None`) removes that state: the token is then a personal access token.
+    pub(crate) fn store_secret(
+        &self,
+        id: &str,
+        secret: Secret,
+        oauth: Option<Oauth>,
+    ) -> Res<Connection> {
         let value = Secret::new(secret.expose().trim());
         if value.is_empty() || value.expose().len() > MAX_SECRET {
             return Err(format!("the secret needs 1 to {MAX_SECRET} characters"));
@@ -473,6 +496,11 @@ impl Connections {
             self.secrets
                 .set(&conn_account(id), &value)
                 .map_err(|e| e.to_string())?;
+            match &oauth {
+                Some(o) => self.secrets.set(&oauth_account(id), &o.to_secret()?),
+                None => self.secrets.delete(&oauth_account(id)),
+            }
+            .map_err(|e| e.to_string())?;
             r.secret = true;
             // A new secret needs a new test.
             r.state = ConnectionState::Untested;
@@ -491,6 +519,9 @@ impl Connections {
                 .ok_or_else(|| format!("unknown connection: {id}"))?;
             self.secrets
                 .delete(&conn_account(id))
+                .map_err(|e| e.to_string())?;
+            self.secrets
+                .delete(&oauth_account(id))
                 .map_err(|e| e.to_string())?;
             file.connections.remove(at);
             Ok(())
@@ -511,11 +542,48 @@ impl Connections {
         });
         match hit {
             Some(r) => {
-                Auth::from_store(&*self.secrets, &r.id, r.user.as_deref().unwrap_or(""), url)
-                    .map_err(|e| e.to_string())
+                // A browser token of GitLab: refresh it when it ends, and name it `oauth2`.
+                let signed_in = self.bearer(&r)?;
+                if let Some(b) = &signed_in {
+                    b.refresh_if_expired();
+                }
+                let user = match signed_in {
+                    Some(_) => "oauth2",
+                    None => r.user.as_deref().unwrap_or(""),
+                };
+                Auth::from_store(&*self.secrets, &r.id, user, url).map_err(|e| e.to_string())
             }
             None => Ok(Auth::none()),
         }
+    }
+
+    /// The wrapper of a GitLab connection that signed in with the browser: its token goes out as
+    /// `Authorization: Bearer` and is refreshed (`device_login::Bearer`). `None` for the rest.
+    fn bearer(&self, r: &Record) -> Res<Option<Bearer>> {
+        let marked = r.kind == ConnectionKind::GitLab
+            && self
+                .secrets
+                .get(&oauth_account(&r.id))
+                .map_err(|e| e.to_string())?
+                .is_some();
+        Ok(match (marked, https_host(&r.url)) {
+            (true, Some(host)) => Some(Bearer::new(
+                self.http.clone(),
+                self.secrets.clone(),
+                self.lock.clone(),
+                &r.id,
+                &host,
+            )),
+            _ => None,
+        })
+    }
+
+    /// The client of a connection.
+    fn http_for(&self, r: &Record) -> Res<Arc<dyn Http>> {
+        Ok(match self.bearer(r)? {
+            Some(b) => Arc::new(b),
+            None => self.http.clone(),
+        })
     }
 
     fn secret(&self, r: &Record) -> Res<Secret> {
@@ -531,7 +599,7 @@ impl Connections {
         if r.group != ConnectionGroup::Tracker {
             return Err(format!("{id} is not a tracker"));
         }
-        shipyard_trackers::connect(&tracker_config(&r), self.secret(&r)?, self.http.clone())
+        shipyard_trackers::connect(&tracker_config(&r), self.secret(&r)?, self.http_for(&r)?)
             .map_err(|e| e.to_string())
     }
 
@@ -544,7 +612,7 @@ impl Connections {
             return Err(format!("{id} is not a tracker"));
         }
         let http = Arc::new(Clocked {
-            inner: self.http.clone(),
+            inner: self.http_for(&r)?,
             skew: self.skew_of(id),
         });
         shipyard_trackers::work::connect_write(&tracker_config(&r), self.secret(&r)?, http)
@@ -557,7 +625,7 @@ impl Connections {
         if r.group != ConnectionGroup::Forge {
             return Err(format!("{id} is not a forge"));
         }
-        shipyard_forges::connect(&forge_config(&r)?, self.secret(&r)?, self.http.clone())
+        shipyard_forges::connect(&forge_config(&r)?, self.secret(&r)?, self.http_for(&r)?)
             .map_err(|e| e.to_string())
     }
 
@@ -568,7 +636,7 @@ impl Connections {
         if r.group != ConnectionGroup::Forge {
             return Err(format!("{id} is not a forge"));
         }
-        shipyard_forges::connect_pull_api(&forge_config(&r)?, self.secret(&r)?, self.http.clone())
+        shipyard_forges::connect_pull_api(&forge_config(&r)?, self.secret(&r)?, self.http_for(&r)?)
             .map_err(|e| e.to_string())
     }
 
@@ -579,7 +647,7 @@ impl Connections {
         if r.group != ConnectionGroup::Forge {
             return Err(format!("{id} is not a forge"));
         }
-        shipyard_forges::connect_code_api(&forge_config(&r)?, self.secret(&r)?, self.http.clone())
+        shipyard_forges::connect_code_api(&forge_config(&r)?, self.secret(&r)?, self.http_for(&r)?)
             .map_err(|e| e.to_string())
     }
 
@@ -716,5 +784,115 @@ mod tests {
         assert_eq!(format!("{none:?}"), format!("{other:?}"));
         let plain = c.git_auth("http://github.com/a/b.git").unwrap();
         assert_eq!(format!("{none:?}"), format!("{plain:?}"));
+    }
+
+    fn gitlab_signed_in(
+        http: shipyard_http::fake::FakeHttp,
+        expires: i64,
+    ) -> (
+        Connections,
+        Arc<shipyard_secrets::MemoryStore>,
+        String,
+        tempfile::TempDir,
+    ) {
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(shipyard_secrets::MemoryStore::default());
+        let c = Connections::new(dir.path(), store.clone(), Arc::new(http));
+        let id = c
+            .add(ConnectionDraft {
+                name: "Code".into(),
+                group: ConnectionGroup::Forge,
+                kind: ConnectionKind::GitLab,
+                url: "https://gitlab.com".into(),
+                user: None,
+            })
+            .unwrap()
+            .id;
+        let oauth = Oauth {
+            refresh: "rt-1".into(),
+            expires,
+            client: "cid".into(),
+        };
+        c.store_secret(&id, Secret::new("at-1"), Some(oauth))
+            .unwrap();
+        (c, store, id, dir)
+    }
+
+    fn same_client(a: &Arc<dyn Http>, b: &Arc<dyn Http>) -> bool {
+        std::ptr::addr_eq(Arc::as_ptr(a), Arc::as_ptr(b))
+    }
+
+    #[test]
+    fn only_a_gitlab_connection_with_the_marker_gets_the_bearer_client() {
+        use shipyard_http::fake::FakeHttp;
+        let (c, _, id, _d) = gitlab_signed_in(FakeHttp::new(), i64::MAX);
+        let r = c.record(&id).unwrap();
+        assert!(!same_client(&c.http_for(&r).unwrap(), &c.http));
+        // A pasted token drops the marker.
+        c.set_secret(&id, Secret::new("glpat-1")).unwrap();
+        assert!(same_client(&c.http_for(&r).unwrap(), &c.http));
+        // GitHub never gets it, with or without a marker in the keychain.
+        let gh = c
+            .add(ConnectionDraft {
+                name: "Hub".into(),
+                group: ConnectionGroup::Forge,
+                kind: ConnectionKind::GitHub,
+                url: "https://github.com".into(),
+                user: None,
+            })
+            .unwrap();
+        let oauth = Oauth {
+            refresh: "x".into(),
+            expires: 0,
+            client: "cid".into(),
+        };
+        c.store_secret(&gh.id, Secret::new("gho_1"), Some(oauth))
+            .unwrap();
+        assert!(same_client(
+            &c.http_for(&c.record(&gh.id).unwrap()).unwrap(),
+            &c.http
+        ));
+    }
+
+    #[test]
+    fn an_edit_to_a_new_host_deletes_the_marker_and_the_refresh_token_is_filtered() {
+        use shipyard_http::fake::FakeHttp;
+        let (c, store, id, _d) = gitlab_signed_in(FakeHttp::new(), i64::MAX);
+        let values = c.secret_values();
+        assert!(values.contains(&"at-1".to_string()) && values.contains(&"rt-1".to_string()));
+        let draft = |url: &str| ConnectionDraft {
+            name: "Code".into(),
+            group: ConnectionGroup::Forge,
+            kind: ConnectionKind::GitLab,
+            url: url.into(),
+            user: None,
+        };
+        c.edit(&id, draft("https://gitlab.com/other")).unwrap();
+        assert!(Oauth::of(&*store, &id).is_some());
+        c.edit(&id, draft("https://evil.example.com")).unwrap();
+        assert!(Oauth::of(&*store, &id).is_none());
+        assert!(store.get(&conn_account(&id)).unwrap().is_none());
+    }
+
+    #[test]
+    fn git_auth_refreshes_a_browser_token_and_names_the_user_oauth2() {
+        use shipyard_http::fake::FakeHttp;
+        let http = FakeHttp::new();
+        http.post(
+            "/oauth/token",
+            "rt-1",
+            200,
+            r#"{"access_token":"at-2","refresh_token":"rt-2","expires_in":7200}"#,
+        );
+        let (c, store, id, _d) = gitlab_signed_in(http, 1);
+        let auth = c.git_auth("https://gitlab.com/a/b.git").unwrap();
+        let shown = format!("{auth:?}");
+        assert!(shown.contains("oauth2"), "{shown}");
+        assert!(!shown.contains("at-2"));
+        assert_eq!(
+            store.get(&conn_account(&id)).unwrap().unwrap().expose(),
+            "at-2"
+        );
+        assert_eq!(Oauth::of(&*store, &id).unwrap().refresh, "rt-2");
     }
 }

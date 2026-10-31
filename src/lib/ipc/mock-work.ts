@@ -923,9 +923,13 @@ export function estimateProfiles(w: MockWork, slug: string | null): ProfileSum_S
 			by.set(key, e);
 		}
 	}
-	return [...by.values()].sort(
-		(a, b) => (b.days ?? 0) - (a.days ?? 0) || a.role.localeCompare(b.role),
-	);
+	// One rated member: the cost over the days would show a day rate.
+	const rated = (role: string) =>
+		w.team.members.filter((m) => m.dayRate != null && m.role.toLowerCase() === role.toLowerCase())
+			.length;
+	return [...by.values()]
+		.map((e) => (rated(e.role) < 2 ? { ...e, cost: null } : e))
+		.sort((a, b) => (b.days ?? 0) - (a.days ?? 0) || a.role.localeCompare(b.role));
 }
 
 export function estimateDelete(w: MockWork, slug: string, click: boolean) {

@@ -14,7 +14,8 @@ use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::work::{FROZEN, need_click};
 
 /// The days and the cost of one profile (a role). `cost` is `None` when no member rate covers the
-/// role: a locked seal hides every rate.
+/// role: a locked seal hides every rate. It is also `None` when fewer than two members with a
+/// rate have the role: the cost over the days would show the day rate of one member.
 #[derive(Debug, Clone, PartialEq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileSum {
@@ -58,8 +59,19 @@ pub fn profiles(s: &AppState, slug: Option<&str>) -> Res<Vec<ProfileSum>> {
             .filter_map(|(_, sheet)| sheet.ok())
             .collect(),
     };
-    let rates = work::role_rates(&crate::work::team_get(s)?.team);
-    Ok(by_role(&sheets, &rates))
+    let team = crate::work::team_get(s)?.team;
+    let mut out = by_role(&sheets, &work::role_rates(&team));
+    for p in &mut out {
+        let rated = team
+            .members
+            .iter()
+            .filter(|m| m.day_rate.is_some() && m.role.eq_ignore_ascii_case(&p.role))
+            .count();
+        if rated < 2 {
+            p.cost = None;
+        }
+    }
+    Ok(out)
 }
 
 /// Move a sheet file to the system trash. A frozen sheet stays.
@@ -198,7 +210,25 @@ mod tests {
             },
         )
         .unwrap();
-        assert_eq!(profiles(&f.s, None).unwrap()[0].cost, Some(1200.0));
+        // One member with a rate: the cost would show the day rate, so it stays hidden.
+        assert_eq!(profiles(&f.s, None).unwrap()[0].cost, None);
+        let member = |handle: &str, rate: f64| Member {
+            name: handle.into(),
+            handle: handle.into(),
+            role: "Dev".into(),
+            capacity: 5.0,
+            day_rate: Some(rate),
+            ..Member::default()
+        };
+        crate::work::team_save(
+            &f.s,
+            Team {
+                members: vec![member("ana", 400.0), member("bob", 600.0)],
+                locked: false,
+            },
+        )
+        .unwrap();
+        assert_eq!(profiles(&f.s, None).unwrap()[0].cost, Some(1500.0));
     }
 
     #[test]
