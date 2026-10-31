@@ -4,8 +4,8 @@ import { useDark } from "./use-dark";
 
 /** The only origin that can show in a frame (CSP `frame-src`) and send a message (ADR 0015). */
 export const DRAWIO_ORIGIN = "https://embed.diagrams.net";
-// shortcut: off until the app CSP allows frame-src https://embed.diagrams.net (ADR 0015); then turn it on
-export const DRAWIO_EMBED = false;
+/** On: the app CSP allows frame-src https://embed.diagrams.net (ADR 0015). */
+export const DRAWIO_EMBED = true;
 /** The editor that does not answer in this time shows the read-only view. */
 const WAIT_MS = 15_000;
 

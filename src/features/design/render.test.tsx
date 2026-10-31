@@ -51,7 +51,7 @@ vi.mock("@/ui/organisms/excalidraw-board", () => ({
 	ExcalidrawBoard: ({ label }: { label: string }) => <div role="img" aria-label={label} />,
 }));
 
-// The embed is off in the app (`DRAWIO_EMBED`). A test turns it on through the prop.
+// The embed is on in the app (`DRAWIO_EMBED`). A test turns it off through the prop.
 const draw = vi.hoisted(() => ({ embed: undefined as boolean | undefined }));
 vi.mock("@/ui/organisms/drawio-editor", async (orig) => {
 	const m = await orig<typeof import("@/ui/organisms/drawio-editor")>();
@@ -153,7 +153,8 @@ describe("Design / Diagrams", () => {
 	});
 
 	it("shows draw.io read-only at once, with no frame, while the embed is off", async () => {
-		expect(DRAWIO_EMBED).toBe(false);
+		expect(DRAWIO_EMBED).toBe(true);
+		draw.embed = false;
 		const user = userEvent.setup();
 		await mountDesign(<Diagrams />);
 		await user.click(await row("network"));
