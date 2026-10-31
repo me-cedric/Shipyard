@@ -138,6 +138,17 @@ struct Record {
     /// The scopes that the host granted to a browser sign-in. Empty for a pasted token.
     #[serde(default)]
     scopes: Vec<String>,
+    /// The id of the twin that holds the keychain entry of this connection. `None`: it holds its
+    /// own. One entry means one refresh, and a re-sign or a removal reaches both roles.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    uses: Option<String>,
+}
+
+impl Record {
+    /// The id of the keychain entry of this connection.
+    fn holder(&self) -> &str {
+        self.uses.as_deref().unwrap_or(&self.id)
+    }
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -350,6 +361,7 @@ impl Connections {
         let records = self.load().map(|f| f.connections).unwrap_or_default();
         records
             .iter()
+            .filter(|r| r.uses.is_none())
             .flat_map(|r| {
                 let access = self.secrets.get(&conn_account(&r.id)).ok().flatten();
                 let refresh = Oauth::of(&*self.secrets, &r.id).map(|o| o.refresh);
@@ -408,6 +420,7 @@ impl Connections {
             secret: false,
             state: ConnectionState::Untested,
             scopes: Vec::new(),
+            uses: None,
         };
         match record.group {
             ConnectionGroup::Tracker => {
@@ -428,55 +441,78 @@ impl Connections {
 
     pub fn add(&self, draft: ConnectionDraft) -> Res<Connection> {
         self.with_file(|file| {
-            let base = slug(&draft.name, draft.kind);
-            let mut id = base.clone();
-            for n in 2.. {
-                if !file.connections.iter().any(|r| r.id == id) {
-                    break;
-                }
-                id = format!("{base}-{n}");
-            }
-            let record = Self::check(&draft, &id)?;
-            let view = Connection::from(&record);
-            file.connections.push(record);
-            Ok(view)
+            Self::insert(file, &draft).map(|i| Connection::from(&file.connections[i]))
         })
+    }
+
+    /// Adds the checked draft to the file under a free id. Returns its place in the list.
+    fn insert(file: &mut File, draft: &ConnectionDraft) -> Res<usize> {
+        let base = slug(&draft.name, draft.kind);
+        let mut id = base.clone();
+        for n in 2.. {
+            if !file.connections.iter().any(|r| r.id == id) {
+                break;
+            }
+            id = format!("{base}-{n}");
+        }
+        file.connections.push(Self::check(draft, &id)?);
+        Ok(file.connections.len() - 1)
     }
 
     /// Changes the name, the address and the user. The group and the kind stay. A new address
     /// resets the state, because the last test was for the old one.
     pub fn edit(&self, id: &str, draft: ConnectionDraft) -> Res<Connection> {
         self.with_file(|file| {
-            let old = file
+            let at = file
                 .connections
-                .iter_mut()
-                .find(|r| r.id == id)
+                .iter()
+                .position(|r| r.id == id)
                 .ok_or_else(|| format!("unknown connection: {id}"))?;
+            let old = &file.connections[at];
             if (old.group, old.kind) != (draft.group, draft.kind) {
                 return Err("the kind of a connection does not change".into());
             }
             let mut new = Self::check(&draft, id)?;
             new.secret = old.secret;
             new.scopes = old.scopes.clone();
-            // The secret belongs to a host. A new host would send it to a stranger: drop it.
-            if new.secret && host_of(&new.url) != host_of(&old.url) {
-                self.secrets
-                    .delete(&conn_account(id))
-                    .map_err(|e| e.to_string())?;
-                self.secrets
-                    .delete(&oauth_account(id))
-                    .map_err(|e| e.to_string())?;
-                new.secret = false;
-                new.scopes.clear();
-            }
+            new.uses = old.uses.clone();
             new.state = if (&new.url, &new.user) == (&old.url, &old.user) {
                 old.state
             } else {
                 ConnectionState::Untested
             };
-            *old = new;
-            Ok(Connection::from(&*old))
+            // The secret belongs to a host. A new host would send it to a stranger: drop it. A
+            // twin only lets go of the shared entry. The holder deletes it, and its twin with it.
+            let moved = new.secret && host_of(&new.url) != host_of(&old.url);
+            if moved && old.uses.is_none() {
+                self.drop_entry(file, id)?;
+            }
+            if moved {
+                new.secret = false;
+                new.scopes.clear();
+                new.uses = None;
+                new.state = ConnectionState::Untested;
+            }
+            file.connections[at] = new;
+            Ok(Connection::from(&file.connections[at]))
         })
+    }
+
+    /// Deletes the keychain entry of the holder `id`. The records that use it lose their secret.
+    fn drop_entry(&self, file: &mut File, id: &str) -> Res<()> {
+        self.secrets
+            .delete(&conn_account(id))
+            .map_err(|e| e.to_string())?;
+        self.secrets
+            .delete(&oauth_account(id))
+            .map_err(|e| e.to_string())?;
+        for r in file.connections.iter_mut().filter(|r| r.holder() == id) {
+            r.secret = false;
+            r.scopes.clear();
+            r.uses = None;
+            r.state = ConnectionState::Untested;
+        }
+        Ok(())
     }
 
     /// Saves the secret in the keychain. The value is not stored anywhere else.
@@ -497,27 +533,79 @@ impl Connections {
             return Err(format!("the secret needs 1 to {MAX_SECRET} characters"));
         }
         self.with_file(|file| {
-            let r = file
+            let holder = file
                 .connections
-                .iter_mut()
+                .iter()
                 .find(|r| r.id == id)
+                .map(|r| r.holder().to_string())
                 .ok_or_else(|| format!("unknown connection: {id}"))?;
             self.secrets
-                .set(&conn_account(id), &value)
+                .set(&conn_account(&holder), &value)
                 .map_err(|e| e.to_string())?;
             match &oauth {
-                Some(o) => self.secrets.set(&oauth_account(id), &o.to_secret()?),
-                None => self.secrets.delete(&oauth_account(id)),
+                Some(o) => self.secrets.set(&oauth_account(&holder), &o.to_secret()?),
+                None => self.secrets.delete(&oauth_account(&holder)),
             }
             .map_err(|e| e.to_string())?;
-            r.secret = true;
-            r.scopes = oauth
+            let scopes: Vec<String> = oauth
                 .as_ref()
                 .map(|o| o.scope.split_whitespace().map(String::from).collect())
                 .unwrap_or_default();
-            // A new secret needs a new test.
-            r.state = ConnectionState::Untested;
-            Ok(Connection::from(&*r))
+            // The twin shares the entry: it gets the same flags. A new secret needs a new test.
+            for r in file.connections.iter_mut().filter(|r| r.holder() == holder) {
+                r.secret = true;
+                r.scopes = scopes.clone();
+                r.state = ConnectionState::Untested;
+            }
+            let r = file.connections.iter().find(|r| r.id == id);
+            Ok(Connection::from(r.ok_or("unknown connection")?))
+        })
+    }
+
+    /// One GitHub or GitLab account serves both roles on a host. The connection `id` holds a
+    /// secret: the connection of the other group, same product and host, reads that same keychain
+    /// entry (no copy), and is created when it is missing. A twin that has a secret keeps it: it
+    /// can be another account. Returns the twin when it got the secret.
+    pub fn serve_twin(&self, id: &str) -> Res<Option<Connection>> {
+        self.with_file(|file| {
+            let src = file
+                .connections
+                .iter()
+                .find(|r| r.id == id)
+                .cloned()
+                .ok_or_else(|| format!("unknown connection: {id}"))?;
+            if !src.secret || !matches!(src.kind, ConnectionKind::GitHub | ConnectionKind::GitLab) {
+                return Ok(None);
+            }
+            let group = match src.group {
+                ConnectionGroup::Tracker => ConnectionGroup::Forge,
+                ConnectionGroup::Forge => ConnectionGroup::Tracker,
+            };
+            let host = host_of(&src.url);
+            let is_twin =
+                |r: &Record| r.kind == src.kind && r.group == group && host_of(&r.url) == host;
+            if file.connections.iter().any(|r| is_twin(r) && r.secret) {
+                return Ok(None);
+            }
+            let at = match file.connections.iter().position(is_twin) {
+                Some(at) => at,
+                None => Self::insert(
+                    file,
+                    &ConnectionDraft {
+                        name: src.name.clone(),
+                        group,
+                        kind: src.kind,
+                        url: src.url.clone(),
+                        user: src.user.clone(),
+                    },
+                )?,
+            };
+            let twin = &mut file.connections[at];
+            twin.secret = true;
+            twin.scopes = src.scopes;
+            twin.uses = Some(src.uses.unwrap_or(src.id));
+            twin.state = ConnectionState::Untested;
+            Ok(Some(Connection::from(&*twin)))
         })
     }
 
@@ -530,12 +618,9 @@ impl Connections {
                 .iter()
                 .position(|r| r.id == id)
                 .ok_or_else(|| format!("unknown connection: {id}"))?;
-            self.secrets
-                .delete(&conn_account(id))
-                .map_err(|e| e.to_string())?;
-            self.secrets
-                .delete(&oauth_account(id))
-                .map_err(|e| e.to_string())?;
+            // Both roles share one entry: it goes, and the twin has no secret any more.
+            let holder = file.connections[at].holder().to_string();
+            self.drop_entry(file, &holder)?;
             file.connections.remove(at);
             Ok(())
         })
@@ -564,7 +649,7 @@ impl Connections {
                     Some(_) => "oauth2",
                     None => r.user.as_deref().unwrap_or(""),
                 };
-                Auth::from_store(&*self.secrets, &r.id, user, url).map_err(|e| e.to_string())
+                Auth::from_store(&*self.secrets, r.holder(), user, url).map_err(|e| e.to_string())
             }
             None => Ok(Auth::none()),
         }
@@ -576,7 +661,7 @@ impl Connections {
         let marked = r.kind == ConnectionKind::GitLab
             && self
                 .secrets
-                .get(&oauth_account(&r.id))
+                .get(&oauth_account(r.holder()))
                 .map_err(|e| e.to_string())?
                 .is_some();
         Ok(match (marked, https_host(&r.url)) {
@@ -584,7 +669,7 @@ impl Connections {
                 self.http.clone(),
                 self.secrets.clone(),
                 self.lock.clone(),
-                &r.id,
+                r.holder(),
                 &host,
             )),
             _ => None,
@@ -615,7 +700,7 @@ impl Connections {
 
     fn secret(&self, r: &Record) -> Res<Secret> {
         self.secrets
-            .get(&conn_account(&r.id))
+            .get(&conn_account(r.holder()))
             .map_err(|e| e.to_string())?
             .ok_or_else(|| "no secret saved".into())
     }
@@ -685,7 +770,7 @@ impl Connections {
         // The keychain is the truth: the `secret` flag can drift.
         let outcome = if self
             .secrets
-            .get(&conn_account(id))
+            .get(&conn_account(r.holder()))
             .map_err(|e| e.to_string())?
             .is_none()
         {
@@ -780,6 +865,112 @@ mod tests {
         assert!(!moved.secret);
         assert!(store.get(&conn_account(&id)).unwrap().is_none());
         assert!(c.git_auth("https://evil.example.com/a/b").is_ok());
+    }
+
+    #[test]
+    fn one_secret_serves_both_roles_on_a_host_and_a_twin_with_a_secret_keeps_it() {
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::MemoryStore;
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(MemoryStore::default());
+        let c = Connections::new(dir.path(), store.clone(), Arc::new(FakeHttp::new()));
+        let draft = |group, kind, url: &str| ConnectionDraft {
+            name: "Hub".into(),
+            group,
+            kind,
+            url: url.into(),
+            user: None,
+        };
+        let secret_of = |id: &str| {
+            store
+                .get(&conn_account(id))
+                .unwrap()
+                .map(|s| s.expose().to_string())
+        };
+        // No secret yet: nothing to share.
+        let tracker = c
+            .add(draft(
+                ConnectionGroup::Tracker,
+                ConnectionKind::GitHub,
+                "https://github.com",
+            ))
+            .unwrap();
+        assert!(c.serve_twin(&tracker.id).unwrap().is_none());
+        // The twin is created with the same secret, once.
+        c.set_secret(&tracker.id, Secret::new("tok-1")).unwrap();
+        let twin = c.serve_twin(&tracker.id).unwrap().unwrap();
+        assert_eq!(
+            (twin.group, twin.kind),
+            (ConnectionGroup::Forge, ConnectionKind::GitHub)
+        );
+        assert!(twin.secret);
+        // No copy: the twin reads the entry of the source.
+        assert_eq!(secret_of(&twin.id), None);
+        let read = |id: &str| {
+            c.secret(&c.record(id).unwrap())
+                .unwrap()
+                .expose()
+                .to_string()
+        };
+        assert_eq!(read(&twin.id), "tok-1");
+        // A new secret on one role reaches the other.
+        c.set_secret(&tracker.id, Secret::new("tok-1b")).unwrap();
+        assert_eq!(read(&twin.id), "tok-1b");
+        c.set_secret(&twin.id, Secret::new("tok-1c")).unwrap();
+        assert_eq!(read(&tracker.id), "tok-1c");
+        assert_eq!(secret_of(&twin.id), None);
+        assert!(c.serve_twin(&tracker.id).unwrap().is_none());
+        assert!(c.serve_twin(&twin.id).unwrap().is_none());
+        assert_eq!(c.list().unwrap().len(), 2);
+        // A twin without a secret on the same host (other case, path) is filled, not duplicated.
+        let forge = c
+            .add(draft(
+                ConnectionGroup::Forge,
+                ConnectionKind::GitLab,
+                "https://gitlab.example.com",
+            ))
+            .unwrap();
+        let empty = c
+            .add(draft(
+                ConnectionGroup::Tracker,
+                ConnectionKind::GitLab,
+                "https://GitLab.example.com/x",
+            ))
+            .unwrap();
+        c.set_secret(&forge.id, Secret::new("tok-2")).unwrap();
+        assert_eq!(c.serve_twin(&forge.id).unwrap().unwrap().id, empty.id);
+        assert_eq!(read(&empty.id), "tok-2");
+        assert_eq!(c.list().unwrap().len(), 4);
+        // Removing one role removes the shared entry, and the other role has no secret.
+        c.remove(&empty.id).unwrap();
+        assert_eq!(secret_of(&forge.id), None);
+        assert!(!c.get(&forge.id).unwrap().unwrap().secret);
+        assert_eq!(c.list().unwrap().len(), 3);
+        // A twin that has its own secret (another account) keeps it.
+        let own = c
+            .add(draft(
+                ConnectionGroup::Tracker,
+                ConnectionKind::GitHub,
+                "https://ghe.example.com",
+            ))
+            .unwrap();
+        c.set_secret(&own.id, Secret::new("mine")).unwrap();
+        let theirs = c
+            .add(draft(
+                ConnectionGroup::Forge,
+                ConnectionKind::GitHub,
+                "https://ghe.example.com",
+            ))
+            .unwrap();
+        c.set_secret(&theirs.id, Secret::new("theirs")).unwrap();
+        assert!(c.serve_twin(&theirs.id).unwrap().is_none());
+        assert_eq!(secret_of(&own.id).as_deref(), Some("mine"));
+        // Another product has one role only or needs its own sign-in: no twin.
+        let linear = c
+            .add(draft(ConnectionGroup::Tracker, ConnectionKind::Linear, ""))
+            .unwrap();
+        c.set_secret(&linear.id, Secret::new("lin")).unwrap();
+        assert!(c.serve_twin(&linear.id).unwrap().is_none());
     }
 
     #[test]

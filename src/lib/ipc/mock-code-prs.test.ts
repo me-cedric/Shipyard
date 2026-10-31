@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { seedCode } from "./mock-code";
 import {
 	checkRun,
+	gatesSave,
 	impactAnalyze,
 	impactList,
 	impactRead,
@@ -65,6 +66,17 @@ describe("the Code forge mock", () => {
 });
 
 describe("the Code quality and impact mock", () => {
+	it("shows the saved gates as the checks and fails one with its reason", () => {
+		const p = seedPrs();
+		expect(() => gatesSave(p, ["make ci"], false)).toThrow("click");
+		gatesSave(p, [" make ci ", ""], true);
+		expect(qualityView(p).checks.map((c) => [c.name, c.label])).toEqual([
+			["make ci", null],
+			["verify all docs", null],
+		]);
+		expect(checkRun(p, "make ci", true).findings[0]?.message).toContain("exit code 1");
+	});
+
 	it("runs a declared check only and a scanner that ships, and keeps no secret value", () => {
 		const p = seedPrs();
 		expect(() => checkRun(p, "make-everything-vanish", true)).toThrow("not a check");

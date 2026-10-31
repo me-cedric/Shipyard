@@ -187,6 +187,30 @@ pub fn refresh(s: &AppState) {
     let _ = ensure(s);
 }
 
+/// A secret was saved or a test passed for the connections `ids`: their old sync failure came from
+/// the old secret. Forget it, then run one tick now, off this thread, so the line shows the truth
+/// at once. `None` when the active project polls none of them. The handle is for a test.
+pub fn recover(s: &AppState, ids: &[&str]) -> Option<std::thread::JoinHandle<()>> {
+    let r = ensure(s).ok()??;
+    let sources: Vec<_> = r
+        .plan()
+        .sources()
+        .into_iter()
+        .filter(|(c, _)| ids.contains(&c.as_str()))
+        .collect();
+    if sources.is_empty() {
+        return None;
+    }
+    let mirror = s.sync.mirror().ok()?;
+    for (_, source) in sources {
+        let _ = mirror.clear_failure(&source);
+    }
+    s.sync.changed();
+    Some(std::thread::spawn(move || {
+        let _ = r.tick(true);
+    }))
+}
+
 fn running(s: &AppState) -> Res<Arc<Running>> {
     ensure(s)?.ok_or_else(|| "the project has no tracker connection".into())
 }
@@ -1001,6 +1025,68 @@ mod tests {
         assert_eq!(st[0].status, SyncStatus::Failed);
         assert_eq!(st[0].error.as_deref(), Some("offline"));
         assert_eq!(items(&f.s, &ItemFilter::default()).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn a_saved_secret_clears_the_old_failure_and_syncs_at_once() {
+        let f = fixture();
+        run_tick(&f.s).unwrap();
+        let r = ensure(&f.s).unwrap().unwrap();
+        r.with(|e| {
+            e.mirror()
+                .mark_failed("issues@acme/web", "no secret saved")?;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(
+            state(&f.s).unwrap()[0].error.as_deref(),
+            Some("no secret saved")
+        );
+        // A connection that the project does not poll has nothing to clear.
+        assert!(recover(&f.s, &["nope"]).is_none());
+        recover(&f.s, &["issues"]).unwrap().join().unwrap();
+        let st = state(&f.s).unwrap();
+        assert_eq!(
+            (st[0].status, st[0].error.clone()),
+            (SyncStatus::Idle, None)
+        );
+        assert!(st[0].last_ok.is_some());
+    }
+
+    #[test]
+    fn the_pull_request_page_tells_no_code_host_from_a_failing_one() {
+        use crate::delivery::{PullsStatus, pulls_status};
+        let f = fixture();
+        run_tick(&f.s).unwrap();
+        let ok = PullsStatus {
+            connected: true,
+            error: None,
+        };
+        assert_eq!(pulls_status(&f.s).unwrap(), ok);
+        let r = ensure(&f.s).unwrap().unwrap();
+        r.with(|e| {
+            e.mirror().mark_failed("code@acme/web", "HTTP 401")?;
+            Ok(())
+        })
+        .unwrap();
+        let st = pulls_status(&f.s).unwrap();
+        assert_eq!(
+            (st.connected, st.error.as_deref()),
+            (true, Some("HTTP 401"))
+        );
+        // A project that names no code host connection is not connected.
+        let FileRead::Valid(mut file) = read_project_file(f.repo.path()).unwrap() else {
+            panic!("a valid file")
+        };
+        file.connections.as_mut().unwrap().forge = None;
+        write_project_file(f.repo.path(), &file).unwrap();
+        assert_eq!(
+            pulls_status(&f.s).unwrap(),
+            PullsStatus {
+                connected: false,
+                error: None
+            }
+        );
     }
 
     #[test]

@@ -4,7 +4,8 @@
 use shipyard_core::question::Question;
 use shipyard_store::raid::{
     Item, Kind, QUESTIONS_DIR, RegisterFile, Status, answer, can_transition, create, format_item,
-    from_question, item_path, list_register, new_item, next_id, parse_item, read, save,
+    from_question, item_path, list_register, mark_folded, new_item, next_id, parse_item, read,
+    save,
 };
 
 fn full() -> Item {
@@ -353,4 +354,44 @@ fn the_real_register_of_this_repository_reads_clean() {
         );
         assert!(f.path.ends_with(&format!("{}.md", it.id)), "{}", f.path);
     }
+}
+
+fn question_file(dir: &std::path::Path, status: &str) -> std::path::PathBuf {
+    let p = dir.join("Q-001.md");
+    std::fs::write(
+        &p,
+        format!(
+            "---\nid: Q-001\nkind: question\nstatus: {status}\nraised_at: 2026-10-29\nraised_by: ana\nowner: ana\nspec_ref: \ntask_ref: \nticket: \nx_extra: keep\n---\n# Which provider?\nBody stays.\n"
+        ),
+    )
+    .unwrap();
+    p
+}
+
+#[test]
+fn an_answered_question_becomes_folded_and_keeps_its_other_text() {
+    let d = tempfile::tempdir().unwrap();
+    let p = question_file(d.path(), "answered");
+    mark_folded(&p).unwrap();
+    let text = std::fs::read_to_string(&p).unwrap();
+    assert!(
+        text.contains("status: folded\n") && !text.contains("answered"),
+        "{text}"
+    );
+    assert!(text.contains("x_extra: keep") && text.ends_with("# Which provider?\nBody stays.\n"));
+    // A second call changes nothing.
+    mark_folded(&p).unwrap();
+    assert_eq!(std::fs::read_to_string(&p).unwrap(), text);
+}
+
+#[test]
+fn only_an_answered_question_moves_to_folded() {
+    for status in ["open", "assigned", "withdrawn", "folded"] {
+        let d = tempfile::tempdir().unwrap();
+        let p = question_file(d.path(), status);
+        let before = std::fs::read_to_string(&p).unwrap();
+        mark_folded(&p).unwrap();
+        assert_eq!(std::fs::read_to_string(&p).unwrap(), before, "{status}");
+    }
+    assert!(mark_folded(std::path::Path::new("/no/such/Q-001.md")).is_err());
 }

@@ -495,6 +495,7 @@ impl Engine {
             active: &active,
             held: &held,
             kill_switch: self.dispatch.kill_switch(),
+            reserved: self.dispatch.reserved(),
         })
         .into_iter()
         .cloned()

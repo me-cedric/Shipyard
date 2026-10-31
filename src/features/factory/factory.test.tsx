@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
-import { DEMO_FOLDER } from "@/lib/ipc/mock";
+import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { ShellProvider, useShell } from "@/lib/shell";
 import { spendStatus } from "@/ui/molecules/spend-meter";
 import { renderApp } from "@/ui/test-utils";
@@ -98,6 +98,22 @@ describe("Factory tabs", () => {
 		expect(stopped).not.toBeChecked();
 		await user.click(stopped);
 		await waitFor(async () => expect(await unwrap(commands.killSwitchGet())).toBe(false));
+	});
+
+	it("Sessions: a running agent review is a session, and Stop ends it", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		await unwrap(commands.prReviewStart(141, true));
+		const agent = mockState().agentPr;
+		if (agent) agent.running = [141];
+		await renderTab(<Sessions />);
+		const row = (await screen.findByText("#141")).closest('[role="row"]') as HTMLElement;
+		expect(within(row).getByText("Running")).toBeInTheDocument();
+		// A run has no Stop here: only the review has one.
+		expect(screen.getAllByRole("button", { name: /^Stop #/ })).toHaveLength(1);
+		await user.click(within(row).getByRole("button", { name: "Stop #141" }));
+		await waitFor(() => expect(screen.queryByText("#141")).toBeNull());
+		expect(mockState().agentPr?.running).toEqual([]);
 	});
 
 	it("Usage: three groups with counts, and budgetSet", async () => {

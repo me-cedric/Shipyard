@@ -7,11 +7,12 @@
 //! no second review. A person posts the draft with one click. The automatic `post` mode posts a
 //! comment review and never an approval or a request for changes.
 //!
-//! shortcut: the post is one review body that lists each finding with its path and line, because
-//! the forge adapters have no inline comment call. Add it there when a code host needs it.
+//! A review is a session of the factory: it shows in Factory / Sessions, a person stops it there,
+//! and it counts in the limit of the factory. A draft that waits shows in Home / Needs you. The
+//! post puts each finding on its line through the code host (`CodeApi::review`).
 
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 
 use serde::{Deserialize, Serialize};
 use shipyard_agents::assistant::{TurnInput, TurnKind, run_turn_with};
@@ -23,12 +24,13 @@ use shipyard_engine::ports::Dispatch;
 use shipyard_engine::review::{
     DraftVerdict, PullBrief, TextBrief, parse_draft, parse_text, pull_prompt, text_prompt,
 };
-use shipyard_forges::{PullQuery, PullState, StateFilter, Verdict};
+use shipyard_forges::{LineNote, PullQuery, PullState, StateFilter, Verdict};
 use shipyard_git::Repo;
 use specta::Type;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::commands::{Api, AppState, Res, blocking, err};
+use crate::factory::SessionView;
 use crate::work::need_click;
 
 /// The member key of the usage that a review books: the assistant, as for its turns.
@@ -72,6 +74,9 @@ impl From<DraftVerdict> for ReviewVerdict {
 #[serde(rename_all = "camelCase")]
 pub struct ReviewDraft {
     pub number: u32,
+    /// The title of the pull request, for Home / Needs you.
+    #[serde(default)]
+    pub title: String,
     pub head_sha: String,
     pub summary: String,
     pub verdict: ReviewVerdict,
@@ -81,6 +86,17 @@ pub struct ReviewDraft {
     pub posted: bool,
     /// A review that the automatic setting started.
     pub auto: bool,
+}
+
+/// A draft that waits for a person, as Home / Needs you shows it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewWait {
+    pub number: u32,
+    pub head_sha: String,
+    pub title: String,
+    /// The ref of the pull request, `pr:<connection>:<number>`. Empty without a code host.
+    pub reference: String,
 }
 
 /// What the page sends to post: the draft after the person edited it.
@@ -120,6 +136,25 @@ struct Job {
     project: String,
     number: u32,
     cancel: Option<CancelHandle>,
+    runner: String,
+    model: Option<String>,
+    /// A stop came, maybe before the turn had a handle to cancel: the turn must not start.
+    stopped: bool,
+}
+
+/// The views read the factory again when a review starts or ends. The first handle counts.
+static APP: OnceLock<AppHandle> = OnceLock::new();
+
+/// The event name of a change of the reviews. It is one of the factory events of the views.
+const EVENT: &str = "factory-review";
+
+fn changed(number: u32) {
+    if let Some(app) = APP.get() {
+        let _ = app.emit(
+            EVENT,
+            serde_json::json!({ "run": format!("review{number}"), "id": number.to_string() }),
+        );
+    }
 }
 
 static RUNNING: Mutex<Vec<Job>> = Mutex::new(Vec::new());
@@ -153,7 +188,12 @@ impl Slot {
             project: project.into(),
             number,
             cancel: None,
+            runner: String::new(),
+            model: None,
+            stopped: false,
         });
+        drop(all);
+        changed(number);
         Ok(Self {
             project: project.into(),
             number,
@@ -165,26 +205,84 @@ impl Slot {
             .iter_mut()
             .find(|j| j.project == self.project && j.number == self.number)
         {
+            // A stop that came while the turn started cancels it now.
+            if j.stopped {
+                h.cancel();
+            }
             j.cancel = Some(h);
         }
+    }
+
+    /// A stop came for this review, for example during the set-up of its worktree.
+    fn stopped(&self) -> bool {
+        jobs()
+            .iter()
+            .any(|j| j.project == self.project && j.number == self.number && j.stopped)
+    }
+
+    /// The runner and model of the turn, for the row in Factory / Sessions.
+    fn describe(&self, t: &ThreadSettings) {
+        if let Some(j) = jobs()
+            .iter_mut()
+            .find(|j| j.project == self.project && j.number == self.number)
+        {
+            j.runner = t.runner.clone();
+            j.model = t.model.clone();
+        }
+        changed(self.number);
     }
 }
 
 impl Drop for Slot {
     fn drop(&mut self) {
         jobs().retain(|j| !(j.project == self.project && j.number == self.number));
+        changed(self.number);
+    }
+}
+
+/// How many reviews run. The factory counts them in its limit (REQ-008).
+pub fn running_count() -> usize {
+    jobs().len()
+}
+
+/// The running reviews of a project as sessions of Factory / Sessions (REQ-008).
+pub fn sessions(project: &str) -> Vec<SessionView> {
+    jobs()
+        .iter()
+        .filter(|j| j.project == project)
+        .map(|j| SessionView {
+            run: format!("review{}", j.number),
+            key: format!("#{}", j.number),
+            step: "review".into(),
+            runner: j.runner.clone(),
+            model: j.model.clone(),
+            state: shipyard_core::workflow::StepState::Running,
+            tokens: 0,
+            cost_usd: 0.0,
+            pull: Some(j.number),
+        })
+        .collect()
+}
+
+/// Stops every running review: the switch "Agents stopped" does.
+pub fn stop_all() {
+    for j in jobs().iter_mut() {
+        j.stopped = true;
+        if let Some(h) = &j.cancel {
+            h.cancel();
+        }
     }
 }
 
 /// Stops the running review of a pull request. Nothing runs: nothing happens.
 pub fn review_stop(s: &AppState, number: u32) -> Res<()> {
     let (pid, _) = project(s)?;
-    for j in jobs().iter() {
-        if j.project == pid
-            && j.number == number
-            && let Some(h) = &j.cancel
-        {
-            h.cancel();
+    for j in jobs().iter_mut() {
+        if j.project == pid && j.number == number {
+            j.stopped = true;
+            if let Some(h) = &j.cancel {
+                h.cancel();
+            }
         }
     }
     Ok(())
@@ -241,6 +339,107 @@ fn reviewed(s: &AppState, pid: &str, number: u32, sha: &str) -> bool {
 pub fn review_get(s: &AppState, number: u32, head_sha: &str) -> Res<Option<ReviewDraft>> {
     let (pid, _) = project(s)?;
     load(s, &pid, number, head_sha)
+}
+
+/// The drafts that wait for a person, newest first: not posted, and on a pull request that is
+/// still open at that head commit. `open: None` (no answer of the code host) keeps them all.
+fn waiting(mut drafts: Vec<ReviewDraft>, open: Option<&[(u64, String)]>) -> Vec<ReviewDraft> {
+    drafts.retain(|d| {
+        !d.posted
+            && open.is_none_or(|o| {
+                o.iter()
+                    .any(|(n, sha)| *n == u64::from(d.number) && *sha == d.head_sha)
+            })
+    });
+    drafts
+}
+
+/// The number and head commit of each open pull request: every page, so an older one is not lost.
+/// `fetch` gives one page for a cursor, and `None` on a failure: the caller keeps every draft.
+fn open_heads(
+    mut fetch: impl FnMut(Option<String>) -> Option<(Vec<(u64, String)>, Option<String>)>,
+) -> Option<Vec<(u64, String)>> {
+    let mut all = Vec::new();
+    let mut cursor = None;
+    // shortcut: 40 pages of 100 pull requests, then the answer is unknown; raise it if a project needs more.
+    for _ in 0..40 {
+        let (items, next) = fetch(cursor.take())?;
+        all.extend(items);
+        if next.is_none() {
+            return Some(all);
+        }
+        cursor = next;
+    }
+    None
+}
+
+/// How long Home / Needs you reuses the list of open pull requests.
+const HEADS_TTL: std::time::Duration = std::time::Duration::from_secs(60);
+
+type Heads = Vec<(u64, String)>;
+
+/// The open heads under `key`, from a read that is not older than `ttl`. A failed read is not kept.
+fn cached_heads(
+    key: &str,
+    ttl: std::time::Duration,
+    load: impl FnOnce() -> Option<Heads>,
+) -> Option<Heads> {
+    static CACHE: Mutex<Vec<(String, std::time::Instant, Heads)>> = Mutex::new(Vec::new());
+    let mut cache = CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    cache.retain(|(_, at, _)| at.elapsed() < ttl);
+    if let Some((_, _, heads)) = cache.iter().find(|(k, _, _)| k == key) {
+        return Some(heads.clone());
+    }
+    let heads = load()?;
+    cache.push((key.into(), std::time::Instant::now(), heads.clone()));
+    Some(heads)
+}
+
+/// The drafts of the active project that wait for a person: Home / Needs you shows them.
+pub fn review_waiting(s: &AppState) -> Res<Vec<ReviewWait>> {
+    let (pid, _) = project(s)?;
+    let dir = s.dir.join("pr-reviews").join(&pid);
+    let mut found: Vec<(std::time::SystemTime, ReviewDraft)> = std::fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|e| e.path().extension().is_some_and(|x| x == "json"))
+        .filter_map(|e| {
+            let draft = serde_json::from_slice(&std::fs::read(e.path()).ok()?).ok()?;
+            Some((e.metadata().ok()?.modified().ok()?, draft))
+        })
+        .collect();
+    found.sort_by_key(|(at, _)| std::cmp::Reverse(*at));
+    let host = crate::code::forge(s).ok();
+    let open = host.as_ref().and_then(|(api, slug, id)| {
+        // Home loads often: the open heads are read once a minute, not on each load.
+        cached_heads(&format!("{id}:{slug}"), HEADS_TTL, || {
+            open_heads(|cursor| {
+                let query = PullQuery {
+                    state: StateFilter::Open,
+                    limit: 100,
+                    cursor,
+                };
+                let page = api.list_pulls(slug, &query).ok()?;
+                let items = page.items.into_iter().map(|p| (p.number, p.head_sha));
+                Some((items.collect(), page.next))
+            })
+        })
+    });
+    let conn = host.map(|(_, _, id)| id);
+    Ok(
+        waiting(found.into_iter().map(|(_, d)| d).collect(), open.as_deref())
+            .into_iter()
+            .map(|d| ReviewWait {
+                reference: conn
+                    .as_ref()
+                    .map_or_else(String::new, |c| format!("pr:{c}:{}", d.number)),
+                number: d.number,
+                head_sha: d.head_sha,
+                title: d.title,
+            })
+            .collect(),
+    )
 }
 
 // ---------------------------------------------------------------- the rules of the project
@@ -346,6 +545,7 @@ pub fn run_review(
         Ok(draft) => {
             let draft = ReviewDraft { auto, ..draft };
             save(s, &pid, &draft)?;
+            changed(draft.number);
             Ok(draft)
         }
         Err(e) => {
@@ -402,12 +602,16 @@ fn review_turn(
             skill,
             role,
         });
+        if slot.stopped() {
+            return Err("the review was stopped".into());
+        }
         let text = ask(s, pid, &dir, &prompt, Some(slot), program)?;
         let changed: Vec<String> = input.files.iter().map(|(p, _)| p.clone()).collect();
         let d = parse_draft(&text, &changed)?;
         let secrets = secrets(s);
         Ok(ReviewDraft {
             number: input.number,
+            title: input.title.clone(),
             head_sha: input.head_sha.clone(),
             summary: scrub(&d.summary, &secrets),
             verdict: d.verdict.into(),
@@ -446,6 +650,9 @@ fn ask(
     program: Option<PathBuf>,
 ) -> Res<String> {
     let settings = settings(s, pid);
+    if let Some(slot) = slot {
+        slot.describe(&settings);
+    }
     let secrets = secrets(s);
     let scratch = s.dir.join("pr-reviews").join(pid).join("scratch");
     let out = run_turn_with(
@@ -525,22 +732,6 @@ fn review_pull(s: &AppState, number: u32, auto: bool) -> Res<ReviewDraft> {
     )
 }
 
-/// The text of a review: the summary, then one line for each finding with its path and line.
-pub fn review_body(summary: &str, findings: &[ReviewFinding]) -> String {
-    let mut t = summary.trim().to_string();
-    if !findings.is_empty() {
-        if !t.is_empty() {
-            t.push_str("\n\n");
-        }
-        let lines: Vec<String> = findings
-            .iter()
-            .map(|f| format!("- {} `{}:{}` {}", f.severity, f.path, f.line, f.text.trim()))
-            .collect();
-        t.push_str(&lines.join("\n"));
-    }
-    t
-}
-
 /// Posts the draft that the person edited, once (REQ-004). `mode` of the automatic setting posts a
 /// comment only (REQ-007).
 pub fn review_post(s: &AppState, post: ReviewPost, click: bool) -> Res<()> {
@@ -583,6 +774,29 @@ fn post_verdict(draft: ReviewVerdict, comment_only: bool) -> ReviewVerdict {
     }
 }
 
+/// What goes to the code host: the verdict, the summary and each finding as a note on its line.
+/// A secret never leaves in the text.
+fn review_args(
+    post: &ReviewPost,
+    comment_only: bool,
+    secrets: &[String],
+) -> (ReviewVerdict, String, Vec<LineNote>) {
+    let notes = post
+        .findings
+        .iter()
+        .map(|f| LineNote {
+            path: f.path.clone(),
+            line: f.line,
+            text: scrub(&format!("{} {}", f.severity, f.text.trim()), secrets),
+        })
+        .collect();
+    (
+        post_verdict(post.verdict, comment_only),
+        scrub(&post.summary, secrets),
+        notes,
+    )
+}
+
 fn post_with(s: &AppState, post: ReviewPost, comment_only: bool) -> Res<()> {
     crate::work::refuse_read_only(s)?;
     let (pid, _) = project(s)?;
@@ -591,25 +805,48 @@ fn post_with(s: &AppState, post: ReviewPost, comment_only: bool) -> Res<()> {
     if draft.posted {
         return Err("the review is posted already".into());
     }
-    let body = review_body(&post.summary, &post.findings);
-    if body.is_empty() {
+    if post.summary.trim().is_empty() && post.findings.is_empty() {
         return Err("the review is empty".into());
     }
-    let body = scrub(&body, &secrets(s));
     let (api, slug, _) = crate::code::forge(s)?;
-    let n = u64::from(post.number);
-    let verdict = post_verdict(post.verdict, comment_only);
-    match verdict {
-        ReviewVerdict::Comment => api.comment(&slug, n, &body),
-        ReviewVerdict::Approve => api.verdict(&slug, n, Verdict::Approve, &body),
-        ReviewVerdict::RequestChanges => api.verdict(&slug, n, Verdict::RequestChanges, &body),
-    }
-    .map_err(err)?;
+    let (verdict, summary, notes) = review_args(&post, comment_only, &secrets(s));
+    let failed = api
+        .review(
+            &slug,
+            u64::from(post.number),
+            &post.head_sha,
+            match verdict {
+                ReviewVerdict::Comment => None,
+                ReviewVerdict::Approve => Some(Verdict::Approve),
+                ReviewVerdict::RequestChanges => Some(Verdict::RequestChanges),
+            },
+            &summary,
+            &notes,
+        )
+        .map_err(err)?;
     draft.summary = post.summary;
     draft.verdict = verdict;
     draft.findings = post.findings;
     draft.posted = true;
-    save(s, &pid, &draft)
+    save(s, &pid, &draft)?;
+    changed(draft.number);
+    unposted(&failed)
+}
+
+/// The review is posted, but some line notes were not: one error that names them. The draft is
+/// marked posted, so a retry cannot post the verdict twice.
+fn unposted(failed: &[LineNote]) -> Res<()> {
+    if failed.is_empty() {
+        return Ok(());
+    }
+    let places: Vec<String> = failed
+        .iter()
+        .map(|n| format!("{}:{}", n.path, n.line))
+        .collect();
+    Err(format!(
+        "the review is posted, but the code host refused these line notes: {}",
+        places.join(", ")
+    ))
 }
 
 /// "Write with an agent": a title and a body from the branch diff, the linked ticket and the
@@ -693,6 +930,7 @@ fn auto_mode(s: &AppState, root: &Path) -> Option<AutoReview> {
 /// One look at the open pull requests of the active project (REQ-006). It starts the review of
 /// each head commit that has none, in the background. `post` posts a comment review (REQ-007).
 pub fn auto_tick(app: &AppHandle) {
+    let _ = APP.set(app.clone());
     let s = app.state::<AppState>();
     let Ok((pid, root)) = project(&s) else { return };
     let Some(mode) = auto_mode(&s, &root) else {
@@ -764,6 +1002,7 @@ pub fn auto_tick(app: &AppHandle) {
 #[tauri::command]
 #[specta::specta]
 pub async fn pr_review_start(app: AppHandle, number: u32, click: bool) -> Api<ReviewDraft> {
+    let _ = APP.set(app.clone());
     blocking(app, move |s| review_start(s, number, click)).await
 }
 
@@ -775,6 +1014,12 @@ pub async fn pr_review_get(
     head_sha: String,
 ) -> Api<Option<ReviewDraft>> {
     blocking(app, move |s| review_get(s, number, &head_sha)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn pr_review_waiting(app: AppHandle) -> Api<Vec<ReviewWait>> {
+    blocking(app, review_waiting).await
 }
 
 #[tauri::command]
@@ -1118,20 +1363,171 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
         assert!(run_review(&f.s, &input(&f, 15), true, Some(bin)).is_ok());
     }
 
+    fn draft(number: u32, sha: &str, posted: bool) -> ReviewDraft {
+        ReviewDraft {
+            number,
+            title: format!("Pull {number}"),
+            head_sha: sha.into(),
+            summary: "s".into(),
+            verdict: ReviewVerdict::Comment,
+            findings: Vec::new(),
+            dropped: 0,
+            posted,
+            auto: true,
+        }
+    }
+
     #[test]
-    fn the_post_body_lists_each_finding_with_its_path_and_line() {
-        let findings = [ReviewFinding {
-            severity: "P1".into(),
-            path: "a.txt".into(),
-            line: 2,
-            text: " No test ".into(),
-        }];
+    fn a_running_review_is_a_session_that_the_factory_counts_and_stops_with_its_slot() {
+        let _turn = turn();
+        let f = fx();
+        let slot = Slot::take(&f.pid, 31).unwrap();
+        let mut t = ThreadSettings::new("claude");
+        t.model = Some("opus".into());
+        slot.describe(&t);
+        let row = &crate::factory::sessions(&f.s).unwrap()[0];
         assert_eq!(
-            review_body("One note", &findings),
-            "One note\n\n- P1 `a.txt:2` No test"
+            (
+                row.key.as_str(),
+                row.pull,
+                row.runner.as_str(),
+                row.model.as_deref(),
+                row.state
+            ),
+            (
+                "#31",
+                Some(31),
+                "claude",
+                Some("opus"),
+                shipyard_core::workflow::StepState::Running
+            )
         );
-        assert_eq!(review_body("", &[]), "");
-        assert_eq!(review_body(" Only text ", &[]), "Only text");
+        assert!(sessions("other-project").is_empty());
+        // The tick of the factory sees one slot held by something other than a run.
+        assert_eq!(Dispatch::reserved(&*f.s.factory), 1);
+        drop(slot);
+        assert!(crate::factory::sessions(&f.s).unwrap().is_empty());
+        assert_eq!(Dispatch::reserved(&*f.s.factory), 0);
+    }
+
+    #[test]
+    fn a_draft_that_waits_shows_until_it_is_posted_or_its_pull_request_moves_on() {
+        let _turn = turn();
+        let f = fx();
+        save(&f.s, &f.pid, &draft(3, &f.first, false)).unwrap();
+        save(&f.s, &f.pid, &draft(4, &f.second, true)).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        save(&f.s, &f.pid, &draft(5, &f.second, false)).unwrap();
+        // No code host answer: every unposted draft waits, the newest first.
+        let numbers = |d: Vec<ReviewDraft>| d.iter().map(|d| d.number).collect::<Vec<_>>();
+        let seen = review_waiting(&f.s).unwrap();
+        assert_eq!(seen.iter().map(|w| w.number).collect::<Vec<_>>(), [5, 3]);
+        assert_eq!(
+            (seen[0].title.as_str(), seen[0].reference.as_str()),
+            ("Pull 5", "")
+        );
+        // With an answer, a draft waits only on an open pull request at the same head commit.
+        let all = vec![
+            draft(3, &f.first, false),
+            draft(5, &f.second, false),
+            draft(6, "abc1234", false),
+        ];
+        let open = [(5, f.second.clone()), (3, "other".to_string())];
+        assert_eq!(numbers(waiting(all, Some(&open))), [5]);
+    }
+
+    #[test]
+    fn a_stop_before_the_turn_has_a_handle_still_stops_the_review() {
+        let _turn = turn();
+        let f = fx();
+        let slot = Slot::take(&f.pid, 32).unwrap();
+        assert!(!slot.stopped());
+        review_stop(&f.s, 32).unwrap();
+        assert!(slot.stopped());
+        let other = Slot::take(&f.pid, 33).unwrap();
+        assert!(!other.stopped());
+        stop_all();
+        assert!(other.stopped());
+    }
+
+    #[test]
+    fn the_open_heads_are_read_once_in_the_time_limit_and_a_failed_read_is_not_kept() {
+        let ttl = std::time::Duration::from_secs(60);
+        let reads = std::cell::Cell::new(0);
+        let read = || {
+            reads.set(reads.get() + 1);
+            Some(vec![(1, "a".to_string())])
+        };
+        assert!(cached_heads("test-heads", ttl, read).is_some());
+        assert!(cached_heads("test-heads", ttl, read).is_some());
+        assert_eq!(reads.get(), 1);
+        // A zero limit reads again.
+        assert!(cached_heads("test-heads", std::time::Duration::ZERO, read).is_some());
+        assert_eq!(reads.get(), 2);
+        assert!(cached_heads("test-fail", ttl, || None).is_none());
+        assert!(cached_heads("test-fail", ttl, || Some(vec![])).is_some());
+    }
+
+    #[test]
+    fn a_post_that_lost_line_notes_names_them() {
+        assert!(unposted(&[]).is_ok());
+        let n = LineNote {
+            path: "a.rs".into(),
+            line: 4,
+            text: "x".into(),
+        };
+        let e = unposted(&[n]).unwrap_err();
+        assert!(e.contains("posted") && e.contains("a.rs:4"), "{e}");
+    }
+
+    #[test]
+    fn the_open_pull_requests_come_from_every_page_or_from_none() {
+        let pages = [
+            (vec![(1, "a".to_string())], Some("2".to_string())),
+            (vec![(2, "b".to_string())], Some("3".to_string())),
+            (vec![(3, "c".to_string())], None),
+        ];
+        let mut asked = Vec::new();
+        let all = open_heads(|cursor| {
+            asked.push(cursor.clone());
+            let at = cursor.map_or(0, |c| c.parse::<usize>().unwrap() - 1);
+            Some(pages[at].clone())
+        });
+        assert_eq!(all.unwrap().len(), 3);
+        assert_eq!(asked, [None, Some("2".into()), Some("3".into())]);
+        // A page that fails gives no answer: every draft stays.
+        assert_eq!(
+            open_heads(|c| c.is_none().then(|| (vec![], Some("2".into())))),
+            None
+        );
+    }
+
+    #[test]
+    fn the_post_sends_each_finding_as_a_note_and_an_automatic_post_is_a_comment() {
+        let post = ReviewPost {
+            number: 7,
+            head_sha: "abc1234".into(),
+            summary: " Sum key-123 ".into(),
+            verdict: ReviewVerdict::Approve,
+            findings: vec![ReviewFinding {
+                severity: "P1".into(),
+                path: "a.txt".into(),
+                line: 2,
+                text: " No test ".into(),
+            }],
+        };
+        let (v, summary, notes) = review_args(&post, false, &["key-123".into()]);
+        assert_eq!(v, ReviewVerdict::Approve);
+        assert!(!summary.contains("key-123"), "{summary}");
+        assert_eq!(
+            notes,
+            [LineNote {
+                path: "a.txt".into(),
+                line: 2,
+                text: "P1 No test".into()
+            }]
+        );
+        assert_eq!(review_args(&post, true, &[]).0, ReviewVerdict::Comment);
     }
 
     #[test]

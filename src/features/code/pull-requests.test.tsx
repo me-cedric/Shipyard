@@ -19,13 +19,67 @@ describe("Code / Pull requests", () => {
 		expect(screen.getAllByRole("img", { name: "CI failing" }).length).toBeGreaterThan(0);
 	});
 
-	it("shows an empty state with Connect when the project has no forge mirror", async () => {
-		// The factory mock gives its pull requests to the first project that asks.
+	/** The factory mock gives its pull requests to the first project that asks: the second has none. */
+	const emptyProject = async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		await unwrap(commands.pullsList());
 		await unwrap(commands.projectsOpen("/mock/beta", false));
+	};
+	const codeHost = async () => {
+		const c = await unwrap(
+			commands.connectionsAdd({
+				name: "Hub",
+				group: "forge",
+				kind: "github",
+				url: "https://github.com",
+				user: null,
+			}),
+		);
+		await unwrap(commands.connectionsSetSecret(c.id, "tok"));
+		return c;
+	};
+
+	it("offers Connect when the project has no code host, and opens the code host form", async () => {
+		const user = userEvent.setup();
+		await emptyProject();
 		mountApp("/code/pull-requests");
-		expect(await screen.findByRole("button", { name: "Connect" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "New pull request" })).toBeNull();
+		await user.click(await screen.findByRole("button", { name: "Connect" }));
+		expect(await screen.findByRole("combobox", { name: "Type" })).toHaveTextContent("Code host");
+	});
+
+	it("offers New pull request, not Connect, when the code host works and has no pull request", async () => {
+		const user = userEvent.setup();
+		await emptyProject();
+		await codeHost();
+		mountApp("/code/pull-requests");
+		await user.click(await screen.findByRole("button", { name: "New pull request" }));
+		expect(await screen.findByRole("dialog")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Connect" })).toBeNull();
+	});
+
+	it("shows the error of the code host with its action instead of an empty state", async () => {
+		await emptyProject();
+		const c = await codeHost();
+		mockState().sync.failures[c.id] = "HTTP 401";
+		mountApp("/code/pull-requests");
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"The server refused the token. Make a new token.",
+		);
+		expect(screen.getByRole("button", { name: "Open settings" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "New pull request" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "Connect" })).toBeNull();
+	});
+
+	it("shows the error when the status call itself fails", async () => {
+		await emptyProject();
+		const spy = vi
+			.spyOn(commands, "pullsStatusGet")
+			.mockResolvedValue({ status: "error", error: "HTTP 401" } as never);
+		mountApp("/code/pull-requests");
+		expect(await screen.findByRole("alert")).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Connect" })).toBeNull();
+		spy.mockRestore();
 	});
 
 	it("opens a pull request with its files, commits, checks, conversation, verdicts and links", async () => {

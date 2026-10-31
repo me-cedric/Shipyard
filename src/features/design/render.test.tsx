@@ -6,6 +6,7 @@ import { commands } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { DRAWIO_EMBED, DRAWIO_ORIGIN } from "@/ui/organisms/drawio-editor";
 import type { EditorError } from "@/ui/organisms/error-line";
+import orders from "@/ui/organisms/fixtures/orders.drawio?raw";
 import { Architecture } from "./architecture";
 import { Data } from "./data";
 import { Diagrams } from "./diagrams";
@@ -194,6 +195,24 @@ describe("Design / Diagrams", () => {
 		say({ event: "export", data: "data:image/svg+xml;base64,PHN2Zy8+" });
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(files()["docs/diagrams/network.drawio.svg"]?.text).toBe("<svg/>"));
+	});
+
+	it("draws a plain .drawio file in the grid and in the view, from its model", async () => {
+		draw.embed = false;
+		files()["docs/diagrams/orders.drawio"] = { text: orders, stamp: "1" };
+		const user = userEvent.setup();
+		await mountDesign(<Diagrams />);
+		await user.click(await screen.findByRole("tab", { name: "Grid" }));
+		await waitFor(() => {
+			const faces = Array.from(document.querySelectorAll('img[alt=""]'));
+			expect(
+				faces.some((f) => decodeURIComponent(f.getAttribute("src") ?? "").includes("Order placed")),
+			).toBe(true);
+		});
+		await user.click(await screen.findByRole("button", { name: /orders/ }));
+		const big = await screen.findByRole("img", { name: "orders" });
+		expect(decodeURIComponent(big.getAttribute("src") ?? "")).toContain("In stock?");
+		expect(screen.queryByRole("textbox")).toBeNull();
 	});
 
 	it("shows draw.io read-only when offline", async () => {

@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use shipyard_http::{Method, items, text};
 use specta::Type;
+use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "kebab-case")]
@@ -50,6 +51,82 @@ pub struct ReviewerVerdict {
     pub state: String,
 }
 
+/// A note of a review on one line of the new file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LineNote {
+    pub path: String,
+    pub line: u32,
+    pub text: String,
+}
+
+/// The lines of the new file that a unified diff shows: added and context lines.
+fn new_lines(patch: &str) -> BTreeSet<u32> {
+    let mut shown = BTreeSet::new();
+    let mut at: Option<u32> = None;
+    for l in patch.lines() {
+        if let Some(h) = l.strip_prefix("@@ -") {
+            at = h
+                .split_once('+')
+                .and_then(|(_, n)| n.split([',', ' ']).next()?.parse().ok());
+        } else if let Some(n) = at {
+            match l.chars().next() {
+                Some('-' | '\\') => {}
+                _ => {
+                    shown.insert(n);
+                    at = Some(n + 1);
+                }
+            }
+        }
+    }
+    shown
+}
+
+/// Splits the notes into those on a line that the diff shows, and the rest.
+fn split_notes<'a>(
+    files: &[PullFile],
+    notes: &'a [LineNote],
+) -> (Vec<&'a LineNote>, Vec<&'a LineNote>) {
+    notes.iter().partition(|n| {
+        files.iter().any(|f| {
+            f.path == n.path
+                && f.patch
+                    .as_deref()
+                    .is_some_and(|p| new_lines(p).contains(&n.line))
+        })
+    })
+}
+
+/// The summary, then one line for each note that has no line of its own.
+fn with_notes(body: &str, notes: &[&LineNote]) -> String {
+    let mut t = body.trim().to_string();
+    if !notes.is_empty() {
+        if !t.is_empty() {
+            t.push_str("\n\n");
+        }
+        let lines: Vec<String> = notes
+            .iter()
+            .map(|n| format!("- `{}:{}` {}", n.path, n.line, n.text.trim()))
+            .collect();
+        t.push_str(&lines.join("\n"));
+    }
+    t
+}
+
+/// One review as one body: a verdict, or a plain comment. Nothing to say sends nothing.
+fn send_body<A: CodeApi + ?Sized>(
+    api: &A,
+    repo: &str,
+    number: u64,
+    verdict: Option<Verdict>,
+    body: &str,
+) -> Result<(), ForgeError> {
+    match verdict {
+        Some(v) => api.verdict(repo, number, v, body),
+        None if body.trim().is_empty() => Ok(()),
+        None => api.comment(repo, number, body),
+    }
+}
+
 pub trait CodeApi: PullApi {
     /// The text of the pull request (REQ-019).
     fn description(&self, repo: &str, number: u64) -> Result<String, ForgeError>;
@@ -75,6 +152,26 @@ pub trait CodeApi: PullApi {
         verdict: Verdict,
         body: &str,
     ) -> Result<(), ForgeError>;
+
+    /// A review of the pull request at `head_sha`: the summary, a verdict (`None`: a comment
+    /// review) and each note on its line. A note on a line that the diff does not show goes into
+    /// the body, so no note is lost. The default sends one body, for a forge that has no line
+    /// comments (Azure DevOps). `Ok` holds the notes that no write could post, after the body
+    /// and the verdict went out: the review is sent, so a caller must not send it again.
+    fn review(
+        &self,
+        repo: &str,
+        number: u64,
+        head_sha: &str,
+        verdict: Option<Verdict>,
+        body: &str,
+        notes: &[LineNote],
+    ) -> Result<Vec<LineNote>, ForgeError> {
+        let _ = head_sha;
+        let all: Vec<&LineNote> = notes.iter().collect();
+        send_body(self, repo, number, verdict, &with_notes(body, &all))?;
+        Ok(Vec::new())
+    }
 
     fn send_merge(&self, repo: &str, number: u64, method: MergeMethod) -> Result<(), ForgeError>;
 
@@ -214,6 +311,51 @@ impl CodeApi for GitHub {
         Ok(())
     }
 
+    fn review(
+        &self,
+        repo: &str,
+        number: u64,
+        head_sha: &str,
+        verdict: Option<Verdict>,
+        body: &str,
+        notes: &[LineNote],
+    ) -> Result<Vec<LineNote>, ForgeError> {
+        let (inline, rest) = split_notes(&self.files(repo, number)?, notes);
+        let text = with_notes(body, &rest);
+        if inline.is_empty() {
+            send_body(self, repo, number, verdict, &text)?;
+            return Ok(Vec::new());
+        }
+        // The summary and the notes together are the text of the review.
+        if let Some(v) = verdict {
+            check_verdict(v, &with_notes(body, &notes.iter().collect::<Vec<_>>()))?;
+        }
+        let event = match verdict {
+            Some(Verdict::Approve) => "APPROVE",
+            Some(Verdict::RequestChanges) => "REQUEST_CHANGES",
+            None => "COMMENT",
+        };
+        let comments: Vec<_> = inline
+            .iter()
+            .map(|n| json!({ "path": n.path, "line": n.line, "side": "RIGHT", "body": n.text }))
+            .collect();
+        let sent = self.write(
+            Method::Post,
+            &format!("{}/pulls/{number}/reviews", gh_repo(repo)?),
+            json!({ "commit_id": head_sha, "event": event, "body": text, "comments": comments }),
+        );
+        match sent {
+            Ok(_) => Ok(Vec::new()),
+            // The line is not in the diff of that commit: the whole review goes as one body.
+            Err(ForgeError::Http(shipyard_http::Error::Status { status: 422, .. })) => {
+                let all: Vec<&LineNote> = notes.iter().collect();
+                send_body(self, repo, number, verdict, &with_notes(body, &all))?;
+                Ok(Vec::new())
+            }
+            Err(e) => Err(e),
+        }
+    }
+
     fn send_merge(&self, repo: &str, number: u64, method: MergeMethod) -> Result<(), ForgeError> {
         self.write(
             Method::Put,
@@ -327,6 +469,66 @@ impl CodeApi for GitLab {
             }
         }
         Ok(())
+    }
+
+    fn review(
+        &self,
+        repo: &str,
+        number: u64,
+        head_sha: &str,
+        verdict: Option<Verdict>,
+        body: &str,
+        notes: &[LineNote],
+    ) -> Result<Vec<LineNote>, ForgeError> {
+        // The summary and the notes together are the text of the review.
+        if let Some(v) = verdict {
+            check_verdict(v, &with_notes(body, &notes.iter().collect::<Vec<_>>()))?;
+        }
+        let base = format!("{}/merge_requests/{number}", project_path(repo)?);
+        let refs = self.call(&base, &[])?;
+        let sha = |k: &str| text(&refs, &format!("/diff_refs/{k}"));
+        // A new push moved the lines: the notes go in the body, not on another line.
+        let (inline, rest) = if sha("head_sha").is_empty() || sha("head_sha") != head_sha {
+            (Vec::new(), notes.iter().collect())
+        } else {
+            split_notes(&self.files(repo, number)?, notes)
+        };
+        // The body and the verdict go first: when they fail, no line comment exists yet and a
+        // retry cannot post one twice.
+        let mut text = with_notes(body, &rest);
+        // A request for changes with line notes only: the line comments carry the reasons.
+        if text.is_empty() && verdict == Some(Verdict::RequestChanges) {
+            text = "See the line comments.".into();
+        }
+        send_body(self, repo, number, verdict, &text)?;
+        let mut refused = Vec::new();
+        for n in inline {
+            let position = json!({
+                "position_type": "text",
+                "base_sha": sha("base_sha"), "start_sha": sha("start_sha"), "head_sha": sha("head_sha"),
+                "old_path": n.path, "new_path": n.path, "new_line": n.line,
+            });
+            let sent = self.write(
+                Method::Post,
+                &format!("{base}/discussions"),
+                json!({ "body": n.text, "position": position }),
+            );
+            // A line that the forge refuses goes into a comment.
+            if sent.is_err() {
+                refused.push(n);
+            }
+        }
+        if refused.is_empty() {
+            return Ok(Vec::new());
+        }
+        // The verdict and the body are sent. A failure now is reported apart, not as an error: a
+        // retry would post the verdict twice.
+        Ok(
+            match self.comment(repo, number, &with_notes("", &refused)) {
+                Ok(()) => Vec::new(),
+                Err(_) => refused.into_iter().cloned().collect(),
+            },
+        )
     }
 
     fn send_merge(&self, repo: &str, number: u64, method: MergeMethod) -> Result<(), ForgeError> {

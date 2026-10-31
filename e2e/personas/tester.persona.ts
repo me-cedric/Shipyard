@@ -55,9 +55,9 @@ test("tester", async ({ page }) => {
 		await w.until(() => page.getByRole("dialog").count(), 0, "the dialog stays open");
 	});
 
-	await w.step("Run the project checks", "Code, Quality, Run pnpm test", async () => {
+	await w.step("Run the project checks", "Code, Quality, Run Tests", async () => {
 		await w.go("Code", "Quality");
-		await w.click(page.getByRole("button", { name: "Run pnpm test" }));
+		await w.click(page.getByRole("button", { name: "Run Tests" }));
 		await w.click(page.getByRole("button", { name: "Run secrets" }));
 		await w.see(page.getByText("Findings").first(), "no findings list");
 	});

@@ -18,7 +18,7 @@ import { ShareIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { BpmnViewer } from "@/ui/organisms/bpmn-viewer";
-import { svgDataUri } from "@/ui/organisms/drawio";
+import { drawioSvg, svgDataUri } from "@/ui/organisms/drawio";
 import { DrawioEditor } from "@/ui/organisms/drawio-editor";
 import { DrawioViewer } from "@/ui/organisms/drawio-viewer";
 import { ExcalidrawBoard } from "@/ui/organisms/excalidraw-board";
@@ -63,11 +63,7 @@ function Thumb({ format }: { format: string }) {
 function Face({ a }: { a: Artifact | undefined }) {
 	const format = a?.format ?? "";
 	const path = a?.path ?? "";
-	const drawn =
-		!!a &&
-		!a.issue &&
-		(["mermaid", "bpmn", "excalidraw"].includes(format) ||
-			(format === "drawio" && path.endsWith(".svg")));
+	const drawn = !!a && !a.issue && ["mermaid", "bpmn", "excalidraw", "drawio"].includes(format);
 	const text = useQuery({
 		queryKey: ["design", "thumb", path],
 		queryFn: () => unwrap(commands.designRead(path)),
@@ -75,8 +71,11 @@ function Face({ a }: { a: Artifact | undefined }) {
 	}).data?.text;
 	const scene = useQuery({
 		queryKey: ["design", "thumb", path, "svg", text],
-		queryFn: async () => (await import("@/ui/organisms/excalidraw-canvas")).sceneSvg(text ?? ""),
-		enabled: format === "excalidraw" && !!text,
+		queryFn: async () =>
+			format === "drawio"
+				? drawioSvg(text ?? "", path.endsWith(".svg"))
+				: (await import("@/ui/organisms/excalidraw-canvas")).sceneSvg(text ?? ""),
+		enabled: (format === "excalidraw" || format === "drawio") && !!text,
 	}).data;
 	if (!a || !drawn || !text) return <Thumb format={format} />;
 	const box = "pointer-events-none block h-28 w-full overflow-hidden px-2";
@@ -93,7 +92,7 @@ function Face({ a }: { a: Artifact | undefined }) {
 				)}
 			</span>
 		);
-	const svg = format === "excalidraw" ? scene : text;
+	const svg = format === "excalidraw" || format === "drawio" ? scene : text;
 	if (!svg) return <Thumb format={format} />;
 	return <img alt="" src={svgDataUri(svg)} className="h-28 w-full object-contain px-2" />;
 }

@@ -2,8 +2,10 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
+import { addDays } from "@/lib/work";
 import { mountApp } from "@/test/mount";
 import { withTracker } from "@/test/tracker";
+import { weekStart } from "./week-focus";
 
 const aside = async (name: string) => within(await screen.findByRole("complementary", { name }));
 const bars = () =>
@@ -119,11 +121,19 @@ describe("Work / Plan", () => {
 		).toBeInTheDocument();
 	});
 
-	it("links a capacity warning to the member in Work / Team", async () => {
+	it("links a capacity warning to the member and the week in Work / Team", async () => {
 		const user = userEvent.setup();
 		await withTracker();
 		const router = mountApp("/work/plan");
 		await bars();
+		const plan = await unwrap(commands.planGet("mvp-1"));
+		const who = plan.load.members.find((m) =>
+			m.days.some((d) => (d.used ?? 0) > (d.capacity ?? 0) + 1e-6),
+		);
+		const first = who?.days.find((d) => (d.used ?? 0) > (d.capacity ?? 0) + 1e-6);
+		const name = (await unwrap(commands.workTeam())).team.members.find(
+			(m) => m.handle === who?.handle,
+		)?.name;
 		const warnings = await screen.findByRole("region", { name: "Warnings" });
 		await user.click(
 			within(warnings).getAllByRole("link", {
@@ -131,9 +141,20 @@ describe("Work / Plan", () => {
 			})[0] as HTMLElement,
 		);
 		await waitFor(() => expect(router.state.location.pathname).toBe("/work/team"));
-		// The member opens in the inspector: the capacity is there to change.
-		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
-		await waitFor(() => expect(within(inspector).getByLabelText(/Capacity/)).toBeInTheDocument());
+		// The member opens in the inspector, which takes the name of the member: the capacity is there to change.
+		const inspector = await aside(name ?? "");
+		await waitFor(() => expect(inspector.getByLabelText(/Capacity/)).toBeInTheDocument());
+		// The week of the warning is there too: the load of the member on each day of it.
+		const week = await inspector.findByRole("region", {
+			name: `Week of ${weekStart(first?.day ?? "")}`,
+		});
+		expect(within(week).getByText(new RegExp(`^${first?.day}: `))).toBeInTheDocument();
+		for (const li of within(week).getAllByRole("listitem")) {
+			const day = li.textContent?.slice(0, 10) ?? "";
+			expect(
+				day >= weekStart(first?.day ?? "") && day <= addDays(weekStart(first?.day ?? ""), 6),
+			).toBe(true);
+		}
 	});
 
 	it("takes the public holidays of the country of the calendar, France by default", async () => {

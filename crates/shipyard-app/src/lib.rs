@@ -175,6 +175,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::code::code_quality,
             crate::code::code_check_run,
             crate::qa::code_coverage,
+            crate::qa::code_gates_propose,
+            crate::qa::code_gates_save,
             crate::documents::doc_search,
             crate::documents::doc_docx_list,
             crate::documents::doc_docx_read,
@@ -222,6 +224,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::pr_agent::pr_review_get,
             crate::pr_agent::pr_review_post,
             crate::pr_agent::pr_review_stop,
+            crate::pr_agent::pr_review_waiting,
             crate::pr_agent::pr_write_text,
             crate::machine::machine_sessions,
             crate::machine::machine_session_stop,
@@ -338,6 +341,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             delivery::approval_approve,
             delivery::approval_reject,
             delivery::pulls_list,
+            delivery::pulls_status_get,
             design::design_list,
             design::design_read,
             design::design_write,
@@ -485,6 +489,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
 }
 
 pub fn run() {
+    shipyard_agents::which::fix_path();
     let builder = specta_builder();
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())

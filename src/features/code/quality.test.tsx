@@ -24,6 +24,8 @@ describe("Code / Quality", () => {
 		mountApp("/code/quality");
 		const checks = await group("Checks");
 		expect(screen.getByRole("heading", { name: "Checks (3)" })).toBeInTheDocument();
+		expect(within(checks).getByRole("heading", { name: "Lint" })).toBeInTheDocument();
+		expect(within(checks).getByText("pnpm run lint")).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Scanners (4)" })).toBeInTheDocument();
 		expect(within(checks).getByRole("img", { name: "Passed" })).toBeInTheDocument();
 		expect(within(checks).getByText(/5200 ms/)).toBeInTheDocument();
@@ -66,13 +68,13 @@ describe("Code / Quality", () => {
 		expect(screen.getAllByText("Not installed")).toHaveLength(2);
 	});
 
-	it("runs a check only after a confirmation that names it", async () => {
+	it("runs a check only after a confirmation that names it and its exact command", async () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/code/quality");
-		await user.click(await screen.findByRole("button", { name: "Run pnpm lint" }));
+		await user.click(await screen.findByRole("button", { name: "Run Lint" }));
 		expect(screen.getAllByRole("img", { name: "Passed" })).toHaveLength(1);
-		await user.click(screen.getByRole("button", { name: "Run pnpm lint?" }));
+		await user.click(screen.getByRole("button", { name: "Run Lint (pnpm run lint)?" }));
 		await waitFor(() => expect(screen.getByText(/1800 ms/)).toBeInTheDocument());
 		expect(screen.getAllByRole("img", { name: "Passed" })).toHaveLength(2);
 	});
@@ -108,5 +110,45 @@ describe("Code / Quality", () => {
 		expect(
 			await screen.findByText("312 components in docs/security/sbom.cdx.json"),
 		).toBeInTheDocument();
+	});
+
+	it("sets up the checks: edits the proposal, saves it and shows why a check failed", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/code/quality");
+		await user.click(await screen.findByRole("button", { name: "Set up checks" }));
+		const list = await screen.findByRole("textbox", { name: "Commands" });
+		await waitFor(() => expect(list).toHaveValue("pnpm run lint\npnpm run test\ncargo test"));
+		await user.clear(list);
+		await user.type(list, "make ci");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		const checks = await group("Checks");
+		await waitFor(() => expect(within(checks).getByText("make ci")).toBeInTheDocument());
+		expect(screen.queryByRole("textbox", { name: "Commands" })).toBeNull();
+		expect(screen.getByRole("heading", { name: "Checks (2)" })).toBeInTheDocument();
+		await user.click(within(checks).getByRole("button", { name: "Run make ci" }));
+		await user.click(within(checks).getByRole("button", { name: "Run make ci?" }));
+		const findings = await within(checks).findAllByRole("button", { name: "Findings" });
+		await user.click(findings[0] as HTMLElement);
+		expect(screen.getByText("`make ci` stopped with exit code 1")).toBeInTheDocument();
+		expect(screen.getByText("boom")).toBeInTheDocument();
+	});
+
+	it("names the missing program of a failed check and offers to install it", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/code/quality");
+		await user.click(await screen.findByRole("button", { name: "Set up checks" }));
+		const list = await screen.findByRole("textbox", { name: "Commands" });
+		await waitFor(() => expect(list).not.toHaveValue(""));
+		await user.clear(list);
+		await user.type(list, "pnpm");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await user.click(await screen.findByRole("button", { name: "Run pnpm" }));
+		await user.click(screen.getByRole("button", { name: "Run pnpm?" }));
+		const findings = await screen.findAllByRole("button", { name: "Findings" });
+		await user.click(findings[0] as HTMLElement);
+		expect(screen.getByText("pnpm is not installed or not found")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Install pnpm" })).toBeInTheDocument();
 	});
 });

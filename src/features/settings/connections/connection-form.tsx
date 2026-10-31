@@ -8,6 +8,8 @@ import {
 	commands,
 	unwrap,
 } from "@/lib/ipc";
+import { copyText } from "@/lib/menus";
+import { syncKeys } from "@/lib/sync";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
@@ -65,6 +67,32 @@ function CliLogins({ onDone }: { onDone: () => void }) {
 			))}
 			<ErrorNotice error={error} className="px-3 py-2" />
 		</div>
+	);
+}
+
+/** The sign-in code, large. A click on the code or on the button copies it. */
+export function DeviceCode({ code }: { code: string }) {
+	const { t } = useI18n();
+	const [copied, setCopied] = useState(false);
+	const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+	useEffect(() => () => clearTimeout(timer.current), []);
+	const copy = () => {
+		copyText(code);
+		setCopied(true);
+		clearTimeout(timer.current);
+		timer.current = setTimeout(() => setCopied(false), 1500);
+	};
+	return (
+		<span role="status" className="flex items-center gap-2">
+			<button
+				type="button"
+				onClick={copy}
+				className="cursor-pointer rounded font-mono text-20 font-medium tracking-wide"
+			>
+				{format(t.forge.device.code, { code })}
+			</button>
+			<Button onClick={copy}>{copied ? t.forge.device.copied : t.forge.device.copy}</Button>
+		</span>
 	);
 }
 
@@ -188,6 +216,7 @@ export function ConnectionForm({
 		} finally {
 			setBusy(false);
 			await qc.invalidateQueries({ queryKey: connectionKeys.list });
+			await qc.invalidateQueries({ queryKey: syncKeys.all });
 		}
 	};
 
@@ -206,6 +235,7 @@ export function ConnectionForm({
 			setDevice(null);
 			setBusy(false);
 			await qc.invalidateQueries({ queryKey: connectionKeys.list });
+			await qc.invalidateQueries({ queryKey: syncKeys.all });
 		}
 	};
 
@@ -289,11 +319,7 @@ export function ConnectionForm({
 						<Button disabled={busy || !name.trim() || !url.trim()} onClick={() => void signIn()}>
 							{t.forge.device.signIn}
 						</Button>
-						{device ? (
-							<span role="status" className="font-mono">
-								{format(t.forge.device.code, { code: device })}
-							</span>
-						) : null}
+						{device ? <DeviceCode code={device} /> : null}
 					</span>
 				</SettingsRow>
 			) : null}

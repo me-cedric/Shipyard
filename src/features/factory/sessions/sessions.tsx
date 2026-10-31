@@ -2,14 +2,15 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useGuard } from "@/features/work/guard";
 import { NoProject } from "@/features/work/no-project";
 import { useFactoryWrites, useKillSwitch, useSessions } from "@/lib/factory";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import type { SessionView } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
+import { IconButton } from "@/ui/atoms/icon-button";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { CommandLineIcon, CpuChipIcon } from "@/ui/icons";
+import { CommandLineIcon, CpuChipIcon, StopIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Panel } from "@/ui/molecules/panel";
 import { STEP_STATUS } from "@/ui/molecules/run-step";
@@ -86,6 +87,23 @@ export function Sessions() {
 			meta: { width: "6rem", numeric: true },
 			cell: (c) =>
 				c.row.original.costUsd === null ? "-" : `$${c.row.original.costUsd.toFixed(2)}`,
+		},
+		{
+			// An agent review is no run: its session has the pull request, and Stop ends it.
+			id: "stop",
+			header: "",
+			meta: { width: "3rem" },
+			cell: (c) => {
+				const { pull, key, state } = c.row.original;
+				return pull == null || state !== "running" ? null : (
+					<IconButton
+						label={format(f.machine.stop, { name: key })}
+						onClick={() => void run(() => writes.reviewStop(pull))}
+					>
+						<StopIcon size={14} />
+					</IconButton>
+				);
+			},
 		},
 	];
 	const running = rows.filter((r) => r.state === "running").length;

@@ -94,9 +94,9 @@ test("developer", async ({ page }) => {
 		},
 	);
 
-	await w.step("Run the checks", "Code, Quality, Run pnpm test", async () => {
+	await w.step("Run the checks", "Code, Quality, Run Tests", async () => {
 		await w.go("Code", "Quality");
-		await w.click(page.getByRole("button", { name: "Run pnpm test" }));
+		await w.click(page.getByRole("button", { name: "Run Tests" }));
 		await w.see(
 			page.getByText(/passed|failed|Pass|Fail/i).first(),
 			"no result after the check ran",

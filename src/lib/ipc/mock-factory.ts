@@ -1256,6 +1256,7 @@ export function sessionsList(f: MockFactory, project: string | null): SessionVie
 				state: u.state,
 				tokens: split(r.tokens, i, 1),
 				costUsd: split(r.costUsd, i, 100),
+				pull: null,
 			});
 	}
 	return out.slice(0, 50);

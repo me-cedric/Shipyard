@@ -43,6 +43,7 @@ import { ApplyFlow } from "./apply";
 import { useGuard } from "./guard";
 import { HolidayCountry } from "./holiday-country";
 import { NoProject } from "./no-project";
+import { memberWeek, weekStart } from "./week-focus";
 
 const AUTO = "@@auto";
 const ZOOM = { day: 18, week: 6, month: 2 } as const;
@@ -295,12 +296,13 @@ export function Plan() {
 	// A capacity warning names the member: it links to the member in Work / Team, where the capacity is set.
 	const warnings: { text: string; member?: string }[] = [
 		...plan.load.members.flatMap((m) => {
-			const count = m.days.filter((d) => (d.used ?? 0) > (d.capacity ?? 0) + 1e-6).length;
-			return count
+			const over = m.days.filter((d) => (d.used ?? 0) > (d.capacity ?? 0) + 1e-6);
+			// The link opens the member on the week of the first day over.
+			return over[0]
 				? [
 						{
-							text: format(c.over, { name: memberName(members, m.handle), count }),
-							member: m.handle,
+							text: format(c.over, { name: memberName(members, m.handle), count: over.length }),
+							member: memberWeek(m.handle, weekStart(over[0].day), slug),
 						},
 					]
 				: [];

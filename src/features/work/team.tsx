@@ -3,7 +3,7 @@ import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { useFormIntent, useFormIntentFor, useShell } from "@/lib/shell";
-import { type Member, useSealState, useTeam, useWorkActions } from "@/lib/work";
+import { addDays, type Member, usePlan, useSealState, useTeam, useWorkActions } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -15,6 +15,7 @@ import { ListDetail } from "@/ui/templates/list-detail";
 import { useGuard } from "./guard";
 import { NoProject } from "./no-project";
 import { SealBar } from "./seal";
+import { parseMemberWeek } from "./week-focus";
 
 const list = (s: string) =>
 	s
@@ -32,8 +33,17 @@ const blank = (): Member => ({
 	availability: { absences: [] },
 });
 
-/** The form of one member, in the inspector. It writes the whole team file (REQ-004). */
-function MemberForm({ handle }: { handle: string | null }) {
+/**
+ * The form of one member, in the inspector. It writes the whole team file (REQ-004). `week` is the
+ * week of a capacity warning in the plan: the form lists the load of that member on each day of it.
+ */
+function MemberForm({
+	handle,
+	week,
+}: {
+	handle: string | null;
+	week?: { from: string; slug: string };
+}) {
 	const { t } = useI18n();
 	const m = t.work.team;
 	const view = useTeam().data;
@@ -48,6 +58,11 @@ function MemberForm({ handle }: { handle: string | null }) {
 	const locked = view?.locked ?? false;
 	const set = (patch: Partial<Member>) => setDraft((d) => ({ ...d, ...patch }));
 	const av = draft.availability;
+	const plan = usePlan(week?.slug ?? null).data;
+	const load = t.costing.plan.load;
+	const days = (plan?.load.members.find((x) => x.handle === handle)?.days ?? []).filter(
+		(d) => week && d.capacity != null && d.day >= week.from && d.day <= addDays(week.from, 6),
+	);
 
 	const save = async () => {
 		const next = { ...draft, trackers: list(accounts), skills: list(skills) };
@@ -68,6 +83,23 @@ function MemberForm({ handle }: { handle: string | null }) {
 				void save();
 			}}
 		>
+			{week ? (
+				<section aria-label={format(m.week, { day: week.from })}>
+					<h3 className="text-12 font-medium text-n-11">{format(m.week, { day: week.from })}</h3>
+					<ul className="text-ui">
+						{days.map((d) => (
+							<li
+								key={d.day}
+								className={
+									(d.used ?? 0) > (d.capacity ?? 0) + 1e-6 ? "text-warning-text" : undefined
+								}
+							>
+								{format(load, { day: d.day, used: d.used ?? 0, capacity: d.capacity ?? 0 })}
+							</li>
+						))}
+					</ul>
+				</section>
+			) : null}
 			<Input
 				caption
 				label={m.name}
@@ -229,14 +261,16 @@ export function Team() {
 	useFormIntent("member", () =>
 		openDetail(t.work.team.add, <MemberForm key="new" handle={null} />),
 	);
-	// A capacity warning of the plan opens the member that it names.
+	// A capacity warning of the plan opens the member that it names, on the week of the warning.
 	useFormIntentFor(
 		"member:",
-		(handle) => {
+		(rest) => {
+			const { handle, week, slug } = parseMemberWeek(rest);
 			const x = members.find((o) => o.handle === handle);
 			if (!x) return;
 			setSelected(x.handle);
-			openDetail(x.name, <MemberForm key={x.handle} handle={x.handle} />);
+			const focus = week && slug ? { from: week, slug } : undefined;
+			openDetail(x.name, <MemberForm key={x.handle} handle={x.handle} week={focus} />);
 		},
 		!!view.data,
 	);

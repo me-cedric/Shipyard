@@ -89,6 +89,12 @@ pub trait Dispatch: Send + Sync {
     /// Every run that has not ended, for every project on this machine.
     fn active_runs(&self) -> Vec<ActiveRun>;
 
+    /// The slots that work other than a run holds: the agent reviews. The global limit counts
+    /// them with the runs.
+    fn reserved(&self) -> usize {
+        0
+    }
+
     /// Create a run for a claimed ticket. Return `Ok` only when `active_runs` lists the run:
     /// the engine releases a claim that no active run holds.
     fn start(&self, request: &StartRequest) -> Result<(), String>;

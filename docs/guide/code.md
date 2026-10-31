@@ -31,6 +31,8 @@ Agent actions on a pull request:
 3. In the form of a new pull request, click Write with an agent. The agent fills the title and the body from the branch changes, the linked ticket and the linked spec change. It follows the pr-flow skill when the project has it. Nothing opens until you click Open.
 4. In Settings / Project, choose the agent review of each pull request: Off, Draft or Post. Draft keeps one draft for each new head commit on the pull request page. Post adds a comment review and never approves.
 
+A review shows in Factory / Sessions, where Stop ends it, and counts in the agent limit. A draft that waits shows in Home / Needs you with a link to its pull request. Post review puts each finding on its line on GitHub and GitLab. A line that the diff does not show goes in the text of the review. Azure DevOps puts every finding in the text of the review.
+
 An agent review counts against the budget of the project. The Agents stopped switch, the budget and the limit of runs stop it. A read-only project refuses all three actions.
 
 ## Quality

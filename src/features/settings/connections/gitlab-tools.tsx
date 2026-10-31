@@ -1,10 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { format, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { type Connection_Serialize, commands, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { Switch } from "@/ui/atoms/switch";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { DeviceCode } from "./connection-form";
 import { deviceSignIn } from "./device-signin";
 import { connectionKeys, mcpKeys, useMcpServers } from "./keys";
 
@@ -65,11 +66,7 @@ export function GitlabTools({ connection: c }: { connection: Connection_Serializ
 					{t.forge.device.signInAgain}
 				</Button>
 			)}
-			{code ? (
-				<span role="status" className="font-mono">
-					{format(t.forge.device.code, { code })}
-				</span>
-			) : null}
+			{code ? <DeviceCode code={code} /> : null}
 			<ErrorNotice error={error} className="text-ui text-danger-text" />
 		</div>
 	);

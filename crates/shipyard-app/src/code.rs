@@ -482,6 +482,9 @@ pub fn pull_archive_spec(
 pub struct QualityRow {
     /// The declared command, or the scanner name.
     pub name: String,
+    /// The key of a plain name (`lint`, `typecheck`, `test`, `check`, `build`) for a command that a
+    /// project file names. The view shows the command in the detail.
+    pub label: Option<String>,
     /// `false` for a scanner that the app does not ship (Q-043).
     pub available: bool,
     pub last: Option<QualityReport>,
@@ -494,26 +497,9 @@ pub struct QualityView {
     pub scanners: Vec<QualityRow>,
 }
 
-/// The gates of the project file, then the scripts and tests of its other files, then the check
-/// that verifies all docs.
-fn declared_checks(root: &Path) -> Vec<String> {
-    let mut all = match shipyard_store::project::read_project_file(root) {
-        Ok(shipyard_store::project::FileRead::Valid(f)) => f.gates,
-        _ => Vec::new(),
-    };
-    for c in crate::qa::scripts(root)
-        .into_iter()
-        .chain([crate::qa::VERIFY_DOCS.to_string()])
-    {
-        if !all.contains(&c) {
-            all.push(c);
-        }
-    }
-    all
-}
-
-/// The checks that the project declares (`gates` of `.shipyard/project.yaml`), the scanners and
-/// the last report of each, read from the repository (REQ-028).
+/// The checks of the project (`qa::checks`: its `gates`, else its compass commands, else the ones
+/// that its files show), the scanners and the last report of each, read from the repository
+/// (REQ-028).
 pub fn quality_view(s: &AppState) -> Res<QualityView> {
     let root = root(s)?;
     let reports = list_quality(&root);
@@ -524,11 +510,12 @@ pub fn quality_view(s: &AppState) -> Res<QualityView> {
             .cloned()
     };
     Ok(QualityView {
-        checks: declared_checks(&root)
+        checks: crate::qa::checks(&root)
             .into_iter()
             .map(|c| QualityRow {
-                last: last(ReportKind::Check, &c),
-                name: c,
+                last: last(ReportKind::Check, &c.command),
+                name: c.command,
+                label: c.label.map(String::from),
                 available: true,
             })
             .collect(),
@@ -536,6 +523,7 @@ pub fn quality_view(s: &AppState) -> Res<QualityView> {
             .iter()
             .map(|(n, available)| QualityRow {
                 name: (*n).into(),
+                label: None,
                 available: *available || scanners::program(n).is_some_and(scanners::installed),
                 last: last(ReportKind::Scanner, n),
             })
@@ -561,7 +549,10 @@ pub(crate) fn now_iso() -> String {
 pub fn check_run(s: &AppState, command: &str, click: bool) -> Res<QualityReport> {
     need_click(s, click)?;
     let root = root(s)?;
-    if !declared_checks(&root).iter().any(|c| c == command) {
+    if !crate::qa::checks(&root)
+        .iter()
+        .any(|c| c.command == command)
+    {
         return Err(format!("`{command}` is not a check of this project"));
     }
     let log = s.dir.join("check.log");
@@ -570,8 +561,20 @@ pub fn check_run(s: &AppState, command: &str, click: bool) -> Res<QualityReport>
         let (tail, findings) = crate::qa::verify_docs(s)?;
         (findings.is_empty(), tail, findings)
     } else {
-        let gate = crate::delivery::run_gate(&root, &log, command, CHECK_LIMIT);
-        (gate.passed, gate.counts, Vec::new())
+        let gate = crate::delivery::run_gate_out(&root, &log, command, CHECK_LIMIT);
+        if gate.check.passed {
+            (true, gate.check.counts, Vec::new())
+        } else {
+            // A failed check says why: the exit code or the missing program, then the last lines.
+            let why = crate::qa::failure(command, gate.code, &gate.check.counts, &gate.tail);
+            let finding = ScanFinding {
+                severity: ScanSeverity::High,
+                path: String::new(),
+                line: None,
+                message: why,
+            };
+            (false, gate.tail, vec![finding])
+        }
     };
     let report = QualityReport {
         kind: ReportKind::Check,

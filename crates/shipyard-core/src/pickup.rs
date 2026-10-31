@@ -61,7 +61,7 @@ impl Default for Filter {
     }
 }
 
-/// Run limits (REQ-007). `global` counts the active runs of every project on this machine.
+/// Run limits (REQ-007). `global` counts the active runs of every project on this machine and its agent reviews.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields, default)]
 pub struct Limits {
@@ -488,6 +488,8 @@ pub struct PickupInput<'a> {
     /// Keys that a claim holds.
     pub held: &'a [String],
     pub kill_switch: bool,
+    /// Slots that other work holds, such as an agent review. The global limit counts them.
+    pub reserved: usize,
 }
 
 fn eq(a: &str, b: &str) -> bool {
@@ -531,7 +533,7 @@ pub fn pickup<'a>(input: &PickupInput<'a>) -> Vec<&'a Ticket> {
     }
     let lim = &auto.concurrency;
     let mine = || input.active.iter().filter(|r| r.project == project);
-    let mut global = (lim.global as usize).saturating_sub(input.active.len());
+    let mut global = (lim.global as usize).saturating_sub(input.active.len() + input.reserved);
     let mut per_project = lim
         .per_project
         .map(|p| (p as usize).saturating_sub(mine().count()));

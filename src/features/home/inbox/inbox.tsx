@@ -5,12 +5,14 @@ import {
 	type ApprovalItem,
 	type MessageItem,
 	type QuestionItem,
+	type ReviewItem,
 	useInbox,
 	useInboxActions,
 } from "@/lib/home";
 import { useI18n } from "@/lib/i18n";
 import { useActiveProject, useProjectActions } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
+import { rememberSelection } from "@/lib/shell/selection";
 import { capabilityOf, useFile, useFoldTargets, useSpecsActions, useSpecView } from "@/lib/specs";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
@@ -33,9 +35,14 @@ export function Inbox({ start }: { start?: ReactNode }) {
 	const active = useActiveProject().data;
 	const { openFolder } = useProjectActions();
 	const act = useInboxActions();
-	const { loading, questions, approvals, plans, messages, timesheet } = useInbox();
+	const { loading, questions, approvals, plans, reviews, messages, timesheet } = useInbox();
 	const total =
-		questions.length + approvals.length + plans.length + messages.length + Number(timesheet);
+		questions.length +
+		approvals.length +
+		plans.length +
+		reviews.length +
+		messages.length +
+		Number(timesheet);
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
 			<PageHeader
@@ -90,6 +97,11 @@ export function Inbox({ start }: { start?: ReactNode }) {
 							<Group name={t.home.planReview} count={plans.length}>
 								{plans.map((r) => (
 									<PlanRow key={r.id} run={r.id} ticket={r.key} title={r.title} />
+								))}
+							</Group>
+							<Group name={t.home.reviews} count={reviews.length}>
+								{reviews.map((r) => (
+									<ReviewRow key={`${r.number}:${r.headSha}`} review={r} />
 								))}
 							</Group>
 							<Group name={t.home.timesheet} count={Number(timesheet)}>
@@ -235,6 +247,28 @@ function PlanRow({ run, ticket, title }: { run: string; ticket: string; title: s
 				</Button>
 			</div>
 			<Failure error={error} />
+		</Card>
+	);
+}
+
+/** A draft review of an agent that waits for a person: the link opens its pull request. */
+function ReviewRow({ review: r }: { review: ReviewItem }) {
+	const { t } = useI18n();
+	const navigate = useNavigate();
+	return (
+		<Card>
+			<div className="flex flex-wrap items-center gap-2 px-3 py-2">
+				<span className="font-mono text-12 text-n-11">#{r.number}</span>
+				<span className="flex-1 text-ui font-medium">{r.title}</span>
+				<Button
+					onClick={() => {
+						if (r.reference) rememberSelection("code:pull-requests", r.reference);
+						void navigate({ to: "/code/pull-requests" });
+					}}
+				>
+					{t.home.reviewOpen}
+				</Button>
+			</div>
 		</Card>
 	);
 }

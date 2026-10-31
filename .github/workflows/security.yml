@@ -18,10 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # The scanners exit non-zero on a finding. The report job decides.
       - name: osv-scanner on the lockfiles
-        uses: google/osv-scanner-action/osv-scanner-action@v2.7.0
+        uses: google/osv-scanner-action/osv-scanner-action@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
         continue-on-error: true
         with:
           scan-args: |-
@@ -30,14 +30,14 @@ jobs:
             --config=.osv-scanner.toml
             --format=json
             --output-file=osv.json
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24
       - run: corepack enable && pnpm install --frozen-lockfile
       - name: pnpm audit
         run: pnpm audit --prod --json > pnpm-audit.json
         continue-on-error: true
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: ${{ !cancelled() }}
         with:
           name: scan-deps
@@ -50,9 +50,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Semgrep needs Python 3.12 and pkg_resources, which setuptools 81 removed.
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
       - name: Semgrep OSS
@@ -62,7 +62,7 @@ jobs:
             --config p/owasp-top-ten --config p/typescript --config p/react --config p/rust --config p/secrets \
             --exclude node_modules --exclude target --exclude docs/agent-compass --exclude src/lib/ipc/bindings.ts .
         continue-on-error: true
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: ${{ !cancelled() }}
         with:
           name: scan-owasp
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
       # Release binary, checked against its SHA-256. gitleaks-action needs a licence for an organisation.
@@ -89,7 +89,7 @@ jobs:
       - name: gitleaks on the full history
         run: '"$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --exit-code 0 --report-format json --report-path gitleaks.json .'
         continue-on-error: true
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: ${{ !cancelled() }}
         with:
           name: scan-secrets
@@ -105,11 +105,11 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: scan-*
           merge-multiple: true
@@ -118,7 +118,7 @@ jobs:
         id: report
         run: node .github/scripts/security-report.mjs reports security-summary.md
       - name: Create, update or close the tracking issue
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:
           CLEAN: ${{ steps.report.outputs.clean }}
         with:

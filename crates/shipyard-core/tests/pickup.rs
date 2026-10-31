@@ -48,6 +48,17 @@ fn pick<'a>(
     held: &'a [String],
     kill: bool,
 ) -> Vec<String> {
+    pick_with(auto, tickets, active, held, kill, 0)
+}
+
+fn pick_with<'a>(
+    auto: &'a Automation,
+    tickets: &'a [Ticket],
+    active: &'a [ActiveRun],
+    held: &'a [String],
+    kill: bool,
+    reserved: usize,
+) -> Vec<String> {
     pickup(&PickupInput {
         auto,
         project: "ship",
@@ -55,6 +66,7 @@ fn pick<'a>(
         active,
         held,
         kill_switch: kill,
+        reserved,
     })
     .into_iter()
     .map(|t| t.item.key.clone())
@@ -204,6 +216,17 @@ fn active_runs_use_the_global_slots() {
     );
     let two = [active[0].clone(), run("r2", "A-9", RunState::Queued)];
     assert!(pick(&Automation::default(), &tickets, &two, &[], false).is_empty());
+}
+
+#[test]
+fn a_review_uses_a_global_slot_like_a_run() {
+    let tickets = [todo("A-2")];
+    let auto = Automation::default();
+    assert_eq!(pick_with(&auto, &tickets, &[], &[], false, 0), ["A-2"]);
+    let one = [run("r1", "A-1", RunState::Working)];
+    assert_eq!(pick_with(&auto, &tickets, &one, &[], false, 0), ["A-2"]);
+    // One run and one review fill the two global slots.
+    assert!(pick_with(&auto, &tickets, &one, &[], false, 1).is_empty());
 }
 
 #[test]

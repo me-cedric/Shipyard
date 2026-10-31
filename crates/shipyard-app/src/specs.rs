@@ -558,14 +558,21 @@ pub fn fold_answer(
     if !design::is_under(rel, p.file.path("specs")) || !rel.ends_with("/spec.md") {
         return Err(format!("not a spec: {rel}"));
     }
-    let title = raid::list(&questions_dir(&p))
+    let entry = raid::list(&questions_dir(&p))
         .into_iter()
         .find(|e| e.question.id == question_id)
-        .map(|e| e.question.title)
         .ok_or_else(|| format!("no question {question_id}"))?;
     let text = read_text(&full, rel)?.text;
-    let out = fold::fold(&text, question_id, &title, answer)?;
-    write(s, rel, &out, Some(stamp), false)
+    let out = fold::fold(&text, question_id, &entry.question.title, answer)?;
+    let written = write(s, rel, &out, Some(stamp), false)?;
+    // The marker is gone from the spec: the question is folded. A conflict wrote nothing.
+    if !written.conflict {
+        let _g = s.guard();
+        raid::mark_folded(Path::new(&entry.path)).map_err(|e| {
+            format!("the spec has the answer, but {question_id} stays answered: {e}")
+        })?;
+    }
+    Ok(written)
 }
 
 // ---------------------------------------------------------------- split

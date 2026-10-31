@@ -28,6 +28,7 @@ describe("Settings / Connections: GitLab tools", () => {
 		const row = await screen.findByRole("group", { name: "Code host" });
 		expect(within(row).queryByRole("switch", { name: "GitLab tools" })).toBeNull();
 		await user.click(within(row).getByRole("button", { name: "Sign in again" }));
+		expect(await within(row).findByRole("button", { name: "Copy" })).toBeInTheDocument();
 		const tools = await within(row).findByRole(
 			"switch",
 			{ name: "GitLab tools" },
