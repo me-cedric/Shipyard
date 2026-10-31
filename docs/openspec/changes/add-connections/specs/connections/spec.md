@@ -37,9 +37,9 @@ The earlier tool is Jira-shaped. Its credentials, MCP servers and assistants sit
 - REQ-008: The system SHALL check the dependencies of an MCP server before it starts and SHALL name each missing one.
 - REQ-009: The system SHALL detect and connect these agent runners: Claude Code, Codex, GitHub Copilot (ACP), Gemini CLI and OpenCode.
 - REQ-010: The system SHALL connect HTTP model providers.
-- REQ-011: The system SHALL keep each secret in the OS keychain only. A secret MUST NOT appear in an argument, a URL, a log or a repository file. [NEEDS CLARIFICATION: Q-017 Does a connection read the credentials of git, gh and glab before the keychain?] Working assumption: no, the keychain is the only source.
+- REQ-011: The system SHALL keep each secret in the OS keychain only. A secret MUST NOT appear in an argument, a URL, a log or a repository file. No. The Shipyard keychain entry is the only source. A person pastes a token once.
 - REQ-012: The system SHALL test a connection on request and SHALL name the missing scope or permission when the test fails.
-- REQ-013: The system SHALL keep the settings of a connection that are not secret on the machine of the person. [NEEDS CLARIFICATION: Q-018 Where do the non-secret settings of a connection live?] Working assumption: the app data folder, with the connection id named in `.shipyard/project.yaml`.
+- REQ-013: The system SHALL keep the settings of a connection that are not secret on the machine of the person. In the app data folder. `.shipyard/project.yaml` names the connection id only.
 - REQ-014: The system SHALL remove a connection on request, SHALL delete its secret from the keychain and SHALL list the entities that use it before it removes.
 - REQ-015: The system SHALL expose each connection as a `conn:<id>` entity and SHALL give the adapter of each connection to the other capabilities.
 - REQ-016: Each connections view SHALL follow the interface rules of the constitution.
@@ -102,6 +102,11 @@ The earlier tool is Jira-shaped. Its credentials, MCP servers and assistants sit
 - `docs/delivery/questions/Q-002.md`
 - `docs/delivery/questions/Q-017.md`
 - `docs/delivery/questions/Q-018.md`
+
+### Clarifications
+
+- Q-017 Does a connection read the credentials of git, gh and glab before the keychain?: No. The Shipyard keychain entry is the only source. A person pastes a token once.
+- Q-018 Where do the non-secret settings of a connection live?: In the app data folder. `.shipyard/project.yaml` names the connection id only.
 
 ## ADDED Requirements
 
@@ -221,7 +226,7 @@ The system SHALL connect HTTP model providers with an address, a model name and 
 
 ### Requirement: REQ-011 Secrets in the keychain
 
-The system SHALL keep each secret in the OS keychain only. A secret MUST NOT appear in a process argument, a URL, a log or a repository file. The view MUST show a saved secret masked. [NEEDS CLARIFICATION: Q-017 Does a connection read the credentials of git, gh and glab before the keychain?] Working assumption: no, the keychain is the only source.
+The system SHALL keep each secret in the OS keychain only. A secret MUST NOT appear in a process argument, a URL, a log or a repository file. The view MUST show a saved secret masked. No. The Shipyard keychain entry is the only source. A person pastes a token once.
 
 #### Scenario: Save a secret
 - GIVEN a person enters a token
@@ -251,7 +256,7 @@ The system SHALL test a connection on request. A passed test SHALL show a passed
 
 ### Requirement: REQ-013 Local settings
 
-The system SHALL keep the non-secret settings of a connection on the machine of the person. It MUST NOT put a host or a token in the repository. [NEEDS CLARIFICATION: Q-018 Where do the non-secret settings of a connection live?] Working assumption: the app data folder, with the connection id named in `.shipyard/project.yaml`.
+The system SHALL keep the non-secret settings of a connection on the machine of the person. It MUST NOT put a host or a token in the repository. In the app data folder. `.shipyard/project.yaml` names the connection id only.
 
 #### Scenario: Repository stays clean
 - GIVEN a connection with a host address

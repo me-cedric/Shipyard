@@ -52,7 +52,7 @@ Reviews and pull request text take time and follow rules that the project alread
 ### Existing References
 
 - Existing code/docs/specs: `crates/shipyard-app/src/code.rs` (`pull_open`, `pull_verdict`, `pull_send_back`), `crates/shipyard-engine/src/review.rs`, `crates/shipyard-engine/src/pull_request.rs`, `crates/shipyard-core/src/pickup.rs` (automation keys), `src/features/code/pull-requests.tsx`, `src/features/code/pr-ai.tsx`
-- Supersedes or extends: extends `docs/openspec/changes/add-code/` and `docs/openspec/changes/add-factory/`
+- Supersedes or extends: extends `docs/openspec/specs/code/` and `docs/openspec/specs/factory/`
 
 ## ADDED Requirements
 

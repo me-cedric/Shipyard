@@ -24,7 +24,7 @@ The owner registered the gitlab.com application with the `api` and `mcp` scopes.
 
 - REQ-001: The GitLab device sign-in SHALL ask for the scopes `api mcp`. When the application of a host does not allow `mcp`, the sign-in SHALL fall back to `api` and SHALL still work.
 - REQ-002: The connection SHALL store the scopes that GitLab granted. The UI SHALL show the GitLab MCP switch only when the granted scopes hold `mcp`.
-- REQ-003: The switch SHALL add the GitLab MCP server of the connection host to the MCP servers of the project. The entry SHALL use the Bearer token of the sign-in. The system SHALL read the token from the secret store at launch. The system MUST NOT write the token to a project file. [NEEDS CLARIFICATION: Q-131 Which GitLab tiers and versions expose the MCP server, and at which address?]
+- REQ-003: The switch SHALL add the GitLab MCP server of the connection host to the MCP servers of the project. The entry SHALL use the Bearer token of the sign-in. The system SHALL read the token from the secret store at launch. The system MUST NOT write the token to a project file. The entry SHALL use the address `https://<host>/api/v4/mcp`. The switch shows on every GitLab connection whose granted scopes hold `mcp`. Test reports a missing server or a refused token in plain words.
 - REQ-004: The token refresh of the sign-in SHALL also serve the MCP server. The system SHALL refresh an expired token before the server starts.
 - REQ-005: A connection with only `api` SHALL show one "Sign in again" action next to the switch. After the new sign-in, the switch SHALL be available.
 - REQ-006: Test on the MCP server row SHALL say whether the GitLab MCP server answers and how many tools it gives, as for the other servers.
@@ -48,6 +48,10 @@ The owner registered the gitlab.com application with the `api` and `mcp` scopes.
 
 - Existing code/docs/specs: `crates/shipyard-app/src/device_login.rs`, `crates/shipyard-app/src/mcp_tools.rs`, `crates/shipyard-app/resources/oauth.env`
 - Supersedes or extends: extends `docs/openspec/changes/add-connections/`
+
+### Clarifications
+
+- Q-131 Which GitLab tiers and versions expose the MCP server, and at which address?: The address is `https://<host>/api/v4/mcp`. The token needs the `mcp` scope. The switch shows on every GitLab connection whose granted scopes hold `mcp`. Test reports a missing server or a refused token in plain words. Tiers and versions: see Q-131.
 
 ## ADDED Requirements
 
@@ -81,7 +85,7 @@ The connection SHALL store the scopes that GitLab granted. The UI SHALL show the
 
 ### Requirement: REQ-003 MCP server entry
 
-The switch SHALL add the GitLab MCP server of the connection host to the MCP servers of the project. The entry SHALL use the Bearer token of the sign-in. The system SHALL read the token from the secret store at launch. The system MUST NOT write the token to a project file. [NEEDS CLARIFICATION: Q-131 Which GitLab tiers and versions expose the MCP server, and at which address?]
+The switch SHALL add the GitLab MCP server of the connection host to the MCP servers of the project. The entry SHALL use the Bearer token of the sign-in. The system SHALL read the token from the secret store at launch. The system MUST NOT write the token to a project file. The entry SHALL use the address `https://<host>/api/v4/mcp`. The switch shows on every GitLab connection whose granted scopes hold `mcp`. Test reports a missing server or a refused token in plain words.
 
 #### Scenario: Switch on
 - GIVEN a connection that has `mcp`

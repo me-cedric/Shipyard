@@ -5,7 +5,7 @@ Spec: [spec.md](./spec.md)
 ## Clarity
 
 - [x] Goal explains what changes and why.
-- [ ] No unresolved `[NEEDS CLARIFICATION]` markers remain.
+- [x] No unresolved `[NEEDS CLARIFICATION]` markers remain.
 - [x] Non-goals are explicit.
 
 ## Completeness

@@ -1,0 +1,47 @@
+# Tasks: work
+
+Spec: [spec.md](./spec.md)
+Plan: [plan.md](./plan.md)
+
+## Task Rules
+
+- Tests before implementation when behavior changes.
+- `[P]` means parallel-safe: no shared files or ordering dependency.
+- Every task names the file or command it touches.
+
+## Tasks
+
+- [x] T001 Write unit tests in `crates/shipyard-core/tests/work.rs` for the suggestion, the effort maths, the Gantt and the plan diff. Covers REQ-007, REQ-010, REQ-011, REQ-016, REQ-017, REQ-025.
+- [x] T002 Implement those rules in `crates/shipyard-core/src/work.rs`. Covers REQ-007, REQ-010, REQ-011, REQ-016, REQ-017, REQ-025.
+- [x] T003 Write codec tests in `crates/shipyard-store/tests/work.rs`: duplicate handle, no computed total, no computed date, time file per member and month. Covers REQ-003, REQ-009, REQ-010, REQ-017, REQ-021.
+- [x] T004 Implement the codecs in `crates/shipyard-store/src/work.rs`. Covers REQ-003, REQ-009, REQ-010, REQ-017, REQ-021.
+- [x] T005 [P] Write seal tests in `crates/shipyard-store/tests/seal.rs`: seal, wrong passphrase, locked, day rate. Covers REQ-005, REQ-014.
+- [x] T006 Implement the seal in `crates/shipyard-store/src/seal.rs`. Covers REQ-005, REQ-014.
+- [x] T007 [P] Write Excel tests in `crates/shipyard-store/tests/excel.rs`: preview with a bad row, no replace before confirm, round trip. Covers REQ-012, REQ-013.
+- [x] T008 Implement the Excel import and export in `crates/shipyard-store/src/excel.rs`. Covers REQ-012, REQ-013.
+- [x] T009 Write tracker contract tests with a fake in `crates/shipyard-trackers/tests/work.rs`: assign, label, transition refusal, worklog, mark lookup, apply, one item from a ref. Covers REQ-002, REQ-006, REQ-008, REQ-022, REQ-023, REQ-026, REQ-029.
+- [x] T010 Implement those calls in `crates/shipyard-trackers/src/work.rs`. Covers REQ-002, REQ-006, REQ-008, REQ-022, REQ-023, REQ-026, REQ-029. This is the one owner of the apply code; `add-specs` depends on it. Built for Jira (Cloud and Data Center) and GitHub Issues. T010b adds the other kinds.
+- [x] T010a Write contract tests in `crates/shipyard-trackers/tests/comments.rs` and `crates/shipyard-trackers/src/marker.rs`, then add the comment calls (`comments_page`, `add_comment`, `edit_comment`, `delete_comment`, `all_comments`) and the hidden marker (`marker::make`, `find`) for the six trackers. The claim stamp of `add-sync` REQ-009 and the question comment of `add-questions-loop` REQ-006 call them. The marker survives the conversion of each tracker.
+- [x] T010b Write tests in `crates/shipyard-trackers/tests/writes.rs`, then implement the writes for GitLab Issues, Azure DevOps and Linear in `crates/shipyard-trackers/src/write_{gitlab,azure,linear}.rs`: assign, label, transition with refusal, comments, create, update, apply. Worklog for GitLab only (GraphQL timelogs). Azure DevOps and Linear answer `Unsupported` for a worklog. Jira Data Center sets the parent of a story through the `Epic Link` field and names an epic through `Epic Name` (tests in `crates/shipyard-trackers/tests/work.rs`).
+- [x] T011 [P] Write IPC tests for the Work commands and for the `member:` and `est:` entities in `crates/shipyard-app/src/work/tests.rs` (they need the app state, which is private to the crate), and the entity scan tests in `crates/shipyard-store/tests/work_refs.rs`. Covers REQ-003 to REQ-008, REQ-010, REQ-012 to REQ-014, REQ-016, REQ-017, REQ-020 to REQ-027, REQ-029.
+- [x] T012 Implement the commands in `crates/shipyard-app/src/work.rs`: team, suggestion, assign, mark, transition, seal, estimates, Excel, plan, time, apply preview and apply, one item from a ref. The `member:` and `est:` entities come from the scan of `crates/shipyard-store/src/repo_scan.rs`. This is the backend of T014, T016, T018, T020 and T022. Covers REQ-002, REQ-003 to REQ-008, REQ-010, REQ-012 to REQ-014, REQ-016, REQ-017, REQ-020 to REQ-027, REQ-029.
+- [x] T013 [P] Write component tests for Backlog and Board in `src/features/work/backlog.test.tsx`. Covers REQ-001, REQ-002.
+- [x] T014 Build Backlog and Board in `src/features/work/` on the new `src/ui/` parts (`TicketRow`, `TicketCard`, `BoardColumn`, `VirtualList`, `Board`, `ListDetail`). The ticket opens in the inspector (`TicketDetail`). Covers REQ-001, REQ-002.
+- [x] T015 [P] Write component tests for Team and assignment in `src/features/work/team.test.tsx`. Covers REQ-004, REQ-005, REQ-006, REQ-007, REQ-008.
+- [x] T016 Build Team and assignment in `src/features/work/` (`MemberRow`, `SuggestionRow`, `SealBar`). Covers REQ-004 to REQ-008.
+- [x] T017 [P] Write component tests for Estimates in `src/features/work/estimates.test.tsx`. Covers REQ-009 to REQ-015.
+- [x] T018 Build Estimates in `src/features/work/` (`DataTable`, `ViewTabs`, `Stat`, the Excel preview dialog). Covers REQ-009 to REQ-015.
+- [x] T019 [P] Write component tests for Plan and Time in `src/features/work/plan.test.tsx` and `time.test.tsx`. Covers REQ-016 to REQ-024.
+- [x] T020 Build Plan and Time in `src/features/work/` (the `Gantt` organism). Covers REQ-016 to REQ-024.
+- [x] T021 [P] Write component tests for the apply flow in `src/features/work/apply.test.tsx`. Covers REQ-019, REQ-025, REQ-026, REQ-029.
+- [x] T022 Build the apply preview and apply in `src/features/work/apply.tsx` on the `ApplyDialog` organism. Apply sits in Work / Plan. `CreateWorkItem` sits in the inspector of a ref. Covers REQ-019, REQ-025, REQ-026, REQ-029.
+- [x] T023 Write the e2e test `e2e/work.spec.ts` with a fake tracker: assign, estimate, plan, time, apply. Covers REQ-001 to REQ-029.
+- [x] T024 Add French and English keys and one entry each to `CHANGELOG.md` and `CHANGELOG.fr.md`. Covers REQ-028.
+- [x] T025 Run the validation commands of `plan.md`. Covers REQ-001 to REQ-029. Run 2026-10-29: `cargo test -p` core, trackers, forges, agents, engine, store, app, git and mcp passed; `pnpm tsc --noEmit` passed; `pnpm vitest run` passed (101 files, 761 tests); `pnpm playwright test` passed 95, failed 1: `e2e/a11y.spec.ts` factory light theme, axe `label-content-name-mismatch` on the Agents map run nodes, and the test passed on a second run (flaky, open); `cd docs && npx -y @fission-ai/openspec@1.15.0 validate --all --strict` passed (16 of 16).
+- [x] T026 Compare the code with `spec.md`, update stale artifacts, then close Q-032, Q-033, Q-034 and Q-060. Covers REQ-005, REQ-010, REQ-021, REQ-026. Compared 2026-10-29 with `.agents/progress/w4.md`. Code follows the working assumptions: the day rate is sealed with the project passphrase (Q-032), apply matches a row by the ref in a label (Q-033), time entries live in the repository (Q-034), the rate of a shared role is the mean (Q-060). Gaps: no test proves that the Excel export opens in the CGI costing tool (REQ-013), so that acceptance criterion stays unticked; Jira Data Center skips the parent of a story and Jira with a required `Epic Name` is not covered; Azure DevOps has no worklog; Jira reads one page of 1000 worklogs; no test proves the focus ring of every Work view. RAID closing waits for the owner (Q-032, Q-033, Q-034, Q-060).
+
+## Completion Check
+
+- [ ] All acceptance criteria are met.
+- [ ] Required validation passed or failures are marked pre-existing.
+- [ ] Specs, docs, and code agree.
