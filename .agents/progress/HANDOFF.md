@@ -45,3 +45,4 @@ Read this first, then `w15.md` (the plan), `w13.md` (findings and state) and `se
 ## Progress log
 
 - 2026-10-31 (resume): the feature branch is rebased on `main` (`6d65d01`); the wip commit is now `b5dba1c` on `feature/handoff-file-continuation-a8251b` (local). Running the fast checks (fmt, clippy, typecheck, biome, vitest) on it.
+- Fast checks on `b5dba1c` passed: fmt, clippy, typecheck, biome, vitest 1112 of 1112. Running `cargo test --workspace`, e2e and personas next.
