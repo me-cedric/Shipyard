@@ -72,6 +72,6 @@ jobs:
       # Some tests commit in a temporary repository, so git needs an identity.
       - run: git config --global user.name "Shipyard CI" && git config --global user.email "ci@shipyard.invalid"
       # Unfiltered on purpose: this run also writes src/lib/ipc/bindings.ts.
-      - run: cargo test --workspace
+      - run: cargo test --workspace --no-fail-fast
       - name: Check that the IPC bindings are current
         run: git diff --exit-code -- src/lib/ipc/bindings.ts

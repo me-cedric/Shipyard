@@ -53,10 +53,17 @@ pub fn count_pem_certs(pem: &[u8]) -> Result<usize, String> {
 /// The OS trust store plus the PEM bundle that a variable names, or the one added in Settings.
 /// `None` without either. A named file that cannot be read is an error: a silent fallback hides the real fault.
 fn tls_config() -> Result<Option<Arc<rustls::ClientConfig>>, Error> {
+    tls_config_from(|var| std::env::var(var).ok())
+}
+
+/// `tls_config` with the environment as an argument, so a test does not read the variables of the machine.
+fn tls_config_from(
+    env: impl Fn(&str) -> Option<String>,
+) -> Result<Option<Arc<rustls::ClientConfig>>, Error> {
     let from_env = ["SHIPYARD_CA_BUNDLE", "SSL_CERT_FILE"]
         .iter()
         .find_map(|var| {
-            let value = std::env::var(var).ok()?;
+            let value = env(var)?;
             let value = value.trim().to_string();
             (!value.is_empty()).then_some((var.to_string(), value))
         });
@@ -217,7 +224,8 @@ mod tests {
     #[test]
     fn an_added_bundle_that_cannot_be_read_is_an_error() {
         set_extra_ca(Some("/no/such/bundle.pem".into()));
-        let result = tls_config();
+        // A CI runner sets SSL_CERT_FILE, which would win over the added bundle.
+        let result = tls_config_from(|_| None);
         set_extra_ca(None);
         let message = result.err().map(|e| e.to_string()).unwrap_or_default();
         assert!(message.contains("the added certificate"), "{message}");

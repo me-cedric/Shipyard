@@ -206,15 +206,14 @@ fn crlf_stays() {
 
 #[test]
 fn the_real_spec_of_this_repository_folds_q026() {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../docs/openspec/changes/add-questions-loop/specs/questions-loop/spec.md");
-    let text = std::fs::read_to_string(path).unwrap();
-    let f = fold_preview(&text, &q026()).unwrap();
+    // A frozen copy: the live spec is folded and archived, so it no longer holds the marker.
+    let text = include_str!("fixtures/questions-loop-spec.md");
+    let f = fold_preview(text, &q026()).unwrap();
     assert!(!f.after.contains("[NEEDS CLARIFICATION: Q-026"));
     assert!(f.after.contains("### Clarifications"));
     assert!(f.after.contains("[NEEDS CLARIFICATION: Q-027"));
     let h2 = |t: &str| t.lines().filter(|l| l.starts_with("## ")).count();
-    assert_eq!(h2(&f.after), h2(&text));
+    assert_eq!(h2(&f.after), h2(text));
 }
 
 #[test]

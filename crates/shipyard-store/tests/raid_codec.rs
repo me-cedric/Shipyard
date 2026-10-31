@@ -5,7 +5,8 @@ use shipyard_store::raid::{
     write_over,
 };
 
-const Q002: &str = include_str!("../../../docs/delivery/questions/Q-002.md");
+// A frozen copy of a real file, so a later answer or fold in the repository does not break the test.
+const Q002: &str = include_str!("fixtures/Q-002.md");
 
 fn question(id: &str) -> Question {
     Question {
