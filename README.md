@@ -39,7 +39,7 @@ Everything that the team writes lives in the Git repository of the project. Ship
 
 ## Status
 
-Shipyard is pre-release software, version 0.1.0. No packaged release exists yet: you build it from source.
+Shipyard is pre-release software, version 0.1.0. No packaged release exists yet: you build it from source. Unit, Rust and browser end-to-end tests cover every space. The end-to-end run on a real project with a live code host is in progress (wave W13).
 
 | Area | Current state |
 | --- | --- |
@@ -49,13 +49,13 @@ Shipyard is pre-release software, version 0.1.0. No packaged release exists yet:
 | Specs | Works. OpenSpec changes with validation, capabilities, questions, test plans in Gherkin. |
 | Work | Works. Backlog and board from a local mirror of the issue tracker, Gantt plan, estimates, team and time. |
 | Factory | Works. Runs in lanes, workflows as YAML, agents map, sessions, usage and budgets. Automation writes are off by default. |
-| Code | Works. Changes, history, branches, pull requests, quality, impacts and a terminal. |
+| Code | Works. Changes, history, branches, pull requests with agent reviews, quality, impacts and a terminal. |
 | Knowledge | Works. Reference graph, handbook, in-app manual, documents, slides, learning paths and dashboards. |
 | Issue trackers and code hosts | Jira Cloud and Data Center, GitHub Issues, GitLab Issues, Azure DevOps and Linear. Pull requests on GitHub and GitLab. Azure DevOps is a code host adapter. Each adapter has fake-based contract tests. Not every adapter has run against a live account. |
 | Agents | Claude Code, Codex, Gemini CLI, OpenCode, GitHub Copilot (ACP) and HTTP model providers. |
-| MCP | Works. Shipyard serves its own MCP server and runs the MCP servers of the project. A GitLab MCP server with browser sign-in is in planning. |
+| MCP | Works. Shipyard serves its own MCP server and runs the MCP servers of the project. A GitLab sign-in adds the GitLab MCP server with one switch. |
 | Packaging | In progress. The release build bundles the `shipyard` command as a sidecar. No signed installer and no release workflow yet. |
-| Automation | In progress. Pickup, claims and budgets run. Write switches (push, pull request, issue tracker transition, issue tracker comment) stay off until an admin turns them on. |
+| Automation | Works. Pickup, claims, budgets and automatic agent reviews run. Write switches (push, pull request, issue tracker transition, issue tracker comment) are off by default, on purpose: an admin turns them on. |
 
 See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PLAN.md](docs/plan/MASTER-PLAN.md) for the plan.
 
@@ -96,13 +96,14 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 - Diagrams: edit Excalidraw, Mermaid and BPMN. Edit draw.io online. Convert a board between formats.
 - Architecture: LikeC4 models with a live render.
 - Decisions: write an ADR in a form, then accept or reject it with a comment.
-- API (OpenAPI), Data (DBML), Flows (network flows) and Screens (HTML mockups, images, Figma links).
+- API (OpenAPI), Data (DBML), Flows (network flows with bricks) and Screens (HTML mockups, images, Figma files and design tokens).
 
 ### Specs
 
 - Proposals: each OpenSpec change shows the state of its proposal, spec, plan, checklist and tasks. Strict validation shows each finding on its line.
 - Capabilities with their requirements and backlinks.
 - Questions register (RAID) with filters. An answer folds into its spec.
+- A change from an issue tracker item, on its own specs branch, handed to an agent in one click.
 - Test plans in Gherkin, with scenario lint, coverage and the last verdict.
 - Split a change into epics and stories, then apply them to the issue tracker. A second apply creates no duplicate.
 
@@ -111,18 +112,20 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 - Backlog and Board from a local mirror of the issue tracker. A sync tick keeps it current.
 - Plan: a Gantt with capacity, holidays, day, week and month zoom, and a PNG export.
 - Estimates: three-point estimates, price, cost and margin. Seal sheets with a passphrase. Import and export Excel.
-- Team and Time: members, skills, capacity, absences and time entries.
+- Team and Time: members, skills, capacity, absences, time entries and the whole month of worklogs in one click.
+- Cost privacy: no cost shows for a role with fewer than three rated members.
 
 ### Factory
 
 - Runs in lanes: Queued, Working, Needs you, In review, Ready to merge, Done.
 - Workflows as YAML files with roles, gates, fan-out, budgets and retries.
-- Agents map, Sessions with a kill switch, and Usage with spend per run, day and member.
+- Agents map, Sessions with a kill switch, and Usage with spend per run, day, member and iteration.
 
 ### Code
 
 - Local changes, history, branches, conflicts, stash and one Commit action.
 - Pull requests on GitHub and GitLab: files, commits, checks, verdicts, review and merge after a click.
+- Review with an agent (a draft with findings on the diff), Write with an agent for a new pull request, and an automatic review setting. The agent follows the project's review and pull request rules.
 - Quality (scanner reports, security score, CycloneDX SBOM), Impacts on seven axes, a terminal and open in your code editor.
 
 ### Knowledge
@@ -136,6 +139,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 - A panel in every space (`Mod+J`) with threads per project, and Ask, Plan and Agent modes.
 - Agent mode works in a worktree of its own. It asks for a click before it edits.
 - An Ask menu on each page with prompts for the item that you select.
+- Tabs with unread marks, a live trace of each turn, Quote and Redo.
 
 ### Integrations
 
@@ -143,7 +147,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 - Code hosts: GitHub, GitLab, Azure DevOps. Sign in with the browser for GitHub and GitLab.
 - Agent runners: Claude Code, Codex, Gemini CLI, OpenCode, GitHub Copilot (ACP), HTTP model providers.
 - MCP servers: a catalogue, custom servers, start, stop, test, and relay to agents.
-- English and French interface.
+- English and French interface. Accent colour, sides, date format, window size and a portable mode.
 
 ## How it works
 
