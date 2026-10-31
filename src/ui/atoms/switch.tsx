@@ -14,7 +14,7 @@ export function Switch({ label, iconOnly, className, ...props }: SwitchProps) {
 			<BaseSwitch.Root
 				aria-label={label}
 				className={cn(
-					"relative h-4 w-7 shrink-0 rounded-full border border-n-8 bg-n-3 transition-colors duration-(--duration-fast) data-[checked]:border-transparent data-[checked]:bg-accent",
+					"relative inline-flex h-4 w-7 shrink-0 items-center rounded-full border border-n-8 bg-n-3 transition-colors duration-(--duration-fast) data-[checked]:border-transparent data-[checked]:bg-accent",
 					className,
 				)}
 				{...props}
