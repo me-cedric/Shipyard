@@ -37,3 +37,9 @@ Toolchain: rustc 1.99.1, Node 26.12.1 (CI uses Node 24), pnpm 11.9.0.
 
 - No secret in the workflow. Actions are pinned to a major version, as the other workflows do.
 - An accepted advisory goes in `.osv-scanner.toml` with a reason and a review date, never silently.
+
+## First scheduled runs (2026-10-31)
+
+- Semgrep runs (Python 3.12, `setuptools<81`). It reports warnings only: `github-actions-mutable-action-tag` on every workflow (actions pinned to a tag, not a commit SHA) and `renovate-missing-minimum-release-age`.
+- gitleaks: one false positive (a keyboard shortcut in `src/features/shell/actions.ts`), allowed in `.gitleaks.toml`.
+- Next, with step 1: pin each action to a commit SHA with a version comment (Renovate keeps them current with `helpers:pinGitHubActionDigests`), and set `minimumReleaseAge` in `renovate.json`. The `compass-*` workflows come from agent-compass: pin them in agent-compass, then `ac sync`, so the sync does not undo the pins.
