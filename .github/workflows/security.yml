@@ -51,13 +51,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-      # Semgrep does not run on the newest Python of the runner image.
+      # Semgrep needs Python 3.12 and pkg_resources, which setuptools 81 removed.
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Semgrep OSS
         run: |
-          pip install semgrep==1.136.0
+          pip install "setuptools<81" semgrep==1.136.0
           semgrep scan --metrics=off --json --output semgrep.json \
             --config p/owasp-top-ten --config p/typescript --config p/react --config p/rust --config p/secrets \
             --exclude node_modules --exclude target --exclude docs/agent-compass --exclude src/lib/ipc/bindings.ts .
