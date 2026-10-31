@@ -34,6 +34,14 @@ export function usePulls() {
 	return useQuery({ queryKey: forgeKeys.pulls, queryFn: () => unwrap(commands.pullsList()) });
 }
 
+/** Why the list can be empty: no code host, a code host with no pull request, or a failing code host. */
+export function usePullsStatus() {
+	return useQuery({
+		queryKey: [...forgeKeys.pulls, "status"],
+		queryFn: () => unwrap(commands.pullsStatusGet()),
+	});
+}
+
 export function usePull(number: number | null) {
 	return useQuery({
 		queryKey: forgeKeys.pull(number ?? 0),
@@ -130,6 +138,9 @@ export function useForgeActions() {
 			check: (command: string) => run(commands.codeCheckRun(command, true)),
 			scan: (name: string) => run(commands.codeScanRun(name, true)),
 			install: (name: string) => run(commands.codeScannerInstall(name, true)),
+			installTool: (id: string) => run(commands.doctorToolInstall(id, true)),
+			gatesPropose: () => unwrap(commands.codeGatesPropose()),
+			gatesSave: (gates: string[]) => run(commands.codeGatesSave(gates, true)),
 			sbom: () => run(commands.codeSbomExport(true)),
 			analyze: (base: string) => run(commands.codeImpactAnalyze(base, true)),
 		};

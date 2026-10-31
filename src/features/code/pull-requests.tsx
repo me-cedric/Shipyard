@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
 	type MergeMethod,
@@ -31,7 +30,6 @@ import {
 	UsersIcon,
 } from "@/ui/icons";
 import { DiffView } from "@/ui/molecules/diff-view";
-import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FileRow, type FileState } from "@/ui/molecules/file-row";
 import { PageHeader } from "@/ui/molecules/page-header";
@@ -41,6 +39,7 @@ import { RefChip } from "@/ui/molecules/ref-chip";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { Dialog } from "@/ui/organisms/dialog";
 import { AgentReview } from "./agent-review";
+import { NoPulls } from "./no-pulls";
 import { PrAi } from "./pr-ai";
 import { withProject } from "./project-gate";
 import { CI_STATUS, REVIEW_STATUS } from "./status";
@@ -445,7 +444,6 @@ function Detail({ number }: { number: number }) {
 function PullRequestsView() {
 	const { t } = useI18n();
 	const menu = useMenus();
-	const navigate = useNavigate();
 	const pulls = usePulls();
 	const [opening, setOpening] = useState(false);
 	const rows = pulls.data;
@@ -460,12 +458,8 @@ function PullRequestsView() {
 		return (
 			<div className="flex flex-col">
 				<PageHeader icon={<ArrowsRightLeftIcon size={16} />} title={t.tabs.code["pull-requests"]} />
-				<EmptyState
-					action={{
-						label: t.forge.connect,
-						onClick: () => void navigate({ to: "/settings/connections" }),
-					}}
-				/>
+				<NoPulls onNew={() => setOpening(true)} />
+				{opening ? <OpenDialog open onOpenChange={setOpening} /> : null}
 			</div>
 		);
 	const open = rows.filter((r) => r.state === "open");

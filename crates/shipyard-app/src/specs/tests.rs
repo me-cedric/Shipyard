@@ -369,10 +369,33 @@ fn a_fold_needs_the_click_and_writes_the_answer_into_the_spec_once() {
         text.contains("- REQ-001: Login. OIDC") && text.contains("- Q-001 Which provider?: OIDC"),
         "{text}"
     );
+    // An open question has no way to `folded`: the lifecycle keeps it.
+    assert_eq!(questions(&f.s).unwrap()[0].question.status, "open");
     // The stamp is old now.
     assert!(
         fold_answer(&f.s, path, "Q-001", "OIDC", &stamp, true).is_err() || file(&f, path) == text
     );
+}
+
+#[test]
+fn a_fold_marks_an_answered_question_folded_and_a_conflict_marks_nothing() {
+    let f = fx();
+    put_file(&f, "docs/openspec/specs/auth/spec.md", SPEC);
+    let q = Question {
+        id: "Q-001".into(),
+        status: "answered".into(),
+        ..question("Which provider?")
+    };
+    question_create(&f.s, q).unwrap();
+    let path = "docs/openspec/specs/auth/spec.md";
+    // An old stamp is a conflict: the spec stays and so does the status.
+    let e = fold_answer(&f.s, path, "Q-001", "OIDC", "old-stamp", true);
+    assert!(e.is_err() || e.unwrap().conflict);
+    assert_eq!(file(&f, path), SPEC);
+    assert_eq!(questions(&f.s).unwrap()[0].question.status, "answered");
+    let stamp = read(&f.s, path).unwrap().stamp;
+    fold_answer(&f.s, path, "Q-001", "OIDC", &stamp, true).unwrap();
+    assert_eq!(questions(&f.s).unwrap()[0].question.status, "folded");
 }
 
 // ---------------------------------------------------------------- split (REQ-018)
@@ -542,6 +565,12 @@ fn an_archive_with_an_open_item_needs_the_confirm_and_a_done_item_does_not_count
             .join("docs/openspec/changes/add-auth")
             .exists()
     );
-    assert!(file(&f, "docs/openspec/specs/auth/spec.md").contains("Requirement: REQ-001"));
+    let settled = file(&f, "docs/openspec/specs/auth/spec.md");
+    assert!(settled.contains("Requirement: REQ-001"));
+    // The settled spec passes strict OpenSpec: no `ADDED` section, one `Requirements` heading.
+    assert!(settled.contains("\n## Requirements\n") && !settled.contains("ADDED Requirements"));
+    assert!(
+        settled.contains("\n### Requirement list\n") && settled.contains("\nStatus: Settled\n")
+    );
     assert!(archive_change(&f.s, "archive", true).is_err());
 }

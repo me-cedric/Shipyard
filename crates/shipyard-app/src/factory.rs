@@ -409,6 +409,10 @@ impl Dispatch for FactoryHost {
         self.factory.active_runs()
     }
 
+    fn reserved(&self) -> usize {
+        crate::pr_agent::running_count()
+    }
+
     fn start(&self, request: &StartRequest) -> Result<(), String> {
         let out = self.factory.start(request);
         self.publish();
@@ -876,14 +880,18 @@ pub struct SessionView {
     pub state: StepState,
     pub tokens: u32,
     pub cost_usd: f64,
+    /// The pull request of an agent review. A review is no run: the stop of a session uses it.
+    pub pull: Option<u32>,
 }
 
-/// The live sessions and the latest ended ones of the active project, newest first.
+/// The live sessions and the latest ended ones of the active project, newest first. The running
+/// agent reviews come first (`agent-pr` REQ-008).
 pub fn sessions(s: &AppState) -> Res<Vec<SessionView>> {
     let Some(a) = active(s)? else {
         return Ok(Vec::new());
     };
-    Ok(s.factory
+    let runs = s
+        .factory
         .factory
         .sessions()
         .into_iter()
@@ -897,7 +905,11 @@ pub fn sessions(s: &AppState) -> Res<Vec<SessionView>> {
             state: x.state,
             tokens: u32::try_from(x.tokens).unwrap_or(u32::MAX),
             cost_usd: x.cost_usd,
-        })
+            pull: None,
+        });
+    Ok(crate::pr_agent::sessions(&a.entry.id)
+        .into_iter()
+        .chain(runs)
         .collect())
 }
 
@@ -1107,6 +1119,9 @@ pub fn kill_switch(s: &AppState) -> bool {
 /// The global kill switch (`factory` REQ-024): on cancels every active run and stops pickup.
 pub fn set_kill_switch(s: &AppState, on: bool) -> bool {
     s.factory.factory.set_kill_switch(on);
+    if on {
+        crate::pr_agent::stop_all();
+    }
     s.factory.publish();
     on
 }

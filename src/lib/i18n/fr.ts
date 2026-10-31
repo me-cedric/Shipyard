@@ -641,6 +641,7 @@ export const fr: Messages = {
 			lockedRate: "Phrase secrète manquante",
 			perWeek: "{days} j/s",
 			perDay: "{rate}/j",
+			week: "Semaine du {day}",
 		},
 		seal: {
 			passphrase: "Phrase secrète",

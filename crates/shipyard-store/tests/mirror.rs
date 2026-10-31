@@ -147,6 +147,17 @@ fn a_failed_poll_keeps_the_mirror_and_counts() {
 }
 
 #[test]
+fn clearing_a_failure_keeps_the_last_good_poll() {
+    let m = Mirror::open_memory().unwrap();
+    m.mark_failed("jira", "no secret saved").unwrap();
+    m.clear_failure("jira").unwrap();
+    let s = m.state("jira").unwrap();
+    assert_eq!((s.last_ok, s.failures, s.error), (None, 0, None));
+    // A source that never failed is no error.
+    m.clear_failure("none").unwrap();
+}
+
+#[test]
 fn seen_comments_are_kept_per_ticket() {
     let m = Mirror::open_memory().unwrap();
     assert!(m.seen("jira", "A-1").unwrap().is_empty());

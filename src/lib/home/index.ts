@@ -9,6 +9,7 @@ import {
 	type MessageView,
 	type QuestionChoice,
 	type QuestionView_Serialize,
+	type ReviewWait,
 	type RunView_Serialize,
 	unwrap,
 } from "@/lib/ipc";
@@ -17,6 +18,7 @@ import type { Notice } from "@/lib/notifications";
 export type QuestionItem = QuestionView_Serialize;
 export type ApprovalItem = ApprovalView;
 export type MessageItem = MessageView;
+export type ReviewItem = ReviewWait;
 export type RunItem = RunView_Serialize;
 
 /** The factory tells the views with these events. The payload is `{ run, id }`. */
@@ -25,6 +27,7 @@ export const FACTORY_EVENTS = [
 	"factory-approval",
 	"factory-question",
 	"factory-message",
+	"factory-review",
 ] as const;
 export type FactoryEvent = (typeof FACTORY_EVENTS)[number];
 export type FactoryPayload = { run: string; id: string };
@@ -35,6 +38,7 @@ export const homeKeys = {
 	approvals: ["home", "approvals"] as const,
 	runs: ["home", "runs"] as const,
 	messages: ["home", "messages"] as const,
+	reviews: ["home", "reviews"] as const,
 };
 
 /** Runs the handler at each factory event. The mock emits none. */
@@ -77,6 +81,10 @@ export function useInbox() {
 		queryKey: homeKeys.messages,
 		queryFn: () => unwrap(commands.messagesList()),
 	});
+	const reviews = useQuery({
+		queryKey: homeKeys.reviews,
+		queryFn: () => unwrap(commands.prReviewWaiting()),
+	});
 	const now = new Date();
 	// Only on the day: other days ask the tracker nothing.
 	const time = useQuery({
@@ -85,7 +93,7 @@ export function useInbox() {
 		enabled: now.getDay() === THURSDAY,
 	});
 	return {
-		loading: [questions, approvals, runs, messages].some((q) => q.isPending),
+		loading: [questions, approvals, runs, messages, reviews].some((q) => q.isPending),
 		timesheet: time.data
 			? timesheetDue(
 					now,
@@ -96,6 +104,7 @@ export function useInbox() {
 		approvals: approvals.data ?? [],
 		plans: (runs.data ?? []).filter((r) => r.state === "PlanReview"),
 		messages: messages.data ?? [],
+		reviews: reviews.data ?? [],
 	};
 }
 

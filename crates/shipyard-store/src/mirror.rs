@@ -309,6 +309,15 @@ impl Mirror {
         Ok(())
     }
 
+    /// Forgets the failures of a source: its secret or its host changed since they happened.
+    pub fn clear_failure(&self, source: &str) -> Result<()> {
+        self.conn.execute(
+            "UPDATE state SET failures = 0, error = NULL WHERE source = ?1",
+            params![source],
+        )?;
+        Ok(())
+    }
+
     // ---- outbox
 
     /// The events not yet acknowledged, oldest first.

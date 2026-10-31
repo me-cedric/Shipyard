@@ -126,6 +126,9 @@ export const commands = {
 	codeQuality: () => typedError<QualityView_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_quality")),
 	codeCheckRun: (command: string, click: boolean) => typedError<QualityReport_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_check_run", { command, click })),
 	codeCoverage: () => typedError<Coverage | null, AppError_Serialize>(__TAURI_INVOKE("code_coverage")),
+	/**  The proposal for the `gates` of the active project. It reads files and writes nothing. */
+	codeGatesPropose: () => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("code_gates_propose")),
+	codeGatesSave: (gates: string[], click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_gates_save", { gates, click })),
 	docSearch: (query: string) => typedError<DocHit[], AppError_Serialize>(__TAURI_INVOKE("doc_search", { query })),
 	docDocxList: () => typedError<PageEntry[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_list")),
 	docDocxRead: (path: string) => typedError<Paragraph[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_read", { path })),
@@ -176,10 +179,11 @@ export const commands = {
 	/**  Switches on each recommended server that is off. Returns the ids that it switched on. */
 	mcpRecommendedEnable: (click: boolean) => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("mcp_recommended_enable", { click })),
 	gitlabMcpSetOn: (connection: string, on: boolean, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("gitlab_mcp_set_on", { connection, on, click })),
-	prReviewStart: (number: number, click: boolean) => typedError<ReviewDraft, AppError_Serialize>(__TAURI_INVOKE("pr_review_start", { number, click })),
-	prReviewGet: (number: number, headSha: string) => typedError<ReviewDraft | null, AppError_Serialize>(__TAURI_INVOKE("pr_review_get", { number, headSha })),
+	prReviewStart: (number: number, click: boolean) => typedError<ReviewDraft_Serialize, AppError_Serialize>(__TAURI_INVOKE("pr_review_start", { number, click })),
+	prReviewGet: (number: number, headSha: string) => typedError<ReviewDraft_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("pr_review_get", { number, headSha })),
 	prReviewPost: (post: ReviewPost, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("pr_review_post", { post, click })),
 	prReviewStop: (number: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("pr_review_stop", { number })),
+	prReviewWaiting: () => typedError<ReviewWait[], AppError_Serialize>(__TAURI_INVOKE("pr_review_waiting")),
 	prWriteText: (base: string | null, click: boolean) => typedError<PrText, AppError_Serialize>(__TAURI_INVOKE("pr_write_text", { base, click })),
 	machineSessions: () => typedError<MachineSession_Serialize[], AppError_Serialize>(__TAURI_INVOKE("machine_sessions")),
 	machineSessionStop: (pid: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("machine_session_stop", { pid, click })),
@@ -304,6 +308,7 @@ export const commands = {
 	approvalApprove: (id: number) => typedError<string | null, AppError_Serialize>(__TAURI_INVOKE("approval_approve", { id })),
 	approvalReject: (id: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("approval_reject", { id })),
 	pullsList: () => typedError<PrRowView[], AppError_Serialize>(__TAURI_INVOKE("pulls_list")),
+	pullsStatusGet: () => typedError<PullsStatus_Serialize, AppError_Serialize>(__TAURI_INVOKE("pulls_status_get")),
 	designList: () => typedError<DesignList_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_list")),
 	designRead: (path: string) => typedError<Text, AppError_Serialize>(__TAURI_INVOKE("design_read", { path })),
 	designWrite: (path: string, text: string, stamp: string | null, create: boolean) => typedError<Written_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_write", { path, text, stamp, create })),
@@ -2480,10 +2485,10 @@ export type LedgerItem = {
 	severity: string,
 };
 
-/**  Run limits (REQ-007). `global` counts the active runs of every project on this machine. */
+/**  Run limits (REQ-007). `global` counts the active runs of every project on this machine and its agent reviews. */
 export type Limits = Limits_Serialize | Limits_Deserialize;
 
-/**  Run limits (REQ-007). `global` counts the active runs of every project on this machine. */
+/**  Run limits (REQ-007). `global` counts the active runs of every project on this machine and its agent reviews. */
 export type Limits_Deserialize = {
 	global?: number,
 	per_project?: number | null,
@@ -2491,7 +2496,7 @@ export type Limits_Deserialize = {
 	per_status?: { [key in string]: number },
 };
 
-/**  Run limits (REQ-007). `global` counts the active runs of every project on this machine. */
+/**  Run limits (REQ-007). `global` counts the active runs of every project on this machine and its agent reviews. */
 export type Limits_Serialize = {
 	global: number,
 	per_project?: number,
@@ -3790,6 +3795,31 @@ export type PullThread_Serialize = {
 	comments: string[],
 };
 
+/**  Why the pull request list can be empty: no code host, or a code host with no pull request. */
+export type PullsStatus = PullsStatus_Serialize | PullsStatus_Deserialize;
+
+/**  Why the pull request list can be empty: no code host, or a code host with no pull request. */
+export type PullsStatus_Deserialize = {
+	/**  The active project names a code host connection that exists. */
+	connected: boolean,
+	/**
+	 *  What stops the code host: no secret, or the text of its last failed sync. The view turns
+	 *  the text into a sentence and an action.
+	 */
+	error?: string | null,
+};
+
+/**  Why the pull request list can be empty: no code host, or a code host with no pull request. */
+export type PullsStatus_Serialize = {
+	/**  The active project names a code host connection that exists. */
+	connected: boolean,
+	/**
+	 *  What stops the code host: no secret, or the text of its last failed sync. The view turns
+	 *  the text into a sentence and an action.
+	 */
+	error: string | null,
+};
+
 export type PushTarget = PushTarget_Serialize | PushTarget_Deserialize;
 
 export type PushTarget_Deserialize = {
@@ -3847,6 +3877,11 @@ export type QualityRow = QualityRow_Serialize | QualityRow_Deserialize;
 export type QualityRow_Deserialize = {
 	/**  The declared command, or the scanner name. */
 	name: string,
+	/**
+	 *  The key of a plain name (`lint`, `typecheck`, `test`, `check`, `build`) for a command that a
+	 *  project file names. The view shows the command in the detail.
+	 */
+	label?: string | null,
 	/**  `false` for a scanner that the app does not ship (Q-043). */
 	available: boolean,
 	last?: QualityReport_Deserialize | null,
@@ -3855,6 +3890,11 @@ export type QualityRow_Deserialize = {
 export type QualityRow_Serialize = {
 	/**  The declared command, or the scanner name. */
 	name: string,
+	/**
+	 *  The key of a plain name (`lint`, `typecheck`, `test`, `check`, `build`) for a command that a
+	 *  project file names. The view shows the command in the detail.
+	 */
+	label: string | null,
 	/**  `false` for a scanner that the app does not ship (Q-043). */
 	available: boolean,
 	last: QualityReport_Serialize | null,
@@ -4057,8 +4097,29 @@ export type Resolved_Serialize = {
 };
 
 /**  A draft review: what the agent found at one head commit. It waits for a person to post it. */
-export type ReviewDraft = {
+export type ReviewDraft = ReviewDraft_Serialize | ReviewDraft_Deserialize;
+
+/**  A draft review: what the agent found at one head commit. It waits for a person to post it. */
+export type ReviewDraft_Deserialize = {
 	number: number,
+	/**  The title of the pull request, for Home / Needs you. */
+	title?: string,
+	headSha: string,
+	summary: string,
+	verdict: ReviewVerdict,
+	findings: ReviewFinding[],
+	/**  The findings that cited no changed file or no line. */
+	dropped: number,
+	posted: boolean,
+	/**  A review that the automatic setting started. */
+	auto: boolean,
+};
+
+/**  A draft review: what the agent found at one head commit. It waits for a person to post it. */
+export type ReviewDraft_Serialize = {
+	number: number,
+	/**  The title of the pull request, for Home / Needs you. */
+	title: string,
 	headSha: string,
 	summary: string,
 	verdict: ReviewVerdict,
@@ -4088,6 +4149,15 @@ export type ReviewPost = {
 };
 
 export type ReviewVerdict = "approve" | "comment" | "request_changes";
+
+/**  A draft that waits for a person, as Home / Needs you shows it. */
+export type ReviewWait = {
+	number: number,
+	headSha: string,
+	title: string,
+	/**  The ref of the pull request, `pr:<connection>:<number>`. Empty without a code host. */
+	reference: string,
+};
 
 /**  The verdict of one reviewer (REQ-021). */
 export type ReviewerVerdict = {
@@ -4498,6 +4568,8 @@ export type SessionView_Deserialize = {
 	state: StepState,
 	tokens: number,
 	costUsd: number | null,
+	/**  The pull request of an agent review. A review is no run: the stop of a session uses it. */
+	pull?: number | null,
 };
 
 /**  One agent session: a step, or a child of a step, that started (`factory` REQ-031). */
@@ -4511,6 +4583,8 @@ export type SessionView_Serialize = {
 	state: StepState,
 	tokens: number,
 	costUsd: number | null,
+	/**  The pull request of an agent review. A review is no run: the stop of a session uses it. */
+	pull: number | null,
 };
 
 export type Severity = "info" | "warning" | "error";

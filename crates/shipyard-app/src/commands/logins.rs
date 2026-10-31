@@ -126,7 +126,10 @@ pub fn use_login_with(
         .set_secret(&c.id, Secret::new(token))
         .and_then(|_| s.connections.test(&c.id));
     match done {
-        Ok(TestOutcome::Passed { .. }) => s.connections.get(&c.id)?.ok_or("connection lost".into()),
+        Ok(TestOutcome::Passed { .. }) => {
+            let _ = super::connections::passed(s, &c.id, true);
+            s.connections.get(&c.id)?.ok_or("connection lost".into())
+        }
         other => {
             let _ = s.connections.remove(&c.id);
             Err(match other {
@@ -246,5 +249,11 @@ mod tests {
         let c = use_login_with(&s, &tool, "gh", "github.com", true).unwrap();
         assert_eq!(c.name, "github.com (gh)");
         assert!(c.secret);
+        // The same login serves the issue tracker role of the host too.
+        let list = s.connections.list().unwrap();
+        assert!(
+            list.iter()
+                .any(|t| t.group == ConnectionGroup::Tracker && t.secret)
+        );
     }
 }

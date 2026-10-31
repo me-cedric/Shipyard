@@ -12,7 +12,7 @@ import {
 import { copyText, useMenus } from "@/lib/menus";
 import { useBacklinks } from "@/lib/refs";
 import { useFormIntent, useShell } from "@/lib/shell";
-import { clock, useSyncState } from "@/lib/sync";
+import { clock, syncKeys, useSyncState } from "@/lib/sync";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -223,6 +223,7 @@ function Row({
 		} finally {
 			setTesting(false);
 			await qc.invalidateQueries({ queryKey: connectionKeys.list });
+			await qc.invalidateQueries({ queryKey: syncKeys.all });
 		}
 	};
 
@@ -320,9 +321,9 @@ function Row({
 }
 
 /** The form of a tracker or a forge, or of a type that has its own form. Runners need none. */
-function AddForm({ onDone }: { onDone: () => void }) {
+function AddForm({ initial, onDone }: { initial: AddType; onDone: () => void }) {
 	const { t } = useI18n();
-	const [type, setType] = useState<AddType>("tracker");
+	const [type, setType] = useState<AddType>(initial);
 	if (type === "tracker" || type === "forge")
 		return <ConnectionForm initialGroup={type} onType={setType} onDone={onDone} />;
 	return (
@@ -349,7 +350,13 @@ export function Connections() {
 	});
 	const [adding, setAdding] = useState(false);
 	const [editing, setEditing] = useState(false);
+	// A link from Code / Pull requests opens the form on the code host.
+	const [first, setFirst] = useState<AddType>("tracker");
 	useFormIntent("connection", () => setAdding(true));
+	useFormIntent("connection:forge", () => {
+		setFirst("forge");
+		setAdding(true);
+	});
 	const conns = list.data;
 	const mcpCount = (useMcpServers().data ?? []).filter((m) => m.enabled).length;
 	const providerCount = (useProviders().data ?? []).length;
@@ -391,7 +398,13 @@ export function Connections() {
 				<RunnersGroup />
 				{adding ? (
 					<div className="rounded-lg border bg-surface-1 shadow-1">
-						<AddForm onDone={() => setAdding(false)} />
+						<AddForm
+							initial={first}
+							onDone={() => {
+								setAdding(false);
+								setFirst("tracker");
+							}}
+						/>
 					</div>
 				) : null}
 				{GROUPS.map((g: ConnectionGroup) => {

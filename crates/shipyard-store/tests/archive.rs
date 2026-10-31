@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::Path;
 
-use shipyard_store::archive::archive;
+use shipyard_store::archive::{archive, settle};
 
 fn setup() -> tempfile::TempDir {
     let d = tempfile::tempdir().unwrap();
@@ -83,4 +83,54 @@ fn rejects_bad_input() {
     assert!(archive(d.path(), "../x", "2026-10-29", &[], false).is_err());
     assert!(archive(d.path(), "archive", "2026-10-29", &[], false).is_err());
     assert!(archive(d.path(), "add-x", "today", &[], false).is_err());
+}
+
+const DRAFT: &str = "# Spec: x\n\n## Purpose\n\nStatus: Draft\nChange: `change:add-x`\n\n### Requirements\n\n- REQ-001: A.\n\n## ADDED Requirements\n\n### Requirement: REQ-001 A\n\nText. Status: kept\n";
+
+#[test]
+fn a_settled_spec_has_requirements_a_requirement_list_and_the_settled_status() {
+    let out = settle(DRAFT);
+    assert!(
+        out.contains("\n## Requirements\n") && !out.contains("ADDED"),
+        "{out}"
+    );
+    assert!(out.contains("\n### Requirement list\n") && !out.contains("\n### Requirements\n"));
+    assert!(out.contains("\nStatus: Settled\n") && !out.contains("Status: Draft"));
+    // Every other line stays, also a line that only holds the word in a text.
+    assert!(out.contains("Change: `change:add-x`") && out.contains("Text. Status: kept"));
+    assert_eq!(out.lines().count(), DRAFT.lines().count());
+    assert_eq!(settle(&out), out, "settling twice changes nothing");
+}
+
+#[test]
+fn settle_keeps_the_line_ends() {
+    let crlf = DRAFT.replace('\n', "\r\n");
+    let out = settle(&crlf);
+    assert!(out.contains("## Requirements\r\n") && out.contains("Status: Settled\r\n"));
+    assert_eq!(out.matches('\n').count(), out.matches("\r\n").count());
+}
+
+#[test]
+fn the_archive_settles_each_spec_and_leaves_other_files_as_they_are() {
+    let d = setup();
+    fs::write(d.path().join("changes/add-x/specs/alpha/spec.md"), DRAFT).unwrap();
+    fs::write(
+        d.path().join("changes/add-x/specs/alpha/plan.md"),
+        "## ADDED Requirements\n",
+    )
+    .unwrap();
+    archive(d.path(), "add-x", "2026-10-29", &[], false).unwrap();
+    assert_eq!(read(d.path(), "specs/alpha/spec.md"), settle(DRAFT));
+    assert_eq!(
+        read(d.path(), "specs/alpha/plan.md"),
+        "## ADDED Requirements\n"
+    );
+    // The archived copy of the change keeps what the people wrote.
+    assert_eq!(
+        read(
+            d.path(),
+            "changes/archive/2026-10-29-add-x/specs/alpha/spec.md"
+        ),
+        DRAFT
+    );
 }

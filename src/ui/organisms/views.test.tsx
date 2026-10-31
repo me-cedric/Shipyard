@@ -5,6 +5,7 @@ import { vi } from "vitest";
 import { renderApp } from "../test-utils";
 import { DbmlView } from "./dbml-view";
 import { DrawioViewer } from "./drawio-viewer";
+import plain from "./fixtures/orders.drawio?raw";
 import { OpenApiView } from "./openapi-view";
 
 const LABELS = { pk: "PK", notNull: "Not null", relations: "Relations" };
@@ -92,10 +93,17 @@ describe("DrawioViewer", () => {
 		expect(onError).toHaveBeenCalledWith({ message: "Not a board" });
 	});
 
-	it("shows a plain drawio file read-only", () => {
+	it("draws a plain drawio file from its model", async () => {
+		renderApp(<DrawioViewer text={plain} svg={false} label="Board" invalid="x" />);
+		const img = await screen.findByRole("img", { name: "Board" });
+		expect(decodeURIComponent(img.getAttribute("src") ?? "")).toContain("Order placed");
+		expect(screen.queryByRole("textbox")).toBeNull();
+	});
+
+	it("shows the XML read-only when the model has nothing to draw", async () => {
 		renderApp(
 			<DrawioViewer text="<mxfile><diagram/></mxfile>" svg={false} label="Board" invalid="x" />,
 		);
-		expect(screen.getByRole("textbox", { name: "Board" })).toHaveAttribute("readonly");
+		expect(await screen.findByRole("textbox", { name: "Board" })).toHaveAttribute("readonly");
 	});
 });

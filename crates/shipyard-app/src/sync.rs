@@ -413,6 +413,10 @@ impl Dispatch for Notify {
         self.inner.active_runs()
     }
 
+    fn reserved(&self) -> usize {
+        self.inner.reserved()
+    }
+
     fn start(&self, request: &StartRequest) -> Result<(), String> {
         self.inner.start(request)
     }

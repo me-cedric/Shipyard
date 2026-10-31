@@ -10,7 +10,7 @@ use specta::Type;
 use tauri::AppHandle;
 
 use super::{Api, AppState, Res, blocking};
-use crate::connections::{Connection, ConnectionDraft, RepoPage};
+use crate::connections::{Connection, ConnectionDraft, ConnectionState, RepoPage};
 
 /// A registered project whose `.shipyard/project.yaml` names a connection.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -101,15 +101,40 @@ pub async fn connections_remove(app: AppHandle, id: String) -> Api<()> {
 #[specta::specta]
 pub async fn connections_set_secret(app: AppHandle, id: String, secret: String) -> Api<Connection> {
     blocking(app, move |s| {
-        s.connections.set_secret(&id, Secret::new(secret))
+        let saved = s.connections.set_secret(&id, Secret::new(secret))?;
+        let _ = super::sync::recover(s, &[id.as_str()]);
+        Ok(saved)
     })
     .await
+}
+
+/// A test passed. After a new secret (`fresh`: the connection did not pass before), the other role
+/// of the same host gets the secret and its own test. A later test of a connection that passed
+/// does not bring back a twin that a person removed. The active project links its connections, and
+/// the sync forgets the failures of the old secret.
+pub(crate) fn passed(s: &AppState, id: &str, fresh: bool) -> Option<std::thread::JoinHandle<()>> {
+    let twin = fresh
+        .then(|| s.connections.serve_twin(id).ok().flatten())
+        .flatten();
+    if let Some(t) = &twin {
+        let _ = s.connections.test(&t.id);
+    }
+    let _ = super::setup::auto_link(s);
+    super::sync::recover(s, &[id, twin.as_ref().map_or(id, |t| t.id.as_str())])
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn connections_test(app: AppHandle, id: String) -> Api<TestOutcome> {
-    blocking(app, move |s| s.connections.test(&id)).await
+    blocking(app, move |s| {
+        let before = s.connections.get(&id)?.map(|c| c.state);
+        let out = s.connections.test(&id)?;
+        if matches!(out, TestOutcome::Passed { .. }) {
+            let _ = passed(s, &id, before != Some(ConnectionState::Passed));
+        }
+        Ok(out)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -147,6 +172,8 @@ pub fn create_repo(s: &AppState, id: &str, slug: &str, click: bool) -> Res<Repos
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::*;
     use crate::commands::projects::create;
     use shipyard_core::project::ProjectConnections;
@@ -160,6 +187,67 @@ mod tests {
         assert!(err.contains("click"), "{err}");
         let err = create_repo(&s, "gh", "acme/new", true).unwrap_err();
         assert!(!err.contains("click"), "a click passes the gate: {err}");
+    }
+
+    #[test]
+    fn a_new_pass_gives_the_other_role_the_secret_and_links_both_to_the_project() {
+        use crate::connections::{ConnectionGroup, ConnectionKind, Connections};
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::MemoryStore;
+        let dir = tempfile::tempdir().unwrap();
+        let http = Arc::new(FakeHttp::new());
+        http.get("api.github.com/user", 200, r#"{"login":"ada"}"#);
+        let conns = Arc::new(Connections::new(
+            dir.path(),
+            Arc::new(MemoryStore::default()),
+            http,
+        ));
+        let s = AppState::with_connections(dir.path().join("data"), conns);
+        let root = dir.path().join("p");
+        create(&s, root.to_str().unwrap(), "P", "PRJ").unwrap();
+        assert!(
+            std::process::Command::new("git")
+                .args(["remote", "add", "origin", "https://github.com/acme/web.git"])
+                .current_dir(&root)
+                .status()
+                .unwrap()
+                .success()
+        );
+        let tracker = s
+            .connections
+            .add(ConnectionDraft {
+                name: "GitHub".into(),
+                group: ConnectionGroup::Tracker,
+                kind: ConnectionKind::GitHub,
+                url: "https://github.com".into(),
+                user: None,
+            })
+            .unwrap();
+        s.connections
+            .set_secret(&tracker.id, Secret::new("tok-1"))
+            .unwrap();
+        if let Some(h) = passed(&s, &tracker.id, true) {
+            h.join().unwrap();
+        }
+        let forge = s
+            .connections
+            .list()
+            .unwrap()
+            .into_iter()
+            .find(|c| c.group == ConnectionGroup::Forge)
+            .expect("the code host twin");
+        assert!(forge.secret);
+        assert_eq!(forge.state, ConnectionState::Passed);
+        let FileRead::Valid(file) = read_project_file(&root).unwrap() else {
+            panic!("a valid file")
+        };
+        let linked = file.connections.unwrap();
+        assert_eq!(linked.tracker.as_deref(), Some(tracker.id.as_str()));
+        assert_eq!(linked.forge.as_deref(), Some(forge.id.as_str()));
+        // A later test of a connection that passed does not bring back a twin that was removed.
+        s.connections.remove(&forge.id).unwrap();
+        let _ = passed(&s, &tracker.id, false);
+        assert_eq!(s.connections.list().unwrap().len(), 1);
     }
 
     #[test]

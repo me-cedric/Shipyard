@@ -154,6 +154,7 @@ export function useFactoryWrites() {
 			write: (kind: "workflow" | "role", id: string, text: string) =>
 				run(kind === "workflow" ? commands.workflowWrite(id, text) : commands.roleWrite(id, text)),
 			killSwitch: (on: boolean) => run(commands.killSwitchSet(on)),
+			reviewStop: (number: number) => run(commands.prReviewStop(number)),
 			budget: (scope: string, key: string, usd: number | null) =>
 				run(commands.budgetSet(scope, key, usd)),
 		};

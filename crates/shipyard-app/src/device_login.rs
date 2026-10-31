@@ -341,6 +341,8 @@ pub fn poll(s: &AppState, id: &str, device_code: &str) -> Res<DeviceState> {
                 .unwrap_or_else(|| GITLAB_PLAIN.into()),
         });
         s.connections.store_secret(id, Secret::new(token), oauth)?;
+        // A sync tick from before the sign-in failed for want of this token.
+        let _ = crate::commands::sync::recover(s, &[id]);
         return Ok(DeviceState::Authorized);
     }
     match text(&v, "/error").as_str() {

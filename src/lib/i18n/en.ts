@@ -627,6 +627,7 @@ export const en = {
 			lockedRate: "Passphrase missing",
 			perWeek: "{days} d/w",
 			perDay: "{rate}/d",
+			week: "Week of {day}",
 		},
 		seal: {
 			passphrase: "Passphrase",

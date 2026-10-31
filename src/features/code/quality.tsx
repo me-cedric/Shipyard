@@ -14,6 +14,7 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { withProject } from "./project-gate";
+import { QualitySetup } from "./quality-setup";
 import { securityScore } from "./security-score";
 import { SEVERITY_STATUS } from "./status";
 import { useRun } from "./use-run";
@@ -22,7 +23,17 @@ import { FileDialog } from "./viewer";
 /** The name of the check that verifies all docs, as the backend gives it. */
 const VERIFY_DOCS = "verify all docs";
 
-type Row = { name: string; available: boolean; last: QualityReport | null };
+type Row = { name: string; label?: string | null; available: boolean; last: QualityReport | null };
+
+/** The tool that the app installs, by the program that a failed check could not find. */
+const TOOLS: Record<string, string> = {
+	pnpm: "pnpm",
+	node: "node",
+	npm: "node",
+	git: "git",
+	cargo: "rust",
+};
+const MISSING = /^(\S+) is not installed or not found$/;
 
 const GRID = "grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-3 p-3";
 const LINE = { success: "bg-success", danger: "bg-danger", idle: "bg-n-7" } as const;
@@ -36,17 +47,20 @@ function QualityView() {
 	const { t, lang } = useI18n();
 	const q = useQuality().data;
 	const coverage = useCoverageReport().data;
-	const { check, scan, install, sbom } = useForgeActions();
+	const { check, scan, install, installTool, sbom } = useForgeActions();
 	const { error, run } = useRun();
 	const [confirming, setConfirming] = useState<string | null>(null);
 	const [shown, setShown] = useState<string | null>(null);
+	const [setting, setSetting] = useState(false);
 	const [exported, setExported] = useState<SbomReport | null>(null);
 	const [viewing, setViewing] = useState<{ path: string; line: number | null } | null>(null);
 	if (!q) return null;
 	const date = new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" });
 	const q18 = t.forge.quality;
-	// The check that verifies all docs has a plain name for people.
-	const nameOf = (name: string) => (name === VERIFY_DOCS ? t.review.quality.verifyDocs : name);
+	// A named command and the check that verifies all docs have a plain name for people.
+	const nameOf = (r: Row) =>
+		(r.label && (q18.named as Record<string, string>)[r.label]) ||
+		(r.name === VERIFY_DOCS ? t.review.quality.verifyDocs : r.name);
 
 	// A run needs a confirmation that names the check (REQ-026).
 	const rows = (kind: "check" | "scanner", items: Row[]) =>
@@ -74,14 +88,13 @@ function QualityView() {
 						>
 							{kind === "check" ? <CheckIcon size={14} /> : <LockClosedIcon size={14} />}
 						</span>
-						<h3 className="min-w-0 flex-1 truncate font-mono text-ui text-n-12">
-							{nameOf(r.name)}
-						</h3>
+						<h3 className="min-w-0 flex-1 truncate font-mono text-ui text-n-12">{nameOf(r)}</h3>
 						<Badge variant={status === "idle" ? "neutral" : status}>
 							<StatusDot status={status} label={label} className="size-2" />
 							<span aria-hidden="true">{label}</span>
 						</Badge>
 					</div>
+					{r.label ? <p className="truncate font-mono text-12 text-n-11">{r.name}</p> : null}
 					<div className="flex min-h-row items-center gap-2">
 						{last ? (
 							<>
@@ -107,11 +120,11 @@ function QualityView() {
 										})
 									}
 								>
-									{format(q18.confirm, { name: nameOf(r.name) })}
+									{format(q18.confirm, { name: nameOf(r) })}
 								</Button>
 							) : (
 								<Button
-									aria-label={format(q18.runName, { name: nameOf(r.name) })}
+									aria-label={format(q18.runName, { name: nameOf(r) })}
 									onClick={() => setConfirming(key)}
 								>
 									<ArrowPathIcon size={14} />
@@ -132,24 +145,38 @@ function QualityView() {
 					</div>
 					{last && shown === key ? (
 						<div className="-mx-3 -mb-3 border-t">
-							{last.findings.map((f, i) => (
-								<FindingRow
-									// biome-ignore lint/suspicious/noArrayIndexKey: the findings never reorder
-									key={i}
-									status={SEVERITY_STATUS[f.severity] ?? "idle"}
-									title={`${q18.severity[f.severity]}: ${f.message}`}
-									source={
-										<Button
-											variant="ghost"
-											aria-label={format(q18.open, { path: f.path })}
-											onClick={() => setViewing({ path: f.path, line: f.line })}
-										>
-											{f.path}
-											{f.line ? `:${f.line}` : ""}
-										</Button>
-									}
-								/>
-							))}
+							{last.findings.map((f, i) => {
+								// A finding with no path is the reason that a check failed.
+								const tool = TOOLS[MISSING.exec(f.message)?.[1] ?? ""];
+								return (
+									<FindingRow
+										// biome-ignore lint/suspicious/noArrayIndexKey: the findings never reorder
+										key={i}
+										status={SEVERITY_STATUS[f.severity] ?? "idle"}
+										title={f.path ? `${q18.severity[f.severity]}: ${f.message}` : f.message}
+										action={
+											!f.path && tool
+												? {
+														label: format(q18.installName, { name: tool }),
+														onClick: () => void run(() => installTool(tool)),
+													}
+												: undefined
+										}
+										source={
+											f.path ? (
+												<Button
+													variant="ghost"
+													aria-label={format(q18.open, { path: f.path })}
+													onClick={() => setViewing({ path: f.path, line: f.line })}
+												>
+													{f.path}
+													{f.line ? `:${f.line}` : ""}
+												</Button>
+											) : undefined
+										}
+									/>
+								);
+							})}
 							{last.tail ? (
 								<pre className="overflow-x-auto px-3 py-1 font-mono text-12">{last.tail}</pre>
 							) : null}
@@ -233,13 +260,19 @@ function QualityView() {
 						</span>
 					) : null}
 				</Panel>
-				<Panel title={q18.checks} count={q.checks.length} bodyClassName={GRID}>
+				<Panel
+					title={q18.checks}
+					count={q.checks.length}
+					bodyClassName={GRID}
+					toolbar={<Button onClick={() => setSetting(true)}>{q18.setup}</Button>}
+				>
 					{rows("check", q.checks)}
 				</Panel>
 				<Panel title={q18.scanners} count={q.scanners.length} bodyClassName={GRID}>
 					{rows("scanner", q.scanners)}
 				</Panel>
 			</div>
+			{setting ? <QualitySetup onClose={() => setSetting(false)} /> : null}
 			{viewing ? (
 				<FileDialog path={viewing.path} line={viewing.line} onClose={() => setViewing(null)} />
 			) : null}

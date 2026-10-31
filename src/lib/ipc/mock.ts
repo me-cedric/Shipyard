@@ -588,15 +588,29 @@ function fileOf(p: ProjectEntry_Serialize): ProjectFile_Serialize {
 	);
 }
 
-/** The only tracker connection becomes the tracker of the active project (the rule of `auto_link`). */
+/**
+ * The only tracker connection becomes the tracker of the active project, and the only code host
+ * its code host (the rule of `auto_link`; the mock has no origin remote to match).
+ */
 function autoLink() {
 	const p = active();
 	if (!p) return;
 	const file = fileOf(p);
-	const trackers = state.connections.filter((c) => c.group === "tracker");
-	const [only] = trackers;
-	if (file.connections?.tracker || trackers.length !== 1 || !only) return;
-	state.files[p.id] = { ...file, connections: { ...file.connections, tracker: only.id } };
+	const only = (group: "tracker" | "forge") => {
+		const rows = state.connections.filter((c) => c.group === group);
+		return rows.length === 1 ? rows[0] : undefined;
+	};
+	const tracker = file.connections?.tracker ? undefined : only("tracker");
+	const forge = file.connections?.forge ? undefined : only("forge");
+	if (!tracker && !forge) return;
+	state.files[p.id] = {
+		...file,
+		connections: {
+			...file.connections,
+			...(tracker && { tracker: tracker.id }),
+			...(forge && { forge: forge.id }),
+		},
+	};
 }
 
 const FIX_CONTENT = "# OS files\n.DS_Store\n._*\nThumbs.db\nDesktop.ini\n";
@@ -682,6 +696,60 @@ function testConnection(id: string): TestOutcome {
 	else out = { kind: "passed", account: "Ada Lovelace" };
 	c.state = out.kind === "passed" ? "passed" : "failed";
 	return out;
+}
+
+function addConnection(d: ConnectionDraft_Deserialize): Connection_Serialize {
+	checkDraft(d);
+	const base = slug(d.name, d.kind);
+	let id = base;
+	for (let n = 2; state.connections.some((c) => c.id === id); n++) id = `${base}-${n}`;
+	const c: Connection_Serialize = {
+		id,
+		name: d.name.trim(),
+		group: d.group,
+		kind: d.kind,
+		url: d.kind === "linear" && d.group === "tracker" ? "" : d.url.trim(),
+		user: d.user?.trim() || null,
+		secret: false,
+		state: "untested",
+		scopes: [],
+		capabilities: d.group === "tracker" ? FLAGS[d.kind] : null,
+	};
+	state.connections.push(c);
+	autoLink();
+	return c;
+}
+
+const hostOf = (url: string) =>
+	url
+		.replace(/^https?:\/\//, "")
+		.split("/")[0]
+		?.toLowerCase();
+
+/** What the backend does when a test passed (`passed`): a twin for the other role, the link, the sync. */
+function afterPass(c: Connection_Serialize, fresh: boolean) {
+	const group = c.group === "tracker" ? "forge" : "tracker";
+	const same = (x: Connection_Serialize) =>
+		x.kind === c.kind && x.group === group && hostOf(x.url) === hostOf(c.url);
+	let twin: Connection_Serialize | undefined;
+	if (fresh && c.secret && (c.kind === "github" || c.kind === "gitlab")) {
+		if (!state.connections.some((x) => same(x) && x.secret)) {
+			twin =
+				state.connections.find(same) ??
+				addConnection({
+					name: c.name,
+					group,
+					kind: c.kind,
+					url: c.url,
+					user: c.user,
+				});
+			state.secrets[twin.id] = state.secrets[c.id] ?? "";
+			Object.assign(twin, { secret: true, scopes: [...c.scopes] });
+			testConnection(twin.id);
+		}
+	}
+	autoLink();
+	for (const id of [c.id, twin?.id]) if (id) delete state.sync.failures[id];
 }
 
 // A missing key fails `tsc`: each generated command needs a handler.
@@ -824,27 +892,7 @@ const handlers: Handlers = {
 		return { path: f.fix.path, content: f.fix.content, written: expected != null };
 	},
 	connectionsList: () => state.connections,
-	connectionsAdd: (d) => {
-		checkDraft(d);
-		const base = slug(d.name, d.kind);
-		let id = base;
-		for (let n = 2; state.connections.some((c) => c.id === id); n++) id = `${base}-${n}`;
-		const c: Connection_Serialize = {
-			id,
-			name: d.name.trim(),
-			group: d.group,
-			kind: d.kind,
-			url: d.kind === "linear" && d.group === "tracker" ? "" : d.url.trim(),
-			user: d.user?.trim() || null,
-			secret: false,
-			state: "untested",
-			scopes: [],
-			capabilities: d.group === "tracker" ? FLAGS[d.kind] : null,
-		};
-		state.connections.push(c);
-		autoLink();
-		return c;
-	},
+	connectionsAdd: addConnection,
 	connectionsEdit: (id, d) => {
 		const c = conn(id);
 		if (c.group !== d.group || c.kind !== d.kind) throw "the kind of a connection does not change";
@@ -875,9 +923,16 @@ const handlers: Handlers = {
 		c.secret = true;
 		c.state = "untested";
 		c.scopes = [];
+		// The failure of a tick from before the secret does not hold any more.
+		delete state.sync.failures[id];
 		return c;
 	},
-	connectionsTest: testConnection,
+	connectionsTest: (id) => {
+		const before = conn(id).state;
+		const out = testConnection(id);
+		if (out.kind === "passed") afterPass(conn(id), before !== "passed");
+		return out;
+	},
 	connectionsSuggest: () => (active() ? SUGGESTION : null),
 	connectionsScopes: (id) => {
 		const c = conn(id);
@@ -912,6 +967,7 @@ const handlers: Handlers = {
 		};
 		state.connections.push(c);
 		state.secrets[c.id] = "from the tool";
+		afterPass(c, true);
 		return c;
 	},
 	connectionsCreateRepo: (id, slug, click) => {
@@ -1356,7 +1412,8 @@ const handlers: Handlers = {
 	prReviewStart: (number, click) => ap.reviewStart(agentPr(), prs(), number, click, readOnly()),
 	prReviewGet: (number, headSha) => ap.reviewGet(agentPr(), number, headSha),
 	prReviewPost: (post, click) => ap.reviewPost(agentPr(), prs(), post, click, readOnly()),
-	prReviewStop: () => null,
+	prReviewStop: (number) => ap.reviewStop(agentPr(), number),
+	prReviewWaiting: () => ap.reviewWaiting(agentPr(), prs()),
 	prWriteText: (base, click) => ap.prWrite(click, readOnly(), base),
 	codePullComment: (number, body, click) => cp.pullComment(prs(), number, body, click),
 	codePullVerdict: (number, verdict, body, click) =>
@@ -1366,6 +1423,8 @@ const handlers: Handlers = {
 	codeQuality: () => cp.qualityView(prs()),
 	codeCheckRun: (command, click) => cp.checkRun(prs(), command, click),
 	codeScanRun: (name, click) => cp.scanRun(prs(), name, click),
+	codeGatesPropose: () => cp.gatesPropose(),
+	codeGatesSave: (gates, click) => cp.gatesSave(prs(), gates, click),
 	codeScannerInstall: (name, click) => cp.scannerInstall(prs(), name, click),
 	codeSbomExport: (click) => cp.sbomExport(click),
 	codeImpactRefs: () => cp.impactRefs(code()),
@@ -1584,7 +1643,10 @@ const handlers: Handlers = {
 	runsList: () => fx.runsList(state.factory, active()?.id ?? null),
 	runGetOne: (run) => fx.runGetOne(state.factory, active()?.id ?? null, run),
 	runLogPage: (run, after, limit) => fx.runLogPage(state.factory, run, after, limit),
-	sessionsList: () => fx.sessionsList(state.factory, active()?.id ?? null),
+	sessionsList: () => [
+		...ap.reviewSessions(agentPr()),
+		...fx.sessionsList(state.factory, active()?.id ?? null),
+	],
 	usageGet: () => fx.usageGet(state.factory, active()?.id ?? null),
 	usageTreeGet: (run) => fx.usageTreeGet(state.factory, active()?.id ?? null, run),
 	budgetSet: (scope, key, usd) => fx.budgetSet(state.factory, scope, key, usd),
@@ -1616,6 +1678,15 @@ const handlers: Handlers = {
 	approvalsList: () => fx.approvalsList(state.factory, active()?.id ?? null),
 	approvalApprove: (id) => fx.approvalApprove(state.factory, id),
 	approvalReject: (id) => fx.approvalReject(state.factory, id),
+	pullsStatusGet: () => {
+		const p = active();
+		const forge = p ? state.files[p.id]?.connections?.forge : undefined;
+		const c = forge ? state.connections.find((x) => x.id === forge) : undefined;
+		return {
+			connected: !!c,
+			error: c ? (state.sync.failures[c.id] ?? (c.secret ? null : "no secret saved")) : null,
+		};
+	},
 	pullsList: () => {
 		const rows = fx.pullsList(state.factory, active()?.id ?? null);
 		// The mock forge mirror belongs to the project that owns the factory demo, as its rows do.
@@ -1697,6 +1768,7 @@ const handlers: Handlers = {
 		c.secret = true;
 		c.state = "untested";
 		c.scopes = c.kind === "gitlab" ? ["api", "mcp"] : [];
+		delete state.sync.failures[id];
 		return done;
 	},
 	editorsList: () => deliveryActions.editors(),

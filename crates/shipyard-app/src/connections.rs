@@ -428,19 +428,22 @@ impl Connections {
 
     pub fn add(&self, draft: ConnectionDraft) -> Res<Connection> {
         self.with_file(|file| {
-            let base = slug(&draft.name, draft.kind);
-            let mut id = base.clone();
-            for n in 2.. {
-                if !file.connections.iter().any(|r| r.id == id) {
-                    break;
-                }
-                id = format!("{base}-{n}");
-            }
-            let record = Self::check(&draft, &id)?;
-            let view = Connection::from(&record);
-            file.connections.push(record);
-            Ok(view)
+            Self::insert(file, &draft).map(|i| Connection::from(&file.connections[i]))
         })
+    }
+
+    /// Adds the checked draft to the file under a free id. Returns its place in the list.
+    fn insert(file: &mut File, draft: &ConnectionDraft) -> Res<usize> {
+        let base = slug(&draft.name, draft.kind);
+        let mut id = base.clone();
+        for n in 2.. {
+            if !file.connections.iter().any(|r| r.id == id) {
+                break;
+            }
+            id = format!("{base}-{n}");
+        }
+        file.connections.push(Self::check(draft, &id)?);
+        Ok(file.connections.len() - 1)
     }
 
     /// Changes the name, the address and the user. The group and the kind stay. A new address
@@ -502,22 +505,78 @@ impl Connections {
                 .iter_mut()
                 .find(|r| r.id == id)
                 .ok_or_else(|| format!("unknown connection: {id}"))?;
-            self.secrets
-                .set(&conn_account(id), &value)
-                .map_err(|e| e.to_string())?;
-            match &oauth {
-                Some(o) => self.secrets.set(&oauth_account(id), &o.to_secret()?),
-                None => self.secrets.delete(&oauth_account(id)),
-            }
-            .map_err(|e| e.to_string())?;
-            r.secret = true;
-            r.scopes = oauth
-                .as_ref()
-                .map(|o| o.scope.split_whitespace().map(String::from).collect())
-                .unwrap_or_default();
-            // A new secret needs a new test.
-            r.state = ConnectionState::Untested;
+            self.put_secret(r, &value, oauth)?;
             Ok(Connection::from(&*r))
+        })
+    }
+
+    /// Writes the secret and the sign-in state to the keychain, then the flags to the record.
+    fn put_secret(&self, r: &mut Record, value: &Secret, oauth: Option<Oauth>) -> Res<()> {
+        self.secrets
+            .set(&conn_account(&r.id), value)
+            .map_err(|e| e.to_string())?;
+        match &oauth {
+            Some(o) => self.secrets.set(&oauth_account(&r.id), &o.to_secret()?),
+            None => self.secrets.delete(&oauth_account(&r.id)),
+        }
+        .map_err(|e| e.to_string())?;
+        r.secret = true;
+        r.scopes = oauth
+            .as_ref()
+            .map(|o| o.scope.split_whitespace().map(String::from).collect())
+            .unwrap_or_default();
+        // A new secret needs a new test.
+        r.state = ConnectionState::Untested;
+        Ok(())
+    }
+
+    /// One GitHub or GitLab account serves both roles on a host. The connection `id` holds a
+    /// secret: the connection of the other group, same product and host, gets the same secret, and
+    /// is created when it is missing. A twin that has a secret keeps it: it can be another account.
+    /// Returns the twin when it got the secret.
+    /// shortcut: a GitLab browser token has a single-use refresh token that the two connections
+    /// share. After one refresh, the other role needs a new sign-in.
+    pub fn serve_twin(&self, id: &str) -> Res<Option<Connection>> {
+        self.with_file(|file| {
+            let src = file
+                .connections
+                .iter()
+                .find(|r| r.id == id)
+                .cloned()
+                .ok_or_else(|| format!("unknown connection: {id}"))?;
+            if !src.secret || !matches!(src.kind, ConnectionKind::GitHub | ConnectionKind::GitLab) {
+                return Ok(None);
+            }
+            let group = match src.group {
+                ConnectionGroup::Tracker => ConnectionGroup::Forge,
+                ConnectionGroup::Forge => ConnectionGroup::Tracker,
+            };
+            let host = host_of(&src.url);
+            let is_twin =
+                |r: &Record| r.kind == src.kind && r.group == group && host_of(&r.url) == host;
+            if file.connections.iter().any(|r| is_twin(r) && r.secret) {
+                return Ok(None);
+            }
+            let at = match file.connections.iter().position(is_twin) {
+                Some(at) => at,
+                None => Self::insert(
+                    file,
+                    &ConnectionDraft {
+                        name: src.name.clone(),
+                        group,
+                        kind: src.kind,
+                        url: src.url.clone(),
+                        user: src.user.clone(),
+                    },
+                )?,
+            };
+            let access = self.secret(&src)?;
+            self.put_secret(
+                &mut file.connections[at],
+                &access,
+                Oauth::of(&*self.secrets, id),
+            )?;
+            Ok(Some(Connection::from(&file.connections[at])))
         })
     }
 
@@ -780,6 +839,93 @@ mod tests {
         assert!(!moved.secret);
         assert!(store.get(&conn_account(&id)).unwrap().is_none());
         assert!(c.git_auth("https://evil.example.com/a/b").is_ok());
+    }
+
+    #[test]
+    fn one_secret_serves_both_roles_on_a_host_and_a_twin_with_a_secret_keeps_it() {
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::MemoryStore;
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(MemoryStore::default());
+        let c = Connections::new(dir.path(), store.clone(), Arc::new(FakeHttp::new()));
+        let draft = |group, kind, url: &str| ConnectionDraft {
+            name: "Hub".into(),
+            group,
+            kind,
+            url: url.into(),
+            user: None,
+        };
+        let secret_of = |id: &str| {
+            store
+                .get(&conn_account(id))
+                .unwrap()
+                .map(|s| s.expose().to_string())
+        };
+        // No secret yet: nothing to share.
+        let tracker = c
+            .add(draft(
+                ConnectionGroup::Tracker,
+                ConnectionKind::GitHub,
+                "https://github.com",
+            ))
+            .unwrap();
+        assert!(c.serve_twin(&tracker.id).unwrap().is_none());
+        // The twin is created with the same secret, once.
+        c.set_secret(&tracker.id, Secret::new("tok-1")).unwrap();
+        let twin = c.serve_twin(&tracker.id).unwrap().unwrap();
+        assert_eq!(
+            (twin.group, twin.kind),
+            (ConnectionGroup::Forge, ConnectionKind::GitHub)
+        );
+        assert!(twin.secret);
+        assert_eq!(secret_of(&twin.id).as_deref(), Some("tok-1"));
+        assert!(c.serve_twin(&tracker.id).unwrap().is_none());
+        assert!(c.serve_twin(&twin.id).unwrap().is_none());
+        assert_eq!(c.list().unwrap().len(), 2);
+        // A twin without a secret on the same host (other case, path) is filled, not duplicated.
+        let forge = c
+            .add(draft(
+                ConnectionGroup::Forge,
+                ConnectionKind::GitLab,
+                "https://gitlab.example.com",
+            ))
+            .unwrap();
+        let empty = c
+            .add(draft(
+                ConnectionGroup::Tracker,
+                ConnectionKind::GitLab,
+                "https://GitLab.example.com/x",
+            ))
+            .unwrap();
+        c.set_secret(&forge.id, Secret::new("tok-2")).unwrap();
+        assert_eq!(c.serve_twin(&forge.id).unwrap().unwrap().id, empty.id);
+        assert_eq!(secret_of(&empty.id).as_deref(), Some("tok-2"));
+        assert_eq!(c.list().unwrap().len(), 4);
+        // A twin that has its own secret (another account) keeps it.
+        let own = c
+            .add(draft(
+                ConnectionGroup::Tracker,
+                ConnectionKind::GitHub,
+                "https://ghe.example.com",
+            ))
+            .unwrap();
+        c.set_secret(&own.id, Secret::new("mine")).unwrap();
+        let theirs = c
+            .add(draft(
+                ConnectionGroup::Forge,
+                ConnectionKind::GitHub,
+                "https://ghe.example.com",
+            ))
+            .unwrap();
+        c.set_secret(&theirs.id, Secret::new("theirs")).unwrap();
+        assert!(c.serve_twin(&theirs.id).unwrap().is_none());
+        assert_eq!(secret_of(&own.id).as_deref(), Some("mine"));
+        // Another product has one role only or needs its own sign-in: no twin.
+        let linear = c
+            .add(draft(ConnectionGroup::Tracker, ConnectionKind::Linear, ""))
+            .unwrap();
+        c.set_secret(&linear.id, Secret::new("lin")).unwrap();
+        assert!(c.serve_twin(&linear.id).unwrap().is_none());
     }
 
     #[test]

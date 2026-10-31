@@ -24,7 +24,13 @@ const NO_FORGE = "the project names no forge connection";
 const CONNECTION = "github-demo";
 const METHODS: MergeMethod[] = ["merge", "squash", "rebase"];
 const LABELS = ["feat", "bug", "docs"];
-const CHECKS = ["pnpm test", "pnpm lint", "verify all docs"];
+const VERIFY_DOCS = "verify all docs";
+/** The checks of the project files: a command and the key of its plain name. */
+const CHECKS: [string, string | null][] = [
+	["pnpm run lint", "lint"],
+	["pnpm run test", "test"],
+	[VERIFY_DOCS, null],
+];
 const SCANNERS: [string, boolean][] = [
 	["secrets", true],
 	["dependencies", false],
@@ -44,6 +50,8 @@ export type MockPrs = {
 	counter: number;
 	/** The scanners that an install click added. */
 	installed: string[];
+	/** The `gates` that the person saved. An empty list means the checks of the project files. */
+	gates: string[];
 };
 
 const sha = (n: number) => `${n}`.padStart(7, "0").padEnd(40, "c");
@@ -120,7 +128,7 @@ export function seedPrs(): MockPrs {
 		reports: [
 			{
 				kind: "check",
-				name: "pnpm test",
+				name: "pnpm run test",
 				at: "2026-10-28T09:00:00Z",
 				passed: true,
 				durationMs: 5200,
@@ -145,6 +153,7 @@ export function seedPrs(): MockPrs {
 		listeners: [],
 		counter: 1,
 		installed: [],
+		gates: [],
 	};
 }
 
@@ -291,16 +300,31 @@ const row = (
 	kind: "check" | "scanner",
 	name: string,
 	available: boolean,
+	label: string | null = null,
 ): QualityRow_Serialize => ({
 	name,
+	label,
 	available,
 	last: p.reports.find((r) => r.kind === kind && r.name === name) ?? null,
 });
 
+/** The saved gates, else the checks of the project files. The check that verifies all docs stays. */
+const checkNames = (p: MockPrs): [string, string | null][] =>
+	p.gates.length ? [...p.gates.map((g): [string, null] => [g, null]), [VERIFY_DOCS, null]] : CHECKS;
+
 export const qualityView = (p: MockPrs): QualityView_Serialize => ({
-	checks: CHECKS.map((n) => row(p, "check", n, true)),
+	checks: checkNames(p).map(([n, label]) => row(p, "check", n, true, label)),
 	scanners: SCANNERS.map(([n, a]) => row(p, "scanner", n, a || p.installed.includes(n))),
 });
+
+/** The proposal for the gates: the commands that the project files and its CI workflows show. */
+export const gatesPropose = (): string[] => ["pnpm run lint", "pnpm run test", "cargo test"];
+
+export function gatesSave(p: MockPrs, gates: string[], click: boolean) {
+	need(click);
+	p.gates = gates.map((g) => g.trim()).filter(Boolean);
+	return null;
+}
 
 function keep(p: MockPrs, r: QualityReport_Serialize) {
 	p.reports = [...p.reports.filter((x) => !(x.kind === r.kind && x.name === r.name)), r];
@@ -309,8 +333,9 @@ function keep(p: MockPrs, r: QualityReport_Serialize) {
 
 export function checkRun(p: MockPrs, command: string, click: boolean): QualityReport_Serialize {
 	need(click);
-	if (!CHECKS.includes(command)) throw `\`${command}\` is not a check of this project`;
-	if (command === "verify all docs")
+	if (!checkNames(p).some(([n]) => n === command))
+		throw `\`${command}\` is not a check of this project`;
+	if (command === VERIFY_DOCS)
 		return keep(p, {
 			kind: "check",
 			name: command,
@@ -324,6 +349,27 @@ export function checkRun(p: MockPrs, command: string, click: boolean): QualityRe
 					path: "docs/handbook/start.md",
 					line: 3,
 					message: "broken link: gone.md",
+				},
+			],
+		});
+	// A command that the person saved in the gates fails, with its reason. A command of one word is
+	// a program that the machine does not have.
+	if (!CHECKS.some(([n]) => n === command))
+		return keep(p, {
+			kind: "check",
+			name: command,
+			at: "2026-10-29T10:00:00Z",
+			passed: false,
+			durationMs: 60,
+			tail: "boom",
+			findings: [
+				{
+					severity: "high",
+					path: "",
+					line: null,
+					message: command.includes(" ")
+						? `\`${command}\` stopped with exit code 1`
+						: `${command} is not installed or not found`,
 				},
 			],
 		});

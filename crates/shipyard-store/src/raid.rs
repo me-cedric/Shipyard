@@ -631,6 +631,19 @@ pub fn answer(root: &Path, id: &str, text: &str) -> Result<Item> {
     Ok(item)
 }
 
+/// Marks a question file `folded` once its answer went into a spec. Only an `answered` question
+/// moves: the lifecycle allows no other way to `folded`, and any other status stays as it is.
+pub fn mark_folded(path: &Path) -> Result<()> {
+    let text = fs::read_to_string(path)?;
+    let (mut q, _) = read_text(&text);
+    if q.status != Status::Answered.as_str() {
+        return Ok(());
+    }
+    q.status = Status::Folded.as_str().into();
+    safe_write::write(path, &write_over(&q, &text)?, None)?;
+    Ok(())
+}
+
 // ---------------------------------------------------------------- the Specs view
 
 /// The vocabulary of the Specs view: the names of `Kind` and `Status`.

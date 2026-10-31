@@ -118,7 +118,9 @@ pub fn scopes(s: &AppState, id: &str) -> Res<Vec<ScopeChoice>> {
 }
 
 /// The only tracker connection becomes the tracker of the active project when the project names
-/// none. Two tracker connections are a choice of the person, so nothing is linked then.
+/// none. The code host connection that matches the host of the `origin` remote becomes its code
+/// host the same way (the only one, when the project has no remote). Two candidates are a choice of
+/// the person, so nothing is linked then.
 pub fn auto_link(s: &AppState) -> Res<()> {
     let Some(e) = s.registry()?.active().cloned() else {
         return Ok(());
@@ -126,25 +128,38 @@ pub fn auto_link(s: &AppState) -> Res<()> {
     let FileRead::Valid(mut file) = read_project_file(Path::new(&e.path)).map_err(err)? else {
         return Ok(());
     };
-    if file
-        .connections
-        .as_ref()
-        .is_some_and(|c| c.tracker.is_some())
+    let all = s.connections.list()?;
+    let group = |g| all.iter().filter(move |c| c.group == g).collect::<Vec<_>>();
+    let have = file.connections.get_or_insert_with(Default::default);
+    let mut changed = false;
+    if have.tracker.is_none()
+        && let [only] = group(ConnectionGroup::Tracker).as_slice()
     {
+        have.tracker = Some(only.id.clone());
+        changed = true;
+    }
+    if have.forge.is_none() {
+        let origin = Repo::open(Path::new(&e.path))
+            .ok()
+            .and_then(|r| r.remote().ok().flatten())
+            .and_then(|(_, url)| host_slug(&url))
+            .map(|(host, _)| host.split(':').next().unwrap_or_default().to_string());
+        let hosts: Vec<_> = group(ConnectionGroup::Forge)
+            .into_iter()
+            .filter(|c| {
+                origin.as_deref().is_none_or(|o| {
+                    https_host(&c.url).is_some_and(|h| h.split(':').next() == Some(o))
+                })
+            })
+            .collect();
+        if let [only] = hosts.as_slice() {
+            have.forge = Some(only.id.clone());
+            changed = true;
+        }
+    }
+    if !changed {
         return Ok(());
     }
-    let trackers: Vec<_> = s
-        .connections
-        .list()?
-        .into_iter()
-        .filter(|c| c.group == ConnectionGroup::Tracker)
-        .collect();
-    let [only] = trackers.as_slice() else {
-        return Ok(());
-    };
-    file.connections
-        .get_or_insert_with(Default::default)
-        .tracker = Some(only.id.clone());
     super::projects::save_file(s, file)
 }
 
@@ -224,6 +239,65 @@ mod tests {
         s.connections.add(tracker("Two")).unwrap();
         auto_link(&s).unwrap();
         assert_eq!(linked(&root), None);
+    }
+
+    #[test]
+    fn the_code_host_of_the_origin_host_links_itself_and_two_on_a_host_leave_the_choice() {
+        use crate::commands::projects::create;
+        use crate::connections::ConnectionDraft;
+        let dir = tempfile::tempdir().unwrap();
+        let s = AppState::new(dir.path().join("data"));
+        let root = dir.path().join("p");
+        create(&s, root.to_str().unwrap(), "P", "PRJ").unwrap();
+        let host = |name: &str, url: &str| ConnectionDraft {
+            name: name.into(),
+            group: ConnectionGroup::Forge,
+            kind: ConnectionKind::GitHub,
+            url: url.into(),
+            user: None,
+        };
+        let linked = || match read_project_file(&root).unwrap() {
+            FileRead::Valid(f) => f.connections.and_then(|c| c.forge),
+            _ => panic!("a valid file"),
+        };
+        let unlink = || {
+            let FileRead::Valid(mut f) = read_project_file(&root).unwrap() else {
+                panic!("a valid file")
+            };
+            f.connections = None;
+            super::super::projects::save_file(&s, f).unwrap();
+        };
+        // The only code host of the machine links, when the project has no remote.
+        let other = s
+            .connections
+            .add(host("Other", "https://gitlab.com"))
+            .unwrap();
+        auto_link(&s).unwrap();
+        assert_eq!(linked(), Some(other.id));
+        unlink();
+        // With an origin remote, only the host that matches links: the other one stays out.
+        let ok = std::process::Command::new("git")
+            .args(["remote", "add", "origin", "git@github.com:acme/app.git"])
+            .current_dir(&root)
+            .status()
+            .unwrap()
+            .success();
+        assert!(ok);
+        auto_link(&s).unwrap();
+        assert_eq!(linked(), None);
+        let hub = s
+            .connections
+            .add(host("Hub", "https://github.com"))
+            .unwrap();
+        auto_link(&s).unwrap();
+        assert_eq!(linked(), Some(hub.id));
+        // Two code hosts on the origin host are the choice of the person.
+        unlink();
+        s.connections
+            .add(host("Hub two", "https://GitHub.com/"))
+            .unwrap();
+        auto_link(&s).unwrap();
+        assert_eq!(linked(), None);
     }
 
     #[test]

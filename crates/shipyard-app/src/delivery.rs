@@ -366,10 +366,29 @@ pub fn kill_gates() {
 /// fill a pipe and hang. The counts are the last line of the output. The shell leads its own
 /// process group: a timeout or a shutdown kills the command and its children (`kill_group`).
 pub(crate) fn run_gate(dir: &Path, log: &Path, command: &str, limit: Duration) -> GateCheck {
-    let fail = |counts: String| GateCheck {
-        command: command.into(),
-        passed: false,
-        counts,
+    run_gate_out(dir, log, command, limit).check
+}
+
+/// A gate run with the reason of a failure: the exit code (`None` when no code exists) and the
+/// last lines of the output.
+pub(crate) struct GateOut {
+    pub check: GateCheck,
+    pub code: Option<i32>,
+    pub tail: String,
+}
+
+/// How many lines of the end of the output a failed gate keeps.
+const GATE_TAIL_LINES: usize = 12;
+
+pub(crate) fn run_gate_out(dir: &Path, log: &Path, command: &str, limit: Duration) -> GateOut {
+    let fail = |counts: String| GateOut {
+        check: GateCheck {
+            command: command.into(),
+            passed: false,
+            counts,
+        },
+        code: None,
+        tail: String::new(),
     };
     let Ok(out) = std::fs::File::create(log) else {
         return fail("the gate could not write its output".into());
@@ -401,9 +420,9 @@ pub(crate) fn run_gate(dir: &Path, log: &Path, command: &str, limit: Duration) -
     let pid = child.id();
     live_gates().insert(pid);
     let start = Instant::now();
-    let passed = loop {
+    let status = loop {
         match child.try_wait() {
-            Ok(Some(status)) => break status.success(),
+            Ok(Some(status)) => break status,
             Ok(None) if start.elapsed() >= limit => {
                 live_gates().remove(&pid);
                 shipyard_agents::runner::kill_group(pid);
@@ -423,8 +442,11 @@ pub(crate) fn run_gate(dir: &Path, log: &Path, command: &str, limit: Duration) -
     if live_gates().remove(&pid) {
         shipyard_agents::runner::kill_group(pid);
     }
+    let passed = status.success();
     let text = std::fs::read_to_string(log).unwrap_or_default();
     let _ = std::fs::remove_file(log);
+    let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
+    let tail = lines[lines.len().saturating_sub(GATE_TAIL_LINES)..].join("\n");
     let last = text
         .lines()
         .rev()
@@ -447,10 +469,14 @@ pub(crate) fn run_gate(dir: &Path, log: &Path, command: &str, limit: Duration) -
         }
         .into();
     }
-    GateCheck {
-        command: command.into(),
-        passed,
-        counts,
+    GateOut {
+        check: GateCheck {
+            command: command.into(),
+            passed,
+            counts,
+        },
+        code: status.code(),
+        tail,
     }
 }
 
@@ -891,6 +917,51 @@ pub fn pr_rows(s: &AppState) -> Res<Vec<PrRowView>> {
         .collect()
 }
 
+/// Why the pull request list can be empty: no code host, or a code host with no pull request.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+pub struct PullsStatus {
+    /// The active project names a code host connection that exists.
+    pub connected: bool,
+    /// What stops the code host: no secret, or the text of its last failed sync. The view turns
+    /// the text into a sentence and an action.
+    pub error: Option<String>,
+}
+
+pub fn pulls_status(s: &AppState) -> Res<PullsStatus> {
+    let none = PullsStatus {
+        connected: false,
+        error: None,
+    };
+    let Some(a) = active(s)? else {
+        return Ok(none);
+    };
+    let Some(conn) = a
+        .forge
+        .as_deref()
+        .map(|id| s.connections.get(id))
+        .transpose()?
+        .flatten()
+    else {
+        return Ok(none);
+    };
+    let mut error = (!conn.secret).then(|| "no secret saved".to_string());
+    if error.is_none()
+        && let Some(source) = forge_source(&a)
+        && s.sync.mirror_exists()
+    {
+        let st = s
+            .sync
+            .mirror()
+            .and_then(|m| m.state(&source))
+            .map_err(err)?;
+        error = st.error.filter(|_| st.failures > 0);
+    }
+    Ok(PullsStatus {
+        connected: true,
+        error,
+    })
+}
+
 // ---------------------------------------------------------------- commands
 
 #[tauri::command]
@@ -915,6 +986,12 @@ pub async fn approval_reject(app: AppHandle, id: u32) -> Api<()> {
 #[specta::specta]
 pub async fn pulls_list(app: AppHandle) -> Api<Vec<PrRowView>> {
     blocking(app, pr_rows).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn pulls_status_get(app: AppHandle) -> Api<PullsStatus> {
+    blocking(app, pulls_status).await
 }
 
 #[cfg(test)]

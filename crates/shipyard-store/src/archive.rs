@@ -34,20 +34,45 @@ fn valid_date(d: &str) -> bool {
         })
 }
 
+/// The text of a spec that strict OpenSpec accepts once the spec is settled: `## Requirements` in
+/// place of `## ADDED Requirements`, the list of the Purpose as `### Requirement list` (a second
+/// `Requirements` heading is a clash), and the status line `Settled`. Other lines stay as they are.
+pub fn settle(spec: &str) -> String {
+    let mut seen_status = false;
+    spec.split_inclusive('\n')
+        .map(|l| {
+            let body = l.trim_end_matches(['\r', '\n']);
+            let tail = &l[body.len()..];
+            match body.trim_end() {
+                "## ADDED Requirements" => format!("## Requirements{tail}"),
+                "### Requirements" => format!("### Requirement list{tail}"),
+                _ if !seen_status && body.starts_with("Status:") => {
+                    seen_status = true;
+                    format!("Status: Settled{tail}")
+                }
+                _ => l.to_string(),
+            }
+        })
+        .collect()
+}
+
 fn stage(change: &Path, tmp: &Path, caps: &[String]) -> Result<(), String> {
     for cap in caps {
         let to = tmp.join(cap);
         fs::create_dir_all(&to).map_err(|e| e.to_string())?;
         let entries = fs::read_dir(change.join("specs").join(cap)).map_err(|e| e.to_string())?;
         for e in entries.flatten().filter(|e| e.path().is_file()) {
-            let text = fs::read_to_string(e.path()).map_err(|e| e.to_string())?;
+            let mut text = fs::read_to_string(e.path()).map_err(|e| e.to_string())?;
+            if e.file_name() == "spec.md" {
+                text = settle(&text);
+            }
             safe_write::write(&to.join(e.file_name()), &text, None).map_err(|e| e.to_string())?;
         }
     }
     Ok(())
 }
 
-/// Moves the capability specs into `specs/<cap>/` and the change into
+/// Moves the capability specs into `specs/<cap>/` (each `spec.md` passes through [`settle`]) and the change into
 /// `changes/archive/<date>-<id>`. A capability that is already settled is refused. Open items need
 /// `confirmed`. Returns the capabilities moved.
 pub fn archive(

@@ -220,6 +220,32 @@ describe("Settings / Connections", () => {
 		);
 	});
 
+	it("clears the stale sync failure when the test passes, and the same login serves the code host", async () => {
+		const user = userEvent.setup();
+		await open();
+		await seed({ name: "Issues", kind: "github", url: "https://github.com" });
+		mockState().sync.failures.issues = "no secret saved";
+		mountApp("/settings/connections");
+		const issues = await row("Issues");
+		expect(await within(issues).findByText("no secret saved")).toBeInTheDocument();
+		await user.click(within(issues).getByRole("button", { name: "Test" }));
+		await waitFor(() => expect(within(issues).queryByText("no secret saved")).toBeNull());
+		expect(within(issues).getAllByRole("img", { name: "Passed" }).length).toBeGreaterThan(0);
+		// The same account is the code host of the project too, with no second sign-in.
+		expect(mockState().secrets["issues-2"]).toBe(TOKEN);
+		const project = (await unwrap(commands.projectSettings()))?.file;
+		expect(project?.connections).toMatchObject({ tracker: "issues", forge: "issues-2" });
+	});
+
+	it("forgets the sync failure when a secret is saved", async () => {
+		await open();
+		const c = await seed({ name: "Issues", kind: "github", url: "https://github.com" }, "");
+		mockState().sync.failures[c.id] = "no secret saved";
+		expect((await unwrap(commands.syncState()))[0]?.error).toBe("no secret saved");
+		await unwrap(commands.connectionsSetSecret(c.id, TOKEN));
+		expect((await unwrap(commands.syncState()))[0]?.error).toBeNull();
+	});
+
 	it("names the missing scope when the test fails", async () => {
 		const user = userEvent.setup();
 		await seed({
@@ -389,8 +415,9 @@ describe("Settings / Connections", () => {
 
 		mockState().refusedLogins = [];
 		await user.click(within(login).getByRole("button", { name: "Use this login" }));
-		expect(await row("github.com (gh)")).toBeInTheDocument();
-		expect(mockState().connections[0]?.group).toBe("forge");
+		// The same login serves the issue tracker role of the host: a twin with the same name.
+		expect(await screen.findAllByRole("group", { name: "github.com (gh)" })).toHaveLength(2);
+		expect(mockState().connections.map((c) => c.group)).toEqual(["forge", "tracker"]);
 		expect(screen.queryByText("from the tool")).toBeNull();
 	}, 20_000);
 });
