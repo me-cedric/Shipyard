@@ -10,5 +10,6 @@
   "upstream": [
     "taste",
     "mattpocock"
-  ]
+  ],
+  "schema": "shipyard-delivery"
 }

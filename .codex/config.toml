@@ -4,3 +4,11 @@ model_reasoning_summary = "none"
 [mcp_servers.codebase-memory]
 command = "codebase-memory-mcp"
 args = ["--tool-profile=analysis"]
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = ["-y", "chrome-devtools-mcp@1.11.0", "--no-usage-statistics", "--no-performance-crux"]
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["-y", "@playwright/mcp@0.0.83"]

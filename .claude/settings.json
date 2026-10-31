@@ -161,5 +161,8 @@
       "Bash(rm -*R*)",
       "Bash(rm *--recursive*)"
     ]
+  },
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true
   }
 }

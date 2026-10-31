@@ -4,6 +4,7 @@
   "tag": "v1.0.2",
   "skills": [
     "adr",
+    "api-contract-sync",
     "architecture-advisor",
     "brandkit",
     "brutalist-skill",
@@ -11,6 +12,7 @@
     "compass",
     "debug",
     "delivery-digest",
+    "design-taste-skills",
     "e2e",
     "grill",
     "grill-me",
@@ -29,10 +31,12 @@
     "review",
     "soft-skill",
     "spec-flow",
+    "stack-react",
     "stitch-skill",
     "task-flow",
     "taste-skill",
     "taste-skill-v1",
+    "ui-conformance",
     "vuln-triage",
     "working-style-skills"
   ],
@@ -44,6 +48,10 @@
     ".agents/skills/adr/SKILL.md": {
       "owner": "compass",
       "sha": "0bba13a7bfc5059c"
+    },
+    ".agents/skills/api-contract-sync/SKILL.md": {
+      "owner": "compass",
+      "sha": "b98f3455e920bb88"
     },
     ".agents/skills/architecture-advisor/SKILL.md": {
       "owner": "compass",
@@ -80,6 +88,10 @@
     ".agents/skills/delivery-digest/SKILL.md": {
       "owner": "compass",
       "sha": "3ca439fd14052b5e"
+    },
+    ".agents/skills/design-taste-skills/SKILL.md": {
+      "owner": "compass",
+      "sha": "286b26469938864b"
     },
     ".agents/skills/e2e/SKILL.md": {
       "owner": "compass",
@@ -225,6 +237,10 @@
       "owner": "compass",
       "sha": "ce700bb9ab28c883"
     },
+    ".agents/skills/stack-react/SKILL.md": {
+      "owner": "compass",
+      "sha": "6172e69546561a67"
+    },
     ".agents/skills/stitch-skill/DESIGN.md": {
       "owner": "compass",
       "sha": "0ab6740c4ebb1966"
@@ -369,6 +385,22 @@
       "owner": "compass",
       "sha": "8480ff2104f4b8f8"
     },
+    ".agents/skills/ui-conformance/SKILL.md": {
+      "owner": "compass",
+      "sha": "bc5afb5aafb60a00"
+    },
+    ".agents/skills/ui-conformance/assets/eslint-boundaries.mjs": {
+      "owner": "compass",
+      "sha": "0809f69591e03249"
+    },
+    ".agents/skills/ui-conformance/references/playwright.md": {
+      "owner": "compass",
+      "sha": "ae4d0c22564987ea"
+    },
+    ".agents/skills/ui-conformance/scripts/probe-design-values.js": {
+      "owner": "compass",
+      "sha": "62d0721297665b5f"
+    },
     ".agents/skills/vuln-triage/SKILL.md": {
       "owner": "compass",
       "sha": "b92092cb1e19d4a1"
@@ -397,9 +429,17 @@
       "owner": "compass",
       "sha": "609cb34642ffad2c"
     },
+    ".claude/rules/stack-react.md": {
+      "owner": "compass",
+      "sha": "86eb14f25ad471f8"
+    },
     ".claude/skills/adr/SKILL.md": {
       "owner": "compass",
       "sha": "0bba13a7bfc5059c"
+    },
+    ".claude/skills/api-contract-sync/SKILL.md": {
+      "owner": "compass",
+      "sha": "b98f3455e920bb88"
     },
     ".claude/skills/architecture-advisor/SKILL.md": {
       "owner": "compass",
@@ -436,6 +476,10 @@
     ".claude/skills/delivery-digest/SKILL.md": {
       "owner": "compass",
       "sha": "3ca439fd14052b5e"
+    },
+    ".claude/skills/design-taste-skills/SKILL.md": {
+      "owner": "compass",
+      "sha": "286b26469938864b"
     },
     ".claude/skills/e2e/SKILL.md": {
       "owner": "compass",
@@ -725,6 +769,22 @@
       "owner": "compass",
       "sha": "8480ff2104f4b8f8"
     },
+    ".claude/skills/ui-conformance/SKILL.md": {
+      "owner": "compass",
+      "sha": "bc5afb5aafb60a00"
+    },
+    ".claude/skills/ui-conformance/assets/eslint-boundaries.mjs": {
+      "owner": "compass",
+      "sha": "0809f69591e03249"
+    },
+    ".claude/skills/ui-conformance/references/playwright.md": {
+      "owner": "compass",
+      "sha": "ae4d0c22564987ea"
+    },
+    ".claude/skills/ui-conformance/scripts/probe-design-values.js": {
+      "owner": "compass",
+      "sha": "62d0721297665b5f"
+    },
     ".claude/skills/vuln-triage/SKILL.md": {
       "owner": "compass",
       "sha": "b92092cb1e19d4a1"
@@ -799,7 +859,7 @@
     },
     "docs/openspec/schemas/shipyard-delivery/schema.yaml": {
       "owner": "compass",
-      "sha": "005cb0e291b3657e"
+      "sha": "730ae89f168ad929"
     },
     "docs/openspec/schemas/shipyard-delivery/templates/checklist.md": {
       "owner": "compass",
@@ -829,6 +889,7 @@
   "keys": {
     ".claude/settings.json": {
       "attribution": "43c29209e9992eb7",
+      "enabledPlugins.typescript-lsp@claude-plugins-official": "b5bea41b6c623f7c",
       "hooks.PostToolUseFailure": {
         "entries": [
           "d2969008d6010dc6"
@@ -962,7 +1023,9 @@
       }
     },
     ".codex/config.toml": {
+      "mcp_servers.chrome-devtools": "15915a1e25b9544f",
       "mcp_servers.codebase-memory": "638f001d1131bf9e",
+      "mcp_servers.playwright": "1a510afa1564c845",
       "model_reasoning_summary": "4189fe00d7621474",
       "model_verbosity": "30099ff77ef4d3dc"
     },
@@ -989,10 +1052,14 @@
       }
     },
     ".mcp.json": {
-      "mcpServers.codebase-memory": "3421b082920660b3"
+      "mcpServers.chrome-devtools": "8a6ef2b82c426489",
+      "mcpServers.codebase-memory": "3421b082920660b3",
+      "mcpServers.playwright": "402e86c14bae6391"
     },
     ".vscode/mcp.json": {
-      "servers.codebase-memory": "329f287c11f97138"
+      "servers.chrome-devtools": "f096de502a72cdc2",
+      "servers.codebase-memory": "329f287c11f97138",
+      "servers.playwright": "7618f5f824d31611"
     }
   },
   "blocks": {
