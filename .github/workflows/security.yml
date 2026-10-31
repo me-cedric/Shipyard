@@ -51,9 +51,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+      # Semgrep does not run on the newest Python of the runner image.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
       - name: Semgrep OSS
         run: |
-          pipx install semgrep==1.136.0
+          pip install semgrep==1.136.0
           semgrep scan --metrics=off --json --output semgrep.json \
             --config p/owasp-top-ten --config p/typescript --config p/react --config p/rust --config p/secrets \
             --exclude node_modules --exclude target --exclude docs/agent-compass --exclude src/lib/ipc/bindings.ts .
@@ -83,7 +87,7 @@ jobs:
           tar -xzf gitleaks.tar.gz -C "$RUNNER_TEMP" gitleaks
       # --redact keeps the secret text out of the report. --exit-code 0 leaves a leak to the report job.
       - name: gitleaks on the full history
-        run: '"$RUNNER_TEMP/gitleaks" git --redact --exit-code 0 --report-format json --report-path gitleaks.json .'
+        run: '"$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --exit-code 0 --report-format json --report-path gitleaks.json .'
         continue-on-error: true
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}

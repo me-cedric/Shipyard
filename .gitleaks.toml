@@ -1,0 +1,9 @@
+# gitleaks: the default rules, plus allowlists for values that are not secrets.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Keyboard shortcuts in the action registry, such as key: \"mod+shift+enter\""
+regexTarget = "line"
+regexes = ['''key:\s*"(mod|shift|alt|ctrl|meta)\+''']
