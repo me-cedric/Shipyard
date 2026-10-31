@@ -41,3 +41,7 @@ Read this first, then `w15.md` (the plan), `w13.md` (findings and state) and `se
 - `pgrep -f "cargo (test|build|clippy)"` always matches the waiting shell itself: wait on `pgrep -x cargo` instead.
 - Each new test binary waits 10 to 20 s on macOS before it starts, so a full `cargo test` takes about 30 minutes here.
 - Owner rules (also in memory): no trace of the older app's name anywhere; words "issue tracker" and "code host"; at most 4 agents at a time; push `main` when checks pass; agent-compass changes go to the personal fork only.
+
+## Progress log
+
+- 2026-10-31 (resume): the feature branch is rebased on `main` (`6d65d01`); the wip commit is now `b5dba1c` on `feature/handoff-file-continuation-a8251b` (local). Running the fast checks (fmt, clippy, typecheck, biome, vitest) on it.
