@@ -9,7 +9,7 @@ describe("Settings / Connections: browser sign-in", () => {
 		mountApp("/settings/connections");
 		await user.click(await screen.findByRole("button", { name: "Connection" }));
 		await user.click(screen.getByRole("combobox", { name: "Type" }));
-		await user.click(await screen.findByRole("option", { name: "Forge" }));
+		await user.click(await screen.findByRole("option", { name: "Code host" }));
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme forge");
 		await user.type(screen.getByRole("textbox", { name: "Address" }), "https://github.com");
 		await user.click(screen.getByRole("button", { name: "Sign in with the browser" }));

@@ -65,8 +65,8 @@ describe("Settings / Connections", () => {
 		await seed({ name: "Beta", kind: "github", url: "https://github.com" });
 		await seed({ name: "Code", group: "forge", kind: "github", url: "https://github.com" });
 		mountApp("/settings/connections");
-		expect(await screen.findByRole("heading", { name: "Trackers (2)" })).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "Forges (1)" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Issue trackers (2)" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Code hosts (1)" })).toBeInTheDocument();
 		const primary = within(screen.getByRole("main"))
 			.getAllByRole("button")
 			.filter((b) => b.className.includes("bg-accent"));
@@ -170,7 +170,7 @@ describe("Settings / Connections", () => {
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme");
 		await user.type(screen.getByLabelText("API key", { selector: "input" }), TOKEN);
 		await user.click(screen.getByRole("button", { name: "Save" }));
-		await user.click(await screen.findByRole("combobox", { name: "Tracker scope" }));
+		await user.click(await screen.findByRole("combobox", { name: "Issue tracker scope" }));
 		await user.click(await screen.findByRole("option", { name: "OPS" }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(async () =>
@@ -365,7 +365,7 @@ describe("Settings / Connections", () => {
 		mockState().prefs.lang = "fr";
 		await seed({ name: "Acme" });
 		mountApp("/settings/connections");
-		expect(await screen.findByRole("heading", { name: "Trackers (1)" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Outils de suivi (1)" })).toBeInTheDocument();
 		const acme = await row("Acme");
 		expect(within(acme).getByRole("button", { name: "Tester" })).toBeInTheDocument();
 		expect(within(acme).getByRole("list", { name: "Capacités" })).toBeInTheDocument();
@@ -381,7 +381,7 @@ describe("Settings / Connections", () => {
 		// The add form opens on a tracker: the logins belong to a forge.
 		expect(screen.queryByText("ana-dev on github.com (gh)")).toBeNull();
 		await user.click(screen.getByRole("combobox", { name: "Type" }));
-		await user.click(await screen.findByRole("option", { name: "Forge" }));
+		await user.click(await screen.findByRole("option", { name: "Code host" }));
 		const login = await screen.findByRole("group", { name: "ana-dev on github.com (gh)" });
 		await user.click(within(login).getByRole("button", { name: "Use this login" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("The token was refused");

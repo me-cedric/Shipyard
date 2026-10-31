@@ -33,7 +33,7 @@
 
 Shipyard is for every role on a project: project manager, architect, developer, tester, business analyst, functional lead and junior. It needs little technical knowledge. It guides each step, picks safe defaults and uses plain words.
 
-The whole team works in one loop: **spec, plan, work items, runs, pull request, review.** Agents and people share this loop. An agent asks a question when a person must decide. A person approves each write to a tracker or a forge, or turns on a durable permission.
+The whole team works in one loop: **spec, plan, work items, runs, pull request, review.** Agents and people share this loop. An agent asks a question when a person must decide. A person approves each write to an issue tracker or a code host, or turns on a durable permission.
 
 Everything that the team writes lives in the Git repository of the project. Shipyard is a window on that repository.
 
@@ -47,15 +47,15 @@ Shipyard is pre-release software, version 0.1.0. No packaged release exists yet:
 | Projects | Works. Open a folder, clone, or create a project. A project profile hides or locks pages. |
 | Design | Works. Diagrams (Excalidraw, Mermaid, BPMN, draw.io), LikeC4 architecture, decisions, API, data, flows and screens. |
 | Specs | Works. OpenSpec changes with validation, capabilities, questions, test plans in Gherkin. |
-| Work | Works. Backlog and board from a local mirror of the tracker, Gantt plan, estimates, team and time. |
+| Work | Works. Backlog and board from a local mirror of the issue tracker, Gantt plan, estimates, team and time. |
 | Factory | Works. Runs in lanes, workflows as YAML, agents map, sessions, usage and budgets. Automation writes are off by default. |
 | Code | Works. Changes, history, branches, pull requests, quality, impacts and a terminal. |
 | Knowledge | Works. Reference graph, handbook, in-app manual, documents, slides, learning paths and dashboards. |
-| Trackers and forges | Jira Cloud and Data Center, GitHub Issues, GitLab Issues, Azure DevOps and Linear. Pull requests on GitHub and GitLab. Azure DevOps is a forge adapter. Each adapter has fake-based contract tests. Not every adapter has run against a live account. |
+| Issue trackers and code hosts | Jira Cloud and Data Center, GitHub Issues, GitLab Issues, Azure DevOps and Linear. Pull requests on GitHub and GitLab. Azure DevOps is a code host adapter. Each adapter has fake-based contract tests. Not every adapter has run against a live account. |
 | Agents | Claude Code, Codex, Gemini CLI, OpenCode, GitHub Copilot (ACP) and HTTP model providers. |
 | MCP | Works. Shipyard serves its own MCP server and runs the MCP servers of the project. A GitLab MCP server with browser sign-in is in planning. |
 | Packaging | In progress. The release build bundles the `shipyard` command as a sidecar. No signed installer and no release workflow yet. |
-| Automation | In progress. Pickup, claims and budgets run. Write switches (push, pull request, tracker transition, tracker comment) stay off until an admin turns them on. |
+| Automation | In progress. Pickup, claims and budgets run. Write switches (push, pull request, issue tracker transition, issue tracker comment) stay off until an admin turns them on. |
 
 See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PLAN.md](docs/plan/MASTER-PLAN.md) for the plan.
 
@@ -104,11 +104,11 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 - Capabilities with their requirements and backlinks.
 - Questions register (RAID) with filters. An answer folds into its spec.
 - Test plans in Gherkin, with scenario lint, coverage and the last verdict.
-- Split a change into epics and stories, then apply them to the tracker. A second apply creates no duplicate.
+- Split a change into epics and stories, then apply them to the issue tracker. A second apply creates no duplicate.
 
 ### Work
 
-- Backlog and Board from a local mirror of the tracker. A sync tick keeps it current.
+- Backlog and Board from a local mirror of the issue tracker. A sync tick keeps it current.
 - Plan: a Gantt with capacity, holidays, day, week and month zoom, and a PNG export.
 - Estimates: three-point estimates, price, cost and margin. Seal sheets with a passphrase. Import and export Excel.
 - Team and Time: members, skills, capacity, absences and time entries.
@@ -139,15 +139,15 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 
 ### Integrations
 
-- Trackers: Jira Cloud, Jira Data Center, GitHub Issues, GitLab Issues, Azure DevOps, Linear.
-- Forges: GitHub, GitLab, Azure DevOps. Sign in with the browser for GitHub and GitLab.
+- Issue trackers: Jira Cloud, Jira Data Center, GitHub Issues, GitLab Issues, Azure DevOps, Linear.
+- Code hosts: GitHub, GitLab, Azure DevOps. Sign in with the browser for GitHub and GitLab.
 - Agent runners: Claude Code, Codex, Gemini CLI, OpenCode, GitHub Copilot (ACP), HTTP model providers.
 - MCP servers: a catalogue, custom servers, start, stop, test, and relay to agents.
 - English and French interface.
 
 ## How it works
 
-A Shipyard project is a Git repository. Text files hold the artifacts. The tracker holds the tickets. The forge holds the pull requests. Machine state (a mirror, run logs, caches) stays in the app data folder and never enters the repository.
+A Shipyard project is a Git repository. Text files hold the artifacts. The issue tracker holds the tickets. The code host holds the pull requests. Machine state (a mirror, run logs, caches) stays in the app data folder and never enters the repository.
 
 ```
 my-project/
@@ -174,7 +174,7 @@ The loop:
 
 1. **Spec.** A change starts as a proposal. Questions that need a person go to the register.
 2. **Plan.** The change gets a plan, a checklist and tasks.
-3. **Work items.** The tasks become epics and stories in the tracker.
+3. **Work items.** The tasks become epics and stories in the issue tracker.
 4. **Runs.** A run takes a ticket, follows a workflow and works in its own worktree.
 5. **Pull request.** The run opens a pull request. The body lists the impacts.
 6. **Review.** A reviewer agent reads it in a fresh context. A person merges.
@@ -343,7 +343,7 @@ The same guide is in the app: open Knowledge, then Manual.
 ## Security
 
 - Secrets live in the OS keychain. A secret never goes in an argument, a URL, a log or a file of the repository. The app never shows a saved token again.
-- Writes to a tracker, a forge or a remote need a click or a durable permission that an admin sets. All write switches are off by default.
+- Writes to an issue tracker, a code host or a remote need a click or a durable permission that an admin sets. All write switches are off by default.
 - A project profile can set a page to read-only. A read-only project takes no change.
 - Each run has a budget, a stall timeout and a kill switch. A global switch stops all agents.
 - The app has a content security policy: only its own files, the Tauri IPC and the draw.io editor frame (`embed.diagrams.net`).

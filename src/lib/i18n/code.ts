@@ -36,9 +36,9 @@ export const forgeEn = {
 	archived: "Archived in {sha}",
 	origin: {
 		title: "Origin",
-		forge: "Forge",
+		forge: "Code host",
 		name: "Repository (owner/name)",
-		publish: "Publish to the forge",
+		publish: "Publish to the code host",
 		address: "Remote address",
 		setRemote: "Save remote",
 		changeRemote: "Change remote",
@@ -171,9 +171,9 @@ export const forgeFr: typeof forgeEn = {
 	archived: "Archivé dans {sha}",
 	origin: {
 		title: "Origine",
-		forge: "Forge",
+		forge: "Hébergeur de code",
 		name: "Dépôt (propriétaire/nom)",
-		publish: "Publier sur la forge",
+		publish: "Publier sur l'hébergeur de code",
 		address: "Adresse du dépôt distant",
 		setRemote: "Enregistrer le dépôt distant",
 		changeRemote: "Changer le dépôt distant",

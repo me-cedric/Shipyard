@@ -20,7 +20,9 @@ async function openWithTracker(page: Page, secret: string | null = "tok-e2e-sync
 	await expect(page.getByRole("group", { name: "Acme" })).toBeVisible();
 	// The only tracker links itself to the project.
 	await tabs(page).getByRole("link", { name: "Project" }).click();
-	await expect(page.getByRole("combobox", { name: "Tracker", exact: true })).toContainText("Acme");
+	await expect(page.getByRole("combobox", { name: "Issue tracker", exact: true })).toContainText(
+		"Acme",
+	);
 }
 
 test("imports the backlog after a count, then reads it from the mirror with no tick", async ({

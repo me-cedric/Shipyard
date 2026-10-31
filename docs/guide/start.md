@@ -32,7 +32,7 @@ In Settings, then Me, choose your role. The role sets the space that opens first
 
 ## Safe by default
 
-- The app never sends a change to a tracker or a forge without your click.
+- The app never sends a change to an issue tracker or a code host without your click.
 - A token goes to the keychain of your computer. The app never shows it again.
 - A project with a read-only profile takes no change.
 
@@ -41,8 +41,8 @@ In Settings, then Me, choose your role. The role sets the space that opens first
 | Word | Meaning |
 |---|---|
 | Ref | The short name of an item, such as `adr:0003` or `wi:ACME-12`. Click a ref to open its item. |
-| Tracker | The tool that holds the tickets: Jira, GitHub, GitLab, Azure DevOps or Linear. |
-| Forge | The server that holds the code: GitHub or GitLab. |
+| Issue tracker | The tool that holds the tickets: Jira, GitHub, GitLab, Azure DevOps or Linear. |
+| Code host | The server that holds the code: GitHub or GitLab. |
 | Run | One job of an agent on one ticket. |
 | Spec | A text that says what the product must do. |
 | ADR | A decision record: one decision, its options and its reasons. |

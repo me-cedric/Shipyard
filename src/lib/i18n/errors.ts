@@ -10,8 +10,8 @@ type Known = Exclude<ErrorCode, "unknown">;
 export const errorMessages: Record<Lang, Record<Known, string>> = {
 	en: {
 		no_project: "Open or create a project first.",
-		no_tracker: "This project has no tracker connection.",
-		scope_missing: "Pick the tracker project to read from.",
+		no_tracker: "This project has no issue tracker connection.",
+		scope_missing: "Pick the issue tracker project to read from.",
 		pickup_off: "Agents take no ticket: the pickup label is off.",
 		ticket_not_in_mirror: "This ticket is not here yet. Sync, then try again.",
 		needs_click: "Confirm this action to continue.",
@@ -28,7 +28,7 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		run_not_started: "The run did not start.",
 		merge_draft: "This pull request is a draft. Mark it ready first.",
 		merge_closed: "This pull request is not open.",
-		merge_method: "This forge does not offer this merge method.",
+		merge_method: "This code host does not offer this merge method.",
 		forge_unreachable: "The server did not answer. Check the network, then try again.",
 		forge_denied: "The server refused the token. Make a new token.",
 		forge_missing: "The server does not know this item. Check the address and the token rights.",
@@ -71,8 +71,8 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 	},
 	fr: {
 		no_project: "Ouvrez ou créez d'abord un projet.",
-		no_tracker: "Ce projet n'a pas de connexion de suivi.",
-		scope_missing: "Choisissez le projet du suivi à lire.",
+		no_tracker: "Ce projet n'a pas de connexion à un outil de suivi.",
+		scope_missing: "Choisissez le projet de l'outil de suivi à lire.",
 		pickup_off: "Les agents ne prennent aucun ticket : l'étiquette de prise est désactivée.",
 		ticket_not_in_mirror: "Ce ticket n'est pas encore ici. Synchronisez, puis réessayez.",
 		needs_click: "Confirmez cette action pour continuer.",
@@ -90,7 +90,7 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		run_not_started: "L'exécution n'a pas démarré.",
 		merge_draft: "Cette pull request est un brouillon. Marquez-la d'abord comme prête.",
 		merge_closed: "Cette pull request n'est pas ouverte.",
-		merge_method: "Ce forge ne propose pas cette méthode de fusion.",
+		merge_method: "Cet hébergeur de code ne propose pas cette méthode de fusion.",
 		forge_unreachable: "Le serveur n'a pas répondu. Vérifiez le réseau, puis réessayez.",
 		forge_denied: "Le serveur a refusé le jeton. Créez un nouveau jeton.",
 		forge_missing:

@@ -12,7 +12,7 @@ describe("Settings / Health / tools and ledger", () => {
 		const base = await screen.findByRole("region", { name: "Base" });
 		expect(within(base).getByText("git version 2.46.0")).toBeInTheDocument();
 		expect(within(base).getByText("pnpm")).toBeInTheDocument();
-		for (const name of ["Forges", "Agents", "Scanners"])
+		for (const name of ["Code hosts", "Agents", "Scanners"])
 			expect(screen.getByRole("region", { name })).toBeInTheDocument();
 		// A tool with no package manager has no install button.
 		expect(screen.queryByRole("button", { name: "Install skillspector" })).not.toBeInTheDocument();

@@ -12,7 +12,7 @@ test("adds a tracker with a secret, tests it and removes it", async ({ page }) =
 	await page.getByRole("button", { name: "Save" }).click();
 
 	const row = page.getByRole("group", { name: "Acme" });
-	await expect(page.getByRole("heading", { name: "Trackers (1)" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Issue trackers (1)" })).toBeVisible();
 	await expect(row.getByRole("list", { name: "Flags" }).getByRole("listitem")).toHaveCount(6);
 
 	// The secret is masked, empty and never in the page (REQ-011).
@@ -37,14 +37,14 @@ test("names a missing secret and the missing scope of a forge", async ({ page })
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Code");
 	await page.getByRole("combobox", { name: "Type" }).click();
-	await page.getByRole("option", { name: "Forge" }).click();
+	await page.getByRole("option", { name: "Code host" }).click();
 	await page.getByRole("combobox", { name: "Product" }).click();
 	await page.getByRole("option", { name: "GitHub" }).click();
 	await page.getByRole("textbox", { name: "Address" }).fill("https://noscope.example.com");
 	await page.getByRole("button", { name: "Save" }).click();
 
 	const row = page.getByRole("group", { name: "Code" });
-	await expect(page.getByRole("heading", { name: "Forges (1)" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Code hosts (1)" })).toBeVisible();
 	// No secret saved yet.
 	await row.getByRole("button", { name: "Test" }).click();
 	await expect(row.getByRole("status")).toHaveText("no secret saved");

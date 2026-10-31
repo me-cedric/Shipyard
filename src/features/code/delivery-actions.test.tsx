@@ -27,7 +27,7 @@ describe("Code: origin and publish", () => {
 			await screen.findByRole("textbox", { name: "Repository (owner/name)" }),
 			"acme/app",
 		);
-		await user.click(screen.getByRole("button", { name: "Publish to the forge" }));
+		await user.click(screen.getByRole("button", { name: "Publish to the code host" }));
 		expect(await screen.findByText("https://github.com/acme/app.git")).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "Open acme/app" })).toBeInTheDocument();
 		expect(mockState().deliveryActions.origin?.connection).toBe("github");

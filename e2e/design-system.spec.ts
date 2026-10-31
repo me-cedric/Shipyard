@@ -9,6 +9,8 @@ const LAYERS = ["Tokens", "Atoms", "Molecules", "Organisms", "Templates"];
 
 test.describe("gallery in the dev build", () => {
 	test.use({ baseURL: DEV });
+	// The first load of the dev server compiles the whole app, and the other workers load the machine.
+	test.describe.configure({ timeout: 120_000 });
 	let dev: ChildProcess;
 
 	test.beforeAll(async () => {
@@ -89,6 +91,11 @@ test.describe("gallery in the dev build", () => {
 			test(`has no axe violation: ${layer}, ${theme} theme`, async ({ page }) => {
 				await page.getByRole("button", { name: theme, exact: true }).click();
 				await page.getByRole("button", { name: layer }).click();
+				// The theme change runs a colour transition on the context bar: axe reads the colours that the
+				// transition has reached, so a slow runner sees a half-faded Search label.
+				await page.waitForFunction(
+					() => !document.getAnimations().some((a) => a instanceof CSSTransition),
+				);
 				// The nested Shell demo adds a second main and nav to the page: the landmark rules skip it, and
 				// the real shell is checked on the real pages. label-content-name-mismatch: see Q-095.
 				const { violations } = await new AxeBuilder({ page })

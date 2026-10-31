@@ -13,7 +13,7 @@ The Inbox collects what waits for you: questions of the agents, approvals, plan 
 
 ## My work
 
-My work lists the tickets that the tracker gives to you, with the runs of the agents on them. It also shows the dashboard tiles that you pin in Knowledge.
+My work lists the tickets that the issue tracker gives to you, with the runs of the agents on them. It also shows the dashboard tiles that you pin in Knowledge.
 
 ## Activity
 

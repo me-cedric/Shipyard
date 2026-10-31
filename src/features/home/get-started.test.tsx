@@ -14,8 +14,8 @@ describe("Home / Get started", () => {
 		const list = await screen.findByRole("list", { name: "Get started" });
 		const steps = within(list).getAllByRole("link");
 		expect(steps.map((s) => s.textContent)).toEqual([
-			"1Connect a tracker",
-			"2Connect a forge",
+			"1Connect an issue tracker",
+			"2Connect a code host",
 			"Install an agent Done",
 			"Set the team Done",
 			"Record the first decision Done",
@@ -44,7 +44,9 @@ describe("Home / Get started", () => {
 			expect((await unwrap(commands.projectSettings()))?.file?.connections?.forge).toBeTruthy(),
 		);
 		const list = await screen.findByRole("list", { name: "Get started" });
-		await waitFor(() => expect(list).toHaveTextContent("Connect a forge Done"), { timeout: 5000 });
+		await waitFor(() => expect(list).toHaveTextContent("Connect a code host Done"), {
+			timeout: 5000,
+		});
 	}, 15_000);
 
 	it("reads the host of a remote", () => {

@@ -22,7 +22,9 @@ async function openSpecs(page: Page, tab: string) {
 	await expect(page.getByRole("group", { name: "Acme" })).toBeVisible();
 	// The only tracker links itself to the project.
 	await tabs(page).getByRole("link", { name: "Project" }).click();
-	await expect(page.getByRole("combobox", { name: "Tracker", exact: true })).toContainText("Acme");
+	await expect(page.getByRole("combobox", { name: "Issue tracker", exact: true })).toContainText(
+		"Acme",
+	);
 	await sidebar.getByRole("link", { name: "Specs" }).click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }

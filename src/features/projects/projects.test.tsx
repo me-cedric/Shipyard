@@ -321,7 +321,7 @@ describe("Settings / Project", () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/settings/project");
-		const scope = await screen.findByRole("textbox", { name: "Tracker scope" });
+		const scope = await screen.findByRole("textbox", { name: "Issue tracker scope" });
 		await user.type(scope, "PROJ");
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().files.alpha?.connections?.trackerScope).toBe("PROJ"));
@@ -347,7 +347,7 @@ describe("Settings / Project", () => {
 		);
 		await unwrap(commands.connectionsSetSecret(c.id, "tok-scope-1"));
 		mountApp("/settings/project");
-		await user.click(await screen.findByRole("combobox", { name: "Tracker scope" }));
+		await user.click(await screen.findByRole("combobox", { name: "Issue tracker scope" }));
 		await user.click(await screen.findByRole("option", { name: "OPS" }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().files.alpha?.connections?.trackerScope).toBe("OPS"));
@@ -376,12 +376,12 @@ describe("Settings / Project", () => {
 		);
 		await open();
 		mountApp("/settings/project");
-		await user.click(await screen.findByRole("combobox", { name: "Tracker" }));
+		await user.click(await screen.findByRole("combobox", { name: "Issue tracker" }));
 		await user.click(await screen.findByRole("option", { name: "Acme" }));
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().files.alpha?.connections).toEqual({ tracker: "acme" }));
 		// The forge list holds forges only, and no secret or address reaches the file.
-		await user.click(screen.getByRole("combobox", { name: "Forge" }));
+		await user.click(screen.getByRole("combobox", { name: "Code host" }));
 		expect(screen.queryByRole("option", { name: "Acme" })).toBeNull();
 		await user.click(await screen.findByRole("option", { name: "Code" }));
 		await user.click(screen.getByRole("button", { name: "Save" }));

@@ -13,7 +13,7 @@ describe("Work / Time", () => {
 		await withTracker();
 		mountApp("/work/time");
 		expect(await group("To send (2)")).toBeInTheDocument();
-		expect(await group("In tracker (1)")).toBeInTheDocument();
+		expect(await group("In issue tracker (1)")).toBeInTheDocument();
 		expect(row("Token API")).toHaveTextContent("4h");
 		expect(row("Review of the login")).toHaveTextContent("3h");
 	});
@@ -60,7 +60,7 @@ describe("Work / Time", () => {
 		await user.click(screen.getByRole("button", { name: /^Send 2026-11-03 ACME-1$/ }));
 		await waitFor(() => expect(mockState().work.logs["ACME-1"]).toHaveLength(before + 1));
 		expect(mockState().work.time.ada?.find((e) => e.id === "t2")?.worklog).toBeDefined();
-		expect(await group("In tracker (2)")).toBeInTheDocument();
+		expect(await group("In issue tracker (2)")).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: /^Send 2026-11-03 ACME-1$/ })).toBeNull();
 	});
 
@@ -87,7 +87,7 @@ describe("Work / Time", () => {
 		await user.click(send());
 		expect(spy).toHaveBeenCalledTimes(1);
 		release();
-		expect(await group("In tracker (2)")).toBeInTheDocument();
+		expect(await group("In issue tracker (2)")).toBeInTheDocument();
 		spy.mockRestore();
 	});
 
@@ -124,14 +124,14 @@ describe("Work / Time", () => {
 		const log = mockState().work.logs["ACME-2"]?.[0];
 		if (log) log.minutes = 180;
 		mountApp("/work/time");
-		await group("In tracker (1)");
+		await group("In issue tracker (1)");
 		await user.click(screen.getByRole("button", { name: "Read the month" }));
 		const differs = await screen.findByRole("img", { name: "Durations differ" });
 		const tokenRow = differs.closest("[role=row]") as HTMLElement;
-		expect(tokenRow).toHaveTextContent("tracker 3h");
+		expect(tokenRow).toHaveTextContent("issue tracker 3h");
 		expect(tokenRow).toHaveTextContent("4h");
 		expect(mockState().work.time.ada?.find((e) => e.id === "t1")?.minutes).toBe(240);
-		expect(await group("Only in tracker (1)")).toBeInTheDocument();
+		expect(await group("Only in issue tracker (1)")).toBeInTheDocument();
 		const only = within(screen.getByRole("table", { name: "Time" }));
 		expect(only.getAllByRole("row").some((r) => r.textContent?.includes("ACME-1"))).toBe(true);
 	});

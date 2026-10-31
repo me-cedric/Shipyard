@@ -62,8 +62,8 @@ export const homeEn = {
 	},
 	start: {
 		title: "Get started",
-		tracker: "Connect a tracker",
-		forge: "Connect a forge",
+		tracker: "Connect an issue tracker",
+		forge: "Connect a code host",
 		agent: "Install an agent",
 		team: "Set the team",
 		decision: "Record the first decision",
@@ -139,8 +139,8 @@ export const homeFr: typeof homeEn = {
 	},
 	start: {
 		title: "Pour commencer",
-		tracker: "Connecter un tracker",
-		forge: "Connecter une forge",
+		tracker: "Connecter un outil de suivi",
+		forge: "Connecter un hébergeur de code",
 		agent: "Installer un agent",
 		team: "Définir l'équipe",
 		decision: "Consigner la première décision",

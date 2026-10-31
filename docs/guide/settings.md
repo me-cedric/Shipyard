@@ -12,7 +12,7 @@ Agent review of each pull request is one choice: Off, Draft or Post. Draft keeps
 
 Connections links the app to your tools.
 
-- Trackers and forges: Jira, GitHub, GitLab, Azure DevOps and Linear. Click Add, choose the product, then paste a token. The app opens the page that makes the token. A test runs when you save.
+- Issue trackers and code hosts: Jira, GitHub, GitLab, Azure DevOps and Linear. Click Add, choose the product, then paste a token. The app opens the page that makes the token. A test runs when you save.
 - MCP servers: the tools that agents can call. They are grouped by category. Click Add the recommended set to turn on the servers that suit the project. Click Test on a server, or Test all, to see if each one works and how many tools it gives.
 - Agent runners and model providers: the agent programs on this computer and the model services.
 

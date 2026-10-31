@@ -1,6 +1,6 @@
 # Work
 
-Work shows the tickets of the tracker and the plan of the team. The app keeps a copy of the tickets, so Work also opens without a network.
+Work shows the tickets of the issue tracker and the plan of the team. The app keeps a copy of the tickets, so Work also opens without a network.
 
 ## Backlog
 
@@ -12,7 +12,7 @@ Backlog lists the tickets by state. Filter by state, person, label and run.
 
 ## Board
 
-Board shows one column for each state. Move a card with the mouse or the keyboard. When the tracker refuses the move, the card goes back and shows the reason.
+Board shows one column for each state. Move a card with the mouse or the keyboard. When the issue tracker refuses the move, the card goes back and shows the reason.
 
 ## Plan
 

@@ -20,7 +20,9 @@ async function openWork(page: Page, tab: string) {
 	await expect(page.getByRole("group", { name: "Acme" })).toBeVisible();
 	// The only tracker links itself to the project.
 	await tabs(page).getByRole("link", { name: "Project" }).click();
-	await expect(page.getByRole("combobox", { name: "Tracker", exact: true })).toContainText("Acme");
+	await expect(page.getByRole("combobox", { name: "Issue tracker", exact: true })).toContainText(
+		"Acme",
+	);
 	await sidebar(page).getByRole("link", { name: "Work" }).click();
 	await tabs(page).getByRole("link", { name: "Backlog" }).click();
 	await page.getByRole("button", { name: "Import" }).click();
@@ -44,7 +46,10 @@ test("assigns a member from the ranked list and marks the item for the agent", a
 
 test("moves a card on the board with the keyboard", async ({ page }) => {
 	await openWork(page, "Board");
-	const card = page.getByRole("button", { name: /ACME-3/ });
+	// Scoped to the column: the Backlog row of ACME-3 stays on screen until the lazy Board tab mounts.
+	const card = page
+		.getByRole("region", { name: "To Do (7)" })
+		.getByRole("button", { name: /ACME-3/ });
 	await card.focus();
 	await page.keyboard.press("Shift+ArrowRight");
 	await expect(
@@ -108,7 +113,7 @@ test("adds a time entry and sends it with one click", async ({ page }) => {
 
 	await page.getByRole("button", { name: /^Send 2026-11-02 ACME-3$/ }).click();
 	await expect(page.getByRole("heading", { name: "To send (2)" })).toBeVisible();
-	await expect(page.getByRole("heading", { name: "In tracker (2)" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "In issue tracker (2)" })).toBeVisible();
 	await expect(page.getByRole("button", { name: /^Send 2026-11-02 ACME-3$/ })).toHaveCount(0);
 });
 

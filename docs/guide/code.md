@@ -22,7 +22,7 @@ Branches lists the branches on this computer and on the server. Create, switch t
 
 ## Pull requests
 
-Pull requests lists the pull requests of the forge. Open one to read it, comment, approve, ask for changes or merge it. Merge stays off for a draft. The app asks again before a merge with failing checks.
+Pull requests lists the pull requests of the code host. Open one to read it, comment, approve, ask for changes or merge it. Merge stays off for a draft. The app asks again before a merge with failing checks.
 
 Agent actions on a pull request:
 
