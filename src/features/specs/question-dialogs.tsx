@@ -41,9 +41,10 @@ const BLANK: Question = {
 };
 
 /**
- * Create or edit a question. Kind and status take free text with the allowed values as hints: the
- * backend refuses an unknown kind, an unknown status and a duplicate id, and the dialog shows why.
- * The title is the name of the question and the text is its body. The owner comes from the team.
+ * Create or edit a question. Kind and status are menus of the allowed values; the backend still
+ * refuses an unknown value and a duplicate id, and the dialog shows why. The title is the name of
+ * the question and the text is its body. The answer is the last line of the body, the line that
+ * Fold reads: choosing "answered" puts the cursor in its field. The owner comes from the team.
  * A delete asks first and moves the file to the trash.
  */
 export function QuestionDialog({
@@ -70,21 +71,54 @@ export function QuestionDialog({
 		...edits,
 	};
 	const set = (patch: Partial<Question>) => setEdits((x) => ({ ...x, ...patch }));
-	const field = (label: string, key: "id" | "title" | "kind" | "status" | "specRef") => (
+	const field = (label: string, key: "id" | "title" | "specRef") => (
 		<Input
 			caption
 			label={label}
 			value={q[key]}
 			disabled={key === "id" && !!entry}
-			list={key === "kind" ? "q-kinds" : key === "status" ? "q-statuses" : undefined}
 			onChange={(e) => set({ [key]: e.target.value })}
 		/>
 	);
+	// A value that the menu does not list stays in it, so a save keeps what the file holds.
+	const menu = (label: string, key: "kind" | "status", values: string[]) => (
+		<Select
+			caption
+			label={label}
+			value={q[key]}
+			onValueChange={(v) => {
+				set({ [key]: v });
+				if (key === "status" && v === "answered") setFocusAnswer(true);
+			}}
+			items={(values.includes(q[key]) ? values : [...values, q[key]]).map((v) => ({
+				value: v,
+				label: v,
+			}))}
+		/>
+	);
+	const [focusAnswer, setFocusAnswer] = useState(false);
+	const baseBody = entry ? (file.data ? readQuestion(file.data.text) : entry.question).body : "";
+	const wasAnswered = entry?.question.status === "answered";
+	const [typed, setTyped] = useState<string | null>(null);
+	const answer = typed ?? (wasAnswered ? lastLine(baseBody) : "");
+	const needsAnswer = q.status === "answered" && answer.trim() === "";
+	const withAnswer = (): Question => {
+		if (q.status !== "answered" || typed === null) return q;
+		const lines = q.body.trimEnd().split("\n");
+		if (wasAnswered) lines[lines.length - 1] = typed.trim();
+		else lines.push(typed.trim());
+		return { ...q, body: `${lines.join("\n")}\n` };
+	};
 	const save = () =>
 		run(async () => {
+			const out = withAnswer();
 			if (!entry)
-				return act.createQuestion({ ...q, raisedAt: today(), raisedBy: q.raisedBy || q.owner });
-			const w = await act.saveQuestion(entry.path, q, file.data?.stamp ?? null);
+				return act.createQuestion({
+					...out,
+					raisedAt: today(),
+					raisedBy: out.raisedBy || out.owner,
+				});
+			const w = await act.saveQuestion(entry.path, out, file.data?.stamp ?? null);
 			if (w.conflict) throw new Error(s.conflict);
 		}).then((ok) => ok && onClose());
 	return (
@@ -95,7 +129,7 @@ export function QuestionDialog({
 			actions={
 				<Button
 					variant="primary"
-					disabled={q.title.trim() === "" || (!!entry && !file.data)}
+					disabled={q.title.trim() === "" || needsAnswer || (!!entry && !file.data)}
 					onClick={() => {
 						setError(null);
 						void save();
@@ -108,8 +142,8 @@ export function QuestionDialog({
 			<div className="grid grid-cols-2 gap-2">
 				{field(s.id, "id")}
 				{field(s.title, "title")}
-				{field(s.kind, "kind")}
-				{field(s.status, "status")}
+				{menu(s.kind, "kind", KINDS)}
+				{menu(s.status, "status", STATUSES)}
 				<Select
 					caption
 					label={s.owner}
@@ -134,16 +168,15 @@ export function QuestionDialog({
 					/>
 				</div>
 			</div>
-			<datalist id="q-kinds">
-				{KINDS.map((k) => (
-					<option key={k} value={k} />
-				))}
-			</datalist>
-			<datalist id="q-statuses">
-				{STATUSES.map((k) => (
-					<option key={k} value={k} />
-				))}
-			</datalist>
+			{q.status === "answered" ? (
+				<Textarea
+					caption
+					label={s.answer}
+					value={answer}
+					autoFocus={focusAnswer}
+					onChange={(e) => setTyped(e.target.value)}
+				/>
+			) : null}
 			{entry ? (
 				<div className="flex gap-2">
 					{entry.question.status === "answered" && entry.question.specRef ? (

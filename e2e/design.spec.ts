@@ -52,9 +52,13 @@ test("draws the demo Excalidraw scene and the demo BPMN process", async ({ page 
 test("accepts a proposed ADR with a comment", async ({ page }) => {
 	await openDesign(page, "Decisions");
 	await list(page, "Decisions").getByRole("button", { name: /0003/ }).click();
-	// An empty comment changes nothing.
-	await page.getByRole("button", { name: "Reject" }).click();
-	await expect(page.getByRole("alert")).toContainText("A comment is required");
+	// The comment is required: both buttons stay off until it has text.
+	await expect(page.getByRole("textbox", { name: "Comment" })).toHaveAttribute(
+		"aria-required",
+		"true",
+	);
+	await expect(page.getByRole("button", { name: "Reject" })).toBeDisabled();
+	await expect(page.getByRole("button", { name: "Accept", exact: true })).toBeDisabled();
 	await page.getByRole("textbox", { name: "Comment" }).fill("Fits the plan");
 	await page.getByRole("button", { name: "Accept", exact: true }).click();
 	await expect(list(page, "Decisions").getByRole("button", { name: /0003/ })).toContainText(

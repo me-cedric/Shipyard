@@ -72,6 +72,7 @@ pnpm build:sidecar   # only the sidecar: crates/shipyard-app/binaries/shipyard-<
 
 - `e2e/a11y.spec.ts` runs axe (`@axe-core/playwright`) on every tab of every space, in the light and the dark theme, with reduced motion. A violation fails the test. A new tab joins the run when you add it to `SPACES` in `src/features/shell/spaces.ts`.
 - `e2e/design-system.spec.ts` covers the gallery: one page for each atomic layer, a focus ring on each layer button, the theme and language switch, and axe on each layer in both themes. The gallery exists in the dev build only. The test starts its own `vite` dev server on port 4175. It checks that the release build has no gallery route.
+- `pnpm test:personas` walks the first hour of each profile (project manager, architect, developer, tester, business analyst, functional lead, junior) in the demo build. It uses `playwright.personas.config.ts` and `e2e/personas/*.persona.ts`, and `pnpm test:e2e` does not run it. Set `PERSONAS_OUT` to a folder: each profile writes one screenshot for each step and a log with the clicks and the result of each step (ok, confusing, dead end, error). A step that the app cannot do fails the run softly and the walk continues.
 
 ## Checks
 
@@ -88,6 +89,32 @@ pnpm ipc:check
 ```
 
 `pnpm ipc:check` fails when the committed bindings differ from the Rust commands. CI runs all checks on macOS and Linux (`.github/workflows/ci.yml`).
+
+## Acceptance
+
+The seed script makes a sample project with one file for each kind of artifact that the app reads. The live tests call the real command functions of the app against GitHub.
+
+1. Sign in with the GitHub CLI: `gh auth login`.
+2. Make or refresh the sample project and its private repository `me-cedric/shipyard-acceptance`:
+
+```bash
+node scripts/acceptance/seed.mjs --remote github
+```
+
+The script writes `~/Projects/shipyard-acceptance` (use `--dir <folder>` for another folder). It is safe to run twice: the second run changes nothing. Without `--remote` it makes no repository and no issue. With `--remote github` it also pushes the branch `main` and makes the label `agent`, the milestone `Release 1` and four issues. It reads no token. Git signs in through `gh auth git-credential`.
+
+3. Run the live tests:
+
+```bash
+SHIPYARD_LIVE=1 GH_TOKEN=$(gh auth token) \
+  cargo test -p shipyard-app --test live_github -- --test-threads=1 --nocapture
+```
+
+Without `SHIPYARD_LIVE=1`, each test prints `skipped` and passes, so CI stays green. Never write the token in a file or in a command argument.
+
+Each test works on a copy of the sample project in a temporary folder. The tests cover the seed project (all readers), the issue tracker (list, create, label, assign, comment, move, mirror after a sync), the code host (branch, pull request, files, checks, comment, request changes, close), the spec archive in a pull request, and the publish of a local project to `me-cedric/shipyard-acceptance-publish`. A test closes the pull request and deletes the branch that it opened. The repositories and the issue `Live test issue` stay.
+
+A machine behind a proxy that signs its own certificates needs `SHIPYARD_CA_BUNDLE=<certificate file>` in the same command. `SHIPYARD_SEED_DIR` names a sample project in another folder.
 
 ## Security scan
 

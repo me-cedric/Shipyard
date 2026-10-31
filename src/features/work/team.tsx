@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
-import { useFormIntent, useShell } from "@/lib/shell";
+import { useFormIntent, useFormIntentFor, useShell } from "@/lib/shell";
 import { type Member, useSealState, useTeam, useWorkActions } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
@@ -228,6 +228,17 @@ export function Team() {
 	const locked = view.data?.locked ?? false;
 	useFormIntent("member", () =>
 		openDetail(t.work.team.add, <MemberForm key="new" handle={null} />),
+	);
+	// A capacity warning of the plan opens the member that it names.
+	useFormIntentFor(
+		"member:",
+		(handle) => {
+			const x = members.find((o) => o.handle === handle);
+			if (!x) return;
+			setSelected(x.handle);
+			openDetail(x.name, <MemberForm key={x.handle} handle={x.handle} />);
+		},
+		!!view.data,
 	);
 
 	if (active === undefined || view.isLoading) return null;

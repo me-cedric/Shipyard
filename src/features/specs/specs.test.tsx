@@ -68,6 +68,23 @@ describe("Specs / Changes", () => {
 		expect(screen.getByTestId("error-line")).toBeInTheDocument();
 	});
 
+	it("says how many problems Validate found, and says when it found none", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<SpecChanges />);
+		await open(user, "add-billing");
+		await user.click(await screen.findByRole("button", { name: "Validate" }));
+		expect(await screen.findByText("Problems found: 1")).toBeVisible();
+		// The list opens on the file that holds the problem.
+		expect(await screen.findByRole("button", { name: /REQ-002 has no scenario/ })).toBeVisible();
+		// The author adds the missing scenario, then validates again.
+		const spec = `${CH}/add-billing/specs/invoices/spec.md`;
+		const f = files()[spec];
+		if (!f) throw new Error("no spec");
+		files()[spec] = { ...f, text: `${f.text.trimEnd()}\n\n#### Scenario: Pay\n- **THEN** paid\n` };
+		await user.click(screen.getByRole("button", { name: "Validate" }));
+		expect(await screen.findByText("No problems found")).toBeVisible();
+	});
+
 	it("edits and saves an artifact, and offers reload or keep mine after a change on disk", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<SpecChanges />);
@@ -176,6 +193,9 @@ describe("Specs / Capabilities", () => {
 		);
 		// The plan of the capability is a file of the capability.
 		await user.click(screen.getByRole("tab", { name: "Spec" }));
+		// A settled capability opens as a page to read; Text shows the file.
+		expect(await screen.findByRole("article", { name: "Spec" })).toBeVisible();
+		await user.click(screen.getByRole("tab", { name: "Text" }));
 		expect(await screen.findByRole("textbox", { name: "Spec" })).toHaveValue(
 			files()["docs/openspec/specs/auth/spec.md"]?.text,
 		);
@@ -186,6 +206,9 @@ describe("Specs / Constitution", () => {
 	it("shows the file and saves an edit", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Constitution />);
+		// The constitution opens as a page to read.
+		expect(await screen.findByRole("article", { name: "Constitution" })).toBeVisible();
+		await user.click(screen.getByRole("tab", { name: "Edit" }));
 		const box = await screen.findByRole("textbox", { name: "Constitution" });
 		await waitFor(() =>
 			expect(box).toHaveValue(files()["docs/openspec/constitution.md"]?.text ?? ""),

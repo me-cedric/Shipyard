@@ -80,6 +80,7 @@ describe("Knowledge / Slides: planning and costing slides", () => {
 		await user.click(screen.getByRole("button", { name: "Add a slide" }));
 		await user.click(await screen.findByRole("menuitem", { name: "Costing slide" }));
 		expect(await screen.findByRole("region", { name: "Slides (6)" })).toBeInTheDocument();
+		await user.click(screen.getByRole("tab", { name: "Edit" }));
 		expect(
 			(screen.getByRole("textbox", { name: "Markdown" }) as HTMLTextAreaElement).value,
 		).toContain("## Costing");

@@ -13,6 +13,7 @@ const SETTING = {
 	trackerScope: { to: "/settings/project", form: "trackerScope" },
 	pickupLabel: { to: "/settings/project", form: "pickupLabel" },
 	terminalApp: { to: "/settings/me", form: "terminalApp" },
+	certificate: { to: "/settings/connections", form: "certificate" },
 } as const;
 
 /** Opens a Settings field: the page of the field, then its form. */

@@ -14,7 +14,7 @@ export function Constitution() {
 		<WithProject title={title}>
 			<ListDetail title={title} icon={<LockClosedIcon size={16} />}>
 				<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col rounded-lg border bg-surface-1 p-3 shadow-1">
-					<FileEditor path={PATH} title={title} refId={PATH} />
+					<FileEditor path={PATH} title={title} refId={PATH} read />
 				</div>
 			</ListDetail>
 		</WithProject>

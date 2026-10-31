@@ -12,6 +12,7 @@ import {
 	useSpecsActions,
 	useSpecView,
 } from "@/lib/specs";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -98,6 +99,8 @@ export function ChangeDetail({ change, onBack }: { change: Change; onBack: () =>
 	const { error, run } = useGuard();
 	const [path, setPath] = useState("proposal.md");
 	const [line, setLine] = useState<number | null>(null);
+	// The last validation: a pass is an empty list, and it shows too.
+	const [checked, setChecked] = useState<Finding[] | null>(null);
 	const [splitting, setSplitting] = useState(false);
 	const [pending, setPending] = useState<string[] | null>(null);
 	const nameOf = (a: Artifact) => {
@@ -171,7 +174,20 @@ export function ChangeDetail({ change, onBack }: { change: Change; onBack: () =>
 							form={current.path.endsWith(".md")}
 							actions={
 								<>
-									<Button onClick={() => void run(() => act.validate(change.id))}>
+									<Button
+										onClick={() =>
+											void run(async () => {
+												const found = await act.validate(change.id);
+												setChecked(found);
+												// The list opens on the first file that has a problem.
+												const first = found.find((f) => f.path);
+												if (first) {
+													setPath(first.path);
+													setLine(first.line);
+												}
+											})
+										}
+									>
 										{s.validate}
 									</Button>
 									<NextStep label={t.editing.next.split} onClick={() => setSplitting(true)} />
@@ -179,6 +195,17 @@ export function ChangeDetail({ change, onBack }: { change: Change; onBack: () =>
 								</>
 							}
 						>
+							{checked ? (
+								<p
+									role="status"
+									className={cn(
+										"text-ui",
+										checked.length ? "text-danger-text" : "text-success-text",
+									)}
+								>
+									{checked.length ? format(s.problems, { count: checked.length }) : s.valid}
+								</p>
+							) : null}
 							<Findings list={current.findings} onPick={setLine} />
 							{current.artifact === "spec" && current.status !== "missing" ? (
 								<Markers path={artifactPath(change, current)} />

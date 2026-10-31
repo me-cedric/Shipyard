@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { format, useI18n } from "@/lib/i18n";
@@ -121,7 +122,14 @@ export function ProfileTable({ slug, currency }: { slug: string | null; currency
 				header: e.cost,
 				meta: { width: "9rem", numeric: true },
 				cell: ({ row }) =>
-					row.original.cost == null ? e.unrated : money(row.original.cost, currency, lang),
+					row.original.cost == null ? (
+						// The rates are set in Work / Team.
+						<Link to="/work/team" className="text-accent-text underline">
+							{e.unrated}
+						</Link>
+					) : (
+						money(row.original.cost, currency, lang)
+					),
 			},
 		],
 		[t, e, lang, currency],

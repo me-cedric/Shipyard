@@ -33,6 +33,18 @@ describe("Work / Estimates", () => {
 		expect(test).toHaveTextContent("25 %");
 	});
 
+	it("says Unrated, not zero, and links to Team when no rate shows", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const router = mountApp("/work/estimates");
+		await user.click(await screen.findByRole("tab", { name: "Summary" }));
+		const links = await screen.findAllByRole("link", { name: "Unrated" });
+		expect(links.length).toBeGreaterThan(0);
+		expect(screen.getAllByText("Unrated").length).toBeGreaterThan(links.length - 1);
+		await user.click(links[0] as HTMLElement);
+		await waitFor(() => expect(router.state.location.pathname).toBe("/work/team"));
+	});
+
 	it("shows equal totals in the summary, the spread and the portfolio", async () => {
 		const user = userEvent.setup();
 		await withTracker();

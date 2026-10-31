@@ -25,6 +25,8 @@ export const specsEn = {
 	unlinked: "Unlinked",
 	findings: "Findings",
 	validate: "Validate",
+	valid: "No problems found",
+	problems: "Problems found: {count}",
 	editor: {
 		copy: "Copy ref",
 		dirty: "Unsaved changes",
@@ -120,6 +122,8 @@ export const specsFr: typeof specsEn = {
 	unlinked: "Sans lien",
 	findings: "Constats",
 	validate: "Valider",
+	valid: "Aucun problème trouvé",
+	problems: "Problèmes trouvés : {count}",
 	editor: {
 		copy: "Copier la réf",
 		dirty: "Modifications non enregistrées",

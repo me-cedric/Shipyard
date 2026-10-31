@@ -491,6 +491,7 @@ function search(query: string, limit: number): SearchHit[] {
 	const all = [
 		...entities().map((e) => [e.ref, e] as const),
 		...work.workEntities(state.work).map((e) => [e.ref, e] as const),
+		...state.sync.mirror.map((t) => [`wi:${t.key}`, t] as const),
 	];
 	const hits = all.flatMap(([ref, e]) => {
 		const byRef = ref.toLowerCase().includes(q);

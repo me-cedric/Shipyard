@@ -561,6 +561,11 @@ impl Factory {
         self.lock().checked(run_id, RunEvent::Unblock)
     }
 
+    /// Send the pull request back with a text: a feedback round on the run that holds it.
+    pub fn send_back(&self, number: u64, text: &str) {
+        self.lock().send_back(number, text);
+    }
+
     /// Any other run event, for `delivery` (`Closed` after the merge, `FixStarted`).
     pub fn apply(&self, run_id: &str, event: RunEvent) -> Result<RunState, String> {
         let mut inner = self.lock();

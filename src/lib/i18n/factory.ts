@@ -3,6 +3,8 @@ export const factoryEn = {
 	runs: "Runs",
 	start: "Start run",
 	ticket: "Ticket",
+	runActive: "A run is active on {key}.",
+	openRun: "Open the run",
 	agentsOn: "Agents on",
 	agentsStopped: "Agents stopped",
 	lane: {
@@ -119,6 +121,8 @@ export const factoryFr: typeof factoryEn = {
 	runs: "Exécutions",
 	start: "Lancer une exécution",
 	ticket: "Ticket",
+	runActive: "Une exécution est active sur {key}.",
+	openRun: "Ouvrir l'exécution",
 	agentsOn: "Agents actifs",
 	agentsStopped: "Agents arrêtés",
 	lane: {

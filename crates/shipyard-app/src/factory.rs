@@ -392,6 +392,14 @@ pub fn spawn_loop(app: tauri::AppHandle) {
 }
 
 /// The factory is the `Dispatch` of each sync engine. The host adds the events for the views.
+impl FactoryHost {
+    /// A person sends a pull request back with a text: a feedback round on the run that holds it.
+    pub fn send_back(&self, number: u64, text: &str) {
+        self.factory.send_back(number, text);
+        self.publish();
+    }
+}
+
 impl Dispatch for FactoryHost {
     fn kill_switch(&self) -> bool {
         self.factory.kill_switch()

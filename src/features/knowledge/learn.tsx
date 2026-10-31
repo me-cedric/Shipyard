@@ -116,7 +116,14 @@ export function Learn() {
 													<RefChip refId={s.ref} state="resolved" title={s.title} onOpen={open} />
 													<Badge>{kinds[s.kind] ?? s.kind}</Badge>
 												</span>
-												<span className="truncate text-ui text-n-12">{s.title}</span>
+												{/* The title opens the step too, not only the chip above it. */}
+												<button
+													type="button"
+													onClick={() => open(s.ref)}
+													className="truncate text-left text-ui text-n-12 hover:underline"
+												>
+													{s.title}
+												</button>
 											</span>
 										</li>
 									);

@@ -46,7 +46,12 @@ test("shows a validation finding on the artifact that holds it, with its line", 
 test("folds an answer into its spec after the preview and one click", async ({ page }) => {
 	await openSpecs(page, "Questions");
 	await page.getByRole("button", { name: /^Q-035/ }).click();
-	await page.getByRole("dialog").getByRole("combobox", { name: "Status" }).fill("answered");
+	const edit = page.getByRole("dialog");
+	await edit.getByRole("combobox", { name: "Status" }).click();
+	await page.getByRole("option", { name: "answered" }).click();
+	// Choosing answered puts the cursor in the Answer field, which Save needs.
+	await expect(edit.getByRole("textbox", { name: "Answer" })).toBeFocused();
+	await edit.getByRole("textbox", { name: "Answer" }).fill("CSV first");
 	await page.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByRole("dialog")).toHaveCount(0);
 	await page.getByRole("button", { name: /^Q-035/ }).click();

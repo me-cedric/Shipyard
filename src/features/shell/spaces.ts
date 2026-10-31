@@ -50,6 +50,7 @@ export function orderedSpaces(role: Role, only: string[] | null = null): SpaceId
 export const ROLE_TAB: Partial<Record<Role, string>> = {
 	junior: "knowledge/learn",
 	pm: "work/board",
+	qa: "specs/test-plans",
 };
 
 /** The tabs of a space that the project profile keeps, the tab of the role first. Settings keeps every tab. */

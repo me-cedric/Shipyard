@@ -63,7 +63,13 @@ export function Tile({
 	actions?: React.ReactNode;
 }) {
 	const { t } = useI18n();
-	const data = useTileData(kind, person);
+	const raw = useTileData(kind, person);
+	// The runs tile counts states: the engine names them with codes, the person reads the plain words.
+	const states = t.factory.state as Record<string, string>;
+	const data =
+		raw && kind === "runs"
+			? { ...raw, rows: raw.rows.map(([state = "", ...rest]) => [states[state] ?? state, ...rest]) }
+			: raw;
 	const { pinned, toggle } = usePins();
 	const name = useTileName(kind);
 	const p = pin ? { ...pin, kind, ...(person ? { person } : {}) } : null;

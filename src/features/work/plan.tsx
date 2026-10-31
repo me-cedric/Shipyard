@@ -1,9 +1,9 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PageExport } from "@/features/reports/page-export";
 import { format, useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
-import { useShell } from "@/lib/shell";
+import { askForm, useShell } from "@/lib/shell";
 import { useWorkItems } from "@/lib/sync";
 import {
 	addDays,
@@ -292,19 +292,29 @@ export function Plan() {
 	const isOff = (d: string) => !cal.workingDays.includes(isoWeekday(d)) || off.has(d);
 	const ticketOf = (ref: string) =>
 		tasks?.features.flatMap((f) => f.tasks).find((x) => ref.endsWith(`#${x.id}`))?.ticket;
-	const warnings = [
+	// A capacity warning names the member: it links to the member in Work / Team, where the capacity is set.
+	const warnings: { text: string; member?: string }[] = [
 		...plan.load.members.flatMap((m) => {
 			const count = m.days.filter((d) => (d.used ?? 0) > (d.capacity ?? 0) + 1e-6).length;
-			return count ? [format(c.over, { name: memberName(members, m.handle), count })] : [];
+			return count
+				? [
+						{
+							text: format(c.over, { name: memberName(members, m.handle), count }),
+							member: m.handle,
+						},
+					]
+				: [];
 		}),
-		...plan.gantt.bars.filter((b) => !b.member).map((b) => format(c.missing, { name: b.name })),
+		...plan.gantt.bars
+			.filter((b) => !b.member)
+			.map((b) => ({ text: format(c.missing, { name: b.name }) })),
 		...plan.gantt.bars
 			.filter((b) => {
 				const key = ticketOf(b.task);
 				const done = items.find((i) => i.key === key)?.category === "done";
 				return b.end < plan.today && !done;
 			})
-			.map((b) => format(c.late, { name: b.name, day: b.end })),
+			.map((b) => ({ text: format(c.late, { name: b.name, day: b.end }) })),
 	];
 	const png = async (path: string) => {
 		const { ganttPng } = await import("@/ui/organisms/gantt-png");
@@ -417,7 +427,19 @@ export function Plan() {
 					</h2>
 					<ul className="text-ui text-n-12">
 						{warnings.map((w) => (
-							<li key={w}>{w}</li>
+							<li key={w.text}>
+								{w.member ? (
+									<Link
+										to="/work/team"
+										onClick={() => askForm(`member:${w.member}`)}
+										className="text-warning-text underline"
+									>
+										{w.text}
+									</Link>
+								) : (
+									w.text
+								)}
+							</li>
 						))}
 					</ul>
 				</section>

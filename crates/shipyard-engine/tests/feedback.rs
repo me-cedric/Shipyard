@@ -513,3 +513,14 @@ fn a_review_thread_reaches_the_fix_as_fenced_data() {
     // One block for the ticket and one for the thread: the text of the thread adds no close tag.
     assert_eq!(prompt.matches("</untrusted-data>").count(), 2, "{prompt}");
 }
+
+#[test]
+fn a_pull_request_sent_back_by_a_person_starts_a_round_with_the_text() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = open(&fx);
+    fx.f.send_back(7, "Use a plain word here.");
+    fx.f.pump();
+    assert_eq!(fx.state(&run), RunState::Working);
+    let prompt = fx.agents.briefs().pop().unwrap().prompt;
+    assert!(prompt.contains("Use a plain word here."), "{prompt}");
+}

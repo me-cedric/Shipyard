@@ -36,6 +36,8 @@ export type Row = {
 	time?: string;
 	/** The repository path of the file, for the copy action of the menu. */
 	path?: string;
+	/** A warning that shows on the row, such as an ADR that no spec cites. */
+	mark?: string | null;
 };
 
 export type Create = {
@@ -320,6 +322,7 @@ export function ArtifactTab({
 												</span>
 												<span className="flex items-center gap-2">
 													{r.tag ? <Badge variant={r.tone}>{r.tag}</Badge> : null}
+													{r.mark ? <Badge variant="warning">{r.mark}</Badge> : null}
 													<span className="font-mono text-11 text-n-11">{r.time}</span>
 												</span>
 											</span>

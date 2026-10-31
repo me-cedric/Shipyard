@@ -50,16 +50,30 @@ pub fn count_pem_certs(pem: &[u8]) -> Result<usize, String> {
         .map_err(|e| e.to_string())
 }
 
-/// The OS trust store plus the PEM bundle that a variable names, or the one added in Settings.
-/// `None` without either. A named file that cannot be read is an error: a silent fallback hides the real fault.
-fn tls_config() -> Result<Option<Arc<rustls::ClientConfig>>, Error> {
-    tls_config_from(|var| std::env::var(var).ok())
+type Native = Result<Vec<rustls::pki_types::CertificateDer<'static>>, String>;
+
+/// The OS trust store, read once: a read takes seconds on macOS.
+/// shortcut: a certificate added to the OS store while the app runs needs a restart.
+fn native_certs() -> &'static Native {
+    static NATIVE: std::sync::OnceLock<Native> = std::sync::OnceLock::new();
+    NATIVE.get_or_init(|| rustls_native_certs::load_native_certs().map_err(|e| e.to_string()))
+}
+
+/// The roots that the client trusts: the bundled Mozilla roots, and the OS trust store and the PEM
+/// bundle that a variable names or that was added in Settings. The client always builds its own
+/// config: the default of `ureq` rejects the chain of api.github.com (`UnknownIssuer`) that each of
+/// these root sets accepts. The OS store loads with `native`, or with a bundle, since the bundle is
+/// then meant to add to it. A named file that cannot be read is an error: a silent fallback hides
+/// the real fault.
+fn tls_config(native: bool) -> Result<Arc<rustls::ClientConfig>, Error> {
+    tls_config_from(native, |var| std::env::var(var).ok())
 }
 
 /// `tls_config` with the environment as an argument, so a test does not read the variables of the machine.
 fn tls_config_from(
+    native: bool,
     env: impl Fn(&str) -> Option<String>,
-) -> Result<Option<Arc<rustls::ClientConfig>>, Error> {
+) -> Result<Arc<rustls::ClientConfig>, Error> {
     let from_env = ["SHIPYARD_CA_BUNDLE", "SSL_CERT_FILE"]
         .iter()
         .find_map(|var| {
@@ -68,46 +82,70 @@ fn tls_config_from(
             (!value.is_empty()).then_some((var.to_string(), value))
         });
     let extra = EXTRA_CA.lock().unwrap_or_else(|e| e.into_inner()).clone();
-    let Some((var, path)) = from_env.or_else(|| {
+    let bundle = from_env.or_else(|| {
         extra.map(|p| {
             (
                 "the added certificate".to_string(),
                 p.to_string_lossy().into_owned(),
             )
         })
-    }) else {
-        return Ok(None);
-    };
-    let fail = |why: String| Error::Transport(format!("{var} names {path}: {why}"));
+    });
     let mut roots = rustls::RootCertStore::empty();
-    // The bundle adds roots. It never replaces the OS store.
-    for cert in rustls_native_certs::load_native_certs().unwrap_or_default() {
-        let _ = roots.add(cert);
-    }
-    let file = std::fs::File::open(&path).map_err(|e| fail(e.to_string()))?;
-    let mut added = 0;
-    for cert in rustls_pemfile::certs(&mut std::io::BufReader::new(file)) {
-        let cert = cert.map_err(|e| fail(e.to_string()))?;
-        if roots.add(cert).is_ok() {
-            added += 1;
+    roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+    if native || bundle.is_some() {
+        match (native_certs(), &bundle) {
+            (Ok(certs), _) => {
+                for cert in certs {
+                    let _ = roots.add(cert.clone());
+                }
+            }
+            (Err(e), Some((var, path))) => {
+                return Err(Error::Transport(format!(
+                    "{var} names {path}: the system certificates cannot be read: {e}"
+                )));
+            }
+            // The bundled roots still serve the public hosts.
+            (Err(_), None) => {}
         }
     }
-    if added == 0 {
-        return Err(fail("no certificate in the file".into()));
+    if let Some((var, path)) = &bundle {
+        let fail = |why: String| Error::Transport(format!("{var} names {path}: {why}"));
+        let file = std::fs::File::open(path).map_err(|e| fail(e.to_string()))?;
+        let mut added = 0;
+        for cert in rustls_pemfile::certs(&mut std::io::BufReader::new(file)) {
+            let cert = cert.map_err(|e| fail(e.to_string()))?;
+            if roots.add(cert).is_ok() {
+                added += 1;
+            }
+        }
+        if added == 0 {
+            return Err(fail("no certificate in the file".into()));
+        }
     }
     // The provider is named: `ureq` enables `ring`, and two providers make the default builder panic.
     let config = rustls::ClientConfig::builder_with_provider(Arc::new(
         rustls::crypto::ring::default_provider(),
     ))
     .with_safe_default_protocol_versions()
-    .map_err(|e| fail(e.to_string()))?
+    .map_err(|e| Error::Transport(e.to_string()))?
     .with_root_certificates(roots)
     .with_no_client_auth();
-    Ok(Some(Arc::new(config)))
+    Ok(Arc::new(config))
 }
 
 impl Http for Client {
+    /// The bundled roots first. A chain that they do not know (`UnknownIssuer`), such as the root
+    /// of a TLS-inspecting proxy in the OS store, gets one more try with the OS store.
     fn send(&self, req: &Request) -> Result<Response, Error> {
+        match self.send_with(req, false) {
+            Err(Error::Transport(m)) if m.contains("UnknownIssuer") => self.send_with(req, true),
+            other => other,
+        }
+    }
+}
+
+impl Client {
+    fn send_with(&self, req: &Request, native: bool) -> Result<Response, Error> {
         let url = url::Url::parse(&req.url).map_err(|e| Error::BadUrl(e.to_string()))?;
         let host = url
             .host_str()
@@ -124,9 +162,7 @@ impl Http for Client {
             .timeout_read(req.timeout.unwrap_or(DEFAULT_READ_TIMEOUT))
             .redirects(0)
             .try_proxy_from_env(!is_loopback(&host) && !bypasses_proxy(&host, &no_proxy));
-        if let Some(config) = tls_config()? {
-            builder = builder.tls_config(config);
-        }
+        builder = builder.tls_config(tls_config(native)?);
         let mut call = builder
             .build()
             .request(
@@ -225,9 +261,11 @@ mod tests {
     fn an_added_bundle_that_cannot_be_read_is_an_error() {
         set_extra_ca(Some("/no/such/bundle.pem".into()));
         // A CI runner sets SSL_CERT_FILE, which would win over the added bundle.
-        let result = tls_config_from(|_| None);
+        let result = tls_config_from(false, |_| None);
         set_extra_ca(None);
         let message = result.err().map(|e| e.to_string()).unwrap_or_default();
         assert!(message.contains("the added certificate"), "{message}");
+        // With no bundle the client still has its own roots: the default of `ureq` is not used.
+        assert!(tls_config_from(false, |_| None).is_ok());
     }
 }

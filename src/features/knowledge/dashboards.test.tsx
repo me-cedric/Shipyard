@@ -57,6 +57,13 @@ describe("Knowledge / Dashboards", () => {
 		expect(screen.queryByRole("button", { name: "Move right" })).toBeNull();
 	});
 
+	it("shows the states of the Runs tile as plain words, not as codes", async () => {
+		await mountKnowledge("dashboards");
+		const runs = await tile("Runs");
+		expect(await runs.findByText("Pull request open")).toBeInTheDocument();
+		expect(runs.queryByText("PROpen")).toBeNull();
+	});
+
 	it("pins a tile to Home, where My work shows it", async () => {
 		const user = userEvent.setup();
 		const router = await mountKnowledge("dashboards");

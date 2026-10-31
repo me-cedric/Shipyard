@@ -24,8 +24,9 @@ const worst = (r: Requirement) =>
 
 /**
  * Each requirement of the specs with the scenarios that cite it. A capability with a requirement
- * that no scenario cites has one button: it adds one stub for each of them to the plan of the
- * capability and opens the plan.
+ * that no scenario cites, and that holds the text of a scenario, has one button: it adds one
+ * scenario with the steps of that text for each of them to the plan of the capability and opens
+ * the plan. A requirement with no such text gets none: the button does not show for it.
  */
 export function RequirementsView({ onOpen }: { onOpen: (path: string) => void }) {
 	const { t } = useI18n();
@@ -59,7 +60,7 @@ export function RequirementsView({ onOpen }: { onOpen: (path: string) => void })
 							<h3 className="min-w-0 flex-1 text-12 font-medium text-n-11">
 								{format(t.count, { name: cap, count: list.length })}
 							</h3>
-							{list.some((r) => r.scenarios.length === 0) ? (
+							{list.some((r) => r.scenarios.length === 0 && r.detailed) ? (
 								<Button
 									variant="ghost"
 									aria-label={format(p.generateName, { name: cap })}

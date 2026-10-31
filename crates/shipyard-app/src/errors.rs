@@ -54,10 +54,12 @@ pub enum ErrorCode {
     ChangeIdInvalid,
     ChangeExists,
     RunNotStarted,
+    RunActive,
     MergeDraft,
     MergeClosed,
     MergeMethod,
     ForgeUnreachable,
+    CertUntrusted,
     ForgeDenied,
     ForgeMissing,
     GitNothingStaged,
@@ -114,6 +116,7 @@ impl ErrorCode {
             Self::ForgeDenied | Self::GitlabNoMcp | Self::GitlabAddress => {
                 (ActionKind::Setting, "connections")
             }
+            Self::CertUntrusted => (ActionKind::Setting, "certificate"),
             Self::GitNothingStaged => (ActionKind::Open, "/code/changes"),
             Self::GitNoUpstream => (ActionKind::Open, "/code/branches"),
             Self::NoTerminal | Self::TerminalGone => (ActionKind::Setting, "terminalApp"),
@@ -146,9 +149,14 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("invalid change id", ErrorCode::ChangeIdInvalid),
     ("change exists", ErrorCode::ChangeExists),
     ("the run did not start", ErrorCode::RunNotStarted),
+    ("a run is active on", ErrorCode::RunActive),
     ("a draft pull request cannot merge", ErrorCode::MergeDraft),
     ("the pull request is not open", ErrorCode::MergeClosed),
     ("does not offer the method", ErrorCode::MergeMethod),
+    (
+        "invalid peer certificate: UnknownIssuer",
+        ErrorCode::CertUntrusted,
+    ),
     ("HTTP 401", ErrorCode::ForgeDenied),
     ("HTTP 403", ErrorCode::ForgeDenied),
     ("HTTP 404", ErrorCode::ForgeMissing),
@@ -280,6 +288,10 @@ mod tests {
         // An outage has no action: a forge outage must not read the tracker again.
         let e = AppError::from("network error: connection refused");
         assert_eq!((e.code, e.action), (ErrorCode::ForgeUnreachable, None));
+        // A proxy that the OS trusts and the client does not: the person adds its certificate.
+        let e = AppError::from("network error: invalid peer certificate: UnknownIssuer");
+        assert_eq!(e.code, ErrorCode::CertUntrusted);
+        assert_eq!(e.action.unwrap().target, "certificate");
         let e = AppError::from("invalid change id: Bad Id");
         assert_eq!((e.code, e.action), (ErrorCode::ChangeIdInvalid, None));
         let e = AppError::from("the terminal app is not installed: Kitty");

@@ -12,8 +12,9 @@ export function TabsBar({ space }: { space: SpaceId }) {
 	const { profile, role } = usePrefs();
 	const stale = useStalePages();
 	return (
-		<nav aria-label={t.nav.tabs} className="flex shrink-0 overflow-x-auto px-4 pt-3">
-			<div className="flex items-center gap-0.5 rounded-lg border bg-surface-1 p-0.5 shadow-1">
+		<nav aria-label={t.nav.tabs} className="flex shrink-0 px-4 pt-3">
+			{/* The tabs wrap when the assistant and the inspector leave little width: none is cut off. */}
+			<div className="flex flex-wrap items-center gap-0.5 rounded-lg border bg-surface-1 p-0.5 shadow-1">
 				{visibleTabs(space, profile.hiddenTabs, role).map((tab) => (
 					<Link
 						key={tab}

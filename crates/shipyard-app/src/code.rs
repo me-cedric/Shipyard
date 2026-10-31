@@ -12,7 +12,8 @@ use serde::{Deserialize, Serialize};
 use shipyard_agents::impacts::{Analysis, Comparison, RunnerAsk, analyze};
 use shipyard_core::code::{commit_refs, run_in_message};
 use shipyard_forges::{
-    CheckState, CodeApi, MergeMethod, NewPull, PullFile, PullState, ReviewerVerdict, Verdict,
+    CheckState, CodeApi, ForgeError, MergeMethod, NewPull, PullFile, PullState, ReviewerVerdict,
+    Verdict,
 };
 use shipyard_git::Repo;
 use shipyard_store::code::{
@@ -381,9 +382,25 @@ pub fn pull_close(s: &AppState, number: u32, reason: &str, click: bool) -> Res<(
 }
 
 /// Sends the pull request back to the agent: a request for changes with the text. The factory
-/// reads it as a review and starts a feedback round on the same pull request.
+/// reads it as a review and starts a feedback round on the same pull request. One account that
+/// made the pull request cannot ask for changes on it (HTTP 422): the text then goes in a comment
+/// and the round starts here, since the forge never reports a review.
 pub fn pull_send_back(s: &AppState, number: u32, text: &str, click: bool) -> Res<()> {
-    pull_verdict(s, number, Verdict::RequestChanges, text, click)
+    need_click(s, click)?;
+    let (api, slug, _) = forge(s)?;
+    let n = u64::from(number);
+    match api.verdict(&slug, n, Verdict::RequestChanges, text) {
+        Err(ForgeError::Http(shipyard_http::Error::Status {
+            status: 422,
+            detail,
+            ..
+        })) if detail.to_lowercase().contains("own pull request") => {
+            api.comment(&slug, n, text).map_err(err)?;
+            s.factory.send_back(n, text);
+            Ok(())
+        }
+        other => other.map_err(err),
+    }
 }
 
 /// Stages what the archive of `change` moved or wrote: the removed change folder, the new archive

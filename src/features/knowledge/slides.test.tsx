@@ -35,10 +35,21 @@ describe("Knowledge / Slides", () => {
 		expect(screen.getByRole("article", { name: "Slide 2" })).toHaveTextContent("Goals");
 	});
 
+	it("opens a deck to read, with the slides alone, and Edit adds the text", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("slides");
+		await open(user);
+		await screen.findByRole("region", { name: "Slides (5)" });
+		expect(screen.queryByRole("textbox", { name: "Markdown" })).toBeNull();
+		await user.click(screen.getByRole("tab", { name: "Edit" }));
+		expect(await screen.findByRole("textbox", { name: "Markdown" })).toBeVisible();
+	});
+
 	it("shows six slides when a person adds a slide in the text", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("slides");
 		await open(user);
+		await user.click(await screen.findByRole("tab", { name: "Edit" }));
 		const text = await screen.findByRole("textbox", { name: "Markdown" });
 		await user.click(text);
 		await user.type(text, "\n---\n\n## Six\n");

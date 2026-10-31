@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, pickCertificate, unwrap } from "@/lib/ipc";
+import { useFormIntent } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SettingsRow } from "@/ui/molecules/settings-row";
@@ -18,6 +19,9 @@ export function CertsGroup() {
 		queryFn: () => unwrap(commands.certsStatus()),
 	});
 	const [error, setError] = useState<unknown>(null);
+	const addButton = useRef<HTMLButtonElement>(null);
+	// The error of an untrusted certificate leads here, to the one button that fixes it.
+	useFormIntent("certificate", () => addButton.current?.focus(), !!status.data);
 	if (!status.data) return null;
 	const run = async (job: () => Promise<unknown>) => {
 		setError(null);
@@ -43,7 +47,7 @@ export function CertsGroup() {
 					<span className="text-12 text-n-11">
 						{status.data.added ? format(c.count, { count: status.data.count }) : c.none}
 					</span>
-					<Button variant="secondary" onClick={() => void add()}>
+					<Button ref={addButton} variant="secondary" onClick={() => void add()}>
 						{c.add}
 					</Button>
 					<Button

@@ -38,10 +38,10 @@ export const designEn = {
 			unknown: "Unknown",
 		} as Record<string, string>,
 		text: "ADR text",
+		unused: "Unused",
 		accept: "Accept",
 		reject: "Reject",
 		comment: "Comment",
-		needComment: "A comment is required",
 	},
 	api: {
 		server: "Server",
@@ -155,10 +155,10 @@ export const designFr: typeof designEn = {
 			unknown: "Inconnue",
 		},
 		text: "Texte de l'ADR",
+		unused: "Inutilisée",
 		accept: "Accepter",
 		reject: "Rejeter",
 		comment: "Commentaire",
-		needComment: "Un commentaire est requis",
 	},
 	api: {
 		server: "Serveur",

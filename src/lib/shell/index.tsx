@@ -1,4 +1,12 @@
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
+import {
+	createContext,
+	type ReactNode,
+	useCallback,
+	useContext,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 
 type ShellState = {
 	inspectorOpen: boolean;
@@ -6,6 +14,10 @@ type ShellState = {
 	/** The ref that the inspector shows, or null. */
 	selectedRef: string | null;
 	openRef: (ref: string) => void;
+	/** `openRef` for a ref whose page `path` is not open yet: the selection survives the arrival there. */
+	openRefAt: (ref: string, path: string) => void;
+	/** The view changed to `path`: the selection of the previous view goes, except one that came with the move. */
+	viewChanged: (path: string) => void;
 	/** A view's own detail for the inspector, in place of a ref. A ref or a close clears it. */
 	detail: { title: string; node: ReactNode } | null;
 	openDetail: (title: string, node: ReactNode) => void;
@@ -82,6 +94,18 @@ export function ShellProvider({
 		setDetail(null);
 		setInspectorOpen(true);
 	}, []);
+	const landing = useRef<string | null>(null);
+	const openRefAt = useCallback(
+		(ref: string, path: string) => {
+			landing.current = path;
+			openRef(ref);
+		},
+		[openRef],
+	);
+	const viewChanged = useCallback((path: string) => {
+		if (landing.current === path) landing.current = null;
+		else setSelectedRef(null);
+	}, []);
 	const explain = useCallback((ref: string) => {
 		setSelectedRef(ref);
 		setAssistantOpen(true);
@@ -123,6 +147,8 @@ export function ShellProvider({
 			setInspectorOpen,
 			selectedRef,
 			openRef,
+			openRefAt,
+			viewChanged,
 			detail,
 			openDetail,
 			closeDetail,
@@ -156,6 +182,8 @@ export function ShellProvider({
 			inspectorOpen,
 			selectedRef,
 			openRef,
+			openRefAt,
+			viewChanged,
 			detail,
 			openDetail,
 			closeDetail,
@@ -188,4 +216,4 @@ export function useShell() {
 	return ctx;
 }
 
-export { askForm, useFormIntent } from "./intent";
+export { askForm, useFormIntent, useFormIntentFor } from "./intent";

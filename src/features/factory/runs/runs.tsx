@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { NoProject } from "@/features/work/no-project";
 import { useRunActions, useRuns, useUsage } from "@/lib/factory";
-import { useI18n } from "@/lib/i18n";
-import type { Lane, RunState, RunView } from "@/lib/ipc";
+import { format, useI18n } from "@/lib/i18n";
+import { AppFailure, type Lane, type RunState, type RunView } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
 import { useFormIntent } from "@/lib/shell";
@@ -40,6 +40,7 @@ const LANES: [Lane, PanelTone][] = [
 ];
 const WON: RunState[] = ["Merged", "Done"];
 const LOST: RunState[] = ["Failed", "Cancelled"];
+const ENDED: RunState[] = [...WON, ...LOST];
 const TREND_DAYS = 14;
 
 /** The four figures of the factory: live runs, runs that need you, spend today and success rate. */
@@ -104,6 +105,13 @@ export function Runs() {
 		if (selected) back.current?.focus();
 	}, [selected]);
 	useFormIntent("run", () => field.current?.focus());
+	// A ticket with a run that has not ended cannot start another one: the run, by ticket key.
+	const running = useMemo(
+		() =>
+			new Map((runs.data ?? []).filter((r) => !ENDED.includes(r.state)).map((r) => [r.key, r.id])),
+		[runs.data],
+	);
+	const skip = useMemo(() => new Set(running.keys()), [running]);
 	if (active === null) return <NoProject title={f.runs} />;
 	const all = runs.data ?? [];
 	const open = all.find((r) => r.id === selected);
@@ -112,6 +120,11 @@ export function Runs() {
 			await act.start(key.trim());
 			setKey("");
 		});
+	// The refusal of a ticket that has a run links to that run.
+	const taken =
+		failure instanceof AppFailure && failure.code === "run_active"
+			? running.get(key.trim())
+			: undefined;
 	return (
 		<ListDetail
 			title={f.runs}
@@ -127,6 +140,7 @@ export function Runs() {
 						value={key}
 						onChange={setKey}
 						onSubmit={start}
+						skip={skip}
 					/>
 					<Button variant="primary" disabled={!key.trim()} onClick={start}>
 						<PlayIcon size={14} />
@@ -134,7 +148,16 @@ export function Runs() {
 					</Button>
 				</span>
 			}
-			toolbar={failure ? <ErrorNotice error={failure} className="w-full" /> : undefined}
+			toolbar={
+				taken ? (
+					<p role="alert" className="flex w-full items-center gap-2 text-ui text-danger-text">
+						{format(f.runActive, { key: key.trim() })}
+						<Button onClick={() => setSelected(taken)}>{f.openRun}</Button>
+					</p>
+				) : failure ? (
+					<ErrorNotice error={failure} className="w-full" />
+				) : undefined
+			}
 		>
 			{all.length === 0 && !runs.isPending ? (
 				<div className="p-4">

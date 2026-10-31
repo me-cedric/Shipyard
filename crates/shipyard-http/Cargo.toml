@@ -17,4 +17,6 @@ ureq = { version = "2", features = ["native-certs"] }
 # Named so the client can trust the OS store plus a corporate bundle (SHIPYARD_CA_BUNDLE).
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 rustls-native-certs = "0.7"
+# The Mozilla roots next to the OS store; the config of `ureq` alone fails on api.github.com.
+webpki-roots = "0.26"
 rustls-pemfile = "2"

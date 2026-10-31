@@ -2,6 +2,8 @@ import { useState } from "react";
 import { type Adr, useDesignActions, useDesignList } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
+import { useGraph } from "@/lib/knowledge";
+import { Button } from "@/ui/atoms/button";
 import { DocumentTextIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
@@ -58,7 +60,7 @@ function Decision({ adr }: { adr: Adr }) {
 						<DesignAdrDecision
 							// A change that is not saved would be lost: save it first.
 							busy={file.dirty}
-							labels={{ ...d, required: d.needComment }}
+							labels={d}
 							onAccept={(c) =>
 								void file.commit(async (s) =>
 									unwrap(commands.designAdrDecide(adr.path, "accept", c, s ?? "")),
@@ -82,6 +84,9 @@ export function Decisions() {
 	const { t } = useI18n();
 	const list = useDesignList().data;
 	const act = useDesignActions();
+	// A decision that no spec cites is unused: the graph knows it as an orphan.
+	const unused = new Set((useGraph().data?.nodes ?? []).filter((n) => n.orphan).map((n) => n.ref));
+	const [onlyUnused, setOnlyUnused] = useState(false);
 	const adrs = list?.adrs ?? [];
 	return (
 		<ArtifactTab
@@ -90,15 +95,23 @@ export function Decisions() {
 			noun={t.design.noun.adr}
 			form="adr"
 			timeline
-			rows={adrs.map((a) => ({
-				ref: `adr:${a.number}`,
-				lead: a.number,
-				title: a.title,
-				tag: t.design.decisions.status[a.status] ?? a.status,
-				tone: TONE[a.status] ?? "neutral",
-				time: a.date || undefined,
-				path: a.path,
-			}))}
+			toolbar={
+				<Button variant="ghost" aria-pressed={onlyUnused} onClick={() => setOnlyUnused((v) => !v)}>
+					{t.design.decisions.unused}
+				</Button>
+			}
+			rows={adrs
+				.filter((a) => !onlyUnused || unused.has(`adr:${a.number}`))
+				.map((a) => ({
+					ref: `adr:${a.number}`,
+					lead: a.number,
+					title: a.title,
+					tag: t.design.decisions.status[a.status] ?? a.status,
+					tone: TONE[a.status] ?? "neutral",
+					time: a.date || undefined,
+					path: a.path,
+					mark: unused.has(`adr:${a.number}`) ? t.design.decisions.unused : null,
+				}))}
 			create={{ run: async (title) => `adr:${(await act.createAdr(title)).number}` }}
 		>
 			{(row) => {

@@ -75,6 +75,24 @@ function requirements(text: string): Req[] {
 	});
 }
 
+/**
+ * The Given, When and Then lines of the first scenario that a requirement holds in its own text,
+ * as Gherkin steps. Empty without a When and a Then: a scenario of filler would say nothing.
+ */
+function stepsOf(text: string, line: number): string[] {
+	const out: string[] = [];
+	for (const l of text.split("\n").slice(line)) {
+		if (l.startsWith("### ") || (l.startsWith("####") && out.length > 0)) break;
+		const m = /^(GIVEN|WHEN|THEN|AND)\s+(.*)$/.exec(
+			l.replaceAll("**", "").trim().replace(/^-\s*/, ""),
+		);
+		if (!m || (m[1] === "AND" && out.length === 0)) continue;
+		out.push(`    ${(m[1] ?? "")[0]}${(m[1] ?? "").slice(1).toLowerCase()} ${(m[2] ?? "").trim()}`);
+	}
+	const has = (k: string) => out.some((l) => l.trimStart().startsWith(k));
+	return has("When") && has("Then") ? out : [];
+}
+
 /** Each `[NEEDS CLARIFICATION: ...]` marker. */
 function markers(text: string) {
 	return text.split("\n").flatMap((l, i) =>
@@ -706,18 +724,20 @@ export function requirementRows(s: MockSpecs): RequirementRow[] {
 				capability: cap ?? "",
 				reference: `spec:${cap}#${r.id}`,
 				title: r.title,
+				steps: stepsOf(text, r.line),
 			})),
 		)
 		.filter((r) => !seen.has(r.reference) && !!seen.add(r.reference))
-		.map((r) => ({
+		.map(({ steps, ...r }) => ({
 			...r,
+			detailed: steps.length > 0,
 			scenarios: scenarios
 				.filter((b) => b.refs.includes(r.reference))
 				.map((b) => ({ plan: b.plan, scenario: b.scenario, line: b.line, verdict: b.verdict })),
 		}));
 }
 
-/** One stub for each requirement of the capability that no scenario cites. */
+/** One scenario, with the steps of the requirement, for each requirement that no scenario cites and that has such text. */
 export function testplanGenerate(s: MockSpecs, cap: string, click: boolean): GeneratedPlan {
 	if (!click) throw "this change needs the click of a person";
 	const rows = requirementRows(s).filter((r) => r.capability === cap);
@@ -726,11 +746,20 @@ export function testplanGenerate(s: MockSpecs, cap: string, click: boolean): Gen
 	const missing = coverage(s, cap);
 	if (missing.length === 0) return { path, added: 0 };
 	const stubs = missing
-		.map((ref) => {
-			const title = rows.find((r) => r.reference === ref)?.title ?? "";
-			return `\n  @${ref}\n  Scenario: ${title}\n    Given the context of the requirement\n    When the user acts\n    Then the requirement holds\n`;
+		.flatMap((ref) => {
+			const row = rows.find((r) => r.reference === ref);
+			const steps = Object.entries(s.files)
+				.filter(([p]) => p.includes(`/specs/${cap}/spec.md`) && !p.includes("/archive/"))
+				.flatMap(([, f]) =>
+					requirements(f.text)
+						.filter((r) => `spec:${cap}#${r.id}` === ref)
+						.map((r) => stepsOf(f.text, r.line)),
+				)
+				.find((x) => x.length > 0);
+			return row && steps ? [`\n  @${ref}\n  Scenario: ${row.title}\n${steps.join("\n")}\n`] : [];
 		})
 		.join("");
+	if (stubs === "") return { path, added: 0 };
 	const old = s.files[path]?.text;
 	const base = old === undefined ? `Feature: ${cap}\n` : old.endsWith("\n") ? old : `${old}\n`;
 	putText(
@@ -740,7 +769,7 @@ export function testplanGenerate(s: MockSpecs, cap: string, click: boolean): Gen
 		old === undefined ? null : (s.files[path]?.stamp ?? null),
 		old === undefined,
 	);
-	return { path, added: missing.length };
+	return { path, added: stubs.split("  Scenario:").length - 1 };
 }
 
 // ---------------------------------------------------------------- split

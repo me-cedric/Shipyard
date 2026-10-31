@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { PageExport } from "@/features/reports/page-export";
@@ -168,6 +169,9 @@ export function Estimates() {
 
 	const item = list.find((s) => s.slug === slug);
 	const totals = sheet?.totals;
+	// A sheet whose roles all lack a rate costs nothing only because no rate shows: say so, not 0.
+	const priced = (n: number | null) =>
+		totals?.unrated.length && !totals.cost ? e.unrated : money(n, currency, lang);
 	const dayOf = (id: string) => sheet?.days[id] ?? 0;
 	const byFeature = (sheet?.sheet.features ?? [])
 		.map((f) => ({ name: f.name, days: f.tasks.reduce((a, x) => a + dayOf(x.id), 0) }))
@@ -259,11 +263,11 @@ export function Estimates() {
 					className="px-4 pb-3 lg:grid-cols-5"
 					items={[
 						{ label: e.days, value: figure(totals.days, lang), tone: "accent" },
-						{ label: e.cost, value: money(totals.cost, currency, lang), tone: "info" },
-						{ label: e.price, value: money(totals.price, currency, lang), tone: "accent" },
+						{ label: e.cost, value: priced(totals.cost), tone: "info" },
+						{ label: e.price, value: priced(totals.price), tone: "accent" },
 						{
 							label: e.marginAmount,
-							value: money(totals.margin, currency, lang),
+							value: priced(totals.margin),
 							tone: (totals.margin ?? 0) < 0 ? "danger" : "success",
 						},
 						{
@@ -334,7 +338,10 @@ export function Estimates() {
 					{totals.unrated.length > 0 ? (
 						<p className="flex items-center gap-2 text-ui">
 							<StatusDot status="warning" label={e.unrated} />
-							{e.unrated}: {totals.unrated.join(", ")}
+							<Link to="/work/team" className="text-accent-text underline">
+								{e.unrated}
+							</Link>
+							: {totals.unrated.join(", ")}
 						</p>
 					) : null}
 				</div>

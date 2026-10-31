@@ -78,8 +78,7 @@ impl AppState {
     }
 
     /// A state over given connections, with no background sync thread and fake runners. A test
-    /// ticks and pumps by hand.
-    #[cfg(test)]
+    /// ticks and pumps by hand. The live tests (`tests/live_github.rs`) use it too.
     pub fn with_connections(dir: PathBuf, connections: Arc<Connections>) -> Self {
         Self::with_agents(
             dir,
@@ -89,7 +88,6 @@ impl AppState {
     }
 
     /// `with_connections` with the runner port that the test gives, to read what it started.
-    #[cfg(test)]
     pub fn with_agents(
         dir: PathBuf,
         connections: Arc<Connections>,

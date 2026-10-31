@@ -45,6 +45,11 @@ describe("the error contract", () => {
 		expect(classify("the title needs a letter or a digit: !!").code).toBe("title_invalid");
 		// A forge outage never reads the tracker again.
 		expect(classify("network error: refused")).toEqual({ code: "forge_unreachable", action: null });
+		// A proxy that the OS trusts: a plain sentence and the setting that fixes it, not the raw text.
+		expect(classify("network error: invalid peer certificate: UnknownIssuer")).toEqual({
+			code: "cert_untrusted",
+			action: { kind: "setting", target: "certificate" },
+		});
 		expect(classify("the terminal app is not installed: Kitty")).toEqual({
 			code: "terminal_gone",
 			action: { kind: "setting", target: "terminalApp" },

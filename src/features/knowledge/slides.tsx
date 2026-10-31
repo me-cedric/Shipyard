@@ -3,10 +3,12 @@ import { lazy, Suspense, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { DOC_DIR, useDocFile, useDocList, useSlideTheme } from "@/lib/knowledge";
+import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
-import { PlayIcon, PlusIcon, PresentationChartIcon } from "@/ui/icons";
+import { BookOpenIcon, PencilIcon, PlayIcon, PlusIcon, PresentationChartIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { MenuButton } from "@/ui/molecules/menu-button";
+import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
 import { ListTab } from "./list-tab";
 import { costingSlide, planningSlide } from "./work-slides";
@@ -25,6 +27,8 @@ function DeckEditor({ path, title }: { path: string; title: string }) {
 	const file = useDocFile(path);
 	const theme = useSlideTheme().data?.value;
 	const [present, setPresent] = useState(false);
+	// A deck opens to read: the slides alone. Edit adds the text beside them.
+	const [mode, setMode] = useState<"read" | "edit">("read");
 	// The Rust parser splits the slides: the app holds no copy of the rule.
 	const deck = useQuery({
 		queryKey: ["knowledge", "deck", file.text],
@@ -60,6 +64,15 @@ function DeckEditor({ path, title }: { path: string; title: string }) {
 			refId={`doc:${path}`}
 			actions={
 				<>
+					<ViewTabs
+						label={k.handbook.mode}
+						value={mode}
+						onValueChange={setMode}
+						tabs={[
+							{ value: "read", label: k.handbook.read, icon: <BookOpenIcon size={12} /> },
+							{ value: "edit", label: k.handbook.edit, icon: <PencilIcon size={12} /> },
+						]}
+					/>
 					<MenuButton
 						label={x.add}
 						icon={<PlusIcon size={14} />}
@@ -90,8 +103,15 @@ function DeckEditor({ path, title }: { path: string; title: string }) {
 			labels={k.editor}
 		>
 			<Suspense fallback={null}>
-				<div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-1 gap-3">
-					<CodeEditor label={k.editor.text} value={file.text} onChange={file.setText} />
+				<div
+					className={cn(
+						"grid min-h-0 flex-1 grid-rows-1 gap-3",
+						mode === "edit" ? "grid-cols-2" : "grid-cols-1",
+					)}
+				>
+					{mode === "edit" ? (
+						<CodeEditor label={k.editor.text} value={file.text} onChange={file.setText} />
+					) : null}
 					{theme ? (
 						<div className="min-h-0 overflow-auto">
 							<SlideDeck

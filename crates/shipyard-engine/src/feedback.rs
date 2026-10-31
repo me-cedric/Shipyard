@@ -122,6 +122,27 @@ impl Inner {
 
     fn feedback(&mut self, run_id: &str, number: u64, event: PrEventKind) {
         let (note, threads) = self.gather(run_id, number, event);
+        self.feedback_note(run_id, note, threads);
+    }
+
+    /// A person sends the pull request back with a text, when the forge refuses a review that asks
+    /// for changes (the author reviews their own pull request): the same round starts, with the text.
+    pub(crate) fn send_back(&mut self, number: u64, text: &str) {
+        let ids: Vec<String> = self
+            .runs
+            .values()
+            .filter(|r| r.pr == Some(number) && !r.run.state.is_final())
+            .map(|r| r.id.clone())
+            .collect();
+        for id in ids {
+            let event = json!({"number": number, "event": "ChangesRequested"});
+            self.log(&id, None, kind::PR, event);
+            let note = format!("A reviewer asks for changes:\n{}", fence("review", text));
+            self.feedback_note(&id, note, Vec::new());
+        }
+    }
+
+    fn feedback_note(&mut self, run_id: &str, note: String, threads: Vec<String>) {
         let rec = self.rec(run_id);
         for t in threads {
             if !rec.d.threads.contains(&t) {

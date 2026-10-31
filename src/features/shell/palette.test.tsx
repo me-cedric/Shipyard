@@ -85,3 +85,45 @@ describe("project actions of the palette", () => {
 		expect(screen.queryByRole("option", { name: /^Close project/ })).toBeNull();
 	});
 });
+
+describe("palette pages and tickets", () => {
+	it("lists a go action for a tab", async () => {
+		const user = userEvent.setup();
+		mountApp("/home");
+		await openPalette(user);
+		expect(await screen.findByRole("option", { name: "Specs / Questions" })).toBeVisible();
+	});
+
+	it("finds a ticket by its key", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const item = { key: "ACME-7", title: "Pay the invoice", status: "To do" };
+		mockState().sync.mirror.push(item as never);
+		mountApp("/home/inbox");
+		await openPalette(user);
+		await user.keyboard("ACME-7");
+		expect(await screen.findByRole("option", { name: /^wi:ACME-7 Pay the invoice/ })).toBeVisible();
+	});
+
+	it("opens the page of a ref, selects it, and drops it when the view changes", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const router = mountApp("/home/inbox");
+		await openPalette(user);
+		await user.keyboard("adr:0004{Enter}");
+		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
+		expect(await within(inspector).findByRole("button", { name: /^adr:0004/ })).toBeVisible();
+		await waitFor(() => expect(router.state.location.pathname).toBe("/design/decisions"));
+		// The page opens on the record, not on its first item.
+		const decisions = await screen.findByRole("list", { name: "Decisions" });
+		expect(await within(decisions).findByRole("button", { name: /0004/ })).toHaveAttribute(
+			"aria-current",
+			"true",
+		);
+		expect(within(inspector).getByRole("button", { name: /^adr:0004/ })).toBeVisible();
+		await router.navigate({ to: "/specs/questions" });
+		await waitFor(() =>
+			expect(within(inspector).queryByRole("button", { name: /^adr:0004/ })).toBeNull(),
+		);
+	});
+});

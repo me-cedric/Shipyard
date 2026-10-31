@@ -10,7 +10,7 @@ pub mod certs;
 pub mod close_guard;
 pub mod code;
 pub mod codex_trust;
-mod commands;
+pub mod commands;
 pub mod connections;
 pub mod costing;
 pub mod delivery;

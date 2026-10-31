@@ -18,3 +18,15 @@ export function useFormIntent(form: string, open: () => void, ready = true) {
 		latest.current();
 	}, [form, ready]);
 }
+
+/** `useFormIntent` for a form named `prefix` + `rest`, such as `member:ada`: `open` gets `rest`. */
+export function useFormIntentFor(prefix: string, open: (rest: string) => void, ready = true) {
+	const latest = useRef(open);
+	latest.current = open;
+	useEffect(() => {
+		if (!ready || !pending?.startsWith(prefix)) return;
+		const rest = pending.slice(prefix.length);
+		pending = null;
+		latest.current(rest);
+	}, [prefix, ready]);
+}

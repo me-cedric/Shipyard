@@ -58,16 +58,33 @@ describe("Design / Decisions", () => {
 		expect(await row(/0003/)).toHaveTextContent("Accepted");
 	});
 
-	it("asks for a comment on a reject with none, and keeps the status proposed", async () => {
+	it("marks the comment as required, keeps both buttons off until it has text, then rejects", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Decisions />);
 		await user.click(await row(/0003/));
-		await user.click(await screen.findByRole("button", { name: "Reject" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("A comment is required");
+		const box = await screen.findByRole("textbox", { name: "Comment" });
+		expect(box).toHaveAttribute("aria-required", "true");
+		expect(screen.getByRole("button", { name: "Reject" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Accept" })).toBeDisabled();
 		expect(files()[ADR3]?.text).toContain("status: proposed");
-		await user.type(screen.getByRole("textbox", { name: "Comment" }), "Too early");
+		await user.type(box, "Too early");
 		await user.click(screen.getByRole("button", { name: "Reject" }));
 		await waitFor(() => expect(files()[ADR3]?.text).toContain("status: rejected"));
+	});
+
+	it("marks a decision that no spec cites, and the Unused filter keeps only those", async () => {
+		const user = userEvent.setup();
+		await mountDesign(<Decisions />);
+		const all = (await screen.findAllByRole("button", { name: /^\d{4}/ })).length;
+		const marked = (await screen.findAllByText("Unused", { selector: "span" })).filter(
+			(e) => e.closest("li") !== null,
+		);
+		expect(marked.length).toBeGreaterThan(0);
+		expect(marked.length).toBeLessThan(all);
+		await user.click(screen.getByRole("button", { name: "Unused", pressed: false }));
+		await waitFor(() =>
+			expect(screen.getAllByRole("button", { name: /^\d{4}/ })).toHaveLength(marked.length),
+		);
 	});
 
 	it("keeps the ref when the title changes", async () => {

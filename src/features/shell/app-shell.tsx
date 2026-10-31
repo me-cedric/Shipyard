@@ -33,6 +33,7 @@ function Frame() {
 		setInspectorOpen,
 		selectedRef,
 		openRef,
+		viewChanged,
 		detail,
 		closeDetail,
 		commitOpen,
@@ -77,10 +78,11 @@ function Frame() {
 	}, [prefill, assistantOpen, current, setDraft, clearPrefill]);
 	const open = useRef(detail);
 	open.current = detail;
-	// biome-ignore lint/correctness/useExhaustiveDependencies: only a change of view closes the detail
+	// A change of view closes the detail and drops the selection of the view that it leaves.
 	useEffect(() => {
 		if (open.current) closeDetail();
-	}, [path, closeDetail]);
+		viewChanged(path);
+	}, [path, closeDetail, viewChanged]);
 	const toggle = list.find((a) => a.id === "toggle-sidebar");
 	if (!toggle) throw new Error("Missing action: toggle-sidebar");
 	return (

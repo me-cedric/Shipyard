@@ -1,12 +1,15 @@
 import { type ReactNode, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useFile, useSpecsActions } from "@/lib/specs";
+import { BookOpenIcon, PencilIcon } from "@/ui/icons";
 import { CodeEditor, type Token } from "@/ui/molecules/code-editor";
+import { RefChip } from "@/ui/molecules/ref-chip";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { DocForm } from "@/ui/organisms/doc-form";
 import { sections } from "@/ui/organisms/doc-parts";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
 import { type EditorError, errorLine } from "@/ui/organisms/error-line";
+import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { useGuard } from "./guard";
 
 /** The status values of a spec. The value in the file is always offered too. */
@@ -16,7 +19,8 @@ const SPEC_STATUSES = ["Draft", "Review", "Approved"];
  * One file in the `EditorFrame`. A save sends the stamp that the person opened. When the file
  * changed on disk, nothing is written and the person reloads or keeps the own text (REQ-023).
  * A `missing` file starts empty and its first save creates it. With `form`, a markdown file opens
- * in a form; the text view is the other choice, and both edit the same text.
+ * in a form; the text view is the other choice, and both edit the same text. With `read`, the file
+ * opens as a page to read, and Edit switches to the editor.
  */
 export function FileEditor({
 	path,
@@ -28,6 +32,7 @@ export function FileEditor({
 	line,
 	highlight,
 	form,
+	read,
 	children,
 }: {
 	path: string;
@@ -42,6 +47,8 @@ export function FileEditor({
 	highlight?: (line: string) => Token[];
 	/** Open in the section form, with the text view as the other choice. */
 	form?: boolean;
+	/** Open as a page to read, with an Edit switch. */
+	read?: boolean;
 	children?: ReactNode;
 }) {
 	const { t } = useI18n();
@@ -53,6 +60,7 @@ export function FileEditor({
 	// The stamp when the edit started: a later read must not replace it.
 	const [opened, setOpened] = useState<string | null>(null);
 	const [view, setView] = useState<"form" | "text">(form ? "form" : "text");
+	const [mode, setMode] = useState<"read" | "edit">(read ? "read" : "edit");
 	// A picked line shows in the text view: the form has no line numbers.
 	const [seen, setSeen] = useState(line);
 	if (line !== seen) {
@@ -80,6 +88,33 @@ export function FileEditor({
 			setDisk(null);
 		});
 
+	const k = t.knowledge.handbook;
+	const modes = read ? (
+		<ViewTabs
+			label={k.mode}
+			value={mode}
+			onValueChange={setMode}
+			tabs={[
+				{ value: "read", label: k.read, icon: <BookOpenIcon size={12} /> },
+				{ value: "edit", label: k.edit, icon: <PencilIcon size={12} /> },
+			]}
+		/>
+	) : null;
+	if (mode === "read")
+		return (
+			<div className="flex min-h-0 flex-1 flex-col gap-3">
+				<div className="flex items-center gap-2">
+					<RefChip refId={refId} state="resolved" />
+					<span className="flex-1" />
+					{modes}
+				</div>
+				<div className="min-h-0 flex-1 overflow-auto">
+					<div className="mx-auto max-w-[680px] pb-4">
+						<MarkdownView source={text} label={title} reading />
+					</div>
+				</div>
+			</div>
+		);
 	return (
 		<EditorFrame
 			title={title}
@@ -87,6 +122,7 @@ export function FileEditor({
 			actions={
 				formed ? (
 					<>
+						{modes}
 						<ViewTabs
 							label={t.editing.view.label}
 							value={view}
@@ -99,7 +135,10 @@ export function FileEditor({
 						{actions}
 					</>
 				) : (
-					actions
+					<>
+						{modes}
+						{actions}
+					</>
 				)
 			}
 			primary={{

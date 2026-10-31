@@ -119,6 +119,23 @@ describe("Work / Plan", () => {
 		).toBeInTheDocument();
 	});
 
+	it("links a capacity warning to the member in Work / Team", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const router = mountApp("/work/plan");
+		await bars();
+		const warnings = await screen.findByRole("region", { name: "Warnings" });
+		await user.click(
+			within(warnings).getAllByRole("link", {
+				name: /is over capacity on \d+ days/,
+			})[0] as HTMLElement,
+		);
+		await waitFor(() => expect(router.state.location.pathname).toBe("/work/team"));
+		// The member opens in the inspector: the capacity is there to change.
+		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
+		await waitFor(() => expect(within(inspector).getByLabelText(/Capacity/)).toBeInTheDocument());
+	});
+
 	it("takes the public holidays of the country of the calendar, France by default", async () => {
 		const user = userEvent.setup();
 		await withTracker();

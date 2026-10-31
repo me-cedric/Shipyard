@@ -65,7 +65,7 @@ describe("Specs / Questions", () => {
 		]);
 	});
 
-	it("refuses an unknown kind, an unknown status and a duplicate id, and writes nothing", async () => {
+	it("refuses a duplicate id and writes nothing", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<Questions />);
 		const before = Object.keys(files()).length;
@@ -75,17 +75,24 @@ describe("Specs / Questions", () => {
 		await fill(user, "Id", "Q-012");
 		await user.click(dialog.getByRole("button", { name: "Save" }));
 		expect(await dialog.findByRole("alert")).toHaveTextContent("duplicate id Q-012");
-		await fill(user, "Id", "");
-		await fill(user, "Kind", "bogus");
-		await user.click(dialog.getByRole("button", { name: "Save" }));
-		await waitFor(() => expect(dialog.getByRole("alert")).toHaveTextContent("unknown kind: bogus"));
-		await fill(user, "Kind", "risk");
-		await fill(user, "Status", "nope");
-		await user.click(dialog.getByRole("button", { name: "Save" }));
-		await waitFor(() =>
-			expect(dialog.getByRole("alert")).toHaveTextContent("unknown status: nope"),
-		);
 		expect(Object.keys(files())).toHaveLength(before);
+	});
+
+	it("takes the status from a menu, and answered asks for the answer", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<Questions />);
+		await user.click(await screen.findByRole("button", { name: /^Q-020/ }));
+		const dialog = within(await screen.findByRole("dialog"));
+		expect(dialog.queryByLabelText("Answer")).toBeNull();
+		await waitFor(() => expect(dialog.getByRole("button", { name: "Save" })).toBeEnabled());
+		await pick(user, "Status", "answered");
+		const answer = await dialog.findByLabelText("Answer");
+		await waitFor(() => expect(answer).toHaveFocus());
+		expect(dialog.getByRole("button", { name: "Save" })).toBeDisabled();
+		await user.type(answer, "Use labels");
+		await user.click(dialog.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(files()[`${QDIR}/Q-020.md`]?.text).toContain("status: answered"));
+		expect(files()[`${QDIR}/Q-020.md`]?.text.trimEnd().endsWith("Use labels")).toBe(true);
 	});
 
 	it("saves the changed owner of a question", async () => {

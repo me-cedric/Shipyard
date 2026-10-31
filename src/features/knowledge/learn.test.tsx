@@ -22,6 +22,17 @@ describe("Knowledge / Learn", () => {
 		expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
 	});
 
+	it("opens a step from its title, not only from its chip", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("learn");
+		const { path } = await unwrap(commands.learnGet());
+		const step = path[0];
+		if (!step) throw new Error("no step");
+		const list = await screen.findByRole("list", { name: "Path" });
+		await user.click(await within(list).findByRole("button", { name: step.title }));
+		await waitFor(async () => expect(await inspector()).toHaveTextContent(step.ref));
+	});
+
 	it("shows the glossary with a count, and a term opens the spec that defines it", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("learn");

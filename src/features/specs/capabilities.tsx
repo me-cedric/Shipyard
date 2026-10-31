@@ -15,16 +15,39 @@ import { CodeEditor } from "@/ui/molecules/code-editor";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { LIST, useEnter } from "@/ui/motion";
 import { DataTable } from "@/ui/organisms/data-table";
+import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { WithProject } from "./no-project";
 
 const FILES = ["spec", "plan", "checklist", "tasks"] as const;
 
-/** One file of a settled capability, read only. */
+/** One file of a settled capability, read only: a page to read, and its text as the other view. */
 function CapabilityFile({ path, name }: { path: string; name: string }) {
+	const { t } = useI18n();
 	const file = useFile(path);
+	const [raw, setRaw] = useState(false);
+	const text = file.data?.text ?? "";
 	return (
-		<CodeEditor label={name} value={file.data?.text ?? ""} readOnly className="min-h-0 flex-1" />
+		<>
+			<ViewTabs
+				label={t.knowledge.handbook.mode}
+				value={raw ? "text" : "read"}
+				onValueChange={(v) => setRaw(v === "text")}
+				tabs={[
+					{ value: "read", label: t.knowledge.handbook.read, icon: <BookOpenIcon size={12} /> },
+					{ value: "text", label: t.editing.view.text },
+				]}
+			/>
+			{raw ? (
+				<CodeEditor label={name} value={text} readOnly className="min-h-0 flex-1" />
+			) : (
+				<div className="min-h-0 flex-1 overflow-auto">
+					<div className="mx-auto max-w-[680px] pb-4">
+						<MarkdownView source={text} label={name} reading />
+					</div>
+				</div>
+			)}
+		</>
 	);
 }
 

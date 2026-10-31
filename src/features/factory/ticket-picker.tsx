@@ -14,6 +14,7 @@ export function TicketPicker({
 	value,
 	onChange,
 	onSubmit,
+	skip,
 	ref,
 	className,
 }: {
@@ -22,6 +23,8 @@ export function TicketPicker({
 	value: string;
 	onChange: (key: string) => void;
 	onSubmit: () => void;
+	/** Keys that the list leaves out: a ticket that has a run. A typed key still goes on. */
+	skip?: ReadonlySet<string>;
 	ref?: Ref<HTMLInputElement>;
 	className?: string;
 }) {
@@ -35,11 +38,13 @@ export function TicketPicker({
 	const options = useMemo(() => {
 		const count = new Map<string, number>();
 		for (const i of items ?? []) count.set(i.title, (count.get(i.title) ?? 0) + 1);
-		return (items ?? []).map((i) => ({
-			key: i.key,
-			text: (count.get(i.title) ?? 0) > 1 ? `${i.title} (${i.key})` : i.title,
-		}));
-	}, [items]);
+		return (items ?? [])
+			.filter((i) => !skip?.has(i.key))
+			.map((i) => ({
+				key: i.key,
+				text: (count.get(i.title) ?? 0) > 1 ? `${i.title} (${i.key})` : i.title,
+			}));
+	}, [items, skip]);
 	return (
 		<>
 			<Input

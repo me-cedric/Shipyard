@@ -55,6 +55,20 @@ describe("tab names", () => {
 		expect(SPACES.settings).not.toContain("team");
 	});
 
+	it("opens Specs on the Test plans for a tester", async () => {
+		mockState().prefs.role = "qa";
+		const router = mountApp("/specs");
+		await waitFor(() => expect(router.state.location.pathname).toBe("/specs/test-plans"));
+	});
+
+	it("lets the tabs wrap, so a narrow main view cuts none off", async () => {
+		mountApp("/code/changes");
+		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+		await within(tabs).findByRole("link", { name: "Terminal" });
+		expect(tabs.firstElementChild).toHaveClass("flex-wrap");
+		expect(tabs).not.toHaveClass("overflow-x-auto");
+	});
+
 	it("gives each tab a name that no other space uses", () => {
 		const names = SPACE_IDS.flatMap((s) =>
 			SPACES[s].map((tab) => (en.tabs[s] as Record<string, string>)[tab]),
