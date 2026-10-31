@@ -498,6 +498,7 @@ function PullRequestsView() {
 									<PullRow
 										key={r.reference}
 										reference={`#${r.number}`}
+										ask={r.reference}
 										title={r.title}
 										draft={r.draft ? t.forge.draft : undefined}
 										ci={CI_STATUS[r.ci] ?? "idle"}

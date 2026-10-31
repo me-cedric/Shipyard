@@ -11,6 +11,7 @@ import {
 	type Entry,
 	type PlanRow,
 	type Question,
+	type RequirementRow,
 	type SpecFinding_Serialize,
 	type SpecView_Serialize,
 	type SplitPreview_Serialize,
@@ -25,6 +26,7 @@ export type Capability = CapabilityRow;
 export type SpecView = SpecView_Serialize;
 export type QuestionEntry = Entry;
 export type Plan = PlanRow;
+export type Requirement = RequirementRow;
 export type Draft = Draft_Serialize;
 export type SplitItem = Draft_Serialize["items"][number];
 export type Preview = SplitPreview_Serialize;
@@ -154,6 +156,13 @@ export const useQuestions = () =>
 export const useBdd = () =>
 	useQuery({ queryKey: [...specsKeys.all, "bdd"], queryFn: () => unwrap(commands.specsBdd()) });
 
+/** Each requirement with the scenarios that cite it. */
+export const useRequirements = () =>
+	useQuery({
+		queryKey: [...specsKeys.all, "requirements"],
+		queryFn: () => unwrap(commands.specsRequirements()),
+	});
+
 export const useTestPlans = () =>
 	useQuery({ queryKey: specsKeys.plans, queryFn: () => unwrap(commands.specsTestplans()) });
 
@@ -281,6 +290,7 @@ export function useSpecsActions() {
 			createQuestion: (q: Question) => run(commands.specsQuestionCreate(q)),
 			fold: (path: string, id: string, answer: string, stamp: string) =>
 				run(commands.specsFold(path, id, answer, stamp, true)),
+			generatePlan: (capability: string) => run(commands.specsTestplanGenerate(capability, true)),
 			saveSplit: (d: Draft_Deserialize) => run(commands.specsSplitSave(d)),
 			applySplit: (change: string) => run(commands.specsSplitApply(change, true)),
 			archive: (id: string, confirmed: boolean) => run(commands.specsArchive(id, confirmed)),

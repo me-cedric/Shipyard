@@ -24,7 +24,7 @@ const NO_FORGE = "the project names no forge connection";
 const CONNECTION = "github-demo";
 const METHODS: MergeMethod[] = ["merge", "squash", "rebase"];
 const LABELS = ["feat", "bug", "docs"];
-const CHECKS = ["pnpm test", "pnpm lint"];
+const CHECKS = ["pnpm test", "pnpm lint", "verify all docs"];
 const SCANNERS: [string, boolean][] = [
 	["secrets", true],
 	["dependencies", false],
@@ -310,6 +310,23 @@ function keep(p: MockPrs, r: QualityReport_Serialize) {
 export function checkRun(p: MockPrs, command: string, click: boolean): QualityReport_Serialize {
 	need(click);
 	if (!CHECKS.includes(command)) throw `\`${command}\` is not a check of this project`;
+	if (command === "verify all docs")
+		return keep(p, {
+			kind: "check",
+			name: command,
+			at: "2026-10-29T10:00:00Z",
+			passed: false,
+			durationMs: 900,
+			tail: "3 changes, 12 pages, 1 problems",
+			findings: [
+				{
+					severity: "medium",
+					path: "docs/handbook/start.md",
+					line: 3,
+					message: "broken link: gone.md",
+				},
+			],
+		});
 	return keep(p, {
 		kind: "check",
 		name: command,

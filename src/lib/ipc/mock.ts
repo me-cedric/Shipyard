@@ -66,6 +66,7 @@ import {
 	seedCode,
 } from "./mock-code";
 import * as cp from "./mock-code-prs";
+import * as cs from "./mock-compass-setup";
 import * as dv from "./mock-delivery";
 import * as deliveryActions from "./mock-delivery-actions";
 import * as design from "./mock-design";
@@ -74,10 +75,13 @@ import * as ex from "./mock-extensions";
 import * as fx from "./mock-factory";
 import * as fl from "./mock-feedback-log";
 import * as kw from "./mock-knowledge";
+import * as lrn from "./mock-learning";
 import * as mc from "./mock-machine";
+import * as mt from "./mock-mcp-tools";
 import { cards, chainGate, seedLinks, seedNotes } from "./mock-overview";
 import { parseRef } from "./mock-refs";
 import * as rp from "./mock-reports";
+import * as rv from "./mock-review";
 import { SUGGESTION, scopesOf, tokenPage } from "./mock-setup";
 import * as specs from "./mock-specs";
 import {
@@ -122,10 +126,14 @@ const NO_OVERRIDES: Overrides_Serialize = {
 	profileTabs: null,
 	hiddenTabs: null,
 	readOnly: null,
+	pageModes: null,
+	assignments: null,
 };
 
 type State = {
 	prefs: Prefs_Serialize;
+	/** The git e-mail of the person, for the profile assignment. */
+	email?: string | null;
 	projects: ProjectEntry_Serialize[];
 	files: Record<string, ProjectFile_Serialize>;
 	fixed: string[];
@@ -162,6 +170,8 @@ type State = {
 	assistant: ai.MockAssistant;
 	/** The handbook, documents, decks, dashboards and the code index of the Knowledge space. */
 	knowledge: kw.MockKnowledge;
+	/** The feeds, learning paths and progress of Knowledge / Learn. */
+	learning: lrn.MockLearning;
 	/** The compass entries, roles, catalog, plugin and child projects of the Extensions views. */
 	extensions: ex.MockExtensions;
 	/** The personas, the work split by profile and the tickets config. */
@@ -188,6 +198,8 @@ type State = {
 	closed: boolean;
 	/** Whether Codex trusts the project folder. */
 	codexTrusted: boolean;
+	/** The chain acknowledgements and the Word files. Seeded on first use. */
+	review?: rv.MockReview;
 };
 
 const RELEASE_URL = "https://api.github.com/repos/me-cedric/Shipyard/releases/latest";
@@ -230,6 +242,9 @@ const fresh = (): State => ({
 		terminalFontSize: 13,
 		defaultAgent: "",
 		defaultModel: "",
+		autoUpdateCheck: true,
+		promptLang: "",
+		diagramFormat: "",
 	},
 	projects: [],
 	files: {},
@@ -249,6 +264,7 @@ const fresh = (): State => ({
 	factory: fx.seedFactory(),
 	assistant: ai.seedAssistant(),
 	knowledge: kw.seedKnowledge(),
+	learning: lrn.seedLearning(),
 	extensions: ex.seedExtensions(),
 	delivery: dv.seedDelivery(),
 	deliveryActions: deliveryActions.seedDeliveryActions(),
@@ -316,8 +332,18 @@ function fileWrite(
 	to?: string,
 ) {
 	if (active()?.overrides.readOnly === true) throw "the profile of this project is read only";
+	if (
+		(kind === "rename" || kind === "delete") &&
+		rv.moveFile([state.specs.files, state.knowledge.files, review().docx], kind, path, to, click)
+	)
+		return null;
 	filesAction(code(), click, kind, path, to);
 	return null;
+}
+
+function review(): rv.MockReview {
+	state.review ??= rv.seedReview();
+	return state.review;
 }
 
 function code(): MockCode {
@@ -647,6 +673,9 @@ const handlers: Handlers = {
 		state.prefs.terminalFontSize = Math.min(24, Math.max(9, state.prefs.terminalFontSize));
 		// An app id is a-z, 0-9 and `-`.
 		state.prefs.terminalApp = state.prefs.terminalApp.trim().replace(/[^a-z0-9-]/g, "");
+		if (!["en", "fr"].includes(state.prefs.promptLang)) state.prefs.promptLang = "";
+		if (!["excalidraw", "mermaid", "drawio", "bpmn"].includes(state.prefs.diagramFormat))
+			state.prefs.diagramFormat = "";
 		// An empty chord resets its action.
 		state.prefs.shortcuts = Object.fromEntries(
 			Object.entries(state.prefs.shortcuts).filter(([, v]) => v.trim()),
@@ -747,9 +776,18 @@ const handlers: Handlers = {
 			profileTabs: o.profileTabs ?? null,
 			hiddenTabs: o.hiddenTabs ?? null,
 			readOnly: o.readOnly ?? null,
+			pageModes: o.pageModes ?? null,
+			assignments: o.assignments
+				? Object.fromEntries(
+						Object.entries(o.assignments)
+							.map(([e, r]) => [e.trim().toLowerCase(), r] as const)
+							.filter(([e]) => e.includes("@")),
+					)
+				: null,
 		};
 		return null;
 	},
+	profileEmailGet: () => state.email ?? null,
 	healthRun: () => (active() ? FINDINGS.filter((f) => !state.fixed.includes(f.id)) : []),
 	healthFix: (id, expected) => {
 		const f = FINDINGS.find((x) => x.id === id);
@@ -942,6 +980,10 @@ const handlers: Handlers = {
 		for (const s of state.agents.mcp) s.missing = s.missing.filter((d) => d.command !== command);
 		return `installed ${command}`;
 	},
+	mcpTest: (id) => mt.mcpTest(state.agents, id),
+	mcpTestAll: () => mt.mcpTestAll(state.agents),
+	mcpRecommended: () => mt.mcpRecommended(state.agents),
+	mcpRecommendedEnable: (click) => mt.mcpRecommendedEnable(state.agents, click),
 	machineSessions: () => state.machine.sessions,
 	machineSessionStop: (pid, click) => {
 		if (!click) throw "this change needs the click of a person";
@@ -1369,6 +1411,17 @@ const handlers: Handlers = {
 	pluginSetEnabled: (name, on, click) =>
 		ex.pluginSetEnabled(need(state.extensions), name, on, click),
 	pluginRemove: (name, click) => ex.pluginRemove(need(state.extensions), name, click),
+	pluginSettingsGet: (name) => ex.pluginSettingsGet(need(state.extensions), name),
+	pluginSettingsSave: (name, values, click) =>
+		ex.pluginSettingsSave(need(state.extensions), name, values, click),
+	compassExternal: () => cs.compassExternal(need(state.extensions).setup),
+	compassExternalRefresh: (click) => cs.compassExternalRefresh(need(state.extensions).setup, click),
+	compassExternalReinstall: (id, click) =>
+		cs.compassExternalReinstall(need(state.extensions).setup, id, click),
+	compassContractInstall: (click) => cs.compassContractInstall(need(state.extensions).setup, click),
+	compassObjectives: () => cs.compassObjectives(need(state.extensions).setup),
+	compassObjectiveApply: (id, click) =>
+		cs.compassObjectiveApply(need(state.extensions).setup, id, click),
 	autoCommitGet: () => state.autoCommit,
 	autoCommitSet: (on) => {
 		state.autoCommit = on;
@@ -1416,6 +1469,14 @@ const handlers: Handlers = {
 		kw.dashboardSave(need(state.knowledge), slug, dashboard, stamp),
 	dashboardTile: (kind) => kw.dashboardTile(knowledgeEnv(), kind),
 	learnGet: () => kw.learnGet(knowledgeEnv()),
+	learningGet: () => lrn.learningGet(need(state.learning)),
+	learningFeedsRead: () => lrn.feedsRead(need(state.learning)),
+	learningFeedAdd: (url, click) => lrn.feedAdd(need(state.learning), url, click),
+	learningFeedRemove: (url, click) => lrn.feedRemove(need(state.learning), url, click),
+	learningPathSave: (path, click) => lrn.pathSave(need(state.learning), path, click),
+	learningPathDelete: (id, click) => lrn.pathDelete(need(state.learning), id, click),
+	learningProgressSet: (person, step, done, click) =>
+		lrn.progressSet(need(state.learning), person, step, done, click),
 	exportDossierFile: (text, views, path) =>
 		kw.exportDossier(need(state.knowledge), text, views, path),
 	exportFunctionalFile: (text, path) => kw.exportFunctional(need(state.knowledge), text, path),
@@ -1599,10 +1660,31 @@ const handlers: Handlers = {
 		const c = codeStatus(code());
 		return {
 			base: "main",
-			warnings: chainGate([...c.staged, ...c.unstaged, ...c.untracked].map((f) => f.path)),
+			warnings: rv.withAcks(
+				review(),
+				chainGate([...c.staged, ...c.unstaged, ...c.untracked].map((f) => f.path)),
+			),
 		};
 	},
-	codeChainGate: (push) => chainGate(push ? [] : codeStatus(code()).staged.map((f) => f.path)),
+	codeChainGate: (push) =>
+		rv
+			.withAcks(review(), chainGate(push ? [] : codeStatus(code()).staged.map((f) => f.path)))
+			.filter((w) => !w.ack),
+	codeChainAck: (_base, from, to, reason, click) => {
+		const c = codeStatus(code());
+		const changed = [...c.staged, ...c.unstaged, ...c.untracked].map((f) => f.path);
+		return rv.chainAck(review(), chainGate(changed), from, to, reason, click);
+	},
+	codeChainAckWithdraw: (from, to, click) => rv.chainAckWithdraw(review(), from, to, click),
+	codeCoverage: () => rv.coverage(),
+	docSearch: (query) => rv.docSearch(need(state.knowledge).files, query),
+	docDocxList: () => rv.docxList(review()),
+	docDocxRead: (path) => rv.docxRead(review(), path),
+	specsRequirements: () => specs.requirementRows(need(state.specs)),
+	specsTestplanGenerate: (capability, click) =>
+		specs.testplanGenerate(need(state.specs), capability, click),
+	applyRunRows: (slugs, rows, click) =>
+		needTracker(() => work.applyRunRows(need(state.work), slugs, rows, click)),
 	projectImport: () => ({ copied: [], skipped: [], conflicts: [] }),
 };
 

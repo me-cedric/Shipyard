@@ -1,5 +1,6 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import { type ComponentType, useEffect, useMemo } from "react";
+import { openManualFor } from "@/features/knowledge/manual-target";
 import { canCommit, useChanges, useCodeActions } from "@/lib/code";
 import { format, type Lang, useI18n } from "@/lib/i18n";
 import { commands, errorDialog, unwrap } from "@/lib/ipc";
@@ -76,6 +77,7 @@ export function useActions() {
 	const { t, setLang } = useI18n();
 	const { role, sidebarOpen, setPrefs, profile, theme } = usePrefs();
 	const navigate = useNavigate();
+	const router = useRouter();
 	const shell = useShell();
 	const { openFolder, close } = useProjectActions();
 	const hasProject = Boolean(useActiveProject().data);
@@ -179,6 +181,16 @@ export function useActions() {
 			label: t.menu.updateCheck,
 			Icon: ArrowDownTrayIcon,
 			run: () => void checkUpdate(true),
+		};
+		// The manual opens at the section of the tab that the person is on.
+		const manual: Action = {
+			id: "manual",
+			label: t.knowledge.manual.open,
+			Icon: BookOpenIcon,
+			run: () => {
+				openManualFor(router.state.location.pathname);
+				void navigate({ to: "/knowledge/manual" });
+			},
 		};
 		const whatsNew: Action = {
 			id: "whats-new",
@@ -286,6 +298,7 @@ export function useActions() {
 			commit,
 			updateCheck,
 			whatsNew,
+			manual,
 		];
 		return { list, sync: syncAction, commit, assistant, palette, files, terminal };
 	}, [
@@ -296,6 +309,7 @@ export function useActions() {
 		assistantOpen,
 		setAssistantOpen,
 		navigate,
+		router,
 		setPrefs,
 		setLang,
 		setInspectorOpen,

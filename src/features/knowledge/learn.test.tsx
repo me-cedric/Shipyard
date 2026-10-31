@@ -35,3 +35,67 @@ describe("Knowledge / Learn", () => {
 		await waitFor(async () => expect(await inspector()).toHaveTextContent(term.spec));
 	});
 });
+
+describe("Knowledge / Learn: paths and feeds", () => {
+	it("ticks a step for the picked person and shows the progress of the team", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("learn");
+		const path = await screen.findByRole("region", { name: "Onboarding" });
+		const steps = within(path).getByRole("list", { name: "Steps" });
+		const exam = within(steps).getByRole("checkbox", { name: "Done: Cloud certification" });
+		expect(exam).not.toBeChecked();
+		await user.click(exam);
+		await waitFor(() =>
+			expect(
+				within(steps).getByRole("checkbox", { name: "Done: Cloud certification" }),
+			).toBeChecked(),
+		);
+		const { progress } = await unwrap(commands.learningGet());
+		expect(progress.ada).toContain("onboarding/cloud-certification");
+		const table = await screen.findByRole("table");
+		const ada = within(table).getByRole("row", { name: /Ada Lovelace/ });
+		expect(ada).toHaveTextContent("3/3");
+		expect(within(path).getByRole("list", { name: "Experts" })).toHaveTextContent("Ada Lovelace");
+	});
+
+	it("creates a path with a course from the form", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("learn");
+		await user.click(await screen.findByRole("button", { name: "New path" }));
+		const form = await screen.findByRole("form", { name: "New path" });
+		await user.type(within(form).getByRole("textbox", { name: "Path name" }), "Rust basics");
+		await user.type(within(form).getByRole("textbox", { name: "Step name" }), "The book");
+		await user.click(within(form).getByRole("checkbox", { name: "Expert Grace Hopper" }));
+		await user.click(within(form).getByRole("button", { name: "Save path" }));
+		const path = await screen.findByRole("region", { name: "Rust basics" });
+		expect(within(path).getByText("The book")).toBeInTheDocument();
+		const saved = (await unwrap(commands.learningGet())).paths.find((p) => p.id === "rust-basics");
+		expect(saved?.experts).toEqual(["grace"]);
+		expect(saved?.steps[0]?.id).toBe("the-book");
+	});
+
+	it("subscribes to a feed and shows its items as text; a page that is no feed shows its error", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("learn");
+		const feeds = await screen.findByRole("heading", { name: /^Feeds/ });
+		expect(feeds).toBeInTheDocument();
+		expect(
+			await screen.findByRole("region", { name: "News of blog.example.com" }),
+		).toHaveTextContent("Release notes 2.0");
+		await user.type(
+			screen.getByRole("textbox", { name: "Feed address" }),
+			"https://broken.example.com/x",
+		);
+		await user.click(screen.getByRole("button", { name: "Subscribe" }));
+		const bad = await screen.findByRole("region", { name: "https://broken.example.com/x" });
+		expect(await within(bad).findByRole("alert")).toHaveTextContent(
+			"This address does not give a news feed",
+		);
+		await user.click(
+			within(bad).getByRole("button", { name: "Unsubscribe from https://broken.example.com/x" }),
+		);
+		await waitFor(() =>
+			expect(screen.queryByRole("region", { name: "https://broken.example.com/x" })).toBeNull(),
+		);
+	});
+});

@@ -189,7 +189,29 @@ export function useDesignActions() {
 /** The rows of a flow file. A text that does not parse gives no row and its error. */
 export function parseFlows(text: string): { rows: FlowRow[]; error: string | null } {
 	try {
-		const v = YAML.parse(text) as { rows?: FlowRow[] } | null;
+		const v = YAML.parse(text) as { rows?: FlowRow[]; flows?: Record<string, string>[] } | null;
+		// The JSON form: one flow per entry, named, with its bricks and its subnet.
+		if (Array.isArray(v?.flows))
+			return {
+				rows: v.flows.map((f, i) => {
+					const s = (k: string) => (typeof f[k] === "string" ? f[k] : "");
+					return {
+						id: i + 1,
+						source: s("source"),
+						destination: s("destination"),
+						network: s("vlan") || s("subnet"),
+						protocol: s("protocol"),
+						port: s("ports") || undefined,
+						action: s("action").toLowerCase() === "deny" ? "deny" : "allow",
+						note: s("description") || undefined,
+						name: s("name") || undefined,
+						subnet: s("subnet") || undefined,
+						sourceName: s("sourceName") || undefined,
+						destinationName: s("destinationName") || undefined,
+					};
+				}),
+				error: null,
+			};
 		return { rows: v?.rows ?? [], error: null };
 	} catch (e) {
 		return { rows: [], error: message(e) };
@@ -218,3 +240,27 @@ export const TEMPLATE = {
 	/** The design doc skeleton. */
 	doc: "# Design\n\n## Context and scope\n\n## Goals and non-goals\n\n## Overview\n\n## Detailed design\n\n## Alternatives considered\n\n## Open questions\n",
 };
+
+/** A building block of the network flows: an application, a server, a database, the Internet. */
+export type Brick = { id: string; name: string; description: string };
+
+/** The bricks file sits in the folder of the flow file. */
+export const bricksPath = (flowsPath: string) =>
+	`${flowsPath.slice(0, flowsPath.lastIndexOf("/") + 1)}bricks.json`;
+
+/** The bricks of a file. A text that does not parse gives none. */
+export function parseBricks(text: string): Brick[] {
+	try {
+		const v = JSON.parse(text) as { bricks?: Partial<Brick>[] };
+		return (v.bricks ?? []).map((b, i) => ({
+			id: b.id || `brick-${i + 1}`,
+			name: String(b.name ?? ""),
+			description: String(b.description ?? ""),
+		}));
+	} catch {
+		return [];
+	}
+}
+
+export const bricksText = (bricks: Brick[]) =>
+	`${JSON.stringify({ version: 1, bricks }, null, 2)}\n`;

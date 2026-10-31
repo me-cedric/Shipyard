@@ -251,6 +251,10 @@ fn flow_file_round_trips() {
             port: Some("5432".into()),
             action: Action::Allow,
             note: Some("primary".into()),
+            name: None,
+            subnet: None,
+            source_name: None,
+            destination_name: None,
         },
         FlowRow {
             id: 2,
@@ -261,6 +265,10 @@ fn flow_file_round_trips() {
             port: None,
             action: Action::Deny,
             note: None,
+            name: None,
+            subnet: None,
+            source_name: None,
+            destination_name: None,
         },
     ];
     let text = write_flows(&rows, "").unwrap();
@@ -344,4 +352,32 @@ fn the_designs_folder_scan_adds_files_that_no_screen_names() {
         screens[1].file.as_deref(),
         Some("docs/designs/mock/Landing Page.html")
     );
+}
+
+#[test]
+fn a_json_flow_keeps_its_name_subnet_and_bricks_and_the_bricks_file_is_not_a_flow() {
+    use shipyard_store::design::{read_flows, write_flows_json};
+    let old = r#"{"version":1,"flows":[{"id":"a","name":"web-to-db","sourceName":"Web","destinationName":"DB","source":"10.0.0.0/24","destination":"10.0.1.5/32","vlan":"10","subnet":"10.0.0.0/24","protocol":"TCP","ports":"5432","action":"Allow"}]}"#;
+    let rows = read_flows(old).unwrap();
+    assert_eq!(rows[0].name.as_deref(), Some("web-to-db"));
+    assert_eq!(rows[0].subnet.as_deref(), Some("10.0.0.0/24"));
+    assert_eq!(rows[0].source_name.as_deref(), Some("Web"));
+    assert_eq!(rows[0].destination_name.as_deref(), Some("DB"));
+    let mut edited = rows.clone();
+    edited[0].destination_name = Some("Primary DB".into());
+    let text = write_flows_json(&edited, old).unwrap();
+    assert!(
+        text.contains(r#""destinationName": "Primary DB""#),
+        "{text}"
+    );
+    assert!(text.contains(r#""sourceName": "Web""#), "{text}");
+    // The bricks file sits in the flows folder and is not a flow.
+    let dir = tempfile::tempdir().unwrap();
+    put(dir.path(), "docs/flows/network.json", old);
+    put(
+        dir.path(),
+        "docs/flows/bricks.json",
+        r#"{"version":1,"bricks":[]}"#,
+    );
+    assert_eq!(refs(&list(dir.path(), &project())), vec!["flow:network"]);
 }

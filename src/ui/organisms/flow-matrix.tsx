@@ -23,13 +23,28 @@ import {
 } from "./flow-rows";
 
 export type FlowDraft = Omit<FlowRow, "id">;
+/** The token of "no brick": a select item cannot have an empty value. */
+const NO_BRICK = "-";
 /** The error of one field. The id of a new row is `""`. */
 export type FlowError = { id: string; field: FlowField; message: string };
 
 /** Allow and deny as tinted chips. Another action stays neutral. */
 const TINT: Record<string, "success" | "danger"> = { allow: "success", deny: "danger" };
 
-const TEXT: FlowField[] = ["source", "destination", "network", "protocol", "port"];
+/** The columns in order. The extra ones show when `labels` names them. */
+const ORDER: FlowField[] = [
+	"name",
+	"sourceName",
+	"source",
+	"destinationName",
+	"destination",
+	"network",
+	"subnet",
+	"protocol",
+	"port",
+];
+const EXTRA = new Set<FlowField>(["name", "sourceName", "destinationName", "subnet"]);
+const BRICK_FIELDS: FlowField[] = ["sourceName", "destinationName"];
 const EMPTY: FlowDraft = {
 	source: "",
 	destination: "",
@@ -52,8 +67,11 @@ export function FlowMatrix({
 	onEdit,
 	onRemove,
 	labels,
+	bricks,
 }: {
 	rows: FlowRow[];
+	/** The names of the bricks. With them, the two brick columns pick one in place of typing. */
+	bricks?: string[];
 	/** The values of the action column, with their names. */
 	actions: { value: string; label: string }[];
 	error?: FlowError | null;
@@ -61,10 +79,24 @@ export function FlowMatrix({
 	onEdit: (id: string, draft: FlowDraft) => unknown;
 	onRemove: (id: string) => void;
 	labels: Record<
-		FlowField | "all" | "search" | "add" | "edit" | "remove" | "save" | "cancel",
+		| "source"
+		| "destination"
+		| "network"
+		| "protocol"
+		| "port"
+		| "action"
+		| "all"
+		| "search"
+		| "add"
+		| "edit"
+		| "remove"
+		| "save"
+		| "cancel",
 		string
-	>;
+	> &
+		Partial<Record<"name" | "sourceName" | "destinationName" | "subnet", string>>;
 }) {
+	const TEXT = ORDER.filter((f) => !EXTRA.has(f) || labels[f] !== undefined);
 	const [filter, setFilter] = useState<FlowFilter>(NO_FILTER);
 	const [editing, setEditing] = useState<string | null>(null);
 	const [draft, setDraft] = useState<FlowDraft>(EMPTY);
@@ -89,12 +121,26 @@ export function FlowMatrix({
 		<tr key={`edit-${id}`} className="bg-n-2 align-top">
 			{TEXT.map((f) => (
 				<td key={f} className="p-1">
-					<Input
-						label={labels[f]}
-						value={draft[f]}
-						aria-invalid={error?.id === id && error.field === f ? true : undefined}
-						onChange={(e) => setDraft({ ...draft, [f]: e.target.value })}
-					/>
+					{bricks?.length && BRICK_FIELDS.includes(f) ? (
+						<Select
+							label={labels[f] ?? f}
+							items={[
+								{ value: NO_BRICK, label: "—" },
+								...[...new Set([draft[f] ?? "", ...bricks])]
+									.filter(Boolean)
+									.map((b) => ({ value: b, label: b })),
+							]}
+							value={draft[f] || NO_BRICK}
+							onValueChange={(v) => setDraft({ ...draft, [f]: v === NO_BRICK ? "" : v })}
+						/>
+					) : (
+						<Input
+							label={labels[f] ?? f}
+							value={draft[f] ?? ""}
+							aria-invalid={error?.id === id && error.field === f ? true : undefined}
+							onChange={(e) => setDraft({ ...draft, [f]: e.target.value })}
+						/>
+					)}
 				</td>
 			))}
 			<td className="p-1">
@@ -178,7 +224,7 @@ export function FlowMatrix({
 							<tr key={r.id} className="border-t border-n-6 hover:bg-n-2">
 								{TEXT.map((f) => (
 									<td key={f} className="px-2 py-1 font-mono text-12">
-										{r[f]}
+										{r[f] ?? ""}
 									</td>
 								))}
 								<td className="px-2 py-1">

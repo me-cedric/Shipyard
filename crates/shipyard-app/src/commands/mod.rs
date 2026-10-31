@@ -6,6 +6,7 @@
 pub mod agents;
 pub mod app;
 pub mod assistant;
+pub mod chain_acks;
 pub mod code;
 pub mod connections;
 pub mod delivery_docs;

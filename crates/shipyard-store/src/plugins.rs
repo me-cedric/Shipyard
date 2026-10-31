@@ -13,6 +13,7 @@ use specta::Type;
 
 use crate::Result;
 use crate::catalog::write_new;
+use crate::plugin_config::{SettingField, SettingSpec, check};
 use crate::project::write_atomic;
 
 pub const RECORD: &str = ".shipyard/plugins.json";
@@ -51,7 +52,7 @@ struct Manifest {
     #[serde(default)]
     files: Vec<FileEntry>,
     #[serde(default)]
-    settings: BTreeMap<String, String>,
+    settings: BTreeMap<String, SettingSpec>,
     #[serde(default)]
     mcp_servers: BTreeMap<String, McpServer>,
 }
@@ -63,7 +64,10 @@ pub struct Plugin {
     pub version: String,
     /// `(target, bytes)`.
     pub files: Vec<(String, Vec<u8>)>,
+    /// The default value of each setting.
     pub settings: BTreeMap<String, String>,
+    /// The type of each setting. A text default has a text field.
+    pub fields: BTreeMap<String, SettingField>,
     pub mcp: BTreeMap<String, McpServer>,
     /// `(item id, reason)` of each server that was refused.
     pub refused: Vec<(String, String)>,
@@ -120,6 +124,8 @@ pub struct Applied {
     /// Target and the SHA-256 of the written content.
     pub files: BTreeMap<String, String>,
     pub settings: BTreeMap<String, String>,
+    #[serde(default)]
+    pub fields: BTreeMap<String, SettingField>,
     pub mcp: Vec<String>,
 }
 
@@ -140,7 +146,7 @@ fn read_limited(f: impl Read, limit: u64) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-fn is_secret(key: &str, value: &str) -> bool {
+pub(crate) fn is_secret(key: &str, value: &str) -> bool {
     let k = key.to_lowercase();
     SECRET_WORDS.iter().any(|w| k.contains(w)) && !value.is_empty() && !value.starts_with("${")
 }
@@ -219,10 +225,15 @@ pub fn read(bytes: &[u8]) -> Result<Plugin> {
         }
         files.push((e.target, bytes.clone()));
     }
-    for (k, v) in &m.settings {
-        if is_secret(k, v) {
-            return Err(format!("the plugin holds a secret value: {k}").into());
+    let (mut settings, mut fields) = (BTreeMap::new(), BTreeMap::new());
+    for (k, spec) in m.settings {
+        let (v, field) = spec.split();
+        // A default must fit its field; an empty default of a required field waits for the person.
+        if !v.is_empty() {
+            check(&k, &field, &v)?;
         }
+        settings.insert(k.clone(), v);
+        fields.insert(k, field);
     }
     let (mut mcp, mut refused) = (BTreeMap::new(), Vec::new());
     for (name, s) in m.mcp_servers {
@@ -245,7 +256,8 @@ pub fn read(bytes: &[u8]) -> Result<Plugin> {
         name: m.name,
         version: m.version,
         files,
-        settings: m.settings,
+        settings,
+        fields,
         mcp,
         refused,
     })
@@ -370,7 +382,10 @@ pub fn apply(root: &Path, p: &Plugin, accepted: &[String]) -> Result<Applying> {
         .iter()
         .filter(|(k, _)| take(format!("setting:{k}")))
     {
-        rec.settings.insert(k.clone(), v.clone());
+        // A value that the person saved stays: an update brings only new settings.
+        rec.settings.entry(k.clone()).or_insert_with(|| v.clone());
+        rec.fields
+            .insert(k.clone(), p.fields.get(k).cloned().unwrap_or_default());
     }
     let mcp: Vec<_> = p
         .mcp

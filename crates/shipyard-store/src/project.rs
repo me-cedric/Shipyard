@@ -1,6 +1,7 @@
 //! The project file codec and the project registry (spec `projects`, REQ-007 to REQ-010, REQ-019).
 //! The registry lives in the app data folder. It holds machine paths and personal overrides.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -120,6 +121,58 @@ pub struct Overrides {
     /// The tabs that this project hides, as `space/tab` (the screens toggle). Settings keeps its tabs.
     pub hidden_tabs: Option<Vec<String>>,
     pub read_only: Option<bool>,
+    /// What each profile (a role) does with a page: `page` is `space/tab`, the mode `hidden` or
+    /// `read-only`. A page with no entry is editable.
+    pub page_modes: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    /// The profile of each person: e-mail (lower case) to role. It beats `profile_role`.
+    pub assignments: Option<BTreeMap<String, String>>,
+}
+
+pub const PROFILE_ROLES: [&str; 7] = ["pm", "architect", "developer", "qa", "ba", "lead", "junior"];
+
+impl Overrides {
+    /// Drops what is not valid: an unknown role, a mode or a page that is not a `space/tab` word
+    /// pair, an e-mail with no `@`. Empty maps become `None`.
+    pub fn clean(mut self) -> Self {
+        let page = |p: &str| {
+            let mut it = p.split('/');
+            let word = |w: Option<&str>| {
+                w.is_some_and(|w| {
+                    !w.is_empty() && w.chars().all(|c| c.is_ascii_lowercase() || c == '-')
+                })
+            };
+            word(it.next()) && word(it.next()) && it.next().is_none()
+        };
+        self.page_modes = self.page_modes.and_then(|m| {
+            let m: BTreeMap<_, _> = m
+                .into_iter()
+                .filter(|(r, _)| PROFILE_ROLES.contains(&r.as_str()))
+                .map(|(r, pages)| {
+                    let pages: BTreeMap<_, _> = pages
+                        .into_iter()
+                        .filter(|(p, m)| page(p) && matches!(m.as_str(), "hidden" | "read-only"))
+                        .collect();
+                    (r, pages)
+                })
+                .filter(|(_, pages)| !pages.is_empty())
+                .collect();
+            (!m.is_empty()).then_some(m)
+        });
+        self.assignments = self.assignments.and_then(|m| {
+            let m: BTreeMap<_, _> = m
+                .into_iter()
+                .map(|(e, r)| (e.trim().to_lowercase(), r))
+                .filter(|(e, r)| {
+                    e.len() <= 120
+                        && e.contains('@')
+                        && !e.contains(char::is_whitespace)
+                        && PROFILE_ROLES.contains(&r.as_str())
+                })
+                .collect();
+            (!m.is_empty()).then_some(m)
+        });
+        self
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -247,5 +300,45 @@ impl Registry {
         if let Some(e) = self.data.projects.iter_mut().find(|p| p.id == id) {
             e.overrides = o;
         }
+    }
+}
+
+#[cfg(test)]
+mod profile_tests {
+    use super::*;
+
+    #[test]
+    fn clean_keeps_valid_page_modes_and_assignments_only() {
+        let o = Overrides {
+            page_modes: Some(BTreeMap::from([
+                (
+                    "qa".to_string(),
+                    BTreeMap::from([
+                        ("code/changes".to_string(), "read-only".to_string()),
+                        ("code/changes/x".to_string(), "hidden".to_string()),
+                        ("work/board".to_string(), "editable".to_string()),
+                    ]),
+                ),
+                (
+                    "boss".to_string(),
+                    BTreeMap::from([("code/changes".to_string(), "hidden".to_string())]),
+                ),
+            ])),
+            assignments: Some(BTreeMap::from([
+                (" Ada@Example.com ".to_string(), "qa".to_string()),
+                ("nobody".to_string(), "qa".to_string()),
+                ("bob@example.com".to_string(), "boss".to_string()),
+            ])),
+            ..Default::default()
+        }
+        .clean();
+        let modes = o.page_modes.unwrap();
+        assert_eq!(modes.len(), 1);
+        assert_eq!(modes["qa"].len(), 1);
+        assert_eq!(modes["qa"]["code/changes"], "read-only");
+        let a = o.assignments.unwrap();
+        assert_eq!(a.len(), 1);
+        assert_eq!(a["ada@example.com"], "qa");
+        assert!(Overrides::default().clean().assignments.is_none());
     }
 }

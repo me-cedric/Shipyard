@@ -231,6 +231,27 @@ impl Repo {
         self.clear(path, true)
     }
 
+    /// Write a result that the person edited in the app, then stage it. A result that still holds a
+    /// conflict marker is refused, as for a file edited by hand.
+    pub fn resolve_text(&self, path: &str, text: &str) -> Result<()> {
+        check_paths(&[path.to_string()])?;
+        let c = self.conflict(path)?;
+        if text
+            .lines()
+            .any(|l| l.starts_with("<<<<<<<") || l.starts_with(">>>>>>>"))
+        {
+            return Err(GitError::ConflictMarkers(path.to_string()));
+        }
+        let mode = c.our.as_ref().map_or(MODE_FILE, |e| e.mode);
+        if !matches!(mode, MODE_FILE | MODE_EXEC) {
+            return Err(GitError::Git(format!(
+                "not a regular file: take a side for {path}"
+            )));
+        }
+        self.write_entry(path, mode, text.as_bytes())?;
+        self.clear(path, true)
+    }
+
     /// Take a whole side, also when that side deleted the file, then stage the result.
     pub fn resolve_side(&self, path: &str, side: Side) -> Result<()> {
         check_paths(&[path.to_string()])?;

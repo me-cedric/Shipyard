@@ -752,5 +752,6 @@ pub async fn specs_archive(app: AppHandle, id: String, confirmed: bool) -> Api<V
 }
 
 pub mod bdd;
+pub mod requirements;
 #[cfg(test)]
 mod tests;

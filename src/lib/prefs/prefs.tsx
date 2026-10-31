@@ -30,6 +30,9 @@ export type Prefs = Pick<
 	| "terminalFontSize"
 	| "defaultAgent"
 	| "defaultModel"
+	| "autoUpdateCheck"
+	| "promptLang"
+	| "diagramFormat"
 >;
 
 /** Font stacks that are on the machine already. Nothing is fetched. */
@@ -60,6 +63,9 @@ const DEFAULTS: Prefs = {
 	terminalFontSize: 13,
 	defaultAgent: "",
 	defaultModel: "",
+	autoUpdateCheck: true,
+	promptLang: "",
+	diagramFormat: "",
 };
 
 type Ctx = Prefs & {
@@ -67,7 +73,13 @@ type Ctx = Prefs & {
 	/** The settings that the active project overrides. They show the project value. */
 	overridden: Overridable[];
 	/** The profile of the project: the spaces that stay visible (null is all), the hidden tabs as `space/tab`, and read only. */
-	profile: { tabs: string[] | null; hiddenTabs: string[]; readOnly: boolean };
+	profile: {
+		tabs: string[] | null;
+		hiddenTabs: string[];
+		/** The pages (`space/tab`) that the profile reads and does not edit. */
+		readOnlyTabs: string[];
+		readOnly: boolean;
+	};
 	loaded: boolean;
 };
 const PrefsContext = createContext<Ctx | null>(null);
@@ -80,6 +92,15 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 	const [personal, setPersonal] = useState<Prefs>(DEFAULTS);
 	const [loaded, setLoaded] = useState(false);
 	const project = useActiveProject().data;
+	const [email, setEmail] = useState<string | null>(null);
+
+	// The git e-mail picks the profile that the project assigns to this person.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: read again when the project changes
+	useEffect(() => {
+		unwrap(commands.profileEmailGet())
+			.then(setEmail)
+			.catch(() => setEmail(null));
+	}, [project?.id]);
 
 	useEffect(() => {
 		unwrap(commands.prefsGet())
@@ -91,13 +112,23 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 	const value = useMemo<Ctx>(() => {
 		const o = project?.overrides;
 		const overridden = (["theme", "density", "contrast"] as const).filter((k) => o?.[k]);
+		// The assignment of this person wins, then the role of the project profile, then the personal role.
+		const role =
+			((email && o?.assignments?.[email]) as Role | undefined) ||
+			(o?.profileRole as Role | null | undefined) ||
+			personal.role;
+		const modes = o?.pageModes?.[role] ?? {};
+		const pagesIn = (mode: string) =>
+			Object.entries(modes)
+				.filter(([, m]) => m === mode)
+				.map(([page]) => page);
 		return {
 			...personal,
-			// The role of the project profile wins over the personal role.
-			role: (o?.profileRole as Role | null | undefined) ?? personal.role,
+			role,
 			profile: {
 				tabs: o?.profileTabs?.length ? o.profileTabs : null,
-				hiddenTabs: o?.hiddenTabs ?? [],
+				hiddenTabs: [...new Set([...(o?.hiddenTabs ?? []), ...pagesIn("hidden")])],
+				readOnlyTabs: pagesIn("read-only"),
 				readOnly: o?.readOnly === true,
 			},
 			theme: o?.theme ?? personal.theme,
@@ -110,7 +141,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 				unwrap(commands.prefsSet(patch)).catch((e) => console.error(e));
 			},
 		};
-	}, [personal, project, loaded]);
+	}, [personal, project, loaded, email]);
 
 	const accent = project?.overrides.accent;
 	useEffect(() => {

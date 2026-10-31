@@ -441,11 +441,22 @@ pub struct QualityView {
     pub scanners: Vec<QualityRow>,
 }
 
+/// The gates of the project file, then the scripts and tests of its other files, then the check
+/// that verifies all docs.
 fn declared_checks(root: &Path) -> Vec<String> {
-    match shipyard_store::project::read_project_file(root) {
+    let mut all = match shipyard_store::project::read_project_file(root) {
         Ok(shipyard_store::project::FileRead::Valid(f)) => f.gates,
         _ => Vec::new(),
+    };
+    for c in crate::qa::scripts(root)
+        .into_iter()
+        .chain([crate::qa::VERIFY_DOCS.to_string()])
+    {
+        if !all.contains(&c) {
+            all.push(c);
+        }
     }
+    all
 }
 
 /// The checks that the project declares (`gates` of `.shipyard/project.yaml`), the scanners and
@@ -502,15 +513,21 @@ pub fn check_run(s: &AppState, command: &str, click: bool) -> Res<QualityReport>
     }
     let log = s.dir.join("check.log");
     let start = Instant::now();
-    let gate = crate::delivery::run_gate(&root, &log, command, CHECK_LIMIT);
+    let (passed, tail, findings) = if command == crate::qa::VERIFY_DOCS {
+        let (tail, findings) = crate::qa::verify_docs(s)?;
+        (findings.is_empty(), tail, findings)
+    } else {
+        let gate = crate::delivery::run_gate(&root, &log, command, CHECK_LIMIT);
+        (gate.passed, gate.counts, Vec::new())
+    };
     let report = QualityReport {
         kind: ReportKind::Check,
         name: command.into(),
         at: now_iso(),
-        passed: gate.passed,
+        passed,
         duration_ms: start.elapsed().as_millis().min(u128::from(u32::MAX)) as u32,
-        tail: gate.counts,
-        findings: Vec::new(),
+        tail,
+        findings,
     };
     save_quality(
         &root,

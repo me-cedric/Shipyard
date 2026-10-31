@@ -29,6 +29,7 @@ export const commands = {
 	projectSettings: () => typedError<ProjectSettings_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("project_settings")),
 	projectFileSave: (file: ProjectFile_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("project_file_save", { file })),
 	projectOverridesSave: (overrides: Overrides_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("project_overrides_save", { overrides })),
+	profileEmailGet: () => typedError<string | null, AppError_Serialize>(__TAURI_INVOKE("profile_email_get")),
 	healthRun: () => typedError<Finding_Serialize[], AppError_Serialize>(__TAURI_INVOKE("health_run")),
 	healthFix: (id: string, expected: string | null) => typedError<FixResult, AppError_Serialize>(__TAURI_INVOKE("health_fix", { id, expected })),
 	/**  Reads the folder `source` and writes the matching files into the active project. It replaces no file. */
@@ -43,8 +44,10 @@ export const commands = {
 	projectsOverview: () => typedError<ProjectCard_Serialize[], AppError_Serialize>(__TAURI_INVOKE("projects_overview")),
 	projectOpenRemote: (id: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("project_open_remote", { id })),
 	codePushTarget: () => typedError<PushTarget_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_push_target")),
-	codeChainGate: (push: boolean) => typedError<ChainWarning[], AppError_Serialize>(__TAURI_INVOKE("code_chain_gate", { push })),
-	codeChainWatch: (base: string | null) => typedError<ChainWatch, AppError_Serialize>(__TAURI_INVOKE("code_chain_watch", { base })),
+	codeChainGate: (push: boolean) => typedError<ChainWarning_Serialize[], AppError_Serialize>(__TAURI_INVOKE("code_chain_gate", { push })),
+	codeChainWatch: (base: string | null) => typedError<ChainWatch_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_chain_watch", { base })),
+	codeChainAck: (base: string | null, from: string, to: string, reason: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_chain_ack", { base, from, to, reason, click })),
+	codeChainAckWithdraw: (from: string, to: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_chain_ack_withdraw", { from, to, click })),
 	connectionsList: () => typedError<Connection_Serialize[], AppError_Serialize>(__TAURI_INVOKE("connections_list")),
 	connectionsAdd: (draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, AppError_Serialize>(__TAURI_INVOKE("connections_add", { draft })),
 	connectionsEdit: (id: string, draft: ConnectionDraft_Deserialize) => typedError<Connection_Serialize, AppError_Serialize>(__TAURI_INVOKE("connections_edit", { id, draft })),
@@ -122,6 +125,13 @@ export const commands = {
 	openLink: (url: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("open_link", { url })),
 	codeQuality: () => typedError<QualityView_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_quality")),
 	codeCheckRun: (command: string, click: boolean) => typedError<QualityReport_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_check_run", { command, click })),
+	codeCoverage: () => typedError<Coverage | null, AppError_Serialize>(__TAURI_INVOKE("code_coverage")),
+	docSearch: (query: string) => typedError<DocHit[], AppError_Serialize>(__TAURI_INVOKE("doc_search", { query })),
+	docDocxList: () => typedError<PageEntry[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_list")),
+	docDocxRead: (path: string) => typedError<Paragraph[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_read", { path })),
+	specsRequirements: () => typedError<RequirementRow[], AppError_Serialize>(__TAURI_INVOKE("specs_requirements")),
+	specsTestplanGenerate: (capability: string, click: boolean) => typedError<GeneratedPlan, AppError_Serialize>(__TAURI_INVOKE("specs_testplan_generate", { capability, click })),
+	applyRunRows: (slugs: string[], rows: RowEdit_Deserialize[], click: boolean) => typedError<ApplyRow_Serialize[], AppError_Serialize>(__TAURI_INVOKE("apply_run_rows", { slugs, rows, click })),
 	codeScanRun: (name: string, click: boolean) => typedError<QualityReport_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_scan_run", { name, click })),
 	codeScannerInstall: (name: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_scanner_install", { name, click })),
 	codeSbomExport: (click: boolean) => typedError<SbomReport, AppError_Serialize>(__TAURI_INVOKE("code_sbom_export", { click })),
@@ -159,6 +169,12 @@ export const commands = {
 	mcpStop: (id: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("mcp_stop", { id })),
 	mcpState: (id: string) => typedError<McpState, AppError_Serialize>(__TAURI_INVOKE("mcp_state", { id })),
 	mcpInstall: (command: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("mcp_install", { command })),
+	mcpTest: (id: string) => typedError<McpTest_Serialize, AppError_Serialize>(__TAURI_INVOKE("mcp_test", { id })),
+	/**  Tests each enabled server at the same time. One result for each server. */
+	mcpTestAll: () => typedError<McpTest_Serialize[], AppError_Serialize>(__TAURI_INVOKE("mcp_test_all")),
+	mcpRecommended: () => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("mcp_recommended")),
+	/**  Switches on each recommended server that is off. Returns the ids that it switched on. */
+	mcpRecommendedEnable: (click: boolean) => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("mcp_recommended_enable", { click })),
 	machineSessions: () => typedError<MachineSession_Serialize[], AppError_Serialize>(__TAURI_INVOKE("machine_sessions")),
 	machineSessionStop: (pid: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("machine_session_stop", { pid, click })),
 	machineSpend: (days: number) => typedError<Spend, AppError_Serialize>(__TAURI_INVOKE("machine_spend", { days })),
@@ -356,6 +372,15 @@ export const commands = {
 	dashboardSaveOne: (slug: string, dashboard: Dashboard_Deserialize, stamp: string | null) => typedError<Written_Serialize, AppError_Serialize>(__TAURI_INVOKE("dashboard_save_one", { slug, dashboard, stamp })),
 	dashboardTile: (kind: string) => typedError<TileData_Serialize, AppError_Serialize>(__TAURI_INVOKE("dashboard_tile", { kind })),
 	learnGet: () => typedError<Learn, AppError_Serialize>(__TAURI_INVOKE("learn_get")),
+	learningGet: () => typedError<Learning_Serialize, AppError_Serialize>(__TAURI_INVOKE("learning_get")),
+	/**  Reads each feed of the project. `refresh` reads again even when the copy is fresh. */
+	learningFeedsRead: (refresh: boolean) => typedError<FeedRead_Serialize[], AppError_Serialize>(__TAURI_INVOKE("learning_feeds_read", { refresh })),
+	learningFeedAdd: (url: string, click: boolean) => typedError<Learning_Serialize, AppError_Serialize>(__TAURI_INVOKE("learning_feed_add", { url, click })),
+	learningFeedRemove: (url: string, click: boolean) => typedError<Learning_Serialize, AppError_Serialize>(__TAURI_INVOKE("learning_feed_remove", { url, click })),
+	learningPathSave: (path: LearningPath_Deserialize, click: boolean) => typedError<Learning_Serialize, AppError_Serialize>(__TAURI_INVOKE("learning_path_save", { path, click })),
+	learningPathDelete: (id: string, click: boolean) => typedError<Learning_Serialize, AppError_Serialize>(__TAURI_INVOKE("learning_path_delete", { id, click })),
+	/**  `step` is `<path>/<step>`. */
+	learningProgressSet: (person: string, step: string, done: boolean, click: boolean) => typedError<Learning_Serialize, AppError_Serialize>(__TAURI_INVOKE("learning_progress_set", { person, step, done, click })),
 	exportDossierFile: (text: ExportText, views: ViewImage[], path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_dossier_file", { text, views, path })),
 	exportFunctionalFile: (text: ExportText, path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_functional_file", { text, path })),
 	exportSheetFile: (text: ExportText, sheets: SheetIn[], path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_sheet_file", { text, sheets, path })),
@@ -421,6 +446,15 @@ export const commands = {
 	pluginSetEnabled: (name: string, on: boolean, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("plugin_set_enabled", { name, on, click })),
 	/**  Removes the unchanged files of a plugin, its MCP servers and its record. */
 	pluginRemove: (name: string, click: boolean) => typedError<PluginRemoved, AppError_Serialize>(__TAURI_INVOKE("plugin_remove", { name, click })),
+	pluginSettingsGet: (name: string) => typedError<PluginSetting_Serialize[], AppError_Serialize>(__TAURI_INVOKE("plugin_settings_get", { name })),
+	pluginSettingsSave: (name: string, values: { [key in string]: string }, click: boolean) => typedError<PluginSetting_Serialize[], AppError_Serialize>(__TAURI_INVOKE("plugin_settings_save", { name, values, click })),
+	compassExternal: () => typedError<ExternalSource[], AppError_Serialize>(__TAURI_INVOKE("compass_external")),
+	/**  Fetches the external sources again and syncs the project. */
+	compassExternalRefresh: (click: boolean) => typedError<CompassApplied, AppError_Serialize>(__TAURI_INVOKE("compass_external_refresh", { click })),
+	compassExternalReinstall: (id: string, click: boolean) => typedError<CompassApplied, AppError_Serialize>(__TAURI_INVOKE("compass_external_reinstall", { id, click })),
+	compassContractInstall: (click: boolean) => typedError<CompassApplied, AppError_Serialize>(__TAURI_INVOKE("compass_contract_install", { click })),
+	compassObjectives: () => typedError<Objective[], AppError_Serialize>(__TAURI_INVOKE("compass_objectives")),
+	compassObjectiveApply: (id: string, click: boolean) => typedError<ObjectiveApplied, AppError_Serialize>(__TAURI_INVOKE("compass_objective_apply", { id, click })),
 	autoCommitGet: () => typedError<boolean, AppError_Serialize>(__TAURI_INVOKE("auto_commit_get")),
 	autoCommitSet: (on: boolean) => typedError<boolean, AppError_Serialize>(__TAURI_INVOKE("auto_commit_set", { on })),
 	/**  The commit of the sync action. It does nothing when the option is off. */
@@ -1039,19 +1073,53 @@ export type CertStatus = {
 	count: number,
 };
 
-export type ChainWarning = {
+export type ChainAck = {
+	from: string,
+	to: string,
+	reason: string,
+	/**  `YYYY-MM-DDTHH:MM:SSZ`. */
+	at: string,
+	/**  The changed files that the person saw. */
+	changed: string[],
+};
+
+export type ChainWarning = ChainWarning_Serialize | ChainWarning_Deserialize;
+
+export type ChainWarning_Deserialize = {
 	/**  The path kind that changed. */
 	from: string,
 	/**  The path kind that did not follow. */
 	to: string,
 	changed: string[],
+	/**  The reason that a person gave to leave the link as it is, while it covers the changed files. */
+	ack?: ChainAck | null,
+};
+
+export type ChainWarning_Serialize = {
+	/**  The path kind that changed. */
+	from: string,
+	/**  The path kind that did not follow. */
+	to: string,
+	changed: string[],
+	/**  The reason that a person gave to leave the link as it is, while it covers the changed files. */
+	ack: ChainAck | null,
 };
 
 /**  The docs chain against a base branch: which artifacts are stale against their source. */
-export type ChainWatch = {
+export type ChainWatch = ChainWatch_Serialize | ChainWatch_Deserialize;
+
+/**  The docs chain against a base branch: which artifacts are stale against their source. */
+export type ChainWatch_Deserialize = {
 	/**  The revision that the changes are counted from. */
 	base: string,
-	warnings: ChainWarning[],
+	warnings: ChainWarning_Deserialize[],
+};
+
+/**  The docs chain against a base branch: which artifacts are stale against their source. */
+export type ChainWatch_Serialize = {
+	/**  The revision that the changes are counted from. */
+	base: string,
+	warnings: ChainWarning_Serialize[],
 };
 
 /**  The files of one change request, as paths relative to the project. */
@@ -1439,6 +1507,16 @@ export type Context_Serialize = {
 
 export type Contrast = "default" | "high";
 
+/**  The line coverage of the last report that the project produced. */
+export type Coverage = {
+	/**  The repository path of the report. */
+	source: string,
+	/**  The share of covered lines, rounded, 0 to 100. */
+	percent: number,
+	covered: number,
+	total: number,
+};
+
 export type DashEntry = {
 	slug: string,
 	title: string,
@@ -1598,6 +1676,14 @@ export type DiffSide =
 /**  The index against the working copy. An untracked file shows as all added. */
 "unstaged";
 
+export type DocHit = {
+	path: string,
+	title: string,
+	line: number,
+	/**  The line that holds the text. */
+	snippet: string,
+};
+
 export type DocList = {
 	handbook: PageEntry[],
 	documents: PageEntry[],
@@ -1648,7 +1734,7 @@ export type ErrorAction = {
 
 export type ErrorCode = 
 /**  Not in the table: the view shows the details. */
-"unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_id_invalid" | "change_exists" | "run_not_started" | "merge_draft" | "merge_closed" | "merge_method" | "forge_unreachable" | "forge_denied" | "forge_missing" | "git_nothing_staged" | "git_identity" | "git_busy" | "git_no_upstream" | "no_terminal" | "terminal_gone" | "device_not_set" | "no_editor" | "no_first_commit" | "remote_address" | "remote_exists" | "sheet_frozen";
+"unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_id_invalid" | "change_exists" | "run_not_started" | "merge_draft" | "merge_closed" | "merge_method" | "forge_unreachable" | "forge_denied" | "forge_missing" | "git_nothing_staged" | "git_identity" | "git_busy" | "git_no_upstream" | "no_terminal" | "terminal_gone" | "device_not_set" | "no_editor" | "no_first_commit" | "remote_address" | "remote_exists" | "sheet_frozen" | "feed_invalid" | "setting_invalid";
 
 /**
  *  A source of events that can notify the person (spec `shell`, REQ-008). One list feeds the
@@ -1692,6 +1778,27 @@ export type ExportText = {
 	sections: string[],
 };
 
+export type ExternalSource = {
+	id: string,
+	description: string,
+	recommended: boolean,
+	available: boolean,
+	skills: string[],
+	/**  The files that a sync would change. */
+	changed: string[],
+	/**  The files that a person edited. */
+	edited: string[],
+	state: ExternalState,
+};
+
+export type ExternalState = 
+/**  The source is not switched on. */
+"off" | "current" | 
+/**  A sync would create, update or remove files of the source. */
+"drift" | 
+/**  A person edited files of the source: a sync keeps them. */
+"edited";
+
 export type FactorySend = FactorySend_Serialize | FactorySend_Deserialize;
 
 export type FactorySend_Deserialize = {
@@ -1722,6 +1829,41 @@ export type Feature_Serialize = {
 	name: string,
 	description: string,
 	tasks: Task_Serialize[],
+};
+
+export type Feed = {
+	title: string,
+	items: FeedItem[],
+};
+
+export type FeedItem = {
+	title: string,
+	/**  An `https` or `http` address, or empty. */
+	link: string,
+	/**  The date as the feed gives it, or empty. */
+	published: string,
+	/**  Plain text, cut short. */
+	summary: string,
+};
+
+export type FeedRead = FeedRead_Serialize | FeedRead_Deserialize;
+
+export type FeedRead_Deserialize = {
+	url: string,
+	feed: Feed,
+	/**  Seconds since 1970 of the read that gave `feed`. `None` when no read worked yet. */
+	fetched?: number | null,
+	/**  Why the last read failed. The copy, if any, stays in `feed`. */
+	error?: AppError_Deserialize | null,
+};
+
+export type FeedRead_Serialize = {
+	url: string,
+	feed: Feed,
+	/**  Seconds since 1970 of the read that gave `feed`. `None` when no read worked yet. */
+	fetched: number | null,
+	/**  Why the last read failed. The copy, if any, stays in `feed`. */
+	error: AppError_Serialize | null,
 };
 
 export type FeedbackKind = "bug" | "idea";
@@ -1879,6 +2021,12 @@ export type FlowRow_Deserialize = {
 	port?: string | null,
 	action: FlowAction_Deserialize,
 	note?: string | null,
+	name?: string | null,
+	/**  The subnet of the flow, next to its VLAN. */
+	subnet?: string | null,
+	/**  The bricks of `bricks.json` that the flow leaves from and goes to, by name. */
+	sourceName?: string | null,
+	destinationName?: string | null,
 };
 
 export type FlowRow_Serialize = {
@@ -1891,6 +2039,12 @@ export type FlowRow_Serialize = {
 	port?: string,
 	action: FlowAction_Serialize,
 	note?: string,
+	name?: string,
+	/**  The subnet of the flow, next to its VLAN. */
+	subnet?: string,
+	/**  The bricks of `bricks.json` that the flow leaves from and goes to, by name. */
+	sourceName?: string,
+	destinationName?: string,
 };
 
 export type Gantt = Gantt_Serialize | Gantt_Deserialize;
@@ -1911,6 +2065,12 @@ export type Gauge = {
 	usedTokens: number,
 	windowTokens: number,
 	quotas: QuotaWindow[],
+};
+
+/**  The plan that a generation wrote and the number of stubs that it added. */
+export type GeneratedPlan = {
+	path: string,
+	added: number,
 };
 
 export type GraphEdge = {
@@ -2123,6 +2283,62 @@ export type LearnStep = {
 	ref: string,
 	kind: string,
 	title: string,
+};
+
+export type Learning = Learning_Serialize | Learning_Deserialize;
+
+export type LearningPath = LearningPath_Serialize | LearningPath_Deserialize;
+
+export type LearningPath_Deserialize = {
+	/**  Derived from the title when empty. */
+	id?: string,
+	title: string,
+	/**  The handles of the team members who can help. */
+	experts?: string[],
+	steps?: LearningStep_Deserialize[],
+};
+
+export type LearningPath_Serialize = {
+	/**  Derived from the title when empty. */
+	id: string,
+	title: string,
+	/**  The handles of the team members who can help. */
+	experts: string[],
+	steps: LearningStep_Serialize[],
+};
+
+export type LearningStep = LearningStep_Serialize | LearningStep_Deserialize;
+
+export type LearningStep_Deserialize = {
+	/**  Unique in its path. Derived from the title when empty. */
+	id?: string,
+	kind: StepKind,
+	title: string,
+	/**  An `https` address of the course or the exam. */
+	url?: string | null,
+};
+
+export type LearningStep_Serialize = {
+	/**  Unique in its path. Derived from the title when empty. */
+	id: string,
+	kind: StepKind,
+	title: string,
+	/**  An `https` address of the course or the exam. */
+	url: string | null,
+};
+
+export type Learning_Deserialize = {
+	feeds?: string[],
+	paths?: LearningPath_Deserialize[],
+	/**  The handle of a person, then the `<path>/<step>` keys that this person finished. */
+	progress?: { [key in string]: string[] },
+};
+
+export type Learning_Serialize = {
+	feeds: string[],
+	paths: LearningPath_Serialize[],
+	/**  The handle of a person, then the `<path>/<step>` keys that this person finished. */
+	progress: { [key in string]: string[] },
 };
 
 /**  One snapshot of the findings. */
@@ -2387,6 +2603,26 @@ export type McpServer = {
 
 export type McpState = { state: "stopped" } | { state: "starting" } | { state: "running" } | { state: "failed"; reason: string };
 
+export type McpTest = McpTest_Serialize | McpTest_Deserialize;
+
+export type McpTest_Deserialize = {
+	id: string,
+	ok: boolean,
+	/**  The tool names that the server lists. */
+	tools: string[],
+	error?: AppError_Deserialize | null,
+	elapsedMs: number,
+};
+
+export type McpTest_Serialize = {
+	id: string,
+	ok: boolean,
+	/**  The tool names that the server lists. */
+	tools: string[],
+	error: AppError_Serialize | null,
+	elapsedMs: number,
+};
+
 export type Member = Member_Serialize | Member_Deserialize;
 
 export type MemberLoad = {
@@ -2460,6 +2696,22 @@ export type MonthSpend = {
 	month: string,
 	days: number | null,
 	cost: number | null,
+};
+
+export type Objective = {
+	id: string,
+	/**  The assets of the objective, as `kind:id`. */
+	assets: string[],
+	/**  The assets that are on. */
+	on: string[],
+	/**  The assets that do not fit this project. */
+	unavailable: string[],
+};
+
+export type ObjectiveApplied = {
+	report: WriteReport,
+	/**  The assets that were not switched on, as `kind:id`. */
+	skipped: string[],
 };
 
 export type OpenPull = OpenPull_Serialize | OpenPull_Deserialize;
@@ -2616,6 +2868,13 @@ export type Overrides_Deserialize = {
 	/**  The tabs that this project hides, as `space/tab` (the screens toggle). Settings keeps its tabs. */
 	hiddenTabs?: string[] | null,
 	readOnly?: boolean | null,
+	/**
+	 *  What each profile (a role) does with a page: `page` is `space/tab`, the mode `hidden` or
+	 *  `read-only`. A page with no entry is editable.
+	 */
+	pageModes?: { [key in string]: { [key in string]: string } } | null,
+	/**  The profile of each person: e-mail (lower case) to role. It beats `profile_role`. */
+	assignments?: { [key in string]: string } | null,
 };
 
 /**  A project value that takes the place of a personal preference while the project is active. */
@@ -2637,6 +2896,13 @@ export type Overrides_Serialize = {
 	/**  The tabs that this project hides, as `space/tab` (the screens toggle). Settings keeps its tabs. */
 	hiddenTabs: string[] | null,
 	readOnly: boolean | null,
+	/**
+	 *  What each profile (a role) does with a page: `page` is `space/tab`, the mode `hidden` or
+	 *  `read-only`. A page with no entry is editable.
+	 */
+	pageModes: { [key in string]: { [key in string]: string } } | null,
+	/**  The profile of each person: e-mail (lower case) to role. It beats `profile_role`. */
+	assignments: { [key in string]: string } | null,
 };
 
 export type PageEntry = {
@@ -2647,6 +2913,12 @@ export type PageEntry = {
 
 /**  The side of the window that the assistant panel sits on (spec `assistant`, REQ-025). */
 export type PanelSide = "left" | "right";
+
+export type Paragraph = {
+	/**  1 to 6 for a heading, 0 for a paragraph. */
+	heading: number,
+	text: string,
+};
 
 export type ParsedRef = {
 	ref: string,
@@ -2784,6 +3056,36 @@ export type PluginReview_Serialize = {
 	refused: string[],
 };
 
+export type PluginSetting = PluginSetting_Serialize | PluginSetting_Deserialize;
+
+export type PluginSettingField = PluginSettingField_Serialize | PluginSettingField_Deserialize;
+
+export type PluginSettingField_Deserialize = {
+	type?: PluginSettingKind,
+	choices?: string[],
+	required?: boolean,
+};
+
+export type PluginSettingField_Serialize = {
+	type: PluginSettingKind,
+	choices: string[],
+	required: boolean,
+};
+
+export type PluginSettingKind = "text" | "number" | "boolean" | "choice";
+
+export type PluginSetting_Deserialize = {
+	key: string,
+	field: PluginSettingField_Deserialize,
+	value: string,
+};
+
+export type PluginSetting_Serialize = {
+	key: string,
+	field: PluginSettingField_Serialize,
+	value: string,
+};
+
 export type PolicyPacks = PolicyPacks_Serialize | PolicyPacks_Deserialize;
 
 export type PolicyPacks_Deserialize = {
@@ -2851,6 +3153,9 @@ export type PrefsPatch_Deserialize = {
 	terminalFontSize?: number | null,
 	defaultAgent?: string | null,
 	defaultModel?: string | null,
+	autoUpdateCheck?: boolean | null,
+	promptLang?: string | null,
+	diagramFormat?: string | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -2874,6 +3179,9 @@ export type PrefsPatch_Serialize = {
 	terminalFontSize: number | null,
 	defaultAgent: string | null,
 	defaultModel: string | null,
+	autoUpdateCheck: boolean | null,
+	promptLang: string | null,
+	diagramFormat: string | null,
 };
 
 export type Prefs_Deserialize = {
@@ -2915,6 +3223,12 @@ export type Prefs_Deserialize = {
 	/**  Id of the agent CLI that new work starts with. Empty means the first one found. */
 	defaultAgent?: string,
 	defaultModel?: string,
+	/**  Whether the app checks for a new version at start and every 6 hours. */
+	autoUpdateCheck?: boolean,
+	/**  Language of the prompts that the assistant sends: `en` or `fr`. Empty follows the interface. */
+	promptLang?: string,
+	/**  Format of a new diagram board: one of `DIAGRAM_FORMATS`. Empty is the first one. */
+	diagramFormat?: string,
 };
 
 export type Prefs_Serialize = {
@@ -2956,6 +3270,12 @@ export type Prefs_Serialize = {
 	/**  Id of the agent CLI that new work starts with. Empty means the first one found. */
 	defaultAgent: string,
 	defaultModel: string,
+	/**  Whether the app checks for a new version at start and every 6 hours. */
+	autoUpdateCheck: boolean,
+	/**  Language of the prompts that the assistant sends: `en` or `fr`. Empty follows the interface. */
+	promptLang: string,
+	/**  Format of a new diagram board: one of `DIAGRAM_FORMATS`. Empty is the first one. */
+	diagramFormat: string,
 };
 
 export type Preview = Preview_Serialize | Preview_Deserialize;
@@ -3502,6 +3822,15 @@ export type Requirement = {
 	line: number,
 };
 
+export type RequirementRow = {
+	capability: string,
+	/**  `spec:<capability>#REQ-NNN`. */
+	reference: string,
+	title: string,
+	/**  The scenarios that cite the requirement. Empty: the requirement is not covered. */
+	scenarios: ScenarioHit[],
+};
+
 /**  How a person resolves one conflicted file (REQ-005). */
 export type Resolution = 
 /**  One choice for each block, in order. */
@@ -3509,7 +3838,9 @@ export type Resolution =
 /**  Take a whole side. The only way for a binary file or a deleted side. */
 { kind: "whole"; side: Side } | 
 /**  The file was edited by hand. It must hold no conflict marker. */
-{ kind: "marked" };
+{ kind: "marked" } | 
+/**  The result that the person edited in the app. It must hold no conflict marker. */
+{ kind: "text"; text: string };
 
 export type Resolved = Resolved_Serialize | Resolved_Deserialize;
 
@@ -3614,6 +3945,23 @@ export type RoleSkillRow_Serialize = {
 
 /**  One ticket that the sheets ask for. A feature is an epic. A task is a story. */
 export type Row = Row_Serialize | Row_Deserialize;
+
+/**  A row that the person approved, with the title and the effort to write (REQ-025, REQ-026). */
+export type RowEdit = RowEdit_Serialize | RowEdit_Deserialize;
+
+/**  A row that the person approved, with the title and the effort to write (REQ-025, REQ-026). */
+export type RowEdit_Deserialize = {
+	reference: string,
+	title: string,
+	days?: number | null,
+};
+
+/**  A row that the person approved, with the title and the effort to write (REQ-025, REQ-026). */
+export type RowEdit_Serialize = {
+	reference: string,
+	title: string,
+	days: number | null,
+};
 
 export type RowKind = "epic" | "story";
 
@@ -3848,6 +4196,14 @@ export type ScanFinding_Serialize = {
 };
 
 export type ScanSeverity = "low" | "medium" | "high" | "critical";
+
+export type ScenarioHit = {
+	plan: string,
+	scenario: string,
+	line: number,
+	/**  `pass`, `fail`, `partial`, `blocked` or `not-covered`. */
+	verdict: string,
+};
 
 export type ScopeChoice = {
 	id: string,
@@ -4144,6 +4500,8 @@ export type Step = Step_Serialize | Step_Deserialize;
 
 /**  A step that the engine does itself, with no agent. */
 export type StepAction = "open_pr";
+
+export type StepKind = "course" | "certification" | "reading";
 
 /**  The live state of a step, or of one child of a `for_each` step. */
 export type StepState = "pending" | "running" | 

@@ -327,9 +327,25 @@ pub fn save_file(s: &AppState, file: ProjectFile) -> Res<()> {
 pub fn save_overrides(s: &AppState, overrides: Overrides) -> Res<()> {
     s.with_registry(|reg| {
         let id = reg.active().ok_or("no active project")?.id.clone();
-        reg.set_overrides(&id, overrides);
+        reg.set_overrides(&id, overrides.clean());
         Ok(())
     })
+}
+
+/// The git e-mail of the active project: the key of the profile assignment. `None` with no project or no identity.
+pub fn profile_email(s: &AppState) -> Res<Option<String>> {
+    let Some(e) = s.registry()?.active().cloned() else {
+        return Ok(None);
+    };
+    Ok(Repo::open(Path::new(&e.path))
+        .ok()
+        .and_then(|r| r.user_email()))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn profile_email_get(app: AppHandle) -> Api<Option<String>> {
+    blocking(app, profile_email).await
 }
 
 #[tauri::command]

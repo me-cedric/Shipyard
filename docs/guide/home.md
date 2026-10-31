@@ -1,24 +1,30 @@
 # Home
 
-Home shows what needs you. It has three tabs.
+Home shows what needs you, your own work and your projects.
 
 ## Inbox
 
-The Inbox lists four groups: questions, approvals, plan reviews and messages. Each row names its run and its key.
+The Inbox collects what waits for you: questions of the agents, approvals, plan reviews and messages.
 
-- Answer a question: press a digit, then Enter. Or type free text.
-- Approve a write: click once. The row names the exact write.
-- Approve a plan: click Approve plan. The run goes on.
-- Fold the answer of a spec question into its spec: read the preview, then click.
-
-A write with its switch off becomes an approval here. A force push always waits for your click.
+- Answer a question: press a digit, then Enter. Or type your own answer.
+- Approve a change: read the row, then click Approve. The row says in plain words what the change does.
+- Approve a plan: read it, then click Approve plan. The run goes on.
+- A change that the automation switches do not allow waits here for your click.
 
 ## My work
 
-My work lists the items that the tracker assigns to you, with their runs. It also shows the dashboard tiles that you pin in Knowledge.
+My work lists the tickets that the tracker gives to you, with the runs of the agents on them. It also shows the dashboard tiles that you pin in Knowledge.
 
 ## Activity
 
-Activity lists the events of the run log and the notifications, with a count for each group.
+Activity tells what happened in the project: one sentence for each event, newest first.
 
-With no project open, each tab shows one action to open or create a project.
+## Projects
+
+Projects lists the projects on this computer.
+
+1. Click a project to open it.
+2. Click Open a folder to add a project that is on your disk.
+3. Click Create to start a new project. The app proposes a folder and a key.
+
+With no project open, each tab of the app shows one action to open or create a project.

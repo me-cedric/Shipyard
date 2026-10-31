@@ -12,6 +12,9 @@ use specta::Type;
 
 pub const MAX_BYTES: u64 = 5 * 1024 * 1024;
 
+/// The bricks of the network flows, beside the flow files. It is not a flow file.
+pub const BRICKS_FILE: &str = "bricks.json";
+
 /// The folders that `resolve` opens.
 const FOLDERS: [&str; 7] = [
     "diagrams",
@@ -203,6 +206,7 @@ pub fn list(root: &Path, p: &ProjectFile) -> Vec<Artifact> {
                 }
                 "model" => matches!(ext.as_str(), "c4" | "likec4"),
                 "data" => ext == "dbml",
+                "flow" if name == BRICKS_FILE => false,
                 "flow" => {
                     if ext == "json" {
                         a.issue = fs::read_to_string(root.join(&path))
@@ -308,6 +312,10 @@ fn read_flows_json(text: &str) -> Result<Vec<FlowRow>, String> {
                 port: opt(s(f, "ports")),
                 action,
                 note: opt(s(f, "description")),
+                name: opt(s(f, "name")),
+                subnet: opt(s(f, "subnet")),
+                source_name: opt(s(f, "sourceName")),
+                destination_name: opt(s(f, "destinationName")),
             })
         })
         .collect()
@@ -344,6 +352,17 @@ pub fn write_flows_json(rows: &[FlowRow], old: &str) -> Result<String, String> {
                 ("protocol", &r.protocol),
             ] {
                 o.insert(k.into(), json!(v));
+            }
+            // A name or a brick that the row does not set keeps what the file had.
+            for (k, v) in [
+                ("name", &r.name),
+                ("subnet", &r.subnet),
+                ("sourceName", &r.source_name),
+                ("destinationName", &r.destination_name),
+            ] {
+                if let Some(v) = v {
+                    o.insert(k.into(), json!(v));
+                }
             }
             o.insert("ports".into(), json!(r.port.clone().unwrap_or_default()));
             o.insert(
@@ -403,7 +422,7 @@ pub(crate) fn file_ref(rel: &str, p: &ProjectFile) -> Option<(&'static str, Stri
             "model" => matches!(ext.as_str(), "c4" | "likec4"),
             "api" => matches!(ext.as_str(), "yaml" | "yml" | "json"),
             "data" => ext == "dbml",
-            "flow" => matches!(ext.as_str(), "yaml" | "yml" | "json"),
+            "flow" => matches!(ext.as_str(), "yaml" | "yml" | "json") && name != BRICKS_FILE,
             _ => ext == "feature",
         };
         (kind, ok)

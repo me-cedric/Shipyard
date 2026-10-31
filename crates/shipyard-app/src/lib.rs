@@ -18,17 +18,21 @@ pub mod design_preview;
 pub mod device_login;
 pub mod doctor;
 pub mod doctor_bootstrap;
+pub mod documents;
 pub mod errors;
 pub mod extensions;
 pub mod factory;
 pub mod feedback;
 pub mod files;
 pub mod knowledge;
+pub mod learning;
 pub mod machine;
+pub mod mcp_tools;
 pub mod openers;
 pub mod orca;
 pub mod outside;
 pub mod publish;
+pub mod qa;
 pub mod questions;
 mod reports;
 pub mod request_tree;
@@ -78,6 +82,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             projects::project_settings,
             projects::project_file_save,
             projects::project_overrides_save,
+            projects::profile_email_get,
             health::health_run,
             health::health_fix,
             delivery_docs::project_import,
@@ -93,6 +98,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             overview::code_push_target,
             overview::code_chain_gate,
             overview::code_chain_watch,
+            crate::commands::chain_acks::code_chain_ack,
+            crate::commands::chain_acks::code_chain_ack_withdraw,
             conn::connections_list,
             conn::connections_add,
             conn::connections_edit,
@@ -163,6 +170,13 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::openers::open_link,
             crate::code::code_quality,
             crate::code::code_check_run,
+            crate::qa::code_coverage,
+            crate::documents::doc_search,
+            crate::documents::doc_docx_list,
+            crate::documents::doc_docx_read,
+            crate::specs::requirements::specs_requirements,
+            crate::specs::requirements::specs_testplan_generate,
+            crate::work::apply_run_rows,
             crate::code::code_scan_run,
             crate::code::code_scanner_install,
             crate::sbom::code_sbom_export,
@@ -195,6 +209,10 @@ fn specta_builder() -> Builder<tauri::Wry> {
             ag::mcp_stop,
             ag::mcp_state,
             ag::mcp_install,
+            crate::mcp_tools::mcp_test,
+            crate::mcp_tools::mcp_test_all,
+            crate::mcp_tools::mcp_recommended,
+            crate::mcp_tools::mcp_recommended_enable,
             crate::machine::machine_sessions,
             crate::machine::machine_session_stop,
             crate::machine::machine_spend,
@@ -374,6 +392,13 @@ fn specta_builder() -> Builder<tauri::Wry> {
             kw::dashboard_save_one,
             kw::dashboard_tile,
             kw::learn_get,
+            crate::learning::learning_get,
+            crate::learning::learning_feeds_read,
+            crate::learning::learning_feed_add,
+            crate::learning::learning_feed_remove,
+            crate::learning::learning_path_save,
+            crate::learning::learning_path_delete,
+            crate::learning::learning_progress_set,
             kw::export_dossier_file,
             kw::export_functional_file,
             kw::export_sheet_file,
@@ -409,6 +434,14 @@ fn specta_builder() -> Builder<tauri::Wry> {
             ex::manage::plugin_list,
             ex::manage::plugin_set_enabled,
             ex::manage::plugin_remove,
+            ex::plugin_settings::plugin_settings_get,
+            ex::plugin_settings::plugin_settings_save,
+            ex::compass_setup::compass_external,
+            ex::compass_setup::compass_external_refresh,
+            ex::compass_setup::compass_external_reinstall,
+            ex::compass_setup::compass_contract_install,
+            ex::compass_setup::compass_objectives,
+            ex::compass_setup::compass_objective_apply,
             auto_commit::auto_commit_get,
             auto_commit::auto_commit_set,
             auto_commit::auto_commit_run,

@@ -9,7 +9,7 @@ export const SPACES = {
 	work: ["backlog", "board", "plan", "estimates", "team", "time"],
 	factory: ["runs", "workflows", "agents-map", "sessions", "usage"],
 	code: ["changes", "history", "branches", "pull-requests", "quality", "impacts", "terminal"],
-	knowledge: ["graph", "handbook", "documents", "slides", "learn", "dashboards"],
+	knowledge: ["graph", "handbook", "manual", "documents", "slides", "learn", "dashboards"],
 	settings: ["project", "connections", "agents-rules", "extensions", "me", "health"],
 } as const;
 

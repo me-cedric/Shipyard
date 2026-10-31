@@ -266,6 +266,18 @@ export function useWorkActions() {
 					),
 				),
 			apply: (slugs: string[]) => run(commands.applyRun(slugs, true)),
+			/** The rows that the person approved and edited. A row that is not in the list is dropped. */
+			applyRows: (
+				slugs: string[],
+				rows: { reference: string; title: string; days?: number | null }[],
+			) =>
+				run(
+					commands.applyRunRows(
+						slugs,
+						rows.map((r) => ({ reference: r.reference, title: r.title, days: r.days ?? null })),
+						true,
+					),
+				),
 			previewItem: (row: Row_Deserialize) => run(commands.workItemPreview(row)),
 			createItem: (row: Row_Deserialize) => run(commands.workItemCreate(row, true)),
 		};

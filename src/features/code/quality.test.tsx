@@ -23,13 +23,38 @@ describe("Code / Quality", () => {
 		await open();
 		mountApp("/code/quality");
 		const checks = await group("Checks");
-		expect(screen.getByRole("heading", { name: "Checks (2)" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Checks (3)" })).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Scanners (4)" })).toBeInTheDocument();
 		expect(within(checks).getByRole("img", { name: "Passed" })).toBeInTheDocument();
 		expect(within(checks).getByText(/5200 ms/)).toBeInTheDocument();
 		expect(screen.getAllByText("Not installed")).toHaveLength(3);
 		// A scanner that the app does not ship has no run action.
 		expect(screen.queryByRole("button", { name: "Run dependencies" })).toBeNull();
+	});
+
+	it("shows the coverage of the report that the project produced", async () => {
+		await open();
+		mountApp("/code/quality");
+		const stat = await screen.findByText("Coverage");
+		expect(stat.parentElement).toHaveTextContent("82%");
+	});
+
+	it("verifies all docs after a confirmation and lists each problem with its place", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/code/quality");
+		await user.click(await screen.findByRole("button", { name: "Run Verify all docs" }));
+		await user.click(screen.getByRole("button", { name: "Run Verify all docs?" }));
+		const checks = await group("Checks");
+		await waitFor(() =>
+			expect(within(checks).getAllByRole("img", { name: "Failed" })).toHaveLength(1),
+		);
+		await user.click(
+			within(checks).getAllByRole("button", { name: "Findings" }).at(-1) as HTMLElement,
+		);
+		expect(screen.getByText("Medium: broken link: gone.md")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Open docs/handbook/start.md" })).toBeInTheDocument();
+		expect(within(checks).getByText("3 changes, 12 pages, 1 problems")).toBeInTheDocument();
 	});
 
 	it("installs a missing scanner with one click and then offers to run it", async () => {

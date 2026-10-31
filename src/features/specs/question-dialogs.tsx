@@ -1,4 +1,6 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { FileActionDialog } from "@/features/code/file-actions";
 import { useI18n } from "@/lib/i18n";
 import {
 	capabilityOf,
@@ -8,16 +10,21 @@ import {
 	type QuestionEntry,
 	readQuestion,
 	STATUSES,
+	specsKeys,
 	useFile,
 	useFoldTargets,
 	useSpecsActions,
 	useSpecView,
 } from "@/lib/specs";
+import { useTeam } from "@/lib/work";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { Select } from "@/ui/atoms/select";
+import { Textarea } from "@/ui/atoms/textarea";
 import { Dialog } from "@/ui/organisms/dialog";
 import { useGuard } from "./guard";
 
+const NO_OWNER = "-";
 const today = () => new Date().toISOString().slice(0, 10);
 const BLANK: Question = {
 	id: "",
@@ -36,6 +43,8 @@ const BLANK: Question = {
 /**
  * Create or edit a question. Kind and status take free text with the allowed values as hints: the
  * backend refuses an unknown kind, an unknown status and a duplicate id, and the dialog shows why.
+ * The title is the name of the question and the text is its body. The owner comes from the team.
+ * A delete asks first and moves the file to the trash.
  */
 export function QuestionDialog({
 	entry,
@@ -49,6 +58,9 @@ export function QuestionDialog({
 	const { t } = useI18n();
 	const s = t.specs.question;
 	const act = useSpecsActions();
+	const qc = useQueryClient();
+	const members = useTeam().data?.team.members ?? [];
+	const [deleting, setDeleting] = useState(false);
 	const { error, setError, run } = useGuard();
 	const file = useFile(entry?.path ?? null);
 	// The fields come from the file that the stamp belongs to; the list entry shows until it loads.
@@ -58,7 +70,7 @@ export function QuestionDialog({
 		...edits,
 	};
 	const set = (patch: Partial<Question>) => setEdits((x) => ({ ...x, ...patch }));
-	const field = (label: string, key: "id" | "title" | "kind" | "status" | "owner" | "specRef") => (
+	const field = (label: string, key: "id" | "title" | "kind" | "status" | "specRef") => (
 		<Input
 			caption
 			label={label}
@@ -98,8 +110,29 @@ export function QuestionDialog({
 				{field(s.title, "title")}
 				{field(s.kind, "kind")}
 				{field(s.status, "status")}
-				{field(s.owner, "owner")}
+				<Select
+					caption
+					label={s.owner}
+					value={q.owner || NO_OWNER}
+					onValueChange={(v) => set({ owner: v === NO_OWNER ? "" : v })}
+					items={[
+						{ value: NO_OWNER, label: t.review.question.noOwner },
+						// An owner that the team does not list stays in the list, so a save keeps it.
+						...(q.owner && !members.some((m) => m.handle === q.owner)
+							? [{ value: q.owner, label: q.owner }]
+							: []),
+						...members.map((m) => ({ value: m.handle ?? "", label: m.name ?? m.handle ?? "" })),
+					]}
+				/>
 				{field(s.specRef, "specRef")}
+				<div className="col-span-2">
+					<Textarea
+						caption
+						label={t.review.question.body}
+						value={q.body}
+						onChange={(e) => set({ body: e.target.value })}
+					/>
+				</div>
 			</div>
 			<datalist id="q-kinds">
 				{KINDS.map((k) => (
@@ -111,10 +144,23 @@ export function QuestionDialog({
 					<option key={k} value={k} />
 				))}
 			</datalist>
-			{entry && entry.question.status === "answered" && entry.question.specRef ? (
-				<div>
-					<Button onClick={onFold}>{s.fold}</Button>
+			{entry ? (
+				<div className="flex gap-2">
+					{entry.question.status === "answered" && entry.question.specRef ? (
+						<Button onClick={onFold}>{s.fold}</Button>
+					) : null}
+					<Button onClick={() => setDeleting(true)}>{t.review.question.delete}</Button>
 				</div>
+			) : null}
+			{entry && deleting ? (
+				<FileActionDialog
+					action={{ kind: "delete", path: entry.path }}
+					onClose={() => setDeleting(false)}
+					onDone={() => {
+						void qc.invalidateQueries({ queryKey: specsKeys.all });
+						onClose();
+					}}
+				/>
 			) : null}
 			{error ? (
 				<p role="alert" className="text-ui text-danger-text">

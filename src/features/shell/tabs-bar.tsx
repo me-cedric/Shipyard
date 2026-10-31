@@ -3,12 +3,14 @@ import { motion } from "motion/react";
 import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { SPRING } from "@/ui/motion";
+import { StaleBadge, useStalePages } from "../specs/chain-badge";
 import { type SpaceId, tabLabel, tabPath, visibleTabs } from "./spaces";
 
 /** The tabs of a space as a segmented control. A pill slides under the active tab. */
 export function TabsBar({ space }: { space: SpaceId }) {
 	const { t } = useI18n();
 	const { profile, role } = usePrefs();
+	const stale = useStalePages();
 	return (
 		<nav aria-label={t.nav.tabs} className="flex shrink-0 overflow-x-auto px-4 pt-3">
 			<div className="flex items-center gap-0.5 rounded-lg border bg-surface-1 p-0.5 shadow-1">
@@ -30,6 +32,7 @@ export function TabsBar({ space }: { space: SpaceId }) {
 									/>
 								) : null}
 								{tabLabel(t, space, tab)}
+								{stale.has(`${space}/${tab}`) ? <StaleBadge /> : null}
 							</>
 						)}
 					</Link>

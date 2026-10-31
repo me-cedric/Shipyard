@@ -152,6 +152,10 @@ fn the_flow_table_saves_only_rows_that_pass_the_check() {
         port: Some("5432".into()),
         action: Action::Allow,
         note: None,
+        name: None,
+        subnet: None,
+        source_name: None,
+        destination_name: None,
     };
     assert!(
         flows_save(

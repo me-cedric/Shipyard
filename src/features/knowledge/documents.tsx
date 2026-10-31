@@ -3,10 +3,14 @@ import { PageExport } from "@/features/reports/page-export";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type ExportText, saveWorkbook, unwrap } from "@/lib/ipc";
 import { DOC_DIR, saveDocx, useDocList } from "@/lib/knowledge";
+import { useDocxList } from "@/lib/knowledge/documents";
+import { useShell } from "@/lib/shell";
+import { useTabSelection } from "@/lib/shell/selection";
 import { Button } from "@/ui/atoms/button";
 import { ArrowDownTrayIcon, DocumentTextIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { StatStrip } from "@/ui/molecules/stat-strip";
+import { DocActions, DocSearch, DocxView } from "./documents-parts";
 import { ListTab } from "./list-tab";
 import { PageEditor } from "./pages";
 
@@ -17,7 +21,16 @@ import { PageEditor } from "./pages";
 export function Documents() {
 	const { t } = useI18n();
 	const k = t.knowledge.documents;
-	const rows = useDocList().data?.documents;
+	const pages = useDocList().data?.documents;
+	const docx = useDocxList().data ?? [];
+	// The Word files sit in the same list, after the pages of their folder, in path order.
+	const rows = pages && [...pages, ...docx].sort((a, b) => a.path.localeCompare(b.path));
+	const { openRef } = useShell();
+	const [, select] = useTabSelection(`knowledge:${DOC_DIR.documents}`);
+	const pick = (path: string) => {
+		select(path);
+		openRef(`doc:${path}`);
+	};
 	const [note, setNote] = useState<string | null>(null);
 	const [failure, setFailure] = useState<unknown>(null);
 
@@ -90,6 +103,9 @@ export function Documents() {
 			toolbar={
 				<div className="flex flex-col items-start gap-3">
 					<PageExport page="documents" />
+					<div className="w-full max-w-xl">
+						<DocSearch onPick={pick} />
+					</div>
 					<StatStrip
 						items={exports.map((x) => ({
 							label: x.label,
@@ -122,7 +138,20 @@ export function Documents() {
 				)
 			}
 		>
-			{(row) => <PageEditor path={row.path} title={row.title} />}
+			{(row) => {
+				const actions = <DocActions path={row.path} title={row.title} onRenamed={pick} />;
+				return row.path.endsWith(".docx") ? (
+					<div className="flex flex-col gap-3">
+						<div className="flex items-center gap-2">
+							<h2 className="min-w-0 flex-1 truncate text-14 font-medium text-n-12">{row.title}</h2>
+							{actions}
+						</div>
+						<DocxView path={row.path} title={row.title} />
+					</div>
+				) : (
+					<PageEditor path={row.path} title={row.title} actions={actions} />
+				);
+			}}
 		</ListTab>
 	);
 }

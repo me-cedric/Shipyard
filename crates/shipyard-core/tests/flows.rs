@@ -12,6 +12,10 @@ fn row(id: u32, network: &str, protocol: &str, action: Action) -> FlowRow {
         port: Some("5432".into()),
         action,
         note: None,
+        name: None,
+        subnet: None,
+        source_name: None,
+        destination_name: None,
     }
 }
 

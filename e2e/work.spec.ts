@@ -140,7 +140,7 @@ test("shows the Work views in French", async ({ page }) => {
 	await openWork(page, "Time");
 	await sidebar(page).getByRole("link", { name: "Settings" }).click();
 	await tabs(page).getByRole("link", { name: "Me" }).click();
-	await page.getByRole("combobox", { name: "Language" }).click();
+	await page.getByRole("combobox", { name: "Language", exact: true }).click();
 	await page.getByRole("option", { name: "French" }).click();
 	await page
 		.getByRole("navigation", { name: "Barre latérale" })

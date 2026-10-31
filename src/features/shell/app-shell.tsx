@@ -1,6 +1,6 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { AssistantPanel, SelectionActions, useAssistant } from "@/features/assistant";
+import { AskOnItem, AssistantPanel, SelectionActions, useAssistant } from "@/features/assistant";
 import { FileDrawer } from "@/features/code/file-drawer";
 import { TerminalDrawer } from "@/features/code/terminal-drawer";
 import { useCodeActions } from "@/lib/code";
@@ -140,6 +140,7 @@ function Frame() {
 			<PaletteHost actions={list} />
 			<ShortcutHelp actions={list} />
 			<SelectionActions onAsk={ask} />
+			<AskOnItem />
 			<CloseGuard />
 			<WhatsNew />
 			<CommitDialog open={commitOpen} onOpenChange={setCommitOpen} onSubmit={runCommit} />

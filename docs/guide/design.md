@@ -1,25 +1,42 @@
 # Design
 
-Design keeps the architecture artifacts of the project in the repository. Each artifact has a ref and shows its backlinks in the inspector.
+Design keeps the architecture of the project: diagrams, decisions, API contracts, data models, network flows and screens. Each item is a file of the project. Select an item to see, in the inspector, the items that cite it.
 
-| Tab | Content |
-|---|---|
-| Diagrams | Excalidraw, Mermaid, draw.io and BPMN diagrams. |
-| Architecture | Architecture models, drawn from their text. |
-| Decisions | ADRs. Accept or reject an ADR, or add a comment. |
-| API | API contracts. |
-| Data | Data models. |
-| Flows | Network flows, as tables. |
-| Screens | Screens and the design tokens of the project. |
+## Create or change an item
 
-## Edit an artifact
+1. Open the tab, then select an item. Or click the main action of the tab to create one.
+2. Change the text or the drawing. The preview follows.
+3. Click Save. The app writes the whole file or nothing.
 
-1. Open the tab and select an artifact, or click the primary action to create one.
-2. Edit the text. The preview updates.
-3. Save. The app writes the file in full or not at all.
+When somebody changes the file at the same time, the app tells you. Choose Reload to take their version, or Keep mine.
 
-If the file changes on disk, the editor says so. Choose Reload or Keep mine.
+## Diagrams
 
-## Tokens
+Diagrams holds the drawings of the project: Excalidraw, Mermaid, draw.io and BPMN. Draw in the editor, then save.
 
-Screens shows the colour tokens of the app, by family with a count. It reads `src/ui/tokens/tokens.css` and changes no file. A Figma comparison needs a Figma connection.
+## Architecture
+
+Architecture shows the architecture models of the project as views. The views are drawn from the text of the model.
+
+## Decisions
+
+Decisions holds the decision records (ADRs). Each record gives one decision, the options and the reasons.
+
+- Click New decision to write one. A form asks for each part.
+- Accept or reject a proposed decision with one click.
+
+## API
+
+API shows the API contracts. Open a contract to read its routes. Try a route against a server of the contract.
+
+## Data
+
+Data shows the data models: the tables and the links between them.
+
+## Flows
+
+Flows lists the network flows as a table: from where, to where, the port and the protocol. Add, change or remove a row, then save.
+
+## Screens
+
+Screens shows the screens of the product and the design tokens: the colours, by family.

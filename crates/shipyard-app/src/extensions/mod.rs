@@ -3,7 +3,9 @@
 //! runs only from its own command, which the view calls after a click. Nothing pushes (Q-051).
 
 pub mod compass;
+pub mod compass_setup;
 pub mod manage;
+pub mod plugin_settings;
 
 use std::path::{Path, PathBuf};
 
@@ -241,6 +243,12 @@ fn parent_keys(parent: &Path) -> Res<Vec<String>> {
             keys.push(format!("component:{}", c.id));
         }
     }
+    // An enabled plugin deploys with its files and its settings.
+    for p in shipyard_store::plugin_manage::list(parent) {
+        if p.enabled {
+            keys.push(format!("plugin:{}", p.name));
+        }
+    }
     Ok(keys)
 }
 
@@ -248,7 +256,12 @@ fn child_view(s: &AppState, parent: &Path, r: &ChildRec) -> Res<Child> {
     let dir = clone_dir(s, &r.id)?;
     let cloned = dir.join(".git").exists();
     let has: Vec<String> = if cloned {
-        [store_compass::held(&dir), catalog::held(&dir)].concat()
+        [
+            store_compass::held(&dir),
+            catalog::held(&dir),
+            shipyard_store::plugin_config::held(&dir),
+        ]
+        .concat()
     } else {
         Vec::new()
     };
@@ -380,14 +393,16 @@ fn write_and_commit(
     let mut report = WriteReport::default();
     let mut compass_keys = Vec::new();
     for k in keys {
-        match k.strip_prefix("component:") {
-            Some(c) => {
-                let done = catalog::deploy_to(parent, dir, c).map_err(err)?;
-                report.written.extend(done.written);
-                report.kept.extend(done.kept);
-            }
-            None => compass_keys.push(k.clone()),
-        }
+        let done = if let Some(c) = k.strip_prefix("component:") {
+            catalog::deploy_to(parent, dir, c).map_err(err)?
+        } else if let Some(p) = k.strip_prefix("plugin:") {
+            shipyard_store::plugin_config::deploy_to(parent, dir, p).map_err(err)?
+        } else {
+            compass_keys.push(k.clone());
+            continue;
+        };
+        report.written.extend(done.written);
+        report.kept.extend(done.kept);
     }
     if !compass_keys.is_empty() {
         let done = compass::apply_in(parent, dir, &compass_keys)?;

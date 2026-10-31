@@ -1,27 +1,34 @@
 # Work
 
-Work shows the tickets of the project tracker and the plan of the team. It reads a local mirror, so it works offline.
+Work shows the tickets of the tracker and the plan of the team. The app keeps a copy of the tickets, so Work also opens without a network.
 
-| Tab | Content |
-|---|---|
-| Backlog | Tickets grouped by status. Filter by status, assignee, label and run state. |
-| Board | One column for each status. Move a card with the pointer or the keyboard. |
-| Plan | A Gantt chart from a sheet, the team and a calendar. |
-| Estimates | One sheet for each lot, in four views. |
-| Team | The members of `.shipyard/team.yaml`. |
-| Time | Time entries by member and month. |
+## Backlog
 
-## Tickets
+Backlog lists the tickets by state. Filter by state, person, label and run.
 
-- Import: the app shows the count first. It writes nothing until you confirm.
-- Assign: pick a member. The ranking by skill and capacity is a suggestion only.
-- Mark for the agent: one click adds the pickup label.
-- Move a card: the app sends the transition. If the tracker refuses, the card returns and shows the reason.
+- Import: the app shows the count first. It writes nothing before you confirm.
+- Assign: pick a person. The app proposes a person by skills and free time. The choice is yours.
+- Mark for the agent: one click gives the ticket to the agents.
 
-## Estimates and plan
+## Board
 
-The app computes price, cost and margin from the day rates. It never stores a total. Seal the project with a passphrase to hide the day rates in the files. Without the passphrase, the app shows a locked state.
+Board shows one column for each state. Move a card with the mouse or the keyboard. When the tracker refuses the move, the card goes back and shows the reason.
 
-## Apply and time
+## Plan
 
-Apply to the tracker shows the rows to create or update first. A second apply creates no duplicate. A time entry needs a member that the team resolves. The app sends a worklog only after your click.
+Plan draws the schedule of a lot as a Gantt chart, from an estimate sheet, the team and the calendar. It shows the free time of each person and the public holidays of their country. Export the chart as a picture.
+
+## Estimates
+
+Estimates holds one sheet for each lot. Each row has a low, a likely and a high estimate. The app computes the price, the cost and the margin from the day rates.
+
+- Duplicate, rename, freeze or delete a sheet from its menu.
+- Seal the project with a passphrase to hide the day rates in the files.
+
+## Team
+
+Team lists the people of the project: their role, their skills, their days per week and their day rate.
+
+## Time
+
+Time lists the time that each person spent, by month. The app sends a time entry to the tracker only after your click.

@@ -205,3 +205,24 @@ fn a_secret_value_is_refused() {
             .contains("secret")
     );
 }
+
+#[test]
+fn a_typed_setting_is_read_checked_and_kept_after_an_update() {
+    use shipyard_store::plugin_config::{SettingKind, settings, settings_save};
+    let typed = r#"{"name":"x","version":"1","settings":{"region":{"type":"choice","default":"eu","choices":["eu","us"]},"size":{"type":"number","default":2}}}"#;
+    let p = read(&zip(&[("manifest.json", typed), ("files/a", "a")])).unwrap();
+    assert_eq!(p.fields["region"].kind, SettingKind::Choice);
+    assert_eq!(p.settings["size"], "2");
+    let bad = r#"{"name":"x","version":"1","settings":{"region":{"type":"choice","default":"mars","choices":["eu"]}}}"#;
+    assert!(read(&zip(&[("manifest.json", bad), ("files/a", "a")])).is_err());
+
+    let d = tempfile::tempdir().unwrap();
+    let all = ["setting:region".to_string(), "setting:size".to_string()];
+    apply(d.path(), &p, &all).unwrap();
+    let values = std::collections::BTreeMap::from([("region".to_string(), "us".to_string())]);
+    settings_save(d.path(), "x", &values).unwrap();
+    // A second apply of the plugin keeps the value that the person saved.
+    apply(d.path(), &p, &all).unwrap();
+    let rows = settings(d.path(), "x").unwrap();
+    assert_eq!(rows.iter().find(|r| r.key == "region").unwrap().value, "us");
+}

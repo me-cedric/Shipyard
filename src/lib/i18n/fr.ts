@@ -12,6 +12,7 @@ import { knowledgeFr } from "./knowledge";
 import { panelsFr } from "./panels";
 import { personalFr } from "./personal";
 import { reportsFr } from "./reports";
+import { reviewFr } from "./review";
 import { settingsFr } from "./settings";
 import { specsFr } from "./specs";
 import { uiFr } from "./ui";
@@ -36,6 +37,10 @@ export const fr: Messages = {
 		contrast: "Contraste élevé",
 		role: "Rôle",
 		releaseUrl: "Adresse des versions",
+		autoUpdate: "Chercher les mises à jour automatiquement",
+		promptLang: "Langue des demandes à l'assistant",
+		promptFollow: "Comme l'interface",
+		diagramFormat: "Format des nouveaux tableaux",
 		compact: "Compact",
 	},
 	palette: {
@@ -125,6 +130,7 @@ export const fr: Messages = {
 		knowledge: {
 			graph: "Graphe",
 			handbook: "Manuel",
+			manual: "Mode d'emploi",
 			documents: "Documents",
 			slides: "Diapositives",
 			learn: "Apprendre",
@@ -447,6 +453,11 @@ export const fr: Messages = {
 		takeOurs: "Prendre le nôtre",
 		takeTheirs: "Prendre le leur",
 		markResolved: "Marquer résolu",
+		editResult: "Modifier le résultat",
+		result: "Résultat",
+		saveResult: "Enregistrer le résultat",
+		cancelResult: "Annuler",
+		blocksChosen: "{done} sur {total} choisis",
 		resolve: "Résoudre",
 		summary: "Résumé",
 		description: "Description",
@@ -819,4 +830,5 @@ export const fr: Messages = {
 	panels: panelsFr,
 	reports: reportsFr,
 	editing: editingFr,
+	review: reviewFr,
 };

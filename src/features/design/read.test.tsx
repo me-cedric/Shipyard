@@ -232,6 +232,36 @@ describe("Design / Flows", () => {
 		// A row that kept its note keeps it after another row changes.
 		expect(saved()[0]).toMatchObject({ note: "Web portal" });
 	});
+
+	it("adds a brick, picks it in a flow with a name and a subnet, and follows a rename", async () => {
+		const user = userEvent.setup();
+		await open(user);
+		await user.click(await screen.findByRole("tab", { name: "Bricks" }));
+		await user.type(await screen.findByRole("textbox", { name: "Brick name" }), "Web");
+		await user.click(screen.getByRole("button", { name: "Brick" }));
+		await waitFor(() => expect(files()["docs/flows/bricks.json"]?.text).toContain('"Web"'));
+		await user.click(screen.getByRole("tab", { name: "Flows" }));
+		await user.click((await screen.findAllByRole("button", { name: /^Edit / }))[0] as HTMLElement);
+		await user.click(await screen.findByRole("combobox", { name: "Source brick" }));
+		await user.click(await screen.findByRole("option", { name: "Web" }));
+		await user.type(screen.getByRole("textbox", { name: "Name" }), "portal");
+		await user.type(screen.getByRole("textbox", { name: "Subnet" }), "10.0.0.0/24");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(saved()[0]).toMatchObject({
+				sourceName: "Web",
+				name: "portal",
+				subnet: "10.0.0.0/24",
+			}),
+		);
+		await user.click(screen.getByRole("tab", { name: "Bricks" }));
+		const field = await screen.findByRole("textbox", { name: "Brick name Web" });
+		await user.clear(field);
+		await user.type(field, "Frontend");
+		await user.tab();
+		await waitFor(() => expect(saved()[0]?.sourceName).toBe("Frontend"));
+		expect(files()["docs/flows/bricks.json"]?.text).toContain('"Frontend"');
+	});
 });
 
 describe("Design in French", () => {

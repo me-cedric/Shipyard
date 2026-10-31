@@ -20,6 +20,7 @@ import {
 	tabPath,
 	visibleTabs,
 } from "@/features/shell";
+import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { SPRING } from "@/ui/motion";
 import { NotFound } from "./not-found";
@@ -42,6 +43,7 @@ const indexRoute = createRoute({
 });
 
 function SpaceLayout({ space }: { space: SpaceId }) {
+	const { t } = useI18n();
 	const { profile, role } = usePrefs();
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	const still = useReducedMotion();
@@ -49,6 +51,7 @@ function SpaceLayout({ space }: { space: SpaceId }) {
 	const shown = visibleTabs(space, profile.hiddenTabs, role);
 	const first = shown[0];
 	const hidden = space !== "settings" && profile.hiddenTabs.some((h) => path === `/${h}`);
+	const readOnlyPage = space !== "settings" && profile.readOnlyTabs.some((h) => path === `/${h}`);
 	if (first && hidden) return <Navigate to={tabPath(space, first)} replace />;
 	return (
 		<div className="flex h-full flex-col">
@@ -63,7 +66,14 @@ function SpaceLayout({ space }: { space: SpaceId }) {
 					transition={SPRING.gentle}
 					className="flex min-h-0 flex-1 flex-col"
 				>
-					<Outlet />
+					{/* A read only page keeps its content and disables every control in it. */}
+					<fieldset
+						disabled={readOnlyPage}
+						aria-label={readOnlyPage ? t.workspace.profile.readOnly : undefined}
+						className="contents"
+					>
+						<Outlet />
+					</fieldset>
 				</motion.div>
 			</div>
 		</div>

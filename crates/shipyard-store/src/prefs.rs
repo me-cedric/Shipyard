@@ -136,6 +136,21 @@ pub struct Prefs {
     pub default_agent: String,
     #[serde(default)]
     pub default_model: String,
+    /// Whether the app checks for a new version at start and every 6 hours.
+    #[serde(default = "yes")]
+    pub auto_update_check: bool,
+    /// Language of the prompts that the assistant sends: `en` or `fr`. Empty follows the interface.
+    #[serde(default)]
+    pub prompt_lang: String,
+    /// Format of a new diagram board: one of `DIAGRAM_FORMATS`. Empty is the first one.
+    #[serde(default)]
+    pub diagram_format: String,
+}
+
+pub const DIAGRAM_FORMATS: [&str; 4] = ["excalidraw", "mermaid", "drawio", "bpmn"];
+
+fn yes() -> bool {
+    true
 }
 
 pub const UI_FONTS: [&str; 5] = ["system", "grotesk", "humanist", "serif", "mono"];
@@ -187,6 +202,9 @@ impl Default for Prefs {
             terminal_font_size: default_terminal_font_size(),
             default_agent: String::new(),
             default_model: String::new(),
+            auto_update_check: true,
+            prompt_lang: String::new(),
+            diagram_format: String::new(),
         }
     }
 }
@@ -214,6 +232,9 @@ pub struct PrefsPatch {
     pub terminal_font_size: Option<u8>,
     pub default_agent: Option<String>,
     pub default_model: Option<String>,
+    pub auto_update_check: Option<bool>,
+    pub prompt_lang: Option<String>,
+    pub diagram_format: Option<String>,
 }
 
 const FILE: &str = "prefs.json";
@@ -299,6 +320,22 @@ impl Prefs {
         if let Some(v) = p.default_model {
             self.default_model = clean_font(&v);
         }
+        self.auto_update_check = p.auto_update_check.unwrap_or(self.auto_update_check);
+        // Only a known value stays. An unknown one goes back to the default.
+        if let Some(v) = p.prompt_lang {
+            self.prompt_lang = if matches!(v.as_str(), "en" | "fr") {
+                v
+            } else {
+                String::new()
+            };
+        }
+        if let Some(v) = p.diagram_format {
+            self.diagram_format = if DIAGRAM_FORMATS.contains(&v.as_str()) {
+                v
+            } else {
+                String::new()
+            };
+        }
         if let Some(url) = p.release_url {
             // An empty value goes back to the default.
             self.release_url = if url.trim().is_empty() {
@@ -322,6 +359,35 @@ mod tests {
         let p = Prefs::load(dir.path());
         assert_eq!((p.theme, p.lang), (Theme::Dark, Some(Lang::Fr)));
         assert_eq!(p.release_url, DEFAULT_RELEASE_URL);
+    }
+
+    #[test]
+    fn update_check_prompt_language_and_diagram_format_keep_known_values_only() {
+        let mut p = Prefs::default();
+        assert!(p.auto_update_check);
+        p.apply(PrefsPatch {
+            auto_update_check: Some(false),
+            prompt_lang: Some("fr".into()),
+            diagram_format: Some("bpmn".into()),
+            ..Default::default()
+        });
+        assert_eq!(
+            (
+                p.auto_update_check,
+                p.prompt_lang.as_str(),
+                p.diagram_format.as_str()
+            ),
+            (false, "fr", "bpmn")
+        );
+        p.apply(PrefsPatch {
+            prompt_lang: Some("xx".into()),
+            diagram_format: Some("visio".into()),
+            ..Default::default()
+        });
+        assert_eq!(
+            (p.prompt_lang.as_str(), p.diagram_format.as_str()),
+            ("", "")
+        );
     }
 
     #[test]

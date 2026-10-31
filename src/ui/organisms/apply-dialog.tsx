@@ -1,8 +1,10 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { useMemo } from "react";
-import { useI18n } from "@/lib/i18n";
+import { useCallback, useMemo, useState } from "react";
+import { format, useI18n } from "@/lib/i18n";
 import { Badge } from "../atoms/badge";
 import { Button } from "../atoms/button";
+import { Checkbox } from "../atoms/checkbox";
+import { Input } from "../atoms/input";
 import { type Status, StatusDot } from "../atoms/status-dot";
 import { DataTable } from "./data-table";
 import { Dialog } from "./dialog";
@@ -33,7 +35,14 @@ export type ApplyResult = {
 	skipped: string[];
 };
 
-type Line = ApplyPreviewRow & { group: Group; detail: string };
+/** `typed` and `days` are the text of the two fields of a row in review. They sit in the row so the table keeps its cells while a person types. */
+type Line = ApplyPreviewRow & {
+	group: Group;
+	detail: string;
+	dropped: boolean;
+	typed: string;
+	typedDays: string;
+};
 type Group = ApplyAction | "written" | "failed";
 
 const ORDER: Group[] = ["failed", "written", "create", "update", "unchanged"];
@@ -47,7 +56,9 @@ const DOT: Record<Group, Status> = {
 
 /**
  * The rows that an apply would write, with nothing written. After the person applies, each row
- * shows its result. A failed row never undoes the rows before it.
+ * shows its result. A failed row never undoes the rows before it. With `review`, each row to write
+ * can be approved, edited (title and days) or dropped before the write: `onApply` gets the rows
+ * that stay, as the person edited them.
  */
 export function ApplyDialog({
 	open,
@@ -57,6 +68,7 @@ export function ApplyDialog({
 	results,
 	busy,
 	error,
+	review,
 	onApply,
 }: {
 	open: boolean;
@@ -66,34 +78,83 @@ export function ApplyDialog({
 	results?: ApplyResult[];
 	busy?: boolean;
 	error?: string | null;
-	onApply: () => void;
+	review?: boolean;
+	onApply: (rows: ApplyPreviewRow[]) => void;
 }) {
 	const { t } = useI18n();
 	const a = t.work.apply;
+	const r = t.review.apply;
+	const [dropped, setDropped] = useState<string[]>([]);
+	const [edits, setEdits] = useState<Record<string, { title?: string; days?: string }>>({});
+	const editable = Boolean(review) && !results;
+	const edit = useCallback(
+		(ref: string, patch: { title?: string; days?: string }) =>
+			setEdits((all) => ({ ...all, [ref]: { ...all[ref], ...patch } })),
+		[],
+	);
+	const toggle = useCallback(
+		(ref: string, on: boolean) =>
+			setDropped((d) => (on ? d.filter((x) => x !== ref) : [...d, ref])),
+		[],
+	);
+	/** The rows that stay, with the title and days that the person typed. */
+	const approved = rows
+		.filter((x) => x.action !== "unchanged" && !dropped.includes(x.reference))
+		.map((x) => {
+			const e = edits[x.reference];
+			const days = e?.days === undefined ? x.days : e.days === "" ? null : Number(e.days);
+			return { ...x, title: e?.title ?? x.title, days };
+		});
 	const lines = useMemo<Line[]>(() => {
 		const byRef = new Map((results ?? []).map((r) => [r.reference, r]));
 		return rows
+			.filter((row) => !(review && results) || byRef.has(row.reference))
 			.map((row): Line => {
 				const res = byRef.get(row.reference);
+				const own = {
+					dropped: dropped.includes(row.reference),
+					typed: edits[row.reference]?.title ?? row.title,
+					typedDays: edits[row.reference]?.days ?? String(row.days ?? ""),
+				};
 				if (!res)
 					return {
 						...row,
+						...own,
 						group: row.action,
 						detail: row.changes.map((f) => a.field[f as keyof typeof a.field] ?? f).join(", "),
 					};
 				const skipped = res.skipped.map((f) => a.field[f as keyof typeof a.field] ?? f).join(", ");
 				return {
 					...row,
+					...own,
 					key: res.key ?? row.key,
 					group: res.error ? "failed" : res.action === "unchanged" ? "unchanged" : "written",
 					detail: res.error ?? (skipped ? `${a.skipped}: ${skipped}` : ""),
 				};
 			})
 			.sort((x, y) => ORDER.indexOf(x.group) - ORDER.indexOf(y.group));
-	}, [rows, results, a]);
+	}, [rows, results, a, review, dropped, edits]);
 
 	const columns = useMemo<ColumnDef<Line>[]>(
 		() => [
+			...(editable
+				? [
+						{
+							id: "approve",
+							header: "",
+							meta: { width: "2rem" },
+							cell: ({ row }: { row: { original: Line } }) =>
+								row.original.action === "unchanged" ? null : (
+									<Checkbox
+										hideLabel
+										label={format(r.write, { name: row.original.title })}
+										checked={!row.original.dropped}
+										onCheckedChange={(on) => toggle(row.original.reference, on)}
+									/>
+								),
+						},
+					]
+				: []),
 			{
 				id: "state",
 				header: "",
@@ -108,12 +169,40 @@ export function ApplyDialog({
 				meta: { width: "4.5rem" },
 				cell: ({ row }) => <Badge>{a.kinds[row.original.kind]}</Badge>,
 			},
-			{ id: "title", header: a.name, cell: ({ row }) => row.original.title },
+			{
+				id: "title",
+				header: a.name,
+				cell: ({ row }) => {
+					const x = row.original;
+					if (!editable || x.action === "unchanged") return x.title;
+					return (
+						<Input
+							label={format(r.title, { name: x.title })}
+							value={x.typed}
+							onChange={(e) => edit(x.reference, { title: e.target.value })}
+						/>
+					);
+				},
+			},
 			{
 				id: "days",
 				header: a.days,
-				meta: { width: "4rem", numeric: true },
-				cell: ({ row }) => (row.original.days == null ? "" : String(row.original.days)),
+				meta: { width: editable ? "6rem" : "4rem", numeric: true },
+				cell: ({ row }) => {
+					const x = row.original;
+					if (!editable || x.action === "unchanged" || x.kind !== "story")
+						return x.days == null ? "" : String(x.days);
+					return (
+						<Input
+							type="number"
+							min={0}
+							step={0.5}
+							label={format(r.days, { name: x.title })}
+							value={x.typedDays}
+							onChange={(e) => edit(x.reference, { days: e.target.value })}
+						/>
+					);
+				},
 			},
 			{
 				id: "key",
@@ -132,10 +221,10 @@ export function ApplyDialog({
 				),
 			},
 		],
-		[a],
+		[a, r, editable, edit, toggle],
 	);
 
-	const todo = rows.filter((r) => r.action !== "unchanged").length;
+	const todo = approved.length;
 	return (
 		<Dialog
 			open={open}
@@ -144,7 +233,7 @@ export function ApplyDialog({
 			wide
 			actions={
 				results ? null : (
-					<Button variant="primary" disabled={busy || todo === 0} onClick={onApply}>
+					<Button variant="primary" disabled={busy || todo === 0} onClick={() => onApply(approved)}>
 						{a.apply}
 					</Button>
 				)

@@ -596,6 +596,9 @@ export function codeResolve(c: MockCode, path: string, how: Resolution) {
 	} else if (how.kind === "whole") {
 		for (const g of k.segments)
 			text += g.kind === "text" ? g.text : how.side === "ours" ? g.ours : g.theirs;
+	} else if (how.kind === "text") {
+		if (/^(<<<<<<<|>>>>>>>)/m.test(how.text)) throw `${path} still holds a conflict marker`;
+		text = how.text;
 	} else text = "resolved by hand\n";
 	const f = c.files[path] ?? { head: "", index: null, work: null };
 	f.work = text;

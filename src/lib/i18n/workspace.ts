@@ -79,6 +79,14 @@ export const workspaceEn = {
 		tabs: "Spaces",
 		readOnly: "Read only",
 		screens: "Screens",
+		profiles: "Profiles",
+		pages: "Pages",
+		profile: "Profile",
+		mode: { editable: "Editable", "read-only": "Read only", hidden: "Hidden" },
+		people: "People",
+		email: "E-mail",
+		assign: "Assign",
+		unassign: "Remove {email}",
 	},
 };
 
@@ -162,5 +170,13 @@ export const workspaceFr: typeof workspaceEn = {
 		tabs: "Espaces",
 		readOnly: "Lecture seule",
 		screens: "Écrans",
+		profiles: "Profils",
+		pages: "Pages",
+		profile: "Profil",
+		mode: { editable: "Modifiable", "read-only": "Lecture seule", hidden: "Masquée" },
+		people: "Personnes",
+		email: "E-mail",
+		assign: "Assigner",
+		unassign: "Retirer {email}",
 	},
 };

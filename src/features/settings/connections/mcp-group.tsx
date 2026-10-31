@@ -20,6 +20,7 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { mcpKeys, message, useMcpServers } from "./keys";
+import { McpGroupTools, McpTestResult, useCategoryName, useMcpTest } from "./mcp-tools";
 
 const STATE_SHAPE: Record<McpServer["state"]["state"], Status> = {
 	stopped: "idle",
@@ -29,6 +30,7 @@ const STATE_SHAPE: Record<McpServer["state"]["state"], Status> = {
 };
 
 const CUSTOM = "custom";
+const ALL = "all";
 
 /** The fields of a server: a value left empty keeps the saved one. A secret shows no value. */
 function Fields({
@@ -83,6 +85,7 @@ function McpRow({
 	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
 	const live = s.state.state === "running" || s.state.state === "starting";
+	const check = useMcpTest(s.id);
 
 	const run = async (job: () => Promise<unknown>) => {
 		setError(null);
@@ -129,6 +132,14 @@ function McpRow({
 							<PlayIcon size={14} />
 						</IconButton>
 					)}
+					<Button
+						variant="ghost"
+						aria-label={format(t.extensions.mcp.testName, { name: s.label })}
+						disabled={check.busy || s.state.state === "starting"}
+						onClick={() => void check.test()}
+					>
+						{t.extensions.mcp.test}
+					</Button>
 					{s.fields.length > 0 ? (
 						<IconButton
 							label={t.connections.edit}
@@ -158,6 +169,7 @@ function McpRow({
 					) : null}
 				</p>
 			))}
+			{check.result ? <McpTestResult name={s.label} result={check.result} /> : null}
 			{s.state.state === "failed" || error ? (
 				<ErrorNotice
 					error={error ?? (s.state.state === "failed" ? s.state.reason : "")}
@@ -207,8 +219,10 @@ export function McpGroup({
 	const { t } = useI18n();
 	const qc = useQueryClient();
 	const [error, setError] = useState<unknown>(null);
-	const rows = (useMcpServers().data ?? []).filter((s) => s.enabled);
-	if (rows.length === 0) return null;
+	const all = useMcpServers().data ?? [];
+	const rows = all.filter((s) => s.enabled);
+	const categoryName = useCategoryName();
+	const categories = [...new Set(rows.map((s) => s.category))].sort();
 	const startable = rows.filter((s) => s.state.state !== "running" && s.missing.length === 0);
 	const startAll = async () => {
 		setError(null);
@@ -228,9 +242,17 @@ export function McpGroup({
 					{t.connections.mcp.startAll}
 				</Button>
 			</div>
+			<McpGroupTools rows={all} />
 			{error ? <ErrorNotice error={error} className="px-3 text-ui text-danger-text" /> : null}
-			{rows.map((s) => (
-				<McpRow key={s.id} server={s} formOpen={formOpen} onForm={onForm} />
+			{categories.map((c) => (
+				<section key={c} aria-label={categoryName(c)} className="flex flex-col gap-2">
+					<h3 className="px-1 text-12 text-n-11">{categoryName(c)}</h3>
+					{rows
+						.filter((s) => s.category === c)
+						.map((s) => (
+							<McpRow key={s.id} server={s} formOpen={formOpen} onForm={onForm} />
+						))}
+				</section>
 			))}
 		</section>
 	);
@@ -242,9 +264,16 @@ type Variable = { key: string; value: string };
 export function McpAddForm({ onDone }: { onDone: () => void }) {
 	const { t } = useI18n();
 	const qc = useQueryClient();
-	const catalogue = (useMcpServers().data ?? []).filter((s) => !s.custom && !s.enabled);
+	const offered = (useMcpServers().data ?? []).filter((s) => !s.custom && !s.enabled);
+	const categoryName = useCategoryName();
+	const categories = [...new Set(offered.map((s) => s.category))].sort();
+	const [shown, setCategory] = useState(ALL);
+	const catalogue = offered.filter((s) => shown === ALL || s.category === shown);
 	const [pick, setPick] = useState<string | null>(null);
-	const choice = pick ?? catalogue[0]?.id ?? CUSTOM;
+	const choice =
+		pick && (pick === CUSTOM || catalogue.some((s) => s.id === pick))
+			? pick
+			: (catalogue[0]?.id ?? CUSTOM);
 	const server = catalogue.find((s) => s.id === choice);
 	const [name, setName] = useState("");
 	const [command, setCommand] = useState("");
@@ -286,6 +315,22 @@ export function McpAddForm({ onDone }: { onDone: () => void }) {
 
 	return (
 		<div className="flex flex-col border-b">
+			{categories.length ? (
+				<SettingsRow label={t.extensions.mcp.category}>
+					<Select
+						label={t.extensions.mcp.category}
+						value={shown}
+						onValueChange={(c) => {
+							setCategory(c);
+							setPick(null);
+						}}
+						items={[
+							{ value: ALL, label: t.extensions.mcp.all },
+							...categories.map((c) => ({ value: c, label: categoryName(c) })),
+						]}
+					/>
+				</SettingsRow>
+			) : null}
 			<SettingsRow label={f.server}>
 				<Select
 					label={f.server}

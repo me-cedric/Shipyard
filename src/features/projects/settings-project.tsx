@@ -24,6 +24,7 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Settings } from "@/ui/templates/settings";
 import { PersonasEditor } from "./personas";
+import { ProfilesCard } from "./profiles-card";
 import { ProjectDetails } from "./project-details";
 import { ProjectImport } from "./project-import";
 import { ProjectOverrides } from "./project-overrides";
@@ -274,6 +275,7 @@ function Form({
 			) : null}
 			<ProjectOverrides />
 			<ScreensCard />
+			<ProfilesCard />
 			<AutoCommit />
 			<HolidayCountry row />
 			<ProjectImport />

@@ -49,6 +49,13 @@ impl Repo {
         Ok(Self { repo })
     }
 
+    /// The e-mail of the git identity here (repository, then global config), lower case.
+    pub fn user_email(&self) -> Option<String> {
+        let e = self.repo.config().ok()?.get_string("user.email").ok()?;
+        let e = e.trim().to_lowercase();
+        (!e.is_empty()).then_some(e)
+    }
+
     pub fn workdir(&self) -> &Path {
         self.repo.workdir().expect("bare repositories are refused")
     }

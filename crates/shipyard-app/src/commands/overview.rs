@@ -205,6 +205,8 @@ pub struct ChainWarning {
     /// The path kind that did not follow.
     pub to: String,
     pub changed: Vec<String>,
+    /// The reason that a person gave to leave the link as it is, while it covers the changed files.
+    pub ack: Option<super::chain_acks::ChainAck>,
 }
 
 /// A change in the first kind puts each listed kind out of date. Shortcut: a fixed chain of the
@@ -238,6 +240,7 @@ pub fn stale(file: &ProjectFile, changed: &[String]) -> Vec<ChainWarning> {
                     from: from.into(),
                     to: (*to).into(),
                     changed: up.clone(),
+                    ack: None,
                 });
             }
         }
@@ -263,7 +266,10 @@ pub fn chain_gate(s: &AppState, push: bool) -> Res<Vec<ChainWarning>> {
     } else {
         st.staged.iter().map(|f| f.path.clone()).collect()
     };
-    Ok(stale(&file, &changed))
+    Ok(super::chain_acks::with_acks(root, stale(&file, &changed))
+        .into_iter()
+        .filter(|w| w.ack.is_none())
+        .collect())
 }
 
 /// The docs chain against a base branch: which artifacts are stale against their source.
@@ -309,7 +315,7 @@ pub fn chain_watch(s: &AppState, base: Option<&str>) -> Res<ChainWatch> {
     let changed = r.changed_since(&rev).map_err(err)?;
     Ok(ChainWatch {
         base: rev,
-        warnings: stale(&file, &changed),
+        warnings: super::chain_acks::with_acks(root, stale(&file, &changed)),
     })
 }
 

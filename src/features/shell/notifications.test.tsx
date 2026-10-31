@@ -56,6 +56,23 @@ describe("Notification centre", () => {
 		expect(screen.queryByText("What changed in 0.1.0")).toBeNull();
 	});
 
+	it("repeats the check every 6 hours and stops when the switch is off", async () => {
+		const spy = vi.spyOn(globalThis, "setInterval");
+		mountApp("/home/inbox");
+		await screen.findByRole("navigation", { name: "Sidebar" });
+		await waitFor(() => expect(spy.mock.calls.some((c) => c[1] === 6 * 60 * 60 * 1000)).toBe(true));
+		cleanup();
+		spy.mockClear();
+		mockState().prefs.autoUpdateCheck = false;
+		mockState().prefs.releaseUrl = NEWER;
+		mountApp("/home/inbox");
+		await screen.findByRole("navigation", { name: "Sidebar" });
+		await new Promise((r) => setTimeout(r, 50));
+		expect(spy.mock.calls.some((c) => c[1] === 6 * 60 * 60 * 1000)).toBe(false);
+		expect(screen.queryByText("Update available: 0.2.0")).toBeNull();
+		spy.mockRestore();
+	});
+
 	it("shows only the new version entry when it is not installed", async () => {
 		mockState().prefs.releaseUrl = NEWER;
 		mountApp("/home/inbox");

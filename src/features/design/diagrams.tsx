@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import {
 	type Artifact,
 	DESIGN_DIR,
@@ -8,11 +9,14 @@ import {
 	useDesignActions,
 	useDesignList,
 } from "@/lib/design";
-import { useI18n } from "@/lib/i18n";
+import { type BoardFormat, convertBoard, newBoard } from "@/lib/design/convert";
+import { format as fill, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
+import { usePrefs } from "@/lib/prefs";
 import { Button } from "@/ui/atoms/button";
 import { ShareIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
+import { MenuButton } from "@/ui/molecules/menu-button";
 import { BpmnViewer } from "@/ui/organisms/bpmn-viewer";
 import { svgDataUri } from "@/ui/organisms/drawio";
 import { DrawioEditor } from "@/ui/organisms/drawio-editor";
@@ -23,7 +27,9 @@ import { FileFrame } from "./frame";
 import { useOpenOutside } from "./open";
 import { ArtifactTab } from "./tab";
 
-const EXT = { excalidraw: "excalidraw", mermaid: "mmd" } as const;
+const EXT = { excalidraw: "excalidraw", mermaid: "mmd", drawio: "drawio", bpmn: "bpmn" } as const;
+const FORMATS = ["excalidraw", "mermaid", "drawio", "bpmn"] as const;
+const isBoard = (f: string): f is BoardFormat => (FORMATS as readonly string[]).includes(f);
 
 /** The tint and the shape of a format in the grid. */
 const FACE: Record<string, { tone: "accent" | "info" | "warning" | "success"; text: string }> = {
@@ -95,20 +101,48 @@ function Face({ a }: { a: Artifact | undefined }) {
 function Diagram({ a }: { a: Artifact }) {
 	const { t, lang } = useI18n();
 	const outside = useOpenOutside();
+	const act = useDesignActions();
+	const [convertError, setConvertError] = useState<string | null>(null);
 	const format = a.format ?? "";
 	// Every format edits. draw.io and BPMN also open in another app (ADR 0015).
 	const outsideApp = format === "drawio" || format === "bpmn";
+	// A draw.io picture (`.drawio.svg`) has no text to convert.
+	const from = isBoard(format) && !a.path.endsWith(".svg") ? format : null;
+	// The converted board is a new file beside this one. The source stays as it is.
+	const convert = async (to: BoardFormat) => {
+		setConvertError(null);
+		try {
+			const source = await unwrap(commands.designRead(a.path));
+			const target = `${a.path.replace(/\.[^./]+$/, "")}.${EXT[to]}`;
+			const w = await act.create(target, convertBoard(from as BoardFormat, to, source.text));
+			if (w.conflict) setConvertError(fill(t.design.convertExists, { name: target }));
+		} catch (e) {
+			setConvertError(e instanceof Error ? e.message : String(e));
+		}
+	};
 	return (
 		<FileFrame
 			path={a.path}
 			refId={a.reference}
 			title={a.title}
 			issue={a.issue}
-			notice={outside.error}
+			notice={outside.error ?? convertError}
 			actions={
-				outsideApp ? (
-					<Button onClick={() => void outside.open(a.path)}>{t.design.openOutside}</Button>
-				) : undefined
+				<>
+					{from ? (
+						<MenuButton
+							label={t.design.convert}
+							items={FORMATS.filter((f) => f !== from).map((f) => ({
+								id: f,
+								label: t.design.formats[f],
+								onSelect: () => void convert(f),
+							}))}
+						/>
+					) : null}
+					{outsideApp ? (
+						<Button onClick={() => void outside.open(a.path)}>{t.design.openOutside}</Button>
+					) : null}
+				</>
 			}
 		>
 			{(file, onError, error) => {
@@ -177,6 +211,9 @@ export function Diagrams() {
 	const list = useDesignList().data;
 	const act = useDesignActions();
 	const rows = ofKind(list, "diagram");
+	const { diagramFormat } = usePrefs();
+	// The format of the preference comes first: the form starts on it.
+	const first = isBoard(diagramFormat) ? diagramFormat : FORMATS[0];
 	return (
 		<ArtifactTab
 			title={t.tabs.design.diagrams}
@@ -191,14 +228,17 @@ export function Diagrams() {
 			}))}
 			thumb={(row) => <Face a={rows.find((x) => x.reference === row.ref)} />}
 			create={{
-				formats: (["excalidraw", "mermaid"] as const).map((f) => ({
+				formats: [first, ...FORMATS.filter((f) => f !== first)].map((f) => ({
 					value: f,
 					label: t.design.formats[f],
 				})),
 				run: async (name, format) => {
-					const f = format as keyof typeof EXT;
+					const f = format as BoardFormat;
 					const s = slug(name);
-					await act.create(`${DESIGN_DIR.diagram}/${s}.${EXT[f]}`, TEMPLATE[f]);
+					await act.create(
+						`${DESIGN_DIR.diagram}/${s}.${EXT[f]}`,
+						f === "excalidraw" || f === "mermaid" ? TEMPLATE[f] : newBoard(f),
+					);
 					return `diagram:${s}`;
 				},
 			}}

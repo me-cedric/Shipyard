@@ -24,8 +24,9 @@ const toRow = (d: DiffRow): ApplyPreviewRow => ({
 });
 
 /**
- * Apply the sheets to the tracker. The dialog opens on the preview, which writes nothing. One
- * click on Apply writes, and each row then shows its own result (REQ-025, REQ-026).
+ * Apply the sheets to the tracker. The dialog opens on the preview, which writes nothing. Each row
+ * can be approved, edited or dropped. One click on Apply writes the approved rows, and each row
+ * then shows its own result (REQ-025, REQ-026).
  */
 export function ApplyFlow({ slugs, onClose }: { slugs: string[]; onClose: () => void }) {
 	const { t } = useI18n();
@@ -45,10 +46,11 @@ export function ApplyFlow({ slugs, onClose }: { slugs: string[]; onClose: () => 
 			results={results}
 			busy={busy || preview.isLoading}
 			error={error ?? failed}
-			onApply={() => {
+			review
+			onApply={(approved) => {
 				setBusy(true);
 				void run(async () => {
-					setResults(await act.apply(slugs));
+					setResults(await act.applyRows(slugs, approved));
 					// The rest of the tracker: the mirror reads what changed there. A failed poll is not an apply error.
 					await commands.syncNow().catch(() => undefined);
 				}).finally(() => setBusy(false));

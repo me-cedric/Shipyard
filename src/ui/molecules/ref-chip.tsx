@@ -58,6 +58,7 @@ export function RefChip({
 				<button
 					type="button"
 					data-state={state}
+					data-ask={refId}
 					aria-label={name}
 					// A drop on the assistant panel adds the ref to its context.
 					draggable

@@ -50,13 +50,13 @@ describe("Settings / Connections", () => {
 		const add = await within(main).findByRole("button", { name: "Connection" });
 		expect(add.className).toContain("bg-accent");
 		expect(main.querySelectorAll("[aria-hidden] > *").length).toBeGreaterThanOrEqual(5);
-		// The runners are detected, not added: they come first. The outside agents server and the
-		// certificates have switches: they wait in Advanced.
+		// The runners are detected, not added: they come first. The MCP servers (with the recommended
+		// set), the outside agents server and the certificates wait in Advanced.
 		expect(
 			within(main)
 				.getAllByRole("heading", { level: 2 })
 				.map((h) => h.textContent),
-		).toEqual(["Runners (5)", "Outside agents", "Certificates"]);
+		).toEqual(["Runners (5)", "MCP servers (0)", "Outside agents", "Certificates"]);
 		expect(within(main).getByText("Advanced").closest("details")).not.toHaveAttribute("open");
 	});
 

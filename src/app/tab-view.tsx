@@ -51,6 +51,7 @@ const LOADERS: Partial<Record<string, Load>> = {
 	"specs/constitution": () => import("@/features/specs/constitution").then((m) => m.Constitution),
 	"knowledge/graph": () => import("@/features/knowledge/graph").then((m) => m.Graph),
 	"knowledge/handbook": () => import("@/features/knowledge/pages").then((m) => m.Handbook),
+	"knowledge/manual": () => import("@/features/knowledge/manual").then((m) => m.Manual),
 	"knowledge/documents": () => import("@/features/knowledge/documents").then((m) => m.Documents),
 	"knowledge/slides": () => import("@/features/knowledge/slides").then((m) => m.Slides),
 	"knowledge/learn": () => import("@/features/knowledge/learn").then((m) => m.Learn),

@@ -153,6 +153,54 @@ describe("Code / Changes", () => {
 		expect(mockState().code?.files["src/app.ts"]?.work).toBe("top\nt1\no2\n");
 	});
 
+	it("counts the chosen blocks, opens the file in the editor and saves a typed result", async () => {
+		const user = userEvent.setup();
+		await open();
+		const code = seedCode();
+		code.conflicts = [
+			{
+				path: "src/app.ts",
+				text: true,
+				segments: [
+					{ kind: "text", text: "top\n" },
+					{ kind: "block", ours: "o1\n", base: "", theirs: "t1\n" },
+					{ kind: "block", ours: "o2\n", base: "", theirs: "t2\n" },
+				],
+			},
+		];
+		mockState().code = code;
+		mountApp("/code/changes");
+		await group("Conflicts (1)");
+		await user.click(within(main()).getByRole("button", { name: "app.ts" }));
+		expect(await screen.findByText("0 of 2 chosen")).toBeInTheDocument();
+		await user.click(
+			within(screen.getByRole("group", { name: "Block 1" })).getByRole("button", {
+				name: "Theirs",
+			}),
+		);
+		expect(screen.getByText("1 of 2 chosen")).toBeInTheDocument();
+		await user.click(
+			within(await screen.findByRole("region", { name: "src/app.ts" })).getByRole("button", {
+				name: /^Open in /,
+			}),
+		);
+		await waitFor(() =>
+			expect(mockState().deliveryActions.editors.map((e) => e.path)).toContain("src/app.ts"),
+		);
+		await user.click(screen.getByRole("button", { name: "Edit result" }));
+		const result = await screen.findByRole("textbox", { name: "Result" });
+		expect(result).toHaveValue("top\nt1\no2\n");
+		await user.clear(result);
+		await user.type(result, "<<<<<<< x");
+		await user.click(screen.getByRole("button", { name: "Save result" }));
+		expect(await screen.findByText(/conflict marker/)).toBeInTheDocument();
+		await user.clear(result);
+		await user.type(result, "typed");
+		await user.click(screen.getByRole("button", { name: "Save result" }));
+		await waitFor(() => expect(screen.queryByRole("heading", { name: /^Conflicts/ })).toBeNull());
+		expect(mockState().code?.files["src/app.ts"]?.work).toBe("typed");
+	}, 20_000);
+
 	it("takes a whole side for a binary conflict", async () => {
 		const user = userEvent.setup();
 		await open();

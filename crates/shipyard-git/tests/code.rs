@@ -900,6 +900,23 @@ fn conflict_choices_both_and_neither_whole_side_and_marker_guard() {
 }
 
 #[test]
+fn an_edited_result_is_written_and_staged_unless_it_keeps_a_marker() {
+    let (_t, r) = two_block_merge();
+    match r.resolve_text("f.txt", "a\n<<<<<<< ours\nb\n") {
+        Err(GitError::ConflictMarkers(p)) => assert_eq!(p, "f.txt"),
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(r.status().unwrap().conflicted.len(), 1);
+    r.resolve_text("f.txt", "typed result\n").unwrap();
+    assert_eq!(
+        fs::read_to_string(r.workdir().join("f.txt")).unwrap(),
+        "typed result\n"
+    );
+    assert!(r.status().unwrap().conflicted.is_empty());
+    assert!(r.resolve_text("../f.txt", "x").is_err());
+}
+
+#[test]
 fn a_stash_that_stops_on_a_conflict_is_listed_and_the_stash_is_kept() {
     let tmp = TempDir::new().unwrap();
     let mut r = init(tmp.path());

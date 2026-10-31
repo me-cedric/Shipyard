@@ -28,6 +28,7 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { WriteReportView } from "@/ui/molecules/write-report";
+import { CompassSetup } from "./compass-setup";
 
 const KINDS: EntryKind[] = ["skill", "pack", "guide", "pattern", "contract"];
 const STATUS: Record<SyncState, Status> = { current: "success", stale: "warning", absent: "idle" };
@@ -43,7 +44,7 @@ function EntryDetail({ entry }: { entry: Entry }) {
 	return <pre className="whitespace-pre-wrap text-12">{text.data}</pre>;
 }
 
-/** The compass part of Settings / Agents and rules: five lists, apply, upgrade, roles and skills. */
+/** The compass part of Settings / Agents and rules: the setup, five lists, apply, upgrade, roles and skills. */
 export function Compass({ children }: { children: ReactNode }) {
 	const { t } = useI18n();
 	const x = t.extensions;
@@ -141,6 +142,7 @@ export function Compass({ children }: { children: ReactNode }) {
 					/>
 				) : (
 					<>
+						<CompassSetup />
 						{report ? <WriteReportView report={report} /> : null}
 						<div className="flex items-end gap-2">
 							<Input

@@ -19,6 +19,7 @@ import { useTabSelection } from "@/lib/shell/selection";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { Textarea } from "@/ui/atoms/textarea";
 import { CodeBracketIcon } from "@/ui/icons";
 import { ConflictBlock, type ConflictChoice } from "@/ui/molecules/conflict-block";
 import type { MenuItem } from "@/ui/molecules/context-menu";
@@ -30,6 +31,7 @@ import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { ConflictAgent } from "./conflict-agent";
+import { OpenInEditor } from "./open-in-editor";
 import { withProject } from "./project-gate";
 import { GateNotice } from "./push-target";
 import { treeRows } from "./tree";
@@ -192,12 +194,37 @@ export function ConflictPane({
 	const { t } = useI18n();
 	const { resolve } = useCodeActions();
 	const [choices, setChoices] = useState<Record<number, ConflictChoice>>({});
+	// The result that the person types, or null while the blocks decide.
+	const [edited, setEdited] = useState<string | null>(null);
 	const blocks = file.segments.flatMap((s) => (s.kind === "block" ? [s] : []));
 	const picked = blocks.every((_, i) => choices[i] !== undefined);
+	const chosen = blocks.filter((_, i) => choices[i] !== undefined).length;
+	// The text that the choices give now. A block with no choice yet takes ours.
+	const preview = () => {
+		let i = 0;
+		return file.segments
+			.map((s) => {
+				if (s.kind === "text") return s.text;
+				const c = choices[i++] ?? "ours";
+				return `${c === "ours" || c === "both" ? s.ours : ""}${c === "theirs" || c === "both" ? s.theirs : ""}`;
+			})
+			.join("");
+	};
 	return (
 		<section aria-label={file.path}>
 			<div className="flex items-center gap-2 px-3 py-1">
 				<h2 className="flex-1 truncate text-ui font-medium">{file.path}</h2>
+				{blocks.length ? (
+					<span className="font-mono text-12 text-n-11">
+						{format(t.code.blocksChosen, { done: chosen, total: blocks.length })}
+					</span>
+				) : null}
+				<OpenInEditor path={file.path} />
+				{file.text ? (
+					<Button variant="ghost" onClick={() => setEdited(preview())}>
+						{t.code.editResult}
+					</Button>
+				) : null}
 				<Button
 					variant="ghost"
 					onClick={() => run(() => resolve(file.path, { kind: "whole", side: "ours" }))}
@@ -229,6 +256,27 @@ export function ConflictPane({
 					</Button>
 				) : null}
 			</div>
+			{edited !== null ? (
+				<div className="flex flex-col gap-2 px-3 py-2">
+					<Textarea
+						label={t.code.result}
+						value={edited}
+						onChange={(e) => setEdited(e.target.value)}
+						className="min-h-48 font-mono"
+					/>
+					<div className="flex gap-2">
+						<Button
+							variant="primary"
+							onClick={() => run(() => resolve(file.path, { kind: "text", text: edited }))}
+						>
+							{t.code.saveResult}
+						</Button>
+						<Button variant="ghost" onClick={() => setEdited(null)}>
+							{t.code.cancelResult}
+						</Button>
+					</div>
+				</div>
+			) : null}
 			{blocks.map((b, i) => (
 				<ConflictBlock
 					// biome-ignore lint/suspicious/noArrayIndexKey: the blocks never reorder

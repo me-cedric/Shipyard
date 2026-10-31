@@ -11,6 +11,7 @@ import { knowledgeEn } from "./knowledge";
 import { panelsEn } from "./panels";
 import { personalEn } from "./personal";
 import { reportsEn } from "./reports";
+import { reviewEn } from "./review";
 import { settingsEn } from "./settings";
 import { specsEn } from "./specs";
 import { uiEn } from "./ui";
@@ -35,6 +36,10 @@ export const en = {
 		contrast: "High contrast",
 		role: "Role",
 		releaseUrl: "Release address",
+		autoUpdate: "Check for updates automatically",
+		promptLang: "Language of assistant prompts",
+		promptFollow: "Same as the interface",
+		diagramFormat: "Format of new boards",
 		compact: "Compact",
 	},
 	palette: {
@@ -119,6 +124,7 @@ export const en = {
 		knowledge: {
 			graph: "Graph",
 			handbook: "Handbook",
+			manual: "Manual",
 			documents: "Documents",
 			slides: "Slides",
 			learn: "Learn",
@@ -428,6 +434,11 @@ export const en = {
 		takeOurs: "Take ours",
 		takeTheirs: "Take theirs",
 		markResolved: "Mark resolved",
+		editResult: "Edit result",
+		result: "Result",
+		saveResult: "Save result",
+		cancelResult: "Cancel",
+		blocksChosen: "{done} of {total} chosen",
 		resolve: "Resolve",
 		summary: "Summary",
 		description: "Description",
@@ -785,6 +796,7 @@ export const en = {
 	panels: panelsEn,
 	reports: reportsEn,
 	editing: editingEn,
+	review: reviewEn,
 };
 
 export type Messages = typeof en;

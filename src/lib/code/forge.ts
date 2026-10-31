@@ -70,6 +70,14 @@ export function useQuality() {
 	return useQuery({ queryKey: forgeKeys.quality, queryFn: () => unwrap(commands.codeQuality()) });
 }
 
+/** The line coverage of the report that the project produced, or `null` when it has none. */
+export function useCoverageReport() {
+	return useQuery({
+		queryKey: [...forgeKeys.quality, "coverage"],
+		queryFn: () => unwrap(commands.codeCoverage()),
+	});
+}
+
 export function useImpactRefs() {
 	return useQuery({ queryKey: forgeKeys.refs, queryFn: () => unwrap(commands.codeImpactRefs()) });
 }

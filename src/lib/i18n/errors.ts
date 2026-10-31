@@ -44,6 +44,9 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		remote_address: "Use an https address with no user name or password.",
 		remote_exists: "This project already has a remote. Change it instead.",
 		sheet_frozen: "This sheet is frozen. Unfreeze it first.",
+		feed_invalid:
+			"This address does not give a news feed. Use the RSS or Atom address of the site.",
+		setting_invalid: "A value does not fit its setting. Check the values, then save again.",
 	},
 	fr: {
 		no_project: "Ouvrez ou créez d'abord un projet.",
@@ -86,6 +89,10 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		remote_address: "Utilisez une adresse https sans nom d'utilisateur ni mot de passe.",
 		remote_exists: "Ce projet a déjà un dépôt distant. Modifiez-le plutôt.",
 		sheet_frozen: "Cette feuille est figée. Défigez-la d'abord.",
+		feed_invalid:
+			"Cette adresse ne donne pas de fil d'actualité. Utilisez l'adresse RSS ou Atom du site.",
+		setting_invalid:
+			"Une valeur ne convient pas à son réglage. Vérifiez les valeurs, puis enregistrez.",
 	},
 };
 
@@ -149,6 +156,8 @@ export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["bad remote address", "remote_address"],
 	["the project already has a remote", "remote_exists"],
 	["the sheet is frozen", "sheet_frozen"],
+	["does not hold an RSS or Atom feed", "feed_invalid"],
+	["the setting ", "setting_invalid"],
 ];
 
 const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {

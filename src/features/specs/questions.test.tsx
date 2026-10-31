@@ -44,9 +44,11 @@ describe("Specs / Questions", () => {
 		await renderSpecs(<Questions />);
 		await user.click(await screen.findByRole("button", { name: "New question" }));
 		await fill(user, "Title", "Who signs?");
-		await fill(user, "Owner", "ada");
+		await pick(user, "Owner", "Ada Lovelace");
 		await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(files()[`${QDIR}/Q-036.md`]).toBeDefined());
+		// The owner is the handle of the team member.
+		expect(files()[`${QDIR}/Q-036.md`]?.text).toContain("owner: ada");
 		const keys = [...(files()[`${QDIR}/Q-036.md`]?.text ?? "").matchAll(/^(\w+):/gm)].map(
 			(m) => m[1],
 		);
@@ -91,9 +93,9 @@ describe("Specs / Questions", () => {
 		await renderSpecs(<Questions />);
 		await user.click(await screen.findByRole("button", { name: /^Q-020/ }));
 		const dialog = within(await screen.findByRole("dialog"));
-		await fill(user, "Owner", "grace2");
+		await pick(user, "Owner", "Alan Turing");
 		await user.click(dialog.getByRole("button", { name: "Save" }));
-		await waitFor(() => expect(files()[`${QDIR}/Q-020.md`]?.text).toContain("owner: grace2"));
+		await waitFor(() => expect(files()[`${QDIR}/Q-020.md`]?.text).toContain("owner: alan"));
 	});
 
 	it("fills the form from the file that the stamp belongs to", async () => {
@@ -107,11 +109,46 @@ describe("Specs / Questions", () => {
 		files()[path] = { ...f, text: f.text.replace("owner: grace", "owner: zed") };
 		await user.click(row);
 		const dialog = within(await screen.findByRole("dialog"));
-		await waitFor(() => expect(dialog.getByLabelText("Owner")).toHaveValue("zed"));
+		await waitFor(() => expect(dialog.getByLabelText("Owner")).toHaveTextContent("zed"));
 		await fill(user, "Title", "New title");
 		await user.click(dialog.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(files()[path]?.text).toContain("# New title"));
 		expect(files()[path]?.text).toContain("owner: zed");
+	});
+
+	it("renames a question and edits its text, and the file keeps both", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<Questions />);
+		await user.click(await screen.findByRole("button", { name: /^Q-020/ }));
+		const dialog = within(await screen.findByRole("dialog"));
+		await waitFor(() =>
+			expect(dialog.getByLabelText("Text")).toHaveValue(
+				"\nClaim stamps need a tracker comment write\n",
+			),
+		);
+		await fill(user, "Title", "Use labels");
+		await fill(user, "Text", "Label it");
+		await user.click(dialog.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(files()[`${QDIR}/Q-020.md`]?.text).toContain("# Use labels"));
+		expect(files()[`${QDIR}/Q-020.md`]?.text).toContain("Label it");
+	});
+
+	it("deletes a question only after a confirmation, and the file goes to the trash", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<Questions />);
+		await user.click(await screen.findByRole("button", { name: /^Q-034/ }));
+		await user.click(
+			await within(await screen.findByRole("dialog")).findByRole("button", { name: "Delete" }),
+		);
+		const confirm = within(
+			await screen.findByRole("dialog", {
+				name: /Move docs\/delivery\/questions\/Q-034\.md to the trash/,
+			}),
+		);
+		expect(files()[`${QDIR}/Q-034.md`]).toBeDefined();
+		await user.click(confirm.getByRole("button", { name: "Move to trash" }));
+		await waitFor(() => expect(files()[`${QDIR}/Q-034.md`]).toBeUndefined());
+		await waitFor(async () => expect(await rows()).toHaveLength(6));
 	});
 
 	it("folds an answer after a preview and one click, with no new section", async () => {

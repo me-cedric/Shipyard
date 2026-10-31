@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { AskMenu } from "@/features/assistant";
 import { BranchSelector } from "@/features/code/branch-selector";
 import { CloneDialog } from "@/features/projects/clone-dialog";
 import { OpenInTerminal } from "@/features/reports/open-in-terminal";
@@ -161,6 +162,7 @@ export function ContextBar({
 			>
 				<ChatBubbleIcon size={16} />
 			</IconButton>
+			<AskMenu />
 			<NotificationCentre items={items} unread={unread} onOpen={markRead} onClear={clear} />
 			<IconButton
 				label={format(t.shell.themeTo, { name: t.theme[NEXT[theme]] })}

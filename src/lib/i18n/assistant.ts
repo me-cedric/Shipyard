@@ -92,6 +92,15 @@ export const assistantEn = {
 		body: "The assistant edits files in the worktree of this thread with Edit, Write and MultiEdit and does not wait for you. It never runs shell commands. Your working copy stays as it is until you apply the changes.",
 		accept: "Allow auto edits",
 	},
+	ask: {
+		label: "Ask",
+		menu: "Ask the assistant",
+		explain: "Explain",
+		review: "Review",
+		improve: "Improve",
+		tests: "Test ideas",
+		risks: "Risks",
+	},
 	codexTrust: {
 		body: 'Codex does not trust this folder. Shipyard adds it to the Codex config file with trust_level = "trusted". Codex then runs here without asking again.',
 		button: "Trust this folder",
@@ -191,6 +200,15 @@ export const assistantFr: typeof assistantEn = {
 		title: "Autoriser les éditions sans accord",
 		body: "L'assistant modifie les fichiers du worktree de ce fil avec Edit, Write et MultiEdit et n'attend pas votre accord. Il ne lance jamais de commande shell. Votre copie de travail reste intacte jusqu'à ce que vous appliquiez les changements.",
 		accept: "Autoriser les éditions auto",
+	},
+	ask: {
+		label: "Demander",
+		menu: "Demander à l'assistant",
+		explain: "Expliquer",
+		review: "Relire",
+		improve: "Améliorer",
+		tests: "Idées de tests",
+		risks: "Risques",
 	},
 	codexTrust: {
 		body: "Codex ne fait pas confiance à ce dossier. Shipyard l'ajoute au fichier de configuration de Codex avec trust_level = \"trusted\". Codex s'exécute ensuite ici sans redemander.",

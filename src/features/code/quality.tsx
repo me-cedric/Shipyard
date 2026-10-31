@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PageExport } from "@/features/reports/page-export";
-import { type QualityReport, useForgeActions, useQuality } from "@/lib/code";
+import { type QualityReport, useCoverageReport, useForgeActions, useQuality } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import type { SbomReport } from "@/lib/ipc";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,9 @@ import { SEVERITY_STATUS } from "./status";
 import { useRun } from "./use-run";
 import { FileDialog } from "./viewer";
 
+/** The name of the check that verifies all docs, as the backend gives it. */
+const VERIFY_DOCS = "verify all docs";
+
 type Row = { name: string; available: boolean; last: QualityReport | null };
 
 const GRID = "grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-3 p-3";
@@ -32,6 +35,7 @@ const TILE = {
 function QualityView() {
 	const { t, lang } = useI18n();
 	const q = useQuality().data;
+	const coverage = useCoverageReport().data;
 	const { check, scan, install, sbom } = useForgeActions();
 	const { error, run } = useRun();
 	const [confirming, setConfirming] = useState<string | null>(null);
@@ -41,6 +45,8 @@ function QualityView() {
 	if (!q) return null;
 	const date = new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" });
 	const q18 = t.forge.quality;
+	// The check that verifies all docs has a plain name for people.
+	const nameOf = (name: string) => (name === VERIFY_DOCS ? t.review.quality.verifyDocs : name);
 
 	// A run needs a confirmation that names the check (REQ-026).
 	const rows = (kind: "check" | "scanner", items: Row[]) =>
@@ -68,7 +74,9 @@ function QualityView() {
 						>
 							{kind === "check" ? <CheckIcon size={14} /> : <LockClosedIcon size={14} />}
 						</span>
-						<h3 className="min-w-0 flex-1 truncate font-mono text-ui text-n-12">{r.name}</h3>
+						<h3 className="min-w-0 flex-1 truncate font-mono text-ui text-n-12">
+							{nameOf(r.name)}
+						</h3>
 						<Badge variant={status === "idle" ? "neutral" : status}>
 							<StatusDot status={status} label={label} className="size-2" />
 							<span aria-hidden="true">{label}</span>
@@ -99,11 +107,11 @@ function QualityView() {
 										})
 									}
 								>
-									{format(q18.confirm, { name: r.name })}
+									{format(q18.confirm, { name: nameOf(r.name) })}
 								</Button>
 							) : (
 								<Button
-									aria-label={format(q18.runName, { name: r.name })}
+									aria-label={format(q18.runName, { name: nameOf(r.name) })}
 									onClick={() => setConfirming(key)}
 								>
 									<ArrowPathIcon size={14} />
@@ -195,6 +203,21 @@ function QualityView() {
 							icon: <ArrowPathIcon size={14} />,
 							tone: found > 0 ? "danger" : "success",
 						},
+						...(coverage
+							? [
+									{
+										label: t.review.quality.coverage,
+										value: `${coverage.percent}%`,
+										icon: <CheckIcon size={14} />,
+										tone:
+											coverage.percent >= 80
+												? ("success" as const)
+												: coverage.percent >= 50
+													? ("warning" as const)
+													: ("danger" as const),
+									},
+								]
+							: []),
 					]}
 				/>
 				<Panel title={q18.sbom} bodyClassName="flex items-center gap-3 p-3">

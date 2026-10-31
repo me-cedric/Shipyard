@@ -70,6 +70,7 @@ export const seedAgents = (): MockAgents => ({
 			{ key: "token", label: "API token", secret: true },
 		]),
 		server("sonarqube", "quality", "SonarQube", [], [DOCKER]),
+		server("context7", "data", "Context7"),
 	],
 });
 

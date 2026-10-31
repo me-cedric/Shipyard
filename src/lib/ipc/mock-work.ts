@@ -1313,6 +1313,25 @@ export function applyRun(w: MockWork, slugs: string[], click: boolean): ApplyRow
 	return write(w, diff(w, rowsOf(w, slugs)));
 }
 
+/** The rows that the person approved, with their title and days. A row not in the list is dropped. */
+export function applyRunRows(
+	w: MockWork,
+	slugs: string[],
+	edits: { reference: string; title: string; days?: number | null }[],
+	click: boolean,
+): ApplyRow_Serialize[] {
+	needClick(click);
+	const rows = rowsOf(w, slugs).flatMap((row) => {
+		const e = edits.find((x) => x.reference === row.reference);
+		if (!e) return [];
+		if (!e.title.trim()) throw "the title is empty";
+		const days = e.days ?? null;
+		if (days !== null && (!Number.isFinite(days) || days < 0)) throw "the days are not valid";
+		return [{ ...row, title: e.title.trim(), days: row.kind === "story" ? days : null }];
+	});
+	return write(w, diff(w, rows));
+}
+
 function checkRow(row: Row_Deserialize): Row_Serialize {
 	if (!parseRef(row.reference ?? "")) throw `\`${row.reference}\` is not a ref`;
 	if (!(row.title ?? "").trim()) throw "the title is empty";

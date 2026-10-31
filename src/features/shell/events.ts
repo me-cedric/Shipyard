@@ -5,6 +5,7 @@ import { needsYouNotice, useFactoryEvents } from "@/lib/home";
 import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
 import { useNotifications } from "@/lib/notifications";
+import { usePrefs } from "@/lib/prefs";
 import { useShell } from "@/lib/shell";
 import { useSyncTick } from "@/lib/sync";
 import { useUpdateCheck } from "@/lib/updates";
@@ -107,6 +108,8 @@ export function useCloseGuardEvent() {
 	}, [setCloseGuardOpen]);
 }
 
+export const UPDATE_CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
+
 /** The sources of the notification centre: the update check, a failed sync, a moved remote head
  * and the factory events that need the person. */
 export function useShellEvents() {
@@ -124,10 +127,15 @@ export function useShellEvents() {
 			.catch((e) => console.error(e));
 	});
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: one check at start
+	// One check at start and one every 6 hours, while the switch in Settings / Me is on.
+	const { autoUpdateCheck, loaded } = usePrefs();
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `checkUpdate` changes with the language
 	useEffect(() => {
+		if (!loaded || !autoUpdateCheck) return;
 		void checkUpdate(false);
-	}, []);
+		const timer = setInterval(() => void checkUpdate(false), UPDATE_CHECK_EVERY_MS);
+		return () => clearInterval(timer);
+	}, [loaded, autoUpdateCheck]);
 
 	useEffect(() => {
 		if (syncError)

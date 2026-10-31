@@ -27,6 +27,16 @@ pub struct FlowRow {
     pub action: Action,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The subnet of the flow, next to its VLAN.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subnet: Option<String>,
+    /// The bricks of `bricks.json` that the flow leaves from and goes to, by name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub destination_name: Option<String>,
 }
 
 /// Every field is optional. A set field must match. An empty text field counts as not set.

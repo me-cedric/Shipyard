@@ -47,7 +47,7 @@ test("switches the theme in Settings / Me", async ({ page }) => {
 
 test("switches the language to French", async ({ page }) => {
 	await page.goto("/settings/me");
-	await page.getByRole("combobox", { name: "Language" }).click();
+	await page.getByRole("combobox", { name: "Language", exact: true }).click();
 	await page.getByRole("option", { name: "French" }).click();
 	await expect(
 		page.getByRole("navigation", { name: "Barre latérale" }).getByRole("link", { name: "Accueil" }),

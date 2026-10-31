@@ -183,6 +183,8 @@ pub enum Resolution {
     Whole { side: Side },
     /// The file was edited by hand. It must hold no conflict marker.
     Marked,
+    /// The result that the person edited in the app. It must hold no conflict marker.
+    Text { text: String },
 }
 
 pub fn resolve(s: &AppState, path: &str, how: &Resolution) -> Res<()> {
@@ -192,6 +194,7 @@ pub fn resolve(s: &AppState, path: &str, how: &Resolution) -> Res<()> {
         Resolution::Blocks { choices } => r.resolve_blocks(path, choices),
         Resolution::Whole { side } => r.resolve_side(path, *side),
         Resolution::Marked => r.mark_resolved(path),
+        Resolution::Text { text } => r.resolve_text(path, text),
     }
     .map_err(err)
 }

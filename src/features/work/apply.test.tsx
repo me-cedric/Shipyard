@@ -88,6 +88,62 @@ describe("the apply preview and apply", () => {
 	});
 });
 
+describe("the review of each row before the write", () => {
+	it("writes the rows that were approved, with the title that was edited, and drops the others", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/plan");
+		const dialog = await openApply(user);
+		await dialog.findByRole("heading", { name: "Create (8)" });
+		const boxes = dialog.getAllByRole("checkbox");
+		expect(boxes).toHaveLength(8);
+		await user.click(boxes[7] as HTMLElement);
+		const title = dialog.getByRole("textbox", { name: "Title of Authentication" });
+		await user.clear(title);
+		await user.type(title, "Sign in");
+		await user.click(dialog.getByRole("button", { name: "Apply" }));
+		expect(await dialog.findByRole("heading", { name: "Written (7)" })).toBeInTheDocument();
+		expect(written()).toHaveLength(7);
+		expect(mockState().work.written["est:mvp-1#auth"]?.row.title).toBe("Sign in");
+		expect(dialog.queryByRole("checkbox")).toBeNull();
+	});
+
+	it("writes nothing when every row is dropped", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/plan");
+		const dialog = await openApply(user);
+		await dialog.findAllByRole("checkbox");
+		for (let i = 0; i < 8; i++) await user.click(dialog.getAllByRole("checkbox")[i] as HTMLElement);
+		expect(dialog.getByRole("button", { name: "Apply" })).toBeDisabled();
+		expect(written()).toHaveLength(0);
+	});
+
+	it("refuses an empty title and a call with no click", async () => {
+		await withTracker();
+		const slugs = ["mvp-1"];
+		await expect(
+			unwrap(
+				commands.applyRunRows(
+					slugs,
+					[{ reference: "est:mvp-1#auth", title: "", days: null }],
+					true,
+				),
+			),
+		).rejects.toBeDefined();
+		await expect(
+			unwrap(
+				commands.applyRunRows(
+					slugs,
+					[{ reference: "est:mvp-1#auth", title: "A", days: null }],
+					false,
+				),
+			),
+		).rejects.toBeDefined();
+		expect(written()).toHaveLength(0);
+	});
+});
+
 describe("Create work item", () => {
 	it("creates one item from a ref after one click, and a second click creates none", async () => {
 		const user = userEvent.setup();

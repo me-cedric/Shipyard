@@ -1,31 +1,43 @@
 # Settings
 
-| Tab | Content |
-|---|---|
-| Project | Paths, the default workflow, per-project overrides, automation and the project import. |
-| Connections | Trackers, forges, MCP servers, agent runners and model providers. |
-| Agents and rules | The compass entries, with an Upgrade action. |
-| Extensions | The catalog, plugins and child projects. |
-| Team | The team of the project. |
-| Me | Your settings. They apply in every project. |
-| Health | The findings of the project, each with one fix. |
+Settings holds the settings of the project, your connections and your own choices.
+
+## Project
+
+Project holds the folders of the project, the default workflow, the automation switches and the project import. Settings that are rarely changed sit under Advanced.
 
 ## Connections
 
-A connection stores its secret in the OS keychain. The app never shows a secret again. Each tracker shows six capability flags. A test names the missing scope or permission. Removing a connection lists the projects that use it first.
+Connections links the app to your tools.
 
-## Project import
+- Trackers and forges: Jira, GitHub, GitLab, Azure DevOps and Linear. Click Add, choose the product, then paste a token. The app opens the page that makes the token. A test runs when you save.
+- MCP servers: the tools that agents can call. They are grouped by category. Click Add the recommended set to turn on the servers that suit the project. Click Test on a server, or Test all, to see if each one works and how many tools it gives.
+- Agent runners and model providers: the agent programs on this computer and the model services.
 
-In Project, choose a repository with the existing project layout. The app writes Shipyard files into the project. It never replaces a file and never changes the source. A file that exists is a conflict. A file that the app cannot read is skipped with a reason.
+A token goes to the keychain of your computer. The app never shows it again.
 
 ## Agents and rules
 
-The app never changes the pinned compass version by itself. Apply writes an entry and keeps each file that exists. A selection in Upgrade chooses absent entries only. Stale entries update together.
+Agents and rules holds the rules and the skills of the agents, from the compass.
+
+1. Click Install the contract to write the agent rules into the project.
+2. Under Objectives, pick what you want: for example Code quality or Specs first. Click Apply. The app turns on the skills that suit the project.
+3. Under External skills, each source shows its state: Current, Update ready or Edited. Click Refresh external skills to take the updates. Click Reinstall to put back the original files of one source.
+
+The app keeps each file that a person changed, unless you reinstall.
 
 ## Extensions
 
-A plugin imports as data. The review lists each file and setting. The app writes only the items that you accept. A deploy to a child project makes a branch and a commit in a local clone. It never pushes.
+Extensions holds the catalog, the plugins and the child projects.
+
+- Catalog: ready-made parts. Click Deploy to add one to the project.
+- Plugins: a plugin is a .zip file. The app reads it as data and lists each file and each setting. It writes only the items that you accept. Click Settings on an installed plugin to fill its settings in a form, then save.
+- Child projects: other projects that take the same rules. Clone a child, then click Deploy. The app makes a branch and a commit in the clone. It never pushes.
 
 ## Me
 
-Me holds the theme, the density, the contrast, the language, the role and the release address. It also turns each notification source on or off. After a newer version appears, the notification centre shows its changes once. The app installs nothing.
+Me holds your own settings: theme, density, contrast, language, role and notifications. They apply in every project.
+
+## Health
+
+Health lists the problems of the project. Each problem has one button that fixes it.

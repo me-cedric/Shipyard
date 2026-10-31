@@ -1196,6 +1196,37 @@ fn the_preview_writes_nothing_and_an_apply_writes_each_row_then_a_second_apply_c
 }
 
 #[test]
+fn an_apply_of_reviewed_rows_writes_only_the_approved_rows() {
+    let f = fx();
+    save_team(&f, team5());
+    sheet_save(&f.s, "lot", lot()).unwrap();
+    apply_routes(&f);
+    let row = |reference: &str, title: &str, days| RowEdit {
+        reference: reference.into(),
+        title: title.into(),
+        days,
+    };
+    let pv = preview(&f.s, &["lot".into()]).unwrap();
+    let keep: Vec<RowEdit> = pv
+        .iter()
+        .take(2)
+        .map(|d| row(&d.row.reference, &d.row.title, d.row.days))
+        .collect();
+    assert!(apply_rows(&f.s, &["lot".into()], &keep, false).is_err());
+    let empty = [row(&keep[0].reference, " ", None)];
+    assert!(apply_rows(&f.s, &["lot".into()], &empty, true).is_err());
+    let bad = [row(&keep[1].reference, "x", Some(-1.0))];
+    assert!(apply_rows(&f.s, &["lot".into()], &bad, true).is_err());
+    assert_eq!(f.writes(), 0);
+    let out = apply_rows(&f.s, &["lot".into()], &keep, true).unwrap();
+    assert_eq!(out.len(), 2, "the dropped row is not written");
+    assert!(out.iter().all(|r| r.error.is_none()), "{out:?}");
+    assert_eq!(f.writes(), 2);
+    let after = preview(&f.s, &["lot".into()]).unwrap();
+    assert_eq!(after[2].action, Action::Create);
+}
+
+#[test]
 fn plan_and_apply_read_the_effort_of_the_sheet_and_keep_no_copy() {
     let f = fx();
     save_team(&f, team5());

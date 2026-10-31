@@ -10,8 +10,10 @@ import type {
 	Draft_Deserialize,
 	Draft_Serialize,
 	Entry,
+	GeneratedPlan,
 	PlanRow,
 	Question,
+	RequirementRow,
 	SpecFinding_Serialize,
 	SpecView_Serialize,
 	SplitPreview_Serialize,
@@ -673,6 +675,55 @@ export function coverage(s: MockSpecs, cap: string): string[] {
 				.map((r) => r.ref),
 		),
 	].filter((r) => !cited.has(r));
+}
+
+/** Each requirement with the scenarios that cite it. */
+export function requirementRows(s: MockSpecs): RequirementRow[] {
+	const scenarios = bdd(s);
+	const seen = new Set<string>();
+	return Object.entries(s.files)
+		.map(([p, f]) => [/(?:^|\/)specs\/([^/]+)\/spec\.md$/.exec(p)?.[1], f.text, p] as const)
+		.filter(([cap, , p]) => cap && !p.includes("/archive/"))
+		.flatMap(([cap, text]) =>
+			requirements(text).map((r) => ({
+				capability: cap ?? "",
+				reference: `spec:${cap}#${r.id}`,
+				title: r.title,
+			})),
+		)
+		.filter((r) => !seen.has(r.reference) && !!seen.add(r.reference))
+		.map((r) => ({
+			...r,
+			scenarios: scenarios
+				.filter((b) => b.refs.includes(r.reference))
+				.map((b) => ({ plan: b.plan, scenario: b.scenario, line: b.line, verdict: b.verdict })),
+		}));
+}
+
+/** One stub for each requirement of the capability that no scenario cites. */
+export function testplanGenerate(s: MockSpecs, cap: string, click: boolean): GeneratedPlan {
+	if (!click) throw "this change needs the click of a person";
+	const rows = requirementRows(s).filter((r) => r.capability === cap);
+	if (rows.length === 0) throw `no capability ${cap}`;
+	const path = `${PDIR}/${cap}.feature`;
+	const missing = coverage(s, cap);
+	if (missing.length === 0) return { path, added: 0 };
+	const stubs = missing
+		.map((ref) => {
+			const title = rows.find((r) => r.reference === ref)?.title ?? "";
+			return `\n  @${ref}\n  Scenario: ${title}\n    Given the context of the requirement\n    When the user acts\n    Then the requirement holds\n`;
+		})
+		.join("");
+	const old = s.files[path]?.text;
+	const base = old === undefined ? `Feature: ${cap}\n` : old.endsWith("\n") ? old : `${old}\n`;
+	putText(
+		s.files,
+		path,
+		base + stubs,
+		old === undefined ? null : (s.files[path]?.stamp ?? null),
+		old === undefined,
+	);
+	return { path, added: missing.length };
 }
 
 // ---------------------------------------------------------------- split

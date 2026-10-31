@@ -24,6 +24,7 @@ import { Switch } from "@/ui/atoms/switch";
 import {
 	ArrowDownTrayIcon,
 	ArrowUpTrayIcon,
+	Cog6ToothIcon,
 	PlusIcon,
 	PuzzlePieceIcon,
 	TrashIcon,
@@ -35,6 +36,7 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { WriteReportView } from "@/ui/molecules/write-report";
+import { PluginSettings } from "./plugin-settings";
 
 const GROUPS: CatalogGroup[] = ["devcontainers", "agents", "devops-security"];
 const CHANGES: PluginChange[] = ["new", "changed", "same", "removed"];
@@ -144,7 +146,10 @@ function ChildDetail({ id }: { id: string }) {
 	);
 }
 
-/** Settings / Extensions: the catalog, the plugin import with its review, and the child projects. */
+/**
+ * Settings / Extensions: the catalog, the plugin import with its review, the typed settings and the
+ * deploy of an applied plugin, and the child projects.
+ */
 export function Extensions() {
 	const { t } = useI18n();
 	const x = t.extensions;
@@ -170,6 +175,12 @@ export function Extensions() {
 	const [url, setUrl] = useState("");
 	const [chosen, setChosen] = useState<Set<string>>(new Set());
 	const [results, setResults] = useState<Result[]>([]);
+	const [editing, setEditing] = useState<string | null>(null);
+	/** The cloned child projects that lack the plugin. */
+	const deployTo = (name: string) =>
+		(children.data ?? [])
+			.filter((c) => c.cloned && c.proposed.includes(`plugin:${name}`))
+			.map((c) => c.id);
 
 	const flip = (set: Set<string>, k: string, on: boolean) => {
 		const next = new Set(set);
@@ -319,6 +330,7 @@ export function Extensions() {
 										setReview(null);
 										await qc.invalidateQueries({ queryKey: ["catalog"] });
 										await qc.invalidateQueries({ queryKey: ["plugins"] });
+										await refresh();
 									})
 								}
 							>
@@ -345,33 +357,64 @@ export function Extensions() {
 
 				<Panel title={x.plugin.installed} count={plugins.data?.length ?? 0} flush>
 					{(plugins.data ?? []).map((p) => (
-						<SettingsRow key={p.name} label={`${p.name} ${p.version}`}>
-							<Switch
-								label={format(x.plugin.enable, { name: p.name })}
-								iconOnly
-								checked={p.enabled}
-								onCheckedChange={(on) =>
-									void run(async () => {
-										await unwrap(commands.pluginSetEnabled(p.name, on, true));
-										await qc.invalidateQueries({ queryKey: ["plugins"] });
-									})
-								}
-							/>
-							<Button
-								variant="ghost"
-								aria-label={format(x.plugin.removeName, { name: p.name })}
-								onClick={() =>
-									void run(async () => {
-										await unwrap(commands.pluginRemove(p.name, true));
-										await qc.invalidateQueries({ queryKey: ["plugins"] });
-										await qc.invalidateQueries({ queryKey: ["catalog"] });
-									})
-								}
-							>
-								<TrashIcon size={14} />
-								{x.plugin.remove}
-							</Button>
-						</SettingsRow>
+						<div key={p.name}>
+							<SettingsRow label={`${p.name} ${p.version}`}>
+								{p.settings.length ? (
+									<Button
+										variant="ghost"
+										aria-expanded={editing === p.name}
+										aria-label={format(x.plugin.settingsName, { name: p.name })}
+										onClick={() => setEditing(editing === p.name ? null : p.name)}
+									>
+										<Cog6ToothIcon size={14} />
+										{x.plugin.settings}
+									</Button>
+								) : null}
+								<Button
+									variant="ghost"
+									disabled={!p.enabled || !deployTo(p.name).length}
+									aria-label={format(x.plugin.deployName, { name: p.name })}
+									onClick={() =>
+										void run(async () => {
+											const key = `plugin:${p.name}`;
+											setResults(await unwrap(commands.childDeploy(deployTo(p.name), [key])));
+											await refresh();
+										})
+									}
+								>
+									<ArrowUpTrayIcon size={14} />
+									{x.plugin.deploy}
+								</Button>
+								<Switch
+									label={format(x.plugin.enable, { name: p.name })}
+									iconOnly
+									checked={p.enabled}
+									onCheckedChange={(on) =>
+										void run(async () => {
+											await unwrap(commands.pluginSetEnabled(p.name, on, true));
+											await qc.invalidateQueries({ queryKey: ["plugins"] });
+											await refresh();
+										})
+									}
+								/>
+								<Button
+									variant="ghost"
+									aria-label={format(x.plugin.removeName, { name: p.name })}
+									onClick={() =>
+										void run(async () => {
+											await unwrap(commands.pluginRemove(p.name, true));
+											await qc.invalidateQueries({ queryKey: ["plugins"] });
+											await refresh();
+											await qc.invalidateQueries({ queryKey: ["catalog"] });
+										})
+									}
+								>
+									<TrashIcon size={14} />
+									{x.plugin.remove}
+								</Button>
+							</SettingsRow>
+							{editing === p.name ? <PluginSettings name={p.name} /> : null}
+						</div>
 					))}
 				</Panel>
 

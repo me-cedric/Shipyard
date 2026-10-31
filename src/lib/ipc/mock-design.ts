@@ -619,6 +619,10 @@ export function flowsSave(
 		...(r.port ? { port: r.port } : {}),
 		action: r.action,
 		...(r.note ? { note: r.note } : {}),
+		...(r.name ? { name: r.name } : {}),
+		...(r.subnet ? { subnet: r.subnet } : {}),
+		...(r.sourceName ? { sourceName: r.sourceName } : {}),
+		...(r.destinationName ? { destinationName: r.destinationName } : {}),
 	}));
 	return putText(d.files, rel, stringify({ rows: clean }, YAML), stamp, !d.files[rel]);
 }

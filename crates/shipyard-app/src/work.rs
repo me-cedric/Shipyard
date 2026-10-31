@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicI32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use shipyard_core::pickup::Ticket;
 use shipyard_core::refs::parse;
 use shipyard_core::work::{
@@ -1555,6 +1555,52 @@ pub fn apply(s: &AppState, slugs: &[String], click: bool) -> Res<Vec<ApplyRow>> 
     write_diff(s, &t, &diff)
 }
 
+/// A row that the person approved, with the title and the effort to write (REQ-025, REQ-026).
+#[derive(Debug, Clone, PartialEq, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RowEdit {
+    pub reference: String,
+    pub title: String,
+    pub days: Option<f64>,
+}
+
+/// Like `apply`, for the rows that the person approved and edited. A row that the sheets do not
+/// ask for is ignored, and a row that is not in the list is dropped: nothing is written for it.
+pub fn apply_rows(
+    s: &AppState,
+    slugs: &[String],
+    edits: &[RowEdit],
+    click: bool,
+) -> Res<Vec<ApplyRow>> {
+    need_click(s, click)?;
+    let c = ctx(s)?;
+    let t = tracker(s)?;
+    container(&t)?;
+    let mut rows = Vec::new();
+    for row in rows_of(&c, slugs)? {
+        let Some(e) = edits.iter().find(|e| e.reference == row.reference) else {
+            continue;
+        };
+        if e.title.trim().is_empty() {
+            return Err("the title is empty".into());
+        }
+        if e.days.is_some_and(|d| !d.is_finite() || d < 0.0) {
+            return Err("the days are not valid".into());
+        }
+        rows.push(Row {
+            title: e.title.trim().into(),
+            days: if row.kind == work::RowKind::Story {
+                e.days
+            } else {
+                None
+            },
+            ..row
+        });
+    }
+    let diff = writes::diff(&t.caps, rows, &mirror_items(s, &t)?);
+    write_diff(s, &t, &diff)
+}
+
 /// Send a diff to the container of the tracker and read the written tickets again. The caller has
 /// the click. The Specs split uses it too (`specs` REQ-018).
 pub(crate) fn write_diff(s: &AppState, t: &Target, diff: &[DiffRow]) -> Res<Vec<ApplyRow>> {
@@ -1908,6 +1954,17 @@ pub async fn apply_preview(app: AppHandle, slugs: Vec<String>) -> Api<Vec<DiffRo
 #[specta::specta]
 pub async fn apply_run(app: AppHandle, slugs: Vec<String>, click: bool) -> Api<Vec<ApplyRow>> {
     blocking(app, move |s| apply(s, &slugs, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn apply_run_rows(
+    app: AppHandle,
+    slugs: Vec<String>,
+    rows: Vec<RowEdit>,
+    click: bool,
+) -> Api<Vec<ApplyRow>> {
+    blocking(app, move |s| apply_rows(s, &slugs, &rows, click)).await
 }
 
 #[tauri::command]

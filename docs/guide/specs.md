@@ -1,27 +1,32 @@
 # Specs
 
-Specs holds the OpenSpec changes of the project and the RAID register.
+Specs says what the product must do. A change starts as a proposal. When the team agrees, the proposal becomes part of the capabilities.
 
-| Tab | Content |
-|---|---|
-| Changes | The changes with the status of each artifact: missing, draft or done. |
-| Capabilities | The settled capabilities, with their requirements. |
-| Questions | The RAID register. Filter by kind, status and owner. |
-| Test plans | Gherkin test plans. Each scenario cites requirements by ref. |
-| Constitution | The constitution of the project. |
+## Proposals
 
-## Write a change
+Proposals lists the changes in progress, with the state of each part: missing, draft or done.
 
-1. In Changes, click New change. The app uses the `shipyard-delivery` schema.
-2. Edit each artifact in its editor.
-3. Validate the change. Each finding shows on its artifact, with its line.
+1. Click New proposal. Give it a plain title. The app makes the id from the title.
+2. Fill in each part. A form view shows the parts. A raw text view is also there.
+3. Click Validate. Each problem shows on its part, with its line.
+4. Follow the next step that the app shows: for example, split the work into tickets.
+
+## Capabilities
+
+Capabilities lists what the product does today, with the requirements of each capability.
 
 ## Questions
 
-A question is one file in `docs/delivery/questions/`. The app refuses an unknown kind, an unknown status and a duplicate id. Each `[NEEDS CLARIFICATION]` marker links to its question.
+Questions is the register of open points: risks, assumptions, issues, dependencies and questions.
 
-After you answer a spec question, one click writes the answer into the `### Clarifications` heading of the spec.
+- Filter by kind, state and owner.
+- Click New question to add one. Pick the owner from the team.
+- After you answer a question of a spec, one click copies the answer into the spec.
 
-## Split a change
+## Test plans
 
-A person or the `spec-split` workflow drafts epics and stories. The PM reviews the draft. The apply to the tracker needs one click.
+Test plans lists the test scenarios. Each scenario names the requirements that it checks.
+
+## Constitution
+
+Constitution holds the rules of the project that every change must follow.

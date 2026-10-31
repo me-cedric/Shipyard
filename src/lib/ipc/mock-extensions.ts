@@ -17,11 +17,13 @@ import type {
 	PluginItem,
 	PluginRemoved,
 	PluginReview_Serialize,
+	PluginSetting_Serialize,
 	PolicyPacks_Serialize,
 	RoleSkillRow_Serialize,
 	SyncState,
 	WriteReport,
 } from "./bindings";
+import { type MockCompassSetup, seedCompassSetup } from "./mock-compass-setup";
 
 const VERSION = "1.0.2";
 const OLD = "1.0.1";
@@ -43,6 +45,10 @@ export type MockExtensions = {
 	plugin: string | null;
 	/** The plugins that the project holds, with their switch. */
 	installed: PluginInstalled[];
+	/** The typed settings of each applied plugin, by plugin name. */
+	pluginSettings: Record<string, PluginSetting_Serialize[]>;
+	/** The external sources, the assets and the objectives of the compass setup. */
+	setup: MockCompassSetup;
 	/** The id of the applied policy pack. */
 	policy: string | null;
 	children: MockChild[];
@@ -130,6 +136,8 @@ export function seedExtensions(): MockExtensions {
 		files: ["AGENTS.md", "README.md"],
 		plugin: null,
 		installed: [],
+		pluginSettings: {},
+		setup: seedCompassSetup(),
 		policy: null,
 		children: [
 			{
@@ -274,6 +282,17 @@ export function pluginApply(m: MockExtensions, path: string, accepted: string[])
 		}
 	}
 	m.plugin = "1.0.0";
+	// A value that the person saved stays, as in `plugins::apply`.
+	const saved = m.pluginSettings["team-kit"] ?? [];
+	m.pluginSettings["team-kit"] = accepted.includes("setting:team")
+		? [
+				saved.find((x) => x.key === "team") ?? {
+					key: "team",
+					field: { type: "choice", choices: ["core", "web", "data"], required: true },
+					value: "core",
+				},
+			]
+		: saved;
 	m.installed = [
 		{
 			name: "team-kit",
@@ -404,6 +423,7 @@ function parentKeys(m: MockExtensions): string[] {
 	return [
 		...m.entries.filter((e) => e.state === "current" && e.kind !== "guide").map(key),
 		...m.catalog.filter((c) => c.state === "current").map((c) => `component:${c.id}`),
+		...m.installed.filter((p) => p.enabled).map((p) => `plugin:${p.name}`),
 	];
 }
 
@@ -471,7 +491,9 @@ export function childDeploy(
 			const written = keys.flatMap((k) =>
 				k.startsWith("component:")
 					? (m.catalog.find((x) => `component:${x.id}` === k)?.files ?? [])
-					: [`.agents/${k.replace(":", "/")}`],
+					: k.startsWith("plugin:")
+						? (m.installed.find((p) => `plugin:${p.name}` === k)?.files ?? [])
+						: [`.agents/${k.replace(":", "/")}`],
 			);
 			return {
 				id,
@@ -484,4 +506,52 @@ export function childDeploy(
 			return { ...none, error: String(e) };
 		}
 	});
+}
+
+// ---------------------------------------------------------------- plugin settings
+
+function settingsOf(m: MockExtensions, name: string): PluginSetting_Serialize[] {
+	const rows = m.pluginSettings[name];
+	if (!rows) throw `unknown plugin: ${name}`;
+	return rows;
+}
+
+export const pluginSettingsGet = (m: MockExtensions, name: string) => settingsOf(m, name);
+
+/** The value as the field wants it, as `plugin_config::check` does. */
+function check(row: PluginSetting_Serialize, value: string): string {
+	const v = value.trim();
+	if (!v) {
+		if (row.field.required) throw `the setting ${row.key} is required`;
+		return "";
+	}
+	const ok =
+		row.field.type === "number"
+			? Number.isFinite(Number(v))
+			: row.field.type === "boolean"
+				? v === "true" || v === "false"
+				: row.field.type === "choice"
+					? row.field.choices.includes(v)
+					: true;
+	if (!ok) throw `the setting ${row.key} is not a valid value`;
+	return v;
+}
+
+/** Whole or nothing: one bad value writes none. */
+export function pluginSettingsSave(
+	m: MockExtensions,
+	name: string,
+	values: Partial<Record<string, string>>,
+	ok: boolean,
+): PluginSetting_Serialize[] {
+	click(ok);
+	const rows = settingsOf(m, name);
+	const next = rows.map((r) => ({ ...r }));
+	for (const [k, v] of Object.entries(values)) {
+		const row = next.find((r) => r.key === k);
+		if (!row) throw `unknown setting: ${k}`;
+		row.value = check(row, v ?? "");
+	}
+	m.pluginSettings[name] = next;
+	return next;
 }

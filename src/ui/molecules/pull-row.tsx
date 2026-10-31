@@ -40,6 +40,7 @@ export function PullRow({
 	selected,
 	onSelect,
 	menu,
+	ask,
 }: {
 	reference: string;
 	title: string;
@@ -54,11 +55,14 @@ export function PullRow({
 	selected?: boolean;
 	onSelect: () => void;
 	menu?: MenuItem[];
+	/** The ref of the pull request. Shift+F10 on the row opens the Ask menu for it. */
+	ask?: string;
 }) {
 	return (
 		<ContextMenu items={menu}>
 			<button
 				type="button"
+				data-ask={ask}
 				onClick={onSelect}
 				aria-current={selected || undefined}
 				className={cn(

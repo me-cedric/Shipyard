@@ -62,6 +62,13 @@ const SOURCES: EventSource[] = [
 	"remote-head",
 ];
 
+const DIAGRAM_FORMATS = [
+	{ value: "excalidraw", label: "Excalidraw" },
+	{ value: "mermaid", label: "Mermaid" },
+	{ value: "drawio", label: "draw.io" },
+	{ value: "bpmn", label: "BPMN" },
+];
+
 // One queue for all switches: each write reads the stored list after the write before it is done.
 let writes: Promise<unknown> = Promise.resolve();
 
@@ -100,7 +107,17 @@ function NotifySwitch({ source }: { source: EventSource }) {
 
 export function Me() {
 	const { t, lang, setLang } = useI18n();
-	const { theme, density, contrast, role, overridden, setPrefs } = usePrefs();
+	const {
+		theme,
+		density,
+		contrast,
+		role,
+		overridden,
+		setPrefs,
+		promptLang,
+		diagramFormat,
+		autoUpdateCheck,
+	} = usePrefs();
 	const roles: Role[] = ["none", ...ROLES];
 	const personal = usePersonalSections();
 	// The mark: the active project sets this value, and it replaces the one below.
@@ -151,6 +168,49 @@ export function Me() {
 												{ value: "en", label: t.lang.en },
 												{ value: "fr", label: t.lang.fr },
 											]}
+										/>
+									),
+								},
+								{
+									id: "prompt-lang",
+									icon: <LanguageIcon size={14} />,
+									label: t.prefs.promptLang,
+									control: (
+										<Select
+											label={t.prefs.promptLang}
+											value={promptLang || "follow"}
+											onValueChange={(v) => setPrefs({ promptLang: v === "follow" ? "" : v })}
+											items={[
+												{ value: "follow", label: t.prefs.promptFollow },
+												{ value: "en", label: t.lang.en },
+												{ value: "fr", label: t.lang.fr },
+											]}
+										/>
+									),
+								},
+								{
+									id: "diagram-format",
+									icon: <SwatchIcon size={14} />,
+									label: t.prefs.diagramFormat,
+									control: (
+										<Select
+											label={t.prefs.diagramFormat}
+											value={diagramFormat || "excalidraw"}
+											onValueChange={(v) => setPrefs({ diagramFormat: v })}
+											items={DIAGRAM_FORMATS}
+										/>
+									),
+								},
+								{
+									id: "auto-update",
+									icon: <ArrowDownTrayIcon size={14} />,
+									label: t.prefs.autoUpdate,
+									control: (
+										<Switch
+											label={t.prefs.autoUpdate}
+											iconOnly
+											checked={autoUpdateCheck}
+											onCheckedChange={(c) => setPrefs({ autoUpdateCheck: c })}
 										/>
 									),
 								},

@@ -1,24 +1,33 @@
 # Factory
 
-The factory runs agents on tickets. Each run follows a workflow.
-
-| Tab | Content |
-|---|---|
-| Runs | Six lanes with counts. Open a run to see its graph, events, diff and cost. |
-| Workflows | The workflows and roles of `.shipyard/`. Edit and save them. |
-| Agents map | The workflows, roles and skills as a graph. |
-| Sessions | The agent sessions, and the kill switch. |
-| Usage | Tokens and money by day and member, against budgets. |
+The Factory lets agents work on tickets. Each job is a run. A run follows a workflow: plan, work, review, then a pull request.
 
 ## Runs
 
-- Start a run from a ticket key.
-- Approve a plan, answer a question, unblock or cancel a run from its view.
-- A draft pull request sits in In review. A clear pull request with green checks sits in Ready to merge.
+Runs shows the runs in six lanes: Queued, Working, Needs you, In review, Ready to merge and Done.
 
-## Safety
+1. Click Start run, then pick a ticket by its title.
+2. Open a run to see its steps, its events, its changes and its cost.
+3. When a run needs you, it moves to Needs you. Approve its plan, answer its question or unblock it.
+4. Cancel a run at any time.
 
-- Four write switches are off by default. A write with its switch off becomes an approval in the Inbox.
-- A budget alert shows at 80 percent. The run pauses at 100 percent.
-- The global kill switch cancels every active run and stops pickup.
-- A broken workflow file shows its error and its line. The last valid version keeps running.
+## Workflows
+
+Workflows lists the workflows and the roles of the agents. Open one to read or change it, then save. A broken file shows its error and its line. The last good version keeps running.
+
+## Agents map
+
+Agents map draws the workflows, the roles and the skills as a graph.
+
+## Sessions
+
+Sessions lists the agent sessions on this computer. Stop a session that you do not need.
+
+The Agents switch stops every run and stops new runs. Turn it on again to go on.
+
+## Usage
+
+Usage shows the tokens and the money that the agents used, by day and by person, against the budgets.
+
+- An alert shows at 80 percent of a budget.
+- A run pauses at 100 percent. Raise the budget to go on.

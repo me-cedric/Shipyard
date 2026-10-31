@@ -72,6 +72,8 @@ pub enum ErrorCode {
     RemoteAddress,
     RemoteExists,
     SheetFrozen,
+    FeedInvalid,
+    SettingInvalid,
 }
 
 impl ErrorCode {
@@ -141,6 +143,8 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("bad remote address", ErrorCode::RemoteAddress),
     ("the project already has a remote", ErrorCode::RemoteExists),
     ("the sheet is frozen", ErrorCode::SheetFrozen),
+    ("does not hold an RSS or Atom feed", ErrorCode::FeedInvalid),
+    ("the setting ", ErrorCode::SettingInvalid),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
