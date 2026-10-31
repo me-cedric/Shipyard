@@ -5,8 +5,8 @@
 <p><strong>One desktop app to design, specify, plan and ship a project with a team of people and agents.</strong></p>
 <p>
 <a href="https://github.com/me-cedric/Shipyard/actions/workflows/ci.yml"><img src="https://github.com/me-cedric/Shipyard/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status" /></a>
-<a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.0-5B5CF6?style=flat" alt="Version 0.1.0" /></a>
-<a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=flat" alt="MIT License" /></a>
+<a href="https://github.com/me-cedric/Shipyard/releases/latest"><img src="https://img.shields.io/github/v/release/me-cedric/Shipyard?display_name=tag&label=Release&logo=github&style=flat" alt="Latest Release" /></a>
+<a href="LICENSE"><img src="https://img.shields.io/github/license/me-cedric/Shipyard?label=License&style=flat" alt="MIT License" /></a>
 <a href="https://ko-fi.com/mecedric"><img src="https://img.shields.io/badge/Ko--fi-Support%20Shipyard-ff5f5f?logo=kofi&logoColor=white&style=flat" alt="Support Shipyard on Ko-fi" /></a>
 </p>
 <p>
@@ -354,7 +354,7 @@ The same guide is in the app: open Knowledge, then Manual.
 - The interface renders HTML mockups in a sandboxed frame.
 - Local data stays on your machine. Shipyard has no backend of its own.
 
-To report a problem, open a [GitHub issue](https://github.com/me-cedric/Shipyard/issues). Do not put a secret in it.
+To report a vulnerability, open a [private security advisory](https://github.com/me-cedric/Shipyard/security/advisories/new). For other problems, open a [GitHub issue](https://github.com/me-cedric/Shipyard/issues). Do not put a secret in it.
 
 ## License
 

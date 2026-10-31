@@ -8,8 +8,7 @@ Shipyard 0.1.x gets security fixes.
 
 Do not post details in a public issue.
 
-- Open a private security advisory once the repository is public.
-- Until then, contact the owner through GitHub. Share no details in public.
+- Open a private security advisory: https://github.com/me-cedric/Shipyard/security/advisories/new
 
 Include:
 

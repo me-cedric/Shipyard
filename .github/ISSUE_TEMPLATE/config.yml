@@ -7,5 +7,5 @@ contact_links:
     url: https://github.com/me-cedric/Shipyard/discussions/categories/ideas
     about: Talk about an idea before you open a request.
   - name: Security vulnerability
-    url: https://github.com/me-cedric/Shipyard/blob/main/SECURITY.md
+    url: https://github.com/me-cedric/Shipyard/security/advisories/new
     about: Do not post vulnerability details in a public issue.
