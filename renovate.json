@@ -12,5 +12,7 @@
       "versioning": "semver-coerced",
       "groupName": "agent-compass"
     }
-  ]
+  ],
+  "vulnerabilityAlerts": { "enabled": true, "labels": ["security"] },
+  "osvVulnerabilityAlerts": true
 }

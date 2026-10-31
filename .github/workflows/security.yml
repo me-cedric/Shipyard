@@ -1,0 +1,166 @@
+# security: scheduled scan for CVE (osv-scanner, pnpm audit), OWASP (Semgrep OSS) and secrets (gitleaks).
+# Each scan keeps its JSON report as an artifact. The report job writes one summary and one tracking issue.
+# The run fails on: a CVSS 9.0 or higher finding, a high npm advisory, a Semgrep ERROR, or a secret.
+# No account and no token: only GITHUB_TOKEN, and only the report job can write issues.
+
+name: security
+
+on:
+  schedule:
+    - cron: '0 2 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      # The scanners exit non-zero on a finding. The report job decides.
+      - name: osv-scanner on the lockfiles
+        uses: google/osv-scanner-action/osv-scanner-action@v2.7.0
+        continue-on-error: true
+        with:
+          scan-args: |-
+            --lockfile=Cargo.lock
+            --lockfile=pnpm-lock.yaml
+            --config=.osv-scanner.toml
+            --format=json
+            --output-file=osv.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: corepack enable && pnpm install --frozen-lockfile
+      - name: pnpm audit
+        run: pnpm audit --prod --json > pnpm-audit.json
+        continue-on-error: true
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: scan-deps
+          path: |
+            osv.json
+            pnpm-audit.json
+          if-no-files-found: ignore
+
+  owasp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Semgrep OSS
+        run: |
+          pipx install semgrep==1.136.0
+          semgrep scan --metrics=off --json --output semgrep.json \
+            --config p/owasp-top-ten --config p/typescript --config p/react --config p/rust --config p/secrets \
+            --exclude node_modules --exclude target --exclude docs/agent-compass --exclude src/lib/ipc/bindings.ts .
+        continue-on-error: true
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: scan-owasp
+          path: semgrep.json
+          if-no-files-found: ignore
+
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # Release binary, checked against its SHA-256. gitleaks-action needs a licence for an organisation.
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          curl -fsSL -o gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz -C "$RUNNER_TEMP" gitleaks
+      # --redact keeps the secret text out of the report. --exit-code 0 leaves a leak to the report job.
+      - name: gitleaks on the full history
+        run: '"$RUNNER_TEMP/gitleaks" git --redact --exit-code 0 --report-format json --report-path gitleaks.json .'
+        continue-on-error: true
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: scan-secrets
+          path: gitleaks.json
+          if-no-files-found: ignore
+
+  report:
+    needs: [deps, owasp, secrets]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: scan-*
+          merge-multiple: true
+          path: reports
+      - name: Summary and gate
+        id: report
+        run: node .github/scripts/security-report.mjs reports security-summary.md
+      - name: Create, update or close the tracking issue
+        uses: actions/github-script@v9
+        env:
+          CLEAN: ${{ steps.report.outputs.clean }}
+        with:
+          script: |
+            const fs = require('fs');
+            const TITLE = 'Security scan findings';
+            const LABEL = 'security';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              ...context.repo,
+              state: 'open',
+              labels: LABEL,
+            });
+            const existing = issues.find((i) => i.title === TITLE && !i.pull_request);
+
+            if (process.env.CLEAN === 'true') {
+              if (!existing) return;
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: existing.number,
+                body: `All scans are clean ([run](${runUrl})). The scan closes this issue.`,
+              });
+              await github.rest.issues.update({
+                ...context.repo,
+                issue_number: existing.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+              return;
+            }
+
+            const body = [
+              fs.readFileSync('security-summary.md', 'utf8'),
+              `Date: ${new Date().toISOString().split('T')[0]}. [Workflow run](${runUrl})`,
+              '',
+              'Fix the dependency, or add an `[[IgnoredVulns]]` entry with a reason and a review date to `.osv-scanner.toml`.',
+            ].join('\n');
+            if (existing) {
+              await github.rest.issues.update({ ...context.repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ ...context.repo, title: TITLE, body, labels: [LABEL] });
+            }
+      - name: Fail on the gate
+        if: ${{ steps.report.outputs.gate != '' }}
+        env:
+          GATE: ${{ steps.report.outputs.gate }}
+        run: |
+          echo "::error::Security gate failed: ${GATE}"
+          exit 1

@@ -89,6 +89,19 @@ pnpm ipc:check
 
 `pnpm ipc:check` fails when the committed bindings differ from the Rust commands. CI runs all checks on macOS and Linux (`.github/workflows/ci.yml`).
 
+## Security scan
+
+`.github/workflows/security.yml` runs Monday to Friday at 02:00 UTC and on demand (`workflow_dispatch`). It has four jobs:
+
+- `deps`: `osv-scanner` on `Cargo.lock` and `pnpm-lock.yaml`, and `pnpm audit --prod`.
+- `owasp`: Semgrep OSS with the OWASP, TypeScript, React, Rust and secrets rule sets. It needs no account.
+- `secrets`: gitleaks on the full history. The report hides each secret value.
+- `report`: writes one table to the run summary, and opens, updates or closes the issue "Security scan findings" (label `security`).
+
+The run fails on a finding with CVSS 9.0 or more, a high or critical npm advisory, a Semgrep `ERROR`, or a secret. It also fails when a scan gives no report. To accept an advisory, add an `[[IgnoredVulns]]` entry with a reason and a review date to `.osv-scanner.toml`. Run the OSV scan on your machine with `osv-scanner scan --lockfile=Cargo.lock --lockfile=pnpm-lock.yaml --config=.osv-scanner.toml`.
+
+Renovate opens security updates at once and labels them `security` (`renovate.json`).
+
 ## Icons
 
 The app icons come from `docs/assets/logo.svg`:
