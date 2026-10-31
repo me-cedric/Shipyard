@@ -5,6 +5,7 @@ import { designEn } from "./design";
 import { doctorEn } from "./doctor";
 import { editingEn } from "./editing";
 import { extensionsEn } from "./extensions";
+import { extrasEn } from "./extras";
 import { factoryEn } from "./factory";
 import { homeEn } from "./home";
 import { knowledgeEn } from "./knowledge";
@@ -797,6 +798,7 @@ export const en = {
 	reports: reportsEn,
 	editing: editingEn,
 	review: reviewEn,
+	extras: extrasEn,
 };
 
 export type Messages = typeof en;

@@ -560,3 +560,55 @@ fn a_day_budget_key_needs_a_real_month_and_day() {
         assert_eq!(issues(bad), 1, "{bad}");
     }
 }
+
+// ---- the automatic review (spec `agent-pr`, REQ-006)
+
+fn pull(number: u64, state: PrState, draft: bool, head: &str) -> PullSnapshot {
+    PullSnapshot {
+        number,
+        title: format!("pr {number}"),
+        state,
+        draft,
+        head_sha: head.into(),
+        url: String::new(),
+        ci: Ci::None,
+        changes_requested: false,
+        updated: String::new(),
+    }
+}
+
+#[test]
+fn an_open_pull_request_with_no_review_of_its_head_is_due_once() {
+    let pulls = [
+        pull(1, PrState::Open, false, "a1"),
+        pull(2, PrState::Open, false, "b2"),
+        pull(3, PrState::Open, true, "c3"),
+        pull(4, PrState::Merged, false, "d4"),
+    ];
+    let none = |_: u64, _: &str| false;
+    // Off: nothing is due, whatever the pull requests are.
+    assert!(reviews_due(AutoReview::Off, &pulls, none).is_empty());
+    let due = reviews_due(AutoReview::Draft, &pulls, none);
+    assert_eq!(due, [(1, "a1".to_string()), (2, "b2".to_string())]);
+    // The second tick: a review of the head commit exists, so a new head commit alone is due.
+    let done = |n: u64, h: &str| (n, h) == (1, "a1");
+    assert_eq!(
+        reviews_due(AutoReview::Post, &pulls, done),
+        [(2, "b2".to_string())]
+    );
+    let moved = [pull(1, PrState::Open, false, "a9")];
+    assert_eq!(reviews_due(AutoReview::Post, &moved, done).len(), 1);
+}
+
+#[test]
+fn the_automatic_review_choice_defaults_to_off_and_round_trips() {
+    assert_eq!(Automation::default().auto_review, AutoReview::Off);
+    let a: Automation = serde_json::from_str(r#"{"auto_review":"draft"}"#).unwrap();
+    assert_eq!(a.auto_review, AutoReview::Draft);
+    assert!(serde_json::from_str::<Automation>(r#"{"auto_review":"maybe"}"#).is_err());
+    assert!(
+        !serde_json::to_string(&Automation::default())
+            .unwrap()
+            .contains("auto_review")
+    );
+}

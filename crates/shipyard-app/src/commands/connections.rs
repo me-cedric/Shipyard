@@ -87,7 +87,13 @@ pub async fn connections_edit(
 #[tauri::command]
 #[specta::specta]
 pub async fn connections_remove(app: AppHandle, id: String) -> Api<()> {
-    blocking(app, move |s| s.connections.remove(&id)).await
+    blocking(app, move |s| {
+        s.connections.remove(&id)?;
+        // The GitLab tools of this connection go with it. A connection with none is no error.
+        let _ = s.agents.mcp_remove(&crate::mcp_tools::gitlab_mcp_id(&id));
+        Ok(())
+    })
+    .await
 }
 
 /// Write-only: the secret goes to the keychain and no command returns it.

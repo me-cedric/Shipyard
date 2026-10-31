@@ -456,6 +456,14 @@ impl Agents {
         self.mcp_change(|c| c.forget(id))
     }
 
+    /// The value of one field of a server, for a request of the app (the Figma API). It never
+    /// goes to a view, a log or a file.
+    pub(crate) fn mcp_field(&self, id: &str, key: &str) -> Res<Option<Secret>> {
+        self.secrets
+            .get(&format!("conn:{id}/{key}"))
+            .map_err(|e| e.to_string())
+    }
+
     pub fn mcp_set_field(&self, id: &str, key: &str, value: Secret) -> Res<()> {
         if value.is_empty() {
             return Err("the value is empty".into());

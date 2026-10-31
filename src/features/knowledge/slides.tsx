@@ -4,10 +4,12 @@ import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { DOC_DIR, useDocFile, useDocList, useSlideTheme } from "@/lib/knowledge";
 import { Button } from "@/ui/atoms/button";
-import { PlayIcon, PresentationChartIcon } from "@/ui/icons";
+import { PlayIcon, PlusIcon, PresentationChartIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
+import { MenuButton } from "@/ui/molecules/menu-button";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
 import { ListTab } from "./list-tab";
+import { costingSlide, planningSlide } from "./work-slides";
 
 // reveal.js loads on the first deck, not on the first screen.
 const SlideDeck = lazy(() =>
@@ -18,7 +20,7 @@ const TEMPLATE = (name: string) => `# ${name}\n\n---\n\n## Slide\n\n- Point\n`;
 
 /** One deck: the text with a live preview, and the present mode (REQ-017 to REQ-019). */
 function DeckEditor({ path, title }: { path: string; title: string }) {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const k = t.knowledge;
 	const file = useDocFile(path);
 	const theme = useSlideTheme().data?.value;
@@ -30,19 +32,59 @@ function DeckEditor({ path, title }: { path: string; title: string }) {
 		placeholderData: (prev) => prev,
 	}).data;
 	const slides = deck?.slides ?? [];
+	const x = t.extras.slides;
+	const [failed, setFailed] = useState<string | null>(null);
+	const add = async (kind: "planning" | "costing") => {
+		setFailed(null);
+		const sheets = await unwrap(commands.estimateList());
+		const slide =
+			kind === "costing"
+				? costingSlide(sheets, x, lang)
+				: planningSlide(
+						await Promise.all(
+							sheets
+								.filter((s) => s.state === "ready")
+								.map(async (s) => ({
+									name: s.name ?? s.slug,
+									plan: await unwrap(commands.planGet(s.slug)),
+								})),
+						),
+						x,
+						lang,
+					);
+		file.setText(`${file.text.trimEnd()}${slide}`);
+	};
 	return (
 		<EditorFrame
 			title={title}
 			refId={`doc:${path}`}
 			actions={
-				<Button onClick={() => setPresent(true)} disabled={slides.length === 0}>
-					<PlayIcon size={14} />
-					{k.slides.present}
-				</Button>
+				<>
+					<MenuButton
+						label={x.add}
+						icon={<PlusIcon size={14} />}
+						items={[
+							{
+								id: "planning",
+								label: x.planning,
+								onSelect: () => void add("planning").catch((e) => setFailed(String(e))),
+							},
+							{
+								id: "costing",
+								label: x.costing,
+								onSelect: () => void add("costing").catch((e) => setFailed(String(e))),
+							},
+						]}
+					/>
+					<Button onClick={() => setPresent(true)} disabled={slides.length === 0}>
+						<PlayIcon size={14} />
+						{k.slides.present}
+					</Button>
+				</>
 			}
 			primary={{ label: k.editor.save, onClick: () => void file.save(), disabled: !file.dirty }}
 			save={file.conflict ? "conflict" : file.dirty ? "dirty" : "clean"}
-			error={file.error ? { message: file.error } : null}
+			error={file.error || failed ? { message: file.error || failed || "" } : null}
 			onReload={() => void file.reload()}
 			onKeepMine={() => void file.keepMine()}
 			labels={k.editor}

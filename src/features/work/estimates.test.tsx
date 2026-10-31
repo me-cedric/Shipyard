@@ -36,6 +36,15 @@ describe("Work / Estimates", () => {
 	it("shows equal totals in the summary, the spread and the portfolio", async () => {
 		const user = userEvent.setup();
 		await withTracker();
+		// Three rates for dev and for qa: a cost shows only for a role of three (`work::MIN_RATED`).
+		const team = mockState().work.team.members;
+		const [ada, , alan] = team;
+		if (ada && alan)
+			team.push(
+				{ ...ada, name: "Linus", handle: "linus", trackers: [] },
+				{ ...alan, name: "Barbara", handle: "barbara", trackers: [], dayRate: 400 },
+				{ ...alan, name: "Frances", handle: "frances", trackers: [], dayRate: 440 },
+			);
 		mountApp("/work/estimates");
 		const sheet = await unwrap(commands.estimateGet("mvp-1"));
 		await user.click(await screen.findByRole("tab", { name: "Summary" }));
@@ -256,6 +265,10 @@ describe("Work / Estimates", () => {
 	it("sums days and cost by profile, for the lot and for every lot, with no day rate", async () => {
 		const user = userEvent.setup();
 		await withTracker();
+		// A third developer with a rate: a cost shows only for a role of three (`work::MIN_RATED`).
+		const [ada] = mockState().work.team.members;
+		if (ada)
+			mockState().work.team.members.push({ ...ada, name: "Linus", handle: "linus", trackers: [] });
 		mountApp("/work/estimates");
 		await user.click(await screen.findByRole("tab", { name: "Summary" }));
 		const lot = await screen.findByRole("table", { name: "By profile" });

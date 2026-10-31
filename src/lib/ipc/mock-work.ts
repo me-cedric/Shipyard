@@ -326,6 +326,13 @@ function roleRates(team: Team_Serialize): Map<string, number> {
 	return new Map([...sums].map(([k, [s, n]]) => [k, s / n]));
 }
 
+/** The rates that a cost may use: a role of fewer than three rated members shows no rate (`work::shared_rates`). */
+function sharedRates(team: Team_Serialize): Map<string, number> {
+	const rated = (role: string) =>
+		team.members.filter((m) => m.dayRate != null && m.role.toLowerCase() === role).length;
+	return new Map([...roleRates(team)].filter(([role]) => rated(role) >= 3));
+}
+
 function totals(s: Sheet_Serialize, rates: Map<string, number>): Totals {
 	const build = buildDays(s);
 	const out = { days: 0, cost: 0, price: 0, margin: 0, unrated: new Set<string>() };
@@ -452,7 +459,7 @@ function unstaffed(cal: Calendar_Serialize, start: number, days: number): Spend 
 /** Schedule one sheet over the team, the calendar and the decisions. Returns the bars and the days used. */
 function schedule(w: MockWork, slug: string, s: Sheet_Serialize) {
 	const cal = effective(w);
-	const rates = roleRates(w.team);
+	const rates = sharedRates(w.team);
 	const build = buildDays(s);
 	const first = nextWorking(cal, parseDay(w.today) ?? 0);
 	const ref = (id: string) => `est:${slug}#${id}`;
@@ -843,7 +850,7 @@ function readSheet(w: MockWork, slug: string): Sheet_Serialize {
 }
 
 export function estimateList(w: MockWork): SheetItem_Serialize[] {
-	const rates = roleRates(w.team);
+	const rates = sharedRates(w.team);
 	return Object.entries(w.sheets)
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([slug, s]) =>
@@ -861,7 +868,7 @@ export function estimateGet(w: MockWork, mirror: Mirror, slug: string): SheetVie
 	return {
 		slug,
 		sheet,
-		totals: totals(sheet, roleRates(w.team)),
+		totals: totals(sheet, sharedRates(w.team)),
 		days,
 		spread: spreadOf(schedule(w, slug, sheet).bars),
 		tickets: sheetTasks(sheet).flatMap(({ t }) => {
@@ -909,7 +916,7 @@ const FROZEN = "the sheet is frozen: unfreeze it first";
 /** The days and cost of each role, the largest first. No day rate leaves the mock. */
 export function estimateProfiles(w: MockWork, slug: string | null): ProfileSum_Serialize[] {
 	const sheets = slug ? [readSheet(w, slug)] : isLocked(w) ? [] : Object.values(w.sheets);
-	const rates = roleRates(w.team);
+	const rates = sharedRates(w.team);
 	const by = new Map<string, ProfileSum_Serialize>();
 	for (const s of sheets) {
 		const build = buildDays(s);
@@ -923,13 +930,9 @@ export function estimateProfiles(w: MockWork, slug: string | null): ProfileSum_S
 			by.set(key, e);
 		}
 	}
-	// One rated member: the cost over the days would show a day rate.
-	const rated = (role: string) =>
-		w.team.members.filter((m) => m.dayRate != null && m.role.toLowerCase() === role.toLowerCase())
-			.length;
-	return [...by.values()]
-		.map((e) => (rated(e.role) < 2 ? { ...e, cost: null } : e))
-		.sort((a, b) => (b.days ?? 0) - (a.days ?? 0) || a.role.localeCompare(b.role));
+	return [...by.values()].sort(
+		(a, b) => (b.days ?? 0) - (a.days ?? 0) || a.role.localeCompare(b.role),
+	);
 }
 
 export function estimateDelete(w: MockWork, slug: string, click: boolean) {
@@ -940,7 +943,7 @@ export function estimateDelete(w: MockWork, slug: string, click: boolean) {
 }
 
 export function estimatePortfolio(w: MockWork): Portfolio {
-	const rates = roleRates(w.team);
+	const rates = sharedRates(w.team);
 	const rows = isLocked(w)
 		? []
 		: Object.entries(w.sheets)
@@ -1195,6 +1198,19 @@ export function timeAdd(
 	};
 	w.time[handle] = [...(w.time[handle] ?? []), entry].sort(byDay);
 	return entry;
+}
+
+/** The worklogs of every ticket of the month beside its entries (`work::time_month_pull`). It writes nothing. */
+export function timePullMonth(w: MockWork, member: string | null, month: string) {
+	const entries = timeList(w, member, month, true).rows.flatMap((r) => (r.entry ? [r.entry] : []));
+	const keys = [...new Set(entries.flatMap((e) => (e.ticket ? [e.ticket] : [])))].sort();
+	return keys.map((ticket) => ({
+		ticket,
+		rows: reconcile(
+			entries.filter((e) => e.ticket === ticket),
+			w.logs[ticket] ?? [],
+		),
+	}));
 }
 
 export function timeFetch(w: MockWork, member: string | null, ticket: string): TimeRow_Serialize[] {

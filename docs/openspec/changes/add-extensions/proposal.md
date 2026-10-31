@@ -1,4 +1,4 @@
-# add-extensions
+# Extensions
 
 ## Why
 

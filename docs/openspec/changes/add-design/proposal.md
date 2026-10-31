@@ -1,4 +1,4 @@
-# add-design
+# Design
 
 ## Why
 

@@ -14,6 +14,7 @@ import { Select } from "@/ui/atoms/select";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { SettingsRow } from "@/ui/molecules/settings-row";
+import { deviceSignIn } from "./device-signin";
 import { connectionKeys } from "./keys";
 import { ScopeStep } from "./scope-step";
 
@@ -195,20 +196,10 @@ export function ConnectionForm({
 		setError(null);
 		try {
 			const saved = await persist();
-			const d = await unwrap(commands.deviceLoginStart(saved.id, true));
-			setDevice(d.userCode);
-			await unwrap(commands.openLink(d.verificationUri));
-			let wait = d.interval;
-			for (const end = Date.now() + d.expiresIn * 1000; Date.now() < end; ) {
-				await new Promise((r) => setTimeout(r, wait * 1000));
-				if (!alive.current) return;
-				const state = await unwrap(commands.deviceLoginPoll(saved.id, d.deviceCode));
-				if (state === "authorized") return await verify({ ...saved, secret: true });
-				if (state === "slow_down") wait += 5;
-				if (state === "denied" || state === "expired")
-					return setError(state === "denied" ? t.forge.device.denied : t.forge.device.expired);
-			}
-			setError(t.forge.device.expired);
+			const state = await deviceSignIn(saved.id, setDevice, () => alive.current);
+			if (state === "authorized") return await verify({ ...saved, secret: true });
+			if (state === "denied") setError(t.forge.device.denied);
+			if (state === "expired") setError(t.forge.device.expired);
 		} catch (err) {
 			setError(err);
 		} finally {

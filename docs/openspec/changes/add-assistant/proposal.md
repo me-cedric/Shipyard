@@ -1,4 +1,4 @@
-# add-assistant
+# Assistant
 
 ## Why
 

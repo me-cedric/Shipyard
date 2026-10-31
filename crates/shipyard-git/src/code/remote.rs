@@ -165,6 +165,32 @@ impl Repo {
             .map_err(|e| auth.scrub(e))
     }
 
+    /// The commit `sha` is in the repository.
+    pub fn has_commit(&self, sha: &str) -> bool {
+        git2::Oid::from_str(sha).is_ok_and(|id| self.repo.find_commit(id).is_ok())
+    }
+
+    /// Fetch the head of pull request `number`, as GitHub or GitLab keep it, for a head commit
+    /// that sits in a fork. The objects come in and no ref is written. A missing ref is no error
+    /// for the fetch: the caller asks [`Repo::has_commit`] after.
+    pub fn fetch_pull_head(&self, remote: &str, number: u32, auth: &Auth) {
+        let Ok(mut r) = self.repo.find_remote(remote) else {
+            return;
+        };
+        for spec in [
+            format!("refs/pull/{number}/head"),
+            format!("refs/merge-requests/{number}/head"),
+        ] {
+            let Ok(config) = self.repo.config() else {
+                return;
+            };
+            let mut fo = auth.fetch_options(config);
+            fo.download_tags(AutotagOption::None);
+            fo.prune(git2::FetchPrune::Off);
+            let _ = r.fetch(&[spec.as_str()], Some(&mut fo), None);
+        }
+    }
+
     /// Fetch the upstream remote of the working branch, then fast-forward it or rebase it onto
     /// the upstream. A conflict aborts the rebase and leaves the branch as it was. Refuses when
     /// a tracked file has uncommitted changes.

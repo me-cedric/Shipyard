@@ -249,6 +249,8 @@ export function useWorkActions() {
 				ticket: string | null,
 			) => run(commands.timeAdd(member, day, minutes, note, ticket)),
 			fetchTime: (member: string | null, ticket: string) => run(commands.timeFetch(member, ticket)),
+			pullMonth: (member: string | null, month: string) =>
+				run(commands.timePullMonth(member, month)),
 			sendTime: (
 				member: string | null,
 				day: string,

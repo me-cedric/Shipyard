@@ -9,12 +9,13 @@ use std::time::Instant;
 
 use serde::Serialize;
 use serde_json::{Value, json};
-use shipyard_agents::mcp_control::State;
+use shipyard_agents::mcp_control::{ServerDef, State};
+use shipyard_secrets::Secret;
 use specta::Type;
 use tauri::AppHandle;
 
 use crate::commands::{Api, AppState, Res, blocking};
-use crate::connections::ConnectionKind;
+use crate::connections::{ConnectionKind, Connections};
 use crate::errors::AppError;
 use crate::work::need_click;
 
@@ -53,6 +54,80 @@ pub fn outcome(id: &str, answer: Result<Value, String>, started: Instant) -> Mcp
             elapsed_ms,
         },
     }
+}
+
+/* ---------- GitLab MCP server (spec `gitlab-mcp`) ---------- */
+
+const GITLAB_MCP_PREFIX: &str = "custom-gitlab-";
+const GITLAB_MCP_VAR: &str = "GITLAB_AUTH";
+
+/// The id of the MCP server entry of a GitLab connection.
+pub fn gitlab_mcp_id(connection: &str) -> String {
+    format!("{GITLAB_MCP_PREFIX}{connection}")
+}
+
+fn gitlab_mcp_url(host: &str) -> String {
+    format!("https://{host}/api/v4/mcp")
+}
+
+/// The launch variable of a GitLab MCP server: `Bearer <token>`, read from the keychain and
+/// refreshed at each start. The token goes to the server process only. A server whose address is
+/// not the host of its connection gets no token.
+pub fn gitlab_mcp_env(
+    conns: &Connections,
+    def: &ServerDef,
+) -> Option<Result<Vec<(String, Secret)>, String>> {
+    let id = def.id.strip_prefix(GITLAB_MCP_PREFIX)?;
+    Some(conns.mcp_token(id).and_then(|(token, host)| {
+        if !def.args.iter().any(|a| *a == gitlab_mcp_url(&host)) {
+            return Err("the GitLab address changed: switch the GitLab tools on again".into());
+        }
+        Ok(vec![(
+            GITLAB_MCP_VAR.to_string(),
+            Secret::new(format!("Bearer {}", token.expose())),
+        )])
+    }))
+}
+
+/// Switches the GitLab MCP server of a connection on or off. On adds the entry with the address
+/// of the connection host. The entry holds no token: the token is read at launch.
+fn gitlab_mcp_set(s: &AppState, connection: &str, on: bool, click: bool) -> Res<()> {
+    need_click(s, click)?;
+    let id = gitlab_mcp_id(connection);
+    if !on {
+        return s.agents.mcp_enable(&id, false);
+    }
+    let c = s
+        .connections
+        .get(connection)?
+        .ok_or_else(|| format!("unknown connection: {connection}"))?;
+    if c.kind != ConnectionKind::GitLab {
+        return Err("the GitLab tools need a GitLab connection".into());
+    }
+    let (_, host) = s.connections.mcp_token(connection)?;
+    s.agents.mcp_add_custom(crate::agents::McpCustom {
+        id: Some(id.clone()),
+        name: format!("GitLab {}", c.name),
+        description: String::new(),
+        command: gitlab_mcp_url(&host),
+        args: vec![
+            "--header".into(),
+            format!("Authorization:${{{GITLAB_MCP_VAR}}}"),
+        ],
+        env: Vec::new(),
+    })?;
+    s.agents.mcp_enable(&id, true)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn gitlab_mcp_set_on(
+    app: AppHandle,
+    connection: String,
+    on: bool,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| gitlab_mcp_set(s, &connection, on, click)).await
 }
 
 fn test_one(s: &AppState, id: &str) -> McpTest {
@@ -227,6 +302,123 @@ pub async fn mcp_recommended_enable(app: AppHandle, click: bool) -> Api<Vec<Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::sync::Arc;
+
+    use shipyard_http::fake::FakeHttp;
+    use shipyard_secrets::MemoryStore;
+
+    use crate::connections::{ConnectionDraft, ConnectionGroup};
+    use crate::device_login::Oauth;
+
+    /// A GitLab connection that signed in with the browser and holds these scopes.
+    fn signed_in(dir: &Path, scope: &str, expires: i64, http: FakeHttp) -> (AppState, String) {
+        let conns = Arc::new(Connections::new(
+            dir,
+            Arc::new(MemoryStore::default()),
+            Arc::new(http),
+        ));
+        let s = AppState::with_connections(dir.join("data"), conns);
+        let id = s
+            .connections
+            .add(ConnectionDraft {
+                name: "Code".into(),
+                group: ConnectionGroup::Forge,
+                kind: ConnectionKind::GitLab,
+                url: "https://gitlab.com".into(),
+                user: None,
+            })
+            .unwrap()
+            .id;
+        let oauth = Oauth {
+            refresh: "rt1".into(),
+            expires,
+            client: "cid".into(),
+            scope: scope.into(),
+        };
+        s.connections
+            .store_secret(&id, Secret::new("at1"), Some(oauth))
+            .unwrap();
+        (s, id)
+    }
+
+    fn entry(s: &AppState, id: &str) -> ServerDef {
+        s.agents
+            .mcp
+            .config()
+            .custom
+            .into_iter()
+            .find(|d| d.id == gitlab_mcp_id(id))
+            .unwrap()
+    }
+
+    #[test]
+    fn the_switch_adds_the_server_of_the_host_and_no_file_holds_the_token() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, id) = signed_in(dir.path(), "api mcp", i64::MAX, FakeHttp::new());
+        assert!(
+            gitlab_mcp_set(&s, &id, true, false)
+                .unwrap_err()
+                .contains("click")
+        );
+        gitlab_mcp_set(&s, &id, true, true).unwrap();
+        let def = entry(&s, &id);
+        assert!(
+            def.args
+                .iter()
+                .any(|a| a == "https://gitlab.com/api/v4/mcp")
+        );
+        assert!(s.agents.mcp.is_enabled(&gitlab_mcp_id(&id)));
+        let mut files = String::new();
+        for e in std::fs::read_dir(dir.path().join("data"))
+            .into_iter()
+            .flatten()
+            .flatten()
+        {
+            files += &std::fs::read_to_string(e.path()).unwrap_or_default();
+        }
+        assert!(!files.contains("at1") && !files.contains("rt1"), "{files}");
+        gitlab_mcp_set(&s, &id, false, true).unwrap();
+        assert!(!s.agents.mcp.is_enabled(&gitlab_mcp_id(&id)));
+    }
+
+    #[test]
+    fn a_sign_in_with_api_only_cannot_switch_on() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, id) = signed_in(dir.path(), "api", i64::MAX, FakeHttp::new());
+        let e = gitlab_mcp_set(&s, &id, true, true).unwrap_err();
+        assert_eq!(
+            AppError::from(e).code,
+            crate::errors::ErrorCode::GitlabNoMcp
+        );
+        assert!(s.agents.mcp.config().custom.is_empty());
+    }
+
+    #[test]
+    fn the_token_is_read_at_launch_and_an_expired_one_is_refreshed_first() {
+        let dir = tempfile::tempdir().unwrap();
+        let http = FakeHttp::new();
+        http.post(
+            "/oauth/token",
+            "rt1",
+            200,
+            r#"{"access_token":"at2","refresh_token":"rt2","expires_in":7200}"#,
+        );
+        let (s, id) = signed_in(dir.path(), "api mcp", 1, http);
+        gitlab_mcp_set(&s, &id, true, true).unwrap();
+        let def = entry(&s, &id);
+        let env = gitlab_mcp_env(&s.connections, &def).unwrap().unwrap();
+        assert_eq!(env[0].0, "GITLAB_AUTH");
+        assert_eq!(env[0].1.expose(), "Bearer at2");
+        // Not a GitLab entry: no variable.
+        let mut other = def.clone();
+        other.id = "context7".into();
+        assert!(gitlab_mcp_env(&s.connections, &other).is_none());
+        // An entry for another host never gets the token.
+        let mut moved = def;
+        moved.args = vec!["https://evil.example/api/v4/mcp".into()];
+        assert!(gitlab_mcp_env(&s.connections, &moved).unwrap().is_err());
+    }
 
     #[test]
     fn a_test_lists_the_tools_or_gives_a_coded_error() {

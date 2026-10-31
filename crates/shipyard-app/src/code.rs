@@ -55,7 +55,7 @@ fn secrets(s: &AppState) -> Vec<String> {
 }
 
 /// The mirrored work item keys: the only keys that a commit or a pull request can link to.
-fn known_keys(s: &AppState) -> Vec<String> {
+pub(crate) fn known_keys(s: &AppState) -> Vec<String> {
     let Ok(Some(a)) = active(s) else {
         return Vec::new();
     };
@@ -103,7 +103,7 @@ pub fn index_new_commit(s: &AppState, sha: &str) -> Res<()> {
 
 // ---------------------------------------------------------------- pull requests (REQ-018 to REQ-025)
 
-fn forge(s: &AppState) -> Res<(Box<dyn CodeApi>, String, String)> {
+pub(crate) fn forge(s: &AppState) -> Res<(Box<dyn CodeApi>, String, String)> {
     let a = active(s)?.ok_or("no active project")?;
     let id = a.forge.clone().ok_or(NO_FORGE)?;
     let slug = origin_slug(&a.entry).ok_or("the project has no remote repository")?;

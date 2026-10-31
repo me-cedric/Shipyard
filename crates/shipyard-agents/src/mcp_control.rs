@@ -815,7 +815,13 @@ fn account(server: &str, field: &str) -> String {
 
 /* ---------- Control ---------- */
 
+/// A source of launch variables outside the server fields: a sign-in token that the app keeps
+/// fresh. `None` when the server is not one of its own. The value goes to the child only.
+pub type EnvHook =
+    Arc<dyn Fn(&ServerDef) -> Option<Result<Vec<(String, Secret)>, String>> + Send + Sync>;
+
 pub struct McpControl {
+    hook: Mutex<Option<EnvHook>>,
     store: Arc<dyn SecretStore>,
     dirs: Vec<PathBuf>,
     waits: Waits,
@@ -826,6 +832,7 @@ pub struct McpControl {
 impl McpControl {
     pub fn new(store: Arc<dyn SecretStore>, config: McpConfig) -> Self {
         Self {
+            hook: Mutex::new(None),
             store,
             dirs: search_dirs(),
             waits: Waits::default(),
@@ -843,6 +850,11 @@ impl McpControl {
     pub fn with_waits(mut self, waits: Waits) -> Self {
         self.waits = waits;
         self
+    }
+
+    /// Sets the source of launch variables. It runs at each start, so a token is fresh then.
+    pub fn set_env_hook(&self, hook: EnvHook) {
+        *lock(&self.hook) = Some(hook);
     }
 
     /// What to save (REQ-013).
@@ -1034,6 +1046,10 @@ impl McpControl {
             }
         }
         if missing.is_empty() {
+            let hook = lock(&self.hook).clone();
+            if let Some(extra) = hook.and_then(|h| h(server)) {
+                env.extend(extra.map_err(AgentError::Server)?);
+            }
             Ok(env)
         } else {
             Err(AgentError::NotConfigured(missing))
@@ -1276,5 +1292,27 @@ impl McpControl {
             drop(old);
         }
         result
+    }
+}
+
+#[cfg(test)]
+mod env_hook_tests {
+    use super::*;
+    use shipyard_secrets::MemoryStore;
+
+    #[test]
+    fn the_hook_adds_a_launch_variable_that_is_not_a_field_and_its_error_stops_the_start() {
+        let control = McpControl::new(Arc::new(MemoryStore::default()), McpConfig::default());
+        let server = catalogue().into_iter().find(|d| d.id == "azure").unwrap();
+        assert!(control.env(&server).unwrap().is_empty());
+        control.set_env_hook(Arc::new(|d| {
+            (d.id == "azure").then(|| Ok(vec![("TOKEN".to_string(), Secret::new("t"))]))
+        }));
+        let env = control.env(&server).unwrap();
+        assert_eq!((env[0].0.as_str(), env[0].1.expose()), ("TOKEN", "t"));
+        let other = catalogue().into_iter().find(|d| d.id == "aws").unwrap();
+        assert!(control.env(&other).unwrap().is_empty());
+        control.set_env_hook(Arc::new(|_| Some(Err("sign in again".into()))));
+        assert!(control.env(&server).is_err());
     }
 }

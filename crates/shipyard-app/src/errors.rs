@@ -74,6 +74,26 @@ pub enum ErrorCode {
     SheetFrozen,
     FeedInvalid,
     SettingInvalid,
+    GitlabNoMcp,
+    GitlabAddress,
+    ReadOnly,
+    AgentsStopped,
+    AgentLimit,
+    BudgetSpent,
+    HeadMissing,
+    NoChanges,
+    ReviewPosted,
+    ReviewRunning,
+    FigmaNoToken,
+    BranchDiverged,
+    PictureInvalid,
+    ReviewNoResult,
+    AgentNoText,
+    AgentNoTitle,
+    ReviewNoDraft,
+    ReviewEmpty,
+    NoBase,
+    FigmaAddress,
 }
 
 impl ErrorCode {
@@ -91,7 +111,9 @@ impl ErrorCode {
             Self::MergeDraft | Self::MergeClosed | Self::MergeMethod => {
                 (ActionKind::Open, "/code/pull-requests")
             }
-            Self::ForgeDenied => (ActionKind::Setting, "connections"),
+            Self::ForgeDenied | Self::GitlabNoMcp | Self::GitlabAddress => {
+                (ActionKind::Setting, "connections")
+            }
             Self::GitNothingStaged => (ActionKind::Open, "/code/changes"),
             Self::GitNoUpstream => (ActionKind::Open, "/code/branches"),
             Self::NoTerminal | Self::TerminalGone => (ActionKind::Setting, "terminalApp"),
@@ -145,6 +167,45 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("the sheet is frozen", ErrorCode::SheetFrozen),
     ("does not hold an RSS or Atom feed", ErrorCode::FeedInvalid),
     ("the setting ", ErrorCode::SettingInvalid),
+    (
+        "the GitLab sign-in has no mcp scope",
+        ErrorCode::GitlabNoMcp,
+    ),
+    ("the GitLab address changed", ErrorCode::GitlabAddress),
+    ("is read only", ErrorCode::ReadOnly),
+    ("the agents are stopped", ErrorCode::AgentsStopped),
+    ("the agent limit is reached", ErrorCode::AgentLimit),
+    ("is spent: the review waits", ErrorCode::BudgetSpent),
+    (
+        "the head commit is not in the local repository",
+        ErrorCode::HeadMissing,
+    ),
+    (
+        "the branch has no changes to describe",
+        ErrorCode::NoChanges,
+    ),
+    ("the review is posted already", ErrorCode::ReviewPosted),
+    (
+        "a review of this pull request is running",
+        ErrorCode::ReviewRunning,
+    ),
+    ("no Figma token", ErrorCode::FigmaNoToken),
+    (
+        "has its own commits: merge or rebase it",
+        ErrorCode::BranchDiverged,
+    ),
+    (
+        "the picture is not a PNG or a JPEG file",
+        ErrorCode::PictureInvalid,
+    ),
+    ("the picture is larger than 1 MB", ErrorCode::PictureInvalid),
+    ("the review has no result", ErrorCode::ReviewNoResult),
+    ("the agent wrote no text", ErrorCode::AgentNoText),
+    ("the agent wrote no title", ErrorCode::AgentNoTitle),
+    ("no draft review", ErrorCode::ReviewNoDraft),
+    ("the review is empty", ErrorCode::ReviewEmpty),
+    ("the branch has no base to compare with", ErrorCode::NoBase),
+    ("this is not a Figma file address", ErrorCode::FigmaAddress),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]

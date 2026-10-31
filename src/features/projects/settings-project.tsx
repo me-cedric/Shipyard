@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { AutoCommit } from "@/features/settings/project/auto-commit";
+import { AutoReview } from "@/features/settings/project/auto-review";
 import { HolidayCountry } from "@/features/work/holiday-country";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -18,7 +19,14 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { Cog6ToothIcon, FolderOpenIcon, LinkIcon, SunIcon, SwatchIcon } from "@/ui/icons";
+import {
+	Cog6ToothIcon,
+	FolderOpenIcon,
+	LinkIcon,
+	PencilIcon,
+	SunIcon,
+	SwatchIcon,
+} from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
@@ -28,6 +36,7 @@ import { ProfilesCard } from "./profiles-card";
 import { ProjectDetails } from "./project-details";
 import { ProjectImport } from "./project-import";
 import { ProjectOverrides } from "./project-overrides";
+import { RepoTools } from "./repo-tools";
 import { ScopePicker } from "./scope-picker";
 import { ScreensCard } from "./screens-card";
 import { TicketsConfigEditor } from "./tickets-config";
@@ -36,6 +45,7 @@ const NONE = "none";
 const ACCENTS: Accent[] = ["blue", "violet", "green", "orange", "rose"];
 
 type Draft = {
+	name: string;
 	paths: Record<string, string>;
 	workflow: string;
 	/** The connection id for each purpose. Empty is none. */
@@ -45,6 +55,7 @@ type Draft = {
 };
 
 const draftOf = (f: ProjectFile_Deserialize | null): Draft => ({
+	name: f?.name ?? "",
 	// Every key shows: a key that the file does not set shows its default.
 	paths: { ...PATH_DEFAULTS, ...f?.paths },
 	workflow: f?.defaultWorkflow ?? "",
@@ -89,6 +100,7 @@ function Form({
 			await unwrap(
 				commands.projectFileSave({
 					...file,
+					name: draft.name.trim() || file.name,
 					// A key stays out of the file while it holds its default and the file did not set it.
 					paths: Object.fromEntries(
 						Object.entries(draft.paths)
@@ -149,24 +161,39 @@ function Form({
 								{
 									id: "paths",
 									title: t.projects.paths,
-									rows: Object.keys(draft.paths).map((kind) => ({
-										id: kind,
-										icon: <FolderOpenIcon size={14} />,
-										label: (t.projects.path as Record<string, string>)[kind] ?? kind,
-										control: (
-											<Input
-												label={(t.projects.path as Record<string, string>)[kind] ?? kind}
-												value={draft.paths[kind] ?? ""}
-												onChange={(e) =>
-													setDraft({
-														...draft,
-														paths: { ...draft.paths, [kind]: e.target.value },
-													})
-												}
-												className="w-64"
-											/>
-										),
-									})),
+									rows: [
+										{
+											id: "name",
+											icon: <PencilIcon size={14} />,
+											label: t.extras.project.name,
+											control: (
+												<Input
+													label={t.extras.project.name}
+													value={draft.name}
+													onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+													className="w-64"
+												/>
+											),
+										},
+										...Object.keys(draft.paths).map((kind) => ({
+											id: kind,
+											icon: <FolderOpenIcon size={14} />,
+											label: (t.projects.path as Record<string, string>)[kind] ?? kind,
+											control: (
+												<Input
+													label={(t.projects.path as Record<string, string>)[kind] ?? kind}
+													value={draft.paths[kind] ?? ""}
+													onChange={(e) =>
+														setDraft({
+															...draft,
+															paths: { ...draft.paths, [kind]: e.target.value },
+														})
+													}
+													className="w-64"
+												/>
+											),
+										})),
+									],
 								},
 								{
 									id: "connections",
@@ -269,6 +296,7 @@ function Form({
 			{file ? (
 				<>
 					<ProjectDetails />
+					<RepoTools />
 					<TicketsConfigEditor />
 					<PersonasEditor />
 				</>
@@ -277,6 +305,7 @@ function Form({
 			<ScreensCard />
 			<ProfilesCard />
 			<AutoCommit />
+			<AutoReview />
 			<HolidayCountry row />
 			<ProjectImport />
 			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}

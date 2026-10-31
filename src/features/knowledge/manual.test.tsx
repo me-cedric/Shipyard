@@ -28,6 +28,7 @@ describe("Knowledge / Manual", () => {
 		const hits = searchManual("token keychain");
 		expect(hits.map((h) => `${h.page}/${h.heading}`)).toEqual([
 			"start/Safe by default",
+			"design/Screens",
 			"settings/Connections",
 		]);
 		expect(searchManual("   ")).toEqual([]);

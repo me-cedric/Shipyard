@@ -40,3 +40,7 @@ Flows lists the network flows as a table: from where, to where, the port and the
 ## Screens
 
 Screens shows the screens of the product and the design tokens: the colours, by family.
+
+- A `.fig` file shows the preview that Figma keeps in it.
+- To read Figma, add the token of your Figma account once. It goes to the keychain of your computer.
+- Then paste the address of a Figma project and click List the files. Each file shows its preview and its design tokens.

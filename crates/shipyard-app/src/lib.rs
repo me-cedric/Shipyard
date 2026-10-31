@@ -5,6 +5,7 @@ pub mod applog;
 pub mod assistant;
 pub mod assistant_attach;
 pub mod auto_commit;
+pub mod branding;
 pub mod certs;
 pub mod close_guard;
 pub mod code;
@@ -23,6 +24,7 @@ pub mod errors;
 pub mod extensions;
 pub mod factory;
 pub mod feedback;
+pub mod figma;
 pub mod files;
 pub mod knowledge;
 pub mod learning;
@@ -31,6 +33,7 @@ pub mod mcp_tools;
 pub mod openers;
 pub mod orca;
 pub mod outside;
+pub mod pr_agent;
 pub mod publish;
 pub mod qa;
 pub mod questions;
@@ -44,6 +47,7 @@ pub mod specs;
 pub mod sync;
 pub mod terminal;
 pub mod terminals;
+pub mod window;
 pub mod work;
 
 use commands::{
@@ -213,6 +217,12 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::mcp_tools::mcp_test_all,
             crate::mcp_tools::mcp_recommended,
             crate::mcp_tools::mcp_recommended_enable,
+            crate::mcp_tools::gitlab_mcp_set_on,
+            crate::pr_agent::pr_review_start,
+            crate::pr_agent::pr_review_get,
+            crate::pr_agent::pr_review_post,
+            crate::pr_agent::pr_review_stop,
+            crate::pr_agent::pr_write_text,
             crate::machine::machine_sessions,
             crate::machine::machine_session_stop,
             crate::machine::machine_spend,
@@ -290,6 +300,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             work::time_list,
             work::time_add,
             work::time_fetch,
+            work::time_pull_month,
             work::time_send,
             work::apply_preview,
             work::apply_run,
@@ -336,8 +347,16 @@ fn specta_builder() -> Builder<tauri::Wry> {
             design::design_try,
             design::design_open,
             design_preview::design_bytes,
+            figma::design_fig_view,
+            figma::figma_token_state,
+            figma::figma_token_set,
+            figma::figma_files,
+            figma::figma_preview,
+            figma::figma_tokens,
             specs::specs_changes,
             specs::specs_change_create,
+            specs::specs_change_from_ticket,
+            specs::specs_change_delegate,
             specs::specs_read,
             specs::specs_write,
             specs::specs_validate,
@@ -368,6 +387,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             asst::assistant_ref_remove,
             asst::assistant_send,
             asst::assistant_stop,
+            asst::assistant_live,
             asst::assistant_grant,
             asst::assistant_retry,
             asst::assistant_explain,
@@ -447,6 +467,14 @@ fn specta_builder() -> Builder<tauri::Wry> {
             auto_commit::auto_commit_run,
             close_guard::close_guard_state,
             close_guard::close_anyway,
+            window::app_data_folder,
+            branding::picture_get,
+            branding::picture_set,
+            branding::feedback_mail,
+            crate::commands::git_extra::git_stash_pop,
+            crate::commands::git_extra::git_stash_diff,
+            crate::commands::git_extra::git_branch_fast_forward,
+            crate::commands::git_extra::git_linked_inspect,
             runner_setup::runner_install,
             codex_trust::codex_trust_state,
             codex_trust::codex_trust,
@@ -473,8 +501,10 @@ pub fn run() {
             let _ = app.emit("menu-action", event.id().as_ref());
         })
         .setup(|app| {
-            let dir = app.path().app_data_dir()?;
+            let exe = std::env::current_exe().ok();
+            let dir = window::data_dir(exe.as_deref(), app.path().app_data_dir()?);
             std::fs::create_dir_all(&dir)?;
+            window::restore(app.handle(), &dir);
             app.manage(AppState::new(dir.clone()));
             certs::apply(&app.state::<AppState>());
             // Each tick and each change of the mirror tells the views to read it again (REQ-016).

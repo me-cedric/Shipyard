@@ -252,8 +252,9 @@ describe("project switcher", () => {
 		await open("/mock/alpha");
 		mockState().prefs.sidebarOpen = false;
 		mountApp("/home/inbox");
+		// The switcher sits in the context bar since W10: it keeps the name when the sidebar folds.
 		const trigger = await screen.findByRole("button", { name: /^Project/ });
-		expect(trigger).not.toHaveTextContent("alpha");
+		await waitFor(() => expect(trigger).toHaveTextContent("alpha"));
 		await user.click(trigger);
 		expect(await screen.findByRole("menuitemradio", { name: /alpha/ })).toBeInTheDocument();
 	});

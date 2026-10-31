@@ -39,6 +39,7 @@ import { SettingsRow } from "@/ui/molecules/settings-row";
 import { SyncStatus } from "@/ui/molecules/sync-status";
 import { CertsGroup } from "./certs-group";
 import { ADD_TYPES, type AddType, ConnectionForm, GROUPS } from "./connection-form";
+import { GitlabTools } from "./gitlab-tools";
 import { connectionKeys, message, useMcpServers, useProviders } from "./keys";
 import { McpAddForm, McpGroup } from "./mcp-group";
 import { McpOutsideGroup } from "./mcp-outside-group";
@@ -291,6 +292,7 @@ function Row({
 					detail={sync.error ?? undefined}
 				/>
 			) : null}
+			<GitlabTools connection={c} />
 			{result && text ? (
 				<p role="status" className="flex items-center gap-2 px-3 pb-2 text-ui">
 					<StatusDot

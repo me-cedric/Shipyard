@@ -26,6 +26,8 @@ Documents lists the documents of the project. Search their text, rename them, de
 
 Slides holds presentations written as text. Click Present to show a deck on the full window. Press Escape to stop.
 
+Click Add a slide to add a planning slide (the dates of each plan) or a costing slide (the days and the price of each sheet).
+
 ## Learn
 
 Learn helps a new person find their way.

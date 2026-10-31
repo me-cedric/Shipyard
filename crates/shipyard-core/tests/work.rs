@@ -221,6 +221,28 @@ fn the_rate_of_a_shared_role_is_the_mean() {
 }
 
 #[test]
+fn a_role_of_fewer_than_three_rated_members_shares_no_rate() {
+    let t = team(vec![
+        member("ana", "dev", 5.0, &[], 400.0),
+        member("bob", "dev", 5.0, &[], 600.0),
+        member("cy", "qa", 5.0, &[], 300.0),
+        member("di", "qa", 5.0, &[], 300.0),
+        member("ed", "QA", 5.0, &[], 600.0),
+    ]);
+    let r = shared_rates(&t);
+    assert_eq!(
+        r.get("dev"),
+        None,
+        "two members would see each other's rate"
+    );
+    assert_eq!(r["qa"], 400.0);
+    let s = sheet(vec![task("a", "dev", 2.0), task("b", "qa", 1.0)]);
+    let sum = totals(&s, &r);
+    assert_eq!((sum.days, sum.cost), (3.0, 400.0));
+    assert_eq!(sum.unrated, ["dev"]);
+}
+
+#[test]
 fn a_sheet_needs_days_or_percent_and_a_valid_unique_id() {
     let mut both = task("a", "dev", 1.0);
     both.percent = Some(10.0);
@@ -423,7 +445,7 @@ fn the_spread_sums_to_the_summary() {
     );
     let spread = g.spread();
     assert!(spread.len() >= 2, "the work crosses a month");
-    let sum = totals(&s, &role_rates(&t));
+    let sum = totals(&s, &shared_rates(&t));
     let days: f64 = spread.iter().map(|m| m.days).sum();
     let cost: f64 = spread.iter().map(|m| m.cost).sum();
     assert!((days - sum.days).abs() < 1e-6, "{days} vs {}", sum.days);

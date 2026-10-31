@@ -114,6 +114,13 @@ pub async fn assistant_stop(thread: String) -> Api<()> {
     Ok(())
 }
 
+/// The tool calls of the running turn of a thread so far. Empty when no turn runs.
+#[tauri::command]
+#[specta::specta]
+pub async fn assistant_live(thread: String) -> Api<Vec<shipyard_core::assistant::TraceStep>> {
+    Ok(a::live(&thread))
+}
+
 /// Grants the tool that the last message waits for and resumes the session.
 #[tauri::command]
 #[specta::specta]

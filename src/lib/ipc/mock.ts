@@ -16,6 +16,7 @@ import type {
 	SearchHit,
 	TestOutcome,
 } from "./bindings";
+import * as ap from "./mock-agent-pr";
 import {
 	type MockAgents,
 	mcpAddCustom,
@@ -72,6 +73,7 @@ import * as deliveryActions from "./mock-delivery-actions";
 import * as design from "./mock-design";
 import * as dr from "./mock-doctor";
 import * as ex from "./mock-extensions";
+import * as xt from "./mock-extras";
 import * as fx from "./mock-factory";
 import * as fl from "./mock-feedback-log";
 import * as kw from "./mock-knowledge";
@@ -155,6 +157,7 @@ type State = {
 	code?: MockCode;
 	/** The demo pull requests, reports and fake terminal of Code. Seeded on first use. */
 	prs?: cp.MockPrs;
+	agentPr?: ap.MockAgentPr;
 	agents: MockAgents;
 	/** The mirror of the fake tracker, the automation file and the ticks. */
 	sync: MockSync;
@@ -198,6 +201,8 @@ type State = {
 	closed: boolean;
 	/** Whether Codex trusts the project folder. */
 	codexTrusted: boolean;
+	/** Pictures, Figma, git extras and the live trace of the assistant. */
+	extras: xt.MockExtras;
 	/** The chain acknowledgements and the Word files. Seeded on first use. */
 	review?: rv.MockReview;
 };
@@ -245,6 +250,13 @@ const fresh = (): State => ({
 		autoUpdateCheck: true,
 		promptLang: "",
 		diagramFormat: "",
+		accent: null,
+		navSide: "left",
+		drawerSide: "left",
+		showAllPages: false,
+		dateFormat: "",
+		closePush: false,
+		narrowBar: false,
 	},
 	projects: [],
 	files: {},
@@ -280,6 +292,7 @@ const fresh = (): State => ({
 	inFlight: { runs: 0, turns: 0 },
 	closed: false,
 	codexTrusted: false,
+	extras: xt.seedExtras(),
 });
 
 let state = fresh();
@@ -351,6 +364,14 @@ function code(): MockCode {
 	state.code ??= seedCode();
 	return state.code;
 }
+
+function agentPr(): ap.MockAgentPr {
+	state.agentPr ??= ap.seedAgentPr();
+	state.agentPr.stopped = fx.killSwitchGet(state.factory);
+	return state.agentPr;
+}
+
+const readOnly = () => active()?.overrides.readOnly === true;
 
 function prs(): cp.MockPrs {
 	if (!active()) throw "no active project";
@@ -508,6 +529,7 @@ function seedDemo(p: ProjectEntry_Serialize) {
 		user: null,
 		secret: true,
 		state: "untested",
+		scopes: [],
 		capabilities: FLAGS.linear,
 	});
 	state.secrets[id] = "demo";
@@ -666,8 +688,11 @@ const handlers: Handlers = {
 	appInfo: () => ({ name: "Shipyard", version: "0.1.0", os: "browser" }),
 	prefsGet: () => state.prefs,
 	prefsSet: (patch) => {
-		for (const [k, v] of Object.entries(patch))
+		const { clearAccent, ...rest } = patch;
+		for (const [k, v] of Object.entries(rest))
 			if (v != null) Object.assign(state.prefs, { [k]: v });
+		if (clearAccent) state.prefs.accent = null;
+		if (!["iso", "dmy", "mdy"].includes(state.prefs.dateFormat)) state.prefs.dateFormat = "";
 		// An empty release address goes back to the default.
 		if (!state.prefs.releaseUrl.trim()) state.prefs.releaseUrl = RELEASE_URL;
 		state.prefs.terminalFontSize = Math.min(24, Math.max(9, state.prefs.terminalFontSize));
@@ -812,6 +837,7 @@ const handlers: Handlers = {
 			user: d.user?.trim() || null,
 			secret: false,
 			state: "untested",
+			scopes: [],
 			capabilities: d.group === "tracker" ? FLAGS[d.kind] : null,
 		};
 		state.connections.push(c);
@@ -847,6 +873,7 @@ const handlers: Handlers = {
 		state.secrets[id] = secret.trim();
 		c.secret = true;
 		c.state = "untested";
+		c.scopes = [];
 		return c;
 	},
 	connectionsTest: testConnection,
@@ -879,6 +906,7 @@ const handlers: Handlers = {
 			user: null,
 			secret: true,
 			state: "passed",
+			scopes: [],
 			capabilities: null,
 		};
 		state.connections.push(c);
@@ -982,6 +1010,14 @@ const handlers: Handlers = {
 	},
 	mcpTest: (id) => mt.mcpTest(state.agents, id),
 	mcpTestAll: () => mt.mcpTestAll(state.agents),
+	gitlabMcpSetOn: (connection, on, click) =>
+		mt.gitlabMcpSetOn(
+			state.agents,
+			conn(connection),
+			on,
+			click,
+			active()?.overrides.readOnly === true,
+		),
 	mcpRecommended: () => mt.mcpRecommended(state.agents),
 	mcpRecommendedEnable: (click) => mt.mcpRecommendedEnable(state.agents, click),
 	machineSessions: () => state.machine.sessions,
@@ -1211,6 +1247,8 @@ const handlers: Handlers = {
 		work.timeList(need(state.work), member, month, syncSources().length > 0),
 	timeAdd: (member, day, minutes, note, ticket) =>
 		work.timeAdd(need(state.work), state.sync.mirror, member, day, minutes, note, ticket),
+	timePullMonth: (member, month) =>
+		needTracker(() => work.timePullMonth(need(state.work), member, month)),
 	timeFetch: (member, ticket) =>
 		needTracker(() => work.timeFetch(need(state.work), member, ticket)),
 	timeSend: (member, day, id, offset, reduce, click) =>
@@ -1239,7 +1277,7 @@ const handlers: Handlers = {
 	codeLog: (skip, limit) => codeLog(code(), skip, Math.min(Math.max(limit, 1), 200)),
 	codeCommitDetail: (sha) => codeCommitDetail(code(), sha),
 	codeCommitDiff: (sha, path) => codeCommitDiff(code(), sha, path),
-	codeBranches: () => codeBranches(code()),
+	codeBranches: () => xt.withBehind(state.extras, codeBranches(code())),
 	codeBranchCreate: (name) => {
 		codeBranchCreate(code(), name);
 		return null;
@@ -1314,6 +1352,11 @@ const handlers: Handlers = {
 		),
 	codePullLabels: () => cp.pullLabels(),
 	codePullOpen: (input, click) => cp.pullOpen(prs(), code(), input, click),
+	prReviewStart: (number, click) => ap.reviewStart(agentPr(), prs(), number, click, readOnly()),
+	prReviewGet: (number, headSha) => ap.reviewGet(agentPr(), number, headSha),
+	prReviewPost: (post, click) => ap.reviewPost(agentPr(), prs(), post, click, readOnly()),
+	prReviewStop: () => null,
+	prWriteText: (base, click) => ap.prWrite(click, readOnly(), base),
 	codePullComment: (number, body, click) => cp.pullComment(prs(), number, body, click),
 	codePullVerdict: (number, verdict, body, click) =>
 		cp.pullVerdict(prs(), number, verdict, body, click),
@@ -1350,6 +1393,24 @@ const handlers: Handlers = {
 		Array.from(new TextEncoder().encode(design.designRead(need(state.design), path).text)),
 	specsChanges: () => specs.changes(need(state.specs)),
 	specsChangeCreate: (id) => specs.changeCreate(need(state.specs), id, state.work.today),
+	specsChangeFromTicket: (key, click) => {
+		if (readOnly()) throw "the profile of this project is read only";
+		return specs.changeFromTicket(
+			need(state.specs),
+			state.sync.mirror,
+			key,
+			click,
+			state.work.today,
+		);
+	},
+	specsChangeDelegate: (key, workflow, click) => {
+		if (!click) throw "this change needs the click of a person";
+		if (readOnly()) throw "the profile of this project is read only";
+		if (!/^[a-z0-9][a-z0-9_.-]*$/.test(workflow)) throw `\`${workflow}\` is not a workflow id`;
+		if (!state.sync.mirror.some((t) => t.key === key))
+			throw `${key} is not in the mirror: sync first`;
+		return `wf:${workflow}`;
+	},
 	specsRead: (path) => specs.specsRead(need(state.specs), path),
 	specsWrite: (path, text, stamp, create) =>
 		specs.specsWrite(need(state.specs), path, text, stamp, create),
@@ -1581,6 +1642,24 @@ const handlers: Handlers = {
 	assistantSend: (id, text, quotes, context) =>
 		ai.send(state.assistant, assistantEnv(), id, text, quotes, context),
 	assistantStop: () => null,
+	assistantLive: (thread) => xt.live(state.extras, thread),
+	appDataFolder: xt.dataFolder,
+	pictureGet: (which) => xt.pictureGet(state.extras, which),
+	pictureSet: (which, path, click) => {
+		if (which === "logo") need(true);
+		return xt.pictureSet(state.extras, which, path, click);
+	},
+	feedbackMail: (title, details, click) => xt.feedbackMail(state.extras, title, details, click),
+	figmaTokenState: () => state.extras.figmaToken,
+	figmaTokenSet: (token, click) => xt.figmaTokenSet(state.extras, token, click),
+	figmaFiles: (project) => xt.figmaFiles(state.extras, project),
+	figmaPreview: (file) => xt.figmaPreview(state.extras, file),
+	figmaTokens: (file) => xt.figmaTokens(state.extras, file),
+	designFigView: (path) => xt.figView(path),
+	gitStashPop: (id, click) => xt.stashPop(code(), id, click),
+	gitStashDiff: (id) => xt.stashDiff(code(), id),
+	gitBranchFastForward: (branch, click) => xt.fastForward(state.extras, branch, click),
+	gitLinkedInspect: (child) => xt.linkedInspect(ex.childList(need(state.extensions)), child),
 	codeOrigin: () => (active() ? state.deliveryActions.origin : null),
 	codeRemoteSet: (url, click) => deliveryActions.remoteSet(state.deliveryActions, url, click),
 	codePublish: (connection, slug, click) =>
@@ -1616,6 +1695,7 @@ const handlers: Handlers = {
 		state.secrets[id] = "device-token";
 		c.secret = true;
 		c.state = "untested";
+		c.scopes = c.kind === "gitlab" ? ["api", "mcp"] : [];
 		return done;
 	},
 	editorsList: () => deliveryActions.editors(),

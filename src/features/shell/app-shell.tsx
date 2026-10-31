@@ -27,7 +27,7 @@ import { WhatsNew } from "./whats-new";
 
 function Frame() {
 	const { t } = useI18n();
-	const { sidebarOpen } = usePrefs();
+	const { sidebarOpen, navSide, drawerSide, narrowBar } = usePrefs();
 	const {
 		inspectorOpen,
 		setInspectorOpen,
@@ -87,6 +87,9 @@ function Frame() {
 		<>
 			<Shell
 				sidebarOpen={sidebarOpen}
+				navSide={navSide}
+				drawerSide={drawerSide}
+				narrow={narrowBar}
 				contextbar={
 					<ContextBar
 						sync={sync}

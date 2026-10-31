@@ -6,6 +6,8 @@ Settings holds the settings of the project, your connections and your own choice
 
 Project holds the folders of the project, the default workflow, the automation switches and the project import. Settings that are rarely changed sit under Advanced.
 
+Agent review of each pull request is one choice: Off, Draft or Post. Draft keeps a review for you to read and post. Post adds a comment review by itself and never approves. The choice goes to .shipyard/automation.yaml.
+
 ## Connections
 
 Connections links the app to your tools.
@@ -13,6 +15,8 @@ Connections links the app to your tools.
 - Trackers and forges: Jira, GitHub, GitLab, Azure DevOps and Linear. Click Add, choose the product, then paste a token. The app opens the page that makes the token. A test runs when you save.
 - MCP servers: the tools that agents can call. They are grouped by category. Click Add the recommended set to turn on the servers that suit the project. Click Test on a server, or Test all, to see if each one works and how many tools it gives.
 - Agent runners and model providers: the agent programs on this computer and the model services.
+
+- GitLab tools: sign in to GitLab with the browser. The GitLab tools switch then adds the GitLab MCP server of that code host for the assistant. It uses the same sign-in and no other token. A connection that signed in before shows Sign in again once. The server needs GitLab 18.3 or later and access to MCP for your group or instance.
 
 A token goes to the keychain of your computer. The app never shows it again.
 

@@ -791,6 +791,12 @@ fn sessions_and_usage_show_the_run_and_a_budget_is_saved_and_enforced() {
         (u.runs.len(), u.runs[0].usd, u.runs[0].budget),
         (1, 0.5, Some(1.0))
     );
+    // Each model request of the run is one iteration.
+    assert_eq!(
+        u.runs[0].iterations as usize,
+        fx.s.factory.factory.requests(&run).len()
+    );
+    assert!(u.runs[0].iterations >= 1);
     assert_eq!(
         (u.days.len(), u.days[0].usd, u.days[0].budget),
         (1, 0.5, None)

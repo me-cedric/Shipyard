@@ -1341,6 +1341,11 @@ export function usageGet(f: MockFactory, project: string | null): UsageView_Seri
 					tokens: r.tokens,
 					usd: r.costUsd,
 					budget: r.budgetUsd,
+					// Three requests for each step that ran, as the request tree counts them.
+					iterations: usageTreeGet(f, project, r.id).steps.reduce(
+						(n, s) => n + s.requests.length,
+						0,
+					),
 				}),
 			)
 			.reverse(),

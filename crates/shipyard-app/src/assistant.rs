@@ -12,13 +12,13 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 use serde::Serialize;
-use shipyard_agents::assistant::{TurnInput, TurnKind, run_turn_with};
+use shipyard_agents::assistant::{TurnInput, TurnKind, run_turn_live};
 use shipyard_agents::assistant_modes;
 use shipyard_agents::assistant_rules;
 use shipyard_agents::runner::CancelHandle;
 use shipyard_core::assistant::{
     AssistantMode, ChatMessage, ChatRole, Context, MessageState, Quote, Thread, ThreadSettings,
-    ThreadSummary, failure, scrub,
+    ThreadSummary, TraceStep, failure, scrub,
 };
 use shipyard_core::refs::parse;
 use shipyard_core::run::BudgetLevel;
@@ -37,6 +37,25 @@ static BUSY: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 /// The kill switch of the turn of each thread, while the turn runs.
 static STOPS: Mutex<Vec<(String, CancelHandle)>> = Mutex::new(Vec::new());
+
+/// The tool calls of the turn of each thread so far, while the turn runs (the live trace).
+static LIVE: Mutex<Vec<(String, Vec<TraceStep>)>> = Mutex::new(Vec::new());
+
+/// The tool calls of the running turn of a thread. Empty when no turn runs.
+pub fn live(thread: &str) -> Vec<TraceStep> {
+    LIVE.lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .iter()
+        .find(|(id, _)| id == thread)
+        .map(|(_, t)| t.clone())
+        .unwrap_or_default()
+}
+
+fn set_live(thread: &str, steps: &[TraceStep]) {
+    let mut all = LIVE.lock().unwrap_or_else(|e| e.into_inner());
+    all.retain(|(id, _)| id != thread);
+    all.push((thread.to_string(), steps.to_vec()));
+}
 
 /// Stops the running turn of a thread. The turn ends with the reply that came so far. Nothing
 /// runs: nothing happens. shortcut: a stop before the process starts is lost, the button shows
@@ -86,6 +105,9 @@ impl Drop for Busy {
             .retain(|x| *x != self.0);
         STOPS
             .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .retain(|(id, _)| *id != self.0);
+        LIVE.lock()
             .unwrap_or_else(|e| e.into_inner())
             .retain(|(id, _)| *id != self.0);
     }
@@ -617,7 +639,7 @@ pub fn turn(s: &AppState, thread: &str, start: Start, program: Option<PathBuf>) 
         .join("scratch")
         .join(&t.id);
     let out = match dir {
-        Ok(dir) => run_turn_with(
+        Ok(dir) => run_turn_live(
             TurnInput {
                 kind: kind.clone(),
                 settings: &settings,
@@ -638,6 +660,7 @@ pub fn turn(s: &AppState, thread: &str, start: Start, program: Option<PathBuf>) 
                     .unwrap_or_else(|e| e.into_inner())
                     .push((thread.to_string(), h));
             },
+            &|steps| set_live(thread, steps),
         ),
         Err(e) => shipyard_agents::assistant::TurnOutput {
             message: fail_message(&scrub(&e.to_string(), &secrets)),
@@ -1172,6 +1195,22 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
         save_draft(&f.s, &t.id, "use tok-fake-secret here", Context::default()).unwrap();
         let t = thread_get(&f.s, &t.id).unwrap().thread;
         assert_eq!(t.draft, "use *** here");
+    }
+
+    #[test]
+    fn the_live_trace_holds_the_steps_until_the_turn_ends() {
+        let id = "live-trace-thread";
+        let busy = Busy::take(id).unwrap();
+        let step = TraceStep {
+            tool: "Edit".into(),
+            target: "src/a.rs".into(),
+            ms: 0,
+        };
+        set_live(id, std::slice::from_ref(&step));
+        assert_eq!(live(id), [step]);
+        assert!(live("another-thread").is_empty());
+        drop(busy);
+        assert!(live(id).is_empty());
     }
 
     #[test]

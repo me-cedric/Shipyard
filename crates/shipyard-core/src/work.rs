@@ -407,6 +407,24 @@ pub fn role_rates(team: &Team) -> BTreeMap<String, f64> {
     sums.into_iter().map(|(k, (s, n))| (k, s / n)).collect()
 }
 
+/// The fewest members with a rate that a role needs before a cost shows its rate. With one, the
+/// cost over the days is the rate of that member. With two, each member works out the other one.
+pub const MIN_RATED: usize = 3;
+
+/// The rates that a cost may use: [`role_rates`] without the roles of fewer than [`MIN_RATED`]
+/// members with a rate. The days of such a role count as unrated.
+pub fn shared_rates(team: &Team) -> BTreeMap<String, f64> {
+    let mut rates = role_rates(team);
+    rates.retain(|role, _| {
+        team.members
+            .iter()
+            .filter(|m| m.day_rate.is_some() && m.role.eq_ignore_ascii_case(role))
+            .count()
+            >= MIN_RATED
+    });
+    rates
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Totals {
@@ -802,7 +820,7 @@ fn schedule(
     today: &str,
 ) -> (Gantt, Used) {
     let cal = &cal.effective(today);
-    let rates = role_rates(team);
+    let rates = shared_rates(team);
     let build = build_days(sheet);
     let first = cal.next_working(parse_day(today).unwrap_or(0));
     let reference = |id: &str| format!("est:{slug}#{id}");

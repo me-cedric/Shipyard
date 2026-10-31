@@ -357,3 +357,204 @@ impl Inner {
         }
     }
 }
+
+// ---- the agent review of a pull request (spec `agent-pr`, REQ-002 to REQ-004)
+
+/// What the agent reviewer is told about a pull request.
+pub struct PullBrief<'a> {
+    pub number: u32,
+    pub title: &'a str,
+    pub description: &'a str,
+    pub source: &'a str,
+    pub target: &'a str,
+    pub head: &'a str,
+    /// Each changed file with its patch, when the code host gave one.
+    pub files: &'a [(String, Option<String>)],
+    /// The project has the compass `review` skill.
+    pub skill: bool,
+    /// The project has the `reviewer` role.
+    pub role: bool,
+}
+
+/// The longest diff that goes in a prompt.
+const MAX_DIFF: usize = 120_000;
+
+/// The prompt of an agent review. A project with the compass `review` skill or the `reviewer` role
+/// gets them named; any other project gets the built-in checklist only (REQ-003).
+pub fn pull_prompt(b: &PullBrief) -> String {
+    let mut t = format!(
+        "Review pull request #{} \"{}\" ({} into {}) at the head commit {}. You work in a fresh \
+         context, in a read-only copy of the head commit.\n",
+        b.number, b.title, b.source, b.target, b.head
+    );
+    match (b.skill, b.role) {
+        (true, true) => t.push_str("Follow the project `review` skill, as the `reviewer` role.\n"),
+        (true, false) => t.push_str("Follow the project `review` skill.\n"),
+        (false, true) => t.push_str("Act as the project `reviewer` role.\n"),
+        (false, false) => {}
+    }
+    if !b.description.trim().is_empty() {
+        t.push_str(&format!("\nDescription:\n{}\n", b.description.trim()));
+    }
+    t.push_str(&format!("\n{CHECKLIST}\n\nChanged files and patches:\n"));
+    let mut left = MAX_DIFF;
+    for (path, patch) in b.files {
+        let patch = patch.as_deref().unwrap_or("(no patch)");
+        let cut = patch.len().min(left);
+        let cut = (0..=cut)
+            .rev()
+            .find(|i| patch.is_char_boundary(*i))
+            .unwrap_or(0);
+        t.push_str(&format!("\n--- {path}\n{}\n", &patch[..cut]));
+        left -= cut;
+        if cut < patch.len() {
+            t.push_str("(patch cut)\n");
+        }
+        if left == 0 {
+            t.push_str("\n(more files were cut)\n");
+            break;
+        }
+    }
+    t.push_str(
+        "\nAnswer with one JSON object and nothing else: {\"summary\": a short text, \"verdict\": \
+         \"approve\" | \"comment\" | \"request_changes\", \"findings\": a list of {\"severity\": \
+         \"P0\"|\"P1\"|\"P2\", \"path\", \"line\" (a line of the new file), \"text\"}}. A finding \
+         with a path that the pull request does not change, or with no line, is dropped.\n",
+    );
+    t
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DraftVerdict {
+    Approve,
+    Comment,
+    RequestChanges,
+}
+
+/// The draft of a review: what the agent said, with the findings that cite a changed file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Draft {
+    pub summary: String,
+    pub verdict: DraftVerdict,
+    pub findings: Vec<Finding>,
+    /// The findings that cited no changed file or no line.
+    pub dropped: usize,
+}
+
+/// Reads the answer of the agent reviewer. `changed` lists the paths that the pull request
+/// changes: a finding on any other path is dropped. An approval with a P0 or P1 finding becomes a
+/// comment: the agent does not approve what it found a defect in.
+pub fn parse_draft(text: &str, changed: &[String]) -> Result<Draft, String> {
+    let (start, end) = (text.find('{'), text.rfind('}'));
+    let (Some(start), Some(end)) = (start, end.filter(|e| Some(*e) > start)) else {
+        return Err("the review has no result".into());
+    };
+    let v: Value = serde_json::from_str(&text[start..=end])
+        .map_err(|_| "the review has no result".to_string())?;
+    let mut findings = Vec::new();
+    let mut dropped = 0;
+    for f in v["findings"].as_array().into_iter().flatten() {
+        let raw: Result<Raw, _> = serde_json::from_value(f.clone());
+        let kept = raw.ok().and_then(|r| {
+            let (path, line) = (r.path?, r.line?);
+            (inside(&path) && line > 0 && changed.contains(&path)).then(|| Finding {
+                severity: severity(&r.severity).unwrap_or(Severity::P1),
+                path: Some(path),
+                line: Some(line),
+                text: r.text.unwrap_or_default(),
+            })
+        });
+        match kept {
+            Some(f) => findings.push(f),
+            None => dropped += 1,
+        }
+    }
+    let verdict = match v["verdict"]
+        .as_str()
+        .unwrap_or("comment")
+        .trim()
+        .to_ascii_lowercase()
+        .replace([' ', '-'], "_")
+        .as_str()
+    {
+        "approve" if findings.iter().any(Finding::blocking) => DraftVerdict::Comment,
+        "approve" => DraftVerdict::Approve,
+        "request_changes" => DraftVerdict::RequestChanges,
+        _ => DraftVerdict::Comment,
+    };
+    Ok(Draft {
+        summary: v["summary"].as_str().unwrap_or_default().trim().to_string(),
+        verdict,
+        findings,
+        dropped,
+    })
+}
+
+// ---- the agent-written text of a new pull request (spec `agent-pr`, REQ-005)
+
+/// What the agent writer is told about the branch.
+pub struct TextBrief<'a> {
+    pub branch: &'a str,
+    pub base: &'a str,
+    /// The work items and spec changes that the branch links to, as refs (`wi:KEY`, `change:id`).
+    pub refs: &'a [String],
+    /// The changed files with their patches.
+    pub files: &'a [(String, String)],
+    /// The project has the `pr-flow` skill.
+    pub flow: bool,
+}
+
+/// The prompt that asks for a title and a body. With the `pr-flow` skill the body lists the
+/// impacts and the refs. The agent never opens the pull request: the person does.
+pub fn text_prompt(b: &TextBrief) -> String {
+    let mut t = format!(
+        "Write the title and the body of a pull request for the branch {} into {}. Do not open it \
+         and do not edit files.\n",
+        b.branch, b.base
+    );
+    if b.flow {
+        t.push_str(
+            "Follow the project `pr-flow` skill: the body lists the impacts and the refs.\n",
+        );
+    }
+    if !b.refs.is_empty() {
+        t.push_str(&format!("Linked refs: {}.\n", b.refs.join(", ")));
+    }
+    t.push_str("\nChanged files and patches:\n");
+    let mut left = MAX_DIFF;
+    for (path, patch) in b.files {
+        let cut = patch.len().min(left);
+        let cut = (0..=cut)
+            .rev()
+            .find(|i| patch.is_char_boundary(*i))
+            .unwrap_or(0);
+        t.push_str(&format!("\n--- {path}\n{}\n", &patch[..cut]));
+        left -= cut;
+        if left == 0 {
+            t.push_str("\n(more files were cut)\n");
+            break;
+        }
+    }
+    t.push_str(
+        "\nAnswer with one JSON object and nothing else: {\"title\": one line of 72 characters or \
+         fewer, \"body\": Markdown}.\n",
+    );
+    t
+}
+
+/// The title and the body of the answer. An empty title is an error.
+pub fn parse_text(text: &str) -> Result<(String, String), String> {
+    let (start, end) = (text.find('{'), text.rfind('}'));
+    let (Some(start), Some(end)) = (start, end.filter(|e| Some(*e) > start)) else {
+        return Err("the agent wrote no text".into());
+    };
+    let v: Value = serde_json::from_str(&text[start..=end])
+        .map_err(|_| "the agent wrote no text".to_string())?;
+    let title = v["title"].as_str().unwrap_or_default().trim().to_string();
+    if title.is_empty() {
+        return Err("the agent wrote no title".into());
+    }
+    let body = v["body"].as_str().unwrap_or_default().trim().to_string();
+    Ok((title, body))
+}

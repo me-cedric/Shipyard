@@ -3,6 +3,7 @@ import { DESIGN_DIR, ofKind, slug, useDesignActions, useDesignList } from "@/lib
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import type { EditorError } from "@/ui/organisms/error-line";
 import { FileFrame } from "./frame";
+import { dbml, likec4 } from "./highlight";
 import { ArtifactTab } from "./tab";
 
 /**
@@ -57,6 +58,7 @@ export function TextTab({
 									value={file.text}
 									errorLine={error?.line}
 									onChange={file.setText}
+									highlight={kind === "model" ? likec4 : dbml}
 								/>
 								<div className="min-h-0 overflow-auto">{view(file.text, onError)}</div>
 							</div>

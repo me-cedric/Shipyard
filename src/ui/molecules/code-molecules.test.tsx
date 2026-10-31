@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { renderApp } from "../test-utils";
 import { CommitRow } from "./commit-row";
 import { ConflictBlock } from "./conflict-block";
-import { DiffView, parseDiff } from "./diff-view";
+import { DiffView, parseDiff, shownLines } from "./diff-view";
 import { FileRow } from "./file-row";
 
 const DIFF = "diff --git a/a b/a\n--- a/a\n+++ b/a\n@@ -1,3 +1,3 @@\n a\n-b\n+B\n c\n";
@@ -18,6 +18,11 @@ describe("DiffView", () => {
 		expect(region.querySelector("[data-kind=add]")).toHaveTextContent("+B");
 		expect(region.querySelector("[data-kind=del]")).toHaveTextContent("−b");
 		expect(region).not.toHaveTextContent("diff --git");
+	});
+
+	it("names the lines of the new file that the hunks show", () => {
+		expect([...shownLines(DIFF)]).toEqual([1, 2, 3]);
+		expect(shownLines("").size).toBe(0);
 	});
 
 	it("says when a file is binary or the diff was cut", () => {

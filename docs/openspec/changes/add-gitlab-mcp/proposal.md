@@ -1,4 +1,4 @@
-# add-gitlab-mcp
+# GitLab MCP server
 
 ## Why
 

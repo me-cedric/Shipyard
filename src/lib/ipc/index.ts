@@ -5,6 +5,7 @@ export {
 	errorDialog,
 	pickCertificate,
 	pickFolder,
+	pickImage,
 	pickWorkbook,
 	saveAs,
 	saveWorkbook,

@@ -153,6 +153,42 @@ fn is_day(key: &str) -> bool {
         && (1..=31).contains(&key[8..10].parse::<u8>().unwrap_or(0))
 }
 
+/// What the sync tick does for a new pull request or a new head commit (spec `agent-pr` REQ-006).
+/// `Post` posts a comment review: the agent never approves and never requests changes.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum AutoReview {
+    #[default]
+    Off,
+    Draft,
+    Post,
+}
+
+impl AutoReview {
+    pub fn is_off(&self) -> bool {
+        *self == Self::Off
+    }
+}
+
+/// The open pull requests that still need an automatic review: `(number, head commit)`. A draft
+/// pull request waits until it is ready. `done` says that a review of that head commit exists, so
+/// a second tick starts none (REQ-006).
+pub fn reviews_due(
+    mode: AutoReview,
+    pulls: &[PullSnapshot],
+    done: impl Fn(u64, &str) -> bool,
+) -> Vec<(u64, String)> {
+    if mode.is_off() {
+        return Vec::new();
+    }
+    pulls
+        .iter()
+        .filter(|p| p.state == PrState::Open && !p.draft && !p.head_sha.is_empty())
+        .filter(|p| !done(p.number, &p.head_sha))
+        .map(|p| (p.number, p.head_sha.clone()))
+        .collect()
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields, default)]
 pub struct Automation {
@@ -171,6 +207,9 @@ pub struct Automation {
     pub assignee: Option<String>,
     #[serde(skip_serializing_if = "Budgets::is_empty")]
     pub budgets: Budgets,
+    /// An agent review of each new pull request and head commit (`agent-pr` REQ-006).
+    #[serde(skip_serializing_if = "AutoReview::is_off")]
+    pub auto_review: AutoReview,
 }
 
 impl Default for Automation {
@@ -184,6 +223,7 @@ impl Default for Automation {
             reviewers: Vec::new(),
             assignee: None,
             budgets: Budgets::default(),
+            auto_review: AutoReview::Off,
         }
     }
 }

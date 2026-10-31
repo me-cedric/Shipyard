@@ -2,11 +2,10 @@ import { toFailure, unwrap } from "@/lib/ipc";
 import rust from "../../../crates/shipyard-app/src/errors.rs?raw";
 import { actionLabels, classify, errorMessages, RAW } from "./errors";
 
-/** `("needle", ErrorCode::TicketNotInMirror)` of `KNOWN` in `errors.rs`, as `[needle, ticket_not_in_mirror]`. */
-const known = [...rust.matchAll(/\("([^"]+)", ErrorCode::(\w+)\)/g)].map(([, needle, code]) => [
-	needle,
-	(code ?? "").replace(/(?<=.)([A-Z])/g, "_$1").toLowerCase(),
-]);
+/** `("needle", ErrorCode::TicketNotInMirror)` of `KNOWN` in `errors.rs`, as `[needle, ticket_not_in_mirror]`. rustfmt puts a long pair on three lines. */
+const known = [...rust.matchAll(/\(\s*"([^"]+)",\s*ErrorCode::(\w+),?\s*\)/g)].map(
+	([, needle, code]) => [needle, (code ?? "").replace(/(?<=.)([A-Z])/g, "_$1").toLowerCase()],
+);
 
 describe("the error contract", () => {
 	it("keeps the table of Rust and the table of the mock the same", () => {

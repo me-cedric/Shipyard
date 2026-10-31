@@ -1,7 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, type CompassEntry_Serialize as Entry, type SyncState, unwrap } from "@/lib/ipc";
+import {
+	commands,
+	type CompassEntry_Serialize as Entry,
+	type Inspect_Serialize as Inspect,
+	type SyncState,
+	unwrap,
+} from "@/lib/ipc";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { LinkIcon, ShieldCheckIcon } from "@/ui/icons";
@@ -30,6 +36,7 @@ export function DoctorCompliance() {
 	});
 	const [error, setError] = useState<unknown>(null);
 	const [note, setNote] = useState<string | null>(null);
+	const [inspected, setInspected] = useState<{ id: string; info: Inspect } | null>(null);
 	const attempt = async (job: () => Promise<void>) => {
 		setError(null);
 		setNote(null);
@@ -91,6 +98,16 @@ export function DoctorCompliance() {
 								{format(d.propagate.held, { held: String(c.held), total: String(c.total) })}
 							</span>
 							<Button
+								variant="ghost"
+								onClick={() =>
+									void attempt(async () =>
+										setInspected({ id: c.id, info: await unwrap(commands.gitLinkedInspect(c.id)) }),
+									)
+								}
+							>
+								{format(t.extras.linked.inspect, { name: c.name })}
+							</Button>
+							<Button
 								variant="secondary"
 								disabled={c.proposed.length === 0}
 								onClick={() =>
@@ -107,6 +124,7 @@ export function DoctorCompliance() {
 					))}
 				</Panel>
 			) : null}
+			{inspected ? <LinkedState info={inspected.info} /> : null}
 			{note ? (
 				<p role="status" className="text-ui text-success-text">
 					{note}
@@ -114,5 +132,29 @@ export function DoctorCompliance() {
 			) : null}
 			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 		</>
+	);
+}
+
+/** The state of a linked project at a glance: branch, distance to the server, changes, last commit. */
+function LinkedState({ info }: { info: Inspect }) {
+	const { t } = useI18n();
+	const l = t.extras.linked;
+	const rows: [string, string][] = [
+		[l.branch, info.branch ?? l.none],
+		[l.ahead, String(info.ahead)],
+		[l.behind, String(info.behind)],
+		[l.changes, String(info.changes)],
+		[l.stashes, String(info.stashes)],
+		[l.last, info.last ?? l.none],
+	];
+	return (
+		<dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-md border px-3 py-2 text-ui">
+			{rows.map(([k, v]) => (
+				<div key={k} className="contents">
+					<dt className="text-n-11">{k}</dt>
+					<dd className="min-w-0 truncate">{v}</dd>
+				</div>
+			))}
+		</dl>
 	);
 }

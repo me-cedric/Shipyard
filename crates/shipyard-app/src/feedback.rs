@@ -60,7 +60,7 @@ pub fn issue_url(kind: FeedbackKind, title: &str, details: &str) -> Res<String> 
     ))
 }
 
-fn open(url: &str) -> Res<()> {
+pub(crate) fn open(url: &str) -> Res<()> {
     #[cfg(target_os = "macos")]
     let mut cmd = std::process::Command::new("open");
     #[cfg(target_os = "windows")]

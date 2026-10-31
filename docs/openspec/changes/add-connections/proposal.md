@@ -1,4 +1,4 @@
-# add-connections
+# Connections
 
 ## Why
 

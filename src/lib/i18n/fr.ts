@@ -6,6 +6,7 @@ import { doctorFr } from "./doctor";
 import { editingFr } from "./editing";
 import type { Messages } from "./en";
 import { extensionsFr } from "./extensions";
+import { extrasFr } from "./extras";
 import { factoryFr } from "./factory";
 import { homeFr } from "./home";
 import { knowledgeFr } from "./knowledge";
@@ -831,4 +832,5 @@ export const fr: Messages = {
 	reports: reportsFr,
 	editing: editingFr,
 	review: reviewFr,
+	extras: extrasFr,
 };

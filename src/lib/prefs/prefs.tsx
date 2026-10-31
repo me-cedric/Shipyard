@@ -33,6 +33,13 @@ export type Prefs = Pick<
 	| "autoUpdateCheck"
 	| "promptLang"
 	| "diagramFormat"
+	| "accent"
+	| "navSide"
+	| "drawerSide"
+	| "showAllPages"
+	| "dateFormat"
+	| "closePush"
+	| "narrowBar"
 >;
 
 /** Font stacks that are on the machine already. Nothing is fetched. */
@@ -66,6 +73,13 @@ const DEFAULTS: Prefs = {
 	autoUpdateCheck: true,
 	promptLang: "",
 	diagramFormat: "",
+	accent: null,
+	navSide: "left",
+	drawerSide: "left",
+	showAllPages: false,
+	dateFormat: "",
+	closePush: false,
+	narrowBar: false,
 };
 
 type Ctx = Prefs & {
@@ -125,9 +139,12 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 		return {
 			...personal,
 			role,
+			// Show all pages: the profile hides no page. Read only stays.
 			profile: {
-				tabs: o?.profileTabs?.length ? o.profileTabs : null,
-				hiddenTabs: [...new Set([...(o?.hiddenTabs ?? []), ...pagesIn("hidden")])],
+				tabs: o?.profileTabs?.length && !personal.showAllPages ? o.profileTabs : null,
+				hiddenTabs: personal.showAllPages
+					? []
+					: [...new Set([...(o?.hiddenTabs ?? []), ...pagesIn("hidden")])],
 				readOnlyTabs: pagesIn("read-only"),
 				readOnly: o?.readOnly === true,
 			},
@@ -138,12 +155,15 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 			loaded,
 			setPrefs: (patch) => {
 				setPersonal((p) => ({ ...p, ...patch }));
-				unwrap(commands.prefsSet(patch)).catch((e) => console.error(e));
+				// A null accent goes back to the colour of the theme.
+				const wire =
+					patch.accent === null ? { ...patch, accent: undefined, clearAccent: true } : patch;
+				unwrap(commands.prefsSet(wire)).catch((e) => console.error(e));
 			},
 		};
 	}, [personal, project, loaded, email]);
 
-	const accent = project?.overrides.accent;
+	const accent = project?.overrides.accent ?? personal.accent;
 	useEffect(() => {
 		const el = document.documentElement;
 		el.dataset.theme = value.theme;

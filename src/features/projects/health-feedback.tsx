@@ -22,10 +22,10 @@ export function HealthFeedback() {
 	const [title, setTitle] = useState("");
 	const [details, setDetails] = useState("");
 	const [error, setError] = useState<unknown>(null);
-	const open = async () => {
+	const send = async (job: () => Promise<unknown>) => {
 		setError(null);
 		try {
-			await unwrap(commands.feedbackOpen(kind, title, details, true));
+			await job();
 		} catch (e) {
 			setError(e);
 		}
@@ -48,9 +48,21 @@ export function HealthFeedback() {
 					value={details}
 					onChange={(e) => setDetails(e.target.value)}
 				/>
-				<div>
-					<Button variant="primary" disabled={!title.trim()} onClick={() => void open()}>
+				<div className="flex gap-2">
+					<Button
+						variant="primary"
+						disabled={!title.trim()}
+						onClick={() =>
+							void send(() => unwrap(commands.feedbackOpen(kind, title, details, true)))
+						}
+					>
 						{d.open}
+					</Button>
+					<Button
+						disabled={!title.trim()}
+						onClick={() => void send(() => unwrap(commands.feedbackMail(title, details, true)))}
+					>
+						{t.extras.feedbackMail}
 					</Button>
 				</div>
 				{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}

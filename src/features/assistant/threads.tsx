@@ -49,21 +49,26 @@ export function Threads({ a }: { a: Assistant }) {
 					<PlusIcon size={14} />
 				</IconButton>
 			</div>
-			{/* One thread is the heading already: the list shows once there is a choice. */}
+			{/* One thread is the heading already: the tabs show once there is a choice. */}
 			{a.threads.length > 1 ? (
-				<ul aria-label={t.assistant.threads} className="flex max-h-24 flex-col overflow-y-auto">
+				<ul aria-label={t.assistant.threads} className="flex gap-1 overflow-x-auto">
 					{a.threads.map((th) => (
-						<li key={th.id}>
+						<li key={th.id} className="min-w-0 max-w-40 shrink-0">
 							<button
 								type="button"
 								aria-current={th.id === id ? "true" : undefined}
 								onClick={() => void a.select(th.id)}
 								className={cn(
-									"h-row w-full truncate rounded-sm px-2 text-left text-ui text-n-11 hover:bg-n-3",
-									th.id === id && "bg-n-3 text-n-12",
+									"flex h-row w-full items-center gap-1.5 rounded-sm border border-transparent px-2 text-left text-ui text-n-11 hover:bg-n-3",
+									th.id === id && "border-n-6 bg-n-3 text-n-12",
 								)}
 							>
-								{th.title || t.assistant.untitled}
+								<span className="min-w-0 truncate">{th.title || t.assistant.untitled}</span>
+								{th.id !== id && a.unread(th.id) ? (
+									<span className="size-1.5 shrink-0 rounded-full bg-accent">
+										<span className="sr-only">{t.extras.assistant.unread}</span>
+									</span>
+								) : null}
 							</button>
 						</li>
 					))}

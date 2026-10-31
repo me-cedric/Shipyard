@@ -146,6 +146,10 @@ describe("mock work: the rules of the Rust commands", () => {
 
 	it("seals, locks and refuses a wrong passphrase", async () => {
 		await withTracker();
+		// A third developer with a rate: a cost shows only for a role of three (`work::MIN_RATED`).
+		const [ada] = mockState().work.team.members;
+		if (ada)
+			mockState().work.team.members.push({ ...ada, name: "Linus", handle: "linus", trackers: [] });
 		await unwrap(commands.workSeal("pass phrase"));
 		await unwrap(commands.workLock());
 		expect(await unwrap(commands.workSealState())).toEqual({ sealed: true, unlocked: false });

@@ -10,6 +10,7 @@ import {
 	type ThreadSettings,
 	type ThreadSummary,
 	type ThreadView_Serialize,
+	type TraceStep,
 	type TurnResult_Serialize,
 	unwrap,
 } from "@/lib/ipc";
@@ -54,6 +55,11 @@ export function useAssistant({
 	const [width, setWidthState] = useState(400);
 	const [side, setSideState] = useState<PanelSide>("right");
 	const loaded = useRef<string | null>(null);
+	// The `updated` of each thread that the person saw. A later one is unread.
+	const [seen, setSeen] = useState<Record<string, number>>({});
+	// The thread of the turn that runs, and its tool calls so far.
+	const [running, setRunning] = useState<string | null>(null);
+	const [liveSteps, setLiveSteps] = useState<TraceStep[]>([]);
 	const live = useRef({ current, drafts });
 	live.current = { current, drafts };
 
@@ -134,16 +140,41 @@ export function useAssistant({
 		refs: v.thread.context.refs,
 	});
 
-	/** Runs one turn. The thread view of the answer replaces the old one. */
+	const openId = current?.thread.id;
+	useEffect(() => {
+		setSeen((old) => {
+			const next = { ...old };
+			for (const th of threads)
+				if (next[th.id] === undefined || th.id === openId) next[th.id] = th.updated;
+			return next;
+		});
+	}, [threads, openId]);
+
+	// The live trace: the tool calls of the running turn, read each second.
+	useEffect(() => {
+		if (!running) return setLiveSteps([]);
+		const timer = setInterval(() => {
+			unwrap(commands.assistantLive(running))
+				.then(setLiveSteps)
+				.catch(() => {});
+		}, 1000);
+		return () => clearInterval(timer);
+	}, [running]);
+
+	/** Runs one turn. The thread view of the answer replaces the old one when the person still reads that thread. */
 	const run = async (label: string | null, call: () => Promise<TurnResult_Serialize>) => {
 		setBusy(true);
 		setError(null);
 		setAlert(null);
 		setPending(label);
+		const from = live.current.current?.thread.id ?? null;
+		setRunning(from);
 		try {
 			const r = await call();
-			setCurrent(r.thread);
-			setChanged(r.changed);
+			if (live.current.current?.thread.id === r.thread.thread.id) {
+				setCurrent(r.thread);
+				setChanged(r.changed);
+			}
 			setAlert(r.alert);
 			setThreads(await unwrap(commands.assistantThreads()));
 			return true;
@@ -153,6 +184,7 @@ export function useAssistant({
 		} finally {
 			setBusy(false);
 			setPending(null);
+			setRunning(null);
 		}
 	};
 
@@ -182,6 +214,10 @@ export function useAssistant({
 
 	return {
 		threads,
+		unread: (id: string) =>
+			(threads.find((x) => x.id === id)?.updated ?? 0) > (seen[id] ?? Infinity),
+		liveSteps,
+		running,
 		current,
 		runners,
 		busy,

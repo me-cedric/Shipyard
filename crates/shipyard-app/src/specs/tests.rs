@@ -76,9 +76,11 @@ fn a_new_change_has_the_proposal_from_the_template_and_the_schema_file() {
         file(&f, "docs/openspec/changes/add-auth/proposal.md"),
         "# Add auth!\n\n## Why\n"
     );
+    let meta = file(&f, "docs/openspec/changes/add-auth/.openspec.yaml");
+    assert!(meta.starts_with("schema: shipyard-delivery\n"));
     assert!(
-        file(&f, "docs/openspec/changes/add-auth/.openspec.yaml")
-            .starts_with("schema: shipyard-delivery\n")
+        !meta.contains("title"),
+        "strict OpenSpec rejects a title key"
     );
     for bad in ["add-auth", "Add  Auth", "archive", "!!", ""] {
         assert!(change_create(&f.s, bad).is_err(), "{bad}");
@@ -90,6 +92,105 @@ fn a_new_change_has_the_proposal_from_the_template_and_the_schema_file() {
     );
     let e = crate::errors::AppError::from(change_id("Bad Id").unwrap_err());
     assert_eq!(e.code, crate::errors::ErrorCode::ChangeIdInvalid);
+}
+
+#[test]
+fn the_title_is_the_first_heading_of_the_proposal_unless_it_is_the_id() {
+    let f = fx();
+    put_file(
+        &f,
+        "docs/openspec/changes/add-auth/proposal.md",
+        "# Sign in\n\n## Why\n",
+    );
+    put_file(
+        &f,
+        "docs/openspec/changes/add-pay/proposal.md",
+        "# add-pay\n\n## Why\n",
+    );
+    put_file(
+        &f,
+        "docs/openspec/changes/add-pay/.openspec.yaml",
+        "schema: shipyard-delivery\ntitle: \"Take payment\"\n",
+    );
+    put_file(
+        &f,
+        "docs/openspec/changes/add-log/proposal.md",
+        "# add-log\n",
+    );
+    let titles: Vec<_> = changes(&f.s)
+        .unwrap()
+        .into_iter()
+        .map(|c| (c.id, c.title))
+        .collect();
+    assert!(titles.contains(&("add-auth".into(), "Sign in".into())));
+    assert!(titles.contains(&("add-pay".into(), "Take payment".into())));
+    assert!(titles.contains(&("add-log".into(), "add-log".into())));
+}
+
+#[test]
+fn a_change_from_a_ticket_has_the_ticket_text_and_a_specs_branch() {
+    let f = fx();
+    put_file(
+        &f,
+        "docs/openspec/schemas/shipyard-delivery/templates/proposal.md",
+        "# [CHANGE]\n\n## Why\n\n[The problem or the opportunity.]\n\n## What Changes\n",
+    );
+    let git = |args: &[&str]| {
+        assert!(
+            std::process::Command::new("git")
+                .current_dir(f.repo.path())
+                .args(args)
+                .status()
+                .unwrap()
+                .success()
+        );
+    };
+    git(&["config", "user.email", "a@example.com"]);
+    git(&["config", "user.name", "A"]);
+    git(&["add", "-A"]);
+    git(&["commit", "-q", "-m", "start", "--allow-empty"]);
+    let mut t = ticket("PROJ-7", "Add billing", &[]);
+    t.description = "Customers pay by card.".into();
+    f.put(vec![t]);
+    assert!(
+        change_from_ticket(&f.s, "PROJ-7", false)
+            .unwrap_err()
+            .contains("click")
+    );
+    let e = change_from_ticket(&f.s, "PROJ-9", true).unwrap_err();
+    assert!(e.contains("not in the mirror"), "{e}");
+    let out = change_from_ticket(&f.s, "PROJ-7", true).unwrap();
+    assert_eq!(
+        (out.change.id.as_str(), out.branch.as_str()),
+        ("add-billing", "specs/add-billing")
+    );
+    let proposal = file(&f, "docs/openspec/changes/add-billing/proposal.md");
+    assert!(proposal.contains("wi:PROJ-7") && proposal.contains("Customers pay by card."));
+    assert!(!proposal.contains("[The problem") && proposal.contains("## What Changes"));
+    let repo = shipyard_git::Repo::open(f.repo.path()).unwrap();
+    let head = repo
+        .branches()
+        .unwrap()
+        .into_iter()
+        .find(|b| b.is_head)
+        .unwrap();
+    assert_eq!(head.name, "specs/add-billing");
+    assert!(
+        change_from_ticket(&f.s, "PROJ-7", true)
+            .unwrap_err()
+            .contains("change exists")
+    );
+}
+
+#[test]
+fn a_delegation_needs_a_click_and_a_plain_workflow_id() {
+    let f = fx();
+    assert!(
+        change_delegate(&f.s, "PROJ-7", "w", false)
+            .unwrap_err()
+            .contains("click")
+    );
+    assert!(change_delegate(&f.s, "PROJ-7", "../x", true).is_err());
 }
 
 #[test]

@@ -1,4 +1,4 @@
-# add-agent-pr-actions
+# Agent pull request actions
 
 ## Why
 

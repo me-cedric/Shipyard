@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { PictureField } from "@/features/settings/picture-field";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
@@ -32,6 +33,9 @@ export function ProjectDetails() {
 	const options = [...new Set([...EVERY, ...(minutes ? [minutes] : [])])].sort((a, b) => a - b);
 	return (
 		<Panel title={d.title} flush>
+			<SettingsRow label={t.extras.picture.logo}>
+				<PictureField which="logo" label={t.extras.picture.logo} />
+			</SettingsRow>
 			<SettingsRow label={d.folder}>
 				<span className="font-mono text-12 text-n-11">{active.path}</span>
 			</SettingsRow>

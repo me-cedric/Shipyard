@@ -46,6 +46,16 @@ export async function saveAs(name: string, ext: string): Promise<string | null> 
 	});
 }
 
+const IMAGE = [{ name: "Image", extensions: ["png", "jpg", "jpeg"] }];
+
+/** The native picker for a PNG or JPEG picture. Returns null when the person cancels. */
+export async function pickImage(): Promise<string | null> {
+	if (!isTauri()) return pickFileMock();
+	const { open } = await import("@tauri-apps/plugin-dialog");
+	const path = await open({ multiple: false, filters: IMAGE });
+	return typeof path === "string" ? path : null;
+}
+
 export async function confirmDialog(message: string): Promise<boolean> {
 	if (!isTauri()) return confirmMock();
 	const { ask } = await import("@tauri-apps/plugin-dialog");

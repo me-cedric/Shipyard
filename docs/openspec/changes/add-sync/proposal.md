@@ -1,4 +1,4 @@
-# add-sync
+# Sync
 
 ## Why
 

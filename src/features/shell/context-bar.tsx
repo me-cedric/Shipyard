@@ -4,6 +4,7 @@ import { AskMenu } from "@/features/assistant";
 import { BranchSelector } from "@/features/code/branch-selector";
 import { CloneDialog } from "@/features/projects/clone-dialog";
 import { OpenInTerminal } from "@/features/reports/open-in-terminal";
+import { usePicture } from "@/features/settings/picture-field";
 import { format, useI18n } from "@/lib/i18n";
 import { errorDialog } from "@/lib/ipc";
 import { useNotifications } from "@/lib/notifications";
@@ -64,8 +65,13 @@ export function ContextBar({
 	const { items, unread, markRead, clear } = useNotifications();
 	const { needsYou, live, changes, changed } = useCounts();
 	const ThemeIcon = THEME_ICON[theme];
+	const logo = usePicture("logo").data;
+	const avatar = usePicture("avatar").data;
 	return (
 		<>
+			{active && logo ? (
+				<img src={logo} alt={active.name} className="size-6 shrink-0 rounded-sm object-contain" />
+			) : null}
 			<ProjectSwitcher
 				projects={projects}
 				value={active?.id ?? null}
@@ -170,6 +176,15 @@ export function ContextBar({
 			>
 				<ThemeIcon size={16} />
 			</IconButton>
+			{avatar ? (
+				<Link to="/settings/me" className="shrink-0 rounded-full">
+					<img
+						src={avatar}
+						alt={t.extras.picture.avatar}
+						className="size-6 rounded-full object-cover"
+					/>
+				</Link>
+			) : null}
 		</>
 	);
 }

@@ -8,6 +8,7 @@ import { useActiveProject } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
+import { Switch } from "@/ui/atoms/switch";
 import { ChartBarIcon, CurrencyIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Panel } from "@/ui/molecules/panel";
@@ -27,6 +28,8 @@ type Row = {
 	tokens: number;
 	usd: number;
 	budget: number | null;
+	/** The model requests of a run. */
+	iterations: number | null;
 };
 
 /** Factory / Usage: spend against budget per run, day and member. The one action sets a budget (factory REQ-032). */
@@ -41,6 +44,8 @@ export function Usage() {
 	const [key, setKey] = useState("");
 	const [amount, setAmount] = useState("");
 	const field = useRef<HTMLInputElement>(null);
+	const [prices, setPrices] = useState(false);
+	const x = t.extras.usage;
 	if (active === null) return <NoProject title={f.usage} />;
 	const u = usage.data;
 	const rows: Row[] = [
@@ -52,6 +57,7 @@ export function Usage() {
 			tokens: r.tokens,
 			usd: r.usd ?? 0,
 			budget: r.budget,
+			iterations: r.iterations,
 		})),
 		...(u?.days ?? []).map((d) => ({
 			id: `day:${d.key}`,
@@ -61,6 +67,7 @@ export function Usage() {
 			tokens: d.tokens,
 			usd: d.usd ?? 0,
 			budget: d.budget,
+			iterations: null,
 		})),
 		...(u?.members ?? []).map((m) => ({
 			id: `member:${m.key}`,
@@ -70,8 +77,19 @@ export function Usage() {
 			tokens: m.tokens,
 			usd: m.usd ?? 0,
 			budget: m.budget,
+			iterations: null,
 		})),
 	];
+	// A price shows after a click: a shared screen keeps the amounts private.
+	const price = (text: string) =>
+		prices ? (
+			text
+		) : (
+			<span>
+				<span aria-hidden="true">•••</span>
+				<span className="sr-only">{x.hidden}</span>
+			</span>
+		);
 	const columns: ColumnDef<Row>[] = [
 		{ id: "name", header: f.usage, cell: (c) => c.row.original.name },
 		{
@@ -81,16 +99,23 @@ export function Usage() {
 			cell: (c) => c.row.original.tokens.toLocaleString(),
 		},
 		{
+			id: "iterations",
+			header: x.iterations,
+			meta: { width: "6rem", numeric: true },
+			cell: (c) => c.row.original.iterations ?? "-",
+		},
+		{
 			id: "spend",
 			header: f.spend,
 			meta: { width: "6rem", numeric: true },
-			cell: (c) => `$${c.row.original.usd.toFixed(2)}`,
+			cell: (c) => price(`$${c.row.original.usd.toFixed(2)}`),
 		},
 		{
 			id: "budget",
 			header: f.budget,
 			meta: { width: "6rem", numeric: true },
-			cell: (c) => (c.row.original.budget === null ? "-" : `$${c.row.original.budget.toFixed(2)}`),
+			cell: (c) =>
+				c.row.original.budget === null ? "-" : price(`$${c.row.original.budget.toFixed(2)}`),
 		},
 		{
 			id: "meter",
@@ -133,6 +158,7 @@ export function Usage() {
 			icon={<ChartBarIcon size={16} />}
 			action={
 				<span className="flex items-center gap-2">
+					<Switch label={x.showPrices} checked={prices} onCheckedChange={setPrices} />
 					<Select
 						label={f.budgetScope}
 						items={[
@@ -182,7 +208,9 @@ export function Usage() {
 						items={[
 							{
 								label: t.ui.spendToday,
-								value: money.format(days.find((d) => d.key === today)?.usd ?? 0),
+								value: prices
+									? money.format(days.find((d) => d.key === today)?.usd ?? 0)
+									: x.hidden,
 								icon: <CurrencyIcon size={12} />,
 								tone: "info",
 								trend: days
@@ -192,7 +220,7 @@ export function Usage() {
 							},
 							{
 								label: f.spend,
-								value: money.format(runs.reduce((a, r) => a + r.usd, 0)),
+								value: prices ? money.format(runs.reduce((a, r) => a + r.usd, 0)) : x.hidden,
 								tone: "accent",
 								trend: cumulative,
 							},

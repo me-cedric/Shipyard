@@ -11,6 +11,10 @@ Proposals lists the changes in progress, with the state of each part: missing, d
 3. Click Validate. Each problem shows on its part, with its line.
 4. Follow the next step that the app shows: for example, split the work into tickets.
 
+To start from an issue tracker item, click From a ticket and pick the ticket. The app makes the change with the ticket title, puts the ticket text in the proposal and moves you to the branch specs/<id>, so the change stays apart from the code. Then click Delegate to an agent to let an agent run take the ticket.
+
+A change takes its title from the first heading of its proposal. Give each proposal a plain heading. The id stays the folder name.
+
 ## Capabilities
 
 Capabilities lists what the product does today, with the requirements of each capability.

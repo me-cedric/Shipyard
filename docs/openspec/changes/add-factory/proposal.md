@@ -1,4 +1,4 @@
-# add-factory
+# Factory
 
 ## Why
 

@@ -15,6 +15,7 @@ pub mod docx_view;
 pub mod excel;
 pub mod export;
 pub mod factory_files;
+pub mod fig_view;
 pub mod fold;
 pub mod knowledge;
 pub mod learning;

@@ -384,6 +384,9 @@ pub fn spawn_loop(app: tauri::AppHandle) {
                     eprintln!("factory: release {key}: {e}");
                 }
             });
+            if turn.is_multiple_of(crate::pr_agent::AUTO_EVERY) {
+                crate::pr_agent::auto_tick(&app);
+            }
         }
     });
 }
@@ -911,6 +914,8 @@ pub struct RunSpendView {
     pub usd: f64,
     /// The budget of the run.
     pub budget: Option<f64>,
+    /// The model requests of the run: each turn of an agent is one.
+    pub iterations: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Type)]
@@ -947,6 +952,7 @@ pub fn usage(s: &AppState) -> Res<UsageView> {
         .into_iter()
         .filter(|r| r.project == a.entry.id)
         .map(|r| RunSpendView {
+            iterations: u32::try_from(f.requests(&r.id).len()).unwrap_or(u32::MAX),
             run: r.id,
             key: r.key,
             tokens: u32::try_from(r.tokens).unwrap_or(u32::MAX),

@@ -435,6 +435,40 @@ fn fetch_moves_only_remote_tracking_refs() {
 }
 
 #[test]
+fn a_pull_request_head_in_a_fork_is_fetched_by_its_number_and_writes_no_ref() {
+    let (tmp, a, url) = with_remote();
+    let b = clone(&url, &tmp.path().join("b"));
+    // A commit that no branch holds: only `refs/pull/6/head` of the remote does.
+    let g = Repository::open(a.workdir()).unwrap();
+    let sig = git2::Signature::now("A", "a@example.com").unwrap();
+    let parent = g.head().unwrap().peel_to_commit().unwrap();
+    let id = g
+        .commit(
+            None,
+            &sig,
+            &sig,
+            "fork only",
+            &parent.tree().unwrap(),
+            &[&parent],
+        )
+        .unwrap();
+    g.reference("refs/shipyard-test/fork", id, true, "t")
+        .unwrap();
+    g.find_remote("origin")
+        .unwrap()
+        .push(&["refs/shipyard-test/fork:refs/pull/6/head"], None)
+        .unwrap();
+    let lone = id.to_string();
+    assert!(!b.has_commit(&lone));
+    b.fetch_pull_head("origin", 7, &Auth::none());
+    assert!(!b.has_commit(&lone));
+    b.fetch_pull_head("origin", 6, &Auth::none());
+    assert!(b.has_commit(&lone));
+    let gb = Repository::open(b.workdir()).unwrap();
+    assert!(gb.find_reference("refs/pull/6/head").is_err());
+}
+
+#[test]
 fn fetch_brings_no_tags() {
     let (tmp, a, url) = with_remote();
     let b = clone(&url, &tmp.path().join("b"));

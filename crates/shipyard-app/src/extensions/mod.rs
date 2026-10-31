@@ -204,11 +204,11 @@ fn recs_file(s: &AppState) -> Res<PathBuf> {
     Ok(s.dir.join("children").join(format!("{id}.json")))
 }
 
-fn clone_dir(s: &AppState, child: &str) -> Res<PathBuf> {
+pub(crate) fn clone_dir(s: &AppState, child: &str) -> Res<PathBuf> {
     Ok(recs_file(s)?.with_extension("").join(child))
 }
 
-fn recs(s: &AppState) -> Res<Vec<ChildRec>> {
+pub(crate) fn recs(s: &AppState) -> Res<Vec<ChildRec>> {
     Ok(std::fs::read_to_string(recs_file(s)?)
         .ok()
         .and_then(|t| serde_json::from_str(&t).ok())

@@ -41,8 +41,20 @@ pub fn on_close_requested(app: &AppHandle, window: &Window, api: &tauri::CloseRe
         let _ = window.emit("close-guard", ());
         return;
     }
-    // A failed commit must not trap the person in the app.
-    let _ = crate::auto_commit::run(&state, "chore: save changes on close [shipyard]");
+    crate::window::remember(window, &state.dir);
+    // A failed commit or push must not trap the person in the app.
+    let committed = crate::auto_commit::run(&state, "chore: save changes on close [shipyard]");
+    if pushes(
+        &committed,
+        shipyard_store::prefs::Prefs::load(&state.dir).close_push,
+    ) {
+        let _ = crate::commands::code::push(&state);
+    }
+}
+
+/// The close pushes only a commit that it made, and only when the person asked for it.
+fn pushes(committed: &Result<Option<String>, String>, close_push: bool) -> bool {
+    close_push && matches!(committed, Ok(Some(_)))
 }
 
 #[tauri::command]
@@ -70,5 +82,14 @@ mod tests {
         assert!(holds(InFlight { runs: 1, turns: 0 }, false));
         assert!(holds(InFlight { runs: 0, turns: 2 }, false));
         assert!(!holds(InFlight { runs: 1, turns: 1 }, true));
+    }
+
+    #[test]
+    fn the_close_pushes_only_its_own_commit_and_only_when_asked() {
+        let made = Ok(Some("abc".to_string()));
+        assert!(pushes(&made, true));
+        assert!(!pushes(&made, false));
+        assert!(!pushes(&Ok(None), true));
+        assert!(!pushes(&Err("busy".into()), true));
     }
 }

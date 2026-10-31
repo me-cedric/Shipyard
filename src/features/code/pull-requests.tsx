@@ -27,6 +27,7 @@ import {
 	ClockIcon,
 	DocumentTextIcon,
 	PlusIcon,
+	SparklesIcon,
 	UsersIcon,
 } from "@/ui/icons";
 import { DiffView } from "@/ui/molecules/diff-view";
@@ -39,6 +40,7 @@ import { PullRow } from "@/ui/molecules/pull-row";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { Dialog } from "@/ui/organisms/dialog";
+import { AgentReview } from "./agent-review";
 import { PrAi } from "./pr-ai";
 import { withProject } from "./project-gate";
 import { CI_STATUS, REVIEW_STATUS } from "./status";
@@ -75,6 +77,19 @@ function OpenDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
 	const [labelError, setLabelError] = useState<string | null>(null);
 	// The pull request exists once the call returns: a second click would open a duplicate.
 	const [created, setCreated] = useState(false);
+	const [writing, setWriting] = useState(false);
+	// The agent fills the title and the body. The person edits them, then clicks Open.
+	const write = () =>
+		void run(async () => {
+			setWriting(true);
+			try {
+				const text = await unwrap(commands.prWriteText(base.trim() || null, true));
+				setTitle(text.title);
+				setBody(text.body);
+			} finally {
+				setWriting(false);
+			}
+		});
 	const submit = () =>
 		void run(async () => {
 			const out = await openPull({ title, body, base: base.trim() || null, draft, labels });
@@ -95,6 +110,12 @@ function OpenDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
 				</Button>
 			}
 		>
+			<div>
+				<Button disabled={writing || created} onClick={write}>
+					<SparklesIcon size={14} />
+					{writing ? t.forge.agent.writing : t.forge.agent.write}
+				</Button>
+			</div>
 			<Input label={t.forge.title} value={title} onChange={(e) => setTitle(e.target.value)} />
 			<Textarea
 				label={t.forge.description}
@@ -319,6 +340,7 @@ function Detail({ number }: { number: number }) {
 			<MergeBar key={`${d.number}${d.state}${d.draft}`} d={d} />
 			{d.state === "open" ? <ArchiveBar number={d.number} /> : null}
 			<PrAi d={d} />
+			<AgentReview d={d} />
 			<Panel
 				title={t.forge.files}
 				count={d.files.length}

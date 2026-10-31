@@ -498,7 +498,10 @@ fn a_refused_transition_reaches_the_view_and_the_mirror_keeps_its_row() {
 #[test]
 fn seal_makes_the_files_unreadable_and_a_wrong_passphrase_shows_no_number() {
     let f = fx();
-    save_team(&f, team5());
+    // Three developers with a rate: the totals show a cost (`work::MIN_RATED`).
+    let mut team = team5();
+    team.members.push(member("fay", "dev", &["web"], 520.0));
+    save_team(&f, team);
     sheet_save(&f.s, "lot", lot()).unwrap();
     assert_eq!(
         seal_state(&f.s).unwrap(),
@@ -621,7 +624,10 @@ fn seal_again_with_another_passphrase_is_refused_and_unseal_restores_plain_text(
 #[test]
 fn a_sheet_holds_entries_and_no_total_and_the_four_views_agree() {
     let f = fx();
-    save_team(&f, team5());
+    // A third developer with a rate: a cost shows only for a role of three (`work::MIN_RATED`).
+    let mut team = team5();
+    team.members.push(member("fay", "dev", &["web"], 520.0));
+    save_team(&f, team);
     let mut s1 = lot();
     s1.features[0].tasks.push(Task {
         id: "qa".into(),
@@ -938,6 +944,39 @@ fn the_send_needs_a_click_writes_the_receipt_last_and_offers_the_entry_once() {
     // An id that is no entry of the month.
     assert!(worklog_send(&f.s, None, "2026-10-29", "nope", 60, true, true).is_err());
     assert!(worklog_send(&f.s, None, "2026-10-29", &e.id, 3000, true, true).is_err());
+}
+
+#[test]
+fn the_month_pull_reads_the_worklogs_of_the_month_and_writes_nothing() {
+    let f = fx();
+    save_team(&f, team5());
+    f.put(vec![ticket("PROJ-5", "T", &[])]);
+    let e = time_write(&f.s, None, "2026-10-29", 60, "review", Some("PROJ-5")).unwrap();
+    time_write(&f.s, None, "2026-10-30", 30, "loose", None).unwrap();
+    let before = f.file("docs/time/ana/2026-10.yaml");
+    let mark = shipyard_core::work::worklog_note("review", &e.id);
+    worklog_routes(
+        &f,
+        &serde_json::json!({"worklogs": [
+            {"id": "1", "timeSpentSeconds": 3600, "comment": mark, "started": "2026-10-29T09:00:00.000+0000"},
+            {"id": "2", "timeSpentSeconds": 600, "comment": "by hand", "started": "2026-10-30T09:00:00.000+0000"},
+            {"id": "3", "timeSpentSeconds": 600, "comment": "old", "started": "2026-09-30T09:00:00.000+0000"}
+        ]})
+        .to_string(),
+    );
+    let v = time_month_pull(&f.s, None, "2026-10").unwrap();
+    assert_eq!(v.len(), 1, "one ticket: the loose entry needs no read");
+    assert_eq!(v[0].ticket, "PROJ-5");
+    let states: Vec<TimeState> = v[0].rows.iter().map(|r| r.state).collect();
+    assert_eq!(states, [TimeState::InTracker, TimeState::OnlyInTracker]);
+    assert!(v[0].rows[0].lost_receipt);
+    assert!(
+        v[0].rows
+            .iter()
+            .all(|r| r.log.as_ref().is_none_or(|l| l.id != "3"))
+    );
+    assert_eq!(f.file("docs/time/ana/2026-10.yaml"), before);
+    assert_eq!(f.writes(), 0);
 }
 
 #[test]
@@ -1506,7 +1545,9 @@ fn json_sheets_and_team_open_in_place_and_save_in_their_format() {
     );
     put(
         "docs/planning/team.json",
-        r#"{"version":1,"members":[{"id":"m","name":"Ana","email":"ana@x.io","personaId":"dev","tjm":500,"windows":[]}]}"#,
+        r#"{"version":1,"members":[{"id":"m","name":"Ana","email":"ana@x.io","personaId":"dev","tjm":500,"windows":[]},
+        {"id":"n","name":"Bob","email":"bob@x.io","personaId":"dev","tjm":520,"windows":[]},
+        {"id":"o","name":"Cy","email":"cy@x.io","personaId":"dev","tjm":540,"windows":[]}]}"#,
     );
     let v = sheet_get(&f.s, "mvp").unwrap();
     assert_eq!(v.sheet.features[0].tasks[0].days, Some(3.0));

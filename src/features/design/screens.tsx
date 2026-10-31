@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { dataUri } from "@/lib/data-uri";
 import { type Screen, slug, TEMPLATE, useDesignActions, useDesignList } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
@@ -12,6 +13,7 @@ import { RefChip } from "@/ui/molecules/ref-chip";
 import { svgDataUri } from "@/ui/organisms/drawio";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
 import { HtmlPreview } from "@/ui/organisms/html-preview";
+import { FigmaPanel } from "./figma-panel";
 import { FileFrame } from "./frame";
 import { useOpenOutside } from "./open";
 import { ArtifactTab } from "./tab";
@@ -25,26 +27,25 @@ const IMAGE: Record<string, string> = {
 	webp: "image/webp",
 };
 
-/** Base64 text of bytes, in chunks: one spread of a large array overflows the stack. */
-function base64(bytes: number[]) {
-	let s = "";
-	for (let i = 0; i < bytes.length; i += 0x8000)
-		s += String.fromCharCode(...bytes.slice(i, i + 0x8000));
-	return btoa(s);
-}
-
 /** The inline preview of an HTML mockup or an image of the folder. Other files show nothing. */
 function Preview({ path, label }: { path: string; label: string }) {
 	const ext = path.slice(path.lastIndexOf(".") + 1).toLowerCase();
 	const mime = IMAGE[ext];
 	const html = ext === "html" || ext === "htm";
+	const fig = ext === "fig";
 	const q = useQuery({
 		queryKey: ["design", "preview", path],
-		enabled: html || ext === "svg" || !!mime,
-		queryFn: async () =>
-			mime
-				? `data:${mime};base64,${base64(await unwrap(commands.designBytes(path)))}`
-				: (await unwrap(commands.designRead(path))).text,
+		enabled: html || fig || ext === "svg" || !!mime,
+		queryFn: async () => {
+			if (fig) {
+				// A .fig file shows the preview that Figma saved in it.
+				const v = await unwrap(commands.designFigView(path));
+				return v.thumbnail ? dataUri("image/png", v.thumbnail) : "";
+			}
+			return mime
+				? dataUri(mime, await unwrap(commands.designBytes(path)))
+				: (await unwrap(commands.designRead(path))).text;
+		},
 	});
 	if (q.error) return <ErrorNotice error={q.error} />;
 	if (!q.data) return null;
@@ -116,6 +117,7 @@ function ScreenView({ screen }: { screen: Screen }) {
 						<span className="text-ui text-n-11">{s.none}</span>
 					)}
 				</section>
+				<FigmaPanel file={screen.figma?.startsWith("https://") ? screen.figma : null} />
 			</div>
 		</EditorFrame>
 	);

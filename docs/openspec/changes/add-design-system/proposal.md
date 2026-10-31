@@ -1,4 +1,4 @@
-# add-design-system
+# Design system
 
 ## Why
 

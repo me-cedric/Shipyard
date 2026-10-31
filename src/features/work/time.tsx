@@ -2,6 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import type { TimeState } from "@/lib/ipc";
+import { useDay } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { useWorkItems } from "@/lib/sync";
 import {
@@ -130,6 +131,7 @@ function Heatmap({ month, lines, title }: { month: string; lines: Line[]; title:
 /** Work / Time: the entries of one member and month. A send is one click on one entry (REQ-020 to REQ-024). */
 export function Time() {
 	const { t, lang } = useI18n();
+	const day = useDay();
 	const e = t.work.time;
 	const active = useActiveProject().data;
 	const ctx = useWorkContext().data;
@@ -195,7 +197,9 @@ export function Time() {
 				id: "day",
 				header: e.day,
 				meta: { width: "6.5rem" },
-				cell: ({ row }) => <span className="font-mono text-11">{row.original.day}</span>,
+				cell: ({ row }) => (
+					<span className="font-mono text-11">{row.original.day && day(row.original.day)}</span>
+				),
 			},
 			{
 				id: "ticket",
@@ -255,7 +259,7 @@ export function Time() {
 				},
 			},
 		],
-		[e, data?.canSend, handle, reduce, act, run, sending],
+		[e, data?.canSend, handle, reduce, act, run, sending, day],
 	);
 
 	if (active === undefined) return null;
@@ -277,14 +281,11 @@ export function Time() {
 			setMonth(day.slice(0, 7));
 		}
 	};
+	// One read of the whole month: the worklogs of each ticket of the month.
 	const fetchAll = () =>
 		run(async () => {
-			const tickets = [
-				...new Set((data?.rows ?? []).flatMap((r) => (r.entry?.ticket ? [r.entry.ticket] : []))),
-			];
-			const next: Record<string, TimeRow[]> = {};
-			for (const ticket of tickets) next[ticket] = await act.fetchTime(handle, ticket);
-			setFetched(next);
+			const pulled = await act.pullMonth(handle, shownMonth);
+			setFetched(Object.fromEntries(pulled.map((p) => [p.ticket, p.rows])));
 		});
 
 	return (
@@ -317,9 +318,10 @@ export function Time() {
 						onValueChange={setMember}
 						items={members.map((m) => ({ value: m.handle, label: m.name }))}
 					/>
-					<IconButton label={e.fetch} disabled={!data} onClick={() => void fetchAll()}>
+					<Button disabled={!data} onClick={() => void fetchAll()}>
 						<ArrowPathIcon size={14} />
-					</IconButton>
+						{t.extras.time.pullMonth}
+					</Button>
 					<Checkbox label={e.reduce} checked={reduce} onCheckedChange={setReduce} />
 					<span className="flex-1" />
 					{data && !data.canSend ? (

@@ -8,7 +8,10 @@ Shipyard helps a team deliver a software project: the design, the specs, the wor
 - The tabs of a space sit at the top of the page.
 - The inspector on the right shows the item that you select.
 - The status bar at the bottom shows the project, the sync state and the commit control.
-- The assistant opens on the side. Ask it a question about the project.
+- The assistant opens on the side. Ask it a question about the project. Each conversation is a tab, and a dot marks a tab with a new reply.
+- In Settings, then Me, choose the side of the bar and of the drawers, the accent colour, the date format, a narrow top bar and your picture.
+
+The window opens at the size where you closed it. To keep the data of the app next to the app (on a USB key, for example), put an empty file named `portable` next to the app.
 
 ## Open a project
 

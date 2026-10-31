@@ -1,4 +1,4 @@
-# add-shell
+# Shell
 
 ## Why
 

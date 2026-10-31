@@ -1,4 +1,4 @@
-# add-specs
+# Specs
 
 ## Why
 

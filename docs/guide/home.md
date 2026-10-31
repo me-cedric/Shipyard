@@ -28,3 +28,5 @@ Projects lists the projects on this computer.
 3. Click Create to start a new project. The app proposes a folder and a key.
 
 With no project open, each tab of the app shows one action to open or create a project.
+
+In Settings, then Project, you can rename the project and give it a logo. The logo shows in the top bar. The same page restores saved changes (stashes), shows what they hold, and brings a branch that lags behind the server up to date. In Settings, then Health, Inspect shows the branch and the changes of a linked project, and Open in mail opens your mail app with your feedback.

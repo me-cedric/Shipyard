@@ -135,6 +135,9 @@ struct Record {
     secret: bool,
     #[serde(default)]
     state: ConnectionState,
+    /// The scopes that the host granted to a browser sign-in. Empty for a pasted token.
+    #[serde(default)]
+    scopes: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -155,6 +158,8 @@ pub struct Connection {
     /// True when the keychain holds a secret. The value never leaves the keychain.
     pub secret: bool,
     pub state: ConnectionState,
+    /// The scopes that the host granted to the browser sign-in. Empty for a pasted token.
+    pub scopes: Vec<String>,
     /// The flags of a tracker (REQ-003). `None` for the other groups.
     pub capabilities: Option<Capabilities>,
 }
@@ -170,6 +175,7 @@ impl From<&Record> for Connection {
             user: r.user.clone(),
             secret: r.secret,
             state: r.state,
+            scopes: r.scopes.clone(),
             capabilities: (r.group == ConnectionGroup::Tracker)
                 .then(|| r.kind.tracker().capabilities()),
         }
@@ -401,6 +407,7 @@ impl Connections {
             user,
             secret: false,
             state: ConnectionState::Untested,
+            scopes: Vec::new(),
         };
         match record.group {
             ConnectionGroup::Tracker => {
@@ -450,6 +457,7 @@ impl Connections {
             }
             let mut new = Self::check(&draft, id)?;
             new.secret = old.secret;
+            new.scopes = old.scopes.clone();
             // The secret belongs to a host. A new host would send it to a stranger: drop it.
             if new.secret && host_of(&new.url) != host_of(&old.url) {
                 self.secrets
@@ -459,6 +467,7 @@ impl Connections {
                     .delete(&oauth_account(id))
                     .map_err(|e| e.to_string())?;
                 new.secret = false;
+                new.scopes.clear();
             }
             new.state = if (&new.url, &new.user) == (&old.url, &old.user) {
                 old.state
@@ -502,6 +511,10 @@ impl Connections {
             }
             .map_err(|e| e.to_string())?;
             r.secret = true;
+            r.scopes = oauth
+                .as_ref()
+                .map(|o| o.scope.split_whitespace().map(String::from).collect())
+                .unwrap_or_default();
             // A new secret needs a new test.
             r.state = ConnectionState::Untested;
             Ok(Connection::from(&*r))
@@ -576,6 +589,20 @@ impl Connections {
             )),
             _ => None,
         })
+    }
+
+    /// The access token and the host of a GitLab browser sign-in that holds the `mcp` scope, for
+    /// the GitLab MCP server. A token that ends soon is refreshed first. The token stays in the
+    /// keychain: the caller hands it to the server process and nowhere else.
+    pub(crate) fn mcp_token(&self, id: &str) -> Res<(Secret, String)> {
+        let r = self.record(id)?;
+        let host = https_host(&r.url).ok_or("bad address: use an https address")?;
+        let b = match self.bearer(&r)? {
+            Some(b) if r.scopes.iter().any(|s| s == "mcp") => b,
+            _ => return Err("the GitLab sign-in has no mcp scope: sign in again".into()),
+        };
+        b.refresh_if_expired();
+        Ok((self.secret(&r)?, host))
     }
 
     /// The client of a connection.
@@ -812,6 +839,7 @@ mod tests {
             refresh: "rt-1".into(),
             expires,
             client: "cid".into(),
+            scope: "api".into(),
         };
         c.store_secret(&id, Secret::new("at-1"), Some(oauth))
             .unwrap();
@@ -845,6 +873,7 @@ mod tests {
             refresh: "x".into(),
             expires: 0,
             client: "cid".into(),
+            scope: "api".into(),
         };
         c.store_secret(&gh.id, Secret::new("gho_1"), Some(oauth))
             .unwrap();

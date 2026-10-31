@@ -449,14 +449,10 @@ const slugOf = (title: string) =>
 		.slice(0, 40)
 		.replace(/-+$/, "");
 
-/** The `title` of `.openspec.yaml`, a JSON string, or the id. */
+/** The first heading of `proposal.md` when it is not the id, else the id (strict OpenSpec has no `title` key). */
 function titleOf(s: MockSpecs, id: string): string {
-	const line = s.files[`${CH}/${id}/.openspec.yaml`]?.text.match(/^title: (.+)$/m)?.[1];
-	try {
-		return (line && JSON.parse(line)) || id;
-	} catch {
-		return id;
-	}
+	const heading = s.files[`${CH}/${id}/proposal.md`]?.text.match(/^# (.+)$/m)?.[1]?.trim();
+	return heading && heading !== id ? heading : id;
 }
 
 const view = (s: MockSpecs, id: string): ChangeView_Serialize => ({
@@ -488,11 +484,32 @@ export function changeCreate(s: MockSpecs, title: string, today: string): Change
 	putText(
 		s.files,
 		`${CH}/${id}/.openspec.yaml`,
-		`schema: shipyard-delivery\ncreated: ${today}\ntitle: ${JSON.stringify(title)}\n`,
+		`schema: shipyard-delivery\ncreated: ${today}\n`,
 		null,
 		true,
 	);
 	return view(s, id);
+}
+
+/** A change from an issue tracker item: the ticket text opens the proposal, the branch is `specs/<id>`. */
+export function changeFromTicket(
+	s: MockSpecs,
+	tickets: { key: string; title: string; description: string }[],
+	key: string,
+	click: boolean,
+	today: string,
+): { change: ChangeView_Serialize; branch: string } {
+	if (!click) throw "this change needs the click of a person";
+	const ticket = tickets.find((t) => t.key === key);
+	if (!ticket) throw `${key} is not in the mirror: sync first`;
+	const change = changeCreate(s, ticket.title, today);
+	const file = s.files[`${CH}/${change.id}/proposal.md`];
+	if (file)
+		file.text = file.text.replace(
+			"## Why\n",
+			`## Why\n\nTicket \`wi:${key}\`.\n\n${ticket.description.trim()}\n`,
+		);
+	return { change: view(s, change.id), branch: `specs/${change.id}` };
 }
 
 /** The findings of the stand-in validator: an empty file, an open marker, a requirement with no scenario. */

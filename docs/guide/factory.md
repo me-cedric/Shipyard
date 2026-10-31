@@ -29,5 +29,8 @@ The Agents switch stops every run and stops new runs. Turn it on again to go on.
 
 Usage shows the tokens and the money that the agents used, by day and by person, against the budgets.
 
+- Iterations counts the requests that each run sent to the model.
+- The amounts stay hidden until you click Show prices.
+
 - An alert shows at 80 percent of a budget.
 - A run pauses at 100 percent. Raise the budget to go on.

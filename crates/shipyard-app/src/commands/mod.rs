@@ -10,6 +10,7 @@ pub mod chain_acks;
 pub mod code;
 pub mod connections;
 pub mod delivery_docs;
+pub mod git_extra;
 pub mod health;
 pub mod logins;
 pub mod overview;
@@ -104,6 +105,10 @@ impl AppState {
         runners: Option<Arc<dyn shipyard_engine::ports::Agents>>,
     ) -> Self {
         let agents = Agents::system(&dir);
+        let for_mcp = connections.clone();
+        agents.mcp.set_env_hook(Arc::new(move |d| {
+            crate::mcp_tools::gitlab_mcp_env(&for_mcp, d)
+        }));
         let factory = Arc::new(FactoryHost::new(&dir, agents.tier_map(), runners));
         Self {
             sync: SyncHost::new(&dir, connections.clone(), background, factory.clone()),

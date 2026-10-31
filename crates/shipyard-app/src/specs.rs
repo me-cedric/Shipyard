@@ -104,15 +104,24 @@ pub struct ChangeView {
     pub artifacts: Vec<ArtifactState>,
 }
 
-/// The `title` of `.openspec.yaml`, a JSON string, or the id.
+/// The first heading of `proposal.md` when it is not the id. Strict OpenSpec rejects a `title`
+/// key in `.openspec.yaml`, so the title lives in the heading. An old `title` key still reads.
 fn change_title(dir: &Path, id: &str) -> String {
-    std::fs::read_to_string(dir.join(".openspec.yaml"))
+    let heading = std::fs::read_to_string(dir.join("proposal.md"))
         .ok()
         .and_then(|t| {
-            let line = t.lines().find_map(|l| l.strip_prefix("title: "))?;
-            serde_json::from_str::<String>(line).ok()
+            let line = t.lines().find(|l| !l.trim().is_empty())?;
+            Some(line.strip_prefix("# ")?.trim().to_string())
         })
-        .filter(|t| !t.is_empty())
+        .filter(|h| !h.is_empty() && h != id);
+    heading
+        .or_else(|| {
+            let t = std::fs::read_to_string(dir.join(".openspec.yaml")).ok()?;
+            let line = t.lines().find_map(|l| l.strip_prefix("title: "))?;
+            serde_json::from_str::<String>(line)
+                .ok()
+                .filter(|t| !t.is_empty())
+        })
         .unwrap_or_else(|| id.into())
 }
 
@@ -169,7 +178,7 @@ pub fn changes(s: &AppState) -> Res<Vec<ChangeView>> {
 }
 
 /// A new change from a plain title: the id is the slug of the title. The proposal comes from the
-/// schema template and the title goes to `.openspec.yaml` (REQ-003).
+/// schema template and the title is its first heading (REQ-003).
 pub fn change_create(s: &AppState, title: &str) -> Res<ChangeView> {
     let title = title.trim();
     let id = slug_text(title);
@@ -187,13 +196,88 @@ pub fn change_create(s: &AppState, title: &str) -> Res<ChangeView> {
         .map_err(|e| format!("template {}: {e}", tpl.display()))?
         .replace("[CHANGE]", title);
     let meta = format!(
-        "schema: shipyard-delivery\ncreated: {}\ntitle: {}\n",
-        crate::work::today(s),
-        serde_json::to_string(title).map_err(err)?
+        "schema: shipyard-delivery\ncreated: {}\n",
+        crate::work::today(s)
     );
     put(s, &dir.join("proposal.md"), &proposal, None, true)?;
     put(s, &dir.join(".openspec.yaml"), &meta, None, true)?;
     Ok(change_view(s, &p, id))
+}
+
+/// A change that a ticket started, and the branch that holds it.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TicketChange {
+    pub change: ChangeView,
+    /// The branch `specs/<id>`: the change lives there, apart from the code.
+    pub branch: String,
+}
+
+/// A new change from an issue tracker item (spec `specs`, from a ticket). The title of the ticket
+/// is the title of the change. The proposal opens with the ticket text and its ref `wi:<key>`. The
+/// working branch becomes `specs/<id>`; the files stay as they are. A change that exists, or a
+/// ticket that is not in the mirror, makes no branch and no file.
+pub fn change_from_ticket(s: &AppState, key: &str, click: bool) -> Res<TicketChange> {
+    need_click(s, click)?;
+    let t = tracker(s)?;
+    let item = mirror_items(s, &t)?
+        .into_iter()
+        .find(|i| i.key == key)
+        .ok_or_else(|| format!("{key} is not in the mirror: sync first"))?;
+    let title = item.title.trim().to_string();
+    let id = slug_text(&title);
+    change_id(&id).map_err(|_| format!("the title needs a letter or a digit: {title}"))?;
+    let p = project(s)?;
+    if openspec(&p).join("changes").join(&id).exists() {
+        return Err(format!("change exists: {id}"));
+    }
+    let branch = format!("specs/{id}");
+    let repo = shipyard_git::Repo::open(Path::new(&p.root)).map_err(err)?;
+    let on_it = repo
+        .branches()
+        .map_err(err)?
+        .iter()
+        .any(|b| b.is_head && b.name == branch);
+    if !on_it {
+        repo.create_branch(&branch).map_err(err)?;
+    }
+    change_create(s, &title)?;
+    let path = openspec(&p).join("changes").join(&id).join("proposal.md");
+    let text = std::fs::read_to_string(&path).map_err(err)?;
+    let why = format!("Ticket `wi:{key}`.\n\n{}\n", item.description.trim());
+    let text = match text.find("## Why\n") {
+        Some(at) => {
+            let head = at + "## Why\n".len();
+            // The template holds one bracketed line under Why: the ticket text replaces it.
+            let rest = text[head..].trim_start_matches('\n');
+            let tail = rest
+                .strip_prefix('[')
+                .and_then(|r| r.split_once("]\n"))
+                .map_or(rest, |(_, after)| after);
+            format!("{}\n{why}{}", &text[..head], tail)
+        }
+        None => format!("{text}\n## Why\n\n{why}"),
+    };
+    put(s, &path, &text, None, false)?;
+    Ok(TicketChange {
+        change: change_view(s, &p, &id),
+        branch,
+    })
+}
+
+/// Delegates a ticket to an agent run: the label `wf:<workflow>` makes the factory claim it. The
+/// change that the ticket started names the ticket, so the run finds it.
+pub fn change_delegate(s: &AppState, key: &str, workflow: &str, click: bool) -> Res<String> {
+    need_click(s, click)?;
+    let label = crate::assistant::run_label(workflow)?;
+    if !crate::factory::workflows(s)?
+        .iter()
+        .any(|w| w.id == workflow)
+    {
+        return Err(format!("no workflow `{workflow}` in this project"));
+    }
+    crate::work::mark_for_run(s, key, workflow, click)?;
+    Ok(label)
 }
 
 /// Run strict validation and keep the findings in memory (REQ-004).
@@ -626,6 +710,27 @@ pub async fn specs_changes(app: AppHandle) -> Api<Vec<ChangeView>> {
 #[specta::specta]
 pub async fn specs_change_create(app: AppHandle, title: String) -> Api<ChangeView> {
     blocking(app, move |s| change_create(s, &title)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn specs_change_from_ticket(
+    app: AppHandle,
+    key: String,
+    click: bool,
+) -> Api<TicketChange> {
+    blocking(app, move |s| change_from_ticket(s, &key, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn specs_change_delegate(
+    app: AppHandle,
+    key: String,
+    workflow: String,
+    click: bool,
+) -> Api<String> {
+    blocking(app, move |s| change_delegate(s, &key, &workflow, click)).await
 }
 
 #[tauri::command]

@@ -31,4 +31,8 @@ Team lists the people of the project: their role, their skills, their days per w
 
 ## Time
 
-Time lists the time that each person spent, by month. The app sends a time entry to the tracker only after your click.
+Time lists the time that each person spent, by month. The app sends a time entry to the issue tracker only after your click.
+
+Click Read the month to read the worklogs of the month from the issue tracker, beside your entries. This changes nothing.
+
+A role with fewer than three members with a day rate shows no cost. With one or two rates, a cost would show the rate of a person.

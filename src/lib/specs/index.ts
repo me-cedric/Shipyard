@@ -15,11 +15,13 @@ import {
 	type SpecFinding_Serialize,
 	type SpecView_Serialize,
 	type SplitPreview_Serialize,
+	type TicketChange_Serialize,
 	unwrap,
 } from "@/lib/ipc";
 import { syncKeys } from "@/lib/sync";
 
 export type Change = ChangeView_Serialize;
+export type TicketChange = TicketChange_Serialize;
 export type Artifact = ArtifactState_Serialize;
 export type Finding = SpecFinding_Serialize;
 export type Capability = CapabilityRow;
@@ -282,6 +284,9 @@ export function useSpecsActions() {
 		};
 		return {
 			createChange: (id: string) => run(commands.specsChangeCreate(id)),
+			changeFromTicket: (key: string) => run(commands.specsChangeFromTicket(key, true)),
+			delegate: (key: string, workflow: string) =>
+				run(commands.specsChangeDelegate(key, workflow, true)),
 			write: (path: string, text: string, stamp: string | null, create = false) =>
 				run(commands.specsWrite(path, text, stamp, create)),
 			validate: (id: string) => run(commands.specsValidate(id)),

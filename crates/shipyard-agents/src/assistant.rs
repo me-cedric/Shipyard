@@ -93,6 +93,15 @@ pub fn run_turn(i: TurnInput) -> TurnOutput {
 /// Like [`run_turn`]. `on_start` gets the kill switch once the process runs. A cancelled turn
 /// ends as `Done` and keeps the text that came before.
 pub fn run_turn_with(i: TurnInput, on_start: &dyn Fn(CancelHandle)) -> TurnOutput {
+    run_turn_live(i, on_start, &|_| {})
+}
+
+/// Like [`run_turn_with`]. `on_step` gets the trace so far after each tool call and result.
+pub fn run_turn_live(
+    i: TurnInput,
+    on_start: &dyn Fn(CancelHandle),
+    on_step: &dyn Fn(&[TraceStep]),
+) -> TurnOutput {
     let keep = i.session.map(String::from);
     let resumed = i.session.is_some() && i.kind != TurnKind::Send;
     let request = match (&i.kind, resumed) {
@@ -180,6 +189,7 @@ pub fn run_turn_with(i: TurnInput, on_start: &dyn Fn(CancelHandle)) -> TurnOutpu
                     target: scrub(&input, i.secrets),
                     ms: 0,
                 });
+                on_step(&trace);
             }
             Event::ToolResult { id, ok, output } => {
                 let at = open.remove(&id);
@@ -190,6 +200,7 @@ pub fn run_turn_with(i: TurnInput, on_start: &dyn Fn(CancelHandle)) -> TurnOutpu
                     let tool = at.map(|(n, _)| trace[n].tool.clone());
                     denied = Some(tool.unwrap_or_else(|| "tool".into()));
                 }
+                on_step(&trace);
             }
             Event::Usage {
                 input_tokens,

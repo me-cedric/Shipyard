@@ -30,6 +30,7 @@ import { ChangeDetail } from "./change-detail";
 import { NameDialog } from "./name-dialog";
 import { WithProject } from "./no-project";
 import { DOT } from "./status";
+import { TicketDialog } from "./ticket-dialog";
 
 /** The line after a step of the stepper, in the colour of the step. */
 const LINE = { missing: "bg-n-6", draft: "bg-warning/60", done: "bg-success/70" } as const;
@@ -123,6 +124,7 @@ function ChangeList() {
 	// The open item stays with the tab; the cards are the overview.
 	const [open, setOpen] = useTabSelection("specs:changes");
 	const [creating, setCreating] = useState(false);
+	const [fromTicket, setFromTicket] = useState(false);
 	useFormIntent("change", () => setCreating(true));
 
 	const tasks = useTaskCounts(list ?? []);
@@ -137,10 +139,13 @@ function ChangeList() {
 			count={list?.length}
 			action={
 				list?.length ? (
-					<Button variant="primary" onClick={create}>
-						<PlusIcon size={14} />
-						{s.newChange}
-					</Button>
+					<span className="flex gap-2">
+						<Button onClick={() => setFromTicket(true)}>{s.fromTicket}</Button>
+						<Button variant="primary" onClick={create}>
+							<PlusIcon size={14} />
+							{s.newChange}
+						</Button>
+					</span>
 				) : null
 			}
 		>
@@ -150,6 +155,9 @@ function ChangeList() {
 						layout="cards"
 						action={{ label: s.newChange, icon: <PlusIcon size={14} />, onClick: create }}
 					/>
+					<div className="pt-2">
+						<Button onClick={() => setFromTicket(true)}>{s.fromTicket}</Button>
+					</div>
 				</div>
 			) : (
 				<motion.ul
@@ -214,6 +222,16 @@ function ChangeList() {
 					})}
 				</motion.ul>
 			)}
+			{fromTicket ? (
+				<TicketDialog
+					onOpen={(c) => {
+						setFromTicket(false);
+						setOpen(c.id);
+						openRef(`change:${c.id}`);
+					}}
+					onClose={() => setFromTicket(false)}
+				/>
+			) : null}
 			{creating ? (
 				<NameDialog
 					title={s.newChange}

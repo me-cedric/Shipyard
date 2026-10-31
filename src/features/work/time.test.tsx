@@ -109,7 +109,7 @@ describe("Work / Time", () => {
 		await user.click(screen.getByRole("button", { name: /^Send 2026-11-03 ACME-1$/ }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("the answer was lost");
 		expect(mockState().work.logs["ACME-1"]).toHaveLength(before + 1);
-		await user.click(screen.getByRole("button", { name: "Fetch" }));
+		await user.click(screen.getByRole("button", { name: "Read the month" }));
 		await user.click(await screen.findByRole("button", { name: /^Store receipt/ }));
 		await waitFor(() =>
 			expect(mockState().work.time.ada?.find((e) => e.id === "t2")?.worklog).toBeDefined(),
@@ -125,7 +125,7 @@ describe("Work / Time", () => {
 		if (log) log.minutes = 180;
 		mountApp("/work/time");
 		await group("In tracker (1)");
-		await user.click(screen.getByRole("button", { name: "Fetch" }));
+		await user.click(screen.getByRole("button", { name: "Read the month" }));
 		const differs = await screen.findByRole("img", { name: "Durations differ" });
 		const tokenRow = differs.closest("[role=row]") as HTMLElement;
 		expect(tokenRow).toHaveTextContent("tracker 3h");

@@ -9,6 +9,7 @@ import { StatusDot } from "@/ui/atoms/status-dot";
 import {
 	ArrowDownTrayIcon,
 	ArrowPathIcon,
+	ChatBubbleIcon,
 	CheckIcon,
 	ChevronRightIcon,
 	ClipboardIcon,
@@ -27,11 +28,34 @@ const BUBBLE = {
 		"flex max-w-[92%] flex-col gap-2 self-start rounded-2xl rounded-bl-sm border bg-surface-2 px-3 py-2 shadow-1",
 };
 
+const WRITES = /edit|write|patch/i;
+
+/** The files that the tool calls changed: each target of a write tool, once. */
+export const filesTouched = (steps: ChatMessage["trace"]) =>
+	new Set(steps.filter((s) => WRITES.test(s.tool)).map((s) => s.target)).size;
+
+/** The tool calls, one line each. */
+function Steps({ steps }: { steps: ChatMessage["trace"] }) {
+	return (
+		<ul className="mt-1 flex flex-col gap-0.5 rounded-md border bg-n-2 p-1.5 font-mono text-11">
+			{steps.map((s, i) => (
+				// biome-ignore lint/suspicious/noArrayIndexKey: the steps never reorder
+				<li key={i} className="flex gap-2">
+					<span>{s.tool}</span>
+					<span className="min-w-0 flex-1 truncate">{s.target}</span>
+					<span>{s.ms} ms</span>
+				</li>
+			))}
+		</ul>
+	);
+}
+
 /** One line when the turn ends. The person expands it to see each tool call. */
 function Trace({ steps }: { steps: ChatMessage["trace"] }) {
 	const { t } = useI18n();
 	if (!steps.length) return null;
 	const total = steps.reduce((sum, s) => sum + s.ms, 0);
+	const files = filesTouched(steps);
 	return (
 		<details className="group text-12 text-n-11">
 			<summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-full border bg-n-2 px-2 py-0.5 hover:text-n-12 [&::-webkit-details-marker]:hidden">
@@ -41,18 +65,11 @@ function Trace({ steps }: { steps: ChatMessage["trace"] }) {
 				>
 					<ChevronRightIcon size={10} />
 				</span>
-				{t.assistant.trace} · {format(t.assistant.tools, { count: steps.length })} · {total} ms
+				{t.assistant.trace} · {format(t.assistant.tools, { count: steps.length })}
+				{files ? ` · ${format(t.extras.assistant.filesTouched, { count: files })}` : ""} · {total}{" "}
+				ms
 			</summary>
-			<ul className="mt-1 flex flex-col gap-0.5 rounded-md border bg-n-2 p-1.5 font-mono text-11">
-				{steps.map((s, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: the steps never reorder
-					<li key={i} className="flex gap-2">
-						<span>{s.tool}</span>
-						<span className="min-w-0 flex-1 truncate">{s.target}</span>
-						<span>{s.ms} ms</span>
-					</li>
-				))}
-			</ul>
+			<Steps steps={steps} />
 		</details>
 	);
 }
@@ -165,6 +182,16 @@ function Reply({
 						<ArrowDownTrayIcon size={12} />
 						{t.assistant.insert}
 					</Button>
+					<Button
+						variant="ghost"
+						className="h-6 px-1.5 text-12 text-n-11"
+						onClick={() =>
+							a.setDraft(`${a.draft ? `${a.draft}\n` : ""}${m.text.replace(/^/gm, "> ")}\n`)
+						}
+					>
+						<ChatBubbleIcon size={12} />
+						{t.extras.assistant.quote}
+					</Button>
 				</div>
 			) : null}
 			{options.length ? (
@@ -223,6 +250,7 @@ export function Messages({
 }) {
 	const { t } = useI18n();
 	const list = a.current?.thread.messages ?? [];
+	const lastAsk = list.findLastIndex((m) => m.role === "user");
 	return (
 		<div
 			role="log"
@@ -238,7 +266,19 @@ export function Messages({
 				>
 					<h3 className="sr-only">{m.role === "user" ? t.assistant.you : t.assistant.assistant}</h3>
 					{m.role === "user" ? (
-						<p className="whitespace-pre-wrap text-ui">{m.text}</p>
+						<>
+							<p className="whitespace-pre-wrap text-ui">{m.text}</p>
+							{i === lastAsk && !a.busy ? (
+								<Button
+									variant="ghost"
+									className="h-6 self-end px-1.5 text-12"
+									onClick={() => void a.send(m.text, false, m.quotes)}
+								>
+									<ArrowPathIcon size={12} />
+									{t.extras.assistant.redo}
+								</Button>
+							) : null}
+						</>
 					) : (
 						<Reply
 							m={m}
@@ -251,7 +291,7 @@ export function Messages({
 					)}
 				</article>
 			))}
-			{a.pending !== null ? (
+			{a.pending !== null && a.running === (a.current?.thread.id ?? null) ? (
 				<>
 					<article className={BUBBLE.user}>
 						<h3 className="sr-only">{t.assistant.you}</h3>
@@ -265,6 +305,11 @@ export function Messages({
 						{t.assistant.working}
 						<LiveDot className="h-3.5 w-1.5 rounded-xs" />
 					</p>
+					{a.liveSteps.length ? (
+						<section aria-label={t.extras.assistant.live} className="text-12 text-n-11">
+							<Steps steps={a.liveSteps} />
+						</section>
+					) : null}
 				</>
 			) : null}
 			<Changed files={a.changed} />

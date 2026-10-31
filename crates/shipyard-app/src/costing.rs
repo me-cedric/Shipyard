@@ -14,8 +14,8 @@ use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::work::{FROZEN, need_click};
 
 /// The days and the cost of one profile (a role). `cost` is `None` when no member rate covers the
-/// role: a locked seal hides every rate. It is also `None` when fewer than two members with a
-/// rate have the role: the cost over the days would show the day rate of one member.
+/// role: a locked seal hides every rate. It is also `None` when fewer than three members with a
+/// rate have the role (`work::MIN_RATED`): the cost over the days would show a rate.
 #[derive(Debug, Clone, PartialEq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileSum {
@@ -60,18 +60,7 @@ pub fn profiles(s: &AppState, slug: Option<&str>) -> Res<Vec<ProfileSum>> {
             .collect(),
     };
     let team = crate::work::team_get(s)?.team;
-    let mut out = by_role(&sheets, &work::role_rates(&team));
-    for p in &mut out {
-        let rated = team
-            .members
-            .iter()
-            .filter(|m| m.day_rate.is_some() && m.role.eq_ignore_ascii_case(&p.role))
-            .count();
-        if rated < 2 {
-            p.cost = None;
-        }
-    }
-    Ok(out)
+    Ok(by_role(&sheets, &work::shared_rates(&team)))
 }
 
 /// Move a sheet file to the system trash. A frozen sheet stays.
@@ -228,7 +217,54 @@ mod tests {
             },
         )
         .unwrap();
+        // Two members with a rate: each one would work out the rate of the other.
+        assert_eq!(profiles(&f.s, None).unwrap()[0].cost, None);
+        let team = |members| Team {
+            members,
+            locked: false,
+        };
+        crate::work::team_save(
+            &f.s,
+            team(vec![
+                member("ana", 400.0),
+                member("bob", 600.0),
+                member("cy", 500.0),
+            ]),
+        )
+        .unwrap();
         assert_eq!(profiles(&f.s, None).unwrap()[0].cost, Some(1500.0));
+    }
+
+    #[test]
+    fn a_role_of_one_or_two_rated_members_shows_no_cost_in_totals_or_portfolio() {
+        let f = fx();
+        crate::work::sheet_save(&f.s, "lot", sheet(false)).unwrap();
+        let rated = |handle: &str, role: &str, rate: f64| Member {
+            name: handle.into(),
+            handle: handle.into(),
+            role: role.into(),
+            capacity: 5.0,
+            day_rate: Some(rate),
+            ..Member::default()
+        };
+        crate::work::team_save(
+            &f.s,
+            Team {
+                members: vec![
+                    rated("ana", "dev", 400.0),
+                    rated("bob", "dev", 600.0),
+                    rated("cy", "qa", 300.0),
+                ],
+                locked: false,
+            },
+        )
+        .unwrap();
+        let totals = crate::work::sheet_get(&f.s, "lot").unwrap().totals;
+        assert_eq!(totals.cost, 0.0);
+        assert_eq!(totals.unrated, ["Dev", "dev", "qa"]);
+        let listed = crate::work::list_sheets(&f.s).unwrap();
+        assert_eq!(listed[0].totals.as_ref().map(|t| t.cost), Some(0.0));
+        assert_eq!(crate::work::portfolio(&f.s).unwrap().total.cost, 0.0);
     }
 
     #[test]

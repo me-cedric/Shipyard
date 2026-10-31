@@ -175,6 +175,12 @@ export const commands = {
 	mcpRecommended: () => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("mcp_recommended")),
 	/**  Switches on each recommended server that is off. Returns the ids that it switched on. */
 	mcpRecommendedEnable: (click: boolean) => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("mcp_recommended_enable", { click })),
+	gitlabMcpSetOn: (connection: string, on: boolean, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("gitlab_mcp_set_on", { connection, on, click })),
+	prReviewStart: (number: number, click: boolean) => typedError<ReviewDraft, AppError_Serialize>(__TAURI_INVOKE("pr_review_start", { number, click })),
+	prReviewGet: (number: number, headSha: string) => typedError<ReviewDraft | null, AppError_Serialize>(__TAURI_INVOKE("pr_review_get", { number, headSha })),
+	prReviewPost: (post: ReviewPost, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("pr_review_post", { post, click })),
+	prReviewStop: (number: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("pr_review_stop", { number })),
+	prWriteText: (base: string | null, click: boolean) => typedError<PrText, AppError_Serialize>(__TAURI_INVOKE("pr_write_text", { base, click })),
 	machineSessions: () => typedError<MachineSession_Serialize[], AppError_Serialize>(__TAURI_INVOKE("machine_sessions")),
 	machineSessionStop: (pid: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("machine_session_stop", { pid, click })),
 	machineSpend: (days: number) => typedError<Spend, AppError_Serialize>(__TAURI_INVOKE("machine_spend", { days })),
@@ -257,6 +263,8 @@ export const commands = {
 	timeList: (member: string | null, month: string) => typedError<TimeView_Serialize, AppError_Serialize>(__TAURI_INVOKE("time_list", { member, month })),
 	timeAdd: (member: string | null, day: string, minutes: number, note: string, ticket: string | null) => typedError<TimeEntry_Serialize, AppError_Serialize>(__TAURI_INVOKE("time_add", { member, day, minutes, note, ticket })),
 	timeFetch: (member: string | null, ticket: string) => typedError<TimeRow_Serialize[], AppError_Serialize>(__TAURI_INVOKE("time_fetch", { member, ticket })),
+	/**  Pulls the worklogs of the whole month from the tracker. A read: it writes nothing. */
+	timePullMonth: (member: string | null, month: string) => typedError<TicketRows_Serialize[], AppError_Serialize>(__TAURI_INVOKE("time_pull_month", { member, month })),
 	timeSend: (member: string | null, day: string, id: string, offsetMinutes: number, reduceRemaining: boolean, click: boolean) => typedError<TimeSent_Serialize, AppError_Serialize>(__TAURI_INVOKE("time_send", { member, day, id, offsetMinutes, reduceRemaining, click })),
 	applyPreview: (slugs: string[]) => typedError<DiffRow_Serialize[], AppError_Serialize>(__TAURI_INVOKE("apply_preview", { slugs })),
 	applyRun: (slugs: string[], click: boolean) => typedError<ApplyRow_Serialize[], AppError_Serialize>(__TAURI_INVOKE("apply_run", { slugs, click })),
@@ -305,8 +313,18 @@ export const commands = {
 	designTry: (request: TryRequest_Deserialize, click: boolean) => typedError<TryResponse, AppError_Serialize>(__TAURI_INVOKE("design_try", { request, click })),
 	designOpen: (target: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("design_open", { target })),
 	designBytes: (path: string) => typedError<number[], AppError_Serialize>(__TAURI_INVOKE("design_bytes", { path })),
+	designFigView: (path: string) => typedError<FigView_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_fig_view", { path })),
+	/**  Whether a Figma token is in the keychain. The value never leaves the backend. */
+	figmaTokenState: () => typedError<boolean, AppError_Serialize>(__TAURI_INVOKE("figma_token_state")),
+	/**  Saves the Figma token in the OS keychain, after a click. */
+	figmaTokenSet: (token: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("figma_token_set", { token, click })),
+	figmaFiles: (project: string) => typedError<FigmaFile[], AppError_Serialize>(__TAURI_INVOKE("figma_files", { project })),
+	figmaPreview: (file: string) => typedError<number[], AppError_Serialize>(__TAURI_INVOKE("figma_preview", { file })),
+	figmaTokens: (file: string) => typedError<DesignToken[], AppError_Serialize>(__TAURI_INVOKE("figma_tokens", { file })),
 	specsChanges: () => typedError<ChangeView_Serialize[], AppError_Serialize>(__TAURI_INVOKE("specs_changes")),
 	specsChangeCreate: (title: string) => typedError<ChangeView_Serialize, AppError_Serialize>(__TAURI_INVOKE("specs_change_create", { title })),
+	specsChangeFromTicket: (key: string, click: boolean) => typedError<TicketChange_Serialize, AppError_Serialize>(__TAURI_INVOKE("specs_change_from_ticket", { key, click })),
+	specsChangeDelegate: (key: string, workflow: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("specs_change_delegate", { key, workflow, click })),
 	specsRead: (path: string) => typedError<Text, AppError_Serialize>(__TAURI_INVOKE("specs_read", { path })),
 	specsWrite: (path: string, text: string, stamp: string | null, create: boolean) => typedError<Written_Serialize, AppError_Serialize>(__TAURI_INVOKE("specs_write", { path, text, stamp, create })),
 	specsValidate: (id: string) => typedError<SpecFinding_Serialize[], AppError_Serialize>(__TAURI_INVOKE("specs_validate", { id })),
@@ -344,6 +362,8 @@ export const commands = {
 	assistantSend: (thread: string, text: string, quotes: Quote[], context: Context_Deserialize) => typedError<TurnResult_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_send", { thread, text, quotes, context })),
 	/**  Stops the running turn of a thread. The turn ends with the reply that came so far. */
 	assistantStop: (thread: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("assistant_stop", { thread })),
+	/**  The tool calls of the running turn of a thread so far. Empty when no turn runs. */
+	assistantLive: (thread: string) => typedError<TraceStep[], AppError_Serialize>(__TAURI_INVOKE("assistant_live", { thread })),
 	/**  Grants the tool that the last message waits for and resumes the session. */
 	assistantGrant: (thread: string) => typedError<TurnResult_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_grant", { thread })),
 	/**  Resumes the session after a failed turn. It does not send the first request again. */
@@ -462,6 +482,18 @@ export const commands = {
 	closeGuardState: () => typedError<InFlight, AppError_Serialize>(__TAURI_INVOKE("close_guard_state")),
 	/**  Close past the guard. `destroy` does not raise a second request. */
 	closeAnyway: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("close_anyway")),
+	/**  Where the app keeps its data, and whether the portable mode is on. */
+	appDataFolder: () => typedError<DataFolder, AppError_Serialize>(__TAURI_INVOKE("app_data_folder")),
+	pictureGet: (which: Picture) => typedError<Image | null, AppError_Serialize>(__TAURI_INVOKE("picture_get", { which })),
+	pictureSet: (which: Picture, path: string | null, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("picture_set", { which, path, click })),
+	/**  Opens the mail app with the feedback, after a click. Nothing is sent by Shipyard. */
+	feedbackMail: (title: string, details: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("feedback_mail", { title, details, click })),
+	/**  Applies a stash, then drops it, after the click of a person. */
+	gitStashPop: (id: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("git_stash_pop", { id, click })),
+	gitStashDiff: (id: string) => typedError<FileDiff[], AppError_Serialize>(__TAURI_INVOKE("git_stash_diff", { id })),
+	/**  Moves a branch to its upstream when it only lags behind, after the click of a person. */
+	gitBranchFastForward: (branch: string, click: boolean) => typedError<Forward, AppError_Serialize>(__TAURI_INVOKE("git_branch_fast_forward", { branch, click })),
+	gitLinkedInspect: (child: string) => typedError<Inspect_Serialize, AppError_Serialize>(__TAURI_INVOKE("git_linked_inspect", { child })),
 	runnerInstall: (id: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("runner_install", { id, click })),
 	codexTrustState: () => typedError<boolean, AppError_Serialize>(__TAURI_INVOKE("codex_trust_state")),
 	codexTrust: (click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("codex_trust", { click })),
@@ -787,6 +819,12 @@ export type Attachment = {
 	bytes: number,
 };
 
+/**
+ *  What the sync tick does for a new pull request or a new head commit (spec `agent-pr` REQ-006).
+ *  `Post` posts a comment review: the agent never approves and never requests changes.
+ */
+export type AutoReview = "off" | "draft" | "post";
+
 export type Automation = Automation_Serialize | Automation_Deserialize;
 
 export type AutomationFile = 
@@ -822,6 +860,8 @@ export type Automation_Deserialize = {
 	/**  The assignee of that pull request when the ticket names none (`delivery` REQ-012). */
 	assignee?: string | null,
 	budgets?: Budgets_Deserialize,
+	/**  An agent review of each new pull request and head commit (`agent-pr` REQ-006). */
+	auto_review?: AutoReview,
 };
 
 export type Automation_Serialize = {
@@ -837,6 +877,8 @@ export type Automation_Serialize = {
 	/**  The assignee of that pull request when the ticket names none (`delivery` REQ-012). */
 	assignee?: string,
 	budgets?: Budgets_Serialize,
+	/**  An agent review of each new pull request and head commit (`agent-pr` REQ-006). */
+	auto_review?: AutoReview,
 };
 
 /**  When a member works at all. Outside `from` and `until`, and inside an absence, capacity is zero. */
@@ -1475,6 +1517,8 @@ export type Connection_Deserialize = {
 	/**  True when the keychain holds a secret. The value never leaves the keychain. */
 	secret: boolean,
 	state: ConnectionState,
+	/**  The scopes that the host granted to the browser sign-in. Empty for a pasted token. */
+	scopes: string[],
 	/**  The flags of a tracker (REQ-003). `None` for the other groups. */
 	capabilities?: Capabilities | null,
 };
@@ -1490,6 +1534,8 @@ export type Connection_Serialize = {
 	/**  True when the keychain holds a secret. The value never leaves the keychain. */
 	secret: boolean,
 	state: ConnectionState,
+	/**  The scopes that the host granted to the browser sign-in. Empty for a pasted token. */
+	scopes: string[],
 	/**  The flags of a tracker (REQ-003). `None` for the other groups. */
 	capabilities: Capabilities | null,
 };
@@ -1551,6 +1597,11 @@ export type Dashboard_Serialize = {
 	version: number,
 	title: string,
 	tiles: Tile_Serialize[],
+};
+
+export type DataFolder = {
+	path: string,
+	portable: boolean,
 };
 
 export type Decision = "accept" | "reject";
@@ -1639,6 +1690,13 @@ export type DesignList_Serialize = {
 	screensError: string | null,
 	/**  Repository path of the design doc. */
 	doc: string,
+};
+
+/**  One design token: a Figma variable with the value of its first mode. */
+export type DesignToken = {
+	name: string,
+	kind: string,
+	value: string,
 };
 
 export type DeviceStart = {
@@ -1740,7 +1798,7 @@ export type ErrorAction = {
 
 export type ErrorCode = 
 /**  Not in the table: the view shows the details. */
-"unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_id_invalid" | "change_exists" | "run_not_started" | "merge_draft" | "merge_closed" | "merge_method" | "forge_unreachable" | "forge_denied" | "forge_missing" | "git_nothing_staged" | "git_identity" | "git_busy" | "git_no_upstream" | "no_terminal" | "terminal_gone" | "device_not_set" | "no_editor" | "no_first_commit" | "remote_address" | "remote_exists" | "sheet_frozen" | "feed_invalid" | "setting_invalid";
+"unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_id_invalid" | "change_exists" | "run_not_started" | "merge_draft" | "merge_closed" | "merge_method" | "forge_unreachable" | "forge_denied" | "forge_missing" | "git_nothing_staged" | "git_identity" | "git_busy" | "git_no_upstream" | "no_terminal" | "terminal_gone" | "device_not_set" | "no_editor" | "no_first_commit" | "remote_address" | "remote_exists" | "sheet_frozen" | "feed_invalid" | "setting_invalid" | "gitlab_no_mcp" | "gitlab_address" | "read_only" | "agents_stopped" | "agent_limit" | "budget_spent" | "head_missing" | "no_changes" | "review_posted" | "review_running" | "figma_no_token" | "branch_diverged" | "picture_invalid" | "review_no_result" | "agent_no_text" | "agent_no_title" | "review_no_draft" | "review_empty" | "no_base" | "figma_address";
 
 /**
  *  A source of events that can notify the person (spec `shell`, REQ-008). One list feeds the
@@ -1875,6 +1933,28 @@ export type FeedRead_Serialize = {
 export type FeedbackKind = "bug" | "idea";
 
 export type Field = "title" | "description" | "estimate" | "parent";
+
+export type FigView = FigView_Serialize | FigView_Deserialize;
+
+export type FigView_Deserialize = {
+	/**  The name of the file in Figma. Empty when the file does not name itself. */
+	name: string,
+	/**  The PNG preview of the first page. */
+	thumbnail?: number[] | null,
+};
+
+export type FigView_Serialize = {
+	/**  The name of the file in Figma. Empty when the file does not name itself. */
+	name: string,
+	/**  The PNG preview of the first page. */
+	thumbnail: number[] | null,
+};
+
+export type FigmaFile = {
+	key: string,
+	name: string,
+	lastModified: string,
+};
 
 export type FileChange = FileChange_Serialize | FileChange_Deserialize;
 
@@ -2053,6 +2133,9 @@ export type FlowRow_Serialize = {
 	destinationName?: string,
 };
 
+/**  The result of [`Repo::fast_forward`]. */
+export type Forward = "up-to-date" | "moved";
+
 export type Gantt = Gantt_Serialize | Gantt_Deserialize;
 
 export type Gantt_Deserialize = {
@@ -2139,6 +2222,11 @@ export type HeadChange_Serialize = {
 	subject: string,
 };
 
+export type Image = {
+	mime: string,
+	bytes: number[],
+};
+
 /**  One saved analysis: the two files stay apart (REQ-033). */
 export type ImpactEntry = {
 	/**  `YYYY-MM-DD`. */
@@ -2171,6 +2259,35 @@ export type ImportReport = {
 export type InFlight = {
 	runs: number,
 	turns: number,
+};
+
+/**  What a working copy holds now. */
+export type Inspect = Inspect_Serialize | Inspect_Deserialize;
+
+/**  What a working copy holds now. */
+export type Inspect_Deserialize = {
+	/**  The working branch. `None` when HEAD is detached or unborn. */
+	branch?: string | null,
+	ahead: number,
+	behind: number,
+	/**  Files with a change: staged, not staged, new or in conflict. */
+	changes: number,
+	stashes: number,
+	/**  The summary of the last commit. */
+	last?: string | null,
+};
+
+/**  What a working copy holds now. */
+export type Inspect_Serialize = {
+	/**  The working branch. `None` when HEAD is detached or unborn. */
+	branch: string | null,
+	ahead: number,
+	behind: number,
+	/**  Files with a change: staged, not staged, new or in conflict. */
+	changes: number,
+	stashes: number,
+	/**  The summary of the last commit. */
+	last: string | null,
 };
 
 /**  One reason to refuse a workflow or role file, with the line of its field (`factory` REQ-010). */
@@ -2955,6 +3072,12 @@ export type Persona = {
 	active: boolean,
 };
 
+export type Picture = 
+/**  The logo of the active project. */
+"logo" | 
+/**  The picture of the person. */
+"avatar";
+
 export type PlanRow = {
 	path: string,
 	title: string,
@@ -3134,6 +3257,12 @@ export type PrRowView = {
 	runs: string[],
 };
 
+/**  The title and the body that the agent wrote. Nothing is opened. */
+export type PrText = {
+	title: string,
+	body: string,
+};
+
 export type Prefs = Prefs_Serialize | Prefs_Deserialize;
 
 export type PrefsPatch = PrefsPatch_Serialize | PrefsPatch_Deserialize;
@@ -3162,6 +3291,15 @@ export type PrefsPatch_Deserialize = {
 	autoUpdateCheck?: boolean | null,
 	promptLang?: string | null,
 	diagramFormat?: string | null,
+	/**  `Some(None)` is not sent by the view: a patch with `clear_accent` goes back to the theme. */
+	accent?: Accent | null,
+	clearAccent?: boolean | null,
+	navSide?: PanelSide | null,
+	drawerSide?: PanelSide | null,
+	showAllPages?: boolean | null,
+	dateFormat?: string | null,
+	closePush?: boolean | null,
+	narrowBar?: boolean | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -3188,6 +3326,15 @@ export type PrefsPatch_Serialize = {
 	autoUpdateCheck: boolean | null,
 	promptLang: string | null,
 	diagramFormat: string | null,
+	/**  `Some(None)` is not sent by the view: a patch with `clear_accent` goes back to the theme. */
+	accent: Accent | null,
+	clearAccent: boolean | null,
+	navSide: PanelSide | null,
+	drawerSide: PanelSide | null,
+	showAllPages: boolean | null,
+	dateFormat: string | null,
+	closePush: boolean | null,
+	narrowBar: boolean | null,
 };
 
 export type Prefs_Deserialize = {
@@ -3235,6 +3382,23 @@ export type Prefs_Deserialize = {
 	promptLang?: string,
 	/**  Format of a new diagram board: one of `DIAGRAM_FORMATS`. Empty is the first one. */
 	diagramFormat?: string,
+	/**
+	 *  The accent colour of the interface. `None` keeps the colour of the theme. A project
+	 *  override wins.
+	 */
+	accent?: Accent | null,
+	/**  The side of the navigation bar. */
+	navSide?: PanelSide,
+	/**  The side of the drawers, such as the files. */
+	drawerSide?: PanelSide,
+	/**  Show the pages that the project profile hides. No role loses access to a view. */
+	showAllPages?: boolean,
+	/**  One of `DATE_FORMATS`. Empty follows the language. */
+	dateFormat?: string,
+	/**  When the window closes, push the commit that the auto-commit made. */
+	closePush?: boolean,
+	/**  A lower bar on top of the window. */
+	narrowBar?: boolean,
 };
 
 export type Prefs_Serialize = {
@@ -3282,6 +3446,23 @@ export type Prefs_Serialize = {
 	promptLang: string,
 	/**  Format of a new diagram board: one of `DIAGRAM_FORMATS`. Empty is the first one. */
 	diagramFormat: string,
+	/**
+	 *  The accent colour of the interface. `None` keeps the colour of the theme. A project
+	 *  override wins.
+	 */
+	accent: Accent | null,
+	/**  The side of the navigation bar. */
+	navSide: PanelSide,
+	/**  The side of the drawers, such as the files. */
+	drawerSide: PanelSide,
+	/**  Show the pages that the project profile hides. No role loses access to a view. */
+	showAllPages: boolean,
+	/**  One of `DATE_FORMATS`. Empty follows the language. */
+	dateFormat: string,
+	/**  When the window closes, push the commit that the auto-commit made. */
+	closePush: boolean,
+	/**  A lower bar on top of the window. */
+	narrowBar: boolean,
 };
 
 export type Preview = Preview_Serialize | Preview_Deserialize;
@@ -3306,15 +3487,15 @@ export type Preview_Serialize = {
 
 /**
  *  The days and the cost of one profile (a role). `cost` is `None` when no member rate covers the
- *  role: a locked seal hides every rate. It is also `None` when fewer than two members with a
- *  rate have the role: the cost over the days would show the day rate of one member.
+ *  role: a locked seal hides every rate. It is also `None` when fewer than three members with a
+ *  rate have the role (`work::MIN_RATED`): the cost over the days would show a rate.
  */
 export type ProfileSum = ProfileSum_Serialize | ProfileSum_Deserialize;
 
 /**
  *  The days and the cost of one profile (a role). `cost` is `None` when no member rate covers the
- *  role: a locked seal hides every rate. It is also `None` when fewer than two members with a
- *  rate have the role: the cost over the days would show the day rate of one member.
+ *  role: a locked seal hides every rate. It is also `None` when fewer than three members with a
+ *  rate have the role (`work::MIN_RATED`): the cost over the days would show a rate.
  */
 export type ProfileSum_Deserialize = {
 	role: string,
@@ -3324,8 +3505,8 @@ export type ProfileSum_Deserialize = {
 
 /**
  *  The days and the cost of one profile (a role). `cost` is `None` when no member rate covers the
- *  role: a locked seal hides every rate. It is also `None` when fewer than two members with a
- *  rate have the role: the cost over the days would show the day rate of one member.
+ *  role: a locked seal hides every rate. It is also `None` when fewer than three members with a
+ *  rate have the role (`work::MIN_RATED`): the cost over the days would show a rate.
  */
 export type ProfileSum_Serialize = {
 	role: string,
@@ -3873,6 +4054,39 @@ export type Resolved_Serialize = {
 	location: string | null,
 };
 
+/**  A draft review: what the agent found at one head commit. It waits for a person to post it. */
+export type ReviewDraft = {
+	number: number,
+	headSha: string,
+	summary: string,
+	verdict: ReviewVerdict,
+	findings: ReviewFinding[],
+	/**  The findings that cited no changed file or no line. */
+	dropped: number,
+	posted: boolean,
+	/**  A review that the automatic setting started. */
+	auto: boolean,
+};
+
+export type ReviewFinding = {
+	/**  `P0`, `P1` or `P2`. */
+	severity: string,
+	path: string,
+	line: number,
+	text: string,
+};
+
+/**  What the page sends to post: the draft after the person edited it. */
+export type ReviewPost = {
+	number: number,
+	headSha: string,
+	summary: string,
+	verdict: ReviewVerdict,
+	findings: ReviewFinding[],
+};
+
+export type ReviewVerdict = "approve" | "comment" | "request_changes";
+
 /**  The verdict of one reviewer (REQ-021). */
 export type ReviewerVerdict = {
 	reviewer: string,
@@ -4049,6 +4263,8 @@ export type RunSpendView_Deserialize = {
 	usd: number | null,
 	/**  The budget of the run. */
 	budget?: number | null,
+	/**  The model requests of the run: each turn of an agent is one. */
+	iterations: number,
 };
 
 export type RunSpendView_Serialize = {
@@ -4059,6 +4275,8 @@ export type RunSpendView_Serialize = {
 	usd: number | null,
 	/**  The budget of the run. */
 	budget: number | null,
+	/**  The model requests of the run: each turn of an agent is one. */
+	iterations: number,
 };
 
 export type RunState = "Queued" | "Claimed" | "Planning" | "PlanReview" | "Working" | "SelfReview" | "PROpen" | "ChangesRequested" | "Merged" | "Done" | "WaitingForAnswer" | "Blocked" | "RetryQueued" | "Paused" | "Failed" | "Cancelled";
@@ -4891,6 +5109,23 @@ export type Thread_Serialize = {
 	updated: number,
 };
 
+/**  A change that a ticket started, and the branch that holds it. */
+export type TicketChange = TicketChange_Serialize | TicketChange_Deserialize;
+
+/**  A change that a ticket started, and the branch that holds it. */
+export type TicketChange_Deserialize = {
+	change: ChangeView_Deserialize,
+	/**  The branch `specs/<id>`: the change lives there, apart from the code. */
+	branch: string,
+};
+
+/**  A change that a ticket started, and the branch that holds it. */
+export type TicketChange_Serialize = {
+	change: ChangeView_Serialize,
+	/**  The branch `specs/<id>`: the change lives there, apart from the code. */
+	branch: string,
+};
+
 /**  One comment of a ticket, as the person reads it. A hidden marker of Shipyard is not shown. */
 export type TicketComment = {
 	id: string,
@@ -4928,6 +5163,21 @@ export type TicketLink = {
 	level: string,
 	state: string,
 	specRef: string,
+};
+
+/**  The entries and the worklogs of one ticket. */
+export type TicketRows = TicketRows_Serialize | TicketRows_Deserialize;
+
+/**  The entries and the worklogs of one ticket. */
+export type TicketRows_Deserialize = {
+	ticket: string,
+	rows: TimeRow_Deserialize[],
+};
+
+/**  The entries and the worklogs of one ticket. */
+export type TicketRows_Serialize = {
+	ticket: string,
+	rows: TimeRow_Serialize[],
 };
 
 export type TicketsConfig = {

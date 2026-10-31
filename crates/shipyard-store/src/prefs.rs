@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::Result;
-use crate::project::write_atomic;
+use crate::project::{Accent, write_atomic};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "lowercase")]
@@ -85,6 +85,10 @@ fn default_panel_side() -> PanelSide {
     PanelSide::Right
 }
 
+fn left() -> PanelSide {
+    PanelSide::Left
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Prefs {
@@ -145,7 +149,31 @@ pub struct Prefs {
     /// Format of a new diagram board: one of `DIAGRAM_FORMATS`. Empty is the first one.
     #[serde(default)]
     pub diagram_format: String,
+    /// The accent colour of the interface. `None` keeps the colour of the theme. A project
+    /// override wins.
+    #[serde(default)]
+    pub accent: Option<Accent>,
+    /// The side of the navigation bar.
+    #[serde(default = "left")]
+    pub nav_side: PanelSide,
+    /// The side of the drawers, such as the files.
+    #[serde(default = "left")]
+    pub drawer_side: PanelSide,
+    /// Show the pages that the project profile hides. No role loses access to a view.
+    #[serde(default)]
+    pub show_all_pages: bool,
+    /// One of `DATE_FORMATS`. Empty follows the language.
+    #[serde(default)]
+    pub date_format: String,
+    /// When the window closes, push the commit that the auto-commit made.
+    #[serde(default)]
+    pub close_push: bool,
+    /// A lower bar on top of the window.
+    #[serde(default)]
+    pub narrow_bar: bool,
 }
+
+pub const DATE_FORMATS: [&str; 3] = ["iso", "dmy", "mdy"];
 
 pub const DIAGRAM_FORMATS: [&str; 4] = ["excalidraw", "mermaid", "drawio", "bpmn"];
 
@@ -205,6 +233,13 @@ impl Default for Prefs {
             auto_update_check: true,
             prompt_lang: String::new(),
             diagram_format: String::new(),
+            accent: None,
+            nav_side: PanelSide::Left,
+            drawer_side: PanelSide::Left,
+            show_all_pages: false,
+            date_format: String::new(),
+            close_push: false,
+            narrow_bar: false,
         }
     }
 }
@@ -235,6 +270,15 @@ pub struct PrefsPatch {
     pub auto_update_check: Option<bool>,
     pub prompt_lang: Option<String>,
     pub diagram_format: Option<String>,
+    /// `Some(None)` is not sent by the view: a patch with `clear_accent` goes back to the theme.
+    pub accent: Option<Accent>,
+    pub clear_accent: Option<bool>,
+    pub nav_side: Option<PanelSide>,
+    pub drawer_side: Option<PanelSide>,
+    pub show_all_pages: Option<bool>,
+    pub date_format: Option<String>,
+    pub close_push: Option<bool>,
+    pub narrow_bar: Option<bool>,
 }
 
 const FILE: &str = "prefs.json";
@@ -336,6 +380,22 @@ impl Prefs {
                 String::new()
             };
         }
+        if p.clear_accent == Some(true) {
+            self.accent = None;
+        }
+        self.accent = p.accent.or(self.accent);
+        self.nav_side = p.nav_side.unwrap_or(self.nav_side);
+        self.drawer_side = p.drawer_side.unwrap_or(self.drawer_side);
+        self.show_all_pages = p.show_all_pages.unwrap_or(self.show_all_pages);
+        if let Some(v) = p.date_format {
+            self.date_format = if DATE_FORMATS.contains(&v.as_str()) {
+                v
+            } else {
+                String::new()
+            };
+        }
+        self.close_push = p.close_push.unwrap_or(self.close_push);
+        self.narrow_bar = p.narrow_bar.unwrap_or(self.narrow_bar);
         if let Some(url) = p.release_url {
             // An empty value goes back to the default.
             self.release_url = if url.trim().is_empty() {
@@ -344,6 +404,32 @@ impl Prefs {
                 url.trim().to_string()
             };
         }
+    }
+}
+
+/// The size and the place of the main window when it closed, in logical pixels.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct WindowState {
+    pub width: f64,
+    pub height: f64,
+    pub x: f64,
+    pub y: f64,
+    pub maximized: bool,
+}
+
+const WINDOW_FILE: &str = "window.json";
+
+impl WindowState {
+    /// `None` when no window closed yet, or when the size is too small to use.
+    pub fn load(dir: &Path) -> Option<Self> {
+        std::fs::read(dir.join(WINDOW_FILE))
+            .ok()
+            .and_then(|b| serde_json::from_slice::<Self>(&b).ok())
+            .filter(|w| w.width >= 400.0 && w.height >= 300.0)
+    }
+
+    pub fn save(&self, dir: &Path) -> Result<()> {
+        write_atomic(&dir.join(WINDOW_FILE), &serde_json::to_vec(self)?)
     }
 }
 
@@ -388,6 +474,58 @@ mod tests {
             (p.prompt_lang.as_str(), p.diagram_format.as_str()),
             ("", "")
         );
+    }
+
+    #[test]
+    fn the_look_and_close_choices_persist_and_keep_known_values_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut p = Prefs::default();
+        assert_eq!(
+            (p.nav_side, p.drawer_side),
+            (PanelSide::Left, PanelSide::Left)
+        );
+        p.apply(PrefsPatch {
+            accent: Some(Accent::Green),
+            nav_side: Some(PanelSide::Right),
+            drawer_side: Some(PanelSide::Right),
+            show_all_pages: Some(true),
+            date_format: Some("dmy".into()),
+            close_push: Some(true),
+            narrow_bar: Some(true),
+            ..Default::default()
+        });
+        p.save(dir.path()).unwrap();
+        let q = Prefs::load(dir.path());
+        assert_eq!(q.accent, Some(Accent::Green));
+        assert_eq!(
+            (q.nav_side, q.drawer_side),
+            (PanelSide::Right, PanelSide::Right)
+        );
+        assert!(q.show_all_pages && q.close_push && q.narrow_bar);
+        assert_eq!(q.date_format, "dmy");
+        p.apply(PrefsPatch {
+            clear_accent: Some(true),
+            date_format: Some("yyyy".into()),
+            ..Default::default()
+        });
+        assert_eq!((p.accent, p.date_format.as_str()), (None, ""));
+    }
+
+    #[test]
+    fn the_window_state_persists_and_a_tiny_window_is_left_out() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(WindowState::load(dir.path()), None);
+        let w = WindowState {
+            width: 1280.0,
+            height: 800.0,
+            x: 10.0,
+            y: 20.0,
+            maximized: false,
+        };
+        w.save(dir.path()).unwrap();
+        assert_eq!(WindowState::load(dir.path()), Some(w));
+        WindowState { width: 50.0, ..w }.save(dir.path()).unwrap();
+        assert_eq!(WindowState::load(dir.path()), None);
     }
 
     #[test]

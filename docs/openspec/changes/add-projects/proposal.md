@@ -1,4 +1,4 @@
-# add-projects
+# Projects
 
 ## Why
 

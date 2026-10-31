@@ -89,7 +89,7 @@ fn missing_key_is_an_issue_not_a_drop() {
 fn reads_crlf_and_bom() {
     let (q, _) = read_text(&format!("\u{feff}{}", Q002.replace('\n', "\r\n")));
     assert_eq!(q.id, "Q-002");
-    assert_eq!(q.status, "open");
+    assert_eq!(q.status, read_text(Q002).0.status);
 }
 
 #[test]

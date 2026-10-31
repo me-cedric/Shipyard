@@ -26,6 +26,7 @@ import {
 } from "@/ui/icons";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Settings } from "@/ui/templates/settings";
+import { useLookRows } from "./look-rows";
 import { usePersonalSections } from "./me/personal";
 
 /** Where the update check reads the latest release. It saves when the field loses focus. */
@@ -120,6 +121,7 @@ export function Me() {
 	} = usePrefs();
 	const roles: Role[] = ["none", ...ROLES];
 	const personal = usePersonalSections();
+	const look = useLookRows();
 	// The mark: the active project sets this value, and it replaces the one below.
 	const marked = (key: Overridable, control: React.ReactNode) => (
 		<span className="flex items-center gap-2">
@@ -265,6 +267,7 @@ export function Me() {
 										/>,
 									),
 								},
+								...look,
 							],
 						},
 						...personal,

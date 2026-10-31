@@ -24,6 +24,15 @@ Branches lists the branches on this computer and on the server. Create, switch t
 
 Pull requests lists the pull requests of the forge. Open one to read it, comment, approve, ask for changes or merge it. Merge stays off for a draft. The app asks again before a merge with failing checks.
 
+Agent actions on a pull request:
+
+1. Click Review with an agent on an open pull request. An agent reads the changes at the head commit, in a read-only copy. It follows the review skill and the reviewer role of the project when it has them. The review is a draft: a summary, a verdict and findings that show on their lines of the diff.
+2. Edit the summary and the verdict, click Drop on a finding that you do not want, then click Post review. A review posts once.
+3. In the form of a new pull request, click Write with an agent. The agent fills the title and the body from the branch changes, the linked ticket and the linked spec change. It follows the pr-flow skill when the project has it. Nothing opens until you click Open.
+4. In Settings / Project, choose the agent review of each pull request: Off, Draft or Post. Draft keeps one draft for each new head commit on the pull request page. Post adds a comment review and never approves.
+
+An agent review counts against the budget of the project. The Agents stopped switch, the budget and the limit of runs stop it. A read-only project refuses all three actions.
+
 ## Quality
 
 Quality runs the checks of the project and the security scanners, after your click. Each finding shows its file and its line.

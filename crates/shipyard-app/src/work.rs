@@ -1007,7 +1007,7 @@ pub(crate) fn sheets_at(
 
 pub fn list_sheets(s: &AppState) -> Res<Vec<SheetItem>> {
     let c = ctx(s)?;
-    let rates = work::role_rates(&c.team().team);
+    let rates = work::shared_rates(&c.team().team);
     c.slugs()?
         .into_iter()
         .map(|slug| {
@@ -1077,7 +1077,7 @@ fn sheet_view(c: &Ctx, slug: &str) -> Res<SheetView> {
         .collect();
     Ok(SheetView {
         slug: slug.into(),
-        totals: work::totals(&sheet, &work::role_rates(&team)),
+        totals: work::totals(&sheet, &work::shared_rates(&team)),
         sheet,
         days,
         spread,
@@ -1130,7 +1130,7 @@ pub fn portfolio(s: &AppState) -> Res<Portfolio> {
     let c = ctx(s)?;
     Ok(work::portfolio(
         &c.readable()?,
-        &work::role_rates(&c.team().team),
+        &work::shared_rates(&c.team().team),
     ))
 }
 
@@ -1206,7 +1206,7 @@ pub fn excel_write(s: &AppState, slug: &str, path: &str) -> Res<()> {
     if !p.parent().is_some_and(Path::is_dir) {
         return Err("the folder of the path does not exist".into());
     }
-    let rates = work::role_rates(&c.team().team);
+    let rates = work::shared_rates(&c.team().team);
     let bytes = excel::export(&c.sheet(slug)?, &rates).map_err(err)?;
     write_atomic(&p, &bytes).map_err(err)
 }
@@ -1413,6 +1413,50 @@ pub fn time_rows(s: &AppState, member: Option<&str>, ticket: &str) -> Res<Vec<Ti
         })
         .collect();
     Ok(work::reconcile(&entries_of(&c, &handle, &key)?, &logs))
+}
+
+/// The entries and the worklogs of one ticket.
+#[derive(Debug, Clone, Serialize, Type)]
+pub struct TicketRows {
+    pub ticket: String,
+    pub rows: Vec<TimeRow>,
+}
+
+/// Pull the worklogs of the month from the tracker for every ticket of the month (REQ-024). It is
+/// a read: it adds nothing, sends nothing and corrects nothing. A worklog of another month stays out.
+pub fn time_month_pull(s: &AppState, member: Option<&str>, month: &str) -> Res<Vec<TicketRows>> {
+    let c = ctx(s)?;
+    let handle = member_of(&c, member)?;
+    let entries = month_entries(&c, &handle, month)?;
+    let t = tracker(s)?;
+    let w = writer(s, &t)?;
+    let mut keys: Vec<&str> = entries.iter().filter_map(|e| e.ticket.as_deref()).collect();
+    keys.sort_unstable();
+    keys.dedup();
+    keys.into_iter()
+        .map(|key| {
+            let logs: Vec<TrackerLog> = w
+                .worklogs(key)
+                .map_err(err)?
+                .into_iter()
+                .filter(|l| l.started.starts_with(month))
+                .map(|l| TrackerLog {
+                    id: l.id,
+                    minutes: l.minutes,
+                    note: l.note,
+                })
+                .collect();
+            let mine: Vec<TimeEntry> = entries
+                .iter()
+                .filter(|e| e.ticket.as_deref() == Some(key))
+                .cloned()
+                .collect();
+            Ok(TicketRows {
+                ticket: key.into(),
+                rows: work::reconcile(&mine, &logs),
+            })
+        })
+        .collect()
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -1907,6 +1951,17 @@ pub async fn time_add(
         )
     })
     .await
+}
+
+/// Pulls the worklogs of the whole month from the tracker. A read: it writes nothing.
+#[tauri::command]
+#[specta::specta]
+pub async fn time_pull_month(
+    app: AppHandle,
+    member: Option<String>,
+    month: String,
+) -> Api<Vec<TicketRows>> {
+    blocking(app, move |s| time_month_pull(s, member.as_deref(), &month)).await
 }
 
 #[tauri::command]

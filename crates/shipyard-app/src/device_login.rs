@@ -48,6 +48,9 @@ pub(crate) struct Oauth {
     pub expires: i64,
     /// The client id (not a secret) for the refresh request.
     pub client: String,
+    /// The scopes that the host granted, split by a space. Empty for a state of an older version.
+    #[serde(default)]
+    pub scope: String,
 }
 
 impl Oauth {
@@ -149,6 +152,7 @@ impl Bearer {
             expires: shipyard_http::num(&v, "/expires_in")
                 .map_or(0, |n| local_secs() + i64::try_from(n).unwrap_or(0)),
             client: old.client,
+            scope: old.scope,
         };
         let token = Secret::new(token);
         // Under the lock of the store, and only if nothing changed since the request: an edit to
@@ -242,6 +246,9 @@ fn client_id(dir: &Path, host: &str) -> Res<String> {
         .ok_or_else(|| format!("browser sign-in is not set up for {host}: add `{host} = <client id>` to {FILE} in the app data folder"))
 }
 
+/// What GitLab gets when the application of a host allows no `mcp` scope.
+const GITLAB_PLAIN: &str = "api";
+
 /// `(device URL, token URL, scope)` of a product on a host.
 fn endpoints(kind: ConnectionKind, host: &str) -> Res<(String, String, &'static str)> {
     match kind {
@@ -253,7 +260,7 @@ fn endpoints(kind: ConnectionKind, host: &str) -> Res<(String, String, &'static 
         ConnectionKind::GitLab => Ok((
             format!("https://{host}/oauth/authorize_device"),
             format!("https://{host}/oauth/token"),
-            "api",
+            "api mcp",
         )),
         _ => Err("browser sign-in is not set up for this product".into()),
     }
@@ -283,7 +290,19 @@ pub fn start(s: &AppState, id: &str, click: bool) -> Res<DeviceStart> {
     need_click(s, click)?;
     let (kind, host, client) = target(s, id)?;
     let (device, _, scope) = endpoints(kind, &host)?;
-    let v = ask(s, device, json!({ "client_id": client, "scope": scope }))?;
+    let mut v = ask(
+        s,
+        device.clone(),
+        json!({ "client_id": client, "scope": scope }),
+    )?;
+    // An application that does not allow `mcp` refuses the scope: sign in with `api` alone.
+    if kind == ConnectionKind::GitLab && text(&v, "/error") == "invalid_scope" {
+        v = ask(
+            s,
+            device,
+            json!({ "client_id": client, "scope": GITLAB_PLAIN }),
+        )?;
+    }
     let field = |k: &str| {
         let t = text(&v, &format!("/{k}"));
         (!t.is_empty())
@@ -317,6 +336,9 @@ pub fn poll(s: &AppState, id: &str, device_code: &str) -> Res<DeviceState> {
             expires: shipyard_http::num(&v, "/expires_in")
                 .map_or(0, |n| local_secs() + i64::try_from(n).unwrap_or(0)),
             client,
+            scope: Some(text(&v, "/scope"))
+                .filter(|t| !t.is_empty())
+                .unwrap_or_else(|| GITLAB_PLAIN.into()),
         });
         s.connections.store_secret(id, Secret::new(token), oauth)?;
         return Ok(DeviceState::Authorized);
@@ -474,12 +496,79 @@ mod tests {
         assert!(Oauth::of(&*store, &id).is_none());
     }
 
+    #[test]
+    fn gitlab_asks_for_api_and_mcp_and_stores_what_it_granted() {
+        let dir = tempfile::tempdir().unwrap();
+        let http = FakeHttp::new();
+        http.post(
+            "/oauth/authorize_device",
+            r#""scope":"api mcp""#,
+            200,
+            r#"{"device_code":"dev","user_code":"AB-12","verification_uri":"https://gitlab.com/oauth/device"}"#,
+        )
+        .post(
+            "/oauth/token",
+            "dev",
+            200,
+            r#"{"access_token":"at1","refresh_token":"rt1","expires_in":7200,"scope":"api mcp"}"#,
+        );
+        let (s, id) = gitlab(dir.path(), http, Arc::new(MemoryStore::default()));
+        std::fs::create_dir_all(&s.dir).unwrap();
+        std::fs::write(s.dir.join(FILE), "gitlab.com = cid\n").unwrap();
+        let d = start(&s, &id, true).unwrap();
+        assert_eq!(
+            poll(&s, &id, &d.device_code).unwrap(),
+            DeviceState::Authorized
+        );
+        assert_eq!(
+            s.connections.get(&id).unwrap().unwrap().scopes,
+            ["api", "mcp"]
+        );
+    }
+
+    #[test]
+    fn a_host_that_refuses_mcp_signs_in_with_api_alone() {
+        let dir = tempfile::tempdir().unwrap();
+        let http = FakeHttp::new();
+        http.post(
+            "/oauth/authorize_device",
+            r#""scope":"api mcp""#,
+            400,
+            r#"{"error":"invalid_scope"}"#,
+        )
+        .post(
+            "/oauth/authorize_device",
+            r#""scope":"api""#,
+            200,
+            r#"{"device_code":"dev","user_code":"CD-34","verification_uri":"https://gitlab.com/oauth/device"}"#,
+        )
+        .post(
+            "/oauth/token",
+            "dev",
+            200,
+            r#"{"access_token":"at1","refresh_token":"rt1"}"#,
+        );
+        let (s, id) = gitlab(dir.path(), http, Arc::new(MemoryStore::default()));
+        std::fs::create_dir_all(&s.dir).unwrap();
+        std::fs::write(s.dir.join(FILE), "gitlab.com = cid\n").unwrap();
+        let d = start(&s, &id, true).unwrap();
+        assert_eq!(d.user_code, "CD-34");
+        poll(&s, &id, &d.device_code).unwrap();
+        // The host named no scope: the grant is `api`, so no MCP switch shows.
+        assert_eq!(s.connections.get(&id).unwrap().unwrap().scopes, ["api"]);
+        s.connections
+            .set_secret(&id, Secret::new("glpat-x"))
+            .unwrap();
+        assert!(s.connections.get(&id).unwrap().unwrap().scopes.is_empty());
+    }
+
     fn signed_in(store: &MemoryStore, expires: i64) {
         store.set(&conn_account("c"), &Secret::new("old")).unwrap();
         let o = Oauth {
             refresh: "rt1".into(),
             expires,
             client: "cid".into(),
+            scope: "api mcp".into(),
         };
         store
             .set(&oauth_account("c"), &o.to_secret().unwrap())
