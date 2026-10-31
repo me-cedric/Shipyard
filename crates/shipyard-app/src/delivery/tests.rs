@@ -230,12 +230,15 @@ fn a_gate_reports_pass_fail_counts_and_a_timeout() {
 fn gate_kills_the_children_of_the_command() {
     let tmp = tempfile::tempdir().unwrap();
     let pid_file = tmp.path().join("child.pid");
+    // A zombie (killed, not yet reaped) counts as ended: in a container PID 1 may never reap it.
     let alive = |pid: i32| {
-        std::process::Command::new("kill")
-            .args(["-0", &pid.to_string()])
-            .stderr(std::process::Stdio::null())
-            .status()
-            .is_ok_and(|s| s.success())
+        std::process::Command::new("ps")
+            .args(["-o", "stat=", "-p", &pid.to_string()])
+            .output()
+            .is_ok_and(|o| {
+                let stat = String::from_utf8_lossy(&o.stdout);
+                !stat.trim().is_empty() && !stat.trim().starts_with('Z')
+            })
     };
     let read_pid = || {
         for _ in 0..100 {

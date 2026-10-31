@@ -284,7 +284,7 @@ fn stop_and_quit_end_a_grandchild_of_the_launcher_too() {
         }
         wait_until(
             &format!("the helper ends with the group (quit: {quit})"),
-            || gone(&grandchild),
+            || dead(&grandchild),
         );
     }
 }

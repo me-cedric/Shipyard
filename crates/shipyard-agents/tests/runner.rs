@@ -112,13 +112,17 @@ fn assert_no_secret(args: &[String], events: &[Event]) {
     }
 }
 
+/// Running: a zombie (killed, not yet reaped) answers `kill -0` but counts as ended. In a container
+/// PID 1 may never reap an orphan.
 fn pid_alive(pid: &str) -> bool {
-    std::process::Command::new("kill")
-        .args(["-0", pid.trim()])
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
+    let out = std::process::Command::new("ps")
+        .args(["-o", "stat=", "-p", pid.trim()])
+        .output();
+    out.is_ok_and(|o| {
+        let stat = String::from_utf8_lossy(&o.stdout);
+        let stat = stat.trim();
+        !stat.is_empty() && !stat.starts_with('Z')
+    })
 }
 
 fn wait_for(path: &Path) -> String {
