@@ -20,3 +20,85 @@
 # The scanner reads a config from the directory of each scanned file, and that
 # lookup does not propagate to child directories. A nested lockfile therefore
 # never sees this file. Pass `--config .osv-scanner.toml` to apply it everywhere.
+
+# Reviewed on 2026-10-31. Each entry re-surfaces on 2027-01-29 (90 days).
+
+[[IgnoredVulns]]
+id = "GHSA-m665-v7pm-7grj"
+ignoreUntil = 2027-01-29
+reason = "Reaches `zip` 8.6.0 only through `docx-rs` 0.4.22 (pinned to zip 8), whose reader Shipyard never calls: it only writes .docx. Shipyard's own `zip` is 9.1.3. The flaw is in the streaming reader and `extract`."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0369"
+ignoreUntil = 2027-01-29
+reason = "Reaches `zip` 8.6.0 only through `docx-rs` 0.4.22 (pinned to zip 8), whose reader Shipyard never calls: it only writes .docx. Shipyard's own `zip` is 9.1.3. The flaw is in `extract`, which Shipyard never calls."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0367"
+ignoreUntil = 2027-01-29
+reason = "Reaches `zip` 8.6.0 only through `docx-rs` 0.4.22 (pinned to zip 8), whose reader Shipyard never calls: it only writes .docx. Shipyard's own `zip` is 9.1.3. The flaw is in `extract`, which Shipyard never calls."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0368"
+ignoreUntil = 2027-01-29
+reason = "Reaches `zip` 8.6.0 only through `docx-rs` 0.4.22 (pinned to zip 8), whose reader Shipyard never calls: it only writes .docx. Shipyard's own `zip` is 9.1.3. The flaw is in `extract`, which Shipyard never calls."
+
+[[IgnoredVulns]]
+id = "GHSA-8hxf-qr8p-62x4"
+ignoreUntil = 2027-01-29
+reason = "Reaches `zip` 8.6.0 only through `docx-rs` 0.4.22, which never reads an archive in Shipyard. The AES feature is off."
+
+[[IgnoredVulns]]
+id = "GHSA-9hj8-73fh-9963"
+ignoreUntil = 2027-01-29
+reason = "Reaches `zip` 8.6.0 only through `docx-rs` 0.4.22, which never reads an archive in Shipyard. The legacy decoders are off (deflate only)."
+
+[[IgnoredVulns]]
+id = "GHSA-hjqx-j4rw-g7xv"
+ignoreUntil = 2027-01-29
+reason = "Reaches `zip` 8.6.0 only through `docx-rs` 0.4.22 (pinned to zip 8), whose reader Shipyard never calls: it only writes .docx. Shipyard's own `zip` is 9.1.3. The flaw is in `extract`, which Shipyard never calls."
+
+[[IgnoredVulns]]
+id = "GHSA-q7v9-x93c-xqv3"
+ignoreUntil = 2027-01-29
+reason = "Reaches `zip` 8.6.0 only through `docx-rs` 0.4.22 (pinned to zip 8), whose reader Shipyard never calls: it only writes .docx. Shipyard's own `zip` is 9.1.3. The flaw is in `extract`, which Shipyard never calls."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0429"
+ignoreUntil = 2027-01-29
+reason = "`glib` 0.18.5 comes from the GTK 3 stack of Tauri on Linux only. Tauri, wry and tao are at their latest version and still use it. Shipyard does not call the affected `VariantStrIter` API."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0436"
+ignoreUntil = 2027-01-29
+reason = "`paste` is unmaintained, not exploitable. It is a build-time macro of `specta`. No code of it runs in the app."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0370"
+ignoreUntil = 2027-01-29
+reason = "`proc-macro-error` is unmaintained, not exploitable. It is a build-time macro of the Tauri GTK stack (Linux). No code of it runs in the app."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2025-0134"
+ignoreUntil = 2027-01-29
+reason = "`rustls-pemfile` is unmaintained, not exploitable. It comes from `ureq` 2 through `rustls-native-certs` 0.7. It parses the trust store and a bundle that the person chose. The fix is `ureq` 3, a separate task."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0371"
+ignoreUntil = 2027-01-29
+reason = "`zbus_names` comes from the Linux D-Bus stack of Tauri notifications and the keyring (Linux only). No fix exists. Shipyard does not parse an untrusted D-Bus name."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0370"
+ignoreUntil = 2027-01-29
+reason = "`zvariant` comes from the Linux D-Bus stack of Tauri notifications and the keyring (Linux only). No fix exists. Shipyard does not decode untrusted D-Bus values."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0372"
+ignoreUntil = 2027-01-29
+reason = "`zvariant_derive` comes from the Linux D-Bus stack of Tauri notifications and the keyring (Linux only). No fix exists. Shipyard does not decode untrusted D-Bus values."
+
+[[IgnoredVulns]]
+id = "GHSA-848j-6mx2-7j84"
+ignoreUntil = 2027-01-29
+reason = "`elliptic` 6.6.1 has no fix. It comes from the Node `crypto` polyfill of `vite-plugin-node-polyfills`, which `vite.config.ts` does not enable, so it is not in the app bundle."

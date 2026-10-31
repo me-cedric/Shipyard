@@ -274,5 +274,5 @@ impl Fx {
 }
 
 fn workflow_of(text: &str) -> shipyard_core::workflow::Workflow {
-    serde_yaml::from_str(text).unwrap()
+    serde_norway::from_str(text).unwrap()
 }

@@ -164,7 +164,11 @@ pub fn read(bytes: &[u8]) -> Result<Plugin> {
     let mut total = 0u64;
     for i in 0..zip.len() {
         let f = zip.by_index(i).map_err(|e| e.to_string())?;
-        let name = f.name().trim_end_matches('/').to_string();
+        let name = f
+            .name()
+            .map_err(|e| e.to_string())?
+            .trim_end_matches('/')
+            .to_string();
         if !safe_rel(&name) {
             return Err(format!("path not allowed: {name}").into());
         }

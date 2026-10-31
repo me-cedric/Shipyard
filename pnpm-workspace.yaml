@@ -1,0 +1,7 @@
+# Patched versions of transitive packages that Excalidraw pins (nanoid, lodash-es, katex).
+# pnpm 11 reads overrides here, not in package.json. Remove an entry when its parent moves past it.
+overrides:
+  "nanoid@<3.3.18": "^3.3.18"
+  "nanoid@>=4 <5.1.16": "^5.1.16"
+  "lodash-es@<4.18.0": "^4.18.1"
+  "katex@<0.18.2": "^0.18.2"

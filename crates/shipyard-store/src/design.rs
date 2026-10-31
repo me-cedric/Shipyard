@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use serde_yaml::Value;
+use serde_norway::Value;
 use shipyard_core::flows::{self, FlowRow};
 use shipyard_core::project::ProjectFile;
 use shipyard_core::refs;
@@ -143,7 +143,7 @@ type Info = (Option<String>, Option<String>);
 
 /// `Ok(None)`: a readable file that is not a contract.
 pub(crate) fn api_info(text: &str) -> Result<Option<Info>, String> {
-    let v: Value = serde_yaml::from_str(text).map_err(|e| e.to_string())?;
+    let v: Value = serde_norway::from_str(text).map_err(|e| e.to_string())?;
     if v.get("openapi").or_else(|| v.get("swagger")).is_none() {
         return Ok(None);
     }
@@ -155,7 +155,7 @@ pub(crate) fn api_info(text: &str) -> Result<Option<Info>, String> {
 /// The `servers` of a contract as `(listed, address)`. The address has each `{variable}` set to
 /// its default.
 pub fn api_servers(text: &str) -> Result<Vec<(String, String)>, String> {
-    let v: Value = serde_yaml::from_str(text).map_err(|e| e.to_string())?;
+    let v: Value = serde_norway::from_str(text).map_err(|e| e.to_string())?;
     Ok(v.get("servers")
         .and_then(Value::as_sequence)
         .into_iter()
@@ -280,7 +280,7 @@ pub fn read_flows(text: &str) -> Result<Vec<FlowRow>, String> {
     if text.trim_start().starts_with('{') {
         return read_flows_json(text);
     }
-    serde_yaml::from_str::<FlowFile>(text)
+    serde_norway::from_str::<FlowFile>(text)
         .map(|f| f.rows)
         .map_err(|e| e.to_string())
 }
@@ -384,12 +384,12 @@ pub fn write_flows_json(rows: &[FlowRow], old: &str) -> Result<String, String> {
 /// The file text for the rows. `old` is the text now in the file. A save drops a comment and a
 /// key other than `rows`, so a file that holds one is refused.
 pub fn write_flows(rows: &[FlowRow], old: &str) -> Result<String, String> {
-    let extra = serde_yaml::from_str::<serde_yaml::Mapping>(old)
+    let extra = serde_norway::from_str::<serde_norway::Mapping>(old)
         .is_ok_and(|m| m.keys().any(|k| k.as_str() != Some("rows")));
     if extra || old.lines().any(|l| l.trim_start().starts_with('#')) {
         return Err("the file holds content that a save would drop".into());
     }
-    serde_yaml::to_string(&FlowFile {
+    serde_norway::to_string(&FlowFile {
         rows: rows.to_vec(),
     })
     .map_err(|e| e.to_string())

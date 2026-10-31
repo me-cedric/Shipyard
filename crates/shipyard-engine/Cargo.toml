@@ -13,5 +13,5 @@ shipyard-mcp = { path = "../shipyard-mcp" }
 shipyard-store = { version = "0.1.0", path = "../shipyard-store" }
 
 [dev-dependencies]
-serde_yaml = "0.9.34"
+serde_norway = "0.9.42"
 tempfile = "3.27.0"

@@ -6,7 +6,7 @@
 
 use crate::seal::{self, SealError, Sealer};
 use serde::{Serialize, de::DeserializeOwned};
-use serde_yaml::Value;
+use serde_norway::Value;
 use shipyard_core::holidays::COUNTRIES;
 use shipyard_core::refs::{self, Ref};
 use shipyard_core::work::{Calendar, Decisions, Sheet, Team, TimeEntry, parse_day};
@@ -32,11 +32,11 @@ fn invalid<T>(msg: impl Into<String>) -> Result<T> {
 }
 
 fn parse<T: DeserializeOwned>(text: &str) -> Result<T> {
-    serde_yaml::from_str(text).map_err(|e| WorkError::Invalid(e.to_string()))
+    serde_norway::from_str(text).map_err(|e| WorkError::Invalid(e.to_string()))
 }
 
 fn dump<T: Serialize>(value: &T) -> Result<String> {
-    serde_yaml::to_string(value).map_err(|e| WorkError::Invalid(e.to_string()))
+    serde_norway::to_string(value).map_err(|e| WorkError::Invalid(e.to_string()))
 }
 
 /// The slug or handle that is a path part: lower case letters, digits and `-`.
@@ -79,7 +79,7 @@ pub fn read_team_with(text: &str, mut sealer: Option<&mut Sealer>) -> Result<Tea
         *rate = Value::Number(plain.parse::<f64>().map_err(|_| SealError::Damaged)?.into());
     }
     let mut team: Team =
-        serde_yaml::from_value(value).map_err(|e| WorkError::Invalid(e.to_string()))?;
+        serde_norway::from_value(value).map_err(|e| WorkError::Invalid(e.to_string()))?;
     team.check().map_err(WorkError::Invalid)?;
     team.locked = locked;
     Ok(team)
@@ -105,7 +105,7 @@ pub fn write_team_with(team: &Team, sealer: Option<&mut Sealer>) -> Result<Strin
         return Err(SealError::Locked.into());
     }
     team.check().map_err(WorkError::Invalid)?;
-    let mut value = serde_yaml::to_value(team).map_err(|e| WorkError::Invalid(e.to_string()))?;
+    let mut value = serde_norway::to_value(team).map_err(|e| WorkError::Invalid(e.to_string()))?;
     if let Some(sealer) = sealer {
         for member in members_of(&mut value) {
             if let Some(rate) = member.get_mut("dayRate") {

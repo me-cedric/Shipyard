@@ -16,7 +16,7 @@ import type {
 } from "./bindings";
 import { isRef } from "./mock-refs";
 
-// The same layout as `serde_yaml`.
+// The same layout as `serde_norway`.
 const YAML = { indentSeq: false };
 
 export type Files = Record<string, { text: string; stamp: string }>;

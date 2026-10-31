@@ -12,7 +12,7 @@ fn roles() -> Vec<String> {
 
 fn workflow(id: &str) -> Workflow {
     let (_, text) = default_workflows().iter().find(|(i, _)| *i == id).unwrap();
-    serde_yaml::from_str(text).unwrap()
+    serde_norway::from_str(text).unwrap()
 }
 
 /// A step that only reads runs in plan mode: the CLI refuses a write (security review, finding 5).
@@ -38,7 +38,7 @@ fn five_workflows_and_seven_roles_ship_and_validate() {
         ["feature", "bug", "spike", "spec-split", "review-only"]
     );
     for (id, text) in default_workflows() {
-        let wf: Workflow = serde_yaml::from_str(text).unwrap_or_else(|e| panic!("{id}: {e}"));
+        let wf: Workflow = serde_norway::from_str(text).unwrap_or_else(|e| panic!("{id}: {e}"));
         assert_eq!(wf.id, *id);
         assert_eq!(wf.check(&roles()), [], "{id}");
     }

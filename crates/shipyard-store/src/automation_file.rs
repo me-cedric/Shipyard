@@ -26,7 +26,7 @@ pub fn parse_automation(text: &str) -> std::result::Result<Automation, Issues> {
     if text.trim().is_empty() {
         return Ok(Automation::default());
     }
-    let auto: Automation = serde_yaml::from_str(text)
+    let auto: Automation = serde_norway::from_str(text)
         .map_err(|e| vec![(e.location().map(|l| l.line()), e.to_string())])?;
     let issues: Issues = auto
         .validate()
@@ -58,7 +58,7 @@ pub fn read_automation(root: &Path) -> Result<AutomationRead> {
 
 /// YAML text. Unset optional parts stay out. A null label stays in: absent means the default.
 pub fn render_automation(a: &Automation) -> Result<String> {
-    Ok(serde_yaml::to_string(&serde_yaml::to_value(a)?)?)
+    Ok(serde_norway::to_string(&serde_norway::to_value(a)?)?)
 }
 
 /// Write after validation. An invalid value is never written (REQ-002: the old file stays).

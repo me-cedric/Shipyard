@@ -92,8 +92,12 @@ fn an_archive_that_declares_size_zero_is_still_limited() {
     w.start_file("files/b", o).unwrap();
     w.write_all(big.as_bytes()).unwrap();
     let z = lie_about_size(w.finish().unwrap().into_inner());
-    let e = read(&z).err().unwrap();
-    assert!(e.to_string().contains("too large"), "{e}");
+    let e = read(&z).err().unwrap().to_string();
+    // `zip` 9 refuses a lying size itself; our byte count is the second guard.
+    assert!(
+        e.contains("too large") || e.contains("declared uncompressed size"),
+        "{e}"
+    );
 }
 
 #[test]

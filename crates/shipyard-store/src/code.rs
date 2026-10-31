@@ -76,11 +76,11 @@ pub fn encode_quality(r: &QualityReport, secrets: &[&str]) -> Result<String> {
         f.message = scrub(&f.message, secrets);
         f.path = scrub(&f.path, secrets);
     }
-    Ok(serde_yaml::to_string(&r)?)
+    Ok(serde_norway::to_string(&r)?)
 }
 
 pub fn decode_quality(text: &str) -> Result<QualityReport> {
-    Ok(serde_yaml::from_str(text)?)
+    Ok(serde_norway::from_str(text)?)
 }
 
 fn quality_file(root: &Path, kind: ReportKind, name: &str) -> PathBuf {

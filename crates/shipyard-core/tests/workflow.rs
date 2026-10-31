@@ -17,7 +17,7 @@ limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }
 "#;
 
 fn parse(yaml: &str) -> Workflow {
-    serde_yaml::from_str(yaml).expect("valid yaml")
+    serde_norway::from_str(yaml).expect("valid yaml")
 }
 
 fn roles() -> Vec<String> {
@@ -56,11 +56,11 @@ fn feature_workflow_parses_and_checks_clean() {
 #[test]
 fn unknown_field_is_rejected() {
     let bad = FEATURE.replace("fresh_context: true", "fresh: true");
-    assert!(serde_yaml::from_str::<Workflow>(&bad).is_err());
+    assert!(serde_norway::from_str::<Workflow>(&bad).is_err());
     let bad = FEATURE.replace("limits:", "extra: 1\nlimits:");
-    assert!(serde_yaml::from_str::<Workflow>(&bad).is_err());
+    assert!(serde_norway::from_str::<Workflow>(&bad).is_err());
     let bad = FEATURE.replace("gate: human", "gate: maybe");
-    assert!(serde_yaml::from_str::<Workflow>(&bad).is_err());
+    assert!(serde_norway::from_str::<Workflow>(&bad).is_err());
 }
 
 #[test]
@@ -158,7 +158,7 @@ fn limits_must_be_positive() {
         fields,
         ["limits.max_turns", "limits.budget_usd", "limits.stall_s"]
     );
-    assert!(serde_yaml::from_str::<Workflow>("id: t\nsteps: []\n").is_err());
+    assert!(serde_norway::from_str::<Workflow>("id: t\nsteps: []\n").is_err());
 }
 
 #[test]
@@ -296,7 +296,10 @@ fn schema_matches_the_model() {
         assert_eq!(listed, values, "{field}");
         for v in values {
             let yaml = format!("id: s\n{field}: {v}\n");
-            assert!(serde_yaml::from_str::<Step>(&yaml).is_ok(), "{field}: {v}");
+            assert!(
+                serde_norway::from_str::<Step>(&yaml).is_ok(),
+                "{field}: {v}"
+            );
         }
     }
 }

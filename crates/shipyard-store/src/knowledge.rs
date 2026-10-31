@@ -190,28 +190,28 @@ pub struct Loaded<T> {
 }
 
 fn load<T: Default + for<'de> Deserialize<'de>>(text: &str) -> Result<Loaded<T>> {
-    let raw: serde_yaml::Value = serde_yaml::from_str(text)?;
+    let raw: serde_norway::Value = serde_norway::from_str(text)?;
     let version = raw
         .get("version")
-        .and_then(serde_yaml::Value::as_u64)
+        .and_then(serde_norway::Value::as_u64)
         .unwrap_or(1);
     if version > u64::from(VERSION) {
         // Best effort: a shape that this code does not know shows as an empty value.
-        let value = serde_yaml::from_value(raw).unwrap_or_default();
+        let value = serde_norway::from_value(raw).unwrap_or_default();
         return Ok(Loaded {
             value,
             read_only: true,
         });
     }
     Ok(Loaded {
-        value: serde_yaml::from_value(raw)?,
+        value: serde_norway::from_value(raw)?,
         read_only: false,
     })
 }
 
 /// Refuses to replace a file that a newer version wrote.
 pub fn check_writable(existing: Option<&str>) -> Result<()> {
-    match existing.map(load::<serde_yaml::Value>) {
+    match existing.map(load::<serde_norway::Value>) {
         Some(Ok(l)) if l.read_only => Err("the file was written by a newer version".into()),
         _ => Ok(()),
     }
@@ -262,7 +262,7 @@ pub fn parse_theme(text: &str) -> Result<Loaded<DeckTheme>> {
 }
 
 pub fn theme_text(t: &DeckTheme) -> Result<String> {
-    Ok(serde_yaml::to_string(&DeckTheme {
+    Ok(serde_norway::to_string(&DeckTheme {
         version: VERSION,
         ..t.clone()
     })?)
@@ -331,7 +331,7 @@ pub fn dashboard_text(d: &Dashboard) -> Result<String> {
             return Err(format!("tile id used twice: {}", t.id).into());
         }
     }
-    Ok(serde_yaml::to_string(&Dashboard {
+    Ok(serde_norway::to_string(&Dashboard {
         version: VERSION,
         ..d.clone()
     })?)

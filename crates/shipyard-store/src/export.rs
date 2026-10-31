@@ -157,7 +157,7 @@ pub fn annex_item(name: &str, sheet: std::result::Result<&Sheet, String>) -> Ite
 
 /// The operations of an OpenAPI file as rows: method, path, summary.
 pub fn api_rows(text: &str) -> std::result::Result<Vec<Vec<String>>, String> {
-    let doc: serde_yaml::Value = serde_yaml::from_str(text).map_err(|e| e.to_string())?;
+    let doc: serde_norway::Value = serde_norway::from_str(text).map_err(|e| e.to_string())?;
     let mut rows = Vec::new();
     for (path, ops) in doc
         .get("paths")

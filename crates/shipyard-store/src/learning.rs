@@ -69,7 +69,7 @@ pub struct Learning {
 /// The file of the project. A missing file is an empty one.
 pub fn read(root: &Path) -> Result<Learning> {
     match std::fs::read_to_string(root.join(LEARNING_PATH)) {
-        Ok(text) => Ok(serde_yaml::from_str(&text).map_err(|e| format!("{LEARNING_PATH}: {e}"))?),
+        Ok(text) => Ok(serde_norway::from_str(&text).map_err(|e| format!("{LEARNING_PATH}: {e}"))?),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Learning::default()),
         Err(e) => Err(e.into()),
     }
@@ -78,7 +78,7 @@ pub fn read(root: &Path) -> Result<Learning> {
 fn write(root: &Path, l: &Learning) -> Result<Learning> {
     write_atomic(
         &root.join(LEARNING_PATH),
-        serde_yaml::to_string(l)?.as_bytes(),
+        serde_norway::to_string(l)?.as_bytes(),
     )?;
     Ok(l.clone())
 }

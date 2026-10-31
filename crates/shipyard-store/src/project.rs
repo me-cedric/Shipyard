@@ -6,7 +6,7 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
-use serde_yaml::Value;
+use serde_norway::Value;
 use shipyard_core::project::{PROJECT_FILE, ProjectFile, validate};
 use specta::Type;
 
@@ -37,7 +37,7 @@ pub(crate) fn line_of(text: &str, field: &str, value: &str) -> Option<usize> {
 }
 
 pub fn parse_project_file(text: &str) -> std::result::Result<ProjectFile, Issues> {
-    let file: ProjectFile = serde_yaml::from_str(text).map_err(|e| {
+    let file: ProjectFile = serde_norway::from_str(text).map_err(|e| {
         let msg = e.to_string();
         // An unknown field names itself: "unknown field `theme`, expected ...".
         let line = e.location().map(|l| l.line());
@@ -67,11 +67,11 @@ pub fn read_project_file(root: &Path) -> Result<FileRead> {
 
 /// YAML text of a project file. Unset values stay out.
 pub fn render_project_file(f: &ProjectFile) -> Result<String> {
-    let mut v = serde_yaml::to_value(f)?;
+    let mut v = serde_norway::to_value(f)?;
     if let Value::Mapping(m) = &mut v {
         m.retain(|_, x| !x.is_null() && !matches!(x, Value::Sequence(s) if s.is_empty()));
     }
-    Ok(serde_yaml::to_string(&v)?)
+    Ok(serde_norway::to_string(&v)?)
 }
 
 /// Writes the file after validation. An invalid file is never written.

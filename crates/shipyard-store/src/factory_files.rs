@@ -95,7 +95,7 @@ pub fn parse_role(id: &str, text: &str) -> std::result::Result<Role, (Option<usi
                 return Err((Some(1), "the frontmatter has no closing `---`".into()));
             };
             let yaml = &rest[..at];
-            let front: Front = serde_yaml::from_str(yaml)
+            let front: Front = serde_norway::from_str(yaml)
                 // The frontmatter starts on line 2 of the file.
                 .map_err(|e| (e.location().map(|l| l.line() + 1), e.to_string()))?;
             (Some(front), &rest[at + line.len()..])
@@ -224,8 +224,8 @@ pub fn parse_workflow(
     text: &str,
     roles: &[String],
 ) -> std::result::Result<Workflow, (Option<usize>, String)> {
-    let wf: Workflow =
-        serde_yaml::from_str(text).map_err(|e| (e.location().map(|l| l.line()), e.to_string()))?;
+    let wf: Workflow = serde_norway::from_str(text)
+        .map_err(|e| (e.location().map(|l| l.line()), e.to_string()))?;
     if wf.id != id {
         return Err((
             line_of(text, "id", &wf.id),
