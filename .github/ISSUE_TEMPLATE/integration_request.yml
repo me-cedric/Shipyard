@@ -1,0 +1,48 @@
+name: Integration request
+description: Ask Shipyard to connect to a tool or service.
+labels: ["integration"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      description: Pick the closest kind.
+      options:
+        - Tracker
+        - Forge
+        - Agent runner
+        - MCP server
+        - Model provider
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: product
+    attributes:
+      label: Product
+      description: Name the product and its edition or version.
+      placeholder: Jira Data Center 10
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Say what you want to do with it in Shipyard.
+    validations:
+      required: true
+  - type: dropdown
+    id: auth
+    attributes:
+      label: Auth modes
+      description: Pick every mode the product supports.
+      multiple: true
+      options:
+        - OAuth
+        - API token or personal access token
+        - Username and password
+        - SSH key
+        - No auth
+        - Other
+    validations:
+      required: false
