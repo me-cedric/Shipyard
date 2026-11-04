@@ -72,6 +72,43 @@ describe("Factory tabs", () => {
 		await waitFor(async () => expect((await unwrap(commands.workflowGet("bug"))).text).toBe(next));
 	});
 
+	it("Workflows: text typed during a save stays and saves next", async () => {
+		const user = userEvent.setup();
+		await renderTab(<Workflows />);
+		await user.click(await screen.findByRole("button", { name: /^bug/ }));
+		const editor = (await screen.findByRole("textbox", { name: "bug" })) as HTMLTextAreaElement;
+		const first = `${editor.value}\n# a\n`;
+		const second = `${first}# b\n`;
+		const real = commands.workflowWrite;
+		let release = () => {};
+		const spy = vi.spyOn(commands, "workflowWrite").mockImplementationOnce(async (...a) => {
+			await new Promise<void>((r) => {
+				release = r;
+			});
+			return real(...a);
+		});
+		try {
+			fireEvent.change(editor, { target: { value: first } });
+			const save = screen.getByRole("button", { name: "Save" });
+			await waitFor(() => expect(save).toBeEnabled());
+			await user.click(save);
+			fireEvent.change(editor, { target: { value: second } });
+			expect(save).toBeDisabled();
+			release();
+			await waitFor(async () =>
+				expect((await unwrap(commands.workflowGet("bug"))).text).toBe(first),
+			);
+			await waitFor(() => expect(save).toBeEnabled());
+			expect(editor.value).toBe(second);
+			await user.click(save);
+			await waitFor(async () =>
+				expect((await unwrap(commands.workflowGet("bug"))).text).toBe(second),
+			);
+		} finally {
+			spy.mockRestore();
+		}
+	});
+
 	it("Workflows: a role saves with roleWrite", async () => {
 		const user = userEvent.setup();
 		await renderTab(<Workflows />);

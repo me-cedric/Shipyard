@@ -5,7 +5,7 @@ import { OpenInTerminal } from "@/features/reports/open-in-terminal";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
-import { usePrefs } from "@/lib/prefs";
+import { usePanelSize, usePrefs } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { rememberSelection } from "@/lib/shell/selection";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -23,6 +23,7 @@ import {
 	XMarkIcon,
 } from "@/ui/icons";
 import { ContextMenu } from "@/ui/molecules/context-menu";
+import { Splitter } from "@/ui/molecules/splitter";
 import { type FileAction, FileActionDialog } from "./file-actions";
 import { FileDialog } from "./viewer";
 
@@ -107,7 +108,9 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 	// New folders with no file yet: git lists none, so the drawer keeps them until it closes.
 	const [made, setMade] = useState<string[]>([]);
 	const qc = useQueryClient();
-	const readOnly = usePrefs().profile.readOnly;
+	const { profile, drawerSide } = usePrefs();
+	const readOnly = profile.readOnly;
+	const panel = usePanelSize("files-width", 288);
 	const search = useRef<HTMLInputElement>(null);
 	useEffect(() => search.current?.focus(), []);
 	const paths = useMemo(
@@ -210,8 +213,19 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 	return (
 		<aside
 			aria-label={f.title}
-			className="z-10 my-2 ml-2 flex w-72 shrink-0 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1"
+			style={{ width: panel.size }}
+			className="relative z-10 my-2 ml-2 flex max-w-[40vw] shrink-0 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1"
 		>
+			<Splitter
+				label={t.ui.resize.files}
+				value={panel.size}
+				min={200}
+				max={400}
+				invert={drawerSide === "right"}
+				onChange={panel.set}
+				onReset={panel.reset}
+				className={drawerSide === "right" ? "left-0" : "right-0"}
+			/>
 			<div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
 				<span className="flex text-n-10">
 					<FolderOpenIcon size={14} />

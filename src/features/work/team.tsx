@@ -11,6 +11,7 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { LockClosedIcon, PlusIcon, TrashIcon, UsersIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Loading } from "@/ui/molecules/loading";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { useGuard } from "./guard";
 import { NoProject } from "./no-project";
@@ -275,7 +276,7 @@ export function Team() {
 		!!view.data,
 	);
 
-	if (active === undefined || view.isLoading) return null;
+	if (active === undefined || view.isLoading) return <Loading />;
 	if (active === null) return <NoProject title={t.tabs.work.team} />;
 	const add = () => {
 		setSelected(null);

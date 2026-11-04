@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
+import { classify, errorMessage } from "@/lib/i18n/errors";
 import {
 	type Connection_Serialize,
 	type ConnectionGroup,
@@ -44,6 +45,7 @@ import { connectionKeys, message, useMcpServers, useProviders } from "./keys";
 import { McpAddForm, McpGroup } from "./mcp-group";
 import { McpOutsideGroup } from "./mcp-outside-group";
 import { ProviderForm, ProvidersGroup } from "./providers-group";
+import { Repair } from "./repair";
 import { RunnersGroup } from "./runners-group";
 
 const STATE_SHAPE: Record<ConnectionState, Status> = {
@@ -227,6 +229,13 @@ function Row({
 		}
 	};
 
+	// One cause, one line: a refused token (a 401 from the sync or from the test) shows the repair
+	// line with its actions, and neither the raw sync error nor the test text again.
+	const refused =
+		(c.kind === "github" || c.kind === "gitlab") &&
+		((sync?.error != null && classify(sync.error).code === "forge_denied") ||
+			(result?.kind === "failed" && result.reason.startsWith("the token was rejected")));
+
 	const text = result
 		? format(t.connections.result[result.kind], {
 				account: result.kind === "passed" ? result.account : "",
@@ -290,11 +299,16 @@ function Row({
 					label={t.sync.state[sync.status]}
 					time={sync.lastOk === null ? undefined : clock(sync.lastOk, lang)}
 					dateTime={sync.lastOk === null ? undefined : new Date(sync.lastOk * 1000).toISOString()}
-					detail={sync.error ?? undefined}
+					detail={
+						sync.error && !refused
+							? errorMessage({ ...classify(sync.error), details: sync.error }, lang)
+							: undefined
+					}
 				/>
 			) : null}
 			<GitlabTools connection={c} />
-			{result && text ? (
+			{refused ? <Repair connection={c} /> : null}
+			{result && text && !refused ? (
 				<p role="status" className="flex items-center gap-2 px-3 pb-2 text-ui">
 					<StatusDot
 						status={result.kind === "passed" ? "success" : "danger"}

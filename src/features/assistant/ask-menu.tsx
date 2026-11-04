@@ -24,7 +24,7 @@ function usePromptLang(): Lang {
 const popup =
 	"min-w-40 origin-(--transform-origin) rounded-lg border border-n-6 bg-surface-3 p-1 text-ui shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 motion-reduce:transition-none";
 const item =
-	"flex h-row cursor-default items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5";
+	"flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5";
 
 /** The canned prompts of a type. A click puts one in the draft of the assistant: the person reads it and sends it. */
 function Items({ type, subject }: { type: ItemType; subject: string | null }) {

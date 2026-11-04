@@ -141,6 +141,8 @@ pub struct Repository {
     /// `Some(false)` marks a repository that the account cannot push to (REQ-019).
     /// `None` means the forge does not say. Azure DevOps never says in a listing.
     pub can_push: Option<bool>,
+    pub description: String,
+    pub private: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -42,7 +42,7 @@ describe("the sync action and the connection state rows", () => {
 		const row = await screen.findByRole("group", { name: "Acme" });
 		await user.click((await top()).getByRole("button", { name: "Sync" }));
 		await waitFor(() => expect(within(row).getByRole("status")).toHaveTextContent("Failed"));
-		expect(within(row).getByRole("status")).toHaveTextContent("no secret saved");
+		expect(within(row).getByRole("status")).toHaveTextContent("This connection has no token yet.");
 		expect((await bar()).getAllByRole("alert")[0]).toHaveTextContent(
 			"This connection has no token yet.",
 		);

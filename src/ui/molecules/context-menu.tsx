@@ -42,7 +42,7 @@ export function ContextMenu({ items, children }: { items?: MenuItem[]; children:
 							<BaseContextMenu.Item
 								key={item.id}
 								onClick={item.onSelect}
-								className="flex h-row cursor-default items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5"
+								className="flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5"
 							>
 								{item.icon ? (
 									<span aria-hidden="true" className="text-n-10">

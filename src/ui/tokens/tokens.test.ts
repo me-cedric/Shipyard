@@ -123,7 +123,7 @@ describe("motion (REQ-002)", () => {
 		expect(decl(theme, "--duration-base")).toBe("200ms");
 	});
 
-	it("loops only the live-state indicators: active run, live agent, running sync", () => {
+	it("loops only the live-state indicators (active run, live agent, running sync) and the loading rows", () => {
 		const loops = Object.entries(sources).filter(
 			([p, t]) => !/\.test\./.test(p) && /\banimate-(?!none)/.test(t),
 		);
@@ -131,6 +131,7 @@ describe("motion (REQ-002)", () => {
 			"/src/ui/atoms/animated-icon.tsx",
 			"/src/ui/atoms/live-dot.tsx",
 			"/src/ui/atoms/status-dot.tsx",
+			"/src/ui/molecules/loading.tsx",
 		]);
 		expect(decl(block("@theme"), "--animate-status-pulse")).toContain("infinite");
 		expect(decl(block("@theme"), "--animate-live")).toContain("infinite");

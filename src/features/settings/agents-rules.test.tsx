@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
+import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 
 const row = (name: string) => screen.findByRole("group", { name });
@@ -75,5 +76,25 @@ describe("Settings / Agents and rules: model tiers", () => {
 		await user.tab();
 		expect(await screen.findByRole("alert")).toHaveTextContent("is not a model id");
 		expect((await unwrap(commands.tiersGet()))[2]?.mid).toBe("");
+	});
+
+	it("shows an effort that the tool no longer accepts as not supported and lets a person pick another", async () => {
+		const user = userEvent.setup();
+		const saved = mockState().factory.tiers.find((r) => r.runner === "codex");
+		if (saved) saved.midEffort = "minimal";
+		mountApp("/settings/agents-rules");
+		const codex = await row("codex");
+		const mid = await within(codex).findByRole("combobox", { name: "codex Mid Effort" });
+		expect(mid).toHaveTextContent("minimal (not supported)");
+		await user.click(mid);
+		await user.click(await screen.findByRole("option", { name: "high" }));
+		await waitFor(async () =>
+			expect((await unwrap(commands.tiersGet())).find((r) => r.runner === "codex")?.midEffort).toBe(
+				"high",
+			),
+		);
+		expect(within(codex).getByRole("combobox", { name: "codex Mid Effort" })).toHaveTextContent(
+			"high",
+		);
 	});
 });

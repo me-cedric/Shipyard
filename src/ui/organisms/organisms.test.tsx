@@ -13,7 +13,8 @@ describe("Inspector (REQ-005, REQ-010)", () => {
 			</Inspector>,
 		);
 		const panel = screen.getByRole("complementary", { name: "Detail" });
-		expect(panel.className).toContain("data-[open=true]:w-80");
+		expect(panel).toHaveStyle({ width: "320px" });
+		expect(screen.getByRole("separator", { name: "Inspector width" })).toBeInTheDocument();
 		await userEvent.click(screen.getByRole("button", { name: "Inside" }));
 		await userEvent.keyboard("{Escape}");
 		expect(onClose).toHaveBeenCalledOnce();

@@ -75,7 +75,7 @@ export function CommandPalette({
 												setSearch("");
 												onOpenChange(false);
 											}}
-											className="flex h-row cursor-default items-center gap-2 rounded-sm px-2 text-ui text-n-12 data-[selected=true]:bg-n-5"
+											className="flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-ui text-n-12 data-[selected=true]:bg-n-5"
 										>
 											<span aria-hidden="true" className="text-n-10">
 												{item.icon}

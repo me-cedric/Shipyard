@@ -266,6 +266,7 @@ export const fr: Messages = {
 		makeProject: "En faire un projet",
 		back: "Retour",
 		cloneRun: "Cloner",
+		cloning: "Clonage",
 		createRun: "Créer",
 		close: "Fermer le projet",
 		remove: "Retirer de la liste",
@@ -426,6 +427,8 @@ export const fr: Messages = {
 		off: "Inactif",
 		login: "{user} sur {host} ({tool})",
 		useLogin: "Utiliser ce compte",
+		rejected: "Le jeton a été refusé.",
+		useCli: "Utiliser le compte {tool}",
 		field: {
 			name: "Nom",
 			type: "Type",

@@ -106,7 +106,7 @@ describe("Code / Quality", () => {
 		await waitFor(() =>
 			expect(screen.getByText("Security score").parentElement).toHaveTextContent("90"),
 		);
-		await user.click(screen.getByRole("button", { name: "Export SBOM" }));
+		await user.click(screen.getByRole("button", { name: "Export the list of software parts" }));
 		expect(
 			await screen.findByText("312 components in docs/security/sbom.cdx.json"),
 		).toBeInTheDocument();

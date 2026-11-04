@@ -117,7 +117,9 @@ export function ConnectionForm({
 	const [group, setGroup] = useState<ConnectionGroup>(
 		connection?.group ?? initialGroup ?? "tracker",
 	);
-	const [kind, setKind] = useState<ConnectionKind>(connection?.kind ?? "jira-cloud");
+	const [kind, setKind] = useState<ConnectionKind>(
+		connection?.kind ?? KINDS[group][0] ?? "jira-cloud",
+	);
 	const [name, setName] = useState(connection?.name ?? "");
 	const [url, setUrl] = useState(connection?.url ?? "");
 	const [user, setUser] = useState(connection?.user ?? "");

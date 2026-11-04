@@ -11,6 +11,7 @@ import { FilterBar } from "@/ui/molecules/filter-bar";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { type CanvasNode, GraphCanvas, KindMark } from "@/ui/organisms/graph-canvas";
 import { ListDetail } from "@/ui/templates/list-detail";
+import { boxOf, cellOf, clusterView, forceLayout, type GNode, isCluster } from "./graph-clusters";
 
 type Source = "refs" | "code";
 
@@ -62,6 +63,8 @@ export function Graph() {
 		};
 	}, [source, refs, code, k, kindNames]);
 
+	const [open, setOpen] = useState<string[]>([]);
+	const clustered = source === "refs" && !focus;
 	const kinds = useMemo(() => {
 		const count = new Map<string, number>();
 		for (const n of all.nodes) count.set(n.kind, (count.get(n.kind) ?? 0) + 1);
@@ -86,6 +89,60 @@ export function Graph() {
 		);
 		return { nodes, edges: all.edges };
 	}, [all, hidden, focus, query, source]);
+
+	// Clusters first: a cluster draws as one node, and opens in place on a click or Enter.
+	const drawn = useMemo(() => {
+		if (!clustered || !refs) return null;
+		const raw: GNode[] = refs.nodes.map((n) => ({
+			ref: n.ref,
+			kind: n.kind,
+			title: n.title || n.ref,
+			location: n.location,
+		}));
+		const keep = new Set(shown.nodes.map((n) => n.id));
+		const q = query.trim();
+		const kindName = (id: string) => kindNames[id] ?? id;
+		const view = clusterView(
+			raw,
+			raw.filter((n) => keep.has(n.ref)),
+			all.edges,
+			open,
+			q,
+		);
+		const byId = new Map(shown.nodes.map((n) => [n.id, n]));
+		const boxes = view.clusters.map((c) => boxOf(c.id, c.members.length, view.open.has(c.id)));
+		const place = forceLayout(boxes, view.links);
+		const positions = new Map<string, { x: number; y: number }>();
+		const nodes: CanvasNode[] = [];
+		const table: CanvasNode[] = [];
+		for (const c of view.clusters) {
+			const isOpen = view.open.has(c.id);
+			const at = place.get(c.id) ?? { x: 0, y: 0 };
+			const lead = c.members.find((m) => m.ref === `${c.kind}:${c.key}`)?.title;
+			const title = c.key ? lead || c.key : kindName(c.kind);
+			const head: CanvasNode = {
+				id: c.id,
+				kind: c.kind,
+				label: title,
+				name: `${c.key ? `${kindName(c.kind)} ${title}` : title} ${c.members.length}`,
+				count: c.members.length,
+				open: isOpen,
+			};
+			positions.set(c.id, at);
+			nodes.push(head);
+			table.push(head);
+			c.members.forEach((m, i) => {
+				const n = byId.get(m.ref);
+				if (!n) return;
+				table.push(n);
+				if (!isOpen) return;
+				const cell = cellOf(i, c.members.length);
+				positions.set(m.ref, { x: at.x + cell.x, y: at.y + cell.y });
+				nodes.push(q ? { ...n, match: true } : n);
+			});
+		}
+		return { nodes, table, positions, links: view.links };
+	}, [clustered, refs, shown.nodes, all.edges, open, query, kindNames]);
 
 	if (active === undefined) return null;
 	if (active === null) return <NoProject title={k.graph.title} />;
@@ -150,14 +207,20 @@ export function Graph() {
 				</div>
 			) : (
 				<GraphCanvas
-					nodes={shown.nodes}
-					links={shown.edges}
+					nodes={drawn?.nodes ?? shown.nodes}
+					links={drawn?.links ?? shown.edges}
+					positions={drawn?.positions}
+					tableNodes={drawn?.table}
 					kinds={kinds.map((x) => ({ id: x.id, label: kindName(x.id) }))}
 					label={k.graph.title}
 					labels={k.canvas}
 					glow
 					selected={selectedRef}
-					onOpen={(id) => openRef(source === "code" ? `code:${id}` : id)}
+					onOpen={(id) =>
+						isCluster(id)
+							? setOpen((o) => (o.includes(id) ? o.filter((x) => x !== id) : [...o, id]))
+							: openRef(source === "code" ? `code:${id}` : id)
+					}
 				/>
 			)}
 		</ListDetail>

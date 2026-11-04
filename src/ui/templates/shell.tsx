@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
+import { usePanelSize } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
+import { Splitter } from "../molecules/splitter";
 
 /** A context bar on top, a floating sidebar (56 px rail or 220 px open), the main canvas and a status bar. */
 export function Shell({
@@ -43,15 +45,29 @@ export function Shell({
 	narrow?: boolean;
 }) {
 	const { t } = useI18n();
+	const panel = usePanelSize("sidebar-width", 220);
 	const nav = (
 		<nav
 			aria-label={t.nav.sidebar}
 			data-open={sidebarOpen}
+			style={{ width: sidebarOpen ? panel.size : 56 }}
 			className={cn(
-				"z-10 my-2 shrink-0 overflow-hidden rounded-lg border bg-surface-1 shadow-1 transition-[width] duration-(--duration-base) ease-standard data-[open=false]:w-14 data-[open=true]:w-55",
+				"relative z-10 my-2 max-w-[40vw] shrink-0 overflow-hidden rounded-lg border bg-surface-1 shadow-1 transition-[width] duration-(--duration-base) ease-standard",
 				navSide === "right" ? "mr-2" : "ml-2",
 			)}
 		>
+			{sidebarOpen ? (
+				<Splitter
+					label={t.ui.resize.sidebar}
+					value={panel.size}
+					min={180}
+					max={320}
+					invert={navSide === "right"}
+					onChange={panel.set}
+					onReset={panel.reset}
+					className={navSide === "right" ? "left-0" : "right-0"}
+				/>
+			) : null}
 			{sidebar}
 		</nav>
 	);

@@ -75,6 +75,8 @@ pub(crate) fn repository(v: &Value) -> Repository {
         url: text(v, "/html_url"),
         default_branch: text(v, "/default_branch"),
         archived,
+        description: text(v, "/description"),
+        private: v["private"].as_bool() == Some(true),
         // The permissions object is present when the request is authenticated.
         can_push: v
             .pointer("/permissions/push")

@@ -28,9 +28,16 @@ export function CloseGuard() {
 				</Button>
 			}
 		>
-			{state.data ? (
+			{state.data && state.data.runs + state.data.turns > 0 ? (
 				<p className="text-ui">
 					{format(t.ui.closeGuard.body, { runs: state.data.runs, turns: state.data.turns })}
+				</p>
+			) : null}
+			{state.data?.drafts ? (
+				<p className="text-ui">
+					{state.data.drafts === 1
+						? t.ui.closeGuard.draftsOne
+						: format(t.ui.closeGuard.drafts, { drafts: state.data.drafts })}
 				</p>
 			) : null}
 		</Dialog>

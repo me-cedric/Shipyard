@@ -11,6 +11,7 @@ import {
 	type Severity,
 	unwrap,
 } from "@/lib/ipc";
+import { forgetView } from "@/lib/shell/view-state";
 
 export type ProjectEntry = ProjectEntry_Serialize;
 export type ProjectOutcome = ProjectOutcome_Serialize;
@@ -181,6 +182,7 @@ export function useProjectActions() {
 		async (p: { id: string; name: string }) => {
 			if (!(await confirmDialog(format(t.projects.confirmRemove, { name: p.name })))) return;
 			await unwrap(commands.projectsRemove(p.id));
+			forgetView(p.id);
 			if (!(await unwrap(commands.projectsActive()))) router.history.push("/");
 			qc.invalidateQueries();
 		},

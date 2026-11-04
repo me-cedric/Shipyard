@@ -2,6 +2,7 @@ import { useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { commands, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
+import { setViewProject } from "@/lib/shell/view-state";
 
 /**
  * Keeps the last view of each project (shell REQ-015). The first project that loads at start
@@ -14,6 +15,8 @@ export function ViewMemory() {
 	const seen = useRef<string | undefined>(undefined);
 	const id = active?.id;
 	const lastView = active?.lastView;
+
+	useEffect(() => setViewProject(id ?? ""), [id]);
 
 	useEffect(() => {
 		if (!id) {

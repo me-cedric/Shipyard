@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { EditorError } from "./error-line";
 import { edgePath, type Layout, shortMessage, toLayout } from "./likec4-layout";
 import { LineError, useRender } from "./use-render";
@@ -12,7 +13,9 @@ export async function renderLikeC4(source: string): Promise<Layout[]> {
 	const [first] = likec4.getErrors();
 	// LikeC4 counts lines from 0.
 	if (first) throw new LineError(shortMessage(first.message), first.line + 1);
-	return (await likec4.diagrams()).map(toLayout);
+	const views = (await likec4.diagrams()).map(toLayout);
+	if (views.length === 0) throw new Error("The model has no view to draw.");
+	return views;
 }
 
 function Drawing({ view }: { view: Layout }) {
@@ -101,9 +104,23 @@ export function LikeC4View({
 	label: string;
 	onError?: (error: EditorError | null) => void;
 }) {
-	const views = useRender(source, renderLikeC4, onError, 400);
+	const [failure, setFailure] = useState<string | null>(null);
+	const views = useRender(
+		source,
+		renderLikeC4,
+		(e) => {
+			setFailure(e?.message ?? null);
+			onError?.(e);
+		},
+		400,
+	);
 	return (
 		<div className="flex min-h-40 flex-col gap-4 overflow-auto rounded-md border border-n-7 bg-n-1 p-3">
+			{failure ? (
+				<p role="alert" className="text-ui text-danger-text">
+					{failure}
+				</p>
+			) : null}
 			{(views ?? []).map((v) => (
 				<figure key={v.id} aria-label={`${label}: ${v.title}`} className="flex flex-col gap-1">
 					<figcaption className="text-12 font-medium text-n-11">{v.title}</figcaption>

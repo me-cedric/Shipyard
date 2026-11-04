@@ -16,6 +16,7 @@ import { FolderOpenIcon, PlusIcon, QueueListIcon, ViewColumnsIcon } from "@/ui/i
 import { Card } from "@/ui/molecules/card";
 import { ContextMenu } from "@/ui/molecules/context-menu";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Loading } from "@/ui/molecules/loading";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { LIST, useEnter } from "@/ui/motion";
 import { Dialog } from "@/ui/organisms/dialog";
@@ -195,7 +196,7 @@ export function ArtifactTab({
 				</div>
 			</ListDetail>
 		);
-	if (list.isLoading) return null;
+	if (list.isLoading) return <Loading />;
 	const open = all.find((r) => r.ref === selected);
 	const add = () => setAdding(true);
 	const pick = (ref: string) => {

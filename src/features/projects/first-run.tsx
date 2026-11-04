@@ -1,8 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { type ComponentType, useEffect, useState } from "react";
+import { type ComponentType, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { commands, isTauri, pickFolder, unwrap } from "@/lib/ipc";
+import { commands, pickFolder, unwrap } from "@/lib/ipc";
 import { ROLES, type Role, usePrefs } from "@/lib/prefs";
 import { outcomeError, type ProjectOutcome, useProjectActions, useProjects } from "@/lib/projects";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,8 @@ import {
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { STATE_DOT } from "@/ui/molecules/project-switcher";
 import logo from "../../../docs/assets/logo.svg";
+import { useCloneFolder } from "./clone-folder";
+import { RepoPicker } from "./repo-picker";
 
 type Step = "start" | "clone" | "create";
 
@@ -57,13 +59,6 @@ export const folderOf = (name: string) =>
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-+|-+$/g, "") || "project";
-
-/** `~/Projects` on this machine: the default parent folder of a new project. */
-async function projectsHome() {
-	if (!isTauri()) return "/mock/Projects";
-	const { homeDir, join } = await import("@tauri-apps/api/path");
-	return join(await homeDir(), "Projects");
-}
 
 /** `https://host/team/repo.git` and `git@host:team/repo.git` both give `repo`. */
 export const repoName = (url: string) =>
@@ -106,13 +101,10 @@ export function FirstRun() {
 	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
 	const [url, setUrl] = useState("");
-	const [folder, setFolder] = useState("");
+	const [folder, setFolder] = useCloneFolder();
 	const [name, setName] = useState("");
 	// A folder without Git: the error offers to make it a project.
 	const [plain, setPlain] = useState<string | null>(null);
-	useEffect(() => {
-		void projectsHome().then((home) => setFolder((f) => f || home));
-	}, []);
 
 	const run = async (start: () => Promise<ProjectOutcome | null>) => {
 		setBusy(true);
@@ -259,6 +251,7 @@ export function FirstRun() {
 						</h2>
 						{step === "clone" ? (
 							<>
+								<RepoPicker folder={folder} onDone={() => void qc.invalidateQueries()} />
 								<Input
 									label={t.projects.address}
 									placeholder={t.projects.address}

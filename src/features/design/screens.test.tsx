@@ -79,6 +79,29 @@ describe("Design / Screens", () => {
 		);
 	});
 
+	it("shows an image from any folder of the project large, and opens a full-size view on click", async () => {
+		const user = userEvent.setup();
+		files()["docs/assets/screenshots/shot.png"] = { text: "PNG", stamp: "1" };
+		files()["docs/designs/screens.json"] = {
+			text: JSON.stringify({
+				screens: [{ slug: "shot", title: "Shot", file: "docs/assets/screenshots/shot.png" }],
+			}),
+			stamp: "2",
+		};
+		await mountDesign(<Screens />);
+		await user.click(await row(/Shot/));
+		const view = await main();
+		expect(await view.findByRole("img", { name: "Shot" })).toHaveClass("w-full");
+		await user.click(view.getByRole("button", { name: "Enlarge: Shot" }));
+		const dialog = await screen.findByRole("dialog", { name: "Shot" });
+		const big = within(dialog).getByRole("img", { name: "Shot" });
+		expect(big).toHaveClass("w-full");
+		await user.click(within(dialog).getByRole("button", { name: "100%" }));
+		expect(big).toHaveClass("max-w-none");
+		await user.keyboard("{Escape}");
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	});
+
 	it("shows a link to a file that does not exist as broken, with no open action", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Screens />);

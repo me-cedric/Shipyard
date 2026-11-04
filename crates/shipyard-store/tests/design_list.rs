@@ -8,7 +8,7 @@ use shipyard_core::flows::{Action, FlowRow};
 use shipyard_core::project::ProjectFile;
 use shipyard_core::refs::parse;
 use shipyard_store::design::{
-    Artifact, design_doc_path, list, read_flows, read_screens, resolve, write_flows,
+    Artifact, design_doc_path, list, read_flows, read_screens, resolve, resolve_image, write_flows,
 };
 
 fn project() -> ProjectFile {
@@ -331,6 +331,25 @@ fn resolve_rejects_a_link_that_leaves_the_repository() {
     fs::create_dir_all(dir.path().join("docs")).unwrap();
     std::os::unix::fs::symlink(out.path(), dir.path().join("docs/diagrams")).unwrap();
     assert!(resolve(dir.path(), &project(), "docs/diagrams/a.mmd").is_err());
+}
+
+#[test]
+fn resolve_image_allows_an_image_inside_and_refuses_the_rest() {
+    let dir = tempfile::tempdir().unwrap();
+    assert!(resolve_image(dir.path(), "docs/assets/screenshots/a.PNG").is_ok());
+    for rel in ["../a.png", "/a.png", "docs/a.md", "src/main.rs", ""] {
+        assert!(resolve_image(dir.path(), rel).is_err(), "{rel}");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn resolve_image_refuses_a_link_that_leaves_the_repository() {
+    let dir = tempfile::tempdir().unwrap();
+    let out = tempfile::tempdir().unwrap();
+    fs::create_dir_all(dir.path().join("docs")).unwrap();
+    std::os::unix::fs::symlink(out.path(), dir.path().join("docs/assets")).unwrap();
+    assert!(resolve_image(dir.path(), "docs/assets/a.png").is_err());
 }
 
 #[test]

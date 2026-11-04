@@ -55,10 +55,9 @@ describe("Settings / Project overrides and profile", () => {
 });
 
 describe("Clone dialog repo picker", () => {
-	it("lists the repositories of a forge account, marks the ones that cannot be pushed and fills the address", async () => {
-		const user = userEvent.setup();
-		await open("/mock/alpha");
-		await unwrap(
+	beforeEach(() => localStorage.removeItem("shipyard.cloneFolder"));
+	const hub = () =>
+		unwrap(
 			commands.connectionsAdd({
 				name: "Hub",
 				group: "forge",
@@ -67,24 +66,127 @@ describe("Clone dialog repo picker", () => {
 				user: null,
 			}),
 		);
+	const openDialog = async (user: ReturnType<typeof userEvent.setup>) => {
 		mountApp("/home/inbox");
 		await user.click(await screen.findByRole("button", { name: /^Project/ }));
 		await user.click(await screen.findByRole("menuitem", { name: "Clone a repository" }));
-		const dialog = within(await screen.findByRole("dialog"));
-		await dialog.findByRole("button", { name: "Use acme/web" });
-		expect(dialog.getByText("Cannot push")).toBeInTheDocument();
-		await user.type(dialog.getByRole("searchbox", { name: "Search repositories" }), "docs");
-		expect(dialog.queryByRole("button", { name: "Use acme/web" })).toBeNull();
-		await user.click(dialog.getByRole("button", { name: "Use acme/docs" }));
-		expect(dialog.getByRole("textbox", { name: "Repository address" })).toHaveValue(
-			"https://example.com/acme/docs",
+		return within(await screen.findByRole("dialog"));
+	};
+
+	it("shows the lock, the read-only badge, the description and the branch of each row", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		await hub();
+		const dialog = await openDialog(user);
+		const web = await dialog.findByRole("button", { name: "Clone acme/web" });
+		expect(within(web).getByRole("img", { name: "Private" })).toBeInTheDocument();
+		expect(within(web).getByText("The web app")).toBeInTheDocument();
+		expect(within(web).getByText("main")).toBeInTheDocument();
+		const docs = dialog.getByRole("button", { name: "Clone acme/docs" });
+		expect(within(docs).getByText("Read-only")).toBeInTheDocument();
+		expect(within(docs).queryByRole("img", { name: "Private" })).toBeNull();
+	});
+
+	it("searches the name and the description, and clones with Enter into the default folder", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		await hub();
+		const dialog = await openDialog(user);
+		await dialog.findByRole("button", { name: "Clone acme/web" });
+		const search = dialog.getByRole("searchbox", { name: "Search repositories" });
+		await user.type(search, "notes");
+		expect(dialog.queryByRole("button", { name: "Clone acme/web" })).toBeNull();
+		await user.clear(search);
+		await user.type(search, "{ArrowDown}{Enter}");
+		await waitFor(async () =>
+			expect((await unwrap(commands.projectsActive()))?.path).toBe("/mock/Projects/docs"),
 		);
+	});
+
+	it("loads every page and says when the list is capped", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		await hub();
+		const one = (n: number) => ({
+			slug: `acme/r${n}`,
+			url: `https://example.com/acme/r${n}`,
+			defaultBranch: "main",
+			archived: false,
+			canPush: true,
+			description: "",
+			private: false,
+		});
+		const spy = vi.spyOn(commands, "connectionsRepos").mockImplementation(async (_id, cursor) => {
+			const page = Number(cursor ?? 0);
+			return {
+				status: "ok",
+				data: {
+					items: Array.from({ length: 100 }, (_, i) => one(page * 100 + i)),
+					next: String(page + 1),
+				},
+			};
+		});
+		const dialog = await openDialog(user);
+		await dialog.findByText(/The list shows only the first 1000 repositories/);
+		expect(spy).toHaveBeenCalledTimes(10);
+		spy.mockRestore();
+	});
+
+	it("filters by owner", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		await hub();
+		const repo = (slug: string) => ({
+			slug,
+			url: `https://example.com/${slug}`,
+			defaultBranch: "main",
+			archived: false,
+			canPush: true,
+			description: "",
+			private: false,
+		});
+		const spy = vi.spyOn(commands, "connectionsRepos").mockResolvedValue({
+			status: "ok",
+			data: { items: [repo("acme/web"), repo("zed/api")], next: null },
+		});
+		const dialog = await openDialog(user);
+		await dialog.findByRole("button", { name: "Clone zed/api" });
+		await user.click(dialog.getByRole("combobox", { name: "Owner" }));
+		await user.click(await screen.findByRole("option", { name: "zed" }));
+		expect(dialog.queryByRole("button", { name: "Clone acme/web" })).toBeNull();
+		expect(dialog.getByRole("button", { name: "Clone zed/api" })).toBeInTheDocument();
+		spy.mockRestore();
+	});
+
+	it("tells a person with no account to sign in with gh or glab, and offers to add one", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		const dialog = await openDialog(user);
+		expect(await dialog.findByText("gh auth login")).toBeInTheDocument();
+		expect(dialog.getByText("glab auth login")).toBeInTheDocument();
+		expect(dialog.getByRole("button", { name: "Add account" })).toBeInTheDocument();
+	});
+
+	it("lists a gh login with its source and makes a connection when it is picked", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		mockState().logins = [{ tool: "gh", host: "github.com", user: "ana-dev" }];
+		const dialog = await openDialog(user);
+		await user.click(await dialog.findByRole("combobox", { name: "Account" }));
+		await user.click(await screen.findByRole("option", { name: "ana-dev (gh)" }));
+		await dialog.findByRole("button", { name: "Clone acme/web" });
+	});
+
+	it("still takes a link and a new remote repository", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		await hub();
+		const dialog = await openDialog(user);
+		await dialog.findByRole("button", { name: "Clone acme/web" });
 		await user.type(dialog.getByRole("textbox", { name: "New remote repository" }), "acme/fresh");
 		await user.click(dialog.getByRole("button", { name: "Create repository" }));
-		await waitFor(() =>
-			expect(dialog.getByRole("textbox", { name: "Repository address" })).toHaveValue(
-				"https://example.com/acme/fresh",
-			),
+		await waitFor(async () =>
+			expect((await unwrap(commands.projectsActive()))?.path).toBe("/mock/Projects/fresh"),
 		);
 	});
 });

@@ -7,6 +7,7 @@ export const settingsEn = {
 		small: "Small",
 		default: "Default",
 		effort: "Effort",
+		unsupported: "{level} (not supported)",
 	},
 	health: {
 		score: "Clean groups",
@@ -80,6 +81,7 @@ export const settingsFr: typeof settingsEn = {
 		small: "Petit",
 		default: "Par défaut",
 		effort: "Effort",
+		unsupported: "{level} (non pris en charge)",
 	},
 	health: {
 		score: "Groupes sains",

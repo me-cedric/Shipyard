@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { specsEn, specsFr } from "@/lib/i18n/specs";
+import { commands } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { Capabilities, Constitution, SpecChanges } from "./index";
 import { renderSpecs } from "./test-harness";
@@ -83,6 +84,40 @@ describe("Specs / Changes", () => {
 		files()[spec] = { ...f, text: `${f.text.trimEnd()}\n\n#### Scenario: Pay\n- **THEN** paid\n` };
 		await user.click(screen.getByRole("button", { name: "Validate" }));
 		expect(await screen.findByText("No problems found")).toBeVisible();
+	});
+
+	it("keeps text typed during a save and saves it next", async () => {
+		const user = userEvent.setup();
+		await renderSpecs(<SpecChanges />);
+		await open(user, "add-billing");
+		const path = `${CH}/add-billing/proposal.md`;
+		await user.click(await screen.findByRole("tab", { name: "Text" }));
+		const box = await screen.findByRole("textbox", { name: "Proposal" });
+		await waitFor(() => expect(box).toHaveValue(files()[path]?.text ?? ""));
+		const real = commands.specsWrite;
+		let release = () => {};
+		const spy = vi.spyOn(commands, "specsWrite").mockImplementationOnce(async (...a) => {
+			await new Promise<void>((r) => {
+				release = r;
+			});
+			return real(...a);
+		});
+		try {
+			await user.type(box, "X");
+			await user.click(screen.getByRole("button", { name: "Save" }));
+			await user.type(box, "Y");
+			// No second save while one runs.
+			expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+			release();
+			await waitFor(() => expect(files()[path]?.text).toMatch(/X$/));
+			await waitFor(() => expect(screen.getByRole("button", { name: "Save" })).toBeEnabled());
+			expect(box).toHaveValue(`${files()[path]?.text}Y`);
+			await user.click(screen.getByRole("button", { name: "Save" }));
+			await waitFor(() => expect(files()[path]?.text).toMatch(/XY$/));
+			expect(screen.queryByText("The file changed on disk.")).toBeNull();
+		} finally {
+			spy.mockRestore();
+		}
 	});
 
 	it("edits and saves an artifact, and offers reload or keep mine after a change on disk", async () => {

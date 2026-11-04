@@ -478,6 +478,7 @@ function screens(files: Files): { screens: Screen_Serialize[]; error: string | n
 				artifacts: s.artifacts ?? [],
 				figma,
 				broken: figma !== null && !figma.startsWith("https://") && !files[figma],
+				...(s.file ? { file: s.file } : {}),
 			};
 		});
 		return { screens: [...named, ...scanned(files, named)], error: null };
@@ -508,6 +509,13 @@ export function designList(d: MockDesign): DesignList_Serialize {
 		doc: DOC,
 	};
 }
+
+/** The guard of `design::resolve_image`: an image path anywhere in the project. */
+export const designBytes = (d: MockDesign, rel: string) => {
+	const plain = rel.split("/").every((s) => s && s !== "." && s !== "..") && !rel.includes("\\");
+	if (!plain || !/\.(png|jpe?g|gif|webp|svg)$/i.test(rel)) throw `path not allowed: ${rel}`;
+	return Array.from(new TextEncoder().encode(readText(d.files, rel).text));
+};
 
 export const designRead = (d: MockDesign, rel: string) => {
 	resolvePath(rel, DESIGN_FOLDERS);

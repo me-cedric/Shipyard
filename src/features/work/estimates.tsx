@@ -26,6 +26,7 @@ import { StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowDownTrayIcon, CurrencyIcon, LockClosedIcon, PlusIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Loading } from "@/ui/molecules/loading";
 import { Panel } from "@/ui/molecules/panel";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
@@ -125,7 +126,7 @@ export function Estimates() {
 		[e, lang, currency],
 	);
 
-	if (active === undefined || sheets.isLoading) return null;
+	if (active === undefined || sheets.isLoading) return <Loading />;
 	if (active === null) return <NoProject title={t.tabs.work.estimates} />;
 
 	const openTask = (taskId: string | null) => {

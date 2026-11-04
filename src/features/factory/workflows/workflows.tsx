@@ -22,6 +22,7 @@ function FileEditor({ kind, id }: Pick) {
 	const writes = useFactoryWrites();
 	const { error, run } = useGuard();
 	const [draft, setDraft] = useState<string | null>(null);
+	const [saving, setSaving] = useState(false);
 	const [issue, setIssue] = useState<IssueView | null>(null);
 	const text = draft ?? loaded;
 	useEffect(() => {
@@ -48,11 +49,17 @@ function FileEditor({ kind, id }: Pick) {
 			refId={kind === "workflow" ? `wf:${id}` : `role:${id}`}
 			primary={{
 				label: t.design.save,
-				disabled: !dirty || issue !== null,
+				disabled: !dirty || saving || issue !== null,
 				onClick: () =>
 					void run(async () => {
-						await writes.write(kind, id, text);
-						setDraft(null);
+						// Text typed during the save stays: the draft clears only when it is the saved text.
+						setSaving(true);
+						try {
+							await writes.write(kind, id, text);
+							setDraft((d) => (d === text ? null : d));
+						} finally {
+							setSaving(false);
+						}
 					}),
 			}}
 			save={dirty ? "dirty" : "clean"}

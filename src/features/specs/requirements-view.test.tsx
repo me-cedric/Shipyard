@@ -8,12 +8,13 @@ import { renderSpecs } from "./test-harness";
 const PLAN = "docs/delivery/test-plans/auth.feature";
 
 describe("Specs / Test plans / Requirements", () => {
-	it("lists each requirement with the scenarios that cite it and the ones that no scenario cites", async () => {
+	it("lists each requirement of the plan with its scenarios and the ones that no scenario cites", async () => {
+		const user = userEvent.setup();
 		await renderSpecs(<TestPlans />);
-		const auth = await screen.findByRole("region", { name: "Requirements: auth" });
+		await user.click(await screen.findByRole("button", { name: /Login/, expanded: false }));
+		const auth = await screen.findByRole("list", { name: /^Requirements: Login/ });
 		const row = (title: string) => within(auth).getByText(title).closest("li") as HTMLElement;
-		await waitFor(() => expect(row("Keep a session")).toHaveTextContent("1 scenarios"));
-		expect(row("Keep a session")).toHaveTextContent("Pass");
+		await waitFor(() => expect(row("Keep a session")).toHaveTextContent("Pass"));
 		expect(row("Login")).toHaveTextContent("Fail");
 		expect(row("Sign out")).toHaveTextContent("No scenario");
 	});
@@ -22,6 +23,7 @@ describe("Specs / Test plans / Requirements", () => {
 		const user = userEvent.setup();
 		await renderSpecs(<TestPlans />);
 		expect(mockState().specs.files[PLAN]).toBeUndefined();
+		await user.click(await screen.findByRole("button", { name: /Login/, expanded: false }));
 		await user.click(await screen.findByRole("button", { name: "Generate scenarios for auth" }));
 		await waitFor(() =>
 			expect(mockState().specs.files[PLAN]?.text).toContain("Scenario: Sign out"),
@@ -37,6 +39,7 @@ describe("Specs / Test plans / Requirements", () => {
 	});
 
 	it("offers no generation for a requirement that has no text of a scenario", async () => {
+		const user = userEvent.setup();
 		const spec = "docs/openspec/specs/auth/spec.md";
 		const f = mockState().specs.files[spec];
 		if (!f) throw new Error("no spec");
@@ -48,7 +51,8 @@ describe("Specs / Test plans / Requirements", () => {
 		expect(bare).not.toBe(f.text);
 		mockState().specs.files[spec] = { ...f, text: bare };
 		await renderSpecs(<TestPlans />);
-		const auth = await screen.findByRole("region", { name: "Requirements: auth" });
+		await user.click(await screen.findByRole("button", { name: /Login/, expanded: false }));
+		const auth = await screen.findByRole("list", { name: /^Requirements: Login/ });
 		await waitFor(() =>
 			expect(within(auth).getByText("Sign out").closest("li")).toHaveTextContent("No scenario"),
 		);

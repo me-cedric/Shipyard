@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useGuard } from "@/features/work/guard";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import { commands, type RunnerTiers_Serialize, unwrap } from "@/lib/ipc";
 import { Caption, Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
@@ -57,6 +57,9 @@ function TierRow({ row, detected }: { row: RunnerTiers_Serialize; detected: bool
 						const name = `${row.runner} ${t.settings.tiers[tier]}`;
 						const ids = catalog?.models.map((m) => m.id) ?? [];
 						const efforts = listed ? levels(draft[tier]) : [];
+						// A level saved before, that the tool no longer accepts: shown, never passed on.
+						const saved = draft[EFFORT[tier]];
+						const unknown = listed && saved !== "" && !efforts.includes(saved);
 						return (
 							<Caption key={tier} label={t.settings.tiers[tier]}>
 								{listed ? (
@@ -75,10 +78,10 @@ function TierRow({ row, detected }: { row: RunnerTiers_Serialize; detected: bool
 												...ids.map((id) => ({ value: id, label: id })),
 											]}
 										/>
-										{efforts.length > 0 ? (
+										{efforts.length > 0 || unknown ? (
 											<Select
 												label={`${name} ${t.settings.tiers.effort}`}
-												className="w-24"
+												className="w-40"
 												value={draft[EFFORT[tier]] || AUTO}
 												onValueChange={(v) => {
 													const next = { ...draft, [EFFORT[tier]]: v === AUTO ? "" : v };
@@ -87,6 +90,14 @@ function TierRow({ row, detected }: { row: RunnerTiers_Serialize; detected: bool
 												}}
 												items={[
 													{ value: AUTO, label: t.settings.tiers.default },
+													...(unknown
+														? [
+																{
+																	value: saved,
+																	label: format(t.settings.tiers.unsupported, { level: saved }),
+																},
+															]
+														: []),
 													...efforts.map((e) => ({ value: e, label: e })),
 												]}
 											/>

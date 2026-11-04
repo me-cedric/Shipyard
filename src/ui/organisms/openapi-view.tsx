@@ -41,7 +41,7 @@ export function OpenApiView({
 							key={`${op.method} ${op.path}`}
 							className="rounded-md border border-n-7 bg-n-2 open:bg-n-1"
 						>
-							<summary className="flex h-row cursor-default items-center gap-2 px-2 text-ui">
+							<summary className="flex h-row cursor-pointer items-center gap-2 px-2 text-ui">
 								<Badge variant={TONE[op.method as keyof typeof TONE] ?? "neutral"}>
 									{op.method}
 								</Badge>

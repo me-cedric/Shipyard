@@ -18,14 +18,16 @@ test("tester", async ({ page }) => {
 		await w.click(
 			page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Test plans" }),
 		);
-		await w.see(page.getByText("Scenario coverage"), "no coverage figure");
-		await w.see(page.getByText("Requirements").first(), "no requirement count");
+		await w.see(page.getByRole("progressbar").first(), "no coverage figure");
+		await w.see(page.getByText(/ \/ \d+$/).first(), "no requirement count");
 	});
 
 	await w.step(
 		"Find a requirement without a scenario",
 		"the Broken marker or the Generate button",
 		async () => {
+			// Requirements that no plan cites sit in the last row, closed by default.
+			await w.click(page.getByRole("button", { name: /Not in a plan/ }));
 			await w.see(
 				page.getByRole("button", { name: "Generate scenarios for export" }),
 				"no way to cover a requirement",

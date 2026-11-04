@@ -4,6 +4,7 @@ import { format, useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
 import { useFormIntent, useShell } from "@/lib/shell";
+import { useViewState } from "@/lib/shell/view-state";
 import { useBacklogActions, useWorkItems, type WorkItem } from "@/lib/sync";
 import { figure, memberName, useSheet, useSheets, useTeam } from "@/lib/work";
 import { Button } from "@/ui/atoms/button";
@@ -11,6 +12,7 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { PlusIcon, QueueListIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Loading } from "@/ui/molecules/loading";
 import { RUN_STATUS } from "@/ui/molecules/run-card";
 import {
 	CategoryDot,
@@ -77,7 +79,7 @@ export function Backlog() {
 	const { openDetail } = useShell();
 	const { planImport, confirmImport, adopt } = useBacklogActions();
 	const members = useTeam().data?.team.members ?? [];
-	const [filters, setFilters] = useState<Filters>(NO_FILTER);
+	const [filters, setFilters] = useViewState<Filters>("filters:backlog", NO_FILTER);
 	const [planned, setPlanned] = useState<number | null>(null);
 	const [adopting, setAdopting] = useState(false);
 	const [key, setKey] = useState("");
@@ -111,7 +113,7 @@ export function Backlog() {
 		return out;
 	}, [shown]);
 
-	if (active === undefined || everything.isLoading) return null;
+	if (active === undefined || everything.isLoading) return <Loading />;
 	if (active === null) return <NoProject title={t.tabs.work.backlog} />;
 
 	const startImport = () => run(async () => setPlanned(await planImport()));

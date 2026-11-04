@@ -112,6 +112,8 @@ fn activate(s: &AppState, root: &Path, file: &ProjectFile) -> Res<ProjectOutcome
         let e = reg.get(&id).ok_or("unknown project")?;
         Ok(to_entry(e, true))
     })?;
+    #[cfg(not(test))]
+    super::logins::auto_connect(s);
     super::sync::refresh(s);
     Ok(ProjectOutcome {
         status: OpenStatus::Opened,
@@ -249,6 +251,8 @@ pub fn switch(s: &AppState, id: &str) -> Res<ProjectEntry> {
         }
         Ok(to_entry(reg.get(id).ok_or("unknown project")?, true))
     })?;
+    #[cfg(not(test))]
+    super::logins::auto_connect(s);
     super::sync::refresh(s);
     Ok(entry)
 }

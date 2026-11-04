@@ -84,6 +84,11 @@ export const specsEn = {
 	cited: "Requirements",
 	coverage: "Coverage",
 	behaviour: "Behaviour",
+	plans: "Plans",
+	openPlan: "Open the plan",
+	noPlan: "Not in a plan",
+	coveredOf: "{covered} of {total} requirements covered",
+	filter: { all: "All", uncovered: "Not covered", failing: "Failing" },
 	verdict: {
 		pass: "Pass",
 		fail: "Fail",
@@ -181,6 +186,11 @@ export const specsFr: typeof specsEn = {
 	cited: "Exigences",
 	coverage: "Couverture",
 	behaviour: "Comportement",
+	plans: "Plans",
+	openPlan: "Ouvrir le plan",
+	noPlan: "Hors d'un plan",
+	coveredOf: "{covered} exigences couvertes sur {total}",
+	filter: { all: "Tous", uncovered: "Non couverts", failing: "En échec" },
 	verdict: {
 		pass: "Réussi",
 		fail: "Échec",

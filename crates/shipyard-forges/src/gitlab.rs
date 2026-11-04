@@ -75,6 +75,8 @@ pub(crate) fn repository(v: &Value) -> Repository {
         url: text(v, "/web_url"),
         default_branch: text(v, "/default_branch"),
         archived,
+        description: text(v, "/description"),
+        private: text(v, "/visibility") == "private",
         // A project that shares its group with the account gives a level of 0 or none: not pushable.
         can_push: v
             .get("permissions")

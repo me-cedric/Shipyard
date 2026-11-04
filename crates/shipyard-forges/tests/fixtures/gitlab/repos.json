@@ -3,6 +3,8 @@
     "path_with_namespace": "acme/web",
     "web_url": "https://gitlab.com/acme/web",
     "default_branch": "main",
+    "description": "The web app",
+    "visibility": "private",
     "archived": false,
     "permissions": {
       "project_access": {

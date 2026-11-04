@@ -205,6 +205,14 @@ fn repositories_carry_the_push_marker() {
         let got: Vec<Option<bool>> = page.items.iter().map(|r| r.can_push).collect();
         assert_eq!(got, c.push, "{}", c.name);
         assert_eq!(page.items[0].default_branch, "main", "{}", c.name);
+        if c.name != "azure-devops" {
+            assert_eq!(page.items[0].description, "The web app", "{}", c.name);
+            assert!(
+                page.items[0].private && !page.items[1].private,
+                "{}",
+                c.name
+            );
+        }
         assert!(
             page.items[2].archived || c.name == "azure-devops",
             "{}",

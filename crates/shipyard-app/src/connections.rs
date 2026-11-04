@@ -580,7 +580,8 @@ impl Connections {
     /// One GitHub or GitLab account serves both roles on a host. The connection `id` holds a
     /// secret: the connection of the other group, same product and host, reads that same keychain
     /// entry (no copy), and is created when it is missing. A twin that has a secret keeps it: it
-    /// can be another account. Returns the twin when it got the secret.
+    /// can be another account, unless its test failed: a rejected token is replaced by this source,
+    /// and its own keychain entry goes. Returns the twin when it got the secret.
     pub fn serve_twin(&self, id: &str) -> Res<Option<Connection>> {
         self.with_file(|file| {
             let src = file
@@ -599,8 +600,21 @@ impl Connections {
             let host = host_of(&src.url);
             let is_twin =
                 |r: &Record| r.kind == src.kind && r.group == group && host_of(&r.url) == host;
-            if file.connections.iter().any(|r| is_twin(r) && r.secret) {
+            // A twin that works, or that already reads this entry, stays as it is.
+            let keeps = |r: &Record| {
+                r.secret && (r.state != ConnectionState::Failed || r.holder() == src.holder())
+            };
+            if file.connections.iter().any(|r| is_twin(r) && keeps(r)) {
                 return Ok(None);
+            }
+            if let Some(old) = file
+                .connections
+                .iter()
+                .find(|r| is_twin(r) && r.secret && r.uses.is_none())
+            {
+                for account in [conn_account(&old.id), oauth_account(&old.id)] {
+                    self.secrets.delete(&account).map_err(|e| e.to_string())?;
+                }
             }
             let at = match file.connections.iter().position(is_twin) {
                 Some(at) => at,
@@ -995,6 +1009,53 @@ mod tests {
             .unwrap();
         c.set_secret(&linear.id, Secret::new("lin")).unwrap();
         assert!(c.serve_twin(&linear.id).unwrap().is_none());
+    }
+
+    #[test]
+    fn a_rejected_twin_reads_the_working_source_and_its_old_entry_goes() {
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::MemoryStore;
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(MemoryStore::default());
+        let c = Connections::new(dir.path(), store.clone(), Arc::new(FakeHttp::new()));
+        let draft = |group| ConnectionDraft {
+            name: "Hub".into(),
+            group,
+            kind: ConnectionKind::GitHub,
+            url: "https://github.com".into(),
+            user: None,
+        };
+        let tracker = c.add(draft(ConnectionGroup::Tracker)).unwrap().id;
+        let forge = c.add(draft(ConnectionGroup::Forge)).unwrap().id;
+        c.set_secret(&tracker, Secret::new("rejected")).unwrap();
+        store
+            .set(&oauth_account(&tracker), &Secret::new("{}"))
+            .unwrap();
+        c.set_secret(&forge, Secret::new("good")).unwrap();
+        c.with_file(|f| {
+            f.connections.iter_mut().for_each(|r| {
+                r.state = if r.id == tracker {
+                    ConnectionState::Failed
+                } else {
+                    ConnectionState::Passed
+                }
+            });
+            Ok(())
+        })
+        .unwrap();
+        // set_secret on the forge left the tracker entry alone: a failed twin is replaced.
+        store
+            .set(&conn_account(&tracker), &Secret::new("rejected"))
+            .unwrap();
+        let fixed = c.serve_twin(&forge).unwrap().unwrap();
+        assert_eq!(fixed.id, tracker);
+        assert!(store.get(&conn_account(&tracker)).unwrap().is_none());
+        assert!(store.get(&oauth_account(&tracker)).unwrap().is_none());
+        let r = c.record(&tracker).unwrap();
+        assert_eq!(c.secret(&r).unwrap().expose(), "good");
+        // Once: the twin reads the entry now, so a second call changes nothing.
+        assert!(c.serve_twin(&forge).unwrap().is_none());
+        assert_eq!(c.list().unwrap().len(), 2);
     }
 
     #[test]

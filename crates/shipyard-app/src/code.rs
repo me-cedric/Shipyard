@@ -25,6 +25,7 @@ use tauri::AppHandle;
 
 use crate::commands::sync::{active, origin_slug, tracker_source};
 use crate::commands::{Api, AppState, Res, blocking, err};
+use crate::connections::{ConnectionGroup, ConnectionState};
 use crate::scanners;
 use crate::work::need_click;
 
@@ -104,9 +105,32 @@ pub fn index_new_commit(s: &AppState, sha: &str) -> Res<()> {
 
 // ---------------------------------------------------------------- pull requests (REQ-018 to REQ-025)
 
+/// The code host connection of the host of `origin` that is usable, when the project names none.
+/// It reads only: the project file stays as it is.
+fn origin_forge(s: &AppState) -> Res<Option<String>> {
+    let Some(sug) = crate::commands::setup::suggest(s)? else {
+        return Ok(None);
+    };
+    let host = shipyard_git::auth::https_host(&sug.url);
+    Ok(s.connections
+        .list()?
+        .into_iter()
+        .find(|c| {
+            c.group == ConnectionGroup::Forge
+                && c.secret
+                && c.state != ConnectionState::Failed
+                && Some(c.kind) == sug.kind
+                && shipyard_git::auth::https_host(&c.url) == host
+        })
+        .map(|c| c.id))
+}
+
 pub(crate) fn forge(s: &AppState) -> Res<(Box<dyn CodeApi>, String, String)> {
     let a = active(s)?.ok_or("no active project")?;
-    let id = a.forge.clone().ok_or(NO_FORGE)?;
+    let id = match a.forge.clone() {
+        Some(id) => id,
+        None => origin_forge(s)?.ok_or(NO_FORGE)?,
+    };
     let slug = origin_slug(&a.entry).ok_or("the project has no remote repository")?;
     Ok((s.connections.code_api(&id)?, slug, id))
 }

@@ -71,7 +71,7 @@ test("a failed poll shows the failed state and keeps the mirror", async ({ page 
 	await page.getByRole("banner").getByRole("button", { name: "Sync" }).click();
 	const row = page.getByRole("group", { name: "Acme" });
 	await expect(row.getByRole("status")).toContainText("Failed");
-	await expect(row.getByRole("status")).toContainText("no secret saved");
+	await expect(row.getByRole("status")).toContainText("This connection has no token yet.");
 });
 
 test("refuses an interval under 30 s and saves the pickup rules with the write switches off", async ({

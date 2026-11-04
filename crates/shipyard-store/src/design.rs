@@ -532,11 +532,31 @@ pub fn resolve_in(
     rel: &str,
     folders: &[&str],
 ) -> Result<PathBuf, String> {
+    if !folders.iter().any(|k| is_at(rel, p.path(k))) {
+        return Err(format!("path not allowed: {rel}"));
+    }
+    inside(root, rel)
+}
+
+/// The absolute path of an image file anywhere in the repository, for a screen picture.
+pub fn resolve_image(root: &Path, rel: &str) -> Result<PathBuf, String> {
+    const IMAGES: [&str; 6] = ["png", "jpg", "jpeg", "gif", "webp", "svg"];
+    let image = Path::new(rel)
+        .extension()
+        .and_then(|x| x.to_str())
+        .is_some_and(|x| IMAGES.contains(&x.to_lowercase().as_str()));
+    if !image {
+        return Err(format!("path not allowed: {rel}"));
+    }
+    inside(root, rel)
+}
+
+/// A plain relative path whose real place is inside the repository: a link must not lead out.
+fn inside(root: &Path, rel: &str) -> Result<PathBuf, String> {
     let bad = || format!("path not allowed: {rel}");
-    if !plain(rel) || !folders.iter().any(|k| is_at(rel, p.path(k))) {
+    if !plain(rel) {
         return Err(bad());
     }
-    // A link must not lead out of the repository.
     let base = root.canonicalize().map_err(|e| e.to_string())?;
     let full = root.join(rel);
     let near = full.ancestors().find_map(|a| a.canonicalize().ok());

@@ -456,6 +456,50 @@ mod tests {
         assert!(s.connections.get(&id).unwrap().unwrap().secret);
     }
 
+    #[test]
+    fn a_github_sign_in_stores_the_access_token_alone_and_it_passes_the_user_call() {
+        let dir = tempfile::tempdir().unwrap();
+        let http = Arc::new(FakeHttp::new());
+        http.post(
+            "/login/oauth/access_token",
+            "dev",
+            200,
+            r#"{"access_token":"gho_x","token_type":"bearer","scope":"repo"}"#,
+        )
+        .get("api.github.com/user", 200, r#"{"login":"ada"}"#)
+        .get("/issues", 200, "[]");
+        let store = Arc::new(MemoryStore::default());
+        let conns = Arc::new(Connections::new(dir.path(), store.clone(), http.clone()));
+        let s = AppState::with_connections(dir.path().join("data"), conns);
+        let id = s
+            .connections
+            .add(ConnectionDraft {
+                name: "Issues".into(),
+                group: ConnectionGroup::Tracker,
+                kind: ConnectionKind::GitHub,
+                url: "https://github.com".into(),
+                user: None,
+            })
+            .unwrap()
+            .id;
+        std::fs::create_dir_all(&s.dir).unwrap();
+        std::fs::write(s.dir.join(FILE), "github.com = cid-1\n").unwrap();
+        assert_eq!(poll(&s, &id, "dev").unwrap(), DeviceState::Authorized);
+        // The value is the access token, with no marker: it goes out as the plain Bearer header.
+        assert_eq!(
+            store.get(&conn_account(&id)).unwrap().unwrap().expose(),
+            "gho_x"
+        );
+        assert!(store.get(&oauth_account(&id)).unwrap().is_none());
+        assert!(matches!(
+            s.connections.test(&id).unwrap(),
+            shipyard_http::TestOutcome::Passed { .. }
+        ));
+        let sent = http.requests();
+        let call = sent.iter().find(|r| r.url.ends_with("/user")).unwrap();
+        assert!(matches!(&call.auth, Auth::Bearer(t) if t.expose() == "gho_x"));
+    }
+
     fn gitlab(dir: &Path, http: FakeHttp, store: Arc<MemoryStore>) -> (AppState, String) {
         let conns = Arc::new(Connections::new(dir, store, Arc::new(http)));
         let s = AppState::with_connections(dir.join("data"), conns);

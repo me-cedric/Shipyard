@@ -3,6 +3,8 @@
     "full_name": "acme/web",
     "html_url": "https://github.com/acme/web",
     "default_branch": "main",
+    "description": "The web app",
+    "private": true,
     "archived": false,
     "permissions": {
       "admin": false,

@@ -11,6 +11,7 @@ export function Dialog({
 	title,
 	actions,
 	wide,
+	full,
 	children,
 }: {
 	open: boolean;
@@ -19,6 +20,8 @@ export function Dialog({
 	/** The primary action. The close button is always there. */
 	actions?: ReactNode;
 	wide?: boolean;
+	/** Nearly the whole window. */
+	full?: boolean;
 	children: ReactNode;
 }) {
 	const { t } = useI18n();
@@ -29,7 +32,7 @@ export function Dialog({
 				<BaseDialog.Popup
 					className={cn(
 						"fixed top-20 left-1/2 z-50 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0",
-						wide ? "w-[48rem]" : "w-[32rem]",
+						full ? "top-4 w-[calc(100vw-2rem)]" : wide ? "w-[48rem]" : "w-[32rem]",
 					)}
 				>
 					<div className="flex flex-col gap-2 p-3">

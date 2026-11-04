@@ -119,7 +119,7 @@ describe("close guard", () => {
 
 	it("names the work in flight and closes only after Close anyway", async () => {
 		const user = userEvent.setup();
-		mockState().inFlight = { runs: 2, turns: 1 };
+		mockState().inFlight = { runs: 2, turns: 1, drafts: 0 };
 		mount();
 		await user.click(await screen.findByRole("button", { name: "ask" }));
 		const d = await dialog();
@@ -127,6 +127,19 @@ describe("close guard", () => {
 		expect(mockState().closed).toBe(false);
 		await user.click(d.getByRole("button", { name: "Close anyway" }));
 		await waitFor(() => expect(mockState().closed).toBe(true));
+	});
+
+	it("says unsaved files in the singular and the plural", async () => {
+		const user = userEvent.setup();
+		mockState().inFlight = { runs: 0, turns: 0, drafts: 1 };
+		mount();
+		await user.click(await screen.findByRole("button", { name: "ask" }));
+		expect(await (await dialog()).findByText("1 file has unsaved changes.")).toBeVisible();
+		await user.click((await dialog()).getByRole("button", { name: "Close" }));
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		mockState().inFlight = { runs: 0, turns: 0, drafts: 3 };
+		await user.click(await screen.findByRole("button", { name: "ask" }));
+		expect(await (await dialog()).findByText("3 files have unsaved changes.")).toBeVisible();
 	});
 
 	it("keeps the window open on Close", async () => {

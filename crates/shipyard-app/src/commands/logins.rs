@@ -6,13 +6,16 @@ use std::process::{Command, Stdio};
 
 use serde::Serialize;
 use shipyard_agents::which::{quiet, search_dirs, which};
+use shipyard_git::auth::https_host;
 use shipyard_http::TestOutcome;
 use shipyard_secrets::Secret;
 use specta::Type;
 use tauri::AppHandle;
 
 use super::{Api, AppState, Res, blocking};
-use crate::connections::{Connection, ConnectionDraft, ConnectionGroup, ConnectionKind};
+use crate::connections::{
+    Connection, ConnectionDraft, ConnectionGroup, ConnectionKind, ConnectionState,
+};
 use crate::work::need_click;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -114,13 +117,23 @@ pub fn use_login_with(
         .map(|t| t.trim().to_string())
         .filter(|t| !t.is_empty())
         .ok_or_else(|| format!("{tool} gave no token for {host}"))?;
-    let c = s.connections.add(ConnectionDraft {
-        name: format!("{host} ({tool})"),
-        group: ConnectionGroup::Forge,
-        kind,
-        url: format!("https://{host}"),
-        user: None,
-    })?;
+    // A code host connection of this product and host is repaired, not doubled.
+    let known = s.connections.list()?.into_iter().find(|c| {
+        c.group == ConnectionGroup::Forge
+            && c.kind == kind
+            && https_host(&c.url).is_some_and(|h| h.eq_ignore_ascii_case(host))
+    });
+    let reused = known.is_some();
+    let c = match known {
+        Some(c) => c,
+        None => s.connections.add(ConnectionDraft {
+            name: format!("{host} ({tool})"),
+            group: ConnectionGroup::Forge,
+            kind,
+            url: format!("https://{host}"),
+            user: None,
+        })?,
+    };
     let done = s
         .connections
         .set_secret(&c.id, Secret::new(token))
@@ -133,7 +146,9 @@ pub fn use_login_with(
             s.connections.get(&c.id)?.ok_or("connection lost".into())
         }
         other => {
-            let _ = s.connections.remove(&c.id);
+            if !reused {
+                let _ = s.connections.remove(&c.id);
+            }
             Err(match other {
                 Ok(TestOutcome::Failed { reason }) => {
                     format!("{host} refused the token of {tool}: {reason}")
@@ -143,6 +158,75 @@ pub fn use_login_with(
             })
         }
     }
+}
+
+/// The issue tracker and the code host of the active project when its `origin` is on GitHub or a
+/// GitLab host, from what works: a connection that tests ok first, then the login of `gh` or `glab`
+/// (its token is read from the tool now). One source asks nothing. Both roles share it. It runs once
+/// per project open: a source that fails is not tried again.
+pub fn auto_connect_with(s: &AppState, run: Runner) -> Res<()> {
+    let Some(sug) = super::setup::suggest(s)? else {
+        return Ok(());
+    };
+    let (Some(kind @ (ConnectionKind::GitHub | ConnectionKind::GitLab)), Some(host)) =
+        (sug.kind, https_host(&sug.url))
+    else {
+        return Ok(());
+    };
+    let mine = || -> Res<Vec<Connection>> {
+        Ok(s.connections
+            .list()?
+            .into_iter()
+            .filter(|c| c.kind == kind && https_host(&c.url).as_deref() == Some(host.as_str()))
+            .collect())
+    };
+    let works = |all: &[Connection], g| {
+        all.iter()
+            .any(|c| c.group == g && c.state == ConnectionState::Passed)
+    };
+    let done = |all: &[Connection]| {
+        works(all, ConnectionGroup::Tracker) && works(all, ConnectionGroup::Forge)
+    };
+    if done(&mine()?) {
+        return Ok(());
+    }
+    // A saved secret that was never tested, or that failed, may work now: test it first.
+    for c in mine()?
+        .iter()
+        .filter(|c| c.secret && c.state != ConnectionState::Passed)
+    {
+        let _ = s.connections.test(&c.id);
+    }
+    // A working source serves the other role: it is made, or it replaces a rejected one.
+    for c in mine()?
+        .iter()
+        .filter(|c| c.state == ConnectionState::Passed)
+    {
+        let _ = super::connections::passed(s, &c.id, true);
+    }
+    if done(&mine()?) {
+        return super::setup::auto_link(s);
+    }
+    let tool = if kind == ConnectionKind::GitHub {
+        "gh"
+    } else {
+        "glab"
+    };
+    let signed_in = run(tool, &["auth", "status"]).is_some_and(|t| {
+        parse_status(tool, &t)
+            .iter()
+            .any(|l| l.host.eq_ignore_ascii_case(&host))
+    });
+    if signed_in {
+        use_login_with(s, run, tool, &host, true)?;
+    }
+    super::setup::auto_link(s)
+}
+
+/// On a project open. Not in tests: they must not read the `gh` login of the machine.
+#[cfg(not(test))]
+pub fn auto_connect(s: &AppState) {
+    let _ = auto_connect_with(s, &run_tool);
 }
 
 #[tauri::command]
@@ -170,7 +254,8 @@ mod tests {
     use std::sync::Arc;
 
     use shipyard_http::fake::FakeHttp;
-    use shipyard_secrets::MemoryStore;
+    use shipyard_secrets::{MemoryStore, SecretStore};
+    use shipyard_store::project::{FileRead, read_project_file};
 
     use super::*;
     use crate::connections::Connections;
@@ -246,7 +331,8 @@ mod tests {
         let dir2 = tempfile::tempdir().unwrap();
         let ok = FakeHttp::new();
         ok.get("/user", 200, r#"{"login":"ana-dev"}"#)
-            .get("/user/repos", 200, "[]");
+            .get("/user/repos", 200, "[]")
+            .get("/issues", 200, "[]");
         let s = state(dir2.path(), ok);
         let c = use_login_with(&s, &tool, "gh", "github.com", true).unwrap();
         assert_eq!(c.name, "github.com (gh)");
@@ -256,6 +342,114 @@ mod tests {
         assert!(
             list.iter()
                 .any(|t| t.group == ConnectionGroup::Tracker && t.secret)
+        );
+    }
+
+    /// The `origin` of a new project is on github.com.
+    fn project_on_github(s: &AppState, dir: &std::path::Path) {
+        let root = dir.join("p");
+        super::super::projects::create(s, root.to_str().unwrap(), "P", "PRJ").unwrap();
+        let ok = std::process::Command::new("git")
+            .args(["remote", "add", "origin", "git@github.com:acme/app.git"])
+            .current_dir(&root)
+            .status()
+            .unwrap()
+            .success();
+        assert!(ok);
+    }
+
+    fn gh(t: &str, a: &[&str]) -> Option<String> {
+        assert_eq!(t, "gh");
+        Some(if a[0] == "auth" && a[1] == "status" {
+            GH.to_string()
+        } else {
+            "tok-cli\n".to_string()
+        })
+    }
+
+    #[test]
+    fn a_gh_login_makes_both_roles_once_and_links_the_project() {
+        let dir = tempfile::tempdir().unwrap();
+        let ok = FakeHttp::new();
+        ok.get("/user", 200, r#"{"login":"ana-dev"}"#)
+            .get("/user/repos", 200, "[]")
+            .get("/issues", 200, "[]");
+        let s = state(dir.path(), ok);
+        project_on_github(&s, dir.path());
+        auto_connect_with(&s, &gh).unwrap();
+        let list = s.connections.list().unwrap();
+        assert_eq!(list.len(), 2);
+        assert!(
+            list.iter()
+                .all(|c| c.secret && c.state == ConnectionState::Passed)
+        );
+        let FileRead::Valid(f) = read_project_file(&dir.path().join("p")).unwrap() else {
+            panic!("a valid file")
+        };
+        let links = f.connections.unwrap();
+        assert!(links.tracker.is_some() && links.forge.is_some());
+        // A second open adds nothing and does not ask the tool for a token again.
+        auto_connect_with(&s, &|_, _| panic!("no call on a second open")).unwrap();
+        assert_eq!(s.connections.list().unwrap().len(), 2);
+    }
+
+    /// A GitHub that refuses the token `tok-rejected`.
+    struct Picky(FakeHttp);
+
+    impl shipyard_http::Http for Picky {
+        fn send(
+            &self,
+            r: &shipyard_http::Request,
+        ) -> Result<shipyard_http::Response, shipyard_http::Error> {
+            let res = self.0.send(r)?;
+            Ok(match &r.auth {
+                shipyard_http::Auth::Bearer(t) if t.expose() == "tok-rejected" => {
+                    shipyard_http::Response { status: 401, ..res }
+                }
+                _ => res,
+            })
+        }
+    }
+
+    #[test]
+    fn a_login_replaces_the_rejected_token_of_the_issue_tracker() {
+        let dir = tempfile::tempdir().unwrap();
+        let http = FakeHttp::new();
+        http.get("/user", 200, r#"{"login":"ana-dev"}"#)
+            .get("/user/repos", 200, "[]")
+            .get("/issues", 200, "[]");
+        let store = Arc::new(MemoryStore::default());
+        let conns = Arc::new(Connections::new(
+            dir.path(),
+            store.clone(),
+            Arc::new(Picky(http)),
+        ));
+        let s = AppState::with_connections(dir.path().join("data"), conns);
+        project_on_github(&s, dir.path());
+        let old = s
+            .connections
+            .add(ConnectionDraft {
+                name: "GitHub".into(),
+                group: ConnectionGroup::Tracker,
+                kind: ConnectionKind::GitHub,
+                url: "https://github.com".into(),
+                user: None,
+            })
+            .unwrap();
+        s.connections
+            .set_secret(&old.id, Secret::new("tok-rejected"))
+            .unwrap();
+        auto_connect_with(&s, &gh).unwrap();
+        let list = s.connections.list().unwrap();
+        assert_eq!(list.len(), 2);
+        let tracker = list.iter().find(|c| c.id == old.id).unwrap();
+        assert!(tracker.secret && tracker.state == ConnectionState::Passed);
+        // The tracker reads the entry of the code host, and its own rejected entry is gone.
+        assert!(
+            store
+                .get(&shipyard_secrets::conn_account(&old.id))
+                .unwrap()
+                .is_none()
         );
     }
 }

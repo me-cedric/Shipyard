@@ -257,6 +257,7 @@ export const en = {
 		makeProject: "Make it a project",
 		back: "Back",
 		cloneRun: "Clone",
+		cloning: "Cloning",
 		createRun: "Create",
 		close: "Close project",
 		remove: "Remove from list",
@@ -412,6 +413,8 @@ export const en = {
 		off: "Off",
 		login: "{user} on {host} ({tool})",
 		useLogin: "Use this login",
+		rejected: "The token was refused.",
+		useCli: "Use the {tool} login",
 		field: {
 			name: "Name",
 			type: "Type",

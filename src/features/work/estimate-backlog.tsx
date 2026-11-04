@@ -2,6 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { type PointerEvent, useMemo, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
+import { useViewState } from "@/lib/shell/view-state";
 import {
 	type Confidence,
 	type Feature,
@@ -114,10 +115,10 @@ export function EstimateBacklog({
 	const { failure, run } = useGuard();
 	const sheet = view.sheet;
 	const frozen = sheet.frozen === true;
-	const [query, setQuery] = useState("");
-	const [active, setActive] = useState<string[]>([]);
+	const [query, setQuery] = useViewState("filters:estimate-query", "");
+	const [active, setActive] = useViewState<string[]>("filters:estimate-active", []);
 	const [picked, setPicked] = useState<Set<string>>(new Set());
-	const [role, setRole] = useState("");
+	const [role, setRole] = useViewState("filters:estimate-role", "");
 
 	const roles = [...new Set(sheet.features.flatMap((f) => f.tasks.map((x) => x.role)))].sort();
 	const lines = useMemo<Line[]>(() => {
@@ -346,6 +347,7 @@ export function EstimateBacklog({
 					group={(r) => r.feature.name}
 					onOpen={(r) => onOpen(r.task.id)}
 					selected={selected}
+					memory="estimate-backlog"
 				/>
 			</div>
 		</div>

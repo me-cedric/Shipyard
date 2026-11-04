@@ -318,6 +318,41 @@
 		outline: 2px solid var(--accent-text);
 		outline-offset: 1px;
 	}
+
+	/* Tailwind 4 resets buttons to the arrow: every control a person can click shows the hand. */
+	button,
+	a[href],
+	summary,
+	select,
+	label:has(> input[type="checkbox"], > input[type="radio"], > button[role="switch"]),
+	[role="button"],
+	[role="tab"],
+	[role="menuitem"],
+	[role="menuitemcheckbox"],
+	[role="menuitemradio"],
+	[role="option"],
+	[role="switch"],
+	[role="checkbox"],
+	[role="radio"],
+	[role="treeitem"],
+	input[type="checkbox"],
+	input[type="radio"],
+	input[type="file"] {
+		cursor: pointer;
+	}
+
+	:is(
+		button,
+		[role="button"],
+		[role="tab"],
+		[role="menuitem"],
+		[role="option"],
+		[role="switch"],
+		input,
+		select
+	):is(:disabled, [aria-disabled="true"], [data-disabled]) {
+		cursor: not-allowed;
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {

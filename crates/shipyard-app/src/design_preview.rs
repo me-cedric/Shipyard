@@ -1,5 +1,5 @@
 //! Design preview IPC: the bytes of a design file, for the inline image preview of Design / Screens.
-//! The path goes through `shipyard_store::design::resolve`. The file stays unchanged.
+//! The path goes through `shipyard_store::design::resolve_image`: an image anywhere in the project. The file stays unchanged.
 
 use shipyard_store::design::{self, MAX_BYTES};
 use tauri::AppHandle;
@@ -10,7 +10,7 @@ use crate::design::project;
 /// The bytes of a design file that is not bigger than `MAX_BYTES`.
 pub fn bytes(s: &AppState, rel: &str) -> Res<Vec<u8>> {
     let p = project(s)?;
-    let full = design::resolve(&p.root, &p.file, rel)?;
+    let full = design::resolve_image(&p.root, rel)?;
     let meta = std::fs::metadata(&full).map_err(|e| format!("{rel}: {e}"))?;
     if !meta.is_file() || meta.len() > MAX_BYTES {
         return Err(format!("{rel}: not a file or too big"));
@@ -39,6 +39,15 @@ mod tests {
             bytes(&f.s, "docs/designs/home.png").unwrap(),
             vec![0x89, b'P', b'N', b'G', 0]
         );
+        // An image outside the designs folder is allowed, a file that is not an image is not.
+        let shot = f.repo.path().join("docs/assets/screenshots/a.png");
+        std::fs::create_dir_all(shot.parent().unwrap()).unwrap();
+        std::fs::write(&shot, [1u8]).unwrap();
+        assert_eq!(
+            bytes(&f.s, "docs/assets/screenshots/a.png").unwrap(),
+            vec![1u8]
+        );
+        assert!(bytes(&f.s, "../a.png").is_err());
         assert!(bytes(&f.s, "Cargo.toml").is_err());
         assert!(bytes(&f.s, "docs/designs/missing.png").is_err());
     }

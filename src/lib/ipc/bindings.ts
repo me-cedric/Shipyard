@@ -493,6 +493,8 @@ export const commands = {
 	closeGuardState: () => typedError<InFlight, AppError_Serialize>(__TAURI_INVOKE("close_guard_state")),
 	/**  Close past the guard. `destroy` does not raise a second request. */
 	closeAnyway: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("close_anyway")),
+	/**  The editors with an unsaved draft now. */
+	closeGuardDrafts: (count: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("close_guard_drafts", { count })),
 	/**  Where the app keeps its data, and whether the portable mode is on. */
 	appDataFolder: () => typedError<DataFolder, AppError_Serialize>(__TAURI_INVOKE("app_data_folder")),
 	pictureGet: (which: Picture) => typedError<Image | null, AppError_Serialize>(__TAURI_INVOKE("picture_get", { which })),
@@ -2278,6 +2280,7 @@ export type ImportReport = {
 export type InFlight = {
 	runs: number,
 	turns: number,
+	drafts: number,
 };
 
 /**  What a working copy holds now. */
@@ -4063,6 +4066,8 @@ export type Repository_Deserialize = {
 	 *  `None` means the forge does not say. Azure DevOps never says in a listing.
 	 */
 	canPush?: boolean | null,
+	description: string,
+	private: boolean,
 };
 
 export type Repository_Serialize = {
@@ -4076,6 +4081,8 @@ export type Repository_Serialize = {
 	 *  `None` means the forge does not say. Azure DevOps never says in a listing.
 	 */
 	canPush: boolean | null,
+	description: string,
+	private: boolean,
 };
 
 export type RequestView = {

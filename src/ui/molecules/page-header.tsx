@@ -12,7 +12,7 @@ export type PageMenuItem = {
 };
 
 const ITEM =
-	"flex h-row cursor-default items-center gap-2 rounded-sm px-2 text-n-12 data-[disabled]:opacity-50 data-[highlighted]:bg-n-5";
+	"flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[highlighted]:bg-n-5";
 
 /** The head of a tab: icon, title, count, context chips, one primary action and an overflow menu. */
 export function PageHeader({

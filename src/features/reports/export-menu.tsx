@@ -56,7 +56,7 @@ export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?
 								<Menu.Item
 									key={x.id}
 									onClick={() => void pick(x)}
-									className="flex h-row cursor-default items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5"
+									className="flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5"
 								>
 									{x.label}
 								</Menu.Item>

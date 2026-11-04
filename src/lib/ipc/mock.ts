@@ -199,7 +199,7 @@ type State = {
 	log: fl.MockLog;
 	/** The auto-commit option of the active project, the work in flight and the close answer. */
 	autoCommit: boolean;
-	inFlight: { runs: number; turns: number };
+	inFlight: { runs: number; turns: number; drafts: number };
 	closed: boolean;
 	/** Whether Codex trusts the project folder. */
 	codexTrusted: boolean;
@@ -293,7 +293,7 @@ const fresh = (): State => ({
 	bootstrap: bs.seedBootstrap(),
 	log: fl.seedLog(),
 	autoCommit: false,
-	inFlight: { runs: 0, turns: 0 },
+	inFlight: { runs: 0, turns: 0, drafts: 0 },
 	closed: false,
 	codexTrusted: false,
 	extras: xt.seedExtras(),
@@ -985,6 +985,8 @@ const handlers: Handlers = {
 			defaultBranch: "main",
 			archived: false,
 			canPush: true,
+			description: "",
+			private: true,
 		};
 	},
 	connectionsRepos: (id) => {
@@ -997,6 +999,8 @@ const handlers: Handlers = {
 					defaultBranch: "main",
 					archived: false,
 					canPush: true,
+					description: "The web app",
+					private: true,
 				},
 				{
 					slug: "acme/docs",
@@ -1004,6 +1008,8 @@ const handlers: Handlers = {
 					defaultBranch: "main",
 					archived: false,
 					canPush: false,
+					description: "Guides and notes",
+					private: false,
 				},
 			],
 			next: null,
@@ -1458,8 +1464,7 @@ const handlers: Handlers = {
 		design.designOpen(need(state.design), target);
 		return null;
 	},
-	designBytes: (path) =>
-		Array.from(new TextEncoder().encode(design.designRead(need(state.design), path).text)),
+	designBytes: (path) => design.designBytes(need(state.design), path),
 	specsChanges: () => specs.changes(need(state.specs)),
 	specsChangeCreate: (id) => specs.changeCreate(need(state.specs), id, state.work.today),
 	specsChangeFromTicket: (key, click) => {
@@ -1560,6 +1565,10 @@ const handlers: Handlers = {
 	// The commit of the sync action: nothing when the option is off.
 	autoCommitRun: () => (state.autoCommit ? "a1b2c3d" : null),
 	closeGuardState: () => state.inFlight,
+	closeGuardDrafts: (count) => {
+		state.inFlight.drafts = count;
+		return null;
+	},
 	closeAnyway: () => {
 		state.closed = true;
 		return null;

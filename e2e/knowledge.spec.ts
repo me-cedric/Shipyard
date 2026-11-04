@@ -14,19 +14,25 @@ async function openKnowledge(page: Page, tab: string) {
 
 test("filters the graph by kind and explains an entity from the inspector", async ({ page }) => {
 	await openKnowledge(page, "Graph");
+	// The clusters come first: a click opens one in place, a second click closes it.
 	const adr = page.getByRole("button", { name: /^ADR adr:0001/ });
+	const cluster = page.locator('button[data-node="cluster/adr"]');
+	await expect(cluster).toHaveAttribute("aria-expanded", "false");
+	await expect(adr).toHaveCount(0);
+	await cluster.click();
 	await expect(adr).toBeVisible();
+	await cluster.click();
+	await expect(adr).toHaveCount(0);
 	const spec = page.getByRole("button", { name: /^Spec spec:auth/ });
-	await expect(spec.first()).toBeVisible();
 
-	// A kind toggle hides its nodes and shows them again.
+	// A kind toggle hides its cluster and shows it again.
 	const toggle = page.getByRole("button", { name: /^ADR \d+$/ });
 	await toggle.click();
-	await expect(adr).toHaveCount(0);
+	await expect(cluster).toHaveCount(0);
 	await toggle.click();
-	await expect(adr).toBeVisible();
+	await expect(cluster).toBeVisible();
 
-	// The search field narrows the nodes by name.
+	// The search field narrows the nodes by name and opens their cluster.
 	await page.getByRole("textbox", { name: "Search" }).fill("adr:0001");
 	await expect(spec).toHaveCount(0);
 	await expect(adr).toBeVisible();

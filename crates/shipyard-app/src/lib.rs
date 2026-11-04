@@ -473,6 +473,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             auto_commit::auto_commit_run,
             close_guard::close_guard_state,
             close_guard::close_anyway,
+            close_guard::close_guard_drafts,
             window::app_data_folder,
             branding::picture_get,
             branding::picture_set,

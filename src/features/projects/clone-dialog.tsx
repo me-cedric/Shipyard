@@ -5,6 +5,7 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Dialog } from "@/ui/organisms/dialog";
+import { useCloneFolder } from "./clone-folder";
 import { FolderField, repoName } from "./first-run";
 import { RepoPicker } from "./repo-picker";
 
@@ -13,7 +14,7 @@ export function CloneDialog({ open, onClose }: { open: boolean; onClose: () => v
 	const { t } = useI18n();
 	const { clone } = useProjectActions();
 	const [url, setUrl] = useState("");
-	const [folder, setFolder] = useState("");
+	const [folder, setFolder] = useCloneFolder();
 	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
 
@@ -44,11 +45,11 @@ export function CloneDialog({ open, onClose }: { open: boolean; onClose: () => v
 					disabled={busy || !url.trim() || !folder || !repoName(url)}
 					onClick={run}
 				>
-					{t.projects.cloneRun}
+					{busy ? t.projects.cloning : t.projects.cloneRun}
 				</Button>
 			}
 		>
-			<RepoPicker onPick={setUrl} onDone={onClose} />
+			<RepoPicker folder={folder} onDone={onClose} />
 			<Input
 				label={t.projects.address}
 				placeholder={t.projects.address}

@@ -1,5 +1,6 @@
 import {
 	Background,
+	Controls,
 	type Edge,
 	Handle,
 	type Node,
@@ -28,6 +29,11 @@ export type CanvasNode = {
 	orphan?: boolean;
 	/** An entity that cites an entity which changed later. */
 	stale?: boolean;
+	/** A cluster: the number of its members. It opens and closes on a click. */
+	count?: number;
+	open?: boolean;
+	/** The node that a search found. */
+	match?: boolean;
 };
 export type CanvasLabels = {
 	table: string;
@@ -36,6 +42,9 @@ export type CanvasLabels = {
 	links: string;
 	orphan: string;
 	stale: string;
+	zoomIn?: string;
+	zoomOut?: string;
+	fit?: string;
 };
 
 type Data = {
@@ -96,6 +105,7 @@ const marksOf = (n: CanvasNode, l: CanvasLabels) => [
 function CanvasBox({ data }: NodeProps<Node<Data>>) {
 	const { node, shape, kind, selected, labels, glow, live } = data;
 	const hue = `var(${HUES[shape % HUES.length]})`;
+	const group = node.count !== undefined;
 	return (
 		<>
 			<Handle type="target" position={Position.Left} isConnectable={false} className="opacity-0" />
@@ -103,7 +113,8 @@ function CanvasBox({ data }: NodeProps<Node<Data>>) {
 				type="button"
 				data-nav=""
 				data-node={node.id}
-				aria-pressed={selected}
+				aria-pressed={group ? undefined : selected}
+				aria-expanded={group ? node.open : undefined}
 				aria-label={[node.name, ...marksOf(node, labels)].join(", ")}
 				style={
 					glow
@@ -115,6 +126,8 @@ function CanvasBox({ data }: NodeProps<Node<Data>>) {
 				}
 				className={cn(
 					"nopan flex h-9 w-44 items-center gap-2 rounded-md border border-n-7 bg-n-2 px-2 text-left text-12 hover:bg-n-3",
+					group && "h-14 w-52 text-ui font-medium",
+					node.match && "ring-2 ring-warning",
 					glow && "bg-surface-2 text-n-12 transition-shadow duration-(--duration-base)",
 					selected && "ring-2 ring-accent",
 				)}
@@ -122,7 +135,7 @@ function CanvasBox({ data }: NodeProps<Node<Data>>) {
 				{live ? <LiveDot /> : null}
 				<KindMark index={shape} label={kind} />
 				{node.status ? <StatusDot status={node.status} /> : null}
-				<span className="truncate">{node.label}</span>
+				<span className="truncate">{group ? `${node.label} ${node.count}` : node.label}</span>
 				{node.orphan ? <StatusDot status="idle" label={labels.orphan} /> : null}
 				{node.stale ? <StatusDot status="warning" label={labels.stale} /> : null}
 			</button>
@@ -143,6 +156,7 @@ export function canvasLayout(
 	glow = false,
 	live: ReadonlySet<string> = new Set(),
 	animate = false,
+	positions?: ReadonlyMap<string, { x: number; y: number }>,
 ) {
 	const rows = new Map<string, number>();
 	const index = (k: string) => {
@@ -165,7 +179,7 @@ export function canvasLayout(
 		return {
 			id: node.id,
 			type: "entity",
-			position: { x: col * COL, y: (row % MAX_ROWS) * ROW },
+			position: positions?.get(node.id) ?? { x: col * COL, y: (row % MAX_ROWS) * ROW },
 			data: {
 				node,
 				shape,
@@ -178,18 +192,24 @@ export function canvasLayout(
 		};
 	});
 	const ids = new Set(nodes.map((n) => n.id));
-	const edges = links
-		.filter(([a, b]) => ids.has(a) && ids.has(b))
-		.map(([a, b]): Edge => {
+	// A link that repeats is one thicker edge.
+	const count = new Map<string, number>();
+	for (const [a, b] of links)
+		if (ids.has(a) && ids.has(b)) count.set(`${a}>${b}`, (count.get(`${a}>${b}`) ?? 0) + 1);
+	const edges = [...count]
+		.map(([id, n]) => [...(id.split(">") as [string, string]), n] as const)
+		.map(([a, b, n]): Edge => {
 			const on = glow && (live.has(a) || live.has(b));
+			const width = n > 1 ? Math.min(1 + Math.log2(n) * 1.5, 10) : on ? 2 : 1;
 			return {
 				id: `${a}>${b}`,
 				source: a,
 				target: b,
 				animated: on && animate,
-				style: glow
-					? { stroke: on ? "var(--accent)" : "var(--n-7)", strokeWidth: on ? 2 : 1 }
-					: undefined,
+				style:
+					glow || n > 1
+						? { stroke: on ? "var(--accent)" : "var(--n-7)", strokeWidth: width }
+						: undefined,
 			};
 		});
 	return { nodes: placed, edges };
@@ -216,6 +236,8 @@ export function GraphCanvas({
 	glow = false,
 	live,
 	legend = false,
+	positions,
+	tableNodes,
 }: {
 	nodes: CanvasNode[];
 	links: [string, string][];
@@ -232,14 +254,18 @@ export function GraphCanvas({
 	live?: ReadonlySet<string>;
 	/** A row of chips, one per kind with its count. */
 	legend?: boolean;
+	/** The place of each node. Without it the nodes stand in one column for each kind. */
+	positions?: ReadonlyMap<string, { x: number; y: number }>;
+	/** The rows of the table view, when they are more than the nodes drawn. */
+	tableNodes?: CanvasNode[];
 }) {
 	const [table, setTable] = useState(false);
 	const root = useRef<HTMLElement>(null);
 	const dark = useDark();
 	const reduced = reducedMotion();
 	const graph = useMemo(
-		() => canvasLayout(nodes, links, kinds, selected, labels, glow, live, !reduced),
-		[nodes, links, kinds, selected, labels, glow, live, reduced],
+		() => canvasLayout(nodes, links, kinds, selected, labels, glow, live, !reduced, positions),
+		[nodes, links, kinds, selected, labels, glow, live, reduced, positions],
 	);
 	const out = useMemo(() => {
 		const m = new Map<string, { to: string[]; from: string[] }>();
@@ -310,17 +336,18 @@ export function GraphCanvas({
 							</tr>
 						</thead>
 						<tbody>
-							{nodes.map((n) => (
+							{(tableNodes ?? nodes).map((n) => (
 								<tr key={n.id} className="border-b">
 									<th scope="row" className="py-1 font-normal">
 										<button
 											type="button"
 											aria-label={[n.name, ...marksOf(n, labels)].join(", ")}
-											aria-pressed={n.id === selected}
+											aria-pressed={n.count === undefined ? n.id === selected : undefined}
+											aria-expanded={n.count === undefined ? undefined : n.open}
 											className="max-w-full truncate rounded-sm text-left hover:underline"
 											onClick={() => onOpen(n.id)}
 										>
-											{n.label}
+											{n.count === undefined ? n.label : `${n.label} (${n.count})`}
 										</button>
 									</th>
 									<td className="py-1">{kinds.find((k) => k.id === n.kind)?.label ?? n.kind}</td>
@@ -349,6 +376,12 @@ export function GraphCanvas({
 						colorMode={glow || dark ? "dark" : "light"}
 						style={glow ? { background: "transparent" } : undefined}
 						fitView
+						minZoom={0.1}
+						ariaLabelConfig={{
+							"controls.zoomIn.ariaLabel": labels.zoomIn ?? "Zoom in",
+							"controls.zoomOut.ariaLabel": labels.zoomOut ?? "Zoom out",
+							"controls.fitView.ariaLabel": labels.fit ?? "Fit view",
+						}}
 						fitViewOptions={{ duration: reduced ? 0 : 200 }}
 						// The click of a node, and Enter on its button, bubble to this handler.
 						onNodeClick={(_, n) => onOpen(n.id)}
@@ -359,6 +392,7 @@ export function GraphCanvas({
 						elementsSelectable={false}
 						proOptions={{ hideAttribution: true }}
 					>
+						<Controls showInteractive={false} />
 						<Background color={glow ? "var(--n-6)" : undefined} gap={glow ? 16 : undefined} />
 					</ReactFlow>
 				</div>

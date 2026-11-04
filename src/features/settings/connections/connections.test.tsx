@@ -227,14 +227,39 @@ describe("Settings / Connections", () => {
 		mockState().sync.failures.issues = "no secret saved";
 		mountApp("/settings/connections");
 		const issues = await row("Issues");
-		expect(await within(issues).findByText("no secret saved")).toBeInTheDocument();
+		expect(
+			await within(issues).findByText("This connection has no token yet."),
+		).toBeInTheDocument();
 		await user.click(within(issues).getByRole("button", { name: "Test" }));
-		await waitFor(() => expect(within(issues).queryByText("no secret saved")).toBeNull());
+		await waitFor(() =>
+			expect(within(issues).queryByText("This connection has no token yet.")).toBeNull(),
+		);
 		expect(within(issues).getAllByRole("img", { name: "Passed" }).length).toBeGreaterThan(0);
 		// The same account is the code host of the project too, with no second sign-in.
 		expect(mockState().secrets["issues-2"]).toBe(TOKEN);
 		const project = (await unwrap(commands.projectSettings()))?.file;
 		expect(project?.connections).toMatchObject({ tracker: "issues", forge: "issues-2" });
+	});
+
+	it("shows one plain line with two actions for a refused token, never the raw body", async () => {
+		const user = userEvent.setup();
+		await open();
+		await seed({ name: "Issues", kind: "github", url: "https://github.com" }, "revoked");
+		mockState().sync.failures.issues = 'HTTP 401: { "message": "Bad credentials" }';
+		mockState().logins = [{ tool: "gh", host: "github.com", user: "ada" }];
+		mountApp("/settings/connections");
+		const issues = await row("Issues");
+		expect(await within(issues).findByText("The token was refused.")).toBeInTheDocument();
+		expect(within(issues).queryByText(/Bad credentials/)).toBeNull();
+		expect(within(issues).getByRole("button", { name: "Sign in again" })).toBeInTheDocument();
+		// A test that fails the same way adds no second line.
+		await user.click(within(issues).getByRole("button", { name: "Test" }));
+		await waitFor(() => expect(within(issues).queryByText(/was rejected/)).toBeNull());
+		expect(within(issues).getAllByText("The token was refused.")).toHaveLength(1);
+		await user.click(within(issues).getByRole("button", { name: "Use the gh login" }));
+		await waitFor(() =>
+			expect(mockState().connections.some((c) => c.name === "github.com (gh)")).toBe(true),
+		);
 	});
 
 	it("forgets the sync failure when a secret is saved", async () => {

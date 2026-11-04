@@ -1,5 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useViewState } from "@/lib/shell/view-state";
 import { useFile, useSpecsActions } from "@/lib/specs";
 import { BookOpenIcon, PencilIcon } from "@/ui/icons";
 import { CodeEditor, type Token } from "@/ui/molecules/code-editor";
@@ -56,11 +57,12 @@ export function FileEditor({
 	const act = useSpecsActions();
 	const { error, run } = useGuard();
 	const [draft, setDraft] = useState<string | null>(null);
+	const [saving, setSaving] = useState(false);
 	const [disk, setDisk] = useState<string | null>(null);
 	// The stamp when the edit started: a later read must not replace it.
 	const [opened, setOpened] = useState<string | null>(null);
 	const [view, setView] = useState<"form" | "text">(form ? "form" : "text");
-	const [mode, setMode] = useState<"read" | "edit">(read ? "read" : "edit");
+	const [mode, setMode] = useViewState<"read" | "edit">(`mode:${path}`, read ? "read" : "edit");
 	// A picked line shows in the text view: the form has no line numbers.
 	const [seen, setSeen] = useState(line);
 	if (line !== seen) {
@@ -80,12 +82,20 @@ export function FileEditor({
 		setDraft(v);
 	};
 
+	// Text typed during a save stays: the draft clears only when it is still the saved text.
 	const save = (stamp: string | null) =>
 		run(async () => {
-			const w = await act.write(path, text, stamp, !!missing);
-			if (w.conflict) return setDisk(w.stamp ?? "");
-			setDraft(null);
-			setDisk(null);
+			const sent = text;
+			setSaving(true);
+			try {
+				const w = await act.write(path, sent, stamp, !!missing);
+				if (w.conflict) return setDisk(w.stamp ?? "");
+				setOpened(w.stamp);
+				setDraft((d) => (d === sent ? null : d));
+				setDisk(null);
+			} finally {
+				setSaving(false);
+			}
 		});
 
 	const k = t.knowledge.handbook;
@@ -144,7 +154,7 @@ export function FileEditor({
 			primary={{
 				label: t.specs.save,
 				onClick: () => void save(opened ?? file.data?.stamp ?? null),
-				disabled: !dirty || (base === undefined && !missing),
+				disabled: !dirty || saving || (base === undefined && !missing),
 			}}
 			save={disk !== null ? "conflict" : dirty ? "dirty" : "clean"}
 			error={shown ? { message: shown, line: errorLine(shown) } : (problem ?? null)}

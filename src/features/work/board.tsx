@@ -9,6 +9,7 @@ import { figure, memberName, useTeam, useWorkActions } from "@/lib/work";
 import { ViewColumnsIcon } from "@/ui/icons";
 import { BoardColumn } from "@/ui/molecules/board-column";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Loading } from "@/ui/molecules/loading";
 import { RUN_STATUS } from "@/ui/molecules/run-card";
 import { TicketCard } from "@/ui/molecules/ticket-card";
 import { priorityOf, type WorkCategory } from "@/ui/molecules/ticket-row";
@@ -43,7 +44,7 @@ export function Board() {
 	const days = useEstimateDays();
 	const runOf = useRunOf();
 
-	if (active === undefined || everything.isLoading) return null;
+	if (active === undefined || everything.isLoading) return <Loading />;
 	if (active === null) return <NoProject title={t.tabs.work.board} />;
 	if (all.length === 0)
 		return (

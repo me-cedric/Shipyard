@@ -68,7 +68,7 @@ test("shows the shortcuts overlay and rebinds an action", async ({ page }) => {
 	await expect(dialog).toBeVisible();
 	await dialog.getByRole("button", { name: "Change Toggle inspector" }).click();
 	await page.keyboard.press("ControlOrMeta+Shift+u");
-	await expect(dialog.getByText(/⇧U|Shift\+U/)).toBeVisible();
+	await expect(dialog.locator("kbd", { hasText: /⇧U|Shift\+U/ })).toBeVisible();
 	await page.keyboard.press("Escape");
 	const inspector = page.getByLabel("Inspector", { exact: true });
 	await page.keyboard.press("ControlOrMeta+Shift+u");

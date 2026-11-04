@@ -102,6 +102,8 @@ pub(crate) fn repository(v: &Value) -> Repository {
         url: text(v, "/webUrl"),
         default_branch: branch(&text(v, "/defaultBranch")),
         archived: v["isDisabled"].as_bool() == Some(true),
+        description: String::new(),
+        private: text(v, "/project/visibility") == "private",
         // A listing carries no permission: `repository()` of the trait asks the security API.
         can_push: None,
     }

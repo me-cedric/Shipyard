@@ -39,6 +39,8 @@ An agent review counts against the budget of the project. The Agents stopped swi
 
 Quality runs the checks of the project and the security scanners, after your click. Each finding shows its file and its line.
 
+The software parts list (SBOM, "software bill of materials") names every library the project uses, with its version. Export it when a client or a security team asks which software the project contains.
+
 ## Impacts
 
 Impacts tells which items a change touches, and proposes an action plan.

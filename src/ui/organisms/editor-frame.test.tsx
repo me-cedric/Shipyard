@@ -1,8 +1,8 @@
-import { screen } from "@testing-library/react";
+import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import { renderApp } from "../test-utils";
-import { EditorFrame, type SaveState } from "./editor-frame";
+import { AUTOSAVE_MS, EditorFrame, type SaveState } from "./editor-frame";
 
 const labels = {
 	copy: "Copy ref",
@@ -60,5 +60,29 @@ describe("EditorFrame", () => {
 		frame("clean");
 		await userEvent.click(screen.getByRole("button", { name: "Copy ref" }));
 		expect(writeText).toHaveBeenCalledWith("spec:checkout");
+	});
+
+	it("saves a draft after a pause, and not while an error shows", () => {
+		vi.useFakeTimers();
+		try {
+			const { onSave } = frame("dirty");
+			act(() => vi.advanceTimersByTime(AUTOSAVE_MS - 1));
+			expect(onSave).not.toHaveBeenCalled();
+			act(() => vi.advanceTimersByTime(1));
+			expect(onSave).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("does not save by itself after an error", () => {
+		vi.useFakeTimers();
+		try {
+			const { onSave } = frame("dirty", { error: { message: "bad token" } });
+			act(() => vi.advanceTimersByTime(AUTOSAVE_MS * 2));
+			expect(onSave).not.toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });

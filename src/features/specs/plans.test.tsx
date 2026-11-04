@@ -8,38 +8,52 @@ const files = () => mockState().specs.files;
 const PLAN = "docs/delivery/test-plans/auth-login.feature";
 
 describe("Specs / Test plans", () => {
-	it("lists each plan with its scenario count and its cited refs", async () => {
+	const plan = (name: RegExp) => screen.findByRole("button", { name, expanded: false });
+
+	it("lists each plan as one row with its scenarios, its coverage and its last verdict", async () => {
 		await renderSpecs(<TestPlans />);
-		const login = await screen.findByRole("row", { name: /Login/ });
-		expect(login).toHaveTextContent("3");
-		expect(within(login).getByRole("button", { name: /spec:auth#REQ-001/ })).toBeInTheDocument();
-		expect(await screen.findByRole("row", { name: /Invoice/ })).toHaveTextContent("2");
+		const login = await plan(/Login/);
+		expect(login).toHaveTextContent("3 scenarios");
+		expect(login).toHaveTextContent("Fail");
+		expect(within(login).getByRole("progressbar")).toBeVisible();
+		// The requirements stay out of the row until it opens.
+		expect(within(login).queryByRole("button")).toBeNull();
+		expect(await plan(/Invoice/)).toHaveTextContent("2 scenarios");
 	});
 
-	it("shows each scenario with its last verdict, and a scenario never run as not covered", async () => {
+	it("opens a plan to list its requirements, one for each line, each with its scenarios and state", async () => {
+		const user = userEvent.setup();
 		await renderSpecs(<TestPlans />);
-		await screen.findByText("A session starts");
-		const row = (name: string) => screen.getByText(name).closest("li") as HTMLElement;
-		expect(row("A session starts")).toHaveTextContent("Pass");
-		expect(row("A person signs in")).toHaveTextContent("Fail");
-		expect(row("An old rule")).toHaveTextContent("Not covered");
-		expect(row("An invoice is issued")).toHaveTextContent("Not covered");
+		const login = await plan(/Login/);
+		await user.click(login);
+		expect(login).toHaveAttribute("aria-expanded", "true");
+		const list = await screen.findByRole("list", { name: /^Requirements: Login/ });
+		expect(within(list).getByRole("button", { name: /spec:auth#REQ-001/ })).toBeVisible();
+		expect(within(list).getByText("A session starts").closest("li")).toHaveTextContent("Pass");
+		expect(within(list).getByText("A person signs in").closest("li")).toHaveTextContent("Fail");
+		await user.click(login);
+		expect(login).toHaveAttribute("aria-expanded", "false");
+		expect(screen.queryByRole("list", { name: /^Requirements: Login/ })).toBeNull();
 	});
 
-	it("lists the requirements that no scenario cites, for each capability", async () => {
+	it("filters the plans by a failing scenario and by a search", async () => {
+		const user = userEvent.setup();
 		await renderSpecs(<TestPlans />);
-		const auth = await screen.findByRole("region", { name: "Coverage: auth" });
-		await waitFor(() =>
-			expect(within(auth).getByRole("heading", { name: "auth (1)" })).toBeVisible(),
-		);
-		expect(within(auth).getByRole("button", { name: /spec:auth#REQ-002/ })).toBeVisible();
-		expect(await screen.findByRole("heading", { name: "billing (0)" })).toBeVisible();
+		await plan(/Login/);
+		await user.click(screen.getByRole("button", { name: "Failing" }));
+		expect(await plan(/Login/)).toBeVisible();
+		expect(screen.queryByRole("button", { name: /Invoice/ })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "All" }));
+		await user.type(screen.getByRole("textbox", { name: "Search" }), "invoice");
+		expect(await plan(/Invoice/)).toBeVisible();
+		expect(screen.queryByRole("button", { name: /Login/ })).toBeNull();
 	});
 
 	it("flags a citation that no spec holds", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<TestPlans />);
-		await user.click(await screen.findByRole("row", { name: /Login/ }));
+		await user.click(await plan(/Login/));
+		await user.click(await screen.findByRole("button", { name: "Open the plan" }));
 		const broken = await screen.findByRole("list", { name: "Broken citations" });
 		expect(within(broken).getByRole("button", { name: /spec:auth#REQ-009.*Broken/ })).toBeVisible();
 	});
@@ -47,7 +61,8 @@ describe("Specs / Test plans", () => {
 	it("reports a syntax error with its line after a save", async () => {
 		const user = userEvent.setup();
 		await renderSpecs(<TestPlans />);
-		await user.click(await screen.findByRole("row", { name: /Login/ }));
+		await user.click(await plan(/Login/));
+		await user.click(await screen.findByRole("button", { name: "Open the plan" }));
 		const box = await screen.findByRole("textbox", { name: "Login" });
 		await waitFor(() => expect(box).toHaveValue(files()[PLAN]?.text ?? ""));
 		await user.clear(box);
@@ -58,7 +73,7 @@ describe("Specs / Test plans", () => {
 		expect(files()[PLAN]?.text).toBe("Scenario: no feature");
 	});
 
-	it("lints a scenario with no Then and draws the scenario coverage", async () => {
+	it("lints a scenario with no Then and ", async () => {
 		const user = userEvent.setup();
 		files()[PLAN] = {
 			text: "Feature: Login\n  Scenario: weak\n    When a person signs in\n",
@@ -68,12 +83,6 @@ describe("Specs / Test plans", () => {
 		const lint = await screen.findByRole("button", { name: /weak: no Then step/ });
 		await user.click(lint);
 		expect(await screen.findByRole("textbox", { name: "Login" })).toBeVisible();
-	});
-
-	it("draws one bar for each requirement, and a gap for a requirement with no scenario", async () => {
-		await renderSpecs(<TestPlans />);
-		expect(await screen.findByText("Scenario coverage")).toBeVisible();
-		expect(await screen.findByLabelText(/spec:auth#REQ-002: no scenario/)).toBeVisible();
 	});
 
 	it("creates a plan from a name", async () => {

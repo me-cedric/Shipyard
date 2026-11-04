@@ -9,6 +9,7 @@ const open = (path = "/mock/alpha") => unwrap(commands.projectsOpen(path, false)
 const firstRunButtons = () => within(screen.getByRole("main")).getAllByRole("button");
 
 describe("first run", () => {
+	beforeEach(() => localStorage.removeItem("shipyard.cloneFolder"));
 	it("shows the role as named cards, then three starts, with one primary action", async () => {
 		const user = userEvent.setup();
 		mountApp("/home/inbox");
@@ -110,6 +111,7 @@ describe("first run", () => {
 });
 
 describe("project switcher", () => {
+	beforeEach(() => localStorage.removeItem("shipyard.cloneFolder"));
 	it("lists each project with the state of its working copy and switches", async () => {
 		const user = userEvent.setup();
 		await open("/mock/alpha");

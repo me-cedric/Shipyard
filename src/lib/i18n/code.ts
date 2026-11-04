@@ -97,8 +97,8 @@ export const forgeEn = {
 		score: "Security score",
 		scanned: "Scanners run",
 		findingsTotal: "Findings",
-		sbom: "SBOM",
-		exportSbom: "Export SBOM",
+		sbom: "Software parts list (SBOM)",
+		exportSbom: "Export the list of software parts",
 		sbomDone: "{count} components in {path}",
 		named: {
 			lint: "Lint",
@@ -249,8 +249,8 @@ export const forgeFr: typeof forgeEn = {
 		score: "Score de sécurité",
 		scanned: "Scanners lancés",
 		findingsTotal: "Constats",
-		sbom: "SBOM",
-		exportSbom: "Exporter le SBOM",
+		sbom: "Liste des composants logiciels (SBOM)",
+		exportSbom: "Exporter la liste des composants",
 		sbomDone: "{count} composants dans {path}",
 		named: {
 			lint: "Lint",

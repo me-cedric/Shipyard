@@ -1,17 +1,24 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { copyText } from "@/lib/menus";
+import { useDraftCount } from "@/lib/shell/drafts";
 import { Button } from "../atoms/button";
 import { IconButton } from "../atoms/icon-button";
 import { StatusDot } from "../atoms/status-dot";
 import { ClipboardIcon } from "../icons";
 import { RefChip, type RefState } from "../molecules/ref-chip";
 import type { EditorError } from "./error-line";
+import { LeaveGuard } from "./leave-guard";
+
+/** The pause after the last change, in ms, before a draft saves itself. */
+export const AUTOSAVE_MS = 1500;
 
 export type SaveState = "clean" | "dirty" | "conflict";
 
 /**
  * The one frame of every Design and Specs artifact. The caller passes every text.
  * A conflict offers a reload or keep mine, and holds the primary action until the person chooses.
+ * A draft saves itself after a short pause, unless an error shows. Leaving the page with a draft
+ * that is not saved asks first, and the close guard of the window counts it.
  */
 export function EditorFrame({
 	title,
@@ -47,8 +54,17 @@ export function EditorFrame({
 	};
 	children: ReactNode;
 }) {
+	const onSave = primary?.onClick;
+	const blocked = !primary || primary.disabled;
+	useEffect(() => {
+		if (save !== "dirty" || blocked || error || !onSave) return;
+		const id = setTimeout(onSave, AUTOSAVE_MS);
+		return () => clearTimeout(id);
+	}, [save, blocked, error, onSave]);
+	useDraftCount(save !== "clean");
 	return (
 		<section aria-label={title} className="flex min-h-0 flex-1 flex-col gap-2">
+			<LeaveGuard dirty={save !== "clean"} />
 			<header className="flex items-center gap-2">
 				<h2 className="truncate text-14 font-medium">{title}</h2>
 				<RefChip refId={refId} state={refState} />

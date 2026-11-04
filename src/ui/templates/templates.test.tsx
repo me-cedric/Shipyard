@@ -26,15 +26,14 @@ describe("templates (REQ-006)", () => {
 	it("Shell uses a 56 px rail or a 220 px sidebar", () => {
 		const { unmount } = renderApp(<Shell sidebar="s" main="m" sidebarOpen />);
 		const nav = screen.getByRole("navigation", { name: "Sidebar" });
-		expect(nav.className).toContain("data-[open=true]:w-55");
-		expect(nav.className).toContain("data-[open=false]:w-14");
+		expect(nav).toHaveStyle({ width: "220px" });
+		expect(screen.getByRole("separator", { name: "Sidebar width" })).toBeInTheDocument();
 		expect(nav).toHaveAttribute("data-open", "true");
 		unmount();
 		renderApp(<Shell sidebar="s" main="m" sidebarOpen={false} />);
-		expect(screen.getByRole("navigation", { name: "Sidebar" })).toHaveAttribute(
-			"data-open",
-			"false",
-		);
+		const rail = screen.getByRole("navigation", { name: "Sidebar" });
+		expect(rail).toHaveAttribute("data-open", "false");
+		expect(rail).toHaveStyle({ width: "56px" });
 	});
 
 	it("ListDetail names the view and shows the toolbar above the list", () => {

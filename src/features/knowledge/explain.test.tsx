@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
+import { clusterNodes } from "./graph-clusters";
 import { graphNode, inspector, mountKnowledge } from "./harness";
 
 describe("Explain", () => {
@@ -10,6 +11,8 @@ describe("Explain", () => {
 		const g = await unwrap(commands.graphGet());
 		const spec = g.nodes.find((n) => n.kind === "spec");
 		if (!spec) throw new Error("spec");
+		const cluster = clusterNodes(g.nodes).find((c) => c.members.some((m) => m.ref === spec.ref));
+		await user.click(await graphNode(cluster?.id ?? ""));
 		await user.click(await graphNode(spec.ref));
 		const panel = await inspector();
 		await user.click(await within(panel).findByRole("button", { name: "Explain" }));

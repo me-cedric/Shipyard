@@ -1,7 +1,10 @@
 import { useCallback, useState } from "react";
+import { clearViewState, readView, useViewProject, viewProjectNow, writeView } from "./view-state";
 
-// The choice of each view for the session, by scope. A remount of the view reads it back.
+// The choice of each view for the session, by project and scope. A remount of the view reads it
+// back. The choice is also saved per project, so it survives a restart.
 const memory = new Map<string, string | null>();
+const mk = (id: string, scope: string) => `${id}\0${scope}`;
 
 /**
  * The open item of a list-detail view, kept per view while the app runs. With `ids`, the view never
@@ -14,20 +17,26 @@ export function useTabSelection(
 ): [string | null, (id: string | null) => void] {
 	// The memory is the state; the counter only draws the view again after a choice.
 	const [, redraw] = useState(0);
-	const chosen = memory.get(scope) ?? null;
+	const project = useViewProject();
+	const k = mk(project, scope);
+	const chosen = memory.has(k)
+		? (memory.get(k) ?? null)
+		: readView<string | null>(project, `tab:${scope}`, null);
 	const select = useCallback(
 		(id: string | null) => {
-			memory.set(scope, id);
+			memory.set(k, id);
+			writeView(project, `tab:${scope}`, id);
 			redraw((n) => n + 1);
 		},
-		[scope],
+		[k, project, scope],
 	);
 	if (!ids) return [chosen, select];
 	return [chosen !== null && ids.includes(chosen) ? chosen : (ids[0] ?? null), select];
 }
 
 /** Sets the choice of a view before it mounts, such as a file to show in Code / Changes. */
-export const rememberSelection = (scope: string, id: string) => memory.set(scope, id);
+export const rememberSelection = (scope: string, id: string) =>
+	memory.set(mk(viewProjectNow(), scope), id);
 
 // The files that an Edit action asked to open in their editor. The page reads it, then clears it.
 const edits = new Set<string>();
@@ -39,4 +48,5 @@ export const clearEditRequest = (id: string) => edits.delete(id);
 export const clearTabSelections = () => {
 	memory.clear();
 	edits.clear();
+	clearViewState();
 };

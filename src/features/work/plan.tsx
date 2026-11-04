@@ -35,6 +35,7 @@ import {
 	XMarkIcon,
 } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Loading } from "@/ui/molecules/loading";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { type Band, Gantt, type GanttBar } from "@/ui/organisms/gantt";
@@ -254,7 +255,7 @@ export function Plan() {
 		[plan],
 	);
 
-	if (active === undefined || sheets.isLoading) return null;
+	if (active === undefined || sheets.isLoading) return <Loading />;
 	if (active === null) return <NoProject title={t.tabs.work.plan} />;
 	if (!slug || !plan)
 		return (
