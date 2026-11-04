@@ -86,6 +86,22 @@ The build follows the waves in `docs/plan/MASTER-PLAN.md` section 10.
 - No taglines, no helper text, no secondary labels. Fix the layout instead.
 - Use the `taste` product-UI skills (`minimalist-skill`) for UI work. Do not use the landing-page skills.
 
+## Docs stay current
+
+A change that alters the architecture, a command, a data table, a network call or a screen updates the matching doc in the same change.
+
+| The change alters | Update |
+|---|---|
+| A crate, a crate dependency, a space or an external system | `docs/models/architecture.c4` |
+| The run states, the sync tick, the sign-in or the delivery steps | `docs/diagrams/*.mmd` |
+| A tool or the endpoint of the Shipyard MCP server | `docs/api/shipyard-mcp.yaml` |
+| A table or a column of a SQLite file | `docs/data-models/*.dbml` |
+| A network call to a host | `docs/flows/network-flows.json` and `docs/flows/bricks.json` |
+| A screen | `docs/designs/screens.json` and the picture in `docs/assets/screenshots/` |
+| A requirement | the scenario in `docs/delivery/test-plans/<capability>.feature` |
+
+The `add-docs-freshness` change makes Shipyard check this rule itself.
+
 ## Changelog
 
 Each user-visible change adds one entry to `CHANGELOG.md` (English) and `CHANGELOG.fr.md` (French), under the top version, same number of bullets.
