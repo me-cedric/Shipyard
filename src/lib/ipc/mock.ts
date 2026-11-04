@@ -261,6 +261,8 @@ const fresh = (): State => ({
 		narrowBar: false,
 		terminalDock: "bottom",
 		panelSizes: {},
+		uiScale: 16,
+		tray: true,
 	},
 	projects: [],
 	files: {},
@@ -374,6 +376,21 @@ function agentPr(): ap.MockAgentPr {
 	state.agentPr.stopped = fx.killSwitchGet(state.factory);
 	return state.agentPr;
 }
+
+/**
+ * The mock of `reveal_path` and `open_default`: the same refusals as the Rust check, no folder test.
+ * A path is allowed in the project, or when an export wrote it.
+ */
+const localPath = (path: string) => {
+	const wrote = [...state.reports.exported, ...state.knowledge.exported].some(
+		(e) => e.path === path,
+	);
+	const project = active()?.path;
+	const inside = !path.startsWith("/") || (project !== undefined && path.startsWith(`${project}/`));
+	if (!path || path.startsWith("-") || path.split("/").includes("..") || !(wrote || inside))
+		throw `path not allowed: ${path}`;
+	return null;
+};
 
 const readOnly = () => active()?.overrides.readOnly === true;
 
@@ -769,6 +786,7 @@ const handlers: Handlers = {
 		// An empty release address goes back to the default.
 		if (!state.prefs.releaseUrl.trim()) state.prefs.releaseUrl = RELEASE_URL;
 		state.prefs.terminalFontSize = Math.min(24, Math.max(9, state.prefs.terminalFontSize));
+		state.prefs.uiScale = Math.min(20, Math.max(14, state.prefs.uiScale));
 		// An app id is a-z, 0-9 and `-`.
 		state.prefs.terminalApp = state.prefs.terminalApp.trim().replace(/[^a-z0-9-]/g, "");
 		if (!["en", "fr"].includes(state.prefs.promptLang)) state.prefs.promptLang = "";
@@ -1422,6 +1440,7 @@ const handlers: Handlers = {
 			number,
 			fx.pullsList(state.factory, active()?.id ?? null).find((r) => r.number === number),
 		),
+	codeMyChecks: () => cp.myChecks(prs()),
 	codePullLabels: () => cp.pullLabels(),
 	codePullOpen: (input, click) => cp.pullOpen(prs(), code(), input, click),
 	prReviewStart: (number, click) => ap.reviewStart(agentPr(), prs(), number, click, readOnly()),
@@ -1569,6 +1588,9 @@ const handlers: Handlers = {
 		state.inFlight.drafts = count;
 		return null;
 	},
+	trayBadge: () => null,
+	trayClose: () => null,
+	trayOpen: () => null,
 	closeAnyway: () => {
 		state.closed = true;
 		return null;
@@ -1794,6 +1816,8 @@ const handlers: Handlers = {
 	editorOpen: (editor, path, line) =>
 		deliveryActions.editorOpen(state.deliveryActions, editor, path, line),
 	openLink: (url) => deliveryActions.link(state.openedPages, url),
+	revealPath: localPath,
+	openDefault: localPath,
 	assistantGrant: (id) => ai.grant(state.assistant, assistantEnv(), id),
 	assistantRetry: (id) => ai.retry(state.assistant, assistantEnv(), id),
 	assistantExplain: (id, entity) => ai.explain(state.assistant, assistantEnv(), id, entity),

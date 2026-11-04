@@ -73,6 +73,14 @@ pub enum EventSource {
     Update,
     /// The remote head moved.
     RemoteHead,
+    /// A run ended, done or failed.
+    RunEnded,
+    /// The checks of a pull request of the person passed or failed.
+    PrChecks,
+    /// A quality or security scan failed that the person did not start.
+    ScanFailed,
+    /// An agent review draft is ready to post.
+    ReviewDraft,
 }
 
 /// Where the terminal drawer docks.
@@ -194,6 +202,12 @@ pub struct Prefs {
     /// A panel with no entry keeps its default size.
     #[serde(default)]
     pub panel_sizes: BTreeMap<String, u32>,
+    /// The font size of the interface in pixels. It scales the text and the spacing.
+    #[serde(default = "default_ui_scale")]
+    pub ui_scale: u8,
+    /// The menu bar item (the system tray) is on.
+    #[serde(default = "yes")]
+    pub tray: bool,
 }
 
 pub const DATE_FORMATS: [&str; 3] = ["iso", "dmy", "mdy"];
@@ -207,6 +221,12 @@ fn yes() -> bool {
 pub const UI_FONTS: [&str; 5] = ["system", "grotesk", "humanist", "serif", "mono"];
 pub const CODE_FONTS: [&str; 3] = ["system", "menlo", "courier"];
 pub const TERMINAL_FONT_SIZE: std::ops::RangeInclusive<u8> = 9..=24;
+/// The font size of the interface, in pixels, written on the root element.
+pub const UI_SCALE: std::ops::RangeInclusive<u8> = 14..=20;
+
+fn default_ui_scale() -> u8 {
+    16
+}
 
 fn default_terminal_font_size() -> u8 {
     13
@@ -265,6 +285,8 @@ impl Default for Prefs {
             narrow_bar: false,
             terminal_dock: TerminalDock::Bottom,
             panel_sizes: BTreeMap::new(),
+            ui_scale: default_ui_scale(),
+            tray: true,
         }
     }
 }
@@ -307,6 +329,8 @@ pub struct PrefsPatch {
     pub terminal_dock: Option<TerminalDock>,
     /// Replaces the whole map, so a missing key goes back to its default size.
     pub panel_sizes: Option<BTreeMap<String, u32>>,
+    pub ui_scale: Option<u8>,
+    pub tray: Option<bool>,
 }
 
 const FILE: &str = "prefs.json";
@@ -425,6 +449,10 @@ impl Prefs {
         self.close_push = p.close_push.unwrap_or(self.close_push);
         self.narrow_bar = p.narrow_bar.unwrap_or(self.narrow_bar);
         self.terminal_dock = p.terminal_dock.unwrap_or(self.terminal_dock);
+        self.tray = p.tray.unwrap_or(self.tray);
+        if let Some(n) = p.ui_scale {
+            self.ui_scale = n.clamp(*UI_SCALE.start(), *UI_SCALE.end());
+        }
         if let Some(map) = p.panel_sizes {
             self.panel_sizes = map
                 .into_iter()
@@ -672,6 +700,26 @@ mod tests {
     }
 
     #[test]
+    fn the_new_sources_have_kebab_names_and_start_on() {
+        let names = [
+            (EventSource::RunEnded, "run-ended"),
+            (EventSource::PrChecks, "pr-checks"),
+            (EventSource::ScanFailed, "scan-failed"),
+            (EventSource::ReviewDraft, "review-draft"),
+        ];
+        for (source, name) in names {
+            assert_eq!(
+                serde_json::to_string(&source).unwrap(),
+                format!("\"{name}\"")
+            );
+            assert!(!Prefs::default().notify_off.contains(&source));
+        }
+        let off: Vec<EventSource> =
+            serde_json::from_str(r#"["pr-checks","review-draft"]"#).unwrap();
+        assert_eq!(off, [EventSource::PrChecks, EventSource::ReviewDraft]);
+    }
+
+    #[test]
     fn the_release_address_changes_and_an_empty_one_restores_the_default() {
         let mut p = Prefs::default();
         let set = |p: &mut Prefs, url: &str| {
@@ -684,6 +732,43 @@ mod tests {
         assert_eq!(p.release_url, "https://example.com/latest");
         set(&mut p, " ");
         assert_eq!(p.release_url, DEFAULT_RELEASE_URL);
+    }
+
+    #[test]
+    fn the_ui_scale_defaults_to_16_and_clamps() {
+        let mut p = Prefs::default();
+        assert_eq!(p.ui_scale, 16);
+        p.apply(PrefsPatch {
+            ui_scale: Some(99),
+            ..Default::default()
+        });
+        assert_eq!(p.ui_scale, 20);
+        p.apply(PrefsPatch {
+            ui_scale: Some(2),
+            ..Default::default()
+        });
+        assert_eq!(p.ui_scale, 14);
+        let old: Prefs = serde_json::from_str(
+            r#"{"theme":"dark","density":"default","contrast":"default","role":"none","sidebarOpen":true,"lang":null}"#,
+        )
+        .unwrap();
+        assert_eq!(old.ui_scale, 16, "a file with no value gets the default");
+    }
+
+    #[test]
+    fn the_menu_bar_item_defaults_on_and_a_patch_turns_it_off() {
+        let mut p = Prefs::default();
+        assert!(p.tray);
+        p.apply(PrefsPatch {
+            tray: Some(false),
+            ..Default::default()
+        });
+        assert!(!p.tray);
+        let old: Prefs = serde_json::from_str(
+            r#"{"theme":"dark","density":"default","contrast":"default","role":"none","sidebarOpen":true,"lang":null}"#,
+        )
+        .unwrap();
+        assert!(old.tray, "a file with no value gets the default");
     }
 
     #[test]

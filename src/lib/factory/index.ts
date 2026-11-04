@@ -1,7 +1,8 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { useEffect, useMemo, useState } from "react";
 import { useFactoryEvents } from "@/lib/home";
-import { commands, unwrap } from "@/lib/ipc";
+import { commands, isTauri, type SpendRow, unwrap } from "@/lib/ipc";
 
 export type { RunItem } from "@/lib/home";
 
@@ -175,12 +176,30 @@ export function useMachineSessions() {
 	});
 }
 
-/** The spend of the last `days` days on this computer, with the monthly budgets. */
+/** The totals so far, which the scan sends while it reads the agent logs. */
+export type SpendProgress = { rows: SpendRow[]; read: number; found: number };
+const SPEND_PROGRESS_EVENT = "machine-spend-progress";
+
+/**
+ * The spend of the last `days` days on this computer, with the monthly budgets. While the scan
+ * reads, `partial` holds the totals so far. The query result replaces it.
+ */
 export function useMachineSpend(days: number) {
-	return useQuery({
+	const [partial, setPartial] = useState<SpendProgress | null>(null);
+	const query = useQuery({
 		queryKey: machineKeys.spend(days),
 		queryFn: () => unwrap(commands.machineSpend(days)),
 	});
+	useEffect(() => {
+		if (!isTauri()) return;
+		const off = listen<SpendProgress>(SPEND_PROGRESS_EVENT, (e) => setPartial(e.payload));
+		return () => void off.then((f) => f());
+	}, []);
+	const fetching = query.isFetching;
+	useEffect(() => {
+		if (!fetching) setPartial(null);
+	}, [fetching]);
+	return { ...query, partial: fetching ? partial : null };
 }
 
 /** A stop and a budget write read the machine again, also when they fail. */

@@ -15,6 +15,7 @@ export function useCounts() {
 			inbox.approvals.length +
 			inbox.plans.length +
 			inbox.messages.length +
+			inbox.reviews.length +
 			Number(inbox.timesheet)
 		: 0;
 	// A run is live while it works or waits for the person.

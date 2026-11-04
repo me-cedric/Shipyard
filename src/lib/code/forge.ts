@@ -12,6 +12,7 @@ import {
 	unwrap,
 	type Verdict,
 } from "@/lib/ipc";
+import { markClicked } from "@/lib/notifications/sources";
 
 export type { ImpactEntry, MergeMethod, PrRowView, Verdict };
 export type PullDetail = PullDetail_Serialize;
@@ -114,9 +115,12 @@ type Result<T> = { status: "ok"; data: T } | { status: "error"; error: unknown }
 export function useForgeActions() {
 	const qc = useQueryClient();
 	return useMemo(() => {
-		const run = async <T>(call: Promise<Result<T>>): Promise<T> => {
+		const run = async <T>(call: Promise<Result<T>>, mark?: (r: T) => void): Promise<T> => {
 			try {
-				return await unwrap(call);
+				const r = await unwrap(call);
+				// Mark the report before the views read again, so the tick sees a click.
+				mark?.(r);
+				return r;
 			} finally {
 				await qc.invalidateQueries({ queryKey: ["code"] });
 			}
@@ -135,8 +139,8 @@ export function useForgeActions() {
 			publish: (connection: string, slug: string) =>
 				run(commands.codePublish(connection, slug, true)),
 			setRemote: (url: string) => run(commands.codeRemoteSet(url, true)),
-			check: (command: string) => run(commands.codeCheckRun(command, true)),
-			scan: (name: string) => run(commands.codeScanRun(name, true)),
+			check: (command: string) => run(commands.codeCheckRun(command, true), markClicked),
+			scan: (name: string) => run(commands.codeScanRun(name, true), markClicked),
 			install: (name: string) => run(commands.codeScannerInstall(name, true)),
 			installTool: (id: string) => run(commands.doctorToolInstall(id, true)),
 			gatesPropose: () => unwrap(commands.codeGatesPropose()),

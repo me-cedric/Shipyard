@@ -13,7 +13,8 @@ const SPACES = [
 
 test("opens each space from the sidebar on its first tab", async ({ page }) => {
 	await page.goto("/");
-	await expect(page).toHaveTitle("Shipyard");
+	// Each page names itself before the app: "Inbox · Shipyard".
+	await expect(page).toHaveTitle(/Shipyard$/);
 	const sidebar = page.getByRole("navigation", { name: "Sidebar" });
 	const tabs = page.getByRole("navigation", { name: "Tabs" });
 	for (const [space, tab] of SPACES) {

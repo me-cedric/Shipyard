@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { dataUri } from "@/lib/data-uri";
 import { type Screen, slug, TEMPLATE, useDesignActions, useDesignList } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
@@ -11,7 +10,8 @@ import { ComputerDesktopIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { RefChip } from "@/ui/molecules/ref-chip";
-import { Dialog } from "@/ui/organisms/dialog";
+import { SplitPane } from "@/ui/molecules/split-pane";
+import { ZoomFrame } from "@/ui/molecules/zoom-frame";
 import { svgDataUri } from "@/ui/organisms/drawio";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
 import { HtmlPreview } from "@/ui/organisms/html-preview";
@@ -31,10 +31,6 @@ const IMAGE: Record<string, string> = {
 
 /** The inline preview of an HTML mockup or an image of the folder. Other files show nothing. */
 function Preview({ path, label }: { path: string; label: string }) {
-	const { t } = useI18n();
-	const s = t.design.screens;
-	const [big, setBig] = useState(false);
-	const [full, setFull] = useState(false);
 	const ext = path.slice(path.lastIndexOf(".") + 1).toLowerCase();
 	const mime = IMAGE[ext];
 	const html = ext === "html" || ext === "htm";
@@ -58,29 +54,9 @@ function Preview({ path, label }: { path: string; label: string }) {
 	if (html) return <HtmlPreview html={q.data} label={label} />;
 	const src = ext === "svg" ? svgDataUri(q.data) : q.data;
 	return (
-		<>
-			<button
-				type="button"
-				aria-label={`${s.enlarge}: ${label}`}
-				onClick={() => setBig(true)}
-				className="block w-full cursor-zoom-in rounded-md border border-n-7"
-			>
-				<img src={src} alt={label} className="w-full rounded-md" />
-			</button>
-			<Dialog open={big} onOpenChange={setBig} title={label} full>
-				<div className="flex gap-2">
-					<Button variant={full ? "ghost" : "primary"} onClick={() => setFull(false)}>
-						{s.zoomFit}
-					</Button>
-					<Button variant={full ? "primary" : "ghost"} onClick={() => setFull(true)}>
-						{s.zoom100}
-					</Button>
-				</div>
-				<div className="max-h-[75vh] overflow-auto rounded-md border border-n-7">
-					<img src={src} alt={label} className={full ? "max-w-none" : "w-full"} />
-				</div>
-			</Dialog>
-		</>
+		<ZoomFrame label={label} className="rounded-md border border-n-7">
+			<img src={src} alt={label} className="w-full rounded-md" />
+		</ZoomFrame>
 	);
 }
 
@@ -184,9 +160,17 @@ export function Screens() {
 				) : (
 					<FileFrame path={doc} refId={row.ref} title={row.title} missing={TEMPLATE.doc}>
 						{(f) => (
-							<div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-1 gap-3">
-								<CodeEditor label={t.design.screens.docText} value={f.text} onChange={f.setText} />
-								<TokenView />
+							<div className="flex min-h-0 flex-1 gap-3">
+								<SplitPane id="design-screens-width" label={t.design.resize.editor} min={320}>
+									<CodeEditor
+										label={t.design.screens.docText}
+										value={f.text}
+										onChange={f.setText}
+									/>
+								</SplitPane>
+								<div className="flex min-h-0 min-w-0 flex-1 flex-col *:min-h-0 *:flex-1">
+									<TokenView />
+								</div>
 							</div>
 						)}
 					</FileFrame>

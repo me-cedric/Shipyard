@@ -1,5 +1,9 @@
 /** The strings of the Specs space. */
 export const specsEn = {
+	resize: {
+		list: "Artifact list width",
+		requirements: "Requirements height",
+	},
 	save: "Save",
 	create: "Create",
 	back: "Back",
@@ -102,6 +106,10 @@ export const specsEn = {
 };
 
 export const specsFr: typeof specsEn = {
+	resize: {
+		list: "Largeur de la liste des artefacts",
+		requirements: "Hauteur des exigences",
+	},
 	save: "Enregistrer",
 	create: "Créer",
 	back: "Retour",

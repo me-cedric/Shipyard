@@ -83,6 +83,8 @@ export type Box = { id: string; w: number; h: number };
 export const CARD = { w: 208, h: 56 };
 const CELL = { w: 190, h: 44 };
 const HEAD = 72;
+/** The longest move of a box in one step of the layout. */
+const MOVE = 60;
 
 /** The size of a cluster on the canvas: a card, or a card above a grid of its members. */
 export function boxOf(id: string, members: number, open: boolean): Box {
@@ -159,8 +161,11 @@ export function forceLayout(boxes: Box[], links: [string, string][]) {
 		p.forEach((q, i) => {
 			const g = f[i];
 			if (!g) return;
-			q.x += (g.x - q.x * 0.01) * (0.2 + 0.8 * t);
-			q.y += (g.y - q.y * 0.01) * (0.2 + 0.8 * t);
+			const [mx, my] = [g.x - q.x * 0.01, g.y - q.y * 0.01];
+			// The pushes of many overlaps add up and diverge: cap each move.
+			const k = Math.min(1, MOVE / (Math.hypot(mx, my) || 1)) * (0.2 + 0.8 * t);
+			q.x += mx * k;
+			q.y += my * k;
 		});
 	}
 	return new Map(

@@ -24,7 +24,8 @@ test("copies the ref of a diagram and shows its backlinks in the inspector", asy
 	await list(page, "Diagrams")
 		.getByRole("button", { name: /sync-flow/ })
 		.click();
-	await page.getByRole("button", { name: "Copy ref" }).click();
+	// The editor frame copies the ref; the inspector has its own copy button.
+	await page.getByRole("main").getByRole("button", { name: "Copy ref" }).click();
 	expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("diagram:sync-flow");
 	await expect(inspector(page).getByRole("button", { name: /^diagram:sync-flow/ })).toBeVisible();
 

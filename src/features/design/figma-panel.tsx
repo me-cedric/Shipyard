@@ -6,6 +6,7 @@ import { commands, type DesignToken, type FigmaFile, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { ZoomFrame } from "@/ui/molecules/zoom-frame";
 
 /**
  * Design / Screens: the Figma API. The token goes to the OS keychain; then the files of a Figma
@@ -116,11 +117,9 @@ export function FigmaPanel({ file }: { file?: string | null }) {
 				</>
 			) : null}
 			{shown?.src ? (
-				<img
-					src={shown.src}
-					alt={shown.name}
-					className="max-h-[50vh] max-w-full self-start rounded-md border"
-				/>
+				<ZoomFrame label={shown.name} className="h-[50vh] rounded-md border">
+					<img src={shown.src} alt={shown.name} className="max-w-full" />
+				</ZoomFrame>
 			) : null}
 			{shown?.tokens ? (
 				<ul aria-label={g.designTokens} className="flex flex-col">

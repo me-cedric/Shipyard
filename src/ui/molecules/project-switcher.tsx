@@ -85,12 +85,8 @@ export function ProjectSwitcher({
 				<FolderOpenIcon size={16} />
 			) : (
 				<>
-					<span className="flex min-w-0 items-center gap-2">
-						{active ? (
-							<StatusDot status={STATE_DOT[active.state]} label={t.projects.state[active.state]} />
-						) : null}
-						<span className="truncate">{active?.name ?? t.projects.switcher}</span>
-					</span>
+					{/* No state shape here: it read as a warning. The status bar counts the changes. */}
+					<span className="truncate">{active?.name ?? t.projects.switcher}</span>
 					<ChevronRightIcon size={12} className="rotate-90 text-n-10" />
 				</>
 			)}

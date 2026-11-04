@@ -440,6 +440,40 @@ fn the_part_of_the_email_before_the_at_counts_only_for_one_member_without_anothe
 }
 
 #[test]
+fn the_git_name_finds_one_member_with_that_name_and_no_account() {
+    let f = fx_with(ConnectionKind::GitHub, None);
+    git_config(&f, "user.name", "Cédric Meyer");
+    git_config(&f, "user.email", "cedric.meyer@acme.test");
+    let c = &f.s.connections;
+    assert_eq!(
+        c.set_secret(&f.tracker, Secret::new("t3")).unwrap().user,
+        None
+    );
+    let me = |f: &Fx| context(&f.s, 0).unwrap().me;
+    let named = |trackers: &[&str]| Member {
+        name: "Cédric Meyer".into(),
+        ..john("cedric", trackers)
+    };
+    save_team(
+        &f,
+        Team {
+            members: vec![named(&[])],
+            locked: false,
+        },
+    );
+    assert_eq!(me(&f).as_deref(), Some("cedric"));
+    // A member with an account of their own is another person with the same name.
+    save_team(
+        &f,
+        Team {
+            members: vec![named(&["cm-gh"])],
+            locked: false,
+        },
+    );
+    assert_eq!(me(&f), None);
+}
+
+#[test]
 fn a_passed_github_test_saves_the_login_and_adding_me_uses_it_for_the_handle_and_the_account() {
     let f = fx_with(ConnectionKind::GitHub, None);
     git_config(&f, "user.name", "Ada Lee");

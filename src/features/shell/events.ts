@@ -5,10 +5,18 @@ import { needsYouNotice, useFactoryEvents } from "@/lib/home";
 import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
-import { useNotifications } from "@/lib/notifications";
+import {
+	checkNotices,
+	fresh,
+	reviewDraftNotice,
+	runEndedNotice,
+	scanNotices,
+	useNotifications,
+} from "@/lib/notifications";
 import { usePrefs } from "@/lib/prefs";
+import { useProjectActions } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
-import { useSyncTick } from "@/lib/sync";
+import { TICK_EVENT, useSyncTick } from "@/lib/sync";
 import { useUpdateCheck } from "@/lib/updates";
 import type { Action } from "./actions";
 
@@ -18,6 +26,8 @@ export const MENU_ACTIONS = [
 	"project-switch",
 	"project-close",
 	"sync",
+	"fetch",
+	"push",
 	"commit",
 	"palette",
 	"toggle-sidebar",
@@ -34,6 +44,12 @@ export const MENU_ACTIONS = [
 	"go-settings",
 	"shortcuts-help",
 	"update-check",
+	"nav-back",
+	"nav-forward",
+	"manual",
+	"text-larger",
+	"text-smaller",
+	"text-reset",
 ] as const;
 
 /** The text of each native menu item, in the language of the person. Keyed by item id. */
@@ -61,6 +77,8 @@ export const menuLabels = (t: Messages): Record<string, string> => ({
 	"project-switch": t.menu.projectSwitch,
 	"project-close": t.projects.close,
 	sync: t.shell.sync,
+	fetch: t.workspace.view.fetchOnly,
+	push: t.workspace.view.push,
 	commit: t.shell.commit,
 	palette: t.palette.title,
 	"toggle-sidebar": t.shell.toggleSidebar,
@@ -77,6 +95,12 @@ export const menuLabels = (t: Messages): Record<string, string> => ({
 	"go-settings": t.space.settings,
 	"shortcuts-help": t.ui.menu.shortcuts,
 	"update-check": t.menu.updateCheck,
+	"nav-back": t.workspace.view.back,
+	"nav-forward": t.workspace.view.forward,
+	manual: t.knowledge.manual.open,
+	"text-larger": t.workspace.view.textLarger,
+	"text-smaller": t.workspace.view.textSmaller,
+	"text-reset": t.workspace.view.textReset,
 });
 
 /** The native menu: its labels follow the language, and a click runs the palette action. */
@@ -109,6 +133,60 @@ export function useCloseGuardEvent() {
 	}, [setCloseGuardOpen]);
 }
 
+/** The menu bar panel switched the project: the window goes to the project with its own switcher flow. */
+export const PROJECT_SWITCHED_EVENT = "project-switched";
+
+function useProjectSwitchedEvent() {
+	const { switchTo } = useProjectActions();
+	const latest = useRef(switchTo);
+	latest.current = switchTo;
+	useEffect(() => {
+		if (!isTauri()) return;
+		const off = listen<string>(
+			PROJECT_SWITCHED_EVENT,
+			(e) => void latest.current(e.payload).catch(logError),
+		);
+		return () => void off.then((f) => f());
+	}, []);
+}
+
+/**
+ * On each sync tick: reads the checks of the pull requests of the person from the code host, and
+ * the last reports of the scans. The first read of a session makes no entry.
+ */
+function useTickNotices() {
+	const { t } = useI18n();
+	const { push } = useNotifications();
+	const latest = useRef(t);
+	latest.current = t;
+	const seen = useRef(new Set<string>());
+	// A read primes one source of one project, and only when the read worked.
+	const primed = useRef(new Set<string>());
+	useEffect(() => {
+		if (!isTauri()) return;
+		const read = async () => {
+			const project = (await unwrap(commands.projectsActive()).catch(() => null))?.id ?? "";
+			const [rows, view] = await Promise.all([
+				unwrap(commands.codeMyChecks()).catch(() => null),
+				unwrap(commands.codeQuality()).catch(() => null),
+			]);
+			const sources = [
+				["checks", rows && checkNotices(rows, latest.current)],
+				["scans", view && scanNotices(view, latest.current)],
+			] as const;
+			for (const [name, found] of sources) {
+				if (!found) continue;
+				const key = `${project}:${name}`;
+				const list = fresh(found, seen.current, !primed.current.has(key));
+				primed.current.add(key);
+				for (const n of list) void push(n);
+			}
+		};
+		const off = listen(TICK_EVENT, () => void read().catch(logError));
+		return () => void off.then((f) => f());
+	}, [push]);
+}
+
 export const UPDATE_CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
 
 /** The sources of the notification centre: the update check, a failed sync, a moved remote head
@@ -120,12 +198,25 @@ export function useShellEvents() {
 	const notice = useWatchNotice().data?.changes[0];
 	const checkUpdate = useUpdateCheck();
 	useSyncTick();
+	useTickNotices();
+	useProjectSwitchedEvent();
 
 	// A question, an approval or a run that needs the person: one entry and one system notice (REQ-008).
+	// A run that ends and an automatic review draft add their own entry (their own switch).
 	useFactoryEvents((event, payload) => {
-		void needsYouNotice(event, payload, t)
-			.then((n) => n && push(n))
-			.catch(logError);
+		void (async () => {
+			const n = await needsYouNotice(event, payload, t);
+			if (n) await push(n);
+			// The failure shows once: the run source covers it, unless the person turned it off.
+			const off = (await unwrap(commands.prefsGet()).catch(() => null))?.notifyOff ?? [];
+			const more =
+				event === "factory-run"
+					? await runEndedNotice(payload.run, t, n !== null && !off.includes("run"))
+					: event === "factory-review"
+						? await reviewDraftNotice(payload.id, t)
+						: null;
+			if (more) await push(more);
+		})().catch(logError);
 	});
 
 	// One check at start and one every 6 hours, while the switch in Settings / Me is on.

@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { AskOnItem, AssistantPanel, SelectionActions, useAssistant } from "@/features/assistant";
 import { FileDrawer } from "@/features/code/file-drawer";
 import { TerminalDrawer } from "@/features/code/terminal-drawer";
+import { useTrayBadge } from "@/features/tray";
 import { useCodeActions } from "@/lib/code";
 import { useI18n } from "@/lib/i18n";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
@@ -17,6 +18,7 @@ import { useActions, useShortcuts } from "./actions";
 import { CloseGuard } from "./close-guard";
 import { ContextBar } from "./context-bar";
 import { useCloseGuardEvent, useNativeMenu, useShellEvents } from "./events";
+import { RouteAnnouncer, SkipLink } from "./page-chrome";
 import { PaletteHost } from "./palette-host";
 import { RefDetail } from "./ref-detail";
 import { ShortcutHelp } from "./shortcut-help";
@@ -27,6 +29,7 @@ import { WhatsNew } from "./whats-new";
 
 function Frame() {
 	const { t } = useI18n();
+	useTrayBadge();
 	const { sidebarOpen, navSide, drawerSide, narrowBar, terminalDock } = usePrefs();
 	const {
 		inspectorOpen,
@@ -52,7 +55,20 @@ function Frame() {
 	} = useShell();
 	const project = useActiveProject().data;
 	const { commit: runCommit } = useCodeActions();
-	const { list, sync, commit, assistant, palette, files, terminal } = useActions();
+	const {
+		list,
+		sync,
+		commit,
+		assistant,
+		palette,
+		files,
+		terminal,
+		fetch,
+		push,
+		back,
+		forward,
+		manual,
+	} = useActions();
 	useShortcuts(list);
 	useNativeMenu(list);
 	useShellEvents();
@@ -87,6 +103,8 @@ function Frame() {
 	if (!toggle) throw new Error("Missing action: toggle-sidebar");
 	return (
 		<>
+			<SkipLink />
+			<RouteAnnouncer />
 			<Shell
 				sidebarOpen={sidebarOpen}
 				navSide={navSide}
@@ -95,13 +113,19 @@ function Frame() {
 				contextbar={
 					<ContextBar
 						sync={sync}
+						fetch={fetch}
+						push={push}
 						assistant={assistant}
 						palette={palette}
 						files={files}
 						terminal={terminal}
+						back={back}
+						forward={forward}
+						manual={manual}
+						toggleSidebar={toggle}
 					/>
 				}
-				sidebar={<Sidebar toggle={toggle} />}
+				sidebar={<Sidebar />}
 				main={<Outlet />}
 				drawer={
 					project && filesOpen ? (

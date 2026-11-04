@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { CodeEditor } from "../molecules/code-editor";
+import { ZoomFrame } from "../molecules/zoom-frame";
 import { drawioSvg, isDrawioXml, svgDataUri, xmlFromDrawioSvg } from "./drawio";
 import type { EditorError } from "./error-line";
 
@@ -38,11 +39,9 @@ export function DrawioViewer({
 	}, [svg, ok, text]);
 	if (!ok || drawn === undefined) return null;
 	return drawn ? (
-		<img
-			src={svgDataUri(drawn)}
-			alt={label}
-			className="max-h-full max-w-full self-start rounded-md border border-n-7"
-		/>
+		<ZoomFrame label={label} className="min-h-0 flex-1 rounded-md border border-n-7">
+			<img src={svgDataUri(drawn)} alt={label} className="max-w-full" />
+		</ZoomFrame>
 	) : (
 		<CodeEditor label={label} value={text} readOnly className="flex-1" />
 	);

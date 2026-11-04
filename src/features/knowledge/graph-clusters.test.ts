@@ -95,3 +95,53 @@ describe("forceLayout", () => {
 				expect(Math.abs(a.x - b.x) >= 208 || Math.abs(a.y - b.y) >= 56).toBe(true);
 	});
 });
+
+describe("forceLayout at the size of a real repository", () => {
+	it("keeps every place finite and near the centre", () => {
+		const nodes: GNode[] = [];
+		for (let c = 0; c < 60; c++) {
+			const dir = `docs/openspec/changes/c${c}`;
+			nodes.push({
+				ref: `change:c${c}`,
+				kind: "change",
+				title: `c${c}`,
+				location: `${dir}/proposal.md`,
+			});
+			for (let d = 0; d < 3; d++)
+				nodes.push({
+					ref: `doc:${dir}/f${d}.md`,
+					kind: "document",
+					title: "f",
+					location: `${dir}/f${d}.md`,
+				});
+		}
+		for (let c = 0; c < 70; c++)
+			for (let r = 0; r < 6; r++)
+				nodes.push({
+					ref: `spec:cap${c}#REQ-${r}`,
+					kind: "spec",
+					title: "r",
+					location: `docs/openspec/specs/cap${c}/spec.md`,
+				});
+		for (let i = 0; i < 117; i++)
+			nodes.push({ ref: `question:q${i}`, kind: "question", title: "q" });
+		for (let i = 0; i < 100; i++)
+			nodes.push({
+				ref: `doc:docs/x/${i}.md`,
+				kind: "document",
+				title: "d",
+				location: `docs/x/${i}.md`,
+			});
+		const edges: [string, string][] = [];
+		for (let i = 0; i < 1500; i++)
+			edges.push([
+				nodes[(i * 7) % nodes.length]?.ref ?? "",
+				nodes[(i * 13 + 5) % nodes.length]?.ref ?? "",
+			]);
+		const view = clusterView(nodes, nodes, edges, []);
+		const boxes = view.clusters.map((c) => boxOf(c.id, c.members.length, false));
+		const places = [...forceLayout(boxes, view.links).values()];
+		expect(places.length).toBeGreaterThan(100);
+		for (const p of places) expect(Math.abs(p.x) + Math.abs(p.y)).toBeLessThan(10_000);
+	});
+});

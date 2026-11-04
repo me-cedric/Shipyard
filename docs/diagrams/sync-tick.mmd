@@ -20,3 +20,4 @@ flowchart TD
   C -->|"lost: a live stamp of another machine"| H
   R --> H["6. Heartbeat<br/>refresh stamps, drop claims no run holds<br/>stop a run whose claim another machine took"]
   H --> E(["Send the Tick event"])
+  E --> N(["The window reads the checks of the pull requests of the person<br/>one notice for each new head and result<br/>the first good read of a project makes no notice"])

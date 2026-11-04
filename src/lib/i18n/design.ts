@@ -1,5 +1,9 @@
 /** The strings of the Design space. */
 export const designEn = {
+	resize: {
+		list: "Artifact list width",
+		editor: "Editor width",
+	},
 	save: "Save",
 	create: "Create",
 	name: "Name",
@@ -102,9 +106,6 @@ export const designEn = {
 		artifacts: "Artifacts",
 		figma: "Design file",
 		openFigma: "Open outside",
-		enlarge: "Enlarge",
-		zoomFit: "Fit",
-		zoom100: "100%",
 		file: "File in folder",
 		broken: "Broken link",
 		none: "No link",
@@ -121,6 +122,10 @@ export const designEn = {
 };
 
 export const designFr: typeof designEn = {
+	resize: {
+		list: "Largeur de la liste des artefacts",
+		editor: "Largeur de l'éditeur",
+	},
 	save: "Enregistrer",
 	create: "Créer",
 	name: "Nom",
@@ -222,9 +227,6 @@ export const designFr: typeof designEn = {
 		artifacts: "Artefacts",
 		figma: "Fichier de maquette",
 		openFigma: "Ouvrir hors de l'app",
-		enlarge: "Agrandir",
-		zoomFit: "Ajuster",
-		zoom100: "100 %",
 		file: "Fichier du dossier",
 		broken: "Lien rompu",
 		none: "Aucun lien",

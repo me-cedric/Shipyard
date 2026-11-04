@@ -2,6 +2,7 @@
 //! machine has (VS Code, Cursor, Zed, a JetBrains IDE, Sublime Text). The program and its
 //! arguments are fixed here. No shell reads them, and the path from the view is checked first.
 
+use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
@@ -168,6 +169,127 @@ pub async fn open_link(app: AppHandle, url: String) -> Api<()> {
     blocking(app, move |_| open_page(&url)).await
 }
 
+/// A path that exists and sits inside the project folder or the data folder, or is a path that
+/// an export wrote (`exported`). A relative path is relative to the project. A link that leaves
+/// these places fails.
+pub fn allowed_path(
+    project: Option<&Path>,
+    data: &Path,
+    exported: &HashSet<PathBuf>,
+    raw: &str,
+) -> Res<PathBuf> {
+    let bad = || format!("path not allowed: {raw}");
+    if raw.is_empty() || raw.starts_with('-') {
+        return Err(bad());
+    }
+    let p = Path::new(raw);
+    let joined = if p.is_absolute() {
+        p.to_path_buf()
+    } else {
+        project.ok_or_else(bad)?.join(p)
+    };
+    let full = joined.canonicalize().map_err(|_| bad())?;
+    let inside = |root: &Path| root.canonicalize().is_ok_and(|r| full.starts_with(r));
+    let wrote = exported
+        .iter()
+        .any(|e| e.canonicalize().is_ok_and(|e| e == full));
+    if project.is_some_and(inside) || inside(data) || wrote {
+        Ok(full)
+    } else {
+        Err(bad())
+    }
+}
+
+/// Starts a program and reaps it, so no zombie stays.
+fn launch(program: &str, args: &[&std::ffi::OsStr]) -> Res<()> {
+    let mut cmd = Command::new(program);
+    let mut child = quiet(&mut cmd).args(args).spawn().map_err(err)?;
+    std::thread::spawn(move || {
+        let _ = child.wait();
+    });
+    Ok(())
+}
+
+fn checked(s: &AppState, raw: &str) -> Res<PathBuf> {
+    let project = s.registry()?.active().map(|a| PathBuf::from(&a.path));
+    allowed_path(project.as_deref(), &s.dir, &s.exports(), raw)
+}
+
+/// The document types that `open_default` opens. Any other file gets "Show in folder" only.
+const DOCUMENTS: &[&str] = &[
+    "txt", "md", "markdown", "json", "yaml", "yml", "csv", "pdf", "png", "jpg", "jpeg", "gif",
+    "webp", "svg", "html", "htm", "xml", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods",
+    "odp", "rtf", "log",
+];
+
+/// A folder, or a document of a listed type. A Unix file with an execute bit never opens.
+fn openable(p: &Path) -> bool {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if p.is_file()
+            && p.metadata()
+                .is_ok_and(|m| m.permissions().mode() & 0o111 != 0)
+        {
+            return false;
+        }
+    }
+    let ext = p
+        .extension()
+        .map(|e| e.to_string_lossy().to_ascii_lowercase());
+    match ext {
+        None => p.is_dir(),
+        Some(e) => DOCUMENTS.contains(&e.as_str()),
+    }
+}
+
+/// Shows the file or the folder in the file manager of the system.
+#[tauri::command]
+#[specta::specta]
+pub async fn reveal_path(app: AppHandle, path: String) -> Api<()> {
+    blocking(app, move |s| {
+        let full = checked(s, &path)?;
+        if cfg!(target_os = "macos") {
+            launch("open", &["-R".as_ref(), full.as_os_str()])
+        } else if cfg!(windows) {
+            // Explorer needs the flag and the path as one argument.
+            let arg = format!("/select,{}", full.display());
+            launch("explorer", &[arg.as_ref()])
+        } else {
+            let dir = if full.is_dir() {
+                &full
+            } else {
+                full.parent().unwrap_or(&full)
+            };
+            launch("xdg-open", &[dir.as_os_str()])
+        }
+    })
+    .await
+}
+
+/// Opens the file or the folder with the default app of the system.
+#[tauri::command]
+#[specta::specta]
+pub async fn open_default(app: AppHandle, path: String) -> Api<()> {
+    blocking(app, move |s| {
+        let full = checked(s, &path)?;
+        if !openable(&full) {
+            return Err(format!(
+                "this file does not open here, show it in the folder: {path}"
+            ));
+        }
+        let program = if cfg!(target_os = "macos") {
+            "open"
+        } else if cfg!(windows) {
+            "explorer"
+        } else {
+            "xdg-open"
+        };
+        launch(program, &[full.as_os_str()])
+    })
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -193,6 +315,66 @@ mod tests {
         assert!(project_file(&root, "src/a.rs").is_ok());
         for bad in ["../out.txt", "/etc/passwd", "-x", "", "src", "src/none.rs"] {
             assert!(project_file(&root, bad).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn only_a_path_in_the_project_or_data_folder_opens() {
+        let dir = tempfile::tempdir().unwrap();
+        let (project, data) = (dir.path().join("p"), dir.path().join("d"));
+        std::fs::create_dir_all(project.join("src")).unwrap();
+        std::fs::create_dir_all(&data).unwrap();
+        std::fs::write(project.join("src/a.rs"), "x").unwrap();
+        std::fs::write(data.join("r.xlsx"), "x").unwrap();
+        std::fs::write(dir.path().join("out.txt"), "x").unwrap();
+        let abs = |p: PathBuf| p.to_string_lossy().into_owned();
+        let none = HashSet::new();
+        assert!(allowed_path(Some(&project), &data, &none, "src/a.rs").is_ok());
+        assert!(allowed_path(Some(&project), &data, &none, "src").is_ok());
+        assert!(allowed_path(None, &data, &none, &abs(data.join("r.xlsx"))).is_ok());
+        assert!(allowed_path(Some(&project), &data, &none, &abs(project.join("src/a.rs"))).is_ok());
+        let outside = abs(dir.path().join("out.txt"));
+        for bad in [
+            "../out.txt",
+            "-x",
+            "",
+            "src/none.rs",
+            "/etc/passwd",
+            outside.as_str(),
+        ] {
+            assert!(
+                allowed_path(Some(&project), &data, &none, bad).is_err(),
+                "{bad}"
+            );
+        }
+        assert!(allowed_path(None, &data, &none, "src/a.rs").is_err());
+        // A file that an export wrote outside both folders opens, and only that file.
+        let wrote = HashSet::from([dir.path().join("out.txt")]);
+        assert!(allowed_path(Some(&project), &data, &wrote, &outside).is_ok());
+        assert!(allowed_path(Some(&project), &data, &wrote, "/etc/passwd").is_err());
+    }
+
+    #[test]
+    fn only_a_listed_document_or_a_folder_opens_by_default() {
+        let dir = tempfile::tempdir().unwrap();
+        for name in ["r.xlsx", "A.PDF", "n.md", "i.png", "l.log"] {
+            let f = dir.path().join(name);
+            std::fs::write(&f, "x").unwrap();
+            assert!(openable(&f), "{name}");
+        }
+        for name in ["a.sh", "B.APP", "c.dmg", "d.exe", "e.py", "f.pkg", "noext"] {
+            let f = dir.path().join(name);
+            std::fs::write(&f, "x").unwrap();
+            assert!(!openable(&f), "{name}");
+        }
+        assert!(openable(dir.path()));
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let doc = dir.path().join("run.txt");
+            std::fs::write(&doc, "x").unwrap();
+            std::fs::set_permissions(&doc, std::fs::Permissions::from_mode(0o755)).unwrap();
+            assert!(!openable(&doc));
         }
     }
 

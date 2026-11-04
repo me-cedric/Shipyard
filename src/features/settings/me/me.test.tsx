@@ -71,6 +71,15 @@ describe("Settings / Me notifications (shell REQ-008)", () => {
 		await waitFor(() => expect(mockState().prefs.notifyOff).toEqual(["sync-failure"]));
 	});
 
+	it("has a switch for each new source, on by default, in English and French", async () => {
+		const user = userEvent.setup();
+		mountApp("/settings/me");
+		for (const name of ["Run ended", "Pull request checks", "Failed scan", "Review draft"])
+			expect(await screen.findByRole("switch", { name })).toBeChecked();
+		await user.click(screen.getByRole("switch", { name: "Review draft" }));
+		await waitFor(() => expect(mockState().prefs.notifyOff).toEqual(["review-draft"]));
+	});
+
 	it("keeps both changes when two switches turn off in quick succession", async () => {
 		mountApp("/settings/me");
 		const a = await screen.findByRole("switch", { name: "Approval" });

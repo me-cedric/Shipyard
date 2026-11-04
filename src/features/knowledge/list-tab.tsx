@@ -14,6 +14,7 @@ import { PlusIcon, Squares2X2Icon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { SplitPane } from "@/ui/molecules/split-pane";
 import { LIST, useEnter } from "@/ui/motion";
 import { Dialog } from "@/ui/organisms/dialog";
 import { ListDetail } from "@/ui/templates/list-detail";
@@ -210,25 +211,27 @@ export function ListTab({
 				</motion.ul>
 			) : (
 				<div className="flex min-h-0 flex-1 gap-3 px-4 pt-1 pb-4">
-					<nav
-						aria-label={title}
-						className="flex w-64 shrink-0 flex-col gap-2 overflow-auto rounded-lg border bg-surface-1 p-1.5 shadow-1"
-					>
-						{[...groups].map(([dir, list]) => (
-							<Fragment key={dir}>
-								{dir ? (
-									<section aria-label={dir}>
-										<h2 className="px-2 pt-1 pb-0.5 text-12 font-medium text-n-11">
-											{format(t.count, { name: dir, count: list.length })}
-										</h2>
+					<SplitPane id="knowledge-list-width" label={t.knowledge.resize.list} fallback={256}>
+						<nav
+							aria-label={title}
+							className="flex shrink-0 flex-col gap-2 overflow-auto rounded-lg border bg-surface-1 p-1.5 shadow-1"
+						>
+							{[...groups].map(([dir, list]) => (
+								<Fragment key={dir}>
+									{dir ? (
+										<section aria-label={dir}>
+											<h2 className="px-2 pt-1 pb-0.5 text-12 font-medium text-n-11">
+												{format(t.count, { name: dir, count: list.length })}
+											</h2>
+											<ul className="flex flex-col gap-0.5">{list.map(line)}</ul>
+										</section>
+									) : (
 										<ul className="flex flex-col gap-0.5">{list.map(line)}</ul>
-									</section>
-								) : (
-									<ul className="flex flex-col gap-0.5">{list.map(line)}</ul>
-								)}
-							</Fragment>
-						))}
-					</nav>
+									)}
+								</Fragment>
+							))}
+						</nav>
+					</SplitPane>
 					<div className="@container flex min-w-0 flex-1 flex-col overflow-auto rounded-lg border bg-surface-1 p-3 shadow-1">
 						{open ? (
 							<Fragment key={open.path}>{children(open)}</Fragment>

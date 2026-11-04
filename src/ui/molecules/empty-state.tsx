@@ -6,14 +6,17 @@ import { InboxIcon } from "../icons";
 export function EmptyState({
 	title,
 	action,
+	icon,
 }: {
 	title: string;
 	action: { label: string; icon?: ReactNode; onClick: () => void };
+	/** The icon of the page, so that two empty pages do not look the same. */
+	icon?: ReactNode;
 }) {
 	return (
 		<div className="flex flex-col items-center gap-3 py-8">
 			<span aria-hidden="true" className="flex text-n-9">
-				<InboxIcon size={28} />
+				{icon ?? <InboxIcon size={28} />}
 			</span>
 			<p className="text-14 font-medium text-n-11">{title}</p>
 			<Button variant="primary" onClick={action.onClick}>

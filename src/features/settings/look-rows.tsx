@@ -17,6 +17,7 @@ import {
 import { PictureField } from "./picture-field";
 
 const ACCENTS: Accent[] = ["blue", "violet", "green", "orange", "rose"];
+const SIZES = [14, 15, 16, 17, 18, 19, 20];
 const SAMPLE = "2026-10-31";
 
 /** Settings / Me: the look of the app, the close choice, the picture and the data folder (W12). */
@@ -82,6 +83,19 @@ export function useLookRows() {
 			),
 		},
 		{
+			id: "text-size",
+			icon: <SwatchIcon size={14} />,
+			label: t.workspace.view.size,
+			control: (
+				<Select
+					label={t.workspace.view.size}
+					value={String(p.uiScale)}
+					onValueChange={(v) => p.setPrefs({ uiScale: Number(v) })}
+					items={SIZES.map((n) => ({ value: String(n), label: `${n} px` }))}
+				/>
+			),
+		},
+		{
 			id: "narrow-bar",
 			icon: <ViewColumnsIcon size={14} />,
 			label: l.narrowBar,
@@ -91,6 +105,19 @@ export function useLookRows() {
 					iconOnly
 					checked={p.narrowBar}
 					onCheckedChange={(c) => p.setPrefs({ narrowBar: c })}
+				/>
+			),
+		},
+		{
+			id: "tray",
+			icon: <ViewColumnsIcon size={14} />,
+			label: l.tray,
+			control: (
+				<Switch
+					label={l.tray}
+					iconOnly
+					checked={p.tray}
+					onCheckedChange={(c) => p.setPrefs({ tray: c })}
 				/>
 			),
 		},

@@ -11,6 +11,7 @@ export const settingsEn = {
 	},
 	health: {
 		score: "Clean groups",
+		clean: "Nothing to fix",
 		error: "To fix",
 		warning: "Advice",
 		info: "Notes",
@@ -85,6 +86,7 @@ export const settingsFr: typeof settingsEn = {
 	},
 	health: {
 		score: "Groupes sains",
+		clean: "Rien à corriger",
 		error: "À corriger",
 		warning: "Conseils",
 		info: "Notes",

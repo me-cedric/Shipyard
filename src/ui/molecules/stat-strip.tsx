@@ -8,7 +8,7 @@ export type StatTone = "accent" | "success" | "warning" | "danger" | "info";
 
 export type StatItem = {
 	label: string;
-	value: string;
+	value: ReactNode;
 	icon?: ReactNode;
 	/** A short change, for example "+2". */
 	delta?: string;

@@ -4,16 +4,14 @@ import type { ReactElement } from "react";
 import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { Tooltip } from "@/ui/atoms/tooltip";
-import { ChevronLeftIcon, ChevronRightIcon } from "@/ui/icons";
 import { SPRING } from "@/ui/motion";
 import logo from "../../../docs/assets/logo.svg";
-import { type Action, SPACE_ICON, shortcutText } from "./actions";
+import { SPACE_ICON, shortcutText } from "./actions";
 import { useCounts } from "./counts";
 import { orderedSpaces } from "./spaces";
 
-export function Sidebar({ toggle }: { toggle: Action }) {
+export function Sidebar() {
 	const { t } = useI18n();
 	const { role, sidebarOpen, profile } = usePrefs();
 	const { badge } = useCounts();
@@ -75,14 +73,6 @@ export function Sidebar({ toggle }: { toggle: Action }) {
 				<img src={logo} alt="Shipyard" className="size-6 shrink-0" />
 			</div>
 			<ul className="flex min-h-0 flex-1 flex-col gap-0.5">{entries}</ul>
-			<IconButton
-				label={sidebarOpen ? t.nav.collapse : t.nav.expand}
-				shortcut={toggle.shortcut}
-				onClick={toggle.run}
-				className="h-8 w-full"
-			>
-				{sidebarOpen ? <ChevronLeftIcon size={16} /> : <ChevronRightIcon size={16} />}
-			</IconButton>
 		</div>
 	);
 }

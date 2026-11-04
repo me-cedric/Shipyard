@@ -49,13 +49,16 @@ export function Board() {
 	if (all.length === 0)
 		return (
 			<BoardTemplate title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />} count={0}>
-				<EmptyState
-					title={t.empty.tickets}
-					action={{
-						label: t.tabs.work.backlog,
-						onClick: () => void navigate({ to: "/work/backlog" }),
-					}}
-				/>
+				{/* The board lays its children in a row: the empty state takes the full width to centre. */}
+				<div className="flex-1 pt-4">
+					<EmptyState
+						title={t.empty.tickets}
+						action={{
+							label: t.tabs.work.backlog,
+							onClick: () => void navigate({ to: "/work/backlog" }),
+						}}
+					/>
+				</div>
 			</BoardTemplate>
 		);
 

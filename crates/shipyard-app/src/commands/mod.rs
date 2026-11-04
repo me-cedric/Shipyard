@@ -21,7 +21,7 @@ pub mod setup;
 pub mod shell;
 pub mod sync;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -54,6 +54,8 @@ pub struct AppState {
     lock: Mutex<()>,
     /// The remote watch notice of each project id, until the person syncs (spec `code`, REQ-017).
     notices: Mutex<HashMap<String, code::WatchNotice>>,
+    /// The paths that an export wrote this session. `reveal_path` and `open_default` allow them.
+    exports: Mutex<HashSet<PathBuf>>,
     /// The ref index of each project that was opened, by project id. The factory reads the index
     /// of the project of a run (`read_ref`), never the one of another project.
     index: Mutex<HashMap<String, Arc<Mutex<RefIndex>>>>,
@@ -118,6 +120,7 @@ impl AppState {
             dir,
             lock: Mutex::new(()),
             notices: Mutex::new(HashMap::new()),
+            exports: Mutex::new(HashSet::new()),
             index: Mutex::new(HashMap::new()),
         }
     }
@@ -125,6 +128,10 @@ impl AppState {
     /// One writer at a time for the files in the app data folder.
     pub fn guard(&self) -> MutexGuard<'_, ()> {
         self.lock.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    pub fn exports(&self) -> MutexGuard<'_, HashSet<PathBuf>> {
+        self.exports.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     pub fn notices(&self) -> MutexGuard<'_, HashMap<String, code::WatchNotice>> {

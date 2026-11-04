@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { PinnedTiles } from "@/features/knowledge/pinned";
 import { NoProject } from "@/features/work/no-project";
 import { TicketDetail } from "@/features/work/ticket-detail";
@@ -10,7 +11,7 @@ import { useShell } from "@/lib/shell";
 import { useWorkItems } from "@/lib/sync";
 import { memberName, useTeam, useWorkContext } from "@/lib/work";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { ArrowPathIcon, UsersIcon } from "@/ui/icons";
+import { ArrowPathIcon, UserCircleIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
@@ -32,6 +33,7 @@ export function MyWork() {
 	const qc = useQueryClient();
 	const active = useActiveProject().data;
 	const { openDetail, openRef } = useShell();
+	const navigate = useNavigate();
 	const members = useTeam().data?.team.members ?? [];
 	const items = useMyItems();
 	const keys = new Set(items.map((i) => i.key));
@@ -42,39 +44,46 @@ export function MyWork() {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
 			<PageHeader
-				icon={<UsersIcon size={16} />}
+				icon={<UserCircleIcon size={16} />}
 				title={t.tabs.home["my-work"]}
 				count={items.length}
 				menu={[{ label: t.home.refresh, icon: <ArrowPathIcon size={12} />, onClick: refresh }]}
 			/>
-			<StatStrip
-				className="px-4"
-				items={[
-					{ label: t.ui.myItems, value: String(items.length), tone: "accent" },
-					{
-						label: t.home.stat.inProgress,
-						value: String(items.filter((i) => i.category === "in-progress").length),
-						tone: "info",
-					},
-					{
-						label: t.home.stat.done,
-						value: String(items.filter((i) => i.category === "done").length),
-						tone: "success",
-					},
-					{
-						label: t.home.stat.live,
-						value: String(
-							runs.filter((r) => r.lane === "working" || r.lane === "needs_you").length,
-						),
-						tone: "warning",
-					},
-				]}
-			/>
+			{/* An all-zero strip on an empty page says nothing: the empty state says it. */}
+			{items.length === 0 && runs.length === 0 ? null : (
+				<StatStrip
+					className="px-4"
+					items={[
+						{ label: t.ui.myItems, value: String(items.length), tone: "accent" },
+						{
+							label: t.home.stat.inProgress,
+							value: String(items.filter((i) => i.category === "in-progress").length),
+							tone: "info",
+						},
+						{
+							label: t.home.stat.done,
+							value: String(items.filter((i) => i.category === "done").length),
+							tone: "success",
+						},
+						{
+							label: t.home.stat.live,
+							value: String(
+								runs.filter((r) => r.lane === "working" || r.lane === "needs_you").length,
+							),
+							tone: "warning",
+						},
+					]}
+				/>
+			)}
 			<PinnedTiles />
 			{items.length === 0 && runs.length === 0 ? (
 				<EmptyState
-					title={t.empty.items}
-					action={{ label: t.home.refresh, icon: <ArrowPathIcon size={14} />, onClick: refresh }}
+					icon={<UserCircleIcon size={28} />}
+					title={t.empty.mine}
+					action={{
+						label: t.tabs.work.backlog,
+						onClick: () => void navigate({ to: "/work/backlog" }),
+					}}
 				/>
 			) : (
 				<div className="grid gap-4 px-4 xl:grid-cols-2">

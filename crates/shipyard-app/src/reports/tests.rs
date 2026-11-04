@@ -367,3 +367,15 @@ fn the_change_request_is_written_twice_and_never_replaces_a_number() {
             .contains("Add polling")
     );
 }
+
+#[test]
+fn a_path_joins_the_exports_only_after_the_write_worked() {
+    let f = fx();
+    let t = text();
+    let bad = f.out.join("c.txt");
+    assert!(export_costing(&f.s, &t, bad.to_str().unwrap(), true).is_err());
+    assert!(f.s.exports().is_empty());
+    let good = f.out.join("c.xlsx");
+    export_costing(&f.s, &t, good.to_str().unwrap(), true).unwrap();
+    assert!(f.s.exports().contains(&good));
+}

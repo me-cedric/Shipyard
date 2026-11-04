@@ -12,8 +12,8 @@ use serde::{Deserialize, Serialize};
 use shipyard_agents::impacts::{Analysis, Comparison, RunnerAsk, analyze};
 use shipyard_core::code::{commit_refs, run_in_message};
 use shipyard_forges::{
-    CheckState, CodeApi, ForgeError, MergeMethod, NewPull, PullFile, PullState, ReviewerVerdict,
-    Verdict,
+    CheckState, CiState, CodeApi, ForgeError, MergeMethod, NewPull, PullFile, PullQuery,
+    PullRequest, PullState, ReviewerVerdict, Verdict,
 };
 use shipyard_git::Repo;
 use shipyard_store::code::{
@@ -630,10 +630,40 @@ const TOKEN_SHAPES: [(&str, usize, &str); 7] = [
     ("sk-", 24, "API key"),
 ];
 
+/// Files where a value stands without quotes: config files, and free text with no extension (a
+/// log line, a feedback text). In source code a secret value is a quoted literal: `secret: r.secret`
+/// is a field, not a value.
+fn bare_values(path: &str) -> bool {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    let ext = name.rsplit_once('.').map(|(_, e)| e.to_ascii_lowercase());
+    name.starts_with('.')
+        || ext.is_none_or(|e| {
+            [
+                "sh",
+                "bash",
+                "zsh",
+                "ps1",
+                "env",
+                "yaml",
+                "yml",
+                "toml",
+                "ini",
+                "properties",
+                "conf",
+                "cfg",
+                "txt",
+            ]
+            .contains(&e.as_str())
+        })
+}
+
 /// The findings of one text. A finding names a place and a kind, never the value (REQ-027).
+/// A line with `gitleaks:allow` is skipped, as in gitleaks: a test value that has the shape of a
+/// token says so on its line.
 /// shortcut: patterns, no entropy. A key in an unknown shape is missed: add a pattern or a
 /// scanner (Q-043).
 pub fn scan_text(path: &str, text: &str) -> Vec<ScanFinding> {
+    let bare = bare_values(path);
     let mut out = Vec::new();
     let mut add = |line: usize, severity, message: &str| {
         out.push(ScanFinding {
@@ -645,7 +675,27 @@ pub fn scan_text(path: &str, text: &str) -> Vec<ScanFinding> {
     };
     for (i, l) in text.lines().enumerate() {
         let n = i + 1;
-        if l.contains("-----BEGIN") && l.contains("PRIVATE KEY-----") {
+        if l.contains("gitleaks:allow") {
+            continue;
+        }
+        // A key block starts its line or follows a quote (a JSON string). Code that looks for one
+        // passes it as an argument, `contains("-----BEGIN`: that is not a key.
+        let at_start = l.trim_start().starts_with("-----BEGIN");
+        let after_quote = l.match_indices("-----BEGIN").any(|(at, _)| {
+            let before = l[..at].trim_end_matches(['"', '\'', '`', '\\']);
+            at > before.len() && !before.ends_with('(')
+        });
+        // Key text after the marker is a key, also as an argument or after `NAME=`. A search line
+        // such as `contains("-----BEGIN PRIVATE KEY-----")` has none.
+        let key_text = l.find("PRIVATE KEY-----").is_some_and(|m| {
+            let body = &l[m + "PRIVATE KEY-----".len()..];
+            l.contains("-----BEGIN")
+                && (body.starts_with("\\n")
+                    || body
+                        .starts_with(|c: char| c.is_ascii_alphanumeric() || c == '+' || c == '/')
+                    || body.contains("-----END"))
+        });
+        if (at_start || after_quote || key_text) && l.contains("PRIVATE KEY-----") {
             add(n, ScanSeverity::Critical, "private key");
             continue;
         }
@@ -667,7 +717,9 @@ pub fn scan_text(path: &str, text: &str) -> Vec<ScanFinding> {
                 let rest = low[at + k.len()..].trim_start_matches(['"', '\'', ' ']);
                 let value = rest
                     .strip_prefix(['=', ':'])
-                    .map(|v| v.trim_start_matches([' ', '"', '\'']));
+                    .map(|v| v.trim_start_matches(' '))
+                    .filter(|v| bare || v.starts_with(['"', '\'']))
+                    .map(|v| v.trim_start_matches(['"', '\'']));
                 value.is_some_and(|v| {
                     let v = v.split(['"', '\'', ' ', ',', ';']).next().unwrap_or("");
                     v.len() >= 8 && !v.starts_with(['$', '{', '<', '%']) && !v.contains('(')
@@ -884,12 +936,71 @@ fn synced<T>(s: &AppState, written: Res<T>) -> Res<T> {
     written
 }
 
+/// The checks of an open pull request that the signed-in person opened.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MyChecks {
+    /// `pr:<connection>:<number>`.
+    pub reference: String,
+    pub number: u32,
+    pub title: String,
+    pub head_sha: String,
+    /// `none`, `pending`, `passing` or `failing`.
+    pub ci: String,
+}
+
+fn opened_by(p: &PullRequest, me: &str) -> bool {
+    p.author.eq_ignore_ascii_case(me)
+}
+
+fn checks_row(conn: &str, p: PullRequest, ci: CiState) -> MyChecks {
+    MyChecks {
+        reference: format!("pr:{conn}:{}", p.number),
+        number: p.number as u32,
+        title: p.title,
+        head_sha: p.head_sha,
+        ci: format!("{ci:?}").to_lowercase(),
+    }
+}
+
+/// The checks of the open pull requests of the signed-in person, read from the code host. The
+/// shell reads them on each sync tick. Only the first page of open pull requests is read.
+pub fn my_checks(s: &AppState) -> Res<Vec<MyChecks>> {
+    let (api, slug, conn) = forge(s)?;
+    // An author is a login. `me()` gives the display name when the account has one, so the login
+    // that a sign-in or a passed test saved comes first. A login of digits only is an old id.
+    let login = s
+        .connections
+        .get(&conn)?
+        .and_then(|c| c.user)
+        .filter(|l| !l.is_empty() && !l.bytes().all(|b| b.is_ascii_digit()));
+    let me = match login {
+        Some(l) => l,
+        None => api.me().map_err(err)?,
+    };
+    let page = api.list_pulls(&slug, &PullQuery::default()).map_err(err)?;
+    page.items
+        .into_iter()
+        .filter(|p| opened_by(p, &me))
+        .map(|p| {
+            let ci = api.ci_status(&slug, p.number).map_err(err)?.state;
+            Ok(checks_row(&conn, p, ci))
+        })
+        .collect()
+}
+
 // ---------------------------------------------------------------- commands
 
 #[tauri::command]
 #[specta::specta]
 pub async fn code_pull_detail(app: AppHandle, number: u32) -> Api<PullDetail> {
     blocking(app, move |s| pull_detail(s, number)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_my_checks(app: AppHandle) -> Api<Vec<MyChecks>> {
+    blocking(app, my_checks).await
 }
 
 #[tauri::command]
@@ -1066,6 +1177,30 @@ mod tests {
     }
 
     #[test]
+    fn the_checks_of_a_pull_request_of_the_person_carry_the_head_and_the_result() {
+        let p = PullRequest {
+            number: 7,
+            title: "Add login".into(),
+            state: PullState::Open,
+            draft: false,
+            author: "Ada".into(),
+            source_branch: "feat".into(),
+            target_branch: "main".into(),
+            head_sha: "abc123".into(),
+            url: String::new(),
+            updated: String::new(),
+        };
+        assert!(opened_by(&p, "ada"));
+        assert!(!opened_by(&p, "bob"));
+        let row = checks_row("gh", p, CiState::Failing);
+        assert_eq!(row.reference, "pr:gh:7");
+        assert_eq!(
+            (row.head_sha.as_str(), row.ci.as_str()),
+            ("abc123", "failing")
+        );
+    }
+
+    #[test]
     fn an_archive_stages_its_own_paths_and_not_a_stray_file_of_the_specs_folder() {
         let dir = tempfile::tempdir().unwrap();
         let (_s, root) = project(dir.path());
@@ -1191,6 +1326,39 @@ mod tests {
             "{kept}"
         );
         assert!(scan_text("a.rs", "let token = env::var(\"X\");").is_empty());
+        // In code, a field, a type or a comment is not a value; a quoted literal is.
+        for line in [
+            "secret: r.secret,",
+            "fn set(secret: &Secret)",
+            "/// [`Secret::scrub`] first",
+        ] {
+            assert!(scan_text("a.rs", line).is_empty(), "{line}");
+        }
+        assert_eq!(
+            scan_text("a.ts", "const TOKEN = \"tok-live-value-7\";").len(),
+            1
+        );
+        assert_eq!(scan_text("log", "password: hunter2hunter2").len(), 1);
+        // The marker of gitleaks skips a test value; code that looks for a key block is not one.
+        assert!(scan_text("a.rs", &format!("\"{secret}\" // gitleaks:allow")).is_empty());
+        let finder = "if l.contains(\"-----BEGIN\") && l.contains(\"PRIVATE KEY-----\")";
+        assert!(scan_text("a.rs", finder).is_empty());
+        assert_eq!(
+            scan_text("k.pem", "-----BEGIN RSA PRIVATE KEY-----").len(),
+            1
+        );
+        let gcp = r#"  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIE","#; // gitleaks:allow
+        assert_eq!(scan_text("sa.json", gcp).len(), 1);
+        let call = "let f = l.contains(\"-----BEGIN PRIVATE KEY-----\");";
+        assert!(scan_text("a.rs", call).is_empty());
+        let arg = r#"load_key("-----BEGIN PRIVATE KEY-----\nMIIE...")"#; // gitleaks:allow
+        assert_eq!(scan_text("a.rs", arg).len(), 1);
+        let env = "PRIVATE_KEY=-----BEGIN PRIVATE KEY-----MIIEvQIBADANBg"; // gitleaks:allow
+        assert_eq!(scan_text("prod.env", env).len(), 1);
+        let npmrc = "//registry.npmjs.org/:_authToken=abcd1234efgh";
+        assert_eq!(scan_text(".npmrc", npmrc).len(), 1);
+        let sh = "export API_TOKEN=abcd1234efgh";
+        assert_eq!(scan_text("deploy.sh", sh).len(), 1);
     }
 
     struct Fake(Mutex<Vec<&'static str>>);

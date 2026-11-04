@@ -6,11 +6,13 @@ import { useFactoryWrites, useUsage } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
+import { CountUp } from "@/ui/atoms/count-up";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Switch } from "@/ui/atoms/switch";
 import { ChartBarIcon, CurrencyIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Loading } from "@/ui/molecules/loading";
 import { Panel } from "@/ui/molecules/panel";
 import { SpendMeter, spendStatus } from "@/ui/molecules/spend-meter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
@@ -96,7 +98,7 @@ export function Usage() {
 			id: "tokens",
 			header: f.tokens,
 			meta: { width: "7rem", numeric: true },
-			cell: (c) => c.row.original.tokens.toLocaleString(),
+			cell: (c) => <CountUp value={c.row.original.tokens} />,
 		},
 		{
 			id: "iterations",
@@ -203,65 +205,82 @@ export function Usage() {
 						title={t.empty.budget}
 						action={{ label: f.setBudget, onClick: () => field.current?.focus() }}
 					/>
-					<MachineUsage />
+					<MachineUsage prices={prices} />
 				</div>
 			) : (
 				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
-					<StatStrip
-						items={[
-							{
-								label: t.ui.spendToday,
-								value: prices
-									? money.format(days.find((d) => d.key === today)?.usd ?? 0)
-									: x.hidden,
-								icon: <CurrencyIcon size={12} />,
-								tone: "info",
-								trend: days
-									.slice(0, 14)
-									.reverse()
-									.map((d) => d.usd ?? 0),
-							},
-							{
-								label: f.spend,
-								value: prices ? money.format(runs.reduce((a, r) => a + r.usd, 0)) : x.hidden,
-								tone: "accent",
-								trend: cumulative,
-							},
-							{
-								label: f.tokens,
-								value: runs.reduce((a, r) => a + r.tokens, 0).toLocaleString(),
-								tone: "accent",
-							},
-							{
-								label: f.overBudget,
-								value: String(runs.filter((r) => spendStatus(r.usd, r.budget) === "danger").length),
-								tone: "danger",
-							},
-						]}
-					/>
-					<Panel
-						title={f.usage}
-						count={rows.length}
-						flush
-						className="min-h-64 flex-1"
-						bodyClassName="min-h-0 flex-1"
-					>
-						<DataTable
-							label={f.usage}
-							columns={columns}
-							data={rows}
-							rowId={(r) => r.id}
-							group={(r) => r.kind}
-							groupLabel={(g) => label[g] ?? g}
-							onOpen={(r) => {
-								if (r.kind === "run") return;
-								setScope(r.kind);
-								setKey(r.key);
-							}}
-						/>
-					</Panel>
-					<RequestTree runs={u?.runs ?? []} />
-					<MachineUsage />
+					{usage.isPending ? (
+						<Loading rows={3} />
+					) : (
+						<>
+							<StatStrip
+								items={[
+									{
+										label: t.ui.spendToday,
+										value: prices ? (
+											<CountUp
+												value={days.find((d) => d.key === today)?.usd ?? 0}
+												format={money.format}
+											/>
+										) : (
+											x.hidden
+										),
+										icon: <CurrencyIcon size={12} />,
+										tone: "info",
+										trend: days
+											.slice(0, 14)
+											.reverse()
+											.map((d) => d.usd ?? 0),
+									},
+									{
+										label: f.spend,
+										value: prices ? (
+											<CountUp value={runs.reduce((a, r) => a + r.usd, 0)} format={money.format} />
+										) : (
+											x.hidden
+										),
+										tone: "accent",
+										trend: cumulative,
+									},
+									{
+										label: f.tokens,
+										value: <CountUp value={runs.reduce((a, r) => a + r.tokens, 0)} />,
+										tone: "accent",
+									},
+									{
+										label: f.overBudget,
+										value: String(
+											runs.filter((r) => spendStatus(r.usd, r.budget) === "danger").length,
+										),
+										tone: "danger",
+									},
+								]}
+							/>
+							<Panel
+								title={f.usage}
+								count={rows.length}
+								flush
+								className="min-h-64 flex-1"
+								bodyClassName="min-h-0 flex-1"
+							>
+								<DataTable
+									label={f.usage}
+									columns={columns}
+									data={rows}
+									rowId={(r) => r.id}
+									group={(r) => r.kind}
+									groupLabel={(g) => label[g] ?? g}
+									onOpen={(r) => {
+										if (r.kind === "run") return;
+										setScope(r.kind);
+										setKey(r.key);
+									}}
+								/>
+							</Panel>
+							<RequestTree runs={u?.runs ?? []} />
+						</>
+					)}
+					<MachineUsage prices={prices} />
 				</div>
 			)}
 		</ListDetail>

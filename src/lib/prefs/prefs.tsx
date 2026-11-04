@@ -43,6 +43,8 @@ export type Prefs = Pick<
 	| "narrowBar"
 	| "terminalDock"
 	| "panelSizes"
+	| "uiScale"
+	| "tray"
 >;
 
 /** Font stacks that are on the machine already. Nothing is fetched. */
@@ -85,6 +87,8 @@ const DEFAULTS: Prefs = {
 	narrowBar: false,
 	terminalDock: "bottom",
 	panelSizes: {},
+	uiScale: 16,
+	tray: true,
 };
 
 type Ctx = Prefs & {
@@ -177,6 +181,11 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 		if (accent) el.dataset.accent = accent;
 		else delete el.dataset.accent;
 	}, [value.theme, value.density, value.contrast, accent]);
+
+	// The root font size scales the text and the spacing, which are in rem.
+	useEffect(() => {
+		document.documentElement.style.fontSize = `${value.uiScale}px`;
+	}, [value.uiScale]);
 
 	// An empty key keeps the font of the theme.
 	useEffect(() => {

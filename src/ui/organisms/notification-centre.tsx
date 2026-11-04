@@ -1,4 +1,5 @@
 import { Popover } from "@base-ui/react/popover";
+import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import type { Notice } from "@/lib/notifications";
 import { AnimatedIcon } from "../atoms/animated-icon";
@@ -15,16 +16,26 @@ export function NotificationCentre({
 	unread,
 	onOpen,
 	onClear,
+	onGo,
 }: {
 	items: Notice[];
 	unread: number;
 	onOpen: () => void;
 	onClear: () => void;
+	/** Opens the target of a notice. The centre closes after it. */
+	onGo?: (n: Notice) => void;
 }) {
+	const [open, setOpen] = useState(false);
 	const { t, lang } = useI18n();
 	const time = new Intl.DateTimeFormat(lang, { timeStyle: "short" });
 	return (
-		<Popover.Root onOpenChange={(open) => open && onOpen()}>
+		<Popover.Root
+			open={open}
+			onOpenChange={(next) => {
+				setOpen(next);
+				if (next) onOpen();
+			}}
+		>
 			<Popover.Trigger
 				aria-label={t.notifications.title}
 				className="relative inline-flex size-(--row-h) shrink-0 items-center justify-center rounded-md text-n-11 transition-colors duration-(--duration-fast) hover:bg-n-3 hover:text-n-12"
@@ -66,6 +77,18 @@ export function NotificationCentre({
 										body={n.body}
 										time={time.format(n.time)}
 										unread={!n.read}
+										wrap
+										detail={n.detail}
+										detailLabel={t.ui.item.details}
+										notice={n.action}
+										onOpen={
+											n.target && onGo
+												? () => {
+														onGo(n);
+														setOpen(false);
+													}
+												: undefined
+										}
 									/>
 								))
 							)}

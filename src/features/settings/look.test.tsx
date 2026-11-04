@@ -50,6 +50,14 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 		expect(main.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
+	it("saves the text size and writes it on the root element", async () => {
+		const user = userEvent.setup();
+		mountApp("/settings/me");
+		await choose(user, "Text size", "18 px");
+		await waitFor(() => expect(mockState().prefs.uiScale).toBe(18));
+		expect(document.documentElement.style.fontSize).toBe("18px");
+	});
+
 	it("sets and removes the picture of the person and shows the data folder", async () => {
 		const user = userEvent.setup();
 		mountApp("/settings/me");

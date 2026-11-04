@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { DESIGN_DIR, ofKind, slug, useDesignActions, useDesignList } from "@/lib/design";
+import { useI18n } from "@/lib/i18n";
 import { CodeEditor } from "@/ui/molecules/code-editor";
+import { SplitPane } from "@/ui/molecules/split-pane";
 import type { EditorError } from "@/ui/organisms/error-line";
 import { FileFrame } from "./frame";
 import { dbml, likec4 } from "./highlight";
@@ -30,6 +32,7 @@ export function TextTab({
 	textLabel: string;
 	view: (source: string, onError: (e: EditorError | null) => void) => ReactNode;
 }) {
+	const { t } = useI18n();
 	const list = useDesignList().data;
 	const act = useDesignActions();
 	const rows = ofKind(list, kind);
@@ -52,15 +55,19 @@ export function TextTab({
 				return a ? (
 					<FileFrame path={a.path} refId={a.reference} title={a.title} issue={a.issue}>
 						{(file, onError, error) => (
-							<div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-1 gap-3">
-								<CodeEditor
-									label={textLabel}
-									value={file.text}
-									errorLine={error?.line}
-									onChange={file.setText}
-									highlight={kind === "model" ? likec4 : dbml}
-								/>
-								<div className="min-h-0 overflow-auto">{view(file.text, onError)}</div>
+							<div className="flex min-h-0 flex-1 gap-3">
+								<SplitPane id="design-text-width" label={t.design.resize.editor} min={320}>
+									<CodeEditor
+										label={textLabel}
+										value={file.text}
+										errorLine={error?.line}
+										onChange={file.setText}
+										highlight={kind === "model" ? likec4 : dbml}
+									/>
+								</SplitPane>
+								<div className="min-h-0 min-w-0 flex-1 overflow-auto">
+									{view(file.text, onError)}
+								</div>
 							</div>
 						)}
 					</FileFrame>

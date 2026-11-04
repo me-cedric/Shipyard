@@ -1,3 +1,4 @@
+import { useRouter } from "@tanstack/react-router";
 import {
 	createContext,
 	type ReactNode,
@@ -10,6 +11,9 @@ import {
 } from "react";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
+import { useShell } from "@/lib/shell";
+
+export * from "./sources";
 
 /** The source of an event, from the first part of its id. An id with another prefix has no source. */
 const SOURCES: Record<string, EventSource> = {
@@ -19,10 +23,23 @@ const SOURCES: Record<string, EventSource> = {
 	sync: "sync-failure",
 	update: "update",
 	remote: "remote-head",
+	"run-ended": "run-ended",
+	"pr-checks": "pr-checks",
+	"scan-failed": "scan-failed",
+	"review-draft": "review-draft",
 };
+
+/** These sources reach the system only when the notice is `needs-you`. The older ones always do. */
+const QUIET: EventSource[] = ["run-ended", "pr-checks", "scan-failed", "review-draft"];
 
 /** `needs-you` is the class that also goes to the system (spec `shell`, REQ-008). */
 export type NoticeKind = "info" | "error" | "needs-you";
+
+/** Where a notice leads: a page or a ref (it opens in the inspector). */
+export type NoticeTarget = { route: string } | { ref: string };
+
+/** One button of a notice: Retry, Open, Download. */
+export type NoticeAction = { label: string; run: () => void };
 
 export type Notice = {
 	/** The source and the thing: the same id gives one entry, once. */
@@ -30,6 +47,11 @@ export type Notice = {
 	kind: NoticeKind;
 	title: string;
 	body?: string;
+	/** The long text of a failure. The centre folds it. */
+	detail?: string;
+	/** The centre opens it when the person clicks the row. */
+	target?: NoticeTarget;
+	action?: NoticeAction;
 	time: number;
 	read: boolean;
 };
@@ -43,11 +65,16 @@ type Ctx = {
 	 * Adds an event. A second call with the same id does nothing. A source in `Prefs.notifyOff`
 	 * adds nothing, to the centre and to the system alike. Resolves true when it added the event.
 	 */
-	push: (n: Pick<Notice, "id" | "kind" | "title" | "body">) => Promise<boolean>;
+	push: (n: NoticeInput) => Promise<boolean>;
 	markRead: () => void;
 	clear: () => void;
 	dismiss: (id: string) => void;
 };
+
+export type NoticeInput = Pick<
+	Notice,
+	"id" | "kind" | "title" | "body" | "detail" | "target" | "action"
+>;
 
 const Context = createContext<Ctx | null>(null);
 
@@ -65,7 +92,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 	// Not state: an update function can run twice, and an id seen must never come back.
 	const seen = useRef(new Set<string>());
 
-	const push = useCallback(async (n: Pick<Notice, "id" | "kind" | "title" | "body">) => {
+	const push = useCallback(async (n: NoticeInput) => {
 		if (seen.current.has(n.id)) return false;
 		seen.current.add(n.id);
 		// A project can mute its notices (project overrides). Read at each push, as the sources are.
@@ -91,7 +118,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 		setItems((list) => [notice, ...list]);
 		setToasts((list) => [...list, notice]);
 		// A needs-you event or any chosen source (sync, update, remote head) goes to the system.
-		if ((n.kind === "needs-you" || source) && !document.hasFocus())
+		if ((n.kind === "needs-you" || (source && !QUIET.includes(source))) && !document.hasFocus())
 			unwrap(commands.notifyOs(n.title, n.body ?? "")).catch(logError);
 		return true;
 	}, []);
@@ -121,4 +148,18 @@ export function useNotifications() {
 	const ctx = useContext(Context);
 	if (!ctx) throw new Error("useNotifications needs NotificationsProvider");
 	return ctx;
+}
+
+/** The function that opens the target of a notice: a route, or a ref in the inspector. */
+export function useOpenNotice() {
+	const router = useRouter({ warn: false });
+	const { openRef } = useShell();
+	return useCallback(
+		(n: Notice) => {
+			if (!n.target) return;
+			if ("route" in n.target) void router?.navigate({ to: n.target.route });
+			else openRef(n.target.ref);
+		},
+		[router, openRef],
+	);
 }

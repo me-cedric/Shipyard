@@ -118,7 +118,7 @@ mod tests {
             issue_url(
                 FeedbackKind::Bug,
                 "t",
-                "ghp_abcdefghijklmnopqrstuvwxyz0123456789"
+                "ghp_abcdefghijklmnopqrstuvwxyz0123456789" // gitleaks:allow
             )
             .is_err()
         );

@@ -16,6 +16,7 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { FileRow } from "@/ui/molecules/file-row";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
+import { SplitPane } from "@/ui/molecules/split-pane";
 import { withProject } from "./project-gate";
 
 /** One colour per lane of the graph, in turn. */
@@ -122,56 +123,58 @@ function HistoryView() {
 				action={<PageExport page="workDone" />}
 			/>
 			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-1 pb-4">
-				<div className="w-[34rem] shrink-0 overflow-y-auto rounded-lg border bg-surface-1 py-1 shadow-1">
-					{commits.map((c, n) => (
-						<div key={c.sha} className="flex items-stretch">
-							<span
-								aria-hidden="true"
-								data-lane={rows[n]?.lane}
-								className="relative shrink-0"
-								style={{ width: lanes * STEP + 12 }}
-							>
-								{rows[n]?.through.map((i) => (
-									<span
-										key={i}
-										className={`absolute inset-y-0 w-0.5 opacity-60 ${lane(i)}`}
-										style={{ left: i * STEP + 11 }}
-									/>
-								))}
+				<SplitPane id="code-history-width" label={t.forge.resize.history} fallback={544}>
+					<div className="shrink-0 overflow-y-auto rounded-lg border bg-surface-1 py-1 shadow-1">
+						{commits.map((c, n) => (
+							<div key={c.sha} className="flex items-stretch">
 								<span
-									className={`absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full ring-2 ring-surface-1 ${lane(rows[n]?.lane ?? 0)}`}
-									style={{ left: (rows[n]?.lane ?? 0) * STEP + 7 }}
-								/>
-							</span>
-							<div className="min-w-0 flex-1">
-								<CommitRow
-									short={c.short}
-									summary={c.summary}
-									author={c.author_name}
-									date={date.format(c.time * 1000)}
-									labels={c.labels}
-									selected={c.sha === sha}
-									onSelect={() => setSha(c.sha)}
-									menu={menu("commit", {
-										open: () => setSha(c.sha),
-										"copy-sha": () => copyText(c.sha),
-									})}
-								/>
+									aria-hidden="true"
+									data-lane={rows[n]?.lane}
+									className="relative shrink-0"
+									style={{ width: lanes * STEP + 12 }}
+								>
+									{rows[n]?.through.map((i) => (
+										<span
+											key={i}
+											className={`absolute inset-y-0 w-0.5 opacity-60 ${lane(i)}`}
+											style={{ left: i * STEP + 11 }}
+										/>
+									))}
+									<span
+										className={`absolute top-1/2 size-2.5 -translate-y-1/2 rounded-full ring-2 ring-surface-1 ${lane(rows[n]?.lane ?? 0)}`}
+										style={{ left: (rows[n]?.lane ?? 0) * STEP + 7 }}
+									/>
+								</span>
+								<div className="min-w-0 flex-1">
+									<CommitRow
+										short={c.short}
+										summary={c.summary}
+										author={c.author_name}
+										date={date.format(c.time * 1000)}
+										labels={c.labels}
+										selected={c.sha === sha}
+										onSelect={() => setSha(c.sha)}
+										menu={menu("commit", {
+											open: () => setSha(c.sha),
+											"copy-sha": () => copyText(c.sha),
+										})}
+									/>
+								</div>
 							</div>
-						</div>
-					))}
-					{hasNextPage ? (
-						<div ref={end} className="p-2">
-							<Button
-								variant="ghost"
-								disabled={isFetchingNextPage}
-								onClick={() => void fetchNextPage()}
-							>
-								{t.code.older}
-							</Button>
-						</div>
-					) : null}
-				</div>
+						))}
+						{hasNextPage ? (
+							<div ref={end} className="p-2">
+								<Button
+									variant="ghost"
+									disabled={isFetchingNextPage}
+									onClick={() => void fetchNextPage()}
+								>
+									{t.code.older}
+								</Button>
+							</div>
+						) : null}
+					</div>
+				</SplitPane>
 				<div className="min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
 					{sha ? (
 						<Detail sha={sha} />

@@ -1,5 +1,10 @@
 /** The strings of the Knowledge space. */
 export const knowledgeEn = {
+	resize: {
+		list: "List width",
+		manual: "Contents width",
+		side: "Glossary width",
+	},
 	canvas: {
 		table: "Table view",
 		name: "Name",
@@ -157,6 +162,11 @@ export const knowledgeEn = {
 };
 
 export const knowledgeFr: typeof knowledgeEn = {
+	resize: {
+		list: "Largeur de la liste",
+		manual: "Largeur du sommaire",
+		side: "Largeur du glossaire",
+	},
 	canvas: {
 		table: "Vue tableau",
 		name: "Nom",

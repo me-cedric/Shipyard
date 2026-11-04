@@ -4,6 +4,7 @@ import { en } from "@/lib/i18n/en";
 import { cn } from "@/lib/utils";
 import { Input } from "@/ui/atoms/input";
 import { BookOpenIcon, MagnifyingGlassIcon } from "@/ui/icons";
+import { SplitPane } from "@/ui/molecules/split-pane";
 import { blocks, MarkdownView } from "@/ui/organisms/markdown-view";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { useManualTarget } from "./manual-target";
@@ -119,63 +120,65 @@ export function Manual() {
 	return (
 		<ListDetail title={m.title} icon={<BookOpenIcon size={16} />} count={MANUAL.length}>
 			<div className="flex min-h-0 flex-1 gap-6 px-4 pb-4">
-				<aside className="flex w-56 shrink-0 flex-col gap-3">
-					<div className="relative">
-						<span
-							aria-hidden="true"
-							className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-n-10"
-						>
-							<MagnifyingGlassIcon size={14} />
-						</span>
-						<Input
-							type="search"
-							className="pl-7"
-							label={m.search}
-							value={query}
-							onChange={(e) => setQuery(e.target.value)}
-						/>
-					</div>
-					{query.trim() ? (
-						<section aria-label={m.results} className="flex min-h-0 flex-col gap-1 overflow-auto">
-							<h2 className="text-12 font-medium text-n-11" aria-live="polite">
-								{m.results} ({hits.length})
-							</h2>
-							<ul className="flex flex-col gap-1">
-								{hits.map((h) => (
-									<li key={`${h.page}-${h.heading}`}>
-										<button
-											type="button"
-											onClick={() => open(h.page, h.heading)}
-											className="flex w-full flex-col rounded-md px-2 py-1 text-left hover:bg-n-3"
-										>
-											<span className="text-ui text-n-12">
-												{h.title} / {h.heading}
-											</span>
-											<span className="line-clamp-2 text-12 text-n-11">{h.snippet}</span>
-										</button>
-									</li>
+				<SplitPane id="knowledge-manual-width" label={t.knowledge.resize.manual} fallback={224}>
+					<aside className="flex shrink-0 flex-col gap-3">
+						<div className="relative">
+							<span
+								aria-hidden="true"
+								className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-n-10"
+							>
+								<MagnifyingGlassIcon size={14} />
+							</span>
+							<Input
+								type="search"
+								className="pl-7"
+								label={m.search}
+								value={query}
+								onChange={(e) => setQuery(e.target.value)}
+							/>
+						</div>
+						{query.trim() ? (
+							<section aria-label={m.results} className="flex min-h-0 flex-col gap-1 overflow-auto">
+								<h2 className="text-12 font-medium text-n-11" aria-live="polite">
+									{m.results} ({hits.length})
+								</h2>
+								<ul className="flex flex-col gap-1">
+									{hits.map((h) => (
+										<li key={`${h.page}-${h.heading}`}>
+											<button
+												type="button"
+												onClick={() => open(h.page, h.heading)}
+												className="flex w-full flex-col rounded-md px-2 py-1 text-left hover:bg-n-3"
+											>
+												<span className="text-ui text-n-12">
+													{h.title} / {h.heading}
+												</span>
+												<span className="line-clamp-2 text-12 text-n-11">{h.snippet}</span>
+											</button>
+										</li>
+									))}
+								</ul>
+							</section>
+						) : (
+							<nav aria-label={m.pages} className="flex flex-col gap-0.5">
+								{MANUAL.map((p) => (
+									<button
+										key={p.id}
+										type="button"
+										aria-current={p.id === page ? "page" : undefined}
+										onClick={() => open(p.id, null)}
+										className={cn(
+											"rounded-md px-2 py-1 text-left text-ui hover:bg-n-3",
+											p.id === page ? "bg-n-3 font-medium text-n-12" : "text-n-11",
+										)}
+									>
+										{p.title}
+									</button>
 								))}
-							</ul>
-						</section>
-					) : (
-						<nav aria-label={m.pages} className="flex flex-col gap-0.5">
-							{MANUAL.map((p) => (
-								<button
-									key={p.id}
-									type="button"
-									aria-current={p.id === page ? "page" : undefined}
-									onClick={() => open(p.id, null)}
-									className={cn(
-										"rounded-md px-2 py-1 text-left text-ui hover:bg-n-3",
-										p.id === page ? "bg-n-3 font-medium text-n-12" : "text-n-11",
-									)}
-								>
-									{p.title}
-								</button>
-							))}
-						</nav>
-					)}
-				</aside>
+							</nav>
+						)}
+					</aside>
+				</SplitPane>
 				{/* The page scrolls with the keyboard too: the region takes the focus. */}
 				<section
 					aria-label={m.title}

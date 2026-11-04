@@ -26,7 +26,14 @@ pub async fn prefs_get(app: AppHandle) -> Api<Prefs> {
 #[tauri::command]
 #[specta::specta]
 pub async fn prefs_set(app: AppHandle, patch: PrefsPatch) -> Api<Prefs> {
-    blocking(app, move |s| set(s, patch)).await
+    let tray = patch.tray.is_some();
+    let handle = app.clone();
+    let prefs = blocking(app, move |s| set(s, patch)).await;
+    // The menu bar item follows its setting at once.
+    if let (true, Ok(p)) = (tray, &prefs) {
+        crate::tray::apply(&handle, p.tray);
+    }
+    prefs
 }
 
 #[cfg(test)]

@@ -5,9 +5,11 @@ import { useMachineSpend, useMachineWrites } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import type { SpendRow } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
+import { CountUp } from "@/ui/atoms/count-up";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { ChartBarIcon, ComputerDesktopIcon, CurrencyIcon } from "@/ui/icons";
+import { Loading } from "@/ui/molecules/loading";
 import { Panel } from "@/ui/molecules/panel";
 import { SpendMeter } from "@/ui/molecules/spend-meter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
@@ -65,7 +67,7 @@ function Bars({ lines, label }: { lines: Line[]; label: string }) {
 }
 
 /** Factory / Usage, second block: spend of every AI session on this computer, with budgets. */
-export function MachineUsage() {
+export function MachineUsage({ prices }: { prices: boolean }) {
 	const { t, lang } = useI18n();
 	const m = t.factory.machine;
 	const [days, setDays] = useState(30);
@@ -75,8 +77,9 @@ export function MachineUsage() {
 	const spend = useMachineSpend(90);
 	const writes = useMachineWrites();
 	const { error, run } = useGuard();
-	const money = new Intl.NumberFormat(lang, { style: "currency", currency: "USD" });
-	const all = spend.data?.rows ?? [];
+	const fmt = new Intl.NumberFormat(lang, { style: "currency", currency: "USD" });
+	const money = { format: (n: number) => (prices ? fmt.format(n) : t.extras.usage.hidden) };
+	const all = (spend.data ?? spend.partial)?.rows ?? [];
 	const budgets = spend.data?.budgets ?? [];
 	const since = day(days - 1);
 	const rows = all.filter((r) => r.day >= since);
@@ -97,13 +100,13 @@ export function MachineUsage() {
 			id: "tokens",
 			header: t.factory.tokens,
 			meta: { width: "8rem", numeric: true },
-			cell: (c) => c.row.original.tokens.toLocaleString(),
+			cell: (c) => <CountUp value={c.row.original.tokens} />,
 		},
 		{
 			id: "spend",
 			header: t.factory.spend,
 			meta: { width: "7rem", numeric: true },
-			cell: (c) => money.format(c.row.original.usd),
+			cell: (c) => <CountUp value={c.row.original.usd} format={money.format} />,
 		},
 	];
 	const lines = group(rows, by);
@@ -113,20 +116,27 @@ export function MachineUsage() {
 			setAmount("");
 		});
 	const total = monthUsd(ALL);
+	if (spend.isPending && !spend.partial) return <Loading rows={3} />;
+	const p = spend.partial;
 	return (
 		<>
+			{p ? (
+				<p role="status" className="text-ui text-n-11">
+					{format(m.reading, { read: p.read, found: p.found })}
+				</p>
+			) : null}
 			<StatStrip
 				items={[
 					{
 						label: m.month,
-						value: money.format(total),
+						value: <CountUp value={total} format={money.format} />,
 						icon: <ComputerDesktopIcon size={12} />,
 						tone: "info",
 						trend: chart.map((l) => l.usd),
 					},
 					{
 						label: t.factory.tokens,
-						value: rows.reduce((a, r) => a + (r.tokens ?? 0), 0).toLocaleString(),
+						value: <CountUp value={rows.reduce((a, r) => a + (r.tokens ?? 0), 0)} />,
 						tone: "accent",
 					},
 					{

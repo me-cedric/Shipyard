@@ -15,6 +15,7 @@ import { ChartBarIcon, CpuChipIcon } from "@/ui/icons";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { SplitPane } from "@/ui/molecules/split-pane";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { Assignments } from "./assignments";
 import { ChainWatch } from "./chain-watch";
@@ -170,31 +171,36 @@ function ImpactsView() {
 				</p>
 			) : null}
 			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-1 pb-4">
-				<div className="flex w-[24rem] shrink-0 flex-col gap-3 overflow-y-auto">
-					<ChainWatch base={current} />
-					<DeliveryNotes />
-					<Panel
-						title={i18n.past}
-						count={list.length}
-						flush
-						className="shrink-0"
-						bodyClassName="py-1"
-					>
-						{list.map((e) => (
-							<button
-								key={e.plan}
-								type="button"
-								aria-current={e.plan === path || undefined}
-								onClick={() => setPath(e.plan)}
-								className="flex min-h-row w-full items-center gap-2 px-3 text-left text-ui hover:bg-n-3 aria-[current]:bg-accent-soft"
-							>
-								<span className="font-mono text-12 text-n-11">{e.date}</span>
-								{e.slug}
-							</button>
-						))}
-					</Panel>
-					<Assignments />
-				</div>
+				<SplitPane id="code-impacts-width" label={t.forge.resize.impacts} fallback={384}>
+					<div className="flex shrink-0 flex-col gap-3 overflow-y-auto">
+						<ChainWatch base={current} />
+						<DeliveryNotes />
+						<Panel
+							title={i18n.past}
+							count={list.length}
+							flush
+							className="shrink-0"
+							bodyClassName="py-1"
+						>
+							{list.length === 0 ? (
+								<p className="px-3 py-2 text-ui text-n-11">{i18n.noPast}</p>
+							) : null}
+							{list.map((e) => (
+								<button
+									key={e.plan}
+									type="button"
+									aria-current={e.plan === path || undefined}
+									onClick={() => setPath(e.plan)}
+									className="flex min-h-row w-full items-center gap-2 px-3 text-left text-ui hover:bg-n-3 aria-[current]:bg-accent-soft"
+								>
+									<span className="font-mono text-12 text-n-11">{e.date}</span>
+									{e.slug}
+								</button>
+							))}
+						</Panel>
+						<Assignments />
+					</div>
+				</SplitPane>
 				<div className="min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
 					{entry ? <Report entry={entry} /> : null}
 				</div>

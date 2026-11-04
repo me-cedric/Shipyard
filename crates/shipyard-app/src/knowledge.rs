@@ -655,6 +655,7 @@ pub fn export_dossier(s: &AppState, t: &ExportText, views: &[ViewImage], path: &
         views.iter().map(|v| image_item(&v.title, &v.png)).collect(),
     );
     write_export(
+        s,
         path,
         "docx",
         &docx_bytes(&meta(s, &p, t), &assemble(&meta(s, &p, t), &sections)).map_err(err)?,
@@ -796,6 +797,7 @@ pub fn export_dossier_complete(
     let p = project(s)?;
     let sections = dossier_complete_sections(s, &p, &titles, views)?;
     write_export(
+        s,
         path,
         "docx",
         &docx_bytes(&meta(s, &p, t), &assemble(&meta(s, &p, t), &sections)).map_err(err)?,
@@ -910,6 +912,7 @@ pub fn export_functional(s: &AppState, t: &ExportText, path: &str) -> Res<()> {
         },
     ];
     write_export(
+        s,
         path,
         "docx",
         &docx_bytes(&meta(s, &p, t), &assemble(&meta(s, &p, t), &sections)).map_err(err)?,
@@ -936,6 +939,7 @@ pub fn export_sheet(s: &AppState, t: &ExportText, sheets: Vec<SheetIn>, path: &s
         })
         .collect();
     write_export(
+        s,
         path,
         "xlsx",
         &export::xlsx_bytes(&meta(s, &p, t), &parts).map_err(err)?,
@@ -943,7 +947,8 @@ pub fn export_sheet(s: &AppState, t: &ExportText, sheets: Vec<SheetIn>, path: &s
 }
 
 /// An absolute path with the right extension, in a folder that exists. The write is atomic.
-pub(crate) fn write_export(path: &str, ext: &str, bytes: &[u8]) -> Res<()> {
+/// The path joins the exports (the person may reveal it) only after the write worked.
+pub(crate) fn write_export(s: &AppState, path: &str, ext: &str, bytes: &[u8]) -> Res<()> {
     let p = std::path::PathBuf::from(path);
     if !p.is_absolute() || p.is_dir() {
         return Err("the path is not an absolute file path".into());
@@ -954,7 +959,9 @@ pub(crate) fn write_export(path: &str, ext: &str, bytes: &[u8]) -> Res<()> {
     if !p.parent().is_some_and(Path::is_dir) {
         return Err("the folder of the path does not exist".into());
     }
-    write_atomic(&p, bytes).map_err(err)
+    write_atomic(&p, bytes).map_err(err)?;
+    s.exports().insert(path.into());
+    Ok(())
 }
 
 // ---------------------------------------------------------------- commands

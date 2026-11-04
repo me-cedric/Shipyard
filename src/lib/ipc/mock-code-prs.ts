@@ -7,6 +7,7 @@ import type {
 	ImpactEntry,
 	ImpactRefs,
 	MergeMethod,
+	MyChecks,
 	OpenedPull_Serialize,
 	OpenPull_Deserialize,
 	PrRowView,
@@ -202,6 +203,18 @@ export function pullDetail(p: MockPrs, number: number, row?: PrRowView): PullDet
 	}
 	return find(p, number);
 }
+
+/** The open pull requests of the signed-in person. The mock person is `Ada Lovelace`. */
+export const myChecks = (p: MockPrs): MyChecks[] =>
+	p.pulls
+		.filter((d) => d.state === "open" && d.author === "Ada Lovelace")
+		.map((d) => ({
+			reference: d.reference,
+			number: d.number,
+			title: d.title,
+			headSha: d.headSha,
+			ci: d.ci,
+		}));
 
 export const pullLabels = (): string[] => [...LABELS];
 

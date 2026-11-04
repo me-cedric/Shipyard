@@ -47,6 +47,7 @@ pub mod specs;
 pub mod sync;
 pub mod terminal;
 pub mod terminals;
+pub mod tray;
 pub mod window;
 pub mod work;
 
@@ -172,6 +173,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::openers::editors_list,
             crate::openers::editor_open,
             crate::openers::open_link,
+            crate::openers::reveal_path,
+            crate::openers::open_default,
             crate::code::code_quality,
             crate::code::code_check_run,
             crate::qa::code_coverage,
@@ -184,6 +187,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::specs::requirements::specs_testplan_generate,
             crate::work::apply_run_rows,
             crate::code::code_scan_run,
+            crate::code::code_my_checks,
             crate::code::code_scanner_install,
             crate::sbom::code_sbom_export,
             crate::code::code_impact_refs,
@@ -489,6 +493,9 @@ fn specta_builder() -> Builder<tauri::Wry> {
             sh::shell_menu,
             sh::notify_os,
             sh::update_check,
+            tray::tray_badge,
+            tray::tray_close,
+            tray::tray_open,
         ])
 }
 
@@ -500,10 +507,17 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(builder.invoke_handler())
         // A run or an assistant turn in flight holds the window until the person answers.
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested { api, .. } if window.label() != "tray" => {
                 close_guard::on_close_requested(window.app_handle(), window, api);
             }
+            // The hidden panel would keep the app alive: the end of the main window exits it.
+            tauri::WindowEvent::Destroyed if tray::ends_app(window.label()) => {
+                window.app_handle().exit(0);
+            }
+            // The menu bar panel hides when it loses focus.
+            tauri::WindowEvent::Focused(false) if window.label() == "tray" => tray::on_blur(window),
+            _ => {}
         })
         // A menu item runs the palette action with the same id (REQ-012).
         .on_menu_event(|app, event| {
@@ -544,6 +558,7 @@ pub fn run() {
             factory::spawn_loop(app.handle().clone());
             app.set_menu(shell::menu::build(app.handle(), &Default::default())?)?;
             git::spawn_watch(app.handle().clone());
+            tray::apply(app.handle(), shipyard_store::prefs::Prefs::load(&dir).tray);
             // The relay answers `shipyard --mcp-relay <id>` with the open server (REQ-018).
             // A failure leaves each agent turn to start its own server.
             #[cfg(unix)]

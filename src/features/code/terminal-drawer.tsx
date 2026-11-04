@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useOpenInTerminalApp } from "@/features/shell/terminal-app";
 import { format, useI18n } from "@/lib/i18n";
 import { usePanelSize, usePrefs } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ export function TerminalDrawer({ open, onHide }: { open: boolean; onHide: () => 
 	const { t } = useI18n();
 	const d = t.panels.terminal;
 	const { terminalDock: dock, setPrefs } = usePrefs();
+	const openApp = useOpenInTerminalApp();
 	const side = dock !== "bottom";
 	const [fallback, min, max] = SIZE[side ? "side" : "bottom"];
 	const panel = usePanelSize(side ? "terminal-width" : "terminal-height", fallback);
@@ -110,12 +112,15 @@ export function TerminalDrawer({ open, onHide }: { open: boolean; onHide: () => 
 					iconOnly
 					label={d.dock}
 					icon={<ViewColumnsIcon size={14} />}
-					items={DOCKS.map((x) => ({
-						id: x,
-						label: d.docks[x],
-						icon: x === dock ? <CheckIcon size={12} /> : undefined,
-						onSelect: () => setPrefs({ terminalDock: x }),
-					}))}
+					items={[
+						...DOCKS.map((x) => ({
+							id: x,
+							label: d.docks[x],
+							icon: x === dock ? <CheckIcon size={12} /> : undefined,
+							onSelect: () => setPrefs({ terminalDock: x }),
+						})),
+						{ id: "open-app", label: openApp.label, onSelect: openApp.run },
+					]}
 				/>
 				<IconButton label={d.hide} onClick={onHide}>
 					<XMarkIcon size={14} />

@@ -18,6 +18,20 @@ describe("Exports and the terminal (W11)", () => {
 		expect(await screen.findByText("Exported: /mock/dossier.docx")).toBeInTheDocument();
 	});
 
+	it("opens an export saved outside the project, and shows a refusal when the path is not an export", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/knowledge/documents");
+		await user.click(await screen.findByRole("button", { name: "Export" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Complete dossier" }));
+		const show = await screen.findByRole("button", { name: "Show in folder" });
+		await user.click(show);
+		expect(screen.queryByRole("alert")).toBeNull();
+		mockState().reports.exported.length = 0;
+		await user.click(show);
+		expect(await screen.findByRole("alert")).toBeVisible();
+	});
+
 	it("writes a change request from a form and shows its two files", async () => {
 		const user = userEvent.setup();
 		await open();
@@ -66,14 +80,16 @@ describe("Exports and the terminal (W11)", () => {
 		await waitFor(() => expect(kinds()).toEqual(["work-done"]));
 	});
 
-	it("picks the terminal app in Settings / Me and opens a terminal from the context bar", async () => {
+	it("picks the terminal app in Settings / Me and opens a terminal from the terminal drawer", async () => {
 		const user = userEvent.setup();
 		await open();
 		mountApp("/settings/me");
 		await user.click(await screen.findByRole("combobox", { name: "Terminal app" }));
 		await user.click(await screen.findByRole("option", { name: "kitty" }));
 		await waitFor(() => expect(mockState().prefs.terminalApp).toBe("kitty"));
-		await user.click(await screen.findByRole("button", { name: "Open in terminal" }));
+		await user.click(await screen.findByRole("button", { name: "Terminal" }));
+		await user.click(await screen.findByRole("button", { name: "Dock terminal" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Open in kitty" }));
 		await waitFor(() =>
 			expect(mockState().reports.launched).toEqual([{ id: "kitty", folder: "" }]),
 		);

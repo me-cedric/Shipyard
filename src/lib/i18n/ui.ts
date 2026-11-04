@@ -9,6 +9,12 @@ export const uiEn = {
 	changes: "Changes",
 	myItems: "My items",
 	spendToday: "Spend today",
+	tray: {
+		month: "Month",
+		synced: "Synced {time}",
+		syncFailed: "Sync failed",
+		open: "Open Shipyard",
+	},
 	welcome: "Welcome",
 	menu: {
 		go: "Go",
@@ -46,6 +52,13 @@ export const uiEn = {
 	columnWidth: "{name} width",
 	autoCommit: "Auto-commit",
 	activity: { system: "System" },
+	item: {
+		openBrowser: "Open in browser",
+		reveal: "Show in folder",
+		openDefault: "Open with default app",
+		copied: "Copied",
+		details: "Details",
+	},
 };
 
 export const uiFr: typeof uiEn = {
@@ -58,6 +71,12 @@ export const uiFr: typeof uiEn = {
 	changes: "Modifications",
 	myItems: "Mes éléments",
 	spendToday: "Dépense du jour",
+	tray: {
+		month: "Mois",
+		synced: "Synchronisé à {time}",
+		syncFailed: "Échec de la synchronisation",
+		open: "Ouvrir Shipyard",
+	},
 	welcome: "Bienvenue",
 	menu: {
 		go: "Aller à",
@@ -99,4 +118,11 @@ export const uiFr: typeof uiEn = {
 	columnWidth: "Largeur de {name}",
 	autoCommit: "Commit automatique",
 	activity: { system: "Système" },
+	item: {
+		openBrowser: "Ouvrir dans le navigateur",
+		reveal: "Afficher dans le dossier",
+		openDefault: "Ouvrir avec l'app par défaut",
+		copied: "Copié",
+		details: "Détails",
+	},
 };

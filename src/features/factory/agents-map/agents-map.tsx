@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { NoProject } from "@/features/work/no-project";
 import { useRuns, useSessions } from "@/lib/factory";
@@ -7,6 +8,7 @@ import { useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { ShareIcon } from "@/ui/icons";
+import { EmptyState } from "@/ui/molecules/empty-state";
 import { STEP_STATUS } from "@/ui/molecules/run-step";
 import { type CanvasNode, GraphCanvas } from "@/ui/organisms/graph-canvas";
 import { ListDetail } from "@/ui/templates/list-detail";
@@ -19,6 +21,7 @@ export function AgentsMap() {
 	const runs = useRuns();
 	const sessions = useSessions();
 	const { openRef, selectedRef } = useShell();
+	const navigate = useNavigate();
 	const graph = useMemo(() => {
 		const nodes = new Map<string, CanvasNode>();
 		const links: [string, string][] = [];
@@ -71,18 +74,31 @@ export function AgentsMap() {
 				</Badge>
 			}
 		>
-			<GraphCanvas
-				glow
-				legend
-				live={graph.live}
-				nodes={graph.nodes}
-				links={graph.links}
-				kinds={kinds}
-				label={f.graph}
-				labels={t.knowledge.canvas}
-				selected={selectedRef}
-				onOpen={openRef}
-			/>
+			{/* The map shows the runs that Shipyard starts. With none, it says so and leads to Runs. */}
+			{graph.nodes.length === 0 && runs.data && sessions.data ? (
+				<div className="p-4">
+					<EmptyState
+						title={t.empty.runs}
+						action={{
+							label: f.runs,
+							onClick: () => void navigate({ to: "/factory/runs" }),
+						}}
+					/>
+				</div>
+			) : (
+				<GraphCanvas
+					glow
+					legend
+					live={graph.live}
+					nodes={graph.nodes}
+					links={graph.links}
+					kinds={kinds}
+					label={f.graph}
+					labels={t.knowledge.canvas}
+					selected={selectedRef}
+					onOpen={openRef}
+				/>
+			)}
 		</ListDetail>
 	);
 }

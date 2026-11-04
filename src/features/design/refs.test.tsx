@@ -21,7 +21,10 @@ describe("the ref of a design artifact", () => {
 		Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
 		await mountDesign(<Diagrams />);
 		await user.click((await list("Diagrams")).getByRole("button", { name: /context/ }));
-		await user.click(await screen.findByRole("button", { name: "Copy ref" }));
+		// The inspector header offers Copy ref too: any of them copies the same ref.
+		await user.click(
+			(await screen.findAllByRole("button", { name: "Copy ref" }))[0] as HTMLElement,
+		);
 		expect(writeText).toHaveBeenCalledWith("diagram:context");
 	});
 

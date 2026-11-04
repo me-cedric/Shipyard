@@ -1,5 +1,8 @@
 /** The strings of the Factory space. */
 export const factoryEn = {
+	resize: {
+		workflows: "Workflows width",
+	},
 	runs: "Runs",
 	start: "Start run",
 	ticket: "Ticket",
@@ -102,6 +105,7 @@ export const factoryEn = {
 		byRunner: "By runner",
 		byModel: "By model",
 		byProject: "By project",
+		reading: "Read {read} of {found} files",
 		period: "Period",
 		groupBy: "Group by",
 		days: "{count} days",
@@ -118,6 +122,9 @@ export const factoryEn = {
 };
 
 export const factoryFr: typeof factoryEn = {
+	resize: {
+		workflows: "Largeur des workflows",
+	},
 	runs: "Exécutions",
 	start: "Lancer une exécution",
 	ticket: "Ticket",
@@ -226,6 +233,7 @@ export const factoryFr: typeof factoryEn = {
 		byRunner: "Par exécuteur",
 		byModel: "Par modèle",
 		byProject: "Par projet",
+		reading: "{read} fichiers lus sur {found}",
 		period: "Période",
 		groupBy: "Grouper par",
 		days: "{count} jours",

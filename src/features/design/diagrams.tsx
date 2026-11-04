@@ -17,6 +17,7 @@ import { Button } from "@/ui/atoms/button";
 import { ShareIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { MenuButton } from "@/ui/molecules/menu-button";
+import { SplitPane } from "@/ui/molecules/split-pane";
 import { BpmnViewer } from "@/ui/organisms/bpmn-viewer";
 import { drawioSvg, svgDataUri } from "@/ui/organisms/drawio";
 import { DrawioEditor } from "@/ui/organisms/drawio-editor";
@@ -86,7 +87,7 @@ function Face({ a }: { a: Artifact | undefined }) {
 				className={`${box} [&_[role=img]]:h-28 [&_[role=img]]:min-h-0 [&_[role=img]]:overflow-hidden [&_[role=img]]:border-0 [&_[role=img]]:bg-transparent [&_[role=img]]:p-0 [&_svg]:max-h-28`}
 			>
 				{format === "mermaid" ? (
-					<MermaidView source={text} label={a.title} />
+					<MermaidView source={text} label={a.title} plain />
 				) : (
 					<BpmnViewer text={text} label={a.title} />
 				)}
@@ -157,14 +158,16 @@ function Diagram({ a }: { a: Artifact }) {
 					);
 				if (format === "mermaid")
 					return (
-						<div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-1 gap-3">
-							<CodeEditor
-								label={t.design.diagram.text}
-								value={file.text}
-								errorLine={error?.line}
-								onChange={file.setText}
-							/>
-							<div className="h-full min-h-0">
+						<div className="flex min-h-0 flex-1 gap-3">
+							<SplitPane id="design-diagrams-width" label={t.design.resize.editor} min={320}>
+								<CodeEditor
+									label={t.design.diagram.text}
+									value={file.text}
+									errorLine={error?.line}
+									onChange={file.setText}
+								/>
+							</SplitPane>
+							<div className="h-full min-h-0 min-w-0 flex-1">
 								<MermaidView source={file.text} label={a.title} onError={onError} />
 							</div>
 						</div>

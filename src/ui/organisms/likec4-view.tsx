@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ZoomFrame } from "../molecules/zoom-frame";
 import type { EditorError } from "./error-line";
 import { edgePath, type Layout, shortMessage, toLayout } from "./likec4-layout";
 import { LineError, useRender } from "./use-render";
@@ -115,18 +116,20 @@ export function LikeC4View({
 		400,
 	);
 	return (
-		<div className="flex min-h-40 flex-col gap-4 overflow-auto rounded-md border border-n-7 bg-n-1 p-3">
-			{failure ? (
-				<p role="alert" className="text-ui text-danger-text">
-					{failure}
-				</p>
-			) : null}
-			{(views ?? []).map((v) => (
-				<figure key={v.id} aria-label={`${label}: ${v.title}`} className="flex flex-col gap-1">
-					<figcaption className="text-12 font-medium text-n-11">{v.title}</figcaption>
-					<Drawing view={v} />
-				</figure>
-			))}
-		</div>
+		<ZoomFrame label={label} className="min-h-40 rounded-md border border-n-7 bg-n-1">
+			<div className="flex flex-col gap-4 p-3">
+				{failure ? (
+					<p role="alert" className="text-ui text-danger-text">
+						{failure}
+					</p>
+				) : null}
+				{(views ?? []).map((v) => (
+					<figure key={v.id} aria-label={`${label}: ${v.title}`} className="flex flex-col gap-1">
+						<figcaption className="text-12 font-medium text-n-11">{v.title}</figcaption>
+						<Drawing view={v} />
+					</figure>
+				))}
+			</div>
+		</ZoomFrame>
 	);
 }

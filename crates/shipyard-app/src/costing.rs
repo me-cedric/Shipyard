@@ -92,7 +92,7 @@ pub fn png_save(s: &AppState, path: &str, bytes: &[u8], click: bool) -> Res<()> 
     if bytes.len() > MAX_PNG || !bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
         return Err("the image is not a PNG file".into());
     }
-    crate::knowledge::write_export(path, "png", bytes)
+    crate::knowledge::write_export(s, path, "png", bytes)
 }
 
 #[tauri::command]

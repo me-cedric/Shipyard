@@ -29,7 +29,7 @@ model {
 
     shell = container 'Tauri shell' {
       technology 'Rust, Tauri 2'
-      description 'Native window, menu, notifications, terminal, update check and the IPC commands (crates/shipyard-app).'
+      description 'Native window, menu, menu bar item with its panel window, notifications, terminal, update check and the IPC commands (crates/shipyard-app).'
     }
 
     ui = container 'React UI' {

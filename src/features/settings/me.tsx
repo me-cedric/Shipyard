@@ -62,6 +62,10 @@ const SOURCES: EventSource[] = [
 	"sync-failure",
 	"update",
 	"remote-head",
+	"run-ended",
+	"pr-checks",
+	"scan-failed",
+	"review-draft",
 ];
 
 const DIAGRAM_FORMATS = [

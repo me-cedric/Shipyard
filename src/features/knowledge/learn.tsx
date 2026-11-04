@@ -1,8 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
+import type { CSSProperties } from "react";
 import { useState } from "react";
 import { NoProject } from "@/features/work/no-project";
 import { useI18n } from "@/lib/i18n";
 import { useLearn } from "@/lib/knowledge";
+import { usePanelSize } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
@@ -12,6 +14,7 @@ import { AcademicCapIcon, ArrowPathIcon, BookOpenIcon, CheckIcon } from "@/ui/ic
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { Splitter } from "@/ui/molecules/splitter";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { LearnFeeds } from "./learn-feeds";
 import { LearnPaths } from "./learn-paths";
@@ -50,6 +53,7 @@ export function Learn() {
 	const { openRef } = useShell();
 	const learn = useLearn().data;
 	const { done, mark } = useDone();
+	const side = usePanelSize("knowledge-learn-side", 352);
 	if (active === undefined) return null;
 	if (active === null) return <NoProject title={k.title} />;
 	const path = learn?.path ?? [];
@@ -62,7 +66,10 @@ export function Learn() {
 	};
 	return (
 		<ListDetail title={k.title} icon={<AcademicCapIcon size={16} />} count={path.length}>
-			<div className="grid min-h-0 flex-1 auto-rows-min gap-3 overflow-auto px-4 pt-1 pb-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+			<div
+				style={{ "--side": `${side.size}px` } as CSSProperties}
+				className="grid min-h-0 flex-1 auto-rows-min gap-3 overflow-auto px-4 pt-1 pb-4 lg:grid-cols-[minmax(0,1fr)_var(--side)]"
+			>
 				<div className="flex min-w-0 flex-col gap-3">
 					{learn && path.length === 0 && glossary.length === 0 ? (
 						<EmptyState
@@ -134,7 +141,17 @@ export function Learn() {
 					)}
 					<LearnPaths />
 				</div>
-				<div className="flex min-w-0 flex-col gap-3">
+				<div className="relative flex min-w-0 flex-col gap-3">
+					<Splitter
+						label={t.knowledge.resize.side}
+						value={side.size}
+						min={200}
+						max={480}
+						invert
+						onChange={side.set}
+						onReset={side.reset}
+						className="-left-2 hidden lg:block"
+					/>
 					<Panel title={k.glossary} count={glossary.length} icon={<BookOpenIcon size={14} />} flush>
 						<ul aria-label={k.glossary}>
 							{glossary.map((g) => (

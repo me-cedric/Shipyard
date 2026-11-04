@@ -123,6 +123,10 @@ export const commands = {
 	editorOpen: (editor: string | null, path: string, line: number | null) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("editor_open", { editor, path, line })),
 	/**  Opens a web link of a Markdown text in the browser of the system. `http` and `https` only. */
 	openLink: (url: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("open_link", { url })),
+	/**  Shows the file or the folder in the file manager of the system. */
+	revealPath: (path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("reveal_path", { path })),
+	/**  Opens the file or the folder with the default app of the system. */
+	openDefault: (path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("open_default", { path })),
 	codeQuality: () => typedError<QualityView_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_quality")),
 	codeCheckRun: (command: string, click: boolean) => typedError<QualityReport_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_check_run", { command, click })),
 	codeCoverage: () => typedError<Coverage | null, AppError_Serialize>(__TAURI_INVOKE("code_coverage")),
@@ -136,6 +140,7 @@ export const commands = {
 	specsTestplanGenerate: (capability: string, click: boolean) => typedError<GeneratedPlan, AppError_Serialize>(__TAURI_INVOKE("specs_testplan_generate", { capability, click })),
 	applyRunRows: (slugs: string[], rows: RowEdit_Deserialize[], click: boolean) => typedError<ApplyRow_Serialize[], AppError_Serialize>(__TAURI_INVOKE("apply_run_rows", { slugs, rows, click })),
 	codeScanRun: (name: string, click: boolean) => typedError<QualityReport_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_scan_run", { name, click })),
+	codeMyChecks: () => typedError<MyChecks[], AppError_Serialize>(__TAURI_INVOKE("code_my_checks")),
 	codeScannerInstall: (name: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_scanner_install", { name, click })),
 	codeSbomExport: (click: boolean) => typedError<SbomReport, AppError_Serialize>(__TAURI_INVOKE("code_sbom_export", { click })),
 	codeImpactRefs: () => typedError<ImpactRefs, AppError_Serialize>(__TAURI_INVOKE("code_impact_refs")),
@@ -523,6 +528,12 @@ export const commands = {
 	 *  It installs nothing.
 	 */
 	updateCheck: () => typedError<UpdateInfo, AppError_Serialize>(__TAURI_INVOKE("update_check")),
+	/**  The dot of the icon follows the "Needs you" count of the main window. */
+	trayBadge: (needs: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("tray_badge", { needs })),
+	/**  Hide the panel. The Escape key calls it. */
+	trayClose: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("tray_close")),
+	/**  Open Shipyard: show the main window and hide the panel. */
+	trayOpen: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("tray_open")),
 };
 
 /* Types */
@@ -1831,7 +1842,15 @@ export type EventSource =
 /**  A run that waits for a person. */
 "run" | "sync-failure" | "update" | 
 /**  The remote head moved. */
-"remote-head";
+"remote-head" | 
+/**  A run ended, done or failed. */
+"run-ended" | 
+/**  The checks of a pull request of the person passed or failed. */
+"pr-checks" | 
+/**  A quality or security scan failed that the person did not start. */
+"scan-failed" | 
+/**  An agent review draft is ready to post. */
+"review-draft";
 
 export type ExplainContext = ExplainContext_Serialize | ExplainContext_Deserialize;
 
@@ -2849,6 +2868,17 @@ export type MonthSpend = {
 	cost: number | null,
 };
 
+/**  The checks of an open pull request that the signed-in person opened. */
+export type MyChecks = {
+	/**  `pr:<connection>:<number>`. */
+	reference: string,
+	number: number,
+	title: string,
+	headSha: string,
+	/**  `none`, `pending`, `passing` or `failing`. */
+	ci: string,
+};
+
 export type Objective = {
 	id: string,
 	/**  The assets of the objective, as `kind:id`. */
@@ -3331,6 +3361,8 @@ export type PrefsPatch_Deserialize = {
 	terminalDock?: TerminalDock | null,
 	/**  Replaces the whole map, so a missing key goes back to its default size. */
 	panelSizes?: { [key in string]: number } | null,
+	uiScale?: number | null,
+	tray?: boolean | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -3369,6 +3401,8 @@ export type PrefsPatch_Serialize = {
 	terminalDock: TerminalDock | null,
 	/**  Replaces the whole map, so a missing key goes back to its default size. */
 	panelSizes: { [key in string]: number } | null,
+	uiScale: number | null,
+	tray: boolean | null,
 };
 
 export type Prefs_Deserialize = {
@@ -3440,6 +3474,10 @@ export type Prefs_Deserialize = {
 	 *  A panel with no entry keeps its default size.
 	 */
 	panelSizes?: { [key in string]: number },
+	/**  The font size of the interface in pixels. It scales the text and the spacing. */
+	uiScale?: number,
+	/**  The menu bar item (the system tray) is on. */
+	tray?: boolean,
 };
 
 export type Prefs_Serialize = {
@@ -3511,6 +3549,10 @@ export type Prefs_Serialize = {
 	 *  A panel with no entry keeps its default size.
 	 */
 	panelSizes: { [key in string]: number },
+	/**  The font size of the interface in pixels. It scales the text and the spacing. */
+	uiScale: number,
+	/**  The menu bar item (the system tray) is on. */
+	tray: boolean,
 };
 
 export type Preview = Preview_Serialize | Preview_Deserialize;

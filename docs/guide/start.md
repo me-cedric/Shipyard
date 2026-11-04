@@ -13,6 +13,13 @@ Shipyard helps a team deliver a software project: the design, the specs, the wor
 
 The window opens at the size where you closed it. To keep the data of the app next to the app (on a USB key, for example), put an empty file named `portable` next to the app.
 
+## The menu bar item
+
+- The Shipyard icon sits in the menu bar (the system tray on Windows and Linux). A dot on the icon means that something needs you.
+- A click opens a small panel: the spend of today and of the month, the active runs with Stop, the Needs you count with its first items, the agents switch, the sync state, the project and Open Shipyard.
+- The panel asks for the same click as the app for each action that writes.
+- In Settings, then Me, turn the menu bar item off.
+
 ## Open a project
 
 1. Go to Home, then Projects.
@@ -24,6 +31,13 @@ The window opens at the size where you closed it. To keep the data of the app ne
 - Press Ctrl+K (Cmd+K on a Mac) to open the palette. Type the name of a page, an item or an action.
 - Press Ctrl+1 to Ctrl+8 to go to a space.
 - Open the palette and choose Open the manual for this page to read the help of the page that you see.
+- Press Ctrl+[ and Ctrl+] (Cmd on a Mac), or click Back and Forward in the top bar, to move between the views that you opened.
+- Click the ? button or press F1 to read the help of the page that you see.
+- Click the sidebar button at the left end of the top bar to hide or show the sidebar.
+- Under 1100 px, the files, terminal and theme buttons sit in the More menu.
+- Click the arrow beside Sync to Fetch only or to Push.
+- Hold Ctrl (Cmd on a Mac) and turn the mouse wheel on a diagram or an image to zoom. Drag to move it. Use Full screen for a large view.
+- Press Ctrl+= and Ctrl+- to change the text size, and Ctrl+0 to go back to 16 px. Settings / Me has the same choice.
 - Press Ctrl+Shift+K to see all the keyboard shortcuts.
 
 ## Your role

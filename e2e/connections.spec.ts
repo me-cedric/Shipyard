@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const TOKEN = "tok-e2e-secret-7";
+const TOKEN = "tok-e2e-secret-7"; // gitleaks:allow
 
 test("adds a tracker with a secret, tests it and removes it", async ({ page }) => {
 	await page.goto("/settings/connections");

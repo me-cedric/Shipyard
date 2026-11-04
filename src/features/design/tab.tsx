@@ -17,6 +17,7 @@ import { Card } from "@/ui/molecules/card";
 import { ContextMenu } from "@/ui/molecules/context-menu";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
+import { SplitPane } from "@/ui/molecules/split-pane";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { LIST, useEnter } from "@/ui/motion";
 import { Dialog } from "@/ui/organisms/dialog";
@@ -284,76 +285,78 @@ export function ArtifactTab({
 				</motion.ul>
 			) : (
 				<div className="flex min-h-0 flex-1 gap-3 px-4 pt-1 pb-4">
-					<ul
-						aria-label={title}
-						className="flex w-72 shrink-0 flex-col gap-0.5 overflow-auto rounded-lg border bg-surface-1 p-1.5 shadow-1"
-					>
-						{all.map((r) => (
-							<li
-								key={r.ref}
-								className={cn(
-									"relative",
-									// One segment of the time line per row, cut at the first and the last dot.
-									timeline &&
-										"before:absolute before:inset-y-0 before:left-[11.5px] before:w-px before:bg-n-7 first:before:top-4.5 last:before:bottom-auto last:before:h-4.5",
-								)}
-							>
-								<ContextMenu items={rowMenu(r)}>
-									<button
-										type="button"
-										data-nav=""
-										title={r.title}
-										aria-current={r.ref === selected ? "true" : undefined}
-										onClick={() => pick(r.ref)}
-										className={cn(
-											"flex min-h-row w-full items-center gap-2 rounded-md px-2 py-1 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3",
-											r.ref === selected && "bg-accent-soft",
-										)}
-									>
-										{timeline ? (
-											<span
-												aria-hidden="true"
-												className={cn(
-													"z-10 mt-2.5 size-2 shrink-0 self-start rounded-full ring-4 ring-surface-1",
-													DOT[r.tone ?? "neutral"],
-												)}
-											/>
-										) : null}
-										{timeline ? (
-											<span className="flex min-w-0 flex-1 flex-col gap-1 py-1">
-												<span className="flex items-center gap-2">
-													<span className="font-mono text-12 text-n-11">{r.lead}</span>
+					<SplitPane id="design-list-width" label={t.design.resize.list} fallback={288}>
+						<ul
+							aria-label={title}
+							className="flex shrink-0 flex-col gap-0.5 overflow-auto rounded-lg border bg-surface-1 p-1.5 shadow-1"
+						>
+							{all.map((r) => (
+								<li
+									key={r.ref}
+									className={cn(
+										"relative",
+										// One segment of the time line per row, cut at the first and the last dot.
+										timeline &&
+											"before:absolute before:inset-y-0 before:left-[11.5px] before:w-px before:bg-n-7 first:before:top-4.5 last:before:bottom-auto last:before:h-4.5",
+									)}
+								>
+									<ContextMenu items={rowMenu(r)}>
+										<button
+											type="button"
+											data-nav=""
+											title={r.title}
+											aria-current={r.ref === selected ? "true" : undefined}
+											onClick={() => pick(r.ref)}
+											className={cn(
+												"flex min-h-row w-full items-center gap-2 rounded-md px-2 py-1 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3",
+												r.ref === selected && "bg-accent-soft",
+											)}
+										>
+											{timeline ? (
+												<span
+													aria-hidden="true"
+													className={cn(
+														"z-10 mt-2.5 size-2 shrink-0 self-start rounded-full ring-4 ring-surface-1",
+														DOT[r.tone ?? "neutral"],
+													)}
+												/>
+											) : null}
+											{timeline ? (
+												<span className="flex min-w-0 flex-1 flex-col gap-1 py-1">
+													<span className="flex items-center gap-2">
+														<span className="font-mono text-12 text-n-11">{r.lead}</span>
+														<span className="min-w-0 flex-1 truncate">{r.title}</span>
+													</span>
+													<span className="flex items-center gap-2">
+														{r.tag ? <Badge variant={r.tone}>{r.tag}</Badge> : null}
+														{r.mark ? <Badge variant="warning">{r.mark}</Badge> : null}
+														<span className="font-mono text-11 text-n-11">{r.time}</span>
+													</span>
+												</span>
+											) : (
+												<>
+													{r.lead ? (
+														<span className="font-mono text-12 text-n-11">{r.lead}</span>
+													) : null}
 													<span className="min-w-0 flex-1 truncate">{r.title}</span>
-												</span>
-												<span className="flex items-center gap-2">
+													{r.issue ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
 													{r.tag ? <Badge variant={r.tone}>{r.tag}</Badge> : null}
-													{r.mark ? <Badge variant="warning">{r.mark}</Badge> : null}
-													<span className="font-mono text-11 text-n-11">{r.time}</span>
-												</span>
-											</span>
-										) : (
-											<>
-												{r.lead ? (
-													<span className="font-mono text-12 text-n-11">{r.lead}</span>
-												) : null}
-												<span className="min-w-0 flex-1 truncate">{r.title}</span>
-												{r.issue ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
-												{r.tag ? <Badge variant={r.tone}>{r.tag}</Badge> : null}
-											</>
-										)}
-									</button>
-								</ContextMenu>
-							</li>
-						))}
-						{rows.length === 0 ? (
-							<li className="p-3">
-								<EmptyState
-									title={t.empty.nothing}
-									action={{ label: noun, icon: <PlusIcon size={14} />, onClick: add }}
-								/>
-							</li>
-						) : null}
-					</ul>
+												</>
+											)}
+										</button>
+									</ContextMenu>
+								</li>
+							))}
+							{rows.length === 0 ? (
+								<li className="p-3">
+									<EmptyState
+										title={t.empty.nothing}
+										action={{ label: noun, icon: <PlusIcon size={14} />, onClick: add }}
+									/>
+								</li>
+							) : null}
+						</ul>
+					</SplitPane>
 					<div className="flex min-w-0 flex-1 flex-col overflow-auto rounded-lg border bg-surface-1 p-3 shadow-1">
 						{open ? (
 							<Fragment key={open.ref}>{children(open)}</Fragment>

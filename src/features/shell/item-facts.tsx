@@ -2,20 +2,23 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
-import { copyText } from "@/lib/menus";
+import { useCopy } from "@/lib/menus";
 import { useDay } from "@/lib/prefs";
 import { rememberSelection, requestEdit } from "@/lib/shell/selection";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Skeleton } from "@/ui/atoms/skeleton";
-import { BookOpenIcon, ClipboardIcon, PencilIcon } from "@/ui/icons";
+import { BookOpenIcon, CheckIcon, ClipboardIcon, PencilIcon } from "@/ui/icons";
 import { blocks } from "@/ui/organisms/markdown-view";
 import { docTarget, refPage, refSelection } from "./ref-page";
 
 const OUTLINE_MAX = 8;
 
-/** The first heading and paragraph of a Markdown file, and its outline (levels 1 to 3). */
-function Preview({ path, docs }: { path: string; docs: boolean }) {
+/**
+ * The first heading and paragraph of a Markdown file, and its outline (levels 1 to 3). The header
+ * of the inspector already shows `shown`: the preview does not repeat it.
+ */
+function Preview({ path, docs, shown }: { path: string; docs: boolean; shown?: string }) {
 	const { t } = useI18n();
 	// The knowledge folders read through the store that edits them; any other file is a working copy file.
 	const text = useQuery({
@@ -36,7 +39,9 @@ function Preview({ path, docs }: { path: string; docs: boolean }) {
 		.slice(0, OUTLINE_MAX);
 	return (
 		<div className="flex flex-col gap-2">
-			{title?.type === "h" ? <p className="text-ui font-medium text-n-12">{title.text}</p> : null}
+			{title?.type === "h" && title.text !== shown ? (
+				<p className="text-ui font-medium text-n-12">{title.text}</p>
+			) : null}
 			{lead?.type === "p" ? <p className="line-clamp-4 text-ui text-n-11">{lead.text}</p> : null}
 			{outline.length > 1 ? (
 				<nav aria-label={t.inspector.outline}>
@@ -80,8 +85,9 @@ function LastChange({ path }: { path: string }) {
  * What an item shows when it has a place on disk: the path to copy, and for a file of the project
  * a preview, the outline and the last change.
  */
-export function ItemFacts({ path, docs }: { path: string; docs: boolean }) {
+export function ItemFacts({ path, docs, title }: { path: string; docs: boolean; title?: string }) {
 	const { t } = useI18n();
+	const { copied, copy } = useCopy();
 	// A path outside the repository (a project folder) has no preview and no history.
 	const inRepo = !path.startsWith("/") && !/^[A-Za-z]:[\\/]/.test(path);
 	return (
@@ -90,11 +96,11 @@ export function ItemFacts({ path, docs }: { path: string; docs: boolean }) {
 				<code className="min-w-0 flex-1 truncate text-12 text-n-11" title={path}>
 					{path}
 				</code>
-				<IconButton label={t.inspector.copyPath} onClick={() => copyText(path)}>
-					<ClipboardIcon size={14} />
+				<IconButton label={t.inspector.copyPath} onClick={() => void copy(path)}>
+					{copied ? <CheckIcon size={14} /> : <ClipboardIcon size={14} />}
 				</IconButton>
 			</div>
-			{inRepo && path.endsWith(".md") ? <Preview path={path} docs={docs} /> : null}
+			{inRepo && path.endsWith(".md") ? <Preview path={path} docs={docs} shown={title} /> : null}
 			{inRepo ? <LastChange path={path} /> : null}
 		</div>
 	);

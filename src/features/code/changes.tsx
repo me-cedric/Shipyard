@@ -29,6 +29,7 @@ import { FileRow } from "@/ui/molecules/file-row";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
+import { SplitPane } from "@/ui/molecules/split-pane";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { ConflictAgent } from "./conflict-agent";
 import { OpenInEditor } from "./open-in-editor";
@@ -372,59 +373,61 @@ function ChangesView() {
 				]}
 			/>
 			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-3 pb-4">
-				<div className="flex w-96 shrink-0 flex-col gap-3 overflow-y-auto">
-					<GateNotice push={false} />
-					{changes.conflicted.length ? <ConflictAgent /> : null}
-					{changes.conflicted.length ? (
+				<SplitPane id="code-changes-width" label={t.forge.resize.changes} fallback={384}>
+					<div className="flex shrink-0 flex-col gap-3 overflow-y-auto">
+						<GateNotice push={false} />
+						{changes.conflicted.length ? <ConflictAgent /> : null}
+						{changes.conflicted.length ? (
+							<FileGroup
+								group="conflicts"
+								files={changes.conflicted}
+								selected={path}
+								onSelect={setPath}
+								menu={(f) => menu("file", { "copy-path": () => copyText(f.path) })}
+							/>
+						) : null}
 						<FileGroup
-							group="conflicts"
-							files={changes.conflicted}
+							group="staged"
+							files={changes.staged}
 							selected={path}
 							onSelect={setPath}
-							menu={(f) => menu("file", { "copy-path": () => copyText(f.path) })}
+							menu={(f) => fileMenu(f, { unstage: () => run(() => unstage([f.path])) })}
+							actions={(paths) => (
+								<Button variant="ghost" onClick={() => run(() => unstage(paths))}>
+									{format(t.count, { name: t.code.unstage, count: paths.length })}
+								</Button>
+							)}
 						/>
-					) : null}
-					<FileGroup
-						group="staged"
-						files={changes.staged}
-						selected={path}
-						onSelect={setPath}
-						menu={(f) => fileMenu(f, { unstage: () => run(() => unstage([f.path])) })}
-						actions={(paths) => (
-							<Button variant="ghost" onClick={() => run(() => unstage(paths))}>
-								{format(t.count, { name: t.code.unstage, count: paths.length })}
-							</Button>
-						)}
-					/>
-					<FileGroup
-						group="unstaged"
-						files={unstaged}
-						selected={path}
-						onSelect={setPath}
-						menu={(f) =>
-							fileMenu(f, {
-								stage: () => run(() => stage([f.path])),
-								discard: () => run(() => discardGroup([f.path], [f])),
-							})
-						}
-						actions={(paths, files) => (
-							<>
-								<Button variant="ghost" onClick={() => run(() => discardGroup(paths, files))}>
-									{format(t.count, { name: t.code.discard, count: paths.length })}
-								</Button>
-								<Button variant="primary" onClick={() => run(() => stage(paths))}>
-									{format(t.count, { name: t.code.stage, count: paths.length })}
-								</Button>
-							</>
-						)}
-					/>
-					<Stashes dirty={changes.staged.length + unstaged.length > 0} run={run} />
-					{error ? (
-						<p role="alert" className="px-3 py-2 text-ui text-danger-text">
-							{error}
-						</p>
-					) : null}
-				</div>
+						<FileGroup
+							group="unstaged"
+							files={unstaged}
+							selected={path}
+							onSelect={setPath}
+							menu={(f) =>
+								fileMenu(f, {
+									stage: () => run(() => stage([f.path])),
+									discard: () => run(() => discardGroup([f.path], [f])),
+								})
+							}
+							actions={(paths, files) => (
+								<>
+									<Button variant="ghost" onClick={() => run(() => discardGroup(paths, files))}>
+										{format(t.count, { name: t.code.discard, count: paths.length })}
+									</Button>
+									<Button variant="primary" onClick={() => run(() => stage(paths))}>
+										{format(t.count, { name: t.code.stage, count: paths.length })}
+									</Button>
+								</>
+							)}
+						/>
+						<Stashes dirty={changes.staged.length + unstaged.length > 0} run={run} />
+						{error ? (
+							<p role="alert" className="px-3 py-2 text-ui text-danger-text">
+								{error}
+							</p>
+						) : null}
+					</div>
+				</SplitPane>
 				<div className="min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
 					{conflict ? <ConflictPane key={conflict.path} file={conflict} run={run} /> : null}
 					{path && here?.staged ? <DiffPane path={path} side="staged" /> : null}

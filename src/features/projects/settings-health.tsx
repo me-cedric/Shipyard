@@ -6,7 +6,6 @@ import { projectKeys, useHealth, worstStatus } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
 import { Ring } from "@/ui/atoms/ring";
-import { Skeleton } from "@/ui/atoms/skeleton";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { CommandLineIcon, DocumentTextIcon, LinkIcon, ShieldCheckIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
@@ -23,7 +22,6 @@ import { DoctorTools } from "./doctor-tools";
 import { HealthFeedback } from "./health-feedback";
 
 const GROUPS: Group[] = ["compliance", "tools", "refs", "generated"];
-const GHOST_ROWS = [0, 1, 2, 3, 4];
 
 type Preview = { path: string; content: string };
 
@@ -137,14 +135,11 @@ export function Health() {
 					/>
 				</div>
 				{findings.length === 0 ? (
-					<div className="flex flex-col gap-1">
-						<StatusDot status="success" className="size-4" />
-						<div aria-hidden="true" className="flex flex-col gap-1">
-							{GHOST_ROWS.map((i) => (
-								<Skeleton key={i} className="h-row" style={{ opacity: 1 - i * 0.18 }} />
-							))}
-						</div>
-					</div>
+					// Ghost rows are for loading only: a clean project says so in one line.
+					<p className="flex items-center gap-2 text-ui text-n-11">
+						<StatusDot status="success" />
+						{s.clean}
+					</p>
 				) : null}
 				{GROUPS.map((g) => {
 					const rows = findings.filter((f) => f.group === g);

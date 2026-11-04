@@ -19,7 +19,7 @@ export type Automation = Automation_Serialize;
 export type ItemFilter = ItemFilter_Deserialize;
 
 /** The engine tells the views after each tick and each change of the mirror. */
-const TICK_EVENT = "sync-tick";
+export const TICK_EVENT = "sync-tick";
 /** The shortest interval that the engine accepts (REQ-002). */
 export const MIN_INTERVAL = 30;
 

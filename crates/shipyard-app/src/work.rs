@@ -439,9 +439,12 @@ fn conn_of(s: &AppState) -> Res<Option<Connection>> {
 /// The member that the signed-in person resolves to through the team: the `user` of the tracker
 /// connection (the login that a sign-in or a passed test saved), then the full git e-mail. The part
 /// of the e-mail before the `@` counts only for one member that has no other account: `john` at
-/// one host is not `john` at another.
+/// one host is not `john` at another. The git name counts the same way: one member with that full
+/// name and no account.
 fn me_of(conn: &Option<Connection>, team: &Team, root: &Path) -> Option<String> {
-    let email = Repo::open(root).ok().and_then(|r| r.user_email());
+    let repo = Repo::open(root).ok();
+    let email = repo.as_ref().and_then(|r| r.user_email());
+    let name = repo.as_ref().and_then(|r| r.user_name());
     [
         conn.as_ref().and_then(|c| c.user.as_deref()),
         email.as_deref(),
@@ -458,6 +461,15 @@ fn me_of(conn: &Option<Connection>, team: &Team, root: &Path) -> Option<String> 
             .filter(|m| is(&m.handle) || m.trackers.iter().any(is));
         let m = hits.next()?;
         (hits.next().is_none() && m.trackers.iter().all(is)).then_some(m)
+    })
+    .or_else(|| {
+        let name = name.as_deref()?;
+        let mut hits = team
+            .members
+            .iter()
+            .filter(|m| m.name.trim().eq_ignore_ascii_case(name));
+        let m = hits.next()?;
+        (hits.next().is_none() && m.trackers.is_empty()).then_some(m)
     })
     .map(|m| m.handle.clone())
 }

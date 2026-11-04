@@ -12,6 +12,7 @@ import { Button } from "@/ui/atoms/button";
 import { BookOpenIcon, ChevronLeftIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { CodeEditor } from "@/ui/molecules/code-editor";
+import { SplitPane } from "@/ui/molecules/split-pane";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { LIST, useEnter } from "@/ui/motion";
 import { DataTable } from "@/ui/organisms/data-table";
@@ -106,19 +107,28 @@ function CapabilityDetail({ cap, onBack }: { cap: Capability; onBack: () => void
 					{cap.requirements}
 				</Badge>
 			</div>
-			<div className="flex h-64 shrink-0 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
-				<DataTable
-					label={s.requirements}
-					data={view?.requirements ?? []}
-					columns={columns}
-					rowId={(r) => r.id}
-					selected={selected}
-					onOpen={(r) => {
-						setSelected(r.id);
-						openRef(`spec:${cap.capability}#${r.id}`);
-					}}
-				/>
-			</div>
+			<SplitPane
+				id="specs-requirements-height"
+				label={t.specs.resize.requirements}
+				fallback={256}
+				height
+				min={120}
+				max={480}
+			>
+				<div className="flex shrink-0 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
+					<DataTable
+						label={s.requirements}
+						data={view?.requirements ?? []}
+						columns={columns}
+						rowId={(r) => r.id}
+						selected={selected}
+						onOpen={(r) => {
+							setSelected(r.id);
+							openRef(`spec:${cap.capability}#${r.id}`);
+						}}
+					/>
+				</div>
+			</SplitPane>
 			<ViewTabs
 				label={s.files}
 				value={file}

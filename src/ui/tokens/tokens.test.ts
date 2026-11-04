@@ -50,7 +50,9 @@ describe("tokens (REQ-001)", () => {
 	});
 
 	it("allows only the type sizes 11, 12, 13, 14, 16 and 20", () => {
-		const sizes = [...theme.matchAll(/--text-(\d+):\s*(\d+)px/g)].map((m) => `${m[1]}:${m[2]}`);
+		const sizes = [...theme.matchAll(/--text-(\d+):\s*([\d.]+)rem/g)].map(
+			(m) => `${m[1]}:${Number(m[2]) * 16}`,
+		);
 		expect(sizes).toEqual(["11:11", "12:12", "13:13", "14:14", "16:16", "20:20"]);
 	});
 
@@ -202,13 +204,14 @@ describe("densities (REQ-013)", () => {
 	it("uses a 28 px row and 13 px text by default", () => {
 		const root = block(":root");
 		expect(decl(root, "--row-h")).toBe("28px");
-		expect(decl(root, "--text-ui")).toBe("13px");
+		// rem, so that the text size of Settings / Me scales it
+		expect(decl(root, "--text-ui")).toBe("0.8125rem");
 	});
 
 	it("changes the row height and the text size in compact, and nothing else", () => {
 		const compact = block(':root[data-density="compact"]');
 		expect(decl(compact, "--row-h")).toBe("24px");
-		expect(decl(compact, "--text-ui")).toBe("12px");
+		expect(decl(compact, "--text-ui")).toBe("0.75rem");
 		expect([...compact.matchAll(/--[\w-]+:/g)].map((m) => m[0])).toEqual([
 			"--row-h:",
 			"--text-ui:",

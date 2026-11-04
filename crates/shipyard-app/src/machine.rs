@@ -7,6 +7,7 @@ use shipyard_agents::machine::{self, MachineSession, Roots, SpendRow};
 use shipyard_store::project::write_atomic;
 use specta::Type;
 use std::path::Path;
+use tauri::Emitter;
 
 use crate::commands::{Api, AppState, Res, blocking, err};
 
@@ -24,6 +25,7 @@ pub struct Spend {
 }
 
 const FILE: &str = "machine-budgets.json";
+const CACHE_FILE: &str = "machine-cache.json";
 
 fn read(dir: &Path) -> Vec<Budget> {
     std::fs::read_to_string(dir.join(FILE))
@@ -32,10 +34,25 @@ fn read(dir: &Path) -> Vec<Budget> {
         .unwrap_or_default()
 }
 
+/// Tells the views the totals so far while the scan reads. The command result stays the truth.
+pub const PROGRESS_EVENT: &str = "machine-spend-progress";
+
 /// The spend of the last `days` days and the budgets.
 pub fn spend(s: &AppState, days: u32) -> Spend {
+    spend_with(s, days, &|_| {})
+}
+
+fn spend_with(
+    s: &AppState,
+    days: u32,
+    progress: &(dyn Fn(machine::SpendProgress) + Sync),
+) -> Spend {
+    let roots = Roots {
+        cache: Some(s.dir.join(CACHE_FILE)),
+        ..Roots::from_env()
+    };
     Spend {
-        rows: machine::report(&Roots::from_env(), days),
+        rows: machine::report_with(&roots, days, progress),
         budgets: read(&s.dir),
     }
 }
@@ -86,7 +103,13 @@ pub async fn machine_session_stop(app: tauri::AppHandle, pid: u32, click: bool) 
 #[tauri::command]
 #[specta::specta]
 pub async fn machine_spend(app: tauri::AppHandle, days: u32) -> Api<Spend> {
-    blocking(app, move |s| Ok(spend(s, days))).await
+    let handle = app.clone();
+    blocking(app, move |s| {
+        Ok(spend_with(s, days, &|p| {
+            let _ = handle.emit(PROGRESS_EVENT, p);
+        }))
+    })
+    .await
 }
 
 #[tauri::command]

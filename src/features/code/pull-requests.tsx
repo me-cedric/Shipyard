@@ -36,6 +36,7 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { PullRow } from "@/ui/molecules/pull-row";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { SplitPane } from "@/ui/molecules/split-pane";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { Dialog } from "@/ui/organisms/dialog";
 import { AgentReview } from "./agent-review";
@@ -498,42 +499,44 @@ function PullRequestsView() {
 				]}
 			/>
 			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-3 pb-4">
-				<div className="flex w-[30rem] shrink-0 flex-col gap-3 overflow-y-auto">
-					{STATES.map((s) => {
-						const items = rows.filter((r) => r.state === s);
-						return (
-							<Panel
-								key={s}
-								title={t.forge.state[s]}
-								count={items.length}
-								tone={s === "open" ? "accent" : s === "merged" ? "success" : "neutral"}
-								flush
-								className="shrink-0"
-							>
-								{items.map((r) => (
-									<PullRow
-										key={r.reference}
-										reference={`#${r.number}`}
-										ask={r.reference}
-										title={r.title}
-										draft={r.draft ? t.forge.draft : undefined}
-										ci={CI_STATUS[r.ci] ?? "idle"}
-										ciLabel={t.forge.ci[r.ci as "none"]}
-										review={REVIEW_STATUS[r.review] ?? "idle"}
-										reviewLabel={t.forge.review[r.review as "clear"]}
-										meta={<span className="font-mono">{r.updated.slice(0, 10)}</span>}
-										selected={r.reference === selected}
-										onSelect={() => setSelected(r.reference)}
-										menu={menu("pull", {
-											open: () => setSelected(r.reference),
-											"copy-ref": () => copyText(r.reference),
-										})}
-									/>
-								))}
-							</Panel>
-						);
-					})}
-				</div>
+				<SplitPane id="code-pulls-width" label={t.forge.resize.pulls} fallback={480}>
+					<div className="flex shrink-0 flex-col gap-3 overflow-y-auto">
+						{STATES.map((s) => {
+							const items = rows.filter((r) => r.state === s);
+							return (
+								<Panel
+									key={s}
+									title={t.forge.state[s]}
+									count={items.length}
+									tone={s === "open" ? "accent" : s === "merged" ? "success" : "neutral"}
+									flush
+									className="shrink-0"
+								>
+									{items.map((r) => (
+										<PullRow
+											key={r.reference}
+											reference={`#${r.number}`}
+											ask={r.reference}
+											title={r.title}
+											draft={r.draft ? t.forge.draft : undefined}
+											ci={CI_STATUS[r.ci] ?? "idle"}
+											ciLabel={t.forge.ci[r.ci as "none"]}
+											review={REVIEW_STATUS[r.review] ?? "idle"}
+											reviewLabel={t.forge.review[r.review as "clear"]}
+											meta={<span className="font-mono">{r.updated.slice(0, 10)}</span>}
+											selected={r.reference === selected}
+											onSelect={() => setSelected(r.reference)}
+											menu={menu("pull", {
+												open: () => setSelected(r.reference),
+												"copy-ref": () => copyText(r.reference),
+											})}
+										/>
+									))}
+								</Panel>
+							);
+						})}
+					</div>
+				</SplitPane>
 				<div className="min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
 					{number ? <Detail number={number} /> : null}
 				</div>

@@ -1,4 +1,5 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { PinnedTiles } from "@/features/knowledge/pinned";
 import { NoProject } from "@/features/work/no-project";
 import { useRuns } from "@/lib/factory";
@@ -47,6 +48,7 @@ const PAGE = 50;
 export function Activity() {
 	const { t, lang } = useI18n();
 	const qc = useQueryClient();
+	const navigate = useNavigate();
 	const active = useActiveProject().data;
 	const runs = useRuns().data ?? [];
 	const { items: notices } = useNotifications();
@@ -76,26 +78,33 @@ export function Activity() {
 				count={events.length + notices.length}
 				menu={[{ label: t.home.refresh, icon: <ArrowPathIcon size={12} />, onClick: refresh }]}
 			/>
-			<StatStrip
-				className="px-4"
-				items={[
-					{ label: t.home.stat.events, value: String(events.length), tone: "accent" },
-					{ label: t.home.stat.notices, value: String(notices.length), tone: "info" },
-					{ label: t.home.stat.runs, value: String(runs.length), tone: "success" },
-					{
-						label: t.home.stat.live,
-						value: String(
-							runs.filter((r) => r.lane === "working" || r.lane === "needs_you").length,
-						),
-						tone: "warning",
-					},
-				]}
-			/>
+			{/* An all-zero strip on an empty page says nothing: the empty state says it. */}
+			{events.length === 0 && notices.length === 0 ? null : (
+				<StatStrip
+					className="px-4"
+					items={[
+						{ label: t.home.stat.events, value: String(events.length), tone: "accent" },
+						{ label: t.home.stat.notices, value: String(notices.length), tone: "info" },
+						{ label: t.home.stat.runs, value: String(runs.length), tone: "success" },
+						{
+							label: t.home.stat.live,
+							value: String(
+								runs.filter((r) => r.lane === "working" || r.lane === "needs_you").length,
+							),
+							tone: "warning",
+						},
+					]}
+				/>
+			)}
 			<PinnedTiles />
 			{events.length === 0 && notices.length === 0 ? (
 				<EmptyState
+					icon={<ClockIcon size={28} />}
 					title={t.empty.activity}
-					action={{ label: t.home.refresh, icon: <ArrowPathIcon size={14} />, onClick: refresh }}
+					action={{
+						label: t.factory.runs,
+						onClick: () => void navigate({ to: "/factory/runs" }),
+					}}
 				/>
 			) : (
 				<div

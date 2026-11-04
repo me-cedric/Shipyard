@@ -79,7 +79,7 @@ describe("Design / Screens", () => {
 		);
 	});
 
-	it("shows an image from any folder of the project large, and opens a full-size view on click", async () => {
+	it("shows an image from any folder of the project large, and opens a full screen view", async () => {
 		const user = userEvent.setup();
 		files()["docs/assets/screenshots/shot.png"] = { text: "PNG", stamp: "1" };
 		files()["docs/designs/screens.json"] = {
@@ -92,12 +92,10 @@ describe("Design / Screens", () => {
 		await user.click(await row(/Shot/));
 		const view = await main();
 		expect(await view.findByRole("img", { name: "Shot" })).toHaveClass("w-full");
-		await user.click(view.getByRole("button", { name: "Enlarge: Shot" }));
+		await user.click(view.getByRole("button", { name: "Full screen" }));
 		const dialog = await screen.findByRole("dialog", { name: "Shot" });
-		const big = within(dialog).getByRole("img", { name: "Shot" });
-		expect(big).toHaveClass("w-full");
-		await user.click(within(dialog).getByRole("button", { name: "100%" }));
-		expect(big).toHaveClass("max-w-none");
+		expect(within(dialog).getByRole("img", { name: "Shot" })).toHaveClass("w-full");
+		await user.click(within(dialog).getByRole("button", { name: "Zoom in" }));
 		await user.keyboard("{Escape}");
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	});

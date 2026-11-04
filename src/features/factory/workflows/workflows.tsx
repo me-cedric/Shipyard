@@ -10,6 +10,7 @@ import { Badge } from "@/ui/atoms/badge";
 import { ArrowsRightLeftIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { Panel } from "@/ui/molecules/panel";
+import { SplitPane } from "@/ui/molecules/split-pane";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
 import { ListDetail } from "@/ui/templates/list-detail";
 
@@ -108,56 +109,58 @@ export function Workflows() {
 			count={workflows.length}
 		>
 			<div className="flex min-h-0 flex-1 gap-3 px-4 pb-4">
-				<div className="flex w-80 shrink-0 flex-col gap-3 overflow-auto">
-					{groups.map((g) => (
-						<Panel key={g.kind} title={g.name} count={g.rows.length} flush>
-							<ul aria-label={g.name}>
-								{g.rows.map((r) => {
-									const on = current?.kind === g.kind && current.id === r.id;
-									return (
-										<li key={r.id} className="border-b last:border-b-0">
-											<button
-												type="button"
-												data-nav=""
-												aria-current={on ? "true" : undefined}
-												onClick={() => setPick({ kind: g.kind, id: r.id })}
-												className={cn(
-													"relative flex w-full flex-col gap-1.5 px-3 py-2 text-left text-ui transition-colors duration-(--duration-fast) hover:bg-n-3",
-													on && "bg-accent-soft",
-												)}
-											>
-												{on ? (
-													<span
-														aria-hidden="true"
-														className="absolute inset-y-0 left-0 w-0.5 bg-accent-gradient"
-													/>
-												) : null}
-												<span className="flex items-center gap-2">
-													<span className="flex-1 font-mono text-12 text-n-12">{r.id}</span>
-													{r.bad ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
-												</span>
-												{r.steps.length ? (
-													<span className="flex flex-wrap items-center gap-1">
-														{r.steps.map((step, i) => (
-															<span key={step} className="flex items-center gap-1">
-																{i > 0 ? (
-																	<span aria-hidden="true" className="text-n-9">
-																		›
-																	</span>
-																) : null}
-																<Badge className="font-mono">{step}</Badge>
-															</span>
-														))}
+				<SplitPane id="workflows-width" label={t.factory.resize.workflows} fallback={320}>
+					<div className="flex shrink-0 flex-col gap-3 overflow-auto">
+						{groups.map((g) => (
+							<Panel key={g.kind} title={g.name} count={g.rows.length} flush>
+								<ul aria-label={g.name}>
+									{g.rows.map((r) => {
+										const on = current?.kind === g.kind && current.id === r.id;
+										return (
+											<li key={r.id} className="border-b last:border-b-0">
+												<button
+													type="button"
+													data-nav=""
+													aria-current={on ? "true" : undefined}
+													onClick={() => setPick({ kind: g.kind, id: r.id })}
+													className={cn(
+														"relative flex w-full flex-col gap-1.5 px-3 py-2 text-left text-ui transition-colors duration-(--duration-fast) hover:bg-n-3",
+														on && "bg-accent-soft",
+													)}
+												>
+													{on ? (
+														<span
+															aria-hidden="true"
+															className="absolute inset-y-0 left-0 w-0.5 bg-accent-gradient"
+														/>
+													) : null}
+													<span className="flex items-center gap-2">
+														<span className="flex-1 font-mono text-12 text-n-12">{r.id}</span>
+														{r.bad ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
 													</span>
-												) : null}
-											</button>
-										</li>
-									);
-								})}
-							</ul>
-						</Panel>
-					))}
-				</div>
+													{r.steps.length ? (
+														<span className="flex flex-wrap items-center gap-1">
+															{r.steps.map((step, i) => (
+																<span key={step} className="flex items-center gap-1">
+																	{i > 0 ? (
+																		<span aria-hidden="true" className="text-n-9">
+																			›
+																		</span>
+																	) : null}
+																	<Badge className="font-mono">{step}</Badge>
+																</span>
+															))}
+														</span>
+													) : null}
+												</button>
+											</li>
+										);
+									})}
+								</ul>
+							</Panel>
+						))}
+					</div>
+				</SplitPane>
 				<div className="flex min-w-0 flex-1 flex-col overflow-auto rounded-lg border bg-surface-1 p-3 shadow-1">
 					{current ? <FileEditor key={`${current.kind}:${current.id}`} {...current} /> : null}
 				</div>

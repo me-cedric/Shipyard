@@ -1,16 +1,24 @@
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type ProjectCard, unwrap } from "@/lib/ipc";
-import { useProjectActions, useProjectCards } from "@/lib/projects";
+import { useActiveProject, useProjectActions, useProjectCards } from "@/lib/projects";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
-import { ClockIcon, FolderOpenIcon, LinkIcon, TrashIcon } from "@/ui/icons";
+import {
+	ArrowDownTrayIcon,
+	ClockIcon,
+	FolderOpenIcon,
+	LinkIcon,
+	TrashIcon,
+	XMarkIcon,
+} from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
+import { CloneDialog } from "./clone-dialog";
 
 const when = (seconds: number, lang: string) =>
 	new Date(seconds * 1000).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB");
@@ -18,7 +26,8 @@ const when = (seconds: number, lang: string) =>
 function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: string) => void }) {
 	const { t, lang } = useI18n();
 	const w = t.workspace.page;
-	const { switchTo, remove } = useProjectActions();
+	const { switchTo, remove, close } = useProjectActions();
+	const active = useActiveProject().data;
 	const [open, setOpen] = useState(false);
 	return (
 		<Card className="flex flex-col overflow-hidden">
@@ -89,6 +98,11 @@ function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: string) 
 						<LinkIcon size={14} />
 					</IconButton>
 				) : null}
+				{active?.id === p.id ? (
+					<IconButton label={t.projects.close} onClick={() => void close()}>
+						<XMarkIcon size={14} />
+					</IconButton>
+				) : null}
 				<IconButton label={`${w.remove} ${p.name}`} onClick={() => void remove(p)}>
 					<TrashIcon size={14} />
 				</IconButton>
@@ -103,6 +117,7 @@ export function ProjectsPage() {
 	const cards = useProjectCards().data;
 	const { openFolder } = useProjectActions();
 	const [error, setError] = useState<unknown>(null);
+	const [cloning, setCloning] = useState(false);
 	if (!cards) return null;
 	const groups = new Map<string, ProjectCard[]>();
 	for (const c of cards) groups.set(c.host ?? "", [...(groups.get(c.host ?? "") ?? []), c]);
@@ -118,12 +133,19 @@ export function ProjectsPage() {
 				title={t.tabs.home.projects}
 				count={cards.length}
 				action={
-					<Button variant="primary" onClick={open.onClick}>
-						{open.icon}
-						{open.label}
-					</Button>
+					<span className="flex gap-2">
+						<Button onClick={() => setCloning(true)}>
+							<ArrowDownTrayIcon size={14} />
+							{t.projects.clone}
+						</Button>
+						<Button variant="primary" onClick={open.onClick}>
+							{open.icon}
+							{open.label}
+						</Button>
+					</span>
 				}
 			/>
+			<CloneDialog open={cloning} onClose={() => setCloning(false)} />
 			{error ? <ErrorNotice error={error} className="px-4 text-ui text-danger-text" /> : null}
 			{cards.length === 0 ? (
 				<EmptyState title={t.empty.projects} action={open} />

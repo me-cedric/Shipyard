@@ -86,7 +86,7 @@ mod tests {
         for i in 0..CAP + 10 {
             record("info", &format!("line {i}"));
         }
-        record("bogus", "ghp_abcdefghijklmnopqrstuvwxyz0123456789 leaked");
+        record("bogus", "ghp_abcdefghijklmnopqrstuvwxyz0123456789 leaked"); // gitleaks:allow
         let all = lines();
         assert_eq!(all.len(), CAP);
         let last = all.last().unwrap();

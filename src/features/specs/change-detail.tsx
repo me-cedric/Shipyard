@@ -21,6 +21,7 @@ import { StatusDot } from "@/ui/atoms/status-dot";
 import { ChevronLeftIcon, DocumentTextIcon } from "@/ui/icons";
 import { NextStep } from "@/ui/molecules/next-step";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { SplitPane } from "@/ui/molecules/split-pane";
 import { Dialog } from "@/ui/organisms/dialog";
 import { FileEditor } from "./file-editor";
 import { useGuard } from "./guard";
@@ -141,27 +142,29 @@ export function ChangeDetail({ change, onBack }: { change: Change; onBack: () =>
 				</span>
 			</div>
 			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-1 pb-4">
-				<nav
-					aria-label={s.artifacts}
-					className="flex w-60 shrink-0 flex-col gap-0.5 overflow-auto rounded-lg border bg-surface-1 p-1.5 shadow-1"
-				>
-					{change.artifacts.map((a) => (
-						<button
-							type="button"
-							key={a.path}
-							aria-current={a.path === current?.path ? "true" : undefined}
-							onClick={() => {
-								setPath(a.path);
-								setLine(null);
-							}}
-							className="flex h-row items-center gap-2 rounded-md px-2 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3 aria-[current]:bg-accent-soft"
-						>
-							<StatusDot status={DOT[a.status]} label={`${nameOf(a)}: ${s.status[a.status]}`} />
-							<span className="min-w-0 flex-1 truncate">{nameOf(a)}</span>
-							{a.findings.length ? <Badge variant="danger">{a.findings.length}</Badge> : null}
-						</button>
-					))}
-				</nav>
+				<SplitPane id="specs-list-width" label={t.specs.resize.list} fallback={240}>
+					<nav
+						aria-label={s.artifacts}
+						className="flex shrink-0 flex-col gap-0.5 overflow-auto rounded-lg border bg-surface-1 p-1.5 shadow-1"
+					>
+						{change.artifacts.map((a) => (
+							<button
+								type="button"
+								key={a.path}
+								aria-current={a.path === current?.path ? "true" : undefined}
+								onClick={() => {
+									setPath(a.path);
+									setLine(null);
+								}}
+								className="flex h-row items-center gap-2 rounded-md px-2 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3 aria-[current]:bg-accent-soft"
+							>
+								<StatusDot status={DOT[a.status]} label={`${nameOf(a)}: ${s.status[a.status]}`} />
+								<span className="min-w-0 flex-1 truncate">{nameOf(a)}</span>
+								{a.findings.length ? <Badge variant="danger">{a.findings.length}</Badge> : null}
+							</button>
+						))}
+					</nav>
+				</SplitPane>
 				{current ? (
 					<div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-auto rounded-lg border bg-surface-1 p-3 shadow-1">
 						<FileEditor

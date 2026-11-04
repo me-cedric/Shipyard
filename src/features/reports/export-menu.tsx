@@ -1,7 +1,7 @@
 import { Menu } from "@base-ui/react/menu";
 import { type ReactNode, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
-import { saveAs } from "@/lib/ipc";
+import { commands, saveAs, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { ArrowUpTrayIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
@@ -26,10 +26,13 @@ export type ExportItem = {
 export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?: boolean }) {
 	const { t } = useI18n();
 	const [note, setNote] = useState<string | null>(null);
+	// The path of the last export, for "Show in folder" and "Open". A form note has none.
+	const [saved, setSaved] = useState<string | null>(null);
 	const [failure, setFailure] = useState<unknown>(null);
 	const [form, setForm] = useState<ExportItem | null>(null);
 	const pick = async (x: ExportItem) => {
 		setNote(null);
+		setSaved(null);
 		setFailure(null);
 		if (x.form) return setForm(x);
 		if (!x.save) return;
@@ -38,9 +41,15 @@ export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?
 			if (!path) return;
 			await x.save.job(path);
 			setNote(format(t.reports.exported, { path }));
+			setSaved(path);
 		} catch (e) {
 			setFailure(e);
 		}
+	};
+	// A failure of these two buttons shows like a failed export.
+	const place = (open: (path: string) => Promise<unknown>) => {
+		setFailure(null);
+		if (saved) open(saved).catch(setFailure);
 	};
 	return (
 		<span className="inline-flex flex-wrap items-center gap-2">
@@ -69,6 +78,16 @@ export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?
 				<span role="status" className="max-w-80 truncate font-mono text-12 text-n-11">
 					{note}
 				</span>
+			) : null}
+			{saved ? (
+				<>
+					<Button variant="ghost" onClick={() => place((p) => unwrap(commands.revealPath(p)))}>
+						{t.ui.item.reveal}
+					</Button>
+					<Button variant="ghost" onClick={() => place((p) => unwrap(commands.openDefault(p)))}>
+						{t.context.open}
+					</Button>
+				</>
 			) : null}
 			<ErrorNotice error={failure} />
 			{form?.form?.(setNote, () => setForm(null))}

@@ -65,6 +65,7 @@ fn book(
     let p = project(s)?;
     let parts = build(&p)?;
     write_export(
+        s,
         path,
         "xlsx",
         &xlsx_bytes(&meta(s, &p, t), &parts).map_err(err)?,
@@ -140,7 +141,7 @@ pub fn export_schedule(
 pub fn export_gantt(s: &AppState, t: &ExportText, slug: &str, path: &str, click: bool) -> Res<()> {
     need_export_click(s, path, click)?;
     let svg = gantt_svg(&t.title, &crate::work::plan(s, slug)?.gantt);
-    write_export(path, "svg", svg.as_bytes())
+    write_export(s, path, "svg", svg.as_bytes())
 }
 
 /// The last scan reports, one worksheet for each scanner. A finding has a place and no value.
@@ -351,7 +352,7 @@ pub fn export_work_done(
     let mut m = meta(s, &p, t);
     m.title = format!("{} ({from} - {to})", m.title);
     m.project = format!("{}: {base}..{head}", m.project);
-    write_export(path, "xlsx", &xlsx_bytes(&m, &parts).map_err(err)?)
+    write_export(s, path, "xlsx", &xlsx_bytes(&m, &parts).map_err(err)?)
 }
 
 // ---------------------------------------------------------------- change request

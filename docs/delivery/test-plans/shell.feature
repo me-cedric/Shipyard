@@ -78,6 +78,21 @@ Feature: shell
     Then a system notification shows
     And the notification centre lists the event once
 
+  @spec:shell#REQ-008
+  Scenario: Notifications: Checks of my pull request fail
+    Given pull request check notifications are on
+    And a pull request that I opened has a new head commit
+    When its checks fail and the next sync tick reads them
+    Then a system notification shows
+    And the notification centre lists the event once, and it opens the pull request
+
+  @spec:shell#REQ-008
+  Scenario: Notifications: A source is turned off
+    Given run ended notifications are off in Settings / Me
+    When a run ends
+    Then no system notification shows
+    And the notification centre lists nothing for that run
+
   @spec:shell#REQ-009
   Scenario: Role home: Junior sidebar
     Given the person has the role junior
@@ -153,3 +168,11 @@ Feature: shell
     When the person uses the space shortcuts and Tab
     Then focus reaches the sidebar, the main area, the inspector and the status bar
     And each focused item shows a focus ring
+
+  @spec:shell#REQ-008
+  Scenario: Menu bar panel
+    Given the menu bar item is on
+    When the person clicks the icon
+    Then a small panel shows the spend, the active runs, the Needs you items and the agents switch
+    And a project switch in the panel moves the main window to that project
+    And Escape closes the panel

@@ -14,18 +14,18 @@
 	--color-transparent: transparent;
 	--color-current: currentColor;
 
-	--text-11: 11px;
-	--text-11--line-height: 16px;
-	--text-12: 12px;
-	--text-12--line-height: 16px;
-	--text-13: 13px;
-	--text-13--line-height: 20px;
-	--text-14: 14px;
-	--text-14--line-height: 20px;
-	--text-16: 16px;
-	--text-16--line-height: 24px;
-	--text-20: 20px;
-	--text-20--line-height: 28px;
+	--text-11: 0.6875rem;
+	--text-11--line-height: 1rem;
+	--text-12: 0.75rem;
+	--text-12--line-height: 1rem;
+	--text-13: 0.8125rem;
+	--text-13--line-height: 1.25rem;
+	--text-14: 0.875rem;
+	--text-14--line-height: 1.25rem;
+	--text-16: 1rem;
+	--text-16--line-height: 1.5rem;
+	--text-20: 1.25rem;
+	--text-20--line-height: 1.75rem;
 
 	/* 4 nested items, 8 controls, 12 cards and panels, 16 dialogs and hero panels. */
 	--radius-sm: 4px;
@@ -116,7 +116,7 @@
 :root {
 	color-scheme: light dark;
 	--row-h: 28px;
-	--text-ui: 13px;
+	--text-ui: 0.8125rem;
 
 	--n-1: light-dark(oklch(0.992 0.003 250), oklch(0.155 0.008 250));
 	--n-2: light-dark(oklch(0.98 0.004 250), oklch(0.18 0.009 250));
@@ -253,7 +253,7 @@
 /* Density changes row height and text size, nothing else. */
 :root[data-density="compact"] {
 	--row-h: 24px;
-	--text-ui: 12px;
+	--text-ui: 0.75rem;
 }
 
 @utility h-row {

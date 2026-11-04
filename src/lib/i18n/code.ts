@@ -1,5 +1,11 @@
 /** The strings of Code / Pull requests, Quality, Impacts, Terminal and the file viewer. */
 export const forgeEn = {
+	resize: {
+		changes: "Changes list width",
+		history: "History width",
+		pulls: "Pull requests width",
+		impacts: "Impacts width",
+	},
 	state: { open: "Open", merged: "Merged", closed: "Closed" },
 	ci: { none: "No CI", pending: "CI pending", passing: "CI passing", failing: "CI failing" },
 	review: { clear: "Review clear", changes_requested: "Changes requested" },
@@ -135,6 +141,7 @@ export const forgeEn = {
 		plan: "Action plan",
 		digest: "Digest",
 		past: "Past reports",
+		noPast: "No report yet. Analyze makes the first.",
 		none: "None",
 	},
 	terminal: { label: "Terminal", ended: "The shell ended." },
@@ -148,6 +155,12 @@ export const forgeEn = {
 };
 
 export const forgeFr: typeof forgeEn = {
+	resize: {
+		changes: "Largeur de la liste des changements",
+		history: "Largeur de l'historique",
+		pulls: "Largeur des pull requests",
+		impacts: "Largeur des impacts",
+	},
 	state: { open: "Ouvertes", merged: "Fusionnées", closed: "Fermées" },
 	ci: { none: "Sans CI", pending: "CI en cours", passing: "CI verte", failing: "CI en échec" },
 	review: { clear: "Revue libre", changes_requested: "Changements demandés" },
@@ -287,6 +300,7 @@ export const forgeFr: typeof forgeEn = {
 		plan: "Plan d'action",
 		digest: "Synthèse",
 		past: "Rapports passés",
+		noPast: "Aucun rapport. Analyser crée le premier.",
 		none: "Aucune",
 	},
 	terminal: { label: "Terminal", ended: "Le shell est terminé." },

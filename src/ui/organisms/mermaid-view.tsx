@@ -1,3 +1,4 @@
+import { ZoomFrame } from "../molecules/zoom-frame";
 import type { EditorError } from "./error-line";
 import { useDark } from "./use-dark";
 import { useRender } from "./use-render";
@@ -27,11 +28,14 @@ export function MermaidView({
 	source,
 	label,
 	onError,
+	plain,
 }: {
 	source: string;
 	/** The accessible name of the picture. */
 	label: string;
 	onError?: (error: EditorError | null) => void;
+	/** No zoom frame: a thumbnail. */
+	plain?: boolean;
 }) {
 	const dark = useDark();
 	const svg = useRender(
@@ -39,13 +43,24 @@ export function MermaidView({
 		(s) => renderMermaid(s.slice(1), s[0] === "d"),
 		onError,
 	);
-	return (
+	const picture = (
 		<div
 			role="img"
 			aria-label={label}
-			className="h-full min-h-40 overflow-auto rounded-md border border-n-7 bg-n-1 p-3 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
+			className={
+				plain
+					? "h-full min-h-40 overflow-auto rounded-md border border-n-7 bg-n-1 p-3 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
+					: "p-3 [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full"
+			}
 			// biome-ignore lint/security/noDangerouslySetInnerHtml: Mermaid output, sanitised with securityLevel "strict"
 			dangerouslySetInnerHTML={{ __html: svg ?? "" }}
 		/>
+	);
+	return plain ? (
+		picture
+	) : (
+		<ZoomFrame label={label} className="h-full min-h-40 rounded-md border border-n-7 bg-n-1">
+			{picture}
+		</ZoomFrame>
 	);
 }

@@ -42,6 +42,8 @@ Extensions holds the catalog, the plugins and the child projects.
 
 Me holds your own settings: theme, density, contrast, language, role and notifications. They apply in every project.
 
+Each source of notifications has its own switch, on by default. The sources are: a question, an approval, a run that needs you, a failed sync, an update, a moved remote branch, a run that ends, the checks of your pull requests, a failed scan that you did not start, and an agent review draft that is ready to post. A switch that is off stops the entry in the centre and the system notice. Click an entry to open its run, pull request, Quality page or draft. The system shows a notice for a failed run, failed checks and a review draft, and for the older sources, while the window is in the background.
+
 ## Health
 
 Health lists the problems of the project. Each problem has one button that fixes it.

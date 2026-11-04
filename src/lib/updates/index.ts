@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
+import { openUrl } from "@/lib/menus";
 import { useNotifications } from "@/lib/notifications";
 import { setVersion, showNotes } from "./whats-new";
 
@@ -36,6 +37,7 @@ export function useUpdateCheck() {
 						kind: "info",
 						title: format(t.notifications.update, { version: info.latest }),
 						body: info.url,
+						action: { label: t.context.open, run: () => openUrl(info.url) },
 					});
 				else if (manual)
 					push({

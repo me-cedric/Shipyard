@@ -237,6 +237,6 @@ mod tests {
         let u = mail_url("A & B", "it breaks").unwrap();
         assert!(u.starts_with("mailto:?subject=A%20%26%20B&body=it%20breaks"));
         assert!(mail_url(" ", "").is_err());
-        assert!(mail_url("t", "ghp_abcdefghijklmnopqrstuvwxyz0123456789").is_err());
+        assert!(mail_url("t", "ghp_abcdefghijklmnopqrstuvwxyz0123456789").is_err()); // gitleaks:allow
     }
 }

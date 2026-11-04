@@ -82,6 +82,31 @@
         "spec:knowledge"
       ],
       "file": "docs/assets/screenshots/knowledge.png"
+    },
+    {
+      "id": "SCR-010",
+      "slug": "top-bar",
+      "title": "Top bar: sidebar toggle, Back and Forward, Sync menu, terminal button, More fold",
+      "artifacts": [
+        "spec:shell"
+      ],
+      "file": "docs/assets/screenshots/home.png"
+    },
+    {
+      "id": "SCR-011",
+      "slug": "projects",
+      "title": "Projects: Clone and Open",
+      "artifacts": [
+        "spec:projects"
+      ]
+    },
+    {
+      "id": "SCR-012",
+      "slug": "menu-bar-panel",
+      "title": "Menu bar panel: spend, runs with Stop, Needs you, agents switch, sync, project, Open Shipyard",
+      "artifacts": [
+        "spec:shell"
+      ]
     }
   ]
 }

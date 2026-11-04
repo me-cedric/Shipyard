@@ -1,8 +1,9 @@
 import type { ColumnDef } from "@tanstack/react-table";
+import type { CSSProperties } from "react";
 import { useMemo, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import type { TimeState } from "@/lib/ipc";
-import { useDay } from "@/lib/prefs";
+import { useDay, usePanelSize } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { useWorkItems } from "@/lib/sync";
 import {
@@ -28,6 +29,7 @@ import { ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, PlusIcon }
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
+import { Splitter } from "@/ui/molecules/splitter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
@@ -133,6 +135,7 @@ function Heatmap({ month, lines, title }: { month: string; lines: Line[]; title:
 export function Time() {
 	const { t, lang } = useI18n();
 	const day = useDay();
+	const side = usePanelSize("work-time-side", 352);
 	const e = t.work.time;
 	const active = useActiveProject().data;
 	const ctx = useWorkContext().data;
@@ -433,8 +436,22 @@ export function Time() {
 							})),
 						]}
 					/>
-					<div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[22rem_1fr]">
-						<Heatmap month={shownMonth} lines={lines} title={t.work.heatmap} />
+					<div
+						style={{ "--side": `${side.size}px` } as CSSProperties}
+						className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[var(--side)_1fr]"
+					>
+						<div className="relative">
+							<Heatmap month={shownMonth} lines={lines} title={t.work.heatmap} />
+							<Splitter
+								label={t.work.heatmapSize}
+								value={side.size}
+								min={200}
+								max={480}
+								onChange={side.set}
+								onReset={side.reset}
+								className="-right-2 hidden xl:block"
+							/>
+						</div>
 						<Panel
 							title={t.tabs.work.time}
 							count={lines.length}

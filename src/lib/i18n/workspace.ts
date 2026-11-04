@@ -1,5 +1,28 @@
 /** The strings of the W10 closing rows: the pull request actions, the push gate, the repo picker, the Projects page, the overrides and profiles. */
 export const workspaceEn = {
+	view: {
+		zoomArea: "Zoom and move",
+		zoomIn: "Zoom in",
+		zoomOut: "Zoom out",
+		zoomFit: "Fit",
+		fullScreen: "Full screen",
+		back: "Back",
+		forward: "Forward",
+		help: "Manual for this page",
+		more: "More",
+		skip: "Skip to the content",
+		textLarger: "Larger text",
+		textSmaller: "Smaller text",
+		textReset: "Default text size",
+		size: "Text size",
+		fetchOnly: "Fetch only",
+		push: "Push",
+		syncMore: "More ways to sync",
+		hideSidebar: "Hide sidebar",
+		showSidebar: "Show sidebar",
+		openTerminalApp: "Open in the terminal app",
+		openApp: "Open in {app}",
+	},
 	pr: {
 		group: "Assistant",
 		describe: "Write description",
@@ -100,6 +123,29 @@ export const workspaceEn = {
 };
 
 export const workspaceFr: typeof workspaceEn = {
+	view: {
+		zoomArea: "Zoom et déplacement",
+		zoomIn: "Zoom avant",
+		zoomOut: "Zoom arrière",
+		zoomFit: "Ajuster",
+		fullScreen: "Plein écran",
+		back: "Précédent",
+		forward: "Suivant",
+		help: "Manuel de cette page",
+		more: "Plus",
+		skip: "Aller au contenu",
+		textLarger: "Texte plus grand",
+		textSmaller: "Texte plus petit",
+		textReset: "Taille de texte par défaut",
+		size: "Taille du texte",
+		fetchOnly: "Récupérer seulement",
+		push: "Envoyer",
+		syncMore: "Autres façons de synchroniser",
+		hideSidebar: "Masquer la barre latérale",
+		showSidebar: "Afficher la barre latérale",
+		openTerminalApp: "Ouvrir dans l'application de terminal",
+		openApp: "Ouvrir dans {app}",
+	},
 	pr: {
 		group: "Assistant",
 		describe: "Écrire la description",

@@ -14,9 +14,11 @@ import { openWhatsNew } from "@/lib/updates/whats-new";
 import {
 	ArrowDownTrayIcon,
 	ArrowPathIcon,
+	ArrowUpTrayIcon,
 	BookOpenIcon,
 	ChatBubbleIcon,
 	CheckIcon,
+	ChevronLeftIcon,
 	ChevronRightIcon,
 	CodeBracketIcon,
 	Cog6ToothIcon,
@@ -35,6 +37,7 @@ import {
 	XMarkIcon,
 } from "@/ui/icons";
 import { orderedSpaces, type SpaceId } from "./spaces";
+import { useOpenInTerminalApp } from "./terminal-app";
 
 type Icon = ComponentType<{ size?: number }>;
 
@@ -75,7 +78,7 @@ export const shortcutText = (key: string) => chordText(`mod+${key}`);
 /** The one registry. The palette, the context bar and the status bar read it. */
 export function useActions() {
 	const { t, setLang } = useI18n();
-	const { role, sidebarOpen, setPrefs, profile, theme } = usePrefs();
+	const { role, sidebarOpen, setPrefs, profile, theme, uiScale } = usePrefs();
 	const navigate = useNavigate();
 	const router = useRouter();
 	const shell = useShell();
@@ -96,12 +99,13 @@ export function useActions() {
 		terminalOpen,
 		setTerminalOpen,
 	} = shell;
-	const { pull } = useCodeActions();
+	const { pull, fetch, push } = useCodeActions();
 	const syncNow = useSyncNow();
 	const stageable = canCommit(useChanges().data);
 	const checkUpdate = useUpdateCheck();
 	const { bindings } = useShortcutBindings();
 	const { setShortcutsOpen } = shell;
+	const openApp = useOpenInTerminalApp();
 
 	return useMemo(() => {
 		const withKey = (
@@ -153,6 +157,20 @@ export function useActions() {
 			}),
 		};
 		// The one commit action (`add-code` REQ-007): it stays off with nothing staged.
+		const fetchAction: Action = {
+			id: "fetch",
+			label: t.workspace.view.fetchOnly,
+			Icon: ArrowDownTrayIcon,
+			disabled: !hasProject,
+			run: () => sync(async () => void (await fetch())),
+		};
+		const pushAction: Action = {
+			id: "push",
+			label: t.workspace.view.push,
+			Icon: ArrowUpTrayIcon,
+			disabled: !hasProject,
+			run: () => sync(async () => void (await push())),
+		};
 		const commit: Action = withKey({
 			id: "commit",
 			label: t.shell.commit,
@@ -187,11 +205,34 @@ export function useActions() {
 			id: "manual",
 			label: t.knowledge.manual.open,
 			Icon: BookOpenIcon,
+			shortcut: "F1",
 			run: () => {
 				openManualFor(router.state.location.pathname);
 				void navigate({ to: "/knowledge/manual" });
 			},
 		};
+		const back = withKey({
+			id: "nav-back",
+			label: t.workspace.view.back,
+			Icon: ChevronLeftIcon,
+			key: "[",
+			run: () => router.history.back(),
+		});
+		const forward = withKey({
+			id: "nav-forward",
+			label: t.workspace.view.forward,
+			Icon: ChevronRightIcon,
+			key: "]",
+			run: () => router.history.forward(),
+		});
+		const size = (id: string, label: string, key: string, to: number) =>
+			withKey({
+				id,
+				label,
+				Icon: MagnifyingGlassIcon,
+				key,
+				run: () => setPrefs({ uiScale: Math.min(20, Math.max(14, to)) }),
+			});
 		const whatsNew: Action = {
 			id: "whats-new",
 			label: t.menu.whatsNew,
@@ -229,6 +270,13 @@ export function useActions() {
 			disabled: !hasProject,
 			run: () => setTerminalOpen(!terminalOpen),
 		});
+		const terminalApp: Action = {
+			id: "terminal-open-app",
+			label: openApp.label,
+			Icon: CommandLineIcon,
+			disabled: !hasProject,
+			run: openApp.run,
+		};
 		const NEXT_THEME: Record<Theme, Theme> = { light: "dark", dark: "system", system: "light" };
 		const shortcuts = withKey({
 			id: "shortcuts-help",
@@ -295,12 +343,33 @@ export function useActions() {
 			switchProject,
 			closeProject,
 			syncAction,
+			fetchAction,
+			pushAction,
 			commit,
 			updateCheck,
 			whatsNew,
 			manual,
+			terminalApp,
+			back,
+			forward,
+			size("text-larger", t.workspace.view.textLarger, "=", uiScale + 1),
+			size("text-smaller", t.workspace.view.textSmaller, "-", uiScale - 1),
+			size("text-reset", t.workspace.view.textReset, "0", 16),
 		];
-		return { list, sync: syncAction, commit, assistant, palette, files, terminal };
+		return {
+			list,
+			sync: syncAction,
+			fetch: fetchAction,
+			push: pushAction,
+			commit,
+			assistant,
+			palette,
+			files,
+			terminal,
+			back,
+			forward,
+			manual,
+		};
 	}, [
 		t,
 		role,
@@ -317,6 +386,8 @@ export function useActions() {
 		sync,
 		syncNow,
 		pull,
+		fetch,
+		push,
 		setCommitOpen,
 		stageable,
 		profile,
@@ -333,6 +404,8 @@ export function useActions() {
 		setFilesOpen,
 		terminalOpen,
 		setTerminalOpen,
+		uiScale,
+		openApp,
 	]);
 }
 
@@ -342,7 +415,13 @@ export function useShortcuts(list: Action[]) {
 		const onKeyDown = (e: KeyboardEvent) => {
 			// The overlay that captures a new chord stops the key itself.
 			if (e.defaultPrevented) return;
-			const chord = chordOf(e);
+			if (e.key === "F1") {
+				e.preventDefault();
+				list.find((a) => a.id === "manual")?.run();
+				return;
+			}
+			// Cmd and plus (Shift and =) is the same key as Cmd and =.
+			const chord = chordOf(e).replace("mod+shift++", "mod+=");
 			if (!chord.startsWith("mod+")) return;
 			const action = list.find((a) => a.chord === chord);
 			if (!action || action.disabled) return;

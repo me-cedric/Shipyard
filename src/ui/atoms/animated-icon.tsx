@@ -46,7 +46,12 @@ export function AnimatedIcon({
 			aria-hidden="true"
 			onMouseEnter={() => handle.current?.startAnimation()}
 			onMouseLeave={() => handle.current?.stopAnimation()}
-			className={cn("inline-flex shrink-0 origin-top", spin && "animate-spin", className)}
+			// A ring swings from the top; a spin turns on the centre.
+			className={cn(
+				"inline-flex shrink-0",
+				spin ? "origin-center animate-spin" : "origin-top",
+				className,
+			)}
 		>
 			<Icon size={size} ref={handle} />
 		</span>

@@ -11,13 +11,15 @@
 //! (`ps`, `lsof`, `/proc`). Add `chrono` and a Windows process reader when either is needed.
 
 use crate::which::quiet;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, SystemTime};
 
 /// A transcript written this recently belongs to an agent at work.
@@ -270,6 +272,8 @@ pub fn parse_codex(id: &str, lines: impl Iterator<Item = String>) -> Transcript 
 pub struct Roots {
     pub claude: PathBuf,
     pub codex: PathBuf,
+    /// The file that keeps the read histories between two starts. `None`: memory only.
+    pub cache: Option<PathBuf>,
 }
 
 impl Roots {
@@ -287,6 +291,7 @@ impl Roots {
         Self {
             claude: under("CLAUDE_CONFIG_DIR", ".claude", "projects"),
             codex: under("CODEX_HOME", ".codex", "sessions"),
+            cache: None,
         }
     }
 }
@@ -307,9 +312,196 @@ fn jsonl_files(dir: &Path, depth: u32, out: &mut Vec<PathBuf>) {
     }
 }
 
+/// A history that was read, keyed by its path. It stays valid while the size and the modified
+/// time stay the same. A history is huge (a machine holds gigabytes), so a request reads only the
+/// files that changed since the one before. [`Roots::cache`] keeps the same data on disk, so the
+/// first request after a start reads only the new files.
+type Cached = (u64, SystemTime, Transcript);
+static CACHE: LazyLock<Mutex<HashMap<PathBuf, Cached>>> = LazyLock::new(Default::default);
+/// The cache files that the memory has read already.
+static LOADED: LazyLock<Mutex<HashSet<PathBuf>>> = LazyLock::new(Default::default);
+
+const DISK_VERSION: u32 = 1;
+
+#[derive(Serialize, Deserialize)]
+struct DiskEntry {
+    path: PathBuf,
+    len: u64,
+    secs: u64,
+    nanos: u32,
+    runner: String,
+    id: String,
+    cwd: String,
+    title: String,
+    model: String,
+    days: Vec<(String, String, [f64; 4])>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Disk {
+    version: u32,
+    entries: Vec<DiskEntry>,
+}
+
+/// Read the cache file into memory. `false` when the file exists but is broken or old.
+fn load_disk(file: &Path) -> bool {
+    let Ok(text) = std::fs::read(file) else {
+        return true;
+    };
+    let Ok(disk) = serde_json::from_slice::<Disk>(&text) else {
+        return false;
+    };
+    if disk.version != DISK_VERSION {
+        return false;
+    }
+    let Ok(mut c) = CACHE.lock() else {
+        return true;
+    };
+    for e in disk.entries {
+        let runner = match e.runner.as_str() {
+            "claude" => "claude",
+            "codex" => "codex",
+            _ => continue,
+        };
+        let modified = SystemTime::UNIX_EPOCH + Duration::new(e.secs, e.nanos);
+        let by_day = e
+            .days
+            .into_iter()
+            .map(|(d, m, t)| {
+                let tokens = Tokens {
+                    input: t[0],
+                    output: t[1],
+                    cache_read: t[2],
+                    cache_write: t[3],
+                };
+                ((d, m), tokens)
+            })
+            .collect();
+        let t = Transcript {
+            id: e.id,
+            runner,
+            cwd: e.cwd,
+            title: e.title,
+            model: e.model,
+            modified: Some(modified),
+            by_day,
+        };
+        c.entry(e.path).or_insert((e.len, modified, t));
+    }
+    true
+}
+
+/// Write the cache of these roots to disk. A failed write only costs a slower next start.
+fn save_disk(file: &Path, roots: &Roots) {
+    let Ok(c) = CACHE.lock() else { return };
+    let entries = c
+        .iter()
+        .filter(|(p, _)| p.starts_with(&roots.claude) || p.starts_with(&roots.codex))
+        .filter_map(|(path, (len, modified, t))| {
+            let d = modified.duration_since(SystemTime::UNIX_EPOCH).ok()?;
+            Some(DiskEntry {
+                path: path.clone(),
+                len: *len,
+                secs: d.as_secs(),
+                nanos: d.subsec_nanos(),
+                runner: t.runner.into(),
+                id: t.id.clone(),
+                cwd: t.cwd.clone(),
+                title: t.title.clone(),
+                model: t.model.clone(),
+                days: t
+                    .by_day
+                    .iter()
+                    .map(|((d, m), u)| {
+                        (
+                            d.clone(),
+                            m.clone(),
+                            [u.input, u.output, u.cache_read, u.cache_write],
+                        )
+                    })
+                    .collect(),
+            })
+        })
+        .collect();
+    drop(c);
+    let Ok(bytes) = serde_json::to_vec(&Disk {
+        version: DISK_VERSION,
+        entries,
+    }) else {
+        return;
+    };
+    // A name of its own, so two scans at the same time do not write one file.
+    static N: AtomicUsize = AtomicUsize::new(0);
+    let tmp = file.with_extension(format!(
+        "{}-{}.tmp",
+        std::process::id(),
+        N.fetch_add(1, Ordering::Relaxed)
+    ));
+    if std::fs::write(&tmp, bytes).is_err() || std::fs::rename(&tmp, file).is_err() {
+        let _ = std::fs::remove_file(&tmp);
+    }
+}
+
+fn read_transcript(
+    path: &Path,
+    runner: &'static str,
+    len: u64,
+    modified: SystemTime,
+    parsed: &AtomicUsize,
+) -> Option<Transcript> {
+    let key = (len, modified);
+    let hit = CACHE
+        .lock()
+        .ok()?
+        .get(path)
+        .filter(|c| (c.0, c.1) == key)
+        .map(|c| c.2.clone());
+    if let Some(t) = hit {
+        return Some(t);
+    }
+    let id = path.file_stem()?.to_str()?.to_string();
+    let file = std::fs::File::open(path).ok()?;
+    let lines = BufReader::new(file).lines().map_while(Result::ok);
+    let mut t = if runner == "claude" {
+        parse_claude(&id, lines)
+    } else {
+        parse_codex(&id, lines)
+    };
+    t.modified = Some(modified);
+    parsed.fetch_add(1, Ordering::Relaxed);
+    if let Ok(mut c) = CACHE.lock() {
+        c.insert(path.to_path_buf(), (len, modified, t.clone()));
+    }
+    Some(t)
+}
+
+/// What a scan tells while it reads: the histories read so far, how many files it read, how many
+/// it found.
+pub type OnProgress<'a> = &'a (dyn Fn(usize, usize, &[Transcript]) + Sync);
+
+/// The shortest time between two progress calls, and the most files between them.
+const PROGRESS_EVERY: Duration = Duration::from_millis(250);
+const PROGRESS_FILES: usize = 50;
+
 /// Every history changed in the last `window`, newest first.
 pub fn scan(roots: &Roots, window: Duration, now: SystemTime) -> Vec<Transcript> {
+    scan_with(roots, window, now, &|_, _, _| {})
+}
+
+/// [`scan`] that calls `progress` at most every 250 ms or 50 files.
+pub fn scan_with(
+    roots: &Roots,
+    window: Duration,
+    now: SystemTime,
+    progress: OnProgress,
+) -> Vec<Transcript> {
     let since = now - window;
+    // A broken file counts as a miss: the write at the end replaces it.
+    let mut bad = false;
+    if let Some(file) = &roots.cache {
+        let first = LOADED.lock().is_ok_and(|mut l| l.insert(file.clone()));
+        bad = first && !load_disk(file);
+    }
     let mut found: Vec<(PathBuf, &'static str)> = Vec::new();
     let (mut claude, mut codex) = (Vec::new(), Vec::new());
     // Claude: `<project>/<session>.jsonl`, one level down. Codex: `YYYY/MM/DD/rollout-*.jsonl`.
@@ -317,25 +509,56 @@ pub fn scan(roots: &Roots, window: Duration, now: SystemTime) -> Vec<Transcript>
     jsonl_files(&roots.codex, 3, &mut codex);
     found.extend(claude.into_iter().map(|p| (p, "claude")));
     found.extend(codex.into_iter().map(|p| (p, "codex")));
-    let mut out: Vec<Transcript> = found
+    // A deleted history leaves the cache.
+    if let Ok(mut c) = CACHE.lock() {
+        let live: HashSet<&Path> = found.iter().map(|(p, _)| p.as_path()).collect();
+        let (c_claude, c_codex) = (&roots.claude, &roots.codex);
+        c.retain(|p, _| {
+            live.contains(p.as_path()) || !(p.starts_with(c_claude) || p.starts_with(c_codex))
+        });
+    }
+    let todo: Vec<_> = found
         .into_iter()
         .filter_map(|(path, runner)| {
-            let modified = std::fs::metadata(&path).and_then(|m| m.modified()).ok()?;
-            if modified < since {
-                return None;
-            }
-            let id = path.file_stem()?.to_str()?.to_string();
-            let file = std::fs::File::open(&path).ok()?;
-            let lines = BufReader::new(file).lines().map_while(Result::ok);
-            let mut t = if runner == "claude" {
-                parse_claude(&id, lines)
-            } else {
-                parse_codex(&id, lines)
-            };
-            t.modified = Some(modified);
-            Some(t)
+            let m = std::fs::metadata(&path).ok()?;
+            let modified = m.modified().ok()?;
+            (modified >= since).then_some((path, runner, m.len(), modified))
         })
         .collect();
+    // The first read parses gigabytes: every core takes the next file.
+    let next = AtomicUsize::new(0);
+    let parsed = AtomicUsize::new(0);
+    let read = AtomicUsize::new(0);
+    let last = Mutex::new(std::time::Instant::now());
+    let done = Mutex::new(Vec::with_capacity(todo.len()));
+    let threads = std::thread::available_parallelism()
+        .map_or(1, |n| n.get())
+        .min(8);
+    std::thread::scope(|s| {
+        for _ in 0..threads {
+            s.spawn(|| {
+                while let Some((path, runner, len, modified)) =
+                    todo.get(next.fetch_add(1, Ordering::Relaxed))
+                {
+                    let t = read_transcript(path, runner, *len, *modified, &parsed);
+                    let mut d = done.lock().unwrap_or_else(|e| e.into_inner());
+                    d.extend(t);
+                    let n = read.fetch_add(1, Ordering::Relaxed) + 1;
+                    let mut at = last.lock().unwrap_or_else(|e| e.into_inner());
+                    if n.is_multiple_of(PROGRESS_FILES) || at.elapsed() >= PROGRESS_EVERY {
+                        *at = std::time::Instant::now();
+                        progress(n, todo.len(), &d);
+                    }
+                }
+            });
+        }
+    });
+    if let Some(file) = &roots.cache
+        && (bad || parsed.load(Ordering::Relaxed) > 0)
+    {
+        save_disk(file, roots);
+    }
+    let mut out = done.into_inner().unwrap_or_else(|e| e.into_inner());
     out.sort_by_key(|a| std::cmp::Reverse(a.modified));
     out
 }
@@ -405,15 +628,42 @@ pub fn timestamp(t: SystemTime) -> String {
     )
 }
 
+/// The spend so far, while a scan reads.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpendProgress {
+    pub rows: Vec<SpendRow>,
+    pub read: usize,
+    pub found: usize,
+}
+
 /// The spend of the last `days` days, today included.
 pub fn report(roots: &Roots, days: u32) -> Vec<SpendRow> {
+    report_with(roots, days, &|_| {})
+}
+
+/// [`report`] that tells the totals so far while the scan reads.
+pub fn report_with(
+    roots: &Roots,
+    days: u32,
+    progress: &(dyn Fn(SpendProgress) + Sync),
+) -> Vec<SpendRow> {
     let now = SystemTime::now();
     let days = days.clamp(1, 365);
     let since = day_string(now - Duration::from_secs(u64::from(days - 1) * 86_400));
-    spend(
-        &scan(roots, Duration::from_secs(u64::from(days) * 86_400), now),
-        &since,
-    )
+    let all = scan_with(
+        roots,
+        Duration::from_secs(u64::from(days) * 86_400),
+        now,
+        &|read, found, so_far| {
+            progress(SpendProgress {
+                rows: spend(so_far, &since),
+                read,
+                found,
+            });
+        },
+    );
+    spend(&all, &since)
 }
 
 /* ---------- Processes ---------- */
@@ -786,6 +1036,158 @@ not json"#;
         for not_agent in ["vim claude", "less codex", "python ./codex", "node"] {
             assert_eq!(agent_of_command(not_agent), None, "{not_agent}");
         }
+    }
+
+    fn write_claude(dir: &Path, text: &str) -> Roots {
+        std::fs::create_dir_all(dir.join("p")).unwrap();
+        std::fs::write(dir.join("p/s.jsonl"), text).unwrap();
+        Roots {
+            claude: dir.to_path_buf(),
+            codex: dir.join("none"),
+            cache: None,
+        }
+    }
+
+    fn entry(day: &str, tokens: u32) -> String {
+        format!(
+            r#"{{"type":"assistant","cwd":"/w/app","timestamp":"{day}T10:00:00Z","message":{{"id":"m{day}","model":"claude-sonnet-4","usage":{{"input_tokens":{tokens}}}}}}}"#
+        )
+    }
+
+    #[test]
+    fn a_scan_reads_a_file_again_only_when_its_size_or_time_changed() {
+        let dir = tempfile::tempdir().unwrap();
+        let now = SystemTime::now();
+        let day = day_string(now);
+        let roots = write_claude(dir.path(), &entry(&day, 111));
+        let file = dir.path().join("p/s.jsonl");
+        let at = std::fs::metadata(&file).unwrap().modified().unwrap();
+        let tokens = || {
+            scan(&roots, Duration::from_secs(3600), now)[0]
+                .by_day
+                .values()
+                .map(Tokens::total)
+                .sum::<f64>()
+        };
+        assert_eq!(tokens(), 111.0);
+        // Same size, same time: the cache answers, so the file is not read.
+        std::fs::write(&file, entry(&day, 222)).unwrap();
+        std::fs::File::options()
+            .write(true)
+            .open(&file)
+            .unwrap()
+            .set_modified(at)
+            .unwrap();
+        assert_eq!(tokens(), 111.0);
+        // A new size: read again.
+        std::fs::write(&file, entry(&day, 2222)).unwrap();
+        assert_eq!(tokens(), 2222.0);
+    }
+
+    fn with_cache(roots: &Roots, dir: &Path) -> Roots {
+        Roots {
+            cache: Some(dir.join("cache.json")),
+            ..roots.clone()
+        }
+    }
+
+    /// Forget what the memory holds for `dir`, as a restart does.
+    fn restart(dir: &Path) {
+        CACHE.lock().unwrap().retain(|p, _| !p.starts_with(dir));
+        LOADED.lock().unwrap().retain(|p| !p.starts_with(dir));
+    }
+
+    fn first_tokens(roots: &Roots, now: SystemTime) -> f64 {
+        scan(roots, Duration::from_secs(3600), now)[0]
+            .by_day
+            .values()
+            .map(Tokens::total)
+            .sum()
+    }
+
+    #[test]
+    fn the_disk_cache_answers_after_a_restart_until_the_file_changes() {
+        let dir = tempfile::tempdir().unwrap();
+        let (now, day) = (SystemTime::now(), day_string(SystemTime::now()));
+        let roots = write_claude(dir.path(), &entry(&day, 111));
+        let roots = with_cache(&roots, dir.path());
+        let file = dir.path().join("p/s.jsonl");
+        let at = std::fs::metadata(&file).unwrap().modified().unwrap();
+        assert_eq!(first_tokens(&roots, now), 111.0);
+        assert!(roots.cache.as_ref().unwrap().exists());
+        // Same size, same time: the disk answers, so the file is not read.
+        std::fs::write(&file, entry(&day, 222)).unwrap();
+        std::fs::File::options()
+            .write(true)
+            .open(&file)
+            .unwrap()
+            .set_modified(at)
+            .unwrap();
+        restart(dir.path());
+        assert_eq!(first_tokens(&roots, now), 111.0);
+        // A new size: a miss, read again.
+        std::fs::write(&file, entry(&day, 2222)).unwrap();
+        restart(dir.path());
+        assert_eq!(first_tokens(&roots, now), 2222.0);
+    }
+
+    #[test]
+    fn a_broken_or_old_cache_file_is_ignored_and_replaced() {
+        let dir = tempfile::tempdir().unwrap();
+        let (now, day) = (SystemTime::now(), day_string(SystemTime::now()));
+        let roots = write_claude(dir.path(), &entry(&day, 111));
+        let roots = with_cache(&roots, dir.path());
+        let cache = roots.cache.clone().unwrap();
+        for bad in ["not json", r#"{"version":0,"entries":[]}"#] {
+            std::fs::write(&cache, bad).unwrap();
+            restart(dir.path());
+            assert_eq!(first_tokens(&roots, now), 111.0);
+            let fixed = std::fs::read_to_string(&cache).unwrap();
+            assert!(fixed.contains(r#""version":1"#), "{bad}");
+        }
+    }
+
+    #[test]
+    fn a_scan_tells_its_progress_with_growing_counts() {
+        let dir = tempfile::tempdir().unwrap();
+        let day = day_string(SystemTime::now());
+        for i in 0..120 {
+            std::fs::create_dir_all(dir.path().join("p")).unwrap();
+            std::fs::write(dir.path().join(format!("p/s{i}.jsonl")), entry(&day, 10)).unwrap();
+        }
+        let roots = Roots {
+            claude: dir.path().to_path_buf(),
+            codex: dir.path().join("none"),
+            cache: None,
+        };
+        let calls = Mutex::new(Vec::new());
+        let rows = report_with(&roots, 1, &|p| calls.lock().unwrap().push(p));
+        let calls = calls.into_inner().unwrap();
+        // 120 files give at least the calls at 50 and 100 files.
+        assert!(calls.len() >= 2);
+        assert!(calls.windows(2).all(|w| w[0].read < w[1].read));
+        assert!(calls.iter().all(|c| c.found == 120));
+        assert!(calls.last().unwrap().rows[0].tokens > 0.0);
+        assert_eq!(rows[0].tokens, 1200.0);
+    }
+
+    #[test]
+    fn the_month_total_is_the_cost_that_the_sessions_show() {
+        let dir = tempfile::tempdir().unwrap();
+        let now = SystemTime::now();
+        let text = [
+            entry(&day_string(now), 1_000_000),
+            entry(&day_string(now - Duration::from_secs(86_400)), 1_000_000),
+        ]
+        .join("\n");
+        let roots = write_claude(dir.path(), &text);
+        let sessions = join(&[], &HashMap::new(), &scan(&roots, RECENT, now), now);
+        let rows = spend(
+            &scan(&roots, Duration::from_secs(7 * 86_400), now),
+            &day_string(now - Duration::from_secs(6 * 86_400)),
+        );
+        assert!((rows.iter().map(|r| r.cost_usd).sum::<f64>() - sessions[0].cost_usd).abs() < 1e-9);
+        assert!((sessions[0].cost_usd - 6.0).abs() < 1e-9);
     }
 
     #[test]
