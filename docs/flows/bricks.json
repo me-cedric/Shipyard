@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "bricks": [
+    {
+      "id": "shipyard-app",
+      "name": "Shipyard app",
+      "description": "The Tauri shell, a Rust process on the person's computer. Every HTTP call goes through shipyard-http: no redirects, a size cap, proxy from ALL_PROXY, HTTPS_PROXY, HTTP_PROXY and NO_PROXY, and an optional extra CA."
+    },
+    {
+      "id": "shipyard-web-view",
+      "name": "Shipyard web view",
+      "description": "The React UI in the Tauri web view. Its content security policy allows connections to itself and to IPC only, and one frame origin."
+    },
+    {
+      "id": "os-keychain",
+      "name": "OS keychain",
+      "description": "macOS Keychain, Windows Credential Manager or Secret Service. The only place for a secret."
+    },
+    {
+      "id": "issue-tracker",
+      "name": "Issue tracker",
+      "description": "Jira Cloud or Data Center, GitHub Issues, GitLab Issues, Azure DevOps or Linear, as the connection says."
+    },
+    {
+      "id": "code-host",
+      "name": "Code host",
+      "description": "GitHub, GitLab or Azure DevOps, on the host of the connection."
+    },
+    {
+      "id": "model-provider",
+      "name": "Model provider",
+      "description": "An OpenAI-style HTTP endpoint: LM Studio, Ollama, vLLM, LiteLLM, OpenRouter or a vendor API."
+    },
+    {
+      "id": "mcp-server-http",
+      "name": "MCP server (HTTP)",
+      "description": "An MCP server of a connection that is reached over HTTP."
+    },
+    {
+      "id": "agent-cli",
+      "name": "Agent CLI",
+      "description": "Claude Code, Codex, GitHub Copilot, Gemini CLI or OpenCode, started by Shipyard as a child process."
+    },
+    {
+      "id": "release-page",
+      "name": "Release page",
+      "description": "The GitHub API answer for the latest release of the Shipyard repository."
+    },
+    {
+      "id": "drawio-embed",
+      "name": "draw.io embed",
+      "description": "embed.diagrams.net, the draw.io editor in a frame."
+    },
+    {
+      "id": "npm-registry",
+      "name": "npm registry",
+      "description": "registry.npmjs.org, reached by npx for the OpenSpec check."
+    },
+    {
+      "id": "figma-api",
+      "name": "Figma API",
+      "description": "api.figma.com, read with a token that sits in the keychain."
+    }
+  ]
+}

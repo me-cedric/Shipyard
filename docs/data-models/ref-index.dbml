@@ -1,0 +1,44 @@
+// The ref index: entities and citations, derived from the repository, the mirror and the run log.
+// File: <app data folder>/refs/<project id>.sqlite. Source: crates/shipyard-store/src/ref_index.rs
+// (user_version 1). Derived data: a new layout version drops every table and starts empty.
+// A source key is `file:<path>`, `mirror:<key>` or `runlog:<id>`.
+
+// The fingerprint of each source at the last scan, to find what changed.
+Table sources {
+  key text [pk]
+  fingerprint text [not null]
+}
+
+// One row per entity with a ref.
+Table entities {
+  ref text [not null] // such as spec:shell#REQ-001, adr:0004, wi:SHIP-42
+  kind text [not null]
+  title text [not null]
+  status text
+  location text
+  hidden integer [not null] // 1: resolves but does not show in search, default 0
+  source_key text [not null]
+
+  indexes {
+    ref [name: 'entities_ref']
+  }
+}
+
+// `source` cites `target`.
+Table citations {
+  source_key text [not null]
+  source text [not null]
+  target text [not null]
+
+  indexes {
+    target [name: 'citations_target']
+  }
+}
+
+Table meta {
+  key text [pk]
+  value text [not null]
+}
+
+Ref: entities.source_key > sources.key
+Ref: citations.source_key > sources.key

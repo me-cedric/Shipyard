@@ -1,0 +1,22 @@
+flowchart TD
+  %% Source: crates/shipyard-engine/src/tick.rs, Engine::tick.
+  Start(["Timer fires or the person clicks Sync<br/>interval 60 s, minimum 30 s, jitter up to 20%"])
+  Start --> T{"Issue tracker due<br/>or forced?"}
+  T -->|yes| PT["1. Poll the issue tracker<br/>items updated since the last good poll minus 120 s<br/>compare, update the mirror"]
+  T -->|no| F
+  PT -->|"poll fails"| BO["Keep the mirror<br/>count a failure, back off: interval x 2, 5 min at most"]
+  PT --> F{"Code host linked<br/>and due or forced?"}
+  BO --> F
+  F -->|yes| PF["2. Poll the code host<br/>pull requests; the first read is a baseline"]
+  F -->|no| D
+  PF --> D["3. Hand off<br/>new comments become answers or events for the factory"]
+  D --> S["4. Stop runs<br/>ticket is terminal, except a run whose pull request merged<br/>a run with a pull request waits when the code host poll failed"]
+  S --> P{"Issue tracker poll<br/>failed?"}
+  P -->|yes| H
+  P -->|no| PU["5. Pick up<br/>filter, concurrency, kill switch<br/>read the ticket again, then claim"]
+  PU --> C{"Claim"}
+  C -->|"won"| R["Start the run<br/>remember the comments it already has"]
+  C -->|"held"| H
+  C -->|"lost: a live stamp of another machine"| H
+  R --> H["6. Heartbeat<br/>refresh stamps, drop claims no run holds<br/>stop a run whose claim another machine took"]
+  H --> E(["Send the Tick event"])

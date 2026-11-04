@@ -1,0 +1,37 @@
+flowchart LR
+  subgraph Repo["Project repository"]
+    Spec["Spec<br/>OpenSpec change"]
+    Plan["Plan, checklist, tasks"]
+  end
+  subgraph Tracker["Issue tracker"]
+    WI["Work items<br/>epic, story, task, bug"]
+  end
+  subgraph Factory["Factory (app data folder)"]
+    Claim["Claim<br/>local lock + stamp"]
+    Run["Run<br/>workflow steps in a worktree"]
+    Ask{"Decision for<br/>a person?"}
+    Self["Self-review<br/>fresh context, 2 rounds at most"]
+  end
+  subgraph Host["Code host"]
+    PR["Pull request"]
+    CI["CI checks"]
+    Review["Human review"]
+  end
+
+  Spec --> Plan
+  Plan -->|"split into"| WI
+  WI -->|"label, assignee, status"| Claim
+  Claim --> Run
+  Run --> Ask
+  Ask -->|"yes: ask_question"| Q["Question in Home / Needs you<br/>and on the ticket"]
+  Q -->|"answer"| Run
+  Ask -->|"no"| Self
+  Self -->|"blocking finding"| Run
+  Self -->|"clean"| PR
+  PR --> CI
+  PR --> Review
+  CI -->|"failure"| Run
+  Review -->|"changes requested"| Run
+  Review -->|"merge"| Merged["Merged"]
+  Merged -->|"sync tick sees it"| Close["Close ticket, post run summary,<br/>remove worktree"]
+  Close --> WI

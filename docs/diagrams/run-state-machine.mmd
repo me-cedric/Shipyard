@@ -1,0 +1,47 @@
+stateDiagram-v2
+  %% Source: crates/shipyard-core/src/run.rs, Run::apply (the one transition table).
+  [*] --> Queued
+  Queued --> Claimed: Claim
+  Claimed --> Planning: Start
+  Planning --> PlanReview: PlanReady with human gate
+  Planning --> Working: PlanReady without gate
+  PlanReview --> Working: PlanApproved
+  PlanReview --> Planning: PlanRejected
+  Working --> SelfReview: BuildDone
+  SelfReview --> Working: FixRound
+  SelfReview --> PROpen: PrOpened
+  PROpen --> ChangesRequested: ChangesRequested
+  ChangesRequested --> Working: FixStarted
+  PROpen --> Merged: PrMerged
+  ChangesRequested --> Merged: PrMerged
+  Working --> Merged: PrMerged in a fix round
+  SelfReview --> Merged: PrMerged in a fix round
+  Merged --> Done: Closed
+  Working --> Done: Finished
+  SelfReview --> Done: Finished
+
+  state "Any active state (Queued to Merged)" as Active
+  Active --> WaitingForAnswer: Ask
+  Active --> Blocked: Block
+  Active --> RetryQueued: Retry
+  Active --> Paused: BudgetStop
+  Active --> Failed: Fail
+  WaitingForAnswer --> Active: Answered, back to the return state
+  Blocked --> Active: Unblock
+  RetryQueued --> Active: RetryDue
+  Paused --> Active: Resume with budget left
+  Active --> Cancelled: Cancel
+  WaitingForAnswer --> Cancelled: Cancel
+  Blocked --> Cancelled: Cancel
+  RetryQueued --> Cancelled: Cancel
+  Paused --> Cancelled: Cancel
+
+  Done --> [*]
+  Failed --> [*]
+  Cancelled --> [*]
+
+  note right of WaitingForAnswer
+    A side state stores the return state.
+    The stall timer and the budget clock run only in Planning, Working and SelfReview.
+    Retry delay: min(10 s x 2^(n-1), 5 min).
+  end note

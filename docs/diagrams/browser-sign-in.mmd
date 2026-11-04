@@ -1,0 +1,38 @@
+sequenceDiagram
+  %% Source: crates/shipyard-app/src/device_login.rs (OAuth device flow, RFC 8628).
+  actor Person
+  participant UI as React UI
+  participant Shell as Tauri shell
+  participant Host as GitHub or GitLab host
+  participant Browser as Web browser
+  participant Keychain as OS keychain
+
+  Person->>UI: Click Sign in with the browser
+  UI->>Shell: device_login_start(id, click)
+  Note over Shell: Read the client id (not a secret) from oauth.env
+  Shell->>Host: POST device code request (client id, scope)
+  Note over Shell,Host: GitHub: /login/device/code, scope repo.<br/>GitLab: /oauth/authorize_device, scope api mcp,<br/>again with api alone on invalid_scope
+  Host-->>Shell: user_code, verification_uri, device_code, interval
+  Shell-->>UI: user_code, verification_uri, interval
+  UI->>Person: Show the code, with a Copy action
+  Person->>Browser: Open verification_uri, type the code, agree
+  loop every interval seconds
+    UI->>Shell: device_login_poll(id, device_code)
+    Shell->>Host: POST token request (device_code grant)
+    alt authorization_pending
+      Host-->>Shell: error authorization_pending
+      Shell-->>UI: Pending
+    else slow_down
+      Host-->>Shell: error slow_down
+      Shell-->>UI: SlowDown, add 5 s
+    else access_denied or expired_token
+      Host-->>Shell: error
+      Shell-->>UI: Denied or Expired
+    else token
+      Host-->>Shell: access_token (GitLab also refresh_token, expires_in)
+      Shell->>Keychain: store the access token for the connection
+      Shell->>Keychain: GitLab only: store the refresh state conn:id:oauth
+      Shell-->>UI: Authorized
+    end
+  end
+  Note over Shell,Host: GitLab tokens end after 2 hours: Bearer refreshes the token<br/>one request at a time and saves the new refresh token first.

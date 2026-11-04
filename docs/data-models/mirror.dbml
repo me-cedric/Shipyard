@@ -1,0 +1,106 @@
+// The mirror: work items and pull requests of the issue tracker and the code host, plus the claims.
+// File: <app data folder>/mirror.sqlite. Source: crates/shipyard-store/src/mirror.rs (user_version 1).
+// The issue tracker and the code host stay the source of truth. Nothing here is a source for a write.
+// `source` is the mirror key of a connection: `<connection id>` or `<connection id>@<scope>`.
+// A new layout version drops every table except `questions`. The rest is derived data, and a claim
+// is rebuilt from the active runs.
+
+Table tickets {
+  source text [not null]
+  key text [not null]
+  body text [not null] // JSON of one Ticket (work item and issue tracker fields)
+
+  indexes {
+    (source, key) [pk]
+  }
+}
+
+Table pulls {
+  source text [not null]
+  number integer [not null]
+  body text [not null] // JSON of one PullSnapshot
+
+  indexes {
+    (source, number) [pk]
+  }
+}
+
+// One row per source: the state of the sync of a connection.
+Table state {
+  source text [pk]
+  last_ok integer // Unix seconds when the last good poll started
+  failures integer [not null] // failed polls since the last good one, default 0
+  error text
+}
+
+// Comment ids that a poll already read, so a comment is news once.
+Table seen {
+  source text [not null]
+  key text [not null]
+  comment_id text [not null]
+
+  indexes {
+    (source, key, comment_id) [pk]
+  }
+}
+
+// Events that wait for a hand-off to the factory, until they are acknowledged.
+Table outbox {
+  id integer [pk, increment]
+  body text [not null] // JSON of one SyncEvent
+}
+
+// Tickets that the import adopted.
+Table adopted {
+  source text [not null]
+  key text [not null]
+
+  indexes {
+    (source, key) [pk]
+  }
+}
+
+// One ticket per local item, one local item per ticket.
+Table links {
+  source text [not null]
+  local text [not null]
+  key text [not null]
+
+  indexes {
+    (source, local) [pk]
+    (source, key) [unique]
+  }
+}
+
+// Comments that Shipyard posted as questions; only these hold a question marker.
+Table questions {
+  source text [not null]
+  key text [not null]
+  comment_id text [not null]
+
+  indexes {
+    (source, key, comment_id) [pk]
+  }
+}
+
+// The claim on this machine. The stamp on the ticket is the cross-machine layer.
+Table claims {
+  source text [not null]
+  key text [not null]
+  machine text [not null]
+  status text [not null] // ticket status at pickup
+  stamped integer [not null] // 1 when the stamp is on the ticket
+  claimed_at integer [not null] // Unix seconds
+
+  indexes {
+    (source, key) [pk]
+  }
+}
+
+// Logical links. SQLite holds no foreign key here.
+Ref: seen.(source, key) > tickets.(source, key)
+Ref: adopted.(source, key) > tickets.(source, key)
+Ref: links.(source, key) - tickets.(source, key)
+Ref: questions.(source, key) > tickets.(source, key)
+Ref: claims.(source, key) - tickets.(source, key)
+Ref: tickets.source > state.source

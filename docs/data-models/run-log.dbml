@@ -1,0 +1,29 @@
+// The run log: the append-only record of every run of every project.
+// File: <app data folder>/runs.sqlite. Source: crates/shipyard-store/src/run_log.rs (user_version 1).
+// Two triggers (`events_no_update`, `events_no_delete`) abort an UPDATE or a DELETE on `events`,
+// so raw SQL cannot change a past event. An unknown layout version is an error, never a reset.
+// The UI and the issue tracker summary read this one log.
+
+Table events {
+  id integer [pk, increment] // grows in all runs: the order and the cursor of a tail
+  run text [not null] // ULID of run:<ulid>, never empty
+  step text // step id of run:<ulid>/<step-id>, when the event belongs to a step
+  kind text [not null] // state, tool, runner, write, pr, note, answer, late_answer ...
+  payload text [not null] // JSON
+  ts integer [not null] // caller clock, Unix milliseconds
+
+  indexes {
+    (run, id) [name: 'events_run']
+  }
+}
+
+// The engine state after each change, read at start. Derived: a snapshot can be replaced.
+// The events after `event` tell which writes went out before a crash.
+Table snapshots {
+  key text [pk] // run:<ulid> or meta
+  event integer [not null] // last log event that the snapshot covers, 0 for none
+  value text [not null] // JSON
+}
+
+// Logical link, not a foreign key.
+Ref: snapshots.event > events.id

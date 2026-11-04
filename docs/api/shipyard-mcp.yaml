@@ -1,0 +1,321 @@
+openapi: 3.0.3
+info:
+  title: Shipyard MCP server
+  version: 0.1.0
+  description: |
+    The tools that Shipyard serves to agents (crates/shipyard-mcp). It speaks JSON-RPC 2.0 and the
+    Model Context Protocol (revisions 2025-11-25, 2025-06-18, 2025-03-26 and 2024-11-05) on two
+    transports that serve the same tools: line-delimited JSON on stdio (the token comes from the
+    environment variable SHIPYARD_MCP_TOKEN), and the one HTTP endpoint below.
+
+    The Tauri IPC commands are not described here. Their contract is generated into
+    `src/lib/ipc/bindings.ts` and is not an HTTP API.
+
+    Each token belongs to one run and one step. The step lists the tools that it may call, so
+    `tools/list` shows only those. A token has 256 random bits, as 64 hex characters.
+
+    Three groups of tools exist:
+
+    - The eight agent tools. They become events of the run (ask, progress, handoff, message,
+      subtask, report, read). They run no engine logic.
+    - The tools of the active MCP servers of the connections, named `<server-id>__<tool>`
+      (proxy and relay).
+    - The 17 tools for an agent that Shipyard did not start. Each group is a switch that a person
+      turns on in Settings. All are off by default.
+
+    Limits of one call, by default: 60 calls a minute for each token, 64 KiB of arguments,
+    256 KiB of answer, 32 KiB for a report.
+servers:
+  - url: http://127.0.0.1:{port}
+    description: Loopback only. The port is set when the server starts. Port 0 picks a free one.
+    variables:
+      port:
+        default: "8765"
+        description: An example. Read the real port in the MCP config of the agent.
+tags:
+  - name: mcp
+    description: One JSON-RPC message in, one answer out.
+paths:
+  /mcp:
+    post:
+      tags: [mcp]
+      operationId: mcpCall
+      summary: Send one JSON-RPC message
+      description: |
+        The Host header must be `127.0.0.1:<port>` or `localhost:<port>`. An Origin header, when
+        present, must be a local origin. The body is at most 1 MiB. The server keeps no stream:
+        it answers with one JSON body. A message with no `id` is a notification and gets `202`.
+
+        Methods: `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`,
+        `resources/templates/list` and `resources/read`. The one resource template is
+        `shipyard://ref/{ref}` (a percent-encoded ref such as `spec:auth#REQ-003`).
+      security:
+        - runToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JsonRpcRequest"
+            examples:
+              list:
+                summary: List the tools of the step
+                value: { jsonrpc: "2.0", id: 1, method: tools/list }
+              ask:
+                summary: Ask a person
+                value:
+                  jsonrpc: "2.0"
+                  id: 2
+                  method: tools/call
+                  params:
+                    name: ask_question
+                    arguments:
+                      question: Which folder does a clone use by default?
+                      options: ["The home folder", "A Projects folder"]
+                      recommended: 2
+      responses:
+        "200":
+          description: A JSON-RPC answer. A tool failure is a result with `isError` true, not a protocol error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JsonRpcResponse"
+        "202":
+          description: The message was a notification. The body is empty.
+        "400":
+          description: The body is not JSON. The body is a JSON-RPC error with code -32700. An unreadable body gets an empty answer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JsonRpcResponse"
+        "401":
+          description: The token is missing or not valid.
+          headers:
+            WWW-Authenticate:
+              schema:
+                type: string
+                example: Bearer
+        "403":
+          description: The Host header or the Origin header is not local.
+        "404":
+          description: The path is not /mcp.
+        "405":
+          description: The method is not POST (or DELETE).
+        "413":
+          description: The body is empty or larger than 1 MiB.
+        "431":
+          description: The request line or the headers are larger than 16 KiB.
+    delete:
+      tags: [mcp]
+      operationId: mcpEnd
+      summary: End a session
+      description: Answers 200 and does nothing. The token stays valid until the run ends.
+      security:
+        - runToken: []
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: The token is missing or not valid.
+components:
+  securitySchemes:
+    runToken:
+      type: http
+      scheme: bearer
+      description: The token of one run and one step. Shipyard writes it into the MCP config of the agent.
+  schemas:
+    JsonRpcRequest:
+      type: object
+      required: [jsonrpc, method]
+      properties:
+        jsonrpc:
+          type: string
+          enum: ["2.0"]
+        id:
+          description: A string or a number. Without it the message is a notification.
+          oneOf:
+            - type: string
+            - type: integer
+        method:
+          type: string
+          enum:
+            - initialize
+            - ping
+            - tools/list
+            - tools/call
+            - resources/list
+            - resources/templates/list
+            - resources/read
+        params:
+          type: object
+          description: For tools/call, `name` and `arguments` (see the tool schemas below). For resources/read, `uri`.
+    JsonRpcResponse:
+      type: object
+      required: [jsonrpc, id]
+      properties:
+        jsonrpc:
+          type: string
+          enum: ["2.0"]
+        id:
+          nullable: true
+        result:
+          type: object
+          description: For tools/call, `content` (text), `structuredContent` and, on a tool failure, `isError`.
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: integer
+              description: -32700 parse error, -32001 token not valid, -32601 method not found, -32602 invalid params.
+            message:
+              type: string
+    AskQuestionInput:
+      type: object
+      description: Tool `ask_question`. The run waits until a person answers. A spec question also gets a RAID file.
+      additionalProperties: false
+      required: [question, options, recommended]
+      properties:
+        question: { type: string, minLength: 1, maxLength: 500 }
+        options:
+          type: array
+          minItems: 2
+          maxItems: 4
+          items: { type: string, minLength: 1, maxLength: 200 }
+        recommended:
+          type: integer
+          minimum: 1
+          maximum: 4
+          description: The number of the recommended option, from 1.
+        free_text: { type: boolean }
+        kind: { type: string, enum: [ticket, spec] }
+        spec:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: A ref that starts with spec:. Only with kind spec.
+    PostProgressInput:
+      type: object
+      description: Tool `post_progress`. The run does not stop.
+      additionalProperties: false
+      required: [text]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 280 }
+    HandoffInput:
+      type: object
+      description: Tool `handoff`. Pass the work to another role in the same run.
+      additionalProperties: false
+      required: [role, summary]
+      properties:
+        role: { type: string, minLength: 1, maxLength: 64 }
+        summary: { type: string, minLength: 1, maxLength: 4000 }
+        step: { type: string, minLength: 1, maxLength: 64 }
+    MessageInput:
+      type: object
+      description: Tool `message`. The step reads the text at its next turn.
+      additionalProperties: false
+      required: [to, text]
+      properties:
+        to:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: A step id of this run, or `person`.
+        text: { type: string, minLength: 1, maxLength: 2000 }
+    SpawnSubtaskInput:
+      type: object
+      description: Tool `spawn_subtask`. The engine refuses the call when the limits of the step are reached.
+      additionalProperties: false
+      required: [title, brief, role]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        brief: { type: string, minLength: 1, maxLength: 8000 }
+        role: { type: string, minLength: 1, maxLength: 64 }
+    ReportInput:
+      type: object
+      description: Tool `report`. The step ends when it is called.
+      additionalProperties: false
+      required: [outcome, summary]
+      properties:
+        outcome: { type: string, enum: [done, partial, failed] }
+        summary: { type: string, minLength: 1, maxLength: 8000 }
+        refs:
+          type: array
+          maxItems: 50
+          items: { type: string, minLength: 1, maxLength: 200 }
+        output:
+          type: object
+          description: Named fields for the next steps, such as the list `tasks` of a plan.
+    RefInput:
+      type: object
+      description: Tools `read_ticket` (a ref that starts with wi:) and `read_ref` (any ref). Both change nothing.
+      additionalProperties: false
+      required: [ref]
+      properties:
+        ref: { type: string, minLength: 1, maxLength: 200 }
+    PathInput:
+      type: object
+      description: Tools `project_list_files` (path is optional) and `project_read_file`. A path stays inside the project and names no secret file.
+      additionalProperties: false
+      properties:
+        path: { type: string }
+    WriteFileInput:
+      type: object
+      description: Tool `project_write_file`.
+      additionalProperties: false
+      required: [path, text]
+      properties:
+        path: { type: string }
+        text: { type: string }
+    LimitInput:
+      type: object
+      description: Tools `git_log` (1 to 100 commits) and `ticket_list` (1 to 200 tickets).
+      additionalProperties: false
+      properties:
+        limit: { type: integer, minimum: 1, maximum: 200 }
+    CheckInput:
+      type: object
+      description: Tools `run_check` and `qa_run_check`. Each runs for 180 s at most.
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, enum: [test, lint, typecheck] }
+    BaseInput:
+      type: object
+      description: Tool `delivery_diff`.
+      additionalProperties: false
+      properties:
+        base: { type: string }
+    TicketKeyInput:
+      type: object
+      description: Tool `ticket_read`.
+      additionalProperties: false
+      required: [key]
+      properties:
+        key: { type: string }
+    TicketCommentInput:
+      type: object
+      description: Tool `ticket_comment`. A read-only project refuses it.
+      additionalProperties: false
+      required: [key, body]
+      properties:
+        key: { type: string }
+        body: { type: string }
+    AdrReadInput:
+      type: object
+      description: Tool `adr_read`.
+      additionalProperties: false
+      required: [number]
+      properties:
+        number: { type: string }
+    AdrProposeInput:
+      type: object
+      description: Tool `adr_propose`. Writes an ADR with the status proposed. A person accepts or rejects it.
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string }
+    NoInput:
+      type: object
+      description: Tools `git_status`, `git_diff`, `forge_remote`, `adr_list` and `qa_read_report`.
+      additionalProperties: false

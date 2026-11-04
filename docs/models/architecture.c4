@@ -1,0 +1,254 @@
+// Shipyard architecture: the desktop shell, the React spaces, the Rust crates and the systems
+// around them. Each crate dependency below is a line of the `[dependencies]` table of its
+// `Cargo.toml`. Keep this file in step with them (see "Docs stay current" in AGENTS.md).
+
+specification {
+  element person {
+    style {
+      shape person
+    }
+  }
+  element system
+  element container
+  element component
+  element store {
+    style {
+      shape storage
+    }
+  }
+  element external
+}
+
+model {
+  team = person 'Team member' {
+    description 'Project manager, architect, developer, QA tester, business analyst, functional lead or junior.'
+  }
+
+  shipyard = system 'Shipyard' {
+    description 'Desktop app that opens a Git repository and runs the delivery loop for the project team.'
+
+    shell = container 'Tauri shell' {
+      technology 'Rust, Tauri 2'
+      description 'Native window, menu, notifications, terminal, update check and the IPC commands (crates/shipyard-app).'
+    }
+
+    ui = container 'React UI' {
+      technology 'React 19, Vite, TypeScript'
+      description 'The spaces, the shared components and the generated IPC client (src/).'
+
+      home = component 'Home' {
+        description 'Needs you, My work, Activity.'
+      }
+      design = component 'Design' {
+        description 'Diagrams, architecture, decisions, API, data, flows, screens.'
+      }
+      specs = component 'Specs' {
+        description 'Changes, capabilities, questions, test plans, constitution.'
+      }
+      work = component 'Work' {
+        description 'Backlog, board, plan, estimates, team, time.'
+      }
+      factory = component 'Factory' {
+        description 'Runs, workflows, sessions, usage.'
+      }
+      code = component 'Code' {
+        description 'Changes, history, branches, pull requests, quality, terminal.'
+      }
+      knowledge = component 'Knowledge' {
+        description 'Graph, handbook, documents, slides, learn, dashboards.'
+      }
+      settings = component 'Settings' {
+        description 'Project, connections, agents and rules, extensions, health.'
+      }
+      assistant = component 'Assistant panel' {
+        description 'Chat panel with threads and modes, in every space.'
+      }
+      uikit = component 'UI kit' {
+        description 'Tokens, atoms, molecules, organisms, templates (src/ui).'
+      }
+      ipc = component 'IPC client' {
+        description 'Generated commands, types and mocks (src/lib/ipc).'
+      }
+    }
+
+    crates = container 'Rust crates' {
+      technology 'Rust workspace'
+      description 'The back end, split in small crates (crates/*).'
+
+      core = component 'shipyard-core' {
+        description 'Domain types, refs, run state machine, workflow model. No I/O.'
+      }
+      store = component 'shipyard-store' {
+        description 'SQLite mirror, run log, ref index and the codecs of repository files.'
+      }
+      trackers = component 'shipyard-trackers' {
+        description 'Issue tracker adapters: Jira, GitHub Issues, GitLab Issues, Azure DevOps, Linear.'
+      }
+      forges = component 'shipyard-forges' {
+        description 'Code host adapters: GitHub, GitLab, Azure DevOps. Pull requests and CI status.'
+      }
+      git = component 'shipyard-git' {
+        description 'Clone, working copy, worktrees and Git credentials.'
+      }
+      agents = component 'shipyard-agents' {
+        description 'Agent CLI runners, model providers, MCP server control.'
+      }
+      engine = component 'shipyard-engine' {
+        description 'Sync tick, claims, run engine, budgets, questions loop.'
+      }
+      mcp = component 'shipyard-mcp' {
+        description 'MCP server for the agents: stdio and loopback HTTP, per-run tokens, proxy and relay.'
+      }
+      http = component 'shipyard-http' {
+        description 'The one HTTP client: no redirects, size cap, proxy, extra CA.'
+      }
+      secrets = component 'shipyard-secrets' {
+        description 'Secret wrapper that never prints, and the keychain store.'
+      }
+      cli = component 'shipyard-cli' {
+        description 'Headless binary that the agent CLIs start as their MCP server.'
+      }
+    }
+
+    appdata = store 'App data folder' {
+      technology 'SQLite files'
+      description 'Mirror, run log, ref index, connections, preferences. Never in the repository.'
+    }
+
+    repo = store 'Project repository' {
+      technology 'Git working copy'
+      description 'Specs, decisions, questions, design docs, .shipyard/ files.'
+    }
+  }
+
+  keychain = external 'OS keychain' {
+    description 'macOS Keychain, Windows Credential Manager or Secret Service.'
+  }
+  issueTrackers = external 'Issue trackers' {
+    description 'Jira Cloud and Data Center, GitHub Issues, GitLab Issues, Azure DevOps, Linear.'
+  }
+  codeHosts = external 'Code hosts' {
+    description 'GitHub, GitLab, Azure DevOps: Git remotes, pull requests, CI status, sign-in.'
+  }
+  agentClis = external 'Agent CLIs' {
+    description 'Claude Code, Codex, GitHub Copilot, Gemini CLI, OpenCode.'
+  }
+  modelProviders = external 'Model providers' {
+    description 'OpenAI-style HTTP endpoints: LM Studio, Ollama, vLLM, LiteLLM, OpenRouter, vendor APIs.'
+  }
+  mcpServers = external 'MCP servers' {
+    description 'Servers of the connections, started as a process or reached over HTTP.'
+  }
+  releasePage = external 'Release page' {
+    description 'GitHub release of Shipyard. The update check reads it.'
+  }
+  drawioEmbed = external 'draw.io embed' {
+    description 'embed.diagrams.net, shown in a frame to edit draw.io boards.'
+  }
+
+  // People and the app.
+  team -> shipyard.ui 'works in'
+
+  // Inside the shell.
+  shipyard.ui -> shipyard.shell 'calls commands over IPC'
+  shipyard.ui.ipc -> shipyard.shell 'invoke and events'
+  shipyard.ui.home -> shipyard.ui.ipc 'uses'
+  shipyard.ui.design -> shipyard.ui.ipc 'uses'
+  shipyard.ui.specs -> shipyard.ui.ipc 'uses'
+  shipyard.ui.work -> shipyard.ui.ipc 'uses'
+  shipyard.ui.factory -> shipyard.ui.ipc 'uses'
+  shipyard.ui.code -> shipyard.ui.ipc 'uses'
+  shipyard.ui.knowledge -> shipyard.ui.ipc 'uses'
+  shipyard.ui.settings -> shipyard.ui.ipc 'uses'
+  shipyard.ui.assistant -> shipyard.ui.ipc 'uses'
+  shipyard.ui.home -> shipyard.ui.uikit 'draws with'
+  shipyard.ui.design -> shipyard.ui.uikit 'draws with'
+  shipyard.ui.specs -> shipyard.ui.uikit 'draws with'
+  shipyard.ui.work -> shipyard.ui.uikit 'draws with'
+  shipyard.ui.factory -> shipyard.ui.uikit 'draws with'
+  shipyard.ui.code -> shipyard.ui.uikit 'draws with'
+  shipyard.ui.knowledge -> shipyard.ui.uikit 'draws with'
+  shipyard.ui.settings -> shipyard.ui.uikit 'draws with'
+
+  // The shell uses every crate except the headless binary.
+  shipyard.shell -> shipyard.crates.agents 'starts runs and assistants'
+  shipyard.shell -> shipyard.crates.core 'uses domain types'
+  shipyard.shell -> shipyard.crates.engine 'runs the sync tick and the factory'
+  shipyard.shell -> shipyard.crates.forges 'lists pull requests'
+  shipyard.shell -> shipyard.crates.git 'git operations'
+  shipyard.shell -> shipyard.crates.http 'HTTP calls'
+  shipyard.shell -> shipyard.crates.mcp 'serves the agent tools'
+  shipyard.shell -> shipyard.crates.secrets 'reads and writes secrets'
+  shipyard.shell -> shipyard.crates.store 'reads and writes stores'
+  shipyard.shell -> shipyard.crates.trackers 'reads work items'
+
+  // Crate dependencies (the [dependencies] table of each Cargo.toml).
+  shipyard.crates.agents -> shipyard.crates.core 'uses'
+  shipyard.crates.agents -> shipyard.crates.git 'uses'
+  shipyard.crates.agents -> shipyard.crates.http 'uses'
+  shipyard.crates.agents -> shipyard.crates.secrets 'uses'
+  shipyard.crates.engine -> shipyard.crates.agents 'uses'
+  shipyard.crates.engine -> shipyard.crates.core 'uses'
+  shipyard.crates.engine -> shipyard.crates.mcp 'uses'
+  shipyard.crates.engine -> shipyard.crates.store 'uses'
+  shipyard.crates.forges -> shipyard.crates.http 'uses'
+  shipyard.crates.forges -> shipyard.crates.secrets 'uses'
+  shipyard.crates.git -> shipyard.crates.core 'uses'
+  shipyard.crates.git -> shipyard.crates.secrets 'uses'
+  shipyard.crates.http -> shipyard.crates.secrets 'uses'
+  shipyard.crates.mcp -> shipyard.crates.agents 'uses'
+  shipyard.crates.mcp -> shipyard.crates.core 'uses'
+  shipyard.crates.mcp -> shipyard.crates.secrets 'uses'
+  shipyard.crates.mcp -> shipyard.crates.store 'uses'
+  shipyard.crates.store -> shipyard.crates.core 'uses'
+  shipyard.crates.trackers -> shipyard.crates.core 'uses'
+  shipyard.crates.trackers -> shipyard.crates.http 'uses'
+  shipyard.crates.trackers -> shipyard.crates.secrets 'uses'
+  shipyard.crates.cli -> shipyard.crates.mcp 'uses'
+
+  // Data.
+  shipyard.crates.store -> shipyard.appdata 'SQLite and JSON files'
+  shipyard.crates.store -> shipyard.repo 'reads and writes project files'
+  shipyard.crates.git -> shipyard.repo 'working copy and worktrees'
+
+  // External systems.
+  shipyard.crates.secrets -> keychain 'stores each secret'
+  shipyard.crates.trackers -> issueTrackers 'HTTPS: read work items'
+  shipyard.crates.forges -> codeHosts 'HTTPS: pull requests, CI status'
+  shipyard.crates.git -> codeHosts 'Git over HTTPS'
+  shipyard.crates.agents -> agentClis 'starts as a child process'
+  shipyard.crates.agents -> modelProviders 'HTTPS: chat completions'
+  shipyard.crates.agents -> mcpServers 'starts or calls'
+  shipyard.shell -> releasePage 'HTTPS: update check'
+  shipyard.shell -> codeHosts 'HTTPS: browser sign-in (device flow)'
+  shipyard.ui -> drawioEmbed 'frame: draw.io editor'
+  agentClis -> shipyard.crates.cli 'start it as MCP server (stdio)'
+  agentClis -> shipyard.crates.mcp 'call tools (loopback HTTP)'
+}
+
+views {
+  view index {
+    title 'Shipyard in its context'
+    include *
+  }
+
+  view containers of shipyard {
+    title 'Shipyard containers'
+    include *
+  }
+
+  view ui of shipyard.ui {
+    title 'React UI: spaces'
+    include *
+  }
+
+  view crates of shipyard.crates {
+    title 'Rust crates and their dependencies'
+    include *
+  }
+
+  view externals {
+    title 'External systems'
+    include shipyard.shell, shipyard.crates.*, keychain, issueTrackers, codeHosts, agentClis, modelProviders, mcpServers, releasePage, drawioEmbed
+  }
+}

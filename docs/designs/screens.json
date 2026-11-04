@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "screens": [
+    {
+      "id": "SCR-001",
+      "slug": "home",
+      "title": "Home",
+      "artifacts": [
+        "spec:shell"
+      ],
+      "file": "docs/assets/screenshots/home.png"
+    },
+    {
+      "id": "SCR-002",
+      "slug": "home-light",
+      "title": "Home, light theme",
+      "artifacts": [
+        "spec:shell",
+        "spec:design-system"
+      ],
+      "file": "docs/assets/screenshots/home-light.png"
+    },
+    {
+      "id": "SCR-003",
+      "slug": "design",
+      "title": "Design",
+      "artifacts": [
+        "spec:design"
+      ],
+      "file": "docs/assets/screenshots/design.png"
+    },
+    {
+      "id": "SCR-004",
+      "slug": "specs",
+      "title": "Specs",
+      "artifacts": [
+        "spec:specs"
+      ],
+      "file": "docs/assets/screenshots/specs.png"
+    },
+    {
+      "id": "SCR-005",
+      "slug": "work",
+      "title": "Work",
+      "artifacts": [
+        "spec:work"
+      ],
+      "file": "docs/assets/screenshots/work.png"
+    },
+    {
+      "id": "SCR-006",
+      "slug": "factory",
+      "title": "Factory",
+      "artifacts": [
+        "spec:factory"
+      ],
+      "file": "docs/assets/screenshots/factory.png"
+    },
+    {
+      "id": "SCR-007",
+      "slug": "agents-map",
+      "title": "Factory, agents map",
+      "artifacts": [
+        "spec:factory"
+      ],
+      "file": "docs/assets/screenshots/agents.png"
+    },
+    {
+      "id": "SCR-008",
+      "slug": "code",
+      "title": "Code",
+      "artifacts": [
+        "spec:code"
+      ],
+      "file": "docs/assets/screenshots/code.png"
+    },
+    {
+      "id": "SCR-009",
+      "slug": "knowledge",
+      "title": "Knowledge",
+      "artifacts": [
+        "spec:knowledge"
+      ],
+      "file": "docs/assets/screenshots/knowledge.png"
+    }
+  ]
+}
