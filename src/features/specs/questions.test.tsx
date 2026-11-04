@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { errorMessages } from "@/lib/i18n/errors";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { Questions } from "./index";
@@ -74,7 +75,7 @@ describe("Specs / Questions", () => {
 		await fill(user, "Title", "Dup");
 		await fill(user, "Id", "Q-012");
 		await user.click(dialog.getByRole("button", { name: "Save" }));
-		expect(await dialog.findByRole("alert")).toHaveTextContent("duplicate id Q-012");
+		expect(await dialog.findByRole("alert")).toHaveTextContent(errorMessages.en.already_exists);
 		expect(Object.keys(files())).toHaveLength(before);
 	});
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { commands } from "./bindings";
-import { DEMO_FOLDER, installMockIpc, mockState, pickMock } from "./mock";
+import { DEMO_FOLDER, installMockIpc, mockState, pickMock, resetMock } from "./mock";
 import { unwrap } from "./result";
 
 describe("mock ipc", () => {
@@ -47,6 +47,17 @@ describe("mock ipc", () => {
 		expect(await unwrap(commands.projectsList())).toHaveLength(2);
 		// A folder with no project file opens: the file is written without a question.
 		expect((await unwrap(commands.projectsOpen("/mock/bare", false))).status).toBe("opened");
+	});
+
+	it("gives each project its own overrides", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await unwrap(commands.projectsOpen("/mock/beta", false));
+		const [a, b] = mockState().projects;
+		if (a) a.overrides.readOnly = true;
+		expect(b?.overrides.readOnly).toBeNull();
+		resetMock();
+		await unwrap(commands.projectsOpen("/mock/gamma", false));
+		expect(mockState().projects[0]?.overrides.readOnly).toBeNull();
 	});
 
 	it("closes and removes a project like the Rust commands", async () => {

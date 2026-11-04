@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { createEvent, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
@@ -45,6 +45,26 @@ describe("Knowledge / Dashboards", () => {
 			expect((await unwrap(commands.dashboardGetOne("team"))).value.tiles[0]?.x).toBe(1),
 		);
 		expect(mockState().knowledge.files[FILE]?.text).toContain("x: 1");
+	});
+
+	it("moves a tile when it is dragged to another column", async () => {
+		await mountKnowledge("dashboards");
+		const item = (await screen.findByRole("region", { name: "Work items" })).closest("li");
+		const grid = item?.parentElement;
+		if (!(item && grid)) throw new Error("grid");
+		// 12 columns of 100 px.
+		grid.getBoundingClientRect = () => ({ left: 0, width: 1200 }) as DOMRect;
+		const dataTransfer = { setData() {}, getData: () => "", effectAllowed: "" };
+		// jsdom has no DragEvent, so the pointer column goes on the event by hand.
+		const at = (target: Element, event: Event, clientX: number) => {
+			Object.defineProperty(event, "clientX", { value: clientX });
+			fireEvent(target, event);
+		};
+		at(item, createEvent.dragStart(item, { dataTransfer }), 50);
+		at(grid, createEvent.drop(grid, { dataTransfer }), 250);
+		await waitFor(async () =>
+			expect((await unwrap(commands.dashboardGetOne("team"))).value.tiles[0]?.x).toBe(2),
+		);
 	});
 
 	it("shows a dashboard that a newer version wrote and offers no move", async () => {

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { Button } from "@/ui/atoms/button";
 import { CommandLineIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
@@ -18,7 +19,7 @@ export function TerminalScreen({
 	const { t } = useI18n();
 	const host = useRef<HTMLDivElement>(null);
 	const [error, setError] = useState<unknown>(null);
-	useTerminal(host, folder, setError, t.forge.terminal.ended);
+	const { ended, restart } = useTerminal(host, folder, setError, t.forge.terminal.ended);
 	return (
 		<>
 			{error ? <ErrorNotice error={error} className="px-4 py-2 text-ui text-danger-text" /> : null}
@@ -29,6 +30,11 @@ export function TerminalScreen({
 					className,
 				)}
 			>
+				{ended ? (
+					<div className="flex shrink-0 justify-end border-b px-3 py-1">
+						<Button onClick={restart}>{t.forge.terminal.restart}</Button>
+					</div>
+				) : null}
 				<section ref={host} aria-label={t.forge.terminal.label} className="min-h-0 flex-1 p-3" />
 			</div>
 		</>

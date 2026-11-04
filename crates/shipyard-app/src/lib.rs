@@ -77,6 +77,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             projects::projects_list,
             projects::projects_active,
             projects::projects_open,
+            projects::projects_is_folder,
             projects::projects_create,
             projects::projects_init,
             projects::projects_clone,

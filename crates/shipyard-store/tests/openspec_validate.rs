@@ -2,7 +2,7 @@
 
 use std::path::Path;
 
-use shipyard_store::openspec_validate::{map, run};
+use shipyard_store::openspec_validate::{map, map_all, run, run_all};
 
 const VALID: &str = include_str!("fixtures/openspec/valid.json");
 const BAD: &str = include_str!("fixtures/openspec/bad.json");
@@ -79,5 +79,28 @@ fn failed_run_is_validator_missing() {
     assert_eq!(
         run(Path::new("/x/openspec"), "Bad Id")[0].message,
         "invalid change id"
+    );
+}
+
+#[test]
+fn one_run_maps_the_findings_of_each_change_and_skips_the_specs() {
+    let dir = tempfile::tempdir().unwrap();
+    let spec = dir.path().join("changes/demo-bad/specs/demo");
+    std::fs::create_dir_all(&spec).unwrap();
+    std::fs::write(spec.join("spec.md"), BAD_SPEC).unwrap();
+    let json = r#"{"items":[
+        {"id":"demo-bad","type":"change","issues":[{"level":"ERROR","path":"demo/spec.md","message":"ADDED \"REQ-002 Second\" must include at least one scenario"}]},
+        {"id":"demo-ok","type":"change","issues":[]},
+        {"id":"shell","type":"spec","issues":[{"level":"ERROR","path":"spec.md","message":"x"}]}]}"#;
+    let f = map_all(json, dir.path());
+    assert_eq!(f.len(), 1);
+    assert_eq!(f[0].0, "demo-bad");
+    assert_eq!(f[0].1.path, "specs/demo/spec.md");
+    assert!(f[0].1.line.is_some());
+    assert_eq!(map_all("not json", dir.path())[0].0, "");
+    let gone = run_all(Path::new("/nonexistent/openspec"));
+    assert_eq!(
+        (gone.len(), gone[0].1.message.as_str()),
+        (1, "validator missing")
     );
 }

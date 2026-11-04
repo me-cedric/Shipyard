@@ -23,7 +23,7 @@ export function ActiveSessions({ className }: { className: string }) {
 	const compact = new Intl.NumberFormat(lang, { notation: "compact" });
 	const stop = (pid: number) => {
 		setError(null);
-		writes.stop(pid).catch((e: unknown) => setError(String(e)));
+		writes.stop(pid).catch((e: unknown) => setError(e));
 	};
 	return (
 		<Popover.Root>

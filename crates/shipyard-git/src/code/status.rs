@@ -84,13 +84,8 @@ fn under(paths: &[String], p: &str) -> bool {
 }
 
 impl Repo {
+    /// A deleted file and an added file of the same content make one renamed file.
     pub fn status(&self) -> Result<Changes> {
-        self.status_with(true)
-    }
-
-    /// `renames` pairs a deleted file with an added file of the same content. A pair hides the
-    /// added path, so `stage` reads the status without it.
-    fn status_with(&self, renames: bool) -> Result<Changes> {
         let mut out = Changes {
             merging: self.repo.state() == git2::RepositoryState::Merge,
             rebasing: matches!(
@@ -127,19 +122,21 @@ impl Repo {
         let mut opts = StatusOptions::new();
         opts.include_untracked(true)
             .recurse_untracked_dirs(true)
-            .renames_head_to_index(renames)
-            .renames_index_to_workdir(renames);
+            .renames_head_to_index(true)
+            .renames_index_to_workdir(true);
         let statuses = self.repo.statuses(Some(&mut opts))?;
         for e in statuses.iter() {
             let path = String::from_utf8_lossy(e.path_bytes()).replace('\\', "/");
             let s = e.status();
-            let change = |state, old_path| FileChange {
-                path: path.clone(),
+            // libgit2 names a rename by its old path: the new path comes from the delta.
+            let change = |state, old_path, new_path: Option<String>| FileChange {
+                path: new_path.unwrap_or_else(|| path.clone()),
                 old_path,
                 state,
             };
             if s.contains(Status::CONFLICTED) {
-                out.conflicted.push(change(FileState::Conflicted, None));
+                out.conflicted
+                    .push(change(FileState::Conflicted, None, None));
                 continue;
             }
             if let Some(d) = e.head_to_index().filter(|_| {
@@ -154,15 +151,17 @@ impl Repo {
                 let old = (d.status() == Delta::Renamed)
                     .then(|| path_of(d.old_file()))
                     .flatten();
-                out.staged.push(change(state_of(d.status()), old));
+                out.staged
+                    .push(change(state_of(d.status()), old, path_of(d.new_file())));
             }
             if s.contains(Status::WT_NEW) {
-                out.untracked.push(change(FileState::Untracked, None));
+                out.untracked.push(change(FileState::Untracked, None, None));
             } else if let Some(d) = e.index_to_workdir() {
                 let old = (d.status() == Delta::Renamed)
                     .then(|| path_of(d.old_file()))
                     .flatten();
-                out.unstaged.push(change(state_of(d.status()), old));
+                out.unstaged
+                    .push(change(state_of(d.status()), old, path_of(d.new_file())));
             }
         }
         Ok(out)
@@ -172,12 +171,14 @@ impl Repo {
     /// The match is literal: a file, or a folder and what is under it. No glob.
     pub fn stage(&self, paths: &[String]) -> Result<()> {
         super::check_paths(paths)?;
-        let st = self.status_with(false)?;
+        let st = self.status()?;
         let mut index = self.repo.index()?;
         for f in [&st.unstaged, &st.untracked, &st.conflicted]
             .into_iter()
             .flatten()
-            .filter(|f| under(paths, &f.path))
+            .filter(|f| {
+                under(paths, &f.path) || f.old_path.as_deref().is_some_and(|o| under(paths, o))
+            })
         {
             if let Some(old) = &f.old_path {
                 index.remove_path(Path::new(old)).ok();

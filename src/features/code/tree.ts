@@ -37,7 +37,8 @@ export function treeRows(files: FileChange[]): TreeRow[] {
 			rows.push({
 				kind: "file",
 				path: file.path,
-				name: file.path.split("/").at(-1) ?? file.path,
+				// A renamed file shows `old → new`; its row sits under the new path.
+				name: `${file.old_path ? `${file.old_path} → ` : ""}${file.path.split("/").at(-1)}`,
 				depth,
 				file,
 			});

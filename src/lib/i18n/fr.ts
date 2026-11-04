@@ -507,6 +507,8 @@ export const fr: Messages = {
 		counter: "{count}/{max}",
 		older: "Plus anciens",
 		branch: "Branche de travail",
+		branchFilter: "Filtrer les branches",
+		newBranch: "Nouvelle branche {name}",
 		create: "Branche",
 		type: "Type",
 		area: "Zone",

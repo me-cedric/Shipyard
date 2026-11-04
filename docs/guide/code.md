@@ -10,6 +10,8 @@ Local changes lists the files that you changed, as a tree.
 2. Stage the files to keep. Or discard a change.
 3. Write a short message in the commit control of the status bar, then click Commit. A commit takes the staged files only.
 
+A renamed file shows under its new path, with the old one: `old → new`. Staging it or discarding its change acts on both paths.
+
 When two changes meet in the same lines, a conflict view shows both sides. Choose one, or write the result.
 
 ## History
@@ -19,6 +21,8 @@ History lists the commits, newest first. Select a commit to see its files and it
 ## Branches
 
 Branches lists the branches on this computer and on the server. Create, switch to, merge or delete a branch. The app never deletes the branch that you work on.
+
+The branch selector in the top bar has a filter box. Type to narrow the list, move with the arrow keys and press Enter. A remote branch checks out as a new local branch that follows it. The New branch row makes a branch from the branch that you work on.
 
 ## Pull requests
 
@@ -47,7 +51,7 @@ Impacts tells which items a change touches, and proposes an action plan.
 
 ## Terminal
 
-Terminal opens a command line in the folder of the project.
+Terminal opens a command line in the folder of the project. When the shell ends, click Restart. A link in the output opens in your browser.
 
 ## Sync
 

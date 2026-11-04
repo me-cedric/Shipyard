@@ -60,6 +60,22 @@ export function Composer({
 			}
 		}
 	};
+	/** An image on the clipboard joins as a file. A clipboard names every image the same, so each gets its own name. */
+	const paste = (e: React.ClipboardEvent) => {
+		const shots = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
+		if (shots.length === 0) return;
+		// Cells from a sheet carry text and a picture: keep the text paste.
+		if (!e.clipboardData.getData("text/plain")) e.preventDefault();
+		const stamp = Date.now();
+		void attach(
+			shots.map(
+				(f, i) =>
+					new File([f], `screenshot-${stamp}-${i + 1}.${f.type.slice(6).split("+")[0]}`, {
+						type: f.type,
+					}),
+			),
+		);
+	};
 	const submit = () => {
 		void a.send(
 			a.draft,
@@ -113,6 +129,7 @@ export function Composer({
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: a drop target; the Attach file button is the keyboard path
 		<div
+			data-drop-zone
 			className="m-2 mt-0 flex flex-col gap-2 rounded-xl border bg-surface-2 p-2 shadow-1"
 			onDragOver={(e) => e.preventDefault()}
 			onDrop={(e) => {
@@ -205,6 +222,7 @@ export function Composer({
 					value={a.draft}
 					aria-controls={menuOpen ? listId : undefined}
 					aria-activedescendant={menuOpen ? `${listId}-${current}` : undefined}
+					onPaste={paste}
 					onChange={(e) => {
 						const text = e.target.value;
 						setActive(0);

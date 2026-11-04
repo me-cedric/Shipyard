@@ -30,11 +30,24 @@ describe("the error contract", () => {
 			);
 			expect(failure.code, needle).not.toBe("unknown");
 			expect(failure.message, needle).not.toBe(raw);
+			const sentence = errorMessages.en[failure.code as keyof typeof errorMessages.en];
+			// A failed program keeps the tail of its output after the sentence.
 			expect(failure.message, needle).toBe(
-				errorMessages.en[failure.code as keyof typeof errorMessages.en],
+				failure.code === "tool_failed" ? `${sentence} ${raw}` : sentence,
 			);
 			expect(failure.details).toBe(raw);
 		}
+	});
+
+	it("keeps the output of a failed program, and keeps unrelated texts out of the sign-in and tool codes", () => {
+		const failed = toFailure("`git fetch` failed: fatal: no route");
+		expect(failed.message).toBe(
+			`${errorMessages.en.tool_failed} \`git fetch\` failed: fatal: no route`,
+		);
+		for (const text of ["ac gave no result", "the runner gave no text", "step s1 is not running"])
+			expect(classify(text).code, text).toBe("unknown");
+		expect(classify("github.com gave no token for gh").code).toBe("sign_in_failed");
+		expect(classify("device login: github.com gave no user_code: ").code).toBe("sign_in_failed");
 	});
 
 	it("gives each source its own message and action", () => {
@@ -54,6 +67,22 @@ describe("the error contract", () => {
 			code: "terminal_gone",
 			action: { kind: "setting", target: "terminalApp" },
 		});
+	});
+
+	it("groups the many texts of one kind under one code", () => {
+		for (const text of ["unknown project: zed", "no workflow `x` in this project", "no sheet `a`"])
+			expect(classify(text), text).toEqual({ code: "not_found", action: null });
+		expect(classify("the project has no remote")).toEqual({
+			code: "no_remote",
+			action: { kind: "open", target: "/code/branches" },
+		});
+		expect(classify("the base branch `dev` does not exist").code).toBe("no_base");
+		expect(classify("a.docx does not exist").code).toBe("path_invalid");
+		expect(classify("the title is empty").code).toBe("input_invalid");
+		expect(classify("the orca command is not installed").action?.target).toBe("/settings/health");
+		expect(toFailure("this tracker has no due date").message).toBe(
+			errorMessages.en.tracker_unsupported,
+		);
 	});
 
 	it("shows the details of a text that has no code, and no action", () => {

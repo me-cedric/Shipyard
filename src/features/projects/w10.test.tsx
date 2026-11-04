@@ -1,5 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
+import { errorMessages } from "@/lib/i18n/errors";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
@@ -24,6 +26,22 @@ describe("Home / Projects", () => {
 		await waitFor(async () =>
 			expect((await unwrap(commands.projectsActive()))?.name).toBe("alpha"),
 		);
+	});
+});
+
+describe("Home / Projects errors", () => {
+	it("shows the sentence of the error code, not the raw text or the error name", async () => {
+		const user = userEvent.setup();
+		await open("/mock/alpha");
+		vi.spyOn(commands, "projectsSwitch").mockResolvedValue({
+			status: "error",
+			error: { code: "read_only", details: "the project is read only", action: null },
+		});
+		mountApp("/home/projects");
+		await user.click(await screen.findByRole("button", { name: "Open alpha" }));
+		const alert = await screen.findByRole("alert");
+		expect(alert).toHaveTextContent(errorMessages.en.read_only);
+		expect(alert).not.toHaveTextContent("AppFailure");
 	});
 });
 

@@ -408,6 +408,13 @@ pub async fn projects_close(app: AppHandle) -> Api<()> {
     blocking(app, close).await
 }
 
+/// True when the path is a folder. A dropped file is not a project.
+#[tauri::command]
+#[specta::specta]
+pub fn projects_is_folder(path: String) -> bool {
+    Path::new(&path).is_dir()
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn projects_remove(app: AppHandle, id: String) -> Api<()> {
@@ -454,6 +461,18 @@ mod tests {
             write_project_file(&root, &ProjectFile::new(name, &derive_key(name))).unwrap();
         }
         root.to_str().unwrap().into()
+    }
+
+    #[test]
+    fn only_a_folder_is_a_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("a.txt");
+        std::fs::write(&file, "x").unwrap();
+        assert!(projects_is_folder(dir.path().to_str().unwrap().into()));
+        assert!(!projects_is_folder(file.to_str().unwrap().into()));
+        assert!(!projects_is_folder(
+            dir.path().join("none").to_str().unwrap().into()
+        ));
     }
 
     #[test]

@@ -1359,3 +1359,41 @@ fn set_remote_adds_then_changes_the_address() {
         Some((s("origin"), s("https://example.com/c/d.git")))
     );
 }
+
+#[test]
+fn a_renamed_file_shows_its_new_path_and_stages_and_discards() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    let body = "one\ntwo\nthree\nfour\nfive\nsix\n";
+    commit(&r, "old.txt", body, "chore: old");
+    let read = |p: &str| fs::read_to_string(r.workdir().join(p)).ok();
+
+    // Unstaged: the new path leads, the old path follows.
+    fs::rename(r.workdir().join("old.txt"), r.workdir().join("new.txt")).unwrap();
+    let st = r.status().unwrap();
+    assert_eq!(st.unstaged.len(), 1, "{st:?}");
+    assert_eq!(st.unstaged[0].path, "new.txt");
+    assert_eq!(st.unstaged[0].old_path.as_deref(), Some("old.txt"));
+    assert_eq!(st.unstaged[0].state, FileState::Renamed);
+
+    // Staged by the new path: the pair is one staged rename.
+    r.stage(&[s("new.txt")]).unwrap();
+    let st = r.status().unwrap();
+    assert!(st.unstaged.is_empty() && st.untracked.is_empty());
+    assert_eq!(st.staged.len(), 1, "{st:?}");
+    assert_eq!(st.staged[0].path, "new.txt");
+    assert_eq!(st.staged[0].old_path.as_deref(), Some("old.txt"));
+
+    // Unstaged again by the new path: both paths return.
+    r.unstage(&[s("new.txt")]).unwrap();
+    assert!(r.status().unwrap().staged.is_empty());
+
+    // Discard by the new path: the old file comes back; the new file goes only when asked.
+    r.discard(&[s("new.txt")], false).unwrap();
+    assert_eq!(read("old.txt").as_deref(), Some(body));
+    assert!(read("new.txt").is_some());
+    fs::remove_file(r.workdir().join("old.txt")).unwrap();
+    r.discard(&[s("new.txt")], true).unwrap();
+    assert_eq!(read("old.txt").as_deref(), Some(body));
+    assert!(read("new.txt").is_none());
+}

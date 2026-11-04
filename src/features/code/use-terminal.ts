@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { type RefObject, useEffect } from "react";
+import { type RefObject, useEffect, useState } from "react";
 import { commands, isTauri, type TerminalOutput, toFailure, unwrap } from "@/lib/ipc";
 import { CODE_FONTS } from "@/lib/prefs";
 
@@ -24,22 +24,37 @@ async function onOutput(listener: (e: Output) => void): Promise<() => void> {
 	return onMockTerminalOutput((id, data) => listener({ id, data }));
 }
 
+const LINK = /https?:\/\/[^\s<>"'`]+/g;
+
+/** The http and https links of one line of output, with their columns (from 0). A trailing mark is not part of a link. */
+export function linksIn(line: string) {
+	return [...line.matchAll(LINK)].map((m) => {
+		const url = m[0].replace(/[.,;:!?)\]}]+$/, "");
+		return { url, start: m.index ?? 0, end: (m.index ?? 0) + url.length };
+	});
+}
+
 /**
  * Starts a shell in `folder` and draws it with xterm in `host`. Closing the panel ends the shell
  * (REQ-035). One shell
- * for each panel and no WebGL or link addon (ADR 0012).
+ * for each panel and no WebGL or link addon (ADR 0012). A link in the output opens in the browser
+ * (shortcut: a link that wraps over two lines is cut at the line end, use the xterm link addon to join them).
+ * When the shell ends, `ended` is true and `restart` starts a new one in the same panel.
  */
 export function useTerminal(
 	host: RefObject<HTMLElement | null>,
 	folder: string | null,
 	onError: (message: string) => void,
 	/** The line that shows when the shell exits. */
-	ended: string,
+	endedLine: string,
 ) {
+	const [ended, setEnded] = useState(false);
+	const [round, setRound] = useState(0);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: onError is a state setter and the text only shows at an exit
 	useEffect(() => {
 		const node = host.current;
 		if (!node) return;
+		setEnded(false);
 		const id = `shipyard-${crypto.randomUUID()}`;
 		let stop = false;
 		let teardown = () => {};
@@ -63,6 +78,18 @@ export function useTerminal(
 				const fit = new FitAddon();
 				term.loadAddon(fit);
 				term.open(node);
+				const links = term.registerLinkProvider({
+					provideLinks: (y, done) => {
+						const line = term.buffer.active.getLine(y - 1)?.translateToString(true) ?? "";
+						done(
+							linksIn(line).map(({ url, start, end }) => ({
+								text: url,
+								range: { start: { x: start + 1, y }, end: { x: end, y } },
+								activate: () => void commands.openLink(url),
+							})),
+						);
+					},
+				});
 				fit.fit();
 				const off = await onOutput((e) => {
 					if (e.id === id) term.write(e.data);
@@ -70,7 +97,9 @@ export function useTerminal(
 				// The mock has no exit event: its shell lives until the panel closes.
 				const exit = isTauri()
 					? await listen<string>("terminal-exit", (e) => {
-							if (e.payload === id) term.writeln(`\r\n${ended}`);
+							if (e.payload !== id) return;
+							term.writeln(`\r\n${endedLine}`);
+							setEnded(true);
 						})
 					: () => {};
 				const data = term.onData((d) => void commands.terminalWrite(id, d));
@@ -83,6 +112,7 @@ export function useTerminal(
 				watch?.observe(node);
 				teardown = () => {
 					watch?.disconnect();
+					links.dispose();
 					data.dispose();
 					size.dispose();
 					off();
@@ -103,5 +133,6 @@ export function useTerminal(
 			stop = true;
 			teardown();
 		};
-	}, [host, folder]);
+	}, [host, folder, round]);
+	return { ended, restart: () => setRound((n) => n + 1) };
 }

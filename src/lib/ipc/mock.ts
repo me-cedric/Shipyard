@@ -587,7 +587,7 @@ function activate(path: string, name: string, key: string): ProjectOutcome_Seria
 			active: false,
 			lastUsed: 0,
 			lastView: null,
-			overrides: NO_OVERRIDES,
+			overrides: { ...NO_OVERRIDES },
 		};
 		state.projects.push(entry);
 	}
@@ -806,6 +806,7 @@ const handlers: Handlers = {
 	refsReindex: () => 0,
 	projectsList: () => state.projects,
 	projectsActive: () => active() ?? null,
+	projectsIsFolder: (path) => !path.endsWith(".txt"),
 	projectsOpen: (path) => {
 		if (path === "/mock/plain") return outcome("not-repository", path);
 		const name = path.split("/").pop() ?? "project";

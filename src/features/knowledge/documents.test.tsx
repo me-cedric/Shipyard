@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { errorMessages } from "@/lib/i18n/errors";
 import { mockState } from "@/lib/ipc/mock";
 import { Documents } from "./documents";
 import { inspector, mountKnowledge, mountView } from "./harness";
@@ -35,7 +36,7 @@ describe("Knowledge / Documents", () => {
 		await mountKnowledge("documents");
 		mockState().nextFile = "/mock/quality.txt";
 		await user.click(await screen.findByRole("button", { name: "Export Quality sheet" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent(".xlsx");
+		expect(await screen.findByRole("alert")).toHaveTextContent(errorMessages.en.file_unsupported);
 		expect(mockState().knowledge.exported).toHaveLength(0);
 	});
 

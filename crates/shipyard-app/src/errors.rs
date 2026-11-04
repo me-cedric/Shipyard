@@ -99,6 +99,26 @@ pub enum ErrorCode {
     NoMember,
     NoAccount,
     UnknownMember,
+    NotFound,
+    NoRemote,
+    SecretFound,
+    FileTooBig,
+    FileUnsupported,
+    PathInvalid,
+    AlreadyExists,
+    FileChanged,
+    NoCompass,
+    ToolMissing,
+    ToolFailed,
+    ConnectionKind,
+    SignInFailed,
+    GitState,
+    ThreadState,
+    Stopped,
+    ImportNotPlanned,
+    ServerOff,
+    InputInvalid,
+    TrackerUnsupported,
 }
 
 impl ErrorCode {
@@ -124,6 +144,12 @@ impl ErrorCode {
             Self::GitNothingStaged => (ActionKind::Open, "/code/changes"),
             Self::GitNoUpstream => (ActionKind::Open, "/code/branches"),
             Self::NoTerminal | Self::TerminalGone => (ActionKind::Setting, "terminalApp"),
+            Self::NoRemote => (ActionKind::Open, "/code/branches"),
+            Self::NoCompass => (ActionKind::Open, "/settings/agents-rules"),
+            Self::ToolMissing => (ActionKind::Open, "/settings/health"),
+            Self::ConnectionKind => (ActionKind::Setting, "connections"),
+            Self::SignInFailed => (ActionKind::Setting, "connections"),
+            Self::GitState => (ActionKind::Open, "/code/branches"),
             _ => return None,
         };
         Some(ErrorAction {
@@ -221,6 +247,150 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("no team member matches", ErrorCode::NoMember),
     ("no signed-in account", ErrorCode::NoAccount),
     ("the team has no member", ErrorCode::UnknownMember),
+    ("no change against", ErrorCode::NoChanges),
+    (
+        "pull request of the run is not open",
+        ErrorCode::MergeClosed,
+    ),
+    ("no base branch", ErrorCode::NoBase),
+    ("the base branch `", ErrorCode::NoBase),
+    ("unknown project", ErrorCode::NotFound),
+    ("unknown connection", ErrorCode::NotFound),
+    ("unknown tool", ErrorCode::NotFound),
+    ("unknown runner", ErrorCode::NotFound),
+    ("unknown provider", ErrorCode::NotFound),
+    ("unknown entry", ErrorCode::NotFound),
+    ("unknown child project", ErrorCode::NotFound),
+    ("unknown tile", ErrorCode::NotFound),
+    ("unknown stack or agent", ErrorCode::NotFound),
+    ("unknown member", ErrorCode::NotFound),
+    ("no workflow `", ErrorCode::NotFound),
+    ("no role `", ErrorCode::NotFound),
+    ("no sheet `", ErrorCode::NotFound),
+    ("no run ", ErrorCode::NotFound),
+    ("no question ", ErrorCode::NotFound),
+    ("no change ", ErrorCode::NotFound),
+    ("no capability ", ErrorCode::NotFound),
+    ("no entry `", ErrorCode::NotFound),
+    ("no linked project", ErrorCode::NotFound),
+    ("no ticket ", ErrorCode::NotFound),
+    ("the finding is gone", ErrorCode::NotFound),
+    ("the server is gone from that file", ErrorCode::NotFound),
+    ("has no remote", ErrorCode::NoRemote),
+    (
+        "the remote address is not a web address",
+        ErrorCode::NoRemote,
+    ),
+    ("looks like a secret", ErrorCode::SecretFound),
+    ("too big", ErrorCode::FileTooBig),
+    ("too large", ErrorCode::FileTooBig),
+    ("is larger than", ErrorCode::FileTooBig),
+    ("the file is over", ErrorCode::FileTooBig),
+    ("the workbook is over", ErrorCode::FileTooBig),
+    ("not a file under", ErrorCode::FileTooBig),
+    ("not UTF-8 text", ErrorCode::FileUnsupported),
+    ("is not a PNG file", ErrorCode::FileUnsupported),
+    ("is not a text file", ErrorCode::FileUnsupported),
+    ("no PEM certificate", ErrorCode::FileUnsupported),
+    ("PEM block", ErrorCode::FileUnsupported),
+    ("is not valid JSON", ErrorCode::FileUnsupported),
+    ("is not an object", ErrorCode::FileUnsupported),
+    ("is not a .docx file", ErrorCode::FileUnsupported),
+    ("is not an .xlsx file", ErrorCode::FileUnsupported),
+    ("the file is not a .", ErrorCode::FileUnsupported),
+    ("a page is a .md file", ErrorCode::FileUnsupported),
+    ("a JSON sheet", ErrorCode::FileUnsupported),
+    ("is not a path of the project", ErrorCode::PathInvalid),
+    ("path is not absolute", ErrorCode::PathInvalid),
+    ("not an absolute file path", ErrorCode::PathInvalid),
+    ("the path is not a file", ErrorCode::PathInvalid),
+    ("the path is a folder", ErrorCode::PathInvalid),
+    ("does not exist", ErrorCode::PathInvalid),
+    ("no such file", ErrorCode::PathInvalid),
+    ("path not allowed", ErrorCode::PathInvalid),
+    ("fix path is not inside", ErrorCode::PathInvalid),
+    ("invalid folder", ErrorCode::PathInvalid),
+    ("a folder does not move into itself", ErrorCode::PathInvalid),
+    ("already exists", ErrorCode::AlreadyExists),
+    ("duplicate id", ErrorCode::AlreadyExists),
+    ("changed on disk", ErrorCode::FileChanged),
+    ("changed since the preview", ErrorCode::FileChanged),
+    ("version changed", ErrorCode::FileChanged),
+    ("no compass is pinned", ErrorCode::NoCompass),
+    ("is not installed", ErrorCode::ToolMissing),
+    ("did not start", ErrorCode::ToolMissing),
+    ("node did not run", ErrorCode::ToolMissing),
+    ("Orca is not running", ErrorCode::ToolMissing),
+    ("tools endpoint is not running", ErrorCode::ToolMissing),
+    ("did not answer", ErrorCode::ToolMissing),
+    ("manager vanished", ErrorCode::ToolMissing),
+    ("the orca command", ErrorCode::ToolMissing),
+    ("` failed:", ErrorCode::ToolFailed),
+    ("is not a tracker", ErrorCode::ConnectionKind),
+    ("is not a forge", ErrorCode::ConnectionKind),
+    (
+        "the kind of a connection does not change",
+        ErrorCode::ConnectionKind,
+    ),
+    ("need a GitLab connection", ErrorCode::ConnectionKind),
+    ("refused the sign-in", ErrorCode::SignInFailed),
+    ("gave no token for", ErrorCode::SignInFailed),
+    ("device login: ", ErrorCode::SignInFailed),
+    ("detached HEAD", ErrorCode::GitState),
+    ("the run folder is on", ErrorCode::GitState),
+    ("no working branch", ErrorCode::GitState),
+    ("working branch before", ErrorCode::GitState),
+    ("switch to the branch", ErrorCode::GitState),
+    ("unstage your changes first", ErrorCode::GitState),
+    ("is the base: no pull request", ErrorCode::GitState),
+    ("is not cloned yet", ErrorCode::GitState),
+    ("clone the child project first", ErrorCode::GitState),
+    ("git could not list the files", ErrorCode::GitState),
+    ("this thread already runs", ErrorCode::ThreadState),
+    ("the thread has no message", ErrorCode::ThreadState),
+    ("the thread waits for no permission", ErrorCode::ThreadState),
+    ("switch the thread to agent mode", ErrorCode::ThreadState),
+    ("nothing to retry", ErrorCode::ThreadState),
+    ("the review was stopped", ErrorCode::Stopped),
+    ("the test stopped", ErrorCode::Stopped),
+    ("no import is planned", ErrorCode::ImportNotPlanned),
+    ("turn the server on first", ErrorCode::ServerOff),
+    ("server is not active", ErrorCode::ServerOff),
+    ("is empty", ErrorCode::InputInvalid),
+    ("a reason is needed", ErrorCode::InputInvalid),
+    ("is not valid", ErrorCode::InputInvalid),
+    ("has bad characters", ErrorCode::InputInvalid),
+    ("is not an id", ErrorCode::InputInvalid),
+    ("is not a plain run", ErrorCode::InputInvalid),
+    ("is not a run id", ErrorCode::InputInvalid),
+    ("is not a workflow id", ErrorCode::InputInvalid),
+    ("bad commit id", ErrorCode::InputInvalid),
+    ("bad project id", ErrorCode::InputInvalid),
+    ("not a ref", ErrorCode::InputInvalid),
+    ("not a dashboard name", ErrorCode::InputInvalid),
+    ("not an ADR", ErrorCode::InputInvalid),
+    ("not a flow file", ErrorCode::InputInvalid),
+    ("not a question file", ErrorCode::InputInvalid),
+    ("not a spec:", ErrorCode::InputInvalid),
+    ("not a contract", ErrorCode::InputInvalid),
+    ("method not allowed", ErrorCode::InputInvalid),
+    ("the contract does not list", ErrorCode::InputInvalid),
+    ("is not an absolute http", ErrorCode::InputInvalid),
+    ("the body is not JSON", ErrorCode::InputInvalid),
+    ("section titles", ErrorCode::InputInvalid),
+    ("invalid view", ErrorCode::InputInvalid),
+    ("not a scanner", ErrorCode::InputInvalid),
+    ("not a runner", ErrorCode::InputInvalid),
+    ("not a check of this project", ErrorCode::InputInvalid),
+    ("not a host name", ErrorCode::InputInvalid),
+    ("this tracker has no", ErrorCode::TrackerUnsupported),
+    ("the tracker does not hold", ErrorCode::TrackerUnsupported),
+    (
+        "this is not a Figma project address",
+        ErrorCode::FigmaAddress,
+    ),
+    ("needs a name", ErrorCode::InputInvalid),
+    ("not a saved analysis", ErrorCode::PathInvalid),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -308,6 +478,36 @@ mod tests {
         assert_eq!(e.code, ErrorCode::UnknownMember);
         assert_eq!(e.action.unwrap().target, "/work/team");
         // Each entry of the table is reached: an earlier needle never hides a later one.
+        // Sample of the grouped codes: each gets its action, or none.
+        let e = AppError::from("unknown project: zed");
+        assert_eq!((e.code, e.action), (ErrorCode::NotFound, None));
+        let e = AppError::from("the project has no remote");
+        assert_eq!(e.code, ErrorCode::NoRemote);
+        assert_eq!(e.action.unwrap().target, "/code/branches");
+        let e = AppError::from("the orca command is not installed");
+        assert_eq!(e.code, ErrorCode::ToolMissing);
+        assert_eq!(e.action.unwrap().target, "/settings/health");
+        let e = AppError::from("the title is empty");
+        assert_eq!(e.code, ErrorCode::InputInvalid);
+        // The base branch text keeps the base code, not the missing-path code.
+        let e = AppError::from("the base branch `dev` does not exist");
+        assert_eq!(e.code, ErrorCode::NoBase);
+        let e = AppError::from("a.docx does not exist");
+        assert_eq!(e.code, ErrorCode::PathInvalid);
+        let e = AppError::from("x.md holds what looks like a secret");
+        assert_eq!(e.code, ErrorCode::SecretFound);
+        let e = AppError::from("the pull request of the run is not open");
+        assert_eq!(e.code, ErrorCode::MergeClosed);
+        // A text that only shares words with a known one stays unknown.
+        for text in [
+            "ac gave no result",
+            "the runner gave no text",
+            "step s1 is not running",
+        ] {
+            assert_eq!(AppError::from(text).code, ErrorCode::Unknown, "{text}");
+        }
+        let e = AppError::from("device login: github.com gave no user_code: ");
+        assert_eq!(e.code, ErrorCode::SignInFailed);
         for (needle, code) in KNOWN {
             assert_eq!(AppError::from(*needle).code, *code, "{needle}");
         }

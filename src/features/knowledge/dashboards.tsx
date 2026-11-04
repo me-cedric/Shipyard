@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { NoProject } from "@/features/work/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
@@ -150,6 +150,8 @@ function DashboardView({ slug }: { slug: string }) {
 	const kindName = k.kind as Record<string, string>;
 	const [person, setPerson] = useState(EVERYONE);
 	const [failure, setFailure] = useState<string | null>(null);
+	// The tile in the air and the column of the tile that the pointer holds.
+	const drag = useRef<{ id: string; grab: number } | null>(null);
 	if (!view)
 		return error ? (
 			<p role="alert" className="px-3 py-1 text-ui text-danger-text">
@@ -177,6 +179,11 @@ function DashboardView({ slug }: { slug: string }) {
 		for (let n = 2; dash.tiles.some((x) => x.id === id); n++) id = `${kind}-${n}`;
 		const y = Math.max(0, ...dash.tiles.map((x) => x.y + x.h));
 		return write([...dash.tiles, { id, kind, x: 0, y, w: 4, h: 3 }]);
+	};
+	/** The grid column under the pointer, from 0. */
+	const column = (e: React.DragEvent, grid: HTMLElement) => {
+		const box = grid.getBoundingClientRect();
+		return Math.floor(((e.clientX - box.left) / Math.max(box.width, 1)) * COLUMNS);
 	};
 	const who = person === EVERYONE ? null : person;
 	return (
@@ -212,6 +219,18 @@ function DashboardView({ slug }: { slug: string }) {
 			<ul
 				aria-label={`${k.tiles} (${dash.tiles.length})`}
 				className="grid gap-3"
+				onDragOver={(e) => {
+					if (drag.current) e.preventDefault();
+				}}
+				onDrop={(e) => {
+					const held = drag.current;
+					const tile = dash.tiles.find((o) => o.id === held?.id);
+					drag.current = null;
+					if (!(held && tile)) return;
+					e.preventDefault();
+					const dx = column(e, e.currentTarget) - held.grab - tile.x;
+					if (dx !== 0) void move(tile.id, dx);
+				}}
 				style={{ gridTemplateColumns: `repeat(${COLUMNS}, minmax(0, 1fr))` }}
 			>
 				{dash.tiles.map((x) => {
@@ -220,6 +239,16 @@ function DashboardView({ slug }: { slug: string }) {
 						<li
 							key={x.id}
 							className="min-w-0"
+							draggable={!view.readOnly}
+							onDragStart={(e) => {
+								e.dataTransfer.setData("text/plain", x.id);
+								e.dataTransfer.effectAllowed = "move";
+								const grid = e.currentTarget.parentElement;
+								if (grid) drag.current = { id: x.id, grab: column(e, grid) - x.x };
+							}}
+							onDragEnd={() => {
+								drag.current = null;
+							}}
 							style={{
 								gridColumn: `${x.x + 1} / span ${x.w}`,
 								gridRow: `${x.y + 1} / span ${x.h}`,

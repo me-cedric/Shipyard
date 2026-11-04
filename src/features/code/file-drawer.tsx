@@ -11,6 +11,7 @@ import { rememberSelection } from "@/lib/shell/selection";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import {
+	ArrowPathIcon,
 	ChevronDownIcon,
 	ChevronRightIcon,
 	ClipboardIcon,
@@ -112,6 +113,7 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 	const readOnly = profile.readOnly;
 	const panel = usePanelSize("files-width", 288);
 	const search = useRef<HTMLInputElement>(null);
+	const listRef = useRef<HTMLUListElement>(null);
 	useEffect(() => search.current?.focus(), []);
 	const paths = useMemo(
 		() => [...(files.data ?? []), ...made.map((m) => `${m}/`)],
@@ -119,10 +121,48 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 	);
 	const found = useMemo(() => (query.trim() ? findFiles(paths, query) : null), [paths, query]);
 	const rows = useMemo(() => fileRows(paths, open), [paths, open]);
+	// Roving tabindex: only the current row is in the Tab order. It starts on the first row.
+	const [current, setCurrent] = useState("");
+	const order = found ?? rows.map((r) => r.path);
+	const tab = (path: string) => (path === (order.includes(current) ? current : order[0]) ? 0 : -1);
 	const toggle = (path: string) => {
 		const next = new Set(open);
 		if (!next.delete(path)) next.add(path);
 		setOpen(next);
+	};
+	/** The tree keys. Up and Down move between rows, Right and Left open and close a folder, F2 renames, Delete (or Cmd+Backspace) asks to trash. */
+	const treeKeys = (e: React.KeyboardEvent<HTMLUListElement>) => {
+		const row = (e.target as HTMLElement).closest<HTMLElement>("button[data-path]");
+		if (!row) return;
+		const rowsAll = [...e.currentTarget.querySelectorAll<HTMLElement>("button[data-path]")];
+		const at = rowsAll.indexOf(row);
+		const path = row.dataset.path ?? "";
+		const folder = row.dataset.folder === "true";
+		const go = (el?: HTMLElement) => {
+			e.preventDefault();
+			el?.focus();
+		};
+		if (e.key === "ArrowDown") go(rowsAll[at + 1]);
+		else if (e.key === "ArrowUp") go(rowsAll[at - 1]);
+		else if (e.key === "ArrowRight" && folder) {
+			if (open.has(path)) go(rowsAll[at + 1]);
+			else {
+				e.preventDefault();
+				toggle(path);
+			}
+		} else if (e.key === "ArrowLeft" && !found) {
+			if (folder && open.has(path)) {
+				e.preventDefault();
+				toggle(path);
+			} else
+				go(rowsAll.find((r) => r.dataset.folder === "true" && r.dataset.path === parentOf(path)));
+		} else if (!readOnly && e.key === "F2") {
+			e.preventDefault();
+			setAction({ kind: "rename", path, folder });
+		} else if (!readOnly && (e.key === "Delete" || (e.key === "Backspace" && e.metaKey))) {
+			e.preventDefault();
+			setAction({ kind: "delete", path, folder });
+		}
 	};
 	const reveal = (path: string) => {
 		rememberSelection("code:changes", path);
@@ -195,6 +235,9 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 				<button
 					type="button"
 					title={path}
+					data-path={path}
+					data-folder="false"
+					tabIndex={tab(path)}
 					onClick={() => setViewing(path)}
 					style={{ paddingLeft: 8 + depth * 12 }}
 					className="flex h-7 w-full items-center gap-1.5 rounded-md pr-2 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3"
@@ -247,6 +290,12 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 						</IconButton>
 					</>
 				)}
+				<IconButton
+					label={f.refresh}
+					onClick={() => void qc.invalidateQueries({ queryKey: ["code", "files", active?.id] })}
+				>
+					<ArrowPathIcon size={14} />
+				</IconButton>
 				{active ? <OpenInTerminal /> : null}
 				<IconButton label={f.close} onClick={onClose}>
 					<XMarkIcon size={14} />
@@ -269,6 +318,10 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 					onChange={(e) => setQuery(e.target.value)}
 					onKeyDown={(e) => {
 						if (e.key === "Escape" && !query) onClose();
+						if (e.key === "ArrowDown") {
+							e.preventDefault();
+							listRef.current?.querySelector<HTMLElement>("button[data-path]")?.focus();
+						}
 					}}
 				/>
 			</form>
@@ -277,7 +330,16 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 					{String(files.error)}
 				</p>
 			) : null}
-			<ul aria-label={f.title} className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2">
+			<ul
+				ref={listRef}
+				aria-label={f.title}
+				onKeyDown={treeKeys}
+				onFocus={(e) => {
+					const p = (e.target as HTMLElement).closest<HTMLElement>("button[data-path]");
+					if (p) setCurrent(p.dataset.path ?? "");
+				}}
+				className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2"
+			>
 				{found
 					? found
 							.slice(0, MAX_FOUND)
@@ -291,6 +353,9 @@ export function FileDrawer({ onClose }: { onClose: () => void }) {
 										<button
 											type="button"
 											aria-expanded={open.has(r.path)}
+											data-path={r.path}
+											data-folder="true"
+											tabIndex={tab(r.path)}
 											onClick={() => toggle(r.path)}
 											style={{ paddingLeft: 4 + r.depth * 12 }}
 											className="flex h-7 w-full items-center gap-1 rounded-md pr-2 text-left text-ui text-n-12 transition-colors duration-(--duration-fast) hover:bg-n-3"

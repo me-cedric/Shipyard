@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { createEvent, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Providers } from "@/app/providers";
 import { commands, unwrap } from "@/lib/ipc";
@@ -147,5 +147,21 @@ describe("assistant composer: attachments", () => {
 		await user.type(input(), "Read it{Enter}");
 		await waitFor(() => expect(screen.queryByText("notes.md")).toBeNull());
 		await user.click(screen.getByRole("button", { name: "Attach file" }));
+	});
+
+	it("attaches an image from the clipboard with its own name and leaves a text paste alone", async () => {
+		await mountAssistant();
+		const shot = new File(["png"], "image.png", { type: "image/png" });
+		fireEvent.paste(input(), { clipboardData: { files: [shot], getData: () => "" } });
+		expect(await screen.findByText(/^screenshot-\d+-1\.png$/)).toBeInTheDocument();
+		fireEvent.paste(input(), { clipboardData: { files: [], getData: () => "text" } });
+		expect(screen.getAllByText(/^screenshot-/)).toHaveLength(1);
+		// Cells from a sheet carry text and a picture: the text paste stays, the picture still joins.
+		const both = createEvent.paste(input(), {
+			clipboardData: { files: [shot], getData: () => "a\tb" },
+		});
+		fireEvent(input(), both);
+		expect(both.defaultPrevented).toBe(false);
+		await waitFor(() => expect(screen.getAllByText(/^screenshot-/)).toHaveLength(2));
 	});
 });

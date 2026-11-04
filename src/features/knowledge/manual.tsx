@@ -1,6 +1,5 @@
 import { useEffect, useId, useMemo, useState } from "react";
-import { useI18n } from "@/lib/i18n";
-import { en } from "@/lib/i18n/en";
+import { type Lang, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Input } from "@/ui/atoms/input";
 import { BookOpenIcon, MagnifyingGlassIcon } from "@/ui/icons";
@@ -11,6 +10,12 @@ import { useManualTarget } from "./manual-target";
 
 // The pages of `docs/guide/` ship inside the app: the manual works without a project and offline.
 const RAW = import.meta.glob("/docs/guide/*.md", {
+	query: "?raw",
+	import: "default",
+	eager: true,
+}) as Record<string, string>;
+// The French pages have the same file names in `docs/guide/fr/`.
+const RAW_FR = import.meta.glob("/docs/guide/fr/*.md", {
 	query: "?raw",
 	import: "default",
 	eager: true,
@@ -31,12 +36,18 @@ const ORDER = [
 
 export type ManualPage = { id: string; title: string; text: string };
 
-export const MANUAL: ManualPage[] = ORDER.flatMap((id) => {
-	const text = RAW[`/docs/guide/${id}.md`];
-	if (!text) return [];
-	const title = /^#\s+(.+)$/m.exec(text)?.[1] ?? id;
-	return [{ id, title, text }];
-});
+/** The pages in a language. A page with no French file keeps its English text. */
+export const manualFor = (lang: Lang): ManualPage[] =>
+	ORDER.flatMap((id) => {
+		const text =
+			(lang === "fr" ? RAW_FR[`/docs/guide/fr/${id}.md`] : undefined) ??
+			RAW[`/docs/guide/${id}.md`];
+		if (!text) return [];
+		const title = /^#\s+(.+)$/m.exec(text)?.[1] ?? id;
+		return [{ id, title, text }];
+	});
+
+export const MANUAL = manualFor("en");
 
 const plain = (line: string) =>
 	line
@@ -85,25 +96,26 @@ const headingIndex = (text: string, heading: string) =>
  * action Open the manual for this page opens the section of the tab that the person was on.
  */
 export function Manual() {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const m = t.knowledge.manual;
+	const pages = useMemo(() => manualFor(lang), [lang]);
 	const anchor = useId();
 	const target = useManualTarget();
-	const [page, setPage] = useState(MANUAL[0]?.id ?? "start");
+	const [page, setPage] = useState("start");
 	const [query, setQuery] = useState("");
 	const [scrollTo, setScrollTo] = useState<string | null>(null);
-	const current = MANUAL.find((p) => p.id === page) ?? MANUAL[0];
-	const hits = useMemo(() => searchManual(query), [query]);
+	const current = pages.find((p) => p.id === page) ?? pages[0];
+	const hits = useMemo(() => searchManual(query, pages), [query, pages]);
 
 	// A new ask of the palette opens its page at the section of its tab.
 	useEffect(() => {
 		if (!target) return;
-		const known = MANUAL.some((p) => p.id === target.page);
+		const known = pages.some((p) => p.id === target.page);
 		setPage(known ? target.page : "start");
-		const tabs = en.tabs as Record<string, Record<string, string>>;
+		const tabs = t.tabs as Record<string, Record<string, string>>;
 		setScrollTo(known && target.tab ? (tabs[target.page]?.[target.tab] ?? null) : null);
 		setQuery("");
-	}, [target]);
+	}, [target, pages, t]);
 
 	useEffect(() => {
 		if (!scrollTo || !current) return;
@@ -118,7 +130,7 @@ export function Manual() {
 	};
 
 	return (
-		<ListDetail title={m.title} icon={<BookOpenIcon size={16} />} count={MANUAL.length}>
+		<ListDetail title={m.title} icon={<BookOpenIcon size={16} />} count={pages.length}>
 			<div className="flex min-h-0 flex-1 gap-6 px-4 pb-4">
 				<SplitPane id="knowledge-manual-width" label={t.knowledge.resize.manual} fallback={224}>
 					<aside className="flex shrink-0 flex-col gap-3">
@@ -161,7 +173,7 @@ export function Manual() {
 							</section>
 						) : (
 							<nav aria-label={m.pages} className="flex flex-col gap-0.5">
-								{MANUAL.map((p) => (
+								{pages.map((p) => (
 									<button
 										key={p.id}
 										type="button"

@@ -305,9 +305,12 @@ pub fn start(s: &AppState, id: &str, click: bool) -> Res<DeviceStart> {
     }
     let field = |k: &str| {
         let t = text(&v, &format!("/{k}"));
-        (!t.is_empty())
-            .then_some(t)
-            .ok_or_else(|| format!("{host} gave no {k}: {}", text(&v, "/error_description")))
+        (!t.is_empty()).then_some(t).ok_or_else(|| {
+            format!(
+                "device login: {host} gave no {k}: {}",
+                text(&v, "/error_description")
+            )
+        })
     };
     let n = |k: &str, d: u32| {
         u32::try_from(shipyard_http::num(&v, &format!("/{k}")).unwrap_or(d.into())).unwrap_or(d)

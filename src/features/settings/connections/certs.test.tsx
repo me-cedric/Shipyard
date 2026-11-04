@@ -1,5 +1,6 @@
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { errorMessages } from "@/lib/i18n/errors";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 
@@ -12,7 +13,7 @@ describe("Settings / Connections / Certificates", () => {
 
 		mockState().nextFile = "/mock/notes.txt";
 		await user.click(screen.getByRole("button", { name: "Add PEM bundle" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("no PEM certificate");
+		expect(await screen.findByRole("alert")).toHaveTextContent(errorMessages.en.file_unsupported);
 
 		mockState().nextFile = "/mock/proxy.pem";
 		await user.click(screen.getByRole("button", { name: "Add PEM bundle" }));

@@ -493,6 +493,8 @@ export const en = {
 		counter: "{count}/{max}",
 		older: "Older",
 		branch: "Working branch",
+		branchFilter: "Filter branches",
+		newBranch: "New branch {name}",
 		create: "Branch",
 		type: "Type",
 		area: "Area",

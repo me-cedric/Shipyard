@@ -39,4 +39,4 @@ Learn helps a new person find their way.
 
 ## Dashboards
 
-Dashboards holds boards of tiles: work, runs, questions, quality and more. Add or remove a tile, change its settings, then save. Show as table gives the numbers behind a chart. Pin a tile to see it in Home, My work.
+Dashboards holds boards of tiles: work, runs, questions, quality and more. Add or remove a tile, change its settings, then save. Show as table gives the numbers behind a chart. Drag a tile to another column, or use its Move left and Move right buttons. Pin a tile to see it in Home, My work.

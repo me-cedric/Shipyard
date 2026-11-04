@@ -142,29 +142,30 @@ fn output_within(mut cmd: Command, limit: Duration) -> Result<String, &'static s
     Ok(String::from_utf8_lossy(&out).into_owned())
 }
 
-/// Runs `npx -y --registry=<npm> @fission-ai/openspec@1.15.0 validate <id> --strict --json` in the
+/// Runs `npx -y --registry=<npm> @fission-ai/openspec@1.15.0 validate <args> --strict --json` in the
 /// parent of the openspec folder. The version is fixed and the registry is set, so a repository
-/// `.npmrc` cannot redirect it. A missing `npx`, a failed run or a run over 120 s gives one finding
-/// `validator missing`.
-pub fn run(openspec_dir: &Path, change_id: &str) -> Vec<Finding> {
-    if !valid_change_id(change_id) {
-        return one("invalid change id");
-    }
-    let Some(cwd) = openspec_dir.parent() else {
-        return one("validator missing");
-    };
+/// `.npmrc` cannot redirect it. A missing `npx`, a failed run or a run over 120 s gives an `Err`.
+fn validate(openspec_dir: &Path, args: &[&str]) -> Result<String, &'static str> {
+    let cwd = openspec_dir.parent().ok_or("validator missing")?;
     let mut cmd = Command::new("npx");
     cmd.args([
         "-y",
         "--registry=https://registry.npmjs.org/",
         "@fission-ai/openspec@1.15.0",
         "validate",
-        change_id,
-        "--strict",
-        "--json",
     ])
+    .args(args)
+    .args(["--strict", "--json"])
     .current_dir(cwd);
-    let out = match output_within(cmd, TIMEOUT) {
+    output_within(cmd, TIMEOUT)
+}
+
+/// Validates one change. A failed run gives one finding `validator missing`.
+pub fn run(openspec_dir: &Path, change_id: &str) -> Vec<Finding> {
+    if !valid_change_id(change_id) {
+        return one("invalid change id");
+    }
+    let out = match validate(openspec_dir, &[change_id]) {
         Ok(o) => o,
         Err(m) => return one(m),
     };
@@ -172,6 +173,43 @@ pub fn run(openspec_dir: &Path, change_id: &str) -> Vec<Finding> {
     let mut files = Vec::new();
     read_files(&root, &root, &mut files);
     map(&out, &files)
+}
+
+/// Validates every change with one CLI start. Each finding comes with its change id; a failure of
+/// the whole run has the id `""`.
+pub fn run_all(openspec_dir: &Path) -> Vec<(String, Finding)> {
+    let out = match validate(openspec_dir, &["--changes"]) {
+        Ok(o) => o,
+        Err(m) => return one(m).into_iter().map(|f| (String::new(), f)).collect(),
+    };
+    map_all(&out, openspec_dir)
+}
+
+/// Maps the JSON of `validate --changes --json` to findings by change. Output with no `items`
+/// gives the findings of `map` under the id `""`.
+pub fn map_all(json: &str, openspec_dir: &Path) -> Vec<(String, Finding)> {
+    let items = serde_json::from_str::<Value>(json)
+        .ok()
+        .and_then(|v| v["items"].as_array().cloned());
+    let Some(items) = items else {
+        return map(json, &[])
+            .into_iter()
+            .map(|f| (String::new(), f))
+            .collect();
+    };
+    let mut out = Vec::new();
+    for item in items.iter().filter(|i| i["type"] == "change") {
+        let id = item["id"].as_str().unwrap_or("");
+        let root = openspec_dir.join("changes").join(id);
+        let mut files = Vec::new();
+        if valid_change_id(id) {
+            read_files(&root, &root, &mut files);
+        }
+        for issue in item["issues"].as_array().into_iter().flatten() {
+            out.push((id.to_string(), finding(issue, &files)));
+        }
+    }
+    out
 }
 
 #[cfg(all(test, unix))]

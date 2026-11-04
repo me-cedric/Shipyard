@@ -17,6 +17,7 @@ import { Shell } from "@/ui/templates/shell";
 import { useActions, useShortcuts } from "./actions";
 import { CloseGuard } from "./close-guard";
 import { ContextBar } from "./context-bar";
+import { useDropFolder } from "./drop-folder";
 import { useCloseGuardEvent, useNativeMenu, useShellEvents } from "./events";
 import { RouteAnnouncer, SkipLink } from "./page-chrome";
 import { PaletteHost } from "./palette-host";
@@ -72,6 +73,7 @@ function Frame() {
 	useShortcuts(list);
 	useNativeMenu(list);
 	useShellEvents();
+	useDropFolder();
 	useCloseGuardEvent();
 	const { toasts, dismiss } = useNotifications();
 	// A detail belongs to the view that opened it: leaving the view closes it.

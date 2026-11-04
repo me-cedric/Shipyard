@@ -16,6 +16,12 @@
 - Travail / Temps sans équipe propose M’ajouter à l’équipe, qui vous ajoute avec votre nom et votre identifiant de l’outil de suivi, et vous retrouve depuis votre connexion ou votre e-mail git sans champ à remplir ; un projet qui a un hébergeur de code et pas d’outil de suivi synchronise maintenant ses pull requests ; Réglages / Agents et règles choisit le modèle de chaque niveau parmi les modèles de l’outil d’agent installé, ajoute un effort pour chaque niveau que le modèle accepte, et garde un champ libre pour un outil qui ne liste aucun modèle.
 - Un projet dont l’origine est sur GitHub ou sur un hôte GitLab configure son outil de suivi et son hébergeur de code à partir de la connexion qui fonctionne ou du compte `gh` ou `glab` à l’ouverture, sans rien à remplir et sans seconde connexion ; un compte qui fonctionne remplace le jeton refusé de l’autre rôle et supprime l’ancien ; un jeton refusé montre une seule ligne claire avec Se reconnecter et Utiliser le compte `gh` ; Code / Pull requests montre les pull requests quand un compte fonctionne, et Connecter seulement quand aucun ne fonctionne.
 - Usine / Consommation montre des lignes de chargement au lieu d’un zéro pendant la lecture des sessions d’IA de l’ordinateur, ne relit les fichiers de session que s’ils changent (la première lecture utilise tous les cœurs), et l’interrupteur Afficher les prix montre ou masque aussi les prix de Cet ordinateur.
+- Le sélecteur de branche de la barre du haut a une zone de filtre, liste aussi les branches distantes (une branche distante est extraite en nouvelle branche locale qui la suit) et a une ligne Nouvelle branche qui crée une branche à partir de la branche de travail ; les flèches et Entrée y fonctionnent.
+- Un terminal dont le shell est terminé affiche un bouton Relancer, et un lien de la sortie s’ouvre dans le navigateur (http et https seulement).
+- L’arborescence des fichiers répond aux flèches (Haut et Bas se déplacent, Droite et Gauche ouvrent et ferment un dossier), F2 renomme, Suppr demande avant de mettre le fichier à la corbeille, et un bouton actualise la liste.
+- Les tuiles d’un tableau de bord se déplacent par glisser-déposer vers une autre colonne ; les boutons Déplacer à gauche et Déplacer à droite restent pour le clavier.
+- Une capture d’écran collée dans la zone de message de l’assistant devient une pièce jointe, avec la même recherche de secrets qu’un fichier choisi.
+- Un dossier déposé sur la fenêtre s’ouvre comme projet, comme le fait Ouvrir un dossier.
 
 ### Ajouts
 
@@ -88,6 +94,12 @@
 - Les volets d’une page se redimensionnent : glissez la barre, utilisez les flèches, ou double-cliquez pour revenir à sa taille d’origine ; les éditeurs et aperçus de Design, les listes de Design, Spécifications, Code, Connaissances et Usine / Workflows, les colonnes latérales d’Apprendre et de Temps et le tableau des exigences d’une capacité gardent leur taille pour chaque personne.
 - Quatre notifications de plus, chacune avec son interrupteur dans Réglages / Moi : une exécution qui se termine, les contrôles de vos pull requests (lus à chaque synchronisation, une fois par commit de tête), une analyse échouée que vous n’avez pas lancée, et un brouillon de revue d’agent prêt à publier ; un clic ouvre l’exécution, la pull request, la page Qualité ou le brouillon, et le système n’affiche une notification que pour une exécution échouée, des contrôles échoués et un brouillon de revue.
 - Une icône Shipyard dans la barre des menus (la zone de notification sous Windows ; pas sous Linux) ouvre un petit panneau avec la dépense du jour et du mois, les exécutions actives avec Stop, le nombre À traiter et ses premiers éléments, l’interrupteur des agents, l’état de la synchronisation, le projet et Ouvrir Shipyard ; un point sur l’icône montre que quelque chose vous attend, et Réglages / Moi désactive l’icône.
+- Le mode d'emploi a une édition française (`docs/guide/fr/`), et Connaissances / Mode d'emploi, F1 et le bouton ? ouvrent la page dans la langue de l'application ; une page française manquante reste en anglais.
+- Les erreurs qui montraient encore un texte brut ont maintenant une phrase claire en anglais et en français, groupées par type (élément introuvable, chemin, valeur qui ne convient pas, fichier trop gros ou d'un mauvais type, pas de dépôt distant, programme non installé, et d'autres), et un échec d'ouverture de projet ou d'ajout de diapositive ne montre plus le nom de l'erreur.
+- L'envoi à la fermeture envoie tous les commits non envoyés de la branche, pas seulement le commit fait à la fermeture, quand l'interrupteur de Réglages / Moi est activé.
+- Un fichier renommé dans Code / Modifications locales s'affiche sous son nouveau chemin sous la forme `ancien → nouveau`, et l'indexer ou annuler son changement agit sur les deux chemins.
+- Vérifier toute la documentation lance OpenSpec une seule fois pour tout le projet, et non une fois par changement.
+- La simulation des tests donne à chaque projet ses propres surcharges, donc un drapeau de lecture seule ne passe plus d'un test à l'autre.
 
 ## [0.0.1]
 

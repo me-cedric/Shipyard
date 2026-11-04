@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { errorMessages } from "@/lib/i18n/errors";
 import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
@@ -52,9 +53,9 @@ describe("Settings / Connections / Outside agents", () => {
 	});
 
 	it("the token is for a running server only", async () => {
-		await expect(unwrap(commands.mcpOutsideToken())).rejects.toThrow("turn the server on first");
+		await expect(unwrap(commands.mcpOutsideToken())).rejects.toThrow(errorMessages.en.server_off);
 		await expect(unwrap(commands.mcpOutsideSet({ allowedTools: ["rm"] }))).rejects.toThrow(
-			"unknown tool",
+			errorMessages.en.not_found,
 		);
 	});
 });

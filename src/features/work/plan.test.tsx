@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { errorMessages } from "@/lib/i18n/errors";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { addDays } from "@/lib/work";
@@ -194,7 +195,9 @@ describe("Work / Plan", () => {
 				path: "/mock/mvp-1.png",
 			}),
 		);
-		await expect(unwrap(commands.planPngSave("/mock/x.png", [1, 2], true))).rejects.toThrow(/PNG/);
+		await expect(unwrap(commands.planPngSave("/mock/x.png", [1, 2], true))).rejects.toThrow(
+			errorMessages.en.file_unsupported,
+		);
 		vi.restoreAllMocks();
 	});
 

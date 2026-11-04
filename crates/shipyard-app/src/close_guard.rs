@@ -49,17 +49,19 @@ pub fn on_close_requested(app: &AppHandle, window: &Window, api: &tauri::CloseRe
     crate::window::remember(window, &state.dir);
     // A failed commit or push must not trap the person in the app.
     let committed = crate::auto_commit::run(&state, "chore: save changes on close [shipyard]");
+    let ahead = crate::commands::code::status(&state).map_or(0, |c| c.ahead);
     if pushes(
         &committed,
+        ahead,
         shipyard_store::prefs::Prefs::load(&state.dir).close_push,
     ) {
         let _ = crate::commands::code::push(&state);
     }
 }
 
-/// The close pushes only a commit that it made, and only when the person asked for it.
-fn pushes(committed: &Result<Option<String>, String>, close_push: bool) -> bool {
-    close_push && matches!(committed, Ok(Some(_)))
+/// The close pushes the branch, with every unpushed commit, only when the person asked for it.
+fn pushes(committed: &Result<Option<String>, String>, ahead: u32, close_push: bool) -> bool {
+    close_push && (ahead > 0 || matches!(committed, Ok(Some(_))))
 }
 
 #[tauri::command]
@@ -131,11 +133,15 @@ mod tests {
     }
 
     #[test]
-    fn the_close_pushes_only_its_own_commit_and_only_when_asked() {
+    fn the_close_pushes_every_unpushed_commit_and_only_when_asked() {
         let made = Ok(Some("abc".to_string()));
-        assert!(pushes(&made, true));
-        assert!(!pushes(&made, false));
-        assert!(!pushes(&Ok(None), true));
-        assert!(!pushes(&Err("busy".into()), true));
+        assert!(pushes(&made, 0, true));
+        assert!(!pushes(&made, 0, false));
+        assert!(!pushes(&Ok(None), 0, true));
+        assert!(!pushes(&Err("busy".into()), 0, true));
+        // Earlier commits wait for the push, with or without a commit at close.
+        assert!(pushes(&Ok(None), 2, true));
+        assert!(pushes(&Err("busy".into()), 1, true));
+        assert!(!pushes(&Ok(None), 2, false));
     }
 }

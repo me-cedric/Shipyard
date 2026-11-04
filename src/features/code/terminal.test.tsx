@@ -16,6 +16,9 @@ vi.mock("@xterm/xterm", () => ({
 		cols = 80;
 		rows = 24;
 		loadAddon() {}
+		registerLinkProvider() {
+			return { dispose() {} };
+		}
 		open() {}
 		focus() {}
 		write(d: string) {

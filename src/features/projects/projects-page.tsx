@@ -23,7 +23,7 @@ import { CloneDialog } from "./clone-dialog";
 const when = (seconds: number, lang: string) =>
 	new Date(seconds * 1000).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB");
 
-function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: string) => void }) {
+function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: unknown) => void }) {
 	const { t, lang } = useI18n();
 	const w = t.workspace.page;
 	const { switchTo, remove, close } = useProjectActions();
@@ -72,7 +72,7 @@ function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: string) 
 			<div className="mt-3 flex items-center gap-1 border-t bg-surface-1 px-2 py-1.5">
 				<Button
 					aria-label={format(w.openName, { name: p.name })}
-					onClick={() => void switchTo(p.id).catch((e: unknown) => onError(String(e)))}
+					onClick={() => void switchTo(p.id).catch((e: unknown) => onError(e))}
 				>
 					<FolderOpenIcon size={14} />
 					{w.open}
@@ -90,9 +90,7 @@ function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: string) 
 					<IconButton
 						label={`${w.openRemote} ${p.name}`}
 						onClick={() =>
-							void unwrap(commands.projectOpenRemote(p.id)).catch((e: unknown) =>
-								onError(String(e)),
-							)
+							void unwrap(commands.projectOpenRemote(p.id)).catch((e: unknown) => onError(e))
 						}
 					>
 						<LinkIcon size={14} />
@@ -124,7 +122,7 @@ export function ProjectsPage() {
 	const open = {
 		label: t.projects.open,
 		icon: <FolderOpenIcon size={14} />,
-		onClick: () => void openFolder().catch((e: unknown) => setError(String(e))),
+		onClick: () => void openFolder().catch((e: unknown) => setError(e)),
 	};
 	return (
 		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">

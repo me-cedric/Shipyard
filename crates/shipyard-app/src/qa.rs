@@ -482,20 +482,29 @@ pub fn verify_docs(s: &AppState) -> Res<(String, Vec<ScanFinding>)> {
             .into_iter()
             .filter(|c| c != "archive")
             .collect();
-    for id in &changes {
-        for f in openspec_validate::run(&p.root.join(&specs), id) {
-            let severity = if f.level == "error" {
-                ScanSeverity::High
-            } else {
-                ScanSeverity::Medium
-            };
-            out.push(found(
-                severity,
-                format!("{specs}/changes/{id}/{}", f.path),
-                f.line,
-                f.message,
-            ));
-        }
+    // One CLI start for the whole project, not one for each change.
+    let all = if changes.is_empty() {
+        Vec::new()
+    } else {
+        openspec_validate::run_all(&p.root.join(&specs))
+    };
+    for (id, f) in all {
+        let severity = if f.level == "error" {
+            ScanSeverity::High
+        } else {
+            ScanSeverity::Medium
+        };
+        let dir = if id.is_empty() {
+            specs.clone()
+        } else {
+            format!("{specs}/changes/{id}")
+        };
+        out.push(found(
+            severity,
+            format!("{dir}/{}", f.path),
+            f.line,
+            f.message,
+        ));
     }
     let mut files = Vec::new();
     markdown(&p.root, "docs", &mut files);

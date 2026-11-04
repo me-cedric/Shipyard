@@ -16,6 +16,12 @@
 - Work / Time with no team offers Add me to the team, which adds you with your name and your issue tracker login, and finds you from your sign-in or your git e-mail with no field to fill; a project with a code host and no issue tracker now mirrors its pull requests; Settings / Agents and rules picks the model of each tier from the models of the installed agent tool, adds an effort for each tier that the model accepts, and keeps a free text field for a tool that lists no model.
 - A project whose origin is on GitHub or a GitLab host sets up its issue tracker and code host from the working sign-in or from the `gh` or `glab` login when it opens, with nothing to fill and no second connection; a login that works replaces the refused token of the other role and removes the old one; a refused token shows one plain line with Sign in again and Use the `gh` login; Code / Pull requests shows the pull requests when a login works, and Connect only when none does.
 - Factory / Usage shows loading rows instead of a zero while it reads the AI sessions of the computer, reads the session files again only when they change (the first read uses every core), and the Show prices switch now also shows or hides the prices of This computer.
+- The branch selector in the top bar has a filter box, lists the remote branches too (one checks out as a new local branch that tracks it) and has a New branch row that makes a branch from the working branch; the arrow keys and Enter work in it.
+- A terminal whose shell ended shows a Restart button, and a link in the output opens in the browser (http and https only).
+- The file tree takes the arrow keys (Up and Down move, Right and Left open and close a folder), F2 renames, Delete asks before it moves the file to the trash, and a button refreshes the list.
+- Dashboard tiles can be dragged to another column; the Move left and Move right buttons stay for the keyboard.
+- A screenshot pasted in the message box of the assistant joins the message as an attachment, with the same check for secrets as a picked file.
+- A folder dropped on the window opens as a project, as Open folder does.
 
 ### Added
 
@@ -88,6 +94,12 @@
 - The panes inside a page resize: drag the bar, use the arrow keys, or double-click it to go back to the size it had; Design editors and previews, the lists of Design, Specs, Code, Knowledge and Factory / Workflows, the side columns of Learn and Time and the requirements table of a capability keep their size for each person.
 - Four more notifications, each with its own switch in Settings / Me: a run that ends, the checks of your pull requests (read on each sync, once for each head commit), a failed scan that you did not start, and an agent review draft that is ready to post; a click opens the run, the pull request, the Quality page or the draft, and the system shows a notice only for a failed run, failed checks and a review draft.
 - A Shipyard icon in the menu bar (the system tray on Windows; not on Linux) opens a small panel with the spend of today and of the month, the active runs with Stop, the Needs you count with its first items, the agents switch, the sync state, the project and Open Shipyard; a dot on the icon shows that something needs you, and Settings / Me turns the item off.
+- The user manual has a French edition (`docs/guide/fr/`), and Knowledge / Manual, F1 and the ? button open the page in the language of the app; a missing French page stays in English.
+- Errors that still showed a raw text now have a plain sentence in English and French, grouped by kind (item not found, path, value that does not fit, file too big or of the wrong type, no remote, program not installed, and more), and a failed project open or slide add no longer shows the name of the error.
+- Push on close pushes every unpushed commit of the branch, not only the commit made at close, when the Settings / Me switch is on.
+- A renamed file in Code / Local changes shows under its new path as `old → new`, and staging it or discarding its change works on both paths.
+- Verify all docs starts OpenSpec once for the whole project instead of once for each change.
+- The test mock gives each project its own overrides, so a read-only flag no longer leaks between tests.
 
 ## [0.0.1]
 

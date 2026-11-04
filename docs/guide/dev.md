@@ -16,7 +16,7 @@
 | `src/lib/ipc/` | Generated bindings and the mock layer. |
 | `src/lib/i18n/` | English and French catalogues. `fr.ts` has the type of `en.ts`. |
 | `e2e/` | Playwright tests on the Vite release build, with the mock IPC. |
-| `docs/guide/` | User pages, one for each space, and this guide. |
+| `docs/guide/` | User pages, one for each space, and this guide. `docs/guide/fr/` has the French pages, with the same file names. |
 
 ## Run
 

@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { errorMessages } from "@/lib/i18n/errors";
 import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { ShellProvider, useShell } from "@/lib/shell";
@@ -195,7 +196,7 @@ describe("Factory tabs", () => {
 		// The view shows the first run.
 		const shown = trees[0]?.steps.reduce((n, s) => n + s.requests.length, 0) ?? 0;
 		await waitFor(() => expect(document.querySelectorAll("details li")).toHaveLength(shown));
-		await expect(unwrap(commands.usageTreeGet("nope"))).rejects.toThrow("no run");
+		await expect(unwrap(commands.usageTreeGet("nope"))).rejects.toThrow(errorMessages.en.not_found);
 	});
 
 	it("Usage: the spend flame graph has one keyboard reachable bar for each step", async () => {

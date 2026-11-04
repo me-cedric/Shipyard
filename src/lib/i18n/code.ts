@@ -144,7 +144,7 @@ export const forgeEn = {
 		noPast: "No report yet. Analyze makes the first.",
 		none: "None",
 	},
-	terminal: { label: "Terminal", ended: "The shell ended." },
+	terminal: { label: "Terminal", ended: "The shell ended.", restart: "Restart" },
 	viewer: {
 		label: "File {path}",
 		line: "Line {n}",
@@ -303,7 +303,7 @@ export const forgeFr: typeof forgeEn = {
 		noPast: "Aucun rapport. Analyser crée le premier.",
 		none: "Aucune",
 	},
-	terminal: { label: "Terminal", ended: "Le shell est terminé." },
+	terminal: { label: "Terminal", ended: "Le shell est terminé.", restart: "Relancer" },
 	viewer: {
 		label: "Fichier {path}",
 		line: "Ligne {n}",

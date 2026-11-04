@@ -75,7 +75,9 @@ export function useDesignFile(path: string, missing?: string) {
 	const [failure, setFailure] = useState<string | null>(null);
 
 	const absent =
-		missing !== undefined && q.isError && /no such file|not found/i.test(message(q.error));
+		missing !== undefined &&
+		q.isError &&
+		/no such file|not found/i.test(toFailure(q.error).details);
 	const saved = q.data?.text ?? (absent ? missing : "");
 	const stamp = q.data?.stamp ?? null;
 	const ready = q.isSuccess || absent;

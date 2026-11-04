@@ -1,0 +1,42 @@
+# Connaissances
+
+Connaissances transforme les fichiers du projet en pages, documents, diapositives et leçons.
+
+## Graphe
+
+Graphe dessine les éléments du projet et les liens entre eux. Filtrez par type. Une vue tableau liste les mêmes éléments.
+
+- Un élément que rien ne cite s'affiche comme orphelin.
+- Un élément dont la source a changé plus tard s'affiche comme périmé.
+- Sélectionnez un élément pour l'ouvrir dans l'inspecteur.
+
+## Manuel
+
+Manuel contient les pages du manuel du projet. Lisez une page avec son sommaire sur le côté, ou passez à Modifier pour la changer. Cliquez sur Nouvelle page pour en ajouter une.
+
+## Mode d'emploi
+
+Mode d'emploi est ce guide. Il vient avec l'application et fonctionne sans projet. Il s'affiche dans la langue de l'application. Tapez un mot dans le champ de recherche pour trouver chaque page qui le contient. Ouvrez la palette et choisissez Ouvrir le mode d'emploi de cette page pour arriver à l'aide de la page que vous voyez.
+
+## Documents
+
+Documents liste les documents du projet. Cherchez dans leur texte, renommez-les, supprimez-les, et lisez un fichier Word. Exportez le dossier d'architecture et la documentation fonctionnelle en fichiers Word, et une fiche client en fichier Excel.
+
+## Diapositives
+
+Diapositives contient des présentations écrites en texte. Cliquez sur Présenter pour montrer un jeu sur toute la fenêtre. Appuyez sur Échap pour arrêter.
+
+Cliquez sur Ajouter une diapositive pour ajouter une diapositive de planning (les dates de chaque plan) ou de chiffrage (les jours et le prix de chaque feuille).
+
+## Apprendre
+
+Apprendre aide une nouvelle personne à trouver son chemin.
+
+- Parcours : l'architecture, les décisions, puis les spécifications, dans l'ordre de lecture. Une étape que vous ouvrez compte comme faite.
+- Glossaire : les mots que les spécifications définissent.
+- Parcours de formation : cours, certifications et lectures, avec les experts de l'équipe qui peuvent aider. Choisissez une personne, puis cochez les étapes qu'elle a finies. Le tableau de progression de l'équipe montre chaque personne et chaque parcours.
+- Fils : les fils d'actualité du projet. Collez l'adresse RSS ou Atom d'un site, puis cliquez sur S'abonner. L'application lit chaque fil et en garde une copie pendant une heure.
+
+## Tableaux de bord
+
+Tableaux de bord contient des tableaux de tuiles : travail, exécutions, questions, qualité et plus. Ajoutez ou retirez une tuile, changez ses réglages, puis enregistrez. Afficher en tableau donne les nombres derrière un graphique. Faites glisser une tuile vers une autre colonne, ou utilisez ses boutons Déplacer à gauche et Déplacer à droite. Épinglez une tuile pour la voir dans Accueil, Mon travail.

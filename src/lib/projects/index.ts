@@ -152,12 +152,15 @@ export function useProjectActions() {
 		[opened],
 	);
 
-	/** Picks a folder and opens it. A folder with no project file gets one. Null when the person cancels. */
-	const openFolder = useCallback(async () => {
-		const path = await pickFolder();
-		if (!path) return null;
-		return opened(await unwrap(commands.projectsOpen(path, false)));
-	}, [opened]);
+	/** Opens `given`, or the folder that the person picks. A folder with no project file gets one. Null when the person cancels. */
+	const openFolder = useCallback(
+		async (given?: string) => {
+			const path = given ?? (await pickFolder());
+			if (!path) return null;
+			return opened(await unwrap(commands.projectsOpen(path, false)));
+		},
+		[opened],
+	);
 
 	const clone = useCallback(
 		async (url: string, path: string) => opened(await unwrap(commands.projectsClone(url, path))),

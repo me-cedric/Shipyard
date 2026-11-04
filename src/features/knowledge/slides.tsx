@@ -80,12 +80,18 @@ function DeckEditor({ path, title }: { path: string; title: string }) {
 							{
 								id: "planning",
 								label: x.planning,
-								onSelect: () => void add("planning").catch((e) => setFailed(String(e))),
+								onSelect: () =>
+									void add("planning").catch((e) =>
+										setFailed(e instanceof Error ? e.message : String(e)),
+									),
 							},
 							{
 								id: "costing",
 								label: x.costing,
-								onSelect: () => void add("costing").catch((e) => setFailed(String(e))),
+								onSelect: () =>
+									void add("costing").catch((e) =>
+										setFailed(e instanceof Error ? e.message : String(e)),
+									),
 							},
 						]}
 					/>
