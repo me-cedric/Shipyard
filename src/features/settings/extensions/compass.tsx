@@ -134,6 +134,7 @@ export function Compass({ children }: { children: ReactNode }) {
 				) : null}
 				{data === undefined ? null : data === null ? (
 					<EmptyState
+						title={t.empty.compass}
 						action={{
 							label: x.compass.add,
 							icon: <ArrowPathIcon size={14} />,

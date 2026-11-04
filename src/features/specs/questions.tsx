@@ -119,7 +119,10 @@ function Register() {
 		>
 			{all && all.length === 0 ? (
 				<div className="p-4">
-					<EmptyState action={{ label: s.new, icon: <PlusIcon size={14} />, onClick: create }} />
+					<EmptyState
+						title={t.empty.questions}
+						action={{ label: s.new, icon: <PlusIcon size={14} />, onClick: create }}
+					/>
 				</div>
 			) : (
 				<motion.ul

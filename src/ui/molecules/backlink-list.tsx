@@ -1,13 +1,11 @@
 import { format, useI18n } from "@/lib/i18n";
-import { Skeleton } from "../atoms/skeleton";
+import { InboxIcon } from "../icons";
 import { RefChip } from "./ref-chip";
 
 export type BacklinkItem = { ref: string; title?: string | null };
 export type BacklinkGroup = { kind: string; items: BacklinkItem[] };
 
-const GHOST_ROWS = [0, 1, 2];
-
-/** The entities that cite an entity, grouped by kind. Each heading shows a count. No citation shows ghost rows. */
+/** The entities that cite an entity, grouped by kind. Each heading shows a count. No citation shows "Nothing links here". */
 export function BacklinkList({
 	groups,
 	onOpen,
@@ -18,10 +16,9 @@ export function BacklinkList({
 	const { t } = useI18n();
 	if (groups.length === 0)
 		return (
-			<div aria-hidden="true" className="flex flex-col gap-1">
-				{GHOST_ROWS.map((i) => (
-					<Skeleton key={i} className="h-row" style={{ opacity: 1 - i * 0.25 }} />
-				))}
+			<div className="flex items-center gap-2 py-2 text-ui text-n-10">
+				<InboxIcon size={16} />
+				{t.empty.backlinks}
 			</div>
 		);
 	return (

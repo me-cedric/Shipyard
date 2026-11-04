@@ -339,6 +339,7 @@ export function ProjectSettings() {
 			) : (
 				<div className="p-4">
 					<EmptyState
+						title={t.empty.project}
 						action={{
 							label: t.projects.open,
 							icon: <FolderOpenIcon size={14} />,

@@ -15,3 +15,5 @@ Chosen option: v2. The brief `docs/design/visual-language-v2.md` holds the token
 - New tokens: four surface levels, elevation shadows, accent gradient and glow, radius 8, 12 and 16, spring motion.
 - New shared components: ContextBar, PageHeader, StatStrip, Panel, AnimatedIcon, Sparkline, Progress, LiveDot.
 - Every space adopts the PageHeader and the Panel. Tests and the axe sweep stay green.
+### Note (2026-10-31): empty states
+The ghost rows of EmptyState and of the backlink list read as "still loading". The rule is now: skeleton rows that shimmer mean loading only. An empty state is a muted icon, one short noun title and one action. See `docs/design/visual-language-v2.md`, section 3.

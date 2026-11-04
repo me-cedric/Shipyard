@@ -483,21 +483,50 @@ describe("mock factory: workflows, roles and tiers", () => {
 	it("gives the default tiers and checks a row", async () => {
 		const rows = await unwrap(commands.tiersGet());
 		expect(rows.map((r) => r.runner)).toEqual(["claude", "codex", "copilot", "gemini", "opencode"]);
-		expect(rows[0]).toEqual({ runner: "claude", top: "opus", mid: "sonnet", small: "haiku" });
+		expect(rows[0]).toEqual({
+			runner: "claude",
+			top: "opus",
+			mid: "sonnet",
+			small: "haiku",
+			topEffort: "",
+			midEffort: "",
+			smallEffort: "",
+		});
 		expect(rows.slice(1).every((r) => !r.top && !r.mid && !r.small)).toBe(true);
+		const row = (runner: string, top: string, topEffort = "") => ({
+			runner,
+			top,
+			mid: "",
+			small: "",
+			topEffort,
+			midEffort: "",
+			smallEffort: "",
+		});
 		const saved = await unwrap(
-			commands.tiersSet({ runner: "codex", top: " gpt-5@2026+x/y:1 ", mid: "", small: "m.1_2" }),
+			commands.tiersSet({ ...row("codex", " gpt-5@2026+x/y:1 ", " high "), small: "m.1_2" }),
 		);
 		expect(saved).toHaveLength(5);
-		expect(saved[1]).toEqual({ runner: "codex", top: "gpt-5@2026+x/y:1", mid: "", small: "m.1_2" });
-		await expect(
-			unwrap(commands.tiersSet({ runner: "vim", top: "", mid: "", small: "" })),
-		).rejects.toMatchObject({ details: expect.stringContaining("unknown runner: vim") });
+		expect(saved[1]).toEqual({ ...row("codex", "gpt-5@2026+x/y:1", "high"), small: "m.1_2" });
+		await expect(unwrap(commands.tiersSet(row("vim", "")))).rejects.toMatchObject({
+			details: expect.stringContaining("unknown runner: vim"),
+		});
 		for (const bad of ["-flag", "has space", "a".repeat(101), "x;y"])
-			await expect(
-				unwrap(commands.tiersSet({ runner: "claude", top: bad, mid: "", small: "" })),
-			).rejects.toMatchObject({ details: expect.stringContaining("is not a model id") });
+			await expect(unwrap(commands.tiersSet(row("claude", bad)))).rejects.toMatchObject({
+				details: expect.stringContaining("is not a model id"),
+			});
+		for (const bad of ["High", "a b", "x".repeat(13)])
+			await expect(unwrap(commands.tiersSet(row("claude", "opus", bad)))).rejects.toMatchObject({
+				details: expect.stringContaining("is not an effort"),
+			});
 		expect((await unwrap(commands.tiersGet()))[0]?.top).toBe("opus");
+		// The catalog of a tool: a model with no level takes no effort, and OpenCode lists none.
+		const claude = await unwrap(commands.runnersCatalog("claude"));
+		expect(claude.models.find((m) => m.id === "haiku")?.efforts).toEqual([]);
+		expect(claude.efforts).toContain("xhigh");
+		expect((await unwrap(commands.runnersCatalog("opencode"))).models).toEqual([]);
+		await expect(unwrap(commands.runnersCatalog("vim"))).rejects.toMatchObject({
+			details: expect.stringContaining("unknown runner: vim"),
+		});
 	});
 });
 

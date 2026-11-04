@@ -177,6 +177,7 @@ function HistoryView() {
 						<Detail sha={sha} />
 					) : (
 						<EmptyState
+							title={t.empty.commit}
 							action={{
 								label: t.tabs.code.changes,
 								onClick: () => void navigate({ to: "/code/changes" }),

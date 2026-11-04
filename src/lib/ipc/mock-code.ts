@@ -315,6 +315,13 @@ export function codeCommit(c: MockCode, summary: string, description: string): s
 	return made.info.sha;
 }
 
+/** The newest commit of the branch that changed a file, like Rust `git_last_change`. */
+export function codeLastChange(c: MockCode, path: string): CommitInfo | null {
+	for (const sha of c.branches[c.branch]?.log ?? [])
+		if (c.commits[sha]?.changes[path]) return c.commits[sha].info;
+	return null;
+}
+
 export function codeLog(c: MockCode, skip: number, limit: number): LogPage {
 	const all = c.branches[c.branch]?.log ?? [];
 	const page = all.slice(skip, skip + limit);

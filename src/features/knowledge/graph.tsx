@@ -140,6 +140,7 @@ export function Graph() {
 			{wantsIndex ? (
 				<div className="p-4">
 					<EmptyState
+						title={t.empty.graph}
 						action={{
 							label: k.graph.index,
 							icon: <ArrowPathIcon size={14} />,

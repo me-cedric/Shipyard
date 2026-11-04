@@ -153,6 +153,11 @@ export const commands = {
 	/**  Opens the terminal app of the preferences in a folder of the open project. */
 	terminalLaunch: (folder: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("terminal_launch", { folder, click })),
 	runnersList: () => typedError<Runner_Serialize[], AppError_Serialize>(__TAURI_INVOKE("runners_list")),
+	/**
+	 *  The models and the reasoning levels that one agent tool accepts. It asks the tool, and the
+	 *  table of the app answers for what the tool cannot list.
+	 */
+	runnersCatalog: (runner: string) => typedError<Catalog, AppError_Serialize>(__TAURI_INVOKE("runners_catalog", { runner })),
 	providersList: () => typedError<Provider[], AppError_Serialize>(__TAURI_INVOKE("providers_list")),
 	providersAdd: (draft: ProviderDraft) => typedError<Provider, AppError_Serialize>(__TAURI_INVOKE("providers_add", { draft })),
 	providersEdit: (id: string, draft: ProviderDraft) => typedError<Provider, AppError_Serialize>(__TAURI_INVOKE("providers_edit", { id, draft })),
@@ -208,9 +213,9 @@ export const commands = {
 	feedbackOpen: (kind: FeedbackKind, title: string, details: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("feedback_open", { kind, title, details, click })),
 	debugLog: () => typedError<LogLine[], AppError_Serialize>(__TAURI_INVOKE("debug_log")),
 	/**  The model of each tier for each runner (`factory` REQ-012). Settings / Connections edits it. */
-	tiersGet: () => typedError<RunnerTiers[], AppError_Serialize>(__TAURI_INVOKE("tiers_get")),
+	tiersGet: () => typedError<RunnerTiers_Serialize[], AppError_Serialize>(__TAURI_INVOKE("tiers_get")),
 	/**  Saves the row of one runner. A step that starts after the edit uses it. */
-	tiersSet: (row: RunnerTiers) => typedError<RunnerTiers[], AppError_Serialize>(__TAURI_INVOKE("tiers_set", { row })),
+	tiersSet: (row: RunnerTiers_Deserialize) => typedError<RunnerTiers_Serialize[], AppError_Serialize>(__TAURI_INVOKE("tiers_set", { row })),
 	syncState: () => typedError<SyncConnection_Serialize[], AppError_Serialize>(__TAURI_INVOKE("sync_state")),
 	syncNow: () => typedError<SyncReport, AppError_Serialize>(__TAURI_INVOKE("sync_now")),
 	syncAutomationGet: () => typedError<AutomationView_Serialize, AppError_Serialize>(__TAURI_INVOKE("sync_automation_get")),
@@ -223,6 +228,7 @@ export const commands = {
 	syncUnlink: (local: string) => typedError<boolean, AppError_Serialize>(__TAURI_INVOKE("sync_unlink", { local })),
 	workContext: (offsetMinutes: number) => typedError<WorkContext_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_context", { offsetMinutes })),
 	workTeam: () => typedError<TeamView_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_team")),
+	workTeamAddMe: (click: boolean) => typedError<TeamView_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_team_add_me", { click })),
 	workTeamSave: (team: Team_Deserialize) => typedError<TeamView_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_team_save", { team })),
 	workSuggest: (key: string) => typedError<Suggestion[], AppError_Serialize>(__TAURI_INVOKE("work_suggest", { key })),
 	workAssign: (key: string, member: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_assign", { key, member, click })),
@@ -498,6 +504,7 @@ export const commands = {
 	gitStashDiff: (id: string) => typedError<FileDiff[], AppError_Serialize>(__TAURI_INVOKE("git_stash_diff", { id })),
 	/**  Moves a branch to its upstream when it only lags behind, after the click of a person. */
 	gitBranchFastForward: (branch: string, click: boolean) => typedError<Forward, AppError_Serialize>(__TAURI_INVOKE("git_branch_fast_forward", { branch, click })),
+	gitLastChange: (path: string) => typedError<CommitInfo | null, AppError_Serialize>(__TAURI_INVOKE("git_last_change", { path })),
 	gitLinkedInspect: (child: string) => typedError<Inspect_Serialize, AppError_Serialize>(__TAURI_INVOKE("git_linked_inspect", { child })),
 	runnerInstall: (id: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("runner_install", { id, click })),
 	codexTrustState: () => typedError<boolean, AppError_Serialize>(__TAURI_INVOKE("codex_trust_state")),
@@ -1111,6 +1118,13 @@ export type CapabilityRow = {
 	capability: string,
 	path: string,
 	requirements: number,
+};
+
+export type Catalog = {
+	runner: string,
+	models: ModelChoice[],
+	/**  The levels of the default model of the tool. Empty: the tool takes no effort. */
+	efforts: string[],
 };
 
 export type CatalogGroup = "devcontainers" | "agents" | "devops-security";
@@ -1803,7 +1817,7 @@ export type ErrorAction = {
 
 export type ErrorCode = 
 /**  Not in the table: the view shows the details. */
-"unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_id_invalid" | "change_exists" | "run_not_started" | "run_active" | "merge_draft" | "merge_closed" | "merge_method" | "forge_unreachable" | "cert_untrusted" | "forge_denied" | "forge_missing" | "git_nothing_staged" | "git_identity" | "git_busy" | "git_no_upstream" | "no_terminal" | "terminal_gone" | "device_not_set" | "no_editor" | "no_first_commit" | "remote_address" | "remote_exists" | "sheet_frozen" | "feed_invalid" | "setting_invalid" | "gitlab_no_mcp" | "gitlab_address" | "read_only" | "agents_stopped" | "agent_limit" | "budget_spent" | "head_missing" | "no_changes" | "review_posted" | "review_running" | "figma_no_token" | "branch_diverged" | "picture_invalid" | "review_no_result" | "agent_no_text" | "agent_no_title" | "review_no_draft" | "review_empty" | "no_base" | "figma_address";
+"unknown" | "no_project" | "no_tracker" | "scope_missing" | "pickup_off" | "ticket_not_in_mirror" | "needs_click" | "node_missing" | "no_package_manager" | "no_secret" | "token_refused" | "connection_name" | "connection_address" | "secret_invalid" | "title_invalid" | "change_id_invalid" | "change_exists" | "run_not_started" | "run_active" | "merge_draft" | "merge_closed" | "merge_method" | "forge_unreachable" | "cert_untrusted" | "forge_denied" | "forge_missing" | "git_nothing_staged" | "git_identity" | "git_busy" | "git_no_upstream" | "no_terminal" | "terminal_gone" | "device_not_set" | "no_editor" | "no_first_commit" | "remote_address" | "remote_exists" | "sheet_frozen" | "feed_invalid" | "setting_invalid" | "gitlab_no_mcp" | "gitlab_address" | "read_only" | "agents_stopped" | "agent_limit" | "budget_spent" | "head_missing" | "no_changes" | "review_posted" | "review_running" | "figma_no_token" | "branch_diverged" | "picture_invalid" | "review_no_result" | "agent_no_text" | "agent_no_title" | "review_no_draft" | "review_empty" | "no_base" | "figma_address" | "no_member" | "no_account" | "unknown_member";
 
 /**
  *  A source of events that can notify the person (spec `shell`, REQ-008). One list feeds the
@@ -2820,6 +2834,12 @@ export type MessageView = {
 
 export type Mode = "plan" | "auto";
 
+export type ModelChoice = {
+	id: string,
+	/**  The levels that this model accepts. Empty: the model takes no effort. */
+	efforts: string[],
+};
+
 export type MonthSpend = {
 	month: string,
 	days: number | null,
@@ -3305,6 +3325,9 @@ export type PrefsPatch_Deserialize = {
 	dateFormat?: string | null,
 	closePush?: boolean | null,
 	narrowBar?: boolean | null,
+	terminalDock?: TerminalDock | null,
+	/**  Replaces the whole map, so a missing key goes back to its default size. */
+	panelSizes?: { [key in string]: number } | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -3340,6 +3363,9 @@ export type PrefsPatch_Serialize = {
 	dateFormat: string | null,
 	closePush: boolean | null,
 	narrowBar: boolean | null,
+	terminalDock: TerminalDock | null,
+	/**  Replaces the whole map, so a missing key goes back to its default size. */
+	panelSizes: { [key in string]: number } | null,
 };
 
 export type Prefs_Deserialize = {
@@ -3404,6 +3430,13 @@ export type Prefs_Deserialize = {
 	closePush?: boolean,
 	/**  A lower bar on top of the window. */
 	narrowBar?: boolean,
+	/**  Where the terminal drawer docks. */
+	terminalDock?: TerminalDock,
+	/**
+	 *  The size in pixels that the person gave to each resizable panel, by panel key.
+	 *  A panel with no entry keeps its default size.
+	 */
+	panelSizes?: { [key in string]: number },
 };
 
 export type Prefs_Serialize = {
@@ -3468,6 +3501,13 @@ export type Prefs_Serialize = {
 	closePush: boolean,
 	/**  A lower bar on top of the window. */
 	narrowBar: boolean,
+	/**  Where the terminal drawer docks. */
+	terminalDock: TerminalDock,
+	/**
+	 *  The size in pixels that the person gave to each resizable panel, by panel key.
+	 *  A panel with no entry keeps its default size.
+	 */
+	panelSizes: { [key in string]: number },
 };
 
 export type Preview = Preview_Serialize | Preview_Deserialize;
@@ -4437,11 +4477,36 @@ export type RunnerState = "detected" | "missing";
  *  The model of each tier (`top`, `mid`, `small`) of one runner (`factory` REQ-012: a step names
  *  a tier, never a vendor id). An empty text means that the runner uses its own default model.
  */
-export type RunnerTiers = {
+export type RunnerTiers = RunnerTiers_Serialize | RunnerTiers_Deserialize;
+
+/**
+ *  The model of each tier (`top`, `mid`, `small`) of one runner (`factory` REQ-012: a step names
+ *  a tier, never a vendor id). An empty text means that the runner uses its own default model.
+ */
+export type RunnerTiers_Deserialize = {
 	runner: string,
 	top: string,
 	mid: string,
 	small: string,
+	/**  The reasoning level of each tier. Empty: the tool default. */
+	topEffort?: string,
+	midEffort?: string,
+	smallEffort?: string,
+};
+
+/**
+ *  The model of each tier (`top`, `mid`, `small`) of one runner (`factory` REQ-012: a step names
+ *  a tier, never a vendor id). An empty text means that the runner uses its own default model.
+ */
+export type RunnerTiers_Serialize = {
+	runner: string,
+	top: string,
+	mid: string,
+	small: string,
+	/**  The reasoning level of each tier. Empty: the tool default. */
+	topEffort: string,
+	midEffort: string,
+	smallEffort: string,
 };
 
 export type Runner_Deserialize = {
@@ -5072,6 +5137,9 @@ export type TerminalApp = {
 	id: string,
 	label: string,
 };
+
+/**  Where the terminal drawer docks. */
+export type TerminalDock = "bottom" | "left" | "right";
 
 /**
  *  The payload of the event `terminal-output`. The event `terminal-exit` has the shell id as its

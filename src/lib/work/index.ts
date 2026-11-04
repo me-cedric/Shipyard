@@ -228,6 +228,7 @@ export function useWorkActions() {
 				run(commands.workTicketPrioritySet(key, priority, true)),
 			transition: (key: string, to: string) => run(commands.workTransition(key, to, true)),
 			saveTeam: (team: Team_Deserialize) => run(commands.workTeamSave(team)),
+			addMe: () => run(commands.workTeamAddMe(true)),
 			unlock: (passphrase: string) => run(commands.workUnlock(passphrase)),
 			lock: () => run(commands.workLock()),
 			seal: (passphrase: string) => run(commands.workSeal(passphrase)),

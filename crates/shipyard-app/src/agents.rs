@@ -89,11 +89,19 @@ pub const TIER_RUNNERS: [&str; 5] = ["claude", "codex", "copilot", "gemini", "op
 /// The model of each tier (`top`, `mid`, `small`) of one runner (`factory` REQ-012: a step names
 /// a tier, never a vendor id). An empty text means that the runner uses its own default model.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct RunnerTiers {
     pub runner: String,
     pub top: String,
     pub mid: String,
     pub small: String,
+    /// The reasoning level of each tier. Empty: the tool default.
+    #[serde(default)]
+    pub top_effort: String,
+    #[serde(default)]
+    pub mid_effort: String,
+    #[serde(default)]
+    pub small_effort: String,
 }
 
 /// Claude Code maps to its three aliases. The other runners start with no row: their own default
@@ -108,6 +116,9 @@ pub fn default_tiers(runner: &str) -> RunnerTiers {
         top: top.into(),
         mid: mid.into(),
         small: small.into(),
+        top_effort: String::new(),
+        mid_effort: String::new(),
+        small_effort: String::new(),
     }
 }
 
@@ -121,6 +132,18 @@ fn model_id(text: &str) -> Res<String> {
     if id.len() > 100 || id.starts_with('-') || !id.chars().all(plain) {
         return Err(format!(
             "`{id}` is not a model id: use letters, digits and . _ - : / @ +"
+        ));
+    }
+    Ok(id.into())
+}
+
+/// A reasoning level that the engine passes on (`high`, `xhigh`). Empty is allowed. Another level
+/// would be dropped with no word, so it is refused.
+fn effort_id(text: &str) -> Res<String> {
+    let id = text.trim();
+    if !id.is_empty() && !shipyard_agents::catalog::LEVELS.contains(&id) {
+        return Err(format!(
+            "`{id}` is not an effort: use low, medium, high, xhigh or max"
         ));
     }
     Ok(id.into())
@@ -250,6 +273,9 @@ impl Agents {
             top: model_id(&row.top)?,
             mid: model_id(&row.mid)?,
             small: model_id(&row.small)?,
+            top_effort: effort_id(&row.top_effort)?,
+            mid_effort: effort_id(&row.mid_effort)?,
+            small_effort: effort_id(&row.small_effort)?,
         };
         self.with_file(|file| {
             file.tiers.retain(|t| t.runner != row.runner);
@@ -267,11 +293,18 @@ impl Agents {
         shipyard_engine::run_engine::Tiers(
             rows.into_iter()
                 .map(|t| {
-                    let map = [("top", t.top), ("mid", t.mid), ("small", t.small)]
-                        .into_iter()
-                        .filter(|(_, m)| !m.is_empty())
-                        .map(|(k, m)| (k.to_string(), m))
-                        .collect();
+                    let map = [
+                        ("top", t.top),
+                        ("mid", t.mid),
+                        ("small", t.small),
+                        ("top:effort", t.top_effort),
+                        ("mid:effort", t.mid_effort),
+                        ("small:effort", t.small_effort),
+                    ]
+                    .into_iter()
+                    .filter(|(_, m)| !m.is_empty())
+                    .map(|(k, m)| (k.to_string(), m))
+                    .collect();
                     (t.runner, map)
                 })
                 .collect(),
@@ -538,6 +571,9 @@ mod tests {
             top: " gpt-5 ".into(),
             mid: "gpt-5-mini".into(),
             small: String::new(),
+            top_effort: "high".into(),
+            mid_effort: String::new(),
+            small_effort: String::new(),
         };
         a.tiers_set(row).unwrap();
         // A new process reads the same file.
@@ -557,6 +593,11 @@ mod tests {
             "an empty tier is the runner default"
         );
         assert_eq!(map.model("claude", "mid").as_deref(), Some("sonnet"));
+        assert_eq!(
+            map.effort("codex", "top"),
+            Some(shipyard_core::workflow::Effort::High)
+        );
+        assert_eq!(map.effort("codex", "mid"), None);
         // The MCP config and the providers in the same file are not touched.
         let text = std::fs::read_to_string(dir.path().join(CONFIG_FILE)).unwrap();
         assert!(
@@ -574,11 +615,19 @@ mod tests {
             top: top.into(),
             mid: String::new(),
             small: String::new(),
+            top_effort: String::new(),
+            mid_effort: String::new(),
+            small_effort: String::new(),
         };
         assert!(a.tiers_set(row("nope", "x")).is_err());
         for bad in ["a b", "x;rm", "--model", "é", &"m".repeat(101)] {
             assert!(a.tiers_set(row("claude", bad)).is_err(), "{bad}");
         }
         assert_eq!(a.tiers().unwrap()[0].top, "opus");
+        let mut bad = row("claude", "opus");
+        for effort in ["High", "x y", "--max", "a-b", "abcdefghijklm", "minimal"] {
+            bad.mid_effort = effort.into();
+            assert!(a.tiers_set(bad.clone()).is_err(), "{effort}");
+        }
     }
 }

@@ -17,11 +17,12 @@ use serde::{Deserialize, Serialize};
 use shipyard_core::pickup::Ticket;
 use shipyard_core::refs::parse;
 use shipyard_core::work::{
-    self, Action, Calendar, Decisions, DiffRow, Field, Gantt, MonthSpend, Portfolio, Row, Sheet,
-    Suggestion, Team, TimeEntry, TimeRow, Totals, TrackerLog,
+    self, Action, Calendar, Decisions, DiffRow, Field, Gantt, Member, MonthSpend, Portfolio, Row,
+    Sheet, Suggestion, Team, TimeEntry, TimeRow, Totals, TrackerLog,
 };
 use shipyard_core::work_item::{Capabilities, TrackerKind, WorkItem};
 use shipyard_engine::tick::source_key;
+use shipyard_git::Repo;
 use shipyard_store::excel::{self, MAX_BYTES, Preview};
 use shipyard_store::project::write_atomic;
 use shipyard_store::seal::{self, Sealer, is_sealed};
@@ -38,7 +39,7 @@ use tauri::AppHandle;
 
 use crate::commands::sync::{active, automation_in, tracker_target};
 use crate::commands::{Api, AppState, Res, blocking, err};
-use crate::connections::Connection;
+use crate::connections::{Connection, slug_text};
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
@@ -435,12 +436,30 @@ fn conn_of(s: &AppState) -> Res<Option<Connection>> {
     }
 }
 
-/// The member that the `user` of the tracker connection resolves to through `team.yaml`.
-fn me_of(conn: &Option<Connection>, team: &Team) -> Option<String> {
-    conn.as_ref()
-        .and_then(|c| c.user.as_deref())
-        .and_then(|u| team.resolve(u))
-        .map(|m| m.handle.clone())
+/// The member that the signed-in person resolves to through the team: the `user` of the tracker
+/// connection (the login that a sign-in or a passed test saved), then the full git e-mail. The part
+/// of the e-mail before the `@` counts only for one member that has no other account: `john` at
+/// one host is not `john` at another.
+fn me_of(conn: &Option<Connection>, team: &Team, root: &Path) -> Option<String> {
+    let email = Repo::open(root).ok().and_then(|r| r.user_email());
+    [
+        conn.as_ref().and_then(|c| c.user.as_deref()),
+        email.as_deref(),
+    ]
+    .into_iter()
+    .flatten()
+    .find_map(|id| team.resolve(id))
+    .or_else(|| {
+        let local = email.as_deref()?.split('@').next()?;
+        let is = |x: &String| x.eq_ignore_ascii_case(local);
+        let mut hits = team
+            .members
+            .iter()
+            .filter(|m| is(&m.handle) || m.trackers.iter().any(is));
+        let m = hits.next()?;
+        (hits.next().is_none() && m.trackers.iter().all(is)).then_some(m)
+    })
+    .map(|m| m.handle.clone())
 }
 
 /// `offset_minutes` is the offset of the screen from UTC, east positive: the day of the plan, the
@@ -453,7 +472,7 @@ pub fn context(s: &AppState, offset_minutes: i32) -> Res<WorkContext> {
     let c = ctx(s)?;
     let a = active(s)?.ok_or("no active project")?;
     let conn = conn_of(s)?;
-    let me = me_of(&conn, &c.team().team);
+    let me = me_of(&conn, &c.team().team, &c.root);
     Ok(WorkContext {
         tracker: conn.as_ref().map(|c| c.id.clone()),
         capabilities: conn.as_ref().and_then(|c| c.capabilities),
@@ -503,6 +522,58 @@ pub fn team_save(s: &AppState, mut team: Team) -> Res<TeamView> {
         .map_err(err)?;
     c.write(TEAM_PATH, &text)?;
     Ok(c.team())
+}
+
+/// Add the signed-in person to the team: the name of the git identity, a handle from the login
+/// (or the git e-mail) and the login as the issue tracker account. A person who is in the team
+/// already changes nothing. A click is needed, and a read-only project refuses.
+pub fn team_add_me(s: &AppState, click: bool) -> Res<TeamView> {
+    need_click(s, click)?;
+    let c = ctx(s)?;
+    let view = c.team();
+    if let Some(e) = view.error {
+        return Err(e);
+    }
+    let conn = conn_of(s)?;
+    if me_of(&conn, &view.team, &c.root).is_some() {
+        return Ok(c.team());
+    }
+    // A login of digits only is a numeric id that an old test saved: it names nobody.
+    let login = conn
+        .and_then(|c| c.user)
+        .filter(|l| !l.bytes().all(|b| b.is_ascii_digit()));
+    let repo = Repo::open(&c.root).ok();
+    let email = repo.as_ref().and_then(|r| r.user_email());
+    let local = email.as_deref().and_then(|e| e.split('@').next());
+    // shortcut: a git name alone gives no handle: with no e-mail the next look cannot find the
+    // member, and each click would add one.
+    let base = [login.as_deref(), local]
+        .into_iter()
+        .flatten()
+        .map(slug_text)
+        .find(|h| !h.is_empty())
+        .ok_or("no signed-in account: sign in to your code host or issue tracker first")?;
+    let name = repo
+        .and_then(|r| r.user_name())
+        .or_else(|| login.clone())
+        .unwrap_or_else(|| base.clone());
+    let mut team = view.team;
+    let mut handle = base.clone();
+    for n in 2.. {
+        if team.resolve(&handle).is_none() {
+            break;
+        }
+        handle = format!("{base}-{n}");
+    }
+    team.members.push(Member {
+        name,
+        handle,
+        // The git e-mail is the account when no login is known: the next look finds the member.
+        trackers: login.or(email).into_iter().collect(),
+        capacity: 5.0,
+        ..Member::default()
+    });
+    team_save(s, team)
 }
 
 /// The skills of an item: its labels without the pickup label and the refs, and its components.
@@ -1282,16 +1353,15 @@ pub fn calendar_save(s: &AppState, calendar: &Calendar) -> Res<()> {
 /// machine resolves to. No member, no entry (REQ-020).
 fn member_of(c: &Ctx, named: Option<&str>) -> Res<String> {
     let team = c.team().team;
-    let id = match named {
-        Some(h) => Some(h.to_string()),
-        None => me_of(&conn_of(c.s)?, &team),
-    };
-    id.and_then(|h| team.resolve(&h).map(|m| m.handle.clone()))
-        .ok_or_else(|| {
-            "cannot resolve the member: set `user` on the tracker connection to a tracker account of \
-             the team, or name the member"
-                .into()
-        })
+    if let Some(h) = named {
+        return team
+            .resolve(h)
+            .map(|m| m.handle.clone())
+            .ok_or_else(|| format!("the team has no member `{h}`"));
+    }
+    me_of(&conn_of(c.s)?, &team, &c.root).ok_or_else(|| {
+        "no team member matches the signed-in account: add the person to the team".into()
+    })
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -1708,6 +1778,12 @@ pub async fn work_context(app: AppHandle, offset_minutes: i32) -> Api<WorkContex
 #[specta::specta]
 pub async fn work_team(app: AppHandle) -> Api<TeamView> {
     blocking(app, team_get).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn work_team_add_me(app: AppHandle, click: bool) -> Api<TeamView> {
+    blocking(app, move |s| team_add_me(s, click)).await
 }
 
 #[tauri::command]

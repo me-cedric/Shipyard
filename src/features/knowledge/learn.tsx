@@ -66,6 +66,7 @@ export function Learn() {
 				<div className="flex min-w-0 flex-col gap-3">
 					{learn && path.length === 0 && glossary.length === 0 ? (
 						<EmptyState
+							title={t.empty.feeds}
 							action={{
 								label: t.home.refresh,
 								icon: <ArrowPathIcon size={14} />,

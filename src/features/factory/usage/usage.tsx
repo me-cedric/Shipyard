@@ -199,7 +199,10 @@ export function Usage() {
 		>
 			{rows.length === 0 && !usage.isPending ? (
 				<div className="flex flex-col gap-3 overflow-y-auto p-4">
-					<EmptyState action={{ label: f.setBudget, onClick: () => field.current?.focus() }} />
+					<EmptyState
+						title={t.empty.budget}
+						action={{ label: f.setBudget, onClick: () => field.current?.focus() }}
+					/>
 					<MachineUsage />
 				</div>
 			) : (

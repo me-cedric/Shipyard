@@ -1,4 +1,5 @@
 import type { Messages } from "@/lib/i18n";
+import { DOC_DIR } from "@/lib/knowledge";
 import { type TabPath, tabLabel } from "./spaces";
 
 /** The page that lists the entities of each ref kind. */
@@ -25,6 +26,20 @@ const PAGE: Record<string, TabPath> = {
 	conn: "/settings/connections",
 	project: "/home/projects",
 };
+
+/** The page and the open item of a `doc:` ref, by the folder of the file. */
+const DOC_PAGE = [
+	[DOC_DIR.handbook, "/knowledge/handbook"],
+	[DOC_DIR.documents, "/knowledge/documents"],
+	[DOC_DIR.slides, "/knowledge/slides"],
+] as const;
+
+export function docTarget(ref: string): { page: TabPath; scope: string; id: string } | undefined {
+	if (!ref.startsWith("doc:")) return undefined;
+	const id = ref.slice(4);
+	const hit = DOC_PAGE.find(([dir]) => id.startsWith(`${dir}/`));
+	return hit && { page: hit[1], scope: `knowledge:${hit[0]}`, id };
+}
 
 export const refPage = (ref: string): TabPath | undefined => PAGE[ref.slice(0, ref.indexOf(":"))];
 

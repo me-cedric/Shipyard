@@ -394,7 +394,7 @@ export function Connections() {
 						{message(list.error)}
 					</p>
 				) : null}
-				{empty ? <EmptyState action={add} /> : null}
+				{empty ? <EmptyState title={t.empty.connections} action={add} /> : null}
 				<RunnersGroup />
 				{adding ? (
 					<div className="rounded-lg border bg-surface-1 shadow-1">

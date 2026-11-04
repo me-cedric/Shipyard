@@ -26,6 +26,7 @@ import { Select } from "@/ui/atoms/select";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, PlusIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
@@ -135,10 +136,13 @@ export function Time() {
 	const e = t.work.time;
 	const active = useActiveProject().data;
 	const ctx = useWorkContext().data;
-	const members = useTeam().data?.team.members ?? [];
+	const team = useTeam().data;
+	const members = team?.team.members ?? [];
+	/** The team file has no member: Time has nobody to book for, so it offers to add the person. */
+	const noTeam = team !== undefined && members.length === 0;
 	const items = useWorkItems({}).data ?? [];
 	const act = useWorkActions();
-	const { error, run, setError } = useGuard();
+	const { error, failure, run, setError } = useGuard();
 	const [member, setMember] = useState<string | null>(null);
 	const [month, setMonth] = useState<string | null>(null);
 	const [adding, setAdding] = useState(false);
@@ -383,14 +387,28 @@ export function Time() {
 					</Button>
 				</form>
 			) : null}
-			{error || view.error ? (
+			{error && !failure ? (
 				<p role="alert" className="px-3 py-1 text-ui text-danger-text">
-					{error ?? (view.error instanceof Error ? view.error.message : String(view.error))}
+					{error}
 				</p>
+			) : null}
+			<ErrorNotice className="px-3 py-1" error={failure ?? (noTeam ? null : view.error)} />
+			{noTeam ? (
+				<div className="p-4">
+					<EmptyState
+						title={t.empty.team}
+						action={{
+							label: e.addMe,
+							icon: <PlusIcon size={14} />,
+							onClick: () => void run(() => act.addMe()),
+						}}
+					/>
+				</div>
 			) : null}
 			{data && lines.length === 0 ? (
 				<div className="p-4">
 					<EmptyState
+						title={t.empty.time}
 						action={{ label: e.add, icon: <PlusIcon size={14} />, onClick: () => setAdding(true) }}
 					/>
 				</div>

@@ -49,6 +49,7 @@ export function Board() {
 		return (
 			<BoardTemplate title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />} count={0}>
 				<EmptyState
+					title={t.empty.tickets}
 					action={{
 						label: t.tabs.work.backlog,
 						onClick: () => void navigate({ to: "/work/backlog" }),

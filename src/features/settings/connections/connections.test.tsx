@@ -44,12 +44,12 @@ describe("Settings / Connections", () => {
 		expect(await within(await row("Acme")).findByRole("status")).toHaveTextContent("Passed");
 	});
 
-	it("shows ghost rows and one primary action when no connection exists", async () => {
+	it("shows an empty title and one primary action when no connection exists", async () => {
 		mountApp("/settings/connections");
 		const main = await screen.findByRole("main");
 		const add = await within(main).findByRole("button", { name: "Connection" });
 		expect(add.className).toContain("bg-accent");
-		expect(main.querySelectorAll("[aria-hidden] > *").length).toBeGreaterThanOrEqual(5);
+		expect(within(main).getByText("No connections")).toBeInTheDocument();
 		// The runners are detected, not added: they come first. The MCP servers (with the recommended
 		// set), the outside agents server and the certificates wait in Advanced.
 		expect(

@@ -147,6 +147,8 @@ fn an_edit_keeps_the_kind_and_resets_the_state_when_the_address_changes() {
         (c.name.as_str(), c.state, c.secret),
         ("Renamed", ConnectionState::Passed, true)
     );
+    // The passed test saved the login, and a rename keeps it.
+    assert_eq!(c.user.as_deref(), Some("ada"));
     // A new address resets it.
     d.url = "https://ghe.example.com".into();
     assert_eq!(

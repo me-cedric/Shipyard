@@ -40,6 +40,8 @@ export type Prefs = Pick<
 	| "dateFormat"
 	| "closePush"
 	| "narrowBar"
+	| "terminalDock"
+	| "panelSizes"
 >;
 
 /** Font stacks that are on the machine already. Nothing is fetched. */
@@ -80,6 +82,8 @@ const DEFAULTS: Prefs = {
 	dateFormat: "",
 	closePush: false,
 	narrowBar: false,
+	terminalDock: "bottom",
+	panelSizes: {},
 };
 
 type Ctx = Prefs & {

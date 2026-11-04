@@ -313,6 +313,7 @@ export function Team() {
 			{empty ? (
 				<div className="p-4">
 					<EmptyState
+						title={t.empty.team}
 						action={{ label: t.work.team.add, icon: <PlusIcon size={14} />, onClick: add }}
 					/>
 				</div>

@@ -8,7 +8,10 @@ export function NotFound() {
 	return (
 		<div className="flex flex-col gap-4 p-4">
 			<h1 className="text-14 font-medium">{t.notFound.title}</h1>
-			<EmptyState action={{ label: t.notFound.home, onClick: () => navigate({ to: "/" }) }} />
+			<EmptyState
+				title={t.empty.nothing}
+				action={{ label: t.notFound.home, onClick: () => navigate({ to: "/" }) }}
+			/>
 		</div>
 	);
 }

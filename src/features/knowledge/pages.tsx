@@ -1,8 +1,9 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { DOC_DIR, useDocFile, useDocList } from "@/lib/knowledge";
 import { useBacklinks } from "@/lib/refs";
 import { useShell } from "@/lib/shell";
+import { clearEditRequest, wantsEdit } from "@/lib/shell/selection";
 import { cn } from "@/lib/utils";
 import { BookOpenIcon, PencilIcon } from "@/ui/icons";
 import { BacklinkList } from "@/ui/molecules/backlink-list";
@@ -51,7 +52,10 @@ export function PageEditor({
 function HandbookPage({ path, title }: { path: string; title: string }) {
 	const { t } = useI18n();
 	const k = t.knowledge.handbook;
-	const [mode, setMode] = useState<"read" | "edit">("read");
+	const [mode, setMode] = useState<"read" | "edit">(() => (wantsEdit(path) ? "edit" : "read"));
+	useEffect(() => {
+		clearEditRequest(path);
+	}, [path]);
 	const file = useDocFile(path);
 	const { openRef } = useShell();
 	const anchor = useId();

@@ -120,6 +120,7 @@ export function Backlog() {
 			<ListDetail title={t.tabs.work.backlog} icon={<QueueListIcon size={16} />} count={0}>
 				<div className="p-4">
 					<EmptyState
+						title={t.empty.tickets}
 						action={{
 							label: t.sync.backlog.import,
 							icon: <PlusIcon size={14} />,

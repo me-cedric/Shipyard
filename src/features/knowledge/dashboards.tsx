@@ -339,6 +339,7 @@ export function Dashboards() {
 			) : list.isSuccess ? (
 				<div className="p-4">
 					<EmptyState
+						title={t.empty.dashboards}
 						action={{
 							label: k.title,
 							icon: <PlusIcon size={14} />,

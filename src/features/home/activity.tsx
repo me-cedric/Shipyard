@@ -94,6 +94,7 @@ export function Activity() {
 			<PinnedTiles />
 			{events.length === 0 && notices.length === 0 ? (
 				<EmptyState
+					title={t.empty.activity}
 					action={{ label: t.home.refresh, icon: <ArrowPathIcon size={14} />, onClick: refresh }}
 				/>
 			) : (

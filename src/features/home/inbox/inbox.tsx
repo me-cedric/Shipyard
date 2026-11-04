@@ -63,6 +63,7 @@ export function Inbox({ start }: { start?: ReactNode }) {
 			/>
 			{active === null ? (
 				<EmptyState
+					title={t.empty.project}
 					action={{
 						label: t.projects.open,
 						icon: <FolderOpenIcon size={14} />,
@@ -75,7 +76,7 @@ export function Inbox({ start }: { start?: ReactNode }) {
 					<HomeStats />
 					{total === 0 && !loading ? (
 						<EmptyState
-							layout="cards"
+							title={t.empty.needsYou}
 							action={{
 								label: t.home.refresh,
 								icon: <ArrowPathIcon size={14} />,

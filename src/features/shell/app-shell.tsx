@@ -27,7 +27,7 @@ import { WhatsNew } from "./whats-new";
 
 function Frame() {
 	const { t } = useI18n();
-	const { sidebarOpen, navSide, drawerSide, narrowBar } = usePrefs();
+	const { sidebarOpen, navSide, drawerSide, narrowBar, terminalDock } = usePrefs();
 	const {
 		inspectorOpen,
 		setInspectorOpen,
@@ -117,6 +117,7 @@ function Frame() {
 						/>
 					) : null
 				}
+				bottomDock={terminalDock}
 				assistantSide={chat.side}
 				assistant={
 					<AssistantPanel

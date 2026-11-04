@@ -149,6 +149,12 @@ impl Record {
     fn holder(&self) -> &str {
         self.uses.as_deref().unwrap_or(&self.id)
     }
+
+    /// A passed test saves the login of a GitHub or GitLab issue tracker as its `user`.
+    fn saves_login(&self) -> bool {
+        self.group == ConnectionGroup::Tracker
+            && matches!(self.kind, ConnectionKind::GitHub | ConnectionKind::GitLab)
+    }
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -473,6 +479,11 @@ impl Connections {
                 return Err("the kind of a connection does not change".into());
             }
             let mut new = Self::check(&draft, id)?;
+            // The login of a GitHub or GitLab account comes from a passed test: the form has no
+            // field for it, so an edit on the same host keeps it.
+            if new.user.is_none() && new.saves_login() && host_of(&new.url) == host_of(&old.url) {
+                new.user = old.user.clone();
+            }
             new.secret = old.secret;
             new.scopes = old.scopes.clone();
             new.uses = old.uses.clone();
@@ -556,6 +567,10 @@ impl Connections {
                 r.secret = true;
                 r.scopes = scopes.clone();
                 r.state = ConnectionState::Untested;
+                // The login belongs to the old secret: it can be another account.
+                if r.saves_login() {
+                    r.user = None;
+                }
             }
             let r = file.connections.iter().find(|r| r.id == id);
             Ok(Connection::from(r.ok_or("unknown connection")?))
@@ -786,10 +801,19 @@ impl Connections {
             TestOutcome::Passed { .. } => ConnectionState::Passed,
             _ => ConnectionState::Failed,
         };
+        // A passed test of a GitHub or GitLab issue tracker names the account: keep its login as
+        // the `user`, so Work finds the person with no field to fill. Jira keeps the e-mail.
+        let login = (state == ConnectionState::Passed && r.saves_login())
+            .then(|| self.tracker(id).ok()?.me().ok().map(|p| p.id))
+            .flatten()
+            .filter(|l| !l.is_empty());
         self.with_file(|file| {
             // The connection can leave while the test runs.
             if let Some(r) = file.connections.iter_mut().find(|r| r.id == id) {
                 r.state = state;
+                if login.is_some() {
+                    r.user = login;
+                }
             }
             Ok(())
         })?;
@@ -971,6 +995,60 @@ mod tests {
             .unwrap();
         c.set_secret(&linear.id, Secret::new("lin")).unwrap();
         assert!(c.serve_twin(&linear.id).unwrap().is_none());
+    }
+
+    #[test]
+    fn a_passed_test_of_a_github_tracker_saves_the_login_and_a_jira_one_keeps_its_email() {
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::MemoryStore;
+        let dir = tempfile::tempdir().unwrap();
+        let http = Arc::new(FakeHttp::new());
+        http.get(
+            "api.github.com/user",
+            200,
+            r#"{"login":"ada","name":"Ada L"}"#,
+        )
+        .get("/issues", 200, "[]");
+        let c = Connections::new(dir.path(), Arc::new(MemoryStore::default()), http);
+        let hub = c
+            .add(ConnectionDraft {
+                name: "Hub".into(),
+                group: ConnectionGroup::Tracker,
+                kind: ConnectionKind::GitHub,
+                url: "https://github.com".into(),
+                user: None,
+            })
+            .unwrap();
+        c.set_secret(&hub.id, Secret::new("tok-1")).unwrap();
+        c.test(&hub.id).unwrap();
+        let after = c.get(&hub.id).unwrap().unwrap();
+        assert_eq!(after.state, ConnectionState::Passed);
+        assert_eq!(after.user.as_deref(), Some("ada"));
+        // A new secret can be another account: the saved login goes, the next test saves one.
+        let again = c.set_secret(&hub.id, Secret::new("tok-3")).unwrap();
+        assert_eq!(again.user, None);
+        c.test(&hub.id).unwrap();
+        assert_eq!(
+            c.get(&hub.id).unwrap().unwrap().user.as_deref(),
+            Some("ada")
+        );
+        // Jira has no login to save: its `user` is the e-mail that its sign-in needs.
+        let jira = c
+            .add(ConnectionDraft {
+                name: "Jira".into(),
+                group: ConnectionGroup::Tracker,
+                kind: ConnectionKind::JiraCloud,
+                url: "https://acme.atlassian.net".into(),
+                user: Some("ada@acme.test".into()),
+            })
+            .unwrap();
+        c.set_secret(&jira.id, Secret::new("tok-2")).unwrap();
+        c.test(&jira.id).unwrap();
+        c.set_secret(&jira.id, Secret::new("tok-4")).unwrap();
+        assert_eq!(
+            c.get(&jira.id).unwrap().unwrap().user.as_deref(),
+            Some("ada@acme.test")
+        );
     }
 
     #[test]

@@ -39,9 +39,16 @@ impl GitLab {
     }
 }
 
+/// The id is the `username`, the name that a person types: the numeric id is for the API only.
+/// shortcut: a note without a `username` falls back to the numeric id.
 pub(crate) fn person(v: &Value) -> Person {
+    let login = text(v, "/username");
     Person {
-        id: v["id"].to_string(),
+        id: if login.is_empty() {
+            v["id"].to_string()
+        } else {
+            login
+        },
         name: text(v, "/name"),
     }
 }

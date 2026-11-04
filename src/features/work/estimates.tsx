@@ -157,6 +157,7 @@ export function Estimates() {
 			<ListDetail title={t.tabs.work.estimates} icon={<CurrencyIcon size={16} />}>
 				<div className="flex flex-col gap-2 p-4">
 					<EmptyState
+						title={t.empty.sheets}
 						action={{
 							label: e.newSheet,
 							icon: <PlusIcon size={14} />,
@@ -285,6 +286,7 @@ export function Estimates() {
 				lines.length === 0 ? (
 					<div className="p-4">
 						<EmptyState
+							title={t.empty.tasks}
 							action={{
 								label: e.task,
 								icon: <PlusIcon size={14} />,

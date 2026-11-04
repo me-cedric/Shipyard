@@ -75,7 +75,19 @@ pub enum EventSource {
     RemoteHead,
 }
 
+/// Where the terminal drawer docks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum TerminalDock {
+    Bottom,
+    Left,
+    Right,
+}
+
 pub const PANEL_WIDTH: std::ops::RangeInclusive<u32> = 280..=900;
+/// The size of a panel that a splitter resizes, in pixels.
+pub const PANEL_SIZE: std::ops::RangeInclusive<u32> = 120..=2000;
+const PANEL_SIZES_MAX: usize = 32;
 
 fn default_panel_width() -> u32 {
     400
@@ -87,6 +99,10 @@ fn default_panel_side() -> PanelSide {
 
 fn left() -> PanelSide {
     PanelSide::Left
+}
+
+fn bottom() -> TerminalDock {
+    TerminalDock::Bottom
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -171,6 +187,13 @@ pub struct Prefs {
     /// A lower bar on top of the window.
     #[serde(default)]
     pub narrow_bar: bool,
+    /// Where the terminal drawer docks.
+    #[serde(default = "bottom")]
+    pub terminal_dock: TerminalDock,
+    /// The size in pixels that the person gave to each resizable panel, by panel key.
+    /// A panel with no entry keeps its default size.
+    #[serde(default)]
+    pub panel_sizes: BTreeMap<String, u32>,
 }
 
 pub const DATE_FORMATS: [&str; 3] = ["iso", "dmy", "mdy"];
@@ -240,6 +263,8 @@ impl Default for Prefs {
             date_format: String::new(),
             close_push: false,
             narrow_bar: false,
+            terminal_dock: TerminalDock::Bottom,
+            panel_sizes: BTreeMap::new(),
         }
     }
 }
@@ -279,6 +304,9 @@ pub struct PrefsPatch {
     pub date_format: Option<String>,
     pub close_push: Option<bool>,
     pub narrow_bar: Option<bool>,
+    pub terminal_dock: Option<TerminalDock>,
+    /// Replaces the whole map, so a missing key goes back to its default size.
+    pub panel_sizes: Option<BTreeMap<String, u32>>,
 }
 
 const FILE: &str = "prefs.json";
@@ -396,6 +424,15 @@ impl Prefs {
         }
         self.close_push = p.close_push.unwrap_or(self.close_push);
         self.narrow_bar = p.narrow_bar.unwrap_or(self.narrow_bar);
+        self.terminal_dock = p.terminal_dock.unwrap_or(self.terminal_dock);
+        if let Some(map) = p.panel_sizes {
+            self.panel_sizes = map
+                .into_iter()
+                .filter(|(k, _)| !k.is_empty() && k.len() <= 40)
+                .take(PANEL_SIZES_MAX)
+                .map(|(k, v)| (k, v.clamp(*PANEL_SIZE.start(), *PANEL_SIZE.end())))
+                .collect();
+        }
         if let Some(url) = p.release_url {
             // An empty value goes back to the default.
             self.release_url = if url.trim().is_empty() {
@@ -509,6 +546,38 @@ mod tests {
             ..Default::default()
         });
         assert_eq!((p.accent, p.date_format.as_str()), (None, ""));
+    }
+
+    #[test]
+    fn the_terminal_dock_and_the_panel_sizes_persist_and_stay_in_range() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut p = Prefs::default();
+        assert_eq!(p.terminal_dock, TerminalDock::Bottom);
+        p.apply(PrefsPatch {
+            terminal_dock: Some(TerminalDock::Right),
+            panel_sizes: Some(BTreeMap::from([
+                ("terminal".to_string(), 5000),
+                ("inspector".to_string(), 10),
+                (String::new(), 300),
+            ])),
+            ..Default::default()
+        });
+        p.save(dir.path()).unwrap();
+        let q = Prefs::load(dir.path());
+        assert_eq!(q.terminal_dock, TerminalDock::Right);
+        assert_eq!(
+            q.panel_sizes,
+            BTreeMap::from([
+                ("terminal".to_string(), 2000),
+                ("inspector".to_string(), 120)
+            ])
+        );
+        // An empty map resets every panel.
+        p.apply(PrefsPatch {
+            panel_sizes: Some(BTreeMap::new()),
+            ..Default::default()
+        });
+        assert!(p.panel_sizes.is_empty());
     }
 
     #[test]

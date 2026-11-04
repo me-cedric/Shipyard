@@ -175,7 +175,7 @@ export function ListTab({
 			{rows.length === 0 ? (
 				<div className="p-4">
 					<EmptyState
-						layout={thumb ? "cards" : "rows"}
+						title={t.empty.nothing}
 						action={{ label: noun, icon: <PlusIcon size={14} />, onClick: add }}
 					/>
 				</div>

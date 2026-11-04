@@ -261,6 +261,7 @@ export function Plan() {
 			<ListDetail title={t.tabs.work.plan} icon={<CalendarDaysIcon size={16} />}>
 				<div className="p-4">
 					<EmptyState
+						title={t.empty.sprint}
 						action={{
 							label: t.tabs.work.estimates,
 							onClick: () => void navigate({ to: "/work/estimates" }),

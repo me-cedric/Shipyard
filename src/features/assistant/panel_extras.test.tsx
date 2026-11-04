@@ -124,6 +124,17 @@ describe("assistant panel: width and side", () => {
 		await waitFor(() => expect(mockState().prefs.assistantWidth).toBe(500));
 	});
 
+	it("resets the width with a double-click", async () => {
+		const user = userEvent.setup();
+		await mountAssistant();
+		handle().focus();
+		await user.keyboard("{End}");
+		expect(handle()).toHaveAttribute("aria-valuenow", "900");
+		await user.dblClick(handle());
+		expect(handle()).toHaveAttribute("aria-valuenow", "400");
+		await waitFor(() => expect(mockState().prefs.assistantWidth).toBe(400));
+	});
+
 	it("moves to the left and keeps the side", async () => {
 		const user = userEvent.setup();
 		await mountAssistant();

@@ -602,8 +602,7 @@ function Molecules() {
 				/>
 			</Row>
 			<Row name="EmptyState">
-				<EmptyState action={{ label: t.empty.create, onClick: () => {} }} />
-				<EmptyState layout="cards" action={{ label: t.empty.create, onClick: () => {} }} />
+				<EmptyState title={t.empty.nothing} action={{ label: t.empty.create, onClick: () => {} }} />
 			</Row>
 			<Row name="PageHeader">
 				<div className="w-full">

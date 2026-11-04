@@ -431,6 +431,7 @@ function ChangesView() {
 					{path && here?.unstaged ? <DiffPane path={path} side="unstaged" /> : null}
 					{path ? null : (
 						<EmptyState
+							title={t.empty.file}
 							action={{ label: t.panels.files.toggle, onClick: () => setFilesOpen(true) }}
 						/>
 					)}

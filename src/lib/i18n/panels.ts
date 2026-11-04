@@ -24,6 +24,9 @@ export const panelsEn = {
 		close: "Close {name}",
 		hide: "Hide terminal",
 		tab: "Terminal {n}",
+		dock: "Dock terminal",
+		docks: { bottom: "Bottom", left: "Left", right: "Right" },
+		resize: "Terminal size",
 	},
 };
 
@@ -52,5 +55,8 @@ export const panelsFr: typeof panelsEn = {
 		close: "Fermer {name}",
 		hide: "Masquer le terminal",
 		tab: "Terminal {n}",
+		dock: "Placer le terminal",
+		docks: { bottom: "En bas", left: "À gauche", right: "À droite" },
+		resize: "Taille du terminal",
 	},
 };

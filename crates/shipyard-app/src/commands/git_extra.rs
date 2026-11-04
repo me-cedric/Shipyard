@@ -4,7 +4,7 @@
 use std::path::Path;
 
 use shipyard_git::Repo;
-use shipyard_git::code::{FileDiff, Forward, Inspect};
+use shipyard_git::code::{CommitInfo, FileDiff, Forward, Inspect};
 use tauri::AppHandle;
 
 use super::{Api, AppState, Res, blocking, err};
@@ -29,6 +29,12 @@ pub fn stash_diff(s: &AppState, id: &str) -> Res<Vec<FileDiff>> {
 pub fn fast_forward(s: &AppState, branch: &str, click: bool) -> Res<Forward> {
     need_click(s, click)?;
     repo(s)?.fast_forward(branch).map_err(err)
+}
+
+/// The commit that last changed a file of the active project: who and when. `None` for a path
+/// that no commit touched, such as a new file.
+pub fn last_change(s: &AppState, path: &str) -> Res<Option<CommitInfo>> {
+    repo(s)?.last_change(path).map_err(err)
 }
 
 /// The state of the clone of a linked project. Only a child of the active project is read.
@@ -65,6 +71,12 @@ pub async fn git_branch_fast_forward(app: AppHandle, branch: String, click: bool
 
 #[tauri::command]
 #[specta::specta]
+pub async fn git_last_change(app: AppHandle, path: String) -> Api<Option<CommitInfo>> {
+    blocking(app, move |s| last_change(s, &path)).await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn git_linked_inspect(app: AppHandle, child: String) -> Api<Inspect> {
     blocking(app, move |s| linked_inspect(s, &child)).await
 }
@@ -92,5 +104,29 @@ mod tests {
         assert!(repo(&f.s).unwrap().stash_list().unwrap().is_empty());
         assert!(fast_forward(&f.s, "main", false).is_err());
         assert!(linked_inspect(&f.s, "../../etc").is_err());
+    }
+
+    #[test]
+    fn the_last_change_names_the_commit_that_touched_the_file() {
+        let f = fx();
+        let root = f.repo.path();
+        std::fs::write(root.join("a.txt"), "1\n").unwrap();
+        std::fs::write(root.join("b.txt"), "1\n").unwrap();
+        let r = repo(&f.s).unwrap();
+        r.stage(&["a.txt".to_string(), "b.txt".to_string()])
+            .unwrap();
+        r.commit("chore: a and b", "").unwrap();
+        std::fs::write(root.join("a.txt"), "2\n").unwrap();
+        r.stage(&["a.txt".to_string()]).unwrap();
+        r.commit("fix: a", "").unwrap();
+        assert_eq!(
+            last_change(&f.s, "a.txt").unwrap().unwrap().summary,
+            "fix: a"
+        );
+        assert_eq!(
+            last_change(&f.s, "b.txt").unwrap().unwrap().summary,
+            "chore: a and b"
+        );
+        assert!(last_change(&f.s, "missing.txt").unwrap().is_none());
     }
 }

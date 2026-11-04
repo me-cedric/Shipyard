@@ -2,6 +2,7 @@
 // a provider address is https (or local), a start names the missing dependency, a secret field
 // is write-only (the keychain is `secrets`, and no command reads it).
 import type {
+	Catalog,
 	McpCustom_Deserialize,
 	McpDependency,
 	McpServer,
@@ -53,6 +54,45 @@ const DOCKER: McpDependency = {
 	installable: true,
 	url: "https://docs.docker.com/get-docker/",
 };
+
+const LEVELS = ["low", "medium", "high", "xhigh", "max"];
+
+/** What the tool and the table of `shipyard-agents` give: Claude Code and Codex list levels, Haiku and Gemini take none, OpenCode lists nothing. */
+export function catalog(id: string): Catalog {
+	const pick = (name: string, efforts: string[]) => ({ id: name, efforts });
+	switch (id) {
+		case "claude":
+			return {
+				runner: id,
+				models: [pick("opus", LEVELS), pick("sonnet", LEVELS), pick("haiku", [])],
+				efforts: LEVELS,
+			};
+		case "codex": {
+			const codex = ["low", "medium", "high"];
+			return {
+				runner: id,
+				models: [pick("gpt-5-codex", codex), pick("gpt-5", codex)],
+				efforts: codex,
+			};
+		}
+		case "copilot":
+			return {
+				runner: id,
+				models: [pick("claude-sonnet-4.5", []), pick("gpt-5", LEVELS.slice(0, 4))],
+				efforts: LEVELS.slice(0, 4),
+			};
+		case "gemini":
+			return {
+				runner: id,
+				models: [pick("gemini-2.5-pro", []), pick("gemini-2.5-flash", [])],
+				efforts: [],
+			};
+		case "opencode":
+			return { runner: id, models: [], efforts: [] };
+		default:
+			throw `unknown runner: ${id}`;
+	}
+}
 
 export const seedAgents = (): MockAgents => ({
 	runners: [

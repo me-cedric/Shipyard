@@ -36,12 +36,49 @@ describe("Work / Time", () => {
 		expect(await group("To send (3)")).toBeInTheDocument();
 	});
 
+	it("offers one action when there is no team, and it adds the signed-in person", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().work.team = { members: [] };
+		mockState().work.me = null;
+		mountApp("/work/time");
+		expect(await screen.findByText("No members")).toBeInTheDocument();
+		// No raw error, and no other action in the page body.
+		expect(screen.queryByRole("alert")).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Add me to the team" }));
+		await waitFor(() =>
+			expect(mockState().work.team.members).toEqual([
+				expect.objectContaining({ handle: "ada", name: "Ada Lovelace", trackers: ["ada"] }),
+			]),
+		);
+		// The member is the default of the page.
+		expect(await screen.findByRole("combobox", { name: "Member" })).toHaveTextContent(
+			"Ada Lovelace",
+		);
+		expect(screen.queryByText("No members")).toBeNull();
+	});
+
+	it("says in plain words that no account is signed in, with the action to sign in", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().work.team = { members: [] };
+		mockState().work.account = null;
+		mountApp("/work/time");
+		await user.click(await screen.findByRole("button", { name: "Add me to the team" }));
+		const alert = await screen.findByRole("alert");
+		expect(alert).toHaveTextContent("No account is signed in.");
+		expect(alert).not.toHaveTextContent("no signed-in account");
+		expect(within(alert).getByRole("button", { name: "Open settings" })).toBeInTheDocument();
+	});
+
 	it("refuses the entry when it cannot resolve the member and names the reason", async () => {
 		const user = userEvent.setup();
 		await withTracker();
 		mockState().work.me = null;
 		mountApp("/work/time");
-		expect(await screen.findByRole("alert")).toHaveTextContent("cannot resolve the member");
+		const alert = await screen.findByRole("alert");
+		expect(alert).toHaveTextContent("You are not in the team yet.");
+		expect(within(alert).getByRole("button", { name: "Open" })).toBeInTheDocument();
 		// Naming the member fixes it.
 		await user.click(screen.getByRole("combobox", { name: "Member" }));
 		await user.click(await screen.findByRole("option", { name: "Grace Hopper" }));

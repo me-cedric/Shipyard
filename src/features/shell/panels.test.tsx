@@ -108,4 +108,45 @@ describe("Terminal drawer", () => {
 		await user.click(within(drawer).getByRole("button", { name: "Hide terminal" }));
 		expect(drawer).not.toBeVisible();
 	});
+
+	it("docks at a side, resizes with the keyboard, resets on a double-click and keeps both", async () => {
+		const user = userEvent.setup();
+		await alpha();
+		mountApp("/work/board");
+		await (await bar()).findByRole("button", { name: "Terminal" });
+		await user.keyboard("{Control>}`{/Control}");
+		const drawer = await screen.findByRole("region", { name: "Terminals" });
+		const size = () => within(drawer).getByRole("separator", { name: "Terminal size" });
+		expect(size()).toHaveAttribute("aria-valuenow", "288");
+		await user.click(within(drawer).getByRole("button", { name: "Dock terminal" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Right" }));
+		await waitFor(() => expect(mockState().prefs.terminalDock).toBe("right"));
+		// The same shells stay: moving the dock does not remount the drawer.
+		expect(screen.getByRole("region", { name: "Terminals" })).toBe(drawer);
+		expect(size()).toHaveAttribute("aria-valuenow", "480");
+		size().focus();
+		// A drawer on the right widens toward the left.
+		await user.keyboard("{ArrowLeft}");
+		expect(size()).toHaveAttribute("aria-valuenow", "496");
+		await waitFor(() => expect(mockState().prefs.panelSizes).toEqual({ "terminal-width": 496 }));
+		await user.dblClick(size());
+		expect(size()).toHaveAttribute("aria-valuenow", "480");
+		await waitFor(() => expect(mockState().prefs.panelSizes).toEqual({}));
+	});
+
+	it("keeps the tabs reachable in a narrow dock and draws no window bar", async () => {
+		const user = userEvent.setup();
+		await alpha();
+		mountApp("/work/board");
+		await (await bar()).findByRole("button", { name: "Terminal" });
+		await user.keyboard("{Control>}`{/Control}");
+		const drawer = await screen.findByRole("region", { name: "Terminals" });
+		const tabs = within(drawer).getByRole("tablist", { name: "Terminals" });
+		expect(tabs).toHaveClass("overflow-x-auto");
+		// New terminal, Dock and Hide sit outside the scrolling list.
+		for (const name of ["New terminal", "Dock terminal", "Hide terminal"])
+			expect(tabs).not.toContainElement(within(drawer).getByRole("button", { name }));
+		expect(within(tabs).getByRole("tab")).toHaveAttribute("title", "Terminal 1");
+		expect(drawer.querySelector(".bg-danger\\/80")).toBeNull();
+	});
 });

@@ -185,6 +185,7 @@ export function ArtifactTab({
 			<ListDetail title={title} icon={icon}>
 				<div className="p-4">
 					<EmptyState
+						title={t.empty.project}
 						action={{
 							label: t.projects.open,
 							icon: <FolderOpenIcon size={14} />,
@@ -243,7 +244,10 @@ export function ArtifactTab({
 			) : null}
 			{rows.length === 0 && !pinned ? (
 				<div className="p-4">
-					<EmptyState action={{ label: noun, icon: <PlusIcon size={14} />, onClick: add }} />
+					<EmptyState
+						title={t.empty.nothing}
+						action={{ label: noun, icon: <PlusIcon size={14} />, onClick: add }}
+					/>
 				</div>
 			) : view === "grid" && thumb ? (
 				<motion.ul
@@ -342,7 +346,10 @@ export function ArtifactTab({
 						))}
 						{rows.length === 0 ? (
 							<li className="p-3">
-								<EmptyState action={{ label: noun, icon: <PlusIcon size={14} />, onClick: add }} />
+								<EmptyState
+									title={t.empty.nothing}
+									action={{ label: noun, icon: <PlusIcon size={14} />, onClick: add }}
+								/>
 							</li>
 						) : null}
 					</ul>

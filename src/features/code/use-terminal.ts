@@ -77,10 +77,12 @@ export function useTerminal(
 				const size = term.onResize(
 					({ cols, rows }) => void commands.terminalResize(id, cols, rows),
 				);
+				// The host changes size with the window, the drawer splitter and the dock.
 				const resize = () => fit.fit();
-				window.addEventListener("resize", resize);
+				const watch = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
+				watch?.observe(node);
 				teardown = () => {
-					window.removeEventListener("resize", resize);
+					watch?.disconnect();
 					data.dispose();
 					size.dispose();
 					off();

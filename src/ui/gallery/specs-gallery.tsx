@@ -87,7 +87,7 @@ export function SpecsParts() {
 				) : null}
 			</div>
 			<div className="border-b py-3">
-				<EmptyState action={{ label: "New change", onClick: () => {} }} />
+				<EmptyState title="No changes" action={{ label: "New change", onClick: () => {} }} />
 			</div>
 		</>
 	);

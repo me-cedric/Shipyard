@@ -70,6 +70,9 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		review_empty: "The review has no text. Write a summary or keep a finding.",
 		no_base: "This branch has no base to compare with. Fetch the base branch, then try again.",
 		figma_address: "Use the address of a Figma file.",
+		no_member: "You are not in the team yet. Add yourself to the team.",
+		no_account: "No account is signed in. Sign in to your code host or issue tracker first.",
+		unknown_member: "That person is not in the team. Pick a member of the team.",
 	},
 	fr: {
 		no_project: "Ouvrez ou créez d'abord un projet.",
@@ -141,6 +144,10 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		no_base:
 			"Cette branche n'a pas de base de comparaison. Récupérez la branche de base, puis réessayez.",
 		figma_address: "Utilisez l'adresse d'un fichier Figma.",
+		no_member: "Vous n'êtes pas encore dans l'équipe. Ajoutez-vous à l'équipe.",
+		no_account:
+			"Aucun compte n'est connecté. Connectez d'abord votre hébergeur de code ou votre outil de suivi.",
+		unknown_member: "Cette personne n'est pas dans l'équipe. Choisissez un membre de l'équipe.",
 	},
 };
 
@@ -229,12 +236,18 @@ export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["the review is empty", "review_empty"],
 	["the branch has no base to compare with", "no_base"],
 	["this is not a Figma file address", "figma_address"],
+	["no team member matches", "no_member"],
+	["no signed-in account", "no_account"],
+	["the team has no member", "unknown_member"],
 ];
 
 const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {
 	no_project: { kind: "create_project", target: "" },
 	no_tracker: { kind: "setting", target: "connections" },
 	no_secret: { kind: "setting", target: "connections" },
+	no_account: { kind: "setting", target: "connections" },
+	no_member: { kind: "open", target: "/work/team" },
+	unknown_member: { kind: "open", target: "/work/team" },
 	token_refused: { kind: "setting", target: "connections" },
 	scope_missing: { kind: "setting", target: "trackerScope" },
 	pickup_off: { kind: "setting", target: "pickupLabel" },

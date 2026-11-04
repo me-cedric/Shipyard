@@ -152,7 +152,7 @@ function ChangeList() {
 			{list && list.length === 0 ? (
 				<div className="p-4">
 					<EmptyState
-						layout="cards"
+						title={t.empty.changes}
 						action={{ label: s.newChange, icon: <PlusIcon size={14} />, onClick: create }}
 					/>
 					<div className="pt-2">

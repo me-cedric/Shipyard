@@ -64,6 +64,42 @@ pub struct TrackerAdapter {
     account: OnceLock<String>,
 }
 
+/// The tracker port of a project with a code host only: no ticket, no stamp, no error.
+struct NoTracker;
+
+impl TrackerPort for NoTracker {
+    fn list(&self, _: &ListQuery) -> PortResult<Page<Ticket>> {
+        Ok(Page {
+            items: Vec::new(),
+            next: None,
+        })
+    }
+
+    fn get(&self, _: &str) -> PortResult<Ticket> {
+        Err("the project has no tracker connection".into())
+    }
+
+    fn comments(&self, _: &str) -> PortResult<Vec<shipyard_core::work_item::Comment>> {
+        Ok(Vec::new())
+    }
+
+    fn can_stamp(&self) -> bool {
+        false
+    }
+
+    fn stamps(&self, _: &str) -> PortResult<Vec<Stamp>> {
+        Ok(Vec::new())
+    }
+
+    fn write_stamp(&self, _: &str, _: &str) -> PortResult<()> {
+        Ok(())
+    }
+
+    fn clear_stamp(&self, _: &str, _: &str) -> PortResult<()> {
+        Ok(())
+    }
+}
+
 /// A stamp is written again only when it is older than this. The stale time is 10 minutes
 /// (`q:Q-021`), so a stamp that a tick refreshes each minute still never goes stale, with far fewer
 /// writes to the ticket.
@@ -441,6 +477,8 @@ impl Dispatch for Notify {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Plan {
     pub project: String,
+    /// The tracker connection id. Empty for a project with a code host only: it mirrors the pull
+    /// requests and nothing else.
     pub tracker: String,
     /// The container of the tracker (Jira project key, `owner/repo`). `None` lists the account.
     pub scope: Option<String>,
@@ -469,7 +507,9 @@ impl Plan {
 
     /// `(connection id, mirror key)` of each source that the engine polls.
     pub fn sources(&self) -> Vec<(String, String)> {
-        std::iter::once((self.tracker.clone(), self.tracker_source()))
+        (!self.tracker.is_empty())
+            .then(|| (self.tracker.clone(), self.tracker_source()))
+            .into_iter()
             .chain(
                 self.forge
                     .iter()
@@ -516,6 +556,8 @@ impl Running {
             {
                 *c = connection_of(c).to_string();
             }
+            // A project with a code host only polls an empty tracker source: it is no connection.
+            r.polled.retain(|c| !c.is_empty());
             r
         });
         self.ticking.store(false, Ordering::SeqCst);
@@ -705,7 +747,15 @@ impl SyncHost {
 
     fn build(&self, plan: &Plan) -> Res<Running> {
         let mut cfg = Config::new(&self.machine, &plan.project, &plan.tracker_source());
-        let tracker = TrackerAdapter::new(self.conns.clone(), &plan.tracker, plan.scope.clone());
+        let tracker: Box<dyn TrackerPort> = if plan.tracker.is_empty() {
+            Box::new(NoTracker)
+        } else {
+            Box::new(TrackerAdapter::new(
+                self.conns.clone(),
+                &plan.tracker,
+                plan.scope.clone(),
+            ))
+        };
         let forge: Option<Box<dyn ForgePort>> = plan.forge.as_ref().map(|(id, repo)| {
             cfg.forge = plan.forge_source();
             Box::new(ForgeAdapter::new(self.conns.clone(), id, repo)) as Box<dyn ForgePort>
@@ -715,7 +765,7 @@ impl SyncHost {
             cfg,
             plan.automation.clone(),
             mirror,
-            Box::new(tracker),
+            tracker,
             forge,
             self.dispatch.clone(),
             Arc::new(SystemClock),

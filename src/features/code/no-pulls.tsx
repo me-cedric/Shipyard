@@ -20,6 +20,7 @@ export function NoPulls({ onNew }: { onNew: () => void }) {
 	if (status.error) return <ErrorNotice error={status.error} className="px-4 pt-3" />;
 	return (
 		<EmptyState
+			title={status.connected ? t.empty.pulls : t.empty.codeHost}
 			action={
 				status.connected
 					? { label: t.forge.newPull, onClick: onNew }

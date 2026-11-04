@@ -22,9 +22,9 @@ describe("BacklinkList", () => {
 		expect(onOpen).toHaveBeenCalledWith("spec:a");
 	});
 
-	it("shows ghost rows and no text when nothing cites", () => {
+	it("says that nothing links here, with no ghost rows", () => {
 		const { container } = renderApp(<BacklinkList groups={[]} onOpen={() => {}} />);
-		expect(container.textContent).toBe("");
-		expect(container.querySelectorAll("[aria-hidden] > *")).toHaveLength(3);
+		expect(screen.getByText("Nothing links here")).toBeInTheDocument();
+		expect(container.querySelectorAll("[aria-hidden] > *")).toHaveLength(0);
 	});
 });

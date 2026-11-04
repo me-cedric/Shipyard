@@ -29,5 +29,14 @@ export function useTabSelection(
 /** Sets the choice of a view before it mounts, such as a file to show in Code / Changes. */
 export const rememberSelection = (scope: string, id: string) => memory.set(scope, id);
 
+// The files that an Edit action asked to open in their editor. The page reads it, then clears it.
+const edits = new Set<string>();
+export const requestEdit = (id: string) => edits.add(id);
+export const wantsEdit = (id: string) => edits.has(id);
+export const clearEditRequest = (id: string) => edits.delete(id);
+
 /** Forgets every choice. For tests. */
-export const clearTabSelections = () => memory.clear();
+export const clearTabSelections = () => {
+	memory.clear();
+	edits.clear();
+};

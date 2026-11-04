@@ -61,19 +61,20 @@ describe("QuestionCard (REQ-005, REQ-010)", () => {
 });
 
 describe("EmptyState (REQ-010)", () => {
-	it("shows ghost rows and one primary action, and no sentence", async () => {
+	it("shows a title and one primary action", async () => {
 		const onClick = vi.fn();
-		const { container } = renderApp(<EmptyState action={{ label: "Create", onClick }} />);
-		expect(container.querySelectorAll('[aria-hidden="true"] > div')).toHaveLength(5);
+		renderApp(<EmptyState title="No pull requests" action={{ label: "Create", onClick }} />);
+		expect(screen.getByText("No pull requests")).toBeInTheDocument();
 		expect(screen.getAllByRole("button")).toHaveLength(1);
-		expect(container.querySelector("p")).toBeNull();
 		await userEvent.click(screen.getByRole("button", { name: "Create" }));
 		expect(onClick).toHaveBeenCalledOnce();
 	});
 
-	it("keeps the ghost rows still", () => {
-		const { container } = renderApp(<EmptyState action={{ label: "Create", onClick: () => {} }} />);
-		expect(container.innerHTML).not.toMatch(/animate-/);
+	it("has no ghost row, so it never looks like loading", () => {
+		const { container } = renderApp(
+			<EmptyState title="No pull requests" action={{ label: "Create", onClick: () => {} }} />,
+		);
+		expect(container.innerHTML).not.toMatch(/animate-|bg-n-3/);
 	});
 });
 

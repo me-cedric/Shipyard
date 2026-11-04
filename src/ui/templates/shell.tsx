@@ -14,6 +14,7 @@ export function Shell({
 	assistantSide = "right",
 	drawer,
 	bottom,
+	bottomDock = "bottom",
 	navSide = "left",
 	drawerSide = "left",
 	narrow = false,
@@ -32,6 +33,8 @@ export function Shell({
 	drawer?: ReactNode;
 	/** A drawer under the main view, such as the terminals. */
 	bottom?: ReactNode;
+	/** Where `bottom` docks: under the main view or beside it. */
+	bottomDock?: "bottom" | "left" | "right";
 	/** The side of the sidebar. */
 	navSide?: "left" | "right";
 	/** The side of `drawer`. */
@@ -68,19 +71,37 @@ export function Shell({
 				{navSide === "left" ? nav : null}
 				{drawerSide === "left" ? drawer : null}
 				{assistantSide === "left" ? assistant : null}
-				<main
-					aria-label={t.nav.main}
-					tabIndex={-1}
-					className="min-w-0 flex-1 overflow-auto focus:outline-none"
+				{/* One wrapper in every dock, so a change of dock keeps the shells of `bottom` alive. */}
+				<div
+					className={cn(
+						"flex min-h-0 min-w-0 flex-1",
+						bottomDock === "bottom" ? "flex-col" : "flex-row",
+					)}
 				>
-					{main}
-				</main>
+					<main
+						aria-label={t.nav.main}
+						tabIndex={-1}
+						className="min-h-0 min-w-0 flex-1 overflow-auto focus:outline-none"
+					>
+						{main}
+					</main>
+					{bottom ? (
+						<div
+							className={cn(
+								"flex shrink-0",
+								bottomDock === "bottom" && "flex-col",
+								bottomDock === "left" && "order-first",
+							)}
+						>
+							{bottom}
+						</div>
+					) : null}
+				</div>
 				{assistantSide === "right" ? assistant : null}
 				{drawerSide === "right" ? drawer : null}
 				{inspector}
 				{navSide === "right" ? nav : null}
 			</div>
-			{bottom ? <div className="flex shrink-0 flex-col bg-canvas">{bottom}</div> : null}
 			{statusbar ? (
 				<footer className="flex h-5 shrink-0 items-center gap-3 border-t bg-surface-1 px-3 text-11 text-n-11">
 					{statusbar}

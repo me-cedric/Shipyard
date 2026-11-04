@@ -9,6 +9,9 @@ use specta::Type;
 use super::{Repo, short};
 use crate::error::{GitError, Result};
 
+/// How many commits `last_change` reads before it gives up.
+const LAST_CHANGE_DEPTH: usize = 2000;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "kebab-case")]
 pub enum RefKind {
@@ -143,6 +146,33 @@ impl Repo {
     pub fn commit_info(&self, sha: &str) -> Result<CommitInfo> {
         let id = self.repo.revparse_single(sha)?.peel_to_commit()?.id();
         self.info(id, &self.labels()?)
+    }
+
+    /// The newest commit of the current branch that changed `path` (relative to the root of the
+    /// repository). `None` when no commit did, such as a new file. The walk stops after
+    /// `LAST_CHANGE_DEPTH` commits.
+    pub fn last_change(&self, path: &str) -> Result<Option<CommitInfo>> {
+        let Some(head) = self.repo.head().ok().and_then(|h| h.target()) else {
+            return Ok(None);
+        };
+        let mut walk = self.repo.revwalk()?;
+        walk.set_sorting(Sort::TIME)?;
+        walk.push(head)?;
+        let file = std::path::Path::new(path);
+        let blob = |c: &git2::Commit| -> Result<Option<Oid>> {
+            Ok(c.tree()?.get_path(file).ok().map(|e| e.id()))
+        };
+        for id in walk.take(LAST_CHANGE_DEPTH) {
+            let c = self.repo.find_commit(id?)?;
+            let before = match c.parent(0) {
+                Ok(p) => blob(&p)?,
+                Err(_) => None,
+            };
+            if blob(&c)? != before {
+                return Ok(Some(self.info(c.id(), &HashMap::new())?));
+            }
+        }
+        Ok(None)
     }
 
     fn info(&self, id: Oid, labels: &HashMap<Oid, Vec<RefLabel>>) -> Result<CommitInfo> {

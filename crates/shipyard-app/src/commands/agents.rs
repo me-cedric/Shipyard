@@ -1,6 +1,7 @@
 //! Runners, model providers and MCP servers. The logic is in `crate::agents`. A command only runs
 //! it on a blocking thread: a start, an install and a test wait for a process or the network.
 
+use shipyard_agents::catalog::Catalog;
 use shipyard_agents::mcp_control::{ServerRow, State};
 use shipyard_agents::runners::Runner;
 use shipyard_http::TestOutcome;
@@ -14,6 +15,14 @@ use crate::agents::{McpCustom, Provider, ProviderDraft, RunnerTiers};
 #[specta::specta]
 pub async fn runners_list(app: AppHandle) -> Api<Vec<Runner>> {
     blocking(app, |s| Ok(s.agents.runners())).await
+}
+
+/// The models and the reasoning levels that one agent tool accepts. It asks the tool, and the
+/// table of the app answers for what the tool cannot list.
+#[tauri::command]
+#[specta::specta]
+pub async fn runners_catalog(app: AppHandle, runner: String) -> Api<Catalog> {
+    blocking(app, move |_| Ok(shipyard_agents::catalog::catalog(&runner))).await
 }
 
 #[tauri::command]

@@ -125,6 +125,7 @@ export function Sessions() {
 			{rows.length === 0 && !sessions.isPending ? (
 				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
 					<EmptyState
+						title={t.empty.sessions}
 						action={{
 							label: kill ? f.killRelease : f.killAll,
 							onClick: () => void run(() => writes.killSwitch(!kill)),

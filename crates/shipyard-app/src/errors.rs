@@ -96,6 +96,9 @@ pub enum ErrorCode {
     ReviewEmpty,
     NoBase,
     FigmaAddress,
+    NoMember,
+    NoAccount,
+    UnknownMember,
 }
 
 impl ErrorCode {
@@ -103,7 +106,8 @@ impl ErrorCode {
     fn action(self) -> Option<ErrorAction> {
         let (kind, target) = match self {
             Self::NoProject => (ActionKind::CreateProject, ""),
-            Self::NoTracker | Self::NoSecret | Self::TokenRefused => {
+            Self::NoMember | Self::UnknownMember => (ActionKind::Open, "/work/team"),
+            Self::NoTracker | Self::NoSecret | Self::TokenRefused | Self::NoAccount => {
                 (ActionKind::Setting, "connections")
             }
             Self::ScopeMissing => (ActionKind::Setting, "trackerScope"),
@@ -214,6 +218,9 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("the review is empty", ErrorCode::ReviewEmpty),
     ("the branch has no base to compare with", ErrorCode::NoBase),
     ("this is not a Figma file address", ErrorCode::FigmaAddress),
+    ("no team member matches", ErrorCode::NoMember),
+    ("no signed-in account", ErrorCode::NoAccount),
+    ("the team has no member", ErrorCode::UnknownMember),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -296,6 +303,10 @@ mod tests {
         assert_eq!((e.code, e.action), (ErrorCode::ChangeIdInvalid, None));
         let e = AppError::from("the terminal app is not installed: Kitty");
         assert_eq!(e.action.unwrap().target, "terminalApp");
+        // A named member that is not in the team is not the signed-in person.
+        let e = AppError::from("the team has no member `zed`");
+        assert_eq!(e.code, ErrorCode::UnknownMember);
+        assert_eq!(e.action.unwrap().target, "/work/team");
         // Each entry of the table is reached: an earlier needle never hides a later one.
         for (needle, code) in KNOWN {
             assert_eq!(AppError::from(*needle).code, *code, "{needle}");

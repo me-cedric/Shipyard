@@ -1,8 +1,9 @@
-import { type KeyboardEvent, type PointerEvent, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { ChevronLeftIcon, ChevronRightIcon, SparklesIcon, XMarkIcon } from "@/ui/icons";
+import { Splitter } from "@/ui/molecules/splitter";
 import { Composer } from "./composer";
 import { ContextBar } from "./context";
 import { SendToFactory } from "./factory-dialog";
@@ -12,55 +13,7 @@ import { NoCli, useRunnersMissing } from "./no-cli";
 import { Threads } from "./threads";
 import { type Assistant, MAX_WIDTH, MIN_WIDTH } from "./use-assistant";
 
-const STEP = 16;
-
-/**
- * The width handle. A drag or an arrow key resizes. The edge that faces the main view moves: on the
- * right side the left arrow widens the panel.
- */
-function Resizer({ a }: { a: Assistant }) {
-	const { t } = useI18n();
-	const start = useRef<{ x: number; width: number } | null>(null);
-	const sign = a.side === "right" ? -1 : 1;
-	const onKey = (e: KeyboardEvent) => {
-		const step = e.key === "ArrowRight" ? STEP : e.key === "ArrowLeft" ? -STEP : 0;
-		if (step) a.setWidth(a.width + step * sign);
-		else if (e.key === "Home") a.setWidth(MIN_WIDTH);
-		else if (e.key === "End") a.setWidth(MAX_WIDTH);
-		else return;
-		e.preventDefault();
-	};
-	const onMove = (e: PointerEvent) => {
-		if (start.current)
-			a.setWidth(start.current.width + (e.clientX - start.current.x) * sign, false);
-	};
-	return (
-		// biome-ignore lint/a11y/useSemanticElements: a window splitter is a focusable separator
-		<div
-			role="separator"
-			aria-orientation="vertical"
-			aria-label={t.assistant.width}
-			aria-valuemin={MIN_WIDTH}
-			aria-valuemax={MAX_WIDTH}
-			aria-valuenow={a.width}
-			tabIndex={0}
-			onKeyDown={onKey}
-			onPointerDown={(e) => {
-				e.currentTarget.setPointerCapture?.(e.pointerId);
-				start.current = { x: e.clientX, width: a.width };
-			}}
-			onPointerMove={onMove}
-			onPointerUp={() => {
-				start.current = null;
-				a.setWidth(a.width);
-			}}
-			className={cn(
-				"absolute inset-y-0 z-10 w-1.5 cursor-col-resize touch-none hover:bg-accent-subtle",
-				a.side === "right" ? "left-0" : "right-0",
-			)}
-		/>
-	);
-}
+const DEFAULT_WIDTH = 400;
 
 /** The assistant panel (spec `assistant`). The shell mounts it once, so it exists in every space. */
 export function AssistantPanel({
@@ -103,7 +56,16 @@ export function AssistantPanel({
 				open ? "flex" : "hidden",
 			)}
 		>
-			<Resizer a={a} />
+			<Splitter
+				label={t.assistant.width}
+				value={a.width}
+				min={MIN_WIDTH}
+				max={MAX_WIDTH}
+				invert={a.side === "right"}
+				onChange={a.setWidth}
+				onReset={() => a.setWidth(DEFAULT_WIDTH)}
+				className={a.side === "right" ? "left-0" : "right-0"}
+			/>
 			<div className="flex h-11 shrink-0 items-center gap-2 border-b pr-1 pl-3">
 				<span
 					aria-hidden="true"

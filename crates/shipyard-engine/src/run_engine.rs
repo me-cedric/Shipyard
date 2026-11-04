@@ -26,7 +26,7 @@ use serde_json::{Value, json};
 use shipyard_core::pickup::{ActiveRun, Automation, SyncEvent};
 use shipyard_core::run::{self, BudgetLevel, Run, RunEvent, RunState};
 use shipyard_core::work_item::WorkKind;
-use shipyard_core::workflow::{self, Gate, Mode, Step, StepState, Workflow, Workspace};
+use shipyard_core::workflow::{self, Effort, Gate, Mode, Step, StepState, Workflow, Workspace};
 use shipyard_store::automation_file::status_map;
 use shipyard_store::factory_files::Loaded;
 use shipyard_store::mirror::Mirror;
@@ -53,6 +53,7 @@ pub const ALERT: &str = "alert";
 
 /// Model tiers (`top`, `mid`, `small`) to a model of each runner. A name that is not a tier of
 /// the runner goes to the runner as it is. A runner with no row uses its own default model.
+/// The entry `<tier>:effort` holds the reasoning level of a tier.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tiers(pub BTreeMap<String, BTreeMap<String, String>>);
 
@@ -71,6 +72,19 @@ impl Tiers {
             Some(m) => Some(m.clone()),
             None if TIERS.contains(&name) => None,
             None => Some(name.into()),
+        }
+    }
+
+    /// The reasoning level that Settings gives to the tier `name`. A level that a step or a role
+    /// names wins over it.
+    pub fn effort(&self, runner: &str, name: &str) -> Option<Effort> {
+        match self.0.get(runner)?.get(&format!("{name}:effort"))?.as_str() {
+            "low" => Some(Effort::Low),
+            "medium" => Some(Effort::Medium),
+            "high" => Some(Effort::High),
+            "xhigh" => Some(Effort::Xhigh),
+            "max" => Some(Effort::Max),
+            _ => None,
         }
     }
 }
@@ -1209,11 +1223,14 @@ impl Inner {
             Err(e) => return self.block(run_id, sid, &format!("workspace: {e}")),
         };
         let runner = self.cfg.runner.clone();
-        let model = step
+        let named = step
             .model
             .clone()
-            .or_else(|| role.as_ref().and_then(|r| r.model.clone()))
-            .and_then(|m| self.cfg.tiers.model(&runner, &m));
+            .or_else(|| role.as_ref().and_then(|r| r.model.clone()));
+        let tier_effort = named
+            .as_deref()
+            .and_then(|n| self.cfg.tiers.effort(&runner, n));
+        let model = named.and_then(|m| self.cfg.tiers.model(&runner, &m));
         let resume = u
             .session
             .clone()
@@ -1231,7 +1248,10 @@ impl Inner {
             project: rec.project.clone(),
             runner,
             model,
-            effort: step.effort.or_else(|| p.files.role(role_name?)?.effort),
+            effort: step
+                .effort
+                .or_else(|| p.files.role(role_name?)?.effort)
+                .or(tier_effort),
             mode: step.mode,
             tools: step.tools.clone(),
             prompt,
@@ -1478,5 +1498,20 @@ mod tests {
         assert_eq!(t.model("claude", "top").as_deref(), Some("opus"));
         assert_eq!(t.model("codex", "top"), None);
         assert_eq!(t.model("codex", "gpt-5"), Some("gpt-5".into()));
+    }
+
+    #[test]
+    fn a_tier_effort_is_read_for_the_levels_the_engine_knows() {
+        let t = Tiers(BTreeMap::from([(
+            "codex".to_string(),
+            BTreeMap::from([
+                ("top:effort".to_string(), "high".to_string()),
+                ("mid:effort".to_string(), "minimal".to_string()),
+            ]),
+        )]));
+        assert_eq!(t.effort("codex", "top"), Some(Effort::High));
+        assert_eq!(t.effort("codex", "mid"), None);
+        assert_eq!(t.effort("codex", "small"), None);
+        assert_eq!(t.effort("claude", "top"), None);
     }
 }

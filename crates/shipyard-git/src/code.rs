@@ -58,6 +58,13 @@ impl Repo {
         (!e.is_empty()).then_some(e)
     }
 
+    /// The name of the git identity here (repository, then global config).
+    pub fn user_name(&self) -> Option<String> {
+        let n = self.repo.config().ok()?.get_string("user.name").ok()?;
+        let n = n.trim();
+        (!n.is_empty()).then(|| n.to_string())
+    }
+
     pub fn workdir(&self) -> &Path {
         self.repo.workdir().expect("bare repositories are refused")
     }

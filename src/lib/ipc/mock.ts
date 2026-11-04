@@ -18,6 +18,7 @@ import type {
 } from "./bindings";
 import * as ap from "./mock-agent-pr";
 import {
+	catalog,
 	type MockAgents,
 	mcpAddCustom,
 	mcpServer,
@@ -46,6 +47,7 @@ import {
 	codeDiscard,
 	codeFileList,
 	codeFileRead,
+	codeLastChange,
 	codeLog,
 	codeMergeAbort,
 	codePull,
@@ -257,6 +259,8 @@ const fresh = (): State => ({
 		dateFormat: "",
 		closePush: false,
 		narrowBar: false,
+		terminalDock: "bottom",
+		panelSizes: {},
 	},
 	projects: [],
 	files: {},
@@ -1006,6 +1010,7 @@ const handlers: Handlers = {
 		};
 	},
 	runnersList: () => state.agents.runners,
+	runnersCatalog: (runner) => catalog(runner),
 	providersList: () => state.agents.providers,
 	providersAdd: (d) => providerAdd(state.agents, d),
 	providersEdit: (id, d) => providerEdit(state.agents, id, d),
@@ -1197,6 +1202,10 @@ const handlers: Handlers = {
 		);
 	},
 	workTeam: () => work.teamGet(need(state.work)),
+	workTeamAddMe: (click) => {
+		if (readOnly()) throw "the profile of this project is read only";
+		return work.teamAddMe(need(state.work), click);
+	},
 	workTeamSave: (team) => work.teamSave(need(state.work), team),
 	workSuggest: (key) =>
 		needTracker(() =>
@@ -1728,6 +1737,7 @@ const handlers: Handlers = {
 	figmaPreview: (file) => xt.figmaPreview(state.extras, file),
 	figmaTokens: (file) => xt.figmaTokens(state.extras, file),
 	designFigView: (path) => xt.figView(path),
+	gitLastChange: (path) => codeLastChange(code(), path),
 	gitStashPop: (id, click) => xt.stashPop(code(), id, click),
 	gitStashDiff: (id) => xt.stashDiff(code(), id),
 	gitBranchFastForward: (branch, click) => xt.fastForward(state.extras, branch, click),

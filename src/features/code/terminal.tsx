@@ -7,7 +7,7 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { withProject } from "./project-gate";
 import { useTerminal } from "./use-terminal";
 
-/** One shell drawn in a dark frame. The tab and the drawer both show it. */
+/** One shell on a dark screen that fills its space. The tab and the drawer both show it. */
 export function TerminalScreen({
 	folder = null,
 	className,
@@ -22,21 +22,13 @@ export function TerminalScreen({
 	return (
 		<>
 			{error ? <ErrorNotice error={error} className="px-4 py-2 text-ui text-danger-text" /> : null}
-			{/* Dark in both themes, a frame around the black screen of the shell. */}
+			{/* Dark in both themes. No window bar: the terminal fills the space. */}
 			<div
 				className={cn(
-					"flex min-h-0 flex-1 flex-col overflow-hidden canvas-dark rounded-lg border border-n-7 bg-surface-0 shadow-2",
+					"flex min-h-0 flex-1 flex-col overflow-hidden canvas-dark bg-surface-0",
 					className,
 				)}
 			>
-				<div
-					aria-hidden="true"
-					className="flex h-8 shrink-0 items-center gap-1.5 border-b border-n-6 px-3"
-				>
-					<span className="size-2.5 rounded-full bg-danger/80" />
-					<span className="size-2.5 rounded-full bg-warning/80" />
-					<span className="size-2.5 rounded-full bg-success/80" />
-				</div>
 				<section ref={host} aria-label={t.forge.terminal.label} className="min-h-0 flex-1 p-3" />
 			</div>
 		</>
@@ -49,7 +41,7 @@ export function TerminalPanel({ folder = null }: { folder?: string | null }) {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
 			<PageHeader icon={<CommandLineIcon size={16} />} title={t.tabs.code.terminal} />
-			<TerminalScreen folder={folder} className="mx-4 mb-4" />
+			<TerminalScreen folder={folder} />
 		</div>
 	);
 }

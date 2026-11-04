@@ -162,7 +162,7 @@ export function Runs() {
 			{all.length === 0 && !runs.isPending ? (
 				<div className="p-4">
 					<EmptyState
-						layout="cards"
+						title={t.empty.runs}
 						action={{ label: f.start, onClick: () => field.current?.focus() }}
 					/>
 				</div>

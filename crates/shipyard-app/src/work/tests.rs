@@ -72,22 +72,23 @@ fn fx_wrapped(
         Arc::new(MemoryStore::default()),
         wrap(http.clone()),
     ));
-    let c = conns
-        .add(ConnectionDraft {
-            name: "Tracker".into(),
-            group: ConnectionGroup::Tracker,
-            kind,
-            url: if kind == ConnectionKind::GitHub {
-                "https://github.com".into()
-            } else {
-                "https://jira.example.com".into()
-            },
-            user: Some("ana@acme.test".into()),
-        })
-        .unwrap();
+    let draft = ConnectionDraft {
+        name: "Tracker".into(),
+        group: ConnectionGroup::Tracker,
+        kind,
+        url: if kind == ConnectionKind::GitHub {
+            "https://github.com".into()
+        } else {
+            "https://jira.example.com".into()
+        },
+        user: Some("ana@acme.test".into()),
+    };
+    let c = conns.add(draft.clone()).unwrap();
     conns
         .set_secret(&c.id, Secret::new("tok-work-secret"))
         .unwrap();
+    // A new secret clears the saved login of a GitHub tracker: the fixture gives it back.
+    conns.edit(&c.id, draft).unwrap();
     let s = AppState::with_connections(data.path().join("data"), conns);
     projects::open(&s, repo.path().to_str().unwrap()).unwrap();
     let FileRead::Valid(mut f) = read_project_file(repo.path()).unwrap() else {
@@ -308,6 +309,184 @@ fn the_context_names_the_flags_the_scope_the_label_and_the_member_of_this_machin
             .unwrap()
             .time_tracking
     );
+}
+
+fn git_config(f: &Fx, key: &str, value: &str) {
+    assert!(
+        std::process::Command::new("git")
+            .args(["config", key, value])
+            .current_dir(f.repo.path())
+            .status()
+            .unwrap()
+            .success()
+    );
+}
+
+#[test]
+fn the_person_is_found_by_the_git_email_when_the_login_matches_nobody() {
+    let f = fx();
+    git_config(&f, "user.email", "Bob@acme.test");
+    save_team(&f, team5());
+    // The login `ana@acme.test` still wins when it matches.
+    assert_eq!(context(&f.s, 0).unwrap().me.as_deref(), Some("ana"));
+    let c = conns_user(&f, Some("nobody"));
+    assert_eq!(c.user.as_deref(), Some("nobody"));
+    assert_eq!(context(&f.s, 0).unwrap().me.as_deref(), Some("bob"));
+    let entry = time_write(&f.s, None, "2026-10-26", 30, "", None).unwrap();
+    assert_eq!(entry.minutes, 30);
+    assert!(f.exists("docs/time/bob/2026-10.yaml"));
+}
+
+fn conns_user(f: &Fx, user: Option<&str>) -> crate::connections::Connection {
+    let c = f.s.connections.get(&f.tracker).unwrap().unwrap();
+    f.s.connections
+        .edit(
+            &c.id,
+            ConnectionDraft {
+                name: c.name,
+                group: c.group,
+                kind: c.kind,
+                url: c.url,
+                user: user.map(String::from),
+            },
+        )
+        .unwrap()
+}
+
+#[test]
+fn adding_me_to_the_team_needs_a_click_and_a_writable_project_and_adds_one_member_once() {
+    let f = fx();
+    git_config(&f, "user.name", "Ana Lee");
+    git_config(&f, "user.email", "ana.lee@acme.test");
+    assert!(team_add_me(&f.s, false).unwrap_err().contains("click"));
+    let on = shipyard_store::project::Overrides {
+        read_only: Some(true),
+        ..Default::default()
+    };
+    projects::save_overrides(&f.s, on).unwrap();
+    let e = team_add_me(&f.s, true).unwrap_err();
+    assert_eq!(AppError::from(e).code, ErrorCode::ReadOnly);
+    projects::save_overrides(&f.s, Default::default()).unwrap();
+    assert!(!f.exists(".shipyard/team.yaml"));
+
+    let v = team_add_me(&f.s, true).unwrap();
+    assert_eq!(v.team.members.len(), 1);
+    let m = &v.team.members[0];
+    // The login of the connection is the issue tracker account of the new member.
+    assert_eq!(
+        (m.name.as_str(), m.handle.as_str(), m.trackers.as_slice()),
+        (
+            "Ana Lee",
+            "ana-acme-test",
+            ["ana@acme.test".to_string()].as_slice()
+        )
+    );
+    assert_eq!(
+        context(&f.s, 0).unwrap().me.as_deref(),
+        Some("ana-acme-test")
+    );
+    assert_eq!(team_add_me(&f.s, true).unwrap().team.members.len(), 1);
+    // The member is the default of Time.
+    let t = time_month(&f.s, None, "2026-10").unwrap();
+    assert_eq!(t.member, "ana-acme-test");
+}
+
+fn john(handle: &str, trackers: &[&str]) -> Member {
+    Member {
+        name: handle.to_uppercase(),
+        handle: handle.into(),
+        trackers: trackers.iter().map(|t| t.to_string()).collect(),
+        capacity: 5.0,
+        ..Member::default()
+    }
+}
+
+#[test]
+fn the_part_of_the_email_before_the_at_counts_only_for_one_member_without_another_account() {
+    let f = fx_with(ConnectionKind::GitHub, None);
+    git_config(&f, "user.name", "John Doe");
+    git_config(&f, "user.email", "john@personal.com");
+    // No saved login: only the git e-mail names the person.
+    let c = &f.s.connections;
+    assert_eq!(
+        c.set_secret(&f.tracker, Secret::new("t2")).unwrap().user,
+        None
+    );
+    let me = |f: &Fx| context(&f.s, 0).unwrap().me;
+    // Another person has the handle `john` and an account of their own.
+    save_team(
+        &f,
+        Team {
+            members: vec![john("john", &["john-gh"])],
+            locked: false,
+        },
+    );
+    assert_eq!(me(&f), None);
+    // Adding the person makes a new member that the full e-mail finds again.
+    let v = team_add_me(&f.s, true).unwrap();
+    assert_eq!(v.team.members.len(), 2);
+    assert_eq!(v.team.members[1].handle, "john-2");
+    assert_eq!(me(&f).as_deref(), Some("john-2"));
+    assert_eq!(team_add_me(&f.s, true).unwrap().team.members.len(), 2);
+    // One member, and no other account: it is the person.
+    save_team(
+        &f,
+        Team {
+            members: vec![john("john", &[]), john("jo", &["jo-gh"])],
+            locked: false,
+        },
+    );
+    assert_eq!(me(&f).as_deref(), Some("john"));
+}
+
+#[test]
+fn a_passed_github_test_saves_the_login_and_adding_me_uses_it_for_the_handle_and_the_account() {
+    let f = fx_with(ConnectionKind::GitHub, None);
+    git_config(&f, "user.name", "Ada Lee");
+    git_config(&f, "user.email", "ada.lee@acme.test");
+    f.http
+        .get("/user", 200, r#"{"login":"ada-l","name":"Ada Lee"}"#)
+        .get("/issues", 200, "[]");
+    // A new secret clears the old login, and the test saves the new one.
+    let c = &f.s.connections;
+    assert_eq!(
+        c.set_secret(&f.tracker, Secret::new("tok-2")).unwrap().user,
+        None
+    );
+    c.test(&f.tracker).unwrap();
+    assert_eq!(context(&f.s, 0).unwrap().me, None);
+    let m = &team_add_me(&f.s, true).unwrap().team.members[0];
+    assert_eq!(
+        (m.name.as_str(), m.handle.as_str(), m.trackers.as_slice()),
+        ("Ada Lee", "ada-l", ["ada-l".to_string()].as_slice())
+    );
+    assert_eq!(context(&f.s, 0).unwrap().me.as_deref(), Some("ada-l"));
+}
+
+#[test]
+fn a_login_of_digits_gives_no_handle_and_no_account() {
+    let f = fx();
+    git_config(&f, "user.email", "ada.lee@acme.test");
+    conns_user(&f, Some("4821"));
+    let m = &team_add_me(&f.s, true).unwrap().team.members[0];
+    assert_eq!(
+        (m.handle.as_str(), m.trackers.as_slice()),
+        ("ada-lee", ["ada.lee@acme.test".to_string()].as_slice())
+    );
+    assert_eq!(context(&f.s, 0).unwrap().me.as_deref(), Some("ada-lee"));
+}
+
+#[test]
+fn a_named_member_that_is_not_in_the_team_has_its_own_error() {
+    let f = fx();
+    save_team(&f, team5());
+    assert_eq!(
+        time_month(&f.s, Some("ana"), "2026-10").unwrap().member,
+        "ana"
+    );
+    let e = time_month(&f.s, Some("zed"), "2026-10").unwrap_err();
+    assert!(e.contains("`zed`"));
+    assert_eq!(AppError::from(e).code, ErrorCode::UnknownMember);
 }
 
 // ---------------------------------------------------------------- suggestion (REQ-007)
@@ -869,7 +1048,7 @@ fn an_entry_needs_a_member_and_goes_in_the_file_of_the_month_and_nothing_is_sent
     f.put(vec![ticket("PROJ-5", "T", &[])]);
     // No team: the member of this machine does not resolve.
     let e = time_write(&f.s, None, "2026-10-26", 120, "api", Some("PROJ-5")).unwrap_err();
-    assert!(e.contains("cannot resolve the member"), "{e}");
+    assert_eq!(AppError::from(e).code, ErrorCode::NoMember);
     save_team(&f, team5());
     // The `user` of the connection is a tracker account of `ana`.
     let entry = time_write(&f.s, None, "2026-10-26", 120, "api", Some("wi:PROJ-5")).unwrap();

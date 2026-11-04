@@ -22,7 +22,8 @@ import type {
 	RoleItem_Serialize,
 	RunLogEvent_Serialize,
 	RunLogPage_Serialize,
-	RunnerTiers,
+	RunnerTiers_Deserialize,
+	RunnerTiers_Serialize,
 	RunSpendView_Serialize,
 	RunState,
 	RunTree,
@@ -453,7 +454,7 @@ export type MockFactory = {
 	/** The number of a message is its place among the messages of its run. */
 	messages: { run: string; from: string; text: string; at: number; read: boolean }[];
 	approvals: ApprovalView[];
-	tiers: RunnerTiers[];
+	tiers: RunnerTiers_Serialize[];
 	/** Money budgets in USD. A day key is `YYYY-MM-DD` or `*`, a member key is a name or `*`. */
 	budgets: { day: Record<string, number>; member: Record<string, number> };
 	kill: boolean;
@@ -465,12 +466,13 @@ export type MockFactory = {
 	event: number;
 };
 
+const NO_EFFORT = { topEffort: "", midEffort: "", smallEffort: "" };
 const TIER_RUNNERS = ["claude", "codex", "copilot", "gemini", "opencode"];
-const defaultTiers = (): RunnerTiers[] =>
+const defaultTiers = (): RunnerTiers_Serialize[] =>
 	TIER_RUNNERS.map((runner) =>
 		runner === "claude"
-			? { runner, top: "opus", mid: "sonnet", small: "haiku" }
-			: { runner, top: "", mid: "", small: "" },
+			? { ...NO_EFFORT, runner, top: "opus", mid: "sonnet", small: "haiku" }
+			: { ...NO_EFFORT, runner, top: "", mid: "", small: "" },
 	);
 
 /** No run, no approval, no question, no message: the default files, tiers and a kill switch off. */
@@ -879,7 +881,7 @@ export function seedFactory(): MockFactory {
 
 export const tiersGet = (f: MockFactory) => f.tiers;
 
-export function tiersSet(f: MockFactory, row: RunnerTiers): RunnerTiers[] {
+export function tiersSet(f: MockFactory, row: RunnerTiers_Deserialize): RunnerTiers_Serialize[] {
 	if (!TIER_RUNNERS.includes(row.runner)) throw `unknown runner: ${row.runner}`;
 	const model = (text: string) => {
 		const id = text.trim();
@@ -887,11 +889,20 @@ export function tiersSet(f: MockFactory, row: RunnerTiers): RunnerTiers[] {
 			throw `\`${id}\` is not a model id: use letters, digits and . _ - : / @ +`;
 		return id;
 	};
+	const effort = (text: string) => {
+		const id = text.trim();
+		if (id.length > 12 || !/^[a-z]*$/.test(id))
+			throw `\`${id}\` is not an effort: use lower case letters`;
+		return id;
+	};
 	const next = {
 		runner: row.runner,
 		top: model(row.top),
 		mid: model(row.mid),
 		small: model(row.small),
+		topEffort: effort(row.topEffort ?? ""),
+		midEffort: effort(row.midEffort ?? ""),
+		smallEffort: effort(row.smallEffort ?? ""),
 	};
 	f.tiers = f.tiers.map((t) => (t.runner === row.runner ? next : t));
 	return f.tiers;

@@ -126,7 +126,7 @@ export function ProjectsPage() {
 			/>
 			{error ? <ErrorNotice error={error} className="px-4 text-ui text-danger-text" /> : null}
 			{cards.length === 0 ? (
-				<EmptyState layout="cards" action={open} />
+				<EmptyState title={t.empty.projects} action={open} />
 			) : (
 				<div className="flex flex-col gap-4 px-4">
 					{[...groups].map(([host, list]) => (

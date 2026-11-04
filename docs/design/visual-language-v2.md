@@ -32,8 +32,12 @@ ADR 0014. Goal: a workspace that feels alive and premium (Cabinet, Linear, Rayca
 | Card | `--surface-2`, hover lift (`--shadow-2`, translate -1 px), press scale 0.99, focus glow. |
 | AnimatedIcon | Heroicons-animated style: a short stroke or rotate on hover and on state change (sync spins while running, bell rings once on a new item, check draws on success). |
 | Progress, Sparkline, LiveDot | Run progress across steps, spend over time, a breathing dot for a live agent (the one loop that is allowed). |
-| EmptyState v2 | Illustrated ghost layout of the real content, one primary action. |
+| EmptyState v2 | A muted icon, one short noun title ("No pull requests") and one primary action. No ghost rows. |
 | Toast, Dialog, Popover, Menu | `--surface-3`, blur backdrop, spring scale-in. |
+
+### Loading and empty
+
+Shimmering skeleton rows mean loading, and only loading. An empty state never shows rows: it shows a muted icon, one short noun title and one action. A list with no citation, such as the backlink list, shows the icon and "Nothing links here" with no action.
 
 ## 4. Per space
 

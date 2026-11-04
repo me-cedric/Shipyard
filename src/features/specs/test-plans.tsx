@@ -239,6 +239,7 @@ function PlanList() {
 			{plans && plans.length === 0 ? (
 				<div className="p-4">
 					<EmptyState
+						title={t.empty.testPlans}
 						action={{ label: s.newPlan, icon: <PlusIcon size={14} />, onClick: create }}
 					/>
 				</div>

@@ -401,6 +401,14 @@ fn a_filter_that_needs_an_absent_flag_sends_nothing() {
 }
 
 #[test]
+fn gitlab_names_a_person_by_the_username_and_not_the_numeric_id() {
+    let c = gitlab();
+    assert_eq!(c.tracker.me().unwrap().id, "ada");
+    let item = c.tracker.get(c.key).unwrap();
+    assert_eq!(item.assignee.unwrap().id, "ada");
+}
+
+#[test]
 fn a_rejected_token_and_a_missing_scope_are_named() {
     let fake = Arc::new(FakeHttp::new());
     fake.get_with(

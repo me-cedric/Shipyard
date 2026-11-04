@@ -73,6 +73,7 @@ export function MyWork() {
 			<PinnedTiles />
 			{items.length === 0 && runs.length === 0 ? (
 				<EmptyState
+					title={t.empty.items}
 					action={{ label: t.home.refresh, icon: <ArrowPathIcon size={14} />, onClick: refresh }}
 				/>
 			) : (

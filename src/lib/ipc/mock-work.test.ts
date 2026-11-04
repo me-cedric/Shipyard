@@ -275,10 +275,37 @@ describe("mock work: the rules of the Rust commands", () => {
 		resetMock({ work: emptyWork() });
 		await withTracker();
 		await expect(unwrap(commands.timeAdd(null, "2026-11-04", 30, "", null))).rejects.toMatchObject({
-			details: expect.stringContaining("cannot resolve the member"),
+			details: expect.stringContaining("no team member matches"),
 		});
 		expect(await unwrap(commands.estimateList())).toEqual([]);
 		expect((await unwrap(commands.workTeam())).team.members).toEqual([]);
+	});
+
+	it("names a member that is not in the team with its own error", async () => {
+		resetMock({ work: emptyWork() });
+		await withTracker();
+		await expect(unwrap(commands.timeAdd("zed", "2026-11-04", 30, "", null))).rejects.toMatchObject(
+			{ details: expect.stringContaining("the team has no member `zed`") },
+		);
+	});
+
+	it("adds the signed-in person to the team once, and only after a click", async () => {
+		resetMock({ work: emptyWork() });
+		await withTracker();
+		await expect(unwrap(commands.workTeamAddMe(false))).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
+		const added = await unwrap(commands.workTeamAddMe(true));
+		expect(added.team.members).toEqual([
+			expect.objectContaining({ name: "Ada Lovelace", handle: "ada", trackers: ["ada"] }),
+		]);
+		expect((await unwrap(commands.workTeamAddMe(true))).team.members).toHaveLength(1);
+		expect((await unwrap(commands.workContext(0))).me).toBe("ada");
+		resetMock({ work: { ...emptyWork(), account: null } });
+		await withTracker();
+		await expect(unwrap(commands.workTeamAddMe(true))).rejects.toMatchObject({
+			details: expect.stringContaining("no signed-in account"),
+		});
 	});
 
 	it("resolves members and sheets and lists their backlinks", async () => {

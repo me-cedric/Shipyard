@@ -103,7 +103,7 @@ export function TabView({ space, tab }: { space: SpaceId; tab: string }) {
 	return (
 		<div className="flex flex-col gap-4 p-4">
 			<h1 className="sr-only">{tabLabel(t, space, tab)}</h1>
-			<EmptyState action={{ label: t.noun[space], onClick: () => {} }} />
+			<EmptyState title={t.empty.nothing} action={{ label: t.noun[space], onClick: () => {} }} />
 		</div>
 	);
 }

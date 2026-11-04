@@ -134,15 +134,19 @@ fn resolve_assignee(root: &Path, auto: &mut Automation) {
 }
 
 /// What the engine of the active project needs, or `None` when the project names no tracker
-/// connection that exists.
+/// connection and no code host that exists. A project with a code host only gets a plan with no
+/// tracker: the engine mirrors its pull requests.
 fn plan(s: &AppState, a: &Active) -> Res<Option<Plan>> {
-    let Some((tracker, scope, _)) = tracker_target(s, a)? else {
-        return Ok(None);
-    };
+    let target = tracker_target(s, a)?;
     let root = Path::new(&a.entry.path);
     let forge = match (&a.forge, origin_slug(&a.entry)) {
         (Some(id), Some(repo)) if s.connections.get(id)?.is_some() => Some((id.clone(), repo)),
         _ => None,
+    };
+    let (tracker, scope) = match target {
+        Some((tracker, scope, _)) => (tracker, scope),
+        None if forge.is_some() => (String::new(), None),
+        None => return Ok(None),
     };
     let mut automation = automation_in(root)?;
     resolve_assignee(root, &mut automation);
@@ -155,7 +159,7 @@ fn plan(s: &AppState, a: &Active) -> Res<Option<Plan>> {
     }))
 }
 
-/// Make the engine of the active project match its files. `None` when the project has no tracker.
+/// Make the engine of the active project match its files. `None` when the project has no tracker and no code host.
 /// An invalid automation file stops the engine: no pickup runs on rules that nobody can read.
 pub fn ensure(s: &AppState) -> Res<Option<Arc<Running>>> {
     let Some(a) = active(s)? else {
@@ -212,7 +216,9 @@ pub fn recover(s: &AppState, ids: &[&str]) -> Option<std::thread::JoinHandle<()>
 }
 
 fn running(s: &AppState) -> Res<Arc<Running>> {
-    ensure(s)?.ok_or_else(|| "the project has no tracker connection".into())
+    ensure(s)?
+        .filter(|r| !r.plan().tracker.is_empty())
+        .ok_or_else(|| "the project has no tracker connection".into())
 }
 
 // ---------------------------------------------------------------- state and the sync action
@@ -890,6 +896,32 @@ mod tests {
         assert_eq!(run_tick(&s).unwrap(), SyncReport::default());
         assert!(items(&s, &ItemFilter::default()).unwrap().is_empty());
         assert!(import_plan(&s).is_err());
+    }
+
+    #[test]
+    fn a_project_with_a_code_host_only_mirrors_its_pull_requests() {
+        let f = fixture();
+        let FileRead::Valid(mut file) = read_project_file(f.repo.path()).unwrap() else {
+            panic!("a valid file")
+        };
+        file.connections = Some(ProjectConnections {
+            tracker: None,
+            forge: Some("code".into()),
+            tracker_scope: None,
+        });
+        write_project_file(f.repo.path(), &file).unwrap();
+        let report = run_tick(&f.s).unwrap();
+        assert_eq!(report.polled, ["code"]);
+        assert!(report.failed.is_empty(), "{:?}", report.failed);
+        assert_eq!(crate::delivery::pr_rows(&f.s).unwrap().len(), 2);
+        let st = state(&f.s).unwrap();
+        assert_eq!(
+            st.iter().map(|c| c.id.as_str()).collect::<Vec<_>>(),
+            ["code"]
+        );
+        // The import and the ticket calls still need a tracker.
+        assert!(import_plan(&f.s).is_err());
+        assert!(items(&f.s, &ItemFilter::default()).unwrap().is_empty());
     }
 
     #[test]

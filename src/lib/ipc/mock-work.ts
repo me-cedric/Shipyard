@@ -82,6 +82,8 @@ export type MockWork = {
 	exports: { slug: string; path: string }[];
 	/** The member of this machine. `null` makes a time entry refuse. */
 	me: string | null;
+	/** The account that this machine signed in with: its login and its name. */
+	account: { login: string; name: string } | null;
 	today: string;
 	counter: number;
 };
@@ -234,6 +236,7 @@ export const seedWork = (): MockWork => ({
 	},
 	exports: [],
 	me: "ada",
+	account: { login: "ada", name: "Ada Lovelace" },
 	today: "2026-11-02",
 	counter: 10,
 });
@@ -673,6 +676,31 @@ export function teamSave(w: MockWork, t: Team_Deserialize): TeamView_Serialize {
 			throw `the capacity of ${m.handle} is from 0 to 7 days a week`;
 	}
 	w.team = team;
+	return teamGet(w);
+}
+
+/** The signed-in person joins the team: the name of the account, its login as handle and as issue tracker account. */
+export function teamAddMe(w: MockWork, click: boolean): TeamView_Serialize {
+	needClick(click);
+	writable(w);
+	const a = w.account;
+	if (!a) throw "no signed-in account: sign in to your code host or issue tracker first";
+	const is = (m: Member_Serialize) =>
+		m.handle === a.login || m.trackers.some((t) => t.toLowerCase() === a.login.toLowerCase());
+	const known = w.team.members.find(is);
+	if (!known)
+		w.team = {
+			members: [
+				...w.team.members,
+				normMember({
+					name: a.name,
+					handle: a.login,
+					trackers: [a.login],
+					capacity: 5,
+				} as Member_Deserialize),
+			],
+		};
+	w.me = a.login;
 	return teamGet(w);
 }
 
@@ -1129,8 +1157,8 @@ function memberOf(w: MockWork, named: string | null): string {
 				(x) => x.handle === id || x.trackers.some((t) => t.toLowerCase() === id.toLowerCase()),
 			)
 		: undefined;
-	if (!m)
-		throw "cannot resolve the member: set `user` on the tracker connection to a tracker account of the team, or name the member";
+	if (!m && named) throw `the team has no member \`${named}\``;
+	if (!m) throw "no team member matches the signed-in account: add the person to the team";
 	return m.handle;
 }
 
