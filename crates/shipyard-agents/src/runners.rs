@@ -124,7 +124,19 @@ fn version_of(program: &std::path::Path, wait: Duration) -> Option<String> {
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
-    let mut child = quiet(&mut cmd).spawn().ok()?;
+    // Linux refuses to start a file that another thread's fork still holds open for writing
+    // (ETXTBSY): a program that was just installed starts on a later try.
+    let mut tries = 0;
+    let mut child = loop {
+        match quiet(&mut cmd).spawn() {
+            Ok(child) => break child,
+            Err(e) if e.kind() == std::io::ErrorKind::ExecutableFileBusy && tries < 10 => {
+                tries += 1;
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            Err(_) => return None,
+        }
+    };
     let deadline = Instant::now() + wait;
     while child.try_wait().ok()?.is_none() {
         if Instant::now() >= deadline {
