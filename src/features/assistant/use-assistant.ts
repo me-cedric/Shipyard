@@ -14,6 +14,7 @@ import {
 	type TurnResult_Serialize,
 	unwrap,
 } from "@/lib/ipc";
+import { logError } from "@/lib/log";
 import { useActiveProject } from "@/lib/projects";
 
 export const MIN_WIDTH = 280;
@@ -71,7 +72,7 @@ export function useAssistant({
 				setWidthState(clamp(p.assistantWidth ?? 400));
 				setSideState(p.assistantSide ?? "right");
 			})
-			.catch((e) => console.error(e));
+			.catch(logError);
 	}, []);
 
 	/** The draft goes to the thread file after a pause and when the person leaves the thread. */
@@ -81,7 +82,7 @@ export function useAssistant({
 	useEffect(() => {
 		const text = current ? drafts[current.thread.id] : undefined;
 		if (!current || text === undefined || text === current.thread.draft) return;
-		const timer = setTimeout(() => saveDraft(current, text).catch(console.error), 400);
+		const timer = setTimeout(() => saveDraft(current, text).catch(logError), 400);
 		return () => clearTimeout(timer);
 	}, [current, drafts, saveDraft]);
 
@@ -90,7 +91,7 @@ export function useAssistant({
 			const { current: old, drafts: all } = live.current;
 			const text = old ? all[old.thread.id] : undefined;
 			if (old && old.thread.id !== id && text !== undefined)
-				await saveDraft(old, text).catch(console.error);
+				await saveDraft(old, text).catch(logError);
 			const v = await unwrap(commands.assistantGet(id));
 			setCurrent(v);
 			setDrafts((d) => ({ ...d, [id]: d[id] ?? v.thread.draft }));
@@ -290,11 +291,11 @@ export function useAssistant({
 		setSettings,
 		setWidth: (w: number, persist = true) => {
 			setWidthState(clamp(w));
-			if (persist) unwrap(commands.prefsSet({ assistantWidth: clamp(w) })).catch(console.error);
+			if (persist) unwrap(commands.prefsSet({ assistantWidth: clamp(w) })).catch(logError);
 		},
 		setSide: (s: PanelSide) => {
 			setSideState(s);
-			unwrap(commands.prefsSet({ assistantSide: s })).catch(console.error);
+			unwrap(commands.prefsSet({ assistantSide: s })).catch(logError);
 		},
 		fail,
 	};

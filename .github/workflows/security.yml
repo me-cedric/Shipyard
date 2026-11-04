@@ -116,7 +116,7 @@ jobs:
           path: reports
       - name: Summary and gate
         id: report
-        run: node .github/scripts/security-report.mjs reports security-summary.md
+        run: node .github/scripts/security-report.ts reports security-summary.md
       - name: Create, update or close the tracking issue
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:

@@ -64,7 +64,7 @@ pnpm tauri:release   # tauri build with crates/shipyard-app/tauri.release.conf.j
 pnpm build:sidecar   # only the sidecar: crates/shipyard-app/binaries/shipyard-<triple>
 ```
 
-`scripts/build-sidecar.mjs` builds the CLI in release mode for the target triple and copies it to `crates/shipyard-app/binaries/` (git ignores the folder). `tauri.release.conf.json` runs it as `beforeBuildCommand`. `tauri.conf.json` has no `externalBin`, so `pnpm build`, `pnpm tauri dev` and `cargo test` need no sidecar (Q-092). A dev build uses `shipyard` from the `PATH`.
+`scripts/build-sidecar.ts` builds the CLI in release mode for the target triple and copies it to `crates/shipyard-app/binaries/` (git ignores the folder). `tauri.release.conf.json` runs it as `beforeBuildCommand`. `tauri.conf.json` has no `externalBin`, so `pnpm build`, `pnpm tauri dev` and `cargo test` need no sidecar (Q-092). A dev build uses `shipyard` from the `PATH`.
 
 ## End-to-end tests
 
@@ -98,7 +98,7 @@ The seed script makes a sample project with one file for each kind of artifact t
 2. Make or refresh the sample project and its private repository `me-cedric/shipyard-acceptance`:
 
 ```bash
-node scripts/acceptance/seed.mjs --remote github
+node scripts/acceptance/seed.ts --remote github
 ```
 
 The script writes `~/Projects/shipyard-acceptance` (use `--dir <folder>` for another folder). It is safe to run twice: the second run changes nothing. Without `--remote` it makes no repository and no issue. With `--remote github` it also pushes the branch `main` and makes the label `agent`, the milestone `Release 1` and four issues. It reads no token. Git signs in through `gh auth git-credential`.

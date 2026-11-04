@@ -11,7 +11,7 @@
 //! OS roots, for a machine behind a proxy that signs its own certificates. `SHIPYARD_SEED_DIR` names
 //! the seed project (default `~/Projects/shipyard-acceptance`).
 //!
-//! The project is a copy of the seed project (`node scripts/acceptance/seed.mjs --remote github`).
+//! The project is a copy of the seed project (`node scripts/acceptance/seed.ts --remote github`).
 //! A test opens a branch and a pull request at most, and removes both at the end. The repositories
 //! stay, and so do the two sample issues that the tracker test reuses.
 
@@ -68,7 +68,7 @@ fn live() -> Option<Live> {
         .unwrap_or_else(|_| format!("{home}/Projects/shipyard-acceptance"));
     assert!(
         Path::new(&seed).join(".shipyard/project.yaml").is_file(),
-        "no seed project at {seed}: run `node scripts/acceptance/seed.mjs --remote github`"
+        "no seed project at {seed}: run `node scripts/acceptance/seed.ts --remote github`"
     );
     let dir = tempfile::tempdir().unwrap();
     let data = dir.path().join("data");

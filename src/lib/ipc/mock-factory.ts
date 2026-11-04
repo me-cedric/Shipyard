@@ -496,7 +496,8 @@ export const emptyFactory = (): MockFactory => ({
 const B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const enc = (n: number, len: number) => {
 	let s = "";
-	for (let i = 0; i < len; i++, n = Math.floor(n / 32)) s = B32.charAt(n % 32) + s;
+	let rest = n;
+	for (let i = 0; i < len; i++, rest = Math.floor(rest / 32)) s = B32.charAt(rest % 32) + s;
 	return s;
 };
 /** A ULID: 48 bits of milliseconds, then a counter. */

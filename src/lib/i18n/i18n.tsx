@@ -8,6 +8,7 @@ import {
 	useState,
 } from "react";
 import { commands, type Lang, unwrap } from "@/lib/ipc";
+import { logError } from "@/lib/log";
 import { en, type Messages } from "./en";
 import { fr } from "./fr";
 
@@ -33,7 +34,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		unwrap(commands.prefsGet())
 			.then((p) => p.lang && setLangState(p.lang))
-			.catch((e) => console.error(e))
+			.catch(logError)
 			.finally(() => setLoaded(true));
 	}, []);
 
@@ -43,7 +44,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
 	const setLang = useCallback((next: Lang) => {
 		setLangState(next);
-		unwrap(commands.prefsSet({ lang: next })).catch((e) => console.error(e));
+		unwrap(commands.prefsSet({ lang: next })).catch(logError);
 	}, []);
 
 	const value = useMemo(

@@ -25,7 +25,7 @@ export default defineConfig({
 	plugins: [
 		react(),
 		tailwindcss(),
-		// crypto is not here: its polyfill is large and shims/crypto.js uses Web Crypto.
+		// crypto is not here: its polyfill is large and shims/crypto.ts uses Web Crypto.
 		nodePolyfills({
 			protocolImports: true,
 			include: ["path", "util", "events", "stream", "buffer", "url"],
@@ -35,7 +35,7 @@ export default defineConfig({
 		alias: [
 			{ find: /^@\//, replacement: `${fileURLToPath(new URL("./src", import.meta.url))}/` },
 			...NODE_STUBS.flatMap((m) => [
-				{ find: new RegExp(`^(node:)?${m}$`), replacement: shim(`${m.replace("/", "-")}.js`) },
+				{ find: new RegExp(`^(node:)?${m}$`), replacement: shim(`${m.replace("/", "-")}.ts`) },
 			]),
 		],
 	},

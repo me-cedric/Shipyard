@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
+import { logError } from "@/lib/log";
 import { CODE_FONTS, UI_FONTS, usePrefs } from "@/lib/prefs";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
@@ -43,9 +44,7 @@ function TextPref({
 function useRunners() {
 	const [runners, setRunners] = useState<{ runner: string; models: string[] }[]>([]);
 	useEffect(() => {
-		unwrap(commands.assistantOptions())
-			.then(setRunners)
-			.catch((e) => console.error(e));
+		unwrap(commands.assistantOptions()).then(setRunners).catch(logError);
 	}, []);
 	return runners;
 }
@@ -54,9 +53,7 @@ function useRunners() {
 function useTerminalApps() {
 	const [apps, setApps] = useState<{ id: string; label: string }[]>([]);
 	useEffect(() => {
-		unwrap(commands.terminalApps())
-			.then(setApps)
-			.catch((e) => console.error(e));
+		unwrap(commands.terminalApps()).then(setApps).catch(logError);
 	}, []);
 	return apps;
 }

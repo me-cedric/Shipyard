@@ -27,7 +27,24 @@
 		"lineWidth": 100
 	},
 	"linter": {
-		"enabled": true
+		"enabled": true,
+		"rules": {
+			"preset": "recommended",
+			"style": {
+				"useImportType": "error",
+				"noNonNullAssertion": "error",
+				"noParameterAssign": "error",
+				"useNodejsImportProtocol": "error",
+				"useConst": "error"
+			},
+			"suspicious": {
+				"noConsole": "error"
+			},
+			"correctness": {
+				"noUnusedImports": "error",
+				"noUnusedVariables": "error"
+			}
+		}
 	},
 	"css": {
 		"parser": {
@@ -74,6 +91,16 @@
 				"rules": {
 					"complexity": {
 						"noImportantStyles": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["scripts/**", "e2e/**", "src/ui/shims/**"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noConsole": "off"
 					}
 				}
 			}

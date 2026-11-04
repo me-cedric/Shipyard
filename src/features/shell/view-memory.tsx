@@ -1,6 +1,7 @@
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { commands, unwrap } from "@/lib/ipc";
+import { logError } from "@/lib/log";
 import { useActiveProject } from "@/lib/projects";
 import { setViewProject } from "@/lib/shell/view-state";
 
@@ -29,7 +30,7 @@ export function ViewMemory() {
 			if (atStart && lastView && lastView !== pathname) router.history.push(lastView);
 			return;
 		}
-		unwrap(commands.projectsSetView(id, pathname)).catch((e) => console.error(e));
+		unwrap(commands.projectsSetView(id, pathname)).catch(logError);
 	}, [id, lastView, pathname, router]);
 
 	return null;

@@ -2,6 +2,9 @@
 	"name": "shipyard",
 	"version": "0.1.0",
 	"packageManager": "pnpm@11.9.0",
+	"engines": {
+		"node": ">=24"
+	},
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -15,7 +18,7 @@
 		"test:e2e": "playwright test",
 		"test:personas": "playwright test -c playwright.personas.config.ts",
 		"tauri": "tauri",
-		"build:sidecar": "node scripts/build-sidecar.mjs",
+		"build:sidecar": "node scripts/build-sidecar.ts",
 		"tauri:release": "tauri build --config crates/shipyard-app/tauri.release.conf.json",
 		"ipc:gen": "cargo test --workspace",
 		"ipc:check": "pnpm ipc:gen && git diff --exit-code -- src/lib/ipc/bindings.ts"

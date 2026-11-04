@@ -9,6 +9,7 @@ import {
 	useState,
 } from "react";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
+import { logError } from "@/lib/log";
 
 /** The source of an event, from the first part of its id. An id with another prefix has no source. */
 const SOURCES: Record<string, EventSource> = {
@@ -91,7 +92,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 		setToasts((list) => [...list, notice]);
 		// A needs-you event or any chosen source (sync, update, remote head) goes to the system.
 		if ((n.kind === "needs-you" || source) && !document.hasFocus())
-			unwrap(commands.notifyOs(n.title, n.body ?? "")).catch((e) => console.error(e));
+			unwrap(commands.notifyOs(n.title, n.body ?? "")).catch(logError);
 		return true;
 	}, []);
 

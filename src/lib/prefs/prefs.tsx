@@ -9,6 +9,7 @@ import {
 	type Theme,
 	unwrap,
 } from "@/lib/ipc";
+import { logError } from "@/lib/log";
 import { useActiveProject } from "@/lib/projects";
 
 export type { Accent, Contrast, Density, Role, Theme };
@@ -123,7 +124,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		unwrap(commands.prefsGet())
 			.then(setPersonal)
-			.catch((e) => console.error(e))
+			.catch(logError)
 			.finally(() => setLoaded(true));
 	}, []);
 
@@ -162,7 +163,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 				// A null accent goes back to the colour of the theme.
 				const wire =
 					patch.accent === null ? { ...patch, accent: undefined, clearAccent: true } : patch;
-				unwrap(commands.prefsSet(wire)).catch((e) => console.error(e));
+				unwrap(commands.prefsSet(wire)).catch(logError);
 			},
 		};
 	}, [personal, project, loaded, email]);

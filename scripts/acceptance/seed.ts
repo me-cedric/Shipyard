@@ -1,9 +1,8 @@
-#!/usr/bin/env node
 // Seed project for the acceptance run (W13). It writes ~/Projects/shipyard-acceptance as a Shipyard
 // project with one file for each artifact kind that the app reads. Run it twice: the second run
 // changes nothing. `--remote github` also makes the private repository and a few issues.
 //
-//   node scripts/acceptance/seed.mjs [--dir <folder>] [--remote github]
+//   node scripts/acceptance/seed.ts [--dir <folder>] [--remote github]
 //
 // No token is read or written here. The `gh` CLI holds the sign-in: git gets it through the
 // `gh auth git-credential` helper, never through an argument or an address.
@@ -25,7 +24,7 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../..");
 const args = process.argv.slice(2);
-const flag = (name) => {
+const flag = (name: string) => {
 	const i = args.indexOf(name);
 	return i < 0 ? null : (args[i + 1] ?? "");
 };
@@ -38,10 +37,10 @@ if (remote !== null && remote !== "github") {
 const OWNER = "me-cedric";
 const REPO = `${OWNER}/shipyard-acceptance`;
 
-/** @type {Map<string, string>} */
-const files = new Map();
-const put = (path, text) => files.set(path, text.endsWith("\n") ? text : `${text}\n`);
-const json = (path, value) => put(path, JSON.stringify(value, null, 2));
+const files = new Map<string, string>();
+const put = (path: string, text: string) =>
+	files.set(path, text.endsWith("\n") ? text : `${text}\n`);
+const json = (path: string, value: unknown) => put(path, JSON.stringify(value, null, 2));
 
 // ---------------------------------------------------------------- .shipyard
 
@@ -59,7 +58,7 @@ gates:
 `,
 );
 
-const team = [
+const team: [string, string, string, number, string[], number, string[]][] = [
 	["Alice Martin", "alice", "Project manager", 5, ["planning", "delivery"], 700, []],
 	["Bruno Costa", "bruno", "Architect", 5, ["architecture", "rust"], 850, []],
 	["Chloe Dupont", "chloe", "Developer", 5, ["rust", "typescript"], 650, [OWNER]],
@@ -135,7 +134,7 @@ progress:
 );
 
 // Workflows and roles come from the templates that ship with the app.
-const copyTree = (from, to) => {
+const copyTree = (from: string, to: string) => {
 	for (const name of readdirSync(from).sort()) {
 		const src = join(from, name);
 		if (statSync(src).isDirectory()) copyTree(src, `${to}/${name}`);
@@ -158,13 +157,22 @@ put(
 	`# Shipyard acceptance
 
 Sample project for the acceptance run of Shipyard. It holds sample data only. The script
-\`scripts/acceptance/seed.mjs\` of the Shipyard repository writes and refreshes it.
+\`scripts/acceptance/seed.ts\` of the Shipyard repository writes and refreshes it.
 `,
 );
 
 // ---------------------------------------------------------------- decisions (MADR)
 
-const adr = (n, slug, status, title, context, options, outcome, extra = "") =>
+const adr = (
+	n: string | number,
+	slug: string,
+	status: string,
+	title: string,
+	context: string,
+	options: string[],
+	outcome: string,
+	extra = "",
+) =>
 	put(
 		`docs/decisions/${n}-${slug}.md`,
 		`---
@@ -176,7 +184,7 @@ ${extra}---
 ## Context and problem statement
 ${context}
 ## Considered options
-${options.map((o) => `- ${o}`).join("\n")}
+${options.map((o: string) => `- ${o}`).join("\n")}
 ## Decision outcome
 ${outcome}
 ### Consequences
@@ -214,7 +222,15 @@ adr(
 
 // ---------------------------------------------------------------- questions (RAID)
 
-const raid = (id, kind, status, title, body, spec = "", answer = "") =>
+const raid = (
+	id: string,
+	kind: string,
+	status: string,
+	title: string,
+	body: string,
+	spec = "",
+	answer = "",
+) =>
 	put(
 		`docs/delivery/questions/${id}.md`,
 		`---
@@ -286,7 +302,14 @@ put(
 `,
 );
 
-const spec = (_cap, title, goal, reqs, status = "Draft", unknown = "") => `# Spec: ${title}
+const spec = (
+	_cap: string,
+	title: string,
+	goal: string,
+	reqs: string[],
+	status = "Draft",
+	unknown = "",
+) => `# Spec: ${title}
 
 Status: ${status}
 Owner: Emma Rossi
@@ -323,7 +346,7 @@ ${reqs.map((r) => `- [ ] ${r}`).join("\n")}
 - Existing code/docs/specs: \`adr:0001\`, \`diagram:context\`
 - Supersedes or extends: N/A
 `;
-const plan = (title, cap) => `# Plan: ${title}
+const plan = (title: string, cap: string) => `# Plan: ${title}
 
 Spec: [spec.md](./spec.md)
 Date: 2026-10-21
@@ -362,7 +385,7 @@ git diff --check
 
 - [x] Spec still matches intended behavior.
 `;
-const checklist = (title, ticked) => `# Checklist: ${title}
+const checklist = (title: string, ticked: boolean) => `# Checklist: ${title}
 
 Spec: [spec.md](./spec.md)
 
@@ -379,7 +402,7 @@ Spec: [spec.md](./spec.md)
 
 - [${ticked ? "x" : " "}] Tasks map to requirements and acceptance criteria.
 `;
-const tasks = (title, cap, done) => `# Tasks: ${title}
+const tasks = (title: string, cap: string, done: boolean) => `# Tasks: ${title}
 
 Spec: [spec.md](./spec.md)
 Plan: [plan.md](./plan.md)
@@ -399,12 +422,16 @@ Plan: [plan.md](./plan.md)
 - [${done ? "x" : " "}] All acceptance criteria are met.
 `;
 const quartet = (
-	base,
-	cap,
-	title,
-	goal,
-	reqs,
-	{ status = "Draft", unknown = "", done = false } = {},
+	base: string,
+	cap: string,
+	title: string,
+	goal: string,
+	reqs: string[],
+	{
+		status = "Draft",
+		unknown = "",
+		done = false,
+	}: { status?: string; unknown?: string; done?: boolean } = {},
 ) => {
 	put(`${base}/${cap}/spec.md`, spec(cap, title, goal, reqs, status, unknown));
 	put(`${base}/${cap}/plan.md`, plan(title, cap));
@@ -529,7 +556,15 @@ quartet(
 
 // ---------------------------------------------------------------- diagrams, models, api, data, screens
 
-const sw = (id, type, x, y, w, h, extra = {}) => ({
+const sw = (
+	id: string,
+	type: string,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	extra: Record<string, unknown> = {},
+) => ({
 	id,
 	type,
 	x,
@@ -557,7 +592,7 @@ const sw = (id, type, x, y, w, h, extra = {}) => ({
 	locked: false,
 	...extra,
 });
-const text = (id, x, y, t) =>
+const text = (id: string, x: number, y: number, t: string) =>
 	sw(id, "text", x, y, t.length * 10, 25, {
 		text: t,
 		originalText: t,
@@ -778,7 +813,13 @@ json("docs/flows/bricks.json", {
 
 // ---------------------------------------------------------------- costing, plan, time
 
-const task = (id, name, role, days, extra = "") => `      - id: ${id}
+const task = (
+	id: string,
+	name: string,
+	role: string,
+	days: number | null,
+	extra = "",
+) => `      - id: ${id}
         name: ${name}
         description: ${name}.
         role: ${role}${days === null ? "" : `\n        days: ${days}`}${extra}`;
@@ -835,7 +876,7 @@ put(
 	"docs/planning/calendar.yaml",
 	`workingDays: [1, 2, 3, 4, 5]\nholidays:\n  - 2026-12-24\ncountry: FR\n`,
 );
-const entries = (list) =>
+const entries = (list: [string, string, number, string, string?][]) =>
 	`entries:\n${list.map(([id, day, minutes, note, ticket]) => `  - id: ${id}\n    day: ${day}\n    minutes: ${minutes}\n    note: ${note}${ticket ? `\n    ticket: ${ticket}` : ""}`).join("\n")}\n`;
 put(
 	"docs/time/chloe/2026-10.yaml",
@@ -998,7 +1039,7 @@ tiles:
 
 // ---------------------------------------------------------------- write, commit, remote
 
-const run = (cmd, argv, opts = {}) =>
+const run = (cmd: string, argv: string[], opts: object = {}) =>
 	execFileSync(cmd, argv, {
 		cwd: target,
 		encoding: "utf8",
@@ -1006,7 +1047,7 @@ const run = (cmd, argv, opts = {}) =>
 		...opts,
 	}).trim();
 // git signs in through the gh helper. No token in an argument or an address.
-const git = (...a) =>
+const git = (...a: string[]) =>
 	run("git", [
 		"-c",
 		"user.name=Shipyard Acceptance",
@@ -1044,7 +1085,7 @@ console.log(
 );
 
 if (remote === "github") {
-	const gh = (...a) =>
+	const gh = (...a: string[]) =>
 		execFileSync("gh", a, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 	const exists = (() => {
 		try {
@@ -1089,7 +1130,7 @@ if (remote === "github") {
 		"--force",
 	);
 	const milestones = JSON.parse(gh("api", `repos/${REPO}/milestones?state=all&per_page=100`));
-	if (!milestones.some((m) => m.title === "Release 1"))
+	if (!milestones.some((m: { title: string }) => m.title === "Release 1"))
 		gh(
 			"api",
 			"-X",
@@ -1103,9 +1144,9 @@ if (remote === "github") {
 	const have = new Set(
 		JSON.parse(
 			gh("issue", "list", "--repo", REPO, "--state", "all", "--limit", "200", "--json", "title"),
-		).map((i) => i.title),
+		).map((i: { title: string }) => i.title),
 	);
-	const issues = [
+	const issues: [string, string, string[]][] = [
 		["Build the cart API", "Return the cart total. See spec:checkout.", ["agent"]],
 		["Show the discount in the total", "See spec:discounts.", ["agent"]],
 		[

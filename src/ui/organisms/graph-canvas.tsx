@@ -42,6 +42,8 @@ export type CanvasLabels = {
 	links: string;
 	orphan: string;
 	stale: string;
+	/** Names a cluster apart from the kind chip that has the same text. */
+	group?: string;
 	zoomIn?: string;
 	zoomOut?: string;
 	fit?: string;
@@ -115,7 +117,10 @@ function CanvasBox({ data }: NodeProps<Node<Data>>) {
 				data-node={node.id}
 				aria-pressed={group ? undefined : selected}
 				aria-expanded={group ? node.open : undefined}
-				aria-label={[node.name, ...marksOf(node, labels)].join(", ")}
+				aria-label={[
+					group && labels.group ? `${labels.group}: ${node.name}` : node.name,
+					...marksOf(node, labels),
+				].join(", ")}
 				style={
 					glow
 						? {

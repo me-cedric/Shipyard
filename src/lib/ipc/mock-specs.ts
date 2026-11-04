@@ -487,8 +487,8 @@ export const changes = (s: MockSpecs) =>
 		.sort()
 		.map((id) => view(s, id));
 
-export function changeCreate(s: MockSpecs, title: string, today: string): ChangeView_Serialize {
-	title = title.trim();
+export function changeCreate(s: MockSpecs, rawTitle: string, today: string): ChangeView_Serialize {
+	const title = rawTitle.trim();
 	const id = slugOf(title);
 	if (!validChange(id)) throw `the title needs a letter or a digit: ${title}`;
 	if (names(s.files, CH).includes(id)) throw `change exists: ${id}`;

@@ -4,11 +4,11 @@ import pathMod from "node:path";
 import streamMod from "node:stream";
 import urlMod from "node:url";
 import utilMod from "node:util";
-import cryptoMod from "./crypto.js";
-import fsMod from "./fs.js";
-import fsPromisesMod from "./fs-promises.js";
-import osMod from "./os.js";
-import processMod from "./process.js";
+import cryptoMod from "./crypto";
+import fsMod from "./fs";
+import fsPromisesMod from "./fs-promises";
+import osMod from "./os";
+import processMod from "./process";
 
 /**
  * `createRequire` for the browser.
@@ -19,7 +19,7 @@ import processMod from "./process.js";
  * never does, because the app parses LikeC4 in the browser with no language
  * server to talk to.
  */
-const REGISTRY = {
+const REGISTRY: Record<string, unknown> = {
 	util: utilMod,
 	path: pathMod,
 	events: eventsMod,
@@ -44,7 +44,7 @@ const REGISTRY = {
  * is the signal: it means a dependency reached for something new, and somebody
  * has to decide which of the two lists it belongs in.
  */
-const KNOWN_ABSENT = {
+const KNOWN_ABSENT: Record<string, string> = {
 	net: "vscode-jsonrpc's socket transport. No language server here, so no socket.",
 	child_process: "vscode-languageserver resolving a module through npm or yarn.",
 	tls: "no socket, so no TLS over one.",
@@ -52,12 +52,12 @@ const KNOWN_ABSENT = {
 };
 
 /** Said once per id, so a module evaluated twice does not double the noise. */
-const said = new Set();
+const said = new Set<unknown>();
 
-function note(id, key) {
+function note(id: unknown, key: unknown) {
 	if (said.has(key)) return;
 	said.add(key);
-	const why = KNOWN_ABSENT[key];
+	const why = typeof key === "string" ? KNOWN_ABSENT[key] : undefined;
 	if (why) {
 		// Expected. Kept at `debug` so it is there when somebody looks for it and
 		// not in the way when they are looking for something else.
@@ -65,15 +65,15 @@ function note(id, key) {
 	} else {
 		console.warn(
 			`[shipyard] require(${id}) is stubbed as {} in the browser and nothing provides it. ` +
-				`Add it to REGISTRY in src/shims/module.js if it is used, or to KNOWN_ABSENT if it is not.`,
+				`Add it to REGISTRY in src/ui/shims/module.ts if it is used, or to KNOWN_ABSENT if it is not.`,
 		);
 	}
 }
 
 export function createRequire() {
-	return function require(id) {
+	return function require(id: unknown) {
 		const key = typeof id === "string" ? id.replace(/^node:/, "") : id;
-		if (key in REGISTRY) return REGISTRY[key];
+		if (typeof key === "string" && key in REGISTRY) return REGISTRY[key];
 		note(id, key);
 		return {};
 	};

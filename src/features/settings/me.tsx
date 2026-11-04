@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
+import { logError } from "@/lib/log";
 import {
 	type Contrast,
 	type Density,
@@ -36,7 +37,7 @@ function ReleaseUrl() {
 	useEffect(() => {
 		unwrap(commands.prefsGet())
 			.then((p) => setUrl(p.releaseUrl))
-			.catch((e) => console.error(e));
+			.catch(logError);
 	}, []);
 	return (
 		<Input
@@ -47,7 +48,7 @@ function ReleaseUrl() {
 			onBlur={() =>
 				unwrap(commands.prefsSet({ releaseUrl: url }))
 					.then((p) => setUrl(p.releaseUrl))
-					.catch((e) => console.error(e))
+					.catch(logError)
 			}
 			className="w-80"
 		/>
@@ -80,7 +81,7 @@ function NotifySwitch({ source }: { source: EventSource }) {
 	useEffect(() => {
 		unwrap(commands.prefsGet())
 			.then((p) => setOff(p.notifyOff))
-			.catch((e) => console.error(e));
+			.catch(logError);
 	}, []);
 	return (
 		<Switch
@@ -100,7 +101,7 @@ function NotifySwitch({ source }: { source: EventSource }) {
 						),
 					)
 					.then((p) => setOff(p.notifyOff))
-					.catch((e) => console.error(e));
+					.catch(logError);
 			}}
 		/>
 	);

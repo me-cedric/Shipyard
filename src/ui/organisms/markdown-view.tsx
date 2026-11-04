@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
+import { logError } from "@/lib/log";
 import { useResolvedRef } from "@/lib/refs";
 import { cn } from "@/lib/utils";
 import { RefChip } from "../molecules/ref-chip";
@@ -84,7 +85,7 @@ export function Link({ url, children }: { url: string; children: ReactNode }) {
 			className="text-accent-text underline focus-visible:outline-2 focus-visible:outline-accent-9"
 			onClick={(e) => {
 				e.preventDefault();
-				unwrap(commands.openLink(url)).catch((err) => console.error(err));
+				unwrap(commands.openLink(url)).catch(logError);
 			}}
 		>
 			{children}

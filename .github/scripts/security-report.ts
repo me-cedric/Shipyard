@@ -1,5 +1,5 @@
 // security-report: merge the scan reports into one Markdown table and apply the gate.
-// Usage: node security-report.mjs <reports-dir> <summary-file>
+// Usage: node security-report.ts <reports-dir> <summary-file>
 // A missing or unreadable report fails the gate. It never counts as "clean".
 // The table lists file, line and rule only. It never prints a secret value.
 import { appendFileSync, readFileSync, writeFileSync } from 'node:fs'
@@ -8,10 +8,11 @@ import { basename, join } from 'node:path'
 const [dir = 'reports', out = 'security-summary.md'] = process.argv.slice(2)
 const MAX_ROWS = 150
 const ORDER = ['CRITICAL', 'HIGH', 'ERROR', 'SECRET', 'MEDIUM', 'WARNING', 'LOW', 'INFO', 'UNKNOWN']
-const rows = []
-const gate = []
+type Json = any // shortcut: scan reports are untyped JSON, narrow when a field matters
+const rows: string[][] = []
+const gate: string[] = []
 
-function load(name, tool) {
+function load(name: string, tool: string): Json {
   try {
     return JSON.parse(readFileSync(join(dir, name), 'utf8'))
   } catch {
@@ -20,7 +21,7 @@ function load(name, tool) {
   }
 }
 
-function level(score, text) {
+function level(score: number, text: unknown): string {
   if (score >= 9) return 'CRITICAL'
   if (score >= 7) return 'HIGH'
   if (score >= 4) return 'MEDIUM'
@@ -34,13 +35,13 @@ let osvCritical = 0
 for (const res of osv?.results ?? []) {
   for (const p of res.packages ?? []) {
     for (const v of p.vulnerabilities ?? []) {
-      const group = (p.groups ?? []).find((g) => g.ids?.includes(v.id))
+      const group = (p.groups ?? []).find((g: Json) => g.ids?.includes(v.id))
       const score = Number.parseFloat(group?.max_severity)
       const fixed = (v.affected ?? [])
-        .filter((a) => a.package?.name === p.package.name)
-        .flatMap((a) => a.ranges ?? [])
-        .flatMap((r) => r.events ?? [])
-        .find((e) => e.fixed)?.fixed
+        .filter((a: Json) => a.package?.name === p.package.name)
+        .flatMap((a: Json) => a.ranges ?? [])
+        .flatMap((r: Json) => r.events ?? [])
+        .find((e: Json) => e.fixed)?.fixed
       const sev = level(score, v.database_specific?.severity)
       if (score >= 9) osvCritical++
       rows.push(['osv', sev, `${p.package.name}@${p.package.version} (${v.id})`, basename(res.source?.path ?? ''), fixed ?? '-'])
@@ -51,7 +52,7 @@ if (osvCritical) gate.push(`osv: ${osvCritical} finding(s) with CVSS 9.0 or more
 
 const audit = load('pnpm-audit.json', 'pnpm audit')
 let auditHigh = 0
-for (const a of Object.values(audit?.advisories ?? {})) {
+for (const a of Object.values<Json>(audit?.advisories ?? {})) {
   const sev = level(0, a.severity)
   if (sev === 'HIGH' || sev === 'CRITICAL') auditHigh++
   rows.push(['pnpm audit', sev, `${a.module_name} (${a.github_advisory_id ?? a.id})`, 'pnpm-lock.yaml', a.patched_versions || '-'])
@@ -76,7 +77,7 @@ for (const l of Array.isArray(leaks) ? leaks : []) {
 if (Array.isArray(leaks) && leaks.length) gate.push(`gitleaks: ${leaks.length} secret(s)`)
 
 rows.sort((a, b) => ORDER.indexOf(a[1]) - ORDER.indexOf(b[1]))
-const cell = (s) => String(s).replace(/\|/g, '\\|').replace(/\s+/g, ' ').slice(0, 120)
+const cell = (s: unknown) => String(s).replace(/\|/g, '\\|').replace(/\s+/g, ' ').slice(0, 120)
 const lines = ['## Security scan', '']
 if (!rows.length && !gate.length) lines.push('No findings.')
 if (gate.length) lines.push('**Gate failed:**', '', ...gate.map((g) => `- ${g}`), '')

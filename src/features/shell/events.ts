@@ -4,6 +4,7 @@ import { useWatchNotice } from "@/lib/code";
 import { needsYouNotice, useFactoryEvents } from "@/lib/home";
 import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
+import { logError } from "@/lib/log";
 import { useNotifications } from "@/lib/notifications";
 import { usePrefs } from "@/lib/prefs";
 import { useShell } from "@/lib/shell";
@@ -82,7 +83,7 @@ export const menuLabels = (t: Messages): Record<string, string> => ({
 export function useNativeMenu(list: Action[]) {
 	const { t } = useI18n();
 	useEffect(() => {
-		if (isTauri()) unwrap(commands.shellMenu(menuLabels(t))).catch((e) => console.error(e));
+		if (isTauri()) unwrap(commands.shellMenu(menuLabels(t))).catch(logError);
 	}, [t]);
 
 	// The listener reads the latest list, so it is set once.
@@ -124,7 +125,7 @@ export function useShellEvents() {
 	useFactoryEvents((event, payload) => {
 		void needsYouNotice(event, payload, t)
 			.then((n) => n && push(n))
-			.catch((e) => console.error(e));
+			.catch(logError);
 	});
 
 	// One check at start and one every 6 hours, while the switch in Settings / Me is on.

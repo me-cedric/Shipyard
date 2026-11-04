@@ -17,5 +17,6 @@
 		"types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
 		"paths": { "@/*": ["./src/*"] }
 	},
-	"include": ["src"]
+	"include": ["src"],
+	"exclude": ["src/ui/shims"]
 }
