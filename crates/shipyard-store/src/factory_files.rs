@@ -350,8 +350,7 @@ pub fn workflow_text(wf: &Workflow, header: &str) -> Result<String> {
     if let Some(t) = wf.limits.max_turns {
         limits.insert("max_turns".into(), t.into());
     }
-    // `Option::from` takes an `f64` and an `Option<f64>` alike: a None budget is left out.
-    if let Some(b) = Option::<f64>::from(wf.limits.budget_usd) {
+    if let Some(b) = wf.limits.budget_usd {
         limits.insert("budget_usd".into(), num(b));
     }
     limits.insert("stall_s".into(), wf.limits.stall_s.into());

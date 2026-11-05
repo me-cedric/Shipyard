@@ -87,6 +87,16 @@ describe("Workflows: the form", () => {
 		await waitFor(() => expect(editor.value).toContain("max_turns: 40"));
 	});
 
+	it("the budget is off with no budget_usd and writes it when on", async () => {
+		const user = await open("feature");
+		const budget = await screen.findByRole("switch", { name: "Budget" });
+		expect(budget).not.toBeChecked();
+		await user.click(budget);
+		await user.click(screen.getByRole("tab", { name: "Text" }));
+		const editor = (await screen.findByRole("textbox", { name: "feature" })) as HTMLTextAreaElement;
+		await waitFor(() => expect(editor.value).toContain("budget_usd: 5"));
+	});
+
 	it("More opens the other fields", async () => {
 		const user = await open("spike");
 		const fields = within(await step("grill"));

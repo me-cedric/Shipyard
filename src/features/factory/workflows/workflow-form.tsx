@@ -19,6 +19,8 @@ const EFFORTS: Effort[] = ["low", "medium", "high", "xhigh", "max"];
 /** The value of a Select item that stands for no value. */
 const NONE = "-";
 const TURNS = 40;
+/** USD when a person turns the budget on. */
+const BUDGET = 5;
 
 /** The items of a list, plus the current value when the list lacks it. */
 const items = (list: string[], current?: string): SelectItem[] =>
@@ -390,11 +392,11 @@ export function WorkflowForm({
 					initial={TURNS}
 					onChange={(max_turns) => setLimits({ max_turns })}
 				/>
-				{/* shortcut: budget_usd becomes optional on main; switch it to the optional field after the rebase */}
-				<NumberField
+				<OptionalNumber
 					label={w.budget}
-					value={limits.budget_usd}
-					onChange={(v) => setLimits({ budget_usd: v ?? null })}
+					value={limits.budget_usd ?? null}
+					initial={BUDGET}
+					onChange={(budget_usd) => setLimits({ budget_usd })}
 				/>
 			</section>
 			{steps.map((s, i) => (

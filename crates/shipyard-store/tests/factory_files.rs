@@ -405,7 +405,7 @@ fn a_step_with_every_field_round_trips() {
         steps: vec![a, r, p],
         limits: shipyard_core::workflow::WorkflowLimits {
             max_turns: Some(40),
-            budget_usd: 5.0,
+            budget_usd: Some(5.0),
             stall_s: 300,
         },
     };
