@@ -24,11 +24,13 @@
     "imagegen-frontend-web",
     "impact-analysis",
     "minimalist-skill",
+    "plugin-author",
     "pr-flow",
     "project-memory",
     "redesign-skill",
     "remaining-work",
     "review",
+    "slide-deck",
     "soft-skill",
     "spec-flow",
     "stack-react",
@@ -173,6 +175,10 @@
       "owner": "compass",
       "sha": "769ab38eed137bb2"
     },
+    ".agents/skills/plugin-author/SKILL.md": {
+      "owner": "compass",
+      "sha": "8cb65206a5e08635"
+    },
     ".agents/skills/pr-flow/SKILL.md": {
       "owner": "compass",
       "sha": "100ed9b3006115a1"
@@ -208,6 +214,22 @@
     ".agents/skills/review/scripts/post-review.mjs": {
       "owner": "compass",
       "sha": "99f7d321f2cab502"
+    },
+    ".agents/skills/slide-deck/SKILL.md": {
+      "owner": "compass",
+      "sha": "fb8ba3ba434d3b96"
+    },
+    ".agents/skills/slide-deck/references/LICENSE-frontend-slides": {
+      "owner": "compass",
+      "sha": "62928eb197fe4662"
+    },
+    ".agents/skills/slide-deck/references/presets.md": {
+      "owner": "compass",
+      "sha": "d98b363b568780d3"
+    },
+    ".agents/skills/slide-deck/references/template.html": {
+      "owner": "compass",
+      "sha": "b74dd1a867cfad42"
     },
     ".agents/skills/soft-skill/LICENSE": {
       "owner": "compass",
@@ -561,6 +583,10 @@
       "owner": "compass",
       "sha": "769ab38eed137bb2"
     },
+    ".claude/skills/plugin-author/SKILL.md": {
+      "owner": "compass",
+      "sha": "8cb65206a5e08635"
+    },
     ".claude/skills/pr-flow/SKILL.md": {
       "owner": "compass",
       "sha": "100ed9b3006115a1"
@@ -596,6 +622,22 @@
     ".claude/skills/review/scripts/post-review.mjs": {
       "owner": "compass",
       "sha": "99f7d321f2cab502"
+    },
+    ".claude/skills/slide-deck/SKILL.md": {
+      "owner": "compass",
+      "sha": "fb8ba3ba434d3b96"
+    },
+    ".claude/skills/slide-deck/references/LICENSE-frontend-slides": {
+      "owner": "compass",
+      "sha": "62928eb197fe4662"
+    },
+    ".claude/skills/slide-deck/references/presets.md": {
+      "owner": "compass",
+      "sha": "d98b363b568780d3"
+    },
+    ".claude/skills/slide-deck/references/template.html": {
+      "owner": "compass",
+      "sha": "b74dd1a867cfad42"
     },
     ".claude/skills/soft-skill/LICENSE": {
       "owner": "compass",
@@ -835,7 +877,7 @@
     },
     ".github/workflows/compass-check.yml": {
       "owner": "compass",
-      "sha": "4a29e79407147d10"
+      "sha": "d54e9c441e066c19"
     },
     ".github/workflows/compass-e2e.yml": {
       "owner": "project",
@@ -856,6 +898,10 @@
     ".osv-scanner.toml": {
       "owner": "project",
       "sha": "e30058cb853d1f33"
+    },
+    "docs/designs/screens.json": {
+      "owner": "project",
+      "sha": "feda193f3264369d"
     },
     "docs/openspec/schemas/shipyard-delivery/schema.yaml": {
       "owner": "compass",

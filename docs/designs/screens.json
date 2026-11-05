@@ -118,11 +118,19 @@
       ]
     },
     {
-      "id": "SCR-013",
+      "id": "SCR-014",
       "slug": "assistant-composer",
       "title": "Assistant: message box, then one bar with attach, the model and effort menu, the permission, the context ring and Send",
       "artifacts": [
         "spec:assistant"
+      ]
+    },
+    {
+      "id": "SCR-015",
+      "slug": "settings-connections",
+      "title": "Settings / Connections: each MCP server has an allow list picker (All tools, Read only, Custom with one checkbox for each tool)",
+      "artifacts": [
+        "spec:extensions"
       ]
     }
   ]

@@ -45,6 +45,7 @@ const server = (
 	filled: [],
 	state: { state: "stopped" },
 	missing,
+	tools: { kind: "all" },
 });
 
 const DOCKER: McpDependency = {
@@ -198,6 +199,7 @@ export function mcpAddCustom(m: MockAgents, d: McpCustom_Deserialize): string {
 		custom: true,
 		enabled: old?.enabled ?? false,
 		filled: old?.filled ?? [],
+		tools: old?.tools ?? { kind: "all" },
 		// A dependency is the command that launches the server.
 		missing: d.command.includes("ghost")
 			? [{ command: d.command, label: d.command, present: false, installable: false, url: "" }]

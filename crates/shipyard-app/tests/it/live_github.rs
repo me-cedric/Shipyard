@@ -5,7 +5,7 @@
 //! stays green. The token comes from `GH_TOKEN` at run time and is never printed.
 //!
 //!     SHIPYARD_LIVE=1 GH_TOKEN=$(gh auth token) \
-//!       cargo test -p shipyard-app --test live_github -- --test-threads=1 --nocapture
+//!       cargo test -p shipyard-app --test it live_github -- --test-threads=1 --nocapture
 //!
 //! `SHIPYARD_CA_BUNDLE` (or `SSL_CERT_FILE`) names a certificate file that the app trusts next to the
 //! OS roots, for a machine behind a proxy that signs its own certificates. `SHIPYARD_SEED_DIR` names

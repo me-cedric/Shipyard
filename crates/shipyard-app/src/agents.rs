@@ -11,7 +11,9 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde::{Deserialize, Serialize};
-use shipyard_agents::mcp_control::{CustomInput, McpConfig, McpControl, ServerRow, State};
+use shipyard_agents::mcp_control::{
+    CustomInput, McpConfig, McpControl, ServerRow, State, ToolFilter,
+};
 use shipyard_agents::runners::{self, ModelProvider, Runner};
 use shipyard_http::{Client, Http, TestOutcome};
 use shipyard_mcp::proxy::Proxy;
@@ -462,6 +464,10 @@ impl Agents {
         self.mcp_change(|c| c.set_enabled(id, on))
     }
 
+    pub fn mcp_set_tools(&self, id: &str, filter: ToolFilter) -> Res<()> {
+        self.mcp_change(|c| c.set_tool_filter(id, filter))
+    }
+
     /// Adds a custom server, or edits one. Returns its id.
     pub fn mcp_add_custom(&self, draft: McpCustom) -> Res<String> {
         let input = CustomInput {
@@ -604,6 +610,21 @@ mod tests {
             text.contains("\"tiers\"") && text.contains("\"mcp\""),
             "{text}"
         );
+    }
+
+    #[test]
+    fn the_tool_filter_is_saved_read_back_and_cleared_by_forget() {
+        let dir = tempfile::tempdir().unwrap();
+        let only = ToolFilter::Only {
+            tools: vec!["a".into()],
+        };
+        agents(dir.path())
+            .mcp_set_tools("figma", only.clone())
+            .unwrap();
+        let again = agents(dir.path());
+        assert_eq!(again.mcp.tool_filter("figma"), only);
+        again.mcp_forget("figma").unwrap();
+        assert_eq!(agents(dir.path()).mcp.tool_filter("figma"), ToolFilter::All);
     }
 
     #[test]

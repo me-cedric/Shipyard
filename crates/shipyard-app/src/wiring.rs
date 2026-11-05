@@ -152,8 +152,8 @@ fn covers(actual: &Value, want: &Value) -> bool {
     }
 }
 
-/// The name in a table header, with no space: `[ mcp_servers . shipyard ] # note` gives
-/// `mcp_servers.shipyard`. An array header (`[[x]]`) and a line that is not a header give `None`.
+/// The name in a table header, with no space and no quote: `[ mcp_servers . "shipyard" ] # note`
+/// gives `mcp_servers.shipyard`. An array header (`[[x]]`) and a line that is not a header give `None`.
 fn header(line: &str) -> Option<String> {
     let rest = line.trim().strip_prefix('[')?;
     if rest.starts_with('[') {
@@ -161,16 +161,19 @@ fn header(line: &str) -> Option<String> {
     }
     let (name, tail) = rest.split_once(']')?;
     let tail = tail.trim();
-    (tail.is_empty() || tail.starts_with('#'))
-        .then(|| name.chars().filter(|c| !c.is_whitespace()).collect())
+    (tail.is_empty() || tail.starts_with('#')).then(|| {
+        name.chars()
+            .filter(|c| !c.is_whitespace() && !"\"'".contains(*c))
+            .collect()
+    })
 }
 
 /// The lines of the `[mcp_servers.shipyard]` table: first line and end (exclusive). The comment
 /// and blank lines after the last key belong to what follows, so they stay.
 fn codex_span(lines: &[&str]) -> Option<(usize, usize)> {
-    let start = lines.iter().position(|l| {
-        header(l).is_some_and(|h| h == "mcp_servers.shipyard" || h == "mcp_servers.\"shipyard\"")
-    })?;
+    let start = lines
+        .iter()
+        .position(|l| header(l).is_some_and(|h| h == "mcp_servers.shipyard"))?;
     let next = lines[start + 1..]
         .iter()
         .position(|l| l.trim_start().starts_with('['))
@@ -182,9 +185,9 @@ fn codex_span(lines: &[&str]) -> Option<(usize, usize)> {
     Some((start, end))
 }
 
-/// True when the file sets the `shipyard` server in a form other than its own table: an inline
-/// table or a dotted key. Writing a table too would make the TOML invalid, so the file is refused.
-/// shortcut: an inline table over many lines is not seen, when it matters parse with a TOML crate.
+/// True when the file sets the servers in a form other than tables: any inline `mcp_servers = {`
+/// (on one line or many), or a dotted or inline `shipyard` key. Writing the `shipyard` table too
+/// would make the TOML invalid, so the file is refused.
 fn codex_other_form(lines: &[&str]) -> bool {
     let mut in_servers = false;
     for l in lines {
@@ -192,16 +195,14 @@ fn codex_other_form(lines: &[&str]) -> bool {
             in_servers = h == "mcp_servers";
             continue;
         }
-        let c: String = l.chars().filter(|c| !c.is_whitespace()).collect();
+        let c: String = l
+            .chars()
+            .filter(|c| !c.is_whitespace() && !"\"'".contains(*c))
+            .collect();
         let named = |p: &str| {
-            c.starts_with(&format!("{p}shipyard="))
-                || c.starts_with(&format!("{p}shipyard."))
-                || c.starts_with(&format!("{p}\"shipyard\""))
+            c.starts_with(&format!("{p}shipyard=")) || c.starts_with(&format!("{p}shipyard."))
         };
-        if named("mcp_servers.")
-            || (in_servers && named(""))
-            || (c.starts_with("mcp_servers={") && c.contains("shipyard"))
-        {
+        if c.starts_with("mcp_servers={") || named("mcp_servers.") || (in_servers && named("")) {
             return true;
         }
     }
@@ -242,7 +243,7 @@ fn render(kind: Kind, text: Option<&str>, url: &str) -> Res<String> {
         let old = text.unwrap_or("");
         let lines: Vec<&str> = old.lines().collect();
         if codex_other_form(&lines) {
-            return Err("the file sets the shipyard server as an inline table or a dotted key: move it to its own [mcp_servers.shipyard] table".into());
+            return Err("the file sets mcp_servers as an inline table, or shipyard as an inline or dotted key: move each server to its own [mcp_servers.<name>] table".into());
         }
         let block = codex_block(url);
         let mut out: Vec<String> = Vec::new();
@@ -624,12 +625,31 @@ mod tests {
             "mcp_servers.shipyard = { url = \"x\" }\n",
             "mcp_servers = { shipyard = { url = \"x\" } }\n",
             "[mcp_servers]\nshipyard = { url = \"x\" }\n",
+            "mcp_servers = {\n  shipyard = { url = \"x\" }\n}\n",
+            "mcp_servers.shipyard = {\n  url = \"x\",\n}\n",
+            "mcp_servers = { other = { command = \"c\" } }\n",
+            "mcp_servers = {\n  other = { command = \"c\" }\n}\n",
+            "[mcp_servers]\nshipyard.url = \"x\"\n",
+            "[mcp_servers]\n'shipyard'.url = \"x\"\n",
         ] {
             let d = tempfile::tempdir().unwrap();
             let (root, home) = (d.path().join("p"), d.path().join("h"));
             put(&home, ".codex/config.toml", body);
             assert!(review_in(&root, &home, "codex", URL).is_err(), "{body}");
         }
+    }
+
+    #[test]
+    fn codex_replaces_a_single_quoted_table() {
+        let d = tempfile::tempdir().unwrap();
+        let (root, home) = (d.path().join("p"), d.path().join("h"));
+        put(
+            &home,
+            ".codex/config.toml",
+            "[mcp_servers.'shipyard']\nurl = \"old\"\n",
+        );
+        let text = std::fs::read_to_string(wire(&root, &home, "codex", URL)).unwrap();
+        assert_eq!(text.matches("mcp_servers").count(), 1, "{text}");
     }
 
     #[test]

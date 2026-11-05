@@ -25,7 +25,7 @@ Plan: [plan.md](./plan.md)
 - [x] T012 Implement the comment and pull request event hand-off in `crates/shipyard-engine/src/handoff.rs`. Covers REQ-011, REQ-012.
 - [x] T013 Write adopt, link and import tests in `crates/shipyard-engine/tests/import.rs`. Covers REQ-015.
 - [x] T014 Implement adopt, link and import in `crates/shipyard-engine/src/import.rs`. Covers REQ-015.
-- [x] T014a Write IPC and entity tests in `crates/shipyard-app/tests/sync.rs` (adapters, stamps, host) and `crates/shipyard-app/src/commands/sync.rs` (commands over a fake tracker and forge). Covers REQ-016.
+- [x] T014a Write IPC and entity tests in `crates/shipyard-app/tests/it/sync.rs` (adapters, stamps, host) and `crates/shipyard-app/src/commands/sync.rs` (commands over a fake tracker and forge). Covers REQ-016.
 - [x] T015 Add the adapters, the placeholder dispatch and the engine host in `crates/shipyard-app/src/sync.rs`, the IPC commands and the `wi:` and `pr:` entities in `crates/shipyard-app/src/commands/sync.rs`, then regenerate the bindings with the project command. Covers REQ-013, REQ-016.
 - [x] T016 Write view tests in `src/features/sync/sync.test.tsx`. Covers REQ-013, REQ-017.
 - [x] T017 Implement the connection state rows, the Work / Backlog view, the Automation group and the status bar sync action in `src/features/sync/`, `src/lib/sync/`, `src/ui/molecules/` (`SyncStatus`, `WorkItemRow`) and `src/features/shell/actions.ts`. Covers REQ-013, REQ-015, REQ-017.

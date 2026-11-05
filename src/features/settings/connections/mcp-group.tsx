@@ -21,6 +21,7 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SecretInput } from "@/ui/molecules/secret-input";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { mcpKeys, message, useMcpServers } from "./keys";
+import { McpAllow } from "./mcp-allow";
 import { McpGroupTools, McpTestResult, useCategoryName, useMcpTest } from "./mcp-tools";
 
 const STATE_SHAPE: Record<McpServer["state"]["state"], Status> = {
@@ -171,6 +172,7 @@ function McpRow({
 				</p>
 			))}
 			{check.result ? <McpTestResult name={s.label} result={check.result} /> : null}
+			<McpAllow server={s} list={check.test} />
 			{s.state.state === "failed" || error ? (
 				<ErrorNotice
 					error={error ?? (s.state.state === "failed" ? s.state.reason : "")}

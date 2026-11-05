@@ -267,7 +267,8 @@ function MarkdownThumb({ path }: { path: string }) {
 	const rest = first.filter((l) => !l.startsWith("#")).slice(0, 3);
 	return (
 		<span
-			className="relative flex aspect-video flex-col justify-center gap-1.5 overflow-hidden rounded-md border px-4 shadow-1"
+			// Token colours until the deck theme loads: the face never shows text on an unknown background.
+			className="relative flex aspect-video flex-col justify-center gap-1.5 overflow-hidden rounded-md border bg-surface-1 px-4 text-n-12 shadow-1"
 			style={
 				theme
 					? { background: theme.background, color: theme.text, fontFamily: theme.font }
@@ -280,7 +281,7 @@ function MarkdownThumb({ path }: { path: string }) {
 			/>
 			<span className="truncate text-16 font-semibold">{head}</span>
 			{rest.map((l) => (
-				<span key={l} className="truncate text-11 opacity-70">
+				<span key={l} className="truncate text-11">
 					{l.replace(/^[-*]\s*/, "")}
 				</span>
 			))}

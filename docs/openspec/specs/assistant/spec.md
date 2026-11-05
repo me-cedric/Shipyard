@@ -73,8 +73,8 @@ The earlier tool has an assistant drawer with its own runner. It does not know t
 - [x] A denied permission shows a wait and one action grants it and resumes the session. Test: `crates/shipyard-agents/tests/assistant_turn.rs`, `src/features/assistant/assistant.test.tsx`.
 - [x] A thread keeps its own runner, model and effort, and the turns count in the budgets of the factory. Test: `crates/shipyard-agents/tests/assistant_turn.rs`, `crates/shipyard-engine/tests/assistant_budget.rs`.
 - [x] A changed rule applies from the next turn. Test: `crates/shipyard-agents/tests/assistant_rules.rs`.
-- [x] Send to factory creates a work item after a confirm, or starts a run of a chosen workflow. Test: `crates/shipyard-app/tests/assistant_send.rs`, `src/features/assistant/assistant.test.tsx`. A run starts through the label and the pickup (REQ-015).
-- [x] The Explain answer cites refs that resolve. Test: `crates/shipyard-app/tests/assistant_send.rs`.
+- [x] Send to factory creates a work item after a confirm, or starts a run of a chosen workflow. Test: `crates/shipyard-app/tests/it/assistant_send.rs`, `src/features/assistant/assistant.test.tsx`. A run starts through the label and the pickup (REQ-015).
+- [x] The Explain answer cites refs that resolve. Test: `crates/shipyard-app/tests/it/assistant_send.rs`.
 - [x] Copy, insert and open a cited ref work on a reply. Test: `src/features/assistant/assistant.test.tsx`.
 - [x] A quota failure shows one sentence and a retry that does not replay edits. Test: `crates/shipyard-agents/tests/assistant_turn.rs`, `src/features/assistant/assistant.test.tsx`.
 - [x] A turn shows a trace that collapses to one line, and the panel shows a context ring and the quota windows. Test: `src/features/assistant/panel_extras.test.tsx`.

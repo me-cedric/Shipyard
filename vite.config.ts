@@ -46,5 +46,7 @@ export default defineConfig({
 		globals: true,
 		setupFiles: ["src/test/setup.ts"],
 		include: ["src/**/*.test.{ts,tsx}"],
+		// Many tests mount the whole app on the mock: 5 s is too tight on a shared CI runner.
+		testTimeout: 15_000,
 	},
 });

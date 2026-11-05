@@ -72,7 +72,7 @@ A junior or a new member must understand the project from its decisions, specs a
 - [x] A click on a node opens its entity in the inspector. Test: `src/features/knowledge/graph.test.tsx`.
 - [x] An entity with no backlink shows as an orphan, and an entity whose source changed later shows as stale. Test: `crates/shipyard-core/tests/knowledge.rs`, `src/features/knowledge/graph.test.tsx`.
 - [x] A `doc:<path>` ref resolves to its page. Test: `src/features/knowledge/handbook.test.tsx`, `crates/shipyard-store/tests/knowledge.rs`.
-- [x] Explain answers from the reference graph and cites refs that resolve. It says so when it has no answer. Test: `src/features/knowledge/explain.test.tsx`, `crates/shipyard-app/tests/assistant_send.rs`.
+- [x] Explain answers from the reference graph and cites refs that resolve. It says so when it has no answer. Test: `src/features/knowledge/explain.test.tsx`, `crates/shipyard-app/tests/it/assistant_send.rs`.
 - [x] A person edits a handbook page and saves it to the repository after a changed-file warning. Test: `src/features/knowledge/handbook.test.tsx`, `e2e/knowledge.spec.ts`.
 - [x] The architecture dossier exports as `.docx` with five sections. An unreadable source gives a named gap. Test: `crates/shipyard-store/tests/export.rs`.
 - [x] The functional documentation exports as `.docx` and holds no sealed day rate. Test: `crates/shipyard-store/tests/export.rs`.

@@ -43,6 +43,15 @@ impl Repo {
         Self::wrap(Repository::discover(path), path)
     }
 
+    /// Whether the ignore rules skip `rel`, a path under the root with `/`. They are the nested
+    /// `.gitignore` files, `.git/info/exclude` and the global file, with `!` and `**`. A trailing
+    /// `/` names a folder.
+    pub fn is_ignored(&self, rel: &str) -> bool {
+        self.repo
+            .status_should_ignore(Path::new(rel))
+            .unwrap_or(false)
+    }
+
     fn wrap(r: std::result::Result<Repository, git2::Error>, path: &Path) -> Result<Self> {
         let repo = r.map_err(|_| GitError::NotARepo(path.display().to_string()))?;
         if repo.is_bare() {

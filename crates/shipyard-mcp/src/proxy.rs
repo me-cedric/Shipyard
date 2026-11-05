@@ -8,7 +8,7 @@
 
 use serde_json::{Value, json};
 use shipyard_agents::AgentError;
-use shipyard_agents::mcp_control::McpControl;
+use shipyard_agents::mcp_control::{McpControl, ToolFilter};
 use std::sync::Arc;
 
 /// What joins the server id and the tool in a proxied name. A server id never holds it, so the
@@ -49,14 +49,39 @@ impl Proxy {
         })
     }
 
-    fn server_tools(&self, id: &str) -> Vec<Value> {
+    /// The tools that a server lists and its filter lets through.
+    fn listed(&self, id: &str) -> Vec<Value> {
         let Ok(answer) = self.control.request(id, "tools/list", json!({})) else {
             return Vec::new();
         };
+        let filter = self.control.tool_filter(id);
         let tools = answer.pointer("/result/tools").and_then(Value::as_array);
         tools
             .into_iter()
             .flatten()
+            .filter(|tool| filter.allows(tool))
+            .cloned()
+            .collect()
+    }
+
+    /// Whether the filter of the server lets this tool through. A tool that the server no longer
+    /// lists is not allowed, unless the filter is `All`. The list of the session is reused until
+    /// the server restarts or says that it changed.
+    pub fn allowed(&self, id: &str, tool: &str) -> bool {
+        let filter = self.control.tool_filter(id);
+        if filter == ToolFilter::All {
+            return true;
+        }
+        let named = |t: &Value| t.get("name").and_then(Value::as_str) == Some(tool);
+        match self.control.cached_tools(id) {
+            Some(tools) => tools.iter().any(|t| named(t) && filter.allows(t)),
+            None => self.listed(id).iter().any(named),
+        }
+    }
+
+    fn server_tools(&self, id: &str) -> Vec<Value> {
+        self.listed(id)
+            .iter()
             .filter_map(|tool| {
                 let name = tool.get("name")?.as_str()?;
                 let mut renamed = tool.clone();
@@ -73,6 +98,11 @@ impl Proxy {
         let (id, tool) = split(name).ok_or_else(|| AgentError::UnknownServer(name.to_string()))?;
         if !self.control.is_enabled(id) {
             return Err(AgentError::UnknownServer(id.to_string()));
+        }
+        if !self.allowed(id, tool) {
+            return Err(AgentError::Invalid(format!(
+                "the tool {tool} of {id} is not on its allow list"
+            )));
         }
         let answer = self.control.request(
             id,
@@ -93,6 +123,19 @@ impl Proxy {
         if !self.control.is_enabled(server) {
             return None;
         }
-        self.control.request(server, method, params).ok()
+        if method == "tools/call" && !self.allowed(server, params["name"].as_str().unwrap_or("")) {
+            return None;
+        }
+        let mut answer = self.control.request(server, method, params).ok()?;
+        if method == "tools/list" {
+            let filter = self.control.tool_filter(server);
+            if let Some(tools) = answer
+                .pointer_mut("/result/tools")
+                .and_then(Value::as_array_mut)
+            {
+                tools.retain(|t| filter.allows(t));
+            }
+        }
+        Some(answer)
     }
 }

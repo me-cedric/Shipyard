@@ -16,14 +16,17 @@ use shipyard_secrets::{MemoryStore, Secret};
 macro_rules! tracker_fx {
     ($f:literal) => {
         include_str!(concat!(
-            "../../shipyard-trackers/tests/fixtures/github/",
+            "../../../shipyard-trackers/tests/fixtures/github/",
             $f
         ))
     };
 }
 macro_rules! forge_fx {
     ($f:literal) => {
-        include_str!(concat!("../../shipyard-forges/tests/fixtures/github/", $f))
+        include_str!(concat!(
+            "../../../shipyard-forges/tests/fixtures/github/",
+            $f
+        ))
     };
 }
 

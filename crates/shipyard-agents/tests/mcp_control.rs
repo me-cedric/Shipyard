@@ -6,8 +6,8 @@ use serde_json::json;
 use shipyard_agents::AgentError;
 use shipyard_agents::fake::{mcp_server, program};
 use shipyard_agents::mcp_control::{
-    CustomInput, McpConfig, McpControl, Os, State, Waits, catalogue, install_plan, install_with,
-    install_within,
+    CustomInput, McpConfig, McpControl, Os, State, ToolFilter, Waits, catalogue, install_plan,
+    install_with, install_within,
 };
 use shipyard_agents::which::which;
 use shipyard_secrets::{MemoryStore, Secret, SecretStore};
@@ -579,9 +579,14 @@ fn forgetting_a_catalogue_server_deletes_its_secrets_and_disables_it() {
         .set_field("figma", "token", Secret::new("x"))
         .unwrap();
     control.set_enabled("figma", true).unwrap();
+    control
+        .set_tool_filter("figma", ToolFilter::ReadOnly)
+        .unwrap();
     control.forget("figma").unwrap();
     assert!(lab.store.get("conn:figma/token").unwrap().is_none());
     assert!(!control.is_enabled("figma"));
+    assert_eq!(control.tool_filter("figma"), ToolFilter::All);
+    assert!(control.config().tools.is_empty());
 }
 
 #[test]

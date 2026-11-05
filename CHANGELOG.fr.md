@@ -127,6 +127,9 @@
 - MCP pour les autres agents : Réglages / Connexions liste les outils d'agent trouvés (Claude Code, Codex, Gemini, VS Code) comme Branché, Périmé ou Non branché ; Brancher montre le fichier tel qu'il sera écrit et ne l'écrit qu'après votre accord, en gardant le reste du fichier, et un port ou une adresse modifié rend les fichiers branchés Périmés avec un clic pour les mettre à jour ; les skills du projet sont des prompts MCP et les fichiers du projet des ressources MCP (les deux suivent l'interrupteur de lecture) ; le formulaire de serveur personnalisé accepte du JSON `mcpServers` collé et garde les valeurs secrètes dans le coffre, jamais dans un fichier ; les outils permis ont les préréglages Tous les outils et Lecture seule, ou un choix.
 - Réglages / Apparence règle les Animations (comme le système, ou réduites) et l'anneau de focus (au clavier ou toujours, 2 ou 3 px) avec un aperçu en direct ; le choix va sur l'élément racine et à la bibliothèque d'animation.
 - Design / Écrans montre les jetons de votre projet (du document de conception, de `tokens.css`, de `*.tokens.json` ou d'un `@theme` Tailwind 4), groupés par fichier, et dit « Aucun jeton pour l'instant » avec une action s'il n'y en a pas ; il ne montre plus les jetons de Shipyard.
+- Chaque serveur MCP a une Liste permise dans Réglages / Connexions (Tous les outils, Lecture seule ou Personnalisée) : un outil qui n’est pas dans la liste est caché aux agents et refusé à l’appel.
+- L’observateur de fichiers lit le fichier `.gitignore` de chaque dossier, avec `!` et `**`.
+- Le branchement de Codex refuse une table en ligne sur plusieurs lignes et une clé à points sous `[mcp_servers]` au lieu d’écrire une seconde table `shipyard`.
 
 ## [0.0.1]
 

@@ -182,6 +182,7 @@ export const commands = {
 	mcpCustomPaste: (text: string) => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("mcp_custom_paste", { text })),
 	mcpRemove: (id: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("mcp_remove", { id })),
 	mcpForget: (id: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("mcp_forget", { id })),
+	mcpSetTools: (id: string, filter: ToolFilter) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("mcp_set_tools", { id, filter })),
 	/**  Write-only: a secret field goes to the keychain and no command returns it. */
 	mcpSetField: (id: string, key: string, value: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("mcp_set_field", { id, key, value })),
 	mcpStart: (id: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("mcp_start", { id })),
@@ -2828,6 +2829,7 @@ export type McpServer = {
 	state: McpState,
 	/**  The dependencies that are not on this machine (REQ-008). */
 	missing: McpDependency[],
+	tools: ToolFilter,
 };
 
 export type McpState = { state: "stopped" } | { state: "starting" } | { state: "running" } | { state: "failed"; reason: string };
@@ -5718,6 +5720,11 @@ export type ToolCheck = {
 	/**  A package manager is here to install it. */
 	canInstall: boolean,
 };
+
+/**  Which tools of a server the proxy shows and lets through. */
+export type ToolFilter = { kind: "all" } | 
+/**  The tools that the server marks `annotations.readOnlyHint`. A server with no mark gives none. */
+{ kind: "readOnly" } | { kind: "only"; tools: string[] };
 
 export type Totals = {
 	days: number | null,

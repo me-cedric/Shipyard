@@ -1119,7 +1119,16 @@ const handlers: Handlers = {
 	},
 	mcpForget: (id) => {
 		const s = mcpServer(state.agents, id);
-		Object.assign(s, { enabled: false, filled: [], state: { state: "stopped" } });
+		Object.assign(s, {
+			enabled: false,
+			filled: [],
+			state: { state: "stopped" },
+			tools: { kind: "all" },
+		});
+		return null;
+	},
+	mcpSetTools: (id, filter) => {
+		mcpServer(state.agents, id).tools = filter;
 		return null;
 	},
 	mcpSetField: (id, key, value) => {

@@ -5,7 +5,7 @@
 use serde_json::{Value, json};
 use shipyard_agents::AgentError;
 use shipyard_agents::fake::mcp_server;
-use shipyard_agents::mcp_control::{CustomInput, McpConfig, McpControl, State, Waits};
+use shipyard_agents::mcp_control::{CustomInput, McpConfig, McpControl, State, ToolFilter, Waits};
 use shipyard_mcp::proxy::{Proxy, split};
 use shipyard_mcp::relay::{CONFIG_FILE, Relay, run_in, serve, socket_path};
 use shipyard_secrets::MemoryStore;
@@ -114,6 +114,58 @@ fn a_call_goes_to_the_server_that_owns_the_tool() {
     let proxy = Proxy::new(lab.control(true));
     let result = proxy.call("custom-fake__ping", &json!({"a": 1})).unwrap();
     assert_eq!(result["content"][0]["text"], "pong");
+}
+
+#[test]
+fn a_tool_off_the_allow_list_is_hidden_and_refused() {
+    let lab = Lab::new();
+    let control = lab.control(true);
+    let proxy = Proxy::new(control.clone());
+    let only = |tools: &[&str]| ToolFilter::Only {
+        tools: tools.iter().map(|t| t.to_string()).collect(),
+    };
+    control
+        .set_tool_filter("custom-fake", only(&["other"]))
+        .unwrap();
+    assert!(proxy.tools().is_empty());
+    assert!(matches!(
+        proxy.call("custom-fake__ping", &json!({})),
+        Err(AgentError::Invalid(_))
+    ));
+    let list = proxy
+        .forward("custom-fake", "tools/list", json!({}))
+        .unwrap();
+    assert!(list["result"]["tools"].as_array().unwrap().is_empty());
+    let call = json!({"name": "ping", "arguments": {}});
+    assert_eq!(
+        proxy.forward("custom-fake", "tools/call", call.clone()),
+        None
+    );
+
+    control
+        .set_tool_filter("custom-fake", only(&["ping"]))
+        .unwrap();
+    assert_eq!(proxy.tools().len(), 1);
+    assert!(proxy.forward("custom-fake", "tools/call", call).is_some());
+
+    // The fake server marks no tool read-only: "read only" gives none.
+    control
+        .set_tool_filter("custom-fake", ToolFilter::ReadOnly)
+        .unwrap();
+    assert!(proxy.tools().is_empty());
+    control
+        .set_tool_filter("custom-fake", ToolFilter::All)
+        .unwrap();
+    assert_eq!(proxy.tools().len(), 1);
+}
+
+#[test]
+fn read_only_keeps_the_tools_that_the_server_marks() {
+    let marked = json!({"name": "a", "annotations": {"readOnlyHint": true}});
+    let unmarked = json!({"name": "b", "annotations": {"readOnlyHint": false}});
+    assert!(ToolFilter::ReadOnly.allows(&marked));
+    assert!(!ToolFilter::ReadOnly.allows(&unmarked));
+    assert!(!ToolFilter::ReadOnly.allows(&json!({"name": "c"})));
 }
 
 #[test]
@@ -289,4 +341,80 @@ fn the_relay_entry_reads_the_saved_config_and_starts_the_server_when_the_app_is_
     assert_eq!(answer["result"]["tools"][0]["name"], "ping");
     // A server that is not in the config gets an error, not silence.
     assert_eq!(call("custom-other")["error"]["code"], -32603);
+}
+
+#[test]
+fn the_tool_list_of_a_session_is_reused_until_a_restart_or_a_change() {
+    let lab = Lab::new();
+    let control = lab.control(true);
+    let proxy = Proxy::new(control.clone());
+    let only = ToolFilter::Only {
+        tools: vec!["ping".into()],
+    };
+    control.set_tool_filter("custom-fake", only).unwrap();
+    assert!(control.cached_tools("custom-fake").is_none());
+    proxy.call("custom-fake__ping", &json!({})).unwrap();
+    assert_eq!(control.cached_tools("custom-fake").unwrap().len(), 1);
+    // A second call reads the cache: the server never sees a second `tools/list`.
+    proxy.call("custom-fake__ping", &json!({})).unwrap();
+    assert!(control.request("custom-fake", "crash", json!({})).is_err());
+    assert!(
+        control.cached_tools("custom-fake").is_none(),
+        "a restart clears it"
+    );
+
+    // A server that says its list changed clears the cache.
+    let dir = lab.dir.path();
+    shipyard_agents::fake::program(
+        dir,
+        "change-mcp",
+        r#"while IFS= read -r line; do
+  id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9][0-9]*\).*/\1/p')
+  method=$(printf '%s' "$line" | sed -n 's/.*"method":"\([^"]*\)".*/\1/p')
+  [ -z "$id" ] && continue
+  case "$method" in
+    initialize) printf '{"jsonrpc":"2.0","id":%s,"result":{}}\n' "$id" ;;
+    tools/list) printf '{"jsonrpc":"2.0","id":%s,"result":{"tools":[{"name":"ping"}]}}\n' "$id" ;;
+    change) printf '{"jsonrpc":"2.0","method":"notifications/tools/list_changed"}\n{"jsonrpc":"2.0","id":%s,"result":{}}\n' "$id" ;;
+    *) printf '{"jsonrpc":"2.0","id":%s,"result":{}}\n' "$id" ;;
+  esac
+done"#,
+    );
+    let input = CustomInput {
+        name: "Change".into(),
+        command: "change-mcp".into(),
+        ..Default::default()
+    };
+    let id = control.add_custom(input).unwrap().id;
+    control.set_enabled(&id, true).unwrap();
+    control.request(&id, "tools/list", json!({})).unwrap();
+    assert!(control.cached_tools(&id).is_some());
+    control.request(&id, "change", json!({})).unwrap();
+    assert!(control.cached_tools(&id).is_none());
+}
+
+#[test]
+fn the_relay_fallback_honours_the_allow_list() {
+    let lab = Lab::new(); // no listener: the fallback answers
+    let control = lab.control(true);
+    control
+        .set_tool_filter(
+            "custom-fake",
+            ToolFilter::Only {
+                tools: vec!["other".into()],
+            },
+        )
+        .unwrap();
+    let fallback = Proxy::new(control);
+    let answers = turn(
+        &lab,
+        "custom-fake",
+        &fallback,
+        &[
+            json!({"jsonrpc":"2.0","id":1,"method":"tools/list"}),
+            json!({"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"ping","arguments":{}}}),
+        ],
+    );
+    assert!(answers[0]["result"]["tools"].as_array().unwrap().is_empty());
+    assert_eq!(answers[1]["error"]["code"], -32603, "the call is refused");
 }

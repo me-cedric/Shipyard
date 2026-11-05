@@ -107,7 +107,7 @@ Le script écrit `~/Projects/shipyard-acceptance` (utilisez `--dir <folder>` pou
 
 ```bash
 SHIPYARD_LIVE=1 GH_TOKEN=$(gh auth token) \
-  cargo test -p shipyard-app --test live_github -- --test-threads=1 --nocapture
+  cargo test -p shipyard-app --test it live_github -- --test-threads=1 --nocapture
 ```
 
 Sans `SHIPYARD_LIVE=1`, chaque test affiche `skipped` et réussit, donc la CI reste verte. N'écrivez jamais le jeton dans un fichier ni dans un argument de commande.

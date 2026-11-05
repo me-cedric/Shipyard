@@ -106,6 +106,33 @@ pub struct ServerDef {
     pub custom: bool,
 }
 
+/// Which tools of a server the proxy shows and lets through.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum ToolFilter {
+    #[default]
+    All,
+    /// The tools that the server marks `annotations.readOnlyHint`. A server with no mark gives none.
+    ReadOnly,
+    Only {
+        tools: Vec<String>,
+    },
+}
+
+impl ToolFilter {
+    /// Whether a tool of a `tools/list` answer passes.
+    pub fn allows(&self, tool: &Value) -> bool {
+        match self {
+            Self::All => true,
+            Self::ReadOnly => tool.pointer("/annotations/readOnlyHint") == Some(&Value::Bool(true)),
+            Self::Only { tools } => tool
+                .get("name")
+                .and_then(Value::as_str)
+                .is_some_and(|n| tools.iter().any(|t| t == n)),
+        }
+    }
+}
+
 /// What the settings store keeps (REQ-013): the custom servers and the enabled ids. No secret.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct McpConfig {
@@ -113,6 +140,9 @@ pub struct McpConfig {
     pub custom: Vec<ServerDef>,
     #[serde(default)]
     pub enabled: Vec<String>,
+    /// The tool filter of each server. A server that is not here has [`ToolFilter::All`].
+    #[serde(default)]
+    pub tools: BTreeMap<String, ToolFilter>,
 }
 
 fn def(
@@ -680,6 +710,7 @@ pub struct ServerRow {
     pub state: State,
     /// The dependencies that are not on this machine (REQ-008).
     pub missing: Vec<Dependency>,
+    pub tools: ToolFilter,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -708,9 +739,29 @@ struct Session {
     next_id: u64,
     /// The answer to `initialize`, given again to each relay client.
     init: Value,
+    /// The tools of the last `tools/list`. It ends with the session, and a list-changed
+    /// notification clears it.
+    tools: Option<Vec<Value>>,
 }
 
+const LIST_CHANGED: &str = "notifications/tools/list_changed";
+
 impl Session {
+    /// Reads the lines that came between requests: a list-changed notification clears the cache.
+    fn drain(&mut self) {
+        while let Ok(line) = self.lines.try_recv() {
+            self.note(&line);
+        }
+    }
+
+    fn note(&mut self, line: &str) {
+        if serde_json::from_str::<Value>(line)
+            .is_ok_and(|v| v.get("method").and_then(Value::as_str) == Some(LIST_CHANGED))
+        {
+            self.tools = None;
+        }
+    }
+
     fn alive(&mut self) -> bool {
         matches!(self.child.try_wait(), Ok(None))
     }
@@ -731,6 +782,7 @@ impl Session {
         params: Value,
         wait: Duration,
     ) -> Result<Value, AgentError> {
+        self.drain();
         self.next_id += 1;
         let id = self.next_id;
         self.send(&json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params }))?;
@@ -745,8 +797,15 @@ impl Session {
                     if value.get("id").and_then(Value::as_u64) == Some(id)
                         && value.get("method").is_none()
                     {
+                        if method == "tools/list" {
+                            self.tools = value
+                                .pointer("/result/tools")
+                                .and_then(Value::as_array)
+                                .cloned();
+                        }
                         return Ok(value);
                     }
+                    self.note(&line);
                 }
                 Err(RecvTimeoutError::Timeout) => {
                     return Err(AgentError::Server(format!("did not answer in {wait:?}")));
@@ -888,6 +947,7 @@ impl McpControl {
                     .collect(),
                 state: self.state(&d.id),
                 missing: self.missing(&d),
+                tools: config.tools.get(&d.id).cloned().unwrap_or_default(),
                 id: d.id,
                 category: d.category,
                 label: d.label,
@@ -900,6 +960,35 @@ impl McpControl {
 
     pub fn is_enabled(&self, id: &str) -> bool {
         lock(&self.config).enabled.iter().any(|e| e == id)
+    }
+
+    pub fn tool_filter(&self, id: &str) -> ToolFilter {
+        lock(&self.config)
+            .tools
+            .get(id)
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    /// The tools of the last `tools/list` of the running session, or `None` after a restart or a
+    /// list-changed notification. It starts no server.
+    pub fn cached_tools(&self, id: &str) -> Option<Vec<Value>> {
+        let session = self.running(id)?;
+        let mut s = lock(&session);
+        s.drain();
+        s.tools.clone()
+    }
+
+    /// Set which tools of a server the proxy lets through.
+    pub fn set_tool_filter(&self, id: &str, filter: ToolFilter) -> Result<(), AgentError> {
+        self.def(id)?;
+        let mut config = lock(&self.config);
+        if filter == ToolFilter::All {
+            config.tools.remove(id);
+        } else {
+            config.tools.insert(id.to_string(), filter);
+        }
+        Ok(())
     }
 
     /// The ids that the proxy serves.
@@ -965,6 +1054,7 @@ impl McpControl {
     pub fn forget(&self, id: &str) -> Result<(), AgentError> {
         let server = self.def(id)?;
         self.set_enabled(id, false)?;
+        lock(&self.config).tools.remove(id);
         for field in &server.fields {
             self.store.delete(&account(id, &field.key))?;
         }
@@ -1191,6 +1281,7 @@ impl McpControl {
             lines,
             next_id: 0,
             init: Value::Null,
+            tools: None,
         };
         let init = session.request(
             "initialize",

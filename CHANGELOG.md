@@ -127,6 +127,9 @@
 - MCP for other agents: Settings / Connections lists the agent tools that it finds (Claude Code, Codex, Gemini, VS Code) as Wired, Out of date or Not wired; Wire shows the file as it would be written and writes it only after you accept, keeping the rest of the file, and a changed port or address marks the wired files Out of date with one click to update; the project skills are MCP prompts and the project files are MCP resources (both follow the read switch); the custom server form takes pasted `mcpServers` JSON and keeps secret values in the secret store, never in a file; the allowed tools have the presets All tools and Read only, or a pick.
 - Settings / Look sets Motion (as the system, or reduce) and the focus ring (with the keyboard or always, 2 or 3 px) with a live preview; the choice goes on the root element and to the animation library.
 - Design / Screens shows the tokens of your project (from the design doc, `tokens.css`, `*.tokens.json` or a Tailwind 4 `@theme`), grouped by file, and says "No tokens yet" with an action when there are none; it no longer shows the tokens of Shipyard.
+- Each MCP server has an Allow list in Settings / Connections (All tools, Read only or Custom): a tool that is not on the list is hidden from the agents and refused when called.
+- The file watcher reads the `.gitignore` file of each folder, with `!` and `**`.
+- Wiring Codex refuses an inline table that spans lines and a dotted key under `[mcp_servers]` instead of writing a second `shipyard` table.
 
 ## [0.0.1]
 

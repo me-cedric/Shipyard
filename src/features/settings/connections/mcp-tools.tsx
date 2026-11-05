@@ -37,10 +37,13 @@ export function useMcpTest(id: string) {
 	const [result, setResult] = useState<McpTest | null>(null);
 	const [busy, setBusy] = useState(false);
 	const qc = useQueryClient();
+	/** Gives the tool names of the server. */
 	const test = async () => {
 		setBusy(true);
 		try {
-			setResult(await unwrap(commands.mcpTest(id)));
+			const r = await unwrap(commands.mcpTest(id));
+			setResult(r);
+			return r.tools;
 		} finally {
 			setBusy(false);
 			await qc.invalidateQueries({ queryKey: mcpKeys.list });

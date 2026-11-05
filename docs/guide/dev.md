@@ -107,7 +107,7 @@ The script writes `~/Projects/shipyard-acceptance` (use `--dir <folder>` for ano
 
 ```bash
 SHIPYARD_LIVE=1 GH_TOKEN=$(gh auth token) \
-  cargo test -p shipyard-app --test live_github -- --test-threads=1 --nocapture
+  cargo test -p shipyard-app --test it live_github -- --test-threads=1 --nocapture
 ```
 
 Without `SHIPYARD_LIVE=1`, each test prints `skipped` and passes, so CI stays green. Never write the token in a file or in a command argument.

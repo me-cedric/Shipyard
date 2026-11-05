@@ -19,8 +19,11 @@ for (const scheme of ["light", "dark"] as const) {
 				await expect(page.locator("main")).toBeVisible();
 				await page.waitForLoadState("networkidle");
 				const { violations } = await new AxeBuilder({ page }).analyze();
+				// The summary names the cause, for example the two colours and the contrast ratio.
 				for (const v of violations)
-					found.push(`${tab} ${v.id}: ${v.nodes.map((n) => n.target).join(" | ")}`);
+					found.push(
+						`${tab} ${v.id}: ${v.nodes.map((n) => `${n.target} (${n.failureSummary ?? ""})`).join(" | ")}`,
+					);
 			}
 			expect(found).toEqual([]);
 		});

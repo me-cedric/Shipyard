@@ -11,6 +11,7 @@ use std::time::{Duration, Instant};
 
 use notify::{EventKind, RecursiveMode, Watcher as _};
 use serde::Serialize;
+use shipyard_git::code::Repo;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::commands::AppState;
@@ -47,47 +48,84 @@ fn glob(pat: &[u8], text: &[u8]) -> bool {
     }
 }
 
-/// The rules of the `.gitignore` at the root of the project.
-/// shortcut: no `!` negation, no `**`, no nested `.gitignore` (the `ignore` crate is not in the
-/// tree); upgrade when it is added.
+/// The ignore rules of the project. In a repository (the project folder or one of its parents)
+/// they are the ones that git applies: each nested `.gitignore`, with `!` and `**`. Outside any
+/// repository, only the `.gitignore` at the root of the project applies.
+/// shortcut: that fallback has no `!`, no `**` and no nested file; a folder like that is rare.
 #[derive(Default)]
-pub struct Ignore(Vec<(String, bool)>);
+pub struct Ignore {
+    repo: Option<Repo>,
+    /// The project folder inside the work folder of the repository, with a trailing `/`. Empty
+    /// when they are the same.
+    prefix: String,
+    /// `(pattern, anchored)` of the root `.gitignore`, used when there is no repository.
+    simple: Vec<(String, bool)>,
+}
 
 impl Ignore {
-    pub fn parse(text: &str) -> Self {
-        let rules = text
-            .lines()
-            .map(str::trim)
-            .filter(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with('!'))
-            .map(|l| {
-                (
-                    l.trim_matches('/').to_string(),
-                    l.trim_end_matches('/').contains('/'),
-                )
-            })
-            .collect();
-        Self(rules)
+    fn open(root: &Path) -> Self {
+        let Ok(repo) = Repo::discover(root) else {
+            let text = std::fs::read_to_string(root.join(".gitignore")).unwrap_or_default();
+            let simple = text
+                .lines()
+                .map(str::trim)
+                .filter(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with('!'))
+                .map(|l| {
+                    (
+                        l.trim_matches('/').to_string(),
+                        l.trim_end_matches('/').contains('/'),
+                    )
+                })
+                .collect();
+            return Self {
+                simple,
+                ..Self::default()
+            };
+        };
+        let work = repo
+            .workdir()
+            .canonicalize()
+            .unwrap_or_else(|_| repo.workdir().into());
+        let prefix = root
+            .canonicalize()
+            .unwrap_or_else(|_| root.into())
+            .strip_prefix(&work)
+            .map(|p| p.to_string_lossy().replace('\\', "/"))
+            .ok()
+            .filter(|p| !p.is_empty())
+            .map(|p| p + "/")
+            .unwrap_or_default();
+        Self {
+            repo: Some(repo),
+            prefix,
+            simple: Vec::new(),
+        }
     }
 
     /// `rel` uses `/`. The path is skipped when it or one of its folders is.
     pub fn skips(&self, rel: &str) -> bool {
         rel.match_indices('/')
-            .map(|(i, _)| &rel[..i])
+            .map(|(i, _)| &rel[..=i])
             .chain([rel])
             .any(|p| self.skips_one(p))
     }
 
-    /// A rule with a `/` inside matches from the root; a bare name matches at any depth.
     fn skips_one(&self, rel: &str) -> bool {
-        let name = rel.rsplit('/').next().unwrap_or(rel);
-        SKIP_DIRS.contains(&name)
-            || self.0.iter().any(|(pat, anchored)| {
+        let name = rel.trim_end_matches('/').rsplit('/').next().unwrap_or(rel);
+        if SKIP_DIRS.contains(&name) {
+            return true;
+        }
+        match &self.repo {
+            Some(r) => r.is_ignored(&format!("{}{rel}", self.prefix)),
+            None => self.simple.iter().any(|(pat, anchored)| {
+                let rel = rel.trim_end_matches('/');
                 if *anchored {
                     glob(pat.as_bytes(), rel.as_bytes())
                 } else {
                     glob(pat.as_bytes(), name.as_bytes())
                 }
-            })
+            }),
+        }
     }
 }
 
@@ -105,6 +143,9 @@ pub struct Watcher {
     truncated: bool,
     first: Option<Instant>,
     last: Option<Instant>,
+    /// When the rules were last looked up. A project with no repository looks again once per
+    /// `DEBOUNCE`: it may become one (or get a `.gitignore`) while it is open.
+    looked: Option<Instant>,
 }
 
 impl Watcher {
@@ -121,7 +162,8 @@ impl Watcher {
             .ok();
         Self {
             root: Some(root.to_path_buf()),
-            ignore: read_ignore(&real),
+            ignore: Ignore::open(&real),
+            looked: Some(Instant::now()),
             real,
             _watch: watch,
             rx: Some(rx),
@@ -143,9 +185,6 @@ impl Watcher {
                 continue;
             };
             let rel = rel.to_string_lossy().replace('\\', "/");
-            if rel == ".gitignore" {
-                self.ignore = read_ignore(&self.real);
-            }
             if rel.is_empty() || self.ignore.skips(&rel) {
                 continue;
             }
@@ -180,13 +219,17 @@ impl Watcher {
             return None;
         }
         let got: Vec<_> = self.rx.as_ref()?.try_iter().collect();
+        if self.ignore.repo.is_none()
+            && self
+                .looked
+                .is_none_or(|t| now.duration_since(t) >= DEBOUNCE)
+        {
+            self.looked = Some(now);
+            self.ignore = Ignore::open(&self.real);
+        }
         self.feed(got, now);
         self.due(now)
     }
-}
-
-fn read_ignore(root: &Path) -> Ignore {
-    Ignore::parse(&std::fs::read_to_string(root.join(".gitignore")).unwrap_or_default())
 }
 
 /// Starts the watch thread. With no active project it only waits.
@@ -217,24 +260,114 @@ mod tests {
         std::fs::write(p, text).unwrap();
     }
 
+    /// A repository in a new folder, with these files. The folder is the root of the project.
+    fn repo(files: &[(&str, &str)]) -> (tempfile::TempDir, Ignore) {
+        let dir = tempfile::tempdir().unwrap();
+        shipyard_git::project::init(dir.path()).unwrap();
+        for (rel, text) in files {
+            write(dir.path(), rel, text);
+        }
+        let ignore = Ignore::open(dir.path());
+        (dir, ignore)
+    }
+
     #[test]
     fn ignores_git_build_folders_and_gitignore_paths() {
-        let i = Ignore::parse("# note\ndist/\n*.log\n/docs/tmp\n");
+        let (_d, i) = repo(&[(".gitignore", "# note\ndist/\n*.log\n/docs/tmp\n")]);
         for p in [
             ".git",
             "a/.git",
             "a/node_modules",
             "target",
-            "dist",
-            "x/dist",
+            "dist/a/b.js",
+            "x/dist/b.js",
             "a/b.log",
             "docs/tmp",
         ] {
             assert!(i.skips(p), "{p}");
         }
-        for p in ["docs/a.md", "src/tmp", "logs"] {
+        for p in ["docs/a.md", "src/tmp", "logs", "src/b.js"] {
             assert!(!i.skips(p), "{p}");
         }
+    }
+
+    #[test]
+    fn a_nested_gitignore_applies_to_its_folder_only() {
+        let (_d, i) = repo(&[
+            (".gitignore", "*.log\n!keep.log\n"),
+            ("web/.gitignore", "*.tmp\n/gen\n**/cache/\n"),
+        ]);
+        for p in ["web/a.tmp", "web/x/a.tmp", "web/gen/x", "web/a/b/cache/x"] {
+            assert!(i.skips(p), "{p}");
+        }
+        for p in ["a.tmp", "gen/x", "api/a.tmp", "web/a/b/other/x"] {
+            assert!(!i.skips(p), "{p}");
+        }
+    }
+
+    #[test]
+    fn a_negation_brings_a_file_back() {
+        let (_d, i) = repo(&[
+            (".gitignore", "*.log\n!keep.log\n"),
+            ("web/.gitignore", "*.tmp\n!keep.tmp\n"),
+        ]);
+        assert!(i.skips("a.log") && i.skips("web/a.tmp"));
+        assert!(!i.skips("keep.log") && !i.skips("x/keep.log") && !i.skips("web/keep.tmp"));
+    }
+
+    #[test]
+    fn a_project_in_a_repository_subfolder_uses_the_rules_of_the_repository() {
+        let dir = tempfile::tempdir().unwrap();
+        shipyard_git::project::init(dir.path()).unwrap();
+        write(dir.path(), ".gitignore", "*.log\n/app/gen\n");
+        write(dir.path(), "app/.gitignore", "*.tmp\n");
+        let i = Ignore::open(&dir.path().join("app"));
+        for p in ["a.log", "x/a.tmp", "gen/x"] {
+            assert!(i.skips(p), "{p}");
+        }
+        assert!(!i.skips("a.md") && !i.skips("other/x"));
+    }
+
+    #[test]
+    fn outside_a_repository_the_root_gitignore_applies() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            ".gitignore",
+            "# note\ndist/\n*.log\n/docs/tmp\n",
+        );
+        let i = Ignore::open(dir.path());
+        for p in [
+            "dist/a.js",
+            "x/dist/b.js",
+            "a.log",
+            "docs/tmp",
+            "node_modules",
+        ] {
+            assert!(i.skips(p), "{p}");
+        }
+        assert!(!i.skips("docs/a.md") && !i.skips("src/tmp"));
+    }
+
+    #[test]
+    fn a_project_that_becomes_a_repository_gets_its_rules_on_the_next_look() {
+        let dir = tempfile::tempdir().unwrap();
+        let real = dir.path().canonicalize().unwrap();
+        let mut w = Watcher {
+            real: real.clone(),
+            root: Some(real.clone()),
+            rx: Some(channel().1),
+            ..Watcher::default()
+        };
+        let t = Instant::now();
+        w.step(Some(&real), t);
+        assert!(!w.ignore.skips("a.out"));
+        shipyard_git::project::init(&real).unwrap();
+        write(&real, ".gitignore", "*.out\n");
+        w.step(Some(&real), t + Duration::from_millis(50));
+        assert!(!w.ignore.skips("a.out"), "one look per debounce");
+        w.step(Some(&real), t + DEBOUNCE);
+        assert!(w.ignore.skips("a.out"));
     }
 
     fn batch(w: &mut Watcher, got: &[&str], now: Instant) -> Option<Batch> {
@@ -244,20 +377,14 @@ mod tests {
     }
 
     fn started() -> (tempfile::TempDir, Watcher) {
-        let dir = tempfile::tempdir().unwrap();
+        let (dir, ignore) = repo(&[(".gitignore", "out\n")]);
         // No system watch: the tests feed the paths themselves.
         let w = Watcher {
             real: dir.path().to_path_buf(),
-            ignore: Ignore::parse("out\n"),
+            ignore,
             ..Watcher::default()
         };
         (dir, w)
-    }
-
-    #[test]
-    fn a_path_under_an_ignored_folder_is_skipped() {
-        let i = Ignore::parse("dist/\n");
-        assert!(i.skips("dist/a/b.js") && i.skips("x/node_modules/y") && !i.skips("src/b.js"));
     }
 
     #[test]

@@ -303,11 +303,18 @@ pub fn code_index_run(proxy: &Proxy, root: &Path) -> Res<()> {
         control.state(&id),
         shipyard_agents::mcp_control::State::Running
     );
-    let answer = control.request(
-        &id,
-        "tools/call",
-        json!({ "name": "index_repository", "arguments": { "repo_path": root.to_string_lossy() } }),
-    );
+    // The same allow list as a call through the proxy.
+    let answer = if proxy.allowed(&id, "index_repository") {
+        control.request(
+            &id,
+            "tools/call",
+            json!({ "name": "index_repository", "arguments": { "repo_path": root.to_string_lossy() } }),
+        )
+    } else {
+        Err(shipyard_agents::AgentError::Invalid(format!(
+            "the tool index_repository of {id} is not on its allow list"
+        )))
+    };
     if !was_running {
         control.stop(&id);
     }
@@ -1530,5 +1537,36 @@ mod tests {
         };
         export_sheet(&s, &t, vec![sheet], book.to_str().unwrap()).unwrap();
         assert!(book.exists());
+    }
+
+    #[test]
+    fn index_on_a_server_that_is_off_follows_the_allow_list() {
+        use shipyard_agents::mcp_control::{CustomInput, McpConfig, McpControl, ToolFilter};
+        let dir = tempfile::tempdir().unwrap();
+        let pids = dir.path().join("pids");
+        shipyard_agents::fake::mcp_server(dir.path(), "fake-mcp", &pids);
+        let control = McpControl::new(
+            std::sync::Arc::new(shipyard_secrets::MemoryStore::default()),
+            McpConfig::default(),
+        )
+        .with_dirs(vec![dir.path().into(), "/usr/bin".into(), "/bin".into()]);
+        let input = CustomInput {
+            name: format!("{CODE_SERVER} fake"),
+            command: "fake-mcp".into(),
+            ..Default::default()
+        };
+        let id = control.add_custom(input).unwrap().id;
+        let proxy = Proxy::new(std::sync::Arc::new(control));
+        let only = |t: &str| ToolFilter::Only {
+            tools: vec![t.into()],
+        };
+        proxy.control().set_tool_filter(&id, only("other")).unwrap();
+        let e = code_index_run(&proxy, dir.path()).unwrap_err();
+        assert!(e.contains("allow list"), "{e}");
+        proxy
+            .control()
+            .set_tool_filter(&id, ToolFilter::All)
+            .unwrap();
+        code_index_run(&proxy, dir.path()).unwrap();
     }
 }

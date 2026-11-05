@@ -224,6 +224,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::mcp_paste::mcp_custom_paste,
             ag::mcp_remove,
             ag::mcp_forget,
+            ag::mcp_set_tools,
             ag::mcp_set_field,
             ag::mcp_start,
             ag::mcp_stop,

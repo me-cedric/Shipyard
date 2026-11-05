@@ -2,7 +2,7 @@
 //! it on a blocking thread: a start, an install and a test wait for a process or the network.
 
 use shipyard_agents::catalog::Catalog;
-use shipyard_agents::mcp_control::{ServerRow, State};
+use shipyard_agents::mcp_control::{ServerRow, State, ToolFilter};
 use shipyard_agents::runners::Runner;
 use shipyard_http::TestOutcome;
 use shipyard_secrets::Secret;
@@ -81,6 +81,12 @@ pub async fn mcp_list(app: AppHandle) -> Api<Vec<ServerRow>> {
 #[specta::specta]
 pub async fn mcp_enable(app: AppHandle, id: String, on: bool) -> Api<()> {
     blocking(app, move |s| s.agents.mcp_enable(&id, on)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn mcp_set_tools(app: AppHandle, id: String, filter: ToolFilter) -> Api<()> {
+    blocking(app, move |s| s.agents.mcp_set_tools(&id, filter)).await
 }
 
 #[tauri::command]

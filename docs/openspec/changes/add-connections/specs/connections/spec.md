@@ -66,9 +66,9 @@ The earlier tool is Jira-shaped. Its credentials, MCP servers and assistants sit
 - [x] A custom MCP server starts, shows running, stops, and shows stopped. Test: `crates/shipyard-agents/tests/mcp_control.rs`, `src/features/settings/connections/groups.test.tsx`.
 - [x] An MCP server with a missing dependency does not start and names the dependency. Test: `crates/shipyard-agents/tests/mcp_control.rs`, `src/features/settings/connections/groups.test.tsx`.
 - [x] An installed runner CLI appears as detected with no manual step. Test: `crates/shipyard-agents/tests/runners.rs`.
-- [x] A token never appears in a process argument list, a URL, a log line or a repository file. Test: `crates/shipyard-trackers/tests/contract.rs`, `crates/shipyard-secrets/tests/secrets.rs`, `crates/shipyard-app/tests/connections.rs`.
-- [x] A failed test names the missing scope or permission. Test: `crates/shipyard-app/tests/connections.rs`, `e2e/connections.spec.ts`.
-- [x] Removing a connection deletes its keychain entry. Test: `crates/shipyard-app/tests/connections.rs`.
+- [x] A token never appears in a process argument list, a URL, a log line or a repository file. Test: `crates/shipyard-trackers/tests/contract.rs`, `crates/shipyard-secrets/tests/secrets.rs`, `crates/shipyard-app/tests/it/connections.rs`.
+- [x] A failed test names the missing scope or permission. Test: `crates/shipyard-app/tests/it/connections.rs`, `e2e/connections.spec.ts`.
+- [x] Removing a connection deletes its keychain entry. Test: `crates/shipyard-app/tests/it/connections.rs`.
 - [x] A `conn:<id>` ref resolves to the connection with its kind and state. Test: `crates/shipyard-app/src/commands/refs.rs`.
 - [ ] Every view works with the keyboard, shows a focus ring and has French and English text.
 - [x] An external agent client lists the tools of an active MCP server through the one Shipyard endpoint. Test: `crates/shipyard-mcp/tests/proxy.rs`.

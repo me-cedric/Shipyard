@@ -19,7 +19,9 @@ info:
     - The eight agent tools. They become events of the run (ask, progress, handoff, message,
       subtask, report, read). They run no engine logic.
     - The tools of the active MCP servers of the connections, named `<server-id>__<tool>`
-      (proxy and relay).
+      (proxy and relay). Each server has an allow list (all tools, the tools that it marks
+      `annotations.readOnlyHint`, or a pick): a tool that is not on it is left out of `tools/list`
+      and refused on `tools/call`.
     - The 17 tools for an agent that Shipyard did not start. Each group is a switch that a person
       turns on in Settings. All are off by default.
 

@@ -23,7 +23,7 @@ Plan: [plan.md](plan.md)
 - [x] T010 Implement the modes and the worktree use in `crates/shipyard-agents/src/assistant_modes.rs` (REQ-007, REQ-008, REQ-009).
 - [x] T011 Write tests for rule and skill loading in `crates/shipyard-agents/tests/assistant_rules.rs` (REQ-013).
 - [x] T012 Implement rule and skill loading per turn in `crates/shipyard-agents/src/assistant_rules.rs` (REQ-013).
-- [x] T013 Write tests for Send to factory and Explain in `crates/shipyard-app/tests/assistant_send.rs` (REQ-014, REQ-015, REQ-016).
+- [x] T013 Write tests for Send to factory and Explain in `crates/shipyard-app/tests/it/assistant_send.rs` (REQ-014, REQ-015, REQ-016).
 - [x] T014 Implement the Send to factory and Explain commands in `crates/shipyard-app/src/assistant.rs` (REQ-014, REQ-015, REQ-016).
 - [x] T015 Write tests for project defaults in `crates/shipyard-store/tests/assistant_defaults.rs` (REQ-019).
 - [x] T016 Implement project defaults in `crates/shipyard-store/src/assistant_defaults.rs` (REQ-019).

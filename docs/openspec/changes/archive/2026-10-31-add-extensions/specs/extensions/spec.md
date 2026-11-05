@@ -60,9 +60,9 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 ### Acceptance Criteria
 
 - [x] Settings / Agents and rules shows five lists with counts. A skill shows its risk and write capability. Test: `src/features/settings/extensions/extensions.test.tsx`, `crates/shipyard-store/tests/compass.rs`.
-- [x] An apply writes through `ac sync` and keeps each existing file. Test: `crates/shipyard-app/tests/compass_apply.rs`, `crates/shipyard-core/tests/extensions.rs`.
+- [x] An apply writes through `ac sync` and keeps each existing file. Test: `crates/shipyard-app/tests/it/compass_apply.rs`, `crates/shipyard-core/tests/extensions.rs`.
 - [x] The view shows the pinned version and the sync state, and the state is the same after a clone. Test: `crates/shipyard-store/tests/compass.rs`.
-- [x] The pinned version does not change without a person's action. Test: `crates/shipyard-app/tests/compass_apply.rs`.
+- [x] The pinned version does not change without a person's action. Test: `crates/shipyard-app/tests/it/compass_apply.rs`.
 - [ ] One Upgrade action updates every actionable entry, or a selection.
 - [x] A stale compass entry is a Health finding with one fix. Test: `crates/shipyard-core/tests/compass_health.rs`.
 - [ ] The roles and skills list shows who loads each, and an edit applies to the next run or turn.
