@@ -49,6 +49,17 @@ The software parts list (SBOM, "software bill of materials") names every library
 
 Docs freshness is a check of Quality. It lists the docs that did not follow the code of the branch, with the count. The same warning shows in the commit gate, the push gate and the docs chain of Impacts. Each stale doc has "Update with an agent". An agent run starts only after your click, and the pull request that it opens waits for your review. A doc that the agent left unreadable is named and stays out of the pull request. "Acknowledge" keeps a warning as it is, with a reason.
 
+### Run a check or a scanner
+
+A run starts after your click. While it runs, the card shows Running, the time that counts up and the last lines of the output, and Run stays off. The run goes on when you leave the page. Open in terminal, on a check, runs its command in the terminal drawer. The info button of each card says what it looks for, why it matters and what to do when it fails.
+
+The scanners are:
+
+- secrets: keys and tokens in the tracked files. Put `shipyard:allow-secret` on the line of a test fixture, or on the line before it, to skip it.
+- dependencies: known vulnerabilities (CVE) in the lock files, with `osv-scanner`. Record a reviewed finding in `.osv-scanner.toml`.
+- code: OWASP issues such as injection, XSS and remote code execution, with `semgrep`. Put `// nosemgrep` on the line of a reviewed false positive.
+- skills: unsafe instructions in agent skills, with `skillspector`.
+
 ## Impacts
 
 Impacts tells which items a change touches, and proposes an action plan.

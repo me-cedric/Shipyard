@@ -12,6 +12,7 @@ import { StatusDot } from "@/ui/atoms/status-dot";
 import { ChatBubbleIcon, PlusIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
 import { LIST, useEnter } from "@/ui/motion";
 import { ListDetail } from "@/ui/templates/list-detail";
@@ -49,7 +50,8 @@ export function Questions() {
 function Register() {
 	const { t } = useI18n();
 	const s = t.specs.question;
-	const all = useQuestions().data;
+	const questions = useQuestions();
+	const all = questions.data;
 	const [text, setText] = useState("");
 	const [kind, setKind] = useState(ALL);
 	const [status, setStatus] = useState(ALL);
@@ -117,6 +119,7 @@ function Register() {
 				</>
 			}
 		>
+			<ErrorNotice error={questions.error} className="px-4 py-2" />
 			{all && all.length === 0 ? (
 				<div className="p-4">
 					<EmptyState

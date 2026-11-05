@@ -155,6 +155,7 @@ export function CompassSetup() {
 							{s.state === "off" ? (
 								<Button
 									disabled={!s.available}
+									reason={x.unavailable}
 									aria-label={format(x.installName, { name: s.id })}
 									onClick={() => void reinstall(s)}
 								>

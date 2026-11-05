@@ -34,12 +34,9 @@ export const personalEn = {
 	},
 	thread: {
 		type: "Issue type",
-		setType: "Set type",
 		due: "Due date",
-		setDue: "Set due date",
 		clearDue: "Clear due date",
 		estimate: "Estimate in days",
-		setEstimate: "Set estimate",
 	},
 	prefs: {
 		fonts: "Fonts",
@@ -100,12 +97,9 @@ export const personalFr: typeof personalEn = {
 	},
 	thread: {
 		type: "Type de ticket",
-		setType: "Changer le type",
 		due: "Échéance",
-		setDue: "Fixer l'échéance",
 		clearDue: "Effacer l'échéance",
 		estimate: "Estimation en jours",
-		setEstimate: "Fixer l'estimation",
 	},
 	prefs: {
 		fonts: "Polices",

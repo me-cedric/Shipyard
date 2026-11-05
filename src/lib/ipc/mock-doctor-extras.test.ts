@@ -43,6 +43,7 @@ describe("mock feedback and debug console", () => {
 		});
 		await expect(unwrap(commands.feedbackOpen("bug", "a\nb", "", true))).rejects.toBeTruthy();
 		await expect(
+			// shipyard:allow-secret
 			unwrap(commands.feedbackOpen("idea", "x", "ghp_abcdefghijklmnopqrstuvwxyz0123456789", true)),
 		).rejects.toMatchObject({ details: expect.stringContaining("secret") });
 	});
@@ -92,6 +93,9 @@ describe("mock outside server groups", () => {
 			"ticket_comment",
 			"qa_run_check",
 			"qa_read_report",
+			"docs_stale",
+			"spec_validate",
+			"qa_run_scanner",
 		]);
 	});
 });

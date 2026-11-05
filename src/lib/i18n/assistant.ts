@@ -71,7 +71,7 @@ export const assistantEn = {
 		promptFactory: "Write a work item for the factory from this:",
 	},
 	noCli: {
-		title: "No agent CLI found",
+		title: "No AI tool found",
 		install: "Install",
 		installName: "Install {name}",
 		installing: "Installing",
@@ -176,7 +176,7 @@ export const assistantFr: typeof assistantEn = {
 		promptFactory: "Écris un ticket pour l'usine à partir de ceci :",
 	},
 	noCli: {
-		title: "Aucune CLI d'agent trouvée",
+		title: "Aucun outil IA trouvé",
 		install: "Installer",
 		installName: "Installer {name}",
 		installing: "Installation",

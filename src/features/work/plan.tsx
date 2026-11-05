@@ -255,7 +255,8 @@ export function Plan() {
 		[plan],
 	);
 
-	if (active === undefined || sheets.isLoading) return <Loading />;
+	if (active === undefined || sheets.isLoading)
+		return <Loading title={t.tabs.work.plan} icon={<CalendarDaysIcon size={16} />} />;
 	if (active === null) return <NoProject title={t.tabs.work.plan} />;
 	if (!slug || !plan)
 		return (

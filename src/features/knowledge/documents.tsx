@@ -11,7 +11,6 @@ import { useTabSelection } from "@/lib/shell/selection";
 import { Button } from "@/ui/atoms/button";
 import { ArrowDownTrayIcon, DocumentTextIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DocActions, DocSearch, DocxView } from "./documents-parts";
 import { ListTab } from "./list-tab";
 import { PageEditor } from "./pages";
@@ -46,11 +45,14 @@ export function Documents() {
 		contents: k.text.contents,
 		sections,
 	});
+	// The export in progress: a second click waits for it.
+	const [exporting, setExporting] = useState<string | null>(null);
 	const run =
 		(name: string, ext: "docx" | "xlsx", job: (path: string) => Promise<unknown>) => async () => {
 			try {
 				const path = await saveAs(name, ext);
 				if (!path) return;
+				setExporting(name);
 				await job(path);
 				setFailure(null);
 				setNote(format(k.exported, { path }));
@@ -59,6 +61,8 @@ export function Documents() {
 				setNote(null);
 				setSaved(null);
 				setFailure(e);
+			} finally {
+				setExporting(null);
 			}
 		};
 	const exports = [
@@ -83,7 +87,7 @@ export function Documents() {
 			),
 		},
 		{
-			id: "sheet",
+			id: "quality",
 			label: k.sheet,
 			ext: "XLSX",
 			tone: "success" as const,
@@ -115,26 +119,21 @@ export function Documents() {
 					<div className="w-full max-w-xl">
 						<DocSearch onPick={pick} />
 					</div>
-					<StatStrip
-						items={exports.map((x) => ({
-							label: x.label,
-							value: x.ext,
-							tone: x.tone,
-							icon: <DocumentTextIcon size={12} />,
-							extra: (
-								<Button
-									variant="ghost"
-									aria-label={`${k.export} ${x.label}`}
-									className="-ml-2 h-6 px-2 text-12"
-									onClick={() => void x.go()}
-								>
-									<ArrowDownTrayIcon size={12} />
-									{k.export}
-								</Button>
-							),
-						}))}
-						className="w-full lg:grid-cols-3"
-					/>
+					<div className="flex flex-wrap gap-2">
+						{exports.map((x) => (
+							<Button
+								key={x.id}
+								title={x.ext}
+								aria-label={`${k.export} ${x.label}`}
+								busy={exporting === x.id}
+								disabled={exporting !== null}
+								onClick={() => void x.go()}
+							>
+								<ArrowDownTrayIcon size={14} />
+								{x.label}
+							</Button>
+						))}
+					</div>
 				</div>
 			}
 			notice={

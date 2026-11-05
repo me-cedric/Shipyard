@@ -4,7 +4,7 @@ import { type ConnectionDraft_Deserialize, commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 
-const TOKEN = "tok-view-secret-9";
+const TOKEN = "tok-view-secret-9"; // shipyard:allow-secret
 
 const draft = (over: Partial<ConnectionDraft_Deserialize> = {}): ConnectionDraft_Deserialize => ({
 	name: "Acme",
@@ -102,7 +102,7 @@ describe("Settings / Connections", () => {
 		await user.type(secret, TOKEN);
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		const created = await row("Acme");
-		expect(within(created).getByText("Linear")).toBeInTheDocument();
+		expect(within(created).getByTitle("Linear")).toBeInTheDocument();
 		expect(mockState().secrets.acme).toBe(TOKEN);
 		expect(screen.queryByDisplayValue(TOKEN)).toBeNull();
 		// Open the connection again: the field is empty and shows the mask.

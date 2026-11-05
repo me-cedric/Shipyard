@@ -150,6 +150,23 @@ impl Loaded {
     }
 }
 
+impl Loaded {
+    /// A workflow: the project file, else the bundled default. A project that was seeded before a
+    /// default existed has no file for it. A file that exists but is invalid gives `None`.
+    pub fn workflow(&self, id: &str) -> Option<Workflow> {
+        self.workflows.get(id).cloned().or_else(|| {
+            let rel = format!("{WORKFLOWS_DIR}/{id}.yaml");
+            if self.issues.iter().any(|i| i.file == rel) {
+                return None;
+            }
+            let (_, text) = WORKFLOWS.iter().find(|(n, _)| *n == id)?;
+            let mut known: Vec<String> = DEFAULT_ROLES.iter().map(|r| r.to_string()).collect();
+            known.extend(self.roles.keys().cloned());
+            parse_workflow(id, text, &known).ok()
+        })
+    }
+}
+
 /// Files of a directory with an extension, sorted by name. A missing directory is empty.
 fn files(root: &Path, dir: &str, ext: &str) -> Result<Vec<(String, std::path::PathBuf)>> {
     let mut out = Vec::new();

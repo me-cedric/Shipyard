@@ -20,7 +20,7 @@ describe("Settings / Connections / Runners", () => {
 		mountApp("/settings/connections");
 		const claude = await row("Claude Code");
 		expect(within(claude).getByRole("img", { name: "Detected" })).toBeInTheDocument();
-		expect(within(claude).getByText("2.1.0")).toBeInTheDocument();
+		expect(within(claude).getByTitle("2.1.0")).toBeInTheDocument();
 		const gemini = await row("Gemini CLI");
 		expect(within(gemini).getByRole("img", { name: "Missing" })).toBeInTheDocument();
 		expect(await screen.findByRole("heading", { name: "Runners (5)" })).toBeInTheDocument();
@@ -112,7 +112,7 @@ describe("Settings / Connections / MCP servers", () => {
 		await user.type(screen.getByRole("textbox", { name: "Command or address" }), "ghost-tool");
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		const ghost = await row("Ghost");
-		expect(within(ghost).getByText("Custom")).toBeInTheDocument();
+		expect(within(ghost).getByTitle("Custom")).toBeInTheDocument();
 		expect(within(ghost).getByText("Missing: ghost-tool")).toBeInTheDocument();
 	});
 

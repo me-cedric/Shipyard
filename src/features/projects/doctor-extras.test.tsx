@@ -61,7 +61,7 @@ describe("Settings / Health / bootstrap, skills, console and feedback", () => {
 		await user.type(screen.getByRole("textbox", { name: "Title" }), "Crash");
 		await user.type(
 			screen.getByRole("textbox", { name: "Details" }),
-			"ghp_abcdefghijklmnopqrstuvwxyz0123456789",
+			"ghp_abcdefghijklmnopqrstuvwxyz0123456789", // shipyard:allow-secret
 		);
 		await user.click(open);
 		expect(await screen.findByText(/looks like a secret/)).toBeInTheDocument();

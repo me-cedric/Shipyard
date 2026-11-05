@@ -85,7 +85,7 @@ export function Backlog() {
 	const [adopting, setAdopting] = useState(false);
 	const [key, setKey] = useState("");
 	const [selected, setSelected] = useState<string | null>(null);
-	const { failure, run } = useGuard();
+	const { failure, busy, run } = useGuard();
 	const everything = useWorkItems({});
 	const all = everything.data ?? [];
 	const shown = useMemo(() => applyFilters(all, filters), [all, filters]);
@@ -114,7 +114,8 @@ export function Backlog() {
 		return out;
 	}, [shown]);
 
-	if (active === undefined || everything.isLoading) return <Loading />;
+	if (active === undefined || everything.isLoading)
+		return <Loading title={t.tabs.work.backlog} icon={<QueueListIcon size={16} />} />;
 	if (active === null) return <NoProject title={t.tabs.work.backlog} />;
 
 	const startImport = () => run(async () => setPlanned(await planImport()));
@@ -122,14 +123,19 @@ export function Backlog() {
 		return (
 			<ListDetail title={t.tabs.work.backlog} icon={<QueueListIcon size={16} />} count={0}>
 				<div className="p-4">
-					<EmptyState
-						title={t.empty.tickets}
-						action={{
-							label: t.sync.backlog.import,
-							icon: <PlusIcon size={14} />,
-							onClick: () => void startImport(),
-						}}
-					/>
+					{everything.error ? (
+						<ErrorNotice error={everything.error} className="justify-center" />
+					) : (
+						<EmptyState
+							title={t.empty.tickets}
+							action={{
+								label: t.sync.backlog.import,
+								icon: <PlusIcon size={14} />,
+								onClick: () => void startImport(),
+								busy,
+							}}
+						/>
+					)}
 					<ErrorNotice error={failure} className="justify-center pt-2" />
 				</div>
 			</ListDetail>
@@ -180,7 +186,7 @@ export function Backlog() {
 						</IconButton>
 					)}
 					{planned === null ? (
-						<Button variant="primary" onClick={() => void startImport()}>
+						<Button variant="primary" busy={busy} onClick={() => void startImport()}>
 							{t.sync.backlog.import}
 						</Button>
 					) : (
@@ -190,6 +196,7 @@ export function Backlog() {
 							</p>
 							<Button
 								variant="primary"
+								busy={busy}
 								onClick={() =>
 									void run(async () => {
 										await confirmImport();

@@ -146,7 +146,7 @@ export function Time() {
 	const noTeam = team !== undefined && members.length === 0;
 	const items = useWorkItems({}).data ?? [];
 	const act = useWorkActions();
-	const { error, failure, run, setError } = useGuard();
+	const { error, failure, busy, run, setError } = useGuard();
 	const [member, setMember] = useState<string | null>(null);
 	const [month, setMonth] = useState<string | null>(null);
 	const [adding, setAdding] = useState(false);
@@ -244,6 +244,13 @@ export function Time() {
 						<Button
 							variant="ghost"
 							disabled={!data?.canSend || !r.ticket || sending !== null}
+							reason={
+								!data?.canSend
+									? format(t.work.missing, { name: t.connections.flag.timeTracking })
+									: !r.ticket
+										? e.noTicket
+										: undefined
+							}
 							aria-label={format(r.lost ? e.storeReceipt : e.sendEntry, {
 								day: r.day,
 								ticket: r.ticket,
@@ -267,7 +274,7 @@ export function Time() {
 				},
 			},
 		],
-		[e, data?.canSend, handle, reduce, act, run, sending, day],
+		[e, t, data?.canSend, handle, reduce, act, run, sending, day],
 	);
 
 	if (active === undefined)
@@ -327,7 +334,7 @@ export function Time() {
 						onValueChange={setMember}
 						items={members.map((m) => ({ value: m.handle, label: m.name }))}
 					/>
-					<Button disabled={!data} onClick={() => void fetchAll()}>
+					<Button disabled={!data} busy={busy} onClick={() => void fetchAll()}>
 						<ArrowPathIcon size={14} />
 						{t.extras.time.pullMonth}
 					</Button>

@@ -40,10 +40,11 @@ function ProjectCardView({ p, onError }: { p: ProjectCard; onError: (e: unknown)
 				</span>
 				<span className="flex min-w-0 flex-1 flex-col gap-0.5">
 					<span className="flex items-center gap-2">
-						<span className="truncate text-14 font-medium text-n-12">{p.name}</span>
+						<span title={p.path} className="truncate text-14 font-medium text-n-12">
+							{p.name}
+						</span>
 						{p.branch ? <Badge className="font-mono">{p.branch}</Badge> : null}
 					</span>
-					<span className="truncate font-mono text-11 text-n-10">{p.path}</span>
 				</span>
 			</div>
 			<p className="flex items-center gap-1.5 truncate px-3 text-ui text-n-11">

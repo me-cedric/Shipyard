@@ -64,8 +64,9 @@ export function ConnectionRow({
 						{glyph}
 					</span>
 					<span className="flex min-w-24 flex-1 flex-col">
-						<span className="text-ui font-medium text-n-12">{name}</span>
-						{product ? <span className="text-12 text-n-11">{product}</span> : null}
+						<span title={product} className="text-ui font-medium text-n-12">
+							{name}
+						</span>
 					</span>
 					<Badge variant={tone.chip} className="gap-1.5">
 						{status === "success" ? (

@@ -17,6 +17,7 @@ import { Button } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowPathIcon, ClockIcon } from "@/ui/icons";
+import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
@@ -101,6 +102,13 @@ function MyTicket({ itemKey, statuses }: { itemKey: string; statuses: string[] }
 					label={`${t.sync.backlog.status} ${item.key}`}
 					value={item.status}
 					disabled={!caps?.transitions}
+					reason={
+						caps?.transitions
+							? undefined
+							: caps
+								? format(t.work.missing, { name: t.connections.flag.transitions })
+								: t.work.noTracker
+					}
 					onValueChange={(to) => void run(() => act.transition(item.key, to))}
 					items={statuses.map((s) => ({ value: s, label: s }))}
 				/>
@@ -209,9 +217,13 @@ export function Today({ start }: { start?: ReactNode }) {
 								<RefChip refId={`run:${r.id}`} state="resolved" onOpen={openRef} />
 								<span className="font-mono text-12 text-n-11">{r.key}</span>
 								<span className="min-w-0 flex-1 truncate text-ui">{r.title}</span>
-								<Button variant="ghost" onClick={() => void run(() => cancel(r.id))}>
+								<ConfirmButton
+									variant="ghost"
+									confirm={format(t.factory.machine.confirmStop, { name: r.key })}
+									onConfirm={() => void run(() => cancel(r.id))}
+								>
 									{format(t.factory.machine.stop, { name: r.key })}
-								</Button>
+								</ConfirmButton>
 							</div>
 						))}
 					</Panel>

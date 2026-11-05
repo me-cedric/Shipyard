@@ -8,12 +8,14 @@ import { DOC_DIR, slug, useDeckList, useSlideTheme } from "@/lib/knowledge";
 import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
+import { IconButton } from "@/ui/atoms/icon-button";
 import {
 	ArrowDownTrayIcon,
 	PlayIcon,
 	PlusIcon,
 	PresentationChartIcon,
 	SparklesIcon,
+	XMarkIcon,
 } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuButton } from "@/ui/molecules/menu-button";
@@ -64,8 +66,10 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 	const [present, setPresent] = useState(false);
 	const [note, setNote] = useState<string | null>(null);
 	const [failure, setFailure] = useState<unknown>(null);
+	const [exporting, setExporting] = useState(false);
 	const app = isTauri();
 	const text = useDeckText(path, !app);
+	// nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- the deck frame has an opaque origin: only "*" reaches it
 	const send = (key: string) => frame.current?.contentWindow?.postMessage({ deckKey: key }, "*");
 	const onKey = (e: KeyboardEvent<HTMLElement>) => {
 		if (e.key === "Escape" && present) setPresent(false);
@@ -83,6 +87,7 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 				setPresent(false);
 		};
 		const onFull = () => document.fullscreenElement === null && setPresent(false);
+		// nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation -- `e.source` is checked against the deck frame
 		window.addEventListener("message", onMessage);
 		document.addEventListener("fullscreenchange", onFull);
 		void stage.current?.requestFullscreen?.().catch(() => {});
@@ -132,10 +137,13 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 			setNote(null);
 			const dest = await saveAs(slug(title) || "deck", "pdf");
 			if (!dest) return;
+			setExporting(true);
 			await unwrap(commands.deckPdf(path, dest));
 			setNote(format(t.reports.exported, { path: dest }));
 		} catch (e) {
 			setFailure(e);
+		} finally {
+			setExporting(false);
 		}
 	};
 	return (
@@ -152,7 +160,7 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 							{ id: "costing", label: k.slides.costing, onSelect: () => void add("costing") },
 						]}
 					/>
-					<Button onClick={() => void exportPdf()}>
+					<Button busy={exporting} onClick={() => void exportPdf()}>
 						<ArrowDownTrayIcon size={14} />
 						{k.slides.exportPdf}
 					</Button>
@@ -179,6 +187,15 @@ function HtmlDeck({ path, title }: { path: string; title: string }) {
 						: "relative aspect-video w-full overflow-hidden rounded-md border border-n-7",
 				)}
 			>
+				{present ? (
+					<IconButton
+						label={t.common.close}
+						className="absolute top-3 right-3 z-10 bg-surface-3"
+						onClick={() => setPresent(false)}
+					>
+						<XMarkIcon size={16} />
+					</IconButton>
+				) : null}
 				<iframe
 					key={rev}
 					ref={frame}

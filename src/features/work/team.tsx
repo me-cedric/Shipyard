@@ -276,7 +276,8 @@ export function Team() {
 		!!view.data,
 	);
 
-	if (active === undefined || view.isLoading) return <Loading />;
+	if (active === undefined || view.isLoading)
+		return <Loading title={t.tabs.work.team} icon={<UsersIcon size={16} />} />;
 	if (active === null) return <NoProject title={t.tabs.work.team} />;
 	const add = () => {
 		setSelected(null);

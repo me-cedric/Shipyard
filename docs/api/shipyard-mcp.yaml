@@ -22,7 +22,7 @@ info:
       (proxy and relay). Each server has an allow list (all tools, the tools that it marks
       `annotations.readOnlyHint`, or a pick): a tool that is not on it is left out of `tools/list`
       and refused on `tools/call`.
-    - The 17 tools for an agent that Shipyard did not start. Each group is a switch that a person
+    - The 20 tools for an agent that Shipyard did not start. Each group is a switch that a person
       turns on in Settings. All are off by default.
 
     Limits of one call, by default: 60 calls a minute for each token, 64 KiB of arguments,
@@ -269,7 +269,7 @@ components:
         path: { type: string }
     WriteFileInput:
       type: object
-      description: Tool `project_write_file`.
+      description: Tool `project_write_file`. It refuses any path in `.shipyard/`: an agent must not edit the gates that it can run.
       additionalProperties: false
       required: [path, text]
       properties:
@@ -283,11 +283,31 @@ components:
         limit: { type: integer, minimum: 1, maximum: 200 }
     CheckInput:
       type: object
-      description: Tools `run_check` and `qa_run_check`. Each runs for 180 s at most.
+      description: |
+        Tools `run_check` and `qa_run_check` (both in the `exec` switch). They run the `gates` of `.shipyard/project.yaml`, one
+        after the other, with `sh -c` in the project folder. `name` keeps the gates that match it
+        (test: `test`; lint: `lint`, `clippy`, `fmt`; typecheck: `typecheck`, `tsc`). A project
+        with no gates runs one command that its files show (`pnpm` or `cargo`): `name` is then
+        required. `timeout_secs` limits the whole call (default 900, from 10 to 3600). A gate that
+        is still running at the limit is stopped with its children.
+      additionalProperties: false
+      properties:
+        name: { type: string, enum: [test, lint, typecheck] }
+        timeout_secs: { type: integer, minimum: 10, maximum: 3600 }
+    ScannerInput:
+      type: object
+      description: Tool `qa_run_scanner`. Runs one scanner and keeps the report. A read-only project refuses it.
       additionalProperties: false
       required: [name]
       properties:
-        name: { type: string, enum: [test, lint, typecheck] }
+        name: { type: string, enum: [secrets, dependencies, code, skills] }
+    SpecValidateInput:
+      type: object
+      description: Tool `spec_validate`. Strict validation of one OpenSpec change. It writes nothing.
+      additionalProperties: false
+      required: [id]
+      properties:
+        id: { type: string }
     BaseInput:
       type: object
       description: Tool `delivery_diff`.
@@ -325,5 +345,5 @@ components:
         title: { type: string }
     NoInput:
       type: object
-      description: Tools `git_status`, `git_diff`, `forge_remote`, `adr_list` and `qa_read_report`.
+      description: Tools `git_status`, `git_diff`, `forge_remote`, `adr_list`, `qa_read_report` and `docs_stale` (the docs of the branch that did not follow the code).
       additionalProperties: false

@@ -24,9 +24,11 @@ const block = (selector: string) => {
 	return css.slice(start, css.indexOf("\n}", start));
 };
 const decl = (body: string, name: string) =>
+	// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp, javascript.lang.security.audit.incomplete-sanitization.incomplete-sanitization -- test input is a fixed token name
 	new RegExp(`${name.replace("*", "\\*")}:\\s*([^;]+);`).exec(body)?.[1]?.trim();
 /** Lightness of the light and the dark value of a light-dark(oklch(), oklch()) token. */
 const lightness = (body: string, name: string) => {
+	// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- test input is a fixed token name
 	const m = new RegExp(
 		`${name}:\\s*light-dark\\(oklch\\(([\\d.]+)[^)]*\\),\\s*oklch\\(([\\d.]+)`,
 	).exec(body);

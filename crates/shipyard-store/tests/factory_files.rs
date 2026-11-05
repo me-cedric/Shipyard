@@ -278,6 +278,19 @@ fn a_first_load_with_an_invalid_file_has_no_workflow_for_it() {
 }
 
 #[test]
+fn an_invalid_file_gives_no_bundled_fallback_but_a_missing_file_does() {
+    let dir = tempfile::tempdir().unwrap();
+    put(
+        dir.path(),
+        &format!("{WORKFLOWS_DIR}/feature.yaml"),
+        "id: feature\nsteps: 3\n",
+    );
+    let l = load(dir.path(), &Loaded::default()).unwrap();
+    assert!(l.workflow("feature").is_none());
+    assert!(l.workflow("bug").is_some());
+}
+
+#[test]
 fn the_id_must_match_the_file_name() {
     let dir = tempfile::tempdir().unwrap();
     let (_, text) = default_workflows()[1];
@@ -314,4 +327,15 @@ fn a_bad_role_file_keeps_the_last_valid_profile() {
     assert_eq!(l.roles["worker"], first.roles["worker"]);
     assert_eq!(l.issues.len(), 1);
     assert_eq!(l.issues[0].file, format!("{ROLES_DIR}/worker.md"));
+}
+
+#[test]
+fn a_workflow_without_a_file_falls_back_to_the_bundled_default() {
+    let dir = tempfile::tempdir().unwrap();
+    seed(dir.path()).unwrap();
+    std::fs::remove_file(dir.path().join(".shipyard/workflows/docs-update.yaml")).unwrap();
+    let loaded = load(dir.path(), &Loaded::default()).unwrap();
+    assert!(!loaded.workflows.contains_key("docs-update"));
+    assert_eq!(loaded.workflow("docs-update").unwrap().id, "docs-update");
+    assert!(loaded.workflow("nope").is_none());
 }

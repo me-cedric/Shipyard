@@ -46,6 +46,7 @@ export const extensionsEn = {
 			edited: "Edited",
 		},
 		onComputer: "On your computer",
+		unavailable: "Not found on this computer",
 		refresh: "Refresh external skills",
 		reinstall: "Reinstall",
 		reinstallName: "Reinstall {name}",
@@ -115,6 +116,8 @@ export const extensionsEn = {
 		no: "No",
 		deploy: "Deploy",
 		deployName: "Deploy {name} to the child projects",
+		deployOff: "Turn the plugin on first",
+		deployNone: "No child project lacks it",
 	},
 	children: {
 		name: "Child projects",
@@ -203,6 +206,7 @@ export const extensionsFr: typeof extensionsEn = {
 			edited: "Modifiée",
 		},
 		onComputer: "Sur votre ordinateur",
+		unavailable: "Introuvable sur cet ordinateur",
 		refresh: "Actualiser les compétences externes",
 		reinstall: "Réinstaller",
 		reinstallName: "Réinstaller {name}",
@@ -272,6 +276,8 @@ export const extensionsFr: typeof extensionsEn = {
 		no: "Non",
 		deploy: "Déployer",
 		deployName: "Déployer {name} sur les projets enfants",
+		deployOff: "Activez d'abord le plugin",
+		deployNone: "Aucun projet enfant ne l'a pas",
 	},
 	children: {
 		name: "Projets enfants",

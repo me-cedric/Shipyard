@@ -70,6 +70,7 @@ afterEach(() => {
 const files = () => mockState().design.files;
 // The list comes first: the open artifact can hold a button with the same name.
 const row = async (name: string) =>
+	// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- test input is a fixed name
 	(await screen.findAllByRole("button", { name: new RegExp(name) }))[0] as HTMLElement;
 
 describe("Design / Diagrams", () => {

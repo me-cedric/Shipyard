@@ -14,6 +14,8 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { PlusIcon, TrashIcon } from "@/ui/icons";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Loading } from "@/ui/molecules/loading";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { ApplyDialog, type ApplyPreviewRow } from "@/ui/organisms/apply-dialog";
 import { Dialog } from "@/ui/organisms/dialog";
@@ -209,10 +211,16 @@ function ApplyStage({ change, onClose }: { change: string; onClose: () => void }
 
 /** Split a change into work items: draft, review, preview, then apply (REQ-016 to REQ-019). */
 export function SplitFlow({ change, onClose }: { change: string; onClose: () => void }) {
+	const { t } = useI18n();
 	const draft = useSplitDraft(change);
 	const [stage, setStage] = useState<"review" | "apply">("review");
 	if (stage === "apply") return <ApplyStage change={change} onClose={onClose} />;
-	if (!draft.data) return null;
+	if (!draft.data)
+		return (
+			<Dialog open onOpenChange={(o) => !o && onClose()} title={t.specs.split.title}>
+				{draft.error ? <ErrorNotice error={draft.error} /> : <Loading rows={3} />}
+			</Dialog>
+		);
 	return (
 		<Review
 			change={change}

@@ -427,6 +427,7 @@ function artifacts(files: Files): Artifact_Serialize[] {
 }
 
 const field = (fm: string, k: string) =>
+	// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- `k` is a fixed key of the mock
 	new RegExp(`^${k}:(.*)$`, "m")
 		.exec(fm)?.[1]
 		?.trim()

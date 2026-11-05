@@ -379,7 +379,7 @@ pub fn kill_gates() {
 /// fill a pipe and hang. The counts are the last line of the output. The shell leads its own
 /// process group: a timeout or a shutdown kills the command and its children (`kill_group`).
 pub(crate) fn run_gate(dir: &Path, log: &Path, command: &str, limit: Duration) -> GateCheck {
-    run_gate_out(dir, log, command, limit).check
+    run_gate_out(dir, log, command, limit, &|_| {}).check
 }
 
 /// A gate run with the reason of a failure: the exit code (`None` when no code exists) and the
@@ -391,9 +391,38 @@ pub(crate) struct GateOut {
 }
 
 /// How many lines of the end of the output a failed gate keeps.
-const GATE_TAIL_LINES: usize = 12;
+const GATE_TAIL_LINES: usize = 40;
 
-pub(crate) fn run_gate_out(dir: &Path, log: &Path, command: &str, limit: Duration) -> GateOut {
+/// The last `n` lines in the output file of a running gate, without a blank line.
+pub(crate) fn log_tail(log: &Path, n: usize) -> Vec<String> {
+    use std::io::{Read, Seek, SeekFrom};
+    const WINDOW: u64 = 16 * 1024;
+    let Ok(mut f) = std::fs::File::open(log) else {
+        return Vec::new();
+    };
+    let len = f.metadata().map_or(0, |m| m.len());
+    let from = len.saturating_sub(WINDOW);
+    let mut bytes = Vec::new();
+    if f.seek(SeekFrom::Start(from)).is_err() || f.read_to_end(&mut bytes).is_err() {
+        return Vec::new();
+    }
+    let text = String::from_utf8_lossy(&bytes);
+    let lines: Vec<&str> = text.lines().skip(usize::from(from > 0)).collect();
+    let lines: Vec<&str> = lines.into_iter().filter(|l| !l.trim().is_empty()).collect();
+    lines[lines.len().saturating_sub(n)..]
+        .iter()
+        .map(|l| (*l).into())
+        .collect()
+}
+
+/// `on_lines` gets the last lines of the output twice a second while the gate runs.
+pub(crate) fn run_gate_out(
+    dir: &Path,
+    log: &Path,
+    command: &str,
+    limit: Duration,
+    on_lines: &dyn Fn(Vec<String>),
+) -> GateOut {
     let fail = |counts: String| GateOut {
         check: GateCheck {
             command: command.into(),
@@ -428,12 +457,20 @@ pub(crate) fn run_gate_out(dir: &Path, log: &Path, command: &str, limit: Duratio
     }
     let mut child = match cmd.spawn() {
         Ok(c) => c,
-        Err(x) => return fail(format!("the gate did not start: {x}")),
+        Err(x) => {
+            let _ = std::fs::remove_file(log);
+            return fail(format!("the gate did not start: {x}"));
+        }
     };
     let pid = child.id();
     live_gates().insert(pid);
     let start = Instant::now();
+    let mut ticks = 0u32;
     let status = loop {
+        ticks += 1;
+        if ticks.is_multiple_of(10) {
+            on_lines(log_tail(log, 20));
+        }
         match child.try_wait() {
             Ok(Some(status)) => break status,
             Ok(None) if start.elapsed() >= limit => {
@@ -447,6 +484,10 @@ pub(crate) fn run_gate_out(dir: &Path, log: &Path, command: &str, limit: Duratio
             Ok(None) => std::thread::sleep(Duration::from_millis(50)),
             Err(x) => {
                 live_gates().remove(&pid);
+                shipyard_agents::runner::kill_group(pid);
+                let _ = child.kill();
+                let _ = child.wait();
+                let _ = std::fs::remove_file(log);
                 return fail(format!("the gate failed: {x}"));
             }
         }
@@ -456,7 +497,8 @@ pub(crate) fn run_gate_out(dir: &Path, log: &Path, command: &str, limit: Duratio
         shipyard_agents::runner::kill_group(pid);
     }
     let passed = status.success();
-    let text = std::fs::read_to_string(log).unwrap_or_default();
+    // Lossy: a byte that is not UTF-8 must not empty the tail.
+    let text = String::from_utf8_lossy(&std::fs::read(log).unwrap_or_default()).into_owned();
     let _ = std::fs::remove_file(log);
     let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
     let tail = lines[lines.len().saturating_sub(GATE_TAIL_LINES)..].join("\n");

@@ -152,6 +152,7 @@ describe("Factory / Runs", () => {
 		await user.click(await screen.findByRole("button", { name: /ACME-2/ }));
 		const panel = await screen.findByRole("complementary", { name: "ACME-2" });
 		await user.click(await within(panel).findByRole("button", { name: "Kill run" }));
+		await user.click(await within(panel).findByRole("button", { name: "Stop ACME-2?" }));
 		await waitFor(async () => expect((await find("ACME-2")).state).toBe("Cancelled"));
 	});
 

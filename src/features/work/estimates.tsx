@@ -126,7 +126,8 @@ export function Estimates() {
 		[e, lang, currency],
 	);
 
-	if (active === undefined || sheets.isLoading) return <Loading />;
+	if (active === undefined || sheets.isLoading)
+		return <Loading title={t.tabs.work.estimates} icon={<CurrencyIcon size={16} />} />;
 	if (active === null) return <NoProject title={t.tabs.work.estimates} />;
 
 	const openTask = (taskId: string | null) => {

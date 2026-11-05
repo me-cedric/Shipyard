@@ -79,7 +79,7 @@ The build follows the waves in `docs/plan/MASTER-PLAN.md` section 10.
 
 - Rust crates in `crates/`. Domain logic in `shipyard-core` has no I/O.
 - Frontend features in `src/features/<space>/`. Shared components only in `src/ui/` (atomic layers).
-- IPC bindings and mocks are generated. Never edit them by hand.
+- The IPC bindings are generated: never edit them by hand. The IPC mocks (`src/lib/ipc/mock*.ts`) are hand-written: update them with each command change.
 
 ## Interface
 
@@ -105,3 +105,14 @@ The `add-docs-freshness` change makes Shipyard check this rule itself.
 ## Changelog
 
 Each user-visible change adds one entry to `CHANGELOG.md` (English) and `CHANGELOG.fr.md` (French), under the top version, same number of bullets.
+
+## Quality gates stay green
+
+Code / Quality runs the gates of `.shipyard/project.yaml` and the scanners on this repository. Keep them green:
+
+- A file that the app writes (YAML, JSON, Markdown) must pass `pnpm lint` as written. Use the shared writer of its format, not a local serialiser.
+- A test fixture that looks like a secret holds a fake value and the marker `shipyard:allow-secret` on its line. A real secret never goes in a file.
+- A false positive of `semgrep` gets `// nosemgrep: <rule-id>` and a short reason on the same line. A dependency advisory that cannot be fixed gets an entry with a reason in `.osv-scanner.toml`.
+- Before you remove or move a requirement, search for its ref (`spec:<capability>#REQ-<n>`) and update each question, test plan and doc that cites it. The Verify all docs check of Code / Quality reports the ones that you miss.
+- The scanners read tracked files only. Do not put scanned copies of the repository in tracked folders.
+- A test that mounts the app router waits for `router.state.status === "idle"` before it ends. A test that writes to the pipe of a child process accepts `BrokenPipe`: the child can exit first.

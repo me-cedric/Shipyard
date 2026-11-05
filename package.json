@@ -20,7 +20,7 @@
 		"tauri": "tauri",
 		"build:sidecar": "node scripts/build-sidecar.ts",
 		"tauri:release": "tauri build --config crates/shipyard-app/tauri.release.conf.json",
-		"ipc:gen": "cargo test --workspace",
+		"ipc:gen": "cargo test -p shipyard-app --lib export_bindings",
 		"ipc:check": "pnpm ipc:gen && git diff --exit-code -- src/lib/ipc/bindings.ts"
 	},
 	"dependencies": {

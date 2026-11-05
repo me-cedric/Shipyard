@@ -29,6 +29,7 @@ export {
 	CommandLineIcon,
 	CurrencyIcon,
 	FolderOpenIcon,
+	InformationCircleIcon,
 	LinkIcon,
 	LockClosedIcon,
 	LockOpenIcon,

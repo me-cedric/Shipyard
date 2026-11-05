@@ -11,6 +11,7 @@ import { weekStart } from "./week-focus";
 const aside = async (name: string) => within(await screen.findByRole("complementary", { name }));
 const bars = () =>
 	screen.findAllByRole("button", { name: /, \d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}$/ });
+// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- test input is a fixed name
 const bar = (name: string) => screen.getByRole("button", { name: new RegExp(`^${name},`) });
 
 describe("Work / Plan", () => {

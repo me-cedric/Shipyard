@@ -143,7 +143,7 @@ function ToolRows() {
 	const { t } = useI18n();
 	const s = t.settings.signIn;
 	const { runInTerminal } = useShell();
-	const { failure, run } = useGuard();
+	const { failure, busy, run } = useGuard();
 	const [waiting, setWaiting] = useState<string | null>(null);
 	const [keyForm, setKeyForm] = useState(false);
 	const [key, setKey] = useState("");
@@ -200,7 +200,7 @@ function ToolRows() {
 						product={r.version ?? undefined}
 						actions={
 							missing ? (
-								<Button onClick={() => void install(r.id)}>
+								<Button busy={busy} onClick={() => void install(r.id)}>
 									{format(t.settings.tools.install, { name: r.label })}
 								</Button>
 							) : r.auth === "signedIn" ? null : (

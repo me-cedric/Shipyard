@@ -437,3 +437,13 @@ fn a_write_without_its_switch_is_an_approval_that_a_click_sends_or_drops() {
         RunState::Working
     );
 }
+
+#[test]
+fn a_gate_that_does_not_start_leaves_no_log_file() {
+    let tmp = tempfile::tempdir().unwrap();
+    let log = tmp.path().join("g.log");
+    let gone = tmp.path().join("missing");
+    let out = run_gate(&gone, &log, "true", Duration::from_secs(5));
+    assert!(!out.passed);
+    assert!(!log.exists());
+}

@@ -136,21 +136,40 @@ export function ContextBar({
 			<CloneDialog open={cloning} onClose={() => setCloning(false)} />
 			<BranchSelector />
 			{active && changes ? (
-				<ul aria-label={t.ui.repo} className="flex items-center gap-2 font-mono text-12 text-n-11">
-					<li aria-label={format(t.count, { name: t.ui.changes, count: changed })}>
-						<span aria-hidden="true" className={changed ? "text-warning-text" : undefined}>
-							●{changed}
-						</span>
-					</li>
-					<li aria-label={format(t.count, { name: t.ui.ahead, count: changes.ahead })}>
-						<span aria-hidden="true">↑{changes.ahead}</span>
-					</li>
-					<li aria-label={format(t.count, { name: t.ui.behind, count: changes.behind })}>
-						<span aria-hidden="true" className={changes.behind ? "text-info-text" : undefined}>
-							↓{changes.behind}
-						</span>
-					</li>
-				</ul>
+				<Link to="/code/changes" className={`${chip} gap-2 font-mono text-12`}>
+					{/* The spoken name holds the visible numbers (WCAG 2.5.3): the words of the label are
+					    visually hidden, the symbols are hidden from screen readers. */}
+					{t.ui.repo
+						.split(/(\{\w+\})/)
+						// Each part of the template is unique: it is the key.
+						.filter(Boolean)
+						.map((part) => {
+							const n = {
+								"{changed}": changed,
+								"{ahead}": changes.ahead,
+								"{behind}": changes.behind,
+							}[part];
+							if (n === undefined)
+								return (
+									<span key={part} className="sr-only">
+										{part}
+									</span>
+								);
+							const tone =
+								part === "{changed}" && changed
+									? "text-warning-text"
+									: part === "{behind}" && changes.behind
+										? "text-info-text"
+										: undefined;
+							const mark = part === "{changed}" ? "●" : part === "{ahead}" ? "↑" : "↓";
+							return (
+								<span key={part} className={tone}>
+									<span aria-hidden="true">{mark}</span>
+									{n}
+								</span>
+							);
+						})}
+				</Link>
 			) : null}
 			<SplitButton
 				label={sync.label}
@@ -164,7 +183,7 @@ export function ContextBar({
 			<span className="flex-1" />
 			<Link to="/factory/runs" className={chip}>
 				<span className="sr-only">{format(t.count, { name: t.shell.runs, count: live })}</span>
-				{live ? <LiveDot /> : <span className="size-2 rounded-full bg-n-7" />}
+				<LiveDot idle={!live} />
 				<span aria-hidden="true" className="font-mono">
 					{live}
 				</span>

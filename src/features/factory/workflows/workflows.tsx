@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { ArrowsRightLeftIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { SplitPane } from "@/ui/molecules/split-pane";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
@@ -19,7 +20,8 @@ type Pick = { kind: "workflow" | "role"; id: string };
 /** One workflow or role file in the editor frame. A workflow is checked at each change (factory REQ-010, REQ-029). */
 function FileEditor({ kind, id }: Pick) {
 	const { t } = useI18n();
-	const loaded = useFactoryFile(kind, id).data;
+	const file = useFactoryFile(kind, id);
+	const loaded = file.data;
 	const writes = useFactoryWrites();
 	const { error, run } = useGuard();
 	const [draft, setDraft] = useState<string | null>(null);
@@ -37,7 +39,7 @@ function FileEditor({ kind, id }: Pick) {
 			stale = true;
 		};
 	}, [kind, id, draft, writes.check]);
-	if (text === undefined) return null;
+	if (text === undefined) return <ErrorNotice error={file.error} className="p-4" />;
 	const dirty = text !== loaded;
 	const message = issue
 		? { message: issue.message, line: issue.line }

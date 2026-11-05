@@ -44,7 +44,7 @@ describe("ConnectionRow", () => {
 		);
 		const row = screen.getByRole("group", { name: "Acme" });
 		expect(within(row).getByRole("img", { name: "Passed" })).toBeInTheDocument();
-		expect(within(row).getByText("Linear")).toBeInTheDocument();
+		expect(within(row).getByTitle("Linear")).toBeInTheDocument();
 		expect(within(row).getByRole("button", { name: "Test" })).toBeInTheDocument();
 		expect(within(row).getByText("under")).toBeInTheDocument();
 	});

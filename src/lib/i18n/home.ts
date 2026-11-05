@@ -18,7 +18,6 @@ export const homeEn = {
 	timesheet: "Timesheet",
 	timesheetDay: "Timesheet day: no time logged today",
 	timesheetOpen: "Log time",
-	items: "Items",
 	refresh: "Refresh",
 	send: "Send",
 	recommended: "Recommended",
@@ -57,12 +56,6 @@ export const homeEn = {
 	note: "Note",
 	markRead: "Mark read",
 	stat: {
-		inProgress: "In progress",
-		done: "Done",
-		runs: "Runs",
-		live: "Live runs",
-		events: "Events",
-		notices: "Notifications",
 		by: "By {name}",
 	},
 	notice: {
@@ -105,7 +98,6 @@ export const homeFr: typeof homeEn = {
 	timesheet: "Feuille de temps",
 	timesheetDay: "Jour de feuille de temps : aucun temps saisi aujourd’hui",
 	timesheetOpen: "Saisir le temps",
-	items: "Éléments",
 	refresh: "Actualiser",
 	send: "Envoyer",
 	recommended: "Recommandée",
@@ -144,12 +136,6 @@ export const homeFr: typeof homeEn = {
 	note: "Note",
 	markRead: "Marquer lu",
 	stat: {
-		inProgress: "En cours",
-		done: "Terminés",
-		runs: "Runs",
-		live: "Runs actifs",
-		events: "Événements",
-		notices: "Notifications",
 		by: "Par {name}",
 	},
 	notice: {

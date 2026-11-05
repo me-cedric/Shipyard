@@ -75,33 +75,222 @@ pub fn install(scanner: &str) -> Result<(), String> {
     Err(format!("`{}` failed: {tail}", cmd.join(" ")))
 }
 
+/// The ignore list of `osv-scanner`, each entry with its reason.
+const OSV_CONFIG: &str = ".osv-scanner.toml";
+
+/// The lock files that `osv-scanner` reads.
+const LOCKFILES: [&str; 11] = [
+    "Cargo.lock",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "bun.lock",
+    "poetry.lock",
+    "uv.lock",
+    "Pipfile.lock",
+    "composer.lock",
+    "Gemfile.lock",
+    "go.mod",
+];
+
+/// The folders of `root` that git does not own: nested worktrees and repositories, and submodules.
+fn foreign_dirs(root: &Path) -> Result<Vec<String>, String> {
+    Ok(crate::code::scan_files(root)?
+        .into_iter()
+        .filter(|p| root.join(p).is_dir())
+        .map(|p| p.trim_end_matches('/').to_string())
+        .collect())
+}
+
+/// The runs of a scanner, each one the arguments of its program. `json` asks for the report that
+/// Shipyard reads; without it the arguments are the ones for a terminal. Git lists the lock files
+/// and the folders: an ignored folder, a nested worktree and a submodule are out (REQ-004).
+pub fn runs(scanner: &str, root: &Path, json: bool) -> Result<Vec<Vec<String>>, String> {
+    let owned = |a: &[&str]| a.iter().map(|x| (*x).to_string()).collect::<Vec<_>>();
+    Ok(match scanner {
+        "dependencies" => {
+            let files: Vec<String> = crate::code::scan_files(root)?
+                .into_iter()
+                .filter(|p| {
+                    let name = p.rsplit('/').next().unwrap_or(p);
+                    LOCKFILES.contains(&name) && root.join(p).is_file()
+                })
+                .collect();
+            if files.is_empty() {
+                return Ok(Vec::new());
+            }
+            let mut a = owned(&["scan", "source"]);
+            if json {
+                a.extend(owned(&["--format", "json"]));
+            }
+            // The config lookup of osv-scanner stops at the folder of each lock file: pass it once.
+            if root.join(OSV_CONFIG).is_file() {
+                a.extend(owned(&["--config", OSV_CONFIG]));
+            }
+            a.extend(files.into_iter().flat_map(|f| ["-L".to_string(), f]));
+            vec![a]
+        }
+        "code" => {
+            let mut a = owned(&["scan", "--config", "auto"]);
+            if json {
+                a.extend(owned(&["--json", "--quiet"]));
+            }
+            a.extend(
+                foreign_dirs(root)?
+                    .into_iter()
+                    .flat_map(|d| ["--exclude".to_string(), d]),
+            );
+            a.push(".".into());
+            vec![a]
+        }
+        _ => SKILL_ROOTS
+            .iter()
+            .filter(|r| root.join(r).is_dir())
+            .map(|r| {
+                let mut a = owned(&["scan", r, "--recursive", "--no-llm"]);
+                if json {
+                    a.extend(owned(&["--format", "json"]));
+                }
+                a
+            })
+            .collect(),
+    })
+}
+
+/// The command line of a scanner for the terminal, or `None` for the scanner that runs in process.
+pub fn command(scanner: &str, root: &Path) -> Option<String> {
+    let program = program(scanner)?;
+    let quote = |a: &String| {
+        if a.chars()
+            .all(|c| c.is_ascii_alphanumeric() || "-_./=".contains(c))
+        {
+            a.clone()
+        } else {
+            format!("'{}'", a.replace('\'', "'\\''"))
+        }
+    };
+    let runs = runs(scanner, root, false).ok()?;
+    let line = runs
+        .iter()
+        .map(|a| {
+            format!(
+                "{program} {}",
+                a.iter().map(quote).collect::<Vec<_>>().join(" ")
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" && ");
+    (!line.is_empty()).then_some(line)
+}
+
+const SCAN_LIMIT: std::time::Duration = std::time::Duration::from_secs(15 * 60);
+
+/// Run one program: the report is its stdout. `on_lines` gets the last lines of its stderr while
+/// it runs, at most four times a second.
+/// The group of the scanner is killed at `limit`.
+fn exec(
+    bin: &Path,
+    args: &[String],
+    root: &Path,
+    limit: std::time::Duration,
+    on_lines: &dyn Fn(Vec<String>),
+) -> Result<String, String> {
+    use std::io::{BufRead, BufReader, Read};
+    use std::process::Stdio;
+    use std::sync::{
+        Arc,
+        atomic::{AtomicU8, Ordering},
+    };
+    let mut cmd = Command::new(bin);
+    cmd.args(args)
+        .current_dir(root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(unix)]
+    std::os::unix::process::CommandExt::process_group(&mut cmd, 0);
+    let mut child = quiet(&mut cmd).spawn().map_err(|e| e.to_string())?;
+    // 0 running, 1 ended, 2 timed out.
+    let state = Arc::new(AtomicU8::new(0));
+    let pid = child.id();
+    let watch = state.clone();
+    std::thread::spawn(move || {
+        let start = std::time::Instant::now();
+        while watch.load(Ordering::SeqCst) == 0 {
+            if start.elapsed() >= limit
+                && watch
+                    .compare_exchange(0, 2, Ordering::SeqCst, Ordering::SeqCst)
+                    .is_ok()
+            {
+                shipyard_agents::runner::kill_group(pid);
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+    });
+    let (mut out, err) = (child.stdout.take(), child.stderr.take());
+    let reader = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        if let Some(o) = out.as_mut() {
+            let _ = o.read_to_end(&mut bytes);
+        }
+        String::from_utf8_lossy(&bytes).into_owned()
+    });
+    let mut last: std::collections::VecDeque<String> = Default::default();
+    let mut sent = std::time::Instant::now();
+    for line in BufReader::new(err.ok_or("no stderr")?).lines() {
+        let Ok(line) = line else { continue };
+        if line.trim().is_empty() {
+            continue;
+        }
+        last.push_back(line);
+        if last.len() > 20 {
+            last.pop_front();
+        }
+        if sent.elapsed() >= std::time::Duration::from_millis(250) {
+            sent = std::time::Instant::now();
+            on_lines(last.iter().cloned().collect());
+        }
+    }
+    let _ = child.wait();
+    let timed_out = state
+        .compare_exchange(0, 1, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err();
+    on_lines(last.into_iter().collect());
+    let report = reader
+        .join()
+        .map_err(|_| "the scanner output was lost".to_string());
+    if timed_out {
+        return Err(format!(
+            "the scanner ran longer than {} s and was stopped",
+            limit.as_secs()
+        ));
+    }
+    report
+}
+
 /// Run an installed scanner in `root` and read its findings.
-pub fn run(scanner: &str, root: &Path) -> Result<Vec<ScanFinding>, String> {
+pub fn run(
+    scanner: &str,
+    root: &Path,
+    on_lines: &dyn Fn(Vec<String>),
+) -> Result<Vec<ScanFinding>, String> {
     let program = program(scanner).ok_or_else(|| format!("`{scanner}` is not a scanner"))?;
     let bin = which(program, &search_dirs())
         .ok_or_else(|| format!("the scanner `{scanner}` is not installed"))?;
-    let root_arg = root.to_string_lossy().to_string();
-    let exec = |args: &[&str]| -> Result<String, String> {
-        let out = quiet(Command::new(&bin).args(args).current_dir(root))
-            .output()
-            .map_err(|e| e.to_string())?;
-        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
-    };
-    match scanner {
-        "dependencies" => parse_osv(&exec(&["--format", "json", "-r", &root_arg])?, root),
-        "code" => parse_semgrep(
-            &exec(&["scan", "--json", "--quiet", "--config", "auto", &root_arg])?,
-            root,
-        ),
-        _ => {
-            let mut all = Vec::new();
-            for r in SKILL_ROOTS.iter().filter(|r| root.join(r).is_dir()) {
-                let json = exec(&["scan", r, "--recursive", "--no-llm", "--format", "json"])?;
-                all.extend(parse_skills(&json, r)?);
+    let mut all = Vec::new();
+    for (i, args) in runs(scanner, root, true)?.iter().enumerate() {
+        let json = exec(&bin, args, root, SCAN_LIMIT, on_lines)?;
+        all.extend(match scanner {
+            "dependencies" => parse_osv(&json, root)?,
+            "code" => parse_semgrep(&json, root)?,
+            _ => {
+                let dir = SKILL_ROOTS.iter().filter(|r| root.join(r).is_dir()).nth(i);
+                parse_skills(&json, dir.copied().unwrap_or_default())?
             }
-            Ok(all)
-        }
+        });
     }
+    Ok(all)
 }
 
 fn json(text: &str, who: &str) -> Result<Value, String> {
@@ -230,6 +419,21 @@ pub fn parse_skills(text: &str, dir: &str) -> Result<Vec<ScanFinding>, String> {
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
+    #[test]
+    fn a_scanner_past_its_limit_is_stopped() {
+        let start = std::time::Instant::now();
+        let r = exec(
+            Path::new("/bin/sleep"),
+            &["30".into()],
+            Path::new("/"),
+            std::time::Duration::from_millis(200),
+            &|_| {},
+        );
+        assert!(r.unwrap_err().contains("was stopped"));
+        assert!(start.elapsed() < std::time::Duration::from_secs(10));
+    }
+
     #[test]
     fn osv_groups_count_an_advisory_and_its_alias_once() {
         let j = r#"{"results":[{"source":{"path":"/r/Cargo.lock"},"packages":[{"package":{"name":"a","version":"1"},
@@ -256,6 +460,52 @@ mod tests {
         let f = parse_skills(k, ".agents/skills").unwrap();
         assert_eq!(f[0].path, ".agents/skills/S/SKILL.md");
         assert!(parse_semgrep("nope", Path::new("/r")).is_err());
+    }
+
+    fn git(root: &Path, args: &[&str]) {
+        let ok = Command::new("git")
+            .arg("-C")
+            .arg(root)
+            .args(args)
+            .status()
+            .unwrap();
+        assert!(ok.success());
+    }
+
+    #[test]
+    fn the_scanners_read_tracked_lock_files_and_skip_nested_worktrees() {
+        let d = tempfile::tempdir().unwrap();
+        let r = d.path();
+        let w = |rel: &str| {
+            let p = r.join(rel);
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            std::fs::write(p, "x").unwrap();
+        };
+        git(r, &["init", "-q"]);
+        w("Cargo.lock");
+        w("app/pnpm-lock.yaml");
+        w("ignored/yarn.lock");
+        w(".gitignore");
+        std::fs::write(r.join(".gitignore"), "ignored/\n").unwrap();
+        // A nested worktree: a folder with its own repository and a lock file.
+        w(".claude/worktrees/x/Cargo.lock");
+        git(&r.join(".claude/worktrees/x"), &["init", "-q"]);
+        let deps = runs("dependencies", r, false).unwrap();
+        assert_eq!(
+            deps[0].join(" "),
+            "scan source -L Cargo.lock -L app/pnpm-lock.yaml"
+        );
+        assert_eq!(
+            command("dependencies", r).unwrap(),
+            "osv-scanner scan source -L Cargo.lock -L app/pnpm-lock.yaml"
+        );
+        let code = runs("code", r, true).unwrap();
+        assert!(
+            code[0].join(" ").contains("--exclude .claude/worktrees/x "),
+            "{code:?}"
+        );
+        assert!(runs("skills", r, true).unwrap().is_empty());
+        assert!(command("secrets", r).is_none());
     }
 
     #[test]

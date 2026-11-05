@@ -69,7 +69,7 @@ export function AgentsMap() {
 			icon={<ShareIcon size={16} />}
 			chips={
 				<Badge variant="accent">
-					<LiveDot />
+					<LiveDot idle={graph.live.size === 0} />
 					{graph.live.size} {f.step.running}
 				</Badge>
 			}

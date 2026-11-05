@@ -12,6 +12,8 @@ import { Button } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import { ChartBarIcon, CpuChipIcon } from "@/ui/icons";
+import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
@@ -21,6 +23,7 @@ import { Assignments } from "./assignments";
 import { ChainWatch } from "./chain-watch";
 import { DeliveryNotes } from "./delivery-notes";
 import { withProject } from "./project-gate";
+import { Elapsed } from "./quality-live";
 import { useRun } from "./use-run";
 
 const RATING: Record<string, Status> = {
@@ -126,15 +129,31 @@ function Report({ entry }: { entry: ImpactEntry }) {
 function ImpactsView() {
 	const { t } = useI18n();
 	const i18n = t.forge.impacts;
-	const refs = useImpactRefs().data;
+	const refsQuery = useImpactRefs();
+	const refs = refsQuery.data;
 	const list = useImpacts().data ?? [];
 	const { analyze } = useForgeActions();
-	const { error, run } = useRun();
+	const { error, busy, run } = useRun();
 	const [base, setBase] = useState<string | null>(null);
 	const [path, setPath] = useState<string | null>(null);
-	if (!refs) return <PageHeader icon={<ChartBarIcon size={16} />} title={t.tabs.code.impacts} />;
+	const [since, setSince] = useState(0);
+	if (!refs)
+		return (
+			<>
+				<PageHeader icon={<ChartBarIcon size={16} />} title={t.tabs.code.impacts} />
+				<ErrorNotice error={refsQuery.error} className="px-4 py-2" />
+			</>
+		);
 	const current = base ?? refs.default;
-	const entry = list.find((e) => e.plan === path);
+	// The newest report shows until the person picks another.
+	const entry = list.find((e) => e.plan === path) ?? list[0];
+	const analyzeNow = () => {
+		setSince(Date.now());
+		void run(async () => {
+			const out = await analyze(current);
+			setPath(out.plan);
+		});
+	};
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
 			<PageHeader
@@ -150,18 +169,13 @@ function ImpactsView() {
 							onValueChange={setBase}
 							className="min-w-32"
 						/>
-						<Button
-							variant="primary"
-							onClick={() =>
-								void run(async () => {
-									const out = await analyze(current);
-									setPath(out.plan);
-								})
-							}
-						>
-							<CpuChipIcon size={14} />
-							{i18n.analyze}
-						</Button>
+						{busy ? <Elapsed since={since} /> : null}
+						{entry ? (
+							<Button variant="primary" busy={busy} onClick={analyzeNow}>
+								{busy ? null : <CpuChipIcon size={14} />}
+								{busy ? i18n.analyzing : i18n.analyze}
+							</Button>
+						) : null}
 					</span>
 				}
 			/>
@@ -175,34 +189,46 @@ function ImpactsView() {
 					<div className="flex shrink-0 flex-col gap-3 overflow-y-auto">
 						<ChainWatch base={current} />
 						<DeliveryNotes />
-						<Panel
-							title={i18n.past}
-							count={list.length}
-							flush
-							className="shrink-0"
-							bodyClassName="py-1"
-						>
-							{list.length === 0 ? (
-								<p className="px-3 py-2 text-ui text-n-11">{i18n.noPast}</p>
-							) : null}
-							{list.map((e) => (
-								<button
-									key={e.plan}
-									type="button"
-									aria-current={e.plan === path || undefined}
-									onClick={() => setPath(e.plan)}
-									className="flex min-h-row w-full items-center gap-2 px-3 text-left text-ui hover:bg-n-3 aria-[current]:bg-accent-soft"
-								>
-									<span className="font-mono text-12 text-n-11">{e.date}</span>
-									{e.slug}
-								</button>
-							))}
-						</Panel>
+						{list.length > 0 ? (
+							<Panel
+								title={i18n.past}
+								count={list.length}
+								flush
+								className="shrink-0"
+								bodyClassName="py-1"
+							>
+								{list.map((e) => (
+									<button
+										key={e.plan}
+										type="button"
+										aria-current={e.plan === entry?.plan || undefined}
+										onClick={() => setPath(e.plan)}
+										className="flex min-h-row w-full items-center gap-2 px-3 text-left text-ui hover:bg-n-3 aria-[current]:bg-accent-soft"
+									>
+										<span className="font-mono text-12 text-n-11">{e.date}</span>
+										{e.slug}
+									</button>
+								))}
+							</Panel>
+						) : null}
 						<Assignments />
 					</div>
 				</SplitPane>
 				<div className="min-w-0 flex-1 overflow-auto rounded-lg border bg-surface-1 shadow-1">
-					{entry ? <Report entry={entry} /> : null}
+					{entry ? (
+						<Report entry={entry} />
+					) : (
+						<EmptyState
+							icon={<ChartBarIcon size={28} />}
+							title={i18n.noPast}
+							action={{
+								label: i18n.analyze,
+								icon: <CpuChipIcon size={14} />,
+								onClick: analyzeNow,
+								busy,
+							}}
+						/>
+					)}
 				</div>
 			</div>
 		</div>

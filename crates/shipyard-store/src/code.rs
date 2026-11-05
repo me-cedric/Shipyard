@@ -61,7 +61,7 @@ pub struct QualityReport {
     pub findings: Vec<ScanFinding>,
 }
 
-fn scrub(text: &str, secrets: &[&str]) -> String {
+pub fn scrub(text: &str, secrets: &[&str]) -> String {
     secrets
         .iter()
         .filter(|s| s.len() >= 4)
@@ -76,7 +76,7 @@ pub fn encode_quality(r: &QualityReport, secrets: &[&str]) -> Result<String> {
         f.message = scrub(&f.message, secrets);
         f.path = scrub(&f.path, secrets);
     }
-    Ok(serde_norway::to_string(&r)?)
+    Ok(crate::yaml::to_string(&r)?)
 }
 
 pub fn decode_quality(text: &str) -> Result<QualityReport> {

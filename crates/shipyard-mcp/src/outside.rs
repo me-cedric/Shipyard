@@ -66,7 +66,7 @@ impl Outside {
 }
 
 /// The tool names. One group each.
-pub const NAMES: [&str; 17] = [
+pub const NAMES: [&str; 20] = [
     "project_list_files",
     "project_read_file",
     "project_write_file",
@@ -84,10 +84,13 @@ pub const NAMES: [&str; 17] = [
     "adr_propose",
     "qa_run_check",
     "qa_read_report",
+    "docs_stale",
+    "spec_validate",
+    "qa_run_scanner",
 ];
 
 /// The tools that change nothing: the "read only" preset of the allow list.
-pub const READ_ONLY: [&str; 12] = [
+pub const READ_ONLY: [&str; 14] = [
     "project_list_files",
     "project_read_file",
     "git_status",
@@ -100,11 +103,14 @@ pub const READ_ONLY: [&str; 12] = [
     "adr_list",
     "adr_read",
     "qa_read_report",
+    "docs_stale",
+    "spec_validate",
 ];
 
 const MAX_READ: u64 = 256 * 1024;
 const MAX_OUT: usize = 128 * 1024;
-const CHECK_DEADLINE: Duration = Duration::from_secs(180);
+const CHECK_DEFAULT_SECS: u64 = 900;
+const CHECK_MAX_SECS: u64 = 3600;
 
 fn group(name: &str, s: &Switches) -> bool {
     match name {
@@ -112,11 +118,11 @@ fn group(name: &str, s: &Switches) -> bool {
         "project_write_file" => s.writes,
         "git_status" | "git_log" | "git_diff" => s.git,
         "forge_remote" => s.forge,
-        "run_check" => s.exec,
+        "run_check" | "qa_run_check" => s.exec,
         "delivery_diff" => s.delivery,
         "ticket_list" | "ticket_read" | "ticket_comment" => s.tickets,
         "adr_list" | "adr_read" | "adr_propose" => s.adrs,
-        "qa_run_check" | "qa_read_report" => s.qa,
+        "qa_read_report" | "docs_stale" | "spec_validate" | "qa_run_scanner" => s.qa,
         _ => false,
     }
 }
@@ -131,6 +137,13 @@ fn tool(name: &str, description: &str, props: Value, required: &[&str]) -> Value
         "name": name,
         "description": description,
         "inputSchema": { "type": "object", "properties": props, "required": required, "additionalProperties": false }
+    })
+}
+
+fn check_props() -> Value {
+    json!({
+        "name": { "type": "string", "enum": ["test", "lint", "typecheck"] },
+        "timeout_secs": { "type": "integer", "minimum": 10, "maximum": CHECK_MAX_SECS }
     })
 }
 
@@ -182,9 +195,9 @@ pub fn definitions(o: &Outside) -> Vec<Value> {
         ),
         tool(
             "run_check",
-            "Run the tests, the linter or the type check of the open project.",
-            json!({ "name": { "type": "string", "enum": ["test", "lint", "typecheck"] } }),
-            &["name"],
+            "Run the gates of the open project (`.shipyard/project.yaml`), or the one that name picks. Without gates, name is required.",
+            check_props(),
+            &[],
         ),
         tool(
             "delivery_diff",
@@ -230,15 +243,33 @@ pub fn definitions(o: &Outside) -> Vec<Value> {
         ),
         tool(
             "qa_run_check",
-            "Run the tests, the linter or the type check and keep the report.",
-            json!({ "name": { "type": "string", "enum": ["test", "lint", "typecheck"] } }),
-            &["name"],
+            "Run the gates of the open project, or the one that name picks, and keep the report. Without gates, name is required.",
+            check_props(),
+            &[],
         ),
         tool(
             "qa_read_report",
             "Read the last quality reports of the open project.",
             json!({}),
             &[],
+        ),
+        tool(
+            "docs_stale",
+            "List the docs of the branch that did not follow the code, against the base branch.",
+            json!({}),
+            &[],
+        ),
+        tool(
+            "spec_validate",
+            "Validate one OpenSpec change in strict mode.",
+            json!({ "id": { "type": "string" } }),
+            &["id"],
+        ),
+        tool(
+            "qa_run_scanner",
+            "Run one scanner (secrets, dependencies, code or skills) and keep the report.",
+            json!({ "name": { "type": "string", "enum": ["secrets", "dependencies", "code", "skills"] } }),
+            &["name"],
         ),
     ];
     all.into_iter()
@@ -406,32 +437,63 @@ pub fn read_resource(o: &Outside, uri: &str, path: &str) -> Result<Value, String
     Ok(json!({ "contents": [{ "uri": uri, "mimeType": "text/plain", "text": body }] }))
 }
 
-fn drain(p: Option<impl Read + Send + 'static>) -> std::thread::JoinHandle<String> {
+fn drain(p: Option<impl Read + Send + 'static>, tail: bool) -> std::thread::JoinHandle<String> {
     std::thread::spawn(move || {
-        let mut s = String::new();
-        if let Some(p) = p {
+        let Some(mut p) = p else { return String::new() };
+        if !tail {
+            let mut s = String::new();
             let _ = p.take(MAX_OUT as u64).read_to_string(&mut s);
+            return s;
         }
-        s
+        // A check keeps its last bytes: the verdict is at the end. The pipe is read to its end,
+        // so the child never blocks on a full pipe.
+        let (mut buf, mut chunk) = (Vec::new(), [0u8; 8192]);
+        while let Ok(n) = p.read(&mut chunk) {
+            if n == 0 {
+                break;
+            }
+            buf.extend_from_slice(&chunk[..n]);
+            if buf.len() > MAX_OUT * 2 {
+                buf.drain(..buf.len() - MAX_OUT);
+            }
+        }
+        buf.drain(..buf.len().saturating_sub(MAX_OUT));
+        String::from_utf8_lossy(&buf).into_owned()
     })
 }
 
-fn run(root: &Path, program: &str, args: &[&str], deadline: Duration) -> Result<String, String> {
-    let mut child = Command::new(program)
-        .args(args)
+/// Run a program. `Ok` is (success, output): `Err` means it did not start or ran too long. The
+/// program leads its own process group, so a stop kills its children too. `tail` keeps the end of
+/// the output, with stderr first.
+fn exec(
+    root: &Path,
+    program: &str,
+    args: &[&str],
+    deadline: Duration,
+    tail: bool,
+) -> Result<(bool, String), String> {
+    let mut cmd = Command::new(program);
+    cmd.args(args)
         .current_dir(root)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("{program}: {e}"))?;
-    let (o, e) = (drain(child.stdout.take()), drain(child.stderr.take()));
+        .stderr(Stdio::piped());
+    #[cfg(unix)]
+    std::os::unix::process::CommandExt::process_group(&mut cmd, 0);
+    let mut child = cmd.spawn().map_err(|e| format!("{program}: {e}"))?;
+    let (o, e) = (
+        drain(child.stdout.take(), tail),
+        drain(child.stderr.take(), tail),
+    );
     let start = Instant::now();
     let status = loop {
         if let Some(s) = child.try_wait().map_err(|e| e.to_string())? {
+            // The shell ended. A child that it left holds the pipes open: kill the group.
+            shipyard_agents::runner::kill_group(child.id());
             break s;
         }
         if start.elapsed() > deadline {
+            shipyard_agents::runner::kill_group(child.id());
             let _ = child.kill();
             let _ = child.wait();
             return Err(format!(
@@ -442,11 +504,20 @@ fn run(root: &Path, program: &str, args: &[&str], deadline: Duration) -> Result<
         std::thread::sleep(Duration::from_millis(50));
     };
     let (o, e) = (o.join().unwrap_or_default(), e.join().unwrap_or_default());
-    let text = if o.is_empty() { e } else { o };
-    if status.success() {
-        Ok(text)
+    let text = if tail {
+        format!("{e}\n{o}")
+    } else if o.is_empty() {
+        e
     } else {
-        Err(format!("{program} failed: {}", text.trim()))
+        o
+    };
+    Ok((status.success(), text))
+}
+
+fn run(root: &Path, program: &str, args: &[&str], deadline: Duration) -> Result<String, String> {
+    match exec(root, program, args, deadline, false)? {
+        (true, text) => Ok(text),
+        (false, text) => Err(format!("{program} failed: {}", text.trim())),
     }
 }
 
@@ -467,6 +538,78 @@ fn check_command(root: &Path, name: &str) -> Result<(&'static str, Vec<&'static 
         ("typecheck", false, true) => ("cargo", vec!["check"]),
         _ => return Err(format!("no {name} command for this project")),
     })
+}
+
+/// The gates of the project file. Empty when the file is missing, not valid or has no gates.
+fn gates(root: &Path) -> Vec<String> {
+    match shipyard_store::project::read_project_file(root) {
+        Ok(shipyard_store::project::FileRead::Valid(f)) => f.gates,
+        _ => Vec::new(),
+    }
+}
+
+/// The commands of a check. The project file names them, never the agent: the `gates` (those that
+/// match `name`, or all when `name` is absent), else the one command that the files of the project
+/// show.
+fn check_commands(root: &Path, name: Option<&str>) -> Result<Vec<String>, String> {
+    let all = gates(root);
+    if all.is_empty() {
+        let (program, a) = check_command(root, name.ok_or("name is required")?)?;
+        return Ok(vec![format!("{program} {}", a.join(" "))]);
+    }
+    let Some(name) = name else { return Ok(all) };
+    let words: &[&str] = match name {
+        "test" => &["test"],
+        "lint" => &["lint", "clippy", "fmt"],
+        "typecheck" => &["typecheck", "tsc"],
+        _ => return Err(format!("no {name} command for this project")),
+    };
+    let picked: Vec<String> = all
+        .iter()
+        .filter(|g| words.iter().any(|w| g.contains(w)))
+        .cloned()
+        .collect();
+    if picked.is_empty() {
+        return Err(format!(
+            "no gate matches {name}. The gates are: {}",
+            all.join("; ")
+        ));
+    }
+    Ok(picked)
+}
+
+/// The time that a check call may use: `timeout_secs`, from 10 s to 1 h, default 900 s.
+fn check_limit(args: &Value) -> Duration {
+    let secs = args.get("timeout_secs").and_then(Value::as_u64);
+    Duration::from_secs(secs.unwrap_or(CHECK_DEFAULT_SECS).clamp(10, CHECK_MAX_SECS))
+}
+
+/// Run the commands one after the other, as the gates of the app run: `sh -c` in the project
+/// folder. The time limit covers the whole call. Returns (all passed, the last lines of each).
+fn run_gates(root: &Path, commands: &[String], limit: Duration) -> (bool, String) {
+    let (sh, flag) = if cfg!(windows) {
+        ("cmd", "/C")
+    } else {
+        ("sh", "-c")
+    };
+    let start = Instant::now();
+    let (mut passed, mut out) = (true, Vec::new());
+    for c in commands {
+        let left = limit.saturating_sub(start.elapsed());
+        let (ok, text) = if left.is_zero() {
+            (false, "not run: the time limit ended".into())
+        } else {
+            exec(root, sh, &[flag, c], left, true).unwrap_or_else(|e| (false, e))
+        };
+        passed &= ok;
+        let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
+        let tail = lines[lines.len().saturating_sub(40)..].join("\n");
+        out.push(format!(
+            "{} {c}\n{tail}",
+            if ok { "passed" } else { "failed" }
+        ));
+    }
+    (passed, out.join("\n"))
 }
 
 fn project_file(root: &Path) -> shipyard_core::project::ProjectFile {
@@ -518,17 +661,11 @@ fn adr(root: &Path, name: &str, args: &Value) -> Result<String, String> {
 }
 
 /// Run a check and keep its report, as the Code page does. The output stays here as its last lines.
-fn qa_run(root: &Path, name: &str) -> Result<String, String> {
+fn qa_run(root: &Path, args: &Value) -> Result<String, String> {
     use shipyard_store::code::{QualityReport, ReportKind};
-    let (program, a) = check_command(root, name)?;
+    let commands = check_commands(root, arg(args, "name"))?;
     let start = Instant::now();
-    let out = run(root, program, &a, CHECK_DEADLINE);
-    let (passed, text) = match out {
-        Ok(t) => (true, t),
-        Err(e) => (false, e),
-    };
-    let lines: Vec<&str> = text.lines().collect();
-    let tail = lines[lines.len().saturating_sub(40)..].join("\n");
+    let (passed, tail) = run_gates(root, &commands, check_limit(args));
     let at = {
         let secs = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -540,7 +677,7 @@ fn qa_run(root: &Path, name: &str) -> Result<String, String> {
     };
     let report = QualityReport {
         kind: ReportKind::Check,
-        name: format!("{program} {}", a.join(" ")),
+        name: commands.join(" && "),
         at,
         passed,
         duration_ms: start.elapsed().as_millis().min(u128::from(u32::MAX)) as u32,
@@ -554,6 +691,33 @@ fn qa_run(root: &Path, name: &str) -> Result<String, String> {
     ))
 }
 
+/// The tools that the app answers: it holds the state that they need.
+fn app_tool(o: &Outside, name: &str, args: &Value) -> Result<String, String> {
+    let port = o
+        .tickets
+        .as_ref()
+        .ok_or("the app is not wired to this server")?;
+    (port.0)(name, args)
+}
+
+/// Strict validation of one change of the project.
+fn spec_validate(root: &Path, args: &Value) -> Result<String, String> {
+    let id = arg(args, "id").ok_or("id is required")?;
+    let dir = inside(root, project_file(root).path("specs"))?;
+    let found = shipyard_store::openspec_validate::run(&dir, id);
+    if found.is_empty() {
+        return Ok(format!("{id}: valid"));
+    }
+    Ok(found
+        .iter()
+        .map(|f| {
+            let at = f.line.map_or(f.path.clone(), |l| format!("{}:{l}", f.path));
+            format!("{} {} {at} {}", f.level, f.artifact, f.message)
+        })
+        .collect::<Vec<_>>()
+        .join("\n"))
+}
+
 /// Run one tool. `Err` is a message for the agent. A switch that is off refuses the call.
 pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
     if !NAMES.contains(&name) {
@@ -564,7 +728,12 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
     }
     let writes = matches!(
         name,
-        "project_write_file" | "run_check" | "ticket_comment" | "adr_propose" | "qa_run_check"
+        "project_write_file"
+            | "run_check"
+            | "ticket_comment"
+            | "adr_propose"
+            | "qa_run_check"
+            | "qa_run_scanner"
     );
     if o.read_only && writes {
         return Err("the profile of this project is read only".into());
@@ -595,6 +764,15 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
         }
         "project_write_file" => {
             let path = inside(root, arg(args, "path").ok_or("path is required")?)?;
+            // The gates live here: an agent that runs them must not edit them.
+            if path
+                .strip_prefix(root)
+                .ok()
+                .and_then(|p| p.components().next())
+                .is_some_and(|c| c.as_os_str().eq_ignore_ascii_case(".shipyard"))
+            {
+                return Err("the .shipyard folder is not writable by an agent".into());
+            }
             let body = arg(args, "text").ok_or("text is required")?;
             if body.len() as u64 > MAX_READ {
                 return Err(format!("text is larger than {MAX_READ} bytes"));
@@ -637,8 +815,11 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
             Duration::from_secs(20),
         )?,
         "run_check" => {
-            let (program, a) = check_command(root, arg(args, "name").ok_or("name is required")?)?;
-            run(root, program, &a, CHECK_DEADLINE)?
+            let commands = check_commands(root, arg(args, "name"))?;
+            match run_gates(root, &commands, check_limit(args)) {
+                (true, text) => text,
+                (false, text) => return Err(text),
+            }
         }
         "ticket_list" | "ticket_read" | "ticket_comment" => {
             if name == "ticket_comment" && arg(args, "body").is_none_or(|b| b.trim().is_empty()) {
@@ -651,7 +832,17 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
             (port.0)(name, args)?
         }
         "adr_list" | "adr_read" | "adr_propose" => adr(root, name, args)?,
-        "qa_run_check" => qa_run(root, arg(args, "name").ok_or("name is required")?)?,
+        "qa_run_check" => qa_run(root, args)?,
+        "docs_stale" => app_tool(o, name, args)?,
+        "qa_run_scanner" => {
+            if !["secrets", "dependencies", "code", "skills"]
+                .contains(&arg(args, "name").ok_or("name is required")?)
+            {
+                return Err("name is not a scanner".into());
+            }
+            app_tool(o, name, args)?
+        }
+        "spec_validate" => spec_validate(root, args)?,
         "qa_read_report" => {
             let all = shipyard_store::code::list_quality(root);
             serde_json::to_string_pretty(&all).map_err(|e| e.to_string())?
@@ -782,6 +973,50 @@ mod tests {
     }
 
     #[test]
+    fn the_shipyard_folder_is_not_writable() {
+        let dir = tempfile::tempdir().unwrap();
+        let o = open(dir.path(), all());
+        for bad in [
+            ".shipyard/project.yaml",
+            ".shipyard/roles/a.md",
+            ".Shipyard/x",
+        ] {
+            let w = json!({ "path": bad, "text": "gates: []" });
+            assert!(call(&o, "project_write_file", &w).is_err(), "{bad}");
+        }
+        assert!(!dir.path().join(".shipyard").exists());
+    }
+
+    #[test]
+    fn a_check_needs_the_exec_switch_not_the_qa_switch() {
+        let dir = tempfile::tempdir().unwrap();
+        let o = open(
+            dir.path(),
+            Switches {
+                qa: true,
+                ..Switches::default()
+            },
+        );
+        assert!(
+            call(&o, "qa_run_check", &json!({ "name": "test" }))
+                .unwrap_err()
+                .contains("turned off")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_gate_that_leaves_a_child_does_not_hang() {
+        let dir = tempfile::tempdir().unwrap();
+        with_gates(dir.path(), &["sleep 30 & echo done"]);
+        let o = open(dir.path(), all());
+        let start = Instant::now();
+        let got = call(&o, "run_check", &json!({})).unwrap();
+        assert!(start.elapsed() < Duration::from_secs(10));
+        assert!(got["content"][0]["text"].as_str().unwrap().contains("done"));
+    }
+
+    #[test]
     fn write_then_read_inside_the_project() {
         let dir = tempfile::tempdir().unwrap();
         let o = open(dir.path(), all());
@@ -881,5 +1116,87 @@ mod tests {
         std::os::unix::fs::symlink(&outside, &adr).unwrap();
         let err = call(&o, "adr_read", &json!({ "number": "0001" })).unwrap_err();
         assert!(err.contains("leaves the project"), "{err}");
+    }
+
+    fn with_gates(dir: &Path, gates: &[&str]) {
+        std::fs::create_dir_all(dir.join(".shipyard")).unwrap();
+        let list: String = gates.iter().map(|g| format!("  - {g}\n")).collect();
+        let text = format!("name: X\nkey: X\ngates:\n{list}");
+        std::fs::write(dir.join(".shipyard/project.yaml"), text).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_check_runs_the_gates_of_the_project_file() {
+        let dir = tempfile::tempdir().unwrap();
+        with_gates(dir.path(), &["echo test-one", "echo lint-two"]);
+        let o = open(dir.path(), all());
+        let text = |r: Result<Value, String>| r.unwrap()["content"][0]["text"].to_string();
+        let both = text(call(&o, "run_check", &json!({})));
+        assert!(
+            both.contains("test-one") && both.contains("lint-two"),
+            "{both}"
+        );
+        // `name` picks the gates that match it.
+        let one = text(call(&o, "run_check", &json!({ "name": "lint" })));
+        assert!(
+            one.contains("lint-two") && !one.contains("test-one"),
+            "{one}"
+        );
+        assert!(call(&o, "run_check", &json!({ "name": "typecheck" })).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_red_gate_fails_the_check_and_the_report_is_kept() {
+        let dir = tempfile::tempdir().unwrap();
+        with_gates(dir.path(), &["echo test-bad && exit 3"]);
+        let o = open(dir.path(), all());
+        let err = call(&o, "run_check", &json!({})).unwrap_err();
+        assert!(
+            err.starts_with("failed") && err.contains("test-bad"),
+            "{err}"
+        );
+        let got = call(&o, "qa_run_check", &json!({ "name": "test" })).unwrap();
+        assert!(
+            got["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .starts_with("failed")
+        );
+        let all = shipyard_store::code::list_quality(dir.path());
+        assert!(!all[0].passed);
+    }
+
+    #[test]
+    fn the_check_time_limit_has_bounds() {
+        let secs = |v: Value| check_limit(&v).as_secs();
+        assert_eq!(secs(json!({})), 900);
+        assert_eq!(secs(json!({ "timeout_secs": 1 })), 10);
+        assert_eq!(secs(json!({ "timeout_secs": 999_999 })), 3600);
+    }
+
+    #[test]
+    fn the_quality_tools_for_docs_specs_and_scanners() {
+        let dir = tempfile::tempdir().unwrap();
+        let o = open(dir.path(), all());
+        // The app answers `docs_stale` and `qa_run_scanner` (here a stub).
+        let got = call(&o, "docs_stale", &json!({})).unwrap();
+        assert_eq!(got["content"][0]["text"], "ran docs_stale");
+        assert!(call(&o, "qa_run_scanner", &json!({ "name": "rm" })).is_err());
+        assert!(call(&o, "qa_run_scanner", &json!({ "name": "secrets" })).is_ok());
+        let bad = call(&o, "spec_validate", &json!({ "id": "../x" })).unwrap();
+        assert!(
+            bad["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("invalid change id")
+        );
+        // A read-only project refuses the scanner, not the two reads.
+        let mut ro = open(dir.path(), all());
+        ro.read_only = true;
+        assert!(call(&ro, "qa_run_scanner", &json!({ "name": "secrets" })).is_err());
+        assert!(call(&ro, "docs_stale", &json!({})).is_ok());
+        assert!(READ_ONLY.contains(&"spec_validate") && !READ_ONLY.contains(&"qa_run_scanner"));
     }
 }

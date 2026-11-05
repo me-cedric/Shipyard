@@ -28,6 +28,8 @@ export function DoctorBootstrap() {
 	const [a, setA] = useState<BootstrapAnswers>(EMPTY);
 	const [note, setNote] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	// The step in progress, "create" or a tool id: a second click waits for it.
+	const [working, setWorking] = useState<string | null>(null);
 	const ready = a.name.trim() !== "" && a.key.trim() !== "";
 	const plan = useQuery({
 		queryKey: ["doctor", "bootstrap", a],
@@ -37,6 +39,7 @@ export function DoctorBootstrap() {
 	});
 	const create = async () => {
 		setError(null);
+		setWorking("create");
 		try {
 			const done = await unwrap(commands.doctorBootstrapApply(a, true));
 			setNote(format(d.created, { count: String(done.length) }));
@@ -44,15 +47,20 @@ export function DoctorBootstrap() {
 			await qc.invalidateQueries();
 		} catch (e) {
 			setError(message(e));
+		} finally {
+			setWorking(null);
 		}
 	};
 	const install = async (id: string) => {
 		setError(null);
+		setWorking(id);
 		try {
 			qc.setQueryData(toolsKey, await unwrap(commands.doctorToolInstall(id, true)));
 			await qc.invalidateQueries({ queryKey: ["doctor", "bootstrap"] });
 		} catch (e) {
 			setError(message(e));
+		} finally {
+			setWorking(null);
 		}
 	};
 	const set = (patch: Partial<BootstrapAnswers>) => {
@@ -122,7 +130,12 @@ export function DoctorBootstrap() {
 									/>
 									{x.id}
 									{!x.installed && x.canInstall ? (
-										<Button variant="secondary" onClick={() => void install(x.id)}>
+										<Button
+											variant="secondary"
+											busy={working === x.id}
+											disabled={working !== null}
+											onClick={() => void install(x.id)}
+										>
 											<ArrowDownTrayIcon size={14} />
 											{format(t.settings.tools.install, { name: x.id })}
 										</Button>
@@ -135,7 +148,8 @@ export function DoctorBootstrap() {
 				<div className="flex items-center gap-3">
 					<Button
 						variant="primary"
-						disabled={!shown?.files.some((f) => f.state === "new")}
+						busy={working === "create"}
+						disabled={!shown?.files.some((f) => f.state === "new") || working !== null}
 						onClick={() => void create()}
 					>
 						<PlusIcon size={14} />

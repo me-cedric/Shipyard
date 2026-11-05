@@ -16,6 +16,8 @@ import { Button } from "@/ui/atoms/button";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { Progress } from "@/ui/atoms/progress";
 import { Select } from "@/ui/atoms/select";
+import { Skeleton } from "@/ui/atoms/skeleton";
+import { ConfirmButton } from "@/ui/molecules/confirm-button";
 
 /** The menu bar icon shows a dot while something needs the person. The main window sends the count. */
 export function useTrayBadge() {
@@ -46,7 +48,9 @@ export function TrayView() {
 	const { error, run } = useGuard();
 	// The spend of every AI tool on this computer, as Factory / Usage shows it: Shipyard runs are in it too.
 	const spend = useMachineSpend(31);
-	const rows = spend.partial?.rows ?? spend.data?.rows ?? [];
+	// The result stays while a new read runs: the amount never drops and counts up again.
+	const scanned = spend.data ?? spend.partial;
+	const rows = scanned?.rows ?? [];
 	const monthBudget = spend.data?.budgets.find((b) => b.runner === "*")?.usd ?? null;
 	const projects = useProjects().data ?? [];
 	const active = useActiveProject().data;
@@ -167,11 +171,19 @@ export function TrayView() {
 				<div className="flex items-end justify-between gap-3">
 					<div className="flex flex-col">
 						<span className="text-12 text-n-11">{t.ui.spendToday}</span>
-						<span className="text-20 font-semibold tabular-nums">{money.format(todayUsd)}</span>
+						{scanned ? (
+							<span className="text-20 font-semibold tabular-nums">{money.format(todayUsd)}</span>
+						) : (
+							<Skeleton className="h-7 w-20" />
+						)}
 					</div>
 					<div className="flex items-baseline gap-1.5">
 						<span className="text-12 text-n-11">{u.month}</span>
-						<span className="text-ui tabular-nums">{money.format(month)}</span>
+						{scanned ? (
+							<span className="text-ui tabular-nums">{money.format(month)}</span>
+						) : (
+							<Skeleton className="h-5 w-12" />
+						)}
 					</div>
 				</div>
 				<div aria-hidden="true" className="flex h-10 items-end gap-1">
@@ -197,9 +209,13 @@ export function TrayView() {
 							<span className="truncate">
 								{r.key} {t.factory.lane[r.lane]}
 							</span>
-							<Button variant="ghost" onClick={() => void run(() => cancel(r.id))}>
+							<ConfirmButton
+								variant="ghost"
+								confirm={format(t.factory.machine.confirmStop, { name: r.key })}
+								onConfirm={() => void run(() => cancel(r.id))}
+							>
 								{format(t.factory.machine.stop, { name: r.key })}
-							</Button>
+							</ConfirmButton>
 						</div>
 					))}
 				</section>

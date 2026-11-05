@@ -296,7 +296,7 @@ pub fn parse_theme(text: &str) -> Result<Loaded<DeckTheme>> {
 }
 
 pub fn theme_text(t: &DeckTheme) -> Result<String> {
-    Ok(serde_norway::to_string(&DeckTheme {
+    Ok(crate::yaml::to_string(&DeckTheme {
         version: VERSION,
         ..t.clone()
     })?)
@@ -365,7 +365,7 @@ pub fn dashboard_text(d: &Dashboard) -> Result<String> {
             return Err(format!("tile id used twice: {}", t.id).into());
         }
     }
-    Ok(serde_norway::to_string(&Dashboard {
+    Ok(crate::yaml::to_string(&Dashboard {
         version: VERSION,
         ..d.clone()
     })?)

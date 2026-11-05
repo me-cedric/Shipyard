@@ -71,7 +71,7 @@ pub fn render_project_file(f: &ProjectFile) -> Result<String> {
     if let Value::Mapping(m) = &mut v {
         m.retain(|_, x| !x.is_null() && !matches!(x, Value::Sequence(s) if s.is_empty()));
     }
-    Ok(serde_norway::to_string(&v)?)
+    Ok(crate::yaml::to_string(&v)?)
 }
 
 /// Writes the file after validation. An invalid file is never written.

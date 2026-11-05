@@ -268,9 +268,10 @@ mod tests {
         );
         let ids = add_all(
             &agents,
-            r#"{"mcpServers":{
-                "git":{"command":"uvx","args":["mcp-server-git"],"env":{"GIT_TOKEN":"s3cret-value"}},
-                "web":{"url":"https://x.dev/mcp","headers":{"Authorization":"Bearer hdr-secret"}}}}"#,
+            concat!(
+                r#"{"mcpServers":{"git":{"command":"uvx","args":["mcp-server-git"],"env":{"GIT_TOKEN":"s3cret-value"}},"#, // shipyard:allow-secret
+                r#""web":{"url":"https://x.dev/mcp","headers":{"Authorization":"Bearer hdr-secret"}}}}"#,
+            ),
         )
         .unwrap();
         assert_eq!(ids.len(), 2);

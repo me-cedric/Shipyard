@@ -41,6 +41,7 @@ pub mod safe_write;
 pub mod seal;
 pub mod threads;
 pub mod work;
+pub mod yaml;
 
 /// One error type for the stores. The callers show its text.
 pub type Error = Box<dyn std::error::Error + Send + Sync>;

@@ -389,7 +389,7 @@ pub fn write_flows(rows: &[FlowRow], old: &str) -> Result<String, String> {
     if extra || old.lines().any(|l| l.trim_start().starts_with('#')) {
         return Err("the file holds content that a save would drop".into());
     }
-    serde_norway::to_string(&FlowFile {
+    crate::yaml::to_string(&FlowFile {
         rows: rows.to_vec(),
     })
     .map_err(|e| e.to_string())

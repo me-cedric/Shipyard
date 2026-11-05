@@ -15,6 +15,32 @@ vi.mock("./use-file", () => ({
 	}),
 }));
 
+vi.mock("@xterm/xterm", () => ({
+	Terminal: class {
+		cols = 80;
+		rows = 24;
+		loadAddon() {}
+		registerLinkProvider() {
+			return { dispose() {} };
+		}
+		open() {}
+		focus() {}
+		write() {}
+		onData() {
+			return { dispose() {} };
+		}
+		onResize() {
+			return { dispose() {} };
+		}
+		dispose() {}
+	},
+}));
+vi.mock("@xterm/addon-fit", () => ({
+	FitAddon: class {
+		fit() {}
+	},
+}));
+
 const open = () => unwrap(commands.projectsOpen("/mock/alpha", false));
 const group = (name: string) => screen.findByRole("region", { name });
 
@@ -168,5 +194,54 @@ describe("Code / Quality", () => {
 		cleanup();
 		mountApp("/code/quality");
 		expect(await within(await group("Checks")).findByText(/2 stale docs/)).toBeInTheDocument();
+	});
+
+	it("explains a check and a scanner in an info popover", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/code/quality");
+		await user.click(await screen.findByRole("button", { name: "About Lint" }));
+		expect(await screen.findByText(/Biome/)).toBeInTheDocument();
+		await user.keyboard("{Escape}");
+		await user.click(screen.getByRole("button", { name: "About secrets" }));
+		expect(await screen.findByText(/shipyard:allow-secret/)).toBeInTheDocument();
+	});
+
+	it("shows Running, a counting time and the output lines, and keeps Run off until the end", async () => {
+		const user = userEvent.setup();
+		let end: (r: unknown) => void = () => {};
+		const real = commands.codeCheckRun;
+		vi.spyOn(commands, "codeCheckRun").mockImplementation((c, k) =>
+			new Promise((resolve) => (end = (r) => resolve(r as never))).then(() => real(c, k)),
+		);
+		await open();
+		mountApp("/code/quality");
+		await user.click(await screen.findByRole("button", { name: "Run Lint" }));
+		await user.click(screen.getByRole("button", { name: "Run Lint (pnpm run lint)?" }));
+		const checks = await group("Checks");
+		expect(await within(checks).findByRole("img", { name: "Running" })).toBeInTheDocument();
+		expect(within(checks).getByText(/^00:0\d$/)).toBeInTheDocument();
+		expect(within(checks).getByRole("button", { name: "Run Lint" })).toBeDisabled();
+		end(null);
+		await waitFor(() => expect(within(checks).queryByRole("img", { name: "Running" })).toBeNull());
+		expect(within(checks).getByRole("button", { name: "Run Lint" })).toBeEnabled();
+		vi.restoreAllMocks();
+	});
+
+	it("opens the command of a check or a scanner in the terminal, and not of a built-in check", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/code/quality");
+		const write = vi.spyOn(commands, "terminalWrite");
+		await user.click(await screen.findByRole("button", { name: "Open Lint in terminal" }));
+		await waitFor(() => expect(write).toHaveBeenCalledWith(expect.any(String), "pnpm run lint\r"));
+		write.mockRestore();
+		expect(screen.queryByRole("button", { name: "Open secrets in terminal" })).toBeNull();
+		expect(
+			screen.getByRole("button", { name: "Open dependencies in terminal" }),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: /Open (Verify all docs|Docs) in terminal/ }),
+		).toBeNull();
 	});
 });

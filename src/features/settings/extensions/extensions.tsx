@@ -494,6 +494,7 @@ export function Extensions() {
 								<Button
 									variant="ghost"
 									disabled={!p.enabled || !deployTo(p.name).length}
+									reason={p.enabled ? x.plugin.deployNone : x.plugin.deployOff}
 									aria-label={format(x.plugin.deployName, { name: p.name })}
 									onClick={() =>
 										void run(async () => {

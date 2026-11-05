@@ -13,3 +13,50 @@ gates:
   - cargo fmt --all --check
   - cargo clippy --workspace --all-targets -- -D warnings
   - cargo test --workspace
+docs:
+  - name: requirements
+    code:
+      - docs/openspec/**/spec.md
+    feeds:
+      - docs/delivery/test-plans
+  - name: crates
+    code:
+      - Cargo.toml
+      - crates/*/Cargo.toml
+    feeds:
+      - docs/models/architecture.c4
+  - name: states and flows
+    code:
+      - crates/shipyard-core/src/run.rs
+      - crates/shipyard-core/src/workflow.rs
+      - crates/shipyard-core/src/delivery.rs
+      - crates/shipyard-engine/src/tick.rs
+      - crates/shipyard-app/src/sync.rs
+      - crates/shipyard-app/src/device_login.rs
+      - crates/shipyard-app/src/runner_signin.rs
+    feeds:
+      - docs/diagrams
+  - name: screens
+    code:
+      - src/features/shell/spaces.ts
+    feeds:
+      - docs/designs/screens.json
+  - name: mcp server
+    code:
+      - crates/shipyard-mcp/src/**
+    feeds:
+      - docs/api/shipyard-mcp.yaml
+  - name: tables
+    code:
+      - crates/shipyard-store/src/mirror.rs
+      - crates/shipyard-store/src/run_log.rs
+      - crates/shipyard-store/src/ref_index.rs
+    feeds:
+      - docs/data-models
+  - name: network
+    code:
+      - crates/shipyard-http/src/**
+      - crates/shipyard-trackers/src/**
+      - crates/shipyard-forges/src/**
+    feeds:
+      - docs/flows

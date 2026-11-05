@@ -3,6 +3,7 @@ import { clearMocks } from "@tauri-apps/api/mocks";
 import { configure } from "@testing-library/react";
 import { installMockIpc, resetMock } from "@/lib/ipc/mock";
 import { clearTabSelections } from "@/lib/shell/selection";
+import { settleRouters } from "./routers";
 
 // A cold first mount of the whole app can take over one second on a busy machine.
 configure({ asyncUtilTimeout: 5000 });
@@ -26,4 +27,7 @@ beforeEach(() => {
 	installMockIpc();
 	clearTabSelections();
 });
-afterEach(clearMocks);
+afterEach(async () => {
+	await settleRouters();
+	clearMocks();
+});

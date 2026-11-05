@@ -30,6 +30,9 @@ const OUTSIDE_TOOLS = [
 	"adr_propose",
 	"qa_run_check",
 	"qa_read_report",
+	"docs_stale",
+	"spec_validate",
+	"qa_run_scanner",
 ];
 
 const GROUP_OF: Record<string, keyof McpGates_Deserialize> = {
@@ -50,6 +53,9 @@ const GROUP_OF: Record<string, keyof McpGates_Deserialize> = {
 	adr_propose: "adrs",
 	qa_run_check: "qa",
 	qa_read_report: "qa",
+	docs_stale: "qa",
+	spec_validate: "qa",
+	qa_run_scanner: "qa",
 };
 
 const READ_ONLY = [
@@ -65,6 +71,8 @@ const READ_ONLY = [
 	"adr_list",
 	"adr_read",
 	"qa_read_report",
+	"docs_stale",
+	"spec_validate",
 ];
 
 type Gates = Required<McpGates_Deserialize>;

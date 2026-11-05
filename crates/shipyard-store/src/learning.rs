@@ -78,7 +78,7 @@ pub fn read(root: &Path) -> Result<Learning> {
 fn write(root: &Path, l: &Learning) -> Result<Learning> {
     write_atomic(
         &root.join(LEARNING_PATH),
-        serde_norway::to_string(l)?.as_bytes(),
+        crate::yaml::to_string(l)?.as_bytes(),
     )?;
     Ok(l.clone())
 }

@@ -94,6 +94,11 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		server_off: "This server is off. Switch it on first.",
 		input_invalid: "A value is empty or does not fit. Check the fields, then try again.",
 		tracker_unsupported: "Your issue tracker cannot do this. Use the issue tracker itself.",
+		project_file_invalid:
+			"The project file is not valid. Fix it in the project settings, then try again.",
+		doc_not_stale: "This doc is up to date. Nothing to update.",
+		git_dirty:
+			"You have changes that are not saved in a commit. Commit or stash them, then try again.",
 	},
 	fr: {
 		no_project: "Ouvrez ou créez d'abord un projet.",
@@ -193,6 +198,11 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		input_invalid: "Une valeur est vide ou ne convient pas. Vérifiez les champs, puis réessayez.",
 		tracker_unsupported:
 			"Votre outil de suivi des tickets ne peut pas faire cela. Utilisez l'outil lui-même.",
+		project_file_invalid:
+			"Le fichier du projet n'est pas valide. Corrigez-le dans les réglages du projet, puis réessayez.",
+		doc_not_stale: "Ce document est à jour. Rien à mettre à jour.",
+		git_dirty:
+			"Des modifications ne sont pas enregistrées dans un commit. Validez-les ou mettez-les de côté, puis réessayez.",
 	},
 };
 
@@ -221,6 +231,10 @@ export const actionLabels: Record<Lang, Record<ActionKind, string>> = {
 export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["no project is open", "no_project"],
 	["no active project", "no_project"],
+	["the project file is not valid", "project_file_invalid"],
+	["this doc is not stale", "doc_not_stale"],
+	["commit or stash your changes first", "git_dirty"],
+	["switch to a branch first", "git_state"],
 	["has no issue tracker connection", "no_tracker"],
 	["the tracker scope is not set", "scope_missing"],
 	["the pickup label is off", "pickup_off"],
@@ -448,6 +462,12 @@ const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {
 	connection_kind: { kind: "setting", target: "/settings/connections#connections" },
 	sign_in_failed: { kind: "setting", target: "/settings/connections#connections" },
 	git_state: { kind: "open", target: "/code/branches" },
+	figma_no_token: { kind: "open", target: "/design/screens" },
+	read_only: { kind: "open", target: "/settings/project" },
+	project_file_invalid: { kind: "open", target: "/settings/project" },
+	agents_stopped: { kind: "open", target: "/factory/runs" },
+	git_identity: { kind: "open", target: "/settings/me#me" },
+	git_dirty: { kind: "open", target: "/code/changes" },
 };
 
 /** What the mock gives to a raw text, the way `AppError::from` does in Rust. */

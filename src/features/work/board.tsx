@@ -45,20 +45,25 @@ export function Board() {
 	const days = useEstimateDays();
 	const runOf = useRunOf();
 
-	if (active === undefined || everything.isLoading) return <Loading />;
+	if (active === undefined || everything.isLoading)
+		return <Loading title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />} />;
 	if (active === null) return <NoProject title={t.tabs.work.board} />;
 	if (all.length === 0)
 		return (
 			<BoardTemplate title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />} count={0}>
 				{/* The board lays its children in a row: the empty state takes the full width to centre. */}
 				<div className="flex-1 pt-4">
-					<EmptyState
-						title={t.empty.tickets}
-						action={{
-							label: t.tabs.work.backlog,
-							onClick: () => void navigate({ to: "/work/backlog" }),
-						}}
-					/>
+					{everything.error ? (
+						<ErrorNotice error={everything.error} className="justify-center" />
+					) : (
+						<EmptyState
+							title={t.empty.tickets}
+							action={{
+								label: t.tabs.work.backlog,
+								onClick: () => void navigate({ to: "/work/backlog" }),
+							}}
+						/>
+					)}
 				</div>
 			</BoardTemplate>
 		);

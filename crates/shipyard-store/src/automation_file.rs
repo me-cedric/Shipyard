@@ -58,7 +58,7 @@ pub fn read_automation(root: &Path) -> Result<AutomationRead> {
 
 /// YAML text. Unset optional parts stay out. A null label stays in: absent means the default.
 pub fn render_automation(a: &Automation) -> Result<String> {
-    Ok(serde_norway::to_string(&serde_norway::to_value(a)?)?)
+    Ok(crate::yaml::to_string(&serde_norway::to_value(a)?)?)
 }
 
 /// Write after validation. An invalid value is never written (REQ-002: the old file stays).

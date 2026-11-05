@@ -119,6 +119,9 @@ pub enum ErrorCode {
     ServerOff,
     InputInvalid,
     TrackerUnsupported,
+    ProjectFileInvalid,
+    DocNotStale,
+    GitDirty,
 }
 
 impl ErrorCode {
@@ -153,6 +156,11 @@ impl ErrorCode {
             Self::ConnectionKind => (ActionKind::Setting, "/settings/connections#connections"),
             Self::SignInFailed => (ActionKind::Setting, "/settings/connections#connections"),
             Self::GitState => (ActionKind::Open, "/code/branches"),
+            Self::FigmaNoToken => (ActionKind::Open, "/design/screens"),
+            Self::ReadOnly | Self::ProjectFileInvalid => (ActionKind::Open, "/settings/project"),
+            Self::AgentsStopped => (ActionKind::Open, "/factory/runs"),
+            Self::GitIdentity => (ActionKind::Open, "/settings/me#me"),
+            Self::GitDirty => (ActionKind::Open, "/code/changes"),
             _ => return None,
         };
         Some(ErrorAction {
@@ -166,6 +174,13 @@ impl ErrorCode {
 pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("no project is open", ErrorCode::NoProject),
     ("no active project", ErrorCode::NoProject),
+    (
+        "the project file is not valid",
+        ErrorCode::ProjectFileInvalid,
+    ),
+    ("this doc is not stale", ErrorCode::DocNotStale),
+    ("commit or stash your changes first", ErrorCode::GitDirty),
+    ("switch to a branch first", ErrorCode::GitState),
     ("has no issue tracker connection", ErrorCode::NoTracker),
     ("the tracker scope is not set", ErrorCode::ScopeMissing),
     ("the pickup label is off", ErrorCode::PickupOff),
@@ -514,6 +529,25 @@ mod tests {
             "step s1 is not running",
         ] {
             assert_eq!(AppError::from(text).code, ErrorCode::Unknown, "{text}");
+        }
+        // The texts of `docs_update_start` and the codes that name a Settings place.
+        let e = AppError::from("the project file is not valid");
+        assert_eq!(e.code, ErrorCode::ProjectFileInvalid);
+        assert_eq!(e.action.unwrap().target, "/settings/project");
+        let e = AppError::from("commit or stash your changes first");
+        assert_eq!(e.action.unwrap().target, "/code/changes");
+        assert_eq!(
+            AppError::from("this doc is not stale").code,
+            ErrorCode::DocNotStale
+        );
+        for text in [
+            "no Figma token: add it",
+            "the profile of this project is read only",
+            "the agents are stopped: switch them on first",
+            "no git identity: set user.name and user.email",
+            "switch to a branch first: the run starts from your branch",
+        ] {
+            assert!(AppError::from(text).action.is_some(), "{text}");
         }
         let e = AppError::from("device login: github.com gave no user_code: ");
         assert_eq!(e.code, ErrorCode::SignInFailed);

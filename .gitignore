@@ -11,7 +11,7 @@ playwright-report/
 .vitest/
 blob-report/
 
-# Sidecar copy of the shipyard CLI (scripts/build-sidecar.mjs)
+# Sidecar copy of the shipyard CLI (scripts/build-sidecar.ts)
 crates/shipyard-app/binaries/
 
 # OS files

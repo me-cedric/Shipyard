@@ -37,7 +37,7 @@ Source: the owner's brief of 2026-10-29 and the principles kept in `docs/plan/MA
 
 ## 6. Engineering
 
-1. Generated files are never edited by hand (IPC bindings, mocks, locks).
+1. Generated files are never edited by hand (IPC bindings, locks). The IPC mocks are hand-written and follow each command change.
 2. Domain logic has no I/O and has unit tests. Adapters have contract tests with fakes.
 3. A secret never goes in an argument, a URL, a log or a repository file.
 4. Each user-visible change has a changelog entry in English and French in the same change.

@@ -38,6 +38,10 @@ describe("Settings / Extensions: plugin settings and deploy", () => {
 			await screen.findByText(/api-gateway Branch shipyard\/extensions-1/),
 		).toBeInTheDocument();
 		expect(mockState().extensions.children[0]?.has).toContain("plugin:team-kit");
-		await waitFor(() => expect(deploy).toBeDisabled());
+		await waitFor(async () =>
+			expect(
+				await screen.findByRole("button", { name: "Deploy team-kit to the child projects" }),
+			).toBeDisabled(),
+		);
 	});
 });

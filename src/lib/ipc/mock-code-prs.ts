@@ -310,6 +310,13 @@ export function pullReady(p: MockPrs, number: number, click: boolean) {
 
 // ------------------------------------------------------------------ quality
 
+/** The terminal command of each scanner that runs a program. */
+const SCANNER_COMMANDS: Record<string, string> = {
+	dependencies: "osv-scanner scan source --config .osv-scanner.toml -L Cargo.lock",
+	code: "semgrep scan --config auto",
+	skills: "skillspector scan .agents/skills --recursive --no-llm",
+};
+
 const row = (
 	p: MockPrs,
 	kind: "check" | "scanner",
@@ -319,6 +326,13 @@ const row = (
 ): QualityRow_Serialize => ({
 	name,
 	label,
+	// The built-in checks and the secrets scanner run inside the app: no shell command.
+	command:
+		kind === "scanner"
+			? (SCANNER_COMMANDS[name] ?? "")
+			: ["verify all docs", "docs freshness"].includes(name)
+				? ""
+				: name,
 	available,
 	last: p.reports.find((r) => r.kind === kind && r.name === name) ?? null,
 });

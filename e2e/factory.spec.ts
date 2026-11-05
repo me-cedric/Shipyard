@@ -37,6 +37,8 @@ test("shows six lanes with counts, opens a run and kills it", async ({ page }) =
 			.first(),
 	).toBeVisible();
 	await page.getByRole("button", { name: "Kill run" }).click();
+	// A stop asks once before it acts.
+	await page.getByRole("button", { name: "Stop ACME-2?" }).click();
 	await expect(lane(page, "Done").getByRole("button", { name: /ACME-2/ })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Kill run" })).toHaveCount(0);
 });

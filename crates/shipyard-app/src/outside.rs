@@ -110,14 +110,21 @@ pub fn set_app(app: tauri::AppHandle) {
     let _ = APP.set(app);
 }
 
-/// The ticket tools. The group switch is the click of the person; a read-only project is refused
-/// before this runs.
+/// The tools that need the app state: the ticket tools, `docs_stale` and `qa_run_scanner`. The
+/// group switch is the click of the person; a read-only project is refused before this runs.
 fn ticket_tool(name: &str, args: &Value) -> Result<String, String> {
     use tauri::Manager;
     let app = APP.get().ok_or("the app is not ready")?;
     let s = app.state::<AppState>();
     let key = args.get("key").and_then(Value::as_str).unwrap_or("");
     match name {
+        "docs_stale" => Ok(scan_text(crate::qa::docs_fresh(&s)?.1, "no stale docs")),
+        "qa_run_scanner" => {
+            let name = args.get("name").and_then(Value::as_str).unwrap_or("");
+            let r = crate::code::scan_run(&s, name, true)?;
+            let head = format!("{} {}", if r.passed { "passed" } else { "failed" }, r.tail);
+            Ok(format!("{head}\n{}", scan_text(r.findings, "")))
+        }
         "ticket_list" => {
             let limit = args
                 .get("limit")
@@ -160,6 +167,20 @@ fn ticket_tool(name: &str, args: &Value) -> Result<String, String> {
             Ok("comment added".into())
         }
     }
+}
+
+fn scan_text(found: Vec<shipyard_store::code::ScanFinding>, none: &str) -> String {
+    if found.is_empty() {
+        return none.into();
+    }
+    found
+        .iter()
+        .map(|f| {
+            let at = f.line.map_or(f.path.clone(), |l| format!("{}:{l}", f.path));
+            format!("{:?} {at} {}", f.severity, f.message)
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// A tracker write needs a durable permission: the `tracker_comment` switch of `automation.yaml`.

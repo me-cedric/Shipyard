@@ -8,6 +8,7 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Progress } from "@/ui/atoms/progress";
 import { StatusDot } from "@/ui/atoms/status-dot";
+import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { FindingRow } from "@/ui/molecules/finding-row";
 import { Panel } from "@/ui/molecules/panel";
@@ -108,9 +109,13 @@ export function RunDetail({ id }: { id: string }) {
 					<Button onClick={() => void guard(() => act.unblock(id))}>{f.unblock}</Button>
 				) : null}
 				{ENDED.includes(run.state) ? null : (
-					<Button variant="danger" onClick={() => void guard(() => act.cancel(id))}>
+					<ConfirmButton
+						variant="danger"
+						confirm={format(f.machine.confirmStop, { name: run.key })}
+						onConfirm={() => void guard(() => act.cancel(id))}
+					>
 						{f.kill}
-					</Button>
+					</ConfirmButton>
 				)}
 			</div>
 			{error ? (

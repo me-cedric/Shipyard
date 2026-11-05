@@ -42,6 +42,7 @@ describe("Menu bar panel", () => {
 		const run = (await unwrap(commands.runsList())).find((r) => r.lane === "working");
 		if (!run) throw new Error("no working run in the mock");
 		await user.click(await screen.findByRole("button", { name: `Stop ${run.key}` }));
+		await user.click(await screen.findByRole("button", { name: `Stop ${run.key}?` }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.runsList())).find((r) => r.id === run.id)?.state).toBe(
 				"Cancelled",

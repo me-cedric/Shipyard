@@ -138,7 +138,12 @@ export function Sessions() {
 				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
 					<StatStrip
 						items={[
-							{ label: f.step.running, value: String(running), icon: <LiveDot />, tone: "accent" },
+							{
+								label: f.step.running,
+								value: String(running),
+								icon: <LiveDot idle={running === 0} />,
+								tone: "accent",
+							},
 							{
 								label: f.runner,
 								value: String(new Set(rows.map((r) => r.runner)).size),

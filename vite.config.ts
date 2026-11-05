@@ -35,6 +35,7 @@ export default defineConfig({
 		alias: [
 			{ find: /^@\//, replacement: `${fileURLToPath(new URL("./src", import.meta.url))}/` },
 			...NODE_STUBS.flatMap((m) => [
+				// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- `m` is a fixed module name of this file
 				{ find: new RegExp(`^(node:)?${m}$`), replacement: shim(`${m.replace("/", "-")}.ts`) },
 			]),
 		],

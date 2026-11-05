@@ -102,3 +102,7 @@ reason = "`zvariant_derive` comes from the Linux D-Bus stack of Tauri notificati
 id = "GHSA-848j-6mx2-7j84"
 ignoreUntil = 2027-01-29
 reason = "`elliptic` 6.6.1 has no fix. It comes from the Node `crypto` polyfill of `vite-plugin-node-polyfills`, which `vite.config.ts` does not enable, so it is not in the app bundle."
+
+[[IgnoredVulns]]
+id = "GHSA-wrw7-89jp-8q8g"
+reason = "Alias of RUSTSEC-2024-0429 (glib, Tauri GTK, Linux only)."

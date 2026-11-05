@@ -115,6 +115,7 @@ test("rebases a branch in Code / Branches and asks before a force publish", asyn
 });
 
 // The list holds the factory pull requests (#40 to #47) and the forge mock ones (#141 to #143).
+// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- `n` is a number
 const pull = (page: Page, n: number) => page.getByRole("button", { name: new RegExp(`^#${n} `) });
 
 test("lists the pull requests by state, opens one and comments", async ({ page }) => {

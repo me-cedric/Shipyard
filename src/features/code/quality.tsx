@@ -1,19 +1,30 @@
+import { Popover } from "@base-ui/react/popover";
 import { useState } from "react";
 import { PageExport } from "@/features/reports/page-export";
 import { type QualityReport, useCoverageReport, useForgeActions, useQuality } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import type { SbomReport } from "@/lib/ipc";
+import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
+import { IconButton } from "@/ui/atoms/icon-button";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { ArrowPathIcon, CheckIcon, LockClosedIcon } from "@/ui/icons";
+import {
+	ArrowPathIcon,
+	CheckIcon,
+	CommandLineIcon,
+	InformationCircleIcon,
+	LockClosedIcon,
+} from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FindingRow } from "@/ui/molecules/finding-row";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { withProject } from "./project-gate";
+import { beginRun, endRun, RunLive, runKey, useLiveRuns } from "./quality-live";
 import { QualitySetup } from "./quality-setup";
 import { securityScore } from "./security-score";
 import { SEVERITY_STATUS } from "./status";
@@ -25,7 +36,13 @@ const VERIFY_DOCS = "verify all docs";
 /** The check that lists the docs that did not follow the code, as the backend names it. */
 const DOCS_FRESH = "docs freshness";
 
-type Row = { name: string; label?: string | null; available: boolean; last: QualityReport | null };
+type Row = {
+	name: string;
+	label?: string | null;
+	command?: string;
+	available: boolean;
+	last: QualityReport | null;
+};
 
 /** The tool that the app installs, by the program that a failed check could not find. */
 const TOOLS: Record<string, string> = {
@@ -37,9 +54,38 @@ const TOOLS: Record<string, string> = {
 };
 const MISSING = /^(\S+) is not installed or not found$/;
 
+/** The info text of a check, by its command. Any other gate command has the generic text. */
+function infoKey(r: Row, kind: "check" | "scanner") {
+	if (kind === "scanner") return r.name;
+	const id = `${r.label ?? ""} ${r.name}`;
+	return r.name === VERIFY_DOCS
+		? "verifyDocs"
+		: r.name === DOCS_FRESH
+			? "docs"
+			: /cargo fmt/.test(id)
+				? "fmt"
+				: /cargo clippy/.test(id)
+					? "clippy"
+					: /cargo test/.test(id)
+						? "cargoTest"
+						: /typecheck|tsc/.test(id)
+							? "typecheck"
+							: /lint/.test(id)
+								? "lint"
+								: /test/.test(id)
+									? "test"
+									: "generic";
+}
+
 const GRID = "grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-3 p-3";
-const LINE = { success: "bg-success", danger: "bg-danger", idle: "bg-n-7" } as const;
+const LINE = {
+	active: "bg-accent",
+	success: "bg-success",
+	danger: "bg-danger",
+	idle: "bg-n-7",
+} as const;
 const TILE = {
+	active: "bg-info-soft text-info-text",
 	success: "bg-success-soft text-success-text",
 	danger: "bg-danger-soft text-danger-text",
 	idle: "bg-n-3 text-n-11",
@@ -47,16 +93,26 @@ const TILE = {
 
 function QualityView() {
 	const { t, lang } = useI18n();
-	const q = useQuality().data;
+	const quality = useQuality();
+	const q = quality.data;
 	const coverage = useCoverageReport().data;
 	const { check, scan, install, installTool, sbom } = useForgeActions();
 	const { error, run } = useRun();
+	const { runInTerminal } = useShell();
+	const running = useLiveRuns();
 	const [confirming, setConfirming] = useState<string | null>(null);
+	const [installing, setInstalling] = useState<string | null>(null);
 	const [shown, setShown] = useState<string | null>(null);
 	const [setting, setSetting] = useState(false);
 	const [exported, setExported] = useState<SbomReport | null>(null);
 	const [viewing, setViewing] = useState<{ path: string; line: number | null } | null>(null);
-	if (!q) return <PageHeader icon={<CheckIcon size={16} />} title={t.tabs.code.quality} />;
+	if (!q)
+		return (
+			<>
+				<PageHeader icon={<CheckIcon size={16} />} title={t.tabs.code.quality} />
+				<ErrorNotice error={quality.error} className="px-4 py-2" />
+			</>
+		);
 	const date = new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" });
 	const q18 = t.forge.quality;
 	// A named command and the check that verifies all docs have a plain name for people.
@@ -71,10 +127,12 @@ function QualityView() {
 	// A run needs a confirmation that names the check (REQ-026).
 	const rows = (kind: "check" | "scanner", items: Row[]) =>
 		items.map((r) => {
-			const key = `${kind}:${r.name}`;
+			const key = runKey(kind, r.name);
 			const last = r.last;
-			const status = last ? (last.passed ? "success" : "danger") : "idle";
-			const label = last ? (last.passed ? q18.passed : q18.failed) : q18.never;
+			const live = running.get(key);
+			const status = live ? "active" : last ? (last.passed ? "success" : "danger") : "idle";
+			const label = live ? q18.running : last ? (last.passed ? q18.passed : q18.failed) : q18.never;
+			const info = (q18.info as Record<string, string[]>)[infoKey(r, kind)] ?? q18.info.generic;
 			return (
 				<Card
 					key={key}
@@ -95,12 +153,43 @@ function QualityView() {
 							{kind === "check" ? <CheckIcon size={14} /> : <LockClosedIcon size={14} />}
 						</span>
 						<h3 className="min-w-0 flex-1 truncate font-mono text-ui text-n-12">{nameOf(r)}</h3>
-						<Badge variant={status === "idle" ? "neutral" : status}>
+						<Popover.Root>
+							<Popover.Trigger
+								aria-label={format(q18.about, { name: nameOf(r) })}
+								className="inline-flex size-(--row-h) shrink-0 items-center justify-center rounded-md text-n-11 hover:bg-n-3 hover:text-n-12"
+							>
+								<InformationCircleIcon size={16} />
+							</Popover.Trigger>
+							<Popover.Portal>
+								<Popover.Positioner side="bottom" align="end" sideOffset={4} className="z-50">
+									<Popover.Popup
+										aria-label={format(q18.about, { name: nameOf(r) })}
+										className="flex w-72 flex-col gap-2 rounded-lg border border-n-6 bg-surface-3 p-3 text-ui text-n-12 shadow-3"
+									>
+										{info.map((line) => (
+											<p key={line}>{line}</p>
+										))}
+									</Popover.Popup>
+								</Popover.Positioner>
+							</Popover.Portal>
+						</Popover.Root>
+						{r.command ? (
+							<IconButton
+								label={format(q18.terminal, { name: nameOf(r) })}
+								onClick={() => r.command && runInTerminal(r.command)}
+							>
+								<CommandLineIcon size={16} />
+							</IconButton>
+						) : null}
+						<Badge variant={status === "idle" ? "neutral" : status === "active" ? "info" : status}>
 							<StatusDot status={status} label={label} className="size-2" />
 							<span aria-hidden="true">{label}</span>
 						</Badge>
 					</div>
-					{r.label ? <p className="truncate font-mono text-12 text-n-11">{r.name}</p> : null}
+					{r.label && nameOf(r) !== r.name ? (
+						<p className="truncate font-mono text-12 text-n-11">{r.name}</p>
+					) : null}
+					{live ? <RunLive run={live} /> : null}
 					<div className="flex min-h-row items-center gap-2">
 						{last ? (
 							<>
@@ -111,9 +200,11 @@ function QualityView() {
 									{format(q18.duration, { ms: last.durationMs })} ·{" "}
 									{format(q18.at, { date: date.format(new Date(last.at)) })}
 								</span>
-								<Button variant="ghost" onClick={() => setShown(shown === key ? null : key)}>
-									{q18.findings}
-								</Button>
+								{last.findings.length > 0 ? (
+									<Button variant="ghost" onClick={() => setShown(shown === key ? null : key)}>
+										{q18.findings}
+									</Button>
+								) : null}
 							</>
 						) : (
 							<span className="flex-1" />
@@ -125,7 +216,12 @@ function QualityView() {
 									onClick={() =>
 										void run(async () => {
 											setConfirming(null);
-											await (kind === "check" ? check(r.name) : scan(r.name));
+											beginRun(key);
+											try {
+												await (kind === "check" ? check(r.name) : scan(r.name));
+											} finally {
+												endRun(key);
+											}
 										})
 									}
 								>
@@ -136,6 +232,7 @@ function QualityView() {
 							) : (
 								<Button
 									aria-label={format(q18.runName, { name: nameOf(r) })}
+									disabled={!!live}
 									onClick={() => setConfirming(key)}
 								>
 									<ArrowPathIcon size={14} />
@@ -147,7 +244,17 @@ function QualityView() {
 								<span className="text-12 text-n-11">{q18.notInstalled}</span>
 								<Button
 									aria-label={format(q18.installName, { name: r.name })}
-									onClick={() => void run(() => install(r.name))}
+									busy={installing === r.name}
+									onClick={() =>
+										void run(async () => {
+											setInstalling(r.name);
+											try {
+												await install(r.name);
+											} finally {
+												setInstalling(null);
+											}
+										})
+									}
 								>
 									{q18.install}
 								</Button>

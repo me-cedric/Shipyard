@@ -11,6 +11,7 @@ const CH = "docs/openspec/changes";
 // Each change is a card: a button with the change id first.
 const row = (name: RegExp) => screen.findByRole("button", { name });
 const open = async (user: ReturnType<typeof userEvent.setup>, id: string) => {
+	// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- test input is a fixed id
 	await user.click(await row(new RegExp(id)));
 	return screen.findByRole("navigation", { name: "Artifacts" });
 };

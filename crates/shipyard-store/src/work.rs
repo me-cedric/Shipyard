@@ -36,7 +36,7 @@ fn parse<T: DeserializeOwned>(text: &str) -> Result<T> {
 }
 
 fn dump<T: Serialize>(value: &T) -> Result<String> {
-    serde_norway::to_string(value).map_err(|e| WorkError::Invalid(e.to_string()))
+    crate::yaml::to_string(value).map_err(|e| WorkError::Invalid(e.to_string()))
 }
 
 /// The slug or handle that is a path part: lower case letters, digits and `-`.

@@ -24,6 +24,7 @@ import { DocumentTextIcon, PlusIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { ContextMenu } from "@/ui/molecules/context-menu";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { LIST, useEnter } from "@/ui/motion";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { ChangeDetail } from "./change-detail";
@@ -124,7 +125,8 @@ function ChangeList() {
 	const act = useSpecsActions();
 	const menu = useMenus();
 	const { openRef } = useShell();
-	const list = useChanges().data;
+	const changes = useChanges();
+	const list = changes.data;
 	const markers = useMarkerCounts(list ?? []);
 	// The open item stays with the tab; the cards are the overview.
 	const [open, setOpen] = useTabSelection("specs:changes");
@@ -154,6 +156,7 @@ function ChangeList() {
 				) : null
 			}
 		>
+			<ErrorNotice error={changes.error} className="px-4 py-2" />
 			{list && list.length === 0 ? (
 				<div className="p-4">
 					<EmptyState

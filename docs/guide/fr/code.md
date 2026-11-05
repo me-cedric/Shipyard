@@ -47,6 +47,17 @@ La liste des composants logiciels (SBOM, « software bill of materials ») nomme
 
 La fraîcheur de la documentation est une vérification de Qualité. Elle liste les documents qui n'ont pas suivi le code de la branche, avec leur nombre. Le même avertissement s'affiche dans la porte de commit, la porte de push et la chaîne documentaire d'Impacts. Chaque document périmé a « Mettre à jour avec un agent ». Une exécution d'agent ne démarre qu'après votre clic, et la pull request qu'elle ouvre attend votre relecture. Un document que l'agent a laissé illisible est nommé et reste hors de la pull request. « Acquitter » garde un avertissement tel quel, avec un motif.
 
+### Lancer un contrôle ou un scanner
+
+Un lancement démarre après votre clic. Pendant qu'il tourne, la carte affiche En cours, le temps qui s'écoule et les dernières lignes de la sortie, et Lancer reste désactivé. Le lancement continue quand vous quittez la page. Ouvrir dans le terminal, sur un contrôle, exécute sa commande dans le tiroir du terminal. Le bouton d'information de chaque carte dit ce qu'elle cherche, pourquoi c'est important et que faire en cas d'échec.
+
+Les scanners sont :
+
+- secrets : clés et jetons dans les fichiers suivis. Mettez `shipyard:allow-secret` sur la ligne d'une donnée de test, ou sur la ligne avant elle, pour l'ignorer.
+- dependencies : vulnérabilités connues (CVE) dans les fichiers de verrouillage, avec `osv-scanner`. Notez un constat examiné dans `.osv-scanner.toml`.
+- code : failles OWASP comme l'injection, le XSS et l'exécution de code à distance, avec `semgrep`. Mettez `// nosemgrep` sur la ligne d'un faux positif examiné.
+- skills : instructions dangereuses dans les skills d'agent, avec `skillspector`.
+
 ## Impacts
 
 Impacts dit quels éléments un changement touche, et propose un plan d'action.

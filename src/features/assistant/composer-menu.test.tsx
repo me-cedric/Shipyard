@@ -86,12 +86,12 @@ describe("assistant panel: no agent CLI", () => {
 			Object.assign(r, { state: "missing", path: null, version: null });
 		const { again } = await mountAssistant({ open: false }, false);
 		again({ open: true });
-		expect(await screen.findByRole("heading", { name: "No agent CLI found" })).toBeVisible();
+		expect(await screen.findByRole("heading", { name: "No AI tool found" })).toBeVisible();
 		expect(screen.queryByRole("textbox", { name: "Message" })).toBeNull();
 		expect(screen.getByText("npm install -g claude")).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Install Claude Code" }));
 		await waitFor(() =>
-			expect(screen.queryByRole("heading", { name: "No agent CLI found" })).toBeNull(),
+			expect(screen.queryByRole("heading", { name: "No AI tool found" })).toBeNull(),
 		);
 		expect(await screen.findByRole("textbox", { name: "Message" })).toBeVisible();
 	});

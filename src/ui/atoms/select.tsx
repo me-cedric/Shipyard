@@ -13,6 +13,7 @@ export function Select({
 	value,
 	onValueChange,
 	disabled,
+	reason,
 	caption,
 	className,
 	placeholder,
@@ -22,6 +23,8 @@ export function Select({
 	value: string;
 	onValueChange: (value: string) => void;
 	disabled?: boolean;
+	/** Why it is disabled: the tooltip and the description of the control. */
+	reason?: string;
 	/** Show the name above the select. */
 	caption?: boolean;
 	className?: string;
@@ -39,6 +42,7 @@ export function Select({
 		>
 			<BaseSelect.Trigger
 				aria-label={label}
+				aria-description={disabled ? reason : undefined}
 				className={cn(
 					"inline-flex h-row min-w-24 shrink-0 items-center justify-between gap-2 rounded-md whitespace-nowrap border border-n-7 bg-n-1 px-2 text-ui text-n-12",
 					className,
@@ -75,5 +79,14 @@ export function Select({
 			</BaseSelect.Portal>
 		</BaseSelect.Root>
 	);
-	return caption ? <Caption label={label}>{select}</Caption> : select;
+	const shown =
+		// The wrapper stays while a reason is given, so a change of `disabled` keeps the focus.
+		reason !== undefined ? (
+			<span title={disabled ? reason : undefined} className="inline-flex">
+				{select}
+			</span>
+		) : (
+			select
+		);
+	return caption ? <Caption label={label}>{shown}</Caption> : shown;
 }

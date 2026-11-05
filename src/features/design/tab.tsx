@@ -203,7 +203,7 @@ export function ArtifactTab({
 				</div>
 			</ListDetail>
 		);
-	if (list.isLoading) return <Loading />;
+	if (list.isLoading) return <Loading title={title} icon={icon} />;
 	const open = all.find((r) => r.ref === selected);
 	// The index finds the rows by their text, in the same command as the palette.
 	const shown = filter.refs ? rows.filter((r) => filter.refs?.has(r.ref)) : rows;

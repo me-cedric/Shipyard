@@ -5,7 +5,7 @@ import { mockState } from "@/lib/ipc/mock";
 import { ShellProvider } from "@/lib/shell";
 import { mountApp } from "@/test/mount";
 import { renderApp } from "@/ui/test-utils";
-import { NeedsYou } from "./index";
+import { NeedsYou } from "./inbox/inbox";
 
 const SPEC = "docs/openspec/changes/add-export/specs/export/spec.md";
 

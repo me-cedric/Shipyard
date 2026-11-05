@@ -78,6 +78,7 @@ export function RepoPicker({ folder, onDone }: { folder: string; onDone?: () => 
 	const [slug, setSlug] = useState("");
 	const [adding, setAdding] = useState(false);
 	const [cloning, setCloning] = useState<string | null>(null);
+	const [creating, setCreating] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const fail = (e: unknown) => setError(message(e));
 	const all = repos.data?.items ?? [];
@@ -124,6 +125,7 @@ export function RepoPicker({ folder, onDone }: { folder: string; onDone?: () => 
 		}
 	};
 	const makeRemote = async () => {
+		setCreating(true);
 		try {
 			setError(null);
 			const made = await unwrap(commands.connectionsCreateRepo(account ?? "", slug.trim(), true));
@@ -132,6 +134,8 @@ export function RepoPicker({ folder, onDone }: { folder: string; onDone?: () => 
 			await cloneRepo(made);
 		} catch (e) {
 			fail(e);
+		} finally {
+			setCreating(false);
 		}
 	};
 	const makeLocal = async () => {
@@ -247,6 +251,7 @@ export function RepoPicker({ folder, onDone }: { folder: string; onDone?: () => 
 									<button
 										type="button"
 										aria-label={format(w.use, { slug: r.slug })}
+										title={r.description || undefined}
 										aria-current={i === active}
 										disabled={cloning !== null || !folder}
 										onClick={() => void cloneRepo(r)}
@@ -265,9 +270,6 @@ export function RepoPicker({ folder, onDone }: { folder: string; onDone?: () => 
 											{r.canPush === false ? <Badge variant="warning">{w.readOnly}</Badge> : null}
 											<span className="font-mono text-11 text-n-10">{r.defaultBranch}</span>
 										</span>
-										{r.description ? (
-											<span className="w-full truncate text-12 text-n-10">{r.description}</span>
-										) : null}
 									</button>
 								</li>
 							))}
@@ -277,7 +279,9 @@ export function RepoPicker({ folder, onDone }: { folder: string; onDone?: () => 
 						<p className="text-ui text-n-10">{w.none}</p>
 					) : null}
 					{repos.data?.capped ? (
-						<p className="text-ui text-n-10">{format(w.capped, { count: REPO_CAP })}</p>
+						<span title={format(w.capped, { count: REPO_CAP })} className="self-start">
+							<Badge variant="neutral">{REPO_CAP}+</Badge>
+						</span>
 					) : null}
 					{cloning ? (
 						<p role="status" className="text-ui text-n-11">
@@ -291,7 +295,7 @@ export function RepoPicker({ folder, onDone }: { folder: string; onDone?: () => 
 							value={slug}
 							onChange={(e) => setSlug(e.target.value)}
 						/>
-						<Button disabled={!slug.trim()} onClick={() => void makeRemote()}>
+						<Button disabled={!slug.trim()} busy={creating} onClick={() => void makeRemote()}>
 							<PlusIcon size={14} />
 							{w.create}
 						</Button>

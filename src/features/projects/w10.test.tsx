@@ -19,7 +19,7 @@ describe("Home / Projects", () => {
 		expect(within(group).getByText("2 ahead")).toBeInTheDocument();
 		expect(screen.getByRole("region", { name: "Local" })).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Details alpha" }));
-		expect(screen.getByText("/mock/alpha")).toBeInTheDocument();
+		expect(screen.getByTitle("/mock/alpha")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Open remote alpha" })).toBeInTheDocument();
 		expect(screen.queryByRole("button", { name: "Open remote beta" })).toBeNull();
 		await user.click(screen.getByRole("button", { name: "Open alpha" }));
@@ -98,7 +98,7 @@ describe("Clone dialog repo picker", () => {
 		const dialog = await openDialog(user);
 		const web = await dialog.findByRole("button", { name: "Clone acme/web" });
 		expect(within(web).getByRole("img", { name: "Private" })).toBeInTheDocument();
-		expect(within(web).getByText("The web app")).toBeInTheDocument();
+		expect(web).toHaveAttribute("title", "The web app");
 		expect(within(web).getByText("main")).toBeInTheDocument();
 		const docs = dialog.getByRole("button", { name: "Clone acme/docs" });
 		expect(within(docs).getByText("Read-only")).toBeInTheDocument();
@@ -145,7 +145,10 @@ describe("Clone dialog repo picker", () => {
 			};
 		});
 		const dialog = await openDialog(user);
-		await dialog.findByText(/The list shows only the first 1000 repositories/);
+		expect(await dialog.findByText("1000+")).toBeInTheDocument();
+		expect(
+			dialog.getByTitle(/The list shows only the first 1000 repositories/),
+		).toBeInTheDocument();
 		expect(spy).toHaveBeenCalledTimes(10);
 		spy.mockRestore();
 	});

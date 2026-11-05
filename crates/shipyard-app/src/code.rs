@@ -18,7 +18,7 @@ use shipyard_forges::{
 use shipyard_git::Repo;
 use shipyard_store::code::{
     CommitLink, IMPACTS_DIR, ImpactEntry, QualityReport, ReportKind, ScanFinding, ScanSeverity,
-    index_commit, list_impacts, list_quality, save_impact, save_quality,
+    index_commit, list_impacts, list_quality, save_impact, save_quality, scrub,
 };
 use specta::Type;
 use tauri::AppHandle;
@@ -509,9 +509,26 @@ pub struct QualityRow {
     /// The key of a plain name (`lint`, `typecheck`, `test`, `check`, `build`) for a command that a
     /// project file names. The view shows the command in the detail.
     pub label: Option<String>,
+    /// The command line for the terminal. Empty for the scanner that runs in process.
+    pub command: String,
     /// `false` for a scanner that the app does not ship (Q-043).
     pub available: bool,
     pub last: Option<QualityReport>,
+}
+
+/// The event `quality-progress`: the last lines of the output of a running check or scanner.
+pub const QUALITY_PROGRESS_EVENT: &str = "quality-progress";
+
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct QualityProgress {
+    /// The row name: the check command or the scanner name.
+    pub name: String,
+    pub kind: ReportKind,
+    /// The last 20 lines, secret values replaced.
+    pub lines: Vec<String>,
+    /// `YYYY-MM-DDTHH:MM:SSZ` of the start.
+    pub started_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -538,6 +555,14 @@ pub fn quality_view(s: &AppState) -> Res<QualityView> {
             .into_iter()
             .map(|c| QualityRow {
                 last: last(ReportKind::Check, &c.command),
+                // The built-in checks run inside the app: no shell command for the terminal.
+                command: if [crate::qa::VERIFY_DOCS, crate::qa::DOCS_FRESH]
+                    .contains(&c.command.as_str())
+                {
+                    String::new()
+                } else {
+                    c.command.clone()
+                },
                 name: c.command,
                 label: c.label.map(String::from),
                 available: true,
@@ -548,6 +573,7 @@ pub fn quality_view(s: &AppState) -> Res<QualityView> {
             .map(|(n, available)| QualityRow {
                 name: (*n).into(),
                 label: None,
+                command: scanners::command(n, &root).unwrap_or_default(),
                 available: *available || scanners::program(n).is_some_and(scanners::installed),
                 last: last(ReportKind::Scanner, n),
             })
@@ -571,6 +597,16 @@ pub(crate) fn now_iso() -> String {
 
 /// Runs one declared check after the click that names it. It runs nothing else (REQ-026).
 pub fn check_run(s: &AppState, command: &str, click: bool) -> Res<QualityReport> {
+    check_run_with(s, command, click, &|_| {})
+}
+
+/// `check_run`, and `on_lines` gets the last lines of the output while the check runs.
+pub fn check_run_with(
+    s: &AppState,
+    command: &str,
+    click: bool,
+    on_lines: &dyn Fn(Vec<String>),
+) -> Res<QualityReport> {
     need_click(s, click)?;
     let root = root(s)?;
     if !crate::qa::checks(&root)
@@ -579,7 +615,15 @@ pub fn check_run(s: &AppState, command: &str, click: bool) -> Res<QualityReport>
     {
         return Err(format!("`{command}` is not a check of this project"));
     }
-    let log = s.dir.join("check.log");
+    // One file per run: checks run in parallel, and one run must not delete the output of another.
+    static RUNS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    let n = RUNS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let log = s.dir.join(format!("check-{}-{n}.log", std::process::id()));
+    let values = secrets(s);
+    let known: Vec<&str> = values.iter().map(String::as_str).collect();
+    let on_lines = |lines: Vec<String>| {
+        on_lines(lines.iter().map(|l| scrub(l, &known)).collect());
+    };
     let start = Instant::now();
     let (passed, tail, findings) = if command == crate::qa::VERIFY_DOCS {
         let (tail, findings) = crate::qa::verify_docs(s)?;
@@ -588,7 +632,7 @@ pub fn check_run(s: &AppState, command: &str, click: bool) -> Res<QualityReport>
         let (tail, findings) = crate::qa::docs_fresh(s)?;
         (findings.is_empty(), tail, findings)
     } else {
-        let gate = crate::delivery::run_gate_out(&root, &log, command, CHECK_LIMIT);
+        let gate = crate::delivery::run_gate_out(&root, &log, command, CHECK_LIMIT, &on_lines);
         if gate.check.passed {
             (true, gate.check.counts, Vec::new())
         } else {
@@ -612,15 +656,11 @@ pub fn check_run(s: &AppState, command: &str, click: bool) -> Res<QualityReport>
         tail,
         findings,
     };
-    save_quality(
-        &root,
-        &report,
-        &secrets(s).iter().map(String::as_str).collect::<Vec<_>>(),
-    )
-    .map_err(err)?;
+    save_quality(&root, &report, &known).map_err(err)?;
     Ok(report)
 }
 
+const ALLOW_MARKERS: [&str; 2] = ["shipyard:allow-secret", "gitleaks:allow"];
 const KEY_WORDS: [&str; 6] = ["password", "passwd", "secret", "token", "api_key", "apikey"];
 /// Token shapes: a prefix and the least length of the whole token.
 const TOKEN_SHAPES: [(&str, usize, &str); 7] = [
@@ -661,8 +701,9 @@ fn bare_values(path: &str) -> bool {
 }
 
 /// The findings of one text. A finding names a place and a kind, never the value (REQ-027).
-/// A line with `gitleaks:allow` is skipped, as in gitleaks: a test value that has the shape of a
-/// token says so on its line.
+/// A line with `shipyard:allow-secret` or `gitleaks:allow`, or the line after one, is skipped: a
+/// test value that has the shape of a token says so. A plain word (letters only) is a label, not a
+/// secret value.
 /// shortcut: patterns, no entropy. A key in an unknown shape is missed: add a pattern or a
 /// scanner (Q-043).
 pub fn scan_text(path: &str, text: &str) -> Vec<ScanFinding> {
@@ -676,9 +717,12 @@ pub fn scan_text(path: &str, text: &str) -> Vec<ScanFinding> {
             message: message.into(),
         });
     };
+    let mut allowed = false; // the line before holds the marker
     for (i, l) in text.lines().enumerate() {
         let n = i + 1;
-        if l.contains("gitleaks:allow") {
+        let marked = ALLOW_MARKERS.iter().any(|m| l.contains(m));
+        let after_marker = std::mem::replace(&mut allowed, marked);
+        if marked || after_marker {
             continue;
         }
         // A key block starts its line or follows a quote (a JSON string). Code that looks for one
@@ -725,7 +769,10 @@ pub fn scan_text(path: &str, text: &str) -> Vec<ScanFinding> {
                     .map(|v| v.trim_start_matches(['"', '\'']));
                 value.is_some_and(|v| {
                     let v = v.split(['"', '\'', ' ', ',', ';']).next().unwrap_or("");
-                    v.len() >= 8 && !v.starts_with(['$', '{', '<', '%']) && !v.contains('(')
+                    v.len() >= 8
+                        && !v.chars().all(char::is_alphabetic)
+                        && !v.starts_with(['$', '{', '<', '%'])
+                        && !v.contains('(')
                 })
             })
         });
@@ -737,7 +784,7 @@ pub fn scan_text(path: &str, text: &str) -> Vec<ScanFinding> {
 }
 
 /// The files of the working copy that git tracks or could track (ignored files are out).
-fn scan_files(root: &Path) -> Res<Vec<String>> {
+pub(crate) fn scan_files(root: &Path) -> Res<Vec<String>> {
     let out = std::process::Command::new("git")
         .arg("-C")
         .arg(root)
@@ -755,6 +802,16 @@ fn scan_files(root: &Path) -> Res<Vec<String>> {
 }
 
 pub fn scan_run(s: &AppState, name: &str, click: bool) -> Res<QualityReport> {
+    scan_run_with(s, name, click, &|_| {})
+}
+
+/// `scan_run`, and `on_lines` gets the last lines of the output while an external scanner runs.
+pub fn scan_run_with(
+    s: &AppState,
+    name: &str,
+    click: bool,
+    on_lines: &dyn Fn(Vec<String>),
+) -> Res<QualityReport> {
     need_click(s, click)?;
     let Some((_, builtin)) = SCANNERS.iter().find(|(n, _)| *n == name) else {
         return Err(format!("`{name}` is not a scanner"));
@@ -773,7 +830,11 @@ pub fn scan_run(s: &AppState, name: &str, click: bool) -> Res<QualityReport> {
             }
         }
     } else {
-        findings = scanners::run(name, &root)?;
+        let values = secrets(s);
+        let known: Vec<&str> = values.iter().map(String::as_str).collect();
+        findings = scanners::run(name, &root, &|lines| {
+            on_lines(lines.iter().map(|l| scrub(l, &known)).collect());
+        })?;
     }
     let report = QualityReport {
         kind: ReportKind::Scanner,
@@ -1100,16 +1161,35 @@ pub async fn code_quality(app: AppHandle) -> Api<QualityView> {
     blocking(app, quality_view).await
 }
 
+/// The sender of `quality-progress` events for one run. It sends the start at once.
+fn progress(app: &AppHandle, kind: ReportKind, name: &str) -> impl Fn(Vec<String>) + use<> {
+    use tauri::Emitter;
+    let (app, name, started_at) = (app.clone(), name.to_string(), now_iso());
+    let emit = move |lines| {
+        let p = QualityProgress {
+            name: name.clone(),
+            kind,
+            lines,
+            started_at: started_at.clone(),
+        };
+        let _ = app.emit(QUALITY_PROGRESS_EVENT, p);
+    };
+    emit(Vec::new());
+    emit
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn code_check_run(app: AppHandle, command: String, click: bool) -> Api<QualityReport> {
-    blocking(app, move |s| check_run(s, &command, click)).await
+    let emit = progress(&app, ReportKind::Check, &command);
+    blocking(app, move |s| check_run_with(s, &command, click, &emit)).await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn code_scan_run(app: AppHandle, name: String, click: bool) -> Api<QualityReport> {
-    blocking(app, move |s| scan_run(s, &name, click)).await
+    let emit = progress(&app, ReportKind::Scanner, &name);
+    blocking(app, move |s| scan_run_with(s, &name, click, &emit)).await
 }
 
 #[tauri::command]
@@ -1344,9 +1424,30 @@ mod tests {
         assert_eq!(scan_text("log", "password: hunter2hunter2").len(), 1);
         // The marker of gitleaks skips a test value; code that looks for a key block is not one.
         assert!(scan_text("a.rs", &format!("\"{secret}\" // gitleaks:allow")).is_empty());
+        // The Shipyard marker works on the line and on the line after; a plain word is a label.
+        let line = format!("\"{secret}\" // shipyard:allow-secret");
+        assert!(scan_text("a.rs", &line).is_empty());
+        assert!(
+            scan_text(
+                "a.rs",
+                &format!("// shipyard:allow-secret\nlet t = \"{secret}\";")
+            )
+            .is_empty()
+        );
+        assert_eq!(
+            scan_text(
+                "a.rs",
+                &format!("// shipyard:allow-secret\n\nlet t = \"{secret}\";")
+            )
+            .len(),
+            1
+        );
+        assert!(scan_text("a.ts", "secret: \"a secret value is assigned\"").is_empty());
+        assert!(scan_text("a.ts", "token: \"Authentication\"").is_empty());
         let finder = "if l.contains(\"-----BEGIN\") && l.contains(\"PRIVATE KEY-----\")";
         assert!(scan_text("a.rs", finder).is_empty());
         assert_eq!(
+            // shipyard:allow-secret
             scan_text("k.pem", "-----BEGIN RSA PRIVATE KEY-----").len(),
             1
         );
@@ -1356,7 +1457,7 @@ mod tests {
         assert!(scan_text("a.rs", call).is_empty());
         let arg = r#"load_key("-----BEGIN PRIVATE KEY-----\nMIIE...")"#; // gitleaks:allow
         assert_eq!(scan_text("a.rs", arg).len(), 1);
-        let env = "PRIVATE_KEY=-----BEGIN PRIVATE KEY-----MIIEvQIBADANBg"; // gitleaks:allow
+        let env = "PRIVATE_KEY=-----BEGIN PRIVATE KEY-----MIIEvQIBADANBg"; // gitleaks:allow nosemgrep: generic.secrets.security.detected-private-key.detected-private-key
         assert_eq!(scan_text("prod.env", env).len(), 1);
         let npmrc = "//registry.npmjs.org/:_authToken=abcd1234efgh";
         assert_eq!(scan_text(".npmrc", npmrc).len(), 1);

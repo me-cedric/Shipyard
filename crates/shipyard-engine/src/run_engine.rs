@@ -1375,9 +1375,7 @@ impl Inner {
             .unwrap_or(&p.default_workflow);
         let wf = p
             .files
-            .workflows
-            .get(wf_id)
-            .cloned()
+            .workflow(wf_id)
             .ok_or_else(|| format!("no workflow `{wf_id}`"))?;
         let ms = self.clock.now().as_millis() as u64;
         self.seq += 1;

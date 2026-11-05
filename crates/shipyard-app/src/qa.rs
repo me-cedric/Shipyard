@@ -438,7 +438,18 @@ pub fn coverage(s: &AppState) -> Res<Option<Coverage>> {
 
 // ---------------------------------------------------------------- verify all docs
 
-fn markdown(root: &Path, rel: &str, out: &mut Vec<String>) {
+/// The paths of the submodules, from `.gitmodules`: their docs belong to another repository.
+fn submodules(root: &Path) -> Vec<String> {
+    std::fs::read_to_string(root.join(".gitmodules"))
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|l| l.trim().strip_prefix("path"))
+        .filter_map(|l| l.trim_start().strip_prefix('='))
+        .map(|p| p.trim().to_string())
+        .collect()
+}
+
+fn markdown(root: &Path, rel: &str, skip: &[String], out: &mut Vec<String>) {
     let Ok(rd) = std::fs::read_dir(root.join(rel)) else {
         return;
     };
@@ -449,7 +460,9 @@ fn markdown(root: &Path, rel: &str, out: &mut Vec<String>) {
         let child = format!("{rel}/{name}");
         match e.file_type() {
             Ok(t) if t.is_dir() && name != "node_modules" && name != ".git" => {
-                markdown(root, &child, out);
+                if !skip.contains(&child) {
+                    markdown(root, &child, skip, out);
+                }
             }
             Ok(t) if t.is_file() && name.ends_with(".md") => out.push(child),
             _ => {}
@@ -537,7 +550,7 @@ pub fn verify_docs(s: &AppState) -> Res<(String, Vec<ScanFinding>)> {
         ));
     }
     let mut files = Vec::new();
-    markdown(&p.root, "docs", &mut files);
+    markdown(&p.root, "docs", &submodules(&p.root), &mut files);
     for file in &files {
         let Ok(text) = std::fs::read_to_string(p.root.join(file)) else {
             continue;
@@ -848,6 +861,9 @@ mod tests {
         assert_eq!(propose(&p), ["make verify", "cargo test"]);
     }
 
+    /// Output with a byte that is not UTF-8, and a run long enough for one progress tick.
+    const NOISY: &str = "printf 'a\\377b\\nlast\\n'; sleep 1.2; exit 3";
+
     fn open_project(dir: &Path) -> (AppState, PathBuf) {
         let s = AppState::new(dir.join("data"));
         let p = dir.join("one");
@@ -866,6 +882,7 @@ mod tests {
             vec![
                 " echo one; exit 3 ".into(),
                 "no-such-program-xyz".into(),
+                NOISY.into(),
                 "".into(),
             ],
         )
@@ -882,6 +899,12 @@ mod tests {
             "`echo one; exit 3` stopped with exit code 3"
         );
         assert_eq!(r.tail, "one");
+        // A byte that is not UTF-8 keeps the tail, and the lines reach the caller while it runs.
+        let seen = std::sync::Mutex::new(Vec::<String>::new());
+        let r =
+            crate::code::check_run_with(&s, NOISY, true, &|l| *seen.lock().unwrap() = l).unwrap();
+        assert_eq!(r.tail, "a\u{fffd}b\nlast");
+        assert_eq!(*seen.lock().unwrap(), ["a\u{fffd}b", "last"]);
         let r = crate::code::check_run(&s, "no-such-program-xyz", true).unwrap();
         assert_eq!(
             r.findings[0].message,
@@ -914,6 +937,19 @@ mod tests {
         let link: Vec<_> = found.iter().filter(|f| f.path == "docs/a.md").collect();
         assert_eq!(link.len(), 1);
         assert_eq!(link[0].line, Some(3));
+        // A submodule has its own docs: its broken link is not reported.
+        std::fs::create_dir_all(p.join("docs/vendor")).unwrap();
+        std::fs::write(p.join("docs/vendor/b.md"), "[gone](gone.md)\n").unwrap();
+        std::fs::write(
+            p.join(".gitmodules"),
+            "[submodule \"v\"]\n\tpath = docs/vendor\n",
+        )
+        .unwrap();
+        let (_, found) = verify_docs(&s).unwrap();
+        assert!(
+            found.iter().all(|f| !f.path.starts_with("docs/vendor")),
+            "{found:?}"
+        );
         assert!(crate::code::check_run(&s, "verify all docs", false).is_err());
         let r = crate::code::check_run(&s, VERIFY_DOCS, true).unwrap();
         assert!(!r.passed);

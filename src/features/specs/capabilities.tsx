@@ -1,4 +1,5 @@
 import { useQueries } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
@@ -12,6 +13,8 @@ import { Button } from "@/ui/atoms/button";
 import { BookOpenIcon, ChevronLeftIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { CodeEditor } from "@/ui/molecules/code-editor";
+import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SplitPane } from "@/ui/molecules/split-pane";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { LIST, useEnter } from "@/ui/motion";
@@ -157,7 +160,9 @@ export function Capabilities() {
 function CapabilityList() {
 	const { t } = useI18n();
 	const s = t.specs;
-	const list = useCapabilities().data ?? [];
+	const query = useCapabilities();
+	const list = query.data ?? [];
+	const navigate = useNavigate();
 	// The open item stays with the tab; the cards are the overview.
 	const [open, setOpen] = useTabSelection("specs:capabilities");
 	const enter = useEnter();
@@ -170,41 +175,55 @@ function CapabilityList() {
 			icon={<BookOpenIcon size={16} />}
 			count={list.length}
 		>
-			<motion.ul
-				aria-label={t.tabs.specs.capabilities}
-				variants={LIST}
-				initial={enter}
-				animate="shown"
-				className="grid min-h-0 auto-rows-min grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3 overflow-auto px-4 pt-1 pb-4"
-			>
-				{list.map((c) => (
-					<li key={c.capability}>
-						<Card interactive className="p-0">
-							<button
-								type="button"
-								onClick={() => setOpen(c.capability)}
-								className="flex w-full flex-col gap-3 rounded-lg p-3 text-left"
-							>
-								<span className="flex items-baseline gap-2">
-									<span className="min-w-0 flex-1 truncate font-mono text-14 text-n-12">
-										{c.capability}
+			<ErrorNotice error={query.error} className="px-4 py-2" />
+			{query.data?.length === 0 ? (
+				<div className="p-4">
+					<EmptyState
+						title={t.empty.capabilities}
+						icon={<BookOpenIcon size={28} />}
+						action={{
+							label: t.tabs.specs.changes,
+							onClick: () => void navigate({ to: "/specs/changes" }),
+						}}
+					/>
+				</div>
+			) : (
+				<motion.ul
+					aria-label={t.tabs.specs.capabilities}
+					variants={LIST}
+					initial={enter}
+					animate="shown"
+					className="grid min-h-0 auto-rows-min grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3 overflow-auto px-4 pt-1 pb-4"
+				>
+					{list.map((c) => (
+						<li key={c.capability}>
+							<Card interactive className="p-0">
+								<button
+									type="button"
+									onClick={() => setOpen(c.capability)}
+									className="flex w-full flex-col gap-3 rounded-lg p-3 text-left"
+								>
+									<span className="flex items-baseline gap-2">
+										<span className="min-w-0 flex-1 truncate font-mono text-14 text-n-12">
+											{c.capability}
+										</span>
+										<span className="font-mono text-20 text-n-12">{c.requirements}</span>
 									</span>
-									<span className="font-mono text-20 text-n-12">{c.requirements}</span>
-								</span>
-								<span aria-hidden="true" className="flex items-center gap-2 text-12 text-n-11">
-									{s.requirements}
-									<span className="h-1.5 flex-1 overflow-hidden rounded-full bg-n-4">
-										<span
-											className="block h-full rounded-full bg-accent-gradient"
-											style={{ width: `${(c.requirements / max) * 100}%` }}
-										/>
+									<span aria-hidden="true" className="flex items-center gap-2 text-12 text-n-11">
+										{s.requirements}
+										<span className="h-1.5 flex-1 overflow-hidden rounded-full bg-n-4">
+											<span
+												className="block h-full rounded-full bg-accent-gradient"
+												style={{ width: `${(c.requirements / max) * 100}%` }}
+											/>
+										</span>
 									</span>
-								</span>
-							</button>
-						</Card>
-					</li>
-				))}
-			</motion.ul>
+								</button>
+							</Card>
+						</li>
+					))}
+				</motion.ul>
+			)}
 		</ListDetail>
 	);
 }

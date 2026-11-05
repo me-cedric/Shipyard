@@ -58,7 +58,12 @@ function RunStats({ runs }: { runs: RunView[] }) {
 		<StatStrip
 			className="px-4"
 			items={[
-				{ label: f.liveRuns, value: String(live), icon: <LiveDot />, tone: "accent" },
+				{
+					label: f.liveRuns,
+					value: String(live),
+					icon: <LiveDot idle={live === 0} />,
+					tone: "accent",
+				},
 				{
 					label: f.lane.needs_you,
 					value: String(runs.filter((r) => r.lane === "needs_you").length),
