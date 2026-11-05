@@ -50,11 +50,9 @@ describe("assistant panel: context ring and quota windows", () => {
 	});
 
 	it("shows a quota window only when the runner reports one", async () => {
-		const user = userEvent.setup();
 		await mountAssistant();
 		expect(screen.queryByRole("meter", { name: /Quota/ })).toBeNull();
-		await user.click(screen.getByRole("combobox", { name: "Runner" }));
-		await user.click(await screen.findByRole("option", { name: "codex" }));
+		await toCodex();
 		const quota = await screen.findByRole("meter", { name: "Quota 5h" });
 		expect(quota).toHaveAttribute("aria-valuetext", "40 %");
 	});
@@ -156,6 +154,16 @@ describe("assistant panel: width and side", () => {
 	});
 });
 
+/** The picker button, More models, then a model of Codex. */
+async function toCodex() {
+	const user = userEvent.setup({ pointerEventsCheck: 0 });
+	await user.click(screen.getByRole("button", { name: "claude" }));
+	await user.click(await screen.findByRole("menuitem", { name: "More models" }));
+	// A click on an item of a submenu does not reach it in jsdom: the keyboard does.
+	(await screen.findByRole("menuitem", { name: "gpt-5" })).focus();
+	await user.keyboard("{Enter}");
+}
+
 describe("assistant panel: warnings before a risky step", () => {
 	const permission = () => screen.getByRole("combobox", { name: "Permission", hidden: true });
 
@@ -166,20 +174,19 @@ describe("assistant panel: warnings before a risky step", () => {
 			within(screen.getByRole("group", { name: "Mode" })).getByRole("button", { name: "Agent" }),
 		);
 		await user.click(permission());
-		await user.click(await screen.findByRole("option", { name: "Auto in worktree" }));
+		await user.click(await screen.findByRole("option", { name: "Auto: accept edits" }));
 		const dialog = await screen.findByRole("dialog", { name: "Allow edits without approval" });
 		expect(dialog).toHaveTextContent("It never runs shell commands");
 		expect(permission()).toHaveTextContent("Edit with approval");
 		await user.click(within(dialog).getByRole("button", { name: "Allow auto edits" }));
-		await waitFor(() => expect(permission()).toHaveTextContent("Auto in worktree"));
+		await waitFor(() => expect(permission()).toHaveTextContent("Auto: accept edits"));
 	});
 
 	it("asks for the Codex trust and writes it on the click", async () => {
 		const user = userEvent.setup();
 		await mountAssistant();
 		expect(screen.queryByText(/Codex does not trust/)).toBeNull();
-		await user.click(screen.getByRole("combobox", { name: "Runner" }));
-		await user.click(await screen.findByRole("option", { name: "codex" }));
+		await toCodex();
 		expect(await screen.findByText(/Codex does not trust this folder/)).toBeInTheDocument();
 		expect(mockState().codexTrusted).toBe(false);
 		await user.click(screen.getByRole("button", { name: "Trust this folder" }));

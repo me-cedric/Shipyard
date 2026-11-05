@@ -30,13 +30,12 @@ describe("Settings / Connections / Outside agents", () => {
 		expect(await within(box).findByRole("alert")).toHaveTextContent("1024 or more");
 	});
 
-	it("limits the tools, wires .mcp.json after the server is on, and imports a server of another tool", async () => {
+	it("limits the tools with a preset or a pick, and imports a server of another tool", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		mountApp("/settings/connections");
 		const section = await screen.findByRole("heading", { name: "Outside agents" });
 		const box = section.parentElement as HTMLElement;
-		expect(within(box).getByRole("button", { name: "Add to .mcp.json" })).toBeDisabled();
 		await user.click(within(box).getByRole("switch", { name: "Server on" }));
 		await user.click(within(box).getByRole("switch", { name: "Git" }));
 		await user.click(within(box).getByRole("checkbox", { name: "git_status" }));
@@ -44,12 +43,51 @@ describe("Settings / Connections / Outside agents", () => {
 		await waitFor(async () =>
 			expect((await unwrap(commands.mcpOutsideGet())).active).toEqual(["git_status"]),
 		);
-		await user.click(await within(box).findByRole("button", { name: "Add to .mcp.json" }));
-		expect(await within(box).findByRole("status")).toHaveTextContent(`${DEMO_FOLDER}/.mcp.json`);
-		expect(mockState().doctor.wired).toBe(true);
-
+		// The read only preset keeps the tools that change nothing.
+		await user.click(within(box).getByRole("combobox", { name: "Allow list" }));
+		await user.click(await screen.findByRole("option", { name: "Read only" }));
+		await user.click(within(box).getByRole("button", { name: "Apply" }));
+		await waitFor(async () =>
+			expect((await unwrap(commands.mcpOutsideGet())).gates.allowedTools).toContain("git_log"),
+		);
+		expect(within(box).getByRole("checkbox", { name: "project_write_file" })).not.toBeChecked();
+		expect(within(box).getByRole("checkbox", { name: "git_log" })).toBeChecked();
 		await user.click(within(box).getByRole("button", { name: "Import git" }));
 		await waitFor(() => expect(mockState().doctor.imported).toEqual(["git"]));
+	});
+
+	it("lists the agent tools, reviews the file before it writes, and marks a wired one out of date after a new port", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		mountApp("/settings/connections");
+		const section = await screen.findByRole("heading", { name: "Agent tools" });
+		const box = section.parentElement as HTMLElement;
+		// Gemini is not installed: it does not show.
+		expect(await within(box).findAllByText("Not wired")).toHaveLength(3);
+		expect(within(box).queryByText("Gemini")).toBeNull();
+		await user.click(within(box).getByRole("button", { name: "Wire Claude Code" }));
+		const review = await within(box).findByRole("region", { name: /Review of .*\.mcp\.json/ });
+		expect(review).toHaveTextContent('+ "shipyard": "http://127.0.0.1:47821/mcp"');
+		// Nothing is written before the person accepts.
+		expect(mockState().doctor.wired).toEqual({});
+		await user.click(within(review).getByRole("button", { name: "Write the file" }));
+		expect(await within(box).findByRole("status")).toHaveTextContent(`${DEMO_FOLDER}/.mcp.json`);
+		expect(mockState().doctor.wired).toEqual({ claude: "http://127.0.0.1:47821/mcp" });
+		expect(within(box).getByText("Wired")).toBeInTheDocument();
+
+		// The server settings change: the wired file is out of date, and one click updates it.
+		const outside = (await screen.findByRole("heading", { name: "Outside agents" }))
+			.parentElement as HTMLElement;
+		await user.clear(within(outside).getByRole("spinbutton", { name: "Port" }));
+		await user.type(within(outside).getByRole("spinbutton", { name: "Port" }), "50000");
+		await user.click(within(outside).getByRole("button", { name: "Apply" }));
+		expect(await within(box).findByText("Out of date")).toBeInTheDocument();
+		await user.click(within(box).getByRole("button", { name: "Update Claude Code" }));
+		const again = await within(box).findByRole("region", { name: /Review of/ });
+		expect(again).toHaveTextContent('- "shipyard": "http://127.0.0.1:47821/mcp"');
+		await user.click(within(again).getByRole("button", { name: "Write the file" }));
+		await waitFor(() => expect(within(box).getByText("Wired")).toBeInTheDocument());
+		expect(mockState().doctor.wired.claude).toBe("http://127.0.0.1:50000/mcp");
 	});
 
 	it("the token is for a running server only", async () => {

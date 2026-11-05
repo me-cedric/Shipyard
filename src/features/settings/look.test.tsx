@@ -50,6 +50,27 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 		expect(main.compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 	});
 
+	it("saves the motion and the focus ring, shows a preview and writes root attributes", async () => {
+		const user = userEvent.setup();
+		mountApp("/settings/me");
+		const root = document.documentElement.dataset;
+		await waitFor(() =>
+			expect([root.motion, root.focusRing, root.focusWidth]).toEqual(["system", "keyboard", "2"]),
+		);
+		await choose(user, "Motion", "Reduce");
+		await choose(user, "Focus ring", "Always");
+		await choose(user, "Focus ring width", "3 px");
+		await waitFor(() =>
+			expect([
+				mockState().prefs.motion,
+				mockState().prefs.focusRing,
+				mockState().prefs.focusWidth,
+			]).toEqual(["reduce", "always", 3]),
+		);
+		expect([root.motion, root.focusRing, root.focusWidth]).toEqual(["reduce", "always", "3"]);
+		expect(screen.getByText("Preview")).toBeInTheDocument();
+	});
+
 	it("saves the text size and writes it on the root element", async () => {
 		const user = userEvent.setup();
 		mountApp("/settings/me");

@@ -1,7 +1,7 @@
 //! The Shipyard MCP server for agents that Shipyard did not start (Settings / Connections / MCP).
 //! The tools are
 //! `shipyard_mcp::outside`; this module keeps the switches in `mcp-outside.json`, runs the loopback
-//! server, writes the entry of an agent's `.mcp.json`, and lists the servers that other tools use.
+//! server, wires agents (`wiring.rs`), and lists the servers that other tools use.
 //!
 //! The token is 64 hex characters in `mcp-outside.token` (mode `0600`), made once. The `.mcp.json`
 //! entry reads it from `${SHIPYARD_MCP_TOKEN}`: no secret goes in a file of the project.
@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::Value;
 use shipyard_mcp::outside::{self, Outside, Switches, TicketPort};
 use shipyard_mcp::server::Server;
 use shipyard_mcp::session::Binding;
@@ -94,6 +94,8 @@ pub struct McpOutside {
     /// Every tool name, and the ones that are on.
     pub tools: Vec<String>,
     pub active: Vec<String>,
+    /// The tools of the "read only" preset of the allow list.
+    pub read_only: Vec<String>,
 }
 
 struct Live {
@@ -282,6 +284,7 @@ pub fn status(s: &AppState) -> McpOutside {
         error: lock(&ERROR).clone(),
         tools: outside::NAMES.iter().map(|n| n.to_string()).collect(),
         active: outside::enabled(&o).into_iter().map(String::from).collect(),
+        read_only: outside::READ_ONLY.iter().map(|n| n.to_string()).collect(),
         gates: g,
     }
 }
@@ -306,37 +309,12 @@ pub fn gates_set(s: &AppState, g: McpGates) -> Res<McpOutside> {
     Ok(status(s))
 }
 
-/// Add the Shipyard entry to `<root>/.mcp.json`, and keep every other entry. Returns the path.
-fn wire_into(root: &Path, url: &str) -> Res<String> {
-    let path = root.join(".mcp.json");
-    let mut doc: Value = match std::fs::read_to_string(&path) {
-        Ok(t) => {
-            serde_json::from_str(&t).map_err(|e| format!(".mcp.json is not valid JSON: {e}"))?
-        }
-        Err(_) => json!({}),
-    };
-    let servers = doc
-        .as_object_mut()
-        .ok_or(".mcp.json is not an object")?
-        .entry("mcpServers")
-        .or_insert_with(|| json!({}));
-    servers.as_object_mut().ok_or("mcpServers is not an object")?.insert(
-        "shipyard".into(),
-        json!({ "type": "http", "url": url, "headers": { "Authorization": "Bearer ${SHIPYARD_MCP_TOKEN}" } }),
-    );
-    let text = serde_json::to_vec_pretty(&doc).map_err(err)?;
-    write_atomic(&path, &text).map_err(err)?;
-    Ok(path.to_string_lossy().into_owned())
-}
-
-pub fn wire(s: &AppState) -> Res<String> {
-    let url = lock(&LIVE)
-        .as_ref()
-        .ok_or("turn the server on first")?
-        .http
-        .url();
-    let root = PathBuf::from(&s.registry()?.active().ok_or("no active project")?.path);
-    wire_into(&root, &url)
+/// The address that a wired agent calls: the live one, else the one that the saved port gives.
+pub fn url(s: &AppState) -> String {
+    lock(&LIVE).as_ref().map_or_else(
+        || format!("http://127.0.0.1:{}/mcp", gates(&s.dir).port),
+        |l| l.http.url(),
+    )
 }
 
 /// A server that another tool runs.
@@ -460,12 +438,6 @@ pub async fn mcp_outside_set(app: tauri::AppHandle, gates: McpGates) -> Api<McpO
     blocking(app, move |s| gates_set(s, gates)).await
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn mcp_outside_wire(app: tauri::AppHandle) -> Api<String> {
-    blocking(app, wire).await
-}
-
 /// The token that an agent sends. It is the person's own secret, shown only to copy.
 #[tauri::command]
 #[specta::specta]
@@ -541,27 +513,6 @@ mod tests {
         assert!(!format!("{:?}", got[0].0).contains("s3cret"));
         assert_eq!(got[1].0.command, "https://x.dev/mcp");
         assert!(parse("x", "not json").is_empty());
-    }
-
-    #[test]
-    fn wiring_keeps_other_servers_and_never_writes_the_token() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(
-            dir.path().join(".mcp.json"),
-            r#"{"mcpServers":{"other":{"command":"x"}}}"#,
-        )
-        .unwrap();
-        wire_into(dir.path(), "http://127.0.0.1:1/mcp").unwrap();
-        let text = std::fs::read_to_string(dir.path().join(".mcp.json")).unwrap();
-        let doc: Value = serde_json::from_str(&text).unwrap();
-        assert_eq!(doc["mcpServers"]["other"]["command"], "x");
-        assert_eq!(
-            doc["mcpServers"]["shipyard"]["url"],
-            "http://127.0.0.1:1/mcp"
-        );
-        assert!(text.contains("${SHIPYARD_MCP_TOKEN}"));
-        std::fs::write(dir.path().join(".mcp.json"), "{nope").unwrap();
-        assert!(wire_into(dir.path(), "u").is_err());
     }
 
     #[test]

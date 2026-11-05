@@ -2,7 +2,7 @@
 export const reportsEn = {
 	export: "Export",
 	exported: "Exported: {path}",
-	text: { empty: "No content.", gap: "Gap", generated: "Generated" },
+	text: { empty: "No content.", gap: "Gap", generated: "Generated", contents: "Contents" },
 	dossierComplete: "Complete dossier",
 	dossierSections: [
 		"Architecture views",
@@ -55,7 +55,7 @@ export const reportsEn = {
 export const reportsFr: typeof reportsEn = {
 	export: "Exporter",
 	exported: "Exporté : {path}",
-	text: { empty: "Aucun contenu.", gap: "Lacune", generated: "Généré" },
+	text: { empty: "Aucun contenu.", gap: "Lacune", generated: "Généré", contents: "Sommaire" },
 	dossierComplete: "Dossier complet",
 	dossierSections: [
 		"Vues d'architecture",

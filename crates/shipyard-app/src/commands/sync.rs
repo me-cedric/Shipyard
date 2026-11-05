@@ -617,12 +617,9 @@ pub(crate) fn index_mirror(s: &AppState, root: &Path, index: &mut RefIndex) -> R
                 if parse(&me).is_none() {
                     continue;
                 }
-                ents.push(Entity::new(
-                    &me,
-                    &i.title,
-                    Some(&i.status.name),
-                    Some(&i.url),
-                ));
+                let mut e = Entity::new(&me, &i.title, Some(&i.status.name), Some(&i.url));
+                e.body = i.description.clone();
+                ents.push(e);
                 let member = i
                     .assignee
                     .as_ref()

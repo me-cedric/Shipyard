@@ -190,3 +190,13 @@ pub async fn assistant_defaults_set(
 pub async fn assistant_options(app: AppHandle) -> Api<Vec<RunnerOptions>> {
     blocking(app, a::options).await
 }
+
+/// The slash commands of a runner: the files that its CLI reads.
+#[tauri::command]
+#[specta::specta]
+pub async fn assistant_slash_commands(
+    app: AppHandle,
+    runner: String,
+) -> Api<Vec<shipyard_agents::slash::SlashCommand>> {
+    blocking(app, move |s| a::slash_commands(s, &runner)).await
+}

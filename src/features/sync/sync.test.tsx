@@ -2,7 +2,6 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
-import { askForm } from "@/lib/shell";
 import { mountApp } from "@/test/mount";
 import { withTracker } from "@/test/tracker";
 
@@ -49,10 +48,9 @@ describe("the sync action and the connection state rows", () => {
 		expect((await bar()).getByRole("button", { name: "Open settings" })).toBeVisible();
 	});
 
-	it("focuses the pickup label field when a link asks for it", async () => {
+	it("focuses the pickup label field when the address names its anchor", async () => {
 		await withTracker();
-		askForm("pickupLabel");
-		mountApp("/settings/project");
+		mountApp("/settings/project#pickup-label");
 		await waitFor(() => expect(screen.getByRole("textbox", { name: "Label" })).toHaveFocus());
 	});
 

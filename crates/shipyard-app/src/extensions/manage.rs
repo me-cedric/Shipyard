@@ -104,7 +104,15 @@ pub async fn catalog_undeploy(app: AppHandle, id: String, click: bool) -> Api<Un
 #[tauri::command]
 #[specta::specta]
 pub async fn plugin_list(app: AppHandle) -> Api<Vec<Installed>> {
-    blocking(app, |s| Ok(plugin_manage::list(&root(s)?))).await
+    blocking(app, |s| {
+        let mut list = plugin_manage::list(&root(s)?);
+        let mut from = plugin_manage::sources(&s.dir, &crate::design::project(s)?.id);
+        for p in &mut list {
+            p.source = from.remove(&p.name);
+        }
+        Ok(list)
+    })
+    .await
 }
 
 /// The MCP servers that a plugin added, by name, as ids of the custom servers.
@@ -139,6 +147,8 @@ pub async fn plugin_remove(app: AppHandle, name: String, click: bool) -> Api<Rem
     blocking(app, move |s| {
         need_click(s, click)?;
         let out = plugin_manage::remove(&root(s)?, &name).map_err(err)?;
+        let id = crate::design::project(s)?.id;
+        plugin_manage::set_source(&s.dir, &id, &name, None).map_err(err)?;
         for id in servers_of(s, &out.mcp) {
             s.agents.mcp_remove(&id)?;
         }

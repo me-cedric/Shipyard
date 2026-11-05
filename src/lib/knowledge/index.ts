@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { isTauri } from "@tauri-apps/api/core";
 import { useCallback, useState, useSyncExternalStore } from "react";
+import { useOnFileChange } from "@/lib/files";
 import {
 	commands,
 	type Dashboard_Serialize,
@@ -64,6 +64,8 @@ export const useCodeGraph = () =>
 export const useLearn = () => useProjectQuery(key("learn"), () => unwrap(commands.learnGet()));
 export const useDocList = () =>
 	useProjectQuery(knowledgeKeys.docs, () => unwrap(commands.docListGet()));
+/** The decks of the slides folder: HTML decks and older Markdown decks (ADR 0016). */
+export const useDeckList = () => useProjectQuery(key("decks"), () => unwrap(commands.deckList()));
 export const useSlideTheme = () =>
 	useProjectQuery(key("theme"), () => unwrap(commands.slideThemeGet()));
 export const useDashboards = () =>
@@ -71,7 +73,7 @@ export const useDashboards = () =>
 export const useExplainContext = (entity: string) =>
 	useProjectQuery(key("explain", entity), () => unwrap(commands.explainContextGet(entity)));
 
-/** The Index action of the code graph. */
+/** The Index action of the code graph. The app starts a server that is off for this run only. */
 export function useIndexCode() {
 	const qc = useQueryClient();
 	return useMutation({
@@ -106,6 +108,10 @@ export function useDocFile(path: string) {
 	const [draft, setDraft] = useState<string | null>(null);
 	const [conflict, setConflict] = useState<string | null>(null);
 	const [failure, setFailure] = useState<string | null>(null);
+	// A draft keeps its text; the stamp conflict shows at the save.
+	useOnFileChange(path, () => {
+		if (draft === null) void q.refetch();
+	});
 	const saved = q.data?.text ?? "";
 
 	const write = async (stamp: string | null) => {
@@ -231,13 +237,4 @@ export function useGraphFocus() {
 			for (const l of focusListeners) l();
 		},
 	] as const;
-}
-
-// ---------------------------------------------------------------- export
-
-/** The native dialog for a Word file to write. Returns null when the person cancels. */
-export async function saveDocx(name: string): Promise<string | null> {
-	if (!isTauri()) return `/mock/${name}.docx`;
-	const { save } = await import("@tauri-apps/plugin-dialog");
-	return save({ defaultPath: `${name}.docx`, filters: [{ name: "Word", extensions: ["docx"] }] });
 }

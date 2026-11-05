@@ -125,4 +125,35 @@ describe("Knowledge / Graph", () => {
 		const code = await unwrap(commands.graphCode());
 		await screen.findByTestId(`rf__node-${code.nodes[0]?.ref}`);
 	});
+
+	describe("Index with the code graph server off", () => {
+		afterEach(() => vi.restoreAllMocks());
+
+		it("makes one backend call and does not change the saved server setting", async () => {
+			const user = userEvent.setup();
+			mockState().knowledge.indexed = false;
+			await mountKnowledge("graph");
+			const enable = vi.spyOn(commands, "mcpEnable");
+			const start = vi.spyOn(commands, "mcpStart");
+			const index = vi.spyOn(commands, "graphCodeIndex");
+			await user.click(await screen.findByRole("tab", { name: "Code" }));
+			await user.click(await screen.findByRole("button", { name: "Index" }));
+			await waitFor(() => expect(index).toHaveBeenCalledTimes(1));
+			expect(enable).not.toHaveBeenCalled();
+			expect(start).not.toHaveBeenCalled();
+		});
+
+		it("shows the error of the index", async () => {
+			const user = userEvent.setup();
+			mockState().knowledge.indexed = false;
+			await mountKnowledge("graph");
+			vi.spyOn(commands, "graphCodeIndex").mockResolvedValue({
+				status: "error",
+				error: { code: "unknown", details: "it did not start", action: null },
+			});
+			await user.click(await screen.findByRole("tab", { name: "Code" }));
+			await user.click(await screen.findByRole("button", { name: "Index" }));
+			await screen.findByRole("alert");
+		});
+	});
 });

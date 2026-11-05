@@ -20,15 +20,21 @@ impl Runner for Claude {
         let mut args: Vec<String> = ["-p", "--output-format", "stream-json", "--verbose"]
             .map(String::from)
             .into();
-        // `auto` keeps Claude's safety classifier; `plan` is read only.
-        args.push("--permission-mode".into());
-        args.push(
-            match spec.mode {
-                Mode::Plan => "plan",
-                Mode::Auto => "auto",
+        // `auto` keeps Claude's safety classifier; `plan` is read only; `acceptEdits` takes edits.
+        match (spec.mode, spec.approval) {
+            (Mode::Auto, Approval::Bypass) => args.push("--dangerously-skip-permissions".into()),
+            (mode, approval) => {
+                args.push("--permission-mode".into());
+                args.push(
+                    match (mode, approval) {
+                        (Mode::Plan, _) => "plan",
+                        (Mode::Auto, Approval::Edits) => "acceptEdits",
+                        _ => "auto",
+                    }
+                    .into(),
+                );
             }
-            .into(),
-        );
+        }
         // `--allowedTools` only pre-approves. `--tools` cuts the built-in set itself: a plan run
         // cannot call `Edit` or `Write` whatever the permission mode says. `Bash` stays only when
         // the step lists a `Bash` rule. MCP tools are not built in: this flag leaves them alone.

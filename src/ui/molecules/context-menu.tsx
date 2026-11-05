@@ -1,5 +1,5 @@
 import { ContextMenu as BaseContextMenu } from "@base-ui/react/context-menu";
-import { type ReactNode, useRef } from "react";
+import { Fragment, type ReactNode, useRef } from "react";
 import { Kbd } from "../atoms/kbd";
 
 export type MenuItem = {
@@ -8,6 +8,8 @@ export type MenuItem = {
 	icon?: ReactNode;
 	shortcut?: string;
 	onSelect: () => void;
+	/** A line above the item starts a new group. */
+	separated?: boolean;
 };
 
 /**
@@ -39,19 +41,21 @@ export function ContextMenu({ items, children }: { items?: MenuItem[]; children:
 				<BaseContextMenu.Positioner className="z-50">
 					<BaseContextMenu.Popup className="min-w-40 rounded-lg border border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring origin-(--transform-origin) data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0 p-1 text-ui">
 						{items.map((item) => (
-							<BaseContextMenu.Item
-								key={item.id}
-								onClick={item.onSelect}
-								className="flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5"
-							>
-								{item.icon ? (
-									<span aria-hidden="true" className="text-n-10">
-										{item.icon}
-									</span>
-								) : null}
-								<span className="flex-1">{item.label}</span>
-								{item.shortcut ? <Kbd>{item.shortcut}</Kbd> : null}
-							</BaseContextMenu.Item>
+							<Fragment key={item.id}>
+								{item.separated ? <BaseContextMenu.Separator className="my-1 h-px bg-n-6" /> : null}
+								<BaseContextMenu.Item
+									onClick={item.onSelect}
+									className="flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5"
+								>
+									{item.icon ? (
+										<span aria-hidden="true" className="text-n-10">
+											{item.icon}
+										</span>
+									) : null}
+									<span className="flex-1">{item.label}</span>
+									{item.shortcut ? <Kbd>{item.shortcut}</Kbd> : null}
+								</BaseContextMenu.Item>
+							</Fragment>
 						))}
 					</BaseContextMenu.Popup>
 				</BaseContextMenu.Positioner>

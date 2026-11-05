@@ -113,7 +113,7 @@ The earlier tool has an assistant drawer with its own runner. It does not know t
 
 ### Clarifications
 
-- Q-049 Which permission levels can a person pick in agent mode?: Two levels: edit with approval, and auto inside the worktree. No bypass.
+- Q-049 Which permission levels can a person pick in agent mode?: Three levels: edit with approval, auto inside the worktree, and Bypass permissions behind a warning and guards (REQ-009).
 - Q-047 Does an agent-mode thread keep one worktree for all its turns?: One worktree for each thread. It lives until the person discards or sends it.
 - Q-024 Which runners ship in the first release?: Claude Code and Codex. The others follow in later changes.
 - Q-023 What are the default budgets?: The workflow limit sets the run budget (5 USD in `feature`). No default per day or per member until an admin sets one.
@@ -220,7 +220,7 @@ In plan mode the assistant SHALL write a plan as the reply and SHALL change no f
 
 ### Requirement: REQ-009 Agent mode
 
-In agent mode the assistant SHALL change files only in a worktree of its own. It SHALL use the permission level of the person. Two levels: edit with approval, and auto inside the worktree. No bypass. The worktree SHALL stay apart from the main checkout until the person acts on the result. One worktree for each thread. It lives until the person discards or sends it.
+In agent mode the assistant SHALL change files only in a worktree of its own. It SHALL use the permission level of the person: edit with approval, auto inside the worktree, or Bypass permissions. Bypass permissions SHALL be set for one thread only, after a confirm that the person gives once for each project. It SHALL be refused for a project with a read only profile, while the agents switch is off, and for a runner without a skip-permissions flag. It SHALL never be a default of new threads. The worktree SHALL stay apart from the main checkout until the person acts on the result. One worktree for each thread. It lives until the person discards or sends it.
 
 #### Scenario: Agent edit
 - GIVEN a thread in agent mode

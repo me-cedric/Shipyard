@@ -196,7 +196,7 @@ describe("assistant panel: reply actions", () => {
 });
 
 async function pick(user: ReturnType<typeof userEvent.setup>, select: string, option: string) {
-	// The mode is a row of pills; the other pickers are selects.
+	// The mode is a segmented control; the other pickers are selects.
 	if (select === "Mode") {
 		const pills = within(screen.getByRole("group", { name: select }));
 		return user.click(pills.getByRole("button", { name: option }));
@@ -215,13 +215,18 @@ describe("assistant panel: modes and failures", () => {
 		expect(await log().findByText(/^Plan:/)).toBeInTheDocument();
 	});
 
-	it("offers two writing levels, read only and no bypass", async () => {
+	it("offers edit with approval, auto, bypass and read only", async () => {
 		const user = userEvent.setup();
 		await mountAssistant();
 		await pick(user, "Mode", "Agent");
 		await user.click(screen.getByRole("combobox", { name: "Permission" }));
 		const levels = (await screen.findAllByRole("option")).map((o) => o.textContent);
-		expect(levels).toEqual(["Edit with approval", "Auto in worktree", "Read only"]);
+		expect(levels).toEqual([
+			"Edit with approval",
+			"Auto: accept edits",
+			"Bypass permissions",
+			"Read only",
+		]);
 	});
 
 	it("waits for a denied permission, grants it with one action and shows the diff", async () => {

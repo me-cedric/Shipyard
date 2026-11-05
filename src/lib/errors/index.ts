@@ -4,34 +4,20 @@ import { useCallback, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { actionLabel, errorMessage } from "@/lib/i18n/errors";
 import { commands, toFailure, unwrap } from "@/lib/ipc";
-import { askForm } from "@/lib/shell";
 import { useSyncNow } from "@/lib/sync";
 
-/** The page and the form of each Settings field that an error can name. */
-const SETTING = {
-	connections: { to: "/settings/connections", form: "connection" },
-	trackerScope: { to: "/settings/project", form: "trackerScope" },
-	pickupLabel: { to: "/settings/project", form: "pickupLabel" },
-	terminalApp: { to: "/settings/me", form: "terminalApp" },
-	certificate: { to: "/settings/connections", form: "certificate" },
-} as const;
-
-/** Opens a Settings field: the page of the field, then its form. */
+/**
+ * Opens a Settings row: `target` is a route and an anchor id, such as `/settings/project#issue-tracker`.
+ * `useAnchorArrival` scrolls to the row, focuses its control and rings it.
+ */
 export function useOpenSetting() {
 	const router = useRouter({ warn: false });
-	return useCallback(
-		(target: string) => {
-			const s = SETTING[target as keyof typeof SETTING] ?? SETTING.trackerScope;
-			askForm(s.form);
-			void router?.navigate({ to: s.to });
-		},
-		[router],
-	);
+	return useCallback((target: string) => router?.history.push(target), [router]);
 }
 
 /**
  * The sentence of an error and its one action, ready to show. The action runs here: it opens the
- * Settings field, syncs, installs the tool or goes to create a project. `onDone` runs after it.
+ * Settings row, syncs, installs the tool or goes to create a project. `onDone` runs after it.
  */
 export function useErrorNotice(error: unknown, onDone?: () => void) {
 	const { lang } = useI18n();
@@ -54,7 +40,7 @@ export function useErrorNotice(error: unknown, onDone?: () => void) {
 			else if (a.kind === "install") {
 				await unwrap(commands.doctorToolInstall(a.target, true));
 				await qc.invalidateQueries({ queryKey: ["doctor"] });
-			} else if (a.kind === "open") router?.history.push(a.target);
+			} else if (a.kind === "open") open(a.target);
 			else void router?.navigate({ to: "/home/inbox" });
 			onDone?.();
 		} catch (err) {

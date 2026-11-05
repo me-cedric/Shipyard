@@ -13,9 +13,11 @@ pub mod codex_trust;
 pub mod commands;
 pub mod connections;
 pub mod costing;
+pub mod decks;
 pub mod delivery;
 pub mod design;
 pub mod design_preview;
+pub mod design_tokens;
 pub mod device_login;
 pub mod doctor;
 pub mod doctor_bootstrap;
@@ -29,6 +31,7 @@ pub mod files;
 pub mod knowledge;
 pub mod learning;
 pub mod machine;
+pub mod mcp_paste;
 pub mod mcp_tools;
 pub mod openers;
 pub mod orca;
@@ -48,7 +51,9 @@ pub mod sync;
 pub mod terminal;
 pub mod terminals;
 pub mod tray;
+pub mod watch;
 pub mod window;
+pub mod wiring;
 pub mod work;
 
 use commands::{
@@ -184,6 +189,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::documents::doc_search,
             crate::documents::doc_docx_list,
             crate::documents::doc_docx_read,
+            crate::decks::deck_list,
+            crate::decks::deck_pdf,
             crate::specs::requirements::specs_requirements,
             crate::specs::requirements::specs_testplan_generate,
             crate::work::apply_run_rows,
@@ -214,6 +221,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             ag::mcp_list,
             ag::mcp_enable,
             ag::mcp_add_custom,
+            crate::mcp_paste::mcp_custom_paste,
             ag::mcp_remove,
             ag::mcp_forget,
             ag::mcp_set_field,
@@ -238,7 +246,9 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::machine::machine_budget_set,
             crate::outside::mcp_outside_get,
             crate::outside::mcp_outside_set,
-            crate::outside::mcp_outside_wire,
+            crate::wiring::mcp_wiring_list,
+            crate::wiring::mcp_wiring_review,
+            crate::wiring::mcp_wiring_apply,
             crate::outside::mcp_outside_token,
             crate::outside::mcp_elsewhere_list,
             crate::outside::mcp_elsewhere_import,
@@ -284,6 +294,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             files::files_create_file,
             files::files_create_folder,
             files::files_rename,
+            files::files_rename_review,
+            files::files_rename_links,
             files::files_delete,
             orca::orca_status,
             orca::orca_open,
@@ -358,6 +370,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             design::design_try,
             design::design_open,
             design_preview::design_bytes,
+            design_tokens::design_tokens,
             figma::design_fig_view,
             figma::figma_token_state,
             figma::figma_token_set,
@@ -408,6 +421,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             asst::assistant_defaults_get,
             asst::assistant_defaults_set,
             asst::assistant_options,
+            asst::assistant_slash_commands,
             kw::graph_get,
             kw::graph_code,
             kw::graph_code_index,
@@ -430,6 +444,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::learning::learning_path_save,
             crate::learning::learning_path_delete,
             crate::learning::learning_progress_set,
+            kw::export_diagrams_get,
             kw::export_dossier_file,
             kw::export_functional_file,
             kw::export_sheet_file,
@@ -467,6 +482,9 @@ fn specta_builder() -> Builder<tauri::Wry> {
             ex::manage::plugin_remove,
             ex::plugin_settings::plugin_settings_get,
             ex::plugin_settings::plugin_settings_save,
+            ex::plugin_author::plugin_new,
+            ex::plugin_author::plugin_package,
+            ex::plugin_author::plugin_open_line,
             ex::compass_setup::compass_external,
             ex::compass_setup::compass_external_refresh,
             ex::compass_setup::compass_external_reinstall,
@@ -506,6 +524,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        // A deck loads in a sandboxed frame from its own scheme, under its own policy (ADR 0016).
+        .register_uri_scheme_protocol("deck", decks::protocol)
         .invoke_handler(builder.invoke_handler())
         // A run or an assistant turn in flight holds the window until the person answers.
         .on_window_event(|window, event| match event {
@@ -559,6 +579,7 @@ pub fn run() {
             factory::spawn_loop(app.handle().clone());
             app.set_menu(shell::menu::build(app.handle(), &Default::default())?)?;
             git::spawn_watch(app.handle().clone());
+            watch::spawn(app.handle().clone());
             tray::apply(app.handle(), shipyard_store::prefs::Prefs::load(&dir).tray);
             // The relay answers `shipyard --mcp-relay <id>` with the open server (REQ-018).
             // A failure leaves each agent turn to start its own server.

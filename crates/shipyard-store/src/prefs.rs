@@ -92,6 +92,25 @@ pub enum TerminalDock {
     Right,
 }
 
+/// The motion of the interface: follow the system setting, or reduce it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum Motion {
+    System,
+    Reduce,
+}
+
+/// When the focus ring shows: for the keyboard only, or for each focus.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum FocusRing {
+    Keyboard,
+    Always,
+}
+
+/// The widths of the focus ring, in pixels.
+pub const FOCUS_WIDTHS: [u8; 2] = [2, 3];
+
 pub const PANEL_WIDTH: std::ops::RangeInclusive<u32> = 280..=900;
 /// The size of a panel that a splitter resizes, in pixels.
 pub const PANEL_SIZE: std::ops::RangeInclusive<u32> = 120..=2000;
@@ -107,6 +126,18 @@ fn default_panel_side() -> PanelSide {
 
 fn left() -> PanelSide {
     PanelSide::Left
+}
+
+fn motion_system() -> Motion {
+    Motion::System
+}
+
+fn ring_keyboard() -> FocusRing {
+    FocusRing::Keyboard
+}
+
+fn default_focus_width() -> u8 {
+    2
 }
 
 fn bottom() -> TerminalDock {
@@ -208,6 +239,15 @@ pub struct Prefs {
     /// The menu bar item (the system tray) is on.
     #[serde(default = "yes")]
     pub tray: bool,
+    /// Follow the system motion setting, or reduce the motion.
+    #[serde(default = "motion_system")]
+    pub motion: Motion,
+    /// When the focus ring shows.
+    #[serde(default = "ring_keyboard")]
+    pub focus_ring: FocusRing,
+    /// The width of the focus ring in pixels: one of `FOCUS_WIDTHS`.
+    #[serde(default = "default_focus_width")]
+    pub focus_width: u8,
 }
 
 pub const DATE_FORMATS: [&str; 3] = ["iso", "dmy", "mdy"];
@@ -287,6 +327,9 @@ impl Default for Prefs {
             panel_sizes: BTreeMap::new(),
             ui_scale: default_ui_scale(),
             tray: true,
+            motion: Motion::System,
+            focus_ring: FocusRing::Keyboard,
+            focus_width: default_focus_width(),
         }
     }
 }
@@ -331,6 +374,9 @@ pub struct PrefsPatch {
     pub panel_sizes: Option<BTreeMap<String, u32>>,
     pub ui_scale: Option<u8>,
     pub tray: Option<bool>,
+    pub motion: Option<Motion>,
+    pub focus_ring: Option<FocusRing>,
+    pub focus_width: Option<u8>,
 }
 
 const FILE: &str = "prefs.json";
@@ -450,6 +496,11 @@ impl Prefs {
         self.narrow_bar = p.narrow_bar.unwrap_or(self.narrow_bar);
         self.terminal_dock = p.terminal_dock.unwrap_or(self.terminal_dock);
         self.tray = p.tray.unwrap_or(self.tray);
+        self.motion = p.motion.unwrap_or(self.motion);
+        self.focus_ring = p.focus_ring.unwrap_or(self.focus_ring);
+        if let Some(w) = p.focus_width.filter(|w| FOCUS_WIDTHS.contains(w)) {
+            self.focus_width = w;
+        }
         if let Some(n) = p.ui_scale {
             self.ui_scale = n.clamp(*UI_SCALE.start(), *UI_SCALE.end());
         }
@@ -574,6 +625,41 @@ mod tests {
             ..Default::default()
         });
         assert_eq!((p.accent, p.date_format.as_str()), (None, ""));
+    }
+
+    #[test]
+    fn the_motion_and_the_focus_ring_persist_and_keep_known_values_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut p = Prefs::default();
+        assert_eq!(
+            (p.motion, p.focus_ring, p.focus_width),
+            (Motion::System, FocusRing::Keyboard, 2)
+        );
+        p.apply(PrefsPatch {
+            motion: Some(Motion::Reduce),
+            focus_ring: Some(FocusRing::Always),
+            focus_width: Some(3),
+            ..Default::default()
+        });
+        p.save(dir.path()).unwrap();
+        let q = Prefs::load(dir.path());
+        assert_eq!(
+            (q.motion, q.focus_ring, q.focus_width),
+            (Motion::Reduce, FocusRing::Always, 3)
+        );
+        // A width that is not offered changes nothing.
+        p.apply(PrefsPatch {
+            focus_width: Some(9),
+            ..Default::default()
+        });
+        assert_eq!(p.focus_width, 3);
+        // An old file with no such key gets the defaults.
+        let mut v = serde_json::to_value(Prefs::default()).unwrap();
+        for k in ["motion", "focusRing", "focusWidth"] {
+            v.as_object_mut().unwrap().remove(k);
+        }
+        let old: Prefs = serde_json::from_value(v).unwrap();
+        assert_eq!((old.motion, old.focus_width), (Motion::System, 2));
     }
 
     #[test]

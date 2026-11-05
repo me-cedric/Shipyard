@@ -52,7 +52,14 @@ pub struct SearchHit {
     pub target: String,
     pub kind: String,
     pub title: String,
+    /// A short text around the match. `SNIP_OPEN` and `SNIP_CLOSE` mark the matched words.
+    /// `None` for a match on the ref.
+    pub snippet: Option<String>,
 }
+
+/// Control characters, so that no text of a document can look like a marker.
+pub const SNIP_OPEN: char = '\u{2}';
+pub const SNIP_CLOSE: char = '\u{3}';
 
 #[derive(Debug, Clone, Serialize, Type)]
 pub struct BrokenCitation {
@@ -150,7 +157,9 @@ impl RefIndex {
             .collect())
     }
 
-    /// Entities whose ref or title holds the text. A ref match ranks first.
+    /// Entities whose ref holds the text, then entities whose title or body holds every word
+    /// (case and accents folded by the FTS tokenizer, prefix match on the last word).
+    /// A ref match ranks first. The rest ranks by FTS rank, then by backlink count.
     pub fn search(&self, query: &str, limit: usize) -> Result<Vec<SearchHit>> {
         let q = query.trim().to_lowercase();
         if q.is_empty() {
@@ -162,20 +171,64 @@ impl RefIndex {
                 .replace('%', "\\%")
                 .replace('_', "\\_")
         );
+        let mut hits: Vec<SearchHit> = Vec::new();
         let mut st = self.conn.prepare(
-            "SELECT ref, kind, title FROM entities WHERE hidden = 0
-               AND (lower(ref) LIKE ?1 ESCAPE '\\' OR lower(title) LIKE ?1 ESCAPE '\\')
-             GROUP BY ref
-             ORDER BY CASE WHEN lower(ref) LIKE ?1 ESCAPE '\\' THEN 0 ELSE 1 END, ref LIMIT ?2",
+            "SELECT ref, kind, title FROM entities WHERE hidden = 0 AND lower(ref) LIKE ?1 ESCAPE '\\'
+             GROUP BY ref ORDER BY ref LIMIT ?2",
         )?;
-        let rows = st.query_map(params![like, limit as i64], |r| {
+        for r in st.query_map(params![like, limit as i64], |r| {
             Ok(SearchHit {
                 target: r.get(0)?,
                 kind: r.get(1)?,
                 title: r.get(2)?,
+                snippet: None,
+            })
+        })? {
+            hits.push(r?);
+        }
+        let words: Vec<&str> = query
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|w| !w.is_empty())
+            .collect();
+        if words.is_empty() {
+            return Ok(hits);
+        }
+        // Each word is a quoted string, so FTS syntax in the text stays plain text.
+        let last = words.len() - 1;
+        let fts = words
+            .iter()
+            .enumerate()
+            .map(|(i, w)| format!("\"{w}\"{}", if i == last { "*" } else { "" }))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let mut st = self.conn.prepare(&format!(
+            "SELECT e.ref, e.kind, e.title, snippet(search_fts, -1, '{SNIP_OPEN}', '{SNIP_CLOSE}', '…', 12)
+             FROM search_fts f JOIN entities e ON e.rowid = f.rowid
+             WHERE search_fts MATCH ?1 AND e.hidden = 0
+             ORDER BY f.rank - 0.1 * (SELECT COUNT(*) FROM citations c WHERE c.target = e.ref), e.ref
+             LIMIT ?2"
+        ))?;
+        // The ref matches take the first places; an entity can have more than one row.
+        let cap = (limit + hits.len()) as i64 * 4;
+        let rows = st.query_map(params![fts, cap], |r| {
+            Ok(SearchHit {
+                target: r.get(0)?,
+                kind: r.get(1)?,
+                title: r.get(2)?,
+                snippet: Some(r.get(3)?),
             })
         })?;
-        Ok(rows.collect::<std::result::Result<_, _>>()?)
+        for h in rows {
+            let h = h?;
+            if hits.len() >= limit {
+                break;
+            }
+            if !hits.iter().any(|x| x.target == h.target) {
+                hits.push(h);
+            }
+        }
+        hits.truncate(limit);
+        Ok(hits)
     }
 
     /// Each citation whose target is broken.

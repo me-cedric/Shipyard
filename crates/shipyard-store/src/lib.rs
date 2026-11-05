@@ -32,6 +32,7 @@ pub mod project_import;
 pub mod raid;
 pub mod ref_index;
 pub mod ref_query;
+pub mod rename_links;
 mod repo_scan;
 pub mod reports;
 pub mod roles_skills;

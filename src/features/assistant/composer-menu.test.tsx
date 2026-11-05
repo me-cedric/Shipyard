@@ -10,28 +10,35 @@ const REF = "spec:auth#REQ-001";
 const input = () => screen.getByRole("textbox", { name: "Message" });
 
 describe("assistant composer: slash commands", () => {
-	it("opens on / with the commands of the view and puts the prompt in the draft", async () => {
+	it("opens on / with the commands of the runner and inserts the one picked, as typed", async () => {
 		const user = userEvent.setup();
-		await mountAssistant({ view: "/code/changes" });
+		await mountAssistant();
 		await user.type(input(), "/");
 		const list = await screen.findByRole("listbox", { name: "Commands" });
-		const names = within(list)
-			.getAllByRole("option")
-			.map((o) => o.textContent);
-		expect(names.slice(0, 3)).toEqual(["/tests", "/commit", "/explain"]);
-		await user.keyboard("{ArrowDown}{ArrowDown}{Enter}");
-		expect(input()).toHaveValue("Explain this view and what it shows.");
+		const names = await within(list).findAllByRole("option");
+		expect(names.map((o) => o.textContent)).toEqual([
+			"/review-prReview the open pull request",
+			"/tidyTidy the code",
+			"/compact",
+		]);
+		await user.keyboard("{ArrowDown}{Enter}");
+		expect(input()).toHaveValue("/tidy ");
 		expect(screen.queryByRole("listbox")).toBeNull();
+		await user.type(input(), "now{Enter}");
+		expect(await screen.findByText("Here is the answer.")).toBeInTheDocument();
+		expect(mockState().assistant.threads[0]?.thread.messages[0]?.text).toBe("/tidy now");
 	});
 
 	it("filters by what is typed, closes on Escape and sends nothing", async () => {
 		const user = userEvent.setup();
 		await mountAssistant();
-		await user.type(input(), "/pl");
-		expect(within(await screen.findByRole("listbox")).getAllByRole("option")).toHaveLength(1);
+		await user.type(input(), "/ti");
+		expect(await within(await screen.findByRole("listbox")).findAllByRole("option")).toHaveLength(
+			1,
+		);
 		await user.keyboard("{Escape}");
 		expect(screen.queryByRole("listbox")).toBeNull();
-		expect(input()).toHaveValue("/pl");
+		expect(input()).toHaveValue("/ti");
 		expect(screen.queryByText("Here is the answer.")).toBeNull();
 	});
 

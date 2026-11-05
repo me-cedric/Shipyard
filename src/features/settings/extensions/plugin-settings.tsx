@@ -55,7 +55,7 @@ function Field({
 }
 
 /** The typed settings form of an applied plugin. The save checks every value or writes none. */
-export function PluginSettings({ name }: { name: string }) {
+export function PluginSettings({ name, onSaved }: { name: string; onSaved?: () => void }) {
 	const { t } = useI18n();
 	const x = t.extensions.plugin;
 	const qc = useQueryClient();
@@ -77,6 +77,7 @@ export function PluginSettings({ name }: { name: string }) {
 					qc.setQueryData(key, await unwrap(commands.pluginSettingsSave(name, values, true)));
 					setValues({});
 					setSaved(true);
+					onSaved?.();
 				});
 			}}
 		>

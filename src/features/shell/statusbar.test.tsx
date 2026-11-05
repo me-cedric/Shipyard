@@ -19,6 +19,17 @@ describe("status bar and context bar (shell REQ-007)", () => {
 		expect(main.queryByRole("button", { name: /^Sync$/ })).toBeNull();
 	});
 
+	it("shows the lines added and removed, and the link opens the changes", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mountApp("/home");
+		const link = await (await bar()).findByRole("link", {
+			name: /lines added/,
+		});
+		expect(link).toHaveAccessibleName("Changes: +5 lines added, −2 removed");
+		expect(link).toHaveAttribute("href", "/code/changes");
+		expect(link).toHaveTextContent("Changes: +5 lines added, −2 removed");
+	});
+
 	it("keeps the commit action off with nothing staged", async () => {
 		mountApp("/home");
 		expect(await (await bar()).findByRole("button", { name: "Commit" })).toBeDisabled();

@@ -4,8 +4,7 @@ type Request = { at: number; inputTokens: number; outputTokens: number };
 type Step = { step: string; tokens: number; requests: Request[] };
 
 const TONES = ["bg-accent-soft", "bg-info-soft", "bg-success-soft", "bg-warning-soft"];
-const BAR =
-	"h-6 min-w-0 truncate rounded-sm px-1 text-left text-12 text-n-12 focus-visible:outline-2 focus-visible:outline-offset-1";
+const BAR = "h-6 min-w-0 truncate rounded-sm px-1 text-left text-12 text-n-12";
 
 /**
  * The spend of one run as a flame graph: the run on top, its steps below, the requests of each step
@@ -53,7 +52,7 @@ export function SpendFlame({ name, steps }: { name: string; steps: Step[] }) {
 									aria-label={label(`${s.step} ${at}`, n)}
 									title={label(`${s.step} ${at}`, n)}
 									style={{ flexGrow: n, flexBasis: 0 }}
-									className={`h-6 min-w-0 rounded-sm opacity-70 focus-visible:outline-2 focus-visible:outline-offset-1 ${TONES[i % TONES.length]}`}
+									className={`h-6 min-w-0 rounded-sm opacity-70 ${TONES[i % TONES.length]}`}
 								/>
 							);
 						})}

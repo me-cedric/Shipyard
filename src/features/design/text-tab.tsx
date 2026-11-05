@@ -41,7 +41,7 @@ export function TextTab({
 			title={title}
 			icon={icon}
 			noun={noun}
-			rows={rows.map((a) => ({ ref: a.reference, title: a.title, issue: a.issue }))}
+			rows={rows.map((a) => ({ ref: a.reference, title: a.title, issue: a.issue, path: a.path }))}
 			create={{
 				run: async (name) => {
 					const s = slug(name);

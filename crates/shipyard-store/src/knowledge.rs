@@ -138,6 +138,40 @@ pub fn pages(root: &Path, dir: &str) -> Vec<PageEntry> {
 
 // ---------------------------------------------------------------- decks
 
+/// The decks below `dir`, sorted by path: the HTML decks (ADR 0016) and the older Markdown decks.
+/// The title of an HTML deck is its `<title>`.
+pub fn decks(root: &Path, dir: &str) -> Vec<PageEntry> {
+    fn html(root: &Path, rel: &str, out: &mut Vec<PageEntry>) {
+        let Ok(rd) = std::fs::read_dir(root.join(rel)) else {
+            return;
+        };
+        for e in rd.flatten() {
+            let child = format!("{rel}/{}", e.file_name().to_string_lossy());
+            // `file_type` does not follow a link: a link to a folder cannot make a loop.
+            if e.file_type().is_ok_and(|t| t.is_dir()) {
+                html(root, &child, out);
+            } else if child.ends_with(".html") {
+                let title = std::fs::read_to_string(e.path())
+                    .ok()
+                    .and_then(|t| html_title(&t))
+                    .unwrap_or_else(|| file_stem(&child).into());
+                out.push(PageEntry { path: child, title });
+            }
+        }
+    }
+    let mut out = pages(root, dir);
+    html(root, dir, &mut out);
+    out.sort_by(|a, b| a.path.cmp(&b.path));
+    out
+}
+
+fn html_title(text: &str) -> Option<String> {
+    let start = text.find("<title>")? + "<title>".len();
+    let end = start + text[start..].find("</title>")?;
+    let title = text[start..end].trim();
+    (!title.is_empty()).then(|| title.to_string())
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 pub struct Deck {
     pub title: String,

@@ -1,8 +1,8 @@
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type ReactNode, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
-import { useResolvedRef } from "@/lib/refs";
+import { foldWords, useHitQuery, useResolvedRef } from "@/lib/refs";
 import { cn } from "@/lib/utils";
 import { RefChip } from "../molecules/ref-chip";
 import { MermaidView } from "./mermaid-view";
@@ -82,7 +82,7 @@ export function Link({ url, children }: { url: string; children: ReactNode }) {
 		<a
 			href={url}
 			rel="noreferrer"
-			className="text-accent-text underline focus-visible:outline-2 focus-visible:outline-accent-9"
+			className="text-accent-text underline"
 			onClick={(e) => {
 				e.preventDefault();
 				unwrap(commands.openLink(url)).catch(logError);
@@ -115,6 +115,46 @@ function Inline({ text, kinds }: { text: string; kinds: RegExp | null }) {
 	);
 }
 
+/** A huge document must not pass the argument limit of `Highlight` (a `RangeError`). */
+const MAX_HITS = 5000;
+
+/**
+ * Marks the words of `query` in the text nodes of `root` with the `search-hit` highlight. Where
+ * the CSS Custom Highlight API is missing, nothing is marked.
+ */
+export function markHits(root: HTMLElement, query: string): () => void {
+	const api = (globalThis.CSS as { highlights?: Map<string, unknown> } | undefined)?.highlights;
+	const Hl = (globalThis as { Highlight?: new (...r: Range[]) => unknown }).Highlight;
+	const words = foldWords(query);
+	if (!api || !Hl || words.length === 0) return () => {};
+	const ranges: Range[] = [];
+	const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+	for (let n = walker.nextNode(); n && ranges.length < MAX_HITS; n = walker.nextNode()) {
+		// One folded character per source character, so a position maps back to the text.
+		let folded = "";
+		const from: number[] = [];
+		(n.textContent ?? "").split("").forEach((c, i) => {
+			for (const f of c.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase()) {
+				folded += f;
+				from.push(i);
+			}
+		});
+		for (const w of words)
+			for (
+				let at = folded.indexOf(w);
+				at >= 0 && ranges.length < MAX_HITS;
+				at = folded.indexOf(w, at + w.length)
+			) {
+				const r = document.createRange();
+				r.setStart(n, from[at] ?? 0);
+				r.setEnd(n, (from[at + w.length - 1] ?? 0) + 1);
+				ranges.push(r);
+			}
+	}
+	api.set("search-hit", new Hl(...ranges));
+	return () => void api.delete("search-hit");
+}
+
 const HEAD = ["text-16", "text-14", "text-ui"];
 
 /**
@@ -136,10 +176,19 @@ export function MarkdownView({
 	refs?: boolean;
 }) {
 	const { t } = useI18n();
+	const hits = useHitQuery();
+	const root = useRef<HTMLElement>(null);
+	// Only the open document marks hits: `reading` is its type.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a new source draws new text nodes
+	useEffect(
+		() => (reading && root.current ? markHits(root.current, hits) : undefined),
+		[reading, hits, source],
+	);
 	const kinds = new RegExp(`\\b((?:${Object.keys(t.refKind).join("|")}):[\\w./#@-]*[\\w/#])`);
 	const inline = (text: string): ReactNode => <Inline text={text} kinds={refs ? kinds : null} />;
 	return (
 		<article
+			ref={root}
 			aria-label={label}
 			className={cn(
 				"flex flex-col gap-2 text-ui",

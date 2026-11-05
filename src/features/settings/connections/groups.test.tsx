@@ -116,6 +116,31 @@ describe("Settings / Connections / MCP servers", () => {
 		expect(within(ghost).getByText("Missing: ghost-tool")).toBeInTheDocument();
 	});
 
+	it("adds servers by pasting their JSON, and shows a bad paste as an error", async () => {
+		const user = userEvent.setup();
+		mountApp("/settings/connections");
+		await addOf(user, "MCP server");
+		await user.click(screen.getByRole("combobox", { name: "Server" }));
+		await user.click(await screen.findByRole("option", { name: "Custom" }));
+		const box = screen.getByRole("textbox", { name: "Paste JSON" });
+		await user.click(box);
+		await user.paste("{nope");
+		await user.click(screen.getByRole("button", { name: "Add the servers" }));
+		expect(await screen.findByRole("alert")).toBeInTheDocument();
+		await user.clear(box);
+		await user.click(box);
+		await user.paste(
+			'{"mcpServers":{"Pasted one":{"command":"uvx","args":["x"],"env":{"A":"1"}}}}',
+		);
+		await user.click(screen.getByRole("button", { name: "Add the servers" }));
+		// The command and the arguments show first; nothing is added before the accept.
+		expect(screen.getByText("Pasted one: uvx x")).toBeInTheDocument();
+		expect(mockState().agents.mcp.some((s) => s.id === "custom-pasted-one")).toBe(false);
+		await user.click(screen.getByRole("button", { name: "Add these servers" }));
+		expect(await row("Pasted one")).toBeInTheDocument();
+		expect(mockState().agents.mcp.find((s) => s.id === "custom-pasted-one")?.enabled).toBe(true);
+	});
+
 	it("removes a server with a confirm step", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.mcpEnable("figma", true));

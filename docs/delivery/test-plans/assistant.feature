@@ -90,6 +90,18 @@ Feature: assistant
     When the turn ends
     Then the thread shows the changed files and the diff
 
+  @spec:assistant#REQ-009
+  Scenario: Agent mode: Bypass is refused when a guard fails
+    Given a thread in agent mode
+    When the permission is set to Bypass in a project with a read only profile, with the agents switch off, or on a runner without a skip-permissions flag
+    Then the change is refused and the thread keeps its permission
+
+  @spec:assistant#REQ-009
+  Scenario: Agent mode: Bypass is never a default
+    Given the defaults of new threads
+    When the default permission is set to Bypass
+    Then the change is refused
+
   @spec:assistant#REQ-010
   Scenario: Denied permission: Grant
     Given an agent turn denied a tool

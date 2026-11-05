@@ -238,9 +238,10 @@ fn gitlab_creates_an_issue_with_the_label_and_sets_the_estimate_in_minutes() {
     assert_eq!(made.key, "acme/web#14");
     assert_eq!(made.skipped, [Field::Parent]);
     let w_ = writes(&fake);
+    // Compare values, not text: the key order depends on the serde_json features of the build.
     assert_eq!(
-        body(&w_[0]),
-        r#"{"description":"d","labels":"est:lot#a","title":"Build"}"#
+        serde_json::from_str::<serde_json::Value>(&body(&w_[0])).unwrap(),
+        serde_json::json!({"description": "d", "labels": "est:lot#a", "title": "Build"})
     );
     assert!(w_[1].url.ends_with("/issues/14/time_estimate"));
 }

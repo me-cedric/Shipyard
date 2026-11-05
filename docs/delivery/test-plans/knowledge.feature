@@ -109,10 +109,23 @@ Feature: knowledge
     Then a `.xlsx` file opens with its data and the cover information
 
   @spec:knowledge#REQ-017
-  Scenario: Slides: Edit a deck
-    Given a deck of five slides
-    When a person adds a slide in the text
-    Then the preview shows six slides
+  Scenario: Slides: HTML deck in a sandbox
+    Given an HTML deck and a Markdown deck in the slides folder
+    When a person opens the HTML deck and presses the Right arrow key
+    Then the deck shows in a frame with sandbox "allow-scripts" only
+    And the frame gets the key
+
+  @spec:knowledge#REQ-017
+  Scenario: Slides: Export a deck to PDF
+    Given an HTML deck
+    When a person clicks Export PDF and cancels the Save as dialog
+    Then no file is written
+
+  @spec:knowledge#REQ-017
+  Scenario: Slides: Add a slide
+    Given an HTML deck of two slides
+    When a person adds a Costing slide
+    Then the deck file has a third slide with the costing table
 
   @spec:knowledge#REQ-018
   Scenario: Slide theme: Project theme

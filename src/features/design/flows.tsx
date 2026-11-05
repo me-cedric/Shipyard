@@ -255,7 +255,7 @@ export function Flows() {
 			icon={<ArrowsRightLeftIcon size={16} />}
 			noun={t.design.noun.flow}
 			toolbar={rows.length ? <PageExport page="flows" /> : undefined}
-			rows={rows.map((a) => ({ ref: a.reference, title: a.title, issue: a.issue }))}
+			rows={rows.map((a) => ({ ref: a.reference, title: a.title, issue: a.issue, path: a.path }))}
 			create={{
 				run: async (name) => {
 					const s = slug(name);

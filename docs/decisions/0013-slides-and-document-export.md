@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted, replaced for slides by ADR 0016 (the `.docx` export stays)
 date: 2026-10-29
 decision-makers: [Cédric Meyer]
 ---

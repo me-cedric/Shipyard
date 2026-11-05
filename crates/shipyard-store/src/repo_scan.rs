@@ -147,6 +147,7 @@ pub fn scan(rel: &str, text: &str, p: &ProjectFile) -> (Vec<Entity>, Vec<Citatio
             status,
             location: Some(rel.into()),
             hidden: false,
+            body: String::new(),
         });
     };
 
@@ -291,7 +292,17 @@ pub fn scan(rel: &str, text: &str, p: &ProjectFile) -> (Vec<Entity>, Vec<Citatio
         status: None,
         location: Some(rel.into()),
         hidden: twin,
+        body: String::new(),
     });
+    // The whole file is the body of its best entity. A file with a sealed text stays out of the
+    // search body: a neighbour of the seal is private.
+    let sealed = text.contains(crate::seal::PREFIX);
+    if let Some(e) = ents
+        .iter_mut()
+        .find(|e| e.target == primary && !e.hidden && !sealed)
+    {
+        e.body = text.into();
+    }
 
     let mut cites: Vec<Citation> = detect(text)
         .into_iter()

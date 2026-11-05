@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockState } from "@/lib/ipc/mock";
+import { setHitQuery } from "@/lib/refs";
 import { renderApp } from "../test-utils";
 import { blocks, MarkdownView } from "./markdown-view";
 
@@ -55,5 +56,41 @@ describe("MarkdownView: tables, links and mermaid", () => {
 		await userEvent.click(link);
 		expect(mockState().openedPages).toEqual(["https://example.com/a?b=1"]);
 		expect(screen.queryByRole("link", { name: "bad" })).toBeNull();
+	});
+});
+
+describe("MarkdownView: hits of a search", () => {
+	class FakeHighlight {
+		ranges: Range[];
+		constructor(...ranges: Range[]) {
+			this.ranges = ranges;
+		}
+	}
+	const set = new Map<string, FakeHighlight>();
+	afterEach(() => {
+		setHitQuery("");
+		set.clear();
+		vi.unstubAllGlobals();
+	});
+
+	it("marks the words with no case and no accents, in a reading view only", () => {
+		vi.stubGlobal("CSS", { highlights: set });
+		vi.stubGlobal("Highlight", FakeHighlight);
+		setHitQuery("DECISION");
+		const { unmount } = renderApp(
+			<MarkdownView label="Doc" source="La Décision est prise." reading />,
+		);
+		const ranges = set.get("search-hit")?.ranges ?? [];
+		expect(ranges.map((r) => r.toString())).toEqual(["Décision"]);
+		unmount();
+		expect(set.has("search-hit")).toBe(false);
+		renderApp(<MarkdownView label="Other" source="La Décision est prise." />);
+		expect(set.has("search-hit")).toBe(false);
+	});
+
+	it("shows the plain text where the highlight API is missing", () => {
+		setHitQuery("decision");
+		renderApp(<MarkdownView label="Doc" source="La Décision" reading />);
+		expect(screen.getByText("La Décision")).toBeInTheDocument();
 	});
 });

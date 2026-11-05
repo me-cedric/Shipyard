@@ -36,6 +36,17 @@ describe("Work / Time", () => {
 		expect(await group("To send (3)")).toBeInTheDocument();
 	});
 
+	it("opens Work / Team with the Member button focused when the person is not in the team", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().work.me = null;
+		const router = mountApp("/work/time");
+		expect(await screen.findByRole("alert")).toHaveTextContent("You are not in the team yet.");
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/work/team"));
+		await waitFor(() => expect(screen.getByRole("button", { name: "Member" })).toHaveFocus());
+	});
+
 	it("offers one action when there is no team, and it adds the signed-in person", async () => {
 		const user = userEvent.setup();
 		await withTracker();

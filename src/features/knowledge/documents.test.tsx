@@ -28,8 +28,33 @@ describe("Knowledge / Documents", () => {
 		await waitFor(() => expect(exported()).toEqual(["dossier", "functional"]));
 		await user.click(screen.getByRole("button", { name: "Export Quality sheet" }));
 		await waitFor(() => expect(exported()).toEqual(["dossier", "functional", "sheet"]));
-		expect(await screen.findByText("Exported: /mock/costing.xlsx")).toBeInTheDocument();
+		expect(await screen.findByText("Exported: /mock/quality.xlsx")).toBeInTheDocument();
 	});
+
+	it("exports nothing when the person cancels the Save as dialog", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("documents");
+		mockState().nextFile = "";
+		await user.click(await screen.findByRole("button", { name: "Export Architecture dossier" }));
+		await waitFor(() => expect(mockState().nextFile).toBeUndefined());
+		expect(mockState().knowledge.exported).toHaveLength(0);
+		expect(screen.queryByText(/^Exported:/)).toBeNull();
+	});
+
+	it("writes to the chosen path and then shows and opens that file", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("documents");
+		mockState().nextFile = "/mock/Clients/acme-dossier.docx";
+		await user.click(await screen.findByRole("button", { name: "Export Architecture dossier" }));
+		expect(await screen.findByText("Exported: /mock/Clients/acme-dossier.docx")).toBeVisible();
+		const [sent] = mockState().knowledge.exported;
+		expect(sent?.path).toBe("/mock/Clients/acme-dossier.docx");
+		// A diagram that does not render in the test webview goes as its source.
+		expect(sent?.views).toEqual([{ title: "Run states", source: "graph TD\n  A --> B", png: "" }]);
+		await user.click(screen.getByRole("button", { name: "Show in folder" }));
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		expect(screen.queryByRole("alert")).toBeNull();
+	}, 30000);
 
 	it("shows a refused export as an error", async () => {
 		const user = userEvent.setup();

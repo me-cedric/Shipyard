@@ -50,6 +50,8 @@ export const en = {
 		actions: "Actions",
 		projects: "Recent projects",
 		refs: "Refs",
+		ask: "Ask the assistant",
+		askPrompt: "Use these items as context:\n{items}\n\nMy question: ",
 	},
 	inspector: {
 		title: "Inspector",
@@ -216,6 +218,7 @@ export const en = {
 		runs: "Active runs",
 		health: "Health",
 		version: "Version {version}",
+		lines: "Changes: {added} lines added, {removed} removed",
 		whatsNew: { title: "What's new in {version}", none: "No notes for this version." },
 		toggleSidebar: "Toggle sidebar",
 		toggleInspector: "Toggle inspector",
@@ -449,6 +452,8 @@ export const en = {
 	code: {
 		staged: "Staged",
 		unstaged: "Unstaged",
+		noneStaged: "Nothing staged",
+		noneUnstaged: "No changes",
 		conflicts: "Conflicts",
 		stashes: "Stashes",
 		files: "Files",

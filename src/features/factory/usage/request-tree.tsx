@@ -37,7 +37,7 @@ export function RequestTree({ runs }: { runs: Run[] }) {
 				{(tree?.steps ?? []).map((s) => (
 					<li key={s.step} className="border-b">
 						<details open>
-							<summary className="flex min-h-row cursor-pointer items-center gap-3 px-3 text-ui font-medium focus-visible:outline-2">
+							<summary className="flex min-h-row cursor-pointer items-center gap-3 px-3 text-ui font-medium">
 								<span className="min-w-0 flex-1 truncate font-mono">{s.step}</span>
 								<span className="text-12 text-n-11">{s.tokens.toLocaleString()}</span>
 								<span className="w-16 text-right text-12">{money.format(s.usd ?? 0)}</span>

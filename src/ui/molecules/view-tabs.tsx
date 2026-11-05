@@ -1,5 +1,7 @@
 import { Tabs } from "@base-ui/react/tabs";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { THUMB } from "../atoms/segmented";
 
 export type ViewTab<V extends string> = { value: V; label: string; icon?: ReactNode };
 
@@ -19,18 +21,24 @@ export function ViewTabs<V extends string>({
 		<Tabs.Root value={value} onValueChange={(v) => onValueChange(v as V)}>
 			<Tabs.List
 				aria-label={label}
-				className="flex items-center gap-1 rounded-md border border-n-7 bg-n-2 p-0.5"
+				className="relative isolate flex items-center gap-1 rounded-md border border-n-7 bg-n-2 p-0.5"
 			>
 				{tabs.map((tab) => (
 					<Tabs.Tab
 						key={tab.value}
 						value={tab.value}
-						className="inline-flex h-6 items-center gap-1.5 rounded-sm px-2 text-ui text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 data-[active]:bg-n-4 data-[active]:text-n-12"
+						className="inline-flex h-6 items-center gap-1.5 rounded-sm px-2 text-ui text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 data-[active]:text-n-12"
 					>
 						{tab.icon}
 						{tab.label}
 					</Tabs.Tab>
 				))}
+				<Tabs.Indicator
+					className={cn(
+						THUMB,
+						"inset-y-0.5 left-0 -z-10 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-sm bg-n-4 transition-[translate,width]",
+					)}
+				/>
 			</Tabs.List>
 		</Tabs.Root>
 	);

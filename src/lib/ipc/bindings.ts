@@ -11,7 +11,7 @@ export const commands = {
 	refsParse: (text: string) => __TAURI_INVOKE<ParsedRef | null>("refs_parse", { text }),
 	refsResolve: (text: string) => typedError<Resolved_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("refs_resolve", { text })),
 	refsBacklinks: (text: string) => typedError<BacklinkGroup_Serialize[], AppError_Serialize>(__TAURI_INVOKE("refs_backlinks", { text })),
-	refsSearch: (query: string, limit: number) => typedError<SearchHit[], AppError_Serialize>(__TAURI_INVOKE("refs_search", { query, limit })),
+	refsSearch: (query: string, limit: number) => typedError<SearchHit_Serialize[], AppError_Serialize>(__TAURI_INVOKE("refs_search", { query, limit })),
 	refsCheck: () => typedError<BrokenCitation[], AppError_Serialize>(__TAURI_INVOKE("refs_check")),
 	/**  Repair: drops the index and rebuilds it. Returns the number of indexed files. */
 	refsReindex: () => typedError<number, AppError_Serialize>(__TAURI_INVOKE("refs_reindex")),
@@ -138,6 +138,9 @@ export const commands = {
 	docSearch: (query: string) => typedError<DocHit[], AppError_Serialize>(__TAURI_INVOKE("doc_search", { query })),
 	docDocxList: () => typedError<PageEntry[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_list")),
 	docDocxRead: (path: string) => typedError<Paragraph[], AppError_Serialize>(__TAURI_INVOKE("doc_docx_read", { path })),
+	deckList: () => typedError<PageEntry[], AppError_Serialize>(__TAURI_INVOKE("deck_list")),
+	/**  Prints the deck with its print style sheet to a PDF at `dest`, one page per slide. */
+	deckPdf: (path: string, dest: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("deck_pdf", { path, dest })),
 	specsRequirements: () => typedError<RequirementRow[], AppError_Serialize>(__TAURI_INVOKE("specs_requirements")),
 	specsTestplanGenerate: (capability: string, click: boolean) => typedError<GeneratedPlan, AppError_Serialize>(__TAURI_INVOKE("specs_testplan_generate", { capability, click })),
 	applyRunRows: (slugs: string[], rows: RowEdit_Deserialize[], click: boolean) => typedError<ApplyRow_Serialize[], AppError_Serialize>(__TAURI_INVOKE("apply_run_rows", { slugs, rows, click })),
@@ -176,6 +179,7 @@ export const commands = {
 	mcpList: () => typedError<McpServer[], AppError_Serialize>(__TAURI_INVOKE("mcp_list")),
 	mcpEnable: (id: string, on: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("mcp_enable", { id, on })),
 	mcpAddCustom: (draft: McpCustom_Deserialize) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("mcp_add_custom", { draft })),
+	mcpCustomPaste: (text: string) => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("mcp_custom_paste", { text })),
 	mcpRemove: (id: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("mcp_remove", { id })),
 	mcpForget: (id: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("mcp_forget", { id })),
 	/**  Write-only: a secret field goes to the keychain and no command returns it. */
@@ -203,7 +207,9 @@ export const commands = {
 	machineBudgetSet: (runner: string, usd: number | null) => typedError<Budget[], AppError_Serialize>(__TAURI_INVOKE("machine_budget_set", { runner, usd })),
 	mcpOutsideGet: () => typedError<McpOutside_Serialize, AppError_Serialize>(__TAURI_INVOKE("mcp_outside_get")),
 	mcpOutsideSet: (gates: McpGates_Deserialize) => typedError<McpOutside_Serialize, AppError_Serialize>(__TAURI_INVOKE("mcp_outside_set", { gates })),
-	mcpOutsideWire: () => typedError<string, AppError_Serialize>(__TAURI_INVOKE("mcp_outside_wire")),
+	mcpWiringList: () => typedError<Wiring[], AppError_Serialize>(__TAURI_INVOKE("mcp_wiring_list")),
+	mcpWiringReview: (id: string) => typedError<WiringReview, AppError_Serialize>(__TAURI_INVOKE("mcp_wiring_review", { id })),
+	mcpWiringApply: (id: string, reviewed: string) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("mcp_wiring_apply", { id, reviewed })),
 	/**  The token that an agent sends. It is the person's own secret, shown only to copy. */
 	mcpOutsideToken: () => typedError<string, AppError_Serialize>(__TAURI_INVOKE("mcp_outside_token")),
 	mcpElsewhereList: () => typedError<Elsewhere[], AppError_Serialize>(__TAURI_INVOKE("mcp_elsewhere_list")),
@@ -252,6 +258,8 @@ export const commands = {
 	filesCreateFile: (path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("files_create_file", { path, click })),
 	filesCreateFolder: (path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("files_create_folder", { path, click })),
 	filesRename: (from: string, to: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("files_rename", { from, to, click })),
+	filesRenameReview: (from: string, to: string) => typedError<LinkFile[], AppError_Serialize>(__TAURI_INVOKE("files_rename_review", { from, to })),
+	filesRenameLinks: (from: string, to: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("files_rename_links", { from, to, click })),
 	/**  Moves a path to the system trash. */
 	filesDelete: (path: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("files_delete", { path, click })),
 	orcaStatus: () => typedError<OrcaStatus_Serialize, AppError_Serialize>(__TAURI_INVOKE("orca_status")),
@@ -331,6 +339,7 @@ export const commands = {
 	designTry: (request: TryRequest_Deserialize, click: boolean) => typedError<TryResponse, AppError_Serialize>(__TAURI_INVOKE("design_try", { request, click })),
 	designOpen: (target: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("design_open", { target })),
 	designBytes: (path: string) => typedError<number[], AppError_Serialize>(__TAURI_INVOKE("design_bytes", { path })),
+	designTokens: () => typedError<TokenFile[], AppError_Serialize>(__TAURI_INVOKE("design_tokens")),
 	designFigView: (path: string) => typedError<FigView_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_fig_view", { path })),
 	/**  Whether a Figma token is in the keychain. The value never leaves the backend. */
 	figmaTokenState: () => typedError<boolean, AppError_Serialize>(__TAURI_INVOKE("figma_token_state")),
@@ -395,6 +404,8 @@ export const commands = {
 	assistantDefaultsGet: () => typedError<AssistantDefaults_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_defaults_get")),
 	assistantDefaultsSet: (defaults: AssistantDefaults_Deserialize) => typedError<AssistantDefaults_Serialize, AppError_Serialize>(__TAURI_INVOKE("assistant_defaults_set", { defaults })),
 	assistantOptions: () => typedError<RunnerOptions[], AppError_Serialize>(__TAURI_INVOKE("assistant_options")),
+	/**  The slash commands of a runner: the files that its CLI reads. */
+	assistantSlashCommands: (runner: string) => typedError<SlashCommand_Serialize[], AppError_Serialize>(__TAURI_INVOKE("assistant_slash_commands", { runner })),
 	graphGet: () => typedError<KGraph_Serialize, AppError_Serialize>(__TAURI_INVOKE("graph_get")),
 	graphCode: () => typedError<CodeGraph_Serialize, AppError_Serialize>(__TAURI_INVOKE("graph_code")),
 	graphCodeIndex: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("graph_code_index")),
@@ -419,6 +430,7 @@ export const commands = {
 	learningPathDelete: (id: string, click: boolean) => typedError<Learning_Serialize, AppError_Serialize>(__TAURI_INVOKE("learning_path_delete", { id, click })),
 	/**  `step` is `<path>/<step>`. */
 	learningProgressSet: (person: string, step: string, done: boolean, click: boolean) => typedError<Learning_Serialize, AppError_Serialize>(__TAURI_INVOKE("learning_progress_set", { person, step, done, click })),
+	exportDiagramsGet: () => typedError<DiagramSource[], AppError_Serialize>(__TAURI_INVOKE("export_diagrams_get")),
 	exportDossierFile: (text: ExportText, views: ViewImage[], path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_dossier_file", { text, views, path })),
 	exportFunctionalFile: (text: ExportText, path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_functional_file", { text, path })),
 	exportSheetFile: (text: ExportText, sheets: SheetIn[], path: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("export_sheet_file", { text, sheets, path })),
@@ -479,13 +491,25 @@ export const commands = {
 	/**  Removes an entry from the project: an instinct file, or a skill or pack through `ac`. */
 	compassRemove: (kind: EntryKind, id: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("compass_remove", { kind, id, click })),
 	catalogUndeploy: (id: string, click: boolean) => typedError<CatalogUndeployed, AppError_Serialize>(__TAURI_INVOKE("catalog_undeploy", { id, click })),
-	pluginList: () => typedError<PluginInstalled[], AppError_Serialize>(__TAURI_INVOKE("plugin_list")),
+	pluginList: () => typedError<PluginInstalled_Serialize[], AppError_Serialize>(__TAURI_INVOKE("plugin_list")),
 	/**  A disabled plugin has its MCP servers off. Its files stay. */
 	pluginSetEnabled: (name: string, on: boolean, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("plugin_set_enabled", { name, on, click })),
 	/**  Removes the unchanged files of a plugin, its MCP servers and its record. */
 	pluginRemove: (name: string, click: boolean) => typedError<PluginRemoved, AppError_Serialize>(__TAURI_INVOKE("plugin_remove", { name, click })),
 	pluginSettingsGet: (name: string) => typedError<PluginSetting_Serialize[], AppError_Serialize>(__TAURI_INVOKE("plugin_settings_get", { name })),
 	pluginSettingsSave: (name: string, values: { [key in string]: string }, click: boolean) => typedError<PluginSetting_Serialize[], AppError_Serialize>(__TAURI_INVOKE("plugin_settings_save", { name, values, click })),
+	/**
+	 *  Copy the sample into a new folder `acme-sample` of `parent`. Returns the new folder. An existing
+	 *  folder is an error: nothing is overwritten.
+	 */
+	pluginNew: (parent: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("plugin_new", { parent, click })),
+	/**
+	 *  Zip a plugin folder to `dest`. The folder is read as a plugin first, so a fault stops it with
+	 *  the file and line.
+	 */
+	pluginPackage: (dir: string, dest: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("plugin_package", { dir, dest, click })),
+	/**  Open the manifest of a plugin folder at a line, in the code editor of the person. */
+	pluginOpenLine: (dir: string, line: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("plugin_open_line", { dir, line })),
 	compassExternal: () => typedError<ExternalSource[], AppError_Serialize>(__TAURI_INVOKE("compass_external")),
 	/**  Fetches the external sources again and syncs the project. */
 	compassExternalRefresh: (click: boolean) => typedError<CompassApplied, AppError_Serialize>(__TAURI_INVOKE("compass_external_refresh", { click })),
@@ -545,7 +569,7 @@ export type Action = "create" | "update" | "unchanged";
 
 /**  What a person can do about an error. The view maps each kind to a button. */
 export type ActionKind = 
-/**  Open a Settings field. `target` is `connections`, `trackerScope`, `pickupLabel` or `terminalApp`. */
+/**  Open a Settings field. `target` is the route and the anchor id of the row, such as `/settings/project#issue-tracker`. */
 "setting" | 
 /**  Read the tracker again. */
 "sync" | 
@@ -553,7 +577,7 @@ export type ActionKind =
 "install" | 
 /**  Create a project. */
 "create_project" | 
-/**  Go to a page. `target` is its path, such as `/code/changes`. */
+/**  Go to a page. `target` is its path, with an anchor id when a control must open, such as `/code/changes` or `/work/team#add-member`. */
 "open";
 
 export type Adr = {
@@ -1257,6 +1281,9 @@ export type Changes_Deserialize = {
 	merging: boolean,
 	/**  A rebase is in progress: the person resolves the conflicts and continues, or aborts it. */
 	rebasing: boolean,
+	/**  Lines added and removed from HEAD to the working copy, staged or not, new files included. */
+	added: number,
+	removed: number,
 };
 
 /**  A file that has a staged and a later unstaged change is in both lists. */
@@ -1277,6 +1304,9 @@ export type Changes_Serialize = {
 	merging: boolean,
 	/**  A rebase is in progress: the person resolves the conflicts and continues, or aborts it. */
 	rebasing: boolean,
+	/**  Lines added and removed from HEAD to the working copy, staged or not, new files included. */
+	added: number,
+	removed: number,
 };
 
 export type ChatMessage = {
@@ -1748,6 +1778,17 @@ export type DeviceState = "pending" |
 /**  The host asked for a longer gap between polls: add five seconds. */
 "slow_down" | "authorized" | "denied" | "expired";
 
+/**  A Mermaid diagram of the project that the view renders for the dossier. */
+export type DiagramSource = {
+	title: string,
+	source: string,
+};
+
+export type DiffLine = {
+	kind: LineKind,
+	text: string,
+};
+
 export type DiffRow = DiffRow_Serialize | DiffRow_Deserialize;
 
 export type DiffRow_Deserialize = {
@@ -1881,6 +1922,8 @@ export type ExportText = {
 	empty: string,
 	gap: string,
 	generated: string,
+	/**  The title of the contents list. */
+	contents: string,
 	sections: string[],
 };
 
@@ -2174,6 +2217,9 @@ export type FlowRow_Serialize = {
 	sourceName?: string,
 	destinationName?: string,
 };
+
+/**  When the focus ring shows: for the keyboard only, or for each focus. */
+export type FocusRing = "keyboard" | "always";
 
 /**  The result of [`Repo::fast_forward`]. */
 export type Forward = "up-to-date" | "moved";
@@ -2542,6 +2588,19 @@ export type Limits_Serialize = {
 	per_status?: { [key in string]: number },
 };
 
+export type LineKind = "same" | "add" | "del";
+
+export type LinkFile = {
+	path: string,
+	lines: LinkLine[],
+};
+
+export type LinkLine = {
+	line: number,
+	before: string,
+	after: string,
+};
+
 export type Load = {
 	members: MemberLoad[],
 	/**  Every member together, each working day from the first to the last busy day. */
@@ -2737,6 +2796,8 @@ export type McpOutside_Deserialize = {
 	/**  Every tool name, and the ones that are on. */
 	tools: string[],
 	active: string[],
+	/**  The tools of the "read only" preset of the allow list. */
+	readOnly: string[],
 };
 
 /**  What Settings shows. */
@@ -2749,6 +2810,8 @@ export type McpOutside_Serialize = {
 	/**  Every tool name, and the ones that are on. */
 	tools: string[],
 	active: string[],
+	/**  The tools of the "read only" preset of the allow list. */
+	readOnly: string[],
 };
 
 /**  One row of the MCP list. */
@@ -2869,6 +2932,9 @@ export type MonthSpend = {
 	days: number | null,
 	cost: number | null,
 };
+
+/**  The motion of the interface: follow the system setting, or reduce it. */
+export type Motion = "system" | "reduce";
 
 /**  The checks of an open pull request that the signed-in person opened. */
 export type MyChecks = {
@@ -3108,12 +3174,18 @@ export type ParsedRef = {
 	kind: string,
 };
 
-/**  What an agent-mode thread may do in its worktree (Q-049 option 1: two levels, no bypass). */
+/**  What an agent-mode thread may do in its worktree (Q-049). */
 export type Permission = 
 /**  Edit with approval: each write waits for the person. */
 "approve" | 
 /**  Auto inside the worktree: the edit tools are pre-approved. Never `Bash`. */
 "auto" | 
+/**
+ *  Bypass permissions: the runner skips every approval and sandbox. Only Claude Code and
+ *  Codex take it. The panel confirms it once for each project and refuses it in a read only
+ *  project or with the agents switch off.
+ */
+"bypass" | 
 /**
  *  Read only, whatever the mode: the thread makes no worktree and no write. A project with a
  *  read only profile uses it.
@@ -3195,7 +3267,9 @@ export type PluginChange = "new" | "same" | "changed" |
 /**  In the applied version, not in this one. Informational: it is never written. */
 "removed";
 
-export type PluginInstalled = {
+export type PluginInstalled = PluginInstalled_Serialize | PluginInstalled_Deserialize;
+
+export type PluginInstalled_Deserialize = {
 	name: string,
 	version: string,
 	files: string[],
@@ -3203,9 +3277,33 @@ export type PluginInstalled = {
 	/**  The names of the MCP servers that the plugin added. */
 	mcp: string[],
 	enabled: boolean,
+	/**
+	 *  The zip or the folder that the plugin was applied from. It is a path of this machine, so it
+	 *  lives in the app data folder (`sources`), never in the repository. `list` leaves it empty.
+	 */
+	source?: string | null,
 };
 
-export type PluginItem = {
+export type PluginInstalled_Serialize = {
+	name: string,
+	version: string,
+	files: string[],
+	settings: string[],
+	/**  The names of the MCP servers that the plugin added. */
+	mcp: string[],
+	enabled: boolean,
+	/**
+	 *  The zip or the folder that the plugin was applied from. It is a path of this machine, so it
+	 *  lives in the app data folder (`sources`), never in the repository. `list` leaves it empty.
+	 */
+	source: string | null,
+};
+
+export type PluginItem = PluginItem_Serialize | PluginItem_Deserialize;
+
+export type PluginItemKind = "file" | "setting" | "mcp";
+
+export type PluginItem_Deserialize = {
 	/**  `file:<target>`, `setting:<key>`, `mcp:<name>`. */
 	id: string,
 	kind: PluginItemKind,
@@ -3213,9 +3311,21 @@ export type PluginItem = {
 	/**  A file that exists is kept at apply, and the report names it. */
 	exists: boolean,
 	change: PluginChange,
+	/**  The start of a text file with its `{{config.<key>}}` values filled in. */
+	preview?: string | null,
 };
 
-export type PluginItemKind = "file" | "setting" | "mcp";
+export type PluginItem_Serialize = {
+	/**  `file:<target>`, `setting:<key>`, `mcp:<name>`. */
+	id: string,
+	kind: PluginItemKind,
+	label: string,
+	/**  A file that exists is kept at apply, and the report names it. */
+	exists: boolean,
+	change: PluginChange,
+	/**  The start of a text file with its `{{config.<key>}}` values filled in. */
+	preview: string | null,
+};
 
 export type PluginRemoved = {
 	removed: string[],
@@ -3230,7 +3340,7 @@ export type PluginReview_Deserialize = {
 	version: string,
 	/**  The version in the project, when the plugin is applied. */
 	applied?: string | null,
-	items: PluginItem[],
+	items: PluginItem_Deserialize[],
 	/**  `<id>: <reason>`. A refused server is never an item. */
 	refused: string[],
 };
@@ -3240,7 +3350,7 @@ export type PluginReview_Serialize = {
 	version: string,
 	/**  The version in the project, when the plugin is applied. */
 	applied: string | null,
-	items: PluginItem[],
+	items: PluginItem_Serialize[],
 	/**  `<id>: <reason>`. A refused server is never an item. */
 	refused: string[],
 };
@@ -3365,6 +3475,9 @@ export type PrefsPatch_Deserialize = {
 	panelSizes?: { [key in string]: number } | null,
 	uiScale?: number | null,
 	tray?: boolean | null,
+	motion?: Motion | null,
+	focusRing?: FocusRing | null,
+	focusWidth?: number | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -3405,6 +3518,9 @@ export type PrefsPatch_Serialize = {
 	panelSizes: { [key in string]: number } | null,
 	uiScale: number | null,
 	tray: boolean | null,
+	motion: Motion | null,
+	focusRing: FocusRing | null,
+	focusWidth: number | null,
 };
 
 export type Prefs_Deserialize = {
@@ -3480,6 +3596,12 @@ export type Prefs_Deserialize = {
 	uiScale?: number,
 	/**  The menu bar item (the system tray) is on. */
 	tray?: boolean,
+	/**  Follow the system motion setting, or reduce the motion. */
+	motion?: Motion,
+	/**  When the focus ring shows. */
+	focusRing?: FocusRing,
+	/**  The width of the focus ring in pixels: one of `FOCUS_WIDTHS`. */
+	focusWidth?: number,
 };
 
 export type Prefs_Serialize = {
@@ -3555,6 +3677,12 @@ export type Prefs_Serialize = {
 	uiScale: number,
 	/**  The menu bar item (the system tray) is on. */
 	tray: boolean,
+	/**  Follow the system motion setting, or reduce the motion. */
+	motion: Motion,
+	/**  When the focus ring shows. */
+	focusRing: FocusRing,
+	/**  The width of the focus ring in pixels: one of `FOCUS_WIDTHS`. */
+	focusWidth: number,
 };
 
 export type Preview = Preview_Serialize | Preview_Deserialize;
@@ -4520,6 +4648,8 @@ export type RunnerOptions = {
 	models: string[],
 	efforts: string[],
 	windowTokens: number,
+	/**  The runner has a skip-permissions flag (Bypass permissions). */
+	bypass: boolean,
 };
 
 export type RunnerState = "detected" | "missing";
@@ -4658,10 +4788,28 @@ export type SealState = {
 	unlocked: boolean,
 };
 
-export type SearchHit = {
+export type SearchHit = SearchHit_Serialize | SearchHit_Deserialize;
+
+export type SearchHit_Deserialize = {
 	ref: string,
 	kind: string,
 	title: string,
+	/**
+	 *  A short text around the match. `SNIP_OPEN` and `SNIP_CLOSE` mark the matched words.
+	 *  `None` for a match on the ref.
+	 */
+	snippet?: string | null,
+};
+
+export type SearchHit_Serialize = {
+	ref: string,
+	kind: string,
+	title: string,
+	/**
+	 *  A short text around the match. `SNIP_OPEN` and `SNIP_CLOSE` mark the matched words.
+	 *  `None` for a match on the ref.
+	 */
+	snippet: string | null,
 };
 
 export type Segment = 
@@ -4785,6 +4933,26 @@ export type Sheet_Serialize = {
 };
 
 export type Side = "ours" | "theirs";
+
+export type SlashCommand = SlashCommand_Serialize | SlashCommand_Deserialize;
+
+export type SlashCommand_Deserialize = {
+	/**  The name without the `/`. */
+	name: string,
+	/**  The `description` of the front matter. */
+	description?: string | null,
+	source: SlashSource,
+};
+
+export type SlashCommand_Serialize = {
+	/**  The name without the `/`. */
+	name: string,
+	/**  The `description` of the front matter. */
+	description: string | null,
+	source: SlashSource,
+};
+
+export type SlashSource = "built_in" | "project" | "personal";
 
 export type Span = Span_Serialize | Span_Deserialize;
 
@@ -5529,6 +5697,17 @@ export type TimeView_Serialize = {
 	canSend: boolean,
 };
 
+export type Token = {
+	name: string,
+	value: string,
+};
+
+/**  The tokens of one file of the project. */
+export type TokenFile = {
+	path: string,
+	tokens: Token[],
+};
+
 export type ToolCheck = {
 	id: string,
 	/**  `base`, `forge`, `agent` or `scanner`. */
@@ -5660,8 +5839,10 @@ export type Verdict = "approve" | "request-changes";
 /**  One architecture view that the view rendered at the click. */
 export type ViewImage = {
 	title: string,
-	/**  Base64 text of a PNG file. */
+	/**  Base64 text of a PNG file. Empty when the diagram did not render. */
 	png: string,
+	/**  The diagram text. The dossier keeps it as a code block when `png` is empty. */
+	source: string,
 };
 
 /**  What the remote watch found: remote branches that moved between two fetches (REQ-017). */
@@ -5677,6 +5858,24 @@ export type WatchNotice_Deserialize = {
 export type WatchNotice_Serialize = {
 	project: string,
 	changes: HeadChange_Serialize[],
+};
+
+export type WireState = "wired" | "out-of-date" | "not-wired";
+
+/**  One detected agent tool. */
+export type Wiring = {
+	id: string,
+	label: string,
+	path: string,
+	state: WireState,
+};
+
+/**  What the person reviews before the write. */
+export type WiringReview = {
+	path: string,
+	/**  The text that `apply` must get back. */
+	after: string,
+	lines: DiffLine[],
 };
 
 export type WorkContext = WorkContext_Serialize | WorkContext_Deserialize;

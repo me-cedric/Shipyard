@@ -43,7 +43,7 @@ pub struct Editor {
 }
 
 /// The folders of a desktop install, where an app puts its command but not on the `PATH`.
-fn app_dirs() -> Vec<PathBuf> {
+pub(crate) fn app_dirs() -> Vec<PathBuf> {
     let mut dirs = search_dirs();
     if cfg!(target_os = "macos") {
         for d in [

@@ -408,7 +408,11 @@ export function Connections() {
 						{message(list.error)}
 					</p>
 				) : null}
-				{empty ? <EmptyState title={t.empty.connections} action={add} /> : null}
+				{empty ? (
+					<div id="connections">
+						<EmptyState title={t.empty.connections} action={add} />
+					</div>
+				) : null}
 				<RunnersGroup />
 				{adding ? (
 					<div className="rounded-lg border bg-surface-1 shadow-1">
@@ -425,7 +429,17 @@ export function Connections() {
 					const rows = (conns ?? []).filter((c) => c.group === g);
 					if (rows.length === 0) return null;
 					return (
-						<section key={g} aria-labelledby={`connections-${g}`} className="flex flex-col gap-2">
+						<section
+							key={g}
+							// The anchor of the errors that a connection fixes: the first group.
+							id={
+								g === GROUPS.find((x) => conns?.some((c) => c.group === x))
+									? "connections"
+									: undefined
+							}
+							aria-labelledby={`connections-${g}`}
+							className="flex flex-col gap-2"
+						>
 							<h2 id={`connections-${g}`} className="px-1 text-12 font-medium text-n-11">
 								{format(t.count, { name: t.connections.group[g], count: rows.length })}
 							</h2>

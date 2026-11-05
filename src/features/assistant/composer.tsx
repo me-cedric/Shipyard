@@ -1,14 +1,22 @@
-import { Toggle } from "@base-ui/react/toggle";
-import { ToggleGroup } from "@base-ui/react/toggle-group";
+import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, type RefObject, useEffect, useId, useRef, useState } from "react";
-import { mentionAt, slashFor, slashQuery } from "@/lib/assistant/slash";
+import { mentionAt, slashQuery } from "@/lib/assistant/slash";
 import { format, useI18n } from "@/lib/i18n";
-import { type AssistantMode, type Attachment, commands, type Permission, unwrap } from "@/lib/ipc";
+import {
+	type AssistantMode,
+	type Attachment,
+	commands,
+	type Permission,
+	type ThreadSettings,
+	unwrap,
+} from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
+import { useActiveProject } from "@/lib/projects";
 import { useRefSearch } from "@/lib/refs";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
+import { Segmented } from "@/ui/atoms/segmented";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
 import { PaperAirplaneIcon, PlusIcon, StopIcon, XMarkIcon } from "@/ui/icons";
@@ -16,15 +24,15 @@ import { Dialog } from "@/ui/organisms/dialog";
 import { CodexTrust } from "./codex-trust";
 import { ComposerMenu, type MenuItem } from "./composer-menu";
 import { GaugeView } from "./gauge";
+import { ModelMenu } from "./model-menu";
 import type { Assistant } from "./use-assistant";
 
 const MODES: AssistantMode[] = ["ask", "plan", "agent"];
-const PERMISSIONS: Permission[] = ["approve", "auto", "read_only"];
-const DEFAULT = "default";
+const PERMISSIONS: Permission[] = ["approve", "auto", "bypass", "read_only"];
 // An `@` token that ends the text: the ref that the person typed.
 const TOKEN = /(^|\s)@(\S+)$/;
 
-/** The pickers of the thread, the input and the one primary action. */
+/** The message box, and one bar under it: attach, model, permission, context ring and the one primary action. */
 export function Composer({
 	a,
 	inputRef,
@@ -86,20 +94,48 @@ export function Composer({
 	};
 	// Auto pre-approves the edit tools: one warning with the effect, and a click, before it applies.
 	const [warnAuto, setWarnAuto] = useState(false);
-	const levels = readOnly ? PERMISSIONS.filter((p) => p === "read_only") : PERMISSIONS;
+	// Bypass permissions asks once for each project. A project with a read only profile never gets it.
+	const project = useActiveProject().data?.id ?? "";
+	const [warnBypass, setWarnBypass] = useState(false);
+	const bypassKey = `shipyard:bypass-confirmed:${project}`;
+	const runner = a.runners.find((r) => r.runner === s?.runner);
+	const levels = readOnly
+		? PERMISSIONS.filter((p) => p === "read_only")
+		: PERMISSIONS.filter((p) => p !== "bypass" || runner?.bypass);
+	const applyBypass = async () => {
+		if ((await a.setSettings({ permission: "bypass" })) && project)
+			localStorage.setItem(bypassKey, "1");
+		setWarnBypass(false);
+	};
+	/** A runner with no Bypass takes the thread back to Edit with approval. */
+	const change = (patch: Partial<ThreadSettings>) => {
+		const next = patch.runner ? a.runners.find((r) => r.runner === patch.runner) : runner;
+		const drop = s?.permission === "bypass" && !next?.bypass;
+		void a.setSettings(drop ? { ...patch, permission: "approve" } : patch);
+	};
 	// The slash menu and the `@` menu share one list. Escape closes it until the draft changes.
 	const [active, setActive] = useState(0);
 	const [closed, setClosed] = useState<string | null>(null);
 	const slash = slashQuery(a.draft);
+	// The commands of the runner of the thread: its own files, read when the list opens.
+	const listed = useQuery({
+		queryKey: ["assistant", "slash", s?.runner],
+		queryFn: () => unwrap(commands.assistantSlashCommands(s?.runner ?? "")),
+		enabled: slash !== null && !!s,
+	}).data;
 	const at = slash === null ? mentionAt(a.draft) : null;
 	const hits = useRefSearch(at?.query ?? "").data;
 	const items: MenuItem[] =
 		slash !== null
-			? slashFor(a.view, slash).map((id) => ({
-					id,
-					label: `/${id}`,
-					pick: () => a.setDraft(t.assistant.slash[id]),
-				}))
+			? (listed ?? [])
+					.filter((c) => c.name.toLowerCase().startsWith(slash.toLowerCase()))
+					.map((c) => ({
+						id: c.name,
+						label: `/${c.name}`,
+						hint: c.description,
+						// The text goes to the runner as typed.
+						pick: () => a.setDraft(`/${c.name} `),
+					}))
 			: at?.query
 				? [...(hits ?? [])]
 						.sort((x, y) => Number(y.ref === at.query) - Number(x.ref === at.query))
@@ -114,13 +150,6 @@ export function Composer({
 				: [];
 	const menuOpen = items.length > 0 && closed !== a.draft;
 	const current = Math.min(active, Math.max(items.length - 1, 0));
-	const runner = a.runners.find((r) => r.runner === s?.runner);
-	const pick = (list: string[]) => [
-		{ value: DEFAULT, label: t.assistant.default },
-		...list.map((v) => ({ value: v, label: v })),
-	];
-	const value = (v: string | null | undefined) => v ?? DEFAULT;
-	const back = (v: string) => (v === DEFAULT ? null : v);
 	/** A completed `@ref` leaves the text and joins the context. */
 	const takeRef = (text: string, end: RegExpExecArray) => {
 		a.setDraft(text.slice(0, end.index + (end[1]?.length ?? 0)));
@@ -138,54 +167,12 @@ export function Composer({
 			}}
 		>
 			{s ? (
-				<div className="flex flex-wrap gap-1">
-					<ToggleGroup
-						aria-label={t.assistant.mode.label}
-						value={[s.mode]}
-						onValueChange={(v) => {
-							// A pressed pill stays pressed: one mode is always on.
-							if (v[0]) void a.setSettings({ mode: v[0] as AssistantMode });
-						}}
-						className="flex w-full items-center gap-0.5 rounded-full border bg-n-2 p-0.5"
-					>
-						{MODES.map((m) => (
-							<Toggle
-								key={m}
-								value={m}
-								className="h-6 flex-1 rounded-full px-2 text-12 text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 data-[pressed]:bg-accent-gradient data-[pressed]:text-accent-fg data-[pressed]:shadow-1"
-							>
-								{t.assistant.mode[m]}
-							</Toggle>
-						))}
-					</ToggleGroup>
-					<Select
-						label={t.assistant.runner}
-						value={s.runner}
-						items={a.runners.map((r) => ({ value: r.runner, label: r.runner }))}
-						onValueChange={(r) => void a.setSettings({ runner: r })}
-					/>
-					<Select
-						label={t.assistant.model}
-						value={value(s.model)}
-						items={pick(runner?.models ?? [])}
-						onValueChange={(v) => void a.setSettings({ model: back(v) })}
-					/>
-					<Select
-						label={t.assistant.effort}
-						value={value(s.effort)}
-						items={pick(runner?.efforts ?? [])}
-						onValueChange={(v) => void a.setSettings({ effort: back(v) })}
-					/>
-					<Select
-						label={t.assistant.permission.label}
-						value={s.permission}
-						disabled={s.mode !== "agent"}
-						items={levels.map((p) => ({ value: p, label: t.assistant.permission[p] }))}
-						onValueChange={(p) =>
-							p === "auto" ? setWarnAuto(true) : void a.setSettings({ permission: p as Permission })
-						}
-					/>
-				</div>
+				<Segmented
+					label={t.assistant.mode.label}
+					value={s.mode}
+					onValueChange={(mode) => void a.setSettings({ mode })}
+					items={MODES.map((m) => ({ value: m, label: t.assistant.mode[m] }))}
+				/>
 			) : null}
 			{s?.runner === "codex" ? <CodexTrust /> : null}
 			<Dialog
@@ -205,6 +192,18 @@ export function Composer({
 				}
 			>
 				<p className="text-ui text-n-11">{t.assistant.autoWarn.body}</p>
+			</Dialog>
+			<Dialog
+				open={warnBypass}
+				onOpenChange={setWarnBypass}
+				title={t.assistant.bypassWarn.title}
+				actions={
+					<Button variant="danger" onClick={() => void applyBypass()}>
+						{t.assistant.bypassWarn.accept}
+					</Button>
+				}
+			>
+				<p className="text-ui text-n-11">{t.assistant.bypassWarn.body}</p>
 			</Dialog>
 			<div className="relative">
 				{menuOpen ? (
@@ -285,7 +284,7 @@ export function Composer({
 					) : null}
 				</div>
 			) : null}
-			<div className="flex items-center justify-between gap-2">
+			<div className="flex flex-wrap items-center gap-1">
 				<input
 					ref={picker}
 					type="file"
@@ -297,7 +296,6 @@ export function Composer({
 						e.target.value = "";
 					}}
 				/>
-				{a.current ? <GaugeView gauge={a.current.gauge} /> : <span />}
 				<IconButton
 					label={t.doctor.attach.add}
 					disabled={!a.current || a.busy}
@@ -305,17 +303,36 @@ export function Composer({
 				>
 					<PlusIcon size={14} />
 				</IconButton>
-				{a.busy ? (
-					<Button onClick={a.stop}>
-						<StopIcon size={14} />
-						{t.assistant.stop}
-					</Button>
-				) : (
-					<Button variant="primary" disabled={!a.current || !a.draft.trim()} onClick={submit}>
-						<PaperAirplaneIcon size={14} />
-						{t.assistant.send}
-					</Button>
-				)}
+				{s ? <ModelMenu runners={a.runners} settings={s} onChange={change} /> : null}
+				{s ? (
+					<Select
+						label={t.assistant.permission.label}
+						value={s.permission}
+						disabled={s.mode !== "agent"}
+						// Bypass shows in the danger colour for as long as it is on.
+						className={s.permission === "bypass" ? "border-danger text-danger-text" : undefined}
+						items={levels.map((p) => ({ value: p, label: t.assistant.permission[p] }))}
+						onValueChange={(p) => {
+							if (p === "auto") setWarnAuto(true);
+							else if (p === "bypass" && !localStorage.getItem(bypassKey)) setWarnBypass(true);
+							else void a.setSettings({ permission: p as Permission });
+						}}
+					/>
+				) : null}
+				<span className="ml-auto flex items-center gap-2">
+					{a.current ? <GaugeView gauge={a.current.gauge} /> : null}
+					{a.busy ? (
+						<Button onClick={a.stop}>
+							<StopIcon size={14} />
+							{t.assistant.stop}
+						</Button>
+					) : (
+						<Button variant="primary" disabled={!a.current || !a.draft.trim()} onClick={submit}>
+							<PaperAirplaneIcon size={14} />
+							{t.assistant.send}
+						</Button>
+					)}
+				</span>
 			</div>
 		</div>
 	);

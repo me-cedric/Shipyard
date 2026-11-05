@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { SavedActions } from "@/features/reports/export-menu";
+import { renderViews } from "@/features/reports/export-views";
 import { PageExport } from "@/features/reports/page-export";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, type ExportText, saveWorkbook, unwrap } from "@/lib/ipc";
-import { DOC_DIR, saveDocx, useDocList } from "@/lib/knowledge";
+import { commands, type ExportText, saveAs, unwrap } from "@/lib/ipc";
+import { DOC_DIR, useDocList } from "@/lib/knowledge";
 import { useDocxList } from "@/lib/knowledge/documents";
 import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
@@ -33,24 +35,29 @@ export function Documents() {
 	};
 	const [note, setNote] = useState<string | null>(null);
 	const [failure, setFailure] = useState<unknown>(null);
+	// The file of the last export: the session list allows "Show in folder" and "Open" on it.
+	const [saved, setSaved] = useState<string | null>(null);
 
 	const words = (title: string, sections: string[]): ExportText => ({
 		title,
 		empty: k.text.empty,
 		gap: k.text.gap,
 		generated: k.text.generated,
+		contents: k.text.contents,
 		sections,
 	});
 	const run =
 		(name: string, ext: "docx" | "xlsx", job: (path: string) => Promise<unknown>) => async () => {
 			try {
-				const path = await (ext === "docx" ? saveDocx(name) : saveWorkbook(name));
+				const path = await saveAs(name, ext);
 				if (!path) return;
 				await job(path);
 				setFailure(null);
 				setNote(format(k.exported, { path }));
+				setSaved(path);
 			} catch (e) {
 				setNote(null);
+				setSaved(null);
 				setFailure(e);
 			}
 		};
@@ -61,7 +68,9 @@ export function Documents() {
 			ext: "DOCX",
 			tone: "accent" as const,
 			go: run("dossier", "docx", async (path) =>
-				unwrap(commands.exportDossierFile(words(k.dossier, k.text.dossier), [], path)),
+				unwrap(
+					commands.exportDossierFile(words(k.dossier, k.text.dossier), await renderViews(), path),
+				),
 			),
 		},
 		{
@@ -130,9 +139,13 @@ export function Documents() {
 			}
 			notice={
 				note ? (
-					<p role="status" className="px-4 pb-2 text-ui text-n-11">
-						{note}
-					</p>
+					<div className="flex flex-wrap items-center gap-2 px-4 pb-2">
+						<p role="status" className="text-ui text-n-11">
+							{note}
+						</p>
+						{saved ? <SavedActions path={saved} onError={setFailure} /> : null}
+						<ErrorNotice error={failure} />
+					</div>
 				) : (
 					<ErrorNotice error={failure} className="px-4 pb-2" />
 				)

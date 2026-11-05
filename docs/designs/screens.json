@@ -107,6 +107,23 @@
       "artifacts": [
         "spec:shell"
       ]
+    },
+    {
+      "id": "SCR-013",
+      "slug": "knowledge-slides",
+      "title": "Knowledge / Slides: HTML deck in a sandboxed frame, Present, Export PDF; Markdown deck read only with Convert",
+      "artifacts": [
+        "spec:knowledge",
+        "adr:0016"
+      ]
+    },
+    {
+      "id": "SCR-013",
+      "slug": "assistant-composer",
+      "title": "Assistant: message box, then one bar with attach, the model and effort menu, the permission, the context ring and Send",
+      "artifacts": [
+        "spec:assistant"
+      ]
     }
   ]
 }

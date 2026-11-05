@@ -1,0 +1,23 @@
+{
+	"$schema": "./plugin-manifest.schema.json",
+	"name": "acme-sample",
+	"version": "1.0.0",
+	"settings": {
+		"team": {
+			"type": "choice",
+			"choices": ["core", "web", "data"],
+			"default": "core",
+			"required": true
+		},
+		"retries": { "type": "number", "default": 3 },
+		"strict": { "type": "boolean", "default": false }
+	},
+	"skills": ["sample-skill"],
+	"rules": ["sample-rule"],
+	"mcpServers": {
+		"acme-docs": {
+			"url": "https://mcp.acme.test/v1",
+			"headers": { "Authorization": "${ACME_TOKEN}" }
+		}
+	}
+}

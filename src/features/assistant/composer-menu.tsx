@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export type MenuItem = { id: string; label: string; pick: () => void };
+export type MenuItem = { id: string; label: string; hint?: string | null; pick: () => void };
 
 /** The list of the slash commands or of the `@` matches, above the input. The input keeps the focus. */
 export function ComposerMenu({
@@ -40,6 +40,7 @@ export function ComposerMenu({
 					)}
 				>
 					{item.label}
+					{item.hint ? <span className="ml-2 text-n-10">{item.hint}</span> : null}
 				</div>
 			))}
 		</div>

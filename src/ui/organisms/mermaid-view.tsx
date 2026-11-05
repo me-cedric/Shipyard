@@ -5,13 +5,30 @@ import { useRender } from "./use-render";
 
 let seq = 0;
 
-/** The SVG of a Mermaid text. `securityLevel: "strict"` runs DOMPurify over the output. */
-export async function renderMermaid(source: string, dark: boolean): Promise<string> {
+/**
+ * The SVG of a Mermaid text. `securityLevel: "strict"` runs DOMPurify over the output. With
+ * `textLabels`, a label is SVG text, not HTML, so a canvas can draw the picture.
+ */
+export function renderMermaid(source: string, dark: boolean, textLabels = false): Promise<string> {
+	// One render at a time: `initialize` sets global state that two renders must not share.
+	const run = queue.then(() => renderOne(source, dark, textLabels));
+	queue = run.then(
+		() => undefined,
+		() => undefined,
+	);
+	return run;
+}
+
+let queue: Promise<void> = Promise.resolve();
+
+async function renderOne(source: string, dark: boolean, textLabels: boolean): Promise<string> {
 	const { default: mermaid } = await import("mermaid");
 	mermaid.initialize({
 		startOnLoad: false,
 		securityLevel: "strict",
 		theme: dark ? "dark" : "default",
+		htmlLabels: !textLabels,
+		flowchart: { htmlLabels: !textLabels },
 	});
 	await mermaid.parse(source);
 	const id = `mermaid-${seq++}`;

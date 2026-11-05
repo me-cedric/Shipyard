@@ -13,6 +13,7 @@ pub mod machine;
 pub mod mcp_control;
 pub mod runner;
 pub mod runners;
+pub mod slash;
 pub mod which;
 
 #[cfg(unix)]

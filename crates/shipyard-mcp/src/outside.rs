@@ -59,7 +59,8 @@ pub struct Outside {
 }
 
 impl Outside {
-    fn allows(&self, name: &str) -> bool {
+    /// True when the switches and the allow list let the tool run.
+    pub fn allows(&self, name: &str) -> bool {
         group(name, &self.switches) && (self.only.is_empty() || self.only.iter().any(|n| n == name))
     }
 }
@@ -82,6 +83,22 @@ pub const NAMES: [&str; 17] = [
     "adr_read",
     "adr_propose",
     "qa_run_check",
+    "qa_read_report",
+];
+
+/// The tools that change nothing: the "read only" preset of the allow list.
+pub const READ_ONLY: [&str; 12] = [
+    "project_list_files",
+    "project_read_file",
+    "git_status",
+    "git_log",
+    "git_diff",
+    "forge_remote",
+    "delivery_diff",
+    "ticket_list",
+    "ticket_read",
+    "adr_list",
+    "adr_read",
     "qa_read_report",
 ];
 
@@ -253,6 +270,140 @@ fn inside(root: &Path, rel: &str) -> Result<PathBuf, String> {
         return Err("the path leaves the project".into());
     }
     Ok(full)
+}
+
+/// The start of a file resource URI. The path follows, percent-encoded: `shipyard://file/docs%2Fa.md`.
+pub const FILE_URI: &str = "shipyard://file/";
+
+/// The folders of the project skills. A skill is a folder with a `SKILL.md`.
+const SKILL_DIRS: [&str; 2] = [".claude/skills", ".agents/skills"];
+
+/// The files that `resources/list` names, at most.
+const MAX_RESOURCES: usize = 200;
+const SKIP_DIRS: [&str; 4] = ["node_modules", "target", "dist", "build"];
+
+/// The files that a tool of the group reads may be a prompt or a resource: the same two switches.
+fn may_read(o: &Outside) -> bool {
+    o.allows("project_read_file")
+}
+
+fn encode(rel: &str) -> String {
+    rel.bytes()
+        .map(|b| match b {
+            b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'-' | b'_' | b'.' => (b as char).to_string(),
+            _ => format!("%{b:02X}"),
+        })
+        .collect()
+}
+
+/// The text of a skill and its `description` from the front matter.
+fn skill_text(root: &Path, name: &str) -> Option<String> {
+    if name.is_empty() || name.contains(['/', '\\']) || name.starts_with('.') {
+        return None;
+    }
+    SKILL_DIRS.iter().find_map(|d| {
+        let path = inside(root, &format!("{d}/{name}/SKILL.md")).ok()?;
+        let meta = std::fs::metadata(&path).ok()?;
+        (meta.is_file() && meta.len() <= MAX_READ)
+            .then(|| std::fs::read_to_string(path).ok())
+            .flatten()
+    })
+}
+
+fn front_matter(text: &str) -> (String, &str) {
+    let Some(rest) = text.strip_prefix("---\n") else {
+        return (String::new(), text);
+    };
+    let Some((head, body)) = rest.split_once("\n---") else {
+        return (String::new(), text);
+    };
+    let description = head
+        .lines()
+        .find_map(|l| l.strip_prefix("description:"))
+        .map(|d| d.trim().trim_matches(['"', '\'']).to_string())
+        .unwrap_or_default();
+    (description, body.trim_start_matches(['-', '\n']))
+}
+
+/// The `prompts/list` entries: the skills of the project. Empty when the read tools are off.
+pub fn prompts(o: &Outside) -> Vec<Value> {
+    if !may_read(o) {
+        return Vec::new();
+    }
+    let mut names: Vec<String> = SKILL_DIRS
+        .iter()
+        .filter_map(|d| std::fs::read_dir(o.root.join(d)).ok())
+        .flatten()
+        .flatten()
+        .filter(|e| e.path().join("SKILL.md").is_file())
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    names.dedup();
+    names
+        .into_iter()
+        .filter_map(|n| {
+            let (description, _) = front_matter(&skill_text(&o.root, &n)?);
+            Some(json!({ "name": n, "description": description }))
+        })
+        .collect()
+}
+
+/// The `prompts/get` answer: the skill as one user message.
+pub fn prompt(o: &Outside, name: &str) -> Result<Value, String> {
+    if !may_read(o) {
+        return Err("the read tools are turned off in the Shipyard settings".into());
+    }
+    let text = skill_text(&o.root, name).ok_or_else(|| format!("unknown prompt: {name}"))?;
+    let (description, body) = front_matter(&text);
+    Ok(json!({
+        "description": description,
+        "messages": [{ "role": "user", "content": { "type": "text", "text": body } }]
+    }))
+}
+
+fn walk(root: &Path, dir: &Path, depth: usize, out: &mut Vec<Value>) {
+    let Ok(read) = std::fs::read_dir(dir) else {
+        return;
+    };
+    let mut entries: Vec<_> = read.flatten().collect();
+    entries.sort_by_key(|e| e.file_name());
+    for e in entries {
+        let name = e.file_name().to_string_lossy().into_owned();
+        let Ok(kind) = e.file_type() else { continue };
+        if out.len() >= MAX_RESOURCES || shipyard_core::code::is_secret_name(&name) {
+            continue;
+        }
+        if kind.is_dir() {
+            if depth < 3 && !name.starts_with('.') && !SKIP_DIRS.contains(&name.as_str()) {
+                walk(root, &e.path(), depth + 1, out);
+            }
+        } else if kind.is_file()
+            && e.metadata().is_ok_and(|m| m.len() <= MAX_READ)
+            && let Ok(rel) = e.path().strip_prefix(root)
+        {
+            let rel = rel.to_string_lossy().replace('\\', "/");
+            out.push(json!({ "uri": format!("{FILE_URI}{}", encode(&rel)), "name": rel }));
+        }
+    }
+}
+
+/// The `resources/list` entries: the project files that `project_read_file` may read. A link is
+/// not followed. Empty when the read tools are off.
+pub fn resources(o: &Outside) -> Vec<Value> {
+    let mut out = Vec::new();
+    if may_read(o) {
+        walk(&o.root, &o.root, 0, &mut out);
+    }
+    out
+}
+
+/// The `resources/read` answer for a file URI. It goes through `project_read_file`, so the switch,
+/// the allow list and the path rules are the same.
+pub fn read_resource(o: &Outside, uri: &str, path: &str) -> Result<Value, String> {
+    let text = call(o, "project_read_file", &json!({ "path": path }))?;
+    let body = text["content"][0]["text"].as_str().unwrap_or_default();
+    Ok(json!({ "contents": [{ "uri": uri, "mimeType": "text/plain", "text": body }] }))
 }
 
 fn drain(p: Option<impl Read + Send + 'static>) -> std::thread::JoinHandle<String> {

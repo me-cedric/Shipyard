@@ -226,7 +226,10 @@ fn claude_launch_arguments_follow_the_mode_and_the_level() {
         Some("Read,Grep,Glob")
     );
     let a = launch_args("claude", AssistantMode::Agent, Permission::Auto);
-    assert_eq!(after(&a, "--permission-mode").as_deref(), Some("auto"));
+    assert_eq!(
+        after(&a, "--permission-mode").as_deref(),
+        Some("acceptEdits")
+    );
     let allowed = after(&a, "--allowedTools").unwrap();
     assert!(allowed.contains("Edit") && allowed.contains("Write"));
     assert!(
@@ -252,4 +255,29 @@ fn codex_launch_arguments_follow_the_mode() {
         let a = launch_args("codex", AssistantMode::Agent, level);
         assert_eq!(after(&a, "--sandbox").as_deref(), Some("workspace-write"));
     }
+}
+
+#[test]
+fn bypass_maps_to_the_skip_permissions_flag_of_the_runner_in_agent_mode_only() {
+    let a = launch_args("claude", AssistantMode::Agent, Permission::Bypass);
+    assert!(
+        a.contains(&"--dangerously-skip-permissions".to_string()),
+        "{a:?}"
+    );
+    assert_eq!(after(&a, "--permission-mode"), None);
+    let a = launch_args("codex", AssistantMode::Agent, Permission::Bypass);
+    assert!(
+        a.contains(&"--dangerously-bypass-approvals-and-sandbox".to_string()),
+        "{a:?}"
+    );
+    assert_eq!(after(&a, "--sandbox"), None);
+    // Ask and plan stay read only, whatever the level says.
+    let a = launch_args("claude", AssistantMode::Plan, Permission::Bypass);
+    assert!(!a.contains(&"--dangerously-skip-permissions".to_string()));
+    assert_eq!(after(&a, "--permission-mode").as_deref(), Some("plan"));
+    let a = launch_args("codex", AssistantMode::Ask, Permission::Bypass);
+    assert_eq!(after(&a, "--sandbox").as_deref(), Some("read-only"));
+    // Read only: no worktree, no write, no bypass.
+    let a = launch_args("claude", AssistantMode::Agent, Permission::ReadOnly);
+    assert_eq!(after(&a, "--permission-mode").as_deref(), Some("plan"));
 }

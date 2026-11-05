@@ -161,3 +161,71 @@ fn a_citation_row_alone_is_enough_for_a_mirror_source() {
     .unwrap();
     assert_eq!(idx.check().unwrap()[0].source, "wi:SHIP-1");
 }
+
+fn refs(idx: &RefIndex, q: &str) -> Vec<String> {
+    idx.search(q, 20)
+        .unwrap()
+        .into_iter()
+        .map(|h| h.target)
+        .collect()
+}
+
+#[test]
+fn text_search_folds_case_and_accents_in_the_body() {
+    let (_d, idx) = repo(&[(
+        "docs/decisions/0001-x.md",
+        "# Cadre\n\nLa Décision finale est prise.\n",
+    )]);
+    assert_eq!(refs(&idx, "decision"), ["adr:0001"]);
+    assert_eq!(refs(&idx, "DÉCISION"), ["adr:0001"]);
+}
+
+#[test]
+fn text_search_needs_every_word_and_prefixes_the_last() {
+    let (_d, idx) = repo(&[(
+        "docs/decisions/0001-x.md",
+        "# Cadre\n\nLa décision finale est prise.\n",
+    )]);
+    assert_eq!(refs(&idx, "decision fin"), ["adr:0001"]);
+    assert!(refs(&idx, "decision absent").is_empty());
+    // Only the last word is a prefix.
+    assert!(refs(&idx, "dec finale").is_empty());
+    // FTS syntax stays plain text.
+    assert!(refs(&idx, "\"decision OR").len() <= 1);
+}
+
+#[test]
+fn text_search_ranks_a_hub_first_and_marks_the_snippet() {
+    let (_d, idx) = repo(&[
+        ("docs/decisions/0001-a.md", "# Same\n\nlatency budget\n"),
+        ("docs/decisions/0002-b.md", "# Same\n\nlatency budget\n"),
+        (
+            "docs/openspec/changes/a/specs/one/spec.md",
+            "# One\nadr:0002\n",
+        ),
+    ]);
+    let hits = idx.search("latency", 10).unwrap();
+    assert_eq!(hits[0].target, "adr:0002");
+    let snip = hits[0].snippet.clone().unwrap();
+    assert!(snip.contains("\u{2}latency\u{3}"), "{snip}");
+}
+
+#[test]
+fn an_old_index_is_rebuilt_with_the_search_table() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("refs.db");
+    {
+        let c = rusqlite::Connection::open(&db).unwrap();
+        c.execute_batch(
+            "CREATE TABLE sources(key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL);
+             INSERT INTO sources VALUES ('file:x', '1'); PRAGMA user_version = 1;",
+        )
+        .unwrap();
+    }
+    let mut idx = RefIndex::open(&db).unwrap();
+    assert_eq!(idx.count_sources().unwrap(), 0);
+    write(dir.path(), "docs/decisions/0001-x.md", "# X\n\nbody text\n");
+    idx.sync_repo(dir.path(), &ProjectFile::new("Shipyard", "SHIP"))
+        .unwrap();
+    assert_eq!(refs(&idx, "body"), ["adr:0001"]);
+}

@@ -6,8 +6,8 @@ use std::path::Path;
 
 use shipyard_core::project::ProjectFile;
 use shipyard_store::knowledge::{
-    Dashboard, DeckTheme, Tile, check_writable, dashboard_text, deck_text, pages, parse_dashboard,
-    parse_deck, parse_theme, theme_text,
+    Dashboard, DeckTheme, Tile, check_writable, dashboard_text, deck_text, decks, pages,
+    parse_dashboard, parse_deck, parse_theme, theme_text,
 };
 use shipyard_store::ref_index::RefIndex;
 use shipyard_store::ref_query::State;
@@ -69,6 +69,32 @@ fn a_handbook_page_is_a_doc_entity_and_the_tree_lists_the_pages() {
     let doc = i.resolve("doc:docs/handbook/start.md").unwrap().unwrap();
     assert_eq!(doc.state, State::Resolved);
     assert_eq!(doc.title.as_deref(), Some("Start here"));
+}
+
+#[test]
+fn the_deck_list_holds_html_and_markdown_decks_with_their_titles() {
+    let dir = tempfile::tempdir().unwrap();
+    let r = dir.path();
+    write(
+        r,
+        "docs/slides/kickoff.html",
+        "<html><head><title> Kick-off </title></head></html>",
+    );
+    write(r, "docs/slides/old.md", "# Old deck\n");
+    write(r, "docs/slides/team/untitled.html", "<html></html>");
+    write(r, "docs/slides/theme.yaml", "accent: red\n");
+    let got: Vec<_> = decks(r, "docs/slides")
+        .into_iter()
+        .map(|p| (p.path, p.title))
+        .collect();
+    assert_eq!(
+        got,
+        [
+            ("docs/slides/kickoff.html".into(), "Kick-off".into()),
+            ("docs/slides/old.md".into(), "Old deck".into()),
+            ("docs/slides/team/untitled.html".into(), "untitled".into()),
+        ] as [(String, String); 3]
+    );
 }
 
 #[test]

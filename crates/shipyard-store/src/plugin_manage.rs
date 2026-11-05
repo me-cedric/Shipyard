@@ -26,6 +26,9 @@ pub struct Installed {
     /// The names of the MCP servers that the plugin added.
     pub mcp: Vec<String>,
     pub enabled: bool,
+    /// The zip or the folder that the plugin was applied from. It is a path of this machine, so it
+    /// lives in the app data folder (`sources`), never in the repository. `list` leaves it empty.
+    pub source: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Type)]
@@ -67,9 +70,44 @@ pub fn list(root: &Path) -> Vec<Installed> {
             files: a.files.into_keys().collect(),
             settings: a.settings.into_keys().collect(),
             mcp: a.mcp,
+            source: None,
             name,
         })
         .collect()
+}
+
+/// `<data>/plugins/<project>/sources.json`: the name of each plugin and where it was applied from.
+fn sources_file(data: &Path, project: &str) -> Result<std::path::PathBuf> {
+    let plain = !project.is_empty()
+        && !project.starts_with('.')
+        && project
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'));
+    if !plain {
+        return Err(format!("not a plain project id: {project}").into());
+    }
+    Ok(data.join("plugins").join(project).join("sources.json"))
+}
+
+pub fn sources(data: &Path, project: &str) -> BTreeMap<String, String> {
+    sources_file(data, project)
+        .ok()
+        .and_then(|f| fs::read_to_string(f).ok())
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default()
+}
+
+/// Keep (`Some`) or forget (`None`) where a plugin was applied from.
+pub fn set_source(data: &Path, project: &str, name: &str, source: Option<&str>) -> Result<()> {
+    let mut all = sources(data, project);
+    match source {
+        Some(s) => all.insert(name.to_string(), s.to_string()),
+        None => all.remove(name),
+    };
+    write_atomic(
+        &sources_file(data, project)?,
+        serde_json::to_string_pretty(&all)?.as_bytes(),
+    )
 }
 
 /// Returns the MCP server names of the plugin, so the caller can start or stop them.

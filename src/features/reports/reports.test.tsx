@@ -109,7 +109,7 @@ describe("The error contract for merge, forge, git and sync", () => {
 		expect(open.action).toEqual({ kind: "open", target: "/code/pull-requests" });
 		expect(toFailure("HTTP 401: bad credentials").action).toEqual({
 			kind: "setting",
-			target: "connections",
+			target: "/settings/connections#connections",
 		});
 		// An outage offers no sync: a forge outage must not read the tracker again.
 		expect(toFailure("network error: timed out").action).toBeNull();

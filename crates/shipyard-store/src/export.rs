@@ -8,15 +8,24 @@
 use std::io::Cursor;
 
 use docx_rs::{
-    BreakType, Docx, Header, Paragraph, Pic, Run, Style, StyleType, Table, TableCell, TableRow,
+    AbstractNumbering, AlignmentType, BreakType, Docx, Footer, Header, Hyperlink, HyperlinkType,
+    IndentLevel, Level, LevelJc, LevelText, LineSpacing, LineSpacingType, NumberFormat, Numbering,
+    NumberingId, PageNum, Paragraph, Pic, Run, RunFonts, Shading, SpecialIndentType, Start, Style,
+    StyleType, Table, TableCell, TableOfContents, TableRow,
 };
-use rust_xlsxwriter::{Format, Workbook};
+use rust_xlsxwriter::{Color, ExcelDateTime, Format, FormatAlign, FormatBorder, Workbook};
 use shipyard_core::work::Sheet;
 
 use crate::Result;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Block {
+    /// The title on the cover. It is not a heading, so the contents list skips it.
+    Title(String),
+    /// A line under the title on the cover.
+    Subtitle(String),
+    /// The contents list, a field that Word fills when the file opens. The text is its title.
+    Toc(String),
     Heading(u8, String),
     Para(String),
     Code(String),
@@ -25,9 +34,9 @@ pub enum Block {
         headers: Vec<String>,
         rows: Vec<Vec<String>>,
     },
+    /// A picture. The heading of its item is its title.
     Image {
         png: Vec<u8>,
-        caption: String,
     },
     /// A source that could not be read.
     Gap(String),
@@ -47,10 +56,14 @@ pub struct Meta {
     pub gap: String,
     /// The prefix of the date line on the cover.
     pub generated: String,
+    /// The title of the contents list.
+    pub contents: String,
 }
 
 pub enum Content {
     Markdown(String),
+    /// A source text kept as a code block.
+    Code(String),
     Table {
         headers: Vec<String>,
         rows: Vec<Vec<String>>,
@@ -71,13 +84,23 @@ pub struct Section {
 
 fn cover(m: &Meta) -> Vec<Block> {
     vec![
-        Block::Heading(1, m.title.clone()),
-        Block::Para(m.project.clone()),
-        Block::Para(format!("{}: {}", m.generated, m.generated_on)),
+        Block::Title(m.title.clone()),
+        Block::Subtitle(m.project.clone()),
+        Block::Subtitle(format!("{}: {}", m.generated, m.generated_on)),
+        Block::PageBreak,
+        Block::Toc(m.contents.clone()),
     ]
 }
 
-/// The cover, then each section on a new page (REQ-015). A section with no item says so. An item
+/// The letters and digits of a text in lower case, to compare two titles.
+fn plain(s: &str) -> String {
+    s.chars()
+        .filter(|c| c.is_alphanumeric())
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+/// The cover and the contents list, then each section on a new page (REQ-015). A section with no item says so. An item
 /// that cannot be read becomes a gap with its name and its reason.
 pub fn assemble(m: &Meta, sections: &[Section]) -> Vec<Block> {
     let mut out = cover(m);
@@ -90,15 +113,25 @@ pub fn assemble(m: &Meta, sections: &[Section]) -> Vec<Block> {
         for i in &s.items {
             out.push(Block::Heading(2, i.name.clone()));
             match &i.source {
-                Ok(Content::Markdown(md)) => out.extend(markdown_blocks(md, 3)),
+                Ok(Content::Markdown(md)) => {
+                    let mut blocks = markdown_blocks(md, 3);
+                    // The item name is already a heading: do not show the same title twice.
+                    if let Some(Block::Heading(_, h)) = blocks.first() {
+                        let (h, n) = (plain(h), plain(&i.name));
+                        if !h.is_empty() && (n.contains(&h) || h.contains(&n)) {
+                            blocks.remove(0);
+                        }
+                    }
+                    out.extend(blocks);
+                }
+                Ok(Content::Code(text)) => out.push(Block::Code(text.clone())),
                 Ok(Content::Table { headers, rows }) => out.push(Block::Table {
                     headers: headers.clone(),
                     rows: rows.clone(),
                 }),
-                Ok(Content::Image(png)) if png_size(png).is_some() => out.push(Block::Image {
-                    png: png.clone(),
-                    caption: i.name.clone(),
-                }),
+                Ok(Content::Image(png)) if png_size(png).is_some() => {
+                    out.push(Block::Image { png: png.clone() })
+                }
                 Ok(Content::Image(_)) => out.push(Block::Gap(format!(
                     "{}: {} (not a PNG image)",
                     m.gap, i.name
@@ -336,54 +369,194 @@ fn safe(s: &str) -> String {
         .collect()
 }
 
-fn text(s: &str) -> Paragraph {
-    Paragraph::new().add_run(Run::new().add_text(safe(s)))
+const BODY_FONT: &str = "Calibri";
+const MONO_FONT: &str = "Consolas";
+
+fn font(name: &str) -> RunFonts {
+    RunFonts::new()
+        .ascii(name)
+        .hi_ansi(name)
+        .east_asia(name)
+        .cs(name)
 }
 
-fn cell(s: &str, bold: bool) -> TableCell {
-    let run = Run::new().add_text(safe(s)).size(18);
-    TableCell::new().add_paragraph(Paragraph::new().add_run(if bold { run.bold() } else { run }))
+/// The text of `s` as bold runs (`**bold**`) and hyperlinks (`[text](https://…)`) in `p`. Only
+/// `http`, `https` and `mailto` links become links; other text stays text. One level: no bold in a link.
+fn rich(mut p: Paragraph, s: &str, size: Option<usize>) -> Paragraph {
+    let run = |t: &str| {
+        let r = Run::new().add_text(t);
+        size.map_or(r.clone(), |n| r.size(n))
+    };
+    let mut rest = s;
+    let mut plain = String::new();
+    while !rest.is_empty() {
+        if let Some(r) = rest.strip_prefix("**")
+            && let Some(end) = r.find("**").filter(|e| *e > 0)
+        {
+            if !plain.is_empty() {
+                p = p.add_run(run(&std::mem::take(&mut plain)));
+            }
+            p = p.add_run(run(&r[..end]).bold());
+            rest = &r[end + 2..];
+        } else if let Some(r) = rest.strip_prefix('[')
+            && let Some((label, tail)) = r.split_once("](")
+            && let Some((url, after)) = tail.split_once(')')
+            && !label.is_empty()
+            && ["http://", "https://", "mailto:"]
+                .iter()
+                .any(|k| url.starts_with(k))
+        {
+            if !plain.is_empty() {
+                p = p.add_run(run(&std::mem::take(&mut plain)));
+            }
+            let text = run(label).color("0563C1").underline("single");
+            p = p.add_hyperlink(Hyperlink::new(url, HyperlinkType::External).add_run(text));
+            rest = after;
+        } else {
+            let c = rest.chars().next().unwrap_or_default();
+            plain.push(c);
+            rest = &rest[c.len_utf8()..];
+        }
+    }
+    if !plain.is_empty() {
+        p = p.add_run(run(&plain));
+    }
+    p
+}
+
+/// The paragraph of a text. A span between backticks has the monospace font; the rest takes
+/// bold and links (`rich`).
+fn inline(s: &str, size: Option<usize>) -> Paragraph {
+    let s = safe(s);
+    // An odd count of backticks means no pairs: keep the text as it is.
+    if s.matches('`').count() % 2 == 1 {
+        return rich(Paragraph::new(), &s, size);
+    }
+    s.split('`')
+        .enumerate()
+        .filter(|(_, part)| !part.is_empty())
+        .fold(Paragraph::new(), |p, (i, part)| {
+            if i % 2 == 1 {
+                let r = Run::new().add_text(part).fonts(font(MONO_FONT));
+                p.add_run(size.map_or(r.clone(), |n| r.size(n)))
+            } else {
+                rich(p, part, size)
+            }
+        })
+}
+
+fn text(s: &str) -> Paragraph {
+    inline(s, None)
+}
+
+fn cell(s: &str, head: bool) -> TableCell {
+    let p = inline(s, Some(18));
+    let c = TableCell::new().add_paragraph(if head { p.bold() } else { p });
+    if head {
+        c.shading(Shading::new().fill("E5E7EB"))
+    } else {
+        c
+    }
+}
+
+/// A paragraph style. Sizes are in half points, spacing in twentieths of a point.
+fn style(id: &str, name: &str, size: usize, color: &str, before: u32, after: u32) -> Style {
+    Style::new(id, StyleType::Paragraph)
+        .name(name)
+        .based_on("Normal")
+        .next("Normal")
+        .size(size)
+        .color(color)
+        .line_spacing(LineSpacing::new().before(before).after(after))
 }
 
 /// The `.docx` bytes of the blocks.
 pub fn docx_bytes(m: &Meta, blocks: &[Block]) -> Result<Vec<u8>> {
-    let mut doc = Docx::new().header(Header::new().add_paragraph(text(&m.title)));
-    for (level, size) in [(1, 36), (2, 30), (3, 26), (4, 24)] {
+    let footer = Footer::new().add_paragraph(
+        Paragraph::new()
+            .align(AlignmentType::Center)
+            .add_page_num(PageNum::new()),
+    );
+    let bullet = Level::new(
+        0,
+        Start::new(1),
+        NumberFormat::new("bullet"),
+        LevelText::new("\u{2022}"),
+        LevelJc::new("left"),
+    )
+    .indent(Some(720), Some(SpecialIndentType::Hanging(360)), None, None);
+    let mut doc = Docx::new()
+        .default_fonts(font(BODY_FONT))
+        .default_size(22)
+        .default_line_spacing(
+            LineSpacing::new()
+                .line_rule(LineSpacingType::Auto)
+                .line(288)
+                .after(120),
+        )
+        .header(Header::new().add_paragraph(text(&m.title)))
+        .footer(footer)
+        .title_pg()
+        .add_abstract_numbering(AbstractNumbering::new(1).add_level(bullet))
+        .add_numbering(Numbering::new(1, 1))
+        .add_style(style("Title", "Title", 60, "1F3864", 2400, 240).bold())
+        .add_style(style("Subtitle", "Subtitle", 28, "4B5563", 0, 120))
+        .add_style(style("TocTitle", "TOC Heading", 32, "1F3864", 0, 240).bold())
+        .add_style(
+            Style::new("Code", StyleType::Paragraph)
+                .name("Code")
+                .based_on("Normal")
+                .fonts(font(MONO_FONT))
+                .size(18)
+                .line_spacing(LineSpacing::new().after(0)),
+        );
+    for (level, size, before) in [(1, 36, 360), (2, 30, 280), (3, 26, 200), (4, 24, 160)] {
         doc = doc.add_style(
-            Style::new(format!("Heading{level}"), StyleType::Paragraph)
-                .name(format!("heading {level}"))
-                .size(size)
-                .bold(),
+            style(
+                &format!("Heading{level}"),
+                &format!("heading {level}"),
+                size,
+                "1F3864",
+                before,
+                120,
+            )
+            .bold()
+            .outline_lvl(level - 1),
         );
     }
     for b in blocks {
         doc = match b {
+            Block::Title(t) => doc.add_paragraph(text(t).style("Title")),
+            Block::Subtitle(t) => doc.add_paragraph(text(t).style("Subtitle")),
+            Block::Toc(t) => doc
+                .add_paragraph(text(t).style("TocTitle"))
+                .add_table_of_contents(
+                    TableOfContents::new()
+                        .heading_styles_range(1, 3)
+                        .hyperlink()
+                        .dirty(),
+                ),
             Block::Heading(l, t) => {
                 doc.add_paragraph(text(t).style(&format!("Heading{}", (*l).clamp(1, 4))))
             }
             Block::Para(t) => doc.add_paragraph(text(t)),
             Block::Code(t) => t.lines().fold(doc, |d, l| {
-                d.add_paragraph(
-                    Paragraph::new().add_run(
-                        Run::new()
-                            .add_text(safe(l))
-                            .fonts(docx_rs::RunFonts::new().ascii("Courier New")),
-                    ),
-                )
+                let run = Run::new().add_text(safe(l));
+                d.add_paragraph(Paragraph::new().add_run(run).style("Code"))
             }),
-            Block::Bullets(items) => items
-                .iter()
-                .fold(doc, |d, i| d.add_paragraph(text(&format!("\u{2022} {i}")))),
+            Block::Bullets(items) => items.iter().fold(doc, |d, i| {
+                d.add_paragraph(text(i).numbering(NumberingId::new(1), IndentLevel::new(0)))
+            }),
             Block::Table { headers, rows } => {
                 let width = rows
                     .iter()
                     .map(Vec::len)
                     .fold(headers.len(), usize::max)
                     .max(1);
-                let row = |r: &[String], bold| {
+                let row = |r: &[String], head| {
                     TableRow::new(
                         (0..width)
-                            .map(|c| cell(r.get(c).map_or("", String::as_str), bold))
+                            .map(|c| cell(r.get(c).map_or("", String::as_str), head))
                             .collect(),
                     )
                 };
@@ -391,8 +564,7 @@ pub fn docx_bytes(m: &Meta, blocks: &[Block]) -> Result<Vec<u8>> {
                 all.extend(rows.iter().map(|r| row(r, false)));
                 doc.add_table(Table::new(all))
             }
-            Block::Image { png, caption } => {
-                // `assemble` kept only PNGs with a header. Scale to 15 cm wide at most.
+            Block::Image { png } => {
                 let (w, h) = png_size(png).unwrap_or((1, 1));
                 let scale = (5_400_000.0 / (f64::from(w) * 9525.0)).min(1.0);
                 let pic = Pic::new_with_dimensions(png.clone(), w, h).size(
@@ -400,7 +572,6 @@ pub fn docx_bytes(m: &Meta, blocks: &[Block]) -> Result<Vec<u8>> {
                     (f64::from(h) * 9525.0 * scale) as u32,
                 );
                 doc.add_paragraph(Paragraph::new().add_run(Run::new().add_image(pic)))
-                    .add_paragraph(text(caption))
             }
             Block::Gap(t) => doc.add_paragraph(
                 Paragraph::new().add_run(Run::new().add_text(safe(t)).italic().color("B45309")),
@@ -415,8 +586,6 @@ pub fn docx_bytes(m: &Meta, blocks: &[Block]) -> Result<Vec<u8>> {
     Ok(buf.into_inner())
 }
 
-// ---------------------------------------------------------------- xlsx
-
 fn x<T>(r: std::result::Result<T, rust_xlsxwriter::XlsxError>) -> Result<()> {
     r.map(|_| ()).map_err(|e| e.to_string().into())
 }
@@ -427,19 +596,54 @@ pub struct SheetOut {
     pub rows: Vec<Vec<String>>,
 }
 
+/// A plain number: digits with one optional point, no leading zero, so an id or a code stays text.
+fn number(v: &str) -> Option<f64> {
+    let d = v.strip_prefix('-').unwrap_or(v);
+    let (int, frac) = d.split_once('.').map_or((d, None), |(i, f)| (i, Some(f)));
+    let digits = |t: &str| !t.is_empty() && t.bytes().all(|b| b.is_ascii_digit());
+    (digits(int)
+        && int.len() <= 15
+        && (int == "0" || !int.starts_with('0'))
+        && frac.is_none_or(digits))
+    .then(|| v.parse().ok())
+    .flatten()
+}
+
+/// A `YYYY-MM-DD` date.
+fn date(v: &str) -> Option<ExcelDateTime> {
+    let b = v.as_bytes();
+    (b.len() == 10 && b[4] == b'-' && b[7] == b'-')
+        .then(|| ExcelDateTime::parse_from_str(v).ok())
+        .flatten()
+}
+
 /// A client deliverable as `.xlsx` (REQ-016, Q-044 option 2): a `Cover` worksheet, then one
-/// worksheet for each part, such as one for each security scan.
+/// worksheet for each part, such as one for each security scan. A header row is bold on a dark
+/// fill and stays on screen. A number and a `YYYY-MM-DD` date are real cells with a format.
 pub fn xlsx_bytes(m: &Meta, sheets: &[SheetOut]) -> Result<Vec<u8>> {
-    let bold = Format::new().set_bold();
+    let title = Format::new().set_bold().set_font_size(16);
+    let head = Format::new()
+        .set_bold()
+        .set_font_color(Color::White)
+        .set_background_color(Color::RGB(0x1F3864))
+        .set_border(FormatBorder::Thin)
+        .set_align(FormatAlign::Top)
+        .set_text_wrap();
+    let wrap = Format::new().set_align(FormatAlign::Top).set_text_wrap();
+    let whole = Format::new().set_num_format("0");
+    let decimal = Format::new().set_num_format("#,##0.00");
+    let day = Format::new()
+        .set_num_format("yyyy-mm-dd")
+        .set_align(FormatAlign::Left);
     let mut wb = Workbook::new();
     let ws = wb.add_worksheet();
     x(ws.set_name("Cover"))?;
-    x(ws.write_with_format(0, 0, safe(&m.title), &bold))?;
+    x(ws.write_with_format(0, 0, safe(&m.title), &title))?;
     x(ws.write(1, 0, safe(&m.project)))?;
     x(ws.write(2, 0, format!("{}: {}", m.generated, m.generated_on)))?;
+    x(ws.set_column_width(0, 48))?;
     for s in sheets {
         let ws = wb.add_worksheet();
-        // A worksheet name holds 31 characters at most and none of `[]:*?/\`.
         let name: String = s
             .name
             .chars()
@@ -448,12 +652,43 @@ pub fn xlsx_bytes(m: &Meta, sheets: &[SheetOut]) -> Result<Vec<u8>> {
             .collect();
         x(ws.set_name(if name.is_empty() { "Sheet" } else { &name }))?;
         for (c, h) in s.headers.iter().enumerate() {
-            x(ws.write_with_format(0, c as u16, safe(h), &bold))?;
+            x(ws.write_with_format(0, c as u16, safe(h), &head))?;
         }
         for (r, row) in s.rows.iter().enumerate() {
             for (c, v) in row.iter().enumerate() {
-                x(ws.write(r as u32 + 1, c as u16, safe(v)))?;
+                let (r, c) = (r as u32 + 1, c as u16);
+                if let Some(n) = number(v) {
+                    x(ws.write_number_with_format(
+                        r,
+                        c,
+                        n,
+                        if v.contains('.') { &decimal } else { &whole },
+                    ))?;
+                } else if let Some(d) = date(v) {
+                    x(ws.write_datetime_with_format(r, c, &d, &day))?;
+                } else {
+                    x(ws.write_string_with_format(r, c, safe(v), &wrap))?;
+                }
             }
+        }
+        // Width of the longest cell, from 10 to 60 characters.
+        let cols = s
+            .rows
+            .iter()
+            .map(Vec::len)
+            .fold(s.headers.len(), usize::max);
+        for c in 0..cols {
+            let longest = std::iter::once(s.headers.get(c))
+                .chain(s.rows.iter().map(|r| r.get(c)))
+                .flatten()
+                .map(|v| v.chars().count())
+                .max()
+                .unwrap_or(0);
+            x(ws.set_column_width(c as u16, (longest as f64 + 2.0).clamp(10.0, 60.0)))?;
+        }
+        x(ws.set_freeze_panes(1, 0))?;
+        if cols > 0 {
+            x(ws.autofilter(0, 0, s.rows.len() as u32, cols as u16 - 1))?;
         }
     }
     wb.save_to_buffer()

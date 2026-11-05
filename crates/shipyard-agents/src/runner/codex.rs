@@ -66,6 +66,9 @@ impl Runner for Codex {
         args.push("--json".into());
         // The sandbox is enforced by the operating system, not by asking the model.
         let tier: &[&str] = match (spec.mode, resumed) {
+            (Mode::Auto, _) if spec.approval == Approval::Bypass => {
+                &["--dangerously-bypass-approvals-and-sandbox"]
+            }
             (Mode::Plan, false) => &["--sandbox", "read-only"],
             (Mode::Plan, true) => &["-c", "sandbox_mode=\"read-only\""],
             (Mode::Auto, false) => &[

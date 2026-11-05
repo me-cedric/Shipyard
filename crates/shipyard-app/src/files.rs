@@ -8,7 +8,11 @@ use std::path::{Component, Path, PathBuf};
 use tauri::AppHandle;
 
 use crate::commands::{Api, AppState, Res, blocking, err};
-use crate::work::{FROZEN, need_click};
+use shipyard_core::project::ProjectFile;
+use shipyard_store::project::{FileRead, read_project_file};
+use shipyard_store::rename_links::{LinkFile, Pending, apply, collect, review};
+
+use crate::work::{FROZEN, need_click, refuse_read_only};
 
 /// The project root and the full path of `rel`, which must stay under the root and outside `.git`.
 /// The parent folder is resolved, so a symlink that leaves the project is refused.
@@ -107,6 +111,46 @@ pub fn rename(s: &AppState, from: &str, to: &str, click: bool) -> Res<()> {
         std::fs::create_dir_all(parent).map_err(err)?;
     }
     std::fs::rename(&src, &dst).map_err(err)
+}
+
+/// The checks of a rename with links and the files that the links change. Nothing is written.
+fn links_plan(s: &AppState, from: &str, to: &str) -> Res<(PathBuf, Vec<Pending>, String)> {
+    refuse_read_only(s)?;
+    let (root, src) = resolve(s, from)?;
+    let (_, dst) = resolve(s, to)?;
+    if !src.is_file() {
+        return Err(format!("{from} is not a file"));
+    }
+    keep_frozen(s, &root, &src)?;
+    if dst.exists() {
+        return Err(format!("{to} already exists"));
+    }
+    let entry = s.registry()?.active().cloned().ok_or("no active project")?;
+    let file = match read_project_file(&root) {
+        Ok(FileRead::Valid(f)) => f,
+        _ => ProjectFile::new(&entry.name, &entry.key),
+    };
+    let (pending, new_ref) =
+        crate::commands::refs::with_index(s, |i| collect(i, &root, &file, from.trim(), to.trim()))?;
+    // A link rewrite must not change a frozen sheet.
+    for p in &pending {
+        keep_frozen(s, &root, &root.join(&p.path))?;
+    }
+    Ok((root, pending, new_ref))
+}
+
+/// The line changes that a rename of `from` to `to` makes in the files that link to it.
+pub fn rename_review(s: &AppState, from: &str, to: &str) -> Res<Vec<LinkFile>> {
+    Ok(review(&links_plan(s, from, to)?.1))
+}
+
+/// Renames a file and rewrites the links to it in one step. It returns the new ref of the item.
+/// A failure leaves every file as it was.
+pub fn rename_with_links(s: &AppState, from: &str, to: &str, click: bool) -> Res<String> {
+    need_click(s, click)?;
+    let (root, pending, new_ref) = links_plan(s, from, to)?;
+    apply(&root, from.trim(), to.trim(), &pending).map_err(err)?;
+    Ok(new_ref)
 }
 
 /// Moves a file or a folder to the system trash. A failure leaves the path where it is.
@@ -233,6 +277,23 @@ pub async fn files_rename(app: AppHandle, from: String, to: String, click: bool)
     blocking(app, move |s| rename(s, &from, &to, click)).await
 }
 
+#[tauri::command]
+#[specta::specta]
+pub async fn files_rename_review(app: AppHandle, from: String, to: String) -> Api<Vec<LinkFile>> {
+    blocking(app, move |s| rename_review(s, &from, &to)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn files_rename_links(
+    app: AppHandle,
+    from: String,
+    to: String,
+    click: bool,
+) -> Api<String> {
+    blocking(app, move |s| rename_with_links(s, &from, &to, click)).await
+}
+
 /// Moves a path to the system trash.
 #[tauri::command]
 #[specta::specta]
@@ -271,6 +332,30 @@ mod tests {
         assert_eq!(
             std::fs::read_to_string(root.join("src/a.txt")).unwrap(),
             "keep"
+        );
+    }
+
+    #[test]
+    fn a_rename_with_links_needs_a_click_and_rewrites_the_links() {
+        let (_t, s, root) = fx();
+        create_file(&s, "docs/diagrams/a.mmd", true).unwrap();
+        std::fs::write(
+            root.join("docs/guide.md"),
+            "See [a](diagrams/a.mmd) and diagram:a\n",
+        )
+        .unwrap();
+        let lines = &rename_review(&s, "docs/diagrams/a.mmd", "docs/diagrams/b.mmd").unwrap();
+        assert_eq!(lines[0].path, "docs/guide.md");
+        assert!(
+            rename_with_links(&s, "docs/diagrams/a.mmd", "docs/diagrams/b.mmd", false).is_err()
+        );
+        let new_ref =
+            rename_with_links(&s, "docs/diagrams/a.mmd", "docs/diagrams/b.mmd", true).unwrap();
+        assert_eq!(new_ref, "diagram:b");
+        assert!(root.join("docs/diagrams/b.mmd").is_file());
+        assert_eq!(
+            std::fs::read_to_string(root.join("docs/guide.md")).unwrap(),
+            "See [a](diagrams/b.mmd) and diagram:b\n"
         );
     }
 
@@ -327,6 +412,7 @@ mod tests {
         let (_t, s, _root) = fx();
         for bad in ["../x", "/etc/x", ".git/config", "src/.GIT/x", ""] {
             assert!(create_file(&s, bad, true).is_err(), "{bad}");
+            assert!(delete(&s, bad, true).is_err(), "{bad}");
         }
     }
 
@@ -340,6 +426,28 @@ mod tests {
         assert!(rename(&s, "src/a.txt", "src/c.txt", false).is_err());
         rename(&s, "src/a.txt", "src/c.txt", true).unwrap();
         assert!(root.join("src/c.txt").is_file() && !root.join("src/a.txt").exists());
+    }
+
+    #[test]
+    fn a_rename_does_not_rewrite_a_frozen_sheet_that_links_to_the_file() {
+        use shipyard_core::work::Sheet;
+        let (_t, s, root) = fx();
+        create_file(&s, "docs/diagrams/a.mmd", true).unwrap();
+        let sheet = Sheet {
+            name: "Lot".into(),
+            currency: "EUR".into(),
+            frozen: true,
+            ..Sheet::default()
+        };
+        crate::work::sheet_save(&s, "lot", sheet).unwrap();
+        let file = root.join("docs/costing/lot.yaml");
+        let mut text = std::fs::read_to_string(&file).unwrap();
+        text.push_str("# see docs/diagrams/a.mmd\n");
+        std::fs::write(&file, &text).unwrap();
+        let e = rename_with_links(&s, "docs/diagrams/a.mmd", "docs/diagrams/b.mmd", true);
+        assert_eq!(e.unwrap_err(), FROZEN);
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), text);
+        assert!(root.join("docs/diagrams/a.mmd").is_file());
     }
 
     #[test]

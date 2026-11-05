@@ -46,9 +46,13 @@ paths:
         present, must be a local origin. The body is at most 1 MiB. The server keeps no stream:
         it answers with one JSON body. A message with no `id` is a notification and gets `202`.
 
-        Methods: `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`,
-        `resources/templates/list` and `resources/read`. The one resource template is
-        `shipyard://ref/{ref}` (a percent-encoded ref such as `spec:auth#REQ-003`).
+        Methods: `initialize`, `ping`, `tools/list`, `tools/call`, `prompts/list`, `prompts/get`,
+        `resources/list`, `resources/templates/list` and `resources/read`. The resource templates
+        are `shipyard://ref/{ref}` (a percent-encoded ref such as `spec:auth#REQ-003`) and
+        `shipyard://file/{path}` (a percent-encoded path of a project file). The prompts are the
+        project skills (`.claude/skills/<name>/SKILL.md`, `.agents/skills/<name>/SKILL.md`). The
+        prompts and the file resources need the read tools on for the outside server, and follow
+        its allow list; with the read tools off the lists are empty.
       security:
         - runToken: []
       requestBody:
@@ -143,12 +147,14 @@ components:
             - ping
             - tools/list
             - tools/call
+            - prompts/list
+            - prompts/get
             - resources/list
             - resources/templates/list
             - resources/read
         params:
           type: object
-          description: For tools/call, `name` and `arguments` (see the tool schemas below). For resources/read, `uri`.
+          description: For tools/call, `name` and `arguments` (see the tool schemas below). For prompts/get, `name`. For resources/read, `uri`.
     JsonRpcResponse:
       type: object
       required: [jsonrpc, id]

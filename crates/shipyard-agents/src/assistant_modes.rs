@@ -9,7 +9,9 @@ use shipyard_core::assistant::{Thread, ThreadSettings, Worktree};
 use shipyard_git::code::{FileDiff, Repo};
 
 use crate::AgentError;
-use crate::runner::{Mode, RunSpec};
+use shipyard_core::assistant::Permission;
+
+use crate::runner::{Approval, Mode, RunSpec};
 
 /// The cap of the diff text that a turn shows.
 pub const MAX_DIFF: usize = 512 * 1024;
@@ -37,6 +39,13 @@ pub fn run_spec(
     } else {
         Mode::Plan
     };
+    if settings.writes() {
+        spec.approval = match settings.permission {
+            Permission::Auto => Approval::Edits,
+            Permission::Bypass => Approval::Bypass,
+            _ => Approval::Ask,
+        };
+    }
     spec.allowed_tools = settings.mode.tools(settings.permission);
     if settings.writes() {
         for g in granted {

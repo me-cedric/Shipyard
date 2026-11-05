@@ -46,6 +46,8 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 - REQ-017: The person SHALL deploy the OpenSpec guidance to a child project.
 - REQ-018: A person SHALL be able to run a Health fix on each child project with the same finding.
 - REQ-019: Settings / Agents and rules and Settings / Extensions SHALL follow the interface rules of the constitution.
+- REQ-020: A plugin MAY list skills and rules, and MAY use `{{config.<key>}}` in text files.
+- REQ-021: Settings / Extensions SHALL help an author: a file picker, a new plugin from the sample, a trial review of a folder, a package, and the file and line of a manifest fault.
 
 ### Non-Goals
 
@@ -358,3 +360,31 @@ Settings / Agents and rules and Settings / Extensions SHALL follow the interface
 - GIVEN the language is French
 - WHEN the person opens both views
 - THEN all labels show in French
+
+### Requirement: REQ-020 Plugin skills, rules and settings in files
+
+A plugin MAY list `skills` and `rules` in its manifest. The system SHALL copy each one to the agent folders of the project (`.claude/` and `.agents/`) through the normal review. A text file MAY hold `{{config.<key>}}`. The system SHALL fill it from the typed settings, check each value against its type before an apply, and show each file with the values filled in. A key that is not a setting SHALL be an error. A value SHALL be inserted as text and not read again. When a person saves a setting, the review SHALL show the files that change. An unedited file of an earlier version SHALL be updated; an edited file SHALL be kept.
+
+#### Scenario: Filled values
+- GIVEN a plugin file with `{{config.team}}` and a setting `team` with the value `web`
+- WHEN the person reviews the plugin
+- THEN the review shows the file with `web`
+
+#### Scenario: Unknown key
+- GIVEN a plugin file with `{{config.nope}}` and no such setting
+- WHEN the person reviews the plugin
+- THEN the system refuses it and names the file and the key
+
+#### Scenario: Changed setting
+- GIVEN an applied plugin
+- WHEN the person saves a new value of a setting
+- THEN the review shows each file that the value changes
+
+### Requirement: REQ-021 Plugin author tools
+
+Settings / Extensions SHALL give an author a file picker for the zip, New plugin (a copy of the sample, opened as a project), Try in this project (the normal review on a folder or a zip, with no packaging), and Package (a zip of the folder). A fault of `manifest.json` SHALL show with its file and line, and SHALL open that line in the code editor. The guards of REQ-011 and REQ-013 SHALL apply to a folder as to a zip.
+
+#### Scenario: Manifest fault
+- GIVEN a plugin folder whose manifest has an unknown field on line 4
+- WHEN the person clicks Try in this project
+- THEN the view shows `manifest.json line 4` and a button that opens that line

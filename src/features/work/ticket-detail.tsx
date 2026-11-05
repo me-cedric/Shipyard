@@ -148,7 +148,7 @@ export function TicketDetail({ itemKey }: { itemKey: string }) {
 					) : null}
 				</div>
 				{markReason === d.noLabel ? (
-					<SettingLink target="pickupLabel">{markReason}</SettingLink>
+					<SettingLink target="/settings/project#pickup-label">{markReason}</SettingLink>
 				) : markReason ? (
 					<p className="text-12 text-n-11">{markReason}</p>
 				) : null}

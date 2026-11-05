@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
-import { useFormIntent } from "@/lib/shell";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 
@@ -24,10 +22,6 @@ export function ScopePicker({
 }) {
 	const { t } = useI18n();
 	const label = t.projects.trackerScope;
-	const box = useRef<HTMLSpanElement>(null);
-	useFormIntent("trackerScope", () =>
-		box.current?.querySelector<HTMLElement>("input, button")?.focus(),
-	);
 	const scopes = useQuery({
 		queryKey: ["connections", "scopes", tracker],
 		queryFn: () => unwrap(commands.connectionsScopes(tracker)),
@@ -42,7 +36,7 @@ export function ScopePicker({
 			]
 		: null;
 	return (
-		<span ref={box}>
+		<span>
 			{items ? (
 				<Select
 					label={label}

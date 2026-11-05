@@ -10,6 +10,10 @@ export type PaletteItem = {
 	label: string;
 	icon?: ReactNode;
 	shortcut?: string;
+	/** A line under the label, such as the snippet of a search hit. */
+	detail?: ReactNode;
+	/** The host chose this item for the text, so the label filter does not apply. */
+	listed?: boolean;
 	onSelect: () => void;
 };
 export type PaletteGroup = { id: string; heading: string; items: PaletteItem[] };
@@ -28,7 +32,10 @@ export function CommandPalette({
 	const q = search.trim().toLowerCase();
 	// We filter here so each heading counts the items that are visible.
 	const visible = groups
-		.map((g) => ({ ...g, items: g.items.filter((i) => i.label.toLowerCase().includes(q)) }))
+		.map((g) => ({
+			...g,
+			items: g.items.filter((i) => i.listed || i.label.toLowerCase().includes(q)),
+		}))
 		.filter((g) => g.items.length > 0);
 
 	return (
@@ -53,7 +60,7 @@ export function CommandPalette({
 								onValueChange={setSearch}
 								placeholder={t.palette.placeholder}
 								aria-label={t.palette.placeholder}
-								className="h-9 flex-1 bg-transparent text-ui text-n-12 placeholder:text-n-10 focus:outline-none"
+								className="h-9 flex-1 bg-transparent text-ui text-n-12 placeholder:text-n-10"
 							/>
 						</div>
 						<Command.List className="max-h-80 overflow-y-auto p-1">
@@ -75,12 +82,17 @@ export function CommandPalette({
 												setSearch("");
 												onOpenChange(false);
 											}}
-											className="flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-ui text-n-12 data-[selected=true]:bg-n-5"
+											className="flex min-h-row cursor-pointer items-center gap-2 rounded-sm px-2 py-1 text-ui text-n-12 data-[selected=true]:bg-n-5"
 										>
 											<span aria-hidden="true" className="text-n-10">
 												{item.icon}
 											</span>
-											<span className="flex-1">{item.label}</span>
+											<span className="flex min-w-0 flex-1 flex-col">
+												<span>{item.label}</span>
+												{item.detail ? (
+													<span className="truncate text-12 text-n-11">{item.detail}</span>
+												) : null}
+											</span>
 											{item.shortcut ? <Kbd>{item.shortcut}</Kbd> : null}
 										</Command.Item>
 									))}

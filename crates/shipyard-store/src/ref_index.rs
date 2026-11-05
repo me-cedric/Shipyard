@@ -8,7 +8,8 @@ use shipyard_core::project::ProjectFile;
 
 use crate::{Result, repo_scan};
 
-const VERSION: i64 = 1;
+// 2: the `search_fts` table. An older index starts empty and the next sync rebuilds it.
+const VERSION: i64 = 2;
 
 /// One entity with a ref.
 #[derive(Debug, Clone, PartialEq)]
@@ -19,6 +20,8 @@ pub struct Entity {
     pub location: Option<String>,
     /// A hidden entity resolves but does not show in search.
     pub hidden: bool,
+    /// The text that search reads, besides the title. Empty for an entity without a body.
+    pub body: String,
 }
 
 impl Entity {
@@ -29,6 +32,7 @@ impl Entity {
             status: status.map(Into::into),
             location: location.map(Into::into),
             hidden: false,
+            body: String::new(),
         }
     }
 }
@@ -68,7 +72,8 @@ impl RefIndex {
             // Derived data: a new schema starts from an empty index.
             conn.execute_batch(
                 "DROP TABLE IF EXISTS sources; DROP TABLE IF EXISTS entities;
-                 DROP TABLE IF EXISTS citations; DROP TABLE IF EXISTS meta;",
+                 DROP TABLE IF EXISTS citations; DROP TABLE IF EXISTS meta;
+                 DROP TABLE IF EXISTS search_fts;",
             )?;
         }
         conn.execute_batch(&format!(
@@ -80,6 +85,8 @@ impl RefIndex {
              CREATE TABLE IF NOT EXISTS citations(source_key TEXT NOT NULL, source TEXT NOT NULL, target TEXT NOT NULL);
              CREATE INDEX IF NOT EXISTS citations_target ON citations(target);
              CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+             CREATE VIRTUAL TABLE IF NOT EXISTS search_fts USING fts5(
+                 title, body, tokenize = 'unicode61 remove_diacritics 2');
              PRAGMA user_version = {VERSION};"
         ))?;
         Ok(Self { conn })
@@ -95,8 +102,7 @@ impl RefIndex {
         citations: &[Citation],
     ) -> Result<()> {
         let tx = self.conn.transaction()?;
-        tx.execute("DELETE FROM entities WHERE source_key = ?1", [key])?;
-        tx.execute("DELETE FROM citations WHERE source_key = ?1", [key])?;
+        Self::drop_rows(&tx, key)?;
         tx.execute(
             "INSERT OR REPLACE INTO sources(key, fingerprint) VALUES (?1, ?2)",
             [key, fingerprint],
@@ -107,6 +113,13 @@ impl RefIndex {
                 "INSERT INTO entities(ref, kind, title, status, location, hidden, source_key) VALUES (?1,?2,?3,?4,?5,?6,?7)",
                 params![e.target, kind, e.title, e.status, e.location, e.hidden, key],
             )?;
+            if !e.hidden {
+                // The FTS row shares the rowid of its entity.
+                tx.execute(
+                    "INSERT INTO search_fts(rowid, title, body) VALUES (last_insert_rowid(), ?1, ?2)",
+                    params![e.title, e.body],
+                )?;
+            }
         }
         for c in citations {
             tx.execute(
@@ -115,6 +128,16 @@ impl RefIndex {
             )?;
         }
         Ok(tx.commit()?)
+    }
+
+    fn drop_rows(tx: &rusqlite::Transaction, key: &str) -> Result<()> {
+        tx.execute(
+            "DELETE FROM search_fts WHERE rowid IN (SELECT rowid FROM entities WHERE source_key = ?1)",
+            [key],
+        )?;
+        tx.execute("DELETE FROM entities WHERE source_key = ?1", [key])?;
+        tx.execute("DELETE FROM citations WHERE source_key = ?1", [key])?;
+        Ok(())
     }
 
     /// The fingerprint that `set_source` stored for `key`. A caller that reads a source other than
@@ -139,9 +162,7 @@ impl RefIndex {
 
     pub fn remove_source(&mut self, key: &str) -> Result<()> {
         let tx = self.conn.transaction()?;
-        for table in ["entities", "citations"] {
-            tx.execute(&format!("DELETE FROM {table} WHERE source_key = ?1"), [key])?;
-        }
+        Self::drop_rows(&tx, key)?;
         tx.execute("DELETE FROM sources WHERE key = ?1", [key])?;
         Ok(tx.commit()?)
     }
@@ -158,7 +179,7 @@ impl RefIndex {
     pub fn clear(&mut self) -> Result<()> {
         Ok(self
             .conn
-            .execute_batch("DELETE FROM sources; DELETE FROM entities; DELETE FROM citations;")?)
+            .execute_batch("DELETE FROM sources; DELETE FROM entities; DELETE FROM citations; DELETE FROM search_fts;")?)
     }
 
     /// Indexes the files that changed since the last call and drops the files that are gone.

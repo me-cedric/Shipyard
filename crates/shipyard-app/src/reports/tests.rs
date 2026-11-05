@@ -16,6 +16,7 @@ fn text() -> ExportText {
         empty: "Nothing".into(),
         gap: "Gap".into(),
         generated: "Generated".into(),
+        contents: "Contents".into(),
         sections: vec![],
     }
 }

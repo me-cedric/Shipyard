@@ -51,6 +51,8 @@ export const fr: Messages = {
 		actions: "Actions",
 		projects: "Projets récents",
 		refs: "Références",
+		ask: "Demander à l'assistant",
+		askPrompt: "Utilise ces éléments comme contexte :\n{items}\n\nMa question : ",
 	},
 	inspector: {
 		title: "Inspecteur",
@@ -222,6 +224,7 @@ export const fr: Messages = {
 		runs: "Exécutions actives",
 		health: "Santé",
 		version: "Version {version}",
+		lines: "Modifications : {added} lignes ajoutées, {removed} supprimées",
 		whatsNew: {
 			title: "Nouveautés de la version {version}",
 			none: "Aucune note pour cette version.",
@@ -463,6 +466,8 @@ export const fr: Messages = {
 	code: {
 		staged: "Indexés",
 		unstaged: "Non indexés",
+		noneStaged: "Rien d'indexé",
+		noneUnstaged: "Aucun changement",
 		conflicts: "Conflits",
 		stashes: "Remises",
 		files: "Fichiers",

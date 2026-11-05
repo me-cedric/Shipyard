@@ -132,6 +132,7 @@ impl Server {
                 "protocolVersion": negotiated(params),
                 "capabilities": {
                     "tools": { "listChanged": false },
+                    "prompts": { "listChanged": false },
                     "resources": { "subscribe": false, "listChanged": false }
                 },
                 "serverInfo": { "name": "shipyard", "version": env!("CARGO_PKG_VERSION") },
@@ -157,13 +158,42 @@ impl Server {
                 json!({ "tools": tools })
             }
             "tools/call" => self.call(&session, params),
-            "resources/list" => json!({ "resources": [] }),
-            "resources/templates/list" => json!({ "resourceTemplates": [{
-                "uriTemplate": format!("{REF_URI}{{ref}}"),
-                "name": "ref",
-                "description": "A ref such as spec:auth#REQ-003, percent-encoded.",
-                "mimeType": "application/json"
-            }] }),
+            "prompts/list" => {
+                json!({ "prompts": self.readable(&session).map(|o| outside::prompts(&o)).unwrap_or_default() })
+            }
+            "prompts/get" => {
+                let name = params.get("name").and_then(Value::as_str).unwrap_or("");
+                let got = self
+                    .readable(&session)
+                    .ok_or_else(|| {
+                        "no prompts: the read tools are off or no project is open".to_string()
+                    })
+                    .and_then(|o| outside::prompt(&o, name));
+                match got {
+                    Ok(v) => v,
+                    Err(why) => return Some(error(id, -32602, why)),
+                }
+            }
+            "resources/list" => {
+                json!({ "resources": self.readable(&session).map(|o| outside::resources(&o)).unwrap_or_default() })
+            }
+            "resources/templates/list" => {
+                let mut templates = vec![json!({
+                    "uriTemplate": format!("{REF_URI}{{ref}}"),
+                    "name": "ref",
+                    "description": "A ref such as spec:auth#REQ-003, percent-encoded.",
+                    "mimeType": "application/json"
+                })];
+                if self.readable(&session).is_some() {
+                    templates.push(json!({
+                        "uriTemplate": format!("{}{{path}}", outside::FILE_URI),
+                        "name": "file",
+                        "description": "A file of the open project, percent-encoded.",
+                        "mimeType": "text/plain"
+                    }));
+                }
+                json!({ "resourceTemplates": templates })
+            }
             "resources/read" => match self.read(&session, params) {
                 Ok(v) => v,
                 Err(why) => return Some(error(id, -32602, why)),
@@ -271,8 +301,26 @@ impl Server {
         }
     }
 
+    /// The open project, when this session may call the read tool and the settings allow it.
+    fn readable(&self, session: &Session) -> Option<Outside> {
+        if !session.allows("project_read_file") {
+            return None;
+        }
+        self.outside
+            .as_ref()
+            .and_then(|f| f())
+            .filter(|o| o.allows("project_read_file"))
+    }
+
     fn read(&self, session: &Session, params: &Value) -> Result<Value, String> {
         let uri = params.get("uri").and_then(Value::as_str).unwrap_or("");
+        if let Some(path) = uri.strip_prefix(outside::FILE_URI).and_then(decode) {
+            let o = self
+                .readable(session)
+                .ok_or("the read tools are off, or no project is open")?;
+            self.admit(session, path.len())?;
+            return outside::read_resource(&o, uri, &path);
+        }
         let reference = uri
             .strip_prefix(REF_URI)
             .and_then(decode)

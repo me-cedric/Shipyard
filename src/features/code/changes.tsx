@@ -74,6 +74,11 @@ function FileGroup({
 			className="shrink-0"
 			bodyClassName="py-1"
 		>
+			{files.length === 0 ? (
+				<p className="px-3 py-1 text-ui text-n-11">
+					{group === "staged" ? t.code.noneStaged : t.code.noneUnstaged}
+				</p>
+			) : null}
 			{treeRows(files).map((r) =>
 				r.kind === "folder" ? (
 					<FileRow

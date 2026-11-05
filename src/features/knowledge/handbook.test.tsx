@@ -31,6 +31,21 @@ describe("Knowledge / Handbook", () => {
 		await waitFor(async () => expect(await inspector()).toHaveTextContent(`doc:${PAGE}`));
 	});
 
+	it("filters the pages with the text search, and shows all again when the box is empty", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("handbook");
+		await screen.findByRole("button", { name: "Getting started" });
+		const box = screen.getByRole("searchbox", { name: "Search" });
+		await user.type(box, "zzzz");
+		await waitFor(() =>
+			expect(screen.queryByRole("button", { name: "Getting started" })).not.toBeInTheDocument(),
+		);
+		await user.clear(box);
+		expect(await screen.findByRole("button", { name: "Getting started" })).toBeInTheDocument();
+		await user.type(box, "getting");
+		expect(await screen.findByRole("button", { name: "Getting started" })).toBeInTheDocument();
+	});
+
 	it("saves a change to the repository file", async () => {
 		const user = userEvent.setup();
 		await mountKnowledge("handbook");

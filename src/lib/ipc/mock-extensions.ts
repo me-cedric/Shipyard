@@ -13,8 +13,8 @@ import type {
 	Component,
 	EntryKind,
 	PluginApplied,
-	PluginInstalled,
-	PluginItem,
+	PluginInstalled_Serialize,
+	PluginItem_Serialize,
 	PluginRemoved,
 	PluginReview_Serialize,
 	PluginSetting_Serialize,
@@ -28,6 +28,9 @@ import { type MockCompassSetup, seedCompassSetup } from "./mock-compass-setup";
 const VERSION = "1.0.2";
 const OLD = "1.0.1";
 export const PLUGIN_PATH = "/mock/plugins/team-kit.zip";
+/** A plugin folder that passes, and one whose manifest has a fault on line 4. */
+export const PLUGIN_DIR = "/mock/plugins/team-kit";
+export const BROKEN_DIR = "/mock/plugins/broken";
 const GUIDANCE = "agents/openspec-guidance";
 
 type MockChild = { id: string; name: string; url: string; cloned: boolean; has: string[] };
@@ -44,9 +47,12 @@ export type MockExtensions = {
 	/** The version of the applied plugin, or `null`. */
 	plugin: string | null;
 	/** The plugins that the project holds, with their switch. */
-	installed: PluginInstalled[];
+	installed: PluginInstalled_Serialize[];
 	/** The typed settings of each applied plugin, by plugin name. */
 	pluginSettings: Record<string, PluginSetting_Serialize[]>;
+	/** The zips that Package wrote, and the manifest lines that were opened in an editor. */
+	packaged: string[];
+	openedLines: { dir: string; line: number }[];
 	/** The external sources, the assets and the objectives of the compass setup. */
 	setup: MockCompassSetup;
 	/** The id of the applied policy pack. */
@@ -137,6 +143,8 @@ export function seedExtensions(): MockExtensions {
 		plugin: null,
 		installed: [],
 		pluginSettings: {},
+		packaged: [],
+		openedLines: [],
 		setup: seedCompassSetup(),
 		policy: null,
 		children: [
@@ -229,7 +237,7 @@ export function catalogDeploy(m: MockExtensions, id: string): WriteReport {
 
 // ---------------------------------------------------------------- plugins
 
-const PLUGIN_ITEMS = (m: MockExtensions): PluginItem[] => {
+const PLUGIN_ITEMS = (m: MockExtensions): PluginItem_Serialize[] => {
 	const change = m.plugin ? "same" : "new";
 	return [
 		{
@@ -238,6 +246,7 @@ const PLUGIN_ITEMS = (m: MockExtensions): PluginItem[] => {
 			label: "docs/team.md",
 			exists: m.files.includes("docs/team.md"),
 			change,
+			preview: "Team: core",
 		},
 		{
 			id: "file:AGENTS.md",
@@ -245,15 +254,18 @@ const PLUGIN_ITEMS = (m: MockExtensions): PluginItem[] => {
 			label: "AGENTS.md",
 			exists: m.files.includes("AGENTS.md"),
 			change,
+			preview: null,
 		},
-		{ id: "setting:team", kind: "setting", label: "team", exists: false, change },
-		{ id: "mcp:docs", kind: "mcp", label: "docs", exists: false, change },
+		{ id: "setting:team", kind: "setting", label: "team", exists: false, change, preview: null },
+		{ id: "mcp:docs", kind: "mcp", label: "docs", exists: false, change, preview: null },
 	];
 };
 
 function archive(path: string) {
 	if (path.split("/").includes("..")) throw `path not allowed: ${path}`;
-	if (path !== PLUGIN_PATH) throw "not a valid zip archive: invalid Zip archive";
+	if (path === BROKEN_DIR) throw "manifest.json:4: unknown field `colour`";
+	if (path !== PLUGIN_PATH && path !== PLUGIN_DIR)
+		throw "not a valid zip archive: invalid Zip archive";
 }
 
 /** Read the archive as data. Nothing is written. */
@@ -301,6 +313,7 @@ export function pluginApply(m: MockExtensions, path: string, accepted: string[])
 			settings: accepted.filter((a) => a.startsWith("setting:")).map((a) => a.slice(8)),
 			mcp: accepted.filter((a) => a.startsWith("mcp:")).map((a) => a.slice(4)),
 			enabled: true,
+			source: path,
 		},
 	];
 	return {
@@ -308,6 +321,26 @@ export function pluginApply(m: MockExtensions, path: string, accepted: string[])
 		mcpAdded: accepted.filter((a) => a.startsWith("mcp:")).map((a) => a.slice(4)),
 		mcpFailed: [],
 	};
+}
+
+/** Copy the sample to a new folder of `parent`. */
+export function pluginNew(parent: string, ok: boolean): string {
+	click(ok);
+	return `${parent}/acme-sample`;
+}
+
+/** Zip a plugin folder to `dest`. */
+export function pluginPackage(m: MockExtensions, dir: string, dest: string, ok: boolean): string {
+	click(ok);
+	archive(dir);
+	if (!dest.endsWith(".zip")) throw "the package needs a .zip name";
+	m.packaged.push(dest);
+	return dest;
+}
+
+export function pluginOpenLine(m: MockExtensions, dir: string, line: number): null {
+	m.openedLines.push({ dir, line });
+	return null;
 }
 
 // ---------------------------------------------------------------- manage

@@ -114,6 +114,7 @@ export function Compass({ children }: { children: ReactNode }) {
 				action={
 					data ? (
 						<Button
+							id="compass-upgrade"
 							variant="primary"
 							disabled={count === 0}
 							onClick={() =>

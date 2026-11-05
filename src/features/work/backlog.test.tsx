@@ -176,6 +176,21 @@ describe("Work / Backlog", () => {
 		expect(await screen.findByRole("button", { name: "Import" })).toBeInTheDocument();
 	});
 
+	it("opens the issue tracker setting from the error of an import with no tracker", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const router = mountApp("/work/backlog");
+		await user.click(await screen.findByRole("button", { name: "Import" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"This project has no issue tracker connection.",
+		);
+		await user.click(screen.getByRole("button", { name: "Open settings" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/project"));
+		await waitFor(() =>
+			expect(screen.getByRole("combobox", { name: "Issue tracker" })).toHaveFocus(),
+		);
+	});
+
 	it("is in French when the language is French", async () => {
 		mockState().prefs.lang = "fr";
 		await withTracker();

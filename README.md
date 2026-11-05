@@ -350,7 +350,7 @@ The same guide is in the app: open Knowledge, then Manual.
 - Writes to an issue tracker, a code host or a remote need a click or a durable permission that an admin sets. All write switches are off by default.
 - A project profile can set a page to read-only. A read-only project takes no change.
 - Each run has a budget, a stall timeout and a kill switch. A global switch stops all agents.
-- The app has a content security policy: only its own files, the Tauri IPC and the draw.io editor frame (`embed.diagrams.net`).
+- The app has a content security policy: only its own files, the Tauri IPC, the draw.io editor frame (`embed.diagrams.net`) and the sandboxed deck frame (`deck:`, ADR 0016).
 - The interface renders HTML mockups in a sandboxed frame.
 - Local data stays on your machine. Shipyard has no backend of its own.
 

@@ -208,6 +208,34 @@ export function mcpAddCustom(m: MockAgents, d: McpCustom_Deserialize): string {
 	return id;
 }
 
+/** The paste of `{"mcpServers": {...}}`: one custom server for each entry. A bad entry adds none. */
+export function mcpCustomPaste(m: MockAgents, text: string): string[] {
+	let doc: Record<string, unknown>;
+	try {
+		doc = JSON.parse(text);
+	} catch {
+		throw "this is not valid JSON";
+	}
+	const map = (doc.mcpServers ?? doc.servers ?? doc) as Record<
+		string,
+		{ command?: string; url?: string; args?: string[]; env?: Record<string, string> }
+	>;
+	const drafts = Object.entries(map).map(([name, v]) => {
+		const command = v.command ?? v.url;
+		if (!command) throw `${name}: it needs a "command" or a "url"`;
+		return {
+			id: null,
+			name,
+			description: "Pasted",
+			command,
+			args: v.args ?? [],
+			env: Object.entries(v.env ?? {}).map(([key, value]) => ({ key, value })),
+		};
+	});
+	if (drafts.length === 0) throw "no server in this JSON";
+	return drafts.map((d) => mcpAddCustom(m, d));
+}
+
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** A start passes through `starting`. A missing dependency stops it before any process starts. */

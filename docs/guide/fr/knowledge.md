@@ -20,13 +20,18 @@ Mode d'emploi est ce guide. Il vient avec l'application et fonctionne sans proje
 
 ## Documents
 
-Documents liste les documents du projet. Cherchez dans leur texte, renommez-les, supprimez-les, et lisez un fichier Word. Exportez le dossier d'architecture et la documentation fonctionnelle en fichiers Word, et une fiche client en fichier Excel.
+Documents liste les documents du projet. Cherchez dans leur texte, renommez-les, supprimez-les, et lisez un fichier Word. Exportez le dossier d'architecture et la documentation fonctionnelle en fichiers Word, et une fiche client en fichier Excel. Chaque export ouvre une boîte Enregistrer sous avec le nom rempli et le dossier de votre dernier enregistrement ; Annuler n'exporte rien. Après l'enregistrement, Afficher dans le dossier et Ouvrir marchent sur le nouveau fichier. Un fichier Word a une page de garde, un sommaire (Word remplit les numéros de page quand il propose de mettre à jour les champs), les diagrammes Mermaid du projet en images et des numéros de page. Un fichier LikeC4 ou draw.io apparaît en image quand un PNG du même nom est à côté, et sous forme de chemin sinon. Une feuille Excel a une ligne d'en-tête stylée qui reste visible.
 
 ## Diapositives
 
-Diapositives contient des présentations écrites en texte. Cliquez sur Présenter pour montrer un jeu sur toute la fenêtre. Appuyez sur Échap pour arrêter.
+Diapositives contient les présentations du projet. Chaque présentation est un fichier HTML dans `docs/slides/`, avec ses animations et ses étapes.
 
-Cliquez sur Ajouter une diapositive pour ajouter une diapositive de planning (les dates de chaque plan) ou de chiffrage (les jours et le prix de chaque feuille).
+- Nouvelle présentation : tapez un nom. L'assistant s'ouvre avec une demande pour qu'un agent écrive la présentation. Lisez la demande, puis envoyez-la.
+- Cliquez sur une présentation pour l'afficher. Les flèches, Espace, Début et Fin parcourent les diapositives et les étapes.
+- Présenter affiche la présentation en plein écran. Appuyez sur Échap pour arrêter.
+- Exporter en PDF : choisissez le fichier dans la fenêtre Enregistrer sous. Chaque diapositive devient une page. Cela fonctionne sur macOS seulement.
+- Une ancienne présentation écrite en texte s'affiche en lecture seule. Cliquez sur Convertir pour demander à un agent de la réécrire en HTML.
+- Pour supprimer une présentation, ouvrez son menu, puis cliquez sur Supprimer. Le fichier va dans la Corbeille.
 
 ## Apprendre
 

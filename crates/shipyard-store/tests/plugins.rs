@@ -230,3 +230,223 @@ fn a_typed_setting_is_read_checked_and_kept_after_an_update() {
     let rows = settings(d.path(), "x").unwrap();
     assert_eq!(rows.iter().find(|r| r.key == "region").unwrap().value, "us");
 }
+
+fn plain(
+    manifest: &str,
+    files: &[(&str, &str)],
+) -> Result<shipyard_store::plugins::Plugin, String> {
+    let mut all = vec![("manifest.json", manifest)];
+    all.extend_from_slice(files);
+    read(&zip(&all)).map_err(|e| e.to_string())
+}
+
+const TEAM: &str = r#""settings":{"team":{"type":"choice","choices":["core","web"],"default":"core"},"n":{"type":"number","default":3},"note":"a {{config.n}} b"}"#;
+
+#[test]
+fn a_setting_is_filled_into_the_files_and_the_review_shows_it() {
+    let m = format!(r#"{{"name":"x","version":"1",{TEAM}}}"#);
+    let t = "team={{config.team}} n={{config.n}} note={{config.note}} open={{config.team";
+    let p = plain(&m, &[("files/a.md", t)]).unwrap();
+    let d = tempfile::tempdir().unwrap();
+    let r = review(d.path(), &p);
+    let item = r.items.iter().find(|i| i.id == "file:a.md").unwrap();
+    // One pass: `{{` in a value stays text; an open tag stays text.
+    assert_eq!(
+        item.preview.as_deref(),
+        Some("team=core n=3 note=a {{config.n}} b open={{config.team")
+    );
+    apply(d.path(), &p, &["file:a.md".into()]).unwrap();
+    assert!(
+        fs::read_to_string(d.path().join("a.md"))
+            .unwrap()
+            .starts_with("team=core n=3")
+    );
+}
+
+#[test]
+fn a_missing_key_and_a_wrong_type_are_refused() {
+    let m = format!(r#"{{"name":"x","version":"1",{TEAM}}}"#);
+    let e = plain(&m, &[("files/a.md", "{{config.nope}}")]).unwrap_err();
+    assert!(e.contains("a.md") && e.contains("nope"), "{e}");
+    let bad = r#"{"name":"x","version":"1",
+  "settings":{"n":{"type":"number","default":"four"}}}"#;
+    let e = plain(bad, &[("files/a", "a")]).unwrap_err();
+    assert!(e.starts_with("manifest.json:2:") && e.contains("n"), "{e}");
+    // A saved value that no longer fits its field stops the apply before a write.
+    let p = plain(&m, &[("files/a.md", "{{config.n}}")]).unwrap();
+    let d = tempfile::tempdir().unwrap();
+    apply(d.path(), &p, &["setting:n".into()]).unwrap();
+    let rec = d.path().join(".shipyard/plugins.json");
+    let t = fs::read_to_string(&rec)
+        .unwrap()
+        .replace("\"3\"", "\"abc\"");
+    fs::write(&rec, t).unwrap();
+    assert!(apply(d.path(), &p, &["file:a.md".into()]).is_err());
+    assert!(!d.path().join("a.md").exists());
+}
+
+#[test]
+fn a_saved_setting_changes_the_files_through_the_same_review() {
+    use shipyard_store::plugin_config::settings_save;
+    let m = format!(r#"{{"name":"x","version":"1",{TEAM}}}"#);
+    let p = plain(&m, &[("files/a.md", "team={{config.team}}")]).unwrap();
+    let d = tempfile::tempdir().unwrap();
+    let all = ["file:a.md".to_string(), "setting:team".to_string()];
+    apply(d.path(), &p, &all).unwrap();
+    let values = std::collections::BTreeMap::from([("team".to_string(), "web".to_string())]);
+    settings_save(d.path(), "x", &values).unwrap();
+    let r = review(d.path(), &p);
+    let item = r.items.iter().find(|i| i.id == "file:a.md").unwrap();
+    assert_eq!(item.change, Change::Changed);
+    assert_eq!(item.preview.as_deref(), Some("team=web"));
+    // The file is unedited, so the apply updates it.
+    let a = apply(d.path(), &p, &["file:a.md".into()]).unwrap();
+    assert_eq!(a.report.written, ["a.md"]);
+    assert_eq!(
+        fs::read_to_string(d.path().join("a.md")).unwrap(),
+        "team=web"
+    );
+    // An edited file is kept.
+    values_edit(d.path());
+    settings_save(
+        d.path(),
+        "x",
+        &std::collections::BTreeMap::from([("team".into(), "core".into())]),
+    )
+    .unwrap();
+    let a = apply(d.path(), &p, &["file:a.md".into()]).unwrap();
+    assert_eq!(a.report.kept, ["a.md"]);
+    assert_eq!(fs::read_to_string(d.path().join("a.md")).unwrap(), "mine");
+}
+
+fn values_edit(root: &std::path::Path) {
+    fs::write(root.join("a.md"), "mine").unwrap();
+}
+
+#[test]
+fn skills_and_rules_go_to_the_agent_folders() {
+    let m = r#"{"name":"x","version":"1","skills":["s"],"rules":["r"]}"#;
+    let p = plain(
+        m,
+        &[
+            ("files/skills/s/SKILL.md", "skill"),
+            ("files/skills/s/ref/a.md", "ref"),
+            ("files/rules/r.md", "rule"),
+            ("files/extra.md", "extra"),
+        ],
+    )
+    .unwrap();
+    let mut t: Vec<_> = p.files.iter().map(|f| f.0.as_str()).collect();
+    t.sort();
+    assert_eq!(
+        t,
+        [
+            ".agents/rules/r.md",
+            ".agents/skills/s/SKILL.md",
+            ".agents/skills/s/ref/a.md",
+            ".claude/rules/r.md",
+            ".claude/skills/s/SKILL.md",
+            ".claude/skills/s/ref/a.md",
+            "extra.md",
+        ]
+    );
+    let e = plain(
+        r#"{"name":"x","version":"1","skills":["gone"]}"#,
+        &[("files/a", "a")],
+    )
+    .unwrap_err();
+    assert!(
+        e.starts_with("manifest.json:1:") && e.contains("gone"),
+        "{e}"
+    );
+    let e = plain(
+        r#"{"name":"x","version":"1","rules":["../r"]}"#,
+        &[("files/a", "a")],
+    )
+    .unwrap_err();
+    assert!(e.contains("plain name"), "{e}");
+}
+
+#[test]
+fn an_unknown_field_is_named_with_its_line() {
+    let m = "{\n  \"name\": \"x\",\n  \"version\": \"1\",\n  \"colour\": 1\n}";
+    let e = plain(m, &[("files/a", "a")]).unwrap_err();
+    assert!(e.starts_with("manifest.json:4:"), "{e}");
+}
+
+#[test]
+fn the_sample_plugin_packs_reads_and_reviews() {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/plugin-sample");
+    let bytes = shipyard_store::plugins::pack(&dir).unwrap();
+    let p = read(&bytes).unwrap();
+    assert_eq!(p.name, "acme-sample");
+    assert!(p.refused.is_empty() && p.mcp["acme-docs"].headers["Authorization"] == "${ACME_TOKEN}");
+    let r = review(tempfile::tempdir().unwrap().path(), &p);
+    let skill = r
+        .items
+        .iter()
+        .find(|i| i.id == "file:.claude/skills/sample-skill/SKILL.md");
+    assert!(
+        skill
+            .unwrap()
+            .preview
+            .as_deref()
+            .unwrap()
+            .contains("serves: core.")
+    );
+    assert!(
+        r.items
+            .iter()
+            .any(|i| i.id == "file:.claude/rules/sample-rule.md")
+    );
+    // The schema is not part of the zip.
+    assert!(p.files.iter().all(|f| !f.0.contains("schema")));
+}
+
+#[test]
+fn pack_refuses_a_folder_without_a_manifest_and_a_link() {
+    let d = tempfile::tempdir().unwrap();
+    assert!(shipyard_store::plugins::pack(d.path()).is_err());
+    fs::create_dir_all(d.path().join("files")).unwrap();
+    fs::write(
+        d.path().join("manifest.json"),
+        r#"{"name":"x","version":"1"}"#,
+    )
+    .unwrap();
+    fs::write(d.path().join("files/a"), "a").unwrap();
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink("/etc/hosts", d.path().join("files/l")).unwrap();
+        let e = shipyard_store::plugins::pack(d.path()).unwrap_err();
+        assert!(e.to_string().contains("link"), "{e}");
+        fs::remove_file(d.path().join("files/l")).unwrap();
+    }
+    assert!(read(&shipyard_store::plugins::pack(d.path()).unwrap()).is_ok());
+}
+
+#[test]
+fn the_source_path_stays_in_the_app_data_and_never_in_the_repository_record() {
+    use shipyard_store::plugin_manage::{set_source, sources};
+    let (repo, data) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+    let p = read(&good("1.0.0", "", "a")).unwrap();
+    apply(repo.path(), &p, &["file:c.md".into()]).unwrap();
+    set_source(
+        data.path(),
+        "p1",
+        &p.name,
+        Some("/Users/me/plugins/demo.zip"),
+    )
+    .unwrap();
+    let record = fs::read_to_string(repo.path().join(".shipyard/plugins.json")).unwrap();
+    assert!(
+        !record.contains("/Users/me") && !record.contains("source"),
+        "{record}"
+    );
+    assert_eq!(
+        sources(data.path(), "p1")[&p.name],
+        "/Users/me/plugins/demo.zip"
+    );
+    set_source(data.path(), "p1", &p.name, None).unwrap();
+    assert!(sources(data.path(), "p1").is_empty());
+    assert!(set_source(data.path(), "../x", "n", None).is_err());
+}

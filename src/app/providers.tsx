@@ -12,6 +12,14 @@ function Ready({ children }: { children: ReactNode }) {
 	return prefs && lang ? children : null;
 }
 
+/** Reduced motion drops every move and layout animation of the motion library. */
+function Motion({ children }: { children: ReactNode }) {
+	const { motion } = usePrefs();
+	return (
+		<MotionConfig reducedMotion={motion === "reduce" ? "always" : "user"}>{children}</MotionConfig>
+	);
+}
+
 export function Providers({ children }: { children: ReactNode }) {
 	const [client] = useState(
 		() => new QueryClient({ defaultOptions: { queries: { retry: false } } }),
@@ -21,10 +29,9 @@ export function Providers({ children }: { children: ReactNode }) {
 			<I18nProvider>
 				<PrefsProvider>
 					<TooltipProvider>
-						{/* Reduced motion drops every move and layout animation of the motion library. */}
-						<MotionConfig reducedMotion="user">
+						<Motion>
 							<Ready>{children}</Ready>
-						</MotionConfig>
+						</Motion>
 					</TooltipProvider>
 				</PrefsProvider>
 			</I18nProvider>

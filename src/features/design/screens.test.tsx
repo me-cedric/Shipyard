@@ -1,21 +1,8 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { vi } from "vitest";
 import { mockState } from "@/lib/ipc/mock";
 import { mountDesign } from "./harness";
 import { Screens } from "./screens";
-
-// Vitest turns a CSS import into an empty string, so the test serves the real file.
-vi.mock("@/ui/tokens/tokens.css?raw", () => {
-	const { readFileSync } = (
-		globalThis as unknown as {
-			process: {
-				getBuiltinModule: (id: string) => { readFileSync: (p: string, e: "utf8") => string };
-			};
-		}
-	).process.getBuiltinModule("node:fs");
-	return { default: readFileSync("src/ui/tokens/tokens.css", "utf8") };
-});
 
 const files = () => mockState().design.files;
 const DOC = "docs/designs/design.md";
@@ -122,29 +109,38 @@ describe("Design / Screens", () => {
 		await waitFor(() => expect(files()[DOC]?.text).toMatch(/New line$/));
 	});
 
-	it("shows the tokens of the app beside the design doc, by family with a count", async () => {
+	it("shows the tokens of the project, by file with a count, and never those of Shipyard", async () => {
 		const user = userEvent.setup();
+		files()["src/tokens.css"] = { text: ":root { --brand: #123456; --gap: 4px; }", stamp: "1" };
 		await mountDesign(<Screens />);
 		await user.click(await row(/Design doc/));
 		const region = await screen.findByRole("region", { name: "Tokens" });
 		// It scrolls, so the keyboard reaches it.
 		expect(region).toHaveAttribute("tabindex", "0");
 		const tokens = within(region);
-		for (const heading of [
-			"Neutral (12)",
-			"Accent (5)",
-			"Success (3)",
-			"Warning (3)",
-			"Danger (3)",
-			"Info (3)",
-		])
-			expect(tokens.getByRole("heading", { name: heading })).toBeInTheDocument();
-		const item = tokens.getByText("--accent").closest("li");
-		expect(item).toHaveTextContent("oklch(0.757 0.147 238)");
+		expect(await tokens.findByRole("heading", { name: "src/tokens.css (2)" })).toBeInTheDocument();
+		expect(tokens.getByText("--brand").closest("li")).toHaveTextContent("#123456");
+		expect(tokens.queryByText("--accent")).toBeNull();
+		expect(tokens.queryByText("No tokens yet")).toBeNull();
 		// The view reads: the design doc stays as it was.
 		expect(await screen.findByRole("textbox", { name: "Design doc text" })).toHaveValue(
 			files()[DOC]?.text,
 		);
+	});
+
+	it("says no tokens yet, and adds a starter block to the doc text for the person to save", async () => {
+		const user = userEvent.setup();
+		await mountDesign(<Screens />);
+		await user.click(await row(/Design doc/));
+		const region = within(await screen.findByRole("region", { name: "Tokens" }));
+		expect(await region.findByText("No tokens yet")).toBeInTheDocument();
+		await user.click(region.getByRole("button", { name: "Add tokens to the design doc" }));
+		const text = screen.getByRole("textbox", { name: "Design doc text" });
+		expect((text as HTMLTextAreaElement).value).toContain("--color-primary");
+		// Nothing is written before the save.
+		expect(files()[DOC]?.text).not.toContain("--color-primary");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(await region.findByText("--color-primary")).toBeInTheDocument();
 	});
 
 	it("starts a missing design doc from the skeleton and creates the file on save", async () => {

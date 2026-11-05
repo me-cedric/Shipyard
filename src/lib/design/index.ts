@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import YAML from "yaml";
+import { useOnFileChange } from "@/lib/files";
 import {
 	type Adr,
 	type Artifact_Serialize,
@@ -73,6 +74,11 @@ export function useDesignFile(path: string, missing?: string) {
 	// The stamp of the disk, when a write found a newer file.
 	const [conflict, setConflict] = useState<{ stamp: string | null; job: Job } | null>(null);
 	const [failure, setFailure] = useState<string | null>(null);
+	// A file that changed on disk is read again only when there is no draft: a draft keeps its
+	// text and the stamp conflict shows at the save.
+	useOnFileChange(path, () => {
+		if (draft === null) void q.refetch();
+	});
 
 	const absent =
 		missing !== undefined &&

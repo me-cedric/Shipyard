@@ -37,6 +37,7 @@ export function DoctorTools() {
 	const missing = list.filter((x) => !x.installed).length;
 	return (
 		<Panel
+			id="tools"
 			title={d.title}
 			count={missing}
 			icon={<CommandLineIcon size={14} />}

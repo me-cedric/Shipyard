@@ -8,6 +8,8 @@ import type {
 	McpGates_Deserialize,
 	McpOutside_Serialize,
 	ToolCheck,
+	Wiring,
+	WiringReview,
 } from "./bindings";
 
 const OUTSIDE_TOOLS = [
@@ -50,13 +52,29 @@ const GROUP_OF: Record<string, keyof McpGates_Deserialize> = {
 	qa_read_report: "qa",
 };
 
+const READ_ONLY = [
+	"project_list_files",
+	"project_read_file",
+	"git_status",
+	"git_log",
+	"git_diff",
+	"forge_remote",
+	"delivery_diff",
+	"ticket_list",
+	"ticket_read",
+	"adr_list",
+	"adr_read",
+	"qa_read_report",
+];
+
 type Gates = Required<McpGates_Deserialize>;
 
 export type MockDoctor = {
 	tools: ToolCheck[];
 	ledger: LedgerEntry[];
 	gates: Gates;
-	wired: boolean;
+	/** The address that each agent tool was wired with. */
+	wired: Record<string, string>;
 	elsewhere: Elsewhere[];
 	imported: string[];
 	certs: number;
@@ -109,7 +127,7 @@ export const seedDoctor = (): MockDoctor => ({
 		port: 47821,
 		allowedTools: [],
 	},
-	wired: false,
+	wired: {},
 	elsewhere: [
 		{
 			source: "Claude Code",
@@ -158,6 +176,7 @@ export function outsideStatus(d: MockDoctor): McpOutside_Serialize {
 		error: "",
 		tools: OUTSIDE_TOOLS,
 		active: on,
+		readOnly: OUTSIDE_TOOLS.filter((n) => READ_ONLY.includes(n)),
 	};
 }
 
@@ -170,11 +189,54 @@ export function outsideSet(d: MockDoctor, gates: McpGates_Deserialize): McpOutsi
 	return outsideStatus(d);
 }
 
-export function outsideWire(d: MockDoctor, project: string | null): string {
-	if (!d.gates.enabled) throw "turn the server on first";
+// The agent tools that the mock finds: Gemini is not installed.
+const AGENTS = [
+	{ id: "claude", label: "Claude Code", file: ".mcp.json" },
+	{ id: "codex", label: "Codex", file: ".codex/config.toml" },
+	{ id: "vscode", label: "VS Code", file: ".vscode/mcp.json" },
+];
+
+const currentUrl = (d: MockDoctor) => `http://127.0.0.1:${d.gates.port}/mcp`;
+
+export function wiringList(d: MockDoctor, project: string | null): Wiring[] {
 	if (!project) throw "no active project";
-	d.wired = true;
-	return `${project}/.mcp.json`;
+	return AGENTS.map((a) => ({
+		id: a.id,
+		label: a.label,
+		path: `${project}/${a.file}`,
+		state: !d.wired[a.id] ? "not-wired" : d.wired[a.id] === currentUrl(d) ? "wired" : "out-of-date",
+	}));
+}
+
+export function wiringReview(d: MockDoctor, project: string | null, id: string): WiringReview {
+	const w = wiringList(d, project).find((x) => x.id === id);
+	if (!w) throw `unknown agent tool: ${id}`;
+	const entry = `    "shipyard": "${currentUrl(d)}"`;
+	const old = d.wired[id];
+	return {
+		path: w.path,
+		after: `{\n  "mcpServers": {\n${entry}\n  }\n}\n`,
+		lines: [
+			{ kind: "same", text: "{" },
+			{ kind: "same", text: '  "mcpServers": {' },
+			...(old ? [{ kind: "del" as const, text: `    "shipyard": "${old}"` }] : []),
+			{ kind: "add", text: entry },
+			{ kind: "same", text: "  }" },
+			{ kind: "same", text: "}" },
+		],
+	};
+}
+
+export function wiringApply(
+	d: MockDoctor,
+	project: string | null,
+	id: string,
+	reviewed: string,
+): string {
+	const r = wiringReview(d, project, id);
+	if (r.after !== reviewed) throw "the file changed since the review: review it again";
+	d.wired[id] = currentUrl(d);
+	return r.path;
 }
 
 export function outsideToken(d: MockDoctor): string {

@@ -29,7 +29,7 @@ model {
 
     shell = container 'Tauri shell' {
       technology 'Rust, Tauri 2'
-      description 'Native window, menu, menu bar item with its panel window, notifications, terminal, update check and the IPC commands (crates/shipyard-app).'
+      description 'Native window, menu, menu bar item with its panel window, notifications, terminal, update check, the deck scheme and deck PDF print (ADR 0016), the file watcher of the active project (one debounced files-changed event) and the IPC commands (crates/shipyard-app).'
     }
 
     ui = container 'React UI' {
@@ -55,7 +55,7 @@ model {
         description 'Changes, history, branches, pull requests, quality, terminal.'
       }
       knowledge = component 'Knowledge' {
-        description 'Graph, handbook, documents, slides, learn, dashboards.'
+        description 'Graph, handbook, documents, slides (HTML decks in a sandboxed frame), learn, dashboards.'
       }
       settings = component 'Settings' {
         description 'Project, connections, agents and rules, extensions, health.'
@@ -152,6 +152,7 @@ model {
   // Inside the shell.
   shipyard.ui -> shipyard.shell 'calls commands over IPC'
   shipyard.ui.ipc -> shipyard.shell 'invoke and events'
+  shipyard.ui.knowledge -> shipyard.shell 'frame: deck scheme'
   shipyard.ui.home -> shipyard.ui.ipc 'uses'
   shipyard.ui.design -> shipyard.ui.ipc 'uses'
   shipyard.ui.specs -> shipyard.ui.ipc 'uses'

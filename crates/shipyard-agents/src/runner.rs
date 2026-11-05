@@ -57,6 +57,18 @@ pub enum Mode {
     Auto,
 }
 
+/// How far a run in [`Mode::Auto`] may go without asking the person.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Approval {
+    /// The CLI default of the mode.
+    #[default]
+    Ask,
+    /// File edits go through without a question.
+    Edits,
+    /// The CLI skips every approval and sandbox. Claude Code and Codex only.
+    Bypass,
+}
+
 /// One MCP server for the run, normally the Shipyard server (`add-factory` REQ-037). The runner
 /// writes it to the file or the profile that its CLI reads. Never to an argument.
 #[derive(Debug, Clone)]
@@ -87,6 +99,8 @@ pub struct RunSpec {
     /// A reasoning level in the words of the CLI. A CLI with no such setting ignores it.
     pub effort: Option<String>,
     pub mode: Mode,
+    /// Only read in [`Mode::Auto`].
+    pub approval: Approval,
     /// Tool names in the words of the CLI (`Read`, `Bash(git diff:*)`, `mcp__shipyard__report`).
     /// Used by Claude Code and Gemini CLI, to pre-approve. The others ignore the list.
     ///
@@ -123,6 +137,7 @@ impl RunSpec {
             model: None,
             effort: None,
             mode: Mode::Plan,
+            approval: Approval::Ask,
             allowed_tools: Vec::new(),
             scratch: scratch.into(),
             dir,

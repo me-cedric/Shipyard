@@ -23,6 +23,7 @@ fn meta() -> Meta {
         empty: "Nothing to show.".into(),
         gap: "Not readable".into(),
         generated: "Generated".into(),
+        contents: "Contents".into(),
     }
 }
 
@@ -74,6 +75,22 @@ fn read_back(bytes: &[u8]) -> String {
     docx_rs::read_docx(bytes).expect("a valid .docx").json()
 }
 
+/// One part of a zip file as text, or `None` when the part is missing.
+fn part(bytes: &[u8], name: &str) -> Option<String> {
+    use std::io::Read as _;
+    let mut zip = zip::ZipArchive::new(Cursor::new(bytes)).ok()?;
+    let mut out = String::new();
+    zip.by_name(name).ok()?.read_to_string(&mut out).ok()?;
+    Some(out)
+}
+
+fn has_part(bytes: &[u8], prefix: &str) -> bool {
+    zip::ZipArchive::new(Cursor::new(bytes))
+        .unwrap()
+        .file_names()
+        .any(|n| n.is_ok_and(|n| n.starts_with(prefix)))
+}
+
 fn headings(blocks: &[Block]) -> Vec<&str> {
     blocks
         .iter()
@@ -90,7 +107,6 @@ fn the_dossier_has_a_cover_then_five_sections_each_on_a_new_page() {
     assert_eq!(
         headings(&blocks),
         [
-            "Architecture dossier",
             "Views",
             "Decisions",
             "Data models",
@@ -98,8 +114,10 @@ fn the_dossier_has_a_cover_then_five_sections_each_on_a_new_page() {
             "API contracts"
         ]
     );
-    assert_eq!(blocks.iter().filter(|b| **b == Block::PageBreak).count(), 5);
-    assert!(blocks.contains(&Block::Para("Generated: 2026-10-29".into())));
+    // The cover and each of the five sections start a new page.
+    assert_eq!(blocks.iter().filter(|b| **b == Block::PageBreak).count(), 6);
+    assert_eq!(blocks[0], Block::Title("Architecture dossier".into()));
+    assert!(blocks.contains(&Block::Subtitle("Generated: 2026-10-29".into())));
     let json = read_back(&docx_bytes(&meta(), &blocks).unwrap());
     for t in [
         "Architecture dossier",
@@ -245,4 +263,135 @@ fn an_image_that_is_not_a_png_is_a_gap() {
     assert!(blocks.contains(&Block::Gap("Not readable: Bad (not a PNG image)".into())));
     assert!(blocks.contains(&Block::Gap("Not readable: Worse (not base64 text)".into())));
     docx_bytes(&meta(), &blocks).unwrap();
+}
+
+#[test]
+fn an_adr_shows_its_title_once_and_the_document_has_a_cover_a_contents_field_and_page_numbers() {
+    let sections = vec![section(
+        "Decisions",
+        vec![
+            md(
+                "0004 Polling",
+                "# Polling\nWe poll with `tick()` often.\n- one\n- two\n",
+            ),
+            md("0005 Cache", "# ADR-0005: Cache\n## Status\nAccepted\n"),
+        ],
+    )];
+    let blocks = assemble(&meta(), &sections);
+    let titled = |t: &str| {
+        blocks
+            .iter()
+            .filter(|b| matches!(b, Block::Heading(_, h) if h.to_lowercase().contains(t)))
+            .count()
+    };
+    assert_eq!((titled("polling"), titled("cache")), (1, 1));
+    assert!(
+        blocks.contains(&Block::Heading(4, "Status".into())),
+        "other headings stay"
+    );
+    let bytes = docx_bytes(&meta(), &blocks).unwrap();
+    let doc = part(&bytes, "word/document.xml").unwrap();
+    assert!(doc.contains(r#"w:val="Title""#) && doc.contains("Architecture dossier"));
+    assert!(
+        doc.contains(r"TOC \o &quot;1-3&quot;"),
+        "the contents field"
+    );
+    assert!(doc.contains("Contents"));
+    assert_eq!(doc.matches(">0004 Polling<").count(), 1);
+    assert!(doc.contains("Consolas"), "a code span is monospace");
+    assert!(doc.contains("<w:numPr>"), "a real list");
+    assert!(
+        part(&bytes, "word/numbering.xml")
+            .unwrap()
+            .contains("bullet")
+    );
+    assert!(part(&bytes, "word/footer1.xml").unwrap().contains("PAGE"));
+    assert!(
+        part(&bytes, "word/styles.xml")
+            .unwrap()
+            .contains(r#"w:styleId="Heading2""#)
+    );
+}
+
+#[test]
+fn a_diagram_is_an_image_part_and_one_that_failed_is_a_code_block() {
+    let png = base64::engine::general_purpose::STANDARD
+        .decode(PNG)
+        .unwrap();
+    let sections = vec![section(
+        "Views",
+        vec![
+            Item {
+                name: "Drawn".into(),
+                source: Ok(Content::Image(png)),
+            },
+            Item {
+                name: "Broken".into(),
+                source: Ok(Content::Code("graph TD\n  A --> B".into())),
+            },
+        ],
+    )];
+    let bytes = docx_bytes(&meta(), &assemble(&meta(), &sections)).unwrap();
+    assert!(has_part(&bytes, "word/media/"));
+    let doc = part(&bytes, "word/document.xml").unwrap();
+    assert!(doc.contains("<w:drawing>") && doc.contains("Drawn") && doc.contains("Broken"));
+    assert!(
+        doc.contains(r#"w:val="Code""#) && doc.contains("graph TD") && doc.contains("A --&gt; B")
+    );
+}
+
+#[test]
+fn a_sheet_has_a_styled_header_a_frozen_row_widths_and_real_numbers_and_dates() {
+    let sheet = SheetOut {
+        name: "Quality".into(),
+        headers: vec!["Check".into(), "Count".into(), "Day".into(), "Code".into()],
+        rows: vec![vec![
+            "Tests".into(),
+            "12".into(),
+            "2026-10-29".into(),
+            "007".into(),
+        ]],
+    };
+    let bytes = xlsx_bytes(&meta(), &[sheet]).unwrap();
+    let xml = part(&bytes, "xl/worksheets/sheet2.xml").unwrap();
+    assert!(xml.contains(r#"state="frozen""#) && xml.contains(r#"topLeftCell="A2""#));
+    assert!(xml.contains("<cols>") && xml.contains("<autoFilter"));
+    let styles = part(&bytes, "xl/styles.xml").unwrap();
+    assert!(
+        styles.contains("<b/>") && styles.contains("FF1F3864"),
+        "bold on a dark fill"
+    );
+    assert!(styles.contains("yyyy-mm-dd"));
+    let mut wb: Xlsx<_> = calamine::open_workbook_from_rs(Cursor::new(bytes)).unwrap();
+    let range = wb.worksheet_range("Quality").unwrap();
+    assert!(matches!(range.get((1, 1)), Some(calamine::Data::Float(n)) if *n == 12.0));
+    assert!(matches!(
+        range.get((1, 2)),
+        Some(calamine::Data::DateTime(_))
+    ));
+    assert_eq!(
+        range.get((1, 3)).unwrap().to_string(),
+        "007",
+        "a code stays text"
+    );
+}
+
+#[test]
+fn bold_and_links_in_markdown_become_bold_runs_and_hyperlinks() {
+    let blocks = vec![
+        Block::Para("a **strong** word and [Shipyard](https://example.com/x) and [bad](javascript:alert(1)) and `**code**`".into()),
+        Block::Table {
+            headers: vec!["h".into()],
+            rows: vec![vec!["**cell**".into()]],
+        },
+    ];
+    let bytes = docx_bytes(&meta(), &blocks).unwrap();
+    let xml = part(&bytes, "word/document.xml").unwrap();
+    assert!(xml.contains("<w:b />") || xml.contains("<w:b/>"), "{xml}");
+    assert!(xml.contains("<w:hyperlink"), "{xml}");
+    let rels = part(&bytes, "word/_rels/document.xml.rels").unwrap();
+    assert!(rels.contains("https://example.com/x"));
+    assert!(!rels.contains("javascript:"));
+    assert!(!xml.contains("**strong**") && !xml.contains("**cell**"));
+    assert!(xml.contains("[bad](javascript:alert(1))") && xml.contains("**code**"));
 }

@@ -30,7 +30,7 @@ pub fn parse_text(text: &str) -> Option<ParsedRef> {
 }
 
 /// Opens the index of the active project and brings it up to date.
-/// The check walks and stats the files, so no manual refresh and no file watcher are needed.
+/// The check walks and stats the files and reads only the changed ones. The file watcher (`watch`) tells the views when to ask again.
 /// Without an active project the result is the default of `T`.
 pub fn with_index<T: Default>(
     s: &AppState,

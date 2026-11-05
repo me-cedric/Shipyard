@@ -22,6 +22,7 @@ import type {
 	FileDiff,
 	Quote,
 	RunnerOptions,
+	SlashCommand_Serialize,
 	Thread_Serialize,
 	ThreadSettings_Deserialize,
 	ThreadSettings_Serialize,
@@ -63,12 +64,14 @@ const OPTIONS: RunnerOptions[] = [
 		models: ["opus", "sonnet", "haiku"],
 		efforts: ["low", "medium", "high", "xhigh", "max"],
 		windowTokens: 200_000,
+		bypass: true,
 	},
 	{
 		runner: "codex",
 		models: ["gpt-5", "gpt-5-codex"],
 		efforts: ["minimal", "low", "medium", "high"],
 		windowTokens: 400_000,
+		bypass: true,
 	},
 ];
 const BUDGET = "day 2026-10-29";
@@ -232,11 +235,13 @@ export function settingsSet(
 	const next: ThreadSettings_Serialize = {
 		runner: s.runner,
 		// A model or an effort belongs to its runner: a runner change drops them and the session.
-		model: same ? (s.model ?? null) : null,
-		effort: same ? (s.effort ?? null) : null,
+		// Same as the app: only a value that stays from the old runner is dropped.
+		model: same || s.model !== r.thread.settings.model ? (s.model ?? null) : null,
+		effort: same || s.effort !== r.thread.settings.effort ? (s.effort ?? null) : null,
 		mode: s.mode,
 		permission: s.permission ?? "approve",
 	};
+	if (next.permission === "bypass" && !o.bypass) throw `${s.runner} has no Bypass permissions.`;
 	if (next.model && !o.models.includes(next.model)) throw `unknown model: ${next.model}`;
 	if (next.effort && !o.efforts.includes(next.effort)) throw `unknown effort: ${next.effort}`;
 	if (!same) r.thread.session = null;
@@ -518,3 +523,13 @@ export function defaultsSet(
 }
 
 export const options = (): RunnerOptions[] => OPTIONS;
+
+const SLASH: Record<string, SlashCommand_Serialize[]> = {
+	claude: [
+		{ name: "review-pr", description: "Review the open pull request", source: "project" },
+		{ name: "tidy", description: "Tidy the code", source: "personal" },
+		{ name: "compact", description: null, source: "built_in" },
+	],
+	codex: [{ name: "prompts:review", description: "Review it", source: "personal" }],
+};
+export const slashCommands = (runner: string): SlashCommand_Serialize[] => SLASH[runner] ?? [];

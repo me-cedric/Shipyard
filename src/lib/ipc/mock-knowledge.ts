@@ -11,6 +11,7 @@ import type {
 	DashView_Serialize,
 	Deck,
 	DeckTheme_Deserialize,
+	DiagramSource,
 	DocList,
 	ExplainContext_Serialize,
 	ExportText,
@@ -63,7 +64,11 @@ export type MockKnowledge = {
 	/** The code index exists. The Index action sets it. */
 	indexed: boolean;
 	/** The files that the export commands "wrote": kind and path. */
-	exported: { kind: "dossier" | "functional" | "sheet"; path: string }[];
+	exported: {
+		kind: "dossier" | "functional" | "sheet" | "pdf";
+		path: string;
+		views?: ViewImage[];
+	}[];
 };
 
 /** What the Knowledge commands read from the other mocks. */
@@ -94,6 +99,13 @@ const DASHBOARD: Dashboard_Serialize = {
 	],
 };
 
+/** A small HTML deck (ADR 0016): two slides, the arrow keys and the messages of the frame host. */
+const HTML_DECK = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Roadmap</title>
+<style>.slide{display:none}.slide.active{display:block}@media print{.slide{display:block}}</style></head>
+<body><section class="slide active"><h1>Roadmap</h1></section><section class="slide"><h2>Next</h2></section>
+<script>const s=[...document.querySelectorAll(".slide")];let i=0;const go=(k)=>{i=Math.max(0,Math.min(s.length-1,i+(k==="ArrowRight"?1:k==="ArrowLeft"?-1:0)));s.forEach((x,j)=>x.classList.toggle("active",j===i))};
+addEventListener("keydown",(e)=>go(e.key));addEventListener("message",(e)=>e.source===parent&&e.data&&go(e.data.deckKey));</script></body></html>`;
+
 const THEME_DEFAULT = {
 	version: VERSION,
 	background: "#ffffff",
@@ -120,6 +132,7 @@ export function seedKnowledge(): MockKnowledge {
 				"# Client brief\n\nThe scope follows spec:billing and adr:0004.\n",
 			),
 			[`${FOLDERS.slides}/kickoff.md`]: file(DECK),
+			[`${FOLDERS.slides}/roadmap.html`]: file(HTML_DECK),
 			[THEME]: file(stringify(THEME_DEFAULT, YAML)),
 			[`${DASH}/team.yaml`]: file(stringify(DASHBOARD, YAML)),
 		},
@@ -155,6 +168,28 @@ export const docListGet = (k: MockKnowledge): DocList => ({
 
 const FOLDER_LIST = Object.values(FOLDERS);
 
+/** `deck_list`: the HTML decks and the older Markdown decks of the slides folder, by path. */
+export const deckList = (k: MockKnowledge): PageEntry[] =>
+	[
+		...mdFiles(k, FOLDERS.slides),
+		...Object.entries(k.files)
+			.filter(([p]) => p.startsWith(`${FOLDERS.slides}/`) && p.endsWith(".html"))
+			.map(([path, f]) => ({
+				path,
+				title:
+					/<title>([^<]*)<\/title>/.exec(f.text)?.[1]?.trim() ||
+					(path.split("/").pop() ?? path).replace(/\.html$/, ""),
+			})),
+	].sort((a, b) => a.path.localeCompare(b.path));
+
+/** `deck_pdf`: the mock keeps the path of the PDF. */
+export function deckPdf(k: MockKnowledge, path: string, dest: string): null {
+	if (!path.endsWith(".html") || !k.files[path]) throw `path not allowed: ${path}`;
+	checkExport(dest, "pdf");
+	k.exported.push({ kind: "pdf", path: dest });
+	return null;
+}
+
 export function docReadOne(k: MockKnowledge, path: string): Text {
 	resolvePath(path, FOLDER_LIST);
 	return readText(k.files, path);
@@ -167,8 +202,9 @@ export function docWriteOne(
 	stamp: string | null,
 	create: boolean,
 ): Written_Serialize {
-	if (!path.endsWith(".md")) throw "a page is a .md file";
-	resolvePath(path, FOLDER_LIST);
+	const html = path.endsWith(".html");
+	if (!html && !path.endsWith(".md")) throw "a page is a .md file";
+	resolvePath(path, html ? [FOLDERS.slides] : FOLDER_LIST);
 	return putText(k.files, path, text, stamp, create);
 }
 
@@ -444,14 +480,19 @@ export const checkTitles = (text: ExportText, n: number) => {
 export function exportDossier(
 	k: MockKnowledge,
 	text: ExportText,
-	_views: ViewImage[],
+	views: ViewImage[],
 	path: string,
 ): null {
 	checkTitles(text, 5);
 	checkExport(path, "docx");
-	k.exported.push({ kind: "dossier", path });
+	k.exported.push({ kind: "dossier", path, views });
 	return null;
 }
+
+/** The Mermaid diagrams that the dossier renders: one is enough to run the render path. */
+export const exportDiagrams = (): DiagramSource[] => [
+	{ title: "Run states", source: "graph TD\n  A --> B" },
+];
 
 export function exportFunctional(k: MockKnowledge, text: ExportText, path: string): null {
 	checkTitles(text, 4);

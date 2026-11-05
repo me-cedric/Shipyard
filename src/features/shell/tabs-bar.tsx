@@ -21,7 +21,7 @@ export function TabsBar({ space }: { space: SpaceId }) {
 						to={tabPath(space, tab)}
 						// A pointer that rests on a tab loads its code before the click.
 						preload="intent"
-						className="relative isolate inline-flex h-7 items-center rounded-md px-2.5 text-ui whitespace-nowrap text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 aria-[current=page]:text-n-12"
+						className="relative isolate inline-flex h-7 items-center rounded-md px-2.5 text-ui whitespace-nowrap text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 aria-[current=page]:text-accent-text"
 					>
 						{({ isActive }) => (
 							<>
@@ -29,7 +29,7 @@ export function TabsBar({ space }: { space: SpaceId }) {
 									<motion.span
 										layoutId={`tab-pill-${space}`}
 										transition={SPRING.smooth}
-										className="absolute inset-0 -z-10 rounded-md bg-surface-3 shadow-1 ring-1 ring-n-6"
+										className="absolute inset-0 -z-10 rounded-md bg-accent-soft"
 									/>
 								) : null}
 								{tabLabel(t, space, tab)}

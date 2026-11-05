@@ -16,9 +16,10 @@ use shipyard_agents::assistant::{TurnInput, TurnKind, run_turn_live};
 use shipyard_agents::assistant_modes;
 use shipyard_agents::assistant_rules;
 use shipyard_agents::runner::CancelHandle;
+use shipyard_agents::slash::SlashCommand;
 use shipyard_core::assistant::{
-    AssistantMode, ChatMessage, ChatRole, Context, MessageState, Quote, Thread, ThreadSettings,
-    ThreadSummary, TraceStep, failure, scrub,
+    AssistantMode, ChatMessage, ChatRole, Context, MessageState, Permission, Quote, Thread,
+    ThreadSettings, ThreadSummary, TraceStep, failure, scrub,
 };
 use shipyard_core::refs::parse;
 use shipyard_core::run::BudgetLevel;
@@ -159,6 +160,8 @@ pub struct RunnerOptions {
     pub models: Vec<String>,
     pub efforts: Vec<String>,
     pub window_tokens: u32,
+    /// The runner has a skip-permissions flag (Bypass permissions).
+    pub bypass: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -180,6 +183,11 @@ pub fn window_tokens(runner: &str) -> u32 {
         "gemini" => 1_000_000,
         _ => 128_000,
     }
+}
+
+/// Claude Code and Codex have a skip-permissions flag. The others offer no Bypass.
+pub fn bypass(runner: &str) -> bool {
+    matches!(runner, "claude" | "codex")
 }
 
 pub fn efforts(runner: &str) -> Vec<String> {
@@ -418,10 +426,26 @@ fn known_runner(id: &str) -> Res<()> {
         .ok_or_else(|| format!("unknown runner: {id}"))
 }
 
+/// Bypass permissions needs a runner with the flag, agents switched on and a project that is not
+/// read only. The UI hides it too, but only this check holds.
+fn refuse_bypass(s: &AppState, set: &ThreadSettings) -> Res<()> {
+    if set.permission != Permission::Bypass {
+        return Ok(());
+    }
+    if !bypass(&set.runner) {
+        return Err(format!("{} has no Bypass permissions.", set.runner));
+    }
+    if crate::factory::kill_switch(s) {
+        return Err("Bypass permissions is refused while the agents switch is off.".into());
+    }
+    crate::work::refuse_read_only(s)
+}
+
 /// New settings. A model or an effort that stays while the runner changes is dropped: it belongs
 /// to the old runner (REQ-011).
 pub fn settings_set(s: &AppState, thread: &str, mut new: ThreadSettings) -> Res<ThreadView> {
     known_runner(&new.runner)?;
+    refuse_bypass(s, &new)?;
     let (id, _) = project(s)?;
     let _busy = Busy::take(thread)?;
     let st = Threads::new(&s.dir);
@@ -478,6 +502,10 @@ pub fn defaults_set(s: &AppState, d: AssistantDefaults) -> Res<AssistantDefaults
     if let Some(r) = &d.runner {
         known_runner(r)?;
     }
+    // Bypass is per thread, after the confirm.
+    if d.permission == Some(Permission::Bypass) {
+        return Err("Bypass permissions is set for one thread, not as a default.".into());
+    }
     let (id, _) = project(s)?;
     assistant_defaults::save(&s.dir, &id, &d).map_err(err)?;
     Ok(d)
@@ -499,11 +527,21 @@ pub fn options(s: &AppState) -> Res<Vec<RunnerOptions>> {
             RunnerOptions {
                 efforts: efforts(&t.runner),
                 window_tokens: window_tokens(&t.runner),
+                bypass: bypass(&t.runner),
                 runner: t.runner,
                 models,
             }
         })
         .collect())
+}
+
+/// The slash commands of a runner for the project and the person.
+pub fn slash_commands(s: &AppState, runner: &str) -> Res<Vec<SlashCommand>> {
+    let (_, root) = project(s)?;
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_default();
+    Ok(shipyard_agents::slash::list(runner, &root, &home))
 }
 
 // ---------------------------------------------------------------- turns
@@ -534,6 +572,7 @@ pub fn turn(s: &AppState, thread: &str, start: Start, program: Option<PathBuf>) 
     let st = Threads::new(&s.dir);
     let mut t = st.get(&pid, thread).map_err(err)?;
     let secrets = secrets(s);
+    refuse_bypass(s, &t.settings)?;
 
     // The budget first: at 100 % the turn does not start and the budget is named (REQ-012).
     let gate = s.factory.factory.assistant_gate(&pid, MEMBER);
@@ -1130,6 +1169,84 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
         );
         let e = to_factory(&f.s, &t.id, None, true).unwrap_err();
         assert!(e.contains("400"), "{e}");
+    }
+
+    #[test]
+    fn two_sends_in_a_chat_resume_the_same_session() {
+        let f = fx();
+        let t = thread_create(&f.s, None).unwrap().thread;
+        let rec = f.data.path().join("argv");
+        let body = format!(
+            "printf '%s\\n' \"$@\" >> '{}'\necho --- >> '{}'\ncat > /dev/null\necho '{{\"type\":\"system\",\"session_id\":\"s1\"}}'\necho '{{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"session_id\":\"s1\",\"usage\":{{}}}}'",
+            rec.display(),
+            rec.display()
+        );
+        let bin = program(f.data.path(), "fake-resume", &body);
+        send_text(&f, &t.id, "One", bin.clone()).unwrap();
+        send_text(&f, &t.id, "Two", bin).unwrap();
+        let log = std::fs::read_to_string(&rec).unwrap();
+        let runs: Vec<&str> = log.split("---\n").filter(|r| !r.is_empty()).collect();
+        assert_eq!(runs.len(), 2, "{log}");
+        assert!(!runs[0].contains("--resume"), "{log}");
+        assert!(runs[1].contains("--resume\ns1\n"), "{log}");
+    }
+
+    #[test]
+    fn bypass_needs_a_runner_with_the_flag_and_agents_switched_on() {
+        let f = fx();
+        let t = thread_create(&f.s, None).unwrap().thread;
+        let mut s = t.settings.clone();
+        s.mode = AssistantMode::Agent;
+        s.permission = Permission::Bypass;
+        let v = settings_set(&f.s, &t.id, s.clone()).unwrap();
+        assert_eq!(v.thread.settings.permission, Permission::Bypass);
+        crate::factory::set_kill_switch(&f.s, true);
+        let e = settings_set(&f.s, &t.id, s.clone()).unwrap_err();
+        assert!(e.contains("switch is off"), "{e}");
+        // A turn that already has Bypass is refused too.
+        let e = send_text(&f, &t.id, "Hi", reply(&f, "No.")).unwrap_err();
+        assert!(e.contains("switch is off"), "{e}");
+        crate::factory::set_kill_switch(&f.s, false);
+        s.runner = "gemini".into();
+        let e = settings_set(&f.s, &t.id, s).unwrap_err();
+        assert!(e.contains("no Bypass"), "{e}");
+        let o = options(&f.s).unwrap();
+        assert!(o.iter().all(|r| r.bypass == bypass(&r.runner)));
+    }
+
+    #[test]
+    fn bypass_is_refused_for_a_read_only_project_and_as_a_default() {
+        let f = fx();
+        let t = thread_create(&f.s, None).unwrap().thread;
+        let mut s = t.settings.clone();
+        s.mode = AssistantMode::Agent;
+        s.permission = Permission::Bypass;
+        let d = AssistantDefaults {
+            permission: Some(Permission::Bypass),
+            ..Default::default()
+        };
+        assert!(defaults_set(&f.s, d).is_err());
+        settings_set(&f.s, &t.id, s.clone()).unwrap();
+        let on = shipyard_store::project::Overrides {
+            read_only: Some(true),
+            ..Default::default()
+        };
+        crate::commands::projects::save_overrides(&f.s, on).unwrap();
+        let e = send_text(&f, &t.id, "Hi", reply(&f, "No.")).unwrap_err();
+        assert!(e.contains("read only"), "{e}");
+        assert!(settings_set(&f.s, &t.id, s).is_err());
+    }
+
+    #[test]
+    fn a_turn_with_bypass_on_a_runner_without_it_is_refused() {
+        let f = fx();
+        let t = thread_create(&f.s, None).unwrap().thread;
+        let mut th = Threads::new(&f.s.dir).get(&f.pid, &t.id).unwrap();
+        th.settings.runner = "gemini".into();
+        th.settings.permission = Permission::Bypass;
+        Threads::new(&f.s.dir).save(&th).unwrap();
+        let e = send_text(&f, &t.id, "Hi", reply(&f, "No.")).unwrap_err();
+        assert!(e.contains("no Bypass"), "{e}");
     }
 
     #[test]

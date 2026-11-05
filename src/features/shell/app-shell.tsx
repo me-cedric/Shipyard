@@ -5,6 +5,7 @@ import { FileDrawer } from "@/features/code/file-drawer";
 import { TerminalDrawer } from "@/features/code/terminal-drawer";
 import { useTrayBadge } from "@/features/tray";
 import { useCodeActions } from "@/lib/code";
+import { useAnchorArrival } from "@/lib/errors/anchor";
 import { useI18n } from "@/lib/i18n";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
 import { usePrefs } from "@/lib/prefs";
@@ -75,6 +76,7 @@ function Frame() {
 	useShellEvents();
 	useDropFolder();
 	useCloseGuardEvent();
+	useAnchorArrival();
 	const { toasts, dismiss } = useNotifications();
 	// A detail belongs to the view that opened it: leaving the view closes it.
 	const path = useRouterState({ select: (s) => s.location.pathname });

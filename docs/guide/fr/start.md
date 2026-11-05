@@ -29,6 +29,8 @@ La fenêtre s'ouvre à la taille où vous l'avez fermée. Pour garder les donné
 ## Trouver son chemin
 
 - Appuyez sur Ctrl+K (Cmd+K sur Mac) pour ouvrir la palette. Tapez le nom d'une page, d'un élément ou d'une action.
+- Dans la palette, tapez quelques mots pour chercher dans le texte de vos documents, décisions, spécifications, questions, tickets et maquettes. Les majuscules et les accents ne comptent pas (« decision » trouve « décision »), chaque mot doit correspondre, et le dernier mot peut être un début. Les résultats se groupent par type, montrent un court extrait avec les mots marqués, et placent en premier une page que beaucoup d'éléments citent. Choisissez Demander à l'assistant pour mettre ces éléments comme contexte dans la zone de message de l'assistant. Rien n'est envoyé avant votre envoi. Le document que vous ouvrez depuis un résultat marque les mots.
+- Les listes de Design et de Connaissances ont une zone Rechercher qui filtre la liste avec la même recherche.
 - Appuyez sur Ctrl+1 à Ctrl+8 pour aller dans un espace.
 - Ouvrez la palette et choisissez Ouvrir le mode d'emploi de cette page pour lire l'aide de la page que vous voyez.
 - Appuyez sur Ctrl+[ et Ctrl+] (Cmd sur Mac), ou cliquez sur Précédent et Suivant dans la barre du haut, pour passer d'une vue ouverte à l'autre.

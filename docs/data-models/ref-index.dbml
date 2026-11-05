@@ -25,6 +25,14 @@ Table entities {
 }
 
 // `source` cites `target`.
+// Full-text index (FTS5, rowid = entities.rowid). One row for each entity that is not hidden.
+// The tokenizer `unicode61 remove_diacritics 2` folds case and accents. Schema version 2:
+// an older file starts empty and the next sync fills it.
+Table search_fts {
+  title text
+  body text // the whole file of the entity, empty for a sub-item or a file with a sealed text
+}
+
 Table citations {
   source_key text [not null]
   source text [not null]

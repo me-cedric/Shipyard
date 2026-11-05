@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { NoProject } from "@/features/work/no-project";
 import { useI18n } from "@/lib/i18n";
-import { message, useCodeGraph, useGraph, useGraphFocus, useIndexCode } from "@/lib/knowledge";
+import { useCodeGraph, useGraph, useGraphFocus, useIndexCode } from "@/lib/knowledge";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
 import { ArrowPathIcon, ShareIcon, XMarkIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { type CanvasNode, GraphCanvas, KindMark } from "@/ui/organisms/graph-canvas";
@@ -189,11 +190,7 @@ export function Graph() {
 				</>
 			}
 		>
-			{index.error ? (
-				<p role="alert" className="px-3 py-1 text-ui text-danger-text">
-					{message(index.error)}
-				</p>
-			) : null}
+			{index.error ? <ErrorNotice error={index.error} className="px-3 py-1" /> : null}
 			{wantsIndex ? (
 				<div className="p-4">
 					<EmptyState
@@ -201,6 +198,7 @@ export function Graph() {
 						action={{
 							label: k.graph.index,
 							icon: <ArrowPathIcon size={14} />,
+							busy: index.isPending,
 							onClick: () => index.mutate(),
 						}}
 					/>

@@ -5,6 +5,7 @@ import { NoProject } from "@/features/work/no-project";
 import { useFactoryWrites, useUsage } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
+import { useViewState } from "@/lib/shell/view-state";
 import { Button } from "@/ui/atoms/button";
 import { CountUp } from "@/ui/atoms/count-up";
 import { Input } from "@/ui/atoms/input";
@@ -46,7 +47,7 @@ export function Usage() {
 	const [key, setKey] = useState("");
 	const [amount, setAmount] = useState("");
 	const field = useRef<HTMLInputElement>(null);
-	const [prices, setPrices] = useState(false);
+	const [prices, setPrices] = useViewState("usage-prices", true);
 	const x = t.extras.usage;
 	if (active === null) return <NoProject title={f.usage} />;
 	const u = usage.data;
@@ -216,14 +217,14 @@ export function Usage() {
 							<StatStrip
 								items={[
 									{
-										label: t.ui.spendToday,
+										label: prices ? t.ui.spendToday : x.tokensToday,
 										value: prices ? (
 											<CountUp
 												value={days.find((d) => d.key === today)?.usd ?? 0}
 												format={money.format}
 											/>
 										) : (
-											x.hidden
+											<CountUp value={days.find((d) => d.key === today)?.tokens ?? 0} />
 										),
 										icon: <CurrencyIcon size={12} />,
 										tone: "info",
@@ -233,11 +234,11 @@ export function Usage() {
 											.map((d) => d.usd ?? 0),
 									},
 									{
-										label: f.spend,
+										label: prices ? f.spend : x.runs,
 										value: prices ? (
 											<CountUp value={runs.reduce((a, r) => a + r.usd, 0)} format={money.format} />
 										) : (
-											x.hidden
+											<CountUp value={runs.length} />
 										),
 										tone: "accent",
 										trend: cumulative,

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useWatchNotice } from "@/lib/code";
+import { useChanges, useWatchNotice } from "@/lib/code";
 import { useErrorNotice } from "@/lib/errors";
 import { format, useI18n } from "@/lib/i18n";
 import { useHealth, worstStatus } from "@/lib/projects";
@@ -28,6 +28,10 @@ export function StatusBar({ commit }: { commit: Action }) {
 	const failed = useErrorNotice(syncFailure);
 	const notice = useWatchNotice().data?.changes[0];
 	const health = useHealth();
+	const changes = useChanges().data;
+	const n = (v: number) => v.toLocaleString();
+	// "Changes: {added} lines added, {removed} removed": the text around the two numbers.
+	const lines = t.shell.lines.split(/\{added\}|\{removed\}/);
 	const { current } = useWhatsNew();
 	const findings = health.data ?? [];
 	// The dot shows the worst finding by shape and colour. A click opens Settings / Health.
@@ -39,6 +43,17 @@ export function StatusBar({ commit }: { commit: Action }) {
 	return (
 		<>
 			<ActionButton action={commit} />
+			{changes && (changes.added > 0 || changes.removed > 0) ? (
+				// Lines added and removed since the last commit. A click opens the changes.
+				// The visible numbers sit inside the spoken sentence (WCAG 2.5.3, label in name).
+				<Link to="/code/changes" className={button}>
+					<span className="sr-only">{lines[0]?.trim()}</span>{" "}
+					<span className="font-mono text-success-text">+{n(changes.added)}</span>{" "}
+					<span className="sr-only">{lines[1]?.trim()}</span>{" "}
+					<span className="font-mono text-danger-text">−{n(changes.removed)}</span>{" "}
+					<span className="sr-only">{lines[2]?.trim()}</span>
+				</Link>
+			) : null}
 			{notice ? (
 				<span role="status" className="truncate">
 					{format(t.code.notice, {

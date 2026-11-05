@@ -61,11 +61,11 @@ describe("the error contract", () => {
 		// A proxy that the OS trusts: a plain sentence and the setting that fixes it, not the raw text.
 		expect(classify("network error: invalid peer certificate: UnknownIssuer")).toEqual({
 			code: "cert_untrusted",
-			action: { kind: "setting", target: "certificate" },
+			action: { kind: "setting", target: "/settings/connections#certificates" },
 		});
 		expect(classify("the terminal app is not installed: Kitty")).toEqual({
 			code: "terminal_gone",
-			action: { kind: "setting", target: "terminalApp" },
+			action: { kind: "setting", target: "/settings/me#terminal-app" },
 		});
 	});
 
@@ -79,7 +79,9 @@ describe("the error contract", () => {
 		expect(classify("the base branch `dev` does not exist").code).toBe("no_base");
 		expect(classify("a.docx does not exist").code).toBe("path_invalid");
 		expect(classify("the title is empty").code).toBe("input_invalid");
-		expect(classify("the orca command is not installed").action?.target).toBe("/settings/health");
+		expect(classify("the orca command is not installed").action?.target).toBe(
+			"/settings/health#tools",
+		);
 		expect(toFailure("this tracker has no due date").message).toBe(
 			errorMessages.en.tracker_unsupported,
 		);

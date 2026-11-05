@@ -74,6 +74,9 @@ pub struct Session {
     /// The offset of the screen from UTC, in minutes east, as the view last said. `today` follows
     /// it, so the plan starts on the day of the person and not on the day of Greenwich.
     offset: AtomicI32,
+    /// A test sets the Unix time of `today`. 0 is the system clock.
+    #[cfg(test)]
+    pub(crate) fixed_secs: std::sync::atomic::AtomicU64,
     /// One lock for each time entry that goes to the tracker: two sends of one entry never run at
     /// once (REQ-023).
     sending: Mutex<HashMap<String, Arc<Mutex<()>>>>,
@@ -310,6 +313,11 @@ pub(crate) fn today(s: &AppState) -> String {
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs());
+    #[cfg(test)]
+    let secs = match s.work.fixed_secs.load(Ordering::Relaxed) {
+        0 => secs,
+        fixed => fixed,
+    };
     local_day(secs, s.work.offset.load(Ordering::Relaxed))
 }
 
@@ -436,6 +444,16 @@ fn conn_of(s: &AppState) -> Res<Option<Connection>> {
     }
 }
 
+/// A name in one form for a compare: NFC, lower case, single spaces. git on macOS often keeps
+/// `é` as `e` plus a combining accent, and a team file keeps it as one character.
+fn same_name(name: &str) -> String {
+    let nfc = icu_normalizer::ComposingNormalizerBorrowed::new_nfc().normalize(name);
+    nfc.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase()
+}
+
 /// The member that the signed-in person resolves to through the team: the `user` of the tracker
 /// connection (the login that a sign-in or a passed test saved), then the full git e-mail. The part
 /// of the e-mail before the `@` counts only for one member that has no other account: `john` at
@@ -463,11 +481,8 @@ fn me_of(conn: &Option<Connection>, team: &Team, root: &Path) -> Option<String> 
         (hits.next().is_none() && m.trackers.iter().all(is)).then_some(m)
     })
     .or_else(|| {
-        let name = name.as_deref()?;
-        let mut hits = team
-            .members
-            .iter()
-            .filter(|m| m.name.trim().eq_ignore_ascii_case(name));
+        let name = same_name(name.as_deref()?);
+        let mut hits = team.members.iter().filter(|m| same_name(&m.name) == name);
         let m = hits.next()?;
         (hits.next().is_none() && m.trackers.is_empty()).then_some(m)
     })

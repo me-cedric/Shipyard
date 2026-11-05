@@ -1,8 +1,13 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useI18n } from "@/lib/i18n";
-import { commands, unwrap } from "@/lib/ipc";
+import { format, useI18n } from "@/lib/i18n";
+import { commands, confirmDialog, errorDialog, toFailure, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
+import { useShell } from "@/lib/shell";
 import type { MenuItem } from "@/ui/molecules/context-menu";
+
+export { useAsk } from "./ask";
+export { useRename } from "./rename";
 
 export type MenuAction =
 	| "open"
@@ -18,7 +23,9 @@ export type MenuAction =
 	| "discard"
 	| "test"
 	| "edit"
-	| "remove";
+	| "remove"
+	| "rename"
+	| "delete";
 
 export type EntityKind =
 	| "ref"
@@ -38,7 +45,16 @@ export type EntityKind =
  * A row gives a handler for each action that applies to it now. An action with no handler is left out.
  */
 export const MENU: Record<EntityKind, MenuAction[]> = {
-	ref: ["open", "open-browser", "reveal", "open-default", "copy-ref", "copy-path"],
+	ref: [
+		"open",
+		"open-browser",
+		"reveal",
+		"open-default",
+		"copy-ref",
+		"copy-path",
+		"rename",
+		"delete",
+	],
 	project: ["open", "open-browser", "reveal", "copy-path"],
 	file: ["stage", "unstage", "discard", "reveal", "open-default", "copy-path"],
 	commit: ["open", "copy-sha"],
@@ -47,7 +63,7 @@ export const MENU: Record<EntityKind, MenuAction[]> = {
 	run: ["open", "copy-ref"],
 	pull: ["open", "open-browser", "copy-ref"],
 	branch: ["switch", "copy-ref"],
-	adr: ["open", "copy-ref", "copy-path"],
+	adr: ["open", "copy-ref", "copy-path", "rename", "delete"],
 	spec: ["open", "copy-ref", "copy-path"],
 };
 
@@ -83,6 +99,31 @@ export const revealPath = (path: string) => void unwrap(commands.revealPath(path
 export const openDefault = (path: string) =>
 	void unwrap(commands.openDefault(path)).catch(logError);
 
+/**
+ * Delete of a project file from a menu: one confirm that names the file, then the system trash,
+ * then fresh lists. The inspector closes when it showed the item. A failure shows in a dialog.
+ */
+export function useTrash() {
+	const { t } = useI18n();
+	const qc = useQueryClient();
+	const { selectedRef, closeDetail } = useShell();
+	return useCallback(
+		async (path: string, ref: string) => {
+			if (!(await confirmDialog(format(t.ui.item.confirmTrash, { path })))) return;
+			try {
+				await unwrap(commands.filesDelete(path, true));
+			} catch (e) {
+				await errorDialog(toFailure(e).message);
+				return;
+			}
+			for (const k of ["design", "knowledge", "refs", "specs"])
+				void qc.invalidateQueries({ queryKey: [k] });
+			if (selectedRef === ref) closeDetail();
+		},
+		[t, qc, selectedRef, closeDetail],
+	);
+}
+
 export type Handlers = Partial<Record<MenuAction, () => void>>;
 
 /** `menu(kind, handlers)` gives the items of the context menu of a row. */
@@ -104,6 +145,8 @@ export function useMenus() {
 			test: t.connections.test,
 			edit: t.connections.edit,
 			remove: t.connections.remove,
+			rename: t.ui.item.rename,
+			delete: t.ui.item.delete,
 		};
 		return (kind: EntityKind, handlers: Handlers): MenuItem[] =>
 			MENU[kind].flatMap((id) => {

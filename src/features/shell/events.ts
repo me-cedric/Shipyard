@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 import { useWatchNotice } from "@/lib/code";
+import { useFileChanges } from "@/lib/files";
 import { needsYouNotice, useFactoryEvents } from "@/lib/home";
 import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
@@ -198,6 +199,7 @@ export function useShellEvents() {
 	const notice = useWatchNotice().data?.changes[0];
 	const checkUpdate = useUpdateCheck();
 	useSyncTick();
+	useFileChanges();
 	useTickNotices();
 	useProjectSwitchedEvent();
 

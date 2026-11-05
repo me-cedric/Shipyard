@@ -6,6 +6,8 @@ Knowledge turns the files of the project into pages, documents, slides and lesso
 
 Graph draws the items of the project and the links between them. Filter by kind. A table view lists the same items.
 
+On the Code graph, Index starts the code graph server when it is off, builds the index, and stops the server again. If the start fails, the page shows the error.
+
 - An item that nothing cites shows as an orphan.
 - An item whose source changed later shows as stale.
 - Select an item to open it in the inspector.
@@ -20,13 +22,18 @@ Manual is this guide. It comes with the app and works without a project. Type a 
 
 ## Documents
 
-Documents lists the documents of the project. Search their text, rename them, delete them, and read a Word file. Export the architecture dossier and the functional documentation as Word files, and a client sheet as an Excel file.
+Documents lists the documents of the project. Search their text, rename them, delete them, and read a Word file. Export the architecture dossier and the functional documentation as Word files, and a client sheet as an Excel file. Each export opens a Save as dialog with the name filled in and the folder of your last save; Cancel exports nothing. After a save, Show in folder and Open work on the new file. A Word file has a cover page, a contents list (Word fills the page numbers when it asks to update the fields), the Mermaid diagrams of the project as pictures, and page numbers. A LikeC4 or draw.io file shows as a picture when a PNG with the same name sits next to it, and as its path when not. An Excel sheet has a styled header row that stays on screen.
 
 ## Slides
 
-Slides holds presentations written as text. Click Present to show a deck on the full window. Press Escape to stop.
+Slides holds the presentations of the project. Each deck is one HTML file in `docs/slides/`, with its animations and its steps.
 
-Click Add a slide to add a planning slide (the dates of each plan) or a costing slide (the days and the price of each sheet).
+- New deck: type a name. The assistant opens with a request for an agent to write the deck. Read the request, then send it.
+- Click a deck to show it. The arrow keys, Space, Home and End move through the slides and the steps.
+- Present shows the deck on the full screen. Press Escape to stop.
+- Export PDF: pick the file in the Save as dialog. Each slide becomes one page. This works on macOS only.
+- An older deck written as text shows read only. Click Convert to ask an agent to rewrite it as an HTML deck.
+- To delete a deck, open the menu of the deck, then click Delete. The file goes to the Trash.
 
 ## Learn
 

@@ -8,9 +8,12 @@ import {
 	commands,
 	type PluginApplied,
 	type PluginChange,
+	pickFolder,
+	pickPlugin,
 	type ChildResult_Serialize as Result,
 	type PluginReview_Serialize as Review,
 	type SyncState,
+	saveAs,
 	unwrap,
 	type WriteReport,
 } from "@/lib/ipc";
@@ -25,6 +28,8 @@ import {
 	ArrowDownTrayIcon,
 	ArrowUpTrayIcon,
 	Cog6ToothIcon,
+	FolderOpenIcon,
+	PlayIcon,
 	PlusIcon,
 	PuzzlePieceIcon,
 	TrashIcon,
@@ -170,6 +175,9 @@ export function Extensions() {
 	const [review, setReview] = useState<Review | null>(null);
 	const [accepted, setAccepted] = useState<Set<string>>(new Set());
 	const [applied, setApplied] = useState<PluginApplied | null>(null);
+	/** A manifest fault: the folder, the line and the reason. */
+	const [fault, setFault] = useState<{ dir: string; line: number; reason: string } | null>(null);
+	const [packaged, setPackaged] = useState("");
 
 	const [name, setName] = useState("");
 	const [url, setUrl] = useState("");
@@ -189,6 +197,36 @@ export function Extensions() {
 		return next;
 	};
 	const refresh = () => qc.invalidateQueries({ queryKey: ["children"] });
+
+	/** A fault of `manifest.json` shows with its line. Any other error goes to the guard. */
+	const keepFault = (e: unknown, dir: string) => {
+		const m = /^manifest\.json:(\d+): (.*)$/s.exec((e as { details?: string }).details ?? "");
+		if (!m) throw e;
+		setReview(null);
+		setFault({ dir, line: Number(m[1]), reason: m[2] ?? "" });
+	};
+	/** Read a zip or a folder and show the review. */
+	const look = async (p: string) => {
+		setFault(null);
+		setPackaged("");
+		try {
+			const r = await unwrap(commands.pluginReview(p));
+			setReview(r);
+			setApplied(null);
+			setAccepted(
+				new Set(
+					r.items.filter((i) => i.change === "new" || i.change === "changed").map((i) => i.id),
+				),
+			);
+		} catch (e) {
+			keepFault(e, p);
+		}
+	};
+	/** The plugin folder: the path field when it is not a zip, else a pick. */
+	const folderOf = async () => {
+		const cur = path.trim();
+		return cur && !cur.endsWith(".zip") ? cur : pickFolder();
+	};
 
 	return (
 		<div className="flex flex-col">
@@ -259,27 +297,102 @@ export function Extensions() {
 				>
 					<div className="flex items-end gap-2 p-3">
 						<Input label={x.plugin.path} value={path} onChange={(e) => setPath(e.target.value)} />
-						<Button
-							disabled={!path.trim()}
-							onClick={() =>
-								void run(async () => {
-									const r = await unwrap(commands.pluginReview(path.trim()));
-									setReview(r);
-									setApplied(null);
-									setAccepted(
-										new Set(
-											r.items
-												.filter((i) => i.change === "new" || i.change === "changed")
-												.map((i) => i.id),
-										),
-									);
-								})
-							}
-						>
+						<Button disabled={!path.trim()} onClick={() => void run(() => look(path.trim()))}>
 							<ArrowUpTrayIcon size={14} />
 							{x.plugin.review}
 						</Button>
 					</div>
+					<div className="flex flex-wrap gap-2 px-3 pb-3">
+						<Button
+							onClick={() =>
+								void run(async () => {
+									const f = await pickPlugin();
+									if (f) setPath(f);
+								})
+							}
+						>
+							<FolderOpenIcon size={14} />
+							{x.plugin.chooseFile}
+						</Button>
+						<Button
+							onClick={() =>
+								void run(async () => {
+									const parent = await pickFolder();
+									if (!parent) return;
+									const dir = await unwrap(commands.pluginNew(parent, true));
+									setPath(dir);
+									await unwrap(commands.projectsOpen(dir, false));
+									await qc.invalidateQueries();
+								})
+							}
+						>
+							<PlusIcon size={14} />
+							{x.plugin.newPlugin}
+						</Button>
+						<Button
+							onClick={() =>
+								void run(async () => {
+									const dir = await folderOf();
+									if (!dir) return;
+									setPath(dir);
+									await look(dir);
+								})
+							}
+						>
+							<PlayIcon size={14} />
+							{x.plugin.tryIn}
+						</Button>
+						<Button
+							onClick={() =>
+								void run(async () => {
+									const dir = await folderOf();
+									const dest = dir
+										? await saveAs(dir.split(/[\\/]/).pop() || "plugin", "zip")
+										: null;
+									if (!dir || !dest) return;
+									setPath(dir);
+									setFault(null);
+									try {
+										setPackaged(await unwrap(commands.pluginPackage(dir, dest, true)));
+									} catch (e) {
+										keepFault(e, dir);
+									}
+								})
+							}
+						>
+							<ArrowDownTrayIcon size={14} />
+							{x.plugin.package}
+						</Button>
+					</div>
+					{packaged ? (
+						<p role="status" className="px-3 pb-3 text-12 text-n-11">
+							{format(x.plugin.packaged, { path: packaged })}
+						</p>
+					) : null}
+					{fault ? (
+						<div
+							role="alert"
+							className="flex items-center gap-2 px-3 pb-3 text-ui text-danger-text"
+						>
+							<span>
+								{format(x.plugin.fault, {
+									file: "manifest.json",
+									line: String(fault.line),
+									reason: fault.reason,
+								})}
+							</span>
+							{fault.dir.endsWith(".zip") ? null : (
+								<Button
+									variant="ghost"
+									onClick={() =>
+										void run(() => unwrap(commands.pluginOpenLine(fault.dir, fault.line)))
+									}
+								>
+									{format(x.plugin.openLine, { file: "manifest.json", line: String(fault.line) })}
+								</Button>
+							)}
+						</div>
+					) : null}
 					{review
 						? CHANGES.map((c) => {
 								const rows = review.items.filter((i) => i.change === c);
@@ -304,6 +417,14 @@ export function Extensions() {
 													}
 												>
 													<Badge>{i.kind}</Badge>
+													{i.preview ? (
+														<details className="text-12 text-n-11">
+															<summary className="cursor-pointer">
+																{format(x.plugin.content, { name: i.label })}
+															</summary>
+															<pre className="max-h-40 overflow-auto font-mono">{i.preview}</pre>
+														</details>
+													) : null}
 												</EntryRow>
 											))}
 										</ul>
@@ -413,7 +534,18 @@ export function Extensions() {
 									{x.plugin.remove}
 								</Button>
 							</SettingsRow>
-							{editing === p.name ? <PluginSettings name={p.name} /> : null}
+							{editing === p.name ? (
+								<PluginSettings
+									name={p.name}
+									// The files that the new values change show in the same review.
+									onSaved={() => {
+										const src = p.source;
+										if (!src) return;
+										setPath(src);
+										void run(() => look(src));
+									}}
+								/>
+							) : null}
 						</div>
 					))}
 				</Panel>

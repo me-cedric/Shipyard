@@ -3,11 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER } from "@/lib/ipc/mock";
 import { ShellProvider } from "@/lib/shell";
+import { clearViewState, setViewProject } from "@/lib/shell/view-state";
 import { renderApp } from "@/ui/test-utils";
 import { Usage } from "./index";
 
 describe("Factory / Usage: iterations and prices", () => {
-	it("counts the iterations of each run and shows the prices only after a click", async () => {
+	beforeEach(() => clearViewState());
+
+	it("counts the iterations of each run, shows the prices by default and hides them on a click", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const u = await unwrap(commands.usageGet());
@@ -20,10 +23,33 @@ describe("Factory / Usage: iterations and prices", () => {
 		);
 		const table = await screen.findByRole("table", { name: "Usage" });
 		expect(within(table).getByRole("columnheader", { name: "Iterations" })).toBeInTheDocument();
-		expect(within(table).getAllByText("Hidden").length).toBeGreaterThan(0);
-		expect(within(table).queryByText(`$${(run.usd ?? 0).toFixed(2)}`)).toBeNull();
-		await user.click(screen.getByRole("switch", { name: "Show prices" }));
+		expect(screen.getByRole("switch", { name: "Show prices" })).toBeChecked();
 		expect(within(table).getAllByText(`$${(run.usd ?? 0).toFixed(2)}`).length).toBeGreaterThan(0);
+		await user.click(screen.getByRole("switch", { name: "Show prices" }));
+		expect(within(table).queryByText(`$${(run.usd ?? 0).toFixed(2)}`)).toBeNull();
+	});
+
+	it("remembers the switch, and a money tile shows tokens and never Hidden when it is off", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		setViewProject("demo");
+		const shown = () =>
+			renderApp(
+				<ShellProvider>
+					<Usage />
+				</ShellProvider>,
+			);
+		const first = shown();
+		await screen.findByRole("table", { name: "Usage" });
+		await user.click(screen.getByRole("switch", { name: "Show prices" }));
+		expect(screen.getByText("Tokens today")).toBeInTheDocument();
+		expect(screen.getByText("Runs")).toBeInTheDocument();
+		expect(screen.queryByText("Spend today")).toBeNull();
+		first.unmount();
+		shown();
+		await screen.findByRole("table", { name: "Usage" });
+		expect(screen.getByRole("switch", { name: "Show prices" })).not.toBeChecked();
+		setViewProject("");
 	});
 
 	it("shows the loading skeleton and no zero while the usage loads", async () => {
@@ -67,9 +93,10 @@ describe("Factory / Usage: iterations and prices", () => {
 		);
 		await screen.findByRole("table", { name: "Usage" });
 		await screen.findByRole("table", { name: /computer|machine/i });
-		expect(screen.queryByText("$12.34")).toBeNull();
-		await user.click(screen.getByRole("switch", { name: "Show prices" }));
 		expect(screen.getAllByText("$12.34").length).toBeGreaterThan(0);
+		await user.click(screen.getByRole("switch", { name: "Show prices" }));
+		expect(screen.queryByText("$12.34")).toBeNull();
+		expect(screen.getByText("Tokens this month")).toBeInTheDocument();
 		vi.restoreAllMocks();
 	});
 });

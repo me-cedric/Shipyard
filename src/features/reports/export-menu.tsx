@@ -19,6 +19,31 @@ export type ExportItem = {
 	form?: (done: (note: string) => void, close: () => void) => ReactNode;
 };
 
+/** "Show in folder" and "Open" for a file that an export wrote. A refusal goes to `onError`. */
+export function SavedActions({
+	path,
+	onError,
+}: {
+	path: string;
+	onError: (error: unknown) => void;
+}) {
+	const { t } = useI18n();
+	const place = (open: (path: string) => Promise<unknown>) => {
+		onError(null);
+		open(path).catch(onError);
+	};
+	return (
+		<>
+			<Button variant="ghost" onClick={() => place((p) => unwrap(commands.revealPath(p)))}>
+				{t.ui.item.reveal}
+			</Button>
+			<Button variant="ghost" onClick={() => place((p) => unwrap(commands.openDefault(p)))}>
+				{t.context.open}
+			</Button>
+		</>
+	);
+}
+
 /**
  * One Export menu. A choice opens the save dialog, or a form when the export needs input. Each write
  * needs this click. A failure shows with its sentence and its action (`ErrorNotice`).
@@ -47,10 +72,6 @@ export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?
 		}
 	};
 	// A failure of these two buttons shows like a failed export.
-	const place = (open: (path: string) => Promise<unknown>) => {
-		setFailure(null);
-		if (saved) open(saved).catch(setFailure);
-	};
 	return (
 		<span className="inline-flex flex-wrap items-center gap-2">
 			<Menu.Root>
@@ -79,16 +100,7 @@ export function ExportMenu({ items, disabled }: { items: ExportItem[]; disabled?
 					{note}
 				</span>
 			) : null}
-			{saved ? (
-				<>
-					<Button variant="ghost" onClick={() => place((p) => unwrap(commands.revealPath(p)))}>
-						{t.ui.item.reveal}
-					</Button>
-					<Button variant="ghost" onClick={() => place((p) => unwrap(commands.openDefault(p)))}>
-						{t.context.open}
-					</Button>
-				</>
-			) : null}
+			{saved ? <SavedActions path={saved} onError={setFailure} /> : null}
 			<ErrorNotice error={failure} />
 			{form?.form?.(setNote, () => setForm(null))}
 		</span>

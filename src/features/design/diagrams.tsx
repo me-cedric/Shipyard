@@ -227,6 +227,7 @@ export function Diagrams() {
 				tag: (t.design.formats as Record<string, string>)[a.format ?? ""] ?? a.format,
 				tone: FACE[a.format ?? ""]?.tone,
 				issue: a.issue,
+				path: a.path,
 			}))}
 			thumb={(row) => <Face a={rows.find((x) => x.reference === row.ref)} />}
 			create={{

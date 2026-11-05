@@ -45,6 +45,9 @@ export type Prefs = Pick<
 	| "panelSizes"
 	| "uiScale"
 	| "tray"
+	| "motion"
+	| "focusRing"
+	| "focusWidth"
 >;
 
 /** Font stacks that are on the machine already. Nothing is fetched. */
@@ -89,6 +92,9 @@ const DEFAULTS: Prefs = {
 	panelSizes: {},
 	uiScale: 16,
 	tray: true,
+	motion: "system",
+	focusRing: "keyboard",
+	focusWidth: 2,
 };
 
 type Ctx = Prefs & {
@@ -181,6 +187,14 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 		if (accent) el.dataset.accent = accent;
 		else delete el.dataset.accent;
 	}, [value.theme, value.density, value.contrast, accent]);
+
+	// The root attributes that the style sheet reads for the motion and the focus ring.
+	useEffect(() => {
+		const el = document.documentElement.dataset;
+		el.motion = value.motion;
+		el.focusRing = value.focusRing;
+		el.focusWidth = String(value.focusWidth);
+	}, [value.motion, value.focusRing, value.focusWidth]);
 
 	// The root font size scales the text and the spacing, which are in rem.
 	useEffect(() => {

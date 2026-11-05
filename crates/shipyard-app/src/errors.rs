@@ -14,7 +14,7 @@ use specta::Type;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum ActionKind {
-    /// Open a Settings field. `target` is `connections`, `trackerScope`, `pickupLabel` or `terminalApp`.
+    /// Open a Settings field. `target` is the route and the anchor id of the row, such as `/settings/project#issue-tracker`.
     Setting,
     /// Read the tracker again.
     Sync,
@@ -22,7 +22,7 @@ pub enum ActionKind {
     Install,
     /// Create a project.
     CreateProject,
-    /// Go to a page. `target` is its path, such as `/code/changes`.
+    /// Go to a page. `target` is its path, with an anchor id when a control must open, such as `/code/changes` or `/work/team#add-member`.
     Open,
 }
 
@@ -126,29 +126,32 @@ impl ErrorCode {
     fn action(self) -> Option<ErrorAction> {
         let (kind, target) = match self {
             Self::NoProject => (ActionKind::CreateProject, ""),
-            Self::NoMember | Self::UnknownMember => (ActionKind::Open, "/work/team"),
-            Self::NoTracker | Self::NoSecret | Self::TokenRefused | Self::NoAccount => {
-                (ActionKind::Setting, "connections")
+            Self::NoMember | Self::UnknownMember => (ActionKind::Open, "/work/team#add-member"),
+            Self::NoTracker => (ActionKind::Setting, "/settings/project#issue-tracker"),
+            Self::NoSecret | Self::TokenRefused | Self::NoAccount | Self::DeviceNotSet => {
+                (ActionKind::Setting, "/settings/connections#connections")
             }
-            Self::ScopeMissing => (ActionKind::Setting, "trackerScope"),
-            Self::PickupOff => (ActionKind::Setting, "pickupLabel"),
+            Self::ScopeMissing => (ActionKind::Setting, "/settings/project#tracker-scope"),
+            Self::PickupOff => (ActionKind::Setting, "/settings/project#pickup-label"),
             Self::TicketNotInMirror => (ActionKind::Sync, ""),
             Self::NodeMissing => (ActionKind::Install, "node"),
             Self::MergeDraft | Self::MergeClosed | Self::MergeMethod => {
                 (ActionKind::Open, "/code/pull-requests")
             }
             Self::ForgeDenied | Self::GitlabNoMcp | Self::GitlabAddress => {
-                (ActionKind::Setting, "connections")
+                (ActionKind::Setting, "/settings/connections#connections")
             }
-            Self::CertUntrusted => (ActionKind::Setting, "certificate"),
+            Self::CertUntrusted => (ActionKind::Setting, "/settings/connections#certificates"),
             Self::GitNothingStaged => (ActionKind::Open, "/code/changes"),
             Self::GitNoUpstream => (ActionKind::Open, "/code/branches"),
-            Self::NoTerminal | Self::TerminalGone => (ActionKind::Setting, "terminalApp"),
+            Self::NoTerminal | Self::TerminalGone => {
+                (ActionKind::Setting, "/settings/me#terminal-app")
+            }
             Self::NoRemote => (ActionKind::Open, "/code/branches"),
-            Self::NoCompass => (ActionKind::Open, "/settings/agents-rules"),
-            Self::ToolMissing => (ActionKind::Open, "/settings/health"),
-            Self::ConnectionKind => (ActionKind::Setting, "connections"),
-            Self::SignInFailed => (ActionKind::Setting, "connections"),
+            Self::NoCompass => (ActionKind::Open, "/settings/agents-rules#compass-upgrade"),
+            Self::ToolMissing => (ActionKind::Open, "/settings/health#tools"),
+            Self::ConnectionKind => (ActionKind::Setting, "/settings/connections#connections"),
+            Self::SignInFailed => (ActionKind::Setting, "/settings/connections#connections"),
             Self::GitState => (ActionKind::Open, "/code/branches"),
             _ => return None,
         };
@@ -456,27 +459,33 @@ mod tests {
         assert_eq!(e.code, ErrorCode::TicketNotInMirror);
         assert_eq!(e.action.unwrap().kind, ActionKind::Sync);
         let e = AppError::from("set the tracker scope: the tracker scope is not set");
-        assert_eq!(e.action.unwrap().target, "trackerScope");
+        assert_eq!(e.action.unwrap().target, "/settings/project#tracker-scope");
         assert_eq!(AppError::from("odd").code, ErrorCode::Unknown);
         let e = AppError::from("a draft pull request cannot merge: mark it ready first");
         assert_eq!(e.action.unwrap().kind, ActionKind::Open);
         let e = AppError::from("HTTP 401: bad credentials");
-        assert_eq!(e.action.unwrap().target, "connections");
+        assert_eq!(
+            e.action.unwrap().target,
+            "/settings/connections#connections"
+        );
         // An outage has no action: a forge outage must not read the tracker again.
         let e = AppError::from("network error: connection refused");
         assert_eq!((e.code, e.action), (ErrorCode::ForgeUnreachable, None));
         // A proxy that the OS trusts and the client does not: the person adds its certificate.
         let e = AppError::from("network error: invalid peer certificate: UnknownIssuer");
         assert_eq!(e.code, ErrorCode::CertUntrusted);
-        assert_eq!(e.action.unwrap().target, "certificate");
+        assert_eq!(
+            e.action.unwrap().target,
+            "/settings/connections#certificates"
+        );
         let e = AppError::from("invalid change id: Bad Id");
         assert_eq!((e.code, e.action), (ErrorCode::ChangeIdInvalid, None));
         let e = AppError::from("the terminal app is not installed: Kitty");
-        assert_eq!(e.action.unwrap().target, "terminalApp");
+        assert_eq!(e.action.unwrap().target, "/settings/me#terminal-app");
         // A named member that is not in the team is not the signed-in person.
         let e = AppError::from("the team has no member `zed`");
         assert_eq!(e.code, ErrorCode::UnknownMember);
-        assert_eq!(e.action.unwrap().target, "/work/team");
+        assert_eq!(e.action.unwrap().target, "/work/team#add-member");
         // Each entry of the table is reached: an earlier needle never hides a later one.
         // Sample of the grouped codes: each gets its action, or none.
         let e = AppError::from("unknown project: zed");
@@ -486,7 +495,7 @@ mod tests {
         assert_eq!(e.action.unwrap().target, "/code/branches");
         let e = AppError::from("the orca command is not installed");
         assert_eq!(e.code, ErrorCode::ToolMissing);
-        assert_eq!(e.action.unwrap().target, "/settings/health");
+        assert_eq!(e.action.unwrap().target, "/settings/health#tools");
         let e = AppError::from("the title is empty");
         assert_eq!(e.code, ErrorCode::InputInvalid);
         // The base branch text keeps the base code, not the missing-path code.

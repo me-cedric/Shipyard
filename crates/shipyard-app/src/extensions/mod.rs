@@ -5,6 +5,7 @@
 pub mod compass;
 pub mod compass_setup;
 pub mod manage;
+pub mod plugin_author;
 pub mod plugin_settings;
 
 use std::path::{Path, PathBuf};
@@ -98,13 +99,18 @@ pub async fn catalog_deploy(app: AppHandle, id: String) -> Api<WriteReport> {
 
 // ---------------------------------------------------------------- plugins
 
-/// A plugin file is bounded before it is read.
+/// A plugin zip is bounded before it is read. A folder is packed in memory first, so it passes the
+/// same guards as its zip.
 fn plugin_at(path: &str) -> Res<plugins::Plugin> {
     let meta = std::fs::metadata(path).map_err(err)?;
-    if !meta.is_file() || meta.len() > 12 * 1024 * 1024 {
+    let bytes = if meta.is_dir() {
+        plugins::pack(Path::new(path)).map_err(err)?
+    } else if meta.is_file() && meta.len() <= 12 * 1024 * 1024 {
+        std::fs::read(path).map_err(err)?
+    } else {
         return Err("the archive is not a file or is too large".into());
-    }
-    plugins::read(&std::fs::read(path).map_err(err)?).map_err(err)
+    };
+    plugins::read(&bytes).map_err(err)
 }
 
 /// Read the `.zip` as data and list what it would write. Nothing is written (REQ-011, REQ-012).
@@ -138,17 +144,15 @@ pub async fn plugin_apply(
 ) -> Api<PluginApplied> {
     blocking(app, move |s| {
         crate::work::refuse_read_only(s)?;
-        let done = plugins::apply(&root(s)?, &plugin_at(&path)?, &accepted).map_err(err)?;
+        let plugin = plugin_at(&path)?;
+        let done = plugins::apply(&root(s)?, &plugin, &accepted).map_err(err)?;
+        // The path stays in the app data folder, never in the repository file.
+        let id = crate::design::project(s)?.id;
+        shipyard_store::plugin_manage::set_source(&s.dir, &id, &plugin.name, Some(&path))
+            .map_err(err)?;
         let (mut mcp_added, mut mcp_failed) = (Vec::new(), Vec::new());
         for (name, server) in done.mcp {
-            let draft = McpCustom {
-                id: None,
-                name: name.clone(),
-                description: "Plugin".into(),
-                command: server.url.unwrap_or_default(),
-                args: Vec::new(),
-                env: Vec::new(),
-            };
+            let draft = remote_draft(&name, server.url.unwrap_or_default(), &server.headers);
             match s.agents.mcp_add_custom(draft) {
                 Ok(_) => mcp_added.push(name),
                 Err(e) => mcp_failed.push(format!("{name}: {e}")),
@@ -161,6 +165,56 @@ pub async fn plugin_apply(
         })
     })
     .await
+}
+
+/// A plugin's remote server as a custom server. Each header goes to `mcp-remote` as
+/// `--header Name:${VAR}`, and each `${VAR}` becomes an empty field that the person fills in
+/// Connections: the plugin never holds the value (REQ-013).
+fn remote_draft(
+    name: &str,
+    url: String,
+    headers: &std::collections::BTreeMap<String, String>,
+) -> McpCustom {
+    let mut args = Vec::new();
+    let mut env = Vec::new();
+    for (header, value) in headers {
+        args.push("--header".to_string());
+        args.push(format!("{header}:{value}"));
+        if let Some(var) = value.strip_prefix("${").and_then(|v| v.strip_suffix('}')) {
+            env.push(crate::agents::McpEnv {
+                key: var.to_string(),
+                value: String::new(),
+            });
+        }
+    }
+    McpCustom {
+        id: None,
+        name: name.to_string(),
+        description: "Plugin".into(),
+        command: url,
+        args,
+        env,
+    }
+}
+
+#[cfg(test)]
+mod remote_draft_tests {
+    use super::*;
+
+    #[test]
+    fn a_plugin_server_keeps_its_headers_as_references_and_fields() {
+        let headers = std::collections::BTreeMap::from([(
+            "Authorization".to_string(),
+            "${ACME_TOKEN}".to_string(),
+        )]);
+        let d = remote_draft("acme", "https://mcp.acme.test/v1".into(), &headers);
+        assert_eq!(d.args, ["--header", "Authorization:${ACME_TOKEN}"]);
+        assert_eq!(d.env.len(), 1);
+        assert_eq!(
+            (d.env[0].key.as_str(), d.env[0].value.as_str()),
+            ("ACME_TOKEN", "")
+        );
+    }
 }
 
 // ---------------------------------------------------------------- child projects

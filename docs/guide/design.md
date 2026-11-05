@@ -8,6 +8,14 @@ Design keeps the architecture of the project: diagrams, decisions, API contracts
 2. Change the text or the drawing. The preview follows.
 3. Click Save. The app writes the whole file or nothing.
 
+## Delete an item
+
+Open the menu of an item (right-click) and choose Delete, or click Delete in the inspector. The app names the file and asks once. The file then goes to the Trash. A read-only project refuses the delete.
+
+## Rename an item and ask the assistant
+
+The item menu has Rename. Type the new name; the extension stays. Review lists each file and line whose links change. Rename then moves the file and rewrites those links in one step. If a write fails, every file stays as it was. A read-only project refuses the rename. The last group of the menu is Ask the assistant: pick a prompt for this kind of item and your role. It fills the message box with the item, its file, its spec, its ticket and the items that cite it. Nothing is sent until you send it.
+
 When somebody changes the file at the same time, the app tells you. Choose Reload to take their version, or Keep mine.
 
 ## Diagrams
@@ -39,7 +47,7 @@ Flows lists the network flows as a table: from where, to where, the port and the
 
 ## Screens
 
-Screens shows the screens of the product and the design tokens: the colours, by family.
+Screens shows the screens of the product and the design tokens of your project. They come from the design doc (CSS in a code block), from a `tokens.css` file, from a `*.tokens.json` file or from a Tailwind 4 `@theme` block, grouped by file. With no token the page says No tokens yet; click Add tokens to the design doc, edit the block, then save. The page never shows the tokens of Shipyard.
 
 - A `.fig` file shows the preview that Figma keeps in it.
 - To read Figma, add the token of your Figma account once. It goes to the keychain of your computer.

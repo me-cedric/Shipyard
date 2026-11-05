@@ -17,7 +17,6 @@ import { LiveDot } from "@/ui/atoms/live-dot";
 import {
 	ArrowPathIcon,
 	ChatBubbleIcon,
-	ChevronDownIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	CommandLineIcon,
@@ -31,6 +30,7 @@ import {
 } from "@/ui/icons";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { ProjectSwitcher } from "@/ui/molecules/project-switcher";
+import { SplitButton } from "@/ui/molecules/split-button";
 import { NotificationCentre } from "@/ui/organisms/notification-centre";
 import type { Action } from "./actions";
 import { ActiveSessions } from "./active-sessions";
@@ -152,15 +152,13 @@ export function ContextBar({
 					</li>
 				</ul>
 			) : null}
-			<button type="button" className={chip} onClick={sync.run} disabled={sync.disabled}>
-				<AnimatedIcon icon={ArrowPathIcon} size={14} spin={syncing} />
-				{sync.label}
-			</button>
-			<MenuButton
-				iconOnly
-				label={t.workspace.view.syncMore}
-				icon={<ChevronDownIcon size={12} />}
-				disabled={fetch.disabled}
+			<SplitButton
+				label={sync.label}
+				icon={<AnimatedIcon icon={ArrowPathIcon} size={14} spin={syncing} />}
+				onClick={sync.run}
+				disabled={sync.disabled}
+				moreLabel={t.workspace.view.syncMore}
+				moreDisabled={fetch.disabled}
 				items={[fetch, push].map((a) => ({ id: a.id, label: a.label, onSelect: a.run }))}
 			/>
 			<span className="flex-1" />

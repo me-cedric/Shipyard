@@ -290,7 +290,7 @@ export function Team() {
 			count={members.length}
 			action={
 				empty ? null : (
-					<Button variant="primary" onClick={add}>
+					<Button id="add-member" variant="primary" onClick={add}>
 						<PlusIcon size={14} />
 						{t.work.team.add}
 					</Button>
@@ -315,7 +315,12 @@ export function Team() {
 				<div className="p-4">
 					<EmptyState
 						title={t.empty.team}
-						action={{ label: t.work.team.add, icon: <PlusIcon size={14} />, onClick: add }}
+						action={{
+							id: "add-member",
+							label: t.work.team.add,
+							icon: <PlusIcon size={14} />,
+							onClick: add,
+						}}
 					/>
 				</div>
 			) : (

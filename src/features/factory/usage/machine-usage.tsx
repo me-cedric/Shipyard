@@ -85,6 +85,7 @@ export function MachineUsage({ prices }: { prices: boolean }) {
 	const rows = all.filter((r) => r.day >= since);
 	const month = new Date().toISOString().slice(0, 7);
 	const monthRows = all.filter((r) => r.day.startsWith(month));
+	const monthTokens = monthRows.reduce((a, r) => a + (r.tokens ?? 0), 0);
 	const byDay = group(rows, "day");
 	const chart = Array.from({ length: days }, (_, i) => day(days - 1 - i)).map(
 		(d) => byDay.find((l) => l.name === d) ?? { name: d, tokens: 0, usd: 0 },
@@ -128,8 +129,12 @@ export function MachineUsage({ prices }: { prices: boolean }) {
 			<StatStrip
 				items={[
 					{
-						label: m.month,
-						value: <CountUp value={total} format={money.format} />,
+						label: prices ? m.month : t.extras.usage.tokensMonth,
+						value: prices ? (
+							<CountUp value={total} format={money.format} />
+						) : (
+							<CountUp value={monthTokens} />
+						),
 						icon: <ComputerDesktopIcon size={12} />,
 						tone: "info",
 						trend: chart.map((l) => l.usd),

@@ -123,6 +123,7 @@ describe("motion (REQ-002)", () => {
 		const theme = block("@theme");
 		expect(decl(theme, "--duration-fast")).toBe("120ms");
 		expect(decl(theme, "--duration-base")).toBe("200ms");
+		expect(decl(theme, "--duration-thumb")).toBe("180ms");
 	});
 
 	it("loops only the live-state indicators (active run, live agent, running sync) and the loading rows", () => {
@@ -197,6 +198,17 @@ describe("high contrast (REQ-012)", () => {
 			expect(h.light, `n-${n} light`).toBeLessThan(d.light);
 			expect(h.dark, `n-${n} dark`).toBeGreaterThan(d.dark);
 		}
+	});
+
+	it("moves the accent text further from the soft accent tint of the active page tab", () => {
+		const ls = (body: string) =>
+			[...(decl(body, "--accent-text") ?? "").matchAll(/oklch\(([\d.]+)/g)].map((m) =>
+				Number(m[1]),
+			);
+		const [dl = 0, dd = 0] = ls(root);
+		const [hl = 0, hd = 0] = ls(high);
+		expect(hl).toBeLessThan(dl);
+		expect(hd).toBeGreaterThan(dd);
 	});
 });
 

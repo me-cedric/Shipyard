@@ -1,5 +1,5 @@
 import { isTauri } from "@tauri-apps/api/core";
-import { confirmMock, pickFileMock, pickMock } from "./mock";
+import { confirmMock, pickFileMock, pickMock, saveMock } from "./mock";
 
 /** The native folder picker. Returns null when the person cancels. */
 export async function pickFolder(): Promise<string | null> {
@@ -19,6 +19,16 @@ export async function pickWorkbook(): Promise<string | null> {
 	return typeof path === "string" ? path : null;
 }
 
+const ZIP = [{ name: "Zip", extensions: ["zip"] }];
+
+/** The native picker for a plugin zip. Returns null when the person cancels. */
+export async function pickPlugin(): Promise<string | null> {
+	if (!isTauri()) return pickFileMock();
+	const { open } = await import("@tauri-apps/plugin-dialog");
+	const path = await open({ multiple: false, filters: ZIP });
+	return typeof path === "string" ? path : null;
+}
+
 const PEM = [{ name: "Certificate", extensions: ["pem", "crt", "cer"] }];
 
 /** The native picker for a PEM bundle. Returns null when the person cancels. */
@@ -29,21 +39,22 @@ export async function pickCertificate(): Promise<string | null> {
 	return typeof path === "string" ? path : null;
 }
 
-/** The native dialog for the workbook to write. Returns null when the person cancels. */
-export async function saveWorkbook(name: string): Promise<string | null> {
-	if (!isTauri()) return pickFileMock();
-	const { save } = await import("@tauri-apps/plugin-dialog");
-	return save({ defaultPath: `${name}.xlsx`, filters: EXCEL });
-}
+const LAST_DIR = "shipyard.saveDir";
 
-/** The native dialog for a file of any one extension to write. Returns null when the person cancels. */
+/**
+ * The native "Save as" dialog for a file of one extension, with the name and the type filled in.
+ * It opens in the folder of the last save. Returns null when the person cancels.
+ */
 export async function saveAs(name: string, ext: string): Promise<string | null> {
-	if (!isTauri()) return `/mock/${name}.${ext}`;
+	if (!isTauri()) return saveMock(`/mock/${name}.${ext}`);
 	const { save } = await import("@tauri-apps/plugin-dialog");
-	return save({
-		defaultPath: `${name}.${ext}`,
+	const dir = localStorage.getItem(LAST_DIR);
+	const path = await save({
+		defaultPath: dir ? `${dir}/${name}.${ext}` : `${name}.${ext}`,
 		filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
 	});
+	if (path) localStorage.setItem(LAST_DIR, path.replace(/[\\/][^\\/]*$/, ""));
+	return path;
 }
 
 const IMAGE = [{ name: "Image", extensions: ["png", "jpg", "jpeg"] }];

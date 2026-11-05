@@ -3,8 +3,9 @@ import { motion } from "motion/react";
 import { Fragment, type ReactNode, useState } from "react";
 import { message, useDesignList } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
-import { copyText, useMenus } from "@/lib/menus";
+import { copyText, useAsk, useMenus, useRename, useTrash } from "@/lib/menus";
 import { useActiveProject, useProjectActions } from "@/lib/projects";
+import { useRefFilter } from "@/lib/refs";
 import { useFormIntent, useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
 import { cn } from "@/lib/utils";
@@ -170,6 +171,9 @@ export function ArtifactTab({
 	const { openRef } = useShell();
 	const { openFolder } = useProjectActions();
 	const menu = useMenus();
+	const trash = useTrash();
+	const rename = useRename();
+	const askItems = useAsk();
 	const all = pinned ? [pinned, ...rows] : rows;
 	// The first artifact opens by default, and the choice stays with the tab.
 	const [selected, setSelected] = useTabSelection(
@@ -180,6 +184,7 @@ export function ArtifactTab({
 	useFormIntent(form, () => setAdding(true));
 	const [view, setView] = useState<"list" | "grid">("list");
 	const enter = useEnter();
+	const filter = useRefFilter();
 
 	if (active === undefined) return null;
 	if (active === null)
@@ -199,18 +204,27 @@ export function ArtifactTab({
 		);
 	if (list.isLoading) return <Loading />;
 	const open = all.find((r) => r.ref === selected);
+	// The index finds the rows by their text, in the same command as the palette.
+	const shown = filter.refs ? rows.filter((r) => filter.refs?.has(r.ref)) : rows;
 	const add = () => setAdding(true);
 	const pick = (ref: string) => {
 		setSelected(ref);
 		setView("list");
 		openRef(ref);
 	};
-	const rowMenu = (r: Row) =>
-		menu(r.ref.startsWith("adr:") ? "adr" : "ref", {
+	const rowMenu = (r: Row) => [
+		...menu(r.ref.startsWith("adr:") ? "adr" : "ref", {
 			open: () => pick(r.ref),
 			"copy-ref": () => copyText(r.ref),
 			"copy-path": r.path ? () => copyText(r.path as string) : undefined,
-		});
+			rename:
+				r.path && !rename.locked
+					? () => rename.start(r.path as string, (ref) => pick(ref))
+					: undefined,
+			delete: r.path ? () => void trash(r.path as string, r.ref) : undefined,
+		}),
+		...askItems(r.ref, r.path),
+	];
 	return (
 		<ListDetail
 			title={title}
@@ -239,10 +253,21 @@ export function ArtifactTab({
 				)
 			}
 		>
+			{rename.dialog}
 			{list.error || notice ? (
 				<p role="alert" className="px-4 pb-2 text-ui text-danger-text">
 					{list.error ? message(list.error) : notice}
 				</p>
+			) : null}
+			{rows.length > 0 ? (
+				<div className="px-4 pb-2">
+					<Input
+						label={t.palette.placeholder}
+						type="search"
+						value={filter.text}
+						onChange={(e) => filter.setText(e.target.value)}
+					/>
+				</div>
 			) : null}
 			{rows.length === 0 && !pinned ? (
 				<div className="p-4">
@@ -259,7 +284,7 @@ export function ArtifactTab({
 					animate="shown"
 					className="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-3 overflow-auto px-4 pt-1 pb-4"
 				>
-					{rows.map((r) => (
+					{shown.map((r) => (
 						<li key={r.ref}>
 							<ContextMenu items={rowMenu(r)}>
 								<Card interactive className="overflow-hidden p-0">
@@ -290,7 +315,7 @@ export function ArtifactTab({
 							aria-label={title}
 							className="flex shrink-0 flex-col gap-0.5 overflow-auto rounded-lg border bg-surface-1 p-1.5 shadow-1"
 						>
-							{all.map((r) => (
+							{(pinned ? [pinned, ...shown] : shown).map((r) => (
 								<li
 									key={r.ref}
 									className={cn(

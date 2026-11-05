@@ -13,7 +13,7 @@ import type {
 	ProjectFile_Serialize,
 	ProjectOutcome_Serialize,
 	Resolved_Serialize,
-	SearchHit,
+	SearchHit_Serialize,
 	TestOutcome,
 } from "./bindings";
 import * as ap from "./mock-agent-pr";
@@ -21,6 +21,7 @@ import {
 	catalog,
 	type MockAgents,
 	mcpAddCustom,
+	mcpCustomPaste,
 	mcpServer,
 	mcpStart,
 	mcpState,
@@ -84,6 +85,7 @@ import * as mc from "./mock-machine";
 import * as mt from "./mock-mcp-tools";
 import { cards, chainGate, seedLinks, seedNotes } from "./mock-overview";
 import { parseRef } from "./mock-refs";
+import { linkChanges, rewriteLinks } from "./mock-rename";
 import * as rp from "./mock-reports";
 import * as rv from "./mock-review";
 import { SUGGESTION, scopesOf, tokenPage } from "./mock-setup";
@@ -263,6 +265,9 @@ const fresh = (): State => ({
 		panelSizes: {},
 		uiScale: 16,
 		tray: true,
+		motion: "system",
+		focusRing: "keyboard",
+		focusWidth: 2,
 	},
 	projects: [],
 	files: {},
@@ -325,6 +330,13 @@ export function pickFileMock(): string | null {
 	return f;
 }
 
+/** The save dialog of the mock: the path that a test names, `""` for Cancel, or `fallback`. */
+export function saveMock(fallback: string): string | null {
+	const f = state.nextFile ?? fallback;
+	state.nextFile = undefined;
+	return f || null;
+}
+
 export const confirmMock = () => state.confirm;
 
 // The refs of the app come from the repository files. The mock reads its seeded files.
@@ -353,11 +365,31 @@ function fileWrite(
 	if (active()?.overrides.readOnly === true) throw "the profile of this project is read only";
 	if (
 		(kind === "rename" || kind === "delete") &&
-		rv.moveFile([state.specs.files, state.knowledge.files, review().docx], kind, path, to, click)
+		rv.moveFile(
+			[state.specs.files, state.knowledge.files, state.design.files, review().docx],
+			kind,
+			path,
+			to,
+			click,
+		)
 	)
 		return null;
 	filesAction(code(), click, kind, path, to);
 	return null;
+}
+
+const fileMaps = () => [
+	state.specs.files,
+	state.knowledge.files,
+	state.design.files,
+	review().docx,
+];
+
+/** A rename with links: the file moves, then the other mock files name the new path. */
+function renameLinks(from: string, to: string, click: boolean) {
+	fileWrite("rename", from, click, to);
+	rewriteLinks(fileMaps(), from, to);
+	return `doc:${to}`;
 }
 
 function review(): rv.MockReview {
@@ -506,7 +538,13 @@ function backlinks(text: string): BacklinkGroup_Serialize[] {
 		.map(([kind, items]) => ({ kind, count: items.length, items }));
 }
 
-function search(query: string, limit: number): SearchHit[] {
+/** The text with the first match between the marks of the index (control characters). */
+function mark(text: string, q: string): string {
+	const i = text.toLowerCase().indexOf(q);
+	return `${text.slice(0, i)}\u0002${text.slice(i, i + q.length)}\u0003${text.slice(i + q.length)}`;
+}
+
+function search(query: string, limit: number): SearchHit_Serialize[] {
 	const q = query.trim().toLowerCase();
 	if (!q || !active()) return [];
 	const all = [
@@ -520,7 +558,13 @@ function search(query: string, limit: number): SearchHit[] {
 			? [
 					{
 						rank: byRef ? 0 : 1,
-						hit: { ref, kind: ref.slice(0, ref.indexOf(":")), title: e.title },
+						hit: {
+							ref,
+							kind: ref.slice(0, ref.indexOf(":")),
+							title: e.title,
+							// The marks of the index: control characters around the matched text.
+							snippet: byRef ? null : mark(e.title, q),
+						},
 					},
 				]
 			: [];
@@ -787,6 +831,7 @@ const handlers: Handlers = {
 		if (!state.prefs.releaseUrl.trim()) state.prefs.releaseUrl = RELEASE_URL;
 		state.prefs.terminalFontSize = Math.min(24, Math.max(9, state.prefs.terminalFontSize));
 		state.prefs.uiScale = Math.min(20, Math.max(14, state.prefs.uiScale));
+		if (![2, 3].includes(state.prefs.focusWidth)) state.prefs.focusWidth = 2;
 		// An app id is a-z, 0-9 and `-`.
 		state.prefs.terminalApp = state.prefs.terminalApp.trim().replace(/[^a-z0-9-]/g, "");
 		if (!["en", "fr"].includes(state.prefs.promptLang)) state.prefs.promptLang = "";
@@ -1119,7 +1164,11 @@ const handlers: Handlers = {
 	certsRemove: (click) => dr.certsRemove(state.doctor, click),
 	mcpOutsideGet: () => dr.outsideStatus(state.doctor),
 	mcpOutsideSet: (gates) => dr.outsideSet(state.doctor, gates),
-	mcpOutsideWire: () => dr.outsideWire(state.doctor, active()?.path ?? null),
+	mcpWiringList: () => dr.wiringList(state.doctor, active()?.path ?? null),
+	mcpWiringReview: (id) => dr.wiringReview(state.doctor, active()?.path ?? null, id),
+	mcpWiringApply: (id, reviewed) =>
+		dr.wiringApply(state.doctor, active()?.path ?? null, id, reviewed),
+	mcpCustomPaste: (text) => mcpCustomPaste(state.agents, text),
 	mcpOutsideToken: () => dr.outsideToken(state.doctor),
 	mcpElsewhereList: () => state.doctor.elsewhere,
 	mcpElsewhereImport: (source, name) => dr.elsewhereImport(state.doctor, source, name),
@@ -1433,6 +1482,8 @@ const handlers: Handlers = {
 	filesCreateFile: (path, click) => fileWrite("file", path, click),
 	filesCreateFolder: (path, click) => fileWrite("folder", path, click),
 	filesRename: (from, to, click) => fileWrite("rename", from, click, to),
+	filesRenameReview: (from, to) => linkChanges(fileMaps(), from, to),
+	filesRenameLinks: (from, to, click) => renameLinks(from, to, click),
 	filesDelete: (path, click) => fileWrite("delete", path, click),
 	codeWatchNotice: () => (active() ? (code().notice ?? null) : null),
 	codePullDetail: (number) =>
@@ -1484,6 +1535,7 @@ const handlers: Handlers = {
 		design.designOpen(need(state.design), target);
 		return null;
 	},
+	designTokens: () => design.designTokens(need(state.design)),
 	designBytes: (path) => design.designBytes(need(state.design), path),
 	specsChanges: () => specs.changes(need(state.specs)),
 	specsChangeCreate: (id) => specs.changeCreate(need(state.specs), id, state.work.today),
@@ -1557,6 +1609,9 @@ const handlers: Handlers = {
 	catalogDeploy: (id) => ex.catalogDeploy(need(state.extensions), id),
 	pluginReview: (path) => ex.pluginReview(need(state.extensions), path),
 	pluginApply: (path, accepted) => ex.pluginApply(need(state.extensions), path, accepted),
+	pluginNew: (parent, click) => ex.pluginNew(parent, click),
+	pluginPackage: (dir, dest, click) => ex.pluginPackage(need(state.extensions), dir, dest, click),
+	pluginOpenLine: (dir, line) => ex.pluginOpenLine(need(state.extensions), dir, line),
 	compassPolicies: () => ex.compassPolicies(need(state.extensions)),
 	compassPolicyApply: (id, click) => ex.compassPolicyApply(need(state.extensions), id, click),
 	compassImport: (path, click) => ex.compassImport(need(state.extensions), path, click),
@@ -1625,6 +1680,8 @@ const handlers: Handlers = {
 	slideThemeGet: () => kw.themeGet(need(state.knowledge)),
 	slideThemeSet: (theme, stamp) => kw.themeSet(need(state.knowledge), theme, stamp),
 	slideParse: (text) => kw.slideParse(text),
+	deckList: () => kw.deckList(need(state.knowledge)),
+	deckPdf: (path, dest) => kw.deckPdf(need(state.knowledge), path, dest),
 	dashboardListGet: () => kw.dashboardList(need(state.knowledge)),
 	dashboardGetOne: (slug) => kw.dashboardGet(need(state.knowledge), slug),
 	dashboardSaveOne: (slug, dashboard, stamp) =>
@@ -1639,6 +1696,7 @@ const handlers: Handlers = {
 	learningPathDelete: (id, click) => lrn.pathDelete(need(state.learning), id, click),
 	learningProgressSet: (person, step, done, click) =>
 		lrn.progressSet(need(state.learning), person, step, done, click),
+	exportDiagramsGet: () => kw.exportDiagrams(),
 	exportDossierFile: (text, views, path) =>
 		kw.exportDossier(need(state.knowledge), text, views, path),
 	exportFunctionalFile: (text, path) => kw.exportFunctional(need(state.knowledge), text, path),
@@ -1748,8 +1806,11 @@ const handlers: Handlers = {
 	assistantDiff: (id) => ai.diff(state.assistant, assistantEnv(), id),
 	assistantSaveDraft: (id, draft, context) =>
 		ai.saveDraft(state.assistant, assistantEnv(), id, draft, context),
-	assistantSettingsSet: (id, settings) =>
-		ai.settingsSet(state.assistant, assistantEnv(), id, settings),
+	assistantSettingsSet: (id, settings) => {
+		if (settings.permission === "bypass" && fx.killSwitchGet(state.factory))
+			throw "Bypass permissions is refused while the agents switch is off.";
+		return ai.settingsSet(state.assistant, assistantEnv(), id, settings);
+	},
 	assistantRefAdd: (id, text) => ai.refAdd(state.assistant, assistantEnv(), id, text),
 	assistantRefRemove: (id, text) => ai.refRemove(state.assistant, assistantEnv(), id, text),
 	assistantSend: (id, text, quotes, context) =>
@@ -1829,6 +1890,7 @@ const handlers: Handlers = {
 	assistantDefaultsGet: () => ai.defaultsGet(state.assistant),
 	assistantDefaultsSet: (d) => ai.defaultsSet(state.assistant, d),
 	assistantOptions: () => ai.options(),
+	assistantSlashCommands: (runner) => ai.slashCommands(runner),
 	personasList: () => need(state.delivery.personas),
 	personasSave: (list) => {
 		need(null);

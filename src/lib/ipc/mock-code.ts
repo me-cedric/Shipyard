@@ -171,7 +171,22 @@ export function codeStatus(c: MockCode): Changes_Serialize {
 		conflicted,
 		merging: c.merging,
 		rebasing: c.rebasing,
+		...lineCounts(all.map(([, f]) => [f.head, f.work])),
 	};
+}
+
+/** Lines added and removed from HEAD to the working copy. shortcut: a line set compare, not a real diff. */
+function lineCounts(files: [string | null, string | null][]) {
+	let added = 0;
+	let removed = 0;
+	for (const [head, work] of files) {
+		if (head === work) continue;
+		const before = (head ?? "").split("\n").filter(Boolean);
+		const after = (work ?? "").split("\n").filter(Boolean);
+		added += after.filter((l) => !before.includes(l)).length;
+		removed += before.filter((l) => !after.includes(l)).length;
+	}
+	return { added, removed };
 }
 
 export function codeDiff(c: MockCode, path: string, side: DiffSide): FileDiff {

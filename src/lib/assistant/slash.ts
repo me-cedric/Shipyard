@@ -1,34 +1,8 @@
-// The slash commands of the composer: the prompts of the current
-// screen. A command inserts its prompt in the draft. The person reads it and sends it.
-
-export type SlashId =
-	| "explain"
-	| "fix"
-	| "review"
-	| "summarize"
-	| "plan"
-	| "tests"
-	| "commit"
-	| "spec"
-	| "triage";
-
-const COMMON: SlashId[] = ["explain", "fix", "review", "summarize", "plan"];
-/** The commands that a space adds in front of the common ones, by path prefix. */
-const BY_VIEW: [string, SlashId[]][] = [
-	["/code", ["tests", "commit"]],
-	["/specs", ["spec"]],
-	["/factory", ["triage"]],
-];
+// The slash and `@` words of the composer. The commands come from the runner (`assistantSlashCommands`).
 
 /** The text after the `/` when the draft is only a command, else null. */
 export function slashQuery(draft: string): string | null {
 	return /^\/(\S*)$/.exec(draft)?.[1] ?? null;
-}
-
-/** The commands of the view that start with the query. */
-export function slashFor(view: string, query: string): SlashId[] {
-	const own = BY_VIEW.find(([prefix]) => view.startsWith(prefix))?.[1] ?? [];
-	return [...own, ...COMMON].filter((id) => id.startsWith(query.toLowerCase()));
 }
 
 /** The `@` word at the end of the draft: where it starts and what follows the `@`. */

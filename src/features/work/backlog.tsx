@@ -12,6 +12,7 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { PlusIcon, QueueListIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { RUN_STATUS } from "@/ui/molecules/run-card";
 import {
@@ -84,7 +85,7 @@ export function Backlog() {
 	const [adopting, setAdopting] = useState(false);
 	const [key, setKey] = useState("");
 	const [selected, setSelected] = useState<string | null>(null);
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const everything = useWorkItems({});
 	const all = everything.data ?? [];
 	const shown = useMemo(() => applyFilters(all, filters), [all, filters]);
@@ -129,11 +130,7 @@ export function Backlog() {
 							onClick: () => void startImport(),
 						}}
 					/>
-					{error ? (
-						<p role="alert" className="pt-2 text-center text-ui text-danger-text">
-							{error}
-						</p>
-					) : null}
+					<ErrorNotice error={failure} className="justify-center pt-2" />
 				</div>
 			</ListDetail>
 		);
@@ -210,11 +207,7 @@ export function Backlog() {
 				</>
 			}
 		>
-			{error ? (
-				<p role="alert" className="px-3 py-1 text-ui text-danger-text">
-					{error}
-				</p>
-			) : null}
+			<ErrorNotice error={failure} className="px-3 py-1" />
 			<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">
 				<VirtualList
 					items={entries}

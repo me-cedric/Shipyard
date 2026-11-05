@@ -110,14 +110,9 @@ export const designEn = {
 		broken: "Broken link",
 		none: "No link",
 		tokens: "Tokens",
-		tokenGroups: {
-			neutral: "Neutral",
-			accent: "Accent",
-			success: "Success",
-			warning: "Warning",
-			danger: "Danger",
-			info: "Info",
-		},
+		noTokens: "No tokens yet",
+		addTokens: "Add tokens to the design doc",
+		tokenStarter: "## Tokens\n\n```css\n:root {\n  --color-primary: #2563eb;\n}\n```\n",
 	},
 };
 
@@ -231,13 +226,8 @@ export const designFr: typeof designEn = {
 		broken: "Lien rompu",
 		none: "Aucun lien",
 		tokens: "Jetons",
-		tokenGroups: {
-			neutral: "Neutre",
-			accent: "Accent",
-			success: "Succès",
-			warning: "Avertissement",
-			danger: "Danger",
-			info: "Info",
-		},
+		noTokens: "Aucun jeton pour l'instant",
+		addTokens: "Ajouter des jetons au document de conception",
+		tokenStarter: "## Jetons\n\n```css\n:root {\n  --color-primary: #2563eb;\n}\n```\n",
 	},
 };

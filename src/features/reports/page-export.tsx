@@ -1,6 +1,7 @@
 import { useI18n } from "@/lib/i18n";
 import { commands, type ExportText, saveAs, unwrap } from "@/lib/ipc";
 import { type ExportItem, ExportMenu } from "./export-menu";
+import { renderViews } from "./export-views";
 import { ChangeRequestForm, WorkDoneForm } from "./forms";
 
 export type ExportPage =
@@ -53,11 +54,11 @@ export function PageExport({
 				save: {
 					name: "dossier",
 					ext: "docx",
-					job: (path) =>
+					job: async (path) =>
 						unwrap(
 							commands.exportDossierCompleteFile(
 								words(r.dossierComplete, r.dossierSections),
-								[],
+								await renderViews(),
 								path,
 								true,
 							),

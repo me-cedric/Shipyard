@@ -9,6 +9,7 @@ const text = (n: number) => ({
 	empty: "Nothing",
 	gap: "Gap",
 	generated: "Generated",
+	contents: "Contents",
 	sections: Array.from({ length: n }, (_, i) => `S${i}`),
 });
 

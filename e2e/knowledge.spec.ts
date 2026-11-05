@@ -75,7 +75,20 @@ test("exports the complete dossier from the Export menu", async ({ page }) => {
 	await expect(page.getByText("Exported: /mock/dossier.docx").first()).toBeVisible();
 });
 
-test("edits a deck and presents it", async ({ page }) => {
+test("shows an HTML deck in a sandboxed frame and moves it with the arrow keys", async ({
+	page,
+}) => {
+	await openKnowledge(page, "Slides");
+	await page.getByRole("button", { name: "Roadmap" }).click();
+	await expect(page.locator('iframe[title="Roadmap"]')).toHaveAttribute("sandbox", "allow-scripts");
+	const deck = page.frameLocator('iframe[title="Roadmap"]');
+	await expect(deck.getByRole("heading", { name: "Roadmap" })).toBeVisible();
+	await page.getByRole("region", { name: "Slides", exact: true }).focus();
+	await page.keyboard.press("ArrowRight");
+	await expect(deck.getByRole("heading", { name: "Next" })).toBeVisible();
+});
+
+test("presents a Markdown deck", async ({ page }) => {
 	await openKnowledge(page, "Slides");
 	await page.getByRole("button", { name: "Kickoff" }).click();
 	await expect(page.getByRole("application", { name: "Slides (5)" })).toBeVisible();

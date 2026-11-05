@@ -19,6 +19,7 @@ const TONE: Record<PanelTone, { head: string; line: string; badge: PanelTone }> 
 
 /** A titled block on the first surface: a header with the count and a toolbar, then the body. */
 export function Panel({
+	id,
 	title,
 	count,
 	icon,
@@ -29,6 +30,8 @@ export function Panel({
 	bodyClassName,
 	children,
 }: {
+	/** The anchor of the panel: an error or a link can open it (`#id`). */
+	id?: string;
 	title: string;
 	count?: number;
 	icon?: ReactNode;
@@ -45,6 +48,7 @@ export function Panel({
 	const tint = tone ? TONE[tone] : null;
 	return (
 		<section
+			id={id}
 			aria-label={title}
 			className={cn(
 				"relative flex flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1",

@@ -1,6 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "motion/react";
 import { useI18n } from "@/lib/i18n";
-import { type Accent, commands, type PanelSide, unwrap } from "@/lib/ipc";
+import {
+	type Accent,
+	commands,
+	type FocusRing,
+	type Motion,
+	type PanelSide,
+	unwrap,
+} from "@/lib/ipc";
 import { formatDay, usePrefs } from "@/lib/prefs";
 import { Badge } from "@/ui/atoms/badge";
 import { Select } from "@/ui/atoms/select";
@@ -19,6 +27,27 @@ import { PictureField } from "./picture-field";
 const ACCENTS: Accent[] = ["blue", "violet", "green", "orange", "rose"];
 const SIZES = [14, 15, 16, 17, 18, 19, 20];
 const SAMPLE = "2026-10-31";
+
+/** A live sample: the ring in the chosen width, and a dot that moves unless the motion is reduced. */
+function LookPreview({ width }: { width: number }) {
+	return (
+		<span aria-hidden="true" className="flex items-center gap-3">
+			<span
+				className="rounded-md border px-2 py-1 text-12"
+				style={{ outline: `${width}px solid var(--accent-text)`, outlineOffset: 1 }}
+			>
+				Aa
+			</span>
+			<span className="block w-8">
+				<motion.span
+					className="block size-2 rounded-full bg-accent-text"
+					animate={{ x: [0, 24, 0] }}
+					transition={{ duration: 1.6, repeat: Number.POSITIVE_INFINITY }}
+				/>
+			</span>
+		</span>
+	);
+}
 
 /** Settings / Me: the look of the app, the close choice, the picture and the data folder (W12). */
 export function useLookRows() {
@@ -120,6 +149,57 @@ export function useLookRows() {
 					onCheckedChange={(c) => p.setPrefs({ tray: c })}
 				/>
 			),
+		},
+		{
+			id: "motion",
+			icon: <SwatchIcon size={14} />,
+			label: l.motion,
+			control: (
+				<Select
+					label={l.motion}
+					value={p.motion}
+					onValueChange={(v) => p.setPrefs({ motion: v as Motion })}
+					items={[
+						{ value: "system", label: l.motionSystem },
+						{ value: "reduce", label: l.motionReduce },
+					]}
+				/>
+			),
+		},
+		{
+			id: "focus-ring",
+			icon: <SwatchIcon size={14} />,
+			label: l.focusRing,
+			control: (
+				<Select
+					label={l.focusRing}
+					value={p.focusRing}
+					onValueChange={(v) => p.setPrefs({ focusRing: v as FocusRing })}
+					items={[
+						{ value: "keyboard", label: l.focusKeyboard },
+						{ value: "always", label: l.focusAlways },
+					]}
+				/>
+			),
+		},
+		{
+			id: "focus-width",
+			icon: <SwatchIcon size={14} />,
+			label: l.focusWidth,
+			control: (
+				<Select
+					label={l.focusWidth}
+					value={String(p.focusWidth)}
+					onValueChange={(v) => p.setPrefs({ focusWidth: Number(v) })}
+					items={[2, 3].map((n) => ({ value: String(n), label: `${n} px` }))}
+				/>
+			),
+		},
+		{
+			id: "look-preview",
+			icon: <SwatchIcon size={14} />,
+			label: l.preview,
+			control: <LookPreview width={p.focusWidth} />,
 		},
 		{
 			id: "all-pages",

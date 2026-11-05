@@ -1397,3 +1397,23 @@ fn a_renamed_file_shows_its_new_path_and_stages_and_discards() {
     assert_eq!(read("old.txt").as_deref(), Some(body));
     assert!(read("new.txt").is_none());
 }
+
+#[test]
+fn the_status_counts_the_lines_added_and_removed_staged_or_not_and_in_new_files() {
+    let tmp = TempDir::new().unwrap();
+    let r = init(tmp.path());
+    commit(&r, "a.txt", "one\ntwo\nthree\n", "chore: a");
+    assert_eq!(
+        (
+            r.status_with_lines().unwrap().added,
+            r.status_with_lines().unwrap().removed
+        ),
+        (0, 0)
+    );
+    // One line changed (one added, one removed), staged; a new file of two lines, untracked.
+    write(&r, "a.txt", "one\nTWO\nthree\n");
+    r.stage(&[s("a.txt")]).unwrap();
+    write(&r, "b.txt", "x\ny\n");
+    let st = r.status_with_lines().unwrap();
+    assert_eq!((st.added, st.removed), (3, 1));
+}

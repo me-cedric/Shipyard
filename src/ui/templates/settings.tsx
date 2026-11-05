@@ -16,7 +16,7 @@ export function Settings({ sections }: { sections: SettingsSection[] }) {
 			{sections.map((s) => (
 				<Panel key={s.id} title={s.title} count={s.rows.length} icon={s.icon} flush>
 					{s.rows.map((r) => (
-						<SettingsRow key={r.id} icon={r.icon} label={r.label}>
+						<SettingsRow key={r.id} id={r.id} icon={r.icon} label={r.label}>
 							{r.control}
 						</SettingsRow>
 					))}

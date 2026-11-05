@@ -1,0 +1,75 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Shipyard plugin manifest",
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["name", "version"],
+	"properties": {
+		"$schema": { "type": "string" },
+		"name": {
+			"description": "No slash and no leading dot.",
+			"type": "string",
+			"pattern": "^[^/\\\\.][^/\\\\]*$"
+		},
+		"version": { "type": "string", "minLength": 1 },
+		"files": {
+			"description": "Without this list, each file under files/ goes to the project root.",
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["source", "target"],
+				"properties": {
+					"source": { "description": "A path under files/.", "type": "string" },
+					"target": { "description": "A relative path in the project.", "type": "string" }
+				}
+			}
+		},
+		"skills": {
+			"description": "Names. files/skills/<name>/ goes to .claude/skills/<name>/ and .agents/skills/<name>/.",
+			"type": "array",
+			"items": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" }
+		},
+		"rules": {
+			"description": "Names. files/rules/<name>.md goes to .claude/rules/ and .agents/rules/.",
+			"type": "array",
+			"items": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" }
+		},
+		"settings": {
+			"description": "Typed settings. {{config.<key>}} in a text file is filled from them.",
+			"type": "object",
+			"additionalProperties": {
+				"oneOf": [
+					{ "type": "string" },
+					{
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["type"],
+						"properties": {
+							"type": { "enum": ["text", "number", "boolean", "choice"] },
+							"default": {},
+							"choices": { "type": "array", "items": { "type": "string" } },
+							"required": { "type": "boolean" }
+						}
+					}
+				]
+			}
+		},
+		"mcpServers": {
+			"description": "Remote servers only. A header value is a ${VAR} reference.",
+			"type": "object",
+			"additionalProperties": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["url"],
+				"properties": {
+					"url": { "type": "string", "pattern": "^https://" },
+					"headers": {
+						"type": "object",
+						"additionalProperties": { "type": "string", "pattern": "^\\$\\{.+\\}$" }
+					}
+				}
+			}
+		}
+	}
+}

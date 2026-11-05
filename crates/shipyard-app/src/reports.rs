@@ -467,6 +467,7 @@ pub fn export_change_request(
         empty: String::new(),
         gap: String::new(),
         generated: "Generated".into(),
+        contents: "Contents".into(),
     };
     let docx = docx_bytes(&words, &markdown_blocks(&md, 1)).map_err(err)?;
     let (rel_md, rel_docx) = (

@@ -87,7 +87,7 @@ function Pane({
 				onPointerCancel={() => {
 					drag.current = null;
 				}}
-				className="h-full cursor-grab touch-none overflow-hidden rounded-md focus-visible:outline-2 focus-visible:outline-accent active:cursor-grabbing"
+				className="h-full cursor-grab touch-none overflow-hidden rounded-md active:cursor-grabbing"
 			>
 				<div
 					style={{

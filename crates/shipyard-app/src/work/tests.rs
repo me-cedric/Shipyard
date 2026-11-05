@@ -442,7 +442,8 @@ fn the_part_of_the_email_before_the_at_counts_only_for_one_member_without_anothe
 #[test]
 fn the_git_name_finds_one_member_with_that_name_and_no_account() {
     let f = fx_with(ConnectionKind::GitHub, None);
-    git_config(&f, "user.name", "Cédric Meyer");
+    // git on macOS keeps the accent apart (NFD), and the case may differ.
+    git_config(&f, "user.name", "Ce\u{301}dric  meyer");
     git_config(&f, "user.email", "cedric.meyer@acme.test");
     let c = &f.s.connections;
     assert_eq!(
@@ -528,6 +529,10 @@ fn a_named_member_that_is_not_in_the_team_has_its_own_error() {
 #[test]
 fn the_suggestion_ranks_by_skill_and_by_the_days_the_plan_books_and_assigns_nothing() {
     let f = fx();
+    // A fixed Monday (2026-11-02, 09:00 UTC): the result does not depend on the day of the run.
+    f.s.work
+        .fixed_secs
+        .store(1_793_610_000, std::sync::atomic::Ordering::Relaxed);
     save_team(&f, team5());
     f.put(vec![ticket(
         "PROJ-5",

@@ -347,3 +347,38 @@ The system SHALL list the repositories of a forge connection and SHALL mark each
 - GIVEN a forge connection with the right to create
 - WHEN a person asks for a new remote repository
 - THEN the forge holds the repository and the project uses it as its remote
+
+### Requirement: REQ-020 Wire other agents
+
+The system SHALL list the agent tools that it finds (Claude Code `.mcp.json`, Codex `.codex/config.toml` of the project or `~/.codex/config.toml`, Gemini `.gemini/settings.json`, VS Code `.vscode/mcp.json`) with the state wired, out of date or not wired. A wire or an update SHALL show the file as it would be written and SHALL write it only after the person accepts that review. The write SHALL keep the rest of the file and MUST NOT write the token: the entry reads `SHIPYARD_MCP_TOKEN`. A file that is not valid JSON MUST be refused, not rewritten. The system SHALL serve the project skills as MCP prompts and the project files as MCP resources, only while the read tools are on.
+
+#### Scenario: Review before write
+- GIVEN a project with a `.mcp.json` that holds another server
+- WHEN the person clicks Wire for Claude Code
+- THEN the review shows the added lines, and the file stays unchanged until the person clicks Write the file
+- AND the other server is still in the file after the write
+
+#### Scenario: Out of date
+- GIVEN a wired agent tool
+- WHEN the person changes the port of the server and applies it
+- THEN the tool shows Out of date, and one click on Update shows the review of the new address
+
+#### Scenario: Prompts and resources
+- GIVEN a project with a skill and the read tools on
+- WHEN an agent calls `prompts/list` and `resources/list`
+- THEN it gets the skill and the files of the project
+- AND with the read tools off it gets neither
+
+### Requirement: REQ-021 Paste a server
+
+The system SHALL add the servers of a pasted `mcpServers` JSON text to the custom servers. A value that looks like a secret MUST go to the secret store and MUST NOT go to a file. A secret in the arguments of a local server MUST be refused. The allowed tools of the Shipyard server SHALL have the presets All tools and Read only, and a custom pick.
+
+#### Scenario: Secret in the paste
+- GIVEN a pasted server with a token in `env`
+- WHEN the person adds it
+- THEN the token is in the secret store and no file of the app holds it
+
+#### Scenario: Read only preset
+- GIVEN the preset Read only
+- WHEN the person applies it
+- THEN the write tools do not run and the read tools do

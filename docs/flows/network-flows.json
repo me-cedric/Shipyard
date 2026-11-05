@@ -142,7 +142,7 @@
       "protocol": "HTTPS (frame)",
       "ports": "443",
       "action": "Allow",
-      "description": "The only frame origin that the content security policy allows (ADR 0015): https://embed.diagrams.net. Messages are accepted from this origin only. Offline, or without an answer in 15 s, the board shows read-only."
+      "description": "The only network frame origin that the content security policy allows (ADR 0015): https://embed.diagrams.net. The deck frame (deck:, ADR 0016) is local. Messages are accepted from this origin only. Offline, or without an answer in 15 s, the board shows read-only."
     },
     {
       "id": "flow-12",

@@ -287,6 +287,39 @@ pub fn code_index(src: &dyn CodeSource, root: &Path) -> Res<()> {
     .map(|_| ())
 }
 
+/// The Index action for the app. A server that is off (its saved setting stays off) runs for this
+/// one call and stops after it, also on an error. The app stops it on quit too (`stop_all`).
+pub fn code_index_run(proxy: &Proxy, root: &Path) -> Res<()> {
+    let control = proxy.control();
+    let off = control
+        .list()
+        .into_iter()
+        .find(|r| r.id.contains(CODE_SERVER) && !r.enabled)
+        .map(|r| r.id);
+    let Some(id) = off else {
+        return code_index(proxy, root);
+    };
+    let was_running = matches!(
+        control.state(&id),
+        shipyard_agents::mcp_control::State::Running
+    );
+    let answer = control.request(
+        &id,
+        "tools/call",
+        json!({ "name": "index_repository", "arguments": { "repo_path": root.to_string_lossy() } }),
+    );
+    if !was_running {
+        control.stop(&id);
+    }
+    match answer.map_err(err)?.get("error") {
+        Some(e) => Err(e
+            .get("message")
+            .and_then(Value::as_str)
+            .map_or_else(|| e.to_string(), str::to_string)),
+        None => Ok(()),
+    }
+}
+
 // ---------------------------------------------------------------- Explain context
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -367,12 +400,15 @@ pub fn doc_write(
     create: bool,
 ) -> Res<Written> {
     let p = project(s)?;
-    if !rel.ends_with(".md") {
-        return Err("a page is a .md file".into());
-    }
+    // An HTML deck (ADR 0016) is the one `.html` file that a person writes, in the slides folder.
+    let folders: &[&str] = match rel {
+        r if r.ends_with(".md") => &FOLDERS,
+        r if r.ends_with(".html") => &["slides"],
+        _ => return Err("a page is a .md file".into()),
+    };
     put(
         s,
-        &resolve_in(&p.root, &p.file, rel, &FOLDERS)?,
+        &resolve_in(&p.root, &p.file, rel, folders)?,
         text,
         stamp,
         create,
@@ -602,6 +638,8 @@ pub struct ExportText {
     pub empty: String,
     pub gap: String,
     pub generated: String,
+    /// The title of the contents list.
+    pub contents: String,
     pub sections: Vec<String>,
 }
 
@@ -609,8 +647,82 @@ pub struct ExportText {
 #[derive(Debug, Clone, Deserialize, Type)]
 pub struct ViewImage {
     pub title: String,
-    /// Base64 text of a PNG file.
+    /// Base64 text of a PNG file. Empty when the diagram did not render.
     pub png: String,
+    /// The diagram text. The dossier keeps it as a code block when `png` is empty.
+    pub source: String,
+}
+
+/// A Mermaid diagram of the project that the view renders for the dossier.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+pub struct DiagramSource {
+    pub title: String,
+    pub source: String,
+}
+
+/// The Mermaid diagrams of the project: each `.mmd` file of the diagrams folder, then each fenced
+/// `mermaid` block of a handbook page, a document or a decision.
+pub fn diagram_sources(s: &AppState) -> Res<Vec<DiagramSource>> {
+    let p = project(s)?;
+    let mut out = Vec::new();
+    for a in design::list(&p.root, &p.file)
+        .iter()
+        .filter(|a| a.kind == "diagram" && a.format.as_deref() == Some("mermaid"))
+    {
+        if let Ok(source) = std::fs::read_to_string(p.root.join(&a.path)) {
+            out.push(DiagramSource {
+                title: a.title.clone(),
+                source,
+            });
+        }
+    }
+    let pages = ["handbook", "documents"]
+        .into_iter()
+        .flat_map(|k| kn::pages(&p.root, p.file.path(k)))
+        .map(|e| (e.title, e.path))
+        .chain(
+            madr::list(&p.root, &p.file)
+                .into_iter()
+                .map(|a| (format!("{} {}", a.number, a.title), a.path)),
+        );
+    for (title, path) in pages {
+        let Ok(text) = std::fs::read_to_string(p.root.join(&path)) else {
+            continue;
+        };
+        let mut open: Option<Vec<&str>> = None;
+        let mut found = 0;
+        for line in text.lines() {
+            let fence = line.trim_start().strip_prefix("```");
+            match (&mut open, fence) {
+                (None, Some(lang)) if lang.trim() == "mermaid" => open = Some(Vec::new()),
+                (Some(_), Some(_)) => {
+                    found += 1;
+                    out.push(DiagramSource {
+                        title: if found == 1 {
+                            title.clone()
+                        } else {
+                            format!("{title} ({found})")
+                        },
+                        source: open.take().unwrap_or_default().join("\n"),
+                    });
+                }
+                (Some(lines), None) => lines.push(line),
+                _ => {}
+            }
+        }
+    }
+    Ok(out)
+}
+
+fn view_item(v: &ViewImage) -> Item {
+    if v.png.is_empty() {
+        Item {
+            name: v.title.clone(),
+            source: Ok(Content::Code(v.source.clone())),
+        }
+    } else {
+        image_item(&v.title, &v.png)
+    }
 }
 
 pub(crate) fn meta(s: &AppState, p: &crate::design::Proj, t: &ExportText) -> Meta {
@@ -621,6 +733,7 @@ pub(crate) fn meta(s: &AppState, p: &crate::design::Proj, t: &ExportText) -> Met
         empty: t.empty.clone(),
         gap: t.gap.clone(),
         generated: t.generated.clone(),
+        contents: t.contents.clone(),
     }
 }
 
@@ -649,11 +762,7 @@ fn named(sections: &[String], n: usize) -> Res<Vec<&str>> {
 pub fn export_dossier(s: &AppState, t: &ExportText, views: &[ViewImage], path: &str) -> Res<()> {
     let titles = named(&t.sections, 5)?;
     let p = project(s)?;
-    let sections = dossier_sections(
-        &p,
-        &titles,
-        views.iter().map(|v| image_item(&v.title, &v.png)).collect(),
-    );
+    let sections = dossier_sections(&p, &titles, views.iter().map(view_item).collect());
     write_export(
         s,
         path,
@@ -666,6 +775,8 @@ pub fn export_dossier(s: &AppState, t: &ExportText, views: &[ViewImage], path: &
 fn dossier_sections(p: &crate::design::Proj, titles: &[&str], views: Vec<Item>) -> Vec<Section> {
     let arts = design::list(&p.root, &p.file);
     let of = |kind: &str| arts.iter().filter(|a| a.kind == kind).collect::<Vec<_>>();
+    let mut views = views;
+    views.extend(other_views(p, &arts));
     vec![
         Section {
             title: titles[0].into(),
@@ -752,6 +863,23 @@ fn dossier_sections(p: &crate::design::Proj, titles: &[&str], views: Vec<Item>) 
     ]
 }
 
+/// The LikeC4 models and the draw.io boards. A PNG file of the same name next to the file is the
+/// exported image and goes in. Without one, the item is a line with the path of the file.
+fn other_views(p: &crate::design::Proj, arts: &[design::Artifact]) -> Vec<Item> {
+    arts.iter()
+        .filter(|a| a.kind == "model" || a.format.as_deref() == Some("drawio"))
+        .map(|a| Item {
+            name: a.title.clone(),
+            source: Ok(
+                std::fs::read(p.root.join(&a.path).with_extension("png")).map_or_else(
+                    |_| Content::Markdown(format!("`{}`", a.path)),
+                    Content::Image,
+                ),
+            ),
+        })
+        .collect()
+}
+
 /// The tables of a DBML file as a Markdown text, one heading and one table for each. A file with no
 /// table keeps its text as a code block, so no source is lost.
 fn dbml_markdown(text: &str) -> String {
@@ -810,18 +938,7 @@ fn dossier_complete_sections(
     titles: &[&str],
     views: &[ViewImage],
 ) -> Res<Vec<Section>> {
-    let mut images: Vec<Item> = views.iter().map(|v| image_item(&v.title, &v.png)).collect();
-    if images.is_empty() {
-        images = design::list(&p.root, &p.file)
-            .iter()
-            .filter(|a| a.kind == "model")
-            .map(|a| {
-                read_item(p, &a.title, &a.path, |x| {
-                    Content::Markdown(format!("```\n{x}\n```"))
-                })
-            })
-            .collect();
-    }
+    let images = views.iter().map(view_item).collect();
     let mut sections = dossier_sections(p, &titles[..5], images);
     let people: Vec<Vec<String>> = shipyard_store::delivery_docs::personas(&p.root)
         .into_iter()
@@ -968,6 +1085,12 @@ pub(crate) fn write_export(s: &AppState, path: &str, ext: &str, bytes: &[u8]) ->
 
 #[tauri::command]
 #[specta::specta]
+pub async fn export_diagrams_get(app: AppHandle) -> Api<Vec<DiagramSource>> {
+    blocking(app, diagram_sources).await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn graph_get(app: AppHandle) -> Api<KGraph> {
     blocking(app, graph).await
 }
@@ -985,7 +1108,7 @@ pub async fn graph_code(app: AppHandle) -> Api<CodeGraph> {
 #[specta::specta]
 pub async fn graph_code_index(app: AppHandle) -> Api<()> {
     blocking(app, |s| {
-        code_index(s.agents.proxy.as_ref(), &project(s)?.root)
+        code_index_run(s.agents.proxy.as_ref(), &project(s)?.root)
     })
     .await
 }
@@ -1226,6 +1349,8 @@ mod tests {
         .unwrap();
         assert!(c.conflict, "a changed file is not replaced");
         assert!(doc_write(&s, "docs/decisions/0004-poll.md", "x", None, false).is_err());
+        assert!(doc_write(&s, "docs/handbook/x.html", "x", None, true).is_err());
+        assert!(doc_write(&s, "docs/slides/x.html", "x", None, true).is_ok());
         assert!(doc_write(&s, "docs/handbook/../../x.md", "x", None, true).is_err());
     }
 
@@ -1276,6 +1401,27 @@ mod tests {
     }
 
     #[test]
+    fn the_diagrams_of_the_project_are_its_mermaid_files_and_fenced_blocks() {
+        let (repo, _out, s) = setup();
+        write(
+            repo.path(),
+            "docs/diagrams/flow.mmd",
+            "graph TD\n  A --> B\n",
+        );
+        write(repo.path(), "docs/diagrams/board.drawio", "<mxfile/>");
+        write(
+            repo.path(),
+            "docs/handbook/start.md",
+            "# Start\n\n```mermaid\nsequenceDiagram\n  A->>B: hi\n```\n\n```rust\nfn x() {}\n```\n\n```mermaid\ngraph LR\n```\n",
+        );
+        let got = diagram_sources(&s).unwrap();
+        let titles: Vec<_> = got.iter().map(|d| d.title.as_str()).collect();
+        assert_eq!(titles, ["flow", "Start", "Start (2)"]);
+        assert_eq!(got[0].source, "graph TD\n  A --> B\n");
+        assert_eq!(got[1].source, "sequenceDiagram\n  A->>B: hi");
+    }
+
+    #[test]
     fn the_complete_dossier_gathers_every_section_and_holds_no_day_rate() {
         let (repo, out, s) = setup();
         write(
@@ -1297,8 +1443,8 @@ mod tests {
             _ => panic!("section {sec} holds no Markdown"),
         };
         assert!(
-            md(0).contains("model {}"),
-            "no view: the model source stands in"
+            md(0).contains("docs/models/"),
+            "no view: the model file is a one-line reference"
         );
         assert!(md(2).contains("### orders") && md(2).contains("| id | int | pk |"));
         let Ok(Content::Table { headers, rows }) = &sections[5].items[0].source else {
@@ -1315,10 +1461,12 @@ mod tests {
         let view = ViewImage {
             title: "Context".into(),
             png: String::new(),
+            source: "graph TD".into(),
         };
         let with = dossier_complete_sections(&s, &p, &titles, &[view]).unwrap();
-        assert_eq!(with[0].items.len(), 1, "a view replaces the model sources");
+        assert_eq!(with[0].items.len(), 2, "the view, then the model line");
         assert_eq!(with[0].items[0].name, "Context");
+        assert!(matches!(&with[0].items[0].source, Ok(Content::Code(c)) if c == "graph TD"));
 
         let file = out.path().join("full.docx");
         let t = ExportText {
@@ -1326,6 +1474,7 @@ mod tests {
             empty: "Nothing".into(),
             gap: "Gap".into(),
             generated: "Generated".into(),
+            contents: "Contents".into(),
             sections: titles.map(String::from).to_vec(),
         };
         let go = |click| export_dossier_complete(&s, &t, &[], file.to_str().unwrap(), click);
@@ -1351,6 +1500,7 @@ mod tests {
             empty: "Nothing".into(),
             gap: "Gap".into(),
             generated: "Generated".into(),
+            contents: "Contents".into(),
             sections: ["A", "B", "C", "D", "E"].map(String::from).to_vec(),
         };
         let file = out.path().join("dossier.docx");

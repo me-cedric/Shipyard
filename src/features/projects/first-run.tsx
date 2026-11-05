@@ -174,7 +174,7 @@ export function FirstRun() {
 								return (
 									<label
 										key={r}
-										className="flex h-12 cursor-pointer items-center gap-2.5 rounded-lg border bg-surface-2 px-3 text-ui text-n-12 shadow-1 transition-colors duration-(--duration-fast) hover:bg-n-3 has-checked:border-accent has-checked:bg-accent-soft has-checked:shadow-glow has-focus-visible:outline-2 has-focus-visible:outline-accent"
+										className="flex h-12 cursor-pointer items-center gap-2.5 rounded-lg border bg-surface-2 px-3 text-ui text-n-12 shadow-1 transition-colors duration-(--duration-fast) hover:bg-n-3 has-checked:border-accent has-checked:bg-accent-soft has-checked:shadow-glow has-focus-visible:outline-[length:var(--focus-width,2px)] has-focus-visible:outline-accent"
 									>
 										<input
 											type="radio"

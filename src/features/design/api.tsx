@@ -98,7 +98,13 @@ export function Api() {
 			title={t.tabs.design.api}
 			icon={<CodeBracketIcon size={16} />}
 			noun={t.design.noun.api}
-			rows={rows.map((a) => ({ ref: a.reference, title: a.title, tag: a.version, issue: a.issue }))}
+			rows={rows.map((a) => ({
+				ref: a.reference,
+				title: a.title,
+				tag: a.version,
+				issue: a.issue,
+				path: a.path,
+			}))}
 			create={{
 				run: async (name) => {
 					const s = slug(name);

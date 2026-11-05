@@ -169,7 +169,11 @@ export function Screens() {
 									/>
 								</SplitPane>
 								<div className="flex min-h-0 min-w-0 flex-1 flex-col *:min-h-0 *:flex-1">
-									<TokenView />
+									<TokenView
+										onAdd={() =>
+											f.setText(`${f.text.trimEnd()}\n\n${t.design.screens.tokenStarter}`)
+										}
+									/>
 								</div>
 							</div>
 						)}

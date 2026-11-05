@@ -9,6 +9,7 @@ import { figure, memberName, useTeam, useWorkActions } from "@/lib/work";
 import { ViewColumnsIcon } from "@/ui/icons";
 import { BoardColumn } from "@/ui/molecules/board-column";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { RUN_STATUS } from "@/ui/molecules/run-card";
 import { TicketCard } from "@/ui/molecules/ticket-card";
@@ -29,7 +30,7 @@ export function Board() {
 	const members = useTeam().data?.team.members ?? [];
 	const act = useWorkActions();
 	const navigate = useNavigate();
-	const { error, run } = useGuard();
+	const { failure, run } = useGuard();
 	const [filters, setFilters] = useState<Filters>(NO_FILTER);
 	const [selected, setSelected] = useState<string | null>(null);
 	// The column that a card shows while its move is on the way. A refusal removes it.
@@ -89,11 +90,7 @@ export function Board() {
 						onChange={setFilters}
 						fields={["assignee", "label"]}
 					/>
-					{error ? (
-						<p role="alert" className="text-ui text-danger-text">
-							{error}
-						</p>
-					) : null}
+					<ErrorNotice error={failure} />
 				</>
 			}
 		>

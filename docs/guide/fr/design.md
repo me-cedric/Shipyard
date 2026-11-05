@@ -39,8 +39,12 @@ Flux liste les flux réseau sous forme de tableau : d'où, vers où, le port et 
 
 ## Écrans
 
-Écrans montre les écrans du produit et les jetons de design : les couleurs, par famille.
+Écrans montre les écrans du produit et les jetons de design de votre projet. Ils viennent du document de conception (du CSS dans un bloc de code), d'un fichier `tokens.css`, d'un fichier `*.tokens.json` ou d'un bloc `@theme` de Tailwind 4, groupés par fichier. Sans jeton, la page dit Aucun jeton pour l'instant ; cliquez sur Ajouter des jetons au document de conception, modifiez le bloc, puis enregistrez. La page ne montre jamais les jetons de Shipyard.
 
 - Un fichier `.fig` montre l'aperçu que Figma garde dedans.
 - Pour lire Figma, ajoutez une fois le jeton de votre compte Figma. Il va dans le trousseau de votre ordinateur.
 - Collez ensuite l'adresse d'un projet Figma et cliquez sur Lister les fichiers. Chaque fichier montre son aperçu et ses jetons de design.
+
+## Renommer un élément et demander à l’assistant
+
+Le menu d’un élément (clic droit) a Renommer. Tapez le nouveau nom ; l’extension reste. Vérifier liste chaque fichier et chaque ligne dont les liens changent. Renommer déplace alors le fichier et réécrit ces liens en une seule étape. Si une écriture échoue, chaque fichier reste comme avant. Un projet en lecture seule refuse le renommage. Le dernier groupe du menu est Demander à l’assistant : choisissez une demande adaptée à ce type d’élément et à votre rôle. Elle remplit la zone de message avec l’élément, son fichier, sa spécification, son ticket et les éléments qui le citent. Rien n’est envoyé avant que vous l’envoyiez.

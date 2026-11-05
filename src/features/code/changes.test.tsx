@@ -33,6 +33,18 @@ describe("Code / Changes", () => {
 		expect(await group("Unstaged (3)")).toBeInTheDocument();
 	});
 
+	it("shows one muted line in a group with no files", async () => {
+		const user = userEvent.setup();
+		await changes();
+		expect(screen.queryByText("Nothing staged")).toBeNull();
+		const staged = within(screen.getByRole("region", { name: "Staged" }));
+		await user.click(staged.getByRole("button", { name: /^Unstage/ }));
+		await group("Staged (0)");
+		expect(
+			within(screen.getByRole("region", { name: "Staged" })).getByText("Nothing staged"),
+		).toBeInTheDocument();
+	});
+
 	it("shows the groups with counts and the changed files as a folder tree", async () => {
 		await changes();
 		expect(await group("Unstaged (4)")).toBeInTheDocument();

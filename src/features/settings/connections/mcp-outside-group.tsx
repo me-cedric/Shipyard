@@ -6,11 +6,13 @@ import { Button } from "@/ui/atoms/button";
 import { Checkbox } from "@/ui/atoms/checkbox";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
+import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { Switch } from "@/ui/atoms/switch";
 import { ArrowDownTrayIcon, ClipboardIcon } from "@/ui/icons";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { message } from "./keys";
+import { McpWiring, wiringKey } from "./mcp-wiring";
 
 const GROUPS = [
 	"reads",
@@ -60,12 +62,25 @@ export function McpOutsideGroup() {
 			...g,
 			allowedTools: on ? [...g.allowedTools, tool] : g.allowedTools.filter((x) => x !== tool),
 		});
+	const preset =
+		g.allowedTools.length === 0
+			? "all"
+			: g.allowedTools.length === s.readOnly.length &&
+					s.readOnly.every((x) => g.allowedTools.includes(x))
+				? "read"
+				: "custom";
+	const setPreset = (v: string) => {
+		if (v === "all") setDraft({ ...g, allowedTools: [] });
+		if (v === "read") setDraft({ ...g, allowedTools: [...s.readOnly] });
+	};
 	const save = () =>
 		attempt(async () => {
 			await unwrap(commands.mcpOutsideSet({ ...g, port: Number(port ?? g.port) }));
 			setDraft(null);
 			setPort(null);
 			await qc.invalidateQueries({ queryKey: outsideKey });
+			// A new port or address makes a wired file out of date.
+			await qc.invalidateQueries({ queryKey: wiringKey });
 			return null;
 		});
 	const label = (name: (typeof GROUPS)[number]) => o[name];
@@ -109,6 +124,18 @@ export function McpOutsideGroup() {
 						onChange={(e) => setPort(e.target.value)}
 					/>
 				</SettingsRow>
+				<SettingsRow label={o.allowList}>
+					<Select
+						label={o.allowList}
+						value={preset}
+						onValueChange={setPreset}
+						items={[
+							{ value: "all", label: o.allowAll },
+							{ value: "read", label: o.allowRead },
+							{ value: "custom", label: o.allowCustom },
+						]}
+					/>
+				</SettingsRow>
 				<SettingsRow label={o.tools}>
 					<span className="flex max-w-lg flex-wrap gap-x-3">
 						{s.tools.map((tool) => (
@@ -128,17 +155,6 @@ export function McpOutsideGroup() {
 						onClick={() => void save()}
 					>
 						{o.save}
-					</Button>
-					<Button
-						variant="secondary"
-						disabled={!s.running}
-						onClick={() =>
-							void attempt(async () =>
-								format(o.wired, { path: await unwrap(commands.mcpOutsideWire()) }),
-							)
-						}
-					>
-						{o.wire}
 					</Button>
 					<Button
 						variant="secondary"
@@ -165,6 +181,7 @@ export function McpOutsideGroup() {
 					</p>
 				) : null}
 			</div>
+			<McpWiring />
 			{(elsewhere.data ?? []).length > 0 ? (
 				<div className="flex flex-col rounded-lg border bg-surface-1 shadow-1">
 					<h3 className="px-3 pt-2 text-12 font-medium text-n-11">{o.elsewhere}</h3>

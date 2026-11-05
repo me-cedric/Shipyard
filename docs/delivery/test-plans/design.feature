@@ -207,3 +207,15 @@ Feature: design
     Given the shown tokens
     When the person closes the view with no confirmation
     Then the token file stays unchanged
+
+  @spec:design#REQ-025
+  Scenario: Project tokens: Project tokens
+    Given a project with a tokens.css file
+    When the person opens the design doc
+    Then the view lists the tokens of that file and none of Shipyard
+
+  @spec:design#REQ-025
+  Scenario: Project tokens: No tokens
+    Given a project with no token
+    When the person opens the design doc
+    Then the view says No tokens yet and offers to add a block to the doc

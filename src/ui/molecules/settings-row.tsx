@@ -1,10 +1,13 @@
 import { type ReactNode, useId } from "react";
 
 export function SettingsRow({
+	id: anchor,
 	icon,
 	label,
 	children,
 }: {
+	/** The anchor of the row: an error or a link can open it (`#id`). */
+	id?: string;
 	icon?: ReactNode;
 	label: string;
 	/** The control. It needs its own accessible name. */
@@ -14,6 +17,7 @@ export function SettingsRow({
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
 		<div
+			id={anchor}
 			role="group"
 			aria-labelledby={id}
 			className="flex min-h-11 items-center gap-3 border-b px-3 py-1.5 transition-colors duration-(--duration-fast) last:border-b-0 hover:bg-n-2"

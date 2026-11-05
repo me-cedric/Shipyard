@@ -177,7 +177,7 @@ export function PlanBoard({ plans, onOpen }: { plans: Plan[]; onOpen: (path: str
 									aria-expanded={isOpen}
 									aria-controls={body}
 									onClick={() => toggle(sec.key)}
-									className="grid min-h-row w-full grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-3 px-3 text-left text-ui focus-visible:outline-2"
+									className="grid min-h-row w-full grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-3 px-3 text-left text-ui"
 								>
 									{isOpen ? <ChevronDownIcon size={14} /> : <ChevronRightIcon size={14} />}
 									<span className="truncate font-medium">{sec.title}</span>

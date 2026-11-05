@@ -97,7 +97,7 @@ export function Shell({
 					<main
 						aria-label={t.nav.main}
 						tabIndex={-1}
-						className="min-h-0 min-w-0 flex-1 overflow-auto focus:outline-none"
+						className="min-h-0 min-w-0 flex-1 overflow-auto"
 					>
 						{main}
 					</main>

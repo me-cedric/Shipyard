@@ -382,3 +382,17 @@ The system SHALL read the design tokens of a linked Figma file. It SHALL show th
 - GIVEN the shown tokens
 - WHEN the person closes the view with no confirmation
 - THEN the token file stays unchanged
+
+### Requirement: REQ-025 Project tokens
+
+Design / Screens SHALL show the tokens of the open project, read from its design doc and from the token files that it holds (`tokens.css`, `*.tokens.json`, a CSS file with a Tailwind `@theme` block). It MUST NOT show the tokens of Shipyard. With no token it SHALL say "No tokens yet" and offer an action that adds a starter block to the design doc text, which the person saves.
+
+#### Scenario: Project tokens
+- GIVEN a project with a `tokens.css` file
+- WHEN the person opens the design doc
+- THEN the view lists the tokens of that file and none of Shipyard
+
+#### Scenario: No tokens
+- GIVEN a project with no token
+- WHEN the person opens the design doc
+- THEN the view says No tokens yet and offers to add a block to the doc

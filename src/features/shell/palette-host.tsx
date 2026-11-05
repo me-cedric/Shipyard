@@ -3,10 +3,10 @@ import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { useProjectActions, useProjects } from "@/lib/projects";
-import { useParsedRef, useRefSearch } from "@/lib/refs";
+import { setHitQuery, snippetParts, useParsedRef, useRefSearch } from "@/lib/refs";
 import { useShell } from "@/lib/shell";
 import { rememberSelection } from "@/lib/shell/selection";
-import { CodeBracketIcon, DocumentTextIcon } from "@/ui/icons";
+import { CodeBracketIcon, DocumentTextIcon, SparklesIcon } from "@/ui/icons";
 import { CommandPalette, type PaletteGroup } from "@/ui/organisms/command-palette";
 import { type Action, SPACE_ICON } from "./actions";
 import { refPage, refSelection } from "./ref-page";
@@ -14,7 +14,7 @@ import { orderedSpaces, tabLabel, tabPath, visibleTabs } from "./spaces";
 
 export function PaletteHost({ actions }: { actions: Action[] }) {
 	const { t } = useI18n();
-	const { paletteOpen, setPaletteOpen, openRef, openRefAt } = useShell();
+	const { paletteOpen, setPaletteOpen, openRef, openRefAt, ask } = useShell();
 	const { role, profile } = usePrefs();
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -24,10 +24,14 @@ export function PaletteHost({ actions }: { actions: Action[] }) {
 	const text = query.trim();
 	// The Rust grammar tells whether the text is a ref. The index finds entities by ref or title.
 	const parsed = useParsedRef(text).data;
-	const found = useRefSearch(text).data ?? [];
+	const search = useRefSearch(text);
+	// The hits of an older text do not show: the palette skips the label filter for a hit.
+	const hits = search.isPlaceholderData ? [] : (search.data ?? []).filter((h) => h.ref !== text);
 
 	// A ref opens its page, then the inspector shows it. Next to its page, only the inspector opens.
 	const show = (ref: string) => {
+		// The open document marks the words of the search.
+		setHitQuery(text);
 		const page = refPage(ref);
 		if (!page || page === pathname) return openRef(ref);
 		const open = refSelection(t, ref);
@@ -81,15 +85,48 @@ export function PaletteHost({ actions }: { actions: Action[] }) {
 							},
 						]
 					: []),
-				...found
-					.filter((h) => h.ref !== text)
-					.map((h) => ({
-						id: `ref-${h.ref}`,
-						label: `${h.ref} ${h.title}`,
-						icon: <DocumentTextIcon size={14} />,
-						onSelect: () => show(h.ref),
-					})),
 			],
+		},
+		// The hits group by kind. The index already chose them, so the label filter skips them.
+		...[...new Set(hits.map((h) => h.kind))].map((kind) => ({
+			id: `refs-${kind}`,
+			heading: kind,
+			items: hits
+				.filter((h) => h.kind === kind)
+				.map((h) => ({
+					id: `ref-${h.ref}`,
+					label: `${h.ref} ${h.title}`,
+					listed: true,
+					detail: h.snippet
+						? snippetParts(h.snippet).map((p, i) =>
+								// biome-ignore lint/suspicious/noArrayIndexKey: parts never reorder
+								p.hit ? <mark key={i}>{p.text}</mark> : <span key={i}>{p.text}</span>,
+							)
+						: undefined,
+					icon: <DocumentTextIcon size={14} />,
+					onSelect: () => show(h.ref),
+				})),
+		})),
+		{
+			id: "ask",
+			heading: t.palette.ask,
+			items: hits.length
+				? [
+						{
+							id: "ask-hits",
+							label: t.palette.ask,
+							listed: true,
+							icon: <SparklesIcon size={14} />,
+							// The text goes to the message box. It is not sent.
+							onSelect: () =>
+								ask(
+									format(t.palette.askPrompt, {
+										items: hits.map((h) => `- ${h.ref} ${h.title}`).join("\n"),
+									}),
+								),
+						},
+					]
+				: [],
 		},
 	];
 

@@ -21,7 +21,7 @@ const say = async (page: Page, text: string) => {
 };
 
 const pick = async (page: Page, select: string, option: string) => {
-	// The mode is a row of pills; the other pickers are selects.
+	// The mode is a segmented control; the other pickers are selects.
 	if (select === "Mode") {
 		await panel(page)
 			.getByRole("group", { name: select })
@@ -124,13 +124,13 @@ test("resizes by keyboard and moves to the left side", async ({ page }) => {
 	expect((await panel(page).boundingBox())?.x).toBeLessThan((await main.boundingBox())?.x ?? 0);
 });
 
-test("fills the draft from a slash command and adds a ref found with @", async ({ page }) => {
+test("inserts a runner command as typed and adds a ref found with @", async ({ page }) => {
 	await openPanel(page);
 	await input(page).fill("/");
 	await expect(panel(page).getByRole("listbox", { name: "Commands" })).toBeVisible();
 	await input(page).press("ArrowDown");
 	await input(page).press("Enter");
-	await expect(input(page)).toHaveValue("Find the problem here and fix it.");
+	await expect(input(page)).toHaveValue("/tidy ");
 	await input(page).fill("see @REQ-001");
 	await panel(page)
 		.getByRole("option", { name: new RegExp(REF) })

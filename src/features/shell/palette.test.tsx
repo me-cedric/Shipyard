@@ -40,7 +40,8 @@ describe("command palette (shell REQ-005)", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home/inbox");
 		await openPalette(user);
-		await user.keyboard("adr:0004{Enter}");
+		await user.keyboard("adr:0004");
+		await user.keyboard("{Enter}");
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
 		expect(await within(inspector).findByRole("button", { name: /^adr:0004/ })).toBeVisible();
 	});
@@ -103,6 +104,26 @@ describe("palette pages and tickets", () => {
 		await openPalette(user);
 		await user.keyboard("ACME-7");
 		expect(await screen.findByRole("option", { name: /^wi:ACME-7 Pay the invoice/ })).toBeVisible();
+	});
+
+	it("groups hits by kind with a snippet that marks the words, and asks the assistant", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mockState().sync.mirror.push({
+			key: "ACME-8",
+			title: "Pay the invoice",
+			status: "To do",
+		} as never);
+		mountApp("/home/inbox");
+		await openPalette(user);
+		await user.keyboard("invoice");
+		const dialog = within(await screen.findByRole("dialog"));
+		expect(await dialog.findByText("wi (1)")).toBeVisible();
+		const option = await dialog.findByRole("option", { name: /^wi:ACME-8/ });
+		expect(within(option).getByText("invoice").tagName).toBe("MARK");
+		await user.click(dialog.getByRole("option", { name: "Ask the assistant" }));
+		// The shell puts the text in the message box of the open thread, and does not send it.
+		expect(await screen.findByRole("complementary", { name: /assistant/i })).toBeVisible();
 	});
 
 	it("opens the page of a ref, selects it, and drops it when the view changes", async () => {

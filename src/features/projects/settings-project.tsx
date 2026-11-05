@@ -200,7 +200,7 @@ function Form({
 									title: t.projects.connections,
 									rows: [
 										...(["tracker", "forge"] as const).map((group) => ({
-											id: group,
+											id: group === "tracker" ? "issue-tracker" : "code-host",
 											icon: <LinkIcon size={14} />,
 											label: t.connections.type[group],
 											control: (
@@ -218,7 +218,7 @@ function Form({
 											),
 										})),
 										{
-											id: "scope",
+											id: "tracker-scope",
 											icon: <LinkIcon size={14} />,
 											label: t.projects.trackerScope,
 											control: (

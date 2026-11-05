@@ -55,19 +55,12 @@ const FILE_STATE: Record<string, FileState> = {
 	renamed: "renamed",
 };
 
-const Alert = ({ error }: { error: string | null }) =>
-	error ? (
-		<p role="alert" className="px-3 py-2 text-ui text-danger-text">
-			{error}
-		</p>
-	) : null;
-
 /** The form of REQ-020: a title, a description, a base, a draft option and labels that exist. */
 function OpenDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
 	const { t } = useI18n();
 	const { open: openPull } = useForgeActions();
 	const known = usePullLabels().data ?? [];
-	const { error, run } = useRun();
+	const { failure, run } = useRun();
 	const [title, setTitle] = useState("");
 	const [body, setBody] = useState("");
 	const [base, setBase] = useState("");
@@ -150,7 +143,7 @@ function OpenDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
 					{format(t.forge.missingLabels, { names: missing.join(", ") })}
 				</p>
 			) : null}
-			<Alert error={error ?? labelError} />
+			<ErrorNotice error={failure ?? labelError} className="px-3 py-2" />
 		</Dialog>
 	);
 }
@@ -163,7 +156,7 @@ function OpenDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
 function MergeBar({ d }: { d: PullDetail }) {
 	const { t } = useI18n();
 	const { merge, ready } = useForgeActions();
-	const { error, run } = useRun();
+	const { failure, run } = useRun();
 	const [method, setMethod] = useState<MergeMethod | null>(null);
 	const [confirming, setConfirming] = useState(false);
 	const current = method ?? d.mergeMethods[0] ?? "merge";
@@ -215,7 +208,7 @@ function MergeBar({ d }: { d: PullDetail }) {
 					{t.forge.merge}
 				</Button>
 			)}
-			<Alert error={error} />
+			<ErrorNotice error={failure} className="px-3 py-2" />
 		</div>
 	);
 }
@@ -224,7 +217,7 @@ function MergeBar({ d }: { d: PullDetail }) {
 function Reply({ number, agent, open }: { number: number; agent: boolean; open: boolean }) {
 	const { t } = useI18n();
 	const { comment, verdict, close, sendBack } = useForgeActions();
-	const { error, run } = useRun();
+	const { failure, run } = useRun();
 	const [body, setBody] = useState("");
 	const send = (job: () => Promise<unknown>) =>
 		void run(async () => {
@@ -251,7 +244,7 @@ function Reply({ number, agent, open }: { number: number; agent: boolean; open: 
 					</Button>
 				) : null}
 			</div>
-			<Alert error={error} />
+			<ErrorNotice error={failure} className="px-3 py-2" />
 		</div>
 	);
 }

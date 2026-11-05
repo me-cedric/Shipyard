@@ -8,6 +8,7 @@ const text = (n = 0) => ({
 	empty: "Nothing",
 	gap: "Gap",
 	generated: "Generated",
+	contents: "Contents",
 	sections: Array.from({ length: n }, (_, i) => `S${i}`),
 });
 const done = () => mockState().reports;

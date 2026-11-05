@@ -36,7 +36,7 @@ fn repo(s: &AppState) -> Res<Repo> {
 }
 
 pub fn status(s: &AppState) -> Res<Changes> {
-    repo(s)?.status().map_err(err)
+    repo(s)?.status_with_lines().map_err(err)
 }
 
 pub fn diff(s: &AppState, path: &str, side: DiffSide) -> Res<FileDiff> {

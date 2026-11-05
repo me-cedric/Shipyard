@@ -21,7 +21,7 @@ pub enum AssistantMode {
     Agent,
 }
 
-/// What an agent-mode thread may do in its worktree (Q-049 option 1: two levels, no bypass).
+/// What an agent-mode thread may do in its worktree (Q-049).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum Permission {
@@ -30,6 +30,10 @@ pub enum Permission {
     Approve,
     /// Auto inside the worktree: the edit tools are pre-approved. Never `Bash`.
     Auto,
+    /// Bypass permissions: the runner skips every approval and sandbox. Only Claude Code and
+    /// Codex take it. The panel confirms it once for each project and refuses it in a read only
+    /// project or with the agents switch off.
+    Bypass,
     /// Read only, whatever the mode: the thread makes no worktree and no write. A project with a
     /// read only profile uses it.
     ReadOnly,
@@ -48,7 +52,7 @@ impl AssistantMode {
     /// the permission says.
     pub fn tools(self, permission: Permission) -> Vec<String> {
         let mut out: Vec<&str> = READ_TOOLS.to_vec();
-        if self.writes() && permission == Permission::Auto {
+        if self.writes() && matches!(permission, Permission::Auto | Permission::Bypass) {
             out.extend(["Edit", "Write", "MultiEdit"]);
         }
         out.into_iter().map(String::from).collect()

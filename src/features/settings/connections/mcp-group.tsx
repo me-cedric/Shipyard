@@ -7,6 +7,7 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import type { Status } from "@/ui/atoms/status-dot";
+import { Textarea } from "@/ui/atoms/textarea";
 import {
 	ArrowDownTrayIcon,
 	Cog6ToothIcon,
@@ -281,6 +282,10 @@ export function McpAddForm({ onDone }: { onDone: () => void }) {
 	const [vars, setVars] = useState<Variable[]>([{ key: "", value: "" }]);
 	const [error, setError] = useState<unknown>(null);
 	const f = t.connections.field;
+	const o = t.settings.outside;
+	const [paste, setPaste] = useState("");
+	// The pasted servers wait for an accept: the person reads each command and its arguments first.
+	const [preview, setPreview] = useState<{ name: string; line: string }[] | null>(null);
 
 	const finish = async (job: () => Promise<void>) => {
 		setError(null);
@@ -311,6 +316,34 @@ export function McpAddForm({ onDone }: { onDone: () => void }) {
 				}),
 			);
 			await unwrap(commands.mcpEnable(id, true));
+		});
+
+	/** Read the paste. A text that does not parse goes to the app, which names the fault. */
+	const review = () => {
+		try {
+			const doc = JSON.parse(paste) as Record<string, unknown>;
+			const map = (doc.mcpServers ?? doc.servers ?? doc) as Record<
+				string,
+				{ command?: string; url?: string; httpUrl?: string; args?: string[] }
+			>;
+			const rows = Object.entries(map).map(([name, v]) => ({
+				name,
+				line: [
+					v.command ?? v.url ?? v.httpUrl ?? "",
+					...(Array.isArray(v.args) ? v.args : []),
+				].join(" "),
+			}));
+			if (rows.length > 0) return setPreview(rows);
+		} catch {
+			// The app gives the error.
+		}
+		void addPasted();
+	};
+	const addPasted = () =>
+		finish(async () => {
+			setPreview(null);
+			for (const id of await unwrap(commands.mcpCustomPaste(paste)))
+				await unwrap(commands.mcpEnable(id, true));
 		});
 
 	return (
@@ -412,6 +445,34 @@ export function McpAddForm({ onDone }: { onDone: () => void }) {
 							{t.connections.save}
 						</Button>
 					</div>
+					<SettingsRow label={o.paste}>
+						<Textarea
+							label={o.paste}
+							className="w-80 font-mono text-12"
+							value={paste}
+							onChange={(e) => {
+								setPaste(e.target.value);
+								setPreview(null);
+							}}
+						/>
+						<Button variant="secondary" disabled={!paste.trim()} onClick={review}>
+							{o.pasteAdd}
+						</Button>
+					</SettingsRow>
+					{preview ? (
+						<div className="flex flex-col gap-1 px-3 pb-2">
+							{preview.map((r) => (
+								<code key={r.name} className="break-all font-mono text-12">
+									{r.name}: {r.line}
+								</code>
+							))}
+							<div>
+								<Button variant="primary" onClick={() => void addPasted()}>
+									{o.pasteConfirm}
+								</Button>
+							</div>
+						</div>
+					) : null}
 				</>
 			)}
 			{error ? <ErrorNotice error={error} className="px-3 pb-2 text-ui text-danger-text" /> : null}

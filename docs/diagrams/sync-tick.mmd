@@ -21,3 +21,11 @@ flowchart TD
   R --> H["6. Heartbeat<br/>refresh stamps, drop claims no run holds<br/>stop a run whose claim another machine took"]
   H --> E(["Send the Tick event"])
   E --> N(["The window reads the checks of the pull requests of the person<br/>one notice for each new head and result<br/>the first good read of a project makes no notice"])
+
+  %% The file watcher is separate from the tick (crates/shipyard-app/src/watch.rs, Watcher::step).
+  W0(["The system reports the changes of the active project (the notify crate)<br/>a switch or a close starts a new watch with no event"])
+  W0 --> W1["Drop the paths of .git, node_modules, target and the .gitignore of the root"]
+  W1 --> W2{"Quiet for 300 ms after a change,<br/>or 2 s since the first change?"}
+  W2 -->|no| W0
+  W2 -->|yes| W3(["Send one files-changed event with the paths<br/>and a truncated flag when more than 500 paths changed or the system lost events"])
+  W3 --> W4(["The window reads again the design, specs, knowledge, refs and Code queries that the paths feed, or every query when truncated<br/>an editor with unsaved text keeps it, and the stamp conflict shows at the save"])

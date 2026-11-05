@@ -10,6 +10,7 @@ import type {
 	FlowRow_Serialize,
 	Screen_Serialize,
 	Text,
+	TokenFile,
 	TryRequest_Deserialize,
 	TryResponse,
 	Written_Serialize,
@@ -725,4 +726,22 @@ export function designCitations(d: MockDesign): [string, string][] {
 		),
 		...l.screens.flatMap((s) => s.artifacts.map((t): [string, string] => [`screen:${s.slug}`, t])),
 	];
+}
+
+/** The tokens of the project: the CSS of the fenced blocks of the doc, and the `tokens.css` files. */
+export function designTokens(d: MockDesign): TokenFile[] {
+	const decls = (css: string) =>
+		[...css.matchAll(/(?<![\w-])(--[A-Za-z][\w-]*)\s*:\s*([^;}]+)/g)].map((m) => ({
+			name: m[1] ?? "",
+			value: (m[2] ?? "").trim(),
+		}));
+	const doc = [...(d.files[DOC]?.text ?? "").matchAll(/```[^\n]*\n([\s\S]*?)```/g)]
+		.map((m) => m[1] ?? "")
+		.join("\n");
+	return [
+		{ path: DOC, tokens: decls(doc) },
+		...Object.entries(d.files)
+			.filter(([path]) => path.endsWith("tokens.css"))
+			.map(([path, f]) => ({ path, tokens: decls(f.text) })),
+	].filter((f) => f.tokens.length > 0);
 }

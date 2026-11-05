@@ -1,9 +1,8 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
-import { useFormIntent } from "@/lib/shell";
 import { type AutomationView, syncKeys, useAutomation } from "@/lib/sync";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
@@ -29,9 +28,6 @@ function Form({ view }: { view: AutomationView }) {
 	const saved = toDraft(view.automation);
 	const [draft, setDraft] = useState<Draft>(saved);
 	const [error, setError] = useState<unknown>(null);
-	// The reason that a ticket cannot be marked links here: it lands on the label field.
-	const labelBox = useRef<HTMLSpanElement>(null);
-	useFormIntent("pickupLabel", () => labelBox.current?.querySelector("input")?.focus());
 	const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
 
 	const save = async () => {
@@ -62,10 +58,10 @@ function Form({ view }: { view: AutomationView }) {
 			/>
 		);
 		return {
-			id,
+			id: id === "label" ? "pickup-label" : id,
 			icon: ICON,
 			label,
-			control: id === "label" ? <span ref={labelBox}>{input}</span> : input,
+			control: input,
 		};
 	};
 

@@ -49,6 +49,9 @@ pub struct Changes {
     pub merging: bool,
     /// A rebase is in progress: the person resolves the conflicts and continues, or aborts it.
     pub rebasing: bool,
+    /// Lines added and removed from HEAD to the working copy, staged or not, new files included.
+    pub added: u32,
+    pub removed: u32,
 }
 
 impl Changes {
@@ -84,7 +87,8 @@ fn under(paths: &[String], p: &str) -> bool {
 }
 
 impl Repo {
-    /// A deleted file and an added file of the same content make one renamed file.
+    /// A deleted file and an added file of the same content make one renamed file. The line
+    /// counts stay zero: `status_with_lines` fills them.
     pub fn status(&self) -> Result<Changes> {
         let mut out = Changes {
             merging: self.repo.state() == git2::RepositoryState::Merge,
@@ -165,6 +169,31 @@ impl Repo {
             }
         }
         Ok(out)
+    }
+
+    /// `status` with the line counts, for the status bar. A count that fails stays zero.
+    pub fn status_with_lines(&self) -> Result<Changes> {
+        let mut out = self.status()?;
+        if !out.is_clean() {
+            (out.added, out.removed) = self.line_counts().unwrap_or_default();
+        }
+        Ok(out)
+    }
+
+    /// Lines added and removed from HEAD (or nothing before the first commit) to the working copy.
+    fn line_counts(&self) -> Result<(u32, u32)> {
+        let tree = self.repo.head().ok().and_then(|h| h.peel_to_tree().ok());
+        let mut opts = git2::DiffOptions::new();
+        opts.include_untracked(true)
+            .recurse_untracked_dirs(true)
+            .show_untracked_content(true)
+            // A file over 1 MiB counts as binary: no lines.
+            .max_size(1 << 20);
+        let diff = self
+            .repo
+            .diff_tree_to_workdir_with_index(tree.as_ref(), Some(&mut opts))?;
+        let stats = diff.stats()?;
+        Ok((stats.insertions() as u32, stats.deletions() as u32))
     }
 
     /// Stage files or folders: additions, edits and deletions. Staging a conflicted file marks it resolved.

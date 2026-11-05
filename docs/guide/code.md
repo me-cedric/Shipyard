@@ -10,6 +10,8 @@ Local changes lists the files that you changed, as a tree.
 2. Stage the files to keep. Or discard a change.
 3. Write a short message in the commit control of the status bar, then click Commit. A commit takes the staged files only.
 
+A group with no files shows one muted line, such as "Nothing staged".
+
 A renamed file shows under its new path, with the old one: `old → new`. Staging it or discarding its change acts on both paths.
 
 When two changes meet in the same lines, a conflict view shows both sides. Choose one, or write the result.
@@ -55,4 +57,4 @@ Terminal opens a command line in the folder of the project. When the shell ends,
 
 ## Sync
 
-The sync action in the status bar gets the changes of the team and brings your branch up to date. Sending your commits to the server is a separate click. The app never forces a push.
+The Sync button in the top bar gets the changes of the team and brings your branch up to date. The arrow joined to it opens Fetch only and Push. Sending your commits to the server is a separate action. The app never forces a push.
