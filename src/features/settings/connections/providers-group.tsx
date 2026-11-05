@@ -7,7 +7,14 @@ import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
-import { ArrowPathIcon, CheckIcon, Cog6ToothIcon, CpuChipIcon, XMarkIcon } from "@/ui/icons";
+import {
+	ArrowPathIcon,
+	CheckIcon,
+	Cog6ToothIcon,
+	CpuChipIcon,
+	SparklesIcon,
+	XMarkIcon,
+} from "@/ui/icons";
 import { ConnectionRow } from "@/ui/molecules/connection-row";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SecretInput } from "@/ui/molecules/secret-input";
@@ -275,7 +282,13 @@ export function ProvidersGroup({
 	if (rows.length === 0) return null;
 	return (
 		<section aria-labelledby="connections-provider" className="flex flex-col gap-2">
-			<h2 id="connections-provider" className="px-1 text-12 font-medium text-n-11">
+			<h2
+				id="connections-provider"
+				className="flex items-center gap-2 px-1 text-12 font-medium text-n-11"
+			>
+				<span aria-hidden="true" className="flex">
+					<SparklesIcon size={14} />
+				</span>
 				{format(t.count, { name: t.connections.group.provider, count: rows.length })}
 			</h2>
 			{rows.map((p) => (

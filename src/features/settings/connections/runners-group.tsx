@@ -4,7 +4,7 @@ import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
-import { ArrowPathIcon } from "@/ui/icons";
+import { ArrowPathIcon, CpuChipIcon } from "@/ui/icons";
 import { ConnectionRow } from "@/ui/molecules/connection-row";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { runnerKeys } from "./keys";
@@ -35,7 +35,14 @@ export function RunnersGroup() {
 	return (
 		<section aria-labelledby="connections-runner" className="flex flex-col gap-2">
 			<div className="flex items-center justify-between px-1">
-				<h2 id="connections-runner" tabIndex={-1} className="py-1 text-12 font-medium text-n-11">
+				<h2
+					id="connections-runner"
+					tabIndex={-1}
+					className="flex items-center gap-2 py-1 text-12 font-medium text-n-11"
+				>
+					<span aria-hidden="true" className="flex">
+						<CpuChipIcon size={14} />
+					</span>
 					{format(t.count, {
 						name: t.connections.group.runner,
 						count: runners.data?.length ?? 0,

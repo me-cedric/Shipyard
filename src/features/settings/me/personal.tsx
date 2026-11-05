@@ -3,6 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import { CODE_FONTS, UI_FONTS, usePrefs } from "@/lib/prefs";
+import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { CommandLineIcon, CpuChipIcon, DocumentTextIcon } from "@/ui/icons";
@@ -184,7 +185,11 @@ export function usePersonalSections(): SettingsSection[] {
 							onValueChange={(v) => prefs.setPrefs({ defaultAgent: back(v), defaultModel: "" })}
 							items={[
 								{ value: DEFAULT, label: t.assistant.default },
-								...runners.map((r) => ({ value: r.runner, label: r.runner })),
+								...runners.map((r) => ({
+									value: r.runner,
+									label: runnerName(r.runner),
+									icon: <BrandIcon name={r.runner} size={14} />,
+								})),
 							]}
 						/>
 					),

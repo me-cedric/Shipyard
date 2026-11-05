@@ -5,6 +5,7 @@ import { useMachineSpend, useMachineWrites } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import type { SpendRow } from "@/lib/ipc";
 import { cn } from "@/lib/utils";
+import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Button } from "@/ui/atoms/button";
 import { CountUp } from "@/ui/atoms/count-up";
 import { Input } from "@/ui/atoms/input";
@@ -24,6 +25,13 @@ const PERIODS = [7, 30, 90];
 const ALL = "";
 
 const day = (back: number) => new Date(Date.now() - back * 86_400_000).toISOString().slice(0, 10);
+
+const RunnerLabel = ({ id }: { id: string }) => (
+	<span className="inline-flex items-center gap-1.5">
+		<BrandIcon name={id} size={14} />
+		{runnerName(id)}
+	</span>
+);
 
 /** The rows grouped by one key, the biggest spend first (a day: the newest first). */
 export function group(rows: SpendRow[], by: By): Line[] {
@@ -122,7 +130,12 @@ export function MachineUsage({ prices }: { prices: boolean }) {
 			.reduce((a, r) => a + (r.costUsd ?? 0), 0);
 	const runners = [...new Set(all.map((r) => r.runner))];
 	const columns: ColumnDef<Line>[] = [
-		{ id: "name", header: m[BY_LABEL[by]], cell: (c) => c.row.original.name },
+		{
+			id: "name",
+			header: m[BY_LABEL[by]],
+			cell: (c) =>
+				by === "runner" ? <RunnerLabel id={c.row.original.name} /> : c.row.original.name,
+		},
 		{
 			id: "tokens",
 			header: t.factory.tokens,
@@ -216,7 +229,8 @@ export function MachineUsage({ prices }: { prices: boolean }) {
 							label={m.budgetFor}
 							items={[ALL, ...runners].map((r) => ({
 								value: r,
-								label: r === ALL ? m.allRunners : r,
+								label: r === ALL ? m.allRunners : runnerName(r),
+								icon: r === ALL ? undefined : <BrandIcon name={r} size={14} />,
 							}))}
 							value={runner}
 							onValueChange={setRunner}
@@ -240,14 +254,16 @@ export function MachineUsage({ prices }: { prices: boolean }) {
 					</span>
 					{budgets.map((b) => (
 						<span key={b.runner} className="flex items-center gap-3 text-ui">
-							<span className="w-32">{b.runner === ALL ? m.allRunners : b.runner}</span>
+							<span className="w-32">
+								{b.runner === ALL ? m.allRunners : <RunnerLabel id={b.runner} />}
+							</span>
 							<span className="w-40 text-n-11">
 								{money.format(monthUsd(b.runner))} / {money.format(b.usd ?? 0)}
 							</span>
 							<SpendMeter
 								usd={monthUsd(b.runner)}
 								budget={b.usd}
-								label={`${m.budget} ${b.runner === ALL ? m.allRunners : b.runner}`}
+								label={`${m.budget} ${b.runner === ALL ? m.allRunners : runnerName(b.runner)}`}
 							/>
 							<Button variant="ghost" onClick={() => save(b.runner, null)}>
 								{m.remove}

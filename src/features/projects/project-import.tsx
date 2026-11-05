@@ -41,6 +41,7 @@ export function ProjectImport() {
 		: [];
 	return (
 		<Panel
+			id="section-import"
 			title={k.title}
 			icon={<ArrowDownTrayIcon size={14} />}
 			toolbar={

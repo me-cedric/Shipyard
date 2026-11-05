@@ -6,7 +6,7 @@ import { copyText } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
-import { ClipboardIcon } from "@/ui/icons";
+import { ClipboardIcon, InformationCircleIcon } from "@/ui/icons";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
@@ -32,7 +32,7 @@ export function ProjectDetails() {
 	if (!active) return null;
 	const options = [...new Set([...EVERY, ...(minutes ? [minutes] : [])])].sort((a, b) => a - b);
 	return (
-		<Panel title={d.title} flush>
+		<Panel id="section-details" title={d.title} icon={<InformationCircleIcon size={14} />} flush>
 			<SettingsRow label={t.extras.picture.logo}>
 				<PictureField which="logo" label={t.extras.picture.logo} />
 			</SettingsRow>

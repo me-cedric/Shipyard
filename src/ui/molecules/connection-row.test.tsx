@@ -48,4 +48,30 @@ describe("ConnectionRow", () => {
 		expect(within(row).getByRole("button", { name: "Test" })).toBeInTheDocument();
 		expect(within(row).getByText("under")).toBeInTheDocument();
 	});
+
+	it("shows the logo of the product, or its first letter (spec:visual-cues#REQ-003)", () => {
+		const { container, unmount } = renderApp(
+			<ConnectionRow
+				status="idle"
+				statusLabel="Off"
+				name="Work"
+				brand="jira-cloud"
+				actions={null}
+			/>,
+		);
+		expect(container.querySelector("[data-brand]")).toHaveAttribute("data-brand", "Jira");
+		unmount();
+		const other = renderApp(
+			<ConnectionRow
+				status="idle"
+				statusLabel="Off"
+				name="Work"
+				product="Azure DevOps"
+				brand="azure-dev-ops"
+				actions={null}
+			/>,
+		);
+		expect(other.container.querySelector("[data-brand]")).toBeNull();
+		expect(screen.getByRole("group", { name: "Work" })).toHaveTextContent("A");
+	});
 });

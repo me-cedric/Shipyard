@@ -5,6 +5,7 @@ import { commands, type Overrides_Serialize, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { Checkbox } from "@/ui/atoms/checkbox";
 import { Switch } from "@/ui/atoms/switch";
+import { Squares2X2Icon } from "@/ui/icons";
 import { Panel } from "@/ui/molecules/panel";
 
 /** The spaces that a profile can hide. Home and Settings always stay. */
@@ -41,7 +42,7 @@ export function ScreensCard() {
 		void save({ hiddenTabs: next.length ? next : null });
 	};
 	return (
-		<Panel title={p.screens} flush>
+		<Panel id="section-screens" title={p.screens} icon={<Squares2X2Icon size={14} />} flush>
 			<ul className="flex flex-col divide-y">
 				{LISTED.map((s) => {
 					const on = spaceOn(s);

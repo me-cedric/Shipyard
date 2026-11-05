@@ -3,6 +3,7 @@ import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, pickCertificate, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
+import { LockClosedIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
@@ -35,7 +36,13 @@ export function CertsGroup() {
 		});
 	return (
 		<section id="certificates" aria-labelledby="connections-certs" className="flex flex-col gap-2">
-			<h2 id="connections-certs" className="px-1 py-1 text-12 font-medium text-n-11">
+			<h2
+				id="connections-certs"
+				className="flex items-center gap-2 px-1 py-1 text-12 font-medium text-n-11"
+			>
+				<span aria-hidden="true" className="flex">
+					<LockClosedIcon size={14} />
+				</span>
 				{c.title}
 			</h2>
 			<div className="flex flex-col rounded-lg border bg-surface-1 shadow-1">

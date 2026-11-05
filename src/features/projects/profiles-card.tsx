@@ -8,7 +8,7 @@ import { useActiveProject } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
-import { XMarkIcon } from "@/ui/icons";
+import { UserCircleIcon, XMarkIcon } from "@/ui/icons";
 import { Panel } from "@/ui/molecules/panel";
 
 const PAGE_SPACES: SpaceId[] = ["home", "design", "specs", "work", "factory", "code", "knowledge"];
@@ -43,7 +43,7 @@ export function ProfilesCard() {
 	const people = Object.entries(o.assignments ?? {});
 	const valid = /^\S+@\S+$/.test(email.trim());
 	return (
-		<Panel title={p.profiles} flush>
+		<Panel id="section-profiles" title={p.profiles} icon={<UserCircleIcon size={14} />} flush>
 			<div className="flex flex-col gap-3 px-3 py-2">
 				<Select
 					label={p.profile}

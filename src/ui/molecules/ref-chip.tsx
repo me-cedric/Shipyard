@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
 import { cn } from "@/lib/utils";
+import { BrandIcon, brandOf } from "../atoms/brand-icon";
 import { type Status, StatusDot } from "../atoms/status-dot";
 import { Tooltip } from "../atoms/tooltip";
 import { BookOpenIcon, CodeBracketIcon, CpuChipIcon, DocumentTextIcon, InboxIcon } from "../icons";
@@ -42,7 +43,7 @@ export function RefChip({
 }) {
 	const { t } = useI18n();
 	const menu = useMenus();
-	const kind = refId.split(":")[0] ?? "";
+	const [kind = "", host = ""] = refId.split(":");
 	const stateLabel = t.ref[state];
 	// The ref holds the kind. The name starts with the visible text, then adds the title and the state.
 	const name = [text, refId, title, stateLabel].filter(Boolean).join(", ");
@@ -71,7 +72,11 @@ export function RefChip({
 					)}
 				>
 					<span aria-hidden="true" className="text-n-10">
-						{KIND_ICON[kind] ?? <DocumentTextIcon size={12} />}
+						{kind === "pr" && brandOf(host) ? (
+							<BrandIcon name={host} size={12} />
+						) : (
+							(KIND_ICON[kind] ?? <DocumentTextIcon size={12} />)
+						)}
 					</span>
 					<span className="min-w-0 truncate">{text ?? refId}</span>
 					<span aria-hidden="true">

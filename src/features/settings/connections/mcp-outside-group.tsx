@@ -9,7 +9,7 @@ import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { Switch } from "@/ui/atoms/switch";
-import { ArrowDownTrayIcon, ClipboardIcon } from "@/ui/icons";
+import { ArrowDownTrayIcon, ArrowsRightLeftIcon, ClipboardIcon } from "@/ui/icons";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { message } from "./keys";
 import { McpWiring, wiringKey } from "./mcp-wiring";
@@ -86,7 +86,13 @@ export function McpOutsideGroup() {
 	const label = (name: (typeof GROUPS)[number]) => o[name];
 	return (
 		<section aria-labelledby="connections-outside" className="flex flex-col gap-2">
-			<h2 id="connections-outside" className="px-1 py-1 text-12 font-medium text-n-11">
+			<h2
+				id="connections-outside"
+				className="flex items-center gap-2 px-1 py-1 text-12 font-medium text-n-11"
+			>
+				<span aria-hidden="true" className="flex">
+					<ArrowsRightLeftIcon size={14} />
+				</span>
 				{o.title}
 			</h2>
 			<div className="flex flex-col rounded-lg border bg-surface-1 shadow-1">

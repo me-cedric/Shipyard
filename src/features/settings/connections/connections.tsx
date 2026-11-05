@@ -23,11 +23,18 @@ import type { Status } from "@/ui/atoms/status-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import {
 	ArrowPathIcon,
+	ArrowsRightLeftIcon,
 	ChevronRightIcon,
+	CodeBracketIcon,
 	Cog6ToothIcon,
+	CpuChipIcon,
 	FolderOpenIcon,
+	InboxIcon,
 	LinkIcon,
+	LockClosedIcon,
 	PlusIcon,
+	PuzzlePieceIcon,
+	SparklesIcon,
 	XMarkIcon,
 } from "@/ui/icons";
 import { BacklinkList } from "@/ui/molecules/backlink-list";
@@ -36,6 +43,7 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FlagList } from "@/ui/molecules/flag-list";
 import { PageHeader } from "@/ui/molecules/page-header";
+import { SectionNav } from "@/ui/molecules/section-nav";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { SyncStatus } from "@/ui/molecules/sync-status";
 import { CertsGroup } from "./certs-group";
@@ -256,6 +264,7 @@ function Row({
 			statusLabel={t.connections.state[c.state]}
 			name={c.name}
 			product={(t.connections.kind[c.group] as Record<string, string>)[c.kind] ?? c.kind}
+			brand={c.kind}
 			flags={
 				c.capabilities ? (
 					<FlagList
@@ -355,6 +364,11 @@ function AddForm({ initial, onDone }: { initial: AddType; onDone: () => void }) 
 	);
 }
 
+const GROUP_ICON: Record<ConnectionGroup, React.ReactNode> = {
+	tracker: <InboxIcon size={14} />,
+	forge: <CodeBracketIcon size={14} />,
+};
+
 /** Settings / Connections: one list grouped by kind, and one primary action: add a connection. */
 export function Connections() {
 	const { t } = useI18n();
@@ -384,6 +398,35 @@ export function Connections() {
 	};
 	// The runners are not added by a person: they do not count.
 	const empty = (conns ?? []).length + mcpCount + providerCount === 0 && !adding;
+	// Sections that a person can see: the nav lists only these.
+	const sections = [
+		{
+			id: "connections-runner",
+			label: t.connections.group.runner,
+			icon: <CpuChipIcon size={14} />,
+		},
+		...GROUPS.filter((g) => conns?.some((c) => c.group === g)).map((g) => ({
+			id: `connections-${g}`,
+			label: t.connections.group[g],
+			icon: GROUP_ICON[g],
+		})),
+		...(providerCount > 0
+			? [
+					{
+						id: "connections-provider",
+						label: t.connections.group.provider,
+						icon: <SparklesIcon size={14} />,
+					},
+				]
+			: []),
+		{ id: "connections-mcp", label: t.connections.group.mcp, icon: <PuzzlePieceIcon size={14} /> },
+		{
+			id: "connections-outside",
+			label: t.settings.outside.title,
+			icon: <ArrowsRightLeftIcon size={14} />,
+		},
+		{ id: "connections-certs", label: t.settings.certs.title, icon: <LockClosedIcon size={14} /> },
+	];
 	return (
 		<div className="flex flex-col">
 			<PageHeader
@@ -403,6 +446,7 @@ export function Connections() {
 					)
 				}
 			/>
+			<SectionNav label={t.ui.sections} items={sections} />
 			<div className="flex max-w-4xl flex-col gap-5 px-4 pt-1 pb-4">
 				{list.error ? (
 					<p role="alert" className="text-ui text-danger-text">
@@ -441,7 +485,13 @@ export function Connections() {
 							aria-labelledby={`connections-${g}`}
 							className="flex flex-col gap-2"
 						>
-							<h2 id={`connections-${g}`} className="px-1 text-12 font-medium text-n-11">
+							<h2
+								id={`connections-${g}`}
+								className="flex items-center gap-2 px-1 text-12 font-medium text-n-11"
+							>
+								<span aria-hidden="true" className="flex">
+									{GROUP_ICON[g]}
+								</span>
 								{format(t.count, { name: t.connections.group[g], count: rows.length })}
 							</h2>
 							{rows.map((c) => (

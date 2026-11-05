@@ -157,7 +157,7 @@ describe("assistant panel: width and side", () => {
 /** The picker button, More models, then a model of Codex. */
 async function toCodex() {
 	const user = userEvent.setup({ pointerEventsCheck: 0 });
-	await user.click(screen.getByRole("button", { name: "claude" }));
+	await user.click(screen.getByRole("button", { name: "Claude Code" }));
 	await user.click(await screen.findByRole("menuitem", { name: "More models" }));
 	// A click on an item of a submenu does not reach it in jsdom: the keyboard does.
 	(await screen.findByRole("menuitem", { name: "gpt-5" })).focus();

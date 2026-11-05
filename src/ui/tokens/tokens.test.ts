@@ -109,9 +109,12 @@ describe("tokens (REQ-001)", () => {
 			// deck takes the colours and the font of the user's deck style (data, not component style).
 			// The design token view parses the token values of tokens.css to show them. The draw.io
 			// drawing uses the default colours of draw.io for a file with no colour (a picture, not UI).
+			// The brand logos keep the colour of their owner (data, shown only on request).
 			if (
 				/\.test\.tsx?$/.test(path) ||
-				/gallery\/|slide-deck\.tsx$|design\/tokens\.tsx$|organisms\/drawio\.ts$/.test(path)
+				/gallery\/|slide-deck\.tsx$|design\/tokens\.tsx$|organisms\/drawio\.ts$|atoms\/brands\.ts$/.test(
+					path,
+				)
 			)
 				continue;
 			for (const re of rules) if (re.test(text)) hits.push(`${path}: ${re}`);

@@ -9,6 +9,7 @@ import {
 } from "@/lib/ipc";
 import { ROLES } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
+import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Select } from "@/ui/atoms/select";
 import { Switch } from "@/ui/atoms/switch";
 import { Panel } from "@/ui/molecules/panel";
@@ -77,7 +78,14 @@ export function ProjectOverrides() {
 					label={`${w.assistant} ${w.runner}`}
 					value={defaults?.runner ?? NONE}
 					onValueChange={(v) => void setDefaults({ runner: pick(v), model: null, effort: null })}
-					items={items(runners.map((r) => r.runner))}
+					items={[
+						{ value: NONE, label: w.default },
+						...runners.map((r) => ({
+							value: r.runner,
+							label: runnerName(r.runner),
+							icon: <BrandIcon name={r.runner} size={14} />,
+						})),
+					]}
 				/>
 			</SettingsRow>
 			<SettingsRow label={`${w.assistant} ${w.model}`}>

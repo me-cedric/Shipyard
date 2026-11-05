@@ -6,6 +6,7 @@ import { projectKeys, useTicketsConfig } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
+import { QueueListIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
@@ -35,7 +36,12 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 		}
 	};
 	return (
-		<Panel title={k.title} bodyClassName="gap-2 p-3">
+		<Panel
+			id="section-tickets"
+			title={k.title}
+			icon={<QueueListIcon size={14} />}
+			bodyClassName="gap-2 p-3"
+		>
 			{TYPES.map((type) => (
 				<SettingsRow key={type} label={k.type[type]}>
 					<Input

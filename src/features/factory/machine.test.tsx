@@ -65,8 +65,8 @@ describe("Factory / machine-wide AI sessions and spend", () => {
 		await renderTab(<Usage />);
 		expect(await screen.findByRole("img", { name: "Spend by day" })).toBeInTheDocument();
 		const table = await screen.findByRole("table", { name: "This computer" });
-		expect(within(table).getByText("claude")).toBeInTheDocument();
-		expect(within(table).getByText("codex")).toBeInTheDocument();
+		expect(within(table).getByText("Claude Code")).toBeInTheDocument();
+		expect(within(table).getByText("Codex")).toBeInTheDocument();
 
 		await user.click(screen.getByRole("combobox", { name: "Group by" }));
 		await user.click(await screen.findByRole("option", { name: "By model" }));

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "../atoms/badge";
+import { BrandIcon, brandOf } from "../atoms/brand-icon";
 import { LiveDot } from "../atoms/live-dot";
 import { type Status, StatusDot } from "../atoms/status-dot";
 import { ContextMenu, type MenuItem } from "./context-menu";
@@ -19,14 +20,15 @@ const TONE: Record<
 };
 
 /**
- * One connection as a card: a logo glyph (the first letter of the product or the name), the name
- * and the product, the live state, the flags and the actions.
+ * One connection as a card: the logo of the product (or its first letter), the name and the
+ * product, the live state, the flags and the actions.
  */
 export function ConnectionRow({
 	status,
 	statusLabel,
 	name,
 	product,
+	brand = name,
 	flags,
 	actions,
 	children,
@@ -37,6 +39,8 @@ export function ConnectionRow({
 	statusLabel: string;
 	name: string;
 	product?: string;
+	/** The id or the name that picks the logo, when the name does not: `github`, `jira-cloud`. */
+	brand?: string;
 	flags?: ReactNode;
 	actions: ReactNode;
 	/** Under the row: a test result, a form or a list. */
@@ -61,7 +65,7 @@ export function ConnectionRow({
 							tone.tile,
 						)}
 					>
-						{glyph}
+						{brandOf(brand) ? <BrandIcon name={brand} size={18} /> : glyph}
 					</span>
 					<span className="flex min-w-24 flex-1 flex-col">
 						<span title={product} className="text-ui font-medium text-n-12">

@@ -6,7 +6,7 @@ import { projectKeys, usePersonas } from "@/lib/projects";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Switch } from "@/ui/atoms/switch";
-import { PlusIcon } from "@/ui/icons";
+import { PlusIcon, UsersIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
@@ -36,7 +36,12 @@ function Editor({ saved }: { saved: Persona[] }) {
 		}
 	};
 	return (
-		<Panel title={p.title} bodyClassName="gap-2 p-3">
+		<Panel
+			id="section-personas"
+			title={p.title}
+			icon={<UsersIcon size={14} />}
+			bodyClassName="gap-2 p-3"
+		>
 			{rows.map((r, i) => (
 				<SettingsRow key={r.id} label={r.name || r.id}>
 					<Input label={p.name} value={r.name} onChange={(e) => set(i, { name: e.target.value })} />

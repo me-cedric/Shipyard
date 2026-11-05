@@ -23,6 +23,11 @@ describe("RefChip", () => {
 		await userEvent.keyboard("{Enter}");
 		expect(onOpen).toHaveBeenCalledWith("wi:KEY-1");
 	});
+
+	it("shows the code host logo of a pull request ref (spec:visual-cues#REQ-005)", () => {
+		const { container } = renderApp(<RefChip refId="pr:github:42" state="resolved" />);
+		expect(container.querySelector("[data-brand]")).toHaveAttribute("data-brand", "GitHub");
+	});
 });
 
 describe("RefChip behaviour", () => {

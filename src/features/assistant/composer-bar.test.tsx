@@ -26,17 +26,25 @@ describe("assistant composer: the bar under the message", () => {
 			(e) => e.getAttribute("aria-label") ?? e.textContent,
 		);
 		expect(order[0]).toBe("Attach file");
-		expect(order[1]).toBe("claude");
+		expect(order[1]).toBe("Claude Code");
 		expect(order[2]).toBe("Permission");
 		expect(order.at(-1)).toBe("Send");
 		expect(screen.getByRole("meter", { name: "Context" })).toBeInTheDocument();
+	});
+
+	// spec:visual-cues#REQ-004
+	it("shows the name and the logo of the runner, not its id", async () => {
+		await mountAssistant();
+		const button = screen.getByRole("button", { name: "Claude Code" });
+		expect(button.querySelector('[data-brand="Claude"]')).not.toBeNull();
+		expect(screen.queryByText("claude")).toBeNull();
 	});
 
 	it("lists the models with a check, an Effort submenu and the other runners", async () => {
 		// The menu sets pointer-events none on the rest of the page while a submenu opens.
 		const user = userEvent.setup({ pointerEventsCheck: 0 });
 		await mountAssistant();
-		await user.click(screen.getByRole("button", { name: "claude" }));
+		await user.click(screen.getByRole("button", { name: "Claude Code" }));
 		const radios = await screen.findAllByRole("menuitemradio");
 		expect(radios.map((r) => r.textContent)).toEqual(["Default", "opus", "sonnet", "haiku"]);
 		expect(radios[0]).toBeChecked();
@@ -53,7 +61,7 @@ describe("assistant composer: the bar under the message", () => {
 		expect(await screen.findByRole("button", { name: "opus · high" })).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "opus · high" }));
 		await user.click(await screen.findByRole("menuitem", { name: "More models" }));
-		expect(await screen.findByText("codex")).toBeInTheDocument();
+		expect(await screen.findByText("Codex")).toBeInTheDocument();
 		expect(screen.getByRole("menuitem", { name: "gpt-5-codex" })).toBeInTheDocument();
 	});
 });

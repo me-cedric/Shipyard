@@ -20,16 +20,31 @@ import {
 	ArrowDownTrayIcon,
 	BellIcon,
 	Cog6ToothIcon,
+	CommandLineIcon,
 	ComputerDesktopIcon,
+	CpuChipIcon,
+	DocumentTextIcon,
 	LanguageIcon,
+	ShieldCheckIcon,
 	SunIcon,
 	SwatchIcon,
 	UserCircleIcon,
 } from "@/ui/icons";
 import { PageHeader } from "@/ui/molecules/page-header";
+import { SectionNav } from "@/ui/molecules/section-nav";
 import { Settings } from "@/ui/templates/settings";
 import { useLookRows } from "./look-rows";
 import { usePersonalSections } from "./me/personal";
+
+/** The icon of each section heading, by section id. */
+const SECTION_ICON: Record<string, React.ReactNode> = {
+	me: <UserCircleIcon size={14} />,
+	fonts: <DocumentTextIcon size={14} />,
+	terminal: <CommandLineIcon size={14} />,
+	agent: <CpuChipIcon size={14} />,
+	notifications: <BellIcon size={14} />,
+	permissions: <ShieldCheckIcon size={14} />,
+};
 
 /** Where the update check reads the latest release. It saves when the field loses focus. */
 function ReleaseUrl() {
@@ -129,6 +144,13 @@ export function Me() {
 	const personal = usePersonalSections();
 	const look = useLookRows();
 	const permissions = usePermissionSection();
+	const withIcon = personal.map((s) => ({ ...s, icon: SECTION_ICON[s.id] }));
+	const nav = [
+		{ id: "me", title: t.tabs.settings.me },
+		...personal,
+		{ id: "notifications", title: t.notifications.title },
+		{ id: permissions.id, title: permissions.title },
+	].map((s) => ({ id: `section-${s.id}`, label: s.title, icon: SECTION_ICON[s.id] }));
 	// The mark: the active project sets this value, and it replaces the one below.
 	const marked = (key: Overridable, control: React.ReactNode) => (
 		<span className="flex items-center gap-2">
@@ -139,12 +161,14 @@ export function Me() {
 	return (
 		<div className="flex flex-col">
 			<PageHeader icon={<UserCircleIcon size={16} />} title={t.tabs.settings.me} />
+			<SectionNav label={t.ui.sections} items={nav} />
 			<div className="px-4 pt-1 pb-4">
 				<Settings
 					sections={[
 						{
 							id: "me",
 							title: t.tabs.settings.me,
+							icon: SECTION_ICON.me,
 							rows: [
 								{
 									id: "theme",
@@ -277,10 +301,11 @@ export function Me() {
 								...look,
 							],
 						},
-						...personal,
+						...withIcon,
 						{
 							id: "notifications",
 							title: t.notifications.title,
+							icon: SECTION_ICON.notifications,
 							rows: SOURCES.map((s) => ({
 								id: s,
 								icon: <BellIcon size={14} />,
@@ -288,7 +313,7 @@ export function Me() {
 								control: <NotifySwitch source={s} />,
 							})),
 						},
-						permissions,
+						{ ...permissions, icon: SECTION_ICON.permissions },
 					]}
 				/>
 			</div>

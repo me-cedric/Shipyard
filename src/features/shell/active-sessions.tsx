@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMachineSessions, useMachineWrites } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
-import { Avatar } from "@/ui/atoms/avatar";
+import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { ComputerDesktopIcon, StopIcon } from "@/ui/icons";
@@ -60,12 +60,12 @@ export function ActiveSessions({ className }: { className: string }) {
 						) : (
 							<ul aria-label={p.title} className="max-h-80 overflow-y-auto py-1">
 								{live.map((s) => {
-									const name = `${s.runner} ${s.project}`;
+									const name = `${runnerName(s.runner)} ${s.project}`;
 									const pid = s.pid;
 									return (
 										<li key={s.key} className="flex items-center gap-2.5 px-3 py-1.5">
 											<span className="relative flex shrink-0">
-												<Avatar name={s.runner} className="size-6 text-11" />
+												<BrandIcon name={s.runner} size={24} />
 												{s.state === "working" ? (
 													<LiveDot className="absolute -right-0.5 -bottom-0.5 size-2 ring-2 ring-surface-3" />
 												) : null}
@@ -78,7 +78,7 @@ export function ActiveSessions({ className }: { className: string }) {
 													</span>
 												</span>
 												<span className="truncate font-mono text-11 text-n-11">
-													{s.runner} · {s.model}
+													{runnerName(s.runner)} · {s.model}
 												</span>
 											</span>
 											<span className="flex shrink-0 flex-col items-end font-mono text-11 text-n-11">

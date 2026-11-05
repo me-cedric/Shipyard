@@ -14,7 +14,14 @@ export function Settings({ sections }: { sections: SettingsSection[] }) {
 	return (
 		<div className="flex max-w-3xl flex-col gap-4">
 			{sections.map((s) => (
-				<Panel key={s.id} title={s.title} count={s.rows.length} icon={s.icon} flush>
+				<Panel
+					key={s.id}
+					id={`section-${s.id}`}
+					title={s.title}
+					count={s.rows.length}
+					icon={s.icon}
+					flush
+				>
 					{s.rows.map((r) => (
 						<SettingsRow key={r.id} id={r.id} icon={r.icon} label={r.label}>
 							{r.control}

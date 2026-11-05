@@ -44,7 +44,7 @@ describe("Active sessions", () => {
 		expect(rows[0]).toHaveTextContent("alpha");
 		expect(rows[0]).toHaveTextContent("claude-opus-4");
 		expect(rows[0]).toHaveTextContent("$18.40");
-		await user.click(within(list).getByRole("button", { name: "Stop codex beta" }));
+		await user.click(within(list).getByRole("button", { name: "Stop Codex beta" }));
 		await waitFor(() =>
 			expect(mockState().machine.sessions.some((s) => s.pid === 4188)).toBe(false),
 		);

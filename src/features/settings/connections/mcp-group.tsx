@@ -13,6 +13,7 @@ import {
 	Cog6ToothIcon,
 	PlayIcon,
 	PlusIcon,
+	PuzzlePieceIcon,
 	StopIcon,
 	XMarkIcon,
 } from "@/ui/icons";
@@ -237,7 +238,13 @@ export function McpGroup({
 	return (
 		<section aria-labelledby="connections-mcp" className="flex flex-col gap-2">
 			<div className="flex items-center justify-between px-1">
-				<h2 id="connections-mcp" className="py-1 text-12 font-medium text-n-11">
+				<h2
+					id="connections-mcp"
+					className="flex items-center gap-2 py-1 text-12 font-medium text-n-11"
+				>
+					<span aria-hidden="true" className="flex">
+						<PuzzlePieceIcon size={14} />
+					</span>
 					{format(t.count, { name: t.connections.group.mcp, count: rows.length })}
 				</h2>
 				<Button variant="ghost" disabled={startable.length === 0} onClick={() => void startAll()}>

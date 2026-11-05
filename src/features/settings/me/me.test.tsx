@@ -52,7 +52,7 @@ describe("Settings / Me fonts, terminal and agent", () => {
 		await user.type(size, "90");
 		await user.tab();
 		await waitFor(() => expect(mockState().prefs.terminalFontSize).toBe(24));
-		await choose(user, "Default agent", "codex");
+		await choose(user, "Default agent", "Codex");
 		await waitFor(() => expect(mockState().prefs.defaultAgent).toBe("codex"));
 	});
 });

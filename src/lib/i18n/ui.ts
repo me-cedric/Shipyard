@@ -2,6 +2,7 @@
 export const uiEn = {
 	more: "More",
 	diagram: "Diagram",
+	sections: "Sections",
 	back: "Back",
 	repo: "{changed} changed, {ahead} to push, {behind} to pull",
 	ahead: "Ahead",
@@ -75,6 +76,7 @@ export const uiEn = {
 export const uiFr: typeof uiEn = {
 	more: "Plus",
 	diagram: "Schéma",
+	sections: "Sections",
 	back: "Retour",
 	repo: "{changed} modifiés, {ahead} à pousser, {behind} à récupérer",
 	ahead: "En avance",

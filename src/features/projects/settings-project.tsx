@@ -20,16 +20,23 @@ import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import {
+	ArrowDownTrayIcon,
 	Cog6ToothIcon,
 	FolderOpenIcon,
+	InformationCircleIcon,
 	LinkIcon,
 	PencilIcon,
+	QueueListIcon,
+	Squares2X2Icon,
 	SunIcon,
 	SwatchIcon,
+	UserCircleIcon,
+	UsersIcon,
 } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
+import { SectionNav } from "@/ui/molecules/section-nav";
 import { Settings } from "@/ui/templates/settings";
 import { PersonasEditor } from "./personas";
 import { ProfilesCard } from "./profiles-card";
@@ -161,6 +168,7 @@ function Form({
 								{
 									id: "paths",
 									title: t.projects.paths,
+									icon: <FolderOpenIcon size={14} />,
 									rows: [
 										{
 											id: "name",
@@ -198,6 +206,7 @@ function Form({
 								{
 									id: "connections",
 									title: t.projects.connections,
+									icon: <LinkIcon size={14} />,
 									rows: [
 										...(["tracker", "forge"] as const).map((group) => ({
 											id: group === "tracker" ? "issue-tracker" : "code-host",
@@ -234,6 +243,7 @@ function Form({
 								{
 									id: "workflow",
 									title: t.projects.workflow,
+									icon: <Cog6ToothIcon size={14} />,
 									rows: [
 										{
 											id: "workflow",
@@ -255,6 +265,7 @@ function Form({
 					{
 						id: "overrides",
 						title: t.projects.overrides,
+						icon: <SwatchIcon size={14} />,
 						rows: [
 							override(
 								"theme",
@@ -320,6 +331,35 @@ function Form({
 	);
 }
 
+/** The sections of the page, in page order. A project without a file has no file sections. */
+function sectionItems(t: ReturnType<typeof useI18n>["t"], hasFile: boolean) {
+	const item = (id: string, label: string, icon: React.ReactNode) => ({
+		id: `section-${id}`,
+		label,
+		icon,
+	});
+	return [
+		...(hasFile
+			? [
+					item("paths", t.projects.paths, <FolderOpenIcon size={14} />),
+					item("connections", t.projects.connections, <LinkIcon size={14} />),
+					item("workflow", t.projects.workflow, <Cog6ToothIcon size={14} />),
+				]
+			: []),
+		item("overrides", t.projects.overrides, <SwatchIcon size={14} />),
+		...(hasFile
+			? [
+					item("details", t.projects.details.title, <InformationCircleIcon size={14} />),
+					item("tickets", t.projects.ticketsConfig.title, <QueueListIcon size={14} />),
+					item("personas", t.projects.personas.title, <UsersIcon size={14} />),
+				]
+			: []),
+		item("screens", t.workspace.profile.screens, <Squares2X2Icon size={14} />),
+		item("profiles", t.workspace.profile.profiles, <UserCircleIcon size={14} />),
+		item("import", t.projects.projectImport.title, <ArrowDownTrayIcon size={14} />),
+	];
+}
+
 /** Settings / Project: paths and workflow go to `.shipyard/project.yaml`, overrides to the registry. */
 export function ProjectSettings() {
 	const { t } = useI18n();
@@ -332,8 +372,10 @@ export function ProjectSettings() {
 	if (data === undefined)
 		return <PageHeader icon={<Cog6ToothIcon size={16} />} title={t.tabs.settings.project} />;
 	return (
-		<>
+		// A block as tall as its content, so the section list stays in view while the page scrolls.
+		<div className="flex flex-col">
 			<PageHeader icon={<Cog6ToothIcon size={16} />} title={t.tabs.settings.project} />
+			{data ? <SectionNav label={t.ui.sections} items={sectionItems(t, !!data.file)} /> : null}
 			{data ? (
 				// A saved file resets the draft.
 				<Form key={JSON.stringify(data.file)} file={data.file} overrides={data.overrides} />
@@ -349,6 +391,6 @@ export function ProjectSettings() {
 					/>
 				</div>
 			)}
-		</>
+		</div>
 	);
 }

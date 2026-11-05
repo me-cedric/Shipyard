@@ -132,8 +132,10 @@
       "slug": "settings-connections",
       "title": "Settings / Connections: each MCP server has an allow list picker (All tools, Read only, Custom with one checkbox for each tool)",
       "artifacts": [
-        "spec:extensions"
-      ]
+        "spec:extensions",
+        "spec:visual-cues"
+      ],
+      "file": "docs/assets/screenshots/settings-connections.png"
     },
     {
       "id": "SCR-016",
@@ -151,6 +153,16 @@
       "artifacts": [
         "spec:onboarding"
       ]
+    },
+    {
+      "id": "SCR-018",
+      "slug": "settings-project",
+      "title": "Settings / Project: a section bar that stays in view, with an icon per section, above panels with an icon in each heading",
+      "artifacts": [
+        "spec:projects",
+        "spec:visual-cues"
+      ],
+      "file": "docs/assets/screenshots/settings-project.png"
     }
   ]
 }

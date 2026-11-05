@@ -4,6 +4,7 @@ import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type RunnerTiers_Serialize, unwrap } from "@/lib/ipc";
 import { useShell } from "@/lib/shell";
+import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Button } from "@/ui/atoms/button";
 import { Caption, Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
@@ -56,10 +57,10 @@ function TierRow({ row, detected }: { row: RunnerTiers_Serialize; detected: bool
 	const listed = detected && (catalog?.models.length ?? 0) > 0;
 	return (
 		<>
-			<SettingsRow label={row.runner}>
+			<SettingsRow label={runnerName(row.runner)} icon={<BrandIcon name={row.runner} size={14} />}>
 				<div className="grid w-full grid-cols-3 gap-2">
 					{TIERS.map((tier) => {
-						const name = `${row.runner} ${t.settings.tiers[tier]}`;
+						const name = `${runnerName(row.runner)} ${t.settings.tiers[tier]}`;
 						const ids = catalog?.models.map((m) => m.id) ?? [];
 						const efforts = listed ? levels(draft[tier]) : [];
 						// A level saved before, that the tool no longer accepts: shown, never passed on.

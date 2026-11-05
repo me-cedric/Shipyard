@@ -3,6 +3,7 @@ import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { type BootstrapAnswers, commands, unwrap } from "@/lib/ipc";
 import { Badge } from "@/ui/atoms/badge";
+import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
@@ -93,7 +94,11 @@ export function DoctorBootstrap() {
 					<Select
 						label={d.agent}
 						value={a.agent}
-						items={AGENTS.map((v) => ({ value: v, label: v }))}
+						items={AGENTS.map((v) => ({
+							value: v,
+							label: runnerName(v),
+							icon: <BrandIcon name={v} size={14} />,
+						}))}
 						onValueChange={(agent) => set({ agent })}
 					/>
 				</div>

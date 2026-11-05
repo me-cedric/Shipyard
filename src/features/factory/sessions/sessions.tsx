@@ -5,8 +5,8 @@ import { useFactoryWrites, useKillSwitch, useSessions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import type { SessionView } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
-import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
+import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
@@ -48,12 +48,12 @@ export function Sessions() {
 			cell: (c) => (
 				<span className="flex items-center gap-2">
 					<span className="relative flex">
-						<Avatar name={c.row.original.runner} className="size-5 text-11" />
+						<BrandIcon name={c.row.original.runner} size={20} />
 						{c.row.original.state === "running" ? (
 							<LiveDot className="absolute -right-0.5 -bottom-0.5 size-2 ring-2 ring-surface-1" />
 						) : null}
 					</span>
-					{c.row.original.runner}
+					{runnerName(c.row.original.runner)}
 				</span>
 			),
 		},

@@ -2,6 +2,7 @@ import { Menu } from "@base-ui/react/menu";
 import type { ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import type { RunnerOptions, ThreadSettings } from "@/lib/ipc";
+import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Button } from "@/ui/atoms/button";
 import { CheckIcon, ChevronRightIcon } from "@/ui/icons";
 import { MENU_ITEM, MENU_POPUP } from "@/ui/molecules/menu-button";
@@ -54,10 +55,11 @@ export function ModelMenu({
 	const { t } = useI18n();
 	const runner = runners.find((r) => r.runner === s.runner);
 	const others = runners.filter((r) => r.runner !== s.runner && r.models.length > 0);
-	const label = [s.model ?? s.runner, s.effort].filter(Boolean).join(" · ");
+	const label = [s.model ?? runnerName(s.runner), s.effort].filter(Boolean).join(" · ");
 	return (
 		<Menu.Root>
 			<Menu.Trigger render={<Button variant="ghost" className="min-w-0 max-w-full px-2" />}>
+				<BrandIcon name={s.runner} size={14} />
 				<span className="truncate">{label}</span>
 			</Menu.Trigger>
 			<Menu.Portal>
@@ -95,8 +97,9 @@ export function ModelMenu({
 							<Sub label={t.assistant.moreModels}>
 								{others.map((r) => (
 									<Menu.Group key={r.runner}>
-										<Menu.GroupLabel className="px-2 py-1 text-12 text-n-10">
-											{r.runner}
+										<Menu.GroupLabel className="flex items-center gap-1.5 px-2 py-1 text-12 text-n-10">
+											<BrandIcon name={r.runner} size={14} />
+											{runnerName(r.runner)}
 										</Menu.GroupLabel>
 										{r.models.map((m) => (
 											// A model belongs to its runner: the effort of this one does not go over.

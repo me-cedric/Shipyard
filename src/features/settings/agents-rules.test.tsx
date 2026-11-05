@@ -31,61 +31,76 @@ vi.mock("@xterm/addon-fit", () => ({
 	},
 }));
 
-const row = (name: string) => screen.findByRole("group", { name });
+// The tier row and the sign-in row of a tool share its name: the tier row holds the pickers.
+const groups = async (name: string) => {
+	await screen.findAllByRole("group", { name });
+	return screen.getAllByRole("group", { name });
+};
+const has = (g: HTMLElement) => g.querySelector("[role=combobox], input") !== null;
+const row = async (name: string) => (await groups(name)).find((g) => !has(g)) as HTMLElement;
+const tier = async (name: string) => (await groups(name)).find(has) as HTMLElement;
 
 describe("Settings / Agents and rules: model tiers", () => {
 	it("shows the five runners: a picker for a detected tool, free text for the others", async () => {
 		mountApp("/settings/agents-rules");
 		expect(await screen.findByRole("heading", { name: "Model tiers (5)" })).toBeInTheDocument();
-		const claude = await row("claude");
-		expect(await within(claude).findByRole("combobox", { name: "claude Top" })).toHaveTextContent(
-			"opus",
-		);
-		expect(within(claude).getByRole("combobox", { name: "claude Mid" })).toHaveTextContent(
+		const claude = await tier("Claude Code");
+		expect(
+			await within(claude).findByRole("combobox", { name: "Claude Code Top" }),
+		).toHaveTextContent("opus");
+		expect(within(claude).getByRole("combobox", { name: "Claude Code Mid" })).toHaveTextContent(
 			"sonnet",
 		);
-		expect(within(claude).getByRole("combobox", { name: "claude Small" })).toHaveTextContent(
+		expect(within(claude).getByRole("combobox", { name: "Claude Code Small" })).toHaveTextContent(
 			"haiku",
 		);
-		for (const id of ["copilot", "gemini", "opencode"])
-			expect(within(await row(id)).getByRole("textbox", { name: `${id} Top` })).toBeInTheDocument();
+		for (const id of ["GitHub Copilot", "Gemini CLI", "OpenCode"])
+			expect(
+				within(await tier(id)).getByRole("textbox", { name: `${id} Top` }),
+			).toBeInTheDocument();
 	});
 
 	it("shows an effort only for a model that accepts one", async () => {
 		mountApp("/settings/agents-rules");
-		const claude = await row("claude");
+		const claude = await tier("Claude Code");
 		expect(
-			await within(claude).findByRole("combobox", { name: "claude Top Effort" }),
+			await within(claude).findByRole("combobox", { name: "Claude Code Top Effort" }),
 		).toHaveTextContent("Default");
-		expect(within(claude).getByRole("combobox", { name: "claude Mid Effort" })).toBeInTheDocument();
+		expect(
+			within(claude).getByRole("combobox", { name: "Claude Code Mid Effort" }),
+		).toBeInTheDocument();
 		// Haiku takes no effort.
-		expect(within(claude).queryByRole("combobox", { name: "claude Small Effort" })).toBeNull();
+		expect(within(claude).queryByRole("combobox", { name: "Claude Code Small Effort" })).toBeNull();
 		// The default model of Codex takes the levels of the tool.
-		const codex = await row("codex");
-		await within(codex).findByRole("combobox", { name: "codex Top" });
-		expect(within(codex).getByRole("combobox", { name: "codex Top Effort" })).toBeInTheDocument();
+		const codex = await tier("Codex");
+		await within(codex).findByRole("combobox", { name: "Codex Top" });
+		expect(within(codex).getByRole("combobox", { name: "Codex Top Effort" })).toBeInTheDocument();
 	});
 
 	it("saves a model and an effort that a person picks, and drops an effort the new model refuses", async () => {
 		const user = userEvent.setup();
 		mountApp("/settings/agents-rules");
-		const claude = await row("claude");
-		await user.click(await within(claude).findByRole("combobox", { name: "claude Top Effort" }));
+		const claude = await tier("Claude Code");
+		await user.click(
+			await within(claude).findByRole("combobox", { name: "Claude Code Top Effort" }),
+		);
 		await user.click(await screen.findByRole("option", { name: "high" }));
 		const claudeRow = async () =>
 			(await unwrap(commands.tiersGet())).find((r) => r.runner === "claude");
 		await waitFor(async () => expect((await claudeRow())?.topEffort).toBe("high"));
-		await user.click(within(claude).getByRole("combobox", { name: "claude Top" }));
+		await user.click(within(claude).getByRole("combobox", { name: "Claude Code Top" }));
 		await user.click(await screen.findByRole("option", { name: "haiku" }));
 		await waitFor(async () => expect((await claudeRow())?.top).toBe("haiku"));
 		expect((await claudeRow())?.topEffort).toBe("");
-		expect(within(claude).queryByRole("combobox", { name: "claude Top Effort" })).toBeNull();
+		expect(within(claude).queryByRole("combobox", { name: "Claude Code Top Effort" })).toBeNull();
 	});
 
 	it("saves a typed tier when the field loses focus", async () => {
 		const user = userEvent.setup();
 		mountApp("/settings/agents-rules");
-		const field = within(await row("copilot")).getByRole("textbox", { name: "copilot Top" });
+		const field = within(await tier("GitHub Copilot")).getByRole("textbox", {
+			name: "GitHub Copilot Top",
+		});
 		await user.type(field, "gpt-5");
 		await user.tab();
 		await waitFor(async () =>
@@ -98,8 +113,11 @@ describe("Settings / Agents and rules: model tiers", () => {
 	it("shows the refusal of a bad model id", async () => {
 		const user = userEvent.setup();
 		mountApp("/settings/agents-rules");
-		const group = await row("copilot");
-		await user.type(within(group).getByRole("textbox", { name: "copilot Mid" }), "has space");
+		const group = await tier("GitHub Copilot");
+		await user.type(
+			within(group).getByRole("textbox", { name: "GitHub Copilot Mid" }),
+			"has space",
+		);
 		await user.tab();
 		expect(await screen.findByRole("alert")).toHaveTextContent("is not a model id");
 		expect((await unwrap(commands.tiersGet()))[2]?.mid).toBe("");
@@ -110,8 +128,8 @@ describe("Settings / Agents and rules: model tiers", () => {
 		const saved = mockState().factory.tiers.find((r) => r.runner === "codex");
 		if (saved) saved.midEffort = "minimal";
 		mountApp("/settings/agents-rules");
-		const codex = await row("codex");
-		const mid = await within(codex).findByRole("combobox", { name: "codex Mid Effort" });
+		const codex = await tier("Codex");
+		const mid = await within(codex).findByRole("combobox", { name: "Codex Mid Effort" });
 		expect(mid).toHaveTextContent("minimal (not supported)");
 		await user.click(mid);
 		await user.click(await screen.findByRole("option", { name: "high" }));
@@ -120,7 +138,7 @@ describe("Settings / Agents and rules: model tiers", () => {
 				"high",
 			),
 		);
-		expect(within(codex).getByRole("combobox", { name: "codex Mid Effort" })).toHaveTextContent(
+		expect(within(codex).getByRole("combobox", { name: "Codex Mid Effort" })).toHaveTextContent(
 			"high",
 		);
 	});
