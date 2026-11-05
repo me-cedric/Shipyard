@@ -7,7 +7,10 @@ export const connectionKeys = {
 	users: (id: string) => ["connections", "users", id] as const,
 };
 
-export const mcpKeys = { list: ["mcp", "list"] as const };
+export const mcpKeys = {
+	list: ["mcp", "list"] as const,
+	tools: (id: string) => ["mcp", "tools", id] as const,
+};
 export const providerKeys = {
 	list: ["providers", "list"] as const,
 	models: (id: string) => ["providers", "models", id] as const,

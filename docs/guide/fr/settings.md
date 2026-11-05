@@ -38,7 +38,7 @@ Le haut de la page liste chaque outil de code que l’application connaît : Cla
 
 - Connecté : l’outil est prêt. La ligne n’a pas d’action.
 - Déconnecté : cliquez sur Se connecter. Le tiroir du terminal s’ouvre et lance la connexion de l’outil. Terminez dans le navigateur. L’état change à la fin de la connexion. Pour Codex, cliquez sur Utiliser un code à la place pour vous connecter avec un code.
-- Non vérifié : Copilot, OpenCode et Gemini CLI n’ont pas de commande d’état que l’application peut lire. Cliquez sur Se connecter.
+- Non vérifié : Copilot, OpenCode et Gemini CLI n’ont pas de commande d’état que l’application peut lire. Cliquez sur Se connecter. Quand une exécution de l’un de ces outils échoue parce qu’il n’est pas connecté, la ligne affiche Déconnecté.
 - Non installé : cliquez sur Installer.
 
 L’application demande son état à l’outil et ne lit jamais ses fichiers de jeton ni ses entrées de trousseau.

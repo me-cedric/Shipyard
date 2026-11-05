@@ -435,7 +435,9 @@ fn wait_for_code(
         };
         // An accepted socket can keep the non-blocking mode of the listener.
         let _ = stream.set_nonblocking(false);
-        let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+        // A browser sends its request at once. A spare silent connection holds the wait 1 s at
+        // most; a GET sent on it later fails and the browser sends it again on a new one.
+        let _ = stream.set_read_timeout(Some(Duration::from_secs(1)));
         let mut buf = [0u8; 4096];
         let mut n = 0;
         while n < buf.len() && !buf[..n].contains(&b'\n') {
@@ -1098,6 +1100,38 @@ mod tests {
         };
         let p = openrouter_flow(&a, &http, open, &AtomicBool::new(false), LONG).unwrap();
         assert!(p.secret);
+    }
+
+    #[test]
+    fn a_spare_connection_that_stays_silent_holds_the_wait_one_second_at_most() {
+        let dir = tempfile::tempdir().unwrap();
+        let (a, _) = agents(dir.path());
+        let http = FakeHttp::new();
+        http.post(
+            "/api/v1/auth/keys",
+            "abc123",
+            200,
+            r#"{"key":"sk-or-v1-x"}"#,
+        );
+        let real = browser("?code=abc123", false, Arc::new(Mutex::new(String::new())));
+        let silent = Arc::new(Mutex::new(None));
+        let keep = silent.clone();
+        let open = move |url: &str| -> Res<()> {
+            let port = url.split("127.0.0.1%3A").nth(1).unwrap();
+            let port = port.split("%2F").next().unwrap();
+            // The silent connection comes first and stays open with no request line.
+            *keep.lock().unwrap() = Some(TcpStream::connect(format!("127.0.0.1:{port}")).unwrap());
+            real(url)
+        };
+        let start = Instant::now();
+        let p = openrouter_flow(&a, &http, open, &AtomicBool::new(false), LONG).unwrap();
+        assert!(p.secret);
+        assert!(
+            start.elapsed() < Duration::from_secs(3),
+            "{:?}",
+            start.elapsed()
+        );
+        drop(silent);
     }
 
     #[test]

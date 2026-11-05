@@ -285,7 +285,8 @@ function MarkdownThumb({ path }: { path: string }) {
 					{l.replace(/^[-*]\s*/, "")}
 				</span>
 			))}
-			<span className="absolute right-2 bottom-1.5 rounded-full bg-surface-0/70 px-1.5 font-mono text-11 text-n-12">
+			{/* Solid: a see-through badge takes the deck background, which loads later, and its contrast with it. */}
+			<span className="absolute right-2 bottom-1.5 rounded-full bg-surface-0 px-1.5 font-mono text-11 text-n-12">
 				{deck?.slides.length ?? 0}
 			</span>
 		</span>

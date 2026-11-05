@@ -447,7 +447,10 @@ function PullRequestsView() {
 		STATES.flatMap((s) => (rows ?? []).filter((r) => r.state === s).map((r) => r.reference)),
 	);
 	const number = rows?.find((r) => r.reference === selected)?.number ?? null;
-	if (!rows) return null;
+	if (!rows)
+		return (
+			<PageHeader icon={<ArrowsRightLeftIcon size={16} />} title={t.tabs.code["pull-requests"]} />
+		);
 	if (rows.length === 0)
 		return (
 			<div className="flex flex-col">

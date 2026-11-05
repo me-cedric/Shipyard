@@ -45,6 +45,23 @@ describe("Settings / Connections / MCP servers: allow list", () => {
 		);
 	});
 
+	it("reads the tool list once per app session, not on each open of Settings", async () => {
+		await unwrap(commands.mcpEnable("context7", true));
+		await unwrap(commands.mcpSetTools("context7", { kind: "only", tools: ["resolve-library-id"] }));
+		const spy = vi.spyOn(commands, "mcpTest");
+		const router = mountApp("/settings/connections");
+		const ctx = await screen.findByRole("group", { name: "Context7" });
+		await within(ctx).findByRole("checkbox", { name: "get-library-docs" });
+		await router.navigate({ to: "/home/inbox" });
+		await router.navigate({ to: "/settings/connections" });
+		const again = await screen.findByRole("group", { name: "Context7" });
+		expect(
+			await within(again).findByRole("checkbox", { name: "get-library-docs" }),
+		).toBeInTheDocument();
+		expect(spy).toHaveBeenCalledTimes(1);
+		spy.mockRestore();
+	});
+
 	it("shows the error when the tool list does not load", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.mcpEnable("context7", true));

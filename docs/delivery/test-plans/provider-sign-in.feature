@@ -40,7 +40,14 @@ Feature: provider-sign-in
   Scenario: Tool state: No status command
     Given Copilot detected
     When the view loads
-    Then the row shows "Unknown" and "Sign in"
+    Then the row shows "Not checked" and "Sign in"
+
+  @spec:provider-sign-in#REQ-004
+  Scenario: Tool state: Sign-in error in a run
+    Given Copilot detected
+    And the last run of Copilot ended with the error "not logged in"
+    When the view loads
+    Then the row shows "Signed out" and "Sign in"
 
   @spec:provider-sign-in#REQ-005
   Scenario: OpenRouter sign-in: Sign in

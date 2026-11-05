@@ -139,11 +139,13 @@ fn version_of(program: &std::path::Path, wait: Duration) -> Option<String> {
 }
 
 /// The sign-in state from the status command of `id`. Opencode prints an unconfirmed format
-/// (Q-134), so it stays "not checked" like Copilot, `agy` and Gemini.
+/// (Q-134), so it stays "not checked" like Copilot, `agy` and Gemini, until a run of the tool
+/// ends on a sign-in error: then it is "signed out".
 fn auth_of(id: &str, program: &std::path::Path, wait: Duration) -> AuthState {
     let args: &[&str] = match id {
         "codex" => &["login", "status"],
         "claude" => &["auth", "status"],
+        _ if crate::runner::signed_out_by_last_run(id) => return AuthState::SignedOut,
         _ => return AuthState::NotChecked,
     };
     let Some((ok, out)) = output_of(program, args, wait) else {

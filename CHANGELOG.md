@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.1.0]
+- A coding tool with no status command shows Signed out after a run that failed because it was not signed in; Home / Projects, Code / Pull requests and the Knowledge lists show their title while they load; the tool list of a server in Custom mode loads once per app session; the OpenRouter sign-in no longer waits 5 s on a silent browser connection; the slide count on a deck thumbnail has a solid background.
 - Settings / Agents and rules shows each AI tool with its sign-in state (Signed in, Signed out or Not checked) from the tool's own status command, and Sign in runs the login of the tool in a terminal tab, also with no project open; Codex offers the browser, a code or an API key; OpenRouter signs in with the browser and stores its key in the keychain, with Cancel; a pasted provider key is tested before it is saved; Ollama, LM Studio, vLLM and LiteLLM on this computer are found on their own. The app never reads the token files of a tool.
 - Safety fixes: Bypass permissions is refused by the app for a read only project and is never a default; a pasted MCP server with a secret in a header, a cookie or a URL query is refused, and you read each command before it is added; the agent tool files refuse a linked folder that leaves the project; the file watcher uses the system events instead of a scan.
 - The status bar of Code counts the lines added and removed since the last commit, new files included; a very large file counts as binary. The team match of a name ignores accent forms (`é` as one character or as `e` with an accent).

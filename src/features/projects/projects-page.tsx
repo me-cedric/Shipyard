@@ -116,7 +116,9 @@ export function ProjectsPage() {
 	const { openFolder } = useProjectActions();
 	const [error, setError] = useState<unknown>(null);
 	const [cloning, setCloning] = useState(false);
-	if (!cards) return null;
+	// The heading shows while the cards load: a page always has its level-one heading.
+	if (!cards)
+		return <PageHeader icon={<FolderOpenIcon size={16} />} title={t.tabs.home.projects} />;
 	const groups = new Map<string, ProjectCard[]>();
 	for (const c of cards) groups.set(c.host ?? "", [...(groups.get(c.host ?? "") ?? []), c]);
 	const open = {

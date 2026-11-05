@@ -38,7 +38,7 @@ The top of the page lists each coding tool that the app knows: Claude Code, Code
 
 - Signed in: the tool is ready. The row has no action.
 - Signed out: click Sign in. The terminal drawer opens and runs the login of the tool. Finish in the browser. The state changes when the login ends. For Codex, click Use a code instead to sign in with a code.
-- Not checked: Copilot, OpenCode and Gemini CLI have no status command that the app can read. Click Sign in.
+- Not checked: Copilot, OpenCode and Gemini CLI have no status command that the app can read. Click Sign in. When a run of one of these tools fails because it is not signed in, the row shows Signed out.
 - Not installed: click Install.
 
 The app asks the tool for its state and never reads its token files or its keychain entries.

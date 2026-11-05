@@ -28,6 +28,55 @@ mod provider;
 mod shipyard;
 
 pub use provider::run_provider;
+
+/// The tools whose last run ended on a sign-in error (Q-134). A run that ends well clears the
+/// mark, and so does a click on Sign in. It lives for the app session.
+static SIGNED_OUT: std::sync::Mutex<std::collections::BTreeSet<&'static str>> =
+    std::sync::Mutex::new(std::collections::BTreeSet::new());
+
+/// True when the last run of the tool `id` ended on a sign-in error.
+pub fn signed_out_by_last_run(id: &str) -> bool {
+    SIGNED_OUT.lock().is_ok_and(|s| s.contains(id))
+}
+
+/// Forget the sign-in error of the tool `id` (a sign-in started).
+pub fn clear_signed_out(id: &str) {
+    if let Ok(mut s) = SIGNED_OUT.lock() {
+        s.remove(id);
+    }
+}
+
+fn mark_signed_out(id: &'static str, out: bool) {
+    if let Ok(mut s) = SIGNED_OUT.lock() {
+        if out {
+            s.insert(id);
+        } else {
+            s.remove(id);
+        }
+    }
+}
+
+/// The words that the coding tools print when they need a sign-in.
+fn is_sign_in_error(text: &str) -> bool {
+    let t = text.to_ascii_lowercase();
+    [
+        "not logged in",
+        "not signed in",
+        "please log in",
+        "please login",
+        "please sign in",
+        "please run /login",
+        "login required",
+        "unauthorized",
+        "unauthenticated",
+        "authentication failed",
+        "authentication required",
+        "invalid api key",
+        "invalid x-api-key",
+    ]
+    .iter()
+    .any(|w| t.contains(w))
+}
 pub use shipyard::{BRIDGE_FLAG, TOKEN_ENV, URL_ENV};
 
 use crate::AgentError;
@@ -381,10 +430,15 @@ pub fn start(runner: &dyn Runner, spec: RunSpec) -> Result<Run, AgentError> {
     };
     let launch = runner.launch(&spec, program)?;
     let parser = runner.parser(&spec);
-    spawn(launch, parser, &spec)
+    spawn(runner.id(), launch, parser, &spec)
 }
 
-fn spawn(launch: Launch, mut parser: Box<dyn Parser>, spec: &RunSpec) -> Result<Run, AgentError> {
+fn spawn(
+    id: &'static str,
+    launch: Launch,
+    mut parser: Box<dyn Parser>,
+    spec: &RunSpec,
+) -> Result<Run, AgentError> {
     let secrets: Vec<Secret> = launch
         .vars
         .iter()
@@ -491,6 +545,8 @@ fn spawn(launch: Launch, mut parser: Box<dyn Parser>, spec: &RunSpec) -> Result<
         // of the group ends that worker, and then the reader sees the end of the output.
         let done = Arc::new(AtomicBool::new(false));
         let failed = Arc::new(AtomicBool::new(false));
+        let auth = Arc::new(AtomicBool::new(false));
+        let reader_auth = auth.clone();
         let reader_tx = tx.clone();
         let reader_secrets = secrets.clone();
         let (reader_done, reader_failed, reader_cancel) =
@@ -498,6 +554,9 @@ fn spawn(launch: Launch, mut parser: Box<dyn Parser>, spec: &RunSpec) -> Result<
         let reader = std::thread::spawn(move || {
             let emit = |e: Event| -> bool {
                 reader_failed.fetch_or(matches!(e, Event::Error { .. }), Ordering::SeqCst);
+                if let Event::Error { message } = &e {
+                    reader_auth.fetch_or(is_sign_in_error(message), Ordering::SeqCst);
+                }
                 let ok = reader_tx.send(scrub_event(e, &reader_secrets)).is_ok();
                 if !ok {
                     // The reader of the run is gone: nobody wants it.
@@ -598,7 +657,15 @@ fn spawn(launch: Launch, mut parser: Box<dyn Parser>, spec: &RunSpec) -> Result<
             } else {
                 tail_chars(text, STDERR_TAIL)
             };
+            auth.fetch_or(is_sign_in_error(&message), Ordering::SeqCst);
             send(Event::Error { message });
+        }
+        if !cancelled {
+            if auth.load(Ordering::SeqCst) {
+                mark_signed_out(id, true);
+            } else if code == Some(0) && !failed.load(Ordering::SeqCst) {
+                mark_signed_out(id, false);
+            }
         }
         send(Event::Exit { code, cancelled });
     });

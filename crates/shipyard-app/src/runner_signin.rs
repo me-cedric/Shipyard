@@ -54,6 +54,7 @@ fn sign_in_command(id: &str, device: bool) -> Res<String> {
 pub async fn runner_sign_in(app: AppHandle, id: String, device: bool, click: bool) -> Api<String> {
     blocking(app, move |s| {
         need_click(s, click)?;
+        shipyard_agents::runner::clear_signed_out(&id);
         sign_in_command(&id, device)
     })
     .await

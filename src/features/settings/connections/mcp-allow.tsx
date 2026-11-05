@@ -1,5 +1,5 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, type McpServer, type ToolFilter, unwrap } from "@/lib/ipc";
 import { Checkbox } from "@/ui/atoms/checkbox";
@@ -11,7 +11,9 @@ import { mcpKeys } from "./keys";
 /**
  * The allow list of one server: all tools, the tools that the server marks read only, or a pick.
  * `list` gives the tool names of the server (a test); the pick starts with all of them on. In
- * Custom mode the list loads when the row shows, so a tool that is off stays on screen.
+ * Custom mode the list loads when the row shows, so a tool that is off stays on screen. The list
+ * is kept for the app session: opening Settings again does not start the server again.
+ * shortcut: a tool that the server adds later shows after a restart of the app; refetch on Test if that matters.
  */
 export function McpAllow({
 	server: s,
@@ -24,22 +26,15 @@ export function McpAllow({
 	const o = t.settings.outside;
 	const qc = useQueryClient();
 	const [error, setError] = useState<unknown>(null);
-	const [names, setNames] = useState<string[]>([]);
 	const f = s.tools;
-	const listRef = useRef(list);
-	listRef.current = list;
-	const custom = f.kind === "only";
-	useEffect(() => {
-		if (!custom) return;
-		let live = true;
-		listRef
-			.current()
-			.then((listed) => live && setNames(listed))
-			.catch((e) => live && setError(e));
-		return () => {
-			live = false;
-		};
-	}, [custom]);
+	const tools = {
+		queryKey: mcpKeys.tools(s.id),
+		queryFn: list,
+		staleTime: Infinity,
+		gcTime: Infinity,
+	};
+	const listed = useQuery({ ...tools, enabled: f.kind === "only", retry: false });
+	const names = listed.data ?? [];
 	const save = async (next: ToolFilter) => {
 		setError(null);
 		try {
@@ -54,9 +49,8 @@ export function McpAllow({
 		if (v === "read") return save({ kind: "readOnly" });
 		setError(null);
 		try {
-			const listed = await list();
-			setNames(listed);
-			if (listed.length > 0) await save({ kind: "only", tools: listed });
+			const all = await qc.fetchQuery(tools);
+			if (all.length > 0) await save({ kind: "only", tools: all });
 		} catch (e) {
 			setError(e);
 		}
@@ -96,7 +90,7 @@ export function McpAllow({
 					</span>
 				</SettingsRow>
 			) : null}
-			<ErrorNotice error={error} className="px-3 pb-2" />
+			<ErrorNotice error={error ?? listed.error} className="px-3 pb-2" />
 		</>
 	);
 }
