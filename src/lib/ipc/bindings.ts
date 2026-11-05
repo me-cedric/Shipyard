@@ -1957,6 +1957,11 @@ export type ExternalSource = {
 	/**  The files that a person edited. */
 	edited: string[],
 	state: ExternalState,
+	/**
+	 *  A skill of the source is installed for the person (their skill folders or an agent
+	 *  plugin), outside this project.
+	 */
+	onComputer: boolean,
 };
 
 export type ExternalState = 

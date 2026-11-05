@@ -221,7 +221,7 @@ export const actionLabels: Record<Lang, Record<ActionKind, string>> = {
 export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["no project is open", "no_project"],
 	["no active project", "no_project"],
-	["has no tracker connection", "no_tracker"],
+	["has no issue tracker connection", "no_tracker"],
 	["the tracker scope is not set", "scope_missing"],
 	["the pickup label is off", "pickup_off"],
 	["not in the mirror", "ticket_not_in_mirror"],

@@ -329,7 +329,8 @@ function ChangesView() {
 	);
 	const { setFilesOpen } = useShell();
 	const run = (job: () => Promise<unknown>) => void runJob(job);
-	if (!changes) return null;
+	if (!changes)
+		return <PageHeader icon={<CodeBracketIcon size={16} />} title={t.tabs.code.changes} />;
 	const unstaged = [...changes.unstaged, ...changes.untracked];
 	const here = path ? inGroups(changes, path) : null;
 	const conflict = path ? conflicts.find((c) => c.path === path) : undefined;

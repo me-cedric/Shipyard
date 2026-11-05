@@ -29,8 +29,8 @@ use crate::connections::{ConnectionGroup, ConnectionState};
 use crate::scanners;
 use crate::work::need_click;
 
-/// The message when the project has no forge connection: the view shows one Connect action.
-pub const NO_FORGE: &str = "the project names no forge connection";
+/// The message when the project has no code host connection: the view shows one Connect action.
+pub const NO_FORGE: &str = "the project names no code host connection";
 const MAX_DIFF: usize = 200_000;
 const CHECK_LIMIT: Duration = Duration::from_secs(15 * 60);
 /// The scanners of Code / Quality. Only `secrets` ships with the app (Q-043).

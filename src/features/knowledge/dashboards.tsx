@@ -29,6 +29,7 @@ import {
 } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { MenuButton } from "@/ui/molecules/menu-button";
+import { PageHeader } from "@/ui/molecules/page-header";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { TileCard } from "@/ui/organisms/tile-card";
 import { ListDetail } from "@/ui/templates/list-detail";
@@ -315,7 +316,8 @@ export function Dashboards() {
 	const list = useDashboards();
 	const [chosen, setChosen] = useState<string | null>(null);
 	const [failure, setFailure] = useState<string | null>(null);
-	if (active === undefined) return null;
+	if (active === undefined)
+		return <PageHeader icon={<Squares2X2Icon size={16} />} title={k.title} />;
 	if (active === null) return <NoProject title={k.title} />;
 	const entries = list.data ?? [];
 	const slug = chosen && entries.some((e) => e.slug === chosen) ? chosen : entries[0]?.slug;

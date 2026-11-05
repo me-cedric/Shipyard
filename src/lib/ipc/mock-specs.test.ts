@@ -189,7 +189,7 @@ describe("mock specs", () => {
 
 	it("applies a split once, with the row ref as a label, and creates no duplicate", async () => {
 		await expect(unwrap(commands.specsSplitPreview("add-auth"))).rejects.toMatchObject({
-			details: expect.stringContaining("the project has no tracker connection"),
+			details: expect.stringContaining("the project has no issue tracker connection"),
 		});
 		await withTracker();
 		const draft = await unwrap(commands.specsSplitDraft("add-auth"));

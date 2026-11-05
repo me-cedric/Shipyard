@@ -54,7 +54,7 @@ const GATE_LIMIT: Duration = Duration::from_secs(15 * 60);
 /// How much of the end of a gate output the counts keep.
 const GATE_TAIL: usize = 200;
 /// The names of the tool branches that a run starts on are `<runner>/<run>`.
-const NO_FORGE: &str = "the project names no forge connection";
+const NO_FORGE: &str = "the project names no code host connection";
 
 fn e(x: impl Display) -> String {
     x.to_string()

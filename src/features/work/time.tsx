@@ -28,6 +28,7 @@ import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, PlusIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { Splitter } from "@/ui/molecules/splitter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
@@ -269,9 +270,10 @@ export function Time() {
 		[e, data?.canSend, handle, reduce, act, run, sending, day],
 	);
 
-	if (active === undefined) return null;
+	if (active === undefined)
+		return <PageHeader icon={<ClockIcon size={16} />} title={t.tabs.work.time} />;
 	if (active === null) return <NoProject title={t.tabs.work.time} />;
-	if (!ctx) return null;
+	if (!ctx) return <PageHeader icon={<ClockIcon size={16} />} title={t.tabs.work.time} />;
 
 	const submit = async (ev: React.FormEvent) => {
 		ev.preventDefault();

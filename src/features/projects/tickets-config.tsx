@@ -64,6 +64,7 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 					label={k.field}
 					value={c.estimateField}
 					onChange={(e) => setC({ ...c, estimateField: e.target.value })}
+					className="w-auto flex-1 basis-40"
 				/>
 			</SettingsRow>
 			<SettingsRow label={k.hours}>

@@ -30,6 +30,7 @@ pub enum ExternalState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct ExternalSource {
     pub id: String,
     pub description: String,
@@ -41,6 +42,9 @@ pub struct ExternalSource {
     /// The files that a person edited.
     pub edited: Vec<String>,
     pub state: ExternalState,
+    /// A skill of the source is installed for the person (their skill folders or an agent
+    /// plugin), outside this project.
+    pub on_computer: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
@@ -190,8 +194,38 @@ pub fn external_of(assets: &Value, check: &Value) -> Vec<ExternalSource> {
                 changed,
                 edited,
                 state,
+                on_computer: false,
             }
         })
+        .collect()
+}
+
+/// The names of the skills that the person installed outside any project: the folders in
+/// `~/.claude/skills`, `~/.agents/skills` and `~/.codex/skills`, and the `skills` folder of each
+/// Claude Code plugin in `~/.claude/plugins/installed_plugins.json`.
+pub fn user_skills(home: &Path) -> std::collections::BTreeSet<String> {
+    let mut dirs: Vec<std::path::PathBuf> = [".claude/skills", ".agents/skills", ".codex/skills"]
+        .iter()
+        .map(|d| home.join(d))
+        .collect();
+    let plugins = std::fs::read_to_string(home.join(".claude/plugins/installed_plugins.json"))
+        .ok()
+        .and_then(|t| serde_json::from_str::<Value>(&t).ok());
+    if let Some(map) = plugins.as_ref().and_then(|v| v["plugins"].as_object()) {
+        for installs in map.values() {
+            for i in list(installs) {
+                if let Some(path) = i["installPath"].as_str() {
+                    dirs.push(Path::new(path).join("skills"));
+                }
+            }
+        }
+    }
+    dirs.iter()
+        .filter_map(|d| std::fs::read_dir(d).ok())
+        .flatten()
+        .flatten()
+        .filter(|e| e.path().join("SKILL.md").is_file())
+        .filter_map(|e| e.file_name().into_string().ok())
         .collect()
 }
 
@@ -263,7 +297,15 @@ fn report_of(done: &Value) -> WriteReport {
 pub fn external(root: &Path) -> Res<Vec<ExternalSource>> {
     let c = compass(root)?;
     let check = ac(root, &c.tree, root, &["check"])?;
-    Ok(external_of(&assets(root, &c)?, &check))
+    let mut sources = external_of(&assets(root, &c)?, &check);
+    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"));
+    if let Some(home) = home {
+        let mine = user_skills(Path::new(&home));
+        for s in &mut sources {
+            s.on_computer = mine.contains(&s.id) || s.skills.iter().any(|k| mine.contains(k));
+        }
+    }
+    Ok(sources)
 }
 
 /// Puts back the files of one source: the edited files go, then a sync writes them again.
@@ -449,5 +491,29 @@ mod tests {
         assert!(!q.unavailable.contains(&"skill:debug".to_string()));
         assert_eq!(skill_of(".claude/skills/a/b/c.md"), Some("a"));
         assert_eq!(skill_of("AGENTS.md"), None);
+    }
+
+    #[test]
+    fn the_skills_of_the_person_come_from_their_folders_and_their_plugins() {
+        let home = tempfile::tempdir().unwrap();
+        let skill = |dir: &Path| {
+            std::fs::create_dir_all(dir).unwrap();
+            std::fs::write(dir.join("SKILL.md"), "---\nname: x\n---\n").unwrap();
+        };
+        skill(&home.path().join(".agents/skills/ponytail"));
+        skill(&home.path().join(".claude/skills/caveman"));
+        // A folder with no SKILL.md is not a skill.
+        std::fs::create_dir_all(home.path().join(".codex/skills/empty")).unwrap();
+        let plugin = home.path().join("cache/compass-user/1.2.0");
+        skill(&plugin.join("skills/asd-ste100"));
+        std::fs::create_dir_all(home.path().join(".claude/plugins")).unwrap();
+        std::fs::write(
+            home.path().join(".claude/plugins/installed_plugins.json"),
+            serde_json::json!({ "plugins": { "compass-user@agent-compass": [{ "installPath": plugin }] } })
+                .to_string(),
+        )
+        .unwrap();
+        let mine: Vec<String> = user_skills(home.path()).into_iter().collect();
+        assert_eq!(mine, ["asd-ste100", "caveman", "ponytail"]);
     }
 }

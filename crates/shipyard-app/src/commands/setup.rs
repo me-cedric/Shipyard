@@ -120,7 +120,7 @@ pub fn scopes(s: &AppState, id: &str) -> Res<Vec<ScopeChoice>> {
 /// The only tracker connection becomes the tracker of the active project when the project names
 /// none. The code host connection that matches the host of the `origin` remote becomes its code
 /// host the same way. A project with no remote links no code host. Two candidates are a choice of
-/// the person, so nothing is linked then.
+/// the person, so nothing is linked then. A link to a connection that is gone counts as none.
 pub fn auto_link(s: &AppState) -> Res<()> {
     let Some(e) = s.registry()?.active().cloned() else {
         return Ok(());
@@ -132,6 +132,15 @@ pub fn auto_link(s: &AppState) -> Res<()> {
     let group = |g| all.iter().filter(move |c| c.group == g).collect::<Vec<_>>();
     let have = file.connections.get_or_insert_with(Default::default);
     let mut changed = false;
+    for link in [&mut have.tracker, &mut have.forge] {
+        if link
+            .as_ref()
+            .is_some_and(|id| all.iter().all(|c| &c.id != id))
+        {
+            *link = None;
+            changed = true;
+        }
+    }
     if have.tracker.is_none()
         && let [only] = group(ConnectionGroup::Tracker).as_slice()
     {
@@ -237,6 +246,43 @@ mod tests {
         s.connections.add(tracker("Two")).unwrap();
         auto_link(&s).unwrap();
         assert_eq!(linked(&root), None);
+    }
+
+    #[test]
+    fn a_link_to_a_connection_that_is_gone_is_replaced_by_the_only_tracker() {
+        use crate::commands::projects::create;
+        use crate::connections::ConnectionDraft;
+        let dir = tempfile::tempdir().unwrap();
+        let s = AppState::new(dir.path().join("data"));
+        let root = dir.path().join("p");
+        create(&s, root.to_str().unwrap(), "P", "PRJ").unwrap();
+        let tracker = |root: &Path| match read_project_file(root).unwrap() {
+            FileRead::Valid(f) => f.connections.and_then(|c| c.tracker),
+            _ => panic!("a valid file"),
+        };
+        let FileRead::Valid(mut file) = read_project_file(&root).unwrap() else {
+            panic!("a valid file")
+        };
+        file.connections = Some(shipyard_core::project::ProjectConnections {
+            tracker: Some("github".into()),
+            ..Default::default()
+        });
+        super::super::projects::save_file(&s, file).unwrap();
+        // Nothing to link: the dead link goes, so the views say "no issue tracker" plainly.
+        auto_link(&s).unwrap();
+        assert_eq!(tracker(&root), None);
+        let one = s
+            .connections
+            .add(ConnectionDraft {
+                name: "github.com (gh)".into(),
+                group: ConnectionGroup::Tracker,
+                kind: ConnectionKind::GitHub,
+                url: "https://github.com".into(),
+                user: None,
+            })
+            .unwrap();
+        auto_link(&s).unwrap();
+        assert_eq!(tracker(&root), Some(one.id));
     }
 
     #[test]

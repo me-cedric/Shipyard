@@ -128,7 +128,6 @@ export function CompassSetup() {
 				toolbar={
 					<Button
 						variant="ghost"
-						disabled={!sources.some((s) => s.state === "drift")}
 						onClick={() => void write(() => unwrap(commands.compassExternalRefresh(true)))}
 					>
 						<ArrowPathIcon size={14} />
@@ -142,8 +141,10 @@ export function CompassSetup() {
 						<EntryRow
 							key={s.id}
 							name={s.id}
-							status={STATE[s.state]}
-							statusLabel={x.externalState[s.state]}
+							status={s.state === "off" && s.onComputer ? "info" : STATE[s.state]}
+							statusLabel={
+								s.state === "off" && s.onComputer ? x.onComputer : x.externalState[s.state]
+							}
 						>
 							{s.changed.length ? (
 								<Badge variant="warning">{format(x.changed, { count: s.changed.length })}</Badge>

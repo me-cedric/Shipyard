@@ -54,7 +54,7 @@ function QualityView() {
 	const [setting, setSetting] = useState(false);
 	const [exported, setExported] = useState<SbomReport | null>(null);
 	const [viewing, setViewing] = useState<{ path: string; line: number | null } | null>(null);
-	if (!q) return null;
+	if (!q) return <PageHeader icon={<CheckIcon size={16} />} title={t.tabs.code.quality} />;
 	const date = new Intl.DateTimeFormat(lang, { dateStyle: "medium", timeStyle: "short" });
 	const q18 = t.forge.quality;
 	// A named command and the check that verifies all docs have a plain name for people.

@@ -28,7 +28,7 @@ Agents and rules holds the rules and the skills of the agents, from the compass.
 
 1. Click Install the contract to write the agent rules into the project.
 2. Under Objectives, pick what you want: for example Code quality or Specs first. Click Apply. The app turns on the skills that suit the project.
-3. Under External skills, each source shows its state: Current, Update ready or Edited. Click Refresh external skills to take the updates. Click Reinstall to put back the original files of one source.
+3. Under External skills, each source shows its state: Current, Update ready, Edited or Not in this project. A source that you installed for yourself (your skill folders or an agent plugin) and that the project does not hold shows On your computer: Install adds it to the project for the team. Click Refresh external skills to take the updates. Click Reinstall to put back the original files of one source.
 
 The app keeps each file that a person changed, unless you reinstall.
 

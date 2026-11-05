@@ -361,7 +361,7 @@ impl Target {
 pub(crate) fn tracker(s: &AppState) -> Res<Target> {
     let a = active(s)?.ok_or("no active project")?;
     let (id, scope, kind) =
-        tracker_target(s, &a)?.ok_or("the project has no tracker connection")?;
+        tracker_target(s, &a)?.ok_or("the project has no issue tracker connection")?;
     Ok(Target {
         id,
         scope,

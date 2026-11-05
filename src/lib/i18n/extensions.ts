@@ -39,7 +39,13 @@ export const extensionsEn = {
 	},
 	setup: {
 		external: "External skills",
-		externalState: { off: "Off", current: "Current", drift: "Update ready", edited: "Edited" },
+		externalState: {
+			off: "Not in this project",
+			current: "Current",
+			drift: "Update ready",
+			edited: "Edited",
+		},
+		onComputer: "On your computer",
 		refresh: "Refresh external skills",
 		reinstall: "Reinstall",
 		reinstallName: "Reinstall {name}",
@@ -191,11 +197,12 @@ export const extensionsFr: typeof extensionsEn = {
 	setup: {
 		external: "Compétences externes",
 		externalState: {
-			off: "Désactivée",
+			off: "Absente du projet",
 			current: "À jour",
 			drift: "Mise à jour prête",
 			edited: "Modifiée",
 		},
+		onComputer: "Sur votre ordinateur",
 		refresh: "Actualiser les compétences externes",
 		reinstall: "Réinstaller",
 		reinstallName: "Réinstaller {name}",

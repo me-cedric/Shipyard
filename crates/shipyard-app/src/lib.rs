@@ -587,6 +587,17 @@ pub fn run() {
             outside::start_saved(&state);
             // The engine of the active project starts with the app.
             sy::refresh(&state);
+            // The active project gets the same connection repair as an open, off the main thread:
+            // it may ask `gh` for a token. Not in tests: they must not read the `gh` login.
+            #[cfg(not(test))]
+            {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    let state = handle.state::<AppState>();
+                    commands::logins::auto_connect(&state);
+                    sy::refresh(&state);
+                });
+            }
             factory::spawn_loop(app.handle().clone());
             app.set_menu(shell::menu::build(app.handle(), &Default::default())?)?;
             git::spawn_watch(app.handle().clone());

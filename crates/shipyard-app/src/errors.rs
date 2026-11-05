@@ -166,7 +166,7 @@ impl ErrorCode {
 pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("no project is open", ErrorCode::NoProject),
     ("no active project", ErrorCode::NoProject),
-    ("has no tracker connection", ErrorCode::NoTracker),
+    ("has no issue tracker connection", ErrorCode::NoTracker),
     ("the tracker scope is not set", ErrorCode::ScopeMissing),
     ("the pickup label is off", ErrorCode::PickupOff),
     ("not in the mirror", ErrorCode::TicketNotInMirror),

@@ -374,7 +374,8 @@ export function Connections() {
 	const conns = list.data;
 	const mcpCount = (useMcpServers().data ?? []).filter((m) => m.enabled).length;
 	const providerCount = (useProviders().data ?? []).length;
-	if (conns === undefined && !list.error) return null;
+	if (conns === undefined && !list.error)
+		return <PageHeader icon={<LinkIcon size={16} />} title={t.tabs.settings.connections} />;
 	const formOpen = adding || editing;
 	const add = {
 		label: t.connections.add,

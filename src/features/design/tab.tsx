@@ -18,6 +18,7 @@ import { Card } from "@/ui/molecules/card";
 import { ContextMenu } from "@/ui/molecules/context-menu";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
+import { PageHeader } from "@/ui/molecules/page-header";
 import { SplitPane } from "@/ui/molecules/split-pane";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { LIST, useEnter } from "@/ui/motion";
@@ -186,7 +187,7 @@ export function ArtifactTab({
 	const enter = useEnter();
 	const filter = useRefFilter();
 
-	if (active === undefined) return null;
+	if (active === undefined) return <PageHeader icon={icon} title={title} />;
 	if (active === null)
 		return (
 			<ListDetail title={title} icon={icon}>

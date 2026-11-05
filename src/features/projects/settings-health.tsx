@@ -108,7 +108,8 @@ export function Health() {
 	const s = t.settings.health;
 	const health = useHealth();
 	const findings = health.data;
-	if (findings === undefined) return null;
+	if (findings === undefined)
+		return <PageHeader icon={<ShieldCheckIcon size={16} />} title={t.tabs.settings.health} />;
 	const clean = GROUPS.filter((g) => !findings.some((f) => f.group === g)).length;
 	return (
 		<div className="flex flex-col">

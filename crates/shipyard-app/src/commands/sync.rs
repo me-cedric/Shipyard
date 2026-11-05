@@ -70,7 +70,7 @@ pub(crate) fn automation_in(root: &Path) -> Res<Automation> {
 }
 
 /// The tracker connection of the active project and its container, or `None` when the project
-/// names no tracker connection that exists. The container is the setting
+/// names no issue tracker connection that exists. The container is the setting
 /// `connections.trackerScope` of `.shipyard/project.yaml`. Without it, GitHub and GitLab use the
 /// origin repository and the other trackers list the whole account.
 pub(crate) fn tracker_target(
@@ -218,7 +218,7 @@ pub fn recover(s: &AppState, ids: &[&str]) -> Option<std::thread::JoinHandle<()>
 fn running(s: &AppState) -> Res<Arc<Running>> {
     ensure(s)?
         .filter(|r| !r.plan().tracker.is_empty())
-        .ok_or_else(|| "the project has no tracker connection".into())
+        .ok_or_else(|| "the project has no issue tracker connection".into())
 }
 
 // ---------------------------------------------------------------- state and the sync action

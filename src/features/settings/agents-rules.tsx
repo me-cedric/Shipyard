@@ -57,7 +57,7 @@ function TierRow({ row, detected }: { row: RunnerTiers_Serialize; detected: bool
 	return (
 		<>
 			<SettingsRow label={row.runner}>
-				<div className="flex flex-wrap items-center justify-end gap-2">
+				<div className="grid w-full grid-cols-3 gap-2">
 					{TIERS.map((tier) => {
 						const name = `${row.runner} ${t.settings.tiers[tier]}`;
 						const ids = catalog?.models.map((m) => m.id) ?? [];
@@ -68,10 +68,10 @@ function TierRow({ row, detected }: { row: RunnerTiers_Serialize; detected: bool
 						return (
 							<Caption key={tier} label={t.settings.tiers[tier]}>
 								{listed ? (
-									<span className="flex items-center gap-1">
+									<span className="flex flex-col gap-1">
 										<Select
 											label={name}
-											className="w-40"
+											className="w-full"
 											value={draft[tier] || AUTO}
 											onValueChange={(v) => pick(tier, v === AUTO ? "" : v)}
 											items={[
@@ -86,7 +86,7 @@ function TierRow({ row, detected }: { row: RunnerTiers_Serialize; detected: bool
 										{efforts.length > 0 || unknown ? (
 											<Select
 												label={`${name} ${t.settings.tiers.effort}`}
-												className="w-40"
+												className="w-full"
 												value={draft[EFFORT[tier]] || AUTO}
 												onValueChange={(v) => {
 													const next = { ...draft, [EFFORT[tier]]: v === AUTO ? "" : v };
@@ -111,7 +111,6 @@ function TierRow({ row, detected }: { row: RunnerTiers_Serialize; detected: bool
 								) : (
 									<Input
 										label={name}
-										className="w-40"
 										value={draft[tier]}
 										onChange={(e) => setDraft({ ...draft, [tier]: e.target.value })}
 										onBlur={() => draft[tier] !== row[tier] && void save(draft)}

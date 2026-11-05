@@ -1058,7 +1058,7 @@ fn done<T>(s: &AppState, out: Result<T, String>) -> Res<T> {
 /// starts the runs of labelled tickets by itself. Returns the run id.
 pub fn start(s: &AppState, key: &str) -> Res<String> {
     let a = active(s)?.ok_or("no project is open")?;
-    let source = tracker_source(s, &a)?.ok_or("the project has no tracker connection")?;
+    let source = tracker_source(s, &a)?.ok_or("the project has no issue tracker connection")?;
     let ticket = s
         .sync
         .mirror()

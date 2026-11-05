@@ -21,7 +21,7 @@ import type {
 import type { MockCode } from "./mock-code";
 
 const CLICK = "this change needs the click of a person";
-const NO_FORGE = "the project names no forge connection";
+const NO_FORGE = "the project names no code host connection";
 const CONNECTION = "github-demo";
 const METHODS: MergeMethod[] = ["merge", "squash", "rebase"];
 const LABELS = ["feat", "bug", "docs"];

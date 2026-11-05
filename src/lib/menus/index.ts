@@ -116,8 +116,11 @@ export function useTrash() {
 				await errorDialog(toFailure(e).message);
 				return;
 			}
+			// The queries of the gone file are dropped, not read again: a read would log "no such file".
+			const gone = (q: { queryKey: readonly unknown[] }) => q.queryKey.includes(path);
 			for (const k of ["design", "knowledge", "refs", "specs"])
-				void qc.invalidateQueries({ queryKey: [k] });
+				void qc.invalidateQueries({ queryKey: [k], predicate: (q) => !gone(q) });
+			qc.removeQueries({ predicate: gone });
 			if (selectedRef === ref) closeDetail();
 		},
 		[t, qc, selectedRef, closeDetail],

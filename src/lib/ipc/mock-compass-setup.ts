@@ -41,6 +41,7 @@ const source = (
 	skills: [id],
 	changed: [],
 	edited: [],
+	onComputer: false,
 	...more,
 });
 
@@ -67,6 +68,7 @@ export function seedCompassSetup(): MockCompassSetup {
 				edited: [".agents/skills/grill-me/SKILL.md"],
 			}),
 			source("devops-security", { state: "off", skills: ["kubernetes-ops", "helm-charts"] }),
+			source("ponytail", { state: "off", onComputer: true }),
 			source("expo", { state: "off", available: false, skills: ["expo-app"] }),
 		],
 		assets: [

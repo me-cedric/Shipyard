@@ -75,9 +75,20 @@ pub fn check(
     seen: Option<&str>,
 ) -> Result<UpdateInfo, String> {
     let url = base_url(release_url).map_err(|e| e.to_string())?;
-    let reply = http
-        .json(&Request::get(url.clone(), Auth::None))
-        .map_err(|e| e.to_string())?;
+    let reply = match http.json(&Request::get(url.clone(), Auth::None)) {
+        Ok(reply) => reply,
+        // A repository with no release yet answers 404: there is nothing newer, not a failure.
+        Err(shipyard_http::Error::Status { status: 404, .. }) => {
+            return Ok(UpdateInfo {
+                current: current.into(),
+                latest: current.into(),
+                newer: false,
+                url,
+                notes: String::new(),
+            });
+        }
+        Err(e) => return Err(e.to_string()),
+    };
     let latest = text(&reply, "/tag_name");
     let latest = latest.trim().trim_start_matches('v').to_string();
     if parts(&latest).is_none() {
@@ -114,6 +125,15 @@ mod tests {
         assert!(!is_newer("0.2.0", "0.2.0"));
         assert!(!is_newer("0.2.0", "0.1.9"));
         assert!(!is_newer("0.2.0", "latest"), "not a version");
+    }
+
+    #[test]
+    fn no_release_yet_is_no_update_and_no_error() {
+        let http = FakeHttp::new();
+        http.get("/releases/latest", 404, r#"{"message":"Not Found"}"#);
+        let info = check(&http, "https://example.com/releases/latest", "0.1.0", None).unwrap();
+        assert!(!info.newer);
+        assert_eq!(info.latest, "0.1.0");
     }
 
     #[test]

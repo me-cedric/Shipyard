@@ -18,7 +18,7 @@ export type MenuItem = {
  * puts the focus back on the row.
  */
 export function ContextMenu({ items, children }: { items?: MenuItem[]; children: ReactNode }) {
-	const area = useRef<HTMLDivElement>(null);
+	const area = useRef<HTMLSpanElement>(null);
 	const back = useRef<HTMLElement | null>(null);
 	if (!items?.length) return <>{children}</>;
 	return (
@@ -34,7 +34,8 @@ export function ContextMenu({ items, children }: { items?: MenuItem[]; children:
 				} else back.current?.focus();
 			}}
 		>
-			<BaseContextMenu.Trigger render={<div ref={area} className="contents" />}>
+			{/* A span: a trigger can sit in a paragraph (a ref chip in Markdown), where a div is not valid. */}
+			<BaseContextMenu.Trigger render={<span ref={area} className="contents" />}>
 				{children}
 			</BaseContextMenu.Trigger>
 			<BaseContextMenu.Portal>

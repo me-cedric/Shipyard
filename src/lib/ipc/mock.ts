@@ -2000,7 +2000,7 @@ function need<T>(data: T): T {
 }
 
 function needTracker<T>(f: () => T): T {
-	if (syncSources().length === 0) throw "the project has no tracker connection";
+	if (syncSources().length === 0) throw "the project has no issue tracker connection";
 	return f();
 }
 

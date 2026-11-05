@@ -38,7 +38,8 @@ export function MyWork() {
 	const items = useMyItems();
 	const keys = new Set(items.map((i) => i.key));
 	const runs = (useRuns().data ?? []).filter((r) => keys.has(r.key));
-	if (active === undefined) return null;
+	if (active === undefined)
+		return <PageHeader icon={<UserCircleIcon size={16} />} title={t.tabs.home["my-work"]} />;
 	if (active === null) return <NoProject title={t.tabs.home["my-work"]} />;
 	const refresh = () => void qc.invalidateQueries();
 	return (

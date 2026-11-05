@@ -66,7 +66,8 @@ export function Activity() {
 		)
 		.sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0))
 		.slice(0, SHOWN);
-	if (active === undefined) return null;
+	if (active === undefined)
+		return <PageHeader icon={<ClockIcon size={16} />} title={t.tabs.home.activity} />;
 	if (active === null) return <NoProject title={t.tabs.home.activity} />;
 	const time = new Intl.DateTimeFormat(lang, { dateStyle: "short", timeStyle: "short" });
 	const refresh = () => void qc.invalidateQueries();

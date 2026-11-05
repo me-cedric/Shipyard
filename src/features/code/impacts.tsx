@@ -132,7 +132,7 @@ function ImpactsView() {
 	const { error, run } = useRun();
 	const [base, setBase] = useState<string | null>(null);
 	const [path, setPath] = useState<string | null>(null);
-	if (!refs) return null;
+	if (!refs) return <PageHeader icon={<ChartBarIcon size={16} />} title={t.tabs.code.impacts} />;
 	const current = base ?? refs.default;
 	const entry = list.find((e) => e.plan === path);
 	return (

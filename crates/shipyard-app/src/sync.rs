@@ -76,7 +76,7 @@ impl TrackerPort for NoTracker {
     }
 
     fn get(&self, _: &str) -> PortResult<Ticket> {
-        Err("the project has no tracker connection".into())
+        Err("the project has no issue tracker connection".into())
     }
 
     fn comments(&self, _: &str) -> PortResult<Vec<shipyard_core::work_item::Comment>> {

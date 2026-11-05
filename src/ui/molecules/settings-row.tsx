@@ -20,7 +20,7 @@ export function SettingsRow({
 			id={anchor}
 			role="group"
 			aria-labelledby={id}
-			className="flex min-h-11 items-center gap-3 border-b px-3 py-1.5 transition-colors duration-(--duration-fast) last:border-b-0 hover:bg-n-2"
+			className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1.5 border-b px-3 py-1.5 transition-colors duration-(--duration-fast) last:border-b-0 hover:bg-n-2"
 		>
 			{icon ? (
 				<span
@@ -30,10 +30,13 @@ export function SettingsRow({
 					{icon}
 				</span>
 			) : null}
-			<span id={id} className="min-w-0 flex-1 text-ui text-n-12">
+			{/* The label keeps its words whole; the controls take two thirds and wrap below it when the row is narrow. */}
+			<span id={id} className="min-w-32 flex-[1_1_10rem] text-ui text-n-12">
 				{label}
 			</span>
-			{children}
+			<div className="flex min-w-0 flex-[2_1_16rem] flex-wrap items-center justify-end gap-2">
+				{children}
+			</div>
 		</div>
 	);
 }

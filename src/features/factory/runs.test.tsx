@@ -91,7 +91,9 @@ describe("Factory / Runs", () => {
 		const alert = await screen.findByRole("alert");
 		expect(alert).toHaveTextContent("A run is active on ACME-2.");
 		await user.click(within(alert).getByRole("button", { name: "Open the run" }));
-		expect(await screen.findByRole("complementary", { name: "ACME-2" })).toBeVisible();
+		const drawer = await screen.findByRole("complementary", { name: "ACME-2" });
+		// The drawer fades in: wait for the end of its enter animation.
+		await waitFor(() => expect(drawer).toBeVisible());
 	});
 
 	it("names a ticket that the mirror lacks and offers to sync", async () => {

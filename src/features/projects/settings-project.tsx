@@ -329,7 +329,8 @@ export function ProjectSettings() {
 		queryFn: () => unwrap(commands.projectSettings()),
 	});
 	const data = settings.data;
-	if (data === undefined) return null;
+	if (data === undefined)
+		return <PageHeader icon={<Cog6ToothIcon size={16} />} title={t.tabs.settings.project} />;
 	return (
 		<>
 			<PageHeader icon={<Cog6ToothIcon size={16} />} title={t.tabs.settings.project} />

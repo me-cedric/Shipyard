@@ -28,7 +28,7 @@ Agents et règles contient les règles et les compétences des agents, venues du
 
 1. Cliquez sur Installer le contrat pour écrire les règles d'agent dans le projet.
 2. Sous Objectifs, choisissez ce que vous voulez : par exemple Qualité du code ou Spécifications d'abord. Cliquez sur Appliquer. L'application active les compétences qui conviennent au projet.
-3. Sous Compétences externes, chaque source montre son état : À jour, Mise à jour prête ou Modifiée. Cliquez sur Actualiser les compétences externes pour prendre les mises à jour. Cliquez sur Réinstaller pour remettre les fichiers d'origine d'une source.
+3. Sous Compétences externes, chaque source montre son état : À jour, Mise à jour prête, Modifiée ou Absente du projet. Une source que vous avez installée pour vous (vos dossiers de compétences ou un plugin d'agent) et que le projet ne contient pas affiche Sur votre ordinateur : Installer l'ajoute au projet pour l'équipe. Cliquez sur Actualiser les compétences externes pour prendre les mises à jour. Cliquez sur Réinstaller pour remettre les fichiers d'origine d'une source.
 
 L'application garde chaque fichier qu'une personne a changé, sauf si vous réinstallez.
 
