@@ -174,7 +174,7 @@
       ]
     },
     {
-      "id": "SCR-016",
+      "id": "SCR-020",
       "slug": "factory-workflows",
       "title": "Factory / Workflows: a workflow in the form, with its steps and the limits of the run",
       "artifacts": [

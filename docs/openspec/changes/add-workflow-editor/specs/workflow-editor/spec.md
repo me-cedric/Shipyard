@@ -56,7 +56,7 @@ The options of a run live in the workflow files. Factory / Workflows edits them 
 
 Factory / Workflows SHALL open a valid workflow in a form, with the text view as the other choice. Both views SHALL edit the same text. An invalid text SHALL open in the text view.
 
-Screen: SCR-016
+Screen: SCR-020
 
 #### Scenario: Switch view
 - GIVEN the workflow `feature` is open in the form
@@ -72,7 +72,7 @@ Screen: SCR-016
 
 The form SHALL edit each field of a step: id, role or action, model, effort, mode, skill, needs, gate, workspace, for_each, max_parallel, retry, timeout, budget, tools, fresh_context and max_rounds. It SHALL add, remove and move a step up or down.
 
-Screen: SCR-016
+Screen: SCR-020
 
 #### Scenario: Add a step
 - GIVEN the workflow `spike` is open in the form
@@ -83,7 +83,7 @@ Screen: SCR-016
 
 The form SHALL offer a list for the role (the default roles and the files of `.shipyard/roles`), the model tier, the effort, the skill, the tools and the needs (the ids of the other steps).
 
-Screen: SCR-016
+Screen: SCR-020
 
 #### Scenario: Pick the needs
 - GIVEN the workflow `feature` is open in the form
@@ -94,7 +94,7 @@ Screen: SCR-016
 
 The form SHALL edit the limits of the run: `stall_s`, and the optional `budget_usd` and `max_turns`. The budget and the turn limit SHALL be off until the person turns them on.
 
-Screen: SCR-016
+Screen: SCR-020
 
 #### Scenario: Turn limit
 - GIVEN the workflow `feature` has no `max_turns`
@@ -110,7 +110,7 @@ Screen: SCR-016
 
 The form SHALL check the workflow at each change with the workflow check of the Factory (`factory` REQ-012, REQ-035), show the first issue, and keep Save off while an issue remains.
 
-Screen: SCR-016
+Screen: SCR-020
 
 #### Scenario: Unknown need
 - GIVEN a step `build` that needs `plan`
@@ -130,7 +130,7 @@ A save from the form SHALL write the file through the shared YAML writer. It SHA
 
 A person SHALL create a workflow from a preset (the bundled workflows `feature`, `bug`, `spike`, `docs-update`, `review-only`, `spec-split`) or as a copy of a workflow, with a new id.
 
-Screen: SCR-016
+Screen: SCR-020
 
 #### Scenario: New from a preset
 - GIVEN a project with no workflow `hotfix`
@@ -146,7 +146,7 @@ Screen: SCR-016
 
 A person SHALL rename and delete a workflow. A delete SHALL ask for a confirmation. Shipyard SHALL refuse to rename or delete the default workflow of the project or a workflow that a run uses.
 
-Screen: SCR-016
+Screen: SCR-020
 
 #### Scenario: Delete the default workflow
 - GIVEN `feature` is the default workflow of the project
@@ -176,7 +176,7 @@ The Shipyard MCP server SHALL offer an outside agent the tools `workflow_list`, 
 
 `workflow_propose` SHALL refuse an invalid text and SHALL NOT write the project. Factory / Workflows SHALL show each proposal with its diff, and a person SHALL apply or discard it.
 
-Screen: SCR-016
+Screen: SCR-020
 
 #### Scenario: Apply a proposal
 - GIVEN an outside agent proposed a new text for `bug`
