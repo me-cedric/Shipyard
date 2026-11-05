@@ -3,7 +3,7 @@ import type { Role } from "@/lib/prefs";
 
 /** Spaces in default order, each with its tabs (master plan section 4). */
 export const SPACES = {
-	home: ["inbox", "my-work", "activity", "projects"],
+	home: ["today", "projects"],
 	design: ["diagrams", "architecture", "decisions", "api", "data", "flows", "screens"],
 	specs: ["changes", "capabilities", "questions", "test-plans", "constitution"],
 	work: ["backlog", "board", "plan", "estimates", "team", "time"],

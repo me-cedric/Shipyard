@@ -5,9 +5,9 @@ const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" }
 
 /** Opens the mock project, then the Knowledge space on the given tab. */
 async function openKnowledge(page: Page, tab: string) {
-	await page.goto("/home/inbox");
+	await page.goto("/home/today");
 	await page.getByRole("button", { name: "Open a local folder" }).click();
-	await expect(page.getByRole("heading", { name: "Needs you" })).toBeVisible();
+	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Knowledge" }).click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }
@@ -108,13 +108,13 @@ test("lists the learning path and the glossary", async ({ page }) => {
 	await expect(page.getByRole("list", { name: "Glossary" })).toBeVisible();
 });
 
-test("pins a dashboard tile to Home", async ({ page }) => {
+test("pins a dashboard tile to the top of Dashboards, not to Home", async ({ page }) => {
 	await openKnowledge(page, "Dashboards");
 	const tile = page.getByRole("region", { name: "Work items" });
 	await expect(tile).toBeVisible();
 	await tile.getByRole("button", { name: "Pin to Home" }).click();
-	await expect(tile.getByRole("button", { name: "Unpin from Home" })).toBeVisible();
+	await expect(page.getByRole("region", { name: "Pinned" })).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Home" }).click();
-	await tabs(page).getByRole("link", { name: "My work" }).click();
-	await expect(page.getByRole("region", { name: "Work items" })).toBeVisible();
+	await expect(tabs(page).getByRole("link", { name: "Today" })).toBeVisible();
+	await expect(page.getByRole("region", { name: "Pinned" })).toHaveCount(0);
 });

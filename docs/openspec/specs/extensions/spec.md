@@ -363,7 +363,7 @@ Settings / Agents and rules and Settings / Extensions SHALL follow the interface
 
 ### Requirement: REQ-020 Plugin skills, rules and settings in files
 
-A plugin MAY list `skills` and `rules` in its manifest. The system SHALL copy each one to the agent folders of the project (`.claude/` and `.agents/`) through the normal review. A text file MAY hold `{{config.<key>}}`. The system SHALL fill it from the typed settings, check each value against its type before an apply, and show each file with the values filled in. A key that is not a setting SHALL be an error. A value SHALL be inserted as text and not read again. When a person saves a setting, the review SHALL show the files that change. An unedited file of an earlier version SHALL be updated; an edited file SHALL be kept.
+A plugin MAY list `skills` and `rules`, copied to `.claude/` and `.agents/` through the normal review. A text file MAY hold `{{config.<key>}}`: the system SHALL fill it from the typed settings, check each value against its type before an apply, and show each filled file. An unknown key SHALL be an error. A value SHALL go in as text, never read again. A saved setting SHALL show the changed files. An unedited file of an earlier version SHALL be updated; an edited file SHALL be kept.
 
 #### Scenario: Filled values
 - GIVEN a plugin file with `{{config.team}}` and a setting `team` with the value `web`

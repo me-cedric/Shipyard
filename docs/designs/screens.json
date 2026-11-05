@@ -4,18 +4,20 @@
     {
       "id": "SCR-001",
       "slug": "home",
-      "title": "Home",
+      "title": "Home, Today",
       "artifacts": [
-        "spec:shell"
+        "spec:shell",
+        "spec:home-today"
       ],
       "file": "docs/assets/screenshots/home.png"
     },
     {
       "id": "SCR-002",
       "slug": "home-light",
-      "title": "Home, light theme",
+      "title": "Home, Today, light theme",
       "artifacts": [
         "spec:shell",
+        "spec:home-today",
         "spec:design-system"
       ],
       "file": "docs/assets/screenshots/home-light.png"

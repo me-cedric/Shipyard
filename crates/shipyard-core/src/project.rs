@@ -51,6 +51,18 @@ pub struct ProjectConnections {
     pub tracker_scope: Option<String>,
 }
 
+/// A docs rule (spec `docs-freshness`, REQ-001): a change in a file that `code` matches puts each
+/// `feeds` target out of date until the target changes too. A target is a path kind or a
+/// repository path. A pattern uses `*` for text inside one segment and `**` for any segments.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DocRule {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    pub code: Vec<String>,
+    pub feeds: Vec<String>,
+}
+
 /// The file holds no machine path, no secret and no personal preference.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -66,6 +78,9 @@ pub struct ProjectFile {
     pub gates: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub connections: Option<ProjectConnections>,
+    /// The docs rules. Empty: the fixed chain from the specs (`docs_fresh::rules`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub docs: Vec<DocRule>,
 }
 
 /// One invalid value. `field` names it, `value` shows it.
@@ -87,6 +102,7 @@ impl ProjectFile {
             default_workflow: None,
             gates: Vec::new(),
             connections: None,
+            docs: Vec::new(),
         }
     }
 
@@ -185,6 +201,18 @@ pub fn validate(f: &ProjectFile) -> Vec<Issue> {
     for (i, g) in f.gates.iter().enumerate() {
         if g.trim().is_empty() {
             bad(format!("gates[{i}]"), g);
+        }
+    }
+    for (i, r) in f.docs.iter().enumerate() {
+        for (list, name, wild) in [(&r.code, "code", true), (&r.feeds, "feeds", false)] {
+            if list.is_empty() {
+                bad(format!("docs[{i}].{name}"), "");
+            }
+            for (j, p) in list.iter().enumerate() {
+                if !valid_path(p) || (!wild && p.contains('*')) {
+                    bad(format!("docs[{i}].{name}[{j}]"), p);
+                }
+            }
         }
     }
     out

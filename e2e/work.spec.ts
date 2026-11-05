@@ -6,9 +6,9 @@ const inspector = (page: Page, name: string) => page.getByRole("complementary", 
 
 /** Opens the mock project with a Linear tracker, imports the backlog and opens a Work tab. */
 async function openWork(page: Page, tab: string) {
-	await page.goto("/home/inbox");
+	await page.goto("/home/today");
 	await page.getByRole("button", { name: "Open a local folder" }).click();
-	await expect(page.getByRole("heading", { name: "Needs you" })).toBeVisible();
+	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Settings" }).click();
 	await tabs(page).getByRole("link", { name: "Connections" }).click();
 	await page.getByRole("button", { name: "Connection" }).click();
@@ -35,10 +35,11 @@ test("assigns a member from the ranked list and marks the item for the agent", a
 	await openWork(page, "Backlog");
 	await page.getByRole("group", { name: "ACME-8" }).getByRole("button").click();
 	const panel = inspector(page, "ACME-8");
-	await expect(panel.getByRole("group", { name: "Grace Hopper" })).toBeVisible();
+	await panel.getByRole("combobox", { name: "Assignee" }).click();
+	await expect(page.getByRole("option", { name: /^Grace Hopper/ })).toBeVisible();
 	// Opening the suggestion assigns nobody.
 	await expect(page.getByRole("group", { name: "ACME-8" })).not.toContainText("Hopper");
-	await panel.getByRole("button", { name: "Assign Grace Hopper" }).click();
+	await page.getByRole("option", { name: /^Grace Hopper/ }).click();
 	await expect(page.getByRole("group", { name: "ACME-8" })).toContainText("Grace Hopper");
 	await panel.getByRole("button", { name: "Mark for agent" }).click();
 	await expect(panel.getByRole("button", { name: "Mark for agent" })).toBeDisabled();

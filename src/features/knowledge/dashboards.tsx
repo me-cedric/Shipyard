@@ -34,6 +34,7 @@ import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { TileCard } from "@/ui/organisms/tile-card";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { isTrackerTile, layout, TEMPLATES, useTrackerTile } from "./dashboards-tracker";
+import { PinnedTiles } from "./pinned";
 import { useTileLabels, useTileName } from "./tile-labels";
 
 const COLUMNS = 12;
@@ -365,6 +366,7 @@ export function Dashboards() {
 					{failure}
 				</p>
 			) : null}
+			<PinnedTiles />
 			{slug ? (
 				<DashboardView key={slug} slug={slug} />
 			) : list.isSuccess ? (

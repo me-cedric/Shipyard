@@ -17,14 +17,8 @@ Feature: shell
   Scenario: Home views: Open Home
     Given the person opens Home
     When Home renders
-    Then the three views are available as tabs
-    And Inbox is the first tab
-
-  @spec:shell#REQ-003
-  Scenario: Home views: Pinned tile
-    Given the person pinned a tile in Knowledge
-    When My work renders
-    Then the tile shows in My work and in Activity
+    Then the tabs are Today and Projects
+    And Today is open
 
   @spec:shell#REQ-004
   Scenario: Inbox content: Approve a pull request write

@@ -233,6 +233,9 @@ pub struct Prefs {
     /// A panel with no entry keeps its default size.
     #[serde(default)]
     pub panel_sizes: BTreeMap<String, u32>,
+    /// The last visit of Home / Today, in seconds since 1970. 0: never.
+    #[serde(default)]
+    pub today_seen: u32,
     /// The font size of the interface in pixels. It scales the text and the spacing.
     #[serde(default = "default_ui_scale")]
     pub ui_scale: u8,
@@ -325,6 +328,7 @@ impl Default for Prefs {
             narrow_bar: false,
             terminal_dock: TerminalDock::Bottom,
             panel_sizes: BTreeMap::new(),
+            today_seen: 0,
             ui_scale: default_ui_scale(),
             tray: true,
             motion: Motion::System,
@@ -372,6 +376,7 @@ pub struct PrefsPatch {
     pub terminal_dock: Option<TerminalDock>,
     /// Replaces the whole map, so a missing key goes back to its default size.
     pub panel_sizes: Option<BTreeMap<String, u32>>,
+    pub today_seen: Option<u32>,
     pub ui_scale: Option<u8>,
     pub tray: Option<bool>,
     pub motion: Option<Motion>,
@@ -511,6 +516,9 @@ impl Prefs {
                 .take(PANEL_SIZES_MAX)
                 .map(|(k, v)| (k, v.clamp(*PANEL_SIZE.start(), *PANEL_SIZE.end())))
                 .collect();
+        }
+        if let Some(t) = p.today_seen {
+            self.today_seen = t;
         }
         if let Some(url) = p.release_url {
             // An empty value goes back to the default.

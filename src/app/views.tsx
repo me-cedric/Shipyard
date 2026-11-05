@@ -1,15 +1,15 @@
 import { GetStarted } from "@/features/home/get-started";
-import { Inbox } from "@/features/home/inbox/inbox";
+import { Today } from "@/features/home/today";
 import { FirstRun } from "@/features/projects/first-run";
 import { ProjectSettings } from "@/features/projects/settings-project";
 import { Automation } from "@/features/sync/automation";
 import { useActiveProject } from "@/lib/projects";
 
 /** Home starts with the first run until a project is active. */
-export function HomeInbox() {
+export function HomeToday() {
 	const active = useActiveProject().data;
 	if (active === undefined) return null;
-	return active ? <Inbox start={<GetStarted />} /> : <FirstRun />;
+	return active ? <Today start={<GetStarted />} /> : <FirstRun />;
 }
 
 /** Settings / Project holds the project settings, then the Automation group of `add-sync`. */

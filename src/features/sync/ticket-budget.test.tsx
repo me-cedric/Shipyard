@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { Providers } from "@/app/providers";
 import { importAll, withTracker } from "@/test/tracker";
-import { TicketThread } from "./ticket-thread";
+import { TicketComments, TicketDescription } from "./ticket-thread";
 
 describe("the ticket budget", () => {
 	it("shows the time spent against the estimate and the ticket link", async () => {
@@ -9,7 +9,7 @@ describe("the ticket budget", () => {
 		await importAll();
 		render(
 			<Providers>
-				<TicketThread itemKey="ACME-3" />
+				<TicketDescription itemKey="ACME-3" />
 			</Providers>,
 		);
 		const bar = await screen.findByRole("progressbar", { name: "Budget ACME-3" });
@@ -24,7 +24,8 @@ describe("the ticket budget", () => {
 		await importAll();
 		render(
 			<Providers>
-				<TicketThread itemKey="ACME-1" />
+				<TicketDescription itemKey="ACME-1" />
+				<TicketComments itemKey="ACME-1" />
 			</Providers>,
 		);
 		await screen.findByRole("list", { name: "Comments" });

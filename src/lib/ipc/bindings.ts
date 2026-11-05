@@ -47,6 +47,8 @@ export const commands = {
 	projectOpenRemote: (id: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("project_open_remote", { id })),
 	codePushTarget: () => typedError<PushTarget_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_push_target")),
 	codeChainGate: (push: boolean) => typedError<ChainWarning_Serialize[], AppError_Serialize>(__TAURI_INVOKE("code_chain_gate", { push })),
+	codeDocsUpdateStart: (doc: string, range: DocsRange, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("code_docs_update_start", { doc, range, click })),
+	codeDocsUpdateCheck: (run: string) => typedError<DocProblem[], AppError_Serialize>(__TAURI_INVOKE("code_docs_update_check", { run })),
 	codeChainWatch: (base: string | null) => typedError<ChainWatch_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_chain_watch", { base })),
 	codeChainAck: (base: string | null, from: string, to: string, reason: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_chain_ack", { base, from, to, reason, click })),
 	codeChainAckWithdraw: (from: string, to: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_chain_ack_withdraw", { from, to, click })),
@@ -730,7 +732,9 @@ export type ArtifactState_Serialize = {
 	findings: SpecFinding_Serialize[],
 };
 
-export type ArtifactStatus = "missing" | "draft" | "done";
+export type ArtifactStatus = "missing" | 
+/**  The file exists and no validation of its current text ran. */
+"unchecked" | "draft" | "done";
 
 export type Artifact_Deserialize = {
 	/**  `diagram:x`. */
@@ -1211,9 +1215,9 @@ export type ChainAck = {
 export type ChainWarning = ChainWarning_Serialize | ChainWarning_Deserialize;
 
 export type ChainWarning_Deserialize = {
-	/**  The path kind that changed. */
+	/**  The name of the rule, or its first pattern. For the fixed chain: the path kind that changed. */
 	from: string,
-	/**  The path kind that did not follow. */
+	/**  The doc target that did not follow: a path kind or a repository path. */
 	to: string,
 	changed: string[],
 	/**  The reason that a person gave to leave the link as it is, while it covers the changed files. */
@@ -1221,9 +1225,9 @@ export type ChainWarning_Deserialize = {
 };
 
 export type ChainWarning_Serialize = {
-	/**  The path kind that changed. */
+	/**  The name of the rule, or its first pattern. For the fixed chain: the path kind that changed. */
 	from: string,
-	/**  The path kind that did not follow. */
+	/**  The doc target that did not follow: a path kind or a repository path. */
 	to: string,
 	changed: string[],
 	/**  The reason that a person gave to leave the link as it is, while it covers the changed files. */
@@ -1847,6 +1851,50 @@ export type DocList = {
 	documents: PageEntry[],
 	slides: PageEntry[],
 };
+
+/**  A changed doc that the reader of its folder refuses (REQ-009). */
+export type DocProblem = {
+	path: string,
+	error: string,
+};
+
+/**
+ *  A docs rule (spec `docs-freshness`, REQ-001): a change in a file that `code` matches puts each
+ *  `feeds` target out of date until the target changes too. A target is a path kind or a
+ *  repository path. A pattern uses `*` for text inside one segment and `**` for any segments.
+ */
+export type DocRule = DocRule_Serialize | DocRule_Deserialize;
+
+/**
+ *  A docs rule (spec `docs-freshness`, REQ-001): a change in a file that `code` matches puts each
+ *  `feeds` target out of date until the target changes too. A target is a path kind or a
+ *  repository path. A pattern uses `*` for text inside one segment and `**` for any segments.
+ */
+export type DocRule_Deserialize = {
+	name?: string | null,
+	code: string[],
+	feeds: string[],
+};
+
+/**
+ *  A docs rule (spec `docs-freshness`, REQ-001): a change in a file that `code` matches puts each
+ *  `feeds` target out of date until the target changes too. A target is a path kind or a
+ *  repository path. A pattern uses `*` for text inside one segment and `**` for any segments.
+ */
+export type DocRule_Serialize = {
+	name?: string,
+	code: string[],
+	feeds: string[],
+};
+
+/**  The three places that the docs chain counts changed files in (`docs-freshness` REQ-004). */
+export type DocsRange = 
+/**  The staged files, before a commit. */
+"staged" | 
+/**  The files that the upstream does not hold, before a push. */
+"unpushed" | 
+/**  The whole branch against its base, in Code / Changes. */
+"branch";
 
 export type Draft = Draft_Serialize | Draft_Deserialize;
 
@@ -3508,6 +3556,7 @@ export type PrefsPatch_Deserialize = {
 	terminalDock?: TerminalDock | null,
 	/**  Replaces the whole map, so a missing key goes back to its default size. */
 	panelSizes?: { [key in string]: number } | null,
+	todaySeen?: number | null,
 	uiScale?: number | null,
 	tray?: boolean | null,
 	motion?: Motion | null,
@@ -3551,6 +3600,7 @@ export type PrefsPatch_Serialize = {
 	terminalDock: TerminalDock | null,
 	/**  Replaces the whole map, so a missing key goes back to its default size. */
 	panelSizes: { [key in string]: number } | null,
+	todaySeen: number | null,
 	uiScale: number | null,
 	tray: boolean | null,
 	motion: Motion | null,
@@ -3627,6 +3677,8 @@ export type Prefs_Deserialize = {
 	 *  A panel with no entry keeps its default size.
 	 */
 	panelSizes?: { [key in string]: number },
+	/**  The last visit of Home / Today, in seconds since 1970. 0: never. */
+	todaySeen?: number,
 	/**  The font size of the interface in pixels. It scales the text and the spacing. */
 	uiScale?: number,
 	/**  The menu bar item (the system tray) is on. */
@@ -3708,6 +3760,8 @@ export type Prefs_Serialize = {
 	 *  A panel with no entry keeps its default size.
 	 */
 	panelSizes: { [key in string]: number },
+	/**  The last visit of Home / Today, in seconds since 1970. 0: never. */
+	todaySeen: number,
 	/**  The font size of the interface in pixels. It scales the text and the spacing. */
 	uiScale: number,
 	/**  The menu bar item (the system tray) is on. */
@@ -3877,6 +3931,8 @@ export type ProjectFile_Deserialize = {
 	/**  Checks that a run must pass before a pull request (`q:Q-030`). */
 	gates?: string[],
 	connections?: ProjectConnections_Deserialize | null,
+	/**  The docs rules. Empty: the fixed chain from the specs (`docs_fresh::rules`). */
+	docs?: DocRule_Deserialize[],
 };
 
 /**  The file holds no machine path, no secret and no personal preference. */
@@ -3888,6 +3944,8 @@ export type ProjectFile_Serialize = {
 	/**  Checks that a run must pass before a pull request (`q:Q-030`). */
 	gates: string[],
 	connections?: ProjectConnections_Serialize,
+	/**  The docs rules. Empty: the fixed chain from the specs (`docs_fresh::rules`). */
+	docs?: DocRule_Serialize[],
 };
 
 export type ProjectOutcome = ProjectOutcome_Serialize | ProjectOutcome_Deserialize;

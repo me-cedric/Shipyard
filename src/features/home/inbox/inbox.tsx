@@ -10,114 +10,69 @@ import {
 	useInboxActions,
 } from "@/lib/home";
 import { useI18n } from "@/lib/i18n";
-import { useActiveProject, useProjectActions } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { rememberSelection } from "@/lib/shell/selection";
 import { capabilityOf, useFile, useFoldTargets, useSpecsActions, useSpecView } from "@/lib/specs";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
-import { ArrowPathIcon, FolderOpenIcon, InboxIcon } from "@/ui/icons";
 import { ApprovalBar } from "@/ui/molecules/approval-bar";
 import { Card } from "@/ui/molecules/card";
-import { EmptyState } from "@/ui/molecules/empty-state";
-import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { QuestionCard } from "@/ui/molecules/question-card";
 import { RefChip } from "@/ui/molecules/ref-chip";
-import { HomeStats } from "../stats";
+
+/** The count of what waits for the person: the groups of Needs you. */
+export function needsYouTotal(i: ReturnType<typeof useInbox>) {
+	return (
+		i.questions.length +
+		i.approvals.length +
+		i.plans.length +
+		i.reviews.length +
+		i.messages.length +
+		Number(i.timesheet)
+	);
+}
 
 /**
- * Home / Inbox: what waits for the person, in four groups (shell REQ-003, questions-loop REQ-008).
- * `start` shows under the header: the Get started steps of a new project.
+ * The Needs you section of Home / Today: what waits for the person, in six groups, each with its
+ * actions in place (shell REQ-004, questions-loop REQ-008). It shows nothing when nothing waits.
  */
-export function Inbox({ start }: { start?: ReactNode }) {
+export function NeedsYou() {
 	const { t } = useI18n();
-	const active = useActiveProject().data;
-	const { openFolder } = useProjectActions();
-	const act = useInboxActions();
-	const { loading, questions, approvals, plans, reviews, messages, timesheet } = useInbox();
-	const total =
-		questions.length +
-		approvals.length +
-		plans.length +
-		reviews.length +
-		messages.length +
-		Number(timesheet);
+	const inbox = useInbox();
+	const { questions, approvals, plans, reviews, messages, timesheet } = inbox;
+	if (needsYouTotal(inbox) === 0) return null;
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
-			<PageHeader
-				icon={<InboxIcon size={16} />}
-				title={t.home.needsYou}
-				count={active ? total : undefined}
-				menu={
-					active
-						? [
-								{
-									label: t.home.refresh,
-									icon: <ArrowPathIcon size={12} />,
-									onClick: () => void act.refresh(),
-								},
-							]
-						: undefined
-				}
-			/>
-			{active === null ? (
-				<EmptyState
-					title={t.empty.project}
-					action={{
-						label: t.projects.open,
-						icon: <FolderOpenIcon size={14} />,
-						onClick: () => void openFolder(),
-					}}
-				/>
-			) : (
-				<>
-					{start}
-					<HomeStats />
-					{total === 0 && !loading ? (
-						<EmptyState
-							title={t.empty.needsYou}
-							action={{
-								label: t.home.refresh,
-								icon: <ArrowPathIcon size={14} />,
-								onClick: () => void act.refresh(),
-							}}
-						/>
-					) : (
-						<div className="flex flex-col gap-4 px-4">
-							<Group name={t.home.questions} count={questions.length}>
-								{questions.map((x) => (
-									<QuestionRow key={`${x.run}:${x.question.id}`} item={x} />
-								))}
-							</Group>
-							<Group name={t.home.approvals} count={approvals.length}>
-								{approvals.map((a) => (
-									<ApprovalRow key={a.id} approval={a} />
-								))}
-							</Group>
-							<Group name={t.home.planReview} count={plans.length}>
-								{plans.map((r) => (
-									<PlanRow key={r.id} run={r.id} ticket={r.key} title={r.title} />
-								))}
-							</Group>
-							<Group name={t.home.reviews} count={reviews.length}>
-								{reviews.map((r) => (
-									<ReviewRow key={`${r.number}:${r.headSha}`} review={r} />
-								))}
-							</Group>
-							<Group name={t.home.timesheet} count={Number(timesheet)}>
-								<TimesheetRow />
-							</Group>
-							<Group name={t.home.messages} count={messages.length}>
-								{messages.map((m) => (
-									<MessageRow key={`${m.run}:${m.n}`} message={m} />
-								))}
-							</Group>
-						</div>
-					)}
-				</>
-			)}
-		</div>
+		<section aria-label={t.home.needsYou} className="flex flex-col gap-4 px-4">
+			<Group name={t.home.questions} count={questions.length}>
+				{questions.map((x) => (
+					<QuestionRow key={`${x.run}:${x.question.id}`} item={x} />
+				))}
+			</Group>
+			<Group name={t.home.approvals} count={approvals.length}>
+				{approvals.map((a) => (
+					<ApprovalRow key={a.id} approval={a} />
+				))}
+			</Group>
+			<Group name={t.home.planReview} count={plans.length}>
+				{plans.map((r) => (
+					<PlanRow key={r.id} run={r.id} ticket={r.key} title={r.title} />
+				))}
+			</Group>
+			<Group name={t.home.reviews} count={reviews.length}>
+				{reviews.map((r) => (
+					<ReviewRow key={`${r.number}:${r.headSha}`} review={r} />
+				))}
+			</Group>
+			<Group name={t.home.timesheet} count={Number(timesheet)}>
+				<TimesheetRow />
+			</Group>
+			<Group name={t.home.messages} count={messages.length}>
+				{messages.map((m) => (
+					<MessageRow key={`${m.run}:${m.n}`} message={m} />
+				))}
+			</Group>
+		</section>
 	);
 }
 

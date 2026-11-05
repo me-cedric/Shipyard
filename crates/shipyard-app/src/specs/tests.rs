@@ -202,14 +202,19 @@ fn an_artifact_is_missing_draft_or_done_and_done_needs_a_passed_validation_that_
     assert_eq!(s.len(), 5);
     assert_eq!(
         at(&s, "proposal.md"),
-        ArtifactStatus::Draft,
+        ArtifactStatus::Unchecked,
         "no validation yet"
     );
     assert_eq!(at(&s, "specs/auth/plan.md"), ArtifactStatus::Missing);
 
     let p = project(&f.s).unwrap();
-    f.s.specs
-        .set(&p.id, "add-auth", vec![finding("spec", Some("auth"))]);
+    let dir = openspec(&p).join("changes/add-auth");
+    f.s.specs.set(
+        &p.id,
+        "add-auth",
+        fingerprint(&dir),
+        vec![finding("spec", Some("auth"))],
+    );
     let s = statuses(&f);
     assert_eq!(at(&s, "proposal.md"), ArtifactStatus::Done);
     assert_eq!(at(&s, "specs/auth/spec.md"), ArtifactStatus::Draft);
@@ -227,7 +232,25 @@ fn an_artifact_is_missing_draft_or_done_and_done_needs_a_passed_validation_that_
         false,
     )
     .unwrap();
-    assert_eq!(at(&statuses(&f), "proposal.md"), ArtifactStatus::Draft);
+    assert_eq!(at(&statuses(&f), "proposal.md"), ArtifactStatus::Unchecked);
+}
+
+#[test]
+fn a_validation_survives_a_restart_until_a_file_of_the_change_changes() {
+    let f = fx();
+    with_change(&f);
+    let p = project(&f.s).unwrap();
+    let dir = openspec(&p).join("changes/add-auth");
+    let file = f.s.dir.join("specs-validation.json");
+    Session::at(file.clone()).set(&p.id, "add-auth", fingerprint(&dir), vec![]);
+    // A new session, as after a restart, reads the result back.
+    let again = Session::at(file.clone());
+    assert_eq!(
+        again.get(&p.id, "add-auth", fingerprint(&dir)),
+        Some(vec![])
+    );
+    std::fs::write(dir.join("proposal.md"), "# add-auth\nedited elsewhere\n").unwrap();
+    assert_eq!(again.get(&p.id, "add-auth", fingerprint(&dir)), None);
 }
 
 #[test]

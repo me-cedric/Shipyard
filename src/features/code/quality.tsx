@@ -22,6 +22,8 @@ import { FileDialog } from "./viewer";
 
 /** The name of the check that verifies all docs, as the backend gives it. */
 const VERIFY_DOCS = "verify all docs";
+/** The check that lists the docs that did not follow the code, as the backend names it. */
+const DOCS_FRESH = "docs freshness";
 
 type Row = { name: string; label?: string | null; available: boolean; last: QualityReport | null };
 
@@ -60,7 +62,11 @@ function QualityView() {
 	// A named command and the check that verifies all docs have a plain name for people.
 	const nameOf = (r: Row) =>
 		(r.label && (q18.named as Record<string, string>)[r.label]) ||
-		(r.name === VERIFY_DOCS ? t.review.quality.verifyDocs : r.name);
+		(r.name === VERIFY_DOCS
+			? t.review.quality.verifyDocs
+			: r.name === DOCS_FRESH
+				? t.review.quality.docs
+				: r.name);
 
 	// A run needs a confirmation that names the check (REQ-026).
 	const rows = (kind: "check" | "scanner", items: Row[]) =>
@@ -99,6 +105,9 @@ function QualityView() {
 						{last ? (
 							<>
 								<span className="flex-1 text-12 text-n-11">
+									{r.name === DOCS_FRESH
+										? `${format(t.review.quality.staleDocs, { count: last.findings.length })} · `
+										: null}
 									{format(q18.duration, { ms: last.durationMs })} ·{" "}
 									{format(q18.at, { date: date.format(new Date(last.at)) })}
 								</span>

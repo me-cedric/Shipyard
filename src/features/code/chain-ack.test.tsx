@@ -55,4 +55,45 @@ describe("Docs chain acknowledgement", () => {
 		).rejects.toBeDefined();
 		expect(mockState().review?.acks ?? []).toHaveLength(0);
 	});
+
+	it("starts an agent run only after a click and then links to the run", async () => {
+		const user = userEvent.setup();
+		await open();
+		const start = vi.spyOn(commands, "codeDocsUpdateStart");
+		mountApp("/code/impacts");
+		const update = await screen.findByRole("button", { name: "Update with an agent: Test plans" });
+		expect(start).not.toHaveBeenCalled();
+		await user.click(update);
+		expect(start).toHaveBeenCalledWith("test-plans", "branch", true);
+		expect(await screen.findByRole("link", { name: "Run of Test plans" })).toHaveAttribute(
+			"href",
+			"/factory/runs",
+		);
+		// The acknowledge action stays.
+		expect(screen.getByRole("button", { name: "Acknowledge Test plans" })).toBeInTheDocument();
+		start.mockRestore();
+	});
+
+	it("names each doc that the agent left unreadable when the run ends", async () => {
+		const user = userEvent.setup();
+		await open();
+		const runs = await unwrap(commands.runsList());
+		const ended = {
+			...(runs[0] as (typeof runs)[number]),
+			id: "run-docs-1",
+			state: "Done" as const,
+		};
+		vi.spyOn(commands, "runsList").mockResolvedValue({ status: "ok", data: [ended] });
+		vi.spyOn(commands, "codeDocsUpdateCheck").mockResolvedValue({
+			status: "ok",
+			data: [{ path: "docs/models/a.c4", error: "line 3: unexpected token" }],
+		});
+		mountApp("/code/impacts");
+		await user.click(
+			await screen.findByRole("button", { name: "Update with an agent: Test plans" }),
+		);
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"docs/models/a.c4 cannot be read: line 3: unexpected token. It is left out of the pull request.",
+		);
+	});
 });

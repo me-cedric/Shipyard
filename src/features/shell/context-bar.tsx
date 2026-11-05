@@ -170,7 +170,7 @@ export function ContextBar({
 				</span>
 			</Link>
 			<ActiveSessions className={chip} />
-			<Link to="/home/inbox" className={chip}>
+			<Link to="/home/today" className={chip}>
 				<span className="sr-only">
 					{format(t.count, { name: t.home.needsYou, count: needsYou })}
 				</span>

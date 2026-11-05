@@ -2,22 +2,21 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
-import { useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
-import { ChatBubbleIcon, LinkIcon } from "@/ui/icons";
+import { LinkIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { AckDialog, useWithdrawAck } from "./chain-ack";
+import { DocsUpdate } from "./docs-update";
 
 /**
  * The docs chain over the whole branch: each artifact folder that is stale against its source, since
- * `base`. Each row asks the assistant to bring the folder up to date: a click, never a write. A clean
+ * `base`. Each row offers an agent run that brings the folder up to date: a click, never by itself. A clean
  * chain says so. The list stays in view and counts the whole branch.
  */
 export function ChainWatch({ base }: { base: string }) {
 	const { t } = useI18n();
-	const { ask } = useShell();
 	const w = t.personal.chain;
 	const c = t.review.chain;
 	const [asking, setAsking] = useState<{ from: string; to: string } | null>(null);
@@ -72,22 +71,7 @@ export function ChainWatch({ base }: { base: string }) {
 								{c.acknowledge}
 							</Button>
 						)}
-						<Button
-							variant="ghost"
-							onClick={() =>
-								ask(
-									format(w.prompt, {
-										to: name(r.to),
-										from: name(r.from),
-										base: watch.data?.base ?? base,
-										paths: r.changed.join(", "),
-									}),
-								)
-							}
-						>
-							<ChatBubbleIcon size={14} />
-							{w.update}
-						</Button>
+						<DocsUpdate to={r.to} name={name(r.to)} range="branch" />
 					</div>
 					{r.ack ? (
 						<p className="truncate text-12 text-n-11" title={r.ack.reason}>

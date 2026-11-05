@@ -9,7 +9,7 @@ const bar = async () => within((await screen.findAllByRole("banner"))[0] as HTML
 
 async function openDrawer(user: ReturnType<typeof userEvent.setup>) {
 	await alpha();
-	mountApp("/home/inbox");
+	mountApp("/home/today");
 	await (await bar()).findByRole("button", { name: "Files" });
 	await user.keyboard("{Control>}p{/Control}");
 	return screen.findByRole("complementary", { name: "Files" });
@@ -56,7 +56,7 @@ describe("File drawer actions", () => {
 		const user = userEvent.setup();
 		await alpha();
 		await unwrap(commands.projectOverridesSave({ readOnly: true } as never)).catch(() => {});
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await (await bar()).findByRole("button", { name: "Files" });
 		await user.keyboard("{Control>}p{/Control}");
 		const drawer = await screen.findByRole("complementary", { name: "Files" });

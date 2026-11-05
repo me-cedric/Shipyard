@@ -137,6 +137,20 @@ export function useCloseGuardEvent() {
 /** The menu bar panel switched the project: the window goes to the project with its own switcher flow. */
 export const PROJECT_SWITCHED_EVENT = "project-switched";
 
+/** The menu bar panel opens an item: the window shows it in the inspector. The payload is its ref. */
+export const OPEN_REF_EVENT = "open-ref";
+
+function useOpenRefEvent() {
+	const { openRef } = useShell();
+	const latest = useRef(openRef);
+	latest.current = openRef;
+	useEffect(() => {
+		if (!isTauri()) return;
+		const off = listen<string>(OPEN_REF_EVENT, (e) => latest.current(e.payload));
+		return () => void off.then((f) => f());
+	}, []);
+}
+
 function useProjectSwitchedEvent() {
 	const { switchTo } = useProjectActions();
 	const latest = useRef(switchTo);
@@ -202,6 +216,7 @@ export function useShellEvents() {
 	useFileChanges();
 	useTickNotices();
 	useProjectSwitchedEvent();
+	useOpenRefEvent();
 
 	// A question, an approval or a run that needs the person: one entry and one system notice (REQ-008).
 	// A run that ends and an automatic review draft add their own entry (their own switch).

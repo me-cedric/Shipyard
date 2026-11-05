@@ -19,7 +19,7 @@ it("does not clone while the parent folder is empty", async () => {
 			user: null,
 		}),
 	);
-	mountApp("/home/inbox");
+	mountApp("/home/today");
 	await user.click(await screen.findByRole("button", { name: /^Project/ }));
 	await user.click(await screen.findByRole("menuitem", { name: "Clone a repository" }));
 	const dialog = within(await screen.findByRole("dialog"));

@@ -61,18 +61,6 @@ Feature: provider-sign-in
     When the system exchanges it
     Then the row shows a plain error and "Sign in" again
 
-  @spec:provider-sign-in#REQ-006
-  Scenario: Azure sign-in: Device code
-    Given a person clicks "Sign in" on Azure
-    When the system gets a device code
-    Then the view shows the code and opens the Microsoft page
-
-  @spec:provider-sign-in#REQ-006
-  Scenario: Azure sign-in: Missing role
-    Given a person with no Cognitive Services OpenAI User role
-    When a call is refused
-    Then the row names the role
-
   @spec:provider-sign-in#REQ-007
   Scenario: Key paste: Good key
     Given a valid OpenAI key

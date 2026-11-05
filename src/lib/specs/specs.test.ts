@@ -3,7 +3,7 @@ import { capabilityOf, kindStatus, lastLine, openItems, planRef } from "./index"
 
 const art = (
 	artifact: string,
-	status: "missing" | "draft" | "done",
+	status: "missing" | "unchecked" | "draft" | "done",
 	capability: string | null,
 ) => ({
 	artifact,
@@ -33,6 +33,17 @@ describe("specs rules", () => {
 		expect(kindStatus(c, "plan")).toBe("missing");
 		// No file of the kind at all.
 		expect(kindStatus(c, "tasks")).toBe("missing");
+	});
+
+	it("says not checked when no draft is left and a file has no validation of its text", () => {
+		const c = change([
+			art("spec", "done", "a"),
+			art("spec", "unchecked", "b"),
+			art("plan", "unchecked", "a"),
+			art("plan", "draft", "b"),
+		]);
+		expect(kindStatus(c, "spec")).toBe("unchecked");
+		expect(kindStatus(c, "plan")).toBe("draft");
 	});
 
 	it("names the ref of a plan, a capability and an answer", () => {

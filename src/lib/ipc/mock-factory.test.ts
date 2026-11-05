@@ -114,6 +114,7 @@ describe("mock factory: the demo data set", () => {
 		expect(f.kill).toBe(false);
 		expect(Object.keys(f.workflows).sort()).toEqual([
 			"bug",
+			"docs-update",
 			"feature",
 			"review-only",
 			"spec-split",
@@ -380,7 +381,14 @@ describe("mock factory: workflows, roles and tiers", () => {
 
 	it("lists the five default workflows with their steps", async () => {
 		const list = await unwrap(commands.workflowsList());
-		expect(list.map((w) => w.id)).toEqual(["bug", "feature", "review-only", "spec-split", "spike"]);
+		expect(list.map((w) => w.id)).toEqual([
+			"bug",
+			"docs-update",
+			"feature",
+			"review-only",
+			"spec-split",
+			"spike",
+		]);
 		expect(list.find((w) => w.id === "feature")?.steps).toEqual([
 			"grill",
 			"plan",

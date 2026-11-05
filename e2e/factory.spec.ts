@@ -6,7 +6,7 @@ const lane = (page: Page, name: string) => page.getByRole("region", { name });
 
 /** Opens the mock project (it owns the 14 factory runs), then Factory on the given tab. */
 async function openFactory(page: Page, tab: string) {
-	await page.goto("/home/inbox");
+	await page.goto("/home/today");
 	await page.getByRole("button", { name: "Open a local folder" }).click();
 	await expect(page.getByRole("heading", { name: "Agent questions (3)" })).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Factory" }).click();

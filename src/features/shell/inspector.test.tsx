@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mountApp } from "@/test/mount";
@@ -17,16 +17,29 @@ describe("inspector (shell REQ-006)", () => {
 	beforeEach(() => unwrap(commands.projectsOpen("/mock/alpha", false)));
 
 	it("starts closed, inert and empty", async () => {
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		const aside = await inspector();
 		expect(aside).toHaveAttribute("data-open", "false");
 		expect(aside).toHaveAttribute("inert");
 	});
 
+	it("drops the width transition for the whole drag of the separator", async () => {
+		mountApp("/home/today");
+		await screen.findByRole("navigation", { name: "Sidebar" });
+		const aside = await inspector();
+		const bar = within(aside).getByRole("separator");
+		expect(aside).not.toHaveAttribute("data-resizing");
+		fireEvent.pointerDown(bar, { clientX: 500 });
+		fireEvent.pointerMove(bar, { clientX: 450 });
+		expect(aside).toHaveAttribute("data-resizing");
+		fireEvent.pointerUp(bar);
+		expect(aside).not.toHaveAttribute("data-resizing");
+	});
+
 	it("shows the entity and its backlinks, and a backlink selects that entity", async () => {
 		const user = userEvent.setup();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const view = await open(user, "adr:0004");
 		expect(await view.findByRole("heading", { name: "Spec (2)" })).toBeVisible();
 		await user.click(await view.findByRole("button", { name: /^spec:auth, Spec: auth, Resolved/ }));
@@ -36,7 +49,7 @@ describe("inspector (shell REQ-006)", () => {
 
 	it("closes with its button and moves the focus out of the panel", async () => {
 		const user = userEvent.setup();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const view = await open(user, "adr:0004");
 		const aside = await inspector();
 		await waitFor(() => expect(aside).toHaveAttribute("data-open", "true"));

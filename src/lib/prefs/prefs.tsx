@@ -43,6 +43,7 @@ export type Prefs = Pick<
 	| "narrowBar"
 	| "terminalDock"
 	| "panelSizes"
+	| "todaySeen"
 	| "uiScale"
 	| "tray"
 	| "motion"
@@ -90,6 +91,7 @@ const DEFAULTS: Prefs = {
 	narrowBar: false,
 	terminalDock: "bottom",
 	panelSizes: {},
+	todaySeen: 0,
 	uiScale: 16,
 	tray: true,
 	motion: "system",

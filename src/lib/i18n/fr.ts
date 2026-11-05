@@ -123,12 +123,7 @@ export const fr: Messages = {
 		settings: "Réglages",
 	},
 	tabs: {
-		home: {
-			inbox: "Boîte de réception",
-			"my-work": "Mon travail",
-			activity: "Activité",
-			projects: "Projets",
-		},
+		home: { today: "Aujourd'hui", projects: "Projets" },
 		design: {
 			diagrams: "Diagrammes",
 			architecture: "Architecture",
@@ -642,6 +637,11 @@ export const fr: Messages = {
 		thread: {
 			title: "Ticket",
 			summary: "Résumé",
+			labels: "Étiquettes",
+			editSummary: "Modifier le résumé",
+			editDescription: "Modifier la description",
+			addDescription: "Ajouter une description",
+			cancel: "Annuler",
 			save: "Enregistrer",
 			label: "Nouvelle étiquette",
 			addLabel: "Ajouter l'étiquette",

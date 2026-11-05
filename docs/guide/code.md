@@ -47,6 +47,8 @@ Quality runs the checks of the project and the security scanners, after your cli
 
 The software parts list (SBOM, "software bill of materials") names every library the project uses, with its version. Export it when a client or a security team asks which software the project contains.
 
+Docs freshness is a check of Quality. It lists the docs that did not follow the code of the branch, with the count. The same warning shows in the commit gate, the push gate and the docs chain of Impacts. Each stale doc has "Update with an agent". An agent run starts only after your click, and the pull request that it opens waits for your review. A doc that the agent left unreadable is named and stays out of the pull request. "Acknowledge" keeps a warning as it is, with a reason.
+
 ## Impacts
 
 Impacts tells which items a change touches, and proposes an action plan.

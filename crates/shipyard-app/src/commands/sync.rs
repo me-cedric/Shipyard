@@ -1014,6 +1014,67 @@ mod tests {
     }
 
     #[test]
+    fn a_docs_update_starts_exactly_one_run_and_only_after_a_click() {
+        let f = fixture();
+        let p = f.repo.path();
+        git(p, &["add", "-A"]);
+        git(
+            p,
+            &[
+                "-c",
+                "user.name=t",
+                "-c",
+                "user.email=t@t",
+                "commit",
+                "-qm",
+                "base",
+            ],
+        );
+        git(p, &["branch", "-M", "main"]);
+        git(p, &["switch", "-qc", "topic"]);
+        std::fs::create_dir_all(p.join("docs/openspec/changes/x")).unwrap();
+        std::fs::write(p.join("docs/openspec/changes/x/spec.md"), "# s\n").unwrap();
+        let start = |doc: &str, click| {
+            super::super::overview::docs_update_start(
+                &f.s,
+                doc,
+                super::super::overview::DocsRange::Branch,
+                click,
+            )
+        };
+        assert!(start("models", false).unwrap_err().contains("click"));
+        assert!(crate::factory::runs(&f.s).unwrap().is_empty());
+        assert!(start("nope", true).unwrap_err().contains("not stale"));
+        // The range counts: nothing is staged or pushed, so the doc is not stale there.
+        let in_range = |range| {
+            super::super::overview::docs_update_start(&f.s, "models", range, true).unwrap_err()
+        };
+        use super::super::overview::DocsRange;
+        assert!(in_range(DocsRange::Unpushed).contains("not stale"));
+        assert!(in_range(DocsRange::Staged).contains("not stale"));
+        // A staged spec makes it stale there, but the worktree cannot carry staged work.
+        git(p, &["add", "-A"]);
+        assert!(in_range(DocsRange::Staged).contains("commit or stash"));
+        git(p, &["reset", "-q"]);
+        let run = start("models", true).unwrap();
+        let runs = crate::factory::runs(&f.s).unwrap();
+        assert_eq!(runs.len(), 1);
+        assert_eq!(runs[0].key, "docs:models");
+        assert!(
+            f.s.dir
+                .join("docs-update")
+                .join(format!("{run}.json"))
+                .exists()
+        );
+        assert!(
+            start("models", true)
+                .unwrap_err()
+                .contains("a run is active")
+        );
+        assert_eq!(crate::factory::runs(&f.s).unwrap().len(), 1);
+    }
+
+    #[test]
     fn a_run_starts_by_hand_on_a_mirrored_ticket_and_only_once() {
         let f = fixture();
         run_tick(&f.s).unwrap();

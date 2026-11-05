@@ -38,7 +38,7 @@ describe("command palette (shell REQ-005)", () => {
 	it("opens a ref with Enter", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await openPalette(user);
 		await user.keyboard("adr:0004");
 		await user.keyboard("{Enter}");
@@ -100,7 +100,7 @@ describe("palette pages and tickets", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const item = { key: "ACME-7", title: "Pay the invoice", status: "To do" };
 		mockState().sync.mirror.push(item as never);
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await openPalette(user);
 		await user.keyboard("ACME-7");
 		expect(await screen.findByRole("option", { name: /^wi:ACME-7 Pay the invoice/ })).toBeVisible();
@@ -114,7 +114,7 @@ describe("palette pages and tickets", () => {
 			title: "Pay the invoice",
 			status: "To do",
 		} as never);
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await openPalette(user);
 		await user.keyboard("invoice");
 		const dialog = within(await screen.findByRole("dialog"));
@@ -129,7 +129,7 @@ describe("palette pages and tickets", () => {
 	it("opens the page of a ref, selects it, and drops it when the view changes", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		const router = mountApp("/home/inbox");
+		const router = mountApp("/home/today");
 		await openPalette(user);
 		await user.keyboard("adr:0004{Enter}");
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });

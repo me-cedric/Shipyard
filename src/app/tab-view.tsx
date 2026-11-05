@@ -7,9 +7,7 @@ type Load = () => Promise<ComponentType>;
 
 /** Views that a feature owns, each in its own chunk. The other tabs show the empty state until their capability lands. */
 const LOADERS: Partial<Record<string, Load>> = {
-	"home/inbox": () => import("./views").then((m) => m.HomeInbox),
-	"home/my-work": () => import("@/features/home/my-work").then((m) => m.MyWork),
-	"home/activity": () => import("@/features/home/activity").then((m) => m.Activity),
+	"home/today": () => import("./views").then((m) => m.HomeToday),
 	"home/projects": () => import("@/features/projects/projects-page").then((m) => m.ProjectsPage),
 	"code/changes": () => import("@/features/code/changes").then((m) => m.Changes),
 	"code/history": () => import("@/features/code/history").then((m) => m.History),

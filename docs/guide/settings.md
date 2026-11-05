@@ -8,6 +8,15 @@ Project holds the folders of the project, the default workflow, the automation s
 
 Agent review of each pull request is one choice: Off, Draft or Post. Draft keeps a review for you to read and post. Post adds a comment review by itself and never approves. The choice goes to .shipyard/automation.yaml.
 
+The `docs` list of the project file says which docs follow which code. Each rule has `code` (path patterns) and `feeds` (doc folders or paths), and an optional `name`. Without the list, the specs feed the other doc folders.
+
+```yaml
+docs:
+  - name: crates
+    code: ["crates/*/Cargo.toml"]
+    feeds: [models]
+```
+
 ## Connections
 
 Connections links the app to your tools.

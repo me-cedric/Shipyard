@@ -45,6 +45,8 @@ Qualité lance les vérifications du projet et les scanners de sécurité, aprè
 
 La liste des composants logiciels (SBOM, « software bill of materials ») nomme chaque bibliothèque que le projet utilise, avec sa version. Exportez-la quand un client ou une équipe de sécurité demande quels logiciels le projet contient.
 
+La fraîcheur de la documentation est une vérification de Qualité. Elle liste les documents qui n'ont pas suivi le code de la branche, avec leur nombre. Le même avertissement s'affiche dans la porte de commit, la porte de push et la chaîne documentaire d'Impacts. Chaque document périmé a « Mettre à jour avec un agent ». Une exécution d'agent ne démarre qu'après votre clic, et la pull request qu'elle ouvre attend votre relecture. Un document que l'agent a laissé illisible est nommé et reste hors de la pull request. « Acquitter » garde un avertissement tel quel, avec un motif.
+
 ## Impacts
 
 Impacts dit quels éléments un changement touche, et propose un plan d'action.

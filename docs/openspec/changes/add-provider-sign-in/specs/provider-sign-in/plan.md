@@ -40,7 +40,7 @@ One list joins the runners, the HTTP providers and the local runtimes. A tool si
 
 1. Add `agy` to detection. Add the status commands and the sign-in launch for tools (Q-133 decides the place).
 2. Add OpenRouter PKCE with a localhost callback.
-3. Add the Azure device code (after Q-132).
+3. The Azure device code moved to the change `add-azure-sign-in` (Q-132).
 4. Probe the local runtimes on localhost.
 5. Add the key paste with a test on save.
 6. Build the one view on top of steps 1 to 5, in English and French.

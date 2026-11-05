@@ -1001,13 +1001,18 @@ pub fn budget_save(s: &AppState, scope: &str, key: &str, usd: Option<f64>) -> Re
 
 /// The diff of a run folder against its base, one entry for each file (`factory` REQ-028).
 pub fn diff_of_run(s: &AppState, run: &str) -> Res<Vec<FileDiff>> {
+    run_folders(s, run)?.run_diff(run, MAX_RUN_DIFF)
+}
+
+/// The folders of a run of the open project. An unknown run is an error.
+pub(crate) fn run_folders(s: &AppState, run: &str) -> Res<Folders> {
     let (id, root) = root_of(s)?;
     s.factory
         .factory
         .run_info(run)
         .filter(|r| r.project == id)
         .ok_or_else(|| format!("no run {run}"))?;
-    Folders {
+    Ok(Folders {
         root,
         data: s.dir.clone(),
         project: id,
@@ -1015,8 +1020,7 @@ pub fn diff_of_run(s: &AppState, run: &str) -> Res<Vec<FileDiff>> {
         declared_base: None,
         specs: String::new(),
         secrets: Vec::new(),
-    }
-    .run_diff(run, MAX_RUN_DIFF)
+    })
 }
 
 /// `run:<id>` and `run:<id>/<step>` resolve from the factory (`factory` REQ-021). A run that this
@@ -1066,7 +1070,17 @@ pub fn start(s: &AppState, key: &str) -> Res<String> {
         .ticket(&source, key)
         .map_err(err)?
         .ok_or_else(|| format!("{key} is not in the mirror: sync first"))?;
+    start_ticket(s, &a, ticket)
+}
+
+/// Starts a run on a ticket. The ticket need not be in the mirror. Returns the run id.
+pub(crate) fn start_ticket(
+    s: &AppState,
+    a: &Active,
+    ticket: shipyard_core::pickup::Ticket,
+) -> Res<String> {
     ensure(s)?;
+    let key = ticket.item.key.clone();
     let f = &s.factory.factory;
     // The engine refuses a second active run on the ticket, under its own lock.
     let status = ticket.item.status.name.clone();

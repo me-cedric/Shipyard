@@ -584,6 +584,9 @@ pub fn check_run(s: &AppState, command: &str, click: bool) -> Res<QualityReport>
     let (passed, tail, findings) = if command == crate::qa::VERIFY_DOCS {
         let (tail, findings) = crate::qa::verify_docs(s)?;
         (findings.is_empty(), tail, findings)
+    } else if command == crate::qa::DOCS_FRESH {
+        let (tail, findings) = crate::qa::docs_fresh(s)?;
+        (findings.is_empty(), tail, findings)
     } else {
         let gate = crate::delivery::run_gate_out(&root, &log, command, CHECK_LIMIT);
         if gate.check.passed {

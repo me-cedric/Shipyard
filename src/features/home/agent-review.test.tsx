@@ -10,7 +10,7 @@ describe("Home / Needs you: agent review", () => {
 		const user = userEvent.setup();
 		await demo();
 		const draft = await unwrap(commands.prReviewStart(141, true));
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const group = (await screen.findByRole("heading", { name: "Agent reviews (1)" })).closest(
 			"section",
 		) as HTMLElement;
@@ -26,8 +26,8 @@ describe("Home / Needs you: agent review", () => {
 
 	it("shows no group when no draft waits", async () => {
 		await demo();
-		mountApp("/home/inbox");
-		await screen.findByRole("heading", { name: /^Needs you/ });
+		mountApp("/home/today");
+		await screen.findByRole("heading", { level: 1, name: "Today" });
 		expect(screen.queryByRole("heading", { name: /^Agent reviews/ })).toBeNull();
 	});
 });

@@ -173,7 +173,7 @@ Feature: knowledge
   Scenario: Home widgets: Pin
     Given a tile on a dashboard
     When a person pins it
-    Then Home / My work shows the tile
+    Then the tile shows at the top of Knowledge / Dashboards
 
   @spec:knowledge#REQ-025
   Scenario: Doc entity: Resolve

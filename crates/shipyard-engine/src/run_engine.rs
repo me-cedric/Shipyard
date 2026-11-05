@@ -48,6 +48,11 @@ use crate::tools::Message;
 
 /// A ticket label `wf:<id>` picks the workflow (REQ-009).
 pub const WORKFLOW_LABEL: &str = "wf:";
+/// A ticket key with this prefix is not in an issue tracker: the run writes nothing to a tracker.
+pub const TICKETLESS_PREFIX: &str = "docs:";
+/// On a ticketless run, a label `base:<branch>` names the branch that the run starts from and
+/// that its pull request targets.
+pub const BASE_LABEL: &str = "base:";
 /// Run log kind of a budget alert and of a question reminder.
 pub const ALERT: &str = "alert";
 
@@ -760,6 +765,9 @@ impl Inner {
 
     /// Move the ticket to the status and labels of the state (REQ-008).
     fn map_ticket(&mut self, run_id: &str, state: RunState) {
+        if self.runs[run_id].key.starts_with(TICKETLESS_PREFIX) {
+            return;
+        }
         let Some(p) = self.project_of(run_id) else {
             return;
         };
@@ -1374,7 +1382,7 @@ impl Inner {
         let ms = self.clock.now().as_millis() as u64;
         self.seq += 1;
         let id = ulid(ms, self.seq);
-        let rec = RunRec {
+        let mut rec = RunRec {
             id: id.clone(),
             project: req.project.clone(),
             key: item.key.clone(),
@@ -1404,11 +1412,23 @@ impl Inner {
             d: Delivered::default(),
             messages: Vec::new(),
         };
+        let base = item
+            .key
+            .starts_with(TICKETLESS_PREFIX)
+            .then(|| item.labels.iter().find_map(|l| l.strip_prefix(BASE_LABEL)))
+            .flatten()
+            .map(str::to_string);
+        if let Some(b) = &base {
+            rec.d.base = Some(b.clone());
+        }
         let payload = json!({
             "ticket": format!("wi:{}", item.key), "workflow": format!("wf:{}", rec.wf.id),
             "machine": req.machine, "stamped": req.stamped,
         });
         self.runs.insert(id.clone(), rec);
+        if let (Some(b), Some(p)) = (&base, self.projects.get(&req.project)) {
+            p.workspaces.set_base(&id, b);
+        }
         self.add_member(&id, 0, 0.0);
         self.log(&id, None, kind::NOTE, payload);
         self.transition(&id, RunEvent::Claim);

@@ -6,9 +6,9 @@ const inspector = (page: Page) => page.getByRole("complementary", { name: "Inspe
 
 /** Opens the mock project, then the Design tab. */
 async function openDesign(page: Page, tab: string) {
-	await page.goto("/home/inbox");
+	await page.goto("/home/today");
 	await page.getByRole("button", { name: "Open a local folder" }).click();
-	await expect(page.getByRole("heading", { name: "Needs you" })).toBeVisible();
+	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Design" }).click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }

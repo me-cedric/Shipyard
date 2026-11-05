@@ -10,7 +10,7 @@ describe("Home / Get started", () => {
 	it("marks each step from the real state and opens the form of the next one", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const list = await screen.findByRole("list", { name: "Get started" });
 		const steps = within(list).getAllByRole("link");
 		expect(steps.map((s) => s.textContent)).toEqual([
@@ -38,7 +38,7 @@ describe("Home / Get started", () => {
 		const user = userEvent.setup();
 		mockState().logins = [{ tool: "gh", host: "example.com", user: "ada" }];
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await user.click(await screen.findByRole("button", { name: "Connect with gh as ada" }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.projectSettings()))?.file?.connections?.forge).toBeTruthy(),
@@ -59,7 +59,7 @@ describe("Home / Get started", () => {
 		const user = userEvent.setup();
 		const tracker = await withTracker();
 		await importAll();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await screen.findByRole("list", { name: "Get started" });
 		const forge = await unwrap(
 			commands.connectionsAdd({
@@ -76,8 +76,8 @@ describe("Home / Get started", () => {
 			commands.projectFileSave({ ...settings.file, connections: { tracker, forge: forge.id } }),
 		);
 		// A new visit reads the state again.
-		await user.click(screen.getByRole("link", { name: "Activity" }));
-		await user.click(await screen.findByRole("link", { name: "Inbox" }));
+		await user.click(screen.getByRole("link", { name: "Projects" }));
+		await user.click(await screen.findByRole("link", { name: "Today" }));
 		await waitFor(() => expect(screen.queryByRole("list", { name: "Get started" })).toBeNull());
 	});
 });

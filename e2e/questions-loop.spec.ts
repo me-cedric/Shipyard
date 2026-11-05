@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("answers Q-101 with the keyboard, and the run leaves Needs you", async ({ page }) => {
-	await page.goto("/home/inbox");
+	await page.goto("/home/today");
 	await page.getByRole("button", { name: "Open a local folder" }).click();
 	const card = page.getByRole("region", { name: "Q-101" });
 	await expect(card).toContainText("ACME-1");

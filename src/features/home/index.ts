@@ -1,4 +1,3 @@
-export { Activity } from "./activity";
 export { GetStarted } from "./get-started";
-export { Inbox } from "./inbox/inbox";
-export { MyWork } from "./my-work";
+export { NeedsYou } from "./inbox/inbox";
+export { Today } from "./today";

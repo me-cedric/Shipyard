@@ -95,8 +95,8 @@ test("tester", async ({ page }) => {
 		"See what needs me",
 		"Home, Needs you",
 		async () => {
-			await w.go("Home", "Inbox");
-			await w.see(page.getByRole("heading", { name: "Needs you" }), "no inbox");
+			await w.go("Home", "Today");
+			await w.see(page.getByRole("heading", { level: 1, name: "Today" }), "no inbox");
 		},
 		true,
 	);

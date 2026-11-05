@@ -92,7 +92,7 @@ test("junior", async ({ page }) => {
 	);
 
 	await w.step("Follow the Get started list", "Home, a step of Get started", async () => {
-		await w.go("Home", "Inbox");
+		await w.go("Home", "Today");
 		await w.click(page.getByText("Connect a code host"));
 		await w.until(
 			() => page.url().includes("/settings/"),

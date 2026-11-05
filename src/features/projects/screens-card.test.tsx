@@ -26,8 +26,8 @@ describe("Settings / Project screens", () => {
 	it("sends a visit of a hidden tab to the first kept tab, and keeps the last tab of a space", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const p = mockState().projects[0];
-		if (p) p.overrides.hiddenTabs = ["home/inbox", "home/my-work", "home/activity"];
-		const router = mountApp("/home/inbox");
+		if (p) p.overrides.hiddenTabs = ["home/today"];
+		const router = mountApp("/home/today");
 		await waitFor(() => expect(router.state.location.pathname).toBe("/home/projects"));
 		await router.navigate({ to: "/settings/project" });
 		const home = within(await screen.findByRole("group", { name: "Home" }));

@@ -11,6 +11,8 @@ pub const ARTIFACTS: [&str; 5] = ["proposal", "spec", "plan", "checklist", "task
 #[serde(rename_all = "camelCase")]
 pub enum ArtifactStatus {
     Missing,
+    /// The file exists and no validation of its current text ran.
+    Unchecked,
     Draft,
     Done,
 }

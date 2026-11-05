@@ -264,6 +264,7 @@ const fresh = (): State => ({
 		narrowBar: false,
 		terminalDock: "bottom",
 		panelSizes: {},
+		todaySeen: 0,
 		uiScale: 16,
 		tray: true,
 		motion: "system",
@@ -911,6 +912,7 @@ const handlers: Handlers = {
 			paths: file.paths ?? {},
 			defaultWorkflow: file.defaultWorkflow ?? null,
 			gates: file.gates ?? [],
+			docs: file.docs?.map(({ name, ...r }) => (name ? { ...r, name } : r)),
 			// Unset ids stay out of the file, as in the Rust codec.
 			connections: file.connections
 				? {
@@ -1958,6 +1960,11 @@ const handlers: Handlers = {
 		rv
 			.withAcks(review(), chainGate(push ? [] : codeStatus(code()).staged.map((f) => f.path)))
 			.filter((w) => !w.ack),
+	codeDocsUpdateStart: (_doc, _range, click) => {
+		if (!click) throw "this change needs the click of a person";
+		return "run-docs-1";
+	},
+	codeDocsUpdateCheck: () => [],
 	codeChainAck: (_base, from, to, reason, click) => {
 		const c = codeStatus(code());
 		const changed = [...c.staged, ...c.unstaged, ...c.untracked].map((f) => f.path);

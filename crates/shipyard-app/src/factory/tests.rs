@@ -497,7 +497,14 @@ fn workflows_list_read_check_and_save_the_files_of_the_repository() {
     let list = workflows(&fx.s).unwrap();
     assert_eq!(
         list.iter().map(|w| w.id.as_str()).collect::<Vec<_>>(),
-        ["bug", "feature", "review-only", "spec-split", "spike"]
+        [
+            "bug",
+            "docs-update",
+            "feature",
+            "review-only",
+            "spec-split",
+            "spike"
+        ]
     );
     let feature = list.iter().find(|w| w.id == "feature").unwrap();
     assert_eq!(feature.steps, ["grill", "plan", "build", "review", "pr"]);
@@ -852,4 +859,48 @@ fn the_run_diff_lists_each_changed_file_of_the_run_folder_and_refuses_a_foreign_
     assert_eq!(files.len(), 1);
     assert_eq!(files[0].path, "new.txt");
     assert!(files[0].text.contains("+hello"));
+}
+
+#[test]
+fn a_docs_update_run_opens_its_pull_request_with_no_issue_tracker_ticket() {
+    let on = Writes {
+        push: true,
+        pull_request: true,
+        ..Writes::default()
+    };
+    let fx = fx(on);
+    let mut ticket = todo("docs:models");
+    ticket.item.title = "Update the docs: models".into();
+    ticket.item.labels = vec!["wf:docs-update".into()];
+    let f = &fx.s.factory.factory;
+    f.start(&StartRequest {
+        project: fx.id.clone(),
+        ticket,
+        status: "To Do".into(),
+        machine: "m1".into(),
+        stamped: false,
+    })
+    .unwrap();
+    let run = f.active_runs().last().unwrap().run_id.clone();
+    f.pump();
+    f.report(
+        &run,
+        "update",
+        Report {
+            outcome: Outcome::Done,
+            summary: "ok".into(),
+            refs: vec![],
+            output: None,
+        },
+    )
+    .unwrap();
+    f.pump();
+    let sent = fx.writer.sent();
+    let title = sent.iter().find_map(|w| match w {
+        shipyard_engine::approvals::Write::OpenPr { title, body, .. } => Some((title, body)),
+        _ => None,
+    });
+    let (title, body) = title.expect("a pull request");
+    assert!(title.contains("Update the docs: models"), "{title}");
+    assert!(body.contains("docs:models"), "{body}");
 }

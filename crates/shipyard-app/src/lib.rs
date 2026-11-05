@@ -111,6 +111,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             overview::project_open_remote,
             overview::code_push_target,
             overview::code_chain_gate,
+            overview::code_docs_update_start,
+            overview::code_docs_update_check,
             overview::code_chain_watch,
             crate::commands::chain_acks::code_chain_ack,
             crate::commands::chain_acks::code_chain_ack_withdraw,

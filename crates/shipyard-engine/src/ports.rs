@@ -172,6 +172,10 @@ pub trait Agents: Send + Sync {
 pub trait Workspaces: Send + Sync {
     /// The folder of a step. `child` is set for `Workspace::Worktree`: one worktree for each.
     fn dir(&self, run: &str, workspace: Workspace, child: Option<&str>) -> PortResult<PathBuf>;
+
+    /// A run with no issue tracker ticket starts from this branch, not from the default one.
+    /// Called once, before the first step. The default does nothing.
+    fn set_base(&self, _run: &str, _base: &str) {}
 }
 
 /// The writes of a project: tracker, push, pull request. The factory calls `send` only when the

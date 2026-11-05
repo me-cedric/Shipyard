@@ -4,12 +4,22 @@ import { Providers } from "@/app/providers";
 import { commands } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { importAll, withTracker } from "@/test/tracker";
-import { TicketThread } from "./ticket-thread";
+import {
+	TicketComments,
+	TicketDescription,
+	TicketFields,
+	TicketLabels,
+	TicketTitle,
+} from "./ticket-thread";
 
 const mount = () =>
 	render(
 		<Providers>
-			<TicketThread itemKey="ACME-1" />
+			<TicketTitle itemKey="ACME-1" />
+			<TicketLabels itemKey="ACME-1" />
+			<TicketFields itemKey="ACME-1" />
+			<TicketDescription itemKey="ACME-1" />
+			<TicketComments itemKey="ACME-1" />
 		</Providers>,
 	);
 
@@ -27,6 +37,7 @@ describe("the ticket thread", () => {
 		expect(await within(list).findByText("Fixed in 1.2")).toBeInTheDocument();
 		expect(mockState().work.comments["ACME-1"]).toHaveLength(2);
 
+		await user.click(await screen.findByRole("button", { name: "Edit summary" }));
 		const summary = screen.getByRole("textbox", { name: "Summary" });
 		expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
 		await user.clear(summary);
@@ -60,6 +71,7 @@ describe("the ticket thread", () => {
 				"urgent",
 			),
 		);
+		await user.click(await screen.findByRole("button", { name: "Edit description" }));
 		const save = screen.getByRole("button", { name: "Save description" });
 		expect(save).toBeDisabled();
 		await user.type(screen.getByRole("textbox", { name: "Description" }), "Steps to reproduce");
@@ -68,10 +80,21 @@ describe("the ticket thread", () => {
 			"Fix login redirect.Steps to reproduce",
 		);
 		await user.click(save);
-		// After the save the edit is over: Save is off again.
-		await waitFor(() => expect(save).toBeDisabled());
+		// After the save the edit is over: the read view is back.
+		await waitFor(() => expect(screen.queryByRole("textbox", { name: "Description" })).toBeNull());
+		expect(screen.getByRole("article", { name: "Description" })).toBeInTheDocument();
 		expect(screen.getByRole("combobox", { name: "Priority" })).toBeInTheDocument();
 	}, 20_000);
+
+	it("cancels a title edit with Escape", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await importAll();
+		mount();
+		await user.click(await screen.findByRole("button", { name: "Edit summary" }));
+		await user.type(screen.getByRole("textbox", { name: "Summary" }), "x{Escape}");
+		expect(screen.queryByRole("textbox", { name: "Summary" })).toBeNull();
+	});
 
 	it("sets the type, the due date and the estimate, each with one click", async () => {
 		const user = userEvent.setup();
@@ -81,14 +104,18 @@ describe("the ticket thread", () => {
 		const type = vi.spyOn(commands, "workTicketTypeSet");
 		const edit = vi.spyOn(commands, "workTicketEdit");
 		mount();
-		await user.type(await screen.findByRole("textbox", { name: "Issue type" }), "Bug");
-		await user.click(screen.getByRole("button", { name: "Set type" }));
+		await user.type(await screen.findByRole("textbox", { name: "Issue type" }), "Bug{Enter}");
 		await waitFor(() => expect(type).toHaveBeenCalledWith("ACME-1", "Bug", true));
-		fireEvent.change(screen.getByLabelText("Due date"), { target: { value: "2026-11-30" } });
-		await user.click(screen.getByRole("button", { name: "Set due date" }));
+		const date = screen.getByLabelText("Due date", { selector: "input" });
+		fireEvent.change(date, { target: { value: "2026-11-30" } });
+		fireEvent.blur(date);
 		await waitFor(() => expect(spy).toHaveBeenCalledWith("ACME-1", "2026-11-30", true));
-		await user.type(screen.getByRole("spinbutton", { name: "Estimate in days" }), "2.5");
-		await user.click(screen.getByRole("button", { name: "Set estimate" }));
+		// A blur with the same date writes nothing more.
+		fireEvent.blur(date);
+		expect(spy).toHaveBeenCalledTimes(1);
+		await user.click(screen.getByRole("button", { name: "Clear due date" }));
+		await waitFor(() => expect(spy).toHaveBeenLastCalledWith("ACME-1", null, true));
+		await user.type(screen.getByRole("spinbutton", { name: "Estimate in days" }), "2.5{Enter}");
 		await waitFor(() => expect(edit).toHaveBeenCalledWith("ACME-1", null, null, 2.5, true));
 		spy.mockRestore();
 		type.mockRestore();
@@ -114,12 +141,13 @@ describe("the ticket thread", () => {
 			},
 		});
 		mount();
-		await screen.findByRole("textbox", { name: "Summary" });
+		await screen.findByRole("article", { name: "Description" });
+		expect(screen.queryByRole("button", { name: "Edit description" })).toBeNull();
 		expect(screen.queryByRole("textbox", { name: "Description" })).toBeNull();
 		expect(screen.queryByRole("textbox", { name: "New label" })).toBeNull();
 		expect(screen.queryByRole("combobox", { name: "Priority" })).toBeNull();
 		expect(screen.queryByRole("textbox", { name: "Issue type" })).toBeNull();
-		expect(screen.queryByLabelText("Due date")).toBeNull();
+		expect(screen.queryByLabelText("Due date", { selector: "input" })).toBeNull();
 		expect(screen.queryByRole("spinbutton", { name: "Estimate in days" })).toBeNull();
 		spy.mockRestore();
 	});

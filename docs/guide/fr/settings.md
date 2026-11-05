@@ -8,6 +8,15 @@ Projet contient les dossiers du projet, le workflow par défaut, les interrupteu
 
 La revue par un agent de chaque pull request est un seul choix : Désactivée, Brouillon ou Publication. Brouillon garde une revue que vous lisez et publiez. Publication ajoute seule une revue en commentaire et n'approuve jamais. Le choix va dans .shipyard/automation.yaml.
 
+La liste `docs` du fichier de projet dit quels documents suivent quel code. Chaque règle a `code` (motifs de chemins) et `feeds` (dossiers ou chemins de documents), et un `name` facultatif. Sans la liste, les spécifications alimentent les autres dossiers de documents.
+
+```yaml
+docs:
+  - name: crates
+    code: ["crates/*/Cargo.toml"]
+    feeds: [models]
+```
+
 ## Connexions
 
 Connexions relie l'application à vos outils.

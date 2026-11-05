@@ -19,6 +19,13 @@ Feature: specs
     Then the proposal shows done and the spec shows draft
     And the plan, the checklist and the tasks show missing
 
+  @spec:specs#REQ-002
+  Scenario: Artifact status: Not checked
+    Given a change whose files changed since the last validation
+    When the person opens the list of changes
+    Then its artifacts show not checked, not draft
+    And after a restart with no file change, a validated change keeps its status
+
   @spec:specs#REQ-003
   Scenario: Create and edit a change: Create
     Given a valid change id in kebab-case

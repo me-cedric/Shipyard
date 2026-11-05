@@ -5,7 +5,7 @@ const lane = (page: Page, name: string) => page.getByRole("region", { name });
 test("approvals wait for a click, and the runs show the review, CI and merge state", async ({
 	page,
 }) => {
-	await page.goto("/home/inbox");
+	await page.goto("/home/today");
 	await page.getByRole("button", { name: "Open a local folder" }).click();
 	await expect(page.getByRole("heading", { name: "Approvals (4)" })).toBeVisible();
 

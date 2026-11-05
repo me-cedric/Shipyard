@@ -1,0 +1,16 @@
+# A docs update: one agent brings one stale doc up to date, then a pull request. A person starts it.
+id: docs-update
+steps:
+  - id: update
+    role: docs
+    model: mid
+    effort: medium
+    workspace: worktree
+    tools: [read_ticket, read_ref, post_progress, handoff, report]
+  - id: pr
+    action: open_pr
+    needs: [update]
+limits:
+  max_turns: 20
+  budget_usd: 2
+  stall_s: 300

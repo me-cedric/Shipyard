@@ -36,7 +36,7 @@ describe("Active sessions", () => {
 	it("counts the live sessions, lists each one and stops one with a click", async () => {
 		const user = userEvent.setup();
 		await alpha();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await user.click(await (await bar()).findByRole("button", { name: "Active sessions (2)" }));
 		const list = await screen.findByRole("list", { name: "Active sessions" });
 		const rows = within(list).getAllByRole("listitem");
@@ -70,7 +70,7 @@ describe("File drawer", () => {
 	it("opens with Mod+P on the search, opens a folder and shows a file in the viewer", async () => {
 		const user = userEvent.setup();
 		await alpha();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await (await bar()).findByRole("button", { name: "Files" });
 		await user.keyboard("{Control>}p{/Control}");
 		const drawer = await screen.findByRole("complementary", { name: "Files" });

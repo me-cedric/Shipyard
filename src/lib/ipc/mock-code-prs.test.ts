@@ -73,6 +73,7 @@ describe("the Code quality and impact mock", () => {
 		expect(qualityView(p).checks.map((c) => [c.name, c.label])).toEqual([
 			["make ci", null],
 			["verify all docs", null],
+			["docs freshness", null],
 		]);
 		expect(checkRun(p, "make ci", true).findings[0]?.message).toContain("exit code 1");
 	});

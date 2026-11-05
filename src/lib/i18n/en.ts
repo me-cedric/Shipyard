@@ -122,7 +122,7 @@ export const en = {
 		settings: "Settings",
 	},
 	tabs: {
-		home: { inbox: "Inbox", "my-work": "My work", activity: "Activity", projects: "Projects" },
+		home: { today: "Today", projects: "Projects" },
 		design: {
 			diagrams: "Diagrams",
 			architecture: "Architecture",
@@ -628,6 +628,11 @@ export const en = {
 		thread: {
 			title: "Ticket",
 			summary: "Summary",
+			labels: "Labels",
+			editSummary: "Edit summary",
+			editDescription: "Edit description",
+			addDescription: "Add description",
+			cancel: "Cancel",
 			save: "Save",
 			label: "New label",
 			addLabel: "Add label",

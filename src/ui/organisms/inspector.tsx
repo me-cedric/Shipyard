@@ -1,11 +1,11 @@
-import { type ReactNode, useRef } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { usePanelSize } from "@/lib/prefs";
 import { IconButton } from "../atoms/icon-button";
 import { XMarkIcon } from "../icons";
 import { Splitter } from "../molecules/splitter";
 
-/** A side panel, 320 px at first. The person resizes it. The width change takes 200 ms. */
+/** A side panel, 320 px at first. The person resizes it. The width change takes 200 ms, but not during a drag. */
 export function Inspector({
 	open,
 	onClose,
@@ -20,6 +20,10 @@ export function Inspector({
 	const { t } = useI18n();
 	const ref = useRef<HTMLElement>(null);
 	const panel = usePanelSize("inspector-width", 320);
+	// A width transition while the pointer drags is the lag: the panel trails the pointer.
+	// The bubbling pointer events of the separator set it, so no other path of the drag can miss it.
+	const [resizing, setResizing] = useState(false);
+	const stop = () => setResizing(false);
 	// The panel turns inert on close: move the focus out first, so it does not drop to <body>.
 	const close = () => {
 		if (ref.current?.contains(document.activeElement)) document.querySelector("main")?.focus();
@@ -34,27 +38,35 @@ export function Inspector({
 			onKeyDown={(e) => {
 				if (e.key === "Escape") close();
 			}}
+			data-resizing={resizing || undefined}
+			onPointerDown={(e) => {
+				if ((e.target as HTMLElement).closest("[role=separator]")) setResizing(true);
+			}}
+			onPointerUp={stop}
+			onPointerCancel={stop}
+			onLostPointerCapture={stop}
 			style={{ width: open ? panel.size : 0 }}
-			className="relative max-w-[40vw] shrink-0 overflow-hidden border-l transition-[width,border-color] duration-(--duration-base) ease-standard data-[open=false]:border-transparent"
+			className="relative max-w-[60vw] shrink-0 overflow-hidden border-l transition-[width,border-color] duration-(--duration-base) ease-standard data-[open=false]:border-transparent data-[resizing]:transition-none"
 		>
 			<Splitter
 				label={t.ui.resize.inspector}
 				value={panel.size}
 				min={240}
-				max={480}
+				max={880}
 				invert
 				onChange={panel.set}
 				onReset={panel.reset}
 				className="left-0"
 			/>
-			<div className="flex h-full flex-col" style={{ width: panel.size }}>
+			{/* Full width of the aside; the floor keeps the text whole while the aside opens from 0. */}
+			<div className="flex h-full w-full min-w-60 flex-col">
 				<div className="flex h-9 items-center justify-between border-b pr-1 pl-3">
 					<h2 className="text-ui font-medium">{title}</h2>
 					<IconButton label={t.common.close} shortcut="Esc" onClick={close}>
 						<XMarkIcon size={14} />
 					</IconButton>
 				</div>
-				<div className="min-h-0 flex-1 overflow-y-auto p-3">{children}</div>
+				<div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3">{children}</div>
 			</div>
 		</aside>
 	);

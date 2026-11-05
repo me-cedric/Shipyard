@@ -21,7 +21,7 @@ describe("Notification centre", () => {
 	it("tells once that a newer version exists, as a toast and in the centre", async () => {
 		const user = userEvent.setup();
 		mockState().prefs.releaseUrl = NEWER;
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const toast = await screen.findByRole("status", { name: "Notifications" });
 		expect(await within(toast).findByText("Update available: 0.2.0")).toBeInTheDocument();
 
@@ -43,14 +43,14 @@ describe("Notification centre", () => {
 
 	it("shows the changelog once after an update, across two starts", async () => {
 		mockState().prefs.seenVersion = "0.0.9";
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const toast = await screen.findByRole("status", { name: "Notifications" });
 		expect(await within(toast).findByText("What changed in 0.1.0")).toBeInTheDocument();
 		expect(within(toast).getByText(/A change\./)).toBeInTheDocument();
 		await waitFor(() => expect(mockState().prefs.seenVersion).toBe("0.1.0"));
 		// Second start: the last version that ran is the current one. Nothing shows.
 		cleanup();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await new Promise((r) => setTimeout(r, 50));
 		expect(screen.queryByText("What changed in 0.1.0")).toBeNull();
@@ -58,14 +58,14 @@ describe("Notification centre", () => {
 
 	it("repeats the check every 6 hours and stops when the switch is off", async () => {
 		const spy = vi.spyOn(globalThis, "setInterval");
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await waitFor(() => expect(spy.mock.calls.some((c) => c[1] === 6 * 60 * 60 * 1000)).toBe(true));
 		cleanup();
 		spy.mockClear();
 		mockState().prefs.autoUpdateCheck = false;
 		mockState().prefs.releaseUrl = NEWER;
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await new Promise((r) => setTimeout(r, 50));
 		expect(spy.mock.calls.some((c) => c[1] === 6 * 60 * 60 * 1000)).toBe(false);
@@ -75,7 +75,7 @@ describe("Notification centre", () => {
 
 	it("shows only the new version entry when it is not installed", async () => {
 		mockState().prefs.releaseUrl = NEWER;
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const toast = await screen.findByRole("status", { name: "Notifications" });
 		expect(await within(toast).findByText("Update available: 0.2.0")).toBeInTheDocument();
 		expect(screen.queryByText(/What changed in/)).toBeNull();
@@ -85,7 +85,7 @@ describe("Notification centre", () => {
 	it("keeps the changelog back and the version unchanged when the update source is off", async () => {
 		mockState().prefs.seenVersion = "0.0.9";
 		mockState().prefs.notifyOff = ["update"];
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await new Promise((r) => setTimeout(r, 50));
 		expect(screen.queryByText("What changed in 0.1.0")).toBeNull();
@@ -94,7 +94,7 @@ describe("Notification centre", () => {
 
 	it("says that the app is up to date on a manual check and stays quiet at start", async () => {
 		const user = userEvent.setup();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		expect(screen.getByRole("button", { name: "Notifications" })).not.toHaveTextContent("unread");
 		await runAction(user, "Check for updates");
@@ -104,7 +104,7 @@ describe("Notification centre", () => {
 	it("names a failed check, and only on a manual check", async () => {
 		const user = userEvent.setup();
 		mockState().prefs.releaseUrl = "https://example.com/broken";
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		expect(screen.queryByText("Update check failed")).toBeNull();
 		await runAction(user, "Check for updates");
@@ -233,7 +233,7 @@ describe("Native menu", () => {
 
 	it("maps each menu item to a palette action", async () => {
 		const user = userEvent.setup();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}k{/Control}");
 		await screen.findByRole("combobox");

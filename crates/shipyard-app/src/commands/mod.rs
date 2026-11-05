@@ -116,7 +116,7 @@ impl AppState {
             connections,
             agents,
             work: Default::default(),
-            specs: Default::default(),
+            specs: crate::specs::Session::at(dir.join("specs-validation.json")),
             dir,
             lock: Mutex::new(()),
             notices: Mutex::new(HashMap::new()),

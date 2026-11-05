@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
@@ -29,6 +29,23 @@ describe("Code, W10", () => {
 		expect(
 			await screen.findByText("Specs changed, Test plans did not: docs/openspec/x/spec.md"),
 		).toBeInTheDocument();
+	}, 20_000);
+
+	it("acknowledges the warning of the commit gate with a reason, as in the branch watch", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await unwrap(commands.codeStatus());
+		const files = mockState().code?.files;
+		if (!files) throw new Error("no code state");
+		files["docs/openspec/x/spec.md"] = { head: null, index: "s\n", work: "s\n" };
+		mountApp("/code/changes");
+		const text = "Specs changed, Test plans did not: docs/openspec/x/spec.md";
+		await user.click(await screen.findByRole("button", { name: "Acknowledge Test plans" }));
+		const dialog = within(await screen.findByRole("dialog"));
+		await user.type(dialog.getByRole("textbox", { name: "Reason" }), "No test impact");
+		await user.click(dialog.getByRole("button", { name: "Acknowledge" }));
+		await waitFor(() => expect(screen.queryByText(text)).toBeNull());
+		expect(mockState().review?.acks).toHaveLength(1);
 	}, 20_000);
 
 	it("names the push target when the account cannot push", async () => {

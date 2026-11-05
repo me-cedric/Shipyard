@@ -50,7 +50,7 @@ A junior or a new member must understand the project from its decisions, specs a
 - REQ-021: Knowledge / Learn SHALL show a glossary of the terms that the specs define.
 - REQ-022: Knowledge / Dashboards SHALL show a dashboard as a grid of tiles.
 - REQ-023: A tile SHALL read data that the project already holds and draw it.
-- REQ-024: A person SHALL pin a tile to Home.
+- REQ-024: A person SHALL pin a tile. The pinned tiles SHALL show at the top of Knowledge / Dashboards (`home-today` REQ-007).
 - REQ-025: The system SHALL expose each handbook page, document and deck as a `doc:<path>` entity.
 - REQ-026: Each Knowledge view SHALL follow the interface rules of the constitution.
 
@@ -93,7 +93,7 @@ A junior or a new member must understand the project from its decisions, specs a
 - Consumes: `add-assistant` (the Explain answer; REQ-016) and `add-shell` (inspector, Home; REQ-003, REQ-006).
 - Produces: `doc:` entities for `add-refs`.
 - Produces: the graph renderer for `add-factory` (REQ-030).
-- Produces: dashboards and Home widgets for `add-shell` (REQ-003).
+- Produces: dashboards and their pinned tiles.
 - Related: `add-delivery` REQ-027 (the impacts digest sits in the pull request, not in a document).
 
 ### Feature list
@@ -108,7 +108,7 @@ A junior or a new member must understand the project from its decisions, specs a
 | Documentation fonctionnelle | Documents export | REQ-014, REQ-015, REQ-016 |
 | Slides | Knowledge / Slides | REQ-017, REQ-018, REQ-019 |
 | Learning, Learning path | Knowledge / Learn | REQ-020, REQ-021 |
-| Dashboards | Knowledge / Dashboards; Home widgets | REQ-022, REQ-023, REQ-024 |
+| Dashboards | Knowledge / Dashboards and its pinned tiles | REQ-022, REQ-023, REQ-024 |
 
 ### Existing References
 
@@ -351,12 +351,12 @@ A tile SHALL read data that the project already holds and draw it. The sources S
 
 ### Requirement: REQ-024 Home widgets
 
-A person SHALL pin a tile to Home. Home / My work and Home / Activity SHALL show the pinned tiles (`add-shell` REQ-003). The pins SHALL be a per-person setting.
+A person SHALL pin a tile. The pinned tiles SHALL show at the top of Knowledge / Dashboards (`home-today` REQ-007). The pins SHALL be a per-person setting.
 
 #### Scenario: Pin
 - GIVEN a tile on a dashboard
 - WHEN a person pins it
-- THEN Home / My work shows the tile
+- THEN the tile shows at the top of Knowledge / Dashboards
 
 ### Requirement: REQ-025 Doc entity
 

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const SPACES = [
-	["Home", "Inbox"],
+	["Home", "Today"],
 	["Design", "Diagrams"],
 	["Specs", "Proposals"],
 	["Work", "Backlog"],
@@ -13,7 +13,7 @@ const SPACES = [
 
 test("opens each space from the sidebar on its first tab", async ({ page }) => {
 	await page.goto("/");
-	// Each page names itself before the app: "Inbox · Shipyard".
+	// Each page names itself before the app: "Today · Shipyard".
 	await expect(page).toHaveTitle(/Shipyard$/);
 	const sidebar = page.getByRole("navigation", { name: "Sidebar" });
 	const tabs = page.getByRole("navigation", { name: "Tabs" });

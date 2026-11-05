@@ -11,6 +11,8 @@ export const reviewEn = {
 	},
 	quality: {
 		verifyDocs: "Verify all docs",
+		docs: "Docs",
+		staleDocs: "{count} stale docs",
 		coverage: "Coverage",
 	},
 	plans: {
@@ -52,6 +54,8 @@ export const reviewFr: typeof reviewEn = {
 	},
 	quality: {
 		verifyDocs: "Vérifier toute la documentation",
+		docs: "Documentation",
+		staleDocs: "{count} documents périmés",
 		coverage: "Couverture",
 	},
 	plans: {

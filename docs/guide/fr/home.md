@@ -1,23 +1,17 @@
 # Accueil
 
-L'Accueil montre ce qui vous attend, votre travail et vos projets.
+L'Accueil montre quoi faire maintenant et vos projets.
 
-## Boîte de réception
+## Aujourd'hui
 
-La Boîte de réception rassemble ce qui vous attend : les questions des agents, les approbations, les revues de plan et les messages.
+Aujourd'hui dit quoi faire maintenant. Une section vide se masque. Quand il n'y a rien du tout, une action ouvre le backlog.
 
-- Répondre à une question : appuyez sur un chiffre, puis sur Entrée. Ou tapez votre propre réponse.
-- Approuver un changement : lisez la ligne, puis cliquez sur Approuver. La ligne dit en mots simples ce que fait le changement.
-- Approuver un plan : lisez-le, puis cliquez sur Approuver le plan. L'exécution continue.
-- Un changement que les interrupteurs d'automatisation n'autorisent pas attend ici votre clic.
+- À traiter rassemble ce qui vous attend : les questions des agents, les approbations, les revues de plan et les messages. Répondre à une question : appuyez sur un chiffre, puis sur Entrée, ou tapez votre propre réponse. Approuver un changement : lisez la ligne, puis cliquez sur Approuver. Approuver un plan : lisez-le, puis cliquez sur Approuver le plan. Un changement que les interrupteurs d'automatisation n'autorisent pas attend ici votre clic.
+- Vos tickets sont ceux que l'outil de suivi des tickets vous donne, groupés en En cours, À faire et Terminé ces 7 derniers jours. Chaque ligne a son statut et Lancer une exécution.
+- Mes agents liste les exécutions qui travaillent sur vos tickets ou qui vous attendent, avec Arrêter.
+- Depuis votre dernière visite liste ce qui s'est passé sur vos tickets et vos exécutions depuis la dernière ouverture d'Aujourd'hui, le plus récent en premier.
 
-## Mon travail
-
-Mon travail liste les tickets que l'outil de suivi des tickets vous donne, avec les exécutions des agents sur ces tickets. Il montre aussi les tuiles de tableau de bord que vous épinglez dans Connaissances.
-
-## Activité
-
-Activité raconte ce qui s'est passé dans le projet : une phrase par événement, le plus récent en premier.
+Les anciennes adresses de la Boîte de réception, de Mon travail et d'Activité ouvrent Aujourd'hui. Les tuiles que vous épinglez dans Connaissances s'affichent en haut de Connaissances, puis Tableaux de bord.
 
 ## Projets
 

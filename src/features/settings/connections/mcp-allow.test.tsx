@@ -52,7 +52,7 @@ describe("Settings / Connections / MCP servers: allow list", () => {
 		const router = mountApp("/settings/connections");
 		const ctx = await screen.findByRole("group", { name: "Context7" });
 		await within(ctx).findByRole("checkbox", { name: "get-library-docs" });
-		await router.navigate({ to: "/home/inbox" });
+		await router.navigate({ to: "/home/today" });
 		await router.navigate({ to: "/settings/connections" });
 		const again = await screen.findByRole("group", { name: "Context7" });
 		expect(

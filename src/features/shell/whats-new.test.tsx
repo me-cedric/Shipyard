@@ -7,7 +7,7 @@ describe("What's new", () => {
 	it("opens once after an update with the changelog sections, shows the version and opens again from the palette", async () => {
 		const user = userEvent.setup();
 		mockState().prefs.seenVersion = "0.0.9";
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const dialog = await screen.findByRole("dialog", { name: "What's new in 0.1.0" });
 		expect(within(dialog).getByText("A change.")).toBeInTheDocument();
 		await user.keyboard("{Escape}");

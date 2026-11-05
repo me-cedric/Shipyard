@@ -52,7 +52,7 @@ describe("Code / Impacts", () => {
 		mountApp("/code/impacts");
 		expect(await screen.findByRole("heading", { name: "Docs chain (1)" })).toBeInTheDocument();
 		expect(screen.getByText("Behind Specs: 1 changed files")).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Update" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: /^Update with an agent/ })).toBeInTheDocument();
 		await unwrap(commands.filesCreateFile("docs/delivery/test-plans/a.md", true));
 		await user.click(screen.getByRole("button", { name: "Analyze" }));
 		await waitFor(() =>

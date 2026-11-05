@@ -261,7 +261,7 @@ const SYMBOLS: [file: string, name: string][] = [
 	["src/lib/ipc/mock.ts", "installMockIpc"],
 	["src/lib/ipc/mock.ts", "resolve"],
 	["src/features/home/home.tsx", "Home"],
-	["src/features/home/my-work.tsx", "MyWork"],
+	["src/features/home/today.tsx", "Today"],
 	["src/lib/query.ts", "useCommand"],
 ];
 const CALLS: [number, number][] = [

@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
@@ -6,9 +6,20 @@ import { renderApp } from "@/ui/test-utils";
 import { TrayView } from "./index";
 
 const emit = vi.fn();
+const setSize = vi.fn(async (..._a: unknown[]) => {});
+vi.mock("@tauri-apps/api/window", () => ({
+	getCurrentWindow: () => ({ setSize }),
+	LogicalSize: class {
+		constructor(
+			public width: number,
+			public height: number,
+		) {}
+	},
+}));
+const listen = vi.fn(async (..._a: unknown[]) => () => {});
 vi.mock("@tauri-apps/api/event", () => ({
 	emit: (...a: unknown[]) => emit(...a),
-	listen: vi.fn(async () => () => {}),
+	listen: (...a: unknown[]) => listen(...a),
 }));
 vi.mock("@/lib/ipc", async (orig) => ({ ...(await orig<object>()), isTauri: () => true }));
 
@@ -72,5 +83,75 @@ describe("Menu bar panel", () => {
 		await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(Math.min(count, 3)));
 		await user.keyboard("{Escape}");
 		expect(close).toHaveBeenCalled();
+	});
+
+	it("shows today large, the month, seven bars and the running agents", async () => {
+		await renderTray();
+		const spend = within(await screen.findByRole("region", { name: "Spend today" }));
+		expect(spend.getByText("Month")).toBeInTheDocument();
+		expect(spend.getAllByText(/^\$/).length).toBeGreaterThanOrEqual(2);
+		expect(
+			document.querySelectorAll("section[aria-label='Spend today'] [aria-hidden] > span"),
+		).toHaveLength(7);
+		expect(await screen.findByRole("heading", { name: /^\d+ running$/ })).toBeInTheDocument();
+	});
+
+	it("reads every query again when the panel gains focus and on each sync tick", async () => {
+		const usage = vi.spyOn(commands, "usageGet");
+		await renderTray();
+		await screen.findByRole("region", { name: "Spend today" });
+		const before = usage.mock.calls.length;
+		fireEvent.focus(window);
+		await waitFor(() => expect(usage.mock.calls.length).toBeGreaterThan(before));
+		// The panel listens to the tick that the main window listens to.
+		expect(listen.mock.calls.map((c) => c[0])).toContain("sync-tick");
+		usage.mockRestore();
+	});
+
+	it("opens the window on the item of a Needs you row", async () => {
+		const user = userEvent.setup();
+		const open = vi.spyOn(commands, "trayOpen");
+		await renderTray();
+		const rows = await screen.findAllByRole("listitem");
+		await user.click(within(rows[0] as HTMLElement).getByRole("button"));
+		expect(open).toHaveBeenCalled();
+		await waitFor(() =>
+			expect(emit).toHaveBeenCalledWith("open-ref", expect.stringMatching(/^(run|pr):/)),
+		);
+	});
+
+	it("hides the empty blocks, shows seven bars by spend and fits the window to the content", async () => {
+		vi.stubGlobal(
+			"ResizeObserver",
+			class {
+				constructor(private cb: () => void) {}
+				observe() {
+					this.cb();
+				}
+				disconnect() {}
+			},
+		);
+		await renderTray();
+		await screen.findByRole("region", { name: "Spend today" });
+		const bars = [
+			...document.querySelectorAll<HTMLElement>("section[aria-label='Spend today'] [title]"),
+		];
+		expect(bars).toHaveLength(7);
+		for (const b of bars) expect(Number.parseFloat(b.style.height)).toBeGreaterThanOrEqual(2);
+		await waitFor(() => expect(setSize).toHaveBeenCalled());
+		const size = setSize.mock.calls.at(-1)?.[0] as { width: number; height: number };
+		expect(size.width).toBe(360);
+		expect(size.height).toBeGreaterThanOrEqual(280);
+		expect(size.height).toBeLessThanOrEqual(520);
+		vi.unstubAllGlobals();
+	});
+
+	it("shows no Needs you block and no running row when there is nothing to show", async () => {
+		vi.spyOn(commands, "runsList").mockResolvedValue({ status: "ok", data: [] });
+		await renderTray();
+		await screen.findByRole("region", { name: "Spend today" });
+		expect(screen.queryByRole("heading", { name: /running/ })).toBeNull();
+		expect(screen.getByRole("combobox", { name: "Project" })).toHaveTextContent("alpha");
+		vi.restoreAllMocks();
 	});
 });

@@ -3,5 +3,5 @@
   "identifier": "tray",
   "description": "Permissions of the menu bar panel",
   "windows": ["tray"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "core:window:allow-set-size"]
 }

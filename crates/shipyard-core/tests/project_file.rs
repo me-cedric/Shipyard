@@ -103,3 +103,45 @@ fn a_tracker_scope_is_text_that_a_query_can_carry() {
         assert_eq!(fields(&f), ["connections.trackerScope"], "{bad:?}");
     }
 }
+
+fn rule(code: &[&str], feeds: &[&str]) -> shipyard_core::project::DocRule {
+    shipyard_core::project::DocRule {
+        name: None,
+        code: code.iter().map(|s| s.to_string()).collect(),
+        feeds: feeds.iter().map(|s| s.to_string()).collect(),
+    }
+}
+
+#[test]
+fn a_docs_rule_is_valid_and_a_missing_list_is_valid() {
+    let mut f = ok();
+    assert!(validate(&f).is_empty());
+    f.docs = vec![rule(
+        &["crates/*/Cargo.toml", "src/**"],
+        &["models", "docs/x"],
+    )];
+    assert!(validate(&f).is_empty());
+    let yaml = serde_norway::to_string(&ok()).unwrap();
+    assert!(!yaml.contains("\ndocs:"), "an empty list is not written");
+}
+
+#[test]
+fn a_bad_docs_rule_names_its_field() {
+    for (rule, field) in [
+        (
+            rule(&["a/*", "../outside/*"], &["models"]),
+            "docs[0].code[1]",
+        ),
+        (rule(&[""], &["models"]), "docs[0].code[0]"),
+        (rule(&["/abs/*"], &["models"]), "docs[0].code[0]"),
+        (rule(&["a\\b"], &["models"]), "docs[0].code[0]"),
+        (rule(&["src/**"], &["../x"]), "docs[0].feeds[0]"),
+        (rule(&["src/**"], &["docs/*"]), "docs[0].feeds[0]"),
+        (rule(&[], &["models"]), "docs[0].code"),
+        (rule(&["src/**"], &[]), "docs[0].feeds"),
+    ] {
+        let mut f = ok();
+        f.docs = vec![rule];
+        assert_eq!(fields(&f), [field]);
+    }
+}

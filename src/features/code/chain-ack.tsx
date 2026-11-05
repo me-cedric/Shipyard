@@ -22,7 +22,8 @@ export function AckDialog({
 	name,
 	onClose,
 }: {
-	base: string;
+	/** `null` for the files of a commit or a push: no branch range. */
+	base: string | null;
 	from: string;
 	to: string;
 	name: string;

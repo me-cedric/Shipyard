@@ -104,18 +104,12 @@ describe("Work / Backlog", () => {
 		await rows();
 		await user.click(within(screen.getByRole("group", { name: "ACME-8" })).getByRole("button"));
 		const aside = within(await screen.findByRole("complementary", { name: "ACME-8" }));
-		const names = await waitFor(() => {
-			const found = aside.getAllByRole("group").map((g) => g.getAttribute("aria-label"));
-			expect(found.length).toBeGreaterThan(4);
-			return found;
-		});
+		await user.click(await aside.findByRole("combobox", { name: "Assignee" }));
+		const names = (await screen.findAllByRole("option")).map((o) => o.textContent ?? "").slice(1); // the first option is the "Unassigned" state
 		// The item is labelled `ui`: the members with that skill come first.
-		const ranked = ["Grace Hopper", "Edsger Dijkstra"];
-		expect(ranked).toContain(names[0]);
-		expect(ranked).toContain(names[1]);
-		expect(
-			within(aside.getByRole("group", { name: "Alan Turing" })).getByText("Full"),
-		).toBeVisible();
+		expect(names[0]).toMatch(/^(Grace Hopper|Edsger Dijkstra)/);
+		expect(names[1]).toMatch(/^(Grace Hopper|Edsger Dijkstra)/);
+		expect(screen.getByRole("option", { name: /^Alan Turing/ })).toHaveTextContent("Full");
 		expect(mockState().sync.mirror.find((t) => t.key === "ACME-8")?.assignee).toBeNull();
 	});
 
@@ -127,7 +121,8 @@ describe("Work / Backlog", () => {
 		await rows();
 		await user.click(within(screen.getByRole("group", { name: "ACME-3" })).getByRole("button"));
 		const aside = within(await screen.findByRole("complementary", { name: "ACME-3" }));
-		await user.click(await aside.findByRole("button", { name: "Assign Ada Lovelace" }));
+		await user.click(await aside.findByRole("combobox", { name: "Assignee" }));
+		await user.click(await screen.findByRole("option", { name: /^Ada Lovelace/ }));
 		await waitFor(() =>
 			expect(mockState().sync.mirror.find((t) => t.key === "ACME-3")?.assignee).toBe(
 				"Ada Lovelace",

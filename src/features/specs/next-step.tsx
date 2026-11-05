@@ -76,7 +76,7 @@ export function NextStepAction({ refId, title }: { refId: string; title: string 
 	});
 	if (!step) return null;
 
-	const go = (to: "/specs/changes" | "/home/inbox" | "/factory/runs" | "/code/pull-requests") =>
+	const go = (to: "/specs/changes" | "/home/today" | "/factory/runs" | "/code/pull-requests") =>
 		void router?.navigate({ to });
 	const act = () => {
 		setBusy(true);
@@ -90,7 +90,7 @@ export function NextStepAction({ refId, title }: { refId: string; title: string 
 			else if (step === "start") {
 				await runs.start(rest);
 				go("/factory/runs");
-			} else if (step === "answer") go("/home/inbox");
+			} else if (step === "answer") go("/home/today");
 			else if (step === "review")
 				go(runState === "PlanReview" ? "/factory/runs" : "/code/pull-requests");
 			else if (step === "merge") {

@@ -28,7 +28,6 @@ Today the person must know each tool, its login command and its key page. The ow
 - REQ-003: A detected tool SHALL show "Sign in". The action SHALL run the own login command of the tool. The system SHALL NOT read, copy or reuse a token of the tool.
 - REQ-004: The system SHALL get the sign-in state of a tool from its status command only: `codex login status` and `claude auth status`. For `opencode`, it SHALL use `opencode auth list` only when Q-134 confirms the output. A tool with no status command SHALL show the state "Not checked", with its sign-in action, until a run of the tool ends on a sign-in error (Q-134). Then it SHALL show "Signed out" until a run ends well or the person clicks Sign in.
 - REQ-005: The OpenRouter row SHALL sign in with OAuth PKCE in the browser. The system SHALL exchange the code for a key and SHALL store the key in the keychain.
-- REQ-006 (deferred by Q-132: in this change Azure uses a pasted key, REQ-007): The Azure row SHALL sign in with the Entra ID device code flow. The system SHALL store the tokens in the keychain. The row SHALL show a plain message when the person lacks the role Cognitive Services OpenAI User.
 - REQ-007: A provider with no OAuth for third parties (OpenAI, Anthropic, Mistral, Google AI Studio) SHALL show a "Get a key" link and a key field. The system SHALL test the key on save and SHALL store it in the keychain only when the test passes.
 - REQ-008: The system SHALL probe the local runtimes on localhost only, and SHALL list each one that answers. The system SHALL NOT probe another host.
 - REQ-009: A key that Shipyard holds SHALL stay in the keychain. A secret SHALL NOT appear in an argument, a URL, a log or a repository file.
@@ -40,6 +39,7 @@ Today the person must know each tool, its login command and its key page. The ow
 - "Sign in with ChatGPT" for partners (a preview, with no API key).
 - Reuse of the Claude.ai, ChatGPT, Copilot or Antigravity login for a Shipyard call.
 - A new model provider type.
+- The Azure device sign-in (REQ-006 before). It moved to the change `add-azure-sign-in` (Q-132). Azure uses a pasted key (REQ-007).
 
 ### Acceptance Criteria
 
@@ -133,20 +133,6 @@ The OpenRouter row SHALL sign in with OAuth PKCE in the browser. The system SHAL
 - GIVEN the code is older than 10 minutes
 - WHEN the system exchanges it
 - THEN the row shows a plain error and "Sign in" again
-
-### Requirement: REQ-006 Azure sign-in
-
-The Azure row SHALL sign in with the Entra ID device code flow. The system SHALL store the tokens in the keychain. The row SHALL show a plain message when the person lacks the role Cognitive Services OpenAI User.
-
-#### Scenario: Device code
-- GIVEN a person clicks "Sign in" on Azure
-- WHEN the system gets a device code
-- THEN the view shows the code and opens the Microsoft page
-
-#### Scenario: Missing role
-- GIVEN a person with no Cognitive Services OpenAI User role
-- WHEN a call is refused
-- THEN the row names the role
 
 ### Requirement: REQ-007 Key paste
 

@@ -31,11 +31,18 @@ fn a_read_only_step_runs_in_plan_mode() {
 }
 
 #[test]
-fn five_workflows_and_seven_roles_ship_and_validate() {
+fn six_workflows_and_seven_roles_ship_and_validate() {
     let ids: Vec<_> = default_workflows().iter().map(|(i, _)| *i).collect();
     assert_eq!(
         ids,
-        ["feature", "bug", "spike", "spec-split", "review-only"]
+        [
+            "feature",
+            "bug",
+            "spike",
+            "spec-split",
+            "review-only",
+            "docs-update"
+        ]
     );
     for (id, text) in default_workflows() {
         let wf: Workflow = serde_norway::from_str(text).unwrap_or_else(|e| panic!("{id}: {e}"));
@@ -107,6 +114,12 @@ fn the_other_workflows_match_the_spec() {
     let spike = workflow("spike");
     assert_eq!(spike.steps[0].skill.as_deref(), Some("grill-me"));
     assert!(spike.steps.iter().all(|s| s.action.is_none()));
+    // docs-update: one update step with the docs role in a worktree, then the pull request.
+    let docs = workflow("docs-update");
+    assert_eq!(docs.steps.len(), 2);
+    assert_eq!(docs.steps[0].role.as_deref(), Some("docs"));
+    assert_eq!(docs.steps[0].workspace, Workspace::Worktree);
+    assert!(docs.steps[1].action.is_some());
     // spec-split: a human gate, no pull request.
     let split = workflow("spec-split");
     assert!(split.steps.iter().any(|s| s.gate == Gate::Human));
@@ -163,7 +176,7 @@ fn no_default_names_a_vendor_model() {
 fn seed_writes_each_directory_once_and_never_overwrites() {
     let dir = tempfile::tempdir().unwrap();
     let written = seed(dir.path()).unwrap();
-    assert_eq!(written.len(), 12);
+    assert_eq!(written.len(), 13);
     assert!(dir.path().join(WORKFLOWS_DIR).join("feature.yaml").exists());
     assert!(dir.path().join(ROLES_DIR).join("scout.md").exists());
     // A person edits one file and deletes another: a second seed changes nothing.
@@ -181,7 +194,7 @@ fn a_seeded_project_loads_clean() {
     seed(dir.path()).unwrap();
     let l = load(dir.path(), &Loaded::default()).unwrap();
     assert_eq!(l.issues, []);
-    assert_eq!(l.workflows.len(), 5);
+    assert_eq!(l.workflows.len(), 6);
     assert_eq!(l.roles.len(), 7);
     assert_eq!(l.workflows["feature"].steps.len(), 5);
 }
@@ -204,7 +217,7 @@ fn an_invalid_save_keeps_the_last_valid_version_and_names_the_line() {
     put(dir.path(), &path, &good.replace("fresh_context", "fresh"));
     let l = load(dir.path(), &first).unwrap();
     assert_eq!(l.workflows["feature"], first.workflows["feature"]);
-    assert_eq!(l.workflows.len(), 5);
+    assert_eq!(l.workflows.len(), 6);
     assert_eq!(l.issues.len(), 1);
     assert_eq!(l.issues[0].file, path);
     assert!(l.issues[0].line.is_some());

@@ -14,7 +14,7 @@ describe("refs in the shell", () => {
 
 	it("finds an entity by ref and by title in the palette", async () => {
 		const user = userEvent.setup();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const input = await openPalette(user);
 		await user.type(input, "Q-012");
 		expect(
@@ -27,7 +27,7 @@ describe("refs in the shell", () => {
 
 	it("puts the entity of a ref first", async () => {
 		const user = userEvent.setup();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const input = await openPalette(user);
 		await user.type(input, "Q-012");
 		const options = await screen.findAllByRole("option", { name: /Q-012/ });
@@ -36,7 +36,7 @@ describe("refs in the shell", () => {
 
 	it("opens the entity with its backlinks grouped by kind with a count", async () => {
 		const user = userEvent.setup();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const input = await openPalette(user);
 		await user.type(input, "polling");
 		await user.click(await screen.findByRole("option", { name: /adr:0004/ }));
@@ -52,7 +52,7 @@ describe("refs in the shell", () => {
 
 	it("opens a cited entity from a backlink chip with the keyboard", async () => {
 		const user = userEvent.setup();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const input = await openPalette(user);
 		await user.type(input, "adr:0004");
 		await user.keyboard("{Enter}");
@@ -72,7 +72,7 @@ describe("refs in the shell", () => {
 
 	it("shows ghost rows and no text for an entity that nothing cites", async () => {
 		const user = userEvent.setup();
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		const input = await openPalette(user);
 		await user.type(input, "wi:SHIP-42");
 		await user.click(await screen.findByRole("option", { name: /Open wi:SHIP-42/ }));
@@ -87,7 +87,7 @@ describe("refs in the shell", () => {
 		const user = userEvent.setup();
 		const { mockState } = await import("@/lib/ipc/mock");
 		mockState().prefs.lang = "fr";
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Barre latérale" });
 		await user.keyboard("{Control>}k{/Control}");
 		await user.type(await screen.findByRole("combobox"), "adr:0004");

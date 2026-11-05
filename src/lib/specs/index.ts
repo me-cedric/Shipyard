@@ -62,11 +62,16 @@ export const specsKeys = {
 /** The repository path of an artifact of a change. */
 export const artifactPath = (c: Change, a: Artifact) => `${c.path}/${a.path}`;
 
-/** One status for the artifacts of one kind. No file is missing; any draft makes a draft; a mix is a draft. */
+/**
+ * One status for the artifacts of one kind. No file is missing; any draft makes a draft; then any
+ * file with no check of its text is not checked; all done is done.
+ */
 export function kindStatus(c: Change, kind: ArtifactKind): ArtifactStatus {
 	const of = c.artifacts.filter((a) => a.artifact === kind);
 	if (of.every((a) => a.status === "missing")) return "missing";
-	return of.every((a) => a.status === "done") ? "done" : "draft";
+	if (of.every((a) => a.status === "done")) return "done";
+	if (of.some((a) => a.status === "draft" || a.status === "missing")) return "draft";
+	return "unchecked";
 }
 
 /** The slug of a plan file, as the `test:` ref has it. */

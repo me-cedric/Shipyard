@@ -38,7 +38,7 @@ test("developer", async ({ page }) => {
 	});
 
 	await w.step("Answer an agent question", "Home, the Agent questions list, Send", async () => {
-		await w.go("Home", "Inbox");
+		await w.go("Home", "Today");
 		await w.see(
 			page.getByText("Where should the user land after the session expires?"),
 			"no question",

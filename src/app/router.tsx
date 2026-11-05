@@ -133,6 +133,17 @@ const teamRoute = createRoute({
 	},
 });
 
+/** Home / Inbox, My work and Activity became Today: an old link or a stored last view opens it. */
+const oldHomeRoutes = ["inbox", "my-work", "activity"].map((tab) =>
+	createRoute({
+		getParentRoute: () => rootRoute,
+		path: `home/${tab}`,
+		beforeLoad: () => {
+			throw redirect({ to: "/home/today", replace: true });
+		},
+	}),
+);
+
 const routeTree = rootRoute.addChildren([
 	indexRoute,
 	spaceRoute("home"),
@@ -144,6 +155,7 @@ const routeTree = rootRoute.addChildren([
 	spaceRoute("knowledge"),
 	spaceRoute("settings"),
 	teamRoute,
+	...oldHomeRoutes,
 	...(galleryRoute ? [galleryRoute] : []),
 ]);
 

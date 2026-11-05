@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 import { CheckIcon, ChevronRightIcon } from "../icons";
 import { Caption } from "./input";
 
-export type SelectItem = { value: string; label: string; icon?: ReactNode };
+/** `hint` shows in the list only, after the label. */
+export type SelectItem = { value: string; label: string; icon?: ReactNode; hint?: string };
 
 export function Select({
 	label,
@@ -14,6 +15,7 @@ export function Select({
 	disabled,
 	caption,
 	className,
+	placeholder,
 }: {
 	label: string;
 	items: SelectItem[];
@@ -23,6 +25,8 @@ export function Select({
 	/** Show the name above the select. */
 	caption?: boolean;
 	className?: string;
+	/** Shown while no item matches `value`. */
+	placeholder?: string;
 }) {
 	const select = (
 		<BaseSelect.Root
@@ -40,7 +44,7 @@ export function Select({
 					className,
 				)}
 			>
-				<BaseSelect.Value />
+				<BaseSelect.Value className="min-w-0 truncate" placeholder={placeholder} />
 				<BaseSelect.Icon className="rotate-90 text-n-10">
 					<ChevronRightIcon size={12} />
 				</BaseSelect.Icon>
@@ -60,6 +64,9 @@ export function Select({
 									</BaseSelect.ItemIndicator>
 									{item.icon}
 									<BaseSelect.ItemText>{item.label}</BaseSelect.ItemText>
+									{item.hint ? (
+										<span className="ml-auto text-12 text-n-11">{item.hint}</span>
+									) : null}
 								</BaseSelect.Item>
 							))}
 						</BaseSelect.List>

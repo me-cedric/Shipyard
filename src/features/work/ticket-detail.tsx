@@ -1,12 +1,19 @@
 import { useState } from "react";
-import { TicketThread } from "@/features/sync/ticket-thread";
+import {
+	Prop,
+	TicketComments,
+	TicketDescription,
+	TicketFields,
+	TicketLabels,
+	TicketTitle,
+} from "@/features/sync/ticket-thread";
 import { useRunActions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { useResolvedRef } from "@/lib/refs";
 import { useShell } from "@/lib/shell";
 import { useBacklogActions, useWorkItems } from "@/lib/sync";
 import { memberName, useSuggestions, useTeam, useWorkActions, useWorkContext } from "@/lib/work";
-import { Badge } from "@/ui/atoms/badge";
+import { Avatar } from "@/ui/atoms/avatar";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
@@ -14,7 +21,6 @@ import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { CpuChipIcon, LinkIcon, PlayIcon, XMarkIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { SuggestionRow } from "@/ui/molecules/member-row";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { SettingLink } from "@/ui/molecules/setting-link";
 import { useGuard } from "./guard";
@@ -32,6 +38,9 @@ function Linked({ id }: { id: string }) {
 		/>
 	);
 }
+
+/** A select in a property row: it fills the row and its text truncates, so it never runs past the drawer. */
+const FILL = "w-full min-w-0 max-w-full shrink";
 
 /**
  * One ticket in the inspector: its status, its assignee with the ranked members, the pickup mark
@@ -68,136 +77,145 @@ export function TicketDetail({ itemKey }: { itemKey: string }) {
 	const statuses = [...new Set(items.map((i) => i.status))];
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="flex min-w-0 flex-col gap-4">
 			<div className="flex flex-col gap-1">
 				<span className="font-mono text-11 text-n-11">{item.key}</span>
-				<p className="text-ui font-medium">{item.title}</p>
-				{item.labels.length > 0 ? (
-					<div className="flex flex-wrap gap-1">
-						{item.labels.map((l) => (
-							<Badge key={l}>{l}</Badge>
-						))}
-					</div>
-				) : null}
+				<TicketTitle itemKey={item.key} />
 			</div>
 
-			<section className="flex flex-col gap-1">
-				<h3 className="text-12 font-medium text-n-11">{t.sync.backlog.status}</h3>
-				<Select
-					label={t.sync.backlog.status}
-					value={item.status}
-					onValueChange={(to) => void run(() => act.transition(item.key, to))}
-					items={statuses.map((s) => ({ value: s, label: s }))}
-					disabled={statusReason !== null}
-				/>
-				{statusReason ? <p className="text-12 text-n-11">{statusReason}</p> : null}
-			</section>
+			{/* One column in the order description, properties, comments; two columns when the drawer is wide. */}
+			<div className="@container">
+				<div className="grid gap-4 @xl:grid-cols-[minmax(0,1fr)_16rem]">
+					<div className="min-w-0 @xl:col-start-1 @xl:row-start-1">
+						<TicketDescription itemKey={item.key} />
+					</div>
+					<div className="flex min-w-0 flex-col divide-y divide-n-6 border-y @xl:col-start-2 @xl:row-span-2 @xl:row-start-1 @xl:self-start">
+						<Prop label={t.sync.backlog.status}>
+							<Select
+								label={t.sync.backlog.status}
+								className={FILL}
+								value={item.status}
+								onValueChange={(to) => void run(() => act.transition(item.key, to))}
+								items={statuses.map((s) => ({ value: s, label: s }))}
+								disabled={statusReason !== null}
+							/>
+							{statusReason ? <p className="text-12 text-n-11">{statusReason}</p> : null}
+						</Prop>
 
-			<section className="flex flex-col">
-				<h3 className="pb-1 text-12 font-medium text-n-11">{d.assignee}</h3>
-				{assignReason ? <p className="pb-1 text-12 text-n-11">{assignReason}</p> : null}
-				{suggestions.map((s) => {
-					const name = memberName(members, s.handle);
-					const current = item.member === s.handle;
-					return (
-						<SuggestionRow
-							key={s.handle}
-							name={name}
-							current={current}
-							reasons={reasonsOf(s.reasons, t)}
-							action={
+						<Prop label={d.assignee}>
+							{assignReason ? <p className="text-12 text-n-11">{assignReason}</p> : null}
+							<div className="flex min-w-0 items-center gap-2">
+								{item.member ? (
+									<Avatar name={memberName(members, item.member)} className="size-5 text-11" />
+								) : null}
+								<Select
+									label={d.assignee}
+									className={FILL}
+									value={item.member ?? ""}
+									disabled={assignReason !== null}
+									onValueChange={(handle) => {
+										if (handle !== "" && handle !== item.member)
+											void run(() => act.assign(item.key, handle));
+									}}
+									items={[
+										...(item.member ? [] : [{ value: "", label: t.sync.backlog.unassigned }]),
+										...suggestions.map((s) => ({
+											value: s.handle,
+											label: memberName(members, s.handle),
+											hint: reasonsOf(s.reasons, t)
+												.map((r) => r.text)
+												.join(", "),
+										})),
+									]}
+								/>
+							</div>
+							{item.assignee && !item.member ? (
+								<p className="flex items-center gap-1.5 pt-1 text-12 text-n-11">
+									<StatusDot status="warning" label={t.work.unknownMember} className="size-2" />
+									{item.assignee}, {t.work.unknownMember}
+								</p>
+							) : null}
+						</Prop>
+
+						<Prop label={t.work.thread.labels}>
+							<TicketLabels itemKey={item.key} />
+						</Prop>
+
+						<Prop label={d.agent}>
+							<div className="flex flex-wrap items-center gap-2">
 								<Button
-									variant="ghost"
-									disabled={assignReason !== null || current}
-									aria-label={format(d.assign, { name })}
-									onClick={() => void run(() => act.assign(item.key, s.handle))}
+									disabled={markReason !== null || marked}
+									onClick={() => void run(() => act.mark(item.key))}
 								>
-									{d.assignShort}
+									<CpuChipIcon size={14} />
+									{d.mark}
 								</Button>
-							}
-						/>
-					);
-				})}
-				{item.assignee && !item.member ? (
-					<p className="flex items-center gap-1.5 pt-1 text-12 text-n-11">
-						<StatusDot status="warning" label={t.work.unknownMember} className="size-2" />
-						{item.assignee}, {t.work.unknownMember}
-					</p>
-				) : null}
-			</section>
+								<Button onClick={() => void run(() => runs.start(item.key))}>
+									<PlayIcon size={14} />
+									{t.factory.start}
+								</Button>
+								{eligible ? (
+									<span role="status" className="flex items-center gap-1.5 text-12">
+										<StatusDot status="success" label={d.eligible} className="size-2" />
+										{d.eligible}
+									</span>
+								) : null}
+							</div>
+							{markReason === d.noLabel ? (
+								<SettingLink target="/settings/project#pickup-label">{markReason}</SettingLink>
+							) : markReason ? (
+								<p className="text-12 text-n-11">{markReason}</p>
+							) : null}
+						</Prop>
 
-			<section className="flex flex-col gap-1">
-				<h3 className="text-12 font-medium text-n-11">{d.agent}</h3>
-				<div className="flex items-center gap-2">
-					<Button
-						disabled={markReason !== null || marked}
-						onClick={() => void run(() => act.mark(item.key))}
-					>
-						<CpuChipIcon size={14} />
-						{d.mark}
-					</Button>
-					<Button onClick={() => void run(() => runs.start(item.key))}>
-						<PlayIcon size={14} />
-						{t.factory.start}
-					</Button>
-					{eligible ? (
-						<span role="status" className="flex items-center gap-1.5 text-12">
-							<StatusDot status="success" label={d.eligible} className="size-2" />
-							{d.eligible}
-						</span>
-					) : null}
+						<Prop label={d.linked}>
+							{item.linked ? (
+								<div className="flex items-center gap-1">
+									<Linked id={item.linked} />
+									<IconButton
+										label={t.sync.backlog.unlink}
+										onClick={() => void run(() => unlink(item.linked ?? ""))}
+									>
+										<XMarkIcon size={14} />
+									</IconButton>
+								</div>
+							) : linking ? (
+								<form
+									className="flex items-center gap-2"
+									onSubmit={async (e) => {
+										e.preventDefault();
+										if (await run(() => link(local, item.key))) {
+											setLinking(false);
+											setLocal("");
+										}
+									}}
+								>
+									<Input
+										label={t.sync.backlog.local}
+										value={local}
+										onChange={(e) => setLocal(e.target.value)}
+										autoFocus
+									/>
+									<Button type="submit" disabled={local.trim() === ""}>
+										{t.sync.backlog.confirm}
+									</Button>
+								</form>
+							) : (
+								<div>
+									<Button onClick={() => setLinking(true)}>
+										<LinkIcon size={14} />
+										{t.sync.backlog.link}
+									</Button>
+								</div>
+							)}
+						</Prop>
+						<TicketFields itemKey={item.key} />
+					</div>
+					<div className="min-w-0 @xl:col-start-1 @xl:row-start-2">
+						<TicketComments itemKey={item.key} />
+					</div>
 				</div>
-				{markReason === d.noLabel ? (
-					<SettingLink target="/settings/project#pickup-label">{markReason}</SettingLink>
-				) : markReason ? (
-					<p className="text-12 text-n-11">{markReason}</p>
-				) : null}
-			</section>
-
-			<section className="flex flex-col gap-1">
-				<h3 className="text-12 font-medium text-n-11">{d.linked}</h3>
-				{item.linked ? (
-					<div className="flex items-center gap-1">
-						<Linked id={item.linked} />
-						<IconButton
-							label={t.sync.backlog.unlink}
-							onClick={() => void run(() => unlink(item.linked ?? ""))}
-						>
-							<XMarkIcon size={14} />
-						</IconButton>
-					</div>
-				) : linking ? (
-					<form
-						className="flex items-center gap-2"
-						onSubmit={async (e) => {
-							e.preventDefault();
-							if (await run(() => link(local, item.key))) {
-								setLinking(false);
-								setLocal("");
-							}
-						}}
-					>
-						<Input
-							label={t.sync.backlog.local}
-							value={local}
-							onChange={(e) => setLocal(e.target.value)}
-							autoFocus
-						/>
-						<Button type="submit" disabled={local.trim() === ""}>
-							{t.sync.backlog.confirm}
-						</Button>
-					</form>
-				) : (
-					<div>
-						<Button onClick={() => setLinking(true)}>
-							<LinkIcon size={14} />
-							{t.sync.backlog.link}
-						</Button>
-					</div>
-				)}
-			</section>
-
-			<TicketThread itemKey={item.key} />
+			</div>
 
 			<ErrorNotice error={failure} />
 		</div>

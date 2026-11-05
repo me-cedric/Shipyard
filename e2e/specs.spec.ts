@@ -4,9 +4,9 @@ const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 
 /** Opens the mock project with a Linear tracker, then the Specs space on the given tab. */
 async function openSpecs(page: Page, tab: string) {
-	await page.goto("/home/inbox");
+	await page.goto("/home/today");
 	await page.getByRole("button", { name: "Open a local folder" }).click();
-	await expect(page.getByRole("heading", { name: "Needs you" })).toBeVisible();
+	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 	const sidebar = page.getByRole("navigation", { name: "Sidebar" });
 	await sidebar.getByRole("link", { name: "Settings" }).click();
 	await tabs(page).getByRole("link", { name: "Connections" }).click();

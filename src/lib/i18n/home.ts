@@ -1,6 +1,14 @@
 /** The strings of the Home space. */
 export const homeEn = {
 	needsYou: "Needs you",
+	today: {
+		inProgress: "In progress",
+		todo: "To do",
+		done: "Done in the last 7 days",
+		agents: "My agents",
+		away: "Since you were away",
+		backlog: "Open the backlog",
+	},
 	questions: "Agent questions",
 	approvals: "Approvals",
 	planReview: "Plan review",
@@ -80,6 +88,14 @@ export const homeEn = {
 
 export const homeFr: typeof homeEn = {
 	needsYou: "À traiter",
+	today: {
+		inProgress: "En cours",
+		todo: "À faire",
+		done: "Terminé ces 7 derniers jours",
+		agents: "Mes agents",
+		away: "Depuis votre dernière visite",
+		backlog: "Ouvrir le backlog",
+	},
 	questions: "Questions des agents",
 	approvals: "Approbations",
 	planReview: "Revue du plan",

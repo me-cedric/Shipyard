@@ -14,7 +14,7 @@ describe("canned prompts", () => {
 		expect(itemTypeOf("pr:conn:3")).toBe("pullRequest");
 		expect(itemTypeOf("conn:x")).toBeNull();
 		expect(pageItemType("/design/diagrams")).toBe("diagram");
-		expect(pageItemType("/home/inbox")).toBeNull();
+		expect(pageItemType("/home/today")).toBeNull();
 		expect(cannedPrompt("en", "decision", "review", "adr:0007")).toBe(
 			"Review this decision (adr:0007). List what is unclear, wrong or missing, the most serious first.",
 		);
@@ -41,7 +41,7 @@ describe("Ask menu", () => {
 	}, 20_000);
 
 	it("has no Ask button on a page of no item type", async () => {
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		expect(screen.queryByRole("button", { name: "Ask the assistant" })).toBeNull();
 	});

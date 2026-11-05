@@ -64,7 +64,7 @@ describe("Settings / Project overrides and profile", () => {
 		await open("/mock/alpha");
 		const p = mockState().projects[0];
 		if (p) p.overrides.profileTabs = ["code"];
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await screen.findByRole("link", { name: /Code/ });
 		expect(screen.queryByRole("link", { name: /Factory/ })).toBeNull();
 		expect(screen.getByRole("link", { name: /Settings/ })).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe("Clone dialog repo picker", () => {
 			}),
 		);
 	const openDialog = async (user: ReturnType<typeof userEvent.setup>) => {
-		mountApp("/home/inbox");
+		mountApp("/home/today");
 		await user.click(await screen.findByRole("button", { name: /^Project/ }));
 		await user.click(await screen.findByRole("menuitem", { name: "Clone a repository" }));
 		return within(await screen.findByRole("dialog"));

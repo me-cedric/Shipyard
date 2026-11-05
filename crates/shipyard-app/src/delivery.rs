@@ -102,7 +102,7 @@ impl Folders {
         max_bytes: usize,
     ) -> PortResult<Vec<shipyard_git::code::FileDiff>> {
         let repo = self.run_repo(run)?;
-        let rev = self.start_rev(&repo);
+        let rev = self.start_rev(&repo, run);
         repo.file_diffs_since(&rev, max_bytes).map_err(e)
     }
 
@@ -145,7 +145,12 @@ impl Folders {
 
     /// Where a new run branch starts: the declared base, else `develop`, `main` or `master`, else
     /// HEAD. shortcut: a repository with another default branch starts from HEAD.
-    fn start_rev(&self, repo: &Repo) -> String {
+    fn start_rev(&self, repo: &Repo, run: &str) -> String {
+        // A docs run starts from the branch of the person, as the local branch: it holds the
+        // commits that are not pushed yet.
+        if let Some(b) = crate::commands::overview::guard_base(&self.data, run) {
+            return b;
+        }
         let declared = self.declared_base.iter().map(String::as_str);
         declared
             .chain(["develop", "main", "master"])
@@ -162,7 +167,7 @@ impl Folders {
         let repo = self.main()?;
         let branch = format!("{}/{run}", self.runner);
         let name = child_name(run, RUN_CHILD).map_err(e)?;
-        let start = self.start_rev(&repo);
+        let start = self.start_rev(&repo, run);
         repo.worktree_add(&name, &path, &branch, Some(&start))
             .map_err(e)?;
         Ok(path)
@@ -209,6 +214,11 @@ impl Workspaces for Folders {
             _ => self.run_folder(run),
         }
     }
+
+    fn set_base(&self, run: &str, base: &str) {
+        // A failed write leaves no guard: `changes` then refuses the run (fail closed).
+        let _ = crate::commands::overview::guard_open(&self.data, run, base);
+    }
 }
 
 impl Folders {
@@ -240,6 +250,9 @@ impl Git for Folders {
     }
 
     fn changes(&self, run: &str, base: &str) -> PortResult<Changes> {
+        // A docs-update run keeps to its doc target and to docs that parse (`docs-freshness`).
+        let dir = self.run_path(run)?;
+        crate::commands::overview::docs_guard(&self.data, &self.root, run, &dir)?;
         let repo = self.run_repo(run)?;
         let st = repo.status().map_err(e)?;
         let uncommitted = [&st.staged, &st.unstaged, &st.untracked]

@@ -18,6 +18,8 @@ use crate::design::project;
 
 /// The name of the check that verifies all docs. `check_run` runs it in process.
 pub const VERIFY_DOCS: &str = "verify all docs";
+/// The name of the check that lists the stale docs of the branch (`docs-freshness` REQ-006).
+pub const DOCS_FRESH: &str = "docs freshness";
 const MAX_BYTES: u64 = 1_000_000;
 /// The commands that a proposal keeps, at most.
 const MAX_GATES: usize = 10;
@@ -161,7 +163,35 @@ pub fn checks(root: &Path) -> Vec<Check> {
             command: VERIFY_DOCS.into(),
         });
     }
+    if matches!(
+        shipyard_store::project::read_project_file(root),
+        Ok(shipyard_store::project::FileRead::Valid(_))
+    ) {
+        all.push(Check {
+            label: None,
+            command: DOCS_FRESH.into(),
+        });
+    }
     all
+}
+
+/// The docs of the branch that did not follow the code, against the base branch. One finding for
+/// each stale doc and its code files. An acknowledged warning is not stale. It reads and writes
+/// nothing (REQ-011).
+pub fn docs_fresh(s: &AppState) -> Res<(String, Vec<ScanFinding>)> {
+    let watch = crate::commands::overview::chain_watch(s, None)?;
+    let found: Vec<ScanFinding> = watch
+        .warnings
+        .into_iter()
+        .filter(|w| w.ack.is_none())
+        .map(|w| ScanFinding {
+            severity: ScanSeverity::Medium,
+            path: w.to,
+            line: None,
+            message: w.changed.join(", "),
+        })
+        .collect();
+    Ok((format!("{} stale docs", found.len()), found))
 }
 
 // ---------------------------------------------------------------- a failed check
@@ -646,10 +676,16 @@ mod tests {
         let own = checks(root);
         assert_eq!(
             own,
-            [Check {
-                label: None,
-                command: "make ci".into()
-            }]
+            [
+                Check {
+                    label: None,
+                    command: "make ci".into()
+                },
+                Check {
+                    label: None,
+                    command: DOCS_FRESH.into()
+                }
+            ]
         );
     }
 
@@ -684,9 +720,62 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let root = dir.path();
         std::fs::create_dir_all(root.join("docs/openspec/changes/archive")).unwrap();
-        assert!(commands(root).is_empty());
+        assert!(commands(root).is_empty(), "no project file: no docs check");
         std::fs::create_dir_all(root.join("docs/openspec/changes/one")).unwrap();
         assert_eq!(commands(root), [VERIFY_DOCS]);
+    }
+
+    #[test]
+    fn the_docs_check_lists_the_stale_docs_keeps_its_report_and_writes_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, p) = open_project(dir.path());
+        let git = |args: &[&str]| {
+            let out = std::process::Command::new("git")
+                .arg("-C")
+                .arg(&p)
+                .args(["-c", "user.name=t", "-c", "user.email=t@t"])
+                .args(args)
+                .output()
+                .unwrap();
+            assert!(out.status.success(), "{args:?}: {out:?}");
+        };
+        git(&["add", "-A"]);
+        git(&["commit", "-qm", "base"]);
+        git(&["branch", "-M", "main"]);
+        git(&["switch", "-qc", "topic"]);
+        assert!(commands(&p).contains(&DOCS_FRESH.to_string()));
+        let r = crate::code::check_run(&s, DOCS_FRESH, true).unwrap();
+        assert!(r.passed, "clean branch");
+        std::fs::create_dir_all(p.join("docs/openspec/changes/x")).unwrap();
+        std::fs::write(p.join("docs/openspec/changes/x/spec.md"), "# s\n").unwrap();
+        let before = git_status(&p);
+        let (tail, found) = docs_fresh(&s).unwrap();
+        assert_eq!(tail, "5 stale docs");
+        assert!(
+            found
+                .iter()
+                .any(|f| f.path == "models" && f.message.ends_with("spec.md"))
+        );
+        assert_eq!(git_status(&p), before, "the check writes nothing");
+        let r = crate::code::check_run(&s, DOCS_FRESH, true).unwrap();
+        assert!(!r.passed);
+        assert!(
+            crate::code::quality_view(&s)
+                .unwrap()
+                .checks
+                .iter()
+                .any(|c| c.name == DOCS_FRESH && c.last.is_some())
+        );
+    }
+
+    fn git_status(p: &Path) -> String {
+        let out = std::process::Command::new("git")
+            .arg("-C")
+            .arg(p)
+            .args(["status", "--porcelain", "-uall"])
+            .output()
+            .unwrap();
+        String::from_utf8_lossy(&out.stdout).into()
     }
 
     #[test]

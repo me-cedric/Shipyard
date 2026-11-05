@@ -36,28 +36,111 @@ use crate::work::{ApplyRow, mirror_items, need_click, tracker, write_diff};
 /// the test plans.
 const FOLDERS: [&str; 3] = ["specs", "questions", "test-plans"];
 
-/// The last validation of each change, by project id and change id. Memory only: an artifact is
-/// done after a passed validation since the last `specs_validate` (REQ-002).
+type Key = (String, String);
+
+#[derive(Serialize, serde::Deserialize)]
+struct Saved {
+    project: String,
+    change: String,
+    fingerprint: u64,
+    findings: Vec<Finding>,
+}
+
+/// The last validation of each change, by project id and change id, with the fingerprint of the
+/// change files at that time (REQ-002). It is kept in a file of the app data folder, so a restart
+/// keeps it. A change whose files changed since is not checked again until the next validation.
 #[derive(Default)]
 pub struct Session {
-    validated: Mutex<HashMap<(String, String), Vec<Finding>>>,
+    validated: Mutex<HashMap<Key, (u64, Vec<Finding>)>>,
+    file: Option<PathBuf>,
 }
 
 impl Session {
-    fn set(&self, project: &str, change: &str, findings: Vec<Finding>) {
-        let mut m = self.validated.lock().unwrap_or_else(|e| e.into_inner());
-        m.insert((project.into(), change.into()), findings);
+    /// The session that reads and writes `file`. A file that does not read starts empty.
+    pub fn at(file: PathBuf) -> Self {
+        let saved: Vec<Saved> = std::fs::read_to_string(&file)
+            .ok()
+            .and_then(|t| serde_json::from_str(&t).ok())
+            .unwrap_or_default();
+        let map = saved
+            .into_iter()
+            .map(|s| ((s.project, s.change), (s.fingerprint, s.findings)))
+            .collect();
+        Self {
+            validated: Mutex::new(map),
+            file: Some(file),
+        }
     }
 
-    fn get(&self, project: &str, change: &str) -> Option<Vec<Finding>> {
+    fn save(&self, m: &HashMap<Key, (u64, Vec<Finding>)>) {
+        let Some(file) = &self.file else { return };
+        let all: Vec<Saved> = m
+            .iter()
+            .map(|((project, change), (fingerprint, findings))| Saved {
+                project: project.clone(),
+                change: change.clone(),
+                fingerprint: *fingerprint,
+                findings: findings.clone(),
+            })
+            .collect();
+        if let Ok(text) = serde_json::to_string(&all) {
+            // shortcut: a failed write only costs a validation after the next start.
+            let _ = write_atomic(file, text.as_bytes());
+        }
+    }
+
+    fn set(&self, project: &str, change: &str, fingerprint: u64, findings: Vec<Finding>) {
+        let mut m = self.validated.lock().unwrap_or_else(|e| e.into_inner());
+        m.insert((project.into(), change.into()), (fingerprint, findings));
+        self.save(&m);
+    }
+
+    /// The findings of the last validation when the files did not change since.
+    fn get(&self, project: &str, change: &str, fingerprint: u64) -> Option<Vec<Finding>> {
         let m = self.validated.lock().unwrap_or_else(|e| e.into_inner());
-        m.get(&(project.into(), change.into())).cloned()
+        m.get(&(project.into(), change.into()))
+            .filter(|(fp, _)| *fp == fingerprint)
+            .map(|(_, f)| f.clone())
     }
 
     fn forget(&self, project: &str, change: &str) {
         let mut m = self.validated.lock().unwrap_or_else(|e| e.into_inner());
-        m.remove(&(project.into(), change.into()));
+        if m.remove(&(project.into(), change.into())).is_some() {
+            self.save(&m);
+        }
     }
+}
+
+/// The path, size and change time of each file under `dir`, hashed: another value means that a
+/// file of the change was added, removed or edited.
+fn fingerprint(dir: &Path) -> u64 {
+    use std::hash::{Hash, Hasher};
+    fn walk(root: &Path, dir: &Path, out: &mut Vec<(String, u64, u128)>) {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        for e in entries.flatten() {
+            let path = e.path();
+            let Ok(meta) = e.metadata() else { continue };
+            if meta.is_dir() {
+                walk(root, &path, out);
+            } else {
+                let rel = path.strip_prefix(root).unwrap_or(&path);
+                let at = meta
+                    .modified()
+                    .ok()
+                    .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map_or(0, |d| d.as_nanos());
+                out.push((rel.to_string_lossy().into_owned(), meta.len(), at));
+            }
+        }
+    }
+    let mut files = Vec::new();
+    walk(dir, dir, &mut files);
+    files.sort();
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    files.hash(&mut h);
+    h.finish()
 }
 
 fn openspec(p: &Proj) -> PathBuf {
@@ -127,7 +210,7 @@ fn change_title(dir: &Path, id: &str) -> String {
 
 fn change_view(s: &AppState, p: &Proj, id: &str) -> ChangeView {
     let dir = openspec(p).join("changes").join(id);
-    let found = s.specs.get(&p.id, id);
+    let found = s.specs.get(&p.id, id, fingerprint(&dir));
     let caps = archive::dir_names(&dir.join("specs"));
     let mut artifacts = Vec::new();
     for a in ARTIFACTS {
@@ -146,8 +229,8 @@ fn change_view(s: &AppState, p: &Proj, id: &str) -> ChangeView {
                 .cloned()
                 .collect();
             let st = match (dir.join(&path).is_file(), found.is_some()) {
-                // Without a validation nothing is done: a file is a draft.
-                (true, false) => ArtifactStatus::Draft,
+                // A file with no validation of its current text is not checked yet.
+                (true, false) => ArtifactStatus::Unchecked,
                 (exists, _) => status(exists, findings.len()),
             };
             artifacts.push(ArtifactState {
@@ -284,8 +367,9 @@ pub fn change_delegate(s: &AppState, key: &str, workflow: &str, click: bool) -> 
 pub fn validate(s: &AppState, id: &str) -> Res<Vec<Finding>> {
     change_id(id)?;
     let p = project(s)?;
+    let dir = openspec(&p).join("changes").join(id);
     let findings = openspec_validate::run(&openspec(&p), id);
-    s.specs.set(&p.id, id, findings.clone());
+    s.specs.set(&p.id, id, fingerprint(&dir), findings.clone());
     Ok(findings)
 }
 

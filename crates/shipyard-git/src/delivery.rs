@@ -162,6 +162,35 @@ impl Repo {
         Ok(Some(id.to_string()))
     }
 
+    /// Puts each path back to its content at the merge base of HEAD and `base`. A path that the
+    /// base lacks is deleted. It changes the working copy and commits nothing, so a later
+    /// `commit_scope` of the paths holds the revert of a file that a run committed.
+    pub fn restore_from(&self, base: &str, paths: &[String]) -> Result<()> {
+        check_paths(paths)?;
+        let head = self.repo.head()?.peel_to_commit()?.id();
+        let base = self.repo.revparse_single(base)?.peel_to_commit()?.id();
+        let tree = self
+            .repo
+            .find_commit(self.repo.merge_base(head, base)?)?
+            .tree()?;
+        for p in paths {
+            let full = self.workdir().join(p);
+            match tree.get_path(Path::new(p)) {
+                Ok(e) => {
+                    if let Some(dir) = full.parent() {
+                        std::fs::create_dir_all(dir)?;
+                    }
+                    std::fs::write(&full, self.repo.find_blob(e.id())?.content())?;
+                }
+                Err(_) => match std::fs::remove_file(&full) {
+                    Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e.into()),
+                    _ => {}
+                },
+            }
+        }
+        Ok(())
+    }
+
     /// Commit the given files, and only them (REQ-008). Another staged file, a change in
     /// another file and an untracked file stay as they are. A path that no longer exists is a
     /// deletion. The commit is built from HEAD plus the working copy content of `paths`, so the

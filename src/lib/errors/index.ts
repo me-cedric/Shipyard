@@ -41,7 +41,7 @@ export function useErrorNotice(error: unknown, onDone?: () => void) {
 				await unwrap(commands.doctorToolInstall(a.target, true));
 				await qc.invalidateQueries({ queryKey: ["doctor"] });
 			} else if (a.kind === "open") open(a.target);
-			else void router?.navigate({ to: "/home/inbox" });
+			else void router?.navigate({ to: "/home/today" });
 			onDone?.();
 		} catch (err) {
 			setFailed(err);

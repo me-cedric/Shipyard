@@ -9,7 +9,7 @@ test("opens a folder from the first run, opens a second project and switches bac
 	// The mock picker returns /mock/alpha first. The project becomes active.
 	const switcher = page.getByRole("button", { name: /^Project/ });
 	await expect(switcher).toHaveText(/alpha/);
-	await expect(page.getByRole("heading", { name: "Needs you" })).toBeVisible();
+	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 
 	// A second folder opens from the palette, with the keyboard.
 	await page.keyboard.press("ControlOrMeta+k");
@@ -42,7 +42,7 @@ test("closes a project, opens it again from the recent list and switches between
 	await expect(switcher).not.toHaveText(/alpha/);
 	await recent.getByRole("button", { name: /alpha/ }).click();
 	await expect(switcher).toHaveText(/alpha/);
-	await expect(page.getByRole("heading", { name: "Needs you" })).toBeVisible();
+	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 
 	await pick("menuitem", "Open a local folder");
 	await expect(switcher).toHaveText(/beta/);

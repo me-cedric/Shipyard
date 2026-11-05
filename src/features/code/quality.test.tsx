@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mountApp } from "@/test/mount";
@@ -23,7 +23,7 @@ describe("Code / Quality", () => {
 		await open();
 		mountApp("/code/quality");
 		const checks = await group("Checks");
-		expect(screen.getByRole("heading", { name: "Checks (3)" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Checks (4)" })).toBeInTheDocument();
 		expect(within(checks).getByRole("heading", { name: "Lint" })).toBeInTheDocument();
 		expect(within(checks).getByText("pnpm run lint")).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Scanners (4)" })).toBeInTheDocument();
@@ -125,7 +125,7 @@ describe("Code / Quality", () => {
 		const checks = await group("Checks");
 		await waitFor(() => expect(within(checks).getByText("make ci")).toBeInTheDocument());
 		expect(screen.queryByRole("textbox", { name: "Commands" })).toBeNull();
-		expect(screen.getByRole("heading", { name: "Checks (2)" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Checks (3)" })).toBeInTheDocument();
 		await user.click(within(checks).getByRole("button", { name: "Run make ci" }));
 		await user.click(within(checks).getByRole("button", { name: "Run make ci?" }));
 		const findings = await within(checks).findAllByRole("button", { name: "Findings" });
@@ -150,5 +150,23 @@ describe("Code / Quality", () => {
 		await user.click(findings[0] as HTMLElement);
 		expect(screen.getByText("pnpm is not installed or not found")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Install pnpm" })).toBeInTheDocument();
+	});
+
+	it("runs the Docs check after a confirmation, shows the count of stale docs and keeps the report", async () => {
+		const user = userEvent.setup();
+		await open();
+		mountApp("/code/quality");
+		await user.click(await screen.findByRole("button", { name: "Run Docs" }));
+		await user.click(screen.getByRole("button", { name: "Run Docs?" }));
+		const checks = await group("Checks");
+		expect(await within(checks).findByText(/2 stale docs/)).toBeInTheDocument();
+		await user.click(
+			within(checks).getAllByRole("button", { name: "Findings" }).at(-1) as HTMLElement,
+		);
+		expect(screen.getByText("Medium: stale: crates/app/Cargo.toml changed")).toBeInTheDocument();
+		// The report stays after the view closes and opens again.
+		cleanup();
+		mountApp("/code/quality");
+		expect(await within(await group("Checks")).findByText(/2 stale docs/)).toBeInTheDocument();
 	});
 });

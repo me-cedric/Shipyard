@@ -26,11 +26,13 @@ const CONNECTION = "github-demo";
 const METHODS: MergeMethod[] = ["merge", "squash", "rebase"];
 const LABELS = ["feat", "bug", "docs"];
 const VERIFY_DOCS = "verify all docs";
+const DOCS_FRESH = "docs freshness";
 /** The checks of the project files: a command and the key of its plain name. */
 const CHECKS: [string, string | null][] = [
 	["pnpm run lint", "lint"],
 	["pnpm run test", "test"],
 	[VERIFY_DOCS, null],
+	[DOCS_FRESH, null],
 ];
 const SCANNERS: [string, boolean][] = [
 	["secrets", true],
@@ -323,7 +325,9 @@ const row = (
 
 /** The saved gates, else the checks of the project files. The check that verifies all docs stays. */
 const checkNames = (p: MockPrs): [string, string | null][] =>
-	p.gates.length ? [...p.gates.map((g): [string, null] => [g, null]), [VERIFY_DOCS, null]] : CHECKS;
+	p.gates.length
+		? [...p.gates.map((g): [string, null] => [g, null]), [VERIFY_DOCS, null], [DOCS_FRESH, null]]
+		: CHECKS;
 
 export const qualityView = (p: MockPrs): QualityView_Serialize => ({
 	checks: checkNames(p).map(([n, label]) => row(p, "check", n, true, label)),
@@ -348,6 +352,30 @@ export function checkRun(p: MockPrs, command: string, click: boolean): QualityRe
 	need(click);
 	if (!checkNames(p).some(([n]) => n === command))
 		throw `\`${command}\` is not a check of this project`;
+	// Two docs did not follow the code of the branch. The check writes nothing (REQ-011).
+	if (command === DOCS_FRESH)
+		return keep(p, {
+			kind: "check",
+			name: command,
+			at: "2026-10-29T10:00:00Z",
+			passed: false,
+			durationMs: 40,
+			tail: "2 stale docs",
+			findings: [
+				{
+					severity: "medium",
+					path: "docs/models",
+					line: null,
+					message: "stale: crates/app/Cargo.toml changed",
+				},
+				{
+					severity: "medium",
+					path: "docs/data-models",
+					line: null,
+					message: "stale: crates/store/src/schema.rs changed",
+				},
+			],
+		});
 	if (command === VERIFY_DOCS)
 		return keep(p, {
 			kind: "check",

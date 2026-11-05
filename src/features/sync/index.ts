@@ -1,2 +1,2 @@
 export { Automation } from "./automation";
-export { TicketThread } from "./ticket-thread";
+export { TicketComments, TicketDescription } from "./ticket-thread";

@@ -23,11 +23,12 @@ test("project manager", async ({ page }) => {
 		const held = page.getByRole("main").getByText("Grace Hopper");
 		const before = await held.count();
 		await w.click(page.getByText("Bump dependencies"));
+		await w.click(page.getByRole("combobox", { name: "Assignee" }).last());
 		await w.see(page.getByText("4 d free"), "no free-time hint beside the person");
-		await w.click(page.getByRole("button", { name: "Assign Grace Hopper" }));
+		await w.click(page.getByRole("option", { name: /^Grace Hopper/ }));
 		await w.until(() => held.count(), before + 1, "the card does not show the new assignee");
-		const marked = page.getByRole("button", { name: "Assign Grace Hopper" });
-		if (!(await marked.isDisabled())) {
+		const marked = page.getByRole("combobox", { name: "Assignee" }).last();
+		if (!(await marked.textContent())?.includes("Grace Hopper")) {
 			w.confusing("the assign list shows no mark on the person who holds the ticket");
 		}
 	});
@@ -100,8 +101,8 @@ test("project manager", async ({ page }) => {
 		"Answer what needs me",
 		"Home, the Needs you list",
 		async () => {
-			await w.go("Home", "Inbox");
-			await w.see(page.getByRole("heading", { name: "Needs you" }), "no inbox");
+			await w.go("Home", "Today");
+			await w.see(page.getByRole("heading", { level: 1, name: "Today" }), "no inbox");
 			await w.click(page.getByRole("button", { name: "Approve plan" }));
 			await w.see(page.getByText("Needs you").first(), "the inbox does not answer the click");
 		},

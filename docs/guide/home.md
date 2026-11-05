@@ -1,23 +1,17 @@
 # Home
 
-Home shows what needs you, your own work and your projects.
+Home shows what to do now and your projects.
 
-## Inbox
+## Today
 
-The Inbox collects what waits for you: questions of the agents, approvals, plan reviews and messages.
+Today tells you what to do now. A section with nothing in it hides. With nothing at all, one action opens the backlog.
 
-- Answer a question: press a digit, then Enter. Or type your own answer.
-- Approve a change: read the row, then click Approve. The row says in plain words what the change does.
-- Approve a plan: read it, then click Approve plan. The run goes on.
-- A change that the automation switches do not allow waits here for your click.
+- Needs you collects what waits for you: questions of the agents, approvals, plan reviews and messages. Answer a question: press a digit, then Enter, or type your own answer. Approve a change: read the row, then click Approve. Approve a plan: read it, then click Approve plan. A change that the automation switches do not allow waits here for your click.
+- Your tickets are the ones that the issue tracker gives to you, grouped as In progress, To do and Done in the last 7 days. Each row has its status and Start run.
+- My agents lists the runs that work on your tickets or wait for you, with Stop.
+- Since you were away lists what happened on your tickets and runs since the last time you opened Today, newest first.
 
-## My work
-
-My work lists the tickets that the issue tracker gives to you, with the runs of the agents on them. It also shows the dashboard tiles that you pin in Knowledge.
-
-## Activity
-
-Activity tells what happened in the project: one sentence for each event, newest first.
+The old addresses of Inbox, My work and Activity open Today. The tiles that you pin in Knowledge show at the top of Knowledge, then Dashboards.
 
 ## Projects
 

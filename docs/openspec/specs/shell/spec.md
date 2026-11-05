@@ -29,7 +29,7 @@ The earlier tool has 40 routes, 12 sidebar groups and four stacked filters that 
 
 - REQ-001: The sidebar lists the seven spaces and Settings.
 - REQ-002: The shell has a main area and an inspector panel.
-- REQ-003: Home has three views: Inbox, My work and Activity. My work and Activity show the tiles that the person pinned (`add-knowledge` REQ-024).
+- REQ-003: Home has two views: Today and Projects (`home-today` REQ-001). Today holds Needs you, the person's tickets and agents, and what changed since the last visit.
 - REQ-004: The Inbox lists questions and approvals.
 - REQ-005: The command palette searches refs and runs every action.
 - REQ-006: The inspector shows the selected entity and its backlinks.
@@ -90,7 +90,7 @@ The earlier tool has 40 routes, 12 sidebar groups and four stacked filters that 
 | Native menu | Native menu | REQ-012 |
 | Update check | Update check | REQ-014 |
 | Nouveautés (changelog after an update) | Update check, changelog sections | REQ-014 |
-| Home widgets of Dashboards | Home / My work and Activity | REQ-003 |
+| Home views | Home / Today and Projects | REQ-003 |
 | Reopen last page | Last view per project | REQ-015 |
 
 ### Existing References
@@ -131,18 +131,13 @@ The shell SHALL have a main area and an inspector panel. The inspector SHALL ope
 
 ### Requirement: REQ-003 Home views
 
-The Home space SHALL have the views Inbox, My work and Activity. Inbox SHALL carry the heading "Needs you". My work SHALL list the items assigned to the person. Activity SHALL list recent events of the project. My work and Activity SHALL show the tiles that the person pinned (`add-knowledge` REQ-024).
+The Home space SHALL have the views Today and Projects, as `home-today` REQ-001 to REQ-008 describe. Today SHALL carry the "Needs you" section of the Inbox (REQ-004).
 
 #### Scenario: Open Home
 - GIVEN the person opens Home
 - WHEN Home renders
-- THEN the three views are available as tabs
-- AND Inbox is the first tab
-
-#### Scenario: Pinned tile
-- GIVEN the person pinned a tile in Knowledge
-- WHEN My work renders
-- THEN the tile shows in My work and in Activity
+- THEN the tabs are Today and Projects
+- AND Today is open
 
 ### Requirement: REQ-004 Inbox content
 

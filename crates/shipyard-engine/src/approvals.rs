@@ -106,6 +106,19 @@ impl Inner {
 
     /// `write`, and `slot` gets the id that the write made once it went out.
     pub(crate) fn write_with(&mut self, run_id: &str, write: Write, slot: Option<Slot>) {
+        // A run with no issue tracker ticket has nothing to move, label or comment on.
+        let tracker = matches!(
+            write,
+            Write::Transition { .. } | Write::Labels { .. } | Write::Comment { .. }
+        );
+        if tracker
+            && self
+                .runs
+                .get(run_id)
+                .is_some_and(|r| r.key.starts_with(crate::run_engine::TICKETLESS_PREFIX))
+        {
+            return;
+        }
         let allowed = self
             .project_of(run_id)
             .is_some_and(|p| write.allowed(&p.automation.writes));

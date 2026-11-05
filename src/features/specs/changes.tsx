@@ -33,7 +33,12 @@ import { DOT } from "./status";
 import { TicketDialog } from "./ticket-dialog";
 
 /** The line after a step of the stepper, in the colour of the step. */
-const LINE = { missing: "bg-n-6", draft: "bg-warning/60", done: "bg-success/70" } as const;
+const LINE = {
+	missing: "bg-n-6",
+	unchecked: "bg-n-7",
+	draft: "bg-warning/60",
+	done: "bg-success/70",
+} as const;
 
 /** The checked and all checkboxes of the task files of each change, by change id. */
 function useTaskCounts(changes: Change[]) {

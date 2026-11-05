@@ -51,15 +51,15 @@ describe("router", () => {
 	});
 
 	it("shows the first run on Home until a project is active", async () => {
-		mount("/home/inbox");
+		mount("/home/today");
 		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
-		expect(screen.queryByRole("heading", { name: "Needs you" })).toBeNull();
+		expect(screen.queryByRole("heading", { level: 1, name: "Today" })).toBeNull();
 	});
 
-	it("shows the heading of the Inbox", async () => {
+	it("shows the heading of Today", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mount("/home/inbox");
-		expect(await screen.findByRole("heading", { name: "Needs you" })).toBeInTheDocument();
+		mount("/home/today");
+		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
 	});
 
 	it.each([

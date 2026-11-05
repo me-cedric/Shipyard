@@ -1,10 +1,17 @@
 import { useCounts } from "@/features/shell";
 import { useUsage } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
+import { useWorkItems } from "@/lib/sync";
+import { useWorkContext } from "@/lib/work";
 import { StatStrip } from "@/ui/molecules/stat-strip";
-import { useMyItems } from "./my-work";
 
 const TREND_DAYS = 14;
+
+/** The mirrored items assigned to the person. */
+export function useMyItems() {
+	const me = useWorkContext().data?.me ?? null;
+	return (useWorkItems({}).data ?? []).filter((i) => me !== null && i.member === me);
+}
 
 /** The four figures of Home: needs you, my items, live runs and the spend of today with its trend. */
 export function HomeStats() {

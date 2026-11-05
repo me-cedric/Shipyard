@@ -5,9 +5,9 @@ const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" }
 
 /** Opens the mock project and names a Linear tracker with a secret as its tracker. */
 async function openWithTracker(page: Page, secret: string | null = "tok-e2e-sync") {
-	await page.goto("/home/inbox");
+	await page.goto("/home/today");
 	await page.getByRole("button", { name: "Open a local folder" }).click();
-	await expect(page.getByRole("heading", { name: "Needs you" })).toBeVisible();
+	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Settings" }).click();
 	await tabs(page).getByRole("link", { name: "Connections" }).click();
 	await page.getByRole("button", { name: "Connection" }).click();

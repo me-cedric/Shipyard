@@ -6,14 +6,25 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use tauri::image::Image;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::window::{Color, Effect, EffectState, EffectsBuilder};
 use tauri::{AppHandle, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder, Window};
 
 use crate::commands::Api;
 
 const ID: &str = "tray";
-const PANEL: (f64, f64) = (360.0, 480.0);
+const PANEL: (f64, f64) = (360.0, 520.0);
+/// The corner radius of the panel, in points. The page uses the same value.
+const RADIUS: f64 = 12.0;
 /// A click on the icon blurs the panel first. A show within this time of a blur is the same click.
 const BLUR_MS: u64 = 250;
+
+/// The menu bar icon: the Shipyard mark as a black silhouette on transparent pixels. macOS draws a
+/// template image in the colour of the menu bar, like the icons of the system.
+const TEMPLATE: &[u8] = include_bytes!("../icons/tray-template.png");
+
+fn template() -> Option<Image<'static>> {
+    Image::from_bytes(TEMPLATE).ok()
+}
 
 /// When the panel last hid on blur, in ms since the epoch.
 static BLURRED: AtomicU64 = AtomicU64::new(0);
@@ -29,16 +40,21 @@ pub fn badge(needs: u32) -> bool {
     needs > 0
 }
 
-/// A copy of RGBA pixels with a red dot in the top right corner.
+/// A copy of RGBA pixels with a red dot in the top right corner, and a clear ring around it so
+/// the dot stands apart from the mark. A template image keeps only the shape of the dot.
 pub fn with_dot(rgba: &[u8], width: u32, height: u32) -> Vec<u8> {
     let mut out = rgba.to_vec();
     let r = (width.min(height) / 4) as i64;
+    let ring = r + r / 3;
     let (cx, cy) = (width as i64 - r, r);
     for y in 0..height as i64 {
         for x in 0..width as i64 {
-            if (x - cx).pow(2) + (y - cy).pow(2) <= r * r {
-                let i = ((y * width as i64 + x) * 4) as usize;
+            let d = (x - cx).pow(2) + (y - cy).pow(2);
+            let i = ((y * width as i64 + x) * 4) as usize;
+            if d <= r * r {
                 out[i..i + 4].copy_from_slice(&[0xe5, 0x48, 0x4d, 0xff]);
+            } else if d <= ring * ring {
+                out[i..i + 4].copy_from_slice(&[0, 0, 0, 0]);
             }
         }
     }
@@ -106,7 +122,10 @@ fn toggle(app: &AppHandle, icon: tauri::Rect) {
             m.size().height as f64,
         )
     });
-    let size = (PANEL.0 * k, PANEL.1 * k);
+    // The page fits the window to its content, so the height is the one of the window now.
+    let size = w.outer_size().map_or((PANEL.0 * k, PANEL.1 * k), |o| {
+        (o.width as f64, o.height as f64)
+    });
     let at = screen.map_or((p.x, p.y + s.height), |m| {
         panel_origin((p.x, p.y, s.width, s.height), size, m)
     });
@@ -141,12 +160,22 @@ pub fn apply(app: &AppHandle, on: bool) {
                 toggle(tray.app_handle(), rect);
             }
         });
-    if let Some(icon) = app.default_window_icon() {
-        builder = builder.icon(icon.clone());
+    if let Some(icon) = template().or_else(|| app.default_window_icon().cloned()) {
+        builder = builder.icon(icon).icon_as_template(true);
     }
     let panel = WebviewWindowBuilder::new(app, ID, WebviewUrl::App("tray".into()))
         .inner_size(PANEL.0, PANEL.1)
         .decorations(false)
+        // A clear window over the blur of the system: the page draws the rounded edge.
+        .transparent(true)
+        .background_color(Color(0, 0, 0, 0))
+        .effects(
+            EffectsBuilder::new()
+                .effect(Effect::Popover)
+                .state(EffectState::Active)
+                .radius(RADIUS)
+                .build(),
+        )
         .resizable(false)
         .always_on_top(true)
         .skip_taskbar(true)
@@ -161,7 +190,7 @@ pub fn apply(app: &AppHandle, on: bool) {
 #[tauri::command]
 #[specta::specta]
 pub async fn tray_badge(app: AppHandle, needs: u32) -> Api<()> {
-    if let (Some(t), Some(base)) = (app.tray_by_id(ID), app.default_window_icon()) {
+    if let (Some(t), Some(base)) = (app.tray_by_id(ID), template()) {
         let icon = if badge(needs) {
             Image::new_owned(
                 with_dot(base.rgba(), base.width(), base.height()),
@@ -172,6 +201,7 @@ pub async fn tray_badge(app: AppHandle, needs: u32) -> Api<()> {
             base.clone()
         };
         let _ = t.set_icon(Some(icon));
+        let _ = t.set_icon_as_template(true);
     }
     Ok(())
 }
@@ -252,5 +282,18 @@ mod tests {
         assert!(opens(false, 1000));
         assert!(!opens(false, 50));
         assert!(!opens(true, 1000));
+    }
+
+    #[test]
+    fn the_menu_bar_icon_is_a_square_silhouette_with_clear_pixels() {
+        let icon = template().expect("the template icon reads");
+        assert_eq!((icon.width(), icon.height()), (64, 64));
+        let px = icon.rgba();
+        // Only black and transparent pixels: macOS tints the shape.
+        assert!(
+            px.chunks(4)
+                .all(|p| p[3] == 0 || (p[0] < 40 && p[1] < 40 && p[2] < 40))
+        );
+        assert!(px.chunks(4).any(|p| p[3] == 0) && px.chunks(4).any(|p| p[3] == 255));
     }
 }

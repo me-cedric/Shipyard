@@ -11,6 +11,7 @@ export const uiEn = {
 	spendToday: "Spend today",
 	tray: {
 		month: "Month",
+		running: "{count} running",
 		synced: "Synced {time}",
 		syncFailed: "Sync failed",
 		open: "Open Shipyard",
@@ -83,6 +84,7 @@ export const uiFr: typeof uiEn = {
 	spendToday: "Dépense du jour",
 	tray: {
 		month: "Mois",
+		running: "{count} en cours",
 		synced: "Synchronisé à {time}",
 		syncFailed: "Échec de la synchronisation",
 		open: "Ouvrir Shipyard",

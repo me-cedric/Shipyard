@@ -84,16 +84,17 @@ describe("Knowledge / Dashboards", () => {
 		expect(runs.queryByText("PROpen")).toBeNull();
 	});
 
-	it("pins a tile to Home, where My work shows it", async () => {
+	it("pins a tile, and the pinned tile shows at the top of Dashboards and not on Home", async () => {
 		const user = userEvent.setup();
 		const router = await mountKnowledge("dashboards");
 		await user.click(await (await tile("Runs")).findByRole("button", { name: "Pin to Home" }));
-		expect(
-			await (await tile("Runs")).findByRole("button", { name: "Unpin from Home" }),
-		).toHaveAttribute("aria-pressed", "true");
-		await router.navigate({ to: "/home/my-work" });
 		expect(await screen.findByRole("heading", { name: "Pinned (1)" })).toBeInTheDocument();
-		await user.click(await (await tile("Runs")).findByRole("button", { name: "Unpin from Home" }));
+		await router.navigate({ to: "/home/today" });
+		await screen.findByRole("heading", { level: 1, name: "Today" });
+		expect(screen.queryByRole("heading", { name: /^Pinned/ })).toBeNull();
+		await router.navigate({ to: "/knowledge/dashboards" });
+		const pinned = within(await screen.findByRole("region", { name: "Pinned" }));
+		await user.click(await pinned.findByRole("button", { name: "Unpin from Home" }));
 		await waitFor(() => expect(screen.queryByRole("heading", { name: /^Pinned/ })).toBeNull());
 	});
 

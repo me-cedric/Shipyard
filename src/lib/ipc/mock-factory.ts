@@ -154,6 +154,23 @@ limits:
   budget_usd: 5
   stall_s: 300
 `,
+	"docs-update": `# A docs update: one agent brings one stale doc up to date, then a pull request. A person starts it.
+id: docs-update
+steps:
+  - id: update
+    role: docs
+    model: mid
+    effort: medium
+    workspace: worktree
+    tools: [read_ticket, read_ref, post_progress, handoff, report]
+  - id: pr
+    action: open_pr
+    needs: [update]
+limits:
+  max_turns: 20
+  budget_usd: 2
+  stall_s: 300
+`,
 	"review-only": `# A review: review an existing branch in a fresh context, then report.
 id: review-only
 steps:

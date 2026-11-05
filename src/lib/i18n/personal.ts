@@ -15,9 +15,10 @@ export const personalEn = {
 		title: "Docs chain",
 		clean: "Every artifact follows its source since {base}.",
 		stale: "Behind {from}: {count} changed files",
-		update: "Update",
-		prompt:
-			"The {from} folder changed since {base} and the {to} folder did not follow. Changed files: {paths}. Update the {to} files that these changes put out of date, and name each one you leave as it is.",
+		update: "Update with an agent",
+		updateName: "Update with an agent: {name}",
+		runName: "Run of {name}",
+		problem: "{path} cannot be read: {error}. It is left out of the pull request.",
 	},
 	files: {
 		newFile: "New file",
@@ -80,9 +81,10 @@ export const personalFr: typeof personalEn = {
 		title: "Chaîne documentaire",
 		clean: "Chaque artefact suit sa source depuis {base}.",
 		stale: "En retard sur {from} : {count} fichiers modifiés",
-		update: "Mettre à jour",
-		prompt:
-			"Le dossier {from} a changé depuis {base} et le dossier {to} n'a pas suivi. Fichiers modifiés : {paths}. Mets à jour les fichiers de {to} que ces changements rendent périmés, et nomme chaque fichier que tu laisses tel quel.",
+		update: "Mettre à jour avec un agent",
+		updateName: "Mettre à jour avec un agent : {name}",
+		runName: "Exécution de {name}",
+		problem: "{path} est illisible : {error}. Il reste hors de la pull request.",
 	},
 	files: {
 		newFile: "Nouveau fichier",

@@ -2,9 +2,9 @@ import { expect, type Page, test } from "@playwright/test";
 
 /** Opens the mock project, then the Code space on the given tab. */
 async function openCode(page: Page, tab: string) {
-	await page.goto("/home/inbox");
+	await page.goto("/home/today");
 	await page.getByRole("button", { name: "Open a local folder" }).click();
-	await expect(page.getByRole("heading", { name: "Needs you" })).toBeVisible();
+	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 	await page
 		.getByRole("navigation", { name: "Sidebar" })
 		.getByRole("link", { name: "Code" })

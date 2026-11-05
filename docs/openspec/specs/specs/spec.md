@@ -28,7 +28,7 @@ Specs come before code, for people and for agents. The earlier tool shows change
 ### Requirement list
 
 - REQ-001: The system SHALL list the OpenSpec changes of the project in Specs / Changes. The view SHALL have one primary action: new change.
-- REQ-002: The system SHALL show the status of each artifact of a change: missing, draft or done. An artifact is missing when its file does not exist. It is done when it passes strict validation. Otherwise it is draft. The artifacts are the proposal, the spec, the plan, the checklist and the tasks.
+- REQ-002: The system SHALL show the status of each artifact of a change: missing, not checked, draft or done. Missing: no file. Not checked: no validation ran on the current files. Done: it passes strict validation. Draft: the validation found a problem in it. The last validation SHALL stay across a restart until a file of the change changes. The artifacts are the proposal, the spec, the plan, the checklist and the tasks.
 - REQ-003: The system SHALL create a change with the `shipyard-delivery` schema. The system SHALL edit each artifact of a change in an editor.
 - REQ-004: The system SHALL validate a change with the OpenSpec rules in strict mode. The system SHALL show each finding on the artifact that holds it, with its line.
 - REQ-005: The system SHALL list the settled capabilities in Specs / Capabilities. Each row SHALL show the capability name and its count of requirements.
@@ -123,13 +123,19 @@ The system SHALL list the OpenSpec changes of the project in Specs / Changes. Th
 
 ### Requirement: REQ-002 Artifact status
 
-The system SHALL show the status of each artifact of a change: missing, draft or done. An artifact is missing when its file does not exist. It is done when it passes strict validation. Otherwise it is draft. The artifacts are the proposal, the spec, the plan, the checklist and the tasks.
+The system SHALL show the status of each artifact of a change: missing, not checked, draft or done. Missing: no file. Not checked: no validation ran on the current files. Done: it passes strict validation. Draft: the validation found a problem in it. The last validation SHALL stay across a restart until a file of the change changes. The artifacts are the proposal, the spec, the plan, the checklist and the tasks.
 
 #### Scenario: Partial change
 - GIVEN a change with a valid proposal and a spec that has one finding
 - WHEN the person opens the change
 - THEN the proposal shows done and the spec shows draft
 - AND the plan, the checklist and the tasks show missing
+
+#### Scenario: Not checked
+- GIVEN a change whose files changed since the last validation
+- WHEN the person opens the list of changes
+- THEN its artifacts show not checked, not draft
+- AND after a restart with no file change, a validated change keeps its status
 
 ### Requirement: REQ-003 Create and edit a change
 
