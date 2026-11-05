@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useOpenInTerminalApp } from "@/features/shell/terminal-app";
 import { format, useI18n } from "@/lib/i18n";
 import { usePanelSize, usePrefs } from "@/lib/prefs";
+import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { CheckIcon, CommandLineIcon, PlusIcon, ViewColumnsIcon, XMarkIcon } from "@/ui/icons";
@@ -29,15 +30,26 @@ export function TerminalDrawer({ open, onHide }: { open: boolean; onHide: () => 
 	const [tabs, setTabs] = useState<number[]>([]);
 	const [current, setCurrent] = useState(0);
 	const [next, setNext] = useState(1);
-	const add = () => {
+	/** The command that a tab runs when its shell starts (a sign-in), by tab. */
+	const [startup, setStartup] = useState<Record<number, string>>({});
+	const { terminalJob } = useShell();
+	const handled = useRef(terminalJob?.id);
+	const add = (command?: string) => {
+		if (command) setStartup((all) => ({ ...all, [next]: command }));
 		setTabs((all) => [...all, next]);
 		setCurrent(next);
 		setNext(next + 1);
 	};
 	// biome-ignore lint/correctness/useExhaustiveDependencies: only the first open starts a shell
 	useEffect(() => {
-		if (open && tabs.length === 0) add();
+		if (open && tabs.length === 0 && terminalJob?.id === handled.current) add();
 	}, [open]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: runs once for each new job
+	useEffect(() => {
+		if (!terminalJob || terminalJob.id === handled.current) return;
+		handled.current = terminalJob.id;
+		add(terminalJob.command);
+	}, [terminalJob]);
 	const close = (n: number) => {
 		const rest = tabs.filter((x) => x !== n);
 		setTabs(rest);
@@ -105,7 +117,7 @@ export function TerminalDrawer({ open, onHide }: { open: boolean; onHide: () => 
 						</span>
 					))}
 				</div>
-				<IconButton label={d.add} onClick={add} className="size-7">
+				<IconButton label={d.add} onClick={() => add()} className="size-7">
 					<PlusIcon size={14} />
 				</IconButton>
 				<MenuButton
@@ -135,7 +147,7 @@ export function TerminalDrawer({ open, onHide }: { open: boolean; onHide: () => 
 						hidden={n !== current}
 						className="flex min-h-0 flex-1 flex-col"
 					>
-						<TerminalScreen />
+						<TerminalScreen startup={startup[n]} />
 					</div>
 				))}
 			</div>

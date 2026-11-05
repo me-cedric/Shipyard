@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { type RefObject, useEffect, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { commands, isTauri, type TerminalOutput, toFailure, unwrap } from "@/lib/ipc";
 import { CODE_FONTS } from "@/lib/prefs";
 
@@ -47,9 +47,13 @@ export function useTerminal(
 	onError: (message: string) => void,
 	/** The line that shows when the shell exits. */
 	endedLine: string,
+	/** A command line that runs once, when the shell starts. */
+	startup?: string,
 ) {
 	const [ended, setEnded] = useState(false);
 	const [round, setRound] = useState(0);
+	// The startup command runs once: a restart gives a plain shell.
+	const ran = useRef(false);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: onError is a state setter and the text only shows at an exit
 	useEffect(() => {
 		const node = host.current;
@@ -124,7 +128,13 @@ export function useTerminal(
 				const out = await commands.terminalOpen(id, folder, term.cols, term.rows);
 				if (out.status === "error") onError(toFailure(out.error).message);
 				if (stop) teardown();
-				else term.focus();
+				else {
+					term.focus();
+					if (startup && !ran.current && out.status === "ok") {
+						ran.current = true;
+						void commands.terminalWrite(id, `${startup}\r`);
+					}
+				}
 			} catch (e) {
 				onError(e instanceof Error ? e.message : String(e));
 			}

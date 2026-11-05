@@ -3,12 +3,17 @@ import { useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type RunnerTiers_Serialize, unwrap } from "@/lib/ipc";
+import { useShell } from "@/lib/shell";
+import { Button } from "@/ui/atoms/button";
 import { Caption, Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
+import { ConnectionRow } from "@/ui/molecules/connection-row";
+import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { runnerKeys } from "./connections/keys";
 import { Compass } from "./extensions/compass";
+import { ProviderRows } from "./provider-rows";
 
 const TIERS = ["top", "mid", "small"] as const;
 const EFFORT = { top: "topEffort", mid: "midEffort", small: "smallEffort" } as const;
@@ -126,6 +131,125 @@ function TierRow({ row, detected }: { row: RunnerTiers_Serialize; detected: bool
 	);
 }
 
+/** How long the view asks the status command after a sign-in starts, and how often. */
+const WAIT_CAP = 5 * 60_000;
+const WAIT_STEP = 3000;
+
+/**
+ * One row for each coding tool: name, version, sign-in state and one action. "Sign in" runs the
+ * login of the tool in the integrated terminal (Q-133) and then asks the status command until the
+ * tool says signed in. A missing tool offers its install. Shipyard never reads a token.
+ */
+function ToolRows() {
+	const { t } = useI18n();
+	const s = t.settings.signIn;
+	const { runInTerminal } = useShell();
+	const { failure, run } = useGuard();
+	const [waiting, setWaiting] = useState<string | null>(null);
+	const [keyForm, setKeyForm] = useState(false);
+	const [key, setKey] = useState("");
+	const runners = useQuery({
+		queryKey: runnerKeys.list,
+		queryFn: () => unwrap(commands.runnersList()),
+		// A tool that is not "signed out" has no state to wait for.
+		refetchInterval: (q) =>
+			q.state.data?.find((r) => r.id === waiting)?.auth === "signedOut" ? WAIT_STEP : false,
+	});
+	const signIn = (id: string, device: boolean) =>
+		run(async () => {
+			runInTerminal(await unwrap(commands.runnerSignIn(id, device, true)));
+			setWaiting(id);
+			setTimeout(() => setWaiting((w) => (w === id ? null : w)), WAIT_CAP);
+			await runners.refetch();
+		});
+	const saveKey = () =>
+		run(async () => {
+			const value = key;
+			// The key never stays in the view: clear it whatever the result.
+			setKey("");
+			await unwrap(commands.runnerCodexApiKey(value, true));
+			setKeyForm(false);
+			await runners.refetch();
+		});
+	const install = (id: string) =>
+		run(async () => {
+			await unwrap(commands.runnerInstall(id, true));
+			await runners.refetch();
+		});
+	const rows = runners.data ?? [];
+	return (
+		<Panel title={s.name} count={rows.length} flush>
+			{rows.map((r) => {
+				const missing = r.state === "missing";
+				const label = missing
+					? s.missing
+					: waiting === r.id && r.auth === "signedOut"
+						? s.waiting
+						: s[r.auth];
+				return (
+					<ConnectionRow
+						key={r.id}
+						status={
+							missing || r.auth === "notChecked"
+								? "idle"
+								: r.auth === "signedIn"
+									? "info"
+									: "warning"
+						}
+						statusLabel={label}
+						name={r.label}
+						product={r.version ?? undefined}
+						actions={
+							missing ? (
+								<Button onClick={() => void install(r.id)}>
+									{format(t.settings.tools.install, { name: r.label })}
+								</Button>
+							) : r.auth === "signedIn" ? null : (
+								<>
+									<Button onClick={() => void signIn(r.id, false)}>{s.action}</Button>
+									{r.id === "codex" ? (
+										<>
+											<Button onClick={() => void signIn(r.id, true)}>{s.code}</Button>
+											<Button aria-expanded={keyForm} onClick={() => setKeyForm(!keyForm)}>
+												{s.apiKey}
+											</Button>
+										</>
+									) : null}
+								</>
+							)
+						}
+					>
+						{r.id === "codex" && keyForm ? (
+							<form
+								className="flex flex-wrap items-end gap-2 border-t px-3 py-2"
+								onSubmit={(e) => {
+									e.preventDefault();
+									void saveKey();
+								}}
+							>
+								<Input
+									autoFocus
+									label={s.apiKeyField}
+									type="password"
+									autoComplete="off"
+									value={key}
+									onChange={(e) => setKey(e.target.value)}
+									className="w-72"
+								/>
+								<Button type="submit" variant="primary" disabled={!key.trim()}>
+									{s.save}
+								</Button>
+							</form>
+						) : null}
+					</ConnectionRow>
+				);
+			})}
+			<ProviderRows />
+			<ErrorNotice error={failure} className="px-3" />
+		</Panel>
+	);
+}
+
 /** Settings / Agents and rules: the compass part, then the model of each tier of each runner (factory REQ-012). */
 export function AgentsRules() {
 	const { t } = useI18n();
@@ -136,6 +260,7 @@ export function AgentsRules() {
 	});
 	return (
 		<Compass>
+			<ToolRows />
 			<Panel title={t.settings.tiers.name} count={tiers.data?.length ?? 0} flush>
 				{(tiers.data ?? []).map((row) => (
 					// The saved row keys the draft: a refused edit keeps the typed text until the person fixes it.

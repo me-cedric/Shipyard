@@ -118,6 +118,12 @@ export const commands = {
 	codePullArchiveSpec: (number: number, change: string, confirmed: boolean, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("code_pull_archive_spec", { number, change, confirmed, click })),
 	deviceLoginStart: (id: string, click: boolean) => typedError<DeviceStart, AppError_Serialize>(__TAURI_INVOKE("device_login_start", { id, click })),
 	deviceLoginPoll: (id: string, deviceCode: string) => typedError<DeviceState, AppError_Serialize>(__TAURI_INVOKE("device_login_poll", { id, deviceCode })),
+	providersOpenrouterSignIn: (click: boolean) => typedError<Provider, AppError_Serialize>(__TAURI_INVOKE("providers_openrouter_sign_in", { click })),
+	/**  Stops the wait for the callback. It does nothing when no sign-in waits. */
+	providersOpenrouterCancel: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("providers_openrouter_cancel")),
+	providersKeySave: (kind: string, key: string, url: string | null, click: boolean) => typedError<Provider, AppError_Serialize>(__TAURI_INVOKE("providers_key_save", { kind, key, url, click })),
+	localRuntimesList: () => typedError<LocalRuntime[], AppError_Serialize>(__TAURI_INVOKE("local_runtimes_list")),
+	localRuntimesAdd: (id: string, click: boolean) => typedError<Provider, AppError_Serialize>(__TAURI_INVOKE("local_runtimes_add", { id, click })),
 	codeOrigin: () => typedError<Origin_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("code_origin")),
 	codeRemoteSet: (url: string, click: boolean) => typedError<Origin_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_remote_set", { url, click })),
 	codePublish: (connection: string, slug: string, click: boolean) => typedError<Origin_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_publish", { connection, slug, click })),
@@ -541,6 +547,10 @@ export const commands = {
 	gitLastChange: (path: string) => typedError<CommitInfo | null, AppError_Serialize>(__TAURI_INVOKE("git_last_change", { path })),
 	gitLinkedInspect: (child: string) => typedError<Inspect_Serialize, AppError_Serialize>(__TAURI_INVOKE("git_linked_inspect", { child })),
 	runnerInstall: (id: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("runner_install", { id, click })),
+	/**  The command line for the terminal tab of the sign-in of `id`. */
+	runnerSignIn: (id: string, device: boolean, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("runner_sign_in", { id, device, click })),
+	/**  Sign Codex in with an API key. Write-only: nothing returns the key. */
+	runnerCodexApiKey: (key: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("runner_codex_api_key", { key, click })),
 	codexTrustState: () => typedError<boolean, AppError_Serialize>(__TAURI_INVOKE("codex_trust_state")),
 	codexTrust: (click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("codex_trust", { click })),
 	/**  Replaces the native menu with one in the language of the person. `labels` is keyed by item id. */
@@ -870,6 +880,14 @@ export type Attachment = {
 	quote: string,
 	bytes: number,
 };
+
+/**
+ *  The sign-in state of a tool. Only the exit code and the `authMethod` field of its status
+ *  command tell it: Shipyard never reads a token file or a keychain entry (ADR 0017).
+ */
+export type AuthState = "signedIn" | "signedOut" | 
+/**  The tool has no usable status command (Q-134), or the command did not answer. */
+"notChecked";
 
 /**
  *  What the sync tick does for a new pull request or a new head commit (spec `agent-pr` REQ-006).
@@ -2619,6 +2637,16 @@ export type LoadDay = {
 export type Loaded<T> = {
 	value: T,
 	readOnly: boolean,
+};
+
+/**  A runtime that answered. */
+export type LocalRuntime = {
+	id: string,
+	name: string,
+	/**  The provider address, up to and including `/v1`. */
+	url: string,
+	/**  The first model that the runtime lists, or `default` when it lists none. */
+	model: string,
 };
 
 export type LogLine = {
@@ -4700,6 +4728,7 @@ export type Runner_Deserialize = {
 	path?: string | null,
 	/**  `None` when missing, or when the runner printed no version in time. */
 	version?: string | null,
+	auth: AuthState,
 	/**  How to install it. Shown beside a missing runner. */
 	install: string,
 };
@@ -4712,6 +4741,7 @@ export type Runner_Serialize = {
 	path: string | null,
 	/**  `None` when missing, or when the runner printed no version in time. */
 	version: string | null,
+	auth: AuthState,
 	/**  How to install it. Shown beside a missing runner. */
 	install: string,
 };

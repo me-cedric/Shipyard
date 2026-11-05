@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.1.0]
+- Réglages / Agents et règles montre chaque outil d’IA avec son état de connexion (Connecté, Déconnecté ou Non vérifié) d’après la commande d’état de l’outil, et Se connecter lance la connexion de l’outil dans un onglet de terminal, même sans projet ouvert ; Codex propose le navigateur, un code ou une clé d’API ; OpenRouter se connecte avec le navigateur et range sa clé dans le trousseau, avec Annuler ; une clé de fournisseur collée est testée avant l’enregistrement ; Ollama, LM Studio, vLLM et LiteLLM sur cet ordinateur sont trouvés tout seuls. L’app ne lit jamais les fichiers de jetons d’un outil.
 - Correctifs de sécurité : le mode Ignorer les permissions est refusé par l’app pour un projet en lecture seule et n’est jamais une valeur par défaut ; un serveur MCP collé avec un secret dans un en-tête, un cookie ou la requête d’une URL est refusé, et vous lisez chaque commande avant l’ajout ; les fichiers des outils d’agent refusent un dossier lié qui sort du projet ; l’observateur de fichiers utilise les événements du système au lieu d’un balayage.
 - La barre d’état de Code compte les lignes ajoutées et retirées depuis le dernier commit, fichiers neufs compris ; un très gros fichier compte comme binaire. La correspondance des noms de l’équipe ignore les formes d’accent (`é` en un caractère ou en `e` avec un accent).
 - Usine / Consommation se remplit pendant la lecture des journaux des agents, avec une ligne qui compte les fichiers lus, et ses montants se comptent en montant ; les journaux lus restent sur le disque, donc le démarrage suivant ne lit que les nouveaux.
@@ -24,6 +25,8 @@
 - Les tuiles d’un tableau de bord se déplacent par glisser-déposer vers une autre colonne ; les boutons Déplacer à gauche et Déplacer à droite restent pour le clavier.
 - Une capture d’écran collée dans la zone de message de l’assistant devient une pièce jointe, avec la même recherche de secrets qu’un fichier choisi.
 - Un dossier déposé sur la fenêtre s’ouvre comme projet, comme le fait Ouvrir un dossier.
+- Réglages / Agents et règles liste chaque outil de code (Claude Code, Codex, GitHub Copilot, OpenCode, Gemini CLI ou `agy`) avec sa version et son état de connexion ; Se connecter ouvre la connexion de l’outil dans le tiroir du terminal et l’état se met à jour à la fin, Codex a aussi Utiliser un code à la place, et un outil absent a Installer.
+- Réglages / Agents et règles liste aussi les fournisseurs d’IA : OpenRouter se connecte dans le navigateur, un moteur local de cette machine (Ollama, LM Studio, vLLM, LiteLLM) a Ajouter, et OpenAI, Anthropic, Mistral, Google AI Studio et Azure OpenAI ont Obtenir une clé et un champ de clé qui teste la clé avant de l’enregistrer dans le trousseau.
 
 ### Ajouts
 

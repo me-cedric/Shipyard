@@ -11,15 +11,18 @@ import { useTerminal } from "./use-terminal";
 /** One shell on a dark screen that fills its space. The tab and the drawer both show it. */
 export function TerminalScreen({
 	folder = null,
+	startup,
 	className,
 }: {
 	folder?: string | null;
+	/** A command that runs when the shell starts. */
+	startup?: string;
 	className?: string;
 }) {
 	const { t } = useI18n();
 	const host = useRef<HTMLDivElement>(null);
 	const [error, setError] = useState<unknown>(null);
-	const { ended, restart } = useTerminal(host, folder, setError, t.forge.terminal.ended);
+	const { ended, restart } = useTerminal(host, folder, setError, t.forge.terminal.ended, startup);
 	return (
 		<>
 			{error ? <ErrorNotice error={error} className="px-4 py-2 text-ui text-danger-text" /> : null}

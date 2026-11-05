@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.1.0]
+- Settings / Agents and rules shows each AI tool with its sign-in state (Signed in, Signed out or Not checked) from the tool's own status command, and Sign in runs the login of the tool in a terminal tab, also with no project open; Codex offers the browser, a code or an API key; OpenRouter signs in with the browser and stores its key in the keychain, with Cancel; a pasted provider key is tested before it is saved; Ollama, LM Studio, vLLM and LiteLLM on this computer are found on their own. The app never reads the token files of a tool.
 - Safety fixes: Bypass permissions is refused by the app for a read only project and is never a default; a pasted MCP server with a secret in a header, a cookie or a URL query is refused, and you read each command before it is added; the agent tool files refuse a linked folder that leaves the project; the file watcher uses the system events instead of a scan.
 - The status bar of Code counts the lines added and removed since the last commit, new files included; a very large file counts as binary. The team match of a name ignores accent forms (`é` as one character or as `e` with an accent).
 - Factory / Usage fills in while it reads the agent logs, with a line that counts the files read, and its amounts count up; the read logs stay on disk, so the next start reads only the new ones.
@@ -24,6 +25,8 @@
 - Dashboard tiles can be dragged to another column; the Move left and Move right buttons stay for the keyboard.
 - A screenshot pasted in the message box of the assistant joins the message as an attachment, with the same check for secrets as a picked file.
 - A folder dropped on the window opens as a project, as Open folder does.
+- Settings / Agents and rules lists each coding tool (Claude Code, Codex, GitHub Copilot, OpenCode, Gemini CLI or `agy`) with its version and its sign-in state; Sign in opens the login of the tool in the terminal drawer and the state updates when it ends, Codex also has Use a code instead, and a missing tool has Install.
+- Settings / Agents and rules lists the AI providers too: OpenRouter signs in in the browser, a local runtime on this machine (Ollama, LM Studio, vLLM, LiteLLM) has Add, and OpenAI, Anthropic, Mistral, Google AI Studio and Azure OpenAI have Get a key and a key field that tests the key before it saves it to the keychain.
 
 ### Added
 

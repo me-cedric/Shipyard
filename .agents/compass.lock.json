@@ -1,7 +1,7 @@
 {
   "lockVersion": 2,
-  "version": "1.0.2",
-  "tag": "v1.0.2",
+  "version": "1.2.0",
+  "tag": "v1.2.0",
   "skills": [
     "adr",
     "api-contract-sync",
@@ -77,7 +77,11 @@
     },
     ".agents/skills/ci-triage/SKILL.md": {
       "owner": "compass",
-      "sha": "5799aab650ff9999"
+      "sha": "17518a23ddb57ace"
+    },
+    ".agents/skills/ci-triage/references/speed.md": {
+      "owner": "compass",
+      "sha": "00671359ea7062ff"
     },
     ".agents/skills/compass/SKILL.md": {
       "owner": "compass",
@@ -485,7 +489,11 @@
     },
     ".claude/skills/ci-triage/SKILL.md": {
       "owner": "compass",
-      "sha": "5799aab650ff9999"
+      "sha": "17518a23ddb57ace"
+    },
+    ".claude/skills/ci-triage/references/speed.md": {
+      "owner": "compass",
+      "sha": "00671359ea7062ff"
     },
     ".claude/skills/compass/SKILL.md": {
       "owner": "compass",
@@ -877,7 +885,7 @@
     },
     ".github/workflows/compass-check.yml": {
       "owner": "compass",
-      "sha": "d54e9c441e066c19"
+      "sha": "fe16c4904f624379"
     },
     ".github/workflows/compass-e2e.yml": {
       "owner": "project",

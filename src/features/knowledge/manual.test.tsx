@@ -51,6 +51,7 @@ describe("Knowledge / Manual", () => {
 			"start/Safe by default",
 			"design/Screens",
 			"settings/Connections",
+			"settings/AI tools",
 		]);
 		expect(searchManual("   ")).toEqual([]);
 	});

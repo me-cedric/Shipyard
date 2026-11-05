@@ -60,6 +60,21 @@
       "id": "figma-api",
       "name": "Figma API",
       "description": "api.figma.com, read with a token that sits in the keychain."
+    },
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "description": "openrouter.ai. OAuth PKCE sign-in that returns an API key, then the model provider endpoint."
+    },
+    {
+      "id": "microsoft-login",
+      "name": "Microsoft login",
+      "description": "Deferred (Q-132): no code calls it yet. login.microsoftonline.com. Entra ID device code sign-in for Azure OpenAI and Azure AI Foundry."
+    },
+    {
+      "id": "local-runtime",
+      "name": "Local runtime",
+      "description": "Ollama, LM Studio, vLLM or LiteLLM on localhost. Found by a probe, with no sign-in."
     }
   ]
 }

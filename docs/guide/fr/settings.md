@@ -32,6 +32,27 @@ Agents et règles contient les règles et les compétences des agents, venues du
 
 L'application garde chaque fichier qu'une personne a changé, sauf si vous réinstallez.
 
+### Outils d’IA
+
+Le haut de la page liste chaque outil de code que l’application connaît : Claude Code, Codex, GitHub Copilot, OpenCode et Gemini CLI (le programme `agy` compte comme Gemini CLI). Chaque ligne montre le nom, la version, l’état et une action.
+
+- Connecté : l’outil est prêt. La ligne n’a pas d’action.
+- Déconnecté : cliquez sur Se connecter. Le tiroir du terminal s’ouvre et lance la connexion de l’outil. Terminez dans le navigateur. L’état change à la fin de la connexion. Pour Codex, cliquez sur Utiliser un code à la place pour vous connecter avec un code.
+- Non vérifié : Copilot, OpenCode et Gemini CLI n’ont pas de commande d’état que l’application peut lire. Cliquez sur Se connecter.
+- Non installé : cliquez sur Installer.
+
+L’application demande son état à l’outil et ne lit jamais ses fichiers de jeton ni ses entrées de trousseau.
+
+### Fournisseurs d’IA
+
+Sous les outils, une ligne liste chaque fournisseur.
+
+- OpenRouter : cliquez sur Se connecter. Le navigateur s’ouvre. Validez-y, et l’application range la clé dans le trousseau. Cliquez sur Annuler pour arrêter l’attente. L’attente se termine après 10 minutes.
+- Ollama, LM Studio, vLLM et LiteLLM : l’application regarde sur cette machine seulement. Un moteur qui répond a une ligne avec Ajouter. Ajouter crée un fournisseur sans clé.
+- OpenAI, Anthropic, Mistral, Google AI Studio et Azure OpenAI : cliquez sur Obtenir une clé pour ouvrir la page de clés du fournisseur. Cliquez sur Coller la clé, collez la clé et cliquez sur Enregistrer (ou appuyez sur Entrée). L’application teste d’abord la clé. Une clé qui échoue n’est pas enregistrée, et la ligne donne la raison et l’action. Azure OpenAI demande aussi l’adresse de votre ressource.
+
+Une clé va dans le trousseau seulement. Elle ne va jamais dans un fichier, un journal ou une adresse.
+
 ## Extensions
 
 Extensions contient le catalogue, les plugins et les projets enfants.

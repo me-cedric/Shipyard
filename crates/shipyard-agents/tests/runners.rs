@@ -3,7 +3,7 @@
 
 use serde_json::json;
 use shipyard_agents::AgentError;
-use shipyard_agents::runners::{ModelProvider, RunnerState, detect_in};
+use shipyard_agents::runners::{AuthState, ModelProvider, RunnerState, detect_in};
 use shipyard_http::fake::FakeHttp;
 use shipyard_http::{Auth, Http, TestOutcome};
 use shipyard_secrets::{MemoryStore, Secret, SecretStore, conn_account};
@@ -49,6 +49,69 @@ mod runners {
                 ("opencode", RunnerState::Missing, None),
             ]
         );
+    }
+
+    fn auth_of(dir: &Path, id: &str) -> AuthState {
+        let runners = detect_in(&[dir.to_path_buf()], WAIT);
+        runners.iter().find(|r| r.id == id).unwrap().auth
+    }
+
+    #[test]
+    fn agy_alone_shows_the_gemini_row_as_detected() {
+        let dir = tempfile::tempdir().unwrap();
+        program(dir.path(), "agy", "echo 'agy 1.2.0'", 0o755);
+        let runners = detect_in(&[dir.path().to_path_buf()], WAIT);
+        let gemini = runners.iter().find(|r| r.id == "gemini").unwrap();
+        assert_eq!(gemini.state, RunnerState::Detected);
+        assert_eq!(gemini.version.as_deref(), Some("1.2.0"));
+        assert!(gemini.path.as_deref().unwrap().ends_with("agy"));
+    }
+
+    #[test]
+    fn codex_state_follows_the_exit_code_of_login_status() {
+        let dir = tempfile::tempdir().unwrap();
+        let body = |code: u8| format!("[ \"$1\" = login ] && exit {code}\necho 'codex-cli 0.1.0'");
+        program(dir.path(), "codex", &body(0), 0o755);
+        assert_eq!(auth_of(dir.path(), "codex"), AuthState::SignedIn);
+        program(dir.path(), "codex", &body(1), 0o755);
+        assert_eq!(auth_of(dir.path(), "codex"), AuthState::SignedOut);
+    }
+
+    #[test]
+    fn claude_state_reads_the_exit_code_and_the_auth_method() {
+        let dir = tempfile::tempdir().unwrap();
+        let body = |code: u8, json: &str| {
+            format!("[ \"$1\" = auth ] && {{ echo '{json}'; exit {code}; }}\necho '2.1.0'")
+        };
+        program(
+            dir.path(),
+            "claude",
+            &body(0, r#"{"authMethod":"oauth"}"#),
+            0o755,
+        );
+        assert_eq!(auth_of(dir.path(), "claude"), AuthState::SignedIn);
+        program(
+            dir.path(),
+            "claude",
+            &body(1, r#"{"loggedIn":false}"#),
+            0o755,
+        );
+        assert_eq!(auth_of(dir.path(), "claude"), AuthState::SignedOut);
+        program(
+            dir.path(),
+            "claude",
+            &body(0, r#"{"authMethod":"none"}"#),
+            0o755,
+        );
+        assert_eq!(auth_of(dir.path(), "claude"), AuthState::SignedOut);
+    }
+
+    #[test]
+    fn a_missing_tool_and_a_tool_without_status_command_are_not_checked() {
+        let dir = tempfile::tempdir().unwrap();
+        program(dir.path(), "copilot", "exit 1", 0o755);
+        assert_eq!(auth_of(dir.path(), "codex"), AuthState::NotChecked);
+        assert_eq!(auth_of(dir.path(), "copilot"), AuthState::NotChecked);
     }
 
     #[test]

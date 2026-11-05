@@ -13,6 +13,10 @@ tauri-build.workspace = true
 [dependencies]
 # Already in the tree through `url`: compares names that macOS and git store in different Unicode forms.
 icu_normalizer = "2.4"
+# Already in the tree: PKCE for the OpenRouter sign-in (SHA-256, base64url, OS random bits).
+base64 = "0.23"
+getrandom = "0.4"
+sha2 = "0.10"
 serde.workspace = true
 tauri.workspace = true
 tauri-specta.workspace = true

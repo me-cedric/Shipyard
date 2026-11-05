@@ -36,13 +36,16 @@ pub mod mcp_tools;
 pub mod openers;
 pub mod orca;
 pub mod outside;
+pub mod pkce;
 pub mod pr_agent;
+pub mod provider_keys;
 pub mod publish;
 pub mod qa;
 pub mod questions;
 mod reports;
 pub mod request_tree;
 pub mod runner_setup;
+pub mod runner_signin;
 pub mod sbom;
 pub mod scanners;
 mod shell;
@@ -173,6 +176,11 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::code::code_pull_archive_spec,
             crate::device_login::device_login_start,
             crate::device_login::device_login_poll,
+            crate::device_login::providers_openrouter_sign_in,
+            crate::device_login::providers_openrouter_cancel,
+            provider_keys::providers_key_save,
+            provider_keys::local_runtimes_list,
+            provider_keys::local_runtimes_add,
             crate::publish::code_origin,
             crate::publish::code_remote_set,
             crate::publish::code_publish,
@@ -508,6 +516,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::commands::git_extra::git_last_change,
             crate::commands::git_extra::git_linked_inspect,
             runner_setup::runner_install,
+            runner_signin::runner_sign_in,
+            runner_signin::runner_codex_api_key,
             codex_trust::codex_trust_state,
             codex_trust::codex_trust,
             sh::shell_menu,

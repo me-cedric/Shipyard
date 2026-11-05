@@ -16,8 +16,12 @@
 //! the file that ships with the app, then the file of the same name in the app data folder, which
 //! wins. A host with no client id gets the error `browser sign-in is not set up for <host>`.
 
+use std::io::{Read, Write};
+use std::net::TcpListener;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -27,9 +31,11 @@ use shipyard_secrets::{Secret, SecretStore, conn_account};
 use specta::Type;
 use tauri::AppHandle;
 
+use crate::agents::{Agents, Provider};
 use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::connections::{ConnectionKind, local_secs};
 use crate::work::need_click;
+use crate::{pkce, provider_keys};
 
 const EMBEDDED: &str = include_str!("../resources/oauth.env");
 const FILE: &str = "oauth.env";
@@ -371,6 +377,178 @@ pub async fn device_login_poll(
     device_code: String,
 ) -> Api<DeviceState> {
     blocking(app, move |s| poll(s, &id, &device_code)).await
+}
+
+// ---------------------------------------------------------------- OpenRouter (OAuth PKCE)
+
+const OR_AUTH: &str = "https://openrouter.ai/auth";
+const OR_KEYS: &str = "https://openrouter.ai/api/v1/auth/keys";
+const OR_BASE: &str = "https://openrouter.ai/api/v1";
+/// A code lasts 10 minutes: the wait for the callback ends with it.
+const SIGN_IN_LIMIT: Duration = Duration::from_secs(600);
+
+/// Set by Cancel: the wait for the callback stops and the listener closes.
+static CANCEL: AtomicBool = AtomicBool::new(false);
+/// One sign-in at a time.
+static BUSY: AtomicBool = AtomicBool::new(false);
+
+/// The `code` of the one callback request, or an error. The request must be
+/// `GET /callback/<state>?code=<code>`: the `state` rides in the path because the host appends
+/// its own query. Any other request is refused and ends the sign-in (a stray program cannot
+/// feed a code).
+fn callback_code(target: &str, state: &str) -> Option<String> {
+    let (path, query) = target.split_once('?')?;
+    if path != format!("/callback/{state}") {
+        return None;
+    }
+    let code = query.split('&').find_map(|kv| kv.strip_prefix("code="))?;
+    let plain = |c: char| c.is_ascii_alphanumeric() || "-._~".contains(c);
+    (!code.is_empty() && code.len() <= 512 && code.chars().all(plain)).then(|| code.to_string())
+}
+
+/// Waits for one request on the listener, until `limit` or Cancel.
+fn wait_for_code(
+    listener: &TcpListener,
+    state: &str,
+    cancel: &AtomicBool,
+    limit: Duration,
+) -> Res<String> {
+    let end = Instant::now() + limit;
+    loop {
+        let mut stream = loop {
+            if cancel.load(Ordering::SeqCst) {
+                return Err("the sign-in was cancelled".into());
+            }
+            match listener.accept() {
+                Ok((stream, _)) => break stream,
+                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    if Instant::now() >= end {
+                        return Err(
+                            "the sign-in timed out after 10 minutes: click Sign in to start again"
+                                .into(),
+                        );
+                    }
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+                Err(e) => return Err(format!("the sign-in listener failed: {e}")),
+            }
+        };
+        // An accepted socket can keep the non-blocking mode of the listener.
+        let _ = stream.set_nonblocking(false);
+        let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+        let mut buf = [0u8; 4096];
+        let mut n = 0;
+        while n < buf.len() && !buf[..n].contains(&b'\n') {
+            match stream.read(&mut buf[n..]) {
+                Ok(0) | Err(_) => break,
+                Ok(k) => n += k,
+            }
+        }
+        let head = String::from_utf8_lossy(&buf[..n]);
+        let Some(target) = head
+            .lines()
+            .next()
+            .and_then(|l| l.strip_prefix("GET "))
+            .and_then(|l| l.split(' ').next())
+        else {
+            // A spare connection that sends no request (a browser opens them): close it and wait on.
+            continue;
+        };
+        let code = callback_code(target, state);
+        let (status, page) = match code {
+            Some(_) => (
+                "200 OK",
+                "Signed in. Close this tab and go back to Shipyard.",
+            ),
+            None => (
+                "400 Bad Request",
+                "This answer does not match the sign-in. Go back to Shipyard.",
+            ),
+        };
+        let _ = write!(
+            stream,
+            "HTTP/1.1 {status}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{page}",
+            page.len()
+        );
+        return code.ok_or_else(|| {
+            "the answer did not match this sign-in: click Sign in to try again".into()
+        });
+    }
+}
+
+/// Trades the code for a key. The key reaches no log and no error text.
+fn exchange(http: &dyn Http, code: &str, verifier: &str) -> Res<Secret> {
+    let body = json!({
+        "code": code,
+        "code_verifier": verifier,
+        "code_challenge_method": "S256",
+    });
+    let reply = http
+        .json(&Request::post_json(OR_KEYS, Auth::None, body))
+        .map_err(|e| {
+            format!("OpenRouter gave no key: {e}. The code may have expired (it lasts 10 minutes): click Sign in again")
+        })?;
+    let key = text(&reply, "/key");
+    if key.is_empty() {
+        return Err("OpenRouter gave no key: click Sign in again".into());
+    }
+    Ok(Secret::new(key))
+}
+
+/// The whole flow. `open` shows the page in the browser. The listener takes 127.0.0.1 on a random
+/// port and one request.
+fn openrouter_flow(
+    agents: &Agents,
+    http: &dyn Http,
+    open: impl FnOnce(&str) -> Res<()>,
+    cancel: &AtomicBool,
+    limit: Duration,
+) -> Res<Provider> {
+    let verifier = pkce::random_hex()?;
+    let state = pkce::random_hex()?;
+    let listener = TcpListener::bind(("127.0.0.1", 0)).map_err(err)?;
+    listener.set_nonblocking(true).map_err(err)?;
+    let port = listener.local_addr().map_err(err)?.port();
+    let callback = format!("http://127.0.0.1:{port}/callback/{state}");
+    open(&format!(
+        "{OR_AUTH}?callback_url={}&code_challenge={}&code_challenge_method=S256",
+        shipyard_http::encode(&callback),
+        pkce::challenge(&verifier)
+    ))?;
+    let code = wait_for_code(&listener, &state, cancel, limit)?;
+    drop(listener);
+    let key = exchange(http, &code, &verifier)?;
+    provider_keys::store(agents, "OpenRouter", OR_BASE, "openrouter/auto", Some(key))
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn providers_openrouter_sign_in(app: AppHandle, click: bool) -> Api<Provider> {
+    blocking(app, move |s| {
+        need_click(s, click)?;
+        if BUSY.swap(true, Ordering::SeqCst) {
+            return Err("a sign-in is already open: cancel it first".into());
+        }
+        CANCEL.store(false, Ordering::SeqCst);
+        let out = openrouter_flow(
+            &s.agents,
+            &*s.connections.http(),
+            crate::feedback::open,
+            &CANCEL,
+            SIGN_IN_LIMIT,
+        );
+        BUSY.store(false, Ordering::SeqCst);
+        out
+    })
+    .await
+}
+
+/// Stops the wait for the callback. It does nothing when no sign-in waits.
+#[tauri::command]
+#[specta::specta]
+pub async fn providers_openrouter_cancel() -> Api<()> {
+    CANCEL.store(true, Ordering::SeqCst);
+    Ok(())
 }
 
 #[cfg(test)]
@@ -799,5 +977,224 @@ mod tests {
         call(&b);
         // The second write failed, and the refresh token that the host gave is not lost.
         assert_eq!(Oauth::of(&*store, "c").unwrap().refresh, "rt2");
+    }
+
+    // ------------------------------------------------ OpenRouter (OAuth PKCE)
+
+    use std::net::TcpStream;
+    use std::sync::atomic::AtomicBool;
+    use std::time::Duration;
+
+    fn agents(dir: &Path) -> (Agents, Arc<MemoryStore>) {
+        let store = Arc::new(MemoryStore::default());
+        let a = Agents::new(dir, store.clone(), Arc::new(FakeHttp::new()), |c| c);
+        (a, store)
+    }
+
+    /// A browser that follows the page: it calls the callback of the URL, with `tail` after the
+    /// path, and with a wrong `state` when `wrong`. `seen` keeps the page URL.
+    fn browser(
+        tail: &'static str,
+        wrong: bool,
+        seen: Arc<Mutex<String>>,
+    ) -> impl FnOnce(&str) -> Res<()> {
+        move |url| {
+            *seen.lock().unwrap() = url.to_string();
+            let cb = url.split("callback_url=").nth(1).unwrap();
+            let cb = cb
+                .split('&')
+                .next()
+                .unwrap()
+                .replace("%3A", ":")
+                .replace("%2F", "/");
+            let (port, path) = cb
+                .strip_prefix("http://127.0.0.1:")
+                .unwrap()
+                .split_once('/')
+                .unwrap();
+            let path = if wrong {
+                "other".into()
+            } else {
+                path.to_string()
+            };
+            let addr = format!("127.0.0.1:{port}");
+            let req = format!("GET /{path}{tail} HTTP/1.1\r\nHost: x\r\n\r\n");
+            std::thread::spawn(move || {
+                let mut c = TcpStream::connect(addr).unwrap();
+                c.write_all(req.as_bytes()).unwrap();
+                let _ = c.read_to_string(&mut String::new());
+            });
+            Ok(())
+        }
+    }
+
+    const LONG: Duration = Duration::from_secs(20);
+
+    #[test]
+    fn the_openrouter_sign_in_sends_the_s256_pair_and_stores_the_key_in_the_keychain_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let (a, store) = agents(dir.path());
+        let http = FakeHttp::new();
+        http.post(
+            "/api/v1/auth/keys",
+            "abc123",
+            200,
+            r#"{"key":"sk-or-v1-secret"}"#,
+        );
+        let seen = Arc::new(Mutex::new(String::new()));
+        let p = openrouter_flow(
+            &a,
+            &http,
+            browser("?code=abc123", false, seen.clone()),
+            &AtomicBool::new(false),
+            LONG,
+        )
+        .unwrap();
+        assert_eq!(
+            (p.name.as_str(), p.url.as_str(), p.secret),
+            ("OpenRouter", OR_BASE, true)
+        );
+        assert_eq!(
+            store.get(&conn_account(&p.id)).unwrap().unwrap().expose(),
+            "sk-or-v1-secret"
+        );
+        let file =
+            std::fs::read_to_string(dir.path().join(shipyard_mcp::relay::CONFIG_FILE)).unwrap();
+        assert!(!file.contains("sk-or-v1-secret"));
+        // The page: the host, a loopback callback and the challenge. The verifier is not in it.
+        let page = seen.lock().unwrap().clone();
+        assert!(
+            page.starts_with("https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A")
+        );
+        assert!(page.ends_with("&code_challenge_method=S256"));
+        let sent = http.requests();
+        let body = sent[0].body.as_ref().unwrap();
+        let verifier = text(body, "/code_verifier");
+        assert_eq!(text(body, "/code"), "abc123");
+        assert_eq!(text(body, "/code_challenge_method"), "S256");
+        assert!(page.contains(&format!("code_challenge={}", pkce::challenge(&verifier))));
+        assert!(!page.contains(&verifier));
+        assert!(matches!(sent[0].auth, Auth::None));
+    }
+
+    #[test]
+    fn a_spare_connection_that_sends_nothing_does_not_end_the_wait() {
+        let dir = tempfile::tempdir().unwrap();
+        let (a, _) = agents(dir.path());
+        let http = FakeHttp::new();
+        http.post(
+            "/api/v1/auth/keys",
+            "abc123",
+            200,
+            r#"{"key":"sk-or-v1-x"}"#,
+        );
+        let real = browser("?code=abc123", false, Arc::new(Mutex::new(String::new())));
+        let open = move |url: &str| -> Res<()> {
+            let port = url.split("127.0.0.1%3A").nth(1).unwrap();
+            let port = port.split("%2F").next().unwrap();
+            // The empty connection comes first and closes with no request line.
+            drop(TcpStream::connect(format!("127.0.0.1:{port}")).unwrap());
+            real(url)
+        };
+        let p = openrouter_flow(&a, &http, open, &AtomicBool::new(false), LONG).unwrap();
+        assert!(p.secret);
+    }
+
+    #[test]
+    fn a_callback_with_another_state_is_refused_and_nothing_is_sent_or_stored() {
+        let dir = tempfile::tempdir().unwrap();
+        let (a, store) = agents(dir.path());
+        let http = FakeHttp::new();
+        let seen = Arc::new(Mutex::new(String::new()));
+        let e = openrouter_flow(
+            &a,
+            &http,
+            browser("?code=abc123", true, seen),
+            &AtomicBool::new(false),
+            LONG,
+        )
+        .unwrap_err();
+        assert!(e.contains("did not match"), "{e}");
+        assert!(http.requests().is_empty());
+        assert!(a.providers().unwrap().is_empty());
+        assert!(
+            store
+                .get(&conn_account("provider-openrouter"))
+                .unwrap()
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn a_callback_with_no_valid_code_is_refused() {
+        assert_eq!(
+            callback_code("/callback/s?code=ab-1", "s").as_deref(),
+            Some("ab-1")
+        );
+        for bad in [
+            "/callback/s",
+            "/callback/s?code=",
+            "/callback/s?error=denied",
+            "/callback/t?code=ab",
+            "/callback?code=ab",
+            "/callback/s?code=a%20b",
+            "/callback/s?code=a<b",
+        ] {
+            assert_eq!(callback_code(bad, "s"), None, "{bad}");
+        }
+    }
+
+    #[test]
+    fn an_expired_code_gives_a_plain_error_with_the_action_and_stores_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let (a, _) = agents(dir.path());
+        let http = FakeHttp::new();
+        http.post(
+            "/api/v1/auth/keys",
+            "abc123",
+            400,
+            r#"{"error":{"message":"code expired"}}"#,
+        );
+        let seen = Arc::new(Mutex::new(String::new()));
+        let e = openrouter_flow(
+            &a,
+            &http,
+            browser("?code=abc123", false, seen),
+            &AtomicBool::new(false),
+            LONG,
+        )
+        .unwrap_err();
+        assert!(
+            e.contains("expired") && e.contains("click Sign in again"),
+            "{e}"
+        );
+        assert!(a.providers().unwrap().is_empty());
+    }
+
+    #[test]
+    fn cancel_and_the_time_limit_stop_the_listener() {
+        let dir = tempfile::tempdir().unwrap();
+        let (a, _) = agents(dir.path());
+        let http = FakeHttp::new();
+        let cancel = AtomicBool::new(false);
+        // No browser answers. Cancel lands while the flow waits.
+        let e = std::thread::scope(|t| {
+            t.spawn(|| {
+                std::thread::sleep(Duration::from_millis(150));
+                cancel.store(true, Ordering::SeqCst);
+            });
+            openrouter_flow(&a, &http, |_| Ok(()), &cancel, LONG).unwrap_err()
+        });
+        assert!(e.contains("cancelled"), "{e}");
+        let e = openrouter_flow(
+            &a,
+            &http,
+            |_| Ok(()),
+            &AtomicBool::new(false),
+            Duration::ZERO,
+        )
+        .unwrap_err();
+        assert!(e.contains("10 minutes"), "{e}");
+        assert!(http.requests().is_empty());
     }
 }

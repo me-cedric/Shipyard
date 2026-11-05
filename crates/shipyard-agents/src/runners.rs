@@ -25,40 +25,41 @@ const VERSION_WAIT: Duration = Duration::from_secs(5);
 struct RunnerDef {
     id: &'static str,
     label: &'static str,
-    bin: &'static str,
+    /// Program names, tried in order. Gemini CLI and its successor `agy` are one row.
+    bins: &'static [&'static str],
     install: &'static str,
 }
 
-/// Claude Code, Codex, GitHub Copilot (ACP), Gemini CLI and OpenCode.
+/// Claude Code, Codex, GitHub Copilot (ACP), Gemini CLI (or `agy`) and OpenCode.
 const RUNNERS: &[RunnerDef] = &[
     RunnerDef {
         id: "claude",
         label: "Claude Code",
-        bin: "claude",
+        bins: &["claude"],
         install: "npm install -g @anthropic-ai/claude-code",
     },
     RunnerDef {
         id: "codex",
         label: "Codex",
-        bin: "codex",
+        bins: &["codex"],
         install: "npm install -g @openai/codex",
     },
     RunnerDef {
         id: "copilot",
         label: "GitHub Copilot",
-        bin: "copilot",
+        bins: &["copilot"],
         install: "npm install -g @github/copilot",
     },
     RunnerDef {
         id: "gemini",
         label: "Gemini CLI",
-        bin: "gemini",
+        bins: &["gemini", "agy"],
         install: "npm install -g @google/gemini-cli",
     },
     RunnerDef {
         id: "opencode",
         label: "OpenCode",
-        bin: "opencode",
+        bins: &["opencode"],
         install: "npm install -g opencode-ai",
     },
 ];
@@ -70,6 +71,17 @@ pub enum RunnerState {
     Missing,
 }
 
+/// The sign-in state of a tool. Only the exit code and the `authMethod` field of its status
+/// command tell it: Shipyard never reads a token file or a keychain entry (ADR 0017).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum AuthState {
+    SignedIn,
+    SignedOut,
+    /// The tool has no usable status command (Q-134), or the command did not answer.
+    NotChecked,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, specta::Type)]
 pub struct Runner {
     pub id: &'static str,
@@ -79,6 +91,7 @@ pub struct Runner {
     pub path: Option<String>,
     /// `None` when missing, or when the runner printed no version in time.
     pub version: Option<String>,
+    pub auth: AuthState,
     /// How to install it. Shown beside a missing runner.
     pub install: &'static str,
 }
@@ -103,7 +116,7 @@ pub fn detect_in(dirs: &[PathBuf], wait: Duration) -> Vec<Runner> {
 }
 
 fn detect_one(def: &RunnerDef, dirs: &[PathBuf], wait: Duration) -> Runner {
-    let found = which(def.bin, dirs);
+    let found = def.bins.iter().find_map(|bin| which(bin, dirs));
     Runner {
         id: def.id,
         label: def.label,
@@ -113,14 +126,43 @@ fn detect_one(def: &RunnerDef, dirs: &[PathBuf], wait: Duration) -> Runner {
             RunnerState::Missing
         },
         version: found.as_ref().and_then(|p| version_of(p, wait)),
+        auth: found
+            .as_ref()
+            .map_or(AuthState::NotChecked, |p| auth_of(def.id, p, wait)),
         path: found.map(|p| p.to_string_lossy().into_owned()),
         install: def.install,
     }
 }
 
 fn version_of(program: &std::path::Path, wait: Duration) -> Option<String> {
+    parse_version(&output_of(program, &["--version"], wait)?.1)
+}
+
+/// The sign-in state from the status command of `id`. Opencode prints an unconfirmed format
+/// (Q-134), so it stays "not checked" like Copilot, `agy` and Gemini.
+fn auth_of(id: &str, program: &std::path::Path, wait: Duration) -> AuthState {
+    let args: &[&str] = match id {
+        "codex" => &["login", "status"],
+        "claude" => &["auth", "status"],
+        _ => return AuthState::NotChecked,
+    };
+    let Some((ok, out)) = output_of(program, args, wait) else {
+        return AuthState::NotChecked;
+    };
+    let none = serde_json::from_str::<serde_json::Value>(&out)
+        .is_ok_and(|v| v["authMethod"].as_str() == Some("none"));
+    if ok && !none {
+        AuthState::SignedIn
+    } else {
+        AuthState::SignedOut
+    }
+}
+
+/// Run `program` with `args`: whether it exited 0, and its stdout. `None` when it does not start
+/// or does not end within `wait`.
+fn output_of(program: &std::path::Path, args: &[&str], wait: Duration) -> Option<(bool, String)> {
     let mut cmd = Command::new(program);
-    cmd.arg("--version")
+    cmd.args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
@@ -138,17 +180,20 @@ fn version_of(program: &std::path::Path, wait: Duration) -> Option<String> {
         }
     };
     let deadline = Instant::now() + wait;
-    while child.try_wait().ok()?.is_none() {
+    let status = loop {
+        if let Some(status) = child.try_wait().ok()? {
+            break status;
+        }
         if Instant::now() >= deadline {
             let _ = child.kill();
             let _ = child.wait();
             return None;
         }
         std::thread::sleep(Duration::from_millis(10));
-    }
+    };
     let mut out = String::new();
     child.stdout.take()?.read_to_string(&mut out).ok()?;
-    parse_version(&out)
+    Some((status.success(), out))
 }
 
 /// The first word that looks like a version: `codex-cli 0.147.0` gives `0.147.0`.
@@ -226,7 +271,16 @@ impl ModelProvider {
         http: &dyn Http,
         store: &dyn SecretStore,
     ) -> Result<Vec<String>, AgentError> {
-        let reply = http.json(&Request::get(self.url("/models")?, self.auth(store)?))?;
+        let mut req = Request::get(self.url("/models")?, self.auth(store)?);
+        // Anthropic takes its key in `x-api-key` and wants a version, not a bearer token.
+        if self.base_url.starts_with("https://api.anthropic.com/") {
+            if let Auth::Bearer(key) = req.auth {
+                req.auth = Auth::Header("x-api-key", key);
+            }
+            req.headers
+                .push(("anthropic-version", "2023-06-01".to_string()));
+        }
+        let reply = http.json(&req)?;
         let mut ids: Vec<String> = items(&reply, "/data")
             .iter()
             .map(|row| text(row, "/id"))

@@ -137,13 +137,12 @@ function Frame() {
 					) : null
 				}
 				bottom={
-					project ? (
-						<TerminalDrawer
-							key={project.id}
-							open={terminalOpen}
-							onHide={() => setTerminalOpen(false)}
-						/>
-					) : null
+					// With no project the shell starts in the home folder: a sign-in needs it.
+					<TerminalDrawer
+						key={project?.id}
+						open={terminalOpen}
+						onHide={() => setTerminalOpen(false)}
+					/>
 				}
 				bottomDock={terminalDock}
 				assistantSide={chat.side}

@@ -223,9 +223,15 @@ pub fn close_all() {
 }
 
 /// The folder of the shell: the project root, or a folder under it (REQ-034). A path that leaves
-/// the root, or is no folder, is refused.
+/// the root, or is no folder, is refused. With no project open, the folder is the home folder
+/// (a sign-in needs a shell before a project exists).
 pub fn start_dir(s: &AppState, folder: Option<&str>) -> Res<std::path::PathBuf> {
-    let root = s.registry()?.active().cloned().ok_or("no active project")?;
+    let Some(root) = s.registry()?.active().cloned() else {
+        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"));
+        return home
+            .map(Into::into)
+            .ok_or_else(|| "no home folder".to_string());
+    };
     let root = Path::new(&root.path).canonicalize().map_err(err)?;
     let Some(rel) = folder.filter(|f| !f.is_empty()) else {
         return Ok(root);
@@ -349,5 +355,13 @@ mod tests {
         assert!(start_dir(&s, Some("src")).unwrap().ends_with("src"));
         assert!(start_dir(&s, Some("..")).is_err());
         assert!(start_dir(&s, Some("missing")).is_err());
+    }
+
+    #[test]
+    fn with_no_project_the_shell_starts_in_the_home_folder() {
+        let tmp = tempfile::tempdir().unwrap();
+        let s = AppState::new(tmp.path().join("data"));
+        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"));
+        assert_eq!(start_dir(&s, None).ok(), home.map(Into::into));
     }
 }

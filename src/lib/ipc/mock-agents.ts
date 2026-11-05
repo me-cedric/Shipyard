@@ -3,6 +3,7 @@
 // is write-only (the keychain is `secrets`, and no command reads it).
 import type {
 	Catalog,
+	LocalRuntime,
 	McpCustom_Deserialize,
 	McpDependency,
 	McpServer,
@@ -16,6 +17,8 @@ import type {
 export type MockAgents = {
 	runners: Runner_Serialize[];
 	providers: Provider[];
+	/** The local runtimes that answer on this machine. */
+	runtimes: LocalRuntime[];
 	mcp: McpServer[];
 };
 
@@ -25,6 +28,7 @@ const runner = (id: string, label: string, version: string | null): Runner_Seria
 	state: version ? "detected" : "missing",
 	path: version ? `/usr/local/bin/${id}` : null,
 	version,
+	auth: id === "codex" ? "signedOut" : id === "claude" ? "signedIn" : "notChecked",
 	install: `npm install -g ${id}`,
 });
 
@@ -104,6 +108,7 @@ export const seedAgents = (): MockAgents => ({
 		runner("opencode", "OpenCode", null),
 	],
 	providers: [],
+	runtimes: [{ id: "ollama", name: "Ollama", url: "http://127.0.0.1:11434/v1", model: "llama3" }],
 	mcp: [
 		server("figma", "design", "Figma", [{ key: "token", label: "Figma API token", secret: true }]),
 		server("jira", "work", "Jira and Confluence", [

@@ -91,6 +91,26 @@ describe("Terminal restart and links", () => {
 		open.mockRestore();
 	});
 
+	it("runs the startup command once: a restart gives a plain shell", async () => {
+		const user = userEvent.setup();
+		const open = vi.spyOn(commands, "terminalOpen");
+		const write = vi.spyOn(commands, "terminalWrite");
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		render(
+			<I18nProvider>
+				<TerminalScreen startup="codex login" />
+			</I18nProvider>,
+		);
+		await waitFor(() => expect(write).toHaveBeenCalledWith(expect.any(String), "codex login\r"));
+		act(() => fake.exit?.({ payload: open.mock.calls.at(-1)?.[0] ?? "" }));
+		await user.click(await screen.findByRole("button", { name: "Restart" }));
+		await waitFor(() => expect(open).toHaveBeenCalledTimes(2));
+		await waitFor(() => expect(fake.focus).toHaveBeenCalled());
+		expect(write.mock.calls.filter(([, d]) => d === "codex login\r")).toHaveLength(1);
+		open.mockRestore();
+		write.mockRestore();
+	});
+
 	it("opens a link of the output in the browser", async () => {
 		const open = vi.spyOn(commands, "openLink").mockResolvedValue({ status: "ok", data: null });
 		await unwrap(commands.projectsOpen("/mock/alpha", false));

@@ -32,6 +32,27 @@ Agents and rules holds the rules and the skills of the agents, from the compass.
 
 The app keeps each file that a person changed, unless you reinstall.
 
+### AI tools
+
+The top of the page lists each coding tool that the app knows: Claude Code, Codex, GitHub Copilot, OpenCode and Gemini CLI (the `agy` program counts as Gemini CLI). Each row shows the name, the version, the state and one action.
+
+- Signed in: the tool is ready. The row has no action.
+- Signed out: click Sign in. The terminal drawer opens and runs the login of the tool. Finish in the browser. The state changes when the login ends. For Codex, click Use a code instead to sign in with a code.
+- Not checked: Copilot, OpenCode and Gemini CLI have no status command that the app can read. Click Sign in.
+- Not installed: click Install.
+
+The app asks the tool for its state and never reads its token files or its keychain entries.
+
+### AI providers
+
+Under the tools, one row lists each provider.
+
+- OpenRouter: click Sign in. The browser opens. Approve there, and the app stores the key in the keychain. Click Cancel to stop the wait. The wait ends after 10 minutes.
+- Ollama, LM Studio, vLLM and LiteLLM: the app looks on this machine only. A runtime that answers shows a row with Add. Add makes a provider with no key.
+- OpenAI, Anthropic, Mistral, Google AI Studio and Azure OpenAI: click Get a key to open the key page of the provider. Click Paste key, paste the key and click Save (or press Enter). The app tests the key first. A key that fails is not stored, and the row shows the reason and what to do. Azure OpenAI also asks for the address of your resource.
+
+A key goes to the keychain only. It never goes to a file, a log or an address.
+
 ## Extensions
 
 Extensions holds the catalog, the plugins and the child projects.

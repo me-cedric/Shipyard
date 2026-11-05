@@ -84,6 +84,7 @@ import * as lrn from "./mock-learning";
 import * as mc from "./mock-machine";
 import * as mt from "./mock-mcp-tools";
 import { cards, chainGate, seedLinks, seedNotes } from "./mock-overview";
+import { keySave, localAdd, openrouterSignIn } from "./mock-providers";
 import { parseRef } from "./mock-refs";
 import { linkChanges, rewriteLinks } from "./mock-rename";
 import * as rp from "./mock-reports";
@@ -1098,6 +1099,12 @@ const handlers: Handlers = {
 		delete state.secrets[id];
 		return null;
 	},
+	providersKeySave: (kind, key, url, click) =>
+		keySave(state.agents, state.secrets, kind, key, url, click),
+	providersOpenrouterSignIn: (click) => openrouterSignIn(state.agents, state.secrets, click),
+	providersOpenrouterCancel: () => null,
+	localRuntimesList: () => state.agents.runtimes,
+	localRuntimesAdd: (id, click) => localAdd(state.agents, id, click),
 	providersTest: (id) => providerTest(state.agents, state.secrets, id),
 	providersModels: (id) => {
 		provider(state.agents, id);
@@ -1671,6 +1678,19 @@ const handlers: Handlers = {
 		const r = state.agents.runners.find((x) => x.id === id);
 		if (!r) throw `\`${id}\` is not a runner`;
 		Object.assign(r, { state: "detected", path: `/usr/local/bin/${id}`, version: "1.0.0" });
+		return null;
+	},
+	runnerSignIn: (id, device, click) => {
+		if (!click) throw "this change needs the click of a person";
+		const r = state.agents.runners.find((x) => x.id === id);
+		if (r?.state !== "detected") throw `\`${id}\` is not installed`;
+		// The login ends: a tool with a status command now answers "signed in".
+		if (r.auth === "signedOut") r.auth = "signedIn";
+		return id === "codex" ? (device ? "codex login --device-auth" : "codex login") : `${id} login`;
+	},
+	runnerCodexApiKey: (key, click) => {
+		if (!click) throw "this change needs the click of a person";
+		if (!key.trim()) throw "paste a key first";
 		return null;
 	},
 	childList: () => ex.childList(need(state.extensions)),

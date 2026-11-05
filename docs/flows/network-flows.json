@@ -171,6 +171,45 @@
       "description": "The OpenSpec check runs npx with the registry https://registry.npmjs.org/ and the fixed version @fission-ai/openspec@1.15.0, so a repository .npmrc cannot redirect it. No answer in 120 s gives the finding validator missing."
     },
     {
+      "id": "flow-15",
+      "name": "openrouter-sign-in",
+      "source": "Shipyard app",
+      "sourceName": "Shipyard app",
+      "destination": "OpenRouter",
+      "destinationName": "OpenRouter",
+      "vlan": "Internet",
+      "protocol": "HTTPS",
+      "ports": "443",
+      "action": "Allow",
+      "description": "OAuth PKCE. The browser opens https://openrouter.ai/auth with a code challenge and a localhost callback. Then POST https://openrouter.ai/api/v1/auth/keys with the code and the verifier gives a key for the keychain. A code lasts 10 minutes."
+    },
+    {
+      "id": "flow-16",
+      "name": "microsoft-login",
+      "source": "Shipyard app",
+      "sourceName": "Shipyard app",
+      "destination": "Microsoft login",
+      "destinationName": "Microsoft login",
+      "vlan": "Internet",
+      "protocol": "HTTPS",
+      "ports": "443",
+      "action": "Allow",
+      "description": "Deferred (Q-132): no code makes this call yet. Entra ID device code: POST login.microsoftonline.com/{tenant}/oauth2/v2.0/devicecode, then poll /token. Scope https://ai.azure.com/.default. The tokens go to the keychain."
+    },
+    {
+      "id": "flow-17",
+      "name": "local-runtime-probe",
+      "source": "Shipyard app",
+      "sourceName": "Shipyard app",
+      "destination": "Local runtime",
+      "destinationName": "Local runtime",
+      "vlan": "Local",
+      "protocol": "HTTP on localhost",
+      "ports": "11434, 1234, 8000, 4000",
+      "action": "Allow",
+      "description": "GET /api/tags on Ollama (11434), GET /v1/models on LM Studio (1234), vLLM (8000) and LiteLLM (4000). Localhost only. No other host is probed."
+    },
+    {
       "id": "flow-14",
       "name": "any-other-destination",
       "source": "Shipyard app",

@@ -57,6 +57,10 @@ type ShellState = {
 	/** The bottom drawer of terminals, on every view. */
 	terminalOpen: boolean;
 	setTerminalOpen: (open: boolean) => void;
+	/** The last command that a view asked the drawer to run in a new tab, with a counter. */
+	terminalJob: { id: number; command: string } | null;
+	/** Opens the drawer and runs `command` in a new tab. */
+	runInTerminal: (command: string) => void;
 	/** The actions that the inspector offers for a ref, or undefined. Set by `ShellProvider`. */
 	refActions?: RefActions;
 };
@@ -88,6 +92,11 @@ export function ShellProvider({
 	const [closeGuardOpen, setCloseGuardOpen] = useState(false);
 	const [filesOpen, setFilesOpen] = useState(false);
 	const [terminalOpen, setTerminalOpen] = useState(false);
+	const [terminalJob, setTerminalJob] = useState<{ id: number; command: string } | null>(null);
+	const runInTerminal = useCallback((command: string) => {
+		setTerminalOpen(true);
+		setTerminalJob((j) => ({ id: (j?.id ?? 0) + 1, command }));
+	}, []);
 
 	const openRef = useCallback((ref: string) => {
 		setSelectedRef(ref);
@@ -176,6 +185,8 @@ export function ShellProvider({
 			setFilesOpen,
 			terminalOpen,
 			setTerminalOpen,
+			terminalJob,
+			runInTerminal,
 			refActions,
 		}),
 		[
@@ -204,6 +215,8 @@ export function ShellProvider({
 			closeGuardOpen,
 			filesOpen,
 			terminalOpen,
+			terminalJob,
+			runInTerminal,
 			refActions,
 		],
 	);

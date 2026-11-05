@@ -9,6 +9,7 @@ pub mod assistant_modes;
 pub mod assistant_rules;
 pub mod catalog;
 pub mod impacts;
+pub mod local_runtimes;
 pub mod machine;
 pub mod mcp_control;
 pub mod runner;

@@ -4091,6 +4091,8 @@ dependencies = [
 name = "shipyard-app"
 version = "0.1.0"
 dependencies = [
+ "base64 0.23.1",
+ "getrandom 0.4.3",
  "icu_normalizer",
  "notify",
  "objc2-app-kit",
@@ -4099,6 +4101,7 @@ dependencies = [
  "portable-pty",
  "serde",
  "serde_json",
+ "sha2",
  "shipyard-agents",
  "shipyard-core",
  "shipyard-engine",

@@ -1,0 +1,32 @@
+sequenceDiagram
+  %% Source: crates/shipyard-app/src/device_login.rs (OAuth PKCE, RFC 7636) and crates/shipyard-app/src/pkce.rs.
+  actor Person
+  participant UI as React UI
+  participant Shell as Tauri shell
+  participant Browser as Web browser
+  participant OR as openrouter.ai
+  participant Keychain as OS keychain
+
+  Person->>UI: Click Sign in on the OpenRouter row
+  UI->>Shell: providers_openrouter_sign_in(click)
+  Note over Shell: One sign-in at a time.<br/>Make a random verifier and state.<br/>Listen on 127.0.0.1, random port
+  Shell->>Browser: Open /auth?callback_url=127.0.0.1/callback/state&code_challenge=S256(verifier)
+  Person->>OR: Approve in the browser
+  OR->>Browser: Redirect to the callback with code
+  Browser->>Shell: GET /callback/state?code=...
+  alt path and state match, code is plain text
+    Shell-->>Browser: 200, close this tab
+  else empty connection
+    Note over Shell: Close it and wait on
+  else other request
+    Shell-->>Browser: 400, the sign-in ends
+  end
+  alt Cancel or 10 minutes
+    UI->>Shell: providers_openrouter_cancel()
+    Shell-->>UI: Error, nothing stored
+  end
+  Shell->>OR: POST /api/v1/auth/keys (code, code_verifier)
+  OR-->>Shell: key
+  Shell->>Keychain: Store the key (provider OpenRouter)
+  Note over Shell: The key reaches no log, no file and no error text
+  Shell-->>UI: Provider row, signed in
