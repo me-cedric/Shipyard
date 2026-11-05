@@ -122,6 +122,8 @@ export function stopReason(
 			if (/budget/i.test(p.stop)) return why.budget;
 			return format(why.stop, { text: p.stop });
 		}
+		if (e.kind === "note" && typeof p.blocked === "string")
+			return format(why.stop, { text: p.blocked });
 		if (e.kind === "runner" && typeof p.error === "string")
 			return format(why.error, { text: p.error });
 	}

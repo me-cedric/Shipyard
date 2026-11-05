@@ -67,6 +67,12 @@ fn a_running_step_goes_on_with_its_cli_session_and_keeps_its_cost() {
     assert_eq!(fx.agents.running(), ["work"]);
     let again = fx.agents.briefs().pop().unwrap();
     assert_eq!(again.resume.as_deref(), Some("s-1"));
+    // No note and no answer: the resumed session still gets a line (an empty prompt blocks).
+    assert!(
+        again.prompt.contains("Continue the step"),
+        "{}",
+        again.prompt
+    );
     assert_eq!(again.dir, std::path::PathBuf::from(format!("/wt/{run}")));
     // The new agent finishes the step and the run ends as before.
     fx.done(&run, "work");

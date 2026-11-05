@@ -81,6 +81,12 @@ describe("Home / Today, Needs you", () => {
 		expect(command.closest("details")).not.toHaveAttribute("open");
 	});
 
+	it("shows the start of the plan on the plan row, with an Open plan action", async () => {
+		await renderNeedsYou();
+		expect(await screen.findByText(/Add the export button\./)).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Open plan" })).toBeInTheDocument();
+	});
+
 	it("approves a plan, and the run goes on", async () => {
 		const user = userEvent.setup();
 		await renderNeedsYou();

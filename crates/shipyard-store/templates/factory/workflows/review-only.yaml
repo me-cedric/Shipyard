@@ -16,5 +16,4 @@ steps:
     needs: [review]
     tools: [read_ref, post_progress, report]
 limits:
-  budget_usd: 2
   stall_s: 300

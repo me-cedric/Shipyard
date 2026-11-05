@@ -1,5 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { latestPerTicket } from "@/lib/home";
 import { commands, unwrap } from "@/lib/ipc";
 import { mountApp } from "@/test/mount";
 
@@ -48,7 +49,7 @@ describe("status bar and context bar (shell REQ-007)", () => {
 
 	it("shows the count of active runs on top and the health shape below", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		const runs = await unwrap(commands.runsList());
+		const runs = latestPerTicket(await unwrap(commands.runsList()));
 		const active = runs.filter((r) => r.lane === "working" || r.lane === "needs_you").length;
 		mountApp("/home");
 		const c = await top();

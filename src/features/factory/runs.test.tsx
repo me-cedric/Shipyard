@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { latestPerTicket } from "@/lib/home";
 import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER } from "@/lib/ipc/mock";
 import { ShellProvider } from "@/lib/shell";
@@ -42,12 +43,37 @@ describe("Factory / Runs", () => {
 
 	it("shows six lanes with a count each, from the mock dataset", async () => {
 		await renderRuns();
-		const runs = await unwrap(commands.runsList());
+		const all = await unwrap(commands.runsList());
+		const runs = latestPerTicket(all);
 		for (const [lane, name] of LANES) {
 			const n = runs.filter((r) => r.lane === lane).length;
 			expect(await screen.findByRole("heading", { name: `${name} (${n})` })).toBeInTheDocument();
 		}
-		expect(runs).toHaveLength(14);
+		expect(all).toHaveLength(14);
+	});
+
+	it("shows the plan and its tasks on a run in plan review", async () => {
+		const user = userEvent.setup();
+		await renderRuns();
+		await user.click(await screen.findByRole("button", { name: /ACME-4/ }));
+		const plan = await screen.findByRole("region", { name: "Plan" });
+		expect(within(plan).getByText(/Add the export button\./)).toBeInTheDocument();
+		expect(within(plan).getByText("Add it to the toolbar.")).toBeInTheDocument();
+	});
+
+	it("hides a run that a newer run of its ticket replaces", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		await unwrap(commands.syncItems({}));
+		await unwrap(commands.runCancel((await find("ACME-3")).id));
+		await unwrap(commands.runStart("ACME-3"));
+		await renderRuns();
+		const all = await unwrap(commands.runsList());
+		const runs = latestPerTicket(all);
+		expect(runs.length).toBeLessThan(all.length);
+		for (const [lane, name] of LANES) {
+			const n = runs.filter((r) => r.lane === lane).length;
+			expect(await screen.findByRole("heading", { name: `${name} (${n})` })).toBeInTheDocument();
+		}
 	});
 
 	it("shows the kill switch as an agents toggle", async () => {
@@ -175,12 +201,14 @@ describe("Factory / Runs", () => {
 		}
 	});
 
-	it("shows the events as sentences, with the raw JSON behind Details", async () => {
+	it("keeps the events collapsed, then shows them as sentences with the raw JSON behind Details", async () => {
 		const user = userEvent.setup();
 		await renderRuns();
 		await user.click(await screen.findByRole("button", { name: /ACME-2/ }));
 		const panel = await screen.findByRole("complementary", { name: "ACME-2" });
 		const events = await within(panel).findByRole("region", { name: /^Events/ });
+		expect(within(events).queryByText("ACME-2 moved to Claimed")).toBeNull();
+		await user.click(within(events).getByRole("button", { name: "Expand" }));
 		expect(await within(events).findByText("ACME-2 moved to Claimed")).toBeInTheDocument();
 		const fold = events.querySelector("details") as HTMLDetailsElement;
 		expect(fold.open).toBe(false);

@@ -16,7 +16,7 @@
     "limits": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["max_turns", "budget_usd", "stall_s"],
+      "required": ["stall_s"],
       "properties": {
         "max_turns": { "type": "integer", "minimum": 1 },
         "budget_usd": { "type": "number", "exclusiveMinimum": 0 },

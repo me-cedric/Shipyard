@@ -48,7 +48,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - REQ-019: `handoff` SHALL take a role, a summary and an optional target step. It SHALL end the calling child and pass the summary to that role in the same run. `message` SHALL take a target step or the person, and a text. It SHALL deliver the text at the next turn of the target. `spawn_subtask` SHALL take a title, a brief and a role. It SHALL start a child run under the limits of the calling step: the step needs `for_each` and a worktree workspace, the children that run now stay under `max_parallel`, and the run budget is under its alert level.
 - REQ-020: `read_ticket` SHALL take a ref `wi:` and SHALL return the mirrored ticket. `read_ref` SHALL take any ref and SHALL return its resolved text. Both tools SHALL be read-only, and a ref that does not resolve SHALL return an error and not a guess.
 - REQ-021: The system SHALL keep an append-only run log. The log SHALL hold one event for each state change, tool call, runner event and write. The system MUST NOT edit or delete an event. The UI and the ticket summary SHALL read the same log.
-- REQ-022: The system SHALL enforce a budget in tokens and money per run, per day and per member. It SHALL raise one alert at 80 % of a budget. It SHALL move the run to `Paused` at 100 %. The workflow limit sets the run budget (5 USD in `feature`). No default per day or per member until an admin sets one.
+- REQ-022: The system SHALL enforce a budget in tokens and money per run, per day and per member. It SHALL raise one alert at 80 % of a budget. It SHALL move the run to `Paused` at 100 %. A run has a budget only when its workflow sets `budget_usd`; with none, the run has no budget of its own and the day, member and token budgets still apply. No default per day or per member until an admin sets one.
 - REQ-023: The system SHALL stop a step that sends no event for the stall timeout. It SHALL treat that step as a failed step. When the workflow sets `max_turns`, the system SHALL stop a run at its max turns and SHALL move it to `Paused`. A resume SHALL give the run one more set of max turns.
 - REQ-024: The system SHALL offer a kill switch per run and one global kill switch. The run switch SHALL move the run to `Cancelled`. The global switch SHALL cancel every active run on this machine and stop pickup until a person turns it off.
 - REQ-025: The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pull_request`, `tracker_transition` and `tracker_comment`. All four SHALL be on by default, and a project admin SHALL turn each one off in Settings / Project, group Automation. That group SHALL be the one editor of `.shipyard/automation.yaml`. All on. A force push and a merge still wait for a person. An admin turns a switch off per project, and each write of that switch then waits for one click in Home / Inbox.
@@ -61,7 +61,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - REQ-032: Factory / Usage SHALL show tokens and money per run, per day and per member against their budgets. It SHALL let an admin set a budget.
 - REQ-033: Each Factory view SHALL follow the interface rules of the constitution. It SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. It SHALL have one primary action, a keyboard path and a focus ring. It SHALL have assistive labels, enough contrast and reduced motion. It SHALL show French and English text.
 - REQ-034: The system SHALL expose each run as `run:<ulid>` with its steps as `run:<ulid>/<step-id>`, and each workflow as `wf:<id>`. It SHALL expose the run state to `work` and `refs`.
-- REQ-035: A workflow SHALL hold a `limits` block with `budget_usd`, `stall_s` and an optional `max_turns`. The block SHALL set the budget in USD, the stall timeout and, when present, the max turns of each run. With no `max_turns`, the number of turns SHALL have no limit. The system SHALL reject a limit that is not a positive number.
+- REQ-035: A workflow SHALL hold a `limits` block with `stall_s`, an optional `budget_usd` and an optional `max_turns`. The block SHALL set the stall timeout and, when present, the budget in USD and the max turns of each run. With no `budget_usd`, the run SHALL have no budget of its own. With no `max_turns`, the number of turns SHALL have no limit. The system SHALL reject a limit that is not a positive number.
 - REQ-036: After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL follow `add-delivery` REQ-001 to REQ-004. `max_rounds` SHALL NOT exceed 2.
 - REQ-037: The system SHALL serve the agent tools over two transports, stdio and HTTP. Both transports SHALL offer the same eight tools with the same inputs. The HTTP transport SHALL accept only calls from this machine (assumption `q:Q-053`): it SHALL listen on the loopback address, SHALL check the Host and Origin headers, and SHALL need the bearer token of a step. The token SHALL name the run and the step, and an input SHALL NOT name another run. The agent SHALL get the token in its MCP config file and never in an argument.
 - REQ-038: The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The lane Working SHALL hold `Planning`, `Working`, `SelfReview` and `ChangesRequested`. The lane Needs you SHALL hold `PlanReview`, `WaitingForAnswer`, `Blocked`, `Paused` and `Failed`. The lane Ready to merge SHALL hold a `PROpen` run with passing CI, no change request and no draft. The lane In review SHALL hold each other `PROpen` run. The lane Done SHALL hold `Merged`, `Done` and `Cancelled`.
@@ -144,7 +144,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 
 - Q-025 How does a run leave Blocked?: On the next tick after the cause is gone, or by a click of the person.
 - Q-024 Which runners ship in the first release?: Claude Code and Codex. The others follow in later changes.
-- Q-023 What are the default budgets?: The workflow limit sets the run budget (5 USD in `feature`). No default per day or per member until an admin sets one.
+- Q-023 What are the default budgets?: A run has a budget only when its workflow sets `budget_usd`; with none, the run has no budget of its own and the day, member and token budgets still apply. No default per day or per member until an admin sets one.
 - Q-002 What is the default for automation writes?: All on. A force push and a merge still wait for a person. An admin turns a switch off per project, and each write of that switch then waits for one click in Home / Inbox.
 
 ## Requirements
@@ -517,7 +517,7 @@ The system SHALL keep an append-only run log. The log SHALL hold one event for e
 
 ### Requirement: REQ-022 Budgets
 
-The system SHALL enforce a budget in tokens and money per run, per day and per member. It SHALL raise one alert at 80 % of a budget. It SHALL move the run to `Paused` at 100 %. The workflow limit sets the run budget (5 USD in `feature`). No default per day or per member until an admin sets one.
+The system SHALL enforce a budget in tokens and money per run, per day and per member. It SHALL raise one alert at 80 % of a budget. It SHALL move the run to `Paused` at 100 %. A run has a budget only when its workflow sets `budget_usd`; with none, the run has no budget of its own and the day, member and token budgets still apply. No default per day or per member until an admin sets one.
 
 #### Scenario: Alert
 - GIVEN a run with a budget of 5 USD
@@ -528,6 +528,11 @@ The system SHALL enforce a budget in tokens and money per run, per day and per m
 - GIVEN a run with a budget of 5 USD
 - WHEN it spends 5 USD
 - THEN the run moves to `Paused` and stops its agents
+
+#### Scenario: No run budget
+- GIVEN a run of a workflow with no `budget_usd`
+- WHEN it spends 50 USD and no day, member or token budget is spent
+- THEN the run does not pause and no alert shows
 
 ### Requirement: REQ-023 Stall timeout and max turns
 
@@ -699,12 +704,17 @@ The system SHALL expose each run as `run:<ulid>` with its steps as `run:<ulid>/<
 
 ### Requirement: REQ-035 Workflow limits
 
-A workflow SHALL hold a `limits` block with `budget_usd`, `stall_s` and an optional `max_turns`. The block SHALL set the budget in USD, the stall timeout and, when present, the max turns of each run. With no `max_turns`, the number of turns SHALL have no limit. The system SHALL reject a limit that is not a positive number.
+A workflow SHALL hold a `limits` block with `stall_s`, an optional `budget_usd` and an optional `max_turns`. The block SHALL set the stall timeout and, when present, the budget in USD and the max turns of each run. With no `budget_usd`, the run SHALL have no budget of its own. With no `max_turns`, the number of turns SHALL have no limit. The system SHALL reject a limit that is not a positive number.
 
 #### Scenario: Limits apply
 - GIVEN a workflow with `limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }`
 - WHEN a run of that workflow starts
 - THEN the run pauses at turn 40, pauses at 5 USD and stalls after 300 s with no event
+
+#### Scenario: No run budget
+- GIVEN a workflow with `limits: { stall_s: 300 }`
+- WHEN a run of that workflow spends money
+- THEN the run shows its cost with no budget and does not pause for a run budget
 
 #### Scenario: Bad limit
 - GIVEN a workflow with `budget_usd: -1`

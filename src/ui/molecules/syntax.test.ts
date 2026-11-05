@@ -1,4 +1,4 @@
-import { dbml, languageFor, likec4 } from "./syntax";
+import { dbml, languageFor, likec4, mermaid } from "./syntax";
 
 describe("Design highlighting", () => {
 	it("colours LikeC4 keywords, strings, arrows and comments, and keeps the text", () => {
@@ -28,5 +28,29 @@ describe("languageFor", () => {
 		expect(languageFor("a.feature")).toBe(languageFor("gherkin"));
 		expect(languageFor("README.md")).toBeNull();
 		expect(languageFor(undefined)).toBeNull();
+	});
+});
+
+describe("mermaid", () => {
+	it("colours keywords, arrows, the start state, strings and comments", () => {
+		expect(mermaid('  Queued --> Claimed: Claim "x" %% note')).toEqual([
+			["  ", null],
+			["Queued", null],
+			[" ", null],
+			["-->", "step"],
+			[" ", null],
+			["Claimed", null],
+			[":", null],
+			[" ", null],
+			["Claim", null],
+			[" ", null],
+			['"x"', "string"],
+			[" ", null],
+			["%% note", "comment"],
+		]);
+		expect(mermaid("stateDiagram-v2")).toEqual([["stateDiagram-v2", "keyword"]]);
+		expect(mermaid("A-->B").map(([t]) => t)).toEqual(["A", "-->", "B"]);
+		expect(mermaid("[*] --> Queued")[0]).toEqual(["[*]", "tag"]);
+		expect(languageFor("docs/diagrams/run.mmd")).toBe(mermaid);
 	});
 });

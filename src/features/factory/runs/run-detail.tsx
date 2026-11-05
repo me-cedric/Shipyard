@@ -5,6 +5,7 @@ import { ENDED, useRunActions, useRunDiff, useRunLog, useRuns, useWorkflow } fro
 import { useRunWaits } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import type { RunView } from "@/lib/ipc";
+import { useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
@@ -18,6 +19,7 @@ import { RUN_STATUS, STATUS_BADGE } from "@/ui/molecules/run-card";
 import { SpendMeter } from "@/ui/molecules/spend-meter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { RunGraph } from "@/ui/organisms/run-graph";
+import { PlanBlock, planOf } from "./plan";
 import { EventRows, LiveStrip, stopReason } from "./run-live";
 
 const SEVERITY = { P0: "danger", P1: "warning", P2: "info" } as const;
@@ -36,6 +38,8 @@ export function progressOf(run: RunView) {
 /** The run view: actions, cost, graph, findings, diff and event tail (factory REQ-027, REQ-028). */
 export function RunDetail({ id }: { id: string }) {
 	const { t } = useI18n();
+	// The events start collapsed: the strip, the plan and the banner say what matters.
+	const [eventsOpen, setEventsOpen] = useState(false);
 	const f = t.factory;
 	const run = useRuns(id).data?.find((r) => r.id === id);
 	const workflow = useWorkflow(run?.workflow ?? "").data;
@@ -49,10 +53,12 @@ export function RunDetail({ id }: { id: string }) {
 		if (active && hasNextPage && !isFetchingNextPage) void fetchNextPage();
 	}, [active, hasNextPage, isFetchingNextPage, fetchNextPage]);
 	const act = useRunActions();
+	const { openRef } = useShell();
 	const { error, run: guard } = useGuard();
 	const [note, setNote] = useState("");
 	const [add, setAdd] = useState("");
 	if (!run) return null;
+	const plan = planOf(log.events);
 	const n = (v: number | null, fmt: (x: number) => string) => (v === null ? "-" : fmt(v));
 	const usd = (x: number) => `$${x.toFixed(2)}`;
 	const status = RUN_STATUS[run.state];
@@ -87,7 +93,10 @@ export function RunDetail({ id }: { id: string }) {
 				>
 					<span className="min-w-0 flex-1">{stopReason(f.why, run, log.events)}</span>
 					{run.state === "Failed" ? (
-						<Button variant="primary" onClick={() => void guard(() => act.start(run.key))}>
+						<Button
+							variant="primary"
+							onClick={() => void guard(async () => openRef(`run:${await act.start(run.key)}`))}
+						>
 							{f.why.again}
 						</Button>
 					) : run.state === "Blocked" ? (
@@ -107,6 +116,7 @@ export function RunDetail({ id }: { id: string }) {
 				</div>
 			) : null}
 			{active ? <LiveStrip run={run} events={log.events} /> : null}
+			{run.state === "PlanReview" && plan ? <PlanBlock plan={plan} /> : null}
 			<div className="flex flex-wrap items-center gap-2">
 				{run.state === "PlanReview" ? (
 					<>
@@ -233,9 +243,22 @@ export function RunDetail({ id }: { id: string }) {
 					))}
 				</Panel>
 			) : null}
-			<Panel title={f.log} count={log.events.length} flush>
-				<EventRows events={log.events} ticket={run.key} />
-				{log.hasNextPage ? (
+			<Panel
+				title={f.log}
+				count={log.events.length}
+				flush
+				toolbar={
+					<Button
+						variant="ghost"
+						aria-expanded={eventsOpen}
+						onClick={() => setEventsOpen(!eventsOpen)}
+					>
+						{eventsOpen ? t.nav.collapse : t.nav.expand}
+					</Button>
+				}
+			>
+				{eventsOpen ? <EventRows events={log.events} ticket={run.key} /> : null}
+				{eventsOpen && log.hasNextPage ? (
 					<div className="border-t p-2">
 						<Button variant="ghost" onClick={() => void log.fetchNextPage()}>
 							{f.more}

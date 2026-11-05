@@ -19,6 +19,11 @@ describe("stopReason", () => {
 			"The run used its 40 turns.",
 		);
 	});
+	it("gives the cause of a block", () => {
+		expect(
+			stopReason(why, run("done"), [ev("note", { blocked: "the AI tool is missing" })]),
+		).toContain("the AI tool is missing");
+	});
 	it("uses a runner error", () => {
 		expect(stopReason(why, run("done"), [ev("runner", { error: "no key" })])).toContain("no key");
 	});

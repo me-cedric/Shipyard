@@ -18,10 +18,10 @@ test("shows six lanes with counts, opens a run and kills it", async ({ page }) =
 	for (const name of [
 		"Queued (1)",
 		"Working (2)",
-		"Needs you (5)",
+		"Needs you (4)",
 		"In review (2)",
 		"Ready to merge (1)",
-		"Done (3)",
+		"Done (2)",
 	])
 		await expect(page.getByRole("heading", { name })).toBeVisible();
 	await expect(lane(page, "Ready to merge").getByRole("button", { name: /ACME-8/ })).toBeVisible();
@@ -30,12 +30,9 @@ test("shows six lanes with counts, opens a run and kills it", async ({ page }) =
 		.getByRole("button", { name: /ACME-2/ })
 		.click();
 	await expect(page.getByRole("region", { name: "Workflow" })).toBeVisible();
-	await expect(
-		page
-			.getByRole("region", { name: /^Events/ })
-			.getByRole("listitem")
-			.first(),
-	).toBeVisible();
+	const events = page.getByRole("region", { name: /^Events/ });
+	await events.getByRole("button", { name: "Expand" }).click();
+	await expect(events.getByRole("listitem").first()).toBeVisible();
 	await page.getByRole("button", { name: "Kill run" }).click();
 	// A stop asks once before it acts.
 	await page.getByRole("button", { name: "Stop ACME-2?" }).click();

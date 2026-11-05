@@ -714,7 +714,7 @@ pub struct RunView {
     pub cost_usd: f64,
     pub tokens: u32,
     pub turns: u32,
-    pub budget_usd: f64,
+    pub budget_usd: Option<f64>,
     pub steps: Vec<StepView>,
     pub findings: Vec<FindingView>,
     pub worktree_kept: Option<String>,
@@ -977,7 +977,7 @@ pub fn usage(s: &AppState) -> Res<UsageView> {
             key: r.key,
             tokens: u32::try_from(r.tokens).unwrap_or(u32::MAX),
             usd: r.cost_usd,
-            budget: Some(r.budget_usd),
+            budget: r.budget_usd,
         })
         .collect();
     runs.reverse();

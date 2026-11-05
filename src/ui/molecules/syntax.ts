@@ -66,6 +66,29 @@ export const likec4 = (line: string) => tokens(line, LIKEC4, /-+>|<-+/);
 /** DBML: keywords, strings, `>` `<` `-` `<>` relations and comments. */
 export const dbml = (line: string) => tokens(line, DBML, /^\s*(<>|[<>-])\s*$/);
 
+const MERMAID = new Set(
+	"graph flowchart sequenceDiagram classDiagram stateDiagram stateDiagram-v2 erDiagram journey gantt pie mindmap timeline gitGraph quadrantChart requirementDiagram C4Context subgraph end direction TB TD BT RL LR participant actor note over left right of loop alt else opt par and critical break rect activate deactivate autonumber state class classDef style linkStyle click section title dateFormat as".split(
+		" ",
+	),
+);
+
+/** Mermaid: diagram and block keywords, `-->` style arrows, strings, `%%` comments. */
+export const mermaid: Highlighter = (line) => {
+	const at = line.indexOf("%%");
+	const body = at >= 0 ? line.slice(0, at) : line;
+	const out: Token[] = [];
+	for (const part of body.split(/("[^"]*"|\[\*\]|[A-Za-z_]\w*(?:-\w+)*|[-=.ox<>|]{2,}|\s+)/)) {
+		if (!part) continue;
+		if (part.startsWith('"')) out.push([part, "string"]);
+		else if (MERMAID.has(part)) out.push([part, "keyword"]);
+		else if (/^[-=.ox<>|]{2,}$/.test(part) && /[-=.]/.test(part)) out.push([part, "step"]);
+		else if (part === "[*]") out.push([part, "tag"]);
+		else out.push([part, null]);
+	}
+	if (at >= 0) out.push([line.slice(at), "comment"]);
+	return out;
+};
+
 // One pass per line: a comment, a string, a number or a keyword.
 const TOKEN =
 	/(\/\/.*|#.*|--.*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`[^`]*`)|\b(\d+(?:\.\d+)?)\b|\b(const|let|var|function|return|if|else|for|while|import|export|from|class|fn|pub|use|struct|impl|enum|async|await|def|type|interface|true|false|null|None|self|package|func|public|private|static|void|SELECT|FROM|WHERE|INSERT|UPDATE|DELETE|CREATE|TABLE)\b/g;
@@ -87,7 +110,7 @@ export const code: Highlighter = (line) => {
 
 const CODE_TYPES =
 	"ts tsx js jsx mjs cjs typescript javascript rs rust py python go java kt swift c h cpp cs rb php sh bash zsh shell json yaml yml toml css scss sql lock";
-/** The highlighter of each file type, by extension or fence language. Markdown, Mermaid and the rest stay plain. */
+/** The highlighter of each file type, by extension or fence language. Markdown and the rest stay plain. */
 const LANGUAGES: Record<string, Highlighter> = {
 	...Object.fromEntries(CODE_TYPES.split(" ").map((x) => [x, code])),
 	feature: gherkin,
@@ -95,6 +118,8 @@ const LANGUAGES: Record<string, Highlighter> = {
 	c4: likec4,
 	likec4,
 	dbml,
+	mermaid,
+	mmd: mermaid,
 };
 
 /** The highlighter of a file path or a fence language, or `null` for plain text. */

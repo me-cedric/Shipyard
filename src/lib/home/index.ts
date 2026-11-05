@@ -56,6 +56,18 @@ export function useFactoryEvents(handler: (event: FactoryEvent, payload: Factory
 	}, []);
 }
 
+/** A run of a ticket with a newer run is superseded (the ids sort by start). Each view of what is live uses this. */
+export function latestPerTicket<T extends { id: string; project: string; key: string }>(
+	runs: T[],
+): T[] {
+	const last = new Map<string, string>();
+	for (const r of runs) {
+		const k = `${r.project}\0${r.key}`;
+		if ((last.get(k) ?? "") < r.id) last.set(k, r.id);
+	}
+	return runs.filter((r) => last.get(`${r.project}\0${r.key}`) === r.id);
+}
+
 const THURSDAY = 4;
 const localDay = (d: Date) =>
 	`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -103,7 +115,7 @@ export function useInbox() {
 			: false,
 		questions: questions.data ?? [],
 		approvals: approvals.data ?? [],
-		plans: (runs.data ?? []).filter((r) => r.state === "PlanReview"),
+		plans: latestPerTicket(runs.data ?? []).filter((r) => r.state === "PlanReview"),
 		messages: messages.data ?? [],
 		reviews: reviews.data ?? [],
 	};
@@ -184,7 +196,9 @@ export function usePendingNoticeIds(): { live: Set<string>; at: number } | null 
 				.filter((q) => q.question.state === "open")
 				.map((q) => `question:${q.run}:${q.question.id}`),
 			...approvals.data.map((a) => `approval:${a.id}`),
-			...runs.data.filter((r) => r.lane === "needs_you").map((r) => `run:${r.id}:${r.state}`),
+			...latestPerTicket(runs.data)
+				.filter((r) => r.lane === "needs_you")
+				.map((r) => `run:${r.id}:${r.state}`),
 		]);
 		const at = Math.min(questions.dataUpdatedAt, approvals.dataUpdatedAt, runs.dataUpdatedAt);
 		return { live, at };
@@ -237,13 +251,15 @@ export async function needsYouNotice(
 	}
 	if (event === "factory-run") {
 		const r = await unwrap(commands.runGetOne(p.run));
-		return r?.lane === "needs_you"
+		const current =
+			r && latestPerTicket(await unwrap(commands.runsList())).some((x) => x.id === r.id);
+		return r?.lane === "needs_you" && current
 			? {
 					id: `run:${r.id}:${r.state}`,
 					kind,
 					title: format(t.home.notice.run, { key: r.key }),
 					body: r.title,
-					target: noticeTarget({ source: "run", run: r.id }),
+					target: noticeTarget({ source: r.state === "PlanReview" ? "plan" : "run", run: r.id }),
 				}
 			: null;
 	}

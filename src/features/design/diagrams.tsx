@@ -18,6 +18,7 @@ import { ShareIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { EditorPreview } from "@/ui/molecules/pane-toggle";
+import { mermaid } from "@/ui/molecules/syntax";
 import { BpmnViewer } from "@/ui/organisms/bpmn-viewer";
 import { drawioSvg, svgDataUri } from "@/ui/organisms/drawio";
 import { DrawioEditor } from "@/ui/organisms/drawio-editor";
@@ -167,6 +168,7 @@ function Diagram({ a }: { a: Artifact }) {
 									value={file.text}
 									errorLine={error?.line}
 									onChange={file.setText}
+									highlight={mermaid}
 								/>
 							}
 							preview={

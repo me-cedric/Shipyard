@@ -350,6 +350,12 @@ Feature: factory
     When it spends 5 USD
     Then the run moves to `Paused` and stops its agents
 
+  @spec:factory#REQ-022
+  Scenario: Budgets: No run budget
+    Given a run of a workflow with no `budget_usd`
+    When it spends 50 USD and no day, member or token budget is spent
+    Then the run does not pause and no alert shows
+
   @spec:factory#REQ-023
   Scenario: Stall timeout and max turns: Stall
     Given a step with `stall_s` 300
@@ -499,6 +505,12 @@ Feature: factory
     Given a workflow with `limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }`
     When a run of that workflow starts
     Then the run pauses at turn 40, pauses at 5 USD and stalls after 300 s with no event
+
+  @spec:factory#REQ-035
+  Scenario: Workflow limits: No run budget
+    Given a workflow with `limits: { stall_s: 300 }`
+    When a run of that workflow spends money
+    Then the run shows its cost with no budget and does not pause for a run budget
 
   @spec:factory#REQ-035
   Scenario: Workflow limits: Bad limit

@@ -28,5 +28,4 @@ steps:
     action: open_pr
     needs: [review]
 limits:
-  budget_usd: 3
   stall_s: 300

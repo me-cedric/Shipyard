@@ -206,7 +206,7 @@ fn a_pull_request_decides_the_lane_of_a_run_in_review() {
         cost_usd: 0.5,
         tokens: u64::MAX,
         turns: 3,
-        budget_usd: 10.0,
+        budget_usd: Some(10.0),
         steps: vec![StepInfo {
             id: "pr".into(),
             state: StepState::Done,
@@ -378,7 +378,7 @@ fn a_paused_run_resumes_with_more_budget_and_a_negative_amount_is_refused() {
     assert!(resume(&fx.s, &run, -1.0, 0).is_err());
     assert!(resume(&fx.s, &run, f64::NAN, 0).is_err());
     assert_eq!(resume(&fx.s, &run, 5.0, 0).unwrap(), RunState::Working);
-    assert_eq!(run_get(&fx.s, &run).unwrap().unwrap().budget_usd, 6.0);
+    assert_eq!(run_get(&fx.s, &run).unwrap().unwrap().budget_usd, Some(6.0));
 }
 
 #[test]

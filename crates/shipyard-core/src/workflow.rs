@@ -29,7 +29,8 @@ pub struct Workflow {
 pub struct WorkflowLimits {
     /// No limit when absent: a run stops on its budget or its stall timeout.
     pub max_turns: Option<u32>,
-    pub budget_usd: f64,
+    /// No run budget when absent: the shared budgets still apply.
+    pub budget_usd: Option<f64>,
     pub stall_s: u32,
 }
 
@@ -256,7 +257,7 @@ impl Workflow {
         if l.max_turns == Some(0) {
             out.push(bad("limits.max_turns".into()));
         }
-        if !(l.budget_usd.is_finite() && l.budget_usd > 0.0) {
+        if l.budget_usd.is_some_and(|b| !(b.is_finite() && b > 0.0)) {
             out.push(bad("limits.budget_usd".into()));
         }
         if l.stall_s == 0 {

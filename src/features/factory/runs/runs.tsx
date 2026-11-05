@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { NoProject } from "@/features/work/no-project";
 import { useRunActions, useRuns, useUsage } from "@/lib/factory";
+import { latestPerTicket } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { AppFailure, type Lane, type RunState, type RunView } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
@@ -119,6 +120,7 @@ export function Runs() {
 	const skip = useMemo(() => new Set(running.keys()), [running]);
 	if (active === null) return <NoProject title={f.runs} />;
 	const all = runs.data ?? [];
+	const board = latestPerTicket(all);
 	const open = all.find((r) => r.id === selected);
 	const start = () =>
 		void guard(async () => {
@@ -173,11 +175,11 @@ export function Runs() {
 				</div>
 			) : (
 				<>
-					<RunStats runs={all} />
+					<RunStats runs={board} />
 					<div className="relative flex min-h-0 flex-1 px-4 pt-3 pb-4">
 						<div className="flex min-h-0 min-w-0 flex-1 gap-3 overflow-x-auto pb-1">
 							{LANES.map(([lane, tone]) => {
-								const rows = all.filter((r) => r.lane === lane);
+								const rows = board.filter((r) => r.lane === lane);
 								return (
 									<Panel
 										key={lane}

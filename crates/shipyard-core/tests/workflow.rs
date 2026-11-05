@@ -303,3 +303,10 @@ fn schema_matches_the_model() {
         }
     }
 }
+
+#[test]
+fn run_budget_is_optional() {
+    let wf = parse("id: t\nsteps:\n  - { id: a, role: worker }\nlimits: { stall_s: 1 }\n");
+    assert_eq!(wf.limits.budget_usd, None);
+    assert_eq!(wf.check(&roles()), []);
+}

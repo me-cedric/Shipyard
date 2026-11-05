@@ -115,9 +115,14 @@ impl Fx {
         let roles: Vec<String> = DEFAULT_ROLES.iter().map(|r| r.to_string()).collect();
         let mut files = Loaded::default();
         for (id, text) in default_workflows() {
-            files
-                .workflows
-                .insert(id.to_string(), parse_workflow(id, text, &roles).unwrap());
+            let mut wf = parse_workflow(id, text, &roles).unwrap();
+            // The templates set no run budget: the tests give the budgets that they count on.
+            wf.limits.budget_usd = Some(match *id {
+                "feature" => 5.0,
+                "bug" => 3.0,
+                _ => 2.0,
+            });
+            files.workflows.insert(id.to_string(), wf);
         }
         for text in &self.extra {
             let wf: shipyard_core::workflow::Workflow = workflow_of(text);

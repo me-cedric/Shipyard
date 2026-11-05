@@ -11,5 +11,4 @@ steps:
     action: open_pr
     needs: [update]
 limits:
-  budget_usd: 2
   stall_s: 300

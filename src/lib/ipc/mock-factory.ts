@@ -149,7 +149,6 @@ steps:
     action: open_pr
     needs: [review]
 limits:
-  budget_usd: 5
   stall_s: 300
 `,
 	"docs-update": `# A docs update: one agent brings one stale doc up to date, then a pull request. A person starts it.
@@ -165,7 +164,6 @@ steps:
     action: open_pr
     needs: [update]
 limits:
-  budget_usd: 2
   stall_s: 300
 `,
 	"review-only": `# A review: review an existing branch in a fresh context, then report.
@@ -186,7 +184,6 @@ steps:
     needs: [review]
     tools: [read_ref, post_progress, report]
 limits:
-  budget_usd: 2
   stall_s: 300
 `,
 	"spec-split": `# A split: read a change, propose work items, wait for a person.
@@ -207,7 +204,6 @@ steps:
     gate: human
     tools: [read_ref, ask_question, post_progress, report]
 limits:
-  budget_usd: 2
   stall_s: 300
 `,
 	spike: `# A spike: grill, investigate, report. No pull request.
@@ -234,7 +230,6 @@ steps:
     needs: [investigate]
     tools: [read_ref, post_progress, report]
 limits:
-  budget_usd: 2
   stall_s: 300
 `,
 };
@@ -447,7 +442,7 @@ type Rec = {
 	costUsd: number;
 	tokens: number;
 	turns: number;
-	budgetUsd: number;
+	budgetUsd: number | null;
 	steps: StepView[];
 	findings: FindingView_Serialize[];
 	worktreeKept: string | null;
@@ -603,7 +598,24 @@ function seedLog(f: MockFactory, r: Rec, t0: number) {
 			[step, "runner", { event: "started", runner: "claude", model: "opus" }],
 			[step, "tool", { name: "read_ticket", key: r.key }],
 		],
-		PlanReview: [[step, "note", { gate: "the plan waits for a person" }]],
+		PlanReview: [
+			[
+				step,
+				"tool",
+				{
+					tool: "report",
+					outcome: "done",
+					summary: "Add the export button.\n\nTasks:\n- Button\n- Test",
+					output: {
+						tasks: [
+							{ title: "Button", description: "Add it to the toolbar." },
+							{ title: "Test", description: "Cover the click." },
+						],
+					},
+				},
+			],
+			[step, "note", { gate: "the plan waits for a person" }],
+		],
 		Working: [
 			[step, "runner", { event: "started", runner: "claude", model: "sonnet" }],
 			[step, "tool", { name: "read_ref", ref: `wi:${r.key}` }],
@@ -614,7 +626,9 @@ function seedLog(f: MockFactory, r: Rec, t0: number) {
 		ChangesRequested: [["review", "review", { round: 1, blocking: r.findings.length }]],
 		WaitingForAnswer: [[step, "question", { ref: `q:${q?.q.id}`, outcome: "asked" }]],
 		Blocked: [[step, "note", { blocked: "The French catalog is locked by another branch." }]],
-		Paused: [[null, "note", { paused: `budget spent: $${r.costUsd} of $${r.budgetUsd}` }]],
+		Paused: [
+			[null, "note", { paused: `budget spent: $${r.costUsd} of $${r.budgetUsd ?? r.costUsd}` }],
+		],
 		Failed: [[step, "runner", { event: "failed", error: "the check `pnpm test` failed 3 times" }]],
 		Cancelled: [[null, "note", { stop: "click" }]],
 		Merged: [["pr", "pr", { event: "merged", number: r.pr }]],
@@ -668,7 +682,7 @@ export function seedFactory(): MockFactory {
 			turns: 0,
 			budgetUsd:
 				parseWorkflow(workflow, WORKFLOWS[workflow] ?? "", DEFAULT_ROLES).workflow?.limits
-					.budget_usd ?? 0,
+					.budget_usd ?? null,
 			steps: steps(workflow, DONE),
 			findings: [],
 			worktreeKept: null,
@@ -969,7 +983,7 @@ export function runStart(
 		turns: 0,
 		budgetUsd:
 			parseWorkflow(workflow, WORKFLOWS[workflow] ?? "", DEFAULT_ROLES).workflow?.limits
-				.budget_usd ?? 0,
+				.budget_usd ?? null,
 		steps: steps(workflow, 0, "pending"),
 		findings: [],
 		worktreeKept: null,
@@ -1015,9 +1029,9 @@ export function runResume(
 	if (addUsd === null || !(addUsd >= 0 && Number.isFinite(addUsd)))
 		throw "the added budget must be a positive number";
 	const r = find(f, run);
-	r.budgetUsd += addUsd;
+	if (r.budgetUsd !== null) r.budgetUsd += addUsd;
 	if (r.state !== "Paused") refuse("Resume", r);
-	if (r.costUsd < r.budgetUsd) move(f, r, r.returnTo ?? "Working");
+	if (r.budgetUsd === null || r.costUsd < r.budgetUsd) move(f, r, r.returnTo ?? "Working");
 	return r.state;
 }
 

@@ -49,6 +49,7 @@ export {
 	UserCircleIcon,
 	UsersIcon,
 } from "./outline";
+export { SidebarIcon } from "./sidebar";
 export { SunIcon } from "./sun";
 export { SwatchIcon } from "./swatch";
 export { ViewColumnsIcon } from "./view-columns";

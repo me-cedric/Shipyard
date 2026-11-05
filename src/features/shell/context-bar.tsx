@@ -25,8 +25,8 @@ import {
 	InboxIcon,
 	MagnifyingGlassIcon,
 	MoonIcon,
+	SidebarIcon,
 	SunIcon,
-	ViewColumnsIcon,
 } from "@/ui/icons";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { ProjectSwitcher } from "@/ui/molecules/project-switcher";
@@ -107,7 +107,7 @@ export function ContextBar({
 				shortcut={toggleSidebar.shortcut}
 				onClick={toggleSidebar.run}
 			>
-				<ViewColumnsIcon size={16} />
+				<SidebarIcon size={16} />
 			</IconButton>
 			<IconButton label={back.label} shortcut={back.shortcut} onClick={back.run}>
 				<ChevronLeftIcon size={16} />

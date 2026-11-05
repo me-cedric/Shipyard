@@ -1,6 +1,6 @@
 import { useChanges } from "@/lib/code";
 import { useRuns } from "@/lib/factory";
-import { useInbox } from "@/lib/home";
+import { latestPerTicket, useInbox } from "@/lib/home";
 import { useActiveProject } from "@/lib/projects";
 import type { SpaceId } from "./spaces";
 
@@ -8,7 +8,7 @@ import type { SpaceId } from "./spaces";
 export function useCounts() {
 	const project = Boolean(useActiveProject().data);
 	const inbox = useInbox();
-	const runs = useRuns().data ?? [];
+	const runs = latestPerTicket(useRuns().data ?? []);
 	const changes = useChanges().data;
 	const needsYou = project
 		? inbox.questions.length +

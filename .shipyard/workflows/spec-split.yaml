@@ -16,5 +16,4 @@ steps:
     gate: human
     tools: [read_ref, ask_question, post_progress, report]
 limits:
-  budget_usd: 2
   stall_s: 300

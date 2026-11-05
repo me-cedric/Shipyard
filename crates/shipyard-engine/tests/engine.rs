@@ -252,7 +252,7 @@ fn budget_alerts_once_then_pauses_and_resumes() {
     fx.f.pump();
     let again = fx.agents.briefs().pop().unwrap();
     assert_eq!(again.resume.as_deref(), Some("s-1"));
-    assert_eq!(fx.f.run_info(&run).unwrap().budget_usd, 2.0);
+    assert_eq!(fx.f.run_info(&run).unwrap().budget_usd, Some(2.0));
 }
 
 #[test]

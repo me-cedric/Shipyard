@@ -226,7 +226,7 @@ fn an_invalid_save_keeps_the_last_valid_version_and_names_the_line() {
     put(
         dir.path(),
         &path,
-        &good.replace("  budget_usd: 5", "  max_turns: 50\n  budget_usd: 5"),
+        &good.replace("  stall_s: 300", "  max_turns: 50\n  stall_s: 300"),
     );
     let l = load(dir.path(), &l).unwrap();
     assert_eq!(l.issues, []);

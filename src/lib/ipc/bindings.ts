@@ -4701,7 +4701,7 @@ export type RunView_Deserialize = {
 	costUsd: number | null,
 	tokens: number,
 	turns: number,
-	budgetUsd: number | null,
+	budgetUsd?: number | null,
 	steps: StepView[],
 	findings: FindingView_Deserialize[],
 	worktreeKept?: string | null,
@@ -6129,7 +6129,8 @@ export type WorkflowLimits = WorkflowLimits_Serialize | WorkflowLimits_Deseriali
 export type WorkflowLimits_Deserialize = {
 	/**  No limit when absent: a run stops on its budget or its stall timeout. */
 	max_turns?: number | null,
-	budget_usd: number | null,
+	/**  No run budget when absent: the shared budgets still apply. */
+	budget_usd?: number | null,
 	stall_s: number,
 };
 
@@ -6137,6 +6138,7 @@ export type WorkflowLimits_Deserialize = {
 export type WorkflowLimits_Serialize = {
 	/**  No limit when absent: a run stops on its budget or its stall timeout. */
 	max_turns: number | null,
+	/**  No run budget when absent: the shared budgets still apply. */
 	budget_usd: number | null,
 	stall_s: number,
 };

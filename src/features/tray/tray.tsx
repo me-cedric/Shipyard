@@ -6,7 +6,7 @@ import { useCounts } from "@/features/shell/counts";
 import { OPEN_REF_EVENT, PROJECT_SWITCHED_EVENT } from "@/features/shell/events";
 import { useGuard } from "@/features/work/guard";
 import { useDailySpend, useRunActions, useRuns } from "@/lib/factory";
-import { useInbox } from "@/lib/home";
+import { latestPerTicket, useInbox } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
@@ -44,7 +44,9 @@ export function TrayView() {
 	const qc = useQueryClient();
 	const { needsYou } = useCounts();
 	const inbox = useInbox();
-	const runs = (useRuns().data ?? []).filter((r) => r.lane === "working" || r.lane === "needs_you");
+	const runs = latestPerTicket(useRuns().data ?? []).filter(
+		(r) => r.lane === "working" || r.lane === "needs_you",
+	);
 	const { cancel } = useRunActions();
 	const { error, run } = useGuard();
 	// The spend of every AI tool on this computer, as Factory / Usage shows it: Shipyard runs are in it too.

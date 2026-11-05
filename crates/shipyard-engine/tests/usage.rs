@@ -271,3 +271,14 @@ fn the_totals_after_a_restart_equal_the_totals_before() {
     fx.restart_with(|p| p.automation.budgets = day_budget(50.0));
     assert_eq!(fx.f.usage("ship"), before);
 }
+
+#[test]
+fn a_run_with_no_budget_never_pauses_for_money() {
+    let none = SMALL.replace("budget_usd: 1, ", "");
+    let fx = Fx::new(writes(true), &[&none]);
+    let run = fx.start("SHIP-1", &[]);
+    fx.event("work", usage(50.0));
+    assert_eq!(fx.state(&run), RunState::Working);
+    assert!(fx.logged(&run, "alert").is_empty());
+    assert_eq!(fx.f.run_info(&run).unwrap().budget_usd, None);
+}

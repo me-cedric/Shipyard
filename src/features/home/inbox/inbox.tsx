@@ -1,6 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
-import { type ComponentProps, type ReactNode, useState } from "react";
+import { type ComponentProps, type ReactNode, useEffect, useState } from "react";
+import { planOf } from "@/features/factory/runs/plan";
 import { useGuard } from "@/features/work/guard";
+import { useRunLog } from "@/lib/factory";
 import {
 	type ApprovalItem,
 	type MessageItem,
@@ -10,6 +12,7 @@ import {
 	useInboxActions,
 } from "@/lib/home";
 import { useI18n } from "@/lib/i18n";
+import { showAnchor } from "@/lib/notifications/targets";
 import { useShell } from "@/lib/shell";
 import { rememberSelection } from "@/lib/shell/selection";
 import { capabilityOf, useFile, useFoldTargets, useSpecsActions, useSpecView } from "@/lib/specs";
@@ -183,12 +186,26 @@ function PlanRow({ run, ticket, title }: { run: string; ticket: string; title: s
 	const { t } = useI18n();
 	const act = useInboxActions();
 	const { error, run: guard } = useGuard();
+	const { openRef } = useShell();
 	const [note, setNote] = useState("");
+	const { events, hasNextPage, isFetchingNextPage, fetchNextPage } = useRunLog(run);
+	useEffect(() => {
+		if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
+	}, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+	const summary = planOf(events)?.summary.trim();
 	return (
 		<Card>
 			<div className="flex flex-wrap items-center gap-2 px-3 py-2">
 				<RunLink run={run} ticket={ticket} />
 				<span className="flex-1 text-ui font-medium">{title}</span>
+				<Button
+					onClick={() => {
+						openRef(`run:${run}`);
+						showAnchor("plan");
+					}}
+				>
+					{t.home.planOpen}
+				</Button>
 				<Input
 					label={t.home.note}
 					className="max-w-xs"
@@ -202,6 +219,9 @@ function PlanRow({ run, ticket, title }: { run: string; ticket: string; title: s
 					{t.home.planApprove}
 				</Button>
 			</div>
+			{summary ? (
+				<p className="line-clamp-3 px-3 pb-2 text-ui whitespace-pre-line text-n-11">{summary}</p>
+			) : null}
 			<Failure error={error} />
 		</Card>
 	);

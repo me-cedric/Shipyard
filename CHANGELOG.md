@@ -1,6 +1,10 @@
 # Changelog
 
 ## [0.1.0]
+- The Mermaid editor of Design / Diagrams colours keywords, arrows, strings and comments, and so do `mermaid` blocks and `.mmd` files; a blocked run says why on its page; after Shipyard restarts, a paused step continues instead of stopping on an empty prompt; the events of a run start collapsed.
+- The sidebar toggle in the top bar has its own icon, a window with its left panel, so it no longer looks like the Work space.
+- A run has no budget unless its workflow sets `budget_usd`: the templates set none, a run then shows only its cost, and the day, member and token budgets still stop it.
+- Plan review shows the plan (its summary and tasks) on the run page above Approve and Reject, and Home / Needs you shows its first lines with Open plan; Start again on a failed run opens the new run, and the older run of the same ticket leaves the board and Needs you.
 - The run page shows the questions and approvals of the run on top, a live strip with the steps and the elapsed time, and its events as plain sentences; a click on a notification opens the exact page and section, each notification has its own Dismiss and a Details toggle for long text, and a notification that asks for an action goes away once the action is done.
 - A run has no turn limit unless its workflow sets `max_turns`; a run that reaches that limit pauses instead of failing, and Resume gives it one more set of turns; the run page says in one sentence why a run failed, paused or is blocked, with the one action that moves it on (Start again, Resume, Unblock); a Claude Code run counts one turn per model message and shows its tokens while it works.
 - New projects let agents move tickets, set labels, comment, push the run branch and open draft pull requests with no click; a force push and a merge still wait for you, and each switch can be turned off in Settings / Project.

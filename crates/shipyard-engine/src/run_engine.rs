@@ -172,7 +172,7 @@ pub struct RunInfo {
     pub cost_usd: f64,
     pub tokens: u64,
     pub turns: u32,
-    pub budget_usd: f64,
+    pub budget_usd: Option<f64>,
     pub steps: Vec<StepInfo>,
     /// The P0 and P1 findings that are left when the review rounds are spent (the Inbox card).
     pub findings: Vec<Finding>,
@@ -299,6 +299,9 @@ pub(crate) enum Kind {
     Review,
     Action,
 }
+
+/// The prompt of a resumed session that has no note and no answer to read.
+const RESUME: &str = "Continue the step where you stopped. End it with the `report` tool.\n";
 
 pub(crate) fn kind_of(s: &Step) -> Kind {
     if s.action.is_some() {
@@ -685,7 +688,7 @@ impl Inner {
             cost_usd: r.cost,
             tokens: r.tokens,
             turns: r.turns,
-            budget_usd: r.wf.limits.budget_usd + r.extra_usd,
+            budget_usd: r.wf.limits.budget_usd.map(|b| b + r.extra_usd),
             steps: r
                 .wf
                 .steps
@@ -962,7 +965,9 @@ impl Inner {
     /// The level of the budgets of the run itself, and of the shared ones by key.
     fn budget_levels(&self, run_id: &str) -> (BudgetLevel, Vec<(String, BudgetLevel)>) {
         let rec = &self.runs[run_id];
-        let money = run::budget_level(rec.cost, rec.wf.limits.budget_usd + rec.extra_usd);
+        let money = rec.wf.limits.budget_usd.map_or(BudgetLevel::Under, |b| {
+            run::budget_level(rec.cost, b + rec.extra_usd)
+        });
         let tokens = self.cfg.max_tokens.map_or(BudgetLevel::Under, |m| {
             run::budget_level(rec.tokens as f64, (m + rec.extra_tokens) as f64)
         });
@@ -1260,7 +1265,11 @@ impl Inner {
             .clone()
             .filter(|_| u.parked && !step.fresh_context);
         let prompt = match resume {
-            Some(_) => self.resume_prompt(run_id, sid),
+            // A resumed session keeps its context. With no note and no answer, it still needs a
+            // line: an empty prompt stops the AI tool (after Shipyard restarts, for example).
+            Some(_) => Some(self.resume_prompt(run_id, sid))
+                .filter(|p| !p.trim().is_empty())
+                .unwrap_or_else(|| RESUME.into()),
             None => {
                 let prompt = role.map(|r| r.prompt).unwrap_or_default();
                 self.brief(run_id, &step, i, prompt, review.as_deref())

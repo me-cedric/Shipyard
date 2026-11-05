@@ -5,7 +5,7 @@ export type NoticeTarget = ({ route: string } | { ref: string }) & { anchor?: st
 export type NoticeWhere =
 	| { source: "question"; run: string; question: string }
 	| { source: "approval"; run: string; approval: number | string }
-	| { source: "run" | "run-ended"; run: string }
+	| { source: "run" | "run-ended" | "plan"; run: string }
 	| { source: "pr-checks" | "review-draft"; ref?: string | null }
 	| { source: "scan-failed"; name: string }
 	| { source: "sync-failure" }
@@ -22,6 +22,8 @@ export function noticeTarget(w: NoticeWhere): NoticeTarget | undefined {
 			return { ref: `run:${w.run}`, anchor: `question-${w.question}` };
 		case "approval":
 			return { ref: `run:${w.run}`, anchor: `approval-${w.approval}` };
+		case "plan":
+			return { ref: `run:${w.run}`, anchor: "plan" };
 		case "run":
 		case "run-ended":
 			return { ref: `run:${w.run}` };
