@@ -8,7 +8,7 @@ describe("Settings / Project screens", () => {
 	it("hides a tab of a space for this project, in the registry, and never lists Settings", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/settings/project");
+		const router = mountApp("/settings/project");
 		const card = await screen.findByRole("region", { name: "Screens" });
 		expect(within(card).queryByRole("group", { name: "Settings" })).toBeNull();
 		const code = within(card).getByRole("group", { name: "Code" });
@@ -21,6 +21,8 @@ describe("Settings / Project screens", () => {
 		await screen.findByRole("link", { name: "Local changes" }, { timeout: 10_000 });
 		const tabs = screen.getByRole("navigation", { name: "Tabs" });
 		expect(within(tabs).queryByRole("link", { name: "Terminal" })).toBeNull();
+		// A navigation that ends after the test would run with no window: wait for the router.
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	}, 15_000);
 
 	it("sends a visit of a hidden tab to the first kept tab, and keeps the last tab of a space", async () => {
@@ -35,5 +37,6 @@ describe("Settings / Project screens", () => {
 			"aria-disabled",
 			"true",
 		);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 });
