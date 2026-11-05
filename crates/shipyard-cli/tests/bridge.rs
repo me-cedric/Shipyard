@@ -14,12 +14,11 @@ fn bridge(vars: &[(&str, &str)], input: &str) -> (ExitStatus, String, String) {
     }
     cmd.envs(vars.iter().copied());
     let mut child = cmd.spawn().unwrap();
-    child
-        .stdin
-        .take()
-        .unwrap()
-        .write_all(input.as_bytes())
-        .unwrap();
+    // A bridge that refuses its settings exits before it reads: its input is then closed.
+    let wrote = child.stdin.take().unwrap().write_all(input.as_bytes());
+    if let Err(e) = wrote {
+        assert_eq!(e.kind(), std::io::ErrorKind::BrokenPipe, "{e}");
+    }
     let out = child.wait_with_output().unwrap();
     (
         out.status,
