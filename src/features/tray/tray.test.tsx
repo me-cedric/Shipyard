@@ -97,7 +97,7 @@ describe("Menu bar panel", () => {
 	});
 
 	it("reads every query again when the panel gains focus and on each sync tick", async () => {
-		const usage = vi.spyOn(commands, "usageGet");
+		const usage = vi.spyOn(commands, "machineSpend");
 		await renderTray();
 		await screen.findByRole("region", { name: "Spend today" });
 		const before = usage.mock.calls.length;
@@ -106,6 +106,31 @@ describe("Menu bar panel", () => {
 		// The panel listens to the tick that the main window listens to.
 		expect(listen.mock.calls.map((c) => c[0])).toContain("sync-tick");
 		usage.mockRestore();
+	});
+
+	it("shows the spend of every AI tool on this computer, today and this month", async () => {
+		const today = new Date().toISOString().slice(0, 10);
+		const row = (day: string, costUsd: number | null) => ({
+			day,
+			runner: "claude",
+			model: "opus",
+			project: "",
+			tokens: 10,
+			costUsd,
+		});
+		vi.spyOn(commands, "machineSpend").mockResolvedValue({
+			status: "ok",
+			data: {
+				rows: [row(today, 2.25), row(today, 1.25), row(today, null)],
+				budgets: [{ runner: "*", usd: 100 }],
+			},
+		});
+		await renderTray();
+		const spend = within(await screen.findByRole("region", { name: "Spend today" }));
+		// Two rows of today make $3.50, today and in the month; a row with no price counts as zero.
+		expect(await spend.findAllByText("$3.50")).toHaveLength(2);
+		expect(spend.getByRole("progressbar", { name: "Month" })).toBeInTheDocument();
+		vi.restoreAllMocks();
 	});
 
 	it("opens the window on the item of a Needs you row", async () => {

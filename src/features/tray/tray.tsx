@@ -5,7 +5,7 @@ import { AgentsToggle } from "@/features/factory/agents-toggle";
 import { useCounts } from "@/features/shell/counts";
 import { OPEN_REF_EVENT, PROJECT_SWITCHED_EVENT } from "@/features/shell/events";
 import { useGuard } from "@/features/work/guard";
-import { useRunActions, useRuns, useUsage } from "@/lib/factory";
+import { useMachineSpend, useRunActions, useRuns } from "@/lib/factory";
 import { useInbox } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
@@ -44,7 +44,10 @@ export function TrayView() {
 	const runs = (useRuns().data ?? []).filter((r) => r.lane === "working" || r.lane === "needs_you");
 	const { cancel } = useRunActions();
 	const { error, run } = useGuard();
-	const days = useUsage().data?.days ?? [];
+	// The spend of every AI tool on this computer, as Factory / Usage shows it: Shipyard runs are in it too.
+	const spend = useMachineSpend(31);
+	const rows = spend.partial?.rows ?? spend.data?.rows ?? [];
+	const monthBudget = spend.data?.budgets.find((b) => b.runner === "*")?.usd ?? null;
 	const projects = useProjects().data ?? [];
 	const active = useActiveProject().data;
 	const sync = useSyncState().data ?? [];
@@ -94,18 +97,20 @@ export function TrayView() {
 	if (!tray) return null;
 
 	const money = new Intl.NumberFormat(lang, { style: "currency", currency: "USD" });
-	// Newest day first, keyed by the UTC day.
+	// The rows are by UTC day, runner and model: one sum for each day.
 	const today = new Date().toISOString().slice(0, 10);
-	const day = days.find((d) => d.key === today);
-	const month = days
-		.filter((d) => d.key.startsWith(today.slice(0, 7)))
-		.reduce((sum, d) => sum + (d.usd ?? 0), 0);
+	const byDay = new Map<string, number>();
+	for (const r of rows) byDay.set(r.day, (byDay.get(r.day) ?? 0) + (r.costUsd ?? 0));
+	const todayUsd = byDay.get(today) ?? 0;
+	const month = [...byDay]
+		.filter(([d]) => d.startsWith(today.slice(0, 7)))
+		.reduce((sum, [, usd]) => sum + usd, 0);
 	// The last 7 days, oldest first: a bar each, and a day with no row is a short one.
 	const week = Array.from({ length: 7 }, (_, i) => {
 		const d = new Date(`${today}T00:00:00Z`);
 		d.setUTCDate(d.getUTCDate() - (6 - i));
 		const key = d.toISOString().slice(0, 10);
-		return { day: key, usd: days.find((x) => x.key === key)?.usd ?? 0 };
+		return { day: key, usd: byDay.get(key) ?? 0 };
 	});
 	const top = Math.max(...week.map((w) => w.usd), 0.01);
 	const items = [
@@ -162,9 +167,7 @@ export function TrayView() {
 				<div className="flex items-end justify-between gap-3">
 					<div className="flex flex-col">
 						<span className="text-12 text-n-11">{t.ui.spendToday}</span>
-						<span className="text-20 font-semibold tabular-nums">
-							{money.format(day?.usd ?? 0)}
-						</span>
+						<span className="text-20 font-semibold tabular-nums">{money.format(todayUsd)}</span>
 					</div>
 					<div className="flex items-baseline gap-1.5">
 						<span className="text-12 text-n-11">{u.month}</span>
@@ -181,9 +184,7 @@ export function TrayView() {
 						/>
 					))}
 				</div>
-				{day?.budget == null ? null : (
-					<Progress value={day.usd ?? 0} max={day.budget} label={t.ui.spendToday} />
-				)}
+				{monthBudget == null ? null : <Progress value={month} max={monthBudget} label={u.month} />}
 			</section>
 			{runs.length ? (
 				<section aria-label={t.shell.runs} className="flex flex-col">
