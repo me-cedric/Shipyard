@@ -1,6 +1,7 @@
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { type ComponentType, useEffect, useMemo } from "react";
 import { openManualFor } from "@/features/knowledge/manual-target";
+import { openTour } from "@/features/onboarding/tour-store";
 import { canCommit, useChanges, useCodeActions } from "@/lib/code";
 import { format, type Lang, useI18n } from "@/lib/i18n";
 import { commands, errorDialog, unwrap } from "@/lib/ipc";
@@ -31,6 +32,7 @@ import {
 	LanguageIcon,
 	MagnifyingGlassIcon,
 	MoonIcon,
+	PlayIcon,
 	SunIcon,
 	SwatchIcon,
 	ViewColumnsIcon,
@@ -211,6 +213,12 @@ export function useActions() {
 				void navigate({ to: "/knowledge/manual" });
 			},
 		};
+		const tour: Action = {
+			id: "tour",
+			label: t.onboarding.replay,
+			Icon: PlayIcon,
+			run: openTour,
+		};
 		const back = withKey({
 			id: "nav-back",
 			label: t.workspace.view.back,
@@ -349,6 +357,7 @@ export function useActions() {
 			updateCheck,
 			whatsNew,
 			manual,
+			tour,
 			terminalApp,
 			back,
 			forward,

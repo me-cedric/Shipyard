@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { AskOnItem, AssistantPanel, SelectionActions, useAssistant } from "@/features/assistant";
 import { FileDrawer } from "@/features/code/file-drawer";
 import { TerminalDrawer } from "@/features/code/terminal-drawer";
+import { Tour } from "@/features/onboarding";
 import { useTrayBadge } from "@/features/tray";
 import { useCodeActions } from "@/lib/code";
 import { useAnchorArrival } from "@/lib/errors/anchor";
@@ -176,6 +177,7 @@ function Frame() {
 			<AskOnItem />
 			<CloseGuard />
 			<WhatsNew />
+			<Tour />
 			<CommitDialog open={commitOpen} onOpenChange={setCommitOpen} onSubmit={runCommit} />
 			<ViewMemory />
 		</>

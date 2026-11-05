@@ -76,6 +76,8 @@ Moi contient vos propres réglages : thème, densité, contraste, langue, rôle 
 
 Chaque source de notifications a son propre interrupteur, activé par défaut. Les sources sont : une question, une approbation, une exécution qui vous attend, une synchronisation en échec, une mise à jour, une branche distante déplacée, une exécution qui se termine, les vérifications de vos pull requests, une analyse en échec que vous n'avez pas lancée, et un brouillon de revue d'agent prêt à publier. Un interrupteur désactivé supprime l'entrée dans le centre et la notification du système. Cliquez sur une entrée pour ouvrir son exécution, sa pull request, la page Qualité ou son brouillon. Le système affiche une notification pour une exécution en échec, des vérifications en échec et un brouillon de revue, et pour les sources plus anciennes, quand la fenêtre est en arrière-plan.
 
+Autorisations montre les notifications et les dossiers Documents, Bureau et Téléchargements avec leur état et une action (voir Démarrer, Autorisations), et Revoir la visite.
+
 ## Santé
 
 Santé liste les problèmes du projet. Chaque problème a un bouton qui le corrige.

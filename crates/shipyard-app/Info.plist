@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Shipyard opens and saves the projects that you keep in this folder.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Shipyard opens and saves the projects that you keep in this folder.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Shipyard opens and saves the projects that you keep in this folder.</string>
+</dict>
+</plist>

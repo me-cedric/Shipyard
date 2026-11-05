@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { usePermissionSection } from "@/features/onboarding";
 import { useI18n } from "@/lib/i18n";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
@@ -127,6 +128,7 @@ export function Me() {
 	const roles: Role[] = ["none", ...ROLES];
 	const personal = usePersonalSections();
 	const look = useLookRows();
+	const permissions = usePermissionSection();
 	// The mark: the active project sets this value, and it replaces the one below.
 	const marked = (key: Overridable, control: React.ReactNode) => (
 		<span className="flex items-center gap-2">
@@ -286,6 +288,7 @@ export function Me() {
 								control: <NotifySwitch source={s} />,
 							})),
 						},
+						permissions,
 					]}
 				/>
 			</div>

@@ -24,6 +24,24 @@ The window opens at the size where you closed it. To keep the data of the app ne
 - The panel asks for the same click as the app for each action that writes.
 - In Settings, then Me, turn the menu bar item off.
 
+## The tour
+
+- At the first launch, a short tour of six steps opens: the loop, open a project, connect the issue tracker and the code host, choose the AI tool, the permissions, and the first run on a ticket.
+- Click Next and Back, or press the Left and Right arrow keys. Close ends the tour at any step. It does not open again by itself.
+- To see it again, choose Help, then Replay the tour, or type Replay the tour in the palette, or go to Settings, then Me, then Permissions.
+- The last step opens this manual.
+
+## Permissions
+
+Shipyard asks for a permission of the system only after you click Allow. The tour and Settings / Me show each one with its state: On, Off, Not asked, Not needed or Unknown.
+
+| Permission | macOS | Windows | Linux |
+|---|---|---|---|
+| Notifications | Allow shows the system prompt. Off opens System Settings. | Send a test, and Open System Settings. | Send a test. |
+| Documents, Desktop and Downloads | Allow lets macOS ask for each folder. Off opens Privacy & Security / Files and Folders. | Not needed. | Not needed. |
+
+Shipyard does not ask for Full Disk Access, the camera, the microphone or the location. A project on a removable or network volume gets the prompt of macOS when it opens.
+
 ## Open a project
 
 1. Go to Home, then Projects.

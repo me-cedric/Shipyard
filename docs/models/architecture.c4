@@ -29,7 +29,7 @@ model {
 
     shell = container 'Tauri shell' {
       technology 'Rust, Tauri 2'
-      description 'Native window, menu, menu bar item with its panel window, notifications, terminal, update check, the deck scheme and deck PDF print (ADR 0016), the file watcher of the active project (one debounced files-changed event) and the IPC commands (crates/shipyard-app).'
+      description 'Native window, menu, menu bar item with its panel window, notifications, the OS permissions with their System Settings panes, terminal, update check, the deck scheme and deck PDF print (ADR 0016), the file watcher of the active project (one debounced files-changed event) and the IPC commands (crates/shipyard-app).'
     }
 
     ui = container 'React UI' {

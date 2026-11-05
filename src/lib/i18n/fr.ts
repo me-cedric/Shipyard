@@ -10,6 +10,7 @@ import { extrasFr } from "./extras";
 import { factoryFr } from "./factory";
 import { homeFr } from "./home";
 import { knowledgeFr } from "./knowledge";
+import { onboardingFr } from "./onboarding";
 import { panelsFr } from "./panels";
 import { personalFr } from "./personal";
 import { reportsFr } from "./reports";
@@ -895,4 +896,5 @@ export const fr: Messages = {
 	editing: editingFr,
 	review: reviewFr,
 	extras: extrasFr,
+	onboarding: onboardingFr,
 };

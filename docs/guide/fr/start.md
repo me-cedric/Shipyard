@@ -20,6 +20,24 @@ La fenêtre s'ouvre à la taille où vous l'avez fermée. Pour garder les donné
 - Le panneau demande le même clic que l'application pour chaque action qui écrit.
 - Dans Réglages, puis Moi, désactivez l'élément de la barre de menus.
 
+## La visite
+
+- Au premier lancement, une courte visite en six étapes s'ouvre : la boucle, ouvrir un projet, connecter l'outil de suivi et l'hébergeur de code, choisir l'outil d'IA, les autorisations, et la première exécution sur un ticket.
+- Cliquez sur Suivant et Retour, ou appuyez sur les flèches gauche et droite. Fermer arrête la visite à chaque étape. Elle ne s'ouvre plus d'elle-même.
+- Pour la revoir, choisissez Aide, puis Revoir la visite, ou tapez Revoir la visite dans la palette, ou allez dans Réglages, puis Moi, puis Autorisations.
+- La dernière étape ouvre ce manuel.
+
+## Autorisations
+
+Shipyard demande une autorisation du système seulement après un clic sur Autoriser. La visite et Réglages / Moi montrent chacune avec son état : Activé, Désactivé, Pas demandé, Pas nécessaire ou Inconnu.
+
+| Autorisation | macOS | Windows | Linux |
+|---|---|---|---|
+| Notifications | Autoriser affiche la demande du système. Désactivé ouvre les Réglages Système. | Envoyer un test, et Ouvrir les Réglages Système. | Envoyer un test. |
+| Documents, Bureau et Téléchargements | Autoriser laisse macOS demander chaque dossier. Désactivé ouvre Confidentialité et sécurité / Fichiers et dossiers. | Pas nécessaire. | Pas nécessaire. |
+
+Shipyard ne demande pas l'accès complet au disque, la caméra, le micro ni la position. Un projet sur un volume amovible ou réseau reçoit la demande de macOS à son ouverture.
+
 ## Ouvrir un projet
 
 1. Allez dans Accueil, puis Projets.

@@ -100,6 +100,7 @@ export const menuLabels = (t: Messages): Record<string, string> => ({
 	"nav-back": t.workspace.view.back,
 	"nav-forward": t.workspace.view.forward,
 	manual: t.knowledge.manual.open,
+	tour: t.onboarding.replay,
 	"text-larger": t.workspace.view.textLarger,
 	"text-smaller": t.workspace.view.textSmaller,
 	"text-reset": t.workspace.view.textReset,

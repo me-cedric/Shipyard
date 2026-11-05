@@ -7,6 +7,7 @@ import type {
 	ConnectionKind,
 	commands,
 	Finding_Serialize,
+	OsPermission,
 	Overrides_Serialize,
 	Prefs_Serialize,
 	ProjectEntry_Serialize,
@@ -188,6 +189,8 @@ type State = {
 	deliveryActions: deliveryActions.MockDeliveryActions;
 	/** The system notifications that the app asked for. */
 	os: { title: string; body: string }[];
+	/** The OS permissions, as on a Mac that never asked. */
+	permissions: OsPermission[];
 	/** The labels of the last native menu. */
 	menu: Record<string, string>;
 	/** The Orca terminals that a click brought forward. */
@@ -270,6 +273,9 @@ const fresh = (): State => ({
 		motion: "system",
 		focusRing: "keyboard",
 		focusWidth: 2,
+		// The tour opens by itself on a fresh install; the mock starts after it so other tests see the app.
+		tourSeen: true,
+		permissionsAsked: [],
 	},
 	projects: [],
 	files: {},
@@ -294,6 +300,10 @@ const fresh = (): State => ({
 	delivery: dv.seedDelivery(),
 	deliveryActions: deliveryActions.seedDeliveryActions(),
 	os: [],
+	permissions: [
+		{ kind: "notifications", state: "notAsked", settings: true },
+		{ kind: "files", state: "notAsked", settings: true },
+	],
 	orcaOpened: [],
 	reports: rp.seedReports(),
 	menu: {},
@@ -1234,6 +1244,19 @@ const handlers: Handlers = {
 	},
 	notifyOs: (title, body) => {
 		state.os.push({ title, body });
+		return null;
+	},
+	permissionsList: () => state.permissions.map((p) => ({ ...p })),
+	// The person allows the system prompt.
+	permissionsRequest: (kind) => {
+		const p = state.permissions.find((x) => x.kind === kind);
+		if (!p) throw `unknown permission: ${kind}`;
+		if (p.state === "notAsked") p.state = "on";
+		return { ...p };
+	},
+	permissionsOpenSettings: (kind) => {
+		if (!state.permissions.find((x) => x.kind === kind)?.settings)
+			throw "no settings pane for this permission";
 		return null;
 	},
 	// A release address with `newer` in it has a newer version; one with `broken` fails.

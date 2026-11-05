@@ -201,7 +201,7 @@ pub fn allowed_path(
 }
 
 /// Starts a program and reaps it, so no zombie stays.
-fn launch(program: &str, args: &[&std::ffi::OsStr]) -> Res<()> {
+pub(crate) fn launch(program: &str, args: &[&std::ffi::OsStr]) -> Res<()> {
     let mut cmd = Command::new(program);
     let mut child = quiet(&mut cmd).args(args).spawn().map_err(err)?;
     std::thread::spawn(move || {

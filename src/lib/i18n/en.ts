@@ -9,6 +9,7 @@ import { extrasEn } from "./extras";
 import { factoryEn } from "./factory";
 import { homeEn } from "./home";
 import { knowledgeEn } from "./knowledge";
+import { onboardingEn } from "./onboarding";
 import { panelsEn } from "./panels";
 import { personalEn } from "./personal";
 import { reportsEn } from "./reports";
@@ -871,6 +872,7 @@ export const en = {
 	editing: editingEn,
 	review: reviewEn,
 	extras: extrasEn,
+	onboarding: onboardingEn,
 };
 
 export type Messages = typeof en;

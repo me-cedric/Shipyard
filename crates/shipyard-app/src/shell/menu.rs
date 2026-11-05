@@ -126,6 +126,7 @@ pub fn layout() -> Vec<(&'static str, &'static str, Vec<Entry>)> {
             "Help",
             vec![
                 Action("manual", "Manual for this page"),
+                Action("tour", "Replay the tour"),
                 Action("shortcuts-help", "Keyboard shortcuts"),
                 Action("update-check", "Check for updates"),
             ],
@@ -215,6 +216,7 @@ mod tests {
             "nav-back",
             "nav-forward",
             "manual",
+            "tour",
             "text-larger",
             "text-smaller",
             "text-reset",

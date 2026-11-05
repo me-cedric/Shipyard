@@ -562,6 +562,9 @@ export const commands = {
 	 *  background. The UI decides when: it also shows the event in the notification centre, once.
 	 */
 	notifyOs: (title: string, body: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("notify_os", { title, body })),
+	permissionsList: () => typedError<OsPermission[], AppError_Serialize>(__TAURI_INVOKE("permissions_list")),
+	permissionsRequest: (kind: PermissionKind) => typedError<OsPermission, AppError_Serialize>(__TAURI_INVOKE("permissions_request", { kind })),
+	permissionsOpenSettings: (kind: PermissionKind) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("permissions_open_settings", { kind })),
 	/**
 	 *  Reads the release address of the preferences and says whether a newer version exists.
 	 *  It installs nothing.
@@ -3178,6 +3181,13 @@ export type Origin_Serialize = {
 	connection: string | null,
 };
 
+export type OsPermission = {
+	kind: PermissionKind,
+	state: PermissionState,
+	/**  System Settings has a pane for it on this computer. */
+	settings: boolean,
+};
+
 /**  A project value that takes the place of a personal preference while the project is active. */
 export type Overrides = Overrides_Serialize | Overrides_Deserialize;
 
@@ -3274,6 +3284,14 @@ export type Permission =
  *  read only profile uses it.
  */
 "read_only";
+
+export type PermissionKind = "notifications" | 
+/**  The protected folders of macOS: Documents, Desktop and Downloads. */
+"files";
+
+export type PermissionState = "on" | "off" | "notAsked" | "notNeeded" | 
+/**  The system gives no state, such as an unbundled dev build or Linux. */
+"unknown";
 
 export type Persona = {
 	id: string,
@@ -3562,6 +3580,7 @@ export type PrefsPatch_Deserialize = {
 	motion?: Motion | null,
 	focusRing?: FocusRing | null,
 	focusWidth?: number | null,
+	tourSeen?: boolean | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -3606,6 +3625,7 @@ export type PrefsPatch_Serialize = {
 	motion: Motion | null,
 	focusRing: FocusRing | null,
 	focusWidth: number | null,
+	tourSeen: boolean | null,
 };
 
 export type Prefs_Deserialize = {
@@ -3689,6 +3709,10 @@ export type Prefs_Deserialize = {
 	focusRing?: FocusRing,
 	/**  The width of the focus ring in pixels: one of `FOCUS_WIDTHS`. */
 	focusWidth?: number,
+	/**  The person closed or ended the onboarding tour. A file without it opens the tour once. */
+	tourSeen?: boolean,
+	/**  The OS permissions that Shipyard asked for once, such as `files`. Only the backend writes it. */
+	permissionsAsked?: string[],
 };
 
 export type Prefs_Serialize = {
@@ -3772,6 +3796,10 @@ export type Prefs_Serialize = {
 	focusRing: FocusRing,
 	/**  The width of the focus ring in pixels: one of `FOCUS_WIDTHS`. */
 	focusWidth: number,
+	/**  The person closed or ended the onboarding tour. A file without it opens the tour once. */
+	tourSeen: boolean,
+	/**  The OS permissions that Shipyard asked for once, such as `files`. Only the backend writes it. */
+	permissionsAsked: string[],
 };
 
 export type Preview = Preview_Serialize | Preview_Deserialize;

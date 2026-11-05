@@ -36,6 +36,7 @@ pub mod mcp_tools;
 pub mod openers;
 pub mod orca;
 pub mod outside;
+pub mod permissions;
 pub mod pkce;
 pub mod pr_agent;
 pub mod provider_keys;
@@ -524,6 +525,9 @@ fn specta_builder() -> Builder<tauri::Wry> {
             codex_trust::codex_trust,
             sh::shell_menu,
             sh::notify_os,
+            permissions::permissions_list,
+            permissions::permissions_request,
+            permissions::permissions_open_settings,
             sh::update_check,
             tray::tray_badge,
             tray::tray_close,

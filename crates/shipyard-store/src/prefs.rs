@@ -251,6 +251,12 @@ pub struct Prefs {
     /// The width of the focus ring in pixels: one of `FOCUS_WIDTHS`.
     #[serde(default = "default_focus_width")]
     pub focus_width: u8,
+    /// The person closed or ended the onboarding tour. A file without it opens the tour once.
+    #[serde(default)]
+    pub tour_seen: bool,
+    /// The OS permissions that Shipyard asked for once, such as `files`. Only the backend writes it.
+    #[serde(default)]
+    pub permissions_asked: Vec<String>,
 }
 
 pub const DATE_FORMATS: [&str; 3] = ["iso", "dmy", "mdy"];
@@ -334,6 +340,8 @@ impl Default for Prefs {
             motion: Motion::System,
             focus_ring: FocusRing::Keyboard,
             focus_width: default_focus_width(),
+            tour_seen: false,
+            permissions_asked: Vec::new(),
         }
     }
 }
@@ -382,6 +390,7 @@ pub struct PrefsPatch {
     pub motion: Option<Motion>,
     pub focus_ring: Option<FocusRing>,
     pub focus_width: Option<u8>,
+    pub tour_seen: Option<bool>,
 }
 
 const FILE: &str = "prefs.json";
@@ -503,6 +512,7 @@ impl Prefs {
         self.tray = p.tray.unwrap_or(self.tray);
         self.motion = p.motion.unwrap_or(self.motion);
         self.focus_ring = p.focus_ring.unwrap_or(self.focus_ring);
+        self.tour_seen = p.tour_seen.unwrap_or(self.tour_seen);
         if let Some(w) = p.focus_width.filter(|w| FOCUS_WIDTHS.contains(w)) {
             self.focus_width = w;
         }
@@ -863,6 +873,24 @@ mod tests {
         )
         .unwrap();
         assert!(old.tray, "a file with no value gets the default");
+    }
+
+    #[test]
+    fn the_tour_opens_once_and_an_older_file_shows_it() {
+        let mut p = Prefs::default();
+        assert!(!p.tour_seen && p.permissions_asked.is_empty());
+        p.apply(PrefsPatch {
+            tour_seen: Some(true),
+            ..Default::default()
+        });
+        assert!(p.tour_seen);
+        p.apply(PrefsPatch::default());
+        assert!(p.tour_seen, "a patch without the value keeps it");
+        let old: Prefs = serde_json::from_str(
+            r#"{"theme":"dark","density":"default","contrast":"default","role":"none","sidebarOpen":true,"lang":null}"#,
+        )
+        .unwrap();
+        assert!(!old.tour_seen);
     }
 
     #[test]

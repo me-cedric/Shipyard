@@ -134,6 +134,23 @@
       "artifacts": [
         "spec:extensions"
       ]
+    },
+    {
+      "id": "SCR-016",
+      "slug": "onboarding-tour",
+      "title": "Onboarding tour: six steps with a title, one sentence and a picture; Close, Back, Next, Done and Open the manual",
+      "artifacts": [
+        "spec:onboarding"
+      ],
+      "file": "docs/assets/screenshots/tour.png"
+    },
+    {
+      "id": "SCR-017",
+      "slug": "settings-permissions",
+      "title": "Settings / Me, Permissions: each OS permission with its state and one action, and Replay the tour",
+      "artifacts": [
+        "spec:onboarding"
+      ]
     }
   ]
 }

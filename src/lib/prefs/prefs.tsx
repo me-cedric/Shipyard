@@ -49,6 +49,7 @@ export type Prefs = Pick<
 	| "motion"
 	| "focusRing"
 	| "focusWidth"
+	| "tourSeen"
 >;
 
 /** Font stacks that are on the machine already. Nothing is fetched. */
@@ -97,6 +98,8 @@ const DEFAULTS: Prefs = {
 	motion: "system",
 	focusRing: "keyboard",
 	focusWidth: 2,
+	// True until the file loads, so the tour never flashes for a person who saw it.
+	tourSeen: true,
 };
 
 type Ctx = Prefs & {
