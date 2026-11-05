@@ -3,6 +3,8 @@
 // final run takes no event, one answer closes a question, an invalid workflow file is refused.
 // The demo data set (`seedFactory`) has a run in every lane and belongs to the first project that
 // reads it, so each build and test sees it whatever folder it opens.
+
+import { stringify } from "yaml";
 import type {
 	AgentRole_Serialize,
 	ApprovalView,
@@ -35,10 +37,14 @@ import type {
 	StepView,
 	UnitView,
 	UsageView_Serialize,
+	Workflow_Deserialize,
 	Workflow_Serialize,
 	WorkflowFile_Serialize,
 	WorkflowItem_Serialize,
 	WorkflowLimits_Serialize,
+	WorkflowOptions_Serialize,
+	WorkflowProposal_Serialize,
+	WorkflowSource,
 	WorkItemView_Serialize,
 	Workspace,
 } from "./bindings";
@@ -354,16 +360,22 @@ function parseWorkflow(
 				`step \`${raw.id?.v}\` names the role \`${role.v}\`, which has no file in ${ROLE_DIR} and is not a default role`,
 			);
 	}
+	const ids = raws.map((r) => r.id?.v);
+	for (const raw of raws) {
+		const need = list(raw.needs?.v ?? "").find((n) => !ids.includes(n));
+		if (need && raw.needs)
+			return refuse(raw.needs.line, `step \`${raw.id?.v}\` needs \`${need}\`, which is not a step`);
+	}
 	const steps = raws.map((raw): Step_Serialize => {
 		const s = (k: string) => raw[k]?.v;
 		const step: Step_Serialize = {
 			id: s("id") ?? "",
 			mode: (s("mode") ?? "auto") as Mode,
-			workspace: (s("workspace") ?? "none") as Workspace,
+			workspace: (s("workspace") ?? "shared") as Workspace,
 			gate: (s("gate") ?? "none") as Gate,
 			retry: Number(s("retry") ?? 0),
 			fresh_context: s("fresh_context") === "true",
-			budget: null,
+			budget: s("budget") ? Number(s("budget")) : null,
 			needs: list(s("needs") ?? ""),
 			tools: list(s("tools") ?? ""),
 		};
@@ -466,6 +478,8 @@ export type MockFactory = {
 	kill: boolean;
 	/** The text of each workflow file. */
 	workflows: Record<string, string>;
+	/** The texts that outside agents proposed. */
+	proposals: { id: string; text: string }[];
 	/** The role files that a person wrote. A default role has no file until then. */
 	roles: Record<string, string>;
 	/** The last id of the run log. Ids grow over all runs. */
@@ -493,6 +507,7 @@ export const emptyFactory = (): MockFactory => ({
 	budgets: { day: {}, member: {} },
 	kill: false,
 	workflows: { ...WORKFLOWS },
+	proposals: [{ id: "bug", text: WORKFLOWS.bug?.replace("budget_usd: 3", "budget_usd: 2") ?? "" }],
 	roles: {},
 	event: 0,
 });
@@ -1215,17 +1230,139 @@ export function workflowGet(f: MockFactory, id: string): WorkflowFile_Serialize 
 	return { id, text, ...checkWorkflow(f, id, text) };
 }
 
-/** The first issue of a text, or `null`. Nothing is written. */
-export function workflowCheck(f: MockFactory, id: string, text: string) {
+/** The file of a text, with its parse and its first issue. Nothing is written. */
+export function workflowCheck(f: MockFactory, id: string, text: string): WorkflowFile_Serialize {
 	tooBig(text);
-	return checkWorkflow(f, fileId(id), text).issue;
+	return { id, text, ...checkWorkflow(f, fileId(id), text) };
 }
 
 /** An invalid text is refused: the file never holds one. */
 export function workflowWrite(f: MockFactory, id: string, text: string): null {
-	const i = workflowCheck(f, id, text);
-	if (i) throw refusal(i);
+	const { issue } = workflowCheck(f, id, text);
+	if (issue) throw refusal(issue);
 	f.workflows[id] = text;
+	return null;
+}
+
+const sc = (v: string | number) => stringify(v).trim();
+const flow = (v: string[]) => `[${v.map(sc).join(", ")}]`;
+
+/** The YAML of a workflow in the key order and with the default omission of the shared writer. The top comment of `text` stays. */
+export function workflowRender(
+	f: MockFactory,
+	id: string,
+	wf: Workflow_Deserialize,
+	text: string,
+): WorkflowFile_Serialize {
+	const lines = text.split("\n");
+	const out = lines.slice(
+		0,
+		Math.max(
+			0,
+			lines.findIndex((x) => !x.startsWith("#")),
+		),
+	);
+	out.push(`id: ${sc(wf.id ?? id)}`, "steps:");
+	for (const st of wf.steps ?? []) {
+		const rows: [string, string | undefined][] = [
+			["id", sc(st.id ?? "")],
+			["role", st.role ? sc(st.role) : undefined],
+			["action", st.action ? sc(st.action) : undefined],
+			["model", st.model ? sc(st.model) : undefined],
+			["effort", st.effort ? sc(st.effort) : undefined],
+			["skill", st.skill ? sc(st.skill) : undefined],
+			["mode", st.mode === "plan" ? "plan" : undefined],
+			["needs", st.needs?.length ? flow(st.needs) : undefined],
+			["gate", st.gate === "human" ? "human" : undefined],
+			["workspace", st.workspace && st.workspace !== "shared" ? st.workspace : undefined],
+			["for_each", st.for_each ? sc(st.for_each) : undefined],
+			["max_parallel", st.max_parallel ? sc(st.max_parallel) : undefined],
+			["retry", st.retry ? sc(st.retry) : undefined],
+			["timeout", st.timeout ? sc(st.timeout) : undefined],
+			["budget", st.budget != null ? sc(st.budget) : undefined],
+			["tools", st.tools?.length ? flow(st.tools) : undefined],
+			["fresh_context", st.fresh_context ? "true" : undefined],
+			["max_rounds", st.max_rounds ? sc(st.max_rounds) : undefined],
+		];
+		const set = rows.filter(([, v]) => v !== undefined);
+		for (const [i, [k, v]] of set.entries()) out.push(`${i === 0 ? "  - " : "    "}${k}: ${v}`);
+	}
+	const l = wf.limits;
+	out.push("limits:");
+	if (l.max_turns != null) out.push(`  max_turns: ${l.max_turns}`);
+	if (l.budget_usd != null) out.push(`  budget_usd: ${l.budget_usd}`);
+	out.push(`  stall_s: ${l.stall_s}`);
+	return workflowCheck(f, id, `${out.join("\n")}\n`);
+}
+
+const presetItem = (id: string): WorkflowItem_Serialize => {
+	const { workflow, issue } = parseWorkflow(id, WORKFLOWS[id] ?? "", DEFAULT_ROLES);
+	return { id, steps: workflow?.steps.map((s) => s.id) ?? [], issue };
+};
+
+export const workflowOptions = (f: MockFactory): WorkflowOptions_Serialize => ({
+	presets: Object.keys(WORKFLOWS).sort().map(presetItem),
+	roles: roleNames(f),
+	tools: [
+		"ask_question",
+		"post_progress",
+		"handoff",
+		"message",
+		"spawn_subtask",
+		"report",
+		"read_ticket",
+		"read_ref",
+	],
+	tiers: ["top", "mid", "small"],
+	skills: ["grill-me", "caveman", "ponytail"],
+});
+
+const withId = (text: string, id: string) => text.replace(/^id:.*$/m, `id: ${id}`);
+
+export function workflowCreate(f: MockFactory, id: string, from: WorkflowSource): null {
+	if (f.workflows[fileId(id)] !== undefined) throw `\`${id}\` already exists`;
+	const text = (from.kind === "preset" ? WORKFLOWS : f.workflows)[from.id];
+	if (text === undefined) throw `no workflow \`${from.id}\``;
+	f.workflows[id] = withId(text, id);
+	return null;
+}
+
+/** The default workflow and a workflow of a live run stay. */
+const keep = (f: MockFactory, id: string) => {
+	if (id === "feature") throw `\`${id}\` is the default workflow`;
+	if (f.runs.some((r) => r.workflow === id && !FINAL.includes(r.state)))
+		throw `a run uses \`${id}\``;
+};
+
+export function workflowRename(f: MockFactory, id: string, to: string): null {
+	const text = f.workflows[fileId(id)];
+	if (text === undefined) throw `no workflow \`${id}\``;
+	keep(f, id);
+	if (f.workflows[fileId(to)] !== undefined) throw `\`${to}\` already exists`;
+	f.workflows[to] = withId(text, to);
+	delete f.workflows[id];
+	return null;
+}
+
+export function workflowDelete(f: MockFactory, id: string): null {
+	if (f.workflows[fileId(id)] === undefined) throw `no workflow \`${id}\``;
+	keep(f, id);
+	delete f.workflows[id];
+	return null;
+}
+
+export const workflowProposals = (f: MockFactory): WorkflowProposal_Serialize[] =>
+	f.proposals.map((p) => ({ ...p, current: f.workflows[p.id] ?? null }));
+
+export function workflowProposalApply(f: MockFactory, id: string): null {
+	const p = f.proposals.find((x) => x.id === id);
+	if (!p) throw `no proposal for \`${id}\``;
+	workflowWrite(f, id, p.text);
+	return workflowProposalDiscard(f, id);
+}
+
+export function workflowProposalDiscard(f: MockFactory, id: string): null {
+	f.proposals = f.proposals.filter((p) => p.id !== id);
 	return null;
 }
 

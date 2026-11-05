@@ -128,6 +128,7 @@ fn the_allow_list_filters_the_tools_and_the_read_only_preset_has_no_write_tool()
         tickets: true,
         adrs: true,
         qa: true,
+        workflows: true,
     };
     let on = |only: Vec<String>| {
         enabled(&Outside {
@@ -148,6 +149,7 @@ fn the_allow_list_filters_the_tools_and_the_read_only_preset_has_no_write_tool()
         "ticket_comment",
         "adr_propose",
         "qa_run_check",
+        "workflow_propose",
     ] {
         assert!(!preset.contains(&write), "{write}");
     }

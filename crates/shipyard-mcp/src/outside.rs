@@ -30,6 +30,9 @@ pub struct Switches {
     pub tickets: bool,
     pub adrs: bool,
     pub qa: bool,
+    /// Serde default: a settings file from before this group stays readable.
+    #[serde(default)]
+    pub workflows: bool,
 }
 
 /// How the app answers a ticket tool: the tool name and its arguments give a text or a message.
@@ -66,7 +69,7 @@ impl Outside {
 }
 
 /// The tool names. One group each.
-pub const NAMES: [&str; 20] = [
+pub const NAMES: [&str; 24] = [
     "project_list_files",
     "project_read_file",
     "project_write_file",
@@ -87,10 +90,14 @@ pub const NAMES: [&str; 20] = [
     "docs_stale",
     "spec_validate",
     "qa_run_scanner",
+    "workflow_list",
+    "workflow_read",
+    "workflow_validate",
+    "workflow_propose",
 ];
 
 /// The tools that change nothing: the "read only" preset of the allow list.
-pub const READ_ONLY: [&str; 14] = [
+pub const READ_ONLY: [&str; 17] = [
     "project_list_files",
     "project_read_file",
     "git_status",
@@ -105,6 +112,9 @@ pub const READ_ONLY: [&str; 14] = [
     "qa_read_report",
     "docs_stale",
     "spec_validate",
+    "workflow_list",
+    "workflow_read",
+    "workflow_validate",
 ];
 
 const MAX_READ: u64 = 256 * 1024;
@@ -123,6 +133,7 @@ fn group(name: &str, s: &Switches) -> bool {
         "ticket_list" | "ticket_read" | "ticket_comment" => s.tickets,
         "adr_list" | "adr_read" | "adr_propose" => s.adrs,
         "qa_read_report" | "docs_stale" | "spec_validate" | "qa_run_scanner" => s.qa,
+        "workflow_list" | "workflow_read" | "workflow_validate" | "workflow_propose" => s.workflows,
         _ => false,
     }
 }
@@ -270,6 +281,30 @@ pub fn definitions(o: &Outside) -> Vec<Value> {
             "Run one scanner (secrets, dependencies, code or skills) and keep the report.",
             json!({ "name": { "type": "string", "enum": ["secrets", "dependencies", "code", "skills"] } }),
             &["name"],
+        ),
+        tool(
+            "workflow_list",
+            "List the workflows of the open project with their steps.",
+            json!({}),
+            &[],
+        ),
+        tool(
+            "workflow_read",
+            "Read the text of one workflow of the open project.",
+            json!({ "id": { "type": "string" } }),
+            &["id"],
+        ),
+        tool(
+            "workflow_validate",
+            "Check the text of a workflow and name the first problem. Nothing is written.",
+            json!({ "id": { "type": "string" }, "text": { "type": "string" } }),
+            &["id", "text"],
+        ),
+        tool(
+            "workflow_propose",
+            "Propose the text of a workflow. A person applies it in Factory / Workflows.",
+            json!({ "id": { "type": "string" }, "text": { "type": "string" } }),
+            &["id", "text"],
         ),
     ];
     all.into_iter()
@@ -734,6 +769,7 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
             | "adr_propose"
             | "qa_run_check"
             | "qa_run_scanner"
+            | "workflow_propose"
     );
     if o.read_only && writes {
         return Err("the profile of this project is read only".into());
@@ -833,7 +869,14 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
         }
         "adr_list" | "adr_read" | "adr_propose" => adr(root, name, args)?,
         "qa_run_check" => qa_run(root, args)?,
-        "docs_stale" => app_tool(o, name, args)?,
+        "docs_stale" | "workflow_list" => app_tool(o, name, args)?,
+        "workflow_read" | "workflow_validate" | "workflow_propose" => {
+            if arg(args, "id").is_none() || (name != "workflow_read" && arg(args, "text").is_none())
+            {
+                return Err("id and text are required".into());
+            }
+            app_tool(o, name, args)?
+        }
         "qa_run_scanner" => {
             if !["secrets", "dependencies", "code", "skills"]
                 .contains(&arg(args, "name").ok_or("name is required")?)
@@ -880,6 +923,7 @@ mod tests {
             tickets: true,
             adrs: true,
             qa: true,
+            workflows: true,
         }
     }
 
@@ -970,6 +1014,36 @@ mod tests {
                 .contains("read only")
         );
         assert!(!dir.path().join("a.md").exists());
+    }
+
+    #[test]
+    fn the_workflow_tools_follow_their_switch_and_a_read_only_project() {
+        let dir = tempfile::tempdir().unwrap();
+        let off = open(dir.path(), Switches::default());
+        assert!(enabled(&off).iter().all(|n| !n.starts_with("workflow_")));
+        assert!(
+            call(&off, "workflow_list", &json!({}))
+                .unwrap_err()
+                .contains("turned off")
+        );
+        let mut o = open(dir.path(), all());
+        let args = json!({ "id": "a", "text": "x" });
+        assert_eq!(
+            enabled(&o)
+                .iter()
+                .filter(|n| n.starts_with("workflow_"))
+                .count(),
+            4
+        );
+        assert!(call(&o, "workflow_propose", &args).is_ok());
+        o.read_only = true;
+        assert!(
+            call(&o, "workflow_propose", &args)
+                .unwrap_err()
+                .contains("read only")
+        );
+        assert!(call(&o, "workflow_validate", &args).is_ok());
+        assert!(!READ_ONLY.contains(&"workflow_propose"));
     }
 
     #[test]

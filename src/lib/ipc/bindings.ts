@@ -334,8 +334,16 @@ export const commands = {
 	killSwitchSet: (on: boolean) => typedError<boolean, AppError_Serialize>(__TAURI_INVOKE("kill_switch_set", { on })),
 	workflowsList: () => typedError<WorkflowItem_Serialize[], AppError_Serialize>(__TAURI_INVOKE("workflows_list")),
 	workflowGet: (id: string) => typedError<WorkflowFile_Serialize, AppError_Serialize>(__TAURI_INVOKE("workflow_get", { id })),
-	workflowCheck: (id: string, text: string) => typedError<IssueView_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("workflow_check", { id, text })),
+	workflowCheck: (id: string, text: string) => typedError<WorkflowFile_Serialize, AppError_Serialize>(__TAURI_INVOKE("workflow_check", { id, text })),
 	workflowWrite: (id: string, text: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("workflow_write", { id, text })),
+	workflowRender: (id: string, workflow: Workflow_Deserialize, text: string) => typedError<WorkflowFile_Serialize, AppError_Serialize>(__TAURI_INVOKE("workflow_render", { id, workflow, text })),
+	workflowOptions: () => typedError<WorkflowOptions_Serialize, AppError_Serialize>(__TAURI_INVOKE("workflow_options")),
+	workflowCreate: (id: string, from: WorkflowSource) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("workflow_create", { id, from })),
+	workflowRename: (id: string, to: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("workflow_rename", { id, to })),
+	workflowDelete: (id: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("workflow_delete", { id })),
+	workflowProposals: () => typedError<WorkflowProposal_Serialize[], AppError_Serialize>(__TAURI_INVOKE("workflow_proposals")),
+	workflowProposalApply: (id: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("workflow_proposal_apply", { id })),
+	workflowProposalDiscard: (id: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("workflow_proposal_discard", { id })),
 	rolesList: () => typedError<RoleItem_Serialize[], AppError_Serialize>(__TAURI_INVOKE("roles_list")),
 	roleGet: (id: string) => typedError<RoleFile_Serialize, AppError_Serialize>(__TAURI_INVOKE("role_get", { id })),
 	roleWrite: (id: string, text: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("role_write", { id, text })),
@@ -2855,6 +2863,7 @@ export type McpGates_Deserialize = {
 	tickets?: boolean,
 	adrs?: boolean,
 	qa?: boolean,
+	workflows?: boolean,
 	port?: number,
 	/**  When it is not empty, only these tools run. */
 	allowedTools?: string[],
@@ -2872,6 +2881,7 @@ export type McpGates_Serialize = {
 	tickets: boolean,
 	adrs: boolean,
 	qa: boolean,
+	workflows: boolean,
 	port: number,
 	/**  When it is not empty, only these tools run. */
 	allowedTools: string[],
@@ -6238,6 +6248,48 @@ export type WorkflowLimits_Serialize = {
 	budget_usd: number | null,
 	stall_s: number,
 };
+
+export type WorkflowOptions = WorkflowOptions_Serialize | WorkflowOptions_Deserialize;
+
+export type WorkflowOptions_Deserialize = {
+	/**  The bundled workflows. */
+	presets: WorkflowItem_Deserialize[],
+	roles: string[],
+	tools: string[],
+	tiers: string[],
+	skills: string[],
+};
+
+export type WorkflowOptions_Serialize = {
+	/**  The bundled workflows. */
+	presets: WorkflowItem_Serialize[],
+	roles: string[],
+	tools: string[],
+	tiers: string[],
+	skills: string[],
+};
+
+/**  A text that an agent proposes. A person applies it. */
+export type WorkflowProposal = WorkflowProposal_Serialize | WorkflowProposal_Deserialize;
+
+/**  A text that an agent proposes. A person applies it. */
+export type WorkflowProposal_Deserialize = {
+	id: string,
+	text: string,
+	/**  The file now. `None` for a new id. */
+	current?: string | null,
+};
+
+/**  A text that an agent proposes. A person applies it. */
+export type WorkflowProposal_Serialize = {
+	id: string,
+	text: string,
+	/**  The file now. `None` for a new id. */
+	current: string | null,
+};
+
+/**  Where a new workflow starts: a bundled one or a workflow of the project. */
+export type WorkflowSource = { kind: "preset"; id: string } | { kind: "workflow"; id: string };
 
 export type Workflow_Deserialize = {
 	id: string,

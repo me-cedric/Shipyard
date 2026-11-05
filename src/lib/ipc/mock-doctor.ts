@@ -33,6 +33,10 @@ const OUTSIDE_TOOLS = [
 	"docs_stale",
 	"spec_validate",
 	"qa_run_scanner",
+	"workflow_list",
+	"workflow_read",
+	"workflow_validate",
+	"workflow_propose",
 ];
 
 const GROUP_OF: Record<string, keyof McpGates_Deserialize> = {
@@ -56,6 +60,10 @@ const GROUP_OF: Record<string, keyof McpGates_Deserialize> = {
 	docs_stale: "qa",
 	spec_validate: "qa",
 	qa_run_scanner: "qa",
+	workflow_list: "workflows",
+	workflow_read: "workflows",
+	workflow_validate: "workflows",
+	workflow_propose: "workflows",
 };
 
 const READ_ONLY = [
@@ -73,6 +81,9 @@ const READ_ONLY = [
 	"qa_read_report",
 	"docs_stale",
 	"spec_validate",
+	"workflow_list",
+	"workflow_read",
+	"workflow_validate",
 ];
 
 type Gates = Required<McpGates_Deserialize>;
@@ -132,6 +143,7 @@ export const seedDoctor = (): MockDoctor => ({
 		tickets: false,
 		adrs: false,
 		qa: false,
+		workflows: false,
 		port: 47821,
 		allowedTools: [],
 	},

@@ -50,6 +50,7 @@ describe("Factory tabs", () => {
 		const user = userEvent.setup();
 		await renderTab(<Workflows />);
 		await user.click(await screen.findByRole("button", { name: /^bug/ }));
+		await user.click(await screen.findByRole("tab", { name: "Text" }));
 		const editor = await screen.findByRole("textbox", { name: "bug" });
 		fireEvent.change(editor, {
 			target: { value: (editor as HTMLTextAreaElement).value.replace("id: bug", "id: other") },
@@ -64,6 +65,7 @@ describe("Factory tabs", () => {
 		const user = userEvent.setup();
 		await renderTab(<Workflows />);
 		await user.click(await screen.findByRole("button", { name: /^bug/ }));
+		await user.click(await screen.findByRole("tab", { name: "Text" }));
 		const editor = (await screen.findByRole("textbox", { name: "bug" })) as HTMLTextAreaElement;
 		const next = `${editor.value}\n# note\n`;
 		fireEvent.change(editor, { target: { value: next } });
@@ -77,6 +79,7 @@ describe("Factory tabs", () => {
 		const user = userEvent.setup();
 		await renderTab(<Workflows />);
 		await user.click(await screen.findByRole("button", { name: /^bug/ }));
+		await user.click(await screen.findByRole("tab", { name: "Text" }));
 		const editor = (await screen.findByRole("textbox", { name: "bug" })) as HTMLTextAreaElement;
 		const first = `${editor.value}\n# a\n`;
 		const second = `${first}# b\n`;

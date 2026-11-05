@@ -172,6 +172,16 @@
         "spec:themes",
         "adr:0018"
       ]
+    },
+    {
+      "id": "SCR-016",
+      "slug": "factory-workflows",
+      "title": "Factory / Workflows: a workflow in the form, with its steps and the limits of the run",
+      "artifacts": [
+        "spec:factory",
+        "spec:workflow-editor"
+      ],
+      "file": "docs/assets/screenshots/workflows.png"
     }
   ]
 }

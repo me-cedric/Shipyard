@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { commands, type Lane, type RunState } from "./bindings";
+import { commands, type Lane, type RunState, type Workflow } from "./bindings";
 import { DEMO_FOLDER, mockState, resetMock } from "./mock";
 import { emptyFactory } from "./mock-factory";
 import { unwrap } from "./result";
@@ -409,15 +409,15 @@ describe("mock factory: workflows, roles and tiers", () => {
 
 	it("checks a workflow and refuses an invalid save", async () => {
 		const text = (await unwrap(commands.workflowGet("bug"))).text;
-		expect(await unwrap(commands.workflowCheck("bug", text))).toBeNull();
+		expect((await unwrap(commands.workflowCheck("bug", text))).issue).toBeNull();
 		const renamed = text.replace("id: bug", "id: other");
-		expect(await unwrap(commands.workflowCheck("bug", renamed))).toEqual({
+		expect((await unwrap(commands.workflowCheck("bug", renamed))).issue).toEqual({
 			file: ".shipyard/workflows/bug.yaml",
 			line: 2,
 			message: "id `other` differs from the file name `bug`",
 		});
 		const role = text.replace("role: worker", "role: ghost");
-		expect(await unwrap(commands.workflowCheck("bug", role))).toMatchObject({
+		expect((await unwrap(commands.workflowCheck("bug", role))).issue).toMatchObject({
 			line: 11,
 			message:
 				"step `fix` names the role `ghost`, which has no file in .shipyard/roles and is not a default role",
@@ -442,9 +442,61 @@ describe("mock factory: workflows, roles and tiers", () => {
 		).rejects.toMatchObject({ details: expect.stringContaining("over 64 KiB") });
 	});
 
+	it("renders each bundled workflow back to the same workflow, with its top comment", async () => {
+		for (const { id } of await unwrap(commands.workflowsList())) {
+			const file = await unwrap(commands.workflowGet(id));
+			const back = await unwrap(commands.workflowRender(id, file.workflow as Workflow, file.text));
+			expect(back.issue).toBeNull();
+			expect(back.workflow).toEqual(file.workflow);
+			expect(back.text.split("\n")[0]).toBe(file.text.split("\n")[0]);
+		}
+	});
+
+	it("leaves out a default field and refuses a need that is no step", async () => {
+		const file = await unwrap(commands.workflowGet("bug"));
+		const wf = structuredClone(file.workflow) as Workflow;
+		const fix = need(wf.steps.find((s) => s.id === "fix"));
+		fix.retry = 0;
+		fix.workspace = "shared";
+		fix.needs = ["gone"];
+		const out = await unwrap(commands.workflowRender("bug", wf, file.text));
+		expect(out.text).not.toContain("retry");
+		expect(out.text).not.toContain("workspace");
+		expect(out.issue?.message).toBe("step `fix` needs `gone`, which is not a step");
+		expect(out.workflow).toBeNull();
+	});
+
+	it("lists the options, and creates, renames and deletes a workflow", async () => {
+		const o = await unwrap(commands.workflowOptions());
+		expect(o.presets).toHaveLength(6);
+		expect(o.tiers).toEqual(["top", "mid", "small"]);
+		await unwrap(commands.workflowCreate("hotfix", { kind: "preset", id: "bug" }));
+		expect((await unwrap(commands.workflowGet("hotfix"))).workflow?.id).toBe("hotfix");
+		await expect(
+			unwrap(commands.workflowCreate("bug", { kind: "workflow", id: "feature" })),
+		).rejects.toMatchObject({ details: expect.stringContaining("`bug` already exists") });
+		await unwrap(commands.workflowRename("hotfix", "urgent"));
+		expect((await unwrap(commands.workflowsList())).map((w) => w.id)).toContain("urgent");
+		await expect(unwrap(commands.workflowDelete("feature"))).rejects.toMatchObject({
+			details: expect.stringContaining("default workflow"),
+		});
+		await unwrap(commands.workflowDelete("urgent"));
+		expect((await unwrap(commands.workflowsList())).map((w) => w.id)).not.toContain("urgent");
+	});
+
+	it("applies and discards a proposal", async () => {
+		const [p] = await unwrap(commands.workflowProposals());
+		expect(p?.id).toBe("bug");
+		expect(p?.current).toBe((await unwrap(commands.workflowGet("bug"))).text);
+		await unwrap(commands.workflowProposalApply("bug"));
+		expect((await unwrap(commands.workflowGet("bug"))).text).toBe(p?.text);
+		expect(await unwrap(commands.workflowProposals())).toEqual([]);
+		await unwrap(commands.workflowProposalDiscard("bug"));
+	});
+
 	it("saves a new workflow, and a role that it needs", async () => {
 		const text = "id: lint\nsteps:\n  - id: scan\n    role: linter\n";
-		expect(await unwrap(commands.workflowCheck("lint", text))).toMatchObject({ line: 4 });
+		expect((await unwrap(commands.workflowCheck("lint", text))).issue).toMatchObject({ line: 4 });
 		const body = "---\nname: linter\ndescription: Runs the linter.\nmodel: small\n---\n\nLint.\n";
 		await expect(
 			unwrap(commands.roleWrite("linter", body.replace("linter", "other"))),

@@ -61,12 +61,31 @@ test("the global kill switch cancels the runs and releases", async ({ page }) =>
 test("shows a check error with its line for a broken workflow", async ({ page }) => {
 	await openFactory(page, "Workflows");
 	await page.getByRole("button", { name: /^bug/ }).click();
+	await page.getByRole("tab", { name: "Text" }).click();
 	const editor = page.getByRole("textbox", { name: "bug" });
 	await editor.fill((await editor.inputValue()).replace("id: bug", "id: other"));
 	const alert = page.getByRole("alert");
 	await expect(alert).toContainText("Line 2");
 	await expect(alert).toContainText("differs from the file name");
 	await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
+});
+
+test("makes a workflow from a preset, changes an effort in the form and saves it", async ({
+	page,
+}) => {
+	await openFactory(page, "Workflows");
+	await page.getByRole("button", { name: "New", exact: true }).click();
+	const dialog = page.getByRole("dialog");
+	await dialog.getByRole("combobox", { name: "Preset" }).click();
+	await page.getByRole("option", { name: "bug" }).click();
+	await dialog.getByRole("textbox", { name: "New id" }).fill("hotfix");
+	await dialog.getByRole("button", { name: "Create" }).click();
+	const triage = page.getByRole("region", { name: "Step triage" });
+	await triage.getByRole("combobox", { name: "Effort" }).click();
+	await page.getByRole("option", { name: "max" }).click();
+	await page.getByRole("button", { name: "Save" }).click();
+	await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
+	await expect(page.getByRole("button", { name: /^hotfix/ })).toBeVisible();
 });
 
 test("lists every AI session on the computer and stops a running one", async ({ page }) => {

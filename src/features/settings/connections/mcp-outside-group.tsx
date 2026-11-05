@@ -24,6 +24,7 @@ const GROUPS = [
 	"tickets",
 	"adrs",
 	"qa",
+	"workflows",
 ] as const;
 const outsideKey = ["mcp", "outside"] as const;
 const elsewhereKey = ["mcp", "elsewhere"] as const;

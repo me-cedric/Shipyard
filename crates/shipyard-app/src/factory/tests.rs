@@ -904,3 +904,150 @@ fn a_docs_update_run_opens_its_pull_request_with_no_issue_tracker_ticket() {
     assert!(title.contains("Update the docs: models"), "{title}");
     assert!(body.contains("docs:models"), "{body}");
 }
+
+#[test]
+fn a_workflow_is_made_from_a_preset_renamed_and_deleted() {
+    let fx = fx(Writes::default());
+    let preset = WorkflowSource::Preset("bug".into());
+    create_workflow(&fx.s, "hotfix", &preset).unwrap();
+    let file = workflow_read(&fx.s, "hotfix").unwrap();
+    assert!(file.text.contains("id: hotfix") && file.issue.is_none());
+    // The id exists, or is bad, or the preset is unknown.
+    assert!(
+        create_workflow(&fx.s, "hotfix", &preset)
+            .unwrap_err()
+            .contains("exists")
+    );
+    assert!(create_workflow(&fx.s, "Bad Id", &preset).is_err());
+    assert!(create_workflow(&fx.s, "x", &WorkflowSource::Preset("nope".into())).is_err());
+    // A copy of a project workflow.
+    create_workflow(&fx.s, "copy", &WorkflowSource::Workflow("hotfix".into())).unwrap();
+
+    rename_workflow(&fx.s, "copy", "moved").unwrap();
+    assert!(workflow_read(&fx.s, "copy").is_err());
+    assert!(
+        workflow_read(&fx.s, "moved")
+            .unwrap()
+            .text
+            .contains("id: moved")
+    );
+    assert!(
+        rename_workflow(&fx.s, "moved", "hotfix")
+            .unwrap_err()
+            .contains("exists")
+    );
+    delete_workflow(&fx.s, "moved").unwrap();
+    assert!(workflow_read(&fx.s, "moved").is_err());
+    assert!(delete_workflow(&fx.s, "moved").is_err());
+
+    let o = workflow_choices(&fx.s).unwrap();
+    assert_eq!(o.presets.len(), 6);
+    assert_eq!(o.tiers, ["top", "mid", "small"]);
+    assert!(o.roles.contains(&"worker".to_string()) && !o.tools.is_empty());
+}
+
+#[test]
+fn the_default_workflow_and_a_workflow_of_a_live_run_stay() {
+    let fx = fx(Writes::default());
+    let e = delete_workflow(&fx.s, "feature").unwrap_err();
+    assert_eq!(e, "`feature` is the default workflow of the project");
+    assert!(rename_workflow(&fx.s, "feature", "other").is_err());
+    assert!(workflow_read(&fx.s, "feature").is_ok());
+    // The run of SHIP-1 uses the workflow `one`.
+    fx.start("SHIP-1");
+    assert_eq!(
+        delete_workflow(&fx.s, "one").unwrap_err(),
+        "a run uses `one`"
+    );
+    assert_eq!(
+        rename_workflow(&fx.s, "one", "two").unwrap_err(),
+        "a run uses `one`"
+    );
+}
+
+#[test]
+fn a_read_only_project_takes_no_workflow_change() {
+    let fx = fx(Writes::default());
+    let on = shipyard_store::project::Overrides {
+        read_only: Some(true),
+        ..Default::default()
+    };
+    projects::save_overrides(&fx.s, on).unwrap();
+    let preset = WorkflowSource::Preset("bug".into());
+    for e in [
+        create_workflow(&fx.s, "hotfix", &preset),
+        rename_workflow(&fx.s, "bug", "other"),
+        delete_workflow(&fx.s, "bug"),
+    ] {
+        assert!(e.unwrap_err().contains("read only"));
+    }
+    let text = workflow_read(&fx.s, "bug").unwrap().text;
+    assert!(
+        workflow_propose(&fx.s, "bug", &text)
+            .unwrap_err()
+            .contains("read only")
+    );
+}
+
+#[test]
+fn a_proposal_lives_outside_the_repository_until_a_person_applies_it() {
+    let fx = fx(Writes::default());
+    let text = workflow_read(&fx.s, "bug")
+        .unwrap()
+        .text
+        .replace("id: bug", "id: proposed");
+    let bad = text.replace("steps:", "stepz:");
+    assert!(
+        workflow_propose(&fx.s, "proposed", &bad)
+            .unwrap_err()
+            .contains(".yaml")
+    );
+    assert!(proposals(&fx.s).unwrap().is_empty());
+
+    let said = workflow_propose(&fx.s, "proposed", &text).unwrap();
+    assert!(said.contains("a person applies it in Factory / Workflows"));
+    assert!(
+        !fx.repo
+            .path()
+            .join(".shipyard/workflows/proposed.yaml")
+            .exists()
+    );
+    let list = proposals(&fx.s).unwrap();
+    assert_eq!((list.len(), list[0].current.clone()), (1, None));
+    assert_eq!(list[0].text, text);
+    assert!(fx.s.dir.join("workflow-proposals").exists());
+
+    apply_proposal(&fx.s, "proposed").unwrap();
+    assert_eq!(workflow_read(&fx.s, "proposed").unwrap().text, text);
+    assert!(proposals(&fx.s).unwrap().is_empty());
+
+    // A proposal for an existing id shows the file now. A person can drop it.
+    workflow_propose(&fx.s, "proposed", &text).unwrap();
+    assert_eq!(
+        proposals(&fx.s).unwrap()[0].current.as_deref(),
+        Some(text.as_str())
+    );
+    discard_proposal(&fx.s, "proposed").unwrap();
+    assert!(proposals(&fx.s).unwrap().is_empty());
+    assert!(discard_proposal(&fx.s, "proposed").is_err());
+}
+
+#[test]
+fn a_form_edit_renders_the_text_and_checks_it() {
+    let fx = fx(Writes::default());
+    let file = workflow_read(&fx.s, "bug").unwrap();
+    let mut wf = file.workflow.clone().unwrap();
+    let same = workflow_render_text(&fx.s, "bug", &wf, &file.text).unwrap();
+    assert!(same.issue.is_none() && same.text.starts_with('#'));
+    assert_eq!(same.workflow.as_ref(), Some(&wf));
+    wf.steps[0].role = Some("nobody".into());
+    let bad = workflow_render_text(&fx.s, "bug", &wf, &file.text).unwrap();
+    assert!(bad.issue.is_some() && bad.workflow.is_none());
+    assert_eq!(workflow_read(&fx.s, "bug").unwrap().text, file.text);
+    assert!(
+        workflow_check_text(&fx.s, "bug", file.text)
+            .unwrap()
+            .issue
+            .is_none()
+    );
+}

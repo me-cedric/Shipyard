@@ -1,9 +1,12 @@
 //! The default workflows and roles, the seed and the reload with the last valid version (spec
 //! `factory`, REQ-010, REQ-011, REQ-014, REQ-035).
 
-use shipyard_core::workflow::{Action, DEFAULT_ROLES, Effort, Gate, Mode, Workflow, Workspace};
+use shipyard_core::workflow::{
+    Action, DEFAULT_ROLES, Effort, Gate, Mode, Step, Workflow, Workspace,
+};
 use shipyard_store::factory_files::{
-    Loaded, ROLES_DIR, WORKFLOWS_DIR, default_roles, default_workflows, load, parse_role, seed,
+    Loaded, ROLES_DIR, WORKFLOWS_DIR, default_roles, default_workflows, load, parse_role,
+    parse_workflow, seed, set_workflow_id, workflow_header, workflow_text,
 };
 
 fn roles() -> Vec<String> {
@@ -338,4 +341,89 @@ fn a_workflow_without_a_file_falls_back_to_the_bundled_default() {
     assert!(!loaded.workflows.contains_key("docs-update"));
     assert_eq!(loaded.workflow("docs-update").unwrap().id, "docs-update");
     assert!(loaded.workflow("nope").is_none());
+}
+
+fn parse(id: &str, text: &str) -> Workflow {
+    let mut known = roles();
+    known.push("security".into());
+    parse_workflow(id, text, &known).unwrap_or_else(|e| panic!("{id}: {e:?}"))
+}
+
+#[test]
+fn a_template_round_trips_through_the_writer() {
+    for (id, text) in default_workflows() {
+        let wf = parse(id, text);
+        let header = workflow_header(text);
+        assert!(header.starts_with('#'), "{id}");
+        let out = workflow_text(&wf, header).unwrap();
+        assert!(out.starts_with(header), "{id}");
+        assert_eq!(parse(id, &out), wf, "{id}");
+        assert_eq!(
+            workflow_text(&parse(id, &out), header).unwrap(),
+            out,
+            "{id}"
+        );
+    }
+}
+
+#[test]
+fn a_step_with_every_field_round_trips() {
+    let step = |id: &str| Step {
+        id: id.into(),
+        needs: vec!["a".into()],
+        model: Some("mid".into()),
+        effort: Some(Effort::Max),
+        skill: Some("grill-me".into()),
+        mode: Mode::Plan,
+        gate: Gate::Human,
+        workspace: Workspace::Worktree,
+        for_each: Some("a.tasks".into()),
+        max_parallel: Some(3),
+        retry: 2,
+        timeout: Some(60),
+        budget: Some(1.5),
+        tools: vec!["report".into()],
+        fresh_context: true,
+        max_rounds: Some(2),
+        ..Step::default()
+    };
+    let a = Step {
+        id: "a".into(),
+        role: Some("worker".into()),
+        ..Step::default()
+    };
+    let r = Step {
+        role: Some("worker".into()),
+        ..step("r")
+    };
+    let p = Step {
+        action: Some(Action::OpenPr),
+        ..step("p")
+    };
+    let mut wf = Workflow {
+        id: "x".into(),
+        steps: vec![a, r, p],
+        limits: shipyard_core::workflow::WorkflowLimits {
+            max_turns: Some(40),
+            budget_usd: 5.0,
+            stall_s: 300,
+        },
+    };
+    let text = workflow_text(&wf, "").unwrap();
+    assert!(text.contains("budget_usd: 5\n"), "{text}");
+    assert_eq!(parse("x", &text), wf);
+    wf.limits.max_turns = None;
+    let text = workflow_text(&wf, "").unwrap();
+    assert!(!text.contains("max_turns"));
+    assert_eq!(parse("x", &text), wf);
+}
+
+#[test]
+fn set_workflow_id_keeps_the_other_lines() {
+    let text = "# head\nid: \"old\"\nsteps: []\n  id: old\n";
+    assert_eq!(
+        set_workflow_id(text, "old", "new").unwrap(),
+        "# head\nid: new\nsteps: []\n  id: old\n"
+    );
+    assert!(set_workflow_id(text, "other", "new").is_none());
 }

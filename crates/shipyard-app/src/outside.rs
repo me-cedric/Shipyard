@@ -42,6 +42,7 @@ pub struct McpGates {
     pub tickets: bool,
     pub adrs: bool,
     pub qa: bool,
+    pub workflows: bool,
     pub port: u16,
     /// When it is not empty, only these tools run.
     pub allowed_tools: Vec<String>,
@@ -60,6 +61,7 @@ impl Default for McpGates {
             tickets: false,
             adrs: false,
             qa: false,
+            workflows: false,
             port: DEFAULT_PORT,
             allowed_tools: Vec::new(),
         }
@@ -78,6 +80,7 @@ impl McpGates {
             tickets: self.tickets,
             adrs: self.adrs,
             qa: self.qa,
+            workflows: self.workflows,
         }
     }
 }
@@ -117,6 +120,8 @@ fn ticket_tool(name: &str, args: &Value) -> Result<String, String> {
     let app = APP.get().ok_or("the app is not ready")?;
     let s = app.state::<AppState>();
     let key = args.get("key").and_then(Value::as_str).unwrap_or("");
+    let id = args.get("id").and_then(Value::as_str).unwrap_or("");
+    let text = args.get("text").and_then(Value::as_str).unwrap_or("");
     match name {
         "docs_stale" => Ok(scan_text(crate::qa::docs_fresh(&s)?.1, "no stale docs")),
         "qa_run_scanner" => {
@@ -125,6 +130,23 @@ fn ticket_tool(name: &str, args: &Value) -> Result<String, String> {
             let head = format!("{} {}", if r.passed { "passed" } else { "failed" }, r.tail);
             Ok(format!("{head}\n{}", scan_text(r.findings, "")))
         }
+        "workflow_list" => Ok(crate::factory::workflows(&s)?
+            .iter()
+            .map(|w| {
+                let at = w.issue.as_ref().map_or("", |_| " [issue]");
+                format!("{}: {}{at}", w.id, w.steps.join(" › "))
+            })
+            .collect::<Vec<_>>()
+            .join("\n")),
+        "workflow_read" => Ok(crate::factory::workflow_read(&s, id)?.text),
+        "workflow_validate" => Ok(crate::factory::workflow_validate(&s, id, text)?.map_or(
+            "valid".into(),
+            |i| match i.line {
+                Some(l) => format!("{}:{l}: {}", i.file, i.message),
+                None => format!("{}: {}", i.file, i.message),
+            },
+        )),
+        "workflow_propose" => crate::factory::workflow_propose(&s, id, text),
         "ticket_list" => {
             let limit = args
                 .get("limit")

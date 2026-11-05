@@ -8,7 +8,10 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
-use shipyard_core::workflow::{DEFAULT_ROLES, Effort, Workflow, WorkflowIssue};
+use serde_norway::{Mapping, Value};
+use shipyard_core::workflow::{
+    DEFAULT_ROLES, Effort, Gate, Mode, Step, Workflow, WorkflowIssue, Workspace,
+};
 use specta::Type;
 
 use crate::Result;
@@ -253,6 +256,138 @@ pub fn parse_workflow(
         Some(i) => Err(describe(text, &i)),
         None => Ok(wf),
     }
+}
+
+/// The leading comment block of a workflow file, with its trailing newline.
+pub fn workflow_header(text: &str) -> &str {
+    let mut end = 0;
+    for l in text.split_inclusive('\n') {
+        if !(l.starts_with('#') || l.trim().is_empty()) {
+            break;
+        }
+        end += l.len();
+    }
+    &text[..end]
+}
+
+fn val<T: Serialize>(v: &T) -> Result<Value> {
+    Ok(serde_norway::to_value(v)?)
+}
+
+/// A whole number is an integer in the file: `5`, not `5.0`.
+fn num(n: f64) -> Value {
+    if n.fract() == 0.0 && n.abs() < 1e15 {
+        Value::from(n as i64)
+    } else {
+        Value::from(n)
+    }
+}
+
+fn step_value(s: &Step) -> Result<Value> {
+    let mut m = Mapping::new();
+    let mut put = |k: &str, v: Value| {
+        m.insert(k.into(), v);
+    };
+    put("id", s.id.clone().into());
+    if let Some(r) = &s.role {
+        put("role", r.clone().into());
+    }
+    if let Some(a) = &s.action {
+        put("action", val(a)?);
+    }
+    if let Some(x) = &s.model {
+        put("model", x.clone().into());
+    }
+    if let Some(x) = &s.effort {
+        put("effort", val(x)?);
+    }
+    if let Some(x) = &s.skill {
+        put("skill", x.clone().into());
+    }
+    if s.mode != Mode::Auto {
+        put("mode", val(&s.mode)?);
+    }
+    if !s.needs.is_empty() {
+        put("needs", val(&s.needs)?);
+    }
+    if s.gate != Gate::None {
+        put("gate", val(&s.gate)?);
+    }
+    if s.workspace != Workspace::Shared {
+        put("workspace", val(&s.workspace)?);
+    }
+    if let Some(x) = &s.for_each {
+        put("for_each", x.clone().into());
+    }
+    if let Some(x) = s.max_parallel {
+        put("max_parallel", x.into());
+    }
+    if s.retry != 0 {
+        put("retry", s.retry.into());
+    }
+    if let Some(x) = s.timeout {
+        put("timeout", x.into());
+    }
+    if let Some(x) = s.budget {
+        put("budget", num(x));
+    }
+    if !s.tools.is_empty() {
+        put("tools", val(&s.tools)?);
+    }
+    if s.fresh_context {
+        put("fresh_context", true.into());
+    }
+    if let Some(x) = s.max_rounds {
+        put("max_rounds", x.into());
+    }
+    Ok(Value::Mapping(m))
+}
+
+/// The file text of a workflow: `header`, then the YAML through the shared writer. Defaults are
+/// left out, so a form edit stays small and the file stays as a person would write it.
+pub fn workflow_text(wf: &Workflow, header: &str) -> Result<String> {
+    let mut limits = Mapping::new();
+    if let Some(t) = wf.limits.max_turns {
+        limits.insert("max_turns".into(), t.into());
+    }
+    // `Option::from` takes an `f64` and an `Option<f64>` alike: a None budget is left out.
+    if let Some(b) = Option::<f64>::from(wf.limits.budget_usd) {
+        limits.insert("budget_usd".into(), num(b));
+    }
+    limits.insert("stall_s".into(), wf.limits.stall_s.into());
+    let mut top = Mapping::new();
+    top.insert("id".into(), wf.id.clone().into());
+    let steps = wf
+        .steps
+        .iter()
+        .map(step_value)
+        .collect::<Result<Vec<_>>>()?;
+    top.insert("steps".into(), Value::Sequence(steps));
+    top.insert("limits".into(), Value::Mapping(limits));
+    Ok(format!(
+        "{header}{}",
+        crate::yaml::to_string(&Value::Mapping(top))?
+    ))
+}
+
+/// Replace the top-level `id: <old>` line by `id: <new>`. The rest stays byte for byte.
+pub fn set_workflow_id(text: &str, old: &str, new: &str) -> Option<String> {
+    let mut at = 0;
+    for l in text.split_inclusive('\n') {
+        let body = l.trim_end_matches(['\n', '\r']);
+        if let Some(v) = body.strip_prefix("id:")
+            && v.trim().trim_matches(['"', '\'']) == old
+        {
+            let eol = &l[body.len()..];
+            return Some(format!(
+                "{}id: {new}{eol}{}",
+                &text[..at],
+                &text[at + l.len()..]
+            ));
+        }
+        at += l.len();
+    }
+    None
 }
 
 /// The first line that names a step: `- id: build` or `- { id: build, ... }`.

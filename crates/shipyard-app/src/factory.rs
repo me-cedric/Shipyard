@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::time::{Duration, SystemTime};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use shipyard_agents::runner::{self, McpEntry, Mode as RunMode, Recv, RunSpec};
 use shipyard_core::delivery::{Lane, lane};
 use shipyard_core::pickup::{ActiveRun, SyncEvent};
@@ -39,8 +39,8 @@ use shipyard_mcp::transport::Http;
 use shipyard_secrets::Secret;
 use shipyard_store::automation_file::{AutomationRead, read_automation, set_budget};
 use shipyard_store::factory_files::{
-    FileIssue, Loaded, ROLES_DIR, Role, WORKFLOWS_DIR, default_roles, load, parse_role,
-    parse_workflow, seed,
+    FileIssue, Loaded, ROLES_DIR, Role, WORKFLOWS_DIR, default_roles, default_workflows, load,
+    parse_role, parse_workflow, seed, set_workflow_id, workflow_header, workflow_text,
 };
 use shipyard_store::mirror::Mirror;
 use shipyard_store::project::{FileRead, read_project_file, write_atomic};
@@ -1320,20 +1320,245 @@ pub fn workflow_validate(s: &AppState, id: &str, text: &str) -> Res<Option<Issue
 pub fn workflow_save(s: &AppState, id: &str, text: &str) -> Res<()> {
     crate::work::refuse_read_only(s)?;
     if let Some(i) = workflow_validate(s, id, text)? {
-        return Err(match i.line {
-            Some(l) => format!("{}:{l}: {}", i.file, i.message),
-            None => format!("{}: {}", i.file, i.message),
-        });
+        return Err(refusal(&i));
     }
     let (_, root) = root_of(s)?;
-    write_atomic(
-        &root.join(WORKFLOWS_DIR).join(format!("{id}.yaml")),
-        text.as_bytes(),
-    )
-    .map_err(err)?;
+    write_atomic(&workflow_path(&root, id), text.as_bytes()).map_err(err)?;
     // The factory takes the new file at once.
     let _ = ensure(s);
     Ok(())
+}
+
+fn refusal(i: &IssueView) -> String {
+    match i.line {
+        Some(l) => format!("{}:{l}: {}", i.file, i.message),
+        None => format!("{}: {}", i.file, i.message),
+    }
+}
+
+fn workflow_path(root: &Path, id: &str) -> PathBuf {
+    root.join(WORKFLOWS_DIR).join(format!("{id}.yaml"))
+}
+
+/// A file with its check, for a text that is not written yet.
+pub fn workflow_check_text(s: &AppState, id: &str, text: String) -> Res<WorkflowFile> {
+    let id = file_id(id)?;
+    too_big(&text)?;
+    let (_, loaded) = fresh(s)?;
+    let (workflow, issue) = check_workflow(id, &text, &loaded);
+    Ok(WorkflowFile {
+        id: id.into(),
+        text,
+        workflow,
+        issue,
+    })
+}
+
+/// The text of a workflow that a form edited, with the comment header of the old text. Nothing is
+/// written.
+pub fn workflow_render_text(
+    s: &AppState,
+    id: &str,
+    workflow: &Workflow,
+    old: &str,
+) -> Res<WorkflowFile> {
+    let text = workflow_text(workflow, workflow_header(old)).map_err(err)?;
+    workflow_check_text(s, id, text)
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowOptions {
+    /// The bundled workflows.
+    pub presets: Vec<WorkflowItem>,
+    pub roles: Vec<String>,
+    pub tools: Vec<String>,
+    pub tiers: Vec<String>,
+    pub skills: Vec<String>,
+}
+
+pub fn workflow_choices(s: &AppState) -> Res<WorkflowOptions> {
+    let (root, loaded) = fresh(s)?;
+    let roles = role_names(&loaded);
+    let presets = default_workflows()
+        .iter()
+        .map(|(id, text)| WorkflowItem {
+            id: id.to_string(),
+            steps: parse_workflow(id, text, &roles)
+                .map(|w| w.steps.into_iter().map(|st| st.id).collect())
+                .unwrap_or_default(),
+            issue: None,
+        })
+        .collect();
+    let skills = shipyard_store::roles_skills::list(&root)
+        .map_err(err)?
+        .into_iter()
+        .filter(|r| r.kind == shipyard_store::roles_skills::RowKind::Skill)
+        .map(|r| r.name)
+        .collect();
+    Ok(WorkflowOptions {
+        presets,
+        roles,
+        tools: shipyard_mcp::tools::agent::NAMES
+            .iter()
+            .map(|n| n.to_string())
+            .collect(),
+        tiers: ["top", "mid", "small"].map(String::from).to_vec(),
+        skills,
+    })
+}
+
+/// Where a new workflow starts: a bundled one or a workflow of the project.
+#[derive(Debug, Clone, PartialEq, Deserialize, Type)]
+#[serde(tag = "kind", content = "id", rename_all = "camelCase")]
+pub enum WorkflowSource {
+    Preset(String),
+    Workflow(String),
+}
+
+fn refuse_existing(root: &Path, id: &str) -> Res<()> {
+    if workflow_path(root, id).exists() {
+        return Err(format!("a workflow `{id}` exists"));
+    }
+    Ok(())
+}
+
+/// A new workflow: the text of the source with the new id.
+pub fn create_workflow(s: &AppState, id: &str, from: &WorkflowSource) -> Res<()> {
+    crate::work::refuse_read_only(s)?;
+    let id = file_id(id)?;
+    let (_, root) = root_of(s)?;
+    refuse_existing(&root, id)?;
+    let (src, text) = match from {
+        WorkflowSource::Preset(p) => default_workflows()
+            .iter()
+            .find(|(n, _)| n == p)
+            .map(|(n, t)| (n.to_string(), t.to_string()))
+            .ok_or_else(|| format!("no preset `{p}`"))?,
+        WorkflowSource::Workflow(w) => (w.clone(), workflow_read(s, w)?.text),
+    };
+    let text = set_workflow_id(&text, &src, id)
+        .ok_or_else(|| format!("`{src}` has no `id: {src}` line"))?;
+    workflow_save(s, id, &text)
+}
+
+/// A workflow that a person or a run depends on stays: the default of the project, or a live run.
+fn refuse_in_use(s: &AppState, id: &str) -> Res<()> {
+    let (pid, root) = root_of(s)?;
+    let default = match read_project_file(&root).map_err(err)? {
+        FileRead::Valid(f) => f.default_workflow,
+        _ => None,
+    }
+    .unwrap_or_else(|| DEFAULT_WORKFLOW.into());
+    if default == id {
+        return Err(format!("`{id}` is the default workflow of the project"));
+    }
+    let live = s
+        .factory
+        .factory
+        .runs()
+        .iter()
+        .any(|r| r.project == pid && r.workflow == id && !r.run.state.is_final());
+    if live {
+        return Err(format!("a run uses `{id}`"));
+    }
+    Ok(())
+}
+
+pub fn rename_workflow(s: &AppState, id: &str, to: &str) -> Res<()> {
+    crate::work::refuse_read_only(s)?;
+    let (id, to) = (file_id(id)?, file_id(to)?);
+    let (_, root) = root_of(s)?;
+    refuse_existing(&root, to)?;
+    refuse_in_use(s, id)?;
+    let text = set_workflow_id(&workflow_read(s, id)?.text, id, to)
+        .ok_or_else(|| format!("`{id}` has no `id: {id}` line"))?;
+    workflow_save(s, to, &text)?;
+    std::fs::remove_file(workflow_path(&root, id)).map_err(err)?;
+    let _ = ensure(s);
+    Ok(())
+}
+
+pub fn delete_workflow(s: &AppState, id: &str) -> Res<()> {
+    crate::work::refuse_read_only(s)?;
+    let id = file_id(id)?;
+    let (_, root) = root_of(s)?;
+    refuse_in_use(s, id)?;
+    std::fs::remove_file(workflow_path(&root, id)).map_err(|_| format!("no workflow `{id}`"))?;
+    let _ = ensure(s);
+    Ok(())
+}
+
+/// A text that an agent proposes. A person applies it.
+#[derive(Debug, Clone, PartialEq, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkflowProposal {
+    pub id: String,
+    pub text: String,
+    /// The file now. `None` for a new id.
+    pub current: Option<String>,
+}
+
+/// Proposals live in the app data folder, never in the repository.
+fn proposal_path(s: &AppState, id: &str) -> Res<PathBuf> {
+    let (pid, _) = root_of(s)?;
+    Ok(s.dir
+        .join("workflow-proposals")
+        .join(pid)
+        .join(format!("{id}.yaml")))
+}
+
+pub fn workflow_propose(s: &AppState, id: &str, text: &str) -> Res<String> {
+    crate::work::refuse_read_only(s)?;
+    let id = file_id(id)?;
+    too_big(text)?;
+    if let Some(i) = workflow_validate(s, id, text)? {
+        return Err(refusal(&i));
+    }
+    write_atomic(&proposal_path(s, id)?, text.as_bytes()).map_err(err)?;
+    Ok(format!(
+        "proposed `{id}`: a person applies it in Factory / Workflows"
+    ))
+}
+
+pub fn proposals(s: &AppState) -> Res<Vec<WorkflowProposal>> {
+    let (_, root) = root_of(s)?;
+    let dir = proposal_path(s, "x")?.parent().map(Path::to_path_buf);
+    let mut out = Vec::new();
+    for f in std::fs::read_dir(dir.ok_or("no folder")?)
+        .into_iter()
+        .flatten()
+        .flatten()
+    {
+        let p = f.path();
+        let Some(id) = p
+            .extension()
+            .is_some_and(|x| x == "yaml")
+            .then(|| p.file_stem()?.to_str().map(String::from))
+            .flatten()
+        else {
+            continue;
+        };
+        out.push(WorkflowProposal {
+            text: std::fs::read_to_string(&p).map_err(err)?,
+            current: std::fs::read_to_string(workflow_path(&root, &id)).ok(),
+            id,
+        });
+    }
+    out.sort_by(|a, b| a.id.cmp(&b.id));
+    Ok(out)
+}
+
+pub fn apply_proposal(s: &AppState, id: &str) -> Res<()> {
+    let id = file_id(id)?;
+    let path = proposal_path(s, id)?;
+    let text = std::fs::read_to_string(&path).map_err(|_| format!("no proposal `{id}`"))?;
+    workflow_save(s, id, &text)?;
+    std::fs::remove_file(path).map_err(err)
+}
+
+pub fn discard_proposal(s: &AppState, id: &str) -> Res<()> {
+    std::fs::remove_file(proposal_path(s, file_id(id)?)?).map_err(|_| format!("no proposal `{id}`"))
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Type)]
@@ -1554,8 +1779,61 @@ pub async fn workflow_get(app: AppHandle, id: String) -> Api<WorkflowFile> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn workflow_check(app: AppHandle, id: String, text: String) -> Api<Option<IssueView>> {
-    blocking(app, move |s| workflow_validate(s, &id, &text)).await
+pub async fn workflow_check(app: AppHandle, id: String, text: String) -> Api<WorkflowFile> {
+    blocking(app, move |s| workflow_check_text(s, &id, text)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn workflow_render(
+    app: AppHandle,
+    id: String,
+    workflow: Workflow,
+    text: String,
+) -> Api<WorkflowFile> {
+    blocking(app, move |s| workflow_render_text(s, &id, &workflow, &text)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn workflow_options(app: AppHandle) -> Api<WorkflowOptions> {
+    blocking(app, workflow_choices).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn workflow_create(app: AppHandle, id: String, from: WorkflowSource) -> Api<()> {
+    blocking(app, move |s| create_workflow(s, &id, &from)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn workflow_rename(app: AppHandle, id: String, to: String) -> Api<()> {
+    blocking(app, move |s| rename_workflow(s, &id, &to)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn workflow_delete(app: AppHandle, id: String) -> Api<()> {
+    blocking(app, move |s| delete_workflow(s, &id)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn workflow_proposals(app: AppHandle) -> Api<Vec<WorkflowProposal>> {
+    blocking(app, proposals).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn workflow_proposal_apply(app: AppHandle, id: String) -> Api<()> {
+    blocking(app, move |s| apply_proposal(s, &id)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn workflow_proposal_discard(app: AppHandle, id: String) -> Api<()> {
+    blocking(app, move |s| discard_proposal(s, &id)).await
 }
 
 #[tauri::command]

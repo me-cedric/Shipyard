@@ -2,7 +2,15 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useState } from "react";
 import { useFactoryEvents } from "@/lib/home";
-import { commands, isTauri, type RunState, type SpendRow, unwrap } from "@/lib/ipc";
+import {
+	commands,
+	isTauri,
+	type RunState,
+	type SpendRow,
+	unwrap,
+	type Workflow,
+	type WorkflowSource,
+} from "@/lib/ipc";
 
 export type { RunItem } from "@/lib/home";
 
@@ -12,6 +20,8 @@ export const factoryKeys = {
 	kill: ["factory", "kill"] as const,
 	workflows: ["factory", "workflows"] as const,
 	roles: ["factory", "roles"] as const,
+	options: ["factory", "options"] as const,
+	proposals: ["factory", "proposals"] as const,
 	sessions: ["factory", "sessions"] as const,
 	usage: ["factory", "usage"] as const,
 	file: (kind: "workflow" | "role", id: string) => ["factory", "file", kind, id] as const,
@@ -113,6 +123,23 @@ export function useWorkflows() {
 	});
 }
 
+/** The lists that the workflow form offers: presets, roles, tools, tiers and skills. */
+export function useWorkflowOptions() {
+	return useQuery({
+		queryKey: factoryKeys.options,
+		queryFn: () => unwrap(commands.workflowOptions()),
+	});
+}
+
+/** The texts that outside agents proposed. */
+export function useWorkflowProposals() {
+	useFresh();
+	return useQuery({
+		queryKey: factoryKeys.proposals,
+		queryFn: () => unwrap(commands.workflowProposals()),
+	});
+}
+
 export function useRoles() {
 	return useQuery({ queryKey: factoryKeys.roles, queryFn: () => unwrap(commands.rolesList()) });
 }
@@ -167,6 +194,13 @@ export function useFactoryWrites() {
 		};
 		return {
 			check: (id: string, text: string) => unwrap(commands.workflowCheck(id, text)),
+			render: (id: string, workflow: Workflow, text: string) =>
+				unwrap(commands.workflowRender(id, workflow, text)),
+			create: (id: string, from: WorkflowSource) => run(commands.workflowCreate(id, from)),
+			rename: (id: string, to: string) => run(commands.workflowRename(id, to)),
+			remove: (id: string) => run(commands.workflowDelete(id)),
+			apply: (id: string) => run(commands.workflowProposalApply(id)),
+			discard: (id: string) => run(commands.workflowProposalDiscard(id)),
 			write: (kind: "workflow" | "role", id: string, text: string) =>
 				run(kind === "workflow" ? commands.workflowWrite(id, text) : commands.roleWrite(id, text)),
 			killSwitch: (on: boolean) => run(commands.killSwitchSet(on)),

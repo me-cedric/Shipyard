@@ -22,7 +22,7 @@ info:
       (proxy and relay). Each server has an allow list (all tools, the tools that it marks
       `annotations.readOnlyHint`, or a pick): a tool that is not on it is left out of `tools/list`
       and refused on `tools/call`.
-    - The 20 tools for an agent that Shipyard did not start. Each group is a switch that a person
+    - The 24 tools for an agent that Shipyard did not start. Each group is a switch that a person
       turns on in Settings. All are off by default.
 
     Limits of one call, by default: 60 calls a minute for each token, 64 KiB of arguments,
@@ -343,7 +343,26 @@ components:
       required: [title]
       properties:
         title: { type: string }
+    WorkflowReadInput:
+      type: object
+      description: Tool `workflow_read`. Reads one workflow file of the open project.
+      additionalProperties: false
+      required: [id]
+      properties:
+        id: { type: string }
+    WorkflowTextInput:
+      type: object
+      description: >-
+        Tools `workflow_validate` and `workflow_propose`. `workflow_validate` answers `valid` or
+        `file:line: message` and writes nothing. `workflow_propose` stores the text in the app data
+        folder, never in the repository, and a person applies it in Factory / Workflows. A read-only
+        project refuses `workflow_propose`. The group switch is `workflows`.
+      additionalProperties: false
+      required: [id, text]
+      properties:
+        id: { type: string }
+        text: { type: string }
     NoInput:
       type: object
-      description: Tools `git_status`, `git_diff`, `forge_remote`, `adr_list`, `qa_read_report` and `docs_stale` (the docs of the branch that did not follow the code).
+      description: Tools `git_status`, `git_diff`, `forge_remote`, `adr_list`, `qa_read_report`, `workflow_list` and `docs_stale` (the docs of the branch that did not follow the code).
       additionalProperties: false

@@ -15,6 +15,15 @@ Runs shows the runs in six lanes: Queued, Working, Needs you, In review, Ready t
 
 Workflows lists the workflows and the roles of the agents. Open one to read or change it, then save. A broken file shows its error and its line. The last good version keeps running.
 
+A workflow opens in a form. Use Form and Text to switch between the form and the YAML text. Both edit the same file.
+
+- Steps: set the role or the action, the model tier, the effort, the mode, the needs, the tools and the gate of each step. More shows the other fields: workspace, for each, parallel children, retries, time limit, budget, skill, fresh context and review rounds. Add, remove and move a step up or down.
+- Limits: the stall timeout in seconds. Turn on Budget to stop each run at an amount in USD, and Turn limit to pause each run after a number of turns. Both are off by default.
+- The form checks the workflow at each change. Save stays off while it shows an issue.
+- New makes a workflow from a preset: feature, bug, spike, docs-update, review-only or spec-split. Duplicate copies the open workflow. Rename and Delete refuse the default workflow of the project and a workflow that a run uses. Delete asks you to confirm.
+- A save from the form keeps the comment lines at the top of the file. Use Text to keep other comments.
+- An outside agent with the Workflows tools on (Settings / Connections / MCP) can list, read, check and propose a workflow. A proposal does not change the file: open the workflow, read the diff, then Apply or Discard.
+
 ## Agents map
 
 Agents map draws the workflows, the roles and the skills as a graph.
