@@ -34,6 +34,29 @@ describe("Home / Get started", () => {
 		expect(await screen.findByRole("textbox", { name: "Name" })).toBeInTheDocument();
 	});
 
+	it("opens the exact section: the Connect a code host step opens the code host form", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const router = mountApp("/home/today");
+		const list = await screen.findByRole("list", { name: "Get started" });
+		await user.click(within(list).getByRole("link", { name: /Connect a code host/ }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/connections"));
+		// The step opens the form on the code host, not on the issue tracker.
+		expect(await screen.findByRole("combobox", { name: "Type" })).toHaveTextContent("Code host");
+	});
+
+	it.each([
+		["/settings/project#issue-tracker", "issue-tracker"],
+		["/settings/project#code-host", "code-host"],
+		["/settings/connections#connections-runner", "connections-runner"],
+	])("%s has its anchor and takes the focus", async (path, id) => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mountApp(path);
+		await waitFor(() => expect(document.getElementById(id)).not.toBeNull());
+		const el = document.getElementById(id) as HTMLElement;
+		await waitFor(() => expect(el.contains(document.activeElement)).toBe(true));
+	});
+
 	it("connects the forge in one click from a detected gh login", async () => {
 		const user = userEvent.setup();
 		mockState().logins = [{ tool: "gh", host: "example.com", user: "ada" }];

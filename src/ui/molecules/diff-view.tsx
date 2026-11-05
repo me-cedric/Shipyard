@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { CodeLine } from "./code-editor";
 
 type Kind = "add" | "del" | "hunk" | "ctx";
 
@@ -47,6 +48,7 @@ export function shownLines(text: string): Set<number> {
 /** A unified diff. A sign in the gutter and a tint mark each changed line. */
 export function DiffView({
 	text,
+	path,
 	binary,
 	truncated,
 	label,
@@ -55,6 +57,8 @@ export function DiffView({
 	notes,
 }: {
 	text: string;
+	/** The file path: its type picks the colours of the lines. */
+	path?: string;
 	binary?: boolean;
 	truncated?: boolean;
 	/** The accessible name of the region. */
@@ -79,7 +83,9 @@ export function DiffView({
 							<span aria-hidden="true" className="w-5 shrink-0 text-center select-none">
 								{SIGN[l.kind]}
 							</span>
-							<span className="pr-3">{l.text}</span>
+							<span className="pr-3">
+								{l.kind === "hunk" ? l.text : <CodeLine text={l.text} lang={path} />}
+							</span>
 						</div>
 						{note ? <div className="px-5 py-1 font-sans whitespace-normal">{note}</div> : null}
 					</div>

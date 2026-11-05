@@ -627,10 +627,10 @@ pub fn check_run_with(
     let start = Instant::now();
     let (passed, tail, findings) = if command == crate::qa::VERIFY_DOCS {
         let (tail, findings) = crate::qa::verify_docs(s)?;
-        (findings.is_empty(), tail, findings)
+        (crate::qa::passes(&findings), tail, findings)
     } else if command == crate::qa::DOCS_FRESH {
         let (tail, findings) = crate::qa::docs_fresh(s)?;
-        (findings.is_empty(), tail, findings)
+        (crate::qa::passes(&findings), tail, findings)
     } else {
         let gate = crate::delivery::run_gate_out(&root, &log, command, CHECK_LIMIT, &on_lines);
         if gate.check.passed {
@@ -840,7 +840,7 @@ pub fn scan_run_with(
         kind: ReportKind::Scanner,
         name: name.into(),
         at: now_iso(),
-        passed: findings.is_empty(),
+        passed: crate::qa::passes(&findings),
         duration_ms: start.elapsed().as_millis().min(u128::from(u32::MAX)) as u32,
         tail: format!("{} finding(s)", findings.len()),
         findings,

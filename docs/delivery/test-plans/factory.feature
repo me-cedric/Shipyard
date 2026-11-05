@@ -360,7 +360,7 @@ Feature: factory
   Scenario: Stall timeout and max turns: Max turns
     Given a run with `max_turns` 40
     When the agent reaches turn 40
-    Then the run moves to `Failed` with the reason max turns
+    Then the run moves to `Paused` with the reason max turns, and a resume gives it 40 more turns
 
   @spec:factory#REQ-024
   Scenario: Kill switches: Run switch
@@ -375,16 +375,16 @@ Feature: factory
     Then all three move to `Cancelled` and no new run starts
 
   @spec:factory#REQ-025
-  Scenario: Write switches: Default off
+  Scenario: Write switches: Default on
     Given a new project
     When a person reads the switches
-    Then all four are off
+    Then all four are on
 
   @spec:factory#REQ-025
-  Scenario: Write switches: Admin turns on
+  Scenario: Write switches: Admin turns off
     Given a project admin in Settings
-    When they turn on `push`
-    Then the next push of a run goes out with no approval
+    When they turn off `push`
+    Then the next push of a run waits as an approval in Home / Inbox
 
   @spec:factory#REQ-025
   Scenario: Write switches: Force with lease
@@ -498,7 +498,7 @@ Feature: factory
   Scenario: Workflow limits: Limits apply
     Given a workflow with `limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }`
     When a run of that workflow starts
-    Then the run stops at turn 40, pauses at 5 USD and stalls after 300 s with no event
+    Then the run pauses at turn 40, pauses at 5 USD and stalls after 300 s with no event
 
   @spec:factory#REQ-035
   Scenario: Workflow limits: Bad limit

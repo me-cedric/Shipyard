@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
+import { useState } from "react";
+import { FileDialog } from "@/features/code/viewer";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useCopy } from "@/lib/menus";
@@ -112,7 +114,20 @@ export function OpenActions({ refId }: { refId: string }) {
 	const router = useRouter({ warn: false });
 	const doc = docTarget(refId);
 	const page = doc?.page ?? refPage(refId);
-	if (!router || !page) return null;
+	const [viewing, setViewing] = useState(false);
+	if (!router) return null;
+	// A file outside the docs folders (source, `.shipyard/`) has no docs page: show the file itself.
+	if (refId.startsWith("doc:") && !doc)
+		return (
+			<>
+				<Button variant="ghost" onClick={() => setViewing(true)}>
+					<BookOpenIcon size={14} />
+					{t.inspector.open}
+				</Button>
+				{viewing ? <FileDialog path={refId.slice(4)} onClose={() => setViewing(false)} /> : null}
+			</>
+		);
+	if (!page) return null;
 	const editable = doc?.page === "/knowledge/handbook";
 	const go = (edit: boolean) => {
 		const open = doc ? ([doc.scope, doc.id] as const) : refSelection(t, refId);

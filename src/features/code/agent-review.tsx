@@ -108,6 +108,7 @@ function Draft({ d, draft }: { d: PullDetail; draft: ReviewDraft }) {
 						<p className="font-mono text-12 text-n-11">{f.path}</p>
 						<DiffView
 							text={f.patch ?? ""}
+							path={f.path}
 							label={format(t.forge.diff, { path: f.path })}
 							binaryLabel=""
 							truncatedLabel=""

@@ -9,8 +9,8 @@ import { Button } from "@/ui/atoms/button";
 import { ComputerDesktopIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { EditorPreview } from "@/ui/molecules/pane-toggle";
 import { RefChip } from "@/ui/molecules/ref-chip";
-import { SplitPane } from "@/ui/molecules/split-pane";
 import { ZoomFrame } from "@/ui/molecules/zoom-frame";
 import { svgDataUri } from "@/ui/organisms/drawio";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
@@ -160,22 +160,26 @@ export function Screens() {
 				) : (
 					<FileFrame path={doc} refId={row.ref} title={row.title} missing={TEMPLATE.doc}>
 						{(f) => (
-							<div className="flex min-h-0 flex-1 gap-3">
-								<SplitPane id="design-screens-width" label={t.design.resize.editor} min={320}>
+							<EditorPreview
+								id="design-screens-width"
+								label={t.design.resize.editor}
+								editor={
 									<CodeEditor
 										label={t.design.screens.docText}
 										value={f.text}
 										onChange={f.setText}
 									/>
-								</SplitPane>
-								<div className="flex min-h-0 min-w-0 flex-1 flex-col *:min-h-0 *:flex-1">
-									<TokenView
-										onAdd={() =>
-											f.setText(`${f.text.trimEnd()}\n\n${t.design.screens.tokenStarter}`)
-										}
-									/>
-								</div>
-							</div>
+								}
+								preview={
+									<div className="flex min-h-0 min-w-0 flex-1 flex-col *:min-h-0 *:flex-1">
+										<TokenView
+											onAdd={() =>
+												f.setText(`${f.text.trimEnd()}\n\n${t.design.screens.tokenStarter}`)
+											}
+										/>
+									</div>
+								}
+							/>
 						)}
 					</FileFrame>
 				);

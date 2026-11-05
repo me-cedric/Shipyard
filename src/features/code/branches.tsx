@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import {
 	COMMIT_TYPES,
 	type MergeOutcome,
@@ -20,7 +20,6 @@ import { ArrowPathIcon, CheckIcon, PlusIcon, ShareIcon } from "@/ui/icons";
 import { ContextMenu } from "@/ui/molecules/context-menu";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
-import { SettingsRow } from "@/ui/molecules/settings-row";
 import { ConflictPane } from "./changes";
 import { OriginPanel } from "./origin-panel";
 import { withProject } from "./project-gate";
@@ -68,6 +67,41 @@ function CreateBranch({ run }: { run: (job: () => Promise<unknown>) => void }) {
 				{t.code.create}
 			</Button>
 		</form>
+	);
+}
+
+/** One branch: the name truncates on one line, the actions keep a fixed column on the right. */
+function BranchRow({
+	name,
+	head,
+	badges,
+	children,
+}: {
+	name: string;
+	head: boolean;
+	badges: ReactNode;
+	children: ReactNode;
+}) {
+	const id = useId();
+	return (
+		// biome-ignore lint/a11y/useSemanticElements: a fieldset adds a legend box
+		<div
+			role="group"
+			aria-labelledby={id}
+			className="flex min-h-11 items-center gap-3 border-b px-3 py-1.5 last:border-b-0 hover:bg-n-2"
+		>
+			<span
+				aria-hidden="true"
+				className="flex size-6 shrink-0 items-center justify-center text-n-11"
+			>
+				{head ? <CheckIcon size={14} /> : null}
+			</span>
+			<span id={id} title={name} className="min-w-0 flex-1 truncate text-ui text-n-12">
+				{name}
+			</span>
+			{badges}
+			<div className="flex w-80 shrink-0 items-center justify-end gap-2">{children}</div>
+		</div>
 	);
 }
 
@@ -213,24 +247,29 @@ function BranchesView() {
 									"copy-ref": () => copyText(b.name),
 								})}
 							>
-								<SettingsRow icon={b.is_head ? <CheckIcon size={14} /> : undefined} label={b.name}>
-									{b.ahead ? (
-										<Badge variant="success">{format(t.code.ahead, { count: b.ahead })}</Badge>
-									) : null}
-									{b.behind ? (
-										<Badge variant="warning">{format(t.code.behind, { count: b.behind })}</Badge>
-									) : null}
-									<Button
-										variant="ghost"
-										disabled={b.is_head}
-										onClick={() => run(() => switchBranch(b.name))}
-									>
+								<BranchRow
+									name={b.name}
+									head={b.is_head}
+									badges={
+										<>
+											{b.ahead ? (
+												<Badge variant="success">{format(t.code.ahead, { count: b.ahead })}</Badge>
+											) : null}
+											{b.behind ? (
+												<Badge variant="warning">
+													{format(t.code.behind, { count: b.behind })}
+												</Badge>
+											) : null}
+										</>
+									}
+								>
+									<Button disabled={b.is_head} onClick={() => run(() => switchBranch(b.name))}>
 										{t.code.switch}
 									</Button>
 									{!b.is_head && !busy ? (
 										<>
 											<Button
-												variant="ghost"
+												variant="primary"
 												aria-label={format(t.code.mergeBranch, { name: b.name })}
 												onClick={() => run(async () => setMerged(await mergeBranch(b.name)))}
 											>
@@ -249,6 +288,8 @@ function BranchesView() {
 										confirming === b.name ? (
 											<Button
 												variant="danger"
+												title={b.name}
+												className="max-w-full truncate"
 												onClick={() =>
 													run(async () => {
 														setConfirming(null);
@@ -259,12 +300,12 @@ function BranchesView() {
 												{format(t.code.confirmDelete, { name: b.name })}
 											</Button>
 										) : (
-											<Button variant="ghost" onClick={() => setConfirming(b.name)}>
+											<Button variant="danger" onClick={() => setConfirming(b.name)}>
 												{t.code.delete}
 											</Button>
 										)
 									) : null}
-								</SettingsRow>
+								</BranchRow>
 							</ContextMenu>
 						))}
 					</Panel>

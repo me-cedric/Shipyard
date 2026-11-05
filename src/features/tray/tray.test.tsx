@@ -168,7 +168,9 @@ describe("Menu bar panel", () => {
 		const size = setSize.mock.calls.at(-1)?.[0] as { width: number; height: number };
 		expect(size.width).toBe(360);
 		expect(size.height).toBeGreaterThanOrEqual(280);
-		expect(size.height).toBeLessThanOrEqual(520);
+		expect(size.height).toBeLessThanOrEqual(
+			Math.max(280, Math.round(window.screen.availHeight * 0.8)),
+		);
 		vi.unstubAllGlobals();
 	});
 

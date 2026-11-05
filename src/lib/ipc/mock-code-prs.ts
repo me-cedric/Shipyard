@@ -366,13 +366,13 @@ export function checkRun(p: MockPrs, command: string, click: boolean): QualityRe
 	need(click);
 	if (!checkNames(p).some(([n]) => n === command))
 		throw `\`${command}\` is not a check of this project`;
-	// Two docs did not follow the code of the branch. The check writes nothing (REQ-011).
+	// Two docs did not follow the code of the branch: medium findings, so a warning. The check writes nothing (REQ-011).
 	if (command === DOCS_FRESH)
 		return keep(p, {
 			kind: "check",
 			name: command,
 			at: "2026-10-29T10:00:00Z",
-			passed: false,
+			passed: true,
 			durationMs: 40,
 			tail: "2 stale docs",
 			findings: [
@@ -395,7 +395,7 @@ export function checkRun(p: MockPrs, command: string, click: boolean): QualityRe
 			kind: "check",
 			name: command,
 			at: "2026-10-29T10:00:00Z",
-			passed: false,
+			passed: true,
 			durationMs: 900,
 			tail: "3 changes, 12 pages, 1 problems",
 			findings: [

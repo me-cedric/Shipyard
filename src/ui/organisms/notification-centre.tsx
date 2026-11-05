@@ -4,7 +4,8 @@ import { format, useI18n } from "@/lib/i18n";
 import type { Notice } from "@/lib/notifications";
 import { AnimatedIcon } from "../atoms/animated-icon";
 import { Button } from "../atoms/button";
-import { BellIcon } from "../icons";
+import { IconButton } from "../atoms/icon-button";
+import { BellIcon, XMarkIcon } from "../icons";
 import { NotificationRow } from "../molecules/notification-row";
 
 /**
@@ -16,12 +17,15 @@ export function NotificationCentre({
 	unread,
 	onOpen,
 	onClear,
+	onRemove,
 	onGo,
 }: {
 	items: Notice[];
 	unread: number;
 	onOpen: () => void;
 	onClear: () => void;
+	/** Removes one entry. */
+	onRemove?: (id: string) => void;
 	/** Opens the target of a notice. The centre closes after it. */
 	onGo?: (n: Notice) => void;
 }) {
@@ -81,6 +85,14 @@ export function NotificationCentre({
 										detail={n.detail}
 										detailLabel={t.ui.item.details}
 										notice={n.action}
+										actions={n.actions}
+										action={
+											onRemove ? (
+												<IconButton label={t.notifications.dismiss} onClick={() => onRemove(n.id)}>
+													<XMarkIcon size={14} />
+												</IconButton>
+											) : undefined
+										}
 										onOpen={
 											n.target && onGo
 												? () => {

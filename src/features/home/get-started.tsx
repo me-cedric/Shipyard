@@ -31,6 +31,8 @@ type Step = {
 	to: Place;
 	/** The form that the place opens. */
 	form?: string;
+	/** The anchor of the section on the place (`SettingsRow id`). */
+	hash?: string;
 	/** A detected one-click way to do the step: it replaces the link. */
 	act?: { label: string; run: () => Promise<unknown> };
 };
@@ -84,19 +86,21 @@ export function GetStarted() {
 	const file = settings.file;
 	const linked = file?.connections ?? {};
 	// With no account of the kind, the step opens Connections; with one, the project picks it.
-	const place = (group: "tracker" | "forge"): Place =>
-		connections.some((c) => c.group === group) ? "/settings/project" : "/settings/connections";
+	const place = (group: "tracker" | "forge"): { to: Place; hash?: string } =>
+		connections.some((c) => c.group === group)
+			? { to: "/settings/project", hash: group === "tracker" ? "issue-tracker" : "code-host" }
+			: { to: "/settings/connections" };
 	const login = connections.some((c) => c.group === "forge")
 		? undefined
 		: loginFor(logins ?? [], remote ?? null);
 	const missing = runners.find((r) => r.state === "missing");
 	const steps: Step[] = [
-		{ id: "tracker", done: Boolean(linked.tracker), to: place("tracker"), form: "connection" },
+		{ id: "tracker", done: Boolean(linked.tracker), ...place("tracker"), form: "connection" },
 		{
 			id: "forge",
 			done: Boolean(linked.forge),
-			to: place("forge"),
-			form: "connection",
+			...place("forge"),
+			form: "connection:forge",
 			act:
 				login && file
 					? {
@@ -114,6 +118,7 @@ export function GetStarted() {
 			id: "agent",
 			done: runners.some((r) => r.state === "detected"),
 			to: "/settings/connections",
+			hash: "connections-runner",
 			act: missing
 				? {
 						label: format(s.install, { name: missing.label }),

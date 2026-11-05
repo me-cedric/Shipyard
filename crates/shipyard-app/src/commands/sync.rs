@@ -836,7 +836,9 @@ mod tests {
         )
         .get("/commits/abc123/status", 200, forge_fx!("status.json"))
         .get("/repos/acme/web/pulls/7", 200, forge_fx!("pull.json"))
-        .get("/repos/acme/web/pulls?", 200, forge_fx!("pulls.json"));
+        .get("/repos/acme/web/pulls?", 200, forge_fx!("pulls.json"))
+        // The claim stamp of a pickup: `tracker_comment` is on by default.
+        .post("/comments", "", 201, r#"{"id":901}"#);
         let conns = Arc::new(Connections::new(
             data.path(),
             Arc::new(MemoryStore::default()),
@@ -1186,8 +1188,8 @@ mod tests {
         assert_eq!(view.file, AutomationFile::Missing);
         assert_eq!(view.automation.interval, 60);
         assert!(
-            !view.automation.writes.tracker_comment,
-            "write switches start off"
+            view.automation.writes.tracker_comment,
+            "write switches start on"
         );
 
         let mut a = view.automation;

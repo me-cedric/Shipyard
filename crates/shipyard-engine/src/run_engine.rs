@@ -280,6 +280,9 @@ pub(crate) struct RunRec {
     /// Tokens that a person added at a resume, on top of `Config::max_tokens`.
     #[serde(default)]
     pub extra_tokens: u64,
+    /// Turns that a person added at a resume, on top of `limits.max_turns`.
+    #[serde(default)]
+    pub extra_turns: u32,
     pub alerted: bool,
     pub rounds: u32,
     pub questions: Vec<Asked>,
@@ -570,6 +573,16 @@ impl Factory {
         inner.run(run_id)?;
         inner.rec(run_id).extra_usd += add_usd;
         inner.rec(run_id).extra_tokens += add_tokens;
+        // A run paused at its max turns gets one more set of turns.
+        let rec = inner.rec(run_id);
+        if rec
+            .wf
+            .limits
+            .max_turns
+            .is_some_and(|max| rec.turns > max + rec.extra_turns)
+        {
+            rec.extra_turns = rec.turns;
+        }
         let budget_left = inner.budget_level(run_id) != BudgetLevel::Spent;
         inner.checked(run_id, RunEvent::Resume { budget_left })?;
         Ok(inner.rec(run_id).run.state)
@@ -908,10 +921,11 @@ impl Inner {
             AgentEvent::Text { text } => u.text = text,
             AgentEvent::Turn => {
                 rec.turns += 1;
-                if rec.turns > max_turns {
+                if let Some(max_turns) = max_turns.filter(|m| rec.turns > m + rec.extra_turns) {
+                    // A pause, not a failure: a person can give the run more turns.
                     let note = json!({"stop": format!("max turns ({max_turns})")});
                     self.log(run_id, None, kind::NOTE, note);
-                    self.transition(run_id, RunEvent::Fail);
+                    self.transition(run_id, RunEvent::BudgetStop);
                 }
             }
             AgentEvent::Usage {
@@ -997,6 +1011,8 @@ impl Inner {
             self.log(run_id, None, ALERT, payload);
         }
         if stop {
+            // The reason that the run page shows.
+            self.log(run_id, None, kind::NOTE, json!({"stop": "budget"}));
             self.transition(run_id, RunEvent::BudgetStop);
         }
     }
@@ -1404,6 +1420,7 @@ impl Inner {
             tokens: 0,
             extra_usd: 0.0,
             extra_tokens: 0,
+            extra_turns: 0,
             alerted: false,
             rounds: 0,
             questions: Vec::new(),

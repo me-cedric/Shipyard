@@ -27,7 +27,8 @@ pub struct Workflow {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields)]
 pub struct WorkflowLimits {
-    pub max_turns: u32,
+    /// No limit when absent: a run stops on its budget or its stall timeout.
+    pub max_turns: Option<u32>,
     pub budget_usd: f64,
     pub stall_s: u32,
 }
@@ -252,7 +253,7 @@ impl Workflow {
             out.push(I::Cycle { steps });
         }
         let l = &self.limits;
-        if l.max_turns == 0 {
+        if l.max_turns == Some(0) {
             out.push(bad("limits.max_turns".into()));
         }
         if !(l.budget_usd.is_finite() && l.budget_usd > 0.0) {

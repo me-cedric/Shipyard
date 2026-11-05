@@ -1,26 +1,8 @@
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { CodeLine } from "../molecules/code-editor";
 
 const LINE = "1.25rem";
-// One pass per line: a comment, a string, a number or a keyword.
-const TOKEN =
-	/(\/\/.*|#.*|--.*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`[^`]*`)|\b(\d+(?:\.\d+)?)\b|\b(const|let|var|function|return|if|else|for|while|import|export|from|class|fn|pub|use|struct|impl|enum|async|await|def|type|interface)\b/g;
-const TONE = ["", "text-n-10", "text-success-text", "text-warning-text", "text-accent-text"];
-
-/** The tokens of one line. shortcut: one regex, no multi-line comment or string, add a parser when needed. */
-export function colour(line: string): { text: string; tone: string }[] {
-	const out: { text: string; tone: string }[] = [];
-	let at = 0;
-	for (const m of line.matchAll(TOKEN)) {
-		if (m.index > at) out.push({ text: line.slice(at, m.index), tone: "" });
-		const kind = [1, 2, 3, 4].find((i) => m[i] !== undefined) ?? 0;
-		out.push({ text: m[0], tone: TONE[kind] ?? "" });
-		at = m.index + m[0].length;
-	}
-	if (at < line.length) out.push({ text: line.slice(at), tone: "" });
-	return out;
-}
-
 /**
  * A read-only file: line numbers, syntax colour and one marked line that scrolls into view.
  * A binary file shows its size and no content.
@@ -29,6 +11,7 @@ export function FileViewer({
 	label,
 	text,
 	line,
+	path,
 	binary,
 	binaryLabel,
 }: {
@@ -36,6 +19,8 @@ export function FileViewer({
 	text: string;
 	/** 1-based line to mark. */
 	line?: number | null;
+	/** The file path: its type picks the colours. Without it the text stays plain. */
+	path?: string;
 	binary?: boolean;
 	binaryLabel: string;
 }) {
@@ -67,12 +52,7 @@ export function FileViewer({
 						{i + 1}
 					</span>
 					<span className="pl-2">
-						{colour(l).map((tk, j) => (
-							// biome-ignore lint/suspicious/noArrayIndexKey: the tokens never reorder
-							<span key={j} className={tk.tone}>
-								{tk.text}
-							</span>
-						))}
+						<CodeLine text={l} lang={path} />
 					</span>
 				</div>
 			))}

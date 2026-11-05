@@ -5,7 +5,7 @@ pickup:
 concurrency:
   global: 2
 writes:
-  push: false
-  pull_request: false
-  tracker_transition: false
-  tracker_comment: false
+  push: true
+  pull_request: true
+  tracker_transition: true
+  tracker_comment: true

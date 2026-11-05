@@ -84,14 +84,14 @@ describe("the sync action and the connection state rows", () => {
 });
 
 describe("Settings / Project, group Automation", () => {
-	it("starts from the defaults with the write switches off", async () => {
+	it("starts from the defaults with the write switches on", async () => {
 		await withTracker();
 		mountApp("/settings/project");
 		expect(await screen.findByRole("spinbutton", { name: "Interval (s)" })).toHaveValue(60);
 		expect(screen.getByRole("textbox", { name: "Label" })).toHaveValue("shipyard");
 		expect(screen.getByRole("spinbutton", { name: "Global" })).toHaveValue(2);
 		for (const name of ["Push", "Pull request", "Ticket transition", "Ticket comment"])
-			expect(screen.getByRole("switch", { name })).not.toBeChecked();
+			expect(screen.getByRole("switch", { name })).toBeChecked();
 		expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
 	});
 
@@ -128,10 +128,10 @@ describe("Settings / Project, group Automation", () => {
 		expect(a.concurrency).toEqual({ global: 2, per_status: { "To Do": 1 } });
 		expect(a.status_map).toEqual({ Done: { status: "Closed" } });
 		expect(a.writes).toEqual({
-			push: false,
-			pull_request: false,
-			tracker_transition: false,
-			tracker_comment: true,
+			push: true,
+			pull_request: true,
+			tracker_transition: true,
+			tracker_comment: false,
 		});
 		// The saved file resets the form: no Save button.
 		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());

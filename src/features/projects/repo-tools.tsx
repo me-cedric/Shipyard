@@ -75,6 +75,7 @@ export function RepoTools() {
 										<DiffView
 											key={f.path}
 											text={f.text}
+											path={f.path}
 											binary={f.binary}
 											truncated={f.truncated}
 											label={format(t.assistant.diff, { name: f.path })}

@@ -296,8 +296,9 @@ export function graphCode(k: MockKnowledge): CodeGraph_Serialize {
 }
 
 export function graphCodeIndex(k: MockKnowledge): null {
-	if (!k.server) throw "the codebase-memory server is not active";
+	// The app adds and starts a server that is missing or off, for this one call.
 	k.indexed = true;
+	k.server = true;
 	return null;
 }
 

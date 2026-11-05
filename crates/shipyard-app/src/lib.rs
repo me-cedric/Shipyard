@@ -607,7 +607,7 @@ pub fn run() {
             tray::apply(app.handle(), shipyard_store::prefs::Prefs::load(&dir).tray);
             // The relay answers `shipyard --mcp-relay <id>` with the open server (REQ-018).
             // A failure leaves each agent turn to start its own server.
-            #[cfg(unix)]
+            #[cfg(any(unix, windows))]
             match shipyard_mcp::relay::Relay::listen(
                 app.state::<AppState>().agents.proxy.clone(),
                 &shipyard_mcp::relay::socket_path(&dir),

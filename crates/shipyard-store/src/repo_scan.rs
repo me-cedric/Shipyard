@@ -58,7 +58,8 @@ pub fn walk(root: &Path, roots: &[String]) -> Vec<File> {
             let child = format!("{rel}/{name}");
             let Ok(meta) = e.metadata() else { continue };
             if meta.is_dir() {
-                if name != "node_modules" && name != ".git" {
+                // `.shipyard` holds files that the app writes, such as the saved quality reports.
+                if !matches!(name.as_str(), "node_modules" | ".git" | ".shipyard") {
                     rec(root, &child, out);
                 }
             } else if meta.len() <= MAX_BYTES

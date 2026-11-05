@@ -28,6 +28,5 @@ steps:
     action: open_pr
     needs: [review]
 limits:
-  max_turns: 30
   budget_usd: 3
   stall_s: 300

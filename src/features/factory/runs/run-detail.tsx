@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ApprovalRow, QuestionRow } from "@/features/home/inbox/inbox";
 import { useGuard } from "@/features/work/guard";
-import { useRunActions, useRunDiff, useRunLog, useRuns, useWorkflow } from "@/lib/factory";
+import { ENDED, useRunActions, useRunDiff, useRunLog, useRuns, useWorkflow } from "@/lib/factory";
+import { useRunWaits } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
-import type { RunState, RunView } from "@/lib/ipc";
+import type { RunView } from "@/lib/ipc";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
@@ -16,8 +18,8 @@ import { RUN_STATUS, STATUS_BADGE } from "@/ui/molecules/run-card";
 import { SpendMeter } from "@/ui/molecules/spend-meter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { RunGraph } from "@/ui/organisms/run-graph";
+import { EventRows, LiveStrip, stopReason } from "./run-live";
 
-const ENDED: RunState[] = ["Merged", "Done", "Failed", "Cancelled"];
 const SEVERITY = { P0: "danger", P1: "warning", P2: "info" } as const;
 
 /** The steps done out of all steps, and the step that works now. */
@@ -31,23 +33,21 @@ export function progressOf(run: RunView) {
 	};
 }
 
-/** Pretty-prints a JSON payload. A text that is not JSON stays as it is. */
-export function pretty(payload: string): string {
-	try {
-		return JSON.stringify(JSON.parse(payload), null, 2);
-	} catch {
-		return payload;
-	}
-}
-
 /** The run view: actions, cost, graph, findings, diff and event tail (factory REQ-027, REQ-028). */
 export function RunDetail({ id }: { id: string }) {
 	const { t } = useI18n();
 	const f = t.factory;
-	const run = useRuns().data?.find((r) => r.id === id);
+	const run = useRuns(id).data?.find((r) => r.id === id);
 	const workflow = useWorkflow(run?.workflow ?? "").data;
 	const diff = useRunDiff(id).data ?? [];
-	const log = useRunLog(id);
+	const active = run !== undefined && !ENDED.includes(run.state);
+	const log = useRunLog(id, active);
+	const waits = useRunWaits(id);
+	// A live run shows its newest event: read each page until the last one.
+	const { hasNextPage, isFetchingNextPage, fetchNextPage } = log;
+	useEffect(() => {
+		if (active && hasNextPage && !isFetchingNextPage) void fetchNextPage();
+	}, [active, hasNextPage, isFetchingNextPage, fetchNextPage]);
 	const act = useRunActions();
 	const { error, run: guard } = useGuard();
 	const [note, setNote] = useState("");
@@ -70,6 +70,43 @@ export function RunDetail({ id }: { id: string }) {
 					<Badge className="font-mono">{run.workflow}</Badge>
 				</div>
 			</div>
+			{waits.questions.map((x) => (
+				<div key={`${x.run}:${x.question.id}`} id={`question-${x.question.id}`}>
+					<QuestionRow item={x} />
+				</div>
+			))}
+			{waits.approvals.map((a) => (
+				<div key={a.id} id={`approval-${a.id}`}>
+					<ApprovalRow approval={a} />
+				</div>
+			))}
+			{run.state === "Failed" || run.state === "Paused" || run.state === "Blocked" ? (
+				<div
+					role="status"
+					className="flex flex-wrap items-center gap-3 rounded-lg border bg-surface-1 p-3 text-ui text-n-12"
+				>
+					<span className="min-w-0 flex-1">{stopReason(f.why, run, log.events)}</span>
+					{run.state === "Failed" ? (
+						<Button variant="primary" onClick={() => void guard(() => act.start(run.key))}>
+							{f.why.again}
+						</Button>
+					) : run.state === "Blocked" ? (
+						<Button variant="primary" onClick={() => void guard(() => act.unblock(id))}>
+							{f.unblock}
+						</Button>
+					) : (
+						<Button
+							variant="primary"
+							onClick={() =>
+								void guard(() => act.resume(id, add.trim() === "" ? null : Number(add)))
+							}
+						>
+							{f.resume}
+						</Button>
+					)}
+				</div>
+			) : null}
+			{active ? <LiveStrip run={run} events={log.events} /> : null}
 			<div className="flex flex-wrap items-center gap-2">
 				{run.state === "PlanReview" ? (
 					<>
@@ -96,17 +133,7 @@ export function RunDetail({ id }: { id: string }) {
 							value={add}
 							onChange={(e) => setAdd(e.target.value)}
 						/>
-						<Button
-							onClick={() =>
-								void guard(() => act.resume(id, add.trim() === "" ? null : Number(add)))
-							}
-						>
-							{f.resume}
-						</Button>
 					</>
-				) : null}
-				{run.state === "Blocked" ? (
-					<Button onClick={() => void guard(() => act.unblock(id))}>{f.unblock}</Button>
 				) : null}
 				{ENDED.includes(run.state) ? null : (
 					<ConfirmButton
@@ -195,6 +222,7 @@ export function RunDetail({ id }: { id: string }) {
 							<p className="bg-n-2 px-3 py-1 font-mono text-11 text-n-11">{d.path}</p>
 							<DiffView
 								text={d.text}
+								path={d.path}
 								binary={d.binary}
 								truncated={d.truncated}
 								label={format(t.code.diff, { path: d.path })}
@@ -205,27 +233,8 @@ export function RunDetail({ id }: { id: string }) {
 					))}
 				</Panel>
 			) : null}
-			<Panel
-				title={f.log}
-				count={log.events.length}
-				flush
-				className="canvas-dark"
-				bodyClassName="bg-surface-0"
-			>
-				<ol className="flex flex-col p-3 font-mono text-11 leading-5 text-n-12">
-					{log.events.map((e) => (
-						<li key={e.id} className="flex gap-2 whitespace-pre-wrap">
-							<span aria-hidden="true" className="select-none text-n-9">
-								$
-							</span>
-							<span className="min-w-0 flex-1">
-								<span className="text-accent-text">{e.step ? `${e.step} ` : ""}</span>
-								<span className="text-success-text">{e.kind}</span>
-								<pre className="overflow-x-auto text-n-11">{pretty(e.payload)}</pre>
-							</span>
-						</li>
-					))}
-				</ol>
+			<Panel title={f.log} count={log.events.length} flush>
+				<EventRows events={log.events} ticket={run.key} />
 				{log.hasNextPage ? (
 					<div className="border-t p-2">
 						<Button variant="ghost" onClick={() => void log.fetchNextPage()}>

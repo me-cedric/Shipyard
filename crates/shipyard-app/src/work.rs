@@ -665,6 +665,22 @@ pub fn assign(s: &AppState, key: &str, handle: &str, click: bool) -> Res<()> {
     Ok(())
 }
 
+/// The person who clicks Run takes a ticket that has no assignee: their own account of the issue
+/// tracker. A failure leaves the run as it is.
+pub(crate) fn assign_me(s: &AppState, key: &str) {
+    let go = || -> Res<()> {
+        let t = tracker(s)?;
+        let me = s.connections.tracker(&t.id)?.me().map_err(err)?;
+        let w = writer(s, &t)?;
+        w.assign(key, &me.id).map_err(err)?;
+        refresh(s, &t, &*w, [key.to_string()]);
+        Ok(())
+    };
+    if let Err(e) = go() {
+        eprintln!("assign {key}: {e}");
+    }
+}
+
 /// Mark an item for agent work: add the pickup label of `automation.yaml` (REQ-008).
 pub fn mark(s: &AppState, key: &str, click: bool) -> Res<()> {
     need_click(s, click)?;

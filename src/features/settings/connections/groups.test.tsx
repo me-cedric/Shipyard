@@ -23,7 +23,7 @@ describe("Settings / Connections / Runners", () => {
 		expect(within(claude).getByTitle("2.1.0")).toBeInTheDocument();
 		const gemini = await row("Gemini CLI");
 		expect(within(gemini).getByRole("img", { name: "Missing" })).toBeInTheDocument();
-		expect(await screen.findByRole("heading", { name: "Runners (5)" })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "AI tools (5)" })).toBeInTheDocument();
 	});
 
 	it("installs a missing runner on one click", async () => {
@@ -206,7 +206,7 @@ describe("Settings / Connections groups in French", () => {
 		await unwrap(commands.mcpEnable("figma", true));
 		mountApp("/settings/connections");
 		expect(await screen.findByRole("heading", { name: "Serveurs MCP (1)" })).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "Exécuteurs (5)" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Outils d’IA (5)" })).toBeInTheDocument();
 		const figma = await row("Figma");
 		expect(within(figma).getByRole("img", { name: "Arrêté" })).toBeInTheDocument();
 		expect(within(figma).getByRole("button", { name: "Démarrer" })).toBeInTheDocument();

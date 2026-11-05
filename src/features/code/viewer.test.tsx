@@ -1,7 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
-import { colour } from "@/ui/organisms/file-viewer";
+import { languageFor } from "@/ui/molecules/syntax";
 import { renderApp } from "@/ui/test-utils";
 import { FileDialog } from "./viewer";
 
@@ -20,14 +20,16 @@ const file = vi.hoisted(() => ({
 vi.mock("./use-file", () => ({ useFile: () => file.value }));
 
 describe("File viewer", () => {
-	it("colours a comment, a string, a number and a keyword", () => {
-		expect(colour('const a = "x"; // c 4')).toEqual([
-			{ text: "const", tone: "text-accent-text" },
-			{ text: " a = ", tone: "" },
-			{ text: '"x"', tone: "text-success-text" },
-			{ text: "; ", tone: "" },
-			{ text: "// c 4", tone: "text-n-10" },
+	it("colours a comment, a string, a number and a keyword by file type, and keeps unknown types plain", () => {
+		expect(languageFor("src/a.ts")?.('const a = "x"; // c 4')).toEqual([
+			["const", "keyword"],
+			[" a = ", null],
+			['"x"', "string"],
+			["; ", null],
+			["// c 4", "comment"],
 		]);
+		expect(languageFor("notes.md")).toBeNull();
+		expect(languageFor("model.c4")).not.toBeNull();
 	});
 
 	it("opens at a line with line numbers and marks it", async () => {

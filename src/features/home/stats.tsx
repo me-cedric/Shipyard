@@ -1,5 +1,5 @@
 import { useCounts } from "@/features/shell";
-import { useUsage } from "@/lib/factory";
+import { useDailySpend } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { useWorkItems } from "@/lib/sync";
 import { useWorkContext } from "@/lib/work";
@@ -18,10 +18,8 @@ export function HomeStats() {
 	const { t, lang } = useI18n();
 	const { needsYou, live } = useCounts();
 	const mine = useMyItems().length;
-	// Newest day first, keyed by the UTC day.
-	const days = useUsage().data?.days ?? [];
-	const today = new Date().toISOString().slice(0, 10);
-	const spend = days.find((d) => d.key === today)?.usd ?? 0;
+	// Every AI tool on this computer, as the menu bar panel shows it.
+	const spend = useDailySpend(TREND_DAYS);
 	const money = new Intl.NumberFormat(lang, { style: "currency", currency: "USD" });
 	return (
 		<StatStrip
@@ -32,11 +30,8 @@ export function HomeStats() {
 				{ label: t.shell.runs, value: String(live) },
 				{
 					label: t.ui.spendToday,
-					value: money.format(spend),
-					trend: days
-						.slice(0, TREND_DAYS)
-						.reverse()
-						.map((d) => d.usd ?? 0),
+					value: money.format(spend.today),
+					trend: spend.series.map((d) => d.usd),
 				},
 			]}
 		/>

@@ -19,7 +19,7 @@ beforeEach(() => localStorage.clear());
 describe("assistant composer: the bar under the message", () => {
 	it("has one picker, no select for runner, model or effort, and Send on the right", async () => {
 		await mountAssistant();
-		for (const name of ["Runner", "Model", "Effort"])
+		for (const name of ["AI tool", "Model", "Effort"])
 			expect(screen.queryByRole("combobox", { name })).toBeNull();
 		const bar = screen.getByRole("button", { name: "Send" }).closest("div") as HTMLElement;
 		const order = Array.from(bar.querySelectorAll("button, [role=combobox]")).map(

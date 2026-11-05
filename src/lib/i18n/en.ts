@@ -371,7 +371,7 @@ export const en = {
 			tracker: "Issue trackers",
 			forge: "Code hosts",
 			mcp: "MCP servers",
-			runner: "Runners",
+			runner: "AI tools",
 			provider: "Model providers",
 		},
 		type: {
@@ -829,6 +829,7 @@ export const en = {
 		checksPassed: "#{number}: checks passed",
 		checksFailed: "#{number}: checks failed",
 		scanFailed: "Scan failed: {name}",
+		findings: "{count} findings",
 		reviewDraft: "#{number}: review ready to post",
 	},
 	menu: {

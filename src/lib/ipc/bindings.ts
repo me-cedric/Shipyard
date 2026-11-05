@@ -6123,8 +6123,20 @@ export type WorkflowItem_Serialize = {
 };
 
 /**  Limits of each run of the workflow (REQ-035). */
-export type WorkflowLimits = {
-	max_turns: number,
+export type WorkflowLimits = WorkflowLimits_Serialize | WorkflowLimits_Deserialize;
+
+/**  Limits of each run of the workflow (REQ-035). */
+export type WorkflowLimits_Deserialize = {
+	/**  No limit when absent: a run stops on its budget or its stall timeout. */
+	max_turns?: number | null,
+	budget_usd: number | null,
+	stall_s: number,
+};
+
+/**  Limits of each run of the workflow (REQ-035). */
+export type WorkflowLimits_Serialize = {
+	/**  No limit when absent: a run stops on its budget or its stall timeout. */
+	max_turns: number | null,
 	budget_usd: number | null,
 	stall_s: number,
 };
@@ -6133,14 +6145,14 @@ export type Workflow_Deserialize = {
 	id: string,
 	/**  File order. The scheduler and the views keep it. */
 	steps: Step_Deserialize[],
-	limits: WorkflowLimits,
+	limits: WorkflowLimits_Deserialize,
 };
 
 export type Workflow_Serialize = {
 	id: string,
 	/**  File order. The scheduler and the views keep it. */
 	steps: Step_Serialize[],
-	limits: WorkflowLimits,
+	limits: WorkflowLimits_Serialize,
 };
 
 /**  `shared`: the one worktree of the run. `worktree`: one worktree for each child. */
@@ -6160,10 +6172,16 @@ export type WriteReport = {
 	kept: string[],
 };
 
-/**  The four write switches of `factory`. All off by default (`q:Q-002`). */
+/**
+ *  The four write switches of `factory`. A new project has all four on (`q:Q-002`, revised): a
+ *  force push and a merge still wait for a person. `Writes::default()` is all off.
+ */
 export type Writes = Writes_Serialize | Writes_Deserialize;
 
-/**  The four write switches of `factory`. All off by default (`q:Q-002`). */
+/**
+ *  The four write switches of `factory`. A new project has all four on (`q:Q-002`, revised): a
+ *  force push and a merge still wait for a person. `Writes::default()` is all off.
+ */
 export type Writes_Deserialize = {
 	push?: boolean,
 	pull_request?: boolean,
@@ -6171,7 +6189,10 @@ export type Writes_Deserialize = {
 	tracker_comment?: boolean,
 };
 
-/**  The four write switches of `factory`. All off by default (`q:Q-002`). */
+/**
+ *  The four write switches of `factory`. A new project has all four on (`q:Q-002`, revised): a
+ *  force push and a merge still wait for a person. `Writes::default()` is all off.
+ */
 export type Writes_Serialize = {
 	push: boolean,
 	pull_request: boolean,

@@ -14,6 +14,7 @@ import {
 	unwrap,
 } from "@/lib/ipc";
 import type { Notice } from "@/lib/notifications";
+import { noticeTarget } from "@/lib/notifications/targets";
 
 export type QuestionItem = QuestionView_Serialize;
 export type ApprovalItem = ApprovalView;
@@ -134,6 +135,69 @@ export function useInboxActions() {
 	}, [qc]);
 }
 
+/** The open questions and the approvals of one run: what the run waits for. */
+export function useRunWaits(run: string) {
+	const qc = useQueryClient();
+	useFactoryEvents(() => void qc.invalidateQueries({ queryKey: homeKeys.all }));
+	// The view of a run reads again every few seconds: not each change comes with an event.
+	const questions = useQuery({
+		queryKey: homeKeys.questions,
+		queryFn: () => unwrap(commands.questionsList()),
+		refetchInterval: 3000,
+	});
+	const approvals = useQuery({
+		queryKey: homeKeys.approvals,
+		queryFn: () => unwrap(commands.approvalsList()),
+		refetchInterval: 3000,
+	});
+	return {
+		questions: (questions.data ?? []).filter((x) => x.run === run && x.question.state === "open"),
+		approvals: (approvals.data ?? []).filter((x) => x.run === run),
+	};
+}
+
+/**
+ * The ids of the notices that still ask for an action, and when the read was. `null` until the
+ * three reads are in. The ids match `needsYouNotice`.
+ */
+export function usePendingNoticeIds(): { live: Set<string>; at: number } | null {
+	const poll = { refetchInterval: 3000 };
+	const questions = useQuery({
+		queryKey: homeKeys.questions,
+		queryFn: () => unwrap(commands.questionsList()),
+		...poll,
+	});
+	const approvals = useQuery({
+		queryKey: homeKeys.approvals,
+		queryFn: () => unwrap(commands.approvalsList()),
+		...poll,
+	});
+	const runs = useQuery({
+		queryKey: homeKeys.runs,
+		queryFn: () => unwrap(commands.runsList()),
+		...poll,
+	});
+	return useMemo(() => {
+		if (!questions.data || !approvals.data || !runs.data) return null;
+		const live = new Set([
+			...questions.data
+				.filter((q) => q.question.state === "open")
+				.map((q) => `question:${q.run}:${q.question.id}`),
+			...approvals.data.map((a) => `approval:${a.id}`),
+			...runs.data.filter((r) => r.lane === "needs_you").map((r) => `run:${r.id}:${r.state}`),
+		]);
+		const at = Math.min(questions.dataUpdatedAt, approvals.dataUpdatedAt, runs.dataUpdatedAt);
+		return { live, at };
+	}, [
+		questions.data,
+		approvals.data,
+		runs.data,
+		questions.dataUpdatedAt,
+		approvals.dataUpdatedAt,
+		runs.dataUpdatedAt,
+	]);
+}
+
 /**
  * The "Needs you" entry of a factory event, or null when the thing needs nobody (shell REQ-008).
  * The id names the thing, so the centre shows it once.
@@ -142,7 +206,7 @@ export async function needsYouNotice(
 	event: FactoryEvent,
 	p: FactoryPayload,
 	t: Messages,
-): Promise<Pick<Notice, "id" | "kind" | "title" | "body"> | null> {
+): Promise<Pick<Notice, "id" | "kind" | "title" | "body" | "detail" | "target"> | null> {
 	const kind = "needs-you" as const;
 	if (event === "factory-question") {
 		const q = (await unwrap(commands.questionsList())).find(
@@ -154,6 +218,7 @@ export async function needsYouNotice(
 					kind,
 					title: format(t.home.notice.question, { key: q.key }),
 					body: q.question.question,
+					target: noticeTarget({ source: "question", run: q.run, question: q.question.id }),
 				}
 			: null;
 	}
@@ -165,6 +230,8 @@ export async function needsYouNotice(
 					kind,
 					title: format(t.home.notice.approval, { key: a.key }),
 					body: a.summary,
+					detail: [a.kind, a.detail].filter(Boolean).join("\n"),
+					target: noticeTarget({ source: "approval", run: a.run, approval: a.id }),
 				}
 			: null;
 	}
@@ -176,6 +243,7 @@ export async function needsYouNotice(
 					kind,
 					title: format(t.home.notice.run, { key: r.key }),
 					body: r.title,
+					target: noticeTarget({ source: "run", run: r.id }),
 				}
 			: null;
 	}

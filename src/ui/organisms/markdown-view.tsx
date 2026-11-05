@@ -4,12 +4,14 @@ import { commands, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import { foldWords, useHitQuery, useResolvedRef } from "@/lib/refs";
 import { cn } from "@/lib/utils";
+import { CodeLine } from "../molecules/code-editor";
 import { RefChip } from "../molecules/ref-chip";
 import { MermaidView } from "./mermaid-view";
 
 type Block =
 	| { type: "h"; level: number; text: string }
 	| { type: "p"; text: string }
+	| { type: "quote"; text: string }
 	| { type: "ul" | "ol"; items: string[] }
 	| { type: "code"; lang: string; text: string }
 	| { type: "table"; head: string[]; rows: string[][]; sep: boolean };
@@ -21,12 +23,12 @@ const cells = (line: string) =>
 		.split("|")
 		.map((c) => c.trim());
 
-/** shortcut: headings, lists, tables, code fences and paragraphs; a link is `[text](https://…)`; no column alignment, no nested lists. */
+/** shortcut: headings, lists, tables, code fences, quotes and paragraphs; `**bold**`, `` `code` `` and a link is `[text](https://…)`; no column alignment, no nested lists. */
 export function blocks(source: string): Block[] {
 	const out: Block[] = [];
 	let fence: string[] | null = null;
 	let lang = "";
-	for (const line of source.split("\n")) {
+	for (const line of source.split(/\r?\n/)) {
 		if (line.trimStart().startsWith("```")) {
 			if (fence) out.push({ type: "code", lang, text: fence.join("\n") });
 			else lang = line.trim().slice(3).trim().split(/\s+/)[0] ?? "";
@@ -45,7 +47,13 @@ export function blocks(source: string): Block[] {
 			else last.rows.push(cells(line));
 			continue;
 		}
-		const head = /^(#{1,3})\s+(.*)$/.exec(line);
+		const quote = /^\s*>\s?(.*)$/.exec(line);
+		if (quote) {
+			if (last?.type === "quote") last.text += ` ${quote[1]}`;
+			else out.push({ type: "quote", text: quote[1] ?? "" });
+			continue;
+		}
+		const head = /^(#{1,6})\s+(.*)$/.exec(line);
 		const item = /^\s*(?:([-*])|\d+\.)\s+(.*)$/.exec(line);
 		if (head) out.push({ type: "h", level: (head[1] ?? "#").length, text: head[2] ?? "" });
 		else if (item) {
@@ -93,8 +101,32 @@ export function Link({ url, children }: { url: string; children: ReactNode }) {
 	);
 }
 
-/** A ref in the text shows as a RefChip, a link as a link. The kinds are the ones that the app names. */
+const EMPHASIS = /(\*\*[^*]+\*\*|`[^`]+`)/;
+
+/** `**bold**` and `code` spans, then refs and links inside the rest. */
 function Inline({ text, kinds }: { text: string; kinds: RegExp | null }) {
+	return (
+		<>
+			{text.split(EMPHASIS).map((part, i) => {
+				if (i % 2 === 0) return <Plain key={at(i)} text={part} kinds={kinds} />;
+				if (part.startsWith("`"))
+					return (
+						<code key={at(i)} className="rounded bg-n-3 px-1 font-mono text-12 break-words">
+							{part.slice(1, -1)}
+						</code>
+					);
+				return (
+					<strong key={at(i)} className="font-semibold">
+						<Inline text={part.slice(2, -2)} kinds={kinds} />
+					</strong>
+				);
+			})}
+		</>
+	);
+}
+
+/** A ref in the text shows as a RefChip, a link as a link. The kinds are the ones that the app names. */
+function Plain({ text, kinds }: { text: string; kinds: RegExp | null }) {
 	// The split keeps the two groups of a link: text, label, address, text, ...
 	const parts = text.split(new RegExp(LINK.source, "g"));
 	return (
@@ -156,6 +188,7 @@ export function markHits(root: HTMLElement, query: string): () => void {
 }
 
 const HEAD = ["text-16", "text-14", "text-ui"];
+const CELL_LONG = 28;
 
 /**
  * The preview of a Markdown text. With `anchor`, the heading of block `i` gets the id
@@ -198,25 +231,31 @@ export function MarkdownView({
 			{blocks(source).map((b, i) => {
 				const key = i;
 				if (b.type === "h") {
-					const H = `h${b.level + 1}` as "h2" | "h3" | "h4";
+					const H = `h${Math.min(b.level + 1, 6)}` as "h2" | "h3" | "h4" | "h5" | "h6";
 					return (
 						<H
 							key={key}
 							id={anchor ? `${anchor}-${i}` : undefined}
-							className={`scroll-mt-3 font-medium ${HEAD[b.level - 1]}`}
+							className={`scroll-mt-3 mt-1 font-medium ${HEAD[b.level - 1] ?? "text-ui"}`}
 						>
 							{inline(b.text)}
 						</H>
 					);
 				}
-				if (b.type === "table")
+				if (b.type === "table") {
+					// A short cell keeps its line; a long one wraps at word boundaries.
+					const cell = (c: string) =>
+						c.length > CELL_LONG ? "min-w-48 max-w-md break-words" : "whitespace-nowrap";
 					return (
-						<div key={key} className="overflow-x-auto">
-							<table className="w-full border-collapse text-left">
-								<thead>
+						<div key={key} className="overflow-x-auto rounded-md border">
+							<table className="w-full table-auto border-collapse text-left text-ui">
+								<thead className="bg-n-3">
 									<tr>
 										{b.head.map((c, j) => (
-											<th key={at(j)} className="border-b px-2 py-1 font-medium">
+											<th
+												key={at(j)}
+												className={cn("border-b px-2 py-1 text-12 font-medium text-n-11", cell(c))}
+											>
 												{inline(c)}
 											</th>
 										))}
@@ -224,9 +263,9 @@ export function MarkdownView({
 								</thead>
 								<tbody>
 									{b.rows.map((r, j) => (
-										<tr key={at(j)}>
+										<tr key={at(j)} className="border-b last:border-b-0 even:bg-n-2">
 											{r.map((c, k) => (
-												<td key={at(k)} className="border-b px-2 py-1">
+												<td key={at(k)} className={cn("px-2 py-1 align-top", cell(c))}>
 													{inline(c)}
 												</td>
 											))}
@@ -236,18 +275,41 @@ export function MarkdownView({
 							</table>
 						</div>
 					);
+				}
 				if (b.type === "code" && b.lang === "mermaid")
 					return <MermaidView key={key} source={b.text} label={t.ui.diagram} />;
 				if (b.type === "code")
 					return (
 						<pre key={key} className="overflow-x-auto rounded-md bg-n-3 p-2 font-mono text-12">
-							<code>{b.text}</code>
+							<code>
+								{b.text.split("\n").map((l, j, all) => (
+									// biome-ignore lint/suspicious/noArrayIndexKey: the lines never reorder
+									<Fragment key={j}>
+										<CodeLine text={l} lang={b.lang} />
+										{j < all.length - 1 ? "\n" : null}
+									</Fragment>
+								))}
+							</code>
 						</pre>
 					);
-				if (b.type === "p") return <p key={key}>{inline(b.text)}</p>;
+				if (b.type === "p")
+					return (
+						<p key={key} className="break-words">
+							{inline(b.text)}
+						</p>
+					);
+				if (b.type === "quote")
+					return (
+						<blockquote key={key} className="border-l-2 border-n-7 pl-3 text-n-11 break-words">
+							{inline(b.text)}
+						</blockquote>
+					);
 				const List = b.type;
 				return (
-					<List key={key} className={`${b.type === "ul" ? "list-disc" : "list-decimal"} pl-5`}>
+					<List
+						key={key}
+						className={`${b.type === "ul" ? "list-disc" : "list-decimal"} flex flex-col gap-0.5 pl-5`}
+					>
 						{b.items.map((x, j) => (
 							// biome-ignore lint/suspicious/noArrayIndexKey: the items never reorder
 							<li key={j}>{inline(x)}</li>

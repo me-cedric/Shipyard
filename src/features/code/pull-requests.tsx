@@ -361,6 +361,7 @@ function Detail({ number }: { number: number }) {
 			{current?.patch ? (
 				<DiffView
 					text={current.patch}
+					path={current.path}
 					label={format(t.forge.diff, { path: current.path })}
 					binaryLabel=""
 					truncatedLabel=""

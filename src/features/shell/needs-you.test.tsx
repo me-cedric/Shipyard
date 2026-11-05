@@ -25,6 +25,41 @@ function Probe({ notice }: { notice: Parameters<ReturnType<typeof useNotificatio
 	);
 }
 
+function Many({ ids }: { ids: string[] }) {
+	const { push, items, resolve, remove } = useNotifications();
+	return (
+		<>
+			<button
+				type="button"
+				onClick={async () => {
+					for (const id of ids) await push({ id, kind: "needs-you", title: id });
+				}}
+			>
+				push all
+			</button>
+			<button
+				type="button"
+				onClick={() =>
+					push({ id: "approval:1", kind: "needs-you", title: "approval:1", detail: "more" })
+				}
+			>
+				push first again
+			</button>
+			<button
+				type="button"
+				onClick={() => resolve(new Set(["approval:2", "run:r1:Paused"]), Date.now() + 1000)}
+			>
+				resolve
+			</button>
+			<button type="button" onClick={() => remove("approval:2")}>
+				remove
+			</button>
+			<span data-testid="ids">{items.map((i) => i.id).join(",")}</span>
+			<span data-testid="count">{items.length}</span>
+		</>
+	);
+}
+
 describe("Needs you notifications (shell REQ-008)", () => {
 	beforeEach(async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
@@ -37,6 +72,7 @@ describe("Needs you notifications (shell REQ-008)", () => {
 			id: `question:${waiting.id}:Q-101`,
 			kind: "needs-you",
 			title: "ACME-1: question",
+			target: { ref: `run:${waiting.id}` },
 		});
 		const approval = (await unwrap(commands.approvalsList()))[0];
 		if (!approval) throw new Error("no approval");
@@ -85,5 +121,68 @@ describe("Needs you notifications (shell REQ-008)", () => {
 		expect(screen.getByTestId("count")).toHaveTextContent("1");
 		expect(mockState().os).toHaveLength(1);
 		spy.mockRestore();
+	});
+
+	describe("a notice leaves when its action is done", () => {
+		const ids = [
+			"approval:1",
+			"approval:2",
+			"question:r1:Q-1",
+			"run:r1:WaitingForAnswer",
+			"run:r1:Paused",
+			"sync:1",
+		];
+		const show = async () => {
+			vi.spyOn(document, "hasFocus").mockReturnValue(true);
+			render(
+				<NotificationsProvider>
+					<Many ids={ids} />
+				</NotificationsProvider>,
+			);
+			await act(async () => {
+				await userEvent.click(screen.getByRole("button", { name: "push all" }));
+			});
+			expect(screen.getByTestId("count")).toHaveTextContent("6");
+		};
+
+		it("keeps what is live and what is no action: approve, answer and resume remove their notice", async () => {
+			await show();
+			await act(async () => {
+				await userEvent.click(screen.getByRole("button", { name: "resolve" }));
+			});
+			// approval:1 (approved), question:r1:Q-1 (answered), run:r1:WaitingForAnswer (resumed) are gone.
+			expect(screen.getByTestId("ids").textContent).toContain("approval:2");
+			expect(screen.getByTestId("ids").textContent).toContain("run:r1:Paused");
+			expect(screen.getByTestId("count")).toHaveTextContent("3");
+			expect(screen.getByTestId("ids").textContent).toContain("sync:1");
+			expect(screen.getByTestId("ids").textContent).not.toContain("question:");
+		});
+
+		it("removes only the notice that the person dismisses", async () => {
+			await show();
+			await act(async () => {
+				await userEvent.click(screen.getByRole("button", { name: "remove" }));
+			});
+			expect(screen.getByTestId("count")).toHaveTextContent("5");
+			expect(screen.getByTestId("ids").textContent).not.toContain("approval:2");
+			expect(screen.getByTestId("ids").textContent).toContain("approval:1");
+		});
+
+		it("moves a notice with a changed text to the top", async () => {
+			vi.spyOn(document, "hasFocus").mockReturnValue(true);
+			render(
+				<NotificationsProvider>
+					<Many ids={["approval:1", "approval:2"]} />
+				</NotificationsProvider>,
+			);
+			await act(async () => {
+				await userEvent.click(screen.getByRole("button", { name: "push all" }));
+			});
+			await act(async () => {
+				await userEvent.click(screen.getByRole("button", { name: "push first again" }));
+			});
+			expect(screen.getByTestId("ids")).toHaveTextContent("approval:1,approval:2");
+			expect(screen.getByTestId("count")).toHaveTextContent("2");
+		});
 	});
 });

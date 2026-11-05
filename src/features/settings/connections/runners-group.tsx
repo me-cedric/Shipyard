@@ -35,7 +35,7 @@ export function RunnersGroup() {
 	return (
 		<section aria-labelledby="connections-runner" className="flex flex-col gap-2">
 			<div className="flex items-center justify-between px-1">
-				<h2 id="connections-runner" className="py-1 text-12 font-medium text-n-11">
+				<h2 id="connections-runner" tabIndex={-1} className="py-1 text-12 font-medium text-n-11">
 					{format(t.count, {
 						name: t.connections.group.runner,
 						count: runners.data?.length ?? 0,

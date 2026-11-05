@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use shipyard_app::connections::{ConnectionDraft, ConnectionGroup, ConnectionKind, Connections};
 use shipyard_app::sync::{ForgeAdapter, Plan, SyncHost, TrackerAdapter};
-use shipyard_core::pickup::{Automation, Ci, PrState};
+use shipyard_core::pickup::{Automation, Ci, PrState, Writes};
 use shipyard_engine::iso;
 use shipyard_engine::ports::{ForgePort, ListQuery, TrackerPort};
 use shipyard_http::{Method, fake::FakeHttp};
@@ -496,8 +496,11 @@ fn a_tick_with_the_comment_switch_on_stamps_the_ticket_it_claims() {
 fn a_tick_with_the_switch_off_writes_nothing_to_the_tracker() {
     let f = fixture();
     let host = host(&f, false);
-    host.apply("web", Some(plan(Automation::default())))
-        .unwrap();
+    let auto = Automation {
+        writes: Writes::default(),
+        ..Automation::default()
+    };
+    host.apply("web", Some(plan(auto))).unwrap();
     let report = host.running("web").unwrap().tick(true).unwrap();
     assert_eq!(report.started, ["acme/web#12"]);
     assert!(bodies(&f, Method::Post).is_empty());

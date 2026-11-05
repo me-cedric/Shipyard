@@ -165,7 +165,12 @@ impl Inner {
         if rec.d.feedback.is_empty() || rec.run.state != RunState::PROpen {
             return;
         }
-        if rec.turns >= rec.wf.limits.max_turns {
+        if rec
+            .wf
+            .limits
+            .max_turns
+            .is_some_and(|m| rec.turns >= m + rec.extra_turns)
+        {
             let why = format!("max turns ({}): no room for a feedback round", rec.turns);
             self.log(run_id, None, kind::NOTE, json!({"stop": why}));
             self.transition(run_id, RunEvent::Fail);

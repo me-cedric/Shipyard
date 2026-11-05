@@ -178,6 +178,7 @@ function DiffPane({ path, side }: { path: string; side: DiffSide }) {
 			</h2>
 			<DiffView
 				text={diff.text}
+				path={path}
 				binary={diff.binary}
 				truncated={diff.truncated}
 				// The staged and the unstaged diff of one file are two regions: the side tells them apart.

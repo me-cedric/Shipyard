@@ -226,11 +226,11 @@ fn an_invalid_save_keeps_the_last_valid_version_and_names_the_line() {
     put(
         dir.path(),
         &path,
-        &good.replace("max_turns: 40", "max_turns: 50"),
+        &good.replace("  budget_usd: 5", "  max_turns: 50\n  budget_usd: 5"),
     );
     let l = load(dir.path(), &l).unwrap();
     assert_eq!(l.issues, []);
-    assert_eq!(l.workflows["feature"].limits.max_turns, 50);
+    assert_eq!(l.workflows["feature"].limits.max_turns, Some(50));
 }
 
 #[test]

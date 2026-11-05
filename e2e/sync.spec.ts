@@ -74,14 +74,14 @@ test("a failed poll shows the failed state and keeps the mirror", async ({ page 
 	await expect(row.getByRole("status")).toContainText("This connection has no token yet.");
 });
 
-test("refuses an interval under 30 s and saves the pickup rules with the write switches off", async ({
+test("refuses an interval under 30 s and saves the pickup rules with the write switches on", async ({
 	page,
 }) => {
 	await openWithTracker(page);
 	const interval = page.getByRole("spinbutton", { name: "Interval (s)" });
 	await expect(interval).toHaveValue("60");
 	for (const name of ["Push", "Pull request", "Ticket transition", "Ticket comment"])
-		await expect(page.getByRole("switch", { name })).not.toBeChecked();
+		await expect(page.getByRole("switch", { name })).toBeChecked();
 
 	await interval.fill("10");
 	await page.getByRole("button", { name: "Save" }).click();

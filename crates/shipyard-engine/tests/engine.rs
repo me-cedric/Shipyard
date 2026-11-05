@@ -213,7 +213,7 @@ limits: { max_turns: 3, budget_usd: 1, stall_s: 300 }
 }
 
 #[test]
-fn max_turns_fails_the_run() {
+fn max_turns_pauses_the_run_and_a_resume_gives_more_turns() {
     let fx = Fx::new(writes(true), &[ONE]);
     let run = fx.start("SHIP-1", &[]);
     for _ in 0..3 {
@@ -221,8 +221,16 @@ fn max_turns_fails_the_run() {
     }
     assert_eq!(fx.state(&run), RunState::Working);
     fx.event("work", AgentEvent::Turn);
-    assert_eq!(fx.state(&run), RunState::Failed);
+    assert_eq!(fx.state(&run), RunState::Paused);
     assert!(fx.agents.running().is_empty());
+    assert_eq!(fx.f.resume(&run, 0.0), Ok(RunState::Working));
+    fx.f.pump();
+    for _ in 0..3 {
+        fx.event("work", AgentEvent::Turn);
+    }
+    assert_eq!(fx.state(&run), RunState::Working);
+    fx.event("work", AgentEvent::Turn);
+    assert_eq!(fx.state(&run), RunState::Paused);
 }
 
 #[test]

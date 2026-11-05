@@ -36,6 +36,7 @@ export function FileDialog({
 					label={format(t.forge.viewer.label, { path })}
 					text={file.data.text}
 					line={line}
+					path={path}
 					binary={file.data.binary}
 					binaryLabel={format(t.forge.viewer.binary, { size: file.data.size })}
 				/>

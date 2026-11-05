@@ -5,7 +5,7 @@ import { type QualityReport, useCoverageReport, useForgeActions, useQuality } fr
 import { format, useI18n } from "@/lib/i18n";
 import type { SbomReport } from "@/lib/ipc";
 import { useShell } from "@/lib/shell";
-import { cn } from "@/lib/utils";
+import { cn, formatDuration } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -81,12 +81,14 @@ const GRID = "grid grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-3 p-3";
 const LINE = {
 	active: "bg-accent",
 	success: "bg-success",
+	warning: "bg-warning",
 	danger: "bg-danger",
 	idle: "bg-n-7",
 } as const;
 const TILE = {
 	active: "bg-info-soft text-info-text",
 	success: "bg-success-soft text-success-text",
+	warning: "bg-warning-soft text-warning-text",
 	danger: "bg-danger-soft text-danger-text",
 	idle: "bg-n-3 text-n-11",
 } as const;
@@ -130,12 +132,30 @@ function QualityView() {
 			const key = runKey(kind, r.name);
 			const last = r.last;
 			const live = running.get(key);
-			const status = live ? "active" : last ? (last.passed ? "success" : "danger") : "idle";
-			const label = live ? q18.running : last ? (last.passed ? q18.passed : q18.failed) : q18.never;
+			// A run that passed with findings is a warning; Failed is only for `passed: false`.
+			const status = live
+				? "active"
+				: !last
+					? "idle"
+					: !last.passed
+						? "danger"
+						: last.findings.length > 0
+							? "warning"
+							: "success";
+			const label = live
+				? q18.running
+				: status === "idle"
+					? q18.never
+					: status === "danger"
+						? q18.failed
+						: status === "warning"
+							? q18.warnings
+							: q18.passed;
 			const info = (q18.info as Record<string, string[]>)[infoKey(r, kind)] ?? q18.info.generic;
 			return (
 				<Card
 					key={key}
+					id={`check-${r.name}`}
 					className={cn(
 						"relative flex flex-col gap-2 overflow-hidden p-3",
 						shown === key && "col-span-full",
@@ -189,7 +209,7 @@ function QualityView() {
 					{r.label && nameOf(r) !== r.name ? (
 						<p className="truncate font-mono text-12 text-n-11">{r.name}</p>
 					) : null}
-					{live ? <RunLive run={live} /> : null}
+					{live ? <RunLive run={live} name={nameOf(r)} /> : null}
 					<div className="flex min-h-row items-center gap-2">
 						{last ? (
 							<>
@@ -197,7 +217,7 @@ function QualityView() {
 									{r.name === DOCS_FRESH
 										? `${format(t.review.quality.staleDocs, { count: last.findings.length })} · `
 										: null}
-									{format(q18.duration, { ms: last.durationMs })} ·{" "}
+									{formatDuration(last.durationMs, lang)} ·{" "}
 									{format(q18.at, { date: date.format(new Date(last.at)) })}
 								</span>
 								{last.findings.length > 0 ? (
@@ -346,7 +366,11 @@ function QualityView() {
 							label: q18.findingsTotal,
 							value: String(found),
 							icon: <ArrowPathIcon size={14} />,
-							tone: found > 0 ? "danger" : "success",
+							tone: reports.some((r) => r && !r.passed)
+								? "danger"
+								: found > 0
+									? "warning"
+									: "success",
 						},
 						...(coverage
 							? [

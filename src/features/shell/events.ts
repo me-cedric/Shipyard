@@ -2,13 +2,14 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 import { useWatchNotice } from "@/lib/code";
 import { useFileChanges } from "@/lib/files";
-import { needsYouNotice, useFactoryEvents } from "@/lib/home";
+import { needsYouNotice, useFactoryEvents, useInboxActions, usePendingNoticeIds } from "@/lib/home";
 import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import {
 	checkNotices,
 	fresh,
+	noticeTarget,
 	reviewDraftNotice,
 	runEndedNotice,
 	scanNotices,
@@ -208,10 +209,16 @@ export const UPDATE_CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
  * and the factory events that need the person. */
 export function useShellEvents() {
 	const { t } = useI18n();
-	const { push } = useNotifications();
-	const { syncError } = useShell();
+	const { push, resolve } = useNotifications();
+	const { syncError, openRef } = useShell();
+	const inbox = useInboxActions();
 	const notice = useWatchNotice().data?.changes[0];
 	const checkUpdate = useUpdateCheck();
+	// An action done anywhere (Inbox, run page, a button here) takes its notice away.
+	const pending = usePendingNoticeIds();
+	useEffect(() => {
+		if (pending) resolve(pending.live, pending.at);
+	}, [pending, resolve]);
 	useSyncTick();
 	useFileChanges();
 	useTickNotices();
@@ -223,7 +230,18 @@ export function useShellEvents() {
 	useFactoryEvents((event, payload) => {
 		void (async () => {
 			const n = await needsYouNotice(event, payload, t);
-			if (n) await push(n);
+			// The buttons act where the person reads: Approve and Refuse send at once, Answer opens the run.
+			const id = Number(payload.id);
+			const actions =
+				event === "factory-approval"
+					? [
+							{ label: t.home.approve, run: () => void inbox.approve(id).catch(logError) },
+							{ label: t.home.reject, run: () => void inbox.reject(id).catch(logError) },
+						]
+					: event === "factory-question"
+						? [{ label: t.home.notice.answer, run: () => openRef(`run:${payload.run}`) }]
+						: undefined;
+			if (n) await push({ ...n, actions });
 			// The failure shows once: the run source covers it, unless the person turned it off.
 			const off = (await unwrap(commands.prefsGet()).catch(() => null))?.notifyOff ?? [];
 			const more =
@@ -252,7 +270,8 @@ export function useShellEvents() {
 				id: `sync:${Date.now()}`,
 				kind: "error",
 				title: t.notifications.syncFailed,
-				body: syncError,
+				detail: syncError,
+				target: noticeTarget({ source: "sync-failure" }),
 			});
 	}, [syncError, push, t]);
 
@@ -263,6 +282,7 @@ export function useShellEvents() {
 				kind: "info",
 				title: format(t.notifications.remote, { count: notice.count, branch: notice.name }),
 				body: `${notice.author}: ${notice.subject}`,
+				target: noticeTarget({ source: "remote-head" }),
 			});
 	}, [notice, push, t]);
 }

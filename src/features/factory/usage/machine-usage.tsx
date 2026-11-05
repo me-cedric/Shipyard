@@ -4,6 +4,7 @@ import { useGuard } from "@/features/work/guard";
 import { useMachineSpend, useMachineWrites } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import type { SpendRow } from "@/lib/ipc";
+import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { CountUp } from "@/ui/atoms/count-up";
 import { Input } from "@/ui/atoms/input";
@@ -39,30 +40,55 @@ export function group(rows: SpendRow[], by: By): Line[] {
 		: lines.sort((a, b) => b.usd - a.usd);
 }
 
-/** A bar for each day, oldest first. The bars carry no text: the table under it holds the numbers. */
-function Bars({ lines, label }: { lines: Line[]; label: string }) {
+/**
+ * A bar for each day, oldest first. A bar is 40 px wide at most, so a short period does not
+ * stretch it; a day with no spend shows a stub. The day and the amount are in the title of the bar,
+ * and the table under the chart holds the numbers. The days show under the bars up to 14 days.
+ */
+function Bars({
+	lines,
+	label,
+	lang,
+	amount,
+}: {
+	lines: Line[];
+	label: string;
+	lang: string;
+	amount: (usd: number) => string;
+}) {
 	const max = Math.max(...lines.map((l) => l.usd), 0.01);
-	const w = 8;
+	const day = (iso: string, opts: Intl.DateTimeFormatOptions) =>
+		new Date(`${iso}T00:00:00Z`).toLocaleDateString(lang, { ...opts, timeZone: "UTC" });
+	const every = lines.length <= 14;
 	return (
-		<svg
-			role="img"
-			aria-label={label}
-			viewBox={`0 0 ${Math.max(lines.length, 1) * w} 60`}
-			preserveAspectRatio="none"
-			className="h-28 w-full text-accent"
-		>
-			{lines.map((l, i) => (
-				<rect
-					key={l.name}
-					x={i * w + 1}
-					y={60 - (l.usd / max) * 58}
-					width={w - 2}
-					height={(l.usd / max) * 58}
-					rx={1}
-					fill="currentColor"
-				/>
-			))}
-		</svg>
+		<div role="img" aria-label={label} className="flex flex-col gap-1 px-3 pt-3 pb-2">
+			<div className="flex h-28 items-end gap-1">
+				{lines.map((l) => (
+					<div key={l.name} className="flex h-full min-w-0 flex-1 items-end justify-center">
+						<span
+							title={`${day(l.name, { weekday: "short", day: "numeric", month: "short" })}: ${amount(l.usd)}`}
+							style={{ height: l.usd > 0 ? `${Math.max(4, (l.usd / max) * 100)}%` : "2px" }}
+							className={cn(
+								"w-full max-w-10 rounded-t-sm transition-[height] duration-(--duration-base)",
+								l.usd > 0 ? "bg-accent" : "bg-n-6",
+							)}
+						/>
+					</div>
+				))}
+			</div>
+			<div aria-hidden="true" className="flex gap-1 text-11 text-n-11">
+				{lines.map((l, i) => (
+					<span key={l.name} className="min-w-0 flex-1 truncate text-center">
+						{every || i === 0 || i === lines.length - 1
+							? day(
+									l.name,
+									every ? { weekday: "short", day: "numeric" } : { day: "numeric", month: "short" },
+								)
+							: ""}
+					</span>
+				))}
+			</div>
+		</div>
 	);
 }
 
@@ -166,7 +192,7 @@ export function MachineUsage({ prices }: { prices: boolean }) {
 					/>
 				}
 			>
-				<Bars lines={chart} label={m.chart} />
+				<Bars lines={chart} label={m.chart} lang={lang} amount={money.format} />
 			</Panel>
 			<Panel
 				title={m.title}

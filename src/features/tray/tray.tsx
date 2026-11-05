@@ -5,7 +5,7 @@ import { AgentsToggle } from "@/features/factory/agents-toggle";
 import { useCounts } from "@/features/shell/counts";
 import { OPEN_REF_EVENT, PROJECT_SWITCHED_EVENT } from "@/features/shell/events";
 import { useGuard } from "@/features/work/guard";
-import { useMachineSpend, useRunActions, useRuns } from "@/lib/factory";
+import { useDailySpend, useRunActions, useRuns } from "@/lib/factory";
 import { useInbox } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
@@ -28,10 +28,11 @@ export function useTrayBadge() {
 }
 
 const FIRST = 3;
-/** The panel is 360 wide and 280 to 520 high: the window fits the content. */
+/** The panel is 360 wide and at least 280 high: the window fits the content. */
 const WIDTH = 360;
 const MIN_H = 280;
-const MAX_H = 520;
+/** The panel grows with its content up to this share of the screen, then it scrolls. */
+const MAX_SHARE = 0.8;
 /** The height of the tallest bar, in px: the box of the bars is 40 px. */
 const BAR_H = 40;
 
@@ -47,16 +48,14 @@ export function TrayView() {
 	const { cancel } = useRunActions();
 	const { error, run } = useGuard();
 	// The spend of every AI tool on this computer, as Factory / Usage shows it: Shipyard runs are in it too.
-	const spend = useMachineSpend(31);
-	// The result stays while a new read runs: the amount never drops and counts up again.
-	const scanned = spend.data ?? spend.partial;
-	const rows = scanned?.rows ?? [];
-	const monthBudget = spend.data?.budgets.find((b) => b.runner === "*")?.usd ?? null;
+	const spend = useDailySpend(7);
+	const { monthBudget } = spend;
 	const projects = useProjects().data ?? [];
 	const active = useActiveProject().data;
 	const sync = useSyncState().data ?? [];
 	useSyncTick();
 	const panel = useRef<HTMLElement>(null);
+	const content = useRef<HTMLDivElement>(null);
 	// Escape closes the panel. The first control gets focus when the panel opens (the window gets focus).
 	// A panel that opens, or a sync tick, reads everything again: the figures are never old.
 	useEffect(() => {
@@ -82,40 +81,34 @@ export function TrayView() {
 			for (const e of clear) e.style.background = "";
 		};
 	}, [qc]);
-	// The window fits the content, between a floor and the full height of the panel.
+	// The window fits the content, between a floor and a share of the screen. The observer watches
+	// the content, not the scrolling frame: a capped frame stops changing size when the content grows.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: the panel exists once `tray` is true
 	useEffect(() => {
 		const el = panel.current;
-		if (!(el && isTauri() && typeof ResizeObserver !== "undefined")) return;
+		const inner = content.current;
+		if (!(el && inner && isTauri() && typeof ResizeObserver !== "undefined")) return;
 		const resize = () => {
-			const h = Math.min(MAX_H, Math.max(MIN_H, Math.ceil(el.scrollHeight)));
+			// The frame adds its border to the height of the content.
+			const frame = el.offsetHeight - el.clientHeight;
+			const max = Math.max(MIN_H, Math.round(window.screen.availHeight * MAX_SHARE));
+			const h = Math.min(max, Math.max(MIN_H, Math.ceil(inner.scrollHeight + frame)));
 			void import("@tauri-apps/api/window")
 				.then((m) => m.getCurrentWindow().setSize(new m.LogicalSize(WIDTH, h)))
 				.catch(() => {});
 		};
 		const watch = new ResizeObserver(resize);
-		watch.observe(el);
+		watch.observe(inner);
 		resize();
 		return () => watch.disconnect();
 	}, [tray]);
 	if (!tray) return null;
 
 	const money = new Intl.NumberFormat(lang, { style: "currency", currency: "USD" });
-	// The rows are by UTC day, runner and model: one sum for each day.
-	const today = new Date().toISOString().slice(0, 10);
-	const byDay = new Map<string, number>();
-	for (const r of rows) byDay.set(r.day, (byDay.get(r.day) ?? 0) + (r.costUsd ?? 0));
-	const todayUsd = byDay.get(today) ?? 0;
-	const month = [...byDay]
-		.filter(([d]) => d.startsWith(today.slice(0, 7)))
-		.reduce((sum, [, usd]) => sum + usd, 0);
+	const todayUsd = spend.today;
+	const { month } = spend;
 	// The last 7 days, oldest first: a bar each, and a day with no row is a short one.
-	const week = Array.from({ length: 7 }, (_, i) => {
-		const d = new Date(`${today}T00:00:00Z`);
-		d.setUTCDate(d.getUTCDate() - (6 - i));
-		const key = d.toISOString().slice(0, 10);
-		return { day: key, usd: byDay.get(key) ?? 0 };
-	});
+	const week = spend.series;
 	const top = Math.max(...week.map((w) => w.usd), 0.01);
 	const items = [
 		...inbox.questions.map((q) => ({
@@ -154,106 +147,110 @@ export function TrayView() {
 	return (
 		<main
 			ref={panel}
-			className="flex max-h-screen flex-col gap-3 overflow-auto rounded-xl border border-n-6 bg-surface-1/80 p-3 text-ui text-n-12"
+			className="max-h-screen overflow-auto rounded-xl border border-n-6 bg-surface-1/80 text-ui text-n-12"
 		>
-			<Select
-				label={t.projects.switcher}
-				placeholder={t.projects.switcher}
-				className="w-full min-w-0 max-w-full shrink"
-				value={active?.id ?? ""}
-				onValueChange={(id) => void run(() => switchTo(id))}
-				items={projects.map((p) => ({ value: p.id, label: p.name }))}
-			/>
-			<section
-				aria-label={t.ui.spendToday}
-				className="flex flex-col gap-2 rounded-lg bg-n-2/60 p-3"
-			>
-				<div className="flex items-end justify-between gap-3">
-					<div className="flex flex-col">
-						<span className="text-12 text-n-11">{t.ui.spendToday}</span>
-						{scanned ? (
-							<span className="text-20 font-semibold tabular-nums">{money.format(todayUsd)}</span>
-						) : (
-							<Skeleton className="h-7 w-20" />
-						)}
-					</div>
-					<div className="flex items-baseline gap-1.5">
-						<span className="text-12 text-n-11">{u.month}</span>
-						{scanned ? (
-							<span className="text-ui tabular-nums">{money.format(month)}</span>
-						) : (
-							<Skeleton className="h-5 w-12" />
-						)}
-					</div>
-				</div>
-				<div aria-hidden="true" className="flex h-10 items-end gap-1">
-					{week.map((v, i) => (
-						<span
-							key={v.day}
-							title={`${v.day}: ${money.format(v.usd)}`}
-							style={{ height: `${Math.max(2, (v.usd / top) * BAR_H)}px` }}
-							className={i === 6 ? "flex-1 rounded-sm bg-accent" : "flex-1 rounded-sm bg-n-6"}
-						/>
-					))}
-				</div>
-				{monthBudget == null ? null : <Progress value={month} max={monthBudget} label={u.month} />}
-			</section>
-			{runs.length ? (
-				<section aria-label={t.shell.runs} className="flex flex-col">
-					<h2 className="flex items-center gap-2 font-medium">
-						<LiveDot />
-						{format(u.running, { count: runs.length })}
-					</h2>
-					{runs.map((r) => (
-						<div key={r.id} className="flex h-row items-center justify-between gap-2">
-							<span className="truncate">
-								{r.key} {t.factory.lane[r.lane]}
-							</span>
-							<ConfirmButton
-								variant="ghost"
-								confirm={format(t.factory.machine.confirmStop, { name: r.key })}
-								onConfirm={() => void run(() => cancel(r.id))}
-							>
-								{format(t.factory.machine.stop, { name: r.key })}
-							</ConfirmButton>
+			<div ref={content} className="flex flex-col gap-3 p-3">
+				<Select
+					label={t.projects.switcher}
+					placeholder={t.projects.switcher}
+					className="w-full min-w-0 max-w-full shrink"
+					value={active?.id ?? ""}
+					onValueChange={(id) => void run(() => switchTo(id))}
+					items={projects.map((p) => ({ value: p.id, label: p.name }))}
+				/>
+				<section
+					aria-label={t.ui.spendToday}
+					className="flex flex-col gap-2 rounded-lg bg-n-2/60 p-3"
+				>
+					<div className="flex items-end justify-between gap-3">
+						<div className="flex flex-col">
+							<span className="text-12 text-n-11">{t.ui.spendToday}</span>
+							{spend.ready ? (
+								<span className="text-20 font-semibold tabular-nums">{money.format(todayUsd)}</span>
+							) : (
+								<Skeleton className="h-7 w-20" />
+							)}
 						</div>
-					))}
-				</section>
-			) : null}
-			{needsYou > 0 || items.length ? (
-				<section aria-label={t.home.needsYou}>
-					<h2 className="font-medium">
-						{t.home.needsYou} ({needsYou})
-					</h2>
-					<ul>
-						{items.map((i) => (
-							<li key={i.id}>
-								<button
-									type="button"
-									onClick={() => void run(() => openItem(i.ref))}
-									className="block w-full truncate rounded-md px-2 py-1 text-left hover:bg-n-3"
-								>
-									{i.text}
-								</button>
-							</li>
+						<div className="flex items-baseline gap-1.5">
+							<span className="text-12 text-n-11">{u.month}</span>
+							{spend.ready ? (
+								<span className="text-ui tabular-nums">{money.format(month)}</span>
+							) : (
+								<Skeleton className="h-5 w-12" />
+							)}
+						</div>
+					</div>
+					<div aria-hidden="true" className="flex h-10 items-end gap-1">
+						{week.map((v, i) => (
+							<span
+								key={v.day}
+								title={`${v.day}: ${money.format(v.usd)}`}
+								style={{ height: `${Math.max(2, (v.usd / top) * BAR_H)}px` }}
+								className={i === 6 ? "flex-1 rounded-sm bg-accent" : "flex-1 rounded-sm bg-n-6"}
+							/>
 						))}
-					</ul>
+					</div>
+					{monthBudget == null ? null : (
+						<Progress value={month} max={monthBudget} label={u.month} />
+					)}
 				</section>
-			) : null}
-			<AgentsToggle />
-			{error ? (
-				<span role="alert" className="text-danger-text">
-					{error}
-				</span>
-			) : null}
-			{sync.length && (failed || last > 0) ? (
-				<span role="status" className={failed ? "text-danger-text" : "text-n-11"}>
-					{failed ? u.syncFailed : format(u.synced, { time: clock(last, lang) })}
-				</span>
-			) : null}
-			<Button variant="primary" onClick={() => void commands.trayOpen()}>
-				{u.open}
-			</Button>
+				{runs.length ? (
+					<section aria-label={t.shell.runs} className="flex flex-col">
+						<h2 className="flex items-center gap-2 font-medium">
+							<LiveDot />
+							{format(u.running, { count: runs.length })}
+						</h2>
+						{runs.map((r) => (
+							<div key={r.id} className="flex h-row items-center justify-between gap-2">
+								<span className="truncate">
+									{r.key} {t.factory.lane[r.lane]}
+								</span>
+								<ConfirmButton
+									variant="ghost"
+									confirm={format(t.factory.machine.confirmStop, { name: r.key })}
+									onConfirm={() => void run(() => cancel(r.id))}
+								>
+									{format(t.factory.machine.stop, { name: r.key })}
+								</ConfirmButton>
+							</div>
+						))}
+					</section>
+				) : null}
+				{needsYou > 0 || items.length ? (
+					<section aria-label={t.home.needsYou}>
+						<h2 className="font-medium">
+							{t.home.needsYou} ({needsYou})
+						</h2>
+						<ul>
+							{items.map((i) => (
+								<li key={i.id}>
+									<button
+										type="button"
+										onClick={() => void run(() => openItem(i.ref))}
+										className="block w-full truncate rounded-md px-2 py-1 text-left hover:bg-n-3"
+									>
+										{i.text}
+									</button>
+								</li>
+							))}
+						</ul>
+					</section>
+				) : null}
+				<AgentsToggle />
+				{error ? (
+					<span role="alert" className="text-danger-text">
+						{error}
+					</span>
+				) : null}
+				{sync.length && (failed || last > 0) ? (
+					<span role="status" className={failed ? "text-danger-text" : "text-n-11"}>
+						{failed ? u.syncFailed : format(u.synced, { time: clock(last, lang) })}
+					</span>
+				) : null}
+				<Button variant="primary" onClick={() => void commands.trayOpen()}>
+					{u.open}
+				</Button>
+			</div>
 		</main>
 	);
 }

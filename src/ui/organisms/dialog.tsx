@@ -32,12 +32,13 @@ export function Dialog({
 				<BaseDialog.Popup
 					className={cn(
 						"fixed top-20 left-1/2 z-50 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0",
-						full ? "top-4 w-[calc(100vw-2rem)]" : wide ? "w-[48rem]" : "w-[32rem]",
+						full ? "top-4 bottom-4 w-[calc(100vw-2rem)]" : wide ? "w-[48rem]" : "w-[32rem]",
 					)}
 				>
-					<div className="flex flex-col gap-2 p-3">
+					<div className={cn("flex flex-col gap-2 p-3", full && "h-full")}>
 						<BaseDialog.Title className="text-14 font-medium">{title}</BaseDialog.Title>
-						{children}
+						{/* A full dialog gives the rest of the window to its content. */}
+						{full ? <div className="min-h-0 flex-1">{children}</div> : children}
 						<div className="flex justify-end gap-2">
 							<BaseDialog.Close render={<Button variant="ghost" />}>
 								{t.common.close}

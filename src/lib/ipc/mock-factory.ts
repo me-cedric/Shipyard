@@ -38,7 +38,7 @@ import type {
 	Workflow_Serialize,
 	WorkflowFile_Serialize,
 	WorkflowItem_Serialize,
-	WorkflowLimits,
+	WorkflowLimits_Serialize,
 	WorkItemView_Serialize,
 	Workspace,
 } from "./bindings";
@@ -105,7 +105,6 @@ steps:
     action: open_pr
     needs: [review]
 limits:
-  max_turns: 30
   budget_usd: 3
   stall_s: 300
 `,
@@ -150,7 +149,6 @@ steps:
     action: open_pr
     needs: [review]
 limits:
-  max_turns: 40
   budget_usd: 5
   stall_s: 300
 `,
@@ -167,7 +165,6 @@ steps:
     action: open_pr
     needs: [update]
 limits:
-  max_turns: 20
   budget_usd: 2
   stall_s: 300
 `,
@@ -189,7 +186,6 @@ steps:
     needs: [review]
     tools: [read_ref, post_progress, report]
 limits:
-  max_turns: 20
   budget_usd: 2
   stall_s: 300
 `,
@@ -211,7 +207,6 @@ steps:
     gate: human
     tools: [read_ref, ask_question, post_progress, report]
 limits:
-  max_turns: 20
   budget_usd: 2
   stall_s: 300
 `,
@@ -239,7 +234,6 @@ steps:
     needs: [investigate]
     tools: [read_ref, post_progress, report]
 limits:
-  max_turns: 30
   budget_usd: 2
   stall_s: 300
 `,
@@ -334,7 +328,7 @@ function parseWorkflow(
 	});
 	type Field = { v: string; line: number };
 	const raws: Record<string, Field>[] = [];
-	const limits: WorkflowLimits = { max_turns: 30, budget_usd: null, stall_s: 300 };
+	const limits: WorkflowLimits_Serialize = { max_turns: null, budget_usd: null, stall_s: 300 };
 	let fileId: Field | null = null;
 	let inLimits = false;
 	for (const [i, l] of text.split("\n").entries()) {

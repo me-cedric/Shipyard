@@ -75,6 +75,7 @@ function Detail({ sha }: { sha: string }) {
 			{diff ? (
 				<DiffView
 					text={diff.text}
+					path={diff.path}
 					binary={diff.binary}
 					truncated={diff.truncated}
 					label={format(t.code.diff, { path: diff.path })}

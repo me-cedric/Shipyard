@@ -5,7 +5,7 @@ import { useGuard } from "@/features/work/guard";
 import { TicketDetail } from "@/features/work/ticket-detail";
 import { useRunActions, useRuns } from "@/lib/factory";
 import { useInbox } from "@/lib/home";
-import { format, type Messages, useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
 import { usePrefs } from "@/lib/prefs";
@@ -25,6 +25,7 @@ import { RefChip } from "@/ui/molecules/ref-chip";
 import { RUN_STATUS } from "@/ui/molecules/run-card";
 import { TicketRow, type WorkCategory } from "@/ui/molecules/ticket-row";
 import { Timeline, TimelineItem } from "@/ui/molecules/timeline";
+import { eventSentence } from "./event-sentence";
 import { NeedsYou, needsYouTotal } from "./inbox/inbox";
 import { HomeStats, useMyItems } from "./stats";
 
@@ -32,27 +33,6 @@ const SHOWN = 20;
 const WEEK = 7 * 24 * 3600 * 1000;
 // shortcut: one page of 50 events for each run, so a very long run misses its newest events; upgrade with a log tail command.
 const PAGE = 50;
-
-type Said = Messages["home"]["event"];
-
-/** One event as one sentence: a state change names the new state, the other kinds name what happened. */
-export function eventSentence(
-	said: Said,
-	states: Record<string, string>,
-	e: { kind: string; payload: string; key: string },
-) {
-	if (e.kind === "state") {
-		let to = "";
-		try {
-			to = String(JSON.parse(e.payload).to ?? "");
-		} catch {
-			// A payload that does not parse still gives a sentence.
-		}
-		if (to) return format(said.state, { key: e.key, state: states[to] ?? to });
-	}
-	const kind = e.kind in said && e.kind !== "state" ? (e.kind as keyof Said) : "other";
-	return format(said[kind], { key: e.key, state: "" });
-}
 
 /** The time of the last visit of Today. It moves to now after the first render, so this visit still shows what was new. */
 function useLastVisit() {

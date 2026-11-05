@@ -20,7 +20,7 @@ export const assistantEn = {
 	you: "You",
 	assistant: "Assistant",
 	mode: { label: "Mode", ask: "Ask", plan: "Plan", agent: "Agent" },
-	runner: "Runner",
+	runner: "AI tool",
 	model: "Model",
 	effort: "Effort",
 	default: "Default",
@@ -80,7 +80,7 @@ export const assistantEn = {
 	moreModels: "More models",
 	bypassWarn: {
 		title: "Bypass permissions",
-		body: "The runner skips every approval and its sandbox. It can run any command and change any file that your account can reach, not only the worktree of this thread. Use it in a project that you trust.",
+		body: "The AI tool skips every approval and its sandbox. It can run any command and change any file that your account can reach, not only the worktree of this thread. Use it in a project that you trust.",
 		accept: "Bypass permissions",
 	},
 	autoWarn: {
@@ -125,7 +125,7 @@ export const assistantFr: typeof assistantEn = {
 	you: "Vous",
 	assistant: "Assistant",
 	mode: { label: "Mode", ask: "Question", plan: "Plan", agent: "Agent" },
-	runner: "Exécuteur",
+	runner: "Outil d’IA",
 	model: "Modèle",
 	effort: "Effort",
 	default: "Défaut",
@@ -185,7 +185,7 @@ export const assistantFr: typeof assistantEn = {
 	moreModels: "Plus de modèles",
 	bypassWarn: {
 		title: "Ignorer les permissions",
-		body: "L'exécuteur ignore chaque accord et son bac à sable. Il peut lancer toute commande et modifier tout fichier que votre compte atteint, pas seulement le worktree de ce fil. Utilisez-le dans un projet de confiance.",
+		body: "L'outil d'IA ignore chaque accord et son bac à sable. Il peut lancer toute commande et modifier tout fichier que votre compte atteint, pas seulement le worktree de ce fil. Utilisez-le dans un projet de confiance.",
 		accept: "Ignorer les permissions",
 	},
 	autoWarn: {

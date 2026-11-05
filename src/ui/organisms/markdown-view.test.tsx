@@ -42,7 +42,7 @@ describe("MarkdownView: tables, links and mermaid", () => {
 		expect(screen.getByRole("columnheader", { name: "Size" })).toBeInTheDocument();
 		expect(screen.getAllByRole("row")).toHaveLength(3);
 		expect(screen.getByRole("img", { name: "Diagram" })).toHaveTextContent("graph TD");
-		expect(screen.getByText("let x")).toBeInTheDocument();
+		expect(document.querySelector("pre code")).toHaveTextContent("let x");
 	});
 
 	it("opens a link outside the window and ignores an address that is not http", async () => {
@@ -92,5 +92,47 @@ describe("MarkdownView: hits of a search", () => {
 		setHitQuery("decision");
 		renderApp(<MarkdownView label="Doc" source="La Décision" reading />);
 		expect(screen.getByText("La Décision")).toBeInTheDocument();
+	});
+});
+
+const ISSUE = [
+	"**Gate failed:**",
+	"",
+	"| Tool | Severity | Rule | Path | Line |",
+	"| --- | --- | --- | --- | --- |",
+	"| semgrep | high | javascript.lang.security.audit.detect-child-process | crates/shipyard-app/src/qa.rs | 40 |",
+	"| osv | low | GHSA-xxxx | pnpm-lock.yaml | 1 |",
+	"",
+	"> Fix it with `pnpm lint`.",
+	"",
+	"```ts",
+	"const a = 1;",
+	"```",
+].join("\r\n");
+
+describe("MarkdownView: readable issue bodies", () => {
+	it("shows bold, inline code and quotes with no raw marks, even with CRLF lines", () => {
+		renderApp(<MarkdownView label="Issue" source={ISSUE} />);
+		const strong = screen.getByText("Gate failed:");
+		expect(strong.tagName).toBe("STRONG");
+		expect(screen.getByRole("article")).not.toHaveTextContent("*");
+		expect(screen.getByText("pnpm lint").tagName).toBe("CODE");
+		expect(screen.getByText(/Fix it with/).tagName).toBe("BLOCKQUOTE");
+	});
+
+	it("keeps short cells on one line and wraps long cells at words, in a scroll box", () => {
+		renderApp(<MarkdownView label="Issue" source={ISSUE} />);
+		expect(screen.getByRole("columnheader", { name: "Severity" })).toHaveClass("whitespace-nowrap");
+		const long = screen.getByRole("cell", { name: /detect-child-process/ });
+		expect(long).toHaveClass("break-words");
+		expect(long).not.toHaveClass("break-all");
+		expect(screen.getByRole("table").parentElement).toHaveClass("overflow-x-auto");
+		expect(screen.getAllByRole("row")).toHaveLength(3);
+	});
+
+	it("colours a fenced block by its language and leaves an unknown language plain", () => {
+		renderApp(<MarkdownView label="Issue" source={`${ISSUE}\n\n\`\`\`text\nconst b\n\`\`\``} />);
+		expect(screen.getByText("const")).toHaveClass("text-accent-text");
+		expect(screen.getByText(/^const b$/)).not.toHaveClass("text-accent-text");
 	});
 });

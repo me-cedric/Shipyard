@@ -92,7 +92,7 @@ export function ContextBar({
 	const { switchTo, openFolder, close, remove } = useProjectActions();
 	const [cloning, setCloning] = useState(false);
 	const { syncing, assistantOpen, filesOpen, terminalOpen } = useShell();
-	const { items, unread, markRead, clear } = useNotifications();
+	const { items, unread, markRead, clear, remove: removeNotice } = useNotifications();
 	const openNotice = useOpenNotice();
 	const { needsYou, live, changes, changed } = useCounts();
 	const ThemeIcon = THEME_ICON[theme];
@@ -247,6 +247,7 @@ export function ContextBar({
 				unread={unread}
 				onOpen={markRead}
 				onClear={clear}
+				onRemove={removeNotice}
 				onGo={openNotice}
 			/>
 			<IconButton label={manual.label} shortcut={manual.shortcut} onClick={manual.run}>

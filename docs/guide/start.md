@@ -9,9 +9,9 @@ Shipyard helps a team deliver a software project: the design, the specs, the wor
 - The inspector on the right shows the item that you select.
 - The status bar at the bottom shows the project, the sync state and the commit control.
 - The assistant opens on the side. Ask it a question about the project. Each conversation is a tab, and a dot marks a tab with a new reply.
-  - Under the message box, one bar has the attach button, one button with the model and the effort (it opens the models of the runner, the effort levels and the models of the other runners), the permission, the context ring and Send.
+  - Under the message box, one bar has the attach button, one button with the model and the effort (it opens the models of the AI tool, the effort levels and the models of the other AI tools), the permission, the context ring and Send.
   - In Agent mode the permission is Edit with approval, Auto (accepts edits) or Bypass permissions. Bypass skips every approval of Claude Code or Codex: Shipyard asks you the first time in each project, shows it in red while it is on, and refuses it in a read-only project and while the agents switch is off.
-  - Type `/` at the start of a message to list the commands of the selected runner. The text goes to the runner as you typed it.
+  - Type `/` at the start of a message to list the commands of the selected AI tool. The text goes to the AI tool as you typed it.
   - Each conversation keeps one agent session, so a later message continues the earlier work.
 - In Settings, then Me, choose the side of the bar and of the drawers, the accent colour, the date format, a narrow top bar and your picture.
 

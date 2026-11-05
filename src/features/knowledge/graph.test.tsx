@@ -143,6 +143,18 @@ describe("Knowledge / Graph", () => {
 			expect(start).not.toHaveBeenCalled();
 		});
 
+		it("indexes a server that is off and then shows the graph", async () => {
+			const user = userEvent.setup();
+			mockState().knowledge.indexed = false;
+			mockState().knowledge.server = false;
+			await mountKnowledge("graph");
+			await user.click(await screen.findByRole("tab", { name: "Code" }));
+			await user.click(await screen.findByRole("button", { name: "Index" }));
+			expect(screen.queryByRole("alert")).toBeNull();
+			const code = await unwrap(commands.graphCode());
+			await screen.findByTestId(`rf__node-${code.nodes[0]?.ref}`);
+		});
+
 		it("shows the error of the index", async () => {
 			const user = userEvent.setup();
 			mockState().knowledge.indexed = false;

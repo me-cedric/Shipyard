@@ -93,7 +93,8 @@ pub struct StateMapping {
     pub labels: Vec<String>,
 }
 
-/// The four write switches of `factory`. All off by default (`q:Q-002`).
+/// The four write switches of `factory`. A new project has all four on (`q:Q-002`, revised): a
+/// force push and a merge still wait for a person. `Writes::default()` is all off.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(deny_unknown_fields, default)]
 pub struct Writes {
@@ -104,6 +105,16 @@ pub struct Writes {
 }
 
 impl Writes {
+    /// All four on: the project default.
+    pub fn all_on() -> Self {
+        Self {
+            push: true,
+            pull_request: true,
+            tracker_transition: true,
+            tracker_comment: true,
+        }
+    }
+
     /// May the engine write a claim stamp to the tracker? The stamp is a comment, so it follows
     /// `tracker_comment` (`q:Q-020`, option 2). With it off, a claim stays on this machine.
     pub fn stamp_allowed(&self) -> bool {
@@ -219,7 +230,7 @@ impl Default for Automation {
             pickup: Filter::default(),
             concurrency: Limits::default(),
             status_map: BTreeMap::new(),
-            writes: Writes::default(),
+            writes: Writes::all_on(),
             reviewers: Vec::new(),
             assignee: None,
             budgets: Budgets::default(),

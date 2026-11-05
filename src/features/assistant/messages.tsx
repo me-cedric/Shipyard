@@ -1,7 +1,7 @@
 import { format, useI18n } from "@/lib/i18n";
 import type { ChatMessage, FileDiff } from "@/lib/ipc";
 import { copyText } from "@/lib/menus";
-import { cn } from "@/lib/utils";
+import { cn, formatDuration } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { LiveDot } from "@/ui/atoms/live-dot";
@@ -36,6 +36,7 @@ export const filesTouched = (steps: ChatMessage["trace"]) =>
 
 /** The tool calls, one line each. */
 function Steps({ steps }: { steps: ChatMessage["trace"] }) {
+	const { lang } = useI18n();
 	return (
 		<ul className="mt-1 flex flex-col gap-0.5 rounded-md border bg-n-2 p-1.5 font-mono text-11">
 			{steps.map((s, i) => (
@@ -43,7 +44,7 @@ function Steps({ steps }: { steps: ChatMessage["trace"] }) {
 				<li key={i} className="flex gap-2">
 					<span>{s.tool}</span>
 					<span className="min-w-0 flex-1 truncate">{s.target}</span>
-					<span>{s.ms} ms</span>
+					<span>{formatDuration(s.ms, lang)}</span>
 				</li>
 			))}
 		</ul>
@@ -52,7 +53,7 @@ function Steps({ steps }: { steps: ChatMessage["trace"] }) {
 
 /** One line when the turn ends. The person expands it to see each tool call. */
 function Trace({ steps }: { steps: ChatMessage["trace"] }) {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	if (!steps.length) return null;
 	const total = steps.reduce((sum, s) => sum + s.ms, 0);
 	const files = filesTouched(steps);
@@ -66,8 +67,8 @@ function Trace({ steps }: { steps: ChatMessage["trace"] }) {
 					<ChevronRightIcon size={10} />
 				</span>
 				{t.assistant.trace} · {format(t.assistant.tools, { count: steps.length })}
-				{files ? ` · ${format(t.extras.assistant.filesTouched, { count: files })}` : ""} · {total}{" "}
-				ms
+				{files ? ` · ${format(t.extras.assistant.filesTouched, { count: files })}` : ""} ·{" "}
+				{formatDuration(total, lang)}
 			</summary>
 			<Steps steps={steps} />
 		</details>
@@ -224,6 +225,7 @@ function Changed({ files }: { files: FileDiff[] }) {
 					<summary className="cursor-pointer font-mono">{f.path}</summary>
 					<DiffView
 						text={f.text}
+						path={f.path}
 						binary={f.binary}
 						truncated={f.truncated}
 						label={format(t.assistant.diff, { name: f.path })}

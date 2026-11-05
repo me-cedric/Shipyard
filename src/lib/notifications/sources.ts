@@ -7,6 +7,7 @@ import {
 	unwrap,
 } from "@/lib/ipc";
 import type { NoticeInput } from "./index";
+import { noticeTarget } from "./targets";
 
 /**
  * The reports that a click made. The page shows their result, so they make no notice. The key is
@@ -49,7 +50,7 @@ export async function runEndedNotice(
 		kind: failed ? "needs-you" : "info",
 		title: format(failed ? t.notifications.runFailed : t.notifications.runDone, { key: r.key }),
 		body: r.title,
-		target: { ref: r.reference },
+		target: noticeTarget({ source: "run-ended", run: r.id }),
 	};
 }
 
@@ -66,7 +67,7 @@ export function checkNotices(rows: MyChecks[], t: Messages): NoticeInput[] {
 					number: r.number,
 				}),
 				body: r.title,
-				target: { ref: r.reference },
+				target: noticeTarget({ source: "pr-checks", ref: r.reference }),
 			};
 		});
 }
@@ -82,7 +83,7 @@ export function scanNotices(view: QualityView_Serialize, t: Messages): NoticeInp
 				kind: "error" as const,
 				title: format(t.notifications.scanFailed, { name: row.label ?? r.name }),
 				body: r.tail,
-				target: { route: "/code/quality" },
+				target: noticeTarget({ source: "scan-failed", name: row.name }),
 			},
 		];
 	});
@@ -98,6 +99,6 @@ export async function reviewDraftNotice(number: string, t: Messages): Promise<No
 		kind: "needs-you",
 		title: format(t.notifications.reviewDraft, { number: w.number }),
 		body: w.title,
-		target: w.reference ? { ref: w.reference } : { route: "/code/pull-requests" },
+		target: noticeTarget({ source: "review-draft", ref: w.reference }),
 	};
 }

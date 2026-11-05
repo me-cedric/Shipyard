@@ -174,4 +174,30 @@ describe("Factory / Runs", () => {
 			await waitFor(async () => expect((await find(key)).state).toBe(to));
 		}
 	});
+
+	it("shows the events as sentences, with the raw JSON behind Details", async () => {
+		const user = userEvent.setup();
+		await renderRuns();
+		await user.click(await screen.findByRole("button", { name: /ACME-2/ }));
+		const panel = await screen.findByRole("complementary", { name: "ACME-2" });
+		const events = await within(panel).findByRole("region", { name: /^Events/ });
+		expect(await within(events).findByText("ACME-2 moved to Claimed")).toBeInTheDocument();
+		const fold = events.querySelector("details") as HTMLDetailsElement;
+		expect(fold.open).toBe(false);
+		await user.click(within(fold).getByText("Details"));
+		expect(fold.open).toBe(true);
+		expect(fold).toHaveTextContent('"from"');
+	});
+
+	it("shows the live strip, and the question and the approval of a waiting run on top", async () => {
+		await renderRuns();
+		const user = userEvent.setup();
+		await user.click(await screen.findByRole("button", { name: /ACME-1(?!\d)/ }));
+		const panel = await screen.findByRole("complementary", { name: "ACME-1" });
+		const steps = await within(panel).findByRole("region", { name: "Steps" });
+		expect(within(steps).getByRole("list")).toBeInTheDocument();
+		expect(await within(panel).findByRole("button", { name: "Send" })).toBeInTheDocument();
+		expect(await within(panel).findByRole("button", { name: "Approve" })).toBeInTheDocument();
+		expect(within(panel).getByRole("button", { name: "Reject" })).toBeInTheDocument();
+	});
 });

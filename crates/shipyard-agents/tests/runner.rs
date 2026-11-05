@@ -151,6 +151,42 @@ echo '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"
 echo '{"type":"result","subtype":"success","is_error":false,"result":"done","session_id":"sess-1","total_cost_usd":0.5,"usage":{"input_tokens":10,"output_tokens":20,"cache_read_input_tokens":5,"cache_creation_input_tokens":1}}'
 "#;
 
+/// One model message comes as several `assistant` lines: one turn. Its tokens count at once,
+/// and the `result` totals add only the rest, so a run stopped early still shows its tokens.
+#[test]
+fn claude_counts_one_turn_per_message_and_tokens_live() {
+    let f = fixture(
+        r#"
+cat > /dev/null
+echo '{"type":"assistant","message":{"id":"m1","content":[{"type":"text","text":"a"}],"usage":{"input_tokens":7,"output_tokens":3,"cache_read_input_tokens":2}}}'
+echo '{"type":"assistant","message":{"id":"m1","content":[{"type":"text","text":"b"}],"usage":{"input_tokens":7,"output_tokens":3,"cache_read_input_tokens":2}}}'
+echo '{"type":"result","subtype":"success","is_error":false,"total_cost_usd":0.5,"usage":{"input_tokens":10,"output_tokens":20,"cache_read_input_tokens":5}}'
+"#,
+    );
+    let events = go("claude", f.spec.clone());
+    assert_eq!(
+        events,
+        vec![
+            Event::Turn,
+            Event::Usage {
+                input_tokens: 7,
+                output_tokens: 3,
+                cached_tokens: 2,
+                cost_usd: None
+            },
+            text("a"),
+            text("b"),
+            Event::Usage {
+                input_tokens: 3,
+                output_tokens: 17,
+                cached_tokens: 3,
+                cost_usd: Some(0.5)
+            },
+            exit(0),
+        ]
+    );
+}
+
 #[test]
 fn claude_streams_events_in_order_and_keeps_secrets_out() {
     let mut f = fixture(CLAUDE_STREAM);

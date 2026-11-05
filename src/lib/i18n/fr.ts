@@ -380,7 +380,7 @@ export const fr: Messages = {
 			tracker: "Outils de suivi",
 			forge: "Hébergeurs de code",
 			mcp: "Serveurs MCP",
-			runner: "Exécuteurs",
+			runner: "Outils d’IA",
 			provider: "Fournisseurs de modèles",
 		},
 		type: {
@@ -848,6 +848,7 @@ export const fr: Messages = {
 		checksPassed: "#{number} : contrôles réussis",
 		checksFailed: "#{number} : contrôles échoués",
 		scanFailed: "Analyse échouée : {name}",
+		findings: "{count} constats",
 		reviewDraft: "#{number} : revue prête à publier",
 	},
 	menu: {

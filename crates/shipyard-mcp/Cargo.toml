@@ -13,5 +13,16 @@ shipyard-agents = { path = "../shipyard-agents" }
 shipyard-secrets = { path = "../shipyard-secrets" }
 shipyard-store = { path = "../shipyard-store" }
 
+# Already in the lock file (through other crates): the named pipe of the relay on Windows.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+  "Win32_Foundation",
+  "Win32_Security",
+  "Win32_Security_Authorization",
+  "Win32_Storage_FileSystem",
+  "Win32_System_IO",
+  "Win32_System_Pipes",
+] }
+
 [dev-dependencies]
 tempfile = "3"

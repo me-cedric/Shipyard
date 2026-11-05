@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-quer
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useState } from "react";
 import { useFactoryEvents } from "@/lib/home";
-import { commands, isTauri, type SpendRow, unwrap } from "@/lib/ipc";
+import { commands, isTauri, type RunState, type SpendRow, unwrap } from "@/lib/ipc";
 
 export type { RunItem } from "@/lib/home";
 
@@ -22,15 +22,29 @@ export const factoryKeys = {
 
 const PAGE = 50;
 
+/** The states of a run that is over. */
+export const ENDED: RunState[] = ["Merged", "Done", "Failed", "Cancelled"];
+
 /** Reads again at each factory event (the mock emits none: each action reads again). */
 function useFresh() {
 	const qc = useQueryClient();
 	useFactoryEvents(() => void qc.invalidateQueries({ queryKey: factoryKeys.all }));
 }
 
-export function useRuns() {
+/** How often a view of a live run reads again: the engine tells only some changes with an event. */
+const LIVE_MS = 3000;
+
+/** `live` is a run id: while this run is not over, the runs are read again every few seconds. */
+export function useRuns(live?: string) {
 	useFresh();
-	return useQuery({ queryKey: factoryKeys.runs, queryFn: () => unwrap(commands.runsList()) });
+	return useQuery({
+		queryKey: factoryKeys.runs,
+		queryFn: () => unwrap(commands.runsList()),
+		refetchInterval: (q) =>
+			live && q.state.data?.some((r) => r.id === live && !ENDED.includes(r.state))
+				? LIVE_MS
+				: false,
+	});
 }
 
 export function useKillSwitch() {
@@ -53,8 +67,9 @@ export function useRunDiff(run: string) {
 }
 
 /** The event tail, oldest first. Each page asks for the next one with the last id. */
-export function useRunLog(run: string) {
+export function useRunLog(run: string, live = false) {
 	const q = useInfiniteQuery({
+		refetchInterval: live ? LIVE_MS : false,
 		queryKey: factoryKeys.log(run),
 		initialPageParam: 0,
 		queryFn: ({ pageParam }) => unwrap(commands.runLogPage(run, pageParam, PAGE)),
@@ -200,6 +215,35 @@ export function useMachineSpend(days: number) {
 		if (!fetching) setPartial(null);
 	}, [fetching]);
 	return { ...query, partial: fetching ? partial : null };
+}
+
+/**
+ * The spend of every AI tool on this computer by UTC day, for the last `days` days: `today`, the
+ * month so far and `series` (oldest first, a day with no row is 0). The last result stays while a
+ * new read runs, so an amount never drops and counts up again. `ready` is false until a first read.
+ */
+export function useDailySpend(days: number) {
+	const spend = useMachineSpend(Math.max(days, 31));
+	const scanned = spend.data ?? spend.partial;
+	const byDay = new Map<string, number>();
+	for (const r of scanned?.rows ?? []) byDay.set(r.day, (byDay.get(r.day) ?? 0) + (r.costUsd ?? 0));
+	const today = new Date().toISOString().slice(0, 10);
+	const month = [...byDay]
+		.filter(([d]) => d.startsWith(today.slice(0, 7)))
+		.reduce((sum, [, usd]) => sum + usd, 0);
+	const series = Array.from({ length: days }, (_, i) => {
+		const d = new Date(`${today}T00:00:00Z`);
+		d.setUTCDate(d.getUTCDate() - (days - 1 - i));
+		const key = d.toISOString().slice(0, 10);
+		return { day: key, usd: byDay.get(key) ?? 0 };
+	});
+	return {
+		ready: scanned != null,
+		today: byDay.get(today) ?? 0,
+		month,
+		series,
+		monthBudget: spend.data?.budgets.find((b) => b.runner === "*")?.usd ?? null,
+	};
 }
 
 /** A stop and a budget write read the machine again, also when they fail. */

@@ -103,7 +103,7 @@ const Failure = ({ error }: { error: string | null }) =>
 		</p>
 	) : null;
 
-function QuestionRow({ item }: { item: QuestionItem }) {
+export function QuestionRow({ item }: { item: QuestionItem }) {
 	const act = useInboxActions();
 	const { error, run: guard } = useGuard();
 	const q = item.question;
@@ -163,7 +163,7 @@ function FoldedCard({ spec, ...props }: ComponentProps<typeof QuestionCard> & { 
 	);
 }
 
-function ApprovalRow({ approval: a }: { approval: ApprovalItem }) {
+export function ApprovalRow({ approval: a }: { approval: ApprovalItem }) {
 	const act = useInboxActions();
 	const { error, run } = useGuard();
 	return (

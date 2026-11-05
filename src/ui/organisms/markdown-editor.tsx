@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { CodeEditor } from "../molecules/code-editor";
+import { SideToggles, useSides } from "../molecules/pane-toggle";
 import { EditorFrame, type SaveState } from "./editor-frame";
 import { MarkdownView } from "./markdown-view";
 
@@ -38,11 +40,17 @@ export function MarkdownEditor({
 	labels: Labels;
 	saveLabel: string;
 }) {
+	const { sides, toggle } = useSides(`markdown:${refId}`);
 	return (
 		<EditorFrame
 			title={title}
 			refId={refId}
-			actions={actions}
+			actions={
+				<>
+					<SideToggles sides={sides} toggle={toggle} />
+					{actions}
+				</>
+			}
 			primary={{ label: saveLabel, onClick: onSave, disabled: !canSave }}
 			save={save}
 			error={error ? { message: error } : null}
@@ -50,11 +58,18 @@ export function MarkdownEditor({
 			onKeepMine={onKeepMine}
 			labels={labels}
 		>
-			<div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-1 gap-3">
-				<CodeEditor label={labels.text} value={value} onChange={onChange} />
-				<div className="min-h-0 overflow-auto">
-					<MarkdownView source={value} label={labels.preview} />
-				</div>
+			<div
+				className={cn(
+					"grid min-h-0 flex-1 grid-rows-1 gap-3",
+					sides.editor && sides.preview ? "grid-cols-2" : "grid-cols-1",
+				)}
+			>
+				{sides.editor ? <CodeEditor label={labels.text} value={value} onChange={onChange} /> : null}
+				{sides.preview ? (
+					<div className="min-h-0 overflow-auto">
+						<MarkdownView source={value} label={labels.preview} />
+					</div>
+				) : null}
 			</div>
 		</EditorFrame>
 	);

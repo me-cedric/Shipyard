@@ -19,7 +19,7 @@ export function Switch({ label, iconOnly, className, ...props }: SwitchProps) {
 				)}
 				{...props}
 			>
-				<BaseSwitch.Thumb className="block size-3 translate-x-px rounded-full bg-n-12 transition-transform duration-(--duration-fast) data-[checked]:translate-x-[13px]data-[checked]:bg-accent-fg" />
+				<BaseSwitch.Thumb className="block size-3 translate-x-px rounded-full bg-n-12 transition-transform duration-(--duration-fast) data-[checked]:translate-x-[13px] data-[checked]:bg-accent-fg" />
 			</BaseSwitch.Root>
 			{iconOnly ? null : label}
 		</label>

@@ -1,10 +1,14 @@
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { format, useI18n } from "@/lib/i18n";
 import { isTauri } from "@/lib/ipc";
+import { IconButton } from "@/ui/atoms/icon-button";
+import { DocumentTextIcon } from "@/ui/icons";
+import { Dialog } from "@/ui/organisms/dialog";
 
 /** The progress event of the backend: the last output lines of a running check or scanner. */
 const PROGRESS_EVENT = "quality-progress";
-const MAX_LINES = 6;
+const MAX_LINES = 200;
 
 type Live = { startedAt: number; lines: string[] };
 
@@ -66,16 +70,27 @@ export function Elapsed({ since }: { since: number }) {
 	);
 }
 
-/** The timer and the last output lines of a running card. */
-export function RunLive({ run }: { run: Live }) {
+/** One fixed row: "Running · mm:ss", the last output line, and a button for the full output. */
+export function RunLive({ run, name }: { run: Live; name: string }) {
+	const { t } = useI18n();
+	const [open, setOpen] = useState(false);
+	const label = format(t.forge.quality.outputOf, { name });
 	return (
-		<>
-			<Elapsed since={run.startedAt} />
-			{run.lines.length > 0 ? (
-				<pre className="max-h-24 overflow-auto rounded-md bg-n-3 px-2 py-1 font-mono text-12 text-n-11">
+		<div className="flex h-row items-center gap-2">
+			<span className="shrink-0 font-mono text-12 text-n-11">
+				{t.forge.quality.running} · <Elapsed since={run.startedAt} />
+			</span>
+			<span className="min-w-0 flex-1 truncate font-mono text-12 text-n-11">
+				{run.lines.at(-1) ?? ""}
+			</span>
+			<IconButton label={label} onClick={() => setOpen(true)}>
+				<DocumentTextIcon size={16} />
+			</IconButton>
+			<Dialog open={open} onOpenChange={setOpen} title={label} wide>
+				<pre className="max-h-96 overflow-auto rounded-md bg-n-3 px-2 py-1 font-mono text-12 text-n-12">
 					{run.lines.join("\n")}
 				</pre>
-			) : null}
-		</>
+			</Dialog>
+		</div>
 	);
 }

@@ -238,8 +238,10 @@ describe("assistant panel: modes and failures", () => {
 		expect(await log().findByRole("status")).toHaveTextContent("Waiting: Bash(pnpm test)");
 		const changed = within(await screen.findByRole("region", { name: "Changed files" }));
 		await user.click(changed.getByText("src/hello.ts"));
-		const diff = within(changed.getByRole("region", { name: "Diff of src/hello.ts" }));
-		expect(diff.getByText("export const bye = () => 'bye';")).toBeInTheDocument();
+		// The code is coloured by file type, so it sits in several spans.
+		expect(changed.getByRole("region", { name: "Diff of src/hello.ts" })).toHaveTextContent(
+			"export const bye = () => 'bye';",
+		);
 		await user.click(log().getByRole("button", { name: "Grant" }));
 		expect(await log().findByText("I ran pnpm test. All tests pass.")).toBeInTheDocument();
 		expect(log().queryByRole("button", { name: "Grant" })).toBeNull();

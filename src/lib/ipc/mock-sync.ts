@@ -76,7 +76,7 @@ export const defaultAutomation = (): Automation_Serialize => ({
 	pickup: { label: "shipyard", statuses: [] },
 	concurrency: { global: 2 },
 	status_map: {},
-	writes: { push: false, pull_request: false, tracker_transition: false, tracker_comment: false },
+	writes: { push: true, pull_request: true, tracker_transition: true, tracker_comment: true },
 });
 
 export const seedSync = (): MockSync => ({

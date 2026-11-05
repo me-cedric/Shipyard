@@ -123,7 +123,7 @@ export function Sessions() {
 			}
 		>
 			{rows.length === 0 && !sessions.isPending ? (
-				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 [&>*]:shrink-0">
 					<EmptyState
 						title={t.empty.sessions}
 						action={{
@@ -135,7 +135,7 @@ export function Sessions() {
 					<OrcaSessions />
 				</div>
 			) : (
-				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
+				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4 [&>*]:shrink-0">
 					<StatStrip
 						items={[
 							{

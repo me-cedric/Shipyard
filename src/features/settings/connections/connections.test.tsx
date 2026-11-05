@@ -56,7 +56,7 @@ describe("Settings / Connections", () => {
 			within(main)
 				.getAllByRole("heading", { level: 2 })
 				.map((h) => h.textContent),
-		).toEqual(["Runners (5)", "MCP servers (0)", "Outside agents", "Certificates"]);
+		).toEqual(["AI tools (5)", "MCP servers (0)", "Outside agents", "Certificates"]);
 		expect(within(main).getByText("Advanced").closest("details")).not.toHaveAttribute("open");
 	});
 

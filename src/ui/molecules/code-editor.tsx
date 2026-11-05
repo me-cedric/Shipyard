@@ -1,15 +1,12 @@
-import { type ReactNode, useRef, useState } from "react";
+import { Fragment, type ReactNode, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { languageFor, type Token } from "./syntax";
+
+export { gherkin, type Token } from "./syntax";
 
 const LINE = "1.25rem";
 
-/** One coloured piece of a line. `null` is plain text. */
-export type Token = [
-	text: string,
-	tone: "keyword" | "step" | "tag" | "comment" | "string" | "ref" | null,
-];
-
-const TONE: Record<NonNullable<Token[1]>, string> = {
+export const TONE: Record<NonNullable<Token[1]>, string> = {
 	keyword: "font-semibold text-accent-text",
 	step: "text-info-text",
 	tag: "text-warning-text",
@@ -18,30 +15,29 @@ const TONE: Record<NonNullable<Token[1]>, string> = {
 	ref: "text-accent-text underline decoration-dotted",
 };
 
-const KEYWORD =
-	/^(\s*)(Feature|Background|Scenario Outline|Scenario Template|Scenario|Example|Examples|Rule)(:)/;
-const STEP = /^(\s*)(Given|When|Then|And|But|\*)(\s)/;
-const INLINE = /("[^"]*"|<[^>]+>|\b[a-z]+:[\w-]+(?:#[\w-]+)?|\|)/g;
+/** The pieces of one line, each in the colour of its tone. */
+export function Tokens({ tokens }: { tokens: Token[] }) {
+	return (
+		<>
+			{tokens.map(([text, tone], j) =>
+				tone ? (
+					// biome-ignore lint/suspicious/noArrayIndexKey: the pieces never reorder
+					<span key={j} className={TONE[tone]}>
+						{text}
+					</span>
+				) : (
+					// biome-ignore lint/suspicious/noArrayIndexKey: the pieces never reorder
+					<Fragment key={j}>{text}</Fragment>
+				),
+			)}
+		</>
+	);
+}
 
-/** Splits one Gherkin line into coloured pieces: keywords, steps, tags, comments, strings and refs. */
-export function gherkin(line: string): Token[] {
-	if (/^\s*#/.test(line)) return [[line, "comment"]];
-	if (/^\s*@/.test(line)) return [[line, "tag"]];
-	const out: Token[] = [];
-	let rest = line;
-	const head = KEYWORD.exec(rest) ?? STEP.exec(rest);
-	if (head) {
-		out.push([head[1] ?? "", null], [`${head[2]}`, KEYWORD.test(rest) ? "keyword" : "step"]);
-		rest = rest.slice((head[1] ?? "").length + (head[2] ?? "").length);
-	}
-	for (const part of rest.split(INLINE)) {
-		if (!part) continue;
-		if (part === "|") out.push([part, "comment"]);
-		else if (part.startsWith('"') || part.startsWith("<")) out.push([part, "string"]);
-		else if (/^[a-z]+:[\w-]+/.test(part)) out.push([part, "ref"]);
-		else out.push([part, null]);
-	}
-	return out;
+/** A line of read-only code in the colours of the editor. `lang` is a file path or a fence language; an unknown one stays plain. */
+export function CodeLine({ text, lang }: { text: string; lang?: string }) {
+	const hl = languageFor(lang);
+	return hl ? <Tokens tokens={hl(text)} /> : text;
 }
 
 /**

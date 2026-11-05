@@ -24,12 +24,12 @@ stateDiagram-v2
   Active --> WaitingForAnswer: Ask
   Active --> Blocked: Block
   Active --> RetryQueued: Retry
-  Active --> Paused: BudgetStop
+  Active --> Paused: BudgetStop or max turns
   Active --> Failed: Fail
   WaitingForAnswer --> Active: Answered, back to the return state
   Blocked --> Active: Unblock
   RetryQueued --> Active: RetryDue
-  Paused --> Active: Resume with budget left
+  Paused --> Active: Resume with budget left, more turns
   Active --> Cancelled: Cancel
   WaitingForAnswer --> Cancelled: Cancel
   Blocked --> Cancelled: Cancel

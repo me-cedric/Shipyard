@@ -12,8 +12,10 @@ import {
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import { useShell } from "@/lib/shell";
+import { type NoticeTarget, showAnchor } from "./targets";
 
 export * from "./sources";
+export * from "./targets";
 
 /** The source of an event, from the first part of its id. An id with another prefix has no source. */
 const SOURCES: Record<string, EventSource> = {
@@ -35,9 +37,6 @@ const QUIET: EventSource[] = ["run-ended", "pr-checks", "scan-failed", "review-d
 /** `needs-you` is the class that also goes to the system (spec `shell`, REQ-008). */
 export type NoticeKind = "info" | "error" | "needs-you";
 
-/** Where a notice leads: a page or a ref (it opens in the inspector). */
-export type NoticeTarget = { route: string } | { ref: string };
-
 /** One button of a notice: Retry, Open, Download. */
 export type NoticeAction = { label: string; run: () => void };
 
@@ -52,6 +51,8 @@ export type Notice = {
 	/** The centre opens it when the person clicks the row. */
 	target?: NoticeTarget;
 	action?: NoticeAction;
+	/** More buttons: Approve and Refuse of an approval, Answer of a question. */
+	actions?: NoticeAction[];
 	time: number;
 	read: boolean;
 };
@@ -68,12 +69,22 @@ type Ctx = {
 	push: (n: NoticeInput) => Promise<boolean>;
 	markRead: () => void;
 	clear: () => void;
+	/** Dismisses a toast. */
 	dismiss: (id: string) => void;
+	/** Removes one entry from the centre. */
+	remove: (id: string) => void;
+	/**
+	 * Removes each entry that asks for an action (`approval:`, `question:`, `run:`) when `live` no
+	 * longer holds its id. Only entries older than `since` count: a newer one may not be in the read yet.
+	 */
+	resolve: (live: Set<string>, since: number) => void;
 };
+
+const PENDING = ["approval:", "question:", "run:"];
 
 export type NoticeInput = Pick<
 	Notice,
-	"id" | "kind" | "title" | "body" | "detail" | "target" | "action"
+	"id" | "kind" | "title" | "body" | "detail" | "target" | "action" | "actions"
 >;
 
 const Context = createContext<Ctx | null>(null);
@@ -91,9 +102,22 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 	const [toasts, setToasts] = useState<Notice[]>([]);
 	// Not state: an update function can run twice, and an id seen must never come back.
 	const seen = useRef(new Set<string>());
+	const itemsRef = useRef<Notice[]>([]);
+	itemsRef.current = items;
 
 	const push = useCallback(async (n: NoticeInput) => {
-		if (seen.current.has(n.id)) return false;
+		if (seen.current.has(n.id)) {
+			// A changed text under the same id replaces the entry and moves it to the top.
+			const old = itemsRef.current.find((i) => i.id === n.id);
+			const same = (a: NoticeInput, b: NoticeInput) =>
+				a.title === b.title && a.body === b.body && a.detail === b.detail;
+			if (!old || same(old, n)) return false;
+			setItems((list) => [
+				{ ...n, time: Date.now(), read: false },
+				...list.filter((i) => i.id !== n.id),
+			]);
+			return true;
+		}
 		seen.current.add(n.id);
 		// A project can mute its notices (project overrides). Read at each push, as the sources are.
 		const muted = await unwrap(commands.projectsActive())
@@ -138,6 +162,15 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 			markRead: () => setItems((list) => list.map((i) => (i.read ? i : { ...i, read: true }))),
 			clear: () => setItems([]),
 			dismiss: (id) => setToasts((list) => list.filter((t) => t.id !== id)),
+			remove: (id) => setItems((list) => list.filter((i) => i.id !== id)),
+			resolve: (live, since) => {
+				const gone = (i: Notice) =>
+					PENDING.some((p) => i.id.startsWith(p)) && i.time <= since && !live.has(i.id);
+				// An id that left may come back (a run that needs you again): let it show once more.
+				for (const i of itemsRef.current) if (gone(i)) seen.current.delete(i.id);
+				setItems((list) => (list.some(gone) ? list.filter((i) => !gone(i)) : list));
+				setToasts((list) => (list.some(gone) ? list.filter((i) => !gone(i)) : list));
+			},
 		}),
 		[items, toasts, push],
 	);
@@ -159,6 +192,7 @@ export function useOpenNotice() {
 			if (!n.target) return;
 			if ("route" in n.target) void router?.navigate({ to: n.target.route });
 			else openRef(n.target.ref);
+			showAnchor(n.target.anchor);
 		},
 		[router, openRef],
 	);

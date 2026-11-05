@@ -30,7 +30,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - REQ-001: The system SHALL move a run along the main path `Queued`, `Claimed`, `Planning`, `PlanReview`, `Working`, `SelfReview`, `PROpen`, `Merged`, `Done`. A run of a workflow with no pull request step SHALL move to `Done` when its last step ends. The system SHALL refuse and log any transition that this requirement and REQ-002 to REQ-005 do not list.
 - REQ-002: A run SHALL return to `Planning` when a person rejects the plan at `PlanReview`. A run SHALL return to `Working` from `SelfReview` for a fix round and from `ChangesRequested`, in the same worktree. A CI failure or a review comment on the pull request SHALL move a run from `PROpen` to `ChangesRequested`. A pull request that merges while the run fixes it (`ChangesRequested`, `Working` or `SelfReview` with an open pull request) SHALL stop the agents of the run and move it to `Merged`, then `Done`.
 - REQ-003: `PlanReview` SHALL be a human gate. A workflow SHALL be able to turn it off. Then a run SHALL move from `Planning` to `Working` without a person.
-- REQ-004: From any active state, a run SHALL be able to enter `WaitingForAnswer`, `Blocked`, `RetryQueued`, `Paused`, `Failed` or `Cancelled`. `Blocked` follows a missing connection or runner, a rejected approval, spent review rounds or a pull request closed without a merge (`add-delivery` REQ-026). The scenarios give `WaitingForAnswer`, `RetryQueued` and `Paused`. `Failed` follows exhausted retries or max turns. `Cancelled` follows a kill switch or a stop from `add-sync` REQ-004.
+- REQ-004: From any active state, a run SHALL be able to enter `WaitingForAnswer`, `Blocked`, `RetryQueued`, `Paused`, `Failed` or `Cancelled`. `Blocked` follows a missing connection or runner, a rejected approval, spent review rounds or a pull request closed without a merge (`add-delivery` REQ-026). `Failed` follows exhausted retries. `Paused` follows a spent budget or max turns. `Cancelled` follows a kill switch or a stop from `add-sync` REQ-004.
 - REQ-005: A run SHALL store its return state when it enters `WaitingForAnswer`, `Blocked`, `RetryQueued` or `Paused`. The run SHALL go back to that state when it leaves. `Failed`, `Cancelled` and `Done` SHALL be final. A run SHALL leave `Paused` when a person raises its budget and resumes it. A resume with no budget left SHALL keep the run in `Paused` (assumption `q:Q-053`). On the next tick after the cause is gone, or by a click of the person.
 - REQ-006: While a run is in `WaitingForAnswer`, the system SHALL pause the stall timer and the budget clock. Both SHALL restart when the run leaves that state.
 - REQ-007: The system SHALL delay retry number n of a step by min(10 s x 2^(n-1), 5 min). A step SHALL fail the run when its `retry` count is spent.
@@ -49,9 +49,9 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - REQ-020: `read_ticket` SHALL take a ref `wi:` and SHALL return the mirrored ticket. `read_ref` SHALL take any ref and SHALL return its resolved text. Both tools SHALL be read-only, and a ref that does not resolve SHALL return an error and not a guess.
 - REQ-021: The system SHALL keep an append-only run log. The log SHALL hold one event for each state change, tool call, runner event and write. The system MUST NOT edit or delete an event. The UI and the ticket summary SHALL read the same log.
 - REQ-022: The system SHALL enforce a budget in tokens and money per run, per day and per member. It SHALL raise one alert at 80 % of a budget. It SHALL move the run to `Paused` at 100 %. The workflow limit sets the run budget (5 USD in `feature`). No default per day or per member until an admin sets one.
-- REQ-023: The system SHALL stop a step that sends no event for the stall timeout. It SHALL treat that step as a failed step. The system SHALL stop a run at its max turns and SHALL move it to `Failed`.
+- REQ-023: The system SHALL stop a step that sends no event for the stall timeout. It SHALL treat that step as a failed step. When the workflow sets `max_turns`, the system SHALL stop a run at its max turns and SHALL move it to `Paused`. A resume SHALL give the run one more set of max turns.
 - REQ-024: The system SHALL offer a kill switch per run and one global kill switch. The run switch SHALL move the run to `Cancelled`. The global switch SHALL cancel every active run on this machine and stop pickup until a person turns it off.
-- REQ-025: The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pull_request`, `tracker_transition` and `tracker_comment`. All four SHALL be off by default, and a project admin SHALL turn each one on in Settings / Project, group Automation. That group SHALL be the one editor of `.shipyard/automation.yaml`. All off. Each write waits for one click in Home / Inbox. An admin turns each one on per project.
+- REQ-025: The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pull_request`, `tracker_transition` and `tracker_comment`. All four SHALL be on by default, and a project admin SHALL turn each one off in Settings / Project, group Automation. That group SHALL be the one editor of `.shipyard/automation.yaml`. All on. A force push and a merge still wait for a person. An admin turns a switch off per project, and each write of that switch then waits for one click in Home / Inbox.
 - REQ-026: A write without its switch SHALL become an approval in Home / Inbox that names the exact write. One click SHALL send the write, and a rejection SHALL drop it and move the run to `Blocked`. A push with force with lease SHALL always wait for approval, also when `push` is on (`add-delivery` REQ-015).
 - REQ-027: Factory / Runs SHALL show six lanes, each with a count. The view SHALL have one primary action. Each run SHALL sit in the lane that REQ-038 gives.
 - REQ-028: The run view SHALL show the workflow DAG with the live state of each step. It SHALL also show the event tail, the diff of the worktree and the cost. It SHALL offer the kill switch of the run.
@@ -61,7 +61,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - REQ-032: Factory / Usage SHALL show tokens and money per run, per day and per member against their budgets. It SHALL let an admin set a budget.
 - REQ-033: Each Factory view SHALL follow the interface rules of the constitution. It SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. It SHALL have one primary action, a keyboard path and a focus ring. It SHALL have assistive labels, enough contrast and reduced motion. It SHALL show French and English text.
 - REQ-034: The system SHALL expose each run as `run:<ulid>` with its steps as `run:<ulid>/<step-id>`, and each workflow as `wf:<id>`. It SHALL expose the run state to `work` and `refs`.
-- REQ-035: A workflow SHALL hold a `limits` block with `max_turns`, `budget_usd` and `stall_s`. The block SHALL set the max turns, the budget in USD and the stall timeout of each run. The system SHALL reject a limit that is not a positive number.
+- REQ-035: A workflow SHALL hold a `limits` block with `budget_usd`, `stall_s` and an optional `max_turns`. The block SHALL set the budget in USD, the stall timeout and, when present, the max turns of each run. With no `max_turns`, the number of turns SHALL have no limit. The system SHALL reject a limit that is not a positive number.
 - REQ-036: After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL follow `add-delivery` REQ-001 to REQ-004. `max_rounds` SHALL NOT exceed 2.
 - REQ-037: The system SHALL serve the agent tools over two transports, stdio and HTTP. Both transports SHALL offer the same eight tools with the same inputs. The HTTP transport SHALL accept only calls from this machine (assumption `q:Q-053`): it SHALL listen on the loopback address, SHALL check the Host and Origin headers, and SHALL need the bearer token of a step. The token SHALL name the run and the step, and an input SHALL NOT name another run. The agent SHALL get the token in its MCP config file and never in an argument.
 - REQ-038: The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The lane Working SHALL hold `Planning`, `Working`, `SelfReview` and `ChangesRequested`. The lane Needs you SHALL hold `PlanReview`, `WaitingForAnswer`, `Blocked`, `Paused` and `Failed`. The lane Ready to merge SHALL hold a `PROpen` run with passing CI, no change request and no draft. The lane In review SHALL hold each other `PROpen` run. The lane Done SHALL hold `Merged`, `Done` and `Cancelled`.
@@ -111,7 +111,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - [x] A workflow `limits` block sets max turns, budget and stall timeout, and a bad value is rejected. Test: `crates/shipyard-core/tests/workflow.rs`, `crates/shipyard-engine/tests/engine.rs`.
 - [x] `SelfReview` uses a fresh reviewer, allows two fix rounds at most, and moves to `Blocked` when they are spent. Test: `crates/shipyard-engine/tests/review.rs`.
 - [x] The agent tools answer on stdio and on HTTP, and HTTP accepts only this machine. Test: `crates/shipyard-mcp/tests/transport.rs`.
-- [x] A run with no event for the stall timeout is stopped, and a run at max turns moves to `Failed`. Test: `crates/shipyard-engine/tests/engine.rs`.
+- [x] A run with no event for the stall timeout is stopped, and a run at max turns moves to `Paused`. Test: `crates/shipyard-engine/tests/engine.rs`.
 - [x] The kill switch of a run cancels it, and the global kill switch cancels every active run and stops pickup. Test: `crates/shipyard-engine/tests/engine.rs`, `e2e/factory.spec.ts`.
 - [x] After a restart the runs, the approval queue, the open questions and the kill switch are back, running steps start again, and no write that went out is sent twice. Test: `crates/shipyard-engine/tests/restart.rs`.
 - [x] With all four write switches off, each write appears in the Inbox as an approval, and one click sends it. Test: `crates/shipyard-engine/tests/approvals.rs`.
@@ -145,7 +145,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - Q-025 How does a run leave Blocked?: On the next tick after the cause is gone, or by a click of the person.
 - Q-024 Which runners ship in the first release?: Claude Code and Codex. The others follow in later changes.
 - Q-023 What are the default budgets?: The workflow limit sets the run budget (5 USD in `feature`). No default per day or per member until an admin sets one.
-- Q-002 What is the default for automation writes?: All off. Each write waits for one click in Home / Inbox. An admin turns each one on per project.
+- Q-002 What is the default for automation writes?: All on. A force push and a merge still wait for a person. An admin turns a switch off per project, and each write of that switch then waits for one click in Home / Inbox.
 
 ## Requirements
 
@@ -203,7 +203,7 @@ A run SHALL return to `Planning` when a person rejects the plan at `PlanReview`.
 
 ### Requirement: REQ-004 Side states
 
-From any active state, a run SHALL be able to enter `WaitingForAnswer`, `Blocked`, `RetryQueued`, `Paused`, `Failed` or `Cancelled`. `Blocked` follows a missing connection or runner, a rejected approval, spent review rounds or a pull request closed without a merge (`add-delivery` REQ-026). The scenarios give `WaitingForAnswer`, `RetryQueued` and `Paused`. `Failed` follows exhausted retries or max turns. `Cancelled` follows a kill switch or a stop from `add-sync` REQ-004.
+From any active state, a run SHALL be able to enter `WaitingForAnswer`, `Blocked`, `RetryQueued`, `Paused`, `Failed` or `Cancelled`. `Blocked` follows a missing connection or runner, a rejected approval, spent review rounds or a pull request closed without a merge (`add-delivery` REQ-026). `Failed` follows exhausted retries. `Paused` follows a spent budget or max turns. `Cancelled` follows a kill switch or a stop from `add-sync` REQ-004.
 
 #### Scenario: Question and budget
 - GIVEN a run in `Working`
@@ -531,7 +531,7 @@ The system SHALL enforce a budget in tokens and money per run, per day and per m
 
 ### Requirement: REQ-023 Stall timeout and max turns
 
-The system SHALL stop a step that sends no event for the stall timeout. It SHALL treat that step as a failed step. The system SHALL stop a run at its max turns and SHALL move it to `Failed`.
+The system SHALL stop a step that sends no event for the stall timeout. It SHALL treat that step as a failed step. When the workflow sets `max_turns`, the system SHALL stop a run at its max turns and SHALL move it to `Paused`. A resume SHALL give the run one more set of max turns.
 
 #### Scenario: Stall
 - GIVEN a step with `stall_s` 300
@@ -541,7 +541,7 @@ The system SHALL stop a step that sends no event for the stall timeout. It SHALL
 #### Scenario: Max turns
 - GIVEN a run with `max_turns` 40
 - WHEN the agent reaches turn 40
-- THEN the run moves to `Failed` with the reason max turns
+- THEN the run moves to `Paused` with the reason max turns, and a resume gives it 40 more turns
 
 ### Requirement: REQ-024 Kill switches
 
@@ -559,17 +559,17 @@ The system SHALL offer a kill switch per run and one global kill switch. The run
 
 ### Requirement: REQ-025 Write switches
 
-The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pull_request`, `tracker_transition` and `tracker_comment`. All four SHALL be off by default, and a project admin SHALL turn each one on in Settings / Project, group Automation. That group SHALL be the one editor of `.shipyard/automation.yaml`. All off. Each write waits for one click in Home / Inbox. An admin turns each one on per project.
+The system SHALL keep four switches in `.shipyard/automation.yaml`: `push`, `pull_request`, `tracker_transition` and `tracker_comment`. All four SHALL be on by default, and a project admin SHALL turn each one off in Settings / Project, group Automation. That group SHALL be the one editor of `.shipyard/automation.yaml`. All on. A force push and a merge still wait for a person. An admin turns a switch off per project, and each write of that switch then waits for one click in Home / Inbox.
 
-#### Scenario: Default off
+#### Scenario: Default on
 - GIVEN a new project
 - WHEN a person reads the switches
-- THEN all four are off
+- THEN all four are on
 
-#### Scenario: Admin turns on
+#### Scenario: Admin turns off
 - GIVEN a project admin in Settings
-- WHEN they turn on `push`
-- THEN the next push of a run goes out with no approval
+- WHEN they turn off `push`
+- THEN the next push of a run waits as an approval in Home / Inbox
 
 #### Scenario: Force with lease
 - GIVEN `push` on and a push that rewrites history
@@ -699,12 +699,12 @@ The system SHALL expose each run as `run:<ulid>` with its steps as `run:<ulid>/<
 
 ### Requirement: REQ-035 Workflow limits
 
-A workflow SHALL hold a `limits` block with `max_turns`, `budget_usd` and `stall_s`. The block SHALL set the max turns, the budget in USD and the stall timeout of each run. The system SHALL reject a limit that is not a positive number.
+A workflow SHALL hold a `limits` block with `budget_usd`, `stall_s` and an optional `max_turns`. The block SHALL set the budget in USD, the stall timeout and, when present, the max turns of each run. With no `max_turns`, the number of turns SHALL have no limit. The system SHALL reject a limit that is not a positive number.
 
 #### Scenario: Limits apply
 - GIVEN a workflow with `limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }`
 - WHEN a run of that workflow starts
-- THEN the run stops at turn 40, pauses at 5 USD and stalls after 300 s with no event
+- THEN the run pauses at turn 40, pauses at 5 USD and stalls after 300 s with no event
 
 #### Scenario: Bad limit
 - GIVEN a workflow with `budget_usd: -1`

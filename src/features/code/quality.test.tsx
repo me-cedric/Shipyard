@@ -54,7 +54,7 @@ describe("Code / Quality", () => {
 		expect(within(checks).getByText("pnpm run lint")).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Scanners (4)" })).toBeInTheDocument();
 		expect(within(checks).getByRole("img", { name: "Passed" })).toBeInTheDocument();
-		expect(within(checks).getByText(/5200 ms/)).toBeInTheDocument();
+		expect(within(checks).getByText(/5.2 s/)).toBeInTheDocument();
 		expect(screen.getAllByText("Not installed")).toHaveLength(3);
 		// A scanner that the app does not ship has no run action.
 		expect(screen.queryByRole("button", { name: "Run dependencies" })).toBeNull();
@@ -75,8 +75,9 @@ describe("Code / Quality", () => {
 		await user.click(screen.getByRole("button", { name: "Run Verify all docs?" }));
 		const checks = await group("Checks");
 		await waitFor(() =>
-			expect(within(checks).getAllByRole("img", { name: "Failed" })).toHaveLength(1),
+			expect(within(checks).getAllByRole("img", { name: "Warnings" })).toHaveLength(1),
 		);
+		expect(within(checks).queryByRole("img", { name: "Failed" })).toBeNull();
 		await user.click(
 			within(checks).getAllByRole("button", { name: "Findings" }).at(-1) as HTMLElement,
 		);
@@ -101,7 +102,7 @@ describe("Code / Quality", () => {
 		await user.click(await screen.findByRole("button", { name: "Run Lint" }));
 		expect(screen.getAllByRole("img", { name: "Passed" })).toHaveLength(1);
 		await user.click(screen.getByRole("button", { name: "Run Lint (pnpm run lint)?" }));
-		await waitFor(() => expect(screen.getByText(/1800 ms/)).toBeInTheDocument());
+		await waitFor(() => expect(screen.getByText(/1.8 s/)).toBeInTheDocument());
 		expect(screen.getAllByRole("img", { name: "Passed" })).toHaveLength(2);
 	});
 
@@ -221,6 +222,7 @@ describe("Code / Quality", () => {
 		const checks = await group("Checks");
 		expect(await within(checks).findByRole("img", { name: "Running" })).toBeInTheDocument();
 		expect(within(checks).getByText(/^00:0\d$/)).toBeInTheDocument();
+		expect(within(checks).getByRole("button", { name: "Output of Lint" })).toBeInTheDocument();
 		expect(within(checks).getByRole("button", { name: "Run Lint" })).toBeDisabled();
 		end(null);
 		await waitFor(() => expect(within(checks).queryByRole("img", { name: "Running" })).toBeNull());

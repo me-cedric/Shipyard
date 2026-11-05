@@ -531,8 +531,9 @@ fn a_marker_counts_only_in_a_comment_that_the_system_posted() {
 fn defaults_and_the_interval_floor() {
     let a = Automation::default();
     assert_eq!((a.interval, a.concurrency.global), (60, 2));
-    assert!(!a.writes.push && !a.writes.pull_request);
-    assert!(!a.writes.tracker_transition && !a.writes.tracker_comment);
+    // All four on (`q:Q-002`, revised); `Writes::default()` stays all off.
+    assert_eq!(a.writes, Writes::all_on());
+    assert!(!Writes::default().push);
     assert!(a.validate().is_empty());
     let mut bad = Automation {
         interval: 29,

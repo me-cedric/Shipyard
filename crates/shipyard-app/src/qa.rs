@@ -175,6 +175,13 @@ pub fn checks(root: &Path) -> Vec<Check> {
     all
 }
 
+/// A report passes when no finding is high or critical. Medium and low findings are warnings.
+pub fn passes(findings: &[ScanFinding]) -> bool {
+    findings
+        .iter()
+        .all(|f| !matches!(f.severity, ScanSeverity::High | ScanSeverity::Critical))
+}
+
 /// The docs of the branch that did not follow the code, against the base branch. One finding for
 /// each stale doc and its code files. An acknowledged warning is not stale. It reads and writes
 /// nothing (REQ-011).
@@ -459,7 +466,10 @@ fn markdown(root: &Path, rel: &str, skip: &[String], out: &mut Vec<String>) {
         let name = e.file_name().to_string_lossy().into_owned();
         let child = format!("{rel}/{name}");
         match e.file_type() {
-            Ok(t) if t.is_dir() && name != "node_modules" && name != ".git" => {
+            Ok(t)
+                if t.is_dir()
+                    && !matches!(name.as_str(), "node_modules" | ".git" | ".shipyard") =>
+            {
                 if !skip.contains(&child) {
                     markdown(root, &child, skip, out);
                 }
@@ -771,7 +781,10 @@ mod tests {
         );
         assert_eq!(git_status(&p), before, "the check writes nothing");
         let r = crate::code::check_run(&s, DOCS_FRESH, true).unwrap();
-        assert!(!r.passed);
+        assert!(
+            r.passed && !r.findings.is_empty(),
+            "medium findings are warnings"
+        );
         assert!(
             crate::code::quality_view(&s)
                 .unwrap()
@@ -952,7 +965,9 @@ mod tests {
         );
         assert!(crate::code::check_run(&s, "verify all docs", false).is_err());
         let r = crate::code::check_run(&s, VERIFY_DOCS, true).unwrap();
+        // The empty change fails strict validation (high); the link alone is a warning.
         assert!(!r.passed);
+        assert!(passes(&[link[0].clone()]));
         assert!(
             crate::code::quality_view(&s)
                 .unwrap()
@@ -960,5 +975,18 @@ mod tests {
                 .iter()
                 .any(|c| c.name == VERIFY_DOCS && c.last.is_some())
         );
+    }
+
+    #[test]
+    fn only_a_high_or_critical_finding_fails_a_report() {
+        let f = |severity| ScanFinding {
+            severity,
+            path: String::new(),
+            line: None,
+            message: String::new(),
+        };
+        assert!(passes(&[f(ScanSeverity::Low), f(ScanSeverity::Medium)]));
+        assert!(!passes(&[f(ScanSeverity::Medium), f(ScanSeverity::High)]));
+        assert!(!passes(&[f(ScanSeverity::Critical)]));
     }
 }

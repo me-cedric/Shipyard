@@ -505,19 +505,20 @@ mod tests {
     #[test]
     fn a_comment_needs_the_tracker_comment_switch() {
         let dir = tempfile::tempdir().unwrap();
+        // On by default (`q:Q-002`, revised).
+        assert!(comment_switch(dir.path()).is_ok());
+        let file = dir.path().join(".shipyard");
+        std::fs::create_dir_all(&file).unwrap();
+        std::fs::write(
+            file.join("automation.yaml"),
+            "writes:\n  tracker_comment: false\n",
+        )
+        .unwrap();
         assert!(
             comment_switch(dir.path())
                 .unwrap_err()
                 .contains("tracker_comment")
         );
-        let file = dir.path().join(".shipyard");
-        std::fs::create_dir_all(&file).unwrap();
-        std::fs::write(
-            file.join("automation.yaml"),
-            "writes:\n  tracker_comment: true\n",
-        )
-        .unwrap();
-        assert!(comment_switch(dir.path()).is_ok());
     }
 
     #[test]

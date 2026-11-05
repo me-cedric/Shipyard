@@ -29,7 +29,8 @@ On the Shipyard repository, Run gave no feedback, and four items failed for caus
 - REQ-004: The scanners SHALL skip nested git worktrees, git submodules and git-ignored folders. The dependencies scanner SHALL read only the lock files that git tracks.
 - REQ-005: The secrets scanner SHALL NOT report a line that holds the marker `shipyard:allow-secret` or `gitleaks:allow`, or that follows a line with the marker. It SHALL NOT report a value that is a plain word.
 - REQ-006: Shipyard SHALL write YAML with the items of a list indented under their key, the style that Biome and Prettier keep.
-- REQ-007: Verify all docs SHALL skip the docs of git submodules.
+- REQ-007: Verify all docs SHALL skip the docs of git submodules and the files in `.shipyard/`.
+- REQ-008: A check or scanner report SHALL fail only for a non-zero exit, a finding of severity high or critical, or a scanner error. Medium and low findings SHALL keep the report passed and stay listed as warnings.
 
 ### Non-Goals
 
@@ -109,9 +110,23 @@ Shipyard SHALL write YAML with the items of a list indented under their key, the
 
 ### Requirement: REQ-007 Docs check scope
 
-Verify all docs SHALL skip the docs of git submodules.
+Verify all docs SHALL skip the docs of git submodules and the files in `.shipyard/`.
 
 #### Scenario: Submodule
 - GIVEN a submodule with a broken link in its docs
 - WHEN Verify all docs runs
 - THEN the link of the submodule is not reported
+
+#### Scenario: Saved report
+- GIVEN a saved report in `.shipyard/quality/` that holds a broken ref
+- WHEN Verify all docs runs
+- THEN the ref of the report is not reported
+
+### Requirement: REQ-008 Warnings
+
+A check or scanner report SHALL fail only for a non-zero exit, a finding of severity high or critical, or a scanner error. Medium and low findings SHALL keep the report passed and stay listed as warnings.
+
+#### Scenario: Medium finding
+- GIVEN Verify all docs finds one medium broken ref and no other problem
+- WHEN the check ends
+- THEN the report is passed and lists the finding as a warning

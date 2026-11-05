@@ -201,7 +201,7 @@ export function Usage() {
 			}
 		>
 			{rows.length === 0 && !usage.isPending ? (
-				<div className="flex flex-col gap-3 overflow-y-auto p-4">
+				<div className="flex flex-col gap-3 overflow-y-auto p-4 [&>*]:shrink-0">
 					<EmptyState
 						title={t.empty.budget}
 						action={{ label: f.setBudget, onClick: () => field.current?.focus() }}
@@ -209,7 +209,7 @@ export function Usage() {
 					<MachineUsage prices={prices} />
 				</div>
 			) : (
-				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4">
+				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4 [&>*]:shrink-0">
 					{usage.isPending ? (
 						<Loading rows={3} />
 					) : (

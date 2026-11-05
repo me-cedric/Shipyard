@@ -47,3 +47,15 @@ Feature: quality-runs
     Given a submodule with a broken link in its docs
     When Verify all docs runs
     Then the link of the submodule is not reported
+
+  @spec:quality-runs#REQ-007
+  Scenario: Docs check scope: Saved report
+    Given a saved report in `.shipyard/quality/` that holds a broken ref
+    When Verify all docs runs
+    Then the ref of the report is not reported
+
+  @spec:quality-runs#REQ-008
+  Scenario: Warnings: Medium finding
+    Given Verify all docs finds one medium broken ref and no other problem
+    When the check ends
+    Then the report is passed and lists the finding as a warning

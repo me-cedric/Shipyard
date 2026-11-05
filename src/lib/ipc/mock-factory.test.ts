@@ -401,7 +401,7 @@ describe("mock factory: workflows, roles and tiers", () => {
 		expect(file.text).toContain("id: feature");
 		expect(file.workflow?.steps.find((s) => s.id === "plan")?.gate).toBe("human");
 		expect(file.workflow?.steps.find((s) => s.id === "build")?.for_each).toBe("plan.tasks");
-		expect(file.workflow?.limits).toEqual({ max_turns: 40, budget_usd: 5, stall_s: 300 });
+		expect(file.workflow?.limits).toEqual({ max_turns: null, budget_usd: 5, stall_s: 300 });
 		await expect(unwrap(commands.workflowGet("nope"))).rejects.toMatchObject({
 			details: expect.stringContaining("no workflow `nope`"),
 		});

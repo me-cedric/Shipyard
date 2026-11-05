@@ -7,7 +7,9 @@ import {
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
+import { DOC_DIR } from "@/lib/knowledge";
 import { ShellProvider } from "@/lib/shell";
+import { useTabSelection } from "@/lib/shell/selection";
 import { renderApp } from "@/ui/test-utils";
 import { OpenActions } from "./item-facts";
 import { RefDetail } from "./ref-detail";
@@ -18,6 +20,8 @@ const detail = (refId: string) =>
 			<RefDetail refId={refId} onOpen={() => {}} />
 		</ShellProvider>,
 	);
+
+const Probe = () => <p>{useTabSelection(`knowledge:${DOC_DIR.documents}`)[0]}</p>;
 
 describe("the inspector of an item", () => {
 	beforeEach(() => unwrap(commands.projectsOpen("/mock/alpha", false)));
@@ -64,5 +68,28 @@ describe("the inspector of an item", () => {
 			expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
 			unmount();
 		}
+	});
+
+	it("opens a file outside the docs folders in the file viewer, not on a docs page", async () => {
+		const router = createRouter({
+			routeTree: createRootRoute({ component: () => <OpenActions refId="doc:src/app.ts" /> }),
+			history: createMemoryHistory(),
+		});
+		renderApp(<RouterProvider router={router} />);
+		await userEvent.click(await screen.findByRole("button", { name: "Open" }));
+		expect(await screen.findByRole("region", { name: "File src/app.ts" })).toBeInTheDocument();
+		expect(router.state.location.pathname).toBe("/");
+	});
+
+	it("selects a docs-folder file on its page before it opens that page", async () => {
+		const path = `${DOC_DIR.documents}/brief.md`;
+		const router = createRouter({
+			routeTree: createRootRoute({ component: () => <OpenActions refId={`doc:${path}`} /> }),
+			history: createMemoryHistory(),
+		});
+		renderApp(<RouterProvider router={router} />);
+		await userEvent.click(await screen.findByRole("button", { name: "Open" }));
+		renderApp(<Probe />);
+		expect(await screen.findByText(path)).toBeInTheDocument();
 	});
 });

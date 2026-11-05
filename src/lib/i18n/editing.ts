@@ -4,6 +4,7 @@ export const editingEn = {
 	field: { title: "Title", status: "Status", people: "People" },
 	adrStatus: { deprecated: "Deprecated", superseded: "Superseded" } as Record<string, string>,
 	preview: "Preview",
+	sides: { editor: "Editor", preview: "Preview" },
 	openFigma: "Open in Figma",
 	next: {
 		plan: "Write plan",
@@ -21,6 +22,7 @@ export const editingFr: typeof editingEn = {
 	field: { title: "Titre", status: "Statut", people: "Personnes" },
 	adrStatus: { deprecated: "Obsolète", superseded: "Remplacée" },
 	preview: "Aperçu",
+	sides: { editor: "Éditeur", preview: "Aperçu" },
 	openFigma: "Ouvrir dans Figma",
 	next: {
 		plan: "Écrire le plan",

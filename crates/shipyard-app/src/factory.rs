@@ -1070,7 +1070,12 @@ pub fn start(s: &AppState, key: &str) -> Res<String> {
         .ticket(&source, key)
         .map_err(err)?
         .ok_or_else(|| format!("{key} is not in the mirror: sync first"))?;
-    start_ticket(s, &a, ticket)
+    let unassigned = ticket.item.assignee.is_none();
+    let run = start_ticket(s, &a, ticket)?;
+    if unassigned {
+        crate::work::assign_me(s, key);
+    }
+    Ok(run)
 }
 
 /// Starts a run on a ticket. The ticket need not be in the mirror. Returns the run id.

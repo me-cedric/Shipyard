@@ -287,18 +287,40 @@ pub fn code_index(src: &dyn CodeSource, root: &Path) -> Res<()> {
     .map(|_| ())
 }
 
-/// The Index action for the app. A server that is off (its saved setting stays off) runs for this
-/// one call and stops after it, also on an error. The app stops it on quit too (`stop_all`).
+/// The program of the codebase-memory server when the person never added it.
+const CODE_COMMAND: &str = "codebase-memory-mcp";
+
+/// The Index action for the app. A server that is missing from the list is added (off). A server
+/// that is off (its saved setting stays off) runs for this one call and stops after it, also on
+/// an error. A server that runs is used and left running. The app stops it on quit too
+/// (`stop_all`). The program must be installed.
 pub fn code_index_run(proxy: &Proxy, root: &Path) -> Res<()> {
     let control = proxy.control();
-    let off = control
-        .list()
-        .into_iter()
-        .find(|r| r.id.contains(CODE_SERVER) && !r.enabled)
-        .map(|r| r.id);
-    let Some(id) = off else {
-        return code_index(proxy, root);
+    let find = || {
+        control
+            .list()
+            .into_iter()
+            .find(|r| r.id.contains(CODE_SERVER))
     };
+    let row = match find() {
+        Some(r) => r,
+        None => {
+            let input = shipyard_agents::mcp_control::CustomInput {
+                name: CODE_SERVER.into(),
+                command: CODE_COMMAND.into(),
+                ..Default::default()
+            };
+            control.add_custom(input).map_err(err)?;
+            find().ok_or("the codebase-memory server is not active")?
+        }
+    };
+    if let Some(m) = row.missing.first() {
+        return Err(format!("{} is not installed", m.command));
+    }
+    if row.enabled {
+        return code_index(proxy, root);
+    }
+    let id = row.id;
     let was_running = matches!(
         control.state(&id),
         shipyard_agents::mcp_control::State::Running
@@ -1568,5 +1590,24 @@ mod tests {
             .set_tool_filter(&id, ToolFilter::All)
             .unwrap();
         code_index_run(&proxy, dir.path()).unwrap();
+    }
+
+    #[test]
+    fn index_adds_a_server_that_is_missing_and_names_a_missing_program() {
+        use shipyard_agents::mcp_control::{McpConfig, McpControl};
+        let dir = tempfile::tempdir().unwrap();
+        let control = McpControl::new(
+            std::sync::Arc::new(shipyard_secrets::MemoryStore::default()),
+            McpConfig::default(),
+        )
+        .with_dirs(vec![dir.path().into()]);
+        let proxy = Proxy::new(std::sync::Arc::new(control));
+        let e = code_index_run(&proxy, dir.path()).unwrap_err();
+        assert!(e.contains("codebase-memory-mcp is not installed"), "{e}");
+        let rows = proxy.control().list();
+        assert!(
+            rows.iter()
+                .any(|r| r.id.contains(CODE_SERVER) && !r.enabled)
+        );
     }
 }

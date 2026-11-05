@@ -1,4 +1,11 @@
-import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import {
+	type KeyboardEvent,
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { IconButton } from "../atoms/icon-button";
@@ -31,11 +38,44 @@ function Pane({
 	const [at, setAt] = useState({ x: 0, y: 0 });
 	const drag = useRef<{ x: number; y: number } | null>(null);
 	const box = useRef<HTMLDivElement>(null);
-	const zoom = (f: number) => setScale((s) => zoomBy(s, f));
-	const reset = () => {
-		setScale(1);
-		setAt({ x: 0, y: 0 });
+	const picture = useRef<HTMLDivElement>(null);
+	// The frame fits the picture until the person zooms or pans: a diagram renders after the mount.
+	const touched = useRef(false);
+	const zoom = (f: number) => {
+		touched.current = true;
+		setScale((s) => zoomBy(s, f));
 	};
+	/** The scale that shows the whole picture in the frame, centred. */
+	const fitView = useCallback(() => {
+		const b = box.current;
+		const p = picture.current;
+		if (!(p?.offsetWidth && p.offsetHeight && b?.clientWidth && b.clientHeight)) {
+			setScale(1);
+			setAt({ x: 0, y: 0 });
+			return;
+		}
+		const s = zoomBy(1, Math.min(b.clientWidth / p.offsetWidth, b.clientHeight / p.offsetHeight));
+		setScale(s);
+		setAt({
+			x: (b.clientWidth - p.offsetWidth * s) / 2,
+			y: (b.clientHeight - p.offsetHeight * s) / 2,
+		});
+	}, []);
+	const reset = () => {
+		touched.current = false;
+		fitView();
+	};
+	useEffect(() => {
+		const b = box.current;
+		const p = picture.current;
+		if (!(b && p) || typeof ResizeObserver === "undefined") return;
+		const again = new ResizeObserver(() => {
+			if (!touched.current) fitView();
+		});
+		again.observe(b);
+		again.observe(p);
+		return () => again.disconnect();
+	}, [fitView]);
 	// React registers wheel as passive: Ctrl or Cmd plus wheel needs preventDefault to stop the page zoom.
 	useEffect(() => {
 		const el = box.current;
@@ -43,6 +83,7 @@ function Pane({
 		const onWheel = (e: WheelEvent) => {
 			if (!e.ctrlKey && !e.metaKey) return;
 			e.preventDefault();
+			touched.current = true;
 			setScale((s) => zoomBy(s, Math.exp(-e.deltaY * 0.01)));
 		};
 		el.addEventListener("wheel", onWheel, { passive: false });
@@ -57,8 +98,10 @@ function Pane({
 			ArrowDown: [0, -NUDGE],
 		};
 		const d = pan[e.key];
-		if (d) setAt((p) => ({ x: p.x + d[0], y: p.y + d[1] }));
-		else if (e.key === "+" || e.key === "=") zoom(STEP);
+		if (d) {
+			touched.current = true;
+			setAt((p) => ({ x: p.x + d[0], y: p.y + d[1] }));
+		} else if (e.key === "+" || e.key === "=") zoom(STEP);
 		else if (e.key === "-") zoom(1 / STEP);
 		else if (e.key === "0") reset();
 		else return;
@@ -74,6 +117,7 @@ function Pane({
 				onKeyDown={onKeyDown}
 				onPointerDown={(e) => {
 					if (e.button !== 0 || (e.target as HTMLElement).closest("button")) return;
+					touched.current = true;
 					drag.current = { x: e.clientX - at.x, y: e.clientY - at.y };
 					e.currentTarget.setPointerCapture(e.pointerId);
 				}}
@@ -90,6 +134,9 @@ function Pane({
 				className="h-full cursor-grab touch-none overflow-hidden rounded-md active:cursor-grabbing"
 			>
 				<div
+					ref={picture}
+					// The picture keeps its own size, so the fit can measure it.
+					className="w-max"
 					style={{
 						transform: `translate(${at.x}px, ${at.y}px) scale(${scale})`,
 						transformOrigin: "0 0",
@@ -139,7 +186,7 @@ export function ZoomFrame({
 				{children}
 			</Pane>
 			<Dialog open={full} onOpenChange={setFull} title={label} full>
-				<Pane label={label} className="h-[75vh]">
+				<Pane label={label} className="h-full">
 					{children}
 				</Pane>
 			</Dialog>

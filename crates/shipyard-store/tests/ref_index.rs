@@ -238,3 +238,20 @@ fn the_index_file_survives_a_reopen() {
         State::Resolved
     );
 }
+
+#[test]
+fn the_files_that_the_app_writes_are_not_scanned() {
+    let dir = fixture();
+    write(
+        dir.path(),
+        "docs/openspec/.shipyard/quality/check-x.yaml",
+        "tail: spec:gone#REQ-006\n",
+    );
+    let idx = synced(dir.path());
+    assert!(
+        idx.check()
+            .unwrap()
+            .iter()
+            .all(|b| !b.source.contains(".shipyard"))
+    );
+}

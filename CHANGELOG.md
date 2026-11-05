@@ -1,6 +1,13 @@
 # Changelog
 
 ## [0.1.0]
+- The run page shows the questions and approvals of the run on top, a live strip with the steps and the elapsed time, and its events as plain sentences; a click on a notification opens the exact page and section, each notification has its own Dismiss and a Details toggle for long text, and a notification that asks for an action goes away once the action is done.
+- A run has no turn limit unless its workflow sets `max_turns`; a run that reaches that limit pauses instead of failing, and Resume gives it one more set of turns; the run page says in one sentence why a run failed, paused or is blocked, with the one action that moves it on (Start again, Resume, Unblock); a Claude Code run counts one turn per model message and shows its tokens while it works.
+- New projects let agents move tickets, set labels, comment, push the run branch and open draft pull requests with no click; a force push and a merge still wait for you, and each switch can be turned off in Settings / Project.
+- Run on a ticket that has no assignee assigns it to you in the issue tracker.
+- Code / Branches keeps each branch name on one line beside its actions, and Merge and Delete stand out from Switch and Rebase; Code / Graph Index adds and starts the code graph server when it is missing or off, and leaves a running one running.
+- On Windows, an agent turn reuses the MCP server that the app keeps open, through a named pipe that only you can open, as on macOS and Linux.
+- Code / Quality: a check or scanner with only medium or low findings shows Warnings and counts as passed; only a failed command, a high or critical finding or a scanner error fails it; Verify all docs no longer reads the saved reports in `.shipyard/`.
 - Agents that use the Shipyard MCP server run the project's own checks (the gates of `.shipyard/project.yaml`, with a time limit up to one hour), list the stale docs, validate a spec change and run one scanner; long actions show that they run, a Stop asks once, a failed list shows its error instead of an empty page, and errors open the place that fixes them.
 - Code / Quality shows a running check or scanner with Running, the time that counts up and the last lines of its output, and keeps Run off until it ends; each card has an info button (what it looks for, why it matters, what to do when it fails) and each check has Open in terminal.
 - Home opens on Today: one page with what needs you (the Inbox, with its actions in place), your tickets by state with status and Start run, your agents with Stop, and what happened on your tickets and runs since your last visit. Inbox, My work and Activity are gone and their old addresses open Today; the pinned tiles moved to the top of Knowledge / Dashboards.

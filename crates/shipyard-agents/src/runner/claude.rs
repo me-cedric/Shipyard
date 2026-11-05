@@ -91,6 +91,10 @@ impl Runner for Claude {
 #[derive(Default)]
 struct ClaudeParser {
     session: bool,
+    /// The id of the last model message: one message comes as several `assistant` lines.
+    message: String,
+    /// Tokens already sent live, so the `result` totals add only the rest.
+    sent: [u64; 3],
 }
 
 impl ClaudeParser {
@@ -112,7 +116,33 @@ impl Parser for ClaudeParser {
         match s(&v, "type").as_str() {
             "system" => self.session(&v, &mut out),
             "assistant" => {
-                out.push(Event::Turn);
+                let id = v
+                    .pointer("/message/id")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+                if id.is_empty() || id != self.message {
+                    self.message = id.to_string();
+                    out.push(Event::Turn);
+                    // Live usage of this message: the count moves while the run works.
+                    if let Some(u) = v.pointer("/message/usage") {
+                        let now = [
+                            n(u, "input_tokens"),
+                            n(u, "output_tokens"),
+                            n(u, "cache_read_input_tokens") + n(u, "cache_creation_input_tokens"),
+                        ];
+                        if now.iter().any(|t| *t > 0) {
+                            for (sent, t) in self.sent.iter_mut().zip(now) {
+                                *sent += t;
+                            }
+                            out.push(Event::Usage {
+                                input_tokens: now[0],
+                                output_tokens: now[1],
+                                cached_tokens: now[2],
+                                cost_usd: None,
+                            });
+                        }
+                    }
+                }
                 for block in v
                     .pointer("/message/content")
                     .and_then(Value::as_array)
@@ -155,12 +185,16 @@ impl Parser for ClaudeParser {
                 self.session(&v, &mut out);
                 let usage = v.get("usage");
                 let count = |key: &str| usage.map_or(0, |u| n(u, key));
+                // The totals of the run, less what the messages sent live.
+                let [i, o, c] = self.sent;
+                self.sent = [0; 3];
                 out.push(Event::Usage {
-                    input_tokens: count("input_tokens"),
-                    output_tokens: count("output_tokens"),
+                    input_tokens: count("input_tokens").saturating_sub(i),
+                    output_tokens: count("output_tokens").saturating_sub(o),
                     // Two cache counters: what the run read cheaply.
-                    cached_tokens: count("cache_read_input_tokens")
-                        + count("cache_creation_input_tokens"),
+                    cached_tokens: (count("cache_read_input_tokens")
+                        + count("cache_creation_input_tokens"))
+                    .saturating_sub(c),
                     cost_usd: v.get("total_cost_usd").and_then(Value::as_f64),
                 });
                 let failed = v.get("is_error").and_then(Value::as_bool) == Some(true)

@@ -17,7 +17,7 @@ import { Button } from "@/ui/atoms/button";
 import { ShareIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { MenuButton } from "@/ui/molecules/menu-button";
-import { SplitPane } from "@/ui/molecules/split-pane";
+import { EditorPreview } from "@/ui/molecules/pane-toggle";
 import { BpmnViewer } from "@/ui/organisms/bpmn-viewer";
 import { drawioSvg, svgDataUri } from "@/ui/organisms/drawio";
 import { DrawioEditor } from "@/ui/organisms/drawio-editor";
@@ -158,19 +158,23 @@ function Diagram({ a }: { a: Artifact }) {
 					);
 				if (format === "mermaid")
 					return (
-						<div className="flex min-h-0 flex-1 gap-3">
-							<SplitPane id="design-diagrams-width" label={t.design.resize.editor} min={320}>
+						<EditorPreview
+							id="design-diagrams-width"
+							label={t.design.resize.editor}
+							editor={
 								<CodeEditor
 									label={t.design.diagram.text}
 									value={file.text}
 									errorLine={error?.line}
 									onChange={file.setText}
 								/>
-							</SplitPane>
-							<div className="h-full min-h-0 min-w-0 flex-1">
-								<MermaidView source={file.text} label={a.title} onError={onError} />
-							</div>
-						</div>
+							}
+							preview={
+								<div className="h-full min-h-0 min-w-0 flex-1">
+									<MermaidView source={file.text} label={a.title} onError={onError} />
+								</div>
+							}
+						/>
 					);
 				if (format === "bpmn")
 					return (
