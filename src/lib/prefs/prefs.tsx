@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import {
 	type Accent,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import { useActiveProject } from "@/lib/projects";
+import { resolveTheme, themeVars } from "@/lib/themes";
 
 export type { Accent, Contrast, Density, Role, Theme };
 export const ROLES = ["pm", "architect", "developer", "qa", "ba", "lead", "junior"] as const;
@@ -50,6 +52,7 @@ export type Prefs = Pick<
 	| "focusRing"
 	| "focusWidth"
 	| "tourSeen"
+	| "customTheme"
 >;
 
 /** Font stacks that are on the machine already. Nothing is fetched. */
@@ -100,7 +103,24 @@ const DEFAULTS: Prefs = {
 	focusWidth: 2,
 	// True until the file loads, so the tour never flashes for a person who saw it.
 	tourSeen: true,
+	customTheme: "",
 };
+
+const DARK = "(prefers-color-scheme: dark)";
+
+/** True while the system is dark. It follows a change of the system setting. */
+export function useSystemDark() {
+	const [dark, setDark] = useState(() => !!window.matchMedia?.(DARK).matches);
+	useEffect(() => {
+		const q = window.matchMedia?.(DARK);
+		// A test stub of matchMedia can lack the listener API.
+		if (!q?.addEventListener) return;
+		const on = () => setDark(q.matches);
+		q.addEventListener("change", on);
+		return () => q.removeEventListener("change", on);
+	}, []);
+	return dark;
+}
 
 type Ctx = Prefs & {
 	setPrefs: (patch: Partial<Prefs>) => void;
@@ -184,14 +204,36 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 	}, [personal, project, loaded, email]);
 
 	const accent = project?.overrides.accent ?? personal.accent;
+	const systemDark = useSystemDark();
+	// An imported theme applies over its base, unless the project sets the theme (Q-139).
+	const customId = value.overridden.includes("theme") ? "" : value.customTheme;
+	const library = useQuery({
+		queryKey: ["themes"],
+		queryFn: () => unwrap(commands.themeList()),
+		enabled: !!customId,
+	}).data;
+	const custom = customId ? library?.find((t) => t.id === customId) : undefined;
+	useEffect(() => {
+		if (!custom) return;
+		const style = document.documentElement.style;
+		// High contrast keeps its own colours: an imported theme then gives only its radius.
+		const vars = Object.entries(themeVars(custom)).filter(
+			([k]) => value.contrast !== "high" || k.startsWith("--radius-"),
+		);
+		for (const [k, v] of vars) style.setProperty(k, v);
+		return () => {
+			for (const [k] of vars) style.removeProperty(k);
+		};
+	}, [custom, value.contrast]);
+
 	useEffect(() => {
 		const el = document.documentElement;
-		el.dataset.theme = value.theme;
+		el.dataset.theme = resolveTheme(value.theme, systemDark);
 		el.dataset.density = value.density;
 		el.dataset.contrast = value.contrast;
 		if (accent) el.dataset.accent = accent;
 		else delete el.dataset.accent;
-	}, [value.theme, value.density, value.contrast, accent]);
+	}, [value.theme, value.density, value.contrast, accent, systemDark]);
 
 	// The root attributes that the style sheet reads for the motion and the focus ring.
 	useEffect(() => {
@@ -209,13 +251,14 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 	// An empty key keeps the font of the theme.
 	useEffect(() => {
 		const el = document.documentElement.style;
-		const ui = UI_FONTS[value.uiFont];
+		// The font of the person wins over the font of an imported theme.
+		const ui = UI_FONTS[value.uiFont] ?? UI_FONTS[custom?.font ?? ""];
 		const code = CODE_FONTS[value.codeFont];
 		if (ui) el.setProperty("--font-sans", ui);
 		else el.removeProperty("--font-sans");
 		if (code) el.setProperty("--font-mono", code);
 		else el.removeProperty("--font-mono");
-	}, [value.uiFont, value.codeFont]);
+	}, [value.uiFont, value.codeFont, custom?.font]);
 
 	return <PrefsContext.Provider value={value}>{children}</PrefsContext.Provider>;
 }

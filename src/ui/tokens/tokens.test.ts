@@ -235,3 +235,78 @@ describe("densities (REQ-013)", () => {
 		]);
 	});
 });
+
+/** The relative luminance (WCAG) of an `oklch(L C H)` colour, through linear sRGB. */
+const luminance = (oklch: string) => {
+	const [L = 0, C = 0, H = 0] = (/oklch\(([^)]*)\)/.exec(oklch)?.[1] ?? "")
+		.split(/\s+/)
+		.map(Number);
+	const a = C * Math.cos((H * Math.PI) / 180);
+	const b = C * Math.sin((H * Math.PI) / 180);
+	const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+	const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+	const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+	const clamp = (x: number) => Math.min(1, Math.max(0, x));
+	const r = clamp(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s);
+	const g = clamp(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s);
+	const bl = clamp(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s);
+	return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+};
+const contrast = (x: string, y: string) => {
+	const [hi, lo] = [luminance(x), luminance(y)].sort((p, q) => q - p);
+	return ((hi ?? 0) + 0.05) / ((lo ?? 0) + 0.05);
+};
+
+describe("OLED theme (themes REQ-001)", () => {
+	const oled = block(
+		':root[data-theme="oled"],\n:root[data-theme="oled"] .canvas-dark,\n[data-scheme="oled"]',
+	);
+	const root = block(":root");
+	/** The dark half of a light-dark() token of :root. */
+	const dark = (name: string) => /,\s*(oklch\([^)]*\))\)$/.exec(decl(root, name) ?? "")?.[1] ?? "";
+
+	it("forces the dark scheme on a true black base", () => {
+		expect(decl(oled, "color-scheme")).toBe("dark");
+		expect(decl(oled, "--surface-0")).toBe("oklch(0 0 0)");
+		expect(decl(oled, "--n-1")).toBe("oklch(0 0 0)");
+		expect(css).toContain(':root[data-theme="oled"] .canvas-dark');
+	});
+
+	it("lifts each surface by a small step", () => {
+		const ls = [0, 1, 2, 3].map((i) =>
+			Number(/oklch\(([\d.]+)/.exec(decl(oled, `--surface-${i}`) ?? "")?.[1]),
+		);
+		for (let i = 1; i < 4; i++) {
+			expect(ls[i] ?? 0).toBeGreaterThan(ls[i - 1] ?? 0);
+			expect((ls[i] ?? 0) - (ls[i - 1] ?? 0)).toBeLessThanOrEqual(0.12);
+		}
+	});
+
+	it("keeps the accent of the dark theme", () => {
+		for (const k of ["--accent", "--accent-text", "--accent-subtle", "--success", "--danger"])
+			expect(decl(oled, k), k).toBeUndefined();
+	});
+
+	it("gives text 4.5:1 or more on each surface (WCAG AA)", () => {
+		const grounds = [
+			"--surface-0",
+			"--surface-1",
+			"--surface-2",
+			"--surface-3",
+			"--n-2",
+			"--n-3",
+			"--n-4",
+		].map((k) => [k, decl(oled, k) ?? ""] as const);
+		const texts = [
+			...["--n-10", "--n-11", "--n-12"].map((k) => [k, decl(oled, k) ?? ""] as const),
+			...["--accent-text", "--success-text", "--warning-text", "--danger-text", "--info-text"].map(
+				(k) => [k, dark(k)] as const,
+			),
+		];
+		for (const [tk, tv] of texts) {
+			expect(tv, tk).toMatch(/^oklch\(/);
+			for (const [gk, gv] of grounds)
+				expect(contrast(tv, gv), `${tk} on ${gk}`).toBeGreaterThanOrEqual(4.5);
+		}
+	});
+});

@@ -163,6 +163,15 @@
         "spec:visual-cues"
       ],
       "file": "docs/assets/screenshots/settings-project.png"
+    },
+    {
+      "id": "SCR-019",
+      "slug": "settings-me-themes",
+      "title": "Settings / Me: the Theme select (Light, Dark, OLED, System, System with OLED, imported themes), Theme files with Import and Export, a row for each imported theme with Remove, and the preview dialog",
+      "artifacts": [
+        "spec:themes",
+        "adr:0018"
+      ]
     }
   ]
 }

@@ -271,7 +271,7 @@ function Form({
 								"theme",
 								t.prefs.theme,
 								<SunIcon size={14} />,
-								(["light", "dark", "system"] as Theme[]).map((v) => ({
+								(["light", "dark", "oled", "system", "system-oled"] as Theme[]).map((v) => ({
 									value: v,
 									label: t.theme[v],
 								})),

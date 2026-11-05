@@ -18,6 +18,7 @@ pub mod refs;
 pub mod run;
 pub mod specs;
 pub mod split;
+pub mod theme;
 pub mod work;
 pub mod work_item;
 pub mod workflow;

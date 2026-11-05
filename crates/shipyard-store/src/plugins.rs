@@ -9,6 +9,7 @@ use std::path::Path;
 use ring::digest::{SHA256, digest};
 use serde::{Deserialize, Serialize};
 use shipyard_core::extensions::{WriteReport, safe_rel};
+use shipyard_core::theme::ThemeFile;
 use specta::Type;
 
 use crate::Result;
@@ -68,6 +69,9 @@ struct Manifest {
     settings: BTreeMap<String, SettingSpec>,
     #[serde(default)]
     mcp_servers: BTreeMap<String, McpServer>,
+    /// Theme ids. `files/themes/<id>.json` goes to the theme library, not to the project.
+    #[serde(default)]
+    themes: Vec<String>,
 }
 
 /// A plugin that was read. Nothing of it is on disk.
@@ -84,6 +88,7 @@ pub struct Plugin {
     pub mcp: BTreeMap<String, McpServer>,
     /// `(item id, reason)` of each server that was refused.
     pub refused: Vec<(String, String)>,
+    pub themes: Vec<ThemeFile>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -93,6 +98,7 @@ pub enum ItemKind {
     File,
     Setting,
     Mcp,
+    Theme,
 }
 
 /// What an item does against the applied version of the plugin (REQ-014).
@@ -110,7 +116,7 @@ pub enum Change {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename = "PluginItem")]
 pub struct Item {
-    /// `file:<target>`, `setting:<key>`, `mcp:<name>`.
+    /// `file:<target>`, `setting:<key>`, `mcp:<name>`, `theme:<id>`.
     pub id: String,
     pub kind: ItemKind,
     pub label: String,
@@ -142,6 +148,8 @@ pub struct Applied {
     #[serde(default)]
     pub fields: BTreeMap<String, SettingField>,
     pub mcp: Vec<String>,
+    #[serde(default)]
+    pub themes: Vec<String>,
 }
 
 pub(crate) fn sha(b: &[u8]) -> String {
@@ -267,6 +275,22 @@ pub fn read(bytes: &[u8]) -> Result<Plugin> {
             }
         }
     }
+    // A theme is data for the library: it passes the check of a theme file (spec `themes`, REQ-009).
+    let mut themes = Vec::new();
+    for n in &m.themes {
+        let src = format!("files/themes/{n}.json");
+        let Some(b) = payload.get(&src) else {
+            let why = format!("themes {n}: the archive does not hold {src}");
+            return Err(bad(&text, n, why).into());
+        };
+        let t = crate::themes::parse(&String::from_utf8_lossy(b))
+            .map_err(|e| format!("{src}: {}", e.replace('\n', "; ")))?;
+        if t.id != *n {
+            return Err(format!("{src}: id: use {n}, the name in the manifest").into());
+        }
+        owned.push(src);
+        themes.push(t);
+    }
     if !listed {
         entries.extend(
             payload
@@ -341,6 +365,7 @@ pub fn read(bytes: &[u8]) -> Result<Plugin> {
         fields,
         mcp,
         refused,
+        themes,
     })
 }
 
@@ -490,6 +515,16 @@ pub fn review(root: &Path, p: &Plugin) -> Review {
             preview: None,
         });
     }
+    for t in &p.themes {
+        items.push(Item {
+            id: format!("theme:{}", t.id),
+            kind: ItemKind::Theme,
+            label: t.name.clone(),
+            exists: false,
+            change: change(held.themes.contains(&t.id).then_some(true)),
+            preview: crate::themes::text(t).ok(),
+        });
+    }
     let gone = held
         .files
         .keys()
@@ -506,6 +541,12 @@ pub fn review(root: &Path, p: &Plugin) -> Review {
                 .iter()
                 .filter(|n| !p.mcp.contains_key(*n))
                 .map(|n| (format!("mcp:{n}"), ItemKind::Mcp, n)),
+        )
+        .chain(
+            held.themes
+                .iter()
+                .filter(|n| !p.themes.iter().any(|t| t.id == **n))
+                .map(|n| (format!("theme:{n}"), ItemKind::Theme, n)),
         );
     for (id, kind, label) in gone {
         items.push(Item {
@@ -526,12 +567,13 @@ pub fn review(root: &Path, p: &Plugin) -> Review {
     }
 }
 
-/// What an apply did. The caller hands `mcp` to connections.
+/// What an apply did. The caller hands `mcp` to connections and `themes` to the theme library.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename = "PluginApplying")]
 pub struct Applying {
     pub report: WriteReport,
     pub mcp: Vec<(String, McpServer)>,
+    pub themes: Vec<ThemeFile>,
 }
 
 /// Write the accepted items only. A file that exists is kept (the no-overwrite rule). The record
@@ -610,11 +652,24 @@ pub fn apply(root: &Path, p: &Plugin, accepted: &[String]) -> Result<Applying> {
     rec.mcp.extend(mcp.iter().map(|(n, _)| n.clone()));
     rec.mcp.sort();
     rec.mcp.dedup();
+    let themes: Vec<_> = p
+        .themes
+        .iter()
+        .filter(|t| take(format!("theme:{}", t.id)))
+        .cloned()
+        .collect();
+    rec.themes.extend(themes.iter().map(|t| t.id.clone()));
+    rec.themes.sort();
+    rec.themes.dedup();
     write_atomic(
         &root.join(RECORD),
         serde_json::to_string_pretty(&all)?.as_bytes(),
     )?;
-    Ok(Applying { report, mcp })
+    Ok(Applying {
+        report,
+        mcp,
+        themes,
+    })
 }
 
 #[cfg(test)]

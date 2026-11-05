@@ -31,7 +31,13 @@ export const fr: Messages = {
 		idle: "Inactif",
 	},
 	ref: { resolved: "Résolu", unresolved: "Non résolu", broken: "Rompu" },
-	theme: { light: "Clair", dark: "Sombre", system: "Système" },
+	theme: {
+		light: "Clair",
+		dark: "Sombre",
+		oled: "OLED",
+		system: "Système",
+		"system-oled": "Système, OLED si sombre",
+	},
 	prefs: {
 		theme: "Thème",
 		language: "Langue",

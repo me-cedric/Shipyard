@@ -320,6 +320,8 @@ export function pluginApply(m: MockExtensions, path: string, accepted: string[])
 		report,
 		mcpAdded: accepted.filter((a) => a.startsWith("mcp:")).map((a) => a.slice(4)),
 		mcpFailed: [],
+		themesAdded: accepted.filter((a) => a.startsWith("theme:")).map((a) => a.slice(6)),
+		themesFailed: [],
 	};
 }
 

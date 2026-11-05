@@ -39,6 +39,7 @@ pub mod roles_skills;
 pub mod run_log;
 pub mod safe_write;
 pub mod seal;
+pub mod themes;
 pub mod threads;
 pub mod work;
 pub mod yaml;

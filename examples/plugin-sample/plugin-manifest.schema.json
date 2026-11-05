@@ -55,6 +55,11 @@
 				]
 			}
 		},
+		"themes": {
+			"description": "Theme ids. files/themes/<id>.json goes to the theme library of the machine (ADR 0018).",
+			"type": "array",
+			"items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }
+		},
 		"mcpServers": {
 			"description": "Remote servers only. A header value is a ${VAR} reference.",
 			"type": "object",

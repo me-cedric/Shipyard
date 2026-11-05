@@ -16,6 +16,7 @@ import type {
 	Resolved_Serialize,
 	SearchHit_Serialize,
 	TestOutcome,
+	ThemeFile_Serialize,
 } from "./bindings";
 import * as ap from "./mock-agent-pr";
 import {
@@ -106,6 +107,7 @@ import {
 	syncState,
 	unlink as syncUnlink,
 } from "./mock-sync";
+import * as th from "./mock-themes";
 import * as work from "./mock-work";
 
 type Bindings = typeof commands;
@@ -140,6 +142,9 @@ const NO_OVERRIDES: Overrides_Serialize = {
 
 type State = {
 	prefs: Prefs_Serialize;
+	/** The theme library, and the theme files that an export wrote, by path. */
+	themes: ThemeFile_Serialize[];
+	exportedThemes: Record<string, ThemeFile_Serialize>;
 	/** The git e-mail of the person, for the profile assignment. */
 	email?: string | null;
 	projects: ProjectEntry_Serialize[];
@@ -276,6 +281,7 @@ const fresh = (): State => ({
 		// The tour opens by itself on a fresh install; the mock starts after it so other tests see the app.
 		tourSeen: true,
 		permissionsAsked: [],
+		customTheme: "",
 	},
 	projects: [],
 	files: {},
@@ -297,6 +303,8 @@ const fresh = (): State => ({
 	knowledge: kw.seedKnowledge(),
 	learning: lrn.seedLearning(),
 	extensions: ex.seedExtensions(),
+	themes: [],
+	exportedThemes: {},
 	delivery: dv.seedDelivery(),
 	deliveryActions: deliveryActions.seedDeliveryActions(),
 	os: [],
@@ -1649,7 +1657,23 @@ const handlers: Handlers = {
 	catalogPreview: (id) => ex.catalogPreview(need(state.extensions), id),
 	catalogDeploy: (id) => ex.catalogDeploy(need(state.extensions), id),
 	pluginReview: (path) => ex.pluginReview(need(state.extensions), path),
-	pluginApply: (path, accepted) => ex.pluginApply(need(state.extensions), path, accepted),
+	pluginApply: (path, accepted) => {
+		const done = ex.pluginApply(need(state.extensions), path, accepted);
+		for (const id of accepted.filter((a) => a.startsWith("theme:")))
+			state.themes = th.themeAdd(state.themes, { ...th.SAMPLE_THEME, id: id.slice(6) });
+		return done;
+	},
+	themeList: () => state.themes,
+	themeRead: (path) => th.themeRead(path),
+	themeAdd: (theme) => {
+		state.themes = th.themeAdd(state.themes, theme);
+		return state.themes;
+	},
+	themeRemove: (id) => {
+		state.themes = state.themes.filter((t) => t.id !== id);
+		return state.themes;
+	},
+	themeExport: (path, theme) => th.themeExport(state.exportedThemes, path, theme),
 	pluginNew: (parent, click) => ex.pluginNew(parent, click),
 	pluginPackage: (dir, dest, click) => ex.pluginPackage(need(state.extensions), dir, dest, click),
 	pluginOpenLine: (dir, line) => ex.pluginOpenLine(need(state.extensions), dir, line),

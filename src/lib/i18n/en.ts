@@ -30,7 +30,13 @@ export const en = {
 		idle: "Idle",
 	},
 	ref: { resolved: "Resolved", unresolved: "Unresolved", broken: "Broken" },
-	theme: { light: "Light", dark: "Dark", system: "System" },
+	theme: {
+		light: "Light",
+		dark: "Dark",
+		oled: "OLED",
+		system: "System",
+		"system-oled": "System, OLED when dark",
+	},
 	prefs: {
 		theme: "Theme",
 		language: "Language",

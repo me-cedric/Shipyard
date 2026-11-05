@@ -451,6 +451,7 @@ export function Extensions() {
 										setReview(null);
 										await qc.invalidateQueries({ queryKey: ["catalog"] });
 										await qc.invalidateQueries({ queryKey: ["plugins"] });
+										await qc.invalidateQueries({ queryKey: ["themes"] });
 										await refresh();
 									})
 								}
@@ -465,6 +466,16 @@ export function Extensions() {
 							{applied.mcpAdded.length ? (
 								<p role="status" className="px-3 text-12 text-n-11">
 									{format(x.plugin.mcp, { names: applied.mcpAdded.join(", ") })}
+								</p>
+							) : null}
+							{applied.themesAdded.length ? (
+								<p role="status" className="px-3 text-12 text-n-11">
+									{format(x.plugin.themes, { names: applied.themesAdded.join(", ") })}
+								</p>
+							) : null}
+							{applied.themesFailed.length ? (
+								<p role="alert" className="px-3 text-12 text-danger-text">
+									{format(x.plugin.themesFailed, { names: applied.themesFailed.join(", ") })}
 								</p>
 							) : null}
 							{applied.mcpFailed.length ? (

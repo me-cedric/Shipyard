@@ -110,10 +110,12 @@
 }
 
 /*
- * Theme: data-theme="light|dark|system" on <html>. No attribute means system.
+ * Theme: data-theme="light|dark|oled|system" on <html>. No attribute means system.
  * A `.canvas-dark` block declares the tokens again under its own dark scheme, so the light-dark()
  * pairs resolve dark inside it in both themes: the run graph, the agents map, the event tail.
+ * A `[data-scheme]` block (the preview of a theme file) declares them again under its own base.
  */
+[data-scheme],
 .canvas-dark,
 :root {
 	color-scheme: light dark;
@@ -207,6 +209,37 @@
 
 .canvas-dark {
 	color-scheme: dark;
+}
+
+/*
+ * OLED (spec `themes`, REQ-001): true black base, raised surfaces lifted by a small step, text at
+ * WCAG AA or more on each surface. The accent and the status colours stay those of the dark theme.
+ * A `.canvas-dark` block takes the same values. The high-contrast block below still wins.
+ */
+:root[data-theme="oled"],
+:root[data-theme="oled"] .canvas-dark,
+[data-scheme="oled"] {
+	color-scheme: dark;
+	--n-1: oklch(0 0 0);
+	--n-2: oklch(0.12 0.004 250);
+	--n-3: oklch(0.15 0.005 250);
+	--n-4: oklch(0.175 0.006 250);
+	--n-5: oklch(0.2 0.007 250);
+	--n-6: oklch(0.25 0.008 250);
+	--n-7: oklch(0.3 0.01 250);
+	--n-8: oklch(0.37 0.012 250);
+	--n-9: oklch(0.58 0.014 250);
+	--n-10: oklch(0.66 0.013 250);
+	--n-11: oklch(0.8 0.01 250);
+	--n-12: oklch(0.97 0.004 250);
+	--surface-0: oklch(0 0 0);
+	--surface-1: oklch(0.11 0.004 250);
+	--surface-2: oklch(0.14 0.005 250);
+	--surface-3: oklch(0.17 0.006 250);
+	--highlight: oklch(1 0 0 / 6%);
+	--aurora: transparent;
+	--aurora-2: transparent;
+	--grain: oklch(1 0 0 / 3%);
 }
 
 /* A project can override the accent. Only the hue changes. */

@@ -18,6 +18,7 @@ describe("Knowledge / Manual", () => {
 			"code",
 			"knowledge",
 			"settings",
+			"theming",
 		]);
 		for (const [space, tabs] of Object.entries(en.tabs)) {
 			const page = MANUAL.find((p) => p.id === space);

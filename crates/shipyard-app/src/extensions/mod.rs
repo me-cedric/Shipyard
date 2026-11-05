@@ -131,6 +131,10 @@ pub struct PluginApplied {
     pub mcp_added: Vec<String>,
     /// `<name>: <reason>`.
     pub mcp_failed: Vec<String>,
+    /// The names of the themes that went to the theme library.
+    pub themes_added: Vec<String>,
+    /// `<id>: <reason>`. A different theme with the same id stays in the library.
+    pub themes_failed: Vec<String>,
 }
 
 /// Write the accepted items. An MCP server goes to connections as an address: a header value
@@ -158,10 +162,22 @@ pub async fn plugin_apply(
                 Err(e) => mcp_failed.push(format!("{name}: {e}")),
             }
         }
+        // A theme goes to the library of the machine, never to the project (spec `themes`, REQ-009).
+        // A failure is listed, as for a server: the project files are already written.
+        let (mut themes_added, mut themes_failed) = (Vec::new(), Vec::new());
+        for t in done.themes {
+            match shipyard_store::themes::save_new(&s.dir, &t) {
+                Ok(true) => themes_added.push(t.name),
+                Ok(false) => themes_failed.push(format!("{}: a theme with this id exists", t.id)),
+                Err(e) => themes_failed.push(format!("{}: {e}", t.id)),
+            }
+        }
         Ok(PluginApplied {
             report: done.report,
             mcp_added,
             mcp_failed,
+            themes_added,
+            themes_failed,
         })
     })
     .await

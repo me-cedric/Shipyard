@@ -8,6 +8,15 @@ export const commands = {
 	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
 	prefsGet: () => typedError<Prefs_Serialize, AppError_Serialize>(__TAURI_INVOKE("prefs_get")),
 	prefsSet: (patch: PrefsPatch_Deserialize) => typedError<Prefs_Serialize, AppError_Serialize>(__TAURI_INVOKE("prefs_set", { patch })),
+	/**  The themes of the library (spec `themes`). */
+	themeList: () => typedError<ThemeFile_Serialize[], AppError_Serialize>(__TAURI_INVOKE("theme_list")),
+	/**  Read and check a theme file for the preview. Nothing is saved (REQ-005, REQ-006). */
+	themeRead: (path: string) => typedError<ThemeFile_Serialize, AppError_Serialize>(__TAURI_INVOKE("theme_read", { path })),
+	/**  Add a theme to the library after the preview. A theme with the same id is replaced. */
+	themeAdd: (theme: ThemeFile_Deserialize) => typedError<ThemeFile_Serialize[], AppError_Serialize>(__TAURI_INVOKE("theme_add", { theme })),
+	themeRemove: (id: string) => typedError<ThemeFile_Serialize[], AppError_Serialize>(__TAURI_INVOKE("theme_remove", { id })),
+	/**  Write a theme file at the path of the save dialog (REQ-007). */
+	themeExport: (path: string, theme: ThemeFile_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("theme_export", { path, theme })),
 	refsParse: (text: string) => __TAURI_INVOKE<ParsedRef | null>("refs_parse", { text }),
 	refsResolve: (text: string) => typedError<Resolved_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("refs_resolve", { text })),
 	refsBacklinks: (text: string) => typedError<BacklinkGroup_Serialize[], AppError_Serialize>(__TAURI_INVOKE("refs_backlinks", { text })),
@@ -3361,6 +3370,10 @@ export type PluginApplied = {
 	mcpAdded: string[],
 	/**  `<name>: <reason>`. */
 	mcpFailed: string[],
+	/**  The names of the themes that went to the theme library. */
+	themesAdded: string[],
+	/**  `<id>: <reason>`. A different theme with the same id stays in the library. */
+	themesFailed: string[],
 };
 
 /**  What an item does against the applied version of the plugin (REQ-014). */
@@ -3402,10 +3415,10 @@ export type PluginInstalled_Serialize = {
 
 export type PluginItem = PluginItem_Serialize | PluginItem_Deserialize;
 
-export type PluginItemKind = "file" | "setting" | "mcp";
+export type PluginItemKind = "file" | "setting" | "mcp" | "theme";
 
 export type PluginItem_Deserialize = {
-	/**  `file:<target>`, `setting:<key>`, `mcp:<name>`. */
+	/**  `file:<target>`, `setting:<key>`, `mcp:<name>`, `theme:<id>`. */
 	id: string,
 	kind: PluginItemKind,
 	label: string,
@@ -3417,7 +3430,7 @@ export type PluginItem_Deserialize = {
 };
 
 export type PluginItem_Serialize = {
-	/**  `file:<target>`, `setting:<key>`, `mcp:<name>`. */
+	/**  `file:<target>`, `setting:<key>`, `mcp:<name>`, `theme:<id>`. */
 	id: string,
 	kind: PluginItemKind,
 	label: string,
@@ -3581,6 +3594,7 @@ export type PrefsPatch_Deserialize = {
 	focusRing?: FocusRing | null,
 	focusWidth?: number | null,
 	tourSeen?: boolean | null,
+	customTheme?: string | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -3626,6 +3640,7 @@ export type PrefsPatch_Serialize = {
 	focusRing: FocusRing | null,
 	focusWidth: number | null,
 	tourSeen: boolean | null,
+	customTheme: string | null,
 };
 
 export type Prefs_Deserialize = {
@@ -3713,6 +3728,8 @@ export type Prefs_Deserialize = {
 	tourSeen?: boolean,
 	/**  The OS permissions that Shipyard asked for once, such as `files`. Only the backend writes it. */
 	permissionsAsked?: string[],
+	/**  The id of the theme of the library that applies over `theme`. Empty: none (spec `themes`). */
+	customTheme?: string,
 };
 
 export type Prefs_Serialize = {
@@ -3800,6 +3817,8 @@ export type Prefs_Serialize = {
 	tourSeen: boolean,
 	/**  The OS permissions that Shipyard asked for once, such as `files`. Only the backend writes it. */
 	permissionsAsked: string[],
+	/**  The id of the theme of the library that applies over `theme`. Empty: none (spec `themes`). */
+	customTheme: string,
 };
 
 export type Preview = Preview_Serialize | Preview_Deserialize;
@@ -5508,7 +5527,56 @@ export type Text = {
 	stamp: string,
 };
 
-export type Theme = "light" | "dark" | "system";
+export type Theme = "light" | "dark" | 
+/**  True black surfaces for an OLED screen (spec `themes`, REQ-001). */
+"oled" | "system" | 
+/**  The system choice, with OLED in place of dark. */
+"system-oled";
+
+/**  The theme that the file starts from. Each token that the file does not set keeps its value. */
+export type ThemeBase = "light" | "dark" | "oled";
+
+export type ThemeFile = ThemeFile_Serialize | ThemeFile_Deserialize;
+
+export type ThemeFile_Deserialize = {
+	/**  The format version: [`FORMAT`]. */
+	shipyardTheme: number,
+	/**  Lower case letters, digits and `-`. The file name in the library. */
+	id: string,
+	name: string,
+	base: ThemeBase,
+	accent?: string | null,
+	/**  Surface 0. The view derives the other surfaces and the neutral scale. */
+	background?: string | null,
+	/**  The main text colour. */
+	foreground?: string | null,
+	/**  The corner radius of a control, in pixels. */
+	radius?: number | null,
+	/**  A key of [`FONTS`]. */
+	font?: string | null,
+	/**  A name of [`TOKENS`] to a colour. A token wins over a simple field. */
+	tokens?: { [key in string]: string },
+};
+
+export type ThemeFile_Serialize = {
+	/**  The format version: [`FORMAT`]. */
+	shipyardTheme: number,
+	/**  Lower case letters, digits and `-`. The file name in the library. */
+	id: string,
+	name: string,
+	base: ThemeBase,
+	accent?: string,
+	/**  Surface 0. The view derives the other surfaces and the neutral scale. */
+	background?: string,
+	/**  The main text colour. */
+	foreground?: string,
+	/**  The corner radius of a control, in pixels. */
+	radius?: number,
+	/**  A key of [`FONTS`]. */
+	font?: string,
+	/**  A name of [`TOKENS`] to a colour. A token wins over a simple field. */
+	tokens?: { [key in string]: string },
+};
 
 export type ThemeView = ThemeView_Serialize | ThemeView_Deserialize;
 

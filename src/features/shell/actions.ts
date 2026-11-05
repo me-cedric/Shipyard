@@ -10,6 +10,7 @@ import { outcomeError, useActiveProject, useProjectActions } from "@/lib/project
 import { useShell } from "@/lib/shell";
 import { chordOf, chordText, useShortcutBindings } from "@/lib/shell/shortcuts";
 import { useSyncNow } from "@/lib/sync";
+import { NEXT_THEME } from "@/lib/themes";
 import { useUpdateCheck } from "@/lib/updates";
 import { openWhatsNew } from "@/lib/updates/whats-new";
 import {
@@ -72,7 +73,9 @@ export const SPACE_ICON: Record<SpaceId, Icon> = {
 const THEME_ICON: Record<Theme, Icon> = {
 	light: SunIcon,
 	dark: MoonIcon,
+	oled: MoonIcon,
 	system: ComputerDesktopIcon,
+	"system-oled": ComputerDesktopIcon,
 };
 
 export const shortcutText = (key: string) => chordText(`mod+${key}`);
@@ -285,7 +288,6 @@ export function useActions() {
 			disabled: !hasProject,
 			run: openApp.run,
 		};
-		const NEXT_THEME: Record<Theme, Theme> = { light: "dark", dark: "system", system: "light" };
 		const shortcuts = withKey({
 			id: "shortcuts-help",
 			label: t.ui.menu.shortcuts,
@@ -305,7 +307,7 @@ export function useActions() {
 				label: t.ui.menu.toggleTheme,
 				Icon: SwatchIcon,
 				key: "mod+shift+l",
-				run: () => setPrefs({ theme: NEXT_THEME[theme] }),
+				run: () => setPrefs({ theme: NEXT_THEME[theme], customTheme: "" }),
 			}),
 			withKey({
 				id: "toggle-sidebar",

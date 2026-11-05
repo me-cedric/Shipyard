@@ -1,0 +1,15 @@
+{
+	"shipyardTheme": 1,
+	"id": "harbor-night",
+	"name": "Harbor night",
+	"base": "dark",
+	"accent": "#3bb9fd",
+	"background": "#0b1622",
+	"foreground": "#e6edf3",
+	"radius": 6,
+	"font": "humanist",
+	"tokens": {
+		"n-11": "#9fb3c8",
+		"success": "oklch(0.72 0.17 150)"
+	}
+}

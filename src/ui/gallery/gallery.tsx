@@ -945,7 +945,9 @@ const PAGES: Record<Layer, () => ReactNode> = {
 const THEME_ICON: Record<Theme, ReactNode> = {
 	light: <SunIcon size={16} />,
 	dark: <MoonIcon size={16} />,
+	oled: <MoonIcon size={16} />,
 	system: <ComputerDesktopIcon size={16} />,
+	"system-oled": <ComputerDesktopIcon size={16} />,
 };
 
 export function Gallery() {

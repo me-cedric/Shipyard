@@ -9,7 +9,6 @@ import {
 	type Overridable,
 	ROLES,
 	type Role,
-	type Theme,
 	usePrefs,
 } from "@/lib/prefs";
 import { Input } from "@/ui/atoms/input";
@@ -35,6 +34,7 @@ import { SectionNav } from "@/ui/molecules/section-nav";
 import { Settings } from "@/ui/templates/settings";
 import { useLookRows } from "./look-rows";
 import { usePersonalSections } from "./me/personal";
+import { ThemeSelect, useThemeRows } from "./themes";
 
 /** The icon of each section heading, by section id. */
 const SECTION_ICON: Record<string, React.ReactNode> = {
@@ -130,7 +130,6 @@ function NotifySwitch({ source }: { source: EventSource }) {
 export function Me() {
 	const { t, lang, setLang } = useI18n();
 	const {
-		theme,
 		density,
 		contrast,
 		role,
@@ -151,6 +150,7 @@ export function Me() {
 		{ id: "notifications", title: t.notifications.title },
 		{ id: permissions.id, title: permissions.title },
 	].map((s) => ({ id: `section-${s.id}`, label: s.title, icon: SECTION_ICON[s.id] }));
+	const themeRows = useThemeRows();
 	// The mark: the active project sets this value, and it replaces the one below.
 	const marked = (key: Overridable, control: React.ReactNode) => (
 		<span className="flex items-center gap-2">
@@ -174,20 +174,9 @@ export function Me() {
 									id: "theme",
 									icon: <SunIcon size={14} />,
 									label: t.prefs.theme,
-									control: marked(
-										"theme",
-										<Select
-											label={t.prefs.theme}
-											value={theme}
-											onValueChange={(v) => setPrefs({ theme: v as Theme })}
-											items={[
-												{ value: "light", label: t.theme.light },
-												{ value: "dark", label: t.theme.dark },
-												{ value: "system", label: t.theme.system },
-											]}
-										/>,
-									),
+									control: marked("theme", <ThemeSelect />),
 								},
+								...themeRows,
 								{
 									id: "language",
 									icon: <LanguageIcon size={14} />,

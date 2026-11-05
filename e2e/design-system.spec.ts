@@ -86,7 +86,7 @@ test.describe("gallery in the dev build", () => {
 		await expect(page.getByRole("button", { name: "Jetons" })).toBeVisible();
 	});
 
-	for (const theme of ["Light", "Dark"]) {
+	for (const theme of ["Light", "Dark", "OLED"]) {
 		for (const layer of LAYERS) {
 			test(`has no axe violation: ${layer}, ${theme} theme`, async ({ page }) => {
 				await page.getByRole("button", { name: theme, exact: true }).click();

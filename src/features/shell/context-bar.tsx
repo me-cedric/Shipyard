@@ -10,6 +10,7 @@ import { useNotifications, useOpenNotice } from "@/lib/notifications";
 import { type Theme, usePrefs } from "@/lib/prefs";
 import { outcomeError, useActiveProject, useProjectActions, useProjects } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
+import { NEXT_THEME } from "@/lib/themes";
 import { AnimatedIcon } from "@/ui/atoms/animated-icon";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Kbd } from "@/ui/atoms/kbd";
@@ -36,8 +37,13 @@ import type { Action } from "./actions";
 import { ActiveSessions } from "./active-sessions";
 import { useCounts } from "./counts";
 
-const NEXT: Record<Theme, Theme> = { light: "dark", dark: "system", system: "light" };
-const THEME_ICON = { light: SunIcon, dark: MoonIcon, system: ComputerDesktopIcon };
+const THEME_ICON: Record<Theme, typeof SunIcon> = {
+	light: SunIcon,
+	dark: MoonIcon,
+	oled: MoonIcon,
+	system: ComputerDesktopIcon,
+	"system-oled": ComputerDesktopIcon,
+};
 
 const NARROW = "(max-width: 1099px)";
 
@@ -97,7 +103,7 @@ export function ContextBar({
 	const { needsYou, live, changes, changed } = useCounts();
 	const ThemeIcon = THEME_ICON[theme];
 	const narrow = useNarrow();
-	const themeLabel = format(t.shell.themeTo, { name: t.theme[NEXT[theme]] });
+	const themeLabel = format(t.shell.themeTo, { name: t.theme[NEXT_THEME[theme]] });
 	const logo = usePicture("logo").data;
 	const avatar = usePicture("avatar").data;
 	return (
@@ -269,11 +275,14 @@ export function ContextBar({
 							id: "theme",
 							label: themeLabel,
 							disabled: false,
-							onSelect: () => setPrefs({ theme: NEXT[theme] }),
+							onSelect: () => setPrefs({ theme: NEXT_THEME[theme], customTheme: "" }),
 						})}
 				/>
 			) : (
-				<IconButton label={themeLabel} onClick={() => setPrefs({ theme: NEXT[theme] })}>
+				<IconButton
+					label={themeLabel}
+					onClick={() => setPrefs({ theme: NEXT_THEME[theme], customTheme: "" })}
+				>
 					<ThemeIcon size={16} />
 				</IconButton>
 			)}

@@ -399,7 +399,9 @@ fn the_sample_plugin_packs_reads_and_reviews() {
             .iter()
             .any(|i| i.id == "file:.claude/rules/sample-rule.md")
     );
-    // The schema is not part of the zip.
+    assert!(r.items.iter().any(|i| i.id == "theme:acme-dusk"));
+    // The schema is not part of the zip, and a theme is not a project file.
+    assert!(p.files.iter().all(|f| !f.0.contains("themes/")));
     assert!(p.files.iter().all(|f| !f.0.contains("schema")));
 }
 
@@ -449,4 +451,35 @@ fn the_source_path_stays_in_the_app_data_and_never_in_the_repository_record() {
     set_source(data.path(), "p1", &p.name, None).unwrap();
     assert!(sources(data.path(), "p1").is_empty());
     assert!(set_source(data.path(), "../x", "n", None).is_err());
+}
+
+#[test]
+fn a_theme_is_an_item_for_the_library_and_a_bad_theme_is_refused() {
+    let theme =
+        r##"{"shipyardTheme":1,"id":"night","name":"Night","base":"dark","accent":"#3bb9fd"}"##;
+    let m = r#"{"name":"x","version":"1","themes":["night"]}"#;
+    let p = plain(m, &[("files/themes/night.json", theme)]).unwrap();
+    assert!(p.files.is_empty());
+    let d = tempfile::tempdir().unwrap();
+    let r = review(d.path(), &p);
+    let item = r.items.iter().find(|i| i.id == "theme:night").unwrap();
+    assert_eq!(item.label, "Night");
+    let a = apply(d.path(), &p, &[]).unwrap();
+    assert!(a.themes.is_empty());
+    let a = apply(d.path(), &p, &["theme:night".into()]).unwrap();
+    assert_eq!(a.themes.len(), 1);
+    assert_eq!(a.report.written.len(), 0);
+    assert_eq!(review(d.path(), &p).items[0].change, Change::Same);
+
+    let bad = r#"{"shipyardTheme":1,"id":"night","name":"Night","base":"dark","font":"https://x.test/font.woff2"}"#;
+    let e = plain(m, &[("files/themes/night.json", bad)]).unwrap_err();
+    assert!(
+        e.contains("files/themes/night.json") && e.contains("font:"),
+        "{e}"
+    );
+    let e = plain(m, &[("files/a", "a")]).unwrap_err();
+    assert!(
+        e.starts_with("manifest.json:1:") && e.contains("night"),
+        "{e}"
+    );
 }

@@ -7,6 +7,7 @@ export {
 	pickFolder,
 	pickImage,
 	pickPlugin,
+	pickTheme,
 	pickWorkbook,
 	saveAs,
 } from "./dialog";

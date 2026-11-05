@@ -14,7 +14,12 @@ use crate::project::{Accent, write_atomic};
 pub enum Theme {
     Light,
     Dark,
+    /// True black surfaces for an OLED screen (spec `themes`, REQ-001).
+    Oled,
     System,
+    /// The system choice, with OLED in place of dark.
+    #[serde(rename = "system-oled")]
+    SystemOled,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -257,6 +262,9 @@ pub struct Prefs {
     /// The OS permissions that Shipyard asked for once, such as `files`. Only the backend writes it.
     #[serde(default)]
     pub permissions_asked: Vec<String>,
+    /// The id of the theme of the library that applies over `theme`. Empty: none (spec `themes`).
+    #[serde(default)]
+    pub custom_theme: String,
 }
 
 pub const DATE_FORMATS: [&str; 3] = ["iso", "dmy", "mdy"];
@@ -267,7 +275,7 @@ fn yes() -> bool {
     true
 }
 
-pub const UI_FONTS: [&str; 5] = ["system", "grotesk", "humanist", "serif", "mono"];
+pub const UI_FONTS: [&str; 5] = shipyard_core::theme::FONTS;
 pub const CODE_FONTS: [&str; 3] = ["system", "menlo", "courier"];
 pub const TERMINAL_FONT_SIZE: std::ops::RangeInclusive<u8> = 9..=24;
 /// The font size of the interface, in pixels, written on the root element.
@@ -342,6 +350,7 @@ impl Default for Prefs {
             focus_width: default_focus_width(),
             tour_seen: false,
             permissions_asked: Vec::new(),
+            custom_theme: String::new(),
         }
     }
 }
@@ -391,6 +400,7 @@ pub struct PrefsPatch {
     pub focus_ring: Option<FocusRing>,
     pub focus_width: Option<u8>,
     pub tour_seen: Option<bool>,
+    pub custom_theme: Option<String>,
 }
 
 const FILE: &str = "prefs.json";
@@ -516,6 +526,14 @@ impl Prefs {
         if let Some(w) = p.focus_width.filter(|w| FOCUS_WIDTHS.contains(w)) {
             self.focus_width = w;
         }
+        // An id is lower case letters, digits and `-`, as the file name in the library.
+        if let Some(v) = p.custom_theme {
+            self.custom_theme = v
+                .chars()
+                .filter(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '-')
+                .take(40)
+                .collect();
+        }
         if let Some(n) = p.ui_scale {
             self.ui_scale = n.clamp(*UI_SCALE.start(), *UI_SCALE.end());
         }
@@ -579,6 +597,22 @@ mod tests {
         let p = Prefs::load(dir.path());
         assert_eq!((p.theme, p.lang), (Theme::Dark, Some(Lang::Fr)));
         assert_eq!(p.release_url, DEFAULT_RELEASE_URL);
+    }
+
+    #[test]
+    fn the_oled_themes_and_a_custom_theme_id_round_trip() {
+        let t: Vec<Theme> = serde_json::from_str(r#"["oled","system-oled"]"#).unwrap();
+        assert_eq!(t, [Theme::Oled, Theme::SystemOled]);
+        let mut p = Prefs::default();
+        p.apply(PrefsPatch {
+            theme: Some(Theme::Oled),
+            custom_theme: Some("Harbor-night/../x".into()),
+            ..Default::default()
+        });
+        assert_eq!(
+            (p.theme, p.custom_theme.as_str()),
+            (Theme::Oled, "arbor-nightx")
+        );
     }
 
     #[test]

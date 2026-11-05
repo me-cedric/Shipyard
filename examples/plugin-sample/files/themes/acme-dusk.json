@@ -1,0 +1,8 @@
+{
+	"shipyardTheme": 1,
+	"id": "acme-dusk",
+	"name": "Acme dusk",
+	"base": "oled",
+	"accent": "#f5a524",
+	"radius": 4
+}

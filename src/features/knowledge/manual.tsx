@@ -32,6 +32,7 @@ const ORDER = [
 	"code",
 	"knowledge",
 	"settings",
+	"theming",
 ];
 
 export type ManualPage = { id: string; title: string; text: string };

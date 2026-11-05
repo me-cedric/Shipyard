@@ -29,6 +29,16 @@ export async function pickPlugin(): Promise<string | null> {
 	return typeof path === "string" ? path : null;
 }
 
+const JSON_FILE = [{ name: "JSON", extensions: ["json"] }];
+
+/** The native picker for a theme file. Returns null when the person cancels. */
+export async function pickTheme(): Promise<string | null> {
+	if (!isTauri()) return pickFileMock();
+	const { open } = await import("@tauri-apps/plugin-dialog");
+	const path = await open({ multiple: false, filters: JSON_FILE });
+	return typeof path === "string" ? path : null;
+}
+
 const PEM = [{ name: "Certificate", extensions: ["pem", "crt", "cer"] }];
 
 /** The native picker for a PEM bundle. Returns null when the person cancels. */
