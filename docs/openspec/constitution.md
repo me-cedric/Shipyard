@@ -17,8 +17,8 @@ Source: the owner's brief of 2026-10-29 and the principles kept in `docs/plan/MA
 
 ## 3. Users
 
-1. Each spec names the roles it serves: PM, architect, developer, QA, BA, functional lead, junior.
-2. No role loses access to a view. Roles change the order and the home view only.
+1. Each spec names the roles it serves: PO, PM, architect, tech lead, BA, developer, QA, designer, viewer.
+2. No role loses access to a view. Roles change the order, the home view, the Today panels and the rights. A right turns a control off, never a view.
 
 ## 4. Interface
 
