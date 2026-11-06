@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.1.0]
+- The app starts on any Mac: libgit2 and OpenSSL are built into it, not taken from Homebrew; the README shows the current screens and how to install a release.
 - Work / Team edits the role table: each role shows Hidden, Read or Read and write in each area with Merge and Approve, Edit turns the cells into controls (Save, Cancel and Reset to defaults), a member can have several roles with the levels that result, and Work / Time edits and deletes an entry, with the sync state after the change.
 - Team rights work by area: each role has none, read or write in Work, Specs, Design, Knowledge, Code, Runs, Settings and Costs, a member can have several roles (the highest level wins), and a `roles:` block in `.shipyard/team.yaml` changes the table for the team. An area at none leaves the sidebar, the tabs and the palette, its pages show No access, and the Shipyard MCP server refuses its read tools; Settings stays for an admin, and the last admin keeps the admin flag.
 - Work / Time sends an entry to the issue tracker when you save it (when the issue tracker has time tracking), keeps the worklog id, changes or deletes the worklog with the entry, and Read the month imports your worklogs made in the issue tracker without doubling the ones Shipyard sent; each entry shows whether it is synced, and why not; the Ticket field is wide and its list shows the full key and the title.

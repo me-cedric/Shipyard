@@ -171,7 +171,8 @@
       "artifacts": [
         "spec:themes",
         "adr:0018"
-      ]
+      ],
+      "file": "docs/assets/screenshots/themes.png"
     },
     {
       "id": "SCR-020",
@@ -201,6 +202,24 @@
         "spec:projects"
       ],
       "file": "docs/assets/screenshots/new-project.png"
+    },
+    {
+      "id": "SCR-025",
+      "slug": "work-team",
+      "title": "Work / Team: the members and the rights of each role and member, by area",
+      "artifacts": [
+        "spec:team-rights"
+      ],
+      "file": "docs/assets/screenshots/team.png"
+    },
+    {
+      "id": "SCR-026",
+      "slug": "factory-run",
+      "title": "Factory / Runs: a run page with its workflow, sessions, diff and events",
+      "artifacts": [
+        "spec:factory"
+      ],
+      "file": "docs/assets/screenshots/run.png"
     }
   ]
 }

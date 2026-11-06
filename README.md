@@ -2,7 +2,7 @@
 <br />
 <img src="docs/assets/app-icon.png" width="128" height="128" alt="Shipyard app icon">
 <h1>Shipyard</h1>
-<p><strong>One desktop app to design, specify, plan and ship a project with a team of people and agents.</strong></p>
+<p><strong>One desktop app for the whole team to design, specify, plan and ship a project, with people and AI agents.</strong></p>
 <p>
 <a href="https://github.com/me-cedric/Shipyard/actions/workflows/ci.yml"><img src="https://github.com/me-cedric/Shipyard/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status" /></a>
 <a href="https://github.com/me-cedric/Shipyard/releases/latest"><img src="https://img.shields.io/github/v/release/me-cedric/Shipyard?display_name=tag&label=Release&logo=github&style=flat" alt="Latest Release" /></a>
@@ -15,11 +15,11 @@
 <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white&style=flat" alt="TypeScript" /></a>
 <a href="https://tauri.app"><img src="https://img.shields.io/badge/Tauri-2-FFC131?logo=tauri&logoColor=white&style=flat" alt="Tauri 2" /></a>
 <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-blue?style=flat" alt="macOS, Windows and Linux" />
-<img src="https://img.shields.io/badge/UI-English%20%7C%20French-informational?style=flat" alt="English and French interface" />
+<img src="https://img.shields.io/badge/UI-EN%20%7C%20FR%20%7C%20DE%20%7C%20ES-informational?style=flat" alt="English, French, German and Spanish interface" />
 </p>
 <p>
 <a href="#features">Features</a> ·
-<a href="#build-from-source">Install</a> ·
+<a href="#install">Install</a> ·
 <a href="#how-it-works">How it works</a> ·
 <a href="#documentation-map">Docs</a> ·
 <a href="#contributing">Contributing</a>
@@ -28,33 +28,34 @@
 </div>
 
 <p align="center">
-  <img src="docs/assets/screenshots/home-light.png" alt="Shipyard Home: the Needs you inbox with the Get started steps, key figures and a question from an agent with numbered options" width="960">
+  <img src="docs/assets/screenshots/home-light.png" alt="Shipyard Home in the light theme: the Setup card, the Get started steps, key figures and a question from an agent with numbered options" width="960">
 </p>
 
-Shipyard is for every role on a project: project manager, architect, developer, tester, business analyst, functional lead and junior. It needs little technical knowledge. It guides each step, picks safe defaults and uses plain words.
+Shipyard is one product for the whole team: product owner, project manager, architect, tech lead, business analyst, developer and tester. It needs little technical knowledge. It guides each step, picks safe defaults and uses plain words.
 
-The whole team works in one loop: **spec, plan, work items, runs, pull request, review.** Agents and people share this loop. An agent asks a question when a person must decide. A person approves each write to an issue tracker or a code host, or turns on a durable permission.
+The team works in one loop: **spec, plan, work items, runs, pull request, review.** People and agents share this loop. An agent asks a question when a person must decide. A person approves each write to an issue tracker or a code host, or turns on a durable permission.
 
 Everything that the team writes lives in the Git repository of the project. Shipyard is a window on that repository.
 
 ## Status
 
-Shipyard is pre-release software, version 0.1.0. No packaged release exists yet: you build it from source. Unit, Rust and browser end-to-end tests cover every space. The end-to-end run on a real project with a live code host is in progress (wave W13).
+Shipyard is pre-release software. Installers are on [GitHub Releases](https://github.com/me-cedric/Shipyard/releases/latest). They are not signed yet. Unit, Rust and browser end-to-end tests cover every space. The run on a real project with a live code host is in progress.
 
 | Area | Current state |
 | --- | --- |
 | Shell | Works. Seven spaces and Settings, command palette, inspector, assistant panel, notification centre, status bar with one Commit action and one Sync action. |
-| Projects | Works. Open a folder, clone, or create a project. A project profile hides or locks pages. |
+| Projects | Works. Open a folder, clone, or create a project with the New project creator. A project profile hides or locks pages. |
+| Team rights | Works. Roles, levels per area, admin, join request. |
 | Design | Works. Diagrams (Excalidraw, Mermaid, BPMN, draw.io), LikeC4 architecture, decisions, API, data, flows and screens. |
 | Specs | Works. OpenSpec changes with validation, capabilities, questions, test plans in Gherkin. |
-| Work | Works. Backlog and board from a local mirror of the issue tracker, Gantt plan, estimates, team and time. |
-| Factory | Works. Runs in lanes, workflows as YAML, agents map, sessions, usage and budgets. Automation writes are off by default. |
-| Code | Works. Changes, history, branches, pull requests with agent reviews, quality, impacts and a terminal. |
+| Work | Works. Backlog and board from a local mirror of the issue tracker, Gantt plan, estimates, team and time with a two-way worklog sync. |
+| Factory | Works. Runs in lanes, a live run page, workflows with a form editor, agents map, sessions, usage and budgets. Automation writes are off by default. |
+| Code | Works. Local changes with previews, history, branches, pull requests with agent reviews, quality checks and scanners, impacts and a terminal. |
 | Knowledge | Works. Reference graph, handbook, in-app manual, documents, slides, learning paths and dashboards. |
 | Issue trackers and code hosts | Jira Cloud and Data Center, GitHub Issues, GitLab Issues, Azure DevOps and Linear. Pull requests on GitHub and GitLab. Azure DevOps is a code host adapter. Each adapter has fake-based contract tests. Not every adapter has run against a live account. |
-| Agents | Claude Code, Codex, Gemini CLI, OpenCode, GitHub Copilot (ACP) and HTTP model providers. |
+| AI tools | Claude Code, Codex, Gemini CLI, OpenCode, GitHub Copilot (ACP) and HTTP model providers. |
 | MCP | Works. Shipyard serves its own MCP server and runs the MCP servers of the project. A GitLab sign-in adds the GitLab MCP server with one switch. |
-| Packaging | In progress. The release build bundles the `shipyard` command as a sidecar. No signed installer and no release workflow yet. |
+| Packaging | Works. A release workflow builds installers for macOS, Windows and Linux. They bundle the `shipyard` command. No installer is signed. |
 | Automation | Works. Pickup, claims, budgets and automatic agent reviews run. Write switches (push, pull request, issue tracker transition, issue tracker comment) are off by default, on purpose: an admin turns them on. |
 
 See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PLAN.md](docs/plan/MASTER-PLAN.md) for the plan.
@@ -62,7 +63,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 ## Features
 
 <p align="center">
-  <img src="docs/assets/screenshots/home.png" alt="Home: agent questions and the Get started steps" width="470">
+  <img src="docs/assets/screenshots/home.png" alt="Home in the dark theme: the Setup card, the Get started steps and agent questions" width="470">
   &nbsp;
   <img src="docs/assets/screenshots/specs.png" alt="Specs: the register of questions, risks, assumptions and decisions" width="470">
 </p>
@@ -80,6 +81,24 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 </p>
 
 <p align="center">
+  <img src="docs/assets/screenshots/team.png" alt="Work, Team: the members and a table of the rights of each role by area" width="470">
+  &nbsp;
+  <img src="docs/assets/screenshots/workflows.png" alt="Factory, Workflows: the form editor of a workflow with its steps, roles and tools" width="470">
+</p>
+
+<p align="center">
+  <img src="docs/assets/screenshots/run.png" alt="Factory: a run page with its sessions, diff and events" width="470">
+  &nbsp;
+  <img src="docs/assets/screenshots/new-project.png" alt="The New project creator: five steps and a preview of the files" width="470">
+</p>
+
+<p align="center">
+  <img src="docs/assets/screenshots/tour.png" alt="The first-run tour: one loop from idea to merged code" width="470">
+  &nbsp;
+  <img src="docs/assets/screenshots/themes.png" alt="Settings, Me: the OLED theme, theme files and language files" width="470">
+</p>
+
+<p align="center">
   <img src="docs/assets/screenshots/code.png" alt="Code: pull requests with checks, a diff and the merge action" width="470">
   &nbsp;
   <img src="docs/assets/screenshots/knowledge.png" alt="Knowledge: a learning path built from decisions and specs, with a glossary" width="470">
@@ -87,8 +106,9 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 
 ### Home
 
-- Inbox "Needs you": agent questions with numbered options, approvals that name the exact write, plans to approve, messages.
-- My work, Activity and Get started steps for a new project.
+- Inbox "Needs you": agent questions with numbered options, approvals that name the exact write, plans to approve, messages. An approval asks only for a real decision.
+- A Setup card (AI tool, issue tracker, code host, permissions, team) and Get started steps for a new project.
+- My work, Activity, key figures and live cost.
 - Key figures and dashboard tiles.
 
 ### Design
@@ -112,27 +132,41 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 - Backlog and Board from a local mirror of the issue tracker. A sync tick keeps it current.
 - Plan: a Gantt with capacity, holidays, day, week and month zoom, and a PNG export.
 - Estimates: three-point estimates, price, cost and margin. Seal sheets with a passphrase. Import and export Excel.
-- Team and Time: members, skills, capacity, absences, time entries and the whole month of worklogs in one click.
+- Team: members, skills, capacity, absences, and a table of the rights of each role and member (see Team rights).
+- Time: time entries and the whole month of worklogs in one click. The worklog syncs both ways with the issue tracker.
 - Cost privacy: no cost shows for a role with fewer than three rated members.
 
 ### Factory
 
 - Runs in lanes: Queued, Working, Needs you, In review, Ready to merge, Done.
-- Workflows as YAML files with roles, gates, fan-out, budgets and retries.
+- A live run page: workflow graph, sessions with Follow and a live chat, diff, events and cost as it grows.
+- Workflows as YAML files with roles, gates, fan-out, budgets and retries. A form editor edits each step. A text editor shows the file.
+- Approvals ask only for a real decision. Safe steps run without a click.
 - Agents map, Sessions with a kill switch, and Usage with spend per run, day, member and iteration.
 
 ### Code
 
-- Local changes, history, branches, conflicts, stash and one Commit action.
+- Local changes with previews, history, branches, conflicts, stash and one Commit action.
 - Pull requests on GitHub and GitLab: files, commits, checks, verdicts, review and merge after a click.
 - Review with an agent (a draft with findings on the diff), Write with an agent for a new pull request, and an automatic review setting. The agent follows the project's review and pull request rules.
-- Quality (scanner reports, security score, CycloneDX SBOM), Impacts on seven axes, a terminal and open in your code editor.
+- Quality: checks and scanner reports, a security score and a CycloneDX SBOM. Impacts on seven axes, a terminal and open in your code editor.
 
 ### Knowledge
 
 - Graph of the refs of the project and of its code.
 - Handbook, Manual (the user guide, searchable, inside the app), Documents (Markdown, export to `.docx` and `.xlsx`), Slides (reveal.js).
 - Learn: learning paths, glossary and news feeds. Dashboards with tiles.
+
+### Team rights
+
+- Nine roles: product owner, project manager, architect, tech lead, business analyst, developer, tester, designer, viewer. Edit the role table in Work, Team.
+- A level per area (read or edit): Work, Specs, Design, Knowledge, Code, Runs, Settings, Costs. Merge and Approve are separate rights.
+- An admin sets the rights. A person who is not in the team file reads and cannot change. A join request asks an admin for a role.
+
+### Onboarding and New project
+
+- A first-run tour in six steps, with a permissions step. Replay it from the command palette or Settings, Me.
+- The New project creator: Project, Brief, Team, Remote and Start. It shows the files before it writes them, creates the repository and starter issues, and starts a first run.
 
 ### Assistant
 
@@ -145,9 +179,11 @@ See [CHANGELOG.md](CHANGELOG.md) for the latest changes and [docs/plan/MASTER-PL
 
 - Issue trackers: Jira Cloud, Jira Data Center, GitHub Issues, GitLab Issues, Azure DevOps, Linear.
 - Code hosts: GitHub, GitLab, Azure DevOps. Sign in with the browser for GitHub and GitLab.
-- Agent runners: Claude Code, Codex, Gemini CLI, OpenCode, GitHub Copilot (ACP), HTTP model providers.
+- AI tools: Claude Code, Codex, Gemini CLI, OpenCode, GitHub Copilot (ACP), HTTP model providers.
 - MCP servers: a catalogue, custom servers, start, stop, test, and relay to agents.
-- English and French interface. Accent colour, sides, date format, window size and a portable mode.
+- Languages: English, French, German and Spanish. Import a language pack, or export English as a base to translate.
+- Themes: Light, Dark, OLED and System. Import and export a theme file.
+- Accent colour, sides, date format, window size and a portable mode.
 
 ## How it works
 
@@ -211,7 +247,7 @@ Frontend layout:
 | `src/features/<space>/` | One folder per space: home, specs, design, code, work, factory, knowledge, settings, assistant. A feature imports only `@/ui`, `@/lib` and its own folder. |
 | `src/ui/` | The design system in atomic layers: tokens, icons, atoms, molecules, organisms, templates. |
 | `src/lib/ipc/` | Generated bindings and the mock layer. |
-| `src/lib/i18n/` | English and French catalogues. |
+| `src/lib/i18n/` | English, French, German and Spanish catalogues. |
 | `e2e/` | Playwright tests. |
 
 Typed IPC: `tauri-specta` generates the TypeScript types and command functions from the Rust commands. Nobody edits `src/lib/ipc/bindings.ts` by hand. CI fails when it is stale.
@@ -237,7 +273,21 @@ The [`docs/decisions/`](docs/decisions/) folder holds 15 ADRs. Start with these:
 
 ## Install
 
-No release exists yet. [Build from source](#build-from-source).
+Download the installer for your system from [GitHub Releases](https://github.com/me-cedric/Shipyard/releases/latest):
+
+| System | File |
+| --- | --- |
+| macOS, Apple silicon | `.dmg` for `aarch64` |
+| macOS, Intel | `.dmg` for `x64` |
+| Windows | `.msi` or `.exe` |
+| Linux | `.AppImage`, `.deb` or `.rpm` |
+
+The installers are not signed. Your system warns you the first time.
+
+- **macOS.** Right-click Shipyard, then Open. Or run `xattr -dr com.apple.quarantine /Applications/Shipyard.app`.
+- **Windows.** In the SmartScreen window, click More info, then Run anyway.
+
+Or [build from source](#build-from-source).
 
 ## Build from source
 

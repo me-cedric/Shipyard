@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 # `https` is not a default feature: without it every HTTPS remote fails with "no TLS stream".
-git2 = { version = "0.21", features = ["https"] }
+git2 = { version = "0.21", features = ["https", "vendored-libgit2", "vendored-openssl"] }
 serde.workspace = true
 shipyard-core = { path = "../shipyard-core" }
 shipyard-secrets = { path = "../shipyard-secrets" }
