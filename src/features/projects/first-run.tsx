@@ -28,9 +28,10 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { STATE_DOT } from "@/ui/molecules/project-switcher";
 import logo from "../../../docs/assets/logo.svg";
 import { useCloneFolder } from "./clone-folder";
+import { NewProjectDialog } from "./new-project/new-project-dialog";
 import { RepoPicker } from "./repo-picker";
 
-type Step = "start" | "clone" | "create";
+type Step = "start" | "clone";
 
 type IconProps = { size?: number };
 const ROLE_ICON: Record<Role, ComponentType<IconProps>> = {
@@ -95,7 +96,7 @@ export function FolderField({ path, onPick }: { path: string; onPick: (path: str
 export function FirstRun() {
 	const { t } = useI18n();
 	const { role, setPrefs } = usePrefs();
-	const { openFolder, clone, create, switchTo } = useProjectActions();
+	const { openFolder, clone, switchTo } = useProjectActions();
 	const qc = useQueryClient();
 	const router = useRouter();
 	const recent = [...(useProjects().data ?? [])]
@@ -106,7 +107,7 @@ export function FirstRun() {
 	const [busy, setBusy] = useState(false);
 	const [url, setUrl] = useState("");
 	const [folder, setFolder] = useCloneFolder();
-	const [name, setName] = useState("");
+	const [creating, setCreating] = useState(false);
 	// A folder without Git: the error offers to make it a project.
 	const [plain, setPlain] = useState<string | null>(null);
 
@@ -237,7 +238,7 @@ export function FirstRun() {
 							</button>
 							<button
 								type="button"
-								onClick={() => setStep("create")}
+								onClick={() => setCreating(true)}
 								className={cn(big, "bg-surface-2 text-n-12")}
 							>
 								<span aria-hidden="true" className={cn(tile, "bg-success-soft text-success-text")}>
@@ -250,53 +251,27 @@ export function FirstRun() {
 				) : (
 					<div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-xl border bg-surface-1 p-4 shadow-2">
 						<h2 className="flex items-center gap-2 text-14 font-medium text-n-12">
-							{step === "clone" ? <ArrowDownTrayIcon size={16} /> : <PlusIcon size={16} />}
-							{step === "clone" ? t.projects.clone : t.projects.create}
+							<ArrowDownTrayIcon size={16} />
+							{t.projects.clone}
 						</h2>
-						{step === "clone" ? (
-							<>
-								<RepoPicker folder={folder} onDone={() => void qc.invalidateQueries()} />
-								<Input
-									label={t.projects.address}
-									placeholder={t.projects.address}
-									value={url}
-									onChange={(e) => setUrl(e.target.value)}
-								/>
-								<FolderField path={folder} onPick={setFolder} />
-								<div className="flex justify-between">
-									{back}
-									<Button
-										variant="primary"
-										disabled={busy || !url.trim() || !folder || !repoName(url)}
-										onClick={() => run(() => clone(url.trim(), `${folder}/${repoName(url)}`))}
-									>
-										{t.projects.cloneRun}
-									</Button>
-								</div>
-							</>
-						) : (
-							<>
-								<Input
-									label={t.projects.name}
-									placeholder={t.projects.name}
-									value={name}
-									onChange={(e) => setName(e.target.value)}
-								/>
-								<FolderField path={folder} onPick={setFolder} />
-								<div className="flex justify-between">
-									{back}
-									<Button
-										variant="primary"
-										disabled={busy || !name.trim() || !folder}
-										onClick={() =>
-											run(() => create(`${folder}/${folderOf(name)}`, name.trim(), keyOf(name)))
-										}
-									>
-										{t.projects.createRun}
-									</Button>
-								</div>
-							</>
-						)}
+						<RepoPicker folder={folder} onDone={() => void qc.invalidateQueries()} />
+						<Input
+							label={t.projects.address}
+							placeholder={t.projects.address}
+							value={url}
+							onChange={(e) => setUrl(e.target.value)}
+						/>
+						<FolderField path={folder} onPick={setFolder} />
+						<div className="flex justify-between">
+							{back}
+							<Button
+								variant="primary"
+								disabled={busy || !url.trim() || !folder || !repoName(url)}
+								onClick={() => run(() => clone(url.trim(), `${folder}/${repoName(url)}`))}
+							>
+								{t.projects.cloneRun}
+							</Button>
+						</div>
 					</div>
 				)}
 				{error ? (
@@ -343,6 +318,7 @@ export function FirstRun() {
 						</ul>
 					</section>
 				) : null}
+				<NewProjectDialog open={creating} onClose={() => setCreating(false)} />
 			</div>
 		</div>
 	);

@@ -154,6 +154,7 @@ impl Fx {
             base: None,
             reviewers: vec!["alice".into()],
             refs: None,
+            languages: Default::default(),
         };
         tweak(&mut project);
         project

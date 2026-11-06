@@ -30,7 +30,7 @@ The options of a run live in the workflow files. Factory / Workflows edits them 
 - REQ-004: The form SHALL edit the limits of the run: `stall_s`, and the optional `budget_usd` and `max_turns`. The budget and the turn limit SHALL be off until the person turns them on.
 - REQ-005: The form SHALL check the workflow at each change with the workflow check of the Factory (`factory` REQ-012, REQ-035), show the first issue, and keep Save off while an issue remains.
 - REQ-006: A save from the form SHALL write the file through the shared YAML writer. It SHALL keep the comment lines at the top of the file and leave out a field that has its default value. A form save with no change SHALL keep each field of the workflow.
-- REQ-007: A person SHALL create a workflow from a preset (the bundled workflows `feature`, `bug`, `spike`, `docs-update`, `review-only`, `spec-split`) or as a copy of a workflow, with a new id.
+- REQ-007: A person SHALL create a workflow from a preset (the bundled workflows `feature`, `bug`, `spike`, `docs-update`, `review-only`, `spec-split`, `bootstrap`) or as a copy of a workflow, with a new id.
 - REQ-008: A person SHALL rename and delete a workflow. A delete SHALL ask for a confirmation. Shipyard SHALL refuse to rename or delete the default workflow of the project or a workflow that a run uses.
 - REQ-009: The Shipyard MCP server SHALL offer an outside agent the tools `workflow_list`, `workflow_read`, `workflow_validate` and `workflow_propose`, in the group `workflows`, off by default. A read-only project SHALL refuse `workflow_propose`.
 - REQ-010: `workflow_propose` SHALL refuse an invalid text and SHALL NOT write the project. Factory / Workflows SHALL show each proposal with its diff, and a person SHALL apply or discard it.
@@ -128,7 +128,7 @@ A save from the form SHALL write the file through the shared YAML writer. It SHA
 
 ### Requirement: REQ-007 Presets and copies
 
-A person SHALL create a workflow from a preset (the bundled workflows `feature`, `bug`, `spike`, `docs-update`, `review-only`, `spec-split`) or as a copy of a workflow, with a new id.
+A person SHALL create a workflow from a preset (the bundled workflows `feature`, `bug`, `spike`, `docs-update`, `review-only`, `spec-split`, `bootstrap`) or as a copy of a workflow, with a new id.
 
 Screen: SCR-020
 

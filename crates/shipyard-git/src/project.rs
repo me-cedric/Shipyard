@@ -89,6 +89,16 @@ fn stderr(o: &Output) -> String {
         .to_string()
 }
 
+/// The name of the global git identity, for a folder that has no repository yet.
+pub fn global_user_name() -> Option<String> {
+    let n = git2::Config::open_default()
+        .ok()?
+        .get_string("user.name")
+        .ok()?;
+    let n = n.trim();
+    (!n.is_empty()).then(|| n.to_string())
+}
+
 /// Starts a repository in `path` and writes the OS ignore rules.
 /// Only for a repository that Shipyard creates (REQ-005).
 pub fn init(path: &Path) -> Result<(), String> {

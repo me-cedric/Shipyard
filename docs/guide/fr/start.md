@@ -41,8 +41,25 @@ Shipyard ne demande pas l'accès complet au disque, la caméra, le micro ni la p
 ## Ouvrir un projet
 
 1. Allez dans Accueil, puis Projets.
-2. Cliquez sur Ouvrir un dossier local et choisissez le dossier de votre projet. Ou créez un nouveau projet.
+2. Cliquez sur Ouvrir un dossier local et choisissez le dossier de votre projet. Ou cliquez sur Nouveau projet (voir Nouveau projet ci-dessous).
 3. Quand le dossier n'est pas encore un projet, cliquez sur En faire un projet.
+
+## Nouveau projet
+
+Cliquez sur Nouveau projet dans Accueil, puis Projets, ou sur la tuile Créer un projet du premier lancement. L'assistant a cinq étapes : Projet, Cahier, Équipe, Dépôt et Départ. Chaque étape a des valeurs par défaut. Créer est actif dès la première étape quand le nom et le dossier parent sont renseignés.
+
+1. Projet : le nom, la clé (tirée du nom, vous pouvez la modifier), le dossier parent et la pile : Node, Rust, Python, Java, Go ou Autre. La pile fixe les contrôles du fichier de projet et les règles d'exclusion de `.gitignore`. Le dossier doit être vide ou nouveau : Créer refuse un dossier qui contient des fichiers.
+2. Cahier : la vision, les utilisateurs et le périmètre, en texte que vous modifiez. Ils vont dans `docs/brief.md`. Choisissez aussi la langue des documents et la langue des pull requests. Les deux valent par défaut la langue de l'interface. Les agents écrivent les spécifications, les diagrammes, les documents et le texte des pull requests dans ces langues. Le code, les identifiants, les commentaires de code et les messages de commit restent en anglais.
+3. Équipe : vous êtes le premier membre, avec un rôle. Ajoutez ou retirez des membres avec un nom et un rôle.
+4. Dépôt : Local seulement (par défaut), une adresse distante existante, ou un nouveau dépôt privé sur une connexion d'hébergeur de code (GitHub ou GitLab). Un dépôt public n'est pas proposé. Choisissez aussi une connexion d'outil de suivi des tickets et son périmètre.
+5. Départ : la liste des fichiers que Créer écrit, avec leur texte. Rien n'est écrit avant votre clic sur Créer. Choisissez ensuite un démarrage :
+   - Une exécution Factory du workflow `bootstrap` : un plan qui attend votre approbation, une construction, une revue et une pull request. Elle demande une connexion d'hébergeur de code.
+   - Des tickets de départ : un ticket pour chaque ligne du périmètre. Vous voyez, modifiez et retirez chacun d'eux d'abord. Ils demandent une connexion d'outil de suivi des tickets. Shipyard crée les tickets seulement quand vous cliquez sur Créer les tickets, et un deuxième clic ne crée aucune copie.
+   - Plus tard.
+
+   Le choix par défaut est l'exécution quand c'est possible, sinon les tickets, sinon plus tard.
+
+Créer fait le dépôt, écrit les fichiers, fait le premier commit et ouvre le projet. Pour un nouveau dépôt, il crée ensuite le dépôt chez l'hébergeur de code, fixe `origin` et pousse. Quand l'hébergeur de code refuse, le projet local reste ouvert et l'erreur s'affiche.
 
 ## Trouver son chemin
 

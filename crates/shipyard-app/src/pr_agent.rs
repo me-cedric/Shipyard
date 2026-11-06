@@ -1336,6 +1336,7 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
                 base: None,
                 reviewers: Vec::new(),
                 refs: None,
+                languages: Default::default(),
             },
         );
     }

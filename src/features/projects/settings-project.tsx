@@ -24,6 +24,7 @@ import {
 	Cog6ToothIcon,
 	FolderOpenIcon,
 	InformationCircleIcon,
+	LanguageIcon,
 	LinkIcon,
 	PencilIcon,
 	QueueListIcon,
@@ -57,6 +58,8 @@ type Draft = {
 	connections: { tracker: string; forge: string };
 	/** The Jira project key, the repository, the Azure project or the Linear team. */
 	scope: string;
+	/** The language codes of the docs and of the pull requests. Empty: no rule. */
+	languages: { docs: string; pulls: string };
 };
 
 const draftOf = (f: ProjectFile_Deserialize | null): Draft => ({
@@ -66,6 +69,7 @@ const draftOf = (f: ProjectFile_Deserialize | null): Draft => ({
 	workflow: f?.defaultWorkflow ?? "",
 	connections: { tracker: f?.connections?.tracker ?? "", forge: f?.connections?.forge ?? "" },
 	scope: f?.connections?.trackerScope ?? "",
+	languages: { docs: f?.languages?.docs ?? "", pulls: f?.languages?.pulls ?? "" },
 });
 
 // An invalid or missing project file leaves only the overrides. Settings / Health shows the finding.
@@ -84,6 +88,19 @@ function Form({
 		queryKey: ["connections", "list"],
 		queryFn: () => unwrap(commands.connectionsList()),
 	}).data;
+	const languages = useQuery({
+		queryKey: ["creator", "options"],
+		queryFn: () => unwrap(commands.creatorOptions()),
+	}).data?.languages;
+	const languageItems = (saved: string) => [
+		{ value: NONE, label: t.projects.noConnection },
+		...[...(languages ?? []), ...(saved && !languages?.includes(saved) ? [saved] : [])].map(
+			(l) => ({
+				value: l,
+				label: t.creator.lang[l as keyof typeof t.creator.lang] ?? l,
+			}),
+		),
+	];
 	const connectionItems = (group: "tracker" | "forge") => {
 		const saved = draft.connections[group];
 		const rows = (connections ?? []).filter((c) => c.group === group);
@@ -120,6 +137,10 @@ function Form({
 									forge: draft.connections.forge || null,
 									trackerScope: draft.scope.trim() || null,
 								}
+							: null,
+					languages:
+						draft.languages.docs || draft.languages.pulls
+							? { docs: draft.languages.docs || null, pulls: draft.languages.pulls || null }
 							: null,
 				}),
 			);
@@ -239,6 +260,29 @@ function Form({
 									],
 								},
 								{
+									id: "languages",
+									title: t.creator.languages,
+									icon: <LanguageIcon size={14} />,
+									rows: (["docs", "pulls"] as const).map((k) => ({
+										id: `${k}-language`,
+										icon: <LanguageIcon size={14} />,
+										label: t.creator[`${k}Lang`],
+										control: (
+											<Select
+												label={t.creator[`${k}Lang`]}
+												value={draft.languages[k] || NONE}
+												onValueChange={(v) =>
+													setDraft({
+														...draft,
+														languages: { ...draft.languages, [k]: v === NONE ? "" : v },
+													})
+												}
+												items={languageItems(draft.languages[k])}
+											/>
+										),
+									})),
+								},
+								{
 									id: "workflow",
 									title: t.projects.workflow,
 									icon: <Cog6ToothIcon size={14} />,
@@ -339,6 +383,7 @@ function sectionItems(t: ReturnType<typeof useI18n>["t"], hasFile: boolean) {
 			? [
 					item("paths", t.projects.paths, <FolderOpenIcon size={14} />),
 					item("connections", t.projects.connections, <LinkIcon size={14} />),
+					item("languages", t.creator.languages, <LanguageIcon size={14} />),
 					item("workflow", t.projects.workflow, <Cog6ToothIcon size={14} />),
 				]
 			: []),

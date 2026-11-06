@@ -6,6 +6,8 @@ Settings holds the settings of the project, your connections and your own choice
 
 Project holds the folders of the project, the default workflow, the automation switches and the project import. Settings that are rarely changed sit under Advanced.
 
+The docs language and the pull request language set the language of the specs, documents and pull request text of the agents. Code and comments stay in English. A change applies to the next agent brief and pull request only. Existing docs stay as they are.
+
 Agent review of each pull request is one choice: Off, Draft or Post. Draft keeps a review for you to read and post. Post adds a comment review by itself and never approves. The choice goes to .shipyard/automation.yaml.
 
 The `docs` list of the project file says which docs follow which code. Each rule has `code` (path patterns) and `feeds` (doc folders or paths), and an optional `name`. Without the list, the specs feed the other doc folders.

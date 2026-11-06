@@ -77,9 +77,10 @@ describe("first run", () => {
 		await user.click(await screen.findByRole("button", { name: "Create a project" }));
 		expect(await screen.findByDisplayValue("/mock/Projects")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Create" })).toBeDisabled();
-		expect(screen.queryByRole("textbox", { name: "Key" })).toBeNull();
 		await user.type(screen.getByRole("textbox", { name: "Name" }), "Acme Web");
+		expect(screen.getByRole("textbox", { name: "Key" })).toHaveValue("ACMEWE");
 		await user.click(screen.getByRole("button", { name: "Create" }));
+		await user.click(await screen.findByRole("button", { name: "Open" }));
 		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
 		expect(mockState().projects[0]).toMatchObject({
 			name: "Acme Web",

@@ -191,6 +191,16 @@
         "spec:languages",
         "adr:0021"
       ]
+    },
+    {
+      "id": "SCR-021",
+      "slug": "new-project",
+      "title": "New project: the five steps of the creator, the preview of the files and the start choice",
+      "artifacts": [
+        "spec:project-creator",
+        "spec:projects"
+      ],
+      "file": "docs/assets/screenshots/new-project.png"
     }
   ]
 }

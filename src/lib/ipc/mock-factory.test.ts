@@ -113,6 +113,7 @@ describe("mock factory: the demo data set", () => {
 		expect([f.runs, f.approvals, f.questions, f.messages]).toEqual([[], [], [], []]);
 		expect(f.kill).toBe(false);
 		expect(Object.keys(f.workflows).sort()).toEqual([
+			"bootstrap",
 			"bug",
 			"docs-update",
 			"feature",
@@ -408,9 +409,10 @@ describe("mock factory: workflows, roles and tiers", () => {
 		await open();
 	});
 
-	it("lists the five default workflows with their steps", async () => {
+	it("lists the seven default workflows with their steps", async () => {
 		const list = await unwrap(commands.workflowsList());
 		expect(list.map((w) => w.id)).toEqual([
+			"bootstrap",
 			"bug",
 			"docs-update",
 			"feature",
@@ -497,7 +499,7 @@ describe("mock factory: workflows, roles and tiers", () => {
 
 	it("lists the options, and creates, renames and deletes a workflow", async () => {
 		const o = await unwrap(commands.workflowOptions());
-		expect(o.presets).toHaveLength(6);
+		expect(o.presets).toHaveLength(7);
 		expect(o.tiers).toEqual(["top", "mid", "small"]);
 		await unwrap(commands.workflowCreate("hotfix", { kind: "preset", id: "bug" }));
 		expect((await unwrap(commands.workflowGet("hotfix"))).workflow?.id).toBe("hotfix");

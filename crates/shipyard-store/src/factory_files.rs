@@ -26,10 +26,10 @@ macro_rules! templates {
     };
 }
 
-const WORKFLOWS: &[(&str, &str)] = templates!("workflows": "feature" "yaml", "bug" "yaml", "spike" "yaml", "spec-split" "yaml", "review-only" "yaml", "docs-update" "yaml");
+const WORKFLOWS: &[(&str, &str)] = templates!("workflows": "feature" "yaml", "bug" "yaml", "spike" "yaml", "spec-split" "yaml", "review-only" "yaml", "docs-update" "yaml", "bootstrap" "yaml");
 const ROLES: &[(&str, &str)] = templates!("roles": "scout" "md", "worker" "md", "reviewer" "md", "planner" "md", "tester" "md", "docs" "md", "triager" "md");
 
-/// `(id, yaml)` of the six workflows that ship.
+/// `(id, yaml)` of the seven workflows that ship.
 pub fn default_workflows() -> &'static [(&'static str, &'static str)] {
     WORKFLOWS
 }

@@ -63,6 +63,55 @@ pub struct DocRule {
     pub feeds: Vec<String>,
 }
 
+/// The languages that a project can choose for its docs and its pull requests (Q-153), with the
+/// English name that an agent brief says.
+pub const LANGUAGES: [(&str, &str); 7] = [
+    ("en", "English"),
+    ("fr", "French"),
+    ("de", "German"),
+    ("es", "Spanish"),
+    ("it", "Italian"),
+    ("nl", "Dutch"),
+    ("pt", "Portuguese"),
+];
+
+/// The language of the docs and of the pull requests of a project (ADR 0020). Unset: no rule.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ProjectLanguages {
+    /// Specs, diagrams, documents and other docs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub docs: Option<String>,
+    /// Pull request text and review comments.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pulls: Option<String>,
+}
+
+/// The English name of a language code of [`LANGUAGES`].
+pub fn language_name(code: &str) -> Option<&'static str> {
+    LANGUAGES.iter().find(|(c, _)| *c == code).map(|(_, n)| *n)
+}
+
+impl ProjectLanguages {
+    /// The paragraph that each agent brief gets (`project-creator` REQ-005). Empty when no
+    /// language is set.
+    pub fn brief_text(&self) -> String {
+        let name = |c: &Option<String>| c.as_deref().and_then(language_name);
+        let (docs, pulls) = (name(&self.docs), name(&self.pulls));
+        if docs.is_none() && pulls.is_none() {
+            return String::new();
+        }
+        let mut p = String::from("Languages of this project:");
+        if let Some(d) = docs {
+            p += &format!(" write specs, diagrams, documents and other docs in {d}.");
+        }
+        if let Some(l) = pulls {
+            p += &format!(" Write pull request titles, descriptions and review comments in {l}.");
+        }
+        p + " Keep code, identifiers, code comments and commit messages in English.\n\n"
+    }
+}
+
 /// The file holds no machine path, no secret and no personal preference.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -81,6 +130,9 @@ pub struct ProjectFile {
     /// The docs rules. Empty: the fixed chain from the specs (`docs_fresh::rules`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub docs: Vec<DocRule>,
+    /// The language of the docs and of the pull requests (ADR 0020).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub languages: Option<ProjectLanguages>,
 }
 
 /// One invalid value. `field` names it, `value` shows it.
@@ -103,6 +155,7 @@ impl ProjectFile {
             gates: Vec::new(),
             connections: None,
             docs: Vec::new(),
+            languages: None,
         }
     }
 
@@ -197,6 +250,13 @@ pub fn validate(f: &ProjectFile) -> Vec<Issue> {
     }
     if let Some(sc) = c_scope(f).filter(|sc| !valid_scope(sc)) {
         bad("connections.trackerScope".into(), sc);
+    }
+    if let Some(l) = &f.languages {
+        for (field, code) in [("docs", &l.docs), ("pulls", &l.pulls)] {
+            if let Some(c) = code.as_deref().filter(|c| language_name(c).is_none()) {
+                bad(format!("languages.{field}"), c);
+            }
+        }
     }
     for (i, g) in f.gates.iter().enumerate() {
         if g.trim().is_empty() {

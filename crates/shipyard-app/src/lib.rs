@@ -13,6 +13,7 @@ pub mod codex_trust;
 pub mod commands;
 pub mod connections;
 pub mod costing;
+pub mod creator;
 pub mod decks;
 pub mod delivery;
 pub mod design;
@@ -283,6 +284,11 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::doctor::doctor_ledger,
             crate::doctor_bootstrap::doctor_bootstrap_plan,
             crate::doctor_bootstrap::doctor_bootstrap_apply,
+            crate::creator::creator_options,
+            crate::creator::creator_draft,
+            crate::creator::creator_preview,
+            crate::creator::creator_create,
+            crate::creator::creator_bootstrap,
             crate::assistant_attach::assistant_attach,
             crate::feedback::feedback_open,
             crate::applog::debug_log,

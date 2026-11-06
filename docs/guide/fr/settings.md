@@ -6,6 +6,8 @@ Réglages contient les réglages du projet, vos connexions et vos propres choix.
 
 Projet contient les dossiers du projet, le workflow par défaut, les interrupteurs d'automatisation et l'import de projet. Les réglages rarement changés sont sous Avancé.
 
+La langue des documents et la langue des pull requests fixent la langue des spécifications, des documents et du texte des pull requests des agents. Le code et les commentaires restent en anglais. Un changement ne vaut que pour la prochaine consigne d'agent et la prochaine pull request. Les documents existants ne changent pas.
+
 La revue par un agent de chaque pull request est un seul choix : Désactivée, Brouillon ou Publication. Brouillon garde une revue que vous lisez et publiez. Publication ajoute seule une revue en commentaire et n'approuve jamais. Le choix va dans .shipyard/automation.yaml.
 
 La liste `docs` du fichier de projet dit quels documents suivent quel code. Chaque règle a `code` (motifs de chemins) et `feeds` (dossiers ou chemins de documents), et un `name` facultatif. Sans la liste, les spécifications alimentent les autres dossiers de documents.

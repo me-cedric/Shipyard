@@ -86,6 +86,7 @@ pub(crate) fn fx(writes: Writes) -> Fx {
             base: None,
             reviewers: vec!["alice".into()],
             refs: s.index_of(&id).ok(),
+            languages: Default::default(),
         },
     );
     // The runs act for the person of the project: solo, every right (`team-rights` REQ-009).
@@ -332,6 +333,7 @@ fn a_run_with_a_plan_gate_waits_for_a_click_and_a_rejection_runs_the_plan_again(
             base: None,
             reviewers: vec![],
             refs: None,
+            languages: Default::default(),
         }
     });
     let run = fx.start("SHIP-1");
@@ -521,6 +523,7 @@ fn workflows_list_read_check_and_save_the_files_of_the_repository() {
     assert_eq!(
         list.iter().map(|w| w.id.as_str()).collect::<Vec<_>>(),
         [
+            "bootstrap",
             "bug",
             "docs-update",
             "feature",
@@ -964,7 +967,7 @@ fn a_workflow_is_made_from_a_preset_renamed_and_deleted() {
     assert!(delete_workflow(&fx.s, "moved").is_err());
 
     let o = workflow_choices(&fx.s).unwrap();
-    assert_eq!(o.presets.len(), 6);
+    assert_eq!(o.presets.len(), 7);
     assert_eq!(o.tiers, ["top", "mid", "small"]);
     assert!(o.roles.contains(&"worker".to_string()) && !o.tools.is_empty());
 }

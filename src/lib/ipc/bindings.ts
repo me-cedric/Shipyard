@@ -249,6 +249,11 @@ export const commands = {
 	doctorLedger: () => typedError<LedgerEntry[], AppError_Serialize>(__TAURI_INVOKE("doctor_ledger")),
 	doctorBootstrapPlan: (answers: BootstrapAnswers) => typedError<BootstrapPlan, AppError_Serialize>(__TAURI_INVOKE("doctor_bootstrap_plan", { answers })),
 	doctorBootstrapApply: (answers: BootstrapAnswers, click: boolean) => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("doctor_bootstrap_apply", { answers, click })),
+	creatorOptions: () => typedError<CreatorOptions_Serialize, AppError_Serialize>(__TAURI_INVOKE("creator_options")),
+	creatorDraft: (name: string, stack: string, lang: string) => typedError<Brief, AppError_Serialize>(__TAURI_INVOKE("creator_draft", { name, stack, lang })),
+	creatorPreview: (plan: NewProject_Deserialize) => typedError<CreatorPreview_Serialize, AppError_Serialize>(__TAURI_INVOKE("creator_preview", { plan })),
+	creatorCreate: (plan: NewProject_Deserialize, click: boolean) => typedError<CreatorResult_Serialize, AppError_Serialize>(__TAURI_INVOKE("creator_create", { plan, click })),
+	creatorBootstrap: (click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("creator_bootstrap", { click })),
 	assistantAttach: (thread: string, name: string, bytes: number[]) => typedError<Attachment, AppError_Serialize>(__TAURI_INVOKE("assistant_attach", { thread, name, bytes })),
 	feedbackOpen: (kind: FeedbackKind, title: string, details: string, click: boolean) => typedError<string, AppError_Serialize>(__TAURI_INVOKE("feedback_open", { kind, title, details, click })),
 	debugLog: () => typedError<LogLine[], AppError_Serialize>(__TAURI_INVOKE("debug_log")),
@@ -1172,6 +1177,14 @@ export type Branch_Serialize = {
 	tip: string,
 };
 
+/**  The vision, the users and the scope of a new project (REQ-003). */
+export type Brief = {
+	vision: string,
+	users: string,
+	/**  One line for each item of the scope: each line gives one starter issue. */
+	scope: string,
+};
+
 export type BrokenCitation = {
 	target: string,
 	source: string,
@@ -1727,6 +1740,63 @@ export type Coverage = {
 	percent: number,
 	covered: number,
 	total: number,
+};
+
+export type CreatorOptions = CreatorOptions_Serialize | CreatorOptions_Deserialize;
+
+export type CreatorOptions_Deserialize = {
+	stacks: StackPreset[],
+	languages: string[],
+	roles: string[],
+	/**  The name of the global git identity: the first member. */
+	me?: string | null,
+};
+
+export type CreatorOptions_Serialize = {
+	stacks: StackPreset[],
+	languages: string[],
+	roles: string[],
+	/**  The name of the global git identity: the first member. */
+	me: string | null,
+};
+
+/**  What Create writes, and what can start the work (REQ-009, REQ-011, REQ-012). */
+export type CreatorPreview = CreatorPreview_Serialize | CreatorPreview_Deserialize;
+
+/**  What Create writes, and what can start the work (REQ-009, REQ-011, REQ-012). */
+export type CreatorPreview_Deserialize = {
+	files: PlannedFile[],
+	/**  One starter issue for each line of the scope. The ref is the label of the issue. */
+	issues: Row_Deserialize[],
+	/**  `run`, `issues` and `later`, in the order of the default; only the ones that can run. */
+	starts: string[],
+};
+
+/**  What Create writes, and what can start the work (REQ-009, REQ-011, REQ-012). */
+export type CreatorPreview_Serialize = {
+	files: PlannedFile[],
+	/**  One starter issue for each line of the scope. The ref is the label of the issue. */
+	issues: Row_Serialize[],
+	/**  `run`, `issues` and `later`, in the order of the default; only the ones that can run. */
+	starts: string[],
+};
+
+export type CreatorResult = CreatorResult_Serialize | CreatorResult_Deserialize;
+
+export type CreatorResult_Deserialize = {
+	outcome: ProjectOutcome_Deserialize,
+	/**  The address of `origin`, when the project has one. */
+	remote?: string | null,
+	/**  Why the first commit or the remote failed. The local project stays open (REQ-010). */
+	warning?: string | null,
+};
+
+export type CreatorResult_Serialize = {
+	outcome: ProjectOutcome_Serialize,
+	/**  The address of `origin`, when the project has one. */
+	remote: string | null,
+	/**  Why the first commit or the remote failed. The local project stays open (REQ-010). */
+	warning: string | null,
 };
 
 export type DashEntry = {
@@ -3175,6 +3245,68 @@ export type MyChecks = {
 	ci: string,
 };
 
+export type NewMember = {
+	name: string,
+	/**  One of [`ROLES`]. */
+	role: string,
+};
+
+/**  The answers of the creator. */
+export type NewProject = NewProject_Serialize | NewProject_Deserialize;
+
+/**  The answers of the creator. */
+export type NewProject_Deserialize = {
+	name: string,
+	key: string,
+	/**  The absolute path of the new project folder. */
+	folder: string,
+	/**  The id of a [`StackPreset`]. */
+	stack: string,
+	brief: Brief,
+	docsLang: string,
+	pullsLang: string,
+	/**  The first member is the person. */
+	members: NewMember[],
+	remote: NewRemote_Deserialize,
+	tracker?: string | null,
+	trackerScope?: string | null,
+};
+
+/**  The answers of the creator. */
+export type NewProject_Serialize = {
+	name: string,
+	key: string,
+	/**  The absolute path of the new project folder. */
+	folder: string,
+	/**  The id of a [`StackPreset`]. */
+	stack: string,
+	brief: Brief,
+	docsLang: string,
+	pullsLang: string,
+	/**  The first member is the person. */
+	members: NewMember[],
+	remote: NewRemote_Serialize,
+	tracker: string | null,
+	trackerScope: string | null,
+};
+
+/**  Where the project lives besides this machine (REQ-008). */
+export type NewRemote = NewRemote_Serialize | NewRemote_Deserialize;
+
+/**  Where the project lives besides this machine (REQ-008). */
+export type NewRemote_Deserialize = { kind: "local" } | 
+/**  An existing address. `forge`: the code host connection that serves it, if any. */
+{ kind: "existing"; url: string; forge?: string | null } | 
+/**  A new private repository `owner/name` on the code host connection `forge`. */
+{ kind: "create"; forge: string; slug: string };
+
+/**  Where the project lives besides this machine (REQ-008). */
+export type NewRemote_Serialize = { kind: "local" } | 
+/**  An existing address. `forge`: the code host connection that serves it, if any. */
+{ kind: "existing"; url: string; forge: string | null } | 
+/**  A new private repository `owner/name` on the code host connection `forge`. */
+{ kind: "create"; forge: string; slug: string };
+
 export type Objective = {
 	id: string,
 	/**  The assets of the objective, as `kind:id`. */
@@ -4123,6 +4255,8 @@ export type ProjectFile_Deserialize = {
 	connections?: ProjectConnections_Deserialize | null,
 	/**  The docs rules. Empty: the fixed chain from the specs (`docs_fresh::rules`). */
 	docs?: DocRule_Deserialize[],
+	/**  The language of the docs and of the pull requests (ADR 0020). */
+	languages?: ProjectLanguages_Deserialize | null,
 };
 
 /**  The file holds no machine path, no secret and no personal preference. */
@@ -4136,6 +4270,27 @@ export type ProjectFile_Serialize = {
 	connections?: ProjectConnections_Serialize,
 	/**  The docs rules. Empty: the fixed chain from the specs (`docs_fresh::rules`). */
 	docs?: DocRule_Serialize[],
+	/**  The language of the docs and of the pull requests (ADR 0020). */
+	languages?: ProjectLanguages_Serialize,
+};
+
+/**  The language of the docs and of the pull requests of a project (ADR 0020). Unset: no rule. */
+export type ProjectLanguages = ProjectLanguages_Serialize | ProjectLanguages_Deserialize;
+
+/**  The language of the docs and of the pull requests of a project (ADR 0020). Unset: no rule. */
+export type ProjectLanguages_Deserialize = {
+	/**  Specs, diagrams, documents and other docs. */
+	docs?: string | null,
+	/**  Pull request text and review comments. */
+	pulls?: string | null,
+};
+
+/**  The language of the docs and of the pull requests of a project (ADR 0020). Unset: no rule. */
+export type ProjectLanguages_Serialize = {
+	/**  Specs, diagrams, documents and other docs. */
+	docs?: string,
+	/**  Pull request text and review comments. */
+	pulls?: string,
 };
 
 export type ProjectOutcome = ProjectOutcome_Serialize | ProjectOutcome_Deserialize;
@@ -5459,6 +5614,12 @@ export type SplitPreview_Serialize = {
 	/**  The problems that block the apply. */
 	problems: string[],
 	rows: DiffRow_Serialize[],
+};
+
+/**  A stack preset: its gates and the ignore rules of its build output (REQ-002). */
+export type StackPreset = {
+	id: string,
+	gates: string[],
 };
 
 export type Stash = {

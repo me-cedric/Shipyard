@@ -1,0 +1,32 @@
+# A bootstrap: read the brief of a new project, plan the first specs and the skeleton behind a
+# human gate, build them, review, open a pull request. The project creator starts it.
+id: bootstrap
+steps:
+  - id: plan
+    role: planner
+    model: top
+    effort: high
+    mode: plan
+    gate: human
+    tools: [read_ticket, read_ref, ask_question, post_progress, report]
+  - id: build
+    role: worker
+    model: mid
+    effort: medium
+    needs: [plan]
+    retry: 2
+    tools: [read_ticket, read_ref, ask_question, post_progress, handoff, report]
+  - id: review
+    role: reviewer
+    model: top
+    effort: high
+    mode: plan
+    needs: [build]
+    fresh_context: true
+    max_rounds: 2
+    tools: [read_ref, post_progress, report]
+  - id: pr
+    action: open_pr
+    needs: [review]
+limits:
+  stall_s: 300

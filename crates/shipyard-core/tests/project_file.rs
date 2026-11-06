@@ -145,3 +145,33 @@ fn a_bad_docs_rule_names_its_field() {
         assert_eq!(fields(&f), [field]);
     }
 }
+
+#[test]
+fn languages_load_validate_and_give_the_brief_text() {
+    use shipyard_core::project::ProjectLanguages;
+    let mut f = ok();
+    assert_eq!(ProjectLanguages::default().brief_text(), "");
+    f.languages = Some(ProjectLanguages {
+        docs: Some("fr".into()),
+        pulls: Some("en".into()),
+    });
+    assert!(validate(&f).is_empty());
+    let text = f.languages.as_ref().unwrap().brief_text();
+    assert!(text.contains("docs in French"), "{text}");
+    assert!(text.contains("review comments in English"), "{text}");
+    assert!(text.contains("code comments and commit messages in English"));
+    let yaml = serde_norway::to_string(&f).unwrap();
+    assert!(
+        yaml.contains("languages:\n  docs: fr\n  pulls: en"),
+        "{yaml}"
+    );
+    let back: ProjectFile = serde_norway::from_str(&yaml).unwrap();
+    assert_eq!(back, f);
+    let none = serde_norway::to_string(&ok()).unwrap();
+    assert!(!none.contains("languages"), "no field when unset");
+    f.languages = Some(ProjectLanguages {
+        docs: Some("klingon".into()),
+        pulls: Some("FR".into()),
+    });
+    assert_eq!(fields(&f), ["languages.docs", "languages.pulls"]);
+}

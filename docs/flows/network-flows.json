@@ -25,7 +25,7 @@
       "protocol": "HTTPS",
       "ports": "443",
       "action": "Allow",
-      "description": "List and read pull requests, CI status and repositories. On each sync tick, read the CI status of the open pull requests of the person (one call each) for the checks notice. A write (open a pull request, push, comment) waits for the automation switch or a click. The team join request pushes a branch and opens a pull request after a click."
+      "description": "List and read pull requests, CI status and repositories. Create a private repository when the person clicks Create in the project creator. On each sync tick, read the CI status of the open pull requests of the person (one call each) for the checks notice. A write (open a pull request, push, comment) waits for the automation switch or a click. The team join request pushes a branch and opens a pull request after a click."
     },
     {
       "id": "flow-3",
@@ -64,7 +64,7 @@
       "protocol": "HTTPS",
       "ports": "443",
       "action": "Allow",
-      "description": "Sync tick: read work items and comments updated since the last good poll, every 60 s by default (30 s at least). Jira /rest/api/2, GitHub api.github.com, GitLab /api/v4, Azure DevOps /_apis, Linear api.linear.app/graphql. A write (claim stamp, transition, comment) waits for the automation switch or a click."
+      "description": "Sync tick: read work items and comments updated since the last good poll, every 60 s by default (30 s at least). Jira /rest/api/2, GitHub api.github.com, GitLab /api/v4, Azure DevOps /_apis, Linear api.linear.app/graphql. A write (claim stamp, transition, comment, starter issue on Create issues) waits for the automation switch or a click."
     },
     {
       "id": "flow-6",

@@ -46,7 +46,7 @@ pub struct ProjectOutcome {
     pub message: Option<String>,
 }
 
-fn outcome(status: OpenStatus, message: impl Into<String>) -> ProjectOutcome {
+pub(crate) fn outcome(status: OpenStatus, message: impl Into<String>) -> ProjectOutcome {
     ProjectOutcome {
         status,
         project: None,
@@ -104,7 +104,7 @@ pub fn derive_key(name: &str) -> String {
 }
 
 /// Registers the project and makes it active.
-fn activate(s: &AppState, root: &Path, file: &ProjectFile) -> Res<ProjectOutcome> {
+pub(crate) fn activate(s: &AppState, root: &Path, file: &ProjectFile) -> Res<ProjectOutcome> {
     let path = root.to_str().ok_or("invalid folder")?.to_string();
     let project = s.with_registry(|reg| {
         let id = reg.register(&path, file).id.clone();
@@ -177,7 +177,7 @@ pub fn create(s: &AppState, path: &str, name: &str, key: &str) -> Res<ProjectOut
 }
 
 /// A new project gets the default pickup rules, so the pickup label shows in Settings.
-fn seed_automation(root: &Path) -> Result<(), String> {
+pub(crate) fn seed_automation(root: &Path) -> Result<(), String> {
     if matches!(read_automation(root), Ok(AutomationRead::Missing)) {
         write_automation(root, &Automation::default()).map_err(err)?;
     }

@@ -10,6 +10,7 @@ import {
 	ClockIcon,
 	FolderOpenIcon,
 	LinkIcon,
+	PlusIcon,
 	TrashIcon,
 	XMarkIcon,
 } from "@/ui/icons";
@@ -19,6 +20,7 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { CloneDialog } from "./clone-dialog";
+import { NewProjectDialog } from "./new-project/new-project-dialog";
 
 const when = (seconds: number, lang: string) =>
 	new Date(seconds * 1000).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-GB");
@@ -117,6 +119,7 @@ export function ProjectsPage() {
 	const { openFolder } = useProjectActions();
 	const [error, setError] = useState<unknown>(null);
 	const [cloning, setCloning] = useState(false);
+	const [creating, setCreating] = useState(false);
 	// The heading shows while the cards load: a page always has its level-one heading.
 	if (!cards)
 		return <PageHeader icon={<FolderOpenIcon size={16} />} title={t.tabs.home.projects} />;
@@ -135,6 +138,10 @@ export function ProjectsPage() {
 				count={cards.length}
 				action={
 					<span className="flex gap-2">
+						<Button onClick={() => setCreating(true)}>
+							<PlusIcon size={14} />
+							{t.creator.title}
+						</Button>
 						<Button onClick={() => setCloning(true)}>
 							<ArrowDownTrayIcon size={14} />
 							{t.projects.clone}
@@ -147,6 +154,7 @@ export function ProjectsPage() {
 				}
 			/>
 			<CloneDialog open={cloning} onClose={() => setCloning(false)} />
+			<NewProjectDialog open={creating} onClose={() => setCreating(false)} />
 			{error ? <ErrorNotice error={error} className="px-4 text-ui text-danger-text" /> : null}
 			{cards.length === 0 ? (
 				<EmptyState title={t.empty.projects} action={open} />

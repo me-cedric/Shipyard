@@ -16,6 +16,8 @@ use crate::prefs::{Contrast, Density, Theme};
 /// Each issue: the line, when known, and the offending value.
 pub type Issues = Vec<(Option<usize>, String)>;
 
+// A short-lived read result: boxing the file would change each caller for no gain.
+#[allow(clippy::large_enum_variant)]
 pub enum FileRead {
     Missing,
     Valid(ProjectFile),

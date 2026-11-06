@@ -1,6 +1,7 @@
 import { assistantFr } from "./assistant";
 import { forgeFr } from "./code";
 import { costingFr } from "./costing";
+import { creatorFr } from "./creator";
 import { designFr } from "./design";
 import { doctorFr } from "./doctor";
 import { editingFr } from "./editing";
@@ -284,7 +285,6 @@ export const fr: Messages = {
 		back: "Retour",
 		cloneRun: "Cloner",
 		cloning: "Clonage",
-		createRun: "Créer",
 		close: "Fermer le projet",
 		remove: "Retirer de la liste",
 		confirmRemove: "Retirer {name} de la liste ? Les fichiers restent sur le disque.",
@@ -913,6 +913,7 @@ export const fr: Messages = {
 	personal: personalFr,
 	doctor: doctorFr,
 	panels: panelsFr,
+	creator: creatorFr,
 	reports: reportsFr,
 	editing: editingFr,
 	review: reviewFr,

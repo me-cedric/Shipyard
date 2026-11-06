@@ -47,7 +47,7 @@ Feature: projects
   @spec:projects#REQ-004
   Scenario: Create a project: New project
     Given an empty target folder
-    When a person gives a name and a key
+    When a person gives a name and a key in the creator and clicks Create
     Then the system creates the repository, writes the project file and opens the project
 
   @spec:projects#REQ-004
@@ -90,7 +90,7 @@ Feature: projects
   Scenario: Project file: Read
     Given a valid project file
     When the project opens
-    Then the name, the key, the paths and the gate commands load
+    Then the name, the key, the paths, the gate commands and the languages load
 
   @spec:projects#REQ-007
   Scenario: Project file: Invalid file
@@ -104,6 +104,12 @@ Feature: projects
     When the person saves
     Then `.shipyard/project.yaml` holds the two ids under `connections`
     And it holds no address and no secret
+
+  @spec:projects#REQ-007
+  Scenario: Project file: Unknown language
+    Given a project file with `docs: klingon` under `languages`
+    When the project opens
+    Then Settings / Health shows a finding for `languages.docs`
 
   @spec:projects#REQ-008
   Scenario: Project registry: Register

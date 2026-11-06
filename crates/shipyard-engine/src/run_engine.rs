@@ -157,6 +157,8 @@ pub struct Project {
     /// The ref index of this project: `read_ref` of its runs reads it, never the index of
     /// another project (`factory` REQ-049). `None`: the tool is an error.
     pub refs: Option<Arc<Mutex<RefIndex>>>,
+    /// The docs and pull request languages (`project-creator` REQ-005, REQ-006).
+    pub languages: shipyard_core::project::ProjectLanguages,
 }
 
 /// A step as the views and `delivery` see it.
@@ -1483,6 +1485,9 @@ impl Inner {
             p.push_str("\n\n");
         }
         p.push_str(NOTICE);
+        if let Some(project) = self.projects.get(&rec.project) {
+            p.push_str(&project.languages.brief_text());
+        }
         if let Some(skill) = &step.skill {
             p.push_str(&format!("Use the skill `{skill}`.\n\n"));
         }

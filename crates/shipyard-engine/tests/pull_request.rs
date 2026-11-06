@@ -631,3 +631,41 @@ fn an_unblock_of_a_rebase_conflict_has_a_worker_resolve_it_in_the_run_worktree()
     assert_eq!(fx.state(&run), RunState::PROpen);
     assert_eq!(blocks(&fx, &run).len(), 1, "no second block");
 }
+
+#[test]
+fn the_languages_of_the_project_reach_each_brief_and_the_pull_request() {
+    let langs = shipyard_core::project::ProjectLanguages {
+        docs: Some("fr".into()),
+        pulls: Some("fr".into()),
+    };
+    let fx = Fx::build(writes(true), &[], Config::default(), |p| {
+        p.languages = langs;
+    });
+    let run = to_pr(&fx);
+    for b in fx.agents.briefs() {
+        assert!(b.prompt.contains("docs in French"), "{}", b.prompt);
+        assert!(b.prompt.contains("commit messages in English"));
+    }
+    let Some(Write::OpenPr { body, .. }) = open_pr(&fx) else {
+        panic!("no pull request was opened")
+    };
+    assert!(
+        body.starts_with(&format!(
+            "Livre SHIP-1 : title SHIP-1. Exécution : run:{run}"
+        )),
+        "{body}"
+    );
+    assert!(body.contains("## Vérifications"), "{body}");
+}
+
+#[test]
+fn a_project_with_no_languages_gets_no_language_text() {
+    let fx = Fx::new(writes(true), &[]);
+    to_pr(&fx);
+    assert!(
+        fx.agents
+            .briefs()
+            .iter()
+            .all(|b| !b.prompt.contains("Languages of this project"))
+    );
+}

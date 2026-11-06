@@ -110,10 +110,10 @@ describe("Workflows: the form", () => {
 	it("delete asks first and refuses the default workflow", async () => {
 		const user = await open("feature");
 		await user.click(await screen.findByRole("button", { name: "Delete" }));
-		expect(await unwrap(commands.workflowsList())).toHaveLength(6);
+		expect(await unwrap(commands.workflowsList())).toHaveLength(7);
 		await user.click(screen.getByRole("button", { name: "Delete feature" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("default workflow");
-		expect(await unwrap(commands.workflowsList())).toHaveLength(6);
+		expect(await unwrap(commands.workflowsList())).toHaveLength(7);
 	});
 
 	it("applies a proposal from its diff", async () => {

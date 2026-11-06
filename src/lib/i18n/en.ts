@@ -1,6 +1,7 @@
 import { assistantEn } from "./assistant";
 import { forgeEn } from "./code";
 import { costingEn } from "./costing";
+import { creatorEn } from "./creator";
 import { designEn } from "./design";
 import { doctorEn } from "./doctor";
 import { editingEn } from "./editing";
@@ -280,7 +281,6 @@ export const en = {
 		back: "Back",
 		cloneRun: "Clone",
 		cloning: "Cloning",
-		createRun: "Create",
 		close: "Close project",
 		remove: "Remove from list",
 		confirmRemove: "Remove {name} from the list? The files stay on disk.",
@@ -889,6 +889,7 @@ export const en = {
 	personal: personalEn,
 	doctor: doctorEn,
 	panels: panelsEn,
+	creator: creatorEn,
 	reports: reportsEn,
 	editing: editingEn,
 	review: reviewEn,

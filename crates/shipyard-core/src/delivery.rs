@@ -223,20 +223,71 @@ pub struct PrBody {
 impl PrBody {
     /// Opening paragraph, gate, one item for each ticket, then the impacts digest.
     pub fn render(&self) -> String {
-        let mut out = format!("{}\n\n## Gate\n\n", self.opening.trim());
+        self.render_in("en")
+    }
+
+    /// [`PrBody::render`] with the headings in the pull request language of the project
+    /// (`project-creator` REQ-006). A language with no translation keeps English.
+    pub fn render_in(&self, lang: &str) -> String {
+        let w = pr_words(lang);
+        let mut out = format!("{}\n\n## {}\n\n", self.opening.trim(), w.gate);
         for g in &self.gate {
-            let verdict = if g.passed { "passed" } else { "failed" };
+            let verdict = if g.passed { w.passed } else { w.failed };
             out += &format!("- `{}`: {verdict}, {}\n", g.command, g.counts);
         }
-        out += "\n## Tickets\n\n";
+        out += &format!("\n## {}\n\n", w.tickets);
         for t in &self.tickets {
             out += &format!("- [{}]({}) {}\n", t.key, t.url, t.title);
         }
         if let Some(digest) = self.impacts.as_deref().filter(|d| !d.trim().is_empty()) {
-            out += &format!("\n## Impacts\n\n{}\n", digest.trim());
+            out += &format!("\n## {}\n\n{}\n", w.impacts, digest.trim());
         }
         strip_attribution(&out) + "\n"
     }
+}
+
+/// The fixed words of a pull request body in one language.
+struct PrWords {
+    delivers: &'static str,
+    run: &'static str,
+    gate: &'static str,
+    passed: &'static str,
+    failed: &'static str,
+    tickets: &'static str,
+    impacts: &'static str,
+}
+
+fn pr_words(lang: &str) -> PrWords {
+    match lang {
+        "fr" => PrWords {
+            delivers: "Livre",
+            run: "Exécution",
+            gate: "Vérifications",
+            passed: "réussi",
+            failed: "échoué",
+            tickets: "Tickets",
+            impacts: "Impacts",
+        },
+        _ => PrWords {
+            delivers: "Delivers",
+            run: "Run",
+            gate: "Gate",
+            passed: "passed",
+            failed: "failed",
+            tickets: "Tickets",
+            impacts: "Impacts",
+        },
+    }
+}
+
+/// The opening line of the pull request of a run, in the pull request language.
+pub fn pr_opening(lang: &str, key: &str, title: &str, run: &str) -> String {
+    let w = pr_words(lang);
+    let colon = if lang == "fr" { " :" } else { ":" };
+    format!(
+        "{} {key}{colon} {title}. {}{colon} run:{run}",
+        w.delivers, w.run
+    )
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]

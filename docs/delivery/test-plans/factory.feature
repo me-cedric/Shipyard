@@ -166,7 +166,7 @@ Feature: factory
   Scenario: Default workflows: Defaults present
     Given a new project
     When a person opens Factory / Workflows
-    Then the five workflows show and each one validates
+    Then the seven workflows show and each one validates
 
   @spec:factory#REQ-012
   Scenario: Step fields: Needs order

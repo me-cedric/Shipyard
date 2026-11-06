@@ -184,6 +184,7 @@ impl Inner {
             false => p.reviewers.clone(),
         };
         let (git, pulls) = (p.git.clone(), p.pulls.clone());
+        let lang = p.languages.pulls.clone().unwrap_or_default();
         let rec = &self.runs[run_id];
         let (ty, title, key, url) = (
             delivery::commit_type(rec.kind),
@@ -270,7 +271,7 @@ impl Inner {
         };
         let rec = &self.runs[run_id];
         let body = PrBody {
-            opening: format!("Delivers {key}: {title}. Run: run:{run_id}"),
+            opening: delivery::pr_opening(&lang, &key, &title, run_id),
             gate: rec.d.gate.clone(),
             tickets: vec![TicketLine {
                 key,
@@ -284,7 +285,7 @@ impl Inner {
             branch,
             base,
             title: delivery::clean_outgoing(&delivery::conventional(ty, &scope, &title)),
-            body: delivery::clean_outgoing(&body.render()),
+            body: delivery::clean_outgoing(&body.render_in(&lang)),
             labels,
             reviewers,
             draft: true,

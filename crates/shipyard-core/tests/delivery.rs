@@ -131,6 +131,25 @@ fn body_order_and_no_attribution() {
 }
 
 #[test]
+fn the_pull_request_language_sets_the_opening_and_the_headings() {
+    let fr = body().render_in("fr");
+    assert!(
+        fr.contains("## Vérifications") && fr.contains(": réussi, 64 passed"),
+        "{fr}"
+    );
+    assert!(!fr.contains("## Gate"));
+    assert_eq!(body().render_in("de"), body().render());
+    assert_eq!(
+        pr_opening("fr", "SHIP-1", "Écran", "01ABC"),
+        "Livre SHIP-1 : Écran. Exécution : run:01ABC"
+    );
+    assert_eq!(
+        pr_opening("pt", "SHIP-1", "Screen", "01ABC"),
+        "Delivers SHIP-1: Screen. Run: run:01ABC"
+    );
+}
+
+#[test]
 fn impacts_digest_is_one_section_at_the_end() {
     let mut b = body();
     b.impacts = Some("- `refs`: 3 callers".into());

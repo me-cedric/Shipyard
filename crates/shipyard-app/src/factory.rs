@@ -660,6 +660,7 @@ pub(crate) fn attach(s: &AppState, a: &Active, plan: &Plan) -> Res<()> {
             reviewers: Vec::new(),
             // `read_ref` of a run reads the index of its own project.
             refs: Some(s.index_of(&id)?),
+            languages: file.languages.clone().unwrap_or_default(),
         },
     );
     // Each project acts for its own person. `None`: no right, each write waits in the Inbox.

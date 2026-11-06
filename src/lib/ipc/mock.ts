@@ -78,6 +78,7 @@ import {
 } from "./mock-code";
 import * as cp from "./mock-code-prs";
 import * as cs from "./mock-compass-setup";
+import * as cr from "./mock-creator";
 import * as dv from "./mock-delivery";
 import * as deliveryActions from "./mock-delivery-actions";
 import * as design from "./mock-design";
@@ -973,6 +974,43 @@ const handlers: Handlers = {
 		autoLink();
 		return created;
 	},
+	creatorOptions: () => cr.creatorOptions("Ada Lovelace"),
+	creatorDraft: cr.creatorDraft,
+	creatorPreview: cr.creatorPreview,
+	creatorCreate: (plan, click) => {
+		if (!click) throw "this change needs the click of a person";
+		const file = cr.projectFile(plan);
+		cr.creatorPreview(plan);
+		const fail = (status: "folder-not-empty" | "failed", message: string) => ({
+			outcome: outcome(status, message),
+			remote: null,
+			warning: null,
+		});
+		if (plan.folder === "/mock/full" || state.projects.some((p) => p.path === plan.folder))
+			return fail("folder-not-empty", plan.folder);
+		const made = activate(plan.folder, file.name, file.key);
+		const p = made.project;
+		if (p) state.files[p.id] = { ...file, paths: DEFAULT_PATHS };
+		const forge = file.connections?.forge;
+		const known = !forge || state.connections.some((c) => c.id === forge);
+		return {
+			outcome: made,
+			remote:
+				known && plan.remote.kind === "create"
+					? `https://github.com/${plan.remote.slug}.git`
+					: known && plan.remote.kind === "existing"
+						? plan.remote.url.trim()
+						: null,
+			warning: known ? null : `unknown connection: ${forge}`,
+		};
+	},
+	creatorBootstrap: (click) => {
+		if (!click) throw "this change needs the click of a person";
+		const p = active();
+		if (!p) throw "no project is open";
+		if (!state.files[p.id]?.connections?.forge) throw "the project names no code host connection";
+		return `bootstrap:${p.id}`;
+	},
 	projectsInit: (path) => {
 		const name = path.split("/").pop() ?? "project";
 		const made = activate(path, name, deriveKey(name));
@@ -1017,6 +1055,12 @@ const handlers: Handlers = {
 			defaultWorkflow: file.defaultWorkflow ?? null,
 			gates: file.gates ?? [],
 			docs: file.docs?.map(({ name, ...r }) => (name ? { ...r, name } : r)),
+			languages: file.languages
+				? {
+						...(file.languages.docs ? { docs: file.languages.docs } : {}),
+						...(file.languages.pulls ? { pulls: file.languages.pulls } : {}),
+					}
+				: undefined,
 			// Unset ids stay out of the file, as in the Rust codec.
 			connections: file.connections
 				? {
