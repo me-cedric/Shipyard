@@ -257,6 +257,7 @@ fn entry(id: &str, day: &str) -> TimeEntry {
         note: "review".into(),
         ticket: Some("PROJ-12".into()),
         worklog: None,
+        unsynced: None,
     }
 }
 

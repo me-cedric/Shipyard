@@ -178,7 +178,7 @@ function ToolRows() {
 		});
 	const rows = runners.data ?? [];
 	return (
-		<Panel title={s.name} count={rows.length} flush>
+		<Panel id="tools" title={s.name} count={rows.length} flush>
 			{rows.map((r) => {
 				const missing = r.state === "missing";
 				const label = missing
@@ -261,7 +261,7 @@ export function AgentsRules() {
 	return (
 		<Compass>
 			<ToolRows />
-			<Panel title={t.settings.tiers.name} count={tiers.data?.length ?? 0} flush>
+			<Panel id="tiers" title={t.settings.tiers.name} count={tiers.data?.length ?? 0} flush>
 				{(tiers.data ?? []).map((row) => (
 					// The saved row keys the draft: a refused edit keeps the typed text until the person fixes it.
 					<TierRow

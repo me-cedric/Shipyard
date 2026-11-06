@@ -124,6 +124,7 @@ export const commands = {
 	codeRemoteUrl: () => typedError<string | null, AppError_Serialize>(__TAURI_INVOKE("code_remote_url")),
 	/**  A file for the viewer: the working copy when `rev` is empty, else the file at that revision. */
 	codeFileRead: (path: string, rev: string | null) => typedError<FileView, AppError_Serialize>(__TAURI_INVOKE("code_file_read", { path, rev })),
+	codeBlob: (path: string, source: BlobSource) => typedError<Blob | null, AppError_Serialize>(__TAURI_INVOKE("code_blob", { path, source })),
 	/**  The files of the working copy, repo-relative, the ignore rules applied (the file drawer). */
 	codeFileList: () => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("code_file_list")),
 	codePullDetail: (number: number) => typedError<PullDetail_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_pull_detail", { number })),
@@ -276,6 +277,8 @@ export const commands = {
 	rightsGet: () => typedError<RightsView_Serialize, AppError_Serialize>(__TAURI_INVOKE("rights_get")),
 	/**  The last lines of the audit log of the open project. */
 	rightsAuditTail: () => typedError<AuditLine_Serialize[], AppError_Serialize>(__TAURI_INVOKE("rights_audit_tail")),
+	/**  Save the table of the roles and the roles of the members. */
+	rightsRolesSave: (table: RoleAccess[], members: MemberRoles[]) => typedError<RightsView_Serialize, AppError_Serialize>(__TAURI_INVOKE("rights_roles_save", { table, members })),
 	workTeam: () => typedError<TeamView_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_team")),
 	workTeamAddMe: (click: boolean) => typedError<TeamView_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_team_add_me", { click })),
 	/**  Ask to join the team of the open project (REQ-011). */
@@ -324,7 +327,9 @@ export const commands = {
 	planDecisionsSave: (decisions: Decisions_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("plan_decisions_save", { decisions })),
 	planCalendarSave: (calendar: Calendar_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("plan_calendar_save", { calendar })),
 	timeList: (member: string | null, month: string) => typedError<TimeView_Serialize, AppError_Serialize>(__TAURI_INVOKE("time_list", { member, month })),
-	timeAdd: (member: string | null, day: string, minutes: number, note: string, ticket: string | null) => typedError<TimeEntry_Serialize, AppError_Serialize>(__TAURI_INVOKE("time_add", { member, day, minutes, note, ticket })),
+	timeAdd: (member: string | null, day: string, minutes: number, note: string, ticket: string | null, offsetMinutes: number, reduceRemaining: boolean) => typedError<TimeSent_Serialize, AppError_Serialize>(__TAURI_INVOKE("time_add", { member, day, minutes, note, ticket, offsetMinutes, reduceRemaining })),
+	timeUpdate: (member: string | null, day: string, id: string, minutes: number, note: string, offsetMinutes: number, click: boolean) => typedError<TimeSent_Serialize, AppError_Serialize>(__TAURI_INVOKE("time_update", { member, day, id, minutes, note, offsetMinutes, click })),
+	timeRemove: (member: string | null, day: string, id: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("time_remove", { member, day, id, click })),
 	timeFetch: (member: string | null, ticket: string) => typedError<TimeRow_Serialize[], AppError_Serialize>(__TAURI_INVOKE("time_fetch", { member, ticket })),
 	/**  Pulls the worklogs of the whole month from the tracker. A read: it writes nothing. */
 	timePullMonth: (member: string | null, month: string) => typedError<TicketRows_Serialize[], AppError_Serialize>(__TAURI_INVOKE("time_pull_month", { member, month })),
@@ -618,6 +623,25 @@ export const commands = {
 
 /* Types */
 export type Accent = "blue" | "violet" | "green" | "orange" | "rose";
+
+/**
+ *  The levels of a role or a person in each area, and the two action switches. An action
+ *  counts only with `write` on its area (REQ-005).
+ */
+export type Access = {
+	work: Level,
+	specs: Level,
+	design: Level,
+	knowledge: Level,
+	code: Level,
+	runs: Level,
+	settings: Level,
+	costs: Level,
+	/**  `code.merge`. */
+	merge: boolean,
+	/**  `runs.approve`. */
+	approve: boolean,
+};
 
 export type Action = "create" | "update" | "unchanged";
 
@@ -1131,6 +1155,17 @@ export type BlameLine = {
 	time: number | null,
 };
 
+/**
+ *  A file for the preview of Code / Local changes. `bytes` is empty unless the file is an image
+ *  that is not bigger than `MAX_BLOB`.
+ */
+export type Blob = {
+	size: number,
+	bytes: number[],
+};
+
+export type BlobSource = "work" | "index" | "head";
+
 export type BootstrapAnswers = {
 	name: string,
 	key: string,
@@ -1282,6 +1317,9 @@ export type CatalogUndeployed = {
 	/**  Files that differ from the catalog: a person changed them, so they stay. */
 	kept: string[],
 };
+
+/**  A value of the `roles:` block: a level (`write`) or an action switch (`true`). */
+export type Cell = boolean | string;
 
 export type CertStatus = {
 	added: boolean,
@@ -2840,6 +2878,9 @@ export type LedgerItem = {
 	severity: string,
 };
 
+/**  The level of a role in an area: `none` hides the area, `read` shows it, `write` also changes it. */
+export type Level = "none" | "read" | "write";
+
 /**  Run limits (REQ-007). `global` counts the active runs of every project on this machine and its agent reviews. */
 export type Limits = Limits_Serialize | Limits_Deserialize;
 
@@ -3144,6 +3185,12 @@ export type MemberLoad = {
 	days: LoadDay[],
 };
 
+/**  The roles of one member to save. The first role is the `role` of the member. */
+export type MemberRoles = {
+	handle: string,
+	roles: TeamRole[],
+};
+
 export type Member_Deserialize = {
 	name?: string,
 	/**  The `<handle>` of `member:<handle>`. */
@@ -3154,6 +3201,11 @@ export type Member_Deserialize = {
 	emails?: string[],
 	/**  One of the roles of `crate::rights::Role`. Another text gives the rights of `viewer`. */
 	role?: string,
+	/**
+	 *  More roles of this person (`team-rights` REQ-005). The level in each area is the highest
+	 *  level of `role` and these roles.
+	 */
+	roles?: string[],
 	/**  Gives each right (`team-rights` REQ-005). */
 	admin?: boolean,
 	/**  Changes of the rights of the role: `+right` or `-right`. */
@@ -3176,6 +3228,11 @@ export type Member_Serialize = {
 	emails?: string[],
 	/**  One of the roles of `crate::rights::Role`. Another text gives the rights of `viewer`. */
 	role: string,
+	/**
+	 *  More roles of this person (`team-rights` REQ-005). The level in each area is the highest
+	 *  level of `role` and these roles.
+	 */
+	roles?: string[],
 	/**  Gives each right (`team-rights` REQ-005). */
 	admin?: boolean,
 	/**  Changes of the rights of the role: `+right` or `-right`. */
@@ -4840,15 +4897,16 @@ export type RightsPerson_Deserialize = {
 	/**  The handle of the member. `None`: solo, or unknown. */
 	member?: string | null,
 	found: Found,
-	/**  The role of the team file. `None`: solo. */
+	/**  The first role of the team file. `None`: solo. */
 	role?: TeamRole | null,
+	/**  Each role of the team file. Empty: solo. */
+	roles: TeamRole[],
 	admin: boolean,
 	/**  The read-only profile of the project is on. */
 	readOnly: boolean,
-	/**
-	 *  The rights after the personal narrowing and the read-only profile, in the order of
-	 *  [`Right::ALL`].
-	 */
+	/**  The levels after the personal narrowing and the read-only profile. */
+	access: Access,
+	/**  The rights that the levels give, in the order of [`Right::ALL`]. */
 	rights: Right[],
 };
 
@@ -4857,27 +4915,28 @@ export type RightsPerson_Serialize = {
 	/**  The handle of the member. `None`: solo, or unknown. */
 	member: string | null,
 	found: Found,
-	/**  The role of the team file. `None`: solo. */
+	/**  The first role of the team file. `None`: solo. */
 	role: TeamRole | null,
+	/**  Each role of the team file. Empty: solo. */
+	roles: TeamRole[],
 	admin: boolean,
 	/**  The read-only profile of the project is on. */
 	readOnly: boolean,
-	/**
-	 *  The rights after the personal narrowing and the read-only profile, in the order of
-	 *  [`Right::ALL`].
-	 */
+	/**  The levels after the personal narrowing and the read-only profile. */
+	access: Access,
+	/**  The rights that the levels give, in the order of [`Right::ALL`]. */
 	rights: Right[],
 };
 
 /**
- *  What the views need: the person, where the rights come from, the warnings and the table of the
- *  default rights of each role (REQ-002, REQ-003, REQ-008).
+ *  What the views need: the person, where the rights come from, the warnings and the table of
+ *  each role: the defaults and the `roles:` block (REQ-002, REQ-003, REQ-008).
  */
 export type RightsView = RightsView_Serialize | RightsView_Deserialize;
 
 /**
- *  What the views need: the person, where the rights come from, the warnings and the table of the
- *  default rights of each role (REQ-002, REQ-003, REQ-008).
+ *  What the views need: the person, where the rights come from, the warnings and the table of
+ *  each role: the defaults and the `roles:` block (REQ-002, REQ-003, REQ-008).
  */
 export type RightsView_Deserialize = {
 	person: RightsPerson_Deserialize,
@@ -4894,8 +4953,8 @@ export type RightsView_Deserialize = {
 };
 
 /**
- *  What the views need: the person, where the rights come from, the warnings and the table of the
- *  default rights of each role (REQ-002, REQ-003, REQ-008).
+ *  What the views need: the person, where the rights come from, the warnings and the table of
+ *  each role: the defaults and the `roles:` block (REQ-002, REQ-003, REQ-008).
  */
 export type RightsView_Serialize = {
 	person: RightsPerson_Serialize,
@@ -4917,6 +4976,12 @@ export type RightsView_Serialize = {
  *  as `po`. `junior` stays: it is `developer` without `code.merge` and `runs.approve` (REQ-015).
  */
 export type Role = Role_Serialize | Role_Deserialize;
+
+/**  One row of the table to save. */
+export type RoleAccess = {
+	role: TeamRole,
+	access: Access,
+};
 
 export type RoleFile = RoleFile_Serialize | RoleFile_Deserialize;
 
@@ -4962,8 +5027,11 @@ export type RoleItem_Serialize = {
 	bundled: boolean,
 };
 
+/**  One row of the table of the team: the defaults and the `roles:` block of the team file. */
 export type RoleRights = {
 	role: TeamRole,
+	access: Access,
+	/**  The rights that `access` gives. */
 	rights: Right[],
 };
 
@@ -5164,6 +5232,11 @@ export type RunView_Deserialize = {
 	worktreeKept?: string | null,
 	openQuestions: number,
 	approvals: number,
+	/**
+	 *  Why a failed, paused or blocked run stopped: the newest `stop` or `blocked` note, or the
+	 *  newest error of the AI tool. `None` for a run that works or ended well.
+	 */
+	reason?: string | null,
 };
 
 /**  A run with what a card needs (`factory` REQ-027, REQ-038). */
@@ -5192,6 +5265,11 @@ export type RunView_Serialize = {
 	worktreeKept: string | null,
 	openQuestions: number,
 	approvals: number,
+	/**
+	 *  Why a failed, paused or blocked run stopped: the newest `stop` or `blocked` note, or the
+	 *  newest error of the AI tool. `None` for a run that works or ended well.
+	 */
+	reason: string | null,
 };
 
 export type Runner = Runner_Serialize | Runner_Deserialize;
@@ -5915,10 +5993,20 @@ export type TeamView_Serialize = {
 
 export type Team_Deserialize = {
 	members?: Member_Deserialize[],
+	/**
+	 *  The `roles:` block: changes of the default table, per role and per area (`team-rights`
+	 *  REQ-005). An unknown role, area or level has no effect and Health names it.
+	 */
+	roles?: { [key in string]: { [key in string]: Cell } },
 };
 
 export type Team_Serialize = {
 	members: Member_Serialize[],
+	/**
+	 *  The `roles:` block: changes of the default table, per role and per area (`team-rights`
+	 *  REQ-005). An unknown role, area or level has no effect and Health names it.
+	 */
+	roles?: { [key in string]: { [key in string]: Cell } },
 };
 
 export type Term = {
@@ -6243,6 +6331,8 @@ export type TimeEntry_Deserialize = {
 	ticket?: string | null,
 	/**  The tracker worklog id: the receipt (REQ-023). */
 	worklog?: string | null,
+	/**  Why the tracker does not hold this entry as written here. Empty when it does. */
+	unsynced?: string | null,
 };
 
 /**  A time entry that a person wrote (REQ-020, REQ-021). */
@@ -6255,6 +6345,8 @@ export type TimeEntry_Serialize = {
 	ticket?: string,
 	/**  The tracker worklog id: the receipt (REQ-023). */
 	worklog?: string,
+	/**  Why the tracker does not hold this entry as written here. Empty when it does. */
+	unsynced?: string,
 };
 
 export type TimeRow = TimeRow_Serialize | TimeRow_Deserialize;
@@ -6292,6 +6384,8 @@ export type TimeSent_Deserialize = {
 	entry: TimeEntry_Deserialize,
 	/**  The tracker held a worklog with the mark of the entry. Nothing was sent (REQ-023). */
 	alreadyThere: boolean,
+	/**  Why the tracker does not hold the entry as written here. The entry is saved anyway. */
+	error?: string | null,
 };
 
 export type TimeSent_Serialize = {
@@ -6299,6 +6393,8 @@ export type TimeSent_Serialize = {
 	entry: TimeEntry_Serialize,
 	/**  The tracker held a worklog with the mark of the entry. Nothing was sent (REQ-023). */
 	alreadyThere: boolean,
+	/**  Why the tracker does not hold the entry as written here. The entry is saved anyway. */
+	error: string | null,
 };
 
 export type TimeState = "in-tracker" | "to-send" | "only-in-tracker";
@@ -6436,7 +6532,10 @@ export type UnitView_Deserialize = {
 	runner: string,
 	/**  The session id of the AI tool, if it sent one. */
 	session?: string | null,
-	/**  The folder of the unit. Empty: never started. */
+	/**
+	 *  The folder of the unit. Empty: never started, the folder is gone, or Claude Code
+	 *  keeps no session for it, so there is nothing to open in a terminal.
+	 */
 	dir: string,
 	/**  Unix seconds: the last start and the last event. */
 	started: number | null,
@@ -6450,7 +6549,10 @@ export type UnitView_Serialize = {
 	runner: string,
 	/**  The session id of the AI tool, if it sent one. */
 	session: string | null,
-	/**  The folder of the unit. Empty: never started. */
+	/**
+	 *  The folder of the unit. Empty: never started, the folder is gone, or Claude Code
+	 *  keeps no session for it, so there is nothing to open in a terminal.
+	 */
 	dir: string,
 	/**  Unix seconds: the last start and the last event. */
 	started: number | null,

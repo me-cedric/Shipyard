@@ -41,6 +41,27 @@ pub struct FileView {
     pub text: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "kebab-case")]
+pub enum BlobSource {
+    Work,
+    Index,
+    Head,
+}
+
+/// A file for the preview of Code / Local changes. `bytes` is empty unless the file is an image
+/// that is not bigger than `MAX_BLOB`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+pub struct Blob {
+    pub size: u32,
+    pub bytes: Vec<u8>,
+}
+
+const MAX_BLOB: u64 = 10 * 1024 * 1024;
+const IMAGES: [&str; 9] = [
+    "png", "jpg", "jpeg", "gif", "webp", "svg", "ico", "bmp", "avif",
+];
+
 fn render(diff: &Diff<'_>, path: &str, max_bytes: usize) -> Result<FileDiff> {
     let mut out = FileDiff {
         path: path.to_string(),
@@ -96,6 +117,59 @@ impl Repo {
             }
         };
         render(&diff, path, max_bytes)
+    }
+
+    /// The file in the working copy, the index or HEAD. `None` when it is not there.
+    pub fn preview_blob(&self, path: &str, source: BlobSource) -> Result<Option<Blob>> {
+        super::check_paths(&[path.to_string()])?;
+        let image = std::path::Path::new(path)
+            .extension()
+            .and_then(|x| x.to_str())
+            .is_some_and(|x| IMAGES.contains(&x.to_lowercase().as_str()));
+        let blob = |size: u64, read: &dyn Fn() -> Result<Vec<u8>>| -> Result<Option<Blob>> {
+            let bytes = if image && size <= MAX_BLOB {
+                read()?
+            } else {
+                vec![]
+            };
+            Ok(Some(Blob {
+                size: u32::try_from(size).unwrap_or(u32::MAX),
+                bytes,
+            }))
+        };
+        let oid = match source {
+            BlobSource::Work => {
+                let full = self.workdir().join(path);
+                if !full.is_file() {
+                    return Ok(None);
+                }
+                // A link must not lead out of the project.
+                if !full
+                    .canonicalize()?
+                    .starts_with(self.workdir().canonicalize()?)
+                {
+                    return Err(GitError::BadPath(path.to_string()));
+                }
+                return blob(full.metadata()?.len(), &|| Ok(std::fs::read(&full)?));
+            }
+            BlobSource::Index => match self.repo.index()?.get_path(std::path::Path::new(path), 0) {
+                Some(e) => e.id,
+                None => return Ok(None),
+            },
+            BlobSource::Head => {
+                let Ok(tree) = self.repo.head().and_then(|h| h.peel_to_tree()) else {
+                    return Ok(None);
+                };
+                match tree.get_path(std::path::Path::new(path)) {
+                    Ok(e) => e.id(),
+                    Err(_) => return Ok(None),
+                }
+            }
+        };
+        let (n, _) = self.repo.odb()?.read_header(oid)?;
+        blob(n as u64, &|| {
+            Ok(self.repo.find_blob(oid)?.content().to_vec())
+        })
     }
 
     fn commit_tree_diff(&self, sha: &str, o: Option<&mut DiffOptions>) -> Result<Diff<'_>> {

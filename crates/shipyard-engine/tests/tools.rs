@@ -462,6 +462,28 @@ fn read_ref_returns_the_resolved_entity_and_its_backlinks() {
 }
 
 #[test]
+fn a_read_of_a_hidden_area_is_refused_for_the_member_of_the_run() {
+    use shipyard_core::rights::{Area, Right};
+    use shipyard_engine::run_engine::Actor;
+    let fx = Fx::new(writes(true), &[ONE]);
+    let cy = Actor {
+        by: "cy".into(),
+        rights: vec![Right::CodeWrite],
+        hidden: vec![Area::Design, Area::Work],
+    };
+    fx.f.set_actor("ship", Some(cy));
+    let run = fx.start("SHIP-1", &[]);
+    fx.f.set_refs("ship", index());
+    let e = err(&fx, &run, "work", read_ref("adr:0003"));
+    assert!(e.contains("area design is hidden"), "{e}");
+    let ticket = Tool::ReadTicket(shipyard_mcp::tools::agent::ReadTicket {
+        reference: "wi:SHIP-1".into(),
+    });
+    let e = err(&fx, &run, "work", ticket);
+    assert!(e.contains("area work is hidden"), "{e}");
+}
+
+#[test]
 fn a_ref_that_does_not_resolve_is_an_error_not_a_guess() {
     let fx = Fx::new(writes(true), &[ONE]);
     let run = fx.start("SHIP-1", &[]);

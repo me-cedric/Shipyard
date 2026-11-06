@@ -3,6 +3,8 @@
 // rule, a switch that names the files it would overwrite.
 import type {
 	BlameLine,
+	Blob,
+	BlobSource,
 	Branch_Serialize,
 	Changes_Serialize,
 	CommitDetail_Serialize,
@@ -192,6 +194,8 @@ function lineCounts(files: [string | null, string | null][]) {
 export function codeDiff(c: MockCode, path: string, side: DiffSide): FileDiff {
 	const f = c.files[path];
 	if (!f) return { path, text: "", binary: false, truncated: false };
+	if (/\.(png|jpe?g|gif|webp|svg|ico|bmp|avif|bin)$/i.test(path))
+		return { path, text: "", binary: true, truncated: false };
 	const text =
 		side === "staged"
 			? f.index === f.head
@@ -212,6 +216,18 @@ export function codeFileRead(c: MockCode, path: string, rev: string | null): Fil
 	const text = rev ? (at ? (at.changes[path]?.[1] ?? null) : (f?.head ?? null)) : (f?.work ?? null);
 	if (text === null) throw `no such file: ${path}`;
 	return { path, size: text.length, binary: false, truncated: false, text };
+}
+
+/** Like Rust `code_blob`: the text of the file as bytes for an image, else its size only. */
+export function codeBlob(c: MockCode, path: string, source: BlobSource): Blob | null {
+	const f = c.files[path];
+	const text = f?.[source === "work" ? "work" : source === "index" ? "index" : "head"];
+	if (text == null) return null;
+	const bytes = Array.from(new TextEncoder().encode(text));
+	return {
+		size: bytes.length,
+		bytes: /\.(png|jpe?g|gif|webp|svg|ico|bmp|avif)$/i.test(path) ? bytes : [],
+	};
 }
 
 /** The files of the working copy for the file drawer, sorted by path, like Rust `code_file_list`. */

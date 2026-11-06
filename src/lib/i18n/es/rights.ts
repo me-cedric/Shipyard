@@ -3,6 +3,7 @@ import type { rightsEn } from "../rights";
 export const rightsEs: typeof rightsEn = {
 	needs: "Necesita el derecho {right} (su rol: {role})",
 	noRole: "sin rol",
+	noAccess: "Sin acceso",
 	yes: "sí",
 	no: "no",
 	role: {
@@ -45,6 +46,25 @@ export const rightsEs: typeof rightsEn = {
 		auditResult: "Resultado",
 		pickRole: "Elegir un rol",
 		none: "ninguno",
+		area: {
+			work: "Trabajo",
+			specs: "Specs",
+			design: "Diseño",
+			knowledge: "Conocimiento",
+			code: "Código",
+			runs: "Ejecuciones",
+			settings: "Ajustes",
+			costs: "Costes",
+		},
+		level: { none: "Oculto", read: "Lectura", write: "Lectura y escritura" },
+		merge: "Fusión",
+		approve: "Aprobación",
+		edit: "Editar",
+		reset: "Restablecer {role} por defecto",
+		members: "Miembros",
+		levels: "niveles",
+		addRole: "Añadir un rol a {name}",
+		removeRole: "Quitar {role} de {name}",
 	},
 	panel: {
 		backlogHealth: "Tickets sin responsable",

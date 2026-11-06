@@ -14,6 +14,7 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { StatStrip } from "@/ui/molecules/stat-strip";
+import { SETTINGS_PAGE } from "@/ui/templates/settings";
 import { DebugConsole } from "./debug-console";
 import { DoctorBootstrap } from "./doctor-bootstrap";
 import { DoctorCompliance } from "./doctor-compliance";
@@ -118,7 +119,7 @@ export function Health() {
 				title={t.tabs.settings.health}
 				count={findings.length}
 			/>
-			<div className="flex max-w-4xl flex-col gap-4 px-4 pt-1 pb-4">
+			<div className={SETTINGS_PAGE}>
 				<div className="flex flex-wrap items-stretch gap-3">
 					<div className="flex items-center gap-3 rounded-lg border bg-surface-2 px-4 py-3 shadow-1">
 						<Ring value={clean} max={GROUPS.length} label={s.score} className="size-14">

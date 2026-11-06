@@ -20,7 +20,7 @@ fn member(handle: &str, role: &str, capacity: f64, skills: &[&str], rate: f64) -
 fn team(members: Vec<Member>) -> Team {
     Team {
         members,
-        locked: false,
+        ..Team::default()
     }
 }
 
@@ -554,6 +554,7 @@ fn entry(id: &str, minutes: u32, worklog: Option<&str>) -> TimeEntry {
         note: "work".into(),
         ticket: Some("P-1".into()),
         worklog: worklog.map(String::from),
+        unsynced: None,
     }
 }
 

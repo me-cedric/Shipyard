@@ -119,6 +119,7 @@ fn entry() -> TimeEntry {
         note: "review of the login".into(),
         ticket: Some("acme/web#12".into()),
         worklog: None,
+        unsynced: None,
     }
 }
 

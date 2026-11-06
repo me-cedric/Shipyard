@@ -126,6 +126,30 @@ describe("Knowledge / Graph", () => {
 		await screen.findByTestId(`rf__node-${code.nodes[0]?.ref}`);
 	});
 
+	it("tells the person that the index worked, with the node count", async () => {
+		const user = userEvent.setup();
+		mockState().knowledge.indexed = false;
+		await mountKnowledge("graph");
+		await user.click(await screen.findByRole("tab", { name: "Code" }));
+		await user.click(await screen.findByRole("button", { name: "Index" }));
+		const code = await unwrap(commands.graphCode());
+		expect(await screen.findByText(`Indexed, ${code.nodes.length} nodes`)).toBeInTheDocument();
+	});
+
+	it("says so when the index holds no rows", async () => {
+		const user = userEvent.setup();
+		mockState().knowledge.indexed = false;
+		await mountKnowledge("graph");
+		await user.click(await screen.findByRole("tab", { name: "Code" }));
+		vi.spyOn(commands, "graphCode").mockResolvedValue({
+			status: "ok",
+			data: { state: "unindexed", nodes: [], edges: [] },
+		});
+		await user.click(await screen.findByRole("button", { name: "Index" }));
+		expect(await screen.findByText("Indexed, no calls found")).toBeInTheDocument();
+		vi.restoreAllMocks();
+	});
+
 	describe("Index with the code graph server off", () => {
 		afterEach(() => vi.restoreAllMocks());
 
@@ -166,6 +190,7 @@ describe("Knowledge / Graph", () => {
 			await user.click(await screen.findByRole("tab", { name: "Code" }));
 			await user.click(await screen.findByRole("button", { name: "Index" }));
 			await screen.findByRole("alert");
+			expect(await screen.findByText("Index failed")).toBeInTheDocument();
 		});
 	});
 });

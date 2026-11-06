@@ -48,9 +48,9 @@ The costing Plan tab, the Gantt page and the tickets Generate tab do the same jo
 - REQ-019: Effort numbers SHALL live in estimate sheets only. Work / Plan and the plan-and-apply flow SHALL read them. They MUST NOT keep a copy of the effort.
 - REQ-020: Work / Time SHALL let a person add a time entry with a day, a duration and a note. The entry MAY name a ticket from the mirror. The system SHALL refuse an entry when it cannot resolve the member. The system MUST NOT run a timer.
 - REQ-021: The system SHALL keep time entries as text, one file for each member and month, in the repository. In the repository, one text file for each member and month.
-- REQ-022: The system SHALL send a time entry to the tracker worklog only when a person acts on that entry. An agent, a run or a tick MUST NOT send a worklog. The person SHALL choose to reduce the remaining estimate or leave it. The system SHALL disable the send when the tracker lacks the time tracking capability.
+- REQ-022: The system SHALL send a time entry to the tracker worklog only when a person acts on it. The save of an entry on a ticket of a tracker with time tracking is that action and needs `work.edit`. An agent, a run or a tick MUST NOT send a worklog. The person SHALL choose to reduce the remaining estimate or leave it. An edit or a delete of a sent entry SHALL reach its worklog, and a failure SHALL leave the entry marked not synced with the reason. Delta: the save sends at once.
 - REQ-023: The system SHALL write the entry first, send second and store the tracker receipt third. An entry with a receipt SHALL NOT be offered again. Each sent worklog SHALL carry a mark of the entry id. When a response is lost, the system SHALL find the worklog by its mark and SHALL NOT send it again. The system SHALL run one send of one entry at a time.
-- REQ-024: Each time row SHALL show one of three states: in the tracker, to send, or only in the tracker. The system MUST NOT add local and tracker hours together. The system SHALL flag a difference of duration and MUST NOT correct it.
+- REQ-024: Each time row SHALL show one of three states: in the tracker, to send, or only in the tracker. The system MUST NOT add local and tracker hours together. The system SHALL flag a difference of duration and MUST NOT correct it. Reading the month SHALL import the worklogs that this person made on the tracker and that the system does not hold, and SHALL match a sent worklog by its id so that none comes twice.
 - REQ-025: Shipyard SHALL show the epics and stories to create or update from the estimate sheets. The preview SHALL mark each row create, update or unchanged against the mirror. The system MUST NOT write to the tracker before the PM applies. A reviewed split from `add-specs` SHALL use this preview and the apply of REQ-026, with one match mark. Work owns the apply code.
 - REQ-026: Apply SHALL write each row and SHALL show the result of each row. A failed row SHALL NOT undo the rows already written. A second apply SHALL NOT create a duplicate. Apply SHALL write the summary, description, estimate and parent. It MUST NOT write the status or the assignee. Apply SHALL match a row to its ticket by the row ref `est:<slug>#<row-id>`, which the ticket holds in a label. Store the est: ref of the row in a ticket label.
 - REQ-027: The system SHALL expose members as `member:<handle>` and sheets as `est:<slug>`. The inspector SHALL show their backlinks. The run state of an item SHALL come from `add-factory` (REQ-034).
@@ -391,12 +391,27 @@ The system SHALL keep time entries as text, one file for each member and month, 
 
 ### Requirement: REQ-022 Worklog send
 
-The system SHALL send a time entry to the tracker worklog only when a person acts on that entry. An agent, a run or a tick MUST NOT send a worklog. The person SHALL choose to reduce the remaining estimate or leave it. The system SHALL disable the send when the tracker lacks the time tracking capability.
+The system SHALL send a time entry to the tracker worklog only when a person acts on it. The save of an entry on a ticket of a tracker with time tracking is that action and needs `work.edit`. An agent, a run or a tick MUST NOT send a worklog. The person SHALL choose to reduce the remaining estimate or leave it. An edit or a delete of a sent entry SHALL reach its worklog, and a failure SHALL leave the entry marked not synced with the reason. Delta: the save sends at once.
 
 #### Scenario: Person send
 - GIVEN an entry marked to send
 - WHEN the person clicks send
 - THEN the tracker receives one worklog
+
+#### Scenario: Save sends
+- GIVEN a ticket of a tracker with time tracking and a person with the right `work.edit`
+- WHEN the person saves an entry on the ticket
+- THEN the tracker receives one worklog and the entry stores its id
+
+#### Scenario: Edit and delete reach the tracker
+- GIVEN a sent entry
+- WHEN the person edits or deletes it
+- THEN its worklog changes or goes, and a tracker that refuses leaves the entry marked not synced with the reason
+
+#### Scenario: No time tracking
+- GIVEN a ticket of a tracker without time tracking
+- WHEN the person saves an entry
+- THEN the entry stays local and no error shows
 
 #### Scenario: Agent run
 - GIVEN an active run on a ticket
@@ -429,12 +444,17 @@ The system SHALL write the entry first, send second and store the tracker receip
 
 ### Requirement: REQ-024 Time states
 
-Each time row SHALL show one of three states: in the tracker, to send, or only in the tracker. The system MUST NOT add local and tracker hours together. The system SHALL flag a difference of duration and MUST NOT correct it.
+Each time row SHALL show one of three states: in the tracker, to send, or only in the tracker. The system MUST NOT add local and tracker hours together. The system SHALL flag a difference of duration and MUST NOT correct it. Reading the month SHALL import the worklogs that this person made on the tracker and that the system does not hold, and SHALL match a sent worklog by its id so that none comes twice.
 
 #### Scenario: Difference
 - GIVEN an entry of 2 h whose worklog now shows 3 h
 - WHEN the person fetches the tracker time
 - THEN the row flags the difference and both values stay
+
+#### Scenario: Import
+- GIVEN a worklog that this person made on the tracker and that the system does not hold
+- WHEN the person reads the month twice
+- THEN one entry with the worklog id exists and a sent entry does not come twice
 
 ### Requirement: REQ-025 Plan and apply
 

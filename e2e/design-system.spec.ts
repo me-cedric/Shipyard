@@ -4,7 +4,8 @@ import { expect, test } from "@playwright/test";
 
 // The gallery route exists in the dev build only, and the e2e web server is a release build.
 // This file starts its own dev server for the gallery, and uses the release server for the absence check.
-const DEV = "http://localhost:4175";
+// 127.0.0.1, not localhost: Node can resolve localhost to ::1 while Vite listens on IPv4.
+const DEV = "http://127.0.0.1:4175";
 const LAYERS = ["Tokens", "Atoms", "Molecules", "Organisms", "Templates"];
 
 test.describe("gallery in the dev build", () => {
@@ -14,7 +15,16 @@ test.describe("gallery in the dev build", () => {
 	let dev: ChildProcess;
 
 	test.beforeAll(async () => {
-		dev = spawn("pnpm", ["exec", "vite", "--port", "4175", "--strictPort"], { stdio: "ignore" });
+		// The hook has its own time limit: a cold dev server compiles the whole app first.
+		test.setTimeout(120_000);
+		// Vite itself, not `pnpm exec`: pnpm checks the dependencies first, which can take long.
+		dev = spawn(
+			"node_modules/.bin/vite",
+			["--host", "127.0.0.1", "--port", "4175", "--strictPort"],
+			{
+				stdio: "ignore",
+			},
+		);
 		for (let i = 0; i < 120; i++) {
 			if (
 				await fetch(DEV).then(

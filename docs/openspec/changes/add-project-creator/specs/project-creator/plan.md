@@ -13,7 +13,7 @@ The core gets the `languages` field of the project file, the language text of an
 | ---- | -------- |
 | Stack/runtime | Existing Rust workspace and React 19. No new runtime. |
 | Dependencies | None new. The YAML goes through the shared writers (`write_project_file`, `write_team`, `yaml.rs`). |
-| Data/storage | `.shipyard/project.yaml` gets `languages: {docs, pulls}` (ADR 0020). `.shipyard/team.yaml`, `docs/brief.md`, `AGENTS.md`, `README.md` and `.gitignore` are new files of the new repository. No machine state. |
+| Data/storage | `.shipyard/project.yaml` gets `languages: {docs, pulls}` (`adr:0020`). `.shipyard/team.yaml`, `docs/brief.md`, `AGENTS.md`, `README.md` and `.gitignore` are new files of the new repository. No machine state. |
 | APIs/contracts | IPC: `creatorOptions`, `creatorDraft`, `creatorPreview`, `creatorCreate(plan, click)`, `creatorBootstrap(click)`. The issues: existing `workItemCreate(row, click)` with the ref `est:starter#sN`. |
 | Network | Existing calls only: `create_repo` of the code host (GitHub, GitLab), `git push` to `origin`, the issue create of the issue tracker. Each one follows the click on Create or Create issues (constitution 5.4). |
 | Risks | An older Shipyard refuses a project file with `languages` (`deny_unknown_fields`). A run needs a code host: its last step opens a pull request (Q-156). The admin of the team file comes with `team-rights` (Q-154). |

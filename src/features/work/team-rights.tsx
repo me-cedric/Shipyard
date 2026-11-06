@@ -1,24 +1,36 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import {
+	type Access,
 	commands,
 	type JoinSent,
-	type Member,
+	type Level,
 	type Overrides_Serialize,
 	type Right,
+	type RoleAccess,
+	type TeamRole,
 	unwrap,
 } from "@/lib/ipc";
 import { copyText, openUrl } from "@/lib/menus";
 import { TEAM_ROLES } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton, rightsKey, useRights } from "@/lib/rights";
-import { useTeam, useWorkActions } from "@/lib/work";
+import { type Member, useTeam, useWorkActions } from "@/lib/work";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
+import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
-import { CheckIcon, XMarkIcon } from "@/ui/icons";
+import { Switch } from "@/ui/atoms/switch";
+import {
+	ArrowPathIcon,
+	BookOpenIcon,
+	CheckIcon,
+	LockClosedIcon,
+	PencilIcon,
+	XMarkIcon,
+} from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { useGuard } from "./guard";
@@ -57,74 +69,347 @@ export function RoleRights({ role }: { role: string }) {
 	);
 }
 
-/** Each role against each right, with a check or a cross. */
-export function RightsMatrix() {
-	const { t } = useI18n();
-	const roles = useRights().view?.roles ?? [];
-	if (roles.length === 0) return null;
+type Area = Exclude<keyof Access, "merge" | "approve">;
+const AREAS: Area[] = ["work", "specs", "design", "knowledge", "code", "runs", "settings", "costs"];
+const LEVELS: Level[] = ["none", "read", "write"];
+const RANK: Record<Level, number> = { none: 0, read: 1, write: 2 };
+
+/** Levels from a text of eight letters: `W` write, `R` read, else none. */
+const levels = (l: string, merge = false, approve = false): Access => {
+	const at = (i: number): Level => (l[i] === "W" ? "write" : l[i] === "R" ? "read" : "none");
+	return {
+		work: at(0),
+		specs: at(1),
+		design: at(2),
+		knowledge: at(3),
+		code: at(4),
+		runs: at(5),
+		settings: at(6),
+		costs: at(7),
+		merge,
+		approve,
+	};
+};
+const ADMIN = levels("WWWWWWWW", true, true);
+/** The default levels of each role, as `Role::defaults` of `crates/shipyard-core/src/rights.rs`. Reset needs them. */
+const DEFAULTS: Record<TeamRole, Access> = {
+	po: levels("WWRWRRRR"),
+	pm: levels("WRRWRRRR"),
+	architect: levels("WWWWWWRR", true, true),
+	techlead: ADMIN,
+	ba: levels("WWRWRWRN"),
+	developer: levels("WRWWWWRN", false, true),
+	qa: levels("WWRWWWRN"),
+	designer: levels("WRWWRRRN"),
+	viewer: levels("RRRRRRRN"),
+};
+
+/** Where a right sits: its area or switch, and the level that it needs. */
+const RIGHT_AT: Record<Right, [keyof Access, Level]> = {
+	"work.edit": ["work", "write"],
+	"specs.edit": ["specs", "write"],
+	"design.edit": ["design", "write"],
+	"knowledge.edit": ["knowledge", "write"],
+	"code.write": ["code", "write"],
+	"code.merge": ["merge", "write"],
+	"runs.start": ["runs", "write"],
+	"runs.approve": ["approve", "write"],
+	"project.settings": ["settings", "write"],
+	"costs.view": ["costs", "read"],
+};
+
+const isRole = (r: string): r is TeamRole => (TEAM_ROLES as string[]).includes(r);
+/** The known roles of a member, the first one first. */
+const rolesOf = (m: Member) => [...new Set([m.role, ...(m.roles ?? [])])].filter(isRole);
+
+/** The levels of a member: the highest of the roles, then the overrides. An admin has all. */
+function effective(m: Member, roles: TeamRole[], table: RoleAccess[]): Access {
+	if (m.admin) return ADMIN;
+	const of = (r: TeamRole) => table.find((x) => x.role === r)?.access ?? DEFAULTS[r];
+	let a = levels("NNNNNNNN");
+	for (const r of roles.length ? roles : (["viewer"] as TeamRole[])) {
+		const y = of(r);
+		const next = { ...a, merge: a.merge || y.merge, approve: a.approve || y.approve };
+		for (const k of AREAS) next[k] = RANK[a[k]] >= RANK[y[k]] ? a[k] : y[k];
+		a = next;
+	}
+	for (const c of m.rights ?? []) {
+		const at = RIGHT_AT[c.slice(1) as Right];
+		if (!at) continue;
+		const [k, need] = at;
+		const on = c.startsWith("+");
+		if (k === "merge" || k === "approve") {
+			a = { ...a, [k]: on };
+			continue;
+		}
+		const below: Level = need === "write" ? "read" : "none";
+		const cur = a[k];
+		const next = on
+			? RANK[cur] >= RANK[need]
+				? cur
+				: need
+			: RANK[cur] <= RANK[below]
+				? cur
+				: below;
+		a = { ...a, [k]: next };
+	}
+	return a;
+}
+
+const LEVEL_LOOK: Record<Level, { icon: ReactNode; tone: string }> = {
+	none: { icon: <LockClosedIcon size={12} />, tone: "text-danger-text" },
+	read: { icon: <BookOpenIcon size={12} />, tone: "text-n-11" },
+	write: { icon: <PencilIcon size={12} />, tone: "text-success-text" },
+};
+
+/** One level or switch of a cell, as an icon with its name (colour is never the only sign). */
+function Mark({ label, icon, tone }: { label: string; icon: ReactNode; tone: string }) {
 	return (
-		// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable)
-		<div tabIndex={0} className="overflow-auto px-4 pb-4">
-			<table
-				aria-label={t.rights.team.matrix}
-				className="w-full border-separate border-spacing-0 rounded-lg border bg-surface-1 text-12"
-			>
-				<thead>
-					<tr className="text-left text-n-11 [&>th]:border-b [&>th]:px-2 [&>th]:py-1 [&>th]:font-medium">
-						<th scope="col">{t.work.team.role}</th>
-						{ALL.map((r) => (
-							<th key={r} scope="col" className="font-mono">
-								{r}
-							</th>
-						))}
-					</tr>
-				</thead>
-				<tbody>
-					{roles.map((x) => (
-						<tr
-							key={x.role}
-							className="[&>td]:border-b [&>td]:px-2 [&>td]:py-1 last:[&>td]:border-b-0"
-						>
-							<th scope="row" className="px-2 py-1 text-left font-medium">
-								{t.rights.role[x.role]}
-							</th>
-							{ALL.map((r) => (
-								<td key={r} className="text-center">
-									{x.rights.includes(r) ? (
-										<span
-											role="img"
-											aria-label={`${r} ${t.rights.yes}`}
-											className="text-success-text"
-										>
-											<CheckIcon size={12} />
-										</span>
-									) : (
-										<span role="img" aria-label={`${r} ${t.rights.no}`} className="text-n-10">
-											<XMarkIcon size={12} />
-										</span>
-									)}
-								</td>
-							))}
-						</tr>
-					))}
-				</tbody>
-			</table>
-		</div>
+		<span role="img" aria-label={label} title={label} className={`inline-flex ${tone}`}>
+			{icon}
+		</span>
 	);
 }
 
-const ALL: Right[] = [
-	"work.edit",
-	"specs.edit",
-	"design.edit",
-	"knowledge.edit",
-	"code.write",
-	"code.merge",
-	"runs.start",
-	"runs.approve",
-	"project.settings",
-	"costs.view",
-];
+/** The levels of one row: eight areas and two switches, each as a mark or, in edit, as a control. */
+function Cells({
+	access,
+	name,
+	onChange,
+}: {
+	access: Access;
+	name: string;
+	onChange?: (a: Access) => void;
+}) {
+	const { t } = useI18n();
+	const r = t.rights.team;
+	return (
+		<>
+			{AREAS.map((k) => (
+				<td key={k} className="px-1 py-1 text-center">
+					{onChange ? (
+						<Select
+							label={`${name} ${r.area[k]}`}
+							value={access[k]}
+							onValueChange={(v) => onChange({ ...access, [k]: v as Level })}
+							className="w-28 min-w-0"
+							items={LEVELS.map((l) => ({
+								value: l,
+								label: r.level[l],
+								icon: <span className={LEVEL_LOOK[l].tone}>{LEVEL_LOOK[l].icon}</span>,
+							}))}
+						/>
+					) : (
+						<Mark label={r.level[access[k]]} {...LEVEL_LOOK[access[k]]} />
+					)}
+				</td>
+			))}
+			{(["merge", "approve"] as const).map((k) => (
+				<td key={k} className="px-1 py-1 text-center">
+					{onChange ? (
+						<Switch
+							iconOnly
+							label={`${name} ${r[k]}`}
+							checked={access[k]}
+							onCheckedChange={(on) => onChange({ ...access, [k]: on })}
+						/>
+					) : (
+						<Mark
+							label={`${r[k]} ${access[k] ? t.rights.yes : t.rights.no}`}
+							icon={access[k] ? <CheckIcon size={12} /> : <XMarkIcon size={12} />}
+							tone={access[k] ? "text-success-text" : "text-n-10"}
+						/>
+					)}
+				</td>
+			))}
+		</>
+	);
+}
+
+type Draft = { table: RoleAccess[]; roles: Record<string, TeamRole[]> };
+
+const FRAME = "w-full border-separate border-spacing-0 rounded-lg border bg-surface-1 text-12";
+
+/**
+ * The levels of each role and of each member (REQ-005, REQ-019). Edit turns the cells into
+ * controls; Save writes the `roles:` block and the roles of the members in one command.
+ */
+export function TeamRights() {
+	const { t } = useI18n();
+	const r = t.rights.team;
+	const qc = useQueryClient();
+	const view = useRights().view;
+	const members = useTeam().data?.team.members ?? [];
+	const [draft, setDraft] = useState<Draft | null>(null);
+	const { error, run, busy } = useGuard();
+	const roles = view?.roles ?? [];
+	if (roles.length === 0) return null;
+	const table = draft?.table ?? roles;
+	const rolesFor = (m: Member) => draft?.roles[m.handle] ?? rolesOf(m);
+	const setRoles = (m: Member, next: TeamRole[]) =>
+		draft && setDraft({ ...draft, roles: { ...draft.roles, [m.handle]: next } });
+	const setAccess = (role: TeamRole, access: Access) =>
+		draft &&
+		setDraft({ ...draft, table: draft.table.map((y) => (y.role === role ? { ...y, access } : y)) });
+	const save = () =>
+		run(async () => {
+			if (!draft) return;
+			const changed = members
+				.filter((m) => draft.roles[m.handle]?.join() !== rolesOf(m).join())
+				.map((m) => ({ handle: m.handle, roles: draft.roles[m.handle] ?? [] }));
+			await unwrap(commands.rightsRolesSave(draft.table, changed));
+			await qc.invalidateQueries();
+			setDraft(null);
+		});
+	const head = (first: string) => (
+		<thead>
+			<tr className="text-left text-n-11 [&>th]:border-b [&>th]:px-2 [&>th]:py-1 [&>th]:font-medium">
+				<th scope="col">{first}</th>
+				{AREAS.map((k) => (
+					<th key={k} scope="col" className="text-center">
+						{r.area[k]}
+					</th>
+				))}
+				<th scope="col" className="text-center">
+					{r.merge}
+				</th>
+				<th scope="col" className="text-center">
+					{r.approve}
+				</th>
+			</tr>
+		</thead>
+	);
+	return (
+		<section className="flex flex-col gap-2 px-4 pb-4">
+			<div className="flex items-center gap-2">
+				<h2 className="flex-1 text-ui font-medium">{r.matrix}</h2>
+				{draft ? (
+					<>
+						<Button variant="primary" busy={busy} onClick={() => void save()}>
+							{t.work.save}
+						</Button>
+						<Button variant="ghost" onClick={() => setDraft(null)}>
+							{t.sync.backlog.cancel}
+						</Button>
+					</>
+				) : (
+					<RightButton
+						right="project.settings"
+						onClick={() =>
+							setDraft({
+								table: roles.map(({ role, access }) => ({ role, access })),
+								roles: Object.fromEntries(members.map((m) => [m.handle, rolesOf(m)])),
+							})
+						}
+					>
+						<PencilIcon size={14} />
+						{r.edit}
+					</RightButton>
+				)}
+			</div>
+			{error ? (
+				<p role="alert" className="text-ui text-danger-text">
+					{error}
+				</p>
+			) : null}
+			{/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable) */}
+			<div tabIndex={0} className="overflow-auto">
+				<table aria-label={r.matrix} className={FRAME}>
+					{head(t.work.team.role)}
+					<tbody>
+						{table.map((x) => {
+							const name = t.rights.role[x.role];
+							return (
+								<tr key={x.role} className="[&>td]:border-b last:[&>td]:border-b-0">
+									<th scope="row" className="whitespace-nowrap px-2 py-1 text-left font-medium">
+										<span className="flex items-center gap-1">
+											{name}
+											{draft ? (
+												<IconButton
+													label={format(r.reset, { role: name })}
+													onClick={() => setAccess(x.role, DEFAULTS[x.role])}
+												>
+													<ArrowPathIcon size={12} />
+												</IconButton>
+											) : null}
+										</span>
+									</th>
+									<Cells
+										access={x.access}
+										name={name}
+										onChange={draft ? (a) => setAccess(x.role, a) : undefined}
+									/>
+								</tr>
+							);
+						})}
+					</tbody>
+				</table>
+			</div>
+			{members.length ? (
+				// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable)
+				<div tabIndex={0} className="overflow-auto">
+					<table aria-label={r.members} className={FRAME}>
+						{head(r.members)}
+						<tbody>
+							{members.map((m) => {
+								const mine = rolesFor(m);
+								return (
+									<tr
+										key={m.handle}
+										aria-label={`${m.handle} ${r.levels}`}
+										className="[&>td]:border-b last:[&>td]:border-b-0"
+									>
+										<th scope="row" className="px-2 py-1 text-left font-medium">
+											<span className="flex flex-wrap items-center gap-1">
+												<span className="mr-1 whitespace-nowrap">{m.name}</span>
+												{mine.map((x) => (
+													<Badge key={x} className="gap-0.5 rounded-full">
+														{t.rights.role[x]}
+														{draft ? (
+															<IconButton
+																label={format(r.removeRole, {
+																	role: t.rights.role[x],
+																	name: m.name,
+																})}
+																className="size-4"
+																onClick={() =>
+																	setRoles(
+																		m,
+																		mine.filter((y) => y !== x),
+																	)
+																}
+															>
+																<XMarkIcon size={10} />
+															</IconButton>
+														) : null}
+													</Badge>
+												))}
+												{draft ? (
+													<Select
+														label={format(r.addRole, { name: m.name })}
+														placeholder={r.pickRole}
+														value=""
+														onValueChange={(v) => setRoles(m, [...mine, v as TeamRole])}
+														className="w-32 min-w-0"
+														items={TEAM_ROLES.filter((x) => !mine.includes(x)).map((x) => ({
+															value: x,
+															label: t.rights.role[x],
+														}))}
+													/>
+												) : null}
+											</span>
+										</th>
+										<Cells access={effective(m, mine, table)} name={m.name} />
+									</tr>
+								);
+							})}
+						</tbody>
+					</table>
+				</div>
+			) : null}
+		</section>
+	);
+}
 
 /** Who the person is for Shipyard, and the warnings of the team file. */
 export function TeamBanners() {

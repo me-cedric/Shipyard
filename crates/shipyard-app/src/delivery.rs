@@ -524,6 +524,11 @@ pub(crate) fn run_gate_out(
         }
         .into();
     }
+    // A red gate names its first error, not only its last line ("could not compile …"): the
+    // review finding and the fix round need the cause.
+    if !passed && let Some(first) = first_error(&lines) {
+        counts = format!("{counts}\n{first}");
+    }
     GateOut {
         check: GateCheck {
             command: command.into(),
@@ -1075,6 +1080,25 @@ pub async fn pulls_list(app: AppHandle) -> Api<Vec<PrRowView>> {
 #[specta::specta]
 pub async fn pulls_status_get(app: AppHandle) -> Api<PullsStatus> {
     blocking(app, pulls_status).await
+}
+
+/// The first error block of a gate output: the first `error` / `FAILED` / `panicked` line and
+/// the lines that follow it, at most 12 lines and 1,500 characters. `None` when there is none.
+fn first_error(lines: &[&str]) -> Option<String> {
+    let at = lines.iter().position(|l| {
+        let t = l.trim_start();
+        (t.starts_with("error") && !t.starts_with("error: could not compile"))
+            || t.contains("panicked at")
+            || t.starts_with("FAIL ")
+            || t.starts_with("---- ")
+    })?;
+    let block = lines[at..]
+        .iter()
+        .take(12)
+        .copied()
+        .collect::<Vec<_>>()
+        .join("\n");
+    Some(block.chars().take(1500).collect())
 }
 
 #[cfg(test)]

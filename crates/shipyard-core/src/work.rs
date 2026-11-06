@@ -104,6 +104,10 @@ pub struct Member {
     pub emails: Vec<String>,
     /// One of the roles of `crate::rights::Role`. Another text gives the rights of `viewer`.
     pub role: String,
+    /// More roles of this person (`team-rights` REQ-005). The level in each area is the highest
+    /// level of `role` and these roles.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub roles: Vec<String>,
     /// Gives each right (`team-rights` REQ-005).
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub admin: bool,
@@ -123,6 +127,10 @@ pub struct Member {
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct Team {
     pub members: Vec<Member>,
+    /// The `roles:` block: changes of the default table, per role and per area (`team-rights`
+    /// REQ-005). An unknown role, area or level has no effect and Health names it.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub roles: BTreeMap<String, BTreeMap<String, crate::rights::Cell>>,
     /// Set by the reader when a day rate is sealed and the passphrase is missing.
     /// A writer refuses a locked team: a write would drop the rates.
     #[serde(skip)]
@@ -1080,6 +1088,9 @@ pub struct TimeEntry {
     /// The tracker worklog id: the receipt (REQ-023).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub worklog: Option<String>,
+    /// Why the tracker does not hold this entry as written here. Empty when it does.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unsynced: Option<String>,
 }
 
 const MARK: &str = "shipyard log=";

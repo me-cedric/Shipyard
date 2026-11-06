@@ -120,7 +120,7 @@ pub fn team_join(s: &AppState, ask: JoinAsk, click: bool) -> Res<JoinSent> {
     let entry = write_team(
         &Team {
             members: vec![member.clone()],
-            locked: false,
+            ..Team::default()
         },
         None,
     )

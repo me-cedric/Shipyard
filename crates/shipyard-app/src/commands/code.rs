@@ -11,8 +11,9 @@ use serde::{Deserialize, Serialize};
 use shipyard_core::code::{check_branch_name, check_summary};
 use shipyard_git::Repo;
 use shipyard_git::code::{
-    BlameLine, Branch, Changes, Choice, CommitInfo, ConflictFile, DiffSide, FileChange, FileDiff,
-    FileView, HeadChange, LogPage, MergeOutcome, PullOutcome, RebaseOutcome, Side, Stash,
+    BlameLine, Blob, BlobSource, Branch, Changes, Choice, CommitInfo, ConflictFile, DiffSide,
+    FileChange, FileDiff, FileView, HeadChange, LogPage, MergeOutcome, PullOutcome, RebaseOutcome,
+    Side, Stash,
 };
 use shipyard_store::code::{set_watch_minutes, watch_minutes};
 use specta::Type;
@@ -431,6 +432,11 @@ pub fn file_read(s: &AppState, path: &str, rev: Option<&str>) -> Res<FileView> {
         .map_err(err)
 }
 
+/// A file of the working copy, the index or HEAD for the image preview. `None` when it is not there.
+pub fn blob(s: &AppState, path: &str, source: BlobSource) -> Res<Option<Blob>> {
+    repo(s)?.preview_blob(path, source).map_err(err)
+}
+
 // shortcut: the drawer lists 20 000 files at most; a page of results when a repository needs more.
 const MAX_LIST: usize = 20_000;
 
@@ -444,6 +450,12 @@ pub fn file_list(s: &AppState) -> Res<Vec<String>> {
 #[specta::specta]
 pub async fn code_file_list(app: AppHandle) -> Api<Vec<String>> {
     blocking(app, file_list).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_blob(app: AppHandle, path: String, source: BlobSource) -> Api<Option<Blob>> {
+    blocking(app, move |s| blob(s, &path, source)).await
 }
 
 #[tauri::command]

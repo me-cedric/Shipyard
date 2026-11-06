@@ -251,7 +251,33 @@ export function useWorkActions() {
 				minutes: number,
 				note: string,
 				ticket: string | null,
-			) => run(commands.timeAdd(member, day, minutes, note, ticket)),
+				reduceRemaining: boolean,
+			) =>
+				run(
+					commands.timeAdd(
+						member,
+						day,
+						minutes,
+						note,
+						ticket,
+						-new Date().getTimezoneOffset(),
+						reduceRemaining,
+					),
+				),
+			updateTime: (member: string | null, day: string, id: string, minutes: number, note: string) =>
+				run(
+					commands.timeUpdate(
+						member,
+						day,
+						id,
+						minutes,
+						note,
+						-new Date().getTimezoneOffset(),
+						true,
+					),
+				),
+			removeTime: (member: string | null, day: string, id: string) =>
+				run(commands.timeRemove(member, day, id, true)),
 			fetchTime: (member: string | null, ticket: string) => run(commands.timeFetch(member, ticket)),
 			pullMonth: (member: string | null, month: string) =>
 				run(commands.timePullMonth(member, month)),

@@ -280,6 +280,7 @@ fn a_write_that_the_member_of_the_run_cannot_do_waits_with_its_switch_on() {
     let cy = Actor {
         by: "cy".into(),
         rights: vec![Right::CodeWrite],
+        hidden: Vec::new(),
     };
     fx.f.set_actor("ship", Some(cy));
     let run = fx.start("SHIP-1", &[]);
@@ -299,6 +300,7 @@ fn a_write_that_the_member_of_the_run_cannot_do_waits_with_its_switch_on() {
         Some(Actor {
             by: "ana".into(),
             rights: vec![Right::WorkEdit],
+            hidden: Vec::new(),
         }),
     );
     fx.f.cancel(&run).unwrap();
@@ -314,4 +316,20 @@ fn a_run_with_no_member_has_no_right_and_its_writes_wait() {
     fx.start("SHIP-1", &[]);
     assert!(fx.writer.sent().is_empty());
     assert!(!fx.f.approvals().is_empty());
+}
+
+#[test]
+fn a_run_from_before_team_rights_acts_for_the_person_of_the_project_and_waiting_writes_go() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    // No person yet: the writes of the run wait.
+    fx.f.set_actor("ship", None);
+    fx.start("SHIP-1", &[]);
+    assert!(fx.writer.sent().is_empty());
+    let waiting = fx.f.approvals().len();
+    assert!(waiting > 0);
+    // The person of this machine is known again (a restart, a sign-in): the run has no member
+    // of its own, so it acts for that person, and the writes that wait go out with no click.
+    fx.f.set_actor("ship", Some(fx::solo()));
+    assert!(fx.f.approvals().is_empty());
+    assert_eq!(fx.writer.sent().len(), waiting);
 }

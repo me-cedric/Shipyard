@@ -82,7 +82,7 @@ The earlier tool has 490 titles, 336 hints and 216 descriptions. Each page build
 
 - `docs/plan/MASTER-PLAN.md` section 8.
 - `docs/openspec/constitution.md` section 4.
-- `docs/decisions/0009-design-system-base-ui-switzer.md`
+- `adr:0009` (`docs/decisions/0009-design-system-base-ui-switzer.md`)
 - `docs/delivery/questions/Q-001.md`
 
 ### Clarifications

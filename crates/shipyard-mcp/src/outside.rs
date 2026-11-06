@@ -19,7 +19,7 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use shipyard_core::rights::Right;
+use shipyard_core::rights::{Area, Right};
 
 /// The groups of tools that an outside agent may call.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,6 +75,8 @@ pub struct Outside {
     pub rights: Option<RightsPort>,
     /// The ticket tools answer through it. `None`: they say that no tracker is wired.
     pub tickets: Option<TicketPort>,
+    /// The areas at `none` for the person: their read tools refuse (`team-rights` REQ-018).
+    pub hidden: Vec<Area>,
 }
 
 impl Outside {
@@ -146,6 +148,20 @@ fn right_of(name: &str) -> Option<Right> {
         "ticket_comment" => Right::WorkEdit,
         "adr_propose" => Right::DesignEdit,
         "workflow_propose" => Right::ProjectSettings,
+        _ => return None,
+    })
+}
+
+/// The area of a read tool. A hidden area refuses it. `None` for a write: its right decides.
+fn area_of(name: &str) -> Option<Area> {
+    Some(match name {
+        "project_list_files" | "project_read_file" | "git_status" | "git_log" | "git_diff"
+        | "forge_remote" | "delivery_diff" | "qa_read_report" => Area::Code,
+        "ticket_list" | "ticket_read" => Area::Work,
+        "adr_list" | "adr_read" => Area::Design,
+        "spec_validate" => Area::Specs,
+        "docs_stale" => Area::Knowledge,
+        "workflow_list" | "workflow_read" | "workflow_validate" => Area::Runs,
         _ => return None,
     })
 }
@@ -789,6 +805,9 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
     if !o.allows(name) {
         return Err(format!("{name} is turned off in the Shipyard settings"));
     }
+    if let Some(a) = area_of(name).filter(|a| o.hidden.contains(a)) {
+        return Err(format!("the area {} is hidden for this person", a.as_str()));
+    }
     if let Some(right) = right_of(name) {
         let port = o
             .rights
@@ -960,6 +979,7 @@ mod tests {
             only: Vec::new(),
             rights: Some(RightsPort(Arc::new(|_, _, _| Ok(())))),
             tickets: Some(TicketPort(Arc::new(|name, _| Ok(format!("ran {name}"))))),
+            hidden: Vec::new(),
         }
     }
 
@@ -1028,6 +1048,26 @@ mod tests {
             let w = json!({ "path": bad, "text": "x" });
             assert!(call(&o, "project_write_file", &w).is_err(), "{bad}");
         }
+    }
+
+    #[test]
+    fn a_read_tool_of_a_hidden_area_is_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.md"), "x").unwrap();
+        let mut o = open(dir.path(), all());
+        o.hidden = vec![Area::Work, Area::Code];
+        for (tool, args) in [
+            ("ticket_read", json!({ "key": "SHIP-1" })),
+            ("project_read_file", json!({ "path": "a.md" })),
+        ] {
+            assert!(
+                call(&o, tool, &args)
+                    .unwrap_err()
+                    .contains("is hidden for this person"),
+                "{tool}"
+            );
+        }
+        assert!(call(&o, "adr_list", &json!({})).is_ok());
     }
 
     #[test]

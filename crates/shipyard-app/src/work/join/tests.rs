@@ -54,7 +54,7 @@ fn fx(remote: bool) -> Fx {
     std::fs::create_dir_all(root.join(".shipyard")).unwrap();
     let team = Team {
         members: vec![ana],
-        locked: false,
+        ..Team::default()
     };
     std::fs::write(root.join(TEAM_PATH), write_team(&team, None).unwrap()).unwrap();
     git(&root, &["add", TEAM_PATH]);

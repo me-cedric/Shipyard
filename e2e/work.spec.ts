@@ -102,7 +102,9 @@ test("plans with the keyboard and applies the sheet to the tracker", async ({ pa
 	await expect(page.getByRole("dialog").getByRole("button", { name: "Apply" })).toBeDisabled();
 });
 
-test("adds a time entry and sends it with one click", async ({ page }) => {
+test("adds a time entry that goes to the issue tracker on save, and sends a waiting one", async ({
+	page,
+}) => {
 	await openWork(page, "Time");
 	await expect(page.getByRole("heading", { name: "To send (2)" })).toBeVisible();
 	await page.getByRole("button", { name: "Entry" }).click();
@@ -110,22 +112,29 @@ test("adds a time entry and sends it with one click", async ({ page }) => {
 	await page.getByRole("combobox", { name: "Ticket" }).fill("ACME-3");
 	await page.getByRole("textbox", { name: "Note" }).fill("Pairing");
 	await page.getByRole("button", { name: "Entry" }).last().click();
-	await expect(page.getByRole("heading", { name: "To send (3)" })).toBeVisible();
-
-	await page.getByRole("button", { name: /^Send 2026-11-02 ACME-3$/ }).click();
-	await expect(page.getByRole("heading", { name: "To send (2)" })).toBeVisible();
+	// The issue tracker takes worklogs: the new entry is sent at once.
 	await expect(page.getByRole("heading", { name: "In issue tracker (2)" })).toBeVisible();
-	await expect(page.getByRole("button", { name: /^Send 2026-11-02 ACME-3$/ })).toHaveCount(0);
+	await expect(page.getByRole("heading", { name: "To send (2)" })).toBeVisible();
+
+	// An entry that waits is sent with one click.
+	await page
+		.getByRole("button", { name: /^Send / })
+		.first()
+		.click();
+	await expect(page.getByRole("heading", { name: "To send (1)" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "In issue tracker (3)" })).toBeVisible();
 });
 
 test("edits the team and seals the project, then unlocks it", async ({ page }) => {
 	await openWork(page, "Team");
-	await page.getByRole("row", { name: "grace" }).getByRole("button").click();
+	await page.getByRole("row", { name: "grace", exact: true }).getByRole("button").click();
 	const panel = inspector(page, "Grace Hopper");
 	const capacity = panel.getByRole("spinbutton", { name: "Capacity (days a week)" });
 	await capacity.fill("3");
 	await panel.getByRole("button", { name: "Save" }).click();
-	await expect(page.getByRole("row", { name: "grace" }).getByRole("cell").nth(2)).toHaveText("3");
+	await expect(
+		page.getByRole("row", { name: "grace", exact: true }).getByRole("cell").nth(2),
+	).toHaveText("3");
 
 	await tabs(page).getByRole("link", { name: "Estimates" }).click();
 	await page.getByRole("button", { name: "Seal" }).click();

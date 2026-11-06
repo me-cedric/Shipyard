@@ -28,6 +28,7 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { WriteReportView } from "@/ui/molecules/write-report";
+import { SETTINGS_PAGE } from "@/ui/templates/settings";
 import { CompassSetup } from "./compass-setup";
 
 const KINDS: EntryKind[] = ["skill", "pack", "guide", "pattern", "contract"];
@@ -128,7 +129,7 @@ export function Compass({ children }: { children: ReactNode }) {
 					) : undefined
 				}
 			/>
-			<div className="flex max-w-4xl flex-col gap-4 px-4 pt-1 pb-4">
+			<div className={SETTINGS_PAGE}>
 				{error ? (
 					<p role="alert" className="text-ui text-danger-text">
 						{error}

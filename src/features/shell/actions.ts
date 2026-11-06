@@ -108,7 +108,10 @@ export function useActions() {
 	const { pull, fetch, push } = useCodeActions();
 	const syncNow = useSyncNow();
 	const stageable = canCommit(useChanges().data);
-	const writes = useRights().can("code.write");
+	const { can, level } = useRights();
+	const writes = can("code.write");
+	// A text keeps the memo stable: `level` is a new function at each render.
+	const shown = orderedSpaces(teamRole, level).join(",");
 	const checkUpdate = useUpdateCheck();
 	const { bindings } = useShortcutBindings();
 	const { setShortcutsOpen } = shell;
@@ -123,7 +126,7 @@ export function useActions() {
 			const chord = bindings[a.id] ?? defaultChord;
 			return { ...rest, chord, defaultChord, shortcut: chordText(chord) };
 		};
-		const spaces = orderedSpaces(teamRole).map((space, i) =>
+		const spaces = (shown.split(",") as SpaceId[]).map((space, i) =>
 			withKey({
 				id: `go-${space}`,
 				label: t.space[space],
@@ -385,7 +388,7 @@ export function useActions() {
 		};
 	}, [
 		t,
-		teamRole,
+		shown,
 		sidebarOpen,
 		inspectorOpen,
 		assistantOpen,

@@ -37,8 +37,9 @@ import {
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
+import { Panel } from "@/ui/molecules/panel";
 import { SectionNav } from "@/ui/molecules/section-nav";
-import { Settings } from "@/ui/templates/settings";
+import { SETTINGS_PAGE, Settings } from "@/ui/templates/settings";
 import { PersonasEditor } from "./personas";
 import { ProjectDetails } from "./project-details";
 import { ProjectImport } from "./project-import";
@@ -178,8 +179,16 @@ function Form({
 		),
 	});
 
+	// The personal rows sit in the Project panel (Details).
+	const own = (
+		<>
+			<AutoCommit />
+			<AutoReview />
+			<HolidayCountry row />
+		</>
+	);
 	return (
-		<div className="flex max-w-3xl flex-col gap-4 px-4 pt-1 pb-4">
+		<div className={SETTINGS_PAGE}>
 			<Settings
 				sections={[
 					...(file
@@ -348,16 +357,18 @@ function Form({
 			/>
 			{file ? (
 				<>
-					<ProjectDetails />
+					<ProjectDetails>{own}</ProjectDetails>
 					<RepoTools />
 					<TicketsConfigEditor />
 					<PersonasEditor />
 				</>
 			) : null}
 			<ProjectOverrides />
-			<AutoCommit />
-			<AutoReview />
-			<HolidayCountry row />
+			{file ? null : (
+				<Panel id="section-details" title={t.projects.details.title} flush>
+					{own}
+				</Panel>
+			)}
 			<ProjectImport />
 			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 			{dirty ? (

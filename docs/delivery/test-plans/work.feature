@@ -231,6 +231,24 @@ Feature: work
     Then the issue tracker receives one worklog
 
   @spec:work#REQ-022
+  Scenario: Worklog send: Save sends
+    Given a ticket of a tracker with time tracking and a person with the right work.edit
+    When the person saves an entry on the ticket
+    Then the issue tracker receives one worklog and the entry stores its id
+
+  @spec:work#REQ-022
+  Scenario: Worklog send: Edit and delete reach the tracker
+    Given a sent entry
+    When the person edits or deletes it
+    Then its worklog changes or goes, and a tracker that refuses leaves the entry marked not synced with the reason
+
+  @spec:work#REQ-022
+  Scenario: Worklog send: No time tracking
+    Given a ticket of a tracker without time tracking
+    When the person saves an entry
+    Then the entry stays local and no error shows
+
+  @spec:work#REQ-022
   Scenario: Worklog send: Agent run
     Given an active run on a ticket
     When the run ends
@@ -265,6 +283,12 @@ Feature: work
     Given an entry of 2 h whose worklog now shows 3 h
     When the person fetches the issue tracker time
     Then the row flags the difference and both values stay
+
+  @spec:work#REQ-024
+  Scenario: Time states: Import
+    Given a worklog that this person made on the issue tracker and that the system does not hold
+    When the person reads the month twice
+    Then one entry with the worklog id exists and a sent entry does not come twice
 
   @spec:work#REQ-025
   Scenario: Plan and apply: Preview

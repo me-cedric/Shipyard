@@ -207,7 +207,7 @@ The system SHALL list the ADRs of the project in Design / Decisions. Each row SH
 The system SHALL create an ADR from the MADR template. The new ADR SHALL take the next free number and the status proposed.
 
 #### Scenario: Next number
-- GIVEN ADRs 0001 to 0010
+- GIVEN `adr:0001` to 0010
 - WHEN the person creates an ADR
 - THEN the new file has the number 0011 and the MADR sections
 

@@ -34,6 +34,28 @@ export const onboardingEs: typeof onboardingEn = {
 			body: "Un agente planifica, construye y comprueba el ticket, y luego abre un pull request para tu revisión.",
 		},
 	},
+	setup: {
+		title: "Configuración",
+		done: "Hecho",
+		todo: "Pendiente",
+		item: {
+			project: "Proyecto",
+			ai: "Herramienta de IA",
+			models: "Modelos",
+			tracker: "Gestor de tickets",
+			forge: "Plataforma de código",
+			permissions: "Permisos",
+			team: "Equipo",
+		},
+		action: {
+			project: "Nuevo proyecto",
+			signIn: "Iniciar sesión",
+			models: "Elegir modelos",
+			connect: "Conectar",
+			permissions: "Abrir",
+			team: "Añadirme como admin",
+		},
+	},
 	picture: {
 		folder: "Abrir una carpeta",
 		clone: "Clonar",

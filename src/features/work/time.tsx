@@ -2,10 +2,10 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { CSSProperties } from "react";
 import { useMemo, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
-import type { TimeState } from "@/lib/ipc";
+import { confirmDialog, type TimeState } from "@/lib/ipc";
 import { useDay, usePanelSize } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
-import { RightButton } from "@/lib/rights";
+import { RightButton, RightIconButton } from "@/lib/rights";
 import { useWorkItems } from "@/lib/sync";
 import {
 	addDays,
@@ -26,7 +26,15 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
-import { ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, PlusIcon } from "@/ui/icons";
+import {
+	ArrowPathIcon,
+	ChevronLeftIcon,
+	ChevronRightIcon,
+	ClockIcon,
+	PencilIcon,
+	PlusIcon,
+	TrashIcon,
+} from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
@@ -37,6 +45,7 @@ import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { useGuard } from "./guard";
 import { NoProject } from "./no-project";
+import { TicketField } from "./ticket-field";
 
 const STATE_ORDER: TimeState[] = ["to-send", "in-tracker", "only-in-tracker"];
 const DOT: Record<TimeState, Status> = {
@@ -51,12 +60,16 @@ type Line = {
 	day: string;
 	ticket: string;
 	note: string;
+	/** The whole note: the line above shows its first line only. */
+	fullNote: string;
 	/** The local duration, or the tracker's for a row that only the tracker has. */
 	minutes: number;
 	/** The tracker duration, when it differs from the local one. */
 	tracker: number | null;
 	lost: boolean;
 	entryId: string | null;
+	/** Why the issue tracker does not hold the entry as written here. */
+	unsynced: string | null;
 };
 
 const firstLine = (s: string) => s.split("\n")[0] ?? "";
@@ -155,6 +168,9 @@ export function Time() {
 	/** The entry that goes to the tracker now. One send at a time: a second click waits for it. */
 	const [sending, setSending] = useState<string | null>(null);
 	const sendingNow = useRef(false);
+	/** The entry in edit. Its fields live in `draft`: a keystroke must not rebuild the columns (the input would lose focus). */
+	const [editId, setEditId] = useState<string | null>(null);
+	const draft = useRef({ duration: "", note: "" });
 	const [fetched, setFetched] = useState<Record<string, TimeRow[]>>({});
 	const [form, setForm] = useState({ day: "", duration: "", ticket: "", note: "" });
 	const shownMonth = month ?? ctx?.today.slice(0, 7) ?? "";
@@ -171,10 +187,12 @@ export function Time() {
 			day: r.entry?.day ?? "",
 			ticket: r.entry?.ticket ?? ticket,
 			note: firstLine(r.entry?.note ?? r.log?.note ?? ""),
+			fullNote: r.entry?.note ?? "",
 			minutes: r.entry?.minutes ?? r.log?.minutes ?? 0,
 			tracker: r.differs && r.log ? r.log.minutes : null,
 			lost: r.lostReceipt,
 			entryId: r.entry?.id ?? null,
+			unsynced: r.entry?.unsynced ?? null,
 		});
 		const local = data.rows
 			.filter((r) => !(r.entry?.ticket && tickets.has(r.entry.ticket)))
@@ -198,9 +216,15 @@ export function Time() {
 				id: "state",
 				header: "",
 				meta: { width: "1rem" },
-				cell: ({ row }) => (
-					<StatusDot status={DOT[row.original.state]} label={e.state[row.original.state]} />
-				),
+				cell: ({ row }) => {
+					const r = row.original;
+					// The reason is the title of the dot: synced, or not synced and why.
+					return r.unsynced ? (
+						<StatusDot status="warning" label={format(e.unsynced, { reason: r.unsynced })} />
+					) : (
+						<StatusDot status={DOT[r.state]} label={e.state[r.state]} />
+					);
+				},
 			},
 			{
 				id: "day",
@@ -216,67 +240,151 @@ export function Time() {
 				meta: { width: "6rem" },
 				cell: ({ row }) => <span className="font-mono text-11">{row.original.ticket}</span>,
 			},
-			{ id: "note", header: e.note, cell: ({ row }) => row.original.note },
+			{
+				id: "note",
+				header: e.note,
+				cell: ({ row }) =>
+					editId === row.original.entryId ? (
+						<Input
+							label={e.note}
+							defaultValue={draft.current.note}
+							onChange={(ev) => {
+								draft.current.note = ev.target.value;
+							}}
+						/>
+					) : (
+						row.original.note
+					),
+			},
 			{
 				id: "duration",
 				header: e.duration,
 				meta: { width: "9rem", numeric: true },
-				cell: ({ row }) => (
-					<span className="flex items-center justify-end gap-1.5">
-						{row.original.tracker !== null ? (
-							<>
-								<StatusDot status="warning" label={e.differs} className="size-2" />
-								{format(e.trackerValue, { value: formatMinutes(row.original.tracker) })}
-								<span aria-hidden="true">/</span>
-							</>
-						) : null}
-						{formatMinutes(row.original.minutes)}
-					</span>
-				),
+				cell: ({ row }) =>
+					editId === row.original.entryId ? (
+						<Input
+							label={e.duration}
+							defaultValue={draft.current.duration}
+							onChange={(ev) => {
+								draft.current.duration = ev.target.value;
+							}}
+							className="w-24 font-mono"
+						/>
+					) : (
+						<span className="flex items-center justify-end gap-1.5">
+							{row.original.tracker !== null ? (
+								<>
+									<StatusDot status="warning" label={e.differs} className="size-2" />
+									{format(e.trackerValue, { value: formatMinutes(row.original.tracker) })}
+									<span aria-hidden="true">/</span>
+								</>
+							) : null}
+							{formatMinutes(row.original.minutes)}
+						</span>
+					),
 			},
 			{
 				id: "action",
 				header: "",
-				meta: { width: "7.5rem" },
+				meta: { width: "12rem" },
 				cell: ({ row }) => {
 					const r = row.original;
-					if (!r.entryId || (r.state !== "to-send" && !r.lost)) return null;
+					if (!r.entryId) return null;
+					const id = r.entryId;
+					const label = { day: r.day, ticket: r.ticket };
+					if (editId === id)
+						return (
+							<span className="flex items-center gap-1">
+								<RightButton
+									right="work.edit"
+									variant="primary"
+									onClick={() => {
+										const minutes = parseDuration(draft.current.duration);
+										if (minutes === null) return setError(e.badDuration);
+										void run(async () => {
+											const saved = await act.updateTime(
+												handle,
+												r.day,
+												id,
+												minutes,
+												draft.current.note,
+											);
+											setFetched({});
+											setEditId(null);
+											if (saved.error) setError(format(e.unsynced, { reason: saved.error }));
+										});
+									}}
+								>
+									{t.work.save}
+								</RightButton>
+								<Button variant="ghost" onClick={() => setEditId(null)}>
+									{t.sync.backlog.cancel}
+								</Button>
+							</span>
+						);
 					return (
-						<RightButton
-							right="work.edit"
-							variant="ghost"
-							disabled={!data?.canSend || !r.ticket || sending !== null}
-							reason={
-								!data?.canSend
-									? format(t.work.missing, { name: t.connections.flag.timeTracking })
-									: !r.ticket
-										? e.noTicket
-										: undefined
-							}
-							aria-label={format(r.lost ? e.storeReceipt : e.sendEntry, {
-								day: r.day,
-								ticket: r.ticket,
-							})}
-							onClick={() => {
-								if (sendingNow.current) return;
-								sendingNow.current = true;
-								setSending(r.entryId);
-								void run(async () => {
-									await act.sendTime(handle, r.day, r.entryId ?? "", reduce);
-									setFetched({});
-								}).finally(() => {
-									sendingNow.current = false;
-									setSending(null);
-								});
-							}}
-						>
-							{r.lost ? e.storeReceipt : e.send}
-						</RightButton>
+						<span className="flex items-center justify-end gap-1">
+							{r.state !== "to-send" && !r.lost && !r.unsynced ? null : (
+								<RightButton
+									right="work.edit"
+									variant="ghost"
+									disabled={!data?.canSend || !r.ticket || sending !== null}
+									reason={
+										!data?.canSend
+											? format(t.work.missing, { name: t.connections.flag.timeTracking })
+											: !r.ticket
+												? e.noTicket
+												: undefined
+									}
+									aria-label={format(r.lost ? e.storeReceipt : e.sendEntry, {
+										day: r.day,
+										ticket: r.ticket,
+									})}
+									onClick={() => {
+										if (sendingNow.current) return;
+										sendingNow.current = true;
+										setSending(r.entryId);
+										void run(async () => {
+											await act.sendTime(handle, r.day, r.entryId ?? "", reduce);
+											setFetched({});
+										}).finally(() => {
+											sendingNow.current = false;
+											setSending(null);
+										});
+									}}
+								>
+									{r.lost ? e.storeReceipt : e.send}
+								</RightButton>
+							)}
+							<RightIconButton
+								right="work.edit"
+								label={format(e.editEntry, label)}
+								onClick={() => {
+									draft.current = { duration: formatMinutes(r.minutes), note: r.fullNote };
+									setEditId(id);
+								}}
+							>
+								<PencilIcon size={14} />
+							</RightIconButton>
+							<RightIconButton
+								right="work.edit"
+								label={format(e.deleteEntry, label)}
+								onClick={() =>
+									void run(async () => {
+										if (!(await confirmDialog(format(e.confirmDelete, label)))) return;
+										await act.removeTime(handle, r.day, id);
+										setFetched({});
+									})
+								}
+							>
+								<TrashIcon size={14} />
+							</RightIconButton>
+						</span>
 					);
 				},
 			},
 		],
-		[e, t, data?.canSend, handle, reduce, act, run, sending, day],
+		[e, t, data?.canSend, handle, reduce, act, run, sending, day, editId, setError],
 	);
 
 	if (active === undefined)
@@ -289,11 +397,21 @@ export function Time() {
 		const minutes = parseDuration(form.duration);
 		if (minutes === null) return setError(e.badDuration);
 		const day = form.day || ctx.today;
+		let unsynced: string | null = null;
 		const ok = await run(async () => {
-			await act.addTime(handle, day, minutes, form.note, form.ticket.trim() || null);
+			const saved = await act.addTime(
+				handle,
+				day,
+				minutes,
+				form.note,
+				form.ticket.trim() || null,
+				reduce,
+			);
+			unsynced = saved.error;
 			setFetched({});
 		});
 		if (ok) {
+			if (unsynced) setError(format(e.unsynced, { reason: unsynced }));
 			setForm({ day: "", duration: "", ticket: "", note: "" });
 			setAdding(false);
 			setMonth(day.slice(0, 7));
@@ -382,19 +500,14 @@ export function Time() {
 						onChange={(ev) => setForm({ ...form, duration: ev.target.value })}
 						className="w-24 font-mono"
 					/>
-					<Input
-						caption
-						label={e.ticket}
-						list="time-tickets"
-						value={form.ticket}
-						onChange={(ev) => setForm({ ...form, ticket: ev.target.value })}
-						className="w-32 font-mono"
-					/>
-					<datalist id="time-tickets">
-						{items.map((i) => (
-							<option key={i.key} value={i.key} />
-						))}
-					</datalist>
+					<span className="min-w-64 flex-[2]">
+						<TicketField
+							label={e.ticket}
+							value={form.ticket}
+							onChange={(ticket) => setForm({ ...form, ticket })}
+							items={items}
+						/>
+					</span>
 					<span className="min-w-40 flex-1">
 						<Input
 							caption

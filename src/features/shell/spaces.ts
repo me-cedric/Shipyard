@@ -1,5 +1,6 @@
 import type { Messages } from "@/lib/i18n";
-import type { TeamRole } from "@/lib/ipc";
+import type { Level, TeamRole } from "@/lib/ipc";
+import type { Area } from "@/lib/rights";
 
 /** Spaces in default order, each with its tabs (master plan section 4). */
 export const SPACES = {
@@ -47,16 +48,39 @@ export const firstPath = (role: TeamRole | null): TabPath =>
 
 const spaceOf = (path: string) => path.split("/")[1] as SpaceId;
 
-/** Home first, the space of the first tab next, the rest in default order, Settings last. No role hides a space. */
-export function orderedSpaces(role: TeamRole | null): SpaceId[] {
-	return [...new Set<SpaceId>(["home", spaceOf(firstPath(role)), ...SPACE_IDS])].sort(
-		(a, b) => Number(a === "settings") - Number(b === "settings"),
-	);
-}
+/** The level of the person in an area (`useRights().level`). */
+export type LevelOf = (area: Area) => Level;
+const open: LevelOf = () => "write";
 
-/** The tabs of a space, the first tab of the role first. */
-export const visibleTabs = <S extends SpaceId>(space: S, role: TeamRole | null) =>
-	[...SPACES[space]].sort(
-		(a, b) =>
-			Number(firstPath(role) === `/${space}/${b}`) - Number(firstPath(role) === `/${space}/${a}`),
-	) as (typeof SPACES)[S][number][];
+/** The area of each space (`team-rights`). Home has none: it always shows. */
+const SPACE_AREA: Partial<Record<SpaceId, Area>> = {
+	design: "design",
+	specs: "specs",
+	work: "work",
+	factory: "runs",
+	code: "code",
+	knowledge: "knowledge",
+	settings: "settings",
+};
+
+/** The level `none` hides the tabs of its area. Settings / Me stays: it holds the settings of this machine. */
+export const hiddenTab = (level: LevelOf, space: SpaceId, tab: string) => {
+	const area = SPACE_AREA[space];
+	return !!area && level(area) === "none" && !(space === "settings" && tab === "me");
+};
+
+/** The tabs of a space that the person sees, the first tab of the role first. */
+export const visibleTabs = <S extends SpaceId>(space: S, role: TeamRole | null, level = open) =>
+	[...SPACES[space]]
+		.filter((tab) => !hiddenTab(level, space, tab))
+		.sort(
+			(a, b) =>
+				Number(firstPath(role) === `/${space}/${b}`) - Number(firstPath(role) === `/${space}/${a}`),
+		) as (typeof SPACES)[S][number][];
+
+/** Home first, the space of the first tab next, the rest in default order, Settings last. A space with no visible tab is hidden. */
+export function orderedSpaces(role: TeamRole | null, level = open): SpaceId[] {
+	return [...new Set<SpaceId>(["home", spaceOf(firstPath(role)), ...SPACE_IDS])]
+		.filter((space) => visibleTabs(space, role, level).length > 0)
+		.sort((a, b) => Number(a === "settings") - Number(b === "settings"));
+}

@@ -34,6 +34,28 @@ export const onboardingDe: typeof onboardingEn = {
 			body: "Ein Agent plant, baut und prüft das Ticket und öffnet dann einen Pull Request für Ihr Review.",
 		},
 	},
+	setup: {
+		title: "Einrichtung",
+		done: "Erledigt",
+		todo: "Offen",
+		item: {
+			project: "Projekt",
+			ai: "KI-Tool",
+			models: "Modelle",
+			tracker: "Ticketsystem",
+			forge: "Code-Plattform",
+			permissions: "Berechtigungen",
+			team: "Team",
+		},
+		action: {
+			project: "Neues Projekt",
+			signIn: "Anmelden",
+			models: "Modelle wählen",
+			connect: "Verbinden",
+			permissions: "Öffnen",
+			team: "Mich als Admin hinzufügen",
+		},
+	},
 	picture: {
 		folder: "Ordner öffnen",
 		clone: "Klonen",

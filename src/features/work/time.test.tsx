@@ -36,6 +36,53 @@ describe("Work / Time", () => {
 		expect(await group("To send (3)")).toBeInTheDocument();
 	});
 
+	it("offers the full key and the title of a ticket, filtered by either, and picks one with the keys", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await importAll();
+		mountApp("/work/time");
+		await user.click(await screen.findByRole("button", { name: "Entry" }));
+		const field = screen.getByRole("combobox", { name: "Ticket" });
+		await user.click(field);
+		const all = await screen.findAllByRole("option");
+		expect(all.length).toBeGreaterThan(1);
+		const first = all[0] as HTMLElement;
+		const [key, title] = [
+			first.children[0]?.textContent ?? "",
+			first.children[1]?.textContent ?? "",
+		];
+		expect(key).toMatch(/^[A-Z]+-\d+$/);
+		expect(first.children[1]).toHaveAttribute("title", title);
+		// By title: only the tickets that hold the words stay.
+		await user.clear(field);
+		await user.type(field, title.slice(1, 6).toLowerCase());
+		expect((await screen.findAllByRole("option")).some((o) => o.textContent?.includes(key))).toBe(
+			true,
+		);
+		// By key, with the keyboard.
+		await user.clear(field);
+		await user.type(field, key);
+		await user.keyboard("{Enter}");
+		expect(field).toHaveValue(key);
+		expect(screen.queryByRole("listbox")).toBeNull();
+	});
+
+	it("saves an entry on a ticket and sends it at once, with the worklog id stored", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await importAll();
+		mountApp("/work/time");
+		await user.click(await screen.findByRole("button", { name: "Entry" }));
+		await user.type(screen.getByRole("textbox", { name: "Duration" }), "1h");
+		await user.type(screen.getByRole("combobox", { name: "Ticket" }), "ACME-1");
+		await user.click(screen.getAllByRole("button", { name: "Entry" }).at(-1) as HTMLElement);
+		await waitFor(() =>
+			expect(
+				mockState().work.time.ada?.find((e) => e.ticket === "ACME-1" && e.minutes === 60)?.worklog,
+			).toBeDefined(),
+		);
+	});
+
 	it("opens Work / Team with the Member button focused when the person is not in the team", async () => {
 		const user = userEvent.setup();
 		await withTracker();
@@ -182,6 +229,61 @@ describe("Work / Time", () => {
 		expect(await group("Only in issue tracker (1)")).toBeInTheDocument();
 		const only = within(screen.getByRole("table", { name: "Time" }));
 		expect(only.getAllByRole("row").some((r) => r.textContent?.includes("ACME-1"))).toBe(true);
+	});
+
+	it("edits the duration and the note of an entry", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/time");
+		await user.click(await screen.findByRole("button", { name: /^Edit 2026-11-02 / }));
+		const duration = screen.getByRole("textbox", { name: "Duration" });
+		await user.clear(duration);
+		await user.type(duration, "2h30");
+		await user.type(screen.getByRole("textbox", { name: "Note" }), " v2");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(mockState().work.time.ada?.find((e) => e.id === "t1")).toMatchObject({
+				minutes: 150,
+				note: "Token API v2",
+			}),
+		);
+		expect(row("Token API v2")).toHaveTextContent("2h30");
+	});
+
+	it("shows why a synced entry is not synced after an edit", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().work.logs["ACME-2"] = [];
+		mountApp("/work/time");
+		await user.click(await screen.findByRole("button", { name: /^Edit 2026-11-02 / }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("Not in issue tracker: worklog");
+	});
+
+	it("refuses a bad duration and keeps the entry", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/time");
+		await user.click(await screen.findByRole("button", { name: /^Edit 2026-11-02 / }));
+		const duration = screen.getByRole("textbox", { name: "Duration" });
+		await user.clear(duration);
+		await user.type(duration, "soon");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("Duration: 90, 1h30 or 2h");
+		expect(mockState().work.time.ada?.find((e) => e.id === "t1")?.minutes).toBe(240);
+	});
+
+	it("deletes an entry after a confirm, and keeps it when the person declines", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/time");
+		const del = await screen.findByRole("button", { name: /^Delete 2026-11-02 / });
+		mockState().confirm = false;
+		await user.click(del);
+		expect(mockState().work.time.ada?.some((e) => e.id === "t1")).toBe(true);
+		mockState().confirm = true;
+		await user.click(screen.getByRole("button", { name: /^Delete 2026-11-02 / }));
+		await waitFor(() => expect(mockState().work.time.ada?.some((e) => e.id === "t1")).toBe(false));
 	});
 
 	it("is in French when the language is French", async () => {

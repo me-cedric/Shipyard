@@ -33,7 +33,7 @@ use shipyard_store::work::{
     write_team_with, write_time,
 };
 use shipyard_store::{docs_layout, project_import};
-use shipyard_trackers::work::{self as writes, Click, RowResult, Sent, TrackerWrite};
+use shipyard_trackers::work::{self as writes, Click, NewWorklog, RowResult, Sent, TrackerWrite};
 use specta::Type;
 use tauri::AppHandle;
 
@@ -525,6 +525,11 @@ pub struct TeamView {
     pub error: Option<String>,
 }
 
+/// The team is the `team.json` of the docs layout: it gives no rights (`team-rights` REQ-001).
+pub(crate) fn team_is_json(s: &AppState) -> Res<bool> {
+    Ok(ctx(s)?.json_team())
+}
+
 pub fn team_get(s: &AppState) -> Res<TeamView> {
     Ok(ctx(s)?.team())
 }
@@ -533,9 +538,11 @@ pub fn team_get(s: &AppState) -> Res<TeamView> {
 /// file stays. A locked team is refused: the write would drop the sealed rates (REQ-005).
 pub fn team_save(s: &AppState, mut team: Team) -> Res<TeamView> {
     let c = ctx(s)?;
-    if c.team().locked {
+    let old = c.team();
+    if old.locked {
         return Err(seal::SealError::Locked.to_string());
     }
+    shipyard_core::rights::keeps_admin(&old.team, &team)?;
     team.locked = false;
     c.write_pass()?;
     if c.json_team() {
@@ -1543,6 +1550,7 @@ pub fn time_write(
         note: note.trim().into(),
         ticket,
         worklog: None,
+        unsynced: None,
     };
     let rel = time_path(&handle, day).map_err(err)?;
     let text = add_to_month(c.read(&rel)?.as_deref(), entry.clone()).map_err(err)?;
@@ -1604,41 +1612,104 @@ pub struct TicketRows {
     pub rows: Vec<TimeRow>,
 }
 
-/// Pull the worklogs of the month from the tracker for every ticket of the month (REQ-024). It is
-/// a read: it adds nothing, sends nothing and corrects nothing. A worklog of another month stays out.
+/// Pull the worklogs of the month from the tracker for every ticket of the month (REQ-024). A
+/// worklog that this person made on the tracker and that Shipyard does not hold becomes an entry
+/// with its worklog id. A worklog that Shipyard sent is matched by id or mark: never twice. A
+/// worklog of another month or of another person stays out. It sends and corrects nothing.
 pub fn time_month_pull(s: &AppState, member: Option<&str>, month: &str) -> Res<Vec<TicketRows>> {
     let c = ctx(s)?;
     let handle = member_of(&c, member)?;
-    let entries = month_entries(&c, &handle, month)?;
+    let mut entries = month_entries(&c, &handle, month)?;
     let t = tracker(s)?;
     let w = writer(s, &t)?;
-    let mut keys: Vec<&str> = entries.iter().filter_map(|e| e.ticket.as_deref()).collect();
+    let mut keys: Vec<String> = entries.iter().filter_map(|e| e.ticket.clone()).collect();
     keys.sort_unstable();
     keys.dedup();
-    keys.into_iter()
-        .map(|key| {
-            let logs: Vec<TrackerLog> = w
-                .worklogs(key)
-                .map_err(err)?
-                .into_iter()
-                .filter(|l| l.started.starts_with(month))
-                .map(|l| TrackerLog {
-                    id: l.id,
-                    minutes: l.minutes,
-                    note: l.note,
-                })
-                .collect();
+    let mut held = Vec::new();
+    for key in keys {
+        let logs = w
+            .worklogs(&key)
+            .map_err(err)?
+            .into_iter()
+            .filter(|l| l.started.starts_with(month))
+            .collect::<Vec<_>>();
+        held.push((key, logs));
+    }
+    let mut me: Option<String> = None;
+    let mut imported = Vec::new();
+    for (key, logs) in &held {
+        let mine: Vec<TimeEntry> = entries
+            .iter()
+            .filter(|e| e.ticket.as_deref() == Some(key))
+            .cloned()
+            .collect();
+        let plain: Vec<TrackerLog> = logs.iter().map(track_log).collect();
+        for r in work::reconcile(&mine, &plain) {
+            let (None, Some(l)) = (&r.entry, &r.log) else {
+                continue;
+            };
+            let Some(wl) = logs.iter().find(|x| x.id == l.id) else {
+                continue;
+            };
+            if wl.author.is_empty() {
+                continue;
+            }
+            if me.is_none() {
+                me = Some(w.me().map_err(err)?.id);
+            }
+            if me.as_deref() != Some(wl.author.as_str()) {
+                continue;
+            }
+            imported.push(TimeEntry {
+                id: work::parse_mark(&l.note).unwrap_or_else(|| format!("l{}", l.id)),
+                day: wl.started[..10].into(),
+                minutes: l.minutes,
+                note: l
+                    .note
+                    .lines()
+                    .filter(|x| work::parse_mark(x).is_none())
+                    .collect::<Vec<_>>()
+                    .join("\n")
+                    .trim()
+                    .into(),
+                ticket: Some(key.clone()),
+                worklog: Some(l.id.clone()),
+                unsynced: None,
+            });
+        }
+    }
+    if !imported.is_empty() {
+        let rel = time_path(&handle, &format!("{month}-01")).map_err(err)?;
+        let mut text = c.read(&rel)?;
+        for e in &imported {
+            text = Some(add_to_month(text.as_deref(), e.clone()).map_err(err)?);
+        }
+        c.write(&rel, text.as_deref().unwrap_or_default())?;
+        entries.extend(imported);
+    }
+    Ok(held
+        .into_iter()
+        .map(|(key, logs)| {
             let mine: Vec<TimeEntry> = entries
                 .iter()
-                .filter(|e| e.ticket.as_deref() == Some(key))
+                .filter(|e| e.ticket.as_deref() == Some(key.as_str()))
                 .cloned()
                 .collect();
-            Ok(TicketRows {
-                ticket: key.into(),
-                rows: work::reconcile(&mine, &logs),
-            })
+            let plain: Vec<TrackerLog> = logs.iter().map(track_log).collect();
+            TicketRows {
+                ticket: key,
+                rows: work::reconcile(&mine, &plain),
+            }
         })
-        .collect()
+        .collect())
+}
+
+fn track_log(l: &writes::Worklog) -> TrackerLog {
+    TrackerLog {
+        id: l.id.clone(),
+        minutes: l.minutes,
+        note: l.note.clone(),
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -1648,6 +1719,8 @@ pub struct TimeSent {
     pub entry: TimeEntry,
     /// The tracker held a worklog with the mark of the entry. Nothing was sent (REQ-023).
     pub already_there: bool,
+    /// Why the tracker does not hold the entry as written here. The entry is saved anyway.
+    pub error: Option<String>,
 }
 
 /// Send one entry to the worklog, on the click of a person (REQ-022). The entry is written
@@ -1682,6 +1755,19 @@ pub fn worklog_send(
         .ok_or_else(|| format!("no entry `{id}` in {rel}"))?;
     let t = tracker(s)?;
     let w = writer(s, &t)?;
+    if entry.worklog.is_some() {
+        // A change that did not reach the tracker: send it again. Else the receipt refuses.
+        if entry.unsynced.is_none() {
+            return Err("the entry has a receipt: it is in the tracker".into());
+        }
+        push_update(&*w, &entry, offset_minutes, reduce_remaining)?;
+        let entry = set_entry(s, &c, &rel, id, |e| e.unsynced = None)?;
+        return Ok(TimeSent {
+            entry,
+            already_there: false,
+            error: None,
+        });
+    }
     let (log, already_there) = match writes::send_worklog(
         &*w,
         &Click::by_person(),
@@ -1705,6 +1791,7 @@ pub fn worklog_send(
         )
     })?;
     entries[at].worklog = Some(log.id);
+    entries[at].unsynced = None;
     write_atomic(
         &c.root.join(&rel),
         write_time(&entries).map_err(err)?.as_bytes(),
@@ -1713,7 +1800,170 @@ pub fn worklog_send(
     Ok(TimeSent {
         entry: entries.swap_remove(at),
         already_there,
+        error: None,
     })
+}
+
+/// Change one entry of the month file under the guard, from a fresh read.
+fn set_entry(
+    s: &AppState,
+    c: &Ctx,
+    rel: &str,
+    id: &str,
+    f: impl FnOnce(&mut TimeEntry),
+) -> Res<TimeEntry> {
+    let _g = s.guard();
+    let mut entries = read_time(&c.read(rel)?.unwrap_or_default()).map_err(err)?;
+    let e = entries
+        .iter_mut()
+        .find(|e| e.id == id)
+        .ok_or_else(|| format!("no entry `{id}` in {rel}"))?;
+    f(e);
+    let out = e.clone();
+    write_atomic(
+        &c.root.join(rel),
+        write_time(&entries).map_err(err)?.as_bytes(),
+    )
+    .map_err(err)?;
+    Ok(out)
+}
+
+/// Put the text and the duration of a synced entry on its worklog.
+fn push_update(
+    w: &dyn TrackerWrite,
+    e: &TimeEntry,
+    offset_minutes: i32,
+    reduce_remaining: bool,
+) -> Res<()> {
+    let (Some(key), Some(id)) = (e.ticket.as_deref(), e.worklog.as_deref()) else {
+        return Err("the entry is not on a worklog".into());
+    };
+    let note = work::worklog_note(&e.note, &e.id);
+    let started = writes::started_at(&e.day, offset_minutes).map_err(err)?;
+    let log = NewWorklog {
+        minutes: e.minutes,
+        note: &note,
+        started: &started,
+        reduce_remaining,
+    };
+    w.update_worklog(&Click::by_person(), key, id, &log)
+        .map(|_| ())
+        .map_err(err)
+}
+
+/// Save an entry, and send it at once when its ticket is on a tracker with time tracking. The save
+/// is the click of the person (REQ-022). A refused or failed send keeps the entry, with the reason.
+#[allow(clippy::too_many_arguments)]
+pub fn time_save(
+    s: &AppState,
+    member: Option<&str>,
+    day: &str,
+    minutes: u32,
+    note: &str,
+    ticket: Option<&str>,
+    offset_minutes: i32,
+    reduce_remaining: bool,
+) -> Res<TimeSent> {
+    let entry = time_write(s, member, day, minutes, note, ticket)?;
+    if entry.ticket.is_none() || !tracker(s).is_ok_and(|t| t.caps.time_tracking) {
+        return Ok(TimeSent {
+            entry,
+            already_there: false,
+            error: None,
+        });
+    }
+    match worklog_send(
+        s,
+        member,
+        day,
+        &entry.id,
+        offset_minutes,
+        reduce_remaining,
+        true,
+    ) {
+        Ok(sent) => Ok(sent),
+        Err(error) => {
+            let c = ctx(s)?;
+            let rel = time_path(&member_of(&c, member)?, day).map_err(err)?;
+            let entry = set_entry(s, &c, &rel, &entry.id, |e| e.unsynced = Some(error.clone()))?;
+            Ok(TimeSent {
+                entry,
+                already_there: false,
+                error: Some(error),
+            })
+        }
+    }
+}
+
+/// Change the duration and the note of an entry. A synced entry changes on the tracker too. When
+/// that fails, the change stays here and the entry says why (`unsynced`): the send action retries.
+#[allow(clippy::too_many_arguments)]
+pub fn time_edit(
+    s: &AppState,
+    member: Option<&str>,
+    day: &str,
+    id: &str,
+    minutes: u32,
+    note: &str,
+    offset_minutes: i32,
+    click: bool,
+) -> Res<TimeSent> {
+    need_click(s, click, crate::rights::Right::WorkEdit, "time_edit", id)?;
+    if minutes == 0 || minutes > 24 * 60 {
+        return Err("the duration is from 1 minute to 24 hours".into());
+    }
+    let c = ctx(s)?;
+    let rel = time_path(&member_of(&c, member)?, day).map_err(err)?;
+    let mut entry = set_entry(s, &c, &rel, id, |e| {
+        e.minutes = minutes;
+        e.note = note.trim().into();
+    })?;
+    let mut error = None;
+    if entry.worklog.is_some() {
+        let t = tracker(s)?;
+        error = push_update(&*writer(s, &t)?, &entry, offset_minutes, false).err();
+        entry = set_entry(s, &c, &rel, id, |e| e.unsynced = error.clone())?;
+    }
+    Ok(TimeSent {
+        entry,
+        already_there: false,
+        error,
+    })
+}
+
+/// Delete an entry. A synced entry is deleted on the tracker first: when the tracker refuses, the
+/// entry stays, so the two never differ without a sign.
+pub fn time_delete(
+    s: &AppState,
+    member: Option<&str>,
+    day: &str,
+    id: &str,
+    click: bool,
+) -> Res<()> {
+    need_click(s, click, crate::rights::Right::WorkEdit, "time_delete", id)?;
+    let c = ctx(s)?;
+    let rel = time_path(&member_of(&c, member)?, day).map_err(err)?;
+    let entries = read_time(&c.read(&rel)?.unwrap_or_default()).map_err(err)?;
+    let entry = entries
+        .iter()
+        .find(|e| e.id == id)
+        .ok_or_else(|| format!("no entry `{id}` in {rel}"))?;
+    if let (Some(key), Some(log)) = (entry.ticket.as_deref(), entry.worklog.as_deref()) {
+        let t = tracker(s)?;
+        match writer(s, &t)?.delete_worklog(&Click::by_person(), key, log) {
+            // Gone on the tracker already: the entry can go.
+            Ok(()) | Err(shipyard_trackers::TrackerError::NotFound(_)) => {}
+            Err(e) => return Err(err(e)),
+        }
+    }
+    let _g = s.guard();
+    let mut entries = read_time(&c.read(&rel)?.unwrap_or_default()).map_err(err)?;
+    entries.retain(|e| e.id != id);
+    write_atomic(
+        &c.root.join(&rel),
+        write_time(&entries).map_err(err)?.as_bytes(),
+    )
+    .map_err(err)
 }
 
 // ---------------------------------------------------------------- plan and apply
@@ -2132,6 +2382,7 @@ pub async fn time_list(app: AppHandle, member: Option<String>, month: String) ->
 
 #[tauri::command]
 #[specta::specta]
+#[allow(clippy::too_many_arguments)]
 pub async fn time_add(
     app: AppHandle,
     member: Option<String>,
@@ -2139,16 +2390,63 @@ pub async fn time_add(
     minutes: u32,
     note: String,
     ticket: Option<String>,
-) -> Api<TimeEntry> {
+    offset_minutes: i32,
+    reduce_remaining: bool,
+) -> Api<TimeSent> {
     blocking(app, move |s| {
-        time_write(
+        time_save(
             s,
             member.as_deref(),
             &day,
             minutes,
             &note,
             ticket.as_deref(),
+            offset_minutes,
+            reduce_remaining,
         )
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+#[allow(clippy::too_many_arguments)]
+pub async fn time_update(
+    app: AppHandle,
+    member: Option<String>,
+    day: String,
+    id: String,
+    minutes: u32,
+    note: String,
+    offset_minutes: i32,
+    click: bool,
+) -> Api<TimeSent> {
+    blocking(app, move |s| {
+        time_edit(
+            s,
+            member.as_deref(),
+            &day,
+            &id,
+            minutes,
+            &note,
+            offset_minutes,
+            click,
+        )
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn time_remove(
+    app: AppHandle,
+    member: Option<String>,
+    day: String,
+    id: String,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| {
+        time_delete(s, member.as_deref(), &day, &id, click)
     })
     .await
 }

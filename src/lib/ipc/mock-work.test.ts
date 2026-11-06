@@ -246,17 +246,19 @@ describe("mock work: the rules of the Rust commands", () => {
 
 	it("never double counts a worklog: a lost answer is found again by its mark", async () => {
 		await withTracker();
-		const e = await unwrap(commands.timeAdd(null, "2026-11-04", 90, "review", "wi:ACME-1"));
+		mockState().work.loseNextAnswer = true;
+		const saved = await unwrap(
+			commands.timeAdd(null, "2026-11-04", 90, "review", "wi:ACME-1", 60, false),
+		);
+		expect(saved.error).toContain("answer was lost");
+		const e = saved.entry;
+		expect(e.unsynced).toContain("answer was lost");
 		await expect(
-			unwrap(commands.timeAdd(null, "2026-11-04", 90, "x", "ACME-404")),
+			unwrap(commands.timeAdd(null, "2026-11-04", 90, "x", "ACME-404", 60, false)),
 		).rejects.toMatchObject({ details: expect.stringContaining("not in the mirror") });
 		await expect(
 			unwrap(commands.timeSend(null, e.day, e.id, 60, true, false)),
 		).rejects.toMatchObject({ details: expect.stringContaining("click") });
-		mockState().work.loseNextAnswer = true;
-		await expect(
-			unwrap(commands.timeSend(null, e.day, e.id, 60, true, true)),
-		).rejects.toMatchObject({ details: expect.stringContaining("answer was lost") });
 		const rows = await unwrap(commands.timeFetch(null, "ACME-1"));
 		const mine = rows.find((r) => r.entry?.id === e.id);
 		expect(mine).toMatchObject({ lostReceipt: true, state: "in-tracker" });
@@ -269,12 +271,20 @@ describe("mock work: the rules of the Rust commands", () => {
 		await expect(
 			unwrap(commands.timeSend(null, e.day, e.id, 60, true, true)),
 		).rejects.toMatchObject({ details: expect.stringContaining("receipt") });
+		// An edit reaches the tracker worklog. A delete removes it.
+		const changed = await unwrap(commands.timeUpdate(null, e.day, e.id, 30, "short", 60, true));
+		expect(changed.entry.minutes).toBe(30);
+		expect(mockState().work.logs["ACME-1"]?.some((l) => l.minutes === 30)).toBe(true);
+		await unwrap(commands.timeRemove(null, e.day, e.id, true));
+		expect(mockState().work.logs["ACME-1"]?.length).toBe(logs - 1);
 	});
 
 	it("refuses a time entry that has no member", async () => {
 		resetMock({ work: emptyWork() });
 		await withTracker();
-		await expect(unwrap(commands.timeAdd(null, "2026-11-04", 30, "", null))).rejects.toMatchObject({
+		await expect(
+			unwrap(commands.timeAdd(null, "2026-11-04", 30, "", null, 0, false)),
+		).rejects.toMatchObject({
 			details: expect.stringContaining("no team member matches"),
 		});
 		expect(await unwrap(commands.estimateList())).toEqual([]);
@@ -284,9 +294,9 @@ describe("mock work: the rules of the Rust commands", () => {
 	it("names a member that is not in the team with its own error", async () => {
 		resetMock({ work: emptyWork() });
 		await withTracker();
-		await expect(unwrap(commands.timeAdd("zed", "2026-11-04", 30, "", null))).rejects.toMatchObject(
-			{ details: expect.stringContaining("the team has no member `zed`") },
-		);
+		await expect(
+			unwrap(commands.timeAdd("zed", "2026-11-04", 30, "", null, 0, false)),
+		).rejects.toMatchObject({ details: expect.stringContaining("the team has no member `zed`") });
 	});
 
 	it("adds the signed-in person to the team once, and only after a click", async () => {

@@ -556,6 +556,7 @@ const normMember = (m: Member_Deserialize): Member_Serialize => ({
 	trackers: m.trackers ?? [],
 	...(m.emails?.length ? { emails: m.emails } : {}),
 	role: m.role ?? "",
+	...(m.roles?.length ? { roles: m.roles } : {}),
 	...(m.admin ? { admin: true } : {}),
 	...(m.rights?.length ? { rights: m.rights } : {}),
 	capacity: m.capacity ?? 0,
@@ -656,6 +657,7 @@ export function teamGet(w: MockWork): TeamView_Serialize {
 	return {
 		team: {
 			members: w.team.members.map(({ dayRate, ...m }) => (locked ? m : { ...m, dayRate })),
+			...(w.team.roles ? { roles: w.team.roles } : {}),
 		},
 		locked,
 		error: null,
@@ -664,7 +666,13 @@ export function teamGet(w: MockWork): TeamView_Serialize {
 
 export function teamSave(w: MockWork, t: Team_Deserialize): TeamView_Serialize {
 	writable(w);
-	const team = { members: (t.members ?? []).map(normMember) };
+	const team = {
+		members: (t.members ?? []).map(normMember),
+		...(t.roles && Object.keys(t.roles).length ? { roles: t.roles } : {}),
+	};
+	// The last admin cannot remove the settings write (`rights::keeps_admin`).
+	if (w.team.members.some((m) => m.admin) && !team.members.some((m) => m.admin))
+		throw "the team needs one admin: the last admin cannot remove the settings write";
 	const seen = new Map<string, number>();
 	for (const [i, m] of team.members.entries()) {
 		if (!/^[a-z0-9][a-z0-9-]*$/.test(m.handle)) throw `\`${m.handle}\` is not a handle`;
@@ -1214,7 +1222,10 @@ export function timeAdd(
 	minutes: number,
 	note: string,
 	ticket: string | null,
-): TimeEntry_Serialize {
+	offsetMinutes: number,
+	reduceRemaining: boolean,
+	canSend: boolean,
+): TimeSent_Serialize {
 	const handle = memberOf(w, member);
 	if (minutes <= 0 || minutes > 24 * 60) throw "the duration is from 1 minute to 24 hours";
 	if (parseDay(day) === null) throw `\`${day}\` is not a date`;
@@ -1228,7 +1239,52 @@ export function timeAdd(
 		...(key ? { ticket: key } : {}),
 	};
 	w.time[handle] = [...(w.time[handle] ?? []), entry].sort(byDay);
-	return entry;
+	// The save is the click: a ticket of a tracker with time tracking goes out at once.
+	if (!key || !canSend) return { entry, alreadyThere: false, error: null };
+	try {
+		return timeSend(w, member, day, entry.id, offsetMinutes, reduceRemaining, true, canSend);
+	} catch (e) {
+		entry.unsynced = String(e);
+		return { entry: { ...entry }, alreadyThere: false, error: entry.unsynced };
+	}
+}
+
+/** Change the duration and the note. A synced entry changes on the tracker too, or says why not. */
+export function timeUpdate(
+	w: MockWork,
+	member: string | null,
+	id: string,
+	minutes: number,
+	note: string,
+	click: boolean,
+): TimeSent_Serialize {
+	needClick(click);
+	if (minutes <= 0 || minutes > 24 * 60) throw "the duration is from 1 minute to 24 hours";
+	const entry = (w.time[memberOf(w, member)] ?? []).find((e) => e.id === id);
+	if (!entry) throw `no entry \`${id}\``;
+	entry.minutes = minutes;
+	entry.note = note.trim();
+	const log = entry.ticket ? w.logs[entry.ticket]?.find((l) => l.id === entry.worklog) : undefined;
+	if (log) {
+		log.minutes = minutes;
+		log.note = entry.note ? `${entry.note}\n\n${mark(entry.id)}` : mark(entry.id);
+	} else if (entry.worklog) {
+		// The tracker lost the worklog: the entry stays here, unsynced, with the reason.
+		entry.unsynced = `worklog ${entry.worklog} not found`;
+		return { entry: { ...entry }, alreadyThere: false, error: entry.unsynced };
+	}
+	return { entry: { ...entry }, alreadyThere: false, error: null };
+}
+
+/** Delete an entry, and its worklog on the tracker. */
+export function timeRemove(w: MockWork, member: string | null, id: string, click: boolean) {
+	needClick(click);
+	const handle = memberOf(w, member);
+	const entry = (w.time[handle] ?? []).find((e) => e.id === id);
+	if (!entry) throw `no entry \`${id}\``;
+	if (entry.ticket && entry.worklog)
+		w.logs[entry.ticket] = (w.logs[entry.ticket] ?? []).filter((l) => l.id !== entry.worklog);
+	w.time[handle] = (w.time[handle] ?? []).filter((e) => e.id !== id);
 }
 
 /** The worklogs of every ticket of the month beside its entries (`work::time_month_pull`). It writes nothing. */
@@ -1269,6 +1325,10 @@ export function timeSend(
 	);
 	if (!entry) throw `no entry \`${id}\` in docs/time/${handle}/${day.slice(0, 7)}.yaml`;
 	if (!canSend) throw "this tracker does not support TimeTracking";
+	if (entry.worklog && entry.unsynced) {
+		delete entry.unsynced;
+		return { entry: { ...entry }, alreadyThere: false, error: null };
+	}
 	if (entry.worklog)
 		throw "the tracker refused the change: the entry has a receipt: it is in the tracker";
 	if (!entry.ticket) throw "setting: the entry names no ticket";
@@ -1277,7 +1337,8 @@ export function timeSend(
 	const found = logs.find((l) => markOf(l.note) === entry.id);
 	if (found) {
 		entry.worklog = found.id;
-		return { entry: { ...entry }, alreadyThere: true };
+		delete entry.unsynced;
+		return { entry: { ...entry }, alreadyThere: true, error: null };
 	}
 	const log = {
 		id: `wl-${++w.counter}`,
@@ -1290,7 +1351,8 @@ export function timeSend(
 		throw "the answer was lost, the change may be in the tracker: connection reset";
 	}
 	entry.worklog = log.id;
-	return { entry: { ...entry }, alreadyThere: false };
+	delete entry.unsynced;
+	return { entry: { ...entry }, alreadyThere: false, error: null };
 }
 
 // ---- apply

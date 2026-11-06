@@ -21,7 +21,7 @@ mod status;
 pub use branch::{Branch, BranchKind, MergeOutcome};
 pub use commit::{CommitInfo, LogPage, RefKind, RefLabel};
 pub use conflict::{Choice, ConflictFile, Segment, Side};
-pub use diff::{DiffSide, FileDiff, FileView};
+pub use diff::{Blob, BlobSource, DiffSide, FileDiff, FileView};
 pub use extra::{Forward, Inspect};
 pub use rebase::{BlameLine, RebaseOutcome};
 pub use remote::{HeadChange, PullOutcome, RemoteHead};

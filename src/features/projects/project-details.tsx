@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { PictureField } from "@/features/settings/picture-field";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
@@ -16,7 +17,7 @@ const EVERY = [5, 15, 30, 60, 360, 1440];
  * The folder and the remote of the project, and how often the app looks at the remote. The remote
  * address never holds a user name or a password.
  */
-export function ProjectDetails() {
+export function ProjectDetails({ children }: { children?: ReactNode }) {
 	const { t } = useI18n();
 	const d = t.projects.details;
 	const qc = useQueryClient();
@@ -64,6 +65,7 @@ export function ProjectDetails() {
 					/>
 				</SettingsRow>
 			) : null}
+			{children}
 		</Panel>
 	);
 }

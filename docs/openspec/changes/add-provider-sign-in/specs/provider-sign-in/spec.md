@@ -13,7 +13,7 @@ One view in Settings / Agents and rules lists every AI tool and provider. Each r
 
 ### Why
 
-Today the person must know each tool, its login command and its key page. The owner wants a first hour that works for every role. The boundary is strict: Shipyard runs the own login of a tool and never uses the tokens of that tool for its own calls (ADR 0017).
+Today the person must know each tool, its login command and its key page. The owner wants a first hour that works for every role. The boundary is strict: Shipyard runs the own login of a tool and never uses the tokens of that tool for its own calls (`adr:0017`).
 
 ### Users And Scenarios
 

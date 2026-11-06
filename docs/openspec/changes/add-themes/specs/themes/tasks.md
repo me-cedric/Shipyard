@@ -18,7 +18,7 @@ Plan: [plan.md](./plan.md)
 - [x] T005 Commands in `crates/shipyard-app/src/commands/themes.rs`, `pnpm ipc:gen`, mocks in `src/lib/ipc/`. Covers REQ-005 to REQ-008.
 - [x] T006 [P] OLED tokens in `src/ui/tokens/tokens.css` with a contrast test in `tokens.test.ts`. Covers REQ-001.
 - [x] T007 Apply a theme in `src/lib/prefs/prefs.tsx` and `src/lib/themes/`, the theme select, import, preview, export and remove in `src/features/settings/`, the shortcut cycle in `src/features/shell/actions.ts`, EN and FR, with tests. Covers REQ-002, REQ-005 to REQ-008, REQ-010.
-- [x] T008 ADR 0018, theming guide (EN, FR), sample theme, plugin sample, screens, test plan, changelog lines.
+- [x] T008 `adr:0018`, theming guide (EN, FR), sample theme, plugin sample, screens, test plan, changelog lines.
 
 ## Completion Check
 

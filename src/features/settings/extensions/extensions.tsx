@@ -42,6 +42,7 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { WriteReportView } from "@/ui/molecules/write-report";
+import { SETTINGS_PAGE } from "@/ui/templates/settings";
 import { PluginSettings } from "./plugin-settings";
 
 const GROUPS: CatalogGroup[] = ["devcontainers", "agents", "devops-security"];
@@ -239,7 +240,7 @@ export function Extensions() {
 				title={t.tabs.settings.extensions}
 				count={catalog.data?.length}
 			/>
-			<div className="flex max-w-4xl flex-col gap-4 px-4 pt-1 pb-4">
+			<div className={SETTINGS_PAGE}>
 				{error ? (
 					<p role="alert" className="text-ui text-danger-text">
 						{error}

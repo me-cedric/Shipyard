@@ -2,6 +2,7 @@ import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type ProjectCard, unwrap } from "@/lib/ipc";
 import { useActiveProject, useProjectActions, useProjectCards } from "@/lib/projects";
+import { useFormIntent } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -120,6 +121,8 @@ export function ProjectsPage() {
 	const [error, setError] = useState<unknown>(null);
 	const [cloning, setCloning] = useState(false);
 	const [creating, setCreating] = useState(false);
+	// The Setup checklist opens the creator.
+	useFormIntent("project", () => setCreating(true));
 	// The heading shows while the cards load: a page always has its level-one heading.
 	if (!cards)
 		return <PageHeader icon={<FolderOpenIcon size={16} />} title={t.tabs.home.projects} />;

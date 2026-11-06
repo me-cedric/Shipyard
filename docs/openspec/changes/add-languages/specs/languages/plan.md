@@ -15,14 +15,14 @@ German and Spanish are two more catalogues typed by the English catalogue, so a 
 | Dependencies | None new. |
 | Data/storage | `<app data>/languages/<code>.json`, one file per pack. The pref `lang` gains `de` and `es`; the pref `langPack` holds the code of the current pack. |
 | APIs/contracts | Commands `languageList`, `languageRead`, `languageAdd`, `languageRemove`, `languageExport`. The plugin item kind `language`. The prompt language values `de` and `es`. |
-| Format | ADR 0021: JSON, version 1, a flat map of keys. Errors are `error.<code>`, action labels are `action.<kind>`. |
+| Format | `adr:0021`: JSON, version 1, a flat map of keys. Errors are `error.<code>`, action labels are `action.<kind>`. |
 | Risks | A text reaches the view: React shows it as text, so no markup runs. A pack cannot replace a built-in language. Dates and numbers keep the English format with a pack (Q-162). |
 
 ## Affected Surfaces
 
 - Code: `crates/shipyard-core/src/language.rs`, `crates/shipyard-store/src/{languages,prefs,plugins}.rs`, `crates/shipyard-app/src/commands/prefs.rs`, `crates/shipyard-app/src/extensions/mod.rs`, `src/lib/i18n/`, `src/lib/assistant/prompts.ts`, `src/lib/menus/ask.ts`, `src/features/settings/`, `src/features/shell/actions.ts`, `src/features/assistant/ask-menu.tsx`, `src/features/knowledge/manual.tsx`, `src/lib/ipc/`.
 - Tests: `language.rs`, `languages.rs`, `prefs.rs`, `crates/shipyard-store/tests/plugins.rs`, `src/lib/i18n/{i18n.test.tsx,errors.test.ts,packs.test.ts}`, `src/features/settings/languages.test.tsx`, `e2e/smoke.spec.ts`.
-- Docs/specs: ADR 0021, `docs/guide/{de,es}/start.md`, `docs/guide/settings.md` (EN, FR), plugin manifest schema, `docs/designs/screens.json`, `docs/delivery/test-plans/languages.feature`, constitution rule 4.4, `CHANGELOG.md`, `CHANGELOG.fr.md`.
+- Docs/specs: `adr:0021`, `docs/guide/{de,es}/start.md`, `docs/guide/settings.md` (EN, FR), plugin manifest schema, `docs/designs/screens.json`, `docs/delivery/test-plans/languages.feature`, constitution rule 4.4, `CHANGELOG.md`, `CHANGELOG.fr.md`.
 
 ## Validation
 

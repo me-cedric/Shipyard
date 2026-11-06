@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
+import { useRights } from "@/lib/rights";
 import { SPRING } from "@/ui/motion";
 import { StaleBadge, useStalePages } from "../specs/chain-badge";
 import { type SpaceId, tabLabel, tabPath, visibleTabs } from "./spaces";
@@ -11,11 +12,12 @@ export function TabsBar({ space }: { space: SpaceId }) {
 	const { t } = useI18n();
 	const { teamRole } = usePrefs();
 	const stale = useStalePages();
+	const { level } = useRights();
 	return (
 		<nav aria-label={t.nav.tabs} className="flex shrink-0 px-4 pt-3">
 			{/* The tabs wrap when the assistant and the inspector leave little width: none is cut off. */}
 			<div className="flex flex-wrap items-center gap-0.5 rounded-lg border bg-surface-1 p-0.5 shadow-1">
-				{visibleTabs(space, teamRole).map((tab) => (
+				{visibleTabs(space, teamRole, level).map((tab) => (
 					<Link
 						key={tab}
 						to={tabPath(space, tab)}

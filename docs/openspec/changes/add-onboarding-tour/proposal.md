@@ -11,6 +11,7 @@ A new person opens Shipyard and sees the first-run page: a role and three ways t
 - The last step opens the manual. The manual stays: it holds the reference text that a tour cannot hold (Q-136).
 - A permissions list shows each permission that Shipyard uses on this computer, with its state and one action: Allow, Open System Settings or Send a test. The tour shows it, and Settings / Me shows it again.
 - On macOS, Shipyard asks for the notifications and for the Documents, Desktop and Downloads folders only after a click. It does not ask for Full Disk Access (Q-137).
+- Each step that maps to a setting shows its state and one action: the project, the AI tool, the models, the issue tracker, the code host and the team. A Setup checklist with the same items shows on Home / Today while one is to do, and in Settings / Me.
 
 ## Impact
 

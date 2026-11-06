@@ -12,7 +12,7 @@ Two Settings views in `src/features/settings/extensions/`. Rust reads the compas
 | Item | Decision |
 | ---- | -------- |
 | Stack/runtime | Rust workspace and React 19 (MASTER-PLAN 7.1, 7.3). |
-| Compass source | The compass path that the active project pins, read only. Shipyard pins `docs/agent-compass` (ADR 0010). A project with no pin gets one Add compass action. |
+| Compass source | The compass path that the active project pins, read only. Shipyard pins `docs/agent-compass` (`adr:0010`). A project with no pin gets one Add compass action. |
 | Apply | `shipyard-app` runs `node <compass path>/bin/ac.mjs sync` for the chosen entries. The system `ac` is not the compass tool on some machines. |
 | Sync state | The compass lock `.agents/compass.lock.json` gives the state. `ac check --frozen` gives the drift. |
 | Catalog | Component definitions as files in a catalog folder. A project-level record of deployed components and versions lives in `.shipyard/project.yaml`, written by `shipyard-store` codecs. |
@@ -30,7 +30,7 @@ Two Settings views in `src/features/settings/extensions/`. Rust reads the compas
 
 - Code: `crates/shipyard-core`, `crates/shipyard-store`, `crates/shipyard-git`, `crates/shipyard-app`, `src/features/settings/extensions/`.
 - Tests: `cargo test -p shipyard-core`, `cargo test -p shipyard-store`, `cargo test -p shipyard-git`, `cargo test -p shipyard-app`, `pnpm vitest run src/features/settings`, `e2e/extensions.spec.ts`.
-- Docs/specs: this change, ADR 0010, `CHANGELOG.md`, `CHANGELOG.fr.md`, Q-050, Q-051, Q-052.
+- Docs/specs: this change, `adr:0010`, `CHANGELOG.md`, `CHANGELOG.fr.md`, Q-050, Q-051, Q-052.
 
 ## Approach
 

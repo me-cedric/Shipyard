@@ -48,3 +48,24 @@ test("asks for a permission from the tour and shows the list in Settings / Me", 
 	await page.getByRole("button", { name: "Replay the tour" }).click();
 	await expect(page.getByRole("dialog", { name: FIRST })).toBeVisible();
 });
+
+test("offers the settings on the steps and lists them in Settings / Me", async ({ page }) => {
+	await page.goto("/");
+	await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
+	await replay(page);
+	await page.keyboard.press("ArrowRight");
+	await expect(page.getByRole("button", { name: "New project" })).toBeVisible();
+	await page.keyboard.press("ArrowRight");
+	const dialog = page.getByRole("dialog", { name: "Connect the issue tracker and the code host" });
+	await expect(dialog.getByRole("group", { name: "Code host" }).getByText("To do")).toBeVisible();
+	await dialog
+		.getByRole("group", { name: "Issue tracker" })
+		.getByRole("button", { name: "Connect" })
+		.click();
+	await expect(page).toHaveURL(/\/settings\/connections/);
+	await expect(page.getByRole("dialog")).toBeHidden();
+
+	await page.goto("/settings/me");
+	const ai = page.getByRole("group", { name: "AI tool", exact: true });
+	await expect(ai.getByText("To do")).toBeVisible();
+});

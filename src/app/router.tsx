@@ -14,13 +14,16 @@ import { motion, useReducedMotion } from "motion/react";
 import {
 	AppShell,
 	firstPath,
+	hiddenTab,
 	SPACES,
 	type SpaceId,
 	TabsBar,
 	tabPath,
 	visibleTabs,
 } from "@/features/shell";
+import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
+import { useRights } from "@/lib/rights";
 import { SPRING } from "@/ui/motion";
 import { NotFound } from "./not-found";
 import { refActions } from "./ref-actions";
@@ -37,13 +40,27 @@ const indexRoute = createRoute({
 	path: "/",
 	component: function RoleHome() {
 		const { teamRole } = usePrefs();
-		return <Navigate to={firstPath(teamRole)} replace />;
+		const { level } = useRights();
+		const [, space, tab] = firstPath(teamRole).split("/") as [string, SpaceId, string];
+		return (
+			<Navigate to={hiddenTab(level, space, tab) ? "/home/today" : firstPath(teamRole)} replace />
+		);
 	},
 });
+
+/** A tab of an area at `none`: a direct route shows this, not the view. */
+function NoAccess() {
+	const { t } = useI18n();
+	return <p className="p-4 text-14 font-medium text-n-11">{t.rights.noAccess}</p>;
+}
 
 function SpaceLayout({ space }: { space: SpaceId }) {
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	const still = useReducedMotion();
+	const { level } = useRights();
+	// The space index has no tab: it redirects to the first visible tab.
+	const tab = path.split("/")[2];
+	const hidden = !!tab && hiddenTab(level, space, tab);
 	return (
 		<div className="flex h-full flex-col">
 			<TabsBar space={space} />
@@ -57,7 +74,7 @@ function SpaceLayout({ space }: { space: SpaceId }) {
 					transition={SPRING.gentle}
 					className="flex min-h-0 flex-1 flex-col"
 				>
-					<Outlet />
+					{hidden ? <NoAccess /> : <Outlet />}
 				</motion.div>
 			</div>
 		</div>
@@ -67,8 +84,9 @@ function SpaceLayout({ space }: { space: SpaceId }) {
 /** The space opens on its first tab: the tab of the role, else the first tab. */
 function FirstTab({ space }: { space: SpaceId }) {
 	const { teamRole } = usePrefs();
+	const { level } = useRights();
 	const path = useRouterState({ select: (s) => s.location.pathname });
-	const first = visibleTabs(space, teamRole)[0] ?? SPACES[space][0];
+	const first = visibleTabs(space, teamRole, level)[0] ?? SPACES[space][0];
 	// The layout keeps this view while the next location loads: only the space index redirects.
 	return path.replace(/\/$/, "") === `/${space}` ? (
 		<Navigate to={tabPath(space, first)} replace />

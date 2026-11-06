@@ -29,6 +29,11 @@ info:
       `work.edit`; `adr_propose` needs `design.edit`; `workflow_propose` needs `project.settings`.
       A refusal is the error `missing right <right> (<role>)`, and a read-only project refuses
       each of them. Each check adds one line to the audit log of the project.
+      A read tool of an area at the level `none` for the person (`team-rights` REQ-018) is
+      refused with the error `the area <area> is hidden for this person`: the file, git and
+      review tools are `code`, the ticket tools `work`, the ADR tools `design`, `spec_validate`
+      `specs`, `docs_stale` `knowledge`, the workflow tools `runs`. `read_ticket` and `read_ref`
+      of a run refuse the area of the ref in the same way for the member of the run.
 
     Limits of one call, by default: 60 calls a minute for each token, 64 KiB of arguments,
     256 KiB of answer, 32 KiB for a report.

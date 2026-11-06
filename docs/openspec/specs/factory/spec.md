@@ -137,7 +137,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 
 ### Existing References
 
-- Existing code/docs/specs: `docs/plan/MASTER-PLAN.md` sections 5.3, 5.4, 5.5, 5.8 and 5.9; ADR 0005; ADR 0006; Q-002.
+- Existing code/docs/specs: `docs/plan/MASTER-PLAN.md` sections 5.3, 5.4, 5.5, 5.8 and 5.9; `adr:0005`; `adr:0006`; Q-002.
 - Supersedes or extends: N/A
 
 ### Clarifications

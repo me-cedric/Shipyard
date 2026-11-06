@@ -27,7 +27,7 @@ Reply parsing and the question state are pure code in `shipyard-core`. The engin
 
 - Code: `crates/shipyard-core` (reply parser, question state), `crates/shipyard-store` (RAID codec), `crates/shipyard-engine` (wait, comment, detect, resume, terminal ticket), `crates/shipyard-app` (commands), `src/features/home/inbox/`.
 - Tests: `crates/*/tests`, `src/features/home/inbox/*.test.tsx`, `e2e/questions-loop.spec.ts`.
-- Docs/specs: `docs/openspec/changes/archive/2026-10-31-add-questions-loop/`, ADR 0008, `CHANGELOG.md`, `CHANGELOG.fr.md`, Q-002, Q-026, Q-027, Q-028.
+- Docs/specs: `docs/openspec/changes/archive/2026-10-31-add-questions-loop/`, `adr:0008`, `CHANGELOG.md`, `CHANGELOG.fr.md`, Q-002, Q-026, Q-027, Q-028.
 
 ## Approach
 

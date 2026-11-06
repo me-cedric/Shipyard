@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import type { ReactElement } from "react";
 import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
+import { useRights } from "@/lib/rights";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/ui/atoms/tooltip";
 import { SPRING } from "@/ui/motion";
@@ -15,7 +16,8 @@ export function Sidebar() {
 	const { t } = useI18n();
 	const { teamRole, sidebarOpen } = usePrefs();
 	const { badge } = useCounts();
-	const entries = orderedSpaces(teamRole).map((space, i) => {
+	const { level } = useRights();
+	const entries = orderedSpaces(teamRole, level).map((space, i) => {
 		const Icon = SPACE_ICON[space];
 		const name = t.space[space];
 		const count = badge[space] ?? 0;

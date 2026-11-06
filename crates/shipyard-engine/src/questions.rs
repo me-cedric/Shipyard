@@ -208,6 +208,7 @@ impl AgentEvents for Factory {
             AgentEvent::ReadRef(r) => self.read_ref(run, step, &r.reference),
             AgentEvent::ReadTicket(t) => {
                 let inner = self.lock();
+                inner.may_read(run, Some(shipyard_core::rights::Area::Work))?;
                 let key = t
                     .reference
                     .strip_prefix("wi:")

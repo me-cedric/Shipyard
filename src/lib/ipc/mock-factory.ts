@@ -579,6 +579,7 @@ function view(f: MockFactory, r: Rec): RunView_Serialize {
 		pr: pr ? prRow(f, pr) : null,
 		openQuestions: f.questions.filter((x) => x.run === r.id && x.q.state === "open").length,
 		approvals: f.approvals.filter((a) => a.run === r.id).length,
+		reason: null,
 	};
 }
 

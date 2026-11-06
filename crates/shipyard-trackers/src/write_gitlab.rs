@@ -80,10 +80,15 @@ fn log(v: &Value) -> Worklog {
         minutes: (num(v, "/timeSpent").unwrap_or(0) / 60) as u32,
         note: text(v, "/summary"),
         started: text(v, "/spentAt"),
+        author: text(v, "/user/id")
+            .rsplit('/')
+            .next()
+            .unwrap_or_default()
+            .into(),
     }
 }
 
-const LOG: &str = "id spentAt summary timeSpent";
+const LOG: &str = "id spentAt summary timeSpent user { id }";
 
 impl TrackerWrite for GitLab {
     fn assign(&self, key: &str, account: &str) -> Result<(), TrackerError> {

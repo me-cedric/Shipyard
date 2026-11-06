@@ -60,8 +60,8 @@ Shipyard has English and French only. Teams in other countries need the app in t
 
 ### Links
 
-- Consumes: `shell` REQ-011 (language), `extensions` (plugin import and review), `themes` REQ-009 (the pattern of a library item from a plugin), ADR 0018 (the pattern of a data-only file).
-- Produces: ADR 0021 (language pack format).
+- Consumes: `shell` REQ-011 (language), `extensions` (plugin import and review), `themes` REQ-009 (the pattern of a library item from a plugin), `adr:0018` (the pattern of a data-only file).
+- Produces: `adr:0021` (language pack format).
 - Screen: SCR-024
 
 ### Existing References

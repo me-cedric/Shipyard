@@ -38,6 +38,7 @@ fn the_switches_decide_which_tools_list_and_run_and_a_change_acts_at_once() {
             only: Vec::new(),
             rights: None,
             tickets: None,
+            hidden: Vec::new(),
         })
     });
     let binding = Binding {

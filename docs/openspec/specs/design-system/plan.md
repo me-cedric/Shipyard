@@ -13,6 +13,7 @@ Build the `src/ui/` atomic layers on the stack of MASTER-PLAN 7.3. Tokens come f
 | ---- | -------- |
 | Stack/runtime | React 19, Vite, TypeScript strict, Tailwind v4 |
 | Dependencies | shadcn/ui on Base UI, `motion`, heroicons-animated, `cmdk`. No new dependency. |
+| Decisions | `adr:0009` (shadcn on Base UI, Switzer and Departure Mono). |
 | Data/storage | N/A. Theme, contrast and density live in per-machine preferences (shell). |
 | APIs/contracts | N/A. Components take props only. |
 | Fonts | Switzer, Departure Mono, Inter fallback. Files bundled with the app (Q-001). |

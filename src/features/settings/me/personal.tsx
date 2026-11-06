@@ -50,6 +50,28 @@ function useRunners() {
 	return runners;
 }
 
+/** The default AI tool: a pick resets the default model. */
+export function DefaultAgentSelect() {
+	const { t } = useI18n();
+	const prefs = usePrefs();
+	const runners = useRunners();
+	return (
+		<Select
+			label={t.personal.prefs.defaultAgent}
+			value={prefs.defaultAgent || DEFAULT}
+			onValueChange={(v) => prefs.setPrefs({ defaultAgent: back(v), defaultModel: "" })}
+			items={[
+				{ value: DEFAULT, label: t.assistant.default },
+				...runners.map((r) => ({
+					value: r.runner,
+					label: runnerName(r.runner),
+					icon: <BrandIcon name={r.runner} size={14} />,
+				})),
+			]}
+		/>
+	);
+}
+
 /** The terminal apps that are installed on this machine. */
 function useTerminalApps() {
 	const [apps, setApps] = useState<{ id: string; label: string }[]>([]);
@@ -178,21 +200,7 @@ export function usePersonalSections(): SettingsSection[] {
 					id: "default-agent",
 					icon: <CpuChipIcon size={14} />,
 					label: p.defaultAgent,
-					control: (
-						<Select
-							label={p.defaultAgent}
-							value={prefs.defaultAgent || DEFAULT}
-							onValueChange={(v) => prefs.setPrefs({ defaultAgent: back(v), defaultModel: "" })}
-							items={[
-								{ value: DEFAULT, label: t.assistant.default },
-								...runners.map((r) => ({
-									value: r.runner,
-									label: runnerName(r.runner),
-									icon: <BrandIcon name={r.runner} size={14} />,
-								})),
-							]}
-						/>
-					),
+					control: <DefaultAgentSelect />,
 				},
 				{
 					id: "default-model",

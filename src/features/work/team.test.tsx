@@ -137,10 +137,115 @@ describe("Work / Team", () => {
 		mountApp("/work/team");
 		const matrix = within(await screen.findByRole("table", { name: "Rights of each role" }));
 		expect(matrix.getAllByRole("row")).toHaveLength(10);
+		const viewer = within(matrix.getByRole("row", { name: /^Viewer/ }));
+		expect(viewer.getAllByRole("img", { name: "Read" })).toHaveLength(7);
+		expect(viewer.getAllByRole("img", { name: "Hidden" })).toHaveLength(1);
+		expect(viewer.getAllByRole("img", { name: /^(Merge|Approve) no$/ })).toHaveLength(2);
 		expect(
-			within(matrix.getByRole("row", { name: /^Viewer/ })).getAllByRole("img", { name: /no$/ }),
-		).toHaveLength(10);
+			within(matrix.getByRole("row", { name: /^Developer/ })).getByRole("img", {
+				name: "Approve yes",
+			}),
+		).toBeInTheDocument();
 		expect(await screen.findByText("You are ada (Account)")).toBeInTheDocument();
+	});
+
+	it("edits the level of a cell and saves the roles block", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/team");
+		await user.click(await screen.findByRole("button", { name: "Edit" }));
+		await user.click(screen.getByRole("combobox", { name: "Developer Costs" }));
+		await user.click(await screen.findByRole("option", { name: "Read" }));
+		await user.click(screen.getByRole("switch", { name: "Viewer Merge" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(mockState().work.team.roles).toEqual({
+				developer: { costs: "read" },
+				viewer: { merge: true },
+			}),
+		);
+		// Back to the read view, with the new level.
+		const matrix = within(await screen.findByRole("table", { name: "Rights of each role" }));
+		expect(
+			within(matrix.getByRole("row", { name: /^Developer/ })).queryByRole("img", {
+				name: "Hidden",
+			}),
+		).toBeNull();
+		expect(screen.queryByRole("combobox", { name: "Developer Costs" })).toBeNull();
+	});
+
+	it("resets a role to its defaults and drops its cells from the block", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().work.team.roles = { developer: { costs: "read" } };
+		mountApp("/work/team");
+		await user.click(await screen.findByRole("button", { name: "Edit" }));
+		await user.click(screen.getByRole("button", { name: "Reset Developer to defaults" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().work.team.roles).toBeUndefined());
+	});
+
+	it("cancels an edit without a write", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/team");
+		await user.click(await screen.findByRole("button", { name: "Edit" }));
+		await user.click(screen.getByRole("combobox", { name: "Developer Costs" }));
+		await user.click(await screen.findByRole("option", { name: "Read" }));
+		await user.click(screen.getByRole("button", { name: "Cancel" }));
+		expect(mockState().work.team.roles).toBeUndefined();
+		expect(screen.queryByRole("combobox", { name: "Developer Costs" })).toBeNull();
+	});
+
+	it("gives a member several roles and shows the highest levels", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const grace = mockState().work.team.members.find((m) => m.handle === "grace");
+		Object.assign(grace ?? {}, { role: "viewer", roles: undefined, rights: [], admin: false });
+		mountApp("/work/team");
+		const members = within(await screen.findByRole("table", { name: "Members" }));
+		const before = within(members.getByRole("row", { name: "grace levels" }));
+		expect(before.queryAllByRole("img", { name: "Read and write" })).toHaveLength(0);
+		await user.click(screen.getByRole("button", { name: "Edit" }));
+		await user.click(screen.getByRole("combobox", { name: "Add a role to Grace Hopper" }));
+		await user.click(await screen.findByRole("option", { name: "Developer" }));
+		// Developer adds writes at once, before the save.
+		expect(
+			within(members.getByRole("row", { name: "grace levels" })).getAllByRole("img", {
+				name: "Read and write",
+			}).length,
+		).toBeGreaterThan(3);
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(mockState().work.team.members.find((m) => m.handle === "grace")).toMatchObject({
+				role: "viewer",
+				roles: ["viewer", "developer"],
+			}),
+		);
+		// A member keeps one role at least: the backend refuses, and the refusal shows.
+		await user.click(screen.getByRole("button", { name: "Edit" }));
+		await user.click(screen.getByRole("button", { name: "Remove Viewer from Grace Hopper" }));
+		await user.click(screen.getByRole("button", { name: "Remove Developer from Grace Hopper" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("grace needs one role");
+	});
+
+	it("turns Edit off without project.settings, with the reason", async () => {
+		await withTracker();
+		mockState().person = {
+			member: "ada",
+			found: "email",
+			role: "developer",
+			admin: false,
+			readOnly: false,
+			rights: ["work.edit"],
+		};
+		mountApp("/work/team");
+		const edit = await screen.findByRole("button", { name: "Edit" });
+		await waitFor(() => expect(edit).toBeDisabled());
+		expect(edit).toHaveAccessibleDescription(
+			"Needs the right project.settings (your role: Developer)",
+		);
 	});
 
 	it("turns Member off with the right for a developer", async () => {

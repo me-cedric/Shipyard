@@ -20,7 +20,7 @@ Plan: [plan.md](./plan.md)
 - [x] T007 Key check, fallback and marker in `src/lib/i18n/packs.ts` and `i18n.tsx`, error sentences of a pack in `errors.ts`, with tests. Covers REQ-005, REQ-006.
 - [x] T008 Language select and rows in `src/features/settings/languages.tsx`, prompts in `src/lib/assistant/prompts.ts` and `src/lib/menus/ask.ts`, the palette in `src/features/shell/actions.ts`, with tests. Covers REQ-001, REQ-005 to REQ-008, REQ-011.
 - [x] T009 Guide fallback in `src/features/knowledge/manual.tsx`, `docs/guide/{de,es}/start.md`. Covers REQ-010.
-- [x] T010 ADR 0021, RAID Q-160 to Q-164, settings guide, plugin schema, screens, test plan, constitution, changelog lines.
+- [x] T010 `adr:0021`, RAID Q-160 to Q-164, settings guide, plugin schema, screens, test plan, constitution, changelog lines.
 
 ## Completion Check
 

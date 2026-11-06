@@ -96,6 +96,8 @@ struct ClaudeParser {
     message: String,
     /// Tokens already sent live, so the `result` totals add only the rest.
     sent: [u64; 3],
+    /// The cost already sent live, from the list prices: the `result` adds only the rest.
+    sent_cost: f64,
 }
 
 impl ClaudeParser {
@@ -135,11 +137,22 @@ impl Parser for ClaudeParser {
                             for (sent, t) in self.sent.iter_mut().zip(now) {
                                 *sent += t;
                             }
+                            // shortcut: list prices of `machine::price`, an estimate; the
+                            // `result` line corrects it when the AI tool gets to send it.
+                            let model = s(v.get("message").unwrap_or(&Value::Null), "model");
+                            let cost = crate::machine::price(&model).map(|p| {
+                                (n(u, "input_tokens") as f64 * p[0]
+                                    + n(u, "output_tokens") as f64 * p[1]
+                                    + n(u, "cache_read_input_tokens") as f64 * p[2]
+                                    + n(u, "cache_creation_input_tokens") as f64 * p[3])
+                                    / 1e6
+                            });
+                            self.sent_cost += cost.unwrap_or(0.0);
                             out.push(Event::Usage {
                                 input_tokens: now[0],
                                 output_tokens: now[1],
                                 cached_tokens: now[2],
-                                cost_usd: None,
+                                cost_usd: cost,
                             });
                         }
                     }
@@ -189,6 +202,7 @@ impl Parser for ClaudeParser {
                 // The totals of the run, less what the messages sent live.
                 let [i, o, c] = self.sent;
                 self.sent = [0; 3];
+                let live = std::mem::take(&mut self.sent_cost);
                 out.push(Event::Usage {
                     input_tokens: count("input_tokens").saturating_sub(i),
                     output_tokens: count("output_tokens").saturating_sub(o),
@@ -196,7 +210,10 @@ impl Parser for ClaudeParser {
                     cached_tokens: (count("cache_read_input_tokens")
                         + count("cache_creation_input_tokens"))
                     .saturating_sub(c),
-                    cost_usd: v.get("total_cost_usd").and_then(Value::as_f64),
+                    cost_usd: v
+                        .get("total_cost_usd")
+                        .and_then(Value::as_f64)
+                        .map(|total| (total - live).max(0.0)),
                 });
                 let failed = v.get("is_error").and_then(Value::as_bool) == Some(true)
                     || s(&v, "subtype").starts_with("error");

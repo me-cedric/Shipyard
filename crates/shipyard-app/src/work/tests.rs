@@ -192,7 +192,7 @@ fn team5() -> Team {
             member("di", "design", &["ui"], 450.0),
             member("ed", "lead", &["api", "plan"], 700.0),
         ],
-        locked: false,
+        ..Team::default()
     }
 }
 
@@ -446,7 +446,7 @@ fn the_part_of_the_email_before_the_at_counts_only_for_one_member_without_anothe
         &f,
         Team {
             members: vec![other.clone()],
-            locked: false,
+            ..Team::default()
         },
     )
     .unwrap();
@@ -467,18 +467,26 @@ fn the_part_of_the_email_before_the_at_counts_only_for_one_member_without_anothe
                     ..john("john-2", &["john@personal.com"])
                 },
             ],
-            locked: false,
+            ..Team::default()
         },
     )
     .unwrap();
     assert_eq!(me(&f).as_deref(), Some("john-2"));
     assert_eq!(team_add_me(&f.s, true).unwrap().team.members.len(), 2);
-    // One member, and no other account: it is the person.
+    // One member, and no other account: it is the person. The save keeps one admin
+    // (`team-rights` REQ-019), with an account of its own.
     save_team(
         &f,
         Team {
-            members: vec![john("john", &[]), john("jo", &["jo-gh"])],
-            locked: false,
+            members: vec![
+                john("john", &[]),
+                john("jo", &["jo-gh"]),
+                Member {
+                    admin: true,
+                    ..john("root", &["root-gh"])
+                },
+            ],
+            ..Team::default()
         },
     );
     assert_eq!(me(&f).as_deref(), Some("john"));
@@ -504,7 +512,7 @@ fn the_git_name_finds_one_member_with_that_name_and_no_account() {
         &f,
         Team {
             members: vec![named(&[])],
-            locked: false,
+            ..Team::default()
         },
     )
     .unwrap();
@@ -514,7 +522,7 @@ fn the_git_name_finds_one_member_with_that_name_and_no_account() {
         &f,
         Team {
             members: vec![named(&["cm-gh"])],
-            locked: false,
+            ..Team::default()
         },
     )
     .unwrap();
@@ -1244,6 +1252,152 @@ fn the_month_pull_reads_the_worklogs_of_the_month_and_writes_nothing() {
     assert_eq!(f.writes(), 0);
 }
 
+const POSTED: &str = r#"{"id":"10234","timeSpentSeconds":5400,"comment":"x","started":"s"}"#;
+
+#[test]
+fn a_saved_entry_goes_to_the_tracker_at_once_and_stores_the_worklog_id() {
+    let f = fx();
+    save_team(&f, team5());
+    f.put(vec![ticket("PROJ-5", "T", &[])]);
+    worklog_routes(&f, r#"{"worklogs":[]}"#);
+    f.http.post("/issue/PROJ-5/worklog", "", 201, POSTED);
+    let saved = time_save(
+        &f.s,
+        None,
+        "2026-10-29",
+        90,
+        "review",
+        Some("PROJ-5"),
+        60,
+        false,
+    )
+    .unwrap();
+    assert_eq!(saved.entry.worklog.as_deref(), Some("10234"));
+    assert!(saved.error.is_none() && saved.entry.unsynced.is_none());
+    assert_eq!(f.writes(), 1);
+    // No ticket, or a tracker with no time tracking: local, no error, no request.
+    let none = time_save(&f.s, None, "2026-10-30", 30, "", None, 0, false).unwrap();
+    assert!(none.entry.worklog.is_none() && none.error.is_none());
+    assert_eq!(f.writes(), 1);
+    let g = fx_with(ConnectionKind::GitHub, Some("acme/web"));
+    save_team(&g, team5());
+    g.put(vec![ticket("PROJ-5", "T", &[])]);
+    let local = time_save(&g.s, None, "2026-10-29", 30, "", Some("PROJ-5"), 0, false).unwrap();
+    assert!(local.error.is_none() && local.entry.unsynced.is_none());
+    assert_eq!(g.writes(), 0);
+}
+
+#[test]
+fn a_failed_send_keeps_the_entry_with_the_reason_and_the_send_action_retries() {
+    let f = fx();
+    save_team(&f, team5());
+    f.put(vec![ticket("PROJ-5", "T", &[])]);
+    worklog_routes(&f, r#"{"worklogs":[]}"#);
+    // No post route: the answer is lost.
+    let saved = time_save(
+        &f.s,
+        None,
+        "2026-10-29",
+        90,
+        "review",
+        Some("PROJ-5"),
+        0,
+        false,
+    )
+    .unwrap();
+    assert!(saved.error.is_some() && saved.entry.worklog.is_none());
+    assert!(f.file("docs/time/ana/2026-10.yaml").contains("unsynced:"));
+    f.http.post("/issue/PROJ-5/worklog", "", 201, POSTED);
+    let sent = worklog_send(&f.s, None, "2026-10-29", &saved.entry.id, 0, false, true).unwrap();
+    assert_eq!(sent.entry.worklog.as_deref(), Some("10234"));
+    assert!(!f.file("docs/time/ana/2026-10.yaml").contains("unsynced:"));
+}
+
+#[test]
+fn an_edit_and_a_delete_of_a_synced_entry_reach_the_tracker() {
+    let f = fx();
+    save_team(&f, team5());
+    f.put(vec![ticket("PROJ-5", "T", &[])]);
+    worklog_routes(&f, r#"{"worklogs":[]}"#);
+    f.http.post("/issue/PROJ-5/worklog", "", 201, POSTED);
+    let e = time_save(
+        &f.s,
+        None,
+        "2026-10-29",
+        90,
+        "review",
+        Some("PROJ-5"),
+        0,
+        false,
+    )
+    .unwrap()
+    .entry;
+    assert!(time_edit(&f.s, None, "2026-10-29", &e.id, 30, "x", 0, false).is_err());
+    // The tracker is down: the change stays here with the reason, then the send action retries.
+    let down = time_edit(&f.s, None, "2026-10-29", &e.id, 30, "short", 0, true).unwrap();
+    assert!(down.error.is_some() && down.entry.minutes == 30);
+    assert!(
+        time_delete(&f.s, None, "2026-10-29", &e.id, true).is_err(),
+        "no route: the entry stays"
+    );
+    assert_eq!(time_month(&f.s, None, "2026-10").unwrap().rows.len(), 1);
+    f.http.put("/issue/PROJ-5/worklog/10234", "", 200, POSTED);
+    let retried = worklog_send(&f.s, None, "2026-10-29", &e.id, 0, false, true).unwrap();
+    assert!(retried.entry.unsynced.is_none());
+    let put = f
+        .http
+        .requests()
+        .into_iter()
+        .find(|r| r.method == Method::Put)
+        .unwrap();
+    assert!(put.body.unwrap().to_string().contains("1800"));
+    f.http.delete("/issue/PROJ-5/worklog/10234", 204, "");
+    time_delete(&f.s, None, "2026-10-29", &e.id, true).unwrap();
+    assert!(time_month(&f.s, None, "2026-10").unwrap().rows.is_empty());
+}
+
+#[test]
+fn the_month_pull_imports_my_worklogs_once_and_never_doubles_a_sent_one() {
+    let f = fx();
+    save_team(&f, team5());
+    f.put(vec![ticket("PROJ-5", "T", &[])]);
+    f.http.get(
+        "/myself",
+        200,
+        r#"{"accountId":"me-1","displayName":"Ana"}"#,
+    );
+    worklog_routes(
+        &f,
+        r#"{"worklogs":[
+        {"id":"10234","timeSpentSeconds":5400,"comment":"review","started":"2026-10-29T09:00:00.000+0000","author":{"accountId":"me-1"}},
+        {"id":"20","timeSpentSeconds":600,"comment":"by hand","started":"2026-10-30T09:00:00.000+0000","author":{"accountId":"me-1"}},
+        {"id":"21","timeSpentSeconds":600,"comment":"other","started":"2026-10-30T09:00:00.000+0000","author":{"accountId":"zed"}}
+    ]}"#,
+    );
+    f.http.post("/issue/PROJ-5/worklog", "", 201, POSTED);
+    time_save(
+        &f.s,
+        None,
+        "2026-10-29",
+        90,
+        "review",
+        Some("PROJ-5"),
+        0,
+        false,
+    )
+    .unwrap();
+    for _ in 0..2 {
+        let v = time_month_pull(&f.s, None, "2026-10").unwrap();
+        assert_eq!(v[0].rows.len(), 3, "21 stays a tracker row");
+        // Mine: the sent entry and the imported one. Not the other person's, and never twice.
+        let rows = time_month(&f.s, None, "2026-10").unwrap().rows;
+        assert_eq!(rows.len(), 2);
+        assert!(rows.iter().all(|r| r.state == TimeState::InTracker));
+    }
+    assert!(f.file("docs/time/ana/2026-10.yaml").contains("by hand"));
+    assert_eq!(f.writes(), 1, "the pull sends nothing");
+}
+
 #[test]
 fn today_is_the_day_of_the_screen_and_not_the_day_of_greenwich() {
     // 2026-10-29 23:30 UTC.
@@ -1285,6 +1439,7 @@ fn a_send_keeps_an_entry_that_another_write_added_while_the_tracker_answered() {
                     note: "typed while the send ran".into(),
                     ticket: None,
                     worklog: None,
+                    unsynced: None,
                 };
                 let text = add_to_month(std::fs::read_to_string(&file).ok().as_deref(), late);
                 write_atomic(&file, text.unwrap().as_bytes()).unwrap();

@@ -57,7 +57,7 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 - Editing the compass files in the submodule. They are read only.
 - Creating child repositories and opening pull requests in a forge.
 - Running the compass Node helpers on the working copy (Doctor Outillage). `add-projects` REQ-018 owns it in Settings / Health.
-- A catalog repository setting. The catalog comes from the pinned compass version (ADR 0010), so one source keeps the pin reproducible.
+- A catalog repository setting. The catalog comes from the pinned compass version (`adr:0010`), so one source keeps the pin reproducible.
 
 ### Acceptance Criteria
 
@@ -80,7 +80,7 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 
 ### Links
 
-- Consumes: `add-projects` REQ-017, REQ-008, REQ-011 and REQ-012 (active project, Health, fix actions), `add-connections` REQ-006 and REQ-011 (MCP servers, secrets), ADR 0010 (pinned compass).
+- Consumes: `add-projects` REQ-017, REQ-008, REQ-011 and REQ-012 (active project, Health, fix actions), `add-connections` REQ-006 and REQ-011 (MCP servers, secrets), `adr:0010` (pinned compass).
 - Produces: compass rules, roles and skills for `add-factory` (REQ-014) and `add-assistant` (REQ-013), the compass check for `add-projects` Health, catalog components and OpenSpec guidance for child projects.
 
 ### Feature list
@@ -99,7 +99,7 @@ Agents follow the compass rules, and teams reuse accelerators across repositorie
 
 ### Existing References
 
-- `docs/plan/MASTER-PLAN.md` sections 4, 6 and 9; ADR 0010; `docs/openspec/constitution.md` section 4.
+- `docs/plan/MASTER-PLAN.md` sections 4, 6 and 9; `adr:0010`; `docs/openspec/constitution.md` section 4.
 - `add-specs` feature list row for OpenSpec guidance (REQ-017 here owns it).
 
 ### Clarifications

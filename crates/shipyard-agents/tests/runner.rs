@@ -187,6 +187,28 @@ echo '{"type":"result","subtype":"success","is_error":false,"total_cost_usd":0.5
     );
 }
 
+/// A message with a known model has a live cost from the list prices; the `result` adds only
+/// what the estimate missed, so a run stopped before its `result` still shows a cost.
+#[test]
+fn claude_prices_each_message_live_and_the_result_adds_the_rest() {
+    let f = fixture(
+        r#"
+cat > /dev/null
+echo '{"type":"assistant","message":{"id":"m1","model":"claude-sonnet-4-5","content":[],"usage":{"input_tokens":1000000,"output_tokens":0,"cache_read_input_tokens":0}}}'
+echo '{"type":"result","subtype":"success","is_error":false,"total_cost_usd":5.0,"usage":{"input_tokens":1000000,"output_tokens":0}}'
+"#,
+    );
+    let costs: Vec<Option<f64>> = go("claude", f.spec.clone())
+        .into_iter()
+        .filter_map(|e| match e {
+            Event::Usage { cost_usd, .. } => Some(cost_usd),
+            _ => None,
+        })
+        .collect();
+    // Sonnet input is 3 USD a million tokens: 3 live, then 5 - 3 at the end.
+    assert_eq!(costs, [Some(3.0), Some(2.0)]);
+}
+
 #[test]
 fn claude_streams_events_in_order_and_keeps_secrets_out() {
     let mut f = fixture(CLAUDE_STREAM);

@@ -57,8 +57,8 @@ Shipyard has a light and a dark theme only. People with an OLED screen want true
 
 ### Links
 
-- Consumes: `design-system` REQ-001 (tokens), REQ-011 (themes), REQ-012 (high contrast); `extensions` REQ-011, REQ-012 (plugin import and review); ADR 0014 (visual language v2).
-- Produces: ADR 0018 (theme file format), the theming guide.
+- Consumes: `design-system` REQ-001 (tokens), REQ-011 (themes), REQ-012 (high contrast); `extensions` REQ-011, REQ-012 (plugin import and review); `adr:0014` (visual language v2).
+- Produces: `adr:0018` (theme file format), the theming guide.
 - Screen: SCR-019
 
 ### Existing References

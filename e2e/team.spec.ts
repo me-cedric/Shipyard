@@ -13,7 +13,7 @@ async function addMember(page: Page, name: string, handle: string, role: string,
 	await page.getByRole("option", { name: role }).click();
 	if (admin) await panel.getByRole("switch", { name: "Admin" }).click();
 	await panel.getByRole("button", { name: "Save" }).click();
-	await expect(page.getByRole("row", { name: handle })).toBeVisible();
+	await expect(page.getByRole("row", { name: handle, exact: true })).toBeVisible();
 }
 
 test("a solo project gets two members with an admin, then an unknown person reads and cannot save", async ({

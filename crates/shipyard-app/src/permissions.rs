@@ -130,7 +130,7 @@ pub fn list(s: &AppState) -> Vec<OsPermission> {
 /// Shows the system prompt of the permission, then gives its new state.
 pub fn request(s: &AppState, kind: PermissionKind) -> Res<OsPermission> {
     match (OS, kind) {
-        (Os::Mac, PermissionKind::Notifications) => mac::ask_notifications(),
+        (Os::Mac, PermissionKind::Notifications) => mac::ask_notifications()?,
         (Os::Mac, PermissionKind::Files) => {
             read_folders();
             let _g = s.guard();
@@ -208,13 +208,17 @@ mod mac {
         rx.recv_timeout(Duration::from_secs(5)).ok()
     }
 
-    pub fn ask_notifications() {
+    /// `Err` with the reason of macOS when it refuses the request without a prompt (for example
+    /// an app whose bundle is not signed as a whole).
+    pub fn ask_notifications() -> Result<(), String> {
         if !bundled() {
-            return;
+            return Ok(());
         }
         let (tx, rx) = mpsc::channel();
-        let done = RcBlock::new(move |_: Bool, _: *mut NSError| {
-            let _ = tx.send(());
+        let done = RcBlock::new(move |_: Bool, error: *mut NSError| {
+            // SAFETY: the system passes a valid error, or null, for the time of the call.
+            let why = unsafe { error.as_ref() }.map(|e| e.localizedDescription().to_string());
+            let _ = tx.send(why);
         });
         UNUserNotificationCenter::currentNotificationCenter()
             .requestAuthorizationWithOptions_completionHandler(
@@ -224,7 +228,10 @@ mod mac {
                 &done,
             );
         // The person answers the prompt: wait for the answer, but not forever.
-        let _ = rx.recv_timeout(Duration::from_secs(300));
+        match rx.recv_timeout(Duration::from_secs(300)) {
+            Ok(Some(why)) => Err(why),
+            _ => Ok(()),
+        }
     }
 }
 
@@ -234,7 +241,9 @@ mod mac {
         None
     }
 
-    pub fn ask_notifications() {}
+    pub fn ask_notifications() -> Result<(), String> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]

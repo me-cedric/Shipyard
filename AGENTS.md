@@ -113,6 +113,7 @@ Code / Quality runs the gates of `.shipyard/project.yaml` and the scanners on th
 - A file that the app writes (YAML, JSON, Markdown) must pass `pnpm lint` as written. Use the shared writer of its format, not a local serialiser.
 - A test fixture that looks like a secret holds a fake value and the marker `shipyard:allow-secret` on its line. A real secret never goes in a file.
 - A false positive of `semgrep` gets `// nosemgrep: <rule-id>` and a short reason on the same line. A dependency advisory that cannot be fixed gets an entry with a reason in `.osv-scanner.toml`.
+- Cite a decision with its ref token `adr:00NN`, not as plain text ("ADR 0011"): Design / Decisions marks an ADR that no spec cites as Unused.
 - Before you remove or move a requirement, search for its ref (`spec:<capability>#REQ-<n>`) and update each question, test plan and doc that cites it. The Verify all docs check of Code / Quality reports the ones that you miss.
 - The scanners read tracked files only. Do not put scanned copies of the repository in tracked folders.
 - A test that mounts the app router waits for `router.state.status === "idle"` before it ends. A test that writes to the pipe of a child process accepts `BrokenPipe`: the child can exit first.

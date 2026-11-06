@@ -91,7 +91,7 @@ An agent that guesses a decision that belongs to a person produces wrong work. T
 
 ### Existing References
 
-- Existing code/docs/specs: `docs/plan/MASTER-PLAN.md` section 5.6; ADR 0008; ADR 0005; Q-002.
+- Existing code/docs/specs: `docs/plan/MASTER-PLAN.md` section 5.6; `adr:0008`; `adr:0005`; Q-002.
 - Supersedes or extends: N/A
 
 ### Clarifications

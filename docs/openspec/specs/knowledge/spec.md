@@ -283,7 +283,7 @@ Documents SHALL export a client deliverable as `.xlsx`. The export SHALL be a pr
 
 ### Requirement: REQ-017 Slides
 
-Knowledge / Slides SHALL list the decks of the project. A deck SHALL be a repository file: an HTML deck (ADR 0016) shows in a frame with no origin, and an older Markdown deck is read only. A person SHALL add a Planning or a Costing slide to an HTML deck. The slide SHALL be built from the data, in the style of the deck, and appended after the last slide. A deck SHALL export as a PDF. New deck SHALL be the one primary action.
+Knowledge / Slides SHALL list the decks of the project. A deck SHALL be a repository file: an HTML deck (`adr:0016`) shows in a frame with no origin, and an older Markdown deck is read only. A person SHALL add a Planning or a Costing slide to an HTML deck. The slide SHALL be built from the data, in the style of the deck, and appended after the last slide. A deck SHALL export as a PDF. New deck SHALL be the one primary action.
 
 #### Scenario: Add a slide
 - GIVEN an HTML deck of two slides

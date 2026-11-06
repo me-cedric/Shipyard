@@ -17,6 +17,7 @@ Plan: [plan.md](./plan.md)
 - [x] T004 The tour and the permissions list in `src/features/onboarding/`, EN and FR, with tests; mount in the shell; the section in Settings / Me. Covers REQ-001 to REQ-005, REQ-009, REQ-010.
 - [x] T005 `e2e/onboarding.spec.ts`: skip, finish, replay and the permissions list.
 - [x] T006 Guide (EN, FR), `screens.json`, the screenshot, the test plan, the changelog lines.
+- [x] T007 `src/features/onboarding/setup.tsx`: the Setup items, the actions, the Home / Today card and the Settings / Me section; step rows in the tour; anchors `tools` and `tiers`; the `project` form intent; EN, FR, DE, ES; tests and `e2e/onboarding.spec.ts`. Covers REQ-011 to REQ-013.
 
 ## Completion Check
 

@@ -9,7 +9,7 @@ import { Input } from "@/ui/atoms/input";
 import { Switch } from "@/ui/atoms/switch";
 import { Cog6ToothIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { Settings } from "@/ui/templates/settings";
+import { SETTINGS_PAGE, Settings } from "@/ui/templates/settings";
 import { type Draft, fromDraft, RUN_STATES, toDraft } from "./automation-draft";
 
 const ICON = <Cog6ToothIcon size={14} />;
@@ -66,7 +66,7 @@ function Form({ view }: { view: AutomationView }) {
 	};
 
 	return (
-		<div className="flex flex-col gap-4 px-4 pb-4">
+		<div className={SETTINGS_PAGE}>
 			<Settings
 				sections={[
 					{
@@ -103,18 +103,18 @@ function Form({ view }: { view: AutomationView }) {
 								icon: ICON,
 								label: name,
 								control: (
-									<span className="flex gap-2">
+									<span className="flex w-full gap-2">
 										<Input
 											label={`${name}, ${a.mapStatus}`}
 											value={row.status}
 											onChange={(e) => set({ status: e.target.value })}
-											className="w-40"
+											className="min-w-0 flex-1"
 										/>
 										<Input
 											label={`${name}, ${a.mapLabels}`}
 											value={row.labels}
 											onChange={(e) => set({ labels: e.target.value })}
-											className="w-40"
+											className="min-w-0 flex-1"
 										/>
 									</span>
 								),

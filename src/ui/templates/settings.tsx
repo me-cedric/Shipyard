@@ -9,6 +9,9 @@ export type SettingsSection = {
 	rows: { id: string; icon?: ReactNode; label: string; control: ReactNode }[];
 };
 
+/** The one content width of a settings page: the sections and the rows after them share it. */
+export const SETTINGS_PAGE = "flex max-w-3xl flex-col gap-4 px-4 pt-1 pb-4";
+
 /** Settings as grouped panels: one panel for each section, one row for each setting, the control on the right. */
 export function Settings({ sections }: { sections: SettingsSection[] }) {
 	return (

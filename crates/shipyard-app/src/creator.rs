@@ -286,7 +286,7 @@ fn team_of(members: &[NewMember]) -> Team {
     }
     Team {
         members: out,
-        locked: false,
+        ..Team::default()
     }
 }
 

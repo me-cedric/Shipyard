@@ -201,7 +201,7 @@ mod tests {
                     day_rate: Some(400.0),
                     ..Member::default()
                 }],
-                locked: false,
+                ..Team::default()
             },
         )
         .unwrap();
@@ -219,7 +219,7 @@ mod tests {
             &f,
             Team {
                 members: vec![member("ana", 400.0), member("bob", 600.0)],
-                locked: false,
+                ..Team::default()
             },
         )
         .unwrap();
@@ -227,7 +227,7 @@ mod tests {
         assert_eq!(profiles(&f.s, None).unwrap()[0].cost, None);
         let team = |members| Team {
             members,
-            locked: false,
+            ..Team::default()
         };
         crate::work::tests::write_team_file(
             &f,
@@ -261,7 +261,7 @@ mod tests {
                     rated("bob", "dev", 600.0),
                     rated("cy", "qa", 300.0),
                 ],
-                locked: false,
+                ..Team::default()
             },
         )
         .unwrap();

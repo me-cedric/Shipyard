@@ -34,6 +34,7 @@ import { SplitPane } from "@/ui/molecules/split-pane";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { ConflictAgent } from "./conflict-agent";
 import { OpenInEditor } from "./open-in-editor";
+import { Preview } from "./preview";
 import { withProject } from "./project-gate";
 import { GateNotice } from "./push-target";
 import { treeRows } from "./tree";
@@ -183,16 +184,20 @@ function DiffPane({ path, side }: { path: string; side: DiffSide }) {
 					{t.code[side === "staged" ? "staged" : "unstaged"]}
 				</Badge>
 			</h2>
-			<DiffView
-				text={diff.text}
-				path={path}
-				binary={diff.binary}
-				truncated={diff.truncated}
-				// The staged and the unstaged diff of one file are two regions: the side tells them apart.
-				label={`${format(t.code.diff, { path })} ${t.code[side === "staged" ? "staged" : "unstaged"]}`}
-				binaryLabel={t.code.binary}
-				truncatedLabel={t.code.truncated}
-			/>
+			{diff.text ? (
+				<DiffView
+					text={diff.text}
+					path={path}
+					binary={diff.binary}
+					truncated={diff.truncated}
+					// The staged and the unstaged diff of one file are two regions: the side tells them apart.
+					label={`${format(t.code.diff, { path })} ${t.code[side === "staged" ? "staged" : "unstaged"]}`}
+					binaryLabel={t.code.binary}
+					truncatedLabel={t.code.truncated}
+				/>
+			) : (
+				<Preview path={path} side={side} />
+			)}
 		</div>
 	);
 }

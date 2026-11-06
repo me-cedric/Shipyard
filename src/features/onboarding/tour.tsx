@@ -7,6 +7,7 @@ import { Button } from "@/ui/atoms/button";
 import { Dialog } from "@/ui/organisms/dialog";
 import { PermissionList } from "./permissions";
 import { AiPicture, ConnectPicture, LoopPicture, ProjectPicture, RunPicture } from "./pictures";
+import { type SetupId, SetupList } from "./setup";
 import { closeTour, openTour, useTourOpen } from "./tour-store";
 
 export const STEPS = ["loop", "project", "connect", "ai", "permissions", "run"] as const;
@@ -25,6 +26,14 @@ const PICTURE: Record<StepId, () => ReactNode> = {
 		</div>
 	),
 	run: () => <RunPicture />,
+};
+
+/** The settings that a step offers to make in place (REQ-011). The permissions step has its own list. */
+const SETUP_OF: Partial<Record<StepId, SetupId[]>> = {
+	project: ["project"],
+	connect: ["tracker", "forge"],
+	ai: ["ai", "models"],
+	run: ["team"],
 };
 
 /**
@@ -111,6 +120,7 @@ export function Tour() {
 					{PICTURE[id]()}
 				</div>
 				<p className="text-14 text-n-11">{o.steps[id].body}</p>
+				{SETUP_OF[id] ? <SetupList ids={SETUP_OF[id]} /> : null}
 				<div className="flex items-center gap-1.5">
 					<span className="sr-only" aria-live="polite">
 						{format(o.step, { n: step + 1, total: STEPS.length })}

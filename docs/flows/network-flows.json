@@ -64,7 +64,7 @@
       "protocol": "HTTPS",
       "ports": "443",
       "action": "Allow",
-      "description": "Sync tick: read work items and comments updated since the last good poll, every 60 s by default (30 s at least). Jira /rest/api/2, GitHub api.github.com, GitLab /api/v4, Azure DevOps /_apis, Linear api.linear.app/graphql. A write (claim stamp, transition, comment, starter issue on Create issues) waits for the automation switch or a click."
+      "description": "Sync tick: read work items and comments updated since the last good poll, every 60 s by default (30 s at least). Jira /rest/api/2, GitHub api.github.com, GitLab /api/v4, Azure DevOps /_apis, Linear api.linear.app/graphql. A write (claim stamp, transition, comment, starter issue on Create issues) waits for the automation switch or a click. A worklog (send on save of a time entry, change, delete) goes out on that click only; Read the month reads the worklogs of the tickets of the month."
     },
     {
       "id": "flow-6",

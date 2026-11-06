@@ -126,6 +126,16 @@ fn rights_tool(right: crate::rights::Right, tool: &str, target: &str) -> Result<
     )
 }
 
+/// The areas at `none` for the person (`team-rights` REQ-018). Fail closed: each area when the
+/// person cannot be found.
+fn hidden_areas() -> Vec<shipyard_core::rights::Area> {
+    use tauri::Manager;
+    let all = shipyard_core::rights::Area::ALL.to_vec();
+    APP.get().map_or(all.clone(), |app| {
+        crate::rights::current(&app.state::<AppState>()).map_or(all, |v| v.person.access.hidden())
+    })
+}
+
 /// The tools that need the app state: the ticket tools, `docs_stale` and `qa_run_scanner`. The
 /// group switch is the click of the person; the right check runs before this.
 fn ticket_tool(name: &str, args: &Value) -> Result<String, String> {
@@ -297,6 +307,7 @@ fn start(dir: &Path, g: &McpGates) -> Result<(), String> {
             only: only.clone(),
             rights: Some(RightsPort(Arc::new(rights_tool))),
             tickets: Some(TicketPort(Arc::new(ticket_tool))),
+            hidden: hidden_areas(),
         })
     });
     let binding = Binding {
@@ -333,6 +344,7 @@ pub fn status(s: &AppState) -> McpOutside {
         only: g.allowed_tools.clone(),
         rights: None,
         tickets: None,
+        hidden: Vec::new(),
     };
     McpOutside {
         running: live.is_some(),

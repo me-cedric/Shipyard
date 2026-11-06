@@ -1,5 +1,6 @@
 import { mockIPC } from "@tauri-apps/api/mocks";
 import type {
+	Access,
 	AuditLine_Serialize,
 	BacklinkGroup_Serialize,
 	Capabilities,
@@ -9,6 +10,7 @@ import type {
 	commands,
 	Finding_Serialize,
 	LanguagePack,
+	Level,
 	OsPermission,
 	Overrides_Serialize,
 	Prefs_Serialize,
@@ -42,6 +44,7 @@ import * as ai from "./mock-assistant";
 import * as bs from "./mock-bootstrap";
 import {
 	codeBlame,
+	codeBlob,
 	codeBranchCreate,
 	codeBranchDelete,
 	codeBranches,
@@ -157,8 +160,11 @@ type State = {
 	exportedLanguages: Record<string, LanguagePack>;
 	/** The git e-mail of the person, for the profile assignment. */
 	email?: string | null;
-	/** The person of `rightsGet`. Without it the team file decides: no admin gives each right. */
-	person?: RightsPerson_Serialize;
+	/**
+	 * The person of `rightsGet`. Without it the team file decides: no admin gives each right.
+	 * Without `access`, each area is `read` and the rights give `write`.
+	 */
+	person?: MockPerson;
 	/** The lines of `rightsAuditTail`. */
 	audit?: AuditLine_Serialize[];
 	projects: ProjectEntry_Serialize[];
@@ -867,28 +873,102 @@ const RIGHTS: Right[] = [
 	"costs.view",
 ];
 
-/** The default rights of each role: the table of `crates/shipyard-core/src/rights.rs`. */
-const ROLE_RIGHTS: [TeamRole, Right[]][] = [
-	["po", ["work.edit", "specs.edit", "knowledge.edit", "costs.view"]],
-	["pm", ["work.edit", "knowledge.edit", "costs.view"]],
-	["architect", RIGHTS.filter((r) => r !== "project.settings")],
-	["techlead", RIGHTS],
-	["ba", ["work.edit", "specs.edit", "knowledge.edit", "runs.start"]],
-	[
-		"developer",
-		["work.edit", "design.edit", "knowledge.edit", "code.write", "runs.start", "runs.approve"],
-	],
-	["qa", ["work.edit", "specs.edit", "knowledge.edit", "code.write", "runs.start"]],
-	["designer", ["work.edit", "design.edit", "knowledge.edit"]],
-	["viewer", []],
+type Area = Exclude<keyof Access, "merge" | "approve">;
+type MockPerson = Omit<RightsPerson_Serialize, "access" | "roles"> &
+	Partial<Pick<RightsPerson_Serialize, "access" | "roles">>;
+
+const AREAS: Area[] = ["work", "specs", "design", "knowledge", "code", "runs", "settings", "costs"];
+const RANK: Record<Level, number> = { none: 0, read: 1, write: 2 };
+/** The area of each right, and the level that it needs (`Right::area`, `Right::need`). */
+const RIGHT_AREA: Record<Right, Area> = {
+	"work.edit": "work",
+	"specs.edit": "specs",
+	"design.edit": "design",
+	"knowledge.edit": "knowledge",
+	"code.write": "code",
+	"code.merge": "code",
+	"runs.start": "runs",
+	"runs.approve": "runs",
+	"project.settings": "settings",
+	"costs.view": "costs",
+};
+const needOf = (r: Right): Level => (r === "costs.view" ? "read" : "write");
+
+const access = (l: string, merge = false, approve = false): Access => {
+	const level = (c: string): Level => (c === "W" ? "write" : c === "R" ? "read" : "none");
+	return {
+		...(Object.fromEntries(AREAS.map((a, i) => [a, level(l[i] ?? "N")])) as Record<Area, Level>),
+		merge,
+		approve,
+	};
+};
+const ADMIN = access("WWWWWWWW", true, true);
+
+/** The rights that the levels give, as `Access::has` does. */
+const rightsOf = (a: Access): Right[] =>
+	RIGHTS.filter(
+		(r) =>
+			RANK[a[RIGHT_AREA[r]]] >= RANK[needOf(r)] &&
+			(r !== "code.merge" || a.merge) &&
+			(r !== "runs.approve" || a.approve),
+	);
+
+const zip = (a: Access, b: Access, high: boolean): Access => {
+	const pick = (x: Level, y: Level) => (RANK[x] > RANK[y] === high ? x : y);
+	const out = { ...a };
+	for (const k of AREAS) out[k] = pick(a[k], b[k]);
+	out.merge = high ? a.merge || b.merge : a.merge && b.merge;
+	out.approve = high ? a.approve || b.approve : a.approve && b.approve;
+	return out;
+};
+
+/** The default levels of each role: the table of `crates/shipyard-core/src/rights.rs`. */
+const ROLE_ACCESS: [TeamRole, Access][] = [
+	// work, specs, design, knowledge, code, runs, settings, costs
+	["po", access("WWRWRRRR")],
+	["pm", access("WRRWRRRR")],
+	["architect", access("WWWWWWRR", true, true)],
+	["techlead", ADMIN],
+	["ba", access("WWRWRWRN")],
+	["developer", access("WRWWWWRN", false, true)],
+	["qa", access("WWRWWWRN")],
+	["designer", access("WRWWRRRN")],
+	["viewer", access("RRRRRRRN")],
 ];
+
+/** The table of the team: the defaults, then the `roles:` block. An unknown cell has no effect. */
+function roleTable(): [TeamRole, Access][] {
+	const block = state.work.team.roles ?? {};
+	return ROLE_ACCESS.map(([role, base]) => {
+		const a = { ...base };
+		for (const [k, v] of Object.entries(block[role] ?? {})) {
+			if ((k === "merge" || k === "approve") && typeof v === "boolean") a[k] = v;
+			else if (AREAS.includes(k as Area) && typeof v === "string" && v in RANK)
+				a[k as Area] = v as Level;
+		}
+		return [role, a];
+	});
+}
+
+/** A person set by a test with rights only: each area `read`, `write` where a right needs it. */
+function withAccess(p: MockPerson): RightsPerson_Serialize {
+	if (p.access) return { roles: p.role ? [p.role] : [], ...p, access: p.access };
+	const a = access("RRRRRRRN");
+	for (const r of p.rights) if (needOf(r) === "write") a[RIGHT_AREA[r]] = "write";
+	if (p.rights.includes("costs.view")) a.costs = "read";
+	a.merge = p.rights.includes("code.merge");
+	a.approve = p.rights.includes("runs.approve");
+	return { roles: p.role ? [p.role] : [], ...p, access: a };
+}
 
 const SOLO: RightsPerson_Serialize = {
 	member: null,
 	found: "solo",
 	role: null,
+	roles: [],
 	admin: true,
 	readOnly: false,
+	access: ADMIN,
 	rights: RIGHTS,
 };
 
@@ -896,31 +976,62 @@ const SOLO: RightsPerson_Serialize = {
 function teamPerson(): RightsPerson_Serialize {
 	const members = state.work.team.members;
 	if (!members.some((m) => m.admin)) return SOLO;
+	const table = roleTable();
+	const levels = (r: TeamRole) => table.find(([x]) => x === r)?.[1] ?? access("RRRRRRRN");
 	const me = state.email
 		? members.find((m) => m.emails?.includes(state.email as string))
 		: undefined;
-	if (!me)
+	if (!me) {
+		const a = levels("viewer");
 		return {
 			member: null,
 			found: "unknown",
 			role: "viewer",
+			roles: ["viewer"],
 			admin: false,
 			readOnly: false,
-			rights: [],
+			access: a,
+			rights: rightsOf(a),
 		};
-	const role = ROLE_RIGHTS.find(([r]) => r === me.role);
-	let rights = me.admin ? RIGHTS : (role?.[1] ?? []);
-	for (const c of me.rights ?? []) {
-		const r = c.slice(1) as Right;
-		rights = c.startsWith("+") ? [...new Set([...rights, r])] : rights.filter((x) => x !== r);
 	}
+	const roles = [
+		...new Set(
+			[me.role, ...(me.roles ?? [])]
+				.filter((r) => r.trim())
+				.map((r) => (ROLE_ACCESS.some(([x]) => x === r) ? (r as TeamRole) : "viewer")),
+		),
+	];
+	if (!roles.length) roles.push("viewer");
+	let a = me.admin ? ADMIN : roles.map(levels).reduce((x, y) => zip(x, y, true));
+	if (!me.admin)
+		for (const c of me.rights ?? []) {
+			const r = c.slice(1) as Right;
+			if (!(r in RIGHT_AREA)) continue;
+			const on = c.startsWith("+");
+			if (r === "code.merge") a = { ...a, merge: on };
+			else if (r === "runs.approve") a = { ...a, approve: on };
+			else {
+				const below: Level = needOf(r) === "write" ? "read" : "none";
+				const cur = a[RIGHT_AREA[r]];
+				const next = on
+					? RANK[cur] >= RANK[needOf(r)]
+						? cur
+						: needOf(r)
+					: RANK[cur] <= RANK[below]
+						? cur
+						: below;
+				a = { ...a, [RIGHT_AREA[r]]: next };
+			}
+		}
 	return {
 		member: me.handle,
 		found: "email",
-		role: role?.[0] ?? "viewer",
+		role: roles[0] ?? "viewer",
+		roles,
 		admin: me.admin === true,
 		readOnly: false,
-		rights: RIGHTS.filter((r) => rights.includes(r)),
+		access: a,
+		rights: rightsOf(a),
 	};
 }
 
@@ -1104,20 +1215,54 @@ const handlers: Handlers = {
 	rightsGet: () => {
 		const p = active();
 		if (!p) throw "no active project";
-		const person = state.person ?? teamPerson();
-		// The read-only profile keeps the read right only, as the backend does.
+		const person = state.person ? withAccess(state.person) : teamPerson();
+		// The read-only profile leaves `read` at most, as the backend does.
 		const readOnly = person.readOnly || p.overrides.readOnly === true;
+		const a = readOnly ? zip(person.access, access("RRRRRRRR"), false) : person.access;
 		return {
 			person: {
 				...person,
 				readOnly,
+				access: a,
 				rights: readOnly ? person.rights.filter((r) => r === "costs.view") : person.rights,
 			},
 			branch: null,
 			fetched: null,
 			warnings: [],
-			roles: ROLE_RIGHTS.map(([role, rights]) => ({ role, rights })),
+			roles: roleTable().map(([role, a]) => ({ role, access: a, rights: rightsOf(a) })),
 		};
+	},
+	rightsRolesSave: (table, members) => {
+		if (!active()) throw "no active project";
+		const me = state.person ? withAccess(state.person) : teamPerson();
+		if (!me.rights.includes("project.settings"))
+			throw `missing right project.settings (${me.admin ? "admin" : (me.role ?? "admin")})`;
+		const team = state.work.team;
+		const next = team.members.map((m) => ({ ...m }));
+		for (const mr of members) {
+			const m = next.find((x) => x.handle === mr.handle);
+			if (!m) throw `no member ${mr.handle}`;
+			const [first] = mr.roles;
+			if (!first) throw `${mr.handle} needs one role`;
+			m.role = first;
+			if (mr.roles.length > 1) m.roles = [...mr.roles];
+			else delete m.roles;
+		}
+		// The block keeps the cells that differ from the defaults (`rights::block`).
+		const old = roleTable();
+		const roles: NonNullable<typeof team.roles> = {};
+		for (const [role, base] of ROLE_ACCESS) {
+			const a =
+				[...table].reverse().find((r) => r.role === role)?.access ??
+				old.find(([r]) => r === role)?.[1];
+			if (!a) continue;
+			const cells: Record<string, string | boolean> = {};
+			for (const k of AREAS) if (a[k] !== base[k]) cells[k] = a[k];
+			for (const k of ["merge", "approve"] as const) if (a[k] !== base[k]) cells[k] = a[k];
+			if (Object.keys(cells).length) roles[role] = cells;
+		}
+		state.work.team = { members: next, ...(Object.keys(roles).length ? { roles } : {}) };
+		return handlers.rightsGet();
 	},
 	rightsAuditTail: () => {
 		if (!active()) throw "no active project";
@@ -1616,8 +1761,25 @@ const handlers: Handlers = {
 	},
 	timeList: (member, month) =>
 		work.timeList(need(state.work), member, month, syncSources().length > 0),
-	timeAdd: (member, day, minutes, note, ticket) =>
-		work.timeAdd(need(state.work), state.sync.mirror, member, day, minutes, note, ticket),
+	timeAdd: (member, day, minutes, note, ticket, offset, reduce) =>
+		work.timeAdd(
+			need(state.work),
+			state.sync.mirror,
+			member,
+			day,
+			minutes,
+			note,
+			ticket,
+			offset,
+			reduce,
+			syncSources().length > 0,
+		),
+	timeUpdate: (member, _day, id, minutes, note, _offset, click) =>
+		work.timeUpdate(need(state.work), member, id, minutes, note, click),
+	timeRemove: (member, _day, id, click) => {
+		work.timeRemove(need(state.work), member, id, click);
+		return null;
+	},
 	timePullMonth: (member, month) =>
 		needTracker(() => work.timePullMonth(need(state.work), member, month)),
 	timeFetch: (member, ticket) =>
@@ -1631,6 +1793,7 @@ const handlers: Handlers = {
 	workItemPreview: (row) => needTracker(() => work.itemPreview(need(state.work), row)),
 	workItemCreate: (row, click) => needTracker(() => work.itemCreate(need(state.work), row, click)),
 	codeStatus: () => codeStatus(code()),
+	codeBlob: (path, source) => codeBlob(code(), path, source),
 	codeDiff: (path, side) => codeDiff(code(), path, side),
 	codeStage: (paths) => {
 		codeStage(code(), paths);

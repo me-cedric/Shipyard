@@ -100,7 +100,7 @@ A team works on several repositories. The earlier tool keeps a project registry,
 
 ### Existing References
 
-- Existing code/docs/specs: `docs/plan/MASTER-PLAN.md` sections 3, 4 and 7; ADR 0001; Q-003.
+- Existing code/docs/specs: `docs/plan/MASTER-PLAN.md` sections 3, 4 and 7; `adr:0001`; Q-003.
 - Supersedes or extends: N/A
 
 ### Clarifications

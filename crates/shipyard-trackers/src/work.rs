@@ -47,6 +47,8 @@ pub struct Worklog {
     pub minutes: u32,
     pub note: String,
     pub started: String,
+    /// The id of the person who logged it, as `Tracker::me` names it. Empty when the tracker gives none.
+    pub author: String,
 }
 
 pub struct NewWorklog<'a> {
@@ -122,6 +124,27 @@ pub trait TrackerWrite: Tracker {
 
     /// Needs the `time_tracking` flag.
     fn worklogs(&self, key: &str) -> Result<Vec<Worklog>, TrackerError>;
+
+    /// Change a worklog that Shipyard sent. A tracker that cannot refuses: the entry then stays
+    /// marked as not synced.
+    fn update_worklog(
+        &self,
+        _click: &Click,
+        _key: &str,
+        _id: &str,
+        _log: &NewWorklog,
+    ) -> Result<Worklog, TrackerError> {
+        Err(TrackerError::Refused(
+            "this tracker cannot change a worklog".into(),
+        ))
+    }
+
+    /// Delete a worklog that Shipyard sent. A tracker that cannot refuses.
+    fn delete_worklog(&self, _click: &Click, _key: &str, _id: &str) -> Result<(), TrackerError> {
+        Err(TrackerError::Refused(
+            "this tracker cannot delete a worklog".into(),
+        ))
+    }
 
     /// Create a ticket in `scope`, with `label` on it for the match of a later apply (Q-033).
     fn create(
@@ -532,6 +555,11 @@ fn jira_worklog(v: &Value) -> Worklog {
         minutes: (num(v, "/timeSpentSeconds").unwrap_or(0) / 60) as u32,
         note: text(v, "/comment"),
         started: text(v, "/started"),
+        author: ["/author/accountId", "/author/name"]
+            .iter()
+            .map(|p| text(v, p))
+            .find(|s| !s.is_empty())
+            .unwrap_or_default(),
     }
 }
 
@@ -666,6 +694,37 @@ impl TrackerWrite for Jira {
             body,
         )?;
         Ok(jira_worklog(&res.json()?))
+    }
+
+    fn update_worklog(
+        &self,
+        _click: &Click,
+        key: &str,
+        id: &str,
+        log: &NewWorklog,
+    ) -> Result<Worklog, TrackerError> {
+        self.capabilities().require(Capability::TimeTracking)?;
+        let body = json!({
+            "timeSpentSeconds": u64::from(log.minutes) * 60,
+            "started": log.started,
+            "comment": log.note,
+        });
+        let res = self.send(
+            Method::Put,
+            &format!("{API}/issue/{}/worklog/{}", encode(key), encode(id)),
+            &[("adjustEstimate", "leave")],
+            body,
+        )?;
+        Ok(jira_worklog(&res.json()?))
+    }
+
+    fn delete_worklog(&self, _click: &Click, key: &str, id: &str) -> Result<(), TrackerError> {
+        self.capabilities().require(Capability::TimeTracking)?;
+        self.remove(&format!(
+            "{API}/issue/{}/worklog/{}",
+            encode(key),
+            encode(id)
+        ))
     }
 
     fn worklogs(&self, key: &str) -> Result<Vec<Worklog>, TrackerError> {

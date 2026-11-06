@@ -4,6 +4,7 @@ import { format, useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { useProjectActions, useProjects } from "@/lib/projects";
 import { setHitQuery, snippetParts, useParsedRef, useRefSearch } from "@/lib/refs";
+import { useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { rememberSelection } from "@/lib/shell/selection";
 import { CodeBracketIcon, DocumentTextIcon, SparklesIcon } from "@/ui/icons";
@@ -16,6 +17,7 @@ export function PaletteHost({ actions }: { actions: Action[] }) {
 	const { t } = useI18n();
 	const { paletteOpen, setPaletteOpen, openRef, openRefAt, ask } = useShell();
 	const { teamRole } = usePrefs();
+	const { level } = useRights();
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	const [query, setQuery] = useState("");
@@ -39,8 +41,8 @@ export function PaletteHost({ actions }: { actions: Action[] }) {
 		openRefAt(ref, page);
 		void navigate({ to: page });
 	};
-	const tabs = orderedSpaces(teamRole).flatMap((space) =>
-		visibleTabs(space, teamRole).map((tab) => ({
+	const tabs = orderedSpaces(teamRole, level).flatMap((space) =>
+		visibleTabs(space, teamRole, level).map((tab) => ({
 			id: `go-${space}-${tab}`,
 			label: `${t.space[space]} / ${tabLabel(t, space, tab)}`,
 			Icon: SPACE_ICON[space],

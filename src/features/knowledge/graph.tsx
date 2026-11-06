@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { NoProject } from "@/features/work/no-project";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
+import { commands, unwrap } from "@/lib/ipc";
 import { useCodeGraph, useGraph, useGraphFocus, useIndexCode } from "@/lib/knowledge";
+import { useNotifications } from "@/lib/notifications";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
@@ -33,6 +35,7 @@ export function Graph() {
 	const refs = useGraph().data;
 	const code = useCodeGraph().data;
 	const index = useIndexCode();
+	const { push } = useNotifications();
 
 	const kindNames = t.refKind as Record<string, string>;
 	const kindName = (id: string) => kindNames[id] ?? id;
@@ -201,7 +204,27 @@ export function Graph() {
 							label: k.graph.index,
 							icon: <ArrowPathIcon size={14} />,
 							busy: index.isPending,
-							onClick: () => index.mutate(),
+							onClick: () =>
+								index.mutate(undefined, {
+									onSuccess: async () => {
+										const id = `index:${Date.now()}`;
+										const nodes = await unwrap(commands.graphCode()).then((g) => g.nodes.length);
+										push({
+											id,
+											kind: "info",
+											title: nodes
+												? format(k.graph.indexed, { count: nodes })
+												: k.graph.indexedEmpty,
+										});
+									},
+									onError: (e) =>
+										push({
+											id: `index:${Date.now()}`,
+											kind: "error",
+											title: k.graph.indexFailed,
+											body: e.message,
+										}),
+								}),
 						}}
 					/>
 				</div>

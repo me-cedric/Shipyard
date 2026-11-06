@@ -216,7 +216,7 @@ pub fn team(v: &Value, roles: &BTreeMap<String, String>) -> Team {
         .collect();
     Team {
         members,
-        locked: false,
+        ..Team::default()
     }
 }
 
@@ -419,6 +419,7 @@ pub fn worklog(v: &Value, team: &Team) -> BTreeMap<String, Vec<shipyard_core::wo
             note: text(e, "what").into(),
             ticket: some("ticket"),
             worklog: some("jiraId"),
+            unsynced: None,
         });
     }
     out

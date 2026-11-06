@@ -7,6 +7,13 @@ Feature: team-rights
     Then `ana` has the rights of `viewer`
     And Settings / Health shows a finding for the role of `ana`
 
+  @spec:team-rights#REQ-001
+  Scenario: Team file: Unknown level in the roles block
+    Given a team file with the `roles:` block `qa: { code: maybe }`
+    When Shipyard loads the team
+    Then `qa` keeps its default level in `code`
+    And Settings / Health shows a finding for `roles.qa.code`
+
   @spec:team-rights#REQ-002
   Scenario: Rights from the default branch: Local edit
     Given the developer `bo` sets `admin: true` for `bo` in the team file of the working copy
@@ -38,6 +45,12 @@ Feature: team-rights
     Given the member `bo` has the role `developer` and the right `+code.merge`
     When `bo` opens a pull request that is ready
     Then the Merge control is on
+
+  @spec:team-rights#REQ-005
+  Scenario: Roles and default rights: Two roles
+    Given the member `ana` has the roles `po` and `designer`
+    When Shipyard gives the levels of `ana`
+    Then `ana` has `write` in `specs` and in `design`
 
   @spec:team-rights#REQ-006
   Scenario: Personal narrowing: No widening
@@ -117,3 +130,22 @@ Feature: team-rights
     Given the person has no `code.merge`
     When the focus reaches the Merge control
     Then a screen reader reads the name of the control and the missing right
+
+  @spec:team-rights#REQ-018
+  Scenario: Hidden areas: Hidden space
+    Given the `roles:` block gives `designer` the level `none` in `code`
+    When the member `fay` with the role `designer` opens `/code/history`
+    Then the sidebar has no Code
+    And the main area shows "No access"
+
+  @spec:team-rights#REQ-018
+  Scenario: Hidden areas: Hidden area in a run
+    Given the member `fay` has the level `none` in `work`
+    When a run that `fay` started calls `read_ticket`
+    Then the tool returns an error that names the hidden area `work`
+
+  @spec:team-rights#REQ-019
+  Scenario: Edit of the role table: Last admin
+    Given the member `ana` is the one admin of the team
+    When `ana` removes her admin flag in Work / Team
+    Then the backend refuses the save

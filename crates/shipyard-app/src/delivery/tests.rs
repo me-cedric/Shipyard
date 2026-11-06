@@ -457,3 +457,17 @@ fn a_two_state_tracker_skips_a_status_it_cannot_take() {
     assert!(can_take(GitLabIssues, "reopen"));
     assert!(can_take(JiraCloud, "In Progress"));
 }
+
+#[test]
+fn a_red_gate_names_its_first_error_not_only_the_last_line() {
+    let out = [
+        "   Compiling shipyard-app v0.1.0",
+        "error[E0061]: this function takes 5 arguments but 2 arguments were supplied",
+        "   --> crates/shipyard-app/src/creator.rs:536:5",
+        "error: could not compile `shipyard-app` (lib test) due to 1 previous error",
+    ];
+    let first = super::first_error(&out).unwrap();
+    assert!(first.starts_with("error[E0061]"), "{first}");
+    assert!(first.contains("creator.rs:536"), "{first}");
+    assert_eq!(super::first_error(&["all good", "test result: ok"]), None);
+}

@@ -261,7 +261,8 @@ fn a_pull_request_decides_the_lane_of_a_run_in_review() {
     assert_eq!((v.open_questions, v.approvals), (2, 1));
     let u = &v.steps[0].units[0];
     assert_eq!(u.session.as_deref(), Some("sess-1"));
-    assert_eq!((u.runner.as_str(), u.dir.as_str()), ("claude", "/wt/01J"));
+    // "/wt/01J" is not on this machine: no folder, no terminal.
+    assert_eq!((u.runner.as_str(), u.dir.as_str()), ("claude", ""));
     assert_eq!((u.started, u.last), (10.0, 20.0));
 }
 
@@ -1076,4 +1077,38 @@ fn a_form_edit_renders_the_text_and_checks_it() {
             .issue
             .is_none()
     );
+}
+
+#[test]
+fn a_unit_folder_shows_only_when_it_exists_and_its_session_can_resume() {
+    let t = tempfile::tempdir().unwrap();
+    let dir = t.path().join("build 2");
+    std::fs::create_dir(&dir).unwrap();
+    let dir_s = dir.display().to_string();
+    let claude = t.path().join("claude");
+    let key: String = dir_s
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect();
+    let projects = claude.join("projects").join(key);
+    std::fs::create_dir_all(&projects).unwrap();
+    let at = |runner, session, dir: &str| resumable_in(runner, session, dir, Some(&claude));
+
+    // The folder is gone, or never set.
+    assert_eq!(
+        at(
+            "claude",
+            Some("s1"),
+            &t.path().join("gone").display().to_string()
+        ),
+        ""
+    );
+    assert_eq!(at("claude", Some("s1"), ""), "");
+    // Claude Code keeps no file for this session.
+    assert_eq!(at("claude", Some("s1"), &dir_s), "");
+    assert_eq!(at("claude", None, &dir_s), "");
+    std::fs::write(projects.join("s1.jsonl"), "").unwrap();
+    assert_eq!(at("claude", Some("s1"), &dir_s), dir_s);
+    // Another AI tool needs only the folder.
+    assert_eq!(at("codex", None, &dir_s), dir_s);
 }

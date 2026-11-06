@@ -31,13 +31,13 @@ The run state machine and the workflow model are pure code in `shipyard-core`. T
 | Secrets | Runners read keys from the keychain through `connections`. No key goes in arguments or in the log. |
 | App wiring | `crates/shipyard-app/src/factory.rs` holds one `FactoryHost` for the machine. It is the `Dispatch` of each sync engine (the placeholder is gone) and the `AgentEvents` of the endpoint. `attach` gives the factory the ports of a project each time its sync engine is made or changes: the workflow and role files (seeded once, then loaded with the last valid version), the mirror, the connections. A background loop (1 s) pumps the factory, frees the claim of each run that ended (`Engine::release`), and sends the events by comparing the factory with what it saw last. The agent tools endpoint (`Http` on `127.0.0.1`, port 0) starts at app start. `RunnerAgents` opens one MCP session for each (run, step), gives `McpEntry::shipyard` (HTTP for Claude Code, the bridge for the others) and a scratch folder `<app data>/agents/<run>/<step>` outside every worktree, and ends both in `Agents::end`. `read_ref` reads the ref index of the app (the same object, one lock for each call); `run:` refs resolve from the factory. At exit `Factory::shutdown` stops the agent processes and leaves the runs as they are. |
 | Folders | `Folders` (`crates/shipyard-app/src/delivery.rs`) is `Workspaces` and `Git`. The run folder is a linked worktree at `<app data>/worktrees/<project>/<run>/run`, on the branch `<runner>/<run>` that starts at the declared base, `develop`, `main`, `master` or HEAD. The pull request step renames it before the first push. Each child of a `worktree` step starts from the run branch at `<run>/<child>`. The working copy of the person is never touched. |
-| Risks | The state machine drifts from ADR 0005. Cover each transition with a unit test. A runner changes its JSON format. Pin fixtures and parse with a tolerant reader. Q-002, Q-023, Q-024 and Q-025 stay open. |
+| Risks | The state machine drifts from `adr:0005`. Cover each transition with a unit test. A runner changes its JSON format. Pin fixtures and parse with a tolerant reader. Q-002, Q-023, Q-024 and Q-025 stay open. |
 
 ## Affected Surfaces
 
 - Code: `crates/shipyard-core` (run states, workflow model, schema), `crates/shipyard-store` (run log, automation and workflow codecs), `crates/shipyard-engine` (tick, dispatch, clocks, budgets, approvals), `crates/shipyard-agents` (runners), `crates/shipyard-mcp` (tools), `crates/shipyard-git` (worktrees), `crates/shipyard-app` (commands), `src/features/factory/`.
 - Tests: `crates/*/tests`, `src/features/factory/*.test.tsx`, `e2e/factory.spec.ts`.
-- Docs/specs: `docs/openspec/changes/archive/2026-10-31-add-factory/`, ADR 0005, ADR 0006, `CHANGELOG.md`, `CHANGELOG.fr.md`, Q-002, Q-023, Q-024, Q-025.
+- Docs/specs: `docs/openspec/changes/archive/2026-10-31-add-factory/`, `adr:0005`, `adr:0006`, `CHANGELOG.md`, `CHANGELOG.fr.md`, Q-002, Q-023, Q-024, Q-025.
 
 ## Approach
 

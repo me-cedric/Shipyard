@@ -15,14 +15,14 @@ The OLED theme is one more token block in `tokens.css`. A theme file is checked 
 | Dependencies | None new. |
 | Data/storage | `<app data>/themes/<id>.json`, one file per theme. The pref `customTheme` holds the id of the current theme. |
 | APIs/contracts | Commands `themeList`, `themeRead`, `themeAdd`, `themeRemove`, `themeExport`. The plugin item kind `theme`. The theme values `oled` and `system-oled`. |
-| Format | ADR 0018: JSON, version 1. The token list is `src/lib/themes/tokens.json`, read by the view and by a test of the store. |
+| Format | `adr:0018`: JSON, version 1. The token list is `src/lib/themes/tokens.json`, read by the view and by a test of the store. |
 | Risks | A value reaches CSS: only hex colours and colour functions with numbers pass, so no `url()` and no `var()`. With high contrast on, only the radius of a theme applies. |
 
 ## Affected Surfaces
 
 - Code: `crates/shipyard-core/src/theme.rs`, `crates/shipyard-store/src/{themes,prefs,plugins}.rs`, `crates/shipyard-app/src/commands/themes.rs`, `crates/shipyard-app/src/extensions/mod.rs`, `src/ui/tokens/tokens.css`, `src/lib/themes/`, `src/lib/prefs/prefs.tsx`, `src/features/settings/{me,themes}.tsx`, `src/features/shell/actions.ts`, `src/lib/i18n/`, `src/lib/ipc/`.
 - Tests: `theme.rs`, `themes.rs`, `crates/shipyard-store/tests/plugins.rs`, `src/ui/tokens/tokens.test.ts`, `src/features/settings/themes.test.tsx`.
-- Docs/specs: ADR 0018, `docs/guide/theming.md` (EN, FR), `docs/guide/settings.md` (EN, FR), `examples/theme-sample/`, `examples/plugin-sample/`, `docs/designs/screens.json`, `docs/delivery/test-plans/themes.feature`, `CHANGELOG.md`, `CHANGELOG.fr.md`.
+- Docs/specs: `adr:0018`, `docs/guide/theming.md` (EN, FR), `docs/guide/settings.md` (EN, FR), `examples/theme-sample/`, `examples/plugin-sample/`, `docs/designs/screens.json`, `docs/delivery/test-plans/themes.feature`, `CHANGELOG.md`, `CHANGELOG.fr.md`.
 
 ## Validation
 

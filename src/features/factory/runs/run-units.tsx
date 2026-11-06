@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import type { RunLogEvent_Serialize, RunView, UnitView } from "@/lib/ipc";
 import { useShell } from "@/lib/shell";
@@ -7,7 +7,7 @@ import { Button } from "@/ui/atoms/button";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { Panel } from "@/ui/molecules/panel";
 import { STEP_STATUS } from "@/ui/molecules/run-step";
-import { EventRows } from "./run-live";
+import { UnitTranscript } from "./unit-chat";
 
 const quote = (s: string) => `'${s.replaceAll("'", "'\\''")}'`;
 
@@ -30,11 +30,6 @@ function Unit({
 	const [follow, setFollow] = useState(false);
 	const mine = events.filter((e) => e.step === unit.id);
 	const running = unit.state === "running";
-	const box = useRef<HTMLDivElement>(null);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: the count of events is the trigger
-	useEffect(() => {
-		if (follow && running && box.current) box.current.scrollTop = box.current.scrollHeight;
-	}, [follow, running, mine.length]);
 	return (
 		<li
 			id={`unit-${unit.id}`}
@@ -60,11 +55,7 @@ function Unit({
 					</Button>
 				) : null}
 			</div>
-			{follow ? (
-				<div ref={box} className="max-h-80 overflow-y-auto border-t">
-					<EventRows events={mine} ticket={ticket} />
-				</div>
-			) : null}
+			{follow ? <UnitTranscript events={mine} ticket={ticket} running={running} /> : null}
 		</li>
 	);
 }

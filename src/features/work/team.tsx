@@ -21,10 +21,10 @@ import {
 	AuditTail,
 	JoinRequest,
 	Migration,
-	RightsMatrix,
 	RoleRights,
 	RoleSelect,
 	TeamBanners,
+	TeamRights,
 } from "./team-rights";
 import { parseMemberWeek } from "./week-focus";
 
@@ -434,7 +434,7 @@ export function Team() {
 					</table>
 				</div>
 			)}
-			<RightsMatrix />
+			<TeamRights />
 			<AuditTail />
 		</ListDetail>
 	);

@@ -68,6 +68,33 @@ describe("role homes (shell REQ-009, team-rights REQ-013)", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/home/today"));
 	});
 
+	it("hides a space at the level none and shows No access on its route; Settings / Me stays", async () => {
+		const level = (a: string) => (a === "code" || a === "settings" ? "none" : "read");
+		expect(orderedSpaces("developer", level)).not.toContain("code");
+		expect(orderedSpaces("developer", level)).toContain("settings");
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const view = await unwrap(commands.rightsGet());
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "developer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+			access: { ...view.person.access, code: "none", settings: "none" },
+		};
+		const router = mountApp("/code/history");
+		expect(await screen.findByText(en.rights.noAccess)).toBeInTheDocument();
+		const nav = await sidebar();
+		await waitFor(() =>
+			expect(within(nav).queryByRole("link", { name: "Code" })).not.toBeInTheDocument(),
+		);
+		expect(within(nav).getByRole("link", { name: "Settings" })).toBeInTheDocument();
+		await router.navigate({ to: "/settings" });
+		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/me"));
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
 	it("maps the role of an older Shipyard: a junior opens like a developer", async () => {
 		// The Rust reader maps an old prefs file; an old registry entry can still hold the text.
 		(mockState().prefs as { role: string }).role = "junior";

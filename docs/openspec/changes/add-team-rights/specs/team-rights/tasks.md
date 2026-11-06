@@ -11,7 +11,7 @@ Plan: [plan.md](./plan.md)
 
 ## Tasks
 
-- [x] T001 Owner decision on ADR 0019 and Q-144 to Q-151. Amend rules 3.1 and 3.2 of `docs/openspec/constitution.md`.
+- [x] T001 Owner decision on `adr:0019` and Q-144 to Q-151. Amend rules 3.1 and 3.2 of `docs/openspec/constitution.md`.
 - [x] T002 Role table, overrides, narrowing and identity match in `crates/shipyard-core/src/rights.rs`, with `crates/shipyard-core/tests/rights.rs`. Covers REQ-003 to REQ-006.
 - [x] T003 New fields of `Member` in `crates/shipyard-core/src/work.rs` and the health findings for an unknown role or right. Covers REQ-001, `work` REQ-003.
 - [x] T004 Identity, team file of the default branch, warning, right check and audit log in `crates/shipyard-app/src/rights.rs`, with tests. Covers REQ-002, REQ-003, REQ-010.
@@ -25,6 +25,8 @@ Plan: [plan.md](./plan.md)
 - [x] T012 [P] Inbox routing and the view "Everyone" in `src/features/home/`, with tests. Covers REQ-014.
 - [x] T013 Guided setup, join request, migration proposal and audit tail in `src/features/work/`; remove `ProfilesCard` from `src/features/settings/`. Covers REQ-011, REQ-015, REQ-016.
 - [x] T014 [P] E2E path in `e2e/team.spec.ts`: solo project, add two members, an unknown person reads and cannot save.
+- [x] T016 Levels per area, the `roles:` block, several roles per member and the last-admin guard in `crates/shipyard-core/src/rights.rs`; the save command `rightsRolesSave` and the levels of the person in `crates/shipyard-app/src/rights.rs`; the hidden areas in the MCP read tools (`crates/shipyard-mcp/src/outside.rs`, `crates/shipyard-engine/src/tools.rs`) and in the shell (`src/features/shell/spaces.ts`, `src/app/router.tsx`), with tests. Covers REQ-001, REQ-005, REQ-006, REQ-008, REQ-018, REQ-019 (Q-165).
+- [x] T017 The editable table of the levels and the picker of several roles in Work / Team (`src/features/work/team-rights.tsx`), with tests. Covers REQ-005, REQ-016.
 - [x] T015 [P] Guide pages, `docs/designs/screens.json` and its pictures, `docs/plan/MASTER-PLAN.md` sections 5.8 and 6, the test plans `team-rights.feature`, `shell.feature`, `projects.feature`, `work.feature`, changelog lines.
 
 ## Completion Check

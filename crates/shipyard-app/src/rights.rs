@@ -11,7 +11,7 @@ use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
-use shipyard_core::rights::{self, Found, Person, Role};
+use shipyard_core::rights::{self, Access, Found, Person, Role};
 use shipyard_core::work::Team;
 use shipyard_git::Repo;
 use shipyard_store::prefs::Prefs;
@@ -31,15 +31,34 @@ const KEEP_SECS: u64 = 90 * 86_400;
 /// One writer at a time for the audit files. Not the state guard: a check can run under it.
 static AUDIT: Mutex<()> = Mutex::new(());
 
+/// One row of the table of the team: the defaults and the `roles:` block of the team file.
 #[derive(Debug, Clone, PartialEq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RoleRights {
     pub role: Role,
+    pub access: Access,
+    /// The rights that `access` gives.
     pub rights: Vec<Right>,
 }
 
-/// What the views need: the person, where the rights come from, the warnings and the table of the
-/// default rights of each role (REQ-002, REQ-003, REQ-008).
+/// One row of the table to save.
+#[derive(Debug, Clone, PartialEq, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RoleAccess {
+    pub role: Role,
+    pub access: Access,
+}
+
+/// The roles of one member to save. The first role is the `role` of the member.
+#[derive(Debug, Clone, PartialEq, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct MemberRoles {
+    pub handle: String,
+    pub roles: Vec<Role>,
+}
+
+/// What the views need: the person, where the rights come from, the warnings and the table of
+/// each role: the defaults and the `roles:` block (REQ-002, REQ-003, REQ-008).
 #[derive(Debug, Clone, PartialEq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RightsView {
@@ -217,11 +236,12 @@ fn view_of(s: &AppState, a: &Active, narrow: bool) -> Res<RightsView> {
         branch: src.branch,
         fetched,
         warnings,
-        roles: Role::ALL
+        roles: rights::table(src.team.as_ref().unwrap_or(&Team::default()))
             .into_iter()
-            .map(|role| RoleRights {
+            .map(|(role, access)| RoleRights {
                 role,
-                rights: role.defaults().to_vec(),
+                access,
+                rights: access.rights(),
             })
             .collect(),
     })
@@ -310,6 +330,7 @@ pub(crate) fn actor(s: &AppState, project: &str) -> Option<shipyard_engine::run_
     let p = view_of(s, &active_of(entry), true).ok()?.person;
     Some(shipyard_engine::run_engine::Actor {
         by: p.member.unwrap_or_else(|| p.found.as_str().into()),
+        hidden: p.access.hidden(),
         rights: p.rights,
     })
 }
@@ -424,11 +445,65 @@ pub fn audit_tail(s: &AppState) -> Res<Vec<AuditLine>> {
     Ok(lines.split_off(lines.len().saturating_sub(100)))
 }
 
+/// Save the `roles:` block and the roles of the members (REQ-019). It needs `project.settings`
+/// and writes an audit line. A row that is the default leaves the block. An unknown handle or a
+/// member with no role is refused, and the file stays.
+pub fn roles_save(s: &AppState, table: &[RoleAccess], members: &[MemberRoles]) -> Res<RightsView> {
+    require(s, Right::ProjectSettings, "rights_roles_save", TEAM_PATH)?;
+    if crate::work::team_is_json(s)? {
+        return Err(format!(
+            "the roles need {TEAM_PATH}: the team.json of the docs layout gives no rights"
+        ));
+    }
+    let view = crate::work::team_get(s)?;
+    if let Some(e) = view.error {
+        return Err(e);
+    }
+    let mut team = view.team;
+    let rows: Vec<(Role, Access)> = rights::table(&team)
+        .into_iter()
+        .map(|(role, old)| {
+            let new = table.iter().rev().find(|r| r.role == role);
+            (role, new.map_or(old, |r| r.access))
+        })
+        .collect();
+    team.roles = rights::block(&rows);
+    for mr in members {
+        let m = team
+            .members
+            .iter_mut()
+            .find(|m| m.handle == mr.handle)
+            .ok_or_else(|| format!("no member {}", mr.handle))?;
+        let first = mr
+            .roles
+            .first()
+            .ok_or_else(|| format!("{} needs one role", mr.handle))?;
+        m.role = first.as_str().into();
+        m.roles = match mr.roles.len() {
+            1 => Vec::new(),
+            _ => mr.roles.iter().map(|r| r.as_str().to_string()).collect(),
+        };
+    }
+    crate::work::team_save(s, team)?;
+    current(s)
+}
+
 /// The person and the rights in the open project, for the views (REQ-008).
 #[tauri::command]
 #[specta::specta]
 pub async fn rights_get(app: AppHandle) -> Api<RightsView> {
     blocking(app, current).await
+}
+
+/// Save the table of the roles and the roles of the members.
+#[tauri::command]
+#[specta::specta]
+pub async fn rights_roles_save(
+    app: AppHandle,
+    table: Vec<RoleAccess>,
+    members: Vec<MemberRoles>,
+) -> Api<RightsView> {
+    blocking(app, move |s| roles_save(s, &table, &members)).await
 }
 
 /// The last lines of the audit log of the open project.

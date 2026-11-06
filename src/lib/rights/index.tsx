@@ -1,11 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { format, useI18n } from "@/lib/i18n";
-import { commands, type Right, type TeamRole, unwrap } from "@/lib/ipc";
+import { type Access, commands, type Level, type Right, type TeamRole, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { Button, type ButtonProps } from "@/ui/atoms/button";
 import { IconButton, type IconButtonProps } from "@/ui/atoms/icon-button";
 
 export const rightsKey = ["rights"] as const;
+
+/** An area of `team-rights`: each role has the level `none`, `read` or `write` in it. */
+export type Area = Exclude<keyof Access, "merge" | "approve">;
 
 /** The person and the rights of the open project, as the backend gives them (`team-rights` REQ-008). */
 export function useRightsView() {
@@ -20,12 +23,14 @@ export function useRightsView() {
 /**
  * `can(right)` is true until the backend answers or when it fails: the backend refuses a write
  * anyway, the view only shows it early. `gate(right)` gives the props of an off control, with its reason.
+ * `level(area)` is `write` until the backend answers: `none` hides the area.
  */
 export function useRights() {
 	const { t } = useI18n();
 	const view = useRightsView().data;
 	const person = view?.person;
 	const can = (right: Right) => !person || person.rights.includes(right);
+	const level = (area: Area): Level => person?.access[area] ?? "write";
 	const role = person?.role ?? null;
 	const gate = (right: Right): { disabled?: true; reason?: string } =>
 		can(right)
@@ -37,7 +42,7 @@ export function useRights() {
 						role: role ? t.rights.role[role as TeamRole] : t.rights.noRole,
 					}),
 				};
-	return { can, gate, person, view, role };
+	return { can, gate, level, person, view, role };
 }
 
 /** A Button that turns off, with the reason, when the person lacks `right`. */

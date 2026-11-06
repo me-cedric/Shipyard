@@ -183,15 +183,13 @@ export function RunDetail({ id }: { id: string }) {
 					</>
 				) : null}
 				{run.state === "Paused" ? (
-					<>
-						<Input
-							label={f.addBudget}
-							inputMode="decimal"
-							className="max-w-32"
-							value={add}
-							onChange={(e) => setAdd(e.target.value)}
-						/>
-					</>
+					<Input
+						label={f.addBudget}
+						inputMode="decimal"
+						className="max-w-32"
+						value={add}
+						onChange={(e) => setAdd(e.target.value)}
+					/>
 				) : null}
 				{ENDED.includes(run.state) ? null : (
 					<ConfirmButton

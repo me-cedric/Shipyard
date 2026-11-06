@@ -77,3 +77,45 @@ Feature: onboarding
     Given the language is French
     When the tour opens
     Then each step and each permission shows in French
+
+  @spec:onboarding#REQ-011
+  Scenario: Setup in the tour: Pick the AI tool
+    Given no default AI tool is set
+    When the person opens the AI step
+    Then the AI tool shows to do with a select, and a pick shows done
+
+  @spec:onboarding#REQ-011
+  Scenario: Setup in the tour: Connect the issue tracker
+    Given no issue tracker is connected
+    When the person clicks Connect on the issue tracker item
+    Then the tour closes and Settings / Connections opens with the connection form
+
+  @spec:onboarding#REQ-011
+  Scenario: Setup in the tour: New project
+    Given no project is open
+    When the person clicks New project on the project item
+    Then the tour closes and the New project creator opens
+
+  @spec:onboarding#REQ-012
+  Scenario: Add me as admin: No admin
+    Given the team file has no admin
+    When the person clicks Add me as admin
+    Then the person is a member with the admin flag and the item shows done
+
+  @spec:onboarding#REQ-013
+  Scenario: Setup checklist: Card
+    Given an item is to do
+    When the person opens Home / Today
+    Then one Setup card lists the items to do
+
+  @spec:onboarding#REQ-013
+  Scenario: Setup checklist: All done
+    Given no item is to do
+    When the person opens Home / Today
+    Then the Setup card does not show
+
+  @spec:onboarding#REQ-013
+  Scenario: Setup checklist: Settings
+    Given the person closed the tour
+    When the person opens Settings / Me
+    Then the Setup items show with their states

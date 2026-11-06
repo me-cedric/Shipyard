@@ -66,7 +66,7 @@ fn team_file(root: &Path, mut members: Vec<Member>) {
     }
     let team = Team {
         members,
-        locked: false,
+        ..Team::default()
     };
     std::fs::write(root.join(TEAM_PATH), write_team(&team, None).unwrap()).unwrap();
 }
@@ -413,4 +413,70 @@ fn a_junior_keeps_its_narrowing() {
     o.theme = Some(shipyard_store::prefs::Theme::Dark);
     projects::save_overrides(&f.s, o).unwrap();
     assert!(!allows(&f.s, Right::CodeMerge));
+}
+
+#[test]
+fn the_roles_save_writes_the_block_and_the_roles_of_the_members() {
+    let f = fx();
+    let mut bo = member("bo", "developer");
+    bo.admin = true;
+    team_file(&f.root, vec![bo, member("ana", "po")]);
+    let mut dev = Role::Developer.defaults();
+    dev.settings = rights::Level::None;
+    let table = [RoleAccess {
+        role: Role::Developer,
+        access: dev,
+    }];
+    let ana = MemberRoles {
+        handle: "ana".into(),
+        roles: vec![Role::Po, Role::Architect],
+    };
+    let v = roles_save(&f.s, &table, std::slice::from_ref(&ana)).unwrap();
+    let row = v.roles.iter().find(|r| r.role == Role::Developer).unwrap();
+    assert_eq!(row.access.settings, rights::Level::None);
+    // The admin keeps each area.
+    assert_eq!(v.person.access, Access::ADMIN);
+    let text = std::fs::read_to_string(f.root.join(TEAM_PATH)).unwrap();
+    assert!(
+        text.contains("settings: none") && text.contains("- architect"),
+        "{text}"
+    );
+    let team = crate::work::team_get(&f.s).unwrap().team;
+    let a = team.members.iter().find(|m| m.handle == "ana").unwrap();
+    assert_eq!(rights::roles_of(a), [Role::Po, Role::Architect]);
+    assert!(
+        audit_tail(&f.s)
+            .unwrap()
+            .iter()
+            .any(|l| l.what == "rights_roles_save" && l.result == "allowed")
+    );
+    // An unknown handle is refused and the file stays.
+    let gone = MemberRoles {
+        handle: "zed".into(),
+        roles: vec![Role::Qa],
+    };
+    assert_eq!(roles_save(&f.s, &[], &[gone]).unwrap_err(), "no member zed");
+    assert_eq!(
+        std::fs::read_to_string(f.root.join(TEAM_PATH)).unwrap(),
+        text
+    );
+    // The last admin cannot drop the admin flag.
+    let mut team = team;
+    team.members.iter_mut().for_each(|m| m.admin = false);
+    assert!(
+        crate::work::team_save(&f.s, team)
+            .unwrap_err()
+            .contains("one admin")
+    );
+}
+
+#[test]
+fn the_roles_save_needs_project_settings_and_a_hidden_area_goes_to_the_actor() {
+    let f = developer_bo();
+    let e = roles_save(&f.s, &[], &[]).unwrap_err();
+    assert_eq!(e, "missing right project.settings (developer)");
+    let v = current(&f.s).unwrap();
+    assert_eq!(v.person.access.hidden(), [rights::Area::Costs]);
+    let id = f.s.registry().unwrap().active().unwrap().id.clone();
+    assert_eq!(actor(&f.s, &id).unwrap().hidden, [rights::Area::Costs]);
 }

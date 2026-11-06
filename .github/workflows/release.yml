@@ -1,0 +1,72 @@
+# release: a tag `v*` builds the app for macOS (Apple silicon and Intel), Windows and Linux, and
+# attaches the installers to a draft GitHub release. A person reads the draft and publishes it.
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          submodules: true
+      - name: Install the Tauri system libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24
+      - run: corepack enable && pnpm install --frozen-lockfile
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          # A pinned commit has no branch name, so the toolchain is named here.
+          toolchain: stable
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          key: ${{ matrix.target }}
+      # The release config adds the `shipyard` command line as a sidecar (scripts/build-sidecar.ts).
+      - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # action-v0.6.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Shipyard ${{ github.ref_name }}
+          releaseDraft: true
+          prerelease: false
+          tauriScript: pnpm tauri
+          args: --target ${{ matrix.target }} --config crates/shipyard-app/tauri.release.conf.json
+          releaseBody: |
+            Shipyard ${{ github.ref_name }}. The changes are in CHANGELOG.md (English) and CHANGELOG.fr.md (French).
+
+            The installers are not signed with a developer certificate yet.
+            - macOS: open the app once with right-click, Open. Or run `xattr -dr com.apple.quarantine /Applications/Shipyard.app`.
+            - Windows: on the SmartScreen screen, choose More info, then Run anyway.
+            - Linux: use the .AppImage, the .deb or the .rpm.

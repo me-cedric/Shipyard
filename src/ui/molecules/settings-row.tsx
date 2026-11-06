@@ -1,5 +1,9 @@
 import { type ReactNode, useId } from "react";
 
+/** One control column for every row: a fixed width, the control on the right edge. A field or a select fills it; a narrow row wraps it under the label. */
+const SETTINGS_CONTROL =
+	"flex min-w-0 max-w-full flex-[0_0_20rem] flex-wrap items-center justify-end gap-2 [&>button[aria-haspopup=listbox]]:w-full [&>input]:w-full";
+
 export function SettingsRow({
 	id: anchor,
 	icon,
@@ -34,9 +38,7 @@ export function SettingsRow({
 			<span id={id} className="min-w-32 flex-[1_1_10rem] text-ui text-n-12">
 				{label}
 			</span>
-			<div className="flex min-w-0 flex-[2_1_16rem] flex-wrap items-center justify-end gap-2">
-				{children}
-			</div>
+			<div className={SETTINGS_CONTROL}>{children}</div>
 		</div>
 	);
 }

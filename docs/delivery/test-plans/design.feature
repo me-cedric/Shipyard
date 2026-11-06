@@ -70,7 +70,7 @@ Feature: design
 
   @spec:design#REQ-009
   Scenario: New ADR: Next number
-    Given ADRs 0001 to 0010
+    Given `adr:0001` to 0010
     When the person creates an ADR
     Then the new file has the number 0011 and the MADR sections
 

@@ -207,6 +207,52 @@ fn payload(result: &Value) -> Value {
 
 const CODE_ROWS: usize = 300;
 
+/// The rows of a `query_graph` result, each cell as text. The server answers with JSON
+/// (`{"rows": [[...]]}`) or, in newer versions, with a text table: a `rows: N (cols: ...)` line,
+/// one line per row with the cells split by spaces (a cell with spaces is a JSON string), and a
+/// `total: N` line.
+fn graph_rows(result: &Value) -> Vec<Vec<String>> {
+    let cell = |v: &Value| v.as_str().map_or_else(|| v.to_string(), str::to_string);
+    if let Some(rows) = payload(result).get("rows").and_then(Value::as_array) {
+        return rows
+            .iter()
+            .filter_map(Value::as_array)
+            .map(|r| r.iter().map(cell).collect())
+            .collect();
+    }
+    let text = result
+        .pointer("/content/0/text")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    text.lines()
+        .filter(|l| {
+            let t = l.trim_start();
+            !t.is_empty() && !t.starts_with("rows:") && !t.starts_with("total:")
+        })
+        .map(table_cells)
+        .collect()
+}
+
+/// The cells of one line of the text table: a JSON string, or a run of characters up to a space.
+fn table_cells(line: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut rest = line.trim_start();
+    while !rest.is_empty() {
+        if rest.starts_with('"') {
+            let mut it = serde_json::Deserializer::from_str(rest).into_iter::<String>();
+            if let Some(Ok(v)) = it.next() {
+                out.push(v);
+                rest = rest[it.byte_offset()..].trim_start();
+                continue;
+            }
+        }
+        let end = rest.find(char::is_whitespace).unwrap_or(rest.len());
+        out.push(rest[..end].to_string());
+        rest = rest[end..].trim_start();
+    }
+    out
+}
+
 /// The calls between symbols, with the file of each (REQ-002). A file is a node and holds its
 /// symbols. shortcut: the first 300 calls. Page the query when a project needs more.
 pub fn code_graph(src: &dyn CodeSource, root: &Path) -> CodeGraph {
@@ -221,8 +267,6 @@ pub fn code_graph(src: &dyn CodeSource, root: &Path) -> CodeGraph {
             edges: vec![],
         };
     };
-    let rows = payload(&result);
-    let text = |v: &Value| v.as_str().unwrap_or_default().to_string();
     let mut nodes: Vec<GraphNode> = Vec::new();
     let mut edges: Vec<GraphEdge> = Vec::new();
     let mut add = |kind: &str, id: String, title: String, file: Option<String>| {
@@ -236,20 +280,11 @@ pub fn code_graph(src: &dyn CodeSource, root: &Path) -> CodeGraph {
             });
         }
     };
-    for row in rows
-        .get("rows")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-    {
-        let Some([an, af, bn, bf]) = row
-            .as_array()
-            .and_then(|r| <&[Value; 4]>::try_from(r.get(..4)?).ok())
-            .map(|r| r.each_ref())
-        else {
-            continue;
+    for row in graph_rows(&result) {
+        let [an, af, bn, bf] = match <[String; 4]>::try_from(row) {
+            Ok(r) => r,
+            Err(_) => continue,
         };
-        let (an, af, bn, bf) = (text(an), text(af), text(bn), text(bf));
         let (a, b) = (format!("{af}::{an}"), format!("{bf}::{bn}"));
         for (id, name, file) in [(&a, an, af), (&b, bn, bf)] {
             add("file", file.clone(), file.clone(), Some(file.clone()));
@@ -1297,6 +1332,26 @@ mod tests {
     use std::time::{Duration, SystemTime};
 
     use super::*;
+
+    #[test]
+    fn the_graph_rows_read_json_and_the_text_table() {
+        let json_rows = json!({"rows": [["a", "x.rs", "b", "y.rs"]]});
+        assert_eq!(graph_rows(&json_rows), [["a", "x.rs", "b", "y.rs"]]);
+        let table = "rows: 2  (cols: a.name a.file_path b.name b.file_path)\n  \"\\\"copy-path\\\"\" src/a.tsx copyText src/lib/menus/index.ts\n  run \"src/my file.rs\" go src/b.rs\ntotal: 2\n";
+        let result = json!({"content": [{"type": "text", "text": table}]});
+        assert_eq!(
+            graph_rows(&result),
+            [
+                [
+                    "\"copy-path\"",
+                    "src/a.tsx",
+                    "copyText",
+                    "src/lib/menus/index.ts"
+                ],
+                ["run", "src/my file.rs", "go", "src/b.rs"],
+            ]
+        );
+    }
     use crate::commands::projects;
 
     fn write(root: &Path, rel: &str, text: &str) {

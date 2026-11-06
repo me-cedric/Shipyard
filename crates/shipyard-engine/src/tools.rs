@@ -39,6 +39,31 @@ pub struct Message {
     pub read: bool,
 }
 
+impl Inner {
+    /// A read tool of the run refuses an area that is hidden for the member of the run
+    /// (`team-rights` REQ-018). A run with no member reads as the person of this machine does.
+    pub(crate) fn may_read(
+        &self,
+        run_id: &str,
+        area: Option<shipyard_core::rights::Area>,
+    ) -> Result<(), String> {
+        let hidden = area.filter(|a| {
+            self.runs.get(run_id).is_some_and(|r| {
+                r.by.as_ref()
+                    .or_else(|| self.actors.get(&r.project))
+                    .is_some_and(|actor| actor.hidden.contains(a))
+            })
+        });
+        match hidden {
+            Some(a) => Err(format!(
+                "the area {} is hidden for the member of this run",
+                a.as_str()
+            )),
+            None => Ok(()),
+        }
+    }
+}
+
 impl Factory {
     /// `read_ref` (REQ-020, REQ-049): the resolved entity, or an error. The index of the project
     /// of the run is taken under a short lock of the factory. The query then waits on that
@@ -52,6 +77,7 @@ impl Factory {
         let index = {
             let mut inner = self.lock();
             inner.run(run_id)?;
+            inner.may_read(run_id, shipyard_core::rights::ref_area(reference))?;
             inner.tool_event(run_id, from, json!({"tool": "read_ref", "ref": reference}));
             inner
                 .project_of(run_id)

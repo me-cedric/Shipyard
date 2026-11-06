@@ -130,17 +130,7 @@ impl Inner {
         {
             return;
         }
-        // The switch, and the right of the member who started the run: else a person with the
-        // right sends it from the Inbox (`team-rights` REQ-009). A run with no member has no
-        // right: fail closed.
-        let allowed = self
-            .project_of(run_id)
-            .is_some_and(|p| write.allowed(&p.automation.writes))
-            && self.runs.get(run_id).is_some_and(|r| {
-                r.by.as_ref()
-                    .is_some_and(|a| a.rights.contains(&write.right()))
-            });
-        if allowed {
+        if self.may_send(run_id, &write) {
             self.send(run_id, &write, slot);
             return;
         }
@@ -160,6 +150,36 @@ impl Inner {
             run: run_id.into(),
             write,
         });
+    }
+
+    /// The switch, and the right of the member who started the run: else a person with the
+    /// right sends it from the Inbox (`team-rights` REQ-009). A run from before team rights has
+    /// no member: it acts for the person of this machine in the project. No person: no right.
+    pub(crate) fn may_send(&self, run_id: &str, write: &Write) -> bool {
+        self.project_of(run_id)
+            .is_some_and(|p| write.allowed(&p.automation.writes))
+            && self.runs.get(run_id).is_some_and(|r| {
+                r.by.as_ref()
+                    .or_else(|| self.actors.get(&r.project))
+                    .is_some_and(|a| a.rights.contains(&write.right()))
+            })
+    }
+
+    /// Sends each waiting write that the switches and the rights now allow: a switch turned on,
+    /// or the person known after a restart, needs no click for the writes that wait.
+    pub(crate) fn release_allowed(&mut self) {
+        let ready: Vec<u64> = self
+            .approvals
+            .iter()
+            .filter(|a| self.may_send(&a.run, &a.write))
+            .map(|a| a.id)
+            .collect();
+        for id in ready {
+            if let Ok(a) = self.take_approval(id) {
+                self.log_write(&a.run, Some(id), "allowed", &a.write);
+                self.send(&a.run, &a.write, None);
+            }
+        }
     }
 
     /// Phase one of a write: log its intent and queue the call, which runs with no lock

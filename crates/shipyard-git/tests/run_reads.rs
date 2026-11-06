@@ -155,3 +155,20 @@ fn the_viewer_reads_the_working_copy_or_a_revision_and_stays_in_the_folder() {
         );
     }
 }
+
+#[test]
+fn an_image_blob_comes_from_the_working_copy_the_index_or_head() {
+    use shipyard_git::code::BlobSource::{Head, Index, Work};
+    let (_t, r, _) = fixture();
+    let png = [0x89u8, b'P', b'N', b'G'];
+    fs::write(r.workdir().join("me.png"), png).unwrap();
+    assert_eq!(r.preview_blob("me.png", Work).unwrap().unwrap().bytes, png);
+    assert!(r.preview_blob("me.png", Index).unwrap().is_none());
+    r.stage(&["me.png".to_string()]).unwrap();
+    assert_eq!(r.preview_blob("me.png", Index).unwrap().unwrap().bytes, png);
+    assert!(r.preview_blob("me.png", Head).unwrap().is_none());
+    // A file that is not an image gives its size only.
+    let t = r.preview_blob("src/lib.rs", Work).unwrap().unwrap();
+    assert!(t.bytes.is_empty() && t.size == 8);
+    assert!(r.preview_blob("../x.png", Work).is_err());
+}

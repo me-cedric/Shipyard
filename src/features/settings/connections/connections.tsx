@@ -47,6 +47,7 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { SectionNav } from "@/ui/molecules/section-nav";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { SyncStatus } from "@/ui/molecules/sync-status";
+import { SETTINGS_PAGE } from "@/ui/templates/settings";
 import { CertsGroup } from "./certs-group";
 import { ADD_TYPES, type AddType, ConnectionForm, GROUPS } from "./connection-form";
 import { GitlabTools } from "./gitlab-tools";
@@ -448,7 +449,7 @@ export function Connections() {
 				}
 			/>
 			<SectionNav label={t.ui.sections} items={sections} />
-			<div className="flex max-w-4xl flex-col gap-5 px-4 pt-1 pb-4">
+			<div className={SETTINGS_PAGE}>
 				{list.error ? (
 					<p role="alert" className="text-ui text-danger-text">
 						{message(list.error)}

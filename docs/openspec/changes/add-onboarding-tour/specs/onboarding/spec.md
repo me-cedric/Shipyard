@@ -34,12 +34,15 @@ The first-run page shows no picture of the loop, and the system asks for permiss
 - REQ-008: On Windows and Linux, the files permission SHALL show not needed. The notifications SHALL offer Send a test, and on Windows Open System Settings.
 - REQ-009: Settings / Me SHALL show the same permissions list.
 - REQ-010: The tour and the permissions list SHALL ship in English and French.
+- REQ-011: Each tour step that maps to a setting SHALL show the live state of that setting (done or to do, with an icon) and one direct action: a control in place, or a button that opens the exact section of Settings, or the New project creator.
+- REQ-012: The team item SHALL add the person to the team file as an admin when the file has no admin.
+- REQ-013: A Setup checklist SHALL list the items in this order: project, AI tool, models, issue tracker, code host, permissions, team. Home / Today SHALL show it as one card while an item is to do, and SHALL hide it when no item is to do. Settings / Me SHALL show it next to Replay the tour.
 
 ### Non-Goals
 
 - Full Disk Access, the camera, the microphone and the location: Shipyard does not use them.
 - A replacement of the manual (Q-136).
-- Actions that open, clone or connect from inside the tour: the first-run page and Settings already do them.
+- A second copy of the settings code: an item reuses the controls and the sections of Settings.
 
 ### Acceptance Criteria
 
@@ -51,6 +54,9 @@ The first-run page shows no picture of the loop, and the system asks for permiss
 - [ ] On Windows, the files show not needed.
 - [ ] Settings / Me shows the permissions.
 - [ ] Each text exists in English and French.
+- [ ] A tour step shows the state of its setting and one action.
+- [ ] Home / Today shows the Setup card while an item is to do.
+- [ ] Settings / Me lists the Setup items.
 
 ## ADDED Requirements
 
@@ -158,3 +164,50 @@ The tour and the permissions list SHALL ship in English and French.
 - GIVEN the language is French
 - WHEN the tour opens
 - THEN each step and each permission shows in French
+
+### Requirement: REQ-011 Setup in the tour
+
+Each tour step that maps to a setting SHALL show the live state of that setting (done or to do, with an icon) and one direct action: a control in place, or a button that opens the exact section of Settings, or the New project creator.
+
+#### Scenario: Pick the AI tool
+- GIVEN no default AI tool is set
+- WHEN the person opens the AI step
+- THEN the AI tool shows to do with a select, and a pick shows done
+
+#### Scenario: Connect the issue tracker
+- GIVEN no issue tracker is connected
+- WHEN the person clicks Connect on the issue tracker item
+- THEN the tour closes and Settings / Connections opens with the connection form
+
+#### Scenario: New project
+- GIVEN no project is open
+- WHEN the person clicks New project on the project item
+- THEN the tour closes and the New project creator opens
+
+### Requirement: REQ-012 Add me as admin
+
+The team item SHALL add the person to the team file as an admin when the file has no admin.
+
+#### Scenario: No admin
+- GIVEN the team file has no admin
+- WHEN the person clicks Add me as admin
+- THEN the person is a member with the admin flag and the item shows done
+
+### Requirement: REQ-013 Setup checklist
+
+A Setup checklist SHALL list the items in this order: project, AI tool, models, issue tracker, code host, permissions, team. Home / Today SHALL show it as one card while an item is to do, and SHALL hide it when no item is to do. Settings / Me SHALL show it next to Replay the tour.
+
+#### Scenario: Card
+- GIVEN an item is to do
+- WHEN the person opens Home / Today
+- THEN one Setup card lists the items to do
+
+#### Scenario: All done
+- GIVEN no item is to do
+- WHEN the person opens Home / Today
+- THEN the Setup card does not show
+
+#### Scenario: Settings
+- GIVEN the person closed the tour
+- WHEN the person opens Settings / Me
+- THEN the Setup items show with their states

@@ -33,6 +33,28 @@ export const onboardingEn = {
 			body: "An agent plans, builds and checks the ticket, then opens a pull request for your review.",
 		},
 	},
+	setup: {
+		title: "Setup",
+		done: "Done",
+		todo: "To do",
+		item: {
+			project: "Project",
+			ai: "AI tool",
+			models: "Models",
+			tracker: "Issue tracker",
+			forge: "Code host",
+			permissions: "Permissions",
+			team: "Team",
+		},
+		action: {
+			project: "New project",
+			signIn: "Sign in",
+			models: "Choose models",
+			connect: "Connect",
+			permissions: "Open",
+			team: "Add me as admin",
+		},
+	},
 	picture: {
 		folder: "Open a folder",
 		clone: "Clone",
@@ -91,6 +113,28 @@ export const onboardingFr: typeof onboardingEn = {
 		run: {
 			title: "Lancer votre premier ticket",
 			body: "Un agent planifie, construit et vérifie le ticket, puis ouvre une pull request pour votre revue.",
+		},
+	},
+	setup: {
+		title: "Mise en route",
+		done: "Fait",
+		todo: "À faire",
+		item: {
+			project: "Projet",
+			ai: "Outil d'IA",
+			models: "Modèles",
+			tracker: "Outil de suivi",
+			forge: "Hébergeur de code",
+			permissions: "Autorisations",
+			team: "Équipe",
+		},
+		action: {
+			project: "Nouveau projet",
+			signIn: "Se connecter",
+			models: "Choisir les modèles",
+			connect: "Connecter",
+			permissions: "Ouvrir",
+			team: "M'ajouter comme admin",
 		},
 	},
 	picture: {

@@ -17,4 +17,4 @@ The owner asked for an OLED theme (deep dark, true black) and for themes that a 
 
 - New capability: `themes`. It extends `design-system` (REQ-011, REQ-012) and `extensions` (REQ-011, REQ-012).
 - Affected code: `crates/shipyard-core/src/theme.rs`, `crates/shipyard-store/src/{themes,prefs,plugins}.rs`, `crates/shipyard-app/src/commands/themes.rs`, `src/ui/tokens/tokens.css`, `src/lib/prefs/`, `src/lib/themes/`, `src/features/settings/`, `src/features/shell/actions.ts`, `src/lib/i18n/`, `src/lib/ipc/`.
-- Affected docs: ADR 0018, `docs/guide/theming.md` (EN, FR), `docs/guide/settings.md` (EN, FR), `examples/theme-sample/`, `examples/plugin-sample/`, `docs/designs/screens.json`, `docs/delivery/test-plans/themes.feature`, `CHANGELOG.md`, `CHANGELOG.fr.md`.
+- Affected docs: `adr:0018`, `docs/guide/theming.md` (EN, FR), `docs/guide/settings.md` (EN, FR), `examples/theme-sample/`, `examples/plugin-sample/`, `docs/designs/screens.json`, `docs/delivery/test-plans/themes.feature`, `CHANGELOG.md`, `CHANGELOG.fr.md`.

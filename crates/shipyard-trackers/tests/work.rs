@@ -261,6 +261,7 @@ fn entry(worklog: Option<&str>) -> TimeEntry {
         note: "review of the login".into(),
         ticket: Some("PROJ-1".into()),
         worklog: worklog.map(String::from),
+        unsynced: None,
     }
 }
 
@@ -418,6 +419,43 @@ fn the_worklogs_of_a_ticket_are_read_with_their_notes() {
         ("1", 30, "by hand")
     );
     assert_eq!((logs[1].minutes, logs[1].note.as_str()), (60, ""));
+}
+
+#[test]
+fn a_jira_worklog_is_changed_and_deleted_by_its_id_and_reads_its_author() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.put("/issue/PROJ-1/worklog/10234", "", 200, POSTED)
+        .delete("/issue/PROJ-1/worklog/10234", 204, "")
+        .get(
+            "/issue/PROJ-1/worklog",
+            200,
+            r#"{"worklogs":[{"id":"1","timeSpentSeconds":60,"author":{"accountId":"ada"}}]}"#,
+        );
+    let w = jira(TrackerKind::JiraCloud, &fake);
+    let log = NewWorklog {
+        minutes: 90,
+        note: "n",
+        started: "s",
+        reduce_remaining: false,
+    };
+    assert_eq!(
+        w.update_worklog(&Click::by_person(), "PROJ-1", "10234", &log)
+            .unwrap()
+            .id,
+        "10234"
+    );
+    w.delete_worklog(&Click::by_person(), "PROJ-1", "10234")
+        .unwrap();
+    assert_eq!(w.worklogs("PROJ-1").unwrap()[0].author, "ada");
+    let (url, body) = &sent(&fake, Method::Put)[0];
+    assert!(url.contains("adjustEstimate=leave"), "{url}");
+    assert!(body.contains("5400"));
+    // GitHub cannot: the default refuses.
+    let gh = github(&fake);
+    assert!(matches!(
+        gh.delete_worklog(&Click::by_person(), "o/r#1", "1"),
+        Err(TrackerError::Refused(_))
+    ));
 }
 
 // ---- apply (REQ-026)

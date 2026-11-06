@@ -290,5 +290,6 @@ pub fn solo() -> Actor {
     Actor {
         by: "solo".into(),
         rights: shipyard_core::rights::Right::ALL.to_vec(),
+        hidden: Vec::new(),
     }
 }

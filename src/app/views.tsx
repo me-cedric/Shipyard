@@ -1,5 +1,6 @@
 import { GetStarted } from "@/features/home/get-started";
 import { Today } from "@/features/home/today";
+import { SetupCard } from "@/features/onboarding";
 import { FirstRun } from "@/features/projects/first-run";
 import { ProjectSettings } from "@/features/projects/settings-project";
 import { Automation } from "@/features/sync/automation";
@@ -9,7 +10,18 @@ import { useActiveProject } from "@/lib/projects";
 export function HomeToday() {
 	const active = useActiveProject().data;
 	if (active === undefined) return null;
-	return active ? <Today start={<GetStarted />} /> : <FirstRun />;
+	return active ? (
+		<Today
+			start={
+				<>
+					<SetupCard />
+					<GetStarted />
+				</>
+			}
+		/>
+	) : (
+		<FirstRun />
+	);
 }
 
 /** Settings / Project holds the project settings, then the Automation group of `add-sync`. */

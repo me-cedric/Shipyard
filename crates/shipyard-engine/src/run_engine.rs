@@ -24,7 +24,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use shipyard_core::pickup::{ActiveRun, Automation, SyncEvent};
-use shipyard_core::rights::Right;
+use shipyard_core::rights::{Area, Right};
 use shipyard_core::run::{self, BudgetLevel, Run, RunEvent, RunState};
 use shipyard_core::work_item::WorkKind;
 use shipyard_core::workflow::{self, Effort, Gate, Mode, Step, StepState, Workflow, Workspace};
@@ -124,6 +124,9 @@ pub struct Actor {
     /// The handle of the member, else `solo` or `unknown`.
     pub by: String,
     pub rights: Vec<Right>,
+    /// The areas at `none` for this person: the read tools of the run refuse them (REQ-018).
+    #[serde(default)]
+    pub hidden: Vec<Area>,
 }
 
 /// One project of this machine. `set_project` again after a reload: a run keeps the workflow
@@ -513,6 +516,8 @@ impl Factory {
         inner.projects.insert(id.into(), project);
         let spent = inner.build_spent(id);
         inner.spent.insert(id.into(), spent);
+        // A switch turned on sends the writes of that kind that wait.
+        inner.release_allowed();
     }
 
     /// The person who starts the next runs of a project: a click or the pickup of the tick.
@@ -523,6 +528,7 @@ impl Factory {
             Some(a) => inner.actors.insert(project.into(), a),
             None => inner.actors.remove(project),
         };
+        inner.release_allowed();
     }
 
     /// Read the agents, check the clocks, start the next steps. Call it often.

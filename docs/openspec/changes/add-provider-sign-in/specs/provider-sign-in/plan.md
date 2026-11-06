@@ -5,7 +5,7 @@ Date: 2026-11-05
 
 ## Summary
 
-One list joins the runners, the HTTP providers and the local runtimes. A tool signs in with its own login. A provider signs in with OAuth or a pasted key. This covers REQ-001 to REQ-010. ADR 0017 sets the boundary.
+One list joins the runners, the HTTP providers and the local runtimes. A tool signs in with its own login. A provider signs in with OAuth or a pasted key. This covers REQ-001 to REQ-010. `adr:0017` sets the boundary.
 
 ## Technical Context
 

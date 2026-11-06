@@ -121,6 +121,14 @@ export function stopReason(
 	run: RunView,
 	events: RunLogEvent_Serialize[],
 ): string {
+	// The backend reads the newest events: the loaded pages can miss them on a long log.
+	const said = run.reason ?? null;
+	if (said) {
+		const turns = /max turns \((\d+)\)/.exec(said);
+		if (turns) return format(why.turns, { count: turns[1] ?? "" });
+		if (/^budget$/i.test(said)) return why.budget;
+		return format(why.stop, { text: said });
+	}
 	for (const e of events.toReversed()) {
 		const p = payloadOf(e.payload);
 		if (e.kind === "note" && typeof p.stop === "string") {

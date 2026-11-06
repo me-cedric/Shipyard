@@ -13,6 +13,7 @@ One graph renderer lives in `src/ui/`. Pure rules (stale and orphan marks, learn
 | ---- | -------- |
 | Stack/runtime | Rust workspace and React 19 (MASTER-PLAN 7.1, 7.3). xyflow for the renderer. TanStack Table for the table views. |
 | Dependencies | reveal.js for slides, named in the proposal. A `.docx` writer is new. The `.xlsx` writer is the one that `add-work` picks. Add no package before an ADR names it. |
+| Decisions | `adr:0013` (slides renderer and document export). |
 | Data/storage | Handbook pages in `docs/handbook/`. Documents in `docs/documents/`. Decks in `docs/slides/<slug>.md` and the theme in `docs/slides/theme.yaml`. Dashboards in `docs/dashboards/<slug>.yaml` with a version field. Pins in the app data folder. The paths come from the artifact paths of the project file. |
 | APIs/contracts | IPC commands `graph_*`, `explain_context`, `doc_*`, `export_*`, `slide_*`, `dashboard_*`, `learn_*`. Bindings are generated. |
 | Graph renderer | A `GraphCanvas` organism in `src/ui/` takes nodes and edges. Knowledge and `add-factory` Agents map both import it. A force layout that settles is the default. |

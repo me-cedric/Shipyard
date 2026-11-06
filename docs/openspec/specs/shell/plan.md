@@ -13,6 +13,7 @@ Build the frame on the Shell template of `add-design-system`. Rust holds the eve
 | ---- | -------- |
 | Stack/runtime | Tauri (`shipyard-app`), React 19, TanStack Router and Query |
 | Dependencies | `cmdk` for the palette, Tauri menu and notification APIs, Tauri updater. No new dependency. |
+| Decisions | `adr:0002` (Tauri v2, Rust workspace, React 19), `adr:0003` (IPC generated with tauri-specta). |
 | Data/storage | Per-machine preferences and last view per project in the app data folder. Nothing in the repository. |
 | APIs/contracts | Generated IPC (`tauri-specta`): event stream, preferences, update check, action registry. |
 | Routing | One typed route per space and view. Role home maps a role to a route. |

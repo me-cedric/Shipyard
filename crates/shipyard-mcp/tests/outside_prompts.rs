@@ -30,6 +30,7 @@ fn server(root: &std::path::Path, state: Arc<Mutex<(bool, Vec<String>)>>) -> Ser
             only,
             rights: None,
             tickets: None,
+            hidden: Vec::new(),
         })
     });
     let tools = NAMES.iter().map(|n| n.to_string()).collect();
@@ -137,6 +138,7 @@ fn the_allow_list_filters_the_tools_and_the_read_only_preset_has_no_write_tool()
             only,
             rights: None,
             tickets: None,
+            hidden: Vec::new(),
         })
     };
     assert_eq!(on(Vec::new()).len(), NAMES.len());

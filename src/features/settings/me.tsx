@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { usePermissionSection } from "@/features/onboarding";
+import { usePermissionSection, useSetupSection } from "@/features/onboarding";
 import { LANGS, useI18n } from "@/lib/i18n";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
@@ -25,13 +25,14 @@ import {
 	DocumentTextIcon,
 	LanguageIcon,
 	ShieldCheckIcon,
+	SparklesIcon,
 	SunIcon,
 	SwatchIcon,
 	UserCircleIcon,
 } from "@/ui/icons";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { SectionNav } from "@/ui/molecules/section-nav";
-import { Settings } from "@/ui/templates/settings";
+import { SETTINGS_PAGE, Settings } from "@/ui/templates/settings";
 import { LanguageSelect, useLanguageRows } from "./languages";
 import { useLookRows } from "./look-rows";
 import { usePersonalSections } from "./me/personal";
@@ -45,6 +46,7 @@ const SECTION_ICON: Record<string, React.ReactNode> = {
 	agent: <CpuChipIcon size={14} />,
 	notifications: <BellIcon size={14} />,
 	permissions: <ShieldCheckIcon size={14} />,
+	setup: <SparklesIcon size={14} />,
 };
 
 /** Where the update check reads the latest release. It saves when the field loses focus. */
@@ -144,11 +146,13 @@ export function Me() {
 	const personal = usePersonalSections();
 	const look = useLookRows();
 	const permissions = usePermissionSection();
+	const setup = useSetupSection();
 	const withIcon = personal.map((s) => ({ ...s, icon: SECTION_ICON[s.id] }));
 	const nav = [
 		{ id: "me", title: t.tabs.settings.me },
 		...personal,
 		{ id: "notifications", title: t.notifications.title },
+		{ id: setup.id, title: setup.title },
 		{ id: permissions.id, title: permissions.title },
 	].map((s) => ({ id: `section-${s.id}`, label: s.title, icon: SECTION_ICON[s.id] }));
 	const themeRows = useThemeRows();
@@ -164,7 +168,7 @@ export function Me() {
 		<div className="flex flex-col">
 			<PageHeader icon={<UserCircleIcon size={16} />} title={t.tabs.settings.me} />
 			<SectionNav label={t.ui.sections} items={nav} />
-			<div className="px-4 pt-1 pb-4">
+			<div className={SETTINGS_PAGE}>
 				<Settings
 					sections={[
 						{
@@ -294,6 +298,7 @@ export function Me() {
 								control: <NotifySwitch source={s} />,
 							})),
 						},
+						{ ...setup, icon: SECTION_ICON.setup },
 						{ ...permissions, icon: SECTION_ICON.permissions },
 					]}
 				/>

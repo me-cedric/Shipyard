@@ -17,8 +17,8 @@ REQ-016 says that a project cannot hide a tab, but the project profile of a mach
 
 ### Requirements
 
-- REQ-009: Each role of `team-rights` SHALL have a home view, a first tab and a sidebar order. No role SHALL lose access to a view. A role SHALL change the order, the home view, the Today panels and the rights. A right SHALL turn a control off, never hide a view.
-- REQ-016: No tour and no help text. A project, a role or a right MUST NOT hide a tab or a space. A person MAY hide a tab for themselves on this machine. The palette SHALL still open it, and Settings SHALL never hide.
+- REQ-009: Each role of `team-rights` SHALL have a home view, a first tab and a sidebar order. A role MAY hide an area with the level `none` of `team-rights` REQ-018, except Settings for an admin. A role SHALL change the order, the home view, the Today panels and the rights. A right SHALL turn a control off, never hide a view.
+- REQ-016: No tour and no help text. A project or a right MUST NOT hide a tab or a space. Only the level `none` of a role hides an area (`team-rights` REQ-018). A person MAY hide a tab for themselves on this machine. The palette SHALL still open it, and Settings / Me SHALL never hide.
 
 ### Non-Goals
 
@@ -33,7 +33,7 @@ REQ-016 says that a project cannot hide a tab, but the project profile of a mach
 
 ### Requirement: REQ-009 Role home
 
-Each role of `team-rights` (PO, PM, architect, tech lead, BA, developer, QA, designer, viewer) SHALL have a home view, a first tab and a sidebar order, as `team-rights` REQ-013 lists. No role SHALL lose access to a view. A role SHALL change the order, the home view, the Today panels and the rights of `team-rights`. A right SHALL turn a control off, never hide a view.
+Each role of `team-rights` (PO, PM, architect, tech lead, BA, developer, QA, designer, viewer) SHALL have a home view, a first tab and a sidebar order, as `team-rights` REQ-013 lists. A role MAY hide an area with the level `none` of `team-rights` REQ-018, except Settings for an admin. A role SHALL change the order, the home view, the Today panels and the rights of `team-rights`. A right SHALL turn a control off, never hide a view.
 
 #### Scenario: Junior sidebar
 - GIVEN the migration of `team-rights` REQ-015 gave a former junior the role `developer` with `-code.merge`
@@ -49,7 +49,7 @@ Each role of `team-rights` (PO, PM, architect, tech lead, BA, developer, QA, des
 
 ### Requirement: REQ-016 No tour, no hidden tab
 
-The app SHALL NOT show a tour, a help bubble or an onboarding text. A project, a role or a right MUST NOT hide a tab or a space from a person. A person MAY hide a tab or a space for themselves, on this machine. The palette SHALL still open a hidden tab, and Settings SHALL never hide. The first run SHALL be the first-run view of `add-projects` (REQ-001), which owns the role choice and the primary action (Q-008, option 1).
+The app SHALL NOT show a tour, a help bubble or an onboarding text. A project or a right MUST NOT hide a tab or a space from a person. Only the level `none` of a role hides an area (`team-rights` REQ-018). A person MAY hide a tab or a space for themselves, on this machine. The palette SHALL still open a tab that the person hid, and Settings / Me SHALL never hide. The first run SHALL be the first-run view of `add-projects` (REQ-001), which owns the role choice and the primary action (Q-008, option 1).
 
 #### Scenario: First run
 - GIVEN the app starts for the first time

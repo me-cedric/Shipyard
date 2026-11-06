@@ -670,6 +670,37 @@ pub(crate) fn attach(s: &AppState, a: &Active, plan: &Plan) -> Res<()> {
 
 // ---------------------------------------------------------------- views
 
+/// The folder of a unit when a terminal can still open it: it exists and, for Claude Code,
+/// the session file is in `<claude home>/projects/<folder, each non-alphanumeric as ->/`.
+fn resumable_dir(runner: &str, session: Option<&str>, dir: &str) -> String {
+    let home = std::env::var_os("CLAUDE_CONFIG_DIR")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".claude")));
+    resumable_in(runner, session, dir, home.as_deref())
+}
+
+fn resumable_in(runner: &str, session: Option<&str>, dir: &str, claude: Option<&Path>) -> String {
+    if dir.is_empty() || !Path::new(dir).is_dir() {
+        return String::new();
+    }
+    if runner == "claude" {
+        let key: String = dir
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+            .collect();
+        let found = session.zip(claude).is_some_and(|(s, c)| {
+            c.join("projects")
+                .join(key)
+                .join(format!("{s}.jsonl"))
+                .is_file()
+        });
+        if !found {
+            return String::new();
+        }
+    }
+    dir.to_string()
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UnitView {
@@ -679,7 +710,8 @@ pub struct UnitView {
     pub runner: String,
     /// The session id of the AI tool, if it sent one.
     pub session: Option<String>,
-    /// The folder of the unit. Empty: never started.
+    /// The folder of the unit. Empty: never started, the folder is gone, or Claude Code
+    /// keeps no session for it, so there is nothing to open in a terminal.
     pub dir: String,
     /// Unix seconds: the last start and the last event.
     pub started: f64,
@@ -733,6 +765,9 @@ pub struct RunView {
     pub worktree_kept: Option<String>,
     pub open_questions: u32,
     pub approvals: u32,
+    /// Why a failed, paused or blocked run stopped: the newest `stop` or `blocked` note, or the
+    /// newest error of the AI tool. `None` for a run that works or ended well.
+    pub reason: Option<String>,
 }
 
 fn run_view(r: &RunInfo, pulls: &[PrRowView], questions: u32, approvals: u32) -> RunView {
@@ -777,7 +812,7 @@ fn run_view(r: &RunInfo, pulls: &[PrRowView], questions: u32, approvals: u32) ->
                         state: u.state,
                         runner: u.runner.clone(),
                         session: u.session.clone(),
-                        dir: u.dir.clone(),
+                        dir: resumable_dir(&u.runner, u.session.as_deref(), &u.dir),
                         started: u.started as f64,
                         last: u.last as f64,
                     })
@@ -797,6 +832,7 @@ fn run_view(r: &RunInfo, pulls: &[PrRowView], questions: u32, approvals: u32) ->
         worktree_kept: r.worktree_kept.clone(),
         open_questions: questions,
         approvals,
+        reason: None,
     }
 }
 
@@ -820,11 +856,41 @@ pub fn runs(s: &AppState) -> Res<Vec<RunView>> {
                 })
                 .count();
             let waiting = approvals.iter().filter(|ap| ap.run == r.id).count();
-            run_view(r, &pulls, open as u32, waiting as u32)
+            let mut v = run_view(r, &pulls, open as u32, waiting as u32);
+            if matches!(
+                v.state,
+                RunState::Failed | RunState::Paused | RunState::Blocked
+            ) {
+                v.reason = stop_reason(s, &r.id);
+            }
+            v
         })
         .collect();
     out.reverse();
     Ok(out)
+}
+
+/// The newest reason in the last events of the run log (REQ-004): a `stop` or `blocked` note, or
+/// an error of the AI tool. Reads the tail only, so a long log costs nothing.
+fn stop_reason(s: &AppState, run: &str) -> Option<String> {
+    let log = s.factory.log();
+    let last = log.last_id(run).ok()?;
+    let events = log.after(run, (last - 300).max(0)).ok()?;
+    events.iter().rev().find_map(|e| {
+        let p = &e.payload;
+        let text = |k: &str| {
+            p.get(k)
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string)
+        };
+        match e.kind.as_str() {
+            "note" => text("stop").or_else(|| text("blocked")),
+            "runner" if p.get("type").and_then(serde_json::Value::as_str) == Some("error") => {
+                text("message")
+            }
+            _ => None,
+        }
+    })
 }
 
 pub fn run_get(s: &AppState, run: &str) -> Res<Option<RunView>> {
