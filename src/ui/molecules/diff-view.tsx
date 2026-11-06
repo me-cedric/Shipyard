@@ -71,7 +71,9 @@ export function DiffView({
 	const lines = parseDiff(text);
 	const numbers = notes ? newNumbers(lines) : [];
 	return (
-		<section aria-label={label} className="overflow-x-auto font-mono text-12">
+		// A scroll area needs a keyboard stop (axe scrollable-region-focusable).
+		// biome-ignore lint/a11y/noNoninteractiveTabindex: a keyboard person scrolls the diff
+		<section aria-label={label} tabIndex={0} className="overflow-x-auto font-mono text-12">
 			{binary ? <p className="px-3 py-1 text-n-11">{binaryLabel}</p> : null}
 			{lines.map((l, i) => {
 				const at = numbers[i];
