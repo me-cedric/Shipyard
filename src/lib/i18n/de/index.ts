@@ -2,6 +2,7 @@ import type { Messages } from "../en";
 import { assistantDe } from "./assistant";
 import { forgeDe } from "./code";
 import { costingDe } from "./costing";
+import { creatorDe } from "./creator";
 import { designDe } from "./design";
 import { doctorDe } from "./doctor";
 import { editingDe } from "./editing";
@@ -15,6 +16,7 @@ import { panelsDe } from "./panels";
 import { personalDe } from "./personal";
 import { reportsDe } from "./reports";
 import { reviewDe } from "./review";
+import { rightsDe } from "./rights";
 import { settingsDe } from "./settings";
 import { specsDe } from "./specs";
 import { uiDe } from "./ui";
@@ -214,8 +216,10 @@ export const de: Messages = {
 		developer: "Entwickler",
 		qa: "Tester",
 		ba: "Business-Analyst",
-		lead: "Fachlicher Lead",
-		junior: "Junior",
+		po: "Product Owner",
+		techlead: "Tech Lead",
+		designer: "Designer",
+		viewer: "Leser",
 	},
 	lang: { en: "Englisch", fr: "Französisch", de: "Deutsch", es: "Spanisch" },
 	home: homeDe,
@@ -279,7 +283,6 @@ export const de: Messages = {
 		back: "Zurück",
 		cloneRun: "Klonen",
 		cloning: "Wird geklont",
-		createRun: "Erstellen",
 		close: "Projekt schließen",
 		remove: "Aus der Liste entfernen",
 		confirmRemove: "{name} aus der Liste entfernen? Die Dateien bleiben auf dem Datenträger.",
@@ -383,6 +386,9 @@ export const de: Messages = {
 			"tool-missing": "Werkzeug fehlt: {detail}",
 			compass: "Compass-Helfer: {detail}",
 			"ref-broken": "Defekte Referenz {detail}",
+			"team-role-unknown": "Unbekannte Rolle in der Teamdatei: {detail}",
+			"team-right-unknown": "Unbekanntes Recht in der Teamdatei: {detail}",
+			"team-no-admin": "Kein Admin in der Teamdatei: jede Person hat alle Rechte",
 		},
 		fix: { write: "Schreiben", open: "Öffnen", apply: "Anwenden", recheck: "Erneut prüfen" },
 		confirm: "Bestätigen",
@@ -915,9 +921,11 @@ export const de: Messages = {
 	personal: personalDe,
 	doctor: doctorDe,
 	panels: panelsDe,
+	creator: creatorDe,
 	reports: reportsDe,
 	editing: editingDe,
 	review: reviewDe,
+	rights: rightsDe,
 	extras: extrasDe,
 	onboarding: onboardingDe,
 };

@@ -2,6 +2,7 @@ import type { Messages } from "../en";
 import { assistantEs } from "./assistant";
 import { forgeEs } from "./code";
 import { costingEs } from "./costing";
+import { creatorEs } from "./creator";
 import { designEs } from "./design";
 import { doctorEs } from "./doctor";
 import { editingEs } from "./editing";
@@ -15,6 +16,7 @@ import { panelsEs } from "./panels";
 import { personalEs } from "./personal";
 import { reportsEs } from "./reports";
 import { reviewEs } from "./review";
+import { rightsEs } from "./rights";
 import { settingsEs } from "./settings";
 import { specsEs } from "./specs";
 import { uiEs } from "./ui";
@@ -214,8 +216,10 @@ export const es: Messages = {
 		developer: "Desarrollador",
 		qa: "Tester",
 		ba: "Analista de negocio",
-		lead: "Responsable funcional",
-		junior: "Junior",
+		po: "Product owner",
+		techlead: "Responsable técnico",
+		designer: "Diseñador",
+		viewer: "Lector",
 	},
 	lang: { en: "Inglés", fr: "Francés", de: "Alemán", es: "Español" },
 	home: homeEs,
@@ -278,7 +282,6 @@ export const es: Messages = {
 		back: "Atrás",
 		cloneRun: "Clonar",
 		cloning: "Clonando",
-		createRun: "Crear",
 		close: "Cerrar proyecto",
 		remove: "Quitar de la lista",
 		confirmRemove: "¿Quitar {name} de la lista? Los archivos se quedan en el disco.",
@@ -382,6 +385,10 @@ export const es: Messages = {
 			"tool-missing": "Falta una herramienta: {detail}",
 			compass: "Ayuda de Compass: {detail}",
 			"ref-broken": "Ref rota {detail}",
+			"team-role-unknown": "Rol desconocido en el archivo del equipo: {detail}",
+			"team-right-unknown": "Derecho desconocido en el archivo del equipo: {detail}",
+			"team-no-admin":
+				"Ningún admin en el archivo del equipo: cada persona tiene todos los derechos",
 		},
 		fix: { write: "Escribir", open: "Abrir", apply: "Aplicar", recheck: "Volver a comprobar" },
 		confirm: "Confirmar",
@@ -899,9 +906,11 @@ export const es: Messages = {
 	personal: personalEs,
 	doctor: doctorEs,
 	panels: panelsEs,
+	creator: creatorEs,
 	reports: reportsEs,
 	editing: editingEs,
 	review: reviewEs,
+	rights: rightsEs,
 	extras: extrasEs,
 	onboarding: onboardingEs,
 };

@@ -25,16 +25,8 @@ import { BriefStep, ProjectStep, type RemoteKind, RemoteStep, StartStep, TeamSte
 
 const STEPS = ["project", "brief", "team", "remote", "start"] as const;
 /** The team role that fits the role of the person in the app. */
-const TEAM_ROLE = {
-	pm: "pm",
-	architect: "architect",
-	developer: "developer",
-	qa: "qa",
-	ba: "ba",
-	lead: "po",
-	junior: "developer",
-	none: "developer",
-} as const;
+/** The team role of the first member: the personal role, `developer` when none is set. */
+const TEAM_ROLE = (r: string) => (r === "none" ? "developer" : r);
 
 /** What happens after Create: the run, the starter issues or nothing. */
 function Created({
@@ -178,7 +170,7 @@ function Body({ onClose }: { onClose: () => void }) {
 		};
 	}, [name, stack, docsLang]);
 
-	const members: NewMember[] = team ?? [{ name: options?.me ?? "", role: TEAM_ROLE[role] }];
+	const members: NewMember[] = team ?? [{ name: options?.me ?? "", role: TEAM_ROLE(role) }];
 	const slug = slugText ?? `${forge?.user ?? "owner"}/${folderOf(name)}`;
 	const plan: NewProject_Deserialize = {
 		name: name.trim(),
