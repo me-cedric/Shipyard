@@ -1,0 +1,7 @@
+kind: check
+name: cargo clippy --workspace --all-targets -- -D warnings
+at: 2026-11-05T15:51:18Z
+passed: true
+durationMs: 68912
+tail: no output
+findings: []

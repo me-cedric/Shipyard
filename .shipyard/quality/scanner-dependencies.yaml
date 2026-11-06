@@ -1,0 +1,7 @@
+kind: scanner
+name: dependencies
+at: 2026-11-05T19:35:32Z
+passed: true
+durationMs: 2264
+tail: 0 finding(s)
+findings: []

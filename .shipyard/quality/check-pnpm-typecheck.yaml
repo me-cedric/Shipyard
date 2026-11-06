@@ -1,0 +1,7 @@
+kind: check
+name: pnpm typecheck
+at: 2026-11-05T15:50:36Z
+passed: true
+durationMs: 20693
+tail: no output
+findings: []

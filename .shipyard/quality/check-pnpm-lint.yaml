@@ -1,0 +1,11 @@
+kind: check
+name: pnpm lint
+at: 2026-11-05T15:50:34Z
+passed: false
+durationMs: 17609
+tail: "       30 │ + ····line:·141\n       31 │ + ····message:·a·secret·value·is·assigned\n       32 │ + ··-·severity:·high\n       33 │ + ····path:·src/lib/ipc/mock-doctor-extras.test.ts\n       34 │ + ····line:·46\n       35 │ + ····message:·GitHub·token\n    36 36 │   \nChecked 756 files in 654ms. No fixes applied.\nFound 4 errors.\ncheck ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n  × Some errors were emitted while running checks.\n[ELIFECYCLE] Command failed with exit code 1."
+findings:
+- severity: high
+  path: ''
+  line: null
+  message: '`pnpm lint` stopped with exit code 1'

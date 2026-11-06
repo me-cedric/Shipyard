@@ -1,0 +1,11 @@
+kind: check
+name: cargo test --workspace
+at: 2026-11-05T15:54:17Z
+passed: false
+durationMs: 244951
+tail: ''
+findings:
+- severity: high
+  path: ''
+  line: null
+  message: '`cargo test --workspace` stopped with exit code 101'

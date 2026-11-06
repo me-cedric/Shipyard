@@ -1,0 +1,7 @@
+kind: check
+name: cargo fmt --all --check
+at: 2026-11-05T15:50:09Z
+passed: true
+durationMs: 851
+tail: no output
+findings: []

@@ -1,0 +1,19 @@
+kind: scanner
+name: code
+at: 2026-11-05T19:36:37Z
+passed: false
+durationMs: 65069
+tail: 3 finding(s)
+findings:
+  - severity: medium
+    path: .agents/hooks/compass.mjs
+    line: 19
+    message: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp RegExp() called with a `glob` function argument, this might allow an attacker to cause a Regular Expression Denial-of-Service (ReDoS) within your application as RegExP blocks the main thread. For this reason, it is recommended to use hardcoded regexes instead. If your regex is run on user-controlled input, consider performing input validation or use a regex checking/sanitization library such as https://www.npmjs.com/package/recheck to verify that the regex does not appear vulnerable to ReDoS.
+  - severity: medium
+    path: .agents/hooks/compass.mjs
+    line: 221
+    message: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp RegExp() called with a `mode` function argument, this might allow an attacker to cause a Regular Expression Denial-of-Service (ReDoS) within your application as RegExP blocks the main thread. For this reason, it is recommended to use hardcoded regexes instead. If your regex is run on user-controlled input, consider performing input validation or use a regex checking/sanitization library such as https://www.npmjs.com/package/recheck to verify that the regex does not appear vulnerable to ReDoS.
+  - severity: medium
+    path: renovate.json
+    line: 9
+    message: 'package_managers.renovate.renovate-missing-minimum-release-age.renovate-missing-minimum-release-age This Renovate configuration does not set a minimum release age. Newly published packages can be malicious or unstable. Add `"minimumReleaseAge": "7 days"` within a `packageRules` entry to wait 7 days before proposing updates to newly published package versions. Set `"minimumReleaseAge": false` to set an exception for minimal release age for the package rule. Added in: v42'

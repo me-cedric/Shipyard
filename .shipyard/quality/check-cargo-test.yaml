@@ -1,0 +1,51 @@
+kind: check
+name: cargo test
+at: 2026-11-05T19:36:11Z
+passed: false
+durationMs: 164817
+tail: |-
+  running 6 tests
+  test an_invalid_ref_is_not_a_ref ... ok
+  test indexes_each_artifact_kind ... ok
+  test indexes_three_sources ... ok
+  test a_deleted_file_leaves_the_index ... ok
+  test a_change_updates_the_index_without_a_manual_action ... ok
+  test the_index_file_survives_a_reopen ... ok
+  test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+       Running tests/ref_index_design.rs (target/debug/deps/ref_index_design-fb2d80baca09794b)
+  running 3 tests
+  test each_design_file_gets_the_ref_of_its_kind_and_slug ... ok
+  test a_yaml_file_that_is_not_a_contract_gets_no_api_ref ... ok
+  test a_screen_cites_its_artifacts_and_a_test_plan_cites_its_requirements ... ok
+  test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+       Running tests/ref_query.rs (target/debug/deps/ref_query-dc905afe97f2ad7f)
+  running 11 tests
+  test a_citation_row_alone_is_enough_for_a_mirror_source ... ok
+  test a_removed_target_is_broken_and_names_its_source ... ok
+  test a_valid_target_has_no_finding ... ok
+  test a_work_item_absent_from_the_mirror_stays_unresolved ... ok
+  test a_missing_requirement_of_a_known_spec_is_broken ... ok
+  test text_search_folds_case_and_accents_in_the_body ... ok
+  test backlinks_group_by_kind_with_a_count ... ok
+  test text_search_needs_every_word_and_prefixes_the_last ... ok
+  test search_ranks_a_ref_match_above_a_title_match ... ok
+  test text_search_ranks_a_hub_first_and_marks_the_snippet ... ok
+  test an_old_index_is_rebuilt_with_the_search_table ... ok
+  test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+       Running tests/repo_project_file.rs (target/debug/deps/repo_project_file-6a755c92626ae00a)
+  running 1 test
+  test the_project_file_of_this_repository_is_valid_and_has_docs_rules ... FAILED
+  failures:
+  ---- the_project_file_of_this_repository_is_valid_and_has_docs_rules stdout ----
+  thread 'the_project_file_of_this_repository_is_valid_and_has_docs_rules' (527005) panicked at crates/shipyard-store/tests/repo_project_file.rs:15:38:
+  [(Some(17), "could not find expected ':' at line 17 column 1, while scanning a simple key at line 10 column 1")]
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+  failures:
+      the_project_file_of_this_repository_is_valid_and_has_docs_rules
+  test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  error: test failed, to rerun pass `-p shipyard-store --test repo_project_file`
+findings:
+  - severity: high
+    path: ""
+    line: null
+    message: "`cargo test` stopped with exit code 101"

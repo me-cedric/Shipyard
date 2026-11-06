@@ -1,0 +1,7 @@
+kind: check
+name: docs freshness
+at: 2026-11-05T15:50:04Z
+passed: true
+durationMs: 62
+tail: 0 stale docs
+findings: []

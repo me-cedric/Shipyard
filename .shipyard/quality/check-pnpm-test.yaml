@@ -1,0 +1,7 @@
+kind: check
+name: pnpm test
+at: 2026-11-05T15:52:10Z
+passed: true
+durationMs: 116933
+tail: no output
+findings: []

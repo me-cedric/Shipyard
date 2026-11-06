@@ -1,0 +1,11 @@
+kind: check
+name: verify all docs
+at: 2026-11-05T19:33:16Z
+passed: false
+durationMs: 1497
+tail: 5 changes, 363 pages, 1 problems
+findings:
+  - severity: medium
+    path: doc:.shipyard/quality/check-verify-all-docs.yaml
+    line: null
+    message: "broken ref: spec:provider-sign-in#REQ-006"

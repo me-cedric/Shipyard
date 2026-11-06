@@ -2,9 +2,9 @@ name: Shipyard
 key: SHIP
 paths:
   decisions: docs/decisions
+  handbook: docs/guide
   questions: docs/delivery/questions
   specs: docs/openspec
-  handbook: docs/guide
 defaultWorkflow: feature
 gates:
   - pnpm lint
@@ -60,3 +60,6 @@ docs:
       - crates/shipyard-forges/src/**
     feeds:
       - docs/flows
+connections:
+  tracker: github-com-gh-2
+  forge: github-com-gh

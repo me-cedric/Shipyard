@@ -1,0 +1,7 @@
+kind: check
+name: pnpm run test
+at: 2026-11-05T19:35:38Z
+passed: true
+durationMs: 75471
+tail: "\e[2m            \e[22m \e[2mat least ~13.59s faster with \e[22m\e[33misolate: false\e[39m\e[2m — reuses workers across files instead of one per file\e[22m"
+findings: []
