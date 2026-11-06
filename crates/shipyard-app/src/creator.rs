@@ -533,7 +533,13 @@ pub fn create(s: &AppState, p: &NewProject, click: bool) -> Res<CreatorResult> {
 /// Starts the bootstrap run of the active project after a click (REQ-013). The run ends with a
 /// pull request, so it needs a code host connection (Q-156). Returns the run id.
 pub fn bootstrap(s: &AppState, click: bool) -> Res<String> {
-    crate::work::need_click(s, click)?;
+    crate::work::need_click(
+        s,
+        click,
+        shipyard_core::rights::Right::RunsStart,
+        "creator_bootstrap",
+        "",
+    )?;
     let a = crate::commands::sync::active(s)?.ok_or("no project is open")?;
     if a.forge.is_none() {
         return Err("the project names no code host connection".into());
