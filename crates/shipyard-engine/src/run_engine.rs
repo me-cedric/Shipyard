@@ -637,6 +637,18 @@ impl Factory {
             return Err("the added budget must be a positive number".into());
         }
         inner.run(run_id)?;
+        // A resume takes the limits that the workflow has now: a budget or a turn limit that a
+        // person removed from the workflow file no longer stops the run.
+        let wf_id = inner.rec(run_id).wf.id.clone();
+        if let Some(now) = inner
+            .project_of(run_id)
+            .and_then(|p| p.files.workflow(&wf_id))
+            .map(|w| w.limits)
+        {
+            let limits = &mut inner.rec(run_id).wf.limits;
+            limits.budget_usd = now.budget_usd;
+            limits.max_turns = now.max_turns;
+        }
         inner.rec(run_id).extra_usd += add_usd;
         inner.rec(run_id).extra_tokens += add_tokens;
         // A run paused at its max turns gets one more set of turns.

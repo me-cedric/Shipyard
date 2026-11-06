@@ -108,7 +108,7 @@ export function useRunActions() {
 			start: (key: string) => run(commands.runStart(key)),
 			cancel: (id: string) => run(commands.runCancel(id)),
 			resume: (id: string, addUsd: number | null, note?: string) =>
-				run(commands.runResume(id, addUsd, 0, note?.trim() || null)),
+				run(commands.runResume(id, addUsd ?? 0, 0, note?.trim() || null)),
 			unblock: (id: string, note?: string) => run(commands.runUnblock(id, note?.trim() || null)),
 			closeDone: (id: string) => run(commands.runCloseDone(id)),
 			planApprove: (id: string) => run(commands.runPlanApprove(id)),

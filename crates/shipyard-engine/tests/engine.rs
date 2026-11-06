@@ -516,3 +516,23 @@ fn a_ticket_with_an_active_run_starts_no_second_run() {
     fx.f.cancel(&run).unwrap();
     fx.f.start(&request("SHIP-1")).unwrap();
 }
+
+#[test]
+fn a_resume_takes_the_limits_that_the_workflow_has_now() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    fx.event("work", AgentEvent::Session { id: "s-1".into() });
+    fx.event("work", usage(1.0));
+    // The run started with a budget of 1 USD: it pauses at 1 USD.
+    assert_eq!(fx.state(&run), RunState::Paused);
+    // A person removes the budget from the workflow file: a resume with no added money goes on.
+    fx.f.set_project(
+        "ship",
+        fx.project(|p| {
+            if let Some(wf) = p.files.workflows.get_mut("one") {
+                wf.limits.budget_usd = None;
+            }
+        }),
+    );
+    assert_eq!(fx.f.resume(&run, 0.0), Ok(RunState::Working));
+}

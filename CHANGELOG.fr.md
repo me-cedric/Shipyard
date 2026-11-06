@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.1.0]
+- Reprendre applique les limites actuelles du workflow : un budget retiré n’arrête plus une exécution, et Reprendre sans montant fonctionne de nouveau.
 - L’app démarre sur tout Mac : libgit2 et OpenSSL sont intégrés à l’app, et non pris dans Homebrew ; le README montre les écrans actuels et comment installer une version publiée.
 - Travail / Équipe modifie le tableau des rôles : chaque rôle montre Masqué, Lecture ou Lecture et écriture dans chaque zone avec Fusion et Approbation, Modifier change les cellules en commandes (Enregistrer, Annuler et Remettre par défaut), un membre peut avoir plusieurs rôles avec les niveaux obtenus, et Travail / Temps modifie et supprime une saisie, avec l’état de synchronisation après le changement.
 - Les droits d'équipe marchent par zone : chaque rôle a aucun, lecture ou écriture dans Travail, Specs, Design, Connaissance, Code, Exécutions, Réglages et Coûts, un membre peut avoir plusieurs rôles (le niveau le plus haut gagne), et un bloc `roles:` dans `.shipyard/team.yaml` change la table pour l'équipe. Une zone à aucun quitte la barre latérale, les onglets et la palette, ses pages affichent Pas d'accès, et le serveur MCP Shipyard refuse ses outils de lecture ; Réglages reste pour un admin, et le dernier admin garde l'indicateur admin.
