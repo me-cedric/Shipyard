@@ -282,13 +282,17 @@ function MarkdownThumb({ path }: { path: string }) {
 	const first = (deck?.slides[0] ?? "").split("\n").filter((l) => l.trim());
 	const head = first.find((l) => l.startsWith("#"))?.replace(/^#+\s*/, "") ?? deck?.title ?? "";
 	const rest = first.filter((l) => !l.startsWith("#")).slice(0, 3);
+	// Both colours or none: a background with no text colour leaves token text on the deck
+	// background (light grey on white in the dark theme). Each line gets the colour too.
+	const themed = theme?.background && theme.text ? theme : undefined;
+	const ink = themed ? { color: themed.text } : undefined;
 	return (
 		<span
 			// Token colours until the deck theme loads: the face never shows text on an unknown background.
-			className="relative flex aspect-video flex-col justify-center gap-1.5 overflow-hidden rounded-md border bg-surface-1 px-4 text-n-12 shadow-1"
+			className="@container relative flex aspect-video flex-col justify-center gap-1.5 overflow-hidden rounded-md border bg-surface-1 px-4 text-n-12 shadow-1"
 			style={
-				theme
-					? { background: theme.background, color: theme.text, fontFamily: theme.font }
+				themed
+					? { background: themed.background, color: themed.text, fontFamily: themed.font }
 					: undefined
 			}
 		>
@@ -296,9 +300,21 @@ function MarkdownThumb({ path }: { path: string }) {
 				className="absolute inset-x-0 top-0 h-1"
 				style={{ background: theme?.accent ?? "var(--accent)" }}
 			/>
-			<span className="truncate text-16 font-semibold">{head}</span>
-			{rest.map((l) => (
-				<span key={l} className="truncate text-11">
+			<span className="truncate text-16 font-semibold" style={ink}>
+				{head}
+			</span>
+			{/* The lines show only where the face holds them: a centred line that overflows the face
+			    sits on the page background (axe color-contrast). */}
+			{rest.map((l, i) => (
+				<span
+					key={l}
+					className={
+						i === 0
+							? "hidden truncate text-11 @[13rem]:block"
+							: "hidden truncate text-11 @[17rem]:block"
+					}
+					style={ink}
+				>
 					{l.replace(/^[-*]\s*/, "")}
 				</span>
 			))}
