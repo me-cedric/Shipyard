@@ -17,6 +17,15 @@ export const commands = {
 	themeRemove: (id: string) => typedError<ThemeFile_Serialize[], AppError_Serialize>(__TAURI_INVOKE("theme_remove", { id })),
 	/**  Write a theme file at the path of the save dialog (REQ-007). */
 	themeExport: (path: string, theme: ThemeFile_Deserialize) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("theme_export", { path, theme })),
+	/**  The language packs of the library (spec `languages`). */
+	languageList: () => typedError<LanguagePack[], AppError_Serialize>(__TAURI_INVOKE("language_list")),
+	/**  Read and check a language file. The view checks the keys before Add. Nothing is saved (REQ-005). */
+	languageRead: (path: string) => typedError<LanguagePack, AppError_Serialize>(__TAURI_INVOKE("language_read", { path })),
+	/**  Add a language pack to the library. A pack with the same code is replaced. */
+	languageAdd: (pack: LanguagePack) => typedError<LanguagePack[], AppError_Serialize>(__TAURI_INVOKE("language_add", { pack })),
+	languageRemove: (code: string) => typedError<LanguagePack[], AppError_Serialize>(__TAURI_INVOKE("language_remove", { code })),
+	/**  Write a language file at the path of the save dialog: the English base as a start (REQ-007). */
+	languageExport: (path: string, pack: LanguagePack) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("language_export", { path, pack })),
 	refsParse: (text: string) => __TAURI_INVOKE<ParsedRef | null>("refs_parse", { text }),
 	refsResolve: (text: string) => typedError<Resolved_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("refs_resolve", { text })),
 	refsBacklinks: (text: string) => typedError<BacklinkGroup_Serialize[], AppError_Serialize>(__TAURI_INVOKE("refs_backlinks", { text })),
@@ -2665,7 +2674,18 @@ export type Kind = "epic" | "story";
 /**  The six lanes of Factory / Runs, in order. */
 export type Lane = "queued" | "working" | "needs_you" | "in_review" | "ready_to_merge" | "done";
 
-export type Lang = "en" | "fr";
+export type Lang = "en" | "fr" | "de" | "es";
+
+export type LanguagePack = {
+	/**  The format version: [`FORMAT`]. */
+	shipyardLanguage: number,
+	/**  A language tag such as `pt` or `pt-BR`. The file name in the library. */
+	code: string,
+	/**  The name of the language in that language, such as `Português`. */
+	name: string,
+	/**  A message key such as `common.close` to its text. A key that is not here shows in English. */
+	messages: { [key in string]: string },
+};
 
 export type Learn = {
 	path: LearnStep[],
@@ -3487,6 +3507,10 @@ export type PluginApplied = {
 	themesAdded: string[],
 	/**  `<id>: <reason>`. A different theme with the same id stays in the library. */
 	themesFailed: string[],
+	/**  The names of the language packs that went to the language library. */
+	languagesAdded: string[],
+	/**  `<code>: <reason>`. A different pack with the same code stays in the library. */
+	languagesFailed: string[],
 };
 
 /**  What an item does against the applied version of the plugin (REQ-014). */
@@ -3528,10 +3552,10 @@ export type PluginInstalled_Serialize = {
 
 export type PluginItem = PluginItem_Serialize | PluginItem_Deserialize;
 
-export type PluginItemKind = "file" | "setting" | "mcp" | "theme";
+export type PluginItemKind = "file" | "setting" | "mcp" | "theme" | "language";
 
 export type PluginItem_Deserialize = {
-	/**  `file:<target>`, `setting:<key>`, `mcp:<name>`, `theme:<id>`. */
+	/**  `file:<target>`, `setting:<key>`, `mcp:<name>`, `theme:<id>`, `language:<code>`. */
 	id: string,
 	kind: PluginItemKind,
 	label: string,
@@ -3543,7 +3567,7 @@ export type PluginItem_Deserialize = {
 };
 
 export type PluginItem_Serialize = {
-	/**  `file:<target>`, `setting:<key>`, `mcp:<name>`, `theme:<id>`. */
+	/**  `file:<target>`, `setting:<key>`, `mcp:<name>`, `theme:<id>`, `language:<code>`. */
 	id: string,
 	kind: PluginItemKind,
 	label: string,
@@ -3708,6 +3732,7 @@ export type PrefsPatch_Deserialize = {
 	focusWidth?: number | null,
 	tourSeen?: boolean | null,
 	customTheme?: string | null,
+	langPack?: string | null,
 };
 
 export type PrefsPatch_Serialize = {
@@ -3754,6 +3779,7 @@ export type PrefsPatch_Serialize = {
 	focusWidth: number | null,
 	tourSeen: boolean | null,
 	customTheme: string | null,
+	langPack: string | null,
 };
 
 export type Prefs_Deserialize = {
@@ -3843,6 +3869,8 @@ export type Prefs_Deserialize = {
 	permissionsAsked?: string[],
 	/**  The id of the theme of the library that applies over `theme`. Empty: none (spec `themes`). */
 	customTheme?: string,
+	/**  The code of the language pack that applies over `lang`. Empty: none (spec `languages`). */
+	langPack?: string,
 };
 
 export type Prefs_Serialize = {
@@ -3932,6 +3960,8 @@ export type Prefs_Serialize = {
 	permissionsAsked: string[],
 	/**  The id of the theme of the library that applies over `theme`. Empty: none (spec `themes`). */
 	customTheme: string,
+	/**  The code of the language pack that applies over `lang`. Empty: none (spec `languages`). */
+	langPack: string,
 };
 
 export type Preview = Preview_Serialize | Preview_Deserialize;

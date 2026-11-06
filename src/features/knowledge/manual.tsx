@@ -14,8 +14,8 @@ const RAW = import.meta.glob("/docs/guide/*.md", {
 	import: "default",
 	eager: true,
 }) as Record<string, string>;
-// The French pages have the same file names in `docs/guide/fr/`.
-const RAW_FR = import.meta.glob("/docs/guide/fr/*.md", {
+// The pages of another language have the same file names in `docs/guide/<lang>/`.
+const RAW_LANG = import.meta.glob("/docs/guide/*/*.md", {
 	query: "?raw",
 	import: "default",
 	eager: true,
@@ -38,12 +38,10 @@ const ORDER = [
 
 export type ManualPage = { id: string; title: string; text: string };
 
-/** The pages in a language. A page with no French file keeps its English text. */
+/** The pages in a language. A page with no file in that language keeps its English text. */
 export const manualFor = (lang: Lang): ManualPage[] =>
 	ORDER.flatMap((id) => {
-		const text =
-			(lang === "fr" ? RAW_FR[`/docs/guide/fr/${id}.md`] : undefined) ??
-			RAW[`/docs/guide/${id}.md`];
+		const text = RAW_LANG[`/docs/guide/${lang}/${id}.md`] ?? RAW[`/docs/guide/${id}.md`];
 		if (!text) return [];
 		const title = /^#\s+(.+)$/m.exec(text)?.[1] ?? id;
 		return [{ id, title, text }];

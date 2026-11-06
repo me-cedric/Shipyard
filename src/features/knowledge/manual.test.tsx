@@ -40,6 +40,18 @@ describe("Knowledge / Manual", () => {
 		expect(manualFor("en")).toEqual(MANUAL);
 	});
 
+	it("serves the German and Spanish start page, and English for a page with no translation (languages REQ-010)", () => {
+		for (const [lang, title] of [
+			["de", "Erste Schritte"],
+			["es", "Primeros pasos"],
+		] as const) {
+			const pages = manualFor(lang);
+			expect(pages.map((p) => p.id)).toEqual(MANUAL.map((p) => p.id));
+			expect(pages[0]?.title).toBe(title);
+			expect(pages.find((p) => p.id === "code")).toEqual(MANUAL.find((p) => p.id === "code"));
+		}
+	});
+
 	it("serves the page in the language of the interface", async () => {
 		await unwrap(commands.prefsSet({ lang: "fr" }));
 		mountApp("/knowledge/manual");

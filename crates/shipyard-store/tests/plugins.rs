@@ -483,3 +483,27 @@ fn a_theme_is_an_item_for_the_library_and_a_bad_theme_is_refused() {
         "{e}"
     );
 }
+
+#[test]
+fn a_language_pack_is_an_item_for_the_library_and_a_bad_pack_is_refused() {
+    let pack = r#"{"shipyardLanguage":1,"code":"pt","name":"Português","messages":{"common.close":"Fechar"}}"#;
+    let m = r#"{"name":"x","version":"1","languages":["pt"]}"#;
+    let p = plain(m, &[("files/languages/pt.json", pack)]).unwrap();
+    assert!(p.files.is_empty());
+    let d = tempfile::tempdir().unwrap();
+    let r = review(d.path(), &p);
+    let item = r.items.iter().find(|i| i.id == "language:pt").unwrap();
+    assert_eq!(item.label, "Português");
+    assert!(apply(d.path(), &p, &[]).unwrap().languages.is_empty());
+    let a = apply(d.path(), &p, &["language:pt".into()]).unwrap();
+    assert_eq!(a.languages.len(), 1);
+    assert_eq!(a.report.written.len(), 0);
+    assert_eq!(review(d.path(), &p).items[0].change, Change::Same);
+
+    let bad = r#"{"shipyardLanguage":1,"code":"pt","name":"Português","messages":{"a":{"b":"<script>"}}}"#;
+    let e = plain(m, &[("files/languages/pt.json", bad)]).unwrap_err();
+    assert!(e.contains("files/languages/pt.json"), "{e}");
+    let wrong = r#"{"shipyardLanguage":1,"code":"pt-BR","name":"Português","messages":{}}"#;
+    let e = plain(m, &[("files/languages/pt.json", wrong)]).unwrap_err();
+    assert!(e.contains("code: use pt"), "{e}");
+}

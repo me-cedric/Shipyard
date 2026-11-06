@@ -62,6 +62,8 @@ pub enum Role {
 pub enum Lang {
     En,
     Fr,
+    De,
+    Es,
 }
 
 /// The side of the window that the assistant panel sits on (spec `assistant`, REQ-025).
@@ -273,6 +275,9 @@ pub struct Prefs {
     /// The id of the theme of the library that applies over `theme`. Empty: none (spec `themes`).
     #[serde(default)]
     pub custom_theme: String,
+    /// The code of the language pack that applies over `lang`. Empty: none (spec `languages`).
+    #[serde(default)]
+    pub lang_pack: String,
 }
 
 pub const DATE_FORMATS: [&str; 3] = ["iso", "dmy", "mdy"];
@@ -359,6 +364,7 @@ impl Default for Prefs {
             tour_seen: false,
             permissions_asked: Vec::new(),
             custom_theme: String::new(),
+            lang_pack: String::new(),
         }
     }
 }
@@ -409,6 +415,7 @@ pub struct PrefsPatch {
     pub focus_width: Option<u8>,
     pub tour_seen: Option<bool>,
     pub custom_theme: Option<String>,
+    pub lang_pack: Option<String>,
 }
 
 const FILE: &str = "prefs.json";
@@ -497,7 +504,7 @@ impl Prefs {
         self.auto_update_check = p.auto_update_check.unwrap_or(self.auto_update_check);
         // Only a known value stays. An unknown one goes back to the default.
         if let Some(v) = p.prompt_lang {
-            self.prompt_lang = if matches!(v.as_str(), "en" | "fr") {
+            self.prompt_lang = if matches!(v.as_str(), "en" | "fr" | "de" | "es") {
                 v
             } else {
                 String::new()
@@ -540,6 +547,14 @@ impl Prefs {
                 .chars()
                 .filter(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '-')
                 .take(40)
+                .collect();
+        }
+        // A code is letters, digits and `-`, as the file name in the language library.
+        if let Some(v) = p.lang_pack {
+            self.lang_pack = v
+                .chars()
+                .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+                .take(20)
                 .collect();
         }
         if let Some(n) = p.ui_scale {
@@ -629,6 +644,23 @@ mod tests {
         assert_eq!(
             (p.theme, p.custom_theme.as_str()),
             (Theme::Oled, "arbor-nightx")
+        );
+    }
+
+    #[test]
+    fn german_spanish_and_a_language_pack_code_round_trip() {
+        let l: Vec<Lang> = serde_json::from_str(r#"["de","es"]"#).unwrap();
+        assert_eq!(l, [Lang::De, Lang::Es]);
+        let mut p = Prefs::default();
+        p.apply(PrefsPatch {
+            lang: Some(Lang::De),
+            lang_pack: Some("pt-BR/../x".into()),
+            prompt_lang: Some("es".into()),
+            ..Default::default()
+        });
+        assert_eq!(
+            (p.lang, p.lang_pack.as_str(), p.prompt_lang.as_str()),
+            (Some(Lang::De), "pt-BRx", "es")
         );
     }
 

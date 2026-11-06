@@ -182,6 +182,15 @@
         "spec:workflow-editor"
       ],
       "file": "docs/assets/screenshots/workflows.png"
+    },
+    {
+      "id": "SCR-024",
+      "slug": "settings-me-languages",
+      "title": "Settings / Me: the Language select (English, French, German, Spanish, imported languages), Language files with Import language and Export English, the Mark untranslated text switch when a language file is current, a row for each imported language with Remove, and the import dialog",
+      "artifacts": [
+        "spec:languages",
+        "adr:0021"
+      ]
     }
   ]
 }

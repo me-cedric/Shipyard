@@ -73,6 +73,24 @@ const NOUN = {
 		file: ["ce fichier", "les fichiers de ce projet"],
 		diagram: ["ce diagramme", "les diagrammes de ce projet"],
 	},
+	de: {
+		decision: ["diese Entscheidung", "die Entscheidungen dieses Projekts"],
+		spec: ["diese Spezifikation", "die Spezifikationen dieses Projekts"],
+		workItem: ["dieses Arbeitselement", "die Arbeitselemente dieses Projekts"],
+		run: ["diesen Lauf", "die Läufe dieses Projekts"],
+		pullRequest: ["diesen Pull Request", "die Pull Requests dieses Projekts"],
+		file: ["diese Datei", "die Dateien dieses Projekts"],
+		diagram: ["dieses Diagramm", "die Diagramme dieses Projekts"],
+	},
+	es: {
+		decision: ["esta decisión", "las decisiones de este proyecto"],
+		spec: ["esta especificación", "las especificaciones de este proyecto"],
+		workItem: ["este elemento de trabajo", "los elementos de trabajo de este proyecto"],
+		run: ["esta ejecución", "las ejecuciones de este proyecto"],
+		pullRequest: ["esta pull request", "las pull requests de este proyecto"],
+		file: ["este archivo", "los archivos de este proyecto"],
+		diagram: ["este diagrama", "los diagramas de este proyecto"],
+	},
 } as const;
 
 const TEXT = {
@@ -91,6 +109,22 @@ const TEXT = {
 		improve: "Propose des améliorations pour {what}. Montre chaque changement et dis pourquoi.",
 		tests: "Donne des idées de tests pour {what} : les cas qui comptent et les cas limites.",
 		risks: "Liste les risques de {what} et comment réduire chacun.",
+	},
+	de: {
+		explain:
+			"Erkläre {what}: was es ist, warum es existiert und wie es mit dem Rest des Projekts zusammenhängt.",
+		review: "Prüfe {what}. Liste auf, was unklar, falsch oder fehlend ist, das Wichtigste zuerst.",
+		improve: "Schlage Verbesserungen für {what} vor. Zeige jede Änderung und sage, warum.",
+		tests: "Nenne Testideen für {what}: die wichtigen Fälle und die Grenzfälle.",
+		risks: "Liste die Risiken von {what} auf und wie sich jedes verringern lässt.",
+	},
+	es: {
+		explain: "Explica {what}: qué es, por qué existe y cómo se conecta con el resto del proyecto.",
+		review:
+			"Revisa {what}. Enumera lo que no está claro, es incorrecto o falta, lo más grave primero.",
+		improve: "Propón mejoras para {what}. Muestra cada cambio y explica por qué.",
+		tests: "Da ideas de pruebas para {what}: los casos que importan y los casos límite.",
+		risks: "Enumera los riesgos de {what} y cómo reducir cada uno.",
 	},
 } as const;
 

@@ -1,11 +1,13 @@
 import type { ActionKind, ErrorAction, ErrorCode, Lang } from "@/lib/ipc/bindings";
+import { actionsDe, errorsDe } from "./de/errors";
+import { actionsEs, errorsEs } from "./es/errors";
 
 /**
  * The messages of the error contract. Each code that Rust returns (`crates/shipyard-app/src/errors.rs`)
  * has one plain sentence in each language. `unknown` has none: the view shows the details.
  * A new code fails the build here until it has both sentences.
  */
-type Known = Exclude<ErrorCode, "unknown">;
+export type Known = Exclude<ErrorCode, "unknown">;
 
 export const errorMessages: Record<Lang, Record<Known, string>> = {
 	en: {
@@ -204,6 +206,8 @@ export const errorMessages: Record<Lang, Record<Known, string>> = {
 		git_dirty:
 			"Des modifications ne sont pas enregistrées dans un commit. Validez-les ou mettez-les de côté, puis réessayez.",
 	},
+	de: errorsDe,
+	es: errorsEs,
 };
 
 /** The label of the action button of each kind. */
@@ -222,6 +226,8 @@ export const actionLabels: Record<Lang, Record<ActionKind, string>> = {
 		create_project: "Créer un projet",
 		open: "Ouvrir",
 	},
+	de: actionsDe,
+	es: actionsEs,
 };
 
 /**
@@ -476,16 +482,24 @@ export function classify(text: string): { code: ErrorCode; action: ErrorAction |
 	return { code, action: ACTIONS[code] ?? null };
 }
 
-const languageOf = (): Lang => (document.documentElement.lang === "fr" ? "fr" : "en");
+const BUILT_IN: Lang[] = ["en", "fr", "de", "es"];
+const languageOf = (): Lang => BUILT_IN.find((l) => l === document.documentElement.lang) ?? "en";
+
+/** The sentences of the current language pack. They win over the built-in ones (spec `languages`). */
+let pack: { errors: Partial<Record<Known, string>>; actions: Partial<Record<ActionKind, string>> } =
+	{ errors: {}, actions: {} };
+export const setErrorPack = (next: typeof pack) => {
+	pack = next;
+};
 
 export type ErrorParts = { code: ErrorCode; details: string; action: ErrorAction | null };
 
 /** The sentence of an error in a language. A code with no sentence gives its details. A failed program adds its output tail. */
 export function errorMessage(e: ErrorParts, lang: Lang = languageOf()): string {
 	if (e.code === "unknown") return e.details;
-	const sentence = errorMessages[lang][e.code];
+	const sentence = pack.errors[e.code] ?? errorMessages[lang][e.code];
 	return e.code === "tool_failed" ? `${sentence} ${e.details}` : sentence;
 }
 
 export const actionLabel = (a: ErrorAction, lang: Lang = languageOf()) =>
-	actionLabels[lang][a.kind];
+	pack.actions[a.kind] ?? actionLabels[lang][a.kind];

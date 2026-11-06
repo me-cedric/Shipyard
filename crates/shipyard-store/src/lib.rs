@@ -18,6 +18,7 @@ pub mod factory_files;
 pub mod fig_view;
 pub mod fold;
 pub mod knowledge;
+pub mod languages;
 pub mod learning;
 pub mod madr;
 pub mod mirror;

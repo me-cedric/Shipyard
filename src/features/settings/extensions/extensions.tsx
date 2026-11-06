@@ -159,7 +159,7 @@ function ChildDetail({ id }: { id: string }) {
  * deploy of an applied plugin, and the child projects.
  */
 export function Extensions() {
-	const { t } = useI18n();
+	const { t, setPacks } = useI18n();
 	const { gate } = useRights();
 	const x = t.extensions;
 	const qc = useQueryClient();
@@ -457,6 +457,7 @@ export function Extensions() {
 										await qc.invalidateQueries({ queryKey: ["catalog"] });
 										await qc.invalidateQueries({ queryKey: ["plugins"] });
 										await qc.invalidateQueries({ queryKey: ["themes"] });
+										setPacks(await unwrap(commands.languageList()));
 										await refresh();
 									})
 								}
@@ -481,6 +482,18 @@ export function Extensions() {
 							{applied.themesFailed.length ? (
 								<p role="alert" className="px-3 text-12 text-danger-text">
 									{format(x.plugin.themesFailed, { names: applied.themesFailed.join(", ") })}
+								</p>
+							) : null}
+							{applied.languagesAdded.length ? (
+								<p role="status" className="px-3 text-12 text-n-11">
+									{format(x.plugin.languages, { names: applied.languagesAdded.join(", ") })}
+								</p>
+							) : null}
+							{applied.languagesFailed.length ? (
+								<p role="alert" className="px-3 text-12 text-danger-text">
+									{format(x.plugin.languagesFailed, {
+										names: applied.languagesFailed.join(", "),
+									})}
 								</p>
 							) : null}
 							{applied.mcpFailed.length ? (

@@ -1,0 +1,52 @@
+import type { doctorEn } from "../doctor";
+
+export const doctorEs: typeof doctorEn = {
+	bootstrap: {
+		title: "Arranque",
+		name: "Nombre",
+		key: "Clave",
+		summary: "Resumen",
+		stack: "Stack",
+		agent: "Agente",
+		stacks: { rust: "Rust", node: "Node", python: "Python", other: "Otro" },
+		files: "Archivos",
+		tools: "Herramientas",
+		fileNew: "Nuevo",
+		fileKept: "Conservado",
+		create: "Crear archivos",
+		created: "{count} archivos creados",
+	},
+	skills: {
+		title: "Skills",
+		applied: "Aplicada",
+		stale: "Desactualizada",
+		missing: "Falta",
+		apply: "Aplicar {name}",
+		upgrade: "Actualizar {name}",
+	},
+	propagate: {
+		title: "Proyectos vinculados",
+		held: "{held} de {total}",
+		action: "Propagar a {name}",
+		done: "Propagado a {name}",
+	},
+	feedback: {
+		title: "Comentarios",
+		kind: "Tipo",
+		bug: "Bug",
+		idea: "Idea",
+		subject: "Título",
+		details: "Detalles",
+		open: "Abrir en GitHub",
+	},
+	console: {
+		title: "Consola de depuración",
+		level: "Nivel",
+		all: "Todos",
+		info: "Info",
+		warn: "Aviso",
+		error: "Error",
+		copy: "Copiar registro",
+	},
+	attach: { add: "Adjuntar archivo", remove: "Quitar {name}" },
+};

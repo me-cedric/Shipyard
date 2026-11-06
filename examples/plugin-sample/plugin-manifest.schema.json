@@ -60,6 +60,11 @@
 			"type": "array",
 			"items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }
 		},
+		"languages": {
+			"description": "Language codes. files/languages/<code>.json goes to the language library of the machine (ADR 0021).",
+			"type": "array",
+			"items": { "type": "string", "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$" }
+		},
 		"mcpServers": {
 			"description": "Remote servers only. A header value is a ${VAR} reference.",
 			"type": "object",

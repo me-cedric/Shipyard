@@ -8,6 +8,7 @@ import type {
 	ConnectionKind,
 	commands,
 	Finding_Serialize,
+	LanguagePack,
 	OsPermission,
 	Overrides_Serialize,
 	Prefs_Serialize,
@@ -86,6 +87,7 @@ import * as xt from "./mock-extras";
 import * as fx from "./mock-factory";
 import * as fl from "./mock-feedback-log";
 import * as kw from "./mock-knowledge";
+import * as lg from "./mock-languages";
 import * as lrn from "./mock-learning";
 import * as mc from "./mock-machine";
 import * as mt from "./mock-mcp-tools";
@@ -149,6 +151,9 @@ type State = {
 	/** The theme library, and the theme files that an export wrote, by path. */
 	themes: ThemeFile_Serialize[];
 	exportedThemes: Record<string, ThemeFile_Serialize>;
+	/** The language library, and the language files that an export wrote, by path. */
+	languages: LanguagePack[];
+	exportedLanguages: Record<string, LanguagePack>;
 	/** The git e-mail of the person, for the profile assignment. */
 	email?: string | null;
 	/** The person of `rightsGet`. Without it the team file decides: no admin gives each right. */
@@ -290,6 +295,7 @@ const fresh = (): State => ({
 		tourSeen: true,
 		permissionsAsked: [],
 		customTheme: "",
+		langPack: "",
 	},
 	projects: [],
 	files: {},
@@ -313,6 +319,8 @@ const fresh = (): State => ({
 	extensions: ex.seedExtensions(),
 	themes: [],
 	exportedThemes: {},
+	languages: [],
+	exportedLanguages: {},
 	delivery: dv.seedDelivery(),
 	deliveryActions: deliveryActions.seedDeliveryActions(),
 	os: [],
@@ -932,7 +940,7 @@ const handlers: Handlers = {
 		if (![2, 3].includes(state.prefs.focusWidth)) state.prefs.focusWidth = 2;
 		// An app id is a-z, 0-9 and `-`.
 		state.prefs.terminalApp = state.prefs.terminalApp.trim().replace(/[^a-z0-9-]/g, "");
-		if (!["en", "fr"].includes(state.prefs.promptLang)) state.prefs.promptLang = "";
+		if (!["en", "fr", "de", "es"].includes(state.prefs.promptLang)) state.prefs.promptLang = "";
 		if (!["excalidraw", "mermaid", "drawio", "bpmn"].includes(state.prefs.diagramFormat))
 			state.prefs.diagramFormat = "";
 		// An empty chord resets its action.
@@ -1791,6 +1799,8 @@ const handlers: Handlers = {
 		const done = ex.pluginApply(need(state.extensions), path, accepted);
 		for (const id of accepted.filter((a) => a.startsWith("theme:")))
 			state.themes = th.themeAdd(state.themes, { ...th.SAMPLE_THEME, id: id.slice(6) });
+		for (const id of accepted.filter((a) => a.startsWith("language:")))
+			state.languages = lg.languageAdd(state.languages, { ...lg.SAMPLE_PACK, code: id.slice(9) });
 		return done;
 	},
 	themeList: () => state.themes,
@@ -1804,6 +1814,17 @@ const handlers: Handlers = {
 		return state.themes;
 	},
 	themeExport: (path, theme) => th.themeExport(state.exportedThemes, path, theme),
+	languageList: () => state.languages,
+	languageRead: (path) => lg.languageRead(path),
+	languageAdd: (pack) => {
+		state.languages = lg.languageAdd(state.languages, pack);
+		return state.languages;
+	},
+	languageRemove: (code) => {
+		state.languages = state.languages.filter((p) => p.code !== code);
+		return state.languages;
+	},
+	languageExport: (path, pack) => lg.languageExport(state.exportedLanguages, path, pack),
 	pluginNew: (parent, click) => ex.pluginNew(parent, click),
 	pluginPackage: (dir, dest, click) => ex.pluginPackage(need(state.extensions), dir, dest, click),
 	pluginOpenLine: (dir, line) => ex.pluginOpenLine(need(state.extensions), dir, line),

@@ -11,6 +11,7 @@ pub mod gherkin;
 pub mod health;
 pub mod holidays;
 pub mod knowledge;
+pub mod language;
 pub mod pickup;
 pub mod project;
 pub mod question;

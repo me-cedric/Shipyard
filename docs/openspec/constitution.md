@@ -25,7 +25,7 @@ Source: the owner's brief of 2026-10-29 and the principles kept in `docs/plan/MA
 1. No taglines, no helper text, no secondary labels. When a screen needs them, the layout changes.
 2. Components come from `src/ui/` atomic layers. A page does not define a new primitive.
 3. Accessibility basics are mandatory: keyboard path, focus ring, labels for assistive technology, contrast, reduced motion.
-4. French and English ship together.
+4. English, French, German and Spanish ship together, each complete. A language pack adds another language (ADR 0021).
 
 ## 5. Agents
 

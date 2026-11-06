@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { usePermissionSection } from "@/features/onboarding";
-import { useI18n } from "@/lib/i18n";
+import { LANGS, useI18n } from "@/lib/i18n";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import {
@@ -32,6 +32,7 @@ import {
 import { PageHeader } from "@/ui/molecules/page-header";
 import { SectionNav } from "@/ui/molecules/section-nav";
 import { Settings } from "@/ui/templates/settings";
+import { LanguageSelect, useLanguageRows } from "./languages";
 import { useLookRows } from "./look-rows";
 import { usePersonalSections } from "./me/personal";
 import { ThemeSelect, useThemeRows } from "./themes";
@@ -128,7 +129,7 @@ function NotifySwitch({ source }: { source: EventSource }) {
 }
 
 export function Me() {
-	const { t, lang, setLang } = useI18n();
+	const { t } = useI18n();
 	const {
 		density,
 		contrast,
@@ -151,6 +152,7 @@ export function Me() {
 		{ id: permissions.id, title: permissions.title },
 	].map((s) => ({ id: `section-${s.id}`, label: s.title, icon: SECTION_ICON[s.id] }));
 	const themeRows = useThemeRows();
+	const languageRows = useLanguageRows();
 	// The mark: the active project sets this value, and it replaces the one below.
 	const marked = (key: Overridable, control: React.ReactNode) => (
 		<span className="flex items-center gap-2">
@@ -181,18 +183,9 @@ export function Me() {
 									id: "language",
 									icon: <LanguageIcon size={14} />,
 									label: t.prefs.language,
-									control: (
-										<Select
-											label={t.prefs.language}
-											value={lang}
-											onValueChange={(v) => setLang(v === "fr" ? "fr" : "en")}
-											items={[
-												{ value: "en", label: t.lang.en },
-												{ value: "fr", label: t.lang.fr },
-											]}
-										/>
-									),
+									control: <LanguageSelect />,
 								},
+								...languageRows,
 								{
 									id: "prompt-lang",
 									icon: <LanguageIcon size={14} />,
@@ -204,8 +197,7 @@ export function Me() {
 											onValueChange={(v) => setPrefs({ promptLang: v === "follow" ? "" : v })}
 											items={[
 												{ value: "follow", label: t.prefs.promptFollow },
-												{ value: "en", label: t.lang.en },
-												{ value: "fr", label: t.lang.fr },
+												...LANGS.map((l) => ({ value: l, label: t.lang[l] })),
 											]}
 										/>
 									),

@@ -9,6 +9,7 @@ use std::path::Path;
 use ring::digest::{SHA256, digest};
 use serde::{Deserialize, Serialize};
 use shipyard_core::extensions::{WriteReport, safe_rel};
+use shipyard_core::language::LanguagePack;
 use shipyard_core::theme::ThemeFile;
 use specta::Type;
 
@@ -72,6 +73,9 @@ struct Manifest {
     /// Theme ids. `files/themes/<id>.json` goes to the theme library, not to the project.
     #[serde(default)]
     themes: Vec<String>,
+    /// Language codes. `files/languages/<code>.json` goes to the language library (spec `languages`).
+    #[serde(default)]
+    languages: Vec<String>,
 }
 
 /// A plugin that was read. Nothing of it is on disk.
@@ -89,6 +93,7 @@ pub struct Plugin {
     /// `(item id, reason)` of each server that was refused.
     pub refused: Vec<(String, String)>,
     pub themes: Vec<ThemeFile>,
+    pub languages: Vec<LanguagePack>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -99,6 +104,7 @@ pub enum ItemKind {
     Setting,
     Mcp,
     Theme,
+    Language,
 }
 
 /// What an item does against the applied version of the plugin (REQ-014).
@@ -116,7 +122,7 @@ pub enum Change {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename = "PluginItem")]
 pub struct Item {
-    /// `file:<target>`, `setting:<key>`, `mcp:<name>`, `theme:<id>`.
+    /// `file:<target>`, `setting:<key>`, `mcp:<name>`, `theme:<id>`, `language:<code>`.
     pub id: String,
     pub kind: ItemKind,
     pub label: String,
@@ -150,6 +156,8 @@ pub struct Applied {
     pub mcp: Vec<String>,
     #[serde(default)]
     pub themes: Vec<String>,
+    #[serde(default)]
+    pub languages: Vec<String>,
 }
 
 pub(crate) fn sha(b: &[u8]) -> String {
@@ -291,6 +299,22 @@ pub fn read(bytes: &[u8]) -> Result<Plugin> {
         owned.push(src);
         themes.push(t);
     }
+    // A language pack is data for the library: it passes the check of a pack file (spec `languages`, REQ-009).
+    let mut languages = Vec::new();
+    for n in &m.languages {
+        let src = format!("files/languages/{n}.json");
+        let Some(b) = payload.get(&src) else {
+            let why = format!("languages {n}: the archive does not hold {src}");
+            return Err(bad(&text, n, why).into());
+        };
+        let l = crate::languages::parse(&String::from_utf8_lossy(b))
+            .map_err(|e| format!("{src}: {}", e.replace('\n', "; ")))?;
+        if l.code != *n {
+            return Err(format!("{src}: code: use {n}, the name in the manifest").into());
+        }
+        owned.push(src);
+        languages.push(l);
+    }
     if !listed {
         entries.extend(
             payload
@@ -366,6 +390,7 @@ pub fn read(bytes: &[u8]) -> Result<Plugin> {
         mcp,
         refused,
         themes,
+        languages,
     })
 }
 
@@ -525,6 +550,16 @@ pub fn review(root: &Path, p: &Plugin) -> Review {
             preview: crate::themes::text(t).ok(),
         });
     }
+    for l in &p.languages {
+        items.push(Item {
+            id: format!("language:{}", l.code),
+            kind: ItemKind::Language,
+            label: l.name.clone(),
+            exists: false,
+            change: change(held.languages.contains(&l.code).then_some(true)),
+            preview: crate::languages::text(l).ok(),
+        });
+    }
     let gone = held
         .files
         .keys()
@@ -547,6 +582,12 @@ pub fn review(root: &Path, p: &Plugin) -> Review {
                 .iter()
                 .filter(|n| !p.themes.iter().any(|t| t.id == **n))
                 .map(|n| (format!("theme:{n}"), ItemKind::Theme, n)),
+        )
+        .chain(
+            held.languages
+                .iter()
+                .filter(|n| !p.languages.iter().any(|l| l.code == **n))
+                .map(|n| (format!("language:{n}"), ItemKind::Language, n)),
         );
     for (id, kind, label) in gone {
         items.push(Item {
@@ -567,13 +608,15 @@ pub fn review(root: &Path, p: &Plugin) -> Review {
     }
 }
 
-/// What an apply did. The caller hands `mcp` to connections and `themes` to the theme library.
+/// What an apply did. The caller hands `mcp` to connections, `themes` to the theme library and
+/// `languages` to the language library.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename = "PluginApplying")]
 pub struct Applying {
     pub report: WriteReport,
     pub mcp: Vec<(String, McpServer)>,
     pub themes: Vec<ThemeFile>,
+    pub languages: Vec<LanguagePack>,
 }
 
 /// Write the accepted items only. A file that exists is kept (the no-overwrite rule). The record
@@ -661,6 +704,16 @@ pub fn apply(root: &Path, p: &Plugin, accepted: &[String]) -> Result<Applying> {
     rec.themes.extend(themes.iter().map(|t| t.id.clone()));
     rec.themes.sort();
     rec.themes.dedup();
+    let languages: Vec<_> = p
+        .languages
+        .iter()
+        .filter(|l| take(format!("language:{}", l.code)))
+        .cloned()
+        .collect();
+    rec.languages
+        .extend(languages.iter().map(|l| l.code.clone()));
+    rec.languages.sort();
+    rec.languages.dedup();
     write_atomic(
         &root.join(RECORD),
         serde_json::to_string_pretty(&all)?.as_bytes(),
@@ -669,6 +722,7 @@ pub fn apply(root: &Path, p: &Plugin, accepted: &[String]) -> Result<Applying> {
         report,
         mcp,
         themes,
+        languages,
     })
 }
 

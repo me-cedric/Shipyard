@@ -150,6 +150,10 @@ pub struct PluginApplied {
     pub themes_added: Vec<String>,
     /// `<id>: <reason>`. A different theme with the same id stays in the library.
     pub themes_failed: Vec<String>,
+    /// The names of the language packs that went to the language library.
+    pub languages_added: Vec<String>,
+    /// `<code>: <reason>`. A different pack with the same code stays in the library.
+    pub languages_failed: Vec<String>,
 }
 
 /// Write the accepted items. An MCP server goes to connections as an address: a header value
@@ -192,12 +196,25 @@ pub async fn plugin_apply(
                 Err(e) => themes_failed.push(format!("{}: {e}", t.id)),
             }
         }
+        // A language pack goes to the library of the machine too (spec `languages`, REQ-009).
+        let (mut languages_added, mut languages_failed) = (Vec::new(), Vec::new());
+        for l in done.languages {
+            match shipyard_store::languages::save_new(&s.dir, &l) {
+                Ok(true) => languages_added.push(l.name),
+                Ok(false) => {
+                    languages_failed.push(format!("{}: a language with this code exists", l.code))
+                }
+                Err(e) => languages_failed.push(format!("{}: {e}", l.code)),
+            }
+        }
         Ok(PluginApplied {
             report: done.report,
             mcp_added,
             mcp_failed,
             themes_added,
             themes_failed,
+            languages_added,
+            languages_failed,
         })
     })
     .await

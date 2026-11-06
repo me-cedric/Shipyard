@@ -8,7 +8,7 @@ import {
 	PROMPT_KINDS,
 	pageItemType,
 } from "@/lib/assistant/prompts";
-import { type Lang, useI18n } from "@/lib/i18n";
+import { LANGS, type Lang, useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
@@ -18,7 +18,7 @@ import { ChatBubbleIcon } from "@/ui/icons";
 function usePromptLang(): Lang {
 	const { lang } = useI18n();
 	const { promptLang } = usePrefs();
-	return promptLang === "en" || promptLang === "fr" ? promptLang : lang;
+	return LANGS.find((l) => l === promptLang) ?? lang;
 }
 
 const popup =

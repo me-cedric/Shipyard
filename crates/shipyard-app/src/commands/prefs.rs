@@ -2,9 +2,10 @@
 
 use std::path::Path;
 
+use shipyard_core::language::LanguagePack;
 use shipyard_core::theme::ThemeFile;
 use shipyard_store::prefs::{Prefs, PrefsPatch};
-use shipyard_store::themes;
+use shipyard_store::{languages, themes};
 use tauri::AppHandle;
 
 use super::{Api, AppState, Res, blocking, err};
@@ -84,6 +85,54 @@ pub async fn theme_remove(app: AppHandle, id: String) -> Api<Vec<ThemeFile>> {
 pub async fn theme_export(app: AppHandle, path: String, theme: ThemeFile) -> Api<()> {
     blocking(app, move |_| {
         themes::export(Path::new(&path), &theme).map_err(err)
+    })
+    .await
+}
+
+/// The language packs of the library (spec `languages`).
+#[tauri::command]
+#[specta::specta]
+pub async fn language_list(app: AppHandle) -> Api<Vec<LanguagePack>> {
+    blocking(app, |s| Ok(languages::list(&s.dir))).await
+}
+
+/// Read and check a language file. The view checks the keys before Add. Nothing is saved (REQ-005).
+#[tauri::command]
+#[specta::specta]
+pub async fn language_read(app: AppHandle, path: String) -> Api<LanguagePack> {
+    blocking(app, move |_| {
+        languages::read_file(Path::new(&path)).map_err(err)
+    })
+    .await
+}
+
+/// Add a language pack to the library. A pack with the same code is replaced.
+#[tauri::command]
+#[specta::specta]
+pub async fn language_add(app: AppHandle, pack: LanguagePack) -> Api<Vec<LanguagePack>> {
+    blocking(app, move |s| {
+        languages::save(&s.dir, &pack).map_err(err)?;
+        Ok(languages::list(&s.dir))
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn language_remove(app: AppHandle, code: String) -> Api<Vec<LanguagePack>> {
+    blocking(app, move |s| {
+        languages::remove(&s.dir, &code).map_err(err)?;
+        Ok(languages::list(&s.dir))
+    })
+    .await
+}
+
+/// Write a language file at the path of the save dialog: the English base as a start (REQ-007).
+#[tauri::command]
+#[specta::specta]
+pub async fn language_export(app: AppHandle, path: String, pack: LanguagePack) -> Api<()> {
+    blocking(app, move |_| {
+        languages::export(Path::new(&path), &pack).map_err(err)
     })
     .await
 }

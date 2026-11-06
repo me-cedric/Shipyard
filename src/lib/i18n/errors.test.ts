@@ -102,7 +102,7 @@ describe("the error contract", () => {
 	});
 
 	it("does not ask a person to edit a file", () => {
-		for (const lang of ["en", "fr"] as const)
+		for (const lang of ["en", "fr", "de", "es"] as const)
 			for (const text of Object.values(errorMessages[lang])) expect(text).not.toMatch(/\.ya?ml/);
 	});
 });

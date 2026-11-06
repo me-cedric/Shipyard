@@ -60,6 +60,32 @@ const NOUN = {
 		flow: "ce flux",
 		item: "cet élément",
 	},
+	de: {
+		adr: "diese Entscheidung",
+		spec: "diese Spezifikation",
+		req: "diese Anforderung",
+		change: "diese Änderung",
+		q: "diese Frage",
+		doc: "diese Seite",
+		diagram: "dieses Diagramm",
+		model: "dieses Modell",
+		data: "diese Daten",
+		flow: "diesen Fluss",
+		item: "dieses Element",
+	},
+	es: {
+		adr: "esta decisión",
+		spec: "esta especificación",
+		req: "este requisito",
+		change: "este cambio",
+		q: "esta pregunta",
+		doc: "esta página",
+		diagram: "este diagrama",
+		model: "este modelo",
+		data: "estos datos",
+		flow: "este flujo",
+		item: "este elemento",
+	},
 } as const;
 
 const noun = (lang: Lang, ref: string) => {
@@ -82,6 +108,20 @@ const LABEL: Record<Lang, Text> = {
 		impact: () => "Quel est l'impact de ce changement ?",
 		tests: (w) => `Écrire le plan de test de ${w}`,
 		risks: (w) => `Lister les risques de ${w}`,
+	},
+	de: {
+		summary: (w) => `${w} zusammenfassen`,
+		explain: (w) => `${w} erklären`,
+		impact: () => "Was betrifft diese Änderung?",
+		tests: (w) => `Testplan für ${w} schreiben`,
+		risks: (w) => `Risiken von ${w} auflisten`,
+	},
+	es: {
+		summary: (w) => `Resumir ${w}`,
+		explain: (w) => `Explicar ${w}`,
+		impact: () => "¿Qué impacto tiene este cambio?",
+		tests: (w) => `Escribir el plan de pruebas de ${w}`,
+		risks: (w) => `Enumerar los riesgos de ${w}`,
 	},
 };
 const PROMPT: Record<Lang, Text> = {
@@ -106,6 +146,28 @@ const PROMPT: Record<Lang, Text> = {
 			`Écris le plan de test de ${w} : les cas qui comptent et les cas limites, en scénarios Given/When/Then.`,
 		risks: (w) => `Liste les risques de ${w} et comment réduire chacun.`,
 	},
+	de: {
+		summary: (w) =>
+			`Fasse ${w} in einfachen Worten zusammen, für jemanden, der nicht an der Diskussion teilgenommen hat.`,
+		explain: (w) =>
+			`Erkläre ${w}: was es ist, warum es existiert und wie es mit dem Rest des Projekts zusammenhängt.`,
+		impact: (w) =>
+			`Was betrifft eine Änderung an ${w}? Liste die Elemente auf, die davon abhängen, und sage, was jedes braucht.`,
+		tests: (w) =>
+			`Schreibe den Testplan für ${w}: die wichtigen Fälle und die Grenzfälle, als Given/When/Then-Szenarien.`,
+		risks: (w) => `Liste die Risiken von ${w} auf und wie sich jedes verringern lässt.`,
+	},
+	es: {
+		summary: (w) =>
+			`Resume ${w} con palabras sencillas, para alguien que no estuvo en la conversación.`,
+		explain: (w) =>
+			`Explica ${w}: qué es, por qué existe y cómo se conecta con el resto del proyecto.`,
+		impact: (w) =>
+			`¿Qué impacto tiene un cambio en ${w}? Enumera los elementos que dependen de ello y di qué necesita cada uno.`,
+		tests: (w) =>
+			`Escribe el plan de pruebas de ${w}: los casos que importan y los casos límite, como escenarios Given/When/Then.`,
+		risks: (w) => `Enumera los riesgos de ${w} y cómo reducir cada uno.`,
+	},
 };
 const CONTEXT = {
 	en: {
@@ -123,6 +185,22 @@ const CONTEXT = {
 		spec: "Spécification",
 		ticket: "Ticket",
 		links: "Cité par",
+	},
+	de: {
+		head: "Kontext",
+		ref: "Element",
+		path: "Datei",
+		spec: "Spezifikation",
+		ticket: "Ticket",
+		links: "Verwiesen von",
+	},
+	es: {
+		head: "Contexto",
+		ref: "Elemento",
+		path: "Archivo",
+		spec: "Especificación",
+		ticket: "Ticket",
+		links: "Citado por",
 	},
 };
 

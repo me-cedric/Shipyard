@@ -55,6 +55,21 @@ test("switches the language to French", async ({ page }) => {
 	).toBeVisible();
 });
 
+for (const [option, sidebar, home, lang] of [
+	["German", "Seitenleiste", "Start", "de"],
+	["Spanish", "Barra lateral", "Inicio", "es"],
+]) {
+	test(`switches the language to ${option}`, async ({ page }) => {
+		await page.goto("/settings/me");
+		await page.getByRole("combobox", { name: "Language", exact: true }).click();
+		await page.getByRole("option", { name: option }).click();
+		await expect(
+			page.getByRole("navigation", { name: sidebar }).getByRole("link", { name: home }),
+		).toBeVisible();
+		await expect(page.locator("html")).toHaveAttribute("lang", lang);
+	});
+}
+
 test("shows the not-found view in the release build for the gallery path", async ({ page }) => {
 	await page.goto("/dev/gallery");
 	await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();

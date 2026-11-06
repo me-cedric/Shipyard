@@ -3,7 +3,7 @@ import { type ComponentType, useEffect, useMemo } from "react";
 import { openManualFor } from "@/features/knowledge/manual-target";
 import { openTour } from "@/features/onboarding/tour-store";
 import { canCommit, useChanges, useCodeActions } from "@/lib/code";
-import { format, type Lang, useI18n } from "@/lib/i18n";
+import { format, LANGS, type Lang, useI18n } from "@/lib/i18n";
 import { commands, errorDialog, unwrap } from "@/lib/ipc";
 import { type Theme, usePrefs } from "@/lib/prefs";
 import { outcomeError, useActiveProject, useProjectActions } from "@/lib/projects";
@@ -343,7 +343,7 @@ export function useActions() {
 					run: () => setPrefs({ theme }),
 				}),
 			),
-			...(["en", "fr"] as const).map(
+			...LANGS.map(
 				(l: Lang): Action => ({
 					id: `lang-${l}`,
 					label: format(t.shell.langTo, { name: t.lang[l] }),
