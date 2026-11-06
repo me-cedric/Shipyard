@@ -16,13 +16,13 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use shipyard_core::delivery::GateCheck;
-use shipyard_core::run::{self, MAX_ROUNDS, RunEvent};
+use shipyard_core::run::{self, MAX_ROUNDS, RunEvent, RunState};
 use shipyard_core::workflow::{Action, Step, StepState};
 use shipyard_store::run_log::kind;
 
 use crate::jobs::Work;
 use crate::ports::{Git, PortResult};
-use crate::run_engine::{Inner, reset};
+use crate::run_engine::{Inner, Kind, kind_of, reset};
 
 /// Run log kind of a review round: the kept findings, the dropped ones, the criteria, the gate.
 pub const REVIEW: &str = "review";
@@ -355,6 +355,43 @@ impl Inner {
                 self.transition(run_id, event);
             }
         }
+    }
+
+    /// A person unblocks a review that spent its fix rounds: one more round, with the findings
+    /// and the note of the person. Without it the same review blocks again.
+    pub(crate) fn round_after_cap(&mut self, run_id: &str, note: Option<&str>) {
+        let rec = &self.runs[run_id];
+        if rec.run.state != RunState::SelfReview || rec.d.findings.is_empty() {
+            return;
+        }
+        let Some(step) = rec
+            .wf
+            .steps
+            .iter()
+            .find(|s| kind_of(s) == Kind::Review && rec.steps[&s.id].state == StepState::Pending)
+            .cloned()
+        else {
+            return;
+        };
+        let findings = rec
+            .d
+            .findings
+            .iter()
+            .map(Finding::describe)
+            .collect::<Vec<_>>()
+            .join("\n");
+        let rec = self.rec(run_id);
+        rec.rounds += 1;
+        let mut text = format!("Fix round {}: {findings}", rec.rounds);
+        if let Some(n) = note {
+            text.push_str(&format!("\nA person adds: {n}"));
+        }
+        for n in &step.needs {
+            if let Some(need) = rec.steps.get_mut(n) {
+                reset(need, &text);
+            }
+        }
+        self.transition(run_id, RunEvent::FixRound);
     }
 }
 

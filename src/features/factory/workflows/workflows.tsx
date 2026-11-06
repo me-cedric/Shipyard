@@ -28,6 +28,7 @@ import { DiffView } from "@/ui/molecules/diff-view";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { SplitPane } from "@/ui/molecules/split-pane";
+import { code } from "@/ui/molecules/syntax";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { Dialog } from "@/ui/organisms/dialog";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
@@ -250,6 +251,7 @@ function FileEditor({
 						label={id}
 						value={text}
 						errorLine={issue?.line}
+						highlight={code}
 						onChange={(v) => {
 							setDraft(v);
 							if (isWf) track(check(id, v), false);

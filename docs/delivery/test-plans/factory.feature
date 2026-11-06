@@ -85,6 +85,12 @@ Feature: factory
     Then the run returns to its stored state
 
   @spec:factory#REQ-005
+  Scenario: Return state: Unblock with a message
+    Given a run in `Blocked`
+    When a person types a message and unblocks the run
+    Then the run returns to its stored state and the next brief of each running step holds the message
+
+  @spec:factory#REQ-005
   Scenario: Return state: Resume without budget
     Given a run in `Paused` with no budget left
     When a person resumes the run
@@ -189,22 +195,23 @@ Feature: factory
   @spec:factory#REQ-013
   Scenario: Fan-out: Conflict
     Given two children that change the same line
-    When the second child joins
-    Then the run blocks, the event names the child and the file, and the run folder holds the first child only
+    When the second child joins for the first time
+    Then the second child runs again in a new worktree from the run branch, which holds the first child
+    And the event names the child and the file, and the run does not block
 
   @spec:factory#REQ-013
   Scenario: Fan-out: Join
     Given three children that ended with a change each
     When the last child ends
-    Then the system merges the three children into the run folder in child order
+    Then the system merges the three children into the run folder in child order, one commit for each
     And the three child worktrees are gone
 
   @spec:factory#REQ-013
   Scenario: Fan-out: Join conflict
-    Given the change of the second child conflicts with the first
-    When the last child ends
+    Given the second child conflicts with the first again after its new run
+    When it joins
     Then the run moves to `Blocked` and the event names the second child and its files
-    And the child worktrees stay until a person clicks and the join succeeds
+    And the worktree of the second child stays until an unblock
 
   @spec:factory#REQ-014
   Scenario: Roles: Project role
@@ -535,6 +542,12 @@ Feature: factory
     Given a run with two fix rounds spent and a P0 or P1 finding left
     When the reviewer reports it
     Then the run moves to `Blocked` and Home / Inbox shows a card with the finding
+
+  @spec:factory#REQ-036
+  Scenario: SelfReview: Unblock after the rounds
+    Given a run in `Blocked` after its fix rounds are spent
+    When a person unblocks it with a message
+    Then the run returns to `Working` for one more fix round with the findings and the message
 
   @spec:factory#REQ-036
   Scenario: SelfReview: Fresh context

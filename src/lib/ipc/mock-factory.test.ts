@@ -270,11 +270,19 @@ describe("mock factory: run actions", () => {
 
 	it("unblocks only a blocked run", async () => {
 		const blocked = await one("ACME-9");
-		await unwrap(commands.runUnblock(blocked.id));
+		await unwrap(commands.runUnblock(blocked.id, null));
 		expect(await one("ACME-9")).toMatchObject({ state: "Working", lane: "working" });
-		await expect(unwrap(commands.runUnblock(blocked.id))).rejects.toMatchObject({
+		await expect(unwrap(commands.runUnblock(blocked.id, null))).rejects.toMatchObject({
 			details: expect.stringContaining("refused Unblock in Working"),
 		});
+	});
+
+	it("logs the message of an unblock for the agents", async () => {
+		const blocked = await one("ACME-9");
+		await unwrap(commands.runUnblock(blocked.id, "  Keep both lines. "));
+		const log = await unwrap(commands.runLogPage(blocked.id, 0, 500));
+		const notes = log.events.map((e) => JSON.parse(e.payload));
+		expect(notes).toContainEqual({ note: "Keep both lines.", by: "person" });
 	});
 
 	it("resumes a paused run with a budget, and refuses a bad budget", async () => {

@@ -1835,7 +1835,7 @@ const handlers: Handlers = {
 	},
 	runCancel: (run) => fx.runCancel(state.factory, run),
 	runResume: (run, addUsd, addTokens) => fx.runResume(state.factory, run, addUsd, addTokens),
-	runUnblock: (run) => fx.runUnblock(state.factory, run),
+	runUnblock: (run, note) => fx.runUnblock(state.factory, run, note),
 	runPlanApprove: (run) => fx.runPlanApprove(state.factory, run),
 	runPlanReject: (run, note) => fx.runPlanReject(state.factory, run, note),
 	killSwitchGet: () => fx.killSwitchGet(state.factory),

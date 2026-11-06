@@ -1027,9 +1027,11 @@ const refuse = (event: string, r: Rec) => {
 	throw `refused ${event} in ${r.state}`;
 };
 
-export function runUnblock(f: MockFactory, run: string): null {
+export function runUnblock(f: MockFactory, run: string, note: string | null): null {
 	const r = find(f, run);
 	if (r.state !== "Blocked") refuse("Unblock", r);
+	const text = note?.trim();
+	if (text) push(f, r, null, "note", { note: text, by: "person" });
 	move(f, r, r.returnTo ?? "Working");
 	return null;
 }

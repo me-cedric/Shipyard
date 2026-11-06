@@ -28,7 +28,7 @@ describe("File viewer", () => {
 			["; ", null],
 			["// c 4", "comment"],
 		]);
-		expect(languageFor("notes.md")).toBeNull();
+		expect(languageFor("notes.txt")).toBeNull();
 		expect(languageFor("model.c4")).not.toBeNull();
 	});
 

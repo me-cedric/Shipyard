@@ -1,6 +1,8 @@
 # Changelog
 
 ## [0.1.0]
+- Markdown editors (documents, decisions, specs, the handbook) colour headings, lists, inline code, links and refs, and the workflow text editor colours YAML; Design / API reads the Shipyard MCP contract again; the menu bar panel's Stop button says only Stop.
+- A blocked run takes a message for its agents next to Unblock (Enter sends it); when two tasks of a run change the same file, the second task runs again on top of the first instead of blocking the run, and only a second conflict blocks it; an unblock after the review fix rounds are spent starts one more fix round instead of the same review.
 - The Mermaid editor of Design / Diagrams colours keywords, arrows, strings and comments, and so do `mermaid` blocks and `.mmd` files; a blocked run says why on its page; after Shipyard restarts, a paused step continues instead of stopping on an empty prompt; the events of a run start collapsed.
 - The sidebar toggle in the top bar has its own icon, a window with its left panel, so it no longer looks like the Work space.
 - A run has no budget unless its workflow sets `budget_usd`: the templates set none, a run then shows only its cost, and the day, member and token budgets still stop it.

@@ -255,7 +255,7 @@ fn cancel_the_kill_switch_and_the_plan_gate_are_one_call_each() {
     cancel(&fx.s, &a).unwrap();
     assert_eq!(run_get(&fx.s, &a).unwrap().unwrap().lane, Lane::Done);
     assert!(
-        unblock(&fx.s, &a).is_err(),
+        unblock(&fx.s, &a, Some("go on")).is_err(),
         "a cancelled run is not blocked"
     );
     assert!(cancel(&fx.s, "01JNOPE").is_err());

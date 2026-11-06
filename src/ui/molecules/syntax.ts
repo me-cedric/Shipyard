@@ -89,6 +89,30 @@ export const mermaid: Highlighter = (line) => {
 	return out;
 };
 
+const MD_INLINE = /(`[^`]+`|\[[^\]]*\]\([^)]*\)|\*\*[^*]+\*\*|\b[a-z]+:[\w-]+(?:#[\w-]+)?)/g;
+
+/** Markdown: headings, quotes, fences, list markers, inline code, links, bold and refs. shortcut: line by line, a fenced block body stays plain. */
+export const markdown: Highlighter = (line) => {
+	if (/^\s*#{1,6}\s/.test(line)) return [[line, "keyword"]];
+	if (/^\s*>/.test(line)) return [[line, "comment"]];
+	if (/^\s*(```|~~~)/.test(line)) return [[line, "tag"]];
+	const out: Token[] = [];
+	const list = /^(\s*)([-*+]|\d+\.)(\s+)(\[[ xX]\]\s+)?/.exec(line);
+	let rest = line;
+	if (list) {
+		out.push([list[1] ?? "", null], [`${list[2]}${list[3]}${list[4] ?? ""}`, "step"]);
+		rest = line.slice(list[0].length);
+	}
+	for (const part of rest.split(MD_INLINE)) {
+		if (!part) continue;
+		if (part.startsWith("`")) out.push([part, "string"]);
+		else if (part.startsWith("[") || /^[a-z]+:[\w-]+/.test(part)) out.push([part, "ref"]);
+		else if (part.startsWith("**")) out.push([part, "keyword"]);
+		else out.push([part, null]);
+	}
+	return out;
+};
+
 // One pass per line: a comment, a string, a number or a keyword.
 const TOKEN =
 	/(\/\/.*|#.*|--.*)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`[^`]*`)|\b(\d+(?:\.\d+)?)\b|\b(const|let|var|function|return|if|else|for|while|import|export|from|class|fn|pub|use|struct|impl|enum|async|await|def|type|interface|true|false|null|None|self|package|func|public|private|static|void|SELECT|FROM|WHERE|INSERT|UPDATE|DELETE|CREATE|TABLE)\b/g;
@@ -110,7 +134,7 @@ export const code: Highlighter = (line) => {
 
 const CODE_TYPES =
 	"ts tsx js jsx mjs cjs typescript javascript rs rust py python go java kt swift c h cpp cs rb php sh bash zsh shell json yaml yml toml css scss sql lock";
-/** The highlighter of each file type, by extension or fence language. Markdown and the rest stay plain. */
+/** The highlighter of each file type, by extension or fence language. The rest stay plain. */
 const LANGUAGES: Record<string, Highlighter> = {
 	...Object.fromEntries(CODE_TYPES.split(" ").map((x) => [x, code])),
 	feature: gherkin,
@@ -120,6 +144,8 @@ const LANGUAGES: Record<string, Highlighter> = {
 	dbml,
 	mermaid,
 	mmd: mermaid,
+	md: markdown,
+	markdown,
 };
 
 /** The highlighter of a file path or a fence language, or `null` for plain text. */

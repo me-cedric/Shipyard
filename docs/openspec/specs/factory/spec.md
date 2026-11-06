@@ -31,7 +31,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - REQ-002: A run SHALL return to `Planning` when a person rejects the plan at `PlanReview`. A run SHALL return to `Working` from `SelfReview` for a fix round and from `ChangesRequested`, in the same worktree. A CI failure or a review comment on the pull request SHALL move a run from `PROpen` to `ChangesRequested`. A pull request that merges while the run fixes it (`ChangesRequested`, `Working` or `SelfReview` with an open pull request) SHALL stop the agents of the run and move it to `Merged`, then `Done`.
 - REQ-003: `PlanReview` SHALL be a human gate. A workflow SHALL be able to turn it off. Then a run SHALL move from `Planning` to `Working` without a person.
 - REQ-004: From any active state, a run SHALL be able to enter `WaitingForAnswer`, `Blocked`, `RetryQueued`, `Paused`, `Failed` or `Cancelled`. `Blocked` follows a missing connection or runner, a rejected approval, spent review rounds or a pull request closed without a merge (`add-delivery` REQ-026). `Failed` follows exhausted retries. `Paused` follows a spent budget or max turns. `Cancelled` follows a kill switch or a stop from `add-sync` REQ-004.
-- REQ-005: A run SHALL store its return state when it enters `WaitingForAnswer`, `Blocked`, `RetryQueued` or `Paused`. The run SHALL go back to that state when it leaves. `Failed`, `Cancelled` and `Done` SHALL be final. A run SHALL leave `Paused` when a person raises its budget and resumes it. A resume with no budget left SHALL keep the run in `Paused` (assumption `q:Q-053`). On the next tick after the cause is gone, or by a click of the person.
+- REQ-005: A run SHALL store its return state when it enters `WaitingForAnswer`, `Blocked`, `RetryQueued` or `Paused`. The run SHALL go back to that state when it leaves. `Failed`, `Cancelled` and `Done` SHALL be final. A run SHALL leave `Paused` when a person raises its budget and resumes it. A resume with no budget left SHALL keep the run in `Paused` (assumption `q:Q-053`). On the next tick after the cause is gone, or by a click of the person. An unblock SHALL take an optional message for the agents.
 - REQ-006: While a run is in `WaitingForAnswer`, the system SHALL pause the stall timer and the budget clock. Both SHALL restart when the run leaves that state.
 - REQ-007: The system SHALL delay retry number n of a step by min(10 s x 2^(n-1), 5 min). A step SHALL fail the run when its `retry` count is spent.
 - REQ-008: The system SHALL map each of the sixteen run states to a tracker status and labels in `.shipyard/automation.yaml`. The project admin SHALL be able to change each row. The status and label changes SHALL follow the `tracker_transition` switch.
@@ -39,7 +39,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - REQ-010: The system SHALL read workflows from `.shipyard/workflows/<id>.yaml` and validate each file with a JSON Schema. The system SHALL reload a changed file at once. It SHALL keep the last valid version when the new file is invalid.
 - REQ-011: The system SHALL ship the workflows `feature`, `bug`, `spike`, `spec-split` and `review-only`. `feature` SHALL grill, plan with a human gate, build with fan-out, review and open a pull request. `bug` SHALL triage, fix, review and open a pull request, with no `PlanReview`. `spike` SHALL grill, investigate and report, with no pull request. `spec-split` SHALL read a change and propose work items behind a human gate. `review-only` SHALL review an existing branch and report.
 - REQ-012: A step SHALL accept the fields `id`, `role`, `model`, `effort`, `tools`, `needs`, `skill` and `action`. A step SHALL accept the fields `for_each`, `max_parallel`, `retry`, `timeout`, `budget`, `fresh_context` and `max_rounds`. A step SHALL accept `mode` (plan or auto), `workspace` (worktree, shared or none) and `gate` (none or human). The system SHALL reject an unknown field and a `needs` cycle.
-- REQ-013: A `for_each` step SHALL start one child run for each item of its list. At most `max_parallel` children SHALL run at the same time (default 2). Each child SHALL get its own worktree when its `workspace` is `worktree`. The parent SHALL collect the outputs of the children. After the last child, the system SHALL squash each child onto the run branch in child order, one commit for each, and remove the child worktrees. A conflict SHALL block the run and name the child and the files.
+- REQ-013: A `for_each` step SHALL start one child run for each item of its list. At most `max_parallel` children SHALL run at the same time (default 2). Each child SHALL get its own worktree when its `workspace` is `worktree`. The parent SHALL collect the outputs of the children. After the last child, the system SHALL squash each child onto the run branch in child order and remove the child worktrees. A conflict SHALL run the child again from the run branch. A second one SHALL block the run.
 - REQ-014: The system SHALL read each role as a Markdown profile at `.shipyard/roles/<role>.md`. The roles `scout`, `worker`, `reviewer`, `planner`, `tester`, `docs` and `triager` SHALL exist by default. A project SHALL be able to add roles.
 - REQ-015: The system SHALL run agents headless with streamed JSON, as far as the connections allow. The system SHALL support Claude Code, Codex, GitHub Copilot, Gemini CLI, OpenCode and HTTP model providers. A runner MUST NOT receive a secret value in its arguments. The log MUST NOT hold one. Claude Code and Codex. The others follow in later changes.
 - REQ-016: The system SHALL serve the eight tools `ask_question`, `post_progress`, `handoff`, `message`, `spawn_subtask`, `report`, `read_ticket` and `read_ref` to agents. A tool call SHALL write one structured event to the run bus. The system SHALL reject a call with an invalid input. A step SHALL call only the tools of its `tools` field.
@@ -62,7 +62,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - REQ-033: Each Factory view SHALL follow the interface rules of the constitution. It SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. It SHALL have one primary action, a keyboard path and a focus ring. It SHALL have assistive labels, enough contrast and reduced motion. It SHALL show French and English text.
 - REQ-034: The system SHALL expose each run as `run:<ulid>` with its steps as `run:<ulid>/<step-id>`, and each workflow as `wf:<id>`. It SHALL expose the run state to `work` and `refs`.
 - REQ-035: A workflow SHALL hold a `limits` block with `stall_s`, an optional `budget_usd` and an optional `max_turns`. The block SHALL set the stall timeout and, when present, the budget in USD and the max turns of each run. With no `budget_usd`, the run SHALL have no budget of its own. With no `max_turns`, the number of turns SHALL have no limit. The system SHALL reject a limit that is not a positive number.
-- REQ-036: After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL follow `add-delivery` REQ-001 to REQ-004. `max_rounds` SHALL NOT exceed 2.
+- REQ-036: After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL follow `add-delivery` REQ-001 to REQ-004. `max_rounds` SHALL NOT exceed 2. An unblock after the rounds are spent SHALL start one more fix round with the findings and the message of the person.
 - REQ-037: The system SHALL serve the agent tools over two transports, stdio and HTTP. Both transports SHALL offer the same eight tools with the same inputs. The HTTP transport SHALL accept only calls from this machine (assumption `q:Q-053`): it SHALL listen on the loopback address, SHALL check the Host and Origin headers, and SHALL need the bearer token of a step. The token SHALL name the run and the step, and an input SHALL NOT name another run. The agent SHALL get the token in its MCP config file and never in an argument.
 - REQ-038: The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The lane Working SHALL hold `Planning`, `Working`, `SelfReview` and `ChangesRequested`. The lane Needs you SHALL hold `PlanReview`, `WaitingForAnswer`, `Blocked`, `Paused` and `Failed`. The lane Ready to merge SHALL hold a `PROpen` run with passing CI, no change request and no draft. The lane In review SHALL hold each other `PROpen` run. The lane Done SHALL hold `Merged`, `Done` and `Cancelled`.
 - REQ-039: After a restart, the system SHALL take back the runs, the approval queue, the open questions and the global kill switch from the run log file. A step that ran SHALL start again, on its CLI session when it has one, else with a new brief. The system MUST NOT send a write a second time when the log shows that it went out before the restart.
@@ -101,7 +101,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - [x] A broken workflow file shows its error and the last valid version keeps running. Test: `crates/shipyard-store/tests/factory_files.rs`, `e2e/factory.spec.ts`.
 - [x] The five default workflows exist and validate against the schema. Test: `crates/shipyard-store/tests/factory_files.rs`.
 - [x] A `for_each` step with `max_parallel` 2 runs at most two children, each in its own worktree. Test: `crates/shipyard-core/tests/workflow.rs`, `crates/shipyard-git/tests/worktree.rs`.
-- [x] The children of a worktree step join the run folder at fan-in, and a conflict blocks the run. Test: `crates/shipyard-engine/tests/children.rs`.
+- [x] The children of a worktree step join the run folder at fan-in. A first conflict runs the child again from the run branch, and a second conflict blocks the run. Test: `crates/shipyard-engine/tests/children.rs`.
 - [ ] A role file in `.shipyard/roles/` changes the profile that its step uses.
 - [x] A runner streams events to the run bus, and no secret value appears in its arguments or in the log. Test: `crates/shipyard-agents/tests/runner.rs`.
 - [x] Each of the eight tools writes one event with the effect named in its requirement, and a bad input is rejected. Test: `crates/shipyard-mcp/tests/tools.rs`.
@@ -142,7 +142,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 
 ### Clarifications
 
-- Q-025 How does a run leave Blocked?: On the next tick after the cause is gone, or by a click of the person.
+- Q-025 How does a run leave Blocked?: On the next tick after the cause is gone, or by a click of the person, with an optional message for the agents.
 - Q-024 Which runners ship in the first release?: Claude Code and Codex. The others follow in later changes.
 - Q-023 What are the default budgets?: A run has a budget only when its workflow sets `budget_usd`; with none, the run has no budget of its own and the day, member and token budgets still apply. No default per day or per member until an admin sets one.
 - Q-002 What is the default for automation writes?: All on. A force push and a merge still wait for a person. An admin turns a switch off per project, and each write of that switch then waits for one click in Home / Inbox.
@@ -222,7 +222,7 @@ From any active state, a run SHALL be able to enter `WaitingForAnswer`, `Blocked
 
 ### Requirement: REQ-005 Return state
 
-A run SHALL store its return state when it enters `WaitingForAnswer`, `Blocked`, `RetryQueued` or `Paused`. The run SHALL go back to that state when it leaves. `Failed`, `Cancelled` and `Done` SHALL be final. A run SHALL leave `Paused` when a person raises its budget and resumes it. A resume with no budget left SHALL keep the run in `Paused`. On the next tick after the cause is gone, or by a click of the person.
+A run SHALL store its return state when it enters `WaitingForAnswer`, `Blocked`, `RetryQueued` or `Paused`. The run SHALL go back to that state when it leaves. `Failed`, `Cancelled` and `Done` SHALL be final. A run SHALL leave `Paused` when a person raises its budget and resumes it. A resume with no budget left SHALL keep the run in `Paused`. On the next tick after the cause is gone, or by a click of the person. An unblock SHALL take an optional message for the agents.
 
 #### Scenario: Return after wait
 - GIVEN a run in `Working` that enters `WaitingForAnswer`
@@ -238,6 +238,11 @@ A run SHALL store its return state when it enters `WaitingForAnswer`, `Blocked`,
 - GIVEN a run in `Paused` after a hard budget stop
 - WHEN a person raises the budget and resumes the run
 - THEN the run returns to its stored state
+
+#### Scenario: Unblock with a message
+- GIVEN a run in `Blocked`
+- WHEN a person types a message and unblocks the run
+- THEN the run returns to its stored state and the next brief of each running step holds the message
 
 #### Scenario: Resume without budget
 - GIVEN a run in `Paused` with no budget left
@@ -344,7 +349,7 @@ A step SHALL accept the fields `id`, `role`, `model`, `effort`, `tools`, `needs`
 
 ### Requirement: REQ-013 Fan-out
 
-A `for_each` step SHALL start one child run for each item of its list. At most `max_parallel` children SHALL run at the same time (default 2). Each child SHALL get its own worktree when its `workspace` is `worktree`. The parent SHALL collect the outputs of the children. After the last child, the system SHALL squash each child onto the run branch in child order, one commit for each, and remove the child worktrees. A conflict SHALL block the run and name the child and the files.
+A `for_each` step SHALL start one child run for each item of its list. At most `max_parallel` children SHALL run at the same time (default 2). Each child SHALL get its own worktree when its `workspace` is `worktree`. The parent SHALL collect the outputs of the children. After the last child, the system SHALL squash each child onto the run branch in child order and remove the child worktrees. A conflict SHALL run the child again from the run branch. A second one SHALL block the run.
 
 #### Scenario: Parallel limit
 - GIVEN a `for_each` over five items with `max_parallel` 2
@@ -358,20 +363,21 @@ A `for_each` step SHALL start one child run for each item of its list. At most `
 
 #### Scenario: Conflict
 - GIVEN two children that change the same line
-- WHEN the second child joins
-- THEN the run blocks, the event names the child and the file, and the run folder holds the first child only
+- WHEN the second child joins for the first time
+- THEN the second child runs again in a new worktree from the run branch, which holds the first child
+- AND the event names the child and the file, and the run does not block
 
 #### Scenario: Join
 - GIVEN three children that ended with a change each
 - WHEN the last child ends
-- THEN the system merges the three children into the run folder in child order
+- THEN the system merges the three children into the run folder in child order, one commit for each
 - AND the three child worktrees are gone
 
 #### Scenario: Join conflict
-- GIVEN the change of the second child conflicts with the first
-- WHEN the last child ends
+- GIVEN the second child conflicts with the first again after its new run
+- WHEN it joins
 - THEN the run moves to `Blocked` and the event names the second child and its files
-- AND the child worktrees stay until a person clicks and the join succeeds
+- AND the worktree of the second child stays until an unblock
 
 ### Requirement: REQ-014 Roles
 
@@ -723,7 +729,7 @@ A workflow SHALL hold a `limits` block with `stall_s`, an optional `budget_usd` 
 
 ### Requirement: REQ-036 SelfReview
 
-After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL follow `add-delivery` REQ-001 to REQ-004. `max_rounds` SHALL NOT exceed 2.
+After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL follow `add-delivery` REQ-001 to REQ-004. `max_rounds` SHALL NOT exceed 2. An unblock after the rounds are spent SHALL start one more fix round with the findings and the message of the person.
 
 #### Scenario: Clean review
 - GIVEN a run in `SelfReview`
@@ -739,6 +745,11 @@ After the build steps end, a run SHALL enter `SelfReview`. `SelfReview` SHALL fo
 - GIVEN a run with two fix rounds spent and a P0 or P1 finding left
 - WHEN the reviewer reports it
 - THEN the run moves to `Blocked` and Home / Inbox shows a card with the finding
+
+#### Scenario: Unblock after the rounds
+- GIVEN a run in `Blocked` after its fix rounds are spent
+- WHEN a person unblocks it with a message
+- THEN the run returns to `Working` for one more fix round with the findings and the message
 
 #### Scenario: Fresh context
 - GIVEN a run in `SelfReview`

@@ -212,6 +212,9 @@ pub(crate) struct Unit {
     pub tokens: u64,
     /// The worktree of this child is joined into the run folder.
     pub merged: bool,
+    /// The join of this child conflicted once: it ran again from the run branch.
+    #[serde(default)]
+    pub redone: bool,
 }
 
 impl Unit {
@@ -235,6 +238,7 @@ impl Unit {
             model: None,
             tokens: 0,
             merged: false,
+            redone: false,
         }
     }
 }
@@ -593,7 +597,36 @@ impl Factory {
 
     /// A person clears the cause of `Blocked` (`q:Q-025` option 1, the click).
     pub fn unblock(&self, run_id: &str) -> Result<(), String> {
-        self.lock().checked(run_id, RunEvent::Unblock)
+        self.unblock_with(run_id, None)
+    }
+
+    /// `unblock` with a message for the agents: it goes into the notes of each step that runs
+    /// or failed, so the next brief or the resumed session reads it. A child that conflicted at
+    /// the join gets one more redo. A review that spent its fix rounds gets one more round.
+    pub fn unblock_with(&self, run_id: &str, note: Option<&str>) -> Result<(), String> {
+        let mut inner = self.lock();
+        // A refused click adds no note.
+        if inner.run(run_id)?.run.state != RunState::Blocked {
+            return inner.checked(run_id, RunEvent::Unblock);
+        }
+        let note = note.map(str::trim).filter(|n| !n.is_empty());
+        let rec = inner.rec(run_id);
+        for s in rec.steps.values_mut() {
+            if let Some(n) = note
+                && matches!(s.state, StepState::Running | StepState::Failed)
+            {
+                s.notes.push(n.into());
+            }
+            if s.merge_pending {
+                s.units.iter_mut().for_each(|u| u.redone = false);
+            }
+        }
+        if let Some(n) = note {
+            inner.log(run_id, None, kind::NOTE, json!({"note": n, "by": "person"}));
+        }
+        inner.checked(run_id, RunEvent::Unblock)?;
+        inner.round_after_cap(run_id, note);
+        Ok(())
     }
 
     /// Send the pull request back with a text: a feedback round on the run that holds it.

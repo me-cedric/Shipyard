@@ -269,7 +269,7 @@ components:
         path: { type: string }
     WriteFileInput:
       type: object
-      description: Tool `project_write_file`. It refuses any path in `.shipyard/`: an agent must not edit the gates that it can run.
+      description: "Tool `project_write_file`. It refuses any path in `.shipyard/`: an agent must not edit the gates that it can run."
       additionalProperties: false
       required: [path, text]
       properties:

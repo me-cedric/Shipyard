@@ -201,6 +201,18 @@ describe("Factory / Runs", () => {
 		}
 	});
 
+	it("unblocks with a message on Enter", async () => {
+		const user = userEvent.setup();
+		await renderRuns();
+		await user.click(await screen.findByRole("button", { name: /ACME-9/ }));
+		const panel = await screen.findByRole("complementary", { name: "ACME-9" });
+		await user.type(
+			await within(panel).findByRole("textbox", { name: "Message to the agent" }),
+			"Keep both lines.{Enter}",
+		);
+		await waitFor(async () => expect((await find("ACME-9")).state).toBe("Working"));
+	});
+
 	it("keeps the events collapsed, then shows them as sentences with the raw JSON behind Details", async () => {
 		const user = userEvent.setup();
 		await renderRuns();

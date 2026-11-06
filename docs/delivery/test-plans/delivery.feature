@@ -45,6 +45,12 @@ Feature: delivery
     Then the run moves to `Blocked`
     And the Inbox shows a card with the findings
 
+  @spec:delivery#REQ-004
+  Scenario: Fix rounds: Unblock after the rounds
+    Given a run in `Blocked` after two fix rounds
+    When a person unblocks it with a message
+    Then the builder runs one more fix round with the findings and the message
+
   @spec:delivery#REQ-005
   Scenario: Local review only: No post
     Given a run in `SelfReview`

@@ -344,6 +344,19 @@ fn blocking_review_runs_a_fix_round_then_blocks() {
     fx.report(&run, "review", Outcome::Partial, json!({}));
     // `max_rounds` is spent.
     assert_eq!(fx.state(&run), RunState::Blocked);
+
+    // An unblock gives one more fix round, with the note of the person: not the same review.
+    fx.f.unblock_with(&run, Some("Add the test in tests/a.rs."))
+        .unwrap();
+    fx.f.pump();
+    assert_eq!(fx.state(&run), RunState::Working);
+    let fix = fx.agents.briefs().pop().unwrap();
+    assert_eq!(fix.step, "fix");
+    assert!(fix.prompt.contains("Fix round 3: "), "{}", fix.prompt);
+    assert!(
+        fix.prompt
+            .contains("A person adds: Add the test in tests/a.rs.")
+    );
 }
 
 #[test]

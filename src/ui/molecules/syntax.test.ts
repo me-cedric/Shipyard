@@ -1,4 +1,4 @@
-import { dbml, languageFor, likec4, mermaid } from "./syntax";
+import { dbml, languageFor, likec4, markdown, mermaid } from "./syntax";
 
 describe("Design highlighting", () => {
 	it("colours LikeC4 keywords, strings, arrows and comments, and keeps the text", () => {
@@ -26,7 +26,7 @@ describe("languageFor", () => {
 	it("maps file paths and fence languages, and leaves other types plain", () => {
 		expect(languageFor("src/a.rs")).toBe(languageFor("rust"));
 		expect(languageFor("a.feature")).toBe(languageFor("gherkin"));
-		expect(languageFor("README.md")).toBeNull();
+		expect(languageFor("logo.png")).toBeNull();
 		expect(languageFor(undefined)).toBeNull();
 	});
 });
@@ -52,5 +52,23 @@ describe("mermaid", () => {
 		expect(mermaid("A-->B").map(([t]) => t)).toEqual(["A", "-->", "B"]);
 		expect(mermaid("[*] --> Queued")[0]).toEqual(["[*]", "tag"]);
 		expect(languageFor("docs/diagrams/run.mmd")).toBe(mermaid);
+	});
+});
+
+describe("markdown", () => {
+	it("colours headings, list markers, inline code, links and refs", () => {
+		expect(markdown("## Goal")).toEqual([["## Goal", "keyword"]]);
+		expect(markdown("> note")).toEqual([["> note", "comment"]]);
+		expect(markdown("- [x] Use `pnpm` see [guide](a.md) and spec:factory#REQ-1")).toEqual([
+			["", null],
+			["- [x] ", "step"],
+			["Use ", null],
+			["`pnpm`", "string"],
+			[" see ", null],
+			["[guide](a.md)", "ref"],
+			[" and ", null],
+			["spec:factory#REQ-1", "ref"],
+		]);
+		expect(languageFor("docs/guide/start.md")).toBe(markdown);
 	});
 });

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CodeEditor } from "../molecules/code-editor";
 import { SideToggles, useSides } from "../molecules/pane-toggle";
+import { markdown } from "../molecules/syntax";
 import { EditorFrame, type SaveState } from "./editor-frame";
 import { MarkdownView } from "./markdown-view";
 
@@ -64,7 +65,9 @@ export function MarkdownEditor({
 					sides.editor && sides.preview ? "grid-cols-2" : "grid-cols-1",
 				)}
 			>
-				{sides.editor ? <CodeEditor label={labels.text} value={value} onChange={onChange} /> : null}
+				{sides.editor ? (
+					<CodeEditor label={labels.text} value={value} onChange={onChange} highlight={markdown} />
+				) : null}
 				{sides.preview ? (
 					<div className="min-h-0 overflow-auto">
 						<MarkdownView source={value} label={labels.preview} />

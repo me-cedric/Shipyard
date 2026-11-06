@@ -68,40 +68,114 @@ fn a_single_worktree_step_is_joined_too() {
     assert_eq!(fx.state(&run), RunState::SelfReview);
 }
 
+/// The texts of the `blocked` notes of the run.
+fn blocked(fx: &Fx, run: &str) -> Vec<String> {
+    fx.logged(run, "note")
+        .into_iter()
+        .filter_map(|n| n["blocked"].as_str().map(str::to_string))
+        .collect()
+}
+
 #[test]
-fn a_conflict_blocks_the_run_keeps_the_worktrees_and_a_click_joins_the_rest() {
+fn a_first_conflict_runs_the_child_again_from_the_run_branch() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = two_of_three(&fx);
+    fx.git.conflict("build-2", &[".gitleaksignore"]);
+    fx.done(&run, "build-3");
+
+    // No block: the siblings join, the child that conflicted runs again in a fresh worktree.
+    assert_eq!(fx.state(&run), RunState::Working);
+    assert!(blocked(&fx, &run).is_empty());
+    assert_eq!(fx.git.count("merge_child build-1"), 1);
+    assert_eq!(fx.git.count("merge_child build-3"), 1);
+    assert_eq!(fx.git.count("remove_child"), 1);
+    assert_eq!(fx.git.count("remove_child build-2"), 1);
+    assert!(
+        fx.logged(&run, "note")
+            .iter()
+            .any(|n| *n == json!({"redo": "build-2", "files": [".gitleaksignore"]}))
+    );
+    assert_eq!(fx.agents.running(), ["build-2"]);
+    let brief = fx.agents.briefs().pop().unwrap();
+    assert_eq!(brief.step, "build-2");
+    assert!(brief.resume.is_none(), "a redo starts a new session");
+    assert!(
+        brief
+            .prompt
+            .contains("conflicted with another task on .gitleaksignore"),
+        "{}",
+        brief.prompt
+    );
+    let dirs = fx.ws.calls();
+    let made = dirs.iter().filter(|(_, c)| c.as_deref() == Some("build-2"));
+    assert_eq!(made.count(), 2, "a new worktree for the redo");
+
+    // The redo joins on top of the siblings.
+    fx.git.conflict("build-2", &[]);
+    fx.done(&run, "build-2");
+    assert_eq!(fx.git.count("merge_child build-1"), 1);
+    assert_eq!(fx.git.count("merge_child build-2"), 2);
+    assert_eq!(fx.git.count("merge_child build-3"), 1);
+    assert_eq!(fx.git.count("remove_child"), 4);
+    assert_eq!(fx.state(&run), RunState::SelfReview);
+    assert_eq!(fx.agents.running(), ["review"]);
+}
+
+#[test]
+fn a_second_conflict_blocks_and_an_unblock_with_a_note_runs_the_child_again() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = two_of_three(&fx);
+    fx.git.conflict("build-2", &[".gitleaksignore"]);
+    fx.done(&run, "build-3");
+    fx.done(&run, "build-2");
+
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    assert_eq!(
+        blocked(&fx, &run),
+        ["merge conflict: child build-2: .gitleaksignore"]
+    );
+    // The siblings stay joined, the worktree of the child stays for a person.
+    assert_eq!(fx.git.count("merge_child build-1"), 1);
+    assert_eq!(fx.git.count("merge_child build-3"), 1);
+    assert_eq!(fx.git.count("remove_child"), 1);
+    assert!(fx.agents.running().is_empty());
+
+    // The person tells the agent what to do: the join tries again, then the child runs again.
+    fx.f.unblock_with(&run, Some("Keep the lines of both tasks."))
+        .unwrap();
+    fx.f.pump();
+    assert!(
+        fx.logged(&run, "note")
+            .iter()
+            .any(|n| *n == json!({"note": "Keep the lines of both tasks.", "by": "person"}))
+    );
+    assert_eq!(fx.git.count("merge_child build-2"), 3);
+    assert_eq!(fx.state(&run), RunState::Working);
+    assert_eq!(fx.agents.running(), ["build-2"]);
+    let brief = fx.agents.briefs().pop().unwrap();
+    assert!(brief.prompt.contains("Keep the lines of both tasks."));
+
+    fx.git.conflict("build-2", &[]);
+    fx.done(&run, "build-2");
+    assert_eq!(fx.git.count("merge_child build-1"), 1);
+    assert_eq!(fx.git.count("merge_child build-3"), 1);
+    assert_eq!(fx.state(&run), RunState::SelfReview);
+}
+
+#[test]
+fn a_person_who_fixes_the_conflict_unblocks_and_the_join_goes_on() {
     let fx = Fx::new(writes(true), &[]);
     let run = two_of_three(&fx);
     fx.git.conflict("build-2", &["src/a.rs", "src/b.rs"]);
     fx.done(&run, "build-3");
-
+    fx.done(&run, "build-2");
     assert_eq!(fx.state(&run), RunState::Blocked);
-    let blocked: Vec<_> = fx
-        .logged(&run, "note")
-        .into_iter()
-        .filter_map(|n| n["blocked"].as_str().map(str::to_string))
-        .collect();
-    assert_eq!(
-        blocked,
-        ["merge conflict: child build-2: src/a.rs, src/b.rs"]
-    );
-    // The join stopped at the conflict: build-3 waits, no worktree is gone, no reviewer runs.
-    assert_eq!(fx.git.count("merge_child build-3"), 0);
-    assert_eq!(fx.git.count("remove_child"), 0);
-    assert!(fx.agents.running().is_empty());
 
-    // A person fixes the conflict and clicks.
     fx.git.conflict("build-2", &[]);
     fx.f.unblock(&run).unwrap();
     fx.f.pump();
-    assert_eq!(
-        fx.git.count("merge_child build-1"),
-        1,
-        "a joined child is not joined again"
-    );
-    assert_eq!(fx.git.count("merge_child build-2"), 2);
-    assert_eq!(fx.git.count("merge_child build-3"), 1);
-    assert_eq!(fx.git.count("remove_child"), 3);
+    assert_eq!(fx.git.count("merge_child build-2"), 3);
+    assert_eq!(fx.git.count("remove_child"), 4);
     assert_eq!(fx.state(&run), RunState::SelfReview);
     assert_eq!(fx.agents.running(), ["review"]);
 }

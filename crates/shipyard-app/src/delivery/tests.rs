@@ -431,7 +431,7 @@ fn a_write_without_its_switch_is_an_approval_that_a_click_sends_or_drops() {
         run_get(&fx.s, &run).unwrap().unwrap().state,
         RunState::Blocked
     );
-    unblock(&fx.s, &run).unwrap();
+    unblock(&fx.s, &run, None).unwrap();
     assert_eq!(
         run_get(&fx.s, &run).unwrap().unwrap().state,
         RunState::Working

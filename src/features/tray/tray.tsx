@@ -211,8 +211,9 @@ export function TrayView() {
 									variant="ghost"
 									confirm={format(t.factory.machine.confirmStop, { name: r.key })}
 									onConfirm={() => void run(() => cancel(r.id))}
+									aria-label={format(t.factory.machine.stop, { name: r.key })}
 								>
-									{format(t.factory.machine.stop, { name: r.key })}
+									{t.assistant.stop}
 								</ConfirmButton>
 							</div>
 						))}

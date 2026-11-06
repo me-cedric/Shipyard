@@ -6,6 +6,7 @@ import { useGraph } from "@/lib/knowledge";
 import { Button } from "@/ui/atoms/button";
 import { DocumentTextIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
+import { markdown } from "@/ui/molecules/syntax";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { DesignAdrDecision } from "@/ui/organisms/design-adr-decision";
 import { DocForm } from "@/ui/organisms/doc-form";
@@ -54,7 +55,12 @@ function Decision({ adr }: { adr: Adr }) {
 							labels={{ ...e.field, form: d.text }}
 						/>
 					) : (
-						<CodeEditor label={d.text} value={file.text} onChange={file.setText} />
+						<CodeEditor
+							label={d.text}
+							value={file.text}
+							onChange={file.setText}
+							highlight={markdown}
+						/>
 					)}
 					{adr.status === "proposed" ? (
 						<DesignAdrDecision

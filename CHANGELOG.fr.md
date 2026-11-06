@@ -1,6 +1,8 @@
 # Journal des modifications
 
 ## [0.1.0]
+- Les éditeurs Markdown (documents, décisions, specs, manuel) colorent les titres, les listes, le code en ligne, les liens et les références, et l’éditeur texte des workflows colore le YAML ; Design / API lit de nouveau le contrat du serveur MCP Shipyard ; le bouton Arrêter du panneau de la barre de menus ne dit plus que Arrêter.
+- Une exécution bloquée accepte un message pour ses agents à côté de Débloquer (Entrée l’envoie) ; quand deux tâches d’une exécution changent le même fichier, la deuxième tâche repart sur la première au lieu de bloquer l’exécution, et seul un deuxième conflit la bloque ; un déblocage après les tours de correction de la revue lance un tour de correction de plus au lieu de la même revue.
 - L’éditeur Mermaid de Design / Diagrammes colore les mots-clés, les flèches, les chaînes et les commentaires, comme les blocs `mermaid` et les fichiers `.mmd` ; une exécution bloquée dit pourquoi sur sa page ; après un redémarrage de Shipyard, une étape en pause reprend au lieu de s’arrêter sur une consigne vide ; les événements d’une exécution s’affichent repliés.
 - Le bouton de la barre latérale dans la barre du haut a sa propre icône, une fenêtre avec son panneau gauche, et ne ressemble plus à l’espace Travail.
 - Une exécution n’a pas de budget sauf si son workflow fixe `budget_usd` : les modèles n’en fixent pas, l’exécution montre alors seulement son coût, et les budgets du jour, du membre et des jetons l’arrêtent toujours.

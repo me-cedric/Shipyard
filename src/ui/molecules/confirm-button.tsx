@@ -9,6 +9,7 @@ export function ConfirmButton({
 	confirm,
 	onConfirm,
 	children,
+	"aria-label": label,
 	...props
 }: Omit<ButtonProps, "onClick"> & { confirm: string; onConfirm: () => void }) {
 	const [asking, setAsking] = useState(false);
@@ -26,7 +27,8 @@ export function ConfirmButton({
 			{confirm}
 		</Button>
 	) : (
-		<Button {...props} onClick={() => setAsking(true)}>
+		// The name holds the target ("Stop ACME-2") when the text is short; the question names it itself.
+		<Button {...props} aria-label={label} onClick={() => setAsking(true)}>
 			{children}
 		</Button>
 	);

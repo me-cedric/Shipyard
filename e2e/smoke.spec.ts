@@ -42,7 +42,7 @@ test("runs an action from the palette with the keyboard", async ({ page }) => {
 test("switches the theme in Settings / Me", async ({ page }) => {
 	await page.goto("/settings/me");
 	await page.getByRole("combobox", { name: "Theme" }).click();
-	await page.getByRole("option", { name: "Dark" }).click();
+	await page.getByRole("option", { name: "Dark", exact: true }).click();
 	await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
 

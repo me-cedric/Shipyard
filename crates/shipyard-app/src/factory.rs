@@ -1119,8 +1119,9 @@ pub fn resume(s: &AppState, run: &str, add_usd: f64, add_tokens: u32) -> Res<Run
     )
 }
 
-pub fn unblock(s: &AppState, run: &str) -> Res<()> {
-    done(s, s.factory.factory.unblock(run))
+/// `note`: a message for the agents of the run. Empty or `None`: a plain unblock.
+pub fn unblock(s: &AppState, run: &str, note: Option<&str>) -> Res<()> {
+    done(s, s.factory.factory.unblock_with(run, note))
 }
 
 pub fn approve_plan(s: &AppState, run: &str) -> Res<()> {
@@ -1730,8 +1731,8 @@ pub async fn run_resume(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn run_unblock(app: AppHandle, run: String) -> Api<()> {
-    blocking(app, move |s| unblock(s, &run)).await
+pub async fn run_unblock(app: AppHandle, run: String, note: Option<String>) -> Api<()> {
+    blocking(app, move |s| unblock(s, &run, note.as_deref())).await
 }
 
 #[tauri::command]

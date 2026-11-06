@@ -62,7 +62,7 @@ pub fn list(dir: &Path) -> Vec<ThemeFile> {
         .filter(|e| e.path().extension().is_some_and(|x| x == "json"))
         .filter_map(|e| read_file(&e.path()).ok())
         .collect();
-    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    out.sort_by_key(|t| t.name.to_lowercase());
     out
 }
 

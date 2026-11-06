@@ -57,6 +57,7 @@ export function RunDetail({ id }: { id: string }) {
 	const { error, run: guard } = useGuard();
 	const [note, setNote] = useState("");
 	const [add, setAdd] = useState("");
+	const [message, setMessage] = useState("");
 	if (!run) return null;
 	const plan = planOf(log.events);
 	const n = (v: number | null, fmt: (x: number) => string) => (v === null ? "-" : fmt(v));
@@ -100,9 +101,26 @@ export function RunDetail({ id }: { id: string }) {
 							{f.why.again}
 						</Button>
 					) : run.state === "Blocked" ? (
-						<Button variant="primary" onClick={() => void guard(() => act.unblock(id))}>
-							{f.unblock}
-						</Button>
+						<form
+							className="flex items-center gap-2"
+							onSubmit={(e) => {
+								e.preventDefault();
+								void guard(async () => {
+									await act.unblock(id, message);
+									setMessage("");
+								});
+							}}
+						>
+							<Input
+								label={f.unblockNote}
+								className="w-64"
+								value={message}
+								onChange={(e) => setMessage(e.target.value)}
+							/>
+							<Button type="submit" variant="primary">
+								{f.unblock}
+							</Button>
+						</form>
 					) : (
 						<Button
 							variant="primary"

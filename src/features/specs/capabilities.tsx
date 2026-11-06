@@ -16,6 +16,7 @@ import { CodeEditor } from "@/ui/molecules/code-editor";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { SplitPane } from "@/ui/molecules/split-pane";
+import { markdown } from "@/ui/molecules/syntax";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { LIST, useEnter } from "@/ui/motion";
 import { DataTable } from "@/ui/organisms/data-table";
@@ -43,7 +44,13 @@ function CapabilityFile({ path, name }: { path: string; name: string }) {
 				]}
 			/>
 			{raw ? (
-				<CodeEditor label={name} value={text} readOnly className="min-h-0 flex-1" />
+				<CodeEditor
+					label={name}
+					value={text}
+					readOnly
+					highlight={markdown}
+					className="min-h-0 flex-1"
+				/>
 			) : (
 				<div className="min-h-0 flex-1 overflow-auto">
 					<div className="mx-auto max-w-[680px] pb-4">

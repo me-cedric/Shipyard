@@ -5,6 +5,7 @@ import { useFile, useSpecsActions } from "@/lib/specs";
 import { BookOpenIcon, PencilIcon } from "@/ui/icons";
 import { CodeEditor, type Token } from "@/ui/molecules/code-editor";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { languageFor } from "@/ui/molecules/syntax";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { DocForm } from "@/ui/organisms/doc-form";
 import { sections } from "@/ui/organisms/doc-parts";
@@ -182,7 +183,7 @@ export function FileEditor({
 						onChange={edit}
 						errorLine={line ?? problem?.line}
 						readOnly={base === undefined && !missing}
-						highlight={highlight}
+						highlight={highlight ?? languageFor(path) ?? undefined}
 						className="flex-1"
 					/>
 				)}

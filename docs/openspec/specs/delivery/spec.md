@@ -30,7 +30,7 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - REQ-001: After the build steps end, the run SHALL be in `SelfReview` (`add-factory` REQ-036). The `reviewer` role SHALL review in a fresh context with the compass `review` skill. The reviewer SHALL get the base, the head, the criteria and the standards sources. The reviewer MUST NOT get the reasoning of the builder.
 - REQ-002: The review SHALL check the spec axis and the standards axis. The system SHALL take the criteria from the ticket and from the specs at the base commit. The reviewer SHALL mark each criterion OK, KO or not verified.
 - REQ-003: Each finding SHALL cite a path and a line. The system SHALL open the cited line before it accepts the finding. The system SHALL drop a finding whose citation does not exist.
-- REQ-004: A P0 or P1 finding SHALL send the run back to `Working` for a fix round. A P2 finding SHALL NOT block the pull request, and the run log SHALL keep it. The system SHALL allow two fix rounds at most. When a P0 or P1 finding remains after the second round, the run SHALL move to `Blocked`. Home / Inbox SHALL then show a card that lists the findings (`RunInfo.findings`).
+- REQ-004: A P0 or P1 finding SHALL send the run back to `Working` for a fix round. A P2 finding SHALL NOT block the pull request, and the run log SHALL keep it. The system SHALL allow two fix rounds at most. When a P0 or P1 finding remains after the second round, the run SHALL move to `Blocked`. Home / Inbox SHALL then show a card that lists the findings (`RunInfo.findings`). An unblock SHALL then start one more fix round with the findings and the message of the person.
 - REQ-005: `SelfReview` SHALL post nothing to the forge and nothing to the tracker. The review report SHALL stay in the run log.
 - REQ-006: A pull request SHALL open only when `SelfReview` has no P0 or P1 finding and the gate is green. The gate SHALL run the gate commands of the project and the system SHALL keep the exact counts. A red gate SHALL count as a P1 finding. In .shipyard/project.yaml, as a list of commands.
 - REQ-007: The system SHALL name the branch `<type>/<area>/<kebab>`. The system SHALL rename a branch that a tool named, such as `claude/…` or `codex/…`, before the first push. The system SHALL rebase the branch onto the base before the push.
@@ -158,7 +158,7 @@ Each finding SHALL cite a path and a line. The system SHALL open the cited line 
 
 ### Requirement: REQ-004 Fix rounds
 
-A P0 or P1 finding SHALL send the run back to `Working` for a fix round. A P2 finding SHALL NOT block the pull request, and the run log SHALL keep it. The system SHALL allow two fix rounds at most. When a P0 or P1 finding remains after the second round, the run SHALL move to `Blocked`. Home / Inbox SHALL then show a card that lists the findings (`RunInfo.findings`).
+A P0 or P1 finding SHALL send the run back to `Working` for a fix round. A P2 finding SHALL NOT block the pull request, and the run log SHALL keep it. The system SHALL allow two fix rounds at most. When a P0 or P1 finding remains after the second round, the run SHALL move to `Blocked`. Home / Inbox SHALL then show a card that lists the findings (`RunInfo.findings`). An unblock SHALL then start one more fix round with the findings and the message of the person.
 
 #### Scenario: One round
 - GIVEN a review finds one defect
@@ -176,6 +176,11 @@ A P0 or P1 finding SHALL send the run back to `Working` for a fix round. A P2 fi
 - WHEN the second re-review ends
 - THEN the run moves to `Blocked`
 - AND the Inbox shows a card with the findings
+
+#### Scenario: Unblock after the rounds
+- GIVEN a run in `Blocked` after two fix rounds
+- WHEN a person unblocks it with a message
+- THEN the builder runs one more fix round with the findings and the message
 
 ### Requirement: REQ-005 Local review only
 
