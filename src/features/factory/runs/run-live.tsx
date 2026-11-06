@@ -108,6 +108,13 @@ export function EventRows({ events, ticket }: { events: RunLogEvent_Serialize[];
 	);
 }
 
+/** The text of the latest `blocked` note. */
+export function lastBlock(events: RunLogEvent_Serialize[]): string | undefined {
+	return events
+		.map((e) => (e.kind === "note" ? payloadOf(e.payload).blocked : undefined))
+		.findLast((b): b is string => typeof b === "string");
+}
+
 /** Why a run stopped, in one plain sentence: the latest stop note or runner error, else a failed step. */
 export function stopReason(
 	why: Messages["factory"]["why"],

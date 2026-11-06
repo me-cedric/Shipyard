@@ -357,6 +357,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             factory::run_cancel,
             factory::run_resume,
             factory::run_unblock,
+            factory::run_close_done,
             factory::run_plan_approve,
             factory::run_plan_reject,
             factory::kill_switch_get,

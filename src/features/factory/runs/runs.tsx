@@ -136,7 +136,7 @@ export function Runs() {
 		<ListDetail
 			title={f.runs}
 			icon={<CpuChipIcon size={16} />}
-			count={all.length}
+			count={board.length}
 			chips={<AgentsToggle />}
 			action={
 				<span className="flex items-center gap-2">

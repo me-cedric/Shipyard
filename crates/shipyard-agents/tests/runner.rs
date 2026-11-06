@@ -279,6 +279,18 @@ fn the_claude_mcp_file_is_private_holds_the_secret_and_goes_away() {
 }
 
 #[test]
+fn claude_tools_only_plan_step_uses_the_default_mode_with_the_cut_tools() {
+    let mut f = fixture(CLAUDE_STREAM);
+    f.spec.tools_only = true;
+    go("claude", f.spec.clone());
+    let args = argv(&f.rec);
+    let at = args.iter().position(|a| a == "--permission-mode").unwrap();
+    assert_eq!(args[at + 1], "default");
+    let tools = args.iter().position(|a| a == "--tools").unwrap();
+    assert_eq!(args[tools + 1], "Read,Grep,Glob");
+}
+
+#[test]
 fn claude_plan_mode_is_read_only_and_a_fresh_run_has_no_resume() {
     let f = fixture(CLAUDE_STREAM);
     go("claude", f.spec.clone());

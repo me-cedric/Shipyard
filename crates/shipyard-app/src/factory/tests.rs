@@ -270,6 +270,10 @@ fn cancel_the_kill_switch_and_the_plan_gate_are_one_call_each() {
         unblock(&fx.s, &a, Some("go on")).is_err(),
         "a cancelled run is not blocked"
     );
+    assert!(
+        close_done(&fx.s, &a).is_err(),
+        "a cancelled run does not close as done"
+    );
     assert!(cancel(&fx.s, "01JNOPE").is_err());
 
     // The global switch cancels each live run and refuses a new one.
@@ -387,9 +391,12 @@ fn a_paused_run_resumes_with_more_budget_and_a_negative_amount_is_refused() {
         run_get(&fx.s, &run).unwrap().unwrap().state,
         RunState::Paused
     );
-    assert!(resume(&fx.s, &run, -1.0, 0).is_err());
-    assert!(resume(&fx.s, &run, f64::NAN, 0).is_err());
-    assert_eq!(resume(&fx.s, &run, 5.0, 0).unwrap(), RunState::Working);
+    assert!(resume(&fx.s, &run, -1.0, 0, None).is_err());
+    assert!(resume(&fx.s, &run, f64::NAN, 0, None).is_err());
+    assert_eq!(
+        resume(&fx.s, &run, 5.0, 0, None).unwrap(),
+        RunState::Working
+    );
     assert_eq!(run_get(&fx.s, &run).unwrap().unwrap().budget_usd, Some(6.0));
 }
 

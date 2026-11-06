@@ -12,8 +12,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use shipyard_core::delivery::{self, GateCheck, PrBody, TicketLine};
-use shipyard_core::run::RunEvent;
-use shipyard_core::workflow::StepState;
+use shipyard_core::run::{RunEvent, RunState};
+use shipyard_core::workflow::{Action, StepState};
 use shipyard_store::pr;
 use shipyard_store::run_log::kind;
 
@@ -21,7 +21,7 @@ use crate::approvals::Write;
 use crate::jobs::Work;
 use crate::ports::Merge;
 use crate::review::Finding;
-use crate::run_engine::Inner;
+use crate::run_engine::{Inner, reset};
 
 /// What the run knows about its delivery.
 #[derive(Default, Serialize, Deserialize)]
@@ -48,7 +48,23 @@ pub(crate) struct Delivered {
     /// The digest that the job brought for the pull request body: `Some(None)` is no digest.
     #[serde(skip)]
     pub digest: Option<Option<String>>,
+    /// Why the pull request step stopped the run, when an unblock has a way past it.
+    pub stuck: Option<Stuck>,
 }
+
+/// A stop of the pull request step that an unblock moves past.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) enum Stuck {
+    /// The run branch has no change against the base.
+    Empty,
+    /// The rebase of the run branch onto the base conflicts in these files.
+    Conflicts { base: String, files: Vec<String> },
+    /// The pull request closed with no merge.
+    Closed,
+}
+
+/// The `blocked` note of a run branch with no change: the app shows "Close as done" for it.
+pub const NOTHING_TO_DELIVER: &str = "nothing to deliver: the run changed no file";
 
 /// Why a stage stopped.
 enum Stop {
@@ -182,7 +198,8 @@ impl Inner {
 
         let changes = git.changes(run_id, &base).map_err(git_err("changes"))?;
         if changes.files.is_empty() {
-            return Err(Block("nothing to deliver: the run changed no file".into()));
+            self.rec(run_id).d.stuck = Some(Stuck::Empty);
+            return Err(Block(NOTHING_TO_DELIVER.into()));
         }
         let area = area_of(&changes.files);
         let mut branch = git.branch(run_id).map_err(git_err("branch"))?;
@@ -215,6 +232,7 @@ impl Inner {
             Merge::Rewrote => self.rec(run_id).d.rewrote = true,
             Merge::Conflicts(files) => {
                 let why = format!("rebase onto {base}: conflicts in {}", files.join(", "));
+                self.rec(run_id).d.stuck = Some(Stuck::Conflicts { base, files });
                 return Err(Block(why));
             }
         }
@@ -327,6 +345,95 @@ impl Inner {
             );
         }
         self.transition(run_id, RunEvent::PrOpened);
+    }
+
+    /// After an unblock: the way past a stop of the pull request step (`delivery` REQ-026,
+    /// REQ-035, REQ-036). An empty branch or a rebase conflict gets a fix round, a closed pull
+    /// request gets a new one.
+    pub(crate) fn unstick(&mut self, run_id: &str, stuck: Stuck, note: Option<&str>) {
+        let add = note
+            .map(|n| format!("\nA person adds: {n}"))
+            .unwrap_or_default();
+        match stuck {
+            Stuck::Empty => {
+                let text = format!("The pull request step found no change to deliver.{add}");
+                self.fix_before_pr(run_id, &text, false);
+            }
+            Stuck::Conflicts { base, files } => {
+                let text = format!(
+                    "The pull request step cannot rebase the run branch onto `{base}`: conflicts \
+                     in {}. In this folder, the run worktree, rebase the run branch onto \
+                     `{base}`, resolve the conflicts and keep the intent of both sides. Run the \
+                     checks, then report.{add}",
+                    files.join(", ")
+                );
+                self.fix_before_pr(run_id, &text, true);
+            }
+            Stuck::Closed => self.reopen(run_id, note),
+        }
+    }
+
+    /// A fix round before the pull request step: the builders get `note`, then the review and
+    /// the pull request step run again. `in_run`: one builder works in the run worktree, not
+    /// in a child worktree.
+    fn fix_before_pr(&mut self, run_id: &str, note: &str, in_run: bool) {
+        let rec = &self.runs[run_id];
+        if rec.run.state != RunState::SelfReview {
+            return;
+        }
+        let Some(action) = rec.wf.steps.iter().find(|s| s.action.is_some()) else {
+            return;
+        };
+        let mut again = crate::feedback::pr_chain(&rec.wf, action);
+        if in_run {
+            // One builder resolves the conflict: the last one before the pull request.
+            let last = again.iter().rposition(|(_, b)| *b);
+            again = (again.into_iter().enumerate())
+                .filter(|(i, (_, b))| !b || Some(*i) == last)
+                .map(|(_, x)| x)
+                .collect();
+        }
+        if !again.iter().any(|(_, b)| *b) {
+            return;
+        }
+        for (sid, builder) in again {
+            if let Some(s) = self.rec(run_id).steps.get_mut(&sid) {
+                reset(s, if builder { note } else { "" });
+                s.in_run = builder && in_run;
+            }
+        }
+        self.transition(run_id, RunEvent::FixRound);
+    }
+
+    /// A pull request that closed with no merge: the run forgets it and the pull request step
+    /// opens a new one. A note, or feedback that waits, starts a feedback round first.
+    fn reopen(&mut self, run_id: &str, note: Option<&str>) {
+        let rec = self.rec(run_id);
+        let closed = rec.pr.take();
+        rec.d.threads.clear();
+        self.log(run_id, None, kind::NOTE, json!({"forgot_pr": closed}));
+        // A fix round goes on: its pull request step opens the new one.
+        if self.runs[run_id].run.state != RunState::PROpen {
+            return;
+        }
+        if let Some(n) = note {
+            let text = format!("The pull request was closed without a merge. A person adds: {n}");
+            self.rec(run_id).d.feedback.push(text);
+        }
+        if !self.runs[run_id].d.feedback.is_empty() {
+            // `take_feedback` starts the round at the next pump.
+            return;
+        }
+        let wf = self.runs[run_id].wf.clone();
+        let Some(action) = wf.steps.iter().find(|s| s.action == Some(Action::OpenPr)) else {
+            return;
+        };
+        if let Some(s) = self.rec(run_id).steps.get_mut(&action.id) {
+            reset(s, "");
+        }
+        // The one path from `PROpen` back to the pull request step.
+        self.transition(run_id, RunEvent::ChangesRequested);
+        self.transition(run_id, RunEvent::FixStarted);
     }
 
     /// A write of the step failed, or a forge read did: the action step failed, with its retries.

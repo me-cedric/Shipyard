@@ -20,7 +20,7 @@ import { SpendMeter } from "@/ui/molecules/spend-meter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { RunGraph } from "@/ui/organisms/run-graph";
 import { PlanBlock, planOf } from "./plan";
-import { EventRows, LiveStrip, stopReason } from "./run-live";
+import { EventRows, LiveStrip, lastBlock, stopReason } from "./run-live";
 import { RunUnits } from "./run-units";
 
 const SEVERITY = { P0: "danger", P1: "warning", P2: "info" } as const;
@@ -102,12 +102,38 @@ export function RunDetail({ id }: { id: string }) {
 							{f.why.again}
 						</Button>
 					) : run.state === "Blocked" ? (
+						<>
+							{lastBlock(log.events)?.startsWith("nothing to deliver") ? (
+								<Button onClick={() => void guard(() => act.closeDone(id))}>{f.closeDone}</Button>
+							) : null}
+							<form
+								className="flex items-center gap-2"
+								onSubmit={(e) => {
+									e.preventDefault();
+									void guard(async () => {
+										await act.unblock(id, message);
+										setMessage("");
+									});
+								}}
+							>
+								<Input
+									label={f.unblockNote}
+									className="w-64"
+									value={message}
+									onChange={(e) => setMessage(e.target.value)}
+								/>
+								<Button type="submit" variant="primary">
+									{f.unblock}
+								</Button>
+							</form>
+						</>
+					) : (
 						<form
 							className="flex items-center gap-2"
 							onSubmit={(e) => {
 								e.preventDefault();
 								void guard(async () => {
-									await act.unblock(id, message);
+									await act.resume(id, add.trim() === "" ? null : Number(add), message);
 									setMessage("");
 								});
 							}}
@@ -119,18 +145,9 @@ export function RunDetail({ id }: { id: string }) {
 								onChange={(e) => setMessage(e.target.value)}
 							/>
 							<Button type="submit" variant="primary">
-								{f.unblock}
+								{f.resume}
 							</Button>
 						</form>
-					) : (
-						<Button
-							variant="primary"
-							onClick={() =>
-								void guard(() => act.resume(id, add.trim() === "" ? null : Number(add)))
-							}
-						>
-							{f.resume}
-						</Button>
 					)}
 				</div>
 			) : null}

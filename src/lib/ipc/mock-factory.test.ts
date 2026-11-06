@@ -285,18 +285,39 @@ describe("mock factory: run actions", () => {
 		expect(notes).toContainEqual({ note: "Keep both lines.", by: "person" });
 	});
 
+	it("closes as done only a run blocked with nothing to deliver", async () => {
+		const blocked = await one("ACME-9");
+		await expect(unwrap(commands.runCloseDone(blocked.id))).rejects.toMatchObject({
+			details: expect.stringContaining("nothing to deliver"),
+		});
+		need(mockState().factory.runs.find((x) => x.id === blocked.id)).log.push({
+			id: 9999,
+			step: "pr",
+			kind: "note",
+			payload: JSON.stringify({ blocked: "nothing to deliver: the run changed no file" }),
+			ts: Date.now(),
+		});
+		await unwrap(commands.runCloseDone(blocked.id));
+		expect(await one("ACME-9")).toMatchObject({ state: "Done", lane: "done" });
+	});
+
 	it("resumes a paused run with a budget, and refuses a bad budget", async () => {
 		const paused = await one("ACME-6");
 		expect(paused).toMatchObject({ state: "Paused", lane: "needs_you" });
 		for (const add of [-1, Number.NaN, null])
-			await expect(unwrap(commands.runResume(paused.id, add, 0))).rejects.toMatchObject({
+			await expect(unwrap(commands.runResume(paused.id, add, 0, null))).rejects.toMatchObject({
 				details: expect.stringContaining("the added budget must be a positive number"),
 			});
 		// No budget added: the run stays paused.
-		expect(await unwrap(commands.runResume(paused.id, 0, 0))).toBe("Paused");
-		expect(await unwrap(commands.runResume(paused.id, 2, 0))).toBe("Working");
+		expect(await unwrap(commands.runResume(paused.id, 0, 0, null))).toBe("Paused");
+		expect(await unwrap(commands.runResume(paused.id, 2, 0, " Go on. "))).toBe("Working");
+		const log = await unwrap(commands.runLogPage(paused.id, 0, 500));
+		expect(log.events.map((e) => JSON.parse(e.payload))).toContainEqual({
+			note: "Go on.",
+			by: "person",
+		});
 		expect(await one("ACME-6")).toMatchObject({ state: "Working", budgetUsd: 5 });
-		await expect(unwrap(commands.runResume(paused.id, 1, 0))).rejects.toMatchObject({
+		await expect(unwrap(commands.runResume(paused.id, 1, 0, null))).rejects.toMatchObject({
 			details: expect.stringContaining("refused Resume in Working"),
 		});
 	});

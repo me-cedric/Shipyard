@@ -630,6 +630,17 @@ impl ProjectWriter {
     }
 }
 
+/// A GitHub or GitLab issue has two states. Any other status name is not a move that the tracker
+/// can take: the engine skips it.
+fn can_take(kind: shipyard_core::work_item::TrackerKind, status: &str) -> bool {
+    use shipyard_core::work_item::TrackerKind::{GitHubIssues, GitLabIssues};
+    !matches!(kind, GitHubIssues | GitLabIssues)
+        || matches!(
+            status.to_ascii_lowercase().as_str(),
+            "open" | "opened" | "reopen" | "closed" | "close"
+        )
+}
+
 impl Writer for ProjectWriter {
     fn can_comment(&self) -> bool {
         self.conns
@@ -640,10 +651,11 @@ impl Writer for ProjectWriter {
     fn send(&self, write: &Write) -> PortResult<String> {
         match write {
             Write::Transition { key, status } => {
-                self.conns
-                    .tracker_write(&self.tracker)?
-                    .transition(key, status)
-                    .map_err(e)?;
+                let t = self.conns.tracker_write(&self.tracker)?;
+                if !can_take(t.kind(), status) {
+                    return Ok(String::new());
+                }
+                t.transition(key, status).map_err(e)?;
                 Ok(String::new())
             }
             Write::Labels { key, labels } => {

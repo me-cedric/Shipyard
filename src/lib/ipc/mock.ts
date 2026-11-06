@@ -1834,8 +1834,10 @@ const handlers: Handlers = {
 		return needTracker(() => fx.runStart(state.factory, p.id, state.sync.mirror, key));
 	},
 	runCancel: (run) => fx.runCancel(state.factory, run),
-	runResume: (run, addUsd, addTokens) => fx.runResume(state.factory, run, addUsd, addTokens),
+	runResume: (run, addUsd, addTokens, note) =>
+		fx.runResume(state.factory, run, addUsd, addTokens, note),
 	runUnblock: (run, note) => fx.runUnblock(state.factory, run, note),
+	runCloseDone: (run) => fx.runCloseDone(state.factory, run),
 	runPlanApprove: (run) => fx.runPlanApprove(state.factory, run),
 	runPlanReject: (run, note) => fx.runPlanReject(state.factory, run, note),
 	killSwitchGet: () => fx.killSwitchGet(state.factory),

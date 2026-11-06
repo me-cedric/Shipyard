@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useRef } from "react";
+import { stopReason } from "@/features/factory/runs/run-live";
 import { format, type Messages } from "@/lib/i18n";
 import {
 	type ApprovalView,
@@ -253,12 +254,16 @@ export async function needsYouNotice(
 		const r = await unwrap(commands.runGetOne(p.run));
 		const current =
 			r && latestPerTicket(await unwrap(commands.runsList())).some((x) => x.id === r.id);
+		// A run that stopped says why in the detail.
+		const stopped = r?.state === "Failed" || r?.state === "Paused" || r?.state === "Blocked";
+		const log = stopped ? await unwrap(commands.runLogPage(p.run, 0, 500)) : null;
 		return r?.lane === "needs_you" && current
 			? {
 					id: `run:${r.id}:${r.state}`,
 					kind,
 					title: format(t.home.notice.run, { key: r.key }),
 					body: r.title,
+					detail: log ? stopReason(t.factory.why, r, log.events) : undefined,
 					target: noticeTarget({ source: r.state === "PlanReview" ? "plan" : "run", run: r.id }),
 				}
 			: null;

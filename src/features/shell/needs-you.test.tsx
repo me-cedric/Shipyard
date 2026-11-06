@@ -94,6 +94,12 @@ describe("Needs you notifications (shell REQ-008)", () => {
 		});
 	});
 
+	it("gives the reason of a paused run as the detail of its entry", async () => {
+		const paused = await run("ACME-6");
+		const n = await needsYouNotice("factory-run", { run: paused.id, id: "" }, en);
+		expect(n?.detail).toBeTruthy();
+	});
+
 	it("makes no entry for an answered question, a working run or a message", async () => {
 		const paused = await run("ACME-6");
 		expect(

@@ -241,6 +241,11 @@ impl Agents {
         Ok(out)
     }
 
+    /// Saves the MCP config as it is now: a server that the app added by itself stays.
+    pub fn mcp_save(&self) -> Res<()> {
+        self.with_file(|_| Ok(()))
+    }
+
     /* ----- Runners ----- */
 
     /// Looks for each runner CLI and asks it for its version. Blocks.

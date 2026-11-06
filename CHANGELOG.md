@@ -1,6 +1,8 @@
 # Changelog
 
 ## [0.1.0]
+- A GitHub or GitLab issue is no longer sent a status it cannot take, so a run no longer fails on it; plan steps no longer lose a turn writing a plan file; a paused run takes a message for its agents next to Resume; the Runs count skips replaced runs; the notice of a stopped run says why; Close as done removes the run worktrees; the Graph Index server stays in the MCP settings.
+- Unblock now moves a blocked pull request step on: a branch with no change starts one fix round with your message, and Close as done ends the run when the work is already on the base; a rebase conflict starts one fix round where an agent rebases the run branch in the run worktree and resolves the files; a pull request closed without a merge gets a new pull request (with a message, a fix round first).
 - Factory / Sessions lists the AI tool sessions of the run units (Active and Previous, with the start time) and a click opens the run page at the unit; the run page lists the units with Follow (their live events) and Open in terminal (`claude --resume` in the folder of the unit, off while the unit runs).
 - Markdown editors (documents, decisions, specs, the handbook) colour headings, lists, inline code, links and refs, and the workflow text editor colours YAML; Design / API reads the Shipyard MCP contract again; the menu bar panel's Stop button says only Stop.
 - A blocked run takes a message for its agents next to Unblock (Enter sends it); when two tasks of a run change the same file, the second task runs again on top of the first instead of blocking the run, and only a second conflict blocks it; an unblock after the review fix rounds are spent starts one more fix round instead of the same review.

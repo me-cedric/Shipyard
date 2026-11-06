@@ -159,6 +159,12 @@ fn self_review_fix_round_and_finish_without_pr() {
     );
     assert!(walk(&TO_WORKING).apply(RunEvent::Finished).is_ok());
     assert!(walk(&[RunEvent::Claim]).apply(RunEvent::Finished).is_err());
+    // A person closes a run blocked with nothing to deliver.
+    let blocked = review.apply(RunEvent::Block).unwrap();
+    assert_eq!(
+        blocked.apply(RunEvent::Finished).unwrap().state,
+        RunState::Done
+    );
 }
 
 #[test]

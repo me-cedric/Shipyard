@@ -157,6 +157,9 @@ pub struct RunSpec {
     /// Codex runs with `--sandbox read-only` (the operating system refuses the write). OpenCode
     /// runs its `plan` agent. Gemini and Copilot rely on their permission answers.
     pub allowed_tools: Vec<String>,
+    /// Claude Code in [`Mode::Plan`]: use the `default` permission mode with the cut `--tools`
+    /// set, not `plan`. The `plan` mode makes the model try to write a plan file: a lost turn.
+    pub tools_only: bool,
     /// The working directory: the worktree of the run.
     pub dir: PathBuf,
     /// A folder for the generated MCP files and the brief: absolute, outside `dir`, and its own
@@ -188,6 +191,7 @@ impl RunSpec {
             mode: Mode::Plan,
             approval: Approval::Ask,
             allowed_tools: Vec::new(),
+            tools_only: false,
             scratch: scratch.into(),
             dir,
             mcp: Vec::new(),

@@ -1049,19 +1049,43 @@ export function runUnblock(f: MockFactory, run: string, note: string | null): nu
 	return null;
 }
 
+/** The text of the last `blocked` note of a run. */
+const lastBlock = (r: Rec): string | undefined =>
+	r.log
+		.map((e) => (e.kind === "note" ? JSON.parse(e.payload).blocked : undefined))
+		.findLast((b) => typeof b === "string");
+
+/** Close a run blocked with nothing to deliver as `Done`. */
+export function runCloseDone(f: MockFactory, run: string): null {
+	const r = find(f, run);
+	if (r.state !== "Blocked" || !lastBlock(r)?.startsWith("nothing to deliver"))
+		throw "only a run blocked with nothing to deliver closes as done";
+	push(f, r, null, "note", {
+		done: "closed by a person: the run branch has no change to deliver",
+		by: "person",
+	});
+	move(f, r, "Done");
+	return null;
+}
+
 /** Raise the budget and resume a paused run. It stays paused while the budget is spent. */
 export function runResume(
 	f: MockFactory,
 	run: string,
 	addUsd: number | null,
 	_addTokens: number,
+	note: string | null,
 ): RunState {
 	if (addUsd === null || !(addUsd >= 0 && Number.isFinite(addUsd)))
 		throw "the added budget must be a positive number";
 	const r = find(f, run);
 	if (r.budgetUsd !== null) r.budgetUsd += addUsd;
 	if (r.state !== "Paused") refuse("Resume", r);
-	if (r.budgetUsd === null || r.costUsd < r.budgetUsd) move(f, r, r.returnTo ?? "Working");
+	if (r.budgetUsd === null || r.costUsd < r.budgetUsd) {
+		const text = note?.trim();
+		if (text) push(f, r, null, "note", { note: text, by: "person" });
+		move(f, r, r.returnTo ?? "Working");
+	}
 	return r.state;
 }
 

@@ -1137,7 +1137,10 @@ pub async fn graph_code(app: AppHandle) -> Api<CodeGraph> {
 #[specta::specta]
 pub async fn graph_code_index(app: AppHandle) -> Api<()> {
     blocking(app, |s| {
-        code_index_run(s.agents.proxy.as_ref(), &project(s)?.root)
+        let out = code_index_run(s.agents.proxy.as_ref(), &project(s)?.root);
+        // The server that the Index action added stays in the settings, also after an error.
+        s.agents.mcp_save()?;
+        out
     })
     .await
 }

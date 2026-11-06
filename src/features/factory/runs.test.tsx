@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { latestPerTicket } from "@/lib/home";
 import { commands, unwrap } from "@/lib/ipc";
-import { DEMO_FOLDER } from "@/lib/ipc/mock";
+import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { ShellProvider } from "@/lib/shell";
 import { renderApp } from "@/ui/test-utils";
 import { Runs } from "./index";
@@ -199,6 +199,27 @@ describe("Factory / Runs", () => {
 			await user.click(await within(panel).findByRole("button", { name: button }));
 			await waitFor(async () => expect((await find(key)).state).toBe(to));
 		}
+	});
+
+	it("closes as done a run blocked with nothing to deliver, and only that one", async () => {
+		const user = userEvent.setup();
+		await renderRuns();
+		await user.click(await screen.findByRole("button", { name: /ACME-9/ }));
+		const panel = await screen.findByRole("complementary", { name: "ACME-9" });
+		await within(panel).findByRole("button", { name: "Unblock" });
+		expect(within(panel).queryByRole("button", { name: "Close as done" })).toBeNull();
+		const run = await find("ACME-9");
+		const r = mockState().factory.runs.find((x) => x.id === run.id);
+		r?.log.push({
+			id: 9999,
+			step: "pr",
+			kind: "note",
+			payload: JSON.stringify({ blocked: "nothing to deliver: the run changed no file" }),
+			ts: Date.now(),
+		});
+		await user.click(await screen.findByRole("button", { name: /ACME-9/ }));
+		await user.click(await within(panel).findByRole("button", { name: "Close as done" }));
+		await waitFor(async () => expect((await find("ACME-9")).state).toBe("Done"));
 	});
 
 	it("unblocks with a message on Enter", async () => {

@@ -28,6 +28,7 @@ stateDiagram-v2
   Active --> Failed: Fail
   WaitingForAnswer --> Active: Answered, back to the return state
   Blocked --> Active: Unblock
+  Blocked --> Done: Finished, a person closes a run with nothing to deliver
   RetryQueued --> Active: RetryDue
   Paused --> Active: Resume with budget left, more turns
   Active --> Cancelled: Cancel

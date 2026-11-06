@@ -203,6 +203,8 @@ impl Run {
             (S::PlanReview, E::PlanRejected) => to(S::Planning),
             (S::Working, E::BuildDone) => to(S::SelfReview),
             (S::Working | S::SelfReview, E::Finished) => to(S::Done),
+            // A person closes a run blocked with nothing to deliver: the work is on the base.
+            (S::Blocked, E::Finished) => to(S::Done),
             (S::SelfReview, E::FixRound) => to(S::Working),
             (S::SelfReview, E::PrOpened) => to(S::PROpen),
             (S::PROpen, E::ChangesRequested) => to(S::ChangesRequested),

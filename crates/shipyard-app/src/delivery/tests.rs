@@ -447,3 +447,13 @@ fn a_gate_that_does_not_start_leaves_no_log_file() {
     assert!(!out.passed);
     assert!(!log.exists());
 }
+
+#[test]
+fn a_two_state_tracker_skips_a_status_it_cannot_take() {
+    use shipyard_core::work_item::TrackerKind::{GitHubIssues, GitLabIssues, JiraCloud};
+    assert!(!can_take(GitHubIssues, "In Progress"));
+    assert!(!can_take(GitLabIssues, "In Review"));
+    assert!(can_take(GitHubIssues, "Closed"));
+    assert!(can_take(GitLabIssues, "reopen"));
+    assert!(can_take(JiraCloud, "In Progress"));
+}

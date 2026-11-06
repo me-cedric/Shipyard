@@ -60,15 +60,17 @@ impl Inner {
             let body = shipyard_core::delivery::clean_outgoing(&self.summary(run_id));
             self.write(run_id, Write::Comment { key, body });
         }
-        if let Some(git) = self.project_of(run_id).map(|p| p.git.clone()) {
-            match git.remove_worktrees(run_id) {
-                Ok(()) => {}
-                Err(e) => {
-                    self.log(run_id, None, kind::NOTE, json!({"worktree_kept": e}));
-                    self.rec(run_id).d.kept = Some(e);
-                }
-            }
-        }
+        self.remove_worktrees(run_id);
         self.transition(run_id, RunEvent::Closed);
+    }
+
+    /// Remove the worktrees of the run. A folder that stays is logged and kept in the record.
+    pub(crate) fn remove_worktrees(&mut self, run_id: &str) {
+        if let Some(git) = self.project_of(run_id).map(|p| p.git.clone())
+            && let Err(e) = git.remove_worktrees(run_id)
+        {
+            self.log(run_id, None, kind::NOTE, json!({"worktree_kept": e}));
+            self.rec(run_id).d.kept = Some(e);
+        }
     }
 }

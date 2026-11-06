@@ -382,12 +382,52 @@ fn a_pull_request_closed_with_no_merge_blocks_the_run_and_touches_nothing() {
         })
         .collect();
     assert!(moves.is_empty(), "{moves:?}");
-    // The person decides: reopen (unblock) or cancel.
-    fx.f.unblock(&run).unwrap();
-    assert_eq!(fx.state(&run), RunState::PROpen);
-    pr_event(&fx, PrEventKind::Closed);
+    // The person decides: cancel, or unblock for a new pull request.
     fx.f.cancel(&run).unwrap();
     assert_eq!(fx.state(&run), RunState::Cancelled);
+}
+
+#[test]
+fn an_unblock_after_a_closed_pull_request_opens_a_new_one() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = open(&fx);
+    pr_event(&fx, PrEventKind::Closed);
+    fx.pulls.close("fix/engine/login");
+    let opened = count(&fx, |w| matches!(w, Write::OpenPr { .. }));
+    fx.f.unblock(&run).unwrap();
+    assert_eq!(fx.f.run_info(&run).unwrap().pr, None);
+    fx.f.pump();
+    assert_eq!(fx.state(&run), RunState::PROpen);
+    assert_eq!(
+        count(&fx, |w| matches!(w, Write::OpenPr { .. })),
+        opened + 1
+    );
+    assert_eq!(fx.f.run_info(&run).unwrap().pr, Some(7));
+    let blocked: Vec<_> = fx
+        .logged(&run, "note")
+        .into_iter()
+        .filter(|n| n["blocked"].is_string())
+        .collect();
+    assert_eq!(blocked.len(), 1, "{blocked:?}");
+}
+
+#[test]
+fn an_unblock_with_a_note_after_a_closed_pull_request_starts_a_fix_round() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = open(&fx);
+    pr_event(&fx, PrEventKind::Closed);
+    fx.pulls.close("fix/engine/login");
+    fx.f.unblock_with(&run, Some("Split the change.")).unwrap();
+    fx.f.pump();
+    assert_eq!(fx.state(&run), RunState::Working);
+    let prompt = fx.agents.briefs().pop().unwrap().prompt;
+    assert!(
+        prompt.contains("closed without a merge. A person adds: Split the change."),
+        "{prompt}"
+    );
+    fix_round(&fx, &run);
+    assert_eq!(fx.state(&run), RunState::PROpen);
+    assert_eq!(fx.f.run_info(&run).unwrap().pr, Some(7));
 }
 
 #[test]

@@ -7,16 +7,18 @@
 //! request step run again, and the push goes to the same pull request. The loop counts against
 //! the budget and the max turns of the run: at the turn limit the run fails, and at the budget the
 //! run pauses (`Usage` of the agents) with the feedback of the round kept for the resume. A pull request that closes without a merge
-//! blocks the run and leaves the worktree and the ticket as they are.
+//! blocks the run and leaves the worktree and the ticket as they are. An unblock forgets it: the
+//! pull request step opens a new one.
 
 use serde_json::json;
 use shipyard_core::pickup::PrEventKind;
 use shipyard_core::run::{RunEvent, RunState};
-use shipyard_core::workflow::Action;
+use shipyard_core::workflow::{Action, Step, Workflow};
 use shipyard_store::run_log::kind;
 
 use crate::fence::fence;
 use crate::ports::{FailedCheck, Thread};
+use crate::pull_request::Stuck;
 use crate::run_engine::{Inner, Kind, kind_of, reset};
 
 fn check_text(c: &FailedCheck) -> String {
@@ -38,6 +40,21 @@ fn thread_text(t: &Thread) -> String {
         t.id,
         fence("review thread", &t.text)
     )
+}
+
+/// The pull request step, the review that it needs, and the builders behind the review: the
+/// steps that run again before the next push. `true`: a builder.
+pub(crate) fn pr_chain(wf: &Workflow, action: &Step) -> Vec<(String, bool)> {
+    let mut again = vec![(action.id.clone(), false)];
+    for n in &action.needs {
+        let Some(step) = wf.step(n) else { continue };
+        let review = kind_of(step) == Kind::Review;
+        again.push((n.clone(), !review));
+        if review {
+            again.extend(step.needs.iter().map(|b| (b.clone(), true)));
+        }
+    }
+    again
 }
 
 impl Inner {
@@ -75,6 +92,7 @@ impl Inner {
         }
         let note = json!({"blocked": "pull request closed"});
         self.log(run_id, None, kind::NOTE, note);
+        self.rec(run_id).d.stuck = Some(Stuck::Closed);
         self.transition(run_id, RunEvent::Block);
     }
 
@@ -190,17 +208,7 @@ impl Inner {
         let Some(action) = wf.steps.iter().find(|s| s.action == Some(Action::OpenPr)) else {
             return;
         };
-        // The pull request step, the review that it needs, and the builders behind the review.
-        let mut again = vec![(action.id.clone(), false)];
-        for n in &action.needs {
-            let Some(step) = wf.step(n) else { continue };
-            let review = kind_of(step) == Kind::Review;
-            again.push((n.clone(), !review));
-            if review {
-                again.extend(step.needs.iter().map(|b| (b.clone(), true)));
-            }
-        }
-        for (sid, builder) in again {
+        for (sid, builder) in pr_chain(&wf, action) {
             if let Some(s) = self.rec(run_id).steps.get_mut(&sid) {
                 reset(s, if builder { &notes } else { "" });
             }

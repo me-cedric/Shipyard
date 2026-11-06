@@ -41,7 +41,7 @@ use crate::persist::Replay;
 use crate::ports::{
     AgentEvent, AgentRun, Agents, Brief, Dispatch, Git, Pulls, StartRequest, Workspaces, Writer,
 };
-use crate::pull_request::Delivered;
+use crate::pull_request::{Delivered, Stuck};
 use crate::questions::Asked;
 use crate::review::Finding;
 use crate::tools::Message;
@@ -275,6 +275,10 @@ pub(crate) struct StepRec {
     /// restart, or when the run changed in between, the next pump asks again.
     #[serde(default)]
     pub gating: bool,
+    /// The next round of the step works in the run worktree as one unit, not in child
+    /// worktrees: it resolves a rebase conflict of the run branch.
+    #[serde(default)]
+    pub in_run: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -582,15 +586,17 @@ impl Factory {
 
     /// A person raises the budget and resumes a paused run (REQ-005, `q:Q-053`).
     pub fn resume(&self, run_id: &str, add_usd: f64) -> Result<RunState, String> {
-        self.resume_with(run_id, add_usd, 0)
+        self.resume_with(run_id, add_usd, 0, None)
     }
 
     /// `resume`, with tokens added to the token limit too. A pause for `max_tokens` needs them.
+    /// `note`: a message for the agents, kept like the one of `unblock_with`.
     pub fn resume_with(
         &self,
         run_id: &str,
         add_usd: f64,
         add_tokens: u64,
+        note: Option<&str>,
     ) -> Result<RunState, String> {
         let mut inner = self.lock();
         if !(add_usd >= 0.0 && add_usd.is_finite()) {
@@ -610,7 +616,21 @@ impl Factory {
             rec.extra_turns = rec.turns;
         }
         let budget_left = inner.budget_level(run_id) != BudgetLevel::Spent;
+        let note = note.map(str::trim).filter(|n| !n.is_empty());
+        // A refused resume adds no note.
+        let before = inner.run(run_id)?.run.state;
         inner.checked(run_id, RunEvent::Resume { budget_left })?;
+        if let Some(n) = note
+            && before == RunState::Paused
+            && inner.rec(run_id).run.state != RunState::Paused
+        {
+            for s in inner.rec(run_id).steps.values_mut() {
+                if matches!(s.state, StepState::Running | StepState::Failed) {
+                    s.notes.push(n.into());
+                }
+            }
+            inner.log(run_id, None, kind::NOTE, json!({"note": n, "by": "person"}));
+        }
         Ok(inner.rec(run_id).run.state)
     }
 
@@ -629,6 +649,7 @@ impl Factory {
             return inner.checked(run_id, RunEvent::Unblock);
         }
         let note = note.map(str::trim).filter(|n| !n.is_empty());
+        let stuck = inner.rec(run_id).d.stuck.take();
         let rec = inner.rec(run_id);
         for s in rec.steps.values_mut() {
             if let Some(n) = note
@@ -645,6 +666,30 @@ impl Factory {
         }
         inner.checked(run_id, RunEvent::Unblock)?;
         inner.round_after_cap(run_id, note);
+        if let Some(stuck) = stuck {
+            inner.unstick(run_id, stuck, note);
+        }
+        Ok(())
+    }
+
+    /// A person ends a run whose pull request step found no change to deliver: the work is on
+    /// the base already. The run goes to `Done`, with the reason in the run log.
+    pub fn close_done(&self, run_id: &str) -> Result<(), String> {
+        let mut inner = self.lock();
+        let rec = inner.run(run_id)?;
+        if rec.run.state != RunState::Blocked || rec.d.stuck != Some(Stuck::Empty) {
+            return Err("only a run blocked with nothing to deliver closes as done".into());
+        }
+        let why = "closed by a person: the run branch has no change to deliver";
+        inner.log(
+            run_id,
+            None,
+            kind::NOTE,
+            json!({"done": why, "by": "person"}),
+        );
+        inner.checked(run_id, RunEvent::Finished)?;
+        inner.rec(run_id).d.stuck = None;
+        inner.remove_worktrees(run_id);
         Ok(())
     }
 
@@ -665,6 +710,7 @@ impl Factory {
 pub(crate) fn reset(s: &mut StepRec, note: &str) {
     s.state = StepState::Pending;
     s.gating = false;
+    s.in_run = false;
     s.units.clear();
     s.output = Value::Null;
     if !note.is_empty() {
@@ -1153,10 +1199,12 @@ impl Inner {
     pub(crate) fn step_done(&mut self, run_id: &str, sid: &str, blocking: bool) {
         let step = self.runs[run_id].wf.step(sid).cloned().expect("step");
         // The children of a worktree step join the run folder before the step ends.
-        if step.workspace == Workspace::Worktree && !self.join_children(run_id, sid) {
+        let in_run = self.runs[run_id].steps[sid].in_run;
+        if step.workspace == Workspace::Worktree && !in_run && !self.join_children(run_id, sid) {
             return;
         }
         let s = self.rec(run_id).steps.get_mut(sid).expect("step");
+        s.in_run = false;
         s.output = match step.for_each {
             Some(_) => {
                 json!({"children": s.units.iter().map(|u| u.output.clone()).collect::<Vec<_>>()})
@@ -1257,7 +1305,8 @@ impl Inner {
             self.advance_pr(run_id);
             return;
         }
-        let units = match step.source() {
+        let in_run = self.runs[run_id].steps[sid].in_run;
+        let units = match step.source().filter(|_| !in_run) {
             None => vec![Unit::new(sid.into(), None)],
             Some(src) => {
                 let rec = &self.runs[run_id];
@@ -1310,7 +1359,8 @@ impl Inner {
         let u = &rec.steps[sid].units[i];
         let role_name = u.role.as_deref().or(step.role.as_deref());
         let role = role_name.and_then(|r| p.files.role(r));
-        let child = (step.workspace == Workspace::Worktree).then_some(u.id.as_str());
+        let worktree = step.workspace == Workspace::Worktree && !rec.steps[sid].in_run;
+        let child = worktree.then_some(u.id.as_str());
         let dir = match p.workspaces.dir(run_id, step.workspace, child) {
             Ok(d) => d,
             Err(e) => return self.block(run_id, sid, &format!("workspace: {e}")),

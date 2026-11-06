@@ -56,6 +56,7 @@ export const factoryEn = {
 	addBudget: "Added budget (USD)",
 	unblock: "Unblock",
 	unblockNote: "Message to the agent",
+	closeDone: "Close as done",
 	why: {
 		turns: "The run used its {count} turns.",
 		budget: "The run reached its budget.",
@@ -254,6 +255,7 @@ export const factoryFr: typeof factoryEn = {
 	addBudget: "Budget ajouté (USD)",
 	unblock: "Débloquer",
 	unblockNote: "Message à l’agent",
+	closeDone: "Clore comme terminée",
 	why: {
 		turns: "L’exécution a utilisé ses {count} tours.",
 		budget: "L’exécution a atteint son budget.",

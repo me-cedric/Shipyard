@@ -207,6 +207,21 @@ fn the_mcp_config_persists_and_holds_no_secret() {
     assert!(a.mcp_enable("nope", true).is_err());
 }
 
+#[test]
+fn a_server_added_in_memory_stays_after_a_save() {
+    let f = Fixture::new();
+    let a = f.agents();
+    // The Index action adds the server on the control, not through `mcp_add_custom`.
+    let input = shipyard_agents::mcp_control::CustomInput {
+        name: "codebase-memory".into(),
+        command: "fake-mcp".into(),
+        ..Default::default()
+    };
+    let id = a.proxy.control().add_custom(input).unwrap().id;
+    a.mcp_save().unwrap();
+    assert!(f.agents().mcp_list().iter().any(|r| r.id == id));
+}
+
 #[cfg(unix)]
 #[test]
 fn a_custom_server_starts_shows_running_stops_and_stops_at_exit() {

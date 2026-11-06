@@ -248,10 +248,14 @@ fn budget_alerts_once_then_pauses_and_resumes() {
     assert!(fx.agents.running().is_empty());
     // No budget left: stays paused (`q:Q-053`).
     assert_eq!(fx.f.resume(&run, 0.0), Ok(RunState::Paused));
-    assert_eq!(fx.f.resume(&run, 1.0), Ok(RunState::Working));
+    assert_eq!(
+        fx.f.resume_with(&run, 1.0, 0, Some(" keep going ")),
+        Ok(RunState::Working)
+    );
     fx.f.pump();
     let again = fx.agents.briefs().pop().unwrap();
     assert_eq!(again.resume.as_deref(), Some("s-1"));
+    assert!(again.prompt.contains("keep going"), "{}", again.prompt);
     assert_eq!(fx.f.run_info(&run).unwrap().budget_usd, Some(2.0));
 }
 
@@ -268,7 +272,10 @@ fn token_budget_pauses() {
     assert_eq!(fx.state(&run), RunState::Paused);
     // Money does not lift a token pause. Added tokens do.
     assert_eq!(fx.f.resume(&run, 5.0), Ok(RunState::Paused));
-    assert_eq!(fx.f.resume_with(&run, 0.0, 200), Ok(RunState::Working));
+    assert_eq!(
+        fx.f.resume_with(&run, 0.0, 200, None),
+        Ok(RunState::Working)
+    );
 }
 
 #[test]

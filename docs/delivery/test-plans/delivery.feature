@@ -274,6 +274,13 @@ Feature: delivery
     Then the run moves to `Blocked`
     And the Inbox shows the run with the reopen and cancel choices
 
+  @spec:delivery#REQ-026
+  Scenario: Closed without merge: Unblock after the close
+    Given a run blocked because its pull request closed
+    When a person unblocks it with no message
+    Then the run removes the closed pull request
+    And the pull request step opens a new pull request
+
   @spec:delivery#REQ-027
   Scenario: Impacts digest: Digest
     Given an impacts digest for the diff
@@ -339,3 +346,23 @@ Feature: delivery
     Given an approval that names a branch and a run folder on another branch
     When the person approves it
     Then no pull request opens and the error names both branches
+
+  @spec:delivery#REQ-035
+  Scenario: Nothing to deliver: Unblock with nothing to deliver
+    Given a run blocked because the run branch has no change against the base
+    When a person unblocks it with a message
+    Then the builder steps get the note and the message, and the review and the pull request step run again
+
+  @spec:delivery#REQ-035
+  Scenario: Nothing to deliver: Close as done
+    Given a run blocked because the run branch has no change against the base
+    When a person clicks Close as done
+    Then the run moves to `Done`
+    And the run log keeps the reason
+
+  @spec:delivery#REQ-036
+  Scenario: Rebase conflict: Rebase conflict
+    Given a run blocked by a rebase conflict in `src/a.rs`
+    When a person unblocks it
+    Then a builder step gets a note that names `src/a.rs` and asks for the rebase in the run worktree
+    And after the review the pull request step runs again

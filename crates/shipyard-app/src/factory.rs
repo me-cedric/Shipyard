@@ -564,6 +564,7 @@ impl Agents for RunnerAgents {
                 Mode::Plan => RunMode::Plan,
                 Mode::Auto => RunMode::Auto,
             };
+            spec.tools_only = true;
             spec.allowed_tools = cli_tools(&b.tools);
             spec.mcp = vec![entry];
             spec.resume = b.resume.clone();
@@ -1127,18 +1128,29 @@ pub fn cancel(s: &AppState, run: &str) -> Res<()> {
 }
 
 /// Raise the budget and resume a paused run (`factory` REQ-005).
-pub fn resume(s: &AppState, run: &str, add_usd: f64, add_tokens: u32) -> Res<RunState> {
+pub fn resume(
+    s: &AppState,
+    run: &str,
+    add_usd: f64,
+    add_tokens: u32,
+    note: Option<&str>,
+) -> Res<RunState> {
     done(
         s,
         s.factory
             .factory
-            .resume_with(run, add_usd, u64::from(add_tokens)),
+            .resume_with(run, add_usd, u64::from(add_tokens), note),
     )
 }
 
 /// `note`: a message for the agents of the run. Empty or `None`: a plain unblock.
 pub fn unblock(s: &AppState, run: &str, note: Option<&str>) -> Res<()> {
     done(s, s.factory.factory.unblock_with(run, note))
+}
+
+/// A run blocked with nothing to deliver ends as `Done`: the work is on the base already.
+pub fn close_done(s: &AppState, run: &str) -> Res<()> {
+    done(s, s.factory.factory.close_done(run))
 }
 
 pub fn approve_plan(s: &AppState, run: &str) -> Res<()> {
@@ -1742,14 +1754,24 @@ pub async fn run_resume(
     run: String,
     add_usd: f64,
     add_tokens: u32,
+    note: Option<String>,
 ) -> Api<RunState> {
-    blocking(app, move |s| resume(s, &run, add_usd, add_tokens)).await
+    blocking(app, move |s| {
+        resume(s, &run, add_usd, add_tokens, note.as_deref())
+    })
+    .await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn run_unblock(app: AppHandle, run: String, note: Option<String>) -> Api<()> {
     blocking(app, move |s| unblock(s, &run, note.as_deref())).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn run_close_done(app: AppHandle, run: String) -> Api<()> {
+    blocking(app, move |s| close_done(s, &run)).await
 }
 
 #[tauri::command]

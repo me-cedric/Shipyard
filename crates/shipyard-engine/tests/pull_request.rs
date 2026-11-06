@@ -524,3 +524,110 @@ fn the_pull_request_title_and_body_hold_no_mention_and_no_attribution() {
     }
     assert!(title.contains("@\u{200B}bob"), "{title}");
 }
+
+/// The last brief of a step: its prompt and its folder.
+fn brief_of(fx: &Fx, step: &str) -> shipyard_engine::ports::Brief {
+    let briefs = fx.agents.briefs();
+    briefs.into_iter().rfind(|b| b.step == step).unwrap()
+}
+
+fn blocks(fx: &Fx, run: &str) -> Vec<String> {
+    fx.logged(run, "note")
+        .iter()
+        .filter_map(|n| n["blocked"].as_str().map(String::from))
+        .collect()
+}
+
+#[test]
+fn an_unblock_of_a_branch_with_no_change_starts_a_fix_round_with_the_note() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = fx.start("SHIP-1", &["wf:bug"]);
+    fx.git.set_changes(&[], &[]);
+    fx.done(&run, "triage");
+    fx.done(&run, "fix");
+    fx.done(&run, "review");
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    fx.f.unblock_with(&run, Some("Add the missing test."))
+        .unwrap();
+    fx.f.pump();
+    assert_eq!(fx.state(&run), RunState::Working);
+    let prompt = brief_of(&fx, "fix").prompt;
+    assert!(
+        prompt.contains("The pull request step found no change to deliver."),
+        "{prompt}"
+    );
+    assert!(prompt.contains("A person adds: Add the missing test."));
+    fx.git.set_changes(&FILES, &FILES);
+    fx.done(&run, "fix");
+    fx.done(&run, "review");
+    assert_eq!(fx.state(&run), RunState::PROpen);
+    assert!(open_pr(&fx).is_some());
+    assert_eq!(blocks(&fx, &run).len(), 1, "no second block");
+}
+
+#[test]
+fn a_run_with_nothing_to_deliver_closes_as_done_with_the_reason() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = fx.start("SHIP-1", &["wf:bug"]);
+    fx.git.set_changes(&[], &[]);
+    fx.done(&run, "triage");
+    fx.done(&run, "fix");
+    assert!(fx.f.close_done(&run).is_err(), "not blocked yet");
+    fx.done(&run, "review");
+    assert_eq!(
+        blocks(&fx, &run),
+        [shipyard_engine::pull_request::NOTHING_TO_DELIVER]
+    );
+    fx.f.close_done(&run).unwrap();
+    assert_eq!(fx.state(&run), RunState::Done);
+    assert!(fx.logged(&run, "note").iter().any(|n| {
+        n["done"] == "closed by a person: the run branch has no change to deliver"
+            && n["by"] == "person"
+    }));
+    assert!(pushes(&fx).is_empty());
+    assert_eq!(fx.git.count("remove_worktrees"), 1);
+
+    // Another cause of `Blocked` does not close as done.
+    let fx = Fx::new(writes(true), &[]);
+    fx.git
+        .set_rebase(shipyard_engine::ports::Merge::Conflicts(vec![
+            "src/a.rs".into(),
+        ]));
+    let run = to_pr(&fx);
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    assert!(fx.f.close_done(&run).is_err());
+    assert_eq!(fx.state(&run), RunState::Blocked);
+}
+
+#[test]
+fn an_unblock_of_a_rebase_conflict_has_a_worker_resolve_it_in_the_run_worktree() {
+    let fx = Fx::new(writes(true), &[]);
+    fx.git
+        .set_rebase(shipyard_engine::ports::Merge::Conflicts(vec![
+            "src/a.rs".into(),
+            "src/b.rs".into(),
+        ]));
+    let run = to_pr(&fx);
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let merges = fx.git.count("merge_child");
+    fx.f.unblock(&run).unwrap();
+    fx.f.pump();
+    assert_eq!(fx.state(&run), RunState::Working);
+    let brief = brief_of(&fx, "fix");
+    assert!(
+        brief
+            .prompt
+            .contains("rebase the run branch onto `develop`, resolve the conflicts"),
+        "{}",
+        brief.prompt
+    );
+    assert!(brief.prompt.contains("conflicts in src/a.rs, src/b.rs"));
+    assert_eq!(brief.dir, std::path::PathBuf::from(format!("/wt/{run}")));
+    // The worker rebased: the pull request step runs again and goes through.
+    fx.git.set_rebase(shipyard_engine::ports::Merge::Clean);
+    fx.done(&run, "fix");
+    assert_eq!(fx.git.count("merge_child"), merges, "no child join");
+    fx.done(&run, "review");
+    assert_eq!(fx.state(&run), RunState::PROpen);
+    assert_eq!(blocks(&fx, &run).len(), 1, "no second block");
+}

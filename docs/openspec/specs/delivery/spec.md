@@ -52,7 +52,7 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - REQ-023: After the merge, the system SHALL move each ticket of the run to the terminal status of the mapping. The move SHALL follow the `tracker_transition` switch. Without the switch it SHALL be an approval in Home / Inbox. The system MUST NOT move a ticket that the forge already closed.
 - REQ-024: After the merge, the system SHALL post the run summary on each ticket once. The summary SHALL hold the outcome, the `pr:` ref, the gate result, the review rounds and the cost. It SHALL follow the `tracker_comment` switch. It MUST NOT hold a secret or an AI attribution line.
 - REQ-025: After the merge, the system SHALL remove the worktree of the run. The system MUST NOT remove a worktree that holds uncommitted files. It SHALL keep the run log after the removal.
-- REQ-026: When a pull request closes without a merge, the run SHALL move to `Blocked`, also while it works on a fix. The reason SHALL be pull request closed. The worktree and the ticket SHALL stay as they are. The run moves to Blocked. A person chooses to reopen or to cancel.
+- REQ-026: When a pull request closes without a merge, the run SHALL move to `Blocked`, also while it works on a fix. The reason SHALL be pull request closed. The worktree and the ticket SHALL stay as they are. The run moves to Blocked. A person chooses to reopen or to cancel. An unblock SHALL remove the closed pull request from the run, and the pull request step SHALL open a new one. An unblock with a message SHALL first start a feedback round with the message. A cancel SHALL stay the other choice.
 - REQ-027: When `add-code` gives an impacts digest, the pull request body SHALL include it as one section.
 - REQ-028: The system SHALL expose each pull request as a `pr:<forge>:<number>` entity. The entity SHALL show state, CI state and review state. The mirror of `sync` SHALL stay the source for reads.
 - REQ-029: The run cards in In review and Ready to merge SHALL show the `pr:` ref, CI state and review state. Status SHALL use shape and colour together. Delivery SHALL add no primary action to Factory / Runs. Each delivery view SHALL follow the interface rules of the constitution. It SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. It SHALL have a keyboard path, a focus ring, assistive labels, contrast and reduced motion. It SHALL show French and English text.
@@ -61,6 +61,8 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - REQ-032: The lookup of the pull request of a branch SHALL return an open pull request or none. A merged or a closed pull request SHALL NOT be a target for a push or a thread reply.
 - REQ-033: A gate command SHALL run in its own process group. A timeout and the exit of the app SHALL kill the command and its children.
 - REQ-034: A write that opens a pull request SHALL name the branch of the run folder. The system SHALL refuse it when the run folder is on another branch, or when the branch is the base.
+- REQ-035: When the run branch has no change against the base, the pull request step SHALL move the run to `Blocked` with the reason nothing to deliver. An unblock SHALL start one fix round: the builder steps SHALL get the note "The pull request step found no change to deliver." and the message of the person. A person SHALL be able to close the run as `Done` from the run view (Close as done). The run log SHALL keep the reason.
+- REQ-036: When the rebase onto the base conflicts, the pull request step SHALL move the run to `Blocked` with the files. An unblock SHALL start one fix round: one builder step SHALL rebase the run branch onto the base in the run worktree, not in a child worktree. It SHALL resolve the conflicts, keep the intent of both sides, run the checks and report. The pull request step SHALL then run again.
 
 ### Non-Goals
 
@@ -86,6 +88,9 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 - [x] A CI failure and a review comment each send the run to `ChangesRequested` and back to `Working` in the same worktree. Test: `crates/shipyard-engine/tests/feedback.rs`.
 - [x] A merged pull request moves the run to `Merged` and `Done`, never to `Cancelled`, then moves the ticket, posts the summary and removes the clean worktree. Test: `crates/shipyard-engine/tests/merge.rs`.
 - [x] A pull request closed without a merge moves the run to `Blocked`. Test: `crates/shipyard-engine/tests/feedback.rs`.
+- [x] An unblock after a closed pull request opens a new one. Test: `crates/shipyard-engine/tests/feedback.rs`.
+- [x] An unblock after a rebase conflict or after nothing to deliver starts one fix round, and the run does not block again for the same cause. Test: `crates/shipyard-engine/tests/pull_request.rs`.
+- [x] A run blocked with nothing to deliver closes as `Done`. Test: `crates/shipyard-engine/tests/pull_request.rs`, `src/features/factory/runs.test.tsx`.
 - [x] Factory / Runs shows In review and Ready to merge with the pull request, CI and review state. Test: `src/features/factory/delivery.test.tsx`, `e2e/delivery.spec.ts`.
 - [ ] Every delivery view works with the keyboard, shows a focus ring and has French and English text.
 
@@ -99,7 +104,7 @@ Agent work has value only when it is reviewed, merged and closed on the tracker.
 
 | Feature | Shipyard view | REQ ids |
 | --- | --- | --- |
-| Pull requests: open | Factory / Runs (In review, Ready to merge); Home / Inbox approvals | REQ-007 to REQ-014, REQ-017, REQ-021, REQ-028, REQ-029 |
+| Pull requests: open | Factory / Runs (In review, Ready to merge); Home / Inbox approvals | REQ-007 to REQ-014, REQ-017, REQ-021, REQ-028, REQ-029, REQ-035, REQ-036 |
 | Pull requests: comment, approve, request changes, merge | Code / Pull requests (`add-code`); delivery reads the result | REQ-018, REQ-019, REQ-022 |
 | Impacts digest attached to a pull request | Pull request body | REQ-027 |
 
@@ -449,13 +454,19 @@ After the merge, the system SHALL remove the worktree of the run. The system MUS
 
 ### Requirement: REQ-026 Closed without merge
 
-When a pull request closes without a merge, the run SHALL move to `Blocked`, also while it works on a fix. The reason SHALL be pull request closed. The worktree and the ticket SHALL stay as they are. The run moves to Blocked. A person chooses to reopen or to cancel.
+When a pull request closes without a merge, the run SHALL move to `Blocked`, also while it works on a fix. The reason SHALL be pull request closed. The worktree and the ticket SHALL stay as they are. The run moves to Blocked. A person chooses to reopen or to cancel. An unblock SHALL remove the closed pull request from the run, and the pull request step SHALL open a new one. An unblock with a message SHALL first start a feedback round with the message. A cancel SHALL stay the other choice.
 
 #### Scenario: Closed
 - GIVEN a `PROpen` run
 - WHEN a person closes the pull request
 - THEN the run moves to `Blocked`
 - AND the Inbox shows the run with the reopen and cancel choices
+
+#### Scenario: Unblock after the close
+- GIVEN a run blocked because its pull request closed
+- WHEN a person unblocks it with no message
+- THEN the run removes the closed pull request
+- AND the pull request step opens a new pull request
 
 ### Requirement: REQ-027 Impacts digest
 
@@ -543,3 +554,28 @@ A write that opens a pull request SHALL name the branch of the run folder. The s
 - GIVEN an approval that names a branch and a run folder on another branch
 - WHEN the person approves it
 - THEN no pull request opens and the error names both branches
+
+### Requirement: REQ-035 Nothing to deliver
+
+When the run branch has no change against the base, the pull request step SHALL move the run to `Blocked` with the reason nothing to deliver. An unblock SHALL start one fix round: the builder steps SHALL get the note "The pull request step found no change to deliver." and the message of the person. A person SHALL be able to close the run as `Done` from the run view (Close as done). The run log SHALL keep the reason.
+
+#### Scenario: Unblock with nothing to deliver
+- GIVEN a run blocked because the run branch has no change against the base
+- WHEN a person unblocks it with a message
+- THEN the builder steps get the note and the message, and the review and the pull request step run again
+
+#### Scenario: Close as done
+- GIVEN a run blocked because the run branch has no change against the base
+- WHEN a person clicks Close as done
+- THEN the run moves to `Done`
+- AND the run log keeps the reason
+
+### Requirement: REQ-036 Rebase conflict
+
+When the rebase onto the base conflicts, the pull request step SHALL move the run to `Blocked` with the files. An unblock SHALL start one fix round: one builder step SHALL rebase the run branch onto the base in the run worktree, not in a child worktree. It SHALL resolve the conflicts, keep the intent of both sides, run the checks and report. The pull request step SHALL then run again.
+
+#### Scenario: Rebase conflict
+- GIVEN a run blocked by a rebase conflict in `src/a.rs`
+- WHEN a person unblocks it
+- THEN a builder step gets a note that names `src/a.rs` and asks for the rebase in the run worktree
+- AND after the review the pull request step runs again

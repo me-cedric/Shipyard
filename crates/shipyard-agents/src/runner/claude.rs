@@ -27,6 +27,7 @@ impl Runner for Claude {
                 args.push("--permission-mode".into());
                 args.push(
                     match (mode, approval) {
+                        (Mode::Plan, _) if spec.tools_only => "default",
                         (Mode::Plan, _) => "plan",
                         (Mode::Auto, Approval::Edits) => "acceptEdits",
                         _ => "auto",
