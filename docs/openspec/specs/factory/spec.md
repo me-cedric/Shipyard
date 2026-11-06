@@ -57,7 +57,7 @@ Delegation only sets a label. It has no run engine, no worktree per agent and no
 - REQ-028: The run view SHALL show the workflow DAG with the live state of each step. It SHALL also show the event tail, the diff of the worktree and the cost. It SHALL offer the kill switch of the run.
 - REQ-029: Factory / Workflows SHALL list the workflows with their steps and SHALL edit the same files as REQ-010. It SHALL show a validation error with its line.
 - REQ-030: Factory / Agents map SHALL show a live graph of agents, tickets, files and refs. A click on a node SHALL open its entity in the inspector.
-- REQ-031: Factory / Sessions SHALL list the agent sessions. Each row SHALL show runner, model, run, state and tokens. The view SHALL offer the global kill switch as its primary action.
+- REQ-031: Factory / Sessions SHALL list the agent sessions. Each row SHALL show runner, model, run, state and tokens. The view SHALL offer the global kill switch as its primary action. The list SHALL include the AI tool sessions of the run units (Active, Previous, start time), and a click SHALL open the run page at the unit. The run page SHALL list its started units with Follow and, for a Claude Code unit with a session id, Open in terminal, which SHALL be off while the unit runs.
 - REQ-032: Factory / Usage SHALL show tokens and money per run, per day and per member against their budgets. It SHALL let an admin set a budget.
 - REQ-033: Each Factory view SHALL follow the interface rules of the constitution. It SHALL use icon and noun labels, with no tagline, no helper text and no secondary label. It SHALL have one primary action, a keyboard path and a focus ring. It SHALL have assistive labels, enough contrast and reduced motion. It SHALL show French and English text.
 - REQ-034: The system SHALL expose each run as `run:<ulid>` with its steps as `run:<ulid>/<step-id>`, and each workflow as `wf:<id>`. It SHALL expose the run state to `work` and `refs`.
@@ -659,12 +659,19 @@ Factory / Agents map SHALL show a live graph of agents, tickets, files and refs.
 
 ### Requirement: REQ-031 Sessions view
 
-Factory / Sessions SHALL list the agent sessions. Each row SHALL show runner, model, run, state and tokens. The view SHALL offer the global kill switch as its primary action.
+Factory / Sessions SHALL list the agent sessions. Each row SHALL show runner, model, run, state and tokens. The view SHALL offer the global kill switch as its primary action. The list SHALL include the AI tool sessions of the run units (Active, Previous, start time), and a click SHALL open the run page at the unit. The run page SHALL list its started units with Follow and, for a Claude Code unit with a session id, Open in terminal, which SHALL be off while the unit runs.
 
 #### Scenario: Session row
 - GIVEN a live session
 - WHEN the person opens Sessions
 - THEN the row shows runner, model, run, state and tokens
+
+#### Scenario: Run unit session
+- GIVEN a run with a running unit and an ended unit that has a Claude Code session id
+- WHEN the person opens Sessions and clicks the row of the ended unit
+- THEN the unit shows under Previous and the run page opens at that unit
+- AND Open in terminal runs `claude --resume` with that session in the folder of the unit
+- AND Open in terminal is off for the running unit
 
 #### Scenario: Stop all
 - GIVEN live sessions

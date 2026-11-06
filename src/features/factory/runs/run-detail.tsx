@@ -21,6 +21,7 @@ import { StatStrip } from "@/ui/molecules/stat-strip";
 import { RunGraph } from "@/ui/organisms/run-graph";
 import { PlanBlock, planOf } from "./plan";
 import { EventRows, LiveStrip, stopReason } from "./run-live";
+import { RunUnits } from "./run-units";
 
 const SEVERITY = { P0: "danger", P1: "warning", P2: "info" } as const;
 
@@ -223,6 +224,7 @@ export function RunDetail({ id }: { id: string }) {
 					})}
 				/>
 			) : null}
+			<RunUnits run={run} events={log.events} />
 			{run.findings.length ? (
 				<Panel title={f.findings} count={run.findings.length} tone="warning" flush>
 					{run.findings.map((x, i) => (

@@ -4,7 +4,9 @@ import { NoProject } from "@/features/work/no-project";
 import { useFactoryWrites, useKillSwitch, useSessions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import type { SessionView } from "@/lib/ipc";
+import { showAnchor } from "@/lib/notifications/targets";
 import { useActiveProject } from "@/lib/projects";
+import { useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -31,15 +33,19 @@ const STATE_BADGE = {
 
 /** Factory / Sessions: the agent sessions and the global kill switch, the one action (factory REQ-031). */
 export function Sessions() {
-	const { t } = useI18n();
+	const { t, lang } = useI18n();
 	const f = t.factory;
+	const { openRef } = useShell();
 	const active = useActiveProject().data;
 	const sessions = useSessions();
 	const kill = useKillSwitch().data ?? false;
 	const writes = useFactoryWrites();
 	const { error, run } = useGuard();
 	if (active === null) return <NoProject title={f.sessions} />;
-	const rows = sessions.data ?? [];
+	// The live sessions first: a group heading shows each time the group changes.
+	const live = (r: SessionView) => r.state === "running" || r.state === "gate";
+	const rows = (sessions.data ?? []).toSorted((a, b) => Number(live(b)) - Number(live(a)));
+	const time = new Intl.DateTimeFormat(lang, { dateStyle: "short", timeStyle: "short" });
 	const columns: ColumnDef<SessionView>[] = [
 		{
 			id: "runner",
@@ -74,6 +80,12 @@ export function Sessions() {
 					{f.step[c.row.original.state]}
 				</Badge>
 			),
+		},
+		{
+			id: "started",
+			header: f.started,
+			meta: { width: "9rem" },
+			cell: (c) => (c.row.original.started ? time.format(c.row.original.started * 1000) : "-"),
 		},
 		{
 			id: "tokens",
@@ -170,6 +182,14 @@ export function Sessions() {
 							columns={columns}
 							data={rows}
 							rowId={(r) => `${r.run}/${r.step}`}
+							group={(r) => (live(r) ? "active" : "previous")}
+							groupLabel={(g) => (g === "active" ? f.sessionsActive : f.sessionsPrevious)}
+							// A review is no run: only a run unit opens its run page, at the unit.
+							onOpen={(r) => {
+								if (r.pull != null) return;
+								openRef(`run:${r.run}`);
+								showAnchor(`unit-${r.step}`);
+							}}
 						/>
 					</Panel>
 					<MachineSessions />

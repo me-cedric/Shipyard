@@ -196,10 +196,12 @@ fn a_handoff_ends_the_step_and_gives_the_summary_to_the_role_in_the_same_run() {
     assert_eq!(out["step"], "review");
     // The builder is done with the summary as its output; its agent is stopped.
     let info = fx.f.run_info(&run).unwrap();
-    assert_eq!(
-        info.steps[2].units,
-        [("build-1".to_string(), StepState::Done)]
-    );
+    let units: Vec<_> = info.steps[2]
+        .units
+        .iter()
+        .map(|u| (u.id.as_str(), u.state))
+        .collect();
+    assert_eq!(units, [("build-1", StepState::Done)]);
     assert!(fx.agents.running().iter().all(|s| s == "review"));
     // The reviewer of the same run starts with the note.
     assert_eq!(fx.agents.running(), ["review"]);
@@ -257,10 +259,12 @@ fn a_handoff_that_has_no_taker_is_an_error_and_the_step_goes_on() {
     assert!(err(&fx, &run, "build-1", handoff("worker", "x", Some("build"))).contains("itself"));
     assert!(err(&fx, &run, "build-1", handoff("planner", "x", Some("plan"))).contains("ended"));
     let info = fx.f.run_info(&run).unwrap();
-    assert_eq!(
-        info.steps[2].units,
-        [("build-1".to_string(), StepState::Running)]
-    );
+    let units: Vec<_> = info.steps[2]
+        .units
+        .iter()
+        .map(|u| (u.id.as_str(), u.state))
+        .collect();
+    assert_eq!(units, [("build-1", StepState::Running)]);
     assert_eq!(fx.agents.running(), ["build-1"]);
 }
 

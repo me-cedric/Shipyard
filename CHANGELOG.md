@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.1.0]
+- Factory / Sessions lists the AI tool sessions of the run units (Active and Previous, with the start time) and a click opens the run page at the unit; the run page lists the units with Follow (their live events) and Open in terminal (`claude --resume` in the folder of the unit, off while the unit runs).
 - Markdown editors (documents, decisions, specs, the handbook) colour headings, lists, inline code, links and refs, and the workflow text editor colours YAML; Design / API reads the Shipyard MCP contract again; the menu bar panel's Stop button says only Stop.
 - A blocked run takes a message for its agents next to Unblock (Enter sends it); when two tasks of a run change the same file, the second task runs again on top of the first instead of blocking the run, and only a second conflict blocks it; an unblock after the review fix rounds are spent starts one more fix round instead of the same review.
 - The Mermaid editor of Design / Diagrams colours keywords, arrows, strings and comments, and so do `mermaid` blocks and `.mmd` files; a blocked run says why on its page; after Shipyard restarts, a paused step continues instead of stopping on an empty prompt; the events of a run start collapsed.

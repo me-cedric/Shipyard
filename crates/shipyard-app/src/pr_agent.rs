@@ -259,6 +259,7 @@ pub fn sessions(project: &str) -> Vec<SessionView> {
             state: shipyard_core::workflow::StepState::Running,
             tokens: 0,
             cost_usd: 0.0,
+            started: 0.0,
             pull: Some(j.number),
         })
         .collect()

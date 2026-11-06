@@ -190,7 +190,7 @@ fn a_run_shows_in_its_lane_with_its_steps_and_a_ref_that_resolves() {
 
 #[test]
 fn a_pull_request_decides_the_lane_of_a_run_in_review() {
-    use shipyard_engine::run_engine::StepInfo;
+    use shipyard_engine::run_engine::{StepInfo, UnitInfo};
     let info = RunInfo {
         id: "01J".into(),
         project: "p".into(),
@@ -210,7 +210,15 @@ fn a_pull_request_decides_the_lane_of_a_run_in_review() {
         steps: vec![StepInfo {
             id: "pr".into(),
             state: StepState::Done,
-            units: vec![],
+            units: vec![UnitInfo {
+                id: "pr".into(),
+                state: StepState::Done,
+                runner: "claude".into(),
+                session: Some("sess-1".into()),
+                dir: "/wt/01J".into(),
+                started: 10,
+                last: 20,
+            }],
         }],
         findings: vec![],
         worktree_kept: None,
@@ -246,6 +254,10 @@ fn a_pull_request_decides_the_lane_of_a_run_in_review() {
     assert_eq!(v.pr.as_ref().unwrap().ci, "failing");
     assert_eq!(v.tokens, u32::MAX, "a count over u32 is capped");
     assert_eq!((v.open_questions, v.approvals), (2, 1));
+    let u = &v.steps[0].units[0];
+    assert_eq!(u.session.as_deref(), Some("sess-1"));
+    assert_eq!((u.runner.as_str(), u.dir.as_str()), ("claude", "/wt/01J"));
+    assert_eq!((u.started, u.last), (10.0, 20.0));
 }
 
 #[test]

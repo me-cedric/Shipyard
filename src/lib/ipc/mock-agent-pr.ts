@@ -75,6 +75,7 @@ export function reviewSessions(a: MockAgentPr): SessionView_Serialize[] {
 		state: "running",
 		tokens: 0,
 		costUsd: 0,
+		started: 0,
 		pull: number,
 	}));
 }

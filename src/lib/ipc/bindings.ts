@@ -4759,7 +4759,7 @@ export type RunView_Deserialize = {
 	tokens: number,
 	turns: number,
 	budgetUsd?: number | null,
-	steps: StepView[],
+	steps: StepView_Deserialize[],
 	findings: FindingView_Deserialize[],
 	worktreeKept?: string | null,
 	openQuestions: number,
@@ -4787,7 +4787,7 @@ export type RunView_Serialize = {
 	tokens: number,
 	turns: number,
 	budgetUsd: number | null,
-	steps: StepView[],
+	steps: StepView_Serialize[],
 	findings: FindingView_Serialize[],
 	worktreeKept: string | null,
 	openQuestions: number,
@@ -4988,6 +4988,8 @@ export type SessionView_Deserialize = {
 	state: StepState,
 	tokens: number,
 	costUsd: number | null,
+	/**  Unix seconds of the start. `0`: an agent review keeps no time. */
+	started: number | null,
 	/**  The pull request of an agent review. A review is no run: the stop of a session uses it. */
 	pull?: number | null,
 };
@@ -5003,6 +5005,8 @@ export type SessionView_Serialize = {
 	state: StepState,
 	tokens: number,
 	costUsd: number | null,
+	/**  Unix seconds of the start. `0`: an agent review keeps no time. */
+	started: number | null,
 	/**  The pull request of an agent review. A review is no run: the stop of a session uses it. */
 	pull: number | null,
 };
@@ -5258,10 +5262,18 @@ export type StepTree = {
 	requests: RequestView[],
 };
 
-export type StepView = {
+export type StepView = StepView_Serialize | StepView_Deserialize;
+
+export type StepView_Deserialize = {
 	id: string,
 	state: StepState,
-	units: UnitView[],
+	units: UnitView_Deserialize[],
+};
+
+export type StepView_Serialize = {
+	id: string,
+	state: StepState,
+	units: UnitView_Serialize[],
 };
 
 /**  One step (REQ-012). A step has a `role` or an `action`, never both. */
@@ -6006,9 +6018,34 @@ export type TurnResult_Serialize = {
 	alert: string | null,
 };
 
-export type UnitView = {
+export type UnitView = UnitView_Serialize | UnitView_Deserialize;
+
+export type UnitView_Deserialize = {
 	id: string,
 	state: StepState,
+	/**  The AI tool id (`claude`, `codex`, ...). Empty: never started. */
+	runner: string,
+	/**  The session id of the AI tool, if it sent one. */
+	session?: string | null,
+	/**  The folder of the unit. Empty: never started. */
+	dir: string,
+	/**  Unix seconds: the last start and the last event. */
+	started: number | null,
+	last: number | null,
+};
+
+export type UnitView_Serialize = {
+	id: string,
+	state: StepState,
+	/**  The AI tool id (`claude`, `codex`, ...). Empty: never started. */
+	runner: string,
+	/**  The session id of the AI tool, if it sent one. */
+	session: string | null,
+	/**  The folder of the unit. Empty: never started. */
+	dir: string,
+	/**  Unix seconds: the last start and the last event. */
+	started: number | null,
+	last: number | null,
 };
 
 export type UpdateInfo = {

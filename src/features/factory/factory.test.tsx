@@ -141,6 +141,24 @@ describe("Factory tabs", () => {
 		await waitFor(async () => expect(await unwrap(commands.killSwitchGet())).toBe(false));
 	});
 
+	it("Sessions: run units show in Active and Previous, and a click opens the run", async () => {
+		const user = userEvent.setup();
+		await renderTab(<Sessions />);
+		const rows = await unwrap(commands.sessionsList());
+		const live = rows.filter((r) => r.state === "running" || r.state === "gate").length;
+		expect(await screen.findByRole("heading", { name: `Active (${live})` })).toBeInTheDocument();
+		expect(
+			screen.getByRole("heading", { name: `Previous (${rows.length - live})` }),
+		).toBeInTheDocument();
+		const first = rows[0];
+		const row = (await screen.findAllByText(first?.key ?? ""))[0]?.closest(
+			'[role="row"]',
+		) as HTMLElement;
+		expect(within(row).getByText("Claude Code")).toBeInTheDocument();
+		await user.click(row);
+		expect(screen.getByLabelText("panel")).toHaveTextContent(`run:${first?.run}`);
+	});
+
 	it("Sessions: a running agent review is a session, and Stop ends it", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));

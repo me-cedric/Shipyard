@@ -472,6 +472,14 @@ Feature: factory
     Then the row shows runner, model, run, state and tokens
 
   @spec:factory#REQ-031
+  Scenario: Sessions view: Run unit session
+    Given a run with a running unit and an ended unit that has a Claude Code session id
+    When the person opens Sessions and clicks the row of the ended unit
+    Then the unit shows under Previous and the run page opens at that unit
+    And Open in terminal runs `claude --resume` with that session in the folder of the unit
+    And Open in terminal is off for the running unit
+
+  @spec:factory#REQ-031
   Scenario: Sessions view: Stop all
     Given live sessions
     When the person uses the global kill switch

@@ -34,8 +34,8 @@ import type {
 	SpendView_Serialize,
 	Step_Serialize,
 	StepState,
-	StepView,
-	UnitView,
+	StepView_Serialize,
+	UnitView_Serialize,
 	UsageView_Serialize,
 	Workflow_Deserialize,
 	Workflow_Serialize,
@@ -455,7 +455,7 @@ type Rec = {
 	tokens: number;
 	turns: number;
 	budgetUsd: number | null;
-	steps: StepView[];
+	steps: StepView_Serialize[];
 	findings: FindingView_Serialize[];
 	worktreeKept: string | null;
 	log: RunLogEvent_Serialize[];
@@ -665,9 +665,14 @@ const stepIds = (wf: string) =>
 	parseWorkflow(wf, WORKFLOWS[wf] ?? "", DEFAULT_ROLES).workflow?.steps.map((s) => s.id) ?? [];
 
 /** The steps of a workflow: those before `at` are done, `at` has `cur` and the units, the rest wait. */
-const steps = (wf: string, at: number, cur: StepState = "running", units: UnitView[] = []) =>
+const steps = (
+	wf: string,
+	at: number,
+	cur: StepState = "running",
+	units: UnitView_Serialize[] = [],
+) =>
 	stepIds(wf).map(
-		(id, i): StepView => ({
+		(id, i): StepView_Serialize => ({
 			id,
 			state: i < at ? "done" : i === at ? cur : "pending",
 			units: i === at ? units : [],
@@ -676,7 +681,15 @@ const steps = (wf: string, at: number, cur: StepState = "running", units: UnitVi
 
 const T0 = Date.UTC(2026, 9, 29, 6, 0, 0);
 const DONE = 99;
-const unit = (id: string, state: StepState): UnitView => ({ id, state });
+const unit = (id: string, state: StepState): UnitView_Serialize => ({
+	id,
+	state,
+	runner: state === "pending" ? "" : "claude",
+	session: state === "pending" ? null : `sess-${id}`,
+	dir: state === "pending" ? "" : `/work/${id}`,
+	started: T0 / 1000,
+	last: T0 / 1000 + 60,
+});
 
 export function seedFactory(): MockFactory {
 	const f = emptyFactory();
@@ -1432,6 +1445,7 @@ export function sessionsList(f: MockFactory, project: string | null): SessionVie
 				state: u.state,
 				tokens: split(r.tokens, i, 1),
 				costUsd: split(r.costUsd, i, 100),
+				started: T0 / 1000,
 				pull: null,
 			});
 	}

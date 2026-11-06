@@ -154,8 +154,23 @@ pub struct Project {
 pub struct StepInfo {
     pub id: String,
     pub state: StepState,
-    /// `(child id, state)`. One child, with the step id, for a step with no `for_each`.
-    pub units: Vec<(String, StepState)>,
+    /// One child, with the step id, for a step with no `for_each`.
+    pub units: Vec<UnitInfo>,
+}
+
+/// A unit as the views see it: its AI tool session and the folder that the tool ran in.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct UnitInfo {
+    pub id: String,
+    pub state: StepState,
+    pub runner: String,
+    /// The session id of the AI tool. `None`: no event with it yet.
+    pub session: Option<String>,
+    /// The folder of the last start. Empty: never started.
+    pub dir: String,
+    /// Unix seconds: the last start and the last event.
+    pub started: u64,
+    pub last: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -198,6 +213,9 @@ pub(crate) struct Unit {
     /// The last event, in seconds: the stall timer.
     pub last: u64,
     pub session: Option<String>,
+    /// The folder of the last start.
+    #[serde(default)]
+    pub dir: String,
     /// Stopped by a side state: start again with the session.
     pub parked: bool,
     pub output: Value,
@@ -230,6 +248,7 @@ impl Unit {
             started: 0,
             last: 0,
             session: None,
+            dir: String::new(),
             parked: false,
             output: Value::Null,
             text: String::new(),
@@ -731,7 +750,19 @@ impl Inner {
                     StepInfo {
                         id: s.id.clone(),
                         state: rec.state,
-                        units: rec.units.iter().map(|u| (u.id.clone(), u.state)).collect(),
+                        units: rec
+                            .units
+                            .iter()
+                            .map(|u| UnitInfo {
+                                id: u.id.clone(),
+                                state: u.state,
+                                runner: u.runner.clone(),
+                                session: u.session.clone(),
+                                dir: u.dir.clone(),
+                                started: u.started,
+                                last: u.last,
+                            })
+                            .collect(),
                     }
                 })
                 .collect(),
@@ -1329,6 +1360,7 @@ impl Inner {
                 let u = &mut self.rec(run_id).steps.get_mut(sid).expect("step").units[i];
                 u.agent = Some(agent);
                 u.runner = brief.runner.clone();
+                u.dir = brief.dir.display().to_string();
                 u.model = brief.model.clone();
                 u.state = StepState::Running;
                 u.started = now;

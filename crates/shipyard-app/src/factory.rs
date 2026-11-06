@@ -671,6 +671,15 @@ pub(crate) fn attach(s: &AppState, a: &Active, plan: &Plan) -> Res<()> {
 pub struct UnitView {
     pub id: String,
     pub state: StepState,
+    /// The AI tool id (`claude`, `codex`, ...). Empty: never started.
+    pub runner: String,
+    /// The session id of the AI tool, if it sent one.
+    pub session: Option<String>,
+    /// The folder of the unit. Empty: never started.
+    pub dir: String,
+    /// Unix seconds: the last start and the last event.
+    pub started: f64,
+    pub last: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Type)]
@@ -759,9 +768,14 @@ fn run_view(r: &RunInfo, pulls: &[PrRowView], questions: u32, approvals: u32) ->
                 units: s
                     .units
                     .iter()
-                    .map(|(id, state)| UnitView {
-                        id: id.clone(),
-                        state: *state,
+                    .map(|u| UnitView {
+                        id: u.id.clone(),
+                        state: u.state,
+                        runner: u.runner.clone(),
+                        session: u.session.clone(),
+                        dir: u.dir.clone(),
+                        started: u.started as f64,
+                        last: u.last as f64,
                     })
                     .collect(),
             })
@@ -880,6 +894,8 @@ pub struct SessionView {
     pub state: StepState,
     pub tokens: u32,
     pub cost_usd: f64,
+    /// Unix seconds of the start. `0`: an agent review keeps no time.
+    pub started: f64,
     /// The pull request of an agent review. A review is no run: the stop of a session uses it.
     pub pull: Option<u32>,
 }
@@ -905,6 +921,7 @@ pub fn sessions(s: &AppState) -> Res<Vec<SessionView>> {
             state: x.state,
             tokens: u32::try_from(x.tokens).unwrap_or(u32::MAX),
             cost_usd: x.cost_usd,
+            started: x.started as f64,
             pull: None,
         });
     Ok(crate::pr_agent::sessions(&a.entry.id)
@@ -1035,7 +1052,7 @@ pub fn resolve_run(s: &AppState, text: &str) -> Option<shipyard_store::ref_query
     let step_ok = step.as_deref().is_none_or(|st| {
         r.steps
             .iter()
-            .any(|x| x.id == st || x.units.iter().any(|(u, _)| u == st))
+            .any(|x| x.id == st || x.units.iter().any(|u| u.id == st))
     });
     Some(Resolved {
         target: text.into(),

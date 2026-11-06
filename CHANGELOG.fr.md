@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.1.0]
+- Factory / Sessions liste les sessions d’outil d’IA des unités d’exécution (Actives et Précédentes, avec l’heure de début) et un clic ouvre la page de l’exécution sur l’unité ; la page de l’exécution liste les unités avec Suivre (leurs événements en direct) et Ouvrir dans le terminal (`claude --resume` dans le dossier de l’unité, désactivé tant que l’unité tourne).
 - Les éditeurs Markdown (documents, décisions, specs, manuel) colorent les titres, les listes, le code en ligne, les liens et les références, et l’éditeur texte des workflows colore le YAML ; Design / API lit de nouveau le contrat du serveur MCP Shipyard ; le bouton Arrêter du panneau de la barre de menus ne dit plus que Arrêter.
 - Une exécution bloquée accepte un message pour ses agents à côté de Débloquer (Entrée l’envoie) ; quand deux tâches d’une exécution changent le même fichier, la deuxième tâche repart sur la première au lieu de bloquer l’exécution, et seul un deuxième conflit la bloque ; un déblocage après les tours de correction de la revue lance un tour de correction de plus au lieu de la même revue.
 - L’éditeur Mermaid de Design / Diagrammes colore les mots-clés, les flèches, les chaînes et les commentaires, comme les blocs `mermaid` et les fichiers `.mmd` ; une exécution bloquée dit pourquoi sur sa page ; après un redémarrage de Shipyard, une étape en pause reprend au lieu de s’arrêter sur une consigne vide ; les événements d’une exécution s’affichent repliés.
