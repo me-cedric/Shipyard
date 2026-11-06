@@ -3,7 +3,7 @@ import { useState } from "react";
 import { type FileAction, FileActionDialog } from "@/features/code/file-actions";
 import { format, useI18n } from "@/lib/i18n";
 import { useDocSearch, useDocx } from "@/lib/knowledge/documents";
-import { Button } from "@/ui/atoms/button";
+import { RightButton } from "@/lib/rights";
 import { Input } from "@/ui/atoms/input";
 import { PencilIcon, TrashIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
@@ -71,22 +71,24 @@ export function DocActions({
 	const [action, setAction] = useState<FileAction | null>(null);
 	return (
 		<>
-			<Button
+			<RightButton
+				right="knowledge.edit"
 				variant="ghost"
 				aria-label={`${d.rename} ${title}`}
 				onClick={() => setAction({ kind: "rename", path })}
 			>
 				<PencilIcon size={14} />
 				{d.rename}
-			</Button>
-			<Button
+			</RightButton>
+			<RightButton
+				right="knowledge.edit"
 				variant="ghost"
 				aria-label={`${d.delete} ${title}`}
 				onClick={() => setAction({ kind: "delete", path })}
 			>
 				<TrashIcon size={14} />
 				{d.delete}
-			</Button>
+			</RightButton>
 			{action ? (
 				<FileActionDialog
 					action={action}

@@ -13,9 +13,12 @@ import {
 } from "@/lib/home";
 import { useI18n } from "@/lib/i18n";
 import { showAnchor } from "@/lib/notifications/targets";
+import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { rememberSelection } from "@/lib/shell/selection";
 import { capabilityOf, useFile, useFoldTargets, useSpecsActions, useSpecView } from "@/lib/specs";
+import { useWorkItems } from "@/lib/sync";
+import { useWorkContext } from "@/lib/work";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { ApprovalBar } from "@/ui/molecules/approval-bar";
@@ -23,6 +26,7 @@ import { Card } from "@/ui/molecules/card";
 import { Panel } from "@/ui/molecules/panel";
 import { QuestionCard } from "@/ui/molecules/question-card";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { routeInbox } from "./routing";
 
 /** The count of what waits for the person: the groups of Needs you. */
 export function needsYouTotal(i: ReturnType<typeof useInbox>) {
@@ -42,11 +46,27 @@ export function needsYouTotal(i: ReturnType<typeof useInbox>) {
  */
 export function NeedsYou() {
 	const { t } = useI18n();
-	const inbox = useInbox();
+	const raw = useInbox();
+	const { can, role } = useRights();
+	const me = useWorkContext().data?.me ?? null;
+	const items = useWorkItems({}).data ?? [];
+	const [everyone, setEveryone] = useState(false);
+	const inbox = routeInbox(raw, {
+		everyone,
+		can,
+		role,
+		me,
+		assignee: (key) => items.find((i) => i.key === key)?.member,
+	});
 	const { questions, approvals, plans, reviews, messages, timesheet } = inbox;
-	if (needsYouTotal(inbox) === 0) return null;
+	if (needsYouTotal(raw) === 0) return null;
 	return (
 		<section aria-label={t.home.needsYou} className="flex flex-col gap-4 px-4">
+			{role === null ? null : (
+				<Button aria-pressed={everyone} className="self-end" onClick={() => setEveryone(!everyone)}>
+					{t.rights.everyone}
+				</Button>
+			)}
 			<Group name={t.home.questions} count={questions.length}>
 				{questions.map((x) => (
 					<QuestionRow key={`${x.run}:${x.question.id}`} item={x} />
@@ -168,12 +188,14 @@ function FoldedCard({ spec, ...props }: ComponentProps<typeof QuestionCard> & { 
 
 export function ApprovalRow({ approval: a }: { approval: ApprovalItem }) {
 	const act = useInboxActions();
+	const { reason } = useRights().gate(a.right);
 	const { error, run } = useGuard();
 	return (
 		<Card className="*:border-b-0">
 			<ApprovalBar
 				approval={a}
 				meta={<RunLink run={a.run} ticket={a.key} />}
+				reason={reason}
 				onApprove={() => void run(() => act.approve(a.id))}
 				onReject={() => void run(() => act.reject(a.id))}
 			/>
@@ -212,12 +234,19 @@ function PlanRow({ run, ticket, title }: { run: string; ticket: string; title: s
 					value={note}
 					onChange={(e) => setNote(e.target.value)}
 				/>
-				<Button onClick={() => void guard(() => act.planReject(run, note))}>
+				<RightButton
+					right="runs.approve"
+					onClick={() => void guard(() => act.planReject(run, note))}
+				>
 					{t.home.planReject}
-				</Button>
-				<Button variant="primary" onClick={() => void guard(() => act.planApprove(run))}>
+				</RightButton>
+				<RightButton
+					right="runs.approve"
+					variant="primary"
+					onClick={() => void guard(() => act.planApprove(run))}
+				>
 					{t.home.planApprove}
-				</Button>
+				</RightButton>
 			</div>
 			{summary ? (
 				<p className="line-clamp-3 px-3 pb-2 text-ui whitespace-pre-line text-n-11">{summary}</p>

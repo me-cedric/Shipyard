@@ -9,13 +9,13 @@ import { type SpaceId, tabLabel, tabPath, visibleTabs } from "./spaces";
 /** The tabs of a space as a segmented control. A pill slides under the active tab. */
 export function TabsBar({ space }: { space: SpaceId }) {
 	const { t } = useI18n();
-	const { profile, role } = usePrefs();
+	const { teamRole } = usePrefs();
 	const stale = useStalePages();
 	return (
 		<nav aria-label={t.nav.tabs} className="flex shrink-0 px-4 pt-3">
 			{/* The tabs wrap when the assistant and the inspector leave little width: none is cut off. */}
 			<div className="flex flex-wrap items-center gap-0.5 rounded-lg border bg-surface-1 p-0.5 shadow-1">
-				{visibleTabs(space, profile.hiddenTabs, role).map((tab) => (
+				{visibleTabs(space, teamRole).map((tab) => (
 					<Link
 						key={tab}
 						to={tabPath(space, tab)}

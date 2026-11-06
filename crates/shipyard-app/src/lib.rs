@@ -45,6 +45,7 @@ pub mod qa;
 pub mod questions;
 mod reports;
 pub mod request_tree;
+pub mod rights;
 pub mod runner_setup;
 pub mod runner_signin;
 pub mod sbom;
@@ -293,8 +294,11 @@ fn specta_builder() -> Builder<tauri::Wry> {
             sy::sync_link,
             sy::sync_unlink,
             work::work_context,
+            rights::rights_get,
+            rights::rights_audit_tail,
             work::work_team,
             work::work_team_add_me,
+            work::join::work_team_join,
             work::work_team_save,
             work::work_suggest,
             work::work_assign,

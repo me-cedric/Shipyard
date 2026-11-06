@@ -8,6 +8,7 @@ import { format, useI18n } from "@/lib/i18n";
 import { AppFailure, type Lane, type RunState, type RunView } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
+import { RightButton } from "@/lib/rights";
 import { useFormIntent } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
@@ -149,10 +150,10 @@ export function Runs() {
 						onSubmit={start}
 						skip={skip}
 					/>
-					<Button variant="primary" disabled={!key.trim()} onClick={start}>
+					<RightButton right="runs.start" variant="primary" disabled={!key.trim()} onClick={start}>
 						<PlayIcon size={14} />
 						{f.start}
-					</Button>
+					</RightButton>
 				</span>
 			}
 			toolbar={

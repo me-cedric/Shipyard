@@ -8,6 +8,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use shipyard_core::pickup::{Writes, answer_marker, question_marker};
+use shipyard_core::rights::Right;
 use shipyard_core::run::RunEvent;
 use shipyard_store::run_log::kind;
 
@@ -70,6 +71,16 @@ impl Write {
         }
     }
 
+    /// The right that the write needs (`team-rights` REQ-009).
+    pub fn right(&self) -> Right {
+        match self {
+            Self::Transition { .. } | Self::Labels { .. } | Self::Comment { .. } => Right::WorkEdit,
+            Self::Push { .. } | Self::OpenPr { .. } | Self::ResolveThreads { .. } => {
+                Right::CodeWrite
+            }
+        }
+    }
+
     /// A push, a pull request or a thread reply: a write that needs a live pull request branch.
     pub(crate) fn is_delivery(&self) -> bool {
         matches!(
@@ -119,9 +130,16 @@ impl Inner {
         {
             return;
         }
+        // The switch, and the right of the member who started the run: else a person with the
+        // right sends it from the Inbox (`team-rights` REQ-009). A run with no member has no
+        // right: fail closed.
         let allowed = self
             .project_of(run_id)
-            .is_some_and(|p| write.allowed(&p.automation.writes));
+            .is_some_and(|p| write.allowed(&p.automation.writes))
+            && self.runs.get(run_id).is_some_and(|r| {
+                r.by.as_ref()
+                    .is_some_and(|a| a.rights.contains(&write.right()))
+            });
         if allowed {
             self.send(run_id, &write, slot);
             return;

@@ -9,6 +9,7 @@ import {
 	unwrap,
 	type WriteReport,
 } from "@/lib/ipc";
+import { RightButton } from "@/lib/rights";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import type { Status } from "@/ui/atoms/status-dot";
@@ -74,10 +75,13 @@ export function CompassSetup() {
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-wrap items-center gap-2">
-				<Button onClick={() => void write(() => unwrap(commands.compassContractInstall(true)))}>
+				<RightButton
+					right="project.settings"
+					onClick={() => void write(() => unwrap(commands.compassContractInstall(true)))}
+				>
 					<ShieldCheckIcon size={14} />
 					{x.contract}
-				</Button>
+				</RightButton>
 			</div>
 			<ErrorNotice error={failure} />
 			{report ? <WriteReportView report={report} /> : null}
@@ -107,7 +111,8 @@ export function CompassSetup() {
 									{x.objectiveDone}
 								</Badge>
 							) : (
-								<Button
+								<RightButton
+									right="project.settings"
 									disabled={fit === 0}
 									aria-label={format(x.objectiveApply, { name })}
 									onClick={() =>
@@ -115,7 +120,7 @@ export function CompassSetup() {
 									}
 								>
 									{t.extensions.compass.apply}
-								</Button>
+								</RightButton>
 							)}
 						</SettingsRow>
 					);
@@ -126,13 +131,14 @@ export function CompassSetup() {
 				count={sources.length}
 				icon={<ArrowDownTrayIcon size={14} />}
 				toolbar={
-					<Button
+					<RightButton
+						right="project.settings"
 						variant="ghost"
 						onClick={() => void write(() => unwrap(commands.compassExternalRefresh(true)))}
 					>
 						<ArrowPathIcon size={14} />
 						{x.refresh}
-					</Button>
+					</RightButton>
 				}
 				flush
 			>
@@ -153,31 +159,37 @@ export function CompassSetup() {
 								<Badge variant="info">{format(x.edited, { count: s.edited.length })}</Badge>
 							) : null}
 							{s.state === "off" ? (
-								<Button
+								<RightButton
+									right="project.settings"
 									disabled={!s.available}
 									reason={x.unavailable}
 									aria-label={format(x.installName, { name: s.id })}
 									onClick={() => void reinstall(s)}
 								>
 									{x.install}
-								</Button>
+								</RightButton>
 							) : confirm === s.id ? (
 								<>
-									<Button variant="danger" onClick={() => void reinstall(s)}>
+									<RightButton
+										right="project.settings"
+										variant="danger"
+										onClick={() => void reinstall(s)}
+									>
 										{format(x.reinstallConfirm, { name: s.id })}
-									</Button>
+									</RightButton>
 									<Button variant="ghost" onClick={() => setConfirm(null)}>
 										{x.cancel}
 									</Button>
 								</>
 							) : (
-								<Button
+								<RightButton
+									right="project.settings"
 									variant="ghost"
 									aria-label={format(x.reinstallName, { name: s.id })}
 									onClick={() => (s.edited.length ? setConfirm(s.id) : void reinstall(s))}
 								>
 									{x.reinstall}
-								</Button>
+								</RightButton>
 							)}
 						</EntryRow>
 					))}

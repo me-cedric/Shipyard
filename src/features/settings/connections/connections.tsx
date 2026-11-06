@@ -12,6 +12,7 @@ import {
 } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
 import { useBacklinks } from "@/lib/refs";
+import { RightButton } from "@/lib/rights";
 import { useFormIntent, useShell } from "@/lib/shell";
 import { clock, syncKeys, useSyncState } from "@/lib/sync";
 import { Badge } from "@/ui/atoms/badge";
@@ -100,10 +101,10 @@ function CreateRepo({ id }: { id: string }) {
 				onChange={(e) => setSlug(e.target.value)}
 				className="w-64"
 			/>
-			<Button type="submit" disabled={!slug.trim()}>
+			<RightButton right="project.settings" type="submit" disabled={!slug.trim()}>
 				<PlusIcon size={14} />
 				{t.connections.repoCreate}
-			</Button>
+			</RightButton>
 			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 		</form>
 	);

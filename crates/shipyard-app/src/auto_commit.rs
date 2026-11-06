@@ -36,7 +36,7 @@ pub fn run(s: &AppState, message: &str) -> Res<Option<String>> {
     if !ids(&s.dir).contains(&id) {
         return Ok(None);
     }
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::CodeWrite, "auto_commit_run", "")?;
     commit_all(&root, message)
 }
 
@@ -50,6 +50,10 @@ pub async fn auto_commit_get(app: AppHandle) -> Api<bool> {
 #[specta::specta]
 pub async fn auto_commit_set(app: AppHandle, on: bool) -> Api<bool> {
     blocking(app, move |s| {
+        // On, it commits for the person. Off only takes a write away.
+        if on {
+            crate::rights::require(s, crate::rights::Right::CodeWrite, "auto_commit_set", "")?;
+        }
         let _g = s.guard();
         let (id, _) = active(s)?;
         let mut list = ids(&s.dir);

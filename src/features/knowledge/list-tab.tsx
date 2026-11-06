@@ -7,6 +7,7 @@ import { slug, useCreateDoc } from "@/lib/knowledge";
 import { copyText, useAsk, useMenus, useRename, useTrash } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
 import { useRefFilter } from "@/lib/refs";
+import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
 import { cn } from "@/lib/utils";
@@ -52,9 +53,14 @@ function NewDialog({
 			onOpenChange={(open) => !open && onClose()}
 			title={noun}
 			actions={
-				<Button variant="primary" disabled={!name.trim()} onClick={() => void submit()}>
+				<RightButton
+					right="knowledge.edit"
+					variant="primary"
+					disabled={!name.trim()}
+					onClick={() => void submit()}
+				>
 					{t.design.create}
-				</Button>
+				</RightButton>
 			}
 		>
 			<form
@@ -190,10 +196,10 @@ export function ListTab({
 			}
 			action={
 				rows.length === 0 ? undefined : (
-					<Button variant="primary" onClick={add}>
+					<RightButton right="knowledge.edit" variant="primary" onClick={add}>
 						<PlusIcon size={14} />
 						{noun}
-					</Button>
+					</RightButton>
 				)
 			}
 		>

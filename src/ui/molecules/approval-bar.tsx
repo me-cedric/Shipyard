@@ -15,12 +15,15 @@ export function ApprovalBar({
 	meta,
 	onApprove,
 	onReject,
+	reason,
 }: {
 	approval: Pick<ApprovalView, "kind" | "key" | "title" | "summary" | "detail" | "force">;
 	/** The run chip and the ticket key. */
 	meta?: ReactNode;
 	onApprove: () => void;
 	onReject: () => void;
+	/** Why both actions are off: a missing right. */
+	reason?: string;
 }) {
 	const { t } = useI18n();
 	const said = t.home.approval;
@@ -37,8 +40,15 @@ export function ApprovalBar({
 				<span className={cn("flex-1 text-ui font-medium", a.force && "text-danger-text")}>
 					{sentence}
 				</span>
-				<Button onClick={onReject}>{t.home.reject}</Button>
-				<Button variant={a.force ? "danger" : "primary"} onClick={onApprove}>
+				<Button disabled={!!reason} reason={reason} onClick={onReject}>
+					{t.home.reject}
+				</Button>
+				<Button
+					variant={a.force ? "danger" : "primary"}
+					disabled={!!reason}
+					reason={reason}
+					onClick={onApprove}
+				>
 					{t.home.approve}
 				</Button>
 			</div>

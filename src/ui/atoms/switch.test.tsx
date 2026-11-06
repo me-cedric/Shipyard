@@ -16,4 +16,11 @@ describe("Switch", () => {
 		expect(sw).toHaveAttribute("aria-checked", "true");
 		expect(thumb).toHaveAttribute("data-checked");
 	});
+
+	it("gives the reason of an off switch as its tooltip and its description", () => {
+		render(<Switch label="Auto commit" disabled reason="Needs code.write" />);
+		const sw = screen.getByRole("switch", { name: "Auto commit" });
+		expect(sw).toHaveAttribute("aria-description", "Needs code.write");
+		expect(sw.closest("label")).toHaveAttribute("title", "Needs code.write");
+	});
 });

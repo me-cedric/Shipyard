@@ -20,6 +20,7 @@ use specta::Type;
 use tauri::AppHandle;
 
 use crate::commands::{Api, AppState, Res, blocking, err};
+use crate::rights::Right;
 
 /// The active project: its folder and its project file.
 pub(crate) struct Proj {
@@ -71,15 +72,17 @@ pub(crate) fn read_text(full: &Path, rel: &str) -> Res<Text> {
     Ok(Text { text, stamp })
 }
 
-/// Write in full or not at all. `create` makes a new file and refuses an existing one.
+/// Write in full or not at all. `create` makes a new file and refuses an existing one. The
+/// caller names the right of the write (`team-rights` REQ-007).
 pub(crate) fn put(
     s: &AppState,
     full: &Path,
     text: &str,
     stamp: Option<&str>,
     create: bool,
+    right: crate::rights::Right,
 ) -> Res<Written> {
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(s, right, "design_write", &full.to_string_lossy())?;
     if text.len() as u64 > MAX_BYTES {
         return Err("the text is too big".into());
     }
@@ -157,6 +160,7 @@ pub fn write(
         text,
         stamp,
         create,
+        Right::DesignEdit,
     )
 }
 
@@ -179,6 +183,7 @@ pub fn adr_create(s: &AppState, title: &str) -> Res<Adr> {
         &text,
         None,
         true,
+        Right::DesignEdit,
     )?;
     Ok(Adr {
         number,
@@ -204,7 +209,7 @@ pub fn adr_decide(
     }
     let text = read_text(&full, rel)?.text;
     let out = madr::decide(&text, decision, comment, &crate::work::today(s))?;
-    put(s, &full, &out, Some(stamp), false)
+    put(s, &full, &out, Some(stamp), false, Right::DesignEdit)
 }
 
 // ---------------------------------------------------------------- flows
@@ -225,7 +230,7 @@ pub fn flows_save(s: &AppState, rel: &str, rows: &[FlowRow], stamp: Option<&str>
     } else {
         design::write_flows(rows, &old)?
     };
-    put(s, &full, &text, stamp, !full.exists())
+    put(s, &full, &text, stamp, !full.exists(), Right::DesignEdit)
 }
 
 // ---------------------------------------------------------------- try
@@ -269,7 +274,7 @@ pub fn try_request(s: &AppState, r: &TryRequest, click: bool) -> Res<TryResponse
         m => return Err(format!("method not allowed: {m}")),
     };
     if method != Method::Get {
-        crate::work::need_click(s, click)?;
+        crate::work::need_click(s, click, crate::rights::Right::DesignEdit, "design_try", "")?;
     }
     if !r.route.starts_with('/')
         || r.route.starts_with("//")

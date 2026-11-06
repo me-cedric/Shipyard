@@ -85,7 +85,17 @@ pub fn get(s: &AppState, which: Picture) -> Res<Option<Image>> {
 
 /// Copy the picture at `path` (a file that a dialog gave) in place of the old one. `None` removes it.
 pub fn set(s: &AppState, which: Picture, path: Option<&str>, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    match which {
+        // The avatar is of this machine. The logo is of the project.
+        Picture::Avatar => crate::rights::need_click_local(s, click)?,
+        Picture::Logo => need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "picture_set",
+            "",
+        )?,
+    }
     let base = base(s, which)?;
     let new = match path {
         Some(p) => {

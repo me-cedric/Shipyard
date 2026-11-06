@@ -3,8 +3,8 @@ import { type ReactNode, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type Finding_Serialize, type Group, type Severity, unwrap } from "@/lib/ipc";
 import { projectKeys, useHealth, worstStatus } from "@/lib/projects";
+import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
-import { Button } from "@/ui/atoms/button";
 import { Ring } from "@/ui/atoms/ring";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { CommandLineIcon, DocumentTextIcon, LinkIcon, ShieldCheckIcon } from "@/ui/icons";
@@ -79,9 +79,9 @@ function Finding({ finding }: { finding: Finding_Serialize }) {
 						</pre>
 					</figure>
 					<div>
-						<Button variant="primary" onClick={confirm}>
+						<RightButton right="project.settings" variant="primary" onClick={confirm}>
 							{t.health.confirm}
-						</Button>
+						</RightButton>
 					</div>
 				</div>
 			) : null}

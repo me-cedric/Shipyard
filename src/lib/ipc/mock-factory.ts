@@ -763,6 +763,7 @@ export function seedFactory(): MockFactory {
 			summary,
 			detail,
 			force,
+			right: ["transition", "labels", "comment"].includes(kind) ? "work.edit" : "code.write",
 		});
 	};
 	const message = (r: Rec, from: string, text: string, read: boolean) =>

@@ -700,7 +700,13 @@ fn ask(
 
 /// The review of an open pull request (REQ-001, REQ-009).
 pub fn review_start(s: &AppState, number: u32, click: bool) -> Res<ReviewDraft> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::RunsStart,
+        "pr_review_start",
+        &format!("#{number}"),
+    )?;
     review_pull(s, number, false)
 }
 
@@ -736,7 +742,13 @@ fn review_pull(s: &AppState, number: u32, auto: bool) -> Res<ReviewDraft> {
 /// Posts the draft that the person edited, once (REQ-004). `mode` of the automatic setting posts a
 /// comment only (REQ-007).
 pub fn review_post(s: &AppState, post: ReviewPost, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::RunsApprove,
+        "pr_review_post",
+        "",
+    )?;
     post_with(s, post, false)
 }
 
@@ -799,7 +811,7 @@ fn review_args(
 }
 
 fn post_with(s: &AppState, post: ReviewPost, comment_only: bool) -> Res<()> {
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::RunsApprove, "pr_review_post", "")?;
     let (pid, _) = project(s)?;
     let _lock = PostLock::take(format!("{pid}-{}-{}", post.number, post.head_sha))?;
     let mut draft = load(s, &pid, post.number, &post.head_sha)?.ok_or("no draft review")?;
@@ -853,7 +865,13 @@ fn unposted(failed: &[LineNote]) -> Res<()> {
 /// "Write with an agent": a title and a body from the branch diff, the linked ticket and the
 /// linked spec change (REQ-005). Nothing opens: the person edits the text and clicks Open.
 pub fn pr_write(s: &AppState, base: Option<String>, click: bool) -> Res<PrText> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "pr_write_text",
+        "",
+    )?;
     pr_write_with(s, base, None)
 }
 
@@ -924,7 +942,7 @@ fn auto_mode(s: &AppState, root: &Path) -> Option<AutoReview> {
         .auto_review;
     (mode != AutoReview::Off
         && !crate::factory::kill_switch(s)
-        && crate::work::refuse_read_only(s).is_ok())
+        && crate::rights::allows(s, crate::rights::Right::RunsStart))
     .then_some(mode)
 }
 

@@ -6,9 +6,9 @@ import { format, useI18n } from "@/lib/i18n";
 import { commands, type ExportText, saveAs, unwrap } from "@/lib/ipc";
 import { DOC_DIR, useDocList } from "@/lib/knowledge";
 import { useDocxList } from "@/lib/knowledge/documents";
+import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
-import { Button } from "@/ui/atoms/button";
 import { ArrowDownTrayIcon, DocumentTextIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { DocActions, DocSearch, DocxView } from "./documents-parts";
@@ -121,7 +121,8 @@ export function Documents() {
 					</div>
 					<div className="flex flex-wrap gap-2">
 						{exports.map((x) => (
-							<Button
+							<RightButton
+								right="knowledge.edit"
 								key={x.id}
 								title={x.ext}
 								aria-label={`${k.export} ${x.label}`}
@@ -131,7 +132,7 @@ export function Documents() {
 							>
 								<ArrowDownTrayIcon size={14} />
 								{x.label}
-							</Button>
+							</RightButton>
 						))}
 					</div>
 				</div>

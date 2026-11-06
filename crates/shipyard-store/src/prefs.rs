@@ -36,17 +36,25 @@ pub enum Contrast {
     High,
 }
 
+/// The personal role of Settings / Me: one of the nine team roles (`team-rights`, Q-145). It only
+/// narrows the rights of the team file. An older Shipyard stored `lead` and `junior`: `lead` loads
+/// as `po`. `junior` stays: it is `developer` without `code.merge` and `runs.approve` (REQ-015).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
     None,
+    #[serde(alias = "lead")]
+    Po,
     Pm,
     Architect,
-    Developer,
-    Qa,
+    Techlead,
     Ba,
-    Lead,
+    Developer,
+    /// A role of an older Shipyard. Settings / Me does not offer it.
     Junior,
+    Qa,
+    Designer,
+    Viewer,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -597,6 +605,15 @@ mod tests {
         let p = Prefs::load(dir.path());
         assert_eq!((p.theme, p.lang), (Theme::Dark, Some(Lang::Fr)));
         assert_eq!(p.release_url, DEFAULT_RELEASE_URL);
+    }
+
+    #[test]
+    fn an_older_personal_role_loads_as_its_team_role() {
+        let roles: Vec<Role> = serde_json::from_str(r#"["lead","junior","techlead"]"#).unwrap();
+        assert_eq!(roles, [Role::Po, Role::Junior, Role::Techlead]);
+        // `junior` saves as it loads: the narrowing stays.
+        assert_eq!(serde_json::to_string(&Role::Junior).unwrap(), r#""junior""#);
+        assert_eq!(serde_json::to_string(&Role::Po).unwrap(), r#""po""#);
     }
 
     #[test]

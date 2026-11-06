@@ -1,49 +1,78 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { en } from "@/lib/i18n/en";
+import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
-import { ROLES } from "@/lib/prefs";
+import { TEAM_ROLES } from "@/lib/prefs";
 import { mountApp } from "@/test/mount";
-import { orderedSpaces, ROLE_HOME, SPACE_IDS, SPACES } from "./spaces";
+import { FIRST_TAB, firstPath, orderedSpaces, SPACE_IDS, SPACES, type SpaceId } from "./spaces";
 
 const sidebar = () => screen.findByRole("navigation", { name: "Sidebar" });
 
-describe("role homes (shell REQ-009)", () => {
-	it("gives the home of the spec to each role", () => {
-		expect(ROLE_HOME).toEqual({
-			none: "home",
-			pm: "work",
-			architect: "design",
-			developer: "factory",
-			qa: "specs",
-			ba: "specs",
-			lead: "specs",
-			junior: "knowledge",
+describe("role homes (shell REQ-009, team-rights REQ-013)", () => {
+	it("gives each of the nine roles a first tab", () => {
+		expect(FIRST_TAB).toEqual({
+			po: "/work/backlog",
+			pm: "/work/board",
+			architect: "/design/decisions",
+			techlead: "/factory/runs",
+			ba: "/specs/changes",
+			developer: "/factory/runs",
+			qa: "/specs/test-plans",
+			designer: "/design/screens",
+			viewer: "/home/today",
 		});
-		expect(Object.keys(ROLE_HOME).sort()).toEqual(["none", ...ROLES].sort());
+		expect(Object.keys(FIRST_TAB).sort()).toEqual([...TEAM_ROLES].sort());
 	});
 
-	it.each(["none", ...ROLES] as const)("keeps every space for role %s, Settings last", (role) => {
-		const order = orderedSpaces(role);
-		expect([...order].sort()).toEqual([...SPACE_IDS].sort());
-		expect(order[0]).toBe("home");
-		expect(order.at(-1)).toBe("settings");
-		expect(order.indexOf(ROLE_HOME[role])).toBeLessThanOrEqual(1);
-	});
+	it.each([null, ...TEAM_ROLES] as const)(
+		"keeps every space for role %s, the space of the first tab second, Settings last",
+		(role) => {
+			const order = orderedSpaces(role);
+			expect([...order].sort()).toEqual([...SPACE_IDS].sort());
+			expect(order[0]).toBe("home");
+			expect(order.at(-1)).toBe("settings");
+			expect(order.indexOf(firstPath(role).split("/")[1] as SpaceId)).toBeLessThanOrEqual(1);
+		},
+	);
 
-	it("opens Knowledge on Learn for a junior and still lists the seven spaces and Settings", async () => {
-		mockState().prefs.role = "junior";
+	it("opens Design on Decisions for an architect and still lists the seven spaces and Settings", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mockState().person = {
+			member: "ana",
+			found: "email",
+			role: "architect",
+			admin: false,
+			readOnly: false,
+			rights: ["work.edit"],
+		};
 		const router = mountApp("/");
 		const nav = await sidebar();
 		const links = within(nav).getAllByRole("link");
 		expect(links).toHaveLength(8);
-		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
-		await within(tabs).findByRole("link", { name: "Graph" });
-		// The tab of the role comes first and opens first.
-		expect(within(tabs).getAllByRole("link")[0]).toHaveAccessibleName("Learn");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/knowledge/learn"));
-		expect(links.find((l) => l.getAttribute("aria-current") === "page")).toHaveAccessibleName(
-			"Knowledge",
-		);
+		await waitFor(() => expect(router.state.location.pathname).toBe("/design/decisions"));
+		expect(links[1]).toHaveAccessibleName("Design");
+	});
+
+	it("opens a viewer on Today and lists every space", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mockState().person = {
+			member: null,
+			found: "unknown",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		const router = mountApp("/");
+		expect(within(await sidebar()).getAllByRole("link")).toHaveLength(8);
+		await waitFor(() => expect(router.state.location.pathname).toBe("/home/today"));
+	});
+
+	it("maps the role of an older Shipyard: a junior opens like a developer", async () => {
+		// The Rust reader maps an old prefs file; an old registry entry can still hold the text.
+		(mockState().prefs as { role: string }).role = "junior";
+		const router = mountApp("/");
+		await waitFor(() => expect(router.state.location.pathname).toBe("/factory/runs"));
 	});
 });
 

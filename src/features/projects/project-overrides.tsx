@@ -7,7 +7,6 @@ import {
 	type Permission,
 	unwrap,
 } from "@/lib/ipc";
-import { ROLES } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Select } from "@/ui/atoms/select";
@@ -19,7 +18,7 @@ const NONE = "none";
 
 /**
  * What a project sets for this machine: the assistant defaults of its new threads, the remote
- * watch, the notices and the profile (role, read only). The spaces and tabs are in `ScreensCard`.
+ * watch, the notices and the read-only profile.
  * It all stays in the app data folder and never reaches the repository.
  */
 export function ProjectOverrides() {
@@ -117,17 +116,6 @@ export function ProjectOverrides() {
 				/>
 			</SettingsRow>
 			<h2 className="pt-3 pb-1 text-12 font-medium text-n-11">{p.title}</h2>
-			<SettingsRow label={p.role}>
-				<Select
-					label={p.role}
-					value={o.profileRole ?? NONE}
-					onValueChange={(v) => void setOverride({ profileRole: pick(v) })}
-					items={[
-						{ value: NONE, label: w.default },
-						...ROLES.map((r) => ({ value: r, label: t.role[r] })),
-					]}
-				/>
-			</SettingsRow>
 			<SettingsRow label={p.readOnly}>
 				<Switch
 					iconOnly

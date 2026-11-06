@@ -16,9 +16,9 @@ import type {
 	WorkflowProposal_Serialize as WorkflowProposal,
 } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
+import { RightButton, useRights } from "@/lib/rights";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
-import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select, type SelectItem } from "@/ui/atoms/select";
 import { ArrowsRightLeftIcon, PlusIcon } from "@/ui/icons";
@@ -64,13 +64,14 @@ function IdDialog({
 			onOpenChange={(o) => !o && onClose()}
 			title={title}
 			actions={
-				<Button
+				<RightButton
+					right="project.settings"
 					variant="primary"
 					disabled={id.trim() === ""}
 					onClick={() => void run(() => onSubmit(id.trim(), preset)).then((ok) => ok && onClose())}
 				>
 					{action}
-				</Button>
+				</RightButton>
 			}
 		>
 			{presets ? (
@@ -104,10 +105,19 @@ function Proposal({ proposal }: { proposal: WorkflowProposal }) {
 			title={w.proposal}
 			toolbar={
 				<>
-					<Button variant="primary" onClick={() => void run(() => writes.apply(proposal.id))}>
+					<RightButton
+						right="project.settings"
+						variant="primary"
+						onClick={() => void run(() => writes.apply(proposal.id))}
+					>
 						{w.apply}
-					</Button>
-					<Button onClick={() => void run(() => writes.discard(proposal.id))}>{w.discard}</Button>
+					</RightButton>
+					<RightButton
+						right="project.settings"
+						onClick={() => void run(() => writes.discard(proposal.id))}
+					>
+						{w.discard}
+					</RightButton>
 				</>
 			}
 		>
@@ -142,6 +152,7 @@ function FileEditor({
 	const w = t.factory.wf;
 	const file = useFactoryFile(kind, id);
 	const loaded = file.data;
+	const { gate } = useRights();
 	const writes = useFactoryWrites();
 	const options = useWorkflowOptions().data;
 	const { error, run } = useGuard();
@@ -206,9 +217,14 @@ function FileEditor({
 								{ value: "text", label: t.editing.view.text },
 							]}
 						/>
-						<Button onClick={() => setDialog("duplicate")}>{w.duplicate}</Button>
-						<Button onClick={() => setDialog("rename")}>{w.rename}</Button>
+						<RightButton right="project.settings" onClick={() => setDialog("duplicate")}>
+							{w.duplicate}
+						</RightButton>
+						<RightButton right="project.settings" onClick={() => setDialog("rename")}>
+							{w.rename}
+						</RightButton>
 						<ConfirmButton
+							{...gate("project.settings")}
 							confirm={format(w.deleteConfirm, { id })}
 							onConfirm={() => void run(() => writes.remove(id)).then((ok) => ok && onPick(null))}
 						>
@@ -220,6 +236,7 @@ function FileEditor({
 			primary={{
 				label: t.design.save,
 				disabled: !dirty || saving || issue !== null,
+				reason: gate("project.settings").reason,
 				onClick: () =>
 					void run(async () => {
 						setSaving(true);
@@ -299,10 +316,10 @@ export function Workflows() {
 			name: f.workflows,
 			kind: "workflow" as const,
 			toolbar: (
-				<Button onClick={() => setAdding(true)}>
+				<RightButton right="project.settings" onClick={() => setAdding(true)}>
 					<PlusIcon size={14} />
 					{f.wf.new}
-				</Button>
+				</RightButton>
 			),
 			rows: [
 				...workflows.map((w) => ({ id: w.id, steps: w.steps, bad: w.issue !== null })),

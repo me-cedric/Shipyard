@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
-import { Button } from "@/ui/atoms/button";
+import { RightButton, RightIconButton } from "@/lib/rights";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { ArrowPathIcon, LinkIcon, PlusIcon, XMarkIcon } from "@/ui/icons";
@@ -74,10 +74,10 @@ export function LearnFeeds() {
 					value={url}
 					onChange={(e) => setUrl(e.target.value)}
 				/>
-				<Button type="submit" disabled={!url.trim()}>
+				<RightButton right="knowledge.edit" type="submit" disabled={!url.trim()}>
 					<PlusIcon size={14} />
 					{k.subscribe}
-				</Button>
+				</RightButton>
 			</form>
 			<ErrorNotice error={failure} />
 			{rows.map((f) => {
@@ -86,7 +86,8 @@ export function LearnFeeds() {
 					<section key={f.url} aria-label={name} className="flex flex-col gap-1">
 						<div className="flex items-center gap-2">
 							<h3 className="min-w-0 flex-1 truncate font-medium text-ui text-n-12">{name}</h3>
-							<IconButton
+							<RightIconButton
+								right="knowledge.edit"
 								label={format(k.unsubscribe, { name })}
 								onClick={() =>
 									void run(async () => {
@@ -96,7 +97,7 @@ export function LearnFeeds() {
 								}
 							>
 								<XMarkIcon size={14} />
-							</IconButton>
+							</RightIconButton>
 						</div>
 						<ErrorNotice error={f.error} />
 						<ul className="flex flex-col">

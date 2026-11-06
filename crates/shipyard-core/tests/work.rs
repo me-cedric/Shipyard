@@ -13,7 +13,7 @@ fn member(handle: &str, role: &str, capacity: f64, skills: &[&str], rate: f64) -
         capacity,
         skills: skills.iter().map(|s| s.to_string()).collect(),
         day_rate: Some(rate),
-        availability: Availability::default(),
+        ..Member::default()
     }
 }
 

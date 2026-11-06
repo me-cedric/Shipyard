@@ -10,9 +10,9 @@ import {
 	type SyncState,
 	unwrap,
 } from "@/lib/ipc";
+import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
-import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import type { Status } from "@/ui/atoms/status-dot";
 import {
@@ -113,7 +113,8 @@ export function Compass({ children }: { children: ReactNode }) {
 				}
 				action={
 					data ? (
-						<Button
+						<RightButton
+							right="project.settings"
 							id="compass-upgrade"
 							variant="primary"
 							disabled={count === 0}
@@ -123,7 +124,7 @@ export function Compass({ children }: { children: ReactNode }) {
 						>
 							<ArrowPathIcon size={14} />
 							{format(x.compass.upgradeCount, { count })}
-						</Button>
+						</RightButton>
 					) : undefined
 				}
 			/>
@@ -153,7 +154,8 @@ export function Compass({ children }: { children: ReactNode }) {
 								onChange={(e) => setRules(e.target.value)}
 								className="w-72"
 							/>
-							<Button
+							<RightButton
+								right="project.settings"
 								disabled={!rules.trim()}
 								onClick={() =>
 									void change(async () => {
@@ -166,7 +168,7 @@ export function Compass({ children }: { children: ReactNode }) {
 							>
 								<ArrowUpTrayIcon size={14} />
 								{x.compass.import}
-							</Button>
+							</RightButton>
 						</div>
 						{imported ? (
 							<p role="status" className="text-12 text-n-11">
@@ -220,7 +222,8 @@ export function Compass({ children }: { children: ReactNode }) {
 												{e.suits ? <Badge variant="success">{x.compass.suits}</Badge> : null}
 												{e.kind === "pattern" || e.kind === "skill" || e.kind === "pack" ? (
 													e.state === "absent" ? null : (
-														<Button
+														<RightButton
+															right="project.settings"
 															variant="ghost"
 															aria-label={format(x.compass.removeName, { name: e.title })}
 															onClick={() =>
@@ -231,18 +234,19 @@ export function Compass({ children }: { children: ReactNode }) {
 														>
 															<TrashIcon size={14} />
 															{x.compass.remove}
-														</Button>
+														</RightButton>
 													)
 												) : null}
 												{e.state === "current" ? null : (
-													<Button
+													<RightButton
+														right="project.settings"
 														aria-label={format(x.compass.applyName, { name: e.title })}
 														onClick={() =>
 															void write(() => unwrap(commands.compassApply([keyOf(e)])))
 														}
 													>
 														{x.compass.apply}
-													</Button>
+													</RightButton>
 												)}
 											</EntryRow>
 										))}
@@ -258,7 +262,8 @@ export function Compass({ children }: { children: ReactNode }) {
 							{policies.data?.applied === p.id ? (
 								<Badge variant="success">{x.compass.policyApplied}</Badge>
 							) : (
-								<Button
+								<RightButton
+									right="project.settings"
 									aria-label={format(x.compass.policyApply, { name: p.id })}
 									onClick={() =>
 										void change(async () =>
@@ -270,7 +275,7 @@ export function Compass({ children }: { children: ReactNode }) {
 									}
 								>
 									{x.compass.apply}
-								</Button>
+								</RightButton>
 							)}
 						</SettingsRow>
 					))}

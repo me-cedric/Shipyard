@@ -554,7 +554,10 @@ const normMember = (m: Member_Deserialize): Member_Serialize => ({
 	name: m.name ?? "",
 	handle: m.handle ?? "",
 	trackers: m.trackers ?? [],
+	...(m.emails?.length ? { emails: m.emails } : {}),
 	role: m.role ?? "",
+	...(m.admin ? { admin: true } : {}),
+	...(m.rights?.length ? { rights: m.rights } : {}),
 	capacity: m.capacity ?? 0,
 	skills: m.skills ?? [],
 	...(m.dayRate != null ? { dayRate: m.dayRate } : {}),
@@ -665,7 +668,7 @@ export function teamSave(w: MockWork, t: Team_Deserialize): TeamView_Serialize {
 	const seen = new Map<string, number>();
 	for (const [i, m] of team.members.entries()) {
 		if (!/^[a-z0-9][a-z0-9-]*$/.test(m.handle)) throw `\`${m.handle}\` is not a handle`;
-		for (const id of [m.handle, ...m.trackers]) {
+		for (const id of [m.handle, ...m.trackers, ...(m.emails ?? [])]) {
 			const key = id.toLowerCase();
 			const other = seen.get(key);
 			if (other !== undefined && other !== i)

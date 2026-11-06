@@ -1,4 +1,5 @@
 import { useI18n } from "@/lib/i18n";
+import { useRights } from "@/lib/rights";
 import { useCalendar, useWorkActions } from "@/lib/work";
 import { Select } from "@/ui/atoms/select";
 import { SettingsRow } from "@/ui/molecules/settings-row";
@@ -23,6 +24,7 @@ export function HolidayCountry({ row }: { row?: boolean }) {
 	const { t } = useI18n();
 	const cal = useCalendar().data;
 	const act = useWorkActions();
+	const { gate } = useRights();
 	const { error, run } = useGuard();
 	const items = useCountryItems();
 	if (!cal) return null;
@@ -30,6 +32,7 @@ export function HolidayCountry({ row }: { row?: boolean }) {
 		<Select
 			caption={!row}
 			label={t.costing.plan.country}
+			{...gate("work.edit")}
 			value={cal.country || NONE}
 			onValueChange={(v) =>
 				void run(() => act.saveCalendar({ ...cal, country: v === NONE ? "" : v }))

@@ -12,6 +12,7 @@ import {
 } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
+import { RightButton, useRights } from "@/lib/rights";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
@@ -62,10 +63,10 @@ function CreateBranch({ run }: { run: (job: () => Promise<unknown>) => void }) {
 				value={subject}
 				onChange={(e) => setSubject(e.target.value)}
 			/>
-			<Button type="submit" variant="primary">
+			<RightButton right="code.write" type="submit" variant="primary">
 				<PlusIcon size={14} />
 				{t.code.create}
-			</Button>
+			</RightButton>
 		</form>
 	);
 }
@@ -108,6 +109,7 @@ function BranchRow({
 function BranchesView() {
 	const { t } = useI18n();
 	const menu = useMenus();
+	const { can } = useRights();
 	const branches = useBranches().data ?? [];
 	const {
 		switchBranch,
@@ -149,11 +151,12 @@ function BranchesView() {
 					<ArrowPathIcon size={14} />
 					{t.code.fetch}
 				</Button>
-				<Button variant="ghost" onClick={() => run(push)}>
+				<RightButton right="code.write" variant="ghost" onClick={() => run(push)}>
 					{t.code.publish}
-				</Button>
+				</RightButton>
 				{forcing ? (
-					<Button
+					<RightButton
+						right="code.write"
 						variant="danger"
 						onClick={() =>
 							run(async () => {
@@ -163,11 +166,11 @@ function BranchesView() {
 						}
 					>
 						{t.code.confirmForcePublish}
-					</Button>
+					</RightButton>
 				) : (
-					<Button variant="ghost" onClick={() => setForcing(true)}>
+					<RightButton right="code.write" variant="ghost" onClick={() => setForcing(true)}>
 						{t.code.forcePublish}
-					</Button>
+					</RightButton>
 				)}
 			</div>
 			<OriginPanel />
@@ -182,7 +185,8 @@ function BranchesView() {
 					<p role="status" className="flex-1 text-ui">
 						{format(t.code.mergeProgress, { count: conflicts.length })}
 					</p>
-					<Button
+					<RightButton
+						right="code.write"
 						variant="danger"
 						onClick={() =>
 							run(async () => {
@@ -192,7 +196,7 @@ function BranchesView() {
 						}
 					>
 						{t.code.mergeAbort}
-					</Button>
+					</RightButton>
 				</div>
 			) : merged ? (
 				<p role="status" className="px-3 py-2 text-ui">
@@ -204,14 +208,16 @@ function BranchesView() {
 					<p role="status" className="flex-1 text-ui">
 						{format(t.code.rebaseProgress, { count: conflicts.length })}
 					</p>
-					<Button
+					<RightButton
+						right="code.write"
 						variant="primary"
 						disabled={conflicts.length > 0}
 						onClick={() => run(async () => setRebased(await continueRebase()))}
 					>
 						{t.code.rebaseContinue}
-					</Button>
-					<Button
+					</RightButton>
+					<RightButton
+						right="code.write"
 						variant="danger"
 						onClick={() =>
 							run(async () => {
@@ -221,7 +227,7 @@ function BranchesView() {
 						}
 					>
 						{t.code.rebaseAbort}
-					</Button>
+					</RightButton>
 				</div>
 			) : rebased ? (
 				<p role="status" className="px-3 py-2 text-ui">
@@ -243,7 +249,10 @@ function BranchesView() {
 							<ContextMenu
 								key={b.name}
 								items={menu("branch", {
-									switch: b.is_head ? undefined : () => run(() => switchBranch(b.name)),
+									switch:
+										b.is_head || !can("code.write")
+											? undefined
+											: () => run(() => switchBranch(b.name)),
 									"copy-ref": () => copyText(b.name),
 								})}
 							>
@@ -263,30 +272,37 @@ function BranchesView() {
 										</>
 									}
 								>
-									<Button disabled={b.is_head} onClick={() => run(() => switchBranch(b.name))}>
+									<RightButton
+										right="code.write"
+										disabled={b.is_head}
+										onClick={() => run(() => switchBranch(b.name))}
+									>
 										{t.code.switch}
-									</Button>
+									</RightButton>
 									{!b.is_head && !busy ? (
 										<>
-											<Button
+											<RightButton
+												right="code.write"
 												variant="primary"
 												aria-label={format(t.code.mergeBranch, { name: b.name })}
 												onClick={() => run(async () => setMerged(await mergeBranch(b.name)))}
 											>
 												{t.code.merge}
-											</Button>
-											<Button
+											</RightButton>
+											<RightButton
+												right="code.write"
 												variant="ghost"
 												aria-label={format(t.code.rebaseBranch, { name: b.name })}
 												onClick={() => run(async () => setRebased(await rebaseBranch(b.name)))}
 											>
 												{t.code.rebase}
-											</Button>
+											</RightButton>
 										</>
 									) : null}
 									{b.kind === "local" && !b.is_head ? (
 										confirming === b.name ? (
-											<Button
+											<RightButton
+												right="code.write"
 												variant="danger"
 												title={b.name}
 												className="max-w-full truncate"
@@ -298,11 +314,15 @@ function BranchesView() {
 												}
 											>
 												{format(t.code.confirmDelete, { name: b.name })}
-											</Button>
+											</RightButton>
 										) : (
-											<Button variant="danger" onClick={() => setConfirming(b.name)}>
+											<RightButton
+												right="code.write"
+												variant="danger"
+												onClick={() => setConfirming(b.name)}
+											>
 												{t.code.delete}
-											</Button>
+											</RightButton>
 										)
 									) : null}
 								</BranchRow>

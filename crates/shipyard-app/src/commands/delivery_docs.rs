@@ -64,7 +64,7 @@ pub fn personas(s: &AppState) -> Res<Vec<Persona>> {
 
 /// Saves the personas. It keeps the keys of the file that Shipyard does not own.
 pub fn personas_set(s: &AppState, list: &[Persona]) -> Res<()> {
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::SpecsEdit, "personas_save", "")?;
     let root = root(s)?;
     let _g = s.guard();
     delivery_docs::save_personas(&root, list).map_err(|e| e.to_string())
@@ -80,7 +80,7 @@ pub fn tickets_config(s: &AppState) -> Res<TicketsConfig> {
 }
 
 pub fn tickets_config_set(s: &AppState, config: &TicketsConfig) -> Res<()> {
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::WorkEdit, "tickets_config_save", "")?;
     let root = root(s)?;
     let _g = s.guard();
     delivery_docs::save_tickets_config(&root, config).map_err(|e| e.to_string())

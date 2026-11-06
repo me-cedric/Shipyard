@@ -26,7 +26,7 @@ pub enum GitError {
     Busy(String),
     #[error("branch not found: {0}")]
     NoBranch(String),
-    #[error("the working branch cannot be deleted: {0}")]
+    #[error("the working branch cannot be deleted or moved: {0}")]
     IsWorkingBranch(String),
     #[error("the branch is not merged: {0}")]
     BranchNotMerged(String),

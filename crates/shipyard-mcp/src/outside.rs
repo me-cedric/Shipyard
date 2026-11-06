@@ -6,7 +6,8 @@
 //! the folder, and a secret file (`.env*`, `.git`) is never read or written.
 //!
 //! The ticket, ADR and QA groups follow the same rule: off by
-//! default, and a read-only project takes no comment, no proposal and no check.
+//! default. Each write tool needs the right of the person, as the app checks it
+//! (`team-rights` REQ-007): a read-only project takes no comment, no proposal and no check.
 //!
 //! shortcut: no resources. Add them when an outside agent needs them.
 
@@ -17,6 +18,8 @@ use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+
+use shipyard_core::rights::Right;
 
 /// The groups of tools that an outside agent may call.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -42,6 +45,19 @@ pub struct TicketPort(pub Arc<TicketFn>);
 
 pub type TicketFn = dyn Fn(&str, &Value) -> Result<String, String> + Send + Sync;
 
+/// How the app checks a write tool: the right, the tool and the target. `Err` names the missing
+/// right and the role. The app writes the audit line (`team-rights` REQ-007, REQ-010).
+#[derive(Clone)]
+pub struct RightsPort(pub Arc<RightsFn>);
+
+pub type RightsFn = dyn Fn(Right, &str, &str) -> Result<(), String> + Send + Sync;
+
+impl std::fmt::Debug for RightsPort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("RightsPort")
+    }
+}
+
 impl std::fmt::Debug for TicketPort {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("TicketPort")
@@ -55,8 +71,8 @@ pub struct Outside {
     pub switches: Switches,
     /// When it is not empty, only these tools of the switched-on groups run.
     pub only: Vec<String>,
-    /// The profile of the project is read only: `project_write_file` and `run_check` refuse.
-    pub read_only: bool,
+    /// The right check of the write tools. `None`: each write tool is refused.
+    pub rights: Option<RightsPort>,
     /// The ticket tools answer through it. `None`: they say that no tracker is wired.
     pub tickets: Option<TicketPort>,
 }
@@ -121,6 +137,18 @@ const MAX_READ: u64 = 256 * 1024;
 const MAX_OUT: usize = 128 * 1024;
 const CHECK_DEFAULT_SECS: u64 = 900;
 const CHECK_MAX_SECS: u64 = 3600;
+
+/// The right that a write tool needs. `None` for a read.
+fn right_of(name: &str) -> Option<Right> {
+    Some(match name {
+        "project_write_file" => Right::CodeWrite,
+        "run_check" | "qa_run_check" | "qa_run_scanner" => Right::RunsStart,
+        "ticket_comment" => Right::WorkEdit,
+        "adr_propose" => Right::DesignEdit,
+        "workflow_propose" => Right::ProjectSettings,
+        _ => return None,
+    })
+}
 
 fn group(name: &str, s: &Switches) -> bool {
     match name {
@@ -761,18 +789,16 @@ pub fn call(o: &Outside, name: &str, args: &Value) -> Result<Value, String> {
     if !o.allows(name) {
         return Err(format!("{name} is turned off in the Shipyard settings"));
     }
-    let writes = matches!(
-        name,
-        "project_write_file"
-            | "run_check"
-            | "ticket_comment"
-            | "adr_propose"
-            | "qa_run_check"
-            | "qa_run_scanner"
-            | "workflow_propose"
-    );
-    if o.read_only && writes {
-        return Err("the profile of this project is read only".into());
+    if let Some(right) = right_of(name) {
+        let port = o
+            .rights
+            .as_ref()
+            .ok_or("no rights check is wired: the tool is refused")?;
+        let target = ["path", "key", "id", "name", "title"]
+            .into_iter()
+            .find_map(|k| arg(args, k))
+            .unwrap_or("");
+        (port.0)(right, name, target)?;
     }
     let root = o.root.as_path();
     let text = match name {
@@ -932,9 +958,16 @@ mod tests {
             root: dir.to_path_buf(),
             switches: s,
             only: Vec::new(),
-            read_only: false,
+            rights: Some(RightsPort(Arc::new(|_, _, _| Ok(())))),
             tickets: Some(TicketPort(Arc::new(|name, _| Ok(format!("ran {name}"))))),
         }
+    }
+
+    /// The check of a person with the role `viewer`: each write tool is refused.
+    fn viewer() -> Option<RightsPort> {
+        Some(RightsPort(Arc::new(|r, _, _| {
+            Err(format!("missing right {} (viewer)", r.as_str()))
+        })))
     }
 
     #[test]
@@ -1001,17 +1034,17 @@ mod tests {
     fn a_read_only_project_takes_no_write_and_no_check() {
         let dir = tempfile::tempdir().unwrap();
         let mut o = open(dir.path(), all());
-        o.read_only = true;
+        o.rights = viewer();
         let w = json!({ "path": "a.md", "text": "x" });
         assert!(
             call(&o, "project_write_file", &w)
                 .unwrap_err()
-                .contains("read only")
+                .contains("missing right")
         );
         assert!(
             call(&o, "run_check", &json!({ "name": "test" }))
                 .unwrap_err()
-                .contains("read only")
+                .contains("missing right")
         );
         assert!(!dir.path().join("a.md").exists());
     }
@@ -1036,11 +1069,11 @@ mod tests {
             4
         );
         assert!(call(&o, "workflow_propose", &args).is_ok());
-        o.read_only = true;
+        o.rights = viewer();
         assert!(
             call(&o, "workflow_propose", &args)
                 .unwrap_err()
-                .contains("read only")
+                .contains("missing right")
         );
         assert!(call(&o, "workflow_validate", &args).is_ok());
         assert!(!READ_ONLY.contains(&"workflow_propose"));
@@ -1130,19 +1163,49 @@ mod tests {
         let err = call(&off, "ticket_list", &json!({})).unwrap_err();
         assert!(err.contains("turned off"));
         let mut o = open(dir.path(), all());
-        o.read_only = true;
+        o.rights = viewer();
         for (tool, args) in [
             ("ticket_comment", json!({ "key": "A-1", "body": "x" })),
             ("adr_propose", json!({ "title": "Use X" })),
             ("qa_run_check", json!({ "name": "test" })),
         ] {
             assert!(
-                call(&o, tool, &args).unwrap_err().contains("read only"),
+                call(&o, tool, &args).unwrap_err().contains("missing right"),
                 "{tool}"
             );
         }
         assert!(call(&o, "ticket_list", &json!({})).is_ok());
         assert!(call(&o, "qa_read_report", &json!({})).is_ok());
+    }
+
+    #[test]
+    fn a_viewer_gets_no_comment_and_the_check_sees_the_right_tool_and_target() {
+        let dir = tempfile::tempdir().unwrap();
+        let seen = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let asked = Arc::new(std::sync::Mutex::new(0));
+        let mut o = open(dir.path(), all());
+        let log = seen.clone();
+        o.rights = Some(RightsPort(Arc::new(move |r, tool, target| {
+            log.lock()
+                .unwrap()
+                .push(format!("{} {tool} {target}", r.as_str()));
+            Err(format!("missing right {} (viewer)", r.as_str()))
+        })));
+        let count = asked.clone();
+        o.tickets = Some(TicketPort(Arc::new(move |_, _| {
+            *count.lock().unwrap() += 1;
+            Ok("comment added".into())
+        })));
+        let err = call(&o, "ticket_comment", &json!({ "key": "A-1", "body": "x" })).unwrap_err();
+        assert_eq!(err, "missing right work.edit (viewer)");
+        assert_eq!(*asked.lock().unwrap(), 0);
+        assert_eq!(*seen.lock().unwrap(), ["work.edit ticket_comment A-1"]);
+        // A read asks for no right. No check wired: each write tool is refused.
+        assert!(call(&o, "ticket_read", &json!({ "key": "A-1" })).is_ok());
+        o.rights = None;
+        let w = json!({ "path": "a.md", "text": "x" });
+        assert!(call(&o, "project_write_file", &w).is_err());
+        assert!(!dir.path().join("a.md").exists());
     }
 
     #[test]
@@ -1268,7 +1331,7 @@ mod tests {
         );
         // A read-only project refuses the scanner, not the two reads.
         let mut ro = open(dir.path(), all());
-        ro.read_only = true;
+        ro.rights = viewer();
         assert!(call(&ro, "qa_run_scanner", &json!({ "name": "secrets" })).is_err());
         assert!(call(&ro, "docs_stale", &json!({})).is_ok());
         assert!(READ_ONLY.contains(&"spec_validate") && !READ_ONLY.contains(&"qa_run_scanner"));

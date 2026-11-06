@@ -29,7 +29,13 @@ pub async fn plugin_settings_save(
     click: bool,
 ) -> Api<Vec<SettingRow>> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "plugin_settings_save",
+            &name,
+        )?;
         plugin_config::settings_save(&root(s)?, &name, &values).map_err(err)
     })
     .await

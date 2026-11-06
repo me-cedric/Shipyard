@@ -11,6 +11,7 @@ import { useI18n } from "@/lib/i18n";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
 import { usePrefs } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
+import { useRights } from "@/lib/rights";
 import { type RefActions, ShellProvider, useShell } from "@/lib/shell";
 import { CommitDialog } from "@/ui/organisms/commit-dialog";
 import { Inspector } from "@/ui/organisms/inspector";
@@ -58,6 +59,7 @@ function Frame() {
 	} = useShell();
 	const project = useActiveProject().data;
 	const { commit: runCommit } = useCodeActions();
+	const { gate } = useRights();
 	const {
 		list,
 		sync,
@@ -178,7 +180,12 @@ function Frame() {
 			<CloseGuard />
 			<WhatsNew />
 			<Tour />
-			<CommitDialog open={commitOpen} onOpenChange={setCommitOpen} onSubmit={runCommit} />
+			<CommitDialog
+				open={commitOpen}
+				onOpenChange={setCommitOpen}
+				onSubmit={runCommit}
+				reason={gate("code.write").reason}
+			/>
 			<ViewMemory />
 		</>
 	);

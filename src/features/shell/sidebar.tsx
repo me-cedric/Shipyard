@@ -13,9 +13,9 @@ import { orderedSpaces } from "./spaces";
 
 export function Sidebar() {
 	const { t } = useI18n();
-	const { role, sidebarOpen, profile } = usePrefs();
+	const { teamRole, sidebarOpen } = usePrefs();
 	const { badge } = useCounts();
-	const entries = orderedSpaces(role, profile.tabs).map((space, i) => {
+	const entries = orderedSpaces(teamRole).map((space, i) => {
 		const Icon = SPACE_ICON[space];
 		const name = t.space[space];
 		const count = badge[space] ?? 0;

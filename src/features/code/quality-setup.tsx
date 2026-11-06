@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForgeActions } from "@/lib/code";
 import { useI18n } from "@/lib/i18n";
-import { Button } from "@/ui/atoms/button";
+import { RightButton } from "@/lib/rights";
 import { Textarea } from "@/ui/atoms/textarea";
 import { Dialog } from "@/ui/organisms/dialog";
 import { message } from "./project-gate";
@@ -31,13 +31,14 @@ export function QualitySetup({ onClose }: { onClose: () => void }) {
 			title={t.forge.quality.setup}
 			wide
 			actions={
-				<Button
+				<RightButton
+					right="project.settings"
 					variant="primary"
 					disabled={gates.length === 0}
 					onClick={() => gatesSave(gates).then(onClose, (e) => setError(message(e)))}
 				>
 					{t.forge.quality.save}
-				</Button>
+				</RightButton>
 			}
 		>
 			<Textarea

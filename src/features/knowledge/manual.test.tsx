@@ -14,6 +14,7 @@ describe("Knowledge / Manual", () => {
 			"design",
 			"specs",
 			"work",
+			"team",
 			"factory",
 			"code",
 			"knowledge",

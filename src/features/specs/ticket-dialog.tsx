@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useWorkflows } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
+import { RightButton } from "@/lib/rights";
 import { type Change, type TicketChange, useSpecsActions } from "@/lib/specs";
 import { useWorkItems } from "@/lib/sync";
 import { Button } from "@/ui/atoms/button";
@@ -38,21 +39,23 @@ export function TicketDialog({
 			title={t.specs.fromTicket}
 			actions={
 				made ? (
-					<Button
+					<RightButton
+						right="runs.start"
 						variant="primary"
 						disabled={!chosen || sent !== null}
 						onClick={() => void run(async () => setSent(await act.delegate(key, chosen)))}
 					>
 						{t.specs.delegate}
-					</Button>
+					</RightButton>
 				) : (
-					<Button
+					<RightButton
+						right="specs.edit"
 						variant="primary"
 						disabled={!key}
 						onClick={() => void run(async () => setMade(await act.changeFromTicket(key)))}
 					>
 						{t.specs.create}
-					</Button>
+					</RightButton>
 				)
 			}
 		>

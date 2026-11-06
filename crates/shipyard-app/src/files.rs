@@ -12,7 +12,7 @@ use shipyard_core::project::ProjectFile;
 use shipyard_store::project::{FileRead, read_project_file};
 use shipyard_store::rename_links::{LinkFile, Pending, apply, collect, review};
 
-use crate::work::{FROZEN, need_click, refuse_read_only};
+use crate::work::{FROZEN, need_click};
 
 /// The project root and the full path of `rel`, which must stay under the root and outside `.git`.
 /// The parent folder is resolved, so a symlink that leaves the project is refused.
@@ -71,8 +71,9 @@ fn keep_frozen(s: &AppState, root: &Path, path: &Path) -> Res<()> {
 
 /// An empty file. An existing path is refused, so the action never empties a file.
 pub fn create_file(s: &AppState, rel: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
-    let (_, full) = resolve(s, rel)?;
+    let (root, full) = resolve(s, rel)?;
+    let right = crate::rights::path_right(&root, &full);
+    need_click(s, click, right, "files_create_file", rel)?;
     if full.exists() {
         return Err(format!("{rel} already exists"));
     }
@@ -83,8 +84,9 @@ pub fn create_file(s: &AppState, rel: &str, click: bool) -> Res<()> {
 }
 
 pub fn create_folder(s: &AppState, rel: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
-    let (_, full) = resolve(s, rel)?;
+    let (root, full) = resolve(s, rel)?;
+    let right = crate::rights::path_right(&root, &full);
+    need_click(s, click, right, "files_create_folder", rel)?;
     if full.exists() {
         return Err(format!("{rel} already exists"));
     }
@@ -94,9 +96,14 @@ pub fn create_folder(s: &AppState, rel: &str, click: bool) -> Res<()> {
 /// Renames or moves a file or a folder. The target must not exist, and a folder does not go into
 /// itself.
 pub fn rename(s: &AppState, from: &str, to: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
     let (root, src) = resolve(s, from)?;
     let (_, dst) = resolve(s, to)?;
+    // A move of the team file, or onto its path, changes the rights.
+    let right = crate::rights::both(
+        crate::rights::path_right(&root, &src),
+        crate::rights::path_right(&root, &dst),
+    );
+    need_click(s, click, right, "files_rename", from)?;
     if !src.exists() {
         return Err(format!("{from} does not exist"));
     }
@@ -115,9 +122,13 @@ pub fn rename(s: &AppState, from: &str, to: &str, click: bool) -> Res<()> {
 
 /// The checks of a rename with links and the files that the links change. Nothing is written.
 fn links_plan(s: &AppState, from: &str, to: &str) -> Res<(PathBuf, Vec<Pending>, String)> {
-    refuse_read_only(s)?;
     let (root, src) = resolve(s, from)?;
     let (_, dst) = resolve(s, to)?;
+    let right = crate::rights::both(
+        crate::rights::path_right(&root, &src),
+        crate::rights::path_right(&root, &dst),
+    );
+    crate::rights::require(s, right, "files_rename_links", from)?;
     if !src.is_file() {
         return Err(format!("{from} is not a file"));
     }
@@ -132,9 +143,13 @@ fn links_plan(s: &AppState, from: &str, to: &str) -> Res<(PathBuf, Vec<Pending>,
     };
     let (pending, new_ref) =
         crate::commands::refs::with_index(s, |i| collect(i, &root, &file, from.trim(), to.trim()))?;
-    // A link rewrite must not change a frozen sheet.
+    // A link rewrite must not change a frozen sheet, nor the team file without its right.
     for p in &pending {
         keep_frozen(s, &root, &root.join(&p.path))?;
+        let right = crate::rights::path_right(&root, &root.join(&p.path));
+        if right != crate::rights::Right::CodeWrite {
+            crate::rights::require(s, right, "files_rename_links", &p.path)?;
+        }
     }
     Ok((root, pending, new_ref))
 }
@@ -147,7 +162,13 @@ pub fn rename_review(s: &AppState, from: &str, to: &str) -> Res<Vec<LinkFile>> {
 /// Renames a file and rewrites the links to it in one step. It returns the new ref of the item.
 /// A failure leaves every file as it was.
 pub fn rename_with_links(s: &AppState, from: &str, to: &str, click: bool) -> Res<String> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "files_rename_links",
+        from,
+    )?;
     let (root, pending, new_ref) = links_plan(s, from, to)?;
     apply(&root, from.trim(), to.trim(), &pending).map_err(err)?;
     Ok(new_ref)
@@ -155,8 +176,9 @@ pub fn rename_with_links(s: &AppState, from: &str, to: &str, click: bool) -> Res
 
 /// Moves a file or a folder to the system trash. A failure leaves the path where it is.
 pub fn delete(s: &AppState, rel: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
     let (root, full) = resolve(s, rel)?;
+    let right = crate::rights::path_right(&root, &full);
+    need_click(s, click, right, "files_delete", rel)?;
     if !full.exists() {
         return Err(format!("{rel} does not exist"));
     }

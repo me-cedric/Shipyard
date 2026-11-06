@@ -5,6 +5,7 @@ import { PageExport } from "@/features/reports/page-export";
 import { format, useI18n } from "@/lib/i18n";
 import { pickWorkbook, type Totals } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
+import { RightButton, RightIconButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import {
 	type Feature,
@@ -19,8 +20,6 @@ import {
 	useWorkActions,
 } from "@/lib/work";
 import { Badge } from "@/ui/atoms/badge";
-import { Button } from "@/ui/atoms/button";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowDownTrayIcon, CurrencyIcon, LockClosedIcon, PlusIcon } from "@/ui/icons";
@@ -48,6 +47,7 @@ type Line = { feature: Feature; task: Task };
 /** The sheet of one lot in four views: backlog, summary, spread and portfolio (REQ-011). */
 export function Estimates() {
 	const { t, lang } = useI18n();
+	const costs = useRights().can("costs.view");
 	const e = t.work.estimates;
 	const active = useActiveProject().data;
 	const sheets = useSheets();
@@ -92,10 +92,11 @@ export function Estimates() {
 				id: "cost",
 				header: e.cost,
 				meta: { width: "9rem", numeric: true },
-				cell: ({ row }) => money(row.original.cost, sheet?.sheet.currency ?? "EUR", lang),
+				cell: ({ row }) =>
+					money(costs ? row.original.cost : null, sheet?.sheet.currency ?? "EUR", lang),
 			},
 		],
-		[e, lang, sheet],
+		[e, lang, sheet, costs],
 	);
 
 	const currency = sheet?.sheet.currency ?? "EUR";
@@ -119,11 +120,11 @@ export function Estimates() {
 					id: k,
 					header: k === "margin" ? e.marginAmount : e[k],
 					meta: { width: "9rem", numeric: true },
-					cell: ({ row }) => money(row.original[k], currency, lang),
+					cell: ({ row }) => money(costs ? row.original[k] : null, currency, lang),
 				}),
 			),
 		],
-		[e, lang, currency],
+		[e, lang, currency, costs],
 	);
 
 	if (active === undefined || sheets.isLoading)
@@ -174,7 +175,8 @@ export function Estimates() {
 	const totals = sheet?.totals;
 	// A sheet whose roles all lack a rate costs nothing only because no rate shows: say so, not 0.
 	const priced = (n: number | null) =>
-		totals?.unrated.length && !totals.cost ? e.unrated : money(n, currency, lang);
+		!costs ? "—" : totals?.unrated.length && !totals.cost ? e.unrated : money(n, currency, lang);
+	const cash = (n: number | null | undefined) => money(costs ? n : null, currency, lang);
 	const dayOf = (id: string) => sheet?.days[id] ?? 0;
 	const byFeature = (sheet?.sheet.features ?? [])
 		.map((f) => ({ name: f.name, days: f.tasks.reduce((a, x) => a + dayOf(x.id), 0) }))
@@ -187,14 +189,15 @@ export function Estimates() {
 			icon={<CurrencyIcon size={16} />}
 			count={lines.length}
 			action={
-				<Button
+				<RightButton
+					right="work.edit"
 					variant="primary"
 					disabled={!sheet || sheet.sheet.frozen === true}
 					onClick={() => openTask(null)}
 				>
 					<PlusIcon size={14} />
 					{e.task}
-				</Button>
+				</RightButton>
 			}
 			toolbar={
 				<>
@@ -230,9 +233,9 @@ export function Estimates() {
 					/>
 					<span className="flex-1" />
 					{seal ? <SealBar state={seal} /> : null}
-					<IconButton label={e.import} onClick={() => void importExcel()}>
+					<RightIconButton right="work.edit" label={e.import} onClick={() => void importExcel()}>
 						<ArrowDownTrayIcon size={14} />
-					</IconButton>
+					</RightIconButton>
 					<PageExport
 						page="costing"
 						disabled={!sheet}
@@ -276,7 +279,7 @@ export function Estimates() {
 						{
 							label: e.margin,
 							value:
-								sheet.sheet.marginRate == null
+								!costs || sheet.sheet.marginRate == null
 									? "—"
 									: `${figure(sheet.sheet.marginRate * 100, lang)} %`,
 							tone: "success",
@@ -357,7 +360,7 @@ export function Estimates() {
 						data={sheet.spread.map((m) => ({ month: m.month, days: m.days, cost: m.cost }))}
 						columns={spread}
 						rowId={(r) => r.month}
-						footer={[e.total, figure(totals?.days, lang), money(totals?.cost, currency, lang)]}
+						footer={[e.total, figure(totals?.days, lang), cash(totals?.cost)]}
 					/>
 				</div>
 			) : null}
@@ -371,9 +374,9 @@ export function Estimates() {
 						footer={[
 							e.total,
 							figure(portfolio.total.days, lang),
-							money(portfolio.total.cost, currency, lang),
-							money(portfolio.total.price, currency, lang),
-							money(portfolio.total.margin, currency, lang),
+							cash(portfolio.total.cost),
+							cash(portfolio.total.price),
+							cash(portfolio.total.margin),
 						]}
 					/>
 				</div>

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRuns } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
-import { Button } from "@/ui/atoms/button";
+import { RightButton } from "@/lib/rights";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 
 /** The states after which a run changes nothing more. */
@@ -50,13 +50,14 @@ export function DocsUpdate({
 					{format(w.runName, { name })}
 				</Link>
 			) : (
-				<Button
+				<RightButton
+					right="runs.start"
 					variant="ghost"
 					aria-label={format(w.updateName, { name })}
 					onClick={() => void start()}
 				>
 					{w.update}
-				</Button>
+				</RightButton>
 			)}
 			<ErrorNotice error={failure} className="px-3 py-2" />
 			{problems?.map((p) => (

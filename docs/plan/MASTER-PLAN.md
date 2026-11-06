@@ -199,6 +199,7 @@ limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }
 - Limits: stall timeout, max turns, kill switch per run and global.
 - Secrets live in the OS keychain. They never go in arguments, files in the repo, or logs.
 - Never a worklog write without the person's action (kept from compass).
+- Rights: each write command and each write tool of the MCP server checks one of ten rights (`work.edit`, `specs.edit`, `design.edit`, `knowledge.edit`, `code.write`, `code.merge`, `runs.start`, `runs.approve`, `project.settings`, `costs.view`) in the backend, before it writes. The rights come from the role and the admin flag of the member in `.shipyard/team.yaml`, read from the default branch. A run acts for the member who started it. Each gated write and each refusal adds a line to the audit log (see 6).
 
 ### 5.9 Visualization
 
@@ -209,10 +210,11 @@ limits: { max_turns: 40, budget_usd: 5, stall_s: 300 }
 
 ## 6. Team, roles, juniors
 
-- `.shipyard/team.yaml`: name, tracker handles, role, capacity, skills.
+- `.shipyard/team.yaml`: name, handle, e-mails, issue tracker and code host accounts, role, admin flag, optional rights changes (`+right`, `-right`), capacity, skills. It is the one source of the roles and the rights. A project with no team file, or with no admin, gives every person every right. When the team has an admin, a person who is not in the file is a `viewer` and can ask to join through a pull request.
+- The nine roles: product owner, project manager, architect, tech lead, business analyst, developer, tester, designer, viewer. Work / Team holds the guided setup, the rights of each role, the audit tail and the one-time move of the roles of a machine into the file.
 - The PM assigns in Work. Shipyard suggests an assignee from skills and capacity.
 - Each member runs Shipyard on their machine. The rule "assigned to me" splits the agent work across the team.
-- Each role gets a default home view. No page is hidden. The sidebar order changes per role.
+- Each role gets a first tab, a Home / Today with the panels of its job and its own Inbox routing. No page is hidden: a right turns a control off with its reason, never a view. The space of the first tab comes after Home in the sidebar.
 - Junior mode: an "Explain" action on every entity. The assistant answers from the reference graph and cites refs. Knowledge / Learn builds a path from the ADRs, specs and architecture. A glossary comes from the specs.
 
 ## 7. Architecture

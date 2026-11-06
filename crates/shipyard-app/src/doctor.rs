@@ -263,7 +263,7 @@ pub async fn doctor_tool_install(
     click: bool,
 ) -> Api<Vec<ToolCheck>> {
     blocking(app, move |s| {
-        crate::work::need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         install(&id)
     })
     .await

@@ -14,6 +14,7 @@ import { panelsEn } from "./panels";
 import { personalEn } from "./personal";
 import { reportsEn } from "./reports";
 import { reviewEn } from "./review";
+import { rightsEn } from "./rights";
 import { settingsEn } from "./settings";
 import { specsEn } from "./specs";
 import { uiEn } from "./ui";
@@ -204,8 +205,10 @@ export const en = {
 		developer: "Developer",
 		qa: "Tester",
 		ba: "Business analyst",
-		lead: "Functional lead",
-		junior: "Junior",
+		po: "Product owner",
+		techlead: "Tech lead",
+		designer: "Designer",
+		viewer: "Viewer",
 	},
 	lang: { en: "English", fr: "French" },
 	home: homeEn,
@@ -367,6 +370,9 @@ export const en = {
 			"tool-missing": "Tool missing: {detail}",
 			compass: "Compass helper: {detail}",
 			"ref-broken": "Broken ref {detail}",
+			"team-role-unknown": "Unknown role in the team file: {detail}",
+			"team-right-unknown": "Unknown right in the team file: {detail}",
+			"team-no-admin": "No admin in the team file: every person has every right",
 		},
 		fix: { write: "Write", open: "Open", apply: "Apply", recheck: "Recheck" },
 		confirm: "Confirm",
@@ -877,6 +883,7 @@ export const en = {
 	reports: reportsEn,
 	editing: editingEn,
 	review: reviewEn,
+	rights: rightsEn,
 	extras: extrasEn,
 	onboarding: onboardingEn,
 };

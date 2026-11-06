@@ -15,6 +15,7 @@ import { panelsFr } from "./panels";
 import { personalFr } from "./personal";
 import { reportsFr } from "./reports";
 import { reviewFr } from "./review";
+import { rightsFr } from "./rights";
 import { settingsFr } from "./settings";
 import { specsFr } from "./specs";
 import { uiFr } from "./ui";
@@ -205,8 +206,10 @@ export const fr: Messages = {
 		developer: "Développeur",
 		qa: "Testeur",
 		ba: "Analyste métier",
-		lead: "Responsable fonctionnel",
-		junior: "Junior",
+		po: "Responsable produit",
+		techlead: "Responsable technique",
+		designer: "Designer",
+		viewer: "Lecteur",
 	},
 	lang: { en: "Anglais", fr: "Français" },
 	home: homeFr,
@@ -376,6 +379,9 @@ export const fr: Messages = {
 			"tool-missing": "Outil absent : {detail}",
 			compass: "Assistant compass : {detail}",
 			"ref-broken": "Référence rompue {detail}",
+			"team-role-unknown": "Rôle inconnu dans le fichier d'équipe : {detail}",
+			"team-right-unknown": "Droit inconnu dans le fichier d'équipe : {detail}",
+			"team-no-admin": "Aucun admin dans le fichier d'équipe : chaque personne a tous les droits",
 		},
 		fix: { write: "Écrire", open: "Ouvrir", apply: "Appliquer", recheck: "Revérifier" },
 		confirm: "Confirmer",
@@ -901,6 +907,7 @@ export const fr: Messages = {
 	reports: reportsFr,
 	editing: editingFr,
 	review: reviewFr,
+	rights: rightsFr,
 	extras: extrasFr,
 	onboarding: onboardingFr,
 };

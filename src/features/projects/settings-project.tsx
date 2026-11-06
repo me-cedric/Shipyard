@@ -15,7 +15,7 @@ import {
 	unwrap,
 } from "@/lib/ipc";
 import { PATH_DEFAULTS, projectKeys, useProjectActions } from "@/lib/projects";
-import { Button } from "@/ui/atoms/button";
+import { RightButton } from "@/lib/rights";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
@@ -39,13 +39,11 @@ import { PageHeader } from "@/ui/molecules/page-header";
 import { SectionNav } from "@/ui/molecules/section-nav";
 import { Settings } from "@/ui/templates/settings";
 import { PersonasEditor } from "./personas";
-import { ProfilesCard } from "./profiles-card";
 import { ProjectDetails } from "./project-details";
 import { ProjectImport } from "./project-import";
 import { ProjectOverrides } from "./project-overrides";
 import { RepoTools } from "./repo-tools";
 import { ScopePicker } from "./scope-picker";
-import { ScreensCard } from "./screens-card";
 import { TicketsConfigEditor } from "./tickets-config";
 
 const NONE = "none";
@@ -313,8 +311,6 @@ function Form({
 				</>
 			) : null}
 			<ProjectOverrides />
-			<ScreensCard />
-			<ProfilesCard />
 			<AutoCommit />
 			<AutoReview />
 			<HolidayCountry row />
@@ -322,9 +318,9 @@ function Form({
 			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 			{dirty ? (
 				<div>
-					<Button variant="primary" onClick={save}>
+					<RightButton right="project.settings" variant="primary" onClick={save}>
 						{t.projects.save}
-					</Button>
+					</RightButton>
 				</div>
 			) : null}
 		</div>

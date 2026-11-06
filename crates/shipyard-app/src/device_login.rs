@@ -34,7 +34,6 @@ use tauri::AppHandle;
 use crate::agents::{Agents, Provider};
 use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::connections::{ConnectionKind, local_secs};
-use crate::work::need_click;
 use crate::{pkce, provider_keys};
 
 const EMBEDDED: &str = include_str!("../resources/oauth.env");
@@ -293,7 +292,7 @@ fn ask(s: &AppState, url: String, body: Value) -> Res<Value> {
 }
 
 pub fn start(s: &AppState, id: &str, click: bool) -> Res<DeviceStart> {
-    need_click(s, click)?;
+    crate::rights::need_click_local(s, click)?;
     let (kind, host, client) = target(s, id)?;
     let (device, _, scope) = endpoints(kind, &host)?;
     let mut v = ask(
@@ -527,7 +526,7 @@ fn openrouter_flow(
 #[specta::specta]
 pub async fn providers_openrouter_sign_in(app: AppHandle, click: bool) -> Api<Provider> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         if BUSY.swap(true, Ordering::SeqCst) {
             return Err("a sign-in is already open: cancel it first".into());
         }

@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use shipyard_mcp::outside::{self, Outside, Switches, TicketPort};
+use shipyard_mcp::outside::{self, Outside, RightsPort, Switches, TicketPort};
 use shipyard_mcp::server::Server;
 use shipyard_mcp::session::Binding;
 use shipyard_mcp::tools::agent::{AgentEvent, AgentEvents};
@@ -113,8 +113,21 @@ pub fn set_app(app: tauri::AppHandle) {
     let _ = APP.set(app);
 }
 
+/// The right check of a write tool: the check of the commands, with the tool and its target in
+/// the audit line (`team-rights` REQ-007, REQ-010).
+fn rights_tool(right: crate::rights::Right, tool: &str, target: &str) -> Result<(), String> {
+    use tauri::Manager;
+    let app = APP.get().ok_or("the app is not ready")?;
+    crate::rights::check(
+        &app.state::<AppState>(),
+        right,
+        &format!("mcp {tool}"),
+        target,
+    )
+}
+
 /// The tools that need the app state: the ticket tools, `docs_stale` and `qa_run_scanner`. The
-/// group switch is the click of the person; a read-only project is refused before this runs.
+/// group switch is the click of the person; the right check runs before this.
 fn ticket_tool(name: &str, args: &Value) -> Result<String, String> {
     use tauri::Manager;
     let app = APP.get().ok_or("the app is not ready")?;
@@ -282,7 +295,7 @@ fn start(dir: &Path, g: &McpGates) -> Result<(), String> {
             root: PathBuf::from(&e.path),
             switches,
             only: only.clone(),
-            read_only: e.overrides.read_only == Some(true),
+            rights: Some(RightsPort(Arc::new(rights_tool))),
             tickets: Some(TicketPort(Arc::new(ticket_tool))),
         })
     });
@@ -318,7 +331,7 @@ pub fn status(s: &AppState) -> McpOutside {
         root: PathBuf::new(),
         switches: g.switches(),
         only: g.allowed_tools.clone(),
-        read_only: false,
+        rights: None,
         tickets: None,
     };
     McpOutside {

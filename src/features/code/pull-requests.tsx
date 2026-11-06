@@ -11,6 +11,7 @@ import {
 import { format, useI18n } from "@/lib/i18n";
 import { commands, toFailure, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
+import { RightButton } from "@/lib/rights";
 import { useTabSelection } from "@/lib/shell/selection";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
@@ -97,10 +98,10 @@ function OpenDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
 			onOpenChange={onOpenChange}
 			title={t.forge.openPull}
 			actions={
-				<Button variant="primary" onClick={submit} disabled={created}>
+				<RightButton right="code.write" variant="primary" onClick={submit} disabled={created}>
 					<PlusIcon size={14} />
 					{t.forge.openPull}
-				</Button>
+				</RightButton>
 			}
 		>
 			<div>
@@ -174,10 +175,10 @@ function MergeBar({ d }: { d: PullDetail }) {
 			<StatusDot status={CI_STATUS[d.ci] ?? "idle"} label={t.forge.ci[d.ci as "none"]} />
 			<StatusDot status={REVIEW_STATUS[review] ?? "idle"} label={t.forge.review[review]} />
 			{d.draft ? (
-				<Button onClick={() => void run(() => ready(d.number))}>
+				<RightButton right="code.write" onClick={() => void run(() => ready(d.number))}>
 					<CheckIcon size={14} />
 					{t.forge.markReady}
-				</Button>
+				</RightButton>
 			) : null}
 			{d.mergeMethods.length > 1 ? (
 				<Select
@@ -192,7 +193,8 @@ function MergeBar({ d }: { d: PullDetail }) {
 				/>
 			) : null}
 			{confirming ? (
-				<Button
+				<RightButton
+					right="code.merge"
 					variant={risk ? "danger" : "secondary"}
 					onClick={() =>
 						void run(async () => {
@@ -202,11 +204,15 @@ function MergeBar({ d }: { d: PullDetail }) {
 					}
 				>
 					{risk ?? format(t.forge.confirmMerge, { method: t.forge.methods[current] })}
-				</Button>
+				</RightButton>
 			) : (
-				<Button disabled={d.draft || d.state !== "open"} onClick={() => setConfirming(true)}>
+				<RightButton
+					right="code.merge"
+					disabled={d.draft || d.state !== "open"}
+					onClick={() => setConfirming(true)}
+				>
 					{t.forge.merge}
-				</Button>
+				</RightButton>
 			)}
 			<ErrorNotice error={failure} className="px-3 py-2" />
 		</div>

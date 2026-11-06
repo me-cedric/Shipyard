@@ -17,10 +17,13 @@ export function CommitDialog({
 	open,
 	onOpenChange,
 	onSubmit,
+	reason,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSubmit: (summary: string, description: string) => Promise<unknown>;
+	/** Why the commit is off: a missing right. */
+	reason?: string;
 }) {
 	const { t } = useI18n();
 	const [summary, setSummary] = useState("");
@@ -83,7 +86,7 @@ export function CommitDialog({
 						) : null}
 						<div className="flex justify-end gap-2">
 							<Dialog.Close render={<Button variant="ghost" />}>{t.common.close}</Dialog.Close>
-							<Button type="submit" variant="primary" disabled={busy}>
+							<Button type="submit" variant="primary" disabled={busy || !!reason} reason={reason}>
 								{t.shell.commit}
 							</Button>
 						</div>

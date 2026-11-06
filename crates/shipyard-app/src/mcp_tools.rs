@@ -17,7 +17,6 @@ use tauri::AppHandle;
 use crate::commands::{Api, AppState, Res, blocking};
 use crate::connections::{ConnectionKind, Connections};
 use crate::errors::AppError;
-use crate::work::need_click;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -92,7 +91,7 @@ pub fn gitlab_mcp_env(
 /// Switches the GitLab MCP server of a connection on or off. On adds the entry with the address
 /// of the connection host. The entry holds no token: the token is read at launch.
 fn gitlab_mcp_set(s: &AppState, connection: &str, on: bool, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    crate::rights::need_click_local(s, click)?;
     let id = gitlab_mcp_id(connection);
     if !on {
         return s.agents.mcp_enable(&id, false);
@@ -285,7 +284,7 @@ pub async fn mcp_recommended(app: AppHandle) -> Api<Vec<String>> {
 #[specta::specta]
 pub async fn mcp_recommended_enable(app: AppHandle, click: bool) -> Api<Vec<String>> {
     blocking(app, move |s| -> Res<Vec<String>> {
-        need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         let rows = s.agents.mcp_list();
         let mut done = Vec::new();
         for id in recommended_ids(s) {

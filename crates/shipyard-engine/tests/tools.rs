@@ -486,6 +486,7 @@ fn a_run_reads_the_index_of_its_own_project() {
     // A second project with an index that has no entity.
     let empty = Arc::new(Mutex::new(RefIndex::open_memory().unwrap()));
     fx.f.set_project("other", fx.project(|p| p.refs = Some(empty)));
+    fx.f.set_actor("other", Some(fx::solo()));
     fx.f.start(&StartRequest {
         project: "other".into(),
         ticket: shipyard_engine::fake::todo("OTH-1"),

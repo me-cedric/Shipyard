@@ -13,7 +13,7 @@ use shipyard_engine::fake::{
     FakeAgents, FakeClock, FakeGit, FakePulls, FakeWorkspaces, FakeWriter, todo,
 };
 use shipyard_engine::ports::{AgentEvent, Dispatch, StartRequest};
-use shipyard_engine::run_engine::{Config, Factory, Project};
+use shipyard_engine::run_engine::{Actor, Config, Factory, Project};
 use shipyard_mcp::tools::agent::{Outcome, Report};
 use shipyard_store::factory_files::{Loaded, default_workflows, parse_workflow};
 use shipyard_store::mirror::Mirror;
@@ -107,6 +107,7 @@ impl Fx {
             cfg,
         };
         fx.f.set_project("ship", fx.project(tweak));
+        fx.f.set_actor("ship", Some(solo()));
         fx
     }
 
@@ -174,6 +175,7 @@ impl Fx {
             RunLog::open(&path).unwrap(),
         ));
         self.f.set_project("ship", self.project(tweak));
+        self.f.set_actor("ship", Some(solo()));
     }
 
     /// A restart before the project is open: only the factory.
@@ -280,4 +282,12 @@ impl Fx {
 
 fn workflow_of(text: &str) -> shipyard_core::workflow::Workflow {
     serde_norway::from_str(text).unwrap()
+}
+
+/// A person with every right: a run of a project with no team file (`team-rights` REQ-004).
+pub fn solo() -> Actor {
+    Actor {
+        by: "solo".into(),
+        rights: shipyard_core::rights::Right::ALL.to_vec(),
+    }
 }

@@ -40,6 +40,7 @@ use tauri::AppHandle;
 use crate::commands::sync::{active, automation_in, tracker_target};
 use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::connections::{Connection, slug_text};
+use crate::rights::Right;
 
 fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
@@ -128,8 +129,14 @@ impl Ctx<'_> {
         }
     }
 
+    /// The team file needs `project.settings`, the other files of Work `work.edit`.
     fn write(&self, rel: &str, text: &str) -> Res<()> {
-        refuse_read_only(self.s)?;
+        let right = if rel == TEAM_PATH || rel == LAYOUT_TEAM {
+            Right::ProjectSettings
+        } else {
+            Right::WorkEdit
+        };
+        crate::rights::require(self.s, right, "work_file_write", rel)?;
         let _g = self.s.guard();
         write_atomic(&self.root.join(rel), text.as_bytes()).map_err(err)
     }
@@ -322,22 +329,18 @@ pub(crate) fn today(s: &AppState) -> String {
 }
 
 /// A project in a read-only profile takes no write (`Overrides.read_only`).
-pub(crate) fn refuse_read_only(s: &AppState) -> Res<()> {
-    if s.registry()?
-        .active()
-        .is_some_and(|e| e.overrides.read_only == Some(true))
-    {
-        return Err("the profile of this project is read only".into());
-    }
-    Ok(())
-}
-
-/// A write needs the click of a person, and a read-only project takes no write.
-pub(crate) fn need_click(s: &AppState, click: bool) -> Res<()> {
+/// A write needs the click of a person and the right of the person (`team-rights` REQ-007).
+pub(crate) fn need_click(
+    s: &AppState,
+    click: bool,
+    right: Right,
+    what: &'static str,
+    target: &str,
+) -> Res<()> {
     if !click {
         return Err("this change needs the click of a person".into());
     }
-    refuse_read_only(s)
+    crate::rights::require(s, right, what, target)
 }
 
 // ---------------------------------------------------------------- the tracker
@@ -555,7 +558,13 @@ pub fn team_save(s: &AppState, mut team: Team) -> Res<TeamView> {
 /// (or the git e-mail) and the login as the issue tracker account. A person who is in the team
 /// already changes nothing. A click is needed, and a read-only project refuses.
 pub fn team_add_me(s: &AppState, click: bool) -> Res<TeamView> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::ProjectSettings,
+        "work_team_add_me",
+        "",
+    )?;
     let c = ctx(s)?;
     let view = c.team();
     if let Some(e) = view.error {
@@ -592,9 +601,15 @@ pub fn team_add_me(s: &AppState, click: bool) -> Res<TeamView> {
         }
         handle = format!("{base}-{n}");
     }
+    // The first member is the admin: a solo person keeps each right (`team-rights` REQ-004).
+    let admin = team.members.is_empty();
     team.members.push(Member {
         name,
         handle,
+        admin,
+        // The rights find the person by the git e-mail until a test of the connection passes
+        // (`team-rights` REQ-003): a typed login alone would lock the first admin out.
+        emails: email.clone().into_iter().collect(),
         // The git e-mail is the account when no login is known: the next look finds the member.
         trackers: login.or(email).into_iter().collect(),
         capacity: 5.0,
@@ -646,7 +661,7 @@ pub fn suggest(s: &AppState, key: &str) -> Res<Vec<Suggestion>> {
 /// Assign an item to a member: the first tracker account of the member goes to the tracker
 /// (REQ-006). The system never assigns by itself.
 pub fn assign(s: &AppState, key: &str, handle: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(s, click, crate::rights::Right::WorkEdit, "work_assign", key)?;
     let c = ctx(s)?;
     let team = c.team().team;
     let m = team
@@ -683,7 +698,7 @@ pub(crate) fn assign_me(s: &AppState, key: &str) {
 
 /// Mark an item for agent work: add the pickup label of `automation.yaml` (REQ-008).
 pub fn mark(s: &AppState, key: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(s, click, crate::rights::Right::RunsStart, "work_mark", key)?;
     let c = ctx(s)?;
     let label = automation_in(&c.root)?
         .pickup
@@ -700,7 +715,13 @@ pub fn mark(s: &AppState, key: &str, click: bool) -> Res<()> {
 /// has one, the pickup label. The factory claims the item. Nothing here starts a run (`assistant`
 /// REQ-015). The caller checks the workflow id.
 pub fn mark_for_run(s: &AppState, key: &str, workflow: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::RunsStart,
+        "mark_for_run",
+        key,
+    )?;
     let c = ctx(s)?;
     let pickup = automation_in(&c.root)?.pickup.label;
     let t = tracker(s)?;
@@ -716,7 +737,13 @@ pub fn mark_for_run(s: &AppState, key: &str, workflow: &str, click: bool) -> Res
 /// Move an item to a status. The tracker may refuse: the text names the reason and the card
 /// returns (REQ-002).
 pub fn transition(s: &AppState, key: &str, to: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "work_transition",
+        key,
+    )?;
     let t = tracker(s)?;
     let w = writer(s, &t)?;
     w.transition(key, to).map_err(err)?;
@@ -763,7 +790,13 @@ pub fn ticket_comments(s: &AppState, key: &str) -> Res<Vec<TicketComment>> {
 
 /// Posts a comment. An empty body is refused.
 pub fn ticket_comment_add(s: &AppState, key: &str, body: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "work_ticket_comment_add",
+        key,
+    )?;
     if body.trim().is_empty() {
         return Err("the comment is empty".into());
     }
@@ -784,7 +817,13 @@ pub fn ticket_edit(
     days: Option<f64>,
     click: bool,
 ) -> Res<Vec<String>> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "work_ticket_edit",
+        key,
+    )?;
     let title = title.map(|t| t.trim().to_string());
     if title.as_deref() == Some("") {
         return Err("the title is empty".into());
@@ -812,7 +851,13 @@ pub fn ticket_edit(
 /// Adds a label. A blank label or one with a space or a comma is refused: no tracker keeps such a
 /// label in the same way, and GitLab splits a list at the comma.
 pub fn ticket_label_add(s: &AppState, key: &str, label: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "work_ticket_label_add",
+        key,
+    )?;
     let label = label.trim();
     if label.is_empty() || label.contains(|c: char| c.is_whitespace() || c == ',') {
         return Err("a label is one word without a comma".into());
@@ -866,7 +911,13 @@ fn ticket_edit_caps_of(t: &Target) -> TicketEditCaps {
 /// Sets the issue type by name. A blank name is refused, and a tracker with no type field refuses
 /// before it sends anything.
 pub fn ticket_type_set(s: &AppState, key: &str, name: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "work_ticket_type_set",
+        key,
+    )?;
     let name = name.trim();
     if name.is_empty() || name.len() > 60 {
         return Err("the issue type is a name of 60 characters or fewer".into());
@@ -883,7 +934,13 @@ pub fn ticket_type_set(s: &AppState, key: &str, name: &str, click: bool) -> Res<
 
 /// Sets the due day (`YYYY-MM-DD`). `None` or a blank value clears it.
 pub fn ticket_due_set(s: &AppState, key: &str, day: Option<&str>, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "work_ticket_due_set",
+        key,
+    )?;
     let day = day.map(str::trim).filter(|d| !d.is_empty());
     if day.is_some_and(|d| shipyard_core::work::parse_day(d).is_none()) {
         return Err("the due date is a day as YYYY-MM-DD".into());
@@ -900,7 +957,13 @@ pub fn ticket_due_set(s: &AppState, key: &str, day: Option<&str>, click: bool) -
 
 /// Removes a label. A blank label or one with a space or a comma is refused, as for the add.
 pub fn ticket_label_remove(s: &AppState, key: &str, label: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "work_ticket_label_remove",
+        key,
+    )?;
     let label = label.trim();
     if label.is_empty() || label.contains(|c: char| c.is_whitespace() || c == ',') {
         return Err("a label is one word without a comma".into());
@@ -915,7 +978,13 @@ pub fn ticket_label_remove(s: &AppState, key: &str, label: &str, click: bool) ->
 /// Sets the priority: highest, high, medium, low or lowest. A tracker with no priority field
 /// refuses before it sends anything.
 pub fn ticket_priority_set(s: &AppState, key: &str, priority: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "work_ticket_priority_set",
+        key,
+    )?;
     let t = tracker(s)?;
     if !t.priority {
         return Err("this tracker has no priority field".into());
@@ -1286,7 +1355,7 @@ pub fn excel_read(s: &AppState, path: &str, scope: Option<&str>) -> Res<Preview>
 
 /// Replace a sheet with the previewed one. Without `confirmed` the sheet stays (REQ-012).
 pub fn excel_replace(s: &AppState, slug: &str, confirmed: bool) -> Res<SheetView> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::WorkEdit, "excel_confirm", slug)?;
     let c = ctx(s)?;
     if c.sheet(slug).is_ok_and(|old| old.frozen) {
         return Err(FROZEN.into());
@@ -1593,7 +1662,7 @@ pub fn worklog_send(
     reduce_remaining: bool,
     click: bool,
 ) -> Res<TimeSent> {
-    need_click(s, click)?;
+    need_click(s, click, crate::rights::Right::WorkEdit, "time_send", id)?;
     if !(-14 * 60..=14 * 60).contains(&offset_minutes) {
         return Err("the offset is not a time zone offset".into());
     }
@@ -1704,7 +1773,7 @@ pub(crate) fn container(t: &Target) -> Res<&str> {
 /// again from the sheets and the mirror, so a stale preview writes nothing that the sheets no
 /// longer say. A failed row keeps the rows before it. Status and assignee are never written.
 pub fn apply(s: &AppState, slugs: &[String], click: bool) -> Res<Vec<ApplyRow>> {
-    need_click(s, click)?;
+    need_click(s, click, crate::rights::Right::WorkEdit, "apply_run", "")?;
     let c = ctx(s)?;
     let t = tracker(s)?;
     container(&t)?;
@@ -1729,7 +1798,13 @@ pub fn apply_rows(
     edits: &[RowEdit],
     click: bool,
 ) -> Res<Vec<ApplyRow>> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "apply_run_rows",
+        "",
+    )?;
     let c = ctx(s)?;
     let t = tracker(s)?;
     container(&t)?;
@@ -1797,7 +1872,13 @@ pub fn item_preview(s: &AppState, row: Row) -> Res<DiffRow> {
 /// Create one work item after one click. A second click finds the ticket by its label and
 /// creates none (REQ-029).
 pub fn item_create(s: &AppState, row: Row, click: bool) -> Res<ApplyRow> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "work_item_create",
+        "",
+    )?;
     item_row(&row)?;
     let t = tracker(s)?;
     let scope = container(&t)?;
@@ -2152,6 +2233,8 @@ pub async fn work_item_preview(app: AppHandle, row: Row) -> Api<DiffRow> {
 pub async fn work_item_create(app: AppHandle, row: Row, click: bool) -> Api<ApplyRow> {
     blocking(app, move |s| item_create(s, row, click)).await
 }
+
+pub mod join;
 
 #[cfg(test)]
 pub(crate) mod tests;

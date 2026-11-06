@@ -146,7 +146,33 @@ pub struct Overrides {
     pub assignments: Option<BTreeMap<String, String>>,
 }
 
-pub const PROFILE_ROLES: [&str; 7] = ["pm", "architect", "developer", "qa", "ba", "lead", "junior"];
+/// The nine team roles (`team-rights`, Q-145).
+pub const PROFILE_ROLES: [&str; 9] = [
+    "po",
+    "pm",
+    "architect",
+    "techlead",
+    "ba",
+    "developer",
+    "qa",
+    "designer",
+    "viewer",
+];
+
+/// A role of an older Shipyard (Q-145): `lead` is `po`. `junior` stays: it is `developer` without
+/// `code.merge` and `runs.approve` (REQ-015), and the rights and the migration read it so.
+/// Another text stays as it is.
+pub fn profile_role(role: String) -> String {
+    match role.as_str() {
+        "lead" => "po".into(),
+        _ => role,
+    }
+}
+
+/// A role that the overrides keep: one of [`PROFILE_ROLES`], or `junior`.
+fn kept_role(role: &str) -> bool {
+    role == "junior" || PROFILE_ROLES.contains(&role)
+}
 
 impl Overrides {
     /// Drops what is not valid: an unknown role, a mode or a page that is not a `space/tab` word
@@ -164,6 +190,11 @@ impl Overrides {
         self.page_modes = self.page_modes.and_then(|m| {
             let m: BTreeMap<_, _> = m
                 .into_iter()
+                // A page mode is a view setting, not a right: `junior` takes the pages of `developer`.
+                .map(|(r, pages)| {
+                    let r = profile_role(r);
+                    (if r == "junior" { "developer".into() } else { r }, pages)
+                })
                 .filter(|(r, _)| PROFILE_ROLES.contains(&r.as_str()))
                 .map(|(r, pages)| {
                     let pages: BTreeMap<_, _> = pages
@@ -179,12 +210,12 @@ impl Overrides {
         self.assignments = self.assignments.and_then(|m| {
             let m: BTreeMap<_, _> = m
                 .into_iter()
-                .map(|(e, r)| (e.trim().to_lowercase(), r))
+                .map(|(e, r)| (e.trim().to_lowercase(), profile_role(r)))
                 .filter(|(e, r)| {
                     e.len() <= 120
                         && e.contains('@')
                         && !e.contains(char::is_whitespace)
-                        && PROFILE_ROLES.contains(&r.as_str())
+                        && kept_role(r)
                 })
                 .collect();
             (!m.is_empty()).then_some(m)
@@ -358,5 +389,37 @@ mod profile_tests {
         assert_eq!(a.len(), 1);
         assert_eq!(a["ada@example.com"], "qa");
         assert!(Overrides::default().clean().assignments.is_none());
+    }
+
+    #[test]
+    fn clean_maps_the_roles_of_an_older_shipyard() {
+        let o = Overrides {
+            page_modes: Some(BTreeMap::from([(
+                "junior".to_string(),
+                BTreeMap::from([("code/terminal".to_string(), "hidden".to_string())]),
+            )])),
+            assignments: Some(BTreeMap::from([
+                ("eve@example.com".to_string(), "lead".to_string()),
+                ("joe@example.com".to_string(), "techlead".to_string()),
+            ])),
+            ..Default::default()
+        }
+        .clean();
+        assert!(o.page_modes.unwrap().contains_key("developer"));
+        let a = o.assignments.unwrap();
+        assert_eq!(
+            (a["eve@example.com"].as_str(), a["joe@example.com"].as_str()),
+            ("po", "techlead")
+        );
+        // A junior stays a junior: it narrows more than `developer` (REQ-015).
+        let o = Overrides {
+            assignments: Some(BTreeMap::from([(
+                "ana@example.com".to_string(),
+                "junior".to_string(),
+            )])),
+            ..Default::default()
+        }
+        .clean();
+        assert_eq!(o.assignments.unwrap()["ana@example.com"], "junior");
     }
 }

@@ -132,7 +132,13 @@ pub async fn learning_feeds_read(app: AppHandle, refresh: bool) -> Api<Vec<FeedR
 #[specta::specta]
 pub async fn learning_feed_add(app: AppHandle, url: String, click: bool) -> Api<Learning> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::KnowledgeEdit,
+            "learning_feed_add",
+            &url,
+        )?;
         store::feed_add(&root(s)?, &url).map_err(err)
     })
     .await
@@ -142,7 +148,13 @@ pub async fn learning_feed_add(app: AppHandle, url: String, click: bool) -> Api<
 #[specta::specta]
 pub async fn learning_feed_remove(app: AppHandle, url: String, click: bool) -> Api<Learning> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::KnowledgeEdit,
+            "learning_feed_remove",
+            &url,
+        )?;
         store::feed_remove(&root(s)?, &url).map_err(err)
     })
     .await
@@ -152,7 +164,13 @@ pub async fn learning_feed_remove(app: AppHandle, url: String, click: bool) -> A
 #[specta::specta]
 pub async fn learning_path_save(app: AppHandle, path: LearningPath, click: bool) -> Api<Learning> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::KnowledgeEdit,
+            "learning_path_save",
+            "",
+        )?;
         store::path_save(&root(s)?, path).map_err(err)
     })
     .await
@@ -162,7 +180,13 @@ pub async fn learning_path_save(app: AppHandle, path: LearningPath, click: bool)
 #[specta::specta]
 pub async fn learning_path_delete(app: AppHandle, id: String, click: bool) -> Api<Learning> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::KnowledgeEdit,
+            "learning_path_delete",
+            &id,
+        )?;
         store::path_delete(&root(s)?, &id).map_err(err)
     })
     .await
@@ -179,7 +203,13 @@ pub async fn learning_progress_set(
     click: bool,
 ) -> Api<Learning> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::KnowledgeEdit,
+            "learning_progress_set",
+            "",
+        )?;
         store::progress_set(&root(s)?, &person, &step, done).map_err(err)
     })
     .await

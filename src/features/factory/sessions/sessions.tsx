@@ -6,10 +6,10 @@ import { format, useI18n } from "@/lib/i18n";
 import type { SessionView } from "@/lib/ipc";
 import { showAnchor } from "@/lib/notifications/targets";
 import { useActiveProject } from "@/lib/projects";
+import { RightIconButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { CommandLineIcon, CpuChipIcon, StopIcon } from "@/ui/icons";
@@ -108,12 +108,13 @@ export function Sessions() {
 			cell: (c) => {
 				const { pull, key, state } = c.row.original;
 				return pull == null || state !== "running" ? null : (
-					<IconButton
+					<RightIconButton
+						right="runs.start"
 						label={format(f.machine.stop, { name: key })}
 						onClick={() => void run(() => writes.reviewStop(pull))}
 					>
 						<StopIcon size={14} />
-					</IconButton>
+					</RightIconButton>
 				);
 			},
 		},

@@ -608,7 +608,13 @@ pub async fn code_gates_propose(app: AppHandle) -> Api<Vec<String>> {
 #[specta::specta]
 pub async fn code_gates_save(app: AppHandle, gates: Vec<String>, click: bool) -> Api<()> {
     blocking(app, move |s| {
-        crate::work::need_click(s, click)?;
+        crate::work::need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "code_gates_save",
+            "",
+        )?;
         save_gates(s, gates)
     })
     .await

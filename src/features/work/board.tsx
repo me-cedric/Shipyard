@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
+import { useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useWorkItems, type WorkItem } from "@/lib/sync";
 import { figure, memberName, useTeam, useWorkActions } from "@/lib/work";
@@ -25,6 +26,7 @@ import { TicketDetail } from "./ticket-detail";
 export function Board() {
 	const { t, lang } = useI18n();
 	const menu = useMenus();
+	const { can } = useRights();
 	const active = useActiveProject().data;
 	const { openDetail } = useShell();
 	const members = useTeam().data?.team.members ?? [];
@@ -70,7 +72,7 @@ export function Board() {
 
 	const move = (key: string, to: string) => {
 		const item = all.find((i) => i.key === key);
-		if (!item || (moving[key] ?? item.status) === to) return;
+		if (!item || (moving[key] ?? item.status) === to || !can("work.edit")) return;
 		setMoving((m) => ({ ...m, [key]: to }));
 		void run(() => act.transition(key, to)).finally(() =>
 			setMoving(({ [key]: _, ...rest }) => rest),

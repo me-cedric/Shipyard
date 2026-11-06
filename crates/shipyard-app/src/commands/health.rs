@@ -84,6 +84,10 @@ pub fn run(s: &AppState) -> Res<Vec<Finding>> {
     if let Ok(Some(c)) = shipyard_store::compass::read(&root) {
         found.extend(shipyard_core::compass_health::findings(&c.entries));
     }
+    // An unknown role or right of the team file (`team-rights` REQ-001).
+    if let Ok(t) = crate::work::team_get(s) {
+        found.extend(shipyard_core::rights::findings(&t.team));
+    }
     Ok(found)
 }
 
@@ -108,7 +112,7 @@ fn relative(path: &str) -> bool {
 /// Only a `Write` fix changes a file.
 pub fn fix(s: &AppState, id: &str, expected: Option<&str>) -> Res<FixResult> {
     if expected.is_some() {
-        crate::work::refuse_read_only(s)?;
+        crate::rights::require(s, crate::rights::Right::ProjectSettings, "health_fix", id)?;
     }
     let root = PathBuf::from(&s.registry()?.active().ok_or("no active project")?.path);
     let finding = run(s)?

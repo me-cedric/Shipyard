@@ -3,12 +3,12 @@ import { useRuns } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
+import { RightButton, RightIconButton } from "@/lib/rights";
 import { useFormIntent, useShell } from "@/lib/shell";
 import { useViewState } from "@/lib/shell/view-state";
 import { useBacklogActions, useWorkItems, type WorkItem } from "@/lib/sync";
 import { figure, memberName, useSheet, useSheets, useTeam } from "@/lib/work";
 import { Button } from "@/ui/atoms/button";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { PlusIcon, QueueListIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
@@ -181,20 +181,30 @@ export function Backlog() {
 							/>
 						</form>
 					) : (
-						<IconButton label={t.sync.backlog.adopt} onClick={() => setAdopting(true)}>
+						<RightIconButton
+							right="work.edit"
+							label={t.sync.backlog.adopt}
+							onClick={() => setAdopting(true)}
+						>
 							<PlusIcon size={14} />
-						</IconButton>
+						</RightIconButton>
 					)}
 					{planned === null ? (
-						<Button variant="primary" busy={busy} onClick={() => void startImport()}>
+						<RightButton
+							right="work.edit"
+							variant="primary"
+							busy={busy}
+							onClick={() => void startImport()}
+						>
 							{t.sync.backlog.import}
-						</Button>
+						</RightButton>
 					) : (
 						<>
 							<p role="status" className="text-ui">
 								{format(t.sync.backlog.openTickets, { count: planned })}
 							</p>
-							<Button
+							<RightButton
+								right="work.edit"
 								variant="primary"
 								busy={busy}
 								onClick={() =>
@@ -205,7 +215,7 @@ export function Backlog() {
 								}
 							>
 								{t.sync.backlog.confirm}
-							</Button>
+							</RightButton>
 							<Button variant="ghost" onClick={() => setPlanned(null)}>
 								{t.sync.backlog.cancel}
 							</Button>

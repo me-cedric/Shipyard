@@ -2,13 +2,14 @@ import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
+import { RightButton } from "@/lib/rights";
 import { useFormIntent, useFormIntentFor, useShell } from "@/lib/shell";
 import { addDays, type Member, usePlan, useSealState, useTeam, useWorkActions } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
-import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
+import { Switch } from "@/ui/atoms/switch";
 import { LockClosedIcon, PlusIcon, TrashIcon, UsersIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
@@ -16,6 +17,15 @@ import { ListDetail } from "@/ui/templates/list-detail";
 import { useGuard } from "./guard";
 import { NoProject } from "./no-project";
 import { SealBar } from "./seal";
+import {
+	AuditTail,
+	JoinRequest,
+	Migration,
+	RightsMatrix,
+	RoleRights,
+	RoleSelect,
+	TeamBanners,
+} from "./team-rights";
 import { parseMemberWeek } from "./week-focus";
 
 const list = (s: string) =>
@@ -27,7 +37,10 @@ const blank = (): Member => ({
 	name: "",
 	handle: "",
 	trackers: [],
+	emails: [],
 	role: "",
+	admin: false,
+	rights: [],
 	capacity: 5,
 	skills: [],
 	dayRate: null,
@@ -56,6 +69,8 @@ function MemberForm({
 	const [draft, setDraft] = useState<Member>(() => members[index] ?? blank());
 	const [accounts, setAccounts] = useState(draft.trackers.join(", "));
 	const [skills, setSkills] = useState(draft.skills.join(", "));
+	const [emails, setEmails] = useState((draft.emails ?? []).join(", "));
+	const [changes, setChanges] = useState((draft.rights ?? []).join(", "));
 	const locked = view?.locked ?? false;
 	const set = (patch: Partial<Member>) => setDraft((d) => ({ ...d, ...patch }));
 	const av = draft.availability;
@@ -66,7 +81,13 @@ function MemberForm({
 	);
 
 	const save = async () => {
-		const next = { ...draft, trackers: list(accounts), skills: list(skills) };
+		const next = {
+			...draft,
+			trackers: list(accounts),
+			skills: list(skills),
+			emails: list(emails),
+			rights: list(changes),
+		};
 		const saved = await run(() =>
 			act.saveTeam({
 				members: index < 0 ? [...members, next] : members.map((x, i) => (i === index ? next : x)),
@@ -122,9 +143,23 @@ function MemberForm({
 			/>
 			<Input
 				caption
-				label={m.role}
-				value={draft.role}
-				onChange={(e) => set({ role: e.target.value })}
+				label={t.rights.team.emails}
+				value={emails}
+				onChange={(e) => setEmails(e.target.value)}
+			/>
+			<RoleSelect value={draft.role} onChange={(role) => set({ role })} />
+			<RoleRights role={draft.role} />
+			<Switch
+				label={t.rights.team.admin}
+				checked={draft.admin === true}
+				onCheckedChange={(admin) => set({ admin })}
+			/>
+			<Input
+				caption
+				label={t.rights.team.changes}
+				value={changes}
+				onChange={(e) => setChanges(e.target.value)}
+				className="font-mono"
 			/>
 			<Input
 				caption
@@ -227,9 +262,13 @@ function MemberForm({
 				</p>
 			) : null}
 			<div className="flex items-center gap-2">
-				<Button type="submit" disabled={draft.handle.trim() === "" || draft.name.trim() === ""}>
+				<RightButton
+					right="project.settings"
+					type="submit"
+					disabled={draft.handle.trim() === "" || draft.name.trim() === ""}
+				>
 					{t.work.save}
-				</Button>
+				</RightButton>
 				{index >= 0 ? (
 					<IconButton
 						label={t.work.remove}
@@ -291,10 +330,10 @@ export function Team() {
 			count={members.length}
 			action={
 				empty ? null : (
-					<Button id="add-member" variant="primary" onClick={add}>
+					<RightButton id="add-member" right="project.settings" variant="primary" onClick={add}>
 						<PlusIcon size={14} />
 						{t.work.team.add}
-					</Button>
+					</RightButton>
 				)
 			}
 			toolbar={
@@ -307,6 +346,9 @@ export function Team() {
 				) : undefined
 			}
 		>
+			<TeamBanners />
+			<JoinRequest />
+			<Migration />
 			{view.data?.error ? (
 				<p role="alert" className="px-3 py-1 text-ui text-danger-text">
 					{view.data.error}
@@ -366,7 +408,7 @@ export function Team() {
 											<span className="font-mono text-11 text-n-11">{x.handle}</span>
 										</button>
 									</td>
-									<td>{x.role}</td>
+									<td>{t.rights.role[x.role as keyof typeof t.rights.role] ?? x.role}</td>
 									<td className="text-right font-mono">{x.capacity ?? 0}</td>
 									<td className="text-right font-mono">
 										{x.dayRate != null ? (
@@ -392,6 +434,8 @@ export function Team() {
 					</table>
 				</div>
 			)}
+			<RightsMatrix />
+			<AuditTail />
 		</ListDetail>
 	);
 }

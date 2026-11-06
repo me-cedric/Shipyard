@@ -7,6 +7,7 @@ import { format, type Lang, useI18n } from "@/lib/i18n";
 import { commands, errorDialog, unwrap } from "@/lib/ipc";
 import { type Theme, usePrefs } from "@/lib/prefs";
 import { outcomeError, useActiveProject, useProjectActions } from "@/lib/projects";
+import { useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { chordOf, chordText, useShortcutBindings } from "@/lib/shell/shortcuts";
 import { useSyncNow } from "@/lib/sync";
@@ -83,7 +84,7 @@ export const shortcutText = (key: string) => chordText(`mod+${key}`);
 /** The one registry. The palette, the context bar and the status bar read it. */
 export function useActions() {
 	const { t, setLang } = useI18n();
-	const { role, sidebarOpen, setPrefs, profile, theme, uiScale } = usePrefs();
+	const { teamRole, sidebarOpen, setPrefs, profile, theme, uiScale } = usePrefs();
 	const navigate = useNavigate();
 	const router = useRouter();
 	const shell = useShell();
@@ -107,6 +108,7 @@ export function useActions() {
 	const { pull, fetch, push } = useCodeActions();
 	const syncNow = useSyncNow();
 	const stageable = canCommit(useChanges().data);
+	const writes = useRights().can("code.write");
 	const checkUpdate = useUpdateCheck();
 	const { bindings } = useShortcutBindings();
 	const { setShortcutsOpen } = shell;
@@ -121,7 +123,7 @@ export function useActions() {
 			const chord = bindings[a.id] ?? defaultChord;
 			return { ...rest, chord, defaultChord, shortcut: chordText(chord) };
 		};
-		const spaces = orderedSpaces(role, profile.tabs).map((space, i) =>
+		const spaces = orderedSpaces(teamRole).map((space, i) =>
 			withKey({
 				id: `go-${space}`,
 				label: t.space[space],
@@ -173,7 +175,7 @@ export function useActions() {
 			id: "push",
 			label: t.workspace.view.push,
 			Icon: ArrowUpTrayIcon,
-			disabled: !hasProject,
+			disabled: !hasProject || !writes,
 			run: () => sync(async () => void (await push())),
 		};
 		const commit: Action = withKey({
@@ -182,7 +184,7 @@ export function useActions() {
 			Icon: CheckIcon,
 			key: "mod+shift+enter",
 			// A read only profile makes no commit.
-			disabled: !stageable || profile.readOnly,
+			disabled: !stageable || profile.readOnly || !writes,
 			run: () => setCommitOpen(true),
 		});
 		// The palette lists the projects. This action opens it for the native menu (REQ-012).
@@ -383,7 +385,7 @@ export function useActions() {
 		};
 	}, [
 		t,
-		role,
+		teamRole,
 		sidebarOpen,
 		inspectorOpen,
 		assistantOpen,
@@ -401,6 +403,7 @@ export function useActions() {
 		push,
 		setCommitOpen,
 		stageable,
+		writes,
 		profile,
 		openFolder,
 		close,

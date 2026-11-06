@@ -16,19 +16,21 @@ describe("first run", () => {
 		await screen.findByRole("button", { name: "Open a local folder" });
 		const roles = within(screen.getByRole("radiogroup", { name: "Role" })).getAllByRole("radio");
 		expect(roles.map((r) => r.closest("label")?.textContent)).toEqual([
+			"Product owner",
 			"Project manager",
 			"Architect",
+			"Tech lead",
+			"Business analyst",
 			"Developer",
 			"Tester",
-			"Business analyst",
-			"Functional lead",
-			"Junior",
+			"Designer",
+			"Viewer",
 			"Other",
 		]);
 		expect(screen.getByRole("radio", { name: "Other" })).toBeChecked();
-		await user.click(screen.getByRole("radio", { name: "Junior" }));
-		await waitFor(() => expect(screen.getByRole("radio", { name: "Junior" })).toBeChecked());
-		expect(mockState().prefs.role).toBe("junior");
+		await user.click(screen.getByRole("radio", { name: "Tech lead" }));
+		await waitFor(() => expect(screen.getByRole("radio", { name: "Tech lead" })).toBeChecked());
+		expect(mockState().prefs.role).toBe("techlead");
 		const buttons = firstRunButtons();
 		expect(buttons.map((b) => b.textContent)).toEqual([
 			"Open a local folder",

@@ -24,6 +24,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use shipyard_core::pickup::{ActiveRun, Automation, SyncEvent};
+use shipyard_core::rights::Right;
 use shipyard_core::run::{self, BudgetLevel, Run, RunEvent, RunState};
 use shipyard_core::work_item::WorkKind;
 use shipyard_core::workflow::{self, Effort, Gate, Mode, Step, StepState, Workflow, Workspace};
@@ -114,6 +115,15 @@ impl Default for Config {
             remind_after: Duration::from_secs(24 * 3600),
         }
     }
+}
+
+/// The person who starts the runs of a project on this machine, and the rights of that person
+/// (`team-rights` REQ-009). A run keeps the one of its start.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Actor {
+    /// The handle of the member, else `solo` or `unknown`.
+    pub by: String,
+    pub rights: Vec<Right>,
 }
 
 /// One project of this machine. `set_project` again after a reload: a run keeps the workflow
@@ -317,6 +327,9 @@ pub(crate) struct RunRec {
     /// What agents told the person (`message` to `person`).
     #[serde(default)]
     pub messages: Vec<Message>,
+    /// Who started the run. `None`: a run of an older Shipyard, or no person was set.
+    #[serde(default)]
+    pub by: Option<Actor>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -384,6 +397,8 @@ pub(crate) struct Inner {
     pub alerted: BTreeSet<String>,
     /// Running totals of each open project. `set_project` builds them from the log.
     pub spent: BTreeMap<String, crate::usage::Spent>,
+    /// The person of each project on this machine (`set_actor`).
+    pub actors: BTreeMap<String, Actor>,
 }
 
 pub struct Factory {
@@ -461,6 +476,7 @@ impl Factory {
             closing: false,
             alerted: BTreeSet::new(),
             spent: BTreeMap::new(),
+            actors: BTreeMap::new(),
         };
         inner.recover();
         inner.persist();
@@ -495,6 +511,16 @@ impl Factory {
         inner.projects.insert(id.into(), project);
         let spent = inner.build_spent(id);
         inner.spent.insert(id.into(), spent);
+    }
+
+    /// The person who starts the next runs of a project: a click or the pickup of the tick.
+    /// `None` clears it: the switches alone decide a write.
+    pub fn set_actor(&self, project: &str, actor: Option<Actor>) {
+        let mut inner = self.lock();
+        match actor {
+            Some(a) => inner.actors.insert(project.into(), a),
+            None => inner.actors.remove(project),
+        };
     }
 
     /// Read the agents, check the clocks, start the next steps. Call it often.
@@ -763,7 +789,14 @@ impl Inner {
             .collect()
     }
 
-    pub(crate) fn log(&mut self, run_id: &str, step: Option<&str>, kind: &str, payload: Value) {
+    pub(crate) fn log(&mut self, run_id: &str, step: Option<&str>, kind: &str, mut payload: Value) {
+        // Each event names the person of the run (`team-rights` REQ-010).
+        if let (Some(a), Some(map)) = (
+            self.runs.get(run_id).and_then(|r| r.by.as_ref()),
+            payload.as_object_mut(),
+        ) {
+            map.entry("by").or_insert_with(|| a.by.clone().into());
+        }
         self.dirty.insert(run_id.to_string());
         let ts = self.clock.now().as_millis() as u64;
         if let Err(e) = self.log.append(run_id, step, kind, &payload, ts) {
@@ -1550,6 +1583,7 @@ impl Inner {
             questions: Vec::new(),
             d: Delivered::default(),
             messages: Vec::new(),
+            by: self.actors.get(&req.project).cloned(),
         };
         let base = item
             .key

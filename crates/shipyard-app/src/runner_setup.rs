@@ -9,7 +9,6 @@ use shipyard_agents::which::{quiet, search_dirs, which};
 use tauri::AppHandle;
 
 use crate::commands::{Api, Res, blocking};
-use crate::work::need_click;
 
 /// The arguments of `npm` for an install line, or why it is refused.
 fn npm_args(line: &str) -> Result<Vec<&str>, String> {
@@ -63,7 +62,7 @@ pub fn install(id: &str) -> Res<()> {
 #[specta::specta]
 pub async fn runner_install(app: AppHandle, id: String, click: bool) -> Api<()> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         install(&id)
     })
     .await

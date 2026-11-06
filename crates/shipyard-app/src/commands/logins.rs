@@ -16,7 +16,6 @@ use super::{Api, AppState, Res, blocking};
 use crate::connections::{
     Connection, ConnectionDraft, ConnectionGroup, ConnectionKind, ConnectionState,
 };
-use crate::work::need_click;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
 pub struct CliLogin {
@@ -99,7 +98,7 @@ pub fn use_login_with(
     host: &str,
     click: bool,
 ) -> Res<Connection> {
-    need_click(s, click)?;
+    crate::rights::need_click_local(s, click)?;
     let kind = match tool {
         "gh" => ConnectionKind::GitHub,
         "glab" => ConnectionKind::GitLab,

@@ -210,6 +210,7 @@ pub fn team(v: &Value, roles: &BTreeMap<String, String>) -> Team {
                         })
                         .collect(),
                 },
+                ..Member::default()
             }
         })
         .collect();

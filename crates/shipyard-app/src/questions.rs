@@ -57,7 +57,9 @@ pub fn questions(s: &AppState) -> Res<Vec<QuestionView>> {
 
 /// A choice from the card: an option, or free text when the question allows it. An unclear
 /// reply on the tracker is settled the same way. Resumes the run when no question is left open.
+/// An answer moves the run on and can post to its ticket: the right of `run_unblock`.
 pub fn answer(s: &AppState, run: &str, id: &str, choice: Choice) -> Res<()> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "question_answer", run)?;
     let out = s.factory.factory.answer(run, id, choice);
     s.factory.publish();
     out

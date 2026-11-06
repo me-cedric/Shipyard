@@ -3,7 +3,7 @@ import { useId, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type PluginSetting_Serialize as Setting, unwrap } from "@/lib/ipc";
-import { Button } from "@/ui/atoms/button";
+import { RightButton } from "@/lib/rights";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Switch } from "@/ui/atoms/switch";
@@ -97,9 +97,14 @@ export function PluginSettings({ name, onSaved }: { name: string; onSaved?: () =
 				</SettingsRow>
 			))}
 			<div className="flex items-center gap-2 px-3 py-2">
-				<Button type="submit" variant="primary" disabled={Object.keys(values).length === 0}>
+				<RightButton
+					right="project.settings"
+					type="submit"
+					variant="primary"
+					disabled={Object.keys(values).length === 0}
+				>
 					{x.save}
-				</Button>
+				</RightButton>
 				{saved ? (
 					<span role="status" className="text-12 text-success-text">
 						{x.saved}

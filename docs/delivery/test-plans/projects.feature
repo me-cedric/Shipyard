@@ -129,6 +129,18 @@ Feature: projects
     When a person views the page
     Then one primary action, Save, shows
 
+  @spec:projects#REQ-009
+  Scenario: Settings / Project: No settings right
+    Given the person has the role developer
+    When the person opens Settings / Project
+    Then Save is off and names project.settings
+
+  @spec:projects#REQ-010
+  Scenario: Overrides: Read only off
+    Given the person has the role viewer and turns off the read-only override
+    When the person saves a ticket
+    Then the backend refuses the save and names work.edit
+
   @spec:projects#REQ-010
   Scenario: Overrides: Override
     Given a person who prefers one value and a project override of another value in the registry

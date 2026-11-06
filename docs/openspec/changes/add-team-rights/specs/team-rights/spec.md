@@ -77,7 +77,7 @@ The columns `work`, `specs`, `design` and `knowledge` are the rights `work.edit`
 - REQ-001: `.shipyard/team.yaml` SHALL be the one source of the roles and the rights. Each member SHALL have `emails`, the accounts of the issue tracker and the code host, a `role` from REQ-005, an `admin` flag and optional `rights` overrides (`+right`, `-right`). A member with an unknown role SHALL get `viewer`. An unknown right SHALL have no effect. Settings / Health SHALL show each of them as a finding.
 - REQ-002: When the project has a remote, Shipyard SHALL read the rights from the team file of the default branch, as last fetched. A change of the team file in the working copy or on another branch SHALL NOT change a right until it is on the default branch. Shipyard SHALL show a warning while the team file of the working copy differs.
 - REQ-003: Shipyard SHALL find the person first from the account of a signed-in issue tracker or code host connection, as its token gives it, in the accounts of a member. Else from `git config user.email` in the `emails` of a member. Else the person is unknown. When two accounts match two members, the person SHALL be unknown. Work / Team SHALL show the member found and how.
-- REQ-004: A project with no team file, or a team file with no member, SHALL give the person the `admin` flag. When the team file has a member, an unknown person SHALL get the role `viewer`.
+- REQ-004: A project with no team file, or a team file with no admin, SHALL give each person every right, and Health SHALL name the missing admin. When the team file has an admin, an unknown person SHALL get the role `viewer`.
 - REQ-005: The roles SHALL be `po`, `pm`, `architect`, `techlead`, `ba`, `developer`, `qa`, `designer` and `viewer`, with the default rights of the table. The `admin` flag SHALL give each right. The `+right` and `-right` overrides of a member SHALL apply after the defaults of the role. `costs.view` SHALL be the one read right: without it, amounts of money show as hidden.
 - REQ-006: The personal role of Settings / Me and the read-only profile of a project SHALL only remove rights. The rights of the person SHALL be the rights of the team file less the rights that the personal role does not have. Without a personal role, the rights of the team file apply.
 - REQ-007: Each write command of the app and each write tool of the Shipyard MCP server SHALL check its right in the backend before it writes. A refusal SHALL name the missing right and the role. The check SHALL take the place of the read-only check.
@@ -144,15 +144,20 @@ Shipyard SHALL find the person first from the account of a signed-in issue track
 
 ### Requirement: REQ-004 Solo and unknown person
 
-A project with no team file, or a team file with no member, SHALL give the person the `admin` flag. When the team file has a member, an unknown person SHALL get the role `viewer`.
+A project with no team file, or a team file with no admin, SHALL give each person every right, and Health SHALL name the missing admin. When the team file has an admin, an unknown person SHALL get the role `viewer`.
 
 #### Scenario: Solo
 - GIVEN a project with no team file
 - WHEN the person opens Settings / Project
 - THEN each control is on
 
+#### Scenario: Team file with no admin
+- GIVEN a team file with one member and no admin
+- WHEN a person opens Settings / Project
+- THEN each control is on and Health names the missing admin
+
 #### Scenario: Unknown person
-- GIVEN a team file with two members and a person who matches neither
+- GIVEN a team file with an admin and a person who matches no member
 - WHEN the person opens a ticket
 - THEN the ticket shows and its Save control is off
 

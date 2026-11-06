@@ -441,6 +441,7 @@ pub fn doc_write(
         text,
         stamp,
         create,
+        crate::rights::Right::KnowledgeEdit,
     )
 }
 
@@ -481,7 +482,14 @@ pub fn theme_set(s: &AppState, theme: &DeckTheme, stamp: Option<&str>) -> Res<Wr
     let full = resolve_in(&p.root, &p.file, &rel, &FOLDERS)?;
     kn::check_writable(std::fs::read_to_string(&full).ok().as_deref()).map_err(err)?;
     let text = kn::theme_text(theme).map_err(err)?;
-    put(s, &full, &text, stamp, !full.exists())
+    put(
+        s,
+        &full,
+        &text,
+        stamp,
+        !full.exists(),
+        crate::rights::Right::KnowledgeEdit,
+    )
 }
 
 pub fn deck_parse(text: &str) -> kn::Deck {
@@ -566,6 +574,7 @@ pub fn dashboard_save(
         &kn::dashboard_text(dash).map_err(err)?,
         stamp,
         !full.exists(),
+        crate::rights::Right::KnowledgeEdit,
     )
 }
 

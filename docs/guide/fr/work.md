@@ -27,7 +27,7 @@ Estimations contient une feuille par lot. Chaque ligne a une estimation basse, p
 
 ## Équipe
 
-Équipe liste les personnes du projet : leur rôle, leurs compétences, leurs jours par semaine et leur taux journalier.
+Équipe liste les personnes du projet : leur rôle, leurs compétences, leurs jours par semaine et leur taux journalier. Elle règle aussi les droits de chaque personne. Voir la page Équipe et droits.
 
 ## Temps
 

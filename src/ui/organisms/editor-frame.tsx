@@ -38,7 +38,8 @@ export function EditorFrame({
 	refState?: RefState;
 	/** Secondary actions, left of the primary one. */
 	actions?: ReactNode;
-	primary?: { label: string; onClick: () => void; disabled?: boolean };
+	/** `reason` turns the primary action off and tells why (a missing right). */
+	primary?: { label: string; onClick: () => void; disabled?: boolean; reason?: string };
 	save?: SaveState;
 	error?: EditorError | null;
 	onReload?: () => void;
@@ -55,7 +56,7 @@ export function EditorFrame({
 	children: ReactNode;
 }) {
 	const onSave = primary?.onClick;
-	const blocked = !primary || primary.disabled;
+	const blocked = !primary || primary.disabled || !!primary.reason;
 	useEffect(() => {
 		if (save !== "dirty" || blocked || error || !onSave) return;
 		const id = setTimeout(onSave, AUTOSAVE_MS);
@@ -75,7 +76,11 @@ export function EditorFrame({
 				<div className="ml-auto flex items-center gap-2">
 					{actions}
 					{primary ? (
-						<Button disabled={primary.disabled || save === "conflict"} onClick={primary.onClick}>
+						<Button
+							disabled={primary.disabled || !!primary.reason || save === "conflict"}
+							reason={primary.reason}
+							onClick={primary.onClick}
+						>
 							{primary.label}
 						</Button>
 					) : null}

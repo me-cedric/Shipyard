@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { PageExport } from "@/features/reports/page-export";
 import { format, useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
+import { RightButton, RightIconButton, useRights } from "@/lib/rights";
 import { askForm, useShell } from "@/lib/shell";
 import { useWorkItems } from "@/lib/sync";
 import {
@@ -20,7 +21,6 @@ import {
 	useWorkActions,
 	useWorkContext,
 } from "@/lib/work";
-import { Button } from "@/ui/atoms/button";
 import { Checkbox } from "@/ui/atoms/checkbox";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Caption, Input } from "@/ui/atoms/input";
@@ -69,6 +69,7 @@ function priority(refs: string[], order: string[]) {
 /** One bar in the inspector: the member, the fixed start and the order. Each change is a decision. */
 function BarDetail({ slug, task }: { slug: string; task: string }) {
 	const { t } = useI18n();
+	const { can } = useRights();
 	const p = t.work.plan;
 	const plan = usePlan(slug).data;
 	const members = useTeam().data?.team.members ?? [];
@@ -106,6 +107,7 @@ function BarDetail({ slug, task }: { slug: string; task: string }) {
 			<Select
 				caption
 				label={p.member}
+				disabled={!can("work.edit")}
 				value={mine.member ?? AUTO}
 				onValueChange={(v) => void patch({ member: v === AUTO ? "" : v })}
 				items={[
@@ -117,26 +119,28 @@ function BarDetail({ slug, task }: { slug: string; task: string }) {
 				<Input
 					caption
 					label={p.fixedStart}
+					disabled={!can("work.edit")}
 					type="date"
 					value={mine.start ?? ""}
 					onChange={(e) => isDay(e.target.value) && void patch({ start: e.target.value })}
 				/>
-				<IconButton
+				<RightIconButton
+					right="work.edit"
 					label={p.clearStart}
 					disabled={!mine.start}
 					onClick={() => void patch({ start: "" })}
 				>
 					<XMarkIcon size={14} />
-				</IconButton>
+				</RightIconButton>
 			</div>
 			<Caption label={p.order}>
 				<span className="flex items-center gap-1">
-					<IconButton label={p.earlier} onClick={() => void shift(-1)}>
+					<RightIconButton right="work.edit" label={p.earlier} onClick={() => void shift(-1)}>
 						<ChevronUpIcon size={14} />
-					</IconButton>
-					<IconButton label={p.later} onClick={() => void shift(1)}>
+					</RightIconButton>
+					<RightIconButton right="work.edit" label={p.later} onClick={() => void shift(1)}>
 						<ChevronDownIcon size={14} />
-					</IconButton>
+					</RightIconButton>
 				</span>
 			</Caption>
 			{error ? (
@@ -151,6 +155,7 @@ function BarDetail({ slug, task }: { slug: string; task: string }) {
 /** The working days and the public holidays. */
 function CalendarForm({ slug }: { slug: string }) {
 	const { t, lang } = useI18n();
+	const { can } = useRights();
 	const p = t.work.plan;
 	const plan = usePlan(slug).data;
 	const act = useWorkActions();
@@ -171,6 +176,7 @@ function CalendarForm({ slug }: { slug: string }) {
 							weekday: "long",
 							timeZone: "UTC",
 						})}
+						disabled={!can("work.edit")}
 						checked={cal.workingDays.includes(n)}
 						onCheckedChange={(on) =>
 							void save({
@@ -203,19 +209,25 @@ function CalendarForm({ slug }: { slug: string }) {
 						value={day}
 						onChange={(e) => setDay(e.target.value)}
 					/>
-					<IconButton label={p.addHoliday} type="submit" disabled={!isDay(day)}>
+					<RightIconButton
+						right="work.edit"
+						label={p.addHoliday}
+						type="submit"
+						disabled={!isDay(day)}
+					>
 						<PlusIcon size={14} />
-					</IconButton>
+					</RightIconButton>
 				</form>
 				{cal.holidays.map((h) => (
 					<div key={h} className="flex h-row items-center justify-between border-b">
 						<span className="font-mono text-12">{h}</span>
-						<IconButton
+						<RightIconButton
+							right="work.edit"
 							label={`${t.work.remove} ${h}`}
 							onClick={() => void save({ ...cal, holidays: cal.holidays.filter((x) => x !== h) })}
 						>
 							<TrashIcon size={14} />
-						</IconButton>
+						</RightIconButton>
 					</div>
 				))}
 			</section>
@@ -350,10 +362,15 @@ export function Plan() {
 			icon={<CalendarDaysIcon size={16} />}
 			count={bars.length}
 			action={
-				<Button variant="primary" disabled={!ctx?.tracker} onClick={() => setApplying(true)}>
+				<RightButton
+					right="work.edit"
+					variant="primary"
+					disabled={!ctx?.tracker}
+					onClick={() => setApplying(true)}
+				>
 					<ArrowUpTrayIcon size={14} />
 					{p.apply}
-				</Button>
+				</RightButton>
 			}
 			toolbar={
 				<>

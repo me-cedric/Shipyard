@@ -39,19 +39,21 @@ pub(crate) struct Active {
 }
 
 pub(crate) fn active(s: &AppState) -> Res<Option<Active>> {
-    let Some(entry) = s.registry()?.active().cloned() else {
-        return Ok(None);
-    };
+    Ok(s.registry()?.active().cloned().map(active_of))
+}
+
+/// A project of the registry with the connections of its project file.
+pub(crate) fn active_of(entry: Entry) -> Active {
     let conns = match read_project_file(Path::new(&entry.path)) {
         Ok(FileRead::Valid(f)) => f.connections.unwrap_or_default(),
         _ => Default::default(),
     };
-    Ok(Some(Active {
+    Active {
         entry,
         tracker: conns.tracker,
         forge: conns.forge,
         scope: conns.tracker_scope,
-    }))
+    }
 }
 
 pub(crate) fn automation_in(root: &Path) -> Res<Automation> {
@@ -366,6 +368,12 @@ pub fn automation_get(s: &AppState) -> Res<AutomationView> {
 /// Validates, then writes the file. An interval under 30 s leaves the old file (REQ-002). The
 /// running engine takes the new rules at once.
 pub fn automation_save(s: &AppState, automation: &Automation) -> Res<()> {
+    crate::rights::require(
+        s,
+        crate::rights::Right::ProjectSettings,
+        "sync_automation_save",
+        "",
+    )?;
     let root = active_root(s)?;
     write_automation(&root, automation).map_err(err)?;
     refresh(s);

@@ -10,15 +10,17 @@ import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import {
-	AcademicCapIcon,
 	ArrowDownTrayIcon,
+	BookOpenIcon,
 	ChatBubbleIcon,
 	CodeBracketIcon,
+	CpuChipIcon,
 	DocumentTextIcon,
 	FolderOpenIcon,
 	PlusIcon,
 	ShieldCheckIcon,
 	Squares2X2Icon,
+	SwatchIcon,
 	UserCircleIcon,
 	ViewColumnsIcon,
 } from "@/ui/icons";
@@ -32,13 +34,15 @@ type Step = "start" | "clone" | "create";
 
 type IconProps = { size?: number };
 const ROLE_ICON: Record<Role, ComponentType<IconProps>> = {
+	po: ChatBubbleIcon,
 	pm: ViewColumnsIcon,
 	architect: Squares2X2Icon,
+	techlead: CpuChipIcon,
+	ba: DocumentTextIcon,
 	developer: CodeBracketIcon,
 	qa: ShieldCheckIcon,
-	ba: DocumentTextIcon,
-	lead: ChatBubbleIcon,
-	junior: AcademicCapIcon,
+	designer: SwatchIcon,
+	viewer: BookOpenIcon,
 	none: UserCircleIcon,
 };
 

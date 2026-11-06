@@ -18,7 +18,13 @@ fn repo(s: &AppState) -> Res<Repo> {
 }
 
 pub fn stash_pop(s: &AppState, id: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "git_stash_pop",
+        id,
+    )?;
     repo(s)?.stash_pop(id).map_err(err)
 }
 
@@ -27,7 +33,13 @@ pub fn stash_diff(s: &AppState, id: &str) -> Res<Vec<FileDiff>> {
 }
 
 pub fn fast_forward(s: &AppState, branch: &str, click: bool) -> Res<Forward> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "git_branch_fast_forward",
+        "",
+    )?;
     repo(s)?.fast_forward(branch).map_err(err)
 }
 

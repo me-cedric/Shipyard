@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, type TicketsConfig, unwrap } from "@/lib/ipc";
 import { projectKeys, useTicketsConfig } from "@/lib/projects";
-import { Button } from "@/ui/atoms/button";
+import { RightButton } from "@/lib/rights";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { QueueListIcon } from "@/ui/icons";
@@ -100,9 +100,9 @@ function Editor({ saved }: { saved: TicketsConfig }) {
 			</SettingsRow>
 			{dirty ? (
 				<div>
-					<Button variant="primary" onClick={() => void save()}>
+					<RightButton right="work.edit" variant="primary" onClick={() => void save()}>
 						{t.projects.save}
-					</Button>
+					</RightButton>
 				</div>
 			) : null}
 			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}

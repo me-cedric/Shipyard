@@ -7,7 +7,6 @@ use shipyard_store::plugins;
 use tauri::AppHandle;
 
 use crate::commands::{Api, blocking, err};
-use crate::work::need_click;
 
 /// The sample plugin and the author skill. `plugin_new` copies them.
 const SAMPLE: [(&str, &str); 6] = [
@@ -43,7 +42,7 @@ const SAMPLE: [(&str, &str); 6] = [
 #[specta::specta]
 pub async fn plugin_new(app: AppHandle, parent: String, click: bool) -> Api<String> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         let dir = Path::new(&parent).join("acme-sample");
         std::fs::create_dir(&dir).map_err(err)?;
         let files: Vec<_> = SAMPLE
@@ -62,7 +61,7 @@ pub async fn plugin_new(app: AppHandle, parent: String, click: bool) -> Api<Stri
 #[specta::specta]
 pub async fn plugin_package(app: AppHandle, dir: String, dest: String, click: bool) -> Api<String> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         if !dest.ends_with(".zip") {
             return Err("the package needs a .zip name".into());
         }

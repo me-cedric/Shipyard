@@ -446,3 +446,62 @@ fn a_lease_on_a_branch_that_never_reached_the_remote_creates_it() {
         .unwrap();
     assert!(remote_tip(&url, "fix/auth/login").is_some());
 }
+
+// `team-rights` REQ-011: a join request commits one file to a new branch with no checkout.
+
+#[test]
+fn a_file_goes_to_a_new_branch_and_the_working_copy_stays() {
+    let (_tmp, a, url) = with_remote();
+    write(&a, "base.txt", "local edit\n");
+    let sha = a
+        .commit_file_to_branch(
+            "main",
+            "shipyard/join-zed",
+            ".shipyard/team.yaml",
+            "members: []\n",
+            "chore(team): add zed",
+            "Asked role: qa",
+        )
+        .unwrap();
+    assert_eq!(head_branch(&a), "main");
+    assert_eq!(
+        fs::read_to_string(a.workdir().join("base.txt")).unwrap(),
+        "local edit\n"
+    );
+    assert_eq!(
+        a.text_at("shipyard/join-zed", ".shipyard/team.yaml")
+            .unwrap()
+            .as_deref(),
+        Some("members: []\n")
+    );
+    a.push_branch("origin", "shipyard/join-zed", &Auth::none())
+        .unwrap();
+    assert_eq!(remote_tip(&url, "shipyard/join-zed"), Some(sha));
+    assert!(matches!(
+        a.commit_file_to_branch("main", "main", "x.txt", "x", "chore: x", ""),
+        Err(GitError::ProtectedBranch(_))
+    ));
+    assert!(matches!(
+        a.push_branch("origin", "main", &Auth::none()),
+        Err(GitError::ProtectedBranch(_))
+    ));
+}
+
+#[test]
+fn a_file_never_moves_the_working_branch() {
+    let (_tmp, a, _url) = with_remote();
+    checkout_new(&a, "shipyard/join-zed");
+    let before = a.text_at("HEAD", "base.txt").unwrap();
+    assert!(matches!(
+        a.commit_file_to_branch(
+            "main",
+            "shipyard/join-zed",
+            ".shipyard/team.yaml",
+            "members: []\n",
+            "chore(team): add zed",
+            "",
+        ),
+        Err(GitError::IsWorkingBranch(_))
+    ));
+    assert_eq!(a.text_at("HEAD", "base.txt").unwrap(), before);
+}

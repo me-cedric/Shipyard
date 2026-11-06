@@ -10,12 +10,11 @@ import {
 import { useRunActions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { useResolvedRef } from "@/lib/refs";
+import { RightButton, RightIconButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useBacklogActions, useWorkItems } from "@/lib/sync";
 import { memberName, useSuggestions, useTeam, useWorkActions, useWorkContext } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
-import { Button } from "@/ui/atoms/button";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
@@ -143,17 +142,21 @@ export function TicketDetail({ itemKey }: { itemKey: string }) {
 
 						<Prop label={d.agent}>
 							<div className="flex flex-wrap items-center gap-2">
-								<Button
+								<RightButton
+									right="work.edit"
 									disabled={markReason !== null || marked}
 									onClick={() => void run(() => act.mark(item.key))}
 								>
 									<CpuChipIcon size={14} />
 									{d.mark}
-								</Button>
-								<Button onClick={() => void run(() => runs.start(item.key))}>
+								</RightButton>
+								<RightButton
+									right="runs.start"
+									onClick={() => void run(() => runs.start(item.key))}
+								>
 									<PlayIcon size={14} />
 									{t.factory.start}
-								</Button>
+								</RightButton>
 								{eligible ? (
 									<span role="status" className="flex items-center gap-1.5 text-12">
 										<StatusDot status="success" label={d.eligible} className="size-2" />
@@ -172,12 +175,13 @@ export function TicketDetail({ itemKey }: { itemKey: string }) {
 							{item.linked ? (
 								<div className="flex items-center gap-1">
 									<Linked id={item.linked} />
-									<IconButton
+									<RightIconButton
+										right="work.edit"
 										label={t.sync.backlog.unlink}
 										onClick={() => void run(() => unlink(item.linked ?? ""))}
 									>
 										<XMarkIcon size={14} />
-									</IconButton>
+									</RightIconButton>
 								</div>
 							) : linking ? (
 								<form
@@ -196,16 +200,16 @@ export function TicketDetail({ itemKey }: { itemKey: string }) {
 										onChange={(e) => setLocal(e.target.value)}
 										autoFocus
 									/>
-									<Button type="submit" disabled={local.trim() === ""}>
+									<RightButton right="work.edit" type="submit" disabled={local.trim() === ""}>
 										{t.sync.backlog.confirm}
-									</Button>
+									</RightButton>
 								</form>
 							) : (
 								<div>
-									<Button onClick={() => setLinking(true)}>
+									<RightButton right="work.edit" onClick={() => setLinking(true)}>
 										<LinkIcon size={14} />
 										{t.sync.backlog.link}
-									</Button>
+									</RightButton>
 								</div>
 							)}
 						</Prop>

@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type FileDiff, unwrap } from "@/lib/ipc";
+import { RightButton } from "@/lib/rights";
 import { Button } from "@/ui/atoms/button";
 import { ArrowPathIcon } from "@/ui/icons";
 import { DiffView } from "@/ui/molecules/diff-view";
@@ -58,7 +59,8 @@ export function RepoTools() {
 								>
 									{format(g.show, { name: s.message })}
 								</Button>
-								<Button
+								<RightButton
+									right="code.write"
 									onClick={() =>
 										void attempt(async () => {
 											await unwrap(commands.gitStashPop(s.id, true));
@@ -68,7 +70,7 @@ export function RepoTools() {
 									}
 								>
 									{format(g.pop, { name: s.message })}
-								</Button>
+								</RightButton>
 							</div>
 							{shown?.id === s.id
 								? shown.files.map((f) => (
@@ -98,7 +100,8 @@ export function RepoTools() {
 						>
 							<span className="min-w-0 flex-1 truncate font-mono text-12">{b.name}</span>
 							<span className="text-12 text-n-11">{format(g.behind, { count: b.behind })}</span>
-							<Button
+							<RightButton
+								right="code.write"
 								onClick={() =>
 									void attempt(async () => {
 										const r = await unwrap(commands.gitBranchFastForward(b.name, true));
@@ -109,7 +112,7 @@ export function RepoTools() {
 							>
 								<ArrowPathIcon size={14} />
 								{format(g.forward, { name: b.name })}
-							</Button>
+							</RightButton>
 						</div>
 					))}
 				</section>

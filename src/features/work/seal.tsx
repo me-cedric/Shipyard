@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { RightButton, RightIconButton } from "@/lib/rights";
 import { type Seal, useWorkActions } from "@/lib/work";
-import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { LockClosedIcon, LockOpenIcon, XMarkIcon } from "@/ui/icons";
 import { SecretInput } from "@/ui/molecules/secret-input";
@@ -29,19 +29,19 @@ export function SealBar({ state }: { state: Seal }) {
 	if (mode === null)
 		return state.sealed ? (
 			<>
-				<IconButton label={s.lock} onClick={() => void run(act.lock)}>
+				<RightIconButton right="work.edit" label={s.lock} onClick={() => void run(act.lock)}>
 					<LockClosedIcon size={14} />
-				</IconButton>
-				<IconButton label={s.unseal} onClick={() => setAsking("unseal")}>
+				</RightIconButton>
+				<RightIconButton right="work.edit" label={s.unseal} onClick={() => setAsking("unseal")}>
 					<LockOpenIcon size={14} />
-				</IconButton>
+				</RightIconButton>
 				{error ? <Alert text={error} /> : null}
 			</>
 		) : (
 			<>
-				<IconButton label={s.seal} onClick={() => setAsking("seal")}>
+				<RightIconButton right="work.edit" label={s.seal} onClick={() => setAsking("seal")}>
 					<LockClosedIcon size={14} />
-				</IconButton>
+				</RightIconButton>
 				{error ? <Alert text={error} /> : null}
 			</>
 		);
@@ -79,9 +79,13 @@ export function SealBar({ state }: { state: Seal }) {
 						className="w-44"
 					/>
 				) : null}
-				<Button type="submit" disabled={pass === "" || (mode === "seal" && again === "")}>
+				<RightButton
+					right="work.edit"
+					type="submit"
+					disabled={pass === "" || (mode === "seal" && again === "")}
+				>
 					{s[mode]}
-				</Button>
+				</RightButton>
 				{asking ? (
 					<IconButton label={t.sync.backlog.cancel} onClick={() => setAsking(null)}>
 						<XMarkIcon size={14} />

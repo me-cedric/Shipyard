@@ -65,6 +65,16 @@ fn fx_wrapped(
 ) -> Fx {
     let repo = tempfile::tempdir().unwrap();
     shipyard_git::project::init(repo.path()).unwrap();
+    // The person of the fixture is `ana` by the git e-mail: the typed user of a connection gives
+    // no identity (`team-rights` REQ-003).
+    assert!(
+        std::process::Command::new("git")
+            .args(["config", "user.email", "ana@acme.test"])
+            .current_dir(repo.path())
+            .status()
+            .unwrap()
+            .success()
+    );
     let data = tempfile::tempdir().unwrap();
     let http = Arc::new(FakeHttp::new());
     let conns = Arc::new(Connections::new(
@@ -164,15 +174,19 @@ fn member(handle: &str, role: &str, skills: &[&str], rate: f64) -> Member {
         capacity: 5.0,
         skills: skills.iter().map(|s| s.to_string()).collect(),
         day_rate: Some(rate),
-        availability: Availability::default(),
+        ..Member::default()
     }
 }
 
-/// A team of five: two developers, a QA, a designer and a lead.
+/// A team of five: two developers, a QA, a designer and a lead. `ana` is the person of the
+/// fixture (the git e-mail) and the admin (`team-rights` REQ-005).
 fn team5() -> Team {
     Team {
         members: vec![
-            member("ana", "dev", &["api", "rust"], 500.0),
+            Member {
+                admin: true,
+                ..member("ana", "dev", &["api", "rust"], 500.0)
+            },
             member("bob", "dev", &["api", "web"], 480.0),
             member("cy", "qa", &["test"], 400.0),
             member("di", "design", &["ui"], 450.0),
@@ -252,6 +266,14 @@ fn save_team(f: &Fx, team: Team) {
     team_save(&f.s, team).unwrap();
 }
 
+/// Write the team file as a person does with an editor: no right check. A team with no member
+/// that is the person leaves the person `viewer` (`team-rights` REQ-004).
+pub(crate) fn write_team_file(f: &Fx, team: Team) -> Res<()> {
+    let path = f.repo.path().join(TEAM_PATH);
+    std::fs::create_dir_all(path.parent().unwrap()).map_err(err)?;
+    std::fs::write(path, write_team(&team, None).map_err(err)?).map_err(err)
+}
+
 // ---------------------------------------------------------------- team (REQ-003, REQ-004)
 
 #[test]
@@ -326,7 +348,10 @@ fn git_config(f: &Fx, key: &str, value: &str) {
 fn the_person_is_found_by_the_git_email_when_the_login_matches_nobody() {
     let f = fx();
     git_config(&f, "user.email", "Bob@acme.test");
-    save_team(&f, team5());
+    let mut team = team5();
+    // `bob` writes his time: his role gives `work.edit`.
+    team.members[1].role = "developer".into();
+    save_team(&f, team);
     // The login `ana@acme.test` still wins when it matches.
     assert_eq!(context(&f.s, 0).unwrap().me.as_deref(), Some("ana"));
     let c = conns_user(&f, Some("nobody"));
@@ -413,19 +438,39 @@ fn the_part_of_the_email_before_the_at_counts_only_for_one_member_without_anothe
         None
     );
     let me = |f: &Fx| context(&f.s, 0).unwrap().me;
-    // Another person has the handle `john` and an account of their own.
-    save_team(
+    // Another person has the handle `john` and an account of their own, and is the admin:
+    // rights apply only to a team that names one.
+    let mut other = john("john", &["john-gh"]);
+    other.admin = true;
+    write_team_file(
         &f,
         Team {
-            members: vec![john("john", &["john-gh"])],
+            members: vec![other.clone()],
             locked: false,
         },
-    );
+    )
+    .unwrap();
     assert_eq!(me(&f), None);
-    // Adding the person makes a new member that the full e-mail finds again.
-    let v = team_add_me(&f.s, true).unwrap();
-    assert_eq!(v.team.members.len(), 2);
-    assert_eq!(v.team.members[1].handle, "john-2");
+    // The person is not in the team: `viewer`, who cannot add a member (`team-rights` REQ-004).
+    assert_eq!(
+        team_add_me(&f.s, true).unwrap_err(),
+        "missing right project.settings (viewer)"
+    );
+    // An admin adds the person: the full e-mail finds the new member.
+    write_team_file(
+        &f,
+        Team {
+            members: vec![
+                other,
+                Member {
+                    admin: true,
+                    ..john("john-2", &["john@personal.com"])
+                },
+            ],
+            locked: false,
+        },
+    )
+    .unwrap();
     assert_eq!(me(&f).as_deref(), Some("john-2"));
     assert_eq!(team_add_me(&f.s, true).unwrap().team.members.len(), 2);
     // One member, and no other account: it is the person.
@@ -455,22 +500,24 @@ fn the_git_name_finds_one_member_with_that_name_and_no_account() {
         name: "Cédric Meyer".into(),
         ..john("cedric", trackers)
     };
-    save_team(
+    write_team_file(
         &f,
         Team {
             members: vec![named(&[])],
             locked: false,
         },
-    );
+    )
+    .unwrap();
     assert_eq!(me(&f).as_deref(), Some("cedric"));
     // A member with an account of their own is another person with the same name.
-    save_team(
+    write_team_file(
         &f,
         Team {
             members: vec![named(&["cm-gh"])],
             locked: false,
         },
-    );
+    )
+    .unwrap();
     assert_eq!(me(&f), None);
 }
 

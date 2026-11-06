@@ -1,5 +1,5 @@
 import type { Messages } from "@/lib/i18n";
-import type { Role } from "@/lib/prefs";
+import type { TeamRole } from "@/lib/ipc";
 
 /** Spaces in default order, each with its tabs (master plan section 4). */
 export const SPACES = {
@@ -28,37 +28,35 @@ export const tabPath = (space: SpaceId, tab: TabId) => `/${space}/${tab}` as Tab
 export const tabLabel = (t: Messages, space: SpaceId, tab: string): string =>
 	(t.tabs[space] as Record<string, string>)[tab] ?? "";
 
-export const ROLE_HOME: Record<Role, SpaceId> = {
-	none: "home",
-	pm: "work",
-	architect: "design",
-	developer: "factory",
-	qa: "specs",
-	ba: "specs",
-	lead: "specs",
-	junior: "knowledge",
+/** The first tab of each role of `team-rights` (REQ-013). */
+export const FIRST_TAB: Record<TeamRole, TabPath> = {
+	po: "/work/backlog",
+	pm: "/work/board",
+	architect: "/design/decisions",
+	techlead: "/factory/runs",
+	ba: "/specs/changes",
+	developer: "/factory/runs",
+	qa: "/specs/test-plans",
+	designer: "/design/screens",
+	viewer: "/home/today",
 };
 
-/** Home first, the role home next, the rest in default order, Settings last. Home and Settings stay; a project profile can hide the others. */
-export function orderedSpaces(role: Role, only: string[] | null = null): SpaceId[] {
-	return [...new Set<SpaceId>(["home", ROLE_HOME[role], ...SPACE_IDS])]
-		.filter((s) => !only || s === "home" || s === "settings" || only.includes(s))
-		.sort((a, b) => Number(a === "settings") - Number(b === "settings"));
+/** The path a person opens first: the first tab of the role, Home / Today without a role. */
+export const firstPath = (role: TeamRole | null): TabPath =>
+	role ? FIRST_TAB[role] : "/home/today";
+
+const spaceOf = (path: string) => path.split("/")[1] as SpaceId;
+
+/** Home first, the space of the first tab next, the rest in default order, Settings last. No role hides a space. */
+export function orderedSpaces(role: TeamRole | null): SpaceId[] {
+	return [...new Set<SpaceId>(["home", spaceOf(firstPath(role)), ...SPACE_IDS])].sort(
+		(a, b) => Number(a === "settings") - Number(b === "settings"),
+	);
 }
 
-/** The tab that a role sees first in its space: a junior learns, a PM plans on the board. */
-export const ROLE_TAB: Partial<Record<Role, string>> = {
-	junior: "knowledge/learn",
-	pm: "work/board",
-	qa: "specs/test-plans",
-};
-
-/** The tabs of a space that the project profile keeps, the tab of the role first. Settings keeps every tab. */
-export const visibleTabs = <S extends SpaceId>(space: S, hidden: readonly string[], role?: Role) =>
-	SPACES[space]
-		.filter((tab) => space === "settings" || !hidden.includes(`${space}/${tab}`))
-		.sort(
-			(a, b) =>
-				Number(ROLE_TAB[role ?? "none"] === `${space}/${b}`) -
-				Number(ROLE_TAB[role ?? "none"] === `${space}/${a}`),
-		) as (typeof SPACES)[S][number][];
+/** The tabs of a space, the first tab of the role first. */
+export const visibleTabs = <S extends SpaceId>(space: S, role: TeamRole | null) =>
+	[...SPACES[space]].sort(
+		(a, b) =>
+			Number(firstPath(role) === `/${space}/${b}`) - Number(firstPath(role) === `/${space}/${a}`),
+	) as (typeof SPACES)[S][number][];

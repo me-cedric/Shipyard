@@ -17,6 +17,7 @@ import {
 	unwrap,
 	type WriteReport,
 } from "@/lib/ipc";
+import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
@@ -82,7 +83,8 @@ function ComponentDetail({ id }: { id: string }) {
 				</p>
 			) : null}
 			{files.data ? <WriteReportView report={files.data} /> : null}
-			<Button
+			<RightButton
+				right="project.settings"
 				onClick={() =>
 					void run(async () => {
 						setDone(await unwrap(commands.catalogDeploy(id)));
@@ -91,10 +93,11 @@ function ComponentDetail({ id }: { id: string }) {
 				}
 			>
 				{t.extensions.catalog.deploy}
-			</Button>
+			</RightButton>
 			{done ? <WriteReportView report={done} /> : null}
 			{state && state !== "absent" ? (
-				<Button
+				<RightButton
+					right="project.settings"
 					variant="ghost"
 					onClick={() =>
 						void run(async () => {
@@ -106,7 +109,7 @@ function ComponentDetail({ id }: { id: string }) {
 				>
 					<TrashIcon size={14} />
 					{t.extensions.catalog.undeploy}
-				</Button>
+				</RightButton>
 			) : null}
 			{gone ? (
 				<>
@@ -157,6 +160,7 @@ function ChildDetail({ id }: { id: string }) {
  */
 export function Extensions() {
 	const { t } = useI18n();
+	const { gate } = useRights();
 	const x = t.extensions;
 	const qc = useQueryClient();
 	const { error, run } = useGuard();
@@ -443,7 +447,8 @@ export function Extensions() {
 					) : null}
 					{review ? (
 						<div className="p-3">
-							<Button
+							<RightButton
+								right="project.settings"
 								disabled={accepted.size === 0}
 								onClick={() =>
 									void run(async () => {
@@ -457,7 +462,7 @@ export function Extensions() {
 								}
 							>
 								{format(x.plugin.apply, { count: accepted.size })}
-							</Button>
+							</RightButton>
 						</div>
 					) : null}
 					{applied ? (
@@ -520,6 +525,7 @@ export function Extensions() {
 								</Button>
 								<Switch
 									label={format(x.plugin.enable, { name: p.name })}
+									{...gate("project.settings")}
 									iconOnly
 									checked={p.enabled}
 									onCheckedChange={(on) =>
@@ -530,7 +536,8 @@ export function Extensions() {
 										})
 									}
 								/>
-								<Button
+								<RightButton
+									right="project.settings"
 									variant="ghost"
 									aria-label={format(x.plugin.removeName, { name: p.name })}
 									onClick={() =>
@@ -544,7 +551,7 @@ export function Extensions() {
 								>
 									<TrashIcon size={14} />
 									{x.plugin.remove}
-								</Button>
+								</RightButton>
 							</SettingsRow>
 							{editing === p.name ? (
 								<PluginSettings

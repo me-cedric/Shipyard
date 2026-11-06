@@ -28,6 +28,7 @@ const ORDER = [
 	"design",
 	"specs",
 	"work",
+	"team",
 	"factory",
 	"code",
 	"knowledge",

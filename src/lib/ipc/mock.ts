@@ -1,5 +1,6 @@
 import { mockIPC } from "@tauri-apps/api/mocks";
 import type {
+	AuditLine_Serialize,
 	BacklinkGroup_Serialize,
 	Capabilities,
 	Connection_Serialize,
@@ -14,7 +15,10 @@ import type {
 	ProjectFile_Serialize,
 	ProjectOutcome_Serialize,
 	Resolved_Serialize,
+	Right,
+	RightsPerson_Serialize,
 	SearchHit_Serialize,
+	TeamRole,
 	TestOutcome,
 	ThemeFile_Serialize,
 } from "./bindings";
@@ -147,6 +151,10 @@ type State = {
 	exportedThemes: Record<string, ThemeFile_Serialize>;
 	/** The git e-mail of the person, for the profile assignment. */
 	email?: string | null;
+	/** The person of `rightsGet`. Without it the team file decides: no admin gives each right. */
+	person?: RightsPerson_Serialize;
+	/** The lines of `rightsAuditTail`. */
+	audit?: AuditLine_Serialize[];
 	projects: ProjectEntry_Serialize[];
 	files: Record<string, ProjectFile_Serialize>;
 	fixed: string[];
@@ -837,6 +845,76 @@ function afterPass(c: Connection_Serialize, fresh: boolean) {
 	for (const id of [c.id, twin?.id]) if (id) delete state.sync.failures[id];
 }
 
+const RIGHTS: Right[] = [
+	"work.edit",
+	"specs.edit",
+	"design.edit",
+	"knowledge.edit",
+	"code.write",
+	"code.merge",
+	"runs.start",
+	"runs.approve",
+	"project.settings",
+	"costs.view",
+];
+
+/** The default rights of each role: the table of `crates/shipyard-core/src/rights.rs`. */
+const ROLE_RIGHTS: [TeamRole, Right[]][] = [
+	["po", ["work.edit", "specs.edit", "knowledge.edit", "costs.view"]],
+	["pm", ["work.edit", "knowledge.edit", "costs.view"]],
+	["architect", RIGHTS.filter((r) => r !== "project.settings")],
+	["techlead", RIGHTS],
+	["ba", ["work.edit", "specs.edit", "knowledge.edit", "runs.start"]],
+	[
+		"developer",
+		["work.edit", "design.edit", "knowledge.edit", "code.write", "runs.start", "runs.approve"],
+	],
+	["qa", ["work.edit", "specs.edit", "knowledge.edit", "code.write", "runs.start"]],
+	["designer", ["work.edit", "design.edit", "knowledge.edit"]],
+	["viewer", []],
+];
+
+const SOLO: RightsPerson_Serialize = {
+	member: null,
+	found: "solo",
+	role: null,
+	admin: true,
+	readOnly: false,
+	rights: RIGHTS,
+};
+
+/** The person as the backend finds them: no admin in the team gives every right; else the git e-mail picks the member, or the viewer. */
+function teamPerson(): RightsPerson_Serialize {
+	const members = state.work.team.members;
+	if (!members.some((m) => m.admin)) return SOLO;
+	const me = state.email
+		? members.find((m) => m.emails?.includes(state.email as string))
+		: undefined;
+	if (!me)
+		return {
+			member: null,
+			found: "unknown",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+	const role = ROLE_RIGHTS.find(([r]) => r === me.role);
+	let rights = me.admin ? RIGHTS : (role?.[1] ?? []);
+	for (const c of me.rights ?? []) {
+		const r = c.slice(1) as Right;
+		rights = c.startsWith("+") ? [...new Set([...rights, r])] : rights.filter((x) => x !== r);
+	}
+	return {
+		member: me.handle,
+		found: "email",
+		role: role?.[0] ?? "viewer",
+		admin: me.admin === true,
+		readOnly: false,
+		rights: RIGHTS.filter((r) => rights.includes(r)),
+	};
+}
+
 // A missing key fails `tsc`: each generated command needs a handler.
 const handlers: Handlers = {
 	appInfo: () => ({ name: "Shipyard", version: "0.1.0", os: "browser" }),
@@ -971,6 +1049,28 @@ const handlers: Handlers = {
 		return null;
 	},
 	profileEmailGet: () => state.email ?? null,
+	rightsGet: () => {
+		const p = active();
+		if (!p) throw "no active project";
+		const person = state.person ?? teamPerson();
+		// The read-only profile keeps the read right only, as the backend does.
+		const readOnly = person.readOnly || p.overrides.readOnly === true;
+		return {
+			person: {
+				...person,
+				readOnly,
+				rights: readOnly ? person.rights.filter((r) => r === "costs.view") : person.rights,
+			},
+			branch: null,
+			fetched: null,
+			warnings: [],
+			roles: ROLE_RIGHTS.map(([role, rights]) => ({ role, rights })),
+		};
+	},
+	rightsAuditTail: () => {
+		if (!active()) throw "no active project";
+		return (state.audit ?? []).slice(-100);
+	},
 	healthRun: () => (active() ? FINDINGS.filter((f) => !state.fixed.includes(f.id)) : []),
 	healthFix: (id, expected) => {
 		const f = FINDINGS.find((x) => x.id === id);
@@ -1330,6 +1430,36 @@ const handlers: Handlers = {
 		return work.teamAddMe(need(state.work), click);
 	},
 	workTeamSave: (team) => work.teamSave(need(state.work), team),
+	// The member entry goes on a branch with the role `viewer`; a forge connection opens a pull request.
+	workTeamJoin: (ask, click) => {
+		if (!click) throw "this change needs the click of a person";
+		if (!ask.name.trim()) throw "give your name (120 characters or fewer)";
+		const p = active();
+		const forge = p ? state.files[p.id]?.connections?.forge : undefined;
+		const handle =
+			[...ask.accounts, ...ask.emails.map((e) => e.split("@")[0] ?? ""), ask.name]
+				.map((x) =>
+					x
+						.trim()
+						.toLowerCase()
+						.replace(/[^a-z0-9]+/g, "-")
+						.replace(/^-|-$/g, ""),
+				)
+				.find(Boolean) ?? "member";
+		const branch = `shipyard/join-${handle}`;
+		const entry = [
+			"members:",
+			`- name: ${JSON.stringify(ask.name.trim())}`,
+			`  handle: ${handle}`,
+			`  trackers: [${ask.accounts.join(", ")}]`,
+			`  emails: [${ask.emails.map((e) => e.trim().toLowerCase()).join(", ")}]`,
+			"  role: viewer",
+			"",
+		].join("\n");
+		return forge
+			? { branch, url: "https://github.com/acme/web/pull/91", push: null, entry }
+			: { branch, url: null, push: `git push origin ${branch}`, entry };
+	},
 	workSuggest: (key) =>
 		needTracker(() =>
 			work.workSuggest(

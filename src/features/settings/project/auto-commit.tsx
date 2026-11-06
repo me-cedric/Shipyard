@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useGuard } from "@/features/work/guard";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
+import { useRights } from "@/lib/rights";
 import { Switch } from "@/ui/atoms/switch";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 
@@ -13,6 +14,7 @@ const key = ["auto-commit"] as const;
  */
 export function AutoCommit() {
 	const { t } = useI18n();
+	const { gate } = useRights();
 	const qc = useQueryClient();
 	const { error, run } = useGuard();
 	const on = useQuery({ queryKey: key, queryFn: () => unwrap(commands.autoCommitGet()) });
@@ -21,6 +23,8 @@ export function AutoCommit() {
 			<SettingsRow label={t.ui.autoCommit}>
 				<Switch
 					label={t.ui.autoCommit}
+					// Off only takes a write away: it needs no right.
+					{...(on.data === true ? {} : gate("code.write"))}
 					iconOnly
 					checked={on.data === true}
 					onCheckedChange={(next) =>

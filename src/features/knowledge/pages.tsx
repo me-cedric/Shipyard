@@ -2,6 +2,7 @@ import { useEffect, useId } from "react";
 import { useI18n } from "@/lib/i18n";
 import { DOC_DIR, useDocFile, useDocList } from "@/lib/knowledge";
 import { useBacklinks } from "@/lib/refs";
+import { useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { clearEditRequest, wantsEdit } from "@/lib/shell/selection";
 import { useViewState } from "@/lib/shell/view-state";
@@ -27,6 +28,7 @@ export function PageEditor({
 }) {
 	const { t } = useI18n();
 	const file = useDocFile(path);
+	const { gate } = useRights();
 	return (
 		<MarkdownEditor
 			title={title}
@@ -42,6 +44,7 @@ export function PageEditor({
 			actions={actions}
 			labels={t.knowledge.editor}
 			saveLabel={t.knowledge.editor.save}
+			reason={gate("knowledge.edit").reason}
 		/>
 	);
 }

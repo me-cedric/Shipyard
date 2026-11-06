@@ -28,7 +28,7 @@ fn server(root: &std::path::Path, state: Arc<Mutex<(bool, Vec<String>)>>) -> Ser
                 ..Default::default()
             },
             only,
-            read_only: false,
+            rights: None,
             tickets: None,
         })
     });
@@ -135,7 +135,7 @@ fn the_allow_list_filters_the_tools_and_the_read_only_preset_has_no_write_tool()
             root: ".".into(),
             switches: all,
             only,
-            read_only: false,
+            rights: None,
             tickets: None,
         })
     };

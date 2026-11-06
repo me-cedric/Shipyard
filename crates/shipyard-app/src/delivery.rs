@@ -796,6 +796,8 @@ pub struct ApprovalView {
     pub detail: String,
     /// A push that rewrites history.
     pub force: bool,
+    /// The right that a click needs, with `runs.approve` (`team-rights` REQ-014).
+    pub right: crate::rights::Right,
 }
 
 fn describe(w: &Write) -> (&'static str, String, String, bool) {
@@ -869,6 +871,7 @@ pub fn approvals(s: &AppState) -> Res<Vec<ApprovalView>> {
             }
             let (kind, summary, detail, force) = describe(&ap.write);
             Some(ApprovalView {
+                right: ap.write.right(),
                 id: ap.id as u32,
                 run: ap.run,
                 key: run.key.clone(),
@@ -883,7 +886,19 @@ pub fn approvals(s: &AppState) -> Res<Vec<ApprovalView>> {
 }
 
 /// A person's click: send the write. Returns what it made (a comment id, a pull request number).
+/// It needs `runs.approve` and the right of the write: a write that waits because its member
+/// did not have the right goes out with the click of a person who has it (`team-rights` REQ-009).
 pub fn approve(s: &AppState, id: u32) -> Res<Option<String>> {
+    crate::rights::require(s, crate::rights::Right::RunsApprove, "approval_approve", "")?;
+    if let Some(a) = s
+        .factory
+        .factory
+        .approvals()
+        .into_iter()
+        .find(|a| a.id == u64::from(id))
+    {
+        crate::rights::require(s, a.write.right(), "approval_approve", "")?;
+    }
     let out = s.factory.factory.approve(u64::from(id));
     s.factory.publish();
     out
@@ -891,6 +906,7 @@ pub fn approve(s: &AppState, id: u32) -> Res<Option<String>> {
 
 /// A person rejects the write: it is dropped and the run blocks.
 pub fn reject(s: &AppState, id: u32) -> Res<()> {
+    crate::rights::require(s, crate::rights::Right::RunsApprove, "approval_reject", "")?;
     let out = s.factory.factory.reject(u64::from(id));
     s.factory.publish();
     out

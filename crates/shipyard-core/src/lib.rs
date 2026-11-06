@@ -15,6 +15,7 @@ pub mod pickup;
 pub mod project;
 pub mod question;
 pub mod refs;
+pub mod rights;
 pub mod run;
 pub mod specs;
 pub mod split;

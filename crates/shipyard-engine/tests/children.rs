@@ -93,7 +93,7 @@ fn a_first_conflict_runs_the_child_again_from_the_run_branch() {
     assert!(
         fx.logged(&run, "note")
             .iter()
-            .any(|n| *n == json!({"redo": "build-2", "files": [".gitleaksignore"]}))
+            .any(|n| *n == json!({"redo": "build-2", "files": [".gitleaksignore"], "by": "solo"}))
     );
     assert_eq!(fx.agents.running(), ["build-2"]);
     let brief = fx.agents.briefs().pop().unwrap();

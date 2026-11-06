@@ -113,7 +113,13 @@ pub struct GeneratedPlan {
 /// requirement. A requirement with no such text gets none. An existing plan keeps its text. After
 /// a click only.
 pub fn generate(s: &AppState, capability: &str, click: bool) -> Res<GeneratedPlan> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::SpecsEdit,
+        "specs_testplan_generate",
+        "",
+    )?;
     let p = project(s)?;
     let texts = spec_texts(&p);
     if !texts.iter().any(|(c, _)| c == capability) {
@@ -167,6 +173,7 @@ pub fn generate(s: &AppState, capability: &str, click: bool) -> Res<GeneratedPla
         &text,
         existing.as_ref().map(|t| t.stamp.as_str()),
         existing.is_none(),
+        crate::rights::Right::SpecsEdit,
     )?;
     if w.conflict {
         return Err(format!("{path} changed on disk: read it again"));

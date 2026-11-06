@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 import { useBranches, useCodeActions } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
+import { useRights } from "@/lib/rights";
 import { cn } from "@/lib/utils";
 import { Input } from "@/ui/atoms/input";
 import { ChevronRightIcon, PlusIcon } from "@/ui/icons";
@@ -25,6 +26,7 @@ export function BranchSelector() {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [index, setIndex] = useState(0);
+	const { can, gate } = useRights();
 	const all = branches.data ?? [];
 	const locals = all.filter((b) => b.kind === "local");
 	const head = locals.find((b) => b.is_head);
@@ -59,6 +61,7 @@ export function BranchSelector() {
 		});
 	const pick = (r: Row) => {
 		setOpen(false);
+		if (!can("code.write")) return;
 		void run(() => (r.create ? createBranch(r.name) : switchBranch(r.name)));
 	};
 	const at = Math.min(index, rows.length - 1);
@@ -126,6 +129,8 @@ export function BranchSelector() {
 										id={rowId(i)}
 										role="option"
 										aria-selected={i === at}
+										aria-disabled={!can("code.write") || undefined}
+										title={gate("code.write").reason}
 										tabIndex={-1}
 										onClick={() => pick(r)}
 										className={cn(

@@ -17,8 +17,7 @@ import {
 } from "@/lib/design";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, type FlowRow_Deserialize, unwrap } from "@/lib/ipc";
-import { Button } from "@/ui/atoms/button";
-import { IconButton } from "@/ui/atoms/icon-button";
+import { RightButton, RightIconButton } from "@/lib/rights";
 import { Input } from "@/ui/atoms/input";
 import { ArrowsRightLeftIcon, PlusIcon, TrashIcon } from "@/ui/icons";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
@@ -84,10 +83,10 @@ function Bricks({
 				}}
 			>
 				<Input label={f.brickName} value={name} onChange={(e) => setName(e.target.value)} />
-				<Button type="submit" disabled={!name.trim()}>
+				<RightButton right="design.edit" type="submit" disabled={!name.trim()}>
 					<PlusIcon size={14} />
 					{f.brickAdd}
-				</Button>
+				</RightButton>
 			</form>
 			{error ? (
 				<p role="alert" className="text-ui text-danger-text">
@@ -116,12 +115,13 @@ function Bricks({
 								void save(bricks.map((x) => (x.id === b.id ? { ...x, description: v } : x)))
 							}
 						/>
-						<IconButton
+						<RightIconButton
+							right="design.edit"
 							label={format(f.brickRemove, { name: b.name })}
 							onClick={() => void save(bricks.filter((x) => x.id !== b.id))}
 						>
 							<TrashIcon size={14} />
-						</IconButton>
+						</RightIconButton>
 					</li>
 				))}
 			</ul>

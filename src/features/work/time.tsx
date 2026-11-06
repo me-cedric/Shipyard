@@ -5,6 +5,7 @@ import { format, useI18n } from "@/lib/i18n";
 import type { TimeState } from "@/lib/ipc";
 import { useDay, usePanelSize } from "@/lib/prefs";
 import { useActiveProject } from "@/lib/projects";
+import { RightButton } from "@/lib/rights";
 import { useWorkItems } from "@/lib/sync";
 import {
 	addDays,
@@ -241,7 +242,8 @@ export function Time() {
 					const r = row.original;
 					if (!r.entryId || (r.state !== "to-send" && !r.lost)) return null;
 					return (
-						<Button
+						<RightButton
+							right="work.edit"
 							variant="ghost"
 							disabled={!data?.canSend || !r.ticket || sending !== null}
 							reason={
@@ -269,7 +271,7 @@ export function Time() {
 							}}
 						>
 							{r.lost ? e.storeReceipt : e.send}
-						</Button>
+						</RightButton>
 					);
 				},
 			},
@@ -311,10 +313,15 @@ export function Time() {
 			count={lines.length}
 			action={
 				adding ? null : (
-					<Button variant="primary" disabled={!data} onClick={() => setAdding(true)}>
+					<RightButton
+						right="work.edit"
+						variant="primary"
+						disabled={!data}
+						onClick={() => setAdding(true)}
+					>
 						<PlusIcon size={14} />
 						{e.add}
-					</Button>
+					</RightButton>
 				)
 			}
 			toolbar={
@@ -334,10 +341,15 @@ export function Time() {
 						onValueChange={setMember}
 						items={members.map((m) => ({ value: m.handle, label: m.name }))}
 					/>
-					<Button disabled={!data} busy={busy} onClick={() => void fetchAll()}>
+					<RightButton
+						right="work.edit"
+						disabled={!data}
+						busy={busy}
+						onClick={() => void fetchAll()}
+					>
 						<ArrowPathIcon size={14} />
 						{t.extras.time.pullMonth}
-					</Button>
+					</RightButton>
 					<Checkbox label={e.reduce} checked={reduce} onCheckedChange={setReduce} />
 					<span className="flex-1" />
 					{data && !data.canSend ? (
@@ -391,9 +403,9 @@ export function Time() {
 							onChange={(ev) => setForm({ ...form, note: ev.target.value })}
 						/>
 					</span>
-					<Button type="submit" variant="primary">
+					<RightButton right="work.edit" type="submit" variant="primary">
 						{e.add}
-					</Button>
+					</RightButton>
 					<Button variant="ghost" onClick={() => setAdding(false)}>
 						{t.sync.backlog.cancel}
 					</Button>

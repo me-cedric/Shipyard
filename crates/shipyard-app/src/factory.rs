@@ -662,6 +662,8 @@ pub(crate) fn attach(s: &AppState, a: &Active, plan: &Plan) -> Res<()> {
             refs: Some(s.index_of(&id)?),
         },
     );
+    // Each project acts for its own person. `None`: no right, each write waits in the Inbox.
+    host.factory.set_actor(&id, crate::rights::actor(s, &id));
     Ok(())
 }
 
@@ -1009,6 +1011,7 @@ pub fn usage(s: &AppState) -> Res<UsageView> {
 /// Set a budget in `.shipyard/automation.yaml`, or clear it (`usd` is `None`). `scope` is `day`
 /// (key: a UTC day or `*`) or `member` (key: a name or `*`). The engine counts it at once.
 pub fn budget_save(s: &AppState, scope: &str, key: &str, usd: Option<f64>) -> Res<()> {
+    crate::rights::require(s, crate::rights::Right::ProjectSettings, "budget_set", key)?;
     let (id, root) = root_of(s)?;
     set_budget(&root, scope, key, usd).map_err(err)?;
     if let AutomationRead::Valid(a) = read_automation(&root).map_err(err)? {
@@ -1102,9 +1105,12 @@ pub(crate) fn start_ticket(
     a: &Active,
     ticket: shipyard_core::pickup::Ticket,
 ) -> Res<String> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "run_start", "")?;
     ensure(s)?;
     let key = ticket.item.key.clone();
     let f = &s.factory.factory;
+    // The run acts with the rights of the person who starts it (`team-rights` REQ-009).
+    f.set_actor(&a.entry.id, crate::rights::actor(s, &a.entry.id));
     // The engine refuses a second active run on the ticket, under its own lock.
     let status = ticket.item.status.name.clone();
     let out = f.start(&StartRequest {
@@ -1124,6 +1130,7 @@ pub(crate) fn start_ticket(
 }
 
 pub fn cancel(s: &AppState, run: &str) -> Res<()> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "run_cancel", run)?;
     done(s, s.factory.factory.cancel(run))
 }
 
@@ -1135,6 +1142,7 @@ pub fn resume(
     add_tokens: u32,
     note: Option<&str>,
 ) -> Res<RunState> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "run_resume", run)?;
     done(
         s,
         s.factory
@@ -1145,19 +1153,28 @@ pub fn resume(
 
 /// `note`: a message for the agents of the run. Empty or `None`: a plain unblock.
 pub fn unblock(s: &AppState, run: &str, note: Option<&str>) -> Res<()> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "run_unblock", run)?;
     done(s, s.factory.factory.unblock_with(run, note))
 }
 
 /// A run blocked with nothing to deliver ends as `Done`: the work is on the base already.
 pub fn close_done(s: &AppState, run: &str) -> Res<()> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "run_close_done", run)?;
     done(s, s.factory.factory.close_done(run))
 }
 
 pub fn approve_plan(s: &AppState, run: &str) -> Res<()> {
+    crate::rights::require(
+        s,
+        crate::rights::Right::RunsApprove,
+        "run_plan_approve",
+        run,
+    )?;
     done(s, s.factory.factory.approve_plan(run))
 }
 
 pub fn reject_plan(s: &AppState, run: &str, note: &str) -> Res<()> {
+    crate::rights::require(s, crate::rights::Right::RunsApprove, "run_plan_reject", run)?;
     done(s, s.factory.factory.reject_plan(run, note))
 }
 
@@ -1178,6 +1195,7 @@ pub fn set_kill_switch(s: &AppState, on: bool) -> bool {
 /// A run that a person moves by hand to a state that the machine allows (`delivery`: `Closed`
 /// after a close on the forge). Any other event stays with the engine.
 pub fn close(s: &AppState, run: &str) -> Res<RunState> {
+    crate::rights::require(s, crate::rights::Right::RunsStart, "run_close", run)?;
     done(s, s.factory.factory.apply(run, RunEvent::Closed))
 }
 
@@ -1348,7 +1366,12 @@ pub fn workflow_validate(s: &AppState, id: &str, text: &str) -> Res<Option<Issue
 /// Write the file after the check. An invalid text is refused: the file never holds one that the
 /// reload would drop.
 pub fn workflow_save(s: &AppState, id: &str, text: &str) -> Res<()> {
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        crate::rights::Right::ProjectSettings,
+        "workflow_write",
+        id,
+    )?;
     if let Some(i) = workflow_validate(s, id, text)? {
         return Err(refusal(&i));
     }
@@ -1455,7 +1478,12 @@ fn refuse_existing(root: &Path, id: &str) -> Res<()> {
 
 /// A new workflow: the text of the source with the new id.
 pub fn create_workflow(s: &AppState, id: &str, from: &WorkflowSource) -> Res<()> {
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        crate::rights::Right::ProjectSettings,
+        "workflow_create",
+        id,
+    )?;
     let id = file_id(id)?;
     let (_, root) = root_of(s)?;
     refuse_existing(&root, id)?;
@@ -1496,7 +1524,12 @@ fn refuse_in_use(s: &AppState, id: &str) -> Res<()> {
 }
 
 pub fn rename_workflow(s: &AppState, id: &str, to: &str) -> Res<()> {
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        crate::rights::Right::ProjectSettings,
+        "workflow_rename",
+        id,
+    )?;
     let (id, to) = (file_id(id)?, file_id(to)?);
     let (_, root) = root_of(s)?;
     refuse_existing(&root, to)?;
@@ -1510,7 +1543,12 @@ pub fn rename_workflow(s: &AppState, id: &str, to: &str) -> Res<()> {
 }
 
 pub fn delete_workflow(s: &AppState, id: &str) -> Res<()> {
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        crate::rights::Right::ProjectSettings,
+        "workflow_delete",
+        id,
+    )?;
     let id = file_id(id)?;
     let (_, root) = root_of(s)?;
     refuse_in_use(s, id)?;
@@ -1539,7 +1577,12 @@ fn proposal_path(s: &AppState, id: &str) -> Res<PathBuf> {
 }
 
 pub fn workflow_propose(s: &AppState, id: &str, text: &str) -> Res<String> {
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        crate::rights::Right::ProjectSettings,
+        "workflow_propose",
+        id,
+    )?;
     let id = file_id(id)?;
     too_big(text)?;
     if let Some(i) = workflow_validate(s, id, text)? {
@@ -1588,6 +1631,12 @@ pub fn apply_proposal(s: &AppState, id: &str) -> Res<()> {
 }
 
 pub fn discard_proposal(s: &AppState, id: &str) -> Res<()> {
+    crate::rights::require(
+        s,
+        crate::rights::Right::ProjectSettings,
+        "workflow_proposal_discard",
+        id,
+    )?;
     std::fs::remove_file(proposal_path(s, file_id(id)?)?).map_err(|_| format!("no proposal `{id}`"))
 }
 
@@ -1666,7 +1715,7 @@ pub fn role_read(s: &AppState, id: &str) -> Res<RoleFile> {
 
 /// Write a role file after the check. The next brief of a step with this role uses it.
 pub fn role_save(s: &AppState, id: &str, text: &str) -> Res<()> {
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::ProjectSettings, "role_write", id)?;
     let id = file_id(id)?;
     too_big(text)?;
     if let Err((line, msg)) = parse_role(id, text) {

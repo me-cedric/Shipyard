@@ -31,6 +31,31 @@ describe("mock ipc", () => {
 		expect((await unwrap(commands.updateCheck())).notes).toContain("0.1.0");
 	});
 
+	it("serves the rights of the person: solo gives each right, read only keeps the read right", async () => {
+		await expect(unwrap(commands.rightsGet())).rejects.toBeTruthy();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const solo = await unwrap(commands.rightsGet());
+		expect([solo.person.found, solo.person.admin, solo.person.rights.length]).toEqual([
+			"solo",
+			true,
+			10,
+		]);
+		expect(solo.roles.find((r) => r.role === "developer")?.rights).not.toContain("code.merge");
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		expect((await unwrap(commands.rightsGet())).person.rights).toEqual([]);
+		mockState().person = undefined;
+		await unwrap(commands.projectOverridesSave({ readOnly: true }));
+		expect((await unwrap(commands.rightsGet())).person.rights).toEqual(["costs.view"]);
+		expect(await unwrap(commands.rightsAuditTail())).toEqual([]);
+	});
+
 	it("parses refs with the same grammar as the Rust command", async () => {
 		expect(await commands.refsParse("adr:0004")).toEqual({ ref: "adr:0004", kind: "adr" });
 		expect(await commands.refsParse("adr:12")).toBeNull();

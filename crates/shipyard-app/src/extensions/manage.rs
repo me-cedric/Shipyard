@@ -42,7 +42,13 @@ pub async fn compass_policies(app: AppHandle) -> Api<PolicyPacks> {
 #[specta::specta]
 pub async fn compass_policy_apply(app: AppHandle, id: String, click: bool) -> Api<Vec<String>> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "compass_policy_apply",
+            &id,
+        )?;
         compass_user::policy_apply(&root(s)?, &id).map_err(err)
     })
     .await
@@ -53,7 +59,13 @@ pub async fn compass_policy_apply(app: AppHandle, id: String, click: bool) -> Ap
 #[specta::specta]
 pub async fn compass_import(app: AppHandle, path: String, click: bool) -> Api<String> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "compass_import",
+            &path,
+        )?;
         let id = compass_user::import_rules(&root(s)?, &PathBuf::from(path)).map_err(err)?;
         Ok(format!("pattern:{id}"))
     })
@@ -85,7 +97,13 @@ fn remove_entry(root: &Path, kind: Kind, id: &str) -> Res<()> {
 #[specta::specta]
 pub async fn compass_remove(app: AppHandle, kind: Kind, id: String, click: bool) -> Api<()> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "compass_remove",
+            &id,
+        )?;
         remove_entry(&root(s)?, kind, &id)
     })
     .await
@@ -95,7 +113,13 @@ pub async fn compass_remove(app: AppHandle, kind: Kind, id: String, click: bool)
 #[specta::specta]
 pub async fn catalog_undeploy(app: AppHandle, id: String, click: bool) -> Api<Undeployed> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "catalog_undeploy",
+            &id,
+        )?;
         catalog_undeploy::undeploy(&root(s)?, &id).map_err(err)
     })
     .await
@@ -130,7 +154,13 @@ fn servers_of(s: &AppState, names: &[String]) -> Vec<String> {
 #[specta::specta]
 pub async fn plugin_set_enabled(app: AppHandle, name: String, on: bool, click: bool) -> Api<()> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "plugin_set_enabled",
+            &name,
+        )?;
         let names = plugin_manage::set_enabled(&root(s)?, &name, on).map_err(err)?;
         for id in servers_of(s, &names) {
             s.agents.mcp_enable(&id, on)?;
@@ -145,7 +175,13 @@ pub async fn plugin_set_enabled(app: AppHandle, name: String, on: bool, click: b
 #[specta::specta]
 pub async fn plugin_remove(app: AppHandle, name: String, click: bool) -> Api<Removed> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "plugin_remove",
+            &name,
+        )?;
         let out = plugin_manage::remove(&root(s)?, &name).map_err(err)?;
         let id = crate::design::project(s)?.id;
         plugin_manage::set_source(&s.dir, &id, &name, None).map_err(err)?;

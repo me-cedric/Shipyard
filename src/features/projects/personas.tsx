@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, type Persona, unwrap } from "@/lib/ipc";
 import { projectKeys, usePersonas } from "@/lib/projects";
-import { Button } from "@/ui/atoms/button";
+import { RightButton } from "@/lib/rights";
 import { Input } from "@/ui/atoms/input";
 import { Switch } from "@/ui/atoms/switch";
 import { PlusIcon, UsersIcon } from "@/ui/icons";
@@ -69,7 +69,8 @@ function Editor({ saved }: { saved: Persona[] }) {
 				</SettingsRow>
 			))}
 			<div className="flex items-center gap-2">
-				<Button
+				<RightButton
+					right="specs.edit"
 					onClick={() =>
 						setRows([
 							...rows,
@@ -87,11 +88,11 @@ function Editor({ saved }: { saved: Persona[] }) {
 				>
 					<PlusIcon size={14} />
 					{p.add}
-				</Button>
+				</RightButton>
 				{dirty ? (
-					<Button variant="primary" onClick={() => void save()}>
+					<RightButton right="specs.edit" variant="primary" onClick={() => void save()}>
 						{t.projects.save}
-					</Button>
+					</RightButton>
 				) : null}
 			</div>
 			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}

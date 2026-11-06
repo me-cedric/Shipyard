@@ -4,6 +4,7 @@ import { PageExport } from "@/features/reports/page-export";
 import { type QualityReport, useCoverageReport, useForgeActions, useQuality } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import type { SbomReport } from "@/lib/ipc";
+import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { cn, formatDuration } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
@@ -231,7 +232,8 @@ function QualityView() {
 						)}
 						{r.available ? (
 							confirming === key ? (
-								<Button
+								<RightButton
+									right="runs.start"
 									variant="primary"
 									onClick={() =>
 										void run(async () => {
@@ -248,16 +250,17 @@ function QualityView() {
 									{format(q18.confirm, {
 										name: r.label ? `${nameOf(r)} (${r.name})` : nameOf(r),
 									})}
-								</Button>
+								</RightButton>
 							) : (
-								<Button
+								<RightButton
+									right="runs.start"
 									aria-label={format(q18.runName, { name: nameOf(r) })}
 									disabled={!!live}
 									onClick={() => setConfirming(key)}
 								>
 									<ArrowPathIcon size={14} />
 									{q18.run}
-								</Button>
+								</RightButton>
 							)
 						) : (
 							<>
@@ -390,12 +393,13 @@ function QualityView() {
 					]}
 				/>
 				<Panel title={q18.sbom} bodyClassName="flex items-center gap-3 p-3">
-					<Button
+					<RightButton
+						right="code.write"
 						aria-label={q18.exportSbom}
 						onClick={() => void run(async () => setExported(await sbom()))}
 					>
 						{q18.exportSbom}
-					</Button>
+					</RightButton>
 					{exported ? (
 						<span role="status" className="text-ui text-n-11">
 							{format(q18.sbomDone, { count: exported.components, path: exported.path })}

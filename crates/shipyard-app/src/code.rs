@@ -313,7 +313,13 @@ pub struct OpenedPull {
 
 /// Opens a pull request from the working branch. The branch must be published first.
 pub fn pull_open(s: &AppState, input: OpenPull, click: bool) -> Res<OpenedPull> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "code_pull_open",
+        "",
+    )?;
     let (api, slug, conn) = forge(s)?;
     let repo = Repo::open(&root(s)?).map_err(err)?;
     let head = repo
@@ -360,7 +366,13 @@ pub fn pull_open(s: &AppState, input: OpenPull, click: bool) -> Res<OpenedPull> 
 }
 
 pub fn pull_comment(s: &AppState, number: u32, body: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "code_pull_comment",
+        &format!("#{number}"),
+    )?;
     let (api, slug, _) = forge(s)?;
     api.comment(&slug, u64::from(number), body).map_err(err)
 }
@@ -372,7 +384,13 @@ pub fn pull_verdict(
     body: &str,
     click: bool,
 ) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "code_pull_verdict",
+        &format!("#{number}"),
+    )?;
     let (api, slug, _) = forge(s)?;
     api.verdict(&slug, u64::from(number), verdict, body)
         .map_err(err)
@@ -380,20 +398,38 @@ pub fn pull_verdict(
 
 /// The click is the confirmation that names the method (REQ-022). A draft is refused.
 pub fn pull_merge(s: &AppState, number: u32, method: MergeMethod, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeMerge,
+        "code_pull_merge",
+        &format!("#{number}"),
+    )?;
     let (api, slug, _) = forge(s)?;
     api.merge(&slug, u64::from(number), method).map_err(err)
 }
 
 pub fn pull_ready(s: &AppState, number: u32, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "code_pull_ready",
+        &format!("#{number}"),
+    )?;
     let (api, slug, _) = forge(s)?;
     api.mark_ready(&slug, u64::from(number)).map_err(err)
 }
 
 /// Closes an open pull request without a merge. A reason, when given, goes in a comment first.
 pub fn pull_close(s: &AppState, number: u32, reason: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "code_pull_close",
+        &format!("#{number}"),
+    )?;
     let (api, slug, _) = forge(s)?;
     let n = u64::from(number);
     if api.pull(&slug, n).map_err(err)?.state != PullState::Open {
@@ -410,7 +446,13 @@ pub fn pull_close(s: &AppState, number: u32, reason: &str, click: bool) -> Res<(
 /// made the pull request cannot ask for changes on it (HTTP 422): the text then goes in a comment
 /// and the round starts here, since the forge never reports a review.
 pub fn pull_send_back(s: &AppState, number: u32, text: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "code_pull_send_back",
+        &format!("#{number}"),
+    )?;
     let (api, slug, _) = forge(s)?;
     let n = u64::from(number);
     match api.verdict(&slug, n, Verdict::RequestChanges, text) {
@@ -457,7 +499,13 @@ pub fn pull_archive_spec(
     confirmed: bool,
     click: bool,
 ) -> Res<String> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::SpecsEdit,
+        "code_pull_archive_spec",
+        &format!("#{number}"),
+    )?;
     let (api, slug, _) = forge(s)?;
     let source = api
         .pull(&slug, u64::from(number))
@@ -607,7 +655,13 @@ pub fn check_run_with(
     click: bool,
     on_lines: &dyn Fn(Vec<String>),
 ) -> Res<QualityReport> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::RunsStart,
+        "code_check_run",
+        "",
+    )?;
     let root = root(s)?;
     if !crate::qa::checks(&root)
         .iter()
@@ -812,7 +866,13 @@ pub fn scan_run_with(
     click: bool,
     on_lines: &dyn Fn(Vec<String>),
 ) -> Res<QualityReport> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::RunsStart,
+        "code_scan_run",
+        name,
+    )?;
     let Some((_, builtin)) = SCANNERS.iter().find(|(n, _)| *n == name) else {
         return Err(format!("`{name}` is not a scanner"));
     };
@@ -936,7 +996,13 @@ pub fn analyze_with(
 }
 
 pub fn impact_analyze(s: &AppState, base: &str, click: bool) -> Res<ImpactEntry> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::RunsStart,
+        "code_impact_analyze",
+        "",
+    )?;
     let e = s.registry()?.active().cloned().ok_or("no active project")?;
     let runner = shipyard_store::assistant_defaults::load(&s.dir, &e.id)
         .settings()
@@ -1196,7 +1262,7 @@ pub async fn code_scan_run(app: AppHandle, name: String, click: bool) -> Api<Qua
 #[specta::specta]
 pub async fn code_scanner_install(app: AppHandle, name: String, click: bool) -> Api<()> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         scanners::install(&name)
     })
     .await

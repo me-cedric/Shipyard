@@ -4,6 +4,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 import { withTracker } from "@/test/tracker";
+import { joinEntry } from "./team-rights";
 
 const aside = async (name: string) => within(await screen.findByRole("complementary", { name }));
 
@@ -12,13 +13,11 @@ describe("Work / Team", () => {
 		await withTracker();
 		mountApp("/work/team");
 		const ada = await screen.findByRole("row", { name: "ada" });
-		expect(screen.getAllByRole("columnheader").map((h) => h.textContent)).toEqual([
-			"Name",
-			"Role",
-			"Capacity (days a week)",
-			"Day rate",
-			"Skills",
-		]);
+		expect(
+			within(screen.getByRole("table", { name: "Team" }))
+				.getAllByRole("columnheader")
+				.map((h) => h.textContent),
+		).toEqual(["Name", "Role", "Capacity (days a week)", "Day rate", "Skills"]);
 		expect(
 			within(ada)
 				.getAllByRole("cell")
@@ -60,7 +59,8 @@ describe("Work / Team", () => {
 		const panel = await aside("Member");
 		await user.type(panel.getByRole("textbox", { name: "Name" }), "Barbara Liskov");
 		await user.type(panel.getByRole("textbox", { name: "Handle" }), "barbara");
-		await user.type(panel.getByRole("textbox", { name: "Role" }), "dev");
+		await user.click(panel.getByRole("combobox", { name: "Role" }));
+		await user.click(await screen.findByRole("option", { name: "Developer" }));
 		await user.click(panel.getByRole("button", { name: "Save" }));
 		await waitFor(() => expect(mockState().work.team.members).toHaveLength(6));
 		// A second save replaces the member and adds none.
@@ -122,5 +122,145 @@ describe("Work / Team", () => {
 		expect(
 			await screen.findByRole("columnheader", { name: "Capacité (jours par semaine)" }),
 		).toBeInTheDocument();
+	});
+
+	it("shows the rights of each role with icons, and names who the person is", async () => {
+		await withTracker();
+		mockState().person = {
+			member: "ada",
+			found: "account",
+			role: "techlead",
+			admin: true,
+			readOnly: false,
+			rights: ["project.settings", "work.edit"],
+		};
+		mountApp("/work/team");
+		const matrix = within(await screen.findByRole("table", { name: "Rights of each role" }));
+		expect(matrix.getAllByRole("row")).toHaveLength(10);
+		expect(
+			within(matrix.getByRole("row", { name: /^Viewer/ })).getAllByRole("img", { name: /no$/ }),
+		).toHaveLength(10);
+		expect(await screen.findByText("You are ada (Account)")).toBeInTheDocument();
+	});
+
+	it("turns Member off with the right for a developer", async () => {
+		await withTracker();
+		mockState().person = {
+			member: "ada",
+			found: "email",
+			role: "developer",
+			admin: false,
+			readOnly: false,
+			rights: ["work.edit"],
+		};
+		mountApp("/work/team");
+		const add = await screen.findByRole("button", { name: "Member" });
+		await waitFor(() => expect(add).toBeDisabled());
+		expect(add).toHaveAccessibleDescription(
+			"Needs the right project.settings (your role: Developer)",
+		);
+	});
+
+	it("saves the e-mails, the role, the admin flag and the right changes of a member", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mountApp("/work/team");
+		await user.click(within(await screen.findByRole("row", { name: "grace" })).getByRole("button"));
+		const panel = await aside("Grace Hopper");
+		await user.type(panel.getByRole("textbox", { name: "E-mails" }), "grace@example.com");
+		await user.click(panel.getByRole("combobox", { name: "Role" }));
+		await user.click(await screen.findByRole("option", { name: "Architect" }));
+		expect(panel.getByRole("list", { name: "Rights" })).toHaveTextContent("code.merge");
+		await user.click(panel.getByRole("switch", { name: "Admin" }));
+		await user.type(panel.getByRole("textbox", { name: /^Right changes/ }), "-code.merge");
+		await user.click(panel.getByRole("button", { name: "Save" }));
+		await waitFor(() =>
+			expect(mockState().work.team.members.find((m) => m.handle === "grace")).toMatchObject({
+				emails: ["grace@example.com"],
+				role: "architect",
+				admin: true,
+				rights: ["-code.merge"],
+			}),
+		);
+	});
+
+	it("shows an unknown person the banner and sends a join request: with no code host, the branch stays local", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().person = {
+			member: null,
+			found: "unknown",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		mountApp("/work/team");
+		expect(await screen.findByText("You are not in the team file")).toBeInTheDocument();
+		const form = within(await screen.findByRole("form", { name: "Ask to join" }));
+		await user.type(form.getByRole("textbox", { name: "Name" }), "Zed Nobody");
+		await user.type(form.getByRole("textbox", { name: "E-mails" }), "zed@example.com");
+		await user.click(form.getByRole("button", { name: "Send the request" }));
+		expect(await form.findByText("git push origin shipyard/join-zed")).toBeInTheDocument();
+		expect(form.getByRole("button", { name: "Copied" })).toBeInTheDocument();
+		expect(
+			joinEntry({ name: "Zed Nobody", email: "zed@example.com", account: "", role: "qa" }),
+		).toContain("role: viewer");
+	});
+
+	it("proposes the roles of this machine as members and drops them from the registry after one click", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const project = (await unwrap(commands.projectsActive()))?.overrides;
+		if (!project) throw new Error("no project");
+		await unwrap(
+			commands.projectOverridesSave({
+				...project,
+				assignments: { "eve@example.com": "lead", "joe@example.com": "junior" },
+				pageModes: { junior: { "code/terminal": "hidden" } },
+			}),
+		);
+		mountApp("/work/team");
+		const panel = within(
+			await screen.findByRole("region", {
+				name: "Move the roles of this machine to the team file",
+			}),
+		);
+		expect(panel.getByText("eve@example.com")).toBeInTheDocument();
+		expect(panel.getByText(/code\/terminal hidden/)).toBeInTheDocument();
+		await user.click(panel.getByRole("button", { name: "Move the roles" }));
+		await waitFor(() =>
+			expect(
+				mockState().work.team.members.find((m) => m.emails?.[0] === "joe@example.com"),
+			).toMatchObject({
+				role: "developer",
+				rights: ["-code.merge", "-runs.approve"],
+			}),
+		);
+		expect(
+			mockState().work.team.members.find((m) => m.emails?.[0] === "eve@example.com")?.role,
+		).toBe("po");
+		await waitFor(async () =>
+			expect((await unwrap(commands.projectsActive()))?.overrides.assignments).toBeNull(),
+		);
+	});
+
+	it("lists the audit tail for a person with project.settings", async () => {
+		await withTracker();
+		mockState().audit = [
+			{
+				time: 1_700_000_000,
+				member: null,
+				found: "unknown",
+				right: "work.edit",
+				what: "work_transition",
+				target: "ACME-1",
+				result: "refused",
+			},
+		];
+		mountApp("/work/team");
+		const log = within(await screen.findByRole("table", { name: "Audit" }));
+		expect(log.getByText("work_transition")).toBeInTheDocument();
+		expect(log.getByText("refused")).toBeInTheDocument();
 	});
 });

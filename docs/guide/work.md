@@ -27,7 +27,7 @@ Estimates holds one sheet for each lot. Each row has a low, a likely and a high 
 
 ## Team
 
-Team lists the people of the project: their role, their skills, their days per week and their day rate.
+Team lists the people of the project: their role, their skills, their days per week and their day rate. It also sets the rights of each person. See the page Team and rights.
 
 ## Time
 

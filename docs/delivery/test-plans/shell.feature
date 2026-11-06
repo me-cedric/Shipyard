@@ -89,9 +89,16 @@ Feature: shell
 
   @spec:shell#REQ-009
   Scenario: Role home: Junior sidebar
-    Given the person has the role junior
+    Given the migration of `team-rights` REQ-015 gave a former junior the role developer with -code.merge
     When the app opens
-    Then the main area shows Knowledge
+    Then the main area shows Factory / Runs
+    And the sidebar still lists all seven spaces and Settings
+
+  @spec:shell#REQ-009
+  Scenario: Role home: Viewer sidebar
+    Given the person has the role viewer
+    When the app opens
+    Then the main area shows Home / Today
     And the sidebar still lists all seven spaces and Settings
 
   @spec:shell#REQ-010
@@ -155,6 +162,12 @@ Feature: shell
     When the first screen renders
     Then it shows the first-run view of `add-projects`
     And it shows no tour or help text
+
+  @spec:shell#REQ-016
+  Scenario: No tour, no hidden tab: Personal hidden tab
+    Given the person hid Code / Terminal for themselves
+    When the person runs Open Code / Terminal from the palette
+    Then the main area shows Code / Terminal
 
   @spec:shell#REQ-017
   Scenario: Shell accessibility: Keyboard navigation

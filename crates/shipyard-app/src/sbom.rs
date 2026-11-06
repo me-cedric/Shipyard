@@ -128,7 +128,13 @@ pub fn build(root: &Path, at: &str) -> Result<(Value, SbomReport), String> {
 }
 
 pub fn export(s: &AppState, click: bool) -> Res<SbomReport> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "code_sbom_export",
+        "",
+    )?;
     let root: std::path::PathBuf = s
         .registry()?
         .active()

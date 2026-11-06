@@ -182,7 +182,13 @@ pub async fn doctor_bootstrap_apply(
     click: bool,
 ) -> Api<Vec<String>> {
     blocking(app, move |s| {
-        crate::work::need_click(s, click)?;
+        crate::work::need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "doctor_bootstrap_apply",
+            "",
+        )?;
         apply(&root(s)?, &answers)
     })
     .await

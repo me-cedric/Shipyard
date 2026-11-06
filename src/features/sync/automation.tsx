@@ -3,8 +3,8 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
+import { RightButton } from "@/lib/rights";
 import { type AutomationView, syncKeys, useAutomation } from "@/lib/sync";
-import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Switch } from "@/ui/atoms/switch";
 import { Cog6ToothIcon } from "@/ui/icons";
@@ -152,9 +152,9 @@ function Form({ view }: { view: AutomationView }) {
 			{error ? <ErrorNotice error={error} className="text-ui text-danger-text" /> : null}
 			{dirty ? (
 				<div>
-					<Button variant="primary" onClick={() => void save()}>
+					<RightButton right="project.settings" variant="primary" onClick={() => void save()}>
 						{a.save}
-					</Button>
+					</RightButton>
 				</div>
 			) : null}
 		</div>

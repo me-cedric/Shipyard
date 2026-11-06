@@ -282,8 +282,22 @@ pub fn change_create(s: &AppState, title: &str) -> Res<ChangeView> {
         "schema: shipyard-delivery\ncreated: {}\n",
         crate::work::today(s)
     );
-    put(s, &dir.join("proposal.md"), &proposal, None, true)?;
-    put(s, &dir.join(".openspec.yaml"), &meta, None, true)?;
+    put(
+        s,
+        &dir.join("proposal.md"),
+        &proposal,
+        None,
+        true,
+        crate::rights::Right::SpecsEdit,
+    )?;
+    put(
+        s,
+        &dir.join(".openspec.yaml"),
+        &meta,
+        None,
+        true,
+        crate::rights::Right::SpecsEdit,
+    )?;
     Ok(change_view(s, &p, id))
 }
 
@@ -301,7 +315,13 @@ pub struct TicketChange {
 /// working branch becomes `specs/<id>`; the files stay as they are. A change that exists, or a
 /// ticket that is not in the mirror, makes no branch and no file.
 pub fn change_from_ticket(s: &AppState, key: &str, click: bool) -> Res<TicketChange> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::SpecsEdit,
+        "specs_change_from_ticket",
+        key,
+    )?;
     let t = tracker(s)?;
     let item = mirror_items(s, &t)?
         .into_iter()
@@ -341,7 +361,14 @@ pub fn change_from_ticket(s: &AppState, key: &str, click: bool) -> Res<TicketCha
         }
         None => format!("{text}\n## Why\n\n{why}"),
     };
-    put(s, &path, &text, None, false)?;
+    put(
+        s,
+        &path,
+        &text,
+        None,
+        false,
+        crate::rights::Right::SpecsEdit,
+    )?;
     Ok(TicketChange {
         change: change_view(s, &p, &id),
         branch,
@@ -351,7 +378,13 @@ pub fn change_from_ticket(s: &AppState, key: &str, click: bool) -> Res<TicketCha
 /// Delegates a ticket to an agent run: the label `wf:<workflow>` makes the factory claim it. The
 /// change that the ticket started names the ticket, so the run finds it.
 pub fn change_delegate(s: &AppState, key: &str, workflow: &str, click: bool) -> Res<String> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::RunsStart,
+        "specs_change_delegate",
+        key,
+    )?;
     let label = crate::assistant::run_label(workflow)?;
     if !crate::factory::workflows(s)?
         .iter()
@@ -400,7 +433,14 @@ pub fn write(
     create: bool,
 ) -> Res<Written> {
     let p = project(s)?;
-    let out = put(s, &path_of(&p, rel)?, text, stamp, create)?;
+    let out = put(
+        s,
+        &path_of(&p, rel)?,
+        text,
+        stamp,
+        create,
+        crate::rights::Right::SpecsEdit,
+    )?;
     // The text changed, so the last validation no longer says anything about it.
     if let Some(id) = change_of(&p, rel).filter(|_| !out.conflict) {
         s.specs.forget(&p.id, &id);
@@ -487,7 +527,14 @@ pub fn question_save(s: &AppState, rel: &str, q: &Question, stamp: Option<&str>)
         return Err(format!("duplicate id {}", q.id));
     }
     let old = std::fs::read_to_string(&full).unwrap_or_default();
-    put(s, &full, &raid::write_over(q, &old)?, stamp, false)
+    put(
+        s,
+        &full,
+        &raid::write_over(q, &old)?,
+        stamp,
+        false,
+        crate::rights::Right::SpecsEdit,
+    )
 }
 
 /// Create a question file. An empty id takes the next free one. It returns the path.
@@ -636,7 +683,7 @@ pub fn fold_answer(
     stamp: &str,
     click: bool,
 ) -> Res<Written> {
-    need_click(s, click)?;
+    need_click(s, click, crate::rights::Right::SpecsEdit, "specs_fold", rel)?;
     let p = project(s)?;
     let full = path_of(&p, rel)?;
     if !design::is_under(rel, p.file.path("specs")) || !rel.ends_with("/spec.md") {
@@ -749,7 +796,13 @@ pub fn split_preview(s: &AppState, change: &str) -> Res<SplitPreview> {
 /// again from the draft and the mirror, so a second apply finds each ticket by its row ref and
 /// creates none.
 pub fn split_apply(s: &AppState, change: &str, click: bool) -> Res<Vec<ApplyRow>> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "specs_split_apply",
+        "",
+    )?;
     let d = split_draft(s, change)?;
     let p = project(s)?;
     let problems = split::check(&d, &known_reqs(&p));
@@ -766,7 +819,7 @@ pub fn split_apply(s: &AppState, change: &str, click: bool) -> Res<Vec<ApplyRow>
 /// Archive a change after the click of a person. Work items of the change that are not done are
 /// open items: they need `confirmed` (REQ-020).
 pub fn archive_change(s: &AppState, id: &str, confirmed: bool) -> Res<Vec<String>> {
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::SpecsEdit, "specs_archive", id)?;
     change_id(id)?;
     let p = project(s)?;
     // No tracker means no mirrored items.

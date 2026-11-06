@@ -6,16 +6,35 @@ import {
 	commands,
 	type Density,
 	type Prefs_Serialize,
-	type Role,
+	type Role_Serialize,
+	type TeamRole,
 	type Theme,
 	unwrap,
 } from "@/lib/ipc";
 import { logError } from "@/lib/log";
 import { useActiveProject } from "@/lib/projects";
+import { useRightsView } from "@/lib/rights";
 import { resolveTheme, themeVars } from "@/lib/themes";
 
-export type { Accent, Contrast, Density, Role, Theme };
-export const ROLES = ["pm", "architect", "developer", "qa", "ba", "lead", "junior"] as const;
+export type { Accent, Contrast, Density, Theme };
+/** A personal role as the views see it: a stored `junior` shows as `developer` (`FROM_OLD`). */
+export type Role = Exclude<Role_Serialize, "junior">;
+/** The nine roles of the team. A personal role of Settings / Me is one of them, or `none`. */
+export const TEAM_ROLES: TeamRole[] = [
+	"po",
+	"pm",
+	"architect",
+	"techlead",
+	"ba",
+	"developer",
+	"qa",
+	"designer",
+	"viewer",
+];
+/** The personal roles of Settings / Me: the nine of the team. */
+export const ROLES: Role[] = TEAM_ROLES;
+/** A role of an older Shipyard that the registry can still hold (Q-145). */
+const FROM_OLD: Record<string, Role> = { lead: "po", junior: "developer" };
 /** A setting that a project can override. */
 export type Overridable = "theme" | "density" | "contrast";
 export type Prefs = Pick<
@@ -122,18 +141,16 @@ export function useSystemDark() {
 	return dark;
 }
 
-type Ctx = Prefs & {
+type Ctx = Omit<Prefs, "role"> & {
+	/** The personal role as the views see it. */
+	role: Role;
 	setPrefs: (patch: Partial<Prefs>) => void;
 	/** The settings that the active project overrides. They show the project value. */
 	overridden: Overridable[];
-	/** The profile of the project: the spaces that stay visible (null is all), the hidden tabs as `space/tab`, and read only. */
-	profile: {
-		tabs: string[] | null;
-		hiddenTabs: string[];
-		/** The pages (`space/tab`) that the profile reads and does not edit. */
-		readOnlyTabs: string[];
-		readOnly: boolean;
-	};
+	/** The role of the person for the views: the role of the team file, else the personal role. `null`: none. */
+	teamRole: TeamRole | null;
+	/** The read-only profile of the project. */
+	profile: { readOnly: boolean };
 	loaded: boolean;
 };
 const PrefsContext = createContext<Ctx | null>(null);
@@ -147,6 +164,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 	const [loaded, setLoaded] = useState(false);
 	const project = useActiveProject().data;
 	const [email, setEmail] = useState<string | null>(null);
+	const teamPerson = useRightsView().data?.person.role ?? null;
 
 	// The git e-mail picks the profile that the project assigns to this person.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: read again when the project changes
@@ -167,27 +185,13 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 		const o = project?.overrides;
 		const overridden = (["theme", "density", "contrast"] as const).filter((k) => o?.[k]);
 		// The assignment of this person wins, then the role of the project profile, then the personal role.
-		const role =
-			((email && o?.assignments?.[email]) as Role | undefined) ||
-			(o?.profileRole as Role | null | undefined) ||
-			personal.role;
-		const modes = o?.pageModes?.[role] ?? {};
-		const pagesIn = (mode: string) =>
-			Object.entries(modes)
-				.filter(([, m]) => m === mode)
-				.map(([page]) => page);
+		const raw = (email && o?.assignments?.[email]) || o?.profileRole || personal.role;
+		const role = FROM_OLD[raw] ?? (raw as Role);
 		return {
 			...personal,
 			role,
-			// Show all pages: the profile hides no page. Read only stays.
-			profile: {
-				tabs: o?.profileTabs?.length && !personal.showAllPages ? o.profileTabs : null,
-				hiddenTabs: personal.showAllPages
-					? []
-					: [...new Set([...(o?.hiddenTabs ?? []), ...pagesIn("hidden")])],
-				readOnlyTabs: pagesIn("read-only"),
-				readOnly: o?.readOnly === true,
-			},
+			teamRole: teamPerson ?? (role === "none" ? null : role),
+			profile: { readOnly: o?.readOnly === true },
 			theme: o?.theme ?? personal.theme,
 			density: o?.density ?? personal.density,
 			contrast: o?.contrast ?? personal.contrast,
@@ -201,7 +205,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 				unwrap(commands.prefsSet(wire)).catch(logError);
 			},
 		};
-	}, [personal, project, loaded, email]);
+	}, [personal, project, loaded, email, teamPerson]);
 
 	const accent = project?.overrides.accent ?? personal.accent;
 	const systemDark = useSystemDark();

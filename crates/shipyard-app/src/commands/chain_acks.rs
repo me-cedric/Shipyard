@@ -62,7 +62,14 @@ fn save(s: &AppState, root: &Path, mut acks: Vec<ChainAck>) -> Res<()> {
     if let Some(dir) = full.parent() {
         std::fs::create_dir_all(dir).map_err(err)?;
     }
-    let w = put(s, &full, &text, stamp.as_deref(), stamp.is_none())?;
+    let w = put(
+        s,
+        &full,
+        &text,
+        stamp.as_deref(),
+        stamp.is_none(),
+        crate::rights::Right::SpecsEdit,
+    )?;
     if w.conflict {
         return Err("the acknowledgements changed on disk: read them again".into());
     }
@@ -87,7 +94,13 @@ pub fn acknowledge(
     reason: &str,
     click: bool,
 ) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::SpecsEdit,
+        "code_chain_ack",
+        from,
+    )?;
     let reason = reason.trim();
     if reason.is_empty() {
         return Err("a reason is needed".into());
@@ -112,7 +125,13 @@ pub fn acknowledge(
 
 /// Take the acknowledgement back, after the click of a person.
 pub fn withdraw(s: &AppState, from: &str, to: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::SpecsEdit,
+        "code_chain_ack_withdraw",
+        from,
+    )?;
     let root = root(s)?;
     let mut acks = read(&root);
     let before = acks.len();
@@ -168,7 +187,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let s = AppState::new(dir.path().join("data"));
         let root = dir.path().join("p");
-        std::fs::create_dir_all(&root).unwrap();
+        // A write needs an open project: its team file gives the rights.
+        shipyard_git::project::init(&root).unwrap();
+        crate::commands::projects::open(&s, root.to_str().unwrap()).unwrap();
         let ack = ChainAck {
             from: "specs".into(),
             to: "api".into(),

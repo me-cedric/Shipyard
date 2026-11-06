@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
@@ -35,8 +35,10 @@ describe("Specs / Changes: from a ticket", () => {
 		const dialog = await screen.findByRole("dialog");
 		await user.click(within(dialog).getByRole("combobox", { name: "Ticket" }));
 		await user.click(await screen.findByRole("option", { name: "ACME-2 Add export endpoint" }));
-		await user.click(within(dialog).getByRole("button", { name: "Create" }));
-		expect(await within(dialog).findByRole("alert")).toBeVisible();
+		// The control is off with the reason: the click never reaches the backend.
+		const create = within(dialog).getByRole("button", { name: "Create" });
+		await waitFor(() => expect(create).toBeDisabled());
+		expect(create).toHaveAccessibleDescription(/specs\.edit/);
 		expect(
 			mockState().specs.files["docs/openspec/changes/add-export-endpoint/proposal.md"],
 		).toBeUndefined();

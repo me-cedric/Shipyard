@@ -25,6 +25,39 @@ fn cut(text: &mut String, max: usize) -> bool {
 }
 
 impl Repo {
+    /// The default branch of `remote` as last fetched: the target of `<remote>/HEAD`, else
+    /// `<remote>/main`, else `<remote>/master`. `None` when the remote has no such branch here.
+    pub fn default_branch(&self, remote: &str) -> Option<String> {
+        let head = format!("refs/remotes/{remote}/HEAD");
+        let target = self
+            .repo
+            .find_reference(&head)
+            .ok()
+            .and_then(|r| r.symbolic_target().ok().flatten().map(str::to_string))
+            .and_then(|t| t.strip_prefix("refs/remotes/").map(str::to_string));
+        target
+            .into_iter()
+            .chain(["main", "master"].map(|b| format!("{remote}/{b}")))
+            .find(|b| {
+                self.repo
+                    .find_reference(&format!("refs/remotes/{b}"))
+                    .is_ok()
+            })
+    }
+
+    /// The text of `path` at `rev`. `None` when the tree of `rev` has no such file.
+    pub fn text_at(&self, rev: &str, path: &str) -> Result<Option<String>> {
+        check_paths(&[path.to_string()])?;
+        let tree = self.repo.revparse_single(rev)?.peel_to_tree()?;
+        let entry = match tree.get_path(std::path::Path::new(path)) {
+            Ok(e) => e,
+            Err(e) if e.code() == git2::ErrorCode::NotFound => return Ok(None),
+            Err(e) => return Err(e.into()),
+        };
+        let blob = self.repo.find_blob(entry.id())?;
+        Ok(Some(String::from_utf8_lossy(blob.content()).into_owned()))
+    }
+
     /// The tag names, sorted (spec `code`, REQ-029: a tag is a base to compare with).
     pub fn tags(&self) -> Result<Vec<String>> {
         let names = self.repo.tag_names(None)?;

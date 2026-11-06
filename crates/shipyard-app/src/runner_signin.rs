@@ -12,7 +12,6 @@ use shipyard_secrets::Secret;
 use tauri::AppHandle;
 
 use crate::commands::{Api, Res, blocking};
-use crate::work::need_click;
 
 /// The login command that the terminal runs. `device` is the Codex code flow (Q-135). The
 /// Gemini row runs `agy` when that is the program found: its first run asks for the sign-in.
@@ -53,7 +52,7 @@ fn sign_in_command(id: &str, device: bool) -> Res<String> {
 #[specta::specta]
 pub async fn runner_sign_in(app: AppHandle, id: String, device: bool, click: bool) -> Api<String> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         shipyard_agents::runner::clear_signed_out(&id);
         sign_in_command(&id, device)
     })
@@ -109,7 +108,7 @@ fn with_api_key(program: &Path, key: &Secret, limit: std::time::Duration) -> Res
 #[specta::specta]
 pub async fn runner_codex_api_key(app: AppHandle, key: String, click: bool) -> Api<()> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         let key = Secret::new(key.trim());
         if key.expose().is_empty() {
             return Err("paste a key first".into());

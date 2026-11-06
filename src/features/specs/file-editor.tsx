@@ -1,5 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useRights } from "@/lib/rights";
 import { useViewState } from "@/lib/shell/view-state";
 import { useFile, useSpecsActions } from "@/lib/specs";
 import { BookOpenIcon, PencilIcon } from "@/ui/icons";
@@ -54,6 +55,7 @@ export function FileEditor({
 	children?: ReactNode;
 }) {
 	const { t } = useI18n();
+	const { gate } = useRights();
 	const file = useFile(missing ? null : path);
 	const act = useSpecsActions();
 	const { error, run } = useGuard();
@@ -156,6 +158,7 @@ export function FileEditor({
 				label: t.specs.save,
 				onClick: () => void save(opened ?? file.data?.stamp ?? null),
 				disabled: !dirty || saving || (base === undefined && !missing),
+				reason: gate("specs.edit").reason,
 			}}
 			save={disk !== null ? "conflict" : dirty ? "dirty" : "clean"}
 			error={shown ? { message: shown, line: errorLine(shown) } : (problem ?? null)}

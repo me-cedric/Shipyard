@@ -270,3 +270,48 @@ fn a_slow_write_does_not_hold_the_factory() {
     });
     assert_eq!(fx.writer.sent().len(), before + 1);
 }
+
+#[test]
+fn a_write_that_the_member_of_the_run_cannot_do_waits_with_its_switch_on() {
+    use shipyard_core::rights::Right;
+    use shipyard_engine::run_engine::Actor;
+    let fx = Fx::new(writes(true), &[ONE]);
+    // `cy` has no `work.edit`: the ticket moves of the run wait for a person who has it.
+    let cy = Actor {
+        by: "cy".into(),
+        rights: vec![Right::CodeWrite],
+    };
+    fx.f.set_actor("ship", Some(cy));
+    let run = fx.start("SHIP-1", &[]);
+    assert!(fx.writer.sent().is_empty());
+    let pending = fx.f.approvals();
+    assert_eq!(pending.len(), 2);
+    assert!(pending.iter().all(|a| a.write.right() == Right::WorkEdit));
+    // Each event of the run names its member.
+    let log = fx.logged(&run, "write");
+    assert!(!log.is_empty() && log.iter().all(|w| w["by"] == "cy"));
+    // One click of a person with the right sends it.
+    fx.f.approve(pending[0].id).unwrap();
+    assert_eq!(fx.writer.sent(), [pending[0].write.clone()]);
+    // A run of a member with the right sends at once.
+    fx.f.set_actor(
+        "ship",
+        Some(Actor {
+            by: "ana".into(),
+            rights: vec![Right::WorkEdit],
+        }),
+    );
+    fx.f.cancel(&run).unwrap();
+    fx.start("SHIP-2", &[]);
+    assert!(fx.writer.sent().len() > 1);
+}
+
+#[test]
+fn a_run_with_no_member_has_no_right_and_its_writes_wait() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    // A project whose person cannot be found: fail closed (`team-rights` REQ-009).
+    fx.f.set_actor("ship", None);
+    fx.start("SHIP-1", &[]);
+    assert!(fx.writer.sent().is_empty());
+    assert!(!fx.f.approvals().is_empty());
+}

@@ -71,14 +71,12 @@ describe("router", () => {
 		expect(current(await sidebar())).toHaveAccessibleName(name);
 	});
 
-	it("opens Knowledge for junior and keeps all 8 entries", async () => {
+	it("opens Factory for a junior, as for a developer, and keeps all 8 entries", async () => {
 		mount("/", "junior");
 		const nav = await sidebar();
-		expect(
-			await within(nav).findByRole("link", { name: "Knowledge", current: "page" }),
-		).toBeTruthy();
+		expect(await within(nav).findByRole("link", { name: "Factory", current: "page" })).toBeTruthy();
 		const links = within(nav).getAllByRole("link");
-		const names = ["Home", "Knowledge", "Design", "Specs", "Work", "Factory", "Code", "Settings"];
+		const names = ["Home", "Factory", "Design", "Specs", "Work", "Code", "Knowledge", "Settings"];
 		expect(links).toHaveLength(names.length);
 		for (const [i, name] of names.entries()) expect(links[i]).toHaveAccessibleName(name);
 	});

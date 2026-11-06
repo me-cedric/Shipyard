@@ -5,6 +5,7 @@ import { ENDED, useRunActions, useRunDiff, useRunLog, useRuns, useWorkflow } fro
 import { useRunWaits } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import type { RunView } from "@/lib/ipc";
+import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -39,6 +40,7 @@ export function progressOf(run: RunView) {
 /** The run view: actions, cost, graph, findings, diff and event tail (factory REQ-027, REQ-028). */
 export function RunDetail({ id }: { id: string }) {
 	const { t } = useI18n();
+	const { gate } = useRights();
 	// The events start collapsed: the strip, the plan and the banner say what matters.
 	const [eventsOpen, setEventsOpen] = useState(false);
 	const f = t.factory;
@@ -95,16 +97,19 @@ export function RunDetail({ id }: { id: string }) {
 				>
 					<span className="min-w-0 flex-1">{stopReason(f.why, run, log.events)}</span>
 					{run.state === "Failed" ? (
-						<Button
+						<RightButton
+							right="runs.start"
 							variant="primary"
 							onClick={() => void guard(async () => openRef(`run:${await act.start(run.key)}`))}
 						>
 							{f.why.again}
-						</Button>
+						</RightButton>
 					) : run.state === "Blocked" ? (
 						<>
 							{lastBlock(log.events)?.startsWith("nothing to deliver") ? (
-								<Button onClick={() => void guard(() => act.closeDone(id))}>{f.closeDone}</Button>
+								<RightButton right="runs.start" onClick={() => void guard(() => act.closeDone(id))}>
+									{f.closeDone}
+								</RightButton>
 							) : null}
 							<form
 								className="flex items-center gap-2"
@@ -122,9 +127,9 @@ export function RunDetail({ id }: { id: string }) {
 									value={message}
 									onChange={(e) => setMessage(e.target.value)}
 								/>
-								<Button type="submit" variant="primary">
+								<RightButton right="runs.start" type="submit" variant="primary">
 									{f.unblock}
-								</Button>
+								</RightButton>
 							</form>
 						</>
 					) : (
@@ -144,9 +149,9 @@ export function RunDetail({ id }: { id: string }) {
 								value={message}
 								onChange={(e) => setMessage(e.target.value)}
 							/>
-							<Button type="submit" variant="primary">
+							<RightButton right="runs.start" type="submit" variant="primary">
 								{f.resume}
-							</Button>
+							</RightButton>
 						</form>
 					)}
 				</div>
@@ -162,12 +167,19 @@ export function RunDetail({ id }: { id: string }) {
 							value={note}
 							onChange={(e) => setNote(e.target.value)}
 						/>
-						<Button onClick={() => void guard(() => act.planReject(id, note))}>
+						<RightButton
+							right="runs.approve"
+							onClick={() => void guard(() => act.planReject(id, note))}
+						>
 							{f.planReject}
-						</Button>
-						<Button variant="primary" onClick={() => void guard(() => act.planApprove(id))}>
+						</RightButton>
+						<RightButton
+							right="runs.approve"
+							variant="primary"
+							onClick={() => void guard(() => act.planApprove(id))}
+						>
 							{f.planApprove}
-						</Button>
+						</RightButton>
 					</>
 				) : null}
 				{run.state === "Paused" ? (
@@ -184,6 +196,7 @@ export function RunDetail({ id }: { id: string }) {
 				{ENDED.includes(run.state) ? null : (
 					<ConfirmButton
 						variant="danger"
+						{...gate("runs.start")}
 						confirm={format(f.machine.confirmStop, { name: run.key })}
 						onConfirm={() => void guard(() => act.cancel(id))}
 					>

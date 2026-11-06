@@ -14,7 +14,6 @@ use specta::Type;
 use tauri::AppHandle;
 
 use crate::commands::{Api, AppState, Res, blocking, err};
-use crate::work::need_click;
 
 const API: &str = "https://api.figma.com/v1";
 /// A `.fig` file of the repository is read up to this size.
@@ -185,7 +184,7 @@ pub async fn figma_token_state(app: AppHandle) -> Api<bool> {
 #[specta::specta]
 pub async fn figma_token_set(app: AppHandle, token: String, click: bool) -> Api<()> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         s.agents
             .mcp_set_field("figma", "token", Secret::new(token.trim()))
     })

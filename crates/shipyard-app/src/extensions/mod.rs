@@ -50,7 +50,12 @@ pub async fn compass_preview(app: AppHandle, kind: Kind, id: String) -> Api<Stri
 #[specta::specta]
 pub async fn compass_apply(app: AppHandle, entries: Vec<String>) -> Api<Applied> {
     blocking(app, move |s| {
-        crate::work::refuse_read_only(s)?;
+        crate::rights::require(
+            s,
+            crate::rights::Right::ProjectSettings,
+            "compass_apply",
+            "",
+        )?;
         compass::apply(&root(s)?, &entries)
     })
     .await
@@ -60,7 +65,12 @@ pub async fn compass_apply(app: AppHandle, entries: Vec<String>) -> Api<Applied>
 #[specta::specta]
 pub async fn compass_upgrade(app: AppHandle, selection: Option<Vec<String>>) -> Api<Applied> {
     blocking(app, move |s| {
-        crate::work::refuse_read_only(s)?;
+        crate::rights::require(
+            s,
+            crate::rights::Right::ProjectSettings,
+            "compass_upgrade",
+            "",
+        )?;
         compass::upgrade(&root(s)?, selection.as_deref())
     })
     .await
@@ -91,7 +101,12 @@ pub async fn catalog_preview(app: AppHandle, id: String) -> Api<WriteReport> {
 #[specta::specta]
 pub async fn catalog_deploy(app: AppHandle, id: String) -> Api<WriteReport> {
     blocking(app, move |s| {
-        crate::work::refuse_read_only(s)?;
+        crate::rights::require(
+            s,
+            crate::rights::Right::ProjectSettings,
+            "catalog_deploy",
+            &id,
+        )?;
         catalog::deploy(&root(s)?, &id).map_err(err)
     })
     .await
@@ -147,7 +162,12 @@ pub async fn plugin_apply(
     accepted: Vec<String>,
 ) -> Api<PluginApplied> {
     blocking(app, move |s| {
-        crate::work::refuse_read_only(s)?;
+        crate::rights::require(
+            s,
+            crate::rights::Right::ProjectSettings,
+            "plugin_apply",
+            &path,
+        )?;
         let plugin = plugin_at(&path)?;
         let done = plugins::apply(&root(s)?, &plugin, &accepted).map_err(err)?;
         // The path stays in the app data folder, never in the repository file.
@@ -496,6 +516,13 @@ pub async fn child_deploy(
     keys: Vec<String>,
 ) -> Api<Vec<ChildResult>> {
     blocking(app, move |s| {
+        // A deploy commits project settings to the children, as a deploy to this project does.
+        crate::rights::require(
+            s,
+            crate::rights::Right::ProjectSettings,
+            "child_deploy",
+            &ids.join(","),
+        )?;
         let parent = root(s)?;
         let at = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

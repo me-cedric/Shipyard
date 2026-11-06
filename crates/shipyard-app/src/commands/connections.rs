@@ -162,7 +162,13 @@ pub async fn connections_create_repo(
 }
 
 pub fn create_repo(s: &AppState, id: &str, slug: &str, click: bool) -> Res<Repository> {
-    crate::work::need_click(s, click)?;
+    crate::work::need_click(
+        s,
+        click,
+        crate::rights::Right::ProjectSettings,
+        "connections_create_repo",
+        slug,
+    )?;
     s.connections
         .pull_api(id)?
         .create_repo(slug)

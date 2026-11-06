@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
-import { Button } from "@/ui/atoms/button";
+import { RightButton } from "@/lib/rights";
 import { Input } from "@/ui/atoms/input";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Dialog } from "@/ui/organisms/dialog";
@@ -57,13 +57,14 @@ export function FileActionDialog({
 			onOpenChange={(o) => !o && onClose()}
 			title={title}
 			actions={
-				<Button
+				<RightButton
+					right="code.write"
 					variant="primary"
 					disabled={action.kind !== "delete" && !name?.trim()}
 					onClick={() => void run()}
 				>
 					{action.kind === "delete" ? f.trash : f.confirm}
-				</Button>
+				</RightButton>
 			}
 		>
 			{action.kind === "delete" ? null : (

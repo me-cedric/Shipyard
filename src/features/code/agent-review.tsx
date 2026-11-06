@@ -9,6 +9,7 @@ import {
 	type ReviewVerdict,
 	unwrap,
 } from "@/lib/ipc";
+import { RightButton } from "@/lib/rights";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
@@ -121,9 +122,14 @@ function Draft({ d, draft }: { d: PullDetail; draft: ReviewDraft }) {
 					{draft.posted ? (
 						<Badge variant="success">{t.forge.agent.posted}</Badge>
 					) : (
-						<Button variant="primary" disabled={posting} onClick={() => void post()}>
+						<RightButton
+							right="runs.approve"
+							variant="primary"
+							disabled={posting}
+							onClick={() => void post()}
+						>
 							{t.forge.agent.post}
-						</Button>
+						</RightButton>
 					)}
 				</div>
 				<ErrorNotice error={error} className="text-ui text-danger-text" />
@@ -158,10 +164,14 @@ export function AgentReview({ d }: { d: PullDetail }) {
 		<>
 			{d.state === "open" ? (
 				<section className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
-					<Button disabled={busy || draft != null} onClick={() => void start()}>
+					<RightButton
+						right="runs.start"
+						disabled={busy || draft != null}
+						onClick={() => void start()}
+					>
 						<SparklesIcon size={14} />
 						{busy ? t.forge.agent.reviewing : t.forge.agent.review}
-					</Button>
+					</RightButton>
 					{busy ? (
 						<Button variant="ghost" onClick={() => void commands.prReviewStop(d.number)}>
 							{t.forge.agent.stop}

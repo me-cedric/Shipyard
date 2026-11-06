@@ -8,6 +8,7 @@ import {
 	type SyncState,
 	unwrap,
 } from "@/lib/ipc";
+import { RightButton } from "@/lib/rights";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { LinkIcon, ShieldCheckIcon } from "@/ui/icons";
@@ -76,11 +77,15 @@ export function DoctorCompliance() {
 								{d.skills[STATUS[e.state as SyncState]]}
 							</Badge>
 							{e.state === "current" ? null : (
-								<Button variant="secondary" onClick={() => void fix(e)}>
+								<RightButton
+									right="project.settings"
+									variant="secondary"
+									onClick={() => void fix(e)}
+								>
 									{format(e.state === "stale" ? d.skills.upgrade : d.skills.apply, {
 										name: e.title,
 									})}
-								</Button>
+								</RightButton>
 							)}
 						</div>
 					))}

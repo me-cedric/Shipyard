@@ -308,6 +308,18 @@ describe("mock work: the rules of the Rust commands", () => {
 		});
 	});
 
+	it("writes a join request on a branch with the role viewer, only after a click", async () => {
+		resetMock({ work: emptyWork() });
+		await withTracker();
+		const ask = { name: "Zed Nobody", emails: ["zed@example.com"], accounts: [], role: "qa" };
+		await expect(unwrap(commands.workTeamJoin(ask, false))).rejects.toMatchObject({
+			details: expect.stringContaining("click"),
+		});
+		const sent = await unwrap(commands.workTeamJoin(ask, true));
+		expect(sent).toMatchObject({ branch: "shipyard/join-zed", url: null });
+		expect(sent.entry).toContain("role: viewer");
+	});
+
 	it("resolves members and sheets and lists their backlinks", async () => {
 		await withTracker();
 		expect(await unwrap(commands.refsResolve("member:ada"))).toMatchObject({

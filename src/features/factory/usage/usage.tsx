@@ -5,8 +5,8 @@ import { NoProject } from "@/features/work/no-project";
 import { useFactoryWrites, useUsage } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
+import { RightButton } from "@/lib/rights";
 import { useViewState } from "@/lib/shell/view-state";
-import { Button } from "@/ui/atoms/button";
 import { CountUp } from "@/ui/atoms/count-up";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
@@ -187,9 +187,14 @@ export function Usage() {
 						value={amount}
 						onChange={(e) => setAmount(e.target.value)}
 					/>
-					<Button variant="primary" disabled={!key.trim()} onClick={set}>
+					<RightButton
+						right="project.settings"
+						variant="primary"
+						disabled={!key.trim()}
+						onClick={set}
+					>
 						{f.setBudget}
-					</Button>
+					</RightButton>
 				</span>
 			}
 			toolbar={

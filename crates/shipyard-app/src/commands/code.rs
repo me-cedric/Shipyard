@@ -19,7 +19,6 @@ use specta::Type;
 use tauri::{AppHandle, Emitter};
 
 use super::{Api, AppState, Res, blocking, err};
-use crate::work::refuse_read_only;
 
 /// A diff above this size is cut. The view says so.
 const MAX_DIFF: usize = 256 * 1024;
@@ -35,6 +34,16 @@ fn repo(s: &AppState) -> Res<Repo> {
     Repo::open(Path::new(&e.path)).map_err(err)
 }
 
+/// `code.write`, or `project.settings` when a path is the team file or a folder that holds it.
+fn paths_right(s: &AppState, paths: &[String]) -> Res<crate::rights::Right> {
+    let e = s.registry()?.active().cloned().ok_or("no active project")?;
+    let root = Path::new(&e.path);
+    Ok(paths
+        .iter()
+        .map(|p| crate::rights::path_right(root, &root.join(p)))
+        .fold(crate::rights::Right::CodeWrite, crate::rights::both))
+}
+
 pub fn status(s: &AppState) -> Res<Changes> {
     repo(s)?.status_with_lines().map_err(err)
 }
@@ -44,24 +53,24 @@ pub fn diff(s: &AppState, path: &str, side: DiffSide) -> Res<FileDiff> {
 }
 
 pub fn stage(s: &AppState, paths: &[String]) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::CodeWrite, "code_stage", "")?;
     repo(s)?.stage(paths).map_err(err)
 }
 
 pub fn unstage(s: &AppState, paths: &[String]) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::CodeWrite, "code_unstage", "")?;
     repo(s)?.unstage(paths).map_err(err)
 }
 
 /// The caller asks for the confirmation (REQ-004). `untracked` deletes the untracked files.
 pub fn discard(s: &AppState, paths: &[String], untracked: bool) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, paths_right(s, paths)?, "code_discard", "")?;
     repo(s)?.discard(paths, untracked).map_err(err)
 }
 
 /// Commits the staged files. The summary follows `<type>(<scope>): <subject>` (REQ-008).
 pub fn commit(s: &AppState, summary: &str, description: &str) -> Res<String> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::CodeWrite, "code_commit", "")?;
     check_summary(summary).map_err(|e| e.message())?;
     let sha = repo(s)?.commit(summary, description).map_err(err)?;
     // The commit exists. A failure of the link index must not hide it: History links it later.
@@ -97,43 +106,68 @@ pub fn branches(s: &AppState) -> Res<Vec<Branch>> {
 
 /// Creates a branch from the current head and switches to it (REQ-012).
 pub fn branch_create(s: &AppState, name: &str) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        crate::rights::Right::CodeWrite,
+        "code_branch_create",
+        name,
+    )?;
     check_branch_name(name).map_err(|e| e.message())?;
     repo(s)?.create_branch(name).map_err(err)
 }
 
 pub fn branch_switch(s: &AppState, name: &str) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        crate::rights::Right::CodeWrite,
+        "code_branch_switch",
+        name,
+    )?;
     repo(s)?.switch_branch(name).map_err(err)
 }
 
 /// Merges a branch into the working branch. Conflicts leave the merge in progress.
 pub fn branch_merge(s: &AppState, name: &str) -> Res<MergeOutcome> {
-    refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        crate::rights::Right::CodeWrite,
+        "code_branch_merge",
+        name,
+    )?;
     repo(s)?.merge_branch(name).map_err(err)
 }
 
 /// Ends a merge in progress. The working copy goes back to HEAD.
 pub fn merge_abort(s: &AppState) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::CodeWrite, "code_merge_abort", "")?;
     repo(s)?.merge_abort().map_err(err)
 }
 
 /// Rebases the working branch onto a branch. Conflicts leave the rebase in progress.
 pub fn branch_rebase(s: &AppState, onto: &str) -> Res<RebaseOutcome> {
-    refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        crate::rights::Right::CodeWrite,
+        "code_branch_rebase",
+        onto,
+    )?;
     repo(s)?.rebase_branch(onto).map_err(err)
 }
 
 /// Commits the step that a person resolved and runs the next steps.
 pub fn rebase_continue(s: &AppState) -> Res<RebaseOutcome> {
-    refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        crate::rights::Right::CodeWrite,
+        "code_rebase_continue",
+        "",
+    )?;
     repo(s)?.rebase_continue().map_err(err)
 }
 
 /// Ends a rebase in progress. The branch goes back as it was.
 pub fn rebase_abort(s: &AppState) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::CodeWrite, "code_rebase_abort", "")?;
     repo(s)?.rebase_abort().map_err(err)
 }
 
@@ -144,12 +178,17 @@ pub fn blame(s: &AppState, path: &str) -> Res<Vec<BlameLine>> {
 
 /// The caller asks for the confirmation that names the branch (REQ-013).
 pub fn branch_delete(s: &AppState, name: &str, force: bool) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        crate::rights::Right::CodeWrite,
+        "code_branch_delete",
+        name,
+    )?;
     repo(s)?.delete_branch(name, force).map_err(err)
 }
 
 pub fn stash_push(s: &AppState, message: Option<&str>) -> Res<String> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::CodeWrite, "code_stash_push", "")?;
     repo(s)?
         .stash_push(message.map(str::trim).filter(|m| !m.is_empty()))
         .map_err(err)
@@ -160,12 +199,12 @@ pub fn stash_list(s: &AppState) -> Res<Vec<Stash>> {
 }
 
 pub fn stash_apply(s: &AppState, index: u32) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::CodeWrite, "code_stash_apply", "")?;
     repo(s)?.stash_apply(index as usize).map_err(err)
 }
 
 pub fn stash_drop(s: &AppState, id: &str) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::CodeWrite, "code_stash_drop", id)?;
     repo(s)?.stash_drop(id).map_err(err)
 }
 
@@ -188,7 +227,12 @@ pub enum Resolution {
 }
 
 pub fn resolve(s: &AppState, path: &str, how: &Resolution) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        paths_right(s, &[path.to_string()])?,
+        "code_resolve",
+        path,
+    )?;
     let r = repo(s)?;
     match how {
         Resolution::Blocks { choices } => r.resolve_blocks(path, choices),
@@ -218,7 +262,7 @@ pub fn fetch(s: &AppState) -> Res<()> {
 /// The sync action (REQ-014): fetch, then bring the working branch up to date. A working copy
 /// with uncommitted changes keeps them: the fetch runs and the error names the files.
 pub fn pull(s: &AppState) -> Res<PullOutcome> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::CodeWrite, "code_pull", "")?;
     let r = repo(s)?;
     let (name, auth) = remote(&r, s)?;
     let st = r.status().map_err(err)?;
@@ -240,7 +284,7 @@ pub fn pull(s: &AppState) -> Res<PullOutcome> {
 
 /// Publishes the working branch. It never forces (REQ-014).
 pub fn push(s: &AppState) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::CodeWrite, "code_push", "")?;
     let r = repo(s)?;
     let (name, auth) = remote(&r, s)?;
     r.push(&name, &auth).map_err(err)
@@ -249,7 +293,7 @@ pub fn push(s: &AppState) -> Res<()> {
 /// Replaces the remote branch with the working branch while the remote still holds the commit of
 /// the last fetch. The caller asks for the confirmation.
 pub fn push_force(s: &AppState) -> Res<()> {
-    refuse_read_only(s)?;
+    crate::rights::require(s, crate::rights::Right::CodeWrite, "code_push_force", "")?;
     let r = repo(s)?;
     let (name, auth) = remote(&r, s)?;
     r.push_force_with_lease(&name, &auth).map_err(err)
@@ -1070,7 +1114,15 @@ mod tests {
             push_force(&s).unwrap_err(),
             branch_delete(&s, "main", true).unwrap_err(),
             // The one writer of the design, spec and knowledge files.
-            crate::design::put(&s, &root.join("x.md"), "x", None, true).unwrap_err(),
+            crate::design::put(
+                &s,
+                &root.join("x.md"),
+                "x",
+                None,
+                true,
+                crate::rights::Right::KnowledgeEdit,
+            )
+            .unwrap_err(),
             crate::auto_commit::run(&s, "chore: save")
                 .map(|_| ())
                 .unwrap_err(),

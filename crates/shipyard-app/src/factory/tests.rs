@@ -88,6 +88,10 @@ pub(crate) fn fx(writes: Writes) -> Fx {
             refs: s.index_of(&id).ok(),
         },
     );
+    // The runs act for the person of the project: solo, every right (`team-rights` REQ-009).
+    s.factory
+        .factory
+        .set_actor(&id, crate::rights::actor(&s, &id));
     let events: Arc<Mutex<Vec<(String, Ping)>>> = Arc::default();
     let seen = events.clone();
     s.factory

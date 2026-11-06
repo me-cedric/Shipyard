@@ -3,6 +3,7 @@ import { useConflicts } from "@/lib/code";
 import { useWorkflows } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
+import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
 import { ArrowUpTrayIcon, ChatBubbleIcon } from "@/ui/icons";
@@ -28,7 +29,8 @@ export function ConflictAgent() {
 				{c.agent}
 			</Button>
 			{workflow ? (
-				<Button
+				<RightButton
+					right="runs.start"
 					variant="ghost"
 					onClick={() =>
 						unwrap(commands.conflictToFactory(workflow, true))
@@ -41,7 +43,7 @@ export function ConflictAgent() {
 				>
 					<ArrowUpTrayIcon size={14} />
 					{c.factory}
-				</Button>
+				</RightButton>
 			) : null}
 			{sent ? (
 				<span role="status" className="text-12">

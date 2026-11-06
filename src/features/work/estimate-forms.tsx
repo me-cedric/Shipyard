@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
+import { RightButton, RightIconButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import {
 	type Confidence,
@@ -12,9 +13,7 @@ import {
 	useTeam,
 	useWorkActions,
 } from "@/lib/work";
-import { Button } from "@/ui/atoms/button";
 import { Checkbox } from "@/ui/atoms/checkbox";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Textarea } from "@/ui/atoms/textarea";
@@ -252,7 +251,8 @@ export function TaskForm({ slug, taskId }: { slug: string; taskId: string | null
 			<Textarea caption label={e.note} value={note} onChange={(ev) => setNote(ev.target.value)} />
 			<Alert text={error} />
 			<div className="flex items-center gap-2">
-				<Button
+				<RightButton
+					right="work.edit"
 					type="submit"
 					disabled={
 						name.trim() === "" ||
@@ -263,9 +263,10 @@ export function TaskForm({ slug, taskId }: { slug: string; taskId: string | null
 					}
 				>
 					{t.work.save}
-				</Button>
+				</RightButton>
 				{found ? (
-					<IconButton
+					<RightIconButton
+						right="work.edit"
 						label={t.work.remove}
 						disabled={sheet.frozen === true}
 						onClick={() =>
@@ -282,7 +283,7 @@ export function TaskForm({ slug, taskId }: { slug: string; taskId: string | null
 						}
 					>
 						<TrashIcon size={14} />
-					</IconButton>
+					</RightIconButton>
 				) : null}
 			</div>
 		</form>
@@ -360,12 +361,13 @@ export function SheetForm({
 			/>
 			<Alert text={error} />
 			<div>
-				<Button
+				<RightButton
+					right="work.edit"
 					type="submit"
 					disabled={name.trim() === "" || target === "" || view?.sheet.frozen === true}
 				>
 					{t.work.save}
-				</Button>
+				</RightButton>
 			</div>
 		</form>
 	);

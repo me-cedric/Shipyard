@@ -14,6 +14,7 @@ import {
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { copyText, type Handlers, useMenus } from "@/lib/menus";
+import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
 import { Badge } from "@/ui/atoms/badge";
@@ -129,7 +130,8 @@ function Stashes({ dirty, run }: { dirty: boolean; run: (job: () => Promise<unkn
 		>
 			<div className="flex items-center gap-2 px-3 pb-1">
 				<Input label={t.code.stashName} value={name} onChange={(e) => setName(e.target.value)} />
-				<Button
+				<RightButton
+					right="code.write"
 					disabled={!dirty}
 					onClick={() =>
 						run(async () => {
@@ -139,14 +141,19 @@ function Stashes({ dirty, run }: { dirty: boolean; run: (job: () => Promise<unkn
 					}
 				>
 					{t.code.stash}
-				</Button>
+				</RightButton>
 			</div>
 			{stashes.map((s) => (
 				<SettingsRow key={s.id} label={s.message}>
-					<Button variant="ghost" onClick={() => run(() => applyStash(s.index))}>
+					<RightButton
+						right="code.write"
+						variant="ghost"
+						onClick={() => run(() => applyStash(s.index))}
+					>
 						{t.code.apply}
-					</Button>
-					<Button
+					</RightButton>
+					<RightButton
+						right="code.write"
 						variant="ghost"
 						onClick={() =>
 							run(async () => {
@@ -156,7 +163,7 @@ function Stashes({ dirty, run }: { dirty: boolean; run: (job: () => Promise<unkn
 						}
 					>
 						{t.code.drop}
-					</Button>
+					</RightButton>
 				</SettingsRow>
 			))}
 		</Panel>
@@ -232,23 +239,30 @@ export function ConflictPane({
 						{t.code.editResult}
 					</Button>
 				) : null}
-				<Button
+				<RightButton
+					right="code.write"
 					variant="ghost"
 					onClick={() => run(() => resolve(file.path, { kind: "whole", side: "ours" }))}
 				>
 					{t.code.takeOurs}
-				</Button>
-				<Button
+				</RightButton>
+				<RightButton
+					right="code.write"
 					variant="ghost"
 					onClick={() => run(() => resolve(file.path, { kind: "whole", side: "theirs" }))}
 				>
 					{t.code.takeTheirs}
-				</Button>
-				<Button variant="ghost" onClick={() => run(() => resolve(file.path, { kind: "marked" }))}>
+				</RightButton>
+				<RightButton
+					right="code.write"
+					variant="ghost"
+					onClick={() => run(() => resolve(file.path, { kind: "marked" }))}
+				>
 					{t.code.markResolved}
-				</Button>
+				</RightButton>
 				{file.text ? (
-					<Button
+					<RightButton
+						right="code.write"
 						disabled={!picked}
 						onClick={() =>
 							run(() =>
@@ -260,7 +274,7 @@ export function ConflictPane({
 						}
 					>
 						{t.code.resolve}
-					</Button>
+					</RightButton>
 				) : null}
 			</div>
 			{edited !== null ? (
@@ -272,12 +286,13 @@ export function ConflictPane({
 						className="min-h-48 font-mono"
 					/>
 					<div className="flex gap-2">
-						<Button
+						<RightButton
+							right="code.write"
 							variant="primary"
 							onClick={() => run(() => resolve(file.path, { kind: "text", text: edited }))}
 						>
 							{t.code.saveResult}
-						</Button>
+						</RightButton>
 						<Button variant="ghost" onClick={() => setEdited(null)}>
 							{t.code.cancelResult}
 						</Button>
@@ -329,6 +344,7 @@ function ChangesView() {
 			: [],
 	);
 	const { setFilesOpen } = useShell();
+	const { gate } = useRights();
 	const run = (job: () => Promise<unknown>) => void runJob(job);
 	if (!changes)
 		return <PageHeader icon={<CodeBracketIcon size={16} />} title={t.tabs.code.changes} />;
@@ -344,12 +360,12 @@ function ChangesView() {
 		await discard(paths, untracked);
 	};
 
-	// The same actions as the group buttons, for one file.
+	// The same actions as the group buttons, for one file. Without `code.write` they show, off.
 	const fileMenu = (file: FileChange, own: Handlers) =>
 		menu("file", {
 			...own,
 			"copy-path": () => copyText(file.path),
-		});
+		}).map((item) => (item.id in own ? { ...item, ...gate("code.write") } : item));
 
 	const open = (pulls ?? []).filter((r) => r.state === "open");
 	return (
@@ -400,9 +416,13 @@ function ChangesView() {
 							onSelect={setPath}
 							menu={(f) => fileMenu(f, { unstage: () => run(() => unstage([f.path])) })}
 							actions={(paths) => (
-								<Button variant="ghost" onClick={() => run(() => unstage(paths))}>
+								<RightButton
+									right="code.write"
+									variant="ghost"
+									onClick={() => run(() => unstage(paths))}
+								>
 									{format(t.count, { name: t.code.unstage, count: paths.length })}
-								</Button>
+								</RightButton>
 							)}
 						/>
 						<FileGroup
@@ -418,12 +438,20 @@ function ChangesView() {
 							}
 							actions={(paths, files) => (
 								<>
-									<Button variant="ghost" onClick={() => run(() => discardGroup(paths, files))}>
+									<RightButton
+										right="code.write"
+										variant="ghost"
+										onClick={() => run(() => discardGroup(paths, files))}
+									>
 										{format(t.count, { name: t.code.discard, count: paths.length })}
-									</Button>
-									<Button variant="primary" onClick={() => run(() => stage(paths))}>
+									</RightButton>
+									<RightButton
+										right="code.write"
+										variant="primary"
+										onClick={() => run(() => stage(paths))}
+									>
 										{format(t.count, { name: t.code.stage, count: paths.length })}
-									</Button>
+									</RightButton>
 								</>
 							)}
 						/>

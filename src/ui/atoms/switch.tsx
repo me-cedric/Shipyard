@@ -6,13 +6,20 @@ export type SwitchProps = Omit<ComponentProps<typeof BaseSwitch.Root>, "aria-lab
 	label: string;
 	/** Hide the visible text. The name stays for assistive tools. */
 	iconOnly?: boolean;
+	/** Why it is disabled: the tooltip and the description of the switch. */
+	reason?: string;
 };
 
-export function Switch({ label, iconOnly, className, ...props }: SwitchProps) {
+export function Switch({ label, iconOnly, reason, className, disabled, ...props }: SwitchProps) {
 	return (
-		<label className="inline-flex h-row items-center gap-2 text-ui">
+		<label
+			title={disabled ? reason : undefined}
+			className="inline-flex h-row items-center gap-2 text-ui"
+		>
 			<BaseSwitch.Root
 				aria-label={label}
+				aria-description={disabled ? reason : undefined}
+				disabled={disabled}
 				className={cn(
 					"relative inline-flex h-4 w-7 shrink-0 items-center rounded-full border border-n-8 bg-n-3 transition-colors duration-(--duration-fast) data-[checked]:border-transparent data-[checked]:bg-accent",
 					className,

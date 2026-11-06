@@ -2,11 +2,11 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { PageExport } from "@/features/reports/page-export";
 import { useI18n } from "@/lib/i18n";
+import { RightButton } from "@/lib/rights";
 import { KINDS, type QuestionEntry, STATUSES, useQuestions } from "@/lib/specs";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
-import { Button } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ChatBubbleIcon, PlusIcon } from "@/ui/icons";
@@ -82,10 +82,10 @@ function Register() {
 			count={all?.length}
 			action={
 				all?.length ? (
-					<Button variant="primary" onClick={create}>
+					<RightButton right="specs.edit" variant="primary" onClick={create}>
 						<PlusIcon size={14} />
 						{s.new}
-					</Button>
+					</RightButton>
 				) : null
 			}
 			toolbar={

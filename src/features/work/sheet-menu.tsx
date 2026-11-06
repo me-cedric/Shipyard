@@ -3,6 +3,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
+import { useRights } from "@/lib/rights";
 import {
 	figure,
 	money,
@@ -47,9 +48,11 @@ export function SheetMenu({
 	const { t } = useI18n();
 	const s = t.costing.sheet;
 	const act = useWorkActions();
+	const { can } = useRights();
 	const sheet = view.sheet;
 	const name = sheet.name || view.slug;
 	const frozen = sheet.frozen === true;
+	const off = !can("work.edit");
 	return (
 		<MenuButton
 			label={s.actions}
@@ -60,13 +63,14 @@ export function SheetMenu({
 					id: "rename",
 					label: s.rename,
 					icon: <PencilIcon size={14} />,
-					disabled: frozen,
+					disabled: frozen || off,
 					onSelect: onRename,
 				},
 				{
 					id: "duplicate",
 					label: s.duplicate,
 					icon: <PlusIcon size={14} />,
+					disabled: off,
 					onSelect: () =>
 						void run(async () => {
 							const slug = freeSlug(slugs, slugify(view.slug) || "sheet");
@@ -79,13 +83,14 @@ export function SheetMenu({
 					id: "freeze",
 					label: frozen ? s.unfreeze : s.freeze,
 					icon: frozen ? <LockOpenIcon size={14} /> : <LockClosedIcon size={14} />,
+					disabled: off,
 					onSelect: () => void run(() => act.saveSheet(view.slug, { ...sheet, frozen: !frozen })),
 				},
 				{
 					id: "delete",
 					label: s.delete,
 					icon: <TrashIcon size={14} />,
-					disabled: frozen,
+					disabled: frozen || off,
 					onSelect: () =>
 						void run(async () => {
 							if (!(await confirmDialog(format(s.confirmDelete, { name })))) return;
@@ -103,6 +108,7 @@ export function ProfileTable({ slug, currency }: { slug: string | null; currency
 	const { t, lang } = useI18n();
 	const e = t.work.estimates;
 	const rows = useProfiles(slug).data ?? [];
+	const costs = useRights().can("costs.view");
 	const columns = useMemo<ColumnDef<ProfileSum>[]>(
 		() => [
 			{
@@ -122,7 +128,9 @@ export function ProfileTable({ slug, currency }: { slug: string | null; currency
 				header: e.cost,
 				meta: { width: "9rem", numeric: true },
 				cell: ({ row }) =>
-					row.original.cost == null ? (
+					!costs ? (
+						"—"
+					) : row.original.cost == null ? (
 						// The rates are set in Work / Team.
 						<Link to="/work/team" className="text-accent-text underline">
 							{e.unrated}
@@ -132,7 +140,7 @@ export function ProfileTable({ slug, currency }: { slug: string | null; currency
 					),
 			},
 		],
-		[t, e, lang, currency],
+		[t, e, lang, currency, costs],
 	);
 	return (
 		<div className="flex min-h-48 flex-col overflow-hidden rounded-lg border bg-surface-1 shadow-1">

@@ -10,7 +10,6 @@ use tauri::AppHandle;
 
 use crate::agents::{Agents, Provider, ProviderDraft};
 use crate::commands::{Api, Res, blocking};
-use crate::work::need_click;
 
 const MAX_KEY: usize = 4096;
 
@@ -138,7 +137,7 @@ pub async fn providers_key_save(
     click: bool,
 ) -> Api<Provider> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         save_key(
             &s.agents,
             &*s.connections.http(),
@@ -160,7 +159,7 @@ pub async fn local_runtimes_list(app: AppHandle) -> Api<Vec<LocalRuntime>> {
 #[specta::specta]
 pub async fn local_runtimes_add(app: AppHandle, id: String, click: bool) -> Api<Provider> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         add_local(&s.agents, &*s.connections.http(), &id)
     })
     .await

@@ -54,21 +54,6 @@ describe("Settings / Project overrides and profile", () => {
 		await waitFor(() => expect(mockState().projects[0]?.overrides.remoteWatch).toBe(false));
 		await user.click(screen.getByRole("switch", { name: "Read only" }));
 		await waitFor(() => expect(mockState().projects[0]?.overrides.readOnly).toBe(true));
-		await user.click(screen.getByRole("switch", { name: "Spaces Factory" }));
-		await waitFor(() =>
-			expect(mockState().projects[0]?.overrides.profileTabs).not.toContain("factory"),
-		);
-	});
-
-	it("hides the spaces that the profile hides and keeps Home and Settings", async () => {
-		await open("/mock/alpha");
-		const p = mockState().projects[0];
-		if (p) p.overrides.profileTabs = ["code"];
-		mountApp("/home/today");
-		await screen.findByRole("link", { name: /Code/ });
-		expect(screen.queryByRole("link", { name: /Factory/ })).toBeNull();
-		expect(screen.getByRole("link", { name: /Settings/ })).toBeInTheDocument();
-		expect(screen.getByRole("link", { name: /Home/ })).toBeInTheDocument();
 	});
 });
 

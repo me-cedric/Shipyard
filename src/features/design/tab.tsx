@@ -6,11 +6,11 @@ import { useI18n } from "@/lib/i18n";
 import { copyText, useAsk, useMenus, useRename, useTrash } from "@/lib/menus";
 import { useActiveProject, useProjectActions } from "@/lib/projects";
 import { useRefFilter } from "@/lib/refs";
+import { RightButton } from "@/lib/rights";
 import { useFormIntent, useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
 import { cn } from "@/lib/utils";
 import { Badge, type badgeVariants } from "@/ui/atoms/badge";
-import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { FolderOpenIcon, PlusIcon, QueueListIcon, ViewColumnsIcon } from "@/ui/icons";
@@ -81,9 +81,14 @@ function NewDialog({
 			onOpenChange={(open) => !open && onClose()}
 			title={noun}
 			actions={
-				<Button variant="primary" disabled={!name.trim()} onClick={() => void submit()}>
+				<RightButton
+					right="design.edit"
+					variant="primary"
+					disabled={!name.trim()}
+					onClick={() => void submit()}
+				>
 					{t.design.create}
-				</Button>
+				</RightButton>
 			}
 		>
 			<form
@@ -247,10 +252,10 @@ export function ArtifactTab({
 			}
 			action={
 				rows.length === 0 ? undefined : (
-					<Button variant="primary" onClick={add}>
+					<RightButton right="design.edit" variant="primary" onClick={add}>
 						<PlusIcon size={14} />
 						{noun}
-					</Button>
+					</RightButton>
 				)
 			}
 		>

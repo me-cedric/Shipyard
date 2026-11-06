@@ -23,8 +23,8 @@ const FIRST: Partial<Record<Role, AskKey>> = {
 	qa: "tests",
 	developer: "impact",
 	architect: "impact",
-	lead: "risks",
-	junior: "explain",
+	po: "risks",
+	techlead: "risks",
 };
 
 export function askKeys(ref: string, role: Role): AskKey[] {

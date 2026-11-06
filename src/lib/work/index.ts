@@ -32,6 +32,7 @@ import {
 	unwrap,
 	type WorkContext_Serialize,
 } from "@/lib/ipc";
+import { rightsKey } from "@/lib/rights";
 import { syncKeys } from "@/lib/sync";
 
 export type Member = Member_Serialize;
@@ -208,6 +209,8 @@ export function useWorkActions() {
 				await Promise.all([
 					qc.invalidateQueries({ queryKey: workKeys.all }),
 					qc.invalidateQueries({ queryKey: syncKeys.all }),
+					// The team file gives the rights.
+					qc.invalidateQueries({ queryKey: rightsKey }),
 				]);
 			}
 		};

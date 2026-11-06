@@ -27,7 +27,6 @@ use tauri::AppHandle;
 use crate::commands::{Api, AppState, Res, blocking, err};
 use crate::design::{Proj, project};
 use crate::knowledge::{ExportText, meta, write_export};
-use crate::work::refuse_read_only;
 
 /// The folder of the change requests, in the delivery folder.
 pub const CHANGE_REQUESTS: &str = "docs/delivery/change-requests";
@@ -48,7 +47,7 @@ pub(crate) fn need_export_click(s: &AppState, path: &str, click: bool) -> Res<()
         .zip(root)
         .is_some_and(|(dir, root)| dir.starts_with(root));
     if inside {
-        refuse_read_only(s)?;
+        crate::rights::require(s, crate::rights::Right::KnowledgeEdit, "export_file", path)?;
     }
     Ok(())
 }
@@ -379,7 +378,13 @@ pub fn export_change_request(
     approvers: &[String],
     click: bool,
 ) -> Res<ChangeRequestOut> {
-    crate::work::need_click(s, click)?;
+    crate::work::need_click(
+        s,
+        click,
+        crate::rights::Right::KnowledgeEdit,
+        "export_change_request_files",
+        "",
+    )?;
     let (base, head) = (check_ref(base)?, check_ref(head)?);
     let title = title.split_whitespace().collect::<Vec<_>>().join(" ");
     if title.is_empty() || title.len() > 200 {

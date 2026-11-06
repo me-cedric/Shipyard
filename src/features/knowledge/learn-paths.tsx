@@ -9,6 +9,7 @@ import {
 	type StepKind,
 	unwrap,
 } from "@/lib/ipc";
+import { RightButton, RightIconButton } from "@/lib/rights";
 import { useTeam } from "@/lib/work";
 import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
@@ -137,9 +138,14 @@ function PathForm({
 			</fieldset>
 			<ErrorNotice error={failure} />
 			<div className="flex gap-2">
-				<Button type="submit" variant="primary" disabled={!d.title.trim()}>
+				<RightButton
+					right="knowledge.edit"
+					type="submit"
+					variant="primary"
+					disabled={!d.title.trim()}
+				>
 					{k.save}
-				</Button>
+				</RightButton>
 				<Button variant="ghost" onClick={onDone}>
 					{k.cancel}
 				</Button>
@@ -194,13 +200,14 @@ export function LearnPaths() {
 								items={people.map((m) => ({ value: m.handle, label: m.name }))}
 							/>
 						) : null}
-						<Button
+						<RightButton
+							right="knowledge.edit"
 							disabled={editing !== null}
 							onClick={() => setEditing({ id: "", title: "", experts: [], steps: [blankStep()] })}
 						>
 							<PlusIcon size={14} />
 							{k.newPath}
-						</Button>
+						</RightButton>
 					</span>
 				}
 				bodyClassName="flex flex-col gap-3 p-3"
@@ -228,23 +235,26 @@ export function LearnPaths() {
 								<span className="font-mono text-12 text-n-11">
 									{done}/{p.steps.length}
 								</span>
-								<IconButton
+								<RightIconButton
+									right="knowledge.edit"
 									label={format(k.editName, { name: p.title })}
 									disabled={editing !== null}
 									onClick={() => setEditing({ ...p })}
 								>
 									<PencilIcon size={14} />
-								</IconButton>
-								<IconButton
+								</RightIconButton>
+								<RightIconButton
+									right="knowledge.edit"
 									label={format(k.removeName, { name: p.title })}
 									onClick={() => setRemoving(removing === p.id ? null : p.id)}
 								>
 									<TrashIcon size={14} />
-								</IconButton>
+								</RightIconButton>
 							</div>
 							{removing === p.id ? (
 								<div className="flex gap-2">
-									<Button
+									<RightButton
+										right="knowledge.edit"
 										variant="danger"
 										onClick={() =>
 											void change(async () => {
@@ -255,7 +265,7 @@ export function LearnPaths() {
 										}
 									>
 										{format(k.confirmRemove, { name: p.title })}
-									</Button>
+									</RightButton>
 									<Button variant="ghost" onClick={() => setRemoving(null)}>
 										{k.cancel}
 									</Button>

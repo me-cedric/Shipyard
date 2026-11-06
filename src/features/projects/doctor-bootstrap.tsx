@@ -2,9 +2,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { type BootstrapAnswers, commands, unwrap } from "@/lib/ipc";
+import { RightButton } from "@/lib/rights";
 import { Badge } from "@/ui/atoms/badge";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
-import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
@@ -135,7 +135,8 @@ export function DoctorBootstrap() {
 									/>
 									{x.id}
 									{!x.installed && x.canInstall ? (
-										<Button
+										<RightButton
+											right="project.settings"
 											variant="secondary"
 											busy={working === x.id}
 											disabled={working !== null}
@@ -143,7 +144,7 @@ export function DoctorBootstrap() {
 										>
 											<ArrowDownTrayIcon size={14} />
 											{format(t.settings.tools.install, { name: x.id })}
-										</Button>
+										</RightButton>
 									) : null}
 								</span>
 							))}
@@ -151,7 +152,8 @@ export function DoctorBootstrap() {
 					</>
 				) : null}
 				<div className="flex items-center gap-3">
-					<Button
+					<RightButton
+						right="project.settings"
 						variant="primary"
 						busy={working === "create"}
 						disabled={!shown?.files.some((f) => f.state === "new") || working !== null}
@@ -159,7 +161,7 @@ export function DoctorBootstrap() {
 					>
 						<PlusIcon size={14} />
 						{d.create}
-					</Button>
+					</RightButton>
 					{note ? (
 						<span role="status" className="text-ui text-success-text">
 							{note}

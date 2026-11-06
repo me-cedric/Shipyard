@@ -258,8 +258,14 @@ export const commands = {
 	syncLink: (local: string, key: string) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("sync_link", { local, key })),
 	syncUnlink: (local: string) => typedError<boolean, AppError_Serialize>(__TAURI_INVOKE("sync_unlink", { local })),
 	workContext: (offsetMinutes: number) => typedError<WorkContext_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_context", { offsetMinutes })),
+	/**  The person and the rights in the open project, for the views (REQ-008). */
+	rightsGet: () => typedError<RightsView_Serialize, AppError_Serialize>(__TAURI_INVOKE("rights_get")),
+	/**  The last lines of the audit log of the open project. */
+	rightsAuditTail: () => typedError<AuditLine_Serialize[], AppError_Serialize>(__TAURI_INVOKE("rights_audit_tail")),
 	workTeam: () => typedError<TeamView_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_team")),
 	workTeamAddMe: (click: boolean) => typedError<TeamView_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_team_add_me", { click })),
+	/**  Ask to join the team of the open project (REQ-011). */
+	workTeamJoin: (ask: JoinAsk, click: boolean) => typedError<JoinSent_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_team_join", { ask, click })),
 	workTeamSave: (team: Team_Deserialize) => typedError<TeamView_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_team_save", { team })),
 	workSuggest: (key: string) => typedError<Suggestion[], AppError_Serialize>(__TAURI_INVOKE("work_suggest", { key })),
 	workAssign: (key: string, member: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("work_assign", { key, member, click })),
@@ -727,6 +733,8 @@ export type ApprovalView = {
 	detail: string,
 	/**  A push that rewrites history. */
 	force: boolean,
+	/**  The right that a click needs, with `runs.approve` (`team-rights` REQ-014). */
+	right: Right,
 };
 
 export type Artifact = Artifact_Serialize | Artifact_Deserialize;
@@ -904,6 +912,41 @@ export type Attachment = {
 	/**  The text of a text file, or the line that names the image path for the runner. */
 	quote: string,
 	bytes: number,
+};
+
+/**  One line of `audit/<project key>.jsonl` (REQ-010). */
+export type AuditLine = AuditLine_Serialize | AuditLine_Deserialize;
+
+/**  One line of `audit/<project key>.jsonl` (REQ-010). */
+export type AuditLine_Deserialize = {
+	/**  Unix seconds. */
+	time: number,
+	/**  The handle of the member. `None`: solo or unknown. */
+	member?: string | null,
+	found: Found,
+	right: Right,
+	/**  The command or the tool. */
+	what: string,
+	/**  The target ref. Empty when the command gives none. */
+	target: string,
+	/**  `allowed`, `refused`, or `requested` for a join request. */
+	result: string,
+};
+
+/**  One line of `audit/<project key>.jsonl` (REQ-010). */
+export type AuditLine_Serialize = {
+	/**  Unix seconds. */
+	time: number,
+	/**  The handle of the member. `None`: solo or unknown. */
+	member: string | null,
+	found: Found,
+	right: Right,
+	/**  The command or the tool. */
+	what: string,
+	/**  The target ref. Empty when the command gives none. */
+	target: string,
+	/**  `allowed`, `refused`, or `requested` for a join request. */
+	result: string,
 };
 
 /**
@@ -2317,6 +2360,15 @@ export type FocusRing = "keyboard" | "always";
 /**  The result of [`Repo::fast_forward`]. */
 export type Forward = "up-to-date" | "moved";
 
+/**  How Shipyard found the person (REQ-003, REQ-004). */
+export type Found = 
+/**  The team file names no admin yet: every person has every right. */
+"solo" | 
+/**  The account of a signed-in issue tracker or code host connection. */
+"account" | 
+/**  The git e-mail. */
+"email" | "unknown";
+
 export type Gantt = Gantt_Serialize | Gantt_Deserialize;
 
 export type Gantt_Deserialize = {
@@ -2536,6 +2588,42 @@ export type Item_Serialize = {
 	reqs: string[],
 	/**  The row id of the epic of a story. */
 	parent: string | null,
+};
+
+export type JoinAsk = {
+	name: string,
+	emails: string[],
+	/**  More accounts. The logins of the signed-in connections of the project are added. */
+	accounts: string[],
+	/**
+	 *  The role that the person asks for. The entry gets `viewer`: the pull request names this
+	 *  role, and an admin sets it.
+	 */
+	role: string,
+};
+
+export type JoinSent = JoinSent_Serialize | JoinSent_Deserialize;
+
+export type JoinSent_Deserialize = {
+	/**  The branch that holds the entry: `shipyard/join-<handle>`. */
+	branch: string,
+	/**  The pull request. `None`: no code host connection, the branch is local only. */
+	url?: string | null,
+	/**  The command that sends the branch, when no pull request opened. */
+	push?: string | null,
+	/**  The member entry as YAML, for the person to send to an admin. */
+	entry: string,
+};
+
+export type JoinSent_Serialize = {
+	/**  The branch that holds the entry: `shipyard/join-<handle>`. */
+	branch: string,
+	/**  The pull request. `None`: no code host connection, the branch is local only. */
+	url: string | null,
+	/**  The command that sends the branch, when no pull request opened. */
+	push: string | null,
+	/**  The member entry as YAML, for the person to send to an admin. */
+	entry: string,
 };
 
 export type KGraph = KGraph_Serialize | KGraph_Deserialize;
@@ -2972,7 +3060,14 @@ export type Member_Deserialize = {
 	handle?: string,
 	/**  The accounts of this person in the trackers (a Jira account id, a GitHub login). */
 	trackers?: string[],
+	/**  The git e-mails of this person (`team-rights` REQ-003). */
+	emails?: string[],
+	/**  One of the roles of `crate::rights::Role`. Another text gives the rights of `viewer`. */
 	role?: string,
+	/**  Gives each right (`team-rights` REQ-005). */
+	admin?: boolean,
+	/**  Changes of the rights of the role: `+right` or `-right`. */
+	rights?: string[],
 	/**  Days per week. */
 	capacity?: number | null,
 	skills?: string[],
@@ -2987,7 +3082,14 @@ export type Member_Serialize = {
 	handle: string,
 	/**  The accounts of this person in the trackers (a Jira account id, a GitHub login). */
 	trackers: string[],
+	/**  The git e-mails of this person (`team-rights` REQ-003). */
+	emails?: string[],
+	/**  One of the roles of `crate::rights::Role`. Another text gives the rights of `viewer`. */
 	role: string,
+	/**  Gives each right (`team-rights` REQ-005). */
+	admin?: boolean,
+	/**  Changes of the rights of the role: `+right` or `-right`. */
+	rights?: string[],
 	/**  Days per week. */
 	capacity: number | null,
 	skills: string[],
@@ -3566,7 +3668,7 @@ export type PrefsPatch_Deserialize = {
 	theme?: Theme | null,
 	density?: Density | null,
 	contrast?: Contrast | null,
-	role?: Role | null,
+	role?: Role_Deserialize | null,
 	sidebarOpen?: boolean | null,
 	lang?: Lang | null,
 	releaseUrl?: string | null,
@@ -3612,7 +3714,7 @@ export type PrefsPatch_Serialize = {
 	theme: Theme | null,
 	density: Density | null,
 	contrast: Contrast | null,
-	role: Role | null,
+	role: Role_Serialize | null,
 	sidebarOpen: boolean | null,
 	lang: Lang | null,
 	releaseUrl: string | null,
@@ -3658,7 +3760,7 @@ export type Prefs_Deserialize = {
 	theme: Theme,
 	density: Density,
 	contrast: Contrast,
-	role: Role,
+	role: Role_Deserialize,
 	sidebarOpen: boolean,
 	/**  `None` until the person picks one. The UI then follows the system language. */
 	lang?: Lang | null,
@@ -3747,7 +3849,7 @@ export type Prefs_Serialize = {
 	theme: Theme,
 	density: Density,
 	contrast: Contrast,
-	role: Role,
+	role: Role_Serialize,
 	sidebarOpen: boolean,
 	/**  `None` until the person picks one. The UI then follows the system language. */
 	lang: Lang | null,
@@ -4540,7 +4642,96 @@ export type ReviewerVerdict = {
 	state: string,
 };
 
-export type Role = "none" | "pm" | "architect" | "developer" | "qa" | "ba" | "lead" | "junior";
+/**  One right. Each write command and each write tool needs one (REQ-007). */
+export type Right = "work.edit" | "specs.edit" | "design.edit" | "knowledge.edit" | "code.write" | "code.merge" | "runs.start" | "runs.approve" | "project.settings" | 
+/**  The one read right: amounts of money (REQ-005). */
+"costs.view";
+
+/**  The person in the open project and the rights that the person has now. */
+export type RightsPerson = RightsPerson_Serialize | RightsPerson_Deserialize;
+
+/**  The person in the open project and the rights that the person has now. */
+export type RightsPerson_Deserialize = {
+	/**  The handle of the member. `None`: solo, or unknown. */
+	member?: string | null,
+	found: Found,
+	/**  The role of the team file. `None`: solo. */
+	role?: TeamRole | null,
+	admin: boolean,
+	/**  The read-only profile of the project is on. */
+	readOnly: boolean,
+	/**
+	 *  The rights after the personal narrowing and the read-only profile, in the order of
+	 *  [`Right::ALL`].
+	 */
+	rights: Right[],
+};
+
+/**  The person in the open project and the rights that the person has now. */
+export type RightsPerson_Serialize = {
+	/**  The handle of the member. `None`: solo, or unknown. */
+	member: string | null,
+	found: Found,
+	/**  The role of the team file. `None`: solo. */
+	role: TeamRole | null,
+	admin: boolean,
+	/**  The read-only profile of the project is on. */
+	readOnly: boolean,
+	/**
+	 *  The rights after the personal narrowing and the read-only profile, in the order of
+	 *  [`Right::ALL`].
+	 */
+	rights: Right[],
+};
+
+/**
+ *  What the views need: the person, where the rights come from, the warnings and the table of the
+ *  default rights of each role (REQ-002, REQ-003, REQ-008).
+ */
+export type RightsView = RightsView_Serialize | RightsView_Deserialize;
+
+/**
+ *  What the views need: the person, where the rights come from, the warnings and the table of the
+ *  default rights of each role (REQ-002, REQ-003, REQ-008).
+ */
+export type RightsView_Deserialize = {
+	person: RightsPerson_Deserialize,
+	/**  The default branch that gives the rights (`origin/main`). `None`: the working copy. */
+	branch?: string | null,
+	/**  Unix seconds of the last fetch, when known. */
+	fetched?: number | null,
+	/**
+	 *  `team-differs`: the team file of the working copy is not the one of the default branch.
+	 *  `team-invalid`: the team file cannot be read, so the person is `viewer`.
+	 */
+	warnings: string[],
+	roles: RoleRights[],
+};
+
+/**
+ *  What the views need: the person, where the rights come from, the warnings and the table of the
+ *  default rights of each role (REQ-002, REQ-003, REQ-008).
+ */
+export type RightsView_Serialize = {
+	person: RightsPerson_Serialize,
+	/**  The default branch that gives the rights (`origin/main`). `None`: the working copy. */
+	branch: string | null,
+	/**  Unix seconds of the last fetch, when known. */
+	fetched: number | null,
+	/**
+	 *  `team-differs`: the team file of the working copy is not the one of the default branch.
+	 *  `team-invalid`: the team file cannot be read, so the person is `viewer`.
+	 */
+	warnings: string[],
+	roles: RoleRights[],
+};
+
+/**
+ *  The personal role of Settings / Me: one of the nine team roles (`team-rights`, Q-145). It only
+ *  narrows the rights of the team file. An older Shipyard stored `lead` and `junior`: `lead` loads
+ *  as `po`. `junior` stays: it is `developer` without `code.merge` and `runs.approve` (REQ-015).
+ */
+export type Role = Role_Serialize | Role_Deserialize;
 
 export type RoleFile = RoleFile_Serialize | RoleFile_Deserialize;
 
@@ -4586,6 +4777,11 @@ export type RoleItem_Serialize = {
 	bundled: boolean,
 };
 
+export type RoleRights = {
+	role: TeamRole,
+	rights: Right[],
+};
+
 export type RoleSkillKind = "role" | "skill";
 
 export type RoleSkillRow = RoleSkillRow_Serialize | RoleSkillRow_Deserialize;
@@ -4611,6 +4807,24 @@ export type RoleSkillRow_Serialize = {
 	/**  The file, relative to the project root. `None` for a bundled role with no project file. */
 	path: string | null,
 };
+
+/**
+ *  The personal role of Settings / Me: one of the nine team roles (`team-rights`, Q-145). It only
+ *  narrows the rights of the team file. An older Shipyard stored `lead` and `junior`: `lead` loads
+ *  as `po`. `junior` stays: it is `developer` without `code.merge` and `runs.approve` (REQ-015).
+ */
+export type Role_Deserialize = "none" | "po" | "lead" | "pm" | "architect" | "techlead" | "ba" | "developer" | 
+/**  A role of an older Shipyard. Settings / Me does not offer it. */
+"junior" | "qa" | "designer" | "viewer";
+
+/**
+ *  The personal role of Settings / Me: one of the nine team roles (`team-rights`, Q-145). It only
+ *  narrows the rights of the team file. An older Shipyard stored `lead` and `junior`: `lead` loads
+ *  as `po`. `junior` stays: it is `developer` without `code.merge` and `runs.approve` (REQ-015).
+ */
+export type Role_Serialize = "none" | "po" | "pm" | "architect" | "techlead" | "ba" | "developer" | 
+/**  A role of an older Shipyard. Settings / Me does not offer it. */
+"junior" | "qa" | "designer" | "viewer";
 
 /**  One ticket that the sheets ask for. A feature is an epic. A task is a story. */
 export type Row = Row_Serialize | Row_Deserialize;
@@ -5486,6 +5700,9 @@ export type Task_Serialize = {
 };
 
 export type Team = Team_Serialize | Team_Deserialize;
+
+/**  The roles of the team file (REQ-005). `admin` is a flag of the member, not a role. */
+export type TeamRole = "po" | "pm" | "architect" | "techlead" | "ba" | "developer" | "qa" | "designer" | "viewer";
 
 export type TeamView = TeamView_Serialize | TeamView_Deserialize;
 

@@ -2,6 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { type PointerEvent, useMemo, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
+import { RightButton, useRights } from "@/lib/rights";
 import { useViewState } from "@/lib/shell/view-state";
 import {
 	type Confidence,
@@ -12,7 +13,6 @@ import {
 	type Task,
 	useWorkActions,
 } from "@/lib/work";
-import { Button } from "@/ui/atoms/button";
 import { Checkbox } from "@/ui/atoms/checkbox";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
@@ -115,6 +115,7 @@ export function EstimateBacklog({
 	const { failure, run } = useGuard();
 	const sheet = view.sheet;
 	const frozen = sheet.frozen === true;
+	const { can } = useRights();
 	const [query, setQuery] = useViewState("filters:estimate-query", "");
 	const [active, setActive] = useViewState<string[]>("filters:estimate-active", []);
 	const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -208,7 +209,7 @@ export function EstimateBacklog({
 						/>
 						<MoveHandle
 							label={format(c.task.move, { name: task.name })}
-							disabled={frozen}
+							disabled={frozen || !can("work.edit")}
 							onMove={(by) => void save(moveTask(sheet, task.id, by, visible))}
 						/>
 					</span>
@@ -295,9 +296,9 @@ export function EstimateBacklog({
 							value={role}
 							onChange={(ev) => setRole(ev.target.value)}
 						/>
-						<Button type="submit" disabled={role.trim() === ""}>
+						<RightButton right="work.edit" type="submit" disabled={role.trim() === ""}>
 							{c.bulk.apply}
-						</Button>
+						</RightButton>
 					</form>
 					<Select
 						caption
@@ -328,10 +329,10 @@ export function EstimateBacklog({
 							...sheet.features.map((f) => ({ value: f.id, label: f.name })),
 						]}
 					/>
-					<Button onClick={() => void run(removeAll)}>
+					<RightButton right="work.edit" onClick={() => void run(removeAll)}>
 						<TrashIcon size={14} />
 						{c.bulk.delete}
-					</Button>
+					</RightButton>
 					<IconButton label={c.bulk.clear} onClick={() => setPicked(new Set())}>
 						<XMarkIcon size={14} />
 					</IconButton>

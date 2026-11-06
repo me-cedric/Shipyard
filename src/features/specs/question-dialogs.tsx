@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { FileActionDialog } from "@/features/code/file-actions";
 import { useI18n } from "@/lib/i18n";
+import { RightButton } from "@/lib/rights";
 import {
 	capabilityOf,
 	KINDS,
@@ -127,7 +128,8 @@ export function QuestionDialog({
 			onOpenChange={(o) => !o && onClose()}
 			title={entry ? entry.question.id : s.new}
 			actions={
-				<Button
+				<RightButton
+					right="specs.edit"
 					variant="primary"
 					disabled={q.title.trim() === "" || needsAnswer || (!!entry && !file.data)}
 					onClick={() => {
@@ -136,7 +138,7 @@ export function QuestionDialog({
 					}}
 				>
 					{t.specs.save}
-				</Button>
+				</RightButton>
 			}
 		>
 			<div className="grid grid-cols-2 gap-2">
@@ -224,7 +226,8 @@ export function FoldDialog({ entry, onClose }: { entry: QuestionEntry; onClose: 
 			onOpenChange={(o) => !o && onClose()}
 			title={`${s.fold} ${q.id}`}
 			actions={
-				<Button
+				<RightButton
+					right="specs.edit"
 					variant="primary"
 					disabled={!target || !stamp || answer.trim() === ""}
 					onClick={() =>
@@ -235,7 +238,7 @@ export function FoldDialog({ entry, onClose }: { entry: QuestionEntry; onClose: 
 					}
 				>
 					{s.fold}
-				</Button>
+				</RightButton>
 			}
 		>
 			<Input caption label={s.answer} value={answer} onChange={(e) => setAnswer(e.target.value)} />

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { designKeys } from "@/lib/design";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
-import { Button } from "@/ui/atoms/button";
+import { RightButton } from "@/lib/rights";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 
 const COLOR = /^(#|rgb|hsl|hwb|lab|lch|oklab|oklch|color\()/i;
@@ -42,9 +42,9 @@ export function TokenView({ onAdd }: { onAdd: () => void }) {
 			{q.isSuccess && files.length === 0 ? (
 				<div className="flex flex-col items-start gap-2 py-2">
 					<p className="text-ui text-n-11">{s.noTokens}</p>
-					<Button variant="secondary" onClick={onAdd}>
+					<RightButton right="design.edit" variant="secondary" onClick={onAdd}>
 						{s.addTokens}
-					</Button>
+					</RightButton>
 				</div>
 			) : null}
 			{files.map((f) => (

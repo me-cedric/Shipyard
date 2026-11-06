@@ -26,6 +26,7 @@ export function MarkdownEditor({
 	actions,
 	labels,
 	saveLabel,
+	reason,
 }: {
 	title: string;
 	refId: string;
@@ -40,6 +41,8 @@ export function MarkdownEditor({
 	actions?: ReactNode;
 	labels: Labels;
 	saveLabel: string;
+	/** Why the save is off: a missing right. */
+	reason?: string;
 }) {
 	const { sides, toggle } = useSides(`markdown:${refId}`);
 	return (
@@ -52,7 +55,7 @@ export function MarkdownEditor({
 					{actions}
 				</>
 			}
-			primary={{ label: saveLabel, onClick: onSave, disabled: !canSave }}
+			primary={{ label: saveLabel, onClick: onSave, disabled: !canSave, reason }}
 			save={save}
 			error={error ? { message: error } : null}
 			onReload={onReload}

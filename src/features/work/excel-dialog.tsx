@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
+import { RightButton } from "@/lib/rights";
 import { type Preview, slugify, useWorkActions } from "@/lib/work";
-import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { Dialog } from "@/ui/organisms/dialog";
@@ -43,7 +43,8 @@ export function ExcelDialog({
 			onOpenChange={(open) => !open && onClose()}
 			title={e.import}
 			actions={
-				<Button
+				<RightButton
+					right="work.edit"
 					variant="primary"
 					disabled={slug === ""}
 					onClick={() =>
@@ -54,7 +55,7 @@ export function ExcelDialog({
 					}
 				>
 					{format(replaces ? e.replace : e.create, { slug })}
-				</Button>
+				</RightButton>
 			}
 		>
 			<p className="font-mono text-12 text-n-11">{path}</p>

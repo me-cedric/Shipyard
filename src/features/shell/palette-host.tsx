@@ -15,7 +15,7 @@ import { orderedSpaces, tabLabel, tabPath, visibleTabs } from "./spaces";
 export function PaletteHost({ actions }: { actions: Action[] }) {
 	const { t } = useI18n();
 	const { paletteOpen, setPaletteOpen, openRef, openRefAt, ask } = useShell();
-	const { role, profile } = usePrefs();
+	const { teamRole } = usePrefs();
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	const [query, setQuery] = useState("");
@@ -39,8 +39,8 @@ export function PaletteHost({ actions }: { actions: Action[] }) {
 		openRefAt(ref, page);
 		void navigate({ to: page });
 	};
-	const tabs = orderedSpaces(role, profile.tabs).flatMap((space) =>
-		visibleTabs(space, profile.hiddenTabs, role).map((tab) => ({
+	const tabs = orderedSpaces(teamRole).flatMap((space) =>
+		visibleTabs(space, teamRole).map((tab) => ({
 			id: `go-${space}-${tab}`,
 			label: `${t.space[space]} / ${tabLabel(t, space, tab)}`,
 			Icon: SPACE_ICON[space],

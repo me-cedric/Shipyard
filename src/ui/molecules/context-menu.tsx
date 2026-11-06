@@ -10,6 +10,9 @@ export type MenuItem = {
 	onSelect: () => void;
 	/** A line above the item starts a new group. */
 	separated?: boolean;
+	/** The item shows, off. `reason` says why: the tooltip and the description of the item. */
+	disabled?: boolean;
+	reason?: string;
 };
 
 /**
@@ -46,7 +49,10 @@ export function ContextMenu({ items, children }: { items?: MenuItem[]; children:
 								{item.separated ? <BaseContextMenu.Separator className="my-1 h-px bg-n-6" /> : null}
 								<BaseContextMenu.Item
 									onClick={item.onSelect}
-									className="flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5"
+									disabled={item.disabled}
+									title={item.disabled ? item.reason : undefined}
+									aria-description={item.disabled ? item.reason : undefined}
+									className="flex h-row cursor-pointer items-center gap-2 rounded-sm px-2 text-n-12 data-[highlighted]:bg-n-5 data-[disabled]:cursor-default data-[disabled]:text-n-9"
 								>
 									{item.icon ? (
 										<span aria-hidden="true" className="text-n-10">

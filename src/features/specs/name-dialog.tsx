@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { Button } from "@/ui/atoms/button";
+import { RightButton } from "@/lib/rights";
 import { Input } from "@/ui/atoms/input";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Dialog } from "@/ui/organisms/dialog";
@@ -27,13 +27,14 @@ export function NameDialog({
 			onOpenChange={(o) => !o && onClose()}
 			title={title}
 			actions={
-				<Button
+				<RightButton
+					right="specs.edit"
 					variant="primary"
 					disabled={name.trim() === ""}
 					onClick={() => void run(() => onCreate(name.trim())).then((ok) => ok && onClose())}
 				>
 					{t.specs.create}
-				</Button>
+				</RightButton>
 			}
 		>
 			<Input label={label} value={name} onChange={(e) => setName(e.target.value)} />

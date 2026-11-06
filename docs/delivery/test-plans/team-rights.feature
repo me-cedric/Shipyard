@@ -27,6 +27,12 @@ Feature: team-rights
     When the person opens Settings / Project
     Then each control is on
 
+  @spec:team-rights#REQ-004
+  Scenario: Solo and unknown person: Team file with no admin
+    Given a team file with one member and no admin
+    When a person opens Settings / Project
+    Then each control is on and Health names the missing admin
+
   @spec:team-rights#REQ-005
   Scenario: Roles and default rights: Override
     Given the member `bo` has the role `developer` and the right `+code.merge`

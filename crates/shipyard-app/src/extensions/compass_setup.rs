@@ -384,7 +384,13 @@ pub async fn compass_external(app: AppHandle) -> Api<Vec<ExternalSource>> {
 #[specta::specta]
 pub async fn compass_external_refresh(app: AppHandle, click: bool) -> Api<Applied> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "compass_external_refresh",
+            "",
+        )?;
         apply(&root(s)?, &[])
     })
     .await
@@ -394,7 +400,13 @@ pub async fn compass_external_refresh(app: AppHandle, click: bool) -> Api<Applie
 #[specta::specta]
 pub async fn compass_external_reinstall(app: AppHandle, id: String, click: bool) -> Api<Applied> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "compass_external_reinstall",
+            &id,
+        )?;
         reinstall(&root(s)?, &id)
     })
     .await
@@ -404,7 +416,13 @@ pub async fn compass_external_reinstall(app: AppHandle, id: String, click: bool)
 #[specta::specta]
 pub async fn compass_contract_install(app: AppHandle, click: bool) -> Api<Applied> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "compass_contract_install",
+            "",
+        )?;
         contract_install(&root(s)?)
     })
     .await
@@ -428,7 +446,13 @@ pub async fn compass_objective_apply(
     click: bool,
 ) -> Api<ObjectiveApplied> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        need_click(
+            s,
+            click,
+            crate::rights::Right::ProjectSettings,
+            "compass_objective_apply",
+            &id,
+        )?;
         objective_apply(&root(s)?, &id)
     })
     .await

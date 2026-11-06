@@ -100,7 +100,13 @@ pub fn check_address(url: &str) -> Res<&str> {
 
 /// Points `origin` at an address, or creates it.
 pub fn remote_set(s: &AppState, url: &str, click: bool) -> Res<Origin> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::ProjectSettings,
+        "code_remote_set",
+        url,
+    )?;
     let url = check_address(url)?;
     Repo::open(&root(s)?)
         .map_err(err)?
@@ -121,7 +127,13 @@ fn clone_url(kind: ConnectionKind, web: &str) -> String {
 /// branch. A project that has a remote is refused: change it with [`remote_set`]. When the push
 /// fails, the repository and `origin` exist: a plain push finishes the job.
 pub fn publish(s: &AppState, connection: &str, slug: &str, click: bool) -> Res<Origin> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        "code_publish",
+        slug,
+    )?;
     let path = root(s)?;
     let r = Repo::open(&path).map_err(err)?;
     if r.remote().map_err(err)?.is_some() {

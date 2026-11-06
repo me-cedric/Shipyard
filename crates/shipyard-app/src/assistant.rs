@@ -438,7 +438,12 @@ fn refuse_bypass(s: &AppState, set: &ThreadSettings) -> Res<()> {
     if crate::factory::kill_switch(s) {
         return Err("Bypass permissions is refused while the agents switch is off.".into());
     }
-    crate::work::refuse_read_only(s)
+    crate::rights::require(
+        s,
+        crate::rights::Right::CodeWrite,
+        "assistant_settings_set",
+        "",
+    )
 }
 
 /// New settings. A model or an effort that stays while the runner changes is dropped: it belongs
@@ -822,7 +827,13 @@ pub fn to_factory(
     workflow: Option<String>,
     click: bool,
 ) -> Res<FactorySend> {
-    crate::work::need_click(s, click)?;
+    crate::work::need_click(
+        s,
+        click,
+        crate::rights::Right::RunsStart,
+        "assistant_to_factory",
+        "",
+    )?;
     let label = match &workflow {
         Some(id) => {
             let label = run_label(id)?;
@@ -858,7 +869,13 @@ fn create_and_mark(
 /// the factory claims it. A second click
 /// finds the item by its ref `doc:conflict/merge` and creates none.
 pub fn conflict_to_factory(s: &AppState, workflow: String, click: bool) -> Res<FactorySend> {
-    crate::work::need_click(s, click)?;
+    crate::work::need_click(
+        s,
+        click,
+        crate::rights::Right::RunsStart,
+        "conflict_to_factory",
+        "",
+    )?;
     let label = run_label(&workflow)?;
     if !crate::factory::workflows(s)?
         .iter()

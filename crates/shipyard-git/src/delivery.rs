@@ -269,6 +269,76 @@ impl Repo {
         Ok(id.to_string())
     }
 
+    /// Commit `text` as the file `path` on top of `base` (a revision) to the branch `branch`,
+    /// with no checkout: the working copy, the index and HEAD stay as they are (`team-rights`
+    /// REQ-011). The branch is created, or moved when it exists. A protected name is refused.
+    pub fn commit_file_to_branch(
+        &self,
+        base: &str,
+        branch: &str,
+        path: &str,
+        text: &str,
+        summary: &str,
+        description: &str,
+    ) -> Result<String> {
+        check_paths(&[path.to_string()])?;
+        // Not the `<type>/<area>/<subject>` rule of a person: Shipyard names this branch.
+        if !git2::Reference::is_valid_name(&format!("refs/heads/{branch}")) {
+            return Err(GitError::BadBranchName(branch.to_string()));
+        }
+        if is_protected(branch, base) {
+            return Err(GitError::ProtectedBranch(branch.into()));
+        }
+        check_message(summary, description)?;
+        // The move below is forced: on the working branch it would leave the index and the
+        // working copy behind HEAD.
+        let name = format!("refs/heads/{branch}");
+        if self
+            .repo
+            .head()
+            .ok()
+            .and_then(|h| h.name().ok().map(String::from))
+            == Some(name.clone())
+        {
+            return Err(GitError::IsWorkingBranch(branch.into()));
+        }
+        let parent = self.repo.revparse_single(base)?.peel_to_commit()?;
+        let mut scoped = Index::new()?;
+        scoped.read_tree(&parent.tree()?)?;
+        scoped.add(&IndexEntry {
+            ctime: IndexTime::new(0, 0),
+            mtime: IndexTime::new(0, 0),
+            dev: 0,
+            ino: 0,
+            mode: 0o100644,
+            uid: 0,
+            gid: 0,
+            file_size: text.len() as u32,
+            id: self.repo.blob(text.as_bytes())?,
+            flags: 0,
+            flags_extended: 0,
+            path: path.as_bytes().to_vec(),
+        })?;
+        let tree = self.repo.find_tree(scoped.write_tree_to(&self.repo)?)?;
+        let sig = self.repo.signature().map_err(|_| GitError::NoIdentity)?;
+        let message = format!("{}\n\n{}", summary.trim(), description.trim());
+        let id = self
+            .repo
+            .commit(None, &sig, &sig, message.trim(), &tree, &[&parent])?;
+        self.repo.reference(&name, id, true, "shipyard: commit")?;
+        Ok(id.to_string())
+    }
+
+    /// Push the local branch `branch` to the same name on `remote`. It never forces, and never
+    /// goes to a protected name.
+    pub fn push_branch(&self, remote: &str, branch: &str, auth: &Auth) -> Result<()> {
+        if is_protected(branch, "") {
+            return Err(GitError::ProtectedBranch(branch.into()));
+        }
+        let name = format!("refs/heads/{branch}");
+        self.push_refspec(remote, &format!("{name}:{name}"), auth)
+    }
+
     /// Push the working branch to the same name on `remote` (REQ-015). It never goes to `base`,
     /// to a default branch name or to `release/*`, and never to another name.
     ///

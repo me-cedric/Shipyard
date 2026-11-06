@@ -12,10 +12,10 @@ import {
 	useTile,
 } from "@/lib/knowledge";
 import { useActiveProject } from "@/lib/projects";
+import { RightButton, RightIconButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useTeam } from "@/lib/work";
 import { Badge } from "@/ui/atoms/badge";
-import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
@@ -135,9 +135,9 @@ function TileSettings({ slug, id }: { slug: string; id: string }) {
 				</p>
 			) : null}
 			<div>
-				<Button type="submit" disabled={view.readOnly}>
+				<RightButton right="knowledge.edit" type="submit" disabled={view.readOnly}>
 					{k.save}
-				</Button>
+				</RightButton>
 			</div>
 		</form>
 	);
@@ -264,20 +264,22 @@ function DashboardView({ slug }: { slug: string }) {
 								actions={
 									view.readOnly ? null : (
 										<>
-											<IconButton
+											<RightIconButton
+												right="knowledge.edit"
 												label={k.left}
 												className="size-6"
 												onClick={() => void move(x.id, -1)}
 											>
 												<ChevronLeftIcon size={12} />
-											</IconButton>
-											<IconButton
+											</RightIconButton>
+											<RightIconButton
+												right="knowledge.edit"
 												label={k.right}
 												className="size-6"
 												onClick={() => void move(x.id, 1)}
 											>
 												<ChevronRightIcon size={12} />
-											</IconButton>
+											</RightIconButton>
 											<IconButton
 												label={`${k.settings} ${name}`}
 												className="size-6"
@@ -290,13 +292,14 @@ function DashboardView({ slug }: { slug: string }) {
 											>
 												<Cog6ToothIcon size={12} />
 											</IconButton>
-											<IconButton
+											<RightIconButton
+												right="knowledge.edit"
 												label={`${k.remove} ${name}`}
 												className="size-6"
 												onClick={() => void write(dash.tiles.filter((o) => o.id !== x.id))}
 											>
 												<XMarkIcon size={12} />
-											</IconButton>
+											</RightIconButton>
 										</>
 									)
 								}

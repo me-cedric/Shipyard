@@ -316,7 +316,12 @@ pub fn settings(s: &AppState) -> Res<Option<ProjectSettings>> {
 
 /// Writes paths, default workflow and gates to the project file. Nothing personal goes there.
 pub fn save_file(s: &AppState, file: ProjectFile) -> Res<()> {
-    crate::work::refuse_read_only(s)?;
+    crate::rights::require(
+        s,
+        crate::rights::Right::ProjectSettings,
+        "project_file_save",
+        "",
+    )?;
     let e = s.registry()?.active().cloned().ok_or("no active project")?;
     write_project_file(Path::new(&e.path), &file).map_err(err)?;
     s.with_registry(|reg| {
@@ -328,10 +333,30 @@ pub fn save_file(s: &AppState, file: ProjectFile) -> Res<()> {
     Ok(())
 }
 
+/// No override gives a right beyond the team file (REQ-006). The personal fields of this person
+/// (read only, profile, look, notices) need no right. The e-mail to role map and the page modes
+/// set the profile of the other people of this machine: they need `project.settings`, from the
+/// team file alone, so a narrowed person can still undo them.
 pub fn save_overrides(s: &AppState, overrides: Overrides) -> Res<()> {
+    let overrides = overrides.clean();
+    let old = s
+        .registry()?
+        .active()
+        .cloned()
+        .ok_or("no active project")?
+        .overrides
+        .clean();
+    if (&old.assignments, &old.page_modes) != (&overrides.assignments, &overrides.page_modes) {
+        crate::rights::require_unnarrowed(
+            s,
+            crate::rights::Right::ProjectSettings,
+            "project_overrides_save",
+            "",
+        )?;
+    }
     s.with_registry(|reg| {
         let id = reg.active().ok_or("no active project")?.id.clone();
-        reg.set_overrides(&id, overrides.clean());
+        reg.set_overrides(&id, overrides);
         Ok(())
     })
 }

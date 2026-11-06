@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 import { useDesignFile } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
+import { useRights } from "@/lib/rights";
 import { Badge } from "@/ui/atoms/badge";
 import { DocumentTextIcon } from "@/ui/icons";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
@@ -41,6 +42,7 @@ export function FileFrame({
 	) => ReactNode;
 }) {
 	const { t } = useI18n();
+	const { gate } = useRights();
 	const file = useDesignFile(path, missing);
 	const [viewError, setViewError] = useState<EditorError | null>(null);
 	const message = issue ?? file.error ?? notice;
@@ -61,7 +63,12 @@ export function FileFrame({
 			primary={
 				readOnly || issue || !file.ready
 					? undefined
-					: { label: t.design.save, onClick: () => void file.save(), disabled: !file.dirty }
+					: {
+							label: t.design.save,
+							onClick: () => void file.save(),
+							disabled: !file.dirty,
+							reason: gate("design.edit").reason,
+						}
 			}
 			save={file.conflict ? "conflict" : file.dirty ? "dirty" : "clean"}
 			error={error}

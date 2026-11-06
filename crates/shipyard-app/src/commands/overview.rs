@@ -239,7 +239,13 @@ pub struct DocProblem {
 /// shortcut: the worktree holds commits only, so a change that is not committed is refused. Fix
 /// when a run can start from a stash. Returns the run id.
 pub fn docs_update_start(s: &AppState, doc: &str, range: DocsRange, click: bool) -> Res<String> {
-    crate::work::need_click(s, click)?;
+    crate::work::need_click(
+        s,
+        click,
+        crate::rights::Right::RunsStart,
+        "code_docs_update_start",
+        "",
+    )?;
     let a = super::sync::active(s)?.ok_or("no project is open")?;
     let root = Path::new(&a.entry.path);
     let FileRead::Valid(file) = read_project_file(root).map_err(err)? else {

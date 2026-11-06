@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { RightButton } from "@/lib/rights";
 import { useTabSelection } from "@/lib/shell/selection";
 import { type Plan, planRef, useSpecsActions, useTestPlans } from "@/lib/specs";
 import { Button } from "@/ui/atoms/button";
@@ -104,10 +105,10 @@ function PlanList() {
 			count={plans?.length}
 			action={
 				plans?.length ? (
-					<Button variant="primary" onClick={create}>
+					<RightButton right="specs.edit" variant="primary" onClick={create}>
 						<PlusIcon size={14} />
 						{s.newPlan}
-					</Button>
+					</RightButton>
 				) : null
 			}
 		>

@@ -65,7 +65,13 @@ pub fn profiles(s: &AppState, slug: Option<&str>) -> Res<Vec<ProfileSum>> {
 
 /// Move a sheet file to the system trash. A frozen sheet stays.
 pub fn delete(s: &AppState, slug: &str, click: bool) -> Res<()> {
-    need_click(s, click)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::WorkEdit,
+        "estimate_delete",
+        slug,
+    )?;
     let yaml = sheet_path(slug).map_err(err)?;
     if crate::work::sheet_get(s, slug).is_ok_and(|v| v.sheet.frozen) {
         return Err(FROZEN.into());
@@ -209,8 +215,8 @@ mod tests {
             day_rate: Some(rate),
             ..Member::default()
         };
-        crate::work::team_save(
-            &f.s,
+        crate::work::tests::write_team_file(
+            &f,
             Team {
                 members: vec![member("ana", 400.0), member("bob", 600.0)],
                 locked: false,
@@ -223,8 +229,8 @@ mod tests {
             members,
             locked: false,
         };
-        crate::work::team_save(
-            &f.s,
+        crate::work::tests::write_team_file(
+            &f,
             team(vec![
                 member("ana", 400.0),
                 member("bob", 600.0),

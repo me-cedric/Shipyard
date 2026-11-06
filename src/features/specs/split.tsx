@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import type { DiffRow_Serialize } from "@/lib/ipc";
+import { RightButton, RightIconButton } from "@/lib/rights";
 import {
 	type ApplyResult,
 	type SplitItem,
@@ -9,7 +10,6 @@ import {
 	useSplitPreview,
 } from "@/lib/specs";
 import { Badge } from "@/ui/atoms/badge";
-import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
@@ -96,9 +96,9 @@ function AddItem({ items, onAdd }: { items: SplitItem[]; onAdd: (item: SplitItem
 				/>
 			) : null}
 			<Input label={s.reqs} value={reqs} onChange={(e) => setReqs(e.target.value)} />
-			<IconButton label={s.add} type="submit" disabled={!title.trim()}>
+			<RightIconButton right="specs.edit" label={s.add} type="submit" disabled={!title.trim()}>
 				<PlusIcon size={14} />
-			</IconButton>
+			</RightIconButton>
 		</form>
 	);
 }
@@ -129,14 +129,15 @@ function Review({
 			title={s.title}
 			wide
 			actions={
-				<Button
+				<RightButton
+					right="specs.edit"
 					variant="primary"
 					onClick={() =>
 						void run(() => act.saveSplit({ change, items })).then((ok) => ok && onPreview())
 					}
 				>
 					{s.preview}
-				</Button>
+				</RightButton>
 			}
 		>
 			<ul aria-label={s.items} className="flex max-h-72 flex-col gap-1 overflow-auto">

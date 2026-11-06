@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
+import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { type Plan, type Requirement, useBdd, useRequirements, useSpecsActions } from "@/lib/specs";
 import { Badge } from "@/ui/atoms/badge";
@@ -204,7 +205,8 @@ export function PlanBoard({ plans, onOpen }: { plans: Plan[]; onOpen: (path: str
 											<Button onClick={() => onOpen(sec.path ?? "")}>{s.openPlan}</Button>
 										) : null}
 										{caps.map((cap) => (
-											<Button
+											<RightButton
+												right="specs.edit"
 												key={cap}
 												variant="ghost"
 												aria-label={format(p.generateName, { name: cap })}
@@ -212,7 +214,7 @@ export function PlanBoard({ plans, onOpen }: { plans: Plan[]; onOpen: (path: str
 											>
 												<PlusIcon size={14} />
 												{p.generate}
-											</Button>
+											</RightButton>
 										))}
 									</div>
 									<ul aria-label={`${p.requirements}: ${sec.title}`} className="flex flex-col">

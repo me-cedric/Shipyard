@@ -9,11 +9,11 @@ import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
 import { usePrefs } from "@/lib/prefs";
+import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useWorkItems } from "@/lib/sync";
 import { memberName, useTeam, useWorkActions, useWorkContext } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
-import { Button } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowPathIcon, ClockIcon } from "@/ui/icons";
@@ -27,6 +27,7 @@ import { TicketRow, type WorkCategory } from "@/ui/molecules/ticket-row";
 import { Timeline, TimelineItem } from "@/ui/molecules/timeline";
 import { eventSentence } from "./event-sentence";
 import { NeedsYou, needsYouTotal } from "./inbox/inbox";
+import { RolePanels } from "./role-panels";
 import { HomeStats, useMyItems } from "./stats";
 
 const SHOWN = 20;
@@ -58,6 +59,7 @@ function MyTicket({ itemKey, statuses }: { itemKey: string; statuses: string[] }
 	const act = useWorkActions();
 	const runs = useRunActions();
 	const { error, run } = useGuard();
+	const edit = useRights().gate("work.edit");
 	if (!item) return null;
 	const open = () => openDetail(item.key, <TicketDetail key={item.key} itemKey={item.key} />);
 	return (
@@ -81,23 +83,25 @@ function MyTicket({ itemKey, statuses }: { itemKey: string; statuses: string[] }
 				<Select
 					label={`${t.sync.backlog.status} ${item.key}`}
 					value={item.status}
-					disabled={!caps?.transitions}
+					disabled={!caps?.transitions || edit.disabled}
 					reason={
-						caps?.transitions
+						edit.reason ??
+						(caps?.transitions
 							? undefined
 							: caps
 								? format(t.work.missing, { name: t.connections.flag.transitions })
-								: t.work.noTracker
+								: t.work.noTracker)
 					}
 					onValueChange={(to) => void run(() => act.transition(item.key, to))}
 					items={statuses.map((s) => ({ value: s, label: s }))}
 				/>
-				<Button
+				<RightButton
+					right="runs.start"
 					aria-label={`${t.factory.start} ${item.key}`}
 					onClick={() => void run(() => runs.start(item.key))}
 				>
 					{t.factory.start}
-				</Button>
+				</RightButton>
 			</div>
 			{error ? (
 				<p role="alert" className="px-3 pb-2 text-ui text-danger-text">
@@ -173,6 +177,7 @@ export function Today({ start }: { start?: ReactNode }) {
 			/>
 			{start}
 			<HomeStats />
+			<RolePanels />
 			<NeedsYou />
 			{groups.map(([id, name, rows]) =>
 				rows.length ? (

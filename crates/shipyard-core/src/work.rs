@@ -99,7 +99,17 @@ pub struct Member {
     pub handle: String,
     /// The accounts of this person in the trackers (a Jira account id, a GitHub login).
     pub trackers: Vec<String>,
+    /// The git e-mails of this person (`team-rights` REQ-003).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub emails: Vec<String>,
+    /// One of the roles of `crate::rights::Role`. Another text gives the rights of `viewer`.
     pub role: String,
+    /// Gives each right (`team-rights` REQ-005).
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub admin: bool,
+    /// Changes of the rights of the role: `+right` or `-right`.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub rights: Vec<String>,
     /// Days per week.
     pub capacity: f64,
     pub skills: Vec<String>,
@@ -120,16 +130,19 @@ pub struct Team {
 }
 
 impl Team {
-    /// The member whose handle or tracker account is `id`, compared without case.
+    /// The member whose handle, tracker account or e-mail is `id`, compared without case.
     pub fn resolve(&self, id: &str) -> Option<&Member> {
         self.members.iter().find(|m| {
             m.handle.eq_ignore_ascii_case(id)
-                || m.trackers.iter().any(|t| t.eq_ignore_ascii_case(id))
+                || m.trackers
+                    .iter()
+                    .chain(&m.emails)
+                    .any(|t| t.eq_ignore_ascii_case(id))
         })
     }
 
-    /// Why this team is not valid, or `None` (REQ-003). A handle or a tracker account that two
-    /// members share names the duplicate: the pickup would pick the wrong person.
+    /// Why this team is not valid, or `None` (REQ-003). A handle, a tracker account or an e-mail
+    /// that two members share names the duplicate: the pickup would pick the wrong person.
     pub fn check(&self) -> Result<(), String> {
         let mut seen: HashMap<String, usize> = HashMap::new();
         for (i, m) in self.members.iter().enumerate() {
@@ -170,6 +183,7 @@ impl Team {
             let mut own: Vec<String> = Vec::new();
             for id in std::iter::once(&m.handle)
                 .chain(&m.trackers)
+                .chain(&m.emails)
                 .map(|s| s.to_ascii_lowercase())
             {
                 if own.contains(&id) {

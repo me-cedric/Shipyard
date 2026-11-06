@@ -7,7 +7,6 @@ use std::path::{Path, PathBuf};
 use tauri::AppHandle;
 
 use crate::commands::{Api, AppState, Res, blocking, err};
-use crate::work::need_click;
 
 fn config() -> Res<PathBuf> {
     let home = std::env::var_os("CODEX_HOME")
@@ -90,7 +89,7 @@ pub async fn codex_trust_state(app: AppHandle) -> Api<bool> {
 #[specta::specta]
 pub async fn codex_trust(app: AppHandle, click: bool) -> Api<()> {
     blocking(app, move |s| {
-        need_click(s, click)?;
+        crate::rights::need_click_local(s, click)?;
         trust_in(&config()?, &root(s)?)
     })
     .await

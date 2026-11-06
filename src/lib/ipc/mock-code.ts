@@ -562,7 +562,7 @@ export function codeBlame(c: MockCode, path: string): BlameLine[] {
 }
 
 export function codeBranchDelete(c: MockCode, name: string, force: boolean) {
-	if (name === c.branch) throw `the working branch cannot be deleted: ${name}`;
+	if (name === c.branch) throw `the working branch cannot be deleted or moved: ${name}`;
 	const branch = c.branches[name];
 	if (!branch) throw `branch not found: ${name}`;
 	const merged = branch.log.every((s) => c.branches.main?.log.includes(s));

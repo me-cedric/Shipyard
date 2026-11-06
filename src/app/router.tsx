@@ -13,14 +13,13 @@ import {
 import { motion, useReducedMotion } from "motion/react";
 import {
 	AppShell,
-	ROLE_HOME,
+	firstPath,
 	SPACES,
 	type SpaceId,
 	TabsBar,
 	tabPath,
 	visibleTabs,
 } from "@/features/shell";
-import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { SPRING } from "@/ui/motion";
 import { NotFound } from "./not-found";
@@ -37,22 +36,14 @@ const indexRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/",
 	component: function RoleHome() {
-		const { role } = usePrefs();
-		return <Navigate to={`/${ROLE_HOME[role]}` as const} replace />;
+		const { teamRole } = usePrefs();
+		return <Navigate to={firstPath(teamRole)} replace />;
 	},
 });
 
 function SpaceLayout({ space }: { space: SpaceId }) {
-	const { t } = useI18n();
-	const { profile, role } = usePrefs();
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	const still = useReducedMotion();
-	// A tab that the project hides goes to the first tab that it keeps.
-	const shown = visibleTabs(space, profile.hiddenTabs, role);
-	const first = shown[0];
-	const hidden = space !== "settings" && profile.hiddenTabs.some((h) => path === `/${h}`);
-	const readOnlyPage = space !== "settings" && profile.readOnlyTabs.some((h) => path === `/${h}`);
-	if (first && hidden) return <Navigate to={tabPath(space, first)} replace />;
 	return (
 		<div className="flex h-full flex-col">
 			<TabsBar space={space} />
@@ -66,25 +57,18 @@ function SpaceLayout({ space }: { space: SpaceId }) {
 					transition={SPRING.gentle}
 					className="flex min-h-0 flex-1 flex-col"
 				>
-					{/* A read only page keeps its content and disables every control in it. */}
-					<fieldset
-						disabled={readOnlyPage}
-						aria-label={readOnlyPage ? t.workspace.profile.readOnly : undefined}
-						className="contents"
-					>
-						<Outlet />
-					</fieldset>
+					<Outlet />
 				</motion.div>
 			</div>
 		</div>
 	);
 }
 
-/** The space opens on its first tab: the tab of the role, else the first tab that the project keeps. */
+/** The space opens on its first tab: the tab of the role, else the first tab. */
 function FirstTab({ space }: { space: SpaceId }) {
-	const { profile, role } = usePrefs();
+	const { teamRole } = usePrefs();
 	const path = useRouterState({ select: (s) => s.location.pathname });
-	const first = visibleTabs(space, profile.hiddenTabs, role)[0] ?? SPACES[space][0];
+	const first = visibleTabs(space, teamRole)[0] ?? SPACES[space][0];
 	// The layout keeps this view while the next location loads: only the space index redirects.
 	return path.replace(/\/$/, "") === `/${space}` ? (
 		<Navigate to={tabPath(space, first)} replace />

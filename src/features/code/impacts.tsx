@@ -7,8 +7,8 @@ import {
 	useImpactText,
 } from "@/lib/code";
 import { useI18n } from "@/lib/i18n";
+import { RightButton } from "@/lib/rights";
 import { cn } from "@/lib/utils";
-import { Button } from "@/ui/atoms/button";
 import { Select } from "@/ui/atoms/select";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import { ChartBarIcon, CpuChipIcon } from "@/ui/icons";
@@ -171,10 +171,10 @@ function ImpactsView() {
 						/>
 						{busy ? <Elapsed since={since} /> : null}
 						{entry ? (
-							<Button variant="primary" busy={busy} onClick={analyzeNow}>
+							<RightButton right="runs.start" variant="primary" busy={busy} onClick={analyzeNow}>
 								{busy ? null : <CpuChipIcon size={14} />}
 								{busy ? i18n.analyzing : i18n.analyze}
-							</Button>
+							</RightButton>
 						) : null}
 					</span>
 				}

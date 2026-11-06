@@ -23,7 +23,12 @@ info:
       `annotations.readOnlyHint`, or a pick): a tool that is not on it is left out of `tools/list`
       and refused on `tools/call`.
     - The 24 tools for an agent that Shipyard did not start. Each group is a switch that a person
-      turns on in Settings. All are off by default.
+      turns on in Settings. All are off by default. Each write tool also needs a right of the
+      person in the team file (`team-rights` REQ-007): `project_write_file` needs `code.write`;
+      `run_check`, `qa_run_check` and `qa_run_scanner` need `runs.start`; `ticket_comment` needs
+      `work.edit`; `adr_propose` needs `design.edit`; `workflow_propose` needs `project.settings`.
+      A refusal is the error `missing right <right> (<role>)`, and a read-only project refuses
+      each of them. Each check adds one line to the audit log of the project.
 
     Limits of one call, by default: 60 calls a minute for each token, 64 KiB of arguments,
     256 KiB of answer, 32 KiB for a report.
@@ -269,7 +274,7 @@ components:
         path: { type: string }
     WriteFileInput:
       type: object
-      description: "Tool `project_write_file`. It refuses any path in `.shipyard/`: an agent must not edit the gates that it can run."
+      description: "Tool `project_write_file`. It needs `code.write`. It refuses any path in `.shipyard/`: an agent must not edit the gates that it can run."
       additionalProperties: false
       required: [path, text]
       properties:
@@ -284,7 +289,7 @@ components:
     CheckInput:
       type: object
       description: |
-        Tools `run_check` and `qa_run_check` (both in the `exec` switch). They run the `gates` of `.shipyard/project.yaml`, one
+        Tools `run_check` and `qa_run_check` (both in the `exec` switch, both need `runs.start`). They run the `gates` of `.shipyard/project.yaml`, one
         after the other, with `sh -c` in the project folder. `name` keeps the gates that match it
         (test: `test`; lint: `lint`, `clippy`, `fmt`; typecheck: `typecheck`, `tsc`). A project
         with no gates runs one command that its files show (`pnpm` or `cargo`): `name` is then
@@ -296,7 +301,7 @@ components:
         timeout_secs: { type: integer, minimum: 10, maximum: 3600 }
     ScannerInput:
       type: object
-      description: Tool `qa_run_scanner`. Runs one scanner and keeps the report. A read-only project refuses it.
+      description: Tool `qa_run_scanner`. Runs one scanner and keeps the report. It needs `runs.start`.
       additionalProperties: false
       required: [name]
       properties:
@@ -323,7 +328,7 @@ components:
         key: { type: string }
     TicketCommentInput:
       type: object
-      description: Tool `ticket_comment`. A read-only project refuses it.
+      description: Tool `ticket_comment`. It needs `work.edit`.
       additionalProperties: false
       required: [key, body]
       properties:
@@ -338,7 +343,7 @@ components:
         number: { type: string }
     AdrProposeInput:
       type: object
-      description: Tool `adr_propose`. Writes an ADR with the status proposed. A person accepts or rejects it.
+      description: Tool `adr_propose`. Writes an ADR with the status proposed. A person accepts or rejects it. It needs `design.edit`.
       additionalProperties: false
       required: [title]
       properties:
@@ -355,8 +360,8 @@ components:
       description: >-
         Tools `workflow_validate` and `workflow_propose`. `workflow_validate` answers `valid` or
         `file:line: message` and writes nothing. `workflow_propose` stores the text in the app data
-        folder, never in the repository, and a person applies it in Factory / Workflows. A read-only
-        project refuses `workflow_propose`. The group switch is `workflows`.
+        folder, never in the repository, and a person applies it in Factory / Workflows.
+        `workflow_propose` needs `project.settings`. The group switch is `workflows`.
       additionalProperties: false
       required: [id, text]
       properties:

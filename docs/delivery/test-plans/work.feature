@@ -30,6 +30,12 @@ Feature: work
     When the system loads it
     Then the system names the duplicate and keeps the last valid team
 
+  @spec:work#REQ-003
+  Scenario: Team file: Shared e-mail
+    Given a team file where two members share the e-mail ana@example.com
+    When the system loads it
+    Then the system names the duplicate e-mail and keeps the last valid team
+
   @spec:work#REQ-004
   Scenario: Team view: Edit
     Given a member with capacity 3 days a week

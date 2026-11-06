@@ -142,6 +142,10 @@ struct Record {
     /// own. One entry means one refresh, and a re-sign or a removal reaches both roles.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     uses: Option<String>,
+    /// The account that the token named in the last passed test (`me()`). Never typed by a
+    /// person: the rights find the person with it (`team-rights` REQ-003).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    account: Option<String>,
 }
 
 impl Record {
@@ -427,6 +431,7 @@ impl Connections {
             state: ConnectionState::Untested,
             scopes: Vec::new(),
             uses: None,
+            account: None,
         };
         match record.group {
             ConnectionGroup::Tracker => {
@@ -567,6 +572,7 @@ impl Connections {
                 r.secret = true;
                 r.scopes = scopes.clone();
                 r.state = ConnectionState::Untested;
+                r.account = None;
                 // The login belongs to the old secret: it can be another account.
                 if r.saves_login() {
                     r.user = None;
@@ -815,16 +821,22 @@ impl Connections {
             TestOutcome::Passed { .. } => ConnectionState::Passed,
             _ => ConnectionState::Failed,
         };
-        // A passed test of a GitHub or GitLab issue tracker names the account: keep its login as
-        // the `user`, so Work finds the person with no field to fill. Jira keeps the e-mail.
-        let login = (state == ConnectionState::Passed && r.saves_login())
-            .then(|| self.tracker(id).ok()?.me().ok().map(|p| p.id))
+        // A passed test names the account of the token: the rights find the person with it.
+        let account = (state == ConnectionState::Passed)
+            .then(|| match r.group {
+                ConnectionGroup::Tracker => self.tracker(id).ok()?.me().ok().map(|p| p.id),
+                _ => self.forge(id).ok()?.me().ok(),
+            })
             .flatten()
             .filter(|l| !l.is_empty());
+        // A GitHub or GitLab issue tracker also keeps the login as the `user`, so Work finds the
+        // person with no field to fill. Jira keeps the e-mail.
+        let login = account.clone().filter(|_| r.saves_login());
         self.with_file(|file| {
             // The connection can leave while the test runs.
             if let Some(r) = file.connections.iter_mut().find(|r| r.id == id) {
                 r.state = state;
+                r.account = account;
                 if login.is_some() {
                     r.user = login;
                 }
@@ -832,6 +844,15 @@ impl Connections {
             Ok(())
         })?;
         Ok(outcome)
+    }
+
+    /// The account that the token gave in the last test, while that test is the passed state of
+    /// the connection. A typed `user` never counts: a person can type any name.
+    pub fn account(&self, id: &str) -> Option<String> {
+        let r = self.record(id).ok()?;
+        (r.state == ConnectionState::Passed)
+            .then_some(r.account)
+            .flatten()
     }
 
     /// One page of the repositories of a forge connection, each with its push marker (REQ-019).
@@ -1085,9 +1106,11 @@ mod tests {
         let after = c.get(&hub.id).unwrap().unwrap();
         assert_eq!(after.state, ConnectionState::Passed);
         assert_eq!(after.user.as_deref(), Some("ada"));
+        assert_eq!(c.account(&hub.id).as_deref(), Some("ada"));
         // A new secret can be another account: the saved login goes, the next test saves one.
         let again = c.set_secret(&hub.id, Secret::new("tok-3")).unwrap();
         assert_eq!(again.user, None);
+        assert_eq!(c.account(&hub.id), None);
         c.test(&hub.id).unwrap();
         assert_eq!(
             c.get(&hub.id).unwrap().unwrap().user.as_deref(),
@@ -1103,8 +1126,11 @@ mod tests {
                 user: Some("ada@acme.test".into()),
             })
             .unwrap();
+        // The typed `user` is never the account of the rights: only a passed test gives one.
+        assert_eq!(c.account(&jira.id), None);
         c.set_secret(&jira.id, Secret::new("tok-2")).unwrap();
         c.test(&jira.id).unwrap();
+        assert_ne!(c.account(&jira.id).as_deref(), Some("ada@acme.test"));
         c.set_secret(&jira.id, Secret::new("tok-4")).unwrap();
         assert_eq!(
             c.get(&jira.id).unwrap().unwrap().user.as_deref(),

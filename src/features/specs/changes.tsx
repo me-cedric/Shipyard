@@ -4,6 +4,7 @@ import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
+import { RightButton } from "@/lib/rights";
 import { useFormIntent, useShell } from "@/lib/shell";
 import { useTabSelection } from "@/lib/shell/selection";
 import {
@@ -148,10 +149,10 @@ function ChangeList() {
 				list?.length ? (
 					<span className="flex gap-2">
 						<Button onClick={() => setFromTicket(true)}>{s.fromTicket}</Button>
-						<Button variant="primary" onClick={create}>
+						<RightButton right="specs.edit" variant="primary" onClick={create}>
 							<PlusIcon size={14} />
 							{s.newChange}
-						</Button>
+						</RightButton>
 					</span>
 				) : null
 			}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
+import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import {
 	type Artifact,
@@ -229,12 +230,13 @@ export function ChangeDetail({ change, onBack }: { change: Change; onBack: () =>
 					onOpenChange={(o) => !o && setPending(null)}
 					title={s.archive.title}
 					actions={
-						<Button
+						<RightButton
+							right="specs.edit"
 							variant="primary"
 							onClick={() => void archive(true).then(() => setPending(null))}
 						>
 							{s.archive.confirm}
-						</Button>
+						</RightButton>
 					}
 				>
 					<ul aria-label={s.archive.items} className="flex flex-col gap-1 text-ui">

@@ -3,3 +3,8 @@ members:
     handle: cedric
     role: architect
     capacity: 5
+    admin: true
+    emails:
+      - cedric.meyer@cgi.com
+    trackers:
+      - me-cedric

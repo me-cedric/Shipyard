@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands } from "@/lib/ipc";
+import { RightButton } from "@/lib/rights";
 import {
 	type ApplyRow,
 	type DiffRow,
@@ -8,7 +9,6 @@ import {
 	useWorkActions,
 	useWorkContext,
 } from "@/lib/work";
-import { Button } from "@/ui/atoms/button";
 import { CpuChipIcon } from "@/ui/icons";
 import { ApplyDialog, type ApplyPreviewRow } from "@/ui/organisms/apply-dialog";
 import { useGuard } from "./guard";
@@ -83,7 +83,8 @@ export function CreateWorkItem({ refId, title }: { refId: string; title: string 
 
 	return (
 		<>
-			<Button
+			<RightButton
+				right="work.edit"
 				onClick={() =>
 					void run(async () => {
 						setResults(undefined);
@@ -94,7 +95,7 @@ export function CreateWorkItem({ refId, title }: { refId: string; title: string 
 			>
 				<CpuChipIcon size={14} />
 				{t.work.item.create}
-			</Button>
+			</RightButton>
 			{error && !open ? (
 				<p role="alert" className="text-ui text-danger-text">
 					{error}

@@ -427,6 +427,15 @@ pub async fn mcp_wiring_review(app: tauri::AppHandle, id: String) -> Api<WiringR
 pub async fn mcp_wiring_apply(app: tauri::AppHandle, id: String, reviewed: String) -> Api<String> {
     blocking(app, move |s| {
         let (root, url) = context(s)?;
+        // A file of the repository is a project setting. The Codex file of the user is not.
+        if find(&root, &home(), &id)?.path.starts_with(&root) {
+            crate::rights::require(
+                s,
+                crate::rights::Right::ProjectSettings,
+                "mcp_wiring_apply",
+                &id,
+            )?;
+        }
         apply_in(&root, &home(), &id, &url, &reviewed)
     })
     .await
