@@ -31,6 +31,12 @@ Feature: factory
     Then the agents stop, the run moves to `Merged` and then to `Done`, and a push that waits for a click is dropped
 
   @spec:factory#REQ-002
+  Scenario: Return transitions: Merge during a wait
+    Given a run in `WaitingForAnswer` with an open pull request and an open question
+    When the pull request merges
+    Then the question is withdrawn, and the run moves to `Merged` and then to `Done`
+
+  @spec:factory#REQ-002
   Scenario: Return transitions: Plan rejected
     Given a run in `PlanReview`
     When the person rejects the plan with a comment
@@ -62,9 +68,15 @@ Feature: factory
 
   @spec:factory#REQ-004
   Scenario: Side states: Rejected approval
-    Given a run that waits for an approval
+    Given a run that waits for the approval of a push
     When the person rejects it
-    Then the run moves to `Blocked` and the log holds the reason
+    Then the run moves to `Blocked` with the cause push rejected, and the log holds the reason
+
+  @spec:factory#REQ-004
+  Scenario: Side states: No new Failed
+    Given a run in `Working` whose step has spent its retries
+    When the step fails again
+    Then the run moves to `Blocked` and not to `Failed`
 
   @spec:factory#REQ-005
   Scenario: Return state: Return after wait
@@ -83,6 +95,12 @@ Feature: factory
     Given a run in `Paused` after a hard budget stop
     When a person raises the budget and resumes the run
     Then the run returns to its stored state
+
+  @spec:factory#REQ-005
+  Scenario: Return state: Escalated wait
+    Given a run in `WaitingForAnswer` with the return state `Working`
+    When the wait escalates
+    Then the run is in `Blocked` with the return state `Working`
 
   @spec:factory#REQ-005
   Scenario: Return state: Unblock with a message
@@ -113,6 +131,12 @@ Feature: factory
     Given a step at retry number 7
     When the engine queues the retry
     Then the delay is 5 min
+
+  @spec:factory#REQ-007
+  Scenario: Retry backoff: Retries spent
+    Given a step with `retry` 1
+    When the step fails for the second time
+    Then the run moves to `Blocked` with the cause retries spent
 
   @spec:factory#REQ-008
   Scenario: State to issue tracker mapping: Mapped status
@@ -210,8 +234,8 @@ Feature: factory
   Scenario: Fan-out: Join conflict
     Given the second child conflicts with the first again after its new run
     When it joins
-    Then the run moves to `Blocked` and the event names the second child and its files
-    And the worktree of the second child stays until an unblock
+    Then a fixer round starts in the run worktree with the files of the second child, with no click
+    And the run does not move to `Blocked`
 
   @spec:factory#REQ-014
   Scenario: Roles: Project role
@@ -355,7 +379,7 @@ Feature: factory
   Scenario: Budgets: Hard stop
     Given a run with a budget of 5 USD
     When it spends 5 USD
-    Then the run moves to `Paused` and stops its agents
+    Then the run moves to `Paused`, stops its agents and posts one stop report
 
   @spec:factory#REQ-022
   Scenario: Budgets: No run budget
@@ -363,17 +387,23 @@ Feature: factory
     When it spends 50 USD and no day, member or token budget is spent
     Then the run does not pause and no alert shows
 
+  @spec:factory#REQ-022
+  Scenario: Budgets: Next day
+    Given a run in `Paused` because the day budget is spent
+    When the first tick of the next day runs
+    Then the run returns to its stored state with no click and posts no stop report
+
   @spec:factory#REQ-023
   Scenario: Stall timeout and max turns: Stall
     Given a step with `stall_s` 300
     When no event arrives for 300 s
-    Then the step stops and the run moves to `RetryQueued`
+    Then the step stops, its failed attempts go up by one, and the run moves to `RetryQueued`
 
   @spec:factory#REQ-023
   Scenario: Stall timeout and max turns: Max turns
     Given a run with `max_turns` 40
     When the agent reaches turn 40
-    Then the run moves to `Paused` with the reason max turns, and a resume gives it 40 more turns
+    Then the run moves to `Paused` with the cause max turns and posts one stop report, and a resume gives it 40 more turns
 
   @spec:factory#REQ-024
   Scenario: Kill switches: Run switch
@@ -413,9 +443,15 @@ Feature: factory
 
   @spec:factory#REQ-026
   Scenario: Approvals: Reject
-    Given a pending approval
+    Given a run in `Working` and an approval of a ticket move
     When the person rejects it
-    Then the write does not go out and the run moves to `Blocked`
+    Then the move is dropped, the log holds the rejection, and the run stays in `Working`
+
+  @spec:factory#REQ-026
+  Scenario: Approvals: Rejected pull request
+    Given a run that waits for the approval of its pull request
+    When the person rejects it
+    Then the run moves to `Blocked` with the cause pull request rejected and posts one stop report
 
   @spec:factory#REQ-027
   Scenario: Runs view: Needs you lane
@@ -528,8 +564,14 @@ Feature: factory
     Then the run shows its cost with no budget and does not pause for a run budget
 
   @spec:factory#REQ-035
+  Scenario: Workflow limits: Default caps
+    Given a workflow with a `limits` block that has no cap
+    When a run of that workflow starts
+    Then its caps are 4 review rounds, 3 feedback rounds and 8 fix rounds
+
+  @spec:factory#REQ-035
   Scenario: Workflow limits: Bad limit
-    Given a workflow with `budget_usd: -1`
+    Given a workflow with `budget_usd: -1` or `review_rounds: 0`
     When the file loads
     Then the schema check rejects it
 
@@ -546,10 +588,22 @@ Feature: factory
     Then the run returns to `Working` in the same worktree for round 2
 
   @spec:factory#REQ-036
+  Scenario: SelfReview: Last round
+    Given a run with `review_rounds` 4 and three fix rounds spent, with fewer blocking findings at each round
+    When the reviewer finds a P1 defect
+    Then round 4 runs its fix with the top model tier of the runner
+
+  @spec:factory#REQ-036
   Scenario: SelfReview: Rounds spent
-    Given a run with two fix rounds spent and a P0 or P1 finding left
+    Given a run with four fix rounds spent and a P0 or P1 finding left
     When the reviewer reports it
-    Then the run moves to `Blocked` and Home / Inbox shows a card with the finding
+    Then the run moves to `Blocked` with the cause review rounds spent and posts one stop report with the finding
+
+  @spec:factory#REQ-036
+  Scenario: SelfReview: Rounds over feedback
+    Given a run that spent three review rounds before its pull request opened
+    When a feedback round reaches `SelfReview` with a P1 finding
+    Then one more review round runs, and the next blocking finding escalates
 
   @spec:factory#REQ-036
   Scenario: SelfReview: Unblock after the rounds
@@ -754,3 +808,99 @@ Feature: factory
     Given a run log file that cannot open
     When the app starts
     Then the file stays as it was, the views read what the factory writes, and the command `run_log_degraded` gives the reason
+
+  @spec:factory#REQ-052
+  Scenario: Attempt breaker: Failures across rounds
+    Given a step `build` with `retry` 5 that failed once in round 1 and once in round 2
+    When it fails in round 3
+    Then the run moves to `Blocked` with the cause attempts spent
+
+  @spec:factory#REQ-052
+  Scenario: Attempt breaker: One more attempt
+    Given a run blocked by the breaker of the step `build`
+    When a person unblocks it
+    Then the step gets one attempt, and its next failure escalates again
+
+  @spec:factory#REQ-053
+  Scenario: Escalation: Escalate
+    Given a run in `Working` with two agents that run
+    When the run escalates with the cause attempts spent
+    Then both agents stop, the clocks stop, and the run shows one notice in Needs you with the cause and the action
+
+  @spec:factory#REQ-053
+  Scenario: Escalation: Label
+    Given the default state mapping and `tracker_transition` on
+    When a run escalates to `Blocked`
+    Then the ticket gets the label `shipyard:blocked`
+
+  @spec:factory#REQ-054
+  Scenario: Run caps: Fix rounds spent
+    Given a run with `fix_rounds` 8 and eight fix rounds spent
+    When a new CI failure asks for a fix
+    Then the run moves to `Blocked` with the cause fix rounds spent
+
+  @spec:factory#REQ-054
+  Scenario: Run caps: Raised cap
+    Given a run blocked with the cause fix rounds spent
+    When a person sets `fix_rounds: 12` in the workflow and unblocks the run
+    Then the run can spend four more fix rounds
+
+  @spec:factory#REQ-055
+  Scenario: Same failure: Same finding twice
+    Given a fix round that ended with the P1 finding "unchecked unwrap in src/a.rs" at line 10
+    When the next review reports the same finding at line 12
+    Then the run moves to `Blocked` with the cause same failure, and the caps are not spent
+
+  @spec:factory#REQ-055
+  Scenario: Same failure: No progress
+    Given a round that left two blocking findings
+    When the next round leaves two other blocking findings
+    Then the run moves to `Blocked` with the cause no progress
+
+  @spec:factory#REQ-056
+  Scenario: Guards: Tool missing
+    Given a step that needs Claude Code and Claude Code is not installed
+    When the attempt is due
+    Then the run moves to `RetryQueued` and its retries and failed attempts stay the same
+
+  @spec:factory#REQ-056
+  Scenario: Guards: Guard escalates
+    Given a run whose guard fails for the same cause for 30 min
+    When the next retry fails the guard
+    Then the run moves to `Blocked` with the cause and posts one stop report
+
+  @spec:factory#REQ-057
+  Scenario: Fixer round: Fixer for a rebase conflict
+    Given a pull request step whose rebase onto the base conflicts in `src/a.rs`
+    When the conflict is found
+    Then a builder step starts in the run worktree with a note that names `src/a.rs`, with no click
+
+  @spec:factory#REQ-057
+  Scenario: Fixer round: Same cause again
+    Given a fixer round for a rebase conflict that ended
+    When the rebase conflicts again
+    Then the run moves to `Blocked` with the cause rebase conflict and the files
+
+  @spec:factory#REQ-058
+  Scenario: Stop report: One comment
+    Given `tracker_comment` on and a tracker with comments
+    When a run escalates with the cause review rounds spent
+    Then the ticket gets one comment with the marker, the cause, the last findings, the four rounds tried and the action
+
+  @spec:factory#REQ-058
+  Scenario: Stop report: Switch off
+    Given `tracker_comment` off
+    When a run escalates
+    Then no comment and no approval go out, and the notice shows in Needs you
+
+  @spec:factory#REQ-058
+  Scenario: Stop report: Restart
+    Given a stop report that went out, and the app stopped before it saved the run
+    When the app restarts and the run is still blocked for the same cause and attempt
+    Then no second comment goes out
+
+  @spec:factory#REQ-059
+  Scenario: Attempt fencing: Late report
+    Given attempt 1 of the step `build` stalled and attempt 2 runs
+    When attempt 1 sends `report` with the outcome done
+    Then the report is ignored, the log names attempt 1, and the step waits for attempt 2

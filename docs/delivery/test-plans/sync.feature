@@ -243,3 +243,51 @@ Feature: sync
     Given the language is French
     When a person reads the sync state
     Then every label is in French
+
+  @spec:sync#REQ-018
+  Scenario: No restart after an end: Done issue
+    Given a GitHub issue that stays open with the label `shipyard` after its run reached `Done`
+    When a tick runs
+    Then the pickup starts no run on it
+
+  @spec:sync#REQ-018
+  Scenario: No restart after an end: Cancelled by a person
+    Given a ticket whose run a person cancelled
+    When a tick runs and the ticket did not change
+    Then the pickup starts no run on it
+
+  @spec:sync#REQ-018
+  Scenario: No restart after an end: New comment
+    Given a ticket whose last run ended
+    When a person adds a comment and a tick runs
+    Then the pickup starts a new run on it
+
+  @spec:sync#REQ-018
+  Scenario: No restart after an end: Run click
+    Given a ticket whose last run ended and that did not change
+    When a person clicks Run
+    Then a new run starts
+
+  @spec:sync#REQ-019
+  Scenario: Pickup label at the end: Label removed
+    Given `tracker_transition` on and a run on a GitHub issue with the label `shipyard`
+    When the run reaches `Done`
+    Then the issue loses the label `shipyard`
+
+  @spec:sync#REQ-019
+  Scenario: Pickup label at the end: Switch off
+    Given `tracker_transition` off
+    When the run reaches `Done`
+    Then the label stays, and no approval shows
+
+  @spec:sync#REQ-020
+  Scenario: Project not open: Release
+    Given a run in `Working` and its project closed
+    When 10 min pass
+    Then the claim and the stamp of the run are gone and the run is still in `Working`
+
+  @spec:sync#REQ-020
+  Scenario: Project not open: Open again
+    Given a run whose claim was released because its project was closed
+    When the project opens and no other machine holds the claim
+    Then the system takes the claim and the run goes on

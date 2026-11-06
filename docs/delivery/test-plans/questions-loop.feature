@@ -248,9 +248,21 @@ Feature: questions-loop
 
   @spec:questions-loop#REQ-019
   Scenario: Unanswered question: Reminder
-    Given a question open for 24 h
+    Given a question open for 24 h and `tracker_comment` on
     When the time passes
-    Then one notification reminds the person and the run keeps waiting
+    Then one notification and one ticket comment remind the person, and the run keeps waiting
+
+  @spec:questions-loop#REQ-019
+  Scenario: Unanswered question: Escalation
+    Given a question open for 72 h
+    When the time passes
+    Then the run moves to `Blocked` with the cause no answer, and the question stays open
+
+  @spec:questions-loop#REQ-019
+  Scenario: Unanswered question: Late answer
+    Given a run blocked with the cause no answer
+    When the person answers the question
+    Then the run returns to its return state with the answer
 
   @spec:questions-loop#REQ-020
   Scenario: Question states: Answered
@@ -263,3 +275,21 @@ Feature: questions-loop
     Given a QuestionCard
     When the person uses only the keyboard
     Then they choose, send and see the focus ring
+
+  @spec:questions-loop#REQ-022
+  Scenario: Reply to a stop report: Reply unblocks
+    Given a run blocked with a stop report on the ticket
+    When a person replies "Use the v2 endpoint" and a tick runs
+    Then the run leaves `Blocked`, and the next brief holds the reply in an `<untrusted-data>` block
+
+  @spec:questions-loop#REQ-022
+  Scenario: Reply to a stop report: Own comment
+    Given a stop report and a later comment with an id that the system stored at a post
+    When a tick runs
+    Then the run stays in `Blocked`
+
+  @spec:questions-loop#REQ-022
+  Scenario: Reply to a stop report: Paused run
+    Given a run in `Paused` for the member budget with a stop report on the ticket
+    When a person replies on the ticket
+    Then the run stays in `Paused` and the run log notes the reply

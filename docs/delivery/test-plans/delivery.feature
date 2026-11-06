@@ -39,15 +39,21 @@ Feature: delivery
     And the run log keeps the P2 finding
 
   @spec:delivery#REQ-004
+  Scenario: Fix rounds: Batched findings
+    Given a review with three P1 findings
+    When the fix round starts
+    Then one builder brief holds the three findings
+
+  @spec:delivery#REQ-004
   Scenario: Fix rounds: Rounds spent
-    Given two fix rounds are spent and a P0 or P1 finding remains
-    When the second re-review ends
-    Then the run moves to `Blocked`
-    And the Inbox shows a card with the findings
+    Given four fix rounds are spent and a P0 or P1 finding remains
+    When the fourth re-review ends
+    Then the run moves to `Blocked` with the cause review rounds spent
+    And the stop report lists the findings
 
   @spec:delivery#REQ-004
   Scenario: Fix rounds: Unblock after the rounds
-    Given a run in `Blocked` after two fix rounds
+    Given a run in `Blocked` after its review rounds are spent
     When a person unblocks it with a message
     Then the builder runs one more fix round with the findings and the message
 
@@ -107,6 +113,18 @@ Feature: delivery
     And the body shows the gate result with its exact counts
     And the body has one item for each of the two tickets
 
+  @spec:delivery#REQ-010
+  Scenario: Title and body: Closes line
+    Given a run on the GitHub issue 42 of the same repository
+    When the system writes the body
+    Then the body holds the line `Closes #42`
+
+  @spec:delivery#REQ-010
+  Scenario: Title and body: Jira ticket
+    Given a run on a Jira ticket
+    When the system writes the body
+    Then the body holds no `Closes` line
+
   @spec:delivery#REQ-011
   Scenario: Labels: Missing label
     Given the code host has no label for the area `billing`
@@ -155,6 +173,12 @@ Feature: delivery
     When the run reaches the pull request step
     Then the system opens it with no approval
 
+  @spec:delivery#REQ-014
+  Scenario: Push and pull request switches: Rejected push
+    Given an approval for a push
+    When the person rejects it
+    Then nothing is pushed, the run moves to `Blocked` with the cause push rejected, and one stop report goes out
+
   @spec:delivery#REQ-015
   Scenario: Force push: Rewrite
     Given `push` on and a rebased branch already on the remote
@@ -188,10 +212,22 @@ Feature: delivery
     Then the system replies with the commit and resolves the thread
 
   @spec:delivery#REQ-020
+  Scenario: Feedback limits: Feedback cap
+    Given a run with `feedback_rounds` 3 and three feedback rounds spent
+    When a new CI failure arrives
+    Then the run moves to `Blocked` with the cause feedback rounds spent, and the Inbox shows it
+
+  @spec:delivery#REQ-020
+  Scenario: Feedback limits: One round for one tick
+    Given a tick that finds one failed check and two new threads
+    When the feedback round starts
+    Then one builder brief holds the check and the two threads, and the feedback count goes up by one
+
+  @spec:delivery#REQ-020
   Scenario: Feedback limits: Loop stops
     Given a run at its max turns
     When a new CI failure arrives
-    Then the run moves to `Failed` and the Inbox shows it
+    Then the run moves to `Paused` with the cause max turns and the Inbox shows it
 
   @spec:delivery#REQ-020
   Scenario: Feedback limits: Budget stop
@@ -229,6 +265,12 @@ Feature: delivery
     Given a run in a feedback round (`Working` or `SelfReview`) with its agents running and a push that waits for a click
     When the pull request merges
     Then the agents stop, the run moves to `Merged` and then `Done`, and the push approval is dropped
+
+  @spec:delivery#REQ-022
+  Scenario: Merge detection: Merge while blocked
+    Given a run in `Blocked` with an open pull request
+    When a person merges the pull request
+    Then the next tick moves the run to `Merged` and then `Done`
 
   @spec:delivery#REQ-023
   Scenario: Ticket move: Switch off
@@ -271,15 +313,20 @@ Feature: delivery
   Scenario: Closed without merge: Closed
     Given a `PROpen` run
     When a person closes the pull request
-    Then the run moves to `Blocked`
-    And the Inbox shows the run with the reopen and cancel choices
+    Then the run moves to `Cancelled` with the reason pull request closed
+    And the ticket gets one comment that names the closed pull request
 
   @spec:delivery#REQ-026
   Scenario: Closed without merge: Unblock after the close
-    Given a run blocked because its pull request closed
-    When a person unblocks it with no message
-    Then the run removes the closed pull request
-    And the pull request step opens a new pull request
+    Given a run cancelled because its pull request closed
+    When a person comments on the ticket and a tick runs
+    Then a new run starts on the ticket and opens a new pull request
+
+  @spec:delivery#REQ-026
+  Scenario: Closed without merge: Closed during a retry
+    Given a run in `RetryQueued` with an open pull request
+    When a person closes the pull request
+    Then the run moves to `Cancelled` and no retry starts
 
   @spec:delivery#REQ-027
   Scenario: Impacts digest: Digest
@@ -348,8 +395,20 @@ Feature: delivery
     Then no pull request opens and the error names both branches
 
   @spec:delivery#REQ-035
+  Scenario: Nothing to deliver: Fixer round
+    Given a run branch with no change against the base
+    When the pull request step runs
+    Then a builder step gets the note with no click, and the review and the pull request step run again
+
+  @spec:delivery#REQ-035
+  Scenario: Nothing to deliver: Still nothing
+    Given a fixer round for an empty branch that ended with no change
+    When the pull request step runs again
+    Then the run moves to `Blocked` with the reason nothing to deliver
+
+  @spec:delivery#REQ-035
   Scenario: Nothing to deliver: Unblock with nothing to deliver
-    Given a run blocked because the run branch has no change against the base
+    Given a run blocked because the run branch still has no change after its fixer round
     When a person unblocks it with a message
     Then the builder steps get the note and the message, and the review and the pull request step run again
 
@@ -362,7 +421,13 @@ Feature: delivery
 
   @spec:delivery#REQ-036
   Scenario: Rebase conflict: Rebase conflict
-    Given a run blocked by a rebase conflict in `src/a.rs`
-    When a person unblocks it
-    Then a builder step gets a note that names `src/a.rs` and asks for the rebase in the run worktree
+    Given a rebase conflict in `src/a.rs`
+    When the pull request step finds it
+    Then a builder step gets a note that names `src/a.rs` and asks for the rebase in the run worktree, with no click
     And after the review the pull request step runs again
+
+  @spec:delivery#REQ-036
+  Scenario: Rebase conflict: Second conflict
+    Given a fixer round for a rebase conflict that ended
+    When the rebase conflicts again
+    Then the run moves to `Blocked` with the files

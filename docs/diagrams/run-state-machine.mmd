@@ -22,16 +22,22 @@ stateDiagram-v2
 
   state "Any active state (Queued to Merged)" as Active
   Active --> WaitingForAnswer: Ask
-  Active --> Blocked: Block
+  Active --> Blocked: Block, an escalation (cause, last lines, stop report)
   Active --> RetryQueued: Retry
   Active --> Paused: BudgetStop or max turns
-  Active --> Failed: Fail
+  Active --> Failed: Fail, runs of older logs only (Q-166)
   WaitingForAnswer --> Active: Answered, back to the return state
-  Blocked --> Active: Unblock
+  WaitingForAnswer --> Blocked: Block, no answer after 72 h, keeps the return state
+  RetryQueued --> Blocked: Block, breaker or retries spent, or guard failed for 30 min
+  Blocked --> Active: Unblock or a reply on the ticket, one more round
   Blocked --> Done: Finished, a person closes a run with nothing to deliver
   RetryQueued --> Active: RetryDue
-  Paused --> Active: Resume with budget left, more turns
-  Active --> Cancelled: Cancel
+  Paused --> Active: Resume with budget left, more turns, or the next day for a day budget
+  WaitingForAnswer --> Merged: PrMerged
+  Blocked --> Merged: PrMerged
+  RetryQueued --> Merged: PrMerged
+  Paused --> Merged: PrMerged
+  Active --> Cancelled: Cancel, kill switch, ticket terminal or pull request closed
   WaitingForAnswer --> Cancelled: Cancel
   Blocked --> Cancelled: Cancel
   RetryQueued --> Cancelled: Cancel
@@ -45,4 +51,8 @@ stateDiagram-v2
     A side state stores the return state.
     The stall timer and the budget clock run only in Planning, Working and SelfReview.
     Retry delay: min(10 s x 2^(n-1), 5 min).
+    A failed guard waits with the same delay and uses no retry.
+    Caps for the whole run: 3 failed attempts per step,
+    4 review rounds, 3 feedback rounds, 8 fix rounds.
+    The same failure twice in a row escalates at once.
   end note
