@@ -45,6 +45,7 @@ fn the_switches_decide_which_tools_list_and_run_and_a_change_acts_at_once() {
         run: "outside".into(),
         step: "outside".into(),
         tools: NAMES.iter().map(|n| n.to_string()).collect(),
+        attempt: String::new(),
     };
     server.sessions().open_known(TOKEN, binding).unwrap();
     assert!(
@@ -55,7 +56,8 @@ fn the_switches_decide_which_tools_list_and_run_and_a_change_acts_at_once() {
                 Binding {
                     run: "x".into(),
                     step: "x".into(),
-                    tools: vec![]
+                    tools: vec![],
+                    attempt: String::new(),
                 }
             )
             .is_err()

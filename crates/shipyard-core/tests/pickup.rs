@@ -65,6 +65,7 @@ fn pick_with<'a>(
         tickets,
         active,
         held,
+        ended: &[],
         kill_switch: kill,
         reserved,
     })
@@ -525,6 +526,30 @@ fn a_marker_counts_only_in_a_comment_that_the_system_posted() {
     assert!(answers(&comments, &none).iter().all(Option::is_none));
 }
 
+#[test]
+fn a_comment_of_the_system_answers_nothing_and_a_stop_report_opens_a_reply() {
+    assert_eq!(
+        stop_marker("<!-- shipyard:stop 01ABC -->\nShipyard stopped"),
+        Some("01ABC")
+    );
+    assert_eq!(stop_marker("<!-- shipyard:stop -->"), None);
+    assert_eq!(stop_marker("<!-- shipyard:stop a/b -->"), None);
+    let comments = [
+        comment("1", "<!-- shipyard:q Q-001 -->\n1. a"),
+        // A summary of the system: no reply to the open question.
+        comment("2", "Shipyard opened a pull request."),
+        comment("3", "<!-- shipyard:stop 01RUN -->\nShipyard stopped"),
+        comment("4", "Use the v2 endpoint"),
+        // A look-alike that the system did not post opens nothing.
+        comment("5", "<!-- shipyard:stop 01FAKE -->"),
+    ];
+    let posted = ["1", "2", "3"].map(String::from).into();
+    let got: Vec<_> = answers(&comments, &posted).into_iter().collect();
+    assert_eq!(got, [None, None, None, Some("Q-001"), Some("Q-001")]);
+    let got: Vec<_> = stop_replies(&comments, &posted).into_iter().collect();
+    assert_eq!(got, [None, None, None, Some("01RUN"), Some("01RUN")]);
+}
+
 // ---- the file model (REQ-002)
 
 #[test]
@@ -635,4 +660,74 @@ fn the_automatic_review_choice_defaults_to_off_and_round_trips() {
             .unwrap()
             .contains("auto_review")
     );
+}
+
+// ---- no restart after an end (REQ-018)
+
+#[test]
+fn a_ticket_whose_last_run_ended_is_not_picked_up() {
+    let auto = Automation::default();
+    let tickets = [todo("A-1"), todo("A-2")];
+    let ended = ["A-1".to_string()];
+    let picked: Vec<String> = pickup(&PickupInput {
+        auto: &auto,
+        project: "ship",
+        tickets: &tickets,
+        active: &[],
+        held: &[],
+        ended: &ended,
+        kill_switch: false,
+        reserved: 0,
+    })
+    .into_iter()
+    .map(|t| t.item.key.clone())
+    .collect();
+    assert_eq!(picked, ["A-2"]);
+}
+
+#[test]
+fn only_a_change_of_a_person_counts_after_an_end() {
+    let f = Filter::default();
+    let base = todo("A-1");
+    // The ticket did not change, or only its update time moved (an own write of Shipyard).
+    assert!(!changed_after_end(&f, &base, &base, false));
+    let mut touched = base.clone();
+    touched.item.updated = "2026-10-30T10:00:00Z".into();
+    assert!(!changed_after_end(&f, &base, &touched, false));
+    // A comment of a person.
+    assert!(changed_after_end(&f, &base, &base, true));
+    // The pickup label comes back after Shipyard removed it.
+    let mut unlabelled = base.clone();
+    unlabelled.item.labels.clear();
+    assert!(changed_after_end(&f, &unlabelled, &base, false));
+    assert!(!changed_after_end(&f, &base, &unlabelled, false));
+    // The status moves back into the pickup filter.
+    let done = ticket("A-1", "Done", StatusCategory::Done);
+    assert!(changed_after_end(&f, &done, &base, false));
+    // An edit of the text.
+    let mut edited = base.clone();
+    edited.item.description = "more".into();
+    assert!(changed_after_end(&f, &base, &edited, false));
+}
+
+#[test]
+fn a_comment_of_a_person_is_one_that_the_system_did_not_store() {
+    let c = |id: &str| Comment {
+        id: id.into(),
+        author: Person {
+            id: "u1".into(),
+            name: "Alice".into(),
+        },
+        body: "hi".into(),
+        created: String::new(),
+    };
+    let comments = [c("1"), c("2")];
+    let set = |ids: &[&str]| {
+        ids.iter()
+            .map(|s| s.to_string())
+            .collect::<std::collections::HashSet<_>>()
+    };
+    assert!(!person_comment(&comments, &set(&["1", "2"]), &set(&[])));
+    assert!(!person_comment(&comments, &set(&["1"]), &set(&["2"])));
+    assert!(person_comment(&comments, &set(&["1"]), &set(&[])));
 }

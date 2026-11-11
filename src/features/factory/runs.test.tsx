@@ -222,6 +222,22 @@ describe("Factory / Runs", () => {
 		await waitFor(async () => expect((await find("ACME-9")).state).toBe("Done"));
 	});
 
+	it("shows the escalation: cause, last lines, what was tried and the reply note", async () => {
+		const user = userEvent.setup();
+		await renderRuns();
+		await user.click(await screen.findByRole("button", { name: /ACME-9/ }));
+		const panel = await screen.findByRole("complementary", { name: "ACME-9" });
+		const banner = await within(panel).findByRole("status");
+		expect(banner).toHaveTextContent("The same failure came back twice in a row.");
+		expect(banner).toHaveTextContent("Tried: 1 review rounds of 4");
+		expect(banner).toHaveTextContent(
+			"A reply on the ticket by a team member also unblocks the run.",
+		);
+		const fold = banner.querySelector("details") as HTMLDetailsElement;
+		expect(fold.open).toBe(false);
+		expect(fold).toHaveTextContent("error: could not rebase");
+	});
+
 	it("unblocks with a message on Enter", async () => {
 		const user = userEvent.setup();
 		await renderRuns();

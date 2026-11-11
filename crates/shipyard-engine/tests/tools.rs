@@ -21,6 +21,7 @@ fn who(run: &str, step: &str) -> Binding {
         run: run.into(),
         step: step.into(),
         tools: Vec::new(),
+        attempt: String::new(),
     }
 }
 
@@ -578,4 +579,28 @@ fn the_factory_ends_the_agent_of_a_step_when_the_step_ends_stops_or_fails() {
     let ended = fx.agents.ended();
     assert!(ended.len() > 1, "{ended:?}");
     assert!(ended.iter().all(|(r, _)| *r == run));
+}
+
+#[test]
+fn a_call_of_an_old_attempt_is_ignored_and_logged() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    let first = fx.agents.briefs().pop().unwrap().attempt;
+    assert!(!first.is_empty());
+    let mut old = who(&run, "work");
+    old.attempt = first.clone();
+    assert!(fx.f.fenced(&old).is_ok());
+    // Attempt 1 stalls and attempt 2 runs.
+    fx.advance(300);
+    fx.advance(10);
+    let second = fx.agents.briefs().pop().unwrap().attempt;
+    assert_ne!(first, second);
+    let err = fx.f.fenced(&old).unwrap_err();
+    assert!(err.contains("not the current attempt"), "{err}");
+    assert!(
+        fx.logged(&run, "note")
+            .iter()
+            .any(|n| n["fenced"] == first.as_str())
+    );
+    assert_eq!(fx.state(&run), RunState::Working);
 }

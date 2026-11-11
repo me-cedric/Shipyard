@@ -10,7 +10,8 @@ flowchart LR
     Claim["Claim<br/>local lock + stamp"]
     Run["Run<br/>workflow steps in a worktree"]
     Ask{"Decision for<br/>a person?"}
-    Self["Self-review<br/>fresh context, 2 rounds at most"]
+    Self["Self-review<br/>fresh context, 4 review rounds for the run"]
+    Esc["Escalation: Blocked<br/>cause, last lines, tried, action<br/>one ticket comment, label shipyard:blocked"]
   end
   subgraph Host["Code host"]
     PR["Pull request"]
@@ -26,12 +27,17 @@ flowchart LR
   Ask -->|"yes: ask_question"| Q["Question in Home / Needs you<br/>and on the ticket"]
   Q -->|"answer"| Run
   Ask -->|"no"| Self
-  Self -->|"blocking finding"| Run
+  Self -->|"blocking finding or red gate: fix round, no click<br/>caps: 3 attempts per step, 3 feedback, 8 fix"| Run
+  Run -->|"same failure twice, no fewer findings, or a cap is spent"| Esc
+  Esc -->|"Unblock with a message, or a team reply on the ticket: one more round"| Run
+  Esc -->|"Close as done"| Close
   Self -->|"clean"| PR
   PR --> CI
   PR --> Review
-  CI -->|"failure"| Run
-  Review -->|"changes requested"| Run
+  CI -->|"failure: feedback round"| Run
+  Review -->|"changes requested: feedback round"| Run
+  PR -->|"closed with no merge"| Cancelled["Run cancelled, ticket comment"]
   Review -->|"merge"| Merged["Merged"]
   Merged -->|"sync tick sees it"| Close["Close ticket, post run summary,<br/>remove worktree"]
   Close --> WI
+  Close -.->|"no restart: the sync starts no new run on this ticket until it changes or a person clicks Run"| WI

@@ -378,7 +378,7 @@ After each round and each failed attempt, the system SHALL compute a fingerprint
 
 ### Requirement: REQ-056 Guards
 
-Before each attempt, the system SHALL check that the project is open, that the workspace exists, and that the AI tool and the connections of the step are set up. A start error of the workspace or the AI tool SHALL be a failed guard. A failed guard SHALL move the run to `RetryQueued` with the delays of REQ-007, and SHALL NOT count as a retry or a failed attempt. After 30 min of failed guards with one cause, the run SHALL escalate, except when the project is not open (`sync` REQ-020).
+Before each attempt, the system SHALL check that the project is open, that the workspace exists, and that the AI tool and the connections of the step are set up. A start error of the workspace or the AI tool SHALL be a failed guard. A failed guard SHALL move the run to `RetryQueued` with the delays of REQ-007, and SHALL NOT count as a retry or a failed attempt. After 30 min of failed guards, with one cause or with causes that change, the run SHALL escalate, except when the project is not open (`sync` REQ-020).
 
 #### Scenario: Tool missing
 - GIVEN a step that needs Claude Code and Claude Code is not installed
@@ -389,6 +389,11 @@ Before each attempt, the system SHALL check that the project is open, that the w
 - GIVEN a run whose guard fails for the same cause for 30 min
 - WHEN the next retry fails the guard
 - THEN the run moves to `Blocked` with the cause and posts one stop report
+
+#### Scenario: Causes that change
+- GIVEN a run whose guard fails for 30 min with two causes that take turns
+- WHEN the next retry fails the guard
+- THEN the run moves to `Blocked` with the last cause and posts one stop report
 
 ### Requirement: REQ-057 Fixer round
 
@@ -406,7 +411,7 @@ A child conflict after its new run, a rebase conflict and a run branch with no c
 
 ### Requirement: REQ-058 Stop report
 
-Each escalation and each end by a decision of a person SHALL be reported once, with the key run, cause and attempt. The report SHALL be one ticket comment with the marker `<!-- shipyard:stop <run> -->` when the tracker takes comments and `tracker_comment` is on; else the notice only, and no approval. The comment SHALL give the cause, the last lines, what the run tried and the action: reply on the ticket or use Unblock with a message. It SHALL follow `delivery` REQ-031.
+Each escalation and each end by a decision of a person SHALL be reported once, with the key run, cause and attempt. The report SHALL be one ticket comment with the marker `<!-- shipyard:stop <run> -->` when the tracker takes comments and `tracker_comment` is on; else the notice only, and no approval. The comment SHALL give the cause, the last lines, what the run tried and the action: reply on the ticket or use Unblock with a message. A last line with the shape of a secret SHALL be replaced by a note. It SHALL follow `delivery` REQ-031.
 
 #### Scenario: One comment
 - GIVEN `tracker_comment` on and a tracker with comments

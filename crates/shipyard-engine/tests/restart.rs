@@ -153,6 +153,7 @@ fn an_open_question_survives_and_its_answer_resumes_the_run() {
         key: "SHIP-1".into(),
         comment: comment("r1", "2"),
         answers: Some("Q-001".into()),
+        stop: None,
     };
     fx.f.event(&reply).unwrap();
     assert_eq!(fx.state(&run), RunState::Working);
@@ -339,4 +340,70 @@ fn the_global_kill_switch_stays_on_after_a_restart() {
     fx.restart();
     assert!(fx.f.kill_switch(), "a restart must not start pickup again");
     assert_eq!(fx.state(&run), RunState::Cancelled);
+}
+
+fn exit_with(code: i32) -> AgentEvent {
+    AgentEvent::Exit {
+        code: Some(code),
+        cancelled: false,
+    }
+}
+
+fn stop_reports(fx: &Fx) -> usize {
+    fx.writer
+        .sent()
+        .iter()
+        .filter(|w| matches!(w, Write::Comment { body, .. } if body.contains("<!-- shipyard:stop")))
+        .count()
+}
+
+#[test]
+fn the_run_counts_survive_a_restart() {
+    let mut fx = Fx::new(writes(true), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    fx.event("work", exit_with(1));
+    assert_eq!(fx.state(&run), RunState::RetryQueued);
+    fx.restart();
+    fx.advance(10);
+    assert_eq!(fx.agents.running(), ["work"]);
+    // `retry: 1`: the failure before the restart counts.
+    fx.event(
+        "work",
+        AgentEvent::Exit {
+            code: None,
+            cancelled: true,
+        },
+    );
+    assert_eq!(fx.state(&run), RunState::Blocked);
+}
+
+#[test]
+fn a_stop_report_that_went_out_before_a_crash_is_not_sent_again() {
+    let mut fx = Fx::new(writes(true), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    fx.event("work", exit_with(1));
+    fx.advance(10);
+    let saved = fx.snapshots();
+    fx.event(
+        "work",
+        AgentEvent::Exit {
+            code: None,
+            cancelled: true,
+        },
+    );
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    assert_eq!(stop_reports(&fx), 1);
+    // The app stopped before it saved the run: the restart escalates again for the same cause.
+    fx.rewind(&saved);
+    fx.restart();
+    fx.f.pump();
+    fx.event(
+        "work",
+        AgentEvent::Exit {
+            code: None,
+            cancelled: true,
+        },
+    );
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    assert_eq!(stop_reports(&fx), 1, "no second report");
 }

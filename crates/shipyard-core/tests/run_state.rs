@@ -256,21 +256,78 @@ fn backoff_doubles_and_caps_at_five_minutes() {
 }
 
 #[test]
-fn retries_spent_fail_the_run() {
-    assert_eq!(after_failure(1, 2), RunEvent::Retry);
-    assert_eq!(after_failure(2, 2), RunEvent::Retry);
-    assert_eq!(after_failure(3, 2), RunEvent::Fail);
-    assert_eq!(after_failure(1, 0), RunEvent::Fail);
+fn retries_and_the_breaker_escalate() {
+    assert_eq!(after_failure(1, 2, 1, 0), None);
+    assert_eq!(after_failure(2, 2, 2, 0), None);
+    // `retry` 1: the second failure escalates (REQ-007).
+    assert_eq!(after_failure(2, 1, 2, 0), Some(Cause::Retries));
+    assert_eq!(after_failure(1, 0, 1, 0), Some(Cause::Retries));
+    // `retry` 5, one failure in each of three rounds: the third escalates (REQ-052).
+    assert_eq!(after_failure(1, 5, 3, 0), Some(Cause::Attempts));
+    // An unblock gives one more attempt, and the next failure escalates again.
+    assert_eq!(after_failure(1, 5, 3, 1), None);
+    assert_eq!(after_failure(2, 5, 4, 1), Some(Cause::Attempts));
 }
 
 #[test]
-fn review_rounds() {
-    assert_eq!(after_review(false, 0, MAX_ROUNDS), None);
-    assert_eq!(after_review(true, 0, 2), Some(RunEvent::FixRound));
-    assert_eq!(after_review(true, 1, 2), Some(RunEvent::FixRound));
-    assert_eq!(after_review(true, 2, 2), Some(RunEvent::Block));
-    // A workflow value above the cap still stops at two rounds.
-    assert_eq!(after_review(true, 2, 9), Some(RunEvent::Block));
+fn review_rounds_count_for_the_run_and_need_progress() {
+    let (a, b) = (
+        fingerprint(&["P1 src/a.rs x"]),
+        fingerprint(&["P1 src/b.rs y"]),
+    );
+    assert_eq!(after_review(0, 0, None, 0, REVIEW_ROUNDS), Next::Go);
+    assert_eq!(after_review(0, 0, Some((a, 1)), 4, 4), Next::Go);
+    assert_eq!(after_review(1, a, None, 0, 4), Next::Fix);
+    // The same finding at another line: the same fingerprint, at once (REQ-055).
+    assert_eq!(
+        after_review(1, a, Some((a, 1)), 1, 4),
+        Next::Escalate(Cause::SameFailure)
+    );
+    // Two findings, then two others: no progress.
+    assert_eq!(
+        after_review(2, b, Some((a, 2)), 1, 4),
+        Next::Escalate(Cause::NoProgress)
+    );
+    assert_eq!(after_review(1, b, Some((a, 2)), 3, 4), Next::Fix);
+    assert_eq!(
+        after_review(1, b, Some((a, 2)), 4, 4),
+        Next::Escalate(Cause::ReviewRounds)
+    );
+    assert_eq!(
+        (REVIEW_ROUNDS, FEEDBACK_ROUNDS, FIX_ROUNDS, ATTEMPT_BREAKER),
+        (4, 3, 8, 3)
+    );
+}
+
+#[test]
+fn an_escalated_wait_or_retry_keeps_its_return_state() {
+    for enter in [RunEvent::Ask, RunEvent::Retry] {
+        let side = walk(&TO_WORKING).apply(enter).unwrap();
+        let blocked = side.apply(RunEvent::Block).unwrap();
+        assert_eq!(blocked.state, RunState::Blocked);
+        assert_eq!(blocked.return_to, Some(RunState::Working));
+        assert_eq!(
+            blocked.apply(RunEvent::Unblock).unwrap().state,
+            RunState::Working
+        );
+    }
+    let paused = walk(&TO_WORKING).apply(RunEvent::BudgetStop).unwrap();
+    assert!(paused.apply(RunEvent::Block).is_err());
+}
+
+#[test]
+fn a_merge_in_a_side_state_goes_to_merged() {
+    for enter in [
+        RunEvent::Ask,
+        RunEvent::Block,
+        RunEvent::Retry,
+        RunEvent::BudgetStop,
+    ] {
+        let side = walk(&TO_WORKING).apply(enter).unwrap();
+        let merged = side.apply(RunEvent::PrMerged).unwrap();
+        assert_eq!(merged.state, RunState::Merged, "{enter:?}");
+        assert_eq!(merged.return_to, None);
+    }
 }
 
 #[test]

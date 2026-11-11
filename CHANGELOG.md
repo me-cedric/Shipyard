@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.1.0]
+- A run no longer stays stuck: it fixes blocking findings, red checks, conflicts and empty branches in capped fix rounds, and a stop (a cap, the same failure twice, a spent budget or no answer) writes its cause, last lines, what it tried and the action on the ticket and in the Runs banner, where Unblock, a team reply on the ticket or Close as done moves it on; an ended run no longer restarts by itself.
 - Resume takes the limits that the workflow has now, so a budget that you removed no longer stops a run, and Resume with an empty amount works again.
 - The app starts on any Mac: libgit2 and OpenSSL are built into it, not taken from Homebrew; the README shows the current screens and how to install a release.
 - Work / Team edits the role table: each role shows Hidden, Read or Read and write in each area with Merge and Approve, Edit turns the cells into controls (Save, Cancel and Reset to defaults), a member can have several roles with the levels that result, and Work / Time edits and deletes an entry, with the sync state after the change.

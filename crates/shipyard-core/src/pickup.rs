@@ -221,6 +221,33 @@ pub struct Automation {
     /// An agent review of each new pull request and head commit (`agent-pr` REQ-006).
     #[serde(skip_serializing_if = "AutoReview::is_off")]
     pub auto_review: AutoReview,
+    /// The wait of an open question (`questions-loop` REQ-019).
+    #[serde(skip_serializing_if = "Questions::is_default")]
+    pub questions: Questions,
+}
+
+/// Hours that an open question waits: one reminder, then the escalation (`questions-loop`
+/// REQ-019).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(deny_unknown_fields, default)]
+pub struct Questions {
+    pub remind_after_h: u32,
+    pub escalate_after_h: u32,
+}
+
+impl Default for Questions {
+    fn default() -> Self {
+        Self {
+            remind_after_h: 24,
+            escalate_after_h: 72,
+        }
+    }
+}
+
+impl Questions {
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
+    }
 }
 
 impl Default for Automation {
@@ -235,6 +262,7 @@ impl Default for Automation {
             assignee: None,
             budgets: Budgets::default(),
             auto_review: AutoReview::Off,
+            questions: Questions::default(),
         }
     }
 }
@@ -269,6 +297,20 @@ impl Automation {
             if !(usd.is_finite() && *usd > 0.0) || key.is_empty() {
                 out.push(bad("member", key, *usd));
             }
+        }
+        // The reminder comes first: a reminder after the escalation has no use.
+        let q = self.questions;
+        if q.remind_after_h == 0 {
+            out.push(Issue {
+                field: "questions.remind_after_h".into(),
+                value: q.remind_after_h.to_string(),
+            });
+        }
+        if q.escalate_after_h <= q.remind_after_h {
+            out.push(Issue {
+                field: "questions.escalate_after_h".into(),
+                value: q.escalate_after_h.to_string(),
+            });
         }
         out
     }
@@ -360,11 +402,14 @@ pub struct PrEvent {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SyncEvent {
     /// A new ticket comment, for `questions-loop`. `answers` is the question id of the latest
-    /// marker before the comment.
+    /// marker before the comment. `stop` is the run of the latest stop report before it
+    /// (`questions-loop` REQ-022).
     Comment {
         key: String,
         comment: Comment,
         answers: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        stop: Option<String>,
     },
     /// A pull request, CI or merge event, for `delivery`.
     Pr(PrEvent),
@@ -498,6 +543,8 @@ pub struct PickupInput<'a> {
     pub active: &'a [ActiveRun],
     /// Keys that a claim holds.
     pub held: &'a [String],
+    /// Keys whose last run ended and that no person changed since (REQ-018).
+    pub ended: &'a [String],
     pub kill_switch: bool,
     /// Slots that other work holds, such as an agent review. The global limit counts them.
     pub reserved: usize,
@@ -521,11 +568,7 @@ pub fn matches(filter: &Filter, t: &Ticket) -> bool {
                     .any(|x| eq(&p.id, x) || eq(&p.name, x))
             })
         })
-        && if filter.statuses.is_empty() {
-            item.status.category == StatusCategory::Todo
-        } else {
-            filter.statuses.iter().any(|s| eq(s, &item.status.name))
-        }
+        && status_matches(filter, item)
         && filter
             .component
             .as_deref()
@@ -534,6 +577,41 @@ pub fn matches(filter: &Filter, t: &Ticket) -> bool {
             .priority
             .as_deref()
             .is_none_or(|p| t.priority.as_deref().is_some_and(|x| eq(x, p)))
+}
+
+fn status_matches(filter: &Filter, item: &WorkItem) -> bool {
+    if filter.statuses.is_empty() {
+        item.status.category == StatusCategory::Todo
+    } else {
+        filter.statuses.iter().any(|s| eq(s, &item.status.name))
+    }
+}
+
+/// Did a person change the ticket after the end of its last run (REQ-018)? `base` is the ticket
+/// after the end writes of Shipyard. `comment` says that a person added a comment. Shipyard never
+/// writes the title or the description, so an edit of them is a person's.
+pub fn changed_after_end(filter: &Filter, base: &Ticket, now: &Ticket, comment: bool) -> bool {
+    let has = |t: &Ticket, l: &str| t.item.labels.iter().any(|x| eq(x, l));
+    let label_back = filter
+        .label
+        .as_deref()
+        .is_some_and(|l| has(now, l) && !has(base, l));
+    let status_back = status_matches(filter, &now.item) && !status_matches(filter, &base.item);
+    let edited = now.item.title != base.item.title || now.item.description != base.item.description;
+    comment || label_back || status_back || edited
+}
+
+/// Is one of the comments a person's? A comment of a person has an id that the system did not
+/// store: not read before (`seen`) and not posted as a question (`posted`, `questions-loop`
+/// REQ-009).
+pub fn person_comment(
+    comments: &[Comment],
+    seen: &HashSet<String>,
+    posted: &HashSet<String>,
+) -> bool {
+    comments
+        .iter()
+        .any(|c| !seen.contains(&c.id) && !posted.contains(&c.id))
 }
 
 /// The tickets to claim, oldest update first, within every limit (REQ-006, REQ-007).
@@ -564,6 +642,7 @@ pub fn pickup<'a>(input: &PickupInput<'a>) -> Vec<&'a Ticket> {
         .filter(|t| matches(&auto.pickup, t) && !auto.terminal(&t.item.status))
         .filter(|t| !mine().any(|r| r.key == t.item.key))
         .filter(|t| !input.held.contains(&t.item.key))
+        .filter(|t| !input.ended.contains(&t.item.key))
         .collect();
     candidates.sort_by(|a, b| (&a.item.updated, &a.item.key).cmp(&(&b.item.updated, &b.item.key)));
 
@@ -617,16 +696,42 @@ pub fn answers<'a>(comments: &'a [Comment], posted: &HashSet<String>) -> Vec<Opt
     comments
         .iter()
         .map(|c| {
-            if posted.contains(&c.id) && answer_marker(&c.body).is_some() {
+            // A comment of the system is never a reply: a summary or a stop report included.
+            if posted.contains(&c.id) {
+                if let Some(q) = question_marker(&c.body) {
+                    open = Some(q);
+                }
                 return None;
             }
-            match question_marker(&c.body).filter(|_| posted.contains(&c.id)) {
-                Some(q) => {
-                    open = Some(q);
-                    None
+            open
+        })
+        .collect()
+}
+
+/// The run of a stop report marker `<!-- shipyard:stop <run> -->` (`factory` REQ-058).
+pub fn stop_marker(body: &str) -> Option<&str> {
+    let rest = body[body.find("<!--")? + 4..].trim_start();
+    let rest = rest.strip_prefix("shipyard:stop")?.trim_start();
+    let id = rest.split_whitespace().next()?;
+    let closed = rest[id.len()..].trim_start().starts_with("-->");
+    (closed && id.bytes().all(|b| b.is_ascii_alphanumeric())).then_some(id)
+}
+
+/// For each comment, in order: the run of the latest stop report before it (`questions-loop`
+/// REQ-022). Only a stop report that the system posted counts, and a comment of the system is
+/// never a reply (REQ-009).
+pub fn stop_replies<'a>(comments: &'a [Comment], posted: &HashSet<String>) -> Vec<Option<&'a str>> {
+    let mut open = None;
+    comments
+        .iter()
+        .map(|c| {
+            if posted.contains(&c.id) {
+                if let Some(run) = stop_marker(&c.body) {
+                    open = Some(run);
                 }
-                None => open,
+                return None;
             }
+            open
         })
         .collect()
 }

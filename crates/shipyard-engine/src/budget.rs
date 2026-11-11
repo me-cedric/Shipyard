@@ -5,7 +5,9 @@
 
 use std::time::Duration;
 
-use shipyard_core::run::{self, BudgetLevel};
+use serde_json::json;
+use shipyard_core::run::{self, BudgetLevel, Cause, RunEvent, RunState};
+use shipyard_store::run_log::kind;
 
 use crate::iso;
 use crate::run_engine::{Factory, Inner};
@@ -30,6 +32,65 @@ pub struct Gate {
 }
 
 impl Inner {
+    /// A budget is spent (REQ-022). The day budget alone pauses with no report, and the first
+    /// tick of the next day resumes the run. The run, token, step or member budget escalates.
+    pub(crate) fn budget_stop(
+        &mut self,
+        run_id: &str,
+        own: BudgetLevel,
+        shared: &[(String, BudgetLevel)],
+    ) {
+        let spent: Vec<&String> = shared
+            .iter()
+            .filter(|(_, l)| *l == BudgetLevel::Spent)
+            .map(|(k, _)| k)
+            .collect();
+        let day = spent.iter().find(|k| k.starts_with("day:"));
+        match day {
+            Some(day) if own != BudgetLevel::Spent && spent.len() == 1 => {
+                let day = day.to_string();
+                // The reason that the run page shows.
+                self.log(
+                    run_id,
+                    None,
+                    kind::NOTE,
+                    json!({"stop": "budget", "budget": day}),
+                );
+                if self.transition(run_id, RunEvent::BudgetStop) {
+                    self.rec(run_id).c.day_pause = Some(day);
+                }
+            }
+            _ => {
+                let mut lines = vec!["budget".to_string()];
+                lines.extend(spent.iter().map(|k| format!("spent: {k}")));
+                if own == BudgetLevel::Spent {
+                    lines.push("spent: the budget of the run".into());
+                }
+                self.escalate(run_id, Cause::Budget, &lines);
+            }
+        }
+    }
+
+    /// A run paused by the day budget resumes at the first tick of the next day, when no other
+    /// budget is spent (REQ-022).
+    pub(crate) fn resume_next_day(&mut self, run_id: &str) {
+        let rec = &self.runs[run_id];
+        let Some(day) = rec.c.day_pause.clone() else {
+            return;
+        };
+        if rec.run.state != RunState::Paused {
+            self.rec(run_id).c.day_pause = None;
+            return;
+        }
+        let today = format!("day:{}", &iso(Duration::from_secs(self.now_s()))[..10]);
+        if day == today || self.budget_level(run_id) == BudgetLevel::Spent {
+            return;
+        }
+        self.rec(run_id).c.day_pause = None;
+        self.log(run_id, None, kind::NOTE, json!({"resumed": day}));
+        self.transition(run_id, RunEvent::Resume { budget_left: true });
+    }
+
     /// The bookings of `project`, oldest first.
     pub(crate) fn assistant_bookings(&self, project: &str) -> Vec<Booked> {
         let run = format!("{RUN_PREFIX}{project}");

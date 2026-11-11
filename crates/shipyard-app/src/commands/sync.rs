@@ -135,6 +135,14 @@ fn resolve_assignee(root: &Path, auto: &mut Automation) {
     }
 }
 
+/// The plan of a project of the registry, open or not. `None` for an unknown project.
+pub(crate) fn plan_of(s: &AppState, project: &str) -> Res<Option<Plan>> {
+    match s.registry()?.get(project).cloned() {
+        Some(entry) => plan(s, &active_of(entry)),
+        None => Ok(None),
+    }
+}
+
 /// What the engine of the active project needs, or `None` when the project names no tracker
 /// connection and no code host that exists. A project with a code host only gets a plan with no
 /// tracker: the engine mirrors its pull requests.

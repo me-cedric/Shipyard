@@ -5,7 +5,7 @@ mod fx;
 
 use fx::{Fx, writes};
 use serde_json::{Value, json};
-use shipyard_core::run::RunState;
+use shipyard_core::run::{Cause, RunState};
 use shipyard_engine::approvals::Write;
 use shipyard_engine::ports::ReviewInput;
 use shipyard_engine::run_engine::Config;
@@ -138,16 +138,33 @@ fn a_p2_finding_does_not_block_and_the_log_keeps_it() {
 }
 
 #[test]
-fn two_fix_rounds_then_the_run_blocks_with_the_findings_for_the_inbox() {
-    let fx = Fx::new(writes(true), &[]);
+fn two_fix_rounds_then_the_run_escalates_with_the_findings_for_the_inbox() {
+    // A step `max_rounds: 2` only lowers the run cap of 4 (REQ-036).
+    let fx = Fx::build(writes(true), &[], Config::default(), |p| {
+        let bug = p.files.workflows.get_mut("bug").unwrap();
+        bug.steps
+            .iter_mut()
+            .find(|s| s.id == "review")
+            .unwrap()
+            .max_rounds = Some(2);
+    });
     let run = built(&fx);
-    for round in 1..=2 {
-        review(
-            &fx,
-            &run,
-            vec![finding("P1", "src/a.rs", 3, "missing guard")],
-        );
-        // The run goes back to Working, in the same worktree, with the finding.
+    // Fewer blocking findings at each round: the rounds go on up to the cap of the step.
+    let rounds = [
+        vec![
+            finding("P1", "src/a.rs", 3, "missing guard"),
+            finding("P1", "src/a.rs", 5, "missing test"),
+            finding("P1", "src/a.rs", 6, "missing log"),
+        ],
+        vec![
+            finding("P1", "src/a.rs", 3, "missing guard"),
+            finding("P1", "src/a.rs", 5, "missing test"),
+        ],
+    ];
+    for (n, list) in rounds.into_iter().enumerate() {
+        let round = n + 1;
+        review(&fx, &run, list);
+        // The run goes back to Working, in the same worktree, with every finding in one brief.
         assert_eq!(fx.state(&run), RunState::Working);
         let fix = fx.agents.briefs().pop().unwrap();
         assert_eq!(fix.step, "fix");
@@ -158,6 +175,7 @@ fn two_fix_rounds_then_the_run_blocks_with_the_findings_for_the_inbox() {
             "{}",
             fix.prompt
         );
+        assert!(fix.prompt.contains("[P1] src/a.rs:5 missing test"));
         fx.done(&run, "fix");
         assert_eq!(fx.state(&run), RunState::SelfReview);
     }
@@ -170,8 +188,11 @@ fn two_fix_rounds_then_the_run_blocks_with_the_findings_for_the_inbox() {
     assert_eq!(fixers, 3, "triage-free: one first build and two fixes");
 
     review(&fx, &run, vec![finding("P0", "src/a.rs", 4, "still wrong")]);
-    // A third fix round never starts.
+    // A third fix round never starts: `max_rounds: 2` lowers the cap of the run.
     assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::ReviewRounds);
+    assert_eq!(e.lines, ["[P0] src/a.rs:4 still wrong"]);
     assert_eq!(
         fx.agents
             .briefs()

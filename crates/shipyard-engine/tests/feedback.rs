@@ -5,7 +5,7 @@ mod fx;
 
 use fx::{Fx, writes};
 use shipyard_core::pickup::{PrEvent, PrEventKind, SyncEvent, Writes};
-use shipyard_core::run::RunState;
+use shipyard_core::run::{Cause, RunEvent, RunState};
 use shipyard_engine::approvals::Write;
 use shipyard_engine::ports::{AgentEvent, Dispatch, FailedCheck, Merge, Thread};
 
@@ -265,7 +265,7 @@ fn feedback_that_cannot_be_read_still_starts_the_round() {
 fn feedback_that_comes_while_the_run_is_blocked_waits_for_the_click() {
     let fx = Fx::new(writes(true), &[]);
     let run = open(&fx);
-    pr_event(&fx, PrEventKind::Closed);
+    fx.f.apply(&run, RunEvent::Block).unwrap();
     assert_eq!(fx.state(&run), RunState::Blocked);
     fx.pulls.set_checks(vec![failed("build")]);
     pr_event(&fx, PrEventKind::CiFailed);
@@ -314,12 +314,56 @@ limits: { max_turns: 2, budget_usd: 5, stall_s: 300 }
     assert_eq!(fx.state(&run), RunState::PROpen);
 
     pr_event(&fx, PrEventKind::CiFailed);
-    assert_eq!(fx.state(&run), RunState::Failed);
+    // A pause with the cause max turns and one stop report (`delivery` REQ-020).
+    assert_eq!(fx.state(&run), RunState::Paused);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::MaxTurns);
     assert!(fx.logged(&run, "note").iter().any(|n| {
         n["stop"]
             .as_str()
             .is_some_and(|s| s.starts_with("max turns (2)"))
     }));
+    // A resume gives more turns, and the feedback that waited starts the round.
+    fx.f.resume(&run, 0.0).unwrap();
+    fx.f.pump();
+    assert_eq!(fx.state(&run), RunState::Working);
+}
+
+#[test]
+fn feedback_rounds_count_for_the_run_and_the_fourth_escalates() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = open(&fx);
+    for _ in 0..3 {
+        fx.pulls.set_checks(vec![failed("build")]);
+        pr_event(&fx, PrEventKind::CiFailed);
+        assert_eq!(fx.state(&run), RunState::Working);
+        fix_round(&fx, &run);
+        assert_eq!(fx.state(&run), RunState::PROpen);
+    }
+    pr_event(&fx, PrEventKind::CiFailed);
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::FeedbackRounds);
+    assert!(e.tried.contains("3 feedback rounds of 3"), "{}", e.tried);
+    // An unblock gives one more round, with the feedback that waited.
+    fx.f.unblock(&run).unwrap();
+    fx.f.pump();
+    assert_eq!(fx.state(&run), RunState::Working);
+}
+
+#[test]
+fn a_spent_fix_cap_escalates_a_new_ci_failure() {
+    let fx = Fx::build(writes(true), &[], Default::default(), |p| {
+        p.files.workflows.get_mut("bug").unwrap().limits.fix_rounds = Some(1);
+    });
+    let run = open(&fx);
+    pr_event(&fx, PrEventKind::CiFailed);
+    fix_round(&fx, &run);
+    assert_eq!(fx.state(&run), RunState::PROpen);
+    pr_event(&fx, PrEventKind::CiFailed);
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::FixRounds);
 }
 
 #[test]
@@ -361,73 +405,73 @@ fn a_run_that_pauses_in_the_loop_keeps_the_next_feedback_for_the_resume() {
 }
 
 #[test]
-fn a_pull_request_closed_with_no_merge_blocks_the_run_and_touches_nothing() {
+fn a_pull_request_closed_with_no_merge_cancels_the_run_with_one_report() {
     let fx = Fx::new(writes(true), &[]);
     let run = open(&fx);
     let sent = fx.writer.sent().len();
     pr_event(&fx, PrEventKind::Closed);
-    assert_eq!(fx.state(&run), RunState::Blocked);
+    assert_eq!(fx.state(&run), RunState::Cancelled);
     assert!(
         fx.logged(&run, "note")
             .iter()
-            .any(|n| n["blocked"] == "pull request closed")
+            .any(|n| n["stop"] == "pull request closed")
     );
-    // Not cancelled, not failed. The worktree stays. The ticket gets no move to Done.
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::PullRequestClosed);
+    // The worktree stays. The ticket gets no move to Done, and one comment names the pull request.
     assert_eq!(fx.git.count("remove_worktrees"), 0);
-    let moves: Vec<_> = fx.writer.sent()[sent..]
+    let after = &fx.writer.sent()[sent..];
+    let moves: Vec<_> = after
         .iter()
         .filter_map(|w| match w {
             Write::Transition { status, .. } => Some(status.clone()),
             _ => None,
         })
         .collect();
-    assert!(moves.is_empty(), "{moves:?}");
-    // The person decides: cancel, or unblock for a new pull request.
-    fx.f.cancel(&run).unwrap();
-    assert_eq!(fx.state(&run), RunState::Cancelled);
-}
-
-#[test]
-fn an_unblock_after_a_closed_pull_request_opens_a_new_one() {
-    let fx = Fx::new(writes(true), &[]);
-    let run = open(&fx);
-    pr_event(&fx, PrEventKind::Closed);
-    fx.pulls.close("fix/engine/login");
-    let opened = count(&fx, |w| matches!(w, Write::OpenPr { .. }));
-    fx.f.unblock(&run).unwrap();
-    assert_eq!(fx.f.run_info(&run).unwrap().pr, None);
-    fx.f.pump();
-    assert_eq!(fx.state(&run), RunState::PROpen);
-    assert_eq!(
-        count(&fx, |w| matches!(w, Write::OpenPr { .. })),
-        opened + 1
-    );
-    assert_eq!(fx.f.run_info(&run).unwrap().pr, Some(7));
-    let blocked: Vec<_> = fx
-        .logged(&run, "note")
-        .into_iter()
-        .filter(|n| n["blocked"].is_string())
+    assert!(!moves.iter().any(|m| m == "Done"), "{moves:?}");
+    let reports: Vec<_> = after
+        .iter()
+        .filter_map(|w| match w {
+            Write::Comment { body, .. } if body.contains("<!-- shipyard:stop") => Some(body),
+            _ => None,
+        })
         .collect();
-    assert_eq!(blocked.len(), 1, "{blocked:?}");
+    assert_eq!(reports.len(), 1);
+    assert!(
+        reports[0].contains("#7 closed without a merge"),
+        "{}",
+        reports[0]
+    );
 }
 
 #[test]
-fn an_unblock_with_a_note_after_a_closed_pull_request_starts_a_fix_round() {
+fn a_pull_request_closed_during_a_retry_cancels_the_run_and_no_retry_starts() {
     let fx = Fx::new(writes(true), &[]);
     let run = open(&fx);
-    pr_event(&fx, PrEventKind::Closed);
-    fx.pulls.close("fix/engine/login");
-    fx.f.unblock_with(&run, Some("Split the change.")).unwrap();
-    fx.f.pump();
-    assert_eq!(fx.state(&run), RunState::Working);
-    let prompt = fx.agents.briefs().pop().unwrap().prompt;
-    assert!(
-        prompt.contains("closed without a merge. A person adds: Split the change."),
-        "{prompt}"
+    pr_event(&fx, PrEventKind::CiFailed);
+    fx.event(
+        "fix",
+        AgentEvent::Exit {
+            code: Some(1),
+            cancelled: false,
+        },
     );
-    fix_round(&fx, &run);
-    assert_eq!(fx.state(&run), RunState::PROpen);
-    assert_eq!(fx.f.run_info(&run).unwrap().pr, Some(7));
+    assert_eq!(fx.state(&run), RunState::RetryQueued);
+    pr_event(&fx, PrEventKind::Closed);
+    assert_eq!(fx.state(&run), RunState::Cancelled);
+    fx.clock.advance(std::time::Duration::from_secs(60));
+    fx.f.pump();
+    assert!(fx.agents.running().is_empty());
+}
+
+#[test]
+fn a_merge_while_the_run_is_blocked_closes_it() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = open(&fx);
+    pr_event(&fx, PrEventKind::CiFailed);
+    fx.f.apply(&run, RunEvent::Block).unwrap();
+    pr_event(&fx, PrEventKind::Merged);
+    assert_eq!(fx.state(&run), RunState::Done);
 }
 
 #[test]
@@ -563,4 +607,41 @@ fn a_pull_request_sent_back_by_a_person_starts_a_round_with_the_text() {
     assert_eq!(fx.state(&run), RunState::Working);
     let prompt = fx.agents.briefs().pop().unwrap().prompt;
     assert!(prompt.contains("Use a plain word here."), "{prompt}");
+}
+
+#[test]
+fn a_raised_fix_cap_gives_its_rounds_at_the_unblock() {
+    let tweak = |n| {
+        move |p: &mut shipyard_engine::run_engine::Project| {
+            p.files.workflows.get_mut("bug").unwrap().limits.fix_rounds = Some(n);
+        }
+    };
+    let fx = Fx::build(writes(true), &[], Default::default(), tweak(1));
+    let run = open(&fx);
+    pr_event(&fx, PrEventKind::CiFailed);
+    fix_round(&fx, &run);
+    pr_event(&fx, PrEventKind::CiFailed);
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    // A person sets `fix_rounds: 3` and unblocks: two more rounds, then the cap again.
+    fx.f.set_project("ship", fx.project(tweak(3)));
+    fx.f.unblock(&run).unwrap();
+    fx.f.pump();
+    assert_eq!(fx.state(&run), RunState::Working);
+    fix_round(&fx, &run);
+    pr_event(&fx, PrEventKind::CiFailed);
+    assert_eq!(fx.state(&run), RunState::Working);
+    fix_round(&fx, &run);
+    pr_event(&fx, PrEventKind::CiFailed);
+    assert_eq!(fx.state(&run), RunState::Blocked);
+}
+
+#[test]
+fn a_merge_during_a_question_withdraws_it_and_closes_the_run() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = open(&fx);
+    pr_event(&fx, PrEventKind::CiFailed);
+    fx.f.apply(&run, RunEvent::Ask).unwrap();
+    assert_eq!(fx.state(&run), RunState::WaitingForAnswer);
+    pr_event(&fx, PrEventKind::Merged);
+    assert_eq!(fx.state(&run), RunState::Done);
 }

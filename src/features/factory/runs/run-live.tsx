@@ -115,12 +115,33 @@ export function lastBlock(events: RunLogEvent_Serialize[]): string | undefined {
 		.findLast((b): b is string => typeof b === "string");
 }
 
+/** The record of an escalation (`factory` REQ-053), as the engine writes it in the log. */
+export type Escalation = {
+	cause: string;
+	lines: string[];
+	tried: string;
+	action: string;
+	attempt: number;
+};
+
+/** The record of the newest stop note, when that note escalated. */
+export function escalationOf(events: RunLogEvent_Serialize[]): Escalation | undefined {
+	for (const e of events.toReversed()) {
+		const p = payloadOf(e.payload);
+		if (e.kind === "note" && (typeof p.stop === "string" || typeof p.blocked === "string"))
+			return p.escalation as Escalation | undefined;
+	}
+}
+
 /** Why a run stopped, in one plain sentence: the latest stop note or runner error, else a failed step. */
 export function stopReason(
 	why: Messages["factory"]["why"],
 	run: RunView,
 	events: RunLogEvent_Serialize[],
 ): string {
+	const esc = escalationOf(events);
+	const cause = esc && (why.cause as Record<string, string>)[esc.cause];
+	if (cause) return cause;
 	// The backend reads the newest events: the loaded pages can miss them on a long log.
 	const said = run.reason ?? null;
 	if (said) {

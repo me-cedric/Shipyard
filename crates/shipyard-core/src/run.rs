@@ -122,14 +122,17 @@ pub enum RunEvent {
     ChangesRequested,
     FixStarted,
     /// The pull request merged. The engine sends it only to a run that holds a pull request, so
-    /// `Working` and `SelfReview` mean a fix round (the first build has no pull request yet).
+    /// `Working` and `SelfReview` mean a fix round (the first build has no pull request yet). A
+    /// side state takes it too: a merge never waits (REQ-002).
     PrMerged,
     /// The merge close ended (`delivery` REQ-022).
     Closed,
     Ask,
+    /// An escalation (REQ-053): a person must act.
     Block,
     Retry,
     BudgetStop,
+    /// Runs of older logs only: the engine sends no new run to `Failed` (`q:Q-166`).
     Fail,
     Cancel,
     Answered,
@@ -210,9 +213,22 @@ impl Run {
             (S::PROpen, E::ChangesRequested) => to(S::ChangesRequested),
             // A pull request that merges while the run fixes it (`delivery` REQ-022): the fix is
             // moot, the engine stops the agents and the close follows.
-            (S::PROpen | S::ChangesRequested | S::Working | S::SelfReview, E::PrMerged) => {
-                to(S::Merged)
-            }
+            (
+                S::PROpen
+                | S::ChangesRequested
+                | S::Working
+                | S::SelfReview
+                | S::WaitingForAnswer
+                | S::Blocked
+                | S::RetryQueued
+                | S::Paused,
+                E::PrMerged,
+            ) => to(S::Merged),
+            // An escalated wait or retry keeps the state that it returns to (REQ-005).
+            (S::WaitingForAnswer | S::RetryQueued, E::Block) => Ok(Run {
+                state: S::Blocked,
+                return_to: self.return_to,
+            }),
             (S::ChangesRequested, E::FixStarted) => to(S::Working),
             (S::Merged, E::Closed) => to(S::Done),
             // Several questions: the return state stays the one before the first (questions-loop REQ-014).
@@ -239,10 +255,85 @@ impl Run {
 
 pub const RETRY_BASE: Duration = Duration::from_secs(10);
 pub const RETRY_CAP: Duration = Duration::from_secs(300);
-/// `SelfReview` fix rounds (REQ-036, `delivery` REQ-004).
-pub const MAX_ROUNDS: u32 = 2;
+/// The failed attempt of a step that escalates, across all rounds (REQ-052).
+pub const ATTEMPT_BREAKER: u32 = 3;
+/// The default caps of a run (REQ-035, REQ-054, `q:Q-167`).
+pub const REVIEW_ROUNDS: u32 = 4;
+pub const FEEDBACK_ROUNDS: u32 = 3;
+pub const FIX_ROUNDS: u32 = 8;
+/// A guard that fails this long with one cause escalates (REQ-056).
+pub const GUARD_ESCALATE: Duration = Duration::from_secs(30 * 60);
 /// The budget share that raises the one alert (REQ-022).
 pub const BUDGET_ALERT: f64 = 0.8;
+
+/// Why a run escalates (REQ-053). A closed list: the stop report and the notice name it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum Cause {
+    ReviewRounds,
+    FeedbackRounds,
+    FixRounds,
+    Attempts,
+    Retries,
+    SameFailure,
+    NoProgress,
+    ChildConflict,
+    RebaseConflict,
+    NothingToDeliver,
+    ReleaseBase,
+    NoReviewer,
+    PushRejected,
+    PullRequestRejected,
+    Guard,
+    NoAnswer,
+    Budget,
+    MaxTurns,
+    PullRequestClosed,
+}
+
+impl Cause {
+    /// The cause in plain words, for the stop report.
+    pub fn text(self) -> &'static str {
+        match self {
+            Self::ReviewRounds => "review rounds spent",
+            Self::FeedbackRounds => "feedback rounds spent",
+            Self::FixRounds => "fix rounds spent",
+            Self::Attempts => "attempts spent",
+            Self::Retries => "retries spent",
+            Self::SameFailure => "same failure",
+            Self::NoProgress => "no progress",
+            Self::ChildConflict => "child conflict",
+            Self::RebaseConflict => "rebase conflict",
+            Self::NothingToDeliver => "nothing to deliver",
+            Self::ReleaseBase => "release base",
+            Self::NoReviewer => "no reviewer",
+            Self::PushRejected => "push rejected",
+            Self::PullRequestRejected => "pull request rejected",
+            Self::Guard => "a check before the attempt failed",
+            Self::NoAnswer => "no answer",
+            Self::Budget => "budget spent",
+            Self::MaxTurns => "max turns",
+            Self::PullRequestClosed => "pull request closed",
+        }
+    }
+
+    /// A budget and max turns stay in `Paused`: a resume needs room (REQ-053).
+    pub fn pauses(self) -> bool {
+        matches!(self, Self::Budget | Self::MaxTurns)
+    }
+}
+
+/// The one record of an escalation (REQ-053): the cause, the last lines (10 at most), what the
+/// run tried and the action of the person. `attempt` counts the escalations of the run: with the
+/// run and the cause it is the key of the stop report (REQ-058).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+pub struct Escalation {
+    pub cause: Cause,
+    pub lines: Vec<String>,
+    pub tried: String,
+    pub action: String,
+    pub attempt: u32,
+}
 
 /// The delay of retry number `n` (from 1): `min(10 s * 2^(n-1), 5 min)` (REQ-007).
 pub fn retry_delay(n: u32) -> Duration {
@@ -250,23 +341,80 @@ pub fn retry_delay(n: u32) -> Duration {
     (RETRY_BASE * 2u32.pow(doublings)).min(RETRY_CAP)
 }
 
-/// The event after failure number `failures` (from 1) of a step with `retry` retries.
-pub fn after_failure(failures: u32, retry: u32) -> RunEvent {
-    if failures <= retry {
-        RunEvent::Retry
+/// After a failed attempt: `None` queues a retry, else the cause of the escalation (REQ-007,
+/// REQ-052). `failures` counts the failures of the unit in this round, `attempts` its failed
+/// attempts in the whole run, both from 1. `extra` is the attempts that unblocks gave.
+pub fn after_failure(failures: u32, retry: u32, attempts: u32, extra: u32) -> Option<Cause> {
+    if attempts >= ATTEMPT_BREAKER + extra {
+        Some(Cause::Attempts)
+    } else if failures > retry + extra {
+        Some(Cause::Retries)
     } else {
-        RunEvent::Fail
+        None
     }
 }
 
-/// The event after a self-review. `None`: no blocking finding, go on to the pull request.
-/// `rounds_done` counts the fix rounds already spent. The cap is `MAX_ROUNDS`.
-pub fn after_review(blocking: bool, rounds_done: u32, max_rounds: u32) -> Option<RunEvent> {
-    match blocking {
-        false => None,
-        true if rounds_done < max_rounds.min(MAX_ROUNDS) => Some(RunEvent::FixRound),
-        true => Some(RunEvent::Block),
+/// What a review round leads to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Next {
+    /// No blocking finding: go on to the pull request.
+    Go,
+    /// A fix round with no click.
+    Fix,
+    Escalate(Cause),
+}
+
+/// The verdict of a review round (REQ-036, REQ-055). `blocking` counts the P0 and P1 findings,
+/// `fp` is their fingerprint, `last` the fingerprint and the count of the round before.
+/// `rounds_done` counts the fix rounds of the whole run, against `cap`.
+pub fn after_review(
+    blocking: usize,
+    fp: u64,
+    last: Option<(u64, usize)>,
+    rounds_done: u32,
+    cap: u32,
+) -> Next {
+    match last {
+        _ if blocking == 0 => Next::Go,
+        Some((f, _)) if f == fp => Next::Escalate(Cause::SameFailure),
+        Some((_, n)) if blocking >= n => Next::Escalate(Cause::NoProgress),
+        _ if rounds_done >= cap => Next::Escalate(Cause::ReviewRounds),
+        _ => Next::Fix,
     }
+}
+
+/// One item with no line numbers, times, ids or temporary paths, in lower case (REQ-055).
+fn normalize(item: &str) -> String {
+    let id = |w: &str| {
+        let core = w.trim_matches(|c: char| !c.is_ascii_alphanumeric());
+        core.len() >= 7
+            && core.bytes().any(|b| b.is_ascii_digit())
+            && core.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+    };
+    let temp = |w: &str| {
+        ["/tmp/", "/var/folders/", "/private/"]
+            .iter()
+            .any(|t| w.contains(t))
+    };
+    item.to_lowercase()
+        .split_whitespace()
+        .filter(|w| !id(w) && !temp(w))
+        .map(|w| w.replace(|c: char| c.is_ascii_digit(), ""))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// The fingerprint of a failure: the normalized items, sorted, in a 64-bit FNV-1a hash. Line
+/// numbers, times, ids and the order of the items do not change it (REQ-055).
+pub fn fingerprint<S: AsRef<str>>(items: &[S]) -> u64 {
+    let mut lines: Vec<String> = items.iter().map(|i| normalize(i.as_ref())).collect();
+    lines.sort();
+    lines
+        .join("\n")
+        .bytes()
+        .fold(0xcbf2_9ce4_8422_2325, |h, b| {
+            (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
+        })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -367,6 +515,24 @@ impl FromStr for RunState {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fingerprint_ignores_lines_ids_and_order() {
+        let a = fingerprint(&[
+            "P1 src/a.rs:10 unchecked unwrap",
+            "gate `cargo test` failed: 3 tests",
+        ]);
+        let b = fingerprint(&[
+            "gate `cargo test` failed: 4 tests",
+            "P1 src/a.rs:12 unchecked unwrap",
+        ]);
+        assert_eq!(a, b);
+        let id = fingerprint(&["error in /tmp/x1/a.rs at 01JRUN00000000000000000AA sha 3f9a2c1d"]);
+        let other =
+            fingerprint(&["error in /tmp/y2/a.rs at 01JRUN00000000000000000BB sha 9e8d7c6b"]);
+        assert_eq!(id, other);
+        assert_ne!(a, fingerprint(&["P1 src/a.rs:10 a missing check"]));
+    }
 
     #[test]
     fn sixteen_states_round_trip() {

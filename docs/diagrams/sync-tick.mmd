@@ -11,9 +11,10 @@ flowchart TD
   F -->|no| D
   PF --> D["3. Hand off<br/>new comments become answers or events for the factory"]
   D --> S["4. Stop runs<br/>ticket is terminal, except a run whose pull request merged<br/>a run with a pull request waits when the code host poll failed"]
-  S --> P{"Issue tracker poll<br/>failed?"}
+  S --> RS["4b. Resume and release<br/>a run paused by the day budget resumes on the next day<br/>a run of a project that is not open releases its claim after 10 min<br/>a ticket reply by a team member unblocks an escalated run"]
+  RS --> P{"Issue tracker poll<br/>failed?"}
   P -->|yes| H
-  P -->|no| PU["5. Pick up<br/>filter, concurrency, kill switch<br/>read the ticket again, then claim"]
+  P -->|no| PU["5. Pick up<br/>filter, concurrency, kill switch<br/>no restart: skip a ticket whose last run ended, until the ticket changes or a person clicks Run<br/>at Done the pickup label goes<br/>read the ticket again, then claim"]
   PU --> C{"Claim"}
   C -->|"won"| R["Start the run<br/>remember the comments it already has"]
   C -->|"held"| H

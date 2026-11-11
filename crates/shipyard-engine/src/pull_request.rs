@@ -6,13 +6,15 @@
 //! its place again and never opens a second pull request. The push and the pull request follow
 //! their switches; a push that rewrites history is a force with lease and always waits for a
 //! click. A write that waits is an approval: the stage goes on from the click (`Inner::sent`).
-//! A git problem (a rename, a conflict, a release base, no reviewer) blocks the run. A forge read
-//! that fails fails the step, with its retries.
+//! A rebase conflict and an empty branch start one fixer round, and the same cause again
+//! escalates (`factory` REQ-057). A release base and no reviewer escalate. A git error is a failed
+//! guard: the run waits with the backoff (`factory` REQ-056). A forge read that fails fails the
+//! step, with its retries.
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use shipyard_core::delivery::{self, GateCheck, PrBody, TicketLine};
-use shipyard_core::run::{RunEvent, RunState};
+use shipyard_core::run::{Cause, RunEvent, RunState};
 use shipyard_core::workflow::{Action, StepState};
 use shipyard_store::pr;
 use shipyard_store::run_log::kind;
@@ -67,11 +69,23 @@ pub(crate) enum Stuck {
 pub const NOTHING_TO_DELIVER: &str = "nothing to deliver: the run changed no file";
 
 /// Why a stage stopped.
-enum Stop {
-    /// A person must act: the run blocks.
-    Block(String),
+pub(crate) enum Stop {
+    /// A person must act: the run escalates.
+    Escalate(Cause, String),
+    /// A check before the attempt failed: the run waits with the backoff (REQ-056).
+    Guard(String),
     /// A call failed: the step fails, with its retries.
     Fail(String),
+    /// One fixer round with this note, then the same cause escalates (REQ-057). `key` names the
+    /// fixer in the run counts.
+    Fixer {
+        key: &'static str,
+        cause: Cause,
+        why: String,
+        note: String,
+        in_run: bool,
+        stuck: Stuck,
+    },
 }
 
 const GENERIC: [&str; 6] = ["crates", "packages", "apps", "src", "lib", "app"];
@@ -106,16 +120,21 @@ fn area_of(files: &[String]) -> String {
 impl Inner {
     /// The base of the run: the declared one, else `develop`, else the default branch. Never a
     /// release branch (REQ-009).
-    pub(crate) fn base_of(&mut self, run_id: &str) -> Result<String, String> {
+    pub(crate) fn base_of(&mut self, run_id: &str) -> Result<String, Stop> {
         if let Some(b) = &self.runs[run_id].d.base {
             return Ok(b.clone());
         }
-        let p = self.project_of(run_id).ok_or("the project is not open")?;
+        let p = self
+            .project_of(run_id)
+            .ok_or_else(|| Stop::Guard("the project is not open".into()))?;
         let (declared, pulls) = (p.base.clone(), p.pulls.clone());
-        let b = pulls.branches().map_err(|e| format!("branches: {e}"))?;
+        let b = pulls
+            .branches()
+            .map_err(|e| Stop::Guard(format!("branches: {e}")))?;
         let base = delivery::base_branch(declared.as_deref(), &b.names, &b.default).map_err(
             |delivery::BaseError::Release(r)| {
-                format!("the base `{r}` is a release branch: a person picks the base")
+                let why = format!("the base `{r}` is a release branch: a person picks the base");
+                Stop::Escalate(Cause::ReleaseBase, why)
             },
         )?;
         self.rec(run_id).d.base = Some(base.clone());
@@ -142,12 +161,48 @@ impl Inner {
             return;
         }
         match self.try_pr(run_id) {
-            Ok(()) => {}
-            Err(Stop::Block(why)) => {
-                self.block(run_id, &sid, &why);
+            Ok(()) => self.rec(run_id).c.guard = None,
+            Err(stop) => {
+                self.stopped(run_id, &sid, stop);
             }
-            Err(Stop::Fail(why)) => self.action_failed(run_id, &why),
         }
+    }
+
+    /// The way past a stop of a stage or of a reviewer start. Always `false`: the step stopped.
+    pub(crate) fn stopped(&mut self, run_id: &str, sid: &str, stop: Stop) -> bool {
+        match stop {
+            Stop::Escalate(cause, why) => {
+                self.escalate(run_id, cause, &[why]);
+            }
+            Stop::Guard(why) => {
+                self.guard_failed(run_id, &why);
+            }
+            Stop::Fail(why) => match self.pr_step(run_id) {
+                Some(_) => self.action_failed(run_id, &why),
+                None => {
+                    let i = self.runs[run_id].steps[sid].units.len().saturating_sub(1);
+                    self.unit_failed(run_id, sid, i, &why);
+                }
+            },
+            Stop::Fixer {
+                key,
+                cause,
+                why,
+                note,
+                in_run,
+                stuck,
+            } => {
+                // The fixer ran once: the same cause escalates, and an unblock gives one more.
+                if !self.rec(run_id).c.fixers.insert(key.into()) {
+                    self.rec(run_id).d.stuck = Some(stuck);
+                    self.escalate(run_id, cause, &[why]);
+                } else {
+                    self.log(run_id, Some(sid), kind::NOTE, json!({"fixer": why}));
+                    self.fix_before_pr(run_id, &note, in_run, false);
+                }
+            }
+        }
+        false
     }
 
     /// The pump: start the step again after a retry delay, or after a click on `unblock`.
@@ -173,11 +228,11 @@ impl Inner {
     }
 
     fn try_pr(&mut self, run_id: &str) -> Result<(), Stop> {
-        use Stop::{Block, Fail};
-        let base = self.base_of(run_id).map_err(Block)?;
+        use Stop::{Fail, Guard};
+        let base = self.base_of(run_id)?;
         let p = self
             .project_of(run_id)
-            .ok_or_else(|| Block("the project is not open".into()))?;
+            .ok_or_else(|| Guard("the project is not open".into()))?;
         // The project list wins; the list of `automation.yaml` is the default (`q:Q-029`).
         let reviewers = match p.reviewers.is_empty() {
             true => p.automation.reviewers.clone(),
@@ -194,13 +249,19 @@ impl Inner {
         );
         let git_err = |what: &str| {
             let what = what.to_string();
-            move |e: String| Block(format!("{what}: {e}"))
+            move |e: String| Guard(format!("{what}: {e}"))
         };
 
         let changes = git.changes(run_id, &base).map_err(git_err("changes"))?;
         if changes.files.is_empty() {
-            self.rec(run_id).d.stuck = Some(Stuck::Empty);
-            return Err(Block(NOTHING_TO_DELIVER.into()));
+            return Err(Stop::Fixer {
+                key: "empty",
+                cause: Cause::NothingToDeliver,
+                why: NOTHING_TO_DELIVER.into(),
+                note: "The pull request step found no change to deliver.".into(),
+                in_run: false,
+                stuck: Stuck::Empty,
+            });
         }
         let area = area_of(&changes.files);
         let mut branch = git.branch(run_id).map_err(git_err("branch"))?;
@@ -215,7 +276,8 @@ impl Inner {
             .find(&branch)
             .map_err(|e| Fail(format!("find the pull request: {e}")))?;
         if found.is_none() && reviewers.is_empty() {
-            return Err(Block(
+            return Err(Stop::Escalate(
+                Cause::NoReviewer,
                 "name a reviewer in the Automation settings: a pull request needs one".into(),
             ));
         }
@@ -233,8 +295,14 @@ impl Inner {
             Merge::Rewrote => self.rec(run_id).d.rewrote = true,
             Merge::Conflicts(files) => {
                 let why = format!("rebase onto {base}: conflicts in {}", files.join(", "));
-                self.rec(run_id).d.stuck = Some(Stuck::Conflicts { base, files });
-                return Err(Block(why));
+                return Err(Stop::Fixer {
+                    key: "rebase",
+                    cause: Cause::RebaseConflict,
+                    why,
+                    note: rebase_note(&base, &files),
+                    in_run: true,
+                    stuck: Stuck::Conflicts { base, files },
+                });
             }
         }
 
@@ -270,6 +338,7 @@ impl Inner {
             return Ok(());
         };
         let rec = &self.runs[run_id];
+        let closes = closes_line(&key);
         let body = PrBody {
             opening: delivery::pr_opening(&lang, &key, &title, run_id),
             gate: rec.d.gate.clone(),
@@ -280,12 +349,17 @@ impl Inner {
             }],
             impacts,
         };
+        // The issue closes at the merge into the default branch (`delivery` REQ-010).
+        let body = match closes {
+            Some(line) => format!("{}\n{line}\n", body.render_in(&lang)),
+            None => body.render_in(&lang),
+        };
         let open = Write::OpenPr {
             run: run_id.into(),
             branch,
             base,
             title: delivery::clean_outgoing(&delivery::conventional(ty, &scope, &title)),
-            body: delivery::clean_outgoing(&body.render_in(&lang)),
+            body: delivery::clean_outgoing(&body),
             labels,
             reviewers,
             draft: true,
@@ -358,17 +432,11 @@ impl Inner {
         match stuck {
             Stuck::Empty => {
                 let text = format!("The pull request step found no change to deliver.{add}");
-                self.fix_before_pr(run_id, &text, false);
+                self.fix_before_pr(run_id, &text, false, true);
             }
             Stuck::Conflicts { base, files } => {
-                let text = format!(
-                    "The pull request step cannot rebase the run branch onto `{base}`: conflicts \
-                     in {}. In this folder, the run worktree, rebase the run branch onto \
-                     `{base}`, resolve the conflicts and keep the intent of both sides. Run the \
-                     checks, then report.{add}",
-                    files.join(", ")
-                );
-                self.fix_before_pr(run_id, &text, true);
+                let text = format!("{}{add}", rebase_note(&base, &files));
+                self.fix_before_pr(run_id, &text, true, true);
             }
             Stuck::Closed => self.reopen(run_id, note),
         }
@@ -376,8 +444,8 @@ impl Inner {
 
     /// A fix round before the pull request step: the builders get `note`, then the review and
     /// the pull request step run again. `in_run`: one builder works in the run worktree, not
-    /// in a child worktree.
-    fn fix_before_pr(&mut self, run_id: &str, note: &str, in_run: bool) {
+    /// in a child worktree. `person`: an unblock asked for it, so the fix cap does not stop it.
+    fn fix_before_pr(&mut self, run_id: &str, note: &str, in_run: bool, person: bool) {
         let rec = &self.runs[run_id];
         if rec.run.state != RunState::SelfReview {
             return;
@@ -395,6 +463,11 @@ impl Inner {
                 .collect();
         }
         if !again.iter().any(|(_, b)| *b) {
+            return;
+        }
+        if person {
+            self.rec(run_id).c.fix_rounds += 1;
+        } else if !self.take_fix_round(run_id, &[note.to_string()]) {
             return;
         }
         for (sid, builder) in again {
@@ -446,9 +519,44 @@ impl Inner {
     }
 }
 
+/// The note of a fixer for a rebase conflict (`delivery` REQ-036).
+fn rebase_note(base: &str, files: &[String]) -> String {
+    format!(
+        "The pull request step cannot rebase the run branch onto `{base}`: conflicts in {}. In \
+         this folder, the run worktree, rebase the run branch onto `{base}`, resolve the \
+         conflicts and keep the intent of both sides. Run the checks, then report.",
+        files.join(", ")
+    )
+}
+
+/// `Closes <repository>#<number>` for a GitHub or GitLab issue (`owner/repo#42`). A ticket of
+/// another tracker has no line.
+fn closes_line(key: &str) -> Option<String> {
+    let (repo, number) = key.rsplit_once('#')?;
+    let ok = !repo.is_empty()
+        && repo.contains('/')
+        && !number.is_empty()
+        && number.bytes().all(|b| b.is_ascii_digit());
+    ok.then(|| format!("Closes {repo}#{number}"))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::area_of;
+    use super::{area_of, closes_line};
+
+    #[test]
+    fn an_issue_of_a_code_host_gets_a_closes_line() {
+        assert_eq!(
+            closes_line("acme/app#42").as_deref(),
+            Some("Closes acme/app#42")
+        );
+        assert_eq!(
+            closes_line("group/sub/app#7").as_deref(),
+            Some("Closes group/sub/app#7")
+        );
+        assert_eq!(closes_line("SHIP-1"), None);
+        assert_eq!(closes_line("acme/app#x"), None);
+    }
 
     fn area(files: &[&str]) -> String {
         area_of(&files.iter().map(|f| f.to_string()).collect::<Vec<_>>())

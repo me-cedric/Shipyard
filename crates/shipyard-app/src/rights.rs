@@ -335,6 +335,13 @@ pub(crate) fn actor(s: &AppState, project: &str) -> Option<shipyard_engine::run_
     })
 }
 
+/// The team file of a project for the engine: who may unblock a run with a reply on the ticket
+/// (`questions-loop` REQ-022). `None` when the file cannot be read: no reply unblocks a run.
+pub(crate) fn team(s: &AppState, project: &str) -> Option<Team> {
+    let root = PathBuf::from(&s.registry().ok()?.get(project)?.path);
+    source(&root, Repo::open(&root).ok().as_ref()).team.ok()
+}
+
 /// A setting of this machine, not of the project (a sign-in, a key, a tool): no team right covers
 /// it. It needs the click of a person, and the read-only profile of the project still refuses it.
 pub(crate) fn need_click_local(s: &AppState, click: bool) -> Res<()> {

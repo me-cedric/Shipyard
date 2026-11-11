@@ -6,6 +6,7 @@ use common::{World, auto, secs};
 use shipyard_core::pickup::REASON_CLAIM_LOST;
 use shipyard_engine::claims::{Claims, Outcome};
 use shipyard_engine::fake::todo;
+use shipyard_engine::ports::Dispatch;
 use shipyard_store::mirror::Mirror;
 
 /// A claim helper for one machine: its own mirror, the shared tracker.
@@ -325,4 +326,60 @@ fn the_heartbeat_releases_a_claim_whose_run_ended_without_a_call() {
         ["A-1"],
         "no second start in the same tick"
     );
+}
+
+// ---- a project that is not open (REQ-020)
+
+fn park(w: &World, m: &common::Machine) {
+    let claims = Claims {
+        mirror: m.engine.mirror(),
+        tracker: &w.tracker,
+        source: "jira",
+        machine: "A",
+        stale: secs(600),
+        stamp: true,
+        now: shipyard_engine::Clock::now(&w.clock),
+    };
+    assert!(claims.park(&["A-1".to_string()]).unwrap().is_empty());
+}
+
+#[test]
+fn a_parked_run_keeps_going_without_a_claim_and_the_open_takes_it_back() {
+    let w = World::new();
+    w.tracker.put(todo("A-1"));
+    let mut a = w.machine("A", auto(true));
+    a.engine.tick(false).unwrap();
+    w.clock.advance(secs(600));
+    park(&w, &a);
+    assert!(a.engine.mirror().claims("jira").unwrap().is_empty());
+    assert!(w.tracker.stamp_holders("A-1").is_empty());
+    assert_eq!(a.dispatch.active_runs().len(), 1, "the run keeps its state");
+    // The project opens again.
+    let r = a.engine.tick(true).unwrap();
+    assert!(r.stopped.is_empty() && r.started.is_empty(), "{r:?}");
+    assert_eq!(a.engine.mirror().claims("jira").unwrap()[0].key, "A-1");
+    assert_eq!(w.tracker.stamp_holders("A-1"), ["A"]);
+    assert!(a.engine.mirror().parked("jira").unwrap().is_empty());
+}
+
+#[test]
+fn a_parked_run_stops_when_another_machine_holds_the_claim_at_the_open() {
+    let w = World::new();
+    w.tracker.put(todo("A-1"));
+    let mut a = w.machine("A", auto(true));
+    a.engine.tick(false).unwrap();
+    park(&w, &a);
+    let b = Side::new("B", true);
+    assert_eq!(
+        b.claims(&w).claim("A-1", "To Do").unwrap(),
+        Outcome::Won { stamped: true }
+    );
+    let r = a.engine.tick(true).unwrap();
+    assert!(r.lost.contains(&"A-1".to_string()), "{r:?}");
+    assert!(r.started.is_empty());
+    assert_eq!(
+        a.dispatch.stopped(),
+        [("run-1".to_string(), REASON_CLAIM_LOST.to_string())]
+    );
+    assert!(a.engine.mirror().claims("jira").unwrap().is_empty());
 }

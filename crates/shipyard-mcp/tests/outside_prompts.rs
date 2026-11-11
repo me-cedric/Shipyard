@@ -41,6 +41,7 @@ fn server(root: &std::path::Path, state: Arc<Mutex<(bool, Vec<String>)>>) -> Ser
                 run: "outside".into(),
                 step: "outside".into(),
                 tools,
+                attempt: String::new(),
             },
         )
         .unwrap();

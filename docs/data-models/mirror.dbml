@@ -97,10 +97,37 @@ Table claims {
   }
 }
 
+// The end of the last run on a ticket. The pickup skips the ticket until a person changes it.
+// A new layout version keeps this table.
+Table ends {
+  source text [not null]
+  key text [not null]
+  ended_at integer [not null] // Unix seconds
+  base text // JSON of the Ticket after the end writes of Shipyard
+
+  indexes {
+    (source, key) [pk]
+  }
+}
+
+// A claim that was released because its project was not open. The open takes it again.
+// A new layout version keeps this table.
+Table parked {
+  source text [not null]
+  key text [not null]
+  status text [not null] // ticket status at pickup
+
+  indexes {
+    (source, key) [pk]
+  }
+}
+
 // Logical links. SQLite holds no foreign key here.
 Ref: seen.(source, key) > tickets.(source, key)
 Ref: adopted.(source, key) > tickets.(source, key)
 Ref: links.(source, key) - tickets.(source, key)
 Ref: questions.(source, key) > tickets.(source, key)
 Ref: claims.(source, key) - tickets.(source, key)
+Ref: ends.(source, key) - tickets.(source, key)
+Ref: parked.(source, key) - tickets.(source, key)
 Ref: tickets.source > state.source

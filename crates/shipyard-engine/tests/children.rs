@@ -5,7 +5,7 @@ mod fx;
 
 use fx::{Fx, writes};
 use serde_json::json;
-use shipyard_core::run::RunState;
+use shipyard_core::run::{Cause, RunState};
 use shipyard_mcp::tools::agent::Outcome;
 
 /// A feature run with three children, all done except the last one.
@@ -122,54 +122,59 @@ fn a_first_conflict_runs_the_child_again_from_the_run_branch() {
 }
 
 #[test]
-fn a_second_conflict_blocks_and_an_unblock_with_a_note_runs_the_child_again() {
+fn a_second_conflict_starts_a_fixer_in_the_run_worktree() {
     let fx = Fx::new(writes(true), &[]);
     let run = two_of_three(&fx);
     fx.git.conflict("build-2", &[".gitleaksignore"]);
     fx.done(&run, "build-3");
     fx.done(&run, "build-2");
 
-    assert_eq!(fx.state(&run), RunState::Blocked);
-    assert_eq!(
-        blocked(&fx, &run),
-        ["merge conflict: child build-2: .gitleaksignore"]
-    );
-    // The siblings stay joined, the worktree of the child stays for a person.
-    assert_eq!(fx.git.count("merge_child build-1"), 1);
-    assert_eq!(fx.git.count("merge_child build-3"), 1);
-    assert_eq!(fx.git.count("remove_child"), 1);
-    assert!(fx.agents.running().is_empty());
-
-    // The person tells the agent what to do: the join tries again, then the child runs again.
-    fx.f.unblock_with(&run, Some("Keep the lines of both tasks."))
-        .unwrap();
-    fx.f.pump();
+    // No block: the child does its task again in the run worktree, with no click (REQ-057).
+    assert_eq!(fx.state(&run), RunState::Working);
+    assert!(blocked(&fx, &run).is_empty());
     assert!(
         fx.logged(&run, "note")
             .iter()
-            .any(|n| *n == json!({"note": "Keep the lines of both tasks.", "by": "person"}))
+            .any(|n| n["fixer"] == "merge conflict: child build-2: .gitleaksignore")
     );
-    assert_eq!(fx.git.count("merge_child build-2"), 3);
-    assert_eq!(fx.state(&run), RunState::Working);
     assert_eq!(fx.agents.running(), ["build-2"]);
     let brief = fx.agents.briefs().pop().unwrap();
-    assert!(brief.prompt.contains("Keep the lines of both tasks."));
+    assert!(brief.resume.is_none());
+    assert!(
+        brief.prompt.contains("conflicted twice"),
+        "{}",
+        brief.prompt
+    );
+    assert!(brief.prompt.contains(".gitleaksignore"), "{}", brief.prompt);
+    let (_, child) = fx.ws.calls().pop().unwrap();
+    assert_eq!(child, None, "the fixer works in the run worktree");
 
-    fx.git.conflict("build-2", &[]);
+    // The fixer's change is on the run branch: the join does not merge it again.
     fx.done(&run, "build-2");
-    assert_eq!(fx.git.count("merge_child build-1"), 1);
-    assert_eq!(fx.git.count("merge_child build-3"), 1);
+    assert_eq!(fx.git.count("merge_child build-2"), 2);
+    assert_eq!(fx.git.count("remove_child build-2"), 2);
     assert_eq!(fx.state(&run), RunState::SelfReview);
+    assert_eq!(fx.agents.running(), ["review"]);
 }
 
 #[test]
-fn a_person_who_fixes_the_conflict_unblocks_and_the_join_goes_on() {
-    let fx = Fx::new(writes(true), &[]);
+fn a_fixer_with_no_fix_round_left_escalates_and_a_person_who_fixes_it_unblocks() {
+    let fx = Fx::build(writes(true), &[], Default::default(), |p| {
+        let wf = p.files.workflows.get_mut("feature").unwrap();
+        wf.limits.fix_rounds = Some(0);
+    });
     let run = two_of_three(&fx);
     fx.git.conflict("build-2", &["src/a.rs", "src/b.rs"]);
     fx.done(&run, "build-3");
     fx.done(&run, "build-2");
     assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::FixRounds);
+    assert_eq!(
+        e.lines,
+        ["merge conflict: child build-2: src/a.rs, src/b.rs"]
+    );
+    assert!(fx.agents.running().is_empty());
 
     fx.git.conflict("build-2", &[]);
     fx.f.unblock(&run).unwrap();
@@ -181,17 +186,24 @@ fn a_person_who_fixes_the_conflict_unblocks_and_the_join_goes_on() {
 }
 
 #[test]
-fn a_git_error_blocks_the_run_with_the_message() {
+fn a_git_error_waits_with_the_backoff_then_escalates_after_30_min() {
     let fx = Fx::new(writes(true), &[]);
     let run = fx.start("SHIP-1", &["wf:bug"]);
     fx.done(&run, "triage");
     fx.git.fail("merge_child", Some("the worktree is locked"));
     fx.done(&run, "fix");
+    // A failed guard: no retry is used (REQ-056).
+    assert_eq!(fx.state(&run), RunState::RetryQueued);
+    assert!(blocked(&fx, &run).is_empty());
+    for _ in 0..12 {
+        fx.advance(300);
+    }
     assert_eq!(fx.state(&run), RunState::Blocked);
-    assert!(
-        fx.logged(&run, "note")
-            .iter()
-            .any(|n| { n["blocked"] == "merge of child fix: the worktree is locked" })
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::Guard);
+    assert_eq!(
+        blocked(&fx, &run),
+        ["merge of child fix: the worktree is locked"]
     );
 }
 

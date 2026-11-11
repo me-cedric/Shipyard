@@ -21,7 +21,7 @@ import { SpendMeter } from "@/ui/molecules/spend-meter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { RunGraph } from "@/ui/organisms/run-graph";
 import { PlanBlock, planOf } from "./plan";
-import { EventRows, LiveStrip, lastBlock, stopReason } from "./run-live";
+import { EventRows, escalationOf, LiveStrip, lastBlock, stopReason } from "./run-live";
 import { RunUnits } from "./run-units";
 
 const SEVERITY = { P0: "danger", P1: "warning", P2: "info" } as const;
@@ -67,6 +67,8 @@ export function RunDetail({ id }: { id: string }) {
 	const usd = (x: number) => `$${x.toFixed(2)}`;
 	const status = RUN_STATUS[run.state];
 	const p = progressOf(run);
+	const esc = escalationOf(log.events);
+	const reason = stopReason(f.why, run, log.events);
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-col gap-1.5">
@@ -95,7 +97,27 @@ export function RunDetail({ id }: { id: string }) {
 					role="status"
 					className="flex flex-wrap items-center gap-3 rounded-lg border bg-surface-1 p-3 text-ui text-n-12"
 				>
-					<span className="min-w-0 flex-1">{stopReason(f.why, run, log.events)}</span>
+					<span className="min-w-0 flex-1">{reason}</span>
+					{esc ? (
+						<div className="flex basis-full flex-col gap-1.5 text-n-11">
+							{esc.lines.length > 0 ? (
+								<details className="text-12">
+									<summary className="w-fit cursor-pointer select-none rounded-sm focus-visible:shadow-glow">
+										{f.why.lastLines}
+									</summary>
+									<pre className="overflow-x-auto font-mono text-11 whitespace-pre-wrap">
+										{esc.lines.join("\n")}
+									</pre>
+								</details>
+							) : null}
+							<span>
+								{f.why.tried}: {esc.tried}
+							</span>
+							{run.state === "Blocked" ? <span>{f.why.replyNote}</span> : null}
+						</div>
+					) : run.state === "Paused" && reason === f.why.budget ? (
+						<span className="basis-full text-n-11">{f.why.dayResume}</span>
+					) : null}
 					{run.state === "Failed" ? (
 						<RightButton
 							right="runs.start"
@@ -106,7 +128,8 @@ export function RunDetail({ id }: { id: string }) {
 						</RightButton>
 					) : run.state === "Blocked" ? (
 						<>
-							{lastBlock(log.events)?.startsWith("nothing to deliver") ? (
+							{esc?.cause === "nothing_to_deliver" ||
+							lastBlock(log.events)?.startsWith("nothing to deliver") ? (
 								<RightButton right="runs.start" onClick={() => void guard(() => act.closeDone(id))}>
 									{f.closeDone}
 								</RightButton>

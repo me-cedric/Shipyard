@@ -134,6 +134,8 @@ pub struct Brief {
     pub run: String,
     /// The step id, or `<step>-<n>` for child n (from 1) of a `for_each` step.
     pub step: String,
+    /// The id of this attempt (REQ-059): the MCP session of the step names it.
+    pub attempt: String,
     pub project: String,
     /// The runner id (`claude`, `codex`, ...).
     pub runner: String,

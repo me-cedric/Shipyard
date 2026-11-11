@@ -378,12 +378,14 @@ pub fn spawn_loop(app: tauri::AppHandle) {
                 reindex_active(&s);
             }
             s.factory.tick(|project, key| {
-                if let Some(r) = s.sync.running(project)
-                    && let Err(e) = r.with(|e| e.release(key).map(|_| ()))
-                {
+                let fallback = || crate::commands::sync::plan_of(&s, project);
+                if let Err(e) = s.sync.ended(project, key, fallback) {
                     eprintln!("factory: release {key}: {e}");
                 }
             });
+            for e in s.sync.park_closed() {
+                eprintln!("factory: park {e}");
+            }
             if turn.is_multiple_of(crate::pr_agent::AUTO_EVERY) {
                 crate::pr_agent::auto_tick(&app);
             }
@@ -552,6 +554,7 @@ impl Agents for RunnerAgents {
                 run: b.run.clone(),
                 step: b.step.clone(),
                 tools: b.tools.clone(),
+                attempt: b.attempt.clone(),
             })
             .map_err(|x| format!("no token for the agent: {x}"))?;
         let started = (|| {
@@ -665,6 +668,7 @@ pub(crate) fn attach(s: &AppState, a: &Active, plan: &Plan) -> Res<()> {
     );
     // Each project acts for its own person. `None`: no right, each write waits in the Inbox.
     host.factory.set_actor(&id, crate::rights::actor(s, &id));
+    host.factory.set_team(&id, crate::rights::team(s, &id));
     Ok(())
 }
 
@@ -1178,6 +1182,7 @@ pub(crate) fn start_ticket(
     let f = &s.factory.factory;
     // The run acts with the rights of the person who starts it (`team-rights` REQ-009).
     f.set_actor(&a.entry.id, crate::rights::actor(s, &a.entry.id));
+    f.set_team(&a.entry.id, crate::rights::team(s, &a.entry.id));
     // The engine refuses a second active run on the ticket, under its own lock.
     let status = ticket.item.status.name.clone();
     let out = f.start(&StartRequest {

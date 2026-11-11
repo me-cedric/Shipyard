@@ -59,6 +59,7 @@ impl Lab {
             run: run.into(),
             step: step.into(),
             tools,
+            attempt: String::new(),
         };
         self.server.sessions().open(binding).unwrap().0
     }
@@ -490,6 +491,7 @@ mod merged {
             run: "r".into(),
             step: "s".into(),
             tools,
+            attempt: String::new(),
         };
         let token = server.sessions().open(binding).unwrap().0;
         let blocked = server
@@ -498,6 +500,7 @@ mod merged {
                 run: "r".into(),
                 step: "plan".into(),
                 tools: all(),
+                attempt: String::new(),
             })
             .unwrap()
             .0;
@@ -568,4 +571,44 @@ fn revoke_step_ends_only_the_sessions_of_that_step() {
         -32001
     );
     assert!(lab.server.handle(&b, &req).unwrap().get("result").is_some());
+}
+
+#[test]
+fn a_new_attempt_ends_the_token_of_the_old_attempt_of_its_step() {
+    let lab = Lab::new();
+    let open = |step: &str, attempt: &str| {
+        let binding = Binding {
+            run: "r1".into(),
+            step: step.into(),
+            tools: all(),
+            attempt: attempt.into(),
+        };
+        lab.server.sessions().open(binding).unwrap().0
+    };
+    let (old, other) = (open("build", "a1"), open("review", "a1"));
+    let new = open("build", "a2");
+    let req = json!({"jsonrpc": "2.0", "id": 1, "method": "ping"});
+    // A late call of attempt `a1` does not reach the run (REQ-059).
+    assert_eq!(
+        lab.server.handle(&old, &req).unwrap()["error"]["code"],
+        -32001
+    );
+    assert!(
+        lab.server
+            .handle(&new, &req)
+            .unwrap()
+            .get("result")
+            .is_some()
+    );
+    assert!(
+        lab.server
+            .handle(&other, &req)
+            .unwrap()
+            .get("result")
+            .is_some()
+    );
+    assert_eq!(
+        lab.server.sessions().resolve(&new).unwrap().binding.attempt,
+        "a2"
+    );
 }

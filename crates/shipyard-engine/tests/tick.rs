@@ -7,9 +7,10 @@ use common::{Machine, START, World, auto, secs};
 use shipyard_core::pickup::{ActiveRun, Ci, PrState, PullSnapshot};
 use shipyard_core::run::RunState;
 use shipyard_core::work_item::StatusCategory;
-use shipyard_engine::fake::{ticket, todo};
+use shipyard_engine::fake::{comment, ticket, todo};
 use shipyard_engine::tick::backoff;
 use shipyard_engine::{Clock, iso};
+use shipyard_store::mirror::Mirror;
 
 fn pull(number: u64, state: PrState) -> PullSnapshot {
     PullSnapshot {
@@ -384,4 +385,85 @@ fn the_tick_event_goes_to_the_listeners_each_tick() {
         .filter(|e| matches!(e, shipyard_core::pickup::SyncEvent::Tick { changed: 1, .. }))
         .count();
     assert_eq!(ticks, 1);
+}
+
+// ---- no restart after an end (REQ-018)
+
+/// A machine whose run on `A-1` reached its end, and the factory released it.
+fn ended_run(w: &World) -> common::Machine {
+    w.tracker.put(todo("A-1"));
+    let mut m = w.machine("m1", auto(false));
+    assert_eq!(m.engine.tick(false).unwrap().started, ["A-1"]);
+    m.dispatch.end_run("run-1");
+    m.engine.release("A-1").unwrap();
+    m
+}
+
+fn now_iso(w: &World) -> String {
+    iso(w.clock.now())
+}
+
+#[test]
+fn a_ticket_whose_run_ended_gets_no_second_run_until_it_changes() {
+    let w = World::new();
+    let mut m = ended_run(&w);
+    assert!(m.engine.tick(true).unwrap().started.is_empty());
+    w.clock.advance(secs(600));
+    assert!(m.engine.tick(true).unwrap().started.is_empty());
+    // An own write of Shipyard after the end (the label goes) is no change of a person.
+    w.tracker
+        .update("A-1", &now_iso(&w), |t| t.item.labels.clear());
+    w.clock.advance(secs(60));
+    assert!(m.engine.tick(true).unwrap().started.is_empty());
+    assert_eq!(m.dispatch.started_keys(), ["A-1"]);
+}
+
+#[test]
+fn a_comment_of_a_person_after_the_end_picks_the_ticket_up_again() {
+    let w = World::new();
+    let mut m = ended_run(&w);
+    // The summary of the run lands in the settle time: it is not news.
+    w.tracker
+        .add_comment("A-1", comment("1", "Shipyard run: merged"));
+    w.tracker.update("A-1", &now_iso(&w), |_| {});
+    w.clock.advance(secs(60));
+    assert!(m.engine.tick(true).unwrap().started.is_empty());
+    w.clock.advance(secs(600));
+    assert!(m.engine.tick(true).unwrap().started.is_empty());
+    w.tracker.add_comment("A-1", comment("2", "one more thing"));
+    w.tracker.update("A-1", &now_iso(&w), |_| {});
+    w.clock.advance(secs(60));
+    assert_eq!(m.engine.tick(true).unwrap().started, ["A-1"]);
+}
+
+#[test]
+fn the_pickup_label_added_again_picks_the_ticket_up_again() {
+    let w = World::new();
+    let mut m = ended_run(&w);
+    w.tracker
+        .update("A-1", &now_iso(&w), |t| t.item.labels.clear());
+    w.clock.advance(secs(600));
+    assert!(m.engine.tick(true).unwrap().started.is_empty());
+    w.tracker.update("A-1", &now_iso(&w), |t| {
+        t.item.labels.push("shipyard".into())
+    });
+    w.clock.advance(secs(60));
+    assert_eq!(m.engine.tick(true).unwrap().started, ["A-1"]);
+}
+
+#[test]
+fn the_end_survives_a_restart() {
+    let w = World::new();
+    let path = std::env::temp_dir().join(format!("ends-{}.sqlite", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    w.tracker.put(todo("A-1"));
+    let mut m = w.machine_with("m1", auto(false), Mirror::open(&path).unwrap());
+    m.engine.tick(false).unwrap();
+    m.dispatch.end_run("run-1");
+    m.engine.release("A-1").unwrap();
+    drop(m);
+    w.clock.advance(secs(600));
+    let mut m = w.machine_with("m1", auto(false), Mirror::open(&path).unwrap());
+    assert!(m.engine.tick(true).unwrap().started.is_empty());
+    let _ = std::fs::remove_file(&path);
 }

@@ -4,10 +4,10 @@
 //! ends, the engine merges each child into the run branch, in child order, as a squash: one
 //! commit for each child (`Git::merge_child`). The pull request step commits what is left. The
 //! first conflict of a child removes its worktree and runs it again from the run branch, which
-//! holds the siblings that joined. A second conflict blocks the run with the files in the event,
-//! and keeps every worktree. After a click on `unblock` the join tries again for the children
-//! that are not joined, and a child that conflicts again gets one more redo. When all are joined,
-//! the worktrees of the children go.
+//! holds the siblings that joined. A second conflict starts a fixer: the child does its task
+//! again in the run worktree, with a note that names the files, and counts as joined (`factory`
+//! REQ-057). A git error is a failed guard: the join tries again after the backoff. When all are
+//! joined, the worktrees of the children go.
 
 use std::sync::Arc;
 
@@ -20,12 +20,18 @@ use crate::ports::{Git, Merge};
 use crate::run_engine::Inner;
 
 impl Inner {
-    /// `true` when every child is joined and cleaned up. `false`: the run is blocked, or a child
+    /// `true` when every child is joined and cleaned up. `false`: the run waits, or a child
     /// that conflicted runs again. A first conflict of a child is a redo from the run branch, with
-    /// the siblings that joined; a second one blocks the run.
+    /// the siblings that joined; a second one is a fixer in the run worktree.
     pub(crate) fn join_children(&mut self, run_id: &str, sid: &str) -> bool {
         let Some(git) = self.project_of(run_id).map(|p| p.git.clone()) else {
-            return self.block(run_id, sid, "the project is not open");
+            // The run keeps its state: the next pump of an open project joins (`sync` REQ-020).
+            self.rec(run_id)
+                .steps
+                .get_mut(sid)
+                .expect("step")
+                .merge_pending = true;
+            return false;
         };
         let rec = &self.runs[run_id];
         let title = rec.title.lines().next().unwrap_or_default().to_string();
@@ -36,6 +42,7 @@ impl Inner {
             .map(|u| (u.id.clone(), u.merged, u.redone))
             .collect();
         let mut redo = Vec::new();
+        let mut fixers = Vec::new();
         for (i, (child, merged, redone)) in ids.iter().enumerate() {
             if *merged {
                 continue;
@@ -48,7 +55,8 @@ impl Inner {
                     continue;
                 }
                 Ok(Merge::Conflicts(files)) => {
-                    format!("merge conflict: child {child}: {}", files.join(", "))
+                    fixers.push((i, files));
+                    continue;
                 }
                 Ok(_) => {
                     self.rec(run_id).steps.get_mut(sid).expect("step").units[i].merged = true;
@@ -62,7 +70,10 @@ impl Inner {
                 .get_mut(sid)
                 .expect("step")
                 .merge_pending = true;
-            return self.block(run_id, sid, &why);
+            return self.guard_failed(run_id, &why);
+        }
+        if !fixers.is_empty() {
+            return self.fixer(run_id, sid, fixers);
         }
         if !redo.is_empty() {
             return self.redo(run_id, sid, &git, redo);
@@ -122,6 +133,54 @@ impl Inner {
                 kind::NOTE,
                 json!({"redo": child, "files": files}),
             );
+        }
+        false
+    }
+
+    /// A second conflict of a child: the child does its task again in the run worktree, which
+    /// holds the siblings that joined, with no click (REQ-013, REQ-057). The fixer counts against
+    /// `fix_rounds`. Always `false`: the step waits for it.
+    fn fixer(&mut self, run_id: &str, sid: &str, fixers: Vec<(usize, Vec<String>)>) -> bool {
+        let lines: Vec<String> = fixers
+            .iter()
+            .map(|(i, files)| {
+                let child = &self.runs[run_id].steps[sid].units[*i].id;
+                format!("merge conflict: child {child}: {}", files.join(", "))
+            })
+            .collect();
+        if !self.take_fix_round(run_id, &lines) {
+            self.rec(run_id)
+                .steps
+                .get_mut(sid)
+                .expect("step")
+                .merge_pending = true;
+            return false;
+        }
+        for ((i, files), line) in fixers.into_iter().zip(lines) {
+            let s = self.rec(run_id).steps.get_mut(sid).expect("step");
+            let u = &mut s.units[i];
+            let whose = match &u.item {
+                Some(item) => format!("the task for the item {item}"),
+                None => "your task".into(),
+            };
+            let child = u.id.clone();
+            // The fixer works in the run worktree: its change is on the run branch.
+            u.fixer = true;
+            u.merged = true;
+            u.state = StepState::Pending;
+            u.session = None;
+            u.parked = false;
+            u.retry_at = None;
+            u.output = serde_json::Value::Null;
+            u.text.clear();
+            s.notes.push(format!(
+                "The change of {child} conflicted twice with other tasks on {}. In this folder, \
+                 the run worktree, do {whose} again on top of the run branch, which holds the \
+                 other tasks. Keep the intent of both sides.",
+                files.join(", ")
+            ));
+            s.merge_pending = false;
+            self.log(run_id, Some(&child), kind::NOTE, json!({"fixer": line}));
         }
         false
     }

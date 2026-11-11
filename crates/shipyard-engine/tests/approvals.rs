@@ -4,11 +4,20 @@ mod fx;
 
 use fx::{Fx, ONE, writes};
 use shipyard_core::pickup::Writes;
-use shipyard_core::run::{RunEvent, RunState};
+use shipyard_core::run::{Cause, RunEvent, RunState};
 use shipyard_engine::approvals::Write;
 
 fn labels(l: &[&str]) -> Vec<String> {
     l.iter().map(|s| s.to_string()).collect()
+}
+
+/// The labels of the default state map and the pickup label `shipyard`.
+fn managed() -> Vec<String> {
+    let map = shipyard_store::automation_file::default_status_map();
+    let mut all: Vec<String> = map.into_values().flat_map(|m| m.labels).collect();
+    all.sort();
+    all.dedup();
+    all
 }
 
 #[test]
@@ -24,7 +33,8 @@ fn switch_on_sends_the_ticket_move_at_once() {
             },
             Write::Labels {
                 key: "SHIP-1".into(),
-                labels: labels(&["shipyard:running"])
+                labels: labels(&["shipyard:running"]),
+                managed: managed(),
             },
         ]
     );
@@ -57,13 +67,88 @@ fn switch_off_queues_an_approval_that_names_the_write() {
 }
 
 #[test]
-fn rejection_drops_the_write_and_blocks_the_run() {
+fn a_rejected_ticket_move_is_skipped_and_the_run_goes_on() {
     let fx = Fx::new(Writes::default(), &[ONE]);
     let run = fx.start("SHIP-1", &[]);
+    let before = fx.state(&run);
     let id = fx.f.approvals()[0].id;
     fx.f.reject(id).unwrap();
-    assert_eq!(fx.state(&run), RunState::Blocked);
+    assert_eq!(fx.state(&run), before);
+    assert_eq!(before, RunState::Working);
     assert!(fx.writer.sent().is_empty());
+    assert!(
+        fx.logged(&run, "write")
+            .iter()
+            .any(|w| w["state"] == "rejected")
+    );
+}
+
+#[test]
+fn a_rejected_push_escalates_with_one_stop_report() {
+    let fx = Fx::new(no_push(), &[]);
+    let (run, id) = waiting_push(&fx);
+    fx.f.reject(id).unwrap();
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::PushRejected);
+    let reports: Vec<Write> = fx
+        .writer
+        .sent()
+        .into_iter()
+        .filter(|w| matches!(w, Write::Comment { body, .. } if body.contains("<!-- shipyard:stop")))
+        .collect();
+    assert_eq!(reports.len(), 1, "{reports:?}");
+    assert!(
+        !fx.writer
+            .sent()
+            .iter()
+            .any(|w| matches!(w, Write::Push { .. }))
+    );
+}
+
+#[test]
+fn every_comment_of_shipyard_is_stored_as_its_own() {
+    let fx = Fx::new(no_push(), &[]);
+    let (run, id) = waiting_push(&fx);
+    let summary = Write::Comment {
+        key: "SHIP-1".into(),
+        body: "a summary".into(),
+    };
+    let made = fx.f.write(&run, summary).unwrap().unwrap();
+    // The stop report of the rejected push is a comment too.
+    fx.f.reject(id).unwrap();
+    let own = fx
+        .mirror
+        .lock()
+        .unwrap()
+        .questions(fx::SOURCE, "SHIP-1")
+        .unwrap();
+    let comments = fx
+        .writer
+        .sent()
+        .iter()
+        .filter(|w| matches!(w, Write::Comment { .. }))
+        .count();
+    assert_eq!(comments, 2);
+    assert_eq!(own.len(), 2, "{own:?}");
+    assert!(own.contains(&made));
+}
+
+#[test]
+fn a_rejected_pull_request_escalates() {
+    let mut w = writes(true);
+    w.pull_request = false;
+    let fx = Fx::new(w, &[]);
+    let run = fx.start("SHIP-1", &["wf:bug"]);
+    for step in ["triage", "fix", "review"] {
+        fx.done(&run, step);
+    }
+    let a = fx.f.approvals().pop().unwrap();
+    assert!(matches!(a.write, Write::OpenPr { .. }));
+    fx.f.reject(a.id).unwrap();
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::PullRequestRejected);
 }
 
 #[test]
@@ -82,7 +167,8 @@ fn a_newer_ticket_move_replaces_the_pending_one() {
         moves,
         [Write::Labels {
             key: "SHIP-1".into(),
-            labels: labels(&[])
+            labels: labels(&[]),
+            managed: managed(),
         }]
     );
 }
@@ -134,8 +220,10 @@ fn a_failed_pull_request_write_is_a_failed_step() {
     }
     fx.writer.fail_with(Some("forge down"));
     fx.done(&run, "review");
-    // The `pr` step has no retry: the run fails.
-    assert_eq!(fx.state(&run), RunState::Failed);
+    // The `pr` step has no retry: the run escalates, and no new run is `Failed` (`q:Q-166`).
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::Retries);
     assert!(
         fx.logged(&run, "write")
             .iter()

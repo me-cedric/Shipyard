@@ -7,7 +7,7 @@ mod fx;
 use fx::{Fx, ONE, writes};
 use serde_json::json;
 use shipyard_core::pickup::{PrEvent, PrEventKind, SyncEvent};
-use shipyard_core::run::RunState;
+use shipyard_core::run::{Cause, RunState};
 use shipyard_core::workflow::{Effort, Mode, StepState};
 use shipyard_engine::approvals::Write;
 use shipyard_engine::ports::{AgentEvent, Dispatch, StartRequest};
@@ -161,7 +161,7 @@ fn unknown_workflow_refuses_the_start() {
 }
 
 #[test]
-fn retry_waits_for_the_backoff_then_fails() {
+fn retry_waits_for_the_backoff_then_escalates() {
     let fx = Fx::new(writes(true), &[ONE]);
     let run = fx.start("SHIP-1", &[]);
     fx.event("work", exit(1));
@@ -172,9 +172,62 @@ fn retry_waits_for_the_backoff_then_fails() {
     fx.advance(1);
     assert_eq!(fx.state(&run), RunState::Working);
     assert_eq!(fx.agents.running(), ["work"]);
-    // `retry: 1` is spent.
+    // `retry: 1` is spent: the run escalates, and no new run is `Failed` (`q:Q-166`).
     fx.event("work", exit(1));
-    assert_eq!(fx.state(&run), RunState::Failed);
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::Retries);
+    assert!(fx.agents.running().is_empty());
+    // An unblock gives one more attempt, and its failure escalates again.
+    fx.f.unblock(&run).unwrap();
+    fx.f.pump();
+    assert_eq!(fx.agents.running(), ["work"]);
+    fx.event("work", exit(2));
+    assert_eq!(fx.state(&run), RunState::Blocked);
+}
+
+const RETRY5: &str = "
+id: one
+steps:
+  - { id: work, role: worker, retry: 5 }
+limits: { stall_s: 300 }
+";
+
+#[test]
+fn the_same_failure_twice_escalates_at_once() {
+    let fx = Fx::new(writes(true), &[RETRY5]);
+    let run = fx.start("SHIP-1", &[]);
+    fx.event("work", exit(1));
+    assert_eq!(fx.state(&run), RunState::RetryQueued);
+    fx.advance(10);
+    fx.event("work", exit(1));
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::SameFailure);
+}
+
+#[test]
+fn the_breaker_escalates_the_third_failed_attempt_although_retries_are_left() {
+    let fx = Fx::new(writes(true), &[RETRY5]);
+    let run = fx.start("SHIP-1", &[]);
+    // Three different failures: an exit, a stall, a cancel.
+    fx.event("work", exit(1));
+    fx.advance(10);
+    fx.advance(300);
+    assert_eq!(fx.state(&run), RunState::RetryQueued);
+    fx.advance(20);
+    assert_eq!(fx.state(&run), RunState::Working);
+    fx.event(
+        "work",
+        AgentEvent::Exit {
+            code: None,
+            cancelled: true,
+        },
+    );
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::Attempts);
+    assert!(e.tried.contains("3 failed attempts"), "{}", e.tried);
 }
 
 #[test]
@@ -209,7 +262,8 @@ limits: { max_turns: 3, budget_usd: 1, stall_s: 300 }
         },
     );
     fx.advance(30);
-    assert_eq!(fx.state(&run), RunState::Failed);
+    // `retry` 0: the first failure escalates.
+    assert_eq!(fx.state(&run), RunState::Blocked);
 }
 
 #[test]
@@ -323,34 +377,58 @@ fn sync_stop_cancels_the_run() {
     );
 }
 
+/// A review report with these P1 findings.
+fn findings(texts: &[&str]) -> serde_json::Value {
+    let list: Vec<_> = texts
+        .iter()
+        .map(|t| json!({"severity": "P1", "text": t}))
+        .collect();
+    json!({ "findings": list })
+}
+
 #[test]
-fn blocking_review_runs_a_fix_round_then_blocks() {
+fn review_rounds_go_on_while_the_findings_drop_then_escalate() {
     let fx = Fx::new(writes(true), &[]);
     let run = fx.start("SHIP-1", &["wf:bug"]);
     fx.done(&run, "triage");
     fx.done(&run, "fix");
     assert_eq!(fx.state(&run), RunState::SelfReview);
-    for round in 1..=2 {
-        fx.report(
-            &run,
-            "review",
-            Outcome::Partial,
-            json!({"summary": "missing test"}),
-        );
-        // A fix round goes back to Working, in the same worktree.
+    // The bug review has no step cap: the run cap of 4 applies.
+    for (round, list) in [
+        (1, vec!["no test", "no doc", "no log", "no lint", "no type"]),
+        (2, vec!["no test", "no doc", "no log", "no lint"]),
+        (3, vec!["no test", "no doc", "no log"]),
+        (4, vec!["no test", "no log"]),
+    ] {
+        let before = fx.agents.briefs().len();
+        let texts: Vec<&str> = list.clone();
+        fx.report(&run, "review", Outcome::Partial, findings(&texts));
+        // A fix round goes back to Working, in the same worktree, with every finding in one brief.
         assert_eq!(fx.state(&run), RunState::Working);
-        let fix = fx.agents.briefs().pop().unwrap();
+        let briefs = fx.agents.briefs();
+        assert_eq!(briefs.len(), before + 1);
+        let fix = briefs.last().unwrap();
         assert_eq!(fix.step, "fix");
         assert_eq!(fix.dir, std::path::PathBuf::from(format!("/wt/{run}/fix")));
         assert!(
+            fix.prompt.contains(&format!("Fix round {round}: ")),
+            "{}",
             fix.prompt
-                .contains(&format!("Fix round {round}: missing test"))
         );
+        for t in list {
+            assert!(fix.prompt.contains(t));
+        }
+        // The last round that the cap allows runs on the top tier (REQ-036).
+        let top = round == 4;
+        assert_eq!(fix.model.as_deref() == Some("opus"), top, "{:?}", fix.model);
+        assert_eq!(fix.effort == Some(Effort::High), top);
         fx.done(&run, "fix");
     }
-    fx.report(&run, "review", Outcome::Partial, json!({}));
-    // `max_rounds` is spent.
+    fx.report(&run, "review", Outcome::Partial, findings(&["no log"]));
     assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::ReviewRounds);
+    assert_eq!(e.lines, ["no log"]);
 
     // An unblock gives one more fix round, with the note of the person: not the same review.
     fx.f.unblock_with(&run, Some("Add the test in tests/a.rs."))
@@ -359,7 +437,7 @@ fn blocking_review_runs_a_fix_round_then_blocks() {
     assert_eq!(fx.state(&run), RunState::Working);
     let fix = fx.agents.briefs().pop().unwrap();
     assert_eq!(fix.step, "fix");
-    assert!(fix.prompt.contains("Fix round 3: "), "{}", fix.prompt);
+    assert!(fix.prompt.contains("Fix round 5: "), "{}", fix.prompt);
     assert!(
         fix.prompt
             .contains("A person adds: Add the test in tests/a.rs.")
@@ -367,15 +445,120 @@ fn blocking_review_runs_a_fix_round_then_blocks() {
 }
 
 #[test]
-fn missing_runner_blocks_and_a_click_unblocks() {
+fn the_same_finding_at_another_line_escalates_after_the_second_round() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = fx.start("SHIP-1", &["wf:feature"]);
+    fx.done(&run, "grill");
+    fx.report(&run, "plan", Outcome::Done, json!({"tasks": ["a"]}));
+    fx.f.approve_plan(&run).unwrap();
+    fx.done(&run, "build-1");
+    fx.report(
+        &run,
+        "review",
+        Outcome::Partial,
+        findings(&["unchecked unwrap at line 10"]),
+    );
+    assert_eq!(fx.state(&run), RunState::Working);
+    fx.done(&run, "build-1");
+    fx.report(
+        &run,
+        "review",
+        Outcome::Partial,
+        findings(&["unchecked unwrap at line 12"]),
+    );
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::SameFailure);
+}
+
+#[test]
+fn a_round_with_no_fewer_findings_escalates_with_no_progress() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = fx.start("SHIP-1", &["wf:bug"]);
+    fx.done(&run, "triage");
+    fx.done(&run, "fix");
+    fx.report(&run, "review", Outcome::Partial, findings(&["a", "b"]));
+    fx.done(&run, "fix");
+    fx.report(&run, "review", Outcome::Partial, findings(&["c", "d"]));
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::NoProgress);
+}
+
+#[test]
+fn a_missing_runner_waits_as_a_guard_with_no_retry_used() {
     let fx = Fx::new(writes(true), &[ONE]);
     fx.agents.fail_start(Some("claude is not installed"));
     let run = fx.start("SHIP-1", &[]);
+    // A failed guard waits with the backoff and uses no retry (REQ-056).
+    assert_eq!(fx.state(&run), RunState::RetryQueued);
+    fx.advance(10);
+    fx.advance(20);
+    assert_eq!(fx.state(&run), RunState::RetryQueued);
+    fx.agents.fail_start(None);
+    fx.advance(40);
+    assert_eq!(fx.agents.running(), ["work"]);
+    // `retry: 1` is still whole: one failure queues a retry.
+    fx.event("work", exit(1));
+    assert_eq!(fx.state(&run), RunState::RetryQueued);
+}
+
+#[test]
+fn a_guard_that_fails_for_30_min_escalates_with_one_stop_report() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    fx.agents.fail_start(Some("claude is not installed"));
+    let run = fx.start("SHIP-1", &[]);
+    for _ in 0..12 {
+        fx.advance(300);
+    }
     assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::Guard);
+    let reports = stop_reports(&fx);
+    assert_eq!(reports.len(), 1);
+    assert!(reports[0].contains(&format!("<!-- shipyard:stop {run} -->")));
+    assert!(
+        reports[0].contains("claude is not installed"),
+        "{}",
+        reports[0]
+    );
     fx.agents.fail_start(None);
     fx.f.unblock(&run).unwrap();
     fx.f.pump();
     assert_eq!(fx.agents.running(), ["work"]);
+}
+
+#[test]
+fn guard_causes_that_take_turns_still_escalate_and_the_report_hides_a_token() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    let token = format!("token ghp_{}", "a1B2c3D4e5".repeat(4)); // shipyard:allow-secret
+    fx.agents.fail_start(Some("claude is not installed"));
+    let run = fx.start("SHIP-1", &[]);
+    for i in 0..12 {
+        let why = if i % 2 == 0 {
+            token.as_str()
+        } else {
+            "claude is not installed"
+        };
+        fx.agents.fail_start(Some(why));
+        fx.advance(300);
+    }
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let reports = stop_reports(&fx);
+    assert_eq!(reports.len(), 1);
+    assert!(!reports[0].contains("ghp_"), "{}", reports[0]);
+}
+
+/// The stop reports that went to the ticket.
+fn stop_reports(fx: &Fx) -> Vec<String> {
+    fx.writer
+        .sent()
+        .into_iter()
+        .filter_map(|w| match w {
+            Write::Comment { body, .. } if body.contains("<!-- shipyard:stop") => Some(body),
+            _ => None,
+        })
+        .collect()
 }
 
 #[test]
@@ -535,4 +718,54 @@ fn a_resume_takes_the_limits_that_the_workflow_has_now() {
         }),
     );
     assert_eq!(fx.f.resume(&run, 0.0), Ok(RunState::Working));
+}
+
+#[test]
+fn with_the_comment_switch_off_an_escalation_shows_the_notice_only() {
+    let w = shipyard_core::pickup::Writes {
+        tracker_comment: false,
+        ..writes(true)
+    };
+    let fx = Fx::new(w, &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    fx.event("work", exit(1));
+    fx.advance(10);
+    fx.event("work", exit(2));
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    assert!(fx.f.run_info(&run).unwrap().escalation.is_some());
+    assert!(stop_reports(&fx).is_empty());
+    assert!(
+        fx.f.approvals()
+            .iter()
+            .all(|a| !matches!(a.write, Write::Comment { .. })),
+        "no approval for a stop report"
+    );
+}
+
+#[test]
+fn a_stop_report_gives_the_cause_the_lines_what_was_tried_and_the_action() {
+    let fx = Fx::new(writes(true), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    fx.event("work", exit(1));
+    fx.advance(10);
+    fx.event("work", exit(2));
+    let reports = stop_reports(&fx);
+    assert_eq!(reports.len(), 1);
+    let r = &reports[0];
+    assert!(
+        r.starts_with(&format!("<!-- shipyard:stop {run} -->")),
+        "{r}"
+    );
+    for part in [
+        "retries spent",
+        "the agent exited with Some(2)",
+        "Tried: ",
+        "Action: ",
+    ] {
+        assert!(r.contains(part), "{part}: {r}");
+    }
+    // The ticket gets the label of `Blocked` through the state mapping.
+    assert!(fx.writer.sent().iter().any(
+        |w| matches!(w, Write::Labels { labels, .. } if labels.iter().any(|l| l == "shipyard:blocked"))
+    ));
 }

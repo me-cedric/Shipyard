@@ -20,7 +20,10 @@
       "properties": {
         "max_turns": { "type": "integer", "minimum": 1 },
         "budget_usd": { "type": "number", "exclusiveMinimum": 0 },
-        "stall_s": { "type": "integer", "minimum": 1 }
+        "stall_s": { "type": "integer", "minimum": 1 },
+        "review_rounds": { "type": "integer", "minimum": 1, "default": 4 },
+        "feedback_rounds": { "type": "integer", "minimum": 1, "default": 3 },
+        "fix_rounds": { "type": "integer", "minimum": 1, "default": 8 }
       }
     },
     "step": {
@@ -45,7 +48,7 @@
         "timeout": { "type": "integer", "minimum": 1 },
         "budget": { "type": "number", "exclusiveMinimum": 0 },
         "fresh_context": { "type": "boolean", "default": false },
-        "max_rounds": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "max_rounds": { "type": "integer", "minimum": 0 },
         "action": { "enum": ["open_pr"] }
       }
     }

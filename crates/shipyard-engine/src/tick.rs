@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use shipyard_core::pickup::{
     ActiveRun, Automation, MIN_INTERVAL, PickupInput, PullSnapshot, REASON_CLAIM_LOST, SyncEvent,
-    Ticket, changed_tickets, diff_pulls, matches, pickup, stops,
+    Ticket, changed_after_end, changed_tickets, diff_pulls, matches, person_comment, pickup, stops,
 };
 use shipyard_store::mirror::{Mirror, Poll, SyncState};
 
@@ -27,6 +27,13 @@ const MARGIN: Duration = Duration::from_secs(120);
 const MAX_BACKOFF: Duration = Duration::from_secs(300);
 /// Jitter is up to this share of the interval, added to it.
 const JITTER_SHARE: f64 = 0.2;
+
+/// A stamp that nobody refreshed for this long is stale (`q:Q-021`). A run of a project that is
+/// not open releases its claim after the same time (REQ-020).
+pub const STALE: Duration = Duration::from_secs(600);
+/// The end writes of Shipyard (summary, label, status) land in this time after the end of a run.
+/// Until then each change of the ticket is taken as the new base (REQ-018).
+const SETTLE: Duration = Duration::from_secs(300);
 
 /// Splits a connection id from its container in a mirror key. A connection id holds no `@`.
 const SCOPE_SEP: char = '@';
@@ -68,7 +75,7 @@ impl Config {
             project: project.into(),
             tracker: tracker.into(),
             forge: None,
-            stale: Duration::from_secs(600),
+            stale: STALE,
             max_pages: 20,
         }
     }
@@ -245,6 +252,7 @@ impl Engine {
         }
         // 4: hand off.
         rep.delivered = deliver(&self.mirror, &*self.dispatch, &mut rep.errors)?;
+        self.reclaim(&mut rep)?;
         // 5 and 6: stop, then pick up.
         self.stop_runs(&mut rep)?;
         self.pick_up(&mut rep)?;
@@ -488,12 +496,14 @@ impl Engine {
             .into_iter()
             .map(|c| c.key)
             .collect();
+        let ended = self.ended(&active, rep)?;
         let picks: Vec<Ticket> = pickup(&PickupInput {
             auto: &self.auto,
             project: &self.cfg.project,
             tickets: &tickets,
             active: &active,
             held: &held,
+            ended: &ended,
             kill_switch: self.dispatch.kill_switch(),
             reserved: self.dispatch.reserved(),
         })
@@ -545,6 +555,103 @@ impl Engine {
         Ok(())
     }
 
+    /// The keys whose last run ended and that no person changed since (REQ-018). A key that a
+    /// person changed leaves the list, and the pickup may take it again.
+    fn ended(&self, active: &[ActiveRun], rep: &mut TickReport) -> Result<Vec<String>> {
+        let src = &self.cfg.tracker;
+        let now = self.clock.now();
+        let mut out = Vec::new();
+        for mut end in self.mirror.ends(src)? {
+            let key = end.key.clone();
+            let settling = now < Duration::from_secs(end.ended_at) + SETTLE;
+            let current = match self.mirror.ticket(src, &key)? {
+                Some(t) if !active.iter().any(|r| r.key == key) => t,
+                _ => {
+                    out.push(key);
+                    continue;
+                }
+            };
+            if !settling && end.base.as_ref() == Some(&current) {
+                out.push(key);
+                continue;
+            }
+            let comments = match self.tracker.comments(&key) {
+                Ok(c) => c,
+                Err(e) => {
+                    rep.errors.push(format!("{key}: {e}"));
+                    out.push(key);
+                    continue;
+                }
+            };
+            let seen = self.mirror.seen(src, &key)?;
+            let person = person_comment(&comments, &seen, &self.mirror.questions(src, &key)?);
+            let changed = !settling
+                && end
+                    .base
+                    .as_ref()
+                    .is_some_and(|b| changed_after_end(&self.auto.pickup, b, &current, person));
+            if changed {
+                self.mirror.clear_end(src, &key)?;
+                continue;
+            }
+            // Not a change of a person: the ticket as it stands is the new base, and its comments
+            // are not news.
+            let ids: Vec<String> = comments
+                .into_iter()
+                .map(|c| c.id)
+                .filter(|id| !seen.contains(id))
+                .collect();
+            self.mirror.record(src, &[(key.clone(), ids)], &[])?;
+            end.base = Some(current);
+            self.mirror.set_end(src, &end)?;
+            out.push(key);
+        }
+        Ok(out)
+    }
+
+    /// Take back the claims that a project released while it was not open (REQ-020). A live stamp
+    /// of another machine stops the run (REQ-010).
+    fn reclaim(&self, rep: &mut TickReport) -> Result<()> {
+        let src = &self.cfg.tracker;
+        let parked = self.mirror.parked(src)?;
+        if parked.is_empty() {
+            return Ok(());
+        }
+        let runs = self.dispatch.active_runs();
+        for (key, status) in parked {
+            let mine: Vec<&ActiveRun> = runs
+                .iter()
+                .filter(|r| r.key == key && r.project == self.cfg.project)
+                .collect();
+            if mine.is_empty() {
+                // The run of another project on this source waits for the open of that project.
+                if !runs.iter().any(|r| r.key == key) {
+                    self.mirror.unpark(src, &key)?;
+                }
+                continue;
+            }
+            match self.claims().claim(&key, &status)? {
+                Outcome::Won { .. } | Outcome::Held => {}
+                Outcome::Lost { .. } => {
+                    for run in mine {
+                        match self.dispatch.stop(&run.run_id, REASON_CLAIM_LOST) {
+                            Ok(()) => rep.stopped.push(run.run_id.clone()),
+                            Err(e) => rep.errors.push(format!("stop {}: {e}", run.run_id)),
+                        }
+                    }
+                    rep.lost.push(key.clone());
+                }
+                // The next tick tries again.
+                Outcome::Failed(e) => {
+                    rep.errors.push(format!("claim {key}: {e}"));
+                    continue;
+                }
+            }
+            self.mirror.unpark(src, &key)?;
+        }
+        Ok(())
+    }
+
     /// The comments that a ticket has when its run starts are not new. Remember them now, so a
     /// comment that comes before the next poll is still news. An answer to a marker is sent.
     fn baseline(&self, key: &str) -> Result<()> {
@@ -586,9 +693,10 @@ impl Engine {
         Ok(())
     }
 
-    /// The factory calls this when a run ends, so the claim and the stamp go at once. The next
-    /// tick would release them as well.
+    /// The factory calls this when a run ends, so the claim and the stamp go at once, and the
+    /// pickup does not start the ticket again until a person changes it (REQ-018). The next tick
+    /// would release the claim as well.
     pub fn release(&self, key: &str) -> Result<crate::claims::Released> {
-        self.claims().release(key)
+        self.claims().end(key)
     }
 }

@@ -53,6 +53,7 @@ fn comment_event(id: &str) -> SyncEvent {
             created: "c".into(),
         },
         answers: Some("Q-001".into()),
+        stop: None,
     }
 }
 

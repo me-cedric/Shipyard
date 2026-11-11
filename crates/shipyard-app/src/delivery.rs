@@ -663,13 +663,21 @@ impl Writer for ProjectWriter {
                 t.transition(key, status).map_err(e)?;
                 Ok(String::new())
             }
-            Write::Labels { key, labels } => {
-                // shortcut: the tracker adapters can add a label and cannot remove one, so a label
-                // of an earlier state stays on the ticket. Add each label that is not there yet.
+            Write::Labels {
+                key,
+                labels,
+                managed,
+            } => {
+                // Only the labels of Shipyard move (the pickup label at `Done`, `sync` REQ-019):
+                // a label that a person added stays.
                 let t = self.conns.tracker_write(&self.tracker)?;
                 let have = t.get(key).map_err(e)?.labels;
-                for l in labels.iter().filter(|l| !have.contains(l)) {
+                let (add, remove) = shipyard_engine::approvals::label_moves(&have, labels, managed);
+                for l in &add {
                     t.add_label(key, l).map_err(e)?;
+                }
+                for l in &remove {
+                    t.remove_label(key, l).map_err(e)?;
                 }
                 Ok(String::new())
             }
@@ -813,7 +821,7 @@ fn describe(w: &Write) -> (&'static str, String, String, bool) {
             String::new(),
             false,
         ),
-        Write::Labels { key, labels } => (
+        Write::Labels { key, labels, .. } => (
             "labels",
             format!("Set the labels of {key}"),
             labels.join(", "),

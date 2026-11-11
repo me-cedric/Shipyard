@@ -22,7 +22,6 @@ steps:
     mode: plan
     needs: [fix]
     fresh_context: true
-    max_rounds: 2
     tools: [read_ref, post_progress, report]
   - id: pr
     action: open_pr

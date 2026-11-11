@@ -396,8 +396,8 @@ fn an_approval_names_the_exact_write() {
 
 #[test]
 fn a_write_without_its_switch_is_an_approval_that_a_click_sends_or_drops() {
+    use crate::factory::run_get;
     use crate::factory::tests::fx;
-    use crate::factory::{run_get, unblock};
     let fx = fx(shipyard_core::pickup::Writes::default());
     let run = fx.start("SHIP-1");
     // The ticket move at the start waits: the switch is off.
@@ -423,15 +423,12 @@ fn a_write_without_its_switch_is_an_approval_that_a_click_sends_or_drops() {
         "an approval is used once"
     );
 
-    // A rejection drops the write and blocks the run.
+    // A rejected ticket write is dropped and skipped: the run goes on (`factory` REQ-026).
     let rest = approvals(&fx.s).unwrap();
     let next = rest.first().expect("a label write waits too");
     reject(&fx.s, next.id).unwrap();
-    assert_eq!(
-        run_get(&fx.s, &run).unwrap().unwrap().state,
-        RunState::Blocked
-    );
-    unblock(&fx.s, &run, None).unwrap();
+    assert!(approvals(&fx.s).unwrap().iter().all(|a| a.id != next.id));
+    assert_eq!(fx.writer.sent().len(), 1, "a rejected write is not sent");
     assert_eq!(
         run_get(&fx.s, &run).unwrap().unwrap().state,
         RunState::Working

@@ -6,7 +6,7 @@ mod fx;
 use fx::{Fx, writes};
 use serde_json::json;
 use shipyard_core::pickup::Writes;
-use shipyard_core::run::RunState;
+use shipyard_core::run::{Cause, RunState};
 use shipyard_engine::approvals::Write;
 use shipyard_engine::run_engine::Config;
 use shipyard_mcp::tools::agent::{Outcome, Report};
@@ -396,11 +396,13 @@ fn a_release_base_stops_the_run_for_a_person() {
     fx.done(&run, "triage");
     fx.done(&run, "fix");
     assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::ReleaseBase);
     assert!(open_pr(&fx).is_none() && pushes(&fx).is_empty());
 }
 
 #[test]
-fn git_problems_block_the_run_with_the_reason() {
+fn git_problems_wait_as_a_failed_guard_with_the_reason() {
     let cases: [(&str, &str, &str); 3] = [
         (
             "rename",
@@ -418,43 +420,77 @@ fn git_problems_block_the_run_with_the_reason() {
         let fx = Fx::new(writes(true), &[]);
         fx.git.fail(op, Some(message));
         let run = to_pr(&fx);
-        assert_eq!(fx.state(&run), RunState::Blocked, "{op}");
+        // A git error is a failed guard: the backoff, no retry used (REQ-056).
+        assert_eq!(fx.state(&run), RunState::RetryQueued, "{op}");
         assert!(pushes(&fx).is_empty(), "{op}");
         assert!(
             fx.logged(&run, "note")
                 .iter()
-                .any(|n| n["blocked"].as_str().is_some_and(|b| b.starts_with(expect))),
+                .any(|n| n["guard"].as_str().is_some_and(|b| b.starts_with(expect))),
             "{op}"
         );
     }
 }
 
+/// A rebase conflict in `src/a.rs` that stays: the fixer round ran and the next one escalates.
+fn rebase_escalated(fx: &Fx) -> String {
+    fx.git
+        .set_rebase(shipyard_engine::ports::Merge::Conflicts(vec![
+            "src/a.rs".into(),
+            "src/b.rs".into(),
+        ]));
+    let run = to_pr(fx);
+    fx.done(&run, "fix");
+    fx.done(&run, "review");
+    run
+}
+
 #[test]
-fn a_rebase_conflict_blocks_the_run_before_the_push() {
+fn a_rebase_conflict_starts_a_fixer_then_the_same_conflict_escalates() {
     let fx = Fx::new(writes(true), &[]);
     fx.git
         .set_rebase(shipyard_engine::ports::Merge::Conflicts(vec![
             "src/a.rs".into(),
         ]));
     let run = to_pr(&fx);
-    assert_eq!(fx.state(&run), RunState::Blocked);
+    // One fixer round in the run worktree, with no click (REQ-057).
+    assert_eq!(fx.state(&run), RunState::Working);
     assert!(pushes(&fx).is_empty());
+    let brief = brief_of(&fx, "fix");
     assert!(
-        fx.logged(&run, "note")
-            .iter()
-            .any(|n| { n["blocked"] == "rebase onto develop: conflicts in src/a.rs" })
+        brief.prompt.contains("conflicts in src/a.rs"),
+        "{}",
+        brief.prompt
     );
+    assert_eq!(brief.dir, std::path::PathBuf::from(format!("/wt/{run}")));
+    fx.done(&run, "fix");
+    fx.done(&run, "review");
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::RebaseConflict);
+    assert_eq!(
+        blocks(&fx, &run),
+        ["rebase onto develop: conflicts in src/a.rs"]
+    );
+    assert!(pushes(&fx).is_empty());
 }
 
 #[test]
-fn a_run_that_changed_no_file_blocks() {
+fn a_run_that_changed_no_file_gets_a_fixer_then_escalates() {
     let fx = Fx::new(writes(true), &[]);
     let run = fx.start("SHIP-1", &["wf:bug"]);
     fx.git.set_changes(&[], &[]);
     fx.done(&run, "triage");
     fx.done(&run, "fix");
     fx.done(&run, "review");
+    assert_eq!(fx.state(&run), RunState::Working);
+    let prompt = brief_of(&fx, "fix").prompt;
+    assert!(prompt.contains("The pull request step found no change to deliver."));
+    fx.done(&run, "fix");
+    fx.done(&run, "review");
     assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::NothingToDeliver);
 }
 
 #[test]
@@ -466,7 +502,10 @@ fn a_failed_forge_read_fails_the_step_and_pushes_nothing() {
     // The reads of the review passed; the lookup of the pull request fails.
     fx.pulls.fail_with(Some("forge down"));
     fx.done(&run, "review");
-    assert_eq!(fx.state(&run), RunState::Failed);
+    // The `pr` step has no retry: the run escalates.
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::Retries);
     assert!(pushes(&fx).is_empty());
 }
 
@@ -541,11 +580,7 @@ fn blocks(fx: &Fx, run: &str) -> Vec<String> {
 #[test]
 fn an_unblock_of_a_branch_with_no_change_starts_a_fix_round_with_the_note() {
     let fx = Fx::new(writes(true), &[]);
-    let run = fx.start("SHIP-1", &["wf:bug"]);
-    fx.git.set_changes(&[], &[]);
-    fx.done(&run, "triage");
-    fx.done(&run, "fix");
-    fx.done(&run, "review");
+    let run = empty_escalated(&fx);
     assert_eq!(fx.state(&run), RunState::Blocked);
     fx.f.unblock_with(&run, Some("Add the missing test."))
         .unwrap();
@@ -565,15 +600,23 @@ fn an_unblock_of_a_branch_with_no_change_starts_a_fix_round_with_the_note() {
     assert_eq!(blocks(&fx, &run).len(), 1, "no second block");
 }
 
-#[test]
-fn a_run_with_nothing_to_deliver_closes_as_done_with_the_reason() {
-    let fx = Fx::new(writes(true), &[]);
+/// A run branch with no change after its fixer round: the run escalated.
+fn empty_escalated(fx: &Fx) -> String {
     let run = fx.start("SHIP-1", &["wf:bug"]);
     fx.git.set_changes(&[], &[]);
     fx.done(&run, "triage");
     fx.done(&run, "fix");
     assert!(fx.f.close_done(&run).is_err(), "not blocked yet");
     fx.done(&run, "review");
+    fx.done(&run, "fix");
+    fx.done(&run, "review");
+    run
+}
+
+#[test]
+fn a_run_with_nothing_to_deliver_closes_as_done_with_the_reason() {
+    let fx = Fx::new(writes(true), &[]);
+    let run = empty_escalated(&fx);
     assert_eq!(
         blocks(&fx, &run),
         [shipyard_engine::pull_request::NOTHING_TO_DELIVER]
@@ -589,11 +632,7 @@ fn a_run_with_nothing_to_deliver_closes_as_done_with_the_reason() {
 
     // Another cause of `Blocked` does not close as done.
     let fx = Fx::new(writes(true), &[]);
-    fx.git
-        .set_rebase(shipyard_engine::ports::Merge::Conflicts(vec![
-            "src/a.rs".into(),
-        ]));
-    let run = to_pr(&fx);
+    let run = rebase_escalated(&fx);
     assert_eq!(fx.state(&run), RunState::Blocked);
     assert!(fx.f.close_done(&run).is_err());
     assert_eq!(fx.state(&run), RunState::Blocked);
@@ -602,12 +641,7 @@ fn a_run_with_nothing_to_deliver_closes_as_done_with_the_reason() {
 #[test]
 fn an_unblock_of_a_rebase_conflict_has_a_worker_resolve_it_in_the_run_worktree() {
     let fx = Fx::new(writes(true), &[]);
-    fx.git
-        .set_rebase(shipyard_engine::ports::Merge::Conflicts(vec![
-            "src/a.rs".into(),
-            "src/b.rs".into(),
-        ]));
-    let run = to_pr(&fx);
+    let run = rebase_escalated(&fx);
     assert_eq!(fx.state(&run), RunState::Blocked);
     let merges = fx.git.count("merge_child");
     fx.f.unblock(&run).unwrap();

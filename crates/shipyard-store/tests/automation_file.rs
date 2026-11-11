@@ -216,3 +216,31 @@ fn set_budget_writes_clears_and_refuses() {
         "refusals kept the file"
     );
 }
+
+#[test]
+fn a_questions_block_is_read_checked_and_stays_out_at_the_defaults() {
+    // `questions-loop` REQ-019: one reminder after 24 h, an escalation after 72 h.
+    let a = parse_automation("interval: 60\n").unwrap();
+    assert_eq!(
+        (a.questions.remind_after_h, a.questions.escalate_after_h),
+        (24, 72)
+    );
+    assert!(!render_automation(&a).unwrap().contains("questions"));
+    let a = parse_automation("questions:\n  remind_after_h: 8\n  escalate_after_h: 48\n").unwrap();
+    assert_eq!(
+        (a.questions.remind_after_h, a.questions.escalate_after_h),
+        (8, 48)
+    );
+    assert_eq!(
+        parse_automation(&render_automation(&a).unwrap()).unwrap(),
+        a
+    );
+    for bad in [
+        "questions:\n  remind_after_h: 0\n",
+        "questions:\n  escalate_after_h: 24\n",
+        "questions:\n  remind_after_h: 80\n",
+        "questions:\n  remind: 3\n",
+    ] {
+        assert!(parse_automation(bad).is_err(), "{bad}");
+    }
+}

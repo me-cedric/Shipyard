@@ -1,6 +1,6 @@
 import { en } from "@/lib/i18n/en";
 import type { RunLogEvent_Serialize, RunView } from "@/lib/ipc";
-import { stopReason } from "./run-live";
+import { escalationOf, stopReason } from "./run-live";
 
 const why = en.factory.why;
 const ev = (kind: string, payload: object): RunLogEvent_Serialize =>
@@ -23,6 +23,13 @@ describe("stopReason", () => {
 		expect(
 			stopReason(why, run("done"), [ev("note", { blocked: "the AI tool is missing" })]),
 		).toContain("the AI tool is missing");
+	});
+	it("says an escalation cause in plain words", () => {
+		const escalation = { cause: "fix_rounds", lines: [], tried: "", action: "", attempt: 1 };
+		expect(
+			stopReason(why, run("done"), [ev("note", { blocked: "x", cause: "fix_rounds", escalation })]),
+		).toBe(why.cause.fix_rounds);
+		expect(escalationOf([ev("note", { blocked: "x" })])).toBeUndefined();
 	});
 	it("uses a runner error", () => {
 		expect(stopReason(why, run("done"), [ev("runner", { error: "no key" })])).toContain("no key");

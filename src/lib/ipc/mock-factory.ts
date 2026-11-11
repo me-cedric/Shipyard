@@ -673,7 +673,25 @@ function seedLog(f: MockFactory, r: Rec, t0: number) {
 		PROpen: [["pr", "pr", { event: "opened", number: r.pr }]],
 		ChangesRequested: [["review", "review", { round: 1, blocking: r.findings.length }]],
 		WaitingForAnswer: [[step, "question", { ref: `q:${q?.q.id}`, outcome: "asked" }]],
-		Blocked: [[step, "note", { blocked: "The French catalog is locked by another branch." }]],
+		Blocked: [
+			[
+				step,
+				"note",
+				{
+					blocked: "The French catalog is locked by another branch.",
+					cause: "same_failure",
+					escalation: {
+						cause: "same_failure",
+						lines: ["The French catalog is locked by another branch.", "error: could not rebase"],
+						tried:
+							"1 review rounds of 4, 2 fix rounds of 8, 0 feedback rounds of 3, 3 failed attempts.",
+						action:
+							"Reply on the ticket, or use Unblock with a message: the run gets one more round.",
+						attempt: 1,
+					},
+				},
+			],
+		],
 		Paused: [
 			[null, "note", { paused: `budget spent: $${r.costUsd} of $${r.budgetUsd ?? r.costUsd}` }],
 		],

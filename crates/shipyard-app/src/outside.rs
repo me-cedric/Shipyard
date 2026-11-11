@@ -314,6 +314,7 @@ fn start(dir: &Path, g: &McpGates) -> Result<(), String> {
         run: "outside".into(),
         step: "outside".into(),
         tools: outside::NAMES.iter().map(|n| n.to_string()).collect(),
+        attempt: String::new(),
     };
     match token(dir) {
         Some(t) => {

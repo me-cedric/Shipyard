@@ -9,7 +9,7 @@
 
 use std::time::Duration;
 
-use shipyard_store::mirror::Mirror;
+use shipyard_store::mirror::{End, Mirror};
 
 use crate::Result;
 use crate::ports::{PortResult, TrackerPort};
@@ -133,6 +133,35 @@ impl Claims<'_> {
             existed,
             stamp_error,
         })
+    }
+
+    /// The run ends: release the claim, and keep the end. The pickup then skips the ticket until
+    /// a person changes it (REQ-010, REQ-018).
+    pub fn end(&self, key: &str) -> Result<Released> {
+        let base = self.mirror.ticket(self.source, key)?;
+        let end = End {
+            key: key.into(),
+            ended_at: self.now.as_secs(),
+            base,
+        };
+        self.mirror.set_end(self.source, &end)?;
+        self.mirror.unpark(self.source, key)?;
+        self.release(key)
+    }
+
+    /// The project of these runs is not open: release their claims and stamps, and keep them for
+    /// the open (REQ-020). A key without a claim stays as it is. Returns the stamp errors.
+    pub fn park(&self, keys: &[String]) -> Result<Vec<String>> {
+        let mut errors = Vec::new();
+        for c in self.mirror.claims(self.source)? {
+            if !keys.contains(&c.key) {
+                continue;
+            }
+            self.mirror.park(self.source, &c.key, &c.status)?;
+            let r = self.release(&c.key)?;
+            errors.extend(r.stamp_error.map(|e| format!("{}: {e}", c.key)));
+        }
+        Ok(errors)
     }
 
     /// Once per tick. A claim without an active run is released. For the others: yield to a live

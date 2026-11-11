@@ -35,6 +35,17 @@ pub struct Claim {
     pub claimed_at: u64,
 }
 
+/// The end of the last run on a ticket (REQ-018). The pickup skips the ticket until a person
+/// changes it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct End {
+    pub key: String,
+    /// Unix seconds.
+    pub ended_at: u64,
+    /// The ticket as it stood after the end writes of Shipyard. `None` when the mirror lacked it.
+    pub base: Option<Ticket>,
+}
+
 /// What one good poll writes. The whole commit is one transaction.
 pub struct Poll<'a> {
     /// Only the new and changed rows.
@@ -105,6 +116,12 @@ impl Mirror {
              CREATE TABLE IF NOT EXISTS claims(
                  source TEXT NOT NULL, key TEXT NOT NULL, machine TEXT NOT NULL,
                  status TEXT NOT NULL, stamped INTEGER NOT NULL, claimed_at INTEGER NOT NULL,
+                 PRIMARY KEY(source, key));
+             CREATE TABLE IF NOT EXISTS ends(
+                 source TEXT NOT NULL, key TEXT NOT NULL, ended_at INTEGER NOT NULL, base TEXT,
+                 PRIMARY KEY(source, key));
+             CREATE TABLE IF NOT EXISTS parked(
+                 source TEXT NOT NULL, key TEXT NOT NULL, status TEXT NOT NULL,
                  PRIMARY KEY(source, key));
              PRAGMA user_version = {VERSION};"
         ))?;
@@ -457,5 +474,72 @@ impl Mirror {
             })
         })?;
         Ok(rows.collect::<std::result::Result<_, _>>()?)
+    }
+
+    // ---- ends (REQ-018) and parked claims (REQ-020)
+
+    pub fn set_end(&self, source: &str, end: &End) -> Result<()> {
+        let base = end.base.as_ref().map(serde_json::to_string).transpose()?;
+        self.conn.execute(
+            "INSERT OR REPLACE INTO ends(source, key, ended_at, base) VALUES (?1, ?2, ?3, ?4)",
+            params![source, end.key, end.ended_at as i64, base],
+        )?;
+        Ok(())
+    }
+
+    pub fn ends(&self, source: &str) -> Result<Vec<End>> {
+        let mut st = self
+            .conn
+            .prepare("SELECT key, ended_at, base FROM ends WHERE source = ?1 ORDER BY key")?;
+        let rows = st.query_map([source], |r| {
+            Ok((
+                r.get::<_, String>(0)?,
+                r.get::<_, i64>(1)?,
+                r.get::<_, Option<String>>(2)?,
+            ))
+        })?;
+        rows.map(|row| {
+            let (key, at, base) = row?;
+            Ok(End {
+                key,
+                ended_at: at as u64,
+                base: base.map(|b| serde_json::from_str(&b)).transpose()?,
+            })
+        })
+        .collect()
+    }
+
+    pub fn clear_end(&self, source: &str, key: &str) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM ends WHERE source = ?1 AND key = ?2",
+            [source, key],
+        )?;
+        Ok(())
+    }
+
+    /// A claim that was released while its project was not open. The open takes it again.
+    pub fn park(&self, source: &str, key: &str, status: &str) -> Result<()> {
+        self.conn.execute(
+            "INSERT OR REPLACE INTO parked(source, key, status) VALUES (?1, ?2, ?3)",
+            [source, key, status],
+        )?;
+        Ok(())
+    }
+
+    /// `(key, status at pickup)`.
+    pub fn parked(&self, source: &str) -> Result<Vec<(String, String)>> {
+        let mut st = self
+            .conn
+            .prepare("SELECT key, status FROM parked WHERE source = ?1 ORDER BY key")?;
+        let rows = st.query_map([source], |r| Ok((r.get(0)?, r.get(1)?)))?;
+        Ok(rows.collect::<std::result::Result<_, _>>()?)
+    }
+
+    pub fn unpark(&self, source: &str, key: &str) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM parked WHERE source = ?1 AND key = ?2",
+            [source, key],
+        )?;
+        Ok(())
     }
 }

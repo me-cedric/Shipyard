@@ -869,6 +869,12 @@ Feature: factory
     When the next retry fails the guard
     Then the run moves to `Blocked` with the cause and posts one stop report
 
+  @spec:factory#REQ-056
+  Scenario: Guards: Causes that change
+    Given a run whose guard fails for 30 min with two causes that take turns
+    When the next retry fails the guard
+    Then the run moves to `Blocked` with the last cause and posts one stop report
+
   @spec:factory#REQ-057
   Scenario: Fixer round: Fixer for a rebase conflict
     Given a pull request step whose rebase onto the base conflicts in `src/a.rs`

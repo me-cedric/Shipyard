@@ -14,7 +14,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use shipyard_core::delivery::clean_outgoing;
 use shipyard_core::question::{Choice, Outcome, Question, QuestionState, all_answered};
-use shipyard_core::run::RunEvent;
+use shipyard_core::rights::{Found, identify};
+use shipyard_core::run::{Cause, RunEvent, RunState};
 use shipyard_core::work_item::Comment;
 use shipyard_mcp::session::Binding;
 use shipyard_mcp::tools::agent::{self, AgentEvent, AgentEvents, AskQuestion};
@@ -186,8 +187,10 @@ impl Factory {
 }
 
 impl AgentEvents for Factory {
-    /// The run bus. `read_ref` reads the index of the project of the run.
+    /// The run bus. `read_ref` reads the index of the project of the run. A call of an old
+    /// attempt is ignored and logged (REQ-059).
     fn emit(&self, who: &Binding, event: AgentEvent) -> Result<Value, String> {
+        self.fenced(who)?;
         let (run, step) = (who.run.as_str(), who.step.as_str());
         match event {
             AgentEvent::AskQuestion(a) => {
@@ -326,16 +329,69 @@ impl Inner {
         self.send(run_id, &Write::Comment { key, body }, None);
     }
 
-    /// A new ticket comment from the tick (REQ-009).
-    pub(crate) fn on_comment(&mut self, key: &str, c: &Comment, answers: Option<&str>) {
-        let Some(qid) = answers else { return };
-        let hit = self.runs.values().find_map(|r| {
-            let i = r.questions.iter().position(|a| a.q.id == qid)?;
-            (r.key == key).then(|| (r.id.clone(), i))
+    /// A new ticket comment from the tick (REQ-009, REQ-022).
+    pub(crate) fn on_comment(
+        &mut self,
+        key: &str,
+        c: &Comment,
+        answers: Option<&str>,
+        stop: Option<&str>,
+    ) {
+        let hit = answers.and_then(|qid| {
+            self.runs.values().find_map(|r| {
+                let i = r.questions.iter().position(|a| a.q.id == qid)?;
+                (r.key == key).then(|| (r.id.clone(), i))
+            })
         });
-        let Some((run_id, i)) = hit else { return };
-        let out = self.rec(&run_id).questions[i].q.reply(&c.id, &c.body);
-        self.after_reply(&run_id, i, out, &c.id);
+        if let Some((run_id, i)) = hit {
+            let out = self.rec(&run_id).questions[i].q.reply(&c.id, &c.body);
+            self.after_reply(&run_id, i, out, &c.id);
+        }
+        if let Some(run_id) = stop {
+            self.stop_reply(key, run_id, c);
+        }
+    }
+
+    /// A reply on the ticket after a stop report (REQ-022). The first reply of a team member
+    /// unblocks the run, with the reply as the message. A member is a person that the team file
+    /// finds, or anyone while the team names no admin. Any other reply is logged and changes
+    /// nothing: a reply never resumes a `Paused` run.
+    fn stop_reply(&mut self, key: &str, run_id: &str, c: &Comment) {
+        let Some(rec) = self.runs.get(run_id).filter(|r| r.key == key) else {
+            return;
+        };
+        let (state, project) = (rec.run.state, rec.project.clone());
+        if !matches!(state, RunState::Blocked | RunState::Paused) {
+            return;
+        }
+        // A team with no admin (or no team file) is Solo: any reply counts (adr:0022). A project
+        // on a public issue tracker names an admin to close this. A team that the app could not
+        // read is not in `teams`: nobody is a member. The tracker account only: a display name is
+        // not unique.
+        let member = self.teams.get(&project).is_some_and(|t| {
+            let (m, found) = identify(t, std::slice::from_ref(&c.author.id), None);
+            m.is_some() || found == Found::Solo
+        });
+        let why = match (state, member) {
+            (RunState::Paused, _) => Some("a reply does not resume a paused run"),
+            (_, false) => Some("the author is not a team member"),
+            _ => None,
+        };
+        if let Some(why) = why {
+            let note = json!({"note": format!("reply {} of {}: {why}", c.id, c.author.id)});
+            self.log(run_id, None, kind::NOTE, note);
+            return;
+        }
+        let text = fence("ticket reply", &c.body);
+        if let Err(e) = self.unblock_with(run_id, Some(&text)) {
+            self.log(
+                run_id,
+                None,
+                kind::NOTE,
+                json!({"note": format!("reply {}: {e}", c.id)}),
+            );
+        }
+        self.pump_run(run_id);
     }
 
     fn after_reply(&mut self, run_id: &str, i: usize, out: Outcome, comment: &str) {
@@ -373,10 +429,16 @@ impl Inner {
                 }
                 let rec = &self.runs[run_id];
                 let qs: Vec<Question> = rec.questions.iter().map(|a| a.q.clone()).collect();
-                if rec.run.state == shipyard_core::run::RunState::WaitingForAnswer
-                    && all_answered(&qs)
-                {
+                // A late answer moves a run that escalated with no answer back too (REQ-019).
+                let late = rec.run.state == RunState::Blocked
+                    && rec
+                        .escalation
+                        .as_ref()
+                        .is_some_and(|e| e.cause == Cause::NoAnswer);
+                if all_answered(&qs) && rec.run.state == RunState::WaitingForAnswer {
                     self.transition(run_id, RunEvent::Answered);
+                    self.pump_run(run_id);
+                } else if all_answered(&qs) && late && self.unblock_with(run_id, None).is_ok() {
                     self.pump_run(run_id);
                 }
             }
@@ -405,19 +467,56 @@ impl Inner {
         }
     }
 
-    /// One reminder of an open question (REQ-019, `q:Q-028`).
+    /// The wait of an open question (REQ-019, `q:Q-028`): one reminder after `remind_after_h`,
+    /// with one ticket comment under the comment switch and no approval. After
+    /// `escalate_after_h` the run escalates with the cause no answer, and the question stays open.
     pub(crate) fn remind(&mut self, run_id: &str, now: u64) {
-        let after = self.cfg.remind_after.as_secs();
-        let mut due = Vec::new();
+        let Some(wait) = self.project_of(run_id).map(|p| p.automation.questions) else {
+            return;
+        };
+        let remind = u64::from(wait.remind_after_h) * 3600;
+        let escalate = u64::from(wait.escalate_after_h) * 3600;
+        let (mut due, mut late) = (Vec::new(), None);
         for a in &mut self.rec(run_id).questions {
-            if a.q.state == QuestionState::Open && !a.reminded && now.saturating_sub(a.at) >= after
-            {
+            if a.q.state != QuestionState::Open {
+                continue;
+            }
+            let age = now.saturating_sub(a.at);
+            // A question that is already late gets the stop report, not a reminder too.
+            if !a.reminded && age >= remind && age < escalate {
                 a.reminded = true;
-                due.push(a.q.id.clone());
+                due.push(a.q.clone());
+            }
+            if age >= escalate && late.is_none() {
+                late = Some(format!("{}: {}", a.q.id, a.q.question));
             }
         }
-        for id in due {
-            self.log(run_id, None, ALERT, json!({"remind": format!("q:{id}")}));
+        for q in due {
+            self.log(
+                run_id,
+                None,
+                ALERT,
+                json!({"remind": format!("q:{}", q.id)}),
+            );
+            let write = Write::Comment {
+                key: self.runs[run_id].key.clone(),
+                body: question_comment(&q, "Reminder: "),
+            };
+            let ticketless = self.runs[run_id]
+                .key
+                .starts_with(crate::run_engine::TICKETLESS_PREFIX);
+            let can = !ticketless
+                && self
+                    .project_of(run_id)
+                    .is_some_and(|p| p.writer.can_comment());
+            if can && self.may_send(run_id, &write) {
+                self.send(run_id, &write, None);
+            }
+        }
+        if let Some(line) = late
+            && self.runs[run_id].run.state == RunState::WaitingForAnswer
+        {
+            self.escalate(run_id, Cause::NoAnswer, &[line]);
         }
     }
 

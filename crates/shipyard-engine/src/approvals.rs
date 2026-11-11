@@ -1,20 +1,44 @@
 //! Write switches and approvals (spec `factory`, REQ-025, REQ-026; `questions-loop` REQ-016).
 //!
 //! A write with its switch on goes out at once. A write without its switch waits in the queue
-//! until a person approves it (Home / Inbox). A rejection drops it and blocks the run. A push with
+//! until a person approves it (Home / Inbox). A rejection drops it. A rejected tracker write is
+//! skipped and the run goes on; a rejected push or pull request escalates the run. A push with
 //! force with lease always waits (`delivery` REQ-015). Each step of the life of a write is one
 //! `write` event in the run log.
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use shipyard_core::pickup::{Writes, answer_marker, question_marker};
+use shipyard_core::pickup::{Writes, question_marker};
 use shipyard_core::rights::Right;
-use shipyard_core::run::RunEvent;
+use shipyard_core::run::Cause;
 use shipyard_store::run_log::kind;
 
 use crate::jobs::{Slot, Work};
 use crate::ports::PortResult;
 use crate::run_engine::{Factory, Inner};
+
+/// The labels to add and to remove so that the ticket that has `have` gets `labels`. Only a
+/// label in `managed` (the labels of the state map and the pickup label) moves: every other label
+/// stays as a person set it, even when the run never saw it. Labels match with no case. An
+/// approval from an older version has no `managed`: it only adds.
+pub fn label_moves(
+    have: &[String],
+    labels: &[String],
+    managed: &[String],
+) -> (Vec<String>, Vec<String>) {
+    let has = |set: &[String], l: &String| set.iter().any(|m| m.eq_ignore_ascii_case(l));
+    let add = labels
+        .iter()
+        .filter(|l| (managed.is_empty() || has(managed, l)) && !has(have, l))
+        .cloned()
+        .collect();
+    let remove = have
+        .iter()
+        .filter(|l| has(managed, l) && !has(labels, l))
+        .cloned()
+        .collect();
+    (add, remove)
+}
 
 fn set(slot: Option<&Slot>, made: String) {
     if let Some(s) = slot {
@@ -28,8 +52,14 @@ fn set(slot: Option<&Slot>, made: String) {
 pub enum Write {
     /// Move the ticket to a status (`tracker_transition`).
     Transition { key: String, status: String },
-    /// Set the labels of the ticket to this list (`tracker_transition`, REQ-008).
-    Labels { key: String, labels: Vec<String> },
+    /// The labels of the ticket after the write (`tracker_transition`, REQ-008). Only the
+    /// labels in `managed` move: a label that a person added stays (`label_moves`).
+    Labels {
+        key: String,
+        labels: Vec<String>,
+        #[serde(default)]
+        managed: Vec<String>,
+    },
     /// Post a comment (`tracker_comment`). A question comment holds its marker.
     Comment { key: String, body: String },
     /// Push the run branch (`push`). With lease: always an approval.
@@ -262,20 +292,17 @@ impl Inner {
             }
             Write::Transition { status, .. } => rec.ticket_status = status.clone(),
             Write::Labels { labels, .. } => rec.labels = labels.clone(),
-            Write::Comment { key, body } => {
-                // A question comment: remember its id, so `answers` reads it as a marker.
+            Write::Comment { key, .. } => {
+                // Every comment of Shipyard (a question, a summary, a stop report): remember its
+                // id. `answers` reads only these as markers, and the pickup never takes them for
+                // a person's change after an end (`sync` REQ-018).
                 let posted = match self.projects.get(&rec.project) {
-                    Some(p)
-                        if question_marker(body)
-                            .or_else(|| answer_marker(body))
-                            .is_some() =>
-                    {
-                        p.mirror
-                            .lock()
-                            .unwrap_or_else(|e| e.into_inner())
-                            .question_posted(&p.source, key, made)
-                    }
-                    _ => Ok(()),
+                    Some(p) => p
+                        .mirror
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .question_posted(&p.source, key, made),
+                    None => Ok(()),
                 };
                 if let Err(e) = posted {
                     let note = json!({"note": format!("question_posted: {e}")});
@@ -322,12 +349,22 @@ impl Factory {
         Ok(made)
     }
 
-    /// A person rejects the write: it is dropped and the run goes to `Blocked` (REQ-026).
+    /// A person rejects the write: it is dropped (REQ-026). A ticket move, labels, a comment or
+    /// a thread reply is skipped and the run goes on. A push or a pull request escalates the run.
     pub fn reject(&self, id: u64) -> Result<(), String> {
         let mut inner = self.lock();
         let a = inner.take_approval(id)?;
         inner.log_write(&a.run, Some(id), "rejected", &a.write);
-        inner.transition(&a.run, RunEvent::Block);
+        let cause = match &a.write {
+            Write::Push { .. } => Cause::PushRejected,
+            Write::OpenPr { .. } => Cause::PullRequestRejected,
+            _ => return Ok(()),
+        };
+        let line = format!(
+            "a person rejected the {}",
+            cause.text().trim_end_matches(" rejected")
+        );
+        inner.escalate(&a.run, cause, &[line]);
         Ok(())
     }
 

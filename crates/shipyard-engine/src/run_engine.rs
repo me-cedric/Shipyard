@@ -6,7 +6,8 @@
 //! loop; each `SyncEvent::Tick` calls it too. A test calls it with fakes and a fake clock.
 //!
 //! Rules that the engine decides (core has no step to state mapping):
-//! - A step with `action` is an action. A step with `max_rounds` is a review. A step with
+//! - A step with `action` is an action. A step with `max_rounds` or the role `reviewer` is a
+//!   review. A step with
 //!   `mode: plan` or `gate: human` is a plan step. Every other step is a build step.
 //! - A build or review step that starts in `Planning` sends `PlanReady { gate: false }`. A review
 //!   or an action that starts in `Working` sends `BuildDone`. A plan step with `gate: human` that
@@ -19,13 +20,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use shipyard_core::pickup::{ActiveRun, Automation, SyncEvent};
 use shipyard_core::rights::{Area, Right};
-use shipyard_core::run::{self, BudgetLevel, Run, RunEvent, RunState};
+use shipyard_core::run::{self, BudgetLevel, Cause, Escalation, Run, RunEvent, RunState};
+use shipyard_core::work::Team;
 use shipyard_core::work_item::WorkKind;
 use shipyard_core::workflow::{self, Effort, Gate, Mode, Step, StepState, Workflow, Workspace};
 use shipyard_store::automation_file::status_map;
@@ -102,8 +103,6 @@ pub struct Config {
     pub tiers: Tiers,
     /// A token budget of each run, next to the money budget of the workflow. `None`: no limit.
     pub max_tokens: Option<u64>,
-    /// One reminder of an open question after this time (`q:Q-028`).
-    pub remind_after: Duration,
 }
 
 impl Default for Config {
@@ -112,7 +111,6 @@ impl Default for Config {
             runner: "claude".into(),
             tiers: Tiers::default(),
             max_tokens: None,
-            remind_after: Duration::from_secs(24 * 3600),
         }
     }
 }
@@ -208,6 +206,8 @@ pub struct RunInfo {
     pub findings: Vec<Finding>,
     /// The worktrees that a merged run left behind, with their files (`delivery` REQ-025).
     pub worktree_kept: Option<String>,
+    /// Why the run stopped for a person (REQ-053). `None`: no escalation, or a log from before.
+    pub escalation: Option<Escalation>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -248,6 +248,14 @@ pub(crate) struct Unit {
     /// The join of this child conflicted once: it ran again from the run branch.
     #[serde(default)]
     pub redone: bool,
+    /// The id of the current attempt (REQ-059). The step token names it: a call of another
+    /// attempt is ignored.
+    #[serde(default)]
+    pub attempt: String,
+    /// A fixer: this child does its task again in the run worktree, after a second conflict at
+    /// the join (REQ-057). It counts as joined.
+    #[serde(default)]
+    pub fixer: bool,
 }
 
 impl Unit {
@@ -273,7 +281,52 @@ impl Unit {
             tokens: 0,
             merged: false,
             redone: false,
+            attempt: String::new(),
+            fixer: false,
         }
+    }
+}
+
+/// A guard that failed before an attempt (REQ-056): it waits with the backoff and uses no retry.
+#[derive(Serialize, Deserialize)]
+pub(crate) struct GuardFail {
+    /// The last cause. A new cause changes only the text: causes that take turns still escalate.
+    pub why: String,
+    /// Seconds: the first failure of any guard since the last attempt, and the next try.
+    pub since: u64,
+    pub retry_at: u64,
+    pub tries: u32,
+}
+
+/// The counts of the whole run (REQ-052, REQ-054, REQ-055). They are saved with the run: no
+/// round, retry or restart resets them.
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+pub(crate) struct Counts {
+    /// Failed attempts of each unit id.
+    pub attempts: BTreeMap<String, u32>,
+    pub feedback_rounds: u32,
+    pub fix_rounds: u32,
+    /// The fingerprint and the blocking count of the last review round that asked for a fix.
+    pub last_review: Option<(u64, usize)>,
+    /// The fingerprint of the last failure of each unit id.
+    pub last_failure: BTreeMap<String, u64>,
+    /// What unblocks gave: `review_rounds`, `feedback_rounds`, `fix_rounds`, `attempts:<unit>`.
+    pub extra: BTreeMap<String, u32>,
+    /// The fixer rounds that ran (`rebase`, `empty`): the same cause again escalates.
+    pub fixers: BTreeSet<String>,
+    pub guard: Option<GuardFail>,
+    /// The escalations so far: the attempt of the stop report key.
+    pub escalations: u32,
+    /// The fix of the last allowed review round runs on the top model tier (REQ-036).
+    pub top_tier: bool,
+    /// A pause of the day budget of this key (`day:<date>`): the next day resumes it.
+    pub day_pause: Option<String>,
+}
+
+impl Counts {
+    pub fn extra(&self, key: &str) -> u32 {
+        self.extra.get(key).copied().unwrap_or(0)
     }
 }
 
@@ -335,6 +388,11 @@ pub(crate) struct RunRec {
     /// Who started the run. `None`: a run of an older Shipyard, or no person was set.
     #[serde(default)]
     pub by: Option<Actor>,
+    #[serde(default)]
+    pub c: Counts,
+    /// The record of the last escalation, until the run goes on.
+    #[serde(default)]
+    pub escalation: Option<Escalation>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -351,7 +409,7 @@ const RESUME: &str = "Continue the step where you stopped. End it with the `repo
 pub(crate) fn kind_of(s: &Step) -> Kind {
     if s.action.is_some() {
         Kind::Action
-    } else if s.max_rounds.is_some() {
+    } else if s.max_rounds.is_some() || s.role.as_deref() == Some("reviewer") {
         Kind::Review
     } else if s.mode == Mode::Plan || s.gate == Gate::Human {
         Kind::Plan
@@ -404,6 +462,9 @@ pub(crate) struct Inner {
     pub spent: BTreeMap<String, crate::usage::Spent>,
     /// The person of each project on this machine (`set_actor`).
     pub actors: BTreeMap<String, Actor>,
+    /// The team file of each project (`set_team`). No entry: no reply on the ticket unblocks a
+    /// run (`questions-loop` REQ-022).
+    pub teams: BTreeMap<String, Team>,
 }
 
 pub struct Factory {
@@ -482,6 +543,7 @@ impl Factory {
             alerted: BTreeSet::new(),
             spent: BTreeMap::new(),
             actors: BTreeMap::new(),
+            teams: BTreeMap::new(),
         };
         inner.recover();
         inner.persist();
@@ -529,6 +591,16 @@ impl Factory {
             None => inner.actors.remove(project),
         };
         inner.release_allowed();
+    }
+
+    /// The team file of a project, for the replies on the ticket (`questions-loop` REQ-022).
+    /// `None`: the file cannot be read, and no reply unblocks a run.
+    pub fn set_team(&self, project: &str, team: Option<Team>) {
+        let mut inner = self.lock();
+        match team {
+            Some(t) => inner.teams.insert(project.into(), t),
+            None => inner.teams.remove(project),
+        };
     }
 
     /// Read the agents, check the clocks, start the next steps. Call it often.
@@ -637,18 +709,7 @@ impl Factory {
             return Err("the added budget must be a positive number".into());
         }
         inner.run(run_id)?;
-        // A resume takes the limits that the workflow has now: a budget or a turn limit that a
-        // person removed from the workflow file no longer stops the run.
-        let wf_id = inner.rec(run_id).wf.id.clone();
-        if let Some(now) = inner
-            .project_of(run_id)
-            .and_then(|p| p.files.workflow(&wf_id))
-            .map(|w| w.limits)
-        {
-            let limits = &mut inner.rec(run_id).wf.limits;
-            limits.budget_usd = now.budget_usd;
-            limits.max_turns = now.max_turns;
-        }
+        inner.take_limits(run_id);
         inner.rec(run_id).extra_usd += add_usd;
         inner.rec(run_id).extra_tokens += add_tokens;
         // A run paused at its max turns gets one more set of turns.
@@ -657,7 +718,7 @@ impl Factory {
             .wf
             .limits
             .max_turns
-            .is_some_and(|max| rec.turns > max + rec.extra_turns)
+            .is_some_and(|max| rec.turns >= max + rec.extra_turns)
         {
             rec.extra_turns = rec.turns;
         }
@@ -666,6 +727,11 @@ impl Factory {
         // A refused resume adds no note.
         let before = inner.run(run_id)?.run.state;
         inner.checked(run_id, RunEvent::Resume { budget_left })?;
+        if inner.rec(run_id).run.state != RunState::Paused {
+            let rec = inner.rec(run_id);
+            rec.c.day_pause = None;
+            rec.escalation = None;
+        }
         if let Some(n) = note
             && before == RunState::Paused
             && inner.rec(run_id).run.state != RunState::Paused
@@ -689,33 +755,7 @@ impl Factory {
     /// or failed, so the next brief or the resumed session reads it. A child that conflicted at
     /// the join gets one more redo. A review that spent its fix rounds gets one more round.
     pub fn unblock_with(&self, run_id: &str, note: Option<&str>) -> Result<(), String> {
-        let mut inner = self.lock();
-        // A refused click adds no note.
-        if inner.run(run_id)?.run.state != RunState::Blocked {
-            return inner.checked(run_id, RunEvent::Unblock);
-        }
-        let note = note.map(str::trim).filter(|n| !n.is_empty());
-        let stuck = inner.rec(run_id).d.stuck.take();
-        let rec = inner.rec(run_id);
-        for s in rec.steps.values_mut() {
-            if let Some(n) = note
-                && matches!(s.state, StepState::Running | StepState::Failed)
-            {
-                s.notes.push(n.into());
-            }
-            if s.merge_pending {
-                s.units.iter_mut().for_each(|u| u.redone = false);
-            }
-        }
-        if let Some(n) = note {
-            inner.log(run_id, None, kind::NOTE, json!({"note": n, "by": "person"}));
-        }
-        inner.checked(run_id, RunEvent::Unblock)?;
-        inner.round_after_cap(run_id, note);
-        if let Some(stuck) = stuck {
-            inner.unstick(run_id, stuck, note);
-        }
-        Ok(())
+        self.lock().unblock_with(run_id, note)
     }
 
     /// A person ends a run whose pull request step found no change to deliver: the work is on
@@ -752,6 +792,29 @@ impl Factory {
     }
 }
 
+/// The rounds of a cap of the run, and the cap with what unblocks gave.
+pub(crate) fn cap_of(rec: &RunRec, cap: &str) -> (u32, u32) {
+    let l = &rec.wf.limits;
+    let (count, limit) = match cap {
+        "review_rounds" => {
+            // A step `max_rounds` only lowers the cap (REQ-036).
+            let lowest = rec.wf.steps.iter().filter_map(|s| s.max_rounds).min();
+            (
+                rec.rounds,
+                lowest.map_or(l.review_cap(), |m| m.min(l.review_cap())),
+            )
+        }
+        "feedback_rounds" => (rec.c.feedback_rounds, l.feedback_cap()),
+        _ => (rec.c.fix_rounds, l.fix_cap()),
+    };
+    (count, limit + rec.c.extra(cap))
+}
+
+fn spent(rec: &RunRec, cap: &str) -> bool {
+    let (count, limit) = cap_of(rec, cap);
+    count >= limit
+}
+
 /// A step back to `Pending` with fresh children and a note for the next brief.
 pub(crate) fn reset(s: &mut StepRec, note: &str) {
     s.state = StepState::Pending;
@@ -781,6 +844,24 @@ fn ulid(ms: u64, seq: u64) -> String {
 }
 
 impl Inner {
+    /// A resume and an unblock take the limits that the workflow has now (REQ-035): a limit that
+    /// a person removed no longer stops the run, and a raised cap gives more rounds.
+    fn take_limits(&mut self, run_id: &str) {
+        let wf_id = self.rec(run_id).wf.id.clone();
+        if let Some(now) = self
+            .project_of(run_id)
+            .and_then(|p| p.files.workflow(&wf_id))
+            .map(|w| w.limits)
+        {
+            let limits = &mut self.rec(run_id).wf.limits;
+            limits.budget_usd = now.budget_usd;
+            limits.max_turns = now.max_turns;
+            limits.review_rounds = now.review_rounds;
+            limits.feedback_rounds = now.feedback_rounds;
+            limits.fix_rounds = now.fix_rounds;
+        }
+    }
+
     pub(crate) fn now_s(&self) -> u64 {
         self.clock.now().as_secs()
     }
@@ -867,6 +948,7 @@ impl Inner {
                 .collect(),
             findings: r.d.findings.clone(),
             worktree_kept: r.d.kept.clone(),
+            escalation: r.escalation.clone(),
         }
     }
 
@@ -970,7 +1052,16 @@ impl Inner {
                 _ => {}
             }
         }
-        let labels = run::staged_labels(&ticket_labels, &map, state);
+        let mut labels = run::staged_labels(&ticket_labels, &map, state);
+        // At `Done` the pickup label goes, only with the switch on: no approval for it (`sync`
+        // REQ-019).
+        if let (RunState::Done, true, Some(pick)) = (
+            state,
+            p.automation.writes.tracker_transition,
+            p.automation.pickup.label.as_deref(),
+        ) {
+            labels.retain(|l| !l.eq_ignore_ascii_case(pick));
+        }
         // The forge can close the ticket at the merge: no second move (`delivery` REQ-023).
         let closed = matches!(state, RunState::Merged | RunState::Done)
             && p.mirror
@@ -982,6 +1073,11 @@ impl Inner {
                 .is_some_and(|t| p.automation.terminal(&t.item.status));
         let status = target.status.filter(|s| *s != ticket_status && !closed);
         let labels_changed = labels != ticket_labels;
+        // The labels that Shipyard owns: the state map and the pickup label.
+        let mut managed: Vec<String> = map.values().flat_map(|m| m.labels.clone()).collect();
+        managed.extend(p.automation.pickup.label.clone());
+        managed.sort();
+        managed.dedup();
         if let Some(status) = status {
             self.write(
                 run_id,
@@ -992,7 +1088,14 @@ impl Inner {
             );
         }
         if labels_changed {
-            self.write(run_id, Write::Labels { key, labels });
+            self.write(
+                run_id,
+                Write::Labels {
+                    key,
+                    labels,
+                    managed,
+                },
+            );
         }
     }
 
@@ -1017,9 +1120,11 @@ impl Inner {
             return;
         }
         let now = self.now_s();
+        self.resume_next_day(run_id);
         let due = {
             let rec = &self.runs[run_id];
             rec.run.state == RunState::RetryQueued
+                && rec.c.guard.as_ref().is_none_or(|g| g.retry_at <= now)
                 && rec
                     .steps
                     .values()
@@ -1088,10 +1193,9 @@ impl Inner {
             AgentEvent::Turn => {
                 rec.turns += 1;
                 if let Some(max_turns) = max_turns.filter(|m| rec.turns > m + rec.extra_turns) {
-                    // A pause, not a failure: a person can give the run more turns.
-                    let note = json!({"stop": format!("max turns ({max_turns})")});
-                    self.log(run_id, None, kind::NOTE, note);
-                    self.transition(run_id, RunEvent::BudgetStop);
+                    // A pause, not a failure: a person can give the run more turns (REQ-023).
+                    let why = format!("max turns ({max_turns})");
+                    self.escalate(run_id, Cause::MaxTurns, &[why]);
                 }
             }
             AgentEvent::Usage {
@@ -1158,7 +1262,7 @@ impl Inner {
     }
 
     /// One alert at 80 %, a hard stop at 100 % (REQ-022).
-    fn check_budget(&mut self, run_id: &str) {
+    pub(crate) fn check_budget(&mut self, run_id: &str) {
         let (own, shared) = self.budget_levels(run_id);
         let stop =
             own == BudgetLevel::Spent || shared.iter().any(|(_, l)| *l == BudgetLevel::Spent);
@@ -1169,9 +1273,9 @@ impl Inner {
             rec.alerted = true;
             keys.push(format!("run:{run_id}"));
         }
-        for (key, l) in shared {
-            if l != BudgetLevel::Under && self.alerted.insert(key.clone()) {
-                keys.push(key);
+        for (key, l) in &shared {
+            if *l != BudgetLevel::Under && self.alerted.insert(key.clone()) {
+                keys.push(key.clone());
             }
         }
         for key in keys {
@@ -1179,9 +1283,7 @@ impl Inner {
             self.log(run_id, None, ALERT, payload);
         }
         if stop {
-            // The reason that the run page shows.
-            self.log(run_id, None, kind::NOTE, json!({"stop": "budget"}));
-            self.transition(run_id, RunEvent::BudgetStop);
+            self.budget_stop(run_id, own, &shared);
         }
     }
 
@@ -1211,16 +1313,29 @@ impl Inner {
         }
     }
 
+    /// A failed attempt (REQ-007, REQ-052, REQ-055): a retry with the backoff, else an
+    /// escalation. The same failure twice in a row escalates at once.
     pub(crate) fn unit_failed(&mut self, run_id: &str, sid: &str, i: usize, reason: &str) {
         let now = self.now_s();
         let retry = self.runs[run_id].wf.step(sid).map_or(0, |s| s.retry);
-        let s = self.rec(run_id).steps.get_mut(sid).expect("step");
-        let u = &mut s.units[i];
+        let rec = self.rec(run_id);
+        let u = &mut rec.steps.get_mut(sid).expect("step").units[i];
         u.agent = None;
         u.failures += 1;
         let (unit_id, failures) = (u.id.clone(), u.failures);
-        let event = run::after_failure(failures, retry);
-        if event == RunEvent::Retry {
+        let attempts = {
+            let a = rec.c.attempts.entry(unit_id.clone()).or_default();
+            *a += 1;
+            *a
+        };
+        let extra = rec.c.extra(&format!("attempts:{unit_id}"));
+        let fp = run::fingerprint(&[reason]);
+        let same = rec.c.last_failure.insert(unit_id.clone(), fp) == Some(fp);
+        let cause = run::after_failure(failures, retry, attempts, extra)
+            .or(same.then_some(Cause::SameFailure));
+        let s = rec.steps.get_mut(sid).expect("step");
+        let u = &mut s.units[i];
+        if cause.is_none() {
             u.state = StepState::Pending;
             u.parked = false;
             u.retry_at = Some(now + run::retry_delay(failures).as_secs());
@@ -1229,9 +1344,19 @@ impl Inner {
             s.state = StepState::Failed;
         }
         self.agents.end(run_id, &unit_id);
-        let payload = json!({"step_failed": reason, "failures": failures});
+        let payload = json!({
+            "step_failed": reason, "failures": failures, "attempts": attempts,
+            "fingerprint": format!("{fp:016x}"),
+        });
         self.log(run_id, Some(&unit_id), kind::NOTE, payload);
-        self.transition(run_id, event);
+        match cause {
+            None => {
+                self.transition(run_id, RunEvent::Retry);
+            }
+            Some(c) => {
+                self.escalate(run_id, c, &[format!("{unit_id}: {reason}")]);
+            }
+        }
     }
 
     pub(crate) fn unit_done(&mut self, run_id: &str, sid: &str, i: usize, out: Value, block: bool) {
@@ -1241,6 +1366,7 @@ impl Inner {
         u.state = StepState::Done;
         u.output = out;
         let unit_id = u.id.clone();
+        self.rec(run_id).c.last_failure.remove(&unit_id);
         self.agents.end(run_id, &unit_id);
         let s = self.rec(run_id).steps.get_mut(sid).expect("step");
         let states: Vec<StepState> = s.units.iter().map(|u| u.state).collect();
@@ -1376,7 +1502,7 @@ impl Inner {
                         self.log(run_id, Some(sid), kind::NOTE, json!({"step_failed": why}));
                         self.rec(run_id).steps.get_mut(sid).expect("step").state =
                             StepState::Failed;
-                        self.transition(run_id, RunEvent::Fail);
+                        self.escalate(run_id, Cause::Attempts, &[why]);
                         return;
                     }
                 }
@@ -1400,29 +1526,34 @@ impl Inner {
         let review = if kind_of(&step) == Kind::Review {
             match self.review_context(run_id) {
                 Ok(text) => Some(text),
-                Err(e) => return self.block(run_id, sid, &e),
+                Err(stop) => return self.stopped(run_id, sid, stop),
             }
         } else {
             None
         };
         let rec = &self.runs[run_id];
         let Some(p) = self.projects.get(&rec.project) else {
-            return self.block(run_id, sid, "the project is not open");
+            return self.guard_failed(run_id, "the project is not open");
         };
         let u = &rec.steps[sid].units[i];
         let role_name = u.role.as_deref().or(step.role.as_deref());
         let role = role_name.and_then(|r| p.files.role(r));
-        let worktree = step.workspace == Workspace::Worktree && !rec.steps[sid].in_run;
+        let worktree = step.workspace == Workspace::Worktree && !rec.steps[sid].in_run && !u.fixer;
         let child = worktree.then_some(u.id.as_str());
         let dir = match p.workspaces.dir(run_id, step.workspace, child) {
             Ok(d) => d,
-            Err(e) => return self.block(run_id, sid, &format!("workspace: {e}")),
+            Err(e) => return self.guard_failed(run_id, &format!("workspace: {e}")),
         };
         let runner = self.cfg.runner.clone();
-        let named = step
-            .model
-            .clone()
-            .or_else(|| role.as_ref().and_then(|r| r.model.clone()));
+        // The fix of the last allowed review round runs on the top tier (REQ-036).
+        let top = rec.c.top_tier && kind_of(&step) == Kind::Build;
+        let named = match top {
+            true => Some("top".to_string()),
+            false => step
+                .model
+                .clone()
+                .or_else(|| role.as_ref().and_then(|r| r.model.clone())),
+        };
         let tier_effort = named
             .as_deref()
             .and_then(|n| self.cfg.tiers.effort(&runner, n));
@@ -1442,25 +1573,34 @@ impl Inner {
                 self.brief(run_id, &step, i, prompt, review.as_deref())
             }
         };
+        let ms = self.clock.now().as_millis() as u64;
+        let attempt = ulid(ms, self.seq + 1);
         let brief = Brief {
             run: run_id.into(),
             step: u.id.clone(),
+            attempt: attempt.clone(),
             project: rec.project.clone(),
             runner,
             model,
-            effort: step
-                .effort
-                .or_else(|| p.files.role(role_name?)?.effort)
-                .or(tier_effort),
+            effort: match top {
+                true => Some(Effort::High),
+                false => step
+                    .effort
+                    .or_else(|| p.files.role(role_name?)?.effort)
+                    .or(tier_effort),
+            },
             mode: step.mode,
             tools: step.tools.clone(),
             prompt,
             dir,
             resume,
         };
+        self.seq += 1;
         match self.agents.start(&brief) {
             Ok(agent) => {
+                self.rec(run_id).c.guard = None;
                 let u = &mut self.rec(run_id).steps.get_mut(sid).expect("step").units[i];
+                u.attempt = attempt;
                 u.agent = Some(agent);
                 u.runner = brief.runner.clone();
                 u.dir = brief.dir.display().to_string();
@@ -1473,18 +1613,229 @@ impl Inner {
                 let payload = json!({
                     "start": brief.step, "runner": brief.runner, "model": brief.model,
                     "effort": brief.effort, "mode": brief.mode, "resume": brief.resume.is_some(),
+                    "attempt": brief.attempt,
                 });
                 self.log(run_id, Some(&brief.step), kind::RUNNER, payload);
                 true
             }
-            Err(e) => self.block(run_id, sid, &format!("runner: {e}")),
+            Err(e) => self.guard_failed(run_id, &format!("runner: {e}")),
         }
     }
 
-    pub(crate) fn block(&mut self, run_id: &str, sid: &str, why: &str) -> bool {
-        self.log(run_id, Some(sid), kind::NOTE, json!({"blocked": why}));
-        self.transition(run_id, RunEvent::Block);
+    /// `Factory::unblock_with` under the lock: the click, or a reply of a member on the ticket.
+    pub(crate) fn unblock_with(&mut self, run_id: &str, note: Option<&str>) -> Result<(), String> {
+        // A refused click adds no note.
+        if self.run(run_id)?.run.state != RunState::Blocked {
+            return self.checked(run_id, RunEvent::Unblock);
+        }
+        let note = note.map(str::trim).filter(|n| !n.is_empty());
+        let stuck = self.rec(run_id).d.stuck.take();
+        // The current limits, and one more round or attempt of the spent cap (REQ-054).
+        self.take_limits(run_id);
+        let rec = self.rec(run_id);
+        let cause = rec.escalation.take().map(|e| e.cause);
+        let cap = match cause {
+            Some(Cause::ReviewRounds) => Some("review_rounds"),
+            Some(Cause::FeedbackRounds) => Some("feedback_rounds"),
+            Some(Cause::FixRounds) => Some("fix_rounds"),
+            _ => None,
+        };
+        // A cap that a person raised in the workflow gives its own rounds, and no extra one.
+        if let Some(cap) = cap.filter(|c| spent(rec, c)) {
+            *rec.c.extra.entry(cap.into()).or_default() += 1;
+        }
+        rec.c.guard = None;
+        for s in rec.steps.values_mut() {
+            if let Some(n) = note
+                && matches!(s.state, StepState::Running | StepState::Failed)
+            {
+                s.notes.push(n.into());
+            }
+            if s.merge_pending {
+                s.units.iter_mut().for_each(|u| u.redone = false);
+            }
+            // A step that spent its attempts or retries gets one more attempt (REQ-052).
+            if s.state == StepState::Failed {
+                s.state = match s.units.is_empty() {
+                    true => StepState::Pending,
+                    false => StepState::Running,
+                };
+                for u in s.units.iter_mut().filter(|u| u.state == StepState::Failed) {
+                    *rec.c.extra.entry(format!("attempts:{}", u.id)).or_default() += 1;
+                    u.state = StepState::Pending;
+                    u.parked = false;
+                    u.retry_at = None;
+                }
+            }
+        }
+        if let Some(n) = note {
+            self.log(run_id, None, kind::NOTE, json!({"note": n, "by": "person"}));
+        }
+        self.checked(run_id, RunEvent::Unblock)?;
+        self.round_after_cap(run_id, note);
+        if let Some(stuck) = stuck {
+            self.unstick(run_id, stuck, note);
+        }
+        Ok(())
+    }
+
+    /// The one way to stop a run for a person (REQ-053): the agents stop, the run keeps one
+    /// record and posts one stop report. `Blocked`, or `Paused` for a budget or max turns. The
+    /// questions loop calls it too. `false` when the table refuses the move.
+    pub(crate) fn escalate(&mut self, run_id: &str, cause: Cause, lines: &[String]) -> bool {
+        let Some(rec) = self.runs.get(run_id) else {
+            return false;
+        };
+        let state = rec.run.state;
+        let event = match cause.pauses() {
+            true => RunEvent::BudgetStop,
+            false => RunEvent::Block,
+        };
+        if rec.run.apply(event).is_err() {
+            let note = json!({"refused": format!("escalate {}", cause.text()), "from": state});
+            self.log(run_id, None, kind::NOTE, note);
+            return false;
+        }
+        let record = self.record(run_id, cause, lines);
+        // The reason that the run page shows: `stop` for a pause, `blocked` for a block.
+        let what = if cause.pauses() { "stop" } else { "blocked" };
+        let why = record.lines.first().map_or(cause.text(), String::as_str);
+        let note = json!({what: why, "cause": cause, "escalation": record});
+        self.log(run_id, None, kind::NOTE, note);
+        self.transition(run_id, event);
+        self.stop_report(run_id, &record);
+        true
+    }
+
+    /// The escalation record of the run (REQ-053): at most the 10 last lines.
+    pub(crate) fn record(&mut self, run_id: &str, cause: Cause, lines: &[String]) -> Escalation {
+        let all: Vec<String> = lines
+            .iter()
+            .flat_map(|l| l.lines())
+            .filter(|l| !l.trim().is_empty())
+            // A CI log or a runner error can echo a token: the record goes on the ticket.
+            .map(
+                |l| match shipyard_store::code::scan_text("log", l).is_empty() {
+                    true => l.to_string(),
+                    false => "[line hidden: it held a secret]".to_string(),
+                },
+            )
+            .collect();
+        let lines = all[all.len().saturating_sub(10)..].to_vec();
+        let rec = &self.runs[run_id];
+        let [r, x, f] = ["review_rounds", "fix_rounds", "feedback_rounds"].map(|c| cap_of(rec, c));
+        let tried = format!(
+            "{} review rounds of {}, {} fix rounds of {}, {} feedback rounds of {}, {} failed \
+             attempts.",
+            r.0,
+            r.1,
+            x.0,
+            x.1,
+            f.0,
+            f.1,
+            rec.c.attempts.values().sum::<u32>(),
+        );
+        let action = match cause {
+            Cause::Budget => "Raise the budget, then resume the run.",
+            Cause::MaxTurns => "Resume the run: it gets one more set of turns.",
+            Cause::NothingToDeliver => {
+                "Reply on the ticket or use Unblock with a message, or close the run as done."
+            }
+            Cause::ReleaseBase => "Set the base branch of the project, then use Unblock.",
+            Cause::NoReviewer => "Name a reviewer in the Automation settings, then use Unblock.",
+            Cause::PullRequestClosed => "Comment on the ticket to start a new run.",
+            _ => "Reply on the ticket, or use Unblock with a message: the run gets one more round.",
+        };
+        let rec = self.rec(run_id);
+        rec.c.escalations += 1;
+        let record = Escalation {
+            cause,
+            lines,
+            tried,
+            action: action.into(),
+            attempt: rec.c.escalations,
+        };
+        rec.escalation = Some(record.clone());
+        record
+    }
+
+    /// The stop report (REQ-058): one ticket comment with the marker, when the tracker takes
+    /// comments and `tracker_comment` is on. Else the notice only, with no approval. The key goes
+    /// in the log before the send: a restart sends no second report.
+    pub(crate) fn stop_report(&mut self, run_id: &str, r: &Escalation) {
+        let key = format!("{run_id}:{:?}:{}", r.cause, r.attempt);
+        let rec = &self.runs[run_id];
+        if rec.key.starts_with(TICKETLESS_PREFIX) {
+            return;
+        }
+        let reported = self.log.run(run_id).unwrap_or_default().iter().any(|e| {
+            e.kind == kind::NOTE && e.payload["stop_report"].as_str() == Some(key.as_str())
+        });
+        let Some(p) = self.project_of(run_id) else {
+            return;
+        };
+        let lines = match r.lines.is_empty() {
+            true => String::new(),
+            false => format!("\nLast lines:\n\n```text\n{}\n```\n", r.lines.join("\n")),
+        };
+        let body = format!(
+            "<!-- shipyard:stop {run_id} -->\nShipyard stopped the run run:{run_id}: {}.\n{lines}\n\
+             Tried: {}\n\nAction: {}\n",
+            r.cause.text(),
+            r.tried,
+            r.action
+        );
+        let write = Write::Comment {
+            key: rec.key.clone(),
+            body: shipyard_core::delivery::clean_outgoing(&body),
+        };
+        if reported || !p.writer.can_comment() || !self.may_send(run_id, &write) {
+            return;
+        }
+        self.log(run_id, None, kind::NOTE, json!({"stop_report": key}));
+        self.send(run_id, &write, None);
+    }
+
+    /// A guard failed before an attempt (REQ-056): the run waits in `RetryQueued` with the
+    /// backoff, and uses no retry. 30 min of failed guards escalates, whatever the causes,
+    /// except a project that is not open. Always `false`: the run stopped.
+    pub(crate) fn guard_failed(&mut self, run_id: &str, why: &str) -> bool {
+        let now = self.now_s();
+        let open = self.project_of(run_id).is_some();
+        let c = &mut self.rec(run_id).c;
+        let g = c.guard.get_or_insert_with(|| GuardFail {
+            why: String::new(),
+            since: now,
+            retry_at: now,
+            tries: 0,
+        });
+        g.why = why.into();
+        g.tries += 1;
+        g.retry_at = now + run::retry_delay(g.tries).as_secs();
+        let (tries, long) = (g.tries, now - g.since >= run::GUARD_ESCALATE.as_secs());
+        if open && long {
+            c.guard = None;
+            self.escalate(run_id, Cause::Guard, &[why.into()]);
+            return false;
+        }
+        self.log(
+            run_id,
+            None,
+            kind::NOTE,
+            json!({"guard": why, "tries": tries}),
+        );
+        self.transition(run_id, RunEvent::Retry);
         false
+    }
+
+    /// One more fix round (REQ-054): `false` when the cap is spent, and the run escalated.
+    pub(crate) fn take_fix_round(&mut self, run_id: &str, lines: &[String]) -> bool {
+        if spent(&self.runs[run_id], "fix_rounds") {
+            self.escalate(run_id, Cause::FixRounds, lines);
+            return false;
+        }
+        self.rec(run_id).c.fix_rounds += 1;
+        true
     }
 
     /// The first brief of a unit: role, skill, ticket, inputs, item, notes, answers.
@@ -1607,6 +1958,8 @@ impl Inner {
             d: Delivered::default(),
             messages: Vec::new(),
             by: self.actors.get(&req.project).cloned(),
+            c: Counts::default(),
+            escalation: None,
         };
         let base = item
             .key
@@ -1686,7 +2039,8 @@ impl Dispatch for Factory {
                 key,
                 comment,
                 answers,
-            } => inner.on_comment(key, comment, answers.as_deref()),
+                stop,
+            } => inner.on_comment(key, comment, answers.as_deref(), stop.as_deref()),
             SyncEvent::Pr(e) => inner.on_pr(e.number, e.kind),
         }
         Ok(())

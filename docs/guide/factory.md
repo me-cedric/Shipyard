@@ -11,6 +11,22 @@ Runs shows the runs in six lanes: Queued, Working, Needs you, In review, Ready t
 3. When a run needs you, it moves to Needs you. Approve its plan, answer its question or unblock it.
 4. Cancel a run at any time.
 
+### When a run cannot go on
+
+A run fixes its own problems first. A blocking finding, a red check, a conflict or an empty branch starts a fix round with no click. The rounds are limited: 3 failed tries for each step, 3 feedback rounds and 8 fix rounds for each run. The same failure twice in a row stops the run at once.
+
+Then the run stops and moves to Needs you. The banner on the run says the cause in one sentence, the last lines, and what the run tried. The run also writes the same text as a comment on the ticket, and the ticket gets the label `shipyard:blocked`.
+
+To move it on, do one of these:
+
+- Type a message and click Unblock. The run gets one more round and reads your message.
+- Reply on the ticket. A reply by a team member also unblocks the run. While the team file names no admin, any reply counts: on a public issue tracker, name an admin.
+- Click Close as done when the run changed no file and the work is already there.
+
+A run that spent a budget or its turns stays paused. Raise the budget, then click Resume. A pause for the day budget ends by itself at the first sync of the next day.
+
+A run that ended does not start again by itself. Click Run, or change the ticket.
+
 ## Workflows
 
 Workflows lists the workflows and the roles of the agents. Open one to read or change it, then save. A broken file shows its error and its line. The last good version keeps running.

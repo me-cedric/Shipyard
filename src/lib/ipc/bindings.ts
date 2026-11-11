@@ -1038,6 +1038,8 @@ export type Automation_Deserialize = {
 	budgets?: Budgets_Deserialize,
 	/**  An agent review of each new pull request and head commit (`agent-pr` REQ-006). */
 	auto_review?: AutoReview,
+	/**  The wait of an open question (`questions-loop` REQ-019). */
+	questions?: Questions_Deserialize,
 };
 
 export type Automation_Serialize = {
@@ -1055,6 +1057,8 @@ export type Automation_Serialize = {
 	budgets?: Budgets_Serialize,
 	/**  An agent review of each new pull request and head commit (`agent-pr` REQ-006). */
 	auto_review?: AutoReview,
+	/**  The wait of an open question (`questions-loop` REQ-019). */
+	questions?: Questions_Serialize,
 };
 
 /**  When a member works at all. Outside `from` and `until`, and inside an absence, capacity is zero. */
@@ -4673,6 +4677,30 @@ export type QuestionView_Serialize = {
 	question: AskedQuestion_Serialize,
 };
 
+/**
+ *  Hours that an open question waits: one reminder, then the escalation (`questions-loop`
+ *  REQ-019).
+ */
+export type Questions = Questions_Serialize | Questions_Deserialize;
+
+/**
+ *  Hours that an open question waits: one reminder, then the escalation (`questions-loop`
+ *  REQ-019).
+ */
+export type Questions_Deserialize = {
+	remind_after_h?: number,
+	escalate_after_h?: number,
+};
+
+/**
+ *  Hours that an open question waits: one reminder, then the escalation (`questions-loop`
+ *  REQ-019).
+ */
+export type Questions_Serialize = {
+	remind_after_h: number,
+	escalate_after_h: number,
+};
+
 /**  A quota window of the account, when the runner reports it. No runner reports one yet. */
 export type QuotaWindow = {
 	label: string,
@@ -5776,13 +5804,17 @@ export type Step_Deserialize = {
 	/**  `<step>.<field>`: one child for each item of that output. `<step>` is in `needs`. */
 	for_each?: string | null,
 	max_parallel?: number | null,
-	/**  Retries after a failure. 0: the first failure fails the run. */
+	/**  Retries after a failure. 0: the first failure escalates the run. */
 	retry?: number,
 	/**  Seconds. */
 	timeout?: number | null,
 	/**  USD for this step, inside the workflow budget. */
 	budget?: number | null,
 	fresh_context?: boolean,
+	/**
+	 *  Marks a review step, as the role `reviewer` does. It only lowers `limits.review_rounds`
+	 *  (REQ-036).
+	 */
 	max_rounds?: number | null,
 	action?: StepAction | null,
 };
@@ -5803,13 +5835,17 @@ export type Step_Serialize = {
 	/**  `<step>.<field>`: one child for each item of that output. `<step>` is in `needs`. */
 	for_each?: string,
 	max_parallel?: number,
-	/**  Retries after a failure. 0: the first failure fails the run. */
+	/**  Retries after a failure. 0: the first failure escalates the run. */
 	retry: number,
 	/**  Seconds. */
 	timeout?: number,
 	/**  USD for this step, inside the workflow budget. */
 	budget?: number | null,
 	fresh_context: boolean,
+	/**
+	 *  Marks a review step, as the role `reviewer` does. It only lowers `limits.review_rounds`
+	 *  (REQ-036).
+	 */
 	max_rounds?: number,
 	action?: StepAction,
 };
@@ -6786,6 +6822,12 @@ export type WorkflowLimits_Deserialize = {
 	/**  No run budget when absent: the shared budgets still apply. */
 	budget_usd?: number | null,
 	stall_s: number,
+	/**  Review rounds of the whole run. Default 4 (REQ-054). */
+	review_rounds?: number | null,
+	/**  Feedback rounds of the whole run. Default 3. */
+	feedback_rounds?: number | null,
+	/**  Fix rounds of the whole run. Default 8 (`q:Q-167`). */
+	fix_rounds?: number | null,
 };
 
 /**  Limits of each run of the workflow (REQ-035). */
@@ -6795,6 +6837,12 @@ export type WorkflowLimits_Serialize = {
 	/**  No run budget when absent: the shared budgets still apply. */
 	budget_usd: number | null,
 	stall_s: number,
+	/**  Review rounds of the whole run. Default 4 (REQ-054). */
+	review_rounds?: number,
+	/**  Feedback rounds of the whole run. Default 3. */
+	feedback_rounds?: number,
+	/**  Fix rounds of the whole run. Default 8 (`q:Q-167`). */
+	fix_rounds?: number,
 };
 
 export type WorkflowOptions = WorkflowOptions_Serialize | WorkflowOptions_Deserialize;

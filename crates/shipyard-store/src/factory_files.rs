@@ -354,6 +354,16 @@ pub fn workflow_text(wf: &Workflow, header: &str) -> Result<String> {
         limits.insert("budget_usd".into(), num(b));
     }
     limits.insert("stall_s".into(), wf.limits.stall_s.into());
+    let caps = [
+        ("review_rounds", wf.limits.review_rounds),
+        ("feedback_rounds", wf.limits.feedback_rounds),
+        ("fix_rounds", wf.limits.fix_rounds),
+    ];
+    for (k, v) in caps {
+        if let Some(v) = v {
+            limits.insert(k.into(), v.into());
+        }
+    }
     let mut top = Mapping::new();
     top.insert("id".into(), wf.id.clone().into());
     let steps = wf

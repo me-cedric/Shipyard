@@ -152,6 +152,7 @@ pub(crate) fn binding(run: &str) -> Binding {
         run: run.into(),
         step: "work".into(),
         tools: vec!["ask_question".into(), "message".into(), "report".into()],
+        attempt: String::new(),
     }
 }
 
@@ -227,6 +228,7 @@ fn a_pull_request_decides_the_lane_of_a_run_in_review() {
         }],
         findings: vec![],
         worktree_kept: None,
+        escalation: None,
     };
     let pr = |ci: &str, review: &str, draft: bool| PrRowView {
         reference: "pr:github:7".into(),
@@ -643,6 +645,7 @@ fn the_runner_port_opens_a_session_for_a_start_and_closes_it_with_the_scratch_fo
     let brief = |step: &str| Brief {
         run: "01JRUN00000000000000000AA".into(),
         step: step.into(),
+        attempt: format!("{step}-1"),
         project: "p".into(),
         runner: "claude".into(),
         model: Some("sonnet".into()),

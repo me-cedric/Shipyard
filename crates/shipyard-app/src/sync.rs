@@ -18,10 +18,11 @@ use std::time::Duration;
 use shipyard_core::pickup::{ActiveRun, SyncEvent};
 use shipyard_core::pickup::{Automation, Ci, PrState, PullSnapshot, Ticket};
 use shipyard_core::work_item::StatusCategory;
+use shipyard_engine::claims::Claims;
 use shipyard_engine::ports::{
     Dispatch, ForgePort, ListQuery, Page, PortResult, Stamp, StartRequest, TrackerPort,
 };
-use shipyard_engine::tick::{Config, Engine, TickReport, connection_of, source_key};
+use shipyard_engine::tick::{Config, Engine, STALE, TickReport, connection_of, source_key};
 use shipyard_engine::{Clock, SystemClock, import::ImportPlan};
 use shipyard_forges::{CiState, ForgeKind, PullQuery, PullRequest, PullState, StateFilter};
 use shipyard_store::mirror::{Mirror, SyncState};
@@ -638,6 +639,9 @@ pub struct SyncHost {
     /// Run each engine on its own thread. A test turns it off and ticks by hand.
     background: bool,
     engines: Mutex<HashMap<String, Arc<Running>>>,
+    /// The plan of each project whose engine stopped, and when it stopped (Unix seconds). `None`
+    /// once its claims are parked (REQ-020).
+    closed: Mutex<HashMap<String, (Plan, Option<u64>)>>,
 }
 
 /// A stable id of this installation. Two machines never share it.
@@ -673,6 +677,7 @@ impl SyncHost {
             }),
             background,
             engines: Mutex::new(HashMap::new()),
+            closed: Mutex::new(HashMap::new()),
         }
     }
 
@@ -708,13 +713,17 @@ impl SyncHost {
     /// applies the automation.
     pub fn apply(&self, project: &str, plan: Option<Plan>) -> Res<()> {
         let mut engines = lock(&self.engines);
+        let mut closed = lock(&self.closed);
+        let now = Some(SystemClock.now().as_secs());
         let Some(plan) = plan else {
             if let Some(old) = engines.remove(project) {
                 old.stop.store(true, Ordering::SeqCst);
                 old.wake_up();
+                closed.insert(project.into(), (old.plan(), now));
             }
             return Ok(());
         };
+        closed.remove(project);
         // Only the open project polls. The engine of another project stops: it would poll and
         // pick up work for a project that nobody works in.
         engines.retain(|id, old| {
@@ -722,9 +731,11 @@ impl SyncHost {
             if !keep {
                 old.stop.store(true, Ordering::SeqCst);
                 old.wake_up();
+                closed.insert(id.clone(), (old.plan(), now));
             }
             keep
         });
+        drop(closed);
         if let Some(old) = engines.get(project).cloned() {
             if old.plan().same_engine(&plan) {
                 // The new rules wait for a tick in progress. The map must not wait with them.
@@ -743,6 +754,85 @@ impl SyncHost {
             std::thread::spawn(move || run_loop(r));
         }
         Ok(())
+    }
+
+    /// A run ended: release its claim and keep the end (REQ-010, REQ-018). The project need not be
+    /// open: with no engine and no closed plan (after a restart), `fallback` builds the plan.
+    pub fn ended(
+        &self,
+        project: &str,
+        key: &str,
+        fallback: impl FnOnce() -> Res<Option<Plan>>,
+    ) -> Res<()> {
+        if let Some(r) = self.running(project) {
+            return r.with(|e| e.release(key).map(|_| ()));
+        }
+        let plan = lock(&self.closed).get(project).map(|c| c.0.clone());
+        match plan.map_or_else(fallback, |p| Ok(Some(p)))? {
+            Some(plan) => self.with_claims(&plan, |c| c.end(key).map(|_| ())),
+            None => Ok(()),
+        }
+    }
+
+    /// Release the claims of the runs of each project that is not open for the stale time. The
+    /// runs keep their state, and the open takes the claims again (REQ-020). Returns the errors.
+    pub fn park_closed(&self) -> Vec<String> {
+        let now = SystemClock.now().as_secs();
+        let due: Vec<(String, Plan)> = lock(&self.closed)
+            .iter_mut()
+            .filter(|(_, (_, at))| at.is_some_and(|at| now >= at + STALE.as_secs()))
+            .map(|(id, (plan, _))| (id.clone(), plan.clone()))
+            .collect();
+        let mut errors = Vec::new();
+        for (project, plan) in due {
+            let keys: Vec<String> = self
+                .dispatch
+                .active_runs()
+                .into_iter()
+                .filter(|r| r.project == project)
+                .map(|r| r.key)
+                .collect();
+            match self.with_claims(&plan, |c| c.park(&keys)) {
+                Ok(e) => {
+                    errors.extend(e);
+                    // Parked once: a park that failed is tried again at the next turn.
+                    if let Some(c) = lock(&self.closed).get_mut(&project) {
+                        c.1 = None;
+                    }
+                }
+                Err(e) => errors.push(format!("{project}: {e}")),
+            }
+        }
+        errors
+    }
+
+    /// The claims of a project whose engine does not run.
+    fn with_claims<T>(
+        &self,
+        plan: &Plan,
+        f: impl FnOnce(&Claims) -> shipyard_engine::Result<T>,
+    ) -> Res<T> {
+        let mirror = self.mirror().map_err(|e| e.to_string())?;
+        let tracker: Box<dyn TrackerPort> = if plan.tracker.is_empty() {
+            Box::new(NoTracker)
+        } else {
+            Box::new(TrackerAdapter::new(
+                self.conns.clone(),
+                &plan.tracker,
+                plan.scope.clone(),
+            ))
+        };
+        let source = plan.tracker_source();
+        let claims = Claims {
+            mirror: &mirror,
+            tracker: &*tracker,
+            source: &source,
+            machine: &self.machine,
+            stale: STALE,
+            stamp: plan.automation.writes.stamp_allowed() && tracker.can_stamp(),
+            now: SystemClock.now(),
+        };
+        f(&claims).map_err(|e| e.to_string())
     }
 
     fn build(&self, plan: &Plan) -> Res<Running> {
@@ -855,6 +945,42 @@ mod tests {
         for bad in ["", "yesterday", "2026-10-29", "2026-10-29T10:00:00x"] {
             assert_eq!(epoch_secs(bad), None, "{bad}");
         }
+    }
+
+    #[test]
+    fn a_run_that_ends_in_a_project_that_is_not_open_releases_its_claim_and_keeps_its_end() {
+        use shipyard_engine::fake::{FakeDispatch, Log};
+        let dir = tempfile::tempdir().unwrap();
+        let conns = Arc::new(Connections::system(dir.path()));
+        let dispatch = Arc::new(FakeDispatch::new(&Log::default()));
+        let host = SyncHost::new(dir.path(), conns, false, dispatch);
+        let plan = |p: &str| Plan {
+            project: p.into(),
+            tracker: "jira".into(),
+            scope: None,
+            forge: None,
+            automation: Automation::default(),
+        };
+        host.apply("a", Some(plan("a"))).unwrap();
+        let m = host.mirror().unwrap();
+        m.claim("jira", "A-1", host.machine(), "To Do", false, 0)
+            .unwrap();
+        // Project `b` opens: `a` is not open now.
+        host.apply("b", Some(plan("b"))).unwrap();
+        assert!(
+            host.park_closed().is_empty(),
+            "not yet: the grace time runs"
+        );
+        assert_eq!(m.claims("jira").unwrap().len(), 1);
+        host.ended("a", "A-1", || unreachable!("the closed plan serves"))
+            .unwrap();
+        assert!(m.claims("jira").unwrap().is_empty());
+        assert_eq!(m.ends("jira").unwrap()[0].key, "A-1");
+        // After a restart the host has no plan of `c`: the fallback gives it, the end is kept.
+        m.claim("jira", "C-1", host.machine(), "To Do", false, 0)
+            .unwrap();
+        host.ended("c", "C-1", || Ok(Some(plan("c")))).unwrap();
+        assert!(m.ends("jira").unwrap().iter().any(|e| e.key == "C-1"));
     }
 
     #[test]

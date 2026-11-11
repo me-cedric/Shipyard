@@ -113,9 +113,6 @@ fn step_rules() {
         WorkflowIssue::RoleOrAction { step: "c".into() },
         WorkflowIssue::BadForEach { step: "d".into() },
         WorkflowIssue::BadValue {
-            field: "steps.e.max_rounds".into(),
-        },
-        WorkflowIssue::BadValue {
             field: "steps.e.max_parallel".into(),
         },
         WorkflowIssue::BadValue {
@@ -130,7 +127,8 @@ fn step_rules() {
     ] {
         assert!(issues.contains(&want), "missing {want:?} in {issues:?}");
     }
-    assert_eq!(issues.len(), 11, "{issues:?}");
+    // `max_rounds: 3` is no issue: it only lowers `limits.review_rounds`.
+    assert_eq!(issues.len(), 10, "{issues:?}");
 }
 
 #[test]
@@ -278,7 +276,13 @@ fn schema_matches_the_model() {
     assert_eq!(keys(&defs["step"]["properties"]), keys(&step));
     assert_eq!(defs["step"]["additionalProperties"], false);
     assert_eq!(schema["additionalProperties"], false);
-    let limits = serde_json::to_value(parse(FEATURE).limits).unwrap();
+    let mut full_limits = parse(FEATURE).limits;
+    full_limits.max_turns = Some(40);
+    full_limits.budget_usd = Some(5.0);
+    full_limits.review_rounds = Some(4);
+    full_limits.feedback_rounds = Some(3);
+    full_limits.fix_rounds = Some(8);
+    let limits = serde_json::to_value(full_limits).unwrap();
     assert_eq!(keys(&defs["limits"]["properties"]), keys(&limits));
     for (field, values) in [
         ("effort", vec!["low", "medium", "high", "xhigh", "max"]),
@@ -309,4 +313,23 @@ fn run_budget_is_optional() {
     let wf = parse("id: t\nsteps:\n  - { id: a, role: worker }\nlimits: { stall_s: 1 }\n");
     assert_eq!(wf.limits.budget_usd, None);
     assert_eq!(wf.check(&roles()), []);
+}
+
+#[test]
+fn caps_default_and_reject_zero() {
+    let wf = parse("id: t\nsteps:\n  - { id: a, role: worker }\nlimits: { stall_s: 1 }\n");
+    let l = wf.limits;
+    assert_eq!((l.review_cap(), l.feedback_cap(), l.fix_cap()), (4, 3, 8));
+    assert_eq!(wf.check(&roles()), []);
+    let wf = parse(
+        "id: t\nsteps:\n  - { id: a, role: worker }\n\
+         limits: { stall_s: 1, review_rounds: 0, feedback_rounds: 2, fix_rounds: 12 }\n",
+    );
+    assert_eq!((wf.limits.feedback_cap(), wf.limits.fix_cap()), (2, 12));
+    assert_eq!(
+        wf.check(&roles()),
+        [WorkflowIssue::BadValue {
+            field: "limits.review_rounds".into()
+        }]
+    );
 }

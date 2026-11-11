@@ -11,6 +11,22 @@ Exécutions montre les exécutions en six voies : En file, En cours, Vous attend
 3. Quand une exécution a besoin de vous, elle passe dans Vous attend. Approuvez son plan, répondez à sa question ou débloquez-la.
 4. Annulez une exécution à tout moment.
 
+### Quand une exécution ne peut pas continuer
+
+Une exécution corrige d'abord ses problèmes seule. Un constat bloquant, un contrôle en échec, un conflit ou une branche vide lance un tour de correction sans clic. Les tours sont limités : 3 essais en échec par étape, 3 tours de retours et 8 tours de correction par exécution. La même panne deux fois de suite arrête l'exécution aussitôt.
+
+L'exécution s'arrête alors et passe dans Vous attend. Le bandeau de l'exécution donne la cause en une phrase, les dernières lignes et ce que l'exécution a essayé. L'exécution écrit le même texte en commentaire sur le ticket, et le ticket reçoit l'étiquette `shipyard:blocked`.
+
+Pour la relancer, faites l'une de ces actions :
+
+- Saisissez un message et cliquez sur Débloquer. L'exécution reçoit un tour de plus et lit votre message.
+- Répondez sur le ticket. Une réponse d'un membre de l'équipe débloque aussi l'exécution. Tant que le fichier d'équipe ne nomme pas d'admin, toute réponse compte : sur un outil de suivi public, nommez un admin.
+- Cliquez sur Clore comme terminée quand l'exécution n'a changé aucun fichier et que le travail existe déjà.
+
+Une exécution qui a épuisé un budget ou ses tours reste en pause. Augmentez le budget, puis cliquez sur Reprendre. Une pause due au budget du jour se termine seule à la première synchronisation du jour suivant.
+
+Une exécution terminée ne redémarre pas seule. Cliquez sur Lancer, ou modifiez le ticket.
+
 ## Workflows
 
 Workflows liste les workflows et les rôles des agents. Ouvrez-en un pour le lire ou le modifier, puis enregistrez. Un fichier cassé montre son erreur et sa ligne. La dernière bonne version continue de tourner.

@@ -3,6 +3,10 @@
 //! The engine opens a [`Session`] for each step that starts an agent and gives the token to the
 //! agent in its MCP config file (`McpEntry` vars, a `0600` file), never in an argument. The token
 //! is the only thing that names the run and the step: a tool input cannot name another run.
+//!
+//! Each attempt of a step gets its own token, and the token names the attempt (`factory`
+//! REQ-059). A new attempt revokes the tokens of the older attempts of the same step: a late call
+//! of an old attempt gets `unauthorized` and does not reach the run.
 
 use std::sync::{Arc, Mutex};
 
@@ -12,6 +16,8 @@ pub struct Binding {
     pub run: String,
     pub step: String,
     pub tools: Vec<String>,
+    /// The attempt id of the step. Empty: a session with no attempt (the outside agents).
+    pub attempt: String,
 }
 
 pub struct Session {
@@ -51,19 +57,21 @@ fn same(a: &str, b: &str) -> bool {
 }
 
 impl Sessions {
-    /// A new token (256 random bits, hex) for `binding`.
+    /// A new token (256 random bits, hex) for `binding`. A binding with an attempt ends the
+    /// sessions of the older attempts of its step (REQ-059).
     pub fn open(&self, binding: Binding) -> Result<(String, Arc<Session>), getrandom::Error> {
         let mut bytes = [0u8; 32];
         getrandom::fill(&mut bytes)?;
         let token: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+        let mut list = self.list.lock().unwrap_or_else(|e| e.into_inner());
+        if !binding.attempt.is_empty() {
+            list.retain(|(_, s)| !(s.binding.run == binding.run && s.binding.step == binding.step));
+        }
         let session = Arc::new(Session {
             binding,
             window: Mutex::new((0, 0)),
         });
-        self.list
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .push((token.clone(), session.clone()));
+        list.push((token.clone(), session.clone()));
         Ok((token, session))
     }
 

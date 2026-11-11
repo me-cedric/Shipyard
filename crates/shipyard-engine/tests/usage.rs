@@ -80,9 +80,44 @@ fn the_day_total_counts_every_run_and_starts_again_the_next_utc_day() {
     fx.event("work", usage(0.2));
     assert_eq!(fx.state(&a), RunState::Working);
     assert_eq!(fx.state(&b), RunState::Paused, "the day is spent");
-    // Next UTC day (the clock starts at 10:00): resume works, the day total is new.
+    // A day pause posts no stop report and has no escalation (REQ-022).
+    assert!(fx.f.run_info(&b).unwrap().escalation.is_none());
+    fx.advance(3_600);
+    assert_eq!(fx.state(&b), RunState::Paused, "the same day");
+    // Next UTC day (the clock starts at 10:00): the first tick resumes it with no click.
     fx.advance(86_400);
-    assert_eq!(fx.f.resume(&b, 0.0), Ok(RunState::Working));
+    assert_eq!(fx.state(&b), RunState::Working);
+}
+
+#[test]
+fn a_member_budget_pause_escalates_and_waits_for_a_person() {
+    let budgets = Budgets {
+        member: [("Alice".to_string(), 1.0)].into(),
+        ..Budgets::default()
+    };
+    let fx = fx(budgets);
+    let mut ticket = todo("SHIP-1");
+    ticket.item.assignee = Some(Person {
+        id: "u1".into(),
+        name: "Alice".into(),
+    });
+    fx.mirror
+        .lock()
+        .unwrap()
+        .put_tickets("jira", &[ticket.clone()])
+        .unwrap();
+    fx.start_ticket(ticket, &[]);
+    let run = run_of(&fx, "SHIP-1");
+    fx.event("work", usage(1.2));
+    assert_eq!(fx.state(&run), RunState::Paused);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, shipyard_core::run::Cause::Budget);
+    fx.advance(2 * 86_400);
+    assert_eq!(
+        fx.state(&run),
+        RunState::Paused,
+        "no next day for a member budget"
+    );
 }
 
 #[test]

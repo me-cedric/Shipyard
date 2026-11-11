@@ -32,6 +32,29 @@ pub struct WorkflowLimits {
     /// No run budget when absent: the shared budgets still apply.
     pub budget_usd: Option<f64>,
     pub stall_s: u32,
+    /// Review rounds of the whole run. Default 4 (REQ-054).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review_rounds: Option<u32>,
+    /// Feedback rounds of the whole run. Default 3.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub feedback_rounds: Option<u32>,
+    /// Fix rounds of the whole run. Default 8 (`q:Q-167`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fix_rounds: Option<u32>,
+}
+
+impl WorkflowLimits {
+    pub fn review_cap(&self) -> u32 {
+        self.review_rounds.unwrap_or(crate::run::REVIEW_ROUNDS)
+    }
+
+    pub fn feedback_cap(&self) -> u32 {
+        self.feedback_rounds.unwrap_or(crate::run::FEEDBACK_ROUNDS)
+    }
+
+    pub fn fix_cap(&self) -> u32 {
+        self.fix_rounds.unwrap_or(crate::run::FIX_ROUNDS)
+    }
 }
 
 /// One step (REQ-012). A step has a `role` or an `action`, never both.
@@ -60,7 +83,7 @@ pub struct Step {
     pub for_each: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_parallel: Option<u32>,
-    /// Retries after a failure. 0: the first failure fails the run.
+    /// Retries after a failure. 0: the first failure escalates the run.
     pub retry: u32,
     /// Seconds.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -69,6 +92,8 @@ pub struct Step {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub budget: Option<f64>,
     pub fresh_context: bool,
+    /// Marks a review step, as the role `reviewer` does. It only lowers `limits.review_rounds`
+    /// (REQ-036).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_rounds: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -237,9 +262,6 @@ impl Workflow {
             {
                 out.push(I::BadForEach { step: step() });
             }
-            if s.max_rounds.is_some_and(|r| r > crate::run::MAX_ROUNDS) {
-                out.push(bad(format!("steps.{}.max_rounds", s.id)));
-            }
             if s.max_parallel == Some(0) {
                 out.push(bad(format!("steps.{}.max_parallel", s.id)));
             }
@@ -262,6 +284,15 @@ impl Workflow {
         }
         if l.stall_s == 0 {
             out.push(bad("limits.stall_s".into()));
+        }
+        for (name, cap) in [
+            ("review_rounds", l.review_rounds),
+            ("feedback_rounds", l.feedback_rounds),
+            ("fix_rounds", l.fix_rounds),
+        ] {
+            if cap == Some(0) {
+                out.push(bad(format!("limits.{name}")));
+            }
         }
         out
     }

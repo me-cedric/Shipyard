@@ -4,22 +4,22 @@
 //! (`merge.rs`). A CI failure or a review that asks for changes starts a feedback round:
 //! `PROpen`, `ChangesRequested`, `Working`, in the same run folder. The failed checks (names, URLs,
 //! log tails) and the open threads go to the builder steps as notes. The review and the pull
-//! request step run again, and the push goes to the same pull request. The loop counts against
-//! the budget and the max turns of the run: at the turn limit the run fails, and at the budget the
-//! run pauses (`Usage` of the agents) with the feedback of the round kept for the resume. A pull request that closes without a merge
-//! blocks the run and leaves the worktree and the ticket as they are. An unblock forgets it: the
-//! pull request step opens a new one.
+//! request step run again, and the push goes to the same pull request. Each round counts against
+//! `feedback_rounds` and `fix_rounds` of the whole run, and against the budget and the max turns:
+//! a spent cap escalates, and the feedback of the round stays for the unblock or the resume
+//! (`delivery` REQ-020). A merge applies in any state that is not final. A pull request that
+//! closes without a merge cancels the run with one stop report, and leaves the worktree and the
+//! ticket as they are (`delivery` REQ-026).
 
 use serde_json::json;
 use shipyard_core::pickup::PrEventKind;
-use shipyard_core::run::{RunEvent, RunState};
+use shipyard_core::run::{BudgetLevel, Cause, RunEvent, RunState};
 use shipyard_core::workflow::{Action, Step, Workflow};
 use shipyard_store::run_log::kind;
 
 use crate::fence::fence;
 use crate::ports::{FailedCheck, Thread};
-use crate::pull_request::Stuck;
-use crate::run_engine::{Inner, Kind, kind_of, reset};
+use crate::run_engine::{Inner, Kind, cap_of, kind_of, reset};
 
 fn check_text(c: &FailedCheck) -> String {
     let mut t = format!("- check `{}` failed: {}", c.name, c.url);
@@ -70,30 +70,33 @@ impl Inner {
             self.log(&id, None, kind::PR, note);
             match event {
                 PrEventKind::Merged => {
+                    // A merge in any state: the agents stop and the questions go (REQ-002).
                     if self.transition(&id, RunEvent::PrMerged) {
+                        self.withdraw_ticket_questions(&id);
                         self.close_merged(&id);
                     }
                 }
                 PrEventKind::ChangesRequested | PrEventKind::CiFailed => {
                     self.feedback(&id, number, event);
                 }
-                PrEventKind::Closed => self.pr_closed(&id),
+                PrEventKind::Closed => self.pr_closed(&id, number),
                 PrEventKind::Opened | PrEventKind::CiPassed => {}
             }
         }
     }
 
-    /// A pull request that closed with no merge (REQ-026). A run that works on a fix is blocked
-    /// too: its pull request is gone.
-    fn pr_closed(&mut self, run_id: &str) {
+    /// A pull request that closed with no merge, in any state that is not final: a person's
+    /// decision. The run is cancelled and posts one stop report (REQ-026).
+    fn pr_closed(&mut self, run_id: &str, number: u64) {
         let state = self.runs[run_id].run.state;
-        if state == RunState::Merged || !state.is_active() {
+        if state == RunState::Merged || state.is_final() {
             return;
         }
-        let note = json!({"blocked": "pull request closed"});
-        self.log(run_id, None, kind::NOTE, note);
-        self.rec(run_id).d.stuck = Some(Stuck::Closed);
-        self.transition(run_id, RunEvent::Block);
+        if self.cancel_run(run_id, "pull request closed").is_ok() {
+            let line = format!("The pull request #{number} closed without a merge.");
+            let record = self.record(run_id, Cause::PullRequestClosed, &[line]);
+            self.stop_report(run_id, &record);
+        }
     }
 
     /// The text of a feedback event: what the forge says is wrong. A read that fails still gives
@@ -183,6 +186,8 @@ impl Inner {
         if rec.d.feedback.is_empty() || rec.run.state != RunState::PROpen {
             return;
         }
+        // The feedback stays in the record: the unblock or the resume takes it.
+        let lines = rec.d.feedback.clone();
         if rec
             .wf
             .limits
@@ -190,10 +195,22 @@ impl Inner {
             .is_some_and(|m| rec.turns >= m + rec.extra_turns)
         {
             let why = format!("max turns ({}): no room for a feedback round", rec.turns);
-            self.log(run_id, None, kind::NOTE, json!({"stop": why}));
-            self.transition(run_id, RunEvent::Fail);
+            self.escalate(run_id, Cause::MaxTurns, &[why]);
             return;
         }
+        if self.budget_level(run_id) == BudgetLevel::Spent {
+            self.check_budget(run_id);
+            return;
+        }
+        let (count, cap) = cap_of(&self.runs[run_id], "feedback_rounds");
+        if count >= cap {
+            self.escalate(run_id, Cause::FeedbackRounds, &lines);
+            return;
+        }
+        if !self.take_fix_round(run_id, &lines) {
+            return;
+        }
+        self.rec(run_id).c.feedback_rounds += 1;
         let notes = std::mem::take(&mut self.rec(run_id).d.feedback).join("\n");
         if !self.transition(run_id, RunEvent::ChangesRequested) {
             return;
@@ -203,7 +220,6 @@ impl Inner {
         rec.d.pushed = false;
         rec.d.sha = None;
         rec.d.findings.clear();
-        rec.rounds = 0;
         let wf = rec.wf.clone();
         let Some(action) = wf.steps.iter().find(|s| s.action == Some(Action::OpenPr)) else {
             return;

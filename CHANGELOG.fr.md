@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.1.0]
+- Une exécution ne reste plus coincée : elle corrige les constats bloquants, les contrôles en échec, les conflits et les branches vides en tours de correction limités, et un arrêt (une limite, la même panne deux fois, un budget épuisé ou pas de réponse) écrit sa cause, les dernières lignes, ce qu’elle a essayé et l’action sur le ticket et dans le bandeau des Exécutions, où Débloquer, une réponse d’un membre de l’équipe sur le ticket ou Clore comme terminée la relance ; une exécution terminée ne redémarre plus seule.
 - Reprendre applique les limites actuelles du workflow : un budget retiré n’arrête plus une exécution, et Reprendre sans montant fonctionne de nouveau.
 - L’app démarre sur tout Mac : libgit2 et OpenSSL sont intégrés à l’app, et non pris dans Homebrew ; le README montre les écrans actuels et comment installer une version publiée.
 - Travail / Équipe modifie le tableau des rôles : chaque rôle montre Masqué, Lecture ou Lecture et écriture dans chaque zone avec Fusion et Approbation, Modifier change les cellules en commandes (Enregistrer, Annuler et Remettre par défaut), un membre peut avoir plusieurs rôles avec les niveaux obtenus, et Travail / Temps modifie et supprime une saisie, avec l’état de synchronisation après le changement.

@@ -8,11 +8,14 @@ use std::collections::HashSet;
 use fx::{Fx, ONE, SOURCE, writes};
 use shipyard_core::pickup::{SyncEvent, Writes};
 use shipyard_core::question::{Choice, QuestionState};
-use shipyard_core::run::RunState;
+use shipyard_core::run::{Cause, RunState};
+use shipyard_core::work::Team;
+use shipyard_core::work_item::Comment;
 use shipyard_engine::approvals::Write;
 use shipyard_engine::fake::comment;
 use shipyard_engine::handoff::comment_events;
 use shipyard_engine::ports::{AgentEvent, Dispatch};
+use shipyard_engine::run_engine::Config;
 use shipyard_mcp::session::Binding;
 use shipyard_mcp::tools::agent::{AgentEvent as Tool, AgentEvents, AskQuestion, QuestionKind};
 
@@ -45,6 +48,7 @@ fn reply(fx: &Fx, id: &str, body: &str, q: &str) {
         key: "SHIP-1".into(),
         comment: comment(id, body),
         answers: Some(q.into()),
+        stop: None,
     };
     fx.f.event(&e).unwrap();
 }
@@ -300,6 +304,20 @@ fn waiting_stops_the_clocks_and_reminds_once() {
     assert_eq!(alerts.len(), 1);
     assert_eq!(alerts[0]["remind"], "q:Q-001");
     assert_eq!(fx.state(&run), RunState::WaitingForAnswer);
+    // One reminder comment with the marker: a reply to it answers the question.
+    let sent = comments(&fx);
+    assert_eq!(sent.len(), 2, "{sent:?}");
+    assert!(
+        sent[1].starts_with("<!-- shipyard:q Q-001 -->"),
+        "{}",
+        sent[1]
+    );
+    assert!(sent[1].contains("Reminder: Which scope?"), "{}", sent[1]);
+    assert_eq!(
+        posted_ids(&fx).len(),
+        2,
+        "the reminder is a comment of Shipyard"
+    );
 }
 
 #[test]
@@ -309,6 +327,7 @@ fn the_agent_tools_reach_the_run_bus() {
         run: run.clone(),
         step: "work".into(),
         tools: vec!["post_progress".into(), "report".into()],
+        attempt: String::new(),
     };
     let progress = Tool::PostProgress(shipyard_mcp::tools::agent::PostProgress {
         text: "half".into(),
@@ -465,4 +484,197 @@ fn a_reply_on_the_tracker_posts_no_answer_comment() {
     reply(&fx, "9", "2", "Q-001");
     assert_eq!(fx.state(&run), RunState::Working);
     assert_eq!(comments(&fx).len(), 1, "only the question");
+}
+
+// ---- the wait of a question and a reply to a stop report (REQ-019, REQ-022)
+
+#[test]
+fn a_question_with_no_answer_escalates_after_72_h_and_a_late_answer_moves_the_run_back() {
+    let (fx, run) = working(writes(true));
+    fx.f.ask(&run, "work", ask(2, 1, None)).unwrap();
+    fx.advance(71 * 3600);
+    assert_eq!(fx.state(&run), RunState::WaitingForAnswer);
+    fx.advance(3600);
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::NoAnswer);
+    assert_eq!(e.lines, ["Q-001: Which scope?"]);
+    assert_eq!(fx.f.questions()[0].1.state, QuestionState::Open);
+    let reports = comments(&fx);
+    assert!(
+        reports
+            .last()
+            .unwrap()
+            .starts_with(&format!("<!-- shipyard:stop {run} -->"))
+    );
+    // More time: no second report and no refused move in the log.
+    fx.advance(3600);
+    assert_eq!(
+        fx.logged(&run, "note")
+            .iter()
+            .filter(|n| n.get("refused").is_some())
+            .count(),
+        0
+    );
+    reply(&fx, "40", "1", "Q-001");
+    assert_eq!(fx.state(&run), RunState::Working);
+}
+
+#[test]
+fn the_wait_comes_from_the_automation_file() {
+    let fx = Fx::build(writes(true), &[ONE], Config::default(), |p| {
+        p.automation.questions.remind_after_h = 1;
+        p.automation.questions.escalate_after_h = 2;
+    });
+    let run = fx.start("SHIP-1", &[]);
+    fx.f.ask(&run, "work", ask(2, 1, None)).unwrap();
+    fx.advance(3600);
+    assert_eq!(fx.logged(&run, "alert").len(), 1);
+    fx.advance(3600);
+    assert_eq!(fx.state(&run), RunState::Blocked);
+}
+
+const MEMBER: &str = "members:
+  - { name: Bob, handle: bob, trackers: [u2], role: developer, admin: true, capacity: 5, skills: [] }
+";
+const NOT_BOB: &str = "members:
+  - { name: Ann, handle: ann, trackers: [ann], role: developer, admin: true, capacity: 5, skills: [] }
+";
+
+fn exit(code: i32) -> AgentEvent {
+    AgentEvent::Exit {
+        code: Some(code),
+        cancelled: false,
+    }
+}
+
+fn with_team(fx: &Fx, run: &str, team: Option<&str>) {
+    let project = fx.f.run_info(run).unwrap().project;
+    let team: Option<Team> = team.map(|t| serde_norway::from_str(t).unwrap());
+    fx.f.set_team(&project, team);
+}
+
+/// A run blocked with its retries spent, and its stop report on the ticket.
+fn blocked(team: Option<&str>) -> (Fx, String) {
+    let fx = Fx::new(writes(true), &[ONE]);
+    let run = fx.start("SHIP-1", &[]);
+    with_team(&fx, &run, team);
+    fx.event("work", exit(1));
+    fx.advance(10);
+    fx.event("work", exit(2));
+    assert_eq!(fx.state(&run), RunState::Blocked);
+    (fx, run)
+}
+
+/// The ticket as the tick reads it: each comment of Shipyard (`c<n>`), then `extra`. Each
+/// comment that the tick saw before is not new.
+fn on_ticket(fx: &Fx, extra: Comment) {
+    let mut thread: Vec<Comment> = fx
+        .writer
+        .sent()
+        .iter()
+        .enumerate()
+        .filter_map(|(i, w)| match w {
+            Write::Comment { body, .. } => Some(comment(&format!("c{}", i + 1), body)),
+            _ => None,
+        })
+        .collect();
+    let mut seen: HashSet<String> = thread.iter().map(|c| c.id.clone()).collect();
+    seen.insert("#baseline".into());
+    thread.push(extra);
+    let (events, _) = comment_events("SHIP-1", &thread, &seen, &posted_ids(fx));
+    for e in events {
+        fx.f.event(&e).unwrap();
+    }
+}
+
+fn notes(fx: &Fx, run: &str) -> String {
+    serde_json::to_string(&fx.logged(run, "note")).unwrap()
+}
+
+#[test]
+fn a_reply_of_a_member_after_the_stop_report_unblocks_with_the_reply_as_data() {
+    let (fx, run) = blocked(Some(MEMBER));
+    on_ticket(&fx, comment("90", "Use the v2 endpoint"));
+    assert_eq!(fx.state(&run), RunState::Working);
+    let brief = fx.agents.briefs().pop().unwrap();
+    assert!(
+        brief.prompt.contains(
+            "<untrusted-data source=\"ticket reply\">\nUse the v2 endpoint\n</untrusted-data>"
+        ),
+        "{}",
+        brief.prompt
+    );
+}
+
+#[test]
+fn a_team_with_no_admin_takes_the_reply_of_anyone() {
+    let (fx, run) = blocked(Some("members: []\n"));
+    on_ticket(&fx, comment("90", "Try again"));
+    assert_eq!(fx.state(&run), RunState::Working);
+}
+
+#[test]
+fn a_reply_of_a_person_who_is_not_a_member_is_logged_and_ignored() {
+    for team in [Some(NOT_BOB), None] {
+        let (fx, run) = blocked(team);
+        on_ticket(&fx, comment("90", "Use the v2 endpoint"));
+        assert_eq!(fx.state(&run), RunState::Blocked, "{team:?}");
+        assert!(notes(&fx, &run).contains("reply 90 of u2: the author is not a team member"));
+    }
+}
+
+#[test]
+fn a_comment_of_shipyard_after_the_stop_report_is_no_reply() {
+    let (fx, run) = blocked(Some(MEMBER));
+    fx.mirror
+        .lock()
+        .unwrap()
+        .question_posted(SOURCE, "SHIP-1", "90")
+        .unwrap();
+    on_ticket(&fx, comment("90", "Shipyard stopped the run."));
+    assert_eq!(fx.state(&run), RunState::Blocked);
+}
+
+#[test]
+fn a_reply_never_resumes_a_paused_run() {
+    let fx = Fx::build(writes(true), &[ONE], Config::default(), |p| {
+        p.automation.budgets.day = [("*".to_string(), 1.0)].into();
+    });
+    let run = fx.start("SHIP-1", &[]);
+    with_team(&fx, &run, Some(MEMBER));
+    fx.event(
+        "work",
+        AgentEvent::Usage {
+            input_tokens: 1,
+            output_tokens: 1,
+            cached_tokens: 0,
+            cost_usd: Some(2.0),
+        },
+    );
+    assert_eq!(fx.state(&run), RunState::Paused);
+    on_ticket(&fx, comment("90", "Go on"));
+    assert_eq!(fx.state(&run), RunState::Paused);
+    assert!(notes(&fx, &run).contains("a reply does not resume a paused run"));
+}
+
+#[test]
+fn a_call_of_an_old_attempt_is_ignored_and_logged() {
+    let (fx, run) = working(writes(true));
+    let who = Binding {
+        run: run.clone(),
+        step: "work".into(),
+        tools: vec!["report".into()],
+        attempt: "old".into(),
+    };
+    let report = Tool::Report(shipyard_mcp::tools::agent::Report {
+        outcome: shipyard_mcp::tools::agent::Outcome::Done,
+        summary: "late".into(),
+        refs: Vec::new(),
+        output: None,
+    });
+    let err = fx.f.emit(&who, report).unwrap_err();
+    assert!(err.contains("not the current attempt"), "{err}");
+    assert_eq!(fx.state(&run), RunState::Working);
+    assert!(fx.logged(&run, "note").iter().any(|n| n["fenced"] == "old"));
 }

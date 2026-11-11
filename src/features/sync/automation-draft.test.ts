@@ -25,12 +25,13 @@ describe("the automation draft", () => {
 		expect(fromDraft(toDraft(a), en)).toEqual({ automation: a });
 	});
 
-	it("keeps the budgets, the reviewers and the assignee that the form does not edit", () => {
+	it("keeps the budgets, the reviewers, the assignee and the question wait that the form does not edit", () => {
 		const a = {
 			...defaultAutomation(),
 			reviewers: ["ada"],
 			assignee: "bob",
 			budgets: { day: { "*": 5 }, member: { ada: 2 } },
+			questions: { remind_after_h: 8, escalate_after_h: 48 },
 		};
 		expect(fromDraft(toDraft(a), en)).toEqual({ automation: a });
 	});

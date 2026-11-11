@@ -24,6 +24,7 @@ fn setup() -> (Arc<Server>, String) {
         run: "run-1".into(),
         step: "build".into(),
         tools,
+        attempt: String::new(),
     };
     let token = server.sessions().open(binding).unwrap().0;
     (server, token)

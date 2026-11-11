@@ -16,13 +16,13 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use shipyard_core::delivery::GateCheck;
-use shipyard_core::run::{self, MAX_ROUNDS, RunEvent, RunState};
+use shipyard_core::run::{self, Next, RunEvent, RunState};
 use shipyard_core::workflow::{Action, Step, StepState};
-use shipyard_store::run_log::kind;
 
 use crate::jobs::Work;
 use crate::ports::{Git, PortResult};
-use crate::run_engine::{Inner, Kind, kind_of, reset};
+use crate::pull_request::Stop;
+use crate::run_engine::{Inner, Kind, cap_of, kind_of, reset};
 
 /// Run log kind of a review round: the kept findings, the dropped ones, the criteria, the gate.
 pub const REVIEW: &str = "review";
@@ -57,6 +57,16 @@ impl Finding {
     /// P0 and P1 block the pull request (REQ-004).
     pub fn blocking(&self) -> bool {
         self.severity != Severity::P2
+    }
+
+    /// The words that the fingerprint reads: no line number (REQ-055).
+    fn print(&self) -> String {
+        format!(
+            "{:?} {} {}",
+            self.severity,
+            self.path.as_deref().unwrap_or_default(),
+            self.text
+        )
     }
 
     fn describe(&self) -> String {
@@ -94,16 +104,16 @@ fn inside(path: &str) -> bool {
 
 impl Inner {
     /// The text after the ticket in the brief of a reviewer (REQ-001, REQ-002): the base, the
-    /// head, the criteria, the standards, the checklist and the diff. `Err` blocks the run.
-    pub(crate) fn review_context(&mut self, run_id: &str) -> Result<String, String> {
+    /// head, the criteria, the standards, the checklist and the diff. `Err` stops the start.
+    pub(crate) fn review_context(&mut self, run_id: &str) -> Result<String, Stop> {
         let base = self.base_of(run_id)?;
         let git = self
             .project_of(run_id)
             .map(|p| p.git.clone())
-            .ok_or("the project is not open")?;
+            .ok_or_else(|| Stop::Guard("the project is not open".into()))?;
         let input = git
             .review_input(run_id, &base)
-            .map_err(|e| format!("review input: {e}"))?;
+            .map_err(|e| Stop::Guard(format!("review input: {e}")))?;
         let rec = &self.runs[run_id];
         let mut t = format!("\nBase: {base}\nHead: {}\n", input.head);
         t.push_str(&format!(
@@ -307,7 +317,8 @@ impl Inner {
         self.review_finish(run_id, step, findings, dropped, criteria, blocking);
     }
 
-    /// The end of a review: the log, the verdict, the fix round or the next step.
+    /// The end of a review: the log, the verdict, the fix round or the next step. The rounds
+    /// count for the whole run; the same findings or no fewer of them escalate (REQ-036, REQ-055).
     fn review_finish(
         &mut self,
         run_id: &str,
@@ -317,29 +328,47 @@ impl Inner {
         criteria: Value,
         blocking: bool,
     ) {
+        // All the blocking findings of the round go in one brief.
         let notes = findings
             .iter()
             .map(Finding::describe)
             .collect::<Vec<_>>()
             .join("\n");
         let rounds = self.runs[run_id].rounds;
+        let block: Vec<&Finding> = findings.iter().filter(|f| f.blocking()).collect();
+        let fp = run::fingerprint(&block.iter().map(|f| f.print()).collect::<Vec<_>>());
+        let count = if blocking { block.len().max(1) } else { 0 };
         let payload = json!({
             "round": rounds + 1, "blocking": blocking, "findings": findings,
             "dropped": dropped, "criteria": criteria, "gate": self.runs[run_id].d.gate,
+            "fingerprint": format!("{fp:016x}"),
         });
         self.log(run_id, Some(&step.id), REVIEW, payload);
+        let lines: Vec<String> = block.iter().map(|f| f.describe()).collect();
         self.rec(run_id).d.findings = findings.into_iter().filter(Finding::blocking).collect();
-        let max = step.max_rounds.unwrap_or(MAX_ROUNDS);
-        let s = self.rec(run_id).steps.get_mut(&step.id).expect("step");
-        match run::after_review(blocking, rounds, max) {
-            None => {
+        let rec = &self.runs[run_id];
+        let (_, cap) = cap_of(rec, "review_rounds");
+        let cap = step.max_rounds.map_or(cap, |m| m.min(cap));
+        let next = run::after_review(count, fp, rec.c.last_review, rounds, cap);
+        let rec = self.rec(run_id);
+        rec.c.top_tier = false;
+        let s = rec.steps.get_mut(&step.id).expect("step");
+        match next {
+            Next::Go => {
                 s.state = StepState::Done;
-                self.rec(run_id).d.findings.clear();
+                rec.d.findings.clear();
+                rec.c.last_review = None;
             }
-            Some(RunEvent::FixRound) => {
+            Next::Fix => {
                 reset(s, "");
+                if !self.take_fix_round(run_id, &lines) {
+                    return;
+                }
                 let rec = self.rec(run_id);
+                rec.c.last_review = Some((fp, count));
                 rec.rounds += 1;
+                // The last round that the cap allows runs its fix on the top tier.
+                rec.c.top_tier = rec.rounds >= cap;
                 let note = format!("Fix round {}: {notes}", rec.rounds);
                 for n in &step.needs {
                     if let Some(need) = rec.steps.get_mut(n) {
@@ -348,17 +377,15 @@ impl Inner {
                 }
                 self.transition(run_id, RunEvent::FixRound);
             }
-            Some(event) => {
+            Next::Escalate(cause) => {
                 reset(s, "");
-                let why = format!("review: {max} fix rounds spent, a P0 or P1 finding is left");
-                self.log(run_id, Some(&step.id), kind::NOTE, json!({"blocked": why}));
-                self.transition(run_id, event);
+                self.escalate(run_id, cause, &lines);
             }
         }
     }
 
-    /// A person unblocks a review that spent its fix rounds: one more round, with the findings
-    /// and the note of the person. Without it the same review blocks again.
+    /// A person unblocks a review that stopped with findings: one more round, with the findings
+    /// and the note of the person. Without it the same review stops again.
     pub(crate) fn round_after_cap(&mut self, run_id: &str, note: Option<&str>) {
         let rec = &self.runs[run_id];
         if rec.run.state != RunState::SelfReview || rec.d.findings.is_empty() {
@@ -382,6 +409,7 @@ impl Inner {
             .join("\n");
         let rec = self.rec(run_id);
         rec.rounds += 1;
+        rec.c.fix_rounds += 1;
         let mut text = format!("Fix round {}: {findings}", rec.rounds);
         if let Some(n) = note {
             text.push_str(&format!("\nA person adds: {n}"));
@@ -394,8 +422,6 @@ impl Inner {
         self.transition(run_id, RunEvent::FixRound);
     }
 }
-
-// ---- the agent review of a pull request (spec `agent-pr`, REQ-002 to REQ-004)
 
 /// What the agent reviewer is told about a pull request.
 pub struct PullBrief<'a> {

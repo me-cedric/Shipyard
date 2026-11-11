@@ -7,7 +7,7 @@
 
 use std::collections::HashSet;
 
-use shipyard_core::pickup::{SyncEvent, answers};
+use shipyard_core::pickup::{SyncEvent, answers, stop_replies};
 use shipyard_core::work_item::Comment;
 use shipyard_store::mirror::Mirror;
 
@@ -24,7 +24,7 @@ pub const BASELINE: &str = "#baseline";
 ///
 /// The first scan of a ticket is a baseline: the comments that exist already are not new, so they
 /// are remembered and not sent. An answer to a question marker is sent anyway: the question may
-/// be older than the mirror.
+/// be older than the mirror, and so is a reply to a stop report (`questions-loop` REQ-022).
 pub fn comment_events(
     key: &str,
     comments: &[Comment],
@@ -33,18 +33,20 @@ pub fn comment_events(
 ) -> (Vec<SyncEvent>, Vec<String>) {
     let first = !seen.contains(BASELINE);
     let (mut events, mut ids) = (Vec::new(), Vec::new());
-    for (c, answers) in comments.iter().zip(answers(comments, posted)) {
+    let stops = stop_replies(comments, posted);
+    for ((c, answers), stop) in comments.iter().zip(answers(comments, posted)).zip(stops) {
         if seen.contains(&c.id) {
             continue;
         }
         ids.push(c.id.clone());
-        if first && answers.is_none() {
+        if first && answers.is_none() && stop.is_none() {
             continue;
         }
         events.push(SyncEvent::Comment {
             key: key.into(),
             comment: c.clone(),
             answers: answers.map(str::to_string),
+            stop: stop.map(str::to_string),
         });
     }
     if first {

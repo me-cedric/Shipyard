@@ -65,6 +65,32 @@ impl Inner {
 }
 
 impl Factory {
+    /// Attempt fencing (REQ-059): a call of an attempt that is not the current attempt of its
+    /// unit is ignored and logged. `Err` is the answer to the old attempt. A binding with no
+    /// attempt (an outside agent, a test) is not checked.
+    pub fn fenced(&self, who: &shipyard_mcp::session::Binding) -> Result<(), String> {
+        if who.attempt.is_empty() {
+            return Ok(());
+        }
+        let mut inner = self.lock();
+        inner.run(&who.run)?;
+        let current = inner.runs[&who.run]
+            .steps
+            .values()
+            .flat_map(|s| &s.units)
+            .find(|u| u.id == who.step)
+            .map(|u| u.attempt.clone());
+        if current.as_deref() == Some(who.attempt.as_str()) {
+            return Ok(());
+        }
+        let note = json!({"fenced": who.attempt, "current": current});
+        inner.log(&who.run, Some(&who.step), kind::NOTE, note);
+        Err(format!(
+            "attempt {} of {} is not the current attempt: the call is ignored",
+            who.attempt, who.step
+        ))
+    }
+
     /// `read_ref` (REQ-020, REQ-049): the resolved entity, or an error. The index of the project
     /// of the run is taken under a short lock of the factory. The query then waits on that
     /// index only: a long scan of the index holds no view and no other tool.
