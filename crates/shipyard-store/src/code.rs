@@ -364,7 +364,7 @@ pub fn scan_text(path: &str, text: &str) -> Vec<ScanFinding> {
             at > before.len() && !before.ends_with('(')
         });
         // Key text after the marker is a key, also as an argument or after `NAME=`. A search line
-        // such as `contains("-----BEGIN PRIVATE KEY-----")` has none.
+        // such as `contains("-----BEGIN PRIVATE KEY-----")` has none. gitleaks:allow
         let key_text = l.find("PRIVATE KEY-----").is_some_and(|m| {
             let body = &l[m + "PRIVATE KEY-----".len()..];
             l.contains("-----BEGIN")
