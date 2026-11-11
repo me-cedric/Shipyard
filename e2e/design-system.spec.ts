@@ -27,6 +27,7 @@ test.describe("gallery in the dev build", () => {
 		);
 		for (let i = 0; i < 120; i++) {
 			if (
+				// nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request -- the local Vite server of the test
 				await fetch(DEV).then(
 					(r) => r.ok,
 					() => false,

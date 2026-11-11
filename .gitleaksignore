@@ -1,0 +1,4 @@
+# Fake test values of the secret scan tests in an old commit (they hold no real secret).
+5b4b5b6e9fc9074cefd154a84aa785c12bfbd234:crates/shipyard-app/src/code.rs:private-key:689
+5b4b5b6e9fc9074cefd154a84aa785c12bfbd234:crates/shipyard-app/src/code.rs:generic-api-key:1358
+5b4b5b6e9fc9074cefd154a84aa785c12bfbd234:crates/shipyard-app/src/code.rs:generic-api-key:1360
