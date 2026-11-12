@@ -1338,9 +1338,24 @@ impl McpControl {
         }
         #[cfg(unix)]
         std::os::unix::process::CommandExt::process_group(&mut cmd, 0);
-        let mut child = quiet(&mut cmd)
-            .spawn()
-            .map_err(|e| AgentError::Server(format!("{} did not start: {e}", server.command)))?;
+        // Linux refuses to start a file that another thread's fork still holds open for writing
+        // (ETXTBSY): a program that was just installed starts on a later try.
+        let mut tries = 0;
+        let mut child = loop {
+            match quiet(&mut cmd).spawn() {
+                Ok(child) => break child,
+                Err(e) if e.kind() == std::io::ErrorKind::ExecutableFileBusy && tries < 10 => {
+                    tries += 1;
+                    std::thread::sleep(Duration::from_millis(20));
+                }
+                Err(e) => {
+                    return Err(AgentError::Server(format!(
+                        "{} did not start: {e}",
+                        server.command
+                    )));
+                }
+            }
+        };
         let (Some(stdin), Some(stdout)) = (child.stdin.take(), child.stdout.take()) else {
             let _ = child.kill();
             return Err(AgentError::Server("has no input or output".into()));
