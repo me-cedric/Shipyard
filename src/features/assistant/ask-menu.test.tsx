@@ -2,10 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Providers } from "@/app/providers";
 import { cannedPrompt, itemTypeOf, PROMPT_KINDS, pageItemType } from "@/lib/assistant/prompts";
-import { commands, unwrap } from "@/lib/ipc";
-import { mockState } from "@/lib/ipc/mock";
 import { ShellProvider } from "@/lib/shell";
-import { mountApp } from "@/test/mount";
 import { AskOnItem } from "./ask-menu";
 
 describe("canned prompts", () => {
@@ -20,30 +17,6 @@ describe("canned prompts", () => {
 		);
 		expect(cannedPrompt("fr", "file", "tests")).toContain("les fichiers de ce projet");
 		for (const kinds of Object.values(PROMPT_KINDS)) expect(kinds.length).toBeGreaterThan(2);
-	});
-});
-
-describe("Ask menu", () => {
-	it("opens the assistant with a canned prompt in the language of the preference", async () => {
-		const user = userEvent.setup();
-		mockState().prefs.promptLang = "fr";
-		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		mountApp("/design/decisions");
-		await user.click(await screen.findByRole("button", { name: "Ask the assistant" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Explain" }));
-		await waitFor(
-			() =>
-				expect(
-					(screen.getByRole("textbox", { name: "Message" }) as HTMLTextAreaElement).value,
-				).toContain("les décisions de ce projet"),
-			{ timeout: 10_000 },
-		);
-	}, 20_000);
-
-	it("has no Ask button on a page of no item type", async () => {
-		mountApp("/home/today");
-		await screen.findByRole("navigation", { name: "Sidebar" });
-		expect(screen.queryByRole("button", { name: "Ask the assistant" })).toBeNull();
 	});
 });
 

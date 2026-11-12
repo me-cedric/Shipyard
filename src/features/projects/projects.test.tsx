@@ -54,6 +54,9 @@ describe("first run", () => {
 		mountApp("/home/today");
 		await screen.findByRole("button", { name: "Open a local folder" });
 		expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
+		expect(screen.getByRole("heading", { level: 2, name: "Project" })).toHaveTextContent(
+			/^Project$/,
+		);
 		expect(mockState().prefs.role).toBe("qa");
 	});
 
@@ -71,6 +74,9 @@ describe("first run", () => {
 		await next(user);
 		await waitFor(() =>
 			expect(screen.getByRole("heading", { level: 2, name: "Project" })).toHaveFocus(),
+		);
+		expect(screen.getByRole("heading", { level: 2, name: "Project" })).toHaveTextContent(
+			"2Project",
 		);
 	});
 

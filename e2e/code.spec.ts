@@ -180,8 +180,10 @@ test("analyzes a branch in Impacts and shows the plan and the digest", async ({ 
 });
 
 test("echoes a line in the terminal", async ({ page }) => {
-	await openCode(page, "Terminal");
-	const terminal = page.getByRole("region", { name: "Terminal" });
+	await openCode(page, "Local changes");
+	// The Terminal tab is gone: the top bar button opens the drawer.
+	await page.getByRole("banner").getByRole("button", { name: "Terminal" }).click();
+	const terminal = page.getByRole("region", { name: "Terminal", exact: true });
 	await expect(terminal).toContainText("/project $");
 	await terminal.locator(".xterm-helper-textarea").focus();
 	await page.keyboard.type("echo hello");

@@ -43,7 +43,7 @@ test("asks in ask mode, keeps the draft in another space and closes with the but
 	await input(page).fill("half a thought");
 	await sidebar(page).getByRole("link", { name: "Settings" }).click();
 	await expect(input(page)).toHaveValue("half a thought");
-	await page.getByRole("banner").getByRole("button", { name: "Assistant" }).click();
+	await page.getByRole("banner").getByRole("button", { name: "Ask", exact: true }).click();
 	await expect(panel(page)).toBeHidden();
 });
 

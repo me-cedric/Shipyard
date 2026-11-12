@@ -245,6 +245,11 @@ export const en = {
 		openRef: "Open {ref}",
 		themeTo: "Theme: {name}",
 		langTo: "Language: {name}",
+		activity: "Activity",
+		needsNone: "Nothing needs you",
+		runsNone: "No active run",
+		account: "Account",
+		changedFiles: "Changed files",
 	},
 	refKind: {
 		project: "Project",

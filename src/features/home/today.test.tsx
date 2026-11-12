@@ -75,6 +75,39 @@ describe("Home / Today", () => {
 		expect(screen.getByRole("button", { name: `Start run ${first.key}` })).toBeInTheDocument();
 	});
 
+	it("shows no stat tiles: the spend of today always sits in the heading of My agents", async () => {
+		await withTracker();
+		await importAll();
+		mountApp("/home/today");
+		await screen.findByRole("region", { name: "Needs you" });
+		expect(screen.queryByText("Active runs")).toBeNull();
+		const agents = within(await screen.findByRole("region", { name: /^My agents/ }));
+		expect(agents.getByText("Spend today")).toBeInTheDocument();
+		expect(agents.getByText(/^\$/)).toBeInTheDocument();
+	});
+
+	it("shows the spend of today and an empty line when no run is live", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const ok = <T,>(data: T) => ({ status: "ok" as const, data });
+		vi.spyOn(commands, "runsList").mockResolvedValue(ok([]));
+		mountApp("/home/today");
+		const agents = within(await screen.findByRole("region", { name: "My agents" }));
+		expect(agents.getByText("Spend today")).toBeInTheDocument();
+		expect(agents.getByText("No active run")).toBeInTheDocument();
+		vi.restoreAllMocks();
+	});
+
+	it("shows the total of my items as the count of a heading above the groups", async () => {
+		await withTracker();
+		await importAll();
+		const { items } = await mine();
+		expect(items.length).toBeGreaterThan(0);
+		mountApp("/home/today");
+		expect(
+			await screen.findByRole("heading", { name: `My items (${items.length})` }),
+		).toBeInTheDocument();
+	});
+
 	it("shows the live runs on my tickets with Stop, and no run on another ticket", async () => {
 		await withTracker();
 		await importAll();

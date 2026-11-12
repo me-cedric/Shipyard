@@ -1,4 +1,3 @@
-import { Popover } from "@base-ui/react/popover";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMachineSessions, useMachineWrites } from "@/lib/factory";
@@ -6,18 +5,23 @@ import { format, useI18n } from "@/lib/i18n";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { LiveDot } from "@/ui/atoms/live-dot";
-import { ComputerDesktopIcon, StopIcon } from "@/ui/icons";
+import { StopIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 
+/** The AI sessions that run on this computer. They are the same sessions as Factory / Sessions. */
+export function useLiveSessions() {
+	return (useMachineSessions().data ?? []).filter((s) => s.state !== "done");
+}
+
 /**
- * The AI sessions that run on this computer, from the context bar: the count, then a popover with
- * each session and its stop. It reads the same sessions as Factory / Sessions, so both show the same rows.
+ * The Sessions part of the Activity panel: each session with its stop, and a link to Factory /
+ * Sessions.
  */
-export function ActiveSessions({ className }: { className: string }) {
+export function SessionsPart() {
 	const { t, lang } = useI18n();
 	const p = t.panels.sessions;
 	const m = t.factory.machine;
-	const live = (useMachineSessions().data ?? []).filter((s) => s.state !== "done");
+	const live = useLiveSessions();
 	const writes = useMachineWrites();
 	const [error, setError] = useState<unknown>(null);
 	const compact = new Intl.NumberFormat(lang, { notation: "compact" });
@@ -26,78 +30,59 @@ export function ActiveSessions({ className }: { className: string }) {
 		writes.stop(pid).catch((e: unknown) => setError(e));
 	};
 	return (
-		<Popover.Root>
-			<Popover.Trigger className={className}>
-				<span className="sr-only">{format(t.count, { name: p.title, count: live.length })}</span>
-				{/* The screen marks a session of this computer; the dot breathes while one works. */}
-				<span className="relative flex">
-					<ComputerDesktopIcon size={14} />
-					{live.some((s) => s.state === "working") ? (
-						<LiveDot className="absolute -top-0.5 -right-0.5 size-1.5" />
-					) : null}
-				</span>
-				<span aria-hidden="true" className="font-mono">
-					{live.length}
-				</span>
-			</Popover.Trigger>
-			<Popover.Portal>
-				<Popover.Positioner side="bottom" align="end" sideOffset={6} className="z-50">
-					<Popover.Popup className="w-[26rem] max-w-[calc(100vw-2rem)] rounded-lg border border-n-6 bg-surface-3 text-ui shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring origin-(--transform-origin) data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
-						<div className="flex min-h-row items-center gap-2 border-b px-3">
-							<Popover.Title className="flex-1 text-12 font-medium text-n-11">
-								{format(t.count, { name: p.title, count: live.length })}
-							</Popover.Title>
-							<Link
-								to="/factory/sessions"
-								className="rounded-sm px-1 text-12 text-accent-text hover:underline"
-							>
-								{p.all}
-							</Link>
-						</div>
-						{error ? <ErrorNotice error={error} className="px-3 py-2 text-danger-text" /> : null}
-						{live.length === 0 ? (
-							<p className="px-3 py-3 text-n-10">{p.none}</p>
-						) : (
-							<ul aria-label={p.title} className="max-h-80 overflow-y-auto py-1">
-								{live.map((s) => {
-									const name = `${runnerName(s.runner)} ${s.project}`;
-									const pid = s.pid;
-									return (
-										<li key={s.key} className="flex items-center gap-2.5 px-3 py-1.5">
-											<span className="relative flex shrink-0">
-												<BrandIcon name={s.runner} size={24} />
-												{s.state === "working" ? (
-													<LiveDot className="absolute -right-0.5 -bottom-0.5 size-2 ring-2 ring-surface-3" />
-												) : null}
-											</span>
-											<span className="flex min-w-0 flex-1 flex-col">
-												<span className="flex items-center gap-1.5">
-													<span className="truncate text-n-12">{s.project}</span>
-													<span className="text-12 text-n-10">
-														{m.state[s.state as "idle"] ?? s.state}
-													</span>
-												</span>
-												<span className="truncate font-mono text-11 text-n-11">
-													{runnerName(s.runner)} · {s.model}
-												</span>
-											</span>
-											<span className="flex shrink-0 flex-col items-end font-mono text-11 text-n-11">
-												<span>{format(p.tokens, { count: compact.format(s.tokens ?? 0) })}</span>
-												<span className="text-n-12">${(s.costUsd ?? 0).toFixed(2)}</span>
-											</span>
-											{pid == null ? null : (
-												<IconButton label={format(m.stop, { name })} onClick={() => stop(pid)}>
-													<StopIcon size={14} />
-												</IconButton>
-											)}
-										</li>
-									);
-								})}
-							</ul>
-						)}
-					</Popover.Popup>
-				</Popover.Positioner>
-			</Popover.Portal>
-		</Popover.Root>
+		<section aria-label={p.title}>
+			<div className="flex min-h-row items-center gap-2 border-b px-3">
+				<h3 className="flex-1 text-12 font-medium text-n-11">
+					{format(t.count, { name: p.title, count: live.length })}
+				</h3>
+				<Link
+					to="/factory/sessions"
+					className="rounded-sm px-1 text-12 text-accent-text hover:underline"
+				>
+					{p.all}
+				</Link>
+			</div>
+			{error ? <ErrorNotice error={error} className="px-3 py-2 text-danger-text" /> : null}
+			{live.length === 0 ? (
+				<p className="px-3 py-3 text-n-10">{p.none}</p>
+			) : (
+				<ul aria-label={p.title} className="max-h-80 overflow-y-auto py-1">
+					{live.map((s) => {
+						const name = `${runnerName(s.runner)} ${s.project}`;
+						const pid = s.pid;
+						return (
+							<li key={s.key} className="flex items-center gap-2.5 px-3 py-1.5">
+								<span className="relative flex shrink-0">
+									<BrandIcon name={s.runner} size={24} />
+									{s.state === "working" ? (
+										<LiveDot className="absolute -right-0.5 -bottom-0.5 size-2 ring-2 ring-surface-3" />
+									) : null}
+								</span>
+								<span className="flex min-w-0 flex-1 flex-col">
+									<span className="flex items-center gap-1.5">
+										<span className="truncate text-n-12">{s.project}</span>
+										<span className="text-12 text-n-10">
+											{m.state[s.state as "idle"] ?? s.state}
+										</span>
+									</span>
+									<span className="truncate font-mono text-11 text-n-11">
+										{runnerName(s.runner)} · {s.model}
+									</span>
+								</span>
+								<span className="flex shrink-0 flex-col items-end font-mono text-11 text-n-11">
+									<span>{format(p.tokens, { count: compact.format(s.tokens ?? 0) })}</span>
+									<span className="text-n-12">${(s.costUsd ?? 0).toFixed(2)}</span>
+								</span>
+								{pid == null ? null : (
+									<IconButton label={format(m.stop, { name })} onClick={() => stop(pid)}>
+										<StopIcon size={14} />
+									</IconButton>
+								)}
+							</li>
+						);
+					})}
+				</ul>
+			)}
+		</section>
 	);
 }

@@ -105,10 +105,10 @@ test("developer", async ({ page }) => {
 
 	await w.step(
 		"Open the terminal",
-		"Code, Terminal",
+		"Terminal button of the top bar",
 		async () => {
-			await w.go("Code", "Terminal");
-			await w.see(page.getByRole("main"), "no terminal page");
+			await w.click(page.getByRole("banner").getByRole("button", { name: "Terminal" }));
+			await w.see(page.getByRole("region", { name: "Terminal" }), "no terminal drawer");
 		},
 		true,
 	);

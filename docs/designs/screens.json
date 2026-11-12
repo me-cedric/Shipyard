@@ -88,7 +88,7 @@
     {
       "id": "SCR-010",
       "slug": "top-bar",
-      "title": "Top bar: sidebar toggle, Back and Forward, Sync menu, terminal button, More fold",
+      "title": "Top bar: sidebar toggle, Back and Forward, Sync with ahead and behind, Activity, search, Files and Terminal buttons, Ask split button, notifications, account menu",
       "artifacts": [
         "spec:shell"
       ],

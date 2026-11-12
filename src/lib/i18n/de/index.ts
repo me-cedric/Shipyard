@@ -247,6 +247,11 @@ export const de: Messages = {
 		openRef: "{ref} öffnen",
 		themeTo: "Design: {name}",
 		langTo: "Sprache: {name}",
+		activity: "Aktivität",
+		needsNone: "Nichts braucht Sie",
+		runsNone: "Kein aktiver Lauf",
+		account: "Konto",
+		changedFiles: "Geänderte Dateien",
 	},
 	refKind: {
 		project: "Projekt",

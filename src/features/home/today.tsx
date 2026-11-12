@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useRef } from "react";
 import { useGuard } from "@/features/work/guard";
 import { TicketDetail } from "@/features/work/ticket-detail";
-import { useRunActions, useRuns } from "@/lib/factory";
+import { useDailySpend, useRunActions, useRuns } from "@/lib/factory";
 import { useInbox } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
@@ -14,7 +14,9 @@ import { useShell } from "@/lib/shell";
 import { useWorkItems } from "@/lib/sync";
 import { memberName, useTeam, useWorkActions, useWorkContext } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
+import { Badge } from "@/ui/atoms/badge";
 import { Select } from "@/ui/atoms/select";
+import { Sparkline } from "@/ui/atoms/sparkline";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ArrowPathIcon, ClockIcon } from "@/ui/icons";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
@@ -28,9 +30,10 @@ import { Timeline, TimelineItem } from "@/ui/molecules/timeline";
 import { eventSentence } from "./event-sentence";
 import { NeedsYou, needsYouTotal } from "./inbox/inbox";
 import { RolePanels } from "./role-panels";
-import { HomeStats, useMyItems } from "./stats";
+import { useMyItems } from "./stats";
 
 const SHOWN = 20;
+const TREND_DAYS = 14;
 const WEEK = 7 * 24 * 3600 * 1000;
 // shortcut: one page of 50 events for each run, so a very long run misses its newest events; upgrade with a log tail command.
 const PAGE = 50;
@@ -133,6 +136,8 @@ export function Today({ start }: { start?: ReactNode }) {
 	const { cancel } = useRunActions();
 	const { error, run } = useGuard();
 	const since = useLastVisit();
+	// Every AI tool on this computer, as the menu bar panel shows it.
+	const spend = useDailySpend(TREND_DAYS);
 	const logs = useQueries({
 		queries: myRuns.map((r) => ({
 			queryKey: ["home", "activity", r.id] as const,
@@ -176,9 +181,17 @@ export function Today({ start }: { start?: ReactNode }) {
 				]}
 			/>
 			{start}
-			<HomeStats />
 			<RolePanels />
 			<NeedsYou />
+			{mine.length ? (
+				<h2
+					aria-label={format(t.count, { name: t.ui.myItems, count: mine.length })}
+					className="flex items-center gap-2 px-4 text-14 font-medium text-n-12"
+				>
+					{t.ui.myItems}
+					<Badge className="font-mono">{mine.length}</Badge>
+				</h2>
+			) : null}
 			{groups.map(([id, name, rows]) =>
 				rows.length ? (
 					<div key={id} className="px-4">
@@ -190,30 +203,41 @@ export function Today({ start }: { start?: ReactNode }) {
 					</div>
 				) : null,
 			)}
-			{live.length ? (
-				<div className="px-4">
-					<Panel title={d.agents} count={live.length} flush>
-						{live.map((r) => (
-							<div
-								key={r.id}
-								className="flex h-row items-center gap-2 border-b px-3 last:border-b-0"
+			<div className="px-4">
+				<Panel
+					title={d.agents}
+					count={live.length}
+					flush
+					toolbar={
+						<span className="flex items-center gap-2">
+							<Sparkline values={spend.series.map((p) => p.usd)} className="h-5 w-16" />
+							<Badge className="font-mono">
+								<span className="sr-only">{t.ui.spendToday} </span>
+								{new Intl.NumberFormat(lang, { style: "currency", currency: "USD" }).format(
+									spend.today,
+								)}
+							</Badge>
+						</span>
+					}
+				>
+					{live.length === 0 ? <p className="px-3 py-3 text-n-10">{t.shell.runsNone}</p> : null}
+					{live.map((r) => (
+						<div key={r.id} className="flex h-row items-center gap-2 border-b px-3 last:border-b-0">
+							<StatusDot status={RUN_STATUS[r.state]} label={t.factory.state[r.state]} />
+							<RefChip refId={`run:${r.id}`} state="resolved" onOpen={openRef} />
+							<span className="font-mono text-12 text-n-11">{r.key}</span>
+							<span className="min-w-0 flex-1 truncate text-ui">{r.title}</span>
+							<ConfirmButton
+								variant="ghost"
+								confirm={format(t.factory.machine.confirmStop, { name: r.key })}
+								onConfirm={() => void run(() => cancel(r.id))}
 							>
-								<StatusDot status={RUN_STATUS[r.state]} label={t.factory.state[r.state]} />
-								<RefChip refId={`run:${r.id}`} state="resolved" onOpen={openRef} />
-								<span className="font-mono text-12 text-n-11">{r.key}</span>
-								<span className="min-w-0 flex-1 truncate text-ui">{r.title}</span>
-								<ConfirmButton
-									variant="ghost"
-									confirm={format(t.factory.machine.confirmStop, { name: r.key })}
-									onConfirm={() => void run(() => cancel(r.id))}
-								>
-									{format(t.factory.machine.stop, { name: r.key })}
-								</ConfirmButton>
-							</div>
-						))}
-					</Panel>
-				</div>
-			) : null}
+								{format(t.factory.machine.stop, { name: r.key })}
+							</ConfirmButton>
+						</div>
+					))}
+				</Panel>
+			</div>
 			{error ? (
 				<p role="alert" className="px-4 text-ui text-danger-text">
 					{error}

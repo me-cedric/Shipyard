@@ -60,20 +60,8 @@ function Frame() {
 	const project = useActiveProject().data;
 	const { commit: runCommit } = useCodeActions();
 	const { gate } = useRights();
-	const {
-		list,
-		sync,
-		commit,
-		assistant,
-		palette,
-		files,
-		terminal,
-		fetch,
-		push,
-		back,
-		forward,
-		manual,
-	} = useActions();
+	const { list, sync, commit, assistant, palette, files, terminal, fetch, push, back, forward } =
+		useActions();
 	useShortcuts(list);
 	useNativeMenu(list);
 	useShellEvents();
@@ -128,7 +116,6 @@ function Frame() {
 						terminal={terminal}
 						back={back}
 						forward={forward}
-						manual={manual}
 						toggleSidebar={toggle}
 					/>
 				}

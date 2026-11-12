@@ -16,6 +16,9 @@ export function SplitButton({
 	icon,
 	onClick,
 	disabled,
+	pressed,
+	shortcut,
+	after,
 	moreLabel,
 	moreDisabled,
 	items,
@@ -25,6 +28,12 @@ export function SplitButton({
 	icon?: ReactNode;
 	onClick: () => void;
 	disabled?: boolean;
+	/** The main part is a toggle: it tells its state. */
+	pressed?: boolean;
+	/** The shortcut of the main part: it shows in the tooltip. */
+	shortcut?: string;
+	/** Text after the label, such as a count. It is part of the name of the main part. */
+	after?: ReactNode;
 	/** The accessible name of the arrow part. */
 	moreLabel: string;
 	moreDisabled?: boolean;
@@ -38,9 +47,18 @@ export function SplitButton({
 				className,
 			)}
 		>
-			<button type="button" className={PART} onClick={onClick} disabled={disabled}>
+			<button
+				type="button"
+				className={cn(PART, pressed && "bg-n-4 text-n-12")}
+				onClick={onClick}
+				disabled={disabled}
+				aria-pressed={pressed}
+				title={shortcut ? `${label} (${shortcut})` : undefined}
+			>
 				{icon}
 				{label}
+				{after ? " " : null}
+				{after}
 			</button>
 			<Menu.Root>
 				<Menu.Trigger

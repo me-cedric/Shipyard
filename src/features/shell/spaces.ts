@@ -1,6 +1,37 @@
+import type { ComponentType } from "react";
 import type { Messages } from "@/lib/i18n";
 import type { Level, TeamRole } from "@/lib/ipc";
 import type { Area } from "@/lib/rights";
+import {
+	AcademicCapIcon,
+	ArrowsRightLeftIcon,
+	BookOpenIcon,
+	CalendarDaysIcon,
+	ChartBarIcon,
+	ChatBubbleIcon,
+	CheckIcon,
+	ClockIcon,
+	CodeBracketIcon,
+	Cog6ToothIcon,
+	CommandLineIcon,
+	ComputerDesktopIcon,
+	CpuChipIcon,
+	CurrencyIcon,
+	DocumentTextIcon,
+	FolderOpenIcon,
+	LinkIcon,
+	LockClosedIcon,
+	PresentationChartIcon,
+	PuzzlePieceIcon,
+	QueueListIcon,
+	ShareIcon,
+	ShieldCheckIcon,
+	SparklesIcon,
+	Squares2X2Icon,
+	UserCircleIcon,
+	UsersIcon,
+	ViewColumnsIcon,
+} from "@/ui/icons";
 
 /** Spaces in default order, each with its tabs (master plan section 4). */
 export const SPACES = {
@@ -28,6 +59,57 @@ export const tabPath = (space: SpaceId, tab: TabId) => `/${space}/${tab}` as Tab
 
 export const tabLabel = (t: Messages, space: SpaceId, tab: string): string =>
 	(t.tabs[space] as Record<string, string>)[tab] ?? "";
+
+type TabIcon = ComponentType<{ size?: number }>;
+
+/** The icon of each tab: the one its page header shows (REQ-021). */
+const TAB_ICON: Record<string, TabIcon> = {
+	"home/today": ClockIcon,
+	"home/projects": FolderOpenIcon,
+	"design/diagrams": ShareIcon,
+	"design/architecture": CpuChipIcon,
+	"design/decisions": DocumentTextIcon,
+	"design/api": CodeBracketIcon,
+	"design/data": QueueListIcon,
+	"design/flows": ArrowsRightLeftIcon,
+	"design/screens": ComputerDesktopIcon,
+	"specs/changes": DocumentTextIcon,
+	"specs/capabilities": BookOpenIcon,
+	"specs/questions": ChatBubbleIcon,
+	"specs/test-plans": CheckIcon,
+	"specs/constitution": LockClosedIcon,
+	"work/backlog": QueueListIcon,
+	"work/board": ViewColumnsIcon,
+	"work/plan": CalendarDaysIcon,
+	"work/estimates": CurrencyIcon,
+	"work/team": UsersIcon,
+	"work/time": ClockIcon,
+	"factory/runs": CpuChipIcon,
+	"factory/workflows": ArrowsRightLeftIcon,
+	"factory/agents-map": ShareIcon,
+	"factory/sessions": CommandLineIcon,
+	"factory/usage": ChartBarIcon,
+	"code/changes": CodeBracketIcon,
+	"code/history": ClockIcon,
+	"code/branches": ShareIcon,
+	"code/pull-requests": ArrowsRightLeftIcon,
+	"code/quality": CheckIcon,
+	"code/impacts": ChartBarIcon,
+	"knowledge/graph": ShareIcon,
+	"knowledge/handbook": BookOpenIcon,
+	"knowledge/documents": DocumentTextIcon,
+	"knowledge/slides": PresentationChartIcon,
+	"knowledge/learn": AcademicCapIcon,
+	"knowledge/dashboards": Squares2X2Icon,
+	"settings/project": Cog6ToothIcon,
+	"settings/connections": LinkIcon,
+	"settings/agents-rules": SparklesIcon,
+	"settings/extensions": PuzzlePieceIcon,
+	"settings/me": UserCircleIcon,
+	"settings/health": ShieldCheckIcon,
+};
+
+export const tabIcon = (space: SpaceId, tab: string) => TAB_ICON[`${space}/${tab}`];
 
 /** The first tab of each role of `team-rights` (REQ-013). */
 export const FIRST_TAB: Record<TeamRole, TabPath> = {
@@ -77,6 +159,13 @@ export const visibleTabs = <S extends SpaceId>(space: S, role: TeamRole | null, 
 			(a, b) =>
 				Number(firstPath(role) === `/${space}/${b}`) - Number(firstPath(role) === `/${space}/${a}`),
 		) as (typeof SPACES)[S][number][];
+
+/** Terminal and Manual keep their address, palette entry and menu entry, but no tab (REQ-014). */
+const OFF_BAR = new Set(["code/terminal", "knowledge/manual"]);
+
+/** The tabs that the tab bar draws. */
+export const barTabs = (space: SpaceId, role: TeamRole | null, level = open) =>
+	visibleTabs(space, role, level).filter((tab) => !OFF_BAR.has(`${space}/${tab}`));
 
 /** Home first, the space of the first tab next, the rest in default order, Settings last. A space with no visible tab is hidden. */
 export function orderedSpaces(role: TeamRole | null, level = open): SpaceId[] {

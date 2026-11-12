@@ -246,6 +246,11 @@ export const es: Messages = {
 		openRef: "Abrir {ref}",
 		themeTo: "Tema: {name}",
 		langTo: "Idioma: {name}",
+		activity: "Actividad",
+		needsNone: "Nada requiere su acción",
+		runsNone: "Ninguna ejecución activa",
+		account: "Cuenta",
+		changedFiles: "Archivos modificados",
 	},
 	refKind: {
 		project: "Proyecto",

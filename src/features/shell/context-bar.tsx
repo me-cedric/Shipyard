@@ -1,49 +1,34 @@
-import { Link } from "@tanstack/react-router";
 import { useState, useSyncExternalStore } from "react";
-import { AskMenu } from "@/features/assistant";
 import { BranchSelector } from "@/features/code/branch-selector";
 import { CloneDialog } from "@/features/projects/clone-dialog";
 import { usePicture } from "@/features/settings/picture-field";
 import { format, useI18n } from "@/lib/i18n";
 import { errorDialog } from "@/lib/ipc";
 import { useNotifications, useOpenNotice } from "@/lib/notifications";
-import { type Theme, usePrefs } from "@/lib/prefs";
+import { usePrefs } from "@/lib/prefs";
 import { outcomeError, useActiveProject, useProjectActions, useProjects } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
-import { NEXT_THEME } from "@/lib/themes";
 import { AnimatedIcon } from "@/ui/atoms/animated-icon";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Kbd } from "@/ui/atoms/kbd";
-import { LiveDot } from "@/ui/atoms/live-dot";
 import {
 	ArrowPathIcon,
-	ChatBubbleIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	CommandLineIcon,
-	ComputerDesktopIcon,
 	FolderOpenIcon,
-	InboxIcon,
 	MagnifyingGlassIcon,
-	MoonIcon,
 	SidebarIcon,
-	SunIcon,
 } from "@/ui/icons";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { ProjectSwitcher } from "@/ui/molecules/project-switcher";
 import { SplitButton } from "@/ui/molecules/split-button";
 import { NotificationCentre } from "@/ui/organisms/notification-centre";
+import { AccountMenu } from "./account-menu";
 import type { Action } from "./actions";
-import { ActiveSessions } from "./active-sessions";
+import { Activity } from "./activity";
+import { AskSplit } from "./ask-split";
 import { useCounts } from "./counts";
-
-const THEME_ICON: Record<Theme, typeof SunIcon> = {
-	light: SunIcon,
-	dark: MoonIcon,
-	oled: MoonIcon,
-	system: ComputerDesktopIcon,
-	"system-oled": ComputerDesktopIcon,
-};
 
 const NARROW = "(max-width: 1099px)";
 
@@ -64,7 +49,7 @@ const chip =
 
 /**
  * The bar on top of every page: the project, the branch, the state of the repository with the one
- * Sync, the pulse of the factory, then search, assistant, notifications and theme.
+ * Sync, then the Activity button, search, Ask, notifications and the account menu.
  */
 export function ContextBar({
 	sync,
@@ -76,7 +61,6 @@ export function ContextBar({
 	terminal,
 	back,
 	forward,
-	manual,
 	toggleSidebar,
 }: {
 	sync: Action;
@@ -88,24 +72,20 @@ export function ContextBar({
 	terminal: Action;
 	back: Action;
 	forward: Action;
-	manual: Action;
 	toggleSidebar: Action;
 }) {
 	const { t } = useI18n();
-	const { theme, setPrefs, sidebarOpen } = usePrefs();
+	const { sidebarOpen } = usePrefs();
 	const projects = useProjects().data ?? [];
 	const active = useActiveProject().data;
 	const { switchTo, openFolder, close, remove } = useProjectActions();
 	const [cloning, setCloning] = useState(false);
-	const { syncing, assistantOpen, filesOpen, terminalOpen } = useShell();
+	const { syncing, filesOpen, terminalOpen } = useShell();
 	const { items, unread, markRead, clear, remove: removeNotice } = useNotifications();
 	const openNotice = useOpenNotice();
-	const { needsYou, live, changes, changed } = useCounts();
-	const ThemeIcon = THEME_ICON[theme];
+	const { changes } = useCounts();
 	const narrow = useNarrow();
-	const themeLabel = format(t.shell.themeTo, { name: t.theme[NEXT_THEME[theme]] });
 	const logo = usePicture("logo").data;
-	const avatar = usePicture("avatar").data;
 	return (
 		<>
 			<IconButton
@@ -141,69 +121,38 @@ export function ContextBar({
 			/>
 			<CloneDialog open={cloning} onClose={() => setCloning(false)} />
 			<BranchSelector />
-			{active && changes ? (
-				<Link to="/code/changes" className={`${chip} gap-2 font-mono text-12`}>
-					{/* The spoken name holds the visible numbers (WCAG 2.5.3): the words of the label are
-					    visually hidden, the symbols are hidden from screen readers. */}
-					{t.ui.repo
-						.split(/(\{\w+\})/)
-						// Each part of the template is unique: it is the key.
-						.filter(Boolean)
-						.map((part) => {
-							const n = {
-								"{changed}": changed,
-								"{ahead}": changes.ahead,
-								"{behind}": changes.behind,
-							}[part];
-							if (n === undefined)
-								return (
-									<span key={part} className="sr-only">
-										{part}
-									</span>
-								);
-							const tone =
-								part === "{changed}" && changed
-									? "text-warning-text"
-									: part === "{behind}" && changes.behind
-										? "text-info-text"
-										: undefined;
-							const mark = part === "{changed}" ? "●" : part === "{ahead}" ? "↑" : "↓";
-							return (
-								<span key={part} className={tone}>
-									<span aria-hidden="true">{mark}</span>
-									{n}
-								</span>
-							);
-						})}
-				</Link>
-			) : null}
 			<SplitButton
 				label={sync.label}
 				icon={<AnimatedIcon icon={ArrowPathIcon} size={14} spin={syncing} />}
 				onClick={sync.run}
 				disabled={sync.disabled}
+				after={
+					changes && (changes.ahead || changes.behind) ? (
+						// The visible numbers sit inside the spoken name (WCAG 2.5.3): the marks are hidden.
+						<span className="flex gap-1 font-mono text-12">
+							{changes.ahead ? (
+								<span>
+									<span aria-hidden="true">↑{changes.ahead}</span>
+									<span className="sr-only">{format(t.code.ahead, { count: changes.ahead })}</span>
+								</span>
+							) : null}{" "}
+							{changes.behind ? (
+								<span className="text-info-text">
+									<span aria-hidden="true">↓{changes.behind}</span>
+									<span className="sr-only">
+										{format(t.code.behind, { count: changes.behind })}
+									</span>
+								</span>
+							) : null}
+						</span>
+					) : null
+				}
 				moreLabel={t.workspace.view.syncMore}
 				moreDisabled={fetch.disabled}
 				items={[fetch, push].map((a) => ({ id: a.id, label: a.label, onSelect: a.run }))}
 			/>
 			<span className="flex-1" />
-			<Link to="/factory/runs" className={chip}>
-				<span className="sr-only">{format(t.count, { name: t.shell.runs, count: live })}</span>
-				<LiveDot idle={!live} />
-				<span aria-hidden="true" className="font-mono">
-					{live}
-				</span>
-			</Link>
-			<ActiveSessions className={chip} />
-			<Link to="/home/today" className={chip}>
-				<span className="sr-only">
-					{format(t.count, { name: t.home.needsYou, count: needsYou })}
-				</span>
-				<InboxIcon size={14} />
-				<span aria-hidden="true" className={needsYou ? "font-mono text-warning-text" : "font-mono"}>
-					{needsYou}
-				</span>
-			</Link>
+			<Activity />
 			<button
 				type="button"
 				onClick={palette.run}
@@ -238,16 +187,7 @@ export function ContextBar({
 					</IconButton>
 				</>
 			)}
-			<IconButton
-				label={assistant.label}
-				shortcut={assistant.shortcut}
-				aria-pressed={assistantOpen}
-				onClick={assistant.run}
-				className="aria-pressed:bg-n-4 aria-pressed:text-n-12"
-			>
-				<ChatBubbleIcon size={16} />
-			</IconButton>
-			<AskMenu />
+			<AskSplit assistant={assistant} />
 			<NotificationCentre
 				items={items}
 				unread={unread}
@@ -256,45 +196,20 @@ export function ContextBar({
 				onRemove={removeNotice}
 				onGo={openNotice}
 			/>
-			<IconButton label={manual.label} shortcut={manual.shortcut} onClick={manual.run}>
-				?
-			</IconButton>
 			{narrow ? (
 				<MenuButton
 					label={t.workspace.view.more}
 					iconOnly
 					icon="⋯"
-					items={[files, terminal]
-						.map((a) => ({
-							id: a.id,
-							label: a.label,
-							disabled: a.disabled,
-							onSelect: a.run,
-						}))
-						.concat({
-							id: "theme",
-							label: themeLabel,
-							disabled: false,
-							onSelect: () => setPrefs({ theme: NEXT_THEME[theme], customTheme: "" }),
-						})}
+					items={[files, terminal].map((a) => ({
+						id: a.id,
+						label: a.label,
+						disabled: a.disabled,
+						onSelect: a.run,
+					}))}
 				/>
-			) : (
-				<IconButton
-					label={themeLabel}
-					onClick={() => setPrefs({ theme: NEXT_THEME[theme], customTheme: "" })}
-				>
-					<ThemeIcon size={16} />
-				</IconButton>
-			)}
-			{avatar ? (
-				<Link to="/settings/me" className="shrink-0 rounded-full">
-					<img
-						src={avatar}
-						alt={t.extras.picture.avatar}
-						className="size-6 rounded-full object-cover"
-					/>
-				</Link>
 			) : null}
+			<AccountMenu />
 		</>
 	);
 }

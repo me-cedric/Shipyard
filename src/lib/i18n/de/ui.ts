@@ -5,7 +5,6 @@ export const uiDe: typeof uiEn = {
 	diagram: "Diagramm",
 	sections: "Abschnitte",
 	back: "Zurück",
-	repo: "{changed} geändert, {ahead} zu pushen, {behind} zu pullen",
 	ahead: "Im Vorsprung",
 	behind: "Im Rückstand",
 	changes: "Änderungen",

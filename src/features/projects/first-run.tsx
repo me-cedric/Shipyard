@@ -105,6 +105,9 @@ export function FirstRun() {
 	const [chosen, setStep] = useState<Step | null>(null);
 	const step: Step | null =
 		chosen ?? (loaded && projects ? (role !== "none" || projects.length ? "start" : "role") : null);
+	// The badge "2" shows only when the role step showed.
+	const sawRole = useRef(false);
+	if (step === "role") sawRole.current = true;
 	// A click on a card picks the role, from the saved one. Continue saves it.
 	const [picked, setPick] = useState<Role | null>(null);
 	const pick = picked ?? role;
@@ -226,12 +229,14 @@ export function FirstRun() {
 							tabIndex={-1}
 							className="flex items-center gap-2 text-14 font-medium text-n-12 outline-none"
 						>
-							<span
-								aria-hidden="true"
-								className="flex size-5 items-center justify-center rounded-full bg-n-4 font-mono text-11"
-							>
-								2
-							</span>
+							{sawRole.current ? (
+								<span
+									aria-hidden="true"
+									className="flex size-5 items-center justify-center rounded-full bg-n-4 font-mono text-11"
+								>
+									2
+								</span>
+							) : null}
 							{t.projects.switcher}
 						</h2>
 						<div className="grid gap-3 sm:grid-cols-3">

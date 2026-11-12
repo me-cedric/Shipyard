@@ -24,11 +24,11 @@ Wave 1, first run
 
 Wave 2, top bar
 
-- [ ] T008 (A) Activity button and panel; remove the three counters. REQ-009.
-- [ ] T009 (A) Avatar menu; remove "?" and theme buttons; Ask split button. REQ-010, REQ-011.
-- [ ] T010 (A) Ahead and behind on Sync; changed files beside Commit; remove the chip; count test at 1100 px. REQ-012, REQ-013.
-- [ ] T011 [P] (B) Twin tabs leave the tab bars; addresses keep working; tab icons. REQ-014, REQ-021.
-- [ ] T012 [P] (B) Remove the Home tiles; numbers in panel headings. REQ-015.
+- [x] T008 (A) Activity button and panel; remove the three counters. REQ-009.
+- [x] T009 (A) Avatar menu; remove "?" and theme buttons; Ask split button. REQ-010, REQ-011.
+- [x] T010 (A) Ahead and behind on Sync; changed files beside Commit; remove the chip; count test at 1100 px. REQ-012, REQ-013.
+- [x] T011 [P] (B) Twin tabs leave the tab bars; addresses keep working; tab icons. REQ-014, REQ-021.
+- [x] T012 [P] (B) Remove the Home tiles; numbers in panel headings. REQ-015.
 
 Wave 3, patterns
 

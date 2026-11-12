@@ -4,7 +4,16 @@ import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { TEAM_ROLES } from "@/lib/prefs";
 import { mountApp } from "@/test/mount";
-import { FIRST_TAB, firstPath, orderedSpaces, SPACE_IDS, SPACES, type SpaceId } from "./spaces";
+import {
+	barTabs,
+	FIRST_TAB,
+	firstPath,
+	orderedSpaces,
+	SPACE_IDS,
+	SPACES,
+	type SpaceId,
+	tabIcon,
+} from "./spaces";
 
 const sidebar = () => screen.findByRole("navigation", { name: "Sidebar" });
 
@@ -120,7 +129,7 @@ describe("tab names", () => {
 	it("lets the tabs wrap, so a narrow main view cuts none off", async () => {
 		mountApp("/code/changes");
 		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
-		await within(tabs).findByRole("link", { name: "Terminal" });
+		await within(tabs).findByRole("link", { name: "Impacts" });
 		expect(tabs.firstElementChild).toHaveClass("flex-wrap");
 		expect(tabs).not.toHaveClass("overflow-x-auto");
 	});
@@ -131,6 +140,51 @@ describe("tab names", () => {
 		);
 		expect(new Set(names).size).toBe(names.length);
 	});
+});
+
+describe("twin tabs (ux-declutter REQ-014, REQ-021)", () => {
+	it("keeps Terminal and Manual out of the tab bars: Code and Knowledge show 6 tabs", async () => {
+		mountApp("/code/changes");
+		const code = await screen.findByRole("navigation", { name: "Tabs" });
+		expect(within(code).getAllByRole("link")).toHaveLength(6);
+		expect(within(code).queryByRole("link", { name: "Terminal" })).toBeNull();
+		expect(barTabs("knowledge", null)).toHaveLength(6);
+		expect(barTabs("knowledge", null)).not.toContain("manual");
+	});
+
+	it("opens the terminal drawer from /code/terminal and lands on the first Code tab", async () => {
+		const router = mountApp("/code/terminal");
+		await waitFor(() => expect(router.state.location.pathname).toBe("/code/changes"));
+		expect(await screen.findByRole("tab", { name: "Terminal 1" })).toBeInTheDocument();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("shows the manual at /knowledge/manual with no selected tab", async () => {
+		const router = mountApp("/knowledge/manual");
+		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+		expect(await screen.findByRole("article", { name: "Getting started" })).toBeInTheDocument();
+		expect(within(tabs).queryByRole("link", { current: "page" })).toBeNull();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("gives each tab of the bar an icon", () => {
+		for (const s of SPACE_IDS)
+			for (const tab of barTabs(s, null)) expect(tabIcon(s, tab), `${s}/${tab}`).toBeDefined();
+	});
+
+	it.each(SPACE_IDS)(
+		"draws each icon of the tabs of %s as decoration: the name stays the text",
+		async (space) => {
+			mountApp(`/${space}`);
+			const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+			const links = await within(tabs).findAllByRole("link");
+			for (const link of links) {
+				const icons = [...link.querySelectorAll("svg")];
+				expect(icons.length, link.textContent ?? "").toBeGreaterThan(0);
+				for (const icon of icons) expect(icon.closest("[aria-hidden='true']")).not.toBeNull();
+			}
+		},
+	);
 });
 
 describe("no tour and no hidden tab (shell REQ-016)", () => {
