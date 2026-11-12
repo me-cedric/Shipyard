@@ -67,6 +67,14 @@ Wave 9, close
 - [x] T027 Docs: `screens.json`, screenshots, guide in four languages, `ux-declutter.feature`, `factory.feature`, both changelogs; a MODIFIED delta for each settled `factory` requirement that changes.
 - [x] T028 Opus review of the second pass, one fixer, the validation commands of `plan.md`.
 
+Third pass, the pull request page
+
+- [ ] T029 (wave 10) Page and list: own address, header, tabs, merge box, Overview with Markdown description and sidebar, list with search and filter. REQ-041 to REQ-044.
+- [ ] T030 (wave 10) Files changed: shared `FileDiffList` (collapsed, counts, Expand all, viewed), file tree and filter, line numbers in `DiffView`, files beyond 100. REQ-045, REQ-046, REQ-051.
+- [ ] T031 (wave 11) General comments read and post, thread reply and resolve: forge methods, IPC commands, mocks, the conversation. REQ-047, REQ-048, REQ-052.
+- [ ] T032 (wave 12) Inline comments: gutter action, pending review kept on this computer, Submit review with a verdict, single comment, forge refusals. REQ-049, REQ-050, REQ-051.
+- [ ] T033 (wave 13) Docs, test plans, screens, guide, changelogs, final Opus review and fixer, the validation commands of `plan.md`.
+
 ## Completion Check
 
 - [x] All acceptance criteria are met.

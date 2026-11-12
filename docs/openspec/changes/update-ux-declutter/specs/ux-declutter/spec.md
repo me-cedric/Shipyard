@@ -82,10 +82,26 @@ Runs and Factory (second pass, 2026-11-12)
 - REQ-039: A diagram or a picture in the zoom frame SHALL fit the frame and be centred at the first paint. The person SHALL pan it in both directions and zoom it. Fit SHALL bring it back.
 - REQ-040: When a program that Shipyard starts ends with an error, the message SHALL name the program, its exit code and its last lines, and SHALL give one action.
 
+Pull requests (third pass, 2026-11-12)
+
+- REQ-041: A pull request SHALL open as its own page with its own address. The page SHALL show the title, the state, the source and target branch, the lines added and removed, and the tabs Overview, Commits, Checks and Files changed with their counts. Back SHALL return to the list with its search and filters kept.
+- REQ-042: The pull request list SHALL be a full-width page with a search, a filter (All, Mine, Needs review) and the state groups open, merged and closed. Each row SHALL show the number, the title, the author, the draft state, the checks state and the review state.
+- REQ-043: The Overview tab SHALL start with a merge box that says whether the pull request can merge and why not. It SHALL have three segments: Checks (passing, failing and pending counts), Comments (unresolved threads) and Approvals (reviewers with their verdicts). It SHALL hold the merge action as a split button whose menu lists the merge methods. Merge SHALL keep its confirmation, its draft rule and its right.
+- REQ-044: The Overview SHALL show the description as Markdown, then the conversation. A narrow column SHALL show the reviewers with their verdicts, the labels, and the linked tickets and runs. It SHALL show no assignee, project or milestone.
+- REQ-045: The Files changed tab SHALL list every file collapsed by default, each with its path, its status and its lines added and removed. It SHALL show a file tree with a filter, an Expand all and a Collapse all action, and a count of the files that the person marked as viewed. A file that the person expands SHALL show its diff.
+- REQ-046: The Files changed tab SHALL use the same file rows, file tree, counts and diff component as the run page and Code / Local changes. The diff component SHALL show line numbers.
+- REQ-047: The conversation SHALL show the general comments of the pull request and its review threads, in time order, as Markdown, with the author and the time. A write box SHALL post a general comment. A comment of the forge SHALL show after the forge answers.
+- REQ-048: A review thread SHALL show its file and line, its comments, and a Resolved mark. A person SHALL reply to a thread and SHALL resolve or reopen it with one click each.
+- REQ-049: A person SHALL add a comment to a line of the new file on the Files changed tab with a button in the line gutter. The comment SHALL join a pending review kept on this computer. The page SHALL show the number of pending comments with Submit review and Discard. Submit review SHALL post all of them with one verdict: Comment, Approve or Request changes. A person SHALL also post one comment at once.
+- REQ-050: A pending review SHALL stay on this computer until the person submits or discards it. It SHALL survive a restart. A line that the pull request no longer has SHALL keep its comment text visible so that no text is lost.
+- REQ-051: When a forge refuses a comment, a reply or a review, the page SHALL show the refusal text and SHALL keep the pending text. Azure DevOps SHALL post an inline comment in the review body with its file and line. A pull request with more than 100 files SHALL show all of them.
+- REQ-052: Reply, resolve, inline comment, submit review and general comment SHALL need a click of a person and the right to write to the code host. A person without it SHALL see each control off with its reason.
+
 ### Non-Goals
 
 - A new feature, a new page or a new setting.
 - A change of the seven spaces or of the order of the sidebar.
+- Assignees, projects, milestone, reopen and convert to draft on the pull request page.
 - Decorative motion: shared-element moves, celebrations, page entrance effects. The fade of loaded content under its header (REQ-024) is not an entrance effect: it shows that the data arrived.
 - A width motion for the terminal, file and assistant drawers: they open with no width motion (a width spring refits the terminal on every frame).
 - The per-project picks and overrides of Settings / Project, fetch and push in Code / Branches, the project actions of Home / Projects: they stay.
@@ -121,6 +137,18 @@ Runs and Factory (second pass, 2026-11-12)
 - [x] REQ-038: The run page opens on the Workflow tab at that session.
 - [x] REQ-039: The whole model shows, and a drag moves it sideways.
 - [x] REQ-040: The page names the program, the code and its last line.
+- [ ] REQ-041: The page shows its title, branches and tabs, and Back returns to the list with the same filters.
+- [ ] REQ-042: Only the pull requests that match it show.
+- [ ] REQ-043: The box names two failing checks and one unresolved thread, and Merge asks for a confirmation that names the method.
+- [ ] REQ-044: The sidebar lists the ticket as a link.
+- [ ] REQ-045: All forty rows are collapsed, and expanding one shows its diff.
+- [ ] REQ-046: They use the same diff component with line numbers.
+- [ ] REQ-047: Both comments show with their author and time.
+- [ ] REQ-048: The thread shows the Resolved mark and the box counts one unresolved thread fewer.
+- [ ] REQ-049: The forge receives one review with both comments and the pending list is empty.
+- [ ] REQ-050: The pending comment is still there.
+- [ ] REQ-051: The refusal shows and the pending comments stay.
+- [ ] REQ-052: The write box, the reply, the resolve and the submit controls are off with their reason.
 
 ### Existing References
 
@@ -564,3 +592,123 @@ When a program that Shipyard starts ends with an error, the message SHALL name t
 - GIVEN the code graph program ends with code 1
 - WHEN the person clicks Index
 - THEN the page names the program, the code and its last line
+
+### Requirement: REQ-041 Pull request page
+
+A pull request SHALL open as its own page with its own address. The page SHALL show the title, the state, the source and target branch, the lines added and removed, and the tabs Overview, Commits, Checks and Files changed with their counts. Back SHALL return to the list with its search and filters kept.
+
+#### Scenario: Pull request page
+
+- GIVEN a pull request in the list
+- WHEN the person opens it
+- THEN the page shows its title, branches and tabs, and Back returns to the list with the same filters
+
+### Requirement: REQ-042 Pull request list
+
+The pull request list SHALL be a full-width page with a search, a filter (All, Mine, Needs review) and the state groups open, merged and closed. Each row SHALL show the number, the title, the author, the draft state, the checks state and the review state.
+
+#### Scenario: Pull request list
+
+- GIVEN a list of eight pull requests
+- WHEN the person types a word in the search
+- THEN only the pull requests that match it show
+
+### Requirement: REQ-043 Merge box
+
+The Overview tab SHALL start with a merge box that says whether the pull request can merge and why not. It SHALL have three segments: Checks (passing, failing and pending counts), Comments (unresolved threads) and Approvals (reviewers with their verdicts). It SHALL hold the merge action as a split button whose menu lists the merge methods. Merge SHALL keep its confirmation, its draft rule and its right.
+
+#### Scenario: Merge box
+
+- GIVEN a pull request with two failing checks and one unresolved thread
+- WHEN the Overview shows
+- THEN the box names two failing checks and one unresolved thread, and Merge asks for a confirmation that names the method
+
+### Requirement: REQ-044 Description and sidebar
+
+The Overview SHALL show the description as Markdown, then the conversation. A narrow column SHALL show the reviewers with their verdicts, the labels, and the linked tickets and runs. It SHALL show no assignee, project or milestone.
+
+#### Scenario: Description and sidebar
+
+- GIVEN a pull request that links a ticket
+- WHEN the Overview shows
+- THEN the sidebar lists the ticket as a link
+
+### Requirement: REQ-045 Files changed
+
+The Files changed tab SHALL list every file collapsed by default, each with its path, its status and its lines added and removed. It SHALL show a file tree with a filter, an Expand all and a Collapse all action, and a count of the files that the person marked as viewed. A file that the person expands SHALL show its diff.
+
+#### Scenario: Files changed
+
+- GIVEN a pull request with forty files
+- WHEN the Files changed tab shows
+- THEN all forty rows are collapsed, and expanding one shows its diff
+
+### Requirement: REQ-046 Shared file parts
+
+The Files changed tab SHALL use the same file rows, file tree, counts and diff component as the run page and Code / Local changes. The diff component SHALL show line numbers.
+
+#### Scenario: Shared file parts
+
+- GIVEN a diff on the pull request page and one on the run page
+- WHEN both show
+- THEN they use the same diff component with line numbers
+
+### Requirement: REQ-047 General comments
+
+The conversation SHALL show the general comments of the pull request and its review threads, in time order, as Markdown, with the author and the time. A write box SHALL post a general comment. A comment of the forge SHALL show after the forge answers.
+
+#### Scenario: General comments
+
+- GIVEN a pull request with two comments
+- WHEN the Overview shows
+- THEN both comments show with their author and time
+
+### Requirement: REQ-048 Threads
+
+A review thread SHALL show its file and line, its comments, and a Resolved mark. A person SHALL reply to a thread and SHALL resolve or reopen it with one click each.
+
+#### Scenario: Threads
+
+- GIVEN an unresolved thread
+- WHEN the person clicks Resolve
+- THEN the thread shows the Resolved mark and the box counts one unresolved thread fewer
+
+### Requirement: REQ-049 Inline comments
+
+A person SHALL add a comment to a line of the new file on the Files changed tab with a button in the line gutter. The comment SHALL join a pending review kept on this computer. The page SHALL show the number of pending comments with Submit review and Discard. Submit review SHALL post all of them with one verdict: Comment, Approve or Request changes. A person SHALL also post one comment at once.
+
+#### Scenario: Inline comments
+
+- GIVEN two pending comments on two lines
+- WHEN the person clicks Submit review and picks Comment
+- THEN the forge receives one review with both comments and the pending list is empty
+
+### Requirement: REQ-050 Pending review is kept
+
+A pending review SHALL stay on this computer until the person submits or discards it. It SHALL survive a restart. A line that the pull request no longer has SHALL keep its comment text visible so that no text is lost.
+
+#### Scenario: Pending review is kept
+
+- GIVEN a pending comment and a restart
+- WHEN the person opens the pull request again
+- THEN the pending comment is still there
+
+### Requirement: REQ-051 Forge limits
+
+When a forge refuses a comment, a reply or a review, the page SHALL show the refusal text and SHALL keep the pending text. Azure DevOps SHALL post an inline comment in the review body with its file and line. A pull request with more than 100 files SHALL show all of them.
+
+#### Scenario: Forge limits
+
+- GIVEN a forge that refuses an inline comment
+- WHEN the person submits the review
+- THEN the refusal shows and the pending comments stay
+
+### Requirement: REQ-052 Pull request rights
+
+Reply, resolve, inline comment, submit review and general comment SHALL need a click of a person and the right to write to the code host. A person without it SHALL see each control off with its reason.
+
+#### Scenario: Pull request rights
+
+- GIVEN a viewer
+- WHEN the person opens a pull request
+- THEN the write box, the reply, the resolve and the submit controls are off with their reason
