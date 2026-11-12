@@ -14,9 +14,14 @@ export type DiffFileItem = {
 	patch?: string | null;
 	binary?: boolean;
 	truncated?: boolean;
+	/** Review threads and pending comments on the file: a badge on the row. */
+	comments?: number;
 };
 
-type Extras = Pick<ComponentProps<typeof DiffView>, "notes" | "gutterAction" | "onLineAction">;
+type Extras = Pick<
+	ComponentProps<typeof DiffView>,
+	"notes" | "lineActionLabel" | "onLineAction" | "lineActionDisabled" | "hiddenNotesLabel"
+>;
 
 /** The lines that a file adds and removes. */
 export function countsOf(text: string) {
@@ -34,6 +39,7 @@ function Row({
 	viewed,
 	onViewedChange,
 	head,
+	foot,
 	diffProps,
 }: {
 	file: DiffFileItem;
@@ -42,6 +48,7 @@ function Row({
 	viewed?: boolean;
 	onViewedChange?: (viewed: boolean) => void;
 	head?: ReactNode;
+	foot?: ReactNode;
 	diffProps?: Extras;
 }) {
 	const { t } = useI18n();
@@ -68,6 +75,16 @@ function Row({
 						</Badge>
 					) : null}
 					<span className="min-w-0 flex-1 truncate font-mono text-11">{file.path}</span>
+					{file.comments ? (
+						<Badge variant="info">
+							{format(
+								file.comments === 1
+									? t.forge.pullInline.commentsOne
+									: t.forge.pullInline.commentsMany,
+								{ n: file.comments },
+							)}
+						</Badge>
+					) : null}
 					{n && !file.binary ? (
 						<>
 							<span aria-hidden="true" className="font-mono text-11">
@@ -110,6 +127,7 @@ function Row({
 							{...diffProps}
 						/>
 					)}
+					{foot}
 				</div>
 			) : null}
 		</div>
@@ -127,6 +145,7 @@ export function DiffFileList({
 	viewed,
 	onViewedChange,
 	head,
+	foot,
 	diffProps,
 }: {
 	files: DiffFileItem[];
@@ -137,7 +156,9 @@ export function DiffFileList({
 	onViewedChange?: (path: string, viewed: boolean) => void;
 	/** Above the diff of an open file: an action such as Open file. */
 	head?: (file: DiffFileItem) => ReactNode;
-	/** The notes and the gutter action of the diff of one file: wave 12 puts line comments here. */
+	/** Under the diff of an open file: the comments on lines that the diff does not show. */
+	foot?: (file: DiffFileItem) => ReactNode;
+	/** The notes and the line action of the diff of one file: line comments go here. */
 	diffProps?: (file: DiffFileItem) => Extras;
 }) {
 	return (
@@ -151,6 +172,7 @@ export function DiffFileList({
 					viewed={viewed?.has(f.path)}
 					onViewedChange={onViewedChange && ((v) => onViewedChange(f.path, v))}
 					head={head?.(f)}
+					foot={foot?.(f)}
 					diffProps={diffProps?.(f)}
 				/>
 			))}

@@ -92,9 +92,9 @@ Pull requests (third pass, 2026-11-12)
 - REQ-046: The Files changed tab SHALL use the same file rows, tree, counts and diff component as Code / Local changes where they show the same things, and the same collapsed file list as the run page. The diff component SHALL show line numbers.
 - REQ-047: The conversation SHALL show the general comments of the pull request and its review threads, in time order, as Markdown, with the author and the time. A write box SHALL post a general comment. A comment of the forge SHALL show after the forge answers. The conversation SHALL say when a forge returned only the newest comments.
 - REQ-048: A review thread SHALL show its file and line, its comments, and a Resolved mark. A person SHALL reply to a thread and SHALL resolve or reopen it with one click each. A thread with more comments than the forge returned SHALL say so.
-- REQ-049: A person SHALL add a comment to a line of the new file on the Files changed tab with a button in the line gutter. The comment SHALL join a pending review kept on this computer. The page SHALL show the number of pending comments with Submit review and Discard. Submit review SHALL post all of them with one verdict: Comment, Approve or Request changes. A person SHALL also post one comment at once.
-- REQ-050: A pending review SHALL stay on this computer until the person submits or discards it. It SHALL survive a restart. A line that the pull request no longer has SHALL keep its comment text visible so that no text is lost.
-- REQ-051: When a forge refuses a comment, a reply or a review, the page SHALL show the refusal text and SHALL keep the pending text. Azure DevOps SHALL post an inline comment in the review body with its file and line. A pull request with more than 100 files SHALL show them, up to 3000 files.
+- REQ-049: A person SHALL add a comment to a line of the new file on the Files changed tab with a button in the line gutter. The comment SHALL join a pending review kept on this computer. The page SHALL show the number of pending comments with Submit review and Discard. Submit review SHALL post all of them with one verdict: Comment, Approve or Request changes. A person SHALL also post one comment at once. Comments are on the new side of the diff only. A single comment is posted as a one-comment review. Cancel asks when the box has text. A partial result clears what was sent and keeps the rest.
+- REQ-050: A pending review SHALL stay on this computer until the person submits or discards it. It SHALL survive a restart. The review SHALL be kept in the local storage of this computer. When the storage refuses a write, the page SHALL say "This comment is not saved on this computer" and keep the comment in memory. A line that the pull request no longer has SHALL keep its comment text visible so that no text is lost, and a comment on a file that left the pull request SHALL stay reachable.
+- REQ-051: When a forge refuses a comment, a reply or a whole review, the page SHALL show the refusal text and SHALL keep every pending comment. A comment that the code host cannot place on a line SHALL go into the review text, and a notice SHALL say so. Azure DevOps SHALL post an inline comment in the review body with its file and line. A pull request with more than 100 files SHALL show them, up to 3000 files.
 - REQ-052: Reply, resolve, inline comment, submit review and general comment SHALL need a click of a person and the right to write to the code host. A person without it SHALL see each control off with its reason.
 
 ### Non-Goals
@@ -145,9 +145,9 @@ Pull requests (third pass, 2026-11-12)
 - [ ] REQ-046: They use the same collapsed file list and the same diff component with line numbers.
 - [ ] REQ-047: Both comments show with their author and time, and a note says when only the newest comments came back.
 - [ ] REQ-048: The thread shows the Resolved mark and the box counts one unresolved thread fewer, and a thread that came back partly says how many comments it shows.
-- [ ] REQ-049: The forge receives one review with both comments and the pending list is empty.
-- [ ] REQ-050: The pending comment is still there.
-- [ ] REQ-051: The refusal shows and the pending comments stay.
+- [ ] REQ-049: The forge receives one review with both comments and the pending list is empty. A partial result keeps only the comments that were not sent.
+- [ ] REQ-050: The pending comment is still there, also when the storage refuses a write (a notice shows) and when its file left the pull request.
+- [ ] REQ-051: A comment that has no line goes into the review text with a notice, and a refusal of the whole review shows and keeps every comment.
 - [ ] REQ-052: The write box, the reply, the resolve and the submit controls are off with their reason.
 
 ### Existing References
@@ -687,7 +687,7 @@ A review thread SHALL show its file and line, its comments, and a Resolved mark.
 
 ### Requirement: REQ-049 Inline comments
 
-A person SHALL add a comment to a line of the new file on the Files changed tab with a button in the line gutter. The comment SHALL join a pending review kept on this computer. The page SHALL show the number of pending comments with Submit review and Discard. Submit review SHALL post all of them with one verdict: Comment, Approve or Request changes. A person SHALL also post one comment at once.
+A person SHALL add a comment to a line of the new file on the Files changed tab with a button in the line gutter. The comment SHALL join a pending review kept on this computer. The page SHALL show the number of pending comments with Submit review and Discard. Submit review SHALL post all of them with one verdict: Comment, Approve or Request changes. A person SHALL also post one comment at once. Comments are on the new side of the diff only. A single comment is posted as a one-comment review. Cancel asks when the box has text. A partial result clears what was sent and keeps the rest.
 
 #### Scenario: Inline comments
 
@@ -697,7 +697,7 @@ A person SHALL add a comment to a line of the new file on the Files changed tab 
 
 ### Requirement: REQ-050 Pending review is kept
 
-A pending review SHALL stay on this computer until the person submits or discards it. It SHALL survive a restart. A line that the pull request no longer has SHALL keep its comment text visible so that no text is lost.
+A pending review SHALL stay on this computer until the person submits or discards it. It SHALL survive a restart. The review SHALL be kept in the local storage of this computer. When the storage refuses a write, the page SHALL say "This comment is not saved on this computer" and keep the comment in memory. A line that the pull request no longer has SHALL keep its comment text visible so that no text is lost, and a comment on a file that left the pull request SHALL stay reachable.
 
 #### Scenario: Pending review is kept
 
@@ -707,13 +707,14 @@ A pending review SHALL stay on this computer until the person submits or discard
 
 ### Requirement: REQ-051 Forge limits
 
-When a forge refuses a comment, a reply or a review, the page SHALL show the refusal text and SHALL keep the pending text. Azure DevOps SHALL post an inline comment in the review body with its file and line. A pull request with more than 100 files SHALL show them, up to 3000 files.
+When a forge refuses a comment, a reply or a whole review, the page SHALL show the refusal text and SHALL keep every pending comment. A comment that the code host cannot place on a line SHALL go into the review text, and a notice SHALL say so. Azure DevOps SHALL post an inline comment in the review body with its file and line. A pull request with more than 100 files SHALL show them, up to 3000 files.
 
 #### Scenario: Forge limits
 
-- GIVEN a forge that refuses an inline comment
+- GIVEN a code host that cannot place one comment on a line
 - WHEN the person submits the review
-- THEN the refusal shows and the pending comments stay
+- THEN that comment goes into the review text and a notice says so
+- AND a refusal of the whole review shows the message and keeps every comment
 
 ### Requirement: REQ-052 Pull request rights
 

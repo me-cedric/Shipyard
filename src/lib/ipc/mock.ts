@@ -1904,6 +1904,10 @@ const handlers: Handlers = {
 		cp.pullResolve(prs(), reference, threadId, resolved, click),
 	codePullVerdict: (number, verdict, body, click) =>
 		cp.pullVerdict(prs(), number, verdict, body, click),
+	codePullReviewSubmit: (reference, verdict, body, notes, headSha, click) =>
+		cp.pullReviewSubmit(prs(), reference, verdict, body, notes, headSha, click),
+	codePullLineComment: (reference, path, line, body, headSha, click) =>
+		cp.pullLineComment(prs(), reference, path, line, body, headSha, click),
 	codePullMerge: (number, method, click) => cp.pullMerge(prs(), number, method, click),
 	codePullReady: (number, click) => cp.pullReady(prs(), number, click),
 	codeQuality: () => cp.qualityView(prs()),

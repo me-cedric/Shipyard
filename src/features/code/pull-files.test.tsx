@@ -1,5 +1,6 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { resetPendingReview } from "@/lib/code/pending-review";
 import type { PullDetail_Serialize } from "@/lib/ipc";
 import { clearViewState, setViewProject } from "@/lib/shell/view-state";
 import { renderApp } from "@/ui/test-utils";
@@ -10,14 +11,17 @@ const detail = {
 	reference: "pr:x:1",
 	headSha: "aaa",
 	filesTruncated: false,
+	threads: [],
 	files: [
 		{ path: "src/api/une-idée.ts", status: "added", patch: patch(1) },
 		{ path: "src/ui/b.ts", status: "modified", patch: patch(2) },
 		{ path: "docs/c.md", status: "removed", patch: null },
 	],
-} as PullDetail_Serialize;
+} as unknown as PullDetail_Serialize;
 
 beforeEach(() => {
+	localStorage.clear();
+	resetPendingReview();
 	clearViewState();
 	setViewProject("p");
 });
@@ -135,5 +139,168 @@ describe("PullFiles", () => {
 		await user.click(screen.getByRole("button", { name: "Expand next 15" }));
 		expect(screen.getAllByRole("region")).toHaveLength(45);
 		expect(screen.getByRole("button", { name: "Expand all" })).toBeDisabled();
+	});
+});
+
+const thread = (id: string, line: number, body: string) => ({
+	id,
+	resolved: false,
+	path: "src/a.ts",
+	line,
+	commentsTotal: 1,
+	comments: [{ id: `${id}c`, author: "Grace", body, created: "2026-11-10T09:00:00Z" }],
+});
+// New lines 1 to 3 are in the diff.
+const inline = {
+	...detail,
+	files: [
+		{ path: "src/a.ts", status: "modified", patch: "@@ -1,2 +1,3 @@\n a\n+b\n c" },
+		{ path: "src/other.ts", status: "modified", patch: patch(3) },
+	],
+	threads: [thread("T1", 2, "rename this"), thread("T2", 99, "far away")],
+} as unknown as PullDetail_Serialize;
+
+const openFile = async (user: ReturnType<typeof userEvent.setup>) =>
+	user.click(
+		within(screen.getByRole("group", { name: "Changed files" })).getByRole("button", {
+			name: /a\.ts/,
+		}),
+	);
+const plus = (n: number) => screen.getByRole("button", { name: `Add a comment on line ${n}` });
+
+describe("PullFiles inline comments", () => {
+	it("shows a thread under its line, an outside thread at the foot, and the counts", async () => {
+		const user = userEvent.setup();
+		renderApp(<PullFiles detail={inline} />);
+		// Closed by default; the row and the tree say "2 comments".
+		expect(screen.queryByRole("article", { name: "src/a.ts:2" })).toBeNull();
+		expect(screen.getAllByText("2 comments")).toHaveLength(2);
+		expect(screen.queryByText("1 comment")).toBeNull();
+		await openFile(user);
+		const under = screen.getByRole("article", { name: "src/a.ts:2" });
+		expect(within(under).getByText("rename this")).toBeInTheDocument();
+		const foot = screen.getByRole("region", { name: "Comments on lines outside the diff" });
+		expect(within(foot).getByText("far away")).toBeInTheDocument();
+		expect(within(foot).getByRole("article", { name: "src/a.ts:99" })).toBeInTheDocument();
+	});
+
+	it("adds a pending comment under the line, counts it at once and gives the focus back to the plus button", async () => {
+		const user = userEvent.setup();
+		renderApp(<PullFiles detail={inline} />);
+		await openFile(user);
+		await user.click(plus(3));
+		await user.type(screen.getByRole("textbox", { name: "Comment on line 3" }), "Use **const**");
+		await user.click(screen.getByRole("button", { name: "Add review comment" }));
+		expect(screen.queryByRole("textbox", { name: "Comment on line 3" })).toBeNull();
+		const card = screen.getByRole("article", { name: "Pending: src/a.ts:3" });
+		expect(within(card).getByText("const").tagName).toBe("STRONG");
+		expect(screen.getAllByText("3 comments")).toHaveLength(2);
+		expect(plus(3)).toHaveFocus();
+		// Edit, then delete with a question: the count follows.
+		await user.click(within(card).getByRole("button", { name: "Edit the comment on line 3" }));
+		await user.clear(screen.getByRole("textbox", { name: "Edit the comment on line 3" }));
+		await user.type(screen.getByRole("textbox", { name: "Edit the comment on line 3" }), "Changed");
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(screen.getByText("Changed")).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Delete the comment on line 3" }));
+		await user.click(screen.getByRole("button", { name: "Delete this comment?" }));
+		expect(screen.queryByText("Changed")).toBeNull();
+		expect(screen.getAllByText("2 comments")).toHaveLength(2);
+	});
+
+	it("keeps a pending comment of an older push and a line that the diff lost, with its text", async () => {
+		const user = userEvent.setup();
+		const first = renderApp(<PullFiles detail={inline} />);
+		await openFile(user);
+		await user.click(plus(3));
+		await user.type(screen.getByRole("textbox", { name: "Comment on line 3" }), "Old push");
+		await user.click(screen.getByRole("button", { name: "Add review comment" }));
+		first.unmount();
+		const next = {
+			...inline,
+			headSha: "bbb",
+			files: [
+				{ path: "src/a.ts", status: "modified", patch: "@@ -1,1 +1,1 @@\n a" },
+				...inline.files.slice(1),
+			],
+		} as unknown as PullDetail_Serialize;
+		renderApp(<PullFiles detail={next} />);
+		await openFile(user);
+		expect(screen.getByText("Old push")).toBeInTheDocument();
+		expect(screen.getByText("On an older version")).toBeInTheDocument();
+		// Line 3 is gone from the new diff: the text sits in the foot group.
+		const foot = screen.getByRole("region", { name: "Comments on lines outside the diff" });
+		expect(within(foot).getByText("Old push")).toBeInTheDocument();
+	});
+
+	it("opens a box on a context line, closes an empty one with Escape and returns the focus", async () => {
+		const user = userEvent.setup();
+		renderApp(<PullFiles detail={inline} />);
+		await openFile(user);
+		await user.click(plus(1));
+		expect(screen.getByRole("textbox", { name: "Comment on line 1" })).toHaveFocus();
+		await user.keyboard("{Escape}");
+		expect(screen.queryByRole("textbox", { name: "Comment on line 1" })).toBeNull();
+		expect(plus(1)).toHaveFocus();
+	});
+
+	it("sends the focus to the plus button of the line after a delete", async () => {
+		const user = userEvent.setup();
+		renderApp(<PullFiles detail={inline} />);
+		await openFile(user);
+		await user.click(plus(3));
+		await user.type(screen.getByRole("textbox", { name: "Comment on line 3" }), "Gone soon");
+		await user.click(screen.getByRole("button", { name: "Add review comment" }));
+		await user.click(screen.getByRole("button", { name: "Delete the comment on line 3" }));
+		await user.click(screen.getByRole("button", { name: "Delete this comment?" }));
+		expect(plus(3)).toHaveFocus();
+	});
+
+	it("lists a pending comment on a file that left the pull request, in full, with Edit and Delete", async () => {
+		const user = userEvent.setup();
+		localStorage.setItem(
+			"shipyard:pending-review:p|pr:x:1",
+			JSON.stringify([
+				{
+					id: "g1",
+					path: "src/removed.ts",
+					line: 7,
+					body: "First\n\n**Second** part",
+					createdAt: "",
+					headSha: "aaa",
+				},
+			]),
+		);
+		renderApp(<PullFiles detail={inline} />);
+		const group = screen.getByRole("region", {
+			name: "Comments on files no longer in this pull request",
+		});
+		expect(within(group).getByText("src/removed.ts:7")).toBeInTheDocument();
+		expect(within(group).getByText("Second").tagName).toBe("STRONG");
+		await user.click(within(group).getByRole("button", { name: "Delete the comment on line 7" }));
+		await user.click(screen.getByRole("button", { name: "Delete this comment?" }));
+		expect(screen.queryByRole("region", { name: /no longer in this pull request/ })).toBeNull();
+		expect(localStorage.getItem("shipyard:pending-review:p|pr:x:1")).toBeNull();
+	});
+
+	it("says so on the card when the comment is not saved on this computer, and keeps the text", async () => {
+		const user = userEvent.setup();
+		renderApp(<PullFiles detail={inline} />);
+		await openFile(user);
+		const full = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+			throw new Error("The quota is exceeded");
+		});
+		await user.click(plus(3));
+		await user.type(screen.getByRole("textbox", { name: "Comment on line 3" }), "Still here");
+		await user.click(screen.getByRole("button", { name: "Add review comment" }));
+		const card = screen.getByRole("article", { name: "Pending: src/a.ts:3" });
+		expect(within(card).getByText("Still here")).toBeInTheDocument();
+		expect(within(card).getByRole("alert")).toHaveTextContent(
+			"This comment is not saved on this computer: The quota is exceeded",
+		);
+		full.mockRestore();
+		await user.click(within(card).getByRole("button", { name: "Edit the comment on line 3" }));
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		expect(within(card).queryByRole("alert")).toBeNull();
 	});
 });

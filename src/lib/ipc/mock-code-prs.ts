@@ -15,6 +15,8 @@ import type {
 	QualityReport_Serialize,
 	QualityRow_Serialize,
 	QualityView_Serialize,
+	ReviewNoteInput,
+	ReviewOutcome,
 	SbomReport,
 	Verdict,
 } from "./bindings";
@@ -396,6 +398,89 @@ export function pullVerdict(
 	];
 	if (body.trim()) pullComment(p, number, body, true);
 	return null;
+}
+
+/** The lines of the new file that a unified diff shows: added and context lines. */
+function newLines(patch: string): Set<number> {
+	const shown = new Set<number>();
+	let at: number | null = null;
+	for (const l of patch.split("\n")) {
+		const h = /^@@ -\S+ \+(\d+)/.exec(l);
+		if (h) at = Number(h[1]);
+		else if (at !== null && l !== "" && !"-\\".includes(l[0] ?? "")) shown.add(at++);
+	}
+	return shown;
+}
+
+/** A review: each note on a line of the diff is a new thread, the rest goes in the text. */
+export function pullReviewSubmit(
+	p: MockPrs,
+	reference: string,
+	verdict: string,
+	body: string,
+	notes: ReviewNoteInput[],
+	headSha: string,
+	click: boolean,
+): ReviewOutcome {
+	need(click);
+	const d = find(p, Number(reference.split(":").pop()));
+	if (!["comment", "approve", "request_changes"].includes(verdict))
+		throw `not a verdict: ${verdict}`;
+	if (notes.length > 100) throw "a review holds 100 line comments at most";
+	if (verdict === "request_changes" && !body.trim()) throw "a request for changes needs some text";
+	if (verdict === "comment" && !notes.length && !body.trim()) throw "the review is empty";
+	if (notes.some((n) => !n.body.trim())) throw "a line comment needs some text";
+	const rest: string[] = [];
+	let inline = 0;
+	for (const n of notes) {
+		const patch = d.files.find((f) => f.path === n.path)?.patch;
+		// A note of an older push may sit on another line now: it goes in the text, like the code host does.
+		if (!patch || n.headSha !== headSha || !newLines(patch).has(n.line)) {
+			const tag = n.headSha !== headSha ? " (older version)" : "";
+			rest.push(`- \`${n.path}:${n.line}\`${tag} ${n.body.trim()}`);
+			continue;
+		}
+		inline += 1;
+		d.threads.push({
+			id: `T${++p.counter}`,
+			resolved: false,
+			path: n.path,
+			line: n.line,
+			commentsTotal: 1,
+			comments: [stamp(p, n.body)],
+		});
+	}
+	if (verdict !== "comment") {
+		const state = verdict === "approve" ? "approved" : "changes-requested";
+		d.verdicts = [
+			...d.verdicts.filter((v) => v.reviewer !== "Ada Lovelace"),
+			{ reviewer: "Ada Lovelace", state },
+		];
+	}
+	const text = [body.trim(), ...rest].filter(Boolean).join("\n\n");
+	if (text) d.comments.push(stamp(p, text));
+	return { inline, inBody: rest.length, failed: [] };
+}
+
+/** One comment on a line at once. */
+export function pullLineComment(
+	p: MockPrs,
+	reference: string,
+	path: string,
+	line: number,
+	body: string,
+	headSha: string,
+	click: boolean,
+) {
+	return pullReviewSubmit(
+		p,
+		reference,
+		"comment",
+		"",
+		[{ path, line, body, headSha }],
+		headSha,
+		click,
+	);
 }
 
 export function pullClose(p: MockPrs, number: number) {

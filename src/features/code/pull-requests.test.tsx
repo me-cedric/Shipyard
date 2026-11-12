@@ -361,8 +361,12 @@ describe("Code / Pull requests", () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-141");
-		await user.click(await screen.findByRole("button", { name: "Request changes" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("some text");
+		await user.click(await screen.findByRole("button", { name: "Submit review" }));
+		const dialog = await screen.findByRole("dialog");
+		await user.click(within(dialog).getByRole("radio", { name: "Request changes" }));
+		await user.click(within(dialog).getByRole("button", { name: "Submit review" }));
+		expect(await within(dialog).findByRole("alert")).toHaveTextContent("some text");
+		await user.click(within(dialog).getByRole("button", { name: "Close" }));
 		await user.type(screen.getByRole("textbox", { name: "Comment" }), "rename it");
 		await user.click(screen.getByRole("button", { name: "Comment" }));
 		expect(await screen.findByText("rename it")).toBeInTheDocument();
@@ -545,10 +549,14 @@ describe("Pull request conversation", () => {
 		await user.click(post);
 		await waitFor(() => expect(mockPull(141)?.comments).toHaveLength(1));
 		expect(mockPull(141)?.threads).toHaveLength(0);
-		// A request for changes with no text is refused and the box stays.
+		// A request for changes with no text is refused in the dialog and the box stays.
 		await user.type(screen.getByRole("textbox", { name: "Comment" }), "  ");
-		await user.click(screen.getByRole("button", { name: "Request changes" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("some text");
+		await user.click(screen.getByRole("button", { name: "Submit review" }));
+		const dialog = await screen.findByRole("dialog");
+		await user.click(within(dialog).getByRole("radio", { name: "Request changes" }));
+		await user.click(within(dialog).getByRole("button", { name: "Submit review" }));
+		expect(await within(dialog).findByRole("alert")).toHaveTextContent("some text");
+		await user.click(within(dialog).getByRole("button", { name: "Close" }));
 		expect(screen.getByRole("textbox", { name: "Comment" })).toHaveValue("  ");
 		await idle(router);
 	});
@@ -641,13 +649,17 @@ describe("Pull request conversation", () => {
 		await idle(router);
 	});
 
-	it("keeps Approve, Send back and Close", async () => {
+	it("keeps Send back and Close, and approves from Submit review", async () => {
 		const user = userEvent.setup();
 		const router = await open(143);
 		await screen.findByRole("textbox", { name: "Comment" });
 		expect(screen.getByRole("button", { name: "Send back to the agent" })).toBeInTheDocument();
 		await user.type(screen.getByRole("textbox", { name: "Comment" }), "fine");
-		await user.click(screen.getByRole("button", { name: "Approve" }));
+		await user.click(screen.getByRole("button", { name: "Submit review" }));
+		const dialog = await screen.findByRole("dialog");
+		expect(within(dialog).getByRole("textbox", { name: "Review text" })).toHaveValue("fine");
+		await user.click(within(dialog).getByRole("radio", { name: "Approve" }));
+		await user.click(within(dialog).getByRole("button", { name: "Submit review" }));
 		await waitFor(() =>
 			expect(mockPull(143)?.verdicts.some((v) => v.state === "approved")).toBe(true),
 		);

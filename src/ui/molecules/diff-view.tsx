@@ -1,7 +1,16 @@
-import { type ReactNode, useState } from "react";
+import {
+	type KeyboardEvent,
+	memo,
+	type ReactNode,
+	useCallback,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { format } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Button } from "../atoms/button";
+import { PlusIcon } from "../icons";
 import { CodeLine } from "./code-editor";
 
 type Kind = "add" | "del" | "hunk" | "ctx";
@@ -61,6 +70,75 @@ export const DIFF_LINE_CAP = 2000;
 
 const NUM = "w-10 shrink-0 pr-1 text-right text-n-9 tabular-nums select-none";
 
+/** One line. It is memoised: a note that opens under one line does not draw the others again. */
+const LineRow = memo(function LineRow({
+	l,
+	path,
+	note,
+	actionLabel,
+	actionOff,
+	tabbable,
+	onAct,
+	onActive,
+}: {
+	l: Line;
+	path?: string;
+	note?: ReactNode;
+	actionLabel?: string;
+	/** The reason that the "+" is off. The button stays in the tab order and says why. */
+	actionOff?: string;
+	tabbable: boolean;
+	onAct: (newLine: number) => void;
+	onActive: (newLine: number) => void;
+}) {
+	const at = l.new;
+	return (
+		<div>
+			<div data-kind={l.kind} className={cn("group flex whitespace-pre", TONE[l.kind])}>
+				{l.kind === "hunk" ? (
+					<span className="px-2">{l.text}</span>
+				) : (
+					<>
+						<span aria-hidden="true" className={NUM}>
+							{l.old}
+						</span>
+						<span aria-hidden="true" className={NUM}>
+							{l.new}
+						</span>
+						{actionLabel ? (
+							<span className="w-5 shrink-0 text-center">
+								{at == null ? null : (
+									<button
+										type="button"
+										data-line-action={at}
+										tabIndex={tabbable ? 0 : -1}
+										aria-label={format(actionLabel, { n: at })}
+										aria-disabled={actionOff ? true : undefined}
+										aria-description={actionOff}
+										title={actionOff}
+										onFocus={() => onActive(at)}
+										onClick={() => !actionOff && onAct(at)}
+										className="inline-flex size-4 items-center justify-center rounded-sm text-n-11 opacity-0 transition-opacity duration-(--duration-fast) hover:bg-n-4 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:shadow-glow"
+									>
+										<PlusIcon size={12} />
+									</button>
+								)}
+							</span>
+						) : null}
+						<span aria-hidden="true" className="w-5 shrink-0 text-center select-none">
+							{SIGN[l.kind]}
+						</span>
+						<span className="pr-3">
+							<CodeLine text={l.text} lang={path} />
+						</span>
+					</>
+				)}
+			</div>
+			{note ? <div className="px-5 py-1 font-sans whitespace-normal">{note}</div> : null}
+		</div>
+	);
+});
+
 /** A unified diff. Two line numbers, a sign in the gutter and a tint mark each changed line. */
 export function DiffView({
 	text,
@@ -72,8 +150,10 @@ export function DiffView({
 	truncatedLabel,
 	notes,
 	showAllLabel,
-	gutterAction,
+	lineActionLabel,
 	onLineAction,
+	lineActionDisabled,
+	hiddenNotesLabel,
 }: {
 	text: string;
 	/** The file path: its type picks the colours of the lines. */
@@ -88,60 +168,71 @@ export function DiffView({
 	notes?: Record<number, ReactNode>;
 	/** With it, a diff of more than `DIFF_LINE_CAP` lines shows the first ones and this button. `{n}` is the line count. */
 	showAllLabel?: string;
-	/** A control in the gutter of a line of the new file, such as a "+" that starts a comment. Nothing draws it by default. */
-	gutterAction?: (line: { path?: string; newLine: number; act: () => void }) => ReactNode;
-	/** What `act` of `gutterAction` calls. */
+	/** With `onLineAction`, a "+" button shows in the gutter of each added and context line. Its accessible name; `{n}` is the line number. */
+	lineActionLabel?: string;
+	/** What the "+" button of a line calls. Arrow keys move between the buttons: the diff is one tab stop. */
 	onLineAction?: (line: { path?: string; newLine: number }) => void;
+	/** The reason that the "+" buttons are off: they stay focusable and say why. The diff does not know the rights. */
+	lineActionDisabled?: string;
+	/** Under the cap, a note says how many lines with a note wait for Show all. `{n}` is that count. */
+	hiddenNotesLabel?: string;
 }) {
 	const [all, setAll] = useState(false);
-	const lines = parseDiff(text);
+	const [active, setActive] = useState<number | null>(null);
+	const lines = useMemo(() => parseDiff(text), [text]);
 	const capped = !!showAllLabel && !all && lines.length > DIFF_LINE_CAP;
+	const actionLabel = onLineAction ? lineActionLabel : undefined;
+	// shortcut: counts the lines that hold a note, not each comment, upgrade when a note needs its own count
+	const hidden = capped
+		? lines.slice(DIFF_LINE_CAP).filter((l) => l.new != null && notes?.[l.new]).length
+		: 0;
+	// The one line button in the tab order: the last focused one, else the first.
+	const stop = useMemo(
+		() =>
+			active != null && lines.some((l) => l.new === active)
+				? active
+				: (lines.find((l) => l.new != null)?.new ?? null),
+		[lines, active],
+	);
+	const latest = useRef(onLineAction);
+	latest.current = onLineAction;
+	const onAct = useCallback((newLine: number) => latest.current?.({ path, newLine }), [path]);
+	const move = (e: KeyboardEvent<HTMLElement>) => {
+		if (!(e.target instanceof HTMLElement) || e.target.dataset.lineAction === undefined) return;
+		if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+		e.preventDefault();
+		const buttons = [...e.currentTarget.querySelectorAll<HTMLElement>("[data-line-action]")];
+		buttons[buttons.indexOf(e.target) + (e.key === "ArrowDown" ? 1 : -1)]?.focus();
+	};
 	return (
 		// A scroll area needs a keyboard stop (axe scrollable-region-focusable).
-		// biome-ignore lint/a11y/noNoninteractiveTabindex: a keyboard person scrolls the diff
-		<section aria-label={label} tabIndex={0} className="overflow-x-auto font-mono text-12">
+		<section
+			aria-label={label}
+			// biome-ignore lint/a11y/noNoninteractiveTabindex: a keyboard person scrolls the diff
+			tabIndex={0}
+			onKeyDown={actionLabel ? move : undefined}
+			className="overflow-x-auto font-mono text-12"
+		>
 			{binary ? <p className="px-3 py-1 text-n-11">{binaryLabel}</p> : null}
-			{(capped ? lines.slice(0, DIFF_LINE_CAP) : lines).map((l, i) => {
-				const at = l.new;
-				const note = at == null ? undefined : notes?.[at];
-				return (
+			{(capped ? lines.slice(0, DIFF_LINE_CAP) : lines).map((l, i) => (
+				<LineRow
 					// biome-ignore lint/suspicious/noArrayIndexKey: the lines never reorder
-					<div key={i}>
-						<div data-kind={l.kind} className={cn("flex whitespace-pre", TONE[l.kind])}>
-							{l.kind === "hunk" ? (
-								<span className="px-2">{l.text}</span>
-							) : (
-								<>
-									<span aria-hidden="true" className={NUM}>
-										{l.old}
-									</span>
-									<span aria-hidden="true" className={NUM}>
-										{l.new}
-									</span>
-									{gutterAction ? (
-										<span className="w-5 shrink-0 text-center">
-											{at == null
-												? null
-												: gutterAction({
-														path,
-														newLine: at,
-														act: () => onLineAction?.({ path, newLine: at }),
-													})}
-										</span>
-									) : null}
-									<span aria-hidden="true" className="w-5 shrink-0 text-center select-none">
-										{SIGN[l.kind]}
-									</span>
-									<span className="pr-3">
-										<CodeLine text={l.text} lang={path} />
-									</span>
-								</>
-							)}
-						</div>
-						{note ? <div className="px-5 py-1 font-sans whitespace-normal">{note}</div> : null}
-					</div>
-				);
-			})}
+					key={i}
+					l={l}
+					path={path}
+					note={l.new == null ? undefined : notes?.[l.new]}
+					actionLabel={actionLabel}
+					actionOff={lineActionDisabled}
+					tabbable={l.new != null && l.new === stop}
+					onAct={onAct}
+					onActive={setActive}
+				/>
+			))}
+			{capped && hidden > 0 && hiddenNotesLabel ? (
+				<p role="status" className="px-3 py-1 text-n-11">
+					{format(hiddenNotesLabel, { n: hidden })}
+				</p>
+			) : null}
 			{capped ? (
 				<Button variant="ghost" onClick={() => setAll(true)}>
 					{format(showAllLabel, { n: lines.length })}

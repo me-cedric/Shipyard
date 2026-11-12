@@ -801,6 +801,7 @@ fn review_args(
             path: f.path.clone(),
             line: f.line,
             text: scrub(&format!("{} {}", f.severity, f.text.trim()), secrets),
+            head_sha: String::new(),
         })
         .collect();
     (
@@ -836,7 +837,8 @@ fn post_with(s: &AppState, post: ReviewPost, comment_only: bool) -> Res<()> {
             &summary,
             &notes,
         )
-        .map_err(err)?;
+        .map_err(err)?
+        .failed;
     draft.summary = post.summary;
     draft.verdict = verdict;
     draft.findings = post.findings;
@@ -1495,6 +1497,7 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
             path: "a.rs".into(),
             line: 4,
             text: "x".into(),
+            head_sha: String::new(),
         };
         let e = unposted(&[n]).unwrap_err();
         assert!(e.contains("posted") && e.contains("a.rs:4"), "{e}");
@@ -1544,7 +1547,8 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
             [LineNote {
                 path: "a.txt".into(),
                 line: 2,
-                text: "P1 No test".into()
+                text: "P1 No test".into(),
+                head_sha: String::new(),
             }]
         );
         assert_eq!(review_args(&post, true, &[]).0, ReviewVerdict::Comment);

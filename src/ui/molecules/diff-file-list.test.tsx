@@ -53,4 +53,21 @@ describe("DiffFileList", () => {
 		await userEvent.click(screen.getByRole("checkbox", { name: "Viewed src/a.ts" }));
 		expect(seen).toHaveBeenCalledWith("src/a.ts", true);
 	});
+
+	it("shows the comment count on the closed row and a foot under the open diff", async () => {
+		const user = userEvent.setup();
+		renderApp(
+			<DiffFileList
+				files={FILES.map((f, i) => ({ ...f, comments: 2 - i }))}
+				expanded={new Set(["src/a.ts"])}
+				onToggle={() => {}}
+				foot={(f) => <p>{`Foot of ${f.path}`}</p>}
+			/>,
+		);
+		expect(screen.getByText("2 comments")).toBeInTheDocument();
+		expect(screen.getByText("1 comment")).toBeInTheDocument();
+		expect(screen.getByText("Foot of src/a.ts")).toBeInTheDocument();
+		expect(screen.queryByText("Foot of img.png")).toBeNull();
+		await user.click(screen.getByRole("button", { name: /src\/a\.ts/ }));
+	});
 });

@@ -49,7 +49,7 @@ export function PullHeader({ d }: { d: PullDetail }) {
 	return (
 		<header className="flex flex-col gap-2">
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-				<h1 className="min-w-0 flex-1 text-20 font-semibold text-n-12">
+				<h1 tabIndex={-1} className="min-w-0 flex-1 text-20 font-semibold text-n-12">
 					{d.title} <span className="font-mono text-n-10">#{d.number}</span>
 				</h1>
 				<Badge variant={variant}>

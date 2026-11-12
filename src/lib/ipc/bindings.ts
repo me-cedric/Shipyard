@@ -134,6 +134,8 @@ export const commands = {
 	codePullReply: (reference: string, threadId: string, body: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_reply", { reference, threadId, body, click })),
 	codePullResolve: (reference: string, threadId: string, resolved: boolean, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_resolve", { reference, threadId, resolved, click })),
 	codePullVerdict: (number: number, verdict: Verdict, body: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_verdict", { number, verdict, body, click })),
+	codePullReviewSubmit: (reference: string, verdict: string, body: string, notes: ReviewNoteInput[], headSha: string, click: boolean) => typedError<ReviewOutcome, AppError_Serialize>(__TAURI_INVOKE("code_pull_review_submit", { reference, verdict, body, notes, headSha, click })),
+	codePullLineComment: (reference: string, path: string, line: number, body: string, headSha: string, click: boolean) => typedError<ReviewOutcome, AppError_Serialize>(__TAURI_INVOKE("code_pull_line_comment", { reference, path, line, body, headSha, click })),
 	codePullMerge: (number: number, method: MergeMethod, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_merge", { number, method, click })),
 	codePullReady: (number: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_ready", { number, click })),
 	codePullClose: (number: number, reason: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_close", { number, reason, click })),
@@ -4914,6 +4916,26 @@ export type ReviewFinding = {
 	path: string,
 	line: number,
 	text: string,
+};
+
+/**  One inline note of a pending review, as the person typed it: a line of the new file. */
+export type ReviewNoteInput = {
+	path: string,
+	line: number,
+	body: string,
+	/**  The commit that the note was written on. */
+	headSha: string,
+};
+
+/**
+ *  What a review became on the code host: notes on their line, notes that went into the review
+ *  text, and the notes that went nowhere. The review is sent when `failed` is not empty, so the
+ *  caller keeps only `failed` and never sends the verdict again.
+ */
+export type ReviewOutcome = {
+	inline: number,
+	inBody: number,
+	failed: ReviewNoteInput[],
 };
 
 /**  What the page sends to post: the draft after the person edited it. */

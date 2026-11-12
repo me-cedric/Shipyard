@@ -37,21 +37,22 @@ export function conversation(d: PullDetail): Item[] {
 }
 
 /**
- * The write box and the verdicts, one textarea. Comment posts a general comment. A request for changes
- * needs the text: the call refuses without it. The draft lives in the page, so a tab change keeps it.
+ * The write box, one textarea. Comment posts a general comment. Submit review opens the dialog with the text (Approve and Request changes live there). The draft lives in the page, so a tab change keeps it.
  */
 function Reply({
 	d,
 	body,
 	setBody,
+	onReview,
 }: {
 	d: PullDetail;
 	body: string;
 	setBody: (body: string) => void;
+	onReview: (text: string) => void;
 }) {
 	const { t } = useI18n();
 	const c = t.forge.pullConversation;
-	const { comment, verdict, close, sendBack } = useForgeActions();
+	const { comment, close, sendBack } = useForgeActions();
 	const { failure, busy, run } = useRun();
 	const [closing, setClosing] = useState(false);
 	const [tab, setTab] = useState<"write" | "preview">("write");
@@ -90,19 +91,8 @@ function Reply({
 				>
 					{t.forge.comment}
 				</RightButton>
-				<RightButton
-					right="code.write"
-					busy={busy}
-					onClick={() => send(() => verdict(d.number, "approve", body))}
-				>
-					{t.forge.approve}
-				</RightButton>
-				<RightButton
-					right="code.write"
-					busy={busy}
-					onClick={() => send(() => verdict(d.number, "request-changes", body))}
-				>
-					{t.forge.requestChanges}
+				<RightButton right="code.write" busy={busy} onClick={() => onReview(body)}>
+					{t.forge.pullReview.submit}
 				</RightButton>
 				{agent && open ? (
 					<RightButton
@@ -143,10 +133,12 @@ export function Conversation({
 	d,
 	draft,
 	setDraft,
+	onReview,
 }: {
 	d: PullDetail;
 	draft: string;
 	setDraft: (draft: string) => void;
+	onReview: (text: string) => void;
 }) {
 	const { t } = useI18n();
 	const c = t.forge.pullConversation;
@@ -181,7 +173,7 @@ export function Conversation({
 					)}
 				</Panel>
 			) : null}
-			<Reply d={d} body={draft} setBody={setDraft} />
+			<Reply d={d} body={draft} setBody={setDraft} onReview={onReview} />
 		</>
 	);
 }

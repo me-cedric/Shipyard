@@ -490,6 +490,189 @@ pub fn pull_verdict(
         .map_err(err)
 }
 
+/// One inline note of a pending review, as the person typed it: a line of the new file.
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewNoteInput {
+    pub path: String,
+    pub line: u32,
+    pub body: String,
+    /// The commit that the note was written on.
+    pub head_sha: String,
+}
+
+/// What a review became on the code host: notes on their line, notes that went into the review
+/// text, and the notes that went nowhere. The review is sent when `failed` is not empty, so the
+/// caller keeps only `failed` and never sends the verdict again.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewOutcome {
+    pub inline: u32,
+    pub in_body: u32,
+    pub failed: Vec<ReviewNoteInput>,
+}
+
+const MAX_NOTES: usize = 100;
+const MAX_TEXT: usize = 65_536;
+
+fn clean(text: &str) -> bool {
+    !text.chars().any(char::is_control)
+}
+
+/// Every input is checked before the audit line and before any forge call, so nothing odd can
+/// reach a URL, a query or a log.
+fn sha_ok(sha: &str) -> bool {
+    (7..=64).contains(&sha.len()) && sha.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+fn check_review(
+    verdict: &str,
+    body: &str,
+    notes: &[ReviewNoteInput],
+    head_sha: &str,
+) -> Res<Option<Verdict>> {
+    let verdict = match verdict {
+        "comment" => None,
+        "approve" => Some(Verdict::Approve),
+        "request_changes" => Some(Verdict::RequestChanges),
+        other => return Err(format!("not a verdict: {}", other.escape_debug())),
+    };
+    if notes.len() > MAX_NOTES {
+        return Err(format!("a review holds {MAX_NOTES} line comments at most"));
+    }
+    if body.len() > MAX_TEXT || notes.iter().any(|n| n.body.len() > MAX_TEXT) {
+        return Err("a review text is too long".into());
+    }
+    if !sha_ok(head_sha) || notes.iter().any(|n| !sha_ok(&n.head_sha)) {
+        return Err("not a commit of this pull request".into());
+    }
+    if notes
+        .iter()
+        .any(|n| n.path.is_empty() || n.path.len() > 1024 || !clean(&n.path) || n.line == 0)
+    {
+        return Err("a line comment needs a file and a line".into());
+    }
+    if notes.iter().any(|n| n.body.trim().is_empty()) {
+        return Err("a line comment needs some text".into());
+    }
+    if verdict == Some(Verdict::RequestChanges) && body.trim().is_empty() {
+        return Err("a request for changes needs some text".into());
+    }
+    if verdict.is_none() && notes.is_empty() && body.trim().is_empty() {
+        return Err("the review is empty".into());
+    }
+    Ok(verdict)
+}
+
+/// What one review holds: a verdict, a text, line comments and the current head.
+struct ReviewArgs<'a> {
+    verdict: &'a str,
+    body: &'a str,
+    notes: &'a [ReviewNoteInput],
+    head_sha: &'a str,
+}
+
+/// The outcome of a review that the code host took. Nothing posted at all is an error: the
+/// caller keeps everything and may try again.
+fn outcome(
+    verdict: Option<Verdict>,
+    body: &str,
+    notes: &[ReviewNoteInput],
+    sent: shipyard_forges::ReviewSent,
+) -> Res<ReviewOutcome> {
+    if verdict.is_none() && body.trim().is_empty() && sent.failed.len() == notes.len() {
+        return Err("the code host refused every line comment".into());
+    }
+    let failed: Vec<ReviewNoteInput> = sent
+        .failed
+        .into_iter()
+        .map(|f| ReviewNoteInput {
+            path: f.path,
+            line: f.line,
+            body: f.text,
+            head_sha: f.head_sha,
+        })
+        .collect();
+    let sent_all = u32::try_from(notes.len() - failed.len()).unwrap_or(u32::MAX);
+    Ok(ReviewOutcome {
+        inline: sent_all.saturating_sub(sent.in_body),
+        in_body: sent.in_body,
+        failed,
+    })
+}
+
+/// One review: a verdict, a text and line comments, in one call to the code host. Never retried.
+fn review_send(
+    s: &AppState,
+    what: &'static str,
+    reference: &str,
+    r: ReviewArgs,
+    click: bool,
+) -> Res<ReviewOutcome> {
+    let shaped = ref_number(reference)?;
+    let verdict = check_review(r.verdict, r.body, r.notes, r.head_sha)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        what,
+        &format!("#{shaped}"),
+    )?;
+    let n = pull_number(s, reference)?;
+    let (api, slug, _) = forge(s)?;
+    let lines: Vec<shipyard_forges::LineNote> = r
+        .notes
+        .iter()
+        .map(|n| shipyard_forges::LineNote {
+            path: n.path.clone(),
+            line: n.line,
+            text: n.body.clone(),
+            head_sha: n.head_sha.clone(),
+        })
+        .collect();
+    let sent = api
+        .review(&slug, n, r.head_sha, verdict, r.body, &lines)
+        .map_err(err)?;
+    outcome(verdict, r.body, r.notes, sent)
+}
+
+/// `verdict` is `comment`, `approve` or `request_changes`.
+pub fn pull_review_submit(
+    s: &AppState,
+    reference: &str,
+    verdict: &str,
+    body: &str,
+    notes: &[ReviewNoteInput],
+    head_sha: &str,
+    click: bool,
+) -> Res<ReviewOutcome> {
+    let r = ReviewArgs {
+        verdict,
+        body,
+        notes,
+        head_sha,
+    };
+    review_send(s, "code_pull_review_submit", reference, r, click)
+}
+
+/// One comment on a line at once.
+// shortcut: one review per comment, upgrade to the single-comment API when needed
+pub fn pull_line_comment(
+    s: &AppState,
+    reference: &str,
+    note: ReviewNoteInput,
+    head_sha: &str,
+    click: bool,
+) -> Res<ReviewOutcome> {
+    let r = ReviewArgs {
+        verdict: "comment",
+        body: "",
+        notes: &[note],
+        head_sha,
+    };
+    review_send(s, "code_pull_line_comment", reference, r, click)
+}
+
 /// The click is the confirmation that names the method (REQ-022). A draft is refused.
 pub fn pull_merge(s: &AppState, number: u32, method: MergeMethod, click: bool) -> Res<()> {
     need_click(
@@ -1168,6 +1351,46 @@ pub async fn code_pull_verdict(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn code_pull_review_submit(
+    app: AppHandle,
+    reference: String,
+    verdict: String,
+    body: String,
+    notes: Vec<ReviewNoteInput>,
+    head_sha: String,
+    click: bool,
+) -> Api<ReviewOutcome> {
+    blocking(app, move |s| {
+        pull_review_submit(s, &reference, &verdict, &body, &notes, &head_sha, click)
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_pull_line_comment(
+    app: AppHandle,
+    reference: String,
+    path: String,
+    line: u32,
+    body: String,
+    head_sha: String,
+    click: bool,
+) -> Api<ReviewOutcome> {
+    blocking(app, move |s| {
+        let note = ReviewNoteInput {
+            path,
+            line,
+            body,
+            head_sha: head_sha.clone(),
+        };
+        pull_line_comment(s, &reference, note, &head_sha, click)
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn code_pull_merge(
     app: AppHandle,
     number: u32,
@@ -1438,6 +1661,93 @@ mod tests {
         ] {
             assert!(e.contains("read only"), "{e}");
         }
+    }
+
+    #[test]
+    fn a_review_is_checked_before_the_audit_line_and_needs_a_click_and_a_forge() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, _) = project(dir.path());
+        let r = "pr:c1:7";
+        let note = |body: &str| ReviewNoteInput {
+            path: "src/a.rs".into(),
+            line: 3,
+            body: body.into(),
+            head_sha: "abc1234".into(),
+        };
+        let go = |v: &str, body: &str, n: &[ReviewNoteInput], sha: &str, click| {
+            pull_review_submit(&s, r, v, body, n, sha, click).unwrap_err()
+        };
+        let sha = "abc1234";
+        assert!(go("merge", "x", &[], sha, true).contains("not a verdict"));
+        assert!(go("request_changes", "  ", &[note("a")], sha, true).contains("needs some text"));
+        assert!(go("comment", " ", &[], sha, true).contains("empty"));
+        assert!(go("comment", "x", &[], "abc12zz", true).contains("not a commit"));
+        assert!(go("comment", "x", &[], "abc12", true).contains("not a commit"));
+        assert!(go("comment", "x", &[note(" ")], sha, true).contains("needs some text"));
+        let many = vec![note("a"); 101];
+        assert!(go("comment", "x", &many, sha, true).contains("100"));
+        let bad = ReviewNoteInput {
+            path: "a\n/b".into(),
+            ..note("a")
+        };
+        assert!(go("comment", "x", &[bad], sha, true).contains("a file and a line"));
+        let other = ReviewNoteInput {
+            head_sha: "zz".into(),
+            ..note("a")
+        };
+        assert!(go("comment", "x", &[other], sha, true).contains("not a commit"));
+        let long = note(&"x".repeat(MAX_TEXT + 1));
+        assert!(go("comment", "x", &[long], sha, true).contains("too long"));
+        for bad in ["junk\n{\"x\"}", "pr:c1", "pr::7", "pr:c1:x"] {
+            assert!(pull_review_submit(&s, bad, "comment", "x", &[], sha, true).is_err());
+            assert!(pull_line_comment(&s, bad, note("a"), sha, true).is_err());
+        }
+        // Nothing above reached the audit log.
+        assert!(crate::rights::audit_lines(&s).unwrap().is_empty());
+        assert!(go("comment", "x", &[], sha, false).contains("click"));
+        assert_eq!(go("comment", "x", &[], sha, true), NO_FORGE);
+        let on = shipyard_store::project::Overrides {
+            read_only: Some(true),
+            ..Default::default()
+        };
+        crate::commands::projects::save_overrides(&s, on).unwrap();
+        assert!(go("comment", "x", &[], sha, true).contains("read only"));
+        assert!(
+            pull_line_comment(&s, r, note("a"), sha, true)
+                .unwrap_err()
+                .contains("read only")
+        );
+    }
+
+    #[test]
+    fn a_partial_review_returns_the_unsent_notes_and_an_empty_one_is_an_error() {
+        let note = |line: u32| ReviewNoteInput {
+            path: "a.rs".into(),
+            line,
+            body: format!("n{line}"),
+            head_sha: "abc1234".into(),
+        };
+        let lost = |n: &ReviewNoteInput| shipyard_forges::LineNote {
+            path: n.path.clone(),
+            line: n.line,
+            text: n.body.clone(),
+            head_sha: n.head_sha.clone(),
+        };
+        let notes = [note(1), note(2), note(3)];
+        let sent = shipyard_forges::ReviewSent {
+            failed: vec![lost(&notes[1])],
+            in_body: 1,
+        };
+        let o = outcome(Some(Verdict::Approve), "", &notes, sent).unwrap();
+        assert_eq!((o.inline, o.in_body), (1, 1));
+        assert_eq!(o.failed.len(), 1);
+        assert_eq!((o.failed[0].line, o.failed[0].body.as_str()), (2, "n2"));
+        // Nothing went anywhere: an error, so the caller keeps everything.
+        let none = shipyard_forges::ReviewSent {
+            failed: notes.iter().map(lost).collect(),
+            in_body: 0,
+        };
+        assert!(outcome(None, " ", &notes, none).is_err());
     }
 
     #[test]

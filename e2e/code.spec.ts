@@ -153,6 +153,21 @@ test("lists the pull requests by state, opens one and comments", async ({ page }
 	await expect(page.getByRole("textbox", { name: "Comment" })).toHaveValue("");
 });
 
+test("approves a pull request from Submit review", async ({ page }) => {
+	await openCode(page, "Pull requests");
+	await pull(page, 141).click();
+	await page.getByRole("button", { name: "Submit review" }).click();
+	const dialog = page.getByRole("dialog", { name: "Submit review" });
+	// The radio is hidden: a click on its label picks it.
+	await dialog.getByText("Request changes", { exact: true }).click();
+	await expect(dialog.getByRole("radio", { name: "Request changes" })).toBeChecked();
+	await dialog.getByRole("button", { name: "Submit review" }).click();
+	await expect(dialog.getByRole("alert")).toContainText("some text");
+	await dialog.getByText("Approve", { exact: true }).click();
+	await dialog.getByRole("button", { name: "Submit review" }).click();
+	await expect(dialog).toBeHidden();
+});
+
 test("goes Back from a pull request to the list with its search kept", async ({ page }) => {
 	await openCode(page, "Pull requests");
 	await page.getByRole("searchbox", { name: "Search pull requests" }).fill("token");
@@ -196,6 +211,28 @@ test("opens a file of a pull request in the viewer", async ({ page }) => {
 	await expect(dialog.getByRole("region", { name: "File src/app.ts" })).toBeVisible();
 	await page.keyboard.press("Escape");
 	await expect(dialog).toBeHidden();
+});
+
+test("comments on a line of a pull request: pending first, then one at once", async ({ page }) => {
+	await openCode(page, "Pull requests");
+	await pull(page, 142).click();
+	await page.getByRole("tab", { name: /Files changed/ }).click();
+	// The file has one thread, so its row says so while it is closed.
+	await expect(page.getByText("1 comment").first()).toBeVisible();
+	await page.getByRole("button", { name: "Expand all" }).click();
+	// A pending comment on line 3: the box closes and the count grows.
+	await page.getByRole("button", { name: "Add a comment on line 3" }).click();
+	await page.getByRole("textbox", { name: "Comment on line 3" }).fill("Name this **c**.");
+	await page.getByRole("button", { name: "Add review comment" }).click();
+	await expect(page.getByRole("article", { name: "Pending: src/app.ts:3" })).toContainText(
+		"Pending",
+	);
+	await expect(page.getByText("2 comments").first()).toBeVisible();
+	// One comment at once: it comes back as a thread on the line.
+	await page.getByRole("button", { name: "Add a comment on line 1" }).click();
+	await page.getByRole("textbox", { name: "Comment on line 1" }).fill("Posted now.");
+	await page.getByRole("button", { name: "Add single comment" }).click();
+	await expect(page.getByRole("article", { name: "src/app.ts:1" })).toContainText("Posted now.");
 });
 
 test("analyzes a branch in Impacts and shows the plan and the digest", async ({ page }) => {

@@ -9,6 +9,7 @@ import {
 	type PullDetail_Serialize,
 	type QualityReport_Serialize,
 	type QualityView_Serialize,
+	type ReviewNoteInput,
 	unwrap,
 	type Verdict,
 } from "@/lib/ipc";
@@ -134,8 +135,14 @@ export function useForgeActions() {
 				run(commands.codePullReply(reference, threadId, body, true)),
 			resolve: (reference: string, threadId: string, resolved: boolean) =>
 				run(commands.codePullResolve(reference, threadId, resolved, true)),
-			verdict: (n: number, verdict: Verdict, body: string) =>
-				run(commands.codePullVerdict(n, verdict, body, true)),
+			/** One review: a verdict, a text and the pending line comments, in one call. */
+			submitReview: (
+				reference: string,
+				verdict: "comment" | "approve" | "request_changes",
+				body: string,
+				notes: ReviewNoteInput[],
+				headSha: string,
+			) => run(commands.codePullReviewSubmit(reference, verdict, body, notes, headSha, true)),
 			merge: (n: number, method: MergeMethod) => run(commands.codePullMerge(n, method, true)),
 			ready: (n: number) => run(commands.codePullReady(n, true)),
 			close: (n: number, reason: string) => run(commands.codePullClose(n, reason, true)),

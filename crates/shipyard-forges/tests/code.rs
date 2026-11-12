@@ -283,6 +283,7 @@ fn notes() -> Vec<LineNote> {
         path: path.into(),
         line,
         text: text.into(),
+        head_sha: String::new(),
     };
     vec![
         note("src/a.rs", 2, "P1 no test"),
@@ -309,8 +310,10 @@ fn github_review_puts_a_note_on_its_line_and_the_rest_in_the_body() {
     )
     .post("/pulls/12/reviews", "", 200, "{}");
     let api = build(ForgeKind::GitHub, "https://github.com", fake.clone());
-    api.review("acme/web", 12, "abc", None, "Summary", &notes())
+    let r = api
+        .review("acme/web", 12, "abc", None, "Summary", &notes())
         .unwrap();
+    assert_eq!(r.in_body, 2, "two notes have no line in the diff");
     let sent = review_bodies(&fake, "/pulls/12/reviews");
     assert_eq!(sent.len(), 1, "one review");
     let r = &sent[0];
@@ -359,6 +362,44 @@ fn github_review_without_a_line_in_the_diff_sends_one_body() {
 }
 
 #[test]
+fn github_review_with_three_notes_sends_one_request_with_the_commit() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.get(
+        "/repos/acme/web/pulls/12/files",
+        200,
+        &json!([{"filename": "src/a.rs", "status": "modified", "patch": "@@ -1,2 +1,9 @@\n a\n+b\n+c\n+d\n+e\n+f\n+g\n+h\n+i"}])
+            .to_string(),
+    )
+    .post("/pulls/12/reviews", "", 200, "{}");
+    let api = build(ForgeKind::GitHub, "https://github.com", fake.clone());
+    let three: Vec<LineNote> = [2, 3, 9]
+        .iter()
+        .map(|&line| LineNote {
+            path: "src/a.rs".into(),
+            line,
+            text: format!("note {line}"),
+            head_sha: String::new(),
+        })
+        .collect();
+    let r = api
+        .review("acme/web", 12, "abc", Some(Verdict::Approve), "", &three)
+        .unwrap();
+    assert_eq!((r.in_body, r.failed.len()), (0, 0));
+    let sent = review_bodies(&fake, "/pulls/12/reviews");
+    assert_eq!(sent.len(), 1);
+    assert_eq!(
+        (sent[0]["commit_id"].as_str(), sent[0]["event"].as_str()),
+        (Some("abc"), Some("APPROVE"))
+    );
+    let c = sent[0]["comments"].as_array().unwrap();
+    assert_eq!(c.len(), 3);
+    assert!(
+        c.iter()
+            .all(|x| x["side"] == "RIGHT" && x["path"] == "src/a.rs")
+    );
+}
+
+#[test]
 fn github_review_falls_back_to_one_body_when_the_forge_refuses_a_line() {
     let fake = Arc::new(FakeHttp::new());
     fake.get(
@@ -370,8 +411,10 @@ fn github_review_falls_back_to_one_body_when_the_forge_refuses_a_line() {
     .post("/pulls/12/reviews", "\"comments\"", 422, "{\"message\":\"bad line\"}")
     .post("/issues/12/comments", "", 201, "{}");
     let api = build(ForgeKind::GitHub, "https://github.com", fake.clone());
-    api.review("acme/web", 12, "abc", None, "Summary", &notes())
+    let r = api
+        .review("acme/web", 12, "abc", None, "Summary", &notes())
         .unwrap();
+    assert_eq!(r.in_body, 3, "a 422 folds every note into the text");
     assert_eq!(review_bodies(&fake, "/pulls/12/reviews").len(), 1);
     let sent = review_bodies(&fake, "/issues/12/comments");
     assert_eq!(sent.len(), 1, "the retry is one comment");
@@ -418,8 +461,10 @@ fn gitlab_review_opens_one_discussion_with_a_position_for_each_line() {
     .post(&format!("{root}/discussions"), "", 201, "{}")
     .post(&format!("{root}/notes"), "", 201, "{}");
     let api = build(ForgeKind::GitLab, "https://gitlab.com", fake.clone());
-    api.review("acme/web", 9, "h1", None, "Summary", &notes())
+    let r = api
+        .review("acme/web", 9, "h1", None, "Summary", &notes())
         .unwrap();
+    assert_eq!(r.in_body, 2);
     let d = bodies(&fake, Method::Post, "/discussions");
     assert_eq!(d.len(), 1);
     let p = &d[0]["position"];
@@ -574,7 +619,7 @@ fn gitlab_review_reports_the_failed_line_notes_apart_after_the_verdict_went_out(
             &notes()[..1],
         )
         .expect("the verdict is sent: no error, or a retry posts it twice");
-    assert_eq!(failed, notes()[..1].to_vec());
+    assert_eq!(failed.failed, notes()[..1].to_vec());
     assert_eq!(bodies(&fake, Method::Post, "/approve").len(), 1);
 }
 
@@ -596,7 +641,7 @@ fn a_request_for_changes_with_an_empty_summary_and_line_notes_is_accepted() {
             &notes()[..1],
         )
         .unwrap();
-    assert!(failed.is_empty());
+    assert!(failed.failed.is_empty());
     assert_eq!(bodies(&fake, Method::Post, "/discussions").len(), 1);
     // Still refused when there is neither a summary nor a note.
     assert!(
@@ -646,8 +691,10 @@ fn azure_review_keeps_the_one_body() {
         "https://dev.azure.com/acme",
         fake.clone(),
     );
-    api.review("proj/web", 5, "abc", None, "Summary", &notes()[..1])
+    let r = api
+        .review("proj/web", 5, "abc", None, "Summary", &notes())
         .unwrap();
+    assert_eq!(r.in_body, 3, "Azure folds every note into the body");
     let t = bodies(&fake, Method::Post, "/threads");
     assert_eq!(t.len(), 1);
     assert!(
@@ -774,4 +821,83 @@ fn a_short_last_page_is_not_truncated() {
         assert_eq!(got.files.len(), 145);
         assert!(!got.truncated);
     }
+}
+
+// ---- a note of an older commit never lands on a line (spec `ux-declutter`, REQ-049)
+
+fn old_note() -> Vec<LineNote> {
+    vec![LineNote {
+        path: "src/a.rs".into(),
+        line: 2,
+        text: "P1 old".into(),
+        head_sha: "old1234".into(),
+    }]
+}
+
+#[test]
+fn github_folds_a_note_of_an_older_commit_into_the_text() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.get(
+        "/repos/acme/web/pulls/12/files",
+        200,
+        &json!([{"filename": "src/a.rs", "status": "modified", "patch": "@@ -1,2 +1,3 @@\n a\n+b\n c"}])
+            .to_string(),
+    )
+    .post("/issues/12/comments", "", 201, "{}");
+    let api = build(ForgeKind::GitHub, "https://github.com", fake.clone());
+    let r = api
+        .review("acme/web", 12, "abc1234", None, "Summary", &old_note())
+        .unwrap();
+    assert_eq!(r.in_body, 1);
+    assert!(review_bodies(&fake, "/pulls/12/reviews").is_empty());
+    let sent = review_bodies(&fake, "/issues/12/comments");
+    assert!(
+        sent[0]["body"]
+            .as_str()
+            .unwrap()
+            .contains("`src/a.rs:2` (older version) P1 old")
+    );
+}
+
+#[test]
+fn gitlab_folds_a_note_of_an_older_commit_into_the_text() {
+    let fake = Arc::new(FakeHttp::new());
+    let root = "/api/v4/projects/acme%2Fweb/merge_requests/9";
+    gitlab_diff_mocks(&fake, root);
+    fake.post(&format!("{root}/discussions"), "", 201, "{}")
+        .post(&format!("{root}/notes"), "", 201, "{}");
+    let api = build(ForgeKind::GitLab, "https://gitlab.com", fake.clone());
+    let r = api
+        .review("acme/web", 9, "h1", None, "Summary", &old_note())
+        .unwrap();
+    assert_eq!(r.in_body, 1);
+    assert!(bodies(&fake, Method::Post, "/discussions").is_empty());
+    let n = bodies(&fake, Method::Post, "/notes");
+    assert!(
+        n[0]["body"]
+            .as_str()
+            .unwrap()
+            .contains("`src/a.rs:2` (older version) P1 old")
+    );
+}
+
+#[test]
+fn azure_labels_a_note_of_an_older_commit() {
+    let fake = Arc::new(FakeHttp::new());
+    let root = "/proj/_apis/git/repositories/web/pullrequests/5";
+    fake.post(&format!("{root}/threads"), "", 200, "{}");
+    let api = build(
+        ForgeKind::AzureDevOps,
+        "https://dev.azure.com/acme",
+        fake.clone(),
+    );
+    api.review("proj/web", 5, "abc1234", None, "Summary", &old_note())
+        .unwrap();
+    let t = bodies(&fake, Method::Post, "/threads");
+    assert!(
+        t[0]["comments"][0]["content"]
+            .as_str()
+            .unwrap()
+            .contains("(older version)")
+    );
 }

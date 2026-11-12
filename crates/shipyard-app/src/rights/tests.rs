@@ -130,6 +130,21 @@ fn an_unknown_person_gets_a_refusal_that_names_each_right() {
         crate::code::pull_resolve(s, "pr:c1:1", "T1", true, true),
         "code.write",
     );
+    let note = crate::code::ReviewNoteInput {
+        path: "a.rs".into(),
+        line: 1,
+        body: "x".into(),
+        head_sha: "abc1234".into(),
+    };
+    refused(
+        crate::code::pull_review_submit(s, "pr:c1:1", "comment", "x", &[], "abc1234", true)
+            .map(drop),
+        "code.write",
+    );
+    refused(
+        crate::code::pull_line_comment(s, "pr:c1:1", note, "abc1234", true).map(drop),
+        "code.write",
+    );
     refused(
         crate::code::pull_merge(s, 1, MergeMethod::Merge, true),
         "code.merge",

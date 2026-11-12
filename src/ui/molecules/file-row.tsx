@@ -42,6 +42,7 @@ export function FileRow({
 	check,
 	menu,
 	buttonProps,
+	badge,
 }: {
 	name: string;
 	state?: FileState;
@@ -55,6 +56,8 @@ export function FileRow({
 	menu?: MenuItem[];
 	/** More props for the button, such as a roving `tabIndex` or `aria-expanded`. */
 	buttonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
+	/** Text after the name, such as a count of comments. */
+	badge?: string;
 }) {
 	const mark = state ? FILE_MARK[state] : null;
 	return (
@@ -94,6 +97,7 @@ export function FileRow({
 				>
 					{name}
 				</button>
+				{badge ? <Badge variant="info">{badge}</Badge> : null}
 			</div>
 		</ContextMenu>
 	);

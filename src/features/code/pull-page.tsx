@@ -6,7 +6,7 @@ import {
 	useRouter,
 	useSearch,
 } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { usePull } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { toFailure } from "@/lib/ipc";
@@ -22,6 +22,8 @@ import { PullFiles } from "./pull-files";
 import { PullHeader } from "./pull-header";
 import { PullChecks, PullCommits } from "./pull-lists";
 import { PullOverview } from "./pull-overview";
+import { ReviewBar } from "./review-bar";
+import { type ReviewDraft, SubmitReview } from "./submit-review";
 
 type PullTab = "overview" | "commits" | "checks" | "files";
 
@@ -37,6 +39,19 @@ function PullPageView() {
 	const pull = usePull(number);
 	// The comment draft stays in the page: a change of tab keeps it. It belongs to one pull request.
 	const [kept, setKept] = useState({ id: pullId, text: "" });
+	// The Submit review dialog: opened from the bar or from the write box (with its text). Its text and
+	// verdict stay here, like the write box draft: closing the dialog loses nothing. They clear after a submit.
+	const [review, setReview] = useState<{ fromBox: boolean } | null>(null);
+	const [held, setHeld] = useState<ReviewDraft & { id: string }>({
+		id: pullId,
+		text: "",
+		verdict: "comment",
+		posted: [],
+	});
+	const draft: ReviewDraft =
+		held.id === pullId ? held : { text: "", verdict: "comment", posted: [] };
+	const [notice, setNotice] = useState<string | null>(null);
+	const page = useRef<HTMLElement>(null);
 	const toList = () => void navigate({ to: "/code/pull-requests" });
 	// A person who came from the list goes back to it with its search and filter; a deep link goes to the list.
 	const canBack = useCanGoBack();
@@ -68,7 +83,11 @@ function PullPageView() {
 		{ value: "files", label: named(p.filesChanged, d.files.length) },
 	];
 	return (
-		<section aria-label={d.title} className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-5">
+		<section
+			ref={page}
+			aria-label={d.title}
+			className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-5"
+		>
 			<Link
 				to="/code/pull-requests"
 				activeOptions={{ exact: true }}
@@ -84,6 +103,12 @@ function PullPageView() {
 				{canBack ? t.ui.back : t.tabs.code["pull-requests"]}
 			</Link>
 			<PullHeader key={`${d.number}${d.state}${d.draft}`} d={d} />
+			<ReviewBar d={d} onSubmit={() => setReview({ fromBox: false })} />
+			{notice ? (
+				<p role="status" className="text-ui text-n-11">
+					{notice}
+				</p>
+			) : null}
 			<ViewTabs
 				label={p.views}
 				value={tab}
@@ -103,12 +128,45 @@ function PullPageView() {
 						d={d}
 						draft={kept.id === pullId ? kept.text : ""}
 						setDraft={(text) => setKept({ id: pullId, text })}
+						onReview={(text) => {
+							if (text) setHeld({ ...draft, id: pullId, text });
+							setReview({ fromBox: true });
+						}}
 					/>
 				) : null}
 				{tab === "commits" ? <PullCommits d={d} /> : null}
 				{tab === "checks" ? <PullChecks d={d} /> : null}
 				{tab === "files" ? <PullFiles detail={d} /> : null}
 			</div>
+			{review ? (
+				<SubmitReview
+					d={d}
+					draft={draft}
+					onChange={(patch) => setHeld({ ...draft, ...patch, id: pullId })}
+					onClose={() => setReview(null)}
+					onSent={(o, left) => {
+						if (review.fromBox) setKept({ id: pullId, text: "" });
+						// The verdict is out: what stays pending goes later as a comment review.
+						setHeld({ id: pullId, text: "", verdict: "comment", posted: left });
+						const r = t.forge.pullReview;
+						const n = o.failed.length;
+						setNotice(
+							[
+								o.inBody === 0
+									? null
+									: o.inBody === 1
+										? r.inBodyOne
+										: format(r.inBodyMany, { count: o.inBody }),
+								n === 0 ? null : n === 1 ? r.failedOne : format(r.failedMany, { count: n }),
+							]
+								.filter(Boolean)
+								.join(". ") || null,
+						);
+						setReview(null);
+						setTimeout(() => page.current?.querySelector("h1")?.focus(), 0);
+					}}
+				/>
+			) : null}
 		</section>
 	);
 }

@@ -79,8 +79,12 @@ test("developer", async ({ page }) => {
 	await w.step("Review a pull request", "the pull request row, Approve", async () => {
 		await w.go("Code", "Pull requests");
 		await w.click(page.getByRole("link", { name: /#44 Rework the settings page/ }));
-		await w.see(page.getByRole("button", { name: "Request changes" }), "no review controls");
-		await w.click(page.getByRole("button", { name: "Approve", exact: true }));
+		await w.click(page.getByRole("button", { name: "Submit review" }));
+		const dialog = page.getByRole("dialog", { name: "Submit review" });
+		await w.see(dialog.getByText("Request changes", { exact: true }), "no review verdicts");
+		await w.click(dialog.getByText("Approve", { exact: true }));
+		await w.click(dialog.getByRole("button", { name: "Submit review" }));
+		await w.until(() => dialog.count(), 0, "the review dialog stays open");
 	});
 
 	await w.step("Find a ticket with the keyboard", "Ctrl+K, a ticket key", async () => {

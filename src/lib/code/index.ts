@@ -193,3 +193,4 @@ export const rebaseKey = (o: RebaseOutcome) => (typeof o === "string" ? o : "con
 export const canCommit = (c: Changes | undefined) =>
 	c !== undefined && c.staged.length > 0 && c.conflicted.length === 0;
 export * from "./forge";
+export * from "./pending-review";

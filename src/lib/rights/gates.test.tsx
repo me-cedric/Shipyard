@@ -86,6 +86,19 @@ describe("a viewer on a pull request page", () => {
 		off(await screen.findByRole("button", { name: "Reopen" }));
 	});
 
+	it("sees the + of a line off, with the reason, and it opens no box", async () => {
+		const user = userEvent.setup();
+		await open("github-demo-142?tab=files");
+		await user.click(await screen.findByRole("button", { name: /^app\.ts/ }));
+		const plus = await screen.findByRole("button", { name: "Add a comment on line 3" });
+		expect(plus).toHaveAttribute("aria-disabled", "true");
+		expect(plus).toHaveAccessibleDescription(needs("code.write"));
+		plus.focus();
+		expect(plus).toHaveFocus();
+		await user.click(plus);
+		expect(screen.queryByRole("textbox", { name: "Comment on line 3" })).toBeNull();
+	});
+
 	it("sees Close pull request off in the menu, with the reason", async () => {
 		const user = userEvent.setup();
 		await open("github-demo-141");

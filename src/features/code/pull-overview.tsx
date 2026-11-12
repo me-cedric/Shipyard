@@ -16,10 +16,12 @@ export function PullOverview({
 	d,
 	draft,
 	setDraft,
+	onReview,
 }: {
 	d: PullDetail;
 	draft: string;
 	setDraft: (draft: string) => void;
+	onReview: (text: string) => void;
 }) {
 	const { t } = useI18n();
 	const cited = useBacklinks(d.reference).data?.length ?? 0;
@@ -36,7 +38,7 @@ export function PullOverview({
 					<AgentReview d={d} />
 					<PrAi d={d} />
 				</div>
-				<Conversation d={d} draft={draft} setDraft={setDraft} />
+				<Conversation d={d} draft={draft} setDraft={setDraft} onReview={onReview} />
 			</div>
 			{hasSidebar(d, cited) ? <PullSidebar d={d} /> : null}
 		</div>
