@@ -44,6 +44,10 @@ describe("the error contract", () => {
 		expect(failed.message).toBe(
 			`${errorMessages.en.tool_failed} \`git fetch\` failed: fatal: no route`,
 		);
+		expect(classify("`codebase-memory-mcp` failed: exited with code 3: no daemon")).toEqual({
+			code: "tool_failed",
+			action: { kind: "open", target: "/settings/health#tools" },
+		});
 		for (const text of ["ac gave no result", "the runner gave no text", "step s1 is not running"])
 			expect(classify(text).code, text).toBe("unknown");
 		expect(classify("github.com gave no token for gh").code).toBe("sign_in_failed");

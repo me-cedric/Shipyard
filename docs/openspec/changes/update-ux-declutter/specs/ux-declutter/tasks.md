@@ -48,6 +48,25 @@ Wave 5, close
 - [x] T020 Run the validation commands of `plan.md`.
 - [x] T021 Compare the build with the spec; tick the acceptance criteria.
 
+Second pass, defects
+
+- [ ] T022 Diagram frame fits and pans; screen preview placement; a tool that ends names itself. REQ-039, REQ-040.
+
+Wave 7, the run page
+
+- [ ] T023 (A) A run has an address; each run link opens it; Start again opens the new run; Activity and Today rows are links. REQ-027, REQ-028.
+- [ ] T024 [P] (B) Run summary, one action per state, needs-you block, three tabs, plain text, the word Stop. REQ-029 to REQ-033.
+
+Wave 8, the Runs list and the other Factory pages
+
+- [ ] T025 (A) Runs bar with search, filter and Board and History; five lanes that fit; History; the run card. REQ-034 to REQ-037.
+- [ ] T026 [P] (B) Sessions, Usage, Agents map and Workflows. REQ-038.
+
+Wave 9, close
+
+- [ ] T027 Docs: `screens.json`, screenshots, guide in four languages, `ux-declutter.feature`, `factory.feature`, both changelogs; a MODIFIED delta for each settled `factory` requirement that changes.
+- [ ] T028 Opus review of the second pass, one fixer, the validation commands of `plan.md`.
+
 ## Completion Check
 
 - [x] All acceptance criteria are met.

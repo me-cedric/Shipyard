@@ -742,7 +742,17 @@ struct Session {
     /// The tools of the last `tools/list`. It ends with the session, and a list-changed
     /// notification clears it.
     tools: Option<Vec<Value>>,
+    /// The program, for the error when it ends.
+    command: String,
+    /// The last lines of its stderr, and the thread that reads them.
+    stderr: Arc<Mutex<Vec<String>>>,
+    reader: Option<std::thread::JoinHandle<()>>,
+    /// The values of its secrets: they never reach an error text.
+    secrets: Vec<String>,
 }
+
+/// How many stderr lines of a server an error keeps.
+const STDERR_LINES: usize = 5;
 
 const LIST_CHANGED: &str = "notifications/tools/list_changed";
 
@@ -764,6 +774,38 @@ impl Session {
 
     fn alive(&mut self) -> bool {
         matches!(self.child.try_wait(), Ok(None))
+    }
+
+    /// Why the process ended: its name, its exit code and the last lines of its stderr.
+    fn ended(&mut self) -> String {
+        let end = Instant::now() + Duration::from_secs(2);
+        let status = loop {
+            match self.child.try_wait() {
+                Ok(None) if Instant::now() < end => std::thread::sleep(Duration::from_millis(10)),
+                Ok(status) => break status,
+                Err(_) => break None,
+            }
+        };
+        while self.reader.as_ref().is_some_and(|r| !r.is_finished()) && Instant::now() < end {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        let how = match status {
+            Some(s) => s.code().map_or_else(
+                || "was stopped by a signal".to_string(),
+                |c| format!("exited with code {c}"),
+            ),
+            None => "closed its output".to_string(),
+        };
+        let mut tail = lock(&self.stderr).join(" | ");
+        for secret in self.secrets.iter().filter(|v| !v.is_empty()) {
+            tail = tail.replace(secret.as_str(), "***");
+        }
+        let command = &self.command;
+        if tail.is_empty() {
+            format!("`{command}` failed: {how}")
+        } else {
+            format!("`{command}` failed: {how}: {tail}")
+        }
     }
 
     fn send(&mut self, message: &Value) -> Result<(), AgentError> {
@@ -811,7 +853,7 @@ impl Session {
                     return Err(AgentError::Server(format!("did not answer in {wait:?}")));
                 }
                 Err(RecvTimeoutError::Disconnected) => {
-                    return Err(AgentError::Server("exited".into()));
+                    return Err(AgentError::Server(self.ended()));
                 }
             }
         }
@@ -1243,7 +1285,7 @@ impl McpControl {
         cmd.args(&server.args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::null());
+            .stderr(Stdio::piped());
         // The app environment holds no business with a package from the network: start clean,
         // then give back what a launcher needs and the variables of this server.
         cmd.env_clear();
@@ -1267,6 +1309,19 @@ impl McpControl {
             let _ = child.kill();
             return Err(AgentError::Server("has no input or output".into()));
         };
+        let stderr = Arc::new(Mutex::new(Vec::<String>::new()));
+        let reader = child.stderr.take().map(|pipe| {
+            let tail = Arc::clone(&stderr);
+            std::thread::spawn(move || {
+                for line in BufReader::new(pipe).lines().map_while(Result::ok) {
+                    let mut t = lock(&tail);
+                    t.push(line.chars().take(200).collect());
+                    if t.len() > STDERR_LINES {
+                        t.remove(0);
+                    }
+                }
+            })
+        });
         let (tx, lines) = mpsc::channel();
         std::thread::spawn(move || {
             for line in BufReader::new(stdout).lines().map_while(Result::ok) {
@@ -1282,6 +1337,10 @@ impl McpControl {
             next_id: 0,
             init: Value::Null,
             tools: None,
+            command: server.command.clone(),
+            stderr,
+            reader,
+            secrets: env.iter().map(|(_, v)| v.expose().to_string()).collect(),
         };
         let init = session.request(
             "initialize",

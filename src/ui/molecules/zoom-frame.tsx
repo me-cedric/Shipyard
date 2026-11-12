@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { IconButton } from "../atoms/icon-button";
 import { Dialog } from "../organisms/dialog";
 
-export const MIN_ZOOM = 0.25;
+export const MIN_ZOOM = 0.05;
 export const MAX_ZOOM = 8;
 const STEP = 1.25;
 const NUDGE = 40;
@@ -19,6 +19,34 @@ const NUDGE = 40;
 /** The next scale, kept inside the limits. */
 export const zoomBy = (scale: number, factor: number) =>
 	Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, scale * factor));
+
+type Size = { width: number; height: number };
+type At = { x: number; y: number };
+const KEEP = 48;
+
+/** The scale and the offset that show the whole content in the frame, centred. */
+export function fitTo(box: Size, content: Size): { scale: number; at: At } {
+	if (!(box.width > 0 && box.height > 0 && content.width > 0 && content.height > 0))
+		return { scale: 1, at: { x: 0, y: 0 } };
+	const scale = zoomBy(1, Math.min(box.width / content.width, box.height / content.height));
+	return {
+		scale,
+		at: {
+			x: (box.width - content.width * scale) / 2,
+			y: (box.height - content.height * scale) / 2,
+		},
+	};
+}
+
+/** Keep at least `KEEP` px of the content in the frame on each axis, so a pan cannot lose it. */
+export function clampAt(at: At, scale: number, box: Size, content: Size): At {
+	if (!(box.width > 0 && box.height > 0 && content.width > 0 && content.height > 0)) return at;
+	const one = (v: number, b: number, c: number) => {
+		const keep = Math.min(KEEP, b, c * scale);
+		return Math.min(b - keep, Math.max(keep - c * scale, v));
+	};
+	return { x: one(at.x, box.width, content.width), y: one(at.y, box.height, content.height) };
+}
 
 function Pane({
 	label,
@@ -41,6 +69,9 @@ function Pane({
 	const picture = useRef<HTMLDivElement>(null);
 	// The frame fits the picture until the person zooms or pans: a diagram renders after the mount.
 	const touched = useRef(false);
+	const scaleRef = useRef(1);
+	const panRef = useRef((_dx: number, _dy: number) => {});
+	scaleRef.current = scale;
 	const zoom = (f: number) => {
 		touched.current = true;
 		setScale((s) => zoomBy(s, f));
@@ -49,18 +80,28 @@ function Pane({
 	const fitView = useCallback(() => {
 		const b = box.current;
 		const p = picture.current;
-		if (!(p?.offsetWidth && p.offsetHeight && b?.clientWidth && b.clientHeight)) {
-			setScale(1);
-			setAt({ x: 0, y: 0 });
-			return;
-		}
-		const s = zoomBy(1, Math.min(b.clientWidth / p.offsetWidth, b.clientHeight / p.offsetHeight));
-		setScale(s);
-		setAt({
-			x: (b.clientWidth - p.offsetWidth * s) / 2,
-			y: (b.clientHeight - p.offsetHeight * s) / 2,
-		});
+		const r = fitTo(
+			{ width: b?.clientWidth ?? 0, height: b?.clientHeight ?? 0 },
+			{ width: p?.offsetWidth ?? 0, height: p?.offsetHeight ?? 0 },
+		);
+		setScale(r.scale);
+		setAt(r.at);
 	}, []);
+	/** Move the picture, inside the pan limits. */
+	const place = (to: (a: At) => At) => {
+		const b = box.current;
+		const p = picture.current;
+		touched.current = true;
+		setAt((a) =>
+			clampAt(
+				to(a),
+				scaleRef.current,
+				{ width: b?.clientWidth ?? 0, height: b?.clientHeight ?? 0 },
+				{ width: p?.offsetWidth ?? 0, height: p?.offsetHeight ?? 0 },
+			),
+		);
+	};
+	const panBy = (dx: number, dy: number) => place((a) => ({ x: a.x + dx, y: a.y + dy }));
 	const reset = () => {
 		touched.current = false;
 		fitView();
@@ -81,14 +122,16 @@ function Pane({
 		const el = box.current;
 		if (!el) return;
 		const onWheel = (e: WheelEvent) => {
-			if (!e.ctrlKey && !e.metaKey) return;
 			e.preventDefault();
-			touched.current = true;
-			setScale((s) => zoomBy(s, Math.exp(-e.deltaY * 0.01)));
+			if (e.ctrlKey || e.metaKey) {
+				touched.current = true;
+				setScale((s) => zoomBy(s, Math.exp(-e.deltaY * 0.01)));
+			} else panRef.current(-e.deltaX, -e.deltaY);
 		};
 		el.addEventListener("wheel", onWheel, { passive: false });
 		return () => el.removeEventListener("wheel", onWheel);
 	}, []);
+	panRef.current = panBy;
 	const onKeyDown = (e: KeyboardEvent) => {
 		if (e.target !== e.currentTarget || e.metaKey || e.ctrlKey || e.altKey) return;
 		const pan: Record<string, [number, number]> = {
@@ -99,8 +142,7 @@ function Pane({
 		};
 		const d = pan[e.key];
 		if (d) {
-			touched.current = true;
-			setAt((p) => ({ x: p.x + d[0], y: p.y + d[1] }));
+			panBy(d[0], d[1]);
 		} else if (e.key === "+" || e.key === "=") zoom(STEP);
 		else if (e.key === "-") zoom(1 / STEP);
 		else if (e.key === "0") reset();
@@ -108,7 +150,7 @@ function Pane({
 		e.preventDefault();
 	};
 	return (
-		<div className={cn("relative", className)}>
+		<div className={cn("relative h-[60vh]", className)}>
 			<section
 				ref={box}
 				aria-label={`${v.zoomArea}: ${label}`}
@@ -123,7 +165,7 @@ function Pane({
 				}}
 				onPointerMove={(e) => {
 					const d = drag.current;
-					if (d) setAt({ x: e.clientX - d.x, y: e.clientY - d.y });
+					if (d) place(() => ({ x: e.clientX - d.x, y: e.clientY - d.y }));
 				}}
 				onPointerUp={() => {
 					drag.current = null;
@@ -166,7 +208,8 @@ function Pane({
 }
 
 /**
- * A frame for a read-only picture: plus, minus, fit, Ctrl or Cmd plus wheel, drag to pan, and a
+ * A frame for a read-only picture: plus, minus, fit, Ctrl or Cmd plus wheel to zoom, drag or wheel
+ * to pan, and a
  * full screen dialog. With the frame focused, + - 0 and the arrow keys do the same.
  */
 export function ZoomFrame({

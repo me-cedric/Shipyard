@@ -465,6 +465,7 @@ const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {
 	no_remote: { kind: "open", target: "/code/branches" },
 	no_compass: { kind: "open", target: "/settings/agents-rules#compass-upgrade" },
 	tool_missing: { kind: "open", target: "/settings/health#tools" },
+	tool_failed: { kind: "open", target: "/settings/health#tools" },
 	connection_kind: { kind: "setting", target: "/settings/connections#connections" },
 	sign_in_failed: { kind: "setting", target: "/settings/connections#connections" },
 	git_state: { kind: "open", target: "/code/branches" },

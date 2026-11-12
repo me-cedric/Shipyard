@@ -65,6 +65,23 @@ Languages
 
 - REQ-026: Each new text SHALL ship in English, French, German and Spanish.
 
+Runs and Factory (second pass, 2026-11-12)
+
+- REQ-027: Each run SHALL have its own address. Each link to a run (Home, notifications, the menu bar panel, Sessions, Usage, the Agents map, the Activity panel, a run reference) SHALL open the run page. Back and Forward SHALL work.
+- REQ-028: The run page SHALL show without the header and the controls of the Runs list.
+- REQ-029: The run page SHALL start with a summary that stays in view: the ticket key and title with a link to the ticket, the state in words, the step as n of m, the cost and the budget, the elapsed time, the AI tool and the model, and the pull request with its checks and its review. Stop SHALL always be reachable from the summary.
+- REQ-030: The summary SHALL show one primary action for the state: Answer (waiting for an answer), Approve plan (plan review), Unblock (blocked), Resume (paused), Open pull request (in review, changes requested, ready to merge, done with a pull request), Start again (failed, cancelled). Start again SHALL open the new run.
+- REQ-031: What waits for the person SHALL show directly under the summary: the questions, the approvals, the plan with its actions, and the stop reason with its form. A paused run SHALL have the added budget and the message in one form with Resume.
+- REQ-032: Under it, the run page SHALL have three tabs: Activity (the live conversation and the events), Changes (the findings and the diff, each file collapsed with its counts), Workflow (the graph and the sessions with Follow and Open in terminal). The Activity tab SHALL offer Important and All.
+- REQ-033: The run page and the run card SHALL show no raw id: a pull request shows as its number, a step and a workflow show their names, an event shows a sentence, a time shows hours and minutes. The pages SHALL show no helper text. The word for ending a run SHALL be Stop everywhere.
+- REQ-034: The Runs list SHALL show no stat tiles. One bar SHALL hold the search, a filter (All, Needs you, Mine) and a Board and History switch.
+- REQ-035: The board SHALL have five lanes: Queued, Working, Needs you, In review, Ready to merge. At a window width of 1100 px or more the lanes SHALL fit with no sideways scroll. An empty lane SHALL show the empty pattern.
+- REQ-036: History SHALL list each ended run and each older run of a ticket, newest first, with search. A row SHALL open the run.
+- REQ-037: A run card SHALL show each fact once and the ticket key. A card that waits for a person SHALL show its one action as a button that opens the run at that action. Stop SHALL be in the card menu.
+- REQ-038: A Sessions row, a Usage run row and an Agents map node SHALL open the run. Sessions SHALL show no stat tiles. Usage SHALL show the budgets in a panel, not in the page header, and SHALL show the success rate. The Agents map SHALL label a node with the ticket title. The Workflows list SHALL show the step names, and its file actions SHALL be in a menu.
+- REQ-039: A diagram or a picture in the zoom frame SHALL fit the frame and be centred at the first paint. The person SHALL pan it in both directions and zoom it. Fit SHALL bring it back.
+- REQ-040: When a program that Shipyard starts ends with an error, the message SHALL name the program, its exit code and its last lines, and SHALL give one action.
+
 ### Non-Goals
 
 - A new feature, a new page or a new setting.
@@ -90,6 +107,20 @@ Languages
 - [x] A toast and a removed run row move in and out.
 - [x] Loaded content fades in under the header; the header does not fade.
 - [x] Each new text exists in the four languages.
+- [ ] REQ-027: The run page of that run opens.
+- [ ] REQ-028: The Runs list header does not show above it.
+- [ ] REQ-029: The summary shows the step as 2 of 5, the cost, the time and the pull request number.
+- [ ] REQ-030: The page of the new run opens.
+- [ ] REQ-031: One form holds the added budget, the message and Resume.
+- [ ] REQ-032: Only the questions, the errors, the state changes and the results show.
+- [ ] REQ-033: It shows #44.
+- [ ] REQ-034: Only the runs that wait for a person show.
+- [ ] REQ-035: The five lanes show with no sideways scroll.
+- [ ] REQ-036: Both runs show.
+- [ ] REQ-037: It has one button, Review plan.
+- [ ] REQ-038: The run page opens on the Workflow tab at that session.
+- [ ] REQ-039: The whole model shows, and a drag moves it sideways.
+- [ ] REQ-040: The page names the program, the code and its last line.
 
 ### Existing References
 
@@ -393,3 +424,143 @@ Each new text SHALL ship in English, French, German and Spanish.
 - GIVEN the new text keys
 - WHEN the language test runs
 - THEN each key exists in the four languages
+
+### Requirement: REQ-027 Run address
+
+Each run SHALL have its own address. Each link to a run (Home, notifications, the menu bar panel, Sessions, Usage, the Agents map, the Activity panel, a run reference) SHALL open the run page. Back and Forward SHALL work.
+
+#### Scenario: Run address
+
+- GIVEN a notification of a run
+- WHEN the person clicks it
+- THEN the run page of that run opens
+
+### Requirement: REQ-028 Run page is a page
+
+The run page SHALL show without the header and the controls of the Runs list.
+
+#### Scenario: Run page is a page
+
+- GIVEN an open run
+- WHEN the page shows
+- THEN the Runs list header does not show above it
+
+### Requirement: REQ-029 Run summary
+
+The run page SHALL start with a summary that stays in view: the ticket key and title with a link to the ticket, the state in words, the step as n of m, the cost and the budget, the elapsed time, the AI tool and the model, and the pull request with its checks and its review. Stop SHALL always be reachable from the summary.
+
+#### Scenario: Run summary
+
+- GIVEN a run in the build step with a pull request
+- WHEN the run page shows
+- THEN the summary shows the step as 2 of 5, the cost, the time and the pull request number
+
+### Requirement: REQ-030 One action per state
+
+The summary SHALL show one primary action for the state: Answer (waiting for an answer), Approve plan (plan review), Unblock (blocked), Resume (paused), Open pull request (in review, changes requested, ready to merge, done with a pull request), Start again (failed, cancelled). Start again SHALL open the new run.
+
+#### Scenario: One action per state
+
+- GIVEN a cancelled run
+- WHEN the person clicks Start again
+- THEN the page of the new run opens
+
+### Requirement: REQ-031 Needs you first
+
+What waits for the person SHALL show directly under the summary: the questions, the approvals, the plan with its actions, and the stop reason with its form. A paused run SHALL have the added budget and the message in one form with Resume.
+
+#### Scenario: Needs you first
+
+- GIVEN a paused run
+- WHEN the run page shows
+- THEN one form holds the added budget, the message and Resume
+
+### Requirement: REQ-032 Run tabs
+
+Under it, the run page SHALL have three tabs: Activity (the live conversation and the events), Changes (the findings and the diff, each file collapsed with its counts), Workflow (the graph and the sessions with Follow and Open in terminal). The Activity tab SHALL offer Important and All.
+
+#### Scenario: Run tabs
+
+- GIVEN a run with 40 events
+- WHEN the person picks Important
+- THEN only the questions, the errors, the state changes and the results show
+
+### Requirement: REQ-033 Plain run text
+
+The run page and the run card SHALL show no raw id: a pull request shows as its number, a step and a workflow show their names, an event shows a sentence, a time shows hours and minutes. The pages SHALL show no helper text. The word for ending a run SHALL be Stop everywhere.
+
+#### Scenario: Plain run text
+
+- GIVEN a run with the pull request `pr:github:44`
+- WHEN the card shows
+- THEN it shows #44
+
+### Requirement: REQ-034 Runs list bar
+
+The Runs list SHALL show no stat tiles. One bar SHALL hold the search, a filter (All, Needs you, Mine) and a Board and History switch.
+
+#### Scenario: Runs list bar
+
+- GIVEN the filter Needs you
+- WHEN the board shows
+- THEN only the runs that wait for a person show
+
+### Requirement: REQ-035 Five lanes that fit
+
+The board SHALL have five lanes: Queued, Working, Needs you, In review, Ready to merge. At a window width of 1100 px or more the lanes SHALL fit with no sideways scroll. An empty lane SHALL show the empty pattern.
+
+#### Scenario: Five lanes that fit
+
+- GIVEN a window of 1100 px
+- WHEN the board shows
+- THEN the five lanes show with no sideways scroll
+
+### Requirement: REQ-036 Run history
+
+History SHALL list each ended run and each older run of a ticket, newest first, with search. A row SHALL open the run.
+
+#### Scenario: Run history
+
+- GIVEN two runs of one ticket, the first failed
+- WHEN the person opens History
+- THEN both runs show
+
+### Requirement: REQ-037 Run card
+
+A run card SHALL show each fact once and the ticket key. A card that waits for a person SHALL show its one action as a button that opens the run at that action. Stop SHALL be in the card menu.
+
+#### Scenario: Run card
+
+- GIVEN a card in plan review
+- WHEN the card shows
+- THEN it has one button, Review plan
+
+### Requirement: REQ-038 Other Factory pages
+
+A Sessions row, a Usage run row and an Agents map node SHALL open the run. Sessions SHALL show no stat tiles. Usage SHALL show the budgets in a panel, not in the page header, and SHALL show the success rate. The Agents map SHALL label a node with the ticket title. The Workflows list SHALL show the step names, and its file actions SHALL be in a menu.
+
+#### Scenario: Other Factory pages
+
+- GIVEN a row of Factory / Sessions
+- WHEN the person opens it
+- THEN the run page opens on the Workflow tab at that session
+
+### Requirement: REQ-039 Diagram frame
+
+A diagram or a picture in the zoom frame SHALL fit the frame and be centred at the first paint. The person SHALL pan it in both directions and zoom it. Fit SHALL bring it back.
+
+#### Scenario: Diagram frame
+
+- GIVEN a model wider than the frame
+- WHEN Design / Architecture shows it
+- THEN the whole model shows, and a drag moves it sideways
+
+### Requirement: REQ-040 A tool that ends
+
+When a program that Shipyard starts ends with an error, the message SHALL name the program, its exit code and its last lines, and SHALL give one action.
+
+#### Scenario: A tool that ends
+
+- GIVEN the code graph program ends with code 1
+- WHEN the person clicks Index
+- THEN the page names the program, the code and its last line

@@ -27,14 +27,29 @@ type Source = {
 	edges: readonly { id: string; label?: string | null; points: readonly (readonly number[])[] }[];
 };
 
-/** Move the view to the origin, so the SVG needs no offset. */
+/**
+ * Move the view to the origin, so the SVG needs no offset. The box is the one of the drawn parts:
+ * `bounds` can miss a node or an edge curve, and the SVG cuts what lies outside its viewBox.
+ */
 export function toLayout(v: Source): Layout {
-	const { x: ox, y: oy } = v.bounds;
+	const xs = [v.bounds.x, v.bounds.x + v.bounds.width];
+	const ys = [v.bounds.y, v.bounds.y + v.bounds.height];
+	for (const n of v.nodes) {
+		xs.push(n.x, n.x + n.width);
+		ys.push(n.y, n.y + n.height);
+	}
+	for (const e of v.edges)
+		for (const p of e.points) {
+			xs.push(p[0] ?? 0);
+			ys.push(p[1] ?? 0);
+		}
+	const ox = Math.min(...xs);
+	const oy = Math.min(...ys);
 	return {
 		id: v.id,
 		title: v.title || v.id,
-		width: v.bounds.width,
-		height: v.bounds.height,
+		width: Math.max(...xs) - ox,
+		height: Math.max(...ys) - oy,
 		nodes: v.nodes.map((n) => ({
 			id: n.id,
 			title: n.title,

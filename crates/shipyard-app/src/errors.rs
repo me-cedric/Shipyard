@@ -152,7 +152,7 @@ impl ErrorCode {
             }
             Self::NoRemote => (ActionKind::Open, "/code/branches"),
             Self::NoCompass => (ActionKind::Open, "/settings/agents-rules#compass-upgrade"),
-            Self::ToolMissing => (ActionKind::Open, "/settings/health#tools"),
+            Self::ToolMissing | Self::ToolFailed => (ActionKind::Open, "/settings/health#tools"),
             Self::ConnectionKind => (ActionKind::Setting, "/settings/connections#connections"),
             Self::SignInFailed => (ActionKind::Setting, "/settings/connections#connections"),
             Self::GitState => (ActionKind::Open, "/code/branches"),
@@ -510,6 +510,9 @@ mod tests {
         assert_eq!(e.action.unwrap().target, "/code/branches");
         let e = AppError::from("the orca command is not installed");
         assert_eq!(e.code, ErrorCode::ToolMissing);
+        assert_eq!(e.action.unwrap().target, "/settings/health#tools");
+        let e = AppError::from("`codebase-memory-mcp` failed: exited with code 3: no daemon");
+        assert_eq!(e.code, ErrorCode::ToolFailed);
         assert_eq!(e.action.unwrap().target, "/settings/health#tools");
         let e = AppError::from("the title is empty");
         assert_eq!(e.code, ErrorCode::InputInvalid);

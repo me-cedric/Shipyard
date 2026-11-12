@@ -1,7 +1,7 @@
 import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderApp } from "../test-utils";
-import { MAX_ZOOM, MIN_ZOOM, ZoomFrame, zoomBy } from "./zoom-frame";
+import { clampAt, fitTo, MAX_ZOOM, MIN_ZOOM, ZoomFrame, zoomBy } from "./zoom-frame";
 
 const mount = () =>
 	renderApp(
@@ -16,6 +16,34 @@ describe("ZoomFrame", () => {
 		expect(zoomBy(MAX_ZOOM, 2)).toBe(MAX_ZOOM);
 		expect(zoomBy(MIN_ZOOM, 0.5)).toBe(MIN_ZOOM);
 		expect(zoomBy(1, 2)).toBe(2);
+	});
+
+	it("fits a content far wider than the frame, centred and whole", () => {
+		const { scale, at } = fitTo({ width: 400, height: 300 }, { width: 8000, height: 1000 });
+		expect(scale).toBeCloseTo(0.05);
+		expect(at.x).toBeCloseTo(0);
+		expect(at.y).toBeCloseTo(125);
+		const small = fitTo({ width: 400, height: 300 }, { width: 100, height: 300 });
+		expect(small.at.x).toBeCloseTo(150);
+		expect(fitTo({ width: 0, height: 0 }, { width: 10, height: 10 })).toEqual({
+			scale: 1,
+			at: { x: 0, y: 0 },
+		});
+	});
+
+	it("keeps a part of the content in the frame when it pans", () => {
+		const box = { width: 400, height: 300 };
+		const content = { width: 1000, height: 1000 };
+		expect(clampAt({ x: -5000, y: -5000 }, 1, box, content)).toEqual({ x: -952, y: -952 });
+		expect(clampAt({ x: 5000, y: 5000 }, 1, box, content)).toEqual({ x: 352, y: 252 });
+		expect(clampAt({ x: -10, y: 20 }, 1, box, content)).toEqual({ x: -10, y: 20 });
+	});
+
+	it("pans with the wheel without Ctrl", () => {
+		mount();
+		const area = screen.getByRole("region", { name: "Zoom and move: Plan" });
+		fireEvent.wheel(area, { deltaX: 30, deltaY: 10 });
+		expect(scaleOf()).toContain("translate(-30px, -10px)");
 	});
 
 	it("zooms with the buttons, the keys and Ctrl plus wheel, and fits", async () => {

@@ -525,6 +525,25 @@ fn a_server_that_dies_before_it_answers_fails() {
 }
 
 #[test]
+fn a_server_that_exits_names_the_program_its_code_and_its_stderr() {
+    let lab = Lab::new();
+    program(
+        lab.dir.path(),
+        "exits3",
+        "echo 'daemon not ready' >&2\nexit 3",
+    );
+    let control = lab.control();
+    let id = control.add_custom(custom("Exits", "exits3")).unwrap().id;
+    let Err(AgentError::Server(text)) = control.start(&id) else {
+        panic!("the start must fail");
+    };
+    assert!(
+        text.starts_with("`exits3` failed: exited with code 3: daemon not ready"),
+        "{text}"
+    );
+}
+
+#[test]
 fn a_dead_server_starts_again_on_the_next_request() {
     let lab = Lab::new();
     let (control, id) = lab.with_fake();

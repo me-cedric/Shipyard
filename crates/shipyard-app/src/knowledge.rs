@@ -1660,6 +1660,32 @@ mod tests {
     }
 
     #[test]
+    fn index_error_names_the_program_the_code_and_the_stderr_line() {
+        use shipyard_agents::mcp_control::{CustomInput, McpConfig, McpControl};
+        let dir = tempfile::tempdir().unwrap();
+        shipyard_agents::fake::program(dir.path(), "fake-mcp", "echo 'no daemon' >&2\nexit 3");
+        let control = McpControl::new(
+            std::sync::Arc::new(shipyard_secrets::MemoryStore::default()),
+            McpConfig::default(),
+        )
+        .with_dirs(vec![dir.path().into(), "/usr/bin".into(), "/bin".into()]);
+        let input = CustomInput {
+            name: format!("{CODE_SERVER} fake"),
+            command: "fake-mcp".into(),
+            ..Default::default()
+        };
+        control.add_custom(input).unwrap();
+        let proxy = Proxy::new(std::sync::Arc::new(control));
+        let e = code_index_run(&proxy, dir.path()).unwrap_err();
+        assert!(
+            e.contains("`fake-mcp` failed: exited with code 3: no daemon"),
+            "{e}"
+        );
+        let app = crate::errors::AppError::from(e.as_str());
+        assert_eq!(app.code, crate::errors::ErrorCode::ToolFailed);
+    }
+
+    #[test]
     fn index_adds_a_server_that_is_missing_and_names_a_missing_program() {
         use shipyard_agents::mcp_control::{McpConfig, McpControl};
         let dir = tempfile::tempdir().unwrap();
