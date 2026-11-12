@@ -415,7 +415,8 @@ pub(crate) fn log_tail(log: &Path, n: usize) -> Vec<String> {
         .collect()
 }
 
-/// `on_lines` gets the last lines of the output twice a second while the gate runs.
+/// `on_lines` gets the last lines of the output twice a second while the gate runs, and once at
+/// the end.
 pub(crate) fn run_gate_out(
     dir: &Path,
     log: &Path,
@@ -492,6 +493,8 @@ pub(crate) fn run_gate_out(
             }
         }
     };
+    // The last lines once more: a gate that ends before the first tick still shows its output.
+    on_lines(log_tail(log, 20));
     // The shell ended. Its group may hold a child that it left: kill it too.
     if live_gates().remove(&pid) {
         shipyard_agents::runner::kill_group(pid);
