@@ -250,3 +250,71 @@ describe("a partial result, the kept text and the close guard", () => {
 		await idle(router);
 	});
 });
+
+describe("one control each, the limit and the focus", () => {
+	it("shows Submit review once on the Overview while the bar shows", async () => {
+		const { router } = await open();
+		await barSubmit();
+		expect(screen.getAllByRole("button", { name: "Submit review" })).toHaveLength(1);
+		await idle(router);
+	});
+
+	it("says that a review takes 100 comments and keeps Submit off", async () => {
+		const user = userEvent.setup();
+		const { router, store } = await open(false);
+		const d = mockPull(141);
+		act(() => {
+			for (let n = 1; n <= 101; n++)
+				store.result.current.add({
+					path: "src/a.ts",
+					line: n,
+					body: `c${n}`,
+					headSha: d?.headSha ?? "",
+				});
+		});
+		expect(await screen.findByRole("button", { name: "101 pending comments" })).toBeVisible();
+		await user.click(await barSubmit());
+		const dialog = await screen.findByRole("dialog");
+		expect(within(dialog).getByRole("alert")).toHaveTextContent(
+			"A review takes at most 100 comments: remove 1 to submit",
+		);
+		expect(within(dialog).getByRole("button", { name: "Submit review" })).toBeDisabled();
+		await idle(router);
+	});
+
+	it("moves the focus to the title after Discard", async () => {
+		const user = userEvent.setup();
+		const { router } = await open();
+		await user.click(await screen.findByRole("button", { name: "Discard" }));
+		await user.click(screen.getByRole("button", { name: "Discard 2 pending comments?" }));
+		await waitFor(() =>
+			expect(screen.getByRole("heading", { level: 1, name: /#141/ })).toHaveFocus(),
+		);
+		await idle(router);
+	});
+
+	it("keeps the text of an open line box over a tab change and counts it in the close guard", async () => {
+		const user = userEvent.setup();
+		const guard = vi.spyOn(commands, "closeGuardDrafts");
+		const { router } = await open(false);
+		const files = () => user.click(screen.getByRole("tab", { name: /Files changed/ }));
+		await files();
+		const tree = await screen.findByRole("group", { name: "Changed files" });
+		await user.click(within(tree).getAllByRole("button").at(-1) as HTMLElement);
+		const first = document.querySelector("[data-kind=ctx], [data-kind=add]");
+		if (first) await user.hover(first);
+		await user.click(await screen.findByRole("button", { name: /Add a comment on line/ }));
+		const area = screen.getByRole("textbox", { name: /Comment on line/ });
+		await user.type(area, "half");
+		await waitFor(() => expect(guard).toHaveBeenCalledWith(1));
+		await user.click(screen.getByRole("tab", { name: /Commits/ }));
+		await files();
+		await user.click(
+			within(await screen.findByRole("group", { name: "Changed files" }))
+				.getAllByRole("button")
+				.at(-1) as HTMLElement,
+		);
+		expect(await screen.findByRole("textbox", { name: /Comment on line/ })).toHaveValue("half");
+		await idle(router);
+	});
+});

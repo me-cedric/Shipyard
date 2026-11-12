@@ -39,7 +39,7 @@ The detail pane shows every file in a flat list and one diff, the description as
 ### Existing References
 
 - Existing code/docs/specs: `specs/code` REQ-018 and REQ-019, `changes/update-ux-declutter/specs/ux-declutter` REQ-041 to REQ-052.
-- Supersedes or extends: `spec:code#REQ-018`, `spec:code#REQ-019`.
+- Supersedes or extends: `spec:code#REQ-018`, `spec:code#REQ-019`, `spec:code#REQ-024`.
 
 ## MODIFIED Requirements
 
@@ -80,3 +80,22 @@ A pull request page SHALL show its description as Markdown, its conversation, it
 - GIVEN a pull request with forty files
 - WHEN a person opens the Files changed tab
 - THEN all forty files show collapsed with their counts
+
+### Requirement: REQ-024 Pull request links
+
+A pull request page SHALL show its linked `wi:` and `run:` refs in the sidebar and its commits as `commit:` refs in the Commits tab. The sidebar SHALL show the backlinks of the pull request under Cited by. A ref of a pull request SHALL open its page, not the inspector. The pull request itself belongs to `add-delivery` (REQ-028).
+
+#### Scenario: Run pull request
+- GIVEN a pull request that a run opened for `wi:SHIP-42`
+- WHEN a person opens it
+- THEN the sidebar shows the `wi:SHIP-42` chip and the `run:` chip
+
+#### Scenario: Cited by
+- GIVEN a pull request that another item cites
+- WHEN a person opens its page
+- THEN the sidebar lists the citing item under Cited by
+
+#### Scenario: Open by ref
+- GIVEN a `pr:` ref in a ticket
+- WHEN a person opens the ref
+- THEN the pull request page opens

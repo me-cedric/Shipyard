@@ -73,7 +73,7 @@ Third pass, the pull request page
 - [ ] T030 (wave 10) Files changed: shared `FileDiffList` (collapsed, counts, Expand all, viewed), file tree and filter, line numbers in `DiffView`, files beyond 100. REQ-045, REQ-046, REQ-051.
 - [ ] T031 (wave 11) General comments read and post, thread reply and resolve: forge methods, IPC commands, mocks, the conversation. REQ-047, REQ-048, REQ-052.
 - [ ] T032 (wave 12) Inline comments: gutter action, pending review kept on this computer, Submit review with a verdict, single comment, forge refusals. REQ-049, REQ-050, REQ-051.
-- [ ] T033 (wave 13) Docs, test plans, screens, guide, changelogs, final Opus review and fixer, the validation commands of `plan.md`.
+- [x] T033 (wave 13) Docs, test plans, screens, guide, changelogs, final Opus review and fixer, the validation commands of `plan.md`.
 
 ## Completion Check
 

@@ -1,4 +1,13 @@
-import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+	type Dispatch,
+	type KeyboardEvent,
+	type ReactNode,
+	type SetStateAction,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import type { FileChange, PullDetail } from "@/lib/code";
 import { usePendingReview } from "@/lib/code/pending-review";
 import { format, useI18n } from "@/lib/i18n";
@@ -8,10 +17,10 @@ import { useViewState } from "@/lib/shell/view-state";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Progress } from "@/ui/atoms/progress";
-import { countsOf, type DiffFileItem, DiffFileList } from "@/ui/molecules/diff-file-list";
+import { type DiffFileItem, DiffFileList } from "@/ui/molecules/diff-file-list";
 import { shownLines } from "@/ui/molecules/diff-view";
 import { FileRow, type FileState } from "@/ui/molecules/file-row";
-import { InlineBox, PendingCard } from "./inline-comment";
+import { InlineBox, type LineBox, PendingCard } from "./inline-comment";
 import { ThreadCard } from "./pull-thread";
 import { treeRows } from "./tree";
 import { FileDialog } from "./viewer";
@@ -29,7 +38,16 @@ const stateOf = (status: string): FileState => FILE_STATE[status] ?? "modified";
 export const EXPAND_STEP = 30;
 
 /** The "Files changed" tab: a filter and a tree of the files, then the files closed with their counts. */
-export function PullFiles({ detail }: { detail: PullDetail }) {
+export function PullFiles({
+	detail,
+	boxes,
+	setBoxes,
+}: {
+	detail: PullDetail;
+	/** The open line boxes with their text: they live in the page and survive a collapsed file or a tab. */
+	boxes: LineBox[];
+	setBoxes: Dispatch<SetStateAction<LineBox[]>>;
+}) {
 	const { t } = useI18n();
 	const p = t.forge.pullFiles;
 	const [query, setQuery] = useState("");
@@ -55,7 +73,6 @@ export function PullFiles({ detail }: { detail: PullDetail }) {
 	const commentBadge = (n?: number) =>
 		n ? format(n === 1 ? i.commentsOne : i.commentsMany, { n }) : undefined;
 	// The boxes that are open, and the line button that takes the focus back when one closes.
-	const [boxes, setBoxes] = useState<{ path: string; line: number }[]>([]);
 	const back = useRef<{ path: string; line: number } | null>(null);
 	// The new-file lines of each patch that the diff shows, found when a file first needs them.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: a new file list starts a new cache
@@ -84,16 +101,6 @@ export function PullFiles({ detail }: { detail: PullDetail }) {
 			return f ? [f] : [];
 		});
 	}, [detail.files, query]);
-	const totals = useMemo(() => {
-		let added = 0;
-		let removed = 0;
-		for (const f of detail.files) {
-			const n = countsOf(f.patch ?? "");
-			added += n.added;
-			removed += n.removed;
-		}
-		return { added, removed };
-	}, [detail.files]);
 	// Expand all opens the first 30 closed files. Once some are open on a long list, the button offers the next ones.
 	const rest = files.filter((f) => !expanded.has(f.path));
 	const more = files.length > EXPAND_STEP && rest.length > 0 && rest.length < files.length;
@@ -168,9 +175,15 @@ export function PullFiles({ detail }: { detail: PullDetail }) {
 						headSha={detail.headSha}
 						path={b.path}
 						line={b.line}
+						initial={b.text}
+						onText={(text) =>
+							setBoxes((x) =>
+								x.map((y) => (y.path === b.path && y.line === b.line ? { ...y, text } : y)),
+							)
+						}
 						onClose={() => {
 							back.current = b;
-							setBoxes((x) => x.filter((y) => y !== b));
+							setBoxes((x) => x.filter((y) => !(y.path === b.path && y.line === b.line)));
 						}}
 					/>,
 				);
@@ -256,11 +269,6 @@ export function PullFiles({ detail }: { detail: PullDetail }) {
 			<div className="min-w-0 flex-1 overflow-hidden rounded-lg border bg-surface-2">
 				<div className="flex flex-wrap items-center gap-3 border-b px-3 py-1 text-ui text-n-11">
 					<span>{format(p.count, { n: files.length })}</span>
-					<span aria-hidden="true" className="font-mono text-11">
-						<span className="text-success-text">+{totals.added}</span>{" "}
-						<span className="text-danger-text">−{totals.removed}</span>
-					</span>
-					<span className="sr-only">{format(p.counts, totals)}</span>
 					<Button
 						variant="ghost"
 						disabled={!rest.length}
@@ -319,7 +327,7 @@ export function PullFiles({ detail }: { detail: PullDetail }) {
 												setBoxes((x) =>
 													x.some((b) => b.path === f.path && b.line === newLine)
 														? x
-														: [...x, { path: f.path, line: newLine }],
+														: [...x, { path: f.path, line: newLine, text: "" }],
 												),
 										}
 									: {}

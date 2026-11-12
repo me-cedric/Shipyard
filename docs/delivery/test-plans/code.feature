@@ -150,11 +150,65 @@ Feature: code
     When a person opens Code / Pull requests
     Then the list shows the mirror
 
+  @spec:code#REQ-018
+  Scenario: Pull request list: No stat strip
+    Given pull requests in three states
+    When a person opens Code / Pull requests
+    Then the list shows no stat strip, and each state group shows its count
+
   @spec:code#REQ-019
   Scenario: Pull request detail: Open a pull request
     Given a pull request with two failed checks
     When a person opens it
-    Then the CI tab names the two failed checks
+    Then the Checks tab names the two failed checks
+
+  @spec:code#REQ-019
+  Scenario: Pull request detail: Files collapsed
+    Given a pull request with forty-five files
+    When a person opens the Files changed tab
+    Then all files show collapsed with their counts, and expanding one shows its diff with line numbers
+
+  @spec:code#REQ-019
+  Scenario: Pull request detail: Expand next 30
+    Given a pull request with forty-five files
+    When a person clicks Expand all
+    Then thirty files open and the action offers Expand next 15
+
+  @spec:code#REQ-019
+  Scenario: Pull request detail: Viewed marks
+    Given a pull request with three files
+    When a person marks one file as viewed
+    Then the count shows 1 / 3 viewed
+
+  @spec:code#REQ-021
+  Scenario: Thread: Reply and resolve
+    Given an unresolved thread
+    When a person replies and then clicks Resolve
+    Then the code host receives the reply and the resolution, and the thread shows the Resolved mark
+
+  @spec:code#REQ-021
+  Scenario: Inline comment: Pending review
+    Given the Files changed tab
+    When a person adds a comment to a line with Add review comment
+    Then the comment shows under the line as Pending and the review bar counts one pending comment
+
+  @spec:code#REQ-021
+  Scenario: Submit review: Verdict
+    Given two pending comments
+    When a person clicks Submit review and picks Approve
+    Then the code host receives one review with both comments and the pending list is empty
+
+  @spec:code#REQ-021
+  Scenario: Submit review: A partial result
+    Given three pending comments of which the code host cannot place one
+    When a person submits the review
+    Then the page clears the two that were sent and keeps the third as pending
+
+  @spec:code#REQ-021
+  Scenario: Submit review: Request changes needs text
+    Given a pending review
+    When a person picks Request changes with no review text
+    Then the system refuses and asks for the text
 
   @spec:code#REQ-020
   Scenario: Open a pull request: Open

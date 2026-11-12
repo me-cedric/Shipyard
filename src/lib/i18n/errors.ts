@@ -230,6 +230,9 @@ export const actionLabels: Record<Lang, Record<ActionKind, string>> = {
 	es: actionsEs,
 };
 
+/** The text of a code host `NotFound` starts with it (`FORGE_MISSING` in `errors.rs`). */
+const FORGE_MISSING = "code host: not found: ";
+
 /**
  * The raw texts that the mock makes as a `string`, and that Rust turns into a code. A copy of
  * `KNOWN` in `errors.rs`: `errors.test.ts` fails when the two differ.
@@ -265,7 +268,7 @@ export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["HTTP 401", "forge_denied"],
 	["HTTP 403", "forge_denied"],
 	["HTTP 404", "forge_missing"],
-	["not found: ", "forge_missing"],
+	["code host: not found: ", "forge_missing"],
 	["network error:", "forge_unreachable"],
 	["nothing is staged", "git_nothing_staged"],
 	["no git identity", "git_identity"],
@@ -480,7 +483,11 @@ const ACTIONS: Partial<Record<ErrorCode, ErrorAction>> = {
 
 /** What the mock gives to a raw text, the way `AppError::from` does in Rust. */
 export function classify(text: string): { code: ErrorCode; action: ErrorAction | null } {
-	const code = RAW.find(([needle]) => text.includes(needle))?.[1] ?? "unknown";
+	// The code host marker only counts at the start: "branch not found:" is not a missing pull request.
+	const code =
+		RAW.find(([needle]) =>
+			needle === FORGE_MISSING ? text.startsWith(needle) : text.includes(needle),
+		)?.[1] ?? "unknown";
 	return { code, action: ACTIONS[code] ?? null };
 }
 

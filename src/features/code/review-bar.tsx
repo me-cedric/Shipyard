@@ -7,6 +7,7 @@ import { useDraftCount } from "@/lib/shell/drafts";
 import { Button } from "@/ui/atoms/button";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { CloseConfirm } from "./close-confirm";
+import { focusPullTitle } from "./focus-title";
 
 /**
  * The pending review above the tabs (REQ-049): the count, Submit review and Discard. It shows on every
@@ -57,6 +58,7 @@ export function ReviewBar({ d, onSubmit }: { d: PullDetail; onSubmit: () => void
 					onConfirm={() => {
 						setDiscarding(false);
 						clear();
+						focusPullTitle();
 					}}
 				/>
 			) : (

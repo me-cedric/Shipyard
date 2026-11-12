@@ -193,7 +193,9 @@ test("merges only after the confirm click", async ({ page }) => {
 	const merge = page.getByRole("button", { name: "Merge", exact: true });
 	await merge.click();
 	// The first click only asks: the merge has not run. The checks fail: the confirm names the risk.
-	const confirm = page.getByRole("button", { name: "Merge with failing checks" });
+	const confirm = page.getByRole("button", {
+		name: "Merge with Merge although checks are failing?",
+	});
 	await expect(confirm).toBeVisible();
 	await expect(page.getByRole("alert")).toHaveCount(0);
 	await confirm.click();
@@ -213,6 +215,15 @@ test("opens a file of a pull request in the viewer", async ({ page }) => {
 	await expect(dialog).toBeHidden();
 });
 
+// Only the row under the pointer draws its "+": point at the line number first.
+const plusOf = async (page: Page, line: number) => {
+	await page
+		.locator("[data-kind] > span:nth-child(2)", { hasText: new RegExp(`^${line}$`) })
+		.first()
+		.hover();
+	return page.getByRole("button", { name: `Add a comment on line ${line}` });
+};
+
 test("comments on a line of a pull request: pending first, then one at once", async ({ page }) => {
 	await openCode(page, "Pull requests");
 	await pull(page, 142).click();
@@ -221,7 +232,7 @@ test("comments on a line of a pull request: pending first, then one at once", as
 	await expect(page.getByText("1 comment").first()).toBeVisible();
 	await page.getByRole("button", { name: "Expand all" }).click();
 	// A pending comment on line 3: the box closes and the count grows.
-	await page.getByRole("button", { name: "Add a comment on line 3" }).click();
+	await (await plusOf(page, 3)).click();
 	await page.getByRole("textbox", { name: "Comment on line 3" }).fill("Name this **c**.");
 	await page.getByRole("button", { name: "Add review comment" }).click();
 	await expect(page.getByRole("article", { name: "Pending: src/app.ts:3" })).toContainText(
@@ -229,7 +240,7 @@ test("comments on a line of a pull request: pending first, then one at once", as
 	);
 	await expect(page.getByText("2 comments").first()).toBeVisible();
 	// One comment at once: it comes back as a thread on the line.
-	await page.getByRole("button", { name: "Add a comment on line 1" }).click();
+	await (await plusOf(page, 1)).click();
 	await page.getByRole("textbox", { name: "Comment on line 1" }).fill("Posted now.");
 	await page.getByRole("button", { name: "Add single comment" }).click();
 	await expect(page.getByRole("article", { name: "src/app.ts:1" })).toContainText("Posted now.");

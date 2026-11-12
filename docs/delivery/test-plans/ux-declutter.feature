@@ -275,3 +275,153 @@ Feature: ux-declutter
     Given the code graph program ends with code 1
     When the person clicks Index
     Then the page names the program, the code and its last line
+
+  @spec:ux-declutter#REQ-041
+  Scenario: Pull request page: Open and go back
+    Given a pull request in the list that the search filtered
+    When the person opens it and clicks Back
+    Then the page showed its title, branches, line counts and four tabs, and the list shows with the same search
+
+  @spec:ux-declutter#REQ-042
+  Scenario: Pull request list: Search
+    Given a list of eight pull requests
+    When the person types a word in the search
+    Then only the pull requests that match it show
+
+  @spec:ux-declutter#REQ-042
+  Scenario: Pull request list: Needs review
+    Given an open pull request that is not a draft, in the in-review lane, and a draft one
+    When the person picks Needs review
+    Then only the first one shows, and no row shows an author
+
+  @spec:ux-declutter#REQ-043
+  Scenario: Merge box: Segments and confirmation
+    Given a pull request with two failing checks and one unresolved thread
+    When the Overview shows and the person clicks Merge
+    Then the box names two failing checks and one unresolved thread, and the confirmation names the method and the risk, with Confirm and Cancel
+
+  @spec:ux-declutter#REQ-043
+  Scenario: Merge box: Merge method
+    Given a code host that offers Merge, Squash and Rebase
+    When the person picks Squash in the menu and clicks Merge
+    Then the confirmation names Squash
+
+  @spec:ux-declutter#REQ-044
+  Scenario: Description and sidebar: Cited by
+    Given a pull request that links a ticket and that another item cites
+    When the Overview shows
+    Then the description shows as Markdown, the sidebar lists the ticket as a link and the citing item under Cited by, and it shows no label
+
+  @spec:ux-declutter#REQ-045
+  Scenario: Files changed: Collapsed
+    Given a pull request with forty-five files
+    When the Files changed tab shows
+    Then all rows are collapsed, expanding one shows its diff, and Expand all opens thirty and offers Expand next 15
+
+  @spec:ux-declutter#REQ-045
+  Scenario: Files changed: Viewed marks
+    Given a pull request with three files
+    When the person marks one file as viewed
+    Then the count shows 1 / 3 viewed and the mark stays on this computer
+
+  @spec:ux-declutter#REQ-045
+  Scenario: Files changed: Cut list
+    Given a code host list that was cut at 3000 files
+    When the Files changed tab shows
+    Then the tab says "Showing the first 3000 files"
+
+  @spec:ux-declutter#REQ-046
+  Scenario: Shared file parts: Line numbers
+    Given a file list on the pull request page and one on the run page
+    When both show
+    Then they use the same collapsed file list and the same diff component with line numbers
+
+  @spec:ux-declutter#REQ-047
+  Scenario: General comments: Author and time
+    Given a pull request with two comments
+    When the Overview shows
+    Then both comments show as Markdown with their author, date and time
+
+  @spec:ux-declutter#REQ-047
+  Scenario: General comments: Only the newest comments
+    Given a pull request whose code host returned only the newest comments
+    When the Overview shows
+    Then a note says that it shows the latest comments
+
+  @spec:ux-declutter#REQ-048
+  Scenario: Threads: Resolve
+    Given an unresolved thread
+    When the person clicks Resolve
+    Then the thread shows the Resolved mark and the merge box counts one unresolved thread fewer
+
+  @spec:ux-declutter#REQ-048
+  Scenario: Threads: Reply
+    Given an unresolved thread
+    When the person writes a reply and clicks Post reply
+    Then the code host receives the reply and the thread keeps its place
+
+  @spec:ux-declutter#REQ-048
+  Scenario: Threads: A thread cut short
+    Given a thread with 80 comments of which the code host returned the last 50
+    When the thread shows
+    Then a note says "Showing the last 50 of 80 comments"
+
+  @spec:ux-declutter#REQ-048
+  Scenario: Threads: Review threads cut short
+    Given a merge request with more review threads than the code host read cap
+    When the Overview shows
+    Then a note says "Showing the first N review threads"
+
+  @spec:ux-declutter#REQ-049
+  Scenario: Inline comments: Submit review
+    Given two pending comments on two lines of the new side
+    When the person clicks Submit review and picks Comment
+    Then the code host receives one review with both comments and the pending list is empty
+
+  @spec:ux-declutter#REQ-049
+  Scenario: Inline comments: Single comment
+    Given an open comment box on a line
+    When the person clicks Add single comment
+    Then the code host receives a one-comment review and the pending list does not change
+
+  @spec:ux-declutter#REQ-049
+  Scenario: Inline comments: Partial result
+    Given three pending comments of which the code host cannot place one
+    When the person submits the review
+    Then the page clears the two that were sent and keeps the third as pending
+
+  @spec:ux-declutter#REQ-050
+  Scenario: Pending review is kept: Restart
+    Given a pending comment and a restart
+    When the person opens the pull request again
+    Then the pending comment is still there
+
+  @spec:ux-declutter#REQ-050
+  Scenario: Pending review is kept: Storage refuses
+    Given a browser storage that refuses a write
+    When the person adds a comment to the review
+    Then the page says "This comment is not saved on this computer" and keeps the comment in memory
+
+  @spec:ux-declutter#REQ-050
+  Scenario: Pending review is kept: File left the pull request
+    Given a pending comment on a file that the pull request no longer has
+    When the Files changed tab shows
+    Then the group "Comments on files no longer in this pull request" shows the comment in full
+
+  @spec:ux-declutter#REQ-051
+  Scenario: Code host limits: A comment with no line
+    Given a code host that cannot place one comment on a line
+    When the person submits the review
+    Then that comment goes into the review text and a notice says so
+
+  @spec:ux-declutter#REQ-051
+  Scenario: Code host limits: A refusal
+    Given a code host that refuses the whole review
+    When the person submits it
+    Then the refusal text shows and every comment stays pending
+
+  @spec:ux-declutter#REQ-052
+  Scenario: Pull request rights: Viewer
+    Given a viewer
+    When the person opens a pull request
+    Then the write box, the reply, the resolve, the "+" and the submit controls are off with their reason

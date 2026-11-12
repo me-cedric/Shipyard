@@ -239,7 +239,7 @@ const need = (click: boolean) => {
 
 const find = (p: MockPrs, number: number) => {
 	const found = p.pulls.find((x) => x.number === number);
-	if (!found) throw `not found: ${number}`;
+	if (!found) throw `code host: not found: ${number}`;
 	return found;
 };
 
@@ -350,7 +350,7 @@ export function pullComment(p: MockPrs, number: number, body: string, click: boo
 
 const thread = (p: MockPrs, reference: string, id: string) => {
 	const found = find(p, Number(reference.split(":").pop())).threads.find((t) => t.id === id);
-	if (!found) throw `not found: ${id}`;
+	if (!found) throw `code host: not found: ${id}`;
 	return found;
 };
 

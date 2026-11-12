@@ -77,12 +77,12 @@
     {
       "id": "SCR-008",
       "slug": "code",
-      "title": "Code: tabs with icons; the Terminal button of the top bar opens the terminal drawer",
+      "title": "Code / Pull requests: a full-width list with a search, the filter All and Needs review, and the groups Open, Merged and Closed; each row shows the number, the title, the draft, checks and review state, and no author",
       "artifacts": [
         "spec:code",
         "spec:ux-declutter"
       ],
-      "file": "docs/assets/screenshots/code.png"
+      "file": "docs/assets/screenshots/pulls.png"
     },
     {
       "id": "SCR-009",
@@ -293,6 +293,36 @@
         "spec:shell",
         "spec:ux-declutter"
       ]
+    },
+    {
+      "id": "SCR-033",
+      "slug": "pull-request",
+      "title": "Code / Pull request, Overview: the header with the state, the branches and the line counts, the four tabs, the merge box with Checks, Comments and Approvals and a Merge split button, the description, the conversation with threads, and the sidebar with reviewers, links and Cited by",
+      "artifacts": [
+        "spec:code",
+        "spec:ux-declutter"
+      ],
+      "file": "docs/assets/screenshots/pull.png"
+    },
+    {
+      "id": "SCR-034",
+      "slug": "pull-request-files",
+      "title": "Code / Pull request, Files changed: the file tree with a filter, Expand all, the viewed count, collapsed file rows with their counts, a thread and a pending comment under a line, and the pending review bar with Submit review and Discard",
+      "artifacts": [
+        "spec:code",
+        "spec:ux-declutter"
+      ],
+      "file": "docs/assets/screenshots/pull-files.png"
+    },
+    {
+      "id": "SCR-035",
+      "slug": "submit-review",
+      "title": "Code / Pull request, Submit review: the verdicts Comment, Approve and Request changes, the review text with Preview, and the list of pending comments",
+      "artifacts": [
+        "spec:code",
+        "spec:ux-declutter"
+      ],
+      "file": "docs/assets/screenshots/pull-review.png"
     }
   ]
 }

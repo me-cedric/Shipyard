@@ -209,42 +209,7 @@ impl PullApi for GitLab {
     }
 
     fn threads(&self, repo: &str, number: u64) -> Result<Vec<ReviewThread>, ForgeError> {
-        let v = self.call(
-            &format!(
-                "{}/merge_requests/{number}/discussions",
-                project_path(repo)?
-            ),
-            &[("per_page", "100")],
-        )?;
-        Ok(v.as_array()
-            .into_iter()
-            .flatten()
-            // A thread has resolvable notes. A plain comment and a system note do not.
-            .filter(|d| {
-                items(d, "/notes")
-                    .iter()
-                    .any(|n| n["resolvable"].as_bool() == Some(true))
-            })
-            .map(|d| {
-                let notes = items(d, "/notes");
-                let comments: Vec<PullComment> = notes
-                    .iter()
-                    .filter(|n| n["system"].as_bool() != Some(true))
-                    .map(note)
-                    .collect();
-                ReviewThread {
-                    id: text(d, "/id"),
-                    resolved: notes
-                        .iter()
-                        .filter(|n| n["resolvable"].as_bool() == Some(true))
-                        .all(|n| n["resolved"].as_bool() == Some(true)),
-                    path: Some(text(&notes[0], "/position/new_path")).filter(|p| !p.is_empty()),
-                    line: line(&notes[0], "/position/new_line"),
-                    comments_total: comments.len() as u32,
-                    comments,
-                }
-            })
-            .collect())
+        Ok(self.read_threads(repo, number)?.0)
     }
 
     fn reply_thread(
@@ -292,9 +257,10 @@ impl PullApi for GitLab {
 
     fn conversation(&self, repo: &str, number: u64) -> Result<Conversation, ForgeError> {
         let (comments, comments_truncated) = self.read_comments(repo, number)?;
+        let (threads, threads_truncated) = self.read_threads(repo, number)?;
         Ok(Conversation {
-            threads: self.threads(repo, number)?,
-            threads_truncated: false,
+            threads,
+            threads_truncated,
             comments,
             comments_truncated,
         })
@@ -337,6 +303,63 @@ fn note(n: &Value) -> PullComment {
         body: text(n, "/body"),
         created: text(n, "/created_at"),
     }
+}
+
+impl GitLab {
+    /// The discussions of the merge request, 100 a page, 10 pages at most. A general note is a
+    /// discussion of its own, so a busy merge request has many. `true` when the cap cut the list.
+    fn read_threads(
+        &self,
+        repo: &str,
+        number: u64,
+    ) -> Result<(Vec<ReviewThread>, bool), ForgeError> {
+        let path = format!(
+            "{}/merge_requests/{number}/discussions",
+            project_path(repo)?
+        );
+        let mut found = Vec::new();
+        let mut more = false;
+        for page in 1..=10 {
+            let p = page.to_string();
+            let res = self.send(&path, &[("page", p.as_str()), ("per_page", "100")])?;
+            let body = res.json()?;
+            let all = items(&body, "");
+            more = res.header("x-next-page").is_some_and(|n| !n.is_empty());
+            found.extend(all.iter().filter_map(thread));
+            if !more || all.len() < 100 {
+                more = false;
+                break;
+            }
+        }
+        Ok((found, more))
+    }
+}
+
+/// A discussion as a review thread: only one with resolvable notes. A plain comment and a system note are not.
+fn thread(d: &Value) -> Option<ReviewThread> {
+    let notes = items(d, "/notes");
+    if !notes
+        .iter()
+        .any(|n| n["resolvable"].as_bool() == Some(true))
+    {
+        return None;
+    }
+    let comments: Vec<PullComment> = notes
+        .iter()
+        .filter(|n| n["system"].as_bool() != Some(true))
+        .map(note)
+        .collect();
+    Some(ReviewThread {
+        id: text(d, "/id"),
+        resolved: notes
+            .iter()
+            .filter(|n| n["resolvable"].as_bool() == Some(true))
+            .all(|n| n["resolved"].as_bool() == Some(true)),
+        path: Some(text(&notes[0], "/position/new_path")).filter(|p| !p.is_empty()),
+        line: line(&notes[0], "/position/new_line"),
+        comments_total: comments.len() as u32,
+        comments,
+    })
 }
 
 impl GitLab {

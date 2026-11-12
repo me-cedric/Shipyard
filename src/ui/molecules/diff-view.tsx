@@ -3,6 +3,7 @@ import {
 	memo,
 	type ReactNode,
 	useCallback,
+	useEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -77,9 +78,11 @@ const LineRow = memo(function LineRow({
 	note,
 	actionLabel,
 	actionOff,
+	showAction,
 	tabbable,
 	onAct,
 	onActive,
+	onHover,
 }: {
 	l: Line;
 	path?: string;
@@ -87,14 +90,22 @@ const LineRow = memo(function LineRow({
 	actionLabel?: string;
 	/** The reason that the "+" is off. The button stays in the tab order and says why. */
 	actionOff?: string;
+	/** Only the active row draws its "+": the hovered one and the keyboard current one. */
+	showAction: boolean;
 	tabbable: boolean;
 	onAct: (newLine: number) => void;
 	onActive: (newLine: number) => void;
+	onHover: (newLine: number) => void;
 }) {
 	const at = l.new;
 	return (
 		<div>
-			<div data-kind={l.kind} className={cn("group flex whitespace-pre", TONE[l.kind])}>
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: hover only moves the "+" to this row; the keyboard path has its own keys */}
+			<div
+				data-kind={l.kind}
+				onMouseEnter={at == null || !actionLabel ? undefined : () => onHover(at)}
+				className={cn("group flex whitespace-pre", TONE[l.kind])}
+			>
 				{l.kind === "hunk" ? (
 					<span className="px-2">{l.text}</span>
 				) : (
@@ -107,7 +118,7 @@ const LineRow = memo(function LineRow({
 						</span>
 						{actionLabel ? (
 							<span className="w-5 shrink-0 text-center">
-								{at == null ? null : (
+								{at == null || !showAction ? null : (
 									<button
 										type="button"
 										data-line-action={at}
@@ -179,6 +190,11 @@ export function DiffView({
 }) {
 	const [all, setAll] = useState(false);
 	const [active, setActive] = useState<number | null>(null);
+	// The hovered row keeps its button until another row is hovered: it is invisible without the hover.
+	const [hover, setHover] = useState<number | null>(null);
+	const section = useRef<HTMLElement>(null);
+	// The row that the arrow keys moved to: its "+" takes the focus once it is drawn.
+	const focusAt = useRef<number | null>(null);
 	const lines = useMemo(() => parseDiff(text), [text]);
 	const capped = !!showAllLabel && !all && lines.length > DIFF_LINE_CAP;
 	const actionLabel = onLineAction ? lineActionLabel : undefined;
@@ -196,17 +212,28 @@ export function DiffView({
 	);
 	const latest = useRef(onLineAction);
 	latest.current = onLineAction;
+	useEffect(() => {
+		if (focusAt.current === null || focusAt.current !== stop) return;
+		section.current?.querySelector<HTMLElement>(`[data-line-action="${stop}"]`)?.focus();
+		focusAt.current = null;
+	}, [stop]);
 	const onAct = useCallback((newLine: number) => latest.current?.({ path, newLine }), [path]);
 	const move = (e: KeyboardEvent<HTMLElement>) => {
 		if (!(e.target instanceof HTMLElement) || e.target.dataset.lineAction === undefined) return;
 		if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
 		e.preventDefault();
-		const buttons = [...e.currentTarget.querySelectorAll<HTMLElement>("[data-line-action]")];
-		buttons[buttons.indexOf(e.target) + (e.key === "ArrowDown" ? 1 : -1)]?.focus();
+		const rows = (capped ? lines.slice(0, DIFF_LINE_CAP) : lines).flatMap((l) =>
+			l.new == null ? [] : [l.new],
+		);
+		const to = rows[rows.indexOf(stop ?? -1) + (e.key === "ArrowDown" ? 1 : -1)];
+		if (to === undefined) return;
+		focusAt.current = to;
+		setActive(to);
 	};
 	return (
 		// A scroll area needs a keyboard stop (axe scrollable-region-focusable).
 		<section
+			ref={section}
 			aria-label={label}
 			// biome-ignore lint/a11y/noNoninteractiveTabindex: a keyboard person scrolls the diff
 			tabIndex={0}
@@ -223,9 +250,11 @@ export function DiffView({
 					note={l.new == null ? undefined : notes?.[l.new]}
 					actionLabel={actionLabel}
 					actionOff={lineActionDisabled}
+					showAction={l.new != null && (l.new === stop || l.new === hover)}
 					tabbable={l.new != null && l.new === stop}
 					onAct={onAct}
 					onActive={setActive}
+					onHover={setHover}
 				/>
 			))}
 			{capped && hidden > 0 && hiddenNotesLabel ? (

@@ -171,6 +171,9 @@ impl ErrorCode {
 }
 
 /// The raw texts that the Rust code makes, by the part that is the same each time. The first match wins.
+/// The text of a code host `NotFound` starts with it. A "branch not found:" or a tracker text does not.
+pub const FORGE_MISSING: &str = "code host: not found: ";
+
 pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("no project is open", ErrorCode::NoProject),
     ("no active project", ErrorCode::NoProject),
@@ -208,7 +211,7 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("HTTP 401", ErrorCode::ForgeDenied),
     ("HTTP 403", ErrorCode::ForgeDenied),
     ("HTTP 404", ErrorCode::ForgeMissing),
-    ("not found: ", ErrorCode::ForgeMissing),
+    ("code host: not found: ", ErrorCode::ForgeMissing),
     ("network error:", ErrorCode::ForgeUnreachable),
     ("nothing is staged", ErrorCode::GitNothingStaged),
     ("no git identity", ErrorCode::GitIdentity),
@@ -450,7 +453,13 @@ impl From<String> for AppError {
             .or_else(|| {
                 KNOWN
                     .iter()
-                    .find(|(needle, _)| text.contains(needle))
+                    .find(|(needle, _)| {
+                        if *needle == FORGE_MISSING {
+                            text.starts_with(needle)
+                        } else {
+                            text.contains(needle)
+                        }
+                    })
                     .map(|(_, code)| *code)
             })
             .unwrap_or(ErrorCode::Unknown);
@@ -503,8 +512,17 @@ mod tests {
             "/settings/connections#connections"
         );
         // A pull request that the code host does not know is a missing item, not an unknown error.
-        let e = AppError::from("not found: acme/web#999");
+        let e = AppError::from("code host: not found: acme/web#999");
         assert_eq!(e.code, ErrorCode::ForgeMissing);
+        // The same words from a branch, a stash, a worktree or a tracker keep their own code.
+        for text in [
+            "branch not found: x",
+            "stash not found: 2",
+            "worktree not found: w",
+            "issue not found: A-1",
+        ] {
+            assert_eq!(AppError::from(text).code, ErrorCode::Unknown, "{text}");
+        }
         // An outage has no action: a forge outage must not read the tracker again.
         let e = AppError::from("network error: connection refused");
         assert_eq!((e.code, e.action), (ErrorCode::ForgeUnreachable, None));

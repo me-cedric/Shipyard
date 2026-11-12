@@ -106,13 +106,23 @@ const withAction = (act = vi.fn(), text = TWO) =>
 	);
 
 describe("DiffView line button", () => {
-	it("shows on added and context lines only, never on a removed line or a hunk header", () => {
+	// TWO: hunk, ctx 1, del, add 2, hunk, ctx 10, add 11, ctx 12.
+	const rowsOf = (c: HTMLElement) => [...c.querySelectorAll("[data-kind]")];
+
+	it("draws the plus on the active row only: the current one, and the hovered one", async () => {
 		const { container } = withAction();
-		// TWO: ctx 1, del, add 2, hunk, ctx 10, add 11, ctx 12.
-		const rows = [...container.querySelectorAll("[data-kind]")];
-		expect(rows.map((r) => r.querySelectorAll("button").length)).toEqual([0, 1, 0, 1, 0, 1, 1, 1]);
-		expect(screen.queryByRole("button", { name: "Add a comment on line 2" })).toBeInTheDocument();
-		expect(screen.getAllByRole("button")).toHaveLength(5);
+		const rows = rowsOf(container);
+		expect(rows.map((r) => r.querySelectorAll("button").length)).toEqual([0, 1, 0, 0, 0, 0, 0, 0]);
+		await userEvent.hover(rows[6] as Element);
+		expect(screen.getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
+			"Add a comment on line 1",
+			"Add a comment on line 11",
+		]);
+		// A removed line and a hunk header never get one.
+		await userEvent.hover(rows[2] as Element);
+		await userEvent.hover(rows[0] as Element);
+		expect(rows[2]?.querySelector("button")).toBeNull();
+		expect(rows[0]?.querySelector("button")).toBeNull();
 	});
 
 	it("shows on row hover and on keyboard focus, and has a focus ring", () => {
@@ -125,7 +135,8 @@ describe("DiffView line button", () => {
 
 	it("calls onLineAction with the path and the new line", async () => {
 		const act = vi.fn();
-		withAction(act);
+		const { container } = withAction(act);
+		await userEvent.hover(rowsOf(container)[6] as Element);
 		await userEvent.click(screen.getByRole("button", { name: "Add a comment on line 11" }));
 		expect(act).toHaveBeenCalledWith({ path: "a.ts", newLine: 11 });
 	});
@@ -133,18 +144,19 @@ describe("DiffView line button", () => {
 	it("is one tab stop and moves with the arrow keys", async () => {
 		const user = userEvent.setup();
 		withAction();
-		const buttons = screen.getAllByRole("button");
-		expect(buttons.filter((b) => b.tabIndex === 0)).toHaveLength(1);
-		expect(buttons[0]?.tabIndex).toBe(0);
-		buttons[0]?.focus();
+		const at = (n: number) => screen.getByRole("button", { name: `Add a comment on line ${n}` });
+		expect(screen.getAllByRole("button")).toHaveLength(1);
+		expect(at(1).tabIndex).toBe(0);
+		at(1).focus();
+		// The plus moves with the current row and takes the focus: lines 1, 2, 10.
 		await user.keyboard("{ArrowDown}{ArrowDown}");
-		expect(document.activeElement).toBe(buttons[2]);
-		expect(buttons[2]?.tabIndex).toBe(0);
-		expect(buttons[0]?.tabIndex).toBe(-1);
+		expect(at(10)).toHaveFocus();
+		expect(at(10).tabIndex).toBe(0);
+		expect(screen.getAllByRole("button")).toHaveLength(1);
 		await user.keyboard("{ArrowUp}");
-		expect(document.activeElement).toBe(buttons[1]);
+		expect(at(2)).toHaveFocus();
 		await user.keyboard("{ArrowUp}{ArrowUp}");
-		expect(document.activeElement).toBe(buttons[0]);
+		expect(at(1)).toHaveFocus();
 	});
 });
 
@@ -167,15 +179,22 @@ function Harness() {
 }
 
 describe("DiffView rows", () => {
+	it("holds a few buttons for a patch of 2000 lines", () => {
+		const text = `@@ -0,0 +1,2000 @@\n${Array.from({ length: 2000 }, (_, i) => `+l${i}`).join("\n")}`;
+		withAction(vi.fn(), text);
+		expect(screen.getAllByRole("button").length).toBeLessThanOrEqual(3);
+	});
+
 	it("does not draw the other rows again when a note opens under one line", async () => {
 		const user = userEvent.setup();
 		renderApp(<Harness />);
 		const before = drawn.count;
 		expect(before).toBeGreaterThanOrEqual(500);
+		await user.hover(screen.getByText("l2").closest("[data-kind]") as Element);
 		await user.click(screen.getByRole("button", { name: "Add a comment on line 3" }));
 		expect(screen.getByText("Box")).toBeInTheDocument();
-		// Three rows at most draw again: the line with the note, the old tab stop and the new one.
-		expect(drawn.count - before).toBeLessThanOrEqual(3);
+		// A few draws only (hover, tab stop, note on the line and the old stop), never the 500 rows.
+		expect(drawn.count - before).toBeLessThanOrEqual(6);
 	});
 });
 
@@ -211,7 +230,7 @@ describe("parseDiff", () => {
 				lineActionDisabled="Needs the right code.write"
 			/>,
 		);
-		const plus = screen.getByRole("button", { name: "Add a comment on line 2" });
+		const plus = screen.getByRole("button", { name: "Add a comment on line 1" });
 		expect(plus).toHaveAttribute("aria-disabled", "true");
 		expect(plus).toHaveAttribute("title", "Needs the right code.write");
 		expect(plus).toHaveAccessibleDescription("Needs the right code.write");

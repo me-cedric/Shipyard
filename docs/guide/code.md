@@ -28,7 +28,61 @@ The branch selector in the top bar has a filter box. Type to narrow the list, mo
 
 ## Pull requests
 
-Pull requests lists the pull requests of the code host. Open one to read it, comment, approve, ask for changes or merge it. Merge stays off for a draft. The app asks again before a merge with failing checks.
+Pull requests lists the pull requests of the code host. The list has a search and two filters. All shows every pull request. Needs review shows the open pull requests that are not drafts, wait for a review and have no request for changes. The rows sit in three groups: Open, Merged and Closed, each with its count. A row shows the number, the title, the draft mark, the state of the checks and the state of the review. A row shows no author: the app does not keep it. Open pull request starts a new one.
+
+Click a row to open the pull request as its own page. Back returns to the list with the same search and filter.
+
+### The page
+
+The header shows the title, the state, the source and target branch and the lines added and removed. The menu next to the state opens the pull request in the browser, copies its ref and closes it. A draft has Mark ready in the header. The four tabs are Overview, Commits, Checks and Files changed, each with its count. The tab stays in the address.
+
+The merge box opens the Overview. It says in one line whether the pull request can merge, and why not. Three segments follow:
+
+- Checks: the passing, failing and pending checks.
+- Comments: the unresolved threads of all threads.
+- Approvals: the reviewers who approved, with the verdict of each.
+
+The Merge button is a split button. Click Merge, then confirm. The confirmation names the merge method and has Cancel; it stays busy while the merge runs. The arrow opens the menu of methods (Merge, Squash, Rebase) when the code host offers more than one. Merge is off when the pull request is a draft, closed or merged, when you lack the right to merge, or when the code host blocks it. The line of the box says why. Failing checks or requested changes do not turn Merge off: the confirmation then names that risk and the method.
+
+### Overview
+
+The Overview shows the description as Markdown, the actions of an agent review (see below) and the conversation. The narrow column shows the reviewers with their verdicts, the linked tickets and runs, and Cited by: the items that cite the pull request. It shows no label, assignee, project or milestone.
+
+The conversation lists the general comments and the review threads in time order, with the author, the date and the time. When the code host returned only the newest comments, a note says so. A thread shows its file and line and its comments. Click Reply to answer a thread, Resolve to close it and Reopen to open it again. A resolved thread folds to one line. A thread that came back with fewer comments than it has says "Showing the last 50 of N comments".
+
+The write box under the conversation has Write and Preview. Comment posts a general comment. Send back to the agent shows for a pull request that a run opened. Close asks first, then closes the pull request. Submit review opens the dialog described below; while a review waits, the review bar has that button and the write box does not.
+
+### Files changed
+
+Every file starts collapsed, with its path, its status and its lines added and removed. Click a file to read its diff, with line numbers. The tree on the left has a filter. Click a file in the tree to go to it. Expand all opens the first 30 files that match the filter. While more files stay collapsed, the action reads "Expand next 30". Collapse all closes them. Tick the box of a file to mark it as viewed. The count "n / total viewed" stays on this computer, for this pull request and this head commit.
+
+### Comments on lines
+
+The "+" in the gutter of a line adds a comment to that line. It shows on the line that you point at or reach with the arrow keys (the diff is one tab stop), on lines that the pull request added or left as they were, never on removed lines: comments go on the new side of the diff only. The box has two buttons:
+
+- Add review comment adds the comment to your pending review.
+- Add single comment posts it at once, as a review of one comment.
+
+Cancel asks before it drops text. A pending comment shows under its line with the mark Pending, and Edit and Delete.
+
+The pending review stays on this computer until you submit or discard it. It survives a restart. The review bar above the tabs counts the pending comments and has Submit review and Discard. When the browser refuses to save, the page says "This comment is not saved on this computer" and keeps the comment until you close the page.
+
+Submit review opens a dialog. Pick one verdict: Comment, Approve or Request changes. Request changes needs some review text. A review takes at most 100 comments: with more, the dialog says how many to remove and Submit review stays off. Click Submit review to post all pending comments as one review. The dialog keeps your text until the review is posted.
+
+A comment that the code host cannot place on a line goes into the text of the review, and a notice says how many. A comment on an older version of the file is marked "On an older version" and goes into the text. When the code host posts only part of the review, the page clears the comments that were sent and keeps the others as pending. A refusal of the whole review shows the refusal text and keeps every comment. Azure DevOps puts every comment in the text of the review, with its file and line.
+
+A comment on a line that the pull request no longer has shows at the foot of its file. A comment on a file that left the pull request shows in the group "Comments on files no longer in this pull request".
+
+Replies, Resolve, the "+", Submit review and Comment need the right to write to the code host. Without it, each control is off and says why.
+
+### Limits
+
+- GitHub and GitLab list up to 3000 files. A longer list shows "Showing the first N files".
+- A thread shows its last 50 comments.
+- The general comments show the latest ones. GitLab review threads show the first 100.
+- The list shows no author.
+
+### Agent review
 
 Agent actions on a pull request:
 

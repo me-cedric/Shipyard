@@ -14,6 +14,9 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 
+/** An open box under a line. The page keeps it, with its text, while its file is closed or another tab shows. */
+export type LineBox = { path: string; line: number; text: string };
+
 /**
  * The box under a line of the diff. Add review comment keeps the text in the pending review on this
  * computer. Add single comment posts it at once, and a refusal of the code host keeps the box and the text.
@@ -24,12 +27,17 @@ export function InlineBox({
 	headSha,
 	path,
 	line,
+	initial = "",
+	onText,
 	onClose,
 }: {
 	reference: string;
 	headSha: string;
 	path: string;
 	line: number;
+	/** The text kept by the page: a box that opens again starts with it. */
+	initial?: string;
+	onText?: (text: string) => void;
 	onClose: () => void;
 }) {
 	const { t } = useI18n();
@@ -37,7 +45,7 @@ export function InlineBox({
 	const c = t.forge.pullConversation;
 	const review = usePendingReview(reference);
 	const single = usePostLineComment(reference);
-	const [body, setBody] = useState("");
+	const [body, setBody] = useState(initial);
 	const [tab, setTab] = useState<"write" | "preview">("write");
 	const area = useRef<HTMLTextAreaElement>(null);
 	useEffect(() => area.current?.focus(), []);
@@ -65,7 +73,10 @@ export function InlineBox({
 					ref={area}
 					label={format(i.boxLabel, { n: line })}
 					value={body}
-					onChange={(e) => setBody(e.target.value)}
+					onChange={(e) => {
+						setBody(e.target.value);
+						onText?.(e.target.value);
+					}}
 				/>
 			) : (
 				<div className="min-h-16 [overflow-wrap:anywhere]">

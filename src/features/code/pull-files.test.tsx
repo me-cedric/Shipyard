@@ -1,10 +1,26 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { resetPendingReview } from "@/lib/code/pending-review";
 import type { PullDetail_Serialize } from "@/lib/ipc";
 import { clearViewState, setViewProject } from "@/lib/shell/view-state";
 import { renderApp } from "@/ui/test-utils";
-import { PullFiles } from "./pull-files";
+import type { LineBox } from "./inline-comment";
+import { PullFiles as Files } from "./pull-files";
+
+// The page owns the open boxes: this host does too, and a button hides the files like a change of tab.
+function PullFiles({ detail }: { detail: PullDetail_Serialize }) {
+	const [boxes, setBoxes] = useState<LineBox[]>([]);
+	const [shown, setShown] = useState(true);
+	return (
+		<>
+			<button type="button" onClick={() => setShown((x) => !x)}>
+				Switch tab
+			</button>
+			{shown ? <Files detail={detail} boxes={boxes} setBoxes={setBoxes} /> : null}
+		</>
+	);
+}
 
 const patch = (n: number) => `@@ -1,1 +1,2 @@\n a${n}\n+b${n}`;
 const detail = {
@@ -27,7 +43,7 @@ beforeEach(() => {
 });
 
 describe("PullFiles", () => {
-	it("starts with every file closed and shows the totals", () => {
+	it("starts with every file closed and counts the files", () => {
 		renderApp(<PullFiles detail={detail} />);
 		const list = screen.getAllByRole("button", { expanded: false });
 		expect(list).toHaveLength(3);
@@ -166,7 +182,14 @@ const openFile = async (user: ReturnType<typeof userEvent.setup>) =>
 			name: /a\.ts/,
 		}),
 	);
-const plus = (n: number) => screen.getByRole("button", { name: `Add a comment on line ${n}` });
+// Only the active row draws its plus: hover the row of the line first.
+const plus = async (user: ReturnType<typeof userEvent.setup>, n: number) => {
+	const row = [...document.querySelectorAll("[data-kind]")].find(
+		(r) => r.children[1]?.textContent === String(n),
+	);
+	if (row) await user.hover(row);
+	return screen.getByRole("button", { name: `Add a comment on line ${n}` });
+};
 
 describe("PullFiles inline comments", () => {
 	it("shows a thread under its line, an outside thread at the foot, and the counts", async () => {
@@ -188,14 +211,14 @@ describe("PullFiles inline comments", () => {
 		const user = userEvent.setup();
 		renderApp(<PullFiles detail={inline} />);
 		await openFile(user);
-		await user.click(plus(3));
+		await user.click(await plus(user, 3));
 		await user.type(screen.getByRole("textbox", { name: "Comment on line 3" }), "Use **const**");
 		await user.click(screen.getByRole("button", { name: "Add review comment" }));
 		expect(screen.queryByRole("textbox", { name: "Comment on line 3" })).toBeNull();
 		const card = screen.getByRole("article", { name: "Pending: src/a.ts:3" });
 		expect(within(card).getByText("const").tagName).toBe("STRONG");
 		expect(screen.getAllByText("3 comments")).toHaveLength(2);
-		expect(plus(3)).toHaveFocus();
+		expect(await plus(user, 3)).toHaveFocus();
 		// Edit, then delete with a question: the count follows.
 		await user.click(within(card).getByRole("button", { name: "Edit the comment on line 3" }));
 		await user.clear(screen.getByRole("textbox", { name: "Edit the comment on line 3" }));
@@ -212,7 +235,7 @@ describe("PullFiles inline comments", () => {
 		const user = userEvent.setup();
 		const first = renderApp(<PullFiles detail={inline} />);
 		await openFile(user);
-		await user.click(plus(3));
+		await user.click(await plus(user, 3));
 		await user.type(screen.getByRole("textbox", { name: "Comment on line 3" }), "Old push");
 		await user.click(screen.getByRole("button", { name: "Add review comment" }));
 		first.unmount();
@@ -233,27 +256,43 @@ describe("PullFiles inline comments", () => {
 		expect(within(foot).getByText("Old push")).toBeInTheDocument();
 	});
 
+	it("keeps the text of an open box when its file collapses or the tab changes", async () => {
+		const user = userEvent.setup();
+		renderApp(<PullFiles detail={inline} />);
+		await openFile(user);
+		await user.click(await plus(user, 3));
+		await user.type(screen.getByRole("textbox", { name: "Comment on line 3" }), "Half typed");
+		await user.click(screen.getByRole("button", { name: "Collapse all" }));
+		expect(screen.queryByRole("textbox", { name: "Comment on line 3" })).toBeNull();
+		await openFile(user);
+		expect(screen.getByRole("textbox", { name: "Comment on line 3" })).toHaveValue("Half typed");
+		await user.click(screen.getByRole("button", { name: "Switch tab" }));
+		await user.click(screen.getByRole("button", { name: "Switch tab" }));
+		await openFile(user);
+		expect(screen.getByRole("textbox", { name: "Comment on line 3" })).toHaveValue("Half typed");
+	});
+
 	it("opens a box on a context line, closes an empty one with Escape and returns the focus", async () => {
 		const user = userEvent.setup();
 		renderApp(<PullFiles detail={inline} />);
 		await openFile(user);
-		await user.click(plus(1));
+		await user.click(await plus(user, 1));
 		expect(screen.getByRole("textbox", { name: "Comment on line 1" })).toHaveFocus();
 		await user.keyboard("{Escape}");
 		expect(screen.queryByRole("textbox", { name: "Comment on line 1" })).toBeNull();
-		expect(plus(1)).toHaveFocus();
+		expect(await plus(user, 1)).toHaveFocus();
 	});
 
 	it("sends the focus to the plus button of the line after a delete", async () => {
 		const user = userEvent.setup();
 		renderApp(<PullFiles detail={inline} />);
 		await openFile(user);
-		await user.click(plus(3));
+		await user.click(await plus(user, 3));
 		await user.type(screen.getByRole("textbox", { name: "Comment on line 3" }), "Gone soon");
 		await user.click(screen.getByRole("button", { name: "Add review comment" }));
 		await user.click(screen.getByRole("button", { name: "Delete the comment on line 3" }));
 		await user.click(screen.getByRole("button", { name: "Delete this comment?" }));
-		expect(plus(3)).toHaveFocus();
+		expect(await plus(user, 3)).toHaveFocus();
 	});
 
 	it("lists a pending comment on a file that left the pull request, in full, with Edit and Delete", async () => {
@@ -290,7 +329,7 @@ describe("PullFiles inline comments", () => {
 		const full = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
 			throw new Error("The quota is exceeded");
 		});
-		await user.click(plus(3));
+		await user.click(await plus(user, 3));
 		await user.type(screen.getByRole("textbox", { name: "Comment on line 3" }), "Still here");
 		await user.click(screen.getByRole("button", { name: "Add review comment" }));
 		const card = screen.getByRole("article", { name: "Pending: src/a.ts:3" });

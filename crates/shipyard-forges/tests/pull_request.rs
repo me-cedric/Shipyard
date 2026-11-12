@@ -976,6 +976,51 @@ fn gitlab_notes_stop_at_ten_pages_keep_the_newest_and_say_so() {
     assert_eq!(talk.comments[999].body, "n1100");
 }
 
+/// A GitLab fake with `total` discussions, each one resolvable note, in pages of 100.
+fn gl_discussions(total: u64) -> Box<dyn PullApi> {
+    let fake = Arc::new(FakeHttp::new());
+    let root = "/api/v4/projects/acme%2Fweb/merge_requests/9";
+    let pages = total.div_ceil(100);
+    for page in 1..=pages {
+        let body: Vec<Value> = ((page - 1) * 100 + 1..=(page * 100).min(total))
+            .map(|id| {
+                json!({"id": format!("d{id}"), "notes": [{"id": id, "body": "x", "resolvable": true,
+                "resolved": false, "system": false, "author": {"username": "u"}, "created_at": "t",
+                "position": {"new_path": "a.rs", "new_line": 1}}]})
+            })
+            .collect();
+        let next = if page < pages {
+            (page + 1).to_string()
+        } else {
+            String::new()
+        };
+        fake.get_with(
+            &format!("{root}/discussions?page={page}&per_page=100"),
+            200,
+            &[("x-next-page", next.as_str())],
+            &json!(body).to_string(),
+        );
+    }
+    fake.get(&format!("{root}/notes"), 200, "[]");
+    build(ForgeKind::GitLab, "https://gitlab.com", fake)
+}
+
+#[test]
+fn gitlab_discussions_are_read_page_by_page() {
+    // 250 discussions: 3 pages, none lost, no cut.
+    let talk = gl_discussions(250).conversation("acme/web", 9).unwrap();
+    assert!(!talk.threads_truncated);
+    assert_eq!(talk.threads.len(), 250);
+    assert_eq!(talk.threads[249].id, "d250");
+}
+
+#[test]
+fn gitlab_discussions_stop_at_ten_pages_and_say_so() {
+    let talk = gl_discussions(1100).conversation("acme/web", 9).unwrap();
+    assert!(talk.threads_truncated);
+    assert_eq!(talk.threads.len(), 1000);
+}
+
 #[test]
 fn azure_reads_the_threads_once_for_the_whole_conversation() {
     let c = azure();

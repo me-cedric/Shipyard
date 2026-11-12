@@ -12,6 +12,7 @@ import { countsOf } from "@/ui/molecules/diff-file-list";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { CloseConfirm } from "./close-confirm";
+import { focusPullTitle } from "./focus-title";
 import { useRun } from "./use-run";
 
 /** The state of a pull request as a word and a status: Open, Draft, Merged or Closed. */
@@ -49,7 +50,11 @@ export function PullHeader({ d }: { d: PullDetail }) {
 	return (
 		<header className="flex flex-col gap-2">
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-				<h1 tabIndex={-1} className="min-w-0 flex-1 text-20 font-semibold text-n-12">
+				<h1
+					tabIndex={-1}
+					data-pull-title=""
+					className="min-w-0 flex-1 text-20 font-semibold text-n-12"
+				>
 					{d.title} <span className="font-mono text-n-10">#{d.number}</span>
 				</h1>
 				<Badge variant={variant}>
@@ -70,6 +75,7 @@ export function PullHeader({ d }: { d: PullDetail }) {
 							void run(async () => {
 								setClosing(false);
 								await close(d.number, "");
+								focusPullTitle();
 							})
 						}
 					/>

@@ -24,7 +24,10 @@ describe("the error contract", () => {
 
 	it("never lets a known raw Rust text reach the screen", async () => {
 		for (const [needle] of known) {
-			const raw = `x: ${needle} (${needle})`;
+			// The code host marker counts only at the start of the text.
+			const raw = needle?.startsWith("code host:")
+				? `${needle}acme/web#9`
+				: `x: ${needle} (${needle})`;
 			const failure = toFailure(
 				await unwrap(Promise.resolve({ status: "error", error: raw })).catch((e) => e),
 			);
@@ -50,7 +53,9 @@ describe("the error contract", () => {
 		});
 		for (const text of ["ac gave no result", "the runner gave no text", "step s1 is not running"])
 			expect(classify(text).code, text).toBe("unknown");
-		expect(classify("not found: acme/web#999").code).toBe("forge_missing");
+		expect(classify("code host: not found: acme/web#999").code).toBe("forge_missing");
+		for (const text of ["branch not found: x", "stash not found: 2", "worktree not found: w"])
+			expect(classify(text).code, text).toBe("unknown");
 		expect(classify("github.com gave no token for gh").code).toBe("sign_in_failed");
 		expect(classify("device login: github.com gave no user_code: ").code).toBe("sign_in_failed");
 	});

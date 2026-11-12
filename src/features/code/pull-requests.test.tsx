@@ -294,7 +294,9 @@ describe("Code / Pull requests", () => {
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-142");
 		await user.click(await screen.findByRole("button", { name: "Merge" }));
-		const confirm = await screen.findByRole("button", { name: "Merge with failing checks" });
+		const confirm = await screen.findByRole("button", {
+			name: "Merge with Merge although checks are failing?",
+		});
 		expect(confirm.className).toContain("bg-danger");
 		await idle(router);
 	});
@@ -309,7 +311,7 @@ describe("Code / Pull requests", () => {
 		await waitFor(() => expect(screen.getByRole("button", { name: "Merge" })).toBeEnabled());
 		expect(screen.queryByRole("button", { name: "Mark ready" })).toBeNull();
 		await user.click(screen.getByRole("button", { name: "Merge" }));
-		await user.click(await screen.findByRole("button", { name: "Merge with Merge" }));
+		await user.click(await screen.findByRole("button", { name: "Merge with Merge?" }));
 		await screen.findByText("Merged", { selector: "p[role=status]" });
 		expect(mockState().prs?.pulls.find((p) => p.number === 143)?.state).toBe("merged");
 		expect(screen.getByRole("button", { name: "Merge" })).toBeDisabled();
@@ -325,7 +327,7 @@ describe("Code / Pull requests", () => {
 		expect(screen.getByRole("menuitemcheckbox", { name: "Rebase" })).toBeInTheDocument();
 		await user.click(screen.getByRole("menuitemcheckbox", { name: "Squash" }));
 		await user.click(screen.getByRole("button", { name: "Merge" }));
-		await user.click(await screen.findByRole("button", { name: "Merge with Squash" }));
+		await user.click(await screen.findByRole("button", { name: "Merge with Squash?" }));
 		await waitFor(() =>
 			expect(mockState().prs?.pulls.find((p) => p.number === 141)?.state).toBe("merged"),
 		);
@@ -827,6 +829,64 @@ describe("Pull request page limits", () => {
 		const router = mountApp("/code/pull-requests/github-demo-141");
 		await screen.findByRole("button", { name: "Merge" });
 		expect(screen.queryByRole("button", { name: "Method" })).toBeNull();
+		await idle(router);
+	});
+	it("keeps the page, the typed text and the refusal when a refetch fails after a write", async () => {
+		const user = userEvent.setup();
+		await demo();
+		const router = mountApp("/code/pull-requests/github-demo-141");
+		await screen.findByRole("heading", { level: 1, name: /health route/ });
+		await user.type(screen.getByRole("textbox", { name: "Comment" }), "kept");
+		const down = {
+			status: "error",
+			error: { code: "forge_unreachable", details: "network error: offline", action: null },
+		} as const;
+		const read = vi.spyOn(commands, "codePullDetail").mockResolvedValue(down);
+		const write = vi.spyOn(commands, "codePullComment").mockResolvedValue(down);
+		await user.click(screen.getByRole("button", { name: "Comment" }));
+		await waitFor(() => expect(read).toHaveBeenCalled());
+		expect((await screen.findAllByRole("button", { name: "Retry" })).length).toBeGreaterThan(0);
+		expect(screen.getByRole("heading", { level: 1, name: /health route/ })).toBeVisible();
+		expect(screen.getByRole("textbox", { name: "Comment" })).toHaveValue("kept");
+		read.mockRestore();
+		write.mockRestore();
+		await idle(router);
+	});
+
+	it("asks for the merge with its method, cancels back to Merge, and merges once on a double click", async () => {
+		const user = userEvent.setup();
+		await demo();
+		const router = mountApp("/code/pull-requests/github-demo-141");
+		const box = await screen.findByRole("region", { name: "Merge status" });
+		await user.click(within(box).getByRole("button", { name: "Merge" }));
+		expect(within(box).getByRole("button", { name: "Merge with Merge?" })).toBeVisible();
+		await user.click(within(box).getByRole("button", { name: "Cancel" }));
+		expect(within(box).queryByRole("button", { name: "Merge with Merge?" })).toBeNull();
+		expect(within(box).getByRole("button", { name: "Merge" })).toHaveFocus();
+		const merge = vi
+			.spyOn(commands, "codePullMerge")
+			.mockImplementation(
+				() => new Promise((done) => setTimeout(() => done({ status: "ok", data: null }), 50)),
+			);
+		await user.click(within(box).getByRole("button", { name: "Merge" }));
+		await user.dblClick(within(box).getByRole("button", { name: "Merge with Merge?" }));
+		await waitFor(() => expect(within(box).queryByRole("button", { name: "Cancel" })).toBeNull());
+		expect(merge).toHaveBeenCalledTimes(1);
+		await waitFor(() =>
+			expect(screen.getByRole("heading", { level: 1, name: /health route/ })).toHaveFocus(),
+		);
+		merge.mockRestore();
+		await idle(router);
+	});
+
+	it("names the method in the confirmation when checks fail", async () => {
+		const user = userEvent.setup();
+		await demo();
+		const router = mountApp("/code/pull-requests/github-demo-142");
+		await user.click(await screen.findByRole("button", { name: "Merge" }));
+		expect(
+			screen.getByRole("button", { name: "Merge with Merge although checks are failing?" }),
+		).toBeVisible();
 		await idle(router);
 	});
 });

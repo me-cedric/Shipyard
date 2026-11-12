@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { type PullDetail, useForgeActions } from "@/lib/code";
+import { type PullDetail, useForgeActions, usePendingReview } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { RightButton } from "@/lib/rights";
 import { Textarea } from "@/ui/atoms/textarea";
@@ -54,6 +54,7 @@ function Reply({
 	const c = t.forge.pullConversation;
 	const { comment, close, sendBack } = useForgeActions();
 	const { failure, busy, run } = useRun();
+	const pending = usePendingReview(d.reference).comments.length > 0;
 	const [closing, setClosing] = useState(false);
 	const [tab, setTab] = useState<"write" | "preview">("write");
 	const agent = d.links.some((l) => l.startsWith("run:"));
@@ -91,9 +92,12 @@ function Reply({
 				>
 					{t.forge.comment}
 				</RightButton>
-				<RightButton right="code.write" busy={busy} onClick={() => onReview(body)}>
-					{t.forge.pullReview.submit}
-				</RightButton>
+				{/* The review bar has Submit review while a comment waits: one button, not two. */}
+				{pending ? null : (
+					<RightButton right="code.write" busy={busy} onClick={() => onReview(body)}>
+						{t.forge.pullReview.submit}
+					</RightButton>
+				)}
 				{agent && open ? (
 					<RightButton
 						right="code.write"

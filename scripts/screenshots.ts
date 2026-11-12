@@ -20,6 +20,27 @@ const openProject = async (p: Page) => {
 	await p.getByRole("heading", { level: 1, name: "Today" }).waitFor();
 };
 
+// Pull request 142 of the mock has comments, two threads and one file of three lines.
+const openPull = async (p: Page, tab?: string) => {
+	await open(p, "Code", "Pull requests");
+	await p.getByRole("link", { name: /refuse an empty token/ }).click();
+	if (tab) await p.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
+};
+// Adds a comment to the pending review: opens the file, the "+" of the line, the box.
+const comment = async (p: Page, line: number, text: string) => {
+	const file = p.getByRole("button", { name: /src\/app\.ts/ }).first();
+	if ((await file.getAttribute("aria-expanded")) === "false") await file.click();
+	// The "+" exists only on the hovered row: hover the row of that line first.
+	await p
+		.locator("div[data-kind]")
+		.filter({ has: p.locator('span[aria-hidden="true"]').getByText(String(line), { exact: true }) })
+		.first()
+		.hover();
+	await p.getByRole("button", { name: `Add a comment on line ${line}` }).click();
+	await p.getByRole("textbox", { name: `Comment on line ${line}` }).fill(text);
+	await p.getByRole("button", { name: "Add review comment" }).click();
+};
+
 type Scene = { name: string; light?: boolean; run: (p: Page) => Promise<void> };
 const scenes: Scene[] = [
 	{ name: "home", run: async () => {} },
@@ -71,7 +92,39 @@ const scenes: Scene[] = [
 			await p.getByRole("region", { name: /^Events/ }).waitFor();
 		},
 	},
-	{ name: "code", run: (p) => open(p, "Code", "Pull requests") },
+	{
+		name: "pulls",
+		run: async (p) => {
+			await open(p, "Code", "Pull requests");
+			await p.getByRole("link", { name: /refuse an empty token/ }).waitFor();
+		},
+	},
+	{
+		name: "pull",
+		run: async (p) => {
+			await openPull(p);
+			await p.getByRole("region", { name: "Merge status" }).waitFor();
+			await p.getByText("Thanks for the fix").waitFor();
+		},
+	},
+	{
+		name: "pull-files",
+		run: async (p) => {
+			await openPull(p, "Files changed");
+			await comment(p, 3, "Add a guard for the empty case.");
+			await p.getByText("Pending", { exact: true }).first().waitFor();
+		},
+	},
+	{
+		name: "pull-review",
+		run: async (p) => {
+			await openPull(p, "Files changed");
+			await comment(p, 3, "Add a guard for the empty case.");
+			await comment(p, 1, "Name this value.");
+			await p.getByRole("button", { name: "Submit review" }).first().click();
+			await p.getByRole("dialog", { name: "Submit review" }).waitFor();
+		},
+	},
 	{ name: "knowledge", run: (p) => open(p, "Knowledge", "Learn") },
 	{ name: "settings-connections", run: (p) => open(p, "Settings", "Connections") },
 	{ name: "settings-project", run: (p) => open(p, "Settings", "Project") },

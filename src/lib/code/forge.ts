@@ -135,7 +135,7 @@ export function useForgeActions() {
 				run(commands.codePullReply(reference, threadId, body, true)),
 			resolve: (reference: string, threadId: string, resolved: boolean) =>
 				run(commands.codePullResolve(reference, threadId, resolved, true)),
-			/** One review: a verdict, a text and the pending line comments, in one call. */
+			/** One review: a verdict, a text and the pending line comments, as one review. */
 			submitReview: (
 				reference: string,
 				verdict: "comment" | "approve" | "request_changes",

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type MergeMethod, type PullDetail, useForgeActions } from "@/lib/code";
 import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, toFailure, unwrap } from "@/lib/ipc";
@@ -11,6 +11,7 @@ import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
 import { SplitButton } from "@/ui/molecules/split-button";
+import { focusPullTitle } from "./focus-title";
 import { CI_STATUS, REVIEW_STATUS } from "./status";
 import { useRun } from "./use-run";
 
@@ -131,7 +132,7 @@ export function MergeBox({ d }: { d: PullDetail }) {
 	const p = t.forge.pullPage;
 	const { merge } = useForgeActions();
 	const { gate } = useRights();
-	const { failure, run } = useRun();
+	const { failure, busy, run } = useRun();
 	const [method, setMethod] = useState<MergeMethod | null>(null);
 	const [confirming, setConfirming] = useState(false);
 	const current = method ?? d.mergeMethods[0] ?? "merge";
@@ -150,10 +151,23 @@ export function MergeBox({ d }: { d: PullDetail }) {
 	const open = d.threads.filter((th) => !th.resolved).length;
 	const off = d.draft || d.state !== "open";
 	const right = gate("code.merge");
+	const slot = useRef<HTMLDivElement>(null);
+	const back = useRef(false);
+	// Cancel puts the focus back on Merge.
+	useEffect(() => {
+		if (confirming || !back.current) return;
+		back.current = false;
+		slot.current?.querySelector("button")?.focus();
+	}, [confirming]);
+	// The confirmation stays, busy, until the call ends: a second click cannot merge twice.
 	const confirm = () =>
 		void run(async () => {
-			setConfirming(false);
-			await merge(d.number, current);
+			try {
+				await merge(d.number, current);
+				focusPullTitle();
+			} finally {
+				setConfirming(false);
+			}
 		});
 	return (
 		<Panel title={p.mergeBox} flush>
@@ -162,36 +176,50 @@ export function MergeBox({ d }: { d: PullDetail }) {
 					<StatusDot status={line.status} label={line.text} className="size-2.5" />
 					{line.text}
 				</p>
-				{confirming ? (
-					<RightButton
-						right="code.merge"
-						variant={risk ? "danger" : "secondary"}
-						autoFocus
-						onClick={confirm}
-					>
-						{risk ?? format(t.forge.confirmMerge, { method: t.forge.methods[current] })}
-					</RightButton>
-				) : (
-					<SplitButton
-						label={t.forge.merge}
-						onClick={() => setConfirming(true)}
-						disabled={off || right.disabled}
-						reason={right.reason}
-						moreLabel={t.forge.method}
-						moreDisabled={off || right.disabled}
-						// One method is no choice: no arrow, no menu.
-						hideMore={d.mergeMethods.length <= 1}
-						items={d.mergeMethods.map((m) => ({
-							id: m,
-							label: t.forge.methods[m],
-							checked: m === current,
-							onSelect: () => {
-								setMethod(m);
-								setConfirming(false);
-							},
-						}))}
-					/>
-				)}
+				<div ref={slot} className="contents">
+					{confirming ? (
+						<>
+							<RightButton
+								right="code.merge"
+								variant={risk ? "danger" : "secondary"}
+								autoFocus
+								busy={busy}
+								onClick={confirm}
+							>
+								{format(risk ?? t.forge.confirmMerge, { method: t.forge.methods[current] })}
+							</RightButton>
+							<Button
+								disabled={busy}
+								onClick={() => {
+									back.current = true;
+									setConfirming(false);
+								}}
+							>
+								{t.forge.pullInline.cancel}
+							</Button>
+						</>
+					) : (
+						<SplitButton
+							label={t.forge.merge}
+							onClick={() => setConfirming(true)}
+							disabled={off || right.disabled}
+							reason={right.reason}
+							moreLabel={t.forge.method}
+							moreDisabled={off || right.disabled}
+							// One method is no choice: no arrow, no menu.
+							hideMore={d.mergeMethods.length <= 1}
+							items={d.mergeMethods.map((m) => ({
+								id: m,
+								label: t.forge.methods[m],
+								checked: m === current,
+								onSelect: () => {
+									setMethod(m);
+									setConfirming(false);
+								},
+							}))}
+						/>
+					)}
+				</div>
 			</div>
 			<div className="flex flex-wrap gap-4 border-t px-3 py-3">
 				<Segment

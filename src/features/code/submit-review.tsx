@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { type PullDetail, useForgeActions, usePendingReview } from "@/lib/code";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import type { ReviewOutcome } from "@/lib/ipc";
 import { RightButton } from "@/lib/rights";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { Textarea } from "@/ui/atoms/textarea";
@@ -17,11 +18,13 @@ import { useRun } from "./use-run";
 export type Verdict = "comment" | "approve" | "request_changes";
 /** What the dialog keeps in the page, so closing it loses nothing. `posted` holds the ids of the comments that stayed after a partial result: their review went out. */
 export type ReviewDraft = { text: string; verdict: Verdict; posted: string[] };
+/** The most notes that one review takes (the backend limit). */
+const MAX_NOTES = 100;
 const VERDICTS: Verdict[] = ["comment", "approve", "request_changes"];
 
 /**
- * Submit review (REQ-049, REQ-051): one verdict, the review text and the pending line comments, sent in
- * one call. A refusal of the code host shows here and keeps the comments and the text. A comment on a
+ * Submit review (REQ-049, REQ-051): one verdict, the review text and the pending line comments, sent as
+ * one review. A refusal of the code host shows here and keeps the comments and the text. A comment on a
  * file that left the pull request, or on an older commit, is marked and still sent: the code host folds
  * it into the text when its line is gone, so no text is lost.
  */
@@ -76,6 +79,8 @@ export function SubmitReview({
 			onSent(outcome, settle(outcome.failed));
 		});
 	};
+	// The backend takes 100 notes at most: say so before a Submit that always fails.
+	const over = comments.length - MAX_NOTES;
 	const empty = verdict === "comment" && body.trim() === "" && comments.length === 0;
 	return (
 		<Dialog
@@ -89,8 +94,8 @@ export function SubmitReview({
 					right="code.write"
 					variant="primary"
 					busy={busy}
-					disabled={empty}
-					reason={empty ? r.empty : undefined}
+					disabled={empty || over > 0}
+					reason={over > 0 ? format(r.tooMany, { n: over }) : empty ? r.empty : undefined}
 					onClick={submit}
 				>
 					{r.submit}
@@ -154,7 +159,14 @@ export function SubmitReview({
 				</p>
 			) : null}
 			{comments.length > 0 ? (
-				<ul aria-label={r.list} className="flex max-h-60 flex-col overflow-auto rounded-lg border">
+				<ul
+					aria-label={r.list}
+					aria-describedby={over > 0 ? "review-too-many" : undefined}
+					className={cn(
+						"flex max-h-60 flex-col overflow-auto rounded-lg border",
+						over > 0 && "border-danger",
+					)}
+				>
 					{comments.map((x) => (
 						<li key={x.id} className="flex items-center gap-2 border-b px-3 py-1 last:border-b-0">
 							<div className="flex min-w-0 flex-1 flex-col text-ui">
@@ -192,6 +204,11 @@ export function SubmitReview({
 						</li>
 					))}
 				</ul>
+			) : null}
+			{over > 0 ? (
+				<p id="review-too-many" role="alert" className="text-ui text-danger-text">
+					{format(r.tooMany, { n: over })}
+				</p>
 			) : null}
 			<ErrorNotice error={failure} />
 		</Dialog>

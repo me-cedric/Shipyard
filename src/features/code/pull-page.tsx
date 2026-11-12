@@ -6,17 +6,20 @@ import {
 	useRouter,
 	useSearch,
 } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { type Dispatch, type SetStateAction, useState } from "react";
 import { usePull } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { toFailure } from "@/lib/ipc";
 import { pullHref, pullNumberOf } from "@/lib/shell";
+import { useDraftCount } from "@/lib/shell/drafts";
 import { Button } from "@/ui/atoms/button";
 import { ArrowsRightLeftIcon, ChevronLeftIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
+import { focusPullTitle } from "./focus-title";
+import type { LineBox } from "./inline-comment";
 import { withProject } from "./project-gate";
 import { PullFiles } from "./pull-files";
 import { PullHeader } from "./pull-header";
@@ -51,14 +54,24 @@ function PullPageView() {
 	const draft: ReviewDraft =
 		held.id === pullId ? held : { text: "", verdict: "comment", posted: [] };
 	const [notice, setNotice] = useState<string | null>(null);
-	const page = useRef<HTMLElement>(null);
+	// The open boxes under diff lines keep their text here: a collapsed file, a tab or Collapse all loses nothing.
+	const [lines, setLines] = useState<{ id: string; boxes: LineBox[] }>({ id: pullId, boxes: [] });
+	const boxes = lines.id === pullId ? lines.boxes : [];
+	const setBoxes: Dispatch<SetStateAction<LineBox[]>> = (next) =>
+		setLines((l) => {
+			const from = l.id === pullId ? l.boxes : [];
+			return { id: pullId, boxes: typeof next === "function" ? next(from) : next };
+		});
+	// A box with text counts in the close guard, as the pending review does.
+	useDraftCount(boxes.some((b) => b.text.trim() !== ""));
 	const toList = () => void navigate({ to: "/code/pull-requests" });
 	// A person who came from the list goes back to it with its search and filter; a deep link goes to the list.
 	const canBack = useCanGoBack();
 	const back = () => (canBack ? router.history.back() : toList());
 	if (pull.isPending) return <Loading />;
 	// Only a not-found answer of the code host says "No such pull request". Any other failure keeps its own sentence and a retry.
-	if (pull.error && toFailure(pull.error).code !== "forge_missing")
+	// With data on screen a failed refetch (after a write, offline) keeps the page: its error shows at the top.
+	if (pull.error && !pull.data && toFailure(pull.error).code !== "forge_missing")
 		return (
 			<div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-3 p-5">
 				<ErrorNotice error={pull.error} />
@@ -83,11 +96,13 @@ function PullPageView() {
 		{ value: "files", label: named(p.filesChanged, d.files.length) },
 	];
 	return (
-		<section
-			ref={page}
-			aria-label={d.title}
-			className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-5"
-		>
+		<section aria-label={d.title} className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-5">
+			{pull.error && toFailure(pull.error).code !== "forge_missing" ? (
+				<div className="flex flex-wrap items-center gap-2">
+					<ErrorNotice error={pull.error} />
+					<Button onClick={() => void pull.refetch()}>{t.routeError.retry}</Button>
+				</div>
+			) : null}
 			<Link
 				to="/code/pull-requests"
 				activeOptions={{ exact: true }}
@@ -136,7 +151,7 @@ function PullPageView() {
 				) : null}
 				{tab === "commits" ? <PullCommits d={d} /> : null}
 				{tab === "checks" ? <PullChecks d={d} /> : null}
-				{tab === "files" ? <PullFiles detail={d} /> : null}
+				{tab === "files" ? <PullFiles detail={d} boxes={boxes} setBoxes={setBoxes} /> : null}
 			</div>
 			{review ? (
 				<SubmitReview
@@ -163,7 +178,7 @@ function PullPageView() {
 								.join(". ") || null,
 						);
 						setReview(null);
-						setTimeout(() => page.current?.querySelector("h1")?.focus(), 0);
+						focusPullTitle();
 					}}
 				/>
 			) : null}

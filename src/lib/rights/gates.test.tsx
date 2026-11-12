@@ -90,13 +90,14 @@ describe("a viewer on a pull request page", () => {
 		const user = userEvent.setup();
 		await open("github-demo-142?tab=files");
 		await user.click(await screen.findByRole("button", { name: /^app\.ts/ }));
-		const plus = await screen.findByRole("button", { name: "Add a comment on line 3" });
+		// Only the current row draws its plus.
+		const plus = await screen.findByRole("button", { name: /^Add a comment on line/ });
 		expect(plus).toHaveAttribute("aria-disabled", "true");
 		expect(plus).toHaveAccessibleDescription(needs("code.write"));
 		plus.focus();
 		expect(plus).toHaveFocus();
 		await user.click(plus);
-		expect(screen.queryByRole("textbox", { name: "Comment on line 3" })).toBeNull();
+		expect(screen.queryByRole("textbox", { name: /^Comment on line/ })).toBeNull();
 	});
 
 	it("sees Close pull request off in the menu, with the reason", async () => {

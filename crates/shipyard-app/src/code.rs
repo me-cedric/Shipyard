@@ -12,8 +12,9 @@ use serde::{Deserialize, Serialize};
 use shipyard_agents::impacts::{Analysis, Comparison, RunnerAsk, analyze};
 use shipyard_core::code::{commit_refs, run_in_message};
 use shipyard_forges::{
-    CheckState, CiState, CodeApi, ForgeError, MergeMethod, NewPull, PullComment, PullFile,
-    PullQuery, PullRequest, PullState, ReviewerVerdict, Verdict,
+    CheckState, CiState, CiStatus, CodeApi, Conversation, ForgeError, MergeMethod, NewPull,
+    PullComment, PullCommit, PullFile, PullFiles, PullQuery, PullRequest, PullState, PullStatus,
+    ReviewerVerdict, Verdict,
 };
 use shipyard_git::Repo;
 use shipyard_store::code::{
@@ -210,15 +211,60 @@ pub struct PullCommitRef {
     pub summary: String,
 }
 
+/// What one open of a pull request reads from the code host.
+struct Reads {
+    p: PullRequest,
+    status: PullStatus,
+    ci: CiStatus,
+    commits: Vec<PullCommit>,
+    files: PullFiles,
+    talk: Conversation,
+    description: String,
+    verdicts: Vec<ReviewerVerdict>,
+}
+
+/// The reads do not depend on each other (GitHub needs up to 80 calls), so they run together. Each
+/// keeps its own result; the first failure in the old order is the one that returns.
+fn read_pull(api: &dyn CodeApi, slug: &str, n: u64) -> Res<Reads> {
+    use std::thread::{ScopedJoinHandle, scope};
+    fn done<T>(h: ScopedJoinHandle<'_, T>) -> T {
+        h.join().unwrap_or_else(|e| std::panic::resume_unwind(e))
+    }
+    scope(|sc| {
+        let p = sc.spawn(|| api.pull(slug, n));
+        let status = sc.spawn(|| api.status(slug, n));
+        let ci = sc.spawn(|| api.ci_status(slug, n));
+        let commits = sc.spawn(|| api.commits(slug, n));
+        let files = sc.spawn(|| api.files_capped(slug, n));
+        let talk = sc.spawn(|| api.conversation(slug, n));
+        let description = sc.spawn(|| api.description(slug, n));
+        let verdicts = sc.spawn(|| api.verdicts(slug, n));
+        Ok(Reads {
+            p: done(p).map_err(err)?,
+            status: done(status).map_err(err)?,
+            ci: done(ci).map_err(err)?,
+            commits: done(commits).map_err(err)?,
+            files: done(files).map_err(err)?,
+            talk: done(talk).map_err(err)?,
+            description: done(description).map_err(err)?,
+            verdicts: done(verdicts).map_err(err)?,
+        })
+    })
+}
+
 pub fn pull_detail(s: &AppState, number: u32) -> Res<PullDetail> {
     let (api, slug, conn) = forge(s)?;
     let n = u64::from(number);
-    let p = api.pull(&slug, n).map_err(err)?;
-    let status = api.status(&slug, n).map_err(err)?;
-    let ci = api.ci_status(&slug, n).map_err(err)?;
-    let commits = api.commits(&slug, n).map_err(err)?;
-    let files = api.files_capped(&slug, n).map_err(err)?;
-    let talk = api.conversation(&slug, n).map_err(err)?;
+    let Reads {
+        p,
+        status,
+        ci,
+        commits,
+        files,
+        talk,
+        description,
+        verdicts,
+    } = read_pull(&*api, &slug, n)?;
     let mut links =
         shipyard_core::code::commit_refs(&p.source_branch, &p.title, &known_keys(s), None);
     if let Ok(rows) = crate::delivery::pr_rows(s) {
@@ -238,7 +284,7 @@ pub fn pull_detail(s: &AppState, number: u32) -> Res<PullDetail> {
     Ok(PullDetail {
         reference: format!("pr:{conn}:{number}"),
         number,
-        description: api.description(&slug, n).map_err(err)?,
+        description,
         state: state_name(p.state).into(),
         draft: p.draft,
         author: p.author,
@@ -287,7 +333,7 @@ pub fn pull_detail(s: &AppState, number: u32) -> Res<PullDetail> {
         threads_truncated: talk.threads_truncated,
         comments: talk.comments,
         comments_truncated: talk.comments_truncated,
-        verdicts: api.verdicts(&slug, n).map_err(err)?,
+        verdicts,
         mergeable: format!("{:?}", status.mergeable).to_lowercase(),
         merge_methods: api.merge_methods().to_vec(),
         links,
@@ -1549,6 +1595,58 @@ mod tests {
         git(&root, &["commit", "-q", "-m", "chore: base"]);
         projects::open(&s, root.to_str().unwrap()).unwrap();
         (s, std::fs::canonicalize(&root).unwrap())
+    }
+
+    #[test]
+    fn a_pull_request_reads_every_part_together_and_keeps_the_data() {
+        use shipyard_forges::{ForgeConfig, ForgeKind, connect_code_api};
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::Secret;
+        let root = "/api/v4/projects/acme%2Fweb/merge_requests/9";
+        let fake = std::sync::Arc::new(FakeHttp::new());
+        // The first route that matches wins: the parts come before the merge request itself.
+        fake.get(&format!("{root}/approvals"), 200, r#"{"approved_by":[{"user":{"username":"ann"}}]}"#)
+            .get(&format!("{root}/diffs"), 200, r#"[{"new_path":"a.rs","diff":"@@ -1 +1 @@\n-a\n+b\n"}]"#)
+            .get(&format!("{root}/commits"), 200, r#"[{"id":"abc","title":"feat: one"}]"#)
+            .get(&format!("{root}/notes"), 200, r#"[{"id":1,"body":"hi","author":{"username":"u"},"system":false,"resolvable":false,"created_at":"t"}]"#)
+            .get(&format!("{root}/discussions"), 200, "[]")
+            .get(root, 200, r#"{"iid":9,"title":"Add login","state":"opened","description":"why","sha":"s1","author":{"username":"bo"},"source_branch":"f","target_branch":"main","web_url":"u"}"#);
+        let api = connect_code_api(
+            &ForgeConfig {
+                kind: ForgeKind::GitLab,
+                url: "https://gitlab.com".into(),
+            },
+            Secret::new("tok"),
+            fake.clone(),
+        )
+        .unwrap();
+        let r = read_pull(&*api, "acme/web", 9).unwrap();
+        assert_eq!(
+            (r.p.title.as_str(), r.description.as_str()),
+            ("Add login", "why")
+        );
+        assert_eq!(r.status.head_sha, "s1");
+        assert_eq!(r.commits.len(), 1);
+        assert_eq!(r.files.files[0].path, "a.rs");
+        assert_eq!(r.talk.comments[0].body, "hi");
+        assert_eq!(r.verdicts[0].reviewer, "ann");
+        // No read is skipped.
+        let urls: Vec<String> = fake.requests().into_iter().map(|q| q.url).collect();
+        for part in ["/approvals", "/diffs", "/commits", "/notes", "/discussions"] {
+            assert!(urls.iter().any(|u| u.contains(part)), "{part}: {urls:?}");
+        }
+        // A failed read fails the call with its own error.
+        let down = std::sync::Arc::new(FakeHttp::new());
+        let api = connect_code_api(
+            &ForgeConfig {
+                kind: ForgeKind::GitLab,
+                url: "https://gitlab.com".into(),
+            },
+            Secret::new("tok"),
+            down,
+        )
+        .unwrap();
+        assert!(read_pull(&*api, "acme/web", 9).is_err());
     }
 
     #[test]
