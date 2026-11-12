@@ -4,6 +4,7 @@ import { usePulls } from "@/lib/code";
 import { useRunActions, useRuns } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import type { RunState } from "@/lib/ipc";
+import { pullOfRef } from "@/lib/shell";
 import { rememberSelection } from "@/lib/shell/selection";
 import { type Change, useChanges, useSpecsActions } from "@/lib/specs";
 import { useWorkItems } from "@/lib/sync";
@@ -94,8 +95,9 @@ export function NextStepAction({ refId, title }: { refId: string; title: string 
 			else if (step === "review")
 				go(runState === "PlanReview" ? "/factory/runs" : "/code/pull-requests");
 			else if (step === "merge") {
-				rememberSelection("code:pull-requests", refId);
-				go("/code/pull-requests");
+				const page = pullOfRef(refId);
+				if (page) void router?.navigate(page);
+				else go("/code/pull-requests");
 			}
 		}).finally(() => setBusy(false));
 	};

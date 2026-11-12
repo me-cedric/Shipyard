@@ -1,20 +1,27 @@
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { connectTarget } from "@/features/onboarding/checklist";
+import { connectionKeys } from "@/features/settings/connections/keys";
+import { NoProject } from "@/features/shell/no-project";
+import { useOpenSetting } from "@/lib/errors";
 import { useRuns } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
+import { commands, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
-import { useActiveProject } from "@/lib/projects";
+import { projectKeys, useActiveProject } from "@/lib/projects";
 import { RightButton, RightIconButton } from "@/lib/rights";
-import { useFormIntent, useShell } from "@/lib/shell";
+import { askForm, useFormIntent, useShell } from "@/lib/shell";
 import { useViewState } from "@/lib/shell/view-state";
 import { useBacklogActions, useWorkItems, type WorkItem } from "@/lib/sync";
 import { figure, memberName, useSheet, useSheets, useTeam } from "@/lib/work";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
-import { PlusIcon, QueueListIcon } from "@/ui/icons";
+import { LinkIcon, PlusIcon, QueueListIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { RUN_STATUS } from "@/ui/molecules/run-card";
+import { Terms } from "@/ui/molecules/term";
 import {
 	CategoryDot,
 	type PriorityLevel,
@@ -26,7 +33,6 @@ import { VirtualList } from "@/ui/organisms/virtual-list";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { applyFilters, type Filters, ItemFilters, NO_FILTER } from "./filters";
 import { useGuard } from "./guard";
-import { NoProject } from "./no-project";
 import { TicketDetail } from "./ticket-detail";
 
 const CATEGORY_ORDER: WorkCategory[] = ["todo", "in-progress", "done"];
@@ -86,6 +92,16 @@ export function Backlog() {
 	const [key, setKey] = useState("");
 	const [selected, setSelected] = useState<string | null>(null);
 	const { failure, busy, run } = useGuard();
+	const openSetting = useOpenSetting();
+	// The same cache as Settings / Project. A project without a linked issue tracker has nothing to import.
+	const settings = useQuery({
+		queryKey: projectKeys.settings,
+		queryFn: () => unwrap(commands.projectSettings()),
+	}).data;
+	const connections = useQuery({
+		queryKey: connectionKeys.list,
+		queryFn: () => unwrap(commands.connectionsList()),
+	}).data;
 	const everything = useWorkItems({});
 	const all = everything.data ?? [];
 	const shown = useMemo(() => applyFilters(all, filters), [all, filters]);
@@ -116,7 +132,8 @@ export function Backlog() {
 
 	if (active === undefined || everything.isLoading)
 		return <Loading title={t.tabs.work.backlog} icon={<QueueListIcon size={16} />} />;
-	if (active === null) return <NoProject title={t.tabs.work.backlog} />;
+	if (active === null)
+		return <NoProject title={t.tabs.work.backlog} icon={<QueueListIcon size={16} />} />;
 
 	const startImport = () => run(async () => setPlanned(await planImport()));
 	if (all.length === 0 && planned === null)
@@ -125,6 +142,23 @@ export function Backlog() {
 				<div className="p-4">
 					{everything.error ? (
 						<ErrorNotice error={everything.error} className="justify-center" />
+					) : settings && !settings.file?.connections?.tracker ? (
+						<EmptyState
+							title={<Terms>{t.glossary.noTracker}</Terms>}
+							icon={<LinkIcon size={28} />}
+							action={{
+								label: t.glossary.connectTracker,
+								icon: <LinkIcon size={14} />,
+								onClick: () => {
+									const to = connectTarget(
+										"tracker",
+										connections?.some((c) => c.group === "tracker"),
+									);
+									if (to.form) askForm(to.form);
+									openSetting(to.hash ? `${to.to}#${to.hash}` : to.to);
+								},
+							}}
+						/>
 					) : (
 						<EmptyState
 							title={t.empty.tickets}

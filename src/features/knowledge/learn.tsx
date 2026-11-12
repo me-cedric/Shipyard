@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import type { CSSProperties } from "react";
 import { useState } from "react";
-import { NoProject } from "@/features/work/no-project";
+import { NoProject } from "@/features/shell/no-project";
 import { useI18n } from "@/lib/i18n";
 import { useLearn } from "@/lib/knowledge";
 import { usePanelSize } from "@/lib/prefs";
@@ -12,7 +12,7 @@ import { Badge } from "@/ui/atoms/badge";
 import { Progress } from "@/ui/atoms/progress";
 import { AcademicCapIcon, ArrowPathIcon, BookOpenIcon, CheckIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
-import { PageHeader } from "@/ui/molecules/page-header";
+import { Loading } from "@/ui/molecules/loading";
 import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { Splitter } from "@/ui/molecules/splitter";
@@ -55,9 +55,8 @@ export function Learn() {
 	const learn = useLearn().data;
 	const { done, mark } = useDone();
 	const side = usePanelSize("knowledge-learn-side", 352);
-	if (active === undefined)
-		return <PageHeader icon={<AcademicCapIcon size={16} />} title={k.title} />;
-	if (active === null) return <NoProject title={k.title} />;
+	if (active === undefined) return <Loading title={k.title} icon={<AcademicCapIcon size={16} />} />;
+	if (active === null) return <NoProject title={k.title} icon={<AcademicCapIcon size={16} />} />;
 	const path = learn?.path ?? [];
 	const glossary = learn?.glossary ?? [];
 	const kinds = t.refKind as Record<string, string>;

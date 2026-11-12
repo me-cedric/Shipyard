@@ -18,20 +18,36 @@ import type { Status } from "@/ui/atoms/status-dot";
 import {
 	ArrowPathIcon,
 	ArrowUpTrayIcon,
+	BookOpenIcon,
+	CommandLineIcon,
 	CpuChipIcon,
+	DocumentTextIcon,
 	MagnifyingGlassIcon,
+	PuzzlePieceIcon,
+	ShieldCheckIcon,
+	SparklesIcon,
+	Squares2X2Icon,
 	TrashIcon,
+	UsersIcon,
 } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { EntryRow } from "@/ui/molecules/entry-row";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
+import { SectionNav } from "@/ui/molecules/section-nav";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { WriteReportView } from "@/ui/molecules/write-report";
 import { SETTINGS_PAGE } from "@/ui/templates/settings";
 import { CompassSetup } from "./compass-setup";
 
 const KINDS: EntryKind[] = ["skill", "pack", "guide", "pattern", "contract"];
+const KIND_ICON: Record<EntryKind, ReactNode> = {
+	skill: <SparklesIcon size={14} />,
+	pack: <PuzzlePieceIcon size={14} />,
+	guide: <BookOpenIcon size={14} />,
+	pattern: <Squares2X2Icon size={14} />,
+	contract: <DocumentTextIcon size={14} />,
+};
 const STATUS: Record<SyncState, Status> = { current: "success", stale: "warning", absent: "idle" };
 const compassKey = ["compass"] as const;
 const keyOf = (e: Entry) => `${e.kind}:${e.id}`;
@@ -93,10 +109,22 @@ export function Compass({ children }: { children: ReactNode }) {
 			return next;
 		});
 
+	// The section list shows the sections that are on the page, the two of the Agents part included.
+	const sections = [
+		{ id: "tools", label: t.settings.signIn.name, icon: <CommandLineIcon size={14} /> },
+		{ id: "tiers", label: t.settings.tiers.name, icon: <CpuChipIcon size={14} /> },
+		...KINDS.map((k) => ({
+			id: `compass-${k}`,
+			label: x.compass.kind[k],
+			icon: KIND_ICON[k],
+		})),
+		{ id: "compass-policy", label: x.compass.policy, icon: <ShieldCheckIcon size={14} /> },
+		{ id: "compass-roles", label: x.compass.roles, icon: <UsersIcon size={14} /> },
+	];
 	return (
 		<div className="flex flex-col">
 			<PageHeader
-				icon={<CpuChipIcon size={16} />}
+				icon={<SparklesIcon size={16} />}
 				title={t.tabs.settings["agents-rules"]}
 				chips={
 					data ? (
@@ -129,6 +157,7 @@ export function Compass({ children }: { children: ReactNode }) {
 					) : undefined
 				}
 			/>
+			<SectionNav label={t.ui.sections} items={sections} />
 			<div className={SETTINGS_PAGE}>
 				{error ? (
 					<p role="alert" className="text-ui text-danger-text">
@@ -193,7 +222,14 @@ export function Compass({ children }: { children: ReactNode }) {
 						{KINDS.map((kind) => {
 							const rows = data.entries.filter((e) => e.kind === kind && match(e));
 							return (
-								<Panel key={kind} title={x.compass.kind[kind]} count={rows.length} flush>
+								<Panel
+									key={kind}
+									id={`compass-${kind}`}
+									title={x.compass.kind[kind]}
+									count={rows.length}
+									icon={KIND_ICON[kind]}
+									flush
+								>
 									<ul>
 										{rows.map((e) => (
 											<EntryRow
@@ -257,7 +293,13 @@ export function Compass({ children }: { children: ReactNode }) {
 						})}
 					</>
 				)}
-				<Panel title={x.compass.policy} count={policies.data?.packs.length ?? 0} flush>
+				<Panel
+					id="compass-policy"
+					title={x.compass.policy}
+					count={policies.data?.packs.length ?? 0}
+					icon={<ShieldCheckIcon size={14} />}
+					flush
+				>
 					{(policies.data?.packs ?? []).map((p) => (
 						<SettingsRow key={p.id} label={p.id}>
 							{policies.data?.applied === p.id ? (
@@ -281,7 +323,13 @@ export function Compass({ children }: { children: ReactNode }) {
 						</SettingsRow>
 					))}
 				</Panel>
-				<Panel title={x.compass.roles} count={roles.data?.length ?? 0} flush>
+				<Panel
+					id="compass-roles"
+					title={x.compass.roles}
+					count={roles.data?.length ?? 0}
+					icon={<UsersIcon size={14} />}
+					flush
+				>
 					{(roles.data ?? []).map((r) => (
 						<SettingsRow key={`${r.kind}:${r.name}`} label={r.name}>
 							<Badge>{r.kind === "role" ? x.compass.role : x.compass.skill}</Badge>

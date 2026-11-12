@@ -1,16 +1,17 @@
 import { test } from "@playwright/test";
 import { Walk } from "./walk";
 
-// Junior, first hour: the learning path, an explanation, the glossary, the handbook, the manual, a question to the assistant, Get started.
+// Junior, first hour (the role "Other": no role of the team file is called junior): the learning path, an explanation, the glossary, the handbook, the manual, a question to the assistant, Get started.
 test("junior", async ({ page }) => {
-	const w = new Walk(page, { key: "junior", label: "Junior" });
+	const w = new Walk(page, { key: "junior", label: "Other" });
 	await w.start();
 
 	await w.step(
 		"Land on the learning path",
-		"the page that opens first: Knowledge, Learn",
+		"the page that opens first: Home, Today, then Knowledge, Learn",
 		async () => {
-			await w.landsOn("Knowledge", "Learn");
+			await w.landsOn("Home", "Today");
+			await w.go("Knowledge", "Learn");
 			await w.see(page.getByText("0/10"), "no progress on the path");
 		},
 	);
@@ -64,7 +65,8 @@ test("junior", async ({ page }) => {
 	);
 
 	await w.step("Read the manual", "Manual, the page of the manual", async () => {
-		await w.go("Knowledge", "Manual");
+		await w.click(page.getByRole("banner").getByRole("button", { name: "Account" }));
+		await w.click(page.getByRole("menuitem", { name: "Open the manual for this page" }));
 		await w.see(
 			page.getByRole("heading", { name: "Manual", exact: true }).first(),
 			"no manual page",
@@ -73,11 +75,11 @@ test("junior", async ({ page }) => {
 
 	await w.step(
 		"Ask the assistant a question",
-		"the Assistant button in the top bar, Message, Send",
+		"the Ask button in the top bar, Message, Send",
 		async () => {
 			const message = page.getByRole("textbox", { name: "Message" });
 			if (!(await message.isVisible()))
-				await w.click(page.getByRole("button", { name: "Assistant" }).first());
+				await w.click(page.getByRole("button", { name: "Ask", exact: true }).first());
 			await w.fill(message, "What is the polling sync?");
 			await w.click(page.getByRole("button", { name: "Send", exact: true }).last());
 			await w.see(
@@ -91,15 +93,21 @@ test("junior", async ({ page }) => {
 		},
 	);
 
-	await w.step("Follow the Get started list", "Home, a step of Get started", async () => {
-		await w.go("Home", "Today");
-		await w.click(page.getByText("Connect a code host"));
-		await w.until(
-			() => page.url().includes("/settings/"),
-			true,
-			"the step does not open the setting",
-		);
-	});
+	await w.step(
+		"Follow the Get started list",
+		"Home, the Connect action of the Code host item",
+		async () => {
+			await w.go("Home", "Today");
+			await w.click(
+				page.getByRole("group", { name: "Code host" }).getByRole("button", { name: "Connect" }),
+			);
+			await w.until(
+				() => page.url().includes("/settings/"),
+				true,
+				"the step does not open the setting",
+			);
+		},
+	);
 
 	await w.step(
 		"See the whole project",

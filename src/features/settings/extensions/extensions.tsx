@@ -40,6 +40,7 @@ import { EntryRow } from "@/ui/molecules/entry-row";
 import { GroupSection } from "@/ui/molecules/group-section";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
+import { SectionNav } from "@/ui/molecules/section-nav";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import { WriteReportView } from "@/ui/molecules/write-report";
 import { SETTINGS_PAGE } from "@/ui/templates/settings";
@@ -233,6 +234,17 @@ export function Extensions() {
 		return cur && !cur.endsWith(".zip") ? cur : pickFolder();
 	};
 
+	// The section list shows the sections that are on the page.
+	const sections = [
+		...GROUPS.map((g) => ({
+			id: `extensions-${g}`,
+			label: x.catalog.groups[g],
+			icon: <PuzzlePieceIcon size={14} />,
+		})),
+		{ id: "extensions-plugin", label: x.plugin.name, icon: <ArrowUpTrayIcon size={14} /> },
+		{ id: "extensions-installed", label: x.plugin.installed, icon: <PuzzlePieceIcon size={14} /> },
+		{ id: "extensions-children", label: x.children.name, icon: <ArrowDownTrayIcon size={14} /> },
+	];
 	return (
 		<div className="flex flex-col">
 			<PageHeader
@@ -240,6 +252,7 @@ export function Extensions() {
 				title={t.tabs.settings.extensions}
 				count={catalog.data?.length}
 			/>
+			<SectionNav label={t.ui.sections} items={sections} />
 			<div className={SETTINGS_PAGE}>
 				{error ? (
 					<p role="alert" className="text-ui text-danger-text">
@@ -251,7 +264,12 @@ export function Extensions() {
 					{GROUPS.map((g) => {
 						const rows = (catalog.data ?? []).filter((c) => c.group === g);
 						return (
-							<GroupSection key={g} name={x.catalog.groups[g]} count={rows.length}>
+							<GroupSection
+								key={g}
+								id={`extensions-${g}`}
+								name={x.catalog.groups[g]}
+								count={rows.length}
+							>
 								<ul className="flex flex-col gap-2 pt-1">
 									{rows.map((c) => (
 										<li key={c.id}>
@@ -295,6 +313,7 @@ export function Extensions() {
 				</div>
 
 				<Panel
+					id="extensions-plugin"
 					title={x.plugin.name}
 					count={review?.items.length ?? 0}
 					icon={<ArrowUpTrayIcon size={14} />}
@@ -506,7 +525,13 @@ export function Extensions() {
 					) : null}
 				</Panel>
 
-				<Panel title={x.plugin.installed} count={plugins.data?.length ?? 0} flush>
+				<Panel
+					id="extensions-installed"
+					title={x.plugin.installed}
+					count={plugins.data?.length ?? 0}
+					icon={<PuzzlePieceIcon size={14} />}
+					flush
+				>
 					{(plugins.data ?? []).map((p) => (
 						<div key={p.name}>
 							<SettingsRow label={`${p.name} ${p.version}`}>
@@ -584,6 +609,7 @@ export function Extensions() {
 				</Panel>
 
 				<Panel
+					id="extensions-children"
 					title={x.children.name}
 					count={children.data?.length ?? 0}
 					icon={<ArrowDownTrayIcon size={14} />}

@@ -32,6 +32,7 @@ export const knowledgeEn = {
 		clear: "Show all",
 		file: "File",
 		symbol: "Symbol",
+		folder: "Folder",
 	},
 	handbook: {
 		title: "Handbook",
@@ -216,6 +217,7 @@ export const knowledgeFr: typeof knowledgeEn = {
 		clear: "Tout afficher",
 		file: "Fichier",
 		symbol: "Symbole",
+		folder: "Dossier",
 	},
 	handbook: {
 		title: "Manuel",

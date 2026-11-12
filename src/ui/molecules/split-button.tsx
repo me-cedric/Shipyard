@@ -16,8 +16,13 @@ export function SplitButton({
 	icon,
 	onClick,
 	disabled,
+	reason,
+	pressed,
+	shortcut,
+	after,
 	moreLabel,
 	moreDisabled,
+	hideMore,
 	items,
 	className,
 }: {
@@ -25,34 +30,57 @@ export function SplitButton({
 	icon?: ReactNode;
 	onClick: () => void;
 	disabled?: boolean;
+	/** Why the main part is off: its description for assistive technology, and the tooltip of the whole control (an off button gets no pointer events). */
+	reason?: string;
+	/** The main part is a toggle: it tells its state. */
+	pressed?: boolean;
+	/** The shortcut of the main part: it shows in the tooltip. */
+	shortcut?: string;
+	/** Text after the label, such as a count. It is part of the name of the main part. */
+	after?: ReactNode;
 	/** The accessible name of the arrow part. */
 	moreLabel: string;
 	moreDisabled?: boolean;
+	/** Draws no arrow part: there is no other action to offer. */
+	hideMore?: boolean;
 	items: MenuButtonItem[];
 	className?: string;
 }) {
 	return (
 		<span
+			title={disabled ? reason : undefined}
 			className={cn(
 				"inline-flex h-7 shrink-0 items-stretch overflow-hidden rounded-md border border-n-7",
 				className,
 			)}
 		>
-			<button type="button" className={PART} onClick={onClick} disabled={disabled}>
+			<button
+				type="button"
+				className={cn(PART, pressed && "bg-n-4 text-n-12")}
+				onClick={onClick}
+				disabled={disabled}
+				aria-pressed={pressed}
+				aria-description={disabled ? reason : undefined}
+				title={(disabled && reason) || (shortcut ? `${label} (${shortcut})` : undefined)}
+			>
 				{icon}
 				{label}
+				{after ? " " : null}
+				{after}
 			</button>
-			<Menu.Root>
-				<Menu.Trigger
-					aria-label={moreLabel}
-					title={moreLabel}
-					disabled={moreDisabled}
-					className={cn(PART, "border-l border-n-7")}
-				>
-					<ChevronDownIcon size={12} />
-				</Menu.Trigger>
-				<MenuList items={items} />
-			</Menu.Root>
+			{hideMore ? null : (
+				<Menu.Root>
+					<Menu.Trigger
+						aria-label={moreLabel}
+						title={moreLabel}
+						disabled={moreDisabled}
+						className={cn(PART, "border-l border-n-7")}
+					>
+						<ChevronDownIcon size={12} />
+					</Menu.Trigger>
+					<MenuList items={items} />
+				</Menu.Root>
+			)}
 		</span>
 	);
 }

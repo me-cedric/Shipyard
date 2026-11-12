@@ -461,9 +461,24 @@ Feature: factory
 
   @spec:factory#REQ-027
   Scenario: Runs view: Empty lane
-    Given no run in Done
+    Given no run in Queued
     When the person opens Runs
-    Then the lane shows ghost rows
+    Then the lane shows the empty pattern, an icon and the word None, with no ghost rows
+
+  @spec:factory#REQ-027
+  Scenario: Runs view: Ended run
+    Given a run in `Done`
+    When the person opens Runs
+    Then the board has no lane Done
+    And the run shows in History
+
+  @spec:factory#REQ-027
+  Scenario: Runs view: Failed run
+    Given the latest run of a ticket is in `Failed`
+    When the person opens Runs
+    Then the run shows in the lane Needs you with the action Start again
+    And the action starts a new run and opens its page
+    And the run shows in History
 
   @spec:factory#REQ-028
   Scenario: Run view: Live step
@@ -501,11 +516,30 @@ Feature: factory
     When the person clicks it
     Then the inspector shows the ticket
 
+  @spec:factory#REQ-030
+  Scenario: Agents map: Open run
+    Given an agent node of a run
+    When the person clicks it
+    Then the run page opens on the Workflow tab at that step
+
+  @spec:factory#REQ-030
+  Scenario: Agents map: Plain label
+    Given a run node
+    When the map shows
+    Then the node shows the ticket key and title and no `run:` ref
+
   @spec:factory#REQ-031
   Scenario: Sessions view: Session row
     Given a live session
     When the person opens Sessions
     Then the row shows runner, model, run, state and tokens
+    And the view shows no stat tiles
+
+  @spec:factory#REQ-031
+  Scenario: Sessions view: No session
+    Given no session
+    When the person opens Sessions
+    Then the empty pattern shows with an action that opens Runs
 
   @spec:factory#REQ-031
   Scenario: Sessions view: Run unit session
@@ -658,6 +692,13 @@ Feature: factory
     Given a run in `PROpen` with passing CI and a draft pull request
     When the person opens Runs
     Then the run shows in the lane In review
+
+  @spec:factory#REQ-038
+  Scenario: Run lanes: Cancelled run
+    Given a run in `Cancelled`
+    When the person opens Runs
+    Then the run shows in no lane
+    And the run shows in History
 
   @spec:factory#REQ-039
   Scenario: Restart: Resume a step

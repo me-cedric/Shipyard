@@ -1,28 +1,17 @@
 import type { ComponentType } from "react";
+import { WithProject } from "@/features/shell/no-project";
+import { tabIcon, tabLabel } from "@/features/shell/spaces";
 import { useI18n } from "@/lib/i18n";
-import { useActiveProject, useProjectActions } from "@/lib/projects";
-import { FolderOpenIcon } from "@/ui/icons";
-import { EmptyState } from "@/ui/molecules/empty-state";
 
-/** A Code view needs an active project. Without one it shows the empty state with one action. */
-export function withProject(View: ComponentType): ComponentType {
+/** A Code view needs an active project. Without one it shows the shared no-project page, headed by the tab. */
+export function withProject(View: ComponentType, tab: string): ComponentType {
 	return function Gated() {
 		const { t } = useI18n();
-		const active = useActiveProject().data;
-		const { openFolder } = useProjectActions();
-		if (active === undefined) return null;
-		if (active) return <View />;
+		const Icon = tabIcon("code", tab);
 		return (
-			<div className="p-4">
-				<EmptyState
-					title={t.empty.project}
-					action={{
-						label: t.projects.open,
-						icon: <FolderOpenIcon size={14} />,
-						onClick: () => void openFolder(),
-					}}
-				/>
-			</div>
+			<WithProject title={tabLabel(t, "code", tab)} icon={Icon && <Icon size={16} />}>
+				<View />
+			</WithProject>
 		);
 	};
 }

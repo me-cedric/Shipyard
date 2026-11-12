@@ -15,6 +15,8 @@ import { IconButton } from "../atoms/icon-button";
 import { LiveDot } from "../atoms/live-dot";
 import { type Status, StatusDot } from "../atoms/status-dot";
 import { ViewColumnsIcon } from "../icons";
+import { ContextMenu, type MenuItem } from "../molecules/context-menu";
+import { DURATION, useReducedMotionPref } from "../motion";
 import { useDark } from "./use-dark";
 
 export type CanvasKind = { id: string; label: string };
@@ -24,6 +26,10 @@ export type CanvasNode = {
 	label: string;
 	/** The accessible name, with the noun of the kind. */
 	name: string;
+	/** The tooltip: the raw ref, when the label is a plain name. */
+	title?: string;
+	/** The context menu of the node: it opens on a secondary click and on the context-menu key. */
+	menu?: MenuItem[];
 	status?: Status;
 	/** An entity that no other entity cites. */
 	orphan?: boolean;
@@ -111,39 +117,42 @@ function CanvasBox({ data }: NodeProps<Node<Data>>) {
 	return (
 		<>
 			<Handle type="target" position={Position.Left} isConnectable={false} className="opacity-0" />
-			<button
-				type="button"
-				data-nav=""
-				data-node={node.id}
-				aria-pressed={group ? undefined : selected}
-				aria-expanded={group ? node.open : undefined}
-				aria-label={[
-					group && labels.group ? `${labels.group}: ${node.name}` : node.name,
-					...marksOf(node, labels),
-				].join(", ")}
-				style={
-					glow
-						? {
-								borderColor: `color-mix(in oklch, ${hue} ${live ? 70 : 35}%, transparent)`,
-								boxShadow: `0 0 ${live ? 22 : 12}px color-mix(in oklch, ${hue} ${live ? 45 : 22}%, transparent), inset 0 1px 0 var(--highlight)`,
-							}
-						: undefined
-				}
-				className={cn(
-					"nopan flex h-9 w-44 items-center gap-2 rounded-md border border-n-7 bg-n-2 px-2 text-left text-12 hover:bg-n-3",
-					group && "h-14 w-52 text-ui font-medium",
-					node.match && "ring-2 ring-warning",
-					glow && "bg-surface-2 text-n-12 transition-shadow duration-(--duration-base)",
-					selected && "ring-2 ring-accent",
-				)}
-			>
-				{live ? <LiveDot /> : null}
-				<KindMark index={shape} label={kind} />
-				{node.status ? <StatusDot status={node.status} /> : null}
-				<span className="truncate">{group ? `${node.label} ${node.count}` : node.label}</span>
-				{node.orphan ? <StatusDot status="idle" label={labels.orphan} /> : null}
-				{node.stale ? <StatusDot status="warning" label={labels.stale} /> : null}
-			</button>
+			<ContextMenu items={node.menu}>
+				<button
+					type="button"
+					data-nav=""
+					data-node={node.id}
+					title={node.title}
+					aria-pressed={group ? undefined : selected}
+					aria-expanded={group ? node.open : undefined}
+					aria-label={[
+						group && labels.group ? `${labels.group}: ${node.name}` : node.name,
+						...marksOf(node, labels),
+					].join(", ")}
+					style={
+						glow
+							? {
+									borderColor: `color-mix(in oklch, ${hue} ${live ? 70 : 35}%, transparent)`,
+									boxShadow: `0 0 ${live ? 22 : 12}px color-mix(in oklch, ${hue} ${live ? 45 : 22}%, transparent), inset 0 1px 0 var(--highlight)`,
+								}
+							: undefined
+					}
+					className={cn(
+						"nopan flex h-9 w-44 items-center gap-2 rounded-md border border-n-7 bg-n-2 px-2 text-left text-12 hover:bg-n-3",
+						group && "h-14 w-52 text-ui font-medium",
+						node.match && "ring-2 ring-warning",
+						glow && "bg-surface-2 text-n-12 transition-shadow duration-(--duration-base)",
+						selected && "ring-2 ring-accent",
+					)}
+				>
+					{live ? <LiveDot /> : null}
+					<KindMark index={shape} label={kind} />
+					{node.status ? <StatusDot status={node.status} /> : null}
+					<span className="truncate">{group ? `${node.label} ${node.count}` : node.label}</span>
+					{node.orphan ? <StatusDot status="idle" label={labels.orphan} /> : null}
+					{node.stale ? <StatusDot status="warning" label={labels.stale} /> : null}
+				</button>
+			</ContextMenu>
 			<Handle type="source" position={Position.Right} isConnectable={false} className="opacity-0" />
 		</>
 	);
@@ -220,9 +229,6 @@ export function canvasLayout(
 	return { nodes: placed, edges };
 }
 
-const reducedMotion = () =>
-	typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 /**
  * One renderer for the reference graph, the code graph and the Agents map. It holds no copy of the
  * data. A node holds a button: Tab reaches it, Enter opens it, the arrows follow the links
@@ -267,7 +273,7 @@ export function GraphCanvas({
 	const [table, setTable] = useState(false);
 	const root = useRef<HTMLElement>(null);
 	const dark = useDark();
-	const reduced = reducedMotion();
+	const reduced = useReducedMotionPref();
 	const graph = useMemo(
 		() => canvasLayout(nodes, links, kinds, selected, labels, glow, live, !reduced, positions),
 		[nodes, links, kinds, selected, labels, glow, live, reduced, positions],
@@ -347,6 +353,7 @@ export function GraphCanvas({
 										<button
 											type="button"
 											aria-label={[n.name, ...marksOf(n, labels)].join(", ")}
+											title={n.title}
 											aria-pressed={n.count === undefined ? n.id === selected : undefined}
 											aria-expanded={n.count === undefined ? undefined : n.open}
 											className="max-w-full truncate rounded-sm text-left hover:underline"
@@ -387,7 +394,7 @@ export function GraphCanvas({
 							"controls.zoomOut.ariaLabel": labels.zoomOut ?? "Zoom out",
 							"controls.fitView.ariaLabel": labels.fit ?? "Fit view",
 						}}
-						fitViewOptions={{ duration: reduced ? 0 : 200 }}
+						fitViewOptions={{ duration: reduced ? 0 : DURATION.base }}
 						// The click of a node, and Enter on its button, bubble to this handler.
 						onNodeClick={(_, n) => onOpen(n.id)}
 						nodesDraggable={false}

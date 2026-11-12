@@ -47,6 +47,17 @@ describe("Home / Today", () => {
 		);
 	});
 
+	it("draws the body of an approval as Markdown, not as raw text", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const approval = mockState().factory.approvals.find((a) => a.key === "ACME-1");
+		if (approval) approval.detail = "## Add export endpoint\n\nUse `GET /export`.";
+		mountApp("/home/today");
+		const bar = within(await screen.findByRole("region", { name: "Post a comment on ACME-1" }));
+		expect(await bar.findByRole("heading", { name: "Add export endpoint" })).toBeInTheDocument();
+		expect(bar.getByText("GET /export").tagName).toBe("CODE");
+		expect(bar.queryByText(/##|`/)).toBeNull();
+	});
+
 	it("groups my tickets by state, with the status and Start run in each row", async () => {
 		await withTracker();
 		await importAll();
@@ -75,6 +86,39 @@ describe("Home / Today", () => {
 		expect(screen.getByRole("button", { name: `Start run ${first.key}` })).toBeInTheDocument();
 	});
 
+	it("shows no stat tiles: the spend of today always sits in the heading of My agents", async () => {
+		await withTracker();
+		await importAll();
+		mountApp("/home/today");
+		await screen.findByRole("region", { name: "Needs you" });
+		expect(screen.queryByText("Active runs")).toBeNull();
+		const agents = within(await screen.findByRole("region", { name: /^My agents/ }));
+		expect(agents.getByText("Spend today")).toBeInTheDocument();
+		expect(agents.getByText(/^\$/)).toBeInTheDocument();
+	});
+
+	it("shows the spend of today and an empty line when no run is live", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const ok = <T,>(data: T) => ({ status: "ok" as const, data });
+		vi.spyOn(commands, "runsList").mockResolvedValue(ok([]));
+		mountApp("/home/today");
+		const agents = within(await screen.findByRole("region", { name: "My agents" }));
+		expect(agents.getByText("Spend today")).toBeInTheDocument();
+		expect(agents.getByText("No active run")).toBeInTheDocument();
+		vi.restoreAllMocks();
+	});
+
+	it("shows the total of my items as the count of a heading above the groups", async () => {
+		await withTracker();
+		await importAll();
+		const { items } = await mine();
+		expect(items.length).toBeGreaterThan(0);
+		mountApp("/home/today");
+		expect(
+			await screen.findByRole("heading", { name: `My items (${items.length})` }),
+		).toBeInTheDocument();
+	});
+
 	it("shows the live runs on my tickets with Stop, and no run on another ticket", async () => {
 		await withTracker();
 		await importAll();
@@ -87,6 +131,35 @@ describe("Home / Today", () => {
 			if (keys.has(r.key)) expect(stop).toBeInTheDocument();
 			else expect(stop).toBeNull();
 		}
+	});
+
+	it("keeps a focus target around the sections for a row that leaves last", async () => {
+		await withTracker();
+		await importAll();
+		mountApp("/home/today");
+		const mineHeading = await screen.findByRole("heading", { name: /^My items/ });
+		const root = mineHeading.closest("[tabindex='-1']");
+		expect(root).not.toBeNull();
+		expect(root).toContainElement(await screen.findByRole("region", { name: "Needs you" }));
+	});
+
+	it("turns Stop off for a role without the right to start runs", async () => {
+		await withTracker();
+		await importAll();
+		const { keys } = await mine();
+		const runs = (await unwrap(commands.runsList())).filter(live).filter((r) => keys.has(r.key));
+		expect(runs.length).toBeGreaterThan(0);
+		mockState().person = {
+			member: null,
+			found: "unknown",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		mountApp("/home/today");
+		await screen.findByRole("region", { name: "Needs you" });
+		expect(await screen.findByRole("button", { name: `Stop ${runs[0]?.key}` })).toBeDisabled();
 	});
 
 	it("shows only the events of my runs that are newer than the last visit, newest first", async () => {

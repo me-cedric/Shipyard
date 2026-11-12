@@ -35,32 +35,6 @@ fn now_ms() -> u64 {
         .map_or(0, |d| d.as_millis() as u64)
 }
 
-/// The icon shows a dot while something needs the person.
-pub fn badge(needs: u32) -> bool {
-    needs > 0
-}
-
-/// A copy of RGBA pixels with a red dot in the top right corner, and a clear ring around it so
-/// the dot stands apart from the mark. A template image keeps only the shape of the dot.
-pub fn with_dot(rgba: &[u8], width: u32, height: u32) -> Vec<u8> {
-    let mut out = rgba.to_vec();
-    let r = (width.min(height) / 4) as i64;
-    let ring = r + r / 3;
-    let (cx, cy) = (width as i64 - r, r);
-    for y in 0..height as i64 {
-        for x in 0..width as i64 {
-            let d = (x - cx).pow(2) + (y - cy).pow(2);
-            let i = ((y * width as i64 + x) * 4) as usize;
-            if d <= r * r {
-                out[i..i + 4].copy_from_slice(&[0xe5, 0x48, 0x4d, 0xff]);
-            } else if d <= ring * ring {
-                out[i..i + 4].copy_from_slice(&[0, 0, 0, 0]);
-            }
-        }
-    }
-    out
-}
-
 /// The top left corner of the panel: centred on the icon, below it in the top bar and above it in
 /// a bottom bar, and inside the screen. Each area is `(x, y, width, height)` in pixels.
 pub fn panel_origin(
@@ -186,26 +160,6 @@ pub fn apply(app: &AppHandle, on: bool) {
     }
 }
 
-/// The dot of the icon follows the "Needs you" count of the main window.
-#[tauri::command]
-#[specta::specta]
-pub async fn tray_badge(app: AppHandle, needs: u32) -> Api<()> {
-    if let (Some(t), Some(base)) = (app.tray_by_id(ID), template()) {
-        let icon = if badge(needs) {
-            Image::new_owned(
-                with_dot(base.rgba(), base.width(), base.height()),
-                base.width(),
-                base.height(),
-            )
-        } else {
-            base.clone()
-        };
-        let _ = t.set_icon(Some(icon));
-        let _ = t.set_icon_as_template(true);
-    }
-    Ok(())
-}
-
 /// Hide the panel. The Escape key calls it.
 #[tauri::command]
 #[specta::specta]
@@ -234,21 +188,6 @@ pub async fn tray_open(app: AppHandle) -> Api<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn the_icon_shows_a_dot_only_when_something_needs_the_person() {
-        assert!(!badge(0));
-        assert!(badge(1));
-    }
-
-    #[test]
-    fn the_dot_is_red_in_the_corner_and_leaves_the_centre() {
-        let base = vec![10u8; 16 * 16 * 4];
-        let out = with_dot(&base, 16, 16);
-        let px = |x: usize, y: usize| out[(y * 16 + x) * 4..][..4].to_vec();
-        assert_eq!(px(12, 4), [0xe5, 0x48, 0x4d, 0xff]);
-        assert_eq!(px(2, 12), [10; 4]);
-    }
 
     #[test]
     fn the_panel_sits_under_a_top_icon_and_above_a_bottom_icon() {

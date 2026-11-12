@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { SPACE_IDS, SPACES, tabLabel } from "@/features/shell";
+import { barTabs, SPACE_IDS, SPACES, tabLabel } from "@/features/shell";
 import { en } from "@/lib/i18n/en";
 import { fr } from "@/lib/i18n/fr";
 import { commands, unwrap } from "@/lib/ipc";
@@ -36,7 +36,7 @@ describe("router", () => {
 		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
 		const links = within(tabs).getAllByRole("link");
 		expect(links.map((l) => l.textContent)).toEqual(
-			SPACES[space].map((tab) => tabLabel(en, space, tab)),
+			barTabs(space, null).map((tab) => tabLabel(en, space, tab)),
 		);
 		expect(links[0]).toHaveAttribute("aria-current", "page");
 		expect(current(await sidebar())).toHaveAccessibleName(en.space[space]);
@@ -52,6 +52,7 @@ describe("router", () => {
 
 	it("shows the first run on Home until a project is active", async () => {
 		mount("/home/today");
+		await userEvent.click(await screen.findByRole("button", { name: "Continue" }));
 		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
 		expect(screen.queryByRole("heading", { level: 1, name: "Today" })).toBeNull();
 	});
@@ -135,14 +136,14 @@ describe("shell", () => {
 		expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("keep me");
 		// The shell button closes it again. The open diagram has an editor header too: the shell one is first.
 		const [bar] = await screen.findAllByRole("banner");
-		await user.click(within(bar as HTMLElement).getByRole("button", { name: "Assistant" }));
+		await user.click(within(bar as HTMLElement).getByRole("button", { name: "Ask" }));
 		expect(panel).toHaveAttribute("data-open", "false");
 	});
 
-	it("shows sync, search, assistant, bell and theme on top, and only commit in the status bar", async () => {
+	it("shows sync, search, ask, bell and account on top, and only commit in the status bar", async () => {
 		mount("/home");
 		const top = within((await screen.findByRole("banner")) as HTMLElement);
-		for (const name of ["Sync", "Search", "Assistant", "Notifications", /^Theme: /])
+		for (const name of ["Sync", "Search", "Ask", "Notifications", "Account"])
 			expect(top.getByRole("button", { name })).toBeInTheDocument();
 		const bar = (await screen.findByRole("contentinfo")) as HTMLElement;
 		expect(

@@ -8,7 +8,7 @@ import {
 	useReactTable,
 	type VisibilityState,
 } from "@tanstack/react-table";
-import { type ReactNode, useState } from "react";
+import { Fragment, type ReactNode, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { useViewState } from "@/lib/shell/view-state";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,38 @@ declare module "@tanstack/react-table" {
 		width?: string;
 		/** Right-aligned numbers in the mono face. */
 		numeric?: boolean;
+		/** The cell names its row: a `rowheader`, like `th scope="row"`. */
+		rowHeader?: boolean;
+		/** Let the cell wrap and show its controls whole: no clip at the edge. */
+		wrap?: boolean;
 	}
+}
+
+/** The list of a `flow` table: every row in normal flow, so a row that wraps pushes the next one down. */
+function FlowList<T>({
+	items,
+	itemKey,
+	renderItem,
+	header,
+	role,
+}: {
+	items: T[];
+	itemKey: (item: T, index: number) => string;
+	renderItem: (item: T, index: number) => ReactNode;
+	header?: ReactNode;
+	role?: "rowgroup";
+	// accepted so that both lists take the same props; a flow row needs neither
+	isRow?: (item: T) => boolean;
+	rowHeight?: number;
+}) {
+	return (
+		<div role={role}>
+			{header}
+			{items.map((item, i) => (
+				<Fragment key={itemKey(item, i)}>{renderItem(item, i)}</Fragment>
+			))}
+		</div>
+	);
 }
 
 type Entry<T> = { kind: "group"; id: string; count: number } | { kind: "row"; row: Row<T> };
@@ -46,6 +77,8 @@ export function DataTable<T extends RowData>({
 	footer,
 	rowHeight,
 	memory,
+	rowLabel,
+	flow,
 }: {
 	columns: ColumnDef<T>[];
 	data: T[];
@@ -61,6 +94,10 @@ export function DataTable<T extends RowData>({
 	rowHeight?: number;
 	/** The name that keeps the columns of this table. No name, no menu and no resize. */
 	memory?: string;
+	/** An accessible name for a row, when the text of its cells is not the name. */
+	rowLabel?: (row: T) => string;
+	/** Rows in normal flow with an automatic height and no virtual list: a small table whose cells wrap. */
+	flow?: boolean;
 }) {
 	const { t } = useI18n();
 	const [view, setView] = useViewState<{ hidden: VisibilityState; sizes: ColumnSizingState }>(
@@ -101,6 +138,7 @@ export function DataTable<T extends RowData>({
 	const named = table
 		.getAllLeafColumns()
 		.filter((c) => typeof c.columnDef.header === "string" && c.columnDef.header !== "");
+	const List = flow ? FlowList : VirtualList;
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
 			{memory ? (
@@ -120,7 +158,7 @@ export function DataTable<T extends RowData>({
 				</div>
 			) : null}
 			<div role="table" aria-label={label} className="flex min-h-0 flex-1 flex-col">
-				<VirtualList
+				<List
 					role="rowgroup"
 					items={entries}
 					itemKey={(e) => (e.kind === "group" ? `g:${e.id}` : e.row.id)}
@@ -138,6 +176,11 @@ export function DataTable<T extends RowData>({
 										}}
 										// An empty header (a status dot, an action) is a plain cell: axe rejects a nameless columnheader.
 										role={h.column.columnDef.header === "" ? "cell" : "columnheader"}
+										title={
+											typeof h.column.columnDef.header === "string"
+												? h.column.columnDef.header
+												: undefined
+										}
 										className={cn(
 											"relative truncate text-12 font-medium text-n-11",
 											h.column.columnDef.meta?.numeric && "text-right",
@@ -178,6 +221,7 @@ export function DataTable<T extends RowData>({
 						return (
 							<div
 								role="row"
+								aria-label={rowLabel?.(original)}
 								data-nav={onOpen ? "" : undefined}
 								tabIndex={onOpen ? 0 : undefined}
 								aria-current={selected === id ? "true" : undefined}
@@ -194,7 +238,8 @@ export function DataTable<T extends RowData>({
 								}
 								style={rowHeight ? { ...grid, height: rowHeight } : grid}
 								className={cn(
-									"grid h-row items-center gap-3 border-b px-3",
+									"grid items-center gap-3 border-b px-3",
+									flow ? "min-h-row" : "h-row",
 									onOpen && "cursor-pointer hover:bg-n-3",
 									selected === id && "bg-n-4",
 								)}
@@ -202,9 +247,10 @@ export function DataTable<T extends RowData>({
 								{e.row.getVisibleCells().map((cell) => (
 									<div
 										key={cell.id}
-										role="cell"
+										role={cell.column.columnDef.meta?.rowHeader ? "rowheader" : "cell"}
 										className={cn(
-											"min-w-0 truncate text-ui",
+											"min-w-0 text-ui",
+											!cell.column.columnDef.meta?.wrap && "truncate",
 											cell.column.columnDef.meta?.numeric && "text-right font-mono",
 										)}
 									>

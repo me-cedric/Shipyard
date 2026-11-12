@@ -147,6 +147,10 @@ describe("Work / Team", () => {
 			}),
 		).toBeInTheDocument();
 		expect(await screen.findByText("You are ada (Account)")).toBeInTheDocument();
+		// a grid wider than the page scrolls sideways, and the keyboard reaches the scroll
+		const region = screen.getByRole("region", { name: "Rights of each role" });
+		expect(region).toHaveAttribute("tabindex", "0");
+		expect(region).toHaveClass("overflow-auto");
 	});
 
 	it("edits the level of a cell and saves the roles block", async () => {
@@ -215,6 +219,10 @@ describe("Work / Team", () => {
 				name: "Read and write",
 			}).length,
 		).toBeGreaterThan(3);
+		// The row holds its content: no fixed height, no absolute place.
+		const grown = members.getByRole("row", { name: "grace levels" });
+		expect(grown.style.height).toBe("");
+		expect(grown.closest("[data-index]")).toBeNull();
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() =>
 			expect(mockState().work.team.members.find((m) => m.handle === "grace")).toMatchObject({

@@ -16,6 +16,7 @@ export function ApprovalBar({
 	onApprove,
 	onReject,
 	reason,
+	body,
 }: {
 	approval: Pick<ApprovalView, "kind" | "key" | "title" | "summary" | "detail" | "force">;
 	/** The run chip and the ticket key. */
@@ -24,6 +25,8 @@ export function ApprovalBar({
 	onReject: () => void;
 	/** Why both actions are off: a missing right. */
 	reason?: string;
+	/** Draws the text that goes out (a comment, a pull request body). Without it the text shows as it is. */
+	body?: (text: string) => ReactNode;
 }) {
 	const { t } = useI18n();
 	const said = t.home.approval;
@@ -53,7 +56,11 @@ export function ApprovalBar({
 				</Button>
 			</div>
 			{a.detail && !command ? (
-				<pre className="whitespace-pre-wrap font-sans text-12 text-n-11">{a.detail}</pre>
+				body ? (
+					body(a.detail)
+				) : (
+					<pre className="whitespace-pre-wrap font-sans text-12 text-n-11">{a.detail}</pre>
+				)
 			) : null}
 			<details className="text-12 text-n-11">
 				<summary className="w-fit cursor-pointer select-none">{t.home.details}</summary>

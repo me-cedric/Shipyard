@@ -1,5 +1,6 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MotionConfig } from "motion/react";
 import { vi } from "vitest";
 import { renderApp } from "../test-utils";
 import { SectionNav } from "./section-nav";
@@ -19,6 +20,19 @@ describe("SectionNav", () => {
 		await userEvent.click(screen.getByRole("link", { name: "Tickets" }));
 		expect(scroll).toHaveBeenCalledTimes(1);
 		expect(scroll.mock.contexts[0]).toBe(document.getElementById("tickets"));
+	});
+
+	it("scrolls without animation when the preference is reduced", async () => {
+		const scroll = vi.fn();
+		Element.prototype.scrollIntoView = scroll;
+		renderApp(
+			<MotionConfig reducedMotion="always">
+				<SectionNav label="Sections" items={[{ id: "tickets", label: "Tickets", icon: <i /> }]} />
+				<section id="tickets" />
+			</MotionConfig>,
+		);
+		await userEvent.click(screen.getByRole("link", { name: "Tickets" }));
+		expect(scroll).toHaveBeenCalledWith({ block: "start", behavior: "auto" });
 	});
 
 	it("opens a closed details around the section first", async () => {

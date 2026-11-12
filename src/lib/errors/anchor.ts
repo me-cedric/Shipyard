@@ -1,12 +1,11 @@
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { prefersReducedMotion } from "@/ui/motion";
 
 const HIT = "data-anchor-hit";
 const WAIT = 5000;
 const SHOW = 2000;
 const CONTROL = "input, select, textarea, button, a[href], [tabindex]:not([tabindex='-1'])";
-
-const reduced = () => window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
 
 /**
  * Arrives at the element that the `#anchor` of the address names: scrolls it into view, moves the
@@ -18,7 +17,7 @@ export function arriveAt(id: string, hold = SHOW): boolean {
 	if (!el) return false;
 	// A closed group would hide the row.
 	el.closest("details")?.setAttribute("open", "");
-	el.scrollIntoView?.({ block: "center", behavior: reduced() ? "auto" : "smooth" });
+	el.scrollIntoView?.({ block: "center", behavior: prefersReducedMotion() ? "auto" : "smooth" });
 	// The element may be the control itself, or hold it.
 	const control = el.matches(CONTROL) ? el : el.querySelector<HTMLElement>(CONTROL);
 	(control ?? el).focus({ preventScroll: true });

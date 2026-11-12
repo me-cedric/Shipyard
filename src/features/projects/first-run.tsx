@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { type ComponentType, useState } from "react";
+import { type ComponentType, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { commands, pickFolder, unwrap } from "@/lib/ipc";
 import { ROLES, type Role, usePrefs } from "@/lib/prefs";
@@ -31,7 +31,7 @@ import { useCloneFolder } from "./clone-folder";
 import { NewProjectDialog } from "./new-project/new-project-dialog";
 import { RepoPicker } from "./repo-picker";
 
-type Step = "start" | "clone";
+type Step = "role" | "start" | "clone";
 
 type IconProps = { size?: number };
 const ROLE_ICON: Record<Role, ComponentType<IconProps>> = {
@@ -95,14 +95,27 @@ export function FolderField({ path, onPick }: { path: string; onPick: (path: str
 /** The first run: the role as named cards, then three starts. Open a local folder is the one primary action. */
 export function FirstRun() {
 	const { t } = useI18n();
-	const { role, setPrefs } = usePrefs();
+	const { role, loaded, setPrefs } = usePrefs();
 	const { openFolder, clone, switchTo } = useProjectActions();
 	const qc = useQueryClient();
 	const router = useRouter();
-	const recent = [...(useProjects().data ?? [])]
-		.sort((a, b) => b.lastUsed - a.lastUsed)
-		.slice(0, 5);
-	const [step, setStep] = useState<Step>("start");
+	const projects = useProjects().data;
+	const recent = [...(projects ?? [])].sort((a, b) => b.lastUsed - a.lastUsed).slice(0, 5);
+	// The role step shows only for a person with no saved role and no project. Nothing shows before the prefs and the list load.
+	const [chosen, setStep] = useState<Step | null>(null);
+	const step: Step | null =
+		chosen ?? (loaded && projects ? (role !== "none" || projects.length ? "start" : "role") : null);
+	// The badge "2" shows only when the role step showed.
+	const sawRole = useRef(false);
+	if (step === "role") sawRole.current = true;
+	// A click on a card picks the role, from the saved one. Continue saves it.
+	const [picked, setPick] = useState<Role | null>(null);
+	const pick = picked ?? role;
+	// After Continue the keyboard focus moves to the start step.
+	const startHead = useRef<HTMLHeadingElement>(null);
+	useEffect(() => {
+		if (chosen === "start") startHead.current?.focus();
+	}, [chosen]);
 	const [error, setError] = useState<unknown>(null);
 	const [busy, setBusy] = useState(false);
 	const [url, setUrl] = useState("");
@@ -155,7 +168,7 @@ export function FirstRun() {
 					</span>
 					<h1 className="flex-1 text-20 font-semibold text-n-12">{t.ui.welcome}</h1>
 				</div>
-				{step === "start" ? (
+				{step === "role" ? (
 					<section aria-labelledby="first-run-role" className="flex flex-col gap-2">
 						<h2
 							id="first-run-role"
@@ -185,8 +198,8 @@ export function FirstRun() {
 											type="radio"
 											name="role"
 											value={r}
-											checked={role === r}
-											onChange={() => setPrefs({ role: r })}
+											checked={pick === r}
+											onChange={() => setPick(r)}
 											className="sr-only"
 										/>
 										<Icon size={16} />
@@ -195,20 +208,35 @@ export function FirstRun() {
 								);
 							})}
 						</div>
+						<div className="flex justify-end">
+							<Button
+								variant="primary"
+								onClick={() => {
+									setPrefs({ role: pick });
+									setStep("start");
+								}}
+							>
+								{t.onboarding.continue}
+							</Button>
+						</div>
 					</section>
 				) : null}
 				{step === "start" ? (
 					<section aria-labelledby="first-run-start" className="flex flex-col gap-2">
 						<h2
 							id="first-run-start"
-							className="flex items-center gap-2 text-14 font-medium text-n-12"
+							ref={startHead}
+							tabIndex={-1}
+							className="flex items-center gap-2 text-14 font-medium text-n-12 outline-none"
 						>
-							<span
-								aria-hidden="true"
-								className="flex size-5 items-center justify-center rounded-full bg-n-4 font-mono text-11"
-							>
-								2
-							</span>
+							{sawRole.current ? (
+								<span
+									aria-hidden="true"
+									className="flex size-5 items-center justify-center rounded-full bg-n-4 font-mono text-11"
+								>
+									2
+								</span>
+							) : null}
 							{t.projects.switcher}
 						</h2>
 						<div className="grid gap-3 sm:grid-cols-3">
@@ -248,7 +276,7 @@ export function FirstRun() {
 							</button>
 						</div>
 					</section>
-				) : (
+				) : step === "clone" ? (
 					<div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-xl border bg-surface-1 p-4 shadow-2">
 						<h2 className="flex items-center gap-2 text-14 font-medium text-n-12">
 							<ArrowDownTrayIcon size={16} />
@@ -273,7 +301,7 @@ export function FirstRun() {
 							</Button>
 						</div>
 					</div>
-				)}
+				) : null}
 				{error ? (
 					<div className="flex items-center gap-3">
 						<ErrorNotice error={error} className="flex-1 text-ui text-danger-text" />

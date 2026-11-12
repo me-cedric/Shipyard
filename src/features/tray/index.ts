@@ -1,1 +1,1 @@
-export { TrayView, useTrayBadge } from "./tray";
+export { TrayView } from "./tray";

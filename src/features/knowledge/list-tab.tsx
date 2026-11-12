@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { Fragment, type ReactNode, useState } from "react";
-import { NoProject } from "@/features/work/no-project";
+import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import type { PageEntry } from "@/lib/ipc";
 import { slug, useCreateDoc } from "@/lib/knowledge";
@@ -18,7 +18,7 @@ import { Card } from "@/ui/molecules/card";
 import { ContextMenu } from "@/ui/molecules/context-menu";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { PageHeader } from "@/ui/molecules/page-header";
+import { Loading } from "@/ui/molecules/loading";
 import { SplitPane } from "@/ui/molecules/split-pane";
 import { LIST, useEnter } from "@/ui/motion";
 import { Dialog } from "@/ui/organisms/dialog";
@@ -133,9 +133,9 @@ export function ListTab({
 	);
 	const [adding, setAdding] = useState(false);
 	const filter = useRefFilter();
-	if (active === null) return <NoProject title={title} />;
+	if (active === null) return <NoProject title={title} icon={icon} />;
 	// The heading shows while the list loads: a page always has its level-one heading.
-	if (active === undefined || !rows) return <PageHeader icon={icon} title={title} />;
+	if (active === undefined || !rows) return <Loading title={title} icon={icon} />;
 	const open = rows.find((r) => r.path === selected);
 	// The index finds the files by their text, in the same command as the palette.
 	const shown = filter.refs ? rows.filter((r) => filter.refs?.has(`doc:${r.path}`)) : rows;

@@ -5,7 +5,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useRights } from "@/lib/rights";
 import { SPRING } from "@/ui/motion";
 import { StaleBadge, useStalePages } from "../specs/chain-badge";
-import { type SpaceId, tabLabel, tabPath, visibleTabs } from "./spaces";
+import { barTabs, type SpaceId, tabIcon, tabLabel, tabPath } from "./spaces";
 
 /** The tabs of a space as a segmented control. A pill slides under the active tab. */
 export function TabsBar({ space }: { space: SpaceId }) {
@@ -17,29 +17,37 @@ export function TabsBar({ space }: { space: SpaceId }) {
 		<nav aria-label={t.nav.tabs} className="flex shrink-0 px-4 pt-3">
 			{/* The tabs wrap when the assistant and the inspector leave little width: none is cut off. */}
 			<div className="flex flex-wrap items-center gap-0.5 rounded-lg border bg-surface-1 p-0.5 shadow-1">
-				{visibleTabs(space, teamRole, level).map((tab) => (
-					<Link
-						key={tab}
-						to={tabPath(space, tab)}
-						// A pointer that rests on a tab loads its code before the click.
-						preload="intent"
-						className="relative isolate inline-flex h-7 items-center rounded-md px-2.5 text-ui whitespace-nowrap text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 aria-[current=page]:text-accent-text"
-					>
-						{({ isActive }) => (
-							<>
-								{isActive ? (
-									<motion.span
-										layoutId={`tab-pill-${space}`}
-										transition={SPRING.smooth}
-										className="absolute inset-0 -z-10 rounded-md bg-accent-soft"
-									/>
-								) : null}
-								{tabLabel(t, space, tab)}
-								{stale.has(`${space}/${tab}`) ? <StaleBadge /> : null}
-							</>
-						)}
-					</Link>
-				))}
+				{barTabs(space, teamRole, level).map((tab) => {
+					const Icon = tabIcon(space, tab);
+					return (
+						<Link
+							key={tab}
+							to={tabPath(space, tab)}
+							// A pointer that rests on a tab loads its code before the click.
+							preload="intent"
+							className="relative isolate inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-ui whitespace-nowrap text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 aria-[current=page]:text-accent-text"
+						>
+							{({ isActive }) => (
+								<>
+									{isActive ? (
+										<motion.span
+											layoutId={`tab-pill-${space}`}
+											transition={SPRING.smooth}
+											className="absolute inset-0 -z-10 rounded-md bg-accent-soft"
+										/>
+									) : null}
+									{Icon ? (
+										<span aria-hidden="true" className="flex">
+											<Icon size={14} />
+										</span>
+									) : null}
+									{tabLabel(t, space, tab)}
+									{stale.has(`${space}/${tab}`) ? <StaleBadge /> : null}
+								</>
+							)}
+						</Link>
+					);
+				})}
 			</div>
 		</nav>
 	);

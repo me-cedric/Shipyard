@@ -25,7 +25,7 @@
       "protocol": "HTTPS",
       "ports": "443",
       "action": "Allow",
-      "description": "List and read pull requests, CI status and repositories. Create a private repository when the person clicks Create in the project creator. On each sync tick, read the CI status of the open pull requests of the person (one call each) for the checks notice. A write (open a pull request, push, comment) waits for the automation switch or a click. The team join request pushes a branch and opens a pull request after a click."
+      "description": "List and read pull requests, CI status and repositories. Create a private repository when the person clicks Create in the project creator. Open a pull request page: read its general comments (GitHub issue comments, GitLab merge request notes, Azure DevOps threads) and its review threads (up to 1000 comments, newest first when there are more, and the page says so; GitHub reads 3 pages of 100 threads, each with its last 50 comments). On each sync tick, read the CI status of the open pull requests of the person (one call each) for the checks notice. A write (open a pull request, push, comment, reply to a thread, resolve or reopen a thread, submit a review with line comments; a pending review stays on this computer until then) waits for the automation switch or a click. The team join request pushes a branch and opens a pull request after a click."
     },
     {
       "id": "flow-3",
@@ -208,6 +208,19 @@
       "ports": "11434, 1234, 8000, 4000",
       "action": "Allow",
       "description": "GET /api/tags on Ollama (11434), GET /v1/models on LM Studio (1234), vLLM (8000) and LiteLLM (4000). Localhost only. No other host is probed."
+    },
+    {
+      "id": "flow-15",
+      "name": "avatar-hosts",
+      "source": "Shipyard app",
+      "sourceName": "Shipyard app",
+      "destination": "Avatar hosts",
+      "destinationName": "Avatar hosts",
+      "vlan": "Internet",
+      "protocol": "HTTPS",
+      "ports": "443",
+      "action": "Allow",
+      "description": "GET avatars.githubusercontent.com for the author of a commit with a GitHub no-reply address, else GET www.gravatar.com/avatar/<SHA-256 of the lower-case address>. In Code / History only. The address itself never leaves the app. No credential. A miss shows the initials."
     },
     {
       "id": "flow-14",

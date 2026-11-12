@@ -1,16 +1,19 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { SPACES } from "../src/features/shell/spaces";
+import { barTabs, SPACES, type SpaceId } from "../src/features/shell/spaces";
+import { openFirstFolder } from "./first-run";
 
 // Every tab of every space, on the mock project, in the light and the dark theme (the theme is "system").
 for (const scheme of ["light", "dark"] as const) {
-	for (const [space, tabs] of Object.entries(SPACES)) {
+	for (const space of Object.keys(SPACES) as SpaceId[]) {
+		// The tabs of the bar: Terminal and Manual are no tabs.
+		const tabs = barTabs(space, null);
 		test(`has no axe violation: ${space}, ${scheme} theme`, async ({ page }) => {
 			test.setTimeout(90_000);
 			page.setDefaultTimeout(10_000);
 			await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
 			await page.goto("/");
-			await page.getByRole("button", { name: "Open a local folder" }).click();
+			await openFirstFolder(page);
 			await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
 			await page.locator(`nav a[href="/${space}"]`).first().click();
 			const found: string[] = [];
@@ -28,4 +31,14 @@ for (const scheme of ["light", "dark"] as const) {
 			expect(found).toEqual([]);
 		});
 	}
+	// The manual is no tab since wave 2: the scan opens it by its address.
+	test(`has no axe violation: the manual, ${scheme} theme`, async ({ page }) => {
+		page.setDefaultTimeout(10_000);
+		await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
+		await page.goto("/knowledge/manual");
+		await expect(page.getByRole("article")).toBeVisible();
+		await page.waitForLoadState("networkidle");
+		const { violations } = await new AxeBuilder({ page }).analyze();
+		expect(violations.map((v) => v.id)).toEqual([]);
+	});
 }

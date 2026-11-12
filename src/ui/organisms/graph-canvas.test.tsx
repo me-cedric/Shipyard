@@ -1,5 +1,6 @@
 import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MotionConfig } from "motion/react";
 import { renderApp } from "../test-utils";
 import { type CanvasNode, GraphCanvas } from "./graph-canvas";
 
@@ -25,17 +26,19 @@ const links: [string, string][] = [
 	["spec:b", "adr:1"],
 ];
 
-function mount(onOpen = () => {}, selected: string | null = null) {
+function mount(onOpen = () => {}, selected: string | null = null, reduce = false) {
 	return renderApp(
-		<GraphCanvas
-			nodes={nodes}
-			links={links}
-			kinds={kinds}
-			label="Graph"
-			labels={labels}
-			selected={selected}
-			onOpen={onOpen}
-		/>,
+		<MotionConfig reducedMotion={reduce ? "always" : "never"}>
+			<GraphCanvas
+				nodes={nodes}
+				links={links}
+				kinds={kinds}
+				label="Graph"
+				labels={labels}
+				selected={selected}
+				onOpen={onOpen}
+			/>
+		</MotionConfig>,
 	);
 }
 
@@ -43,16 +46,7 @@ function mount(onOpen = () => {}, selected: string | null = null) {
 const node = async (id: string) =>
 	within(await screen.findByTestId(`rf__node-${id}`)).getByRole("button", { hidden: true });
 
-const matchMedia = (reduce: boolean) => {
-	window.matchMedia = ((query: string) => ({
-		matches: reduce && query.includes("reduced-motion"),
-		media: query,
-	})) as typeof window.matchMedia;
-};
-
 describe("GraphCanvas", () => {
-	beforeEach(() => matchMedia(false));
-
 	it("opens a node on click and Enter, and marks the selected one", async () => {
 		const user = userEvent.setup();
 		const open = vi.fn();
@@ -105,8 +99,7 @@ describe("GraphCanvas", () => {
 	});
 
 	it("removes the animation under reduced motion", async () => {
-		matchMedia(true);
-		mount();
+		mount(undefined, null, true);
 		expect(await screen.findByRole("region", { name: "Graph" })).toHaveAttribute(
 			"data-motion",
 			"reduced",

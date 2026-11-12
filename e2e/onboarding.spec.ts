@@ -4,6 +4,9 @@ const FIRST = "One loop, from idea to merged code";
 const PERMISSIONS = "Allow what Shipyard needs";
 const LAST = "Run your first ticket";
 
+/** A dialog that is open. A dialog that closes stays in the page until its exit animation ends, and the command palette that opened the tour can still be closing when the tour closes. */
+const openDialogs = (page: Page) => page.locator('[role="dialog"][data-open]');
+
 async function replay(page: Page) {
 	await page.keyboard.press("ControlOrMeta+k");
 	await page.getByRole("dialog").getByRole("combobox").fill("Replay the tour");
@@ -18,13 +21,13 @@ test("replays the tour, skips it with Close and ends it on Done", async ({ page 
 	await page.getByRole("button", { name: "Next" }).click();
 	await expect(page.getByRole("dialog", { name: "Open a project" })).toBeVisible();
 	await page.getByRole("button", { name: "Close" }).click();
-	await expect(page.getByRole("dialog")).toBeHidden();
+	await expect(openDialogs(page)).toHaveCount(0);
 
 	await replay(page);
 	for (let i = 0; i < 5; i++) await page.keyboard.press("ArrowRight");
 	await expect(page.getByRole("dialog", { name: LAST })).toBeVisible();
 	await page.getByRole("button", { name: "Done" }).click();
-	await expect(page.getByRole("dialog")).toBeHidden();
+	await expect(openDialogs(page)).toHaveCount(0);
 });
 
 test("asks for a permission from the tour and shows the list in Settings / Me", async ({
@@ -40,7 +43,7 @@ test("asks for a permission from the tour and shows the list in Settings / Me", 
 	await row.getByRole("button", { name: "Allow" }).click();
 	await expect(row.getByText("On", { exact: true })).toBeVisible();
 	await page.keyboard.press("Escape");
-	await expect(page.getByRole("dialog")).toBeHidden();
+	await expect(openDialogs(page)).toHaveCount(0);
 
 	await page.goto("/settings/me");
 	const files = page.getByRole("group", { name: "Documents, Desktop and Downloads" });
@@ -63,7 +66,7 @@ test("offers the settings on the steps and lists them in Settings / Me", async (
 		.getByRole("button", { name: "Connect" })
 		.click();
 	await expect(page).toHaveURL(/\/settings\/connections/);
-	await expect(page.getByRole("dialog")).toBeHidden();
+	await expect(openDialogs(page)).toHaveCount(0);
 
 	await page.goto("/settings/me");
 	const ai = page.getByRole("group", { name: "AI tool", exact: true });

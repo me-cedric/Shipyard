@@ -90,7 +90,13 @@ function Draft({ d, draft }: { d: PullDetail; draft: ReviewDraft }) {
 	};
 	const files = d.files.filter((f) => f.patch && kept.some((k) => k.path === f.path && onDiff(k)));
 	return (
-		<Panel title={t.forge.agent.panel} count={kept.length} icon={<SparklesIcon size={14} />}>
+		// `order-last w-full`: in the action row of the Overview, the draft takes its own line below the buttons.
+		<Panel
+			title={t.forge.agent.panel}
+			count={kept.length}
+			icon={<SparklesIcon size={14} />}
+			className="order-last w-full"
+		>
 			<div className="flex flex-col gap-2 p-3">
 				<Textarea
 					label={t.forge.agent.summary}
@@ -163,7 +169,7 @@ export function AgentReview({ d }: { d: PullDetail }) {
 	return (
 		<>
 			{d.state === "open" ? (
-				<section className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
+				<section className="flex flex-wrap items-center gap-2">
 					<RightButton
 						right="runs.start"
 						disabled={busy || draft != null}

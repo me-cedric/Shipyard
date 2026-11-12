@@ -1,6 +1,7 @@
-import { animate, useReducedMotion } from "motion/react";
+import { animate } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useReducedMotionPref } from "@/ui/motion";
 
 /** A number that counts from its last value to the new one. The last frame is the exact value. */
 export function CountUp({
@@ -12,7 +13,7 @@ export function CountUp({
 	format?: (n: number) => string;
 	className?: string;
 }) {
-	const reduce = useReducedMotion();
+	const reduce = useReducedMotionPref();
 	const [shown, setShown] = useState(value);
 	const from = useRef(value);
 	useEffect(() => {

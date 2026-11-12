@@ -9,6 +9,7 @@ import type { Messages } from "./en";
 import { extensionsFr } from "./extensions";
 import { extrasFr } from "./extras";
 import { factoryFr } from "./factory";
+import { glossaryFr } from "./glossary";
 import { homeFr } from "./home";
 import { knowledgeFr } from "./knowledge";
 import { onboardingFr } from "./onboarding";
@@ -115,8 +116,10 @@ export const fr: Messages = {
 		time: "Aucune entrée de temps",
 		team: "Aucun membre",
 		budget: "Aucun budget",
+		usage: "Aucun usage pour l’instant",
 		sessions: "Aucune session",
 		runs: "Aucune exécution",
+		run: "Aucune exécution ouverte",
 		graph: "Aucun graphe",
 		dashboards: "Aucun tableau de bord",
 		testPlans: "Aucun plan de test",
@@ -248,6 +251,11 @@ export const fr: Messages = {
 		openRef: "Ouvrir {ref}",
 		themeTo: "Thème : {name}",
 		langTo: "Langue : {name}",
+		activity: "Activité",
+		needsNone: "Rien ne demande votre action",
+		runsNone: "Aucune exécution active",
+		account: "Compte",
+		changedFiles: "Fichiers modifiés",
 	},
 	refKind: {
 		project: "Projet",
@@ -914,6 +922,7 @@ export const fr: Messages = {
 	assistant: assistantFr,
 	design: designFr,
 	factory: factoryFr,
+	glossary: glossaryFr,
 	settings: settingsFr,
 	specs: specsFr,
 	ui: uiFr,

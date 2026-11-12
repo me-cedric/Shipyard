@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { NoProject } from "@/features/work/no-project";
+import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
-import { useCodeGraph, useGraph, useGraphFocus, useIndexCode } from "@/lib/knowledge";
+import { useCodeFocus, useCodeGraph, useGraph, useGraphFocus, useIndexCode } from "@/lib/knowledge";
 import { useNotifications } from "@/lib/notifications";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
@@ -11,13 +11,24 @@ import { ArrowPathIcon, ShareIcon, XMarkIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
-import { PageHeader } from "@/ui/molecules/page-header";
+import { Loading } from "@/ui/molecules/loading";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { type CanvasNode, GraphCanvas, KindMark } from "@/ui/organisms/graph-canvas";
 import { ListDetail } from "@/ui/templates/list-detail";
-import { boxOf, cellOf, clusterView, forceLayout, type GNode, isCluster } from "./graph-clusters";
+import {
+	boxOf,
+	cellOf,
+	clusterView,
+	folderClusters,
+	forceLayout,
+	type GNode,
+	isCluster,
+} from "./graph-clusters";
 
 type Source = "refs" | "code";
+
+/** A call weight as a number of repeated links: the canvas draws a repeated link thicker. */
+const repeats = (w: number) => (w <= 1 ? 1 : Math.ceil(Math.log2(w)) + 1);
 
 /**
  * Knowledge / Graph: the reference graph or the code graph on one renderer. A click opens the
@@ -33,7 +44,11 @@ export function Graph() {
 	const [hidden, setHidden] = useState<string[]>([]);
 	const [focus, setFocus] = useGraphFocus();
 	const refs = useGraph().data;
-	const code = useCodeGraph().data;
+	// The code graph: a map of folders and files, or one file with its symbols and their calls.
+	const [codeFocus, setCodeFocus] = useState<string | null>(null);
+	const overview = useCodeGraph().data;
+	const focused = useCodeFocus(codeFocus).data;
+	const code = codeFocus ? focused : overview;
 	const index = useIndexCode();
 	const { push } = useNotifications();
 
@@ -50,7 +65,9 @@ export function Graph() {
 						name: `${n.kind === "file" ? k.graph.file : k.graph.symbol} ${n.title}`,
 					}),
 				),
-				edges: (code?.edges ?? []).map((e): [string, string] => [e.source, e.target]),
+				edges: (code?.edges ?? []).flatMap((e) =>
+					Array.from({ length: repeats(e.weight) }, (): [string, string] => [e.source, e.target]),
+				),
 			};
 		return {
 			nodes: (refs?.nodes ?? []).map(
@@ -69,7 +86,7 @@ export function Graph() {
 	}, [source, refs, code, k, kindNames]);
 
 	const [open, setOpen] = useState<string[]>([]);
-	const clustered = source === "refs" && !focus;
+	const clustered = source === "refs" ? !focus : !codeFocus;
 	const kinds = useMemo(() => {
 		const count = new Map<string, number>();
 		for (const n of all.nodes) count.set(n.kind, (count.get(n.kind) ?? 0) + 1);
@@ -97,8 +114,9 @@ export function Graph() {
 
 	// Clusters first: a cluster draws as one node, and opens in place on a click or Enter.
 	const drawn = useMemo(() => {
-		if (!clustered || !refs) return null;
-		const raw: GNode[] = refs.nodes.map((n) => ({
+		const base = source === "code" ? overview : refs;
+		if (!clustered || !base) return null;
+		const raw: GNode[] = base.nodes.map((n) => ({
 			ref: n.ref,
 			kind: n.kind,
 			title: n.title || n.ref,
@@ -113,6 +131,7 @@ export function Graph() {
 			all.edges,
 			open,
 			q,
+			source === "code" ? folderClusters : undefined,
 		);
 		const byId = new Map(shown.nodes.map((n) => [n.id, n]));
 		const boxes = view.clusters.map((c) => boxOf(c.id, c.members.length, view.open.has(c.id)));
@@ -125,11 +144,12 @@ export function Graph() {
 			const at = place.get(c.id) ?? { x: 0, y: 0 };
 			const lead = c.members.find((m) => m.ref === `${c.kind}:${c.key}`)?.title;
 			const title = c.key ? lead || c.key : kindName(c.kind);
+			const kindLabel = c.kind === "folder" ? k.graph.folder : kindName(c.kind);
 			const head: CanvasNode = {
 				id: c.id,
 				kind: c.kind,
 				label: title,
-				name: `${c.key ? `${kindName(c.kind)} ${title}` : title} ${c.members.length}`,
+				name: `${c.key ? `${kindLabel} ${title}` : title} ${c.members.length}`,
 				count: c.members.length,
 				open: isOpen,
 			};
@@ -147,11 +167,21 @@ export function Graph() {
 			});
 		}
 		return { nodes, table, positions, links: view.links };
-	}, [clustered, refs, shown.nodes, all.edges, open, query, kindNames]);
+	}, [
+		clustered,
+		source,
+		overview,
+		refs,
+		shown.nodes,
+		all.edges,
+		open,
+		query,
+		kindNames,
+		k.graph.folder,
+	]);
 
-	if (active === undefined)
-		return <PageHeader icon={<ShareIcon size={16} />} title={k.graph.title} />;
-	if (active === null) return <NoProject title={k.graph.title} />;
+	if (active === undefined) return <Loading title={k.graph.title} icon={<ShareIcon size={16} />} />;
+	if (active === null) return <NoProject title={k.graph.title} icon={<ShareIcon size={16} />} />;
 	const wantsIndex = source === "code" && code !== undefined && code.state !== "ready";
 	return (
 		<ListDetail
@@ -186,8 +216,11 @@ export function Graph() {
 							}
 						/>
 					)}
-					{focus && source === "refs" ? (
-						<Button variant="ghost" onClick={() => setFocus(null)}>
+					{(focus && source === "refs") || (codeFocus && source === "code") ? (
+						<Button
+							variant="ghost"
+							onClick={() => (source === "code" ? setCodeFocus(null) : setFocus(null))}
+						>
 							<XMarkIcon size={14} />
 							{k.graph.clear}
 						</Button>
@@ -234,16 +267,21 @@ export function Graph() {
 					links={drawn?.links ?? shown.edges}
 					positions={drawn?.positions}
 					tableNodes={drawn?.table}
-					kinds={kinds.map((x) => ({ id: x.id, label: kindName(x.id) }))}
+					kinds={[
+						...kinds.map((x) => ({ id: x.id, label: kindName(x.id) })),
+						{ id: "folder", label: k.graph.folder },
+					]}
 					label={k.graph.title}
 					labels={k.canvas}
 					glow
 					selected={selectedRef}
-					onOpen={(id) =>
-						isCluster(id)
-							? setOpen((o) => (o.includes(id) ? o.filter((x) => x !== id) : [...o, id]))
-							: openRef(source === "code" ? `code:${id}` : id)
-					}
+					onOpen={(id) => {
+						if (isCluster(id))
+							setOpen((o) => (o.includes(id) ? o.filter((x) => x !== id) : [...o, id]));
+						// A file of the map opens its calls; a symbol, or the file in focus, opens the inspector.
+						else if (source === "code" && id !== codeFocus && !id.includes("::")) setCodeFocus(id);
+						else openRef(source === "code" ? `code:${id}` : id);
+					}}
 				/>
 			)}
 		</ListDetail>

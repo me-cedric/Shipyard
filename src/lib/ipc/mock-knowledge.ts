@@ -271,26 +271,51 @@ const CALLS: [number, number][] = [
 	[0, 1],
 ];
 
+const fileOf = (i: number) => SYMBOLS[i]?.[0] ?? "";
+const symbolId = (i: number) => `${fileOf(i)}::${SYMBOLS[i]?.[1]}`;
+
+/** The overview: the files, and the calls between two files counted. */
 export function graphCode(k: MockKnowledge): CodeGraph_Serialize {
 	if (!k.server) return { state: "off", nodes: [], edges: [] };
 	if (!k.indexed) return { state: "unindexed", nodes: [], edges: [] };
-	const id = (i: number) => `${SYMBOLS[i]?.[0]}::${SYMBOLS[i]?.[1]}`;
 	const files = [...new Set(SYMBOLS.map(([f]) => f))];
+	const weight = new Map<string, number>();
+	for (const [a, b] of CALLS) {
+		if (fileOf(a) === fileOf(b)) continue;
+		const key = `${fileOf(a)}\n${fileOf(b)}`;
+		weight.set(key, (weight.get(key) ?? 0) + 1);
+	}
 	return {
 		state: "ready",
+		nodes: files.map((f) => ({ ref: f, kind: "file", title: f, status: null, location: f })),
+		edges: [...weight].map(([key, w]) => {
+			const [source = "", target = ""] = key.split("\n");
+			return { source, target, weight: w };
+		}),
+	};
+}
+
+/** One file with its symbols and the symbols that call them or that they call. */
+export function graphCodeFocus(k: MockKnowledge, file: string): CodeGraph_Serialize {
+	if (!k.server) return { state: "off", nodes: [], edges: [] };
+	const calls = CALLS.filter(([a, b]) => fileOf(a) === file || fileOf(b) === file);
+	const used = [...new Set(calls.flat())];
+	const files = [...new Set(used.map(fileOf))];
+	return {
+		state: used.length ? "ready" : "unindexed",
 		nodes: [
 			...files.map((f) => ({ ref: f, kind: "file", title: f, status: null, location: f })),
-			...SYMBOLS.map(([f, n], i) => ({
-				ref: id(i),
+			...used.map((i) => ({
+				ref: symbolId(i),
 				kind: "symbol",
-				title: n,
+				title: SYMBOLS[i]?.[1] ?? "",
 				status: null,
-				location: f,
+				location: fileOf(i),
 			})),
 		],
 		edges: [
-			...SYMBOLS.map(([f], i) => ({ source: f, target: id(i) })),
-			...CALLS.map(([a, b]) => ({ source: id(a), target: id(b) })),
+			...used.map((i) => ({ source: fileOf(i), target: symbolId(i), weight: 1 })),
+			...calls.map(([a, b]) => ({ source: symbolId(a), target: symbolId(b), weight: 1 })),
 		],
 	};
 }

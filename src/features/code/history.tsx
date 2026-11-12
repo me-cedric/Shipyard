@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { PageExport } from "@/features/reports/page-export";
-import { useCommitDetail, useCommitDiff, useLog } from "@/lib/code";
+import { useAvatars, useCommitDetail, useCommitDiff, useLog } from "@/lib/code";
 import { graph } from "@/lib/code/graph";
 import { format, useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
@@ -29,6 +29,7 @@ function Detail({ sha }: { sha: string }) {
 	const { t, lang } = useI18n();
 	const menu = useMenus();
 	const detail = useCommitDetail(sha).data;
+	const avatars = useAvatars(detail ? [detail.info.author_email] : []);
 	const [file, setFile] = useState<string | null>(null);
 	const current =
 		file && detail?.files.some((f) => f.path === file) ? file : detail?.files[0]?.path;
@@ -43,7 +44,11 @@ function Detail({ sha }: { sha: string }) {
 					<p className="text-ui whitespace-pre-wrap text-n-12">{info.description}</p>
 				) : null}
 				<p className="flex flex-wrap items-center gap-2 text-12 text-n-11">
-					<Avatar name={info.author_name} className="size-5" />
+					<Avatar
+						name={info.author_name}
+						src={avatars[info.author_email.trim().toLowerCase()]}
+						className="size-5"
+					/>
 					{info.author_name}
 					<Badge className="font-mono">{info.short}</Badge>
 					<span className="flex items-center gap-1">
@@ -100,6 +105,7 @@ function HistoryView() {
 		"code:history",
 		commits.map((c) => c.sha),
 	);
+	const avatars = useAvatars(commits.map((c) => c.author_email));
 	const rows = graph(commits);
 	const lanes = Math.max(1, ...rows.map((r) => r.width));
 
@@ -151,6 +157,7 @@ function HistoryView() {
 										short={c.short}
 										summary={c.summary}
 										author={c.author_name}
+										avatar={avatars[c.author_email.trim().toLowerCase()]}
 										date={date.format(c.time * 1000)}
 										labels={c.labels}
 										selected={c.sha === sha}
@@ -194,4 +201,4 @@ function HistoryView() {
 	);
 }
 
-export const History = withProject(HistoryView);
+export const History = withProject(HistoryView, "history");

@@ -34,7 +34,7 @@ export function PageHeader({
 }) {
 	const { t } = useI18n();
 	return (
-		<div className="flex min-h-14 flex-wrap items-center gap-3 px-4 pt-3 pb-1">
+		<div data-page-header className="flex min-h-14 flex-wrap items-center gap-3 px-4 pt-3 pb-1">
 			{icon ? (
 				<span
 					aria-hidden="true"

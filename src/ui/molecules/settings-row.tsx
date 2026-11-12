@@ -8,12 +8,15 @@ export function SettingsRow({
 	id: anchor,
 	icon,
 	label,
+	current,
 	children,
 }: {
 	/** The anchor of the row: an error or a link can open it (`#id`). */
 	id?: string;
 	icon?: ReactNode;
-	label: string;
+	label: ReactNode;
+	/** The next step of a list of steps. */
+	current?: boolean;
 	/** The control. It needs its own accessible name. */
 	children: ReactNode;
 }) {
@@ -24,6 +27,7 @@ export function SettingsRow({
 			id={anchor}
 			role="group"
 			aria-labelledby={id}
+			aria-current={current ? "step" : undefined}
 			className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1.5 border-b px-3 py-1.5 transition-colors duration-(--duration-fast) last:border-b-0 hover:bg-n-2"
 		>
 			{icon ? (

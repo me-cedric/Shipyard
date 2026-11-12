@@ -112,8 +112,21 @@ describe("Knowledge / Graph", () => {
 		await user.click(await screen.findByRole("tab", { name: "Code" }));
 		const code = await unwrap(commands.graphCode());
 		expect(code.nodes.length).toBeGreaterThan(0);
-		await screen.findByTestId(`rf__node-${code.nodes[0]?.ref}`);
+		// The map groups the files by folder.
+		await screen.findByTestId("rf__node-cluster/folder:src/lib/ipc");
 		expect(screen.queryByTestId(`rf__node-adr:0001`)).toBeNull();
+	});
+
+	it("opens a folder into its files, a file into its calls, and Show all goes back to the map", async () => {
+		const user = userEvent.setup();
+		await mountKnowledge("graph");
+		await user.click(await screen.findByRole("tab", { name: "Code" }));
+		await user.click(await graphNode("cluster/folder:src/features/home"));
+		await user.click(await graphNode("src/features/home/home.tsx"));
+		await graphNode("src/features/home/home.tsx::Home");
+		expect(screen.queryByTestId("rf__node-cluster/folder:src/lib/ipc")).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Show all" }));
+		await screen.findByTestId("rf__node-cluster/folder:src/lib/ipc");
 	});
 
 	it("shows one Index action in place of a code graph that has no index", async () => {
@@ -122,8 +135,7 @@ describe("Knowledge / Graph", () => {
 		await mountKnowledge("graph");
 		await user.click(await screen.findByRole("tab", { name: "Code" }));
 		await user.click(await screen.findByRole("button", { name: "Index" }));
-		const code = await unwrap(commands.graphCode());
-		await screen.findByTestId(`rf__node-${code.nodes[0]?.ref}`);
+		await screen.findByTestId("rf__node-cluster/folder:src/lib/ipc");
 	});
 
 	it("tells the person that the index worked, with the node count", async () => {
@@ -175,8 +187,7 @@ describe("Knowledge / Graph", () => {
 			await user.click(await screen.findByRole("tab", { name: "Code" }));
 			await user.click(await screen.findByRole("button", { name: "Index" }));
 			expect(screen.queryByRole("alert")).toBeNull();
-			const code = await unwrap(commands.graphCode());
-			await screen.findByTestId(`rf__node-${code.nodes[0]?.ref}`);
+			await screen.findByTestId("rf__node-cluster/folder:src/lib/ipc");
 		});
 
 		it("shows the error of the index", async () => {

@@ -69,6 +69,35 @@ export function latestPerTicket<T extends { id: string; project: string; key: st
 	return runs.filter((r) => last.get(`${r.project}\0${r.key}`) === r.id);
 }
 
+// The same four states as `ENDED` of `@/lib/factory`, which imports this file.
+const ENDED_STATES = ["Merged", "Done", "Failed", "Cancelled"];
+
+type Timed = { steps: { units: { last: number | null }[] }[] };
+
+/** The end of an ended run: the newest `last` of its sessions (Unix seconds) as milliseconds. */
+export function endOf(run: Timed): number | undefined {
+	const last = Math.max(0, ...run.steps.flatMap((s) => s.units.map((u) => u.last ?? 0)));
+	return last > 0 ? last * 1000 : undefined;
+}
+
+/**
+ * Every ended run and each older run of a ticket, for History. The newest end comes first; a run
+ * with no end time follows, in start order (newest first).
+ */
+export function historyRuns<
+	T extends Timed & { id: string; project: string; key: string; state: string },
+>(runs: T[]): T[] {
+	const current = new Set(latestPerTicket(runs).map((r) => r.id));
+	return runs
+		.filter((r) => ENDED_STATES.includes(r.state) || !current.has(r.id))
+		.sort((a, b) => {
+			const [x, y] = [endOf(a), endOf(b)];
+			if (x !== undefined && y !== undefined && x !== y) return y - x;
+			if ((x === undefined) !== (y === undefined)) return x === undefined ? 1 : -1;
+			return a.id < b.id ? 1 : -1;
+		});
+}
+
 const THURSDAY = 4;
 const localDay = (d: Date) =>
 	`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;

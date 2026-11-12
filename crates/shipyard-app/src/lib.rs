@@ -5,6 +5,7 @@ pub mod applog;
 pub mod assistant;
 pub mod assistant_attach;
 pub mod auto_commit;
+pub mod avatar;
 pub mod branding;
 pub mod certs;
 pub mod close_guard;
@@ -184,7 +185,11 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::code::code_pull_labels,
             crate::code::code_pull_open,
             crate::code::code_pull_comment,
+            crate::code::code_pull_reply,
+            crate::code::code_pull_resolve,
             crate::code::code_pull_verdict,
+            crate::code::code_pull_review_submit,
+            crate::code::code_pull_line_comment,
             crate::code::code_pull_merge,
             crate::code::code_pull_ready,
             crate::code::code_pull_close,
@@ -467,8 +472,10 @@ fn specta_builder() -> Builder<tauri::Wry> {
             asst::assistant_defaults_set,
             asst::assistant_options,
             asst::assistant_slash_commands,
+            avatar::avatar_get,
             kw::graph_get,
             kw::graph_code,
+            kw::graph_code_focus,
             kw::graph_code_index,
             kw::explain_context_get,
             kw::doc_list_get,
@@ -562,7 +569,6 @@ fn specta_builder() -> Builder<tauri::Wry> {
             permissions::permissions_request,
             permissions::permissions_open_settings,
             sh::update_check,
-            tray::tray_badge,
             tray::tray_close,
             tray::tray_open,
         ])

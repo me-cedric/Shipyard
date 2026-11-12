@@ -37,7 +37,9 @@ describe("Active sessions", () => {
 		const user = userEvent.setup();
 		await alpha();
 		mountApp("/home/today");
-		await user.click(await (await bar()).findByRole("button", { name: "Active sessions (2)" }));
+		await user.click(
+			await (await bar()).findByRole("button", { name: /^Activity: .*Active sessions \(2\)$/ }),
+		);
 		const list = await screen.findByRole("list", { name: "Active sessions" });
 		const rows = within(list).getAllByRole("listitem");
 		expect(rows).toHaveLength(2);
@@ -48,7 +50,7 @@ describe("Active sessions", () => {
 		await waitFor(() =>
 			expect(mockState().machine.sessions.some((s) => s.pid === 4188)).toBe(false),
 		);
-		expect((await bar()).getByRole("link", { name: /Needs you/ })).toBeInTheDocument();
+		expect((await bar()).getByRole("button", { name: /Needs you/ })).toBeInTheDocument();
 	});
 });
 

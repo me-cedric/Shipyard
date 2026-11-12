@@ -135,10 +135,6 @@
       "owner": "compass",
       "sha": "1411d7df7d99b7e6"
     },
-    ".agents/skills/harness-improve/SKILL.md": {
-      "owner": "compass",
-      "sha": "8cddc5fbc9b636b5"
-    },
     ".agents/skills/harness-loop/SKILL.md": {
       "owner": "compass",
       "sha": "5db08e561fa89509"
@@ -243,21 +239,9 @@
       "owner": "compass",
       "sha": "e1e32f5e2d420872"
     },
-    ".agents/skills/spec-flow/SKILL.md": {
-      "owner": "compass",
-      "sha": "db235fbd90007fc3"
-    },
     ".agents/skills/spec-flow/references/convert-documents.md": {
       "owner": "compass",
       "sha": "4ae3be6d9a2e93b6"
-    },
-    ".agents/skills/spec-flow/references/delta-section.md": {
-      "owner": "compass",
-      "sha": "3404cf0f1e49fff5"
-    },
-    ".agents/skills/spec-flow/references/drift-triage.md": {
-      "owner": "compass",
-      "sha": "2af7d036e9c626d9"
     },
     ".agents/skills/spec-flow/references/openspec.md": {
       "owner": "compass",
@@ -278,10 +262,6 @@
     ".agents/skills/stitch-skill/SKILL.md": {
       "owner": "compass",
       "sha": "46bdb08fee2dded3"
-    },
-    ".agents/skills/task-flow/SKILL.md": {
-      "owner": "compass",
-      "sha": "1002ff89060e6079"
     },
     ".agents/skills/taste-skill-v1/LICENSE": {
       "owner": "compass",
@@ -547,10 +527,6 @@
       "owner": "compass",
       "sha": "1411d7df7d99b7e6"
     },
-    ".claude/skills/harness-improve/SKILL.md": {
-      "owner": "compass",
-      "sha": "8cddc5fbc9b636b5"
-    },
     ".claude/skills/harness-loop/SKILL.md": {
       "owner": "compass",
       "sha": "5db08e561fa89509"
@@ -655,21 +631,9 @@
       "owner": "compass",
       "sha": "e1e32f5e2d420872"
     },
-    ".claude/skills/spec-flow/SKILL.md": {
-      "owner": "compass",
-      "sha": "db235fbd90007fc3"
-    },
     ".claude/skills/spec-flow/references/convert-documents.md": {
       "owner": "compass",
       "sha": "4ae3be6d9a2e93b6"
-    },
-    ".claude/skills/spec-flow/references/delta-section.md": {
-      "owner": "compass",
-      "sha": "3404cf0f1e49fff5"
-    },
-    ".claude/skills/spec-flow/references/drift-triage.md": {
-      "owner": "compass",
-      "sha": "2af7d036e9c626d9"
     },
     ".claude/skills/spec-flow/references/openspec.md": {
       "owner": "compass",
@@ -686,10 +650,6 @@
     ".claude/skills/stitch-skill/SKILL.md": {
       "owner": "compass",
       "sha": "46bdb08fee2dded3"
-    },
-    ".claude/skills/task-flow/SKILL.md": {
-      "owner": "compass",
-      "sha": "1002ff89060e6079"
     },
     ".claude/skills/taste-skill-v1/LICENSE": {
       "owner": "compass",
@@ -894,10 +854,6 @@
     ".github/workflows/compass-helm-bump.yml": {
       "owner": "project",
       "sha": "7a747cc6de7db145"
-    },
-    ".github/workflows/compass-migrations.yml": {
-      "owner": "project",
-      "sha": "2b70f64e78440907"
     },
     ".github/workflows/compass-security.yml": {
       "owner": "project",

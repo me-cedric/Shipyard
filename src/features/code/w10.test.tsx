@@ -12,7 +12,7 @@ describe("Code, W10", () => {
 		const user = userEvent.setup();
 		await demo();
 		mountApp("/code/pull-requests");
-		await user.click(await screen.findByRole("button", { name: /health route/ }));
+		await user.click(await screen.findByRole("link", { name: /health route/ }));
 		await user.click(await screen.findByRole("button", { name: "Write description" }));
 		expect(await draft(/Write the description of pull request #\d+ .*health route/)).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Review" }));

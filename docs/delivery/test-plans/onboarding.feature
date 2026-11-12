@@ -1,16 +1,28 @@
 Feature: onboarding
 
   @spec:onboarding#REQ-001
-  Scenario: First launch: Fresh install
-    Given Shipyard starts with no saved preferences
+  Scenario: Tour after the first project: Fresh install
+    Given Shipyard starts with no saved preferences and no project
     When the window opens
+    Then the first-run page shows and the tour does not open
+
+  @spec:onboarding#REQ-001
+  Scenario: Tour after the first project: First project
+    Given the tour was never seen
+    When the first project opens
     Then the tour opens at step 1
 
   @spec:onboarding#REQ-001
-  Scenario: First launch: Skipped
+  Scenario: Tour after the first project: Skipped
     Given the person closed the tour at step 2
     When Shipyard starts again
     Then the tour does not open
+
+  @spec:onboarding#REQ-001
+  Scenario: Tour after the first project: Left by a setup action
+    Given the tour is open
+    When the person clicks a setup action in a step
+    Then the tour does not open at the next launch
 
   @spec:onboarding#REQ-002
   Scenario: Six steps: Steps
@@ -34,7 +46,7 @@ Feature: onboarding
   Scenario: Manual: Open the manual
     Given the tour is at the last step
     When the person clicks Open the manual
-    Then the tour closes and Knowledge / Manual opens
+    Then the tour closes and the manual opens at `/knowledge/manual`
 
   @spec:onboarding#REQ-006
   Scenario: Permission states: Not asked
@@ -103,19 +115,19 @@ Feature: onboarding
     Then the person is a member with the admin flag and the item shows done
 
   @spec:onboarding#REQ-013
-  Scenario: Setup checklist: Card
+  Scenario: Get started checklist: Card
     Given an item is to do
     When the person opens Home / Today
-    Then one Setup card lists the items to do
+    Then one Get started card lists the items to do
 
   @spec:onboarding#REQ-013
-  Scenario: Setup checklist: All done
+  Scenario: Get started checklist: All done
     Given no item is to do
     When the person opens Home / Today
-    Then the Setup card does not show
+    Then the Get started card does not show
 
   @spec:onboarding#REQ-013
-  Scenario: Setup checklist: Settings
+  Scenario: Get started checklist: Settings
     Given the person closed the tour
     When the person opens Settings / Me
-    Then the Setup items show with their states
+    Then the same Get started card shows the items with their states

@@ -1,16 +1,9 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { vi } from "vitest";
+import { MotionConfig } from "motion/react";
 import { CountUp } from "./count-up";
-
-const reduced = vi.hoisted(() => ({ on: false }));
-vi.mock("motion/react", async (orig) => ({
-	...(await orig<object>()),
-	useReducedMotion: () => reduced.on,
-}));
 
 describe("CountUp", () => {
 	it("ends on the exact formatted value", async () => {
-		reduced.on = false;
 		const format = (n: number) => `$${n.toFixed(2)}`;
 		const { rerender } = render(<CountUp value={0} format={format} />);
 		rerender(<CountUp value={12.34} format={format} />);
@@ -18,9 +11,14 @@ describe("CountUp", () => {
 	});
 
 	it("shows the new value at once under reduced motion", () => {
-		reduced.on = true;
-		const { rerender } = render(<CountUp value={1} />);
-		act(() => rerender(<CountUp value={500} />));
+		// The OS setting is off: only the preference of the person (MotionConfig) asks for reduced motion.
+		const ui = (v: number) => (
+			<MotionConfig reducedMotion="always">
+				<CountUp value={v} />
+			</MotionConfig>
+		);
+		const { rerender } = render(ui(1));
+		act(() => rerender(ui(500)));
 		expect(screen.getByText("500")).toBeInTheDocument();
 	});
 });

@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import type { CSSProperties } from "react";
 import { useMemo, useRef, useState } from "react";
+import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog, type TimeState } from "@/lib/ipc";
 import { useDay, usePanelSize } from "@/lib/prefs";
@@ -37,14 +38,13 @@ import {
 } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { PageHeader } from "@/ui/molecules/page-header";
+import { Loading } from "@/ui/molecules/loading";
 import { Panel } from "@/ui/molecules/panel";
 import { Splitter } from "@/ui/molecules/splitter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { useGuard } from "./guard";
-import { NoProject } from "./no-project";
 import { TicketField } from "./ticket-field";
 
 const STATE_ORDER: TimeState[] = ["to-send", "in-tracker", "only-in-tracker"];
@@ -388,9 +388,9 @@ export function Time() {
 	);
 
 	if (active === undefined)
-		return <PageHeader icon={<ClockIcon size={16} />} title={t.tabs.work.time} />;
-	if (active === null) return <NoProject title={t.tabs.work.time} />;
-	if (!ctx) return <PageHeader icon={<ClockIcon size={16} />} title={t.tabs.work.time} />;
+		return <Loading icon={<ClockIcon size={16} />} title={t.tabs.work.time} />;
+	if (active === null) return <NoProject title={t.tabs.work.time} icon={<ClockIcon size={16} />} />;
+	if (!ctx) return <Loading icon={<ClockIcon size={16} />} title={t.tabs.work.time} />;
 
 	const submit = async (ev: React.FormEvent) => {
 		ev.preventDefault();

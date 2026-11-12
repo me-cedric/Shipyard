@@ -15,8 +15,30 @@ const open = async (p: Page, space: string, tab?: string) => {
 };
 const openProject = async (p: Page) => {
 	await p.goto("/home/today");
+	await p.getByRole("button", { name: "Continue" }).click();
 	await p.getByRole("button", { name: "Open a local folder" }).click();
 	await p.getByRole("heading", { level: 1, name: "Today" }).waitFor();
+};
+
+// Pull request 142 of the mock has comments, two threads and one file of three lines.
+const openPull = async (p: Page, tab?: string) => {
+	await open(p, "Code", "Pull requests");
+	await p.getByRole("link", { name: /refuse an empty token/ }).click();
+	if (tab) await p.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
+};
+// Adds a comment to the pending review: opens the file, the "+" of the line, the box.
+const comment = async (p: Page, line: number, text: string) => {
+	const file = p.getByRole("button", { name: /src\/app\.ts/ }).first();
+	if ((await file.getAttribute("aria-expanded")) === "false") await file.click();
+	// The "+" exists only on the hovered row: hover the row of that line first.
+	await p
+		.locator("div[data-kind]")
+		.filter({ has: p.locator('span[aria-hidden="true"]').getByText(String(line), { exact: true }) })
+		.first()
+		.hover();
+	await p.getByRole("button", { name: `Add a comment on line ${line}` }).click();
+	await p.getByRole("textbox", { name: `Comment on line ${line}` }).fill(text);
+	await p.getByRole("button", { name: "Add review comment" }).click();
 };
 
 type Scene = { name: string; light?: boolean; run: (p: Page) => Promise<void> };
@@ -39,8 +61,23 @@ const scenes: Scene[] = [
 		name: "workflows",
 		run: async (p) => {
 			await open(p, "Factory", "Workflows");
-			await p.getByRole("button", { name: /^feature/ }).click();
+			await p.getByRole("button", { name: /^feature/i }).click();
 			await p.getByRole("textbox", { name: "Step id" }).first().waitFor();
+		},
+	},
+	{
+		name: "runs-history",
+		run: async (p) => {
+			await open(p, "Factory", "Runs");
+			await p.getByRole("button", { name: "History", exact: true }).click();
+			await p.getByRole("table", { name: "History" }).waitFor();
+		},
+	},
+	{
+		name: "usage",
+		run: async (p) => {
+			await open(p, "Factory", "Usage");
+			await p.getByRole("region", { name: "Budgets" }).waitFor();
 		},
 	},
 	{
@@ -51,15 +88,43 @@ const scenes: Scene[] = [
 				.getByRole("region", { name: "Working" })
 				.getByRole("button", { name: /ACME-2/ })
 				.click();
-			// The mock logs no events for a unit, so the live chat stays empty: show the workflow and the events.
-			await p
-				.getByRole("region", { name: /^Events/ })
-				.getByRole("button", { name: "Expand" })
-				.click();
-			await p.getByRole("region", { name: /^Events/ }).scrollIntoViewIfNeeded();
+			// The Activity tab is open, with the summary in view.
+			await p.getByRole("region", { name: /^Events/ }).waitFor();
 		},
 	},
-	{ name: "code", run: (p) => open(p, "Code", "Pull requests") },
+	{
+		name: "pulls",
+		run: async (p) => {
+			await open(p, "Code", "Pull requests");
+			await p.getByRole("link", { name: /refuse an empty token/ }).waitFor();
+		},
+	},
+	{
+		name: "pull",
+		run: async (p) => {
+			await openPull(p);
+			await p.getByRole("region", { name: "Merge status" }).waitFor();
+			await p.getByText("Thanks for the fix").waitFor();
+		},
+	},
+	{
+		name: "pull-files",
+		run: async (p) => {
+			await openPull(p, "Files changed");
+			await comment(p, 3, "Add a guard for the empty case.");
+			await p.getByText("Pending", { exact: true }).first().waitFor();
+		},
+	},
+	{
+		name: "pull-review",
+		run: async (p) => {
+			await openPull(p, "Files changed");
+			await comment(p, 3, "Add a guard for the empty case.");
+			await comment(p, 1, "Name this value.");
+			await p.getByRole("button", { name: "Submit review" }).first().click();
+			await p.getByRole("dialog", { name: "Submit review" }).waitFor();
+		},
+	},
 	{ name: "knowledge", run: (p) => open(p, "Knowledge", "Learn") },
 	{ name: "settings-connections", run: (p) => open(p, "Settings", "Connections") },
 	{ name: "settings-project", run: (p) => open(p, "Settings", "Project") },

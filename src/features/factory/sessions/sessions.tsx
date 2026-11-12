@@ -1,25 +1,26 @@
+import { useNavigate } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
+import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
-import { NoProject } from "@/features/work/no-project";
-import { useFactoryWrites, useKillSwitch, useSessions } from "@/lib/factory";
+import { useFactoryWrites, useSessions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import type { SessionView } from "@/lib/ipc";
-import { showAnchor } from "@/lib/notifications/targets";
 import { useActiveProject } from "@/lib/projects";
 import { RightIconButton } from "@/lib/rights";
-import { useShell } from "@/lib/shell";
+import { runHref } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { CommandLineIcon, CpuChipIcon, StopIcon } from "@/ui/icons";
+import { CommandLineIcon, StopIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Loading } from "@/ui/molecules/loading";
 import { Panel } from "@/ui/molecules/panel";
 import { STEP_STATUS } from "@/ui/molecules/run-step";
-import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { AgentsToggle } from "../agents-toggle";
+import { nameOf } from "../runs/run-live";
 import { MachineSessions } from "./machine-sessions";
 import { OrcaSessions } from "./orca-sessions";
 
@@ -31,17 +32,18 @@ const STATE_BADGE = {
 	failed: "danger",
 } as const;
 
-/** Factory / Sessions: the agent sessions and the global kill switch, the one action (factory REQ-031). */
+/** Factory / Sessions: the agent sessions; a run session opens its run at the step (factory REQ-031, ux-declutter REQ-038). */
 export function Sessions() {
 	const { t, lang } = useI18n();
 	const f = t.factory;
-	const { openRef } = useShell();
+	const navigate = useNavigate();
 	const active = useActiveProject().data;
 	const sessions = useSessions();
-	const kill = useKillSwitch().data ?? false;
 	const writes = useFactoryWrites();
 	const { error, run } = useGuard();
-	if (active === null) return <NoProject title={f.sessions} />;
+	if (active === undefined)
+		return <Loading title={f.sessions} icon={<CommandLineIcon size={16} />} />;
+	if (active === null) return <NoProject title={f.sessions} icon={<CommandLineIcon size={16} />} />;
 	// The live sessions first: a group heading shows each time the group changes.
 	const live = (r: SessionView) => r.state === "running" || r.state === "gate";
 	const rows = (sessions.data ?? []).toSorted((a, b) => Number(live(b)) - Number(live(a)));
@@ -65,7 +67,7 @@ export function Sessions() {
 		},
 		{ id: "model", header: f.model, meta: { width: "6rem" }, cell: (c) => c.row.original.model },
 		{ id: "key", header: f.run, meta: { width: "6rem" }, cell: (c) => c.row.original.key },
-		{ id: "step", header: f.stepName, cell: (c) => c.row.original.step },
+		{ id: "step", header: f.stepName, cell: (c) => nameOf(c.row.original.step) },
 		{
 			id: "state",
 			header: f.status,
@@ -119,8 +121,18 @@ export function Sessions() {
 			},
 		},
 	];
-	const running = rows.filter((r) => r.state === "running").length;
-	const spend = rows.reduce((a, r) => a + (r.costUsd ?? 0), 0);
+	// The totals that the tiles showed stay as the last row of the table.
+	const totals = [
+		f.total,
+		"",
+		"",
+		"",
+		"",
+		"",
+		rows.reduce((a, r) => a + r.tokens, 0).toLocaleString(),
+		`$${rows.reduce((a, r) => a + (r.costUsd ?? 0), 0).toFixed(2)}`,
+		"",
+	];
 	return (
 		<ListDetail
 			title={f.sessions}
@@ -139,38 +151,13 @@ export function Sessions() {
 				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 [&>*]:shrink-0">
 					<EmptyState
 						title={t.empty.sessions}
-						action={{
-							label: kill ? f.killRelease : f.killAll,
-							onClick: () => void run(() => writes.killSwitch(!kill)),
-						}}
+						action={{ label: f.runs, onClick: () => void navigate({ to: "/factory/runs" }) }}
 					/>
 					<MachineSessions />
 					<OrcaSessions />
 				</div>
 			) : (
 				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4 [&>*]:shrink-0">
-					<StatStrip
-						items={[
-							{
-								label: f.step.running,
-								value: String(running),
-								icon: <LiveDot idle={running === 0} />,
-								tone: "accent",
-							},
-							{
-								label: f.runner,
-								value: String(new Set(rows.map((r) => r.runner)).size),
-								icon: <CpuChipIcon size={12} />,
-								tone: "info",
-							},
-							{
-								label: f.tokens,
-								value: rows.reduce((a, r) => a + r.tokens, 0).toLocaleString(),
-								tone: "accent",
-							},
-							{ label: f.cost, value: `$${spend.toFixed(2)}`, tone: "success" },
-						]}
-					/>
 					<Panel
 						title={f.sessions}
 						count={rows.length}
@@ -185,11 +172,10 @@ export function Sessions() {
 							rowId={(r) => `${r.run}/${r.step}`}
 							group={(r) => (live(r) ? "active" : "previous")}
 							groupLabel={(g) => (g === "active" ? f.sessionsActive : f.sessionsPrevious)}
+							footer={totals}
 							// A review is no run: only a run unit opens its run page, at the unit.
 							onOpen={(r) => {
-								if (r.pull != null) return;
-								openRef(`run:${r.run}`);
-								showAnchor(`unit-${r.step}`);
+								if (r.pull == null) void navigate(runHref(r.run, r.step));
 							}}
 						/>
 					</Panel>

@@ -1585,7 +1585,9 @@ const handlers: Handlers = {
 	syncNow: () => syncNow(state.sync, syncSources(), state.secrets),
 	syncAutomationGet: () => {
 		if (!active()) throw "no active project";
-		return automationGet(state.sync);
+		// The budgets are the factory's: the real file holds both.
+		const view = automationGet(state.sync);
+		return { ...view, automation: { ...view.automation, budgets: state.factory.budgets } };
 	},
 	syncAutomationSave: (a) => {
 		if (!active()) throw "no active project";
@@ -1896,8 +1898,16 @@ const handlers: Handlers = {
 	prReviewWaiting: () => ap.reviewWaiting(agentPr(), prs()),
 	prWriteText: (base, click) => ap.prWrite(click, readOnly(), base),
 	codePullComment: (number, body, click) => cp.pullComment(prs(), number, body, click),
+	codePullReply: (reference, threadId, body, click) =>
+		cp.pullReply(prs(), reference, threadId, body, click),
+	codePullResolve: (reference, threadId, resolved, click) =>
+		cp.pullResolve(prs(), reference, threadId, resolved, click),
 	codePullVerdict: (number, verdict, body, click) =>
 		cp.pullVerdict(prs(), number, verdict, body, click),
+	codePullReviewSubmit: (reference, verdict, body, notes, headSha, click) =>
+		cp.pullReviewSubmit(prs(), reference, verdict, body, notes, headSha, click),
+	codePullLineComment: (reference, path, line, body, headSha, click) =>
+		cp.pullLineComment(prs(), reference, path, line, body, headSha, click),
 	codePullMerge: (number, method, click) => cp.pullMerge(prs(), number, method, click),
 	codePullReady: (number, click) => cp.pullReady(prs(), number, click),
 	codeQuality: () => cp.qualityView(prs()),
@@ -2067,7 +2077,6 @@ const handlers: Handlers = {
 		state.inFlight.drafts = count;
 		return null;
 	},
-	trayBadge: () => null,
 	trayClose: () => null,
 	trayOpen: () => null,
 	closeAnyway: () => {
@@ -2107,7 +2116,9 @@ const handlers: Handlers = {
 	childDeploy: (ids, keys) => ex.childDeploy(need(state.extensions), ids, keys),
 	graphGet: () => kw.graphGet(need(state.knowledge), knowledgeEnv()),
 	graphCode: () => kw.graphCode(need(state.knowledge)),
+	graphCodeFocus: (file) => kw.graphCodeFocus(need(state.knowledge), file),
 	graphCodeIndex: () => kw.graphCodeIndex(need(state.knowledge)),
+	avatarGet: () => null,
 	explainContextGet: (entity) => kw.explainContext(knowledgeEnv(), entity),
 	docListGet: () => kw.docListGet(need(state.knowledge)),
 	docReadOne: (path) => kw.docReadOne(need(state.knowledge), path),

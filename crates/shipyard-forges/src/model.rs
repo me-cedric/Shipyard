@@ -158,7 +158,8 @@ pub enum ForgeError {
     Http(#[from] shipyard_http::Error),
     #[error("setting: {0}")]
     Config(String),
-    #[error("not found: {0}")]
+    // The text starts with a marker only the code host crate writes: the app maps it to `forge_missing`.
+    #[error("code host: not found: {0}")]
     NotFound(String),
     /// The forge answered, but refused the write or sent an error object (GitHub GraphQL).
     #[error("{0}")]

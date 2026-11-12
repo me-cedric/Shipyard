@@ -1,11 +1,12 @@
-import { useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useShell } from "@/lib/shell";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
 import { CommandLineIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { withProject } from "./project-gate";
 import { useTerminal } from "./use-terminal";
 
 /** One shell on a dark screen that fills its space. The tab and the drawer both show it. */
@@ -55,4 +56,13 @@ export function TerminalPanel({ folder = null }: { folder?: string | null }) {
 	);
 }
 
-export const Terminal = withProject(() => <TerminalPanel />);
+/** The address `/code/terminal` opens the drawer and leaves the person on the first Code tab (REQ-014). */
+export function Terminal() {
+	const { setTerminalOpen } = useShell();
+	const navigate = useNavigate();
+	useEffect(() => {
+		setTerminalOpen(true);
+		void navigate({ to: "/code/changes", replace: true });
+	}, [setTerminalOpen, navigate]);
+	return null;
+}

@@ -43,13 +43,13 @@ describe("Factory tabs", () => {
 			await screen.findByRole("heading", { name: `Workflows (${wf.length})` }),
 		).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: `Roles (${roles.length})` })).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: /^bug/ })).toHaveTextContent("fix");
+		expect(screen.getByRole("button", { name: /^Bug/ })).toHaveTextContent("Fix");
 	});
 
 	it("Workflows: a validation error shows with its line, and blocks the save", async () => {
 		const user = userEvent.setup();
 		await renderTab(<Workflows />);
-		await user.click(await screen.findByRole("button", { name: /^bug/ }));
+		await user.click(await screen.findByRole("button", { name: /^Bug/ }));
 		await user.click(await screen.findByRole("tab", { name: "Text" }));
 		const editor = await screen.findByRole("textbox", { name: "bug" });
 		fireEvent.change(editor, {
@@ -64,7 +64,7 @@ describe("Factory tabs", () => {
 	it("Workflows: save calls workflowWrite", async () => {
 		const user = userEvent.setup();
 		await renderTab(<Workflows />);
-		await user.click(await screen.findByRole("button", { name: /^bug/ }));
+		await user.click(await screen.findByRole("button", { name: /^Bug/ }));
 		await user.click(await screen.findByRole("tab", { name: "Text" }));
 		const editor = (await screen.findByRole("textbox", { name: "bug" })) as HTMLTextAreaElement;
 		const next = `${editor.value}\n# note\n`;
@@ -78,7 +78,7 @@ describe("Factory tabs", () => {
 	it("Workflows: text typed during a save stays and saves next", async () => {
 		const user = userEvent.setup();
 		await renderTab(<Workflows />);
-		await user.click(await screen.findByRole("button", { name: /^bug/ }));
+		await user.click(await screen.findByRole("button", { name: /^Bug/ }));
 		await user.click(await screen.findByRole("tab", { name: "Text" }));
 		const editor = (await screen.findByRole("textbox", { name: "bug" })) as HTMLTextAreaElement;
 		const first = `${editor.value}\n# a\n`;
@@ -116,7 +116,7 @@ describe("Factory tabs", () => {
 	it("Workflows: a role saves with roleWrite", async () => {
 		const user = userEvent.setup();
 		await renderTab(<Workflows />);
-		await user.click(await screen.findByRole("button", { name: /^scout/ }));
+		await user.click(await screen.findByRole("button", { name: /^Scout/ }));
 		const editor = (await screen.findByRole("textbox", { name: "scout" })) as HTMLTextAreaElement;
 		const next = `${editor.value}\nBe brief.\n`;
 		fireEvent.change(editor, { target: { value: next } });
@@ -141,8 +141,7 @@ describe("Factory tabs", () => {
 		await waitFor(async () => expect(await unwrap(commands.killSwitchGet())).toBe(false));
 	});
 
-	it("Sessions: run units show in Active and Previous, and a click opens the run", async () => {
-		const user = userEvent.setup();
+	it("Sessions: run units show in Active and Previous, with a total row and no tiles", async () => {
 		await renderTab(<Sessions />);
 		const rows = await unwrap(commands.sessionsList());
 		const live = rows.filter((r) => r.state === "running" || r.state === "gate").length;
@@ -155,8 +154,12 @@ describe("Factory tabs", () => {
 			'[role="row"]',
 		) as HTMLElement;
 		expect(within(row).getByText("Claude Code")).toBeInTheDocument();
-		await user.click(row);
-		expect(screen.getByLabelText("panel")).toHaveTextContent(`run:${first?.run}`);
+		// The tiles are gone: their totals are the last row of the table, and a click opens the run
+		// (run-address.test.tsx checks the address).
+		expect(document.querySelector("dl")).toBeNull();
+		expect(
+			within(await screen.findByRole("table", { name: "Sessions" })).getByText("Total"),
+		).toBeInTheDocument();
 	});
 
 	it("Sessions: a running agent review is a session, and Stop ends it", async () => {
@@ -186,6 +189,7 @@ describe("Factory tabs", () => {
 		] as const)
 			expect(await screen.findByRole("heading", { name: `${name} (${n})` })).toBeInTheDocument();
 		const day = u.days[0]?.key ?? "";
+		await user.click(await screen.findByRole("button", { name: "Edit" }));
 		await user.type(screen.getByRole("textbox", { name: "Day or member" }), day);
 		await user.type(screen.getByRole("spinbutton", { name: "Budget (USD)" }), "3");
 		await user.click(screen.getByRole("button", { name: "Set budget" }));
@@ -201,6 +205,48 @@ describe("Factory tabs", () => {
 				(await unwrap(commands.usageGet())).days.find((d) => d.key === day)?.budget,
 			).toBeNull(),
 		);
+	});
+
+	it("Usage: the budgets sit in a panel, as one line of amounts with Edit, and the success rate shows", async () => {
+		const user = userEvent.setup();
+		await renderTab(<Usage />);
+		const panel = within(await screen.findByRole("region", { name: "Budgets" }));
+		expect(panel.getByText("Ada Lovelace")).toBeInTheDocument();
+		expect(panel.getByText("$10.00")).toBeInTheDocument();
+		expect(panel.queryByRole("textbox", { name: "Day or member" })).toBeNull();
+		expect(screen.queryByRole("button", { name: "Set budget" })).toBeNull();
+		await user.click(panel.getByRole("button", { name: "Edit" }));
+		// The form is in the panel, not in the page header.
+		expect(screen.getAllByRole("button", { name: "Set budget" })).toHaveLength(1);
+		expect(panel.getByRole("button", { name: "Set budget" })).toBeInTheDocument();
+		// The demo has 4 ended runs: 2 done, 1 failed, 1 cancelled.
+		const rate = screen.getByText("Success rate").closest("div") as HTMLElement;
+		expect(rate).toHaveTextContent("50 %");
+		expect(rate).toHaveTextContent("2/4");
+		// A run row shows the ticket key and its title.
+		const run = (await unwrap(commands.runsList())).find((r) => r.key === "ACME-2");
+		expect(await screen.findByText(run?.title ?? "")).toBeInTheDocument();
+	});
+
+	it("Usage: the budgets list the default once, then each key, also a key with no spend", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		await unwrap(commands.budgetSet("day", "*", 5));
+		await unwrap(commands.budgetSet("day", "2020-01-01", 7));
+		await renderTab(<Usage />);
+		const list = within(await screen.findByRole("list", { name: "Budget" }));
+		expect(list.getAllByText("$5.00")).toHaveLength(1);
+		expect(list.getByText("Per day")).toBeInTheDocument();
+		expect(list.getByText("2020-01-01")).toBeInTheDocument();
+		expect(list.getByText("$7.00")).toBeInTheDocument();
+	});
+
+	it("Usage: with no budget set the form shows open and has no Edit", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		await unwrap(commands.budgetSet("member", "Ada Lovelace", null));
+		await renderTab(<Usage />);
+		const panel = within(await screen.findByRole("region", { name: "Budgets" }));
+		expect(panel.getByRole("textbox", { name: "Day or member" })).toBeInTheDocument();
+		expect(panel.queryByRole("button", { name: "Edit" })).toBeNull();
 	});
 
 	it("Usage: the request tree nests the requests of a run under its steps", async () => {
@@ -245,6 +291,7 @@ describe("Factory tabs", () => {
 	it("Usage: a member scope sets the default member budget", async () => {
 		const user = userEvent.setup();
 		await renderTab(<Usage />);
+		await user.click(await screen.findByRole("button", { name: "Edit" }));
 		await user.click(await screen.findByRole("combobox", { name: "Budget for" }));
 		await user.click(await screen.findByRole("option", { name: "Per member" }));
 		await user.type(screen.getByRole("textbox", { name: "Day or member" }), "*");

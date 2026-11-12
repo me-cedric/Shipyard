@@ -10,7 +10,7 @@ export function Board({
 	children,
 }: {
 	title: string;
-	icon?: ReactNode;
+	icon: ReactNode;
 	count?: number;
 	toolbar?: ReactNode;
 	children: ReactNode;

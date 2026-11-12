@@ -89,7 +89,6 @@ test.describe("gallery in the dev build", () => {
 	});
 
 	test("switches the theme and the language", async ({ page }) => {
-		// exact: the context bar also has a "Theme: Dark" button.
 		await page.getByRole("button", { name: "Dark", exact: true }).click();
 		await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 		await page.getByRole("button", { name: "Language" }).click();

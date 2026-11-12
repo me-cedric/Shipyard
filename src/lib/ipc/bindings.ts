@@ -131,7 +131,11 @@ export const commands = {
 	codePullLabels: () => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("code_pull_labels")),
 	codePullOpen: (input: OpenPull_Deserialize, click: boolean) => typedError<OpenedPull_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_pull_open", { input, click })),
 	codePullComment: (number: number, body: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_comment", { number, body, click })),
+	codePullReply: (reference: string, threadId: string, body: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_reply", { reference, threadId, body, click })),
+	codePullResolve: (reference: string, threadId: string, resolved: boolean, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_resolve", { reference, threadId, resolved, click })),
 	codePullVerdict: (number: number, verdict: Verdict, body: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_verdict", { number, verdict, body, click })),
+	codePullReviewSubmit: (reference: string, verdict: string, body: string, notes: ReviewNoteInput[], headSha: string, click: boolean) => typedError<ReviewOutcome, AppError_Serialize>(__TAURI_INVOKE("code_pull_review_submit", { reference, verdict, body, notes, headSha, click })),
+	codePullLineComment: (reference: string, path: string, line: number, body: string, headSha: string, click: boolean) => typedError<ReviewOutcome, AppError_Serialize>(__TAURI_INVOKE("code_pull_line_comment", { reference, path, line, body, headSha, click })),
 	codePullMerge: (number: number, method: MergeMethod, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_merge", { number, method, click })),
 	codePullReady: (number: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_ready", { number, click })),
 	codePullClose: (number: number, reason: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_close", { number, reason, click })),
@@ -458,8 +462,10 @@ export const commands = {
 	assistantOptions: () => typedError<RunnerOptions[], AppError_Serialize>(__TAURI_INVOKE("assistant_options")),
 	/**  The slash commands of a runner: the files that its CLI reads. */
 	assistantSlashCommands: (runner: string) => typedError<SlashCommand_Serialize[], AppError_Serialize>(__TAURI_INVOKE("assistant_slash_commands", { runner })),
+	avatarGet: (email: string) => typedError<string | null, AppError_Serialize>(__TAURI_INVOKE("avatar_get", { email })),
 	graphGet: () => typedError<KGraph_Serialize, AppError_Serialize>(__TAURI_INVOKE("graph_get")),
 	graphCode: () => typedError<CodeGraph_Serialize, AppError_Serialize>(__TAURI_INVOKE("graph_code")),
+	graphCodeFocus: (file: string) => typedError<CodeGraph_Serialize, AppError_Serialize>(__TAURI_INVOKE("graph_code_focus", { file })),
 	graphCodeIndex: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("graph_code_index")),
 	explainContextGet: (entity: string) => typedError<ExplainContext_Serialize, AppError_Serialize>(__TAURI_INVOKE("explain_context_get", { entity })),
 	docListGet: () => typedError<DocList, AppError_Serialize>(__TAURI_INVOKE("doc_list_get")),
@@ -613,8 +619,6 @@ export const commands = {
 	 *  It installs nothing.
 	 */
 	updateCheck: () => typedError<UpdateInfo, AppError_Serialize>(__TAURI_INVOKE("update_check")),
-	/**  The dot of the icon follows the "Needs you" count of the main window. */
-	trayBadge: (needs: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("tray_badge", { needs })),
 	/**  Hide the panel. The Escape key calls it. */
 	trayClose: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("tray_close")),
 	/**  Open Shipyard: show the main window and hide the panel. */
@@ -1516,18 +1520,25 @@ export type CliLogin = {
 	user: string,
 };
 
+/**  A call weight between two files. The overview draws a thicker line for a bigger weight. */
+export type CodeEdge = {
+	source: string,
+	target: string,
+	weight: number,
+};
+
 export type CodeGraph = CodeGraph_Serialize | CodeGraph_Deserialize;
 
 export type CodeGraph_Deserialize = {
 	state: CodeState,
 	nodes: GraphNode_Deserialize[],
-	edges: GraphEdge[],
+	edges: CodeEdge[],
 };
 
 export type CodeGraph_Serialize = {
 	state: CodeState,
 	nodes: GraphNode_Serialize[],
-	edges: GraphEdge[],
+	edges: CodeEdge[],
 };
 
 export type CodeState = 
@@ -4406,6 +4417,15 @@ export type PullCheck = {
 	url: string,
 };
 
+/**  One comment of a conversation: a general one or one of a thread. */
+export type PullComment = {
+	id: string,
+	author: string,
+	body: string,
+	/**  ISO 8601 UTC from the forge, or empty when the forge gives none. */
+	created: string,
+};
+
 export type PullCommitRef = {
 	reference: string,
 	summary: string,
@@ -4427,12 +4447,20 @@ export type PullDetail_Deserialize = {
 	headSha: string,
 	url: string,
 	files: PullFile_Deserialize[],
+	/**  The file list is the first files only: the code host has more than the cap, or a later page failed. */
+	filesTruncated: boolean,
 	/**  The commits as `commit:<sha>` refs with their summary. */
 	commits: PullCommitRef[],
 	checks: PullCheck[],
 	/**  `none`, `pending`, `passing` or `failing`. */
 	ci: string,
 	threads: PullThread_Deserialize[],
+	/**  The code host has more threads than `threads` holds. */
+	threadsTruncated: boolean,
+	/**  The general comments, not on a line, oldest first. */
+	comments: PullComment[],
+	/**  The code host has more general comments: `comments` holds the newest ones. */
+	commentsTruncated: boolean,
 	verdicts: ReviewerVerdict[],
 	/**  `clean`, `conflict`, `blocked` or `unknown`. */
 	mergeable: string,
@@ -4455,12 +4483,20 @@ export type PullDetail_Serialize = {
 	headSha: string,
 	url: string,
 	files: PullFile_Serialize[],
+	/**  The file list is the first files only: the code host has more than the cap, or a later page failed. */
+	filesTruncated: boolean,
 	/**  The commits as `commit:<sha>` refs with their summary. */
 	commits: PullCommitRef[],
 	checks: PullCheck[],
 	/**  `none`, `pending`, `passing` or `failing`. */
 	ci: string,
 	threads: PullThread_Serialize[],
+	/**  The code host has more threads than `threads` holds. */
+	threadsTruncated: boolean,
+	/**  The general comments, not on a line, oldest first. */
+	comments: PullComment[],
+	/**  The code host has more general comments: `comments` holds the newest ones. */
+	commentsTruncated: boolean,
 	verdicts: ReviewerVerdict[],
 	/**  `clean`, `conflict`, `blocked` or `unknown`. */
 	mergeable: string,
@@ -4496,8 +4532,10 @@ export type PullThread_Deserialize = {
 	resolved: boolean,
 	path?: string | null,
 	line?: number | null,
-	/**  `author: text`, oldest first. */
-	comments: string[],
+	/**  Oldest first. Only the newest ones when `comments_total` is higher. */
+	comments: PullComment[],
+	/**  How many comments the thread has on the code host. */
+	commentsTotal: number,
 };
 
 export type PullThread_Serialize = {
@@ -4505,8 +4543,10 @@ export type PullThread_Serialize = {
 	resolved: boolean,
 	path: string | null,
 	line: number | null,
-	/**  `author: text`, oldest first. */
-	comments: string[],
+	/**  Oldest first. Only the newest ones when `comments_total` is higher. */
+	comments: PullComment[],
+	/**  How many comments the thread has on the code host. */
+	commentsTotal: number,
 };
 
 /**  Why the pull request list can be empty: no code host, or a code host with no pull request. */
@@ -4883,6 +4923,26 @@ export type ReviewFinding = {
 	path: string,
 	line: number,
 	text: string,
+};
+
+/**  One inline note of a pending review, as the person typed it: a line of the new file. */
+export type ReviewNoteInput = {
+	path: string,
+	line: number,
+	body: string,
+	/**  The commit that the note was written on. */
+	headSha: string,
+};
+
+/**
+ *  What a review became on the code host: notes on their line, notes that went into the review
+ *  text, and the notes that went nowhere. The review is sent when `failed` is not empty, so the
+ *  caller keeps only `failed` and never sends the verdict again.
+ */
+export type ReviewOutcome = {
+	inline: number,
+	inBody: number,
+	failed: ReviewNoteInput[],
 };
 
 /**  What the page sends to post: the draft after the person edited it. */

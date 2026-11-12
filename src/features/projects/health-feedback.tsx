@@ -31,7 +31,7 @@ export function HealthFeedback() {
 		}
 	};
 	return (
-		<Panel title={d.title} icon={<ChatBubbleIcon size={14} />}>
+		<Panel id="doctor-feedback" title={d.title} icon={<ChatBubbleIcon size={14} />}>
 			<div className="flex flex-col gap-2 p-3">
 				<div className="flex gap-2">
 					<Select

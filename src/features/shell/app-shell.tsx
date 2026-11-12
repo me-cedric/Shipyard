@@ -4,7 +4,6 @@ import { AskOnItem, AssistantPanel, SelectionActions, useAssistant } from "@/fea
 import { FileDrawer } from "@/features/code/file-drawer";
 import { TerminalDrawer } from "@/features/code/terminal-drawer";
 import { Tour } from "@/features/onboarding";
-import { useTrayBadge } from "@/features/tray";
 import { useCodeActions } from "@/lib/code";
 import { useAnchorArrival } from "@/lib/errors/anchor";
 import { useI18n } from "@/lib/i18n";
@@ -33,7 +32,6 @@ import { WhatsNew } from "./whats-new";
 
 function Frame() {
 	const { t } = useI18n();
-	useTrayBadge();
 	const { sidebarOpen, navSide, drawerSide, narrowBar, terminalDock } = usePrefs();
 	const {
 		inspectorOpen,
@@ -60,27 +58,15 @@ function Frame() {
 	const project = useActiveProject().data;
 	const { commit: runCommit } = useCodeActions();
 	const { gate } = useRights();
-	const {
-		list,
-		sync,
-		commit,
-		assistant,
-		palette,
-		files,
-		terminal,
-		fetch,
-		push,
-		back,
-		forward,
-		manual,
-	} = useActions();
+	const { list, sync, commit, assistant, palette, files, terminal, fetch, push, back, forward } =
+		useActions();
 	useShortcuts(list);
 	useNativeMenu(list);
 	useShellEvents();
 	useDropFolder();
 	useCloseGuardEvent();
 	useAnchorArrival();
-	const { toasts, dismiss } = useNotifications();
+	const { toasts, dismiss, hold } = useNotifications();
 	// A detail belongs to the view that opened it: leaving the view closes it.
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	// One assistant for every space: the shell holds its state, so a change of view keeps it.
@@ -128,7 +114,6 @@ function Frame() {
 						terminal={terminal}
 						back={back}
 						forward={forward}
-						manual={manual}
 						toggleSidebar={toggle}
 					/>
 				}
@@ -172,7 +157,7 @@ function Frame() {
 				}
 				statusbar={<StatusBar commit={commit} />}
 			/>
-			<Toaster toasts={toasts} onDismiss={dismiss} />
+			<Toaster toasts={toasts} onDismiss={dismiss} onHold={hold} />
 			<PaletteHost actions={list} />
 			<ShortcutHelp actions={list} />
 			<SelectionActions onAsk={ask} />

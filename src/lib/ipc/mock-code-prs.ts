@@ -15,6 +15,8 @@ import type {
 	QualityReport_Serialize,
 	QualityRow_Serialize,
 	QualityView_Serialize,
+	ReviewNoteInput,
+	ReviewOutcome,
 	SbomReport,
 	Verdict,
 } from "./bindings";
@@ -83,16 +85,48 @@ function pull(
 				patch: "@@ -1,2 +1,3 @@\n a\n b\n+c\n",
 			},
 		],
+		filesTruncated: false,
 		commits: [{ reference: `commit:${sha(number)}`, summary: title }],
 		checks: [{ name: "build", state: "passing", url: "https://ci.example.com/build" }],
 		ci: "passing",
+		comments: [],
+		commentsTruncated: false,
 		threads: [],
+		threadsTruncated: false,
 		verdicts: [],
 		mergeable: "clean",
 		mergeMethods: METHODS,
 		links: [],
 		...more,
 	};
+}
+
+/** A pull request of 45 files in three folders: added, removed, renamed, one without a patch and one with a very long patch. */
+function bigPull(): PullDetail_Serialize {
+	const dirs = ["src/api", "src/ui", "docs"];
+	const files: PullDetail_Serialize["files"] = Array.from({ length: 45 }, (_, i) => {
+		const path = `${dirs[i % 3]}/file-${i}.ts`;
+		const status =
+			i % 9 === 0 ? "added" : i % 9 === 4 ? "removed" : i % 9 === 7 ? "renamed" : "modified";
+		return {
+			path,
+			status,
+			patch: `@@ -1,2 +1,3 @@\n line ${i}\n-old ${i}\n+new ${i}\n+more ${i}\n`,
+		};
+	});
+	files[1] = { path: "assets/logo.png", status: "added", patch: null };
+	const long = Array.from({ length: 2500 }, (_, i) => `+line ${i}`).join("\n");
+	files[2] = {
+		path: "src/api/generated.ts",
+		status: "added",
+		patch: `@@ -0,0 +1,2500 @@\n${long}\n`,
+	};
+	// Its checks still run: it is in the in_review lane, not ready to merge.
+	return pull(144, "refactor(ui): split the pages into smaller files", {
+		files,
+		ci: "pending",
+		checks: [{ name: "build", state: "pending", url: "https://ci.example.com/build" }],
+	});
 }
 
 export function seedPrs(): MockPrs {
@@ -103,13 +137,51 @@ export function seedPrs(): MockPrs {
 			{ name: "unit", state: "failing", url: "https://ci.example.com/unit" },
 			{ name: "lint", state: "failing", url: "https://ci.example.com/lint" },
 		],
+		comments: [
+			{
+				id: "C1",
+				author: "Grace Hopper",
+				body: "Thanks for the fix. See [the guide](https://example.com/guide) and `retry()`.",
+				created: "2026-11-09T16:00:00Z",
+			},
+			{
+				id: "C2",
+				author: "Ada Lovelace",
+				body: "Pushed a new commit.",
+				created: "2026-11-10T11:00:00Z",
+			},
+		],
 		threads: [
 			{
 				id: "T1",
 				resolved: false,
 				path: "src/app.ts",
 				line: 2,
-				comments: ["Grace Hopper: rename this", "Ada Lovelace: done"],
+				commentsTotal: 2,
+				comments: [
+					{
+						id: "TC1",
+						author: "Grace Hopper",
+						body: "rename this",
+						created: "2026-11-10T09:00:00Z",
+					},
+					{ id: "TC2", author: "Ada Lovelace", body: "done", created: "2026-11-10T09:30:00Z" },
+				],
+			},
+			{
+				id: "T2",
+				resolved: true,
+				path: "src/lib.ts",
+				line: 7,
+				commentsTotal: 1,
+				comments: [
+					{
+						id: "TC3",
+						author: "Grace Hopper",
+						body: "this branch is dead\nremove it",
+						created: "2026-11-10T12:00:00Z",
+					},
+				],
 			},
 		],
 		verdicts: [{ reviewer: "Grace Hopper", state: "changes-requested" }],
@@ -127,6 +199,7 @@ export function seedPrs(): MockPrs {
 				mergeable: "blocked",
 				links: ["wi:SHIP-43", "run:r-3"],
 			}),
+			bigPull(),
 		],
 		reports: [
 			{
@@ -166,7 +239,7 @@ const need = (click: boolean) => {
 
 const find = (p: MockPrs, number: number) => {
 	const found = p.pulls.find((x) => x.number === number);
-	if (!found) throw `not found: ${number}`;
+	if (!found) throw `code host: not found: ${number}`;
 	return found;
 };
 
@@ -184,7 +257,13 @@ export function prRows(p: MockPrs): PrRowView[] {
 		headSha: d.headSha,
 		url: d.url,
 		updated: "2026-10-29T10:00:00Z",
-		lane: d.state === "merged" ? "done" : d.draft ? "working" : "in_review",
+		// As `delivery::view` does: an open pull request is ready to merge with passing CI, no change request and no draft.
+		lane:
+			d.state !== "open"
+				? "done"
+				: d.ci === "passing" && !d.draft && !d.verdicts.some((v) => v.state === "changes-requested")
+					? "ready_to_merge"
+					: "in_review",
 		runs: d.links.filter((l) => l.startsWith("run:")),
 	}));
 }
@@ -254,16 +333,51 @@ export function pullOpen(
 	};
 }
 
+const stamp = (p: MockPrs, body: string) => ({
+	id: `K${++p.counter}`,
+	author: "Ada Lovelace",
+	body: body.trim(),
+	created: new Date().toISOString(),
+});
+
+/** A general comment: the code hosts do not return it as a thread. */
 export function pullComment(p: MockPrs, number: number, body: string, click: boolean) {
 	need(click);
 	if (!body.trim()) throw "a comment needs some text";
-	find(p, number).threads.push({
-		id: `T${++p.counter}`,
-		resolved: false,
-		path: null,
-		line: null,
-		comments: [`Ada Lovelace: ${body.trim()}`],
-	});
+	find(p, number).comments.push(stamp(p, body));
+	return null;
+}
+
+const thread = (p: MockPrs, reference: string, id: string) => {
+	const found = find(p, Number(reference.split(":").pop())).threads.find((t) => t.id === id);
+	if (!found) throw `code host: not found: ${id}`;
+	return found;
+};
+
+export function pullReply(
+	p: MockPrs,
+	reference: string,
+	threadId: string,
+	body: string,
+	click: boolean,
+) {
+	need(click);
+	if (!body.trim()) throw "a reply needs some text";
+	const t = thread(p, reference, threadId);
+	t.comments.push(stamp(p, body));
+	t.commentsTotal += 1;
+	return null;
+}
+
+export function pullResolve(
+	p: MockPrs,
+	reference: string,
+	threadId: string,
+	resolved: boolean,
+	click: boolean,
+) {
+	need(click);
+	thread(p, reference, threadId).resolved = resolved;
 	return null;
 }
 
@@ -284,6 +398,89 @@ export function pullVerdict(
 	];
 	if (body.trim()) pullComment(p, number, body, true);
 	return null;
+}
+
+/** The lines of the new file that a unified diff shows: added and context lines. */
+function newLines(patch: string): Set<number> {
+	const shown = new Set<number>();
+	let at: number | null = null;
+	for (const l of patch.split("\n")) {
+		const h = /^@@ -\S+ \+(\d+)/.exec(l);
+		if (h) at = Number(h[1]);
+		else if (at !== null && l !== "" && !"-\\".includes(l[0] ?? "")) shown.add(at++);
+	}
+	return shown;
+}
+
+/** A review: each note on a line of the diff is a new thread, the rest goes in the text. */
+export function pullReviewSubmit(
+	p: MockPrs,
+	reference: string,
+	verdict: string,
+	body: string,
+	notes: ReviewNoteInput[],
+	headSha: string,
+	click: boolean,
+): ReviewOutcome {
+	need(click);
+	const d = find(p, Number(reference.split(":").pop()));
+	if (!["comment", "approve", "request_changes"].includes(verdict))
+		throw `not a verdict: ${verdict}`;
+	if (notes.length > 100) throw "a review holds 100 line comments at most";
+	if (verdict === "request_changes" && !body.trim()) throw "a request for changes needs some text";
+	if (verdict === "comment" && !notes.length && !body.trim()) throw "the review is empty";
+	if (notes.some((n) => !n.body.trim())) throw "a line comment needs some text";
+	const rest: string[] = [];
+	let inline = 0;
+	for (const n of notes) {
+		const patch = d.files.find((f) => f.path === n.path)?.patch;
+		// A note of an older push may sit on another line now: it goes in the text, like the code host does.
+		if (!patch || n.headSha !== headSha || !newLines(patch).has(n.line)) {
+			const tag = n.headSha !== headSha ? " (older version)" : "";
+			rest.push(`- \`${n.path}:${n.line}\`${tag} ${n.body.trim()}`);
+			continue;
+		}
+		inline += 1;
+		d.threads.push({
+			id: `T${++p.counter}`,
+			resolved: false,
+			path: n.path,
+			line: n.line,
+			commentsTotal: 1,
+			comments: [stamp(p, n.body)],
+		});
+	}
+	if (verdict !== "comment") {
+		const state = verdict === "approve" ? "approved" : "changes-requested";
+		d.verdicts = [
+			...d.verdicts.filter((v) => v.reviewer !== "Ada Lovelace"),
+			{ reviewer: "Ada Lovelace", state },
+		];
+	}
+	const text = [body.trim(), ...rest].filter(Boolean).join("\n\n");
+	if (text) d.comments.push(stamp(p, text));
+	return { inline, inBody: rest.length, failed: [] };
+}
+
+/** One comment on a line at once. */
+export function pullLineComment(
+	p: MockPrs,
+	reference: string,
+	path: string,
+	line: number,
+	body: string,
+	headSha: string,
+	click: boolean,
+) {
+	return pullReviewSubmit(
+		p,
+		reference,
+		"comment",
+		"",
+		[{ path, line, body, headSha }],
+		headSha,
+		click,
+	);
 }
 
 export function pullClose(p: MockPrs, number: number) {

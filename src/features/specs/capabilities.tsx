@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
+import { WithProject } from "@/features/shell/no-project";
 import { useI18n } from "@/lib/i18n";
 import { commands, type Requirement, unwrap } from "@/lib/ipc";
 import { useShell } from "@/lib/shell";
@@ -22,7 +23,6 @@ import { LIST, useEnter } from "@/ui/motion";
 import { DataTable } from "@/ui/organisms/data-table";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { ListDetail } from "@/ui/templates/list-detail";
-import { WithProject } from "./no-project";
 
 const FILES = ["spec", "plan", "checklist", "tasks"] as const;
 
@@ -158,7 +158,7 @@ function CapabilityDetail({ cap, onBack }: { cap: Capability; onBack: () => void
 export function Capabilities() {
 	const { t } = useI18n();
 	return (
-		<WithProject title={t.tabs.specs.capabilities}>
+		<WithProject title={t.tabs.specs.capabilities} icon={<BookOpenIcon size={16} />}>
 			<CapabilityList />
 		</WithProject>
 	);

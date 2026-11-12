@@ -87,6 +87,22 @@ describe("Design / Screens", () => {
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	});
 
+	it("shows no loading state for a screen file with no preview", async () => {
+		const user = userEvent.setup();
+		files()["docs/designs/spec.pdf"] = { text: "PDF", stamp: "1" };
+		files()["docs/designs/screens.json"] = {
+			text: JSON.stringify({
+				screens: [{ slug: "spec", title: "Spec", file: "docs/designs/spec.pdf" }],
+			}),
+			stamp: "2",
+		};
+		await mountDesign(<Screens />);
+		await user.click(await row(/Spec/));
+		const view = await main();
+		expect(await view.findByRole("heading", { name: "Spec" })).toBeInTheDocument();
+		expect(view.queryByRole("status")).toBeNull();
+	});
+
 	it("shows a link to a file that does not exist as broken, with no open action", async () => {
 		const user = userEvent.setup();
 		await mountDesign(<Screens />);

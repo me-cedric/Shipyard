@@ -1,18 +1,9 @@
 import { Menu } from "@base-ui/react/menu";
-import { useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import {
-	cannedPrompt,
-	type ItemType,
-	itemTypeOf,
-	PROMPT_KINDS,
-	pageItemType,
-} from "@/lib/assistant/prompts";
+import { cannedPrompt, type ItemType, itemTypeOf, PROMPT_KINDS } from "@/lib/assistant/prompts";
 import { LANGS, type Lang, useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { useShell } from "@/lib/shell";
-import { Button } from "@/ui/atoms/button";
-import { ChatBubbleIcon } from "@/ui/icons";
 
 /** The language of the prompts: the preference, else the language of the interface. */
 function usePromptLang(): Lang {
@@ -40,32 +31,6 @@ function Items({ type, subject }: { type: ItemType; subject: string | null }) {
 			{t.assistant.ask[kind]}
 		</Menu.Item>
 	));
-}
-
-/** The Ask menu of the top bar. It follows the page: its prompts cover the items that the page lists. */
-export function AskMenu() {
-	const { t } = useI18n();
-	const { selectedRef } = useShell();
-	const pathname = useRouterState({ select: (s) => s.location.pathname });
-	const type = pageItemType(pathname);
-	if (!type) return null;
-	// The item that the inspector shows, when it is of the page type.
-	const subject = selectedRef && itemTypeOf(selectedRef) === type ? selectedRef : null;
-	return (
-		<Menu.Root>
-			<Menu.Trigger render={<Button variant="ghost" aria-label={t.assistant.ask.menu} />}>
-				<ChatBubbleIcon size={14} />
-				{t.assistant.ask.label}
-			</Menu.Trigger>
-			<Menu.Portal>
-				<Menu.Positioner align="end" sideOffset={4} className="z-50">
-					<Menu.Popup className={popup}>
-						<Items type={type} subject={subject} />
-					</Menu.Popup>
-				</Menu.Positioner>
-			</Menu.Portal>
-		</Menu.Root>
-	);
 }
 
 /**

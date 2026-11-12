@@ -6,10 +6,15 @@ test("architect", async ({ page }) => {
 	const w = new Walk(page, { key: "architect", label: "Architect" });
 	await w.start();
 
-	await w.step("Land on the diagrams", "the page that opens first: Design, Diagrams", async () => {
-		await w.landsOn("Design", "Diagrams");
-		await w.see(page.getByText("order-process"), "no diagram in the list");
-	});
+	await w.step(
+		"Land on the decisions, open the diagrams",
+		"the page that opens first: Design, Decisions, then the Diagrams tab",
+		async () => {
+			await w.landsOn("Design", "Decisions");
+			await w.go("Design", "Diagrams");
+			await w.see(page.getByText("order-process"), "no diagram in the list");
+		},
+	);
 
 	await w.step("Open a diagram", "the diagram list, a diagram name", async () => {
 		await w.click(page.getByRole("button", { name: /network/ }));

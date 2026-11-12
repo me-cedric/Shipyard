@@ -90,6 +90,7 @@ describe("assistant panel: no agent CLI", () => {
 		expect(screen.queryByRole("textbox", { name: "Message" })).toBeNull();
 		expect(screen.getByText("npm install -g claude")).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Install Claude Code" }));
+		await user.click(await screen.findByRole("button", { name: /to install Claude Code\?$/ }));
 		await waitFor(() =>
 			expect(screen.queryByRole("heading", { name: "No AI tool found" })).toBeNull(),
 		);

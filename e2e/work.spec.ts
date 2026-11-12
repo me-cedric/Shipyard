@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { openFirstFolder } from "./first-run";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
@@ -7,7 +8,7 @@ const inspector = (page: Page, name: string) => page.getByRole("complementary", 
 /** Opens the mock project with a Linear tracker, imports the backlog and opens a Work tab. */
 async function openWork(page: Page, tab: string) {
 	await page.goto("/home/today");
-	await page.getByRole("button", { name: "Open a local folder" }).click();
+	await openFirstFolder(page);
 	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Settings" }).click();
 	await tabs(page).getByRole("link", { name: "Connections" }).click();

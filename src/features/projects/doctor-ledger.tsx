@@ -16,7 +16,13 @@ export function DoctorLedger({ findings }: { findings: Finding_Serialize[] }) {
 	});
 	const rows = ledger.data ?? [];
 	return (
-		<Panel title={l.title} count={rows.length} icon={<ClockIcon size={14} />} flush>
+		<Panel
+			id="doctor-ledger"
+			title={l.title}
+			count={rows.length}
+			icon={<ClockIcon size={14} />}
+			flush
+		>
 			{rows.map((e) => (
 				<div
 					key={e.at}

@@ -22,6 +22,7 @@ import {
 	UserCircleIcon,
 	ViewColumnsIcon,
 } from "@/ui/icons";
+import { SPRING, useReducedMotionPref } from "@/ui/motion";
 import { PictureField } from "./picture-field";
 
 const ACCENTS: Accent[] = ["blue", "violet", "green", "orange", "rose"];
@@ -29,7 +30,9 @@ const SIZES = [14, 15, 16, 17, 18, 19, 20];
 const SAMPLE = "2026-10-31";
 
 /** A live sample: the ring in the chosen width, and a dot that moves unless the motion is reduced. */
-function LookPreview({ width }: { width: number }) {
+export function LookPreview({ width }: { width: number }) {
+	// The library reads the setting at mount: a dot that was moving must be told to stop.
+	const still = useReducedMotionPref();
 	return (
 		<span aria-hidden="true" className="flex items-center gap-3">
 			<span
@@ -41,8 +44,12 @@ function LookPreview({ width }: { width: number }) {
 			<span className="block w-8">
 				<motion.span
 					className="block size-2 rounded-full bg-accent-text"
-					animate={{ x: [0, 24, 0] }}
-					transition={{ duration: 1.6, repeat: Number.POSITIVE_INFINITY }}
+					animate={{ x: still ? 0 : 24 }}
+					transition={
+						still
+							? { duration: 0 }
+							: { ...SPRING.gentle, repeat: Number.POSITIVE_INFINITY, repeatType: "reverse" }
+					}
 				/>
 			</span>
 		</span>

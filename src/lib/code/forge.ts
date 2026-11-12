@@ -9,6 +9,7 @@ import {
 	type PullDetail_Serialize,
 	type QualityReport_Serialize,
 	type QualityView_Serialize,
+	type ReviewNoteInput,
 	unwrap,
 	type Verdict,
 } from "@/lib/ipc";
@@ -48,6 +49,8 @@ export function usePull(number: number | null) {
 		queryKey: forgeKeys.pull(number ?? 0),
 		queryFn: () => unwrap(commands.codePullDetail(number ?? 0)),
 		enabled: number !== null,
+		// One open reads the code host many times (up to 30 pages of files): a tab switch or a focus must not repeat it. A write invalidates `["code"]`.
+		staleTime: 60_000,
 	});
 }
 
@@ -128,8 +131,18 @@ export function useForgeActions() {
 		return {
 			open: (input: OpenPull_Deserialize) => run(commands.codePullOpen(input, true)),
 			comment: (n: number, body: string) => run(commands.codePullComment(n, body, true)),
-			verdict: (n: number, verdict: Verdict, body: string) =>
-				run(commands.codePullVerdict(n, verdict, body, true)),
+			reply: (reference: string, threadId: string, body: string) =>
+				run(commands.codePullReply(reference, threadId, body, true)),
+			resolve: (reference: string, threadId: string, resolved: boolean) =>
+				run(commands.codePullResolve(reference, threadId, resolved, true)),
+			/** One review: a verdict, a text and the pending line comments, as one review. */
+			submitReview: (
+				reference: string,
+				verdict: "comment" | "approve" | "request_changes",
+				body: string,
+				notes: ReviewNoteInput[],
+				headSha: string,
+			) => run(commands.codePullReviewSubmit(reference, verdict, body, notes, headSha, true)),
 			merge: (n: number, method: MergeMethod) => run(commands.codePullMerge(n, method, true)),
 			ready: (n: number) => run(commands.codePullReady(n, true)),
 			close: (n: number, reason: string) => run(commands.codePullClose(n, reason, true)),

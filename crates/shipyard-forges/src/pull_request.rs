@@ -34,10 +34,14 @@ pub struct Labeled {
     pub missing: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ThreadComment {
+/// One comment of a conversation: a general one or one of a thread.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, specta::Type)]
+pub struct PullComment {
+    pub id: String,
     pub author: String,
     pub body: String,
+    /// ISO 8601 UTC from the forge, or empty when the forge gives none.
+    pub created: String,
 }
 
 /// A review conversation on a line or a file. A plain comment and a system message are not one.
@@ -48,8 +52,23 @@ pub struct ReviewThread {
     pub resolved: bool,
     pub path: Option<String>,
     pub line: Option<u32>,
-    /// Oldest first. The first one is the review remark.
-    pub comments: Vec<ThreadComment>,
+    /// Oldest first. The first one is the review remark, unless the forge gave the newest only.
+    pub comments: Vec<PullComment>,
+    /// How many comments the thread has on the forge. More than `comments.len()` means the
+    /// forge returned the newest ones only.
+    pub comments_total: u32,
+}
+
+/// The threads and the general comments of one pull request, read once.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Conversation {
+    pub threads: Vec<ReviewThread>,
+    /// The forge has more threads than it returned.
+    pub threads_truncated: bool,
+    /// Oldest first.
+    pub comments: Vec<PullComment>,
+    /// The forge has more general comments: `comments` are the newest ones.
+    pub comments_truncated: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -125,7 +144,21 @@ pub trait PullApi: Forge {
         body: &str,
     ) -> Result<(), ForgeError>;
 
-    fn resolve_thread(&self, repo: &str, number: u64, thread: &str) -> Result<(), ForgeError>;
+    /// `resolved: true` resolves the thread, `false` reopens it.
+    fn resolve_thread(
+        &self,
+        repo: &str,
+        number: u64,
+        thread: &str,
+        resolved: bool,
+    ) -> Result<(), ForgeError>;
+
+    /// The general comments of the pull request, oldest first. A line comment, a system message
+    /// and a vote are not in it. A list longer than the cap keeps the newest comments.
+    fn issue_comments(&self, repo: &str, number: u64) -> Result<Vec<PullComment>, ForgeError>;
+
+    /// Threads and general comments with their truncation flags. One read of each source.
+    fn conversation(&self, repo: &str, number: u64) -> Result<Conversation, ForgeError>;
 
     /// Create a private repository `owner/name` (`group/sub/name` on GitLab, `project/name` on
     /// Azure DevOps). It is a write: the caller asks for the click of a person first.

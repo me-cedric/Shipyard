@@ -11,6 +11,7 @@ const goTo = (page: Page, path: string) =>
 
 test("creates a local project from the first run", async ({ page }) => {
 	await page.goto("/");
+	await page.getByRole("button", { name: "Continue" }).click();
 	await page.getByRole("button", { name: "Create a project" }).click();
 	const dialog = page.getByRole("dialog", { name: "New project" });
 	await dialog.getByRole("textbox", { name: "Name" }).fill("Acme Web");

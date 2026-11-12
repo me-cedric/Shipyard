@@ -2,9 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
-import { Button } from "@/ui/atoms/button";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { ArrowPathIcon, CpuChipIcon } from "@/ui/icons";
+import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { ConnectionRow } from "@/ui/molecules/connection-row";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { runnerKeys } from "./keys";
@@ -66,9 +66,16 @@ export function RunnersGroup() {
 					product={r.version ?? undefined}
 					actions={
 						r.state === "missing" ? (
-							<Button disabled={busy !== null} onClick={() => void install(r.id)}>
+							<ConfirmButton
+								disabled={busy !== null}
+								confirm={format(t.onboarding.setup.action.installConfirm, {
+									name: r.label,
+									command: r.install,
+								})}
+								onConfirm={() => void install(r.id)}
+							>
 								{format(t.settings.tools.install, { name: r.label })}
-							</Button>
+							</ConfirmButton>
 						) : null
 					}
 				/>

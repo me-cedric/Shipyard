@@ -47,7 +47,7 @@ test("tester", async ({ page }) => {
 				"the generated scenario is filler text (Given the context, When the user acts); the tester must rewrite it",
 			);
 		}
-		await w.click(page.getByRole("button", { name: "Back" }));
+		await w.click(page.getByRole("main").getByRole("button", { name: "Back" }));
 	});
 
 	await w.step("Write a new test plan", "New test plan, a name, Create", async () => {
@@ -69,11 +69,8 @@ test("tester", async ({ page }) => {
 		"Pull requests, a row with CI failing",
 		async () => {
 			await w.go("Code", "Pull requests");
-			await w.click(page.getByRole("button", { name: /#43 Audit the keychain use/ }));
-			await w.see(
-				page.getByRole("heading", { name: /Checks/ }),
-				"no Checks section on the pull request",
-			);
+			await w.click(page.getByRole("link", { name: /#43 Audit the keychain use/ }));
+			await w.see(page.getByRole("tab", { name: /Checks/ }), "no Checks tab on the pull request");
 			await w.see(page.getByText("CI failing").first(), "the failing check is not named");
 		},
 	);

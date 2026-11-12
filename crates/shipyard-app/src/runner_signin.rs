@@ -64,15 +64,24 @@ const API_KEY_LIMIT: std::time::Duration = std::time::Duration::from_secs(60);
 /// Run `program login --with-api-key` with the key on stdin.
 /// The child is killed when it runs longer than `limit`.
 fn with_api_key(program: &Path, key: &Secret, limit: std::time::Duration) -> Res<()> {
-    let mut child = quiet(
-        std::process::Command::new(program)
-            .args(["login", "--with-api-key"])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped()),
-    )
-    .spawn()
-    .map_err(|e| e.to_string())?;
+    let mut cmd = std::process::Command::new(program);
+    cmd.args(["login", "--with-api-key"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped());
+    // Linux refuses to start a file that another thread's fork still holds open for writing
+    // (ETXTBSY): a program that was just written starts on a later try.
+    let mut tries = 0;
+    let mut child = loop {
+        match quiet(&mut cmd).spawn() {
+            Ok(child) => break child,
+            Err(e) if e.kind() == std::io::ErrorKind::ExecutableFileBusy && tries < 10 => {
+                tries += 1;
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+            Err(e) => return Err(e.to_string()),
+        }
+    };
     let mut stdin = child.stdin.take().ok_or("no stdin")?;
     // A tool that exits early closes the pipe: the exit code tells the result.
     let _ = writeln!(stdin, "{}", key.expose());

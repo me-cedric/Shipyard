@@ -24,11 +24,11 @@ The first-run page shows no picture of the loop, and the system asks for permiss
 
 ### Requirements
 
-- REQ-001: At the first launch, Shipyard SHALL open the tour. When the person closes the tour or ends it, Shipyard SHALL NOT open it again by itself.
+- REQ-001: The tour SHALL NOT open at the first launch. It SHALL open once, when the first project is open and the tour is not seen. Each way to leave the tour, a setup action included, SHALL mark it as seen. Shipyard SHALL NOT open it again by itself.
 - REQ-002: The tour SHALL have six steps in this order: what Shipyard does, open a project, connect the issue tracker and the code host, choose the AI tool, the permissions, the first run on a ticket. Each step SHALL show a title, one sentence and a picture made from the icons and the colours of the app.
 - REQ-003: The tour SHALL offer Back, Next and Close at each step, and Left and Right arrow keys. Escape SHALL close it. The tour SHALL keep the focus inside it and SHALL tell a screen reader the step number.
 - REQ-004: The Help menu, the palette and Settings / Me SHALL offer Replay the tour.
-- REQ-005: The last step SHALL offer to open the manual (Knowledge / Manual).
+- REQ-005: The last step SHALL offer to open the manual. The manual SHALL open at its address `/knowledge/manual`. In a later wave of `change:update-ux-declutter` the manual stops being a tab.
 - REQ-006: The permissions list SHALL show each permission that Shipyard uses on this computer, with one state: on, off, not asked, not needed or unknown. Each state that a person can change SHALL have one action: Allow, Open System Settings or Send a test.
 - REQ-007: On macOS, Shipyard SHALL ask for the notifications and for the Documents, Desktop and Downloads folders only after a click on Allow. Shipyard SHALL NOT read a protected folder to check its state before that click. Open System Settings SHALL open the matching privacy pane.
 - REQ-008: On Windows and Linux, the files permission SHALL show not needed. The notifications SHALL offer Send a test, and on Windows Open System Settings.
@@ -36,7 +36,7 @@ The first-run page shows no picture of the loop, and the system asks for permiss
 - REQ-010: The tour and the permissions list SHALL ship in English and French.
 - REQ-011: Each tour step that maps to a setting SHALL show the live state of that setting (done or to do, with an icon) and one direct action: a control in place, or a button that opens the exact section of Settings, or the New project creator.
 - REQ-012: The team item SHALL add the person to the team file as an admin when the file has no admin.
-- REQ-013: A Setup checklist SHALL list the items in this order: project, AI tool, models, issue tracker, code host, permissions, team. Home / Today SHALL show it as one card while an item is to do, and SHALL hide it when no item is to do. Settings / Me SHALL show it next to Replay the tour.
+- REQ-013: One Get started checklist SHALL list eleven items in this order: project, AI tool, models, issue tracker, code host, team, permissions, first decision, first spec, first assigned ticket, first run. Home / Today SHALL show it as one card while an item is to do, and SHALL hide it when no item is to do. Settings / Me SHALL show the same card.
 
 ### Non-Goals
 
@@ -46,33 +46,43 @@ The first-run page shows no picture of the loop, and the system asks for permiss
 
 ### Acceptance Criteria
 
-- [ ] A fresh install opens the tour once.
-- [ ] Close at step 2 keeps the tour closed at the next launch.
+- [ ] A fresh install shows the first-run page and no tour; the tour opens once when the first project is open.
+- [ ] Close at step 2 keeps the tour closed at the next launch, and so does a setup action in a step.
 - [ ] Help / Replay the tour opens it at step 1.
-- [ ] The last step opens Knowledge / Manual.
+- [ ] The last step opens the manual at `/knowledge/manual`.
 - [ ] On macOS, Allow on the folders shows the system prompt, then the state.
 - [ ] On Windows, the files show not needed.
 - [ ] Settings / Me shows the permissions.
 - [ ] Each text exists in English and French.
 - [ ] A tour step shows the state of its setting and one action.
-- [ ] Home / Today shows the Setup card while an item is to do.
-- [ ] Settings / Me lists the Setup items.
+- [ ] Home / Today shows the Get started card while an item is to do.
+- [ ] Settings / Me shows the same Get started card.
 
 ## ADDED Requirements
 
-### Requirement: REQ-001 First launch
+### Requirement: REQ-001 Tour after the first project
 
-At the first launch, Shipyard SHALL open the tour. When the person closes the tour or ends it, Shipyard SHALL NOT open it again by itself.
+The tour SHALL NOT open at the first launch. It SHALL open once, when the first project is open and the tour is not seen. Each way to leave the tour, a setup action included, SHALL mark it as seen. Shipyard SHALL NOT open it again by itself.
 
 #### Scenario: Fresh install
-- GIVEN Shipyard starts with no saved preferences
+- GIVEN Shipyard starts with no saved preferences and no project
 - WHEN the window opens
+- THEN the first-run page shows and the tour does not open
+
+#### Scenario: First project
+- GIVEN the tour was never seen
+- WHEN the first project opens
 - THEN the tour opens at step 1
 
 #### Scenario: Skipped
 - GIVEN the person closed the tour at step 2
 - WHEN Shipyard starts again
 - THEN the tour does not open
+
+#### Scenario: Left by a setup action
+- GIVEN the tour is open
+- WHEN the person clicks a setup action in a step
+- THEN the tour does not open at the next launch
 
 ### Requirement: REQ-002 Six steps
 
@@ -103,12 +113,12 @@ The Help menu, the palette and Settings / Me SHALL offer Replay the tour.
 
 ### Requirement: REQ-005 Manual
 
-The last step SHALL offer to open the manual (Knowledge / Manual).
+The last step SHALL offer to open the manual. The manual SHALL open at its address `/knowledge/manual`. In a later wave of `change:update-ux-declutter` the manual stops being a tab.
 
 #### Scenario: Open the manual
 - GIVEN the tour is at the last step
 - WHEN the person clicks Open the manual
-- THEN the tour closes and Knowledge / Manual opens
+- THEN the tour closes and the manual opens at `/knowledge/manual`
 
 ### Requirement: REQ-006 Permission states
 
@@ -193,21 +203,21 @@ The team item SHALL add the person to the team file as an admin when the file ha
 - WHEN the person clicks Add me as admin
 - THEN the person is a member with the admin flag and the item shows done
 
-### Requirement: REQ-013 Setup checklist
+### Requirement: REQ-013 Get started checklist
 
-A Setup checklist SHALL list the items in this order: project, AI tool, models, issue tracker, code host, permissions, team. Home / Today SHALL show it as one card while an item is to do, and SHALL hide it when no item is to do. Settings / Me SHALL show it next to Replay the tour.
+One Get started checklist SHALL list eleven items in this order: project, AI tool, models, issue tracker, code host, team, permissions, first decision, first spec, first assigned ticket, first run. Home / Today SHALL show it as one card while an item is to do, and SHALL hide it when no item is to do. Settings / Me SHALL show the same card.
 
 #### Scenario: Card
 - GIVEN an item is to do
 - WHEN the person opens Home / Today
-- THEN one Setup card lists the items to do
+- THEN one Get started card lists the items to do
 
 #### Scenario: All done
 - GIVEN no item is to do
 - WHEN the person opens Home / Today
-- THEN the Setup card does not show
+- THEN the Get started card does not show
 
 #### Scenario: Settings
 - GIVEN the person closed the tour
 - WHEN the person opens Settings / Me
-- THEN the Setup items show with their states
+- THEN the same Get started card shows the items with their states

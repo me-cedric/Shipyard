@@ -5,9 +5,14 @@ Shipyard hilft einem Team, ein Softwareprojekt auszuliefern: den Entwurf, die Sp
 ## Das Fenster
 
 - Die linke Leiste enthält die Bereiche: Start, Entwurf, Spezifikationen, Arbeit, Fabrik, Code, Wissen und Einstellungen.
-- Die Tabs eines Bereichs stehen oben auf der Seite.
+- Die Tabs eines Bereichs stehen oben auf der Seite. Jeder Tab hat ein Symbol und seinen Namen.
 - Der Inspektor rechts zeigt das Element, das Sie auswählen.
-- Die Statusleiste unten zeigt das Projekt, den Sync-Status und die Commit-Steuerung.
+- Die Statusleiste unten zeigt das Projekt, den Sync-Status und die Commit-Steuerung, mit der Zahl der geänderten Dateien neben Commit.
+- Die obere Leiste enthält Zurück und Vorwärts, Synchronisieren, Aktivität, die Suche, die Schaltflächen Dateien und Terminal, Fragen, die Benachrichtigungen und das Kontomenü.
+  - Synchronisieren zeigt, um wie viele Commits Sie voraus und zurück sind.
+  - Aktivität zeigt die Zahl Wartet auf Sie und eine Markierung, solange ein Lauf oder eine Sitzung aktiv ist. Das Fenster hat drei Teile: Wartet auf Sie (ein Link zu Start / Heute), Läufe (Stoppen und ein Link zu Fabrik / Läufe) und Sitzungen (Stoppen und ein Link zu Fabrik / Sitzungen).
+  - Fragen ist eine geteilte Schaltfläche. Klicken Sie auf den Hauptteil, um den Assistenten zu öffnen oder zu schließen. Der Pfeil öffnet die Elemente von Fragen.
+  - Das Kontomenü (Ihr Bild) enthält Einstellungen / Ich, Design (Hell, Dunkel, System), Anleitung, Tastenkürzel, Neuigkeiten und Tour wiederholen.
 - Der Assistent öffnet sich an der Seite. Stellen Sie ihm eine Frage zum Projekt. Jedes Gespräch ist ein Tab, und ein Punkt markiert einen Tab mit einer neuen Antwort.
   - Unter dem Nachrichtenfeld hat eine Leiste die Schaltfläche zum Anhängen, eine Schaltfläche mit dem Modell und dem Aufwand (sie öffnet die Modelle des KI-Tools, die Aufwandsstufen und die Modelle der anderen KI-Tools), die Berechtigung, den Kontextring und Senden.
   - Im Modus Agent ist die Berechtigung Bearbeiten mit Freigabe, Auto: Änderungen annehmen oder Berechtigungen umgehen. Berechtigungen umgehen überspringt jede Freigabe von Claude Code oder Codex: Shipyard fragt Sie beim ersten Mal in jedem Projekt, zeigt die Einstellung in Rot, solange sie aktiv ist, und lehnt sie in einem schreibgeschützten Projekt und bei ausgeschaltetem Agenten-Schalter ab.
@@ -26,9 +31,9 @@ Das Fenster öffnet sich in der Größe, in der Sie es geschlossen haben. Um die
 
 ## Die Tour
 
-- Beim ersten Start öffnet sich eine kurze Tour mit sechs Schritten: der Kreislauf, ein Projekt öffnen, das Ticketsystem und die Code-Plattform verbinden, das KI-Tool wählen, die Berechtigungen und der erste Lauf auf einem Ticket.
+- Die Tour öffnet sich nicht beim ersten Start. Sie öffnet sich einmal, wenn Sie Ihr erstes Projekt öffnen. Sie hat sechs Schritte: der Kreislauf, ein Projekt öffnen, das Ticketsystem und die Code-Plattform verbinden, das KI-Tool wählen, die Berechtigungen und der erste Lauf auf einem Ticket.
 - Klicken Sie auf Weiter und Zurück, oder drücken Sie die Pfeiltasten links und rechts. Schließen beendet die Tour bei jedem Schritt. Sie öffnet sich nicht mehr von selbst.
-- Um sie noch einmal zu sehen, wählen Sie Hilfe, dann Tour wiederholen, oder tippen Sie Tour wiederholen in die Palette, oder gehen Sie zu Einstellungen, dann Ich, dann Berechtigungen.
+- Um sie noch einmal zu sehen, wählen Sie Tour wiederholen im Kontomenü oder im Menü Hilfe, oder tippen Sie Tour wiederholen in die Palette, oder gehen Sie zu Einstellungen, dann Ich, dann Berechtigungen.
 - Der letzte Schritt öffnet diese Anleitung.
 
 ## Berechtigungen
@@ -41,6 +46,12 @@ Shipyard fragt nach einer Berechtigung des Systems erst, nachdem Sie auf Erlaube
 | Dokumente, Schreibtisch und Downloads | Erlauben lässt macOS nach jedem Ordner fragen. Aus öffnet Datenschutz & Sicherheit / Dateien und Ordner. | Nicht nötig. | Nicht nötig. |
 
 Shipyard fragt nicht nach Vollzugriff auf die Festplatte, der Kamera, dem Mikrofon oder dem Standort. Ein Projekt auf einem Wechsel- oder Netzwerkdatenträger erhält beim Öffnen die Abfrage von macOS.
+
+## Erster Start
+
+Die Seite des ersten Starts fragt nach Ihrer Rolle. Wählen Sie sie, dann klicken Sie auf Weiter. Öffnen Sie danach einen Ordner, klonen Sie ein Repository oder starten Sie ein neues Projekt. Ohne offenes Projekt zeigt jeder Bereich dieselbe Auswahl: Ordner öffnen, Repository klonen und Neues Projekt.
+
+In Start, dann Heute, nennt eine einzige Liste Erste Schritte die nächsten Schritte in dieser Reihenfolge: Projekt, KI-Tool, Modelle, Ticketsystem, Code-Plattform, Team, Berechtigungen, erste Entscheidung, erste Spezifikation, erstes zugewiesenes Ticket und erster Lauf. Jedes Element hat eine Aktion, die den echten nächsten Schritt nennt, zum Beispiel Installieren, Anmelden, Wählen oder Verbinden. Einstellungen / Ich zeigt dieselbe Karte. Unter Heute verschwindet sie, wenn nichts mehr zu tun ist.
 
 ## Ein Projekt öffnen
 
@@ -56,9 +67,10 @@ Shipyard fragt nicht nach Vollzugriff auf die Festplatte, der Kamera, dem Mikrof
 - Drücken Sie Ctrl+1 bis Ctrl+8, um zu einem Bereich zu gehen.
 - Öffnen Sie die Palette und wählen Sie Anleitung zu dieser Seite öffnen, um die Hilfe der Seite zu lesen, die Sie sehen.
 - Drücken Sie Ctrl+[ und Ctrl+] (Cmd auf einem Mac), oder klicken Sie in der oberen Leiste auf Zurück und Vorwärts, um zwischen den geöffneten Ansichten zu wechseln.
-- Klicken Sie auf die Schaltfläche ? oder drücken Sie F1, um die Hilfe der Seite zu lesen, die Sie sehen.
+- Drücken Sie F1, oder wählen Sie Anleitung im Kontomenü, um die Hilfe der Seite zu lesen, die Sie sehen.
 - Klicken Sie auf die Schaltfläche der Seitenleiste am linken Ende der oberen Leiste, um die Seitenleiste aus- oder einzublenden.
-- Unter 1100 px stehen die Schaltflächen für Dateien, Terminal und Farbschema im Menü Mehr.
+- Unter 1100 px stehen die Schaltflächen Dateien und Terminal im Menü Mehr.
+- Klicken Sie auf die Schaltfläche Terminal, um die Terminal-Schublade zu öffnen oder zu schließen. Terminal und Anleitung sind keine Tabs. Die Palette und das Menü des Fensters behalten ihre Einträge.
 - Klicken Sie auf Synchronisieren, um zu synchronisieren. Klicken Sie auf den Pfeil daneben für Nur abrufen oder für Push.
 - Wenn ein Fehler eine Schaltfläche hat, die eine Einstellung öffnet, klicken Sie darauf. Die Seite öffnet sich genau an der Zeile, setzt den Fokus auf ihr Steuerelement und markiert es 2 Sekunden lang.
 - Halten Sie Ctrl (Cmd auf einem Mac) und drehen Sie das Mausrad auf einem Diagramm oder einem Bild, um zu zoomen. Ziehen Sie, um es zu verschieben. Nutzen Sie Vollbild für eine große Ansicht.
@@ -67,7 +79,7 @@ Shipyard fragt nicht nach Vollzugriff auf die Festplatte, der Kamera, dem Mikrof
 
 ## Ihre Rolle
 
-Wählen Sie in Einstellungen, dann Ich, Ihre Rolle. Die Rolle legt den Bereich fest, der zuerst öffnet. Ein Junior startet in Wissen, Lernen. Eine Projektleitung startet in Arbeit, Board.
+Wählen Sie in Einstellungen, dann Ich, Ihre Rolle. Die Rolle legt den Bereich fest, der zuerst öffnet. Ein Tech Lead startet in Fabrik, Läufe. Eine Projektleitung startet in Arbeit, Board.
 
 ## Standardmäßig sicher
 
@@ -86,3 +98,5 @@ Wählen Sie in Einstellungen, dann Ich, Ihre Rolle. Die Rolle legt den Bereich f
 | Spezifikation | Ein Text, der sagt, was das Produkt tun muss. |
 | ADR | Ein Entscheidungsprotokoll: eine Entscheidung, ihre Optionen und ihre Gründe. |
 | MCP-Server | Ein Tool, das ein Agent aufrufen kann, zum Beispiel Jira oder Figma. |
+
+Fahren Sie mit der Maus über ein markiertes Wort in der Liste, in der Tour oder auf einer leeren Seite, oder setzen Sie den Tastaturfokus darauf. Ein Satz erklärt es, mit einem Link zur Anleitung. Die markierten Wörter sind Ticketsystem, Code-Plattform, KI-Tool, Modell, Spezifikation, Entscheidung, Lauf und Pull Request.

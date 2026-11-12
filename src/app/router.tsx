@@ -8,9 +8,10 @@ import {
 	Outlet,
 	type RouterHistory,
 	redirect,
+	useNavigate,
 	useRouterState,
 } from "@tanstack/react-router";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import {
 	AppShell,
 	firstPath,
@@ -18,13 +19,17 @@ import {
 	SPACES,
 	type SpaceId,
 	TabsBar,
+	tabIcon,
+	tabLabel,
 	tabPath,
 	visibleTabs,
 } from "@/features/shell";
 import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { useRights } from "@/lib/rights";
-import { SPRING } from "@/ui/motion";
+import { EmptyState } from "@/ui/molecules/empty-state";
+import { PageHeader } from "@/ui/molecules/page-header";
+import { SPRING, useReducedMotionPref } from "@/ui/motion";
 import { NotFound } from "./not-found";
 import { refActions } from "./ref-actions";
 import { RouteError } from "./route-error";
@@ -49,14 +54,27 @@ const indexRoute = createRoute({
 });
 
 /** A tab of an area at `none`: a direct route shows this, not the view. */
-function NoAccess() {
+function NoAccess({ space, tab }: { space: SpaceId; tab: string }) {
 	const { t } = useI18n();
-	return <p className="p-4 text-14 font-medium text-n-11">{t.rights.noAccess}</p>;
+	const navigate = useNavigate();
+	const Icon = tabIcon(space, tab);
+	return (
+		<>
+			<PageHeader icon={Icon && <Icon size={16} />} title={tabLabel(t, space, tab)} />
+			<EmptyState
+				title={t.rights.noAccess}
+				action={{
+					label: t.tabs.home.today,
+					onClick: () => void navigate({ to: "/home/today" }),
+				}}
+			/>
+		</>
+	);
 }
 
 function SpaceLayout({ space }: { space: SpaceId }) {
 	const path = useRouterState({ select: (s) => s.location.pathname });
-	const still = useReducedMotion();
+	const still = useReducedMotionPref();
 	const { level } = useRights();
 	// The space index has no tab: it redirects to the first visible tab.
 	const tab = path.split("/")[2];
@@ -74,7 +92,7 @@ function SpaceLayout({ space }: { space: SpaceId }) {
 					transition={SPRING.gentle}
 					className="flex min-h-0 flex-1 flex-col"
 				>
-					{hidden ? <NoAccess /> : <Outlet />}
+					{hidden && tab ? <NoAccess space={space} tab={tab} /> : <Outlet />}
 				</motion.div>
 			</div>
 		</div>
@@ -92,6 +110,20 @@ function FirstTab({ space }: { space: SpaceId }) {
 		<Navigate to={tabPath(space, first)} replace />
 	) : null;
 }
+
+const runsSearch = (
+	s: Record<string, unknown>,
+): { q?: string; filter?: "needs" | "mine"; view?: "history" } => ({
+	// A text such as "12" comes back from the address as a number.
+	...(s.q != null && s.q !== "" ? { q: String(s.q) } : {}),
+	...(s.filter === "needs" || s.filter === "mine" ? { filter: s.filter } : {}),
+	...(s.view === "history" ? { view: "history" as const } : {}),
+});
+
+const pullsSearch = (s: Record<string, unknown>): { q?: string; filter?: "needs" } => ({
+	...(s.q != null && s.q !== "" ? { q: String(s.q) } : {}),
+	...(s.filter === "needs" ? { filter: "needs" as const } : {}),
+});
 
 /** A space route, its index redirect to the first tab, and one child route for each tab. */
 function spaceRoute<S extends SpaceId>(space: S) {
@@ -112,9 +144,53 @@ function spaceRoute<S extends SpaceId>(space: S) {
 			path: tab,
 			loader: () => preloadTab(space, tab),
 			component: () => <TabView space={space} tab={tab} />,
+			// The bar of Factory / Runs (ux-declutter REQ-034): search, filter and view, kept in the address.
+			...(space === "factory" && tab === "runs" ? { validateSearch: runsSearch } : {}),
+			// The bar of Code / Pull requests (ux-declutter REQ-042): search and filter, kept in the address.
+			...(space === "code" && tab === "pull-requests" ? { validateSearch: pullsSearch } : {}),
 		}),
 	);
-	return route.addChildren([index, ...tabs]);
+	// A run has its own address, under the Factory tab bar with Runs selected (ux-declutter REQ-027).
+	const run =
+		space === "factory"
+			? [
+					createRoute({
+						getParentRoute: () => route,
+						path: "runs/$runId",
+						validateSearch: (
+							s: Record<string, unknown>,
+						): { unit?: string; tab?: "changes" | "workflow" } => ({
+							...(typeof s.unit === "string" && s.unit ? { unit: s.unit } : {}),
+							// Activity is the default tab: it has no value in the address.
+							...(s.tab === "changes" || s.tab === "workflow" ? { tab: s.tab } : {}),
+						}),
+						component: lazyRouteComponent(
+							() => import("@/features/factory/runs/run-page"),
+							"RunPage",
+						),
+					}),
+				]
+			: [];
+	// A pull request has its own address, under the Code tab bar with Pull requests selected (ux-declutter REQ-041).
+	const pull =
+		space === "code"
+			? [
+					createRoute({
+						getParentRoute: () => route,
+						path: "pull-requests/$pullId",
+						validateSearch: (
+							s: Record<string, unknown>,
+						): { tab?: "commits" | "checks" | "files" } => ({
+							// Overview is the default tab: it has no value in the address.
+							...(s.tab === "commits" || s.tab === "checks" || s.tab === "files"
+								? { tab: s.tab }
+								: {}),
+						}),
+						component: lazyRouteComponent(() => import("@/features/code/pull-page"), "PullPage"),
+					}),
+				]
+			: [];
+	return route.addChildren([index, ...tabs, ...run, ...pull]);
 }
 
 // The gallery exists in the dev build only. The release build drops the import.

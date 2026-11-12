@@ -11,6 +11,7 @@ export function CommitRow({
 	short,
 	summary,
 	author,
+	avatar,
 	date,
 	labels,
 	selected,
@@ -20,6 +21,8 @@ export function CommitRow({
 	short: string;
 	summary: string;
 	author: string;
+	/** The profile picture of the author, when there is one. */
+	avatar?: string;
 	/** Already formatted for the language. */
 	date: string;
 	labels: CommitLabel[];
@@ -44,7 +47,7 @@ export function CommitRow({
 				))}
 				<span className="flex shrink-0 items-center gap-1.5 text-12 text-n-11">
 					<span aria-hidden="true">
-						<Avatar name={author} className="size-5" />
+						<Avatar name={author} src={avatar} className="size-5" />
 					</span>
 					{author}
 				</span>

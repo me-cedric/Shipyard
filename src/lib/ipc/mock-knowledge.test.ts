@@ -41,9 +41,16 @@ describe("mock knowledge", () => {
 	it("switches to the code graph and builds the index on demand", async () => {
 		const g = await unwrap(commands.graphCode());
 		expect(g.state).toBe("ready");
-		expect(g.nodes.map((n) => n.kind)).toEqual(expect.arrayContaining(["file", "symbol"]));
+		// The overview holds files and the counted calls between two files.
+		expect(new Set(g.nodes.map((n) => n.kind))).toEqual(new Set(["file"]));
 		const refs = new Set(g.nodes.map((n) => n.ref));
-		for (const e of g.edges) expect([refs.has(e.source), refs.has(e.target)]).toEqual([true, true]);
+		for (const e of g.edges) {
+			expect([refs.has(e.source), refs.has(e.target)]).toEqual([true, true]);
+			expect(e.weight).toBeGreaterThan(0);
+		}
+		// A focus holds the symbols of the file and what they call.
+		const f = await unwrap(commands.graphCodeFocus("src/features/home/home.tsx"));
+		expect(f.nodes.map((n) => n.kind)).toEqual(expect.arrayContaining(["file", "symbol"]));
 		expect(await unwrap(commands.graphCodeIndex())).toBeNull();
 	});
 

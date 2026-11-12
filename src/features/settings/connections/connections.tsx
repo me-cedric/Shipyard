@@ -505,7 +505,10 @@ export function Connections() {
 				<ProvidersGroup formOpen={formOpen} onForm={setEditing} />
 				<details className="group flex flex-col gap-5">
 					<summary className="flex h-row w-fit cursor-pointer items-center gap-1.5 px-1 text-12 font-medium text-n-11 select-none hover:text-n-12">
-						<ChevronRightIcon size={12} className="transition-transform group-open:rotate-90" />
+						<ChevronRightIcon
+							size={12}
+							className="transition-transform duration-(--duration-fast) group-open:rotate-90"
+						/>
 						{t.connections.advanced}
 					</summary>
 					<div className="flex flex-col gap-5 pt-3">

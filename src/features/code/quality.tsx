@@ -426,4 +426,4 @@ function QualityView() {
 	);
 }
 
-export const Quality = withProject(QualityView);
+export const Quality = withProject(QualityView, "quality");

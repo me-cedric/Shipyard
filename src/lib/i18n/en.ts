@@ -8,6 +8,7 @@ import { editingEn } from "./editing";
 import { extensionsEn } from "./extensions";
 import { extrasEn } from "./extras";
 import { factoryEn } from "./factory";
+import { glossaryEn } from "./glossary";
 import { homeEn } from "./home";
 import { knowledgeEn } from "./knowledge";
 import { onboardingEn } from "./onboarding";
@@ -114,8 +115,10 @@ export const en = {
 		time: "No time entries",
 		team: "No members",
 		budget: "No budget",
+		usage: "No usage yet",
 		sessions: "No sessions",
 		runs: "No runs",
+		run: "No run",
 		graph: "No graph",
 		dashboards: "No dashboards",
 		testPlans: "No test plans",
@@ -244,6 +247,11 @@ export const en = {
 		openRef: "Open {ref}",
 		themeTo: "Theme: {name}",
 		langTo: "Language: {name}",
+		activity: "Activity",
+		needsNone: "Nothing needs you",
+		runsNone: "No active run",
+		account: "Account",
+		changedFiles: "Changed files",
 	},
 	refKind: {
 		project: "Project",
@@ -890,6 +898,7 @@ export const en = {
 	assistant: assistantEn,
 	design: designEn,
 	factory: factoryEn,
+	glossary: glossaryEn,
 	settings: settingsEn,
 	specs: specsEn,
 	ui: uiEn,

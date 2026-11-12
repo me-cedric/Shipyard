@@ -235,4 +235,4 @@ function ImpactsView() {
 	);
 }
 
-export const Impacts = withProject(ImpactsView);
+export const Impacts = withProject(ImpactsView, "impacts");

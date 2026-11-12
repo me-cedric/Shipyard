@@ -28,6 +28,7 @@ export function DebugConsole() {
 	const lines = (log.data ?? []).filter((l) => level === "all" || l.level === level);
 	return (
 		<Panel
+			id="doctor-console"
 			title={d.title}
 			count={lines.length}
 			icon={<CommandLineIcon size={14} />}

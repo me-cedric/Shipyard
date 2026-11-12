@@ -1,11 +1,12 @@
 import { expect, type Page, test } from "@playwright/test";
+import { openFirstFolder } from "./first-run";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 
 /** Opens the mock project, then Settings on the given tab. */
 async function openSettings(page: Page, tab: string) {
 	await page.goto("/home/today");
-	await page.getByRole("button", { name: "Open a local folder" }).click();
+	await openFirstFolder(page);
 	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 	await page
 		.getByRole("navigation", { name: "Sidebar" })

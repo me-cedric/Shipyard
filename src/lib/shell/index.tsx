@@ -1,3 +1,4 @@
+import { useRouter } from "@tanstack/react-router";
 import {
 	createContext,
 	type ReactNode,
@@ -7,6 +8,8 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { pullOfRef } from "./pull-href";
+import { runOfRef } from "./run-href";
 
 type ShellState = {
 	inspectorOpen: boolean;
@@ -98,11 +101,18 @@ export function ShellProvider({
 		setTerminalJob((j) => ({ id: (j?.id ?? 0) + 1, command }));
 	}, []);
 
-	const openRef = useCallback((ref: string) => {
-		setSelectedRef(ref);
-		setDetail(null);
-		setInspectorOpen(true);
-	}, []);
+	const router = useRouter({ warn: false });
+	// A run and a pull request have their own page: the ref opens it, not the inspector.
+	const openRef = useCallback(
+		(ref: string) => {
+			const run = runOfRef(ref) ?? pullOfRef(ref);
+			if (router && run) return void router.navigate(run);
+			setSelectedRef(ref);
+			setDetail(null);
+			setInspectorOpen(true);
+		},
+		[router],
+	);
 	const landing = useRef<string | null>(null);
 	const openRefAt = useCallback(
 		(ref: string, path: string) => {
@@ -230,3 +240,5 @@ export function useShell() {
 }
 
 export { askForm, useFormIntent, useFormIntentFor } from "./intent";
+export { pullHref, pullNumberOf, pullOfRef } from "./pull-href";
+export { runHref, runOfRef } from "./run-href";

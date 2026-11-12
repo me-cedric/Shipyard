@@ -5,9 +5,14 @@ Shipyard ayuda a un equipo a entregar un proyecto de software: el diseño, las e
 ## La ventana
 
 - La barra izquierda contiene los espacios: Inicio, Diseño, Especificaciones, Trabajo, Fábrica, Código, Conocimiento y Ajustes.
-- Las pestañas de un espacio están arriba en la página.
+- Las pestañas de un espacio están arriba en la página. Cada pestaña tiene un icono y su nombre.
 - El inspector de la derecha muestra el elemento que seleccionas.
-- La barra de estado de abajo muestra el proyecto, el estado de la sincronización y el control de commit.
+- La barra de estado de abajo muestra el proyecto, el estado de la sincronización y el control de commit, con el número de archivos modificados junto a Commit.
+- La barra superior contiene Atrás y Adelante, Sincronizar, Actividad, la búsqueda, los botones Archivos y Terminal, Preguntar, las notificaciones y el menú de la cuenta.
+  - Sincronizar muestra cuántos commits llevas de adelanto y de retraso.
+  - Actividad muestra el recuento Requiere tu atención y una marca mientras una ejecución o una sesión está activa. Su panel tiene tres partes: Requiere tu atención (un enlace a Inicio / Hoy), Ejecuciones (Detener y un enlace a Fábrica / Ejecuciones) y Sesiones (Detener y un enlace a Fábrica / Sesiones).
+  - Preguntar es un botón dividido. Haz clic en la parte principal para abrir o cerrar el asistente. La flecha abre los elementos de Preguntar.
+  - El menú de la cuenta (tu foto) contiene Ajustes / Yo, Tema (Claro, Oscuro, Sistema), Manual, Atajos, Novedades y Repetir el recorrido.
 - El asistente se abre en el lateral. Hazle una pregunta sobre el proyecto. Cada conversación es una pestaña, y un punto marca una pestaña con una respuesta nueva.
   - Bajo el cuadro de mensaje, una barra tiene el botón de adjuntar, un botón con el modelo y el esfuerzo (abre los modelos de la herramienta de IA, los niveles de esfuerzo y los modelos de las otras herramientas de IA), el permiso, el anillo de contexto y Enviar.
   - En el modo Agente el permiso es Editar con aprobación, Auto: aceptar ediciones u Omitir permisos. Omitir permisos salta cada aprobación de Claude Code o Codex: Shipyard te lo pregunta la primera vez en cada proyecto, lo muestra en rojo mientras está activo, y lo rechaza en un proyecto de solo lectura y mientras el interruptor de agentes está apagado.
@@ -26,9 +31,9 @@ La ventana se abre con el tamaño que tenía al cerrarla. Para guardar los datos
 
 ## El recorrido
 
-- En el primer inicio se abre un recorrido corto de seis pasos: el ciclo, abrir un proyecto, conectar el gestor de tickets y la plataforma de código, elegir la herramienta de IA, los permisos y la primera ejecución en un ticket.
+- El recorrido no se abre en el primer inicio. Se abre una vez, cuando abres tu primer proyecto. Tiene seis pasos: el ciclo, abrir un proyecto, conectar el gestor de tickets y la plataforma de código, elegir la herramienta de IA, los permisos y la primera ejecución en un ticket.
 - Haz clic en Siguiente y Atrás, o pulsa las flechas izquierda y derecha. Cerrar termina el recorrido en cualquier paso. No se vuelve a abrir solo.
-- Para verlo otra vez, elige Ayuda, luego Repetir el recorrido, o escribe Repetir el recorrido en la paleta, o ve a Ajustes, luego Yo, luego Permisos.
+- Para verlo otra vez, elige Repetir el recorrido en el menú de la cuenta o en el menú Ayuda, o escribe Repetir el recorrido en la paleta, o ve a Ajustes, luego Yo, luego Permisos.
 - El último paso abre este manual.
 
 ## Permisos
@@ -41,6 +46,12 @@ Shipyard pide un permiso del sistema solo después de que hagas clic en Permitir
 | Documentos, Escritorio y Descargas | Permitir deja que macOS pregunte por cada carpeta. Desactivado abre Privacidad y seguridad / Archivos y carpetas. | No necesario. | No necesario. |
 
 Shipyard no pide acceso total al disco, la cámara, el micrófono ni la ubicación. Un proyecto en un volumen extraíble o de red recibe el aviso de macOS al abrirse.
+
+## Primer inicio
+
+La página del primer inicio pregunta tu rol. Elígelo y haz clic en Continuar. Después abre una carpeta, clona un repositorio o empieza un proyecto nuevo. Sin proyecto abierto, cada espacio muestra esta misma elección: Abrir una carpeta, Clonar un repositorio y Proyecto nuevo.
+
+En Inicio, luego Hoy, una sola lista Empezar da los pasos siguientes en orden: proyecto, herramienta de IA, modelos, gestor de tickets, plataforma de código, equipo, permisos, primera decisión, primera especificación, primer ticket asignado y primera ejecución. Cada elemento tiene una acción que nombra el paso siguiente real, como Instalar, Iniciar sesión, Elegir o Conectar. Ajustes / Yo muestra la misma tarjeta. En Hoy se oculta cuando no queda nada por hacer.
 
 ## Abrir un proyecto
 
@@ -56,9 +67,10 @@ Shipyard no pide acceso total al disco, la cámara, el micrófono ni la ubicaci�
 - Pulsa Ctrl+1 a Ctrl+8 para ir a un espacio.
 - Abre la paleta y elige Abrir el manual de esta página para leer la ayuda de la página que ves.
 - Pulsa Ctrl+[ y Ctrl+] (Cmd en un Mac), o haz clic en Atrás y Adelante en la barra superior, para moverte entre las vistas que abriste.
-- Haz clic en el botón ? o pulsa F1 para leer la ayuda de la página que ves.
+- Pulsa F1, o elige Manual en el menú de la cuenta, para leer la ayuda de la página que ves.
 - Haz clic en el botón de la barra lateral, en el extremo izquierdo de la barra superior, para ocultar o mostrar la barra lateral.
-- Por debajo de 1100 px, los botones de archivos, terminal y tema están en el menú Más.
+- Por debajo de 1100 px, los botones Archivos y Terminal están en el menú Más.
+- Haz clic en el botón Terminal para abrir o cerrar el cajón del terminal. Terminal y Manual no son pestañas. La paleta y el menú de la ventana mantienen sus entradas.
 - Haz clic en Sincronizar para sincronizar. Haz clic en la flecha junto a él para Solo traer o para Push.
 - Cuando un error tiene un botón que abre un ajuste, haz clic en él. La página se abre en la fila exacta, mueve el foco a su control y lo marca durante 2 segundos.
 - Mantén Ctrl (Cmd en un Mac) y gira la rueda del ratón sobre un diagrama o una imagen para hacer zoom. Arrastra para moverlo. Usa Pantalla completa para una vista grande.
@@ -67,7 +79,7 @@ Shipyard no pide acceso total al disco, la cámara, el micrófono ni la ubicaci�
 
 ## Tu rol
 
-En Ajustes, luego Yo, elige tu rol. El rol fija el espacio que se abre primero. Un junior empieza en Conocimiento, Aprender. Un jefe de proyecto empieza en Trabajo, Tablero.
+En Ajustes, luego Yo, elige tu rol. El rol fija el espacio que se abre primero. Un responsable técnico empieza en Fábrica, Ejecuciones. Un jefe de proyecto empieza en Trabajo, Tablero.
 
 ## Seguro por defecto
 
@@ -86,3 +98,5 @@ En Ajustes, luego Yo, elige tu rol. El rol fija el espacio que se abre primero. 
 | Especificación | Un texto que dice lo que el producto debe hacer. |
 | ADR | Un registro de decisión: una decisión, sus opciones y sus razones. |
 | Servidor MCP | Una herramienta que un agente puede llamar, como Jira o Figma. |
+
+Pasa el ratón sobre una palabra marcada en la lista, en el recorrido o en una página vacía, o pon el foco del teclado en ella. Una frase la explica, con un enlace al manual. Las palabras marcadas son gestor de tickets, plataforma de código, herramienta de IA, modelo, especificación, decisión, ejecución y pull request.

@@ -12,8 +12,9 @@ use serde::{Deserialize, Serialize};
 use shipyard_agents::impacts::{Analysis, Comparison, RunnerAsk, analyze};
 use shipyard_core::code::{commit_refs, run_in_message};
 use shipyard_forges::{
-    CheckState, CiState, CodeApi, ForgeError, MergeMethod, NewPull, PullFile, PullQuery,
-    PullRequest, PullState, ReviewerVerdict, Verdict,
+    CheckState, CiState, CiStatus, CodeApi, Conversation, ForgeError, MergeMethod, NewPull,
+    PullComment, PullCommit, PullFile, PullFiles, PullQuery, PullRequest, PullState, PullStatus,
+    ReviewerVerdict, Verdict,
 };
 use shipyard_git::Repo;
 use shipyard_store::code::{
@@ -159,8 +160,10 @@ pub struct PullThread {
     pub resolved: bool,
     pub path: Option<String>,
     pub line: Option<u32>,
-    /// `author: text`, oldest first.
-    pub comments: Vec<String>,
+    /// Oldest first. Only the newest ones when `comments_total` is higher.
+    pub comments: Vec<PullComment>,
+    /// How many comments the thread has on the code host.
+    pub comments_total: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -179,12 +182,20 @@ pub struct PullDetail {
     pub head_sha: String,
     pub url: String,
     pub files: Vec<PullFile>,
+    /// The file list is the first files only: the code host has more than the cap, or a later page failed.
+    pub files_truncated: bool,
     /// The commits as `commit:<sha>` refs with their summary.
     pub commits: Vec<PullCommitRef>,
     pub checks: Vec<PullCheck>,
     /// `none`, `pending`, `passing` or `failing`.
     pub ci: String,
     pub threads: Vec<PullThread>,
+    /// The code host has more threads than `threads` holds.
+    pub threads_truncated: bool,
+    /// The general comments, not on a line, oldest first.
+    pub comments: Vec<PullComment>,
+    /// The code host has more general comments: `comments` holds the newest ones.
+    pub comments_truncated: bool,
     pub verdicts: Vec<ReviewerVerdict>,
     /// `clean`, `conflict`, `blocked` or `unknown`.
     pub mergeable: String,
@@ -200,13 +211,60 @@ pub struct PullCommitRef {
     pub summary: String,
 }
 
+/// What one open of a pull request reads from the code host.
+struct Reads {
+    p: PullRequest,
+    status: PullStatus,
+    ci: CiStatus,
+    commits: Vec<PullCommit>,
+    files: PullFiles,
+    talk: Conversation,
+    description: String,
+    verdicts: Vec<ReviewerVerdict>,
+}
+
+/// The reads do not depend on each other (GitHub needs up to 80 calls), so they run together. Each
+/// keeps its own result; the first failure in the old order is the one that returns.
+fn read_pull(api: &dyn CodeApi, slug: &str, n: u64) -> Res<Reads> {
+    use std::thread::{ScopedJoinHandle, scope};
+    fn done<T>(h: ScopedJoinHandle<'_, T>) -> T {
+        h.join().unwrap_or_else(|e| std::panic::resume_unwind(e))
+    }
+    scope(|sc| {
+        let p = sc.spawn(|| api.pull(slug, n));
+        let status = sc.spawn(|| api.status(slug, n));
+        let ci = sc.spawn(|| api.ci_status(slug, n));
+        let commits = sc.spawn(|| api.commits(slug, n));
+        let files = sc.spawn(|| api.files_capped(slug, n));
+        let talk = sc.spawn(|| api.conversation(slug, n));
+        let description = sc.spawn(|| api.description(slug, n));
+        let verdicts = sc.spawn(|| api.verdicts(slug, n));
+        Ok(Reads {
+            p: done(p).map_err(err)?,
+            status: done(status).map_err(err)?,
+            ci: done(ci).map_err(err)?,
+            commits: done(commits).map_err(err)?,
+            files: done(files).map_err(err)?,
+            talk: done(talk).map_err(err)?,
+            description: done(description).map_err(err)?,
+            verdicts: done(verdicts).map_err(err)?,
+        })
+    })
+}
+
 pub fn pull_detail(s: &AppState, number: u32) -> Res<PullDetail> {
     let (api, slug, conn) = forge(s)?;
     let n = u64::from(number);
-    let p = api.pull(&slug, n).map_err(err)?;
-    let status = api.status(&slug, n).map_err(err)?;
-    let ci = api.ci_status(&slug, n).map_err(err)?;
-    let commits = api.commits(&slug, n).map_err(err)?;
+    let Reads {
+        p,
+        status,
+        ci,
+        commits,
+        files,
+        talk,
+        description,
+        verdicts,
+    } = read_pull(&*api, &slug, n)?;
     let mut links =
         shipyard_core::code::commit_refs(&p.source_branch, &p.title, &known_keys(s), None);
     if let Ok(rows) = crate::delivery::pr_rows(s) {
@@ -226,7 +284,7 @@ pub fn pull_detail(s: &AppState, number: u32) -> Res<PullDetail> {
     Ok(PullDetail {
         reference: format!("pr:{conn}:{number}"),
         number,
-        description: api.description(&slug, n).map_err(err)?,
+        description,
         state: state_name(p.state).into(),
         draft: p.draft,
         author: p.author,
@@ -235,7 +293,8 @@ pub fn pull_detail(s: &AppState, number: u32) -> Res<PullDetail> {
         head_sha: p.head_sha,
         url: p.url,
         title: p.title,
-        files: api.files(&slug, n).map_err(err)?,
+        files: files.files,
+        files_truncated: files.truncated,
         commits: commits
             .into_iter()
             .map(|c| PullCommitRef {
@@ -259,23 +318,22 @@ pub fn pull_detail(s: &AppState, number: u32) -> Res<PullDetail> {
             })
             .collect(),
         ci: format!("{:?}", status.ci).to_lowercase(),
-        threads: api
-            .threads(&slug, n)
-            .map_err(err)?
+        threads: talk
+            .threads
             .into_iter()
             .map(|t| PullThread {
                 id: t.id,
                 resolved: t.resolved,
                 path: t.path,
                 line: t.line,
-                comments: t
-                    .comments
-                    .into_iter()
-                    .map(|c| format!("{}: {}", c.author, c.body))
-                    .collect(),
+                comments: t.comments,
+                comments_total: t.comments_total,
             })
             .collect(),
-        verdicts: api.verdicts(&slug, n).map_err(err)?,
+        threads_truncated: talk.threads_truncated,
+        comments: talk.comments,
+        comments_truncated: talk.comments_truncated,
+        verdicts,
         mergeable: format!("{:?}", status.mergeable).to_lowercase(),
         merge_methods: api.merge_methods().to_vec(),
         links,
@@ -377,6 +435,88 @@ pub fn pull_comment(s: &AppState, number: u32, body: &str, click: bool) -> Res<(
     api.comment(&slug, u64::from(number), body).map_err(err)
 }
 
+/// `pr:<connection>:<number>` of the active forge, as the number of its pull request.
+fn pull_number(s: &AppState, reference: &str) -> Res<u64> {
+    let (_, _, conn) = forge(s)?;
+    parse_pr_ref(reference, &conn)
+        .ok_or_else(|| format!("not a pull request of this project: {reference}"))
+}
+
+fn parse_pr_ref(reference: &str, conn: &str) -> Option<u64> {
+    reference
+        .strip_prefix("pr:")?
+        .strip_prefix(conn)?
+        .strip_prefix(':')?
+        .parse()
+        .ok()
+}
+
+/// The number of a `pr:<connection>:<number>` ref, before any check of the connection.
+fn ref_number(reference: &str) -> Res<u64> {
+    reference
+        .strip_prefix("pr:")
+        .and_then(|r| r.rsplit_once(':'))
+        .filter(|(conn, _)| !conn.is_empty())
+        .and_then(|(_, n)| n.parse().ok())
+        .ok_or_else(|| format!("not a pull request of this project: {reference}"))
+}
+
+/// A thread write goes to a thread of this pull request only. The ids are opaque (a GitHub node
+/// id has no pull request number), so the check reads the threads: one more forge read.
+fn check_thread(threads: &[shipyard_forges::ReviewThread], id: &str) -> Res<()> {
+    if threads.iter().any(|t| t.id == id) {
+        Ok(())
+    } else {
+        Err(format!("not a thread of this pull request: {id}"))
+    }
+}
+
+/// The ref is checked first, so the audit line holds a well formed number and never raw text.
+fn thread_write(
+    s: &AppState,
+    reference: &str,
+    thread_id: &str,
+    what: &'static str,
+    click: bool,
+) -> Res<(Box<dyn CodeApi>, String, u64)> {
+    let shaped = ref_number(reference)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        what,
+        &format!("#{shaped}"),
+    )?;
+    let n = pull_number(s, reference)?;
+    let (api, slug, _) = forge(s)?;
+    check_thread(&api.threads(&slug, n).map_err(err)?, thread_id)?;
+    Ok((api, slug, n))
+}
+
+pub fn pull_reply(
+    s: &AppState,
+    reference: &str,
+    thread_id: &str,
+    body: &str,
+    click: bool,
+) -> Res<()> {
+    let (api, slug, n) = thread_write(s, reference, thread_id, "code_pull_reply", click)?;
+    api.reply_thread(&slug, n, thread_id, body).map_err(err)
+}
+
+/// `resolved: false` reopens the thread.
+pub fn pull_resolve(
+    s: &AppState,
+    reference: &str,
+    thread_id: &str,
+    resolved: bool,
+    click: bool,
+) -> Res<()> {
+    let (api, slug, n) = thread_write(s, reference, thread_id, "code_pull_resolve", click)?;
+    api.resolve_thread(&slug, n, thread_id, resolved)
+        .map_err(err)
+}
+
 pub fn pull_verdict(
     s: &AppState,
     number: u32,
@@ -394,6 +534,189 @@ pub fn pull_verdict(
     let (api, slug, _) = forge(s)?;
     api.verdict(&slug, u64::from(number), verdict, body)
         .map_err(err)
+}
+
+/// One inline note of a pending review, as the person typed it: a line of the new file.
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewNoteInput {
+    pub path: String,
+    pub line: u32,
+    pub body: String,
+    /// The commit that the note was written on.
+    pub head_sha: String,
+}
+
+/// What a review became on the code host: notes on their line, notes that went into the review
+/// text, and the notes that went nowhere. The review is sent when `failed` is not empty, so the
+/// caller keeps only `failed` and never sends the verdict again.
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ReviewOutcome {
+    pub inline: u32,
+    pub in_body: u32,
+    pub failed: Vec<ReviewNoteInput>,
+}
+
+const MAX_NOTES: usize = 100;
+const MAX_TEXT: usize = 65_536;
+
+fn clean(text: &str) -> bool {
+    !text.chars().any(char::is_control)
+}
+
+/// Every input is checked before the audit line and before any forge call, so nothing odd can
+/// reach a URL, a query or a log.
+fn sha_ok(sha: &str) -> bool {
+    (7..=64).contains(&sha.len()) && sha.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+fn check_review(
+    verdict: &str,
+    body: &str,
+    notes: &[ReviewNoteInput],
+    head_sha: &str,
+) -> Res<Option<Verdict>> {
+    let verdict = match verdict {
+        "comment" => None,
+        "approve" => Some(Verdict::Approve),
+        "request_changes" => Some(Verdict::RequestChanges),
+        other => return Err(format!("not a verdict: {}", other.escape_debug())),
+    };
+    if notes.len() > MAX_NOTES {
+        return Err(format!("a review holds {MAX_NOTES} line comments at most"));
+    }
+    if body.len() > MAX_TEXT || notes.iter().any(|n| n.body.len() > MAX_TEXT) {
+        return Err("a review text is too long".into());
+    }
+    if !sha_ok(head_sha) || notes.iter().any(|n| !sha_ok(&n.head_sha)) {
+        return Err("not a commit of this pull request".into());
+    }
+    if notes
+        .iter()
+        .any(|n| n.path.is_empty() || n.path.len() > 1024 || !clean(&n.path) || n.line == 0)
+    {
+        return Err("a line comment needs a file and a line".into());
+    }
+    if notes.iter().any(|n| n.body.trim().is_empty()) {
+        return Err("a line comment needs some text".into());
+    }
+    if verdict == Some(Verdict::RequestChanges) && body.trim().is_empty() {
+        return Err("a request for changes needs some text".into());
+    }
+    if verdict.is_none() && notes.is_empty() && body.trim().is_empty() {
+        return Err("the review is empty".into());
+    }
+    Ok(verdict)
+}
+
+/// What one review holds: a verdict, a text, line comments and the current head.
+struct ReviewArgs<'a> {
+    verdict: &'a str,
+    body: &'a str,
+    notes: &'a [ReviewNoteInput],
+    head_sha: &'a str,
+}
+
+/// The outcome of a review that the code host took. Nothing posted at all is an error: the
+/// caller keeps everything and may try again.
+fn outcome(
+    verdict: Option<Verdict>,
+    body: &str,
+    notes: &[ReviewNoteInput],
+    sent: shipyard_forges::ReviewSent,
+) -> Res<ReviewOutcome> {
+    if verdict.is_none() && body.trim().is_empty() && sent.failed.len() == notes.len() {
+        return Err("the code host refused every line comment".into());
+    }
+    let failed: Vec<ReviewNoteInput> = sent
+        .failed
+        .into_iter()
+        .map(|f| ReviewNoteInput {
+            path: f.path,
+            line: f.line,
+            body: f.text,
+            head_sha: f.head_sha,
+        })
+        .collect();
+    let sent_all = u32::try_from(notes.len() - failed.len()).unwrap_or(u32::MAX);
+    Ok(ReviewOutcome {
+        inline: sent_all.saturating_sub(sent.in_body),
+        in_body: sent.in_body,
+        failed,
+    })
+}
+
+/// One review: a verdict, a text and line comments, in one call to the code host. Never retried.
+fn review_send(
+    s: &AppState,
+    what: &'static str,
+    reference: &str,
+    r: ReviewArgs,
+    click: bool,
+) -> Res<ReviewOutcome> {
+    let shaped = ref_number(reference)?;
+    let verdict = check_review(r.verdict, r.body, r.notes, r.head_sha)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        what,
+        &format!("#{shaped}"),
+    )?;
+    let n = pull_number(s, reference)?;
+    let (api, slug, _) = forge(s)?;
+    let lines: Vec<shipyard_forges::LineNote> = r
+        .notes
+        .iter()
+        .map(|n| shipyard_forges::LineNote {
+            path: n.path.clone(),
+            line: n.line,
+            text: n.body.clone(),
+            head_sha: n.head_sha.clone(),
+        })
+        .collect();
+    let sent = api
+        .review(&slug, n, r.head_sha, verdict, r.body, &lines)
+        .map_err(err)?;
+    outcome(verdict, r.body, r.notes, sent)
+}
+
+/// `verdict` is `comment`, `approve` or `request_changes`.
+pub fn pull_review_submit(
+    s: &AppState,
+    reference: &str,
+    verdict: &str,
+    body: &str,
+    notes: &[ReviewNoteInput],
+    head_sha: &str,
+    click: bool,
+) -> Res<ReviewOutcome> {
+    let r = ReviewArgs {
+        verdict,
+        body,
+        notes,
+        head_sha,
+    };
+    review_send(s, "code_pull_review_submit", reference, r, click)
+}
+
+/// One comment on a line at once.
+// shortcut: one review per comment, upgrade to the single-comment API when needed
+pub fn pull_line_comment(
+    s: &AppState,
+    reference: &str,
+    note: ReviewNoteInput,
+    head_sha: &str,
+    click: bool,
+) -> Res<ReviewOutcome> {
+    let r = ReviewArgs {
+        verdict: "comment",
+        body: "",
+        notes: &[note],
+        head_sha,
+    };
+    review_send(s, "code_pull_line_comment", reference, r, click)
 }
 
 /// The click is the confirmation that names the method (REQ-022). A draft is refused.
@@ -1032,6 +1355,36 @@ pub async fn code_pull_comment(app: AppHandle, number: u32, body: String, click:
 
 #[tauri::command]
 #[specta::specta]
+pub async fn code_pull_reply(
+    app: AppHandle,
+    reference: String,
+    thread_id: String,
+    body: String,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| {
+        pull_reply(s, &reference, &thread_id, &body, click)
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_pull_resolve(
+    app: AppHandle,
+    reference: String,
+    thread_id: String,
+    resolved: bool,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| {
+        pull_resolve(s, &reference, &thread_id, resolved, click)
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn code_pull_verdict(
     app: AppHandle,
     number: u32,
@@ -1040,6 +1393,46 @@ pub async fn code_pull_verdict(
     click: bool,
 ) -> Api<()> {
     blocking(app, move |s| pull_verdict(s, number, verdict, &body, click)).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_pull_review_submit(
+    app: AppHandle,
+    reference: String,
+    verdict: String,
+    body: String,
+    notes: Vec<ReviewNoteInput>,
+    head_sha: String,
+    click: bool,
+) -> Api<ReviewOutcome> {
+    blocking(app, move |s| {
+        pull_review_submit(s, &reference, &verdict, &body, &notes, &head_sha, click)
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_pull_line_comment(
+    app: AppHandle,
+    reference: String,
+    path: String,
+    line: u32,
+    body: String,
+    head_sha: String,
+    click: bool,
+) -> Api<ReviewOutcome> {
+    blocking(app, move |s| {
+        let note = ReviewNoteInput {
+            path,
+            line,
+            body,
+            head_sha: head_sha.clone(),
+        };
+        pull_line_comment(s, &reference, note, &head_sha, click)
+    })
+    .await
 }
 
 #[tauri::command]
@@ -1205,6 +1598,58 @@ mod tests {
     }
 
     #[test]
+    fn a_pull_request_reads_every_part_together_and_keeps_the_data() {
+        use shipyard_forges::{ForgeConfig, ForgeKind, connect_code_api};
+        use shipyard_http::fake::FakeHttp;
+        use shipyard_secrets::Secret;
+        let root = "/api/v4/projects/acme%2Fweb/merge_requests/9";
+        let fake = std::sync::Arc::new(FakeHttp::new());
+        // The first route that matches wins: the parts come before the merge request itself.
+        fake.get(&format!("{root}/approvals"), 200, r#"{"approved_by":[{"user":{"username":"ann"}}]}"#)
+            .get(&format!("{root}/diffs"), 200, r#"[{"new_path":"a.rs","diff":"@@ -1 +1 @@\n-a\n+b\n"}]"#)
+            .get(&format!("{root}/commits"), 200, r#"[{"id":"abc","title":"feat: one"}]"#)
+            .get(&format!("{root}/notes"), 200, r#"[{"id":1,"body":"hi","author":{"username":"u"},"system":false,"resolvable":false,"created_at":"t"}]"#)
+            .get(&format!("{root}/discussions"), 200, "[]")
+            .get(root, 200, r#"{"iid":9,"title":"Add login","state":"opened","description":"why","sha":"s1","author":{"username":"bo"},"source_branch":"f","target_branch":"main","web_url":"u"}"#);
+        let api = connect_code_api(
+            &ForgeConfig {
+                kind: ForgeKind::GitLab,
+                url: "https://gitlab.com".into(),
+            },
+            Secret::new("tok"),
+            fake.clone(),
+        )
+        .unwrap();
+        let r = read_pull(&*api, "acme/web", 9).unwrap();
+        assert_eq!(
+            (r.p.title.as_str(), r.description.as_str()),
+            ("Add login", "why")
+        );
+        assert_eq!(r.status.head_sha, "s1");
+        assert_eq!(r.commits.len(), 1);
+        assert_eq!(r.files.files[0].path, "a.rs");
+        assert_eq!(r.talk.comments[0].body, "hi");
+        assert_eq!(r.verdicts[0].reviewer, "ann");
+        // No read is skipped.
+        let urls: Vec<String> = fake.requests().into_iter().map(|q| q.url).collect();
+        for part in ["/approvals", "/diffs", "/commits", "/notes", "/discussions"] {
+            assert!(urls.iter().any(|u| u.contains(part)), "{part}: {urls:?}");
+        }
+        // A failed read fails the call with its own error.
+        let down = std::sync::Arc::new(FakeHttp::new());
+        let api = connect_code_api(
+            &ForgeConfig {
+                kind: ForgeKind::GitLab,
+                url: "https://gitlab.com".into(),
+            },
+            Secret::new("tok"),
+            down,
+        )
+        .unwrap();
+        assert!(read_pull(&*api, "acme/web", 9).is_err());
+    }
+
+    #[test]
     fn the_checks_of_a_pull_request_of_the_person_carry_the_head_and_the_result() {
         let p = PullRequest {
             number: 7,
@@ -1284,6 +1729,162 @@ mod tests {
         );
         assert_eq!(pull_ready(&s, 1, true).unwrap_err(), NO_FORGE);
         assert!(pull_ready(&s, 1, false).unwrap_err().contains("click"));
+    }
+
+    #[test]
+    fn a_thread_write_needs_a_click_the_right_and_a_forge() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, _) = project(dir.path());
+        let r = "pr:c1:7";
+        assert!(
+            pull_reply(&s, r, "t", "x", false)
+                .unwrap_err()
+                .contains("click")
+        );
+        assert!(
+            pull_resolve(&s, r, "t", true, false)
+                .unwrap_err()
+                .contains("click")
+        );
+        assert_eq!(pull_reply(&s, r, "t", "x", true).unwrap_err(), NO_FORGE);
+        assert_eq!(pull_resolve(&s, r, "t", false, true).unwrap_err(), NO_FORGE);
+        let on = shipyard_store::project::Overrides {
+            read_only: Some(true),
+            ..Default::default()
+        };
+        crate::commands::projects::save_overrides(&s, on).unwrap();
+        for e in [
+            pull_reply(&s, r, "t", "x", true).unwrap_err(),
+            pull_resolve(&s, r, "t", true, true).unwrap_err(),
+        ] {
+            assert!(e.contains("read only"), "{e}");
+        }
+    }
+
+    #[test]
+    fn a_review_is_checked_before_the_audit_line_and_needs_a_click_and_a_forge() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, _) = project(dir.path());
+        let r = "pr:c1:7";
+        let note = |body: &str| ReviewNoteInput {
+            path: "src/a.rs".into(),
+            line: 3,
+            body: body.into(),
+            head_sha: "abc1234".into(),
+        };
+        let go = |v: &str, body: &str, n: &[ReviewNoteInput], sha: &str, click| {
+            pull_review_submit(&s, r, v, body, n, sha, click).unwrap_err()
+        };
+        let sha = "abc1234";
+        assert!(go("merge", "x", &[], sha, true).contains("not a verdict"));
+        assert!(go("request_changes", "  ", &[note("a")], sha, true).contains("needs some text"));
+        assert!(go("comment", " ", &[], sha, true).contains("empty"));
+        assert!(go("comment", "x", &[], "abc12zz", true).contains("not a commit"));
+        assert!(go("comment", "x", &[], "abc12", true).contains("not a commit"));
+        assert!(go("comment", "x", &[note(" ")], sha, true).contains("needs some text"));
+        let many = vec![note("a"); 101];
+        assert!(go("comment", "x", &many, sha, true).contains("100"));
+        let bad = ReviewNoteInput {
+            path: "a\n/b".into(),
+            ..note("a")
+        };
+        assert!(go("comment", "x", &[bad], sha, true).contains("a file and a line"));
+        let other = ReviewNoteInput {
+            head_sha: "zz".into(),
+            ..note("a")
+        };
+        assert!(go("comment", "x", &[other], sha, true).contains("not a commit"));
+        let long = note(&"x".repeat(MAX_TEXT + 1));
+        assert!(go("comment", "x", &[long], sha, true).contains("too long"));
+        for bad in ["junk\n{\"x\"}", "pr:c1", "pr::7", "pr:c1:x"] {
+            assert!(pull_review_submit(&s, bad, "comment", "x", &[], sha, true).is_err());
+            assert!(pull_line_comment(&s, bad, note("a"), sha, true).is_err());
+        }
+        // Nothing above reached the audit log.
+        assert!(crate::rights::audit_lines(&s).unwrap().is_empty());
+        assert!(go("comment", "x", &[], sha, false).contains("click"));
+        assert_eq!(go("comment", "x", &[], sha, true), NO_FORGE);
+        let on = shipyard_store::project::Overrides {
+            read_only: Some(true),
+            ..Default::default()
+        };
+        crate::commands::projects::save_overrides(&s, on).unwrap();
+        assert!(go("comment", "x", &[], sha, true).contains("read only"));
+        assert!(
+            pull_line_comment(&s, r, note("a"), sha, true)
+                .unwrap_err()
+                .contains("read only")
+        );
+    }
+
+    #[test]
+    fn a_partial_review_returns_the_unsent_notes_and_an_empty_one_is_an_error() {
+        let note = |line: u32| ReviewNoteInput {
+            path: "a.rs".into(),
+            line,
+            body: format!("n{line}"),
+            head_sha: "abc1234".into(),
+        };
+        let lost = |n: &ReviewNoteInput| shipyard_forges::LineNote {
+            path: n.path.clone(),
+            line: n.line,
+            text: n.body.clone(),
+            head_sha: n.head_sha.clone(),
+        };
+        let notes = [note(1), note(2), note(3)];
+        let sent = shipyard_forges::ReviewSent {
+            failed: vec![lost(&notes[1])],
+            in_body: 1,
+        };
+        let o = outcome(Some(Verdict::Approve), "", &notes, sent).unwrap();
+        assert_eq!((o.inline, o.in_body), (1, 1));
+        assert_eq!(o.failed.len(), 1);
+        assert_eq!((o.failed[0].line, o.failed[0].body.as_str()), (2, "n2"));
+        // Nothing went anywhere: an error, so the caller keeps everything.
+        let none = shipyard_forges::ReviewSent {
+            failed: notes.iter().map(lost).collect(),
+            in_body: 0,
+        };
+        assert!(outcome(None, " ", &notes, none).is_err());
+    }
+
+    #[test]
+    fn a_malformed_ref_is_refused_before_the_audit_line() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, _) = project(dir.path());
+        for bad in ["junk\n{\"x\"}", "pr:c1", "pr::7", "pr:c1:x"] {
+            assert!(pull_reply(&s, bad, "t", "x", true).is_err(), "{bad}");
+            assert!(pull_resolve(&s, bad, "t", true, true).is_err(), "{bad}");
+        }
+        assert!(crate::rights::audit_lines(&s).unwrap().is_empty());
+        // A good ref reaches the audit log, as the number only.
+        let _ = pull_reply(&s, "pr:c1:7", "t", "x", true);
+        let lines = crate::rights::audit_lines(&s).unwrap();
+        assert_eq!(lines.last().map(|l| l.target.as_str()), Some("#7"));
+    }
+
+    #[test]
+    fn a_thread_of_another_pull_request_is_refused() {
+        let t = |id: &str| shipyard_forges::ReviewThread {
+            id: id.into(),
+            resolved: false,
+            path: None,
+            line: None,
+            comments: Vec::new(),
+            comments_total: 0,
+        };
+        let here = [t("T1"), t("T2")];
+        assert!(check_thread(&here, "T2").is_ok());
+        let e = check_thread(&here, "T9").unwrap_err();
+        assert!(e.contains("not a thread of this pull request"), "{e}");
+    }
+
+    #[test]
+    fn a_pull_request_ref_must_name_the_connection_of_the_project() {
+        assert_eq!(parse_pr_ref("pr:c1:7", "c1"), Some(7));
+        for bad in ["pr:c2:7", "pr:c1:x", "c1:7", "pr:c1", "pr:c1:7:8"] {
+            assert_eq!(parse_pr_ref(bad, "c1"), None, "{bad}");
+        }
     }
 
     #[test]

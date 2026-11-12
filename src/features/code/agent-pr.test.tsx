@@ -5,7 +5,7 @@ import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 
 const demo = () => unwrap(commands.projectsOpen("/mock/demo", false));
-const row = (name: RegExp) => screen.findByRole("button", { name });
+const row = (name: RegExp) => screen.findByRole("link", { name });
 
 describe("Code / Pull requests: agent actions", () => {
 	it("reviews with an agent, shows the finding on its line, drops one and posts once", async () => {

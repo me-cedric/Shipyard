@@ -9,6 +9,7 @@ import { editingEs } from "./editing";
 import { extensionsEs } from "./extensions";
 import { extrasEs } from "./extras";
 import { factoryEs } from "./factory";
+import { glossaryEs } from "./glossary";
 import { homeEs } from "./home";
 import { knowledgeEs } from "./knowledge";
 import { onboardingEs } from "./onboarding";
@@ -115,8 +116,10 @@ export const es: Messages = {
 		time: "Sin registros de tiempo",
 		team: "Sin miembros",
 		budget: "Sin presupuesto",
+		usage: "Aún sin uso",
 		sessions: "Sin sesiones",
 		runs: "Sin ejecuciones",
+		run: "Sin ejecución",
 		graph: "Sin grafo",
 		dashboards: "Sin paneles",
 		testPlans: "Sin planes de pruebas",
@@ -245,6 +248,11 @@ export const es: Messages = {
 		openRef: "Abrir {ref}",
 		themeTo: "Tema: {name}",
 		langTo: "Idioma: {name}",
+		activity: "Actividad",
+		needsNone: "Nada requiere su acción",
+		runsNone: "Ninguna ejecución activa",
+		account: "Cuenta",
+		changedFiles: "Archivos modificados",
 	},
 	refKind: {
 		project: "Proyecto",
@@ -907,6 +915,7 @@ export const es: Messages = {
 	assistant: assistantEs,
 	design: designEs,
 	factory: factoryEs,
+	glossary: glossaryEs,
 	settings: settingsEs,
 	specs: specsEs,
 	ui: uiEs,

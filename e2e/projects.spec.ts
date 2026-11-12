@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { openFirstFolder } from "./first-run";
 
 test("opens a folder from the first run, opens a second project and switches back", async ({
 	page,
 }) => {
 	await page.goto("/");
-	await expect(page.getByRole("button", { name: "Open a local folder" })).toBeVisible();
-	await page.getByRole("button", { name: "Open a local folder" }).click();
+	await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
+	await openFirstFolder(page);
 	// The mock picker returns /mock/alpha first. The project becomes active.
 	const switcher = page.getByRole("button", { name: /^Project/ });
 	await expect(switcher).toHaveText(/alpha/);
@@ -26,7 +27,7 @@ test("closes a project, opens it again from the recent list and switches between
 	page,
 }) => {
 	await page.goto("/");
-	await page.getByRole("button", { name: "Open a local folder" }).click();
+	await openFirstFolder(page);
 	const switcher = page.getByRole("button", { name: /^Project/ });
 	await expect(switcher).toHaveText(/alpha/);
 
@@ -54,7 +55,7 @@ test("closes a project, opens it again from the recent list and switches between
 
 test("fixes a finding in Settings / Health after one confirm click", async ({ page }) => {
 	await page.goto("/");
-	await page.getByRole("button", { name: "Open a local folder" }).click();
+	await openFirstFolder(page);
 	await page.getByRole("link", { name: /Health \(2\)/ }).click();
 	await expect(page.getByRole("heading", { name: "Compliance (1)" })).toBeVisible();
 	await page.getByRole("button", { name: "Write" }).click();
@@ -65,7 +66,7 @@ test("fixes a finding in Settings / Health after one confirm click", async ({ pa
 
 test("opens an entity from the palette and shows its backlinks", async ({ page }) => {
 	await page.goto("/");
-	await page.getByRole("button", { name: "Open a local folder" }).click();
+	await openFirstFolder(page);
 	await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
 	await page.keyboard.press("ControlOrMeta+k");
 	await page.getByRole("dialog").getByRole("combobox").fill("polling");

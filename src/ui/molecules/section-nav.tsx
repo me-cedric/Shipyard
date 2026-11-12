@@ -1,5 +1,5 @@
-import { useReducedMotion } from "motion/react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useReducedMotionPref } from "@/ui/motion";
 
 /** A row of links to the sections of a page. It stays at the top of the scroll area. */
 export function SectionNav({
@@ -9,7 +9,7 @@ export function SectionNav({
 	label: string;
 	items: { id: string; label: string; icon: ReactNode }[];
 }) {
-	const reduced = useReducedMotion();
+	const reduced = useReducedMotionPref();
 	const nav = useRef<HTMLElement>(null);
 	// Only the sections on the page: a panel with no data renders nothing, so its link would do nothing.
 	const ids = items.map((i) => i.id).join(" ");

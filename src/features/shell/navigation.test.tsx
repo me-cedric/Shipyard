@@ -40,10 +40,13 @@ describe("navigation (W15 M8)", () => {
 		await waitFor(() => expect(router.state.location.pathname).toContain("/home"));
 	});
 
-	it("opens the manual with the ? button and with F1", async () => {
+	it("opens the manual from the avatar menu and with F1", async () => {
 		const user = userEvent.setup();
 		const router = mountApp("/home");
-		await user.click(await screen.findByRole("button", { name: "Open the manual for this page" }));
+		await user.click(await screen.findByRole("button", { name: "Account" }));
+		await user.click(
+			await screen.findByRole("menuitem", { name: "Open the manual for this page" }),
+		);
 		await waitFor(() => expect(router.state.location.pathname).toBe("/knowledge/manual"));
 		await router.navigate({ to: "/work" });
 		await user.keyboard("{F1}");

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
@@ -13,9 +14,9 @@ import { Switch } from "@/ui/atoms/switch";
 import { LockClosedIcon, PlusIcon, TrashIcon, UsersIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
+import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { useGuard } from "./guard";
-import { NoProject } from "./no-project";
 import { SealBar } from "./seal";
 import {
 	AuditTail,
@@ -317,7 +318,7 @@ export function Team() {
 
 	if (active === undefined || view.isLoading)
 		return <Loading title={t.tabs.work.team} icon={<UsersIcon size={16} />} />;
-	if (active === null) return <NoProject title={t.tabs.work.team} />;
+	if (active === null) return <NoProject title={t.tabs.work.team} icon={<UsersIcon size={16} />} />;
 	const add = () => {
 		setSelected(null);
 		openDetail(t.work.team.add, <MemberForm key="new" handle={null} />);
@@ -368,58 +369,69 @@ export function Team() {
 				</div>
 			) : (
 				<div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
-					<table
-						aria-label={t.tabs.work.team}
-						className="w-full border-separate border-spacing-0 overflow-hidden rounded-lg border bg-surface-1 text-ui shadow-1"
-					>
-						<thead>
-							<tr className="text-left text-12 text-n-11 [&>th]:h-row [&>th]:border-b [&>th]:px-3 [&>th]:font-medium">
-								<th scope="col">{m.name}</th>
-								<th scope="col">{m.role}</th>
-								<th scope="col" className="text-right">
-									{m.capacity}
-								</th>
-								<th scope="col" className="text-right">
-									{m.dayRate}
-								</th>
-								<th scope="col">{m.skills}</th>
-							</tr>
-						</thead>
-						<tbody>
-							{members.map((x) => (
-								<tr
-									key={x.handle}
-									aria-label={x.handle}
-									aria-current={selected === x.handle ? "true" : undefined}
-									className="hover:bg-n-3 aria-[current=true]:bg-accent-soft [&>td]:border-b [&>td]:px-3 [&>td]:py-1.5 last:[&>td]:border-b-0"
-								>
-									<td>
-										<button
-											type="button"
-											data-nav=""
-											onClick={() => {
-												setSelected(x.handle);
-												openDetail(x.name, <MemberForm key={x.handle} handle={x.handle} />);
-											}}
-											className="flex items-center gap-2 text-left"
-										>
-											<Avatar name={x.name} className="size-6 text-11" />
-											<span className="font-medium text-n-12">{x.name}</span>
-											<span className="font-mono text-11 text-n-11">{x.handle}</span>
-										</button>
-									</td>
-									<td>{t.rights.role[x.role as keyof typeof t.rights.role] ?? x.role}</td>
-									<td className="text-right font-mono">{x.capacity ?? 0}</td>
-									<td className="text-right font-mono">
-										{x.dayRate != null ? (
+					<div className="flex w-max min-w-full flex-col rounded-lg border bg-surface-1 text-ui shadow-1">
+						<DataTable
+							flow
+							label={t.tabs.work.team}
+							data={members}
+							rowId={(x) => x.handle}
+							rowLabel={(x) => x.handle}
+							selected={selected}
+							columns={[
+								{
+									id: "name",
+									header: m.name,
+									meta: { width: "minmax(12rem, 2fr)", wrap: true },
+									cell: ({ row }) => {
+										const x = row.original;
+										return (
+											<button
+												type="button"
+												data-nav=""
+												onClick={() => {
+													setSelected(x.handle);
+													openDetail(x.name, <MemberForm key={x.handle} handle={x.handle} />);
+												}}
+												className="flex items-center gap-2 text-left"
+											>
+												<Avatar name={x.name} className="size-6 text-11" />
+												<span className="font-medium text-n-12">{x.name}</span>
+												<span className="font-mono text-11 text-n-11">{x.handle}</span>
+											</button>
+										);
+									},
+								},
+								{
+									id: "role",
+									header: m.role,
+									meta: { wrap: true },
+									cell: ({ row: { original: x } }) =>
+										t.rights.role[x.role as keyof typeof t.rights.role] ?? x.role,
+								},
+								{
+									id: "capacity",
+									header: m.capacity,
+									meta: { width: "6rem", numeric: true },
+									cell: ({ row }) => row.original.capacity ?? 0,
+								},
+								{
+									id: "dayRate",
+									header: m.dayRate,
+									meta: { width: "6rem", numeric: true },
+									cell: ({ row: { original: x } }) =>
+										x.dayRate != null ? (
 											format(m.perDay, { rate: x.dayRate })
 										) : locked ? (
 											<span role="img" aria-label={m.lockedRate} className="text-n-10">
 												<LockClosedIcon size={12} />
 											</span>
-										) : null}
-									</td>
-									<td>
+										) : null,
+								},
+								{
+									id: "skills",
+									header: m.skills,
+									meta: { width: "minmax(8rem, 2fr)", wrap: true },
+									cell: ({ row: { original: x } }) => (
 										<span className="flex flex-wrap gap-1">
 											{x.skills.map((k) => (
 												<Badge key={k} className="rounded-full">
@@ -427,11 +439,11 @@ export function Team() {
 												</Badge>
 											))}
 										</span>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
+									),
+								},
+							]}
+						/>
+					</div>
 				</div>
 			)}
 			<TeamRights />

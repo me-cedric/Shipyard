@@ -6,10 +6,13 @@ import { InboxIcon } from "../icons";
 export function EmptyState({
 	title,
 	action,
+	extra,
 	icon,
 }: {
-	title: string;
-	action: { id?: string; label: string; icon?: ReactNode; onClick: () => void; busy?: boolean };
+	title: ReactNode;
+	action?: { id?: string; label: string; icon?: ReactNode; onClick: () => void; busy?: boolean };
+	/** More actions beside the main one. */
+	extra?: ReactNode;
 	/** The icon of the page, so that two empty pages do not look the same. */
 	icon?: ReactNode;
 }) {
@@ -19,16 +22,21 @@ export function EmptyState({
 				{icon ?? <InboxIcon size={28} />}
 			</span>
 			<p className="text-14 font-medium text-n-11">{title}</p>
-			<Button
-				id={action.id}
-				variant="primary"
-				disabled={action.busy}
-				aria-busy={action.busy}
-				onClick={action.onClick}
-			>
-				{action.icon}
-				{action.label}
-			</Button>
+			<div className="flex flex-wrap justify-center gap-2">
+				{action ? (
+					<Button
+						id={action.id}
+						variant="primary"
+						disabled={action.busy}
+						aria-busy={action.busy}
+						onClick={action.onClick}
+					>
+						{action.icon}
+						{action.label}
+					</Button>
+				) : null}
+				{extra}
+			</div>
 		</div>
 	);
 }

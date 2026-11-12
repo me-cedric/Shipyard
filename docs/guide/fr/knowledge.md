@@ -6,6 +6,8 @@ Connaissances transforme les fichiers du projet en pages, documents, diapositive
 
 Graphe dessine les éléments du projet et les liens entre eux. Filtrez par type. Une vue tableau liste les mêmes éléments.
 
+Le graphe de code s’ouvre comme une carte de dossiers. Une ligne entre deux dossiers est plus épaisse quand plus d’appels passent entre leurs fichiers. Sélectionnez un dossier pour voir ses fichiers, puis un fichier pour voir ses symboles et ce qui les appelle ou ce qu’ils appellent. Tout afficher revient à la carte. Sur le graphe de code, Indexer démarre le serveur du graphe de code s’il est arrêté, construit l’index, puis arrête le serveur. Si le programme se termine par une erreur, la page nomme le programme, son code de sortie et ses dernières lignes, puis donne une action : lisez les lignes, corrigez la cause, puis cliquez de nouveau sur Indexer.
+
 - Un élément que rien ne cite s'affiche comme orphelin.
 - Un élément dont la source a changé plus tard s'affiche comme périmé.
 - Sélectionnez un élément pour l'ouvrir dans l'inspecteur.
@@ -16,7 +18,7 @@ Manuel contient les pages du manuel du projet. Lisez une page avec son sommaire 
 
 ## Mode d'emploi
 
-Mode d'emploi est ce guide. Il vient avec l'application et fonctionne sans projet. Il s'affiche dans la langue de l'application. Tapez un mot dans le champ de recherche pour trouver chaque page qui le contient. Ouvrez la palette et choisissez Ouvrir le mode d'emploi de cette page pour arriver à l'aide de la page que vous voyez.
+Mode d'emploi est ce guide. Ce n'est pas un onglet : ouvrez-le avec Mode d'emploi dans le menu du compte, avec F1 ou avec la palette. L'adresse `/knowledge/manual` l'affiche aussi. Il vient avec l'application et fonctionne sans projet. Il s'affiche dans la langue de l'application. Tapez un mot dans le champ de recherche pour trouver chaque page qui le contient. Ouvrez la palette et choisissez Ouvrir le mode d'emploi de cette page pour arriver à l'aide de la page que vous voyez.
 
 ## Documents
 

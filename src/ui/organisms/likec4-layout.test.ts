@@ -29,6 +29,17 @@ describe("likec4 layout", () => {
 		});
 	});
 
+	it("grows the box over a node or a point that bounds misses (negative x)", () => {
+		const l = toLayout({
+			id: "v",
+			bounds: { x: 0, y: 0, width: 100, height: 50 },
+			nodes: [{ id: "a", title: "A", x: -40, y: 0, width: 30, height: 20, parent: null }],
+			edges: [{ id: "e", points: [[120, 60]] }],
+		});
+		expect(l).toMatchObject({ width: 160, height: 60 });
+		expect(l.nodes[0]).toMatchObject({ x: 0, y: 0 });
+	});
+
 	it("draws a curve for 1 + 3n points and a line for others", () => {
 		expect(
 			edgePath([

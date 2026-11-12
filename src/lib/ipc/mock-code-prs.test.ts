@@ -9,9 +9,13 @@ import {
 	onTerminalOutput,
 	pullComment,
 	pullDetail,
+	pullLineComment,
 	pullMerge,
 	pullOpen,
 	pullReady,
+	pullReply,
+	pullResolve,
+	pullReviewSubmit,
 	pullVerdict,
 	qualityView,
 	scannerInstall,
@@ -36,6 +40,58 @@ describe("the Code forge mock", () => {
 			"approved",
 			"changes-requested",
 		]);
+	});
+
+	it("keeps a general comment apart from the threads, and replies to and resolves a thread", () => {
+		const p = seedPrs();
+		pullComment(p, 141, "ok", true);
+		expect(pullDetail(p, 141).comments.map((c) => c.body)).toEqual(["ok"]);
+		expect(pullDetail(p, 141).threads).toEqual([]);
+		expect(() => pullReply(p, "pr:github-demo:142", "T1", "x", false)).toThrow("click");
+		expect(() => pullReply(p, "pr:github-demo:142", "T1", " ", true)).toThrow("some text");
+		pullReply(p, "pr:github-demo:142", "T1", "done", true);
+		expect(pullDetail(p, 142).threads[0]?.comments).toHaveLength(3);
+		pullResolve(p, "pr:github-demo:142", "T1", true, true);
+		expect(pullDetail(p, 142).threads[0]?.resolved).toBe(true);
+		expect(() => pullResolve(p, "pr:github-demo:142", "nope", true, true)).toThrow("not found");
+	});
+
+	it("turns a review into one thread for each line in the diff and folds the rest in the text", () => {
+		const p = seedPrs();
+		const ref = "pr:github-demo:141";
+		const path = pullDetail(p, 141).files[0]?.path ?? "";
+		const note = (line: number) => ({ path, line, body: `note ${line}`, headSha: "abc1234" });
+		expect(() => pullReviewSubmit(p, ref, "approve", "", [], "abc1234", false)).toThrow("click");
+		expect(() => pullReviewSubmit(p, ref, "merge", "x", [], "abc1234", true)).toThrow("verdict");
+		expect(() =>
+			pullReviewSubmit(p, ref, "request_changes", " ", [note(1)], "abc1234", true),
+		).toThrow("some text");
+		expect(() => pullReviewSubmit(p, ref, "comment", "", [], "abc1234", true)).toThrow("empty");
+		const r = pullReviewSubmit(
+			p,
+			ref,
+			"request_changes",
+			"fix",
+			[note(1), note(99)],
+			"abc1234",
+			true,
+		);
+		expect(r).toEqual({ inline: 1, inBody: 1, failed: [] });
+		const d = pullDetail(p, 141);
+		expect(d.threads.map((t) => [t.path, t.line, t.resolved])).toEqual([[path, 1, false]]);
+		expect(d.verdicts.map((v) => v.state)).toContain("changes-requested");
+		expect(d.comments.at(-1)?.body).toContain(`${path}:99`);
+		expect(pullLineComment(p, ref, path, 2, "one", "abc1234", true)).toEqual({
+			inline: 1,
+			inBody: 0,
+			failed: [],
+		});
+		expect(pullDetail(p, 141).threads).toHaveLength(2);
+		// A note of an older push goes in the text, with its label, not on a line.
+		const old = { ...note(2), headSha: "0000000" };
+		expect(pullReviewSubmit(p, ref, "comment", "", [old], "abc1234", true).inBody).toBe(1);
+		expect(pullDetail(p, 141).threads).toHaveLength(2);
+		expect(pullDetail(p, 141).comments.at(-1)?.body).toContain("(older version)");
 	});
 
 	it("keeps a draft from merging until it is marked ready", () => {

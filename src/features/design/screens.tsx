@@ -9,6 +9,7 @@ import { Button } from "@/ui/atoms/button";
 import { ComputerDesktopIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Loading } from "@/ui/molecules/loading";
 import { EditorPreview } from "@/ui/molecules/pane-toggle";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { ZoomFrame } from "@/ui/molecules/zoom-frame";
@@ -50,6 +51,7 @@ function Preview({ path, label }: { path: string; label: string }) {
 		},
 	});
 	if (q.error) return <ErrorNotice error={q.error} />;
+	if (q.isLoading) return <Loading rows={2} />;
 	if (!q.data) return null;
 	if (html) return <HtmlPreview html={q.data} label={label} />;
 	const src = ext === "svg" ? svgDataUri(q.data) : q.data;

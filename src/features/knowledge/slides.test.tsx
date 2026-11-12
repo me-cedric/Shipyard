@@ -158,15 +158,9 @@ describe("Knowledge / Slides", () => {
 
 	it("removes the transitions of a Markdown deck under reduced motion", async () => {
 		const user = userEvent.setup();
-		const reduced = ((query: string) => ({
-			matches: query.includes("reduced-motion"),
-			media: query,
-			addEventListener: () => {},
-			removeEventListener: () => {},
-		})) as unknown as typeof window.matchMedia;
+		// The motion preference of the person, not the system: the deck follows the one source.
+		mockState().prefs.motion = "reduce";
 		await mountKnowledge("slides");
-		// mountKnowledge sets a plain matchMedia: set it again after the mount.
-		window.matchMedia = reduced;
 		await open(user);
 		await screen.findByRole("region", { name: "Slides (5)" });
 		await waitFor(() => expect(reveal.configs.at(-1)?.transition).toBe("none"));

@@ -61,6 +61,15 @@ function useProjectQuery<T>(k: readonly string[], fn: () => Promise<T>) {
 export const useGraph = () => useProjectQuery(key("graph"), () => unwrap(commands.graphGet()));
 export const useCodeGraph = () =>
 	useProjectQuery(key("code-graph"), () => unwrap(commands.graphCode()));
+/** The symbols of one file and their callers and callees, for the focus view of the code graph. */
+export function useCodeFocus(file: string | null) {
+	const active = useActiveProject().data;
+	return useQuery({
+		queryKey: key("code-focus", file ?? ""),
+		queryFn: () => unwrap(commands.graphCodeFocus(file ?? "")),
+		enabled: !!active && file !== null,
+	});
+}
 export const useLearn = () => useProjectQuery(key("learn"), () => unwrap(commands.learnGet()));
 export const useDocList = () =>
 	useProjectQuery(knowledgeKeys.docs, () => unwrap(commands.docListGet()));

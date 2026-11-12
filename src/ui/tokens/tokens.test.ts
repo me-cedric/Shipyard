@@ -1,3 +1,5 @@
+import { DURATION } from "../motion";
+
 // The vite config aliases node:fs to a browser stub, so the test takes the real module from process.
 const { readFileSync } = (
 	globalThis as unknown as {
@@ -118,6 +120,37 @@ describe("tokens (REQ-001)", () => {
 			)
 				continue;
 			for (const re of rules) if (re.test(text)) hits.push(`${path}: ${re}`);
+		}
+		expect(hits).toEqual([]);
+	});
+});
+
+describe("shared timing (REQ-025)", () => {
+	it("mirrors the duration tokens in DURATION (ms)", () => {
+		const theme = block("@theme");
+		expect(`${DURATION.fast}ms`).toBe(decl(theme, "--duration-fast"));
+		expect(`${DURATION.base}ms`).toBe(decl(theme, "--duration-base"));
+	});
+
+	it("has no local duration in src/ui, src/features and src/app", () => {
+		const hits: string[] = [];
+		// A glyph that animates itself, a number that counts up and the SVG path data of the brand logos are not transitions of the interface.
+		const own =
+			/\.test\.tsx?$|ui\/icons\/|atoms\/animated-icon\.tsx$|atoms\/count-up\.tsx$|atoms\/brands\.ts$/;
+		for (const [path, text] of Object.entries(sources)) {
+			if (own.test(path)) continue;
+			for (const [i, line] of text.split("\n").entries()) {
+				const local =
+					/duration-\[|(?<![\w.])\d*\.?\d+m?s\b(?!\w)/.test(line) ||
+					// A number in the value of `duration` or `delay`. Zero means no motion.
+					/\b(?:duration|delay):[^,}]*(?<![\w.])(?!0(?![.\d]))\d/.test(line) ||
+					// A spring made by hand: only `ui/motion.ts` holds spring numbers.
+					(!/ui\/motion\.ts$/.test(path) && /\b(?:stiffness|damping|mass):\s*\d/.test(line)) ||
+					// A Tailwind transition class with no duration token on its line.
+					(/["'`][^"'`]*(?<![\w-])transition(?:-(?!none\b)[\w[\],-]+)?(?=[\s"'`])/.test(line) &&
+						!line.includes("duration-(--duration-"));
+				if (local) hits.push(`${path}:${i + 1}: ${line.trim().slice(0, 80)}`);
+			}
 		}
 		expect(hits).toEqual([]);
 	});

@@ -525,6 +525,80 @@ fn a_server_that_dies_before_it_answers_fails() {
 }
 
 #[test]
+fn a_server_that_exits_names_the_program_its_code_and_its_stderr() {
+    let lab = Lab::new();
+    program(
+        lab.dir.path(),
+        "exits3",
+        "echo 'daemon not ready' >&2\nexit 3",
+    );
+    let control = lab.control();
+    let id = control.add_custom(custom("Exits", "exits3")).unwrap().id;
+    let Err(AgentError::Server(text)) = control.start(&id) else {
+        panic!("the start must fail");
+    };
+    assert!(
+        text.starts_with("`exits3` failed: exited with code 3: daemon not ready"),
+        "{text}"
+    );
+}
+
+#[test]
+fn a_secret_across_the_cut_of_a_stderr_line_is_masked() {
+    let lab = Lab::new();
+    // The secret starts at column 195 of the line: the cut at 200 characters falls inside it.
+    program(
+        lab.dir.path(),
+        "leaks",
+        "printf '%0195d' 0 >&2\necho \"$TOKEN\" >&2\nexit 3",
+    );
+    let control = lab.control();
+    let mut input = custom("Leaks", "leaks");
+    input.env = vec![("TOKEN".into(), Secret::new("sk-abcdefghij"))]; // shipyard:allow-secret
+    let id = control.add_custom(input).unwrap().id;
+    let Err(AgentError::Server(text)) = control.start(&id) else {
+        panic!("the start must fail");
+    };
+    assert!(text.contains("exited with code 3"), "{text}");
+    assert!(!text.contains("sk-"), "{text}");
+}
+
+#[test]
+fn a_stderr_line_without_a_newline_does_not_grow_without_limit() {
+    let lab = Lab::new();
+    program(
+        lab.dir.path(),
+        "floods",
+        "head -c 300000 /dev/zero | tr '\\0' x >&2\nexit 3",
+    );
+    let control = lab.control();
+    let id = control.add_custom(custom("Floods", "floods")).unwrap().id;
+    let Err(AgentError::Server(text)) = control.start(&id) else {
+        panic!("the start must fail");
+    };
+    assert!(
+        text.starts_with("`floods` failed: exited with code 3: xxx"),
+        "{text}"
+    );
+    assert!(text.len() < 400, "{}", text.len());
+}
+
+#[test]
+fn a_server_that_exits_before_the_first_write_still_names_itself() {
+    let lab = Lab::new();
+    program(lab.dir.path(), "early", "echo 'too early' >&2\nexit 4");
+    let control = lab.control();
+    let id = control.add_custom(custom("Early", "early")).unwrap().id;
+    let Err(AgentError::Server(text)) = control.start(&id) else {
+        panic!("the start must fail");
+    };
+    assert!(
+        text.starts_with("`early` failed: exited with code 4: too early"),
+        "{text}"
+    );
+}
+
+#[test]
 fn a_dead_server_starts_again_on_the_next_request() {
     let lab = Lab::new();
     let (control, id) = lab.with_fake();

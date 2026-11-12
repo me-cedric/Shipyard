@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
 import { useId, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
@@ -29,6 +30,7 @@ import {
 } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
+import { DataTable } from "@/ui/organisms/data-table";
 import { learningKey, openAddress } from "./learn-feeds";
 
 const KINDS: StepKind[] = ["course", "certification", "reading"];
@@ -313,37 +315,32 @@ export function LearnPaths() {
 			</Panel>
 			{paths.length && people.length ? (
 				<Panel title={k.team} icon={<UsersIcon size={14} />} flush>
-					<div className="overflow-auto">
-						<table className="w-full text-ui">
-							<thead>
-								<tr className="border-b text-left text-12 text-n-11">
-									<th scope="col" className="px-3 py-1.5 font-medium">
-										{k.person}
-									</th>
-									{paths.map((p) => (
-										<th key={p.id} scope="col" className="px-3 py-1.5 font-medium">
-											{p.title}
-										</th>
-									))}
-								</tr>
-							</thead>
-							<tbody>
-								{people.map((m) => (
-									<tr key={m.handle} className="border-b last:border-b-0">
-										<th scope="row" className="px-3 py-1.5 text-left font-normal text-n-12">
-											{m.name}
-										</th>
-										{paths.map((p) => (
-											<td key={p.id} className="px-3 py-1.5 font-mono text-12 text-n-11">
-												{p.steps.filter((s) => doneBy(m.handle).includes(stepKey(p, s))).length}/
-												{p.steps.length}
-											</td>
-										))}
-									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
+					<DataTable
+						label={k.team}
+						data={people}
+						rowId={(m) => m.handle}
+						columns={[
+							{
+								id: "person",
+								header: k.person,
+								accessorFn: (m) => m.name,
+								meta: { rowHeader: true, wrap: true },
+							},
+							...paths.map<ColumnDef<(typeof people)[number]>>((p) => ({
+								id: p.id,
+								header: p.title,
+								cell: ({ row }) => (
+									<span className="font-mono text-12 text-n-11">
+										{
+											p.steps.filter((s) => doneBy(row.original.handle).includes(stepKey(p, s)))
+												.length
+										}
+										/{p.steps.length}
+									</span>
+								),
+							})),
+						]}
+					/>
 				</Panel>
 			) : null}
 		</>

@@ -406,6 +406,20 @@
 	outline-offset: 2px;
 }
 
+/* Loaded content fades in under its page header (`loading.tsx` marks the parent). The header never fades. */
+@keyframes reveal {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+[data-reveal] [data-page-header] ~ * {
+	animation: reveal var(--duration-fast) ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	::before,

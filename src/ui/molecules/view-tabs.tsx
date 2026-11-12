@@ -1,7 +1,7 @@
 import { Tabs } from "@base-ui/react/tabs";
-import type { ReactNode } from "react";
-import { cn } from "@/lib/utils";
-import { THUMB } from "../atoms/segmented";
+import { motion } from "motion/react";
+import { type ReactNode, useId } from "react";
+import { SPRING } from "../motion";
 
 export type ViewTab<V extends string> = { value: V; label: string; icon?: ReactNode };
 
@@ -17,6 +17,8 @@ export function ViewTabs<V extends string>({
 	onValueChange: (value: V) => void;
 	tabs: ViewTab<V>[];
 }) {
+	// One pill for each row: two rows on a page do not share it.
+	const pill = useId();
 	return (
 		<Tabs.Root value={value} onValueChange={(v) => onValueChange(v as V)}>
 			<Tabs.List
@@ -27,18 +29,21 @@ export function ViewTabs<V extends string>({
 					<Tabs.Tab
 						key={tab.value}
 						value={tab.value}
-						className="inline-flex h-6 items-center gap-1.5 rounded-sm px-2 text-ui text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 data-[active]:text-n-12"
+						className="relative isolate inline-flex h-6 items-center gap-1.5 rounded-sm px-2 text-ui text-n-11 transition-colors duration-(--duration-fast) hover:text-n-12 data-[active]:text-n-12"
 					>
+						{tab.value === value ? (
+							<motion.span
+								layoutId={pill}
+								data-pill=""
+								aria-hidden="true"
+								transition={SPRING.smooth}
+								className="absolute inset-0 -z-10 rounded-sm bg-n-4"
+							/>
+						) : null}
 						{tab.icon}
 						{tab.label}
 					</Tabs.Tab>
 				))}
-				<Tabs.Indicator
-					className={cn(
-						THUMB,
-						"inset-y-0.5 left-0 -z-10 w-(--active-tab-width) translate-x-(--active-tab-left) rounded-sm bg-n-4 transition-[translate,width]",
-					)}
-				/>
 			</Tabs.List>
 		</Tabs.Root>
 	);

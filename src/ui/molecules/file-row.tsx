@@ -1,4 +1,5 @@
 import type { VariantProps } from "class-variance-authority";
+import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 import { Badge, type badgeVariants } from "../atoms/badge";
 import { Checkbox } from "../atoms/checkbox";
@@ -14,7 +15,7 @@ export type FileState =
 	| "conflicted";
 
 // A letter and a colour together, so the mark never relies on colour alone.
-const MARK: Record<
+export const FILE_MARK: Record<
 	FileState,
 	{ letter: string; variant: NonNullable<VariantProps<typeof badgeVariants>["variant"]> }
 > = {
@@ -40,6 +41,8 @@ export function FileRow({
 	onSelect,
 	check,
 	menu,
+	buttonProps,
+	badge,
 }: {
 	name: string;
 	state?: FileState;
@@ -51,8 +54,12 @@ export function FileRow({
 	onSelect?: () => void;
 	check?: { checked: boolean; label: string; onChange: (checked: boolean) => void };
 	menu?: MenuItem[];
+	/** More props for the button, such as a roving `tabIndex` or `aria-expanded`. */
+	buttonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
+	/** Text after the name, such as a count of comments. */
+	badge?: string;
 }) {
-	const mark = state ? MARK[state] : null;
+	const mark = state ? FILE_MARK[state] : null;
 	return (
 		<ContextMenu items={menu}>
 			<div
@@ -80,6 +87,7 @@ export function FileRow({
 				) : null}
 				<button
 					type="button"
+					{...buttonProps}
 					onClick={onSelect}
 					aria-current={selected || undefined}
 					className={cn(
@@ -89,6 +97,7 @@ export function FileRow({
 				>
 					{name}
 				</button>
+				{badge ? <Badge variant="info">{badge}</Badge> : null}
 			</div>
 		</ContextMenu>
 	);

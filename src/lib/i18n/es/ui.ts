@@ -5,7 +5,6 @@ export const uiEs: typeof uiEn = {
 	diagram: "Diagrama",
 	sections: "Secciones",
 	back: "Atrás",
-	repo: "{changed} modificados, {ahead} por enviar, {behind} por traer",
 	ahead: "Por delante",
 	behind: "Por detrás",
 	changes: "Cambios",

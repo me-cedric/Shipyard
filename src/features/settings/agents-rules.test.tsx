@@ -159,6 +159,19 @@ describe("Settings / Agents and rules: tool sign-in", () => {
 		expect(within(gemini).getByRole("button", { name: "Install Gemini CLI" })).toBeInTheDocument();
 	});
 
+	it("asks before it installs a missing tool, and names the tool", async () => {
+		const user = userEvent.setup();
+		mountApp("/settings/agents-rules");
+		const gemini = await row("Gemini CLI");
+		await user.click(within(gemini).getByRole("button", { name: "Install Gemini CLI" }));
+		await user.click(
+			await within(gemini).findByRole("button", { name: /to install Gemini CLI\?$/ }),
+		);
+		await waitFor(() =>
+			expect(within(gemini).queryByRole("button", { name: /Install/ })).toBeNull(),
+		);
+	});
+
 	it("signs in from the keyboard and shows the new state", async () => {
 		const user = userEvent.setup();
 		mountApp("/settings/agents-rules");

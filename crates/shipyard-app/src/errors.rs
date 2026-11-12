@@ -152,7 +152,7 @@ impl ErrorCode {
             }
             Self::NoRemote => (ActionKind::Open, "/code/branches"),
             Self::NoCompass => (ActionKind::Open, "/settings/agents-rules#compass-upgrade"),
-            Self::ToolMissing => (ActionKind::Open, "/settings/health#tools"),
+            Self::ToolMissing | Self::ToolFailed => (ActionKind::Open, "/settings/health#tools"),
             Self::ConnectionKind => (ActionKind::Setting, "/settings/connections#connections"),
             Self::SignInFailed => (ActionKind::Setting, "/settings/connections#connections"),
             Self::GitState => (ActionKind::Open, "/code/branches"),
@@ -171,6 +171,9 @@ impl ErrorCode {
 }
 
 /// The raw texts that the Rust code makes, by the part that is the same each time. The first match wins.
+/// The text of a code host `NotFound` starts with it. A "branch not found:" or a tracker text does not.
+pub const FORGE_MISSING: &str = "code host: not found: ";
+
 pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("no project is open", ErrorCode::NoProject),
     ("no active project", ErrorCode::NoProject),
@@ -208,6 +211,7 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("HTTP 401", ErrorCode::ForgeDenied),
     ("HTTP 403", ErrorCode::ForgeDenied),
     ("HTTP 404", ErrorCode::ForgeMissing),
+    ("code host: not found: ", ErrorCode::ForgeMissing),
     ("network error:", ErrorCode::ForgeUnreachable),
     ("nothing is staged", ErrorCode::GitNothingStaged),
     ("no git identity", ErrorCode::GitIdentity),
@@ -429,12 +433,36 @@ impl AppError {
     }
 }
 
+/// The code of a "`<program>` failed: ..." text. The text after "failed:" is the program's own
+/// output, so it never picks the code. The sign-in of a runner keeps its own code.
+fn program_failed(text: &str) -> Option<ErrorCode> {
+    let (program, _) = text.strip_prefix('`')?.split_once("` failed:")?;
+    if program.contains('`') {
+        return None;
+    }
+    Some(if program.starts_with("codex login") {
+        ErrorCode::SignInFailed
+    } else {
+        ErrorCode::ToolFailed
+    })
+}
+
 impl From<String> for AppError {
     fn from(text: String) -> Self {
-        let code = KNOWN
-            .iter()
-            .find(|(needle, _)| text.contains(needle))
-            .map_or(ErrorCode::Unknown, |(_, code)| *code);
+        let code = program_failed(&text)
+            .or_else(|| {
+                KNOWN
+                    .iter()
+                    .find(|(needle, _)| {
+                        if *needle == FORGE_MISSING {
+                            text.starts_with(needle)
+                        } else {
+                            text.contains(needle)
+                        }
+                    })
+                    .map(|(_, code)| *code)
+            })
+            .unwrap_or(ErrorCode::Unknown);
         Self::new(code, text)
     }
 }
@@ -483,6 +511,18 @@ mod tests {
             e.action.unwrap().target,
             "/settings/connections#connections"
         );
+        // A pull request that the code host does not know is a missing item, not an unknown error.
+        let e = AppError::from("code host: not found: acme/web#999");
+        assert_eq!(e.code, ErrorCode::ForgeMissing);
+        // The same words from a branch, a stash, a worktree or a tracker keep their own code.
+        for text in [
+            "branch not found: x",
+            "stash not found: 2",
+            "worktree not found: w",
+            "issue not found: A-1",
+        ] {
+            assert_eq!(AppError::from(text).code, ErrorCode::Unknown, "{text}");
+        }
         // An outage has no action: a forge outage must not read the tracker again.
         let e = AppError::from("network error: connection refused");
         assert_eq!((e.code, e.action), (ErrorCode::ForgeUnreachable, None));
@@ -511,6 +551,14 @@ mod tests {
         let e = AppError::from("the orca command is not installed");
         assert_eq!(e.code, ErrorCode::ToolMissing);
         assert_eq!(e.action.unwrap().target, "/settings/health#tools");
+        let e = AppError::from("`codebase-memory-mcp` failed: exited with code 3: no daemon");
+        assert_eq!(e.code, ErrorCode::ToolFailed);
+        assert_eq!(e.action.unwrap().target, "/settings/health#tools");
+        // The stderr tail of a program never picks the code, and the runner sign-in keeps its own.
+        let e = AppError::from("`fake-mcp` failed: exited with code 2: no such file or directory");
+        assert_eq!(e.code, ErrorCode::ToolFailed);
+        let e = AppError::from("`codex login --with-api-key` failed: the file is not installed");
+        assert_eq!(e.code, ErrorCode::SignInFailed);
         let e = AppError::from("the title is empty");
         assert_eq!(e.code, ErrorCode::InputInvalid);
         // The base branch text keeps the base code, not the missing-path code.

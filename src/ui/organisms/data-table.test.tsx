@@ -57,3 +57,37 @@ describe("DataTable columns", () => {
 		);
 	});
 });
+
+describe("DataTable row names", () => {
+	it("shows a row header cell and a row label", () => {
+		renderApp(
+			<div style={{ height: 300, display: "flex" }}>
+				<DataTable
+					columns={[
+						{ ...columns[0], meta: { rowHeader: true } } as ColumnDef<Row>,
+						columns[1] as ColumnDef<Row>,
+					]}
+					data={data}
+					rowId={(r) => r.id}
+					label="Things"
+					rowLabel={(r) => `${r.id} levels`}
+				/>
+			</div>,
+		);
+		expect(screen.getByRole("rowheader", { name: "one" })).toBeInTheDocument();
+		expect(screen.getByRole("row", { name: "1 levels" })).toBeInTheDocument();
+	});
+});
+
+describe("DataTable flow mode", () => {
+	it("keeps the rows in normal flow with an automatic height", () => {
+		renderApp(<DataTable flow columns={columns} data={data} rowId={(r) => r.id} label="Things" />);
+		const row = screen.getByRole("row", { name: /one/ });
+		expect(row.style.height).toBe("");
+		expect(row).toHaveClass("min-h-row");
+		expect(row).not.toHaveClass("h-row");
+		expect(row.closest("[data-index]")).toBeNull();
+		expect(row.parentElement?.className).not.toContain("absolute");
+		expect(screen.getByRole("columnheader", { name: "Alpha" })).toHaveAttribute("title", "Alpha");
+	});
+});

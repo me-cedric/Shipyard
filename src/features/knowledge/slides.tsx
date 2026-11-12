@@ -18,6 +18,7 @@ import {
 	XMarkIcon,
 } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Loading } from "@/ui/molecules/loading";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
 import { ListTab } from "./list-tab";
@@ -245,7 +246,7 @@ function MarkdownDeck({ path, title }: { path: string; title: string }) {
 			labels={k.editor}
 		>
 			{theme ? (
-				<Suspense fallback={null}>
+				<Suspense fallback={<Loading rows={3} />}>
 					<div className="min-h-0 overflow-auto">
 						<SlideDeck
 							slides={slides}

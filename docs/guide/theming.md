@@ -1,6 +1,6 @@
 # Theming
 
-Shipyard has five built-in themes and a library of themes that you import. Choose the theme in Settings / Me.
+Shipyard has five built-in themes and a library of themes that you import. Choose the theme in Settings / Me or in the account menu.
 
 ## Built-in themes
 

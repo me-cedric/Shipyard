@@ -23,31 +23,34 @@ const RING: Record<StepStatus, string> = {
 /** One step of a run: its shape and colour for the state, its id, and the units of a `for_each` step. Only a running step moves and glows. */
 export function RunStep({
 	id,
+	name,
 	state,
 	units,
 }: {
 	id: string;
+	/** What the person reads in place of the id. */
+	name?: string;
 	state: StepStatus;
 	/** The number of children of a `for_each` step. Omit it for another step. */
 	units?: number;
 }) {
 	const { t } = useI18n();
 	return (
-		<figure
-			aria-label={id}
+		// A span with a role: a step sits inside a button in a list, where a figure or a fieldset is not valid.
+		// biome-ignore lint/a11y/useSemanticElements: a fieldset is not valid inside a button
+		<span
+			role="group"
+			aria-label={name ?? id}
 			data-state={state}
-			className={cn(
-				"m-0 flex h-8 items-center gap-2 rounded-md border px-2.5 text-ui",
-				RING[state],
-			)}
+			className={cn("flex h-8 items-center gap-2 rounded-md border px-2.5 text-ui", RING[state])}
 		>
 			<StatusDot status={STEP_STATUS[state]} label={t.factory.step[state]} />
-			<span className="font-mono text-12">{id}</span>
+			<span className={cn("text-12", !name && "font-mono")}>{name ?? id}</span>
 			{units ? (
 				<span className="font-mono text-11 text-n-11">
 					{t.factory.units} {units}
 				</span>
 			) : null}
-		</figure>
+		</span>
 	);
 }

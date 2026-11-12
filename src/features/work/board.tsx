@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
@@ -19,7 +20,6 @@ import { Board as BoardTemplate } from "@/ui/templates/board";
 import { statusesOf, useEstimateDays, useRunOf } from "./backlog";
 import { applyFilters, type Filters, ItemFilters, NO_FILTER } from "./filters";
 import { useGuard } from "./guard";
-import { NoProject } from "./no-project";
 import { TicketDetail } from "./ticket-detail";
 
 /** Work / Board: one column for each tracker status. A move sends the transition (REQ-002). */
@@ -49,7 +49,8 @@ export function Board() {
 
 	if (active === undefined || everything.isLoading)
 		return <Loading title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />} />;
-	if (active === null) return <NoProject title={t.tabs.work.board} />;
+	if (active === null)
+		return <NoProject title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />} />;
 	if (all.length === 0)
 		return (
 			<BoardTemplate title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />} count={0}>

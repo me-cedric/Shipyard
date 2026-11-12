@@ -343,7 +343,7 @@ export function useActions() {
 					id: `theme-${theme}`,
 					label: format(t.shell.themeTo, { name: t.theme[theme] }),
 					Icon: THEME_ICON[theme],
-					run: () => setPrefs({ theme }),
+					run: () => setPrefs({ theme, customTheme: "" }),
 				}),
 			),
 			...LANGS.map(

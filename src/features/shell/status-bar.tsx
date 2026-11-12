@@ -7,6 +7,7 @@ import { useShell } from "@/lib/shell";
 import { useWhatsNew } from "@/lib/updates/whats-new";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import type { Action } from "./actions";
+import { useCounts } from "./counts";
 
 const button =
 	"inline-flex h-4 items-center gap-1.5 rounded-sm px-1.5 text-11 text-n-11 hover:bg-n-3 hover:text-n-12 disabled:pointer-events-none disabled:opacity-50";
@@ -29,6 +30,7 @@ export function StatusBar({ commit }: { commit: Action }) {
 	const notice = useWatchNotice().data?.changes[0];
 	const health = useHealth();
 	const changes = useChanges().data;
+	const { changed } = useCounts();
 	const n = (v: number) => v.toLocaleString();
 	// "Changes: {added} lines added, {removed} removed": the text around the two numbers.
 	const lines = t.shell.lines.split(/\{added\}|\{removed\}/);
@@ -43,6 +45,17 @@ export function StatusBar({ commit }: { commit: Action }) {
 	return (
 		<>
 			<ActionButton action={commit} />
+			{changed ? (
+				// The count of changed files. A click opens the changes. The number is in the name (WCAG 2.5.3).
+				<Link to="/code/changes" className={button}>
+					<span className="sr-only">
+						{format(t.count, { name: t.shell.changedFiles, count: changed })}
+					</span>
+					<span aria-hidden="true" className="font-mono text-warning-text">
+						●{changed}
+					</span>
+				</Link>
+			) : null}
 			{changes && (changes.added > 0 || changes.removed > 0) ? (
 				// Lines added and removed since the last commit. A click opens the changes.
 				// The visible numbers sit inside the spoken sentence (WCAG 2.5.3, label in name).

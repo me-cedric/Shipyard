@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { openFirstFolder } from "./first-run";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
@@ -6,7 +7,7 @@ const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" }
 /** Opens the mock project, then the Knowledge space on the given tab. */
 async function openKnowledge(page: Page, tab: string) {
 	await page.goto("/home/today");
-	await page.getByRole("button", { name: "Open a local folder" }).click();
+	await openFirstFolder(page);
 	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Knowledge" }).click();
 	await tabs(page).getByRole("link", { name: tab }).click();

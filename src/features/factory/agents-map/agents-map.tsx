@@ -1,17 +1,21 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { NoProject } from "@/features/work/no-project";
+import { NoProject } from "@/features/shell/no-project";
 import { useRuns, useSessions } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
+import { copyText } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
+import { runnerName } from "@/ui/atoms/brand-icon";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { ShareIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Loading } from "@/ui/molecules/loading";
 import { STEP_STATUS } from "@/ui/molecules/run-step";
 import { type CanvasNode, GraphCanvas } from "@/ui/organisms/graph-canvas";
 import { ListDetail } from "@/ui/templates/list-detail";
+import { nameOf } from "../runs/run-live";
 
 /** Factory / Agents map: agents, tickets, files and refs. A node opens its entity in the inspector (factory REQ-030). */
 export function AgentsMap() {
@@ -22,23 +26,31 @@ export function AgentsMap() {
 	const sessions = useSessions();
 	const { openRef, selectedRef } = useShell();
 	const navigate = useNavigate();
+	const copyRef = t.context.copyRef;
 	const graph = useMemo(() => {
 		const nodes = new Map<string, CanvasNode>();
 		const links: [string, string][] = [];
 		const live = new Set<string>();
-		const add = (n: CanvasNode) => nodes.set(n.id, n);
+		// A node shows a plain name; its raw ref is its tooltip and the item Copy ref of its menu.
+		const add = (n: CanvasNode) =>
+			nodes.set(n.id, {
+				...n,
+				title: n.id,
+				menu: [{ id: "copy", label: copyRef, onSelect: () => copyText(n.id) }],
+			});
 		for (const r of runs.data ?? []) {
 			const ticket = `wi:${r.key}`;
 			add({ id: ticket, kind: "ticket", label: r.key, name: `${f.ticket} ${r.key}` });
 			add({
 				id: r.reference,
 				kind: "ref",
-				label: r.reference,
-				name: `${f.ref} ${r.reference}`,
+				label: `${r.key} ${r.title}`,
+				name: `${f.ref} ${r.key} ${r.title}`,
 			});
 			links.push([ticket, r.reference]);
 			for (const p of new Set(r.findings.flatMap((x) => (x.path ? [x.path] : [])))) {
-				add({ id: `doc:${p}`, kind: "file", label: p, name: `${f.file} ${p}` });
+				const file = p.split("/").at(-1) ?? p;
+				add({ id: `doc:${p}`, kind: "file", label: file, name: `${f.file} ${file}` });
 				links.push([ticket, `doc:${p}`]);
 			}
 		}
@@ -47,22 +59,23 @@ export function AgentsMap() {
 			add({
 				id,
 				kind: "agent",
-				label: `${s.runner} ${s.step}`,
-				name: `${f.agent} ${s.runner} ${s.step}`,
+				label: `${runnerName(s.runner)} ${nameOf(s.step)}`,
+				name: `${f.agent} ${runnerName(s.runner)} ${nameOf(s.step)}`,
 				status: STEP_STATUS[s.state],
 			});
 			if (s.state === "running") live.add(id);
 			links.push([id, `wi:${s.key}`]);
 		}
 		return { nodes: [...nodes.values()], links, live };
-	}, [runs.data, sessions.data, f]);
+	}, [runs.data, sessions.data, f, copyRef]);
 	const kinds = [
 		{ id: "agent", label: f.agent },
 		{ id: "ticket", label: f.ticket },
 		{ id: "file", label: f.file },
 		{ id: "ref", label: f.ref },
 	];
-	if (active === null) return <NoProject title={f.agentsMap} />;
+	if (active === undefined) return <Loading title={f.agentsMap} icon={<ShareIcon size={16} />} />;
+	if (active === null) return <NoProject title={f.agentsMap} icon={<ShareIcon size={16} />} />;
 	return (
 		<ListDetail
 			title={f.agentsMap}

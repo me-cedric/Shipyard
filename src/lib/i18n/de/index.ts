@@ -9,6 +9,7 @@ import { editingDe } from "./editing";
 import { extensionsDe } from "./extensions";
 import { extrasDe } from "./extras";
 import { factoryDe } from "./factory";
+import { glossaryDe } from "./glossary";
 import { homeDe } from "./home";
 import { knowledgeDe } from "./knowledge";
 import { onboardingDe } from "./onboarding";
@@ -115,8 +116,10 @@ export const de: Messages = {
 		time: "Keine Zeiteinträge",
 		team: "Keine Mitglieder",
 		budget: "Kein Budget",
+		usage: "Noch keine Nutzung",
 		sessions: "Keine Sitzungen",
 		runs: "Keine Läufe",
+		run: "Kein Lauf",
 		graph: "Kein Graph",
 		dashboards: "Keine Dashboards",
 		testPlans: "Keine Testpläne",
@@ -246,6 +249,11 @@ export const de: Messages = {
 		openRef: "{ref} öffnen",
 		themeTo: "Design: {name}",
 		langTo: "Sprache: {name}",
+		activity: "Aktivität",
+		needsNone: "Nichts braucht Sie",
+		runsNone: "Kein aktiver Lauf",
+		account: "Konto",
+		changedFiles: "Geänderte Dateien",
 	},
 	refKind: {
 		project: "Projekt",
@@ -923,6 +931,7 @@ export const de: Messages = {
 	assistant: assistantDe,
 	design: designDe,
 	factory: factoryDe,
+	glossary: glossaryDe,
 	settings: settingsDe,
 	specs: specsDe,
 	ui: uiDe,

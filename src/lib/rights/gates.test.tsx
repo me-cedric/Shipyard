@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
@@ -36,6 +36,77 @@ describe("a viewer sees the write controls off, with the reason", () => {
 		const button = await screen.findByRole("button", { name });
 		expect(button).toBeDisabled();
 		expect(button).toHaveAccessibleDescription(needs(right));
+	});
+});
+
+describe("a viewer on a pull request page", () => {
+	const open = async (id: string) => {
+		await viewer();
+		await unwrap(commands.projectsOpen("/mock/demo", false));
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		mountApp(`/code/pull-requests/${id}`);
+	};
+
+	it("sees Mark ready off, with the reason", async () => {
+		await open("github-demo-143");
+		const button = await screen.findByRole("button", { name: "Mark ready" });
+		expect(button).toBeDisabled();
+		expect(button).toHaveAccessibleDescription(needs("code.write"));
+	});
+
+	it("sees Merge and its methods off, with the reason", async () => {
+		await open("github-demo-141");
+		const merge = await screen.findByRole("button", { name: "Merge" });
+		expect(merge).toBeDisabled();
+		expect(merge).toHaveAccessibleDescription(needs("code.merge"));
+		expect(merge.closest("span[title]")).toHaveAttribute("title", needs("code.merge"));
+		expect(screen.getByRole("button", { name: "Method" })).toBeDisabled();
+	});
+
+	it("sees Comment, Reply, Resolve and Reopen off, with the reason", async () => {
+		const user = userEvent.setup();
+		await open("github-demo-142");
+		const off = (b: HTMLElement) => {
+			expect(b).toBeDisabled();
+			expect(b).toHaveAccessibleDescription(needs("code.write"));
+		};
+		const live = within(await screen.findByRole("article", { name: "src/app.ts:2" }));
+		off(live.getByRole("button", { name: "Reply to src/app.ts:2" }));
+		off(live.getByRole("button", { name: "Resolve" }));
+		await user.type(screen.getByRole("textbox", { name: "Comment" }), "x");
+		off(screen.getByRole("button", { name: "Comment" }));
+		await user.click(screen.getByRole("button", { name: /src\/lib\.ts:7/ }));
+		off(await screen.findByRole("button", { name: "Reopen" }));
+	});
+
+	it("sees the + of a line off, with the reason, and it opens no box", async () => {
+		const user = userEvent.setup();
+		await open("github-demo-142?tab=files");
+		await user.click(await screen.findByRole("button", { name: /^app\.ts/ }));
+		// Only the current row draws its plus.
+		const plus = await screen.findByRole("button", { name: /^Add a comment on line/ });
+		expect(plus).toHaveAttribute("aria-disabled", "true");
+		expect(plus).toHaveAccessibleDescription(needs("code.write"));
+		plus.focus();
+		expect(plus).toHaveFocus();
+		await user.click(plus);
+		expect(screen.queryByRole("textbox", { name: /^Comment on line/ })).toBeNull();
+	});
+
+	it("sees Close pull request off in the menu, with the reason", async () => {
+		const user = userEvent.setup();
+		await open("github-demo-141");
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		const item = await screen.findByRole("menuitem", { name: "Close pull request" });
+		expect(item).toHaveAttribute("aria-disabled", "true");
+		expect(item).toHaveAccessibleDescription(needs("code.write"));
 	});
 });
 

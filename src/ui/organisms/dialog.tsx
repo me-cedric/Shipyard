@@ -1,5 +1,5 @@
 import { Dialog as BaseDialog } from "@base-ui/react/dialog";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Button } from "../atoms/button";
@@ -12,6 +12,7 @@ export function Dialog({
 	actions,
 	wide,
 	full,
+	initialFocus,
 	children,
 }: {
 	open: boolean;
@@ -22,6 +23,8 @@ export function Dialog({
 	wide?: boolean;
 	/** Nearly the whole window. */
 	full?: boolean;
+	/** The element that takes focus when the dialog opens. The default is the first tabbable one. */
+	initialFocus?: RefObject<HTMLElement | null>;
 	children: ReactNode;
 }) {
 	const { t } = useI18n();
@@ -30,6 +33,7 @@ export function Dialog({
 			<BaseDialog.Portal>
 				<BaseDialog.Backdrop className="fixed inset-0 z-40 bg-n-1/60 backdrop-blur-sm transition-opacity duration-(--duration-fast) data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
 				<BaseDialog.Popup
+					initialFocus={initialFocus}
 					className={cn(
 						"fixed top-20 left-1/2 z-50 max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-xl border border-n-6 bg-surface-3 shadow-3 transition-[opacity,scale] duration-(--duration-base) ease-spring data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0",
 						full ? "top-4 bottom-4 w-[calc(100vw-2rem)]" : wide ? "w-[48rem]" : "w-[32rem]",

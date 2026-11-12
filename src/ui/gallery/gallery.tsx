@@ -28,7 +28,9 @@ import {
 	LanguageIcon,
 	MagnifyingGlassIcon,
 	MoonIcon,
+	QueueListIcon,
 	SunIcon,
+	ViewColumnsIcon,
 	XMarkIcon,
 } from "../icons";
 import { BacklinkList } from "../molecules/backlink-list";
@@ -870,6 +872,7 @@ function Templates() {
 				<div className="flex h-40 w-full flex-col border">
 					<ListDetail
 						title={t.tabs.work.backlog}
+						icon={<QueueListIcon size={16} />}
 						toolbar={<Button variant="primary">{t.sync.backlog.import}</Button>}
 					>
 						<div className="p-3">
@@ -880,7 +883,7 @@ function Templates() {
 			</Row>
 			<Row name="Board">
 				<div className="flex h-56 w-full flex-col border">
-					<Board title={t.tabs.work.board}>
+					<Board title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />}>
 						<BoardColumn title="To Do" category="todo" count={1} onDropKey={() => {}}>
 							<TicketCard itemKey="ACME-3" title="Plan" onOpen={() => {}} onMove={() => {}} />
 						</BoardColumn>

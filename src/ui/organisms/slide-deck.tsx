@@ -1,12 +1,10 @@
 import Reveal from "reveal.js";
 import "reveal.js/reveal.css";
 import { type CSSProperties, useEffect, useRef } from "react";
+import { useReducedMotionPref } from "../motion";
 import { MarkdownView } from "./markdown-view";
 
 export type DeckStyle = { background: string; text: string; accent: string; font: string };
-
-const reduced = () =>
-	typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /**
  * A deck on reveal.js. The text of a slide stays Markdown, and the file never changes (ADR 0013).
@@ -30,6 +28,7 @@ export function SlideDeck({
 	onLeave?: () => void;
 }) {
 	const root = useRef<HTMLElement>(null);
+	const still = useReducedMotionPref();
 	const key = slides.join("\u0000");
 	// biome-ignore lint/correctness/useExhaustiveDependencies: the key stands for the slides
 	useEffect(() => {
@@ -42,7 +41,7 @@ export function SlideDeck({
 			progress: true,
 			// Escape leaves the present mode. It does not open the overview.
 			keyboard: { 27: () => {} },
-			transition: reduced() ? "none" : "slide",
+			transition: still ? "none" : "slide",
 			backgroundTransition: "none",
 			plugins: [],
 		});
@@ -54,7 +53,7 @@ export function SlideDeck({
 				// A deck that did not start has nothing to destroy.
 			}
 		};
-	}, [key, present]);
+	}, [key, present, still]);
 	useEffect(() => {
 		if (!present) return;
 		const onKey = (e: KeyboardEvent) => e.key === "Escape" && onLeave?.();

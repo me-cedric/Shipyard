@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { useState } from "react";
 import { PageExport } from "@/features/reports/page-export";
+import { WithProject } from "@/features/shell/no-project";
 import { useI18n } from "@/lib/i18n";
 import { RightButton } from "@/lib/rights";
 import { KINDS, type QuestionEntry, STATUSES, useQuestions } from "@/lib/specs";
@@ -16,7 +17,6 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
 import { LIST, useEnter } from "@/ui/motion";
 import { ListDetail } from "@/ui/templates/list-detail";
-import { WithProject } from "./no-project";
 import { FoldDialog, QuestionDialog } from "./question-dialogs";
 
 const ALL = "all";
@@ -41,7 +41,7 @@ const KIND: Record<string, Tone> = {
 export function Questions() {
 	const { t } = useI18n();
 	return (
-		<WithProject title={t.tabs.specs.questions}>
+		<WithProject title={t.tabs.specs.questions} icon={<ChatBubbleIcon size={16} />}>
 			<Register />
 		</WithProject>
 	);
