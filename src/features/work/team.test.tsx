@@ -147,6 +147,10 @@ describe("Work / Team", () => {
 			}),
 		).toBeInTheDocument();
 		expect(await screen.findByText("You are ada (Account)")).toBeInTheDocument();
+		// a grid wider than the page scrolls sideways, and the keyboard reaches the scroll
+		const region = screen.getByRole("region", { name: "Rights of each role" });
+		expect(region).toHaveAttribute("tabindex", "0");
+		expect(region).toHaveClass("overflow-auto");
 	});
 
 	it("edits the level of a cell and saves the roles block", async () => {

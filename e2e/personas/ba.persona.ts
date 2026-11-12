@@ -44,7 +44,7 @@ test("business analyst", async ({ page }) => {
 			"the split shows no preview of the items",
 		);
 		await w.click(page.getByRole("dialog").getByRole("button", { name: "Close" }));
-		await w.click(page.getByRole("button", { name: "Back" }));
+		await w.click(page.getByRole("main").getByRole("button", { name: "Back" }));
 	});
 
 	await w.step("Write a change from a plain title", "New change, a title, Create", async () => {

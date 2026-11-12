@@ -62,6 +62,43 @@ describe("Onboarding tour", () => {
 		expect(screen.queryByRole("dialog")).toBeNull();
 	});
 
+	it("opens with focus on Next and no glossary popover; Tab walks term, Manual link; Escape closes the popover first", async () => {
+		const user = userEvent.setup();
+		mockState().prefs.tourSeen = false;
+		await openProject();
+		mountApp("/home/today");
+		const dialog = await screen.findByRole("dialog", { name: titles[0] });
+		await waitFor(() => expect(screen.getByRole("button", { name: o.next })).toHaveFocus());
+		expect(screen.queryByRole("link", { name: en.glossary.manual })).toBeNull();
+		await user.tab();
+		const term = document.activeElement as HTMLElement;
+		expect(dialog).toContainElement(term);
+		expect(term).toHaveAttribute("aria-describedby");
+		const link = await screen.findByRole("link", { name: en.glossary.manual });
+		await user.tab();
+		expect(link).toHaveFocus();
+		await user.keyboard("{Escape}");
+		await waitFor(() =>
+			expect(screen.queryByRole("link", { name: en.glossary.manual })).toBeNull(),
+		);
+		expect(screen.getByRole("dialog", { name: titles[0] })).toBeInTheDocument();
+	});
+
+	it("closes when the Manual link of a term goes to the manual", async () => {
+		const user = userEvent.setup();
+		mockState().prefs.tourSeen = false;
+		await openProject();
+		const router = mountApp("/home/today");
+		await screen.findByRole("dialog", { name: titles[0] });
+		await waitFor(() => expect(screen.getByRole("button", { name: o.next })).toHaveFocus());
+		await user.tab();
+		await screen.findByRole("link", { name: en.glossary.manual });
+		await user.tab();
+		await user.keyboard("{Enter}");
+		await waitFor(() => expect(router.state.location.pathname).toBe("/knowledge/manual"));
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	});
+
 	it("marks the tour as seen when a setup action leaves it", async () => {
 		const user = userEvent.setup();
 		mockState().prefs.tourSeen = false;

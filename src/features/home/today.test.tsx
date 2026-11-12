@@ -122,6 +122,35 @@ describe("Home / Today", () => {
 		}
 	});
 
+	it("keeps a focus target around the sections for a row that leaves last", async () => {
+		await withTracker();
+		await importAll();
+		mountApp("/home/today");
+		const mineHeading = await screen.findByRole("heading", { name: /^My items/ });
+		const root = mineHeading.closest("[tabindex='-1']");
+		expect(root).not.toBeNull();
+		expect(root).toContainElement(await screen.findByRole("region", { name: "Needs you" }));
+	});
+
+	it("turns Stop off for a role without the right to start runs", async () => {
+		await withTracker();
+		await importAll();
+		const { keys } = await mine();
+		const runs = (await unwrap(commands.runsList())).filter(live).filter((r) => keys.has(r.key));
+		expect(runs.length).toBeGreaterThan(0);
+		mockState().person = {
+			member: null,
+			found: "unknown",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		mountApp("/home/today");
+		await screen.findByRole("region", { name: "Needs you" });
+		expect(await screen.findByRole("button", { name: `Stop ${runs[0]?.key}` })).toBeDisabled();
+	});
+
 	it("shows only the events of my runs that are newer than the last visit, newest first", async () => {
 		await withTracker();
 		await importAll();

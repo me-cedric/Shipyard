@@ -33,6 +33,9 @@ describe("Toaster", () => {
 		const { rerender } = render(ui([notice("a"), notice("b")], "never"));
 		rerender(ui([notice("b")], "never"));
 		expect(screen.getByText("Title a")).toBeInTheDocument();
+		// a leaving toast takes no focus and no click
+		expect(screen.getByText("Title a").closest("[inert]")).not.toBeNull();
+		expect(screen.getByText("Title b").closest("[inert]")).toBeNull();
 		await vi.waitFor(() => expect(screen.queryByText("Title a")).toBeNull());
 	});
 });

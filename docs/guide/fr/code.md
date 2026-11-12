@@ -64,8 +64,8 @@ Impacts dit quels éléments un changement touche, et propose un plan d'action.
 
 ## Terminal
 
-Terminal ouvre une ligne de commande dans le dossier du projet. Quand le shell se termine, cliquez sur Relancer. Un lien dans la sortie s'ouvre dans votre navigateur.
+Le bouton Terminal de la barre du haut ouvre une ligne de commande dans le dossier du projet, dans le tiroir du terminal. Terminal n'est pas un onglet. L'adresse `/code/terminal` ouvre aussi le tiroir. Quand le shell se termine, cliquez sur Relancer. Un lien dans la sortie s'ouvre dans votre navigateur.
 
 ## Synchronisation
 
-L'action de synchronisation de la barre d'état récupère les changements de l'équipe et met votre branche à jour. L'envoi de vos commits au serveur est un clic séparé. L'application ne force jamais un push.
+L'action de synchronisation de la barre d'état récupère les changements de l'équipe et met votre branche à jour. Le bouton Synchroniser de la barre du haut montre de combien de commits vous êtes en avance et en retard. L'envoi de vos commits au serveur est un clic séparé. L'application ne force jamais un push.

@@ -43,13 +43,13 @@ Wave 4, motion
 
 Wave 5, close
 
-- [ ] T018 Docs: `screens.json`, screenshots, guide in four languages, `ux-declutter.feature`, both changelogs.
-- [ ] T019 Final Opus review of `main...HEAD`, one fixer.
-- [ ] T020 Run the validation commands of `plan.md`.
-- [ ] T021 Compare the build with the spec; tick the acceptance criteria.
+- [x] T018 Docs: `screens.json`, screenshots, guide in four languages, `ux-declutter.feature`, both changelogs.
+- [x] T019 Final Opus review of `main...HEAD`, one fixer.
+- [x] T020 Run the validation commands of `plan.md`.
+- [x] T021 Compare the build with the spec; tick the acceptance criteria.
 
 ## Completion Check
 
-- [ ] All acceptance criteria are met.
-- [ ] Required validation passed or failures are marked pre-existing.
-- [ ] Specs, docs, and code agree.
+- [x] All acceptance criteria are met.
+- [x] Required validation passed or failures are marked pre-existing.
+- [x] Specs, docs, and code agree.

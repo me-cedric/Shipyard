@@ -4,10 +4,11 @@
     {
       "id": "SCR-001",
       "slug": "home",
-      "title": "Home, Today",
+      "title": "Home, Today: one Get started checklist while an item is to do, Needs you, My items with their count in the heading, My agents with the spend of today in the heading, no stat tiles",
       "artifacts": [
         "spec:shell",
-        "spec:home-today"
+        "spec:home-today",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/home.png"
     },
@@ -18,7 +19,8 @@
       "artifacts": [
         "spec:shell",
         "spec:home-today",
-        "spec:design-system"
+        "spec:design-system",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/home-light.png"
     },
@@ -27,7 +29,8 @@
       "slug": "design",
       "title": "Design",
       "artifacts": [
-        "spec:design"
+        "spec:design",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/design.png"
     },
@@ -36,7 +39,8 @@
       "slug": "specs",
       "title": "Specs",
       "artifacts": [
-        "spec:specs"
+        "spec:specs",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/specs.png"
     },
@@ -45,7 +49,8 @@
       "slug": "work",
       "title": "Work",
       "artifacts": [
-        "spec:work"
+        "spec:work",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/work.png"
     },
@@ -54,7 +59,8 @@
       "slug": "factory",
       "title": "Factory",
       "artifacts": [
-        "spec:factory"
+        "spec:factory",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/factory.png"
     },
@@ -63,25 +69,28 @@
       "slug": "agents-map",
       "title": "Factory, agents map",
       "artifacts": [
-        "spec:factory"
+        "spec:factory",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/agents.png"
     },
     {
       "id": "SCR-008",
       "slug": "code",
-      "title": "Code",
+      "title": "Code: tabs with icons; the Terminal button of the top bar opens the terminal drawer",
       "artifacts": [
-        "spec:code"
+        "spec:code",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/code.png"
     },
     {
       "id": "SCR-009",
       "slug": "knowledge",
-      "title": "Knowledge",
+      "title": "Knowledge: tabs with icons; the manual opens from the account menu, F1 or the palette, not from a tab",
       "artifacts": [
-        "spec:knowledge"
+        "spec:knowledge",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/knowledge.png"
     },
@@ -90,7 +99,8 @@
       "slug": "top-bar",
       "title": "Top bar: sidebar toggle, Back and Forward, Sync with ahead and behind, Activity, search, Files and Terminal buttons, Ask split button, notifications, account menu",
       "artifacts": [
-        "spec:shell"
+        "spec:shell",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/home.png"
     },
@@ -107,7 +117,8 @@
       "slug": "menu-bar-panel",
       "title": "Menu bar panel: spend, runs with Stop, Needs you, agents switch, sync, project, Open Shipyard",
       "artifacts": [
-        "spec:shell"
+        "spec:shell",
+        "spec:ux-declutter"
       ]
     },
     {
@@ -140,27 +151,30 @@
     {
       "id": "SCR-016",
       "slug": "onboarding-tour",
-      "title": "Onboarding tour: six steps with a title, one sentence and a picture; Close, Back, Next, Done and Open the manual",
+      "title": "Onboarding tour: six steps with a title, one sentence and a picture; opens once after the first project; Close, Back, Next, Done and Open the manual",
       "artifacts": [
-        "spec:onboarding"
+        "spec:onboarding",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/tour.png"
     },
     {
       "id": "SCR-017",
       "slug": "settings-permissions",
-      "title": "Settings / Me, Permissions: each OS permission with its state and one action, and Replay the tour",
+      "title": "Settings / Me, Permissions: each OS permission with its state and one action; the Get started checklist; the section list",
       "artifacts": [
-        "spec:onboarding"
+        "spec:onboarding",
+        "spec:ux-declutter"
       ]
     },
     {
       "id": "SCR-018",
       "slug": "settings-project",
-      "title": "Settings / Project: a section bar that stays in view, with an icon per section, above panels with an icon in each heading",
+      "title": "Settings / Project: a section list that stays in view, with an icon per section, above panels with an icon in each heading",
       "artifacts": [
         "spec:projects",
-        "spec:visual-cues"
+        "spec:visual-cues",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/settings-project.png"
     },
@@ -208,7 +222,8 @@
       "slug": "work-team",
       "title": "Work / Team: the members and the rights of each role and member, by area",
       "artifacts": [
-        "spec:team-rights"
+        "spec:team-rights",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/team.png"
     },
@@ -220,6 +235,42 @@
         "spec:factory"
       ],
       "file": "docs/assets/screenshots/run.png"
+    },
+    {
+      "id": "SCR-027",
+      "slug": "activity-panel",
+      "title": "Activity panel: the Activity button with the needs-you count; Needs you with a link to Home / Today, Runs with Stop, Sessions with Stop",
+      "artifacts": [
+        "spec:shell",
+        "spec:ux-declutter"
+      ]
+    },
+    {
+      "id": "SCR-028",
+      "slug": "account-menu",
+      "title": "Account menu: Settings / Me, Theme (Light, Dark, System), Manual, Shortcuts, What's new, Replay the tour",
+      "artifacts": [
+        "spec:shell",
+        "spec:ux-declutter"
+      ]
+    },
+    {
+      "id": "SCR-029",
+      "slug": "no-project",
+      "title": "No project: one page for every space with Open a folder, Clone a repository and New project",
+      "artifacts": [
+        "spec:shell",
+        "spec:ux-declutter"
+      ]
+    },
+    {
+      "id": "SCR-030",
+      "slug": "first-run",
+      "title": "First run: the role step with Continue, then the open-a-project step",
+      "artifacts": [
+        "spec:shell",
+        "spec:ux-declutter"
+      ]
     }
   ]
 }

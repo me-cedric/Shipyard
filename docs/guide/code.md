@@ -66,8 +66,8 @@ Impacts tells which items a change touches, and proposes an action plan.
 
 ## Terminal
 
-Terminal opens a command line in the folder of the project. When the shell ends, click Restart. A link in the output opens in your browser.
+The Terminal button in the top bar opens a command line in the folder of the project, in the terminal drawer. Terminal is not a tab. The address `/code/terminal` opens the drawer too. When the shell ends, click Restart. A link in the output opens in your browser.
 
 ## Sync
 
-The Sync button in the top bar gets the changes of the team and brings your branch up to date. The arrow joined to it opens Fetch only and Push. Sending your commits to the server is a separate action. The app never forces a push.
+The Sync button in the top bar gets the changes of the team and brings your branch up to date, and shows how many commits you are ahead and behind. The arrow joined to it opens Fetch only and Push. Sending your commits to the server is a separate action. The app never forces a push.

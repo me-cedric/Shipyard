@@ -32,6 +32,11 @@ describe("Settings / Connections / Runners", () => {
 		const gemini = await row("Gemini CLI");
 		expect(within(await row("Claude Code")).queryByRole("button", { name: /Install/ })).toBeNull();
 		await user.click(within(gemini).getByRole("button", { name: "Install Gemini CLI" }));
+		// nothing installs before the confirm, which names the tool
+		expect(within(gemini).getByRole("img", { name: "Missing" })).toBeInTheDocument();
+		await user.click(
+			await within(gemini).findByRole("button", { name: /to install Gemini CLI\?$/ }),
+		);
 		await waitFor(() =>
 			expect(within(gemini).getByRole("img", { name: "Detected" })).toBeInTheDocument(),
 		);

@@ -18,7 +18,7 @@ Handbook holds the pages of the project handbook. Read a page with its contents 
 
 ## Manual
 
-Manual is this guide. It comes with the app and works without a project. Type a word in the search field to find every page that has it. Open the palette and choose Open the manual for this page to come to the help of the page that you see.
+Manual is this guide. It is not a tab: open it with Manual in the account menu, with F1 or with the palette. The address `/knowledge/manual` shows it too. It comes with the app and works without a project. Type a word in the search field to find every page that has it. Open the palette and choose Open the manual for this page to come to the help of the page that you see.
 
 ## Documents
 

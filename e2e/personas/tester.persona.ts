@@ -47,7 +47,7 @@ test("tester", async ({ page }) => {
 				"the generated scenario is filler text (Given the context, When the user acts); the tester must rewrite it",
 			);
 		}
-		await w.click(page.getByRole("button", { name: "Back" }));
+		await w.click(page.getByRole("main").getByRole("button", { name: "Back" }));
 	});
 
 	await w.step("Write a new test plan", "New test plan, a name, Create", async () => {

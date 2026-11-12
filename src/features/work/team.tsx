@@ -369,7 +369,7 @@ export function Team() {
 				</div>
 			) : (
 				<div className="min-h-0 flex-1 overflow-auto px-4 pb-4">
-					<div className="flex flex-col overflow-hidden rounded-lg border bg-surface-1 text-ui shadow-1">
+					<div className="flex w-max min-w-full flex-col rounded-lg border bg-surface-1 text-ui shadow-1">
 						<DataTable
 							flow
 							label={t.tabs.work.team}

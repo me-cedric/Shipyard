@@ -1,10 +1,36 @@
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useIsPresent } from "motion/react";
+import type { ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import type { Notice } from "@/lib/notifications";
 import { IconButton } from "../atoms/icon-button";
 import { XMarkIcon } from "../icons";
 import { NotificationRow } from "../molecules/notification-row";
 import { SPRING, useReducedMotionPref } from "../motion";
+
+/** One toast. While it slides out it is inert: its dismiss button takes no focus and no click. */
+function Slide({
+	slide,
+	still,
+	children,
+}: {
+	slide?: { opacity: number; x: number };
+	still: boolean;
+	children: ReactNode;
+}) {
+	const present = useIsPresent();
+	return (
+		<motion.div
+			inert={!present}
+			initial={slide}
+			animate={{ opacity: 1, x: 0 }}
+			exit={slide}
+			transition={still ? { duration: 0 } : SPRING.smooth}
+			className="pointer-events-auto rounded-md border border-n-7 bg-n-2"
+		>
+			{children}
+		</motion.div>
+	);
+}
 
 /** The toasts: the newest events for a few seconds. The region is announced politely. */
 export function Toaster({
@@ -27,14 +53,7 @@ export function Toaster({
 		>
 			<AnimatePresence initial={false}>
 				{toasts.map((n) => (
-					<motion.div
-						key={n.id}
-						initial={slide}
-						animate={{ opacity: 1, x: 0 }}
-						exit={slide}
-						transition={still ? { duration: 0 } : SPRING.smooth}
-						className="pointer-events-auto rounded-md border border-n-7 bg-n-2"
-					>
+					<Slide key={n.id} slide={slide} still={still}>
 						<NotificationRow
 							kind={n.kind}
 							kindLabel={t.notifications.kind[n.kind]}
@@ -47,7 +66,7 @@ export function Toaster({
 								</IconButton>
 							}
 						/>
-					</motion.div>
+					</Slide>
 				))}
 			</AnimatePresence>
 		</div>

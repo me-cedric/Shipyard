@@ -1,20 +1,25 @@
 import { test } from "@playwright/test";
 import { Walk } from "./walk";
 
-// Functional lead, first hour: review a change, the constitution, open questions, decisions, the estimate, documents, slides, dashboards.
+// Functional lead, first hour (the role "Product owner": no role of the team file is called functional lead): review a change, the constitution, open questions, decisions, the estimate, documents, slides, dashboards.
 test("functional lead", async ({ page }) => {
-	const w = new Walk(page, { key: "lead", label: "Functional lead" });
+	const w = new Walk(page, { key: "lead", label: "Product owner" });
 	await w.start();
 
-	await w.step("Land on the proposals", "the page that opens first: Specs, Proposals", async () => {
-		await w.landsOn("Specs", "Proposals");
-		await w.see(page.getByRole("button", { name: /add-billing/ }), "no change in the list");
-	});
+	await w.step(
+		"Land on the backlog, open the proposals",
+		"the page that opens first: Work, Backlog, then Specs, Proposals",
+		async () => {
+			await w.landsOn("Work", "Backlog");
+			await w.go("Specs", "Proposals");
+			await w.see(page.getByRole("button", { name: /add-billing/ }), "no change in the list");
+		},
+	);
 
 	await w.step("Review a change", "the change card, the sections", async () => {
 		await w.click(page.getByRole("button", { name: /add-billing/ }));
 		await w.see(page.getByRole("button", { name: "Validate" }), "no way to check the change");
-		await w.click(page.getByRole("button", { name: "Back" }));
+		await w.click(page.getByRole("main").getByRole("button", { name: "Back" }));
 	});
 
 	await w.step("Read the constitution", "the Constitution tab", async () => {

@@ -4,6 +4,7 @@ import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { ArrowDownTrayIcon, ArrowPathIcon } from "@/ui/icons";
+import { ConfirmButton } from "@/ui/molecules/confirm-button";
 
 // The cache key of Settings / Connections, so a detect there shows here.
 const key = ["runners", "list"] as const;
@@ -58,14 +59,18 @@ export function NoCli({
 							<span className="block truncate text-ui text-n-12">{r.label}</span>
 							<code className="block truncate font-mono text-12 text-n-11">{r.install}</code>
 						</span>
-						<Button
+						<ConfirmButton
 							disabled={busy !== null}
 							aria-label={format(t.assistant.noCli.installName, { name: r.label })}
-							onClick={() => void install(r.id)}
+							confirm={format(t.onboarding.setup.action.installConfirm, {
+								name: r.label,
+								command: r.install,
+							})}
+							onConfirm={() => void install(r.id)}
 						>
 							<ArrowDownTrayIcon size={14} />
 							{busy === r.id ? t.assistant.noCli.installing : t.assistant.noCli.install}
-						</Button>
+						</ConfirmButton>
 					</li>
 				))}
 			</ul>

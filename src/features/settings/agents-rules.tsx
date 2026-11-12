@@ -9,6 +9,7 @@ import { Button } from "@/ui/atoms/button";
 import { Caption, Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
 import { CommandLineIcon, CpuChipIcon } from "@/ui/icons";
+import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { ConnectionRow } from "@/ui/molecules/connection-row";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
@@ -202,9 +203,16 @@ function ToolRows() {
 						product={r.version ?? undefined}
 						actions={
 							missing ? (
-								<Button busy={busy} onClick={() => void install(r.id)}>
+								<ConfirmButton
+									busy={busy}
+									confirm={format(t.onboarding.setup.action.installConfirm, {
+										name: r.label,
+										command: r.install,
+									})}
+									onConfirm={() => void install(r.id)}
+								>
 									{format(t.settings.tools.install, { name: r.label })}
-								</Button>
+								</ConfirmButton>
 							) : r.auth === "signedIn" ? null : (
 								<>
 									<Button onClick={() => void signIn(r.id, false)}>{s.action}</Button>

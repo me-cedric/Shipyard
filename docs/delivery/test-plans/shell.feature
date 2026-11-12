@@ -164,10 +164,10 @@ Feature: shell
     And it shows no tour or help text
 
   @spec:shell#REQ-016
-  Scenario: No tour, no hidden tab: Personal hidden tab
-    Given the person hid Code / Terminal for themselves
+  Scenario: No tour, no hidden tab: Terminal opens as a drawer
+    Given Code / Terminal is not a tab
     When the person runs Open Code / Terminal from the palette
-    Then the main area shows Code / Terminal
+    Then the terminal drawer opens
 
   @spec:shell#REQ-017
   Scenario: Shell accessibility: Keyboard navigation

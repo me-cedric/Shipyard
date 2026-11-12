@@ -16,7 +16,7 @@ Manuel contient les pages du manuel du projet. Lisez une page avec son sommaire 
 
 ## Mode d'emploi
 
-Mode d'emploi est ce guide. Il vient avec l'application et fonctionne sans projet. Il s'affiche dans la langue de l'application. Tapez un mot dans le champ de recherche pour trouver chaque page qui le contient. Ouvrez la palette et choisissez Ouvrir le mode d'emploi de cette page pour arriver à l'aide de la page que vous voyez.
+Mode d'emploi est ce guide. Ce n'est pas un onglet : ouvrez-le avec Mode d'emploi dans le menu du compte, avec F1 ou avec la palette. L'adresse `/knowledge/manual` l'affiche aussi. Il vient avec l'application et fonctionne sans projet. Il s'affiche dans la langue de l'application. Tapez un mot dans le champ de recherche pour trouver chaque page qui le contient. Ouvrez la palette et choisissez Ouvrir le mode d'emploi de cette page pour arriver à l'aide de la page que vous voyez.
 
 ## Documents
 

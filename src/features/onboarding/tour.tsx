@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
@@ -51,11 +51,17 @@ export function Tour() {
 	const hasProject = Boolean(useActiveProject().data);
 	const navigate = useNavigate();
 	const [step, setStep] = useState(0);
+	const primary = useRef<HTMLButtonElement>(null);
+	const path = useRouterState({ select: (s) => s.location.pathname });
 	const last = step === STEPS.length - 1;
 	const id = STEPS[step] ?? "loop";
 
 	// The shell left: the next shell starts closed.
 	useEffect(() => closeTour, []);
+	// A link inside the tour (a glossary Manual link) goes to another page: the modal must not stay on top.
+	// Before the auto-open effect, so that the first render does not close what it opens.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the route is the trigger
+	useEffect(() => closeTour(), [path]);
 	useEffect(() => {
 		if (loaded && !tourSeen && hasProject) openTour();
 	}, [loaded, tourSeen, hasProject]);
@@ -90,6 +96,7 @@ export function Tour() {
 			onOpenChange={(o) => !o && close()}
 			title={o.steps[id].title}
 			wide
+			initialFocus={primary}
 			actions={
 				<>
 					{step > 0 ? (
@@ -107,12 +114,12 @@ export function Tour() {
 							>
 								{o.manual}
 							</Button>
-							<Button variant="primary" onClick={close}>
+							<Button ref={primary} variant="primary" onClick={close}>
 								{o.done}
 							</Button>
 						</>
 					) : (
-						<Button variant="primary" onClick={() => go(step + 1)}>
+						<Button ref={primary} variant="primary" onClick={() => go(step + 1)}>
 							{o.next}
 						</Button>
 					)}

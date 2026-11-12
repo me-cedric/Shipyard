@@ -88,6 +88,22 @@ const PLACE: Record<ItemId, { to: TabPath; hash?: string }> = {
 	run: { to: "/factory/runs" },
 };
 
+/**
+ * Where an issue tracker or code host step goes. With an account (a connection): the select of the
+ * project settings. With none, that select offers only None: Connections, with the add form open.
+ */
+export function connectTarget(
+	group: "tracker" | "forge",
+	hasAccount: boolean | undefined,
+): { to: "/settings/project" | "/settings/connections"; hash?: string; form?: string } {
+	if (hasAccount)
+		return { to: "/settings/project", hash: group === "tracker" ? "issue-tracker" : "code-host" };
+	return {
+		to: "/settings/connections",
+		form: group === "tracker" ? "connection" : "connection:forge",
+	};
+}
+
 /** The host of `https://host/a/b.git` or `git@host:a/b.git`. */
 export const remoteHost = (url: string) =>
 	url.match(/^[a-z+]+:\/\/(?:[^@/]+@)?([^/:]+)/i)?.[1] ?? url.match(/^[^@]+@([^:]+):/)?.[1] ?? "";
@@ -260,19 +276,11 @@ export function ChecklistControl({
 			{label}
 		</Button>
 	);
-	const connect = (group: "tracker" | "forge") =>
-		state.hasAccount[group]
-			? open(
-					s.action.choose,
-					"/settings/project",
-					group === "tracker" ? "issue-tracker" : "code-host",
-				)
-			: open(
-					s.action.connect,
-					"/settings/connections",
-					undefined,
-					group === "tracker" ? "connection" : "connection:forge",
-				);
+	const connect = (group: "tracker" | "forge") => {
+		const has = state.hasAccount[group];
+		const target = connectTarget(group, has);
+		return open(has ? s.action.choose : s.action.connect, target.to, target.hash, target.form);
+	};
 	const { tool, file, linked, login, missing } = state;
 	// The select is the choice in place. Settings / Me has the select on the page: a button points to it.
 	const ai = () => {

@@ -75,20 +75,20 @@ Languages
 
 ### Acceptance Criteria
 
-- [ ] Today shows one checklist; an item is done on Today and in Settings / Me at the same time.
-- [ ] A fresh install shows the first-run page and no tour; the tour opens once after the first project opens, and never again after a setup action.
-- [ ] Each space with no project offers Open a folder, Clone and New project.
-- [ ] Focus on a marked term shows its sentence and a link to the manual.
-- [ ] The top bar shows 13 controls or fewer at 1100 px.
-- [ ] The Activity panel stops a run and a session.
-- [ ] The avatar menu changes the theme and opens the manual, the shortcuts, What's new and the tour.
-- [ ] `/code/terminal` opens the terminal drawer; `/knowledge/manual` shows the manual; neither is a tab.
-- [ ] Today shows no stat tiles; the two numbers show in panel headings.
-- [ ] An inventory test lists each palette action and each route that exists before the change and finds it after.
-- [ ] Each tab shows a header while it loads; the a11y end-to-end tests pass.
-- [ ] With the motion preference on reduced, no element moves (count-up, graph, section scroll included).
-- [ ] A toast and a removed run row move in and out.
-- [ ] Each new text exists in the four languages.
+- [x] Today shows one checklist; an item is done on Today and in Settings / Me at the same time.
+- [x] A fresh install shows the first-run page and no tour; the tour opens once after the first project opens, and never again after a setup action.
+- [x] Each space with no project offers Open a folder, Clone and New project.
+- [x] Focus on a marked term shows its sentence and a link to the manual.
+- [x] The top bar shows 13 controls or fewer at 1100 px.
+- [x] The Activity panel stops a run and a session.
+- [x] The avatar menu changes the theme and opens the manual, the shortcuts, What's new and the tour.
+- [x] `/code/terminal` opens the terminal drawer; `/knowledge/manual` shows the manual; neither is a tab.
+- [x] Today shows no stat tiles; the two numbers show in panel headings.
+- [x] An inventory test lists each palette action and each route that exists before the change and finds it after.
+- [x] Each tab shows a header while it loads; the a11y end-to-end tests pass.
+- [x] With the motion preference on reduced, no element moves (count-up, graph, section scroll included).
+- [x] A toast and a removed run row move in and out.
+- [x] Each new text exists in the four languages.
 
 ### Existing References
 

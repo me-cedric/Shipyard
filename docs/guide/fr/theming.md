@@ -1,6 +1,6 @@
 # Thèmes
 
-Shipyard a cinq thèmes intégrés et une bibliothèque de thèmes que vous importez. Choisissez le thème dans Réglages / Moi.
+Shipyard a cinq thèmes intégrés et une bibliothèque de thèmes que vous importez. Choisissez le thème dans Réglages / Moi ou dans le menu du compte.
 
 ## Thèmes intégrés
 

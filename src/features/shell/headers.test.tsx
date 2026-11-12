@@ -33,10 +33,8 @@ async function expectHeader(space: SpaceId, tab: string, title: string) {
 }
 
 describe("a page header on every tab (REQ-017)", () => {
-	// The manual is no tab. Code / Terminal opens the drawer and lands on Changes.
-	const named = TABS.filter(
-		([space, tab]) => !(space === "knowledge" && tab === "manual") && tab !== "terminal",
-	);
+	// Code / Terminal opens the drawer and lands on Changes. The manual is off the bar, with its icon.
+	const named = TABS.filter(([, tab]) => tab !== "terminal");
 	it.each(named)("shows the header of %s / %s with no project", async (space, tab) => {
 		// Home / Today without a project is the welcome page, headed by the logo.
 		const home = space === "home" && tab === "today";

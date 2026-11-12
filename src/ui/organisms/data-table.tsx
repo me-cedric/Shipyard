@@ -238,7 +238,8 @@ export function DataTable<T extends RowData>({
 								}
 								style={rowHeight ? { ...grid, height: rowHeight } : grid}
 								className={cn(
-									"grid h-row items-center gap-3 border-b px-3",
+									"grid items-center gap-3 border-b px-3",
+									flow ? "min-h-row" : "h-row",
 									onOpen && "cursor-pointer hover:bg-n-3",
 									selected === id && "bg-n-4",
 								)}

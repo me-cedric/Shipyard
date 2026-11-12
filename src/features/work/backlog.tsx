@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { connectTarget } from "@/features/onboarding/checklist";
+import { connectionKeys } from "@/features/settings/connections/keys";
 import { NoProject } from "@/features/shell/no-project";
 import { useOpenSetting } from "@/lib/errors";
 import { useRuns } from "@/lib/factory";
@@ -8,7 +10,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
 import { projectKeys, useActiveProject } from "@/lib/projects";
 import { RightButton, RightIconButton } from "@/lib/rights";
-import { useFormIntent, useShell } from "@/lib/shell";
+import { askForm, useFormIntent, useShell } from "@/lib/shell";
 import { useViewState } from "@/lib/shell/view-state";
 import { useBacklogActions, useWorkItems, type WorkItem } from "@/lib/sync";
 import { figure, memberName, useSheet, useSheets, useTeam } from "@/lib/work";
@@ -96,6 +98,10 @@ export function Backlog() {
 		queryKey: projectKeys.settings,
 		queryFn: () => unwrap(commands.projectSettings()),
 	}).data;
+	const connections = useQuery({
+		queryKey: connectionKeys.list,
+		queryFn: () => unwrap(commands.connectionsList()),
+	}).data;
 	const everything = useWorkItems({});
 	const all = everything.data ?? [];
 	const shown = useMemo(() => applyFilters(all, filters), [all, filters]);
@@ -143,7 +149,14 @@ export function Backlog() {
 							action={{
 								label: t.glossary.connectTracker,
 								icon: <LinkIcon size={14} />,
-								onClick: () => openSetting("/settings/project#issue-tracker"),
+								onClick: () => {
+									const to = connectTarget(
+										"tracker",
+										connections?.some((c) => c.group === "tracker"),
+									);
+									if (to.form) askForm(to.form);
+									openSetting(to.hash ? `${to.to}#${to.hash}` : to.to);
+								},
 							}}
 						/>
 					) : (

@@ -20,19 +20,30 @@ export function Term({ id, children }: { id: TermId; children: ReactNode }) {
 	const trigger = useRef<HTMLButtonElement>(null);
 	const link = useRef<HTMLAnchorElement>(null);
 	const sentence = useId();
+	// Escape returns focus to the word; that focus must not open the popover again.
+	const escaped = useRef(false);
 	// Focus that moves out of the word and of its popup closes it.
 	const leave = (next: EventTarget | null) => {
 		if (!(popup.current?.contains(next as Node) || trigger.current?.contains(next as Node)))
 			setShown(false);
 	};
 	return (
-		<Popover.Root open={shown} onOpenChange={setShown}>
+		<Popover.Root
+			open={shown}
+			onOpenChange={(next, { reason }) => {
+				escaped.current = !next && reason === "escape-key";
+				setShown(next);
+			}}
+		>
 			<Popover.Trigger
 				ref={trigger}
 				openOnHover
 				delay={150}
 				aria-describedby={sentence}
-				onFocus={() => setShown(true)}
+				onFocus={() => {
+					if (!escaped.current) setShown(true);
+					escaped.current = false;
+				}}
 				onBlur={(e) => leave(e.relatedTarget)}
 				// The popup sits at the end of the page: Tab from the word goes to its link, by hand.
 				onKeyDown={(e) => {

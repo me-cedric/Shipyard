@@ -234,7 +234,21 @@ function levelColumns<T>(
 
 type Draft = { table: RoleAccess[]; roles: Record<string, TeamRole[]> };
 
-const FRAME = "flex flex-col overflow-hidden rounded-lg border bg-surface-1 text-12";
+/** A framed table that scrolls sideways when its columns are wider than the page; the keyboard reaches it. */
+function Frame({ label, children }: { label: string; children: ReactNode }) {
+	return (
+		// biome-ignore lint/a11y/useSemanticElements: a scroll region has no native element
+		<div
+			role="region"
+			// biome-ignore lint/a11y/noNoninteractiveTabindex: the keyboard scrolls a region that is wider than the page
+			tabIndex={0}
+			aria-label={label}
+			className="overflow-auto rounded-lg border bg-surface-1 text-12"
+		>
+			<div className="flex w-max min-w-full flex-col">{children}</div>
+		</div>
+	);
+}
 
 /**
  * The levels of each role and of each member (REQ-005, REQ-019). Edit turns the cells into
@@ -381,11 +395,11 @@ export function TeamRights() {
 					{error}
 				</p>
 			) : null}
-			<div className={FRAME}>
+			<Frame label={r.matrix}>
 				<DataTable label={r.matrix} data={table} columns={roleColumns} rowId={(x) => x.role} flow />
-			</div>
+			</Frame>
 			{members.length ? (
-				<div className={FRAME}>
+				<Frame label={r.members}>
 					<DataTable
 						label={r.members}
 						data={members}
@@ -394,7 +408,7 @@ export function TeamRights() {
 						rowLabel={(m) => `${m.handle} ${r.levels}`}
 						flow
 					/>
-				</div>
+				</Frame>
 			) : null}
 		</section>
 	);
@@ -664,7 +678,7 @@ export function AuditTail() {
 	const time = new Intl.DateTimeFormat(lang, { dateStyle: "short", timeStyle: "medium" });
 	return (
 		<div className="px-4 pb-4">
-			<div className={FRAME}>
+			<Frame label={r.audit}>
 				<DataTable
 					label={r.audit}
 					data={[...lines].reverse()}
@@ -709,7 +723,7 @@ export function AuditTail() {
 						},
 					]}
 				/>
-			</div>
+			</Frame>
 		</div>
 	);
 }

@@ -97,6 +97,7 @@ const TAB_ICON: Record<string, TabIcon> = {
 	"code/impacts": ChartBarIcon,
 	"knowledge/graph": ShareIcon,
 	"knowledge/handbook": BookOpenIcon,
+	"knowledge/manual": BookOpenIcon,
 	"knowledge/documents": DocumentTextIcon,
 	"knowledge/slides": PresentationChartIcon,
 	"knowledge/learn": AcademicCapIcon,

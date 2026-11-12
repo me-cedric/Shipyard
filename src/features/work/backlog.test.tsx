@@ -173,9 +173,33 @@ describe("Work / Backlog", () => {
 		expect(screen.queryByRole("button", { name: "Import" })).toBeNull();
 	});
 
-	it("opens the issue tracker setting from the Connect action", async () => {
+	it("opens Connections with the add form when no issue tracker connection exists", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const router = mountApp("/work/backlog");
+		await user.click(await screen.findByRole("button", { name: "Connect an issue tracker" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/connections"));
+		expect(await screen.findByRole("textbox", { name: "Name" })).toBeInTheDocument();
+	});
+
+	it("opens the issue tracker select when a connection exists but the project has none linked", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		await unwrap(
+			commands.connectionsAdd({
+				name: "Acme",
+				group: "tracker",
+				kind: "linear",
+				url: "",
+				user: null,
+			}),
+		);
+		// the mock links the first connection of a group: unlink it
+		const file = (await unwrap(commands.projectSettings()))?.file;
+		if (!file) throw new Error("no project file");
+		await unwrap(
+			commands.projectFileSave({ ...file, connections: { tracker: null, forge: null } }),
+		);
 		const router = mountApp("/work/backlog");
 		await user.click(await screen.findByRole("button", { name: "Connect an issue tracker" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/project"));

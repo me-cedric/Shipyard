@@ -125,6 +125,7 @@ export function Today({ start }: { start?: ReactNode }) {
 	const d = t.home.today;
 	const qc = useQueryClient();
 	const navigate = useNavigate();
+	const stopGate = useRights().gate("runs.start");
 	const { openRef } = useShell();
 	const inbox = useInbox();
 	const members = useTeam().data?.team.members ?? [];
@@ -168,7 +169,8 @@ export function Today({ start }: { start?: ReactNode }) {
 		events.length === 0;
 	const time = new Intl.DateTimeFormat(lang, { dateStyle: "short", timeStyle: "short" });
 	return (
-		<div className="flex min-h-0 flex-1 flex-col gap-4 pb-4">
+		// tabIndex -1: where the focus lands when the last row of Needs you or of the checklist leaves (`Leave`).
+		<div tabIndex={-1} className="flex min-h-0 flex-1 flex-col gap-4 pb-4 outline-none">
 			<PageHeader
 				icon={<ClockIcon size={16} />}
 				title={t.tabs.home.today}
@@ -229,6 +231,7 @@ export function Today({ start }: { start?: ReactNode }) {
 							<span className="min-w-0 flex-1 truncate text-ui">{r.title}</span>
 							<ConfirmButton
 								variant="ghost"
+								{...stopGate}
 								confirm={format(t.factory.machine.confirmStop, { name: r.key })}
 								onConfirm={() => void run(() => cancel(r.id))}
 							>

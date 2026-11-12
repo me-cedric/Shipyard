@@ -84,6 +84,8 @@ describe("DataTable flow mode", () => {
 		renderApp(<DataTable flow columns={columns} data={data} rowId={(r) => r.id} label="Things" />);
 		const row = screen.getByRole("row", { name: /one/ });
 		expect(row.style.height).toBe("");
+		expect(row).toHaveClass("min-h-row");
+		expect(row).not.toHaveClass("h-row");
 		expect(row.closest("[data-index]")).toBeNull();
 		expect(row.parentElement?.className).not.toContain("absolute");
 		expect(screen.getByRole("columnheader", { name: "Alpha" })).toHaveAttribute("title", "Alpha");
