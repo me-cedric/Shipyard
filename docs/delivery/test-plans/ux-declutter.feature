@@ -174,6 +174,12 @@ Feature: ux-declutter
     When a toast shows and then goes
     Then it slides in and out
 
+  @spec:ux-declutter#REQ-024
+  Scenario: Motion gaps: Loaded content fades in
+    Given motion is allowed and a page loads
+    When its content replaces the loading pattern
+    Then the content under the header fades in and the header does not
+
   @spec:ux-declutter#REQ-025
   Scenario: Shared timing: No local timing
     Given the source files of the interface

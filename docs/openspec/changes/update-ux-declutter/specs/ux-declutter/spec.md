@@ -58,7 +58,7 @@ Shared patterns
 Motion
 
 - REQ-023: One source SHALL tell each animation whether to move: the system reduced-motion setting or the motion preference of the person stops all of them, CSS, script, scroll and canvas included.
-- REQ-024: A toast SHALL slide in and out. A removed list row SHALL leave with motion. The sidebar and the inspector SHALL move on the shared springs.
+- REQ-024: A toast SHALL slide in and out. A removed list row SHALL leave with motion. The sidebar and the inspector SHALL move on the shared springs. Loaded content SHALL fade in under its page header.
 - REQ-025: Each transition SHALL take its timing from the shared springs or the duration tokens.
 
 Languages
@@ -69,8 +69,8 @@ Languages
 
 - A new feature, a new page or a new setting.
 - A change of the seven spaces or of the order of the sidebar.
-- Decorative motion: shared-element moves, celebrations, page entrance effects.
-- A width motion for the terminal, file and assistant drawers: they open with no width motion (a width spring refits the terminal on every frame). Loaded content replaces its loading rows with no fade.
+- Decorative motion: shared-element moves, celebrations, page entrance effects. The fade of loaded content under its header (REQ-024) is not an entrance effect: it shows that the data arrived.
+- A width motion for the terminal, file and assistant drawers: they open with no width motion (a width spring refits the terminal on every frame).
 - The per-project picks and overrides of Settings / Project, fetch and push in Code / Branches, the project actions of Home / Projects: they stay.
 
 ### Acceptance Criteria
@@ -88,6 +88,7 @@ Languages
 - [x] Each tab shows a header while it loads; the a11y end-to-end tests pass.
 - [x] With the motion preference on reduced, no element moves (count-up, graph, section scroll included).
 - [x] A toast and a removed run row move in and out.
+- [x] Loaded content fades in under the header; the header does not fade.
 - [x] Each new text exists in the four languages.
 
 ### Existing References
@@ -359,13 +360,19 @@ The system reduced-motion setting or the motion preference of the person SHALL s
 
 ### Requirement: REQ-024 Motion gaps
 
-A toast SHALL slide in and out, a removed list row SHALL leave with motion, and the sidebar and the inspector SHALL move on the shared springs.
+A toast SHALL slide in and out, a removed list row SHALL leave with motion, and the sidebar and the inspector SHALL move on the shared springs. Loaded content SHALL fade in under its page header.
 
 #### Scenario: Toast
 
 - GIVEN motion is allowed
 - WHEN a toast shows and then goes
 - THEN it slides in and out
+
+#### Scenario: Loaded content fades in
+
+- GIVEN motion is allowed and a page loads
+- WHEN its content replaces the loading pattern
+- THEN the content under the header fades in and the header does not
 
 ### Requirement: REQ-025 Shared timing
 
