@@ -1,10 +1,12 @@
 import { Popover } from "@base-ui/react/popover";
+import { AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import type { Notice } from "@/lib/notifications";
 import { AnimatedIcon } from "../atoms/animated-icon";
 import { Button } from "../atoms/button";
 import { IconButton } from "../atoms/icon-button";
+import { Leave } from "../atoms/leave";
 import { BellIcon, XMarkIcon } from "../icons";
 import { NotificationRow } from "../molecules/notification-row";
 
@@ -68,42 +70,48 @@ export function NotificationCentre({
 								{t.notifications.clear}
 							</Button>
 						</div>
-						<div className="max-h-80 overflow-y-auto">
+						<div tabIndex={-1} className="max-h-80 overflow-y-auto">
+							{/* The list stays mounted so the last row can leave; the empty text sits after it. */}
+							<AnimatePresence initial={false}>
+								{items.map((n) => (
+									<Leave key={n.id}>
+										<NotificationRow
+											kind={n.kind}
+											kindLabel={t.notifications.kind[n.kind]}
+											title={n.title}
+											body={n.body}
+											time={time.format(n.time)}
+											unread={!n.read}
+											wrap
+											detail={n.detail}
+											detailLabel={t.ui.item.details}
+											notice={n.action}
+											actions={n.actions}
+											action={
+												onRemove ? (
+													<IconButton
+														label={t.notifications.dismiss}
+														onClick={() => onRemove(n.id)}
+													>
+														<XMarkIcon size={14} />
+													</IconButton>
+												) : undefined
+											}
+											onOpen={
+												n.target && onGo
+													? () => {
+															onGo(n);
+															setOpen(false);
+														}
+													: undefined
+											}
+										/>
+									</Leave>
+								))}
+							</AnimatePresence>
 							{items.length === 0 ? (
 								<p className="px-3 py-3 text-n-10">{t.notifications.empty}</p>
-							) : (
-								items.map((n) => (
-									<NotificationRow
-										key={n.id}
-										kind={n.kind}
-										kindLabel={t.notifications.kind[n.kind]}
-										title={n.title}
-										body={n.body}
-										time={time.format(n.time)}
-										unread={!n.read}
-										wrap
-										detail={n.detail}
-										detailLabel={t.ui.item.details}
-										notice={n.action}
-										actions={n.actions}
-										action={
-											onRemove ? (
-												<IconButton label={t.notifications.dismiss} onClick={() => onRemove(n.id)}>
-													<XMarkIcon size={14} />
-												</IconButton>
-											) : undefined
-										}
-										onOpen={
-											n.target && onGo
-												? () => {
-														onGo(n);
-														setOpen(false);
-													}
-												: undefined
-										}
-									/>
-								))
-							)}
+							) : null}
 						</div>
 					</Popover.Popup>
 				</Popover.Positioner>

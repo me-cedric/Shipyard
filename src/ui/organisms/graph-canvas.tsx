@@ -15,6 +15,7 @@ import { IconButton } from "../atoms/icon-button";
 import { LiveDot } from "../atoms/live-dot";
 import { type Status, StatusDot } from "../atoms/status-dot";
 import { ViewColumnsIcon } from "../icons";
+import { DURATION, useReducedMotionPref } from "../motion";
 import { useDark } from "./use-dark";
 
 export type CanvasKind = { id: string; label: string };
@@ -220,9 +221,6 @@ export function canvasLayout(
 	return { nodes: placed, edges };
 }
 
-const reducedMotion = () =>
-	typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 /**
  * One renderer for the reference graph, the code graph and the Agents map. It holds no copy of the
  * data. A node holds a button: Tab reaches it, Enter opens it, the arrows follow the links
@@ -267,7 +265,7 @@ export function GraphCanvas({
 	const [table, setTable] = useState(false);
 	const root = useRef<HTMLElement>(null);
 	const dark = useDark();
-	const reduced = reducedMotion();
+	const reduced = useReducedMotionPref();
 	const graph = useMemo(
 		() => canvasLayout(nodes, links, kinds, selected, labels, glow, live, !reduced, positions),
 		[nodes, links, kinds, selected, labels, glow, live, reduced, positions],
@@ -387,7 +385,7 @@ export function GraphCanvas({
 							"controls.zoomOut.ariaLabel": labels.zoomOut ?? "Zoom out",
 							"controls.fitView.ariaLabel": labels.fit ?? "Fit view",
 						}}
-						fitViewOptions={{ duration: reduced ? 0 : 200 }}
+						fitViewOptions={{ duration: reduced ? 0 : DURATION.base }}
 						// The click of a node, and Enter on its button, bubble to this handler.
 						onNodeClick={(_, n) => onOpen(n.id)}
 						nodesDraggable={false}

@@ -8,10 +8,10 @@ import {
 	ReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useReducedMotion } from "motion/react";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { RunStep, type StepStatus } from "../molecules/run-step";
+import { useReducedMotionPref } from "../motion";
 
 export type GraphStep = { id: string; needs: string[]; state: StepStatus; units?: number };
 
@@ -99,7 +99,7 @@ export function RunGraph({
 	label: string;
 	className?: string;
 }) {
-	const animate = !useReducedMotion();
+	const animate = !useReducedMotionPref();
 	const { nodes, edges } = useMemo(() => layout(steps, animate), [steps, animate]);
 	return (
 		<section

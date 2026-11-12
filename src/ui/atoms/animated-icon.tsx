@@ -1,6 +1,7 @@
-import { useAnimate, useReducedMotion } from "motion/react";
+import { useAnimate } from "motion/react";
 import { type ComponentType, type Ref, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { useReducedMotionPref } from "@/ui/motion";
 
 export type IconHandle = { startAnimation: () => void; stopAnimation: () => void };
 
@@ -26,7 +27,7 @@ export function AnimatedIcon({
 }) {
 	const handle = useRef<IconHandle>(null);
 	const [scope, animate] = useAnimate<HTMLSpanElement>();
-	const reduce = useReducedMotion();
+	const reduce = useReducedMotionPref();
 	const rung = useRef(ring);
 	const played = useRef(play);
 	useEffect(() => {

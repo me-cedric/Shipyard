@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { AnimatePresence } from "motion/react";
 import { type ReactNode, useState } from "react";
 import { connectionKeys, runnerKeys } from "@/features/settings/connections/keys";
 import { DefaultAgentSelect } from "@/features/settings/me/personal";
@@ -17,6 +18,7 @@ import { useChanges } from "@/lib/specs";
 import { useWorkItems } from "@/lib/sync";
 import { useTeam, useWorkActions } from "@/lib/work";
 import { Button } from "@/ui/atoms/button";
+import { Leave } from "@/ui/atoms/leave";
 import { Progress } from "@/ui/atoms/progress";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import {
@@ -397,37 +399,46 @@ export function Checklist({
 	// A loading item is not done.
 	const done = ITEMS.filter((item) => state.done[item] === true).length;
 	const next = left[0];
-	if (onlyTodo && left.length === 0) return null;
 	const shown = onlyTodo ? left : ITEMS;
+	// The panel leaves with its last item: it stays mounted until the exit ends.
 	return (
-		<Panel
-			id={id}
-			title={s.title}
-			count={done}
-			icon={<SparklesIcon size={14} />}
-			tone="accent"
-			flush
-			toolbar={
-				<Progress
-					value={done}
-					max={ITEMS.length}
-					label={format(t.count, { name: s.title, count: done })}
-					className="w-32"
-				/>
-			}
-			// A long inbox under it must not squeeze the items away.
-			className={className}
-		>
-			{shown.map((item) => (
-				<SettingsRow
-					key={item}
-					icon={ICON[item]}
-					current={item === next}
-					label={<Terms>{s.item[item]}</Terms>}
-				>
-					<ChecklistControl id={item} state={state} pick={Boolean(onlyTodo)} />
-				</SettingsRow>
-			))}
-		</Panel>
+		<AnimatePresence initial={false}>
+			{onlyTodo && left.length === 0 ? null : (
+				// A long inbox under it must not squeeze the items away (`className`).
+				<Leave key="checklist" className={className}>
+					<Panel
+						id={id}
+						title={s.title}
+						count={done}
+						icon={<SparklesIcon size={14} />}
+						tone="accent"
+						flush
+						toolbar={
+							<Progress
+								value={done}
+								max={ITEMS.length}
+								label={format(t.count, { name: s.title, count: done })}
+								className="w-32"
+							/>
+						}
+					>
+						<AnimatePresence initial={false}>
+							{shown.map((item) => (
+								// The border sits on the wrapper: the row is its only child, so `last:` on the row never differs.
+								<Leave key={item} className="border-b last:border-b-0">
+									<SettingsRow
+										icon={ICON[item]}
+										current={item === next}
+										label={<Terms>{s.item[item]}</Terms>}
+									>
+										<ChecklistControl id={item} state={state} pick={Boolean(onlyTodo)} />
+									</SettingsRow>
+								</Leave>
+							))}
+						</AnimatePresence>
+					</Panel>
+				</Leave>
+			)}
+		</AnimatePresence>
 	);
 }

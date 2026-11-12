@@ -38,8 +38,8 @@ Wave 3, patterns
 
 Wave 4, motion
 
-- [ ] T016 (A) One motion source; the six places follow it. REQ-023.
-- [ ] T017 [P] (B) Toast in and out; removed rows; loading to content; springs on sidebar, inspector and drawers; no local timing. REQ-024, REQ-025.
+- [x] T016 (A) One motion source; the six places follow it. REQ-023.
+- [x] T017 [P] (B) Toast in and out; removed rows; springs on sidebar and inspector; no local timing. REQ-024, REQ-025.
 
 Wave 5, close
 

@@ -11,7 +11,7 @@ import {
 	useNavigate,
 	useRouterState,
 } from "@tanstack/react-router";
-import { motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import {
 	AppShell,
 	firstPath,
@@ -29,7 +29,7 @@ import { usePrefs } from "@/lib/prefs";
 import { useRights } from "@/lib/rights";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { SPRING } from "@/ui/motion";
+import { SPRING, useReducedMotionPref } from "@/ui/motion";
 import { NotFound } from "./not-found";
 import { refActions } from "./ref-actions";
 import { RouteError } from "./route-error";
@@ -74,7 +74,7 @@ function NoAccess({ space, tab }: { space: SpaceId; tab: string }) {
 
 function SpaceLayout({ space }: { space: SpaceId }) {
 	const path = useRouterState({ select: (s) => s.location.pathname });
-	const still = useReducedMotion();
+	const still = useReducedMotionPref();
 	const { level } = useRights();
 	// The space index has no tab: it redirects to the first visible tab.
 	const tab = path.split("/")[2];

@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { AnimatePresence } from "motion/react";
 import { type ComponentProps, type ReactNode, useEffect, useState } from "react";
 import { planOf } from "@/features/factory/runs/plan";
 import { useGuard } from "@/features/work/guard";
@@ -21,6 +22,7 @@ import { useWorkItems } from "@/lib/sync";
 import { useWorkContext } from "@/lib/work";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
+import { Leave } from "@/ui/atoms/leave";
 import { ApprovalBar } from "@/ui/molecules/approval-bar";
 import { Card } from "@/ui/molecules/card";
 import { Panel } from "@/ui/molecules/panel";
@@ -59,52 +61,88 @@ export function NeedsYou() {
 		assignee: (key) => items.find((i) => i.key === key)?.member,
 	});
 	const { questions, approvals, plans, reviews, messages, timesheet } = inbox;
-	if (needsYouTotal(raw) === 0) return null;
+	// The section leaves with its last group: it stays mounted until the exit ends.
 	return (
-		<section aria-label={t.home.needsYou} className="flex flex-col gap-4 px-4">
-			{role === null ? null : (
-				<Button aria-pressed={everyone} className="self-end" onClick={() => setEveryone(!everyone)}>
-					{t.rights.everyone}
-				</Button>
+		<AnimatePresence initial={false}>
+			{needsYouTotal(raw) === 0 ? null : (
+				<Leave key="needs-you">
+					<section aria-label={t.home.needsYou} tabIndex={-1} className="flex flex-col gap-4 px-4">
+						{role === null ? null : (
+							<Button
+								aria-pressed={everyone}
+								className="self-end"
+								onClick={() => setEveryone(!everyone)}
+							>
+								{t.rights.everyone}
+							</Button>
+						)}
+						<Group name={t.home.questions} count={questions.length}>
+							<AnimatePresence initial={false}>
+								{questions.map((x) => (
+									<Leave key={`${x.run}:${x.question.id}`}>
+										<QuestionRow item={x} />
+									</Leave>
+								))}
+							</AnimatePresence>
+						</Group>
+						<Group name={t.home.approvals} count={approvals.length}>
+							<AnimatePresence initial={false}>
+								{approvals.map((a) => (
+									<Leave key={a.id}>
+										<ApprovalRow approval={a} />
+									</Leave>
+								))}
+							</AnimatePresence>
+						</Group>
+						<Group name={t.home.planReview} count={plans.length}>
+							<AnimatePresence initial={false}>
+								{plans.map((r) => (
+									<Leave key={r.id}>
+										<PlanRow run={r.id} ticket={r.key} title={r.title} />
+									</Leave>
+								))}
+							</AnimatePresence>
+						</Group>
+						<Group name={t.home.reviews} count={reviews.length}>
+							<AnimatePresence initial={false}>
+								{reviews.map((r) => (
+									<Leave key={`${r.number}:${r.headSha}`}>
+										<ReviewRow review={r} />
+									</Leave>
+								))}
+							</AnimatePresence>
+						</Group>
+						<Group name={t.home.timesheet} count={Number(timesheet)}>
+							<TimesheetRow />
+						</Group>
+						<Group name={t.home.messages} count={messages.length}>
+							<AnimatePresence initial={false}>
+								{messages.map((m) => (
+									<Leave key={`${m.run}:${m.n}`}>
+										<MessageRow message={m} />
+									</Leave>
+								))}
+							</AnimatePresence>
+						</Group>
+					</section>
+				</Leave>
 			)}
-			<Group name={t.home.questions} count={questions.length}>
-				{questions.map((x) => (
-					<QuestionRow key={`${x.run}:${x.question.id}`} item={x} />
-				))}
-			</Group>
-			<Group name={t.home.approvals} count={approvals.length}>
-				{approvals.map((a) => (
-					<ApprovalRow key={a.id} approval={a} />
-				))}
-			</Group>
-			<Group name={t.home.planReview} count={plans.length}>
-				{plans.map((r) => (
-					<PlanRow key={r.id} run={r.id} ticket={r.key} title={r.title} />
-				))}
-			</Group>
-			<Group name={t.home.reviews} count={reviews.length}>
-				{reviews.map((r) => (
-					<ReviewRow key={`${r.number}:${r.headSha}`} review={r} />
-				))}
-			</Group>
-			<Group name={t.home.timesheet} count={Number(timesheet)}>
-				<TimesheetRow />
-			</Group>
-			<Group name={t.home.messages} count={messages.length}>
-				{messages.map((m) => (
-					<MessageRow key={`${m.run}:${m.n}`} message={m} />
-				))}
-			</Group>
-		</section>
+		</AnimatePresence>
 	);
 }
 
 function Group({ name, count, children }: { name: string; count: number; children: ReactNode }) {
-	if (count === 0) return null;
+	// The whole group leaves with its last row: the rows stay as they were while it shrinks.
 	return (
-		<Panel title={name} count={count}>
-			{children}
-		</Panel>
+		<AnimatePresence initial={false}>
+			{count === 0 ? null : (
+				<Leave key="group">
+					<Panel title={name} count={count}>
+						{children}
+					</Panel>
+				</Leave>
+			)}
+		</AnimatePresence>
 	);
 }
 

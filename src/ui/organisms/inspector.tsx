@@ -1,11 +1,13 @@
+import { motion } from "motion/react";
 import { type ReactNode, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { usePanelSize } from "@/lib/prefs";
 import { IconButton } from "../atoms/icon-button";
 import { XMarkIcon } from "../icons";
 import { Splitter } from "../molecules/splitter";
+import { SPRING, useReducedMotionPref } from "../motion";
 
-/** A side panel, 320 px at first. The person resizes it. The width change takes 200 ms, but not during a drag. */
+/** A side panel, 320 px at first. The person resizes it. The width change follows the smooth spring, but not during a drag. */
 export function Inspector({
 	open,
 	onClose,
@@ -23,6 +25,7 @@ export function Inspector({
 	// A width transition while the pointer drags is the lag: the panel trails the pointer.
 	// The bubbling pointer events of the separator set it, so no other path of the drag can miss it.
 	const [resizing, setResizing] = useState(false);
+	const still = useReducedMotionPref();
 	const stop = () => setResizing(false);
 	// The panel turns inert on close: move the focus out first, so it does not drop to <body>.
 	const close = () => {
@@ -30,7 +33,7 @@ export function Inspector({
 		onClose();
 	};
 	return (
-		<aside
+		<motion.aside
 			ref={ref}
 			aria-label={title}
 			inert={!open}
@@ -45,8 +48,10 @@ export function Inspector({
 			onPointerUp={stop}
 			onPointerCancel={stop}
 			onLostPointerCapture={stop}
-			style={{ width: open ? panel.size : 0 }}
-			className="relative max-w-[60vw] shrink-0 overflow-hidden border-l transition-[width,border-color] duration-(--duration-base) ease-standard data-[open=false]:border-transparent data-[resizing]:transition-none"
+			initial={false}
+			animate={{ width: open ? panel.size : 0 }}
+			transition={resizing || still ? { duration: 0 } : SPRING.smooth}
+			className="relative max-w-[60vw] shrink-0 overflow-hidden border-l transition-[border-color] duration-(--duration-base) ease-standard data-[open=false]:border-transparent"
 		>
 			<Splitter
 				label={t.ui.resize.inspector}
@@ -68,6 +73,6 @@ export function Inspector({
 				</div>
 				<div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3">{children}</div>
 			</div>
-		</aside>
+		</motion.aside>
 	);
 }

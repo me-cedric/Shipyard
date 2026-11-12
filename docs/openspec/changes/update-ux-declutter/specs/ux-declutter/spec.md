@@ -58,7 +58,7 @@ Shared patterns
 Motion
 
 - REQ-023: One source SHALL tell each animation whether to move: the system reduced-motion setting or the motion preference of the person stops all of them, CSS, script, scroll and canvas included.
-- REQ-024: A toast SHALL slide in and out. A removed list row SHALL leave with motion. Loaded content SHALL fade in over its loading pattern. The sidebar, the inspector and the drawers SHALL move on the shared springs.
+- REQ-024: A toast SHALL slide in and out. A removed list row SHALL leave with motion. The sidebar and the inspector SHALL move on the shared springs.
 - REQ-025: Each transition SHALL take its timing from the shared springs or the duration tokens.
 
 Languages
@@ -70,6 +70,7 @@ Languages
 - A new feature, a new page or a new setting.
 - A change of the seven spaces or of the order of the sidebar.
 - Decorative motion: shared-element moves, celebrations, page entrance effects.
+- A width motion for the terminal, file and assistant drawers: they open with no width motion (a width spring refits the terminal on every frame). Loaded content replaces its loading rows with no fade.
 - The per-project picks and overrides of Settings / Project, fetch and push in Code / Branches, the project actions of Home / Projects: they stay.
 
 ### Acceptance Criteria
@@ -358,7 +359,7 @@ The system reduced-motion setting or the motion preference of the person SHALL s
 
 ### Requirement: REQ-024 Motion gaps
 
-A toast SHALL slide in and out, a removed list row SHALL leave with motion, loaded content SHALL fade in, and the panels SHALL move on the shared springs.
+A toast SHALL slide in and out, a removed list row SHALL leave with motion, and the sidebar and the inspector SHALL move on the shared springs.
 
 #### Scenario: Toast
 

@@ -1,10 +1,12 @@
 import { Popover } from "@base-ui/react/popover";
 import { Link } from "@tanstack/react-router";
+import { AnimatePresence } from "motion/react";
 import { useGuard } from "@/features/work/guard";
 import { useRunActions, useRuns } from "@/lib/factory";
 import { latestPerTicket } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { useRights } from "@/lib/rights";
+import { Leave } from "@/ui/atoms/leave";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { InboxIcon } from "@/ui/icons";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
@@ -32,12 +34,15 @@ function RunsPart({ live }: { live: { id: string; key: string; title: string }[]
 					{error}
 				</p>
 			) : null}
-			{live.length === 0 ? (
-				<p className="px-3 py-3 text-n-10">{t.shell.runsNone}</p>
-			) : (
-				<ul aria-label={t.shell.runs} className="max-h-60 overflow-y-auto py-1">
+			{/* The list stays mounted so the last row can leave; the empty text sits after it. */}
+			<ul
+				aria-label={t.shell.runs}
+				tabIndex={-1}
+				className="max-h-60 overflow-y-auto py-1 empty:hidden"
+			>
+				<AnimatePresence initial={false}>
 					{live.map((r) => (
-						<li key={r.id} className="flex items-center gap-2.5 px-3 py-1.5">
+						<Leave as="li" key={r.id} className="flex items-center gap-2.5 px-3 py-1.5">
 							<span className="font-mono text-12 text-n-11">{r.key}</span>
 							<span className="min-w-0 flex-1 truncate">{r.title}</span>
 							<ConfirmButton
@@ -48,10 +53,11 @@ function RunsPart({ live }: { live: { id: string; key: string; title: string }[]
 							>
 								{format(t.factory.machine.stop, { name: r.key })}
 							</ConfirmButton>
-						</li>
+						</Leave>
 					))}
-				</ul>
-			)}
+				</AnimatePresence>
+			</ul>
+			{live.length === 0 ? <p className="px-3 py-3 text-n-10">{t.shell.runsNone}</p> : null}
 		</section>
 	);
 }

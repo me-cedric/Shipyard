@@ -5,7 +5,8 @@ import { PageHeader } from "./page-header";
 
 /**
  * Skeleton rows that pulse while a page loads. The pulse stops with reduced motion. With a `title`
- * the head of the page shows above the rows, so the page keeps its name while it loads.
+ * the head of the page shows above the rows, so the page keeps its name while it loads. The
+ * content replaces the rows with no fade: a plain swap does not blink.
  */
 export function Loading({
 	rows = 6,

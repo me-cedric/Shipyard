@@ -1,8 +1,10 @@
-import type { ReactNode } from "react";
+import { motion } from "motion/react";
+import { type ReactNode, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { usePanelSize } from "@/lib/prefs";
 import { cn } from "@/lib/utils";
 import { Splitter } from "../molecules/splitter";
+import { SPRING, useReducedMotionPref } from "../motion";
 
 /** A context bar on top, a floating sidebar (56 px rail or 220 px open), the main canvas and a status bar. */
 export function Shell({
@@ -46,13 +48,24 @@ export function Shell({
 }) {
 	const { t } = useI18n();
 	const panel = usePanelSize("sidebar-width", 220);
+	const [resizing, setResizing] = useState(false);
+	const still = useReducedMotionPref();
 	const nav = (
-		<nav
+		<motion.nav
 			aria-label={t.nav.sidebar}
 			data-open={sidebarOpen}
-			style={{ width: sidebarOpen ? panel.size : 56 }}
+			initial={false}
+			animate={{ width: sidebarOpen ? panel.size : 56 }}
+			// A drag follows the pointer at once.
+			transition={resizing || still ? { duration: 0 } : SPRING.smooth}
+			onPointerDown={(e) => {
+				if ((e.target as HTMLElement).closest("[role=separator]")) setResizing(true);
+			}}
+			onPointerUp={() => setResizing(false)}
+			onPointerCancel={() => setResizing(false)}
+			onLostPointerCapture={() => setResizing(false)}
 			className={cn(
-				"relative z-10 my-2 max-w-[40vw] shrink-0 overflow-hidden rounded-lg border bg-surface-1 shadow-1 transition-[width] duration-(--duration-base) ease-standard",
+				"relative z-10 my-2 max-w-[40vw] shrink-0 overflow-hidden rounded-lg border bg-surface-1 shadow-1",
 				navSide === "right" ? "mr-2" : "ml-2",
 			)}
 		>
@@ -69,7 +82,7 @@ export function Shell({
 				/>
 			) : null}
 			{sidebar}
-		</nav>
+		</motion.nav>
 	);
 	return (
 		<div className="flex h-full flex-col bg-surface-0">

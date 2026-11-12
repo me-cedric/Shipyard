@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
+import { AnimatePresence } from "motion/react";
 import { useState } from "react";
 import { useMachineSessions, useMachineWrites } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { IconButton } from "@/ui/atoms/icon-button";
+import { Leave } from "@/ui/atoms/leave";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { StopIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
@@ -43,15 +45,14 @@ export function SessionsPart() {
 				</Link>
 			</div>
 			{error ? <ErrorNotice error={error} className="px-3 py-2 text-danger-text" /> : null}
-			{live.length === 0 ? (
-				<p className="px-3 py-3 text-n-10">{p.none}</p>
-			) : (
-				<ul aria-label={p.title} className="max-h-80 overflow-y-auto py-1">
+			{/* The list stays mounted so the last row can leave; the empty text sits after it. */}
+			<ul aria-label={p.title} tabIndex={-1} className="max-h-80 overflow-y-auto py-1 empty:hidden">
+				<AnimatePresence initial={false}>
 					{live.map((s) => {
 						const name = `${runnerName(s.runner)} ${s.project}`;
 						const pid = s.pid;
 						return (
-							<li key={s.key} className="flex items-center gap-2.5 px-3 py-1.5">
+							<Leave as="li" key={s.key} className="flex items-center gap-2.5 px-3 py-1.5">
 								<span className="relative flex shrink-0">
 									<BrandIcon name={s.runner} size={24} />
 									{s.state === "working" ? (
@@ -78,11 +79,12 @@ export function SessionsPart() {
 										<StopIcon size={14} />
 									</IconButton>
 								)}
-							</li>
+							</Leave>
 						);
 					})}
-				</ul>
-			)}
+				</AnimatePresence>
+			</ul>
+			{live.length === 0 ? <p className="px-3 py-3 text-n-10">{p.none}</p> : null}
 		</section>
 	);
 }
