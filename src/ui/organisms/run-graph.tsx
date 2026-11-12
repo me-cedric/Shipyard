@@ -13,7 +13,13 @@ import { cn } from "@/lib/utils";
 import { RunStep, type StepStatus } from "../molecules/run-step";
 import { useReducedMotionPref } from "../motion";
 
-export type GraphStep = { id: string; needs: string[]; state: StepStatus; units?: number };
+export type GraphStep = {
+	id: string;
+	name?: string;
+	needs: string[];
+	state: StepStatus;
+	units?: number;
+};
 
 type Data = { step: GraphStep };
 
@@ -25,7 +31,7 @@ function StepNode({ data }: NodeProps<Node<Data>>) {
 	return (
 		<>
 			<Handle type="target" position={Position.Top} isConnectable={false} className="opacity-0" />
-			<RunStep id={step.id} state={step.state} units={step.units} />
+			<RunStep id={step.id} name={step.name} state={step.state} units={step.units} />
 			<Handle
 				type="source"
 				position={Position.Bottom}

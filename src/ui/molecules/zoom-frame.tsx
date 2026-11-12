@@ -122,11 +122,18 @@ function Pane({
 		const el = box.current;
 		if (!el) return;
 		const onWheel = (e: WheelEvent) => {
-			e.preventDefault();
 			if (e.ctrlKey || e.metaKey) {
+				e.preventDefault();
 				touched.current = true;
 				setScale((s) => zoomBy(s, Math.exp(-e.deltaY * 0.01)));
-			} else panRef.current(-e.deltaX, -e.deltaY);
+				return;
+			}
+			// Only a sideways gesture on a wide picture, or a deliberate one (focus, Shift), pans: else the page scrolls.
+			const wide = (picture.current?.offsetWidth ?? 0) * scaleRef.current > el.clientWidth;
+			const sideways = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+			if (sideways ? !wide : !(e.shiftKey || document.activeElement === el)) return;
+			e.preventDefault();
+			panRef.current(-e.deltaX, -e.deltaY);
 		};
 		el.addEventListener("wheel", onWheel, { passive: false });
 		return () => el.removeEventListener("wheel", onWheel);

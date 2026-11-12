@@ -1,30 +1,25 @@
-import { useEffect, useState } from "react";
-import { ApprovalRow, QuestionRow } from "@/features/home/inbox/inbox";
+import { useRouter } from "@tanstack/react-router";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useGuard } from "@/features/work/guard";
 import { ENDED, useRunActions, useRunDiff, useRunLog, useRuns, useWorkflow } from "@/lib/factory";
 import { useRunWaits } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import type { RunView } from "@/lib/ipc";
-import { RightButton, useRights } from "@/lib/rights";
+import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
-import { Badge } from "@/ui/atoms/badge";
+import { rememberSelection } from "@/lib/shell/selection";
 import { Button } from "@/ui/atoms/button";
-import { Input } from "@/ui/atoms/input";
-import { Progress } from "@/ui/atoms/progress";
-import { StatusDot } from "@/ui/atoms/status-dot";
-import { ConfirmButton } from "@/ui/molecules/confirm-button";
-import { DiffView } from "@/ui/molecules/diff-view";
-import { FindingRow } from "@/ui/molecules/finding-row";
+import { Segmented } from "@/ui/atoms/segmented";
 import { Panel } from "@/ui/molecules/panel";
-import { RUN_STATUS, STATUS_BADGE } from "@/ui/molecules/run-card";
-import { SpendMeter } from "@/ui/molecules/spend-meter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
+import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { RunGraph } from "@/ui/organisms/run-graph";
-import { PlanBlock, planOf } from "./plan";
-import { EventRows, escalationOf, LiveStrip, lastBlock, stopReason } from "./run-live";
+import { RunChanges } from "./run-changes";
+import { EventRows, isImportant, LiveLine, nameOf } from "./run-live";
+import { RunNeeds } from "./run-needs";
+import { type Primary, primaryOf, RunSummary } from "./run-summary";
 import { RunUnits } from "./run-units";
-
-const SEVERITY = { P0: "danger", P1: "warning", P2: "info" } as const;
+import { UnitTranscript } from "./unit-chat";
 
 /** The steps done out of all steps, and the step that works now. */
 export function progressOf(run: RunView) {
@@ -37,12 +32,31 @@ export function progressOf(run: RunView) {
 	};
 }
 
-/** The run view: actions, cost, graph, findings, diff and event tail (factory REQ-027, REQ-028). */
-export function RunDetail({ id }: { id: string }) {
+export type RunTab = "activity" | "changes" | "workflow";
+
+/** More events than this open on Important. */
+const MANY_EVENTS = 20;
+
+/**
+ * The run page (factory REQ-027, REQ-028; ux-declutter REQ-029 to REQ-033): a summary that stays in
+ * view with the one action of the state, what waits for the person, then three tabs.
+ * `tab` and `onTab` keep the open tab in the address.
+ * `unit` is the session that the Workflow tab scrolls to and focuses. `onStarted` gets the id of a run that Start again made.
+ */
+export function RunDetail({
+	id,
+	tab,
+	onTab,
+	unit,
+	onStarted,
+}: {
+	id: string;
+	tab: RunTab;
+	onTab: (tab: RunTab) => void;
+	unit?: string;
+	onStarted?: (id: string) => void;
+}) {
 	const { t } = useI18n();
-	const { gate } = useRights();
-	// The events start collapsed: the strip, the plan and the banner say what matters.
-	const [eventsOpen, setEventsOpen] = useState(false);
 	const f = t.factory;
 	const run = useRuns(id).data?.find((r) => r.id === id);
 	const workflow = useWorkflow(run?.workflow ?? "").data;
@@ -57,286 +71,180 @@ export function RunDetail({ id }: { id: string }) {
 	}, [active, hasNextPage, isFetchingNextPage, fetchNextPage]);
 	const act = useRunActions();
 	const { openRef } = useShell();
+	const router = useRouter({ warn: false });
 	const { error, run: guard } = useGuard();
-	const [note, setNote] = useState("");
-	const [add, setAdd] = useState("");
-	const [message, setMessage] = useState("");
+	const needs = useRef<HTMLDivElement>(null);
+	const [pick, setPick] = useState<"important" | "all" | null>(null);
 	if (!run) return null;
-	const plan = planOf(log.events);
-	const n = (v: number | null, fmt: (x: number) => string) => (v === null ? "-" : fmt(v));
-	const usd = (x: number) => `$${x.toFixed(2)}`;
-	const status = RUN_STATUS[run.state];
-	const p = progressOf(run);
-	const esc = escalationOf(log.events);
-	const reason = stopReason(f.why, run, log.events);
+	const events = log.events;
+	const filter = pick ?? (events.length > MANY_EVENTS ? "important" : "all");
+	const shown = filter === "important" ? events.filter(isImportant) : events;
+	const session = run.steps
+		.flatMap((s) => s.units)
+		.find((u) => u.state === "running" && u.runner !== "");
+	const focusIn = (selector: string) =>
+		needs.current?.querySelector<HTMLElement>(selector)?.focus();
+	const openPr = (reference?: string) => {
+		if (reference) rememberSelection("code:pull-requests", reference);
+		void router?.navigate({ to: "/code/pull-requests" });
+	};
+	const again = () =>
+		void guard(async () => {
+			const started = await act.start(run.key);
+			if (onStarted) onStarted(started);
+			else openRef(`run:${started}`);
+		});
+	const primary: Record<Primary, ReactNode> = {
+		answer: (
+			<Button
+				variant="primary"
+				onClick={() => focusIn('[id^="question-"] input, [id^="question-"] button')}
+			>
+				{f.answer}
+			</Button>
+		),
+		approvePlan: (
+			<RightButton
+				right="runs.approve"
+				variant="primary"
+				onClick={() => void guard(() => act.planApprove(id))}
+			>
+				{f.planApprove}
+			</RightButton>
+		),
+		unblock: (
+			<Button variant="primary" onClick={() => focusIn("form input")}>
+				{f.unblock}
+			</Button>
+		),
+		resume: (
+			<Button variant="primary" onClick={() => focusIn("form input")}>
+				{f.resume}
+			</Button>
+		),
+		openPr: (
+			<Button variant="primary" onClick={() => openPr(run.pr?.reference)}>
+				{f.openPullRequest}
+			</Button>
+		),
+		again: (
+			<RightButton right="runs.start" variant="primary" onClick={again}>
+				{f.why.again}
+			</RightButton>
+		),
+	};
+	const kind = primaryOf(run.state, run.pr !== null);
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="flex flex-col gap-1.5">
-				<p className="text-16 font-semibold text-n-12">{run.title}</p>
-				<div className="flex items-center gap-2">
-					<span className="font-mono text-12 text-n-11">{run.key}</span>
-					<Badge variant={STATUS_BADGE[status]}>
-						<StatusDot status={status} label={f.state[run.state]} className="size-2" />
-						{f.state[run.state]}
-					</Badge>
-					<Badge className="font-mono">{run.workflow}</Badge>
-				</div>
-			</div>
-			{waits.questions.map((x) => (
-				<div key={`${x.run}:${x.question.id}`} id={`question-${x.question.id}`}>
-					<QuestionRow item={x} />
-				</div>
-			))}
-			{waits.approvals.map((a) => (
-				<div key={a.id} id={`approval-${a.id}`}>
-					<ApprovalRow approval={a} />
-				</div>
-			))}
-			{run.state === "Failed" || run.state === "Paused" || run.state === "Blocked" ? (
-				<div
-					role="status"
-					className="flex flex-wrap items-center gap-3 rounded-lg border bg-surface-1 p-3 text-ui text-n-12"
-				>
-					<span className="min-w-0 flex-1">{reason}</span>
-					{esc ? (
-						<div className="flex basis-full flex-col gap-1.5 text-n-11">
-							{esc.lines.length > 0 ? (
-								<details className="text-12">
-									<summary className="w-fit cursor-pointer select-none rounded-sm focus-visible:shadow-glow">
-										{f.why.lastLines}
-									</summary>
-									<pre className="overflow-x-auto font-mono text-11 whitespace-pre-wrap">
-										{esc.lines.join("\n")}
-									</pre>
-								</details>
-							) : null}
-							<span>
-								{f.why.tried}: {esc.tried}
-							</span>
-							{run.state === "Blocked" ? <span>{f.why.replyNote}</span> : null}
-						</div>
-					) : run.state === "Paused" && reason === f.why.budget ? (
-						<span className="basis-full text-n-11">{f.why.dayResume}</span>
-					) : null}
-					{run.state === "Failed" ? (
-						<RightButton
-							right="runs.start"
-							variant="primary"
-							onClick={() => void guard(async () => openRef(`run:${await act.start(run.key)}`))}
-						>
-							{f.why.again}
-						</RightButton>
-					) : run.state === "Blocked" ? (
-						<>
-							{esc?.cause === "nothing_to_deliver" ||
-							lastBlock(log.events)?.startsWith("nothing to deliver") ? (
-								<RightButton right="runs.start" onClick={() => void guard(() => act.closeDone(id))}>
-									{f.closeDone}
-								</RightButton>
-							) : null}
-							<form
-								className="flex items-center gap-2"
-								onSubmit={(e) => {
-									e.preventDefault();
-									void guard(async () => {
-										await act.unblock(id, message);
-										setMessage("");
-									});
-								}}
-							>
-								<Input
-									label={f.unblockNote}
-									className="w-64"
-									value={message}
-									onChange={(e) => setMessage(e.target.value)}
-								/>
-								<RightButton right="runs.start" type="submit" variant="primary">
-									{f.unblock}
-								</RightButton>
-							</form>
-						</>
-					) : (
-						<form
-							className="flex items-center gap-2"
-							onSubmit={(e) => {
-								e.preventDefault();
-								void guard(async () => {
-									await act.resume(id, add.trim() === "" ? null : Number(add), message);
-									setMessage("");
-								});
-							}}
-						>
-							<Input
-								label={f.unblockNote}
-								className="w-64"
-								value={message}
-								onChange={(e) => setMessage(e.target.value)}
-							/>
-							<RightButton right="runs.start" type="submit" variant="primary">
-								{f.resume}
-							</RightButton>
-						</form>
-					)}
-				</div>
-			) : null}
-			{active ? <LiveStrip run={run} events={log.events} /> : null}
-			{run.state === "PlanReview" && plan ? <PlanBlock plan={plan} /> : null}
-			<div className="flex flex-wrap items-center gap-2">
-				{run.state === "PlanReview" ? (
-					<>
-						<Input
-							label={f.note}
-							className="max-w-40"
-							value={note}
-							onChange={(e) => setNote(e.target.value)}
-						/>
-						<RightButton
-							right="runs.approve"
-							onClick={() => void guard(() => act.planReject(id, note))}
-						>
-							{f.planReject}
-						</RightButton>
-						<RightButton
-							right="runs.approve"
-							variant="primary"
-							onClick={() => void guard(() => act.planApprove(id))}
-						>
-							{f.planApprove}
-						</RightButton>
-					</>
-				) : null}
-				{run.state === "Paused" ? (
-					<Input
-						label={f.addBudget}
-						inputMode="decimal"
-						className="max-w-32"
-						value={add}
-						onChange={(e) => setAdd(e.target.value)}
-					/>
-				) : null}
-				{ENDED.includes(run.state) ? null : (
-					<ConfirmButton
-						variant="danger"
-						{...gate("runs.start")}
-						confirm={format(f.machine.confirmStop, { name: run.key })}
-						onConfirm={() => void guard(() => act.cancel(id))}
-					>
-						{f.kill}
-					</ConfirmButton>
-				)}
-			</div>
+			<RunSummary
+				run={run}
+				events={events}
+				live={active}
+				primary={kind ? primary[kind] : null}
+				onStop={active ? () => void guard(() => act.cancel(id)) : undefined}
+				onOpenPr={openPr}
+			/>
 			{error ? (
 				<p role="alert" className="text-ui text-danger-text">
 					{error}
 				</p>
 			) : null}
-			<StatStrip
-				items={[
+			<div ref={needs} className="contents">
+				<RunNeeds run={run} events={events} waits={waits} />
+			</div>
+			<ViewTabs
+				label={f.runViews}
+				value={tab}
+				onValueChange={onTab}
+				tabs={[
+					{ value: "activity", label: f.tabActivity },
 					{
-						label: f.cost,
-						value: n(run.costUsd, usd),
-						delta: run.budgetUsd === null ? undefined : `/ ${usd(run.budgetUsd)}`,
-						tone: "info",
-						extra: (
-							<SpendMeter
-								usd={run.costUsd ?? 0}
-								budget={run.budgetUsd}
-								label={`${f.cost} ${run.key}`}
-							/>
-						),
+						value: "changes",
+						label: diff.length ? `${f.tabChanges} (${diff.length})` : f.tabChanges,
 					},
-					{
-						label: f.steps,
-						value: `${p.done}/${p.total}`,
-						tone: "accent",
-						extra: (
-							<Progress
-								value={p.done}
-								max={p.total}
-								label={format(f.stepsDone, { done: p.done, total: p.total })}
-							/>
-						),
-					},
-					{ label: f.tokens, value: run.tokens.toLocaleString(), tone: "accent" },
-					{ label: f.turns, value: String(run.turns), tone: "accent" },
+					{ value: "workflow", label: f.workflow },
 				]}
 			/>
-			{workflow ? (
-				<RunGraph
-					label={f.workflow}
-					steps={workflow.steps.map((s) => {
-						const live = run.steps.find((x) => x.id === s.id);
-						return {
-							id: s.id,
-							needs: s.needs ?? [],
-							state: live?.state ?? "pending",
-							units: s.for_each ? live?.units.length : undefined,
-						};
-					})}
-				/>
-			) : null}
-			<RunUnits run={run} events={log.events} />
-			{run.findings.length ? (
-				<Panel title={f.findings} count={run.findings.length} tone="warning" flush>
-					{run.findings.map((x, i) => (
-						<FindingRow
-							// biome-ignore lint/suspicious/noArrayIndexKey: the findings never reorder
-							key={i}
-							status={SEVERITY[x.severity as keyof typeof SEVERITY] ?? "info"}
-							title={x.text}
-							source={
-								x.path ? (
-									<span className="font-mono text-11 text-n-11">
-										{x.path}
-										{x.line ? `:${x.line}` : ""}
-									</span>
-								) : undefined
-							}
-						/>
-					))}
-				</Panel>
-			) : null}
-			{diff.length ? (
-				<Panel title={f.diff} count={diff.length} flush>
-					{diff.map((d) => (
-						<div key={d.path} className="border-b last:border-b-0">
-							<p className="bg-n-2 px-3 py-1 font-mono text-11 text-n-11">{d.path}</p>
-							<DiffView
-								text={d.text}
-								path={d.path}
-								binary={d.binary}
-								truncated={d.truncated}
-								label={format(t.code.diff, { path: d.path })}
-								binaryLabel={t.code.binary}
-								truncatedLabel={t.code.truncated}
+			{tab === "activity" ? (
+				<div role="tabpanel" aria-label={f.tabActivity} className="flex flex-col gap-4">
+					{active ? <LiveLine run={run} events={events} /> : null}
+					{run.state === "RetryQueued" && run.reason ? (
+						<p role="status" className="text-ui text-n-11">
+							{format(f.why.stop, { text: run.reason })}
+						</p>
+					) : null}
+					{session ? (
+						<div className="overflow-hidden rounded-lg border bg-surface-1">
+							<UnitTranscript
+								events={events.filter((e) => e.step === session.id)}
+								ticket={run.key}
+								running
 							/>
 						</div>
-					))}
-				</Panel>
-			) : null}
-			<Panel
-				title={f.log}
-				count={log.events.length}
-				flush
-				toolbar={
-					<Button
-						variant="ghost"
-						aria-expanded={eventsOpen}
-						onClick={() => setEventsOpen(!eventsOpen)}
+					) : null}
+					<Panel
+						title={f.log}
+						count={shown.length}
+						flush
+						toolbar={
+							<div className="w-44">
+								<Segmented
+									label={f.eventsShow}
+									value={filter}
+									onValueChange={setPick}
+									items={[
+										{ value: "important", label: f.eventsImportant },
+										{ value: "all", label: f.eventsAll },
+									]}
+								/>
+							</div>
+						}
 					>
-						{eventsOpen ? t.nav.collapse : t.nav.expand}
-					</Button>
-				}
-			>
-				{eventsOpen ? <EventRows events={log.events} ticket={run.key} /> : null}
-				{eventsOpen && log.hasNextPage ? (
-					<div className="border-t p-2">
-						<Button variant="ghost" onClick={() => void log.fetchNextPage()}>
-							{f.more}
-						</Button>
-					</div>
-				) : null}
-			</Panel>
+						<EventRows events={shown} ticket={run.key} />
+						{log.hasNextPage ? (
+							<div className="border-t p-2">
+								<Button variant="ghost" onClick={() => void log.fetchNextPage()}>
+									{f.more}
+								</Button>
+							</div>
+						) : null}
+					</Panel>
+				</div>
+			) : null}
+			{tab === "changes" ? (
+				<div role="tabpanel" aria-label={f.tabChanges}>
+					<RunChanges run={run} diff={diff} />
+				</div>
+			) : null}
+			{tab === "workflow" ? (
+				<div role="tabpanel" aria-label={f.workflow} className="flex flex-col gap-4">
+					<StatStrip
+						items={[
+							{ label: f.tokens, value: run.tokens.toLocaleString(), tone: "accent" },
+							{ label: f.turns, value: String(run.turns), tone: "accent" },
+						]}
+					/>
+					{workflow ? (
+						<>
+							<h2 className="text-14 font-medium text-n-12">{nameOf(run.workflow)}</h2>
+							<RunGraph
+								label={f.workflow}
+								steps={workflow.steps.map((s) => {
+									const live = run.steps.find((x) => x.id === s.id);
+									return {
+										id: s.id,
+										name: nameOf(s.id),
+										needs: s.needs ?? [],
+										state: live?.state ?? "pending",
+										units: s.for_each ? live?.units.length : undefined,
+									};
+								})}
+							/>
+						</>
+					) : null}
+					<RunUnits run={run} events={events} unit={unit} />
+				</div>
+			) : null}
 		</div>
 	);
 }

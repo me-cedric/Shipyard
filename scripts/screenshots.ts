@@ -52,12 +52,8 @@ const scenes: Scene[] = [
 				.getByRole("region", { name: "Working" })
 				.getByRole("button", { name: /ACME-2/ })
 				.click();
-			// The mock logs no events for a unit, so the live chat stays empty: show the workflow and the events.
-			await p
-				.getByRole("region", { name: /^Events/ })
-				.getByRole("button", { name: "Expand" })
-				.click();
-			await p.getByRole("region", { name: /^Events/ }).scrollIntoViewIfNeeded();
+			// The Activity tab is open, with the summary in view.
+			await p.getByRole("region", { name: /^Events/ }).waitFor();
 		},
 	},
 	{ name: "code", run: (p) => open(p, "Code", "Pull requests") },

@@ -118,6 +118,7 @@ export const fr: Messages = {
 		budget: "Aucun budget",
 		sessions: "Aucune session",
 		runs: "Aucune exécution",
+		run: "Aucune exécution ouverte",
 		graph: "Aucun graphe",
 		dashboards: "Aucun tableau de bord",
 		testPlans: "Aucun plan de test",

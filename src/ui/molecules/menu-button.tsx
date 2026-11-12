@@ -1,5 +1,6 @@
 import { Menu } from "@base-ui/react/menu";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "../atoms/button";
 import { Kbd } from "../atoms/kbd";
 
@@ -12,6 +13,8 @@ export type MenuButtonItem = {
 	checked?: boolean;
 	/** One choice of the list: the list tells the chosen value, and the item with it carries a mark. */
 	value?: string;
+	/** An action that stops work or loses data: the danger colour. */
+	danger?: boolean;
 	/** The shortcut that the item shows at its end. */
 	shortcut?: string;
 	onSelect: () => void;
@@ -69,7 +72,7 @@ export function MenuList({ items, value }: { items: MenuButtonItem[]; value?: st
 									key={x.id}
 									disabled={x.disabled}
 									onClick={x.onSelect}
-									className={MENU_ITEM}
+									className={cn(MENU_ITEM, x.danger && "text-danger-text")}
 								>
 									{body}
 								</Menu.Item>

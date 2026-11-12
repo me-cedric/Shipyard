@@ -117,6 +117,7 @@ export const en = {
 		budget: "No budget",
 		sessions: "No sessions",
 		runs: "No runs",
+		run: "No run",
 		graph: "No graph",
 		dashboards: "No dashboards",
 		testPlans: "No test plans",

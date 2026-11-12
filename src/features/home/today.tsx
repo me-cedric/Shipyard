@@ -1,5 +1,5 @@
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useRef } from "react";
 import { useGuard } from "@/features/work/guard";
 import { TicketDetail } from "@/features/work/ticket-detail";
@@ -10,7 +10,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
 import { usePrefs } from "@/lib/prefs";
 import { RightButton, useRights } from "@/lib/rights";
-import { useShell } from "@/lib/shell";
+import { runHref, useShell } from "@/lib/shell";
 import { useWorkItems } from "@/lib/sync";
 import { memberName, useTeam, useWorkActions, useWorkContext } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
@@ -228,7 +228,9 @@ export function Today({ start }: { start?: ReactNode }) {
 							<StatusDot status={RUN_STATUS[r.state]} label={t.factory.state[r.state]} />
 							<RefChip refId={`run:${r.id}`} state="resolved" onOpen={openRef} />
 							<span className="font-mono text-12 text-n-11">{r.key}</span>
-							<span className="min-w-0 flex-1 truncate text-ui">{r.title}</span>
+							<Link {...runHref(r.id)} className="min-w-0 flex-1 truncate text-ui hover:underline">
+								{r.title}
+							</Link>
 							<ConfirmButton
 								variant="ghost"
 								{...stopGate}

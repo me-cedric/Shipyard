@@ -132,7 +132,28 @@ function spaceRoute<S extends SpaceId>(space: S) {
 			component: () => <TabView space={space} tab={tab} />,
 		}),
 	);
-	return route.addChildren([index, ...tabs]);
+	// A run has its own address, under the Factory tab bar with Runs selected (ux-declutter REQ-027).
+	const run =
+		space === "factory"
+			? [
+					createRoute({
+						getParentRoute: () => route,
+						path: "runs/$runId",
+						validateSearch: (
+							s: Record<string, unknown>,
+						): { unit?: string; tab?: "changes" | "workflow" } => ({
+							...(typeof s.unit === "string" && s.unit ? { unit: s.unit } : {}),
+							// Activity is the default tab: it has no value in the address.
+							...(s.tab === "changes" || s.tab === "workflow" ? { tab: s.tab } : {}),
+						}),
+						component: lazyRouteComponent(
+							() => import("@/features/factory/runs/run-page"),
+							"RunPage",
+						),
+					}),
+				]
+			: [];
+	return route.addChildren([index, ...tabs, ...run]);
 }
 
 // The gallery exists in the dev build only. The release build drops the import.

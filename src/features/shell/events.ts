@@ -139,7 +139,7 @@ export function useCloseGuardEvent() {
 /** The menu bar panel switched the project: the window goes to the project with its own switcher flow. */
 export const PROJECT_SWITCHED_EVENT = "project-switched";
 
-/** The menu bar panel opens an item: the window shows it in the inspector. The payload is its ref. */
+/** The menu bar panel opens an item: the window opens its page (a run) or shows it in the inspector. The payload is its ref. */
 export const OPEN_REF_EVENT = "open-ref";
 
 function useOpenRefEvent() {

@@ -14,9 +14,9 @@ test("developer", async ({ page }) => {
 
 	await w.step("Open a run", "the run card, the steps graph, the cost", async () => {
 		await w.click(page.getByText("Add export endpoint"));
-		await w.see(page.getByRole("button", { name: "Kill run" }), "no way to stop the run");
-		await w.see(page.getByText("Cost"), "no cost on the run");
-		await w.click(page.getByRole("main").getByRole("button", { name: "Back" }));
+		await w.see(page.getByRole("button", { name: "More actions" }), "no way to stop the run");
+		await w.see(page.getByRole("group", { name: "Cost" }), "no cost on the run");
+		await w.click(page.getByRole("main").getByRole("link", { name: "Runs", exact: true }).first());
 	});
 
 	await w.step("Start a run from a ticket", "the Ticket field, then Start run", async () => {
@@ -33,8 +33,11 @@ test("developer", async ({ page }) => {
 			"the refusal has no link to the run",
 		);
 		await w.click(page.getByRole("button", { name: "Open the run" }));
-		await w.see(page.getByRole("button", { name: "Kill run" }), "the link does not open the run");
-		await w.click(page.getByRole("main").getByRole("button", { name: "Back" }));
+		await w.see(
+			page.getByRole("button", { name: "More actions" }),
+			"the link does not open the run",
+		);
+		await w.click(page.getByRole("main").getByRole("link", { name: "Runs", exact: true }).first());
 	});
 
 	await w.step("Answer an agent question", "Home, the Agent questions list, Send", async () => {

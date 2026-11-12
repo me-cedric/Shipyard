@@ -50,12 +50,12 @@ Wave 5, close
 
 Second pass, defects
 
-- [ ] T022 Diagram frame fits and pans; screen preview placement; a tool that ends names itself. REQ-039, REQ-040.
+- [x] T022 Diagram frame fits and pans; screen preview placement; a tool that ends names itself. REQ-039, REQ-040.
 
 Wave 7, the run page
 
-- [ ] T023 (A) A run has an address; each run link opens it; Start again opens the new run; Activity and Today rows are links. REQ-027, REQ-028.
-- [ ] T024 [P] (B) Run summary, one action per state, needs-you block, three tabs, plain text, the word Stop. REQ-029 to REQ-033.
+- [x] T023 (A) A run has an address; each run link opens it; Start again opens the new run; Activity and Today rows are links. REQ-027, REQ-028.
+- [x] T024 [P] (B) Run summary, one action per state, needs-you block, three tabs, plain text, the word Stop. REQ-029 to REQ-033.
 
 Wave 8, the Runs list and the other Factory pages
 

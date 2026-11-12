@@ -6,6 +6,7 @@ import { useRunActions, useRuns } from "@/lib/factory";
 import { latestPerTicket } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { useRights } from "@/lib/rights";
+import { runHref } from "@/lib/shell";
 import { Leave } from "@/ui/atoms/leave";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { InboxIcon } from "@/ui/icons";
@@ -43,8 +44,13 @@ function RunsPart({ live }: { live: { id: string; key: string; title: string }[]
 				<AnimatePresence initial={false}>
 					{live.map((r) => (
 						<Leave as="li" key={r.id} className="flex items-center gap-2.5 px-3 py-1.5">
-							<span className="font-mono text-12 text-n-11">{r.key}</span>
-							<span className="min-w-0 flex-1 truncate">{r.title}</span>
+							<Link
+								{...runHref(r.id)}
+								className="flex min-w-0 flex-1 items-center gap-2.5 hover:underline"
+							>
+								<span className="font-mono text-12 text-n-11">{r.key}</span>
+								<span className="min-w-0 flex-1 truncate">{r.title}</span>
+							</Link>
 							<ConfirmButton
 								variant="ghost"
 								{...stopGate}

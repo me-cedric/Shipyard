@@ -191,7 +191,7 @@ export function Sessions() {
 							// A review is no run: only a run unit opens its run page, at the unit.
 							onOpen={(r) => {
 								if (r.pull != null) return;
-								openRef(`run:${r.run}`);
+								openRef(`run:${r.run}/${r.step}`);
 								showAnchor(`unit-${r.step}`);
 							}}
 						/>

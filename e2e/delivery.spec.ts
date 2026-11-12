@@ -31,10 +31,13 @@ test("approvals wait for a click, and the runs show the review, CI and merge sta
 	await lane(page, "Working")
 		.getByRole("button", { name: /ACME-10/ })
 		.click();
+	// The findings are on the Changes tab of the run page.
+	await page.getByRole("tab", { name: /^Changes/ }).click();
 	await expect(
 		page.getByRole("region", { name: /^Findings/ }).getByText(/status never resets/),
 	).toBeVisible();
 
+	await page.getByRole("link", { name: "Runs", exact: true }).first().click();
 	const ready = lane(page, "Ready to merge").getByRole("button", { name: /ACME-8/ });
 	await expect(ready).toContainText("CI passing");
 	await expect(lane(page, "Done").getByRole("button", { name: /ACME-11/ })).toBeVisible();

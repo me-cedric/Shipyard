@@ -39,11 +39,39 @@ describe("ZoomFrame", () => {
 		expect(clampAt({ x: -10, y: 20 }, 1, box, content)).toEqual({ x: -10, y: 20 });
 	});
 
-	it("pans with the wheel without Ctrl", () => {
+	it("pans with the wheel only on purpose, else the page scrolls", () => {
+		const sizes = (w: number) => {
+			const box = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(400);
+			const pic = vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(w);
+			return () => {
+				box.mockRestore();
+				pic.mockRestore();
+			};
+		};
+		const wheel = (init: WheelEventInit) =>
+			// fireEvent returns false when the handler called preventDefault.
+			!fireEvent.wheel(screen.getByRole("region", { name: "Zoom and move: Plan" }), init);
 		mount();
 		const area = screen.getByRole("region", { name: "Zoom and move: Plan" });
-		fireEvent.wheel(area, { deltaX: 30, deltaY: 10 });
+		// Picture as wide as the frame: a sideways gesture and a vertical one both scroll the page.
+		let restore = sizes(100);
+		expect(wheel({ deltaX: 30, deltaY: 10 })).toBe(false);
+		expect(wheel({ deltaX: 5, deltaY: 40 })).toBe(false);
+		restore();
+		// Wider picture: a mostly sideways gesture pans it.
+		restore = sizes(1000);
+		expect(wheel({ deltaX: 30, deltaY: 10 })).toBe(true);
 		expect(scaleOf()).toContain("translate(-30px, -10px)");
+		// A vertical wheel scrolls the page unless Shift is held or the frame has focus.
+		expect(wheel({ deltaX: 5, deltaY: 40 })).toBe(false);
+		expect(wheel({ deltaX: 0, deltaY: 40, shiftKey: true })).toBe(true);
+		area.focus();
+		expect(wheel({ deltaX: 0, deltaY: 40 })).toBe(true);
+		// Ctrl or Cmd plus wheel zooms.
+		area.blur();
+		expect(wheel({ deltaY: -100, ctrlKey: true })).toBe(true);
+		expect(wheel({ deltaY: -100, metaKey: true })).toBe(true);
+		restore();
 	});
 
 	it("zooms with the buttons, the keys and Ctrl plus wheel, and fits", async () => {

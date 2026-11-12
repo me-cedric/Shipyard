@@ -3,10 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { latestPerTicket } from "@/lib/home";
 import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
-import { ShellProvider } from "@/lib/shell";
 import { mountApp } from "@/test/mount";
-import { renderApp } from "@/ui/test-utils";
-import { Runs } from "./index";
 
 const LANES = [
 	["queued", "Queued"],
@@ -19,11 +16,7 @@ const LANES = [
 
 async function renderRuns() {
 	await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
-	return renderApp(
-		<ShellProvider>
-			<Runs />
-		</ShellProvider>,
-	);
+	return mountApp("/factory/runs");
 }
 const find = async (key: string) => {
 	const r = (await unwrap(commands.runsList())).find((x) => x.key === key);
@@ -118,9 +111,7 @@ describe("Factory / Runs", () => {
 		const alert = await screen.findByRole("alert");
 		expect(alert).toHaveTextContent("A run is active on ACME-2.");
 		await user.click(within(alert).getByRole("button", { name: "Open the run" }));
-		const drawer = await screen.findByRole("complementary", { name: "ACME-2" });
-		// The drawer fades in: wait for the end of its enter animation.
-		await waitFor(() => expect(drawer).toBeVisible());
+		expect(await screen.findByRole("region", { name: "ACME-2" })).toBeVisible();
 	});
 
 	it("names a ticket that the mirror lacks and offers to sync", async () => {
@@ -160,55 +151,65 @@ describe("Factory / Runs", () => {
 		card.focus();
 		await user.keyboard("{Enter}");
 		// The run view opens wide, next to the lanes.
-		const panel = await screen.findByRole("complementary", { name: "ACME-2" });
+		const panel = await screen.findByRole("region", { name: "ACME-2" });
+		// Activity is the default tab: the events show first, then the Changes and Workflow tabs.
+		expect(await within(panel).findByRole("region", { name: /^Events/ })).toBeInTheDocument();
+		await waitFor(() => expect(within(panel).getAllByRole("listitem").length).toBeGreaterThan(0));
+		expect(
+			within(within(panel).getByRole("group", { name: "Cost" })).getByText(/\$1\.84/),
+		).toBeVisible();
+		await user.click(within(panel).getByRole("tab", { name: /^Changes/ }));
+		expect(await within(panel).findByRole("region", { name: "Diff" })).toBeInTheDocument();
+		await user.click(within(panel).getByRole("tab", { name: "Workflow" }));
 		const graph = await within(panel).findByRole("region", { name: "Workflow" });
 		// jsdom measures no node, so xyflow keeps each one hidden.
 		const node = (id: string) => within(graph).findByTestId(`rf__node-${id}`);
 		for (const s of run.steps) expect(await node(s.id)).toBeInTheDocument();
 		const build = within(await node("build"));
 		expect(build.getByText("Units 4")).toBeInTheDocument();
-		expect(await within(panel).findByRole("region", { name: /^Events/ })).toBeInTheDocument();
-		await waitFor(() => expect(within(panel).getAllByRole("listitem").length).toBeGreaterThan(0));
-		expect(await within(panel).findByRole("region", { name: "Diff" })).toBeInTheDocument();
-		expect(within(panel).getByText("$1.84")).toBeInTheDocument();
 	});
 
 	it("kills a run with runCancel", async () => {
 		const user = userEvent.setup();
 		await renderRuns();
 		await user.click(await screen.findByRole("button", { name: /ACME-2/ }));
-		const panel = await screen.findByRole("complementary", { name: "ACME-2" });
-		await user.click(await within(panel).findByRole("button", { name: "Kill run" }));
+		const panel = await screen.findByRole("region", { name: "ACME-2" });
+		await user.click(await within(panel).findByRole("button", { name: "More actions" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Stop" }));
 		await user.click(await within(panel).findByRole("button", { name: "Stop ACME-2?" }));
 		await waitFor(async () => expect((await find("ACME-2")).state).toBe("Cancelled"));
 	});
 
 	it("unblocks and resumes from the run view", async () => {
 		const user = userEvent.setup();
-		await renderRuns();
+		const router = await renderRuns();
 		for (const [key, button, to] of [
 			["ACME-9", "Unblock", "Working"],
 			["ACME-6", "Resume", "Working"],
 		] as const) {
 			await user.click(await screen.findByRole("button", { name: new RegExp(key) }));
-			const panel = await screen.findByRole("complementary", { name: key });
+			const panel = await screen.findByRole("region", { name: key });
 			if (button === "Resume")
 				await user.type(
 					await within(panel).findByRole("textbox", { name: "Added budget (USD)" }),
 					"2",
 				);
-			await user.click(await within(panel).findByRole("button", { name: button }));
+			// The summary has the same action, which moves the focus here: the form sends.
+			const needs = await within(panel).findByRole("region", { name: "Needs you" });
+			await user.click(within(needs).getByRole("button", { name: button }));
 			await waitFor(async () => expect((await find(key)).state).toBe(to));
+			await router.navigate({ to: "/factory/runs" });
 		}
 	});
 
 	it("closes as done a run blocked with nothing to deliver, and only that one", async () => {
 		const user = userEvent.setup();
-		await renderRuns();
+		const router = await renderRuns();
 		await user.click(await screen.findByRole("button", { name: /ACME-9/ }));
-		const panel = await screen.findByRole("complementary", { name: "ACME-9" });
-		await within(panel).findByRole("button", { name: "Unblock" });
+		const panel = await screen.findByRole("region", { name: "ACME-9" });
+		await within(panel).findByRole("region", { name: "Needs you" });
 		expect(within(panel).queryByRole("button", { name: "Close as done" })).toBeNull();
+		expect(within(panel).getByRole("button", { name: "Reply on the ticket" })).toBeVisible();
 		const run = await find("ACME-9");
 		const r = mockState().factory.runs.find((x) => x.id === run.id);
 		r?.log.push({
@@ -218,22 +219,23 @@ describe("Factory / Runs", () => {
 			payload: JSON.stringify({ blocked: "nothing to deliver: the run changed no file" }),
 			ts: Date.now(),
 		});
+		// Open the page again: it reads the log anew.
+		await router.navigate({ to: "/factory/runs" });
 		await user.click(await screen.findByRole("button", { name: /ACME-9/ }));
-		await user.click(await within(panel).findByRole("button", { name: "Close as done" }));
+		const again = await screen.findByRole("region", { name: "ACME-9" });
+		await user.click(await within(again).findByRole("button", { name: "Close as done" }));
 		await waitFor(async () => expect((await find("ACME-9")).state).toBe("Done"));
 	});
 
-	it("shows the escalation: cause, last lines, what was tried and the reply note", async () => {
+	it("shows the escalation: cause, last lines, what was tried", async () => {
 		const user = userEvent.setup();
 		await renderRuns();
 		await user.click(await screen.findByRole("button", { name: /ACME-9/ }));
-		const panel = await screen.findByRole("complementary", { name: "ACME-9" });
+		const panel = await screen.findByRole("region", { name: "ACME-9" });
 		const banner = await within(panel).findByRole("status");
 		expect(banner).toHaveTextContent("The same failure came back twice in a row.");
 		expect(banner).toHaveTextContent("Tried: 1 review rounds of 4");
-		expect(banner).toHaveTextContent(
-			"A reply on the ticket by a team member also unblocks the run.",
-		);
+		expect(banner).not.toHaveTextContent("also unblocks");
 		const fold = banner.querySelector("details") as HTMLDetailsElement;
 		expect(fold.open).toBe(false);
 		expect(fold).toHaveTextContent("error: could not rebase");
@@ -243,7 +245,7 @@ describe("Factory / Runs", () => {
 		const user = userEvent.setup();
 		await renderRuns();
 		await user.click(await screen.findByRole("button", { name: /ACME-9/ }));
-		const panel = await screen.findByRole("complementary", { name: "ACME-9" });
+		const panel = await screen.findByRole("region", { name: "ACME-9" });
 		await user.type(
 			await within(panel).findByRole("textbox", { name: "Message to the agent" }),
 			"Keep both lines.{Enter}",
@@ -251,29 +253,26 @@ describe("Factory / Runs", () => {
 		await waitFor(async () => expect((await find("ACME-9")).state).toBe("Working"));
 	});
 
-	it("keeps the events collapsed, then shows them as sentences with the raw JSON behind Details", async () => {
+	it("shows each event on one line, with the raw JSON behind a chevron", async () => {
 		const user = userEvent.setup();
 		await renderRuns();
 		await user.click(await screen.findByRole("button", { name: /ACME-2/ }));
-		const panel = await screen.findByRole("complementary", { name: "ACME-2" });
+		const panel = await screen.findByRole("region", { name: "ACME-2" });
 		const events = await within(panel).findByRole("region", { name: /^Events/ });
-		expect(within(events).queryByText("ACME-2 moved to Claimed")).toBeNull();
-		await user.click(within(events).getByRole("button", { name: "Expand" }));
 		expect(await within(events).findByText("ACME-2 moved to Claimed")).toBeInTheDocument();
-		const fold = events.querySelector("details") as HTMLDetailsElement;
-		expect(fold.open).toBe(false);
-		await user.click(within(fold).getByText("Details"));
-		expect(fold.open).toBe(true);
-		expect(fold).toHaveTextContent('"from"');
+		expect(within(events).queryByText(/"from"/)).toBeNull();
+		await user.click(within(events).getAllByRole("button", { name: "Details" })[0] as HTMLElement);
+		expect(await within(events).findByText(/"from"/)).toBeInTheDocument();
 	});
 
-	it("shows the live strip, and the question and the approval of a waiting run on top", async () => {
+	it("shows the live line, and the question and the approval of a waiting run on top", async () => {
 		await renderRuns();
 		const user = userEvent.setup();
 		await user.click(await screen.findByRole("button", { name: /ACME-1(?!\d)/ }));
-		const panel = await screen.findByRole("complementary", { name: "ACME-1" });
-		const steps = await within(panel).findByRole("region", { name: "Steps" });
-		expect(within(steps).getByRole("list")).toBeInTheDocument();
+		const panel = await screen.findByRole("region", { name: "ACME-1" });
+		expect(
+			await within(panel).findByRole("group", { name: /^Step \d+ of \d+$/ }),
+		).toBeInTheDocument();
 		expect(await within(panel).findByRole("button", { name: "Send" })).toBeInTheDocument();
 		expect(await within(panel).findByRole("button", { name: "Approve" })).toBeInTheDocument();
 		expect(within(panel).getByRole("button", { name: "Reject" })).toBeInTheDocument();

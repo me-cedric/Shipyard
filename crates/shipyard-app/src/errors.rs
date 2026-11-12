@@ -429,12 +429,30 @@ impl AppError {
     }
 }
 
+/// The code of a "`<program>` failed: ..." text. The text after "failed:" is the program's own
+/// output, so it never picks the code. The sign-in of a runner keeps its own code.
+fn program_failed(text: &str) -> Option<ErrorCode> {
+    let (program, _) = text.strip_prefix('`')?.split_once("` failed:")?;
+    if program.contains('`') {
+        return None;
+    }
+    Some(if program.starts_with("codex login") {
+        ErrorCode::SignInFailed
+    } else {
+        ErrorCode::ToolFailed
+    })
+}
+
 impl From<String> for AppError {
     fn from(text: String) -> Self {
-        let code = KNOWN
-            .iter()
-            .find(|(needle, _)| text.contains(needle))
-            .map_or(ErrorCode::Unknown, |(_, code)| *code);
+        let code = program_failed(&text)
+            .or_else(|| {
+                KNOWN
+                    .iter()
+                    .find(|(needle, _)| text.contains(needle))
+                    .map(|(_, code)| *code)
+            })
+            .unwrap_or(ErrorCode::Unknown);
         Self::new(code, text)
     }
 }
@@ -514,6 +532,11 @@ mod tests {
         let e = AppError::from("`codebase-memory-mcp` failed: exited with code 3: no daemon");
         assert_eq!(e.code, ErrorCode::ToolFailed);
         assert_eq!(e.action.unwrap().target, "/settings/health#tools");
+        // The stderr tail of a program never picks the code, and the runner sign-in keeps its own.
+        let e = AppError::from("`fake-mcp` failed: exited with code 2: no such file or directory");
+        assert_eq!(e.code, ErrorCode::ToolFailed);
+        let e = AppError::from("`codex login --with-api-key` failed: the file is not installed");
+        assert_eq!(e.code, ErrorCode::SignInFailed);
         let e = AppError::from("the title is empty");
         assert_eq!(e.code, ErrorCode::InputInvalid);
         // The base branch text keeps the base code, not the missing-path code.

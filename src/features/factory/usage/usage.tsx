@@ -6,6 +6,7 @@ import { useFactoryWrites, useUsage } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
+import { useShell } from "@/lib/shell";
 import { useViewState } from "@/lib/shell/view-state";
 import { CountUp } from "@/ui/atoms/count-up";
 import { Input } from "@/ui/atoms/input";
@@ -43,6 +44,7 @@ export function Usage() {
 	const usage = useUsage();
 	const writes = useFactoryWrites();
 	const { error, run } = useGuard();
+	const { openRef } = useShell();
 	const [scope, setScope] = useState<"day" | "member">("day");
 	const [key, setKey] = useState("");
 	const [amount, setAmount] = useState("");
@@ -278,7 +280,7 @@ export function Usage() {
 									group={(r) => r.kind}
 									groupLabel={(g) => label[g] ?? g}
 									onOpen={(r) => {
-										if (r.kind === "run") return;
+										if (r.kind === "run") return openRef(r.id);
 										setScope(r.kind);
 										setKey(r.key);
 									}}

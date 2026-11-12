@@ -118,6 +118,7 @@ export const de: Messages = {
 		budget: "Kein Budget",
 		sessions: "Keine Sitzungen",
 		runs: "Keine Läufe",
+		run: "Kein Lauf",
 		graph: "Kein Graph",
 		dashboards: "Keine Dashboards",
 		testPlans: "Keine Testpläne",

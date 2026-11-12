@@ -164,13 +164,14 @@ const Failure = ({ error }: { error: string | null }) =>
 		</p>
 	) : null;
 
-export function QuestionRow({ item }: { item: QuestionItem }) {
+/** `noRun` hides the chip of the run: the run page already is that run. */
+export function QuestionRow({ item, noRun }: { item: QuestionItem; noRun?: boolean }) {
 	const act = useInboxActions();
 	const { error, run: guard } = useGuard();
 	const q = item.question;
 	const props: ComponentProps<typeof QuestionCard> = {
 		question: q,
-		meta: <RunLink run={item.run} ticket={item.key} />,
+		meta: noRun ? undefined : <RunLink run={item.run} ticket={item.key} />,
 		onAnswer: (choice) => void guard(() => act.answer(item.run, q.id, choice)),
 	};
 	return (
@@ -224,7 +225,14 @@ function FoldedCard({ spec, ...props }: ComponentProps<typeof QuestionCard> & { 
 	);
 }
 
-export function ApprovalRow({ approval: a }: { approval: ApprovalItem }) {
+export function ApprovalRow({
+	approval: a,
+	noRun,
+}: {
+	approval: ApprovalItem;
+	/** Hide the chip of the run: the run page already is that run. */
+	noRun?: boolean;
+}) {
 	const act = useInboxActions();
 	const { reason } = useRights().gate(a.right);
 	const { error, run } = useGuard();
@@ -232,7 +240,7 @@ export function ApprovalRow({ approval: a }: { approval: ApprovalItem }) {
 		<Card className="*:border-b-0">
 			<ApprovalBar
 				approval={a}
-				meta={<RunLink run={a.run} ticket={a.key} />}
+				meta={noRun ? undefined : <RunLink run={a.run} ticket={a.key} />}
 				reason={reason}
 				onApprove={() => void run(() => act.approve(a.id))}
 				onReject={() => void run(() => act.reject(a.id))}

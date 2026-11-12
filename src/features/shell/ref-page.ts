@@ -2,7 +2,7 @@ import type { Messages } from "@/lib/i18n";
 import { DOC_DIR } from "@/lib/knowledge";
 import { type TabPath, tabLabel } from "./spaces";
 
-/** The page that lists the entities of each ref kind. */
+/** The page that lists the entities of each ref kind. A run is not here: it has its own page (`runOfRef`). */
 const PAGE: Record<string, TabPath> = {
 	adr: "/design/decisions",
 	diagram: "/design/diagrams",
@@ -18,7 +18,6 @@ const PAGE: Record<string, TabPath> = {
 	wi: "/work/backlog",
 	est: "/work/estimates",
 	member: "/work/team",
-	run: "/factory/runs",
 	wf: "/factory/workflows",
 	pr: "/code/pull-requests",
 	commit: "/code/history",

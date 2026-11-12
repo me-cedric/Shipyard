@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useMemo, useRef, useState } from "react";
 import { runnerKeys } from "@/features/settings/connections/keys";
 import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
@@ -12,18 +12,10 @@ import { AppFailure, commands, type Lane, type RunState, type RunView, unwrap } 
 import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
-import { useFormIntent } from "@/lib/shell";
+import { runHref, useFormIntent } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { LiveDot } from "@/ui/atoms/live-dot";
-import {
-	CheckIcon,
-	ChevronLeftIcon,
-	ClipboardIcon,
-	CpuChipIcon,
-	InboxIcon,
-	PlayIcon,
-} from "@/ui/icons";
+import { CheckIcon, CpuChipIcon, InboxIcon, PlayIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
@@ -31,11 +23,10 @@ import { Panel, type PanelTone } from "@/ui/molecules/panel";
 import { RunCard } from "@/ui/molecules/run-card";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { Terms } from "@/ui/molecules/term";
-import { SPRING } from "@/ui/motion";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { AgentsToggle } from "../agents-toggle";
 import { TicketPicker } from "../ticket-picker";
-import { progressOf, RunDetail } from "./run-detail";
+import { progressOf } from "./run-detail";
 
 const LANES: [Lane, PanelTone][] = [
 	["queued", "neutral"],
@@ -115,13 +106,9 @@ export function Runs() {
 	}).data;
 	const { failure, run: guard } = useGuard();
 	const [key, setKey] = useState("");
-	const [selected, setSelected] = useState<string | null>(null);
+	const navigate = useNavigate();
+	const open = (id: string) => void navigate(runHref(id));
 	const field = useRef<HTMLInputElement>(null);
-	const back = useRef<HTMLButtonElement>(null);
-	// The sheet covers the lanes: move the focus into it when it opens.
-	useEffect(() => {
-		if (selected) back.current?.focus();
-	}, [selected]);
 	useFormIntent("run", () => field.current?.focus());
 	// A ticket with a run that has not ended cannot start another one: the run, by ticket key.
 	const running = useMemo(
@@ -134,7 +121,6 @@ export function Runs() {
 	if (active === null) return <NoProject title={f.runs} icon={<CpuChipIcon size={16} />} />;
 	const all = runs.data ?? [];
 	const board = latestPerTicket(all);
-	const open = all.find((r) => r.id === selected);
 	const start = () =>
 		void guard(async () => {
 			await act.start(key.trim());
@@ -172,7 +158,7 @@ export function Runs() {
 				taken ? (
 					<p role="alert" className="flex w-full items-center gap-2 text-ui text-danger-text">
 						{format(f.runActive, { key: key.trim() })}
-						<Button onClick={() => setSelected(taken)}>{f.openRun}</Button>
+						<Button onClick={() => open(taken)}>{f.openRun}</Button>
 					</p>
 				) : failure ? (
 					<ErrorNotice error={failure} className="w-full" />
@@ -230,10 +216,9 @@ export function Runs() {
 													questions={r.openQuestions}
 													approvals={r.approvals}
 													pr={lane === "in_review" || lane === "ready_to_merge" ? r.pr : null}
-													selected={selected === r.id}
-													onOpen={() => setSelected(r.id)}
+													onOpen={() => open(r.id)}
 													menu={menu("run", {
-														open: () => setSelected(r.id),
+														open: () => open(r.id),
 														"copy-ref": () => copyText(`run:${r.id}`),
 													})}
 												/>
@@ -243,48 +228,6 @@ export function Runs() {
 								);
 							})}
 						</div>
-						<AnimatePresence>
-							{open ? (
-								<motion.aside
-									key="run"
-									aria-label={open.key}
-									initial={{ opacity: 0, y: 16, scale: 0.99 }}
-									animate={{ opacity: 1, y: 0, scale: 1 }}
-									exit={{ opacity: 0, y: 16, scale: 0.99 }}
-									transition={SPRING.smooth}
-									onKeyDown={(e) => {
-										if (e.key === "Escape") setSelected(null);
-									}}
-									className="absolute inset-x-4 top-3 bottom-4 z-10 flex flex-col overflow-hidden rounded-xl border bg-surface-1 shadow-3"
-								>
-									<div className="flex h-11 shrink-0 items-center gap-2 border-b px-2">
-										<Button
-											ref={back}
-											variant="ghost"
-											aria-keyshortcuts="Escape"
-											onClick={() => setSelected(null)}
-										>
-											<ChevronLeftIcon size={14} />
-											{t.ui.back}
-										</Button>
-										<span className="min-w-0 flex-1 truncate text-ui font-medium text-n-12">
-											{open.title}
-										</span>
-										<IconButton
-											label={t.context.copyRef}
-											onClick={() => copyText(`run:${open.id}`)}
-										>
-											<ClipboardIcon size={14} />
-										</IconButton>
-									</div>
-									<div className="min-h-0 flex-1 overflow-y-auto">
-										<div className="mx-auto max-w-6xl p-5">
-											<RunDetail key={open.id} id={open.id} />
-										</div>
-									</div>
-								</motion.aside>
-							) : null}
-						</AnimatePresence>
 					</div>
 				</>
 			)}

@@ -753,6 +753,31 @@ struct Session {
 
 /// How many stderr lines of a server an error keeps.
 const STDERR_LINES: usize = 5;
+/// The bytes kept of one stderr line: the rest of a longer line is dropped as it is read.
+const STDERR_LINE_BYTES: usize = 8 * 1024;
+
+/// Read one line and keep at most `cap` bytes of it. `None` at the end of the input or on an error.
+fn read_line_capped(r: &mut impl BufRead, cap: usize) -> Option<Vec<u8>> {
+    let mut line = Vec::new();
+    let mut any = false;
+    loop {
+        let buf = r.fill_buf().ok()?;
+        if buf.is_empty() {
+            return any.then_some(line);
+        }
+        any = true;
+        let (used, done) = match buf.iter().position(|b| *b == b'\n') {
+            Some(i) => (i + 1, true),
+            None => (buf.len(), false),
+        };
+        let room = cap.saturating_sub(line.len());
+        line.extend_from_slice(&buf[..used.saturating_sub(usize::from(done)).min(room)]);
+        r.consume(used);
+        if done {
+            return Some(line);
+        }
+    }
+}
 
 const LIST_CHANGED: &str = "notifications/tools/list_changed";
 
@@ -809,11 +834,17 @@ impl Session {
     }
 
     fn send(&mut self, message: &Value) -> Result<(), AgentError> {
-        let closed = || AgentError::Server("closed its input".into());
-        let stdin = self.stdin.as_mut().ok_or_else(closed)?;
-        writeln!(stdin, "{message}")
-            .and_then(|()| stdin.flush())
-            .map_err(|_| closed())
+        let sent = self.stdin.as_mut().is_some_and(|stdin| {
+            writeln!(stdin, "{message}")
+                .and_then(|()| stdin.flush())
+                .is_ok()
+        });
+        // A child that already exited says why: its name, its exit code and its stderr.
+        if sent {
+            Ok(())
+        } else {
+            Err(AgentError::Server(self.ended()))
+        }
     }
 
     /// Send one request and wait for the answer with the same id. A line with another id, or a
@@ -1310,10 +1341,18 @@ impl McpControl {
             return Err(AgentError::Server("has no input or output".into()));
         };
         let stderr = Arc::new(Mutex::new(Vec::<String>::new()));
+        let secrets: Vec<String> = env.iter().map(|(_, v)| v.expose().to_string()).collect();
         let reader = child.stderr.take().map(|pipe| {
             let tail = Arc::clone(&stderr);
+            let secrets = secrets.clone();
             std::thread::spawn(move || {
-                for line in BufReader::new(pipe).lines().map_while(Result::ok) {
+                let mut pipe = BufReader::new(pipe);
+                while let Some(raw) = read_line_capped(&mut pipe, STDERR_LINE_BYTES) {
+                    // Mask the whole line first: a secret across the cut must not escape.
+                    let mut line = String::from_utf8_lossy(&raw).into_owned();
+                    for secret in secrets.iter().filter(|v| !v.is_empty()) {
+                        line = line.replace(secret.as_str(), "***");
+                    }
                     let mut t = lock(&tail);
                     t.push(line.chars().take(200).collect());
                     if t.len() > STDERR_LINES {
@@ -1340,7 +1379,7 @@ impl McpControl {
             command: server.command.clone(),
             stderr,
             reader,
-            secrets: env.iter().map(|(_, v)| v.expose().to_string()).collect(),
+            secrets,
         };
         let init = session.request(
             "initialize",
@@ -1464,5 +1503,19 @@ mod env_hook_tests {
         assert!(control.env(&other).unwrap().is_empty());
         control.set_env_hook(Arc::new(|_| Some(Err("sign in again".into()))));
         assert!(control.env(&server).is_err());
+    }
+}
+
+#[cfg(test)]
+mod stderr_line_tests {
+    use super::*;
+
+    #[test]
+    fn a_line_is_cut_to_the_limit_and_the_next_line_is_kept() {
+        let mut r = std::io::Cursor::new(b"abcdefgh\nxy\nlast".to_vec());
+        assert_eq!(read_line_capped(&mut r, 3).unwrap(), b"abc");
+        assert_eq!(read_line_capped(&mut r, 3).unwrap(), b"xy");
+        assert_eq!(read_line_capped(&mut r, 3).unwrap(), b"las");
+        assert!(read_line_capped(&mut r, 3).is_none());
     }
 }

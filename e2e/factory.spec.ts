@@ -14,7 +14,7 @@ async function openFactory(page: Page, tab: string) {
 	await tabs(page).getByRole("link", { name: tab }).click();
 }
 
-test("shows six lanes with counts, opens a run and kills it", async ({ page }) => {
+test("shows six lanes with counts, opens a run and stops it", async ({ page }) => {
 	await openFactory(page, "Runs");
 	for (const name of [
 		"Queued (1)",
@@ -30,15 +30,49 @@ test("shows six lanes with counts, opens a run and kills it", async ({ page }) =
 	await lane(page, "Working")
 		.getByRole("button", { name: /ACME-2/ })
 		.click();
-	await expect(page.getByRole("region", { name: "Workflow" })).toBeVisible();
+	// The run is a page, not a sheet: the lanes are not there until Back.
+	await expect(page).toHaveURL(/\/factory\/runs\/[0-9A-Z]{26}$/);
+	// Three tabs: Activity opens first, and the Workflow tab is in the address.
+	await expect(page.getByRole("tab", { name: "Activity" })).toHaveAttribute(
+		"aria-selected",
+		"true",
+	);
+	await page.getByRole("tab", { name: "Workflow" }).click();
+	await expect(page).toHaveURL(/\?tab=workflow$/);
+	await expect(page.getByRole("tabpanel", { name: "Workflow" })).toBeVisible();
+	await expect(page.getByRole("region", { name: /^Sessions/ })).toBeVisible();
+	await page.getByRole("tab", { name: "Activity" }).click();
 	const events = page.getByRole("region", { name: /^Events/ });
-	await events.getByRole("button", { name: "Expand" }).click();
 	await expect(events.getByRole("listitem").first()).toBeVisible();
-	await page.getByRole("button", { name: "Kill run" }).click();
-	// A stop asks once before it acts.
+	// One word for the stop: it sits in the summary menu and asks once before it acts.
+	await page.getByRole("button", { name: "More actions" }).click();
+	await page.getByRole("menuitem", { name: "Stop" }).click();
 	await page.getByRole("button", { name: "Stop ACME-2?" }).click();
+	await expect(page.getByRole("button", { name: "More actions" })).toHaveCount(0);
+	await expect(page.getByRole("button", { name: "Start again" })).toBeVisible();
+	await page.getByRole("link", { name: "Runs", exact: true }).first().click();
 	await expect(lane(page, "Done").getByRole("button", { name: /ACME-2/ })).toBeVisible();
-	await expect(page.getByRole("button", { name: "Kill run" })).toHaveCount(0);
+});
+
+test("opens a run by its address, and the browser Back returns to the list", async ({ page }) => {
+	await openFactory(page, "Runs");
+	await lane(page, "Working")
+		.getByRole("button", { name: /ACME-2/ })
+		.click();
+	await expect(page).toHaveURL(/\/factory\/runs\/[0-9A-Z]{26}$/);
+	const address = new URL(page.url()).pathname;
+	await page.goBack();
+	await expect(page).toHaveURL(/\/factory\/runs$/);
+	await expect(page.getByRole("heading", { name: "Working (2)" })).toBeVisible();
+	// Forward returns to the address: the same run, with Runs selected in the Factory bar.
+	// (A new load would empty the in-memory mock project, so the history stands for it.)
+	await page.goForward();
+	await expect(page).toHaveURL(new RegExp(`${address}$`));
+	await expect(page.getByRole("region", { name: "ACME-2", exact: true })).toBeVisible();
+	await expect(tabs(page).getByRole("link", { name: "Runs" })).toHaveAttribute(
+		"aria-current",
+		"page",
+	);
 });
 
 test("approves a plan on ACME-4 from the run view", async ({ page }) => {
@@ -47,6 +81,7 @@ test("approves a plan on ACME-4 from the run view", async ({ page }) => {
 		.getByRole("button", { name: /ACME-4/ })
 		.click();
 	await page.getByRole("button", { name: "Approve plan" }).click();
+	await page.getByRole("link", { name: "Runs", exact: true }).first().click();
 	await expect(lane(page, "Working").getByRole("button", { name: /ACME-4/ })).toBeVisible();
 });
 
