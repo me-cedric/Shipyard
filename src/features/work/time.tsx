@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import type { CSSProperties } from "react";
 import { useMemo, useRef, useState } from "react";
+import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog, type TimeState } from "@/lib/ipc";
 import { useDay, usePanelSize } from "@/lib/prefs";
@@ -44,7 +45,6 @@ import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { useGuard } from "./guard";
-import { NoProject } from "./no-project";
 import { TicketField } from "./ticket-field";
 
 const STATE_ORDER: TimeState[] = ["to-send", "in-tracker", "only-in-tracker"];

@@ -87,18 +87,4 @@ export const homeEs: typeof homeEn = {
 		run: "{key}: requiere tu atención",
 		answer: "Responder",
 	},
-	start: {
-		title: "Empezar",
-		tracker: "Conectar un gestor de tickets",
-		forge: "Conectar una plataforma de código",
-		agent: "Instalar un agente",
-		team: "Definir el equipo",
-		decision: "Registrar la primera decisión",
-		spec: "Escribir la primera especificación",
-		assign: "Asignar un ticket",
-		run: "Iniciar la primera ejecución",
-		useLogin: "Conectar con {tool} como {user}",
-		install: "Instalar {name}",
-		done: "Hecho",
-	},
 };

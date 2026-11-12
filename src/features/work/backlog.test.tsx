@@ -165,21 +165,19 @@ describe("Work / Backlog", () => {
 		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/project"));
 	});
 
-	it("names the reason when the project has no tracker", async () => {
+	it("names the issue tracker as missing when the project has none (REQ-007)", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/work/backlog");
-		expect(await screen.findByRole("button", { name: "Import" })).toBeInTheDocument();
+		expect(await screen.findByRole("button", { name: "issue tracker" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Connect an issue tracker" })).toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Import" })).toBeNull();
 	});
 
-	it("opens the issue tracker setting from the error of an import with no tracker", async () => {
+	it("opens the issue tracker setting from the Connect action", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/work/backlog");
-		await user.click(await screen.findByRole("button", { name: "Import" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent(
-			"This project has no issue tracker connection.",
-		);
-		await user.click(screen.getByRole("button", { name: "Open settings" }));
+		await user.click(await screen.findByRole("button", { name: "Connect an issue tracker" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/project"));
 		await waitFor(() =>
 			expect(screen.getByRole("combobox", { name: "Issue tracker" })).toHaveFocus(),

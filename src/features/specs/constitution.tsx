@@ -1,8 +1,8 @@
+import { WithProject } from "@/features/shell/no-project";
 import { useI18n } from "@/lib/i18n";
 import { LockClosedIcon } from "@/ui/icons";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { FileEditor } from "./file-editor";
-import { WithProject } from "./no-project";
 
 const PATH = "docs/openspec/constitution.md";
 

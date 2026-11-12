@@ -1,7 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { useRef, useState } from "react";
+import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
-import { NoProject } from "@/features/work/no-project";
 import { useFactoryWrites, useUsage } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";

@@ -93,7 +93,7 @@ test("junior", async ({ page }) => {
 
 	await w.step("Follow the Get started list", "Home, a step of Get started", async () => {
 		await w.go("Home", "Today");
-		await w.click(page.getByText("Connect a code host"));
+		await w.click(page.getByRole("group", { name: "Code host" }).getByRole("button").first());
 		await w.until(
 			() => page.url().includes("/settings/"),
 			true,

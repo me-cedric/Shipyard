@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { SPACES } from "../src/features/shell/spaces";
+import { openFirstFolder } from "./first-run";
 
 // Every tab of every space, on the mock project, in the light and the dark theme (the theme is "system").
 for (const scheme of ["light", "dark"] as const) {
@@ -10,7 +11,7 @@ for (const scheme of ["light", "dark"] as const) {
 			page.setDefaultTimeout(10_000);
 			await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
 			await page.goto("/");
-			await page.getByRole("button", { name: "Open a local folder" }).click();
+			await openFirstFolder(page);
 			await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
 			await page.locator(`nav a[href="/${space}"]`).first().click();
 			const found: string[] = [];

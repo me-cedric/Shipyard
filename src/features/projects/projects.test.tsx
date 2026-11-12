@@ -6,6 +6,9 @@ import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 
 const open = (path = "/mock/alpha") => unwrap(commands.projectsOpen(path, false));
+/** The first run starts with the role. Continue shows the three starts. */
+const next = async (user: ReturnType<typeof userEvent.setup>, name = "Continue") =>
+	user.click(await screen.findByRole("button", { name }));
 const firstRunButtons = () => within(screen.getByRole("main")).getAllByRole("button");
 
 describe("first run", () => {
@@ -13,7 +16,8 @@ describe("first run", () => {
 	it("shows the role as named cards, then three starts, with one primary action", async () => {
 		const user = userEvent.setup();
 		mountApp("/home/today");
-		await screen.findByRole("button", { name: "Open a local folder" });
+		await screen.findByRole("button", { name: "Continue" });
+		expect(screen.queryByRole("button", { name: "Open a local folder" })).toBeNull();
 		const roles = within(screen.getByRole("radiogroup", { name: "Role" })).getAllByRole("radio");
 		expect(roles.map((r) => r.closest("label")?.textContent)).toEqual([
 			"Product owner",
@@ -30,6 +34,10 @@ describe("first run", () => {
 		expect(screen.getByRole("radio", { name: "Other" })).toBeChecked();
 		await user.click(screen.getByRole("radio", { name: "Tech lead" }));
 		await waitFor(() => expect(screen.getByRole("radio", { name: "Tech lead" })).toBeChecked());
+		// A click selects. Continue saves and shows the three starts.
+		expect(mockState().prefs.role).not.toBe("techlead");
+		await next(user);
+		await screen.findByRole("button", { name: "Open a local folder" });
 		expect(mockState().prefs.role).toBe("techlead");
 		const buttons = firstRunButtons();
 		expect(buttons.map((b) => b.textContent)).toEqual([
@@ -41,9 +49,35 @@ describe("first run", () => {
 		expect(buttons[0]?.className).toContain("bg-accent");
 	});
 
+	it("starts at the three starts for a saved role, and keeps the role", async () => {
+		mockState().prefs.role = "qa";
+		mountApp("/home/today");
+		await screen.findByRole("button", { name: "Open a local folder" });
+		expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
+		expect(mockState().prefs.role).toBe("qa");
+	});
+
+	it("starts at the three starts when the list holds a project", async () => {
+		await open("/mock/alpha");
+		await unwrap(commands.projectsClose());
+		mountApp("/home/today");
+		await screen.findByRole("button", { name: "Open a local folder" });
+		expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
+	});
+
+	it("moves the focus to the start step after Continue", async () => {
+		const user = userEvent.setup();
+		mountApp("/home/today");
+		await next(user);
+		await waitFor(() =>
+			expect(screen.getByRole("heading", { level: 2, name: "Project" })).toHaveFocus(),
+		);
+	});
+
 	it("opens a local folder and lists it in the switcher", async () => {
 		const user = userEvent.setup();
 		mountApp("/home/today");
+		await next(user);
 		await user.click(await screen.findByRole("button", { name: "Open a local folder" }));
 		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: /^Project/ })).toHaveTextContent("alpha");
@@ -54,6 +88,7 @@ describe("first run", () => {
 		const user = userEvent.setup();
 		mockState().nextFolder = "/mock/bare";
 		mountApp("/home/today");
+		await next(user);
 		await user.click(await screen.findByRole("button", { name: "Open a local folder" }));
 		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
 		expect(mockState().projects[0]?.path).toBe("/mock/bare");
@@ -63,6 +98,7 @@ describe("first run", () => {
 		const user = userEvent.setup();
 		mockState().nextFolder = "/mock/plain";
 		mountApp("/home/today");
+		await next(user);
 		await user.click(await screen.findByRole("button", { name: "Open a local folder" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("No Git repository in /mock/plain");
 		expect(mockState().projects).toHaveLength(0);
@@ -74,6 +110,7 @@ describe("first run", () => {
 	it("creates a project from a name alone: the key comes from the name, the folder from Projects", async () => {
 		const user = userEvent.setup();
 		mountApp("/home/today");
+		await next(user);
 		await user.click(await screen.findByRole("button", { name: "Create a project" }));
 		expect(await screen.findByDisplayValue("/mock/Projects")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Create" })).toBeDisabled();
@@ -92,6 +129,7 @@ describe("first run", () => {
 	it("clones into a folder named after the repository", async () => {
 		const user = userEvent.setup();
 		mountApp("/home/today");
+		await next(user);
 		await user.click(await screen.findByRole("button", { name: "Clone a repository" }));
 		await user.type(
 			screen.getByRole("textbox", { name: "Repository address" }),
@@ -106,6 +144,7 @@ describe("first run", () => {
 	it("reads French", async () => {
 		mockState().prefs.lang = "fr";
 		mountApp("/home/today");
+		await next(userEvent.setup(), "Continuer");
 		expect(
 			await screen.findByRole("button", { name: "Ouvrir un dossier local" }),
 		).toBeInTheDocument();
@@ -247,6 +286,7 @@ describe("project switcher", () => {
 		await open("/mock/alpha");
 		mountApp("/home/today");
 		await removeFirst(user, /alpha/);
+		await next(user);
 		await screen.findByRole("button", { name: "Open a local folder" });
 		expect(await unwrap(commands.projectsActive())).toBeNull();
 		expect(mockState().projects).toHaveLength(0);

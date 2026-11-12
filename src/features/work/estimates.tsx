@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { PageExport } from "@/features/reports/page-export";
+import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { pickWorkbook, type Totals } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
@@ -35,7 +36,6 @@ import { EstimateBacklog } from "./estimate-backlog";
 import { SheetForm, TaskForm } from "./estimate-forms";
 import { ExcelDialog } from "./excel-dialog";
 import { useGuard } from "./guard";
-import { NoProject } from "./no-project";
 import { SealBar } from "./seal";
 import { ProfileTable, SheetMenu } from "./sheet-menu";
 

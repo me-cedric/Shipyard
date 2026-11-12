@@ -9,6 +9,7 @@ import type { Messages } from "./en";
 import { extensionsFr } from "./extensions";
 import { extrasFr } from "./extras";
 import { factoryFr } from "./factory";
+import { glossaryFr } from "./glossary";
 import { homeFr } from "./home";
 import { knowledgeFr } from "./knowledge";
 import { onboardingFr } from "./onboarding";
@@ -914,6 +915,7 @@ export const fr: Messages = {
 	assistant: assistantFr,
 	design: designFr,
 	factory: factoryFr,
+	glossary: glossaryFr,
 	settings: settingsFr,
 	specs: specsFr,
 	ui: uiFr,

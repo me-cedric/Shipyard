@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
@@ -15,7 +16,6 @@ import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { useGuard } from "./guard";
-import { NoProject } from "./no-project";
 import { SealBar } from "./seal";
 import {
 	AuditTail,

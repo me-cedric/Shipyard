@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.1.0]
+- One Get started checklist of eleven items replaces the Home and Setup cards, and its done items link to their pages; the tour opens once after the first project; every space with no project shows one page with three ways to open (a folder, a clone, a new project), and the open error shows there; the empty Runs and Backlog pages name the missing step (an AI tool, an issue tracker); the glossary explains issue tracker, code host, AI tool, model, spec, decision, run and pull request on hover and keyboard focus, with a link to the manual.
 - A run no longer stays stuck: it fixes blocking findings, red checks, conflicts and empty branches in capped fix rounds, and a stop (a cap, the same failure twice, a spent budget or no answer) writes its cause, last lines, what it tried and the action on the ticket and in the Runs banner, where Unblock, a team reply on the ticket or Close as done moves it on; an ended run no longer restarts by itself.
 - Resume takes the limits that the workflow has now, so a budget that you removed no longer stops a run, and Resume with an empty amount works again.
 - The app starts on any Mac: libgit2 and OpenSSL are built into it, not taken from Homebrew; the README shows the current screens and how to install a release.

@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import type { CSSProperties } from "react";
 import { useState } from "react";
-import { NoProject } from "@/features/work/no-project";
+import { NoProject } from "@/features/shell/no-project";
 import { useI18n } from "@/lib/i18n";
 import { useLearn } from "@/lib/knowledge";
 import { usePanelSize } from "@/lib/prefs";

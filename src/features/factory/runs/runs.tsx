@@ -1,11 +1,14 @@
+import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { runnerKeys } from "@/features/settings/connections/keys";
+import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
-import { NoProject } from "@/features/work/no-project";
+import { useOpenSetting } from "@/lib/errors";
 import { useRunActions, useRuns, useUsage } from "@/lib/factory";
 import { latestPerTicket } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
-import { AppFailure, type Lane, type RunState, type RunView } from "@/lib/ipc";
+import { AppFailure, commands, type Lane, type RunState, type RunView, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
@@ -26,6 +29,7 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel, type PanelTone } from "@/ui/molecules/panel";
 import { RunCard } from "@/ui/molecules/run-card";
 import { StatStrip } from "@/ui/molecules/stat-strip";
+import { Terms } from "@/ui/molecules/term";
 import { SPRING } from "@/ui/motion";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { AgentsToggle } from "../agents-toggle";
@@ -102,6 +106,12 @@ export function Runs() {
 	const active = useActiveProject().data;
 	const runs = useRuns();
 	const act = useRunActions();
+	const openSetting = useOpenSetting();
+	// The same cache as Settings / Connections. While it loads, the page shows the usual empty state.
+	const runners = useQuery({
+		queryKey: runnerKeys.list,
+		queryFn: () => unwrap(commands.runnersList()),
+	}).data;
 	const { failure, run: guard } = useGuard();
 	const [key, setKey] = useState("");
 	const [selected, setSelected] = useState<string | null>(null);
@@ -169,10 +179,21 @@ export function Runs() {
 		>
 			{all.length === 0 && !runs.isPending ? (
 				<div className="p-4">
-					<EmptyState
-						title={t.empty.runs}
-						action={{ label: f.start, onClick: () => field.current?.focus() }}
-					/>
+					{runners && !runners.some((r) => r.state === "detected") ? (
+						<EmptyState
+							title={<Terms>{t.glossary.noRunner}</Terms>}
+							icon={<CpuChipIcon size={28} />}
+							action={{
+								label: t.glossary.setUpRunner,
+								onClick: () => openSetting("/settings/connections#connections-runner"),
+							}}
+						/>
+					) : (
+						<EmptyState
+							title={t.empty.runs}
+							action={{ label: f.start, onClick: () => field.current?.focus() }}
+						/>
+					)}
 				</div>
 			) : (
 				<>

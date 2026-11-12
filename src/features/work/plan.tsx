@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { PageExport } from "@/features/reports/page-export";
+import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton, RightIconButton, useRights } from "@/lib/rights";
@@ -43,7 +44,6 @@ import { ListDetail } from "@/ui/templates/list-detail";
 import { ApplyFlow } from "./apply";
 import { useGuard } from "./guard";
 import { HolidayCountry } from "./holiday-country";
-import { NoProject } from "./no-project";
 import { memberWeek, weekStart } from "./week-focus";
 
 const AUTO = "@@auto";

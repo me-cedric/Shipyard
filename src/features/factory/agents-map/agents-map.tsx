@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { NoProject } from "@/features/work/no-project";
+import { NoProject } from "@/features/shell/no-project";
 import { useRuns, useSessions } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";

@@ -87,18 +87,4 @@ export const homeDe: typeof homeEn = {
 		run: "{key}: wartet auf Sie",
 		answer: "Antworten",
 	},
-	start: {
-		title: "Erste Schritte",
-		tracker: "Ticketsystem verbinden",
-		forge: "Code-Plattform verbinden",
-		agent: "Agent installieren",
-		team: "Team festlegen",
-		decision: "Erste Entscheidung festhalten",
-		spec: "Erste Spezifikation schreiben",
-		assign: "Ticket zuweisen",
-		run: "Ersten Lauf starten",
-		useLogin: "Mit {tool} als {user} verbinden",
-		install: "{name} installieren",
-		done: "Erledigt",
-	},
 };

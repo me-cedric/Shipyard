@@ -8,6 +8,7 @@ import { mountApp } from "@/test/mount";
 const openCreator = async () => {
 	const user = userEvent.setup();
 	mountApp("/home/today");
+	await user.click(await screen.findByRole("button", { name: "Continue" }));
 	await user.click(await screen.findByRole("button", { name: "Create a project" }));
 	await screen.findByDisplayValue("/mock/Projects");
 	await user.type(screen.getByRole("textbox", { name: "Name" }), "Demo");

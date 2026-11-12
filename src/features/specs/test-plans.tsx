@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { WithProject } from "@/features/shell/no-project";
 import { useI18n } from "@/lib/i18n";
 import { RightButton } from "@/lib/rights";
 import { useTabSelection } from "@/lib/shell/selection";
@@ -11,7 +12,6 @@ import { RefChip } from "@/ui/molecules/ref-chip";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { FileEditor } from "./file-editor";
 import { NameDialog } from "./name-dialog";
-import { WithProject } from "./no-project";
 import { PlanBoard } from "./plan-board";
 import { PlanLint } from "./test-plans-lint";
 

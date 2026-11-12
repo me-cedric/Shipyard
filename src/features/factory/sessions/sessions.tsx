@@ -1,6 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
+import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
-import { NoProject } from "@/features/work/no-project";
 import { useFactoryWrites, useKillSwitch, useSessions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
 import type { SessionView } from "@/lib/ipc";

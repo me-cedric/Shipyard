@@ -6,6 +6,7 @@ import { logError } from "@/lib/log";
 import { Button } from "@/ui/atoms/button";
 import { type Status, StatusDot } from "@/ui/atoms/status-dot";
 import { BellIcon, FolderOpenIcon, PlayIcon } from "@/ui/icons";
+import { Loading } from "@/ui/molecules/loading";
 import { SettingsRow } from "@/ui/molecules/settings-row";
 import type { SettingsSection } from "@/ui/templates/settings";
 import { openTour } from "./tour-store";
@@ -76,10 +77,11 @@ const ICON = { notifications: <BellIcon size={14} />, files: <FolderOpenIcon siz
 /** The permissions as settings rows, for the tour step. */
 export function PermissionList() {
 	const { t } = useI18n();
-	const list = usePermissions().data ?? [];
+	const { data: list, isLoading } = usePermissions();
+	if (isLoading) return <Loading rows={2} />;
 	return (
 		<ul aria-label={t.onboarding.permissions.title} className="rounded-lg border bg-surface-2">
-			{list.map((p) => (
+			{(list ?? []).map((p) => (
 				<li key={p.kind}>
 					<SettingsRow icon={ICON[p.kind]} label={t.onboarding.permissions.kind[p.kind]}>
 						<PermissionControl permission={p} />

@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.1.0]
+- Une seule liste Pour commencer de onze éléments remplace les cartes Accueil et Mise en route, et ses éléments faits renvoient à leur page ; la visite s’ouvre une fois après le premier projet ; chaque espace sans projet montre une page avec trois façons d’ouvrir (un dossier, un clone, un nouveau projet), et l’erreur d’ouverture s’y affiche ; les pages vides des Exécutions et du Backlog nomment l’étape manquante (un outil d’IA, un outil de suivi) ; le glossaire explique outil de suivi, hébergeur de code, outil d’IA, modèle, spec, décision, run et pull request au survol et au focus clavier, avec un lien vers le manuel.
 - Une exécution ne reste plus coincée : elle corrige les constats bloquants, les contrôles en échec, les conflits et les branches vides en tours de correction limités, et un arrêt (une limite, la même panne deux fois, un budget épuisé ou pas de réponse) écrit sa cause, les dernières lignes, ce qu’elle a essayé et l’action sur le ticket et dans le bandeau des Exécutions, où Débloquer, une réponse d’un membre de l’équipe sur le ticket ou Clore comme terminée la relance ; une exécution terminée ne redémarre plus seule.
 - Reprendre applique les limites actuelles du workflow : un budget retiré n’arrête plus une exécution, et Reprendre sans montant fonctionne de nouveau.
 - L’app démarre sur tout Mac : libgit2 et OpenSSL sont intégrés à l’app, et non pris dans Homebrew ; le README montre les écrans actuels et comment installer une version publiée.

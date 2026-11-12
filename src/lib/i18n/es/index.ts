@@ -9,6 +9,7 @@ import { editingEs } from "./editing";
 import { extensionsEs } from "./extensions";
 import { extrasEs } from "./extras";
 import { factoryEs } from "./factory";
+import { glossaryEs } from "./glossary";
 import { homeEs } from "./home";
 import { knowledgeEs } from "./knowledge";
 import { onboardingEs } from "./onboarding";
@@ -907,6 +908,7 @@ export const es: Messages = {
 	assistant: assistantEs,
 	design: designEs,
 	factory: factoryEs,
+	glossary: glossaryEs,
 	settings: settingsEs,
 	specs: specsEs,
 	ui: uiEs,

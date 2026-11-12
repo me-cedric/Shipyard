@@ -4,6 +4,7 @@ import { latestPerTicket } from "@/lib/home";
 import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { ShellProvider } from "@/lib/shell";
+import { mountApp } from "@/test/mount";
 import { renderApp } from "@/ui/test-utils";
 import { Runs } from "./index";
 
@@ -276,5 +277,17 @@ describe("Factory / Runs", () => {
 		expect(await within(panel).findByRole("button", { name: "Send" })).toBeInTheDocument();
 		expect(await within(panel).findByRole("button", { name: "Approve" })).toBeInTheDocument();
 		expect(within(panel).getByRole("button", { name: "Reject" })).toBeInTheDocument();
+	});
+
+	it("names the AI tool as missing and opens its Settings section (REQ-007)", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		for (const r of mockState().agents.runners) r.state = "missing";
+		mockState().factory.runs.length = 0;
+		const router = mountApp("/factory/runs");
+		expect(await screen.findByText("No AI tool found")).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Set up an AI tool" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/connections"));
+		expect(router.state.location.hash).toBe("connections-runner");
 	});
 });

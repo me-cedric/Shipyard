@@ -136,6 +136,7 @@ describe("Home / Today, Needs you", () => {
 
 	it("shows one action without a project", async () => {
 		mountApp("/home/today");
+		await userEvent.setup().click(await screen.findByRole("button", { name: "Continue" }));
 		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
 	});
 });

@@ -15,6 +15,7 @@ const open = async (p: Page, space: string, tab?: string) => {
 };
 const openProject = async (p: Page) => {
 	await p.goto("/home/today");
+	await p.getByRole("button", { name: "Continue" }).click();
 	await p.getByRole("button", { name: "Open a local folder" }).click();
 	await p.getByRole("heading", { level: 1, name: "Today" }).waitFor();
 };

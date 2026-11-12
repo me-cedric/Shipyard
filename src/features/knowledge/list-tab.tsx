@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { Fragment, type ReactNode, useState } from "react";
-import { NoProject } from "@/features/work/no-project";
+import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import type { PageEntry } from "@/lib/ipc";
 import { slug, useCreateDoc } from "@/lib/knowledge";

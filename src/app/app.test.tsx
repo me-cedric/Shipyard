@@ -52,6 +52,7 @@ describe("router", () => {
 
 	it("shows the first run on Home until a project is active", async () => {
 		mount("/home/today");
+		await userEvent.click(await screen.findByRole("button", { name: "Continue" }));
 		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
 		expect(screen.queryByRole("heading", { level: 1, name: "Today" })).toBeNull();
 	});

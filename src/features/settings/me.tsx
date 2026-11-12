@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { usePermissionSection, useSetupSection } from "@/features/onboarding";
+import { Checklist, usePermissionSection } from "@/features/onboarding";
 import { LANGS, useI18n } from "@/lib/i18n";
 import { commands, type EventSource, unwrap } from "@/lib/ipc";
 import { logError } from "@/lib/log";
@@ -146,13 +146,12 @@ export function Me() {
 	const personal = usePersonalSections();
 	const look = useLookRows();
 	const permissions = usePermissionSection();
-	const setup = useSetupSection();
 	const withIcon = personal.map((s) => ({ ...s, icon: SECTION_ICON[s.id] }));
 	const nav = [
+		{ id: "setup", title: t.onboarding.setup.title },
 		{ id: "me", title: t.tabs.settings.me },
 		...personal,
 		{ id: "notifications", title: t.notifications.title },
-		{ id: setup.id, title: setup.title },
 		{ id: permissions.id, title: permissions.title },
 	].map((s) => ({ id: `section-${s.id}`, label: s.title, icon: SECTION_ICON[s.id] }));
 	const themeRows = useThemeRows();
@@ -169,6 +168,7 @@ export function Me() {
 			<PageHeader icon={<UserCircleIcon size={16} />} title={t.tabs.settings.me} />
 			<SectionNav label={t.ui.sections} items={nav} />
 			<div className={SETTINGS_PAGE}>
+				<Checklist id="section-setup" />
 				<Settings
 					sections={[
 						{
@@ -298,7 +298,6 @@ export function Me() {
 								control: <NotifySwitch source={s} />,
 							})),
 						},
-						{ ...setup, icon: SECTION_ICON.setup },
 						{ ...permissions, icon: SECTION_ICON.permissions },
 					]}
 				/>

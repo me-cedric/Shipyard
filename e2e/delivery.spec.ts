@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { openFirstFolder } from "./first-run";
 
 const lane = (page: Page, name: string) => page.getByRole("region", { name });
 
@@ -6,7 +7,7 @@ test("approvals wait for a click, and the runs show the review, CI and merge sta
 	page,
 }) => {
 	await page.goto("/home/today");
-	await page.getByRole("button", { name: "Open a local folder" }).click();
+	await openFirstFolder(page);
 	await expect(page.getByRole("heading", { name: "Approvals (4)" })).toBeVisible();
 
 	// The force push waits: nothing sends it until one click.

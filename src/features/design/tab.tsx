@@ -1,10 +1,11 @@
 import type { VariantProps } from "class-variance-authority";
 import { motion } from "motion/react";
 import { Fragment, type ReactNode, useState } from "react";
+import { NoProject } from "@/features/shell/no-project";
 import { message, useDesignList } from "@/lib/design";
 import { useI18n } from "@/lib/i18n";
 import { copyText, useAsk, useMenus, useRename, useTrash } from "@/lib/menus";
-import { useActiveProject, useProjectActions } from "@/lib/projects";
+import { useActiveProject } from "@/lib/projects";
 import { useRefFilter } from "@/lib/refs";
 import { RightButton } from "@/lib/rights";
 import { useFormIntent, useShell } from "@/lib/shell";
@@ -13,12 +14,11 @@ import { cn } from "@/lib/utils";
 import { Badge, type badgeVariants } from "@/ui/atoms/badge";
 import { Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
-import { FolderOpenIcon, PlusIcon, QueueListIcon, ViewColumnsIcon } from "@/ui/icons";
+import { PlusIcon, QueueListIcon, ViewColumnsIcon } from "@/ui/icons";
 import { Card } from "@/ui/molecules/card";
 import { ContextMenu } from "@/ui/molecules/context-menu";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
-import { PageHeader } from "@/ui/molecules/page-header";
 import { SplitPane } from "@/ui/molecules/split-pane";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { LIST, useEnter } from "@/ui/motion";
@@ -175,7 +175,6 @@ export function ArtifactTab({
 	const active = useActiveProject().data;
 	const list = useDesignList();
 	const { openRef } = useShell();
-	const { openFolder } = useProjectActions();
 	const menu = useMenus();
 	const trash = useTrash();
 	const rename = useRename();
@@ -192,22 +191,8 @@ export function ArtifactTab({
 	const enter = useEnter();
 	const filter = useRefFilter();
 
-	if (active === undefined) return <PageHeader icon={icon} title={title} />;
-	if (active === null)
-		return (
-			<ListDetail title={title} icon={icon}>
-				<div className="p-4">
-					<EmptyState
-						title={t.empty.project}
-						action={{
-							label: t.projects.open,
-							icon: <FolderOpenIcon size={14} />,
-							onClick: () => void openFolder(),
-						}}
-					/>
-				</div>
-			</ListDetail>
-		);
+	if (active === undefined) return <Loading title={title} icon={icon} />;
+	if (active === null) return <NoProject title={title} icon={icon} />;
 	if (list.isLoading) return <Loading title={title} icon={icon} />;
 	const open = all.find((r) => r.ref === selected);
 	// The index finds the rows by their text, in the same command as the palette.

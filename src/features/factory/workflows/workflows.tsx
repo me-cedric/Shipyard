@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
-import { NoProject } from "@/features/work/no-project";
 import {
 	useFactoryFile,
 	useFactoryWrites,

@@ -1,6 +1,7 @@
 import { useQueries } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { useState } from "react";
+import { WithProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { copyText, useMenus } from "@/lib/menus";
@@ -30,7 +31,6 @@ import { LIST, useEnter } from "@/ui/motion";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { ChangeDetail } from "./change-detail";
 import { NameDialog } from "./name-dialog";
-import { WithProject } from "./no-project";
 import { DOT } from "./status";
 import { TicketDialog } from "./ticket-dialog";
 

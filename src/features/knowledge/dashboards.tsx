@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { NoProject } from "@/features/work/no-project";
+import { NoProject } from "@/features/shell/no-project";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import {

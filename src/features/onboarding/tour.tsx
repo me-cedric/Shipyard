@@ -1,13 +1,15 @@
 import { useNavigate } from "@tanstack/react-router";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
+import { useActiveProject } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 import { Button } from "@/ui/atoms/button";
+import { Terms } from "@/ui/molecules/term";
 import { Dialog } from "@/ui/organisms/dialog";
+import { ChecklistList, type ItemId } from "./checklist";
 import { PermissionList } from "./permissions";
 import { AiPicture, ConnectPicture, LoopPicture, ProjectPicture, RunPicture } from "./pictures";
-import { type SetupId, SetupList } from "./setup";
 import { closeTour, openTour, useTourOpen } from "./tour-store";
 
 export const STEPS = ["loop", "project", "connect", "ai", "permissions", "run"] as const;
@@ -29,7 +31,7 @@ const PICTURE: Record<StepId, () => ReactNode> = {
 };
 
 /** The settings that a step offers to make in place (REQ-011). The permissions step has its own list. */
-const SETUP_OF: Partial<Record<StepId, SetupId[]>> = {
+const SETUP_OF: Partial<Record<StepId, ItemId[]>> = {
 	project: ["project"],
 	connect: ["tracker", "forge"],
 	ai: ["ai", "models"],
@@ -38,13 +40,15 @@ const SETUP_OF: Partial<Record<StepId, SetupId[]>> = {
 
 /**
  * The onboarding tour (spec `onboarding`): six steps with a title, one sentence and a picture. It opens by
- * itself once; Close at any step ends it. The Help menu, the palette and Settings / Me open it again.
+ * itself once, when the first project is open. Each way to leave it marks it as seen. The Help menu, the
+ * palette and Settings / Me open it again.
  */
 export function Tour() {
 	const { t } = useI18n();
 	const o = t.onboarding;
 	const { tourSeen, loaded, setPrefs } = usePrefs();
 	const open = useTourOpen();
+	const hasProject = Boolean(useActiveProject().data);
 	const navigate = useNavigate();
 	const [step, setStep] = useState(0);
 	const last = step === STEPS.length - 1;
@@ -53,16 +57,19 @@ export function Tour() {
 	// The shell left: the next shell starts closed.
 	useEffect(() => closeTour, []);
 	useEffect(() => {
-		if (loaded && !tourSeen) openTour();
-	}, [loaded, tourSeen]);
+		if (loaded && !tourSeen && hasProject) openTour();
+	}, [loaded, tourSeen, hasProject]);
 	useEffect(() => {
 		if (open) setStep(0);
 	}, [open]);
 
-	const close = () => {
-		closeTour();
-		if (!tourSeen) setPrefs({ tourSeen: true });
-	};
+	// Close, Escape, Done and a setup action that calls `closeTour()` all end here.
+	const wasOpen = useRef(false);
+	useEffect(() => {
+		if (wasOpen.current && !open && !tourSeen) setPrefs({ tourSeen: true });
+		wasOpen.current = open;
+	}, [open, tourSeen, setPrefs]);
+	const close = closeTour;
 	const go = (to: number) => setStep(Math.min(STEPS.length - 1, Math.max(0, to)));
 
 	// The arrow keys turn the steps; Escape is the close of the dialog.
@@ -119,8 +126,10 @@ export function Tour() {
 				>
 					{PICTURE[id]()}
 				</div>
-				<p className="text-14 text-n-11">{o.steps[id].body}</p>
-				{SETUP_OF[id] ? <SetupList ids={SETUP_OF[id]} /> : null}
+				<p className="text-14 text-n-11">
+					<Terms>{o.steps[id].body}</Terms>
+				</p>
+				{SETUP_OF[id] ? <ChecklistList ids={SETUP_OF[id]} /> : null}
 				<div className="flex items-center gap-1.5">
 					<span className="sr-only" aria-live="polite">
 						{format(o.step, { n: step + 1, total: STEPS.length })}

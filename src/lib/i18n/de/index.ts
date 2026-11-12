@@ -9,6 +9,7 @@ import { editingDe } from "./editing";
 import { extensionsDe } from "./extensions";
 import { extrasDe } from "./extras";
 import { factoryDe } from "./factory";
+import { glossaryDe } from "./glossary";
 import { homeDe } from "./home";
 import { knowledgeDe } from "./knowledge";
 import { onboardingDe } from "./onboarding";
@@ -923,6 +924,7 @@ export const de: Messages = {
 	assistant: assistantDe,
 	design: designDe,
 	factory: factoryDe,
+	glossary: glossaryDe,
 	settings: settingsDe,
 	specs: specsDe,
 	ui: uiDe,

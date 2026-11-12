@@ -149,11 +149,12 @@ export class Walk {
 		);
 		await this.step(
 			"Pick the role and open the project",
-			`the "${this.role.label}" card, then "Open a local folder"`,
+			`the "${this.role.label}" card, Continue, then "Open a local folder"`,
 			async () => {
 				await this.click(
 					this.page.getByRole("radiogroup").getByText(this.role.label, { exact: true }),
 				);
+				await this.click(this.page.getByRole("button", { name: "Continue" }));
 				await this.click(this.page.getByRole("button", { name: "Open a local folder" }));
 				await this.see(
 					this.page.getByRole("navigation", { name: "Tabs" }).getByRole("link").first(),

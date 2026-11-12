@@ -8,6 +8,7 @@ import { editingEn } from "./editing";
 import { extensionsEn } from "./extensions";
 import { extrasEn } from "./extras";
 import { factoryEn } from "./factory";
+import { glossaryEn } from "./glossary";
 import { homeEn } from "./home";
 import { knowledgeEn } from "./knowledge";
 import { onboardingEn } from "./onboarding";
@@ -890,6 +891,7 @@ export const en = {
 	assistant: assistantEn,
 	design: designEn,
 	factory: factoryEn,
+	glossary: glossaryEn,
 	settings: settingsEn,
 	specs: specsEn,
 	ui: uiEn,

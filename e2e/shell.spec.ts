@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { openFirstFolder } from "./first-run";
 
 test("first run shows one primary action and no tour or help text", async ({ page }) => {
 	await page.goto("/");
-	await expect(page.getByRole("button", { name: "Open a local folder" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
 	await expect(page.getByRole("navigation", { name: "Sidebar" }).getByRole("link")).toHaveCount(8);
 	await expect(page.getByText(/tour|tip/i)).toHaveCount(0);
 });
@@ -11,7 +12,7 @@ test("keyboard path: space shortcut, palette action, inspector and a focus ring"
 	page,
 }) => {
 	await page.goto("/");
-	await page.getByRole("button", { name: "Open a local folder" }).click();
+	await openFirstFolder(page);
 	await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
 
 	await page.keyboard.press("ControlOrMeta+2");
@@ -44,7 +45,7 @@ test("keyboard path: space shortcut, palette action, inspector and a focus ring"
 
 test("keeps the view of each project apart and writes it on each move", async ({ page }) => {
 	await page.goto("/");
-	await page.getByRole("button", { name: "Open a local folder" }).click();
+	await openFirstFolder(page);
 	const switcher = page.getByRole("button", { name: /^Project/ });
 	await expect(switcher).toHaveText(/alpha/);
 	await page.keyboard.press("ControlOrMeta+3");
@@ -61,7 +62,7 @@ test("keeps the view of each project apart and writes it on each move", async ({
 
 test("shows the shortcuts overlay and rebinds an action", async ({ page }) => {
 	await page.goto("/");
-	await page.getByRole("button", { name: "Open a local folder" }).click();
+	await openFirstFolder(page);
 	await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
 	await page.keyboard.press("ControlOrMeta+Shift+k");
 	const dialog = page.getByRole("dialog", { name: "Keyboard shortcuts" });

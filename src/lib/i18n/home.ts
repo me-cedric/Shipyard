@@ -86,20 +86,6 @@ export const homeEn = {
 		run: "{key}: needs you",
 		answer: "Answer",
 	},
-	start: {
-		title: "Get started",
-		tracker: "Connect an issue tracker",
-		forge: "Connect a code host",
-		agent: "Install an agent",
-		team: "Set the team",
-		decision: "Record the first decision",
-		spec: "Write the first spec",
-		assign: "Assign a ticket",
-		run: "Start the first run",
-		useLogin: "Connect with {tool} as {user}",
-		install: "Install {name}",
-		done: "Done",
-	},
 };
 
 export const homeFr: typeof homeEn = {
@@ -188,19 +174,5 @@ export const homeFr: typeof homeEn = {
 		approval: "{key} : approbation",
 		run: "{key} : à traiter",
 		answer: "Répondre",
-	},
-	start: {
-		title: "Pour commencer",
-		tracker: "Connecter un outil de suivi",
-		forge: "Connecter un hébergeur de code",
-		agent: "Installer un agent",
-		team: "Définir l'équipe",
-		decision: "Consigner la première décision",
-		spec: "Écrire la première spec",
-		assign: "Attribuer un ticket",
-		run: "Lancer le premier run",
-		useLogin: "Se connecter avec {tool} en tant que {user}",
-		install: "Installer {name}",
-		done: "Fait",
 	},
 };
