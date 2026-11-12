@@ -617,8 +617,6 @@ export const commands = {
 	 *  It installs nothing.
 	 */
 	updateCheck: () => typedError<UpdateInfo, AppError_Serialize>(__TAURI_INVOKE("update_check")),
-	/**  The dot of the icon follows the "Needs you" count of the main window. */
-	trayBadge: (needs: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("tray_badge", { needs })),
 	/**  Hide the panel. The Escape key calls it. */
 	trayClose: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("tray_close")),
 	/**  Open Shipyard: show the main window and hide the panel. */

@@ -19,14 +19,6 @@ import { Select } from "@/ui/atoms/select";
 import { Skeleton } from "@/ui/atoms/skeleton";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 
-/** The menu bar icon shows a dot while something needs the person. The main window sends the count. */
-export function useTrayBadge() {
-	const { needsYou } = useCounts();
-	useEffect(() => {
-		void commands.trayBadge(needsYou);
-	}, [needsYou]);
-}
-
 const FIRST = 3;
 /** The panel is 360 wide and at least 280 high: the window fits the content. */
 const WIDTH = 360;

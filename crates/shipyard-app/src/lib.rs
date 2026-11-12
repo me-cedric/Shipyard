@@ -566,7 +566,6 @@ fn specta_builder() -> Builder<tauri::Wry> {
             permissions::permissions_request,
             permissions::permissions_open_settings,
             sh::update_check,
-            tray::tray_badge,
             tray::tray_close,
             tray::tray_open,
         ])

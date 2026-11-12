@@ -2077,7 +2077,6 @@ const handlers: Handlers = {
 		state.inFlight.drafts = count;
 		return null;
 	},
-	trayBadge: () => null,
 	trayClose: () => null,
 	trayOpen: () => null,
 	closeAnyway: () => {

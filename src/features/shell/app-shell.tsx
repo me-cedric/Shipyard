@@ -4,7 +4,6 @@ import { AskOnItem, AssistantPanel, SelectionActions, useAssistant } from "@/fea
 import { FileDrawer } from "@/features/code/file-drawer";
 import { TerminalDrawer } from "@/features/code/terminal-drawer";
 import { Tour } from "@/features/onboarding";
-import { useTrayBadge } from "@/features/tray";
 import { useCodeActions } from "@/lib/code";
 import { useAnchorArrival } from "@/lib/errors/anchor";
 import { useI18n } from "@/lib/i18n";
@@ -33,7 +32,6 @@ import { WhatsNew } from "./whats-new";
 
 function Frame() {
 	const { t } = useI18n();
-	useTrayBadge();
 	const { sidebarOpen, navSide, drawerSide, narrowBar, terminalDock } = usePrefs();
 	const {
 		inspectorOpen,

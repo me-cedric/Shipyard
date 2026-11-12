@@ -24,7 +24,7 @@ The window opens at the size where you closed it. To keep the data of the app ne
 
 ## The menu bar item
 
-- The Shipyard icon sits in the menu bar (the system tray on Windows and Linux). A dot on the icon means that something needs you.
+- The Shipyard icon sits in the menu bar (the system tray on Windows and Linux).
 - A click opens a small panel: the spend of today and of the month, the active runs with Stop, the Needs you count with its first items, the agents switch, the sync state, the project and Open Shipyard.
 - The panel asks for the same click as the app for each action that writes.
 - In Settings, then Me, turn the menu bar item off.

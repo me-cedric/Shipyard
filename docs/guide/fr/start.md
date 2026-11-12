@@ -20,7 +20,7 @@ La fenêtre s'ouvre à la taille où vous l'avez fermée. Pour garder les donné
 
 ## L'élément de la barre de menus
 
-- L'icône Shipyard est dans la barre de menus (la zone de notification sous Windows et Linux). Un point sur l'icône signale que quelque chose vous attend.
+- L'icône Shipyard est dans la barre de menus (la zone de notification sous Windows et Linux).
 - Un clic ouvre un petit panneau : la dépense du jour et du mois, les exécutions actives avec Arrêter, le nombre À traiter avec ses premiers éléments, l'interrupteur des agents, l'état de la synchronisation, le projet et Ouvrir Shipyard.
 - Le panneau demande le même clic que l'application pour chaque action qui écrit.
 - Dans Réglages, puis Moi, désactivez l'élément de la barre de menus.
