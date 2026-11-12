@@ -160,15 +160,47 @@ pub trait CodeSource {
     fn call(&self, tool: &str, args: Value) -> Result<Value, String>;
 }
 
+/// A server that is on goes through the proxy. A server that is off (its saved setting stays off)
+/// runs for this one call and stops after it, also on an error, unless it was running already. The
+/// same allow list applies in both cases.
 impl CodeSource for Proxy {
     fn call(&self, tool: &str, args: Value) -> Result<Value, String> {
-        let id = self
-            .control()
-            .enabled_ids()
+        let control = self.control();
+        let id = control
+            .list()
             .into_iter()
-            .find(|i| i.contains(CODE_SERVER))
-            .ok_or("the codebase-memory server is not active")?;
-        Proxy::call(self, &format!("{id}{SEP}{tool}"), &args).map_err(err)
+            .find(|r| r.id.contains(CODE_SERVER))
+            .ok_or("the codebase-memory server is not active")?
+            .id;
+        if control.is_enabled(&id) {
+            return Proxy::call(self, &format!("{id}{SEP}{tool}"), &args).map_err(err);
+        }
+        let was_running = matches!(
+            control.state(&id),
+            shipyard_agents::mcp_control::State::Running
+        );
+        let answer = if self.allowed(&id, tool) {
+            control.request(
+                &id,
+                "tools/call",
+                json!({ "name": tool, "arguments": args }),
+            )
+        } else {
+            Err(shipyard_agents::AgentError::Invalid(format!(
+                "the tool {tool} of {id} is not on its allow list"
+            )))
+        };
+        if !was_running {
+            control.stop(&id);
+        }
+        let answer = answer.map_err(err)?;
+        match answer.get("error") {
+            Some(e) => Err(e
+                .get("message")
+                .and_then(Value::as_str)
+                .map_or_else(|| e.to_string(), str::to_string)),
+            None => Ok(answer.get("result").cloned().unwrap_or(Value::Null)),
+        }
     }
 }
 
@@ -356,36 +388,7 @@ pub fn code_index_run(proxy: &Proxy, root: &Path) -> Res<()> {
     if let Some(m) = row.missing.first() {
         return Err(format!("{} is not installed", m.command));
     }
-    if row.enabled {
-        return code_index(proxy, root);
-    }
-    let id = row.id;
-    let was_running = matches!(
-        control.state(&id),
-        shipyard_agents::mcp_control::State::Running
-    );
-    // The same allow list as a call through the proxy.
-    let answer = if proxy.allowed(&id, "index_repository") {
-        control.request(
-            &id,
-            "tools/call",
-            json!({ "name": "index_repository", "arguments": { "repo_path": root.to_string_lossy() } }),
-        )
-    } else {
-        Err(shipyard_agents::AgentError::Invalid(format!(
-            "the tool index_repository of {id} is not on its allow list"
-        )))
-    };
-    if !was_running {
-        control.stop(&id);
-    }
-    match answer.map_err(err)?.get("error") {
-        Some(e) => Err(e
-            .get("message")
-            .and_then(Value::as_str)
-            .map_or_else(|| e.to_string(), str::to_string)),
-        None => Ok(()),
-    }
+    code_index(proxy, root)
 }
 
 // ---------------------------------------------------------------- Explain context
@@ -1677,6 +1680,31 @@ mod tests {
             .set_tool_filter(&id, ToolFilter::All)
             .unwrap();
         code_index_run(&proxy, dir.path()).unwrap();
+    }
+
+    #[test]
+    fn the_graph_reads_through_a_server_that_is_off_and_stops_it_after() {
+        use shipyard_agents::mcp_control::{CustomInput, McpConfig, McpControl, State};
+        let dir = tempfile::tempdir().unwrap();
+        let pids = dir.path().join("pids");
+        shipyard_agents::fake::mcp_server(dir.path(), "fake-mcp", &pids);
+        let control = McpControl::new(
+            std::sync::Arc::new(shipyard_secrets::MemoryStore::default()),
+            McpConfig::default(),
+        )
+        .with_dirs(vec![dir.path().into(), "/usr/bin".into(), "/bin".into()]);
+        let input = CustomInput {
+            name: format!("{CODE_SERVER} fake"),
+            command: "fake-mcp".into(),
+            ..Default::default()
+        };
+        let id = control.add_custom(input).unwrap().id;
+        let proxy = Proxy::new(std::sync::Arc::new(control));
+        assert!(!proxy.control().is_enabled(&id));
+        // The server answers, so the state is not Off, and it is stopped again.
+        let g = code_graph(&proxy, dir.path());
+        assert_ne!(g.state, CodeState::Off);
+        assert!(!matches!(proxy.control().state(&id), State::Running));
     }
 
     #[test]

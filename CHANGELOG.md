@@ -2,7 +2,7 @@
 
 ## [0.1.0]
 - Code / History shows the profile picture of each commit author, from GitHub for a GitHub no-reply address and from Gravatar for any other address (the initials when there is none). Only a hash of the address goes to Gravatar.
-- Knowledge / Graph / Code finds the index of a folder that has a link or a space in its path, so the graph shows after Index.
+- Knowledge / Graph / Code shows the graph after Index: it reads the index also when the code server is off (it runs for that read only), and it finds the index of a folder with a link or a space in its path.
 - The menu bar icon no longer shows a dot. The panel that the icon opens still shows what needs you.
 - A "+" in the gutter of the Files changed diff adds a comment on a line: it joins a pending review kept on this computer (it survives a restart, and a comment on a file that left the pull request stays reachable), a bar shows the count with Submit review and Discard, Submit review sends the comments with Comment, Approve or Request changes as one review, and Add single comment posts one comment at once, on GitHub, GitLab and Azure DevOps; a comment that the code host cannot place on a line goes into the review text with a notice, and a partial result clears what was sent and keeps the rest.
 - The conversation of a pull request shows the general comments and the review threads in time order, with Markdown, and a note when the code host returned only the newest ones; each thread has Reply, Resolve and Reopen, and a Write and Preview comment box posts a comment, on GitHub, GitLab and Azure DevOps.
