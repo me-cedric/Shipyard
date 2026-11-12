@@ -71,8 +71,10 @@ describe("Onboarding tour", () => {
 		await waitFor(() => expect(screen.getByRole("button", { name: o.next })).toHaveFocus());
 		expect(screen.queryByRole("link", { name: en.glossary.manual })).toBeNull();
 		await user.tab();
+		// Tab from the last control lands on the focus guard first; the dialog then wraps the focus
+		// to its first tabbable element. A slow runner shows the guard for a moment, so wait for it.
+		await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement));
 		const term = document.activeElement as HTMLElement;
-		expect(dialog).toContainElement(term);
 		expect(term).toHaveAttribute("aria-describedby");
 		const link = await screen.findByRole("link", { name: en.glossary.manual });
 		await user.tab();

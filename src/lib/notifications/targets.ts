@@ -43,7 +43,8 @@ export function noticeTarget(w: NoticeWhere): NoticeTarget | undefined {
 
 /** Scrolls to the block of a target once it is on the page. It waits up to 2 s: a drawer or a page needs a moment to mount. */
 export function showAnchor(anchor: string | undefined, tries = 20) {
-	if (!anchor) return;
+	// A retry can fire after the window is gone (a closed test environment): then there is nothing to scroll.
+	if (!anchor || typeof document === "undefined") return;
 	const el = document.getElementById(anchor);
 	if (el) el.scrollIntoView?.({ block: "center" });
 	else if (tries > 0) setTimeout(() => showAnchor(anchor, tries - 1), 100);

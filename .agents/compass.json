@@ -6,7 +6,19 @@
     "e2e",
     "renovate"
   ],
-  "exclude": [],
+  "exclude": [
+    ".agents/skills/harness-improve/SKILL.md",
+    ".agents/skills/spec-flow/SKILL.md",
+    ".agents/skills/spec-flow/references/delta-section.md",
+    ".agents/skills/spec-flow/references/drift-triage.md",
+    ".agents/skills/task-flow/SKILL.md",
+    ".claude/skills/harness-improve/SKILL.md",
+    ".claude/skills/spec-flow/SKILL.md",
+    ".claude/skills/spec-flow/references/delta-section.md",
+    ".claude/skills/spec-flow/references/drift-triage.md",
+    ".claude/skills/task-flow/SKILL.md",
+    ".github/workflows/compass-migrations.yml"
+  ],
   "upstream": [
     "taste",
     "mattpocock"
