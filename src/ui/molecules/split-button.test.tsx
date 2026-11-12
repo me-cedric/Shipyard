@@ -46,4 +46,28 @@ describe("SplitButton", () => {
 		await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 		expect(main).not.toHaveBeenCalled();
 	});
+
+	it("gives the reason of an off main part as its description and keeps its name", () => {
+		renderApp(
+			<SplitButton
+				label="Merge"
+				onClick={() => {}}
+				disabled
+				reason="You need the right to merge"
+				moreLabel="Method"
+				items={[{ id: "a", label: "A", onSelect: () => {} }]}
+			/>,
+		);
+		const main = screen.getByRole("button", { name: "Merge" });
+		expect(main).toBeDisabled();
+		expect(main).toHaveAccessibleDescription("You need the right to merge");
+		expect(main.closest("span[title]")).toHaveAttribute("title", "You need the right to merge");
+	});
+
+	it("draws no arrow with hideMore", () => {
+		renderApp(
+			<SplitButton label="Merge" onClick={() => {}} moreLabel="Method" hideMore items={[]} />,
+		);
+		expect(screen.queryByRole("button", { name: "Method" })).toBeNull();
+	});
 });

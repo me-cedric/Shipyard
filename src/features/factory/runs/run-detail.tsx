@@ -6,8 +6,7 @@ import { useRunWaits } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import type { RunView } from "@/lib/ipc";
 import { RightButton } from "@/lib/rights";
-import { useShell } from "@/lib/shell";
-import { rememberSelection } from "@/lib/shell/selection";
+import { pullHref, useShell } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Panel } from "@/ui/molecules/panel";
@@ -109,8 +108,7 @@ export function RunDetail({
 	const focusIn = (selector: string) =>
 		needs.current?.querySelector<HTMLElement>(selector)?.focus();
 	const openPr = (reference?: string) => {
-		if (reference) rememberSelection("code:pull-requests", reference);
-		void router?.navigate({ to: "/code/pull-requests" });
+		void router?.navigate(reference ? pullHref(reference) : { to: "/code/pull-requests" });
 	};
 	const again = () =>
 		void guard(() =>

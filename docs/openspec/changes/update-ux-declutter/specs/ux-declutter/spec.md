@@ -85,16 +85,16 @@ Runs and Factory (second pass, 2026-11-12)
 Pull requests (third pass, 2026-11-12)
 
 - REQ-041: A pull request SHALL open as its own page with its own address. The page SHALL show the title, the state, the source and target branch, the lines added and removed, and the tabs Overview, Commits, Checks and Files changed with their counts. Back SHALL return to the list with its search and filters kept.
-- REQ-042: The pull request list SHALL be a full-width page with a search, a filter (All, Mine, Needs review) and the state groups open, merged and closed. Each row SHALL show the number, the title, the author, the draft state, the checks state and the review state.
+- REQ-042: The pull request list SHALL be a full-width page with a search, a filter (All, Needs review) and the state groups open, merged and closed. Each row SHALL show the number, the title, the draft state, the checks state and the review state. The mirror keeps no author, so a row SHALL show none. Needs review SHALL list the open pull requests that are not drafts, have no request for changes and sit in the in-review lane (not ready to merge).
 - REQ-043: The Overview tab SHALL start with a merge box that says whether the pull request can merge and why not. It SHALL have three segments: Checks (passing, failing and pending counts), Comments (unresolved threads) and Approvals (reviewers with their verdicts). It SHALL hold the merge action as a split button whose menu lists the merge methods. Merge SHALL keep its confirmation, its draft rule and its right.
-- REQ-044: The Overview SHALL show the description as Markdown, then the conversation. A narrow column SHALL show the reviewers with their verdicts, the labels, and the linked tickets and runs. It SHALL show no assignee, project or milestone.
-- REQ-045: The Files changed tab SHALL list every file collapsed by default, each with its path, its status and its lines added and removed. It SHALL show a file tree with a filter, an Expand all and a Collapse all action, and a count of the files that the person marked as viewed. A file that the person expands SHALL show its diff.
-- REQ-046: The Files changed tab SHALL use the same file rows, file tree, counts and diff component as the run page and Code / Local changes. The diff component SHALL show line numbers.
+- REQ-044: The Overview SHALL show the description as Markdown, then the conversation. A narrow column SHALL show the reviewers with their verdicts, the linked tickets and runs, and what cites the pull request. It SHALL show no labels, assignee, project or milestone.
+- REQ-045: The Files changed tab SHALL list every file collapsed by default, each with its path, its status and its lines added and removed. It SHALL show a file tree with a filter, an Expand all and a Collapse all action, and a count of the files that the person marked as viewed. Expand all SHALL open at most the first 30 files that match the filter; while more files stay collapsed the action SHALL offer to expand the next 30. A file that the person expands SHALL show its diff. When the code host list was cut short, the tab SHALL say "Showing the first N files".
+- REQ-046: The Files changed tab SHALL use the same file rows, tree, counts and diff component as Code / Local changes where they show the same things, and the same collapsed file list as the run page. The diff component SHALL show line numbers.
 - REQ-047: The conversation SHALL show the general comments of the pull request and its review threads, in time order, as Markdown, with the author and the time. A write box SHALL post a general comment. A comment of the forge SHALL show after the forge answers.
 - REQ-048: A review thread SHALL show its file and line, its comments, and a Resolved mark. A person SHALL reply to a thread and SHALL resolve or reopen it with one click each.
 - REQ-049: A person SHALL add a comment to a line of the new file on the Files changed tab with a button in the line gutter. The comment SHALL join a pending review kept on this computer. The page SHALL show the number of pending comments with Submit review and Discard. Submit review SHALL post all of them with one verdict: Comment, Approve or Request changes. A person SHALL also post one comment at once.
 - REQ-050: A pending review SHALL stay on this computer until the person submits or discards it. It SHALL survive a restart. A line that the pull request no longer has SHALL keep its comment text visible so that no text is lost.
-- REQ-051: When a forge refuses a comment, a reply or a review, the page SHALL show the refusal text and SHALL keep the pending text. Azure DevOps SHALL post an inline comment in the review body with its file and line. A pull request with more than 100 files SHALL show all of them.
+- REQ-051: When a forge refuses a comment, a reply or a review, the page SHALL show the refusal text and SHALL keep the pending text. Azure DevOps SHALL post an inline comment in the review body with its file and line. A pull request with more than 100 files SHALL show them, up to 3000 files.
 - REQ-052: Reply, resolve, inline comment, submit review and general comment SHALL need a click of a person and the right to write to the code host. A person without it SHALL see each control off with its reason.
 
 ### Non-Goals
@@ -140,9 +140,9 @@ Pull requests (third pass, 2026-11-12)
 - [ ] REQ-041: The page shows its title, branches and tabs, and Back returns to the list with the same filters.
 - [ ] REQ-042: Only the pull requests that match it show.
 - [ ] REQ-043: The box names two failing checks and one unresolved thread, and Merge asks for a confirmation that names the method.
-- [ ] REQ-044: The sidebar lists the ticket as a link.
-- [ ] REQ-045: All forty rows are collapsed, and expanding one shows its diff.
-- [ ] REQ-046: They use the same diff component with line numbers.
+- [ ] REQ-044: The sidebar lists the ticket as a link and what cites the pull request.
+- [ ] REQ-045: All forty rows are collapsed, expanding one shows its diff, and Expand all opens thirty and offers the next ten.
+- [ ] REQ-046: They use the same collapsed file list and the same diff component with line numbers.
 - [ ] REQ-047: Both comments show with their author and time.
 - [ ] REQ-048: The thread shows the Resolved mark and the box counts one unresolved thread fewer.
 - [ ] REQ-049: The forge receives one review with both comments and the pending list is empty.
@@ -605,7 +605,7 @@ A pull request SHALL open as its own page with its own address. The page SHALL s
 
 ### Requirement: REQ-042 Pull request list
 
-The pull request list SHALL be a full-width page with a search, a filter (All, Mine, Needs review) and the state groups open, merged and closed. Each row SHALL show the number, the title, the author, the draft state, the checks state and the review state.
+The pull request list SHALL be a full-width page with a search, a filter (All, Needs review) and the state groups open, merged and closed. Each row SHALL show the number, the title, the draft state, the checks state and the review state. The mirror keeps no author, so a row SHALL show none. Needs review SHALL list the open pull requests that are not drafts, have no request for changes and sit in the in-review lane (not ready to merge).
 
 #### Scenario: Pull request list
 
@@ -625,33 +625,33 @@ The Overview tab SHALL start with a merge box that says whether the pull request
 
 ### Requirement: REQ-044 Description and sidebar
 
-The Overview SHALL show the description as Markdown, then the conversation. A narrow column SHALL show the reviewers with their verdicts, the labels, and the linked tickets and runs. It SHALL show no assignee, project or milestone.
+The Overview SHALL show the description as Markdown, then the conversation. A narrow column SHALL show the reviewers with their verdicts, the linked tickets and runs, and what cites the pull request. It SHALL show no labels, assignee, project or milestone.
 
 #### Scenario: Description and sidebar
 
-- GIVEN a pull request that links a ticket
+- GIVEN a pull request that links a ticket and that another item cites
 - WHEN the Overview shows
-- THEN the sidebar lists the ticket as a link
+- THEN the sidebar lists the ticket as a link and the citing item under Cited by
 
 ### Requirement: REQ-045 Files changed
 
-The Files changed tab SHALL list every file collapsed by default, each with its path, its status and its lines added and removed. It SHALL show a file tree with a filter, an Expand all and a Collapse all action, and a count of the files that the person marked as viewed. A file that the person expands SHALL show its diff.
+The Files changed tab SHALL list every file collapsed by default, each with its path, its status and its lines added and removed. It SHALL show a file tree with a filter, an Expand all and a Collapse all action, and a count of the files that the person marked as viewed. Expand all SHALL open at most the first 30 files that match the filter; while more files stay collapsed the action SHALL offer to expand the next 30. A file that the person expands SHALL show its diff. When the code host list was cut short, the tab SHALL say "Showing the first N files".
 
 #### Scenario: Files changed
 
 - GIVEN a pull request with forty files
 - WHEN the Files changed tab shows
-- THEN all forty rows are collapsed, and expanding one shows its diff
+- THEN all forty rows are collapsed, expanding one shows its diff, and Expand all opens thirty and offers the next ten
 
 ### Requirement: REQ-046 Shared file parts
 
-The Files changed tab SHALL use the same file rows, file tree, counts and diff component as the run page and Code / Local changes. The diff component SHALL show line numbers.
+The Files changed tab SHALL use the same file rows, tree, counts and diff component as Code / Local changes where they show the same things, and the same collapsed file list as the run page. The diff component SHALL show line numbers.
 
 #### Scenario: Shared file parts
 
-- GIVEN a diff on the pull request page and one on the run page
+- GIVEN a file list on the pull request page and one on the run page
 - WHEN both show
-- THEN they use the same diff component with line numbers
+- THEN they use the same collapsed file list and the same diff component with line numbers
 
 ### Requirement: REQ-047 General comments
 
@@ -695,7 +695,7 @@ A pending review SHALL stay on this computer until the person submits or discard
 
 ### Requirement: REQ-051 Forge limits
 
-When a forge refuses a comment, a reply or a review, the page SHALL show the refusal text and SHALL keep the pending text. Azure DevOps SHALL post an inline comment in the review body with its file and line. A pull request with more than 100 files SHALL show all of them.
+When a forge refuses a comment, a reply or a review, the page SHALL show the refusal text and SHALL keep the pending text. Azure DevOps SHALL post an inline comment in the review body with its file and line. A pull request with more than 100 files SHALL show them, up to 3000 files.
 
 #### Scenario: Forge limits
 

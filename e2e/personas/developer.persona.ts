@@ -78,7 +78,7 @@ test("developer", async ({ page }) => {
 
 	await w.step("Review a pull request", "the pull request row, Approve", async () => {
 		await w.go("Code", "Pull requests");
-		await w.click(page.getByRole("button", { name: /#44 Rework the settings page/ }));
+		await w.click(page.getByRole("link", { name: /#44 Rework the settings page/ }));
 		await w.see(page.getByRole("button", { name: "Request changes" }), "no review controls");
 		await w.click(page.getByRole("button", { name: "Approve", exact: true }));
 	});

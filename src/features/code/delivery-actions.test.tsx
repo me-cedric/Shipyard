@@ -56,7 +56,7 @@ describe("Code: close, send back and archive", () => {
 		const user = userEvent.setup();
 		await demo();
 		mountApp("/code/pull-requests");
-		await user.click(await screen.findByRole("button", { name: /refuse an empty token/ }));
+		await user.click(await screen.findByRole("link", { name: /refuse an empty token/ }));
 		await user.type(await screen.findByRole("textbox", { name: "Comment" }), "Wrong approach");
 		await user.click(screen.getByRole("button", { name: "Close pull request" }));
 		await waitFor(() =>
@@ -69,7 +69,7 @@ describe("Code: close, send back and archive", () => {
 		const user = userEvent.setup();
 		await demo();
 		mountApp("/code/pull-requests");
-		await user.click(await screen.findByRole("button", { name: /show the pull requests/ }));
+		await user.click(await screen.findByRole("link", { name: /show the pull requests/ }));
 		const back = await screen.findByRole("button", { name: "Send back to the agent" });
 		await user.click(back);
 		expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -90,7 +90,7 @@ describe("Code: close, send back and archive", () => {
 		const user = userEvent.setup();
 		await demo();
 		mountApp("/code/pull-requests");
-		await user.click(await screen.findByRole("button", { name: /health route/ }));
+		await user.click(await screen.findByRole("link", { name: /health route/ }));
 		await user.click(await screen.findByRole("button", { name: "Archive in this pull request" }));
 		expect(await screen.findByText(/^Archived in /)).toBeInTheDocument();
 	}, 20_000);

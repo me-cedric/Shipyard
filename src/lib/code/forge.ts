@@ -48,6 +48,8 @@ export function usePull(number: number | null) {
 		queryKey: forgeKeys.pull(number ?? 0),
 		queryFn: () => unwrap(commands.codePullDetail(number ?? 0)),
 		enabled: number !== null,
+		// One open reads the code host many times (up to 30 pages of files): a tab switch or a focus must not repeat it. A write invalidates `["code"]`.
+		staleTime: 60_000,
 	});
 }
 

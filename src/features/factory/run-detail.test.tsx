@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { commands, type RunLogEvent_Serialize, type RunState, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
-import { countsOf } from "./runs/run-changes";
+import { countsOf } from "@/ui/molecules/diff-file-list";
 import { isImportant } from "./runs/run-live";
 import { duration, endOf, primaryOf, stepperOf, useScrollClear, webUrl } from "./runs/run-summary";
 
@@ -159,6 +159,19 @@ describe("Factory / run page", () => {
 		).toHaveLength(1);
 		expect(within(summary).getByRole("button", { name: "Open pull request" })).toBeVisible();
 		expect(summary.textContent).not.toMatch(/pr:|run:/);
+	});
+
+	it("opens the page of the pull request of the run from Open pull request", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const run = await find("ACME-8");
+		const router = mountApp(`/factory/runs/${run.id}`);
+		const summary = await summaryOf();
+		await user.click(await within(summary).findByRole("button", { name: "Open pull request" }));
+		await waitFor(() =>
+			expect(router.state.location.pathname).toMatch(/^\/code\/pull-requests\/.+-42$/),
+		);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
 	it("puts the added budget, the message and Resume in one form for a paused run", async () => {

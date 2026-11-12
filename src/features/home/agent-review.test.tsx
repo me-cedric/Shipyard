@@ -10,14 +10,17 @@ describe("Home / Needs you: agent review", () => {
 		const user = userEvent.setup();
 		await demo();
 		const draft = await unwrap(commands.prReviewStart(141, true));
-		mountApp("/home/today");
+		const router = mountApp("/home/today");
 		const group = (await screen.findByRole("heading", { name: "Agent reviews (1)" })).closest(
 			"section",
 		) as HTMLElement;
 		expect(within(group).getByText("#141")).toBeVisible();
 		expect(within(group).getByText(draft.title)).toBeVisible();
 		await user.click(within(group).getByRole("button", { name: "Open the pull request" }));
-		// The pull request page opens on that pull request, with the draft on it.
+		// The pull request page opens at the address of that pull request, with the draft on it.
+		await waitFor(() =>
+			expect(router.state.location.pathname).toBe("/code/pull-requests/github-demo-141"),
+		);
 		expect(await screen.findByRole("heading", { name: /Agent review \(2\)/ })).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Post review" }));
 		expect(await screen.findByText("Posted")).toBeVisible();

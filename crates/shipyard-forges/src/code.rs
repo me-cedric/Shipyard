@@ -37,6 +37,14 @@ pub struct PullFile {
     pub patch: Option<String>,
 }
 
+/// The files of a pull request. `truncated` is set when the listing stopped at the page cap or at
+/// a page that failed: the list is then the first files only.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PullFiles {
+    pub files: Vec<PullFile>,
+    pub truncated: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub struct PullCommit {
     pub sha: String,
@@ -139,6 +147,14 @@ pub trait CodeApi: PullApi {
 
     fn files(&self, repo: &str, number: u64) -> Result<Vec<PullFile>, ForgeError>;
 
+    /// The files, with the mark that the list is cut short. The default has no cap.
+    fn files_capped(&self, repo: &str, number: u64) -> Result<PullFiles, ForgeError> {
+        Ok(PullFiles {
+            files: self.files(repo, number)?,
+            truncated: false,
+        })
+    }
+
     fn commits(&self, repo: &str, number: u64) -> Result<Vec<PullCommit>, ForgeError>;
 
     /// A plain comment on the conversation.
@@ -221,6 +237,33 @@ fn check_verdict(verdict: Verdict, body: &str) -> Result<(), ForgeError> {
     }
 }
 
+/// The most pages of 100 that one listing reads.
+const MAX_PAGES: u32 = 30;
+
+/// Every item of a listing of 100 per page, until a short page. The second value is true when the
+/// list is cut short: the cap of [`MAX_PAGES`] came first, or page 2 or a later page failed (the
+/// first page failing is an error). A listing of exactly the cap cannot tell, and says cut short.
+fn all_pages(
+    get: impl Fn(&[(&str, &str)]) -> Result<serde_json::Value, ForgeError>,
+) -> Result<(Vec<serde_json::Value>, bool), ForgeError> {
+    let mut out = Vec::new();
+    for page in 1..=MAX_PAGES {
+        let p = page.to_string();
+        let v = match get(&[("per_page", "100"), ("page", p.as_str())]) {
+            Ok(v) => v,
+            Err(_) if page > 1 => return Ok((out, true)),
+            Err(e) => return Err(e),
+        };
+        let got = items(&v, "");
+        let short = got.len() < 100;
+        out.extend_from_slice(got);
+        if short {
+            return Ok((out, false));
+        }
+    }
+    Ok((out, true))
+}
+
 impl CodeApi for GitHub {
     fn description(&self, repo: &str, number: u64) -> Result<String, ForgeError> {
         let v = self.call(&format!("{}/pulls/{number}", gh_repo(repo)?), &[])?;
@@ -255,18 +298,23 @@ impl CodeApi for GitHub {
     }
 
     fn files(&self, repo: &str, number: u64) -> Result<Vec<PullFile>, ForgeError> {
-        let v = self.call(
-            &format!("{}/pulls/{number}/files", gh_repo(repo)?),
-            &[("per_page", "100")],
-        )?;
-        Ok(items(&v, "")
-            .iter()
-            .map(|f| PullFile {
-                path: text(f, "/filename"),
-                status: text(f, "/status"),
-                patch: f["patch"].as_str().map(str::to_string),
-            })
-            .collect())
+        Ok(self.files_capped(repo, number)?.files)
+    }
+
+    fn files_capped(&self, repo: &str, number: u64) -> Result<PullFiles, ForgeError> {
+        let path = format!("{}/pulls/{number}/files", gh_repo(repo)?);
+        let (pages, truncated) = all_pages(|q| self.call(&path, q))?;
+        Ok(PullFiles {
+            files: pages
+                .iter()
+                .map(|f| PullFile {
+                    path: text(f, "/filename"),
+                    status: text(f, "/status"),
+                    patch: f["patch"].as_str().map(str::to_string),
+                })
+                .collect(),
+            truncated,
+        })
     }
 
     fn commits(&self, repo: &str, number: u64) -> Result<Vec<PullCommit>, ForgeError> {
@@ -405,27 +453,32 @@ impl CodeApi for GitLab {
     }
 
     fn files(&self, repo: &str, number: u64) -> Result<Vec<PullFile>, ForgeError> {
-        let v = self.call(
-            &format!("{}/merge_requests/{number}/diffs", project_path(repo)?),
-            &[("per_page", "100")],
-        )?;
-        Ok(items(&v, "")
-            .iter()
-            .map(|f| PullFile {
-                path: text(f, "/new_path"),
-                status: if f["new_file"].as_bool() == Some(true) {
-                    "added"
-                } else if f["deleted_file"].as_bool() == Some(true) {
-                    "removed"
-                } else if f["renamed_file"].as_bool() == Some(true) {
-                    "renamed"
-                } else {
-                    "modified"
-                }
-                .into(),
-                patch: f["diff"].as_str().map(str::to_string),
-            })
-            .collect())
+        Ok(self.files_capped(repo, number)?.files)
+    }
+
+    fn files_capped(&self, repo: &str, number: u64) -> Result<PullFiles, ForgeError> {
+        let path = format!("{}/merge_requests/{number}/diffs", project_path(repo)?);
+        let (pages, truncated) = all_pages(|q| self.call(&path, q))?;
+        Ok(PullFiles {
+            files: pages
+                .iter()
+                .map(|f| PullFile {
+                    path: text(f, "/new_path"),
+                    status: if f["new_file"].as_bool() == Some(true) {
+                        "added"
+                    } else if f["deleted_file"].as_bool() == Some(true) {
+                        "removed"
+                    } else if f["renamed_file"].as_bool() == Some(true) {
+                        "renamed"
+                    } else {
+                        "modified"
+                    }
+                    .into(),
+                    patch: f["diff"].as_str().map(str::to_string),
+                })
+                .collect(),
+            truncated,
+        })
     }
 
     fn commits(&self, repo: &str, number: u64) -> Result<Vec<PullCommit>, ForgeError> {

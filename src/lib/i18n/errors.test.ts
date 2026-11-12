@@ -50,6 +50,7 @@ describe("the error contract", () => {
 		});
 		for (const text of ["ac gave no result", "the runner gave no text", "step s1 is not running"])
 			expect(classify(text).code, text).toBe("unknown");
+		expect(classify("not found: acme/web#999").code).toBe("forge_missing");
 		expect(classify("github.com gave no token for gh").code).toBe("sign_in_failed");
 		expect(classify("device login: github.com gave no user_code: ").code).toBe("sign_in_failed");
 	});

@@ -83,6 +83,7 @@ function pull(
 				patch: "@@ -1,2 +1,3 @@\n a\n b\n+c\n",
 			},
 		],
+		filesTruncated: false,
 		commits: [{ reference: `commit:${sha(number)}`, summary: title }],
 		checks: [{ name: "build", state: "passing", url: "https://ci.example.com/build" }],
 		ci: "passing",
@@ -93,6 +94,34 @@ function pull(
 		links: [],
 		...more,
 	};
+}
+
+/** A pull request of 45 files in three folders: added, removed, renamed, one without a patch and one with a very long patch. */
+function bigPull(): PullDetail_Serialize {
+	const dirs = ["src/api", "src/ui", "docs"];
+	const files: PullDetail_Serialize["files"] = Array.from({ length: 45 }, (_, i) => {
+		const path = `${dirs[i % 3]}/file-${i}.ts`;
+		const status =
+			i % 9 === 0 ? "added" : i % 9 === 4 ? "removed" : i % 9 === 7 ? "renamed" : "modified";
+		return {
+			path,
+			status,
+			patch: `@@ -1,2 +1,3 @@\n line ${i}\n-old ${i}\n+new ${i}\n+more ${i}\n`,
+		};
+	});
+	files[1] = { path: "assets/logo.png", status: "added", patch: null };
+	const long = Array.from({ length: 2500 }, (_, i) => `+line ${i}`).join("\n");
+	files[2] = {
+		path: "src/api/generated.ts",
+		status: "added",
+		patch: `@@ -0,0 +1,2500 @@\n${long}\n`,
+	};
+	// Its checks still run: it is in the in_review lane, not ready to merge.
+	return pull(144, "refactor(ui): split the pages into smaller files", {
+		files,
+		ci: "pending",
+		checks: [{ name: "build", state: "pending", url: "https://ci.example.com/build" }],
+	});
 }
 
 export function seedPrs(): MockPrs {
@@ -127,6 +156,7 @@ export function seedPrs(): MockPrs {
 				mergeable: "blocked",
 				links: ["wi:SHIP-43", "run:r-3"],
 			}),
+			bigPull(),
 		],
 		reports: [
 			{
@@ -184,7 +214,13 @@ export function prRows(p: MockPrs): PrRowView[] {
 		headSha: d.headSha,
 		url: d.url,
 		updated: "2026-10-29T10:00:00Z",
-		lane: d.state === "merged" ? "done" : d.draft ? "working" : "in_review",
+		// As `delivery::view` does: an open pull request is ready to merge with passing CI, no change request and no draft.
+		lane:
+			d.state !== "open"
+				? "done"
+				: d.ci === "passing" && !d.draft && !d.verdicts.some((v) => v.state === "changes-requested")
+					? "ready_to_merge"
+					: "in_review",
 		runs: d.links.filter((l) => l.startsWith("run:")),
 	}));
 }

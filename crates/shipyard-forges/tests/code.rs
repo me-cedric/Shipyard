@@ -657,3 +657,121 @@ fn azure_review_keeps_the_one_body() {
             .starts_with("Summary")
     );
 }
+
+#[test]
+fn github_and_gitlab_page_through_more_than_100_files() {
+    let page = |from: usize, n: usize| {
+        json!((from..from + n)
+            .map(|i| json!({"filename": format!("f{i}"), "new_path": format!("f{i}"), "status": "added", "diff": "@@ -0,0 +1 @@\n+x"}))
+            .collect::<Vec<_>>())
+        .to_string()
+    };
+    for (kind, url, path) in [
+        (
+            ForgeKind::GitHub,
+            "https://github.com",
+            "/repos/acme/web/pulls/12/files",
+        ),
+        (
+            ForgeKind::GitLab,
+            "https://gitlab.com",
+            "/api/v4/projects/acme%2Fweb/merge_requests/12/diffs",
+        ),
+    ] {
+        let fake = Arc::new(FakeHttp::new());
+        fake.get(&format!("{path}?per_page=100&page=1"), 200, &page(0, 100))
+            .get(&format!("{path}?per_page=100&page=2"), 200, &page(100, 100))
+            .get(&format!("{path}?per_page=100&page=3"), 200, &page(200, 45));
+        let files = build(kind, url, fake.clone())
+            .files("acme/web", 12)
+            .expect("files");
+        assert_eq!(files.len(), 245);
+        assert_eq!(files[244].path, "f244");
+        assert_eq!(fake.requests().len(), 3, "a short page ends the loop");
+    }
+}
+
+/// A page of the files listing of a forge: `n` files from number `from`.
+fn file_page(from: usize, n: usize) -> String {
+    json!((from..from + n)
+        .map(|i| json!({"filename": format!("f{i}"), "new_path": format!("f{i}"), "status": "added", "diff": "@@ -0,0 +1 @@\n+x"}))
+        .collect::<Vec<_>>())
+    .to_string()
+}
+
+const FILE_LISTINGS: [(ForgeKind, &str, &str); 2] = [
+    (
+        ForgeKind::GitHub,
+        "https://github.com",
+        "/repos/acme/web/pulls/12/files",
+    ),
+    (
+        ForgeKind::GitLab,
+        "https://gitlab.com",
+        "/api/v4/projects/acme%2Fweb/merge_requests/12/diffs",
+    ),
+];
+
+#[test]
+fn a_file_listing_stops_at_30_pages_and_says_so() {
+    for (kind, url, path) in FILE_LISTINGS {
+        let fake = Arc::new(FakeHttp::new());
+        for page in 1..=31 {
+            fake.get(
+                &format!("{path}?per_page=100&page={page}"),
+                200,
+                &file_page((page - 1) * 100, 100),
+            );
+        }
+        let got = build(kind, url, fake.clone())
+            .files_capped("acme/web", 12)
+            .expect("files");
+        assert_eq!(got.files.len(), 3000);
+        assert!(got.truncated);
+        assert_eq!(fake.requests().len(), 30, "the 31st page is not read");
+    }
+}
+
+#[test]
+fn a_failed_later_page_keeps_the_files_read_and_a_failed_first_page_is_an_error() {
+    for (kind, url, path) in FILE_LISTINGS {
+        let fake = Arc::new(FakeHttp::new());
+        fake.get(
+            &format!("{path}?per_page=100&page=1"),
+            200,
+            &file_page(0, 100),
+        )
+        .get(&format!("{path}?per_page=100&page=2"), 502, "bad gateway");
+        let got = build(kind, url, fake)
+            .files_capped("acme/web", 12)
+            .expect("the first page is enough");
+        assert_eq!(got.files.len(), 100);
+        assert!(got.truncated);
+
+        let down = Arc::new(FakeHttp::new());
+        down.get(&format!("{path}?per_page=100&page=1"), 502, "bad gateway");
+        assert!(build(kind, url, down).files_capped("acme/web", 12).is_err());
+    }
+}
+
+#[test]
+fn a_short_last_page_is_not_truncated() {
+    for (kind, url, path) in FILE_LISTINGS {
+        let fake = Arc::new(FakeHttp::new());
+        fake.get(
+            &format!("{path}?per_page=100&page=1"),
+            200,
+            &file_page(0, 100),
+        )
+        .get(
+            &format!("{path}?per_page=100&page=2"),
+            200,
+            &file_page(100, 45),
+        );
+        let got = build(kind, url, fake)
+            .files_capped("acme/web", 12)
+            .expect("files");
+        assert_eq!(got.files.len(), 145);
+        assert!(!got.truncated);
+    }
+}

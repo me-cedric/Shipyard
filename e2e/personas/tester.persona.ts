@@ -69,11 +69,8 @@ test("tester", async ({ page }) => {
 		"Pull requests, a row with CI failing",
 		async () => {
 			await w.go("Code", "Pull requests");
-			await w.click(page.getByRole("button", { name: /#43 Audit the keychain use/ }));
-			await w.see(
-				page.getByRole("heading", { name: /Checks/ }),
-				"no Checks section on the pull request",
-			);
+			await w.click(page.getByRole("link", { name: /#43 Audit the keychain use/ }));
+			await w.see(page.getByRole("tab", { name: /Checks/ }), "no Checks tab on the pull request");
 			await w.see(page.getByText("CI failing").first(), "the failing check is not named");
 		},
 	);

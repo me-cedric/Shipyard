@@ -16,8 +16,7 @@ import { showAnchor } from "@/lib/notifications/targets";
 import { useActiveProject } from "@/lib/projects";
 import { foldWords } from "@/lib/refs";
 import { RightButton, useRights } from "@/lib/rights";
-import { runHref, useFormIntent } from "@/lib/shell";
-import { rememberSelection } from "@/lib/shell/selection";
+import { pullHref, runHref, useFormIntent } from "@/lib/shell";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
@@ -151,10 +150,8 @@ export function Runs() {
 		if (r.pr && (r.lane === "in_review" || r.lane === "ready_to_merge"))
 			return {
 				label: f.openPullRequest,
-				onClick: () => {
-					if (r.pr) rememberSelection("code:pull-requests", r.pr.reference);
-					void navigate({ to: "/code/pull-requests" });
-				},
+				onClick: () =>
+					void navigate(r.pr ? pullHref(r.pr.reference) : { to: "/code/pull-requests" }),
 			};
 	};
 	// Stop from a card: tell the person, with a way to History, and move the focus to the next card.

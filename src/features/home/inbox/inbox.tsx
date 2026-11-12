@@ -15,8 +15,7 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { showAnchor } from "@/lib/notifications/targets";
 import { RightButton, useRights } from "@/lib/rights";
-import { useShell } from "@/lib/shell";
-import { rememberSelection } from "@/lib/shell/selection";
+import { pullHref, useShell } from "@/lib/shell";
 import { capabilityOf, useFile, useFoldTargets, useSpecsActions, useSpecView } from "@/lib/specs";
 import { useWorkItems } from "@/lib/sync";
 import { useWorkContext } from "@/lib/work";
@@ -316,8 +315,7 @@ function ReviewRow({ review: r }: { review: ReviewItem }) {
 				<span className="flex-1 text-ui font-medium">{r.title}</span>
 				<Button
 					onClick={() => {
-						if (r.reference) rememberSelection("code:pull-requests", r.reference);
-						void navigate({ to: "/code/pull-requests" });
+						void navigate(r.reference ? pullHref(r.reference) : { to: "/code/pull-requests" });
 					}}
 				>
 					{t.home.reviewOpen}

@@ -23,7 +23,7 @@ The detail pane shows every file in a flat list and one diff, the description as
 
 ### Requirements
 
-- REQ-018: Code / Pull requests SHALL list the mirror pull requests of every forge in one full-width layout, with a search and a filter, and SHALL open a pull request as its own page.
+- REQ-018: Code / Pull requests SHALL list the mirror pull requests of every forge in one full-width layout, with a search and the filters All and Needs review, and SHALL open a pull request as its own page. The list SHALL show no stat strip: the group counts carry the numbers.
 - REQ-019: A pull request page SHALL show its description, a conversation, its commits, its CI checks and its files, in the tabs Overview, Commits, Checks and Files changed. The files SHALL be collapsed by default.
 
 ### Non-Goals
@@ -32,7 +32,7 @@ The detail pane shows every file in a flat list and one diff, the description as
 
 ### Acceptance Criteria
 
-- [ ] The list shows each row's author and filters by search and by Mine and Needs review.
+- [ ] The list shows no stat strip and filters by search and by All and Needs review.
 - [ ] A pull request opens at its own address with the four tabs.
 - [ ] Files changed starts collapsed.
 
@@ -45,7 +45,7 @@ The detail pane shows every file in a flat list and one diff, the description as
 
 ### Requirement: REQ-018 Pull request list
 
-Code / Pull requests SHALL list the mirror pull requests of every forge in one full-width layout. Each row SHALL show the `pr:` ref, title, author, draft state, CI state and review state. The list SHALL have a search and SHALL filter by state, author and Needs review. The list MUST NOT call the forge for a read. A pull request SHALL open as its own page.
+Code / Pull requests SHALL list the mirror pull requests of every forge in one full-width layout. Each row SHALL show `#number`, title, draft state, CI state and review state; the `pr:` ref stays in the row menu and in the address. The mirror keeps no author, so a row SHALL show none. The list SHALL group by state (open, merged, closed) and SHALL have a search and the filters All and Needs review (open, not a draft, no request for changes, in the in-review lane). The list SHALL show no stat strip: the group counts carry the numbers. The list MUST NOT call the forge for a read. A pull request SHALL open as its own page.
 
 #### Scenario: Offline
 
@@ -58,6 +58,12 @@ Code / Pull requests SHALL list the mirror pull requests of every forge in one f
 - GIVEN eight pull requests
 - WHEN a person types a word of a title
 - THEN only the pull requests that match show
+
+#### Scenario: No stat strip
+
+- GIVEN pull requests in three states
+- WHEN a person opens Code / Pull requests
+- THEN the list shows no stat strip, and each state group shows its count
 
 ### Requirement: REQ-019 Pull request detail
 

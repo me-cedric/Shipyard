@@ -4427,6 +4427,8 @@ export type PullDetail_Deserialize = {
 	headSha: string,
 	url: string,
 	files: PullFile_Deserialize[],
+	/**  The file list is the first files only: the code host has more than the cap, or a later page failed. */
+	filesTruncated: boolean,
 	/**  The commits as `commit:<sha>` refs with their summary. */
 	commits: PullCommitRef[],
 	checks: PullCheck[],
@@ -4455,6 +4457,8 @@ export type PullDetail_Serialize = {
 	headSha: string,
 	url: string,
 	files: PullFile_Serialize[],
+	/**  The file list is the first files only: the code host has more than the cap, or a later page failed. */
+	filesTruncated: boolean,
 	/**  The commits as `commit:<sha>` refs with their summary. */
 	commits: PullCommitRef[],
 	checks: PullCheck[],

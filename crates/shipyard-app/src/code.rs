@@ -179,6 +179,8 @@ pub struct PullDetail {
     pub head_sha: String,
     pub url: String,
     pub files: Vec<PullFile>,
+    /// The file list is the first files only: the code host has more than the cap, or a later page failed.
+    pub files_truncated: bool,
     /// The commits as `commit:<sha>` refs with their summary.
     pub commits: Vec<PullCommitRef>,
     pub checks: Vec<PullCheck>,
@@ -207,6 +209,7 @@ pub fn pull_detail(s: &AppState, number: u32) -> Res<PullDetail> {
     let status = api.status(&slug, n).map_err(err)?;
     let ci = api.ci_status(&slug, n).map_err(err)?;
     let commits = api.commits(&slug, n).map_err(err)?;
+    let files = api.files_capped(&slug, n).map_err(err)?;
     let mut links =
         shipyard_core::code::commit_refs(&p.source_branch, &p.title, &known_keys(s), None);
     if let Ok(rows) = crate::delivery::pr_rows(s) {
@@ -235,7 +238,8 @@ pub fn pull_detail(s: &AppState, number: u32) -> Res<PullDetail> {
         head_sha: p.head_sha,
         url: p.url,
         title: p.title,
-        files: api.files(&slug, n).map_err(err)?,
+        files: files.files,
+        files_truncated: files.truncated,
         commits: commits
             .into_iter()
             .map(|c| PullCommitRef {

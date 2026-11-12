@@ -23,7 +23,7 @@ export function PrAi({ d }: { d: PullDetail }) {
 		threads: d.threads.map((th) => th.comments.join(" / ")).join(" | "),
 	};
 	return (
-		<section aria-label={p.group} className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
+		<section aria-label={p.group} className="flex flex-wrap items-center gap-2">
 			{(["describe", "review", "reply"] as const).map((k) => (
 				<Button key={k} variant="ghost" onClick={() => ask(format(p.prompt[k], base))}>
 					<ChatBubbleIcon size={14} />

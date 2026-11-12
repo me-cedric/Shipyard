@@ -265,6 +265,7 @@ export const RAW: readonly (readonly [string, ErrorCode])[] = [
 	["HTTP 401", "forge_denied"],
 	["HTTP 403", "forge_denied"],
 	["HTTP 404", "forge_missing"],
+	["not found: ", "forge_missing"],
 	["network error:", "forge_unreachable"],
 	["nothing is staged", "git_nothing_staged"],
 	["no git identity", "git_identity"],

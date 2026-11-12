@@ -39,6 +39,47 @@ describe("a viewer sees the write controls off, with the reason", () => {
 	});
 });
 
+describe("a viewer on a pull request page", () => {
+	const open = async (id: string) => {
+		await viewer();
+		await unwrap(commands.projectsOpen("/mock/demo", false));
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		mountApp(`/code/pull-requests/${id}`);
+	};
+
+	it("sees Mark ready off, with the reason", async () => {
+		await open("github-demo-143");
+		const button = await screen.findByRole("button", { name: "Mark ready" });
+		expect(button).toBeDisabled();
+		expect(button).toHaveAccessibleDescription(needs("code.write"));
+	});
+
+	it("sees Merge and its methods off, with the reason", async () => {
+		await open("github-demo-141");
+		const merge = await screen.findByRole("button", { name: "Merge" });
+		expect(merge).toBeDisabled();
+		expect(merge).toHaveAccessibleDescription(needs("code.merge"));
+		expect(merge.closest("span[title]")).toHaveAttribute("title", needs("code.merge"));
+		expect(screen.getByRole("button", { name: "Method" })).toBeDisabled();
+	});
+
+	it("sees Close pull request off in the menu, with the reason", async () => {
+		const user = userEvent.setup();
+		await open("github-demo-141");
+		await user.click(await screen.findByRole("button", { name: "More" }));
+		const item = await screen.findByRole("menuitem", { name: "Close pull request" });
+		expect(item).toHaveAttribute("aria-disabled", "true");
+		expect(item).toHaveAccessibleDescription(needs("code.write"));
+	});
+});
+
 describe("Costs", () => {
 	it("shows a dash, not the money, without costs.view", async () => {
 		const user = userEvent.setup();

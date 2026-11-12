@@ -208,6 +208,7 @@ pub const KNOWN: &[(&str, ErrorCode)] = &[
     ("HTTP 401", ErrorCode::ForgeDenied),
     ("HTTP 403", ErrorCode::ForgeDenied),
     ("HTTP 404", ErrorCode::ForgeMissing),
+    ("not found: ", ErrorCode::ForgeMissing),
     ("network error:", ErrorCode::ForgeUnreachable),
     ("nothing is staged", ErrorCode::GitNothingStaged),
     ("no git identity", ErrorCode::GitIdentity),
@@ -501,6 +502,9 @@ mod tests {
             e.action.unwrap().target,
             "/settings/connections#connections"
         );
+        // A pull request that the code host does not know is a missing item, not an unknown error.
+        let e = AppError::from("not found: acme/web#999");
+        assert_eq!(e.code, ErrorCode::ForgeMissing);
         // An outage has no action: a forge outage must not read the tracker again.
         let e = AppError::from("network error: connection refused");
         assert_eq!((e.code, e.action), (ErrorCode::ForgeUnreachable, None));

@@ -8,6 +8,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { pullOfRef } from "./pull-href";
 import { runOfRef } from "./run-href";
 
 type ShellState = {
@@ -101,10 +102,10 @@ export function ShellProvider({
 	}, []);
 
 	const router = useRouter({ warn: false });
-	// A run has its own page: its ref opens that page, not the inspector.
+	// A run and a pull request have their own page: the ref opens it, not the inspector.
 	const openRef = useCallback(
 		(ref: string) => {
-			const run = runOfRef(ref);
+			const run = runOfRef(ref) ?? pullOfRef(ref);
 			if (router && run) return void router.navigate(run);
 			setSelectedRef(ref);
 			setDetail(null);
@@ -239,4 +240,5 @@ export function useShell() {
 }
 
 export { askForm, useFormIntent, useFormIntentFor } from "./intent";
+export { pullHref, pullNumberOf, pullOfRef } from "./pull-href";
 export { runHref, runOfRef } from "./run-href";

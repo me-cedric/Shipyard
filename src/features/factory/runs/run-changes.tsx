@@ -1,10 +1,9 @@
 import { useState } from "react";
 import type { useRunDiff } from "@/lib/factory";
-import { format, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import type { RunView } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
-import { ChevronDownIcon, ChevronRightIcon } from "@/ui/icons";
-import { DiffView, parseDiff } from "@/ui/molecules/diff-view";
+import { DiffFileList } from "@/ui/molecules/diff-file-list";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { FindingRow } from "@/ui/molecules/finding-row";
 import { Panel } from "@/ui/molecules/panel";
@@ -12,15 +11,6 @@ import { Panel } from "@/ui/molecules/panel";
 const SEVERITY = { P0: "danger", P1: "warning", P2: "info" } as const;
 
 type Files = NonNullable<ReturnType<typeof useRunDiff>["data"]>;
-
-/** The lines that a file adds and removes. */
-export function countsOf(text: string) {
-	const lines = parseDiff(text);
-	return {
-		added: lines.filter((l) => l.kind === "add").length,
-		removed: lines.filter((l) => l.kind === "del").length,
-	};
-}
 
 /** The Changes tab (REQ-032): the findings, then the files of the diff. Each file starts closed with its path and its counts. */
 export function RunChanges({ run, diff }: { run: RunView; diff: Files }) {
@@ -71,45 +61,16 @@ export function RunChanges({ run, diff }: { run: RunView; diff: Files }) {
 						</Button>
 					}
 				>
-					{diff.map((d) => {
-						const shown = open.has(d.path);
-						const n = countsOf(d.text);
-						return (
-							<div key={d.path} className="border-b last:border-b-0">
-								<button
-									type="button"
-									aria-expanded={shown}
-									onClick={() => toggle(d.path)}
-									className="flex min-h-row w-full items-center gap-2 bg-n-2 px-3 text-left text-n-11 hover:bg-n-3 focus-visible:shadow-glow"
-								>
-									{shown ? <ChevronDownIcon size={14} /> : <ChevronRightIcon size={14} />}
-									<span className="min-w-0 flex-1 truncate font-mono text-11">{d.path}</span>
-									{d.binary ? null : (
-										<>
-											<span aria-hidden="true" className="font-mono text-11">
-												<span className="text-success-text">+{n.added}</span>{" "}
-												<span className="text-danger-text">−{n.removed}</span>
-											</span>
-											<span className="sr-only">
-												{format(f.counts, { added: n.added, removed: n.removed })}
-											</span>
-										</>
-									)}
-								</button>
-								{shown ? (
-									<DiffView
-										text={d.text}
-										path={d.path}
-										binary={d.binary}
-										truncated={d.truncated}
-										label={format(t.code.diff, { path: d.path })}
-										binaryLabel={t.code.binary}
-										truncatedLabel={t.code.truncated}
-									/>
-								) : null}
-							</div>
-						);
-					})}
+					<DiffFileList
+						files={diff.map((d) => ({
+							path: d.path,
+							patch: d.text,
+							binary: d.binary,
+							truncated: d.truncated,
+						}))}
+						expanded={open}
+						onToggle={toggle}
+					/>
 				</Panel>
 			) : null}
 		</div>

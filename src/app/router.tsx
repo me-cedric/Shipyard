@@ -120,6 +120,11 @@ const runsSearch = (
 	...(s.view === "history" ? { view: "history" as const } : {}),
 });
 
+const pullsSearch = (s: Record<string, unknown>): { q?: string; filter?: "needs" } => ({
+	...(s.q != null && s.q !== "" ? { q: String(s.q) } : {}),
+	...(s.filter === "needs" ? { filter: "needs" as const } : {}),
+});
+
 /** A space route, its index redirect to the first tab, and one child route for each tab. */
 function spaceRoute<S extends SpaceId>(space: S) {
 	const route = createRoute({
@@ -141,6 +146,8 @@ function spaceRoute<S extends SpaceId>(space: S) {
 			component: () => <TabView space={space} tab={tab} />,
 			// The bar of Factory / Runs (ux-declutter REQ-034): search, filter and view, kept in the address.
 			...(space === "factory" && tab === "runs" ? { validateSearch: runsSearch } : {}),
+			// The bar of Code / Pull requests (ux-declutter REQ-042): search and filter, kept in the address.
+			...(space === "code" && tab === "pull-requests" ? { validateSearch: pullsSearch } : {}),
 		}),
 	);
 	// A run has its own address, under the Factory tab bar with Runs selected (ux-declutter REQ-027).
@@ -164,7 +171,26 @@ function spaceRoute<S extends SpaceId>(space: S) {
 					}),
 				]
 			: [];
-	return route.addChildren([index, ...tabs, ...run]);
+	// A pull request has its own address, under the Code tab bar with Pull requests selected (ux-declutter REQ-041).
+	const pull =
+		space === "code"
+			? [
+					createRoute({
+						getParentRoute: () => route,
+						path: "pull-requests/$pullId",
+						validateSearch: (
+							s: Record<string, unknown>,
+						): { tab?: "commits" | "checks" | "files" } => ({
+							// Overview is the default tab: it has no value in the address.
+							...(s.tab === "commits" || s.tab === "checks" || s.tab === "files"
+								? { tab: s.tab }
+								: {}),
+						}),
+						component: lazyRouteComponent(() => import("@/features/code/pull-page"), "PullPage"),
+					}),
+				]
+			: [];
+	return route.addChildren([index, ...tabs, ...run, ...pull]);
 }
 
 // The gallery exists in the dev build only. The release build drops the import.

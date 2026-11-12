@@ -117,23 +117,39 @@ test("rebases a branch in Code / Branches and asks before a force publish", asyn
 
 // The list holds the factory pull requests (#40 to #47) and the forge mock ones (#141 to #143).
 // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- `n` is a number
-const pull = (page: Page, n: number) => page.getByRole("button", { name: new RegExp(`^#${n} `) });
+// A row is a link to the page of the pull request.
+const pull = (page: Page, n: number) => page.getByRole("link", { name: new RegExp(`^#${n} `) });
 
 test("lists the pull requests by state, opens one and comments", async ({ page }) => {
 	await openCode(page, "Pull requests");
-	await expect(heading(page, "Open (8)")).toBeVisible();
+	await expect(heading(page, "Open (9)")).toBeVisible();
 	await expect(heading(page, "Merged (1)")).toBeVisible();
 	await expect(heading(page, "Closed (1)")).toBeVisible();
 	await expect(pull(page, 46)).toContainText("Draft");
 
 	await pull(page, 142).click();
-	await expect(heading(page, "fix(auth): refuse an empty token")).toBeVisible();
+	await expect(page).toHaveURL(/\/code\/pull-requests\/github-demo-142$/);
+	await expect(
+		page.getByRole("heading", { level: 1, name: /refuse an empty token/ }),
+	).toBeVisible();
+	await expect(
+		page.getByText("Merge is blocked: 2 checks failing, changes requested"),
+	).toBeVisible();
 	await expect(page.getByText("Grace Hopper: rename this")).toBeVisible();
 
 	await page.getByRole("textbox", { name: "Comment" }).fill("Looks right now.");
 	await page.getByRole("button", { name: "Comment", exact: true }).click();
 	await expect(page.getByText("Ada Lovelace: Looks right now.")).toBeVisible();
 	await expect(page.getByRole("textbox", { name: "Comment" })).toHaveValue("");
+});
+
+test("goes Back from a pull request to the list with its search kept", async ({ page }) => {
+	await openCode(page, "Pull requests");
+	await page.getByRole("searchbox", { name: "Search pull requests" }).fill("token");
+	await pull(page, 142).click();
+	await page.getByRole("link", { name: "Back" }).click();
+	await expect(page.getByRole("searchbox", { name: "Search pull requests" })).toHaveValue("token");
+	await expect(pull(page, 142)).toBeVisible();
 });
 
 test("marks a draft ready", async ({ page }) => {
@@ -163,6 +179,8 @@ test("merges only after the confirm click", async ({ page }) => {
 test("opens a file of a pull request in the viewer", async ({ page }) => {
 	await openCode(page, "Pull requests");
 	await pull(page, 142).click();
+	await page.getByRole("tab", { name: /Files changed/ }).click();
+	await page.getByRole("button", { name: "Expand all" }).click();
 	await page.getByRole("button", { name: "Open src/app.ts" }).click();
 	const dialog = page.getByRole("dialog");
 	await expect(dialog.getByRole("region", { name: "File src/app.ts" })).toBeVisible();

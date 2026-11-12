@@ -2,7 +2,7 @@ import type { Messages } from "@/lib/i18n";
 import { DOC_DIR } from "@/lib/knowledge";
 import { type TabPath, tabLabel } from "./spaces";
 
-/** The page that lists the entities of each ref kind. A run is not here: it has its own page (`runOfRef`). */
+/** The page that lists the entities of each ref kind. A run and a pull request are not here: each has its own page (`runOfRef`, `pullOfRef`). */
 const PAGE: Record<string, TabPath> = {
 	adr: "/design/decisions",
 	diagram: "/design/diagrams",
@@ -19,7 +19,6 @@ const PAGE: Record<string, TabPath> = {
 	est: "/work/estimates",
 	member: "/work/team",
 	wf: "/factory/workflows",
-	pr: "/code/pull-requests",
 	commit: "/code/history",
 	doc: "/knowledge/documents",
 	conn: "/settings/connections",
@@ -54,6 +53,5 @@ export function refSelection(t: Messages, ref: string): [scope: string, id: stri
 	if (space === "design") return [`design:${tabLabel(t, "design", tab)}`, ref];
 	if (kind === "change") return ["specs:changes", rest];
 	if (kind === "spec") return ["specs:capabilities", rest.split("#")[0] ?? rest];
-	if (kind === "pr") return ["code:pull-requests", ref];
 	return undefined;
 }
