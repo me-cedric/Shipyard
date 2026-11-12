@@ -1,11 +1,13 @@
-import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
+import { I18nProvider } from "@/lib/i18n";
 import { en } from "@/lib/i18n/en";
 import { fr } from "@/lib/i18n/fr";
 import { mockState } from "@/lib/ipc/mock";
 import { NotificationsProvider, useNotifications } from "@/lib/notifications";
 import { mountApp } from "@/test/mount";
+import { Toaster } from "@/ui/organisms/toaster";
 import { MENU_ACTIONS, menuLabels } from "./events";
 
 const NEWER = "https://example.com/newer/releases/latest";
@@ -219,6 +221,66 @@ describe("Notifications store", () => {
 		await userEvent.click(screen.getAllByRole("button", { name: "push" })[0] as HTMLElement);
 		expect(mockState().os).toHaveLength(1);
 		spy.mockRestore();
+	});
+});
+
+function ToastProbe() {
+	const { push, toasts, dismiss, hold } = useNotifications();
+	return (
+		<>
+			<button
+				type="button"
+				onClick={() =>
+					void push({
+						id: "info:action",
+						kind: "info",
+						title: "Saved",
+						action: { label: "Undo", run: () => {} },
+					})
+				}
+			>
+				push
+			</button>
+			<Toaster toasts={toasts} onDismiss={dismiss} onHold={hold} />
+		</>
+	);
+}
+
+describe("Toast with an action", () => {
+	afterEach(() => vi.useRealTimers());
+
+	it("stays while the pointer is over it or the focus is in it, and closes 6 s after", async () => {
+		vi.spyOn(document, "hasFocus").mockReturnValue(true);
+		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+		render(
+			<I18nProvider>
+				<NotificationsProvider>
+					<ToastProbe />
+				</NotificationsProvider>
+			</I18nProvider>,
+		);
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "push" }));
+		});
+		const region = screen.getByRole("status", { name: "Notifications" });
+		await vi.waitFor(() => expect(within(region).getByText("Saved")).toBeInTheDocument());
+		const undo = within(region).getByRole("button", { name: "Undo" });
+		const tick = async (ms: number) => act(async () => void vi.advanceTimersByTime(ms));
+		// The pointer holds it.
+		fireEvent.pointerEnter(region);
+		await tick(60_000);
+		expect(within(region).getByText("Saved")).toBeInTheDocument();
+		// The pointer leaves while the focus is inside: it still stays.
+		await act(async () => undo.focus());
+		fireEvent.pointerLeave(region);
+		await tick(60_000);
+		expect(within(region).getByText("Saved")).toBeInTheDocument();
+		// The focus leaves: the 6 s run again.
+		await act(async () => undo.blur());
+		await tick(5_900);
+		expect(within(region).getByText("Saved")).toBeInTheDocument();
+		await tick(200);
+		await vi.waitFor(() => expect(within(region).queryByText("Saved")).toBeNull());
 	});
 });
 

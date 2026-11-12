@@ -285,5 +285,6 @@ export const factoryEs: typeof factoryEn = {
 		reviewPlan: "Revisar plan",
 		review: "Revisar",
 		stopped: "{key} detenida",
+		none: "Ninguna",
 	},
 };

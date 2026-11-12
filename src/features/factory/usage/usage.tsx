@@ -1,5 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
 import { useFactoryWrites, useRuns, useUsage } from "@/lib/factory";
@@ -275,8 +276,16 @@ export function Usage() {
 			{rows.length === 0 && !usage.isPending ? (
 				<div className="flex flex-col gap-3 overflow-y-auto p-4 [&>*]:shrink-0">
 					<EmptyState
-						title={t.empty.budget}
-						action={{ label: f.setBudget, onClick: () => field.current?.focus() }}
+						// No budget, or budgets and no usage yet.
+						title={budgets.length === 0 ? t.empty.budget : t.empty.usage}
+						action={{
+							label: f.setBudget,
+							// The form must be on the page before the field takes the focus.
+							onClick: () => {
+								flushSync(() => setEditing(true));
+								field.current?.focus();
+							},
+						}}
 					/>
 					{budgetPanel}
 					<MachineUsage prices={prices} />

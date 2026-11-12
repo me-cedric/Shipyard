@@ -9,6 +9,8 @@ export type MenuButtonItem = {
 	label: string;
 	icon?: ReactNode;
 	disabled?: boolean;
+	/** Why the item is off: the tooltip and the description. The off item stays reachable by keyboard. */
+	reason?: string;
 	/** A toggle: the item is a checkbox item and the list tells its state. */
 	checked?: boolean;
 	/** One choice of the list: the list tells the chosen value, and the item with it carries a mark. */
@@ -49,12 +51,17 @@ export function MenuList({ items, value }: { items: MenuButtonItem[]; value?: st
 									) : null}
 								</>
 							);
+							const why = {
+								title: x.disabled ? x.reason : undefined,
+								"aria-description": x.disabled ? x.reason : undefined,
+							};
 							if (x.value !== undefined)
 								return (
 									<Menu.RadioItem
 										key={x.id}
 										value={x.value}
 										disabled={x.disabled}
+										{...why}
 										onClick={x.onSelect}
 										className={MENU_ITEM}
 									>
@@ -71,6 +78,7 @@ export function MenuList({ items, value }: { items: MenuButtonItem[]; value?: st
 								<Menu.Item
 									key={x.id}
 									disabled={x.disabled}
+									{...why}
 									onClick={x.onSelect}
 									className={cn(MENU_ITEM, x.danger && "text-danger-text")}
 								>
@@ -81,6 +89,7 @@ export function MenuList({ items, value }: { items: MenuButtonItem[]; value?: st
 									key={x.id}
 									checked={x.checked}
 									disabled={x.disabled}
+									{...why}
 									onCheckedChange={x.onSelect}
 									className={MENU_ITEM}
 								>

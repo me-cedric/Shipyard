@@ -71,6 +71,8 @@ type Ctx = {
 	clear: () => void;
 	/** Dismisses a toast. */
 	dismiss: (id: string) => void;
+	/** While true (pointer over the toasts, or focus in them) no toast closes by itself. */
+	hold: (on: boolean) => void;
 	/** Removes one entry from the centre. */
 	remove: (id: string) => void;
 	/**
@@ -89,7 +91,7 @@ export type NoticeInput = Pick<
 
 const Context = createContext<Ctx | null>(null);
 
-/** How long a toast stays. The entry stays in the centre. */
+/** How long a toast stays, and how long a toast with an action stays: the same time, and it waits while the person holds it. The entry stays in the centre, with the same action. */
 const TOAST_MS = 6000;
 
 /**
@@ -100,6 +102,7 @@ const TOAST_MS = 6000;
 export function NotificationsProvider({ children }: { children: ReactNode }) {
 	const [items, setItems] = useState<Notice[]>([]);
 	const [toasts, setToasts] = useState<Notice[]>([]);
+	const [held, setHeld] = useState(false);
 	// Not state: an update function can run twice, and an id seen must never come back.
 	const seen = useRef(new Set<string>());
 	const itemsRef = useRef<Notice[]>([]);
@@ -148,10 +151,10 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 	}, []);
 
 	useEffect(() => {
-		if (toasts.length === 0) return;
+		if (toasts.length === 0 || held) return;
 		const timer = setTimeout(() => setToasts((list) => list.slice(1)), TOAST_MS);
 		return () => clearTimeout(timer);
-	}, [toasts]);
+	}, [toasts, held]);
 
 	const value = useMemo<Ctx>(
 		() => ({
@@ -162,6 +165,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 			markRead: () => setItems((list) => list.map((i) => (i.read ? i : { ...i, read: true }))),
 			clear: () => setItems([]),
 			dismiss: (id) => setToasts((list) => list.filter((t) => t.id !== id)),
+			hold: setHeld,
 			remove: (id) => setItems((list) => list.filter((i) => i.id !== id)),
 			resolve: (live, since) => {
 				const gone = (i: Notice) =>

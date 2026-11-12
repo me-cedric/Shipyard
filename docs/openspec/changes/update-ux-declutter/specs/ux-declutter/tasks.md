@@ -64,8 +64,8 @@ Wave 8, the Runs list and the other Factory pages
 
 Wave 9, close
 
-- [ ] T027 Docs: `screens.json`, screenshots, guide in four languages, `ux-declutter.feature`, `factory.feature`, both changelogs; a MODIFIED delta for each settled `factory` requirement that changes.
-- [ ] T028 Opus review of the second pass, one fixer, the validation commands of `plan.md`.
+- [x] T027 Docs: `screens.json`, screenshots, guide in four languages, `ux-declutter.feature`, `factory.feature`, both changelogs; a MODIFIED delta for each settled `factory` requirement that changes.
+- [x] T028 Opus review of the second pass, one fixer, the validation commands of `plan.md`.
 
 ## Completion Check
 

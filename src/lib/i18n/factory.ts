@@ -276,6 +276,7 @@ export const factoryEn = {
 		reviewPlan: "Review plan",
 		review: "Review",
 		stopped: "{key} stopped",
+		none: "None",
 	},
 };
 
@@ -564,5 +565,6 @@ export const factoryFr: typeof factoryEn = {
 		reviewPlan: "Relire le plan",
 		review: "Relire",
 		stopped: "{key} arrêtée",
+		none: "Aucune",
 	},
 };

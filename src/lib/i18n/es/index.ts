@@ -116,6 +116,7 @@ export const es: Messages = {
 		time: "Sin registros de tiempo",
 		team: "Sin miembros",
 		budget: "Sin presupuesto",
+		usage: "Aún sin uso",
 		sessions: "Sin sesiones",
 		runs: "Sin ejecuciones",
 		run: "Sin ejecución",

@@ -107,20 +107,20 @@ Runs and Factory (second pass, 2026-11-12)
 - [x] A toast and a removed run row move in and out.
 - [x] Loaded content fades in under the header; the header does not fade.
 - [x] Each new text exists in the four languages.
-- [ ] REQ-027: The run page of that run opens.
-- [ ] REQ-028: The Runs list header does not show above it.
-- [ ] REQ-029: The summary shows the step as 2 of 5, the cost, the time and the pull request number.
-- [ ] REQ-030: The page of the new run opens.
-- [ ] REQ-031: One form holds the added budget, the message and Resume.
-- [ ] REQ-032: Only the questions, the errors, the state changes and the results show.
-- [ ] REQ-033: It shows #44.
-- [ ] REQ-034: Only the runs that wait for a person show.
-- [ ] REQ-035: The five lanes show with no sideways scroll.
-- [ ] REQ-036: Both runs show.
-- [ ] REQ-037: It has one button, Review plan.
-- [ ] REQ-038: The run page opens on the Workflow tab at that session.
-- [ ] REQ-039: The whole model shows, and a drag moves it sideways.
-- [ ] REQ-040: The page names the program, the code and its last line.
+- [x] REQ-027: The run page of that run opens.
+- [x] REQ-028: The Runs list header does not show above it.
+- [x] REQ-029: The summary shows the step as 2 of 5, the cost, the time and the pull request number.
+- [x] REQ-030: The page of the new run opens.
+- [x] REQ-031: One form holds the added budget, the message and Resume.
+- [x] REQ-032: Only the questions, the errors, the state changes and the results show.
+- [x] REQ-033: It shows #44.
+- [x] REQ-034: Only the runs that wait for a person show.
+- [x] REQ-035: The five lanes show with no sideways scroll.
+- [x] REQ-036: Both runs show.
+- [x] REQ-037: It has one button, Review plan.
+- [x] REQ-038: The run page opens on the Workflow tab at that session.
+- [x] REQ-039: The whole model shows, and a drag moves it sideways.
+- [x] REQ-040: The page names the program, the code and its last line.
 
 ### Existing References
 

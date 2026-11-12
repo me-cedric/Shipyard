@@ -21,7 +21,7 @@ import { rememberSelection } from "@/lib/shell/selection";
 import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
-import { CpuChipIcon, InboxIcon, PlayIcon } from "@/ui/icons";
+import { CpuChipIcon, PlayIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
@@ -31,10 +31,10 @@ import { Terms } from "@/ui/molecules/term";
 import { ListDetail } from "@/ui/templates/list-detail";
 import { AgentsToggle } from "../agents-toggle";
 import { TicketPicker } from "../ticket-picker";
-import { progressOf } from "./run-detail";
+import { progressOf, startAgain } from "./run-detail";
 import { RunHistory } from "./run-history";
 import { nameOf } from "./run-live";
-import { stepperOf } from "./run-summary";
+import { focusOnRunPage, stepperOf } from "./run-summary";
 
 const LANES: [Lane, PanelTone][] = [
 	["queued", "neutral"],
@@ -95,7 +95,7 @@ export function Runs() {
 	const shown = useMemo(() => {
 		const q = foldWords(text);
 		const keys = new Set(mine.map((i) => i.key));
-		const fit = (r: RunItem) =>
+		const matches = (r: RunItem) =>
 			(q.length === 0 ||
 				q.every((w) =>
 					foldWords(`${r.key} ${r.title} ${nameOf(r.workflow)}`)
@@ -105,8 +105,11 @@ export function Runs() {
 			(filter === "all" || (filter === "needs" ? r.lane === "needs_you" : keys.has(r.key)));
 		const runs = all ?? [];
 		return {
-			board: latestPerTicket(runs).filter(fit),
-			history: historyRuns(runs).filter(fit),
+			// Done, Merged and Cancelled sit on no lane: the board and its count leave them out.
+			board: latestPerTicket(runs).filter(
+				(r) => matches(r) && LANES.some(([lane]) => lane === r.lane),
+			),
+			history: historyRuns(runs).filter(matches),
 		};
 	}, [all, text, filter, mine]);
 	if (active === undefined) return <Loading title={f.runs} icon={<CpuChipIcon size={16} />} />;
@@ -123,20 +126,28 @@ export function Runs() {
 			: undefined;
 	// The one button of a card that waits for a person. It opens the run, where the action is on top.
 	const actionOf = (r: RunItem) => {
-		const to = (label: string, anchor?: string) => ({
+		// `focus` is the control of the run page that takes the focus: the card button is gone by then.
+		const to = (label: string, focus: string, anchor?: string) => ({
 			label,
 			onClick: () => {
 				open(r.id);
 				showAnchor(anchor);
+				focusOnRunPage(focus);
 			},
 		});
-		if (r.state === "WaitingForAnswer") return to(f.answer);
-		if (r.state === "PlanReview") return to(l.reviewPlan, "plan");
-		if (r.state === "Blocked") return to(f.unblock);
-		if (r.state === "Paused") return to(f.resume);
-		// Start again lives on the run page: the card opens it.
-		if (r.state === "Failed") return to(f.why.again);
-		if (r.approvals > 0) return to(l.review);
+		if (r.state === "WaitingForAnswer")
+			return to(f.answer, '[id^="question-"] input, [id^="question-"] button');
+		if (r.state === "PlanReview") return to(l.reviewPlan, "#plan", "plan");
+		if (r.state === "Blocked") return to(f.unblock, "form input");
+		if (r.state === "Paused") return to(f.resume, "form input");
+		// The same call and the same refusal as Start again on the run page, then the new run opens.
+		if (r.state === "Failed")
+			return {
+				label: f.why.again,
+				...gate("runs.start"),
+				onClick: () => void guard(() => startAgain(act, r.key, open)),
+			};
+		if (r.approvals > 0) return to(l.review, '[id^="approval-"] button');
 		if (r.pr && (r.lane === "in_review" || r.lane === "ready_to_merge"))
 			return {
 				label: f.openPullRequest,
@@ -275,11 +286,7 @@ export function Runs() {
 											className="min-h-0 min-w-0"
 											bodyClassName="min-h-0 flex-1 overflow-y-auto"
 										>
-											{rows.length === 0 ? (
-												<span aria-hidden="true" className="flex justify-center py-6 text-n-9">
-													<InboxIcon size={24} />
-												</span>
-											) : null}
+											{rows.length === 0 ? <EmptyState title={l.none} /> : null}
 											{rows.map((r) => {
 												const p = progressOf(r);
 												const step = stepperOf(r);
@@ -301,6 +308,7 @@ export function Runs() {
 														action={actionOf(r)}
 														onStop={ENDED.includes(r.state) ? undefined : () => stop(r, rows)}
 														stopDisabled={gate("runs.start").disabled}
+														stopReason={gate("runs.start").reason}
 														menu={menu("run", {
 															open: () => open(r.id),
 															"copy-ref": () => copyText(`run:${r.id}`),

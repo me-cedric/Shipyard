@@ -27,7 +27,7 @@
     {
       "id": "SCR-003",
       "slug": "design",
-      "title": "Design",
+      "title": "Design: the diagram or picture fits the zoom frame at the first paint; a sideways gesture or a drag pans it, a pinch zooms it, Fit brings it back",
       "artifacts": [
         "spec:design",
         "spec:ux-declutter"
@@ -57,7 +57,7 @@
     {
       "id": "SCR-006",
       "slug": "factory",
-      "title": "Factory",
+      "title": "Factory / Runs: no tiles, one bar with search, the filter All, Needs you and Mine, and Board and History; five lanes that fit with a count each; a card with its one action and a menu with Stop",
       "artifacts": [
         "spec:factory",
         "spec:ux-declutter"
@@ -67,7 +67,7 @@
     {
       "id": "SCR-007",
       "slug": "agents-map",
-      "title": "Factory, agents map",
+      "title": "Factory / Agents map: a node shows the ticket key and title, the step name or the file name; the ref is the tooltip and Copy ref is in the node menu; a run node opens the run page",
       "artifacts": [
         "spec:factory",
         "spec:ux-declutter"
@@ -191,10 +191,11 @@
     {
       "id": "SCR-020",
       "slug": "factory-workflows",
-      "title": "Factory / Workflows: a workflow in the form, with its steps and the limits of the run",
+      "title": "Factory / Workflows: the list shows each name with its step names; Duplicate, Rename and Delete are in the More actions menu; the id shows in the editor header",
       "artifacts": [
         "spec:factory",
-        "spec:workflow-editor"
+        "spec:workflow-editor",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/workflows.png"
     },
@@ -230,11 +231,32 @@
     {
       "id": "SCR-026",
       "slug": "factory-run",
-      "title": "Factory / Runs: a run page with its workflow, sessions, diff and events",
+      "title": "Factory / Runs: a run page with a summary, the one action of the state, what needs you, and the tabs Activity, Changes and Workflow",
       "artifacts": [
-        "spec:factory"
+        "spec:factory",
+        "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/run.png"
+    },
+    {
+      "id": "SCR-031",
+      "slug": "runs-history",
+      "title": "Factory / Runs, History: each ended run and each older run of a ticket, newest end first, with search; a row opens the run",
+      "artifacts": [
+        "spec:factory",
+        "spec:ux-declutter"
+      ],
+      "file": "docs/assets/screenshots/runs-history.png"
+    },
+    {
+      "id": "SCR-032",
+      "slug": "factory-usage",
+      "title": "Factory / Usage: the success rate, the Budgets panel with Edit, and the runs with their key and title",
+      "artifacts": [
+        "spec:factory",
+        "spec:ux-declutter"
+      ],
+      "file": "docs/assets/screenshots/usage.png"
     },
     {
       "id": "SCR-027",

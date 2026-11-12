@@ -191,3 +191,87 @@ Feature: ux-declutter
     Given the new text keys
     When the language test runs
     Then each key exists in the four languages
+
+  @spec:ux-declutter#REQ-027
+  Scenario: Run address: Run address
+    Given a notification of a run
+    When the person clicks it
+    Then the run page of that run opens
+
+  @spec:ux-declutter#REQ-028
+  Scenario: Run page is a page: Run page is a page
+    Given an open run
+    When the page shows
+    Then the Runs list header does not show above it
+
+  @spec:ux-declutter#REQ-029
+  Scenario: Run summary: Run summary
+    Given a run in the build step with a pull request
+    When the run page shows
+    Then the summary shows the step as 2 of 5, the cost, the time and the pull request number
+
+  @spec:ux-declutter#REQ-030
+  Scenario: One action per state: One action per state
+    Given a cancelled run
+    When the person clicks Start again
+    Then the page of the new run opens
+
+  @spec:ux-declutter#REQ-031
+  Scenario: Needs you first: Needs you first
+    Given a paused run
+    When the run page shows
+    Then one form holds the added budget, the message and Resume
+
+  @spec:ux-declutter#REQ-032
+  Scenario: Run tabs: Run tabs
+    Given a run with 40 events
+    When the person picks Important
+    Then only the questions, the errors, the state changes and the results show
+
+  @spec:ux-declutter#REQ-033
+  Scenario: Plain run text: Plain run text
+    Given a run with the pull request `pr:github:44`
+    When the card shows
+    Then it shows #44
+
+  @spec:ux-declutter#REQ-034
+  Scenario: Runs list bar: Runs list bar
+    Given the filter Needs you
+    When the board shows
+    Then only the runs that wait for a person show
+
+  @spec:ux-declutter#REQ-035
+  Scenario: Five lanes that fit: Five lanes that fit
+    Given a window of 1100 px
+    When the board shows
+    Then the five lanes show with no sideways scroll
+
+  @spec:ux-declutter#REQ-036
+  Scenario: Run history: Run history
+    Given two runs of one ticket, the first failed
+    When the person opens History
+    Then both runs show
+
+  @spec:ux-declutter#REQ-037
+  Scenario: Run card: Run card
+    Given a card in plan review
+    When the card shows
+    Then it has one button, Review plan
+
+  @spec:ux-declutter#REQ-038
+  Scenario: Other Factory pages: Other Factory pages
+    Given a row of Factory / Sessions
+    When the person opens it
+    Then the run page opens on the Workflow tab at that session
+
+  @spec:ux-declutter#REQ-039
+  Scenario: Diagram frame: Diagram frame
+    Given a model wider than the frame
+    When Design / Architecture shows it
+    Then the whole model shows, and a drag moves it sideways
+
+  @spec:ux-declutter#REQ-040
+  Scenario: A tool that ends: A tool that ends
+    Given the code graph program ends with code 1
+    When the person clicks Index
+    Then the page names the program, the code and its last line

@@ -290,5 +290,6 @@ export const factoryDe: typeof factoryEn = {
 		reviewPlan: "Plan prüfen",
 		review: "Prüfen",
 		stopped: "{key} gestoppt",
+		none: "Keine",
 	},
 };

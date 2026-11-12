@@ -58,8 +58,8 @@ test("shows five lanes with counts, opens a run and stops it", async ({ page }) 
 	).toContainText("Cancelled");
 });
 
-test("the five lanes fit a window of 1280 px with no sideways scroll", async ({ page }) => {
-	await page.setViewportSize({ width: 1280, height: 800 });
+test("the five lanes fit a window of 1100 px with no sideways scroll", async ({ page }) => {
+	await page.setViewportSize({ width: 1100, height: 800 });
 	await openFactory(page, "Runs");
 	await expect(page.getByRole("heading", { name: "Queued (1)" })).toBeVisible();
 	const board = lane(page, "Queued").locator("xpath=..");

@@ -6,6 +6,8 @@ Connaissances transforme les fichiers du projet en pages, documents, diapositive
 
 Graphe dessine les éléments du projet et les liens entre eux. Filtrez par type. Une vue tableau liste les mêmes éléments.
 
+Sur le graphe de code, Indexer démarre le serveur du graphe de code s’il est arrêté, construit l’index, puis arrête le serveur. Si le programme se termine par une erreur, la page nomme le programme, son code de sortie et ses dernières lignes, puis donne une action : lisez les lignes, corrigez la cause, puis cliquez de nouveau sur Indexer.
+
 - Un élément que rien ne cite s'affiche comme orphelin.
 - Un élément dont la source a changé plus tard s'affiche comme périmé.
 - Sélectionnez un élément pour l'ouvrir dans l'inspecteur.

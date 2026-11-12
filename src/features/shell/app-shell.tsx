@@ -68,7 +68,7 @@ function Frame() {
 	useDropFolder();
 	useCloseGuardEvent();
 	useAnchorArrival();
-	const { toasts, dismiss } = useNotifications();
+	const { toasts, dismiss, hold } = useNotifications();
 	// A detail belongs to the view that opened it: leaving the view closes it.
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	// One assistant for every space: the shell holds its state, so a change of view keeps it.
@@ -159,7 +159,7 @@ function Frame() {
 				}
 				statusbar={<StatusBar commit={commit} />}
 			/>
-			<Toaster toasts={toasts} onDismiss={dismiss} />
+			<Toaster toasts={toasts} onDismiss={dismiss} onHold={hold} />
 			<PaletteHost actions={list} />
 			<ShortcutHelp actions={list} />
 			<SelectionActions onAsk={ask} />

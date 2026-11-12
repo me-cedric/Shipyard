@@ -761,7 +761,12 @@ fn read_line_capped(r: &mut impl BufRead, cap: usize) -> Option<Vec<u8>> {
     let mut line = Vec::new();
     let mut any = false;
     loop {
-        let buf = r.fill_buf().ok()?;
+        // An interrupted read is not the end: the reader retries, or the pipe would close under a live server.
+        let buf = match r.fill_buf() {
+            Ok(buf) => buf,
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(_) => return None,
+        };
         if buf.is_empty() {
             return any.then_some(line);
         }
@@ -1517,5 +1522,34 @@ mod stderr_line_tests {
         assert_eq!(read_line_capped(&mut r, 3).unwrap(), b"xy");
         assert_eq!(read_line_capped(&mut r, 3).unwrap(), b"las");
         assert!(read_line_capped(&mut r, 3).is_none());
+    }
+
+    /// A reader whose first read is interrupted, as a signal does.
+    struct Interrupted(std::io::Cursor<Vec<u8>>, bool);
+
+    impl std::io::Read for Interrupted {
+        fn read(&mut self, out: &mut [u8]) -> std::io::Result<usize> {
+            self.0.read(out)
+        }
+    }
+
+    impl BufRead for Interrupted {
+        fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+            if !std::mem::replace(&mut self.1, true) {
+                return Err(std::io::ErrorKind::Interrupted.into());
+            }
+            self.0.fill_buf()
+        }
+        fn consume(&mut self, n: usize) {
+            self.0.consume(n);
+        }
+    }
+
+    #[test]
+    fn an_interrupted_read_is_retried_and_does_not_end_the_reader() {
+        let mut r = Interrupted(std::io::Cursor::new(b"one\ntwo\n".to_vec()), false);
+        assert_eq!(read_line_capped(&mut r, 8).unwrap(), b"one");
+        assert_eq!(read_line_capped(&mut r, 8).unwrap(), b"two");
+        assert!(read_line_capped(&mut r, 8).is_none());
     }
 }

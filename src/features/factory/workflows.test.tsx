@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
-import { DEMO_FOLDER } from "@/lib/ipc/mock";
+import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { ShellProvider } from "@/lib/shell";
 import { renderApp } from "@/ui/test-utils";
 import { Workflows } from "./index";
@@ -130,6 +130,29 @@ describe("Workflows: the form", () => {
 			expect(await screen.findByRole("menuitem", { name })).toBeInTheDocument();
 		await user.click(screen.getByRole("menuitem", { name: "Duplicate" }));
 		expect(await screen.findByRole("dialog", { name: "Duplicate" })).toBeInTheDocument();
+	});
+
+	it("shows the reason on Duplicate, Rename and Delete for a viewer, and keeps them reachable", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		const user = await open("spike");
+		await user.click(await screen.findByRole("button", { name: "More actions" }));
+		for (const name of ["Duplicate", "Rename", "Delete"]) {
+			const item = await screen.findByRole("menuitem", { name });
+			expect(item).toHaveAttribute("aria-disabled", "true");
+			expect(item).toHaveAccessibleDescription(
+				"Needs the right project.settings (your role: Viewer)",
+			);
+		}
+		await user.keyboard("{ArrowDown}");
+		expect(screen.getByRole("menuitem", { name: "Duplicate" })).toHaveFocus();
 	});
 
 	it("delete asks first and refuses the default workflow", async () => {

@@ -125,6 +125,22 @@ export function useScrollClear(head: RefObject<HTMLElement | null>) {
 	}, [head]);
 }
 
+/** The title of the open run takes the focus: an action removed its own control. */
+export function focusRunTitle() {
+	document.querySelector<HTMLElement>("[data-run-title]")?.focus();
+}
+
+/**
+ * After a card action opens the run page: focus the first match of `selector` once the page has
+ * it (up to 2 s), else the title. The card button is gone by then, so the focus would fall to the body.
+ */
+export function focusOnRunPage(selector: string, tries = 20) {
+	const el = document.querySelector<HTMLElement>(selector);
+	if (el) el.focus();
+	else if (tries > 0) setTimeout(() => focusOnRunPage(selector, tries - 1), 100);
+	else focusRunTitle();
+}
+
 const usd = (x: number) => `$${x.toFixed(2)}`;
 
 /** One fact of line 2: an icon with its value. The group has the accessible name. */
@@ -188,7 +204,11 @@ export function RunSummary({
 			className="sticky top-0 z-10 flex flex-col gap-2 rounded-lg border bg-surface-1 p-3 shadow-1"
 		>
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-				<h1 className="flex min-w-0 flex-1 items-center gap-2 text-16 font-semibold text-n-12">
+				<h1
+					tabIndex={-1}
+					data-run-title
+					className="flex min-w-0 flex-1 items-center gap-2 rounded-sm text-16 font-semibold text-n-12 focus-visible:shadow-glow focus-visible:outline-none"
+				>
 					{ticket ? (
 						<a
 							href={ticket}
@@ -238,7 +258,7 @@ export function RunSummary({
 									id: "stop",
 									label: f.kill,
 									danger: true,
-									disabled: gate("runs.start").disabled,
+									...gate("runs.start"),
 									onSelect: () => setStopping(true),
 								},
 							]}

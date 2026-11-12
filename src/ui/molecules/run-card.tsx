@@ -88,6 +88,7 @@ export function RunCard({
 	action,
 	onStop,
 	stopDisabled,
+	stopReason,
 }: {
 	itemKey: string;
 	title: string;
@@ -106,10 +107,12 @@ export function RunCard({
 	selected?: boolean;
 	onOpen: () => void;
 	menu?: MenuItem[];
-	action?: { label: string; onClick: () => void };
+	action?: { label: string; onClick: () => void; disabled?: boolean; reason?: string };
 	/** A run that has not ended: Stop shows in the menu, after a confirmation. */
 	onStop?: () => void;
 	stopDisabled?: boolean;
+	/** Why Stop is off. */
+	stopReason?: string;
 }) {
 	const { t } = useI18n();
 	const f = t.factory;
@@ -126,6 +129,7 @@ export function RunCard({
 						label: f.kill,
 						danger: true,
 						disabled: stopDisabled,
+						reason: stopReason,
 						onSelect: () => setStopping(true),
 					},
 				]
@@ -245,7 +249,12 @@ export function RunCard({
 						) : (
 							<>
 								{action ? (
-									<Button variant="primary" onClick={action.onClick}>
+									<Button
+										variant="primary"
+										disabled={action.disabled}
+										reason={action.reason}
+										onClick={action.onClick}
+									>
 										{action.label}
 									</Button>
 								) : (

@@ -17,7 +17,7 @@ import { RunGraph } from "@/ui/organisms/run-graph";
 import { RunChanges } from "./run-changes";
 import { EventRows, isImportant, LiveLine, nameOf } from "./run-live";
 import { RunNeeds } from "./run-needs";
-import { type Primary, primaryOf, RunSummary } from "./run-summary";
+import { focusRunTitle, type Primary, primaryOf, RunSummary } from "./run-summary";
 import { RunUnits } from "./run-units";
 import { UnitTranscript } from "./unit-chat";
 import { transcript } from "./unit-transcript";
@@ -40,6 +40,15 @@ const MANY_EVENTS = 20;
 
 /** A live run reads pages on its own up to this many events (20 pages of 50); past it, "Load more" reads the rest. */
 const LIVE_MAX_EVENTS = 1000;
+
+/** Start again: a new run of the same ticket, then `open` gets its id. Run page and Failed card share it. */
+export async function startAgain(
+	act: ReturnType<typeof useRunActions>,
+	key: string,
+	open: (id: string) => void,
+) {
+	open(await act.start(key));
+}
 
 /**
  * The run page (factory REQ-027, REQ-028; ux-declutter REQ-029 to REQ-033): a summary that stays in
@@ -89,6 +98,7 @@ export function RunDetail({
 	const shown = filter === "important" ? events.filter(isImportant) : events;
 	// Newest first once a live run has every event, so the latest shows under the live line.
 	// While pages load, or past the cap, the list stays oldest first: it never shows a wrong newest.
+	// Past the cap nothing in the run view gives the newest event, so the live line shows the last one loaded.
 	const newest = active && !hasNextPage;
 	const listed = newest ? shown.toReversed() : shown;
 	const session = run.steps
@@ -103,11 +113,11 @@ export function RunDetail({
 		void router?.navigate({ to: "/code/pull-requests" });
 	};
 	const again = () =>
-		void guard(async () => {
-			const started = await act.start(run.key);
-			if (onStarted) onStarted(started);
-			else openRef(`run:${started}`);
-		});
+		void guard(() =>
+			startAgain(act, run.key, (started) =>
+				onStarted ? onStarted(started) : openRef(`run:${started}`),
+			),
+		);
 	const primary: Record<Primary, ReactNode> = {
 		answer: (
 			<Button
@@ -121,7 +131,7 @@ export function RunDetail({
 			<RightButton
 				right="runs.approve"
 				variant="primary"
-				onClick={() => void guard(() => act.planApprove(id))}
+				onClick={() => void guard(() => act.planApprove(id)).then((ok) => ok && focusRunTitle())}
 			>
 				{f.planApprove}
 			</RightButton>
@@ -155,7 +165,11 @@ export function RunDetail({
 				events={events}
 				live={active}
 				primary={kind ? primary[kind] : null}
-				onStop={active ? () => void guard(() => act.cancel(id)) : undefined}
+				onStop={
+					active
+						? () => void guard(() => act.cancel(id)).then((ok) => ok && focusRunTitle())
+						: undefined
+				}
 				onOpenPr={openPr}
 			/>
 			{error ? (
@@ -181,7 +195,7 @@ export function RunDetail({
 			/>
 			{tab === "activity" ? (
 				<div role="tabpanel" aria-label={f.tabActivity} className="flex flex-col gap-4">
-					{active ? <LiveLine run={run} events={newest ? events : []} /> : null}
+					{active ? <LiveLine run={run} events={loading ? [] : events} /> : null}
 					{run.state === "RetryQueued" && run.reason ? (
 						<p role="status" className="text-ui text-n-11">
 							{format(f.why.stop, { text: run.reason })}

@@ -245,20 +245,20 @@ function FileEditor({
 									{
 										id: "duplicate",
 										label: w.duplicate,
-										disabled: gate("project.settings").disabled,
+										...gate("project.settings"),
 										onSelect: () => setDialog("duplicate"),
 									},
 									{
 										id: "rename",
 										label: w.rename,
-										disabled: gate("project.settings").disabled,
+										...gate("project.settings"),
 										onSelect: () => setDialog("rename"),
 									},
 									{
 										id: "delete",
 										label: w.delete,
 										danger: true,
-										disabled: gate("project.settings").disabled,
+										...gate("project.settings"),
 										onSelect: () => setDeleting(true),
 									},
 								]}

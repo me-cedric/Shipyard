@@ -116,6 +116,7 @@ export const fr: Messages = {
 		time: "Aucune entrée de temps",
 		team: "Aucun membre",
 		budget: "Aucun budget",
+		usage: "Aucun usage pour l’instant",
 		sessions: "Aucune session",
 		runs: "Aucune exécution",
 		run: "Aucune exécution ouverte",

@@ -1,4 +1,11 @@
-import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import {
+	Link,
+	useCanGoBack,
+	useNavigate,
+	useParams,
+	useRouter,
+	useSearch,
+} from "@tanstack/react-router";
 import { useRuns } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { copyText } from "@/lib/menus";
@@ -17,7 +24,11 @@ export function RunPage() {
 	const { runId } = useParams({ from: "/factory/runs/$runId" });
 	const { unit, tab } = useSearch({ from: "/factory/runs/$runId" });
 	const runs = useRuns(runId);
+	const router = useRouter();
 	const toRuns = () => void navigate({ to: "/factory/runs" });
+	// A person who came from another page (History with a search, Sessions, Home) goes back to it; a deep link goes to Runs.
+	const canBack = useCanGoBack();
+	const back = () => (canBack ? router.history.back() : toRuns());
 	if (runs.isPending) return <Loading />;
 	const run = runs.data?.find((r) => r.id === runId);
 	if (!run)
@@ -33,7 +44,7 @@ export function RunPage() {
 			aria-label={run.key}
 			className="mx-auto flex w-full max-w-6xl flex-col gap-4 p-5"
 			onKeyDown={(e) => {
-				if (e.key === "Escape" && !e.defaultPrevented) toRuns();
+				if (e.key === "Escape" && !e.defaultPrevented) back();
 			}}
 		>
 			<div className="flex items-center justify-between gap-2">
@@ -41,10 +52,16 @@ export function RunPage() {
 					to="/factory/runs"
 					activeOptions={{ exact: true }}
 					aria-keyshortcuts="Escape"
+					onClick={(e) => {
+						if (canBack && !(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) {
+							e.preventDefault();
+							back();
+						}
+					}}
 					className="inline-flex items-center gap-1 text-ui text-accent-text hover:underline"
 				>
 					<ChevronLeftIcon size={14} />
-					{t.factory.runs}
+					{canBack ? t.ui.back : t.factory.runs}
 				</Link>
 				<IconButton label={t.context.copyRef} onClick={() => copyText(`run:${runId}`)}>
 					<ClipboardIcon size={14} />

@@ -26,6 +26,13 @@ Diagrams holds the drawings of the project: Excalidraw, Mermaid, draw.io and BPM
 
 Architecture shows the architecture models of the project as views. The views are drawn from the text of the model.
 
+A diagram or a picture, in Architecture and in Screens, fits its frame and sits in the centre when it opens. To move it:
+
+- Pan: drag it, or use a sideways gesture on the trackpad. A vertical wheel scrolls the page.
+- Zoom: pinch, or hold Ctrl or Cmd and turn the wheel.
+- Keyboard: click the frame to focus it, then press the arrow keys to pan, + or - to zoom and 0 to fit.
+- Fit brings the whole diagram back into the frame.
+
 ## Decisions
 
 Decisions holds the decision records (ADRs). Each record gives one decision, the options and the reasons.

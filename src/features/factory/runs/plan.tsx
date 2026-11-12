@@ -32,8 +32,9 @@ export function PlanBlock({ plan }: { plan: Plan }) {
 	return (
 		<section
 			id="plan"
+			tabIndex={-1}
 			aria-label={t.factory.plan}
-			className="flex flex-col gap-3 rounded-lg border bg-surface-1 p-3"
+			className="flex flex-col gap-3 rounded-lg border bg-surface-1 p-3 focus-visible:shadow-glow focus-visible:outline-none"
 		>
 			<MarkdownView source={plan.summary} label={t.factory.plan} refs={false} />
 			{plan.tasks.length ? (

@@ -37,8 +37,8 @@ The sixth lane (Done) grew with no limit and pushed the board off the screen. Th
 
 ### Existing References
 
-- Existing code/docs/specs: `specs/factory` REQ-027, REQ-038, `changes/update-ux-declutter/specs/ux-declutter` REQ-034 to REQ-037.
-- Supersedes or extends: `spec:factory#REQ-027`, `spec:factory#REQ-038`.
+- Existing code/docs/specs: `specs/factory` REQ-027, REQ-038, `changes/update-ux-declutter/specs/ux-declutter` REQ-027 to REQ-038.
+- Supersedes or extends: `spec:factory#REQ-027`, `spec:factory#REQ-030`, `spec:factory#REQ-031`, `spec:factory#REQ-038`.
 
 ## MODIFIED Requirements
 
@@ -87,3 +87,54 @@ The lane Queued SHALL hold the states `Queued`, `Claimed` and `RetryQueued`. The
 - WHEN the person opens Runs
 - THEN the run shows in no lane
 - AND the run shows in History
+
+### Requirement: REQ-030 Agents map
+
+Factory / Agents map SHALL show a live graph of agents, tickets, files and refs. A node SHALL show the ticket key and title, the step name or the file name, never a raw ref. The raw ref SHALL be the tooltip of the node and the item Copy ref of its menu. A click on an agent node or a run node SHALL open the run page. A click on another node SHALL open its entity in the inspector.
+
+#### Scenario: Live node
+- GIVEN a running agent
+- WHEN it reads a file
+- THEN a link from the agent to the file shows
+
+#### Scenario: Open entity
+- GIVEN a ticket node
+- WHEN the person clicks it
+- THEN the inspector shows the ticket
+
+#### Scenario: Open run
+- GIVEN an agent node of a run
+- WHEN the person clicks it
+- THEN the run page opens on the Workflow tab at that step
+
+#### Scenario: Plain label
+- GIVEN a run node
+- WHEN the map shows
+- THEN the node shows the ticket key and title and no `run:` ref
+
+### Requirement: REQ-031 Sessions view
+
+Factory / Sessions SHALL list the agent sessions. Each row SHALL show runner, model, run, state and tokens. The view SHALL show no stat tiles: the totals of tokens and cost SHALL be the last row of the table. The list SHALL include the AI tool sessions of the run units (Active, Previous, start time), and a click on a row SHALL open the run page at the unit. With no session, the view SHALL show the empty pattern with an action that opens Runs. The run page SHALL list its started units with Follow and, for a Claude Code unit with a session id, Open in terminal, which SHALL be off while the unit runs. The Agents switch (the global kill switch of REQ-024) SHALL stay as the header action of the view, and it SHALL stop every session.
+
+#### Scenario: Session row
+- GIVEN a live session
+- WHEN the person opens Sessions
+- THEN the row shows runner, model, run, state and tokens
+- AND the view shows no stat tiles
+
+#### Scenario: Run unit session
+- GIVEN a run with a running unit and an ended unit that has a Claude Code session id
+- WHEN the person opens Sessions and clicks the row of the ended unit
+- THEN the unit shows under Previous and the run page opens at that unit
+- AND Open in terminal runs `claude --resume` with that session in the folder of the unit
+- AND Open in terminal is off for the running unit
+
+#### Scenario: No session
+- GIVEN no session
+- WHEN the person opens Sessions
+- THEN the empty pattern shows with an action that opens Runs
+
+#### Scenario: Stop all
+- GIVEN live sessions
+- WHEN the person turns off the Agents switch in the header of Sessions
+- THEN all sessions stop

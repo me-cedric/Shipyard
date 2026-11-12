@@ -290,6 +290,34 @@ describe("Factory / run page", () => {
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
+	it("past the cap of 1000 events the live line shows the last loaded event and the list stays oldest first", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const live = await find("ACME-2");
+		const log = mockState().factory.runs.find((x) => x.id === live.id)?.log;
+		log?.splice(0);
+		// Event 1000 is the last one read on its own; 100 more wait behind "Load more".
+		for (let i = 1; i <= 1100; i++)
+			log?.push({
+				id: 9000 + i,
+				step: null,
+				kind: "state",
+				payload: JSON.stringify({ from: "Working", to: i === 1000 ? "Paused" : "Queued" }),
+				ts: 1_000 + i,
+			});
+		const router = mountApp(`/factory/runs/${live.id}`);
+		const events = await screen.findByRole("region", { name: /^Events/ });
+		expect(
+			await screen.findByText(
+				"ACME-2 moved to Paused",
+				{ selector: "p[aria-live]" },
+				{ timeout: 20_000 },
+			),
+		).toBeVisible();
+		expect(within(events).getByRole("button", { name: "More" })).toBeVisible();
+		expect(within(events).getAllByRole("listitem")[0]).toHaveTextContent("moved to Queued");
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	}, 30_000);
+
 	it("draws no box for a live conversation with nothing in it", async () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const run = await find("ACME-2");

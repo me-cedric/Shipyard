@@ -18,6 +18,13 @@ Diagrammes contient les dessins du projet : Excalidraw, Mermaid, draw.io et BPMN
 
 Architecture montre les modèles d'architecture du projet sous forme de vues. Les vues sont dessinées à partir du texte du modèle.
 
+Un diagramme ou une image, dans Architecture et dans Écrans, tient dans son cadre et s’ouvre au centre. Pour le déplacer :
+
+- Déplacer : faites-le glisser, ou utilisez un geste latéral sur le pavé tactile. Une molette verticale fait défiler la page.
+- Zoom : pincez, ou maintenez Ctrl ou Cmd et tournez la molette.
+- Clavier : cliquez sur le cadre pour lui donner le focus, puis utilisez les flèches pour déplacer, + ou - pour zoomer et 0 pour ajuster.
+- Ajuster remet tout le diagramme dans le cadre.
+
 ## Décisions
 
 Décisions contient les fiches de décision (ADR). Chaque fiche donne une décision, les options et les raisons.

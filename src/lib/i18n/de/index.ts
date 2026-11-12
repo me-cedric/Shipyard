@@ -116,6 +116,7 @@ export const de: Messages = {
 		time: "Keine Zeiteinträge",
 		team: "Keine Mitglieder",
 		budget: "Kein Budget",
+		usage: "Noch keine Nutzung",
 		sessions: "Keine Sitzungen",
 		runs: "Keine Läufe",
 		run: "Kein Lauf",

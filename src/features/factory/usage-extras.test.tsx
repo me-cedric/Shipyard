@@ -1,7 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
-import { DEMO_FOLDER } from "@/lib/ipc/mock";
+import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { ShellProvider } from "@/lib/shell";
 import { clearViewState, setViewProject } from "@/lib/shell/view-state";
 import { renderApp } from "@/ui/test-utils";
@@ -98,5 +98,59 @@ describe("Factory / Usage: iterations and prices", () => {
 		expect(screen.queryByText("$12.34")).toBeNull();
 		expect(screen.getByText("Tokens this month")).toBeInTheDocument();
 		vi.restoreAllMocks();
+	});
+
+	const shown = () =>
+		renderApp(
+			<ShellProvider>
+				<Usage />
+			</ShellProvider>,
+		);
+
+	it("titles the empty page for no budget, and opens the form with the field focused", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		mockState().factory.runs.length = 0;
+		mockState().factory.budgets = { day: {}, member: {} };
+		shown();
+		expect(await screen.findByText("No budget")).toBeInTheDocument();
+		// The form is open already, so the form has a Set budget button too: the first one is the empty state's.
+		await user.click(screen.getAllByRole("button", { name: "Set budget" })[0] as HTMLElement);
+		expect(screen.getByRole("textbox", { name: "Day or member" })).toHaveFocus();
+	});
+
+	it("titles the empty page for budgets with no usage, and Set budget opens the form", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		mockState().factory.runs.length = 0;
+		mockState().factory.budgets.day["*"] = 5;
+		shown();
+		expect(await screen.findByText("No usage yet")).toBeInTheDocument();
+		expect(screen.queryByText("No budget")).toBeNull();
+		expect(screen.queryByRole("textbox", { name: "Day or member" })).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Set budget" }));
+		expect(screen.getByRole("textbox", { name: "Day or member" })).toHaveFocus();
+	});
+
+	it("shows neither empty title when budgets and usage both exist", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		mockState().factory.budgets.day["*"] = 5;
+		shown();
+		await screen.findByRole("table", { name: "Usage" });
+		expect(screen.queryByText("No budget")).toBeNull();
+		expect(screen.queryByText("No usage yet")).toBeNull();
+		expect(await screen.findByRole("list", { name: "Budget" })).toBeInTheDocument();
+	});
+
+	it("shows the success rate and its detail: two done runs of four ended", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const states = ["Done", "Merged", "Failed", "Cancelled"] as const;
+		mockState().factory.runs.forEach((r, i) => {
+			r.state = states[i] ?? "Working";
+		});
+		shown();
+		await screen.findByRole("table", { name: "Usage" });
+		expect(await screen.findByText("50 %")).toBeInTheDocument();
+		expect(screen.getByText("2/4")).toBeInTheDocument();
 	});
 });

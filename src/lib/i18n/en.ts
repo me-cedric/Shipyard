@@ -115,6 +115,7 @@ export const en = {
 		time: "No time entries",
 		team: "No members",
 		budget: "No budget",
+		usage: "No usage yet",
 		sessions: "No sessions",
 		runs: "No runs",
 		run: "No run",

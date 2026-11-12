@@ -1,5 +1,5 @@
 import { AnimatePresence, motion, useIsPresent } from "motion/react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import type { Notice } from "@/lib/notifications";
 import { IconButton } from "../atoms/icon-button";
@@ -36,17 +36,46 @@ function Slide({
 export function Toaster({
 	toasts,
 	onDismiss,
+	onHold,
 }: {
 	toasts: Notice[];
 	onDismiss: (id: string) => void;
+	/** True while the pointer is over the toasts or the focus is in them: the toasts must not close then (WCAG 2.2.1). */
+	onHold?: (on: boolean) => void;
 }) {
 	const { t, lang } = useI18n();
 	const still = useReducedMotionPref();
 	const slide = still ? undefined : { opacity: 0, x: 24 };
 	const time = new Intl.DateTimeFormat(lang, { timeStyle: "short" });
+	const over = useRef({ pointer: false, focus: false });
+	const hold = () => onHold?.(over.current.pointer || over.current.focus);
+	// A toast that closes under the pointer or the focus fires no leave event: nothing is held with no toast.
+	const none = toasts.length === 0;
+	useEffect(() => {
+		if (!none) return;
+		over.current = { pointer: false, focus: false };
+		onHold?.(false);
+	}, [none, onHold]);
 	return (
 		<div
 			role="status"
+			onPointerEnter={() => {
+				over.current.pointer = true;
+				hold();
+			}}
+			onPointerLeave={() => {
+				over.current.pointer = false;
+				hold();
+			}}
+			onFocus={() => {
+				over.current.focus = true;
+				hold();
+			}}
+			onBlur={(e) => {
+				if (e.currentTarget.contains(e.relatedTarget)) return;
+				over.current.focus = false;
+				hold();
+			}}
 			aria-live="polite"
 			aria-label={t.notifications.title}
 			className="pointer-events-none fixed right-4 bottom-10 z-50 flex w-96 max-w-[calc(100vw-2rem)] flex-col gap-2"
