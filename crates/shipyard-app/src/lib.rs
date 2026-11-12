@@ -5,6 +5,7 @@ pub mod applog;
 pub mod assistant;
 pub mod assistant_attach;
 pub mod auto_commit;
+pub mod avatar;
 pub mod branding;
 pub mod certs;
 pub mod close_guard;
@@ -471,6 +472,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             asst::assistant_defaults_set,
             asst::assistant_options,
             asst::assistant_slash_commands,
+            avatar::avatar_get,
             kw::graph_get,
             kw::graph_code,
             kw::graph_code_index,

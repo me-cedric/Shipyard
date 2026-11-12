@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo } from "react";
 import {
@@ -82,6 +82,21 @@ export function useLog() {
 		initialPageParam: 0,
 		queryFn: ({ pageParam }) => unwrap(commands.codeLog(pageParam, PAGE)),
 		getNextPageParam: (last, all) => (last.has_more ? all.length * PAGE : undefined),
+	});
+}
+
+/** The profile pictures of the authors, by lower-case address. A missing one stays out: the initials show. */
+export function useAvatars(emails: string[]): Record<string, string> {
+	const unique = [...new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean))];
+	return useQueries({
+		queries: unique.map((email) => ({
+			queryKey: ["avatar", email],
+			queryFn: () => unwrap(commands.avatarGet(email)),
+			staleTime: Number.POSITIVE_INFINITY,
+			retry: false,
+		})),
+		combine: (rs) =>
+			Object.fromEntries(rs.flatMap((r, i) => (r.data ? [[unique[i] ?? "", r.data]] : []))),
 	});
 }
 

@@ -210,6 +210,19 @@
       "description": "GET /api/tags on Ollama (11434), GET /v1/models on LM Studio (1234), vLLM (8000) and LiteLLM (4000). Localhost only. No other host is probed."
     },
     {
+      "id": "flow-15",
+      "name": "avatar-hosts",
+      "source": "Shipyard app",
+      "sourceName": "Shipyard app",
+      "destination": "Avatar hosts",
+      "destinationName": "Avatar hosts",
+      "vlan": "Internet",
+      "protocol": "HTTPS",
+      "ports": "443",
+      "action": "Allow",
+      "description": "GET avatars.githubusercontent.com for the author of a commit with a GitHub no-reply address, else GET www.gravatar.com/avatar/<SHA-256 of the lower-case address>. In Code / History only. The address itself never leaves the app. No credential. A miss shows the initials."
+    },
+    {
       "id": "flow-14",
       "name": "any-other-destination",
       "source": "Shipyard app",

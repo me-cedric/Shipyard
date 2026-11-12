@@ -18,7 +18,7 @@ When two changes meet in the same lines, a conflict view shows both sides. Choos
 
 ## History
 
-History lists the commits, newest first. Select a commit to see its files and its changes.
+History lists the commits, newest first. Select a commit to see its files and its changes. Each author shows a profile picture: from GitHub for a GitHub no-reply address, else from Gravatar, or the initials when there is none. Shipyard sends Gravatar only a hash of the address.
 
 ## Branches
 

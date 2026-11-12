@@ -462,6 +462,7 @@ export const commands = {
 	assistantOptions: () => typedError<RunnerOptions[], AppError_Serialize>(__TAURI_INVOKE("assistant_options")),
 	/**  The slash commands of a runner: the files that its CLI reads. */
 	assistantSlashCommands: (runner: string) => typedError<SlashCommand_Serialize[], AppError_Serialize>(__TAURI_INVOKE("assistant_slash_commands", { runner })),
+	avatarGet: (email: string) => typedError<string | null, AppError_Serialize>(__TAURI_INVOKE("avatar_get", { email })),
 	graphGet: () => typedError<KGraph_Serialize, AppError_Serialize>(__TAURI_INVOKE("graph_get")),
 	graphCode: () => typedError<CodeGraph_Serialize, AppError_Serialize>(__TAURI_INVOKE("graph_code")),
 	graphCodeIndex: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("graph_code_index")),

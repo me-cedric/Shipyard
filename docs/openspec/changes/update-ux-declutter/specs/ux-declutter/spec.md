@@ -731,3 +731,15 @@ Reply, resolve, inline comment, submit review and general comment SHALL need a c
 - GIVEN a viewer
 - WHEN the person opens a pull request
 - THEN the write box, the reply, the resolve and the submit controls are off with their reason
+
+### Requirement: REQ-053 Author pictures
+
+Code / History SHALL show the profile picture of each commit author in the list and in the detail. The picture SHALL come from GitHub for a GitHub no-reply address, and from Gravatar for any other address. The app SHALL send only the SHA-256 hash of the address to Gravatar, never the address. The app SHALL fetch the picture, not the web view. A person with no picture SHALL see the initials.
+
+#### Scenario: Author pictures
+
+- GIVEN a commit whose author has a Gravatar picture
+- WHEN a person opens History
+- THEN the row and the detail show the picture
+- AND an author with no picture shows the initials
+

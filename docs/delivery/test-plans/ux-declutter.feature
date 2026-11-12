@@ -425,3 +425,9 @@ Feature: ux-declutter
     Given a viewer
     When the person opens a pull request
     Then the write box, the reply, the resolve, the "+" and the submit controls are off with their reason
+
+  @spec:ux-declutter#REQ-053
+  Scenario: Author pictures: Gravatar and initials
+    Given a commit whose author has a Gravatar picture and a commit whose author has none
+    When the person opens History
+    Then the first row shows the picture and the second row shows the initials

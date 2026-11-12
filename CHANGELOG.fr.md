@@ -1,6 +1,7 @@
 # Journal des modifications
 
 ## [0.1.0]
+- Code / Historique montre la photo de profil de l'auteur de chaque commit, celle de GitHub pour une adresse no-reply de GitHub et celle de Gravatar pour toute autre adresse (les initiales s'il n'y en a pas). Seule une empreinte de l'adresse part vers Gravatar.
 - Connaissance / Graphe / Code retrouve l'index d'un dossier dont le chemin contient un lien ou une espace, donc le graphe s'affiche après Indexer.
 - L'icône de la barre de menus n'affiche plus de point. Le panneau qu'elle ouvre montre toujours ce qui vous attend.
 - Un « + » dans la marge du diff de Fichiers modifiés ajoute un commentaire sur une ligne : il rejoint une revue en attente gardée sur cet ordinateur (elle survit à un redémarrage, et un commentaire sur un fichier qui n’est plus dans la pull request reste accessible), une barre montre le nombre avec Envoyer la revue et Abandonner, Envoyer la revue envoie les commentaires avec Commenter, Approuver ou Demander des changements en une seule revue, et Publier ce commentaire seul en poste un tout de suite, sur GitHub, GitLab et Azure DevOps ; un commentaire que l’hébergeur de code ne peut pas placer sur une ligne va dans le texte de la revue avec une notification, et un résultat partiel retire ce qui est parti et garde le reste.

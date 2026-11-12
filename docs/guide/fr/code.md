@@ -16,7 +16,7 @@ Quand deux changements se rencontrent sur les mêmes lignes, une vue de conflit 
 
 ## Historique
 
-Historique liste les commits, le plus récent en premier. Sélectionnez un commit pour voir ses fichiers et ses changements.
+Historique liste les commits, le plus récent en premier. Sélectionnez un commit pour voir ses fichiers et ses changements. Chaque auteur a une photo de profil : celle de GitHub pour une adresse no-reply de GitHub, sinon celle de Gravatar, ou les initiales s'il n'y en a pas. Shipyard n'envoie à Gravatar qu'une empreinte de l'adresse.
 
 ## Branches
 

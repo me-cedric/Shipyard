@@ -2117,6 +2117,7 @@ const handlers: Handlers = {
 	graphGet: () => kw.graphGet(need(state.knowledge), knowledgeEnv()),
 	graphCode: () => kw.graphCode(need(state.knowledge)),
 	graphCodeIndex: () => kw.graphCodeIndex(need(state.knowledge)),
+	avatarGet: () => null,
 	explainContextGet: (entity) => kw.explainContext(knowledgeEnv(), entity),
 	docListGet: () => kw.docListGet(need(state.knowledge)),
 	docReadOne: (path) => kw.docReadOne(need(state.knowledge), path),

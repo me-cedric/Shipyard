@@ -142,6 +142,9 @@ model {
   releasePage = external 'Release page' {
     description 'GitHub release of Shipyard. The update check reads it.'
   }
+  avatarHosts = external 'Avatar hosts' {
+    description 'avatars.githubusercontent.com and Gravatar: the profile picture of a commit author.'
+  }
   drawioEmbed = external 'draw.io embed' {
     description 'embed.diagrams.net, shown in a frame to edit draw.io boards.'
   }
@@ -222,6 +225,7 @@ model {
   shipyard.crates.agents -> mcpServers 'starts or calls'
   shipyard.shell -> releasePage 'HTTPS: update check'
   shipyard.shell -> codeHosts 'HTTPS: browser sign-in (device flow)'
+  shipyard.shell -> avatarHosts 'HTTPS: profile pictures of commit authors'
   shipyard.ui -> drawioEmbed 'frame: draw.io editor'
   agentClis -> shipyard.crates.cli 'start it as MCP server (stdio)'
   agentClis -> shipyard.crates.mcp 'call tools (loopback HTTP)'
@@ -250,6 +254,6 @@ views {
 
   view externals {
     title 'External systems'
-    include shipyard.shell, shipyard.crates.*, keychain, issueTrackers, codeHosts, agentClis, modelProviders, mcpServers, releasePage, drawioEmbed
+    include shipyard.shell, shipyard.crates.*, keychain, issueTrackers, codeHosts, agentClis, modelProviders, mcpServers, releasePage, avatarHosts, drawioEmbed
   }
 }

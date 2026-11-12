@@ -62,6 +62,11 @@
       "description": "api.figma.com, read with a token that sits in the keychain."
     },
     {
+      "id": "avatar-hosts",
+      "name": "Avatar hosts",
+      "description": "avatars.githubusercontent.com and www.gravatar.com. They serve the profile picture of a commit author, with no sign-in."
+    },
+    {
       "id": "openrouter",
       "name": "OpenRouter",
       "description": "openrouter.ai. OAuth PKCE sign-in that returns an API key, then the model provider endpoint."
