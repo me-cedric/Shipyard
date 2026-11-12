@@ -160,6 +160,43 @@ describe("Run address", () => {
 		await idle(router);
 	});
 
+	it("opens the run from a Usage row with the keyboard, and the row names the ticket and its title", async () => {
+		await open();
+		const user = userEvent.setup();
+		const run = await find("ACME-2");
+		const router = mountApp("/factory/usage");
+		const row = (await screen.findAllByText("ACME-2"))[0]?.closest('[role="row"]') as HTMLElement;
+		expect(row).toHaveTextContent(run.title);
+		expect(row).not.toHaveTextContent("run:");
+		row.focus();
+		await user.keyboard("{Enter}");
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/factory/runs/${run.id}`));
+		await idle(router);
+	});
+
+	it("opens the run from a run node and from a session node of the Agents map", async () => {
+		await open();
+		const user = userEvent.setup();
+		const run = await find("ACME-2");
+		const session = (await unwrap(commands.sessionsList())).find((s) => s.run === run.id);
+		const router = mountApp("/factory/agents-map");
+		// jsdom measures no node, so xyflow keeps each one hidden.
+		const node = async (ref: string) =>
+			within(await screen.findByTestId(`rf__node-${ref}`)).getByRole("button", { hidden: true });
+		const runNode = await node(run.reference);
+		expect(runNode).toHaveAttribute("title", run.reference);
+		expect(runNode).toHaveTextContent(`${run.key} ${run.title}`);
+		runNode.focus();
+		await user.keyboard("{Enter}");
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/factory/runs/${run.id}`));
+		expect(router.state.location.search).toEqual({});
+		router.history.back();
+		await waitFor(() => expect(router.state.location.pathname).toBe("/factory/agents-map"));
+		await user.click(await node(`run:${run.id}/${session?.step}`));
+		await waitFor(() => expect(router.state.location.search).toEqual({ unit: session?.step }));
+		await idle(router);
+	});
+
 	it("opens the run from an Activity row, with Stop as a separate control", async () => {
 		await open();
 		const user = userEvent.setup();

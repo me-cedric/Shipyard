@@ -19,21 +19,24 @@ import { useActiveProject } from "@/lib/projects";
 import { RightButton, useRights } from "@/lib/rights";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/ui/atoms/badge";
+import { Button } from "@/ui/atoms/button";
 import { Input } from "@/ui/atoms/input";
 import { Select, type SelectItem } from "@/ui/atoms/select";
-import { ArrowsRightLeftIcon, PlusIcon } from "@/ui/icons";
+import { ArrowsRightLeftIcon, ChevronDownIcon, PlusIcon } from "@/ui/icons";
 import { CodeEditor } from "@/ui/molecules/code-editor";
-import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
+import { MenuButton } from "@/ui/molecules/menu-button";
 import { Panel } from "@/ui/molecules/panel";
+import { RunStep } from "@/ui/molecules/run-step";
 import { SplitPane } from "@/ui/molecules/split-pane";
 import { code } from "@/ui/molecules/syntax";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { Dialog } from "@/ui/organisms/dialog";
 import { EditorFrame } from "@/ui/organisms/editor-frame";
 import { ListDetail } from "@/ui/templates/list-detail";
+import { nameOf } from "../runs/run-live";
 import { lineDiff } from "./line-diff";
 import { WorkflowForm } from "./workflow-form";
 
@@ -163,6 +166,7 @@ function FileEditor({
 	const [view, setView] = useState<"form" | "text" | null>(null);
 	const [wf, setWf] = useState<Workflow | null>(null);
 	const [dialog, setDialog] = useState<"duplicate" | "rename" | null>(null);
+	const [deleting, setDeleting] = useState(false);
 	const seq = useRef(0);
 	const text = draft ?? loaded;
 	// Only the latest answer counts. `adopt` takes the text that the form wrote.
@@ -205,6 +209,7 @@ function FileEditor({
 	return (
 		<EditorFrame
 			title={id}
+			heading={isWf ? nameOf(id) : undefined}
 			refId={isWf ? `wf:${id}` : `role:${id}`}
 			actions={
 				isWf ? (
@@ -218,19 +223,47 @@ function FileEditor({
 								{ value: "text", label: t.editing.view.text },
 							]}
 						/>
-						<RightButton right="project.settings" onClick={() => setDialog("duplicate")}>
-							{w.duplicate}
-						</RightButton>
-						<RightButton right="project.settings" onClick={() => setDialog("rename")}>
-							{w.rename}
-						</RightButton>
-						<ConfirmButton
-							{...gate("project.settings")}
-							confirm={format(w.deleteConfirm, { id })}
-							onConfirm={() => void run(() => writes.remove(id)).then((ok) => ok && onPick(null))}
-						>
-							{w.delete}
-						</ConfirmButton>
+						{deleting ? (
+							<Button
+								{...gate("project.settings")}
+								variant="danger"
+								autoFocus
+								onBlur={() => setDeleting(false)}
+								onClick={() => {
+									setDeleting(false);
+									void run(() => writes.remove(id)).then((ok) => ok && onPick(null));
+								}}
+							>
+								{format(w.deleteConfirm, { id })}
+							</Button>
+						) : (
+							<MenuButton
+								iconOnly
+								label={t.factory.moreActions}
+								icon={<ChevronDownIcon size={14} />}
+								items={[
+									{
+										id: "duplicate",
+										label: w.duplicate,
+										disabled: gate("project.settings").disabled,
+										onSelect: () => setDialog("duplicate"),
+									},
+									{
+										id: "rename",
+										label: w.rename,
+										disabled: gate("project.settings").disabled,
+										onSelect: () => setDialog("rename"),
+									},
+									{
+										id: "delete",
+										label: w.delete,
+										danger: true,
+										disabled: gate("project.settings").disabled,
+										onSelect: () => setDeleting(true),
+									},
+								]}
+							/>
+						)}
 					</>
 				) : undefined
 			}
@@ -372,7 +405,9 @@ export function Workflows() {
 														/>
 													) : null}
 													<span className="flex items-center gap-2">
-														<span className="flex-1 font-mono text-12 text-n-12">{r.id}</span>
+														<span title={r.id} className="flex-1 text-12 font-medium text-n-12">
+															{nameOf(r.id)}
+														</span>
 														{r.proposed ? <Badge variant="info">{f.wf.proposed}</Badge> : null}
 														{r.bad ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
 													</span>
@@ -385,7 +420,7 @@ export function Workflows() {
 																			›
 																		</span>
 																	) : null}
-																	<Badge className="font-mono">{step}</Badge>
+																	<RunStep id={step} name={nameOf(step)} state="pending" />
 																</span>
 															))}
 														</span>

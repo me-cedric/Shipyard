@@ -36,23 +36,26 @@ A workflow opens in a form. Use Form and Text to switch between the form and the
 - Steps: set the role or the action, the model tier, the effort, the mode, the needs, the tools and the gate of each step. More shows the other fields: workspace, for each, parallel children, retries, time limit, budget, skill, fresh context and review rounds. Add, remove and move a step up or down.
 - Limits: the stall timeout in seconds. Turn on Budget to stop each run at an amount in USD, and Turn limit to pause each run after a number of turns. Both are off by default.
 - The form checks the workflow at each change. Save stays off while it shows an issue.
-- New makes a workflow from a preset: feature, bug, spike, docs-update, review-only, spec-split or bootstrap. Duplicate copies the open workflow. Rename and Delete refuse the default workflow of the project and a workflow that a run uses. Delete asks you to confirm.
+- New makes a workflow from a preset: feature, bug, spike, docs-update, review-only, spec-split or bootstrap. The More actions menu of the open workflow has Duplicate, Rename and Delete. Duplicate copies the workflow. Rename and Delete refuse the default workflow of the project and a workflow that a run uses. Delete asks you to confirm.
 - A save from the form keeps the comment lines at the top of the file. Use Text to keep other comments.
 - An outside agent with the Workflows tools on (Settings / Connections / MCP) can list, read, check and propose a workflow. A proposal does not change the file: open the workflow, read the diff, then Apply or Discard.
 
 ## Agents map
 
-Agents map draws the workflows, the roles and the skills as a graph.
+Agents map draws the runs, their tickets, their agent sessions and the files of their findings as a graph. A node shows the ticket key and title, the step name or the file name. Hover a node to see its ref. Right-click it, or press the context-menu key, to copy the ref. Click a run or a session to open its run. The table button lists the same nodes for the keyboard.
 
 ## Sessions
 
-Sessions lists the agent sessions on this computer. Stop a session that you do not need.
+Sessions lists the agent sessions of the runs and the sessions on this computer. Click a run session to open its run at that step. Stop a session that you do not need.
 
 The Agents switch stops every run and stops new runs. Turn it on again to go on.
 
 ## Usage
 
-Usage shows the tokens and the money that the agents used, by day and by person, against the budgets.
+Usage shows the tokens and the money that the agents used, by day and by person, against the budgets, and the success rate of the runs.
+
+- Budgets shows the amounts that are set, with Edit. With no budget set, it shows the form. Click a day or a member to fill the form.
+- Click a run to open it.
 
 - Iterations counts the requests that each run sent to the model.
 - The amounts show by default. Switch Show prices off to hide them: a money tile then shows the token count. The app remembers the switch for each project.

@@ -76,7 +76,7 @@ Runs and Factory (second pass, 2026-11-12)
 - REQ-033: The run page and the run card SHALL show no raw id: a pull request shows as its number, a step and a workflow show their names, an event shows a sentence, a time shows hours and minutes. The pages SHALL show no helper text. The word for ending a run SHALL be Stop everywhere.
 - REQ-034: The Runs list SHALL show no stat tiles. One bar SHALL hold the search, a filter (All, Needs you, Mine) and a Board and History switch.
 - REQ-035: The board SHALL have five lanes: Queued, Working, Needs you, In review, Ready to merge. At a window width of 1100 px or more the lanes SHALL fit with no sideways scroll. An empty lane SHALL show the empty pattern.
-- REQ-036: History SHALL list each ended run and each older run of a ticket, newest first, with search. A row SHALL open the run.
+- REQ-036: History SHALL list each ended run and each older run of a ticket, newest end first, with search. A row SHALL open the run.
 - REQ-037: A run card SHALL show each fact once and the ticket key. A card that waits for a person SHALL show its one action as a button that opens the run at that action. Stop SHALL be in the card menu.
 - REQ-038: A Sessions row, a Usage run row and an Agents map node SHALL open the run. Sessions SHALL show no stat tiles. Usage SHALL show the budgets in a panel, not in the page header, and SHALL show the success rate. The Agents map SHALL label a node with the ticket title. The Workflows list SHALL show the step names, and its file actions SHALL be in a menu.
 - REQ-039: A diagram or a picture in the zoom frame SHALL fit the frame and be centred at the first paint. The person SHALL pan it in both directions and zoom it. Fit SHALL bring it back.
@@ -517,7 +517,7 @@ The board SHALL have five lanes: Queued, Working, Needs you, In review, Ready to
 
 ### Requirement: REQ-036 Run history
 
-History SHALL list each ended run and each older run of a ticket, newest first, with search. A row SHALL open the run.
+History SHALL list each ended run and each older run of a ticket, newest end first, with search. A row SHALL open the run.
 
 #### Scenario: Run history
 

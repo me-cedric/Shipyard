@@ -1585,7 +1585,9 @@ const handlers: Handlers = {
 	syncNow: () => syncNow(state.sync, syncSources(), state.secrets),
 	syncAutomationGet: () => {
 		if (!active()) throw "no active project";
-		return automationGet(state.sync);
+		// The budgets are the factory's: the real file holds both.
+		const view = automationGet(state.sync);
+		return { ...view, automation: { ...view.automation, budgets: state.factory.budgets } };
 	},
 	syncAutomationSave: (a) => {
 		if (!active()) throw "no active project";

@@ -111,6 +111,15 @@ function FirstTab({ space }: { space: SpaceId }) {
 	) : null;
 }
 
+const runsSearch = (
+	s: Record<string, unknown>,
+): { q?: string; filter?: "needs" | "mine"; view?: "history" } => ({
+	// A text such as "12" comes back from the address as a number.
+	...(s.q != null && s.q !== "" ? { q: String(s.q) } : {}),
+	...(s.filter === "needs" || s.filter === "mine" ? { filter: s.filter } : {}),
+	...(s.view === "history" ? { view: "history" as const } : {}),
+});
+
 /** A space route, its index redirect to the first tab, and one child route for each tab. */
 function spaceRoute<S extends SpaceId>(space: S) {
 	const route = createRoute({
@@ -130,6 +139,8 @@ function spaceRoute<S extends SpaceId>(space: S) {
 			path: tab,
 			loader: () => preloadTab(space, tab),
 			component: () => <TabView space={space} tab={tab} />,
+			// The bar of Factory / Runs (ux-declutter REQ-034): search, filter and view, kept in the address.
+			...(space === "factory" && tab === "runs" ? { validateSearch: runsSearch } : {}),
 		}),
 	);
 	// A run has its own address, under the Factory tab bar with Runs selected (ux-declutter REQ-027).

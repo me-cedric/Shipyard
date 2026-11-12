@@ -36,13 +36,13 @@ export function RunStep({
 }) {
 	const { t } = useI18n();
 	return (
-		<figure
+		// A span with a role: a step sits inside a button in a list, where a figure or a fieldset is not valid.
+		// biome-ignore lint/a11y/useSemanticElements: a fieldset is not valid inside a button
+		<span
+			role="group"
 			aria-label={name ?? id}
 			data-state={state}
-			className={cn(
-				"m-0 flex h-8 items-center gap-2 rounded-md border px-2.5 text-ui",
-				RING[state],
-			)}
+			className={cn("flex h-8 items-center gap-2 rounded-md border px-2.5 text-ui", RING[state])}
 		>
 			<StatusDot status={STEP_STATUS[state]} label={t.factory.step[state]} />
 			<span className={cn("text-12", !name && "font-mono")}>{name ?? id}</span>
@@ -51,6 +51,6 @@ export function RunStep({
 					{t.factory.units} {units}
 				</span>
 			) : null}
-		</figure>
+		</span>
 	);
 }

@@ -60,6 +60,7 @@ export function Toaster({
 							title={n.title}
 							body={n.body}
 							time={time.format(n.time)}
+							actions={n.action ? [n.action] : undefined}
 							action={
 								<IconButton label={t.notifications.dismiss} onClick={() => onDismiss(n.id)}>
 									<XMarkIcon size={14} />

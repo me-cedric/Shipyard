@@ -25,7 +25,7 @@ test("approvals wait for a click, and the runs show the review, CI and merge sta
 	await page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Runs" }).click();
 
 	const failing = lane(page, "In review").getByRole("button", { name: /ACME-7/ });
-	await expect(failing).toContainText("pr:github:43");
+	await expect(failing).toContainText("#43");
 	await expect(failing).toContainText("CI failing");
 
 	await lane(page, "Working")
@@ -40,5 +40,11 @@ test("approvals wait for a click, and the runs show the review, CI and merge sta
 	await page.getByRole("link", { name: "Runs", exact: true }).first().click();
 	const ready = lane(page, "Ready to merge").getByRole("button", { name: /ACME-8/ });
 	await expect(ready).toContainText("CI passing");
-	await expect(lane(page, "Done").getByRole("button", { name: /ACME-11/ })).toBeVisible();
+	await page.getByRole("button", { name: "History" }).click();
+	await expect(
+		page
+			.getByRole("table", { name: "History" })
+			.getByRole("row", { name: /ACME-11/ })
+			.first(),
+	).toBeVisible();
 });

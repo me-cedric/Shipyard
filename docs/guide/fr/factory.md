@@ -36,23 +36,26 @@ Un workflow s’ouvre dans un formulaire. Utilisez Formulaire et Texte pour pass
 - Étapes : réglez le rôle ou l’action, le niveau de modèle, l’effort, le mode, les dépendances, les outils et la validation de chaque étape. Plus montre les autres champs : espace de travail, pour chaque, enfants en parallèle, nouveaux essais, limite de temps, budget, compétence, contexte neuf et tours de revue. Ajoutez, retirez et déplacez une étape vers le haut ou vers le bas.
 - Limites : le délai d’inactivité en secondes. Activez Budget pour arrêter chaque exécution à un montant en USD, et Limite de tours pour mettre chaque exécution en pause après un nombre de tours. Les deux sont désactivés par défaut.
 - Le formulaire vérifie le workflow à chaque changement. Enregistrer reste désactivé tant qu’il montre un problème.
-- Nouveau crée un workflow à partir d’un modèle : feature, bug, spike, docs-update, review-only, spec-split ou bootstrap. Dupliquer copie le workflow ouvert. Renommer et Supprimer refusent le workflow par défaut du projet et un workflow qu’une exécution utilise. Supprimer demande une confirmation.
+- Nouveau crée un workflow à partir d’un modèle : feature, bug, spike, docs-update, review-only, spec-split ou bootstrap. Le menu Plus d’actions du workflow ouvert contient Dupliquer, Renommer et Supprimer. Dupliquer copie le workflow. Renommer et Supprimer refusent le workflow par défaut du projet et un workflow qu’une exécution utilise. Supprimer demande une confirmation.
 - Un enregistrement depuis le formulaire garde les lignes de commentaire en haut du fichier. Utilisez Texte pour garder les autres commentaires.
 - Un agent extérieur avec les outils Workflows activés (Réglages / Connexions / MCP) peut lister, lire, vérifier et proposer un workflow. Une proposition ne change pas le fichier : ouvrez le workflow, lisez le diff, puis Appliquer ou Écarter.
 
 ## Carte des agents
 
-Carte des agents dessine les workflows, les rôles et les compétences sous forme de graphe.
+Carte des agents dessine les exécutions, leurs tickets, leurs sessions d’agent et les fichiers de leurs constats sous forme de graphe. Un nœud montre la clé et le titre du ticket, le nom de l’étape ou le nom du fichier. Survolez un nœud pour voir sa référence. Clic droit, ou touche menu contextuel, pour copier la référence. Cliquez sur une exécution ou une session pour ouvrir l’exécution. Le bouton tableau liste les mêmes nœuds pour le clavier.
 
 ## Sessions
 
-Sessions liste les sessions d'agent de cet ordinateur. Arrêtez une session dont vous n'avez pas besoin.
+Sessions liste les sessions d’agent des exécutions et celles de cet ordinateur. Cliquez sur une session d’exécution pour ouvrir l’exécution à cette étape. Arrêtez une session dont vous n’avez pas besoin.
 
 L'interrupteur Agents arrête toutes les exécutions et empêche les nouvelles. Réactivez-le pour continuer.
 
 ## Consommation
 
-Consommation montre les jetons et l'argent que les agents ont utilisés, par jour et par personne, face aux budgets.
+Consommation montre les jetons et l'argent que les agents ont utilisés, par jour et par personne, face aux budgets, et le taux de réussite des exécutions.
+
+- Budgets montre les montants fixés, avec Modifier. Sans budget, il montre le formulaire. Cliquez sur un jour ou une personne pour remplir le formulaire.
+- Cliquez sur une exécution pour l’ouvrir.
 
 - Itérations compte les requêtes que chaque exécution a envoyées au modèle.
 - Les montants restent masqués jusqu'au clic sur Afficher les prix.

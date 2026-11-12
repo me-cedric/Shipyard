@@ -1,6 +1,7 @@
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 import { CI_STATUS, REVIEW_STATUS } from "@/features/code/status";
 import { useSessions } from "@/lib/factory";
+import { endOf } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import type { RunLogEvent_Serialize, RunState, RunView_Serialize } from "@/lib/ipc";
 import { openUrl } from "@/lib/menus";
@@ -56,12 +57,17 @@ export function stepperOf(run: RunView_Serialize) {
 	};
 }
 
-/** Milliseconds as hours and minutes, or as minutes and seconds under one hour. */
-export function duration(ms: number): string {
+/** Milliseconds as days and hours above 48 hours, as hours and minutes, or as minutes and seconds under one hour. The day and hour units follow `lang`. */
+export function duration(ms: number, lang = "en"): string {
 	const s = Math.max(0, Math.floor(ms / 1000));
 	const h = Math.floor(s / 3600);
 	const m = Math.floor((s % 3600) / 60);
 	const two = (n: number) => String(n).padStart(2, "0");
+	if (h >= 48) {
+		const unit = (value: number, u: "day" | "hour") =>
+			new Intl.NumberFormat(lang, { style: "unit", unit: u, unitDisplay: "narrow" }).format(value);
+		return `${unit(Math.floor(h / 24), "day")} ${unit(h % 24, "hour")}`;
+	}
 	return h > 0 ? `${h}h ${two(m)}m` : `${m}m ${two(s % 60)}s`;
 }
 
@@ -71,6 +77,7 @@ export function duration(ms: number): string {
  * when that is unknown: the loaded events are the first page only, so they cannot give the end.
  */
 function Elapsed({ start, end, live }: { start?: number; end?: number; live: boolean }) {
+	const { lang } = useI18n();
 	const [now, setNow] = useState(() => Date.now());
 	useEffect(() => {
 		if (!live) return;
@@ -79,14 +86,10 @@ function Elapsed({ start, end, live }: { start?: number; end?: number; live: boo
 	}, [live]);
 	const to = live ? now : end;
 	if (start == null || to == null) return null;
-	return <time>{duration(to - start)}</time>;
+	return <time>{duration(to - start, lang)}</time>;
 }
 
-/** The end of an ended run: the newest `last` of its sessions (Unix seconds) as milliseconds. */
-export function endOf(run: RunView_Serialize): number | undefined {
-	const last = Math.max(0, ...run.steps.flatMap((s) => s.units.map((u) => u.last ?? 0)));
-	return last > 0 ? last * 1000 : undefined;
-}
+export { endOf };
 
 /** The address of a ticket, only when it is a web address: any other scheme gives undefined. */
 export function webUrl(raw: string): string | undefined {
@@ -257,13 +260,15 @@ export function RunSummary({
 						{run.costUsd === null ? "-" : usd(run.costUsd)}
 						{run.budgetUsd === null ? "" : ` / ${usd(run.budgetUsd)}`}
 					</span>
-					<span className="w-16">
-						<SpendMeter
-							usd={run.costUsd ?? 0}
-							budget={run.budgetUsd}
-							label={`${f.cost} ${run.key}`}
-						/>
-					</span>
+					{run.budgetUsd === null ? null : (
+						<span className="w-16">
+							<SpendMeter
+								usd={run.costUsd ?? 0}
+								budget={run.budgetUsd}
+								label={`${f.cost} ${run.key}`}
+							/>
+						</span>
+					)}
 				</Fact>
 				<Fact label={f.elapsed} icon={<ClockIcon size={14} />}>
 					<Elapsed start={events[0]?.ts ?? undefined} end={endOf(run)} live={live} />

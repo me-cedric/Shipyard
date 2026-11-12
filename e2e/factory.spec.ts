@@ -14,7 +14,7 @@ async function openFactory(page: Page, tab: string) {
 	await tabs(page).getByRole("link", { name: tab }).click();
 }
 
-test("shows six lanes with counts, opens a run and stops it", async ({ page }) => {
+test("shows five lanes with counts, opens a run and stops it", async ({ page }) => {
 	await openFactory(page, "Runs");
 	for (const name of [
 		"Queued (1)",
@@ -22,9 +22,10 @@ test("shows six lanes with counts, opens a run and stops it", async ({ page }) =
 		"Needs you (4)",
 		"In review (2)",
 		"Ready to merge (1)",
-		"Done (2)",
 	])
 		await expect(page.getByRole("heading", { name })).toBeVisible();
+	// An ended run is in History, not on the board.
+	await expect(page.getByRole("heading", { name: /^Done \(/ })).toHaveCount(0);
 	await expect(lane(page, "Ready to merge").getByRole("button", { name: /ACME-8/ })).toBeVisible();
 
 	await lane(page, "Working")
@@ -51,7 +52,50 @@ test("shows six lanes with counts, opens a run and stops it", async ({ page }) =
 	await expect(page.getByRole("button", { name: "More actions" })).toHaveCount(0);
 	await expect(page.getByRole("button", { name: "Start again" })).toBeVisible();
 	await page.getByRole("link", { name: "Runs", exact: true }).first().click();
-	await expect(lane(page, "Done").getByRole("button", { name: /ACME-2/ })).toBeVisible();
+	await page.getByRole("button", { name: "History" }).click();
+	await expect(
+		page.getByRole("table", { name: "History" }).getByRole("row", { name: /ACME-2/ }),
+	).toContainText("Cancelled");
+});
+
+test("the five lanes fit a window of 1280 px with no sideways scroll", async ({ page }) => {
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await openFactory(page, "Runs");
+	await expect(page.getByRole("heading", { name: "Queued (1)" })).toBeVisible();
+	const board = lane(page, "Queued").locator("xpath=..");
+	const [scroll, client] = await board.evaluate((el) => [el.scrollWidth, el.clientWidth]);
+	expect(scroll).toBeLessThanOrEqual(client);
+});
+
+test("filters the board to Needs you and keeps the choice in the address", async ({ page }) => {
+	await openFactory(page, "Runs");
+	await page.getByRole("button", { name: "Needs you", exact: true }).click();
+	await expect(page).toHaveURL(/\?filter=needs$/);
+	await expect(page.getByRole("heading", { name: "Working (0)" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "Needs you (4)" })).toBeVisible();
+	// The mock keeps its state in memory, so a reload would close the project: leave the page and come back.
+	await lane(page, "Needs you")
+		.getByRole("button", { name: /ACME-4/ })
+		.first()
+		.click();
+	await page.goBack();
+	await expect(page).toHaveURL(/\?filter=needs$/);
+	await expect(page.getByRole("button", { name: "Needs you", exact: true })).toHaveAttribute(
+		"aria-pressed",
+		"true",
+	);
+});
+
+test("History lists the ended runs, and a row opens the run", async ({ page }) => {
+	await openFactory(page, "Runs");
+	await page.getByRole("button", { name: "History" }).click();
+	await expect(page).toHaveURL(/\?view=history$/);
+	const table = page.getByRole("table", { name: "History" });
+	const row = table.getByRole("row", { name: /ACME-11/ }).first();
+	await expect(row).toBeVisible();
+	await row.click();
+	await expect(page).toHaveURL(/\/factory\/runs\/[0-9A-Z]{26}$/);
+	await expect(page.getByRole("region", { name: "ACME-11", exact: true })).toBeVisible();
 });
 
 test("opens a run by its address, and the browser Back returns to the list", async ({ page }) => {
@@ -96,7 +140,7 @@ test("the global kill switch cancels the runs and releases", async ({ page }) =>
 
 test("shows a check error with its line for a broken workflow", async ({ page }) => {
 	await openFactory(page, "Workflows");
-	await page.getByRole("button", { name: /^bug/ }).click();
+	await page.getByRole("button", { name: /^Bug/ }).click();
 	await page.getByRole("tab", { name: "Text" }).click();
 	const editor = page.getByRole("textbox", { name: "bug" });
 	await editor.fill((await editor.inputValue()).replace("id: bug", "id: other"));
@@ -121,7 +165,7 @@ test("makes a workflow from a preset, changes an effort in the form and saves it
 	await page.getByRole("option", { name: "max" }).click();
 	await page.getByRole("button", { name: "Save" }).click();
 	await expect(page.getByRole("button", { name: "Save" })).toBeDisabled();
-	await expect(page.getByRole("button", { name: /^hotfix/ })).toBeVisible();
+	await expect(page.getByRole("button", { name: /^Hotfix/ })).toBeVisible();
 });
 
 test("lists every AI session on the computer and stops a running one", async ({ page }) => {

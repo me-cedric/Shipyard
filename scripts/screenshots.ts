@@ -40,8 +40,23 @@ const scenes: Scene[] = [
 		name: "workflows",
 		run: async (p) => {
 			await open(p, "Factory", "Workflows");
-			await p.getByRole("button", { name: /^feature/ }).click();
+			await p.getByRole("button", { name: /^feature/i }).click();
 			await p.getByRole("textbox", { name: "Step id" }).first().waitFor();
+		},
+	},
+	{
+		name: "runs-history",
+		run: async (p) => {
+			await open(p, "Factory", "Runs");
+			await p.getByRole("button", { name: "History", exact: true }).click();
+			await p.getByRole("table", { name: "History" }).waitFor();
+		},
+	},
+	{
+		name: "usage",
+		run: async (p) => {
+			await open(p, "Factory", "Usage");
+			await p.getByRole("region", { name: "Budgets" }).waitFor();
 		},
 	},
 	{

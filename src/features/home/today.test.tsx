@@ -47,6 +47,17 @@ describe("Home / Today", () => {
 		);
 	});
 
+	it("draws the body of an approval as Markdown, not as raw text", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const approval = mockState().factory.approvals.find((a) => a.key === "ACME-1");
+		if (approval) approval.detail = "## Add export endpoint\n\nUse `GET /export`.";
+		mountApp("/home/today");
+		const bar = within(await screen.findByRole("region", { name: "Post a comment on ACME-1" }));
+		expect(await bar.findByRole("heading", { name: "Add export endpoint" })).toBeInTheDocument();
+		expect(bar.getByText("GET /export").tagName).toBe("CODE");
+		expect(bar.queryByText(/##|`/)).toBeNull();
+	});
+
 	it("groups my tickets by state, with the status and Start run in each row", async () => {
 		await withTracker();
 		await importAll();

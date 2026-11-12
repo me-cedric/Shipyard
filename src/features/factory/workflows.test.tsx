@@ -17,7 +17,11 @@ async function open(id: string) {
 			<Workflows />
 		</ShellProvider>,
 	);
-	await user.click(await screen.findByRole("button", { name: new RegExp(`^${id}`) }));
+	await user.click(
+		await screen.findByRole("button", {
+			name: new RegExp(`^${id.charAt(0).toUpperCase()}${id.slice(1)}`),
+		}),
+	);
 	return user;
 }
 
@@ -107,9 +111,31 @@ describe("Workflows: the form", () => {
 		expect(fields.getByRole("spinbutton", { name: "Retries" })).toBeInTheDocument();
 	});
 
+	it("lists a workflow by its name with its step names, and its file actions sit in one menu", async () => {
+		const user = await open("spike");
+		const row = screen.getByRole("button", { name: /^Spike/ });
+		expect(row).toHaveAttribute("aria-current", "true");
+		for (const name of ["Grill", "Investigate", "Report"])
+			expect(within(row).getByRole("group", { name })).toBeInTheDocument();
+		expect(within(row).getByTitle("spike")).toBeInTheDocument();
+		// The id shows in the header of the editor, as text, with its copy control.
+		const header = within(screen.getByRole("region", { name: "spike" }));
+		expect(header.getByRole("heading", { name: "Spike" })).toBeInTheDocument();
+		expect(header.getByText("spike")).toBeInTheDocument();
+		// Duplicate, Rename and Delete are not buttons of the frame: they are in the menu.
+		for (const name of ["Duplicate", "Rename", "Delete"])
+			expect(screen.queryByRole("button", { name })).toBeNull();
+		await user.click(await screen.findByRole("button", { name: "More actions" }));
+		for (const name of ["Duplicate", "Rename", "Delete"])
+			expect(await screen.findByRole("menuitem", { name })).toBeInTheDocument();
+		await user.click(screen.getByRole("menuitem", { name: "Duplicate" }));
+		expect(await screen.findByRole("dialog", { name: "Duplicate" })).toBeInTheDocument();
+	});
+
 	it("delete asks first and refuses the default workflow", async () => {
 		const user = await open("feature");
-		await user.click(await screen.findByRole("button", { name: "Delete" }));
+		await user.click(await screen.findByRole("button", { name: "More actions" }));
+		await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
 		expect(await unwrap(commands.workflowsList())).toHaveLength(7);
 		await user.click(screen.getByRole("button", { name: "Delete feature" }));
 		expect(await screen.findByRole("alert")).toHaveTextContent("default workflow");

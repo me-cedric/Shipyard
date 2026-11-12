@@ -59,8 +59,8 @@ Wave 7, the run page
 
 Wave 8, the Runs list and the other Factory pages
 
-- [ ] T025 (A) Runs bar with search, filter and Board and History; five lanes that fit; History; the run card. REQ-034 to REQ-037.
-- [ ] T026 [P] (B) Sessions, Usage, Agents map and Workflows. REQ-038.
+- [x] T025 (A) Runs bar with search, filter and Board and History; five lanes that fit; History; the run card. REQ-034 to REQ-037.
+- [x] T026 [P] (B) Sessions, Usage, Agents map and Workflows. REQ-038.
 
 Wave 9, close
 

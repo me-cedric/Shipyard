@@ -20,6 +20,7 @@ import { RunNeeds } from "./run-needs";
 import { type Primary, primaryOf, RunSummary } from "./run-summary";
 import { RunUnits } from "./run-units";
 import { UnitTranscript } from "./unit-chat";
+import { transcript } from "./unit-transcript";
 
 /** The steps done out of all steps, and the step that works now. */
 export function progressOf(run: RunView) {
@@ -36,6 +37,9 @@ export type RunTab = "activity" | "changes" | "workflow";
 
 /** More events than this open on Important. */
 const MANY_EVENTS = 20;
+
+/** A live run reads pages on its own up to this many events (20 pages of 50); past it, "Load more" reads the rest. */
+const LIVE_MAX_EVENTS = 1000;
 
 /**
  * The run page (factory REQ-027, REQ-028; ux-declutter REQ-029 to REQ-033): a summary that stays in
@@ -64,11 +68,15 @@ export function RunDetail({
 	const active = run !== undefined && !ENDED.includes(run.state);
 	const log = useRunLog(id, active);
 	const waits = useRunWaits(id);
-	// A live run shows its newest event: read each page until the last one.
+	// A live run shows its newest event: read each page until the last one, up to the cap.
 	const { hasNextPage, isFetchingNextPage, fetchNextPage } = log;
+	const count = log.events.length;
+	const loading = hasNextPage && count < LIVE_MAX_EVENTS;
+	// `count` is a dependency: a page can land with no visible change of the fetching flag.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: count re-runs the effect for the next page
 	useEffect(() => {
-		if (active && hasNextPage && !isFetchingNextPage) void fetchNextPage();
-	}, [active, hasNextPage, isFetchingNextPage, fetchNextPage]);
+		if (active && loading && !isFetchingNextPage) void fetchNextPage();
+	}, [active, loading, isFetchingNextPage, fetchNextPage, count]);
 	const act = useRunActions();
 	const { openRef } = useShell();
 	const router = useRouter({ warn: false });
@@ -79,9 +87,15 @@ export function RunDetail({
 	const events = log.events;
 	const filter = pick ?? (events.length > MANY_EVENTS ? "important" : "all");
 	const shown = filter === "important" ? events.filter(isImportant) : events;
+	// Newest first once a live run has every event, so the latest shows under the live line.
+	// While pages load, or past the cap, the list stays oldest first: it never shows a wrong newest.
+	const newest = active && !hasNextPage;
+	const listed = newest ? shown.toReversed() : shown;
 	const session = run.steps
 		.flatMap((s) => s.units)
 		.find((u) => u.state === "running" && u.runner !== "");
+	// An empty conversation draws no box.
+	const sessionEvents = session ? events.filter((e) => e.step === session.id) : [];
 	const focusIn = (selector: string) =>
 		needs.current?.querySelector<HTMLElement>(selector)?.focus();
 	const openPr = (reference?: string) => {
@@ -167,19 +181,15 @@ export function RunDetail({
 			/>
 			{tab === "activity" ? (
 				<div role="tabpanel" aria-label={f.tabActivity} className="flex flex-col gap-4">
-					{active ? <LiveLine run={run} events={events} /> : null}
+					{active ? <LiveLine run={run} events={newest ? events : []} /> : null}
 					{run.state === "RetryQueued" && run.reason ? (
 						<p role="status" className="text-ui text-n-11">
 							{format(f.why.stop, { text: run.reason })}
 						</p>
 					) : null}
-					{session ? (
+					{transcript(sessionEvents).items.length > 0 ? (
 						<div className="overflow-hidden rounded-lg border bg-surface-1">
-							<UnitTranscript
-								events={events.filter((e) => e.step === session.id)}
-								ticket={run.key}
-								running
-							/>
+							<UnitTranscript events={sessionEvents} ticket={run.key} running />
 						</div>
 					) : null}
 					<Panel
@@ -200,7 +210,7 @@ export function RunDetail({
 							</div>
 						}
 					>
-						<EventRows events={shown} ticket={run.key} />
+						<EventRows events={listed} ticket={run.key} />
 						{log.hasNextPage ? (
 							<div className="border-t p-2">
 								<Button variant="ghost" onClick={() => void log.fetchNextPage()}>

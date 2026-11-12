@@ -22,6 +22,7 @@ export type SaveState = "clean" | "dirty" | "conflict";
  */
 export function EditorFrame({
 	title,
+	heading,
 	refId,
 	refState = "resolved",
 	actions,
@@ -34,6 +35,8 @@ export function EditorFrame({
 	children,
 }: {
 	title: string;
+	/** A readable name for the heading: `title` (the id) then shows beside it in mono text. */
+	heading?: string;
 	refId: string;
 	refState?: RefState;
 	/** Secondary actions, left of the primary one. */
@@ -67,7 +70,8 @@ export function EditorFrame({
 		<section aria-label={title} className="flex min-h-0 flex-1 flex-col gap-2">
 			<LeaveGuard dirty={save !== "clean"} />
 			<header className="flex items-center gap-2">
-				<h2 className="truncate text-14 font-medium">{title}</h2>
+				<h2 className="truncate text-14 font-medium">{heading ?? title}</h2>
+				{heading ? <span className="truncate font-mono text-12 text-n-11">{title}</span> : null}
 				<RefChip refId={refId} state={refState} />
 				<IconButton label={labels.copy} onClick={() => copyText(refId)}>
 					<ClipboardIcon size={14} />

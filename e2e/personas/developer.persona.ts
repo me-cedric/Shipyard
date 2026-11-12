@@ -34,7 +34,9 @@ test("developer", async ({ page }) => {
 		);
 		await w.click(page.getByRole("button", { name: "Open the run" }));
 		await w.see(
-			page.getByRole("button", { name: "More actions" }),
+			page
+				.getByRole("region", { name: /^ACME-\d+$/ })
+				.getByRole("button", { name: "More actions" }),
 			"the link does not open the run",
 		);
 		await w.click(page.getByRole("main").getByRole("link", { name: "Runs", exact: true }).first());

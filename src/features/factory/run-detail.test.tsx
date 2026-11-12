@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRef } from "react";
 import { commands, type RunLogEvent_Serialize, type RunState, unwrap } from "@/lib/ipc";
@@ -74,6 +74,12 @@ describe("Factory / run page: pure rules", () => {
 	it("shows a time as hours and minutes, or minutes and seconds", () => {
 		expect(duration(7_500_000)).toBe("2h 05m");
 		expect(duration(312_000)).toBe("5m 12s");
+	});
+
+	it("shows days and hours above 48 hours, with the units of the language", () => {
+		expect(duration(47 * 3_600_000)).toBe("47h 00m");
+		expect(duration((14 * 24 + 2) * 3_600_000)).toBe("14d 2h");
+		expect(duration((14 * 24 + 2) * 3_600_000, "fr")).toMatch(/^14\s?j 2\s?h$/);
 	});
 
 	it("marks questions, errors, state changes and results as important, and tool calls not", () => {
@@ -223,6 +229,88 @@ describe("Factory / run page", () => {
 		expect(within(events).queryByText("The agent used read file")).toBeNull();
 		await user.click(within(events).getByRole("button", { name: "All" }));
 		expect((await within(events).findAllByText("The agent used read file")).length).toBe(25);
+	});
+
+	it("lists a live run newest first and an ended run oldest first", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const live = await find("ACME-2");
+		const ended = (await unwrap(commands.runsList())).find((r) => r.state === "Done");
+		if (!ended) throw new Error("a run that is done");
+		for (const r of [live, ended]) {
+			const log = mockState().factory.runs.find((x) => x.id === r.id)?.log;
+			log?.splice(0);
+			for (const [i, to] of ["Queued", "Paused"].entries())
+				log?.push({
+					id: 7000 + i,
+					step: null,
+					kind: "state",
+					payload: JSON.stringify({ from: "Working", to }),
+					ts: 1_000 + i,
+				});
+		}
+		const order = async (id: string) => {
+			const router = mountApp(`/factory/runs/${id}`);
+			const events = await screen.findByRole("region", { name: /^Events/ });
+			await within(events).findByText(/moved to Paused/);
+			const rows = within(events)
+				.getAllByRole("listitem")
+				.map((li) => li.textContent ?? "");
+			const at = (word: string) => rows.findIndex((x) => x.includes(`moved to ${word}`));
+			await waitFor(() => expect(router.state.status).toBe("idle"));
+			return at("Queued") < at("Paused");
+		};
+		expect(await order(live.id)).toBe(false);
+		cleanup();
+		expect(await order(ended.id)).toBe(true);
+	});
+
+	it("loads every page of a live run: event 120 is on top and in the live line", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const live = await find("ACME-2");
+		const log = mockState().factory.runs.find((x) => x.id === live.id)?.log;
+		log?.splice(0);
+		// Only the 120th event says Paused: it is the newest.
+		for (let i = 1; i <= 120; i++)
+			log?.push({
+				id: 9000 + i,
+				step: null,
+				kind: "state",
+				payload: JSON.stringify({ from: "Working", to: i === 120 ? "Paused" : "Queued" }),
+				ts: 1_000 + i,
+			});
+		const router = mountApp(`/factory/runs/${live.id}`);
+		const events = await screen.findByRole("region", { name: /^Events/ });
+		await waitFor(
+			() => {
+				expect(within(events).getAllByRole("listitem")[0]).toHaveTextContent("moved to Paused");
+			},
+			{ timeout: 4000 },
+		);
+		expect(screen.getByText("ACME-2 moved to Paused", { selector: "p[aria-live]" })).toBeVisible();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("draws no box for a live conversation with nothing in it", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const run = await find("ACME-2");
+		const unit = run.steps.flatMap((x) => x.units).find((u) => u.state === "running" && u.runner);
+		const log = mockState().factory.runs.find((x) => x.id === run.id)?.log;
+		log?.splice(0);
+		const router = mountApp(`/factory/runs/${run.id}`);
+		await screen.findByRole("region", { name: /^Events/ });
+		expect(screen.queryByRole("log", { name: "Session transcript" })).toBeNull();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+		cleanup();
+		log?.push({
+			id: 7100,
+			step: unit?.id ?? null,
+			kind: "runner",
+			payload: JSON.stringify({ type: "text", text: "Hello" }),
+			ts: 1_000,
+		});
+		const again = mountApp(`/factory/runs/${run.id}`);
+		expect(await screen.findByRole("log", { name: "Session transcript" })).toBeInTheDocument();
+		await waitFor(() => expect(again.state.status).toBe("idle"));
 	});
 
 	it("lists each changed file closed, with its counts, and opens it on a click", async () => {

@@ -28,6 +28,7 @@ import { Card } from "@/ui/molecules/card";
 import { Panel } from "@/ui/molecules/panel";
 import { QuestionCard } from "@/ui/molecules/question-card";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { MarkdownView } from "@/ui/organisms/markdown-view";
 import { routeInbox } from "./routing";
 
 /** The count of what waits for the person: the groups of Needs you. */
@@ -233,6 +234,7 @@ export function ApprovalRow({
 	/** Hide the chip of the run: the run page already is that run. */
 	noRun?: boolean;
 }) {
+	const { t } = useI18n();
 	const act = useInboxActions();
 	const { reason } = useRights().gate(a.right);
 	const { error, run } = useGuard();
@@ -242,6 +244,7 @@ export function ApprovalRow({
 				approval={a}
 				meta={noRun ? undefined : <RunLink run={a.run} ticket={a.key} />}
 				reason={reason}
+				body={(text) => <MarkdownView source={text} label={t.home.details} refs={false} />}
 				onApprove={() => void run(() => act.approve(a.id))}
 				onReject={() => void run(() => act.reject(a.id))}
 			/>
