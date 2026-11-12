@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.1.0]
+## [0.2.0]
 - Knowledge / Graph / Code opens as a map of folders, with thicker lines where more calls go between their files, instead of a flat list of 300 symbols: select a folder to see its files, and a file to see its symbols with what calls them and what they call; Show all returns to the map.
 - Code / History shows the profile picture of each commit author, from GitHub for a GitHub no-reply address and from Gravatar for any other address (the initials when there is none). Only a hash of the address goes to Gravatar.
 - Knowledge / Graph / Code shows the graph after Index: it reads the index also when the code server is off (it runs for that read only), and it finds the index of a folder with a link or a space in its path.
@@ -14,7 +14,8 @@
 - Every tab has a header with its icon, one loading pattern and one empty pattern replace the bare text and the ad hoc skeletons, Agents and rules, Extensions and Health have a section list, the inner tab rows have a sliding mark, and the team rights tables, the Work / Team members table and the learning paths table use the shared table (their cells wrap, and a cut header shows its full name on hover).
 - The top bar and the pages hold less: one Activity button (needs you, runs and sessions, each with its stop) replaces three counters, the account menu holds Settings / Me, the theme, the manual, the shortcuts, what is new and the tour, Ask is one split button with the canned prompts behind its arrow, Sync shows ahead and behind, the status bar shows the changed files beside Commit, Terminal and Manual are no longer tabs (their addresses and shortcuts stay), each tab has an icon, and the Home tiles are gone: the number of my items, the spend of today with its 14-day trend and the live runs sit in the headings of Today.
 - One Get started checklist of eleven items replaces the earlier Get started and Setup cards, and its done items link to their pages; the tour opens once after the first project; every space with no project shows one page with three ways to open (a folder, a clone, a new project), and the open error shows there; the empty Runs and Backlog pages name the missing step (an AI tool, an issue tracker); the glossary explains issue tracker, code host, AI tool, model, spec, decision, run and pull request on hover and keyboard focus, with a link to the manual.
-- A run no longer stays stuck: it fixes blocking findings, red checks, conflicts and empty branches in capped fix rounds, and a stop (a cap, the same failure twice, a spent budget or no answer) writes its cause, last lines, what it tried and the action on the ticket and in the Runs banner, where Unblock, a team reply on the ticket or Close as done moves it on; an ended run no longer restarts by itself.
+
+## [0.1.0]
 - Resume takes the limits that the workflow has now, so a budget that you removed no longer stops a run, and Resume with an empty amount works again.
 - The app starts on any Mac: libgit2 and OpenSSL are built into it, not taken from Homebrew; the README shows the current screens and how to install a release.
 - Work / Team edits the role table: each role shows Hidden, Read or Read and write in each area with Merge and Approve, Edit turns the cells into controls (Save, Cancel and Reset to defaults), a member can have several roles with the levels that result, and Work / Time edits and deletes an entry, with the sync state after the change.

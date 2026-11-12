@@ -13,7 +13,7 @@ serde_norway = "0.9.42"
 base64 = "0.23"
 ring = "0.17"
 thiserror = "2"
-shipyard-core = { version = "0.1.0", path = "../shipyard-core" }
+shipyard-core = { version = "0.2.0", path = "../shipyard-core" }
 calamine = "0.38.0"
 rust_xlsxwriter = "0.102.0"
 docx-rs = "0.4.22"
