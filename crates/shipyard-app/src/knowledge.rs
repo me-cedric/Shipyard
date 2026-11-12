@@ -190,9 +190,13 @@ pub struct CodeGraph {
     pub edges: Vec<GraphEdge>,
 }
 
-/// The name of the graph of a folder in codebase-memory: its path with `-` for each `/`.
+/// The name of the graph of a folder in codebase-memory: its real path (a link such as `/tmp` or
+/// `/var` is resolved, as the tool does) with `-` for each `/` and each space.
 fn graph_project(root: &Path) -> String {
-    root.to_string_lossy().trim_matches('/').replace('/', "-")
+    let real = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
+    real.to_string_lossy()
+        .trim_matches('/')
+        .replace(['/', ' '], "-")
 }
 
 /// The data of a tool result: the JSON in its first text block, or the result itself.
@@ -1332,6 +1336,22 @@ mod tests {
     use std::time::{Duration, SystemTime};
 
     use super::*;
+
+    #[test]
+    fn the_graph_name_follows_the_real_path_with_dashes_for_slashes_and_spaces() {
+        assert_eq!(
+            graph_project(Path::new("/no/such/My Projects/app")),
+            "no-such-My-Projects-app"
+        );
+        let dir = tempfile::tempdir().unwrap();
+        let link = dir.path().join("link");
+        std::os::unix::fs::symlink(dir.path(), &link).unwrap();
+        let real = dir.path().canonicalize().unwrap();
+        assert_eq!(
+            graph_project(&link),
+            real.to_string_lossy().trim_matches('/').replace('/', "-")
+        );
+    }
 
     #[test]
     fn the_graph_rows_read_json_and_the_text_table() {
