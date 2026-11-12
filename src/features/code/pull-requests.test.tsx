@@ -116,8 +116,8 @@ describe("Code / Pull requests", () => {
 	it("shows the conversation, the reviewers and the links in the Overview", async () => {
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-142");
-		expect(await screen.findByRole("heading", { name: "Conversation (1)" })).toBeInTheDocument();
-		expect(screen.getByText("Grace Hopper: rename this")).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: "Conversation (4)" })).toBeInTheDocument();
+		expect(screen.getByText("rename this")).toBeInTheDocument();
 		const side = screen.getByRole("complementary", { name: "Details" });
 		expect(within(side).getByText("Grace Hopper")).toBeInTheDocument();
 		expect(within(side).getByText("Changes requested")).toBeInTheDocument();
@@ -265,7 +265,7 @@ describe("Code / Pull requests", () => {
 		});
 		const view = screen.getByRole("region", { name: "Merge status" });
 		expect(within(view).getByText("1 passing, 2 failing, 0 pending")).toBeInTheDocument();
-		expect(within(view).getByText("1 unresolved of 1")).toBeInTheDocument();
+		expect(within(view).getByText("1 unresolved of 2")).toBeInTheDocument();
 		expect(within(view).getByText("0 of 1 approved")).toBeInTheDocument();
 		await idle(router);
 	});
@@ -365,7 +365,7 @@ describe("Code / Pull requests", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent("some text");
 		await user.type(screen.getByRole("textbox", { name: "Comment" }), "rename it");
 		await user.click(screen.getByRole("button", { name: "Comment" }));
-		expect(await screen.findByText("Ada Lovelace: rename it")).toBeInTheDocument();
+		expect(await screen.findByText("rename it")).toBeInTheDocument();
 		expect(screen.getByRole("heading", { name: "Conversation (1)" })).toBeInTheDocument();
 		await idle(router);
 	});
@@ -393,6 +393,266 @@ describe("Code / Pull requests", () => {
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 		expect(await screen.findByRole("heading", { name: "Open (10)" })).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: /feat\(code\): login/ })).toBeInTheDocument();
+	});
+});
+
+describe("Pull request conversation", () => {
+	const open = async (n = 142) => {
+		await demo();
+		await unwrap(commands.codePullDetail(n));
+		return mountApp(`/code/pull-requests/github-demo-${n}`);
+	};
+	const mockPull = (n: number) => mockState().prs?.pulls.find((p) => p.number === n);
+	// A thread button says where it replies, so it differs from the Reply of PrAi.
+	const thread = (place: string) => within(screen.getByRole("article", { name: place }));
+	const box = () => screen.getByRole("region", { name: "Merge status" });
+
+	it("mixes the comments and the threads in time order", async () => {
+		const router = await open();
+		await screen.findByRole("heading", { name: "Conversation (4)" });
+		const panel = screen.getByRole("region", { name: "Conversation" });
+		const text = within(panel).getAllByText(
+			/Thanks for the fix|rename this|Pushed a new commit|this branch is dead/,
+		);
+		expect(text.map((n) => n.textContent?.slice(0, 12))).toEqual([
+			"Thanks for t",
+			"rename this",
+			"Pushed a new",
+			"this branch ",
+		]);
+		const time = within(panel).getAllByText(/^Nov 9, 2026/)[0];
+		expect(time).toHaveTextContent(/\d{1,2}:\d{2}/);
+		expect(time).toHaveAttribute("datetime", "2026-11-09T16:00:00Z");
+		expect(time?.getAttribute("title")).toContain("2026");
+		expect(within(panel).getAllByText("src/app.ts:2")[0]).toBeInTheDocument();
+		await idle(router);
+	});
+
+	it("renders Markdown and never runs a script", async () => {
+		await demo();
+		await unwrap(commands.codePullDetail(142));
+		mockPull(142)?.comments.push({
+			id: "C9",
+			author: "Eve",
+			body: "<script>window.hacked = 1</script>",
+			created: "",
+		});
+		const router = mountApp("/code/pull-requests/github-demo-142");
+		const link = await screen.findByRole("link", { name: "the guide" });
+		expect(link).toHaveAttribute("href", "https://example.com/guide");
+		expect(screen.getByText("retry()").tagName).toBe("CODE");
+		expect(await screen.findByText("<script>window.hacked = 1</script>")).toBeInTheDocument();
+		expect(document.querySelector("script[src], article script")).toBeNull();
+		expect((window as unknown as { hacked?: number }).hacked).toBeUndefined();
+		// No time is shown for a comment that has none.
+		const eve = screen.getByText("Eve").parentElement;
+		expect(eve?.querySelector("time")).toBeNull();
+		await idle(router);
+	});
+
+	it("shows nothing for an empty conversation", async () => {
+		const router = await open(141);
+		await screen.findByRole("region", { name: "Merge status" });
+		expect(screen.queryByRole("heading", { name: /^Conversation/ })).toBeNull();
+		await idle(router);
+	});
+
+	it("collapses a resolved thread to one line and opens it on click", async () => {
+		const user = userEvent.setup();
+		const router = await open();
+		const line = await screen.findByRole("button", { name: /src\/lib\.ts:7/ });
+		expect(line).toHaveAttribute("aria-expanded", "false");
+		expect(line).toHaveTextContent("Resolved");
+		expect(line).toHaveTextContent("this branch is dead");
+		await user.click(line);
+		expect(line).toHaveAttribute("aria-expanded", "true");
+		expect(screen.getByRole("button", { name: "Reopen" })).toBeInTheDocument();
+		await idle(router);
+	});
+
+	it("replies to a thread and puts the focus back on Reply", async () => {
+		const user = userEvent.setup();
+		const router = await open();
+		await screen.findByRole("article", { name: "src/app.ts:2" });
+		await user.click(thread("src/app.ts:2").getByRole("button", { name: "Reply to src/app.ts:2" }));
+		await user.type(screen.getByRole("textbox", { name: "Reply to this thread" }), "fixed in abc");
+		await user.click(screen.getByRole("button", { name: "Post reply" }));
+		expect(await screen.findByText("fixed in abc")).toBeInTheDocument();
+		expect(mockPull(142)?.threads[0]?.comments).toHaveLength(3);
+		await waitFor(() =>
+			expect(
+				thread("src/app.ts:2").getByRole("button", { name: "Reply to src/app.ts:2" }),
+			).toHaveFocus(),
+		);
+		await idle(router);
+	});
+
+	it("resolves and reopens a thread, and the merge box count follows", async () => {
+		const user = userEvent.setup();
+		const router = await open();
+		await user.click(await screen.findByRole("button", { name: "Resolve" }));
+		expect(await within(box()).findByText("0 unresolved of 2")).toBeInTheDocument();
+		expect(mockPull(142)?.threads[0]?.resolved).toBe(true);
+		const rows = await screen.findAllByRole("button", { name: /src\/app\.ts:2/ });
+		expect(rows[0]).toHaveAttribute("aria-expanded", "false");
+		await user.click(rows[0] as HTMLElement);
+		await user.click(await screen.findByRole("button", { name: "Reopen" }));
+		expect(await within(box()).findByText("1 unresolved of 2")).toBeInTheDocument();
+		await idle(router);
+	});
+
+	it("shows a refusal under the thread and keeps the typed reply", async () => {
+		const user = userEvent.setup();
+		const router = await open();
+		await screen.findByRole("article", { name: "src/app.ts:2" });
+		await user.click(thread("src/app.ts:2").getByRole("button", { name: "Reply to src/app.ts:2" }));
+		const area = screen.getByRole("textbox", { name: "Reply to this thread" });
+		await user.type(area, "later");
+		const refuse = vi.spyOn(commands, "codePullReply").mockResolvedValueOnce({
+			status: "error",
+			error: { code: "forge_denied", details: "403", action: null },
+		});
+		await user.click(screen.getByRole("button", { name: "Post reply" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("The server refused the token");
+		expect(area).toHaveValue("later");
+		refuse.mockRestore();
+		await idle(router);
+	});
+
+	it("previews the draft as Markdown and keeps it over a tab change", async () => {
+		const user = userEvent.setup();
+		const router = await open(141);
+		const area = await screen.findByRole("textbox", { name: "Comment" });
+		await user.click(area);
+		await user.paste("see `x` and [doc](https://example.com/doc)");
+		await user.click(screen.getByRole("tab", { name: "Preview" }));
+		expect(screen.queryByRole("textbox", { name: "Comment" })).toBeNull();
+		expect(screen.getByRole("link", { name: "doc" })).toBeInTheDocument();
+		await user.click(screen.getByRole("tab", { name: "Files changed (1)" }));
+		await user.click(await screen.findByRole("tab", { name: "Overview" }));
+		expect(await screen.findByRole("textbox", { name: "Comment" })).toHaveValue(
+			"see `x` and [doc](https://example.com/doc)",
+		);
+		await idle(router);
+	});
+
+	it("posts a general comment, not a thread, and keeps the draft when the host refuses", async () => {
+		const user = userEvent.setup();
+		const router = await open(141);
+		const post = await screen.findByRole("button", { name: "Comment" });
+		expect(post).toBeDisabled();
+		await user.type(screen.getByRole("textbox", { name: "Comment" }), "ok");
+		await user.click(post);
+		await waitFor(() => expect(mockPull(141)?.comments).toHaveLength(1));
+		expect(mockPull(141)?.threads).toHaveLength(0);
+		// A request for changes with no text is refused and the box stays.
+		await user.type(screen.getByRole("textbox", { name: "Comment" }), "  ");
+		await user.click(screen.getByRole("button", { name: "Request changes" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("some text");
+		expect(screen.getByRole("textbox", { name: "Comment" })).toHaveValue("  ");
+		await idle(router);
+	});
+
+	it("sends one comment on a double click", async () => {
+		const user = userEvent.setup();
+		const router = await open(141);
+		const post = vi
+			.spyOn(commands, "codePullComment")
+			.mockImplementation(
+				() => new Promise((done) => setTimeout(() => done({ status: "ok", data: null }), 50)),
+			);
+		await user.type(await screen.findByRole("textbox", { name: "Comment" }), "once");
+		await user.dblClick(screen.getByRole("button", { name: "Comment" }));
+		await waitFor(() => expect(screen.getByRole("textbox", { name: "Comment" })).toHaveValue(""));
+		expect(post).toHaveBeenCalledTimes(1);
+		post.mockRestore();
+		await idle(router);
+	});
+
+	it("closes from the write box only after a confirmation, with the text as the reason", async () => {
+		const user = userEvent.setup();
+		const router = await open(141);
+		await user.type(await screen.findByRole("textbox", { name: "Comment" }), "not needed");
+		await user.click(screen.getByRole("button", { name: "Close pull request" }));
+		// Leaving the confirmation cancels it: nothing closed, the text stays.
+		await user.tab();
+		expect(await screen.findByRole("button", { name: "Close pull request" })).toBeInTheDocument();
+		expect(mockPull(141)?.state).toBe("open");
+		expect(screen.getByRole("textbox", { name: "Comment" })).toHaveValue("not needed");
+		await user.click(screen.getByRole("button", { name: "Close pull request" }));
+		await user.click(await screen.findByRole("button", { name: "Close #141?" }));
+		await waitFor(() => expect(mockPull(141)?.state).toBe("closed"));
+		expect(mockPull(141)?.comments.map((c) => c.body)).toContain("not needed");
+		await idle(router);
+	});
+
+	it("keeps the card, the focus and the typed reply over Resolve and Reopen", async () => {
+		const user = userEvent.setup();
+		const router = await open();
+		await screen.findByRole("article", { name: "src/app.ts:2" });
+		await user.click(thread("src/app.ts:2").getByRole("button", { name: "Reply to src/app.ts:2" }));
+		await user.type(screen.getByRole("textbox", { name: "Reply to this thread" }), "draft text");
+		await user.click(thread("src/app.ts:2").getByRole("button", { name: "Resolve" }));
+		const line = await screen.findByRole("button", { name: /src\/app\.ts:2/ });
+		expect(line).toHaveAttribute("aria-expanded", "false");
+		await waitFor(() => expect(line).toHaveFocus());
+		await user.click(line);
+		expect(screen.getByRole("textbox", { name: "Reply to this thread" })).toHaveValue("draft text");
+		await user.click(thread("src/app.ts:2").getByRole("button", { name: "Reopen" }));
+		await waitFor(() =>
+			expect(thread("src/app.ts:2").getByRole("button", { name: "Resolve" })).toHaveFocus(),
+		);
+		expect(screen.getByRole("textbox", { name: "Reply to this thread" })).toHaveValue("draft text");
+		await idle(router);
+	});
+
+	it("names a thread without a file by the conversation", async () => {
+		await demo();
+		await unwrap(commands.codePullDetail(142));
+		mockPull(142)?.threads.push({
+			id: "T3",
+			resolved: false,
+			path: null,
+			line: null,
+			commentsTotal: 1,
+			comments: [{ id: "TC9", author: "Eve", body: "general point", created: "" }],
+		});
+		const router = mountApp("/code/pull-requests/github-demo-142");
+		const card = await screen.findByRole("article", { name: "the conversation" });
+		expect(
+			within(card).getByRole("button", { name: "Reply to the conversation" }),
+		).toHaveTextContent("Reply");
+		await idle(router);
+	});
+
+	it("says when the host returned only the newest comments, a part of a thread or fewer threads", async () => {
+		await demo();
+		await unwrap(commands.codePullDetail(142));
+		const p = mockPull(142);
+		if (!p) throw new Error("no pull request 142");
+		p.commentsTruncated = true;
+		p.threadsTruncated = true;
+		const first = p.threads[0];
+		if (first) first.commentsTotal = 80;
+		const router = mountApp("/code/pull-requests/github-demo-142");
+		expect(await screen.findByText("Showing the latest 2 comments")).toBeInTheDocument();
+		expect(screen.getByText("Showing the first 2 review threads")).toBeInTheDocument();
+		expect(screen.getByText("Showing the last 2 of 80 comments")).toBeInTheDocument();
+		await idle(router);
+	});
+
+	it("keeps Approve, Send back and Close", async () => {
+		const user = userEvent.setup();
+		const router = await open(143);
+		await screen.findByRole("textbox", { name: "Comment" });
+		expect(screen.getByRole("button", { name: "Send back to the agent" })).toBeInTheDocument();
+		await user.type(screen.getByRole("textbox", { name: "Comment" }), "fine");
+		await user.click(screen.getByRole("button", { name: "Approve" }));
+		await waitFor(() =>
+			expect(mockPull(143)?.verdicts.some((v) => v.state === "approved")).toBe(true),
+		);
+		expect(screen.getByRole("button", { name: "Close pull request" })).toBeInTheDocument();
+		await idle(router);
 	});
 });
 

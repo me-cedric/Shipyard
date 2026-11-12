@@ -131,6 +131,8 @@ export const commands = {
 	codePullLabels: () => typedError<string[], AppError_Serialize>(__TAURI_INVOKE("code_pull_labels")),
 	codePullOpen: (input: OpenPull_Deserialize, click: boolean) => typedError<OpenedPull_Serialize, AppError_Serialize>(__TAURI_INVOKE("code_pull_open", { input, click })),
 	codePullComment: (number: number, body: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_comment", { number, body, click })),
+	codePullReply: (reference: string, threadId: string, body: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_reply", { reference, threadId, body, click })),
+	codePullResolve: (reference: string, threadId: string, resolved: boolean, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_resolve", { reference, threadId, resolved, click })),
 	codePullVerdict: (number: number, verdict: Verdict, body: string, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_verdict", { number, verdict, body, click })),
 	codePullMerge: (number: number, method: MergeMethod, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_merge", { number, method, click })),
 	codePullReady: (number: number, click: boolean) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("code_pull_ready", { number, click })),
@@ -4406,6 +4408,15 @@ export type PullCheck = {
 	url: string,
 };
 
+/**  One comment of a conversation: a general one or one of a thread. */
+export type PullComment = {
+	id: string,
+	author: string,
+	body: string,
+	/**  ISO 8601 UTC from the forge, or empty when the forge gives none. */
+	created: string,
+};
+
 export type PullCommitRef = {
 	reference: string,
 	summary: string,
@@ -4435,6 +4446,12 @@ export type PullDetail_Deserialize = {
 	/**  `none`, `pending`, `passing` or `failing`. */
 	ci: string,
 	threads: PullThread_Deserialize[],
+	/**  The code host has more threads than `threads` holds. */
+	threadsTruncated: boolean,
+	/**  The general comments, not on a line, oldest first. */
+	comments: PullComment[],
+	/**  The code host has more general comments: `comments` holds the newest ones. */
+	commentsTruncated: boolean,
 	verdicts: ReviewerVerdict[],
 	/**  `clean`, `conflict`, `blocked` or `unknown`. */
 	mergeable: string,
@@ -4465,6 +4482,12 @@ export type PullDetail_Serialize = {
 	/**  `none`, `pending`, `passing` or `failing`. */
 	ci: string,
 	threads: PullThread_Serialize[],
+	/**  The code host has more threads than `threads` holds. */
+	threadsTruncated: boolean,
+	/**  The general comments, not on a line, oldest first. */
+	comments: PullComment[],
+	/**  The code host has more general comments: `comments` holds the newest ones. */
+	commentsTruncated: boolean,
 	verdicts: ReviewerVerdict[],
 	/**  `clean`, `conflict`, `blocked` or `unknown`. */
 	mergeable: string,
@@ -4500,8 +4523,10 @@ export type PullThread_Deserialize = {
 	resolved: boolean,
 	path?: string | null,
 	line?: number | null,
-	/**  `author: text`, oldest first. */
-	comments: string[],
+	/**  Oldest first. Only the newest ones when `comments_total` is higher. */
+	comments: PullComment[],
+	/**  How many comments the thread has on the code host. */
+	commentsTotal: number,
 };
 
 export type PullThread_Serialize = {
@@ -4509,8 +4534,10 @@ export type PullThread_Serialize = {
 	resolved: boolean,
 	path: string | null,
 	line: number | null,
-	/**  `author: text`, oldest first. */
-	comments: string[],
+	/**  Oldest first. Only the newest ones when `comments_total` is higher. */
+	comments: PullComment[],
+	/**  How many comments the thread has on the code host. */
+	commentsTotal: number,
 };
 
 /**  Why the pull request list can be empty: no code host, or a code host with no pull request. */

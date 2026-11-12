@@ -59,6 +59,7 @@ describe("Code: close, send back and archive", () => {
 		await user.click(await screen.findByRole("link", { name: /refuse an empty token/ }));
 		await user.type(await screen.findByRole("textbox", { name: "Comment" }), "Wrong approach");
 		await user.click(screen.getByRole("button", { name: "Close pull request" }));
+		await user.click(await screen.findByRole("button", { name: "Close #142?" }));
 		await waitFor(() =>
 			expect(mockState().prs?.pulls.find((p) => p.number === 142)?.state).toBe("closed"),
 		);

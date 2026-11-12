@@ -184,6 +184,8 @@ fn specta_builder() -> Builder<tauri::Wry> {
             crate::code::code_pull_labels,
             crate::code::code_pull_open,
             crate::code::code_pull_comment,
+            crate::code::code_pull_reply,
+            crate::code::code_pull_resolve,
             crate::code::code_pull_verdict,
             crate::code::code_pull_merge,
             crate::code::code_pull_ready,

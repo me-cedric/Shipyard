@@ -785,7 +785,7 @@ impl Writer for ProjectWriter {
                     .number;
                 for t in threads {
                     api.reply_thread(repo, number, t, reply).map_err(e)?;
-                    api.resolve_thread(repo, number, t).map_err(e)?;
+                    api.resolve_thread(repo, number, t, true).map_err(e)?;
                 }
                 Ok(String::new())
             }

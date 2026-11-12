@@ -12,7 +12,15 @@ import { hasSidebar, PullSidebar } from "./pull-sidebar";
  * The Overview tab (REQ-044): the merge box, the description as Markdown, the assistant actions, the
  * conversation, and a narrow column on the right from 1100 px (below the page under it).
  */
-export function PullOverview({ d }: { d: PullDetail }) {
+export function PullOverview({
+	d,
+	draft,
+	setDraft,
+}: {
+	d: PullDetail;
+	draft: string;
+	setDraft: (draft: string) => void;
+}) {
 	const { t } = useI18n();
 	const cited = useBacklinks(d.reference).data?.length ?? 0;
 	return (
@@ -28,7 +36,7 @@ export function PullOverview({ d }: { d: PullDetail }) {
 					<AgentReview d={d} />
 					<PrAi d={d} />
 				</div>
-				<Conversation d={d} />
+				<Conversation d={d} draft={draft} setDraft={setDraft} />
 			</div>
 			{hasSidebar(d, cited) ? <PullSidebar d={d} /> : null}
 		</div>

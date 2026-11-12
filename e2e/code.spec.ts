@@ -135,11 +135,21 @@ test("lists the pull requests by state, opens one and comments", async ({ page }
 	await expect(
 		page.getByText("Merge is blocked: 2 checks failing, changes requested"),
 	).toBeVisible();
-	await expect(page.getByText("Grace Hopper: rename this")).toBeVisible();
+	await expect(page.getByText("rename this")).toBeVisible();
+	// A resolved thread is one line: it opens on click and offers Reopen.
+	await page.getByRole("button", { name: /src\/lib\.ts:7/ }).click();
+	await expect(page.getByRole("button", { name: "Reopen", exact: true })).toBeVisible();
+	const thread = page.getByRole("article", { name: "src/app.ts:2" });
+	await thread.getByRole("button", { name: "Reply to src/app.ts:2", exact: true }).click();
+	await page.getByRole("textbox", { name: "Reply to this thread" }).fill("Renamed.");
+	await page.getByRole("button", { name: "Post reply" }).click();
+	await expect(page.getByText("Renamed.")).toBeVisible();
+	await thread.getByRole("button", { name: "Resolve", exact: true }).click();
+	await expect(page.getByText("0 unresolved of 2")).toBeVisible();
 
 	await page.getByRole("textbox", { name: "Comment" }).fill("Looks right now.");
 	await page.getByRole("button", { name: "Comment", exact: true }).click();
-	await expect(page.getByText("Ada Lovelace: Looks right now.")).toBeVisible();
+	await expect(page.getByText("Looks right now.")).toBeVisible();
 	await expect(page.getByRole("textbox", { name: "Comment" })).toHaveValue("");
 });
 

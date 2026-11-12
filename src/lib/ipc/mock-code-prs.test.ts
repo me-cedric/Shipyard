@@ -12,6 +12,8 @@ import {
 	pullMerge,
 	pullOpen,
 	pullReady,
+	pullReply,
+	pullResolve,
 	pullVerdict,
 	qualityView,
 	scannerInstall,
@@ -36,6 +38,20 @@ describe("the Code forge mock", () => {
 			"approved",
 			"changes-requested",
 		]);
+	});
+
+	it("keeps a general comment apart from the threads, and replies to and resolves a thread", () => {
+		const p = seedPrs();
+		pullComment(p, 141, "ok", true);
+		expect(pullDetail(p, 141).comments.map((c) => c.body)).toEqual(["ok"]);
+		expect(pullDetail(p, 141).threads).toEqual([]);
+		expect(() => pullReply(p, "pr:github-demo:142", "T1", "x", false)).toThrow("click");
+		expect(() => pullReply(p, "pr:github-demo:142", "T1", " ", true)).toThrow("some text");
+		pullReply(p, "pr:github-demo:142", "T1", "done", true);
+		expect(pullDetail(p, 142).threads[0]?.comments).toHaveLength(3);
+		pullResolve(p, "pr:github-demo:142", "T1", true, true);
+		expect(pullDetail(p, 142).threads[0]?.resolved).toBe(true);
+		expect(() => pullResolve(p, "pr:github-demo:142", "nope", true, true)).toThrow("not found");
 	});
 
 	it("keeps a draft from merging until it is marked ready", () => {

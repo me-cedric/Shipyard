@@ -87,7 +87,10 @@ function pull(
 		commits: [{ reference: `commit:${sha(number)}`, summary: title }],
 		checks: [{ name: "build", state: "passing", url: "https://ci.example.com/build" }],
 		ci: "passing",
+		comments: [],
+		commentsTruncated: false,
 		threads: [],
+		threadsTruncated: false,
 		verdicts: [],
 		mergeable: "clean",
 		mergeMethods: METHODS,
@@ -132,13 +135,51 @@ export function seedPrs(): MockPrs {
 			{ name: "unit", state: "failing", url: "https://ci.example.com/unit" },
 			{ name: "lint", state: "failing", url: "https://ci.example.com/lint" },
 		],
+		comments: [
+			{
+				id: "C1",
+				author: "Grace Hopper",
+				body: "Thanks for the fix. See [the guide](https://example.com/guide) and `retry()`.",
+				created: "2026-11-09T16:00:00Z",
+			},
+			{
+				id: "C2",
+				author: "Ada Lovelace",
+				body: "Pushed a new commit.",
+				created: "2026-11-10T11:00:00Z",
+			},
+		],
 		threads: [
 			{
 				id: "T1",
 				resolved: false,
 				path: "src/app.ts",
 				line: 2,
-				comments: ["Grace Hopper: rename this", "Ada Lovelace: done"],
+				commentsTotal: 2,
+				comments: [
+					{
+						id: "TC1",
+						author: "Grace Hopper",
+						body: "rename this",
+						created: "2026-11-10T09:00:00Z",
+					},
+					{ id: "TC2", author: "Ada Lovelace", body: "done", created: "2026-11-10T09:30:00Z" },
+				],
+			},
+			{
+				id: "T2",
+				resolved: true,
+				path: "src/lib.ts",
+				line: 7,
+				commentsTotal: 1,
+				comments: [
+					{
+						id: "TC3",
+						author: "Grace Hopper",
+						body: "this branch is dead\nremove it",
+						created: "2026-11-10T12:00:00Z",
+					},
+				],
 			},
 		],
 		verdicts: [{ reviewer: "Grace Hopper", state: "changes-requested" }],
@@ -290,16 +331,51 @@ export function pullOpen(
 	};
 }
 
+const stamp = (p: MockPrs, body: string) => ({
+	id: `K${++p.counter}`,
+	author: "Ada Lovelace",
+	body: body.trim(),
+	created: new Date().toISOString(),
+});
+
+/** A general comment: the code hosts do not return it as a thread. */
 export function pullComment(p: MockPrs, number: number, body: string, click: boolean) {
 	need(click);
 	if (!body.trim()) throw "a comment needs some text";
-	find(p, number).threads.push({
-		id: `T${++p.counter}`,
-		resolved: false,
-		path: null,
-		line: null,
-		comments: [`Ada Lovelace: ${body.trim()}`],
-	});
+	find(p, number).comments.push(stamp(p, body));
+	return null;
+}
+
+const thread = (p: MockPrs, reference: string, id: string) => {
+	const found = find(p, Number(reference.split(":").pop())).threads.find((t) => t.id === id);
+	if (!found) throw `not found: ${id}`;
+	return found;
+};
+
+export function pullReply(
+	p: MockPrs,
+	reference: string,
+	threadId: string,
+	body: string,
+	click: boolean,
+) {
+	need(click);
+	if (!body.trim()) throw "a reply needs some text";
+	const t = thread(p, reference, threadId);
+	t.comments.push(stamp(p, body));
+	t.commentsTotal += 1;
+	return null;
+}
+
+export function pullResolve(
+	p: MockPrs,
+	reference: string,
+	threadId: string,
+	resolved: boolean,
+	click: boolean,
+) {
+	need(click);
+	thread(p, reference, threadId).resolved = resolved;
 	return null;
 }
 

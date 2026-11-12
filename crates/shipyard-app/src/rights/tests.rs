@@ -123,6 +123,14 @@ fn an_unknown_person_gets_a_refusal_that_names_each_right() {
     );
     refused(crate::commands::code::stage(s, &[]), "code.write");
     refused(
+        crate::code::pull_reply(s, "pr:c1:1", "T1", "x", true),
+        "code.write",
+    );
+    refused(
+        crate::code::pull_resolve(s, "pr:c1:1", "T1", true, true),
+        "code.write",
+    );
+    refused(
         crate::code::pull_merge(s, 1, MergeMethod::Merge, true),
         "code.merge",
     );

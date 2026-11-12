@@ -166,36 +166,15 @@ impl PullApi for Azure {
     }
 
     fn threads(&self, repo: &str, number: u64) -> Result<Vec<ReviewThread>, ForgeError> {
-        let v = self.call(
-            &format!("{}/pullrequests/{number}/threads", repo_path(repo)?),
-            &[],
-            API,
-        )?;
-        Ok(items(&v, "/value")
-            .iter()
-            .filter(|t| t["isDeleted"].as_bool() != Some(true))
-            .filter_map(|t| {
-                let comments: Vec<ThreadComment> = items(t, "/comments")
-                    .iter()
-                    .filter(|c| text(c, "/commentType") != "system")
-                    .map(|c| ThreadComment {
-                        author: text(c, "/author/displayName"),
-                        body: text(c, "/content"),
-                    })
-                    .collect();
-                // A thread of system messages only (a vote, a push) is not a conversation.
-                (!comments.is_empty()).then(|| ReviewThread {
-                    id: shipyard_http::num(t, "/id").map_or_else(String::new, |n| n.to_string()),
-                    resolved: matches!(
-                        text(t, "/status").as_str(),
-                        "fixed" | "closed" | "wontFix" | "byDesign"
-                    ),
-                    path: Some(text(t, "/threadContext/filePath")).filter(|p| !p.is_empty()),
-                    line: line(t, "/threadContext/rightFileStart/line"),
-                    comments,
-                })
-            })
-            .collect())
+        Ok(self.read_conversation(repo, number)?.threads)
+    }
+
+    fn issue_comments(&self, repo: &str, number: u64) -> Result<Vec<PullComment>, ForgeError> {
+        Ok(self.read_conversation(repo, number)?.comments)
+    }
+
+    fn conversation(&self, repo: &str, number: u64) -> Result<Conversation, ForgeError> {
+        self.read_conversation(repo, number)
     }
 
     fn reply_thread(
@@ -221,14 +200,20 @@ impl PullApi for Azure {
         Ok(())
     }
 
-    fn resolve_thread(&self, repo: &str, number: u64, thread: &str) -> Result<(), ForgeError> {
+    fn resolve_thread(
+        &self,
+        repo: &str,
+        number: u64,
+        thread: &str,
+        resolved: bool,
+    ) -> Result<(), ForgeError> {
         let id: u64 = thread
             .parse()
             .map_err(|_| ForgeError::Config(format!("not a thread id: {thread}")))?;
         self.write(
             Method::Patch,
             &format!("{}/pullrequests/{number}/threads/{id}", repo_path(repo)?),
-            json!({ "status": "fixed" }),
+            json!({ "status": if resolved { "fixed" } else { "active" } }),
         )?;
         Ok(())
     }
@@ -256,6 +241,77 @@ impl PullApi for Azure {
                 Mergeable::Unknown
             },
             head_sha: p.head_sha,
+        })
+    }
+}
+
+fn thread_id(t: &Value) -> String {
+    shipyard_http::num(t, "/id").map_or_else(String::new, |n| n.to_string())
+}
+
+impl Azure {
+    /// The threads that a person wrote in: not deleted, system messages dropped, a thread of
+    /// system messages only (a vote, a push) left out. The comment id carries the thread id,
+    /// because Azure DevOps numbers a comment inside its thread.
+    fn live_threads(
+        &self,
+        repo: &str,
+        number: u64,
+    ) -> Result<Vec<(Value, Vec<PullComment>)>, ForgeError> {
+        let v = self.call(
+            &format!("{}/pullrequests/{number}/threads", repo_path(repo)?),
+            &[],
+            API,
+        )?;
+        Ok(items(&v, "/value")
+            .iter()
+            .filter(|t| t["isDeleted"].as_bool() != Some(true))
+            .filter_map(|t| {
+                let comments: Vec<PullComment> = items(t, "/comments")
+                    .iter()
+                    .filter(|c| text(c, "/commentType") != "system")
+                    .map(|c| PullComment {
+                        id: format!(
+                            "{}.{}",
+                            thread_id(t),
+                            shipyard_http::num(c, "/id").unwrap_or(0)
+                        ),
+                        author: text(c, "/author/displayName"),
+                        body: text(c, "/content"),
+                        created: text(c, "/publishedDate"),
+                    })
+                    .collect();
+                (!comments.is_empty()).then(|| (t.clone(), comments))
+            })
+            .collect())
+    }
+
+    /// One read of the threads endpoint. A thread with a file is a review thread, a thread
+    /// without one is a general comment.
+    fn read_conversation(&self, repo: &str, number: u64) -> Result<Conversation, ForgeError> {
+        let (mut threads, mut comments) = (Vec::new(), Vec::new());
+        for (t, found) in self.live_threads(repo, number)? {
+            if text(&t, "/threadContext/filePath").is_empty() {
+                comments.extend(found);
+                continue;
+            }
+            threads.push(ReviewThread {
+                id: thread_id(&t),
+                resolved: matches!(
+                    text(&t, "/status").as_str(),
+                    "fixed" | "closed" | "wontFix" | "byDesign"
+                ),
+                path: Some(text(&t, "/threadContext/filePath")),
+                line: line(&t, "/threadContext/rightFileStart/line"),
+                comments_total: found.len() as u32,
+                comments: found,
+            });
+        }
+        comments.sort_by(|a, b| a.created.cmp(&b.created));
+        Ok(Conversation {
+            threads,
+            comments,
+            ..Conversation::default()
         })
     }
 }

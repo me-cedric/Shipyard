@@ -90,8 +90,8 @@ Pull requests (third pass, 2026-11-12)
 - REQ-044: The Overview SHALL show the description as Markdown, then the conversation. A narrow column SHALL show the reviewers with their verdicts, the linked tickets and runs, and what cites the pull request. It SHALL show no labels, assignee, project or milestone.
 - REQ-045: The Files changed tab SHALL list every file collapsed by default, each with its path, its status and its lines added and removed. It SHALL show a file tree with a filter, an Expand all and a Collapse all action, and a count of the files that the person marked as viewed. Expand all SHALL open at most the first 30 files that match the filter; while more files stay collapsed the action SHALL offer to expand the next 30. A file that the person expands SHALL show its diff. When the code host list was cut short, the tab SHALL say "Showing the first N files".
 - REQ-046: The Files changed tab SHALL use the same file rows, tree, counts and diff component as Code / Local changes where they show the same things, and the same collapsed file list as the run page. The diff component SHALL show line numbers.
-- REQ-047: The conversation SHALL show the general comments of the pull request and its review threads, in time order, as Markdown, with the author and the time. A write box SHALL post a general comment. A comment of the forge SHALL show after the forge answers.
-- REQ-048: A review thread SHALL show its file and line, its comments, and a Resolved mark. A person SHALL reply to a thread and SHALL resolve or reopen it with one click each.
+- REQ-047: The conversation SHALL show the general comments of the pull request and its review threads, in time order, as Markdown, with the author and the time. A write box SHALL post a general comment. A comment of the forge SHALL show after the forge answers. The conversation SHALL say when a forge returned only the newest comments.
+- REQ-048: A review thread SHALL show its file and line, its comments, and a Resolved mark. A person SHALL reply to a thread and SHALL resolve or reopen it with one click each. A thread with more comments than the forge returned SHALL say so.
 - REQ-049: A person SHALL add a comment to a line of the new file on the Files changed tab with a button in the line gutter. The comment SHALL join a pending review kept on this computer. The page SHALL show the number of pending comments with Submit review and Discard. Submit review SHALL post all of them with one verdict: Comment, Approve or Request changes. A person SHALL also post one comment at once.
 - REQ-050: A pending review SHALL stay on this computer until the person submits or discards it. It SHALL survive a restart. A line that the pull request no longer has SHALL keep its comment text visible so that no text is lost.
 - REQ-051: When a forge refuses a comment, a reply or a review, the page SHALL show the refusal text and SHALL keep the pending text. Azure DevOps SHALL post an inline comment in the review body with its file and line. A pull request with more than 100 files SHALL show them, up to 3000 files.
@@ -143,8 +143,8 @@ Pull requests (third pass, 2026-11-12)
 - [ ] REQ-044: The sidebar lists the ticket as a link and what cites the pull request.
 - [ ] REQ-045: All forty rows are collapsed, expanding one shows its diff, and Expand all opens thirty and offers the next ten.
 - [ ] REQ-046: They use the same collapsed file list and the same diff component with line numbers.
-- [ ] REQ-047: Both comments show with their author and time.
-- [ ] REQ-048: The thread shows the Resolved mark and the box counts one unresolved thread fewer.
+- [ ] REQ-047: Both comments show with their author and time, and a note says when only the newest comments came back.
+- [ ] REQ-048: The thread shows the Resolved mark and the box counts one unresolved thread fewer, and a thread that came back partly says how many comments it shows.
 - [ ] REQ-049: The forge receives one review with both comments and the pending list is empty.
 - [ ] REQ-050: The pending comment is still there.
 - [ ] REQ-051: The refusal shows and the pending comments stay.
@@ -655,7 +655,7 @@ The Files changed tab SHALL use the same file rows, tree, counts and diff compon
 
 ### Requirement: REQ-047 General comments
 
-The conversation SHALL show the general comments of the pull request and its review threads, in time order, as Markdown, with the author and the time. A write box SHALL post a general comment. A comment of the forge SHALL show after the forge answers.
+The conversation SHALL show the general comments of the pull request and its review threads, in time order, as Markdown, with the author and the time. A write box SHALL post a general comment. A comment of the forge SHALL show after the forge answers. The conversation SHALL say when a forge returned only the newest comments.
 
 #### Scenario: General comments
 
@@ -663,15 +663,27 @@ The conversation SHALL show the general comments of the pull request and its rev
 - WHEN the Overview shows
 - THEN both comments show with their author and time
 
+#### Scenario: Only the newest comments
+
+- GIVEN a pull request whose forge returned only the newest comments
+- WHEN the Overview shows
+- THEN a note says that it shows the latest comments
+
 ### Requirement: REQ-048 Threads
 
-A review thread SHALL show its file and line, its comments, and a Resolved mark. A person SHALL reply to a thread and SHALL resolve or reopen it with one click each.
+A review thread SHALL show its file and line, its comments, and a Resolved mark. A person SHALL reply to a thread and SHALL resolve or reopen it with one click each. A thread with more comments than the forge returned SHALL say so.
 
 #### Scenario: Threads
 
 - GIVEN an unresolved thread
 - WHEN the person clicks Resolve
 - THEN the thread shows the Resolved mark and the box counts one unresolved thread fewer
+
+#### Scenario: A thread cut short
+
+- GIVEN a thread with 80 comments of which the forge returned the last 50
+- WHEN the thread shows
+- THEN a note says "Showing the last 50 of 80 comments"
 
 ### Requirement: REQ-049 Inline comments
 

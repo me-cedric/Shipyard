@@ -6,6 +6,7 @@ import {
 	useRouter,
 	useSearch,
 } from "@tanstack/react-router";
+import { useState } from "react";
 import { usePull } from "@/lib/code";
 import { format, useI18n } from "@/lib/i18n";
 import { toFailure } from "@/lib/ipc";
@@ -34,6 +35,8 @@ function PullPageView() {
 	const { tab = "overview" } = useSearch({ from: "/code/pull-requests/$pullId" });
 	const number = pullNumberOf(pullId);
 	const pull = usePull(number);
+	// The comment draft stays in the page: a change of tab keeps it. It belongs to one pull request.
+	const [kept, setKept] = useState({ id: pullId, text: "" });
 	const toList = () => void navigate({ to: "/code/pull-requests" });
 	// A person who came from the list goes back to it with its search and filter; a deep link goes to the list.
 	const canBack = useCanGoBack();
@@ -95,7 +98,13 @@ function PullPageView() {
 				tabs={tabs}
 			/>
 			<div role="tabpanel" aria-label={tabs.find((x) => x.value === tab)?.label}>
-				{tab === "overview" ? <PullOverview d={d} /> : null}
+				{tab === "overview" ? (
+					<PullOverview
+						d={d}
+						draft={kept.id === pullId ? kept.text : ""}
+						setDraft={(text) => setKept({ id: pullId, text })}
+					/>
+				) : null}
 				{tab === "commits" ? <PullCommits d={d} /> : null}
 				{tab === "checks" ? <PullChecks d={d} /> : null}
 				{tab === "files" ? <PullFiles detail={d} /> : null}

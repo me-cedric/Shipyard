@@ -130,6 +130,10 @@ export function useForgeActions() {
 		return {
 			open: (input: OpenPull_Deserialize) => run(commands.codePullOpen(input, true)),
 			comment: (n: number, body: string) => run(commands.codePullComment(n, body, true)),
+			reply: (reference: string, threadId: string, body: string) =>
+				run(commands.codePullReply(reference, threadId, body, true)),
+			resolve: (reference: string, threadId: string, resolved: boolean) =>
+				run(commands.codePullResolve(reference, threadId, resolved, true)),
 			verdict: (n: number, verdict: Verdict, body: string) =>
 				run(commands.codePullVerdict(n, verdict, body, true)),
 			merge: (n: number, method: MergeMethod) => run(commands.codePullMerge(n, method, true)),

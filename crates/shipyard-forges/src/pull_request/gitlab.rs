@@ -227,6 +227,11 @@ impl PullApi for GitLab {
             })
             .map(|d| {
                 let notes = items(d, "/notes");
+                let comments: Vec<PullComment> = notes
+                    .iter()
+                    .filter(|n| n["system"].as_bool() != Some(true))
+                    .map(note)
+                    .collect();
                 ReviewThread {
                     id: text(d, "/id"),
                     resolved: notes
@@ -235,14 +240,8 @@ impl PullApi for GitLab {
                         .all(|n| n["resolved"].as_bool() == Some(true)),
                     path: Some(text(&notes[0], "/position/new_path")).filter(|p| !p.is_empty()),
                     line: line(&notes[0], "/position/new_line"),
-                    comments: notes
-                        .iter()
-                        .filter(|n| n["system"].as_bool() != Some(true))
-                        .map(|n| ThreadComment {
-                            author: text(n, "/author/username"),
-                            body: text(n, "/body"),
-                        })
-                        .collect(),
+                    comments_total: comments.len() as u32,
+                    comments,
                 }
             })
             .collect())
@@ -268,7 +267,13 @@ impl PullApi for GitLab {
         Ok(())
     }
 
-    fn resolve_thread(&self, repo: &str, number: u64, thread: &str) -> Result<(), ForgeError> {
+    fn resolve_thread(
+        &self,
+        repo: &str,
+        number: u64,
+        thread: &str,
+        resolved: bool,
+    ) -> Result<(), ForgeError> {
         self.write(
             Method::Put,
             &format!(
@@ -276,9 +281,23 @@ impl PullApi for GitLab {
                 project_path(repo)?,
                 encode(thread)
             ),
-            json!({ "resolved": true }),
+            json!({ "resolved": resolved }),
         )?;
         Ok(())
+    }
+
+    fn issue_comments(&self, repo: &str, number: u64) -> Result<Vec<PullComment>, ForgeError> {
+        Ok(self.read_comments(repo, number)?.0)
+    }
+
+    fn conversation(&self, repo: &str, number: u64) -> Result<Conversation, ForgeError> {
+        let (comments, comments_truncated) = self.read_comments(repo, number)?;
+        Ok(Conversation {
+            threads: self.threads(repo, number)?,
+            threads_truncated: false,
+            comments,
+            comments_truncated,
+        })
     }
 
     fn status(&self, repo: &str, number: u64) -> Result<PullStatus, ForgeError> {
@@ -308,5 +327,55 @@ impl PullApi for GitLab {
             },
             head_sha: p.head_sha,
         })
+    }
+}
+
+fn note(n: &Value) -> PullComment {
+    PullComment {
+        id: shipyard_http::num(n, "/id").map_or_else(String::new, |i| i.to_string()),
+        author: text(n, "/author/username"),
+        body: text(n, "/body"),
+        created: text(n, "/created_at"),
+    }
+}
+
+impl GitLab {
+    /// The newest 10 pages of 100 notes, oldest first. System notes count in the pages, so they
+    /// are dropped after the read. `true` when older notes remain.
+    fn read_comments(
+        &self,
+        repo: &str,
+        number: u64,
+    ) -> Result<(Vec<PullComment>, bool), ForgeError> {
+        let path = format!("{}/merge_requests/{number}/notes", project_path(repo)?);
+        let mut out = Vec::new();
+        let mut more = false;
+        for page in 1..=10 {
+            let p = page.to_string();
+            let res = self.send(
+                &path,
+                &[
+                    ("per_page", "100"),
+                    ("page", p.as_str()),
+                    ("order_by", "created_at"),
+                    ("sort", "desc"),
+                ],
+            )?;
+            more = res.header("x-next-page").is_some_and(|n| !n.is_empty());
+            out.extend(
+                items(&res.json()?, "")
+                    .iter()
+                    .filter(|n| {
+                        n["system"].as_bool() != Some(true)
+                            && n["resolvable"].as_bool() != Some(true)
+                    })
+                    .map(note),
+            );
+            if !more {
+                break;
+            }
+        }
+        out.reverse();
+        Ok((out, more))
     }
 }

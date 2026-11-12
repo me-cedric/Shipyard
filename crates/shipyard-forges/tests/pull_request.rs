@@ -101,10 +101,15 @@ fn github() -> Case {
     .post("/graphql", "markPullRequestReadyForReview", 200, &json!({"data": {"markPullRequestReadyForReview": {"pullRequest": {"isDraft": false}}}}).to_string())
     .post("/graphql", "reviewThreads", 200, &json!({"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": [
         {"id": "T1", "isResolved": false, "path": "src/a.rs", "line": 10,
-         "comments": {"nodes": [{"author": {"login": "rev"}, "body": "rename"}, {"author": {"login": "bot"}, "body": "ok"}]}},
+         "comments": {"nodes": [{"id": "C0", "author": {"login": "rev"}, "body": "rename", "createdAt": "2026-10-29T09:00:00Z"}, {"id": "C9", "author": {"login": "bot"}, "body": "ok", "createdAt": "2026-10-29T09:05:00Z"}]}},
         {"id": "T2", "isResolved": true, "path": null, "line": null, "comments": {"nodes": []}}
     ]}}}}}).to_string())
+    .get("/repos/acme/web/issues/12/comments", 200, &json!([
+        {"id": 1, "user": {"login": "rev"}, "body": "first", "created_at": "2026-10-29T10:00:00Z"},
+        {"id": 2, "user": {"login": "bot"}, "body": "second", "created_at": "2026-10-29T11:00:00Z"}
+    ]).to_string())
     .post("/graphql", "addPullRequestReviewThreadReply", 200, &json!({"data": {"addPullRequestReviewThreadReply": {"comment": {"id": "C1"}}}}).to_string())
+    .post("/graphql", "unresolveReviewThread", 200, &json!({"data": {"unresolveReviewThread": {"thread": {"isResolved": false}}}}).to_string())
     .post("/graphql", "resolveReviewThread", 200, &json!({"data": {"resolveReviewThread": {"thread": {"isResolved": true}}}}).to_string());
     Case {
         name: "github",
@@ -147,13 +152,21 @@ fn gitlab() -> Case {
     .get(&format!("{root}/merge_requests/9/discussions"), 200, &json!([
         {"id": "d1", "individual_note": false, "notes": [
             {"id": 1, "body": "rename", "author": {"username": "rev"}, "resolvable": true, "resolved": false,
-             "system": false, "position": {"new_path": "src/a.rs", "new_line": 10}}]},
+             "created_at": "2026-10-29T09:00:00Z", "system": false, "position": {"new_path": "src/a.rs", "new_line": 10}}]},
         {"id": "d2", "individual_note": true, "notes": [
             {"id": 2, "body": "hello", "author": {"username": "rev"}, "resolvable": false, "resolved": false, "system": false}]},
         {"id": "d3", "individual_note": false, "notes": [
             {"id": 3, "body": "done", "author": {"username": "rev"}, "resolvable": true, "resolved": true, "system": false}]}
     ]).to_string())
+    // Newest first, as the call asks.
+    .get(&format!("{root}/merge_requests/9/notes"), 200, &json!([
+        {"id": 3, "body": "second", "author": {"username": "bot"}, "system": false, "resolvable": false, "created_at": "2026-10-29T11:00:00Z"},
+        {"id": 2, "body": "first", "author": {"username": "rev"}, "system": false, "resolvable": false, "created_at": "2026-10-29T10:00:00Z"},
+        {"id": 4, "body": "rename", "author": {"username": "rev"}, "system": false, "resolvable": true, "created_at": "2026-10-29T09:00:00Z"},
+        {"id": 1, "body": "joined", "author": {"username": "sys"}, "system": true, "resolvable": false, "created_at": "2026-10-29T08:00:00Z"}
+    ]).to_string())
     .post(&format!("{root}/merge_requests/9/discussions/d1/notes"), "", 201, "{}")
+    .put(&format!("{root}/merge_requests/9/discussions/d1"), "\"resolved\":false", 200, "{}")
     .put(&format!("{root}/merge_requests/9/discussions/d1"), "\"resolved\":true", 200, "{}")
     .get(&format!("{root}/labels"), 200, &json!([{"name": "feat"}, {"name": "Bug"}]).to_string())
     .get("/api/v4/users?username=rev", 200, &json!([{"id": 42, "username": "rev"}]).to_string())
@@ -205,13 +218,15 @@ fn azure() -> Case {
     .post(&format!("{root}/pullrequests/5/reviewers"), GUID, 200, "{}")
     .get(&format!("{root}/pullrequests/5/threads"), 200, &json!({"value": [
         {"id": 3, "status": "active",
-         "comments": [{"id": 1, "content": "rename", "author": {"displayName": "rev"}, "commentType": "text"}],
+         "comments": [{"id": 1, "content": "rename", "author": {"displayName": "rev"}, "commentType": "text", "publishedDate": "2026-10-29T09:00:00Z"}],
          "threadContext": {"filePath": "/src/a.rs", "rightFileStart": {"line": 10}}},
-        {"id": 4, "status": "fixed", "comments": [{"id": 1, "content": "x", "author": {"displayName": "rev"}, "commentType": "text"}]},
+        {"id": 7, "status": "active", "comments": [{"id": 1, "content": "second", "author": {"displayName": "bot"}, "commentType": "text", "publishedDate": "2026-10-29T11:00:00Z"}]},
+        {"id": 4, "status": "fixed", "comments": [{"id": 1, "content": "first", "author": {"displayName": "rev"}, "commentType": "text", "publishedDate": "2026-10-29T10:00:00Z"}]},
         {"id": 6, "status": "active", "comments": [{"id": 1, "content": "joined", "author": {"displayName": "sys"}, "commentType": "system"}]}
     ]}).to_string())
     .post(&format!("{root}/pullrequests/5/threads/3/comments"), "\"content\"", 201, "{}")
     .patch(&format!("{root}/pullrequests/5/threads/3"), "\"status\":\"fixed\"", 200, "{}")
+    .patch(&format!("{root}/pullrequests/5/threads/3"), "\"status\":\"active\"", 200, "{}")
     .get(&format!("{root}/pullrequests/5/statuses"), 200, &json!({"value": [
         {"state": "succeeded", "context": {"name": "ci"}, "targetUrl": "u"}]}).to_string())
     .get(&format!("{root}/pullrequests/5"), 200, &json!({
@@ -416,6 +431,12 @@ fn review_threads_are_listed_with_their_comments_and_state() {
         assert!(!t.id.is_empty(), "{}", c.name);
         assert_eq!(t.comments[0].body, "rename", "{}", c.name);
         assert!(!t.comments[0].author.is_empty(), "{}", c.name);
+        assert!(!t.comments[0].id.is_empty(), "{}", c.name);
+        assert!(
+            t.comments[0].created.starts_with("2026-10-29T09"),
+            "{}",
+            c.name
+        );
         assert_eq!(
             t.path.as_deref().map(|p| p.trim_start_matches('/')),
             Some("src/a.rs"),
@@ -446,7 +467,7 @@ fn a_thread_gets_a_reply_and_is_then_resolved() {
         c.api
             .reply_thread(c.repo, c.number, &id, "Fixed in abc1234.")
             .unwrap();
-        c.api.resolve_thread(c.repo, c.number, &id).unwrap();
+        c.api.resolve_thread(c.repo, c.number, &id, true).unwrap();
         let writes: Vec<_> = c
             .fake
             .requests()
@@ -715,5 +736,274 @@ fn a_namespace_with_no_id_and_a_public_azure_project_create_nothing() {
     assert!(
         fake.requests().iter().all(|r| r.method != Method::Post),
         "no repository was written"
+    );
+}
+
+#[test]
+fn general_comments_are_read_oldest_first_and_no_system_note_or_line_comment_is_one() {
+    for c in cases() {
+        let got = c.api.issue_comments(c.repo, c.number).unwrap();
+        let bodies: Vec<&str> = got.iter().map(|g| g.body.as_str()).collect();
+        assert_eq!(bodies, ["first", "second"], "{}", c.name);
+        assert!(
+            got.iter()
+                .all(|g| !g.id.is_empty() && !g.author.is_empty() && !g.created.is_empty()),
+            "{} {got:?}",
+            c.name
+        );
+        let ids: std::collections::HashSet<_> = got.iter().map(|g| &g.id).collect();
+        assert_eq!(ids.len(), got.len(), "{}", c.name);
+    }
+}
+
+fn gh_comment(n: u64) -> Value {
+    json!({"id": n, "user": {"login": "u"}, "body": format!("c{n}"), "created_at": "t"})
+}
+
+/// A GitHub fake with `total` comments in pages of 100 and a `Link` header with the last page.
+fn gh_comments(total: u64) -> (Arc<FakeHttp>, Box<dyn PullApi>) {
+    let fake = Arc::new(FakeHttp::new());
+    let last = total.div_ceil(100).max(1);
+    // Descending: `&page=1` is a prefix of `&page=10`.
+    for page in (1..=last).rev() {
+        let from = (page - 1) * 100 + 1;
+        let body: Vec<Value> = (from..=total.min(from + 99)).map(gh_comment).collect();
+        let link = format!(r#"<https://api.github.com/x?per_page=100&page={last}>; rel="last""#);
+        fake.get_with(
+            &format!("/issues/12/comments?per_page=100&page={page}"),
+            200,
+            &[("Link", link.as_str())],
+            &json!(body).to_string(),
+        );
+    }
+    fake.post(
+        "/graphql",
+        "reviewThreads",
+        200,
+        &json!({"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": []}}}}})
+            .to_string(),
+    );
+    let api = build(ForgeKind::GitHub, "https://github.com", fake.clone());
+    (fake, api)
+}
+
+#[test]
+fn github_general_comments_follow_the_pages() {
+    let (fake, api) = gh_comments(101);
+    let talk = api.conversation("acme/web", 12).unwrap();
+    assert_eq!(talk.comments.len(), 101);
+    assert_eq!(talk.comments[100].body, "c101");
+    assert!(!talk.comments_truncated);
+    // Page 1 once, page 2 once.
+    let reads = fake
+        .requests()
+        .into_iter()
+        .filter(|r| r.method == Method::Get);
+    assert_eq!(reads.count(), 2);
+}
+
+#[test]
+fn github_general_comments_keep_the_newest_pages_and_say_so() {
+    // 1,200 comments make 12 pages. The 10 newest pages are 3 to 12.
+    let (fake, api) = gh_comments(1200);
+    let talk = api.conversation("acme/web", 12).unwrap();
+    assert!(talk.comments_truncated);
+    let got = talk.comments;
+    assert_eq!(got.len(), 1000);
+    assert_eq!(
+        (got[0].body.as_str(), got[999].body.as_str()),
+        ("c201", "c1200")
+    );
+    assert!(fake.requests().iter().all(|r| !r.url.contains("&page=2")));
+}
+
+fn gh_thread(id: &str, total: u64, shown: u64) -> Value {
+    let nodes: Vec<Value> = (0..shown)
+        .map(|i| json!({"id": format!("{id}c{i}"), "author": {"login": "a"}, "body": "b", "createdAt": "t"}))
+        .collect();
+    json!({"id": id, "isResolved": false, "path": "a.rs", "line": 1,
+        "comments": {"totalCount": total, "nodes": nodes}})
+}
+
+fn gh_threads(pages: &[(Vec<Value>, bool)]) -> Box<dyn PullApi> {
+    let fake = Arc::new(FakeHttp::new());
+    // The cursor of the page that was read decides the answer.
+    for (i, (nodes, more)) in pages.iter().enumerate().rev() {
+        let after = if i == 0 {
+            "\"after\":null".to_string()
+        } else {
+            format!("\"after\":\"P{i}\"")
+        };
+        fake.post(
+            "/graphql",
+            &after,
+            200,
+            &json!({"data": {"repository": {"pullRequest": {"reviewThreads": {
+                "pageInfo": {"hasNextPage": more, "endCursor": format!("P{}", i + 1)},
+                "nodes": nodes}}}}})
+            .to_string(),
+        );
+    }
+    fake.get("/issues/12/comments", 200, "[]");
+    build(ForgeKind::GitHub, "https://github.com", fake)
+}
+
+#[test]
+fn a_github_thread_with_more_comments_than_shown_says_so() {
+    let api = gh_threads(&[(vec![gh_thread("T1", 80, 50), gh_thread("T2", 2, 2)], false)]);
+    let talk = api.conversation("acme/web", 12).unwrap();
+    assert!(!talk.threads_truncated);
+    let totals: Vec<(usize, u32)> = talk
+        .threads
+        .iter()
+        .map(|t| (t.comments.len(), t.comments_total))
+        .collect();
+    assert_eq!(totals, [(50, 80), (2, 2)]);
+}
+
+#[test]
+fn github_threads_are_paged_to_three_pages_and_say_so() {
+    let page = |n: usize| {
+        (0..100)
+            .map(|i| gh_thread(&format!("T{n}-{i}"), 1, 1))
+            .collect::<Vec<_>>()
+    };
+    // Two pages: all read, no flag.
+    let api = gh_threads(&[(page(0), true), (page(1), false)]);
+    let talk = api.conversation("acme/web", 12).unwrap();
+    assert_eq!((talk.threads.len(), talk.threads_truncated), (200, false));
+    // Four pages on offer: three read, flag set.
+    let api = gh_threads(&[
+        (page(0), true),
+        (page(1), true),
+        (page(2), true),
+        (page(3), false),
+    ]);
+    let talk = api.conversation("acme/web", 12).unwrap();
+    assert_eq!((talk.threads.len(), talk.threads_truncated), (300, true));
+}
+
+#[test]
+fn a_thread_is_reopened_and_the_reply_goes_to_the_right_place() {
+    for c in cases() {
+        let id = c
+            .api
+            .threads(c.repo, c.number)
+            .unwrap()
+            .into_iter()
+            .find(|t| !t.resolved)
+            .unwrap()
+            .id;
+        c.api.reply_thread(c.repo, c.number, &id, "Why?").unwrap();
+        c.api.resolve_thread(c.repo, c.number, &id, false).unwrap();
+        let (reply, reopen) = match c.name {
+            "github" => (
+                c.sent(Method::Post, "/graphql"),
+                c.sent(Method::Post, "/graphql"),
+            ),
+            "gitlab" => (
+                c.sent(Method::Post, "/discussions/d1/notes"),
+                c.sent(Method::Put, "/discussions/d1"),
+            ),
+            _ => (
+                c.sent(Method::Post, "/threads/3/comments"),
+                c.sent(Method::Patch, "/threads/3"),
+            ),
+        };
+        let flat = |v: &[Value]| v.iter().map(Value::to_string).collect::<String>();
+        assert!(flat(&reply).contains("Why?"), "{} {reply:?}", c.name);
+        let wanted = match c.name {
+            "github" => "unresolveReviewThread",
+            "gitlab" => r#""resolved":false"#,
+            _ => r#""status":"active""#,
+        };
+        assert!(flat(&reopen).contains(wanted), "{} {reopen:?}", c.name);
+    }
+}
+
+/// A GitLab fake with `notes` merge request notes, newest first, in pages of 100. The ones with an
+/// id up to `system_to` and an even id are system notes.
+fn gl_notes(total: u64, system_to: u64) -> Box<dyn PullApi> {
+    let fake = Arc::new(FakeHttp::new());
+    let root = "/api/v4/projects/acme%2Fweb/merge_requests/9";
+    let pages = total.div_ceil(100);
+    for page in (1..=pages).rev() {
+        let hi = total - (page - 1) * 100;
+        let body: Vec<Value> = (hi.saturating_sub(99).max(1)..=hi)
+            .rev()
+            .map(|id| {
+                json!({"id": id, "body": format!("n{id}"), "author": {"username": "u"},
+                "system": id <= system_to && id % 2 == 0, "resolvable": false, "created_at": "t"})
+            })
+            .collect();
+        let next = if page < pages {
+            (page + 1).to_string()
+        } else {
+            String::new()
+        };
+        fake.get_with(
+            &format!("{root}/notes?per_page=100&page={page}&"),
+            200,
+            &[("x-next-page", next.as_str())],
+            &json!(body).to_string(),
+        );
+    }
+    fake.get(&format!("{root}/discussions"), 200, "[]");
+    build(ForgeKind::GitLab, "https://gitlab.com", fake)
+}
+
+#[test]
+fn gitlab_notes_are_read_newest_first_system_notes_are_dropped_and_all_comments_show() {
+    // 250 notes, 120 of them system notes: 130 comments, none lost.
+    let talk = gl_notes(250, 240).conversation("acme/web", 9).unwrap();
+    assert!(!talk.comments_truncated);
+    assert_eq!(talk.comments.len(), 130);
+    let ids: Vec<u64> = talk
+        .comments
+        .iter()
+        .map(|c| c.id.parse().unwrap())
+        .collect();
+    assert!(ids.windows(2).all(|w| w[0] < w[1]), "oldest first");
+    assert_eq!((ids[0], ids[129]), (1, 250));
+}
+
+#[test]
+fn gitlab_notes_stop_at_ten_pages_keep_the_newest_and_say_so() {
+    let talk = gl_notes(1100, 0).conversation("acme/web", 9).unwrap();
+    assert!(talk.comments_truncated);
+    assert_eq!(talk.comments.len(), 1000);
+    assert_eq!(talk.comments[0].body, "n101");
+    assert_eq!(talk.comments[999].body, "n1100");
+}
+
+#[test]
+fn azure_reads_the_threads_once_for_the_whole_conversation() {
+    let c = azure();
+    let talk = c.api.conversation(c.repo, c.number).unwrap();
+    assert_eq!((talk.threads.len(), talk.comments.len()), (1, 2));
+    let reads = c
+        .fake
+        .requests()
+        .into_iter()
+        .filter(|r| r.url.contains("/threads"))
+        .count();
+    assert_eq!(reads, 1);
+}
+
+#[test]
+fn a_refusal_of_the_forge_reaches_the_caller_unchanged() {
+    let fake = Arc::new(FakeHttp::new());
+    fake.post(
+        "/graphql",
+        "addPullRequestReviewThreadReply",
+        200,
+        &json!({"errors": [{"message": "Could not resolve to a node with the global id of 'T9'"}]})
+            .to_string(),
+    );
+    let api = build(ForgeKind::GitHub, "https://github.com", fake);
+    let e = api.reply_thread("acme/web", 12, "T9", "hi").unwrap_err();
+    assert_eq!(
+        e.to_string(),
+        "Could not resolve to a node with the global id of 'T9'"
     );
 }

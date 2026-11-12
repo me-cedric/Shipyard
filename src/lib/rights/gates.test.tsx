@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
@@ -68,6 +68,22 @@ describe("a viewer on a pull request page", () => {
 		expect(merge).toHaveAccessibleDescription(needs("code.merge"));
 		expect(merge.closest("span[title]")).toHaveAttribute("title", needs("code.merge"));
 		expect(screen.getByRole("button", { name: "Method" })).toBeDisabled();
+	});
+
+	it("sees Comment, Reply, Resolve and Reopen off, with the reason", async () => {
+		const user = userEvent.setup();
+		await open("github-demo-142");
+		const off = (b: HTMLElement) => {
+			expect(b).toBeDisabled();
+			expect(b).toHaveAccessibleDescription(needs("code.write"));
+		};
+		const live = within(await screen.findByRole("article", { name: "src/app.ts:2" }));
+		off(live.getByRole("button", { name: "Reply to src/app.ts:2" }));
+		off(live.getByRole("button", { name: "Resolve" }));
+		await user.type(screen.getByRole("textbox", { name: "Comment" }), "x");
+		off(screen.getByRole("button", { name: "Comment" }));
+		await user.click(screen.getByRole("button", { name: /src\/lib\.ts:7/ }));
+		off(await screen.findByRole("button", { name: "Reopen" }));
 	});
 
 	it("sees Close pull request off in the menu, with the reason", async () => {

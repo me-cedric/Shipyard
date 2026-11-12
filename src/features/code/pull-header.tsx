@@ -1,17 +1,17 @@
 import { useMemo, useState } from "react";
 import { webUrl } from "@/features/factory/runs/run-summary";
 import { type PullDetail, useForgeActions } from "@/lib/code";
-import { format, useI18n } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { copyText, openUrl } from "@/lib/menus";
 import { RightButton, useRights } from "@/lib/rights";
 import { Avatar } from "@/ui/atoms/avatar";
 import { Badge } from "@/ui/atoms/badge";
-import { Button } from "@/ui/atoms/button";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { CheckIcon, ChevronDownIcon } from "@/ui/icons";
 import { countsOf } from "@/ui/molecules/diff-file-list";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { MenuButton } from "@/ui/molecules/menu-button";
+import { CloseConfirm } from "./close-confirm";
 import { useRun } from "./use-run";
 
 /** The state of a pull request as a word and a status: Open, Draft, Merged or Closed. */
@@ -63,19 +63,16 @@ export function PullHeader({ d }: { d: PullDetail }) {
 					</RightButton>
 				) : null}
 				{closing ? (
-					<Button
-						variant="danger"
-						autoFocus
-						onBlur={() => setClosing(false)}
-						onClick={() =>
+					<CloseConfirm
+						number={d.number}
+						onCancel={() => setClosing(false)}
+						onConfirm={() =>
 							void run(async () => {
 								setClosing(false);
 								await close(d.number, "");
 							})
 						}
-					>
-						{format(p.confirmClose, { number: d.number })}
-					</Button>
+					/>
 				) : (
 					<MenuButton
 						iconOnly

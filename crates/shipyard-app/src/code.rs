@@ -12,8 +12,8 @@ use serde::{Deserialize, Serialize};
 use shipyard_agents::impacts::{Analysis, Comparison, RunnerAsk, analyze};
 use shipyard_core::code::{commit_refs, run_in_message};
 use shipyard_forges::{
-    CheckState, CiState, CodeApi, ForgeError, MergeMethod, NewPull, PullFile, PullQuery,
-    PullRequest, PullState, ReviewerVerdict, Verdict,
+    CheckState, CiState, CodeApi, ForgeError, MergeMethod, NewPull, PullComment, PullFile,
+    PullQuery, PullRequest, PullState, ReviewerVerdict, Verdict,
 };
 use shipyard_git::Repo;
 use shipyard_store::code::{
@@ -159,8 +159,10 @@ pub struct PullThread {
     pub resolved: bool,
     pub path: Option<String>,
     pub line: Option<u32>,
-    /// `author: text`, oldest first.
-    pub comments: Vec<String>,
+    /// Oldest first. Only the newest ones when `comments_total` is higher.
+    pub comments: Vec<PullComment>,
+    /// How many comments the thread has on the code host.
+    pub comments_total: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -187,6 +189,12 @@ pub struct PullDetail {
     /// `none`, `pending`, `passing` or `failing`.
     pub ci: String,
     pub threads: Vec<PullThread>,
+    /// The code host has more threads than `threads` holds.
+    pub threads_truncated: bool,
+    /// The general comments, not on a line, oldest first.
+    pub comments: Vec<PullComment>,
+    /// The code host has more general comments: `comments` holds the newest ones.
+    pub comments_truncated: bool,
     pub verdicts: Vec<ReviewerVerdict>,
     /// `clean`, `conflict`, `blocked` or `unknown`.
     pub mergeable: String,
@@ -210,6 +218,7 @@ pub fn pull_detail(s: &AppState, number: u32) -> Res<PullDetail> {
     let ci = api.ci_status(&slug, n).map_err(err)?;
     let commits = api.commits(&slug, n).map_err(err)?;
     let files = api.files_capped(&slug, n).map_err(err)?;
+    let talk = api.conversation(&slug, n).map_err(err)?;
     let mut links =
         shipyard_core::code::commit_refs(&p.source_branch, &p.title, &known_keys(s), None);
     if let Ok(rows) = crate::delivery::pr_rows(s) {
@@ -263,22 +272,21 @@ pub fn pull_detail(s: &AppState, number: u32) -> Res<PullDetail> {
             })
             .collect(),
         ci: format!("{:?}", status.ci).to_lowercase(),
-        threads: api
-            .threads(&slug, n)
-            .map_err(err)?
+        threads: talk
+            .threads
             .into_iter()
             .map(|t| PullThread {
                 id: t.id,
                 resolved: t.resolved,
                 path: t.path,
                 line: t.line,
-                comments: t
-                    .comments
-                    .into_iter()
-                    .map(|c| format!("{}: {}", c.author, c.body))
-                    .collect(),
+                comments: t.comments,
+                comments_total: t.comments_total,
             })
             .collect(),
+        threads_truncated: talk.threads_truncated,
+        comments: talk.comments,
+        comments_truncated: talk.comments_truncated,
         verdicts: api.verdicts(&slug, n).map_err(err)?,
         mergeable: format!("{:?}", status.mergeable).to_lowercase(),
         merge_methods: api.merge_methods().to_vec(),
@@ -379,6 +387,88 @@ pub fn pull_comment(s: &AppState, number: u32, body: &str, click: bool) -> Res<(
     )?;
     let (api, slug, _) = forge(s)?;
     api.comment(&slug, u64::from(number), body).map_err(err)
+}
+
+/// `pr:<connection>:<number>` of the active forge, as the number of its pull request.
+fn pull_number(s: &AppState, reference: &str) -> Res<u64> {
+    let (_, _, conn) = forge(s)?;
+    parse_pr_ref(reference, &conn)
+        .ok_or_else(|| format!("not a pull request of this project: {reference}"))
+}
+
+fn parse_pr_ref(reference: &str, conn: &str) -> Option<u64> {
+    reference
+        .strip_prefix("pr:")?
+        .strip_prefix(conn)?
+        .strip_prefix(':')?
+        .parse()
+        .ok()
+}
+
+/// The number of a `pr:<connection>:<number>` ref, before any check of the connection.
+fn ref_number(reference: &str) -> Res<u64> {
+    reference
+        .strip_prefix("pr:")
+        .and_then(|r| r.rsplit_once(':'))
+        .filter(|(conn, _)| !conn.is_empty())
+        .and_then(|(_, n)| n.parse().ok())
+        .ok_or_else(|| format!("not a pull request of this project: {reference}"))
+}
+
+/// A thread write goes to a thread of this pull request only. The ids are opaque (a GitHub node
+/// id has no pull request number), so the check reads the threads: one more forge read.
+fn check_thread(threads: &[shipyard_forges::ReviewThread], id: &str) -> Res<()> {
+    if threads.iter().any(|t| t.id == id) {
+        Ok(())
+    } else {
+        Err(format!("not a thread of this pull request: {id}"))
+    }
+}
+
+/// The ref is checked first, so the audit line holds a well formed number and never raw text.
+fn thread_write(
+    s: &AppState,
+    reference: &str,
+    thread_id: &str,
+    what: &'static str,
+    click: bool,
+) -> Res<(Box<dyn CodeApi>, String, u64)> {
+    let shaped = ref_number(reference)?;
+    need_click(
+        s,
+        click,
+        crate::rights::Right::CodeWrite,
+        what,
+        &format!("#{shaped}"),
+    )?;
+    let n = pull_number(s, reference)?;
+    let (api, slug, _) = forge(s)?;
+    check_thread(&api.threads(&slug, n).map_err(err)?, thread_id)?;
+    Ok((api, slug, n))
+}
+
+pub fn pull_reply(
+    s: &AppState,
+    reference: &str,
+    thread_id: &str,
+    body: &str,
+    click: bool,
+) -> Res<()> {
+    let (api, slug, n) = thread_write(s, reference, thread_id, "code_pull_reply", click)?;
+    api.reply_thread(&slug, n, thread_id, body).map_err(err)
+}
+
+/// `resolved: false` reopens the thread.
+pub fn pull_resolve(
+    s: &AppState,
+    reference: &str,
+    thread_id: &str,
+    resolved: bool,
+    click: bool,
+) -> Res<()> {
+    let (api, slug, n) = thread_write(s, reference, thread_id, "code_pull_resolve", click)?;
+    api.resolve_thread(&slug, n, thread_id, resolved)
+        .map_err(err)
 }
 
 pub fn pull_verdict(
@@ -1036,6 +1126,36 @@ pub async fn code_pull_comment(app: AppHandle, number: u32, body: String, click:
 
 #[tauri::command]
 #[specta::specta]
+pub async fn code_pull_reply(
+    app: AppHandle,
+    reference: String,
+    thread_id: String,
+    body: String,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| {
+        pull_reply(s, &reference, &thread_id, &body, click)
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn code_pull_resolve(
+    app: AppHandle,
+    reference: String,
+    thread_id: String,
+    resolved: bool,
+    click: bool,
+) -> Api<()> {
+    blocking(app, move |s| {
+        pull_resolve(s, &reference, &thread_id, resolved, click)
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn code_pull_verdict(
     app: AppHandle,
     number: u32,
@@ -1288,6 +1408,75 @@ mod tests {
         );
         assert_eq!(pull_ready(&s, 1, true).unwrap_err(), NO_FORGE);
         assert!(pull_ready(&s, 1, false).unwrap_err().contains("click"));
+    }
+
+    #[test]
+    fn a_thread_write_needs_a_click_the_right_and_a_forge() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, _) = project(dir.path());
+        let r = "pr:c1:7";
+        assert!(
+            pull_reply(&s, r, "t", "x", false)
+                .unwrap_err()
+                .contains("click")
+        );
+        assert!(
+            pull_resolve(&s, r, "t", true, false)
+                .unwrap_err()
+                .contains("click")
+        );
+        assert_eq!(pull_reply(&s, r, "t", "x", true).unwrap_err(), NO_FORGE);
+        assert_eq!(pull_resolve(&s, r, "t", false, true).unwrap_err(), NO_FORGE);
+        let on = shipyard_store::project::Overrides {
+            read_only: Some(true),
+            ..Default::default()
+        };
+        crate::commands::projects::save_overrides(&s, on).unwrap();
+        for e in [
+            pull_reply(&s, r, "t", "x", true).unwrap_err(),
+            pull_resolve(&s, r, "t", true, true).unwrap_err(),
+        ] {
+            assert!(e.contains("read only"), "{e}");
+        }
+    }
+
+    #[test]
+    fn a_malformed_ref_is_refused_before_the_audit_line() {
+        let dir = tempfile::tempdir().unwrap();
+        let (s, _) = project(dir.path());
+        for bad in ["junk\n{\"x\"}", "pr:c1", "pr::7", "pr:c1:x"] {
+            assert!(pull_reply(&s, bad, "t", "x", true).is_err(), "{bad}");
+            assert!(pull_resolve(&s, bad, "t", true, true).is_err(), "{bad}");
+        }
+        assert!(crate::rights::audit_lines(&s).unwrap().is_empty());
+        // A good ref reaches the audit log, as the number only.
+        let _ = pull_reply(&s, "pr:c1:7", "t", "x", true);
+        let lines = crate::rights::audit_lines(&s).unwrap();
+        assert_eq!(lines.last().map(|l| l.target.as_str()), Some("#7"));
+    }
+
+    #[test]
+    fn a_thread_of_another_pull_request_is_refused() {
+        let t = |id: &str| shipyard_forges::ReviewThread {
+            id: id.into(),
+            resolved: false,
+            path: None,
+            line: None,
+            comments: Vec::new(),
+            comments_total: 0,
+        };
+        let here = [t("T1"), t("T2")];
+        assert!(check_thread(&here, "T2").is_ok());
+        let e = check_thread(&here, "T9").unwrap_err();
+        assert!(e.contains("not a thread of this pull request"), "{e}");
+    }
+
+    #[test]
+    fn a_pull_request_ref_must_name_the_connection_of_the_project() {
+        assert_eq!(parse_pr_ref("pr:c1:7", "c1"), Some(7));
+        for bad in ["pr:c2:7", "pr:c1:x", "c1:7", "pr:c1", "pr:c1:7:8"] {
+            assert_eq!(parse_pr_ref(bad, "c1"), None, "{bad}");
+        }
     }
 
     #[test]

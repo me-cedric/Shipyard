@@ -1898,6 +1898,10 @@ const handlers: Handlers = {
 	prReviewWaiting: () => ap.reviewWaiting(agentPr(), prs()),
 	prWriteText: (base, click) => ap.prWrite(click, readOnly(), base),
 	codePullComment: (number, body, click) => cp.pullComment(prs(), number, body, click),
+	codePullReply: (reference, threadId, body, click) =>
+		cp.pullReply(prs(), reference, threadId, body, click),
+	codePullResolve: (reference, threadId, resolved, click) =>
+		cp.pullResolve(prs(), reference, threadId, resolved, click),
 	codePullVerdict: (number, verdict, body, click) =>
 		cp.pullVerdict(prs(), number, verdict, body, click),
 	codePullMerge: (number, method, click) => cp.pullMerge(prs(), number, method, click),
