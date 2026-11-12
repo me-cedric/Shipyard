@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { type MergeMethod, type PullDetail, useForgeActions } from "@/lib/code";
 import { format, type Messages, useI18n } from "@/lib/i18n";
 import { commands, toFailure, unwrap } from "@/lib/ipc";
+import { useNotifications } from "@/lib/notifications";
 import { RightButton, useRights } from "@/lib/rights";
 import { Button } from "@/ui/atoms/button";
 import { Progress } from "@/ui/atoms/progress";
@@ -131,6 +132,7 @@ export function MergeBox({ d }: { d: PullDetail }) {
 	const { t } = useI18n();
 	const p = t.forge.pullPage;
 	const { merge } = useForgeActions();
+	const { push } = useNotifications();
 	const { gate } = useRights();
 	const { failure, busy, run } = useRun();
 	const [method, setMethod] = useState<MergeMethod | null>(null);
@@ -164,6 +166,11 @@ export function MergeBox({ d }: { d: PullDetail }) {
 		void run(async () => {
 			try {
 				await merge(d.number, current);
+				void push({
+					id: `pull-merged:${d.reference}`,
+					kind: "info",
+					title: format(p.mergedNotice, { number: d.number, method: t.forge.methods[current] }),
+				});
 				focusPullTitle();
 			} finally {
 				setConfirming(false);
@@ -212,9 +219,10 @@ export function MergeBox({ d }: { d: PullDetail }) {
 								id: m,
 								label: t.forge.methods[m],
 								checked: m === current,
+								// Choosing a method starts the merge with it: the confirmation names it.
 								onSelect: () => {
 									setMethod(m);
-									setConfirming(false);
+									setConfirming(true);
 								},
 							}))}
 						/>

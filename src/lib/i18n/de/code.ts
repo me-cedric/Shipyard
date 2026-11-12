@@ -265,6 +265,7 @@ export const forgeDe: typeof forgeEn = {
 		openInBrowser: "Im Browser öffnen",
 		confirmClose: "#{number} schließen?",
 		mergeBox: "Merge-Status",
+		mergedNotice: "#{number} mit {method} zusammengeführt",
 		ready: "Bereit zum Mergen",
 		blocked: "Merge ist blockiert: {why}",
 		blockedByHost: "Merge ist von der Code-Plattform blockiert",

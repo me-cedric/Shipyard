@@ -251,6 +251,7 @@ export const forgeEs: typeof forgeEn = {
 		openInBrowser: "Abrir en el navegador",
 		confirmClose: "¿Cerrar #{number}?",
 		mergeBox: "Estado de la fusión",
+		mergedNotice: "#{number} fusionada con {method}",
 		ready: "Lista para fusionar",
 		blocked: "La fusión está bloqueada: {why}",
 		blockedByHost: "La fusión está bloqueada por la plataforma de código",

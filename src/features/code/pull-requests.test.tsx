@@ -325,12 +325,27 @@ describe("Code / Pull requests", () => {
 		await user.click(await screen.findByRole("button", { name: "Method" }));
 		expect(await screen.findByRole("menuitemcheckbox", { name: "Merge" })).toBeChecked();
 		expect(screen.getByRole("menuitemcheckbox", { name: "Rebase" })).toBeInTheDocument();
+		// Choosing a method starts the merge with it: the confirmation names the method at once.
 		await user.click(screen.getByRole("menuitemcheckbox", { name: "Squash" }));
-		await user.click(screen.getByRole("button", { name: "Merge" }));
 		await user.click(await screen.findByRole("button", { name: "Merge with Squash?" }));
 		await waitFor(() =>
 			expect(mockState().prs?.pulls.find((p) => p.number === 141)?.state).toBe("merged"),
 		);
+		// The person is told that it worked.
+		expect(await screen.findByText("Merged #141 with Squash")).toBeInTheDocument();
+		await idle(router);
+	});
+
+	it("opens the confirmation with the method that the menu item names, and Cancel merges nothing", async () => {
+		const user = userEvent.setup();
+		await demo();
+		const router = mountApp("/code/pull-requests/github-demo-141");
+		await user.click(await screen.findByRole("button", { name: "Method" }));
+		await user.click(await screen.findByRole("menuitemcheckbox", { name: "Rebase" }));
+		expect(await screen.findByRole("button", { name: "Merge with Rebase?" })).toBeVisible();
+		await user.click(screen.getByRole("button", { name: "Cancel" }));
+		expect(screen.queryByRole("button", { name: "Merge with Rebase?" })).toBeNull();
+		expect(mockState().prs?.pulls.find((p) => p.number === 141)?.state).toBe("open");
 		await idle(router);
 	});
 
