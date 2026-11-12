@@ -475,6 +475,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             avatar::avatar_get,
             kw::graph_get,
             kw::graph_code,
+            kw::graph_code_focus,
             kw::graph_code_index,
             kw::explain_context_get,
             kw::doc_list_get,

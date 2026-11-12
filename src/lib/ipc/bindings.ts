@@ -465,6 +465,7 @@ export const commands = {
 	avatarGet: (email: string) => typedError<string | null, AppError_Serialize>(__TAURI_INVOKE("avatar_get", { email })),
 	graphGet: () => typedError<KGraph_Serialize, AppError_Serialize>(__TAURI_INVOKE("graph_get")),
 	graphCode: () => typedError<CodeGraph_Serialize, AppError_Serialize>(__TAURI_INVOKE("graph_code")),
+	graphCodeFocus: (file: string) => typedError<CodeGraph_Serialize, AppError_Serialize>(__TAURI_INVOKE("graph_code_focus", { file })),
 	graphCodeIndex: () => typedError<null, AppError_Serialize>(__TAURI_INVOKE("graph_code_index")),
 	explainContextGet: (entity: string) => typedError<ExplainContext_Serialize, AppError_Serialize>(__TAURI_INVOKE("explain_context_get", { entity })),
 	docListGet: () => typedError<DocList, AppError_Serialize>(__TAURI_INVOKE("doc_list_get")),
@@ -1519,18 +1520,25 @@ export type CliLogin = {
 	user: string,
 };
 
+/**  A call weight between two files. The overview draws a thicker line for a bigger weight. */
+export type CodeEdge = {
+	source: string,
+	target: string,
+	weight: number,
+};
+
 export type CodeGraph = CodeGraph_Serialize | CodeGraph_Deserialize;
 
 export type CodeGraph_Deserialize = {
 	state: CodeState,
 	nodes: GraphNode_Deserialize[],
-	edges: GraphEdge[],
+	edges: CodeEdge[],
 };
 
 export type CodeGraph_Serialize = {
 	state: CodeState,
 	nodes: GraphNode_Serialize[],
-	edges: GraphEdge[],
+	edges: CodeEdge[],
 };
 
 export type CodeState = 

@@ -2116,6 +2116,7 @@ const handlers: Handlers = {
 	childDeploy: (ids, keys) => ex.childDeploy(need(state.extensions), ids, keys),
 	graphGet: () => kw.graphGet(need(state.knowledge), knowledgeEnv()),
 	graphCode: () => kw.graphCode(need(state.knowledge)),
+	graphCodeFocus: (file) => kw.graphCodeFocus(need(state.knowledge), file),
 	graphCodeIndex: () => kw.graphCodeIndex(need(state.knowledge)),
 	avatarGet: () => null,
 	explainContextGet: (entity) => kw.explainContext(knowledgeEnv(), entity),

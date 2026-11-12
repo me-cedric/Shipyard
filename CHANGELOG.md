@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.1.0]
+- Knowledge / Graph / Code opens as a map of folders, with thicker lines where more calls go between their files, instead of a flat list of 300 symbols: select a folder to see its files, and a file to see its symbols with what calls them and what they call; Show all returns to the map.
 - Code / History shows the profile picture of each commit author, from GitHub for a GitHub no-reply address and from Gravatar for any other address (the initials when there is none). Only a hash of the address goes to Gravatar.
 - Knowledge / Graph / Code shows the graph after Index: it reads the index also when the code server is off (it runs for that read only), and it finds the index of a folder with a link or a space in its path.
 - The menu bar icon no longer shows a dot. The panel that the icon opens still shows what needs you.

@@ -431,3 +431,10 @@ Feature: ux-declutter
     Given a commit whose author has a Gravatar picture and a commit whose author has none
     When the person opens History
     Then the first row shows the picture and the second row shows the initials
+
+  @spec:ux-declutter#REQ-054
+  Scenario: Code graph map: Folder, file, back
+    Given an indexed project
+    When the person opens the Code graph and selects a folder and then a file
+    Then the folder shows its files and the file shows its symbols with their calls
+    And Show all returns to the map of folders

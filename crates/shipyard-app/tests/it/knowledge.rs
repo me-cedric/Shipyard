@@ -4,7 +4,7 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use serde_json::{Value, json};
-use shipyard_app::knowledge::{CodeSource, CodeState, code_graph, code_index};
+use shipyard_app::knowledge::{CodeSource, CodeState, code_focus, code_graph, code_index};
 
 /// Answers `query_graph` with canned rows and records every call.
 struct Fake {
@@ -36,7 +36,44 @@ fn text_result(v: Value) -> Value {
 const ROOT: &str = "/Users/me/Projects/Shipyard";
 
 #[test]
-fn calls_become_symbol_and_file_nodes_with_edges() {
+fn the_overview_has_files_and_counted_calls_between_two_files() {
+    let fake = Fake::new(Ok(text_result(json!({
+        "rows": [
+            ["src/a.rs", "src/b.rs", "12"],
+            ["src/b.rs", "src/b.rs", "9"],
+            ["src/b.rs", "src/c.rs", "3"],
+            ["", "src/c.rs", "1"],
+            ["bad row"]
+        ]
+    }))));
+    let g = code_graph(&fake, Path::new(ROOT));
+    assert_eq!(g.state, CodeState::Ready);
+    let ids: Vec<&str> = g.nodes.iter().map(|n| n.target.as_str()).collect();
+    assert_eq!(ids, ["src/a.rs", "src/b.rs", "src/c.rs"]);
+    assert!(g.nodes.iter().all(|n| n.kind == "file"));
+    let pairs: Vec<(&str, &str, u32)> = g
+        .edges
+        .iter()
+        .map(|e| (e.source.as_str(), e.target.as_str(), e.weight))
+        .collect();
+    assert_eq!(
+        pairs,
+        [("src/a.rs", "src/b.rs", 12), ("src/b.rs", "src/c.rs", 3)],
+        "a call inside one file is no edge"
+    );
+    let calls = fake.calls.lock().unwrap();
+    assert_eq!(calls[0].0, "query_graph");
+    assert_eq!(calls[0].1["project"], "Users-me-Projects-Shipyard");
+    assert!(
+        calls[0].1["query"]
+            .as_str()
+            .unwrap()
+            .contains("ORDER BY n DESC")
+    );
+}
+
+#[test]
+fn a_focus_gives_the_symbols_of_one_file_and_their_callers_and_callees() {
     let fake = Fake::new(Ok(text_result(json!({
         "columns": ["a.name", "a.file_path", "b.name", "b.file_path"],
         "rows": [
@@ -46,7 +83,7 @@ fn calls_become_symbol_and_file_nodes_with_edges() {
             ["bad row"]
         ]
     }))));
-    let g = code_graph(&fake, Path::new(ROOT));
+    let g = code_focus(&fake, Path::new(ROOT), "src/b.rs").unwrap();
     assert_eq!(g.state, CodeState::Ready);
     let ids: Vec<&str> = g.nodes.iter().map(|n| n.target.as_str()).collect();
     assert_eq!(
@@ -68,8 +105,17 @@ fn calls_become_symbol_and_file_nodes_with_edges() {
     one.dedup();
     assert_eq!(one.len(), g.edges.len(), "no repeated edge");
     let calls = fake.calls.lock().unwrap();
-    assert_eq!(calls[0].0, "query_graph");
-    assert_eq!(calls[0].1["project"], "Users-me-Projects-Shipyard");
+    let q = calls[0].1["query"].as_str().unwrap();
+    assert!(q.contains("a.file_path = \"src/b.rs\""), "{q}");
+}
+
+#[test]
+fn a_focus_refuses_a_file_name_that_could_change_the_query() {
+    let fake = Fake::new(Ok(json!({})));
+    for bad in ["", "a\" OR 1=1", "a\\b", "a\nb"] {
+        assert!(code_focus(&fake, Path::new(ROOT), bad).is_err(), "{bad:?}");
+    }
+    assert!(fake.calls.lock().unwrap().is_empty());
 }
 
 #[test]

@@ -33,6 +33,7 @@ export const knowledgeEs: typeof knowledgeEn = {
 		clear: "Mostrar todo",
 		file: "Archivo",
 		symbol: "Símbolo",
+		folder: "Carpeta",
 	},
 	handbook: {
 		title: "Guía del equipo",

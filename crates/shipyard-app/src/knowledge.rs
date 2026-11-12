@@ -219,7 +219,7 @@ pub enum CodeState {
 pub struct CodeGraph {
     pub state: CodeState,
     pub nodes: Vec<GraphNode>,
-    pub edges: Vec<GraphEdge>,
+    pub edges: Vec<CodeEdge>,
 }
 
 /// The name of the graph of a folder in codebase-memory: its real path (a link such as `/tmp` or
@@ -289,54 +289,70 @@ fn table_cells(line: &str) -> Vec<String> {
     out
 }
 
-/// The calls between symbols, with the file of each (REQ-002). A file is a node and holds its
-/// symbols. shortcut: the first 300 calls. Page the query when a project needs more.
+/// The most file pairs that the overview reads, the most called first.
+const OVERVIEW_PAIRS: usize = 3000;
+
+/// A call weight between two files. The overview draws a thicker line for a bigger weight.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Type)]
+pub struct CodeEdge {
+    pub source: String,
+    pub target: String,
+    pub weight: u32,
+}
+
+fn empty(state: CodeState) -> CodeGraph {
+    CodeGraph {
+        state,
+        nodes: vec![],
+        edges: vec![],
+    }
+}
+
+fn file_node(path: &str) -> GraphNode {
+    GraphNode {
+        target: path.to_string(),
+        kind: "file".into(),
+        title: path.to_string(),
+        status: None,
+        location: Some(path.to_string()),
+    }
+}
+
+/// The overview of the code (REQ-002): the files, and the calls between two files counted, the
+/// most called pairs first. The symbols come with `code_focus`. shortcut: the first 3000 pairs.
 pub fn code_graph(src: &dyn CodeSource, root: &Path) -> CodeGraph {
     let query = format!(
-        "MATCH (a)-[:CALLS]->(b) RETURN a.name, a.file_path, b.name, b.file_path LIMIT {CODE_ROWS}"
+        "MATCH (a)-[:CALLS]->(b) RETURN a.file_path, b.file_path, count(*) AS n ORDER BY n DESC LIMIT {OVERVIEW_PAIRS}"
     );
     let args = json!({ "project": graph_project(root), "query": query });
     let Ok(result) = src.call("query_graph", args) else {
-        return CodeGraph {
-            state: CodeState::Off,
-            nodes: vec![],
-            edges: vec![],
-        };
+        return empty(CodeState::Off);
     };
+    let mut seen: std::collections::HashSet<String> = Default::default();
     let mut nodes: Vec<GraphNode> = Vec::new();
-    let mut edges: Vec<GraphEdge> = Vec::new();
-    let mut add = |kind: &str, id: String, title: String, file: Option<String>| {
-        if !nodes.iter().any(|n| n.target == id) {
-            nodes.push(GraphNode {
-                target: id,
-                kind: kind.into(),
-                title,
-                status: None,
-                location: file,
-            });
-        }
-    };
+    let mut edges: Vec<CodeEdge> = Vec::new();
     for row in graph_rows(&result) {
-        let [an, af, bn, bf] = match <[String; 4]>::try_from(row) {
+        let [a, b, n] = match <[String; 3]>::try_from(row) {
             Ok(r) => r,
             Err(_) => continue,
         };
-        let (a, b) = (format!("{af}::{an}"), format!("{bf}::{bn}"));
-        for (id, name, file) in [(&a, an, af), (&b, bn, bf)] {
-            add("file", file.clone(), file.clone(), Some(file.clone()));
-            add("symbol", id.clone(), name, Some(file.clone()));
-            edges.push(GraphEdge {
-                source: file,
-                target: id.clone(),
+        if a.is_empty() || b.is_empty() {
+            continue;
+        }
+        for f in [&a, &b] {
+            if seen.insert(f.clone()) {
+                nodes.push(file_node(f));
+            }
+        }
+        // A call inside one file is no line between two files.
+        if a != b {
+            edges.push(CodeEdge {
+                source: a,
+                target: b,
+                weight: n.parse().unwrap_or(1),
             });
         }
-        edges.push(GraphEdge {
-            source: a,
-            target: b,
-        });
     }
-    edges.sort_by(|x, y| (&x.source, &x.target).cmp(&(&y.source, &y.target)));
-    edges.dedup();
     let state = if nodes.is_empty() {
         CodeState::Unindexed
     } else {
@@ -347,6 +363,71 @@ pub fn code_graph(src: &dyn CodeSource, root: &Path) -> CodeGraph {
         nodes,
         edges,
     }
+}
+
+/// The calls of one file, symbol by symbol: its symbols, and each symbol that calls them or that
+/// they call, each under its file. shortcut: the first 300 calls.
+pub fn code_focus(src: &dyn CodeSource, root: &Path, file: &str) -> Res<CodeGraph> {
+    if file.is_empty() || file.contains(['"', '\\', '\n', '\r']) {
+        return Err("this file name cannot be read".into());
+    }
+    let query = format!(
+        "MATCH (a)-[:CALLS]->(b) WHERE a.file_path = \"{file}\" OR b.file_path = \"{file}\" RETURN a.name, a.file_path, b.name, b.file_path LIMIT {CODE_ROWS}"
+    );
+    let args = json!({ "project": graph_project(root), "query": query });
+    let Ok(result) = src.call("query_graph", args) else {
+        return Ok(empty(CodeState::Off));
+    };
+    let mut seen: std::collections::HashSet<String> = Default::default();
+    let mut nodes: Vec<GraphNode> = Vec::new();
+    let mut edges: Vec<CodeEdge> = Vec::new();
+    for row in graph_rows(&result) {
+        let [an, af, bn, bf] = match <[String; 4]>::try_from(row) {
+            Ok(r) => r,
+            Err(_) => continue,
+        };
+        let (an, bn) = (
+            an.trim_matches('"').to_string(),
+            bn.trim_matches('"').to_string(),
+        );
+        let (a, b) = (format!("{af}::{an}"), format!("{bf}::{bn}"));
+        for (id, name, f) in [(&a, an, &af), (&b, bn, &bf)] {
+            if seen.insert(f.clone()) {
+                nodes.push(file_node(f));
+            }
+            if seen.insert(id.clone()) {
+                nodes.push(GraphNode {
+                    target: id.clone(),
+                    kind: "symbol".into(),
+                    title: name,
+                    status: None,
+                    location: Some(f.clone()),
+                });
+            }
+            edges.push(CodeEdge {
+                source: f.clone(),
+                target: id.clone(),
+                weight: 1,
+            });
+        }
+        edges.push(CodeEdge {
+            source: a,
+            target: b,
+            weight: 1,
+        });
+    }
+    edges.sort_by(|x, y| (&x.source, &x.target).cmp(&(&y.source, &y.target)));
+    edges.dedup();
+    let state = if nodes.is_empty() {
+        CodeState::Unindexed
+    } else {
+        CodeState::Ready
+    };
+    Ok(CodeGraph {
+        state,
+        nodes,
+        edges,
+    })
 }
 
 /// The Index action: ask the server to index the folder.
@@ -1180,6 +1261,15 @@ pub async fn graph_get(app: AppHandle) -> Api<KGraph> {
 pub async fn graph_code(app: AppHandle) -> Api<CodeGraph> {
     blocking(app, |s| {
         Ok(code_graph(s.agents.proxy.as_ref(), &project(s)?.root))
+    })
+    .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn graph_code_focus(app: AppHandle, file: String) -> Api<CodeGraph> {
+    blocking(app, move |s| {
+        code_focus(s.agents.proxy.as_ref(), &project(s)?.root, &file)
     })
     .await
 }

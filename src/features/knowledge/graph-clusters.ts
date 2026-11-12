@@ -38,6 +38,19 @@ export function clusterNodes(nodes: GNode[]): Cluster[] {
 	return [...out.values()];
 }
 
+/** The cluster of each file of the code graph: its folder. */
+export function folderClusters(nodes: GNode[]): Cluster[] {
+	const out = new Map<string, Cluster>();
+	for (const n of nodes) {
+		const key = n.ref.includes("/") ? n.ref.slice(0, n.ref.lastIndexOf("/")) : ".";
+		const id = `${CLUSTER}folder:${key}`;
+		const c = out.get(id) ?? { id, kind: "folder", key, members: [] };
+		c.members.push(n);
+		out.set(id, c);
+	}
+	return [...out.values()];
+}
+
 export type View = {
 	clusters: Cluster[];
 	/** The cluster ids that show their members. */
@@ -58,10 +71,11 @@ export function clusterView(
 	edges: [string, string][],
 	open: string[],
 	query = "",
+	group: (nodes: GNode[]) => Cluster[] = clusterNodes,
 ): View {
 	const keep = new Set(shown.map((n) => n.ref));
 	const owner = new Map<string, string>();
-	const clusters = clusterNodes(all)
+	const clusters = group(all)
 		.map((c) => {
 			for (const m of c.members) owner.set(m.ref, c.id);
 			return { ...c, members: c.members.filter((m) => keep.has(m.ref)) };

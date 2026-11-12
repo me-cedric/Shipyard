@@ -6,7 +6,7 @@ Knowledge turns the files of the project into pages, documents, slides and lesso
 
 Graph draws the items of the project and the links between them. Filter by kind. A table view lists the same items.
 
-On the Code graph, Index starts the code graph server when it is off, builds the index, and stops the server again. If the program ends with an error, the page names the program, its exit code and its last lines, then gives one action: read the lines, fix the cause, then click Index again.
+The Code graph opens as a map of folders. A line between two folders is thicker when more calls go between their files. Select a folder to see its files, then select a file to see its symbols and what calls them or what they call. Show all goes back to the map. On the Code graph, Index starts the code graph server when it is off, builds the index, and stops the server again. If the program ends with an error, the page names the program, its exit code and its last lines, then gives one action: read the lines, fix the cause, then click Index again.
 
 - An item that nothing cites shows as an orphan.
 - An item whose source changed later shows as stale.

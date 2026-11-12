@@ -743,3 +743,14 @@ Code / History SHALL show the profile picture of each commit author in the list 
 - THEN the row and the detail show the picture
 - AND an author with no picture shows the initials
 
+### Requirement: REQ-054 Code graph map
+
+Knowledge / Graph / Code SHALL open as a map of folders, not a flat list of symbols. A line between two folders SHALL be thicker when more calls go between their files, and the app SHALL read the most called file pairs first. A folder SHALL open into its files. A file SHALL open into its symbols with what calls them and what they call, and Show all SHALL return to the map. The app SHALL read the calls of one file only when the person selects it.
+
+#### Scenario: Map, folder, file
+
+- GIVEN an indexed project
+- WHEN a person opens the Code graph
+- THEN folders show with their file counts
+- AND selecting a folder shows its files
+- AND selecting a file shows its symbols and their calls, and Show all returns to the folders
