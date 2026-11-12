@@ -194,4 +194,4 @@ function HistoryView() {
 	);
 }
 
-export const History = withProject(HistoryView);
+export const History = withProject(HistoryView, "history");

@@ -10,7 +10,7 @@ export function EmptyState({
 	icon,
 }: {
 	title: ReactNode;
-	action: { id?: string; label: string; icon?: ReactNode; onClick: () => void; busy?: boolean };
+	action?: { id?: string; label: string; icon?: ReactNode; onClick: () => void; busy?: boolean };
 	/** More actions beside the main one. */
 	extra?: ReactNode;
 	/** The icon of the page, so that two empty pages do not look the same. */
@@ -23,16 +23,18 @@ export function EmptyState({
 			</span>
 			<p className="text-14 font-medium text-n-11">{title}</p>
 			<div className="flex flex-wrap justify-center gap-2">
-				<Button
-					id={action.id}
-					variant="primary"
-					disabled={action.busy}
-					aria-busy={action.busy}
-					onClick={action.onClick}
-				>
-					{action.icon}
-					{action.label}
-				</Button>
+				{action ? (
+					<Button
+						id={action.id}
+						variant="primary"
+						disabled={action.busy}
+						aria-busy={action.busy}
+						onClick={action.onClick}
+					>
+						{action.icon}
+						{action.label}
+					</Button>
+				) : null}
 				{extra}
 			</div>
 		</div>

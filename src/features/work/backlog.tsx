@@ -126,7 +126,8 @@ export function Backlog() {
 
 	if (active === undefined || everything.isLoading)
 		return <Loading title={t.tabs.work.backlog} icon={<QueueListIcon size={16} />} />;
-	if (active === null) return <NoProject title={t.tabs.work.backlog} />;
+	if (active === null)
+		return <NoProject title={t.tabs.work.backlog} icon={<QueueListIcon size={16} />} />;
 
 	const startImport = () => run(async () => setPlanned(await planImport()));
 	if (all.length === 0 && planned === null)

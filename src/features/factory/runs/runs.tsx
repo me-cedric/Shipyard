@@ -26,6 +26,7 @@ import {
 } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Loading } from "@/ui/molecules/loading";
 import { Panel, type PanelTone } from "@/ui/molecules/panel";
 import { RunCard } from "@/ui/molecules/run-card";
 import { StatStrip } from "@/ui/molecules/stat-strip";
@@ -129,7 +130,8 @@ export function Runs() {
 		[runs.data],
 	);
 	const skip = useMemo(() => new Set(running.keys()), [running]);
-	if (active === null) return <NoProject title={f.runs} />;
+	if (active === undefined) return <Loading title={f.runs} icon={<CpuChipIcon size={16} />} />;
+	if (active === null) return <NoProject title={f.runs} icon={<CpuChipIcon size={16} />} />;
 	const all = runs.data ?? [];
 	const board = latestPerTicket(all);
 	const open = all.find((r) => r.id === selected);

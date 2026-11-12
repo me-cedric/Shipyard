@@ -32,9 +32,9 @@ Wave 2, top bar
 
 Wave 3, patterns
 
-- [ ] T013 (A) Visible page header on every tab; shared loading and empty patterns where a page shows nothing or bare text. REQ-017, REQ-018.
-- [ ] T014 (A) Section list on every Settings page; sliding pill on inner tab rows. REQ-019, REQ-022.
-- [ ] T015 [P] (B) Shared data table for Work / Time, team rights and learning paths. REQ-020.
+- [x] T013 (A) Visible page header on every tab; shared loading and empty patterns where a page shows nothing or bare text. REQ-017, REQ-018.
+- [x] T014 (A) Section list on every Settings page; sliding pill on inner tab rows. REQ-019, REQ-022.
+- [x] T015 [P] (B) Shared data table for the team rights tables, the Work / Team members table and learning paths. REQ-020.
 
 Wave 4, motion
 

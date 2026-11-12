@@ -158,7 +158,7 @@ function CapabilityDetail({ cap, onBack }: { cap: Capability; onBack: () => void
 export function Capabilities() {
 	const { t } = useI18n();
 	return (
-		<WithProject title={t.tabs.specs.capabilities}>
+		<WithProject title={t.tabs.specs.capabilities} icon={<BookOpenIcon size={16} />}>
 			<CapabilityList />
 		</WithProject>
 	);

@@ -1,4 +1,5 @@
 import { screen, within } from "@testing-library/react";
+import { QueueListIcon } from "../icons";
 import { EditorFrame } from "../organisms/editor-frame";
 import { renderApp } from "../test-utils";
 import { Board } from "./board";
@@ -36,19 +37,25 @@ describe("templates (REQ-006)", () => {
 		expect(rail).toHaveStyle({ width: "56px" });
 	});
 
-	it("ListDetail names the view and shows the toolbar above the list", () => {
+	it("ListDetail shows the page header with its icon and the toolbar above the list", () => {
 		renderApp(
-			<ListDetail title="Backlog" toolbar={<button type="button">Filter</button>}>
+			<ListDetail
+				title="Backlog"
+				icon={<QueueListIcon size={16} />}
+				toolbar={<button type="button">Filter</button>}
+			>
 				<p>rows</p>
 			</ListDetail>,
 		);
-		expect(screen.getByRole("heading", { name: "Backlog" })).toBeInTheDocument();
+		const head = screen.getByRole("heading", { level: 1, name: "Backlog" });
+		expect(head).not.toHaveClass("sr-only");
+		expect(head.parentElement?.querySelector("svg")).not.toBeNull();
 		expect(screen.getByRole("button", { name: "Filter" })).toBeInTheDocument();
 	});
 
 	it("Board lays out its columns inside the list frame", () => {
 		renderApp(
-			<Board title="Board">
+			<Board title="Board" icon={<QueueListIcon size={16} />}>
 				<p>col 1</p>
 				<p>col 2</p>
 			</Board>,

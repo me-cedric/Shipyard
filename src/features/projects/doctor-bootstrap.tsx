@@ -70,7 +70,7 @@ export function DoctorBootstrap() {
 	};
 	const shown = plan.data;
 	return (
-		<Panel title={d.title} icon={<SparklesIcon size={14} />} tone="accent">
+		<Panel id="doctor-bootstrap" title={d.title} icon={<SparklesIcon size={14} />} tone="accent">
 			<div className="flex flex-col gap-3 p-3">
 				<div className="flex flex-wrap gap-2">
 					<Input

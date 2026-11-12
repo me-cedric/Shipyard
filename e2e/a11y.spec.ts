@@ -31,4 +31,14 @@ for (const scheme of ["light", "dark"] as const) {
 			expect(found).toEqual([]);
 		});
 	}
+	// The manual is no tab since wave 2: the scan opens it by its address.
+	test(`has no axe violation: the manual, ${scheme} theme`, async ({ page }) => {
+		page.setDefaultTimeout(10_000);
+		await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
+		await page.goto("/knowledge/manual");
+		await expect(page.getByRole("article")).toBeVisible();
+		await page.waitForLoadState("networkidle");
+		const { violations } = await new AxeBuilder({ page }).analyze();
+		expect(violations.map((v) => v.id)).toEqual([]);
+	});
 }

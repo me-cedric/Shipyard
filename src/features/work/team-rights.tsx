@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ColumnDef } from "@tanstack/react-table";
 import { type ReactNode, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import {
@@ -33,6 +34,7 @@ import {
 } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
+import { DataTable } from "@/ui/organisms/data-table";
 import { useGuard } from "./guard";
 
 /** The roles of a member as a select. A role that is not one of the nine stays selectable, as it is. */
@@ -171,64 +173,68 @@ function Mark({ label, icon, tone }: { label: string; icon: ReactNode; tone: str
 	);
 }
 
-/** The levels of one row: eight areas and two switches, each as a mark or, in edit, as a control. */
-function Cells({
-	access,
-	name,
-	onChange,
-}: {
-	access: Access;
-	name: string;
-	onChange?: (a: Access) => void;
-}) {
+type LevelRow = { access: Access; name: string; onChange?: (a: Access) => void };
+
+/** One level or switch of a cell, as a mark or, in edit, as a control. */
+function LevelCell({ k, access, name, onChange }: LevelRow & { k: Area | "merge" | "approve" }) {
 	const { t } = useI18n();
 	const r = t.rights.team;
-	return (
-		<>
-			{AREAS.map((k) => (
-				<td key={k} className="px-1 py-1 text-center">
-					{onChange ? (
-						<Select
-							label={`${name} ${r.area[k]}`}
-							value={access[k]}
-							onValueChange={(v) => onChange({ ...access, [k]: v as Level })}
-							className="w-28 min-w-0"
-							items={LEVELS.map((l) => ({
-								value: l,
-								label: r.level[l],
-								icon: <span className={LEVEL_LOOK[l].tone}>{LEVEL_LOOK[l].icon}</span>,
-							}))}
-						/>
-					) : (
-						<Mark label={r.level[access[k]]} {...LEVEL_LOOK[access[k]]} />
-					)}
-				</td>
-			))}
-			{(["merge", "approve"] as const).map((k) => (
-				<td key={k} className="px-1 py-1 text-center">
-					{onChange ? (
-						<Switch
-							iconOnly
-							label={`${name} ${r[k]}`}
-							checked={access[k]}
-							onCheckedChange={(on) => onChange({ ...access, [k]: on })}
-						/>
-					) : (
-						<Mark
-							label={`${r[k]} ${access[k] ? t.rights.yes : t.rights.no}`}
-							icon={access[k] ? <CheckIcon size={12} /> : <XMarkIcon size={12} />}
-							tone={access[k] ? "text-success-text" : "text-n-10"}
-						/>
-					)}
-				</td>
-			))}
-		</>
+	if (k === "merge" || k === "approve")
+		return onChange ? (
+			<Switch
+				iconOnly
+				label={`${name} ${r[k]}`}
+				checked={access[k]}
+				onCheckedChange={(on) => onChange({ ...access, [k]: on })}
+			/>
+		) : (
+			<Mark
+				label={`${r[k]} ${access[k] ? t.rights.yes : t.rights.no}`}
+				icon={access[k] ? <CheckIcon size={12} /> : <XMarkIcon size={12} />}
+				tone={access[k] ? "text-success-text" : "text-n-10"}
+			/>
+		);
+	return onChange ? (
+		<Select
+			label={`${name} ${r.area[k]}`}
+			value={access[k]}
+			onValueChange={(v) => onChange({ ...access, [k]: v as Level })}
+			className="w-28 min-w-0"
+			items={LEVELS.map((l) => ({
+				value: l,
+				label: r.level[l],
+				icon: <span className={LEVEL_LOOK[l].tone}>{LEVEL_LOOK[l].icon}</span>,
+			}))}
+		/>
+	) : (
+		<Mark label={r.level[access[k]]} {...LEVEL_LOOK[access[k]]} />
 	);
+}
+
+/** The first column (the row header) and the ten level columns: eight areas and two switches. */
+function levelColumns<T>(
+	first: ColumnDef<T>,
+	row: (x: T) => LevelRow,
+	r: ReturnType<typeof useI18n>["t"]["rights"]["team"],
+): ColumnDef<T>[] {
+	const track = { width: "minmax(7.5rem, 1fr)", wrap: true };
+	return [
+		first,
+		...[...AREAS, "merge", "approve"].map<ColumnDef<T>>((k) => {
+			const key = k as Area | "merge" | "approve";
+			return {
+				id: key,
+				header: key === "merge" || key === "approve" ? r[key] : r.area[key],
+				cell: ({ row: x }) => <LevelCell k={key} {...row(x.original)} />,
+				meta: track,
+			};
+		}),
+	];
 }
 
 type Draft = { table: RoleAccess[]; roles: Record<string, TeamRole[]> };
 
-const FRAME = "w-full border-separate border-spacing-0 rounded-lg border bg-surface-1 text-12";
+const FRAME = "flex flex-col overflow-hidden rounded-lg border bg-surface-1 text-12";
 
 /**
  * The levels of each role and of each member (REQ-005, REQ-019). Edit turns the cells into
@@ -261,23 +267,86 @@ export function TeamRights() {
 			await qc.invalidateQueries();
 			setDraft(null);
 		});
-	const head = (first: string) => (
-		<thead>
-			<tr className="text-left text-n-11 [&>th]:border-b [&>th]:px-2 [&>th]:py-1 [&>th]:font-medium">
-				<th scope="col">{first}</th>
-				{AREAS.map((k) => (
-					<th key={k} scope="col" className="text-center">
-						{r.area[k]}
-					</th>
-				))}
-				<th scope="col" className="text-center">
-					{r.merge}
-				</th>
-				<th scope="col" className="text-center">
-					{r.approve}
-				</th>
-			</tr>
-		</thead>
+	const firstTrack = { width: "minmax(12rem, 2fr)", wrap: true, rowHeader: true };
+	const roleColumns = levelColumns<RoleAccess>(
+		{
+			id: "role",
+			header: t.work.team.role,
+			meta: firstTrack,
+			cell: ({ row }) => {
+				const x = row.original;
+				const name = t.rights.role[x.role];
+				return (
+					<span className="flex items-center gap-1">
+						{name}
+						{draft ? (
+							<IconButton
+								label={format(r.reset, { role: name })}
+								onClick={() => setAccess(x.role, DEFAULTS[x.role])}
+							>
+								<ArrowPathIcon size={12} />
+							</IconButton>
+						) : null}
+					</span>
+				);
+			},
+		},
+		(x) => ({
+			access: x.access,
+			name: t.rights.role[x.role],
+			onChange: draft ? (a) => setAccess(x.role, a) : undefined,
+		}),
+		r,
+	);
+	const memberColumns = levelColumns<Member>(
+		{
+			id: "member",
+			header: r.members,
+			meta: firstTrack,
+			cell: ({ row }) => {
+				const m = row.original;
+				const mine = rolesFor(m);
+				return (
+					<span className="flex flex-wrap items-center gap-1">
+						<span className="mr-1 whitespace-nowrap">{m.name}</span>
+						{mine.map((x) => (
+							<Badge key={x} className="gap-0.5 rounded-full">
+								{t.rights.role[x]}
+								{draft ? (
+									<IconButton
+										label={format(r.removeRole, { role: t.rights.role[x], name: m.name })}
+										className="size-4"
+										onClick={() =>
+											setRoles(
+												m,
+												mine.filter((y) => y !== x),
+											)
+										}
+									>
+										<XMarkIcon size={10} />
+									</IconButton>
+								) : null}
+							</Badge>
+						))}
+						{draft ? (
+							<Select
+								label={format(r.addRole, { name: m.name })}
+								placeholder={r.pickRole}
+								value=""
+								onValueChange={(v) => setRoles(m, [...mine, v as TeamRole])}
+								className="w-32 min-w-0"
+								items={TEAM_ROLES.filter((x) => !mine.includes(x)).map((x) => ({
+									value: x,
+									label: t.rights.role[x],
+								}))}
+							/>
+						) : null}
+					</span>
+				);
+			},
+		},
+		(m) => ({ access: effective(m, rolesFor(m), table), name: m.name }),
+		r,
 	);
 	return (
 		<section className="flex flex-col gap-2 px-4 pb-4">
@@ -312,99 +381,19 @@ export function TeamRights() {
 					{error}
 				</p>
 			) : null}
-			{/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable) */}
-			<div tabIndex={0} className="overflow-auto">
-				<table aria-label={r.matrix} className={FRAME}>
-					{head(t.work.team.role)}
-					<tbody>
-						{table.map((x) => {
-							const name = t.rights.role[x.role];
-							return (
-								<tr key={x.role} className="[&>td]:border-b last:[&>td]:border-b-0">
-									<th scope="row" className="whitespace-nowrap px-2 py-1 text-left font-medium">
-										<span className="flex items-center gap-1">
-											{name}
-											{draft ? (
-												<IconButton
-													label={format(r.reset, { role: name })}
-													onClick={() => setAccess(x.role, DEFAULTS[x.role])}
-												>
-													<ArrowPathIcon size={12} />
-												</IconButton>
-											) : null}
-										</span>
-									</th>
-									<Cells
-										access={x.access}
-										name={name}
-										onChange={draft ? (a) => setAccess(x.role, a) : undefined}
-									/>
-								</tr>
-							);
-						})}
-					</tbody>
-				</table>
+			<div className={FRAME}>
+				<DataTable label={r.matrix} data={table} columns={roleColumns} rowId={(x) => x.role} flow />
 			</div>
 			{members.length ? (
-				// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable)
-				<div tabIndex={0} className="overflow-auto">
-					<table aria-label={r.members} className={FRAME}>
-						{head(r.members)}
-						<tbody>
-							{members.map((m) => {
-								const mine = rolesFor(m);
-								return (
-									<tr
-										key={m.handle}
-										aria-label={`${m.handle} ${r.levels}`}
-										className="[&>td]:border-b last:[&>td]:border-b-0"
-									>
-										<th scope="row" className="px-2 py-1 text-left font-medium">
-											<span className="flex flex-wrap items-center gap-1">
-												<span className="mr-1 whitespace-nowrap">{m.name}</span>
-												{mine.map((x) => (
-													<Badge key={x} className="gap-0.5 rounded-full">
-														{t.rights.role[x]}
-														{draft ? (
-															<IconButton
-																label={format(r.removeRole, {
-																	role: t.rights.role[x],
-																	name: m.name,
-																})}
-																className="size-4"
-																onClick={() =>
-																	setRoles(
-																		m,
-																		mine.filter((y) => y !== x),
-																	)
-																}
-															>
-																<XMarkIcon size={10} />
-															</IconButton>
-														) : null}
-													</Badge>
-												))}
-												{draft ? (
-													<Select
-														label={format(r.addRole, { name: m.name })}
-														placeholder={r.pickRole}
-														value=""
-														onValueChange={(v) => setRoles(m, [...mine, v as TeamRole])}
-														className="w-32 min-w-0"
-														items={TEAM_ROLES.filter((x) => !mine.includes(x)).map((x) => ({
-															value: x,
-															label: t.rights.role[x],
-														}))}
-													/>
-												) : null}
-											</span>
-										</th>
-										<Cells access={effective(m, mine, table)} name={m.name} />
-									</tr>
-								);
-							})}
-						</tbody>
-					</table>
+				<div className={FRAME}>
+					<DataTable
+						label={r.members}
+						data={members}
+						columns={memberColumns}
+						rowId={(m) => m.handle}
+						rowLabel={(m) => `${m.handle} ${r.levels}`}
+						flow
+					/>
 				</div>
 			) : null}
 		</section>
@@ -674,39 +663,53 @@ export function AuditTail() {
 	if (!can("project.settings") || !lines?.length) return null;
 	const time = new Intl.DateTimeFormat(lang, { dateStyle: "short", timeStyle: "medium" });
 	return (
-		// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable)
-		<div tabIndex={0} className="overflow-auto px-4 pb-4">
-			<table
-				aria-label={r.audit}
-				className="w-full border-separate border-spacing-0 rounded-lg border bg-surface-1 text-12"
-			>
-				<thead>
-					<tr className="text-left text-n-11 [&>th]:border-b [&>th]:px-2 [&>th]:py-1 [&>th]:font-medium">
-						{[r.auditWhen, r.auditWho, r.auditRight, r.auditWhat, r.auditTarget, r.auditResult].map(
-							(h) => (
-								<th key={h} scope="col">
-									{h}
-								</th>
-							),
-						)}
-					</tr>
-				</thead>
-				<tbody>
-					{[...lines].reverse().map((l) => (
-						<tr
-							key={`${l.time}:${l.what}:${l.target}:${l.result}`}
-							className="[&>td]:px-2 [&>td]:py-0.5"
-						>
-							<td>{time.format(l.time * 1000)}</td>
-							<td>{l.member ?? t.rights.found[l.found]}</td>
-							<td className="font-mono">{l.right}</td>
-							<td className="font-mono">{l.what}</td>
-							<td className="font-mono">{l.target}</td>
-							<td>{l.result}</td>
-						</tr>
-					))}
-				</tbody>
-			</table>
+		<div className="px-4 pb-4">
+			<div className={FRAME}>
+				<DataTable
+					label={r.audit}
+					data={[...lines].reverse()}
+					rowId={(l) => `${l.time}:${l.what}:${l.target}:${l.result}`}
+					flow
+					columns={[
+						{
+							id: "when",
+							header: r.auditWhen,
+							meta: { wrap: true },
+							cell: ({ row: x }) => time.format(x.original.time * 1000),
+						},
+						{
+							id: "who",
+							header: r.auditWho,
+							meta: { wrap: true },
+							cell: ({ row: x }) => x.original.member ?? t.rights.found[x.original.found],
+						},
+						{
+							id: "right",
+							header: r.auditRight,
+							meta: { wrap: true },
+							cell: ({ row: x }) => <span className="font-mono">{x.original.right}</span>,
+						},
+						{
+							id: "what",
+							header: r.auditWhat,
+							meta: { wrap: true },
+							cell: ({ row: x }) => <span className="font-mono">{x.original.what}</span>,
+						},
+						{
+							id: "target",
+							header: r.auditTarget,
+							meta: { wrap: true },
+							cell: ({ row: x }) => <span className="font-mono">{x.original.target}</span>,
+						},
+						{
+							id: "result",
+							header: r.auditResult,
+							meta: { wrap: true },
+							accessorFn: (l) => l.result,
+						},
+					]}
+				/>
+			</div>
 		</div>
 	);
 }

@@ -14,6 +14,7 @@ import { LiveDot } from "@/ui/atoms/live-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { CommandLineIcon, CpuChipIcon, StopIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Loading } from "@/ui/molecules/loading";
 import { Panel } from "@/ui/molecules/panel";
 import { STEP_STATUS } from "@/ui/molecules/run-step";
 import { StatStrip } from "@/ui/molecules/stat-strip";
@@ -41,7 +42,9 @@ export function Sessions() {
 	const kill = useKillSwitch().data ?? false;
 	const writes = useFactoryWrites();
 	const { error, run } = useGuard();
-	if (active === null) return <NoProject title={f.sessions} />;
+	if (active === undefined)
+		return <Loading title={f.sessions} icon={<CommandLineIcon size={16} />} />;
+	if (active === null) return <NoProject title={f.sessions} icon={<CommandLineIcon size={16} />} />;
 	// The live sessions first: a group heading shows each time the group changes.
 	const live = (r: SessionView) => r.state === "running" || r.state === "gate";
 	const rows = (sessions.data ?? []).toSorted((a, b) => Number(live(b)) - Number(live(a)));

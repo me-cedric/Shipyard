@@ -61,6 +61,7 @@ export function DoctorCompliance() {
 		<>
 			{compass.data ? (
 				<Panel
+					id="doctor-skills"
 					title={d.skills.title}
 					count={bad}
 					icon={<ShieldCheckIcon size={14} />}

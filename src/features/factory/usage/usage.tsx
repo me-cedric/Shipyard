@@ -49,7 +49,8 @@ export function Usage() {
 	const field = useRef<HTMLInputElement>(null);
 	const [prices, setPrices] = useViewState("usage-prices", true);
 	const x = t.extras.usage;
-	if (active === null) return <NoProject title={f.usage} />;
+	if (active === undefined) return <Loading title={f.usage} icon={<ChartBarIcon size={16} />} />;
+	if (active === null) return <NoProject title={f.usage} icon={<ChartBarIcon size={16} />} />;
 	const u = usage.data;
 	const rows: Row[] = [
 		...(u?.runs ?? []).map((r) => ({

@@ -8,6 +8,7 @@ import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { Button } from "@/ui/atoms/button";
 import { Caption, Input } from "@/ui/atoms/input";
 import { Select } from "@/ui/atoms/select";
+import { CommandLineIcon, CpuChipIcon } from "@/ui/icons";
 import { ConnectionRow } from "@/ui/molecules/connection-row";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Panel } from "@/ui/molecules/panel";
@@ -178,7 +179,7 @@ function ToolRows() {
 		});
 	const rows = runners.data ?? [];
 	return (
-		<Panel id="tools" title={s.name} count={rows.length} flush>
+		<Panel id="tools" title={s.name} count={rows.length} icon={<CommandLineIcon size={14} />} flush>
 			{rows.map((r) => {
 				const missing = r.state === "missing";
 				const label = missing
@@ -261,7 +262,13 @@ export function AgentsRules() {
 	return (
 		<Compass>
 			<ToolRows />
-			<Panel id="tiers" title={t.settings.tiers.name} count={tiers.data?.length ?? 0} flush>
+			<Panel
+				id="tiers"
+				title={t.settings.tiers.name}
+				count={tiers.data?.length ?? 0}
+				icon={<CpuChipIcon size={14} />}
+				flush
+			>
 				{(tiers.data ?? []).map((row) => (
 					// The saved row keys the draft: a refused edit keeps the typed text until the person fixes it.
 					<TierRow

@@ -51,7 +51,7 @@ Shared patterns
 - REQ-017: Each tab of each space SHALL show a visible page header with its icon and its title, also while it loads.
 - REQ-018: A page that loads SHALL show the shared loading pattern. A page with no content SHALL show the shared empty pattern. No page SHALL show nothing or bare text in these states.
 - REQ-019: Each Settings page with two sections or more SHALL show the section list.
-- REQ-020: Work / Time, the team rights table and the learning paths table SHALL use the shared data table.
+- REQ-020: The team rights tables, the Work / Team members table and the learning paths table SHALL use the shared data table.
 - REQ-021: Each tab in a tab bar SHALL show an icon and its name.
 - REQ-022: An inner tab row SHALL move its selection mark with the same sliding pill and the same timing as the main tab bar.
 
@@ -318,13 +318,13 @@ Each Settings page with two sections or more SHALL show the section list.
 
 ### Requirement: REQ-020 Shared data table
 
-Work / Time, the team rights table and the learning paths table SHALL use the shared data table.
+The team rights tables, the Work / Team members table and the learning paths table SHALL use the shared data table.
 
-#### Scenario: Time
+#### Scenario: Team members
 
-- GIVEN time entries
-- WHEN the person opens Work / Time
-- THEN the entries show in the shared data table
+- GIVEN team members
+- WHEN the person opens Work / Team
+- THEN the members show in the shared data table
 
 ### Requirement: REQ-021 Tab icons
 

@@ -335,4 +335,4 @@ function BranchesView() {
 	);
 }
 
-export const Branches = withProject(BranchesView);
+export const Branches = withProject(BranchesView, "branches");

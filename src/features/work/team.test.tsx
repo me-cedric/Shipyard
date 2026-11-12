@@ -215,6 +215,10 @@ describe("Work / Team", () => {
 				name: "Read and write",
 			}).length,
 		).toBeGreaterThan(3);
+		// The row holds its content: no fixed height, no absolute place.
+		const grown = members.getByRole("row", { name: "grace levels" });
+		expect(grown.style.height).toBe("");
+		expect(grown.closest("[data-index]")).toBeNull();
 		await user.click(screen.getByRole("button", { name: "Save" }));
 		await waitFor(() =>
 			expect(mockState().work.team.members.find((m) => m.handle === "grace")).toMatchObject({

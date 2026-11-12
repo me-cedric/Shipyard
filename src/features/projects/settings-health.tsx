@@ -7,12 +7,22 @@ import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { Ring } from "@/ui/atoms/ring";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { CommandLineIcon, DocumentTextIcon, LinkIcon, ShieldCheckIcon } from "@/ui/icons";
+import {
+	ChatBubbleIcon,
+	ClockIcon,
+	CommandLineIcon,
+	DocumentTextIcon,
+	LinkIcon,
+	ShieldCheckIcon,
+	SparklesIcon,
+} from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FindingRow } from "@/ui/molecules/finding-row";
+import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
 import { Panel } from "@/ui/molecules/panel";
 import { RefChip } from "@/ui/molecules/ref-chip";
+import { SectionNav } from "@/ui/molecules/section-nav";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { SETTINGS_PAGE } from "@/ui/templates/settings";
 import { DebugConsole } from "./debug-console";
@@ -110,7 +120,17 @@ export function Health() {
 	const health = useHealth();
 	const findings = health.data;
 	if (findings === undefined)
-		return <PageHeader icon={<ShieldCheckIcon size={16} />} title={t.tabs.settings.health} />;
+		return <Loading title={t.tabs.settings.health} icon={<ShieldCheckIcon size={16} />} />;
+	// The section list shows the sections that are on the page.
+	const sections = [
+		...GROUPS.map((g) => ({ id: `health-${g}`, label: t.health.group[g], icon: ICON[g] })),
+		{ id: "tools", label: t.settings.tools.title, icon: <CommandLineIcon size={14} /> },
+		{ id: "doctor-skills", label: t.doctor.skills.title, icon: <ShieldCheckIcon size={14} /> },
+		{ id: "doctor-bootstrap", label: t.doctor.bootstrap.title, icon: <SparklesIcon size={14} /> },
+		{ id: "doctor-ledger", label: t.settings.ledger.title, icon: <ClockIcon size={14} /> },
+		{ id: "doctor-console", label: t.doctor.console.title, icon: <CommandLineIcon size={14} /> },
+		{ id: "doctor-feedback", label: t.doctor.feedback.title, icon: <ChatBubbleIcon size={14} /> },
+	];
 	const clean = GROUPS.filter((g) => !findings.some((f) => f.group === g)).length;
 	return (
 		<div className="flex flex-col">
@@ -119,6 +139,7 @@ export function Health() {
 				title={t.tabs.settings.health}
 				count={findings.length}
 			/>
+			<SectionNav label={t.ui.sections} items={sections} />
 			<div className={SETTINGS_PAGE}>
 				<div className="flex flex-wrap items-stretch gap-3">
 					<div className="flex items-center gap-3 rounded-lg border bg-surface-2 px-4 py-3 shadow-1">
@@ -149,6 +170,7 @@ export function Health() {
 					return (
 						<Panel
 							key={g}
+							id={`health-${g}`}
 							title={t.health.group[g]}
 							count={rows.length}
 							icon={ICON[g]}

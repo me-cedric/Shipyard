@@ -49,7 +49,8 @@ export function Board() {
 
 	if (active === undefined || everything.isLoading)
 		return <Loading title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />} />;
-	if (active === null) return <NoProject title={t.tabs.work.board} />;
+	if (active === null)
+		return <NoProject title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />} />;
 	if (all.length === 0)
 		return (
 			<BoardTemplate title={t.tabs.work.board} icon={<ViewColumnsIcon size={16} />} count={0}>

@@ -81,7 +81,7 @@ function PlanEditor({ plan, onBack }: { plan: Plan; onBack: () => void }) {
 export function TestPlans() {
 	const { t } = useI18n();
 	return (
-		<WithProject title={t.tabs.specs["test-plans"]}>
+		<WithProject title={t.tabs.specs["test-plans"]} icon={<CheckIcon size={16} />}>
 			<PlanList />
 		</WithProject>
 	);

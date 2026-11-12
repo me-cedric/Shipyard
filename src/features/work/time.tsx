@@ -38,7 +38,7 @@ import {
 } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { PageHeader } from "@/ui/molecules/page-header";
+import { Loading } from "@/ui/molecules/loading";
 import { Panel } from "@/ui/molecules/panel";
 import { Splitter } from "@/ui/molecules/splitter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
@@ -388,9 +388,9 @@ export function Time() {
 	);
 
 	if (active === undefined)
-		return <PageHeader icon={<ClockIcon size={16} />} title={t.tabs.work.time} />;
-	if (active === null) return <NoProject title={t.tabs.work.time} />;
-	if (!ctx) return <PageHeader icon={<ClockIcon size={16} />} title={t.tabs.work.time} />;
+		return <Loading icon={<ClockIcon size={16} />} title={t.tabs.work.time} />;
+	if (active === null) return <NoProject title={t.tabs.work.time} icon={<ClockIcon size={16} />} />;
+	if (!ctx) return <Loading icon={<ClockIcon size={16} />} title={t.tabs.work.time} />;
 
 	const submit = async (ev: React.FormEvent) => {
 		ev.preventDefault();

@@ -26,6 +26,7 @@ import { CodeEditor } from "@/ui/molecules/code-editor";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
+import { Loading } from "@/ui/molecules/loading";
 import { Panel } from "@/ui/molecules/panel";
 import { SplitPane } from "@/ui/molecules/split-pane";
 import { code } from "@/ui/molecules/syntax";
@@ -307,7 +308,10 @@ export function Workflows() {
 	const [pick, setPick] = useState<Pick | null>(null);
 	const [adding, setAdding] = useState(false);
 	const writes = useFactoryWrites();
-	if (active === null) return <NoProject title={f.workflows} />;
+	if (active === undefined)
+		return <Loading title={f.workflows} icon={<ArrowsRightLeftIcon size={16} />} />;
+	if (active === null)
+		return <NoProject title={f.workflows} icon={<ArrowsRightLeftIcon size={16} />} />;
 	const first = workflows[0];
 	// The first workflow opens until a person picks a file.
 	const current = pick ?? (first ? { kind: "workflow" as const, id: first.id } : null);

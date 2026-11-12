@@ -484,4 +484,4 @@ function ChangesView() {
 	);
 }
 
-export const Changes = withProject(ChangesView);
+export const Changes = withProject(ChangesView, "changes");

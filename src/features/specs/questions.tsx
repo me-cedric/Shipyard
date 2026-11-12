@@ -41,7 +41,7 @@ const KIND: Record<string, Tone> = {
 export function Questions() {
 	const { t } = useI18n();
 	return (
-		<WithProject title={t.tabs.specs.questions}>
+		<WithProject title={t.tabs.specs.questions} icon={<ChatBubbleIcon size={16} />}>
 			<Register />
 		</WithProject>
 	);

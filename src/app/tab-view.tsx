@@ -1,7 +1,9 @@
 import { type ComponentType, type LazyExoticComponent, lazy, Suspense } from "react";
-import { type SpaceId, tabLabel } from "@/features/shell";
+import { type SpaceId, tabIcon, tabLabel } from "@/features/shell";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Loading } from "@/ui/molecules/loading";
+import { PageHeader } from "@/ui/molecules/page-header";
 
 type Load = () => Promise<ComponentType>;
 
@@ -92,16 +94,19 @@ export function TabView({ space, tab }: { space: SpaceId; tab: string }) {
 	// A preloaded view renders at once; the lazy one covers a render before the preload ends.
 	const load = LOADERS[key];
 	const View = loaded.get(key) ?? (load && lazyView(key, load));
+	const title = tabLabel(t, space, tab);
+	const Icon = tabIcon(space, tab);
+	const icon = Icon && <Icon size={16} />;
 	if (View)
 		return (
-			<Suspense fallback={null}>
+			<Suspense fallback={<Loading title={title} icon={icon} />}>
 				<View />
 			</Suspense>
 		);
 	return (
-		<div className="flex flex-col gap-4 p-4">
-			<h1 className="sr-only">{tabLabel(t, space, tab)}</h1>
-			<EmptyState title={t.empty.nothing} action={{ label: t.noun[space], onClick: () => {} }} />
+		<div className="flex flex-col gap-4">
+			<PageHeader icon={icon} title={title} />
+			<EmptyState title={t.empty.nothing} />
 		</div>
 	);
 }

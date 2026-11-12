@@ -114,7 +114,7 @@ function Stepper({ change }: { change: Change }) {
 export function SpecChanges() {
 	const { t } = useI18n();
 	return (
-		<WithProject title={t.tabs.specs.changes}>
+		<WithProject title={t.tabs.specs.changes} icon={<DocumentTextIcon size={16} />}>
 			<ChangeList />
 		</WithProject>
 	);

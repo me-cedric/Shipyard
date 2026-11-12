@@ -7,7 +7,7 @@ describe("No-project page (REQ-006)", () => {
 	it.each([
 		["/work/backlog", "Backlog"],
 		["/specs/capabilities", "Capabilities"],
-		["/code/changes", "Code"],
+		["/code/changes", "Local changes"],
 		["/design/architecture", "Architecture"],
 		["/factory/runs", "Runs"],
 		["/knowledge/graph", "Graph"],

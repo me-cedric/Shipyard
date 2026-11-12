@@ -14,7 +14,7 @@ import { ListDetail } from "@/ui/templates/list-detail";
  * The page of every space that needs a project and has none: open a folder, clone a repository or
  * start a new project. The same three ways as Home / Projects. The title is the `h1` of the space.
  */
-export function NoProject({ title, icon }: { title: string; icon?: ReactNode }) {
+export function NoProject({ title, icon }: { title: string; icon: ReactNode }) {
 	const { t } = useI18n();
 	const { openFolder } = useProjectActions();
 	const [error, setError] = useState<unknown>(null);
@@ -61,7 +61,7 @@ export function WithProject({
 	children,
 }: {
 	title: string;
-	icon?: ReactNode;
+	icon: ReactNode;
 	children: ReactNode;
 }) {
 	const active = useActiveProject().data;

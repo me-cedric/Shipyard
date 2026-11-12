@@ -269,7 +269,8 @@ export function Plan() {
 
 	if (active === undefined || sheets.isLoading)
 		return <Loading title={t.tabs.work.plan} icon={<CalendarDaysIcon size={16} />} />;
-	if (active === null) return <NoProject title={t.tabs.work.plan} />;
+	if (active === null)
+		return <NoProject title={t.tabs.work.plan} icon={<CalendarDaysIcon size={16} />} />;
 	if (!slug || !plan)
 		return (
 			<ListDetail title={t.tabs.work.plan} icon={<CalendarDaysIcon size={16} />}>

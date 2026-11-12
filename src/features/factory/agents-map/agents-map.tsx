@@ -9,6 +9,7 @@ import { Badge } from "@/ui/atoms/badge";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { ShareIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
+import { Loading } from "@/ui/molecules/loading";
 import { STEP_STATUS } from "@/ui/molecules/run-step";
 import { type CanvasNode, GraphCanvas } from "@/ui/organisms/graph-canvas";
 import { ListDetail } from "@/ui/templates/list-detail";
@@ -62,7 +63,8 @@ export function AgentsMap() {
 		{ id: "file", label: f.file },
 		{ id: "ref", label: f.ref },
 	];
-	if (active === null) return <NoProject title={f.agentsMap} />;
+	if (active === undefined) return <Loading title={f.agentsMap} icon={<ShareIcon size={16} />} />;
+	if (active === null) return <NoProject title={f.agentsMap} icon={<ShareIcon size={16} />} />;
 	return (
 		<ListDetail
 			title={f.agentsMap}

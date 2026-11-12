@@ -549,4 +549,4 @@ function PullRequestsView() {
 	);
 }
 
-export const PullRequests = withProject(PullRequestsView);
+export const PullRequests = withProject(PullRequestsView, "pull-requests");

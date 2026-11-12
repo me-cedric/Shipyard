@@ -8,6 +8,7 @@ import {
 	Outlet,
 	type RouterHistory,
 	redirect,
+	useNavigate,
 	useRouterState,
 } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "motion/react";
@@ -18,12 +19,16 @@ import {
 	SPACES,
 	type SpaceId,
 	TabsBar,
+	tabIcon,
+	tabLabel,
 	tabPath,
 	visibleTabs,
 } from "@/features/shell";
 import { useI18n } from "@/lib/i18n";
 import { usePrefs } from "@/lib/prefs";
 import { useRights } from "@/lib/rights";
+import { EmptyState } from "@/ui/molecules/empty-state";
+import { PageHeader } from "@/ui/molecules/page-header";
 import { SPRING } from "@/ui/motion";
 import { NotFound } from "./not-found";
 import { refActions } from "./ref-actions";
@@ -49,9 +54,22 @@ const indexRoute = createRoute({
 });
 
 /** A tab of an area at `none`: a direct route shows this, not the view. */
-function NoAccess() {
+function NoAccess({ space, tab }: { space: SpaceId; tab: string }) {
 	const { t } = useI18n();
-	return <p className="p-4 text-14 font-medium text-n-11">{t.rights.noAccess}</p>;
+	const navigate = useNavigate();
+	const Icon = tabIcon(space, tab);
+	return (
+		<>
+			<PageHeader icon={Icon && <Icon size={16} />} title={tabLabel(t, space, tab)} />
+			<EmptyState
+				title={t.rights.noAccess}
+				action={{
+					label: t.tabs.home.today,
+					onClick: () => void navigate({ to: "/home/today" }),
+				}}
+			/>
+		</>
+	);
 }
 
 function SpaceLayout({ space }: { space: SpaceId }) {
@@ -74,7 +92,7 @@ function SpaceLayout({ space }: { space: SpaceId }) {
 					transition={SPRING.gentle}
 					className="flex min-h-0 flex-1 flex-col"
 				>
-					{hidden ? <NoAccess /> : <Outlet />}
+					{hidden && tab ? <NoAccess space={space} tab={tab} /> : <Outlet />}
 				</motion.div>
 			</div>
 		</div>

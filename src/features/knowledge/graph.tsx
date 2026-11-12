@@ -11,7 +11,7 @@ import { ArrowPathIcon, ShareIcon, XMarkIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
-import { PageHeader } from "@/ui/molecules/page-header";
+import { Loading } from "@/ui/molecules/loading";
 import { ViewTabs } from "@/ui/molecules/view-tabs";
 import { type CanvasNode, GraphCanvas, KindMark } from "@/ui/organisms/graph-canvas";
 import { ListDetail } from "@/ui/templates/list-detail";
@@ -149,9 +149,8 @@ export function Graph() {
 		return { nodes, table, positions, links: view.links };
 	}, [clustered, refs, shown.nodes, all.edges, open, query, kindNames]);
 
-	if (active === undefined)
-		return <PageHeader icon={<ShareIcon size={16} />} title={k.graph.title} />;
-	if (active === null) return <NoProject title={k.graph.title} />;
+	if (active === undefined) return <Loading title={k.graph.title} icon={<ShareIcon size={16} />} />;
+	if (active === null) return <NoProject title={k.graph.title} icon={<ShareIcon size={16} />} />;
 	const wantsIndex = source === "code" && code !== undefined && code.state !== "ready";
 	return (
 		<ListDetail
