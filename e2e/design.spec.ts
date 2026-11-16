@@ -5,12 +5,12 @@ const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
 const inspector = (page: Page) => page.getByRole("complementary", { name: "Inspector" });
 
-/** Opens the mock project, then the Design tab. */
+/** Opens the mock project, then a Design section of the Library. */
 async function openDesign(page: Page, tab: string) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
 	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
-	await sidebar(page).getByRole("link", { name: "Design" }).click();
+	await sidebar(page).getByRole("link", { name: "Library" }).click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }
 

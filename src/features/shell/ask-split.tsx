@@ -6,6 +6,7 @@ import { useShell } from "@/lib/shell";
 import { ChatBubbleIcon } from "@/ui/icons";
 import { SplitButton } from "@/ui/molecules/split-button";
 import type { Action } from "./actions";
+import { viewPath } from "./places";
 
 /**
  * The one Ask button of the top bar. The main part toggles the assistant panel. The arrow opens the
@@ -16,7 +17,7 @@ export function AskSplit({ assistant }: { assistant: Action }) {
 	const { promptLang } = usePrefs();
 	const { selectedRef, ask, assistantOpen } = useShell();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
-	const type = pageItemType(pathname);
+	const type = pageItemType(viewPath(pathname));
 	// The item that the inspector shows, when it is of the page type.
 	const subject = type && selectedRef && itemTypeOf(selectedRef) === type ? selectedRef : null;
 	const promptLanguage = LANGS.find((l) => l === promptLang) ?? lang;

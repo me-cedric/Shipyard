@@ -40,8 +40,8 @@ export function AccountMenu() {
 				items={[
 					{
 						id: "me",
-						label: `${t.space.settings} / ${t.tabs.settings.me}`,
-						onSelect: () => void navigate({ to: "/settings/me" }),
+						label: `${t.ui.place.setup} / ${t.tabs.settings.me}`,
+						onSelect: () => void navigate({ to: "/setup/me" }),
 					},
 					...(["light", "dark", "system"] as const).map((id) => ({
 						...item(`theme-${id}`),

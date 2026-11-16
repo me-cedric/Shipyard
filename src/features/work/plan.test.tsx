@@ -142,7 +142,7 @@ describe("Work / Plan", () => {
 				name: /is over capacity on \d+ days/,
 			})[0] as HTMLElement,
 		);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/work/team"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/team"));
 		// The member opens in the inspector, which takes the name of the member: the capacity is there to change.
 		const inspector = await aside(name ?? "");
 		await waitFor(() => expect(inspector.getByLabelText(/Capacity/)).toBeInTheDocument());

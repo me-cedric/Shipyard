@@ -4,6 +4,7 @@ import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { TEAM_ROLES } from "@/lib/prefs";
 import { mountApp } from "@/test/mount";
+import { barSections, PLACE_IDS } from "./places";
 import {
 	barTabs,
 	FIRST_TAB,
@@ -13,6 +14,7 @@ import {
 	SPACES,
 	type SpaceId,
 	tabIcon,
+	tabLabel,
 } from "./spaces";
 
 const sidebar = () => screen.findByRole("navigation", { name: "Sidebar" });
@@ -44,7 +46,7 @@ describe("role homes (shell REQ-009, team-rights REQ-013)", () => {
 		},
 	);
 
-	it("opens Design on Decisions for an architect and still lists the seven spaces and Settings", async () => {
+	it("opens Library on Decisions for an architect and still lists the six places and Setup", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mockState().person = {
 			member: "ana",
@@ -57,12 +59,12 @@ describe("role homes (shell REQ-009, team-rights REQ-013)", () => {
 		const router = mountApp("/");
 		const nav = await sidebar();
 		const links = within(nav).getAllByRole("link");
-		expect(links).toHaveLength(8);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/design/decisions"));
-		expect(links[1]).toHaveAccessibleName("Design");
+		expect(links).toHaveLength(7);
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/decisions"));
+		expect(within(nav).getByRole("link", { current: "page" })).toHaveAccessibleName("Library");
 	});
 
-	it("opens a viewer on Today and lists every space", async () => {
+	it("opens a viewer on Today and lists every place", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mockState().person = {
 			member: null,
@@ -73,11 +75,11 @@ describe("role homes (shell REQ-009, team-rights REQ-013)", () => {
 			rights: [],
 		};
 		const router = mountApp("/");
-		expect(within(await sidebar()).getAllByRole("link")).toHaveLength(8);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/home/today"));
+		expect(within(await sidebar()).getAllByRole("link")).toHaveLength(7);
+		await waitFor(() => expect(router.state.location.pathname).toBe("/today/today"));
 	});
 
-	it("hides a space at the level none and shows No access on its route; Settings / Me stays", async () => {
+	it("hides a place at the level none and shows No access on its route; Setup / Me stays", async () => {
 		const level = (a: string) => (a === "code" || a === "settings" ? "none" : "read");
 		expect(orderedSpaces("developer", level)).not.toContain("code");
 		expect(orderedSpaces("developer", level)).toContain("settings");
@@ -96,11 +98,11 @@ describe("role homes (shell REQ-009, team-rights REQ-013)", () => {
 		expect(await screen.findByText(en.rights.noAccess)).toBeInTheDocument();
 		const nav = await sidebar();
 		await waitFor(() =>
-			expect(within(nav).queryByRole("link", { name: "Code" })).not.toBeInTheDocument(),
+			expect(within(nav).queryByRole("link", { name: /^Code/ })).not.toBeInTheDocument(),
 		);
-		expect(within(nav).getByRole("link", { name: "Settings" })).toBeInTheDocument();
+		expect(within(nav).getByRole("link", { name: "Setup" })).toBeInTheDocument();
 		await router.navigate({ to: "/settings" });
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/me"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/me"));
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
@@ -108,28 +110,46 @@ describe("role homes (shell REQ-009, team-rights REQ-013)", () => {
 		// The Rust reader maps an old prefs file; an old registry entry can still hold the text.
 		(mockState().prefs as { role: string }).role = "junior";
 		const router = mountApp("/");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/factory/runs"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/runs"));
 	});
 });
 
 describe("tab names", () => {
-	it("opens Work on the Board for a PM, and Settings has no Team: Work / Team is the one place", async () => {
+	it("opens Flow on the Board for a PM, and Settings has no Team: Work / Team is the one place", async () => {
 		mockState().prefs.role = "pm";
 		const router = mountApp("/work");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/work/board"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/board"));
 		expect(SPACES.settings).not.toContain("team");
 	});
 
-	it("opens Specs on the Test plans for a tester", async () => {
+	it.each([
+		["/factory", "/flow/runs"],
+		["/specs", "/flow/changes"],
+		["/knowledge", "/library/graph"],
+		["/design", "/library/diagrams"],
+		["/home", "/today/today"],
+		["/settings", "/setup/project"],
+	])("opens the old index %s on the view of that space: %s", async (from, to) => {
+		const router = mountApp(from);
+		await waitFor(() => expect(router.state.location.pathname).toBe(to));
+	});
+
+	it("opens the old Specs index on the Test plans for a tester", async () => {
 		mockState().prefs.role = "qa";
 		const router = mountApp("/specs");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/specs/test-plans"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/test-plans"));
+	});
+
+	it("opens Library on the Test plans for a tester", async () => {
+		mockState().prefs.role = "qa";
+		const router = mountApp("/library");
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/test-plans"));
 	});
 
 	it("lets the tabs wrap, so a narrow main view cuts none off", async () => {
 		mountApp("/code/changes");
 		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
-		await within(tabs).findByRole("link", { name: "Impacts" });
+		await within(tabs).findByRole("link", { name: "Branches" });
 		expect(tabs.firstElementChild).toHaveClass("flex-wrap");
 		expect(tabs).not.toHaveClass("overflow-x-auto");
 	});
@@ -143,13 +163,14 @@ describe("tab names", () => {
 });
 
 describe("twin tabs (ux-declutter REQ-014, REQ-021)", () => {
-	it("keeps Terminal and Manual out of the tab bars: Code and Knowledge show 6 tabs", async () => {
+	it("keeps Terminal and Manual out of the section switch: Code shows 4 sections", async () => {
 		mountApp("/code/changes");
 		const code = await screen.findByRole("navigation", { name: "Tabs" });
-		expect(within(code).getAllByRole("link")).toHaveLength(6);
+		expect(within(code).getAllByRole("link")).toHaveLength(4);
 		expect(within(code).queryByRole("link", { name: "Terminal" })).toBeNull();
 		expect(barTabs("knowledge", null)).toHaveLength(6);
 		expect(barTabs("knowledge", null)).not.toContain("manual");
+		expect(barSections("library").map(([, tab]) => tab)).not.toContain("manual");
 	});
 
 	it("opens the terminal drawer from /code/terminal and lands on the first Code tab", async () => {
@@ -172,26 +193,24 @@ describe("twin tabs (ux-declutter REQ-014, REQ-021)", () => {
 			for (const tab of barTabs(s, null)) expect(tabIcon(s, tab), `${s}/${tab}`).toBeDefined();
 	});
 
-	it.each(SPACE_IDS)(
-		"draws each icon of the tabs of %s as decoration: the name stays the text",
-		async (space) => {
-			mountApp(`/${space}`);
-			const tabs = await screen.findByRole("navigation", { name: "Tabs" });
-			const links = await within(tabs).findAllByRole("link");
-			for (const link of links) {
-				const icons = [...link.querySelectorAll("svg")];
-				expect(icons.length, link.textContent ?? "").toBeGreaterThan(0);
-				for (const icon of icons) expect(icon.closest("[aria-hidden='true']")).not.toBeNull();
-			}
-		},
-	);
+	// The section switch of adr:0023 draws names only: the name is the text, as on the tabs before.
+	it.each(PLACE_IDS)("names each section of %s by its text", async (place) => {
+		mountApp(`/${place}`);
+		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+		const links = await within(tabs).findAllByRole("link");
+		expect(links.map((l) => l.textContent)).toEqual(
+			barSections(place).map(([space, tab]) => tabLabel(en, space, tab)),
+		);
+		for (const icon of tabs.querySelectorAll("svg"))
+			expect(icon.closest("[aria-hidden='true']")).not.toBeNull();
+	});
 });
 
 describe("no tour and no hidden tab (shell REQ-016)", () => {
-	it("shows every tab of a space, with no tour or help text", async () => {
+	it("shows every section of a place, with no tour or help text", async () => {
 		mountApp("/work");
 		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
-		expect(within(tabs).getAllByRole("link")).toHaveLength(SPACES.work.length);
+		expect(within(tabs).getAllByRole("link")).toHaveLength(barSections("flow").length);
 		expect(screen.queryByText(/tour|welcome|tip/i)).toBeNull();
 	});
 });

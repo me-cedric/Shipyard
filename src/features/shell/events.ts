@@ -22,7 +22,7 @@ import { TICK_EVENT, useSyncTick } from "@/lib/sync";
 import { useUpdateCheck } from "@/lib/updates";
 import type { Action } from "./actions";
 
-/** The palette actions that the native menu runs (REQ-012). The Rust menu holds the same ids. */
+/** The palette actions that the native menu runs (REQ-012). The Go menu shows the seven places once (adr:0023). */
 export const MENU_ACTIONS = [
 	"project-open",
 	"project-switch",
@@ -36,14 +36,13 @@ export const MENU_ACTIONS = [
 	"toggle-inspector",
 	"toggle-assistant",
 	"toggle-theme",
-	"go-home",
-	"go-design",
-	"go-specs",
-	"go-work",
-	"go-factory",
+	"go-today",
+	"go-flow",
+	"go-plan",
+	"go-crew",
+	"go-library",
 	"go-code",
-	"go-knowledge",
-	"go-settings",
+	"go-setup",
 	"shortcuts-help",
 	"update-check",
 	"nav-back",
@@ -87,12 +86,19 @@ export const menuLabels = (t: Messages): Record<string, string> => ({
 	"toggle-inspector": t.shell.toggleInspector,
 	"toggle-assistant": t.ui.menu.toggleAssistant,
 	"toggle-theme": t.ui.menu.toggleTheme,
+	"go-today": t.ui.place.today,
+	"go-flow": t.ui.place.flow,
+	"go-plan": t.ui.place.plan,
+	"go-crew": t.ui.place.crew,
+	"go-library": t.ui.place.library,
+	"go-code": t.ui.place.code,
+	"go-setup": t.ui.place.setup,
+	// shortcut: a Rust menu that still holds the space ids shows these until it holds the place ids.
 	"go-home": t.space.home,
 	"go-design": t.space.design,
 	"go-specs": t.space.specs,
 	"go-work": t.space.work,
 	"go-factory": t.space.factory,
-	"go-code": t.space.code,
 	"go-knowledge": t.space.knowledge,
 	"go-settings": t.space.settings,
 	"shortcuts-help": t.ui.menu.shortcuts,

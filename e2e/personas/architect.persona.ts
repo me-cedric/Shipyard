@@ -10,8 +10,8 @@ test("architect", async ({ page }) => {
 		"Land on the decisions, open the diagrams",
 		"the page that opens first: Design, Decisions, then the Diagrams tab",
 		async () => {
-			await w.landsOn("Design", "Decisions");
-			await w.go("Design", "Diagrams");
+			await w.landsOn("Library", "Decisions");
+			await w.go("Library", "Diagrams");
 			await w.see(page.getByText("order-process"), "no diagram in the list");
 		},
 	);
@@ -30,13 +30,13 @@ test("architect", async ({ page }) => {
 		"Read the architecture model",
 		"the Architecture tab, the system model",
 		async () => {
-			await w.go("Design", "Architecture");
+			await w.go("Library", "Architecture");
 			await w.see(page.getByRole("heading", { name: "system" }), "no model on the page");
 		},
 	);
 
 	await w.step("Accept a proposed decision", "the proposed record, the Accept button", async () => {
-		await w.go("Design", "Decisions");
+		await w.go("Library", "Decisions");
 		await w.click(page.getByRole("button", { name: /Ship a browser mock/ }));
 		const accept = page.getByRole("button", { name: "Accept", exact: true });
 		const comment = page.getByRole("textbox", { name: "Comment" });
@@ -73,17 +73,17 @@ test("architect", async ({ page }) => {
 	});
 
 	await w.step("Read the API contract", "the API tab, the contract", async () => {
-		await w.go("Design", "API");
+		await w.go("Library", "API");
 		await w.see(page.getByRole("heading", { name: "Orders API" }), "no API contract");
 	});
 
 	await w.step("Read the data model", "the Data tab, the tables", async () => {
-		await w.go("Design", "Data");
+		await w.go("Library", "Data");
 		await w.see(page.getByRole("heading", { name: "orders", exact: true }), "no table on the page");
 	});
 
 	await w.step("Read the network flows", "the Flows tab, the table, Export", async () => {
-		await w.go("Design", "Flows");
+		await w.go("Library", "Flows");
 		await w.see(page.getByText("Flows (20)"), "no flow table");
 		await w.see(page.getByRole("button", { name: "Export" }), "no way to export the flows");
 	});
@@ -100,7 +100,7 @@ test("architect", async ({ page }) => {
 		"Find the decisions that no spec uses",
 		"Design, Decisions, the Unused mark and filter",
 		async () => {
-			await w.go("Design", "Decisions");
+			await w.go("Library", "Decisions");
 			await w.see(
 				page.getByRole("list", { name: "Decisions" }).getByText("Unused").first(),
 				"no visible mark on a decision that no spec cites",
@@ -118,7 +118,7 @@ test("architect", async ({ page }) => {
 		"Hand over the dossier",
 		"Knowledge, Documents, Export Architecture dossier",
 		async () => {
-			await w.go("Knowledge", "Documents");
+			await w.go("Library", "Documents");
 			await w.click(page.getByRole("button", { name: "Export Architecture dossier" }));
 			await w.see(page.getByText(/^Exported:/), "no sign that the export finished");
 		},

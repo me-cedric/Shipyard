@@ -10,8 +10,8 @@ test("functional lead", async ({ page }) => {
 		"Land on the backlog, open the proposals",
 		"the page that opens first: Work, Backlog, then Specs, Proposals",
 		async () => {
-			await w.landsOn("Work", "Backlog");
-			await w.go("Specs", "Proposals");
+			await w.landsOn("Flow", "Backlog");
+			await w.go("Flow", "Proposals");
 			await w.see(page.getByRole("button", { name: /add-billing/ }), "no change in the list");
 		},
 	);
@@ -23,7 +23,7 @@ test("functional lead", async ({ page }) => {
 	});
 
 	await w.step("Read the constitution", "the Constitution tab", async () => {
-		await w.go("Specs", "Constitution");
+		await w.go("Library", "Constitution");
 		await w.see(page.getByRole("heading", { name: "Constitution" }).first(), "no constitution");
 		if (await page.getByText("## Principles").first().isVisible()) {
 			w.confusing("the constitution opens as raw Markdown in a code editor, not as a page to read");
@@ -36,7 +36,7 @@ test("functional lead", async ({ page }) => {
 	});
 
 	await w.step("List the open questions", "Questions, the Status filter", async () => {
-		await w.go("Specs", "Questions");
+		await w.go("Library", "Questions");
 		await w.click(page.getByRole("combobox", { name: "Status" }));
 		await w.click(page.getByRole("option", { name: "open" }));
 		await w.see(
@@ -50,7 +50,7 @@ test("functional lead", async ({ page }) => {
 	});
 
 	await w.step("Read a decision", "Design, Decisions, a record", async () => {
-		await w.go("Design", "Decisions");
+		await w.go("Library", "Decisions");
 		await w.click(page.getByRole("button", { name: /Use Tauri/ }));
 		await w.see(
 			page.getByRole("textbox", { name: "Context and problem statement" }),
@@ -59,7 +59,7 @@ test("functional lead", async ({ page }) => {
 	});
 
 	await w.step("Read the estimate", "Work, Estimates, Summary", async () => {
-		await w.go("Work", "Estimates");
+		await w.go("Plan", "Estimates");
 		await w.click(page.getByRole("tab", { name: "Summary" }));
 		await w.see(page.getByText("Margin").first(), "no margin on the summary");
 		if (await page.getByText("€0").first().isVisible()) {
@@ -73,14 +73,14 @@ test("functional lead", async ({ page }) => {
 		"Export the functional documentation",
 		"Knowledge, Documents, Export Functional documentation",
 		async () => {
-			await w.go("Knowledge", "Documents");
+			await w.go("Library", "Documents");
 			await w.click(page.getByRole("button", { name: "Export Functional documentation" }));
 			await w.see(page.getByText(/^Exported:/), "no sign that the export finished");
 		},
 	);
 
 	await w.step("Open the kickoff slides", "Slides, the deck card", async () => {
-		await w.go("Knowledge", "Slides");
+		await w.go("Library", "Slides");
 		await w.click(page.getByRole("button", { name: /Kickoff/ }));
 		await w.see(page.getByRole("button", { name: "Present" }), "no way to present the deck");
 	});
@@ -89,7 +89,7 @@ test("functional lead", async ({ page }) => {
 		"Read the dashboards",
 		"Dashboards, the tiles",
 		async () => {
-			await w.go("Knowledge", "Dashboards");
+			await w.go("Library", "Dashboards");
 			await w.see(page.getByRole("heading", { name: "Questions" }), "no questions tile");
 			if (await page.getByText("WaitingForAnswer").first().isVisible()) {
 				w.confusing(

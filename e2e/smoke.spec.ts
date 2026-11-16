@@ -1,25 +1,24 @@
 import { expect, test } from "@playwright/test";
 
-const SPACES = [
-	["Home", "Today"],
-	["Design", "Diagrams"],
-	["Specs", "Proposals"],
-	["Work", "Backlog"],
-	["Factory", "Runs"],
+const PLACES = [
+	["Today", "Today"],
+	["Flow", "Backlog"],
+	["Plan", "Plan"],
+	["Crew", "Team"],
+	["Library", "Diagrams"],
 	["Code", "Local changes"],
-	["Knowledge", "Graph"],
-	["Settings", "Project"],
+	["Setup", "Project"],
 ] as const;
 
-test("opens each space from the sidebar on its first tab", async ({ page }) => {
+test("opens each place from the sidebar on its first section", async ({ page }) => {
 	await page.goto("/");
 	// Each page names itself before the app: "Today · Shipyard".
 	await expect(page).toHaveTitle(/Shipyard$/);
 	const sidebar = page.getByRole("navigation", { name: "Sidebar" });
 	const tabs = page.getByRole("navigation", { name: "Tabs" });
-	for (const [space, tab] of SPACES) {
-		await sidebar.getByRole("link", { name: space }).click();
-		await expect(sidebar.getByRole("link", { name: space })).toHaveAttribute(
+	for (const [place, tab] of PLACES) {
+		await sidebar.getByRole("link", { name: place }).click();
+		await expect(sidebar.getByRole("link", { name: place })).toHaveAttribute(
 			"aria-current",
 			"page",
 		);
@@ -51,13 +50,15 @@ test("switches the language to French", async ({ page }) => {
 	await page.getByRole("combobox", { name: "Language", exact: true }).click();
 	await page.getByRole("option", { name: "French" }).click();
 	await expect(
-		page.getByRole("navigation", { name: "Barre latérale" }).getByRole("link", { name: "Accueil" }),
+		page
+			.getByRole("navigation", { name: "Barre latérale" })
+			.getByRole("link", { name: "Aujourd'hui" }),
 	).toBeVisible();
 });
 
 for (const [option, sidebar, home, lang] of [
-	["German", "Seitenleiste", "Start", "de"],
-	["Spanish", "Barra lateral", "Inicio", "es"],
+	["German", "Seitenleiste", "Heute", "de"],
+	["Spanish", "Barra lateral", "Hoy", "es"],
 ]) {
 	test(`switches the language to ${option}`, async ({ page }) => {
 		await page.goto("/settings/me");

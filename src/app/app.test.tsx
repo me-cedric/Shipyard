@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { barTabs, SPACE_IDS, SPACES, tabLabel } from "@/features/shell";
+import { barSections, PLACE_IDS, SPACE_IDS, SPACES, tabLabel } from "@/features/shell";
 import { en } from "@/lib/i18n/en";
 import { fr } from "@/lib/i18n/fr";
 import { commands, unwrap } from "@/lib/ipc";
@@ -31,15 +31,15 @@ const current = (nav: HTMLElement) =>
 		.find((l) => l.getAttribute("aria-current") === "page");
 
 describe("router", () => {
-	it.each(SPACE_IDS)("renders %s with its tabs and opens the first one", async (space) => {
-		mount(`/${space}`);
+	it.each(PLACE_IDS)("renders %s with its sections and opens the first one", async (place) => {
+		mount(`/${place}`);
 		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
 		const links = within(tabs).getAllByRole("link");
 		expect(links.map((l) => l.textContent)).toEqual(
-			barTabs(space, null).map((tab) => tabLabel(en, space, tab)),
+			barSections(place).map(([space, tab]) => tabLabel(en, space, tab)),
 		);
-		expect(links[0]).toHaveAttribute("aria-current", "page");
-		expect(current(await sidebar())).toHaveAccessibleName(en.space[space]);
+		await waitFor(() => expect(links[0]).toHaveAttribute("aria-current", "page"));
+		expect(current(await sidebar())).toHaveAccessibleName(en.ui.place[place]);
 	});
 
 	it("has a label in each language for each tab", () => {
@@ -64,20 +64,20 @@ describe("router", () => {
 	});
 
 	it.each([
-		["none", "Home"],
-		["pm", "Work"],
-		["developer", "Factory"],
+		["none", "Today"],
+		["pm", "Flow"],
+		["developer", "Flow"],
 	])("sends / to the home of role %s", async (role, name) => {
 		mount("/", role);
 		expect(current(await sidebar())).toHaveAccessibleName(name);
 	});
 
-	it("opens Factory for a junior, as for a developer, and keeps all 8 entries", async () => {
+	it("opens Flow for a junior, as for a developer, and keeps all 7 entries", async () => {
 		mount("/", "junior");
 		const nav = await sidebar();
-		expect(await within(nav).findByRole("link", { name: "Factory", current: "page" })).toBeTruthy();
+		expect(await within(nav).findByRole("link", { name: "Flow", current: "page" })).toBeTruthy();
 		const links = within(nav).getAllByRole("link");
-		const names = ["Home", "Factory", "Design", "Specs", "Work", "Code", "Knowledge", "Settings"];
+		const names = ["Today", "Flow", "Plan", "Crew", "Library", "Code", "Setup"];
 		expect(links).toHaveLength(names.length);
 		for (const [i, name] of names.entries()) expect(links[i]).toHaveAccessibleName(name);
 	});
@@ -111,12 +111,12 @@ describe("shell", () => {
 		expect(inspector).toHaveAttribute("data-open", "true");
 	});
 
-	it("opens a space with Mod+2", async () => {
+	it("opens a place with Mod+2", async () => {
 		const user = userEvent.setup();
 		mount("/home");
 		await sidebar();
 		await user.keyboard("{Control>}2{/Control}");
-		expect(await screen.findByRole("link", { name: "Diagrams", current: "page" })).toBeTruthy();
+		expect(await screen.findByRole("link", { name: "Backlog", current: "page" })).toBeTruthy();
 	});
 
 	it("opens the assistant with Mod+J, focuses its input and keeps the draft in the next view", async () => {
@@ -132,7 +132,7 @@ describe("shell", () => {
 		await waitFor(() => expect(input).toHaveFocus());
 		await user.type(input, "keep me");
 		await user.keyboard("{Control>}2{/Control}");
-		await screen.findByRole("link", { name: "Diagrams", current: "page" });
+		await screen.findByRole("link", { name: "Backlog", current: "page" });
 		expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("keep me");
 		// The shell button closes it again. The open diagram has an editor header too: the shell one is first.
 		const [bar] = await screen.findAllByRole("banner");

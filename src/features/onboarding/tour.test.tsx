@@ -58,7 +58,7 @@ describe("Onboarding tour", () => {
 		}
 		expect(screen.queryByRole("button", { name: o.next })).toBeNull();
 		await user.click(screen.getByRole("button", { name: o.manual }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/knowledge/manual"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/manual"));
 		expect(screen.queryByRole("dialog")).toBeNull();
 	});
 
@@ -97,7 +97,7 @@ describe("Onboarding tour", () => {
 		await screen.findByRole("link", { name: en.glossary.manual });
 		await user.tab();
 		await user.keyboard("{Enter}");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/knowledge/manual"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/manual"));
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	});
 

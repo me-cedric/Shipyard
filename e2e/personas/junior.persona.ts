@@ -10,8 +10,8 @@ test("junior", async ({ page }) => {
 		"Land on the learning path",
 		"the page that opens first: Home, Today, then Knowledge, Learn",
 		async () => {
-			await w.landsOn("Home", "Today");
-			await w.go("Knowledge", "Learn");
+			await w.landsOn("Today", "Today");
+			await w.go("Library", "Learn");
 			await w.see(page.getByText("0/10"), "no progress on the path");
 		},
 	);
@@ -36,7 +36,7 @@ test("junior", async ({ page }) => {
 	});
 
 	await w.step("Look up a word", "the Glossary card, a word and its spec", async () => {
-		await w.go("Knowledge", "Learn");
+		await w.go("Library", "Learn");
 		await w.see(
 			page.getByText("the act of a person who proves who they are"),
 			"no definition for login",
@@ -45,7 +45,7 @@ test("junior", async ({ page }) => {
 	});
 
 	await w.step("Read the handbook", "Handbook, a page, Read", async () => {
-		await w.go("Knowledge", "Handbook");
+		await w.go("Library", "Handbook");
 		await w.click(page.getByRole("button", { name: "Getting started" }));
 		await w.see(
 			page.getByText("first, then the architecture overview"),
@@ -97,12 +97,12 @@ test("junior", async ({ page }) => {
 		"Follow the Get started list",
 		"Home, the Connect action of the Code host item",
 		async () => {
-			await w.go("Home", "Today");
+			await w.go("Today", "Today");
 			await w.click(
 				page.getByRole("group", { name: "Code host" }).getByRole("button", { name: "Connect" }),
 			);
 			await w.until(
-				() => page.url().includes("/settings/"),
+				() => page.url().includes("/setup/"),
 				true,
 				"the step does not open the setting",
 			);
@@ -113,7 +113,7 @@ test("junior", async ({ page }) => {
 		"See the whole project",
 		"Knowledge, Graph",
 		async () => {
-			await w.go("Knowledge", "Graph");
+			await w.go("Library", "Graph");
 			await w.see(page.getByRole("button", { name: "Table view" }), "no table view of the graph");
 		},
 		true,

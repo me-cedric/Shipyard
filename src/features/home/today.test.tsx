@@ -19,7 +19,7 @@ describe("Home / Today", () => {
 	it("opens Home on Today, with Today and Projects as its two tabs", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/home");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/home/today"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/today/today"));
 		const tabs = within(await screen.findByRole("navigation", { name: "Tabs" }));
 		expect(tabs.getAllByRole("link").map((l) => l.textContent)).toEqual(["Today", "Projects"]);
 		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
@@ -30,7 +30,7 @@ describe("Home / Today", () => {
 		async (tab) => {
 			await unwrap(commands.projectsOpen("/mock/alpha", false));
 			const router = mountApp(`/home/${tab}`);
-			await waitFor(() => expect(router.state.location.pathname).toBe("/home/today"));
+			await waitFor(() => expect(router.state.location.pathname).toBe("/today/today"));
 		},
 	);
 
@@ -209,7 +209,7 @@ describe("Home / Today", () => {
 		expect(await screen.findByText("Nothing needs you")).toBeInTheDocument();
 		expect(screen.queryByRole("region", { name: "Needs you" })).toBeNull();
 		await user.click(screen.getByRole("button", { name: "Open the backlog" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/work/backlog"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/backlog"));
 		vi.restoreAllMocks();
 	});
 

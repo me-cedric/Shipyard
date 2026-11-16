@@ -1,11 +1,11 @@
 import { RouterContextProvider } from "@tanstack/react-router";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { Providers } from "@/app/providers";
 import { createAppRouter, createMemoryHistory } from "@/app/router";
 import { commands, unwrap } from "@/lib/ipc";
 import { NotificationsProvider } from "@/lib/notifications";
-import { ShellProvider } from "@/lib/shell";
+import { ShellProvider, useShell } from "@/lib/shell";
 import { routers } from "@/test/routers";
 import { useActions } from "./actions";
 
@@ -56,6 +56,7 @@ const ACTION_IDS = [
 	"text-larger",
 	"text-smaller",
 	"text-reset",
+	"explain",
 ];
 
 const TABS = {
@@ -76,7 +77,12 @@ const PATHS = [
 	"/home/inbox",
 	"/home/my-work",
 	"/home/activity",
+	"/factory/runs/$runId",
+	"/code/pull-requests/$pullId",
 ];
+
+/** A real address for each path: a parameter gets a value. */
+const address = (path: string) => path.replace("$runId", "run-1").replace("$pullId", "pr-1");
 
 describe("inventory (ux-declutter REQ-016)", () => {
 	it("keeps every route", () => {
@@ -86,7 +92,22 @@ describe("inventory (ux-declutter REQ-016)", () => {
 		for (const path of PATHS) expect(known, path).toContain(path);
 	});
 
-	it("keeps every palette action", async () => {
+	// app-redesign REQ-003: a route of the list opens a page, not Not found.
+	it.each(PATHS)("opens a page at %s", async (path) => {
+		const router = createAppRouter(createMemoryHistory({ initialEntries: [address(path)] }));
+		routers().push(router);
+		await router.load();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+		const { matches } = router.state;
+		// A path that no route matches leaves the root alone, with Not found.
+		expect(matches.at(-1)?.routeId).not.toBe("__root__");
+		expect(matches.some((m) => m.status === "notFound")).toBe(false);
+		expect(Object.keys(router.routesByPath)).toContain(
+			matches.at(-1)?.fullPath.replace(/(.)\/$/, "$1"),
+		);
+	});
+
+	it("keeps every palette action, each with a run", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = createAppRouter(createMemoryHistory({ initialEntries: ["/home/today"] }));
 		routers().push(router);
@@ -99,9 +120,15 @@ describe("inventory (ux-declutter REQ-016)", () => {
 				</RouterContextProvider>
 			</Providers>
 		);
-		const { result } = renderHook(() => useActions(), { wrapper });
+		const { result } = renderHook(() => ({ actions: useActions(), shell: useShell() }), {
+			wrapper,
+		});
 		await waitFor(() => expect(result.current).toBeTruthy());
-		const ids = result.current.list.map((a) => a.id);
-		for (const id of ACTION_IDS) expect(ids, id).toContain(id);
+		// Explain shows while a ref is selected.
+		act(() => result.current.shell.openRef("wi:KEY-1"));
+		await waitFor(() => expect(result.current.actions.list.map((a) => a.id)).toContain("explain"));
+		const { list } = result.current.actions;
+		for (const id of ACTION_IDS)
+			expect(typeof list.find((a) => a.id === id)?.run, id).toBe("function");
 	});
 });

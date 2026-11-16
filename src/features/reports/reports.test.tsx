@@ -97,7 +97,7 @@ describe("Exports and the terminal (W11)", () => {
 
 	it("sends a stored Settings / Team path to Work / Team", async () => {
 		const router = mountApp("/settings/team");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/work/team"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/team"));
 		expect(screen.queryByText(/not found/i)).toBeNull();
 	});
 });

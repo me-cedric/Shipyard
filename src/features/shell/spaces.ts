@@ -163,10 +163,11 @@ export const visibleTabs = <S extends SpaceId>(space: S, role: TeamRole | null, 
 
 /** Terminal and Manual keep their address, palette entry and menu entry, but no tab (REQ-014). */
 const OFF_BAR = new Set(["code/terminal", "knowledge/manual"]);
+export const isOffBar = (space: SpaceId, tab: string) => OFF_BAR.has(`${space}/${tab}`);
 
 /** The tabs that the tab bar draws. */
 export const barTabs = (space: SpaceId, role: TeamRole | null, level = open) =>
-	visibleTabs(space, role, level).filter((tab) => !OFF_BAR.has(`${space}/${tab}`));
+	visibleTabs(space, role, level).filter((tab) => !isOffBar(space, tab));
 
 /** Home first, the space of the first tab next, the rest in default order, Settings last. A space with no visible tab is hidden. */
 export function orderedSpaces(role: TeamRole | null, level = open): SpaceId[] {

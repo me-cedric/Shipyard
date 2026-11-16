@@ -74,7 +74,7 @@ export function Runs() {
 	const [text, setText] = useState(search.q ?? "");
 	const go = (patch: RunsSearch, replace = false) =>
 		void navigate({
-			to: "/factory/runs",
+			to: "/flow/runs",
 			search: (prev: RunsSearch) => ({ ...prev, ...patch }),
 			replace,
 		} as never);

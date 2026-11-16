@@ -333,8 +333,8 @@ describe("project switcher", () => {
 		expect(
 			await screen.findByRole("link", { name: "Health", current: "page" }),
 		).toBeInTheDocument();
-		await user.click(screen.getByRole("link", { name: "Specs" }));
-		await waitFor(() => expect(mockState().projects[0]?.lastView).toBe("/specs/changes"));
+		await user.click(screen.getByRole("link", { name: "Library" }));
+		await waitFor(() => expect(mockState().projects[0]?.lastView).toBe("/library/diagrams"));
 	});
 });
 
@@ -456,7 +456,7 @@ describe("Settings / Project", () => {
 		await user.click(screen.getByRole("link", { name: "Me" }));
 		await screen.findByRole("combobox", { name: "Language" });
 		expect(screen.getAllByRole("img", { name: "Set by the project" })).toHaveLength(1);
-		expect(mockState().prefs.theme).toBe("system");
+		expect(mockState().prefs.theme).toBe("light");
 	});
 
 	it("shows the first-run action when no project is active", async () => {

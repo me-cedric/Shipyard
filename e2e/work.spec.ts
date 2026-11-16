@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { openFirstFolder } from "./first-run";
+import { placeOf } from "./places";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
@@ -10,7 +11,7 @@ async function openWork(page: Page, tab: string) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
 	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
-	await sidebar(page).getByRole("link", { name: "Settings" }).click();
+	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "Connections" }).click();
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme");
@@ -24,11 +25,14 @@ async function openWork(page: Page, tab: string) {
 	await expect(page.getByRole("combobox", { name: "Issue tracker", exact: true })).toContainText(
 		"Acme",
 	);
-	await sidebar(page).getByRole("link", { name: "Work" }).click();
+	await sidebar(page).getByRole("link", { name: "Flow" }).click();
 	await tabs(page).getByRole("link", { name: "Backlog" }).click();
 	await page.getByRole("button", { name: "Import" }).click();
 	await page.getByRole("button", { name: "Confirm" }).click();
 	await expect(page.getByRole("group", { name: "ACME-1", exact: true })).toBeVisible();
+	await sidebar(page)
+		.getByRole("link", { name: placeOf(tab) })
+		.click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }
 
@@ -137,6 +141,7 @@ test("edits the team and seals the project, then unlocks it", async ({ page }) =
 		page.getByRole("row", { name: "grace", exact: true }).getByRole("cell").nth(2),
 	).toHaveText("3");
 
+	await sidebar(page).getByRole("link", { name: "Plan" }).click();
 	await tabs(page).getByRole("link", { name: "Estimates" }).click();
 	await page.getByRole("button", { name: "Seal" }).click();
 	const field = page.getByLabel("Passphrase", { exact: true });
@@ -154,18 +159,17 @@ test("edits the team and seals the project, then unlocks it", async ({ page }) =
 
 test("shows the Work views in French", async ({ page }) => {
 	await openWork(page, "Time");
-	await sidebar(page).getByRole("link", { name: "Settings" }).click();
+	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "Me" }).click();
 	await page.getByRole("combobox", { name: "Language", exact: true }).click();
 	await page.getByRole("option", { name: "French" }).click();
-	await page
-		.getByRole("navigation", { name: "Barre latérale" })
-		.getByRole("link", { name: "Travail" })
-		.click();
+	const barre = page.getByRole("navigation", { name: "Barre latérale" });
+	await barre.getByRole("link", { name: "Plan" }).click();
 	const onglets = page.getByRole("navigation", { name: "Onglets" });
 	await onglets.getByRole("link", { name: "Temps" }).click();
 	await expect(page.getByRole("heading", { name: "À envoyer (2)" })).toBeVisible();
 	await expect(page.getByRole("button", { name: "Saisie" })).toBeVisible();
+	await barre.getByRole("link", { name: "Équipe" }).click();
 	await onglets.getByRole("link", { name: "Équipe" }).click();
 	await expect(page.getByRole("button", { name: "Membre" })).toBeVisible();
 });

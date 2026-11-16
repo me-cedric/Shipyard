@@ -9,7 +9,7 @@ async function openWithTracker(page: Page, secret: string | null = "tok-e2e-sync
 	await page.goto("/home/today");
 	await openFirstFolder(page);
 	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
-	await sidebar(page).getByRole("link", { name: "Settings" }).click();
+	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "Connections" }).click();
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme");
@@ -30,7 +30,7 @@ test("imports the backlog after a count, then reads it from the mirror with no t
 	page,
 }) => {
 	await openWithTracker(page);
-	await sidebar(page).getByRole("link", { name: "Work" }).click();
+	await sidebar(page).getByRole("link", { name: "Flow" }).click();
 	await tabs(page).getByRole("link", { name: "Backlog" }).click();
 
 	await page.getByRole("button", { name: "Import" }).click();
@@ -48,7 +48,7 @@ test("the sync action in the status bar runs a tick and the connection shows its
 	page,
 }) => {
 	await openWithTracker(page);
-	await sidebar(page).getByRole("link", { name: "Settings" }).click();
+	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "Connections" }).click();
 	const row = page.getByRole("group", { name: "Acme" });
 	await expect(row.getByRole("status")).toHaveText("Idle");
@@ -60,14 +60,14 @@ test("the sync action in the status bar runs a tick and the connection shows its
 	await expect(row.getByRole("status")).toContainText(/Idle\s*\d{1,2}[:.]\d{2}/);
 
 	// The tick filled the mirror: the backlog shows tickets with no import.
-	await sidebar(page).getByRole("link", { name: "Work" }).click();
+	await sidebar(page).getByRole("link", { name: "Flow" }).click();
 	await tabs(page).getByRole("link", { name: "Backlog" }).click();
 	await expect(page.getByRole("heading", { name: "To Do (7)" })).toBeVisible();
 });
 
 test("a failed poll shows the failed state and keeps the mirror", async ({ page }) => {
 	await openWithTracker(page, null);
-	await sidebar(page).getByRole("link", { name: "Settings" }).click();
+	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "Connections" }).click();
 	await page.getByRole("banner").getByRole("button", { name: "Sync", exact: true }).click();
 	const row = page.getByRole("group", { name: "Acme" });

@@ -1,24 +1,25 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { barTabs, SPACES, type SpaceId } from "../src/features/shell/spaces";
-import { openFirstFolder } from "./first-run";
+import { barSections, PLACE_IDS } from "../src/features/shell/places";
+import { openFirstFolder, pickDarkTheme } from "./first-run";
 
-// Every tab of every space, on the mock project, in the light and the dark theme (the theme is "system").
+// Every section of every place, on the mock project, in the light and the dark theme.
 for (const scheme of ["light", "dark"] as const) {
-	for (const space of Object.keys(SPACES) as SpaceId[]) {
-		// The tabs of the bar: Terminal and Manual are no tabs.
-		const tabs = barTabs(space, null);
-		test(`has no axe violation: ${space}, ${scheme} theme`, async ({ page }) => {
+	for (const place of PLACE_IDS) {
+		// The sections of the switch: Terminal and Manual are not on it.
+		const tabs = barSections(place).map(([, tab]) => tab);
+		test(`has no axe violation: ${place}, ${scheme} theme`, async ({ page }) => {
 			test.setTimeout(90_000);
 			page.setDefaultTimeout(10_000);
 			await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
 			await page.goto("/");
 			await openFirstFolder(page);
 			await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
-			await page.locator(`nav a[href="/${space}"]`).first().click();
+			if (scheme === "dark") await pickDarkTheme(page);
+			await page.locator(`nav a[href="/${place}"]`).first().click();
 			const found: string[] = [];
 			for (const tab of tabs) {
-				await page.locator(`a[href="/${space}/${tab}"]`).first().click();
+				await page.locator(`a[href="/${place}/${tab}"]`).first().click();
 				await expect(page.locator("main")).toBeVisible();
 				await page.waitForLoadState("networkidle");
 				const { violations } = await new AxeBuilder({ page }).analyze();
@@ -37,6 +38,7 @@ for (const scheme of ["light", "dark"] as const) {
 		await page.emulateMedia({ colorScheme: scheme, reducedMotion: "reduce" });
 		await page.goto("/knowledge/manual");
 		await expect(page.getByRole("article")).toBeVisible();
+		if (scheme === "dark") await pickDarkTheme(page);
 		await page.waitForLoadState("networkidle");
 		const { violations } = await new AxeBuilder({ page }).analyze();
 		expect(violations.map((v) => v.id)).toEqual([]);

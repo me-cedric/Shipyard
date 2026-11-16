@@ -6,6 +6,7 @@ import {
 	lazyRouteComponent,
 	Navigate,
 	Outlet,
+	type ParsedLocation,
 	type RouterHistory,
 	redirect,
 	useNavigate,
@@ -15,13 +16,19 @@ import { motion } from "motion/react";
 import {
 	AppShell,
 	firstPath,
+	firstSection,
 	hiddenTab,
+	PLACES,
+	type PlaceId,
+	type PlacePath,
+	placePath,
+	SectionBar,
 	SPACES,
 	type SpaceId,
-	TabsBar,
+	sectionPath,
+	sectionView,
 	tabIcon,
 	tabLabel,
-	tabPath,
 	visibleTabs,
 } from "@/features/shell";
 import { useI18n } from "@/lib/i18n";
@@ -47,9 +54,9 @@ const indexRoute = createRoute({
 		const { teamRole } = usePrefs();
 		const { level } = useRights();
 		const [, space, tab] = firstPath(teamRole).split("/") as [string, SpaceId, string];
-		return (
-			<Navigate to={hiddenTab(level, space, tab) ? "/home/today" : firstPath(teamRole)} replace />
-		);
+		// shortcut: one cast. `placePath` of a tab path is always a section path.
+		const home = hiddenTab(level, space, tab) ? "/today/today" : placePath(firstPath(teamRole));
+		return <Navigate to={home as PlacePath} replace />;
 	},
 });
 
@@ -65,26 +72,26 @@ function NoAccess({ space, tab }: { space: SpaceId; tab: string }) {
 				title={t.rights.noAccess}
 				action={{
 					label: t.tabs.home.today,
-					onClick: () => void navigate({ to: "/home/today" }),
+					onClick: () => void navigate({ to: "/today/today" }),
 				}}
 			/>
 		</>
 	);
 }
 
-function SpaceLayout({ space }: { space: SpaceId }) {
+function PlaceLayout({ place }: { place: PlaceId }) {
 	const path = useRouterState({ select: (s) => s.location.pathname });
 	const still = useReducedMotionPref();
 	const { level } = useRights();
-	// The space index has no tab: it redirects to the first visible tab.
-	const tab = path.split("/")[2];
-	const hidden = !!tab && hiddenTab(level, space, tab);
+	// The place index has no section: it redirects to the first visible section.
+	const slug = path.split("/")[2];
+	const view = slug ? sectionView(place, slug) : undefined;
 	return (
 		<div className="flex h-full flex-col">
-			<TabsBar space={space} />
+			<SectionBar place={place} slug={slug} />
 			{/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs a keyboard stop (axe scrollable-region-focusable) */}
 			<div tabIndex={0} className="flex min-h-0 flex-1 flex-col overflow-auto">
-				{/* A new tab rises into place. Only the position moves, so the text never hides. */}
+				{/* A new section rises into place. Only the position moves, so the text never hides. */}
 				<motion.div
 					key={path}
 					initial={still ? false : { y: 8 }}
@@ -92,22 +99,25 @@ function SpaceLayout({ space }: { space: SpaceId }) {
 					transition={SPRING.gentle}
 					className="flex min-h-0 flex-1 flex-col"
 				>
-					{hidden && tab ? <NoAccess space={space} tab={tab} /> : <Outlet />}
+					{view && hiddenTab(level, ...view) ? (
+						<NoAccess space={view[0]} tab={view[1]} />
+					) : (
+						<Outlet />
+					)}
 				</motion.div>
 			</div>
 		</div>
 	);
 }
 
-/** The space opens on its first tab: the tab of the role, else the first tab. */
-function FirstTab({ space }: { space: SpaceId }) {
+/** The place opens on its first section: the tab of the role, else the first visible one. */
+function FirstSection({ place }: { place: PlaceId }) {
 	const { teamRole } = usePrefs();
 	const { level } = useRights();
 	const path = useRouterState({ select: (s) => s.location.pathname });
-	const first = visibleTabs(space, teamRole, level)[0] ?? SPACES[space][0];
-	// The layout keeps this view while the next location loads: only the space index redirects.
-	return path.replace(/\/$/, "") === `/${space}` ? (
-		<Navigate to={tabPath(space, first)} replace />
+	// The layout keeps this view while the next location loads: only the place index redirects.
+	return path.replace(/\/$/, "") === `/${place}` ? (
+		<Navigate to={sectionPath(place, firstSection(place, teamRole, level))} replace />
 	) : null;
 }
 
@@ -125,45 +135,58 @@ const pullsSearch = (s: Record<string, unknown>): { q?: string; filter?: "needs"
 	...(s.filter === "needs" ? { filter: "needs" as const } : {}),
 });
 
-/** A space route, its index redirect to the first tab, and one child route for each tab. */
-function spaceRoute<S extends SpaceId>(space: S) {
+const runSearch = (
+	s: Record<string, unknown>,
+): { unit?: string; tab?: "changes" | "workflow" } => ({
+	...(typeof s.unit === "string" && s.unit ? { unit: s.unit } : {}),
+	// Activity is the default tab: it has no value in the address.
+	...(s.tab === "changes" || s.tab === "workflow" ? { tab: s.tab } : {}),
+});
+
+/** An address of before adr:0023 opens the new place of its page, with its search and its hash (adr:0023 point 9). */
+const toPlace = ({ location }: { location: ParsedLocation }) => {
+	const to = placePath(location.pathname);
+	if (!to || to === location.pathname) return;
+	const hash = location.hash ? `#${location.hash}` : "";
+	throw redirect({ href: `${to}${location.searchStr}${hash}`, replace: true });
+};
+
+type TabOf<V> = V extends `${string}/${infer T}` ? T : never;
+
+/** A place route, its index redirect to the first section, and one child route for each section. */
+function placeRoute<P extends PlaceId>(place: P) {
 	const route = createRoute({
 		getParentRoute: () => rootRoute,
-		path: space,
-		component: () => <SpaceLayout space={space} />,
+		path: place,
+		component: () => <PlaceLayout place={place} />,
 	});
 	const index = createRoute({
 		getParentRoute: () => route,
 		path: "/",
-		component: () => <FirstTab space={space} />,
+		component: () => <FirstSection place={place} />,
 	});
-	const names: readonly (typeof SPACES)[S][number][] = SPACES[space];
-	const tabs = names.map((tab) =>
-		createRoute({
+	const views: readonly (typeof PLACES)[P][number][] = PLACES[place];
+	const sections = views.map((view) => {
+		const [space, tab] = view.split("/") as [SpaceId, TabOf<typeof view>];
+		return createRoute({
 			getParentRoute: () => route,
 			path: tab,
 			loader: () => preloadTab(space, tab),
 			component: () => <TabView space={space} tab={tab} />,
-			// The bar of Factory / Runs (ux-declutter REQ-034): search, filter and view, kept in the address.
-			...(space === "factory" && tab === "runs" ? { validateSearch: runsSearch } : {}),
-			// The bar of Code / Pull requests (ux-declutter REQ-042): search and filter, kept in the address.
-			...(space === "code" && tab === "pull-requests" ? { validateSearch: pullsSearch } : {}),
-		}),
-	);
-	// A run has its own address, under the Factory tab bar with Runs selected (ux-declutter REQ-027).
+			// The bar of Runs (ux-declutter REQ-034): search, filter and view, kept in the address.
+			...(view === "factory/runs" ? { validateSearch: runsSearch } : {}),
+			// The bar of Pull requests (ux-declutter REQ-042): search and filter, kept in the address.
+			...(view === "code/pull-requests" ? { validateSearch: pullsSearch } : {}),
+		});
+	});
+	// A run has its own address, with Runs selected (ux-declutter REQ-027).
 	const run =
-		space === "factory"
+		place === "flow"
 			? [
 					createRoute({
 						getParentRoute: () => route,
 						path: "runs/$runId",
-						validateSearch: (
-							s: Record<string, unknown>,
-						): { unit?: string; tab?: "changes" | "workflow" } => ({
-							...(typeof s.unit === "string" && s.unit ? { unit: s.unit } : {}),
-							// Activity is the default tab: it has no value in the address.
-							...(s.tab === "changes" || s.tab === "workflow" ? { tab: s.tab } : {}),
-						}),
+						validateSearch: runSearch,
 						component: lazyRouteComponent(
 							() => import("@/features/factory/runs/run-page"),
 							"RunPage",
@@ -171,9 +194,10 @@ function spaceRoute<S extends SpaceId>(space: S) {
 					}),
 				]
 			: [];
-	// A pull request has its own address, under the Code tab bar with Pull requests selected (ux-declutter REQ-041).
-	const pull =
-		space === "code"
+	// A pull request has its own address, with Pull requests selected (ux-declutter REQ-041).
+	// Code / Quality and Impacts of before adr:0023 share the prefix of the Code place.
+	const code =
+		place === "code"
 			? [
 					createRoute({
 						getParentRoute: () => route,
@@ -188,9 +212,50 @@ function spaceRoute<S extends SpaceId>(space: S) {
 						}),
 						component: lazyRouteComponent(() => import("@/features/code/pull-page"), "PullPage"),
 					}),
+					...(["quality", "impacts"] as const).map((tab) =>
+						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),
+					),
 				]
 			: [];
-	return route.addChildren([index, ...tabs, ...run, ...pull]);
+	return route.addChildren([index, ...sections, ...run, ...code]);
+}
+
+/** A bare old space opens the place of the first tab that the role sees, so `/factory` shows Runs. */
+function OldSpaceHome({ space }: { space: SpaceId }) {
+	const { teamRole } = usePrefs();
+	const { level } = useRights();
+	const tab = visibleTabs(space, teamRole, level)[0] ?? SPACES[space][0];
+	// shortcut: one cast. `placePath` of a tab of a space is always a section path.
+	return <Navigate to={placePath(`/${space}/${tab}`) as PlacePath} replace />;
+}
+
+/** A space of before adr:0023 stays registered, so a stored or typed address works: it redirects to its place. */
+function oldSpaceRoute<S extends Exclude<SpaceId, "code">>(space: S) {
+	const route = createRoute({ getParentRoute: () => rootRoute, path: space, beforeLoad: toPlace });
+	const index = createRoute({
+		getParentRoute: () => route,
+		path: "/",
+		component: () => <OldSpaceHome space={space} />,
+	});
+	const names: readonly (typeof SPACES)[S][number][] = SPACES[space];
+	const tabs = names.map((tab) =>
+		createRoute({
+			getParentRoute: () => route,
+			path: tab,
+			...(space === "factory" && tab === "runs" ? { validateSearch: runsSearch } : {}),
+		}),
+	);
+	const run =
+		space === "factory"
+			? [
+					createRoute({
+						getParentRoute: () => route,
+						path: "runs/$runId",
+						validateSearch: runSearch,
+					}),
+				]
+			: [];
+	return route.addChildren([index, ...tabs, ...run]);
 }
 
 // The gallery exists in the dev build only. The release build drops the import.
@@ -202,38 +267,28 @@ const galleryRoute = import.meta.env.DEV
 		})
 	: null;
 
-/** Settings / Team moved to Work / Team: a stored last view must not show Not found. */
-const teamRoute = createRoute({
-	getParentRoute: () => rootRoute,
-	path: "settings/team",
-	beforeLoad: () => {
-		throw redirect({ to: "/work/team", replace: true });
-	},
-});
-
-/** Home / Inbox, My work and Activity became Today: an old link or a stored last view opens it. */
-const oldHomeRoutes = ["inbox", "my-work", "activity"].map((tab) =>
-	createRoute({
-		getParentRoute: () => rootRoute,
-		path: `home/${tab}`,
-		beforeLoad: () => {
-			throw redirect({ to: "/home/today", replace: true });
-		},
-	}),
+/** Settings / Team moved to Crew / Team, and Home / Inbox, My work and Activity became Today: a stored last view must not show Not found. */
+const movedRoutes = (["settings/team", "home/inbox", "home/my-work", "home/activity"] as const).map(
+	(path) => createRoute({ getParentRoute: () => rootRoute, path, beforeLoad: toPlace }),
 );
 
 const routeTree = rootRoute.addChildren([
 	indexRoute,
-	spaceRoute("home"),
-	spaceRoute("design"),
-	spaceRoute("specs"),
-	spaceRoute("work"),
-	spaceRoute("factory"),
-	spaceRoute("code"),
-	spaceRoute("knowledge"),
-	spaceRoute("settings"),
-	teamRoute,
-	...oldHomeRoutes,
+	placeRoute("today"),
+	placeRoute("flow"),
+	placeRoute("plan"),
+	placeRoute("crew"),
+	placeRoute("library"),
+	placeRoute("code"),
+	placeRoute("setup"),
+	oldSpaceRoute("home"),
+	oldSpaceRoute("design"),
+	oldSpaceRoute("specs"),
+	oldSpaceRoute("work"),
+	oldSpaceRoute("factory"),
+	oldSpaceRoute("knowledge"),
+	oldSpaceRoute("settings"),
+	...movedRoutes,
 	...(galleryRoute ? [galleryRoute] : []),
 ]);
 

@@ -103,14 +103,13 @@ pub fn layout() -> Vec<(&'static str, &'static str, Vec<Entry>)> {
                 Action("nav-back", "Back"),
                 Action("nav-forward", "Forward"),
                 Separator,
-                Action("go-home", "Home"),
-                Action("go-design", "Design"),
-                Action("go-specs", "Specs"),
-                Action("go-work", "Work"),
-                Action("go-factory", "Factory"),
+                Action("go-today", "Today"),
+                Action("go-flow", "Flow"),
+                Action("go-plan", "Plan"),
+                Action("go-crew", "Crew"),
+                Action("go-library", "Library"),
                 Action("go-code", "Code"),
-                Action("go-knowledge", "Knowledge"),
-                Action("go-settings", "Settings"),
+                Action("go-setup", "Setup"),
             ],
         ),
         (
@@ -195,6 +194,27 @@ mod tests {
     use super::*;
 
     #[test]
+    fn the_go_ids_match_the_menu_actions_of_the_ui() {
+        let src = include_str!("../../../../src/features/shell/events.ts");
+        let list = src
+            .split("MENU_ACTIONS = [")
+            .nth(1)
+            .and_then(|s| s.split("] as const").next());
+        let mut ui: Vec<&str> = list
+            .expect("MENU_ACTIONS")
+            .split('"')
+            .filter(|s| s.starts_with("go-"))
+            .collect();
+        let mut menu: Vec<&str> = action_ids()
+            .into_iter()
+            .filter(|i| i.starts_with("go-"))
+            .collect();
+        ui.sort_unstable();
+        menu.sort_unstable();
+        assert_eq!(menu, ui);
+    }
+
+    #[test]
     fn the_menu_offers_each_global_action_of_the_spec() {
         let ids = action_ids();
         for want in [
@@ -209,8 +229,8 @@ mod tests {
             "toggle-inspector",
             "toggle-assistant",
             "toggle-theme",
-            "go-home",
-            "go-settings",
+            "go-today",
+            "go-setup",
             "shortcuts-help",
             "update-check",
             "nav-back",

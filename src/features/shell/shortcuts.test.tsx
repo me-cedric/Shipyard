@@ -83,6 +83,16 @@ describe("keyboard shortcuts overlay (shell REQ-005)", () => {
 			),
 		);
 	});
+
+	it("keeps a chord that a person stored for an area of before the six places", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.prefsSet({ shortcuts: { "go-design": "mod+shift+d" } }));
+		const router = mountApp("/today");
+		await screen.findByRole("navigation", { name: "Sidebar" });
+		await user.keyboard("{Control>}{Shift>}d{/Shift}{/Control}");
+		await waitFor(() => expect(router.state.location.pathname).toMatch(/^\/library\//));
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
 });
 
 describe("native menu", () => {

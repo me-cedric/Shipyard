@@ -17,7 +17,7 @@ test("answers Q-101 with the keyboard, and the run leaves Needs you", async ({ p
 
 	await page
 		.getByRole("navigation", { name: "Sidebar" })
-		.getByRole("link", { name: "Factory" })
+		.getByRole("link", { name: "Flow" })
 		.click();
 	await page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Runs" }).click();
 	await expect(

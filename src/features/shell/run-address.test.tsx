@@ -69,7 +69,7 @@ describe("Run address", () => {
 		const router = mountApp("/factory/runs/nope");
 		expect(await screen.findByText("No run")).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Runs" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/factory/runs"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/runs"));
 		await idle(router);
 	});
 
@@ -79,10 +79,10 @@ describe("Run address", () => {
 		const run = await find("ACME-2");
 		const router = mountApp("/factory/runs");
 		await user.click(await screen.findByRole("button", { name: /ACME-2/ }));
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/factory/runs/${run.id}`));
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
 		await screen.findByRole("region", { name: "ACME-2" });
 		router.history.back();
-		await waitFor(() => expect(router.state.location.pathname).toBe("/factory/runs"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/runs"));
 		await idle(router);
 	});
 
@@ -93,7 +93,7 @@ describe("Run address", () => {
 		const router = mountApp("/home/today");
 		const card = await screen.findByRole("region", { name: "Q-101" });
 		await user.click(within(card).getByRole("button", { name: new RegExp(`run:${waiting.id}`) }));
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/factory/runs/${waiting.id}`));
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${waiting.id}`));
 		await idle(router);
 	});
 
@@ -103,7 +103,7 @@ describe("Run address", () => {
 		const plan = (await unwrap(commands.runsList())).find((r) => r.state === "PlanReview");
 		const router = mountApp("/home/today");
 		await user.click(await screen.findByRole("button", { name: "Open plan" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/factory/runs/${plan?.id}`));
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${plan?.id}`));
 		await idle(router);
 	});
 
@@ -131,7 +131,7 @@ describe("Run address", () => {
 			time: 0,
 			read: false,
 		});
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/factory/runs/${run.id}`));
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
@@ -144,7 +144,7 @@ describe("Run address", () => {
 			'[role="row"]',
 		) as HTMLElement;
 		await user.click(row);
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/factory/runs/${first?.run}`));
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${first?.run}`));
 		expect(router.state.location.search).toEqual({ unit: first?.step });
 		await idle(router);
 	});
@@ -156,7 +156,7 @@ describe("Run address", () => {
 		const router = mountApp("/factory/usage");
 		const row = (await screen.findAllByText("ACME-2"))[0]?.closest('[role="row"]') as HTMLElement;
 		await user.click(row);
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/factory/runs/${run.id}`));
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
 		await idle(router);
 	});
 
@@ -170,7 +170,7 @@ describe("Run address", () => {
 		expect(row).not.toHaveTextContent("run:");
 		row.focus();
 		await user.keyboard("{Enter}");
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/factory/runs/${run.id}`));
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
 		await idle(router);
 	});
 
@@ -188,10 +188,10 @@ describe("Run address", () => {
 		expect(runNode).toHaveTextContent(`${run.key} ${run.title}`);
 		runNode.focus();
 		await user.keyboard("{Enter}");
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/factory/runs/${run.id}`));
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
 		expect(router.state.location.search).toEqual({});
 		router.history.back();
-		await waitFor(() => expect(router.state.location.pathname).toBe("/factory/agents-map"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/agents-map"));
 		await user.click(await node(`run:${run.id}/${session?.step}`));
 		await waitFor(() => expect(router.state.location.search).toEqual({ unit: session?.step }));
 		await idle(router);
@@ -209,7 +209,7 @@ describe("Run address", () => {
 		expect(within(link).queryByRole("button")).not.toBeInTheDocument();
 		expect(within(panel).getByRole("button", { name: "Stop ACME-2" })).toBeInTheDocument();
 		await user.click(link);
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/factory/runs/${run.id}`));
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
 		await idle(router);
 	});
 
@@ -219,7 +219,7 @@ describe("Run address", () => {
 		const run = await find("ACME-2");
 		const router = mountApp("/home/today");
 		await user.click(await screen.findByRole("link", { name: run.title }));
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/factory/runs/${run.id}`));
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
 		await idle(router);
 	});
 });

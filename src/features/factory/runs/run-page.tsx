@@ -21,8 +21,8 @@ export { runHref } from "@/lib/shell";
 export function RunPage() {
 	const { t } = useI18n();
 	const navigate = useNavigate();
-	const { runId } = useParams({ from: "/factory/runs/$runId" });
-	const { unit, tab } = useSearch({ from: "/factory/runs/$runId" });
+	const { runId } = useParams({ from: "/flow/runs/$runId" });
+	const { unit, tab } = useSearch({ from: "/flow/runs/$runId" });
 	const runs = useRuns(runId);
 	const router = useRouter();
 	const toRuns = () => void navigate({ to: "/factory/runs" });
@@ -75,7 +75,7 @@ export function RunPage() {
 				tab={tab ?? (unit ? "workflow" : "activity")}
 				onTab={(v) =>
 					void navigate({
-						to: "/factory/runs/$runId",
+						to: "/flow/runs/$runId",
 						params: { runId },
 						search: v === "activity" ? {} : { tab: v },
 						replace: true,

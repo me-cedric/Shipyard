@@ -90,7 +90,7 @@ describe("Work / Time", () => {
 		const router = mountApp("/work/time");
 		expect(await screen.findByRole("alert")).toHaveTextContent("You are not in the team yet.");
 		await user.click(screen.getByRole("button", { name: "Open" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/work/team"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/team"));
 		await waitFor(() => expect(screen.getByRole("button", { name: "Member" })).toHaveFocus());
 	});
 

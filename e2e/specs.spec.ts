@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { openFirstFolder } from "./first-run";
+import { placeOf } from "./places";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 
@@ -9,7 +10,7 @@ async function openSpecs(page: Page, tab: string) {
 	await openFirstFolder(page);
 	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 	const sidebar = page.getByRole("navigation", { name: "Sidebar" });
-	await sidebar.getByRole("link", { name: "Settings" }).click();
+	await sidebar.getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "Connections" }).click();
 	await page.getByRole("button", { name: "Connection" }).click();
 	await page.getByRole("textbox", { name: "Name" }).fill("Acme");
@@ -26,7 +27,7 @@ async function openSpecs(page: Page, tab: string) {
 	await expect(page.getByRole("combobox", { name: "Issue tracker", exact: true })).toContainText(
 		"Acme",
 	);
-	await sidebar.getByRole("link", { name: "Specs" }).click();
+	await sidebar.getByRole("link", { name: placeOf(tab) }).click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }
 
@@ -63,6 +64,10 @@ test("folds an answer into its spec after the preview and one click", async ({ p
 	await expect(preview).toContainText("NEEDS CLARIFICATION");
 	await dialog.getByRole("button", { name: "Fold" }).click();
 	await expect(page.getByRole("dialog")).toHaveCount(0);
+	await page
+		.getByRole("navigation", { name: "Sidebar" })
+		.getByRole("link", { name: "Flow" })
+		.click();
 	await tabs(page).getByRole("link", { name: "Proposals" }).click();
 	await page.getByRole("button", { name: /^add-export/ }).click();
 	await page

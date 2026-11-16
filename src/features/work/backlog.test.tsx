@@ -162,7 +162,7 @@ describe("Work / Backlog", () => {
 		await user.click(within(screen.getByRole("group", { name: "ACME-3" })).getByRole("button"));
 		const aside = within(await screen.findByRole("complementary", { name: "ACME-3" }));
 		await user.click(await aside.findByRole("button", { name: "Pickup label is off" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/project"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
 	});
 
 	it("names the issue tracker as missing when the project has none (REQ-007)", async () => {
@@ -178,7 +178,7 @@ describe("Work / Backlog", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/work/backlog");
 		await user.click(await screen.findByRole("button", { name: "Connect an issue tracker" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/connections"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/connections"));
 		expect(await screen.findByRole("textbox", { name: "Name" })).toBeInTheDocument();
 	});
 
@@ -202,7 +202,7 @@ describe("Work / Backlog", () => {
 		);
 		const router = mountApp("/work/backlog");
 		await user.click(await screen.findByRole("button", { name: "Connect an issue tracker" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/project"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
 		await waitFor(() =>
 			expect(screen.getByRole("combobox", { name: "Issue tracker" })).toHaveFocus(),
 		);

@@ -10,7 +10,7 @@ test("tester", async ({ page }) => {
 		"Land on the test plans",
 		"the page that opens first: Specs, Test plans",
 		async () => {
-			await w.landsOn("Specs", "Test plans");
+			await w.landsOn("Library", "Test plans");
 		},
 	);
 
@@ -58,7 +58,7 @@ test("tester", async ({ page }) => {
 	});
 
 	await w.step("Run the project checks", "Code, Quality, Run Tests", async () => {
-		await w.go("Code", "Quality");
+		await w.go("Flow", "Quality");
 		await w.click(page.getByRole("button", { name: "Run Tests" }));
 		await w.click(page.getByRole("button", { name: "Run secrets" }));
 		await w.see(page.getByText("Findings").first(), "no findings list");
@@ -83,7 +83,7 @@ test("tester", async ({ page }) => {
 		"List the open risks",
 		"Specs, Questions, the Risk kind and the Open status",
 		async () => {
-			await w.go("Specs", "Questions");
+			await w.go("Library", "Questions");
 			await w.see(page.getByText("Claim stamps need a tracker comment write"), "no open risk");
 		},
 	);
@@ -92,7 +92,7 @@ test("tester", async ({ page }) => {
 		"See what needs me",
 		"Home, Needs you",
 		async () => {
-			await w.go("Home", "Today");
+			await w.go("Today", "Today");
 			await w.see(page.getByRole("heading", { level: 1, name: "Today" }), "no inbox");
 		},
 		true,

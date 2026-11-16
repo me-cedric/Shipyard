@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { openFirstFolder } from "./first-run";
+import { placeOf } from "./places";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
@@ -10,7 +11,9 @@ async function openFactory(page: Page, tab: string) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
 	await expect(page.getByRole("heading", { name: "Agent questions (3)" })).toBeVisible();
-	await sidebar(page).getByRole("link", { name: "Factory" }).click();
+	await sidebar(page)
+		.getByRole("link", { name: placeOf(tab) })
+		.click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }
 
@@ -32,7 +35,7 @@ test("shows five lanes with counts, opens a run and stops it", async ({ page }) 
 		.getByRole("button", { name: /ACME-2/ })
 		.click();
 	// The run is a page, not a sheet: the lanes are not there until Back.
-	await expect(page).toHaveURL(/\/factory\/runs\/[0-9A-Z]{26}$/);
+	await expect(page).toHaveURL(/\/flow\/runs\/[0-9A-Z]{26}$/);
 	// Three tabs: Activity opens first, and the Workflow tab is in the address.
 	await expect(page.getByRole("tab", { name: "Activity" })).toHaveAttribute(
 		"aria-selected",
@@ -94,7 +97,7 @@ test("History lists the ended runs, and a row opens the run", async ({ page }) =
 	const row = table.getByRole("row", { name: /ACME-11/ }).first();
 	await expect(row).toBeVisible();
 	await row.click();
-	await expect(page).toHaveURL(/\/factory\/runs\/[0-9A-Z]{26}$/);
+	await expect(page).toHaveURL(/\/flow\/runs\/[0-9A-Z]{26}$/);
 	await expect(page.getByRole("region", { name: "ACME-11", exact: true })).toBeVisible();
 });
 
@@ -103,12 +106,12 @@ test("opens a run by its address, and the browser Back returns to the list", asy
 	await lane(page, "Working")
 		.getByRole("button", { name: /ACME-2/ })
 		.click();
-	await expect(page).toHaveURL(/\/factory\/runs\/[0-9A-Z]{26}$/);
+	await expect(page).toHaveURL(/\/flow\/runs\/[0-9A-Z]{26}$/);
 	const address = new URL(page.url()).pathname;
 	await page.goBack();
-	await expect(page).toHaveURL(/\/factory\/runs$/);
+	await expect(page).toHaveURL(/\/flow\/runs$/);
 	await expect(page.getByRole("heading", { name: "Working (2)" })).toBeVisible();
-	// Forward returns to the address: the same run, with Runs selected in the Factory bar.
+	// Forward returns to the address: the same run, with Runs selected in the Flow bar.
 	// (A new load would empty the in-memory mock project, so the history stands for it.)
 	await page.goForward();
 	await expect(page).toHaveURL(new RegExp(`${address}$`));

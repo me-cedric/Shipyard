@@ -70,10 +70,12 @@ describe("top bar (ux-declutter REQ-009 to REQ-013)", () => {
 	it("opens the avatar menu with the theme as one choice, the manual and the other entries", async () => {
 		const user = userEvent.setup();
 		mockState().prefs.customTheme = "ocean";
+		// The default theme is light (q:Q-168): the test starts from System to see the change.
+		mockState().prefs.theme = "system";
 		mountApp("/home/today");
 		const bar = await top();
 		await user.click(await bar.findByRole("button", { name: "Account" }));
-		expect(await screen.findByRole("menuitem", { name: "Settings / Me" })).toBeVisible();
+		expect(await screen.findByRole("menuitem", { name: "Setup / Me" })).toBeVisible();
 		for (const n of [
 			"Open the manual for this page",
 			"Keyboard shortcuts",
@@ -121,7 +123,7 @@ describe("top bar (ux-declutter REQ-009 to REQ-013)", () => {
 		await user.click(
 			await screen.findByRole("menuitem", { name: "Open the manual for this page" }),
 		);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/knowledge/manual"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/manual"));
 	});
 
 	it("toggles the assistant with the main part of Ask and opens the items with the arrow", async () => {

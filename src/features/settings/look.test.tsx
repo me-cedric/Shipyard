@@ -107,7 +107,7 @@ describe("Settings / Me: look, close and picture (W12)", () => {
 			}),
 		);
 		mockState().prefs.showAllPages = true;
-		mountApp("/work/backlog");
+		mountApp("/plan/plan");
 		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
 		expect(await within(tabs).findByText("Time")).toBeInTheDocument();
 	});

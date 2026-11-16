@@ -20,7 +20,7 @@ test("approvals wait for a click, and the runs show the review, CI and merge sta
 
 	await page
 		.getByRole("navigation", { name: "Sidebar" })
-		.getByRole("link", { name: "Factory" })
+		.getByRole("link", { name: "Flow" })
 		.click();
 	await page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Runs" }).click();
 

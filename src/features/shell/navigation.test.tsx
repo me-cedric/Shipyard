@@ -7,9 +7,9 @@ import { mountApp } from "@/test/mount";
 import { pageTitle } from "./page-chrome";
 
 describe("page title", () => {
-	it("names the tab, else the space, else the app", () => {
-		expect(pageTitle(en, "/design/architecture")).toBe(en.tabs.design.architecture);
-		expect(pageTitle(en, "/design")).toBe(en.space.design);
+	it("names the section, else the place, else the app", () => {
+		expect(pageTitle(en, "/library/architecture")).toBe(en.tabs.design.architecture);
+		expect(pageTitle(en, "/library")).toBe(en.ui.place.library);
 		expect(pageTitle(en, "/nowhere")).toBe("Shipyard");
 	});
 });
@@ -31,13 +31,13 @@ describe("navigation (W15 M8)", () => {
 		const router = mountApp("/home");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await router.navigate({ to: "/settings" });
-		await waitFor(() => expect(router.state.location.pathname).toContain("/settings"));
+		await waitFor(() => expect(router.state.location.pathname).toContain("/setup"));
 		await user.click(screen.getByRole("button", { name: "Back" }));
-		await waitFor(() => expect(router.state.location.pathname).toContain("/home"));
+		await waitFor(() => expect(router.state.location.pathname).toContain("/today"));
 		await user.keyboard("{Control>}]{/Control}");
-		await waitFor(() => expect(router.state.location.pathname).toContain("/settings"));
+		await waitFor(() => expect(router.state.location.pathname).toContain("/setup"));
 		await user.keyboard("{Control>}[[{/Control}");
-		await waitFor(() => expect(router.state.location.pathname).toContain("/home"));
+		await waitFor(() => expect(router.state.location.pathname).toContain("/today"));
 	});
 
 	it("opens the manual from the avatar menu and with F1", async () => {
@@ -47,10 +47,10 @@ describe("navigation (W15 M8)", () => {
 		await user.click(
 			await screen.findByRole("menuitem", { name: "Open the manual for this page" }),
 		);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/knowledge/manual"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/manual"));
 		await router.navigate({ to: "/work" });
 		await user.keyboard("{F1}");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/knowledge/manual"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/manual"));
 	});
 
 	it("toggles the sidebar from the top bar and keeps one terminal button", async () => {

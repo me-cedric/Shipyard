@@ -23,7 +23,7 @@ test("a solo project gets two members with an admin, then an unknown person read
 	await page.goto("/home/today");
 	await openFirstFolder(page);
 	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
-	await sidebar(page).getByRole("link", { name: "Work" }).click();
+	await sidebar(page).getByRole("link", { name: "Crew" }).click();
 	await tabs(page).getByRole("link", { name: "Team" }).click();
 	// No admin in the team file: every right, so the member control is on.
 	await expect(page.getByRole("button", { name: "Member", exact: true })).toBeEnabled();
@@ -36,8 +36,8 @@ test("a solo project gets two members with an admin, then an unknown person read
 	await expect(add).toHaveAccessibleDescription(
 		"Needs the right project.settings (your role: Viewer)",
 	);
-	// Every view still reads: Settings / Project opens, and its save is off.
-	await sidebar(page).getByRole("link", { name: "Settings" }).click();
+	// Every view still reads: Setup / Project opens, and its save is off.
+	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "Project" }).click();
 	await page.getByRole("textbox", { name: "Name" }).first().fill("Renamed");
 	const save = page.getByRole("button", { name: "Save", exact: true });

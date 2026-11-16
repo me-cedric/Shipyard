@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
-import { SPACE_IDS } from "./spaces";
+import { PLACE_IDS } from "./places";
 
 async function openPalette(user: ReturnType<typeof userEvent.setup>) {
 	await screen.findByRole("navigation", { name: "Sidebar" });
@@ -12,12 +12,12 @@ async function openPalette(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("command palette (shell REQ-005)", () => {
-	it("lists an action for each space, with its shortcut", async () => {
+	it("lists an action for each place, with its shortcut", async () => {
 		const user = userEvent.setup();
 		mountApp("/home");
 		await openPalette(user);
 		const dialog = within(await screen.findByRole("dialog"));
-		for (const i of SPACE_IDS.keys()) {
+		for (const i of PLACE_IDS.keys()) {
 			const option = dialog.getByRole("option", { name: new RegExp(`Ctrl\\+${i + 1}$`) });
 			expect(option).toBeVisible();
 		}
@@ -92,7 +92,7 @@ describe("palette pages and tickets", () => {
 		const user = userEvent.setup();
 		mountApp("/home");
 		await openPalette(user);
-		expect(await screen.findByRole("option", { name: "Specs / Questions" })).toBeVisible();
+		expect(await screen.findByRole("option", { name: "Library / Questions" })).toBeVisible();
 	});
 
 	it("finds a ticket by its key", async () => {
@@ -134,7 +134,7 @@ describe("palette pages and tickets", () => {
 		await user.keyboard("adr:0004{Enter}");
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
 		expect(await within(inspector).findByRole("button", { name: /^adr:0004/ })).toBeVisible();
-		await waitFor(() => expect(router.state.location.pathname).toBe("/design/decisions"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/library/decisions"));
 		// The page opens on the record, not on its first item.
 		const decisions = await screen.findByRole("list", { name: "Decisions" });
 		expect(await within(decisions).findByRole("button", { name: /0004/ })).toHaveAttribute(

@@ -104,6 +104,6 @@ describe("language switch (shell REQ-011)", () => {
 		expect(mockState().prefs.lang).toBe("fr");
 		await user.keyboard("{Escape}");
 		const nav = within(await screen.findByRole("navigation", { name: "Barre latérale" }));
-		expect(nav.getAllByRole("link")).toHaveLength(8);
+		expect(nav.getAllByRole("link")).toHaveLength(7);
 	});
 });

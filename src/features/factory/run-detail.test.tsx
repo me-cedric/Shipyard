@@ -218,8 +218,8 @@ describe("Factory / run page", () => {
 		await user.click(await within(summary).findByRole("button", { name: "Start again" }));
 		await waitFor(() => {
 			const path = router.state.location.pathname;
-			expect(path).toMatch(/^\/factory\/runs\//);
-			expect(path).not.toBe(`/factory/runs/${run.id}`);
+			expect(path).toMatch(/^\/flow\/runs\//);
+			expect(path).not.toBe(`/flow/runs/${run.id}`);
 		});
 	});
 

@@ -106,9 +106,7 @@ describe("Factory / Runs", () => {
 		const mine = (await unwrap(commands.runsList())).filter((r) => r.key === "ACME-3");
 		expect(mine).toHaveLength(2);
 		const started = mine.find((r) => r.id !== failed.id);
-		await waitFor(() =>
-			expect(router.state.location.pathname).toBe(`/factory/runs/${started?.id}`),
-		);
+		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${started?.id}`));
 	});
 
 	it("goes back to History with its search from a run, and says Back", async () => {
@@ -139,7 +137,7 @@ describe("Factory / Runs", () => {
 		expect(screen.queryByRole("link", { name: "Back" })).toBeNull();
 		const page = within(screen.getByRole("region", { name: "ACME-2" }));
 		await user.click(page.getByRole("link", { name: "Runs" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/factory/runs"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/runs"));
 	});
 
 	it("counts the cards on the board and the rows in History", async () => {
@@ -542,7 +540,7 @@ describe("Factory / Runs", () => {
 		const router = mountApp("/factory/runs");
 		expect(await screen.findByText("No AI tool found")).toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Set up an AI tool" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/connections"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/connections"));
 		expect(router.state.location.hash).toBe("connections-runner");
 	});
 });

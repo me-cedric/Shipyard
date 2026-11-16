@@ -42,7 +42,7 @@ describe("Work / Estimates", () => {
 		expect(links.length).toBeGreaterThan(0);
 		expect(screen.getAllByText("Unrated").length).toBeGreaterThan(links.length - 1);
 		await user.click(links[0] as HTMLElement);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/work/team"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/team"));
 	});
 
 	it("shows equal totals in the summary, the spread and the portfolio", async () => {

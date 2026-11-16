@@ -83,7 +83,7 @@ describe("Get started checklist", () => {
 		const user = userEvent.setup();
 		const today = await card();
 		await user.click(await today.findByRole("button", { name: s.action.signIn }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/agents-rules"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/agents-rules"));
 		expect(router.state.location.hash).toBe("tools");
 	});
 
@@ -135,7 +135,7 @@ describe("Get started checklist", () => {
 		const today = await card();
 		expect(await today.findByRole("button", { name: s.action.team })).toBeInTheDocument();
 		await user.click(await today.findByRole("button", { name: s.action.openTeam }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/work/team"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/team"));
 		expect(await screen.findByRole("textbox", { name: "Handle" })).toBeInTheDocument();
 	});
 
@@ -149,7 +149,7 @@ describe("Get started checklist", () => {
 			await today.findByRole("button", { name: "Install GitHub Copilot" }),
 		).toBeInTheDocument();
 		await user.click(await today.findByRole("button", { name: s.action.openRunner }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/connections"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/connections"));
 		expect(router.state.location.hash).toBe("connections-runner");
 	});
 
@@ -159,7 +159,7 @@ describe("Get started checklist", () => {
 		const router = mountApp("/settings/me");
 		const tracker = await row(s.item.tracker);
 		await user.click(await tracker.findByRole("button", { name: `View ${s.item.tracker}` }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/project"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
 		expect(router.state.location.hash).toBe("issue-tracker");
 	});
 
@@ -187,12 +187,12 @@ describe("Get started checklist", () => {
 		const router = mountApp("/home/today");
 		const today = await card();
 		await user.click(await today.findByRole("button", { name: s.action.models }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/agents-rules"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/agents-rules"));
 		expect(router.state.location.hash).toBe("tiers");
 		await router.navigate({ to: "/home/today" });
 		const again = await card();
 		await user.click(await again.findByRole("button", { name: s.action.connect }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/connections"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/connections"));
 		// The item opens the add form on the code host, not on the issue tracker.
 		expect(await screen.findByRole("combobox", { name: "Type" })).toHaveTextContent("Code host");
 	});
@@ -216,7 +216,7 @@ describe("Get started checklist", () => {
 				name: s.action.choose,
 			}),
 		);
-		await waitFor(() => expect(router.state.location.pathname).toBe("/settings/project"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/setup/project"));
 		expect(router.state.location.hash).toBe("code-host");
 	});
 
@@ -263,7 +263,7 @@ describe("Get started checklist", () => {
 		await user.click(within(dialog).getByRole("button", { name: o.next }));
 		const step = await screen.findByRole("dialog", { name: o.steps.project.title });
 		await user.click(await within(step).findByRole("button", { name: s.action.project }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/home/projects"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/today/projects"));
 		await waitFor(() =>
 			expect(screen.queryByRole("dialog", { name: o.steps.project.title })).toBeNull(),
 		);

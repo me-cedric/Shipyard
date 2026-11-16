@@ -23,14 +23,9 @@ import {
 	CheckIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
-	CodeBracketIcon,
-	Cog6ToothIcon,
 	CommandLineIcon,
 	ComputerDesktopIcon,
-	CpuChipIcon,
-	DocumentTextIcon,
 	FolderOpenIcon,
-	HomeIcon,
 	LanguageIcon,
 	MagnifyingGlassIcon,
 	MoonIcon,
@@ -40,7 +35,8 @@ import {
 	ViewColumnsIcon,
 	XMarkIcon,
 } from "@/ui/icons";
-import { orderedSpaces, type SpaceId } from "./spaces";
+import { PLACE_ICON, type PlaceId, placeOfView, viewPath, visiblePlaces } from "./places";
+import { SPACE_IDS, SPACES } from "./spaces";
 import { useOpenInTerminalApp } from "./terminal-app";
 
 type Icon = ComponentType<{ size?: number }>;
@@ -57,18 +53,9 @@ export type Action = {
 	defaultChord?: string;
 	/** The action cannot run now. The status bar shows it off and the palette hides it. */
 	disabled?: boolean;
+	/** An id of before adr:0023: it still runs, but the palette does not list it. */
+	hidden?: boolean;
 	run: () => void;
-};
-
-export const SPACE_ICON: Record<SpaceId, Icon> = {
-	home: HomeIcon,
-	design: SwatchIcon,
-	specs: DocumentTextIcon,
-	work: ViewColumnsIcon,
-	factory: CpuChipIcon,
-	code: CodeBracketIcon,
-	knowledge: BookOpenIcon,
-	settings: Cog6ToothIcon,
 };
 
 const THEME_ICON: Record<Theme, Icon> = {
@@ -84,7 +71,7 @@ export const shortcutText = (key: string) => chordText(`mod+${key}`);
 /** The one registry. The palette, the context bar and the status bar read it. */
 export function useActions() {
 	const { t, setLang } = useI18n();
-	const { teamRole, sidebarOpen, setPrefs, profile, theme, uiScale } = usePrefs();
+	const { sidebarOpen, setPrefs, profile, theme, uiScale } = usePrefs();
 	const navigate = useNavigate();
 	const router = useRouter();
 	const shell = useShell();
@@ -111,7 +98,7 @@ export function useActions() {
 	const { can, level } = useRights();
 	const writes = can("code.write");
 	// A text keeps the memo stable: `level` is a new function at each render.
-	const shown = orderedSpaces(teamRole, level).join(",");
+	const shown = visiblePlaces(level).join(",");
 	const checkUpdate = useUpdateCheck();
 	const { bindings } = useShortcutBindings();
 	const { setShortcutsOpen } = shell;
@@ -126,13 +113,25 @@ export function useActions() {
 			const chord = bindings[a.id] ?? defaultChord;
 			return { ...rest, chord, defaultChord, shortcut: chordText(chord) };
 		};
-		const spaces = (shown.split(",") as SpaceId[]).map((space, i) =>
+		const places = (shown.split(",") as PlaceId[]).map((place, i) =>
 			withKey({
+				id: `go-${place}`,
+				label: t.ui.place[place],
+				Icon: PLACE_ICON[place],
+				key: String(i + 1),
+				run: () => navigate({ to: `/${place}` as const }),
+			}),
+		);
+		// The space ids of before adr:0023 stay for the native menu and the stored shortcuts. Code is a place too.
+		const spaces = SPACE_IDS.filter((space) => space !== "code").map(
+			(space): Action => ({
 				id: `go-${space}`,
 				label: t.space[space],
-				Icon: SPACE_ICON[space],
-				key: String(i + 1),
-				run: () => navigate({ to: `/${space}` as const }),
+				Icon: PLACE_ICON[placeOfView(space, SPACES[space][0]) ?? "today"],
+				hidden: true,
+				// A shortcut that a person stored for the old id still runs it.
+				chord: bindings[`go-${space}`],
+				run: () => void navigate({ to: `/${space}` as const }),
 			}),
 		);
 		const openProject: Action = {
@@ -217,8 +216,8 @@ export function useActions() {
 			Icon: BookOpenIcon,
 			shortcut: "F1",
 			run: () => {
-				openManualFor(router.state.location.pathname);
-				void navigate({ to: "/knowledge/manual" });
+				openManualFor(viewPath(router.state.location.pathname));
+				void navigate({ to: "/library/manual" });
 			},
 		};
 		const tour: Action = {
@@ -301,6 +300,7 @@ export function useActions() {
 			run: () => setShortcutsOpen(true),
 		});
 		const list: Action[] = [
+			...places,
 			...spaces,
 			assistant,
 			palette,

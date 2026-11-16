@@ -2,7 +2,6 @@ import { useChanges } from "@/lib/code";
 import { useRuns } from "@/lib/factory";
 import { latestPerTicket, useInbox } from "@/lib/home";
 import { useActiveProject } from "@/lib/projects";
-import type { SpaceId } from "./spaces";
 
 /** The live counts of the shell: what needs the person, the runs at work, the changed files. */
 export function useCounts() {
@@ -26,10 +25,5 @@ export function useCounts() {
 			changes.untracked.length +
 			changes.conflicted.length
 		: 0;
-	const badge: Partial<Record<SpaceId, number>> = {
-		home: needsYou,
-		factory: live,
-		code: changed,
-	};
-	return { needsYou, live, changes, changed, badge };
+	return { needsYou, live, changes, changed };
 }

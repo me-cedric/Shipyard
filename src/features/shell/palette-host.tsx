@@ -1,7 +1,6 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
-import { usePrefs } from "@/lib/prefs";
 import { useProjectActions, useProjects } from "@/lib/projects";
 import { setHitQuery, snippetParts, useParsedRef, useRefSearch } from "@/lib/refs";
 import { useRights } from "@/lib/rights";
@@ -9,14 +8,14 @@ import { useShell } from "@/lib/shell";
 import { rememberSelection } from "@/lib/shell/selection";
 import { CodeBracketIcon, DocumentTextIcon, SparklesIcon } from "@/ui/icons";
 import { CommandPalette, type PaletteGroup } from "@/ui/organisms/command-palette";
-import { type Action, SPACE_ICON } from "./actions";
+import type { Action } from "./actions";
+import { PLACE_ICON, sectionPath, visiblePlaces, visibleSections } from "./places";
 import { refPage, refSelection } from "./ref-page";
-import { orderedSpaces, tabLabel, tabPath, visibleTabs } from "./spaces";
+import { tabLabel } from "./spaces";
 
 export function PaletteHost({ actions }: { actions: Action[] }) {
 	const { t } = useI18n();
 	const { paletteOpen, setPaletteOpen, openRef, openRefAt, ask } = useShell();
-	const { teamRole } = usePrefs();
 	const { level } = useRights();
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -41,12 +40,12 @@ export function PaletteHost({ actions }: { actions: Action[] }) {
 		openRefAt(ref, page);
 		void navigate({ to: page });
 	};
-	const tabs = orderedSpaces(teamRole, level).flatMap((space) =>
-		visibleTabs(space, teamRole, level).map((tab) => ({
-			id: `go-${space}-${tab}`,
-			label: `${t.space[space]} / ${tabLabel(t, space, tab)}`,
-			Icon: SPACE_ICON[space],
-			run: () => void navigate({ to: tabPath(space, tab) }),
+	const tabs = visiblePlaces(level).flatMap((place) =>
+		visibleSections(place, level).map(([space, tab]) => ({
+			id: `go-${place}-${tab}`,
+			label: `${t.ui.place[place]} / ${tabLabel(t, space, tab)}`,
+			Icon: PLACE_ICON[place],
+			run: () => void navigate({ to: sectionPath(place, tab) }),
 		})),
 	);
 
@@ -54,7 +53,7 @@ export function PaletteHost({ actions }: { actions: Action[] }) {
 		{
 			id: "actions",
 			heading: t.palette.actions,
-			items: [...actions.filter((a) => !a.disabled), ...tabs].map((a) => ({
+			items: [...actions.filter((a) => !a.disabled && !a.hidden), ...tabs].map((a) => ({
 				id: a.id,
 				label: a.label,
 				icon: <a.Icon size={14} />,

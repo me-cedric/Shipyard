@@ -128,7 +128,7 @@ export function OpenActions({ refId }: { refId: string }) {
 			</>
 		);
 	if (!page) return null;
-	const editable = doc?.page === "/knowledge/handbook";
+	const editable = doc?.page === "/library/handbook";
 	const go = (edit: boolean) => {
 		const open = doc ? ([doc.scope, doc.id] as const) : refSelection(t, refId);
 		if (open) rememberSelection(...open);

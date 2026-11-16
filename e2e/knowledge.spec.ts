@@ -9,7 +9,7 @@ async function openKnowledge(page: Page, tab: string) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
 	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
-	await sidebar(page).getByRole("link", { name: "Knowledge" }).click();
+	await sidebar(page).getByRole("link", { name: "Library" }).click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }
 
@@ -115,7 +115,7 @@ test("pins a dashboard tile to the top of Dashboards, not to Home", async ({ pag
 	await expect(tile).toBeVisible();
 	await tile.getByRole("button", { name: "Pin to Home" }).click();
 	await expect(page.getByRole("region", { name: "Pinned" })).toBeVisible();
-	await sidebar(page).getByRole("link", { name: "Home" }).click();
+	await sidebar(page).getByRole("link", { name: "Today" }).click();
 	await expect(tabs(page).getByRole("link", { name: "Today" })).toBeVisible();
 	await expect(page.getByRole("region", { name: "Pinned" })).toHaveCount(0);
 });

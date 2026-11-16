@@ -7,7 +7,7 @@ test("business analyst", async ({ page }) => {
 	await w.start();
 
 	await w.step("Land on the proposals", "the page that opens first: Specs, Proposals", async () => {
-		await w.landsOn("Specs", "Proposals");
+		await w.landsOn("Flow", "Proposals");
 		await w.see(page.getByRole("button", { name: /add-export/ }), "no change in the list");
 	});
 
@@ -63,7 +63,7 @@ test("business analyst", async ({ page }) => {
 	});
 
 	await w.step("Read a capability", "Capabilities, auth, the requirements", async () => {
-		await w.go("Specs", "Capabilities");
+		await w.go("Library", "Capabilities");
 		await w.click(page.getByRole("button", { name: /^auth/ }));
 		await w.see(page.getByText("REQ-001"), "no requirement list");
 		await w.see(page.getByText("Backlinks"), "no link from a requirement to its tests and items");
@@ -75,7 +75,7 @@ test("business analyst", async ({ page }) => {
 	});
 
 	await w.step("Ask a question", "Questions, New question, a title", async () => {
-		await w.go("Specs", "Questions");
+		await w.go("Library", "Questions");
 		await w.until(
 			() => page.getByRole("button", { name: "Split into work items" }).count(),
 			0,
@@ -114,7 +114,7 @@ test("business analyst", async ({ page }) => {
 		"Write the client document",
 		"Knowledge, Documents, New document",
 		async () => {
-			await w.go("Knowledge", "Documents");
+			await w.go("Library", "Documents");
 			await w.click(page.getByRole("button", { name: "New document" }));
 			await w.fill(page.getByRole("dialog").getByRole("textbox"), "Functional scope");
 			await w.click(page.getByRole("dialog").getByRole("button", { name: "Create" }));

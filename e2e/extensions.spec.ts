@@ -10,7 +10,7 @@ async function openSettings(page: Page, tab: string) {
 	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
 	await page
 		.getByRole("navigation", { name: "Sidebar" })
-		.getByRole("link", { name: "Settings" })
+		.getByRole("link", { name: "Setup" })
 		.click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }

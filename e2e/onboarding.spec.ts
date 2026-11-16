@@ -65,7 +65,7 @@ test("offers the settings on the steps and lists them in Settings / Me", async (
 		.getByRole("group", { name: "Issue tracker" })
 		.getByRole("button", { name: "Connect" })
 		.click();
-	await expect(page).toHaveURL(/\/settings\/connections/);
+	await expect(page).toHaveURL(/\/setup\/connections/);
 	await expect(openDialogs(page)).toHaveCount(0);
 
 	await page.goto("/settings/me");

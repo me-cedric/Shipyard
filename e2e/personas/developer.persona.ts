@@ -7,7 +7,7 @@ test("developer", async ({ page }) => {
 	await w.start();
 
 	await w.step("Land on the runs", "the page that opens first: Factory, Runs", async () => {
-		await w.landsOn("Factory", "Runs");
+		await w.landsOn("Flow", "Runs");
 		await w.see(page.getByText("Needs you").first(), "no list of runs that need me");
 		await w.see(page.getByRole("switch", { name: "Agents on" }), "no switch to stop the agents");
 	});
@@ -43,7 +43,7 @@ test("developer", async ({ page }) => {
 	});
 
 	await w.step("Answer an agent question", "Home, the Agent questions list, Send", async () => {
-		await w.go("Home", "Today");
+		await w.go("Today", "Today");
 		await w.see(
 			page.getByText("Where should the user land after the session expires?"),
 			"no question",
@@ -97,14 +97,14 @@ test("developer", async ({ page }) => {
 		async () => {
 			await w.key("ControlOrMeta+6");
 			await w.see(
-				page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Quality" }),
+				page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Branches" }),
 				"the shortcut does not open Code",
 			);
 		},
 	);
 
 	await w.step("Run the checks", "Code, Quality, Run Tests", async () => {
-		await w.go("Code", "Quality");
+		await w.go("Flow", "Quality");
 		await w.click(page.getByRole("button", { name: "Run Tests" }));
 		await w.see(
 			page.getByText(/passed|failed|Pass|Fail/i).first(),
