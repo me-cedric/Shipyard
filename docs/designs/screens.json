@@ -4,23 +4,25 @@
     {
       "id": "SCR-001",
       "slug": "home",
-      "title": "Home, Today: one Get started checklist while an item is to do, Needs you, My items with their count in the heading, My agents with the spend of today in the heading, no stat tiles",
+      "title": "Today: the count of what needs the person in the title, one card with who asks, the feature and the answer, Later, the queue of the next things, Working now with the spend of today, the reminder to log time, the panels of the role, My work, Since you were away; the Ask bar in the top bar",
       "artifacts": [
         "spec:shell",
         "spec:home-today",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/home.png"
     },
     {
       "id": "SCR-002",
       "slug": "home-light",
-      "title": "Home, Today, light theme",
+      "title": "Today, light theme",
       "artifacts": [
         "spec:shell",
         "spec:home-today",
         "spec:design-system",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ],
       "file": "docs/assets/screenshots/home-light.png"
     },
@@ -261,10 +263,11 @@
     {
       "id": "SCR-027",
       "slug": "activity-panel",
-      "title": "Activity panel: the Activity button with the needs-you count; Needs you with a link to Home / Today, Runs with Stop, Sessions with Stop",
+      "title": "Today / Activity: the live runs with Stop and the sessions with Stop, as a view of Today (it replaces the Activity panel of the top bar)",
       "artifacts": [
         "spec:shell",
-        "spec:ux-declutter"
+        "spec:ux-declutter",
+        "spec:app-redesign"
       ]
     },
     {
@@ -333,6 +336,26 @@
         "adr:0023"
       ],
       "file": "docs/assets/screenshots/home-light.png"
+    },
+    {
+      "id": "SCR-037",
+      "slug": "today-news",
+      "title": "Today / News: the notifications by day with the action of each one, Mark all as read and Clear; the only list of notifications",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/today-news.png"
+    },
+    {
+      "id": "SCR-038",
+      "slug": "ask-bar",
+      "title": "Ask bar, open: the answer that names each blocked feature with its action, Go to with places and search results, Do with the actions and the prompts of the page, Open the full assistant",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/ask-bar.png"
     }
   ]
 }

@@ -49,14 +49,16 @@ test("developer", async ({ page }) => {
 			"no question",
 		);
 		await w.click(page.getByRole("button", { name: "Send" }).first());
-		await w.until(
-			() => page.getByText("Answered").count(),
-			3,
+		// Today shows one thing at a time: the answered question stays on the card.
+		await w.see(
+			page.getByText("Answered").first(),
 			"the question does not turn to Answered after Send",
 		);
 	});
 
 	await w.step("Approve what the agent asks", "Approvals, Approve", async () => {
+		// The approval waits in the queue: a click makes it the card.
+		await w.click(page.getByRole("button", { name: /Move ACME-2 to In Progress/ }));
 		const approve = page.getByRole("button", { name: "Approve", exact: true });
 		const before = await approve.count();
 		await w.click(approve);

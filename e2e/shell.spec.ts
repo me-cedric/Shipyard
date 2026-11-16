@@ -24,7 +24,8 @@ test("keyboard path: place shortcut, palette action, inspector and a focus ring"
 	const inspector = page.getByLabel("Inspector", { exact: true });
 	await expect(inspector).toHaveAttribute("data-open", "false");
 	await page.keyboard.press("ControlOrMeta+k");
-	await page.getByRole("dialog").getByRole("combobox").fill("Toggle inspector");
+	await page.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("Toggle inspector");
+	await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
 	await expect(inspector).toHaveAttribute("data-open", "true");
 	await page.keyboard.press("ControlOrMeta+i");
@@ -53,7 +54,8 @@ test("keeps the view of each project apart and writes it on each move", async ({
 
 	// The second project starts at its own home, not in the view of the first.
 	await page.keyboard.press("ControlOrMeta+k");
-	await page.getByRole("dialog").getByRole("combobox").fill("Open a local folder");
+	await page.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("Open a local folder");
+	await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
 	await expect(switcher).toHaveText(/beta/);
 	await expect(page).not.toHaveURL(/\/plan/);

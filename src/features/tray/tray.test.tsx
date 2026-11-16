@@ -31,9 +31,15 @@ async function renderTray() {
 describe("Menu bar panel", () => {
 	it("shows the Needs you count, the spend and the sync state", async () => {
 		await renderTray();
-		expect(await screen.findByRole("heading", { name: /^Needs you \(\d+\)$/ })).toBeInTheDocument();
+		expect(await screen.findByRole("heading", { name: /^\d+ things? need/ })).toBeInTheDocument();
 		expect(screen.getByRole("region", { name: "Spend today" })).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Open Shipyard" })).toBeInTheDocument();
+	});
+
+	it("shows no Needs you count when no project is open", async () => {
+		renderApp(<TrayView />);
+		expect(await screen.findByRole("region", { name: "Spend today" })).toBeInTheDocument();
+		expect(screen.queryByRole("heading", { name: /^\d+ things? need/ })).toBeNull();
 	});
 
 	it("stops a run with the same command as the Factory", async () => {
@@ -79,11 +85,53 @@ describe("Menu bar panel", () => {
 		const user = userEvent.setup();
 		const close = vi.spyOn(commands, "trayClose");
 		await renderTray();
-		const head = await screen.findByRole("heading", { name: /^Needs you \((\d+)\)$/ });
-		const count = Number(/\((\d+)\)/.exec(head.textContent ?? "")?.[1]);
-		await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(Math.min(count, 3)));
+		const head = await screen.findByRole("heading", { name: /^\d+ things? need/ });
+		const count = Number(/^(\d+)/.exec(head.textContent ?? "")?.[1]);
+		// Every thing of the count shows: the panel scrolls, it does not cut the list.
+		await waitFor(() => expect(screen.getAllByRole("listitem").length).toBe(count));
+		expect(count).toBeGreaterThan(3);
 		await user.keyboard("{Escape}");
 		expect(close).toHaveBeenCalled();
+	});
+
+	it("shows the same three things as Today (spec:app-redesign#REQ-008)", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const [question] = await unwrap(commands.questionsList());
+		const [approval] = await unwrap(commands.approvalsList());
+		const plan = (await unwrap(commands.runsList())).find((r) => r.state === "PlanReview");
+		if (!(question && approval && plan)) throw new Error("the mock lacks a thing");
+		const ok = <T,>(data: T) => ({ status: "ok" as const, data });
+		vi.spyOn(commands, "questionsList").mockResolvedValue(ok([question]));
+		vi.spyOn(commands, "approvalsList").mockResolvedValue(ok([approval]));
+		vi.spyOn(commands, "messagesList").mockResolvedValue(ok([]));
+		vi.spyOn(commands, "prReviewWaiting").mockResolvedValue(ok([]));
+		vi.spyOn(commands, "runsList").mockResolvedValue(ok([plan]));
+		renderApp(<TrayView />);
+		expect(await screen.findByRole("heading", { name: "3 things need you" })).toBeInTheDocument();
+		const rows = within(screen.getByRole("region", { name: "Needs you" })).getAllByRole("listitem");
+		expect(rows.map((r) => r.textContent)).toEqual([
+			`${question.key} ${question.question.question}`,
+			`${approval.key} ${approval.summary}`,
+			`${plan.key} ${plan.title}`,
+		]);
+		vi.restoreAllMocks();
+	});
+
+	it("shows the time reminder as its own row with Log, not in the count", async () => {
+		const user = userEvent.setup();
+		const open = vi.spyOn(commands, "trayOpen");
+		// A workday with no time logged.
+		vi.useFakeTimers({ toFake: ["Date"] });
+		vi.setSystemTime(new Date(2026, 9, 29, 10));
+		await renderTray();
+		const row = within(await screen.findByRole("region", { name: "No time logged today" }));
+		const head = await screen.findByRole("heading", { name: /^\d+ things? need/ });
+		const count = Number(/^(\d+)/.exec(head.textContent ?? "")?.[1]);
+		expect(screen.getAllByRole("listitem")).toHaveLength(count);
+		await user.click(row.getByRole("button", { name: "Log time" }));
+		expect(open).toHaveBeenCalled();
+		await waitFor(() => expect(emit).toHaveBeenCalledWith("open-path", "/plan/time"));
+		vi.useRealTimers();
 	});
 
 	it("shows today large, the month, seven bars and the running agents", async () => {

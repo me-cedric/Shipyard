@@ -4,16 +4,26 @@ Home shows what to do now and your projects.
 
 ## Today
 
-Today tells you what to do now. A section with nothing in it hides. With nothing at all, one action opens the backlog.
+Today tells you what to do now. The switch at the top has three views: Today, News and Activity. With nothing at all to show, one action opens the backlog.
 
-While an item is to do, one Get started checklist shows at the top (see Getting started, First launch). Today shows no stat tiles.
-
-- Needs you collects what waits for you: questions of the agents, approvals, plan reviews and messages. Answer a question: press a digit, then Enter, or type your own answer. Approve a change: read the row, then click Approve. Approve a plan: read it, then click Approve plan. A change that the automation switches do not allow waits here for your click.
-- My items are the tickets that the issue tracker gives to you, grouped as In progress, To do and Done in the last 7 days. The heading shows how many. Each row has its status and Start run.
-- My agents lists the runs that work on your tickets or wait for you, with Stop. The heading shows the spend of today.
+- The title gives the count of the things that need you. One card shows the first thing: who asks, for which feature, and the answer. Answer a question: press a digit, then Enter, or type your own answer. Approve or reject a change. Read a plan, then approve it or reject it with a note. Open the pull request of a review. Mark a message as read. A change that the automation switches do not allow waits here for your click.
+- Later moves the card to the end. The list under the card holds the next things: click one to answer it first. Everyone shows the things of the whole team.
+- Working now lists the runs that work on your tickets or wait for you, with Stop, and the spend of today.
+- While an item is to do, one Get started checklist shows (see Getting started, First launch).
+- On a work day with no time logged, a card reminds you to log your time. It is not in the count.
+- The panels of your role show what your role watches, each with Open. Pick a role to see the panels of another role. A panel of a place that you cannot see stays hidden.
+- My work holds the tickets that the issue tracker gives to you, grouped as In progress, To do and Done in the last 7 days. Each row has its status and Start run.
 - Since you were away lists what happened on your tickets and runs since the last time you opened Today, newest first.
 
-The old addresses of Inbox, My work and Activity open Today. The tiles that you pin in Knowledge show at the top of Knowledge, then Dashboards.
+The old addresses of Inbox and My work open Today. The menu bar panel shows the same things that need you. The tiles that you pin in Knowledge show at the top of Knowledge, then Dashboards.
+
+## News
+
+News holds the notifications: the title gives their count, each row has its action and a control to remove it, Mark all as read and Clear act on the list. No other page holds a list of notifications. A dot on Today in the menu marks unread news.
+
+## Activity
+
+Activity lists the live runs and the open sessions, each with Stop. The old address of Activity opens it.
 
 ## Projects
 

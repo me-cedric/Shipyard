@@ -32,28 +32,6 @@ vi.mock("@xterm/addon-fit", () => ({
 const alpha = () => unwrap(commands.projectsOpen("/mock/alpha", false));
 const bar = async () => within((await screen.findAllByRole("banner"))[0] as HTMLElement);
 
-describe("Active sessions", () => {
-	it("counts the live sessions, lists each one and stops one with a click", async () => {
-		const user = userEvent.setup();
-		await alpha();
-		mountApp("/home/today");
-		await user.click(
-			await (await bar()).findByRole("button", { name: /^Activity: .*Active sessions \(2\)$/ }),
-		);
-		const list = await screen.findByRole("list", { name: "Active sessions" });
-		const rows = within(list).getAllByRole("listitem");
-		expect(rows).toHaveLength(2);
-		expect(rows[0]).toHaveTextContent("alpha");
-		expect(rows[0]).toHaveTextContent("claude-opus-4");
-		expect(rows[0]).toHaveTextContent("$18.40");
-		await user.click(within(list).getByRole("button", { name: "Stop Codex beta" }));
-		await waitFor(() =>
-			expect(mockState().machine.sessions.some((s) => s.pid === 4188)).toBe(false),
-		);
-		expect((await bar()).getByRole("button", { name: /Needs you/ })).toBeInTheDocument();
-	});
-});
-
 describe("File drawer", () => {
 	it("builds the tree with folders first and finds a file by its letters", () => {
 		const paths = ["b.md", "src/lib/util.ts", "src/app.ts", "a.md"];

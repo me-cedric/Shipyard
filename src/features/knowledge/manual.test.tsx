@@ -87,8 +87,8 @@ describe("Knowledge / Manual", () => {
 		mountApp("/factory/usage");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}k{/Control}");
-		await screen.findByRole("combobox");
-		await user.keyboard("Open the manual for this page{Enter}");
+		await screen.findByRole("combobox", { name: "Ask or tell Shipyard" });
+		await user.keyboard("Open the manual for this page{ArrowDown}{Enter}");
 		const page = await screen.findByRole("article", { name: "Factory" });
 		await waitFor(() =>
 			expect(within(page).getByRole("heading", { name: "Usage" })).toBeInTheDocument(),

@@ -42,6 +42,12 @@ describe("a page header on every tab (REQ-017)", () => {
 	});
 	it.each(named)("shows the header of %s / %s with a project", async (space, tab) => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		await expectHeader(space, tab, tabLabel(en, space, tab));
+		// Today with a project is titled with the count of what needs the person (app-redesign REQ-007).
+		const today = space === "home" && tab === "today";
+		await expectHeader(
+			space,
+			tab,
+			today ? "(Today|\\d+ things? needs? you)" : tabLabel(en, space, tab),
+		);
 	});
 });

@@ -1,6 +1,5 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { latestPerTicket } from "@/lib/home";
 import { commands, unwrap } from "@/lib/ipc";
 import { mountApp } from "@/test/mount";
 
@@ -47,16 +46,9 @@ describe("status bar and context bar (shell REQ-007)", () => {
 		expect(sync).toBeEnabled();
 	});
 
-	it("shows the count of active runs in the Activity button and the health shape below", async () => {
+	it("shows the health shape below", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
-		const runs = latestPerTicket(await unwrap(commands.runsList()));
-		const active = runs.filter((r) => r.lane === "working" || r.lane === "needs_you").length;
 		mountApp("/home");
-		const c = await top();
-		expect(
-			await c.findByRole("button", { name: new RegExp(`Active runs \\(${active}\\)`) }),
-		).toBeInTheDocument();
-		expect(active).toBeGreaterThan(0);
 		const b = await bar();
 		const link = await b.findByRole("link", { name: /Health \(2\)/ });
 		expect(within(link).getByRole("img", { name: "Warning" })).toBeInTheDocument();

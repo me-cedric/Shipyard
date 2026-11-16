@@ -8,7 +8,9 @@ const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 async function openSpecs(page: Page, tab: string) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
-	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+	).toBeVisible();
 	const sidebar = page.getByRole("navigation", { name: "Sidebar" });
 	await sidebar.getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "Connections" }).click();

@@ -10,7 +10,9 @@ const lane = (page: Page, name: string) => page.getByRole("region", { name });
 async function openFactory(page: Page, tab: string) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
-	await expect(page.getByRole("heading", { name: "Agent questions (3)" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { level: 1, name: /^\d+ things need you$/ }),
+	).toBeVisible();
 	await sidebar(page)
 		.getByRole("link", { name: placeOf(tab) })
 		.click();

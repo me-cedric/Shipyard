@@ -17,7 +17,7 @@ globalThis.ResizeObserver ??= class {
 Element.prototype.scrollIntoView ??= () => {};
 window.scrollTo = () => {};
 
-// A fixed Wednesday: day rules (the Thursday timesheet reminder) give the same result every day.
+// A fixed Wednesday: day rules (the timesheet reminder shows Monday to Friday) give the same result every day.
 // Only Date is mocked; timers stay real.
 vi.setSystemTime(new Date("2026-10-28T10:00:00"));
 

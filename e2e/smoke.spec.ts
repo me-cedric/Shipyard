@@ -27,14 +27,15 @@ test("opens each place from the sidebar on its first section", async ({ page }) 
 	}
 });
 
-test("runs an action from the palette with the keyboard", async ({ page }) => {
+test("runs an action from the Ask bar with the keyboard", async ({ page }) => {
 	await page.goto("/");
 	await expect(page.getByRole("navigation", { name: "Sidebar" })).toBeVisible();
 	await page.keyboard.press("ControlOrMeta+k");
-	await expect(page.getByRole("dialog")).toBeVisible();
-	await page.getByRole("dialog").getByRole("combobox").fill("Theme: Dark");
+	await expect(page.getByRole("combobox", { name: "Ask or tell Shipyard" })).toBeFocused();
+	await page.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("Theme: Dark");
+	await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
-	await expect(page.getByRole("dialog")).toBeHidden();
+	await expect(page.getByRole("listbox")).toBeHidden();
 	await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
 

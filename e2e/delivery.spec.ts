@@ -8,7 +8,14 @@ test("approvals wait for a click, and the runs show the review, CI and merge sta
 }) => {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
-	await expect(page.getByRole("heading", { name: "Approvals (4)" })).toBeVisible();
+	const title = page.getByRole("heading", { level: 1 });
+	await expect(title).toHaveText(/^\d+ things need you$/);
+	const before = Number((await title.textContent())?.match(/^\d+/)?.[0]);
+	// Today shows one thing on its card: a click on the queue picks the force push.
+	await page
+		.getByRole("list", { name: "Needs you" })
+		.getByRole("button", { name: /Force push fix\/ACME-10/ })
+		.click();
 
 	// The force push waits: nothing sends it until one click.
 	const force = page.getByRole("region", { name: "Replace the code of ACME-10 on the server" });
@@ -16,7 +23,7 @@ test("approvals wait for a click, and the runs show the review, CI and merge sta
 	await expect(force.getByText("git push --force-with-lease origin fix/ACME-10")).toBeHidden();
 	await force.getByRole("button", { name: "Approve" }).click();
 	await expect(force).toHaveCount(0);
-	await expect(page.getByRole("heading", { name: "Approvals (3)" })).toBeVisible();
+	await expect(title).toHaveText(`${before - 1} things need you`);
 
 	await page
 		.getByRole("navigation", { name: "Sidebar" })

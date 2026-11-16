@@ -30,6 +30,9 @@ const current = (nav: HTMLElement) =>
 		.getAllByRole("link")
 		.find((l) => l.getAttribute("aria-current") === "page");
 
+// The place can add a live mark or a count to its name: the name starts with the place.
+const named = (place: string) => new RegExp(`^${place}`);
+
 describe("router", () => {
 	it.each(PLACE_IDS)("renders %s with its sections and opens the first one", async (place) => {
 		mount(`/${place}`);
@@ -39,7 +42,7 @@ describe("router", () => {
 			barSections(place).map(([space, tab]) => tabLabel(en, space, tab)),
 		);
 		await waitFor(() => expect(links[0]).toHaveAttribute("aria-current", "page"));
-		expect(current(await sidebar())).toHaveAccessibleName(en.ui.place[place]);
+		expect(current(await sidebar())).toHaveAccessibleName(named(en.ui.place[place]));
 	});
 
 	it("has a label in each language for each tab", () => {
@@ -54,13 +57,17 @@ describe("router", () => {
 		mount("/home/today");
 		await userEvent.click(await screen.findByRole("button", { name: "Continue" }));
 		expect(await screen.findByRole("button", { name: "Open a local folder" })).toBeInTheDocument();
-		expect(screen.queryByRole("heading", { level: 1, name: "Today" })).toBeNull();
+		expect(
+			screen.queryByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeNull();
 	});
 
 	it("shows the heading of Today", async () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mount("/home/today");
-		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeInTheDocument();
 	});
 
 	it.each([
@@ -69,7 +76,7 @@ describe("router", () => {
 		["developer", "Flow"],
 	])("sends / to the home of role %s", async (role, name) => {
 		mount("/", role);
-		expect(current(await sidebar())).toHaveAccessibleName(name);
+		expect(current(await sidebar())).toHaveAccessibleName(named(name));
 	});
 
 	it("opens Flow for a junior, as for a developer, and keeps all 7 entries", async () => {
@@ -79,7 +86,7 @@ describe("router", () => {
 		const links = within(nav).getAllByRole("link");
 		const names = ["Today", "Flow", "Plan", "Crew", "Library", "Code", "Setup"];
 		expect(links).toHaveLength(names.length);
-		for (const [i, name] of names.entries()) expect(links[i]).toHaveAccessibleName(name);
+		for (const [i, name] of names.entries()) expect(links[i]).toHaveAccessibleName(named(name));
 	});
 
 	it("shows the not-found view for an unknown path", async () => {
@@ -94,8 +101,7 @@ describe("shell", () => {
 		mount("/home");
 		await sidebar();
 		await user.keyboard("{Control>}k{/Control}");
-		await screen.findByRole("dialog");
-		const input = screen.getByRole("combobox");
+		const input = await screen.findByRole("combobox", { name: "Ask or tell Shipyard" });
 		await user.type(input, "wi:KEY-1");
 		await user.click(await screen.findByRole("option", { name: /Open wi:KEY-1/ }));
 		expect(await screen.findByRole("button", { name: "wi:KEY-1, Unresolved" })).toBeVisible();
@@ -134,17 +140,17 @@ describe("shell", () => {
 		await user.keyboard("{Control>}2{/Control}");
 		await screen.findByRole("link", { name: "Backlog", current: "page" });
 		expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("keep me");
-		// The shell button closes it again. The open diagram has an editor header too: the shell one is first.
-		const [bar] = await screen.findAllByRole("banner");
-		await user.click(within(bar as HTMLElement).getByRole("button", { name: "Ask" }));
+		// The shortcut toggles it closed again: the Ask button left the top bar (app-redesign REQ-004).
+		await user.keyboard("{Control>}j{/Control}");
 		expect(panel).toHaveAttribute("data-open", "false");
 	});
 
-	it("shows sync, search, ask, bell and account on top, and only commit in the status bar", async () => {
+	it("shows sync, the Ask bar and account on top, and only commit in the status bar", async () => {
 		mount("/home");
 		const top = within((await screen.findByRole("banner")) as HTMLElement);
-		for (const name of ["Sync", "Search", "Ask", "Notifications", "Account"])
+		for (const name of ["Sync", "Account"])
 			expect(top.getByRole("button", { name })).toBeInTheDocument();
+		expect(top.getByRole("combobox", { name: "Ask or tell Shipyard" })).toBeInTheDocument();
 		const bar = (await screen.findByRole("contentinfo")) as HTMLElement;
 		expect(
 			within(bar)

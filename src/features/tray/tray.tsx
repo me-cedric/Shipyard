@@ -3,10 +3,10 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 import { AgentsToggle } from "@/features/factory/agents-toggle";
 import { useCounts } from "@/features/shell/counts";
-import { OPEN_REF_EVENT, PROJECT_SWITCHED_EVENT } from "@/features/shell/events";
+import { OPEN_PATH_EVENT, OPEN_REF_EVENT, PROJECT_SWITCHED_EVENT } from "@/features/shell/events";
 import { useGuard } from "@/features/work/guard";
 import { useDailySpend, useRunActions, useRuns } from "@/lib/factory";
-import { latestPerTicket, useInbox } from "@/lib/home";
+import { latestPerTicket, useNeedsYou } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import { commands, isTauri, unwrap } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
@@ -19,7 +19,6 @@ import { Select } from "@/ui/atoms/select";
 import { Skeleton } from "@/ui/atoms/skeleton";
 import { ConfirmButton } from "@/ui/molecules/confirm-button";
 
-const FIRST = 3;
 /** The panel is 360 wide and at least 280 high: the window fits the content. */
 const WIDTH = 360;
 const MIN_H = 280;
@@ -34,8 +33,10 @@ export function TrayView() {
 	const u = t.ui.tray;
 	const { tray } = usePrefs();
 	const qc = useQueryClient();
+	// The same list as Today (spec:app-redesign#REQ-008): all of it, the panel scrolls.
+	const { items, timesheet } = useNeedsYou();
+	// The count has the project check, as the menu has.
 	const { needsYou } = useCounts();
-	const inbox = useInbox();
 	const runs = latestPerTicket(useRuns().data ?? []).filter(
 		(r) => r.lane === "working" || r.lane === "needs_you",
 	);
@@ -104,26 +105,6 @@ export function TrayView() {
 	// The last 7 days, oldest first: a bar each, and a day with no row is a short one.
 	const week = spend.series;
 	const top = Math.max(...week.map((w) => w.usd), 0.01);
-	const items = [
-		...inbox.questions.map((q) => ({
-			id: `q${q.question.id}`,
-			text: `${q.key} ${q.question.question}`,
-			ref: `run:${q.run}`,
-		})),
-		...inbox.approvals.map((a) => ({ id: `a${a.id}`, text: a.summary, ref: `run:${a.run}` })),
-		...inbox.plans.map((r) => ({
-			id: `p${r.id}`,
-			text: `${r.key} ${r.title}`,
-			ref: `run:${r.id}`,
-		})),
-		...inbox.messages.map((m) => ({
-			id: `m${m.run}:${m.n}`,
-			text: `${m.key} ${m.text}`,
-			ref: `run:${m.run}`,
-		})),
-		...inbox.reviews.map((r) => ({ id: `r${r.number}`, text: r.title, ref: r.reference })),
-		...(inbox.timesheet ? [{ id: "timesheet", text: t.home.timesheetDay, ref: "" }] : []),
-	].slice(0, FIRST);
 	const last = Math.max(0, ...sync.map((c) => c.lastOk ?? 0));
 	const failed = sync.some((c) => c.status === "failed");
 	// Open the window on the item: it shows the ref in its inspector.
@@ -211,10 +192,12 @@ export function TrayView() {
 						))}
 					</section>
 				) : null}
-				{needsYou > 0 || items.length ? (
+				{needsYou ? (
 					<section aria-label={t.home.needsYou}>
 						<h2 className="font-medium">
-							{t.home.needsYou} ({needsYou})
+							{format(needsYou === 1 ? t.home.needsOne : t.home.needsMany, {
+								count: needsYou,
+							})}
 						</h2>
 						<ul>
 							{items.map((i) => (
@@ -224,11 +207,30 @@ export function TrayView() {
 										onClick={() => void run(() => openItem(i.ref))}
 										className="block w-full truncate rounded-md px-2 py-1 text-left hover:bg-n-3"
 									>
-										{i.text}
+										{i.key} {i.text}
 									</button>
 								</li>
 							))}
 						</ul>
+					</section>
+				) : null}
+				{timesheet ? (
+					<section
+						aria-label={t.rights.today.noTime}
+						className="flex items-center justify-between gap-2"
+					>
+						<span className="text-n-11">{t.rights.today.noTime}</span>
+						<Button
+							className="min-h-control"
+							onClick={() =>
+								void run(async () => {
+									await commands.trayOpen();
+									if (isTauri()) await emit(OPEN_PATH_EVENT, "/plan/time");
+								})
+							}
+						>
+							{t.home.timesheetOpen}
+						</Button>
 					</section>
 				) : null}
 				<AgentsToggle />

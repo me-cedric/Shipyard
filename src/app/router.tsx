@@ -172,7 +172,13 @@ function placeRoute<P extends PlaceId>(place: P) {
 			getParentRoute: () => route,
 			path: tab,
 			loader: () => preloadTab(space, tab),
-			component: () => <TabView space={space} tab={tab} />,
+			// News and Activity of Today are pages of the home feature: no old tab view holds them.
+			component:
+				view === "home/news"
+					? lazyRouteComponent(() => import("@/features/home/news"), "News")
+					: view === "home/activity"
+						? lazyRouteComponent(() => import("@/features/home/activity"), "ActivityView")
+						: () => <TabView space={space} tab={tab} />,
 			// The bar of Runs (ux-declutter REQ-034): search, filter and view, kept in the address.
 			...(view === "factory/runs" ? { validateSearch: runsSearch } : {}),
 			// The bar of Pull requests (ux-declutter REQ-042): search and filter, kept in the address.
@@ -267,9 +273,9 @@ const galleryRoute = import.meta.env.DEV
 		})
 	: null;
 
-/** Settings / Team moved to Crew / Team, and Home / Inbox, My work and Activity became Today: a stored last view must not show Not found. */
-const movedRoutes = (["settings/team", "home/inbox", "home/my-work", "home/activity"] as const).map(
-	(path) => createRoute({ getParentRoute: () => rootRoute, path, beforeLoad: toPlace }),
+/** Settings / Team moved to Crew / Team, and Home / Inbox and My work became Today: a stored last view must not show Not found. */
+const movedRoutes = (["settings/team", "home/inbox", "home/my-work"] as const).map((path) =>
+	createRoute({ getParentRoute: () => rootRoute, path, beforeLoad: toPlace }),
 );
 
 const routeTree = rootRoute.addChildren([

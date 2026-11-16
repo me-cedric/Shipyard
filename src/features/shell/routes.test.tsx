@@ -155,9 +155,7 @@ describe("tab names", () => {
 	});
 
 	it("gives each tab a name that no other space uses", () => {
-		const names = SPACE_IDS.flatMap((s) =>
-			SPACES[s].map((tab) => (en.tabs[s] as Record<string, string>)[tab]),
-		);
+		const names = SPACE_IDS.flatMap((s) => SPACES[s].map((tab) => tabLabel(en, s, tab)));
 		expect(new Set(names).size).toBe(names.length);
 	});
 });

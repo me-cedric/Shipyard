@@ -8,10 +8,10 @@ Shipyard ayuda a un equipo a entregar un proyecto de software: el diseño, las e
 - Las secciones de un lugar están arriba en la página, en un solo selector.
 - El inspector de la derecha muestra el elemento que seleccionas.
 - La barra de estado de abajo muestra el proyecto, el estado de la sincronización y el control de commit, con el número de archivos modificados junto a Commit.
-- La barra superior contiene Atrás y Adelante, Sincronizar, Actividad, la búsqueda, los botones Archivos y Terminal, Preguntar, las notificaciones y el menú de la cuenta.
+- La barra superior contiene Atrás y Adelante, Sincronizar, la barra Preguntar o indicar a Shipyard, los botones Archivos y Terminal y el menú de la cuenta.
   - Sincronizar muestra cuántos commits llevas de adelanto y de retraso.
-  - Actividad muestra el recuento Requiere tu atención y una marca mientras una ejecución o una sesión está activa. Su panel tiene tres partes: Requiere tu atención (un enlace a Inicio / Hoy), Ejecuciones (Detener y un enlace a Fábrica / Ejecuciones) y Sesiones (Detener y un enlace a Fábrica / Sesiones).
-  - Preguntar es un botón dividido. Haz clic en la parte principal para abrir o cerrar el asistente. La flecha abre los elementos de Preguntar.
+  - Preguntar o indicar a Shipyard es la única barra para una pregunta, un lugar y una acción. Pulsa Ctrl+K (Cmd+K en un Mac) para ir a ella. Ir a abre un lugar, un proyecto, un elemento o un resultado de búsqueda. Hacer inicia una acción o una petición para la página que ves. Pregunta qué bloquea, qué se detuvo o qué te espera: la respuesta nombra cada funcionalidad y da su acción. Cualquier otro texto va al asistente cuando pulsas Intro.
+  - Lo que te espera, las novedades y las ejecuciones y sesiones activas están en Hoy. Un punto en Hoy en el menú marca novedades sin leer, y una marca muestra que una ejecución o una sesión trabaja.
   - El menú de la cuenta (tu foto) contiene Ajustes / Yo, Tema (Claro, Oscuro, Sistema), Manual, Atajos, Novedades y Repetir el recorrido.
 - El asistente se abre en el lateral. Hazle una pregunta sobre el proyecto. Cada conversación es una pestaña, y un punto marca una pestaña con una respuesta nueva.
   - Bajo el cuadro de mensaje, una barra tiene el botón de adjuntar, un botón con el modelo y el esfuerzo (abre los modelos de la herramienta de IA, los niveles de esfuerzo y los modelos de las otras herramientas de IA), el permiso, el anillo de contexto y Enviar.
@@ -33,7 +33,7 @@ La ventana se abre con el tamaño que tenía al cerrarla. Para guardar los datos
 
 - El recorrido no se abre en el primer inicio. Se abre una vez, cuando abres tu primer proyecto. Tiene seis pasos: el ciclo, abrir un proyecto, conectar el gestor de tickets y la plataforma de código, elegir la herramienta de IA, los permisos y la primera ejecución en un ticket.
 - Haz clic en Siguiente y Atrás, o pulsa las flechas izquierda y derecha. Cerrar termina el recorrido en cualquier paso. No se vuelve a abrir solo.
-- Para verlo otra vez, elige Repetir el recorrido en el menú de la cuenta o en el menú Ayuda, o escribe Repetir el recorrido en la paleta, o ve a Ajustes, luego Yo, luego Permisos.
+- Para verlo otra vez, elige Repetir el recorrido en el menú de la cuenta o en el menú Ayuda, o escribe Repetir el recorrido en la barra Preguntar, o ve a Ajustes, luego Yo, luego Permisos.
 - El último paso abre este manual.
 
 ## Permisos
@@ -61,16 +61,16 @@ En Inicio, luego Hoy, una sola lista Empezar da los pasos siguientes en orden: p
 
 ## Orientarse
 
-- Pulsa Ctrl+K (Cmd+K en un Mac) para abrir la paleta. Escribe el nombre de una página, de un elemento o de una acción.
-- En la paleta, escribe unas palabras para buscar en el texto de tus documentos, decisiones, especificaciones, preguntas, tickets y diseños. Las mayúsculas y los acentos no importan («decision» encuentra «décision»), cada palabra debe coincidir, y la última palabra puede ser un comienzo. Los resultados se agrupan por tipo, muestran un extracto corto con las palabras marcadas y ponen primero una página que citan muchos elementos. Elige Preguntar al asistente para poner esos elementos como contexto en el cuadro de mensaje del asistente. No se envía nada hasta que lo envíes. El documento que abres desde un resultado marca las palabras.
+- Pulsa Ctrl+K (Cmd+K en un Mac) para ir a la barra Preguntar. Escribe el nombre de una página, de un elemento o de una acción, luego usa las flechas e Intro. Escape la cierra.
+- En la barra Preguntar, escribe unas palabras para buscar en el texto de tus documentos, decisiones, especificaciones, preguntas, tickets y diseños. Las mayúsculas y los acentos no importan («decision» encuentra «décision»), cada palabra debe coincidir, y la última palabra puede ser un comienzo. Los resultados se agrupan por tipo, muestran un extracto corto con las palabras marcadas y ponen primero una página que citan muchos elementos. Elige Preguntar al asistente para poner esos elementos como contexto en el cuadro de mensaje del asistente. No se envía nada hasta que lo envíes. El documento que abres desde un resultado marca las palabras.
 - Las listas de Diseño y Conocimiento tienen un cuadro Buscar que filtra la lista con la misma búsqueda.
 - Pulsa Ctrl+1 a Ctrl+7 para ir a un lugar.
-- Abre la paleta y elige Abrir el manual de esta página para leer la ayuda de la página que ves.
+- Ve a la barra Preguntar y elige Abrir el manual de esta página para leer la ayuda de la página que ves.
 - Pulsa Ctrl+[ y Ctrl+] (Cmd en un Mac), o haz clic en Atrás y Adelante en la barra superior, para moverte entre las vistas que abriste.
 - Pulsa F1, o elige Manual en el menú de la cuenta, para leer la ayuda de la página que ves.
 - Haz clic en el botón de la barra lateral, en el extremo izquierdo de la barra superior, para ocultar o mostrar la barra lateral.
 - Por debajo de 1100 px, los botones Archivos y Terminal están en el menú Más.
-- Haz clic en el botón Terminal para abrir o cerrar el cajón del terminal. Terminal y Manual no son pestañas. La paleta y el menú de la ventana mantienen sus entradas.
+- Haz clic en el botón Terminal para abrir o cerrar el cajón del terminal. Terminal y Manual no son pestañas. La barra Preguntar y el menú de la ventana mantienen sus entradas.
 - Haz clic en Sincronizar para sincronizar. Haz clic en la flecha junto a él para Solo traer o para Push.
 - Cuando un error tiene un botón que abre un ajuste, haz clic en él. La página se abre en la fila exacta, mueve el foco a su control y lo marca durante 2 segundos.
 - Mantén Ctrl (Cmd en un Mac) y gira la rueda del ratón sobre un diagrama o una imagen para hacer zoom. Arrastra para moverlo. Usa Pantalla completa para una vista grande.

@@ -75,11 +75,13 @@ test("junior", async ({ page }) => {
 
 	await w.step(
 		"Ask the assistant a question",
-		"the Ask button in the top bar, Message, Send",
+		"the Ask bar in the top bar, Open the full assistant, Message, Send",
 		async () => {
 			const message = page.getByRole("textbox", { name: "Message" });
-			if (!(await message.isVisible()))
-				await w.click(page.getByRole("button", { name: "Ask", exact: true }).first());
+			if (!(await message.isVisible())) {
+				await w.click(page.getByRole("combobox", { name: "Ask or tell Shipyard" }));
+				await w.click(page.getByRole("button", { name: "Open the full assistant" }));
+			}
 			await w.fill(message, "What is the polling sync?");
 			await w.click(page.getByRole("button", { name: "Send", exact: true }).last());
 			await w.see(

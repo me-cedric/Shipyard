@@ -1,6 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
-import { type TabPath, tabLabel } from "@/features/shell/spaces";
+import { type ReactNode, useState } from "react";
+import {
+	type PlaceId,
+	type PlacePath,
+	sectionView,
+	visibleSections,
+} from "@/features/shell/places";
+import { tabLabel } from "@/features/shell/spaces";
 import { usePulls, useQuality } from "@/lib/code/forge";
 import { useDesignList } from "@/lib/design";
 import { useDailySpend, useRuns } from "@/lib/factory";
@@ -11,14 +17,16 @@ import { useHealth } from "@/lib/projects";
 import { useRights } from "@/lib/rights";
 import { useChanges, useQuestions, useTestPlans } from "@/lib/specs";
 import { useWorkItems } from "@/lib/sync";
+import { cn } from "@/lib/utils";
 import { useTeam } from "@/lib/work";
-import { ChevronRightIcon } from "@/ui/icons";
+import { buttonVariants } from "@/ui/atoms/button";
+import { Select } from "@/ui/atoms/select";
 import { Panel } from "@/ui/molecules/panel";
 import { useMyItems } from "./stats";
 
 const SHOWN = 5;
 
-/** One panel: a title with its count, a few lines, and a link to its page. It hides when it has nothing. */
+/** One card: the title, its state (the count and the first lines) and one Open control to its page. It hides when it has nothing. */
 function Card({
 	title,
 	to,
@@ -27,29 +35,20 @@ function Card({
 	children,
 }: {
 	title: string;
-	to: TabPath;
+	to: PlacePath;
 	items: string[];
 	count?: number;
 	children?: ReactNode;
 }) {
 	const { t } = useI18n();
+	const { level } = useRights();
 	if (count === 0 && !children) return null;
-	const [, space, tab] = to.split("/");
+	const [, place, slug] = to.split("/") as [string, PlaceId, string];
+	// A panel of an area that the person cannot see stays hidden, whatever role the picker shows (spec:app-redesign#REQ-006).
+	if (!visibleSections(place, level).some(([, tab]) => tab === slug)) return null;
+	const view = sectionView(place, slug);
 	return (
-		<Panel
-			title={title}
-			count={children ? undefined : count}
-			flush
-			toolbar={
-				<Link
-					to={to}
-					aria-label={`${t.space[space as keyof typeof t.space]} / ${tabLabel(t, space as keyof typeof t.space, tab ?? "")}`}
-					className="flex size-6 items-center justify-center rounded-md text-n-11 hover:bg-n-3"
-				>
-					<ChevronRightIcon size={14} />
-				</Link>
-			}
-		>
+		<Panel title={title} count={children ? undefined : count} flush>
 			{children ?? (
 				<ul className="flex flex-col">
 					{items.slice(0, SHOWN).map((x) => (
@@ -62,6 +61,15 @@ function Card({
 					))}
 				</ul>
 			)}
+			<div className="p-3">
+				<Link
+					to={to}
+					aria-label={`${t.rights.today.open} ${t.ui.place[place]} / ${view ? tabLabel(t, view[0], view[1]) : ""}`}
+					className={cn(buttonVariants(), "min-h-control")}
+				>
+					{t.rights.today.open}
+				</Link>
+			</div>
 		</Panel>
 	);
 }
@@ -79,7 +87,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.backlogHealth}
-				to="/work/backlog"
+				to="/flow/backlog"
 				items={x.map((i) => line(i.key, i.title))}
 			/>
 		);
@@ -89,7 +97,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.ready}
-				to="/work/backlog"
+				to="/flow/backlog"
 				items={useTodo().map((i) => line(i.key, i.title))}
 			/>
 		);
@@ -100,7 +108,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.roadmap}
-				to="/work/plan"
+				to="/plan/plan"
 				items={x.map((i) => line(i.key, i.title))}
 			/>
 		);
@@ -111,7 +119,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.plan}
-				to="/work/plan"
+				to="/plan/plan"
 				items={x.map((i) => line(i.key, i.title))}
 			/>
 		);
@@ -122,7 +130,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.capacity}
-				to="/work/plan"
+				to="/plan/plan"
 				items={x.map((m) => `${m.name} ${m.capacity ?? 0}`)}
 			/>
 		);
@@ -130,7 +138,7 @@ const PANELS: Record<string, () => ReactNode> = {
 	risks: function RisksPanel() {
 		const { t } = useI18n();
 		const x = (useHealth().data ?? []).filter((f) => f.severity !== "info");
-		return <Card title={t.rights.panel.risks} to="/settings/health" items={x.map((f) => f.id)} />;
+		return <Card title={t.rights.panel.risks} to="/setup/health" items={x.map((f) => f.id)} />;
 	},
 	spend: function SpendPanel() {
 		const { t, lang } = useI18n();
@@ -139,7 +147,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		if (!can("costs.view") || month === 0) return null;
 		const money = new Intl.NumberFormat(lang, { style: "currency", currency: "USD" }).format(month);
 		return (
-			<Card title={t.rights.panel.spend} to="/factory/usage" items={[]}>
+			<Card title={t.rights.panel.spend} to="/crew/usage" items={[]}>
 				{<p className="px-3 py-2 font-mono text-ui">{money}</p>}
 			</Card>
 		);
@@ -150,7 +158,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.adrs}
-				to="/design/decisions"
+				to="/library/decisions"
 				items={x.map((a) => `${a.number} ${a.title}`)}
 			/>
 		);
@@ -159,7 +167,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		const { t } = useI18n();
 		const x = (useDesignList().data?.artifacts ?? []).filter((a) => a.issue);
 		return (
-			<Card title={t.rights.panel.drift} to="/design/diagrams" items={x.map((a) => a.title)} />
+			<Card title={t.rights.panel.drift} to="/library/diagrams" items={x.map((a) => a.title)} />
 		);
 	},
 	designQuestions: function DesignQuestionsPanel() {
@@ -170,7 +178,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.designQuestions}
-				to="/specs/questions"
+				to="/library/questions"
 				items={x.map((e) => `${e.question.id} ${e.question.title}`)}
 			/>
 		);
@@ -181,7 +189,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.runs}
-				to="/factory/runs"
+				to="/flow/runs"
 				items={x.map((r) => line(r.key, r.title))}
 			/>
 		);
@@ -195,7 +203,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.quality}
-				to="/code/quality"
+				to="/flow/quality"
 				items={x.map((r) => r.label ?? r.name)}
 			/>
 		);
@@ -215,7 +223,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		const { t } = useI18n();
 		const x = (useChanges().data ?? []).filter((c) => !c.validated);
 		return (
-			<Card title={t.rights.panel.specChanges} to="/specs/changes" items={x.map((c) => c.title)} />
+			<Card title={t.rights.panel.specChanges} to="/flow/changes" items={x.map((c) => c.title)} />
 		);
 	},
 	openQuestions: function OpenQuestionsPanel() {
@@ -224,7 +232,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.openQuestions}
-				to="/specs/questions"
+				to="/library/questions"
 				items={x.map((e) => `${e.question.id} ${e.question.title}`)}
 			/>
 		);
@@ -235,7 +243,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.myTickets}
-				to="/work/backlog"
+				to="/flow/backlog"
 				items={x.map((i) => line(i.key, i.title))}
 			/>
 		);
@@ -272,14 +280,18 @@ const PANELS: Record<string, () => ReactNode> = {
 		const { t } = useI18n();
 		const x = useTestPlans().data ?? [];
 		return (
-			<Card title={t.rights.panel.testPlans} to="/specs/test-plans" items={x.map((p) => p.title)} />
+			<Card
+				title={t.rights.panel.testPlans}
+				to="/library/test-plans"
+				items={x.map((p) => p.title)}
+			/>
 		);
 	},
 	screens: function ScreensPanel() {
 		const { t } = useI18n();
 		const x = useDesignList().data?.screens ?? [];
 		return (
-			<Card title={t.rights.panel.screens} to="/design/screens" items={x.map((s) => s.title)} />
+			<Card title={t.rights.panel.screens} to="/library/screens" items={x.map((s) => s.title)} />
 		);
 	},
 };
@@ -297,16 +309,38 @@ export const ROLE_PANELS: Record<TeamRole, (keyof typeof PANELS)[]> = {
 	viewer: ["myTickets"],
 };
 
-/** The panels of the role of the person, before the sections of Today. A solo person has none. */
+/**
+ * The panels of a role, with a picker to see another role. The picker starts on the role of the
+ * person; a person with no role sees the picker with no role chosen and no panel (spec:app-redesign#REQ-009, adr:0023).
+ */
 export function RolePanels() {
+	const { t } = useI18n();
 	const { teamRole } = usePrefs();
-	if (!teamRole) return null;
+	const [picked, setPicked] = useState<TeamRole | null>(null);
+	const role = picked ?? teamRole;
 	return (
-		<div className="grid gap-3 px-4 @xl:grid-cols-2">
-			{ROLE_PANELS[teamRole].map((id) => {
-				const P = PANELS[id] as () => ReactNode;
-				return <P key={id} />;
-			})}
+		<div className="flex flex-col gap-3 px-4">
+			<div>
+				<Select
+					label={t.rights.team.pickRole}
+					placeholder={t.rights.team.pickRole}
+					className="min-h-control"
+					value={role ?? ""}
+					onValueChange={(v) => setPicked(v as TeamRole)}
+					items={(Object.keys(ROLE_PANELS) as TeamRole[]).map((r) => ({
+						value: r,
+						label: t.rights.role[r],
+					}))}
+				/>
+			</div>
+			{role ? (
+				<div className="grid gap-3 @xl:grid-cols-2">
+					{ROLE_PANELS[role].map((id) => {
+						const P = PANELS[id] as () => ReactNode;
+						return <P key={id} />;
+					})}
+				</div>
+			) : null}
 		</div>
 	);
 }

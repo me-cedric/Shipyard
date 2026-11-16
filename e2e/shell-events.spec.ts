@@ -8,18 +8,21 @@ test("shows a notification for a newer version, in a toast and in the centre", a
 	await address.blur();
 
 	await page.keyboard.press("ControlOrMeta+k");
-	await page.getByRole("dialog").getByRole("combobox").fill("Check for updates");
+	await page.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("Check for updates");
+	await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
 
 	const toast = page.getByRole("status", { name: "Notifications" });
 	await expect(toast.getByText("Update available: 0.2.0")).toBeVisible();
 
-	const bell = page.getByRole("button", { name: "Notifications" });
+	// The Today place carries the unread count. News lists the entry and marks it read.
+	const today = page.getByRole("navigation", { name: "Sidebar" }).getByRole("link").first();
 	// One entry: the update itself. Its changelog shows only after the update is installed (REQ-014).
-	await expect(bell).toContainText("1 unread");
-	await bell.click();
-	await expect(page.getByRole("dialog").getByText("Update available: 0.2.0")).toHaveCount(1);
-	await expect(bell).not.toContainText("unread");
+	await expect(today).toContainText("1 unread");
+	await today.click();
+	await page.getByRole("link", { name: "News" }).click();
+	await expect(page.getByRole("main").getByText("Update available: 0.2.0")).toHaveCount(1);
+	await expect(today).not.toContainText("unread");
 });
 
 test("opens a context menu from the keyboard and Escape returns the focus to the row", async ({

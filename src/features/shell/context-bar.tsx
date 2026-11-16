@@ -4,31 +4,26 @@ import { CloneDialog } from "@/features/projects/clone-dialog";
 import { usePicture } from "@/features/settings/picture-field";
 import { format, useI18n } from "@/lib/i18n";
 import { errorDialog } from "@/lib/ipc";
-import { useNotifications, useOpenNotice } from "@/lib/notifications";
 import { usePrefs } from "@/lib/prefs";
 import { outcomeError, useActiveProject, useProjectActions, useProjects } from "@/lib/projects";
 import { useShell } from "@/lib/shell";
 import { AnimatedIcon } from "@/ui/atoms/animated-icon";
 import { IconButton } from "@/ui/atoms/icon-button";
-import { Kbd } from "@/ui/atoms/kbd";
 import {
 	ArrowPathIcon,
 	ChevronLeftIcon,
 	ChevronRightIcon,
 	CommandLineIcon,
 	FolderOpenIcon,
-	MagnifyingGlassIcon,
 	SidebarIcon,
 } from "@/ui/icons";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { ProjectSwitcher } from "@/ui/molecules/project-switcher";
 import { SplitButton } from "@/ui/molecules/split-button";
-import { NotificationCentre } from "@/ui/organisms/notification-centre";
 import { AccountMenu } from "./account-menu";
 import type { Action } from "./actions";
-import { Activity } from "./activity";
-import { AskSplit } from "./ask-split";
 import { useCounts } from "./counts";
+import { PaletteHost } from "./palette-host";
 
 const NARROW = "(max-width: 1099px)";
 
@@ -44,18 +39,15 @@ function useNarrow() {
 	);
 }
 
-const chip =
-	"inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-ui text-n-11 transition-colors duration-(--duration-fast) hover:bg-n-3 hover:text-n-12 disabled:pointer-events-none disabled:opacity-50";
-
 /**
  * The bar on top of every page: the project, the branch, the state of the repository with the one
- * Sync, then the Activity button, search, Ask, notifications and the account menu.
+ * Sync, then the Ask bar and the account menu.
  */
 export function ContextBar({
 	sync,
 	fetch,
 	push,
-	assistant,
+	actions,
 	palette,
 	files,
 	terminal,
@@ -66,7 +58,8 @@ export function ContextBar({
 	sync: Action;
 	fetch: Action;
 	push: Action;
-	assistant: Action;
+	/** Every action: the Ask bar lists them under Do. */
+	actions: Action[];
 	palette: Action;
 	files: Action;
 	terminal: Action;
@@ -81,8 +74,6 @@ export function ContextBar({
 	const { switchTo, openFolder, close, remove } = useProjectActions();
 	const [cloning, setCloning] = useState(false);
 	const { syncing, filesOpen, terminalOpen } = useShell();
-	const { items, unread, markRead, clear, remove: removeNotice } = useNotifications();
-	const openNotice = useOpenNotice();
 	const { changes } = useCounts();
 	const narrow = useNarrow();
 	const logo = usePicture("logo").data;
@@ -152,17 +143,7 @@ export function ContextBar({
 				items={[fetch, push].map((a) => ({ id: a.id, label: a.label, onSelect: a.run }))}
 			/>
 			<span className="flex-1" />
-			<Activity />
-			<button
-				type="button"
-				onClick={palette.run}
-				aria-keyshortcuts="Meta+K Control+K"
-				className={`${chip} min-w-40 border bg-surface-0`}
-			>
-				<MagnifyingGlassIcon size={14} />
-				<span className="flex-1 text-left">{t.common.search}</span>
-				<Kbd aria-hidden="true">{palette.shortcut}</Kbd>
-			</button>
+			<PaletteHost actions={actions} shortcut={palette.shortcut} />
 			{narrow ? null : (
 				<>
 					<IconButton
@@ -187,15 +168,6 @@ export function ContextBar({
 					</IconButton>
 				</>
 			)}
-			<AskSplit assistant={assistant} />
-			<NotificationCentre
-				items={items}
-				unread={unread}
-				onOpen={markRead}
-				onClear={clear}
-				onRemove={removeNotice}
-				onGo={openNotice}
-			/>
 			{narrow ? (
 				<MenuButton
 					label={t.workspace.view.more}

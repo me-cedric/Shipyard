@@ -1,22 +1,15 @@
 import { useChanges } from "@/lib/code";
 import { useRuns } from "@/lib/factory";
-import { latestPerTicket, useInbox } from "@/lib/home";
+import { latestPerTicket, useNeedsYou } from "@/lib/home";
 import { useActiveProject } from "@/lib/projects";
 
 /** The live counts of the shell: what needs the person, the runs at work, the changed files. */
 export function useCounts() {
 	const project = Boolean(useActiveProject().data);
-	const inbox = useInbox();
+	const needs = useNeedsYou().items.length;
 	const runs = latestPerTicket(useRuns().data ?? []);
 	const changes = useChanges().data;
-	const needsYou = project
-		? inbox.questions.length +
-			inbox.approvals.length +
-			inbox.plans.length +
-			inbox.messages.length +
-			inbox.reviews.length +
-			Number(inbox.timesheet)
-		: 0;
+	const needsYou = project ? needs : 0;
 	// A run is live while it works or waits for the person.
 	const live = runs.filter((r) => r.lane === "working" || r.lane === "needs_you").length;
 	const changed = changes

@@ -72,6 +72,17 @@ export const de: Messages = {
 		refs: "Referenzen",
 		ask: "Den Assistenten fragen",
 		askPrompt: "Verwende diese Elemente als Kontext:\n{items}\n\nMeine Frage: ",
+		goTo: "Gehe zu",
+		do: "Tun",
+		openAssistant: "Den vollen Assistenten öffnen",
+		markBlocked: "Blockiert",
+		markStopped: "Gestoppt",
+		markNeeds: "Braucht dich",
+		noAnswer: "Nichts gefunden",
+		/** Words of a question, comma separated: the answer part matches them in the text. */
+		wordsBlocked: "blockier,hängt,steckt",
+		wordsStopped: "stopp,angehalten,fehlgeschlagen",
+		wordsNeeds: "brauch,wartet,aufmerksamkeit",
 	},
 	inspector: {
 		title: "Inspektor",
@@ -143,7 +154,7 @@ export const de: Messages = {
 		settings: "Einstellungen",
 	},
 	tabs: {
-		home: { today: "Heute", projects: "Projekte" },
+		home: { today: "Heute", news: "Neuigkeiten", activity: "Aktivität", projects: "Projekte" },
 		design: {
 			diagrams: "Diagramme",
 			architecture: "Architektur",
@@ -250,7 +261,6 @@ export const de: Messages = {
 		themeTo: "Design: {name}",
 		langTo: "Sprache: {name}",
 		activity: "Aktivität",
-		needsNone: "Nichts braucht Sie",
 		runsNone: "Kein aktiver Lauf",
 		account: "Konto",
 		changedFiles: "Geänderte Dateien",

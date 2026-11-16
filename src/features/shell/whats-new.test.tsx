@@ -14,8 +14,11 @@ describe("What's new", () => {
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 		expect(screen.getByText("Version 0.1.0")).toBeInTheDocument();
 		await user.keyboard("{Control>}k{/Control}");
-		await user.type(await screen.findByRole("combobox"), "What's new");
-		await user.keyboard("{Enter}");
+		await user.type(
+			await screen.findByRole("combobox", { name: "Ask or tell Shipyard" }),
+			"What's new",
+		);
+		await user.keyboard("{ArrowDown}{Enter}");
 		expect(await screen.findByRole("dialog", { name: "What's new in 0.1.0" })).toBeInTheDocument();
 	});
 });

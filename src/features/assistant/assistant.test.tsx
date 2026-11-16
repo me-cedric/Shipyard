@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
+import { commands } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountAssistant } from "./harness";
 
@@ -246,6 +247,20 @@ describe("assistant panel: modes and failures", () => {
 		expect(await log().findByText("I ran pnpm test. All tests pass.")).toBeInTheDocument();
 		expect(log().queryByRole("button", { name: "Grant" })).toBeNull();
 		expect(log().queryByText(/Waiting/)).toBeInTheDocument();
+	});
+
+	it("undoes the changed files after a confirmation: the worktree goes", async () => {
+		const user = userEvent.setup();
+		await mountAssistant();
+		await pick(user, "Mode", "Agent");
+		await say(user, "deny this");
+		const changed = within(await screen.findByRole("region", { name: "Changed files" }));
+		const discard = vi.spyOn(commands, "assistantWorktreeDiscard");
+		await user.click(changed.getByRole("button", { name: "Undo" }));
+		expect(discard).not.toHaveBeenCalled();
+		await user.click(await changed.findByRole("button", { name: "Throw away these changes?" }));
+		await waitFor(() => expect(discard).toHaveBeenCalledWith(expect.any(String), true));
+		await waitFor(() => expect(screen.queryByRole("region", { name: "Changed files" })).toBeNull());
 	});
 
 	it("says in one sentence that the quota is out and retries", async () => {

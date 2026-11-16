@@ -43,6 +43,8 @@ export const assistantDe: typeof assistantEn = {
 	retry: "Erneut versuchen",
 	alert: "Budget bei 80 % oder mehr: {name}",
 	changed: "Geänderte Dateien",
+	undo: "Rückgängig",
+	undoConfirm: "Diese Änderungen verwerfen?",
 	diff: "Diff von {name}",
 	diffBinary: "Binärdatei",
 	diffTruncated: "Gekürzt",

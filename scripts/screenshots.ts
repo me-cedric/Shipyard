@@ -34,7 +34,7 @@ const openProject = async (p: Page) => {
 	await p.goto("/home/today");
 	await p.getByRole("button", { name: "Continue" }).click();
 	await p.getByRole("button", { name: "Open a local folder" }).click();
-	await p.getByRole("heading", { level: 1, name: "Today" }).waitFor();
+	await p.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }).waitFor();
 };
 
 // Pull request 142 of the mock has comments, two threads and one file of three lines.
@@ -62,6 +62,25 @@ type Scene = { name: string; light?: boolean; run: (p: Page) => Promise<void> };
 const scenes: Scene[] = [
 	{ name: "home", run: async () => {} },
 	{ name: "home-light", light: true, run: async () => {} },
+	{
+		name: "today-news",
+		light: true,
+		run: async (p) => {
+			await tabs(p).getByRole("link", { name: "News", exact: true }).click();
+			await p.getByRole("button", { name: "Mark all as read" }).waitFor();
+		},
+	},
+	{
+		name: "ask-bar",
+		light: true,
+		run: async (p) => {
+			await p.keyboard.press("ControlOrMeta+k");
+			await p
+				.getByRole("combobox", { name: "Ask or tell Shipyard" })
+				.fill("what blocks the release");
+			await p.getByRole("button", { name: "Open the full assistant" }).waitFor();
+		},
+	},
 	{ name: "design", run: (p) => open(p, "Architecture") },
 	{ name: "specs", run: (p) => open(p, "Questions") },
 	{ name: "work", run: (p) => open(p, "Plan") },
@@ -157,7 +176,8 @@ const scenes: Scene[] = [
 		name: "tour",
 		run: async (p) => {
 			await p.keyboard.press("ControlOrMeta+k");
-			await p.getByRole("dialog").getByRole("combobox").fill("Replay the tour");
+			await p.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("Replay the tour");
+			await p.keyboard.press("ArrowDown");
 			await p.keyboard.press("Enter");
 			await p.getByRole("dialog").waitFor();
 		},
@@ -192,7 +212,8 @@ for (const s of scenes) {
 	if (!s.light) {
 		// Light is the default theme: a dark scene picks Dark from the palette.
 		await page.keyboard.press("ControlOrMeta+k");
-		await page.getByRole("dialog").getByRole("combobox").fill("Theme: Dark");
+		await page.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("Theme: Dark");
+		await page.keyboard.press("ArrowDown");
 		await page.keyboard.press("Enter");
 		await page.locator('html[data-theme="dark"]').waitFor();
 	}

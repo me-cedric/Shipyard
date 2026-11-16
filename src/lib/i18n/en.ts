@@ -71,6 +71,17 @@ export const en = {
 		refs: "Refs",
 		ask: "Ask the assistant",
 		askPrompt: "Use these items as context:\n{items}\n\nMy question: ",
+		goTo: "Go to",
+		do: "Do",
+		openAssistant: "Open the full assistant",
+		markBlocked: "Blocked",
+		markStopped: "Stopped",
+		markNeeds: "Needs you",
+		noAnswer: "Nothing found",
+		/** Words of a question, comma separated: the answer part matches them in the text. */
+		wordsBlocked: "block,stuck",
+		wordsStopped: "stop,fail",
+		wordsNeeds: "need,waiting,attention",
 	},
 	inspector: {
 		title: "Inspector",
@@ -142,7 +153,7 @@ export const en = {
 		settings: "Settings",
 	},
 	tabs: {
-		home: { today: "Today", projects: "Projects" },
+		home: { today: "Today", news: "News", activity: "Activity", projects: "Projects" },
 		design: {
 			diagrams: "Diagrams",
 			architecture: "Architecture",
@@ -248,7 +259,6 @@ export const en = {
 		themeTo: "Theme: {name}",
 		langTo: "Language: {name}",
 		activity: "Activity",
-		needsNone: "Nothing needs you",
 		runsNone: "No active run",
 		account: "Account",
 		changedFiles: "Changed files",

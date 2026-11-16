@@ -8,8 +8,8 @@ const inspector = () => screen.findByLabelText("Inspector", { selector: "aside" 
 async function open(user: ReturnType<typeof userEvent.setup>, ref: string) {
 	await screen.findByRole("navigation", { name: "Sidebar" });
 	await user.keyboard("{Control>}k{/Control}");
-	await user.type(await screen.findByRole("combobox"), ref);
-	await user.keyboard("{Enter}");
+	await user.type(await screen.findByRole("combobox", { name: "Ask or tell Shipyard" }), ref);
+	await user.keyboard("{ArrowDown}{Enter}");
 	return within(await inspector());
 }
 

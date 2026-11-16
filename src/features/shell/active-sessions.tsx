@@ -34,11 +34,11 @@ export function SessionsPart() {
 	return (
 		<section aria-label={p.title}>
 			<div className="flex min-h-row items-center gap-2 border-b px-3">
-				<h3 className="flex-1 text-12 font-medium text-n-11">
+				<h2 className="flex-1 text-12 font-medium text-n-11">
 					{format(t.count, { name: p.title, count: live.length })}
-				</h3>
+				</h2>
 				<Link
-					to="/factory/sessions"
+					to="/crew/sessions"
 					className="rounded-sm px-1 text-12 text-accent-text hover:underline"
 				>
 					{p.all}

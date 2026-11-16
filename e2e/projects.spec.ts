@@ -10,11 +10,14 @@ test("opens a folder from the first run, opens a second project and switches bac
 	// The mock picker returns /mock/alpha first. The project becomes active.
 	const switcher = page.getByRole("button", { name: /^Project/ });
 	await expect(switcher).toHaveText(/alpha/);
-	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+	).toBeVisible();
 
 	// A second folder opens from the palette, with the keyboard.
 	await page.keyboard.press("ControlOrMeta+k");
-	await page.getByRole("dialog").getByRole("combobox").fill("Open a local folder");
+	await page.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("Open a local folder");
+	await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
 	await expect(switcher).toHaveText(/beta/);
 
@@ -43,7 +46,9 @@ test("closes a project, opens it again from the recent list and switches between
 	await expect(switcher).not.toHaveText(/alpha/);
 	await recent.getByRole("button", { name: /alpha/ }).click();
 	await expect(switcher).toHaveText(/alpha/);
-	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+	).toBeVisible();
 
 	await pick("menuitem", "Open a local folder");
 	await expect(switcher).toHaveText(/beta/);
@@ -69,7 +74,7 @@ test("opens an entity from the palette and shows its backlinks", async ({ page }
 	await openFirstFolder(page);
 	await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
 	await page.keyboard.press("ControlOrMeta+k");
-	await page.getByRole("dialog").getByRole("combobox").fill("polling");
+	await page.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("polling");
 	await page.getByRole("option", { name: /adr:0004/ }).click();
 	const inspector = page.getByLabel("Inspector", { exact: true });
 	await expect(inspector.getByRole("heading", { name: "Spec (2)" })).toBeVisible();

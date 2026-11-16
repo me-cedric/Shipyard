@@ -18,7 +18,9 @@ test("creates a local project from the first run", async ({ page }) => {
 	await dialog.getByRole("button", { name: "Create", exact: true }).click();
 	await dialog.getByRole("button", { name: "Open", exact: true }).click();
 	await expect(page.getByRole("button", { name: /^Project/ })).toHaveText(/Acme Web/);
-	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+	).toBeVisible();
 });
 
 test("creates a project with a new repository and starter issues", async ({ page }) => {

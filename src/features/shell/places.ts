@@ -16,7 +16,7 @@ import { firstPath, hiddenTab, isOffBar, type LevelOf, SPACES, type SpaceId } fr
  * `space/tab` of before the change, and the tab id is the slug of the section.
  */
 export const PLACES = {
-	today: ["home/today", "home/projects"],
+	today: ["home/today", "home/news", "home/activity", "home/projects"],
 	flow: [
 		"work/backlog",
 		"work/board",
@@ -126,12 +126,12 @@ export function viewPath(path: string) {
 	return view ? `/${view.join("/")}` : path;
 }
 
-const TODAY_TABS = new Set(["inbox", "my-work", "activity"]);
+const TODAY_TABS = new Set(["inbox", "my-work"]);
 
 /** The new path of a path of before adr:0023, or undefined when it names no old page or no tab. */
 export function placePath(path: string): string | undefined {
 	const [, space, tab, ...rest] = path.replace(/\/$/, "").split("/");
-	// Settings / Team moved to Work / Team, and Inbox, My work and Activity became Today.
+	// Settings / Team moved to Work / Team, and Inbox and My work became Today.
 	if (space === "settings" && tab === "team") return "/crew/team";
 	if (space === "home" && tab && TODAY_TABS.has(tab)) return "/today/today";
 	if (!space || !(space in SPACES)) return undefined;

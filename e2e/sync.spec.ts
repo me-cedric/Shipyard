@@ -8,7 +8,9 @@ const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" }
 async function openWithTracker(page: Page, secret: string | null = "tok-e2e-sync") {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
-	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+	).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Setup" }).click();
 	await tabs(page).getByRole("link", { name: "Connections" }).click();
 	await page.getByRole("button", { name: "Connection" }).click();

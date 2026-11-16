@@ -252,6 +252,14 @@ export function useAssistant({
 				if (!next) setCurrent(null);
 				await refresh(next);
 			}),
+		// Removes the worktree of the open thread with its changes (the only way back).
+		undo: () =>
+			mutate(async () => {
+				const v = await unwrap(commands.assistantWorktreeDiscard(id, true));
+				setCurrent(v);
+				setChanged([]);
+				setThreads(await unwrap(commands.assistantThreads()));
+			}),
 		send: async (text: string, fromDraft = false, quotes: Quote[] = []) => {
 			const v = live.current.current;
 			const body = text.trim();

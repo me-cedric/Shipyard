@@ -8,10 +8,10 @@ Shipyard hilft einem Team, ein Softwareprojekt auszuliefern: den Entwurf, die Sp
 - Die Abschnitte eines Ortes stehen oben auf der Seite, in einem Umschalter.
 - Der Inspektor rechts zeigt das Element, das Sie auswählen.
 - Die Statusleiste unten zeigt das Projekt, den Sync-Status und die Commit-Steuerung, mit der Zahl der geänderten Dateien neben Commit.
-- Die obere Leiste enthält Zurück und Vorwärts, Synchronisieren, Aktivität, die Suche, die Schaltflächen Dateien und Terminal, Fragen, die Benachrichtigungen und das Kontomenü.
+- Die obere Leiste enthält Zurück und Vorwärts, Synchronisieren, die Leiste Shipyard fragen oder beauftragen, die Schaltflächen Dateien und Terminal und das Kontomenü.
   - Synchronisieren zeigt, um wie viele Commits Sie voraus und zurück sind.
-  - Aktivität zeigt die Zahl Wartet auf Sie und eine Markierung, solange ein Lauf oder eine Sitzung aktiv ist. Das Fenster hat drei Teile: Wartet auf Sie (ein Link zu Start / Heute), Läufe (Stoppen und ein Link zu Fabrik / Läufe) und Sitzungen (Stoppen und ein Link zu Fabrik / Sitzungen).
-  - Fragen ist eine geteilte Schaltfläche. Klicken Sie auf den Hauptteil, um den Assistenten zu öffnen oder zu schließen. Der Pfeil öffnet die Elemente von Fragen.
+  - Shipyard fragen oder beauftragen ist die eine Leiste für eine Frage, einen Ort und eine Aktion. Drücken Sie Ctrl+K (Cmd+K auf einem Mac), um dorthin zu gehen. Gehe zu öffnet einen Ort, ein Projekt, ein Element oder ein Suchergebnis. Tun startet eine Aktion oder eine Anfrage für die Seite, die Sie sehen. Fragen Sie, was blockiert, was gestoppt ist oder was auf Sie wartet: Die Antwort nennt jedes Feature und gibt seine Aktion. Jeder andere Text geht mit der Eingabetaste an den Assistenten.
+  - Was auf Sie wartet, die Neuigkeiten und die aktiven Läufe und Sitzungen stehen in Heute. Ein Punkt an Heute im Menü zeigt ungelesene Neuigkeiten, und eine Markierung zeigt, dass ein Lauf oder eine Sitzung arbeitet.
   - Das Kontomenü (Ihr Bild) enthält Einstellungen / Ich, Design (Hell, Dunkel, System), Anleitung, Tastenkürzel, Neuigkeiten und Tour wiederholen.
 - Der Assistent öffnet sich an der Seite. Stellen Sie ihm eine Frage zum Projekt. Jedes Gespräch ist ein Tab, und ein Punkt markiert einen Tab mit einer neuen Antwort.
   - Unter dem Nachrichtenfeld hat eine Leiste die Schaltfläche zum Anhängen, eine Schaltfläche mit dem Modell und dem Aufwand (sie öffnet die Modelle des KI-Tools, die Aufwandsstufen und die Modelle der anderen KI-Tools), die Berechtigung, den Kontextring und Senden.
@@ -33,7 +33,7 @@ Das Fenster öffnet sich in der Größe, in der Sie es geschlossen haben. Um die
 
 - Die Tour öffnet sich nicht beim ersten Start. Sie öffnet sich einmal, wenn Sie Ihr erstes Projekt öffnen. Sie hat sechs Schritte: der Kreislauf, ein Projekt öffnen, das Ticketsystem und die Code-Plattform verbinden, das KI-Tool wählen, die Berechtigungen und der erste Lauf auf einem Ticket.
 - Klicken Sie auf Weiter und Zurück, oder drücken Sie die Pfeiltasten links und rechts. Schließen beendet die Tour bei jedem Schritt. Sie öffnet sich nicht mehr von selbst.
-- Um sie noch einmal zu sehen, wählen Sie Tour wiederholen im Kontomenü oder im Menü Hilfe, oder tippen Sie Tour wiederholen in die Palette, oder gehen Sie zu Einstellungen, dann Ich, dann Berechtigungen.
+- Um sie noch einmal zu sehen, wählen Sie Tour wiederholen im Kontomenü oder im Menü Hilfe, oder tippen Sie Tour wiederholen in die Fragen-Leiste, oder gehen Sie zu Einstellungen, dann Ich, dann Berechtigungen.
 - Der letzte Schritt öffnet diese Anleitung.
 
 ## Berechtigungen
@@ -61,16 +61,16 @@ In Start, dann Heute, nennt eine einzige Liste Erste Schritte die nächsten Schr
 
 ## Sich zurechtfinden
 
-- Drücken Sie Ctrl+K (Cmd+K auf einem Mac), um die Palette zu öffnen. Tippen Sie den Namen einer Seite, eines Elements oder einer Aktion.
-- Tippen Sie in der Palette ein paar Wörter, um den Text Ihrer Dokumente, Entscheidungen, Spezifikationen, Fragen, Tickets und Entwürfe zu durchsuchen. Groß- und Kleinschreibung und Akzente spielen keine Rolle („decision“ findet „décision“), jedes Wort muss passen, und das letzte Wort darf ein Anfang sein. Die Ergebnisse sind nach Art gruppiert, zeigen einen kurzen Auszug mit markierten Wörtern und stellen eine Seite, die viele Elemente zitieren, an die erste Stelle. Wählen Sie Den Assistenten fragen, um diese Elemente als Kontext in das Nachrichtenfeld des Assistenten zu legen. Nichts wird gesendet, bevor Sie senden. Das Dokument, das Sie aus einem Ergebnis öffnen, markiert die Wörter.
+- Drücken Sie Ctrl+K (Cmd+K auf einem Mac), um zur Fragen-Leiste zu gehen. Tippen Sie den Namen einer Seite, eines Elements oder einer Aktion, dann nutzen Sie die Pfeiltasten und die Eingabetaste. Escape schließt sie.
+- Tippen Sie in der Fragen-Leiste ein paar Wörter, um den Text Ihrer Dokumente, Entscheidungen, Spezifikationen, Fragen, Tickets und Entwürfe zu durchsuchen. Groß- und Kleinschreibung und Akzente spielen keine Rolle („decision“ findet „décision“), jedes Wort muss passen, und das letzte Wort darf ein Anfang sein. Die Ergebnisse sind nach Art gruppiert, zeigen einen kurzen Auszug mit markierten Wörtern und stellen eine Seite, die viele Elemente zitieren, an die erste Stelle. Wählen Sie Den Assistenten fragen, um diese Elemente als Kontext in das Nachrichtenfeld des Assistenten zu legen. Nichts wird gesendet, bevor Sie senden. Das Dokument, das Sie aus einem Ergebnis öffnen, markiert die Wörter.
 - Die Listen in Entwurf und Wissen haben ein Feld Suchen, das die Liste mit derselben Suche filtert.
 - Drücken Sie Ctrl+1 bis Ctrl+7, um zu einem Ort zu gehen.
-- Öffnen Sie die Palette und wählen Sie Anleitung zu dieser Seite öffnen, um die Hilfe der Seite zu lesen, die Sie sehen.
+- Gehen Sie zur Fragen-Leiste und wählen Sie Anleitung zu dieser Seite öffnen, um die Hilfe der Seite zu lesen, die Sie sehen.
 - Drücken Sie Ctrl+[ und Ctrl+] (Cmd auf einem Mac), oder klicken Sie in der oberen Leiste auf Zurück und Vorwärts, um zwischen den geöffneten Ansichten zu wechseln.
 - Drücken Sie F1, oder wählen Sie Anleitung im Kontomenü, um die Hilfe der Seite zu lesen, die Sie sehen.
 - Klicken Sie auf die Schaltfläche der Seitenleiste am linken Ende der oberen Leiste, um die Seitenleiste aus- oder einzublenden.
 - Unter 1100 px stehen die Schaltflächen Dateien und Terminal im Menü Mehr.
-- Klicken Sie auf die Schaltfläche Terminal, um die Terminal-Schublade zu öffnen oder zu schließen. Terminal und Anleitung sind keine Tabs. Die Palette und das Menü des Fensters behalten ihre Einträge.
+- Klicken Sie auf die Schaltfläche Terminal, um die Terminal-Schublade zu öffnen oder zu schließen. Terminal und Anleitung sind keine Tabs. Die Fragen-Leiste und das Menü des Fensters behalten ihre Einträge.
 - Klicken Sie auf Synchronisieren, um zu synchronisieren. Klicken Sie auf den Pfeil daneben für Nur abrufen oder für Push.
 - Wenn ein Fehler eine Schaltfläche hat, die eine Einstellung öffnet, klicken Sie darauf. Die Seite öffnet sich genau an der Zeile, setzt den Fokus auf ihr Steuerelement und markiert es 2 Sekunden lang.
 - Halten Sie Ctrl (Cmd auf einem Mac) und drehen Sie das Mausrad auf einem Diagramm oder einem Bild, um zu zoomen. Ziehen Sie, um es zu verschieben. Nutzen Sie Vollbild für eine große Ansicht.

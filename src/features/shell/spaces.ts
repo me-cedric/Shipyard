@@ -5,6 +5,7 @@ import type { Area } from "@/lib/rights";
 import {
 	AcademicCapIcon,
 	ArrowsRightLeftIcon,
+	BellIcon,
 	BookOpenIcon,
 	CalendarDaysIcon,
 	ChartBarIcon,
@@ -19,6 +20,7 @@ import {
 	CurrencyIcon,
 	DocumentTextIcon,
 	FolderOpenIcon,
+	InboxIcon,
 	LinkIcon,
 	LockClosedIcon,
 	PresentationChartIcon,
@@ -35,7 +37,7 @@ import {
 
 /** Spaces in default order, each with its tabs (master plan section 4). */
 export const SPACES = {
-	home: ["today", "projects"],
+	home: ["today", "projects", "news", "activity"],
 	design: ["diagrams", "architecture", "decisions", "api", "data", "flows", "screens"],
 	specs: ["changes", "capabilities", "questions", "test-plans", "constitution"],
 	work: ["backlog", "board", "plan", "estimates", "team", "time"],
@@ -66,6 +68,8 @@ type TabIcon = ComponentType<{ size?: number }>;
 const TAB_ICON: Record<string, TabIcon> = {
 	"home/today": ClockIcon,
 	"home/projects": FolderOpenIcon,
+	"home/news": BellIcon,
+	"home/activity": InboxIcon,
 	"design/diagrams": ShareIcon,
 	"design/architecture": CpuChipIcon,
 	"design/decisions": DocumentTextIcon,

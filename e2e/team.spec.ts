@@ -22,7 +22,9 @@ test("a solo project gets two members with an admin, then an unknown person read
 }) => {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
-	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+	).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Crew" }).click();
 	await tabs(page).getByRole("link", { name: "Team" }).click();
 	// No admin in the team file: every right, so the member control is on.

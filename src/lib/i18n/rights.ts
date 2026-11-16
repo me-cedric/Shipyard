@@ -87,6 +87,7 @@ export const rightsEn = {
 		testPlans: "Test plans",
 		screens: "Screens",
 	},
+	today: { open: "Open", noTime: "No time logged today", allNews: "All news", you: "You" },
 	everyone: "Everyone",
 };
 
@@ -177,6 +178,12 @@ export const rightsFr: typeof rightsEn = {
 		reviewRequests: "Demandes de relecture",
 		testPlans: "Plans de test",
 		screens: "Écrans",
+	},
+	today: {
+		open: "Ouvrir",
+		noTime: "Aucun temps saisi aujourd’hui",
+		allNews: "Toutes les nouvelles",
+		you: "Vous",
 	},
 	everyone: "Tout le monde",
 };

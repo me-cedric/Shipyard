@@ -8,10 +8,10 @@ Shipyard aide une équipe à livrer un projet logiciel : la conception, les spé
 - Les sections d'un lieu sont en haut de la page, dans un seul sélecteur.
 - L'inspecteur à droite montre l'élément que vous sélectionnez.
 - La barre d'état en bas montre le projet, l'état de la synchronisation et la commande de commit, avec le nombre de fichiers modifiés à côté de Commit.
-- La barre du haut contient Précédent et Suivant, Synchroniser, Activité, la recherche, les boutons Fichiers et Terminal, Demander, les notifications et le menu du compte.
+- La barre du haut contient Précédent et Suivant, Synchroniser, la barre Demander ou dire à Shipyard, les boutons Fichiers et Terminal et le menu du compte.
   - Synchroniser montre de combien de commits vous êtes en avance et en retard.
-  - Activité montre le nombre À traiter, et une marque tant qu'une exécution ou une session est active. Son panneau a trois parties : À traiter (un lien vers Accueil / Aujourd'hui), Exécutions (Arrêter, et un lien vers Usine / Exécutions) et Sessions (Arrêter, et un lien vers Usine / Sessions).
-  - Demander est un bouton partagé en deux. Cliquez sur la partie principale pour ouvrir ou fermer l'assistant. Le chevron ouvre les éléments de Demander.
+  - Demander ou dire à Shipyard est la seule barre pour une question, un lieu et une action. Appuyez sur Ctrl+K (Cmd+K sur Mac) pour y aller. Aller à ouvre un lieu, un projet, un élément ou un résultat de recherche. Faire lance une action ou une demande pour la page que vous voyez. Demandez ce qui bloque, ce qui s'est arrêté ou ce qui vous attend : la réponse nomme chaque fonctionnalité et donne son action. Tout autre texte part vers l'assistant quand vous appuyez sur Entrée.
+  - Ce qui vous attend, les nouvelles et les exécutions et sessions actives sont dans Aujourd'hui. Un point sur Aujourd'hui dans le menu marque des nouvelles non lues, et une marque d'activité s'affiche tant qu'une exécution ou une session travaille.
   - Le menu du compte (votre photo) contient Réglages / Moi, Thème (Clair, Sombre, Système), Mode d'emploi, Raccourcis, Nouveautés et Revoir la visite.
 - L'assistant s'ouvre sur le côté. Posez-lui une question sur le projet. Chaque conversation est un onglet, et un point marque un onglet avec une nouvelle réponse.
 - Dans Réglages, puis Moi, choisissez le côté de la barre et des tiroirs, la couleur d'accent, le format des dates, une barre du haut étroite et votre photo.
@@ -29,7 +29,7 @@ La fenêtre s'ouvre à la taille où vous l'avez fermée. Pour garder les donné
 
 - La visite ne s'ouvre pas au premier lancement. Elle s'ouvre une fois, quand vous ouvrez votre premier projet. Elle a six étapes : la boucle, ouvrir un projet, connecter l'outil de suivi et l'hébergeur de code, choisir l'outil d'IA, les autorisations, et la première exécution sur un ticket.
 - Cliquez sur Suivant et Retour, ou appuyez sur les flèches gauche et droite. Fermer arrête la visite à chaque étape. Elle ne s'ouvre plus d'elle-même.
-- Pour la revoir, choisissez Revoir la visite dans le menu du compte ou dans le menu Aide, ou tapez Revoir la visite dans la palette, ou allez dans Réglages, puis Moi, puis Autorisations.
+- Pour la revoir, choisissez Revoir la visite dans le menu du compte ou dans le menu Aide, ou tapez Revoir la visite dans la barre Demander, ou allez dans Réglages, puis Moi, puis Autorisations.
 - La dernière étape ouvre ce manuel.
 
 ## Autorisations
@@ -74,16 +74,16 @@ Créer fait le dépôt, écrit les fichiers, fait le premier commit et ouvre le 
 
 ## Trouver son chemin
 
-- Appuyez sur Ctrl+K (Cmd+K sur Mac) pour ouvrir la palette. Tapez le nom d'une page, d'un élément ou d'une action.
-- Dans la palette, tapez quelques mots pour chercher dans le texte de vos documents, décisions, spécifications, questions, tickets et maquettes. Les majuscules et les accents ne comptent pas (« decision » trouve « décision »), chaque mot doit correspondre, et le dernier mot peut être un début. Les résultats se groupent par type, montrent un court extrait avec les mots marqués, et placent en premier une page que beaucoup d'éléments citent. Choisissez Demander à l'assistant pour mettre ces éléments comme contexte dans la zone de message de l'assistant. Rien n'est envoyé avant votre envoi. Le document que vous ouvrez depuis un résultat marque les mots.
+- Appuyez sur Ctrl+K (Cmd+K sur Mac) pour aller à la barre Demander. Tapez le nom d'une page, d'un élément ou d'une action, puis utilisez les flèches et Entrée. Échap la ferme.
+- Dans la barre Demander, tapez quelques mots pour chercher dans le texte de vos documents, décisions, spécifications, questions, tickets et maquettes. Les majuscules et les accents ne comptent pas (« decision » trouve « décision »), chaque mot doit correspondre, et le dernier mot peut être un début. Les résultats se groupent par type, montrent un court extrait avec les mots marqués, et placent en premier une page que beaucoup d'éléments citent. Choisissez Demander à l'assistant pour mettre ces éléments comme contexte dans la zone de message de l'assistant. Rien n'est envoyé avant votre envoi. Le document que vous ouvrez depuis un résultat marque les mots.
 - Les listes de Design et de Connaissances ont une zone Rechercher qui filtre la liste avec la même recherche.
 - Appuyez sur Ctrl+1 à Ctrl+7 pour aller dans un lieu.
-- Ouvrez la palette et choisissez Ouvrir le mode d'emploi de cette page pour lire l'aide de la page que vous voyez.
+- Allez à la barre Demander et choisissez Ouvrir le mode d'emploi de cette page pour lire l'aide de la page que vous voyez.
 - Appuyez sur Ctrl+[ et Ctrl+] (Cmd sur Mac), ou cliquez sur Précédent et Suivant dans la barre du haut, pour passer d'une vue ouverte à l'autre.
 - Appuyez sur F1, ou choisissez Mode d'emploi dans le menu du compte, pour lire l'aide de la page que vous voyez.
 - Cliquez sur le bouton de la barre latérale, au bout gauche de la barre du haut, pour masquer ou montrer la barre latérale.
 - Sous 1100 px, les boutons Fichiers et Terminal sont dans le menu Plus.
-- Cliquez sur le bouton Terminal pour ouvrir ou fermer le tiroir du terminal. Terminal et Mode d'emploi ne sont pas des onglets. La palette et le menu de la fenêtre gardent leurs entrées.
+- Cliquez sur le bouton Terminal pour ouvrir ou fermer le tiroir du terminal. Terminal et Mode d'emploi ne sont pas des onglets. La barre Demander et le menu de la fenêtre gardent leurs entrées.
 - Cliquez sur la flèche à côté de Synchroniser pour Récupérer seulement ou pour Envoyer.
 - Maintenez Ctrl (Cmd sur Mac) et tournez la molette de la souris sur un diagramme ou une image pour zoomer. Faites glisser pour la déplacer. Utilisez Plein écran pour une grande vue.
 - Appuyez sur Ctrl+= et Ctrl+- pour changer la taille du texte, et sur Ctrl+0 pour revenir à 16 px. Réglages / Moi offre le même choix.

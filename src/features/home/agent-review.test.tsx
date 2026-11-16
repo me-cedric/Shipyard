@@ -11,12 +11,13 @@ describe("Home / Needs you: agent review", () => {
 		await demo();
 		const draft = await unwrap(commands.prReviewStart(141, true));
 		const router = mountApp("/home/today");
-		const group = (await screen.findByRole("heading", { name: "Agent reviews (1)" })).closest(
-			"section",
-		) as HTMLElement;
-		expect(within(group).getByText("#141")).toBeVisible();
-		expect(within(group).getByText(draft.title)).toBeVisible();
-		await user.click(within(group).getByRole("button", { name: "Open the pull request" }));
+		const queue = within(await screen.findByRole("list", { name: "Needs you" }));
+		await user.click(
+			await queue.findByRole("button", { name: (n) => n.endsWith(`#141 ${draft.title}`) }),
+		);
+		const group = within((await screen.findAllByRole("article"))[0] as HTMLElement);
+		expect(group.getByText(draft.title)).toBeVisible();
+		await user.click(group.getByRole("button", { name: "Open the pull request" }));
 		// The pull request page opens at the address of that pull request, with the draft on it.
 		await waitFor(() =>
 			expect(router.state.location.pathname).toBe("/code/pull-requests/github-demo-141"),
@@ -27,10 +28,10 @@ describe("Home / Needs you: agent review", () => {
 		await waitFor(async () => expect(await unwrap(commands.prReviewWaiting())).toEqual([]));
 	});
 
-	it("shows no group when no draft waits", async () => {
+	it("shows no review when no draft waits", async () => {
 		await demo();
 		mountApp("/home/today");
-		await screen.findByRole("heading", { level: 1, name: "Today" });
-		expect(screen.queryByRole("heading", { name: /^Agent reviews/ })).toBeNull();
+		await screen.findByRole("heading", { level: 1, name: /Today|need you/ });
+		expect(screen.queryByRole("button", { name: "Open the pull request" })).toBeNull();
 	});
 });

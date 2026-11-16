@@ -7,7 +7,9 @@ const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 async function openSettings(page: Page, tab: string) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
-	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+	).toBeVisible();
 	await page
 		.getByRole("navigation", { name: "Sidebar" })
 		.getByRole("link", { name: "Setup" })

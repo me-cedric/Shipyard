@@ -48,8 +48,11 @@ describe("Onboarding tour", () => {
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		expect(screen.queryByRole("dialog")).toBeNull();
 		await user.keyboard("{Control>}k{/Control}");
-		await user.type(await screen.findByRole("combobox"), o.replay);
-		await user.keyboard("{Enter}");
+		await user.type(
+			await screen.findByRole("combobox", { name: "Ask or tell Shipyard" }),
+			o.replay,
+		);
+		await user.keyboard("{ArrowDown}{Enter}");
 		const first = await screen.findByRole("dialog", { name: titles[0] });
 		expect(within(first).queryByRole("button", { name: o.back })).toBeNull();
 		for (const title of titles.slice(1)) {
@@ -96,7 +99,7 @@ describe("Onboarding tour", () => {
 		await user.tab();
 		await screen.findByRole("link", { name: en.glossary.manual });
 		await user.tab();
-		await user.keyboard("{Enter}");
+		await user.keyboard("{ArrowDown}{Enter}");
 		await waitFor(() => expect(router.state.location.pathname).toBe("/library/manual"));
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	});

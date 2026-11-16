@@ -112,14 +112,16 @@ export class Walk {
 		appendFileSync(`${OUT}/${this.role.key}.log`, `${parts.join(" | ")}\n`);
 	};
 
-	/** The palette with the keyboard only: Ctrl+K, the name, Enter. The guide says it finds pages, items and actions. */
+	/** The Ask bar with the keyboard only: Ctrl+K, the name, the arrow, Enter. The guide says it finds pages, items and actions. */
 	palette = async (query: string, finding: string) => {
 		await this.key("ControlOrMeta+k");
 		await this.page.keyboard.type(query);
 		this.keys += query.length;
-		const none = this.page.getByRole("dialog").getByText("No result");
+		const none = this.page.getByRole("listbox").getByText("No result");
 		await this.until(() => none.count(), 0, finding);
-		await this.key((await none.count()) ? "Escape" : "Enter");
+		if (await none.count()) return this.key("Escape");
+		await this.key("ArrowDown");
+		await this.key("Enter");
 	};
 
 	/** The sidebar link, then the tab: what a person clicks to reach a page. */

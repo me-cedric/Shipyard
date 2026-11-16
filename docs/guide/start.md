@@ -8,10 +8,10 @@ Shipyard helps a team deliver a software project: the design, the specs, the wor
 - The sections of a place sit at the top of the page, in one switch.
 - The inspector on the right shows the item that you select.
 - The status bar at the bottom shows the project, the sync state and the commit control, with the count of changed files beside Commit.
-- The top bar holds Back and Forward, Sync, Activity, the search, the Files and Terminal buttons, Ask, the notifications and the account menu.
+- The top bar holds Back and Forward, Sync, the bar Ask or tell Shipyard, the Files and Terminal buttons and the account menu.
   - Sync shows how many commits you are ahead and behind.
-  - Activity shows the Needs you count, and a mark while a run or a session is active. Its panel has three parts: Needs you (a link to Home / Today), Runs (Stop, and a link to Factory / Runs) and Sessions (Stop, and a link to Factory / Sessions).
-  - Ask is one split button. Click the main part to open or close the assistant. The chevron opens the Ask items.
+  - Ask or tell Shipyard is the one bar for a question, a place and an action. Press Ctrl+K (Cmd+K on a Mac) to move to it. Go to opens a place, a project, an item or a search result. Do starts an action or a prompt for the page that you see. Ask what blocks, what stopped or what needs you: the answer names each feature and gives its action. Any other text goes to the assistant when you press Enter.
+  - What needs you, the news and the live runs and sessions are in Today. A dot on Today in the menu marks unread news, and a live mark shows while a run or a session works.
   - The account menu (your picture) holds Settings / Me, Theme (Light, Dark, System), Manual, Shortcuts, What's new and Replay the tour.
 - The assistant opens on the side. Ask it a question about the project. Each conversation is a tab, and a dot marks a tab with a new reply.
   - Under the message box, one bar has the attach button, one button with the model and the effort (it opens the models of the AI tool, the effort levels and the models of the other AI tools), the permission, the context ring and Send.
@@ -25,7 +25,7 @@ The window opens at the size where you closed it. To keep the data of the app ne
 ## The menu bar item
 
 - The Shipyard icon sits in the menu bar (the system tray on Windows and Linux).
-- A click opens a small panel: the spend of today and of the month, the active runs with Stop, the Needs you count with its first items, the agents switch, the sync state, the project and Open Shipyard.
+- A click opens a small panel: the spend of today and of the month, the active runs with Stop, the things that need you, the same list as Today, the reminder to log time, the agents switch, the sync state, the project and Open Shipyard.
 - The panel asks for the same click as the app for each action that writes.
 - In Settings, then Me, turn the menu bar item off.
 
@@ -33,7 +33,7 @@ The window opens at the size where you closed it. To keep the data of the app ne
 
 - The tour does not open at the first launch. It opens once, when you open your first project. It has six steps: the loop, open a project, connect the issue tracker and the code host, choose the AI tool, the permissions, and the first run on a ticket.
 - Click Next and Back, or press the Left and Right arrow keys. Close ends the tour at any step. It does not open again by itself.
-- To see it again, choose Replay the tour in the account menu or in the Help menu, or type Replay the tour in the palette, or go to Settings, then Me, then Permissions.
+- To see it again, choose Replay the tour in the account menu or in the Help menu, or type Replay the tour in the Ask bar, or go to Settings, then Me, then Permissions.
 - The last step opens this manual.
 
 ## Permissions
@@ -78,16 +78,16 @@ Create makes the repository, writes the files, makes the first commit and opens 
 
 ## Find your way
 
-- Press Ctrl+K (Cmd+K on a Mac) to open the palette. Type the name of a page, an item or an action.
-- In the palette, type a few words to search the text of your documents, decisions, specs, questions, tickets and designs. Case and accents do not matter ("decision" finds "décision"), every word must match, and the last word can be a start. Results group by kind, show a short extract with the words marked, and put a page that many items cite first. Choose Ask the assistant to put those items as context in the message box of the assistant. Nothing is sent until you send it. The document that you open from a result marks the words.
+- Press Ctrl+K (Cmd+K on a Mac) to move to the Ask bar. Type the name of a page, an item or an action, then use the arrow keys and Enter. Escape closes it.
+- In the Ask bar, type a few words to search the text of your documents, decisions, specs, questions, tickets and designs. Case and accents do not matter ("decision" finds "décision"), every word must match, and the last word can be a start. Results group by kind, show a short extract with the words marked, and put a page that many items cite first. Choose Ask the assistant to put those items as context in the message box of the assistant. Nothing is sent until you send it. The document that you open from a result marks the words.
 - Design and Knowledge lists have a Search box that filters the list with the same search.
 - Press Ctrl+1 to Ctrl+7 to go to a place.
-- Open the palette and choose Open the manual for this page to read the help of the page that you see.
+- Go to the Ask bar and choose Open the manual for this page to read the help of the page that you see.
 - Press Ctrl+[ and Ctrl+] (Cmd on a Mac), or click Back and Forward in the top bar, to move between the views that you opened.
 - Press F1, or choose Manual in the account menu, to read the help of the page that you see.
 - Click the sidebar button at the left end of the top bar to hide or show the sidebar.
 - Under 1100 px, the Files and Terminal buttons sit in the More menu.
-- Click the Terminal button to open or close the terminal drawer. Terminal and Manual are not tabs. The palette and the menu of the window keep their entries.
+- Click the Terminal button to open or close the terminal drawer. Terminal and Manual are not tabs. The Ask bar and the menu of the window keep their entries.
 - Click Sync to sync. Click the arrow joined to it to Fetch only or to Push.
 - When an error has a button that opens a setting, click it. The page opens on the exact row, moves the focus to its control and marks it for 2 seconds.
 - Hold Ctrl (Cmd on a Mac) and turn the mouse wheel on a diagram or an image to zoom. Drag to move it. Use Full screen for a large view.

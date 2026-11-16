@@ -85,7 +85,9 @@ describe("first run", () => {
 		mountApp("/home/today");
 		await next(user);
 		await user.click(await screen.findByRole("button", { name: "Open a local folder" }));
-		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: /^Project/ })).toHaveTextContent("alpha");
 		expect(mockState().projects).toHaveLength(1);
 	});
@@ -96,7 +98,9 @@ describe("first run", () => {
 		mountApp("/home/today");
 		await next(user);
 		await user.click(await screen.findByRole("button", { name: "Open a local folder" }));
-		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeInTheDocument();
 		expect(mockState().projects[0]?.path).toBe("/mock/bare");
 	});
 
@@ -109,7 +113,9 @@ describe("first run", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent("No Git repository in /mock/plain");
 		expect(mockState().projects).toHaveLength(0);
 		await user.click(screen.getByRole("button", { name: "Make it a project" }));
-		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeInTheDocument();
 		expect(mockState().projects[0]?.path).toBe("/mock/plain");
 	});
 
@@ -124,7 +130,9 @@ describe("first run", () => {
 		expect(screen.getByRole("textbox", { name: "Key" })).toHaveValue("ACMEWE");
 		await user.click(screen.getByRole("button", { name: "Create" }));
 		await user.click(await screen.findByRole("button", { name: "Open" }));
-		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeInTheDocument();
 		expect(mockState().projects[0]).toMatchObject({
 			name: "Acme Web",
 			key: "ACMEWE",
@@ -143,7 +151,7 @@ describe("first run", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Choose a folder" }));
 		await user.click(screen.getByRole("button", { name: "Clone" }));
-		await screen.findByRole("heading", { level: 1, name: "Today" });
+		await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ });
 		expect(mockState().projects[0]?.path).toBe("/mock/alpha/shipyard");
 	});
 
@@ -253,7 +261,9 @@ describe("project switcher", () => {
 		expect(await unwrap(commands.projectsActive())).toBeNull();
 		expect(mockState().projects).toHaveLength(1);
 		await user.click(within(recent).getByRole("button", { name: /alpha/ }));
-		expect(await screen.findByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+		).toBeInTheDocument();
 		expect((await unwrap(commands.projectsActive()))?.name).toBe("alpha");
 	});
 

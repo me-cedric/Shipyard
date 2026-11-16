@@ -102,6 +102,10 @@ describe("Run address", () => {
 		const user = userEvent.setup();
 		const plan = (await unwrap(commands.runsList())).find((r) => r.state === "PlanReview");
 		const router = mountApp("/home/today");
+		const queue = within(await screen.findByRole("list", { name: "Needs you" }));
+		await user.click(
+			await queue.findByRole("button", { name: new RegExp(`${plan?.title} ${plan?.key}`) }),
+		);
 		await user.click(await screen.findByRole("button", { name: "Open plan" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${plan?.id}`));
 		await idle(router);
@@ -197,17 +201,16 @@ describe("Run address", () => {
 		await idle(router);
 	});
 
-	it("opens the run from an Activity row, with Stop as a separate control", async () => {
+	it("opens the run from a row of Today / Activity, with Stop as a separate control", async () => {
 		await open();
 		const user = userEvent.setup();
 		const run = await find("ACME-2");
-		const router = mountApp("/home/today");
-		await user.click(await screen.findByRole("button", { name: /^Activity: / }));
-		const panel = await screen.findByRole("dialog", { name: "Activity" });
-		const link = await within(panel).findByRole("link", { name: /ACME-2/ });
+		const router = mountApp("/today/activity");
+		const panel = within(await screen.findByRole("region", { name: "Active runs" }));
+		const link = await panel.findByRole("link", { name: /ACME-2/ });
 		expect(link).toHaveAttribute("href", `/factory/runs/${run.id}`);
 		expect(within(link).queryByRole("button")).not.toBeInTheDocument();
-		expect(within(panel).getByRole("button", { name: "Stop ACME-2" })).toBeInTheDocument();
+		expect(panel.getByRole("button", { name: "Stop ACME-2" })).toBeInTheDocument();
 		await user.click(link);
 		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
 		await idle(router);

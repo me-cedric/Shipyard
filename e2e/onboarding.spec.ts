@@ -9,7 +9,8 @@ const openDialogs = (page: Page) => page.locator('[role="dialog"][data-open]');
 
 async function replay(page: Page) {
 	await page.keyboard.press("ControlOrMeta+k");
-	await page.getByRole("dialog").getByRole("combobox").fill("Replay the tour");
+	await page.getByRole("combobox", { name: "Ask or tell Shipyard" }).fill("Replay the tour");
+	await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
 	await expect(page.getByRole("dialog", { name: FIRST })).toBeVisible();
 }

@@ -18,8 +18,9 @@ vi.mock("@tauri-apps/api/path", () => ({
 }));
 vi.mock("@/lib/ipc", async (orig) => ({ ...(await orig<object>()), isTauri: () => true }));
 
-const bell = () => screen.getByRole("button", { name: "Notifications" });
-const unread = () => bell().textContent ?? "";
+// The Today place carries the unread count, as the bell did.
+const bell = () => screen.getByRole("navigation", { name: "Sidebar" }).querySelector("a");
+const unread = () => bell()?.textContent ?? "";
 const tick = () => act(async () => handlers["sync-tick"]?.({ payload: null }));
 
 describe("Notification sources of the shell", () => {

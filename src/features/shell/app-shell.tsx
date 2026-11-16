@@ -22,7 +22,6 @@ import { ContextBar } from "./context-bar";
 import { useDropFolder } from "./drop-folder";
 import { useCloseGuardEvent, useNativeMenu, useShellEvents } from "./events";
 import { RouteAnnouncer, SkipLink } from "./page-chrome";
-import { PaletteHost } from "./palette-host";
 import { RefDetail } from "./ref-detail";
 import { ShortcutHelp } from "./shortcut-help";
 import { Sidebar } from "./sidebar";
@@ -58,8 +57,7 @@ function Frame() {
 	const project = useActiveProject().data;
 	const { commit: runCommit } = useCodeActions();
 	const { gate } = useRights();
-	const { list, sync, commit, assistant, palette, files, terminal, fetch, push, back, forward } =
-		useActions();
+	const { list, sync, commit, palette, files, terminal, fetch, push, back, forward } = useActions();
 	useShortcuts(list);
 	useNativeMenu(list);
 	useShellEvents();
@@ -108,7 +106,7 @@ function Frame() {
 						sync={sync}
 						fetch={fetch}
 						push={push}
-						assistant={assistant}
+						actions={list}
 						palette={palette}
 						files={files}
 						terminal={terminal}
@@ -158,7 +156,6 @@ function Frame() {
 				statusbar={<StatusBar commit={commit} />}
 			/>
 			<Toaster toasts={toasts} onDismiss={dismiss} onHold={hold} />
-			<PaletteHost actions={list} />
 			<ShortcutHelp actions={list} />
 			<SelectionActions onAsk={ask} />
 			<AskOnItem />

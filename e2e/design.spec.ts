@@ -9,7 +9,9 @@ const inspector = (page: Page) => page.getByRole("complementary", { name: "Inspe
 async function openDesign(page: Page, tab: string) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
-	await expect(page.getByRole("heading", { level: 1, name: "Today" })).toBeVisible();
+	await expect(
+		page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+	).toBeVisible();
 	await sidebar(page).getByRole("link", { name: "Library" }).click();
 	await tabs(page).getByRole("link", { name: tab }).click();
 }

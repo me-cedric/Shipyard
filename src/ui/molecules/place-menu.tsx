@@ -1,12 +1,17 @@
 import type { ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { LiveDot } from "../atoms/live-dot";
 
 export type Place = {
 	id: string;
 	label: string;
 	icon: ReactNode;
 	count?: number;
+	/** A dot with this spoken text, for news that has no number here. */
+	alert?: string;
+	/** A breathing dot with this spoken text, while an agent works. */
+	live?: string;
 	current?: boolean;
 };
 export type PlaceLinkProps = {
@@ -50,6 +55,18 @@ export function PlaceMenu({
 							{p.icon}
 						</span>
 						<span className={cn("min-w-0 flex-1 truncate", narrow && "sr-only")}>{p.label}</span>
+						{p.live ? (
+							<>
+								<LiveDot />
+								<span className="sr-only"> {p.live}</span>
+							</>
+						) : null}
+						{p.alert ? (
+							<>
+								<span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-accent" />
+								<span className="sr-only"> {p.alert}</span>
+							</>
+						) : null}
 						{p.count !== undefined ? (
 							<>
 								{" "}

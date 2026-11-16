@@ -217,3 +217,52 @@ describe("assistant panel: stop", () => {
 		stop.mockRestore();
 	});
 });
+
+// The Ask bar opens this panel through "Open the full assistant": it keeps every control
+// (adr:0023, spec:app-redesign#REQ-005).
+describe("assistant panel: every control renders", () => {
+	it("shows the threads, modes, model, effort, permission, context, gauges, trace and diff", async () => {
+		const user = userEvent.setup();
+		await mountAssistant({ view: "/work/board", selected: "spec:auth#REQ-001" });
+		const mode = within(screen.getByRole("group", { name: "Mode" }));
+		for (const m of ["Ask", "Plan", "Agent"])
+			expect(mode.getByRole("button", { name: m })).toBeVisible();
+		await user.click(mode.getByRole("button", { name: "Agent" }));
+		// Threads: new, rename, delete.
+		expect(screen.getByRole("button", { name: "New thread" })).toBeVisible();
+		expect(screen.getByRole("button", { name: "Rename" })).toBeVisible();
+		// Model, effort, runner and permission.
+		expect(screen.getByRole("button", { name: "Claude Code" })).toBeVisible();
+		// The runner menu holds the models. Once a model is set, its own button holds the effort.
+		const menu = userEvent.setup({ pointerEventsCheck: 0 });
+		await menu.click(screen.getByRole("button", { name: "Claude Code" }));
+		(await screen.findAllByRole("menuitemradio"))[1]?.focus();
+		await menu.keyboard("{Enter}");
+		await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+		await menu.click(await screen.findByRole("button", { name: "opus" }));
+		expect(await screen.findByRole("menuitem", { name: "Effort" })).toBeVisible();
+		await menu.keyboard("{Escape}");
+		expect(screen.getByRole("combobox", { name: "Permission" })).toBeEnabled();
+		// Context items and the context gauge.
+		const items = within(screen.getByRole("list", { name: "Context" }));
+		expect(items.getByRole("button", { name: /^spec:auth#REQ-001/ })).toBeVisible();
+		expect(screen.getByRole("meter", { name: "Context" })).toBeVisible();
+		// Side and width.
+		expect(screen.getByRole("button", { name: "Move to the left" })).toBeVisible();
+		expect(handle()).toBeVisible();
+		// Trace and the changed-file diff after an agent turn, then the Delete of a second thread.
+		await say(user, "deny this");
+		expect(await log().findByRole("status")).toHaveTextContent("Waiting: Bash(pnpm test)");
+		expect(await screen.findByRole("region", { name: "Changed files" })).toBeVisible();
+		await user.click(log().getByRole("button", { name: "Grant" }));
+		expect((await log().findAllByText(/^Trace/))[0]).toBeVisible();
+		await user.click(screen.getByRole("button", { name: "New thread" }));
+		expect(await screen.findByRole("button", { name: "Delete" })).toBeVisible();
+	}, 20_000);
+
+	it("shows the quota gauge of a runner that reports one", async () => {
+		await mountAssistant();
+		await toCodex();
+		expect(await screen.findByRole("meter", { name: "Quota 5h" })).toBeVisible();
+	});
+});

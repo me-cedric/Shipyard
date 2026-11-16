@@ -102,9 +102,17 @@ test("project manager", async ({ page }) => {
 		"Home, the Needs you list",
 		async () => {
 			await w.go("Today", "Today");
-			await w.see(page.getByRole("heading", { level: 1, name: "Today" }), "no inbox");
+			await w.see(
+				page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+				"no inbox",
+			);
+			// The plan review waits in the queue: a click makes it the card.
+			await w.click(page.getByRole("button", { name: /^feature Write the onboarding guide/ }));
 			await w.click(page.getByRole("button", { name: "Approve plan" }));
-			await w.see(page.getByText("Needs you").first(), "the inbox does not answer the click");
+			await w.see(
+				page.getByRole("heading", { level: 1, name: "10 things need you" }),
+				"the inbox does not answer the click",
+			);
 		},
 		true,
 	);

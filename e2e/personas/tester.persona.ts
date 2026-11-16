@@ -93,7 +93,10 @@ test("tester", async ({ page }) => {
 		"Home, Needs you",
 		async () => {
 			await w.go("Today", "Today");
-			await w.see(page.getByRole("heading", { level: 1, name: "Today" }), "no inbox");
+			await w.see(
+				page.getByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ }),
+				"no inbox",
+			);
 		},
 		true,
 	);

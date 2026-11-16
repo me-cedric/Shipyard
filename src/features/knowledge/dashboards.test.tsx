@@ -90,7 +90,7 @@ describe("Knowledge / Dashboards", () => {
 		await user.click(await (await tile("Runs")).findByRole("button", { name: "Pin to Home" }));
 		expect(await screen.findByRole("heading", { name: "Pinned (1)" })).toBeInTheDocument();
 		await router.navigate({ to: "/home/today" });
-		await screen.findByRole("heading", { level: 1, name: "Today" });
+		await screen.findByRole("heading", { level: 1, name: /^(Today|\d+ things? needs? you)$/ });
 		expect(screen.queryByRole("heading", { name: /^Pinned/ })).toBeNull();
 		await router.navigate({ to: "/knowledge/dashboards" });
 		const pinned = within(await screen.findByRole("region", { name: "Pinned" }));

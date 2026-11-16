@@ -88,5 +88,11 @@ export const rightsEs: typeof rightsEn = {
 		testPlans: "Planes de prueba",
 		screens: "Pantallas",
 	},
+	today: {
+		open: "Abrir",
+		noTime: "Hoy no hay tiempo registrado",
+		allNews: "Todas las novedades",
+		you: "Usted",
+	},
 	everyone: "Todos",
 };

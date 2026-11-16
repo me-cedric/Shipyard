@@ -15,31 +15,30 @@ const NEWER = "https://example.com/newer/releases/latest";
 async function runAction(user: ReturnType<typeof userEvent.setup>, name: string) {
 	await screen.findByRole("navigation", { name: "Sidebar" });
 	await user.keyboard("{Control>}k{/Control}");
-	await user.type(await screen.findByRole("combobox"), name);
-	await user.keyboard("{Enter}");
+	await user.type(await screen.findByRole("combobox", { name: "Ask or tell Shipyard" }), name);
+	await user.keyboard("{ArrowDown}{Enter}");
 }
 
 describe("Notification centre", () => {
-	it("tells once that a newer version exists, as a toast and in the centre", async () => {
+	it("tells once that a newer version exists, as a toast and in Today / News", async () => {
 		const user = userEvent.setup();
 		mockState().prefs.releaseUrl = NEWER;
-		mountApp("/home/today");
+		const router = mountApp("/today/today");
 		const toast = await screen.findByRole("status", { name: "Notifications" });
 		expect(await within(toast).findByText("Update available: 0.2.0")).toBeInTheDocument();
 
-		const bell = screen.getByRole("button", { name: "Notifications" });
-		expect(bell).toHaveTextContent("1 unread");
-		await user.click(bell);
-		const list = await screen.findByRole("dialog");
-		expect(within(list).getAllByText("Update available: 0.2.0")).toHaveLength(1);
-		// Opening the centre reads each event.
-		await waitFor(() => expect(bell).not.toHaveTextContent("unread"));
+		await router.navigate({ to: "/today/news" });
+		const list = within(await screen.findByRole("region", { name: /^Today/ }));
+		expect(list.getAllByText("Update available: 0.2.0")).toHaveLength(1);
+		// Opening News reads each event.
+		expect(await screen.findByRole("button", { name: "Mark all as read" })).toBeDisabled();
 		// A manual check finds the same version: still one entry.
-		await user.keyboard("{Escape}");
 		await runAction(user, "Check for updates");
-		await user.click(bell);
+		await router.navigate({ to: "/today/news" });
 		expect(
-			within(await screen.findByRole("dialog")).getAllByText("Update available: 0.2.0"),
+			within(await screen.findByRole("region", { name: /^Today/ })).getAllByText(
+				"Update available: 0.2.0",
+			),
 		).toHaveLength(1);
 	});
 
@@ -96,11 +95,12 @@ describe("Notification centre", () => {
 
 	it("says that the app is up to date on a manual check and stays quiet at start", async () => {
 		const user = userEvent.setup();
-		mountApp("/home/today");
+		const router = mountApp("/today/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
-		expect(screen.getByRole("button", { name: "Notifications" })).not.toHaveTextContent("unread");
+		await router.navigate({ to: "/today/news" });
+		expect(await screen.findByRole("heading", { level: 1, name: "News" })).toBeInTheDocument();
 		await runAction(user, "Check for updates");
-		expect(await screen.findByText("Up to date: 0.1.0")).toBeInTheDocument();
+		expect((await screen.findAllByText("Up to date: 0.1.0")).length).toBeGreaterThan(0);
 	});
 
 	it("names a failed check, and only on a manual check", async () => {
@@ -298,7 +298,7 @@ describe("Native menu", () => {
 		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Sidebar" });
 		await user.keyboard("{Control>}k{/Control}");
-		await screen.findByRole("combobox");
+		await screen.findByRole("combobox", { name: "Ask or tell Shipyard" });
 		const names = (await screen.findAllByRole("option")).map((o) => o.textContent);
 		// The commit action stays out of the palette while nothing is staged.
 		for (const label of [

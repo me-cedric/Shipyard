@@ -6,7 +6,7 @@ import { mountApp } from "@/test/mount";
 async function openPalette(user: ReturnType<typeof userEvent.setup>) {
 	await screen.findByRole("navigation", { name: "Sidebar" });
 	await user.keyboard("{Control>}k{/Control}");
-	return screen.findByRole("combobox");
+	return screen.findByRole("combobox", { name: "Ask or tell Shipyard" });
 }
 
 describe("refs in the shell", () => {
@@ -55,13 +55,13 @@ describe("refs in the shell", () => {
 		mountApp("/home/today");
 		const input = await openPalette(user);
 		await user.type(input, "adr:0004");
-		await user.keyboard("{Enter}");
+		await user.keyboard("{ArrowDown}{Enter}");
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
 		const chip = await within(inspector).findByRole("button", {
 			name: /spec:auth, Spec: auth, Resolved/,
 		});
 		chip.focus();
-		await user.keyboard("{Enter}");
+		await user.keyboard("{ArrowDown}{Enter}");
 		await waitFor(() =>
 			expect(
 				within(inspector).getByRole("button", { name: /^spec:auth, Spec: auth, Resolved$/ }),
@@ -90,8 +90,11 @@ describe("refs in the shell", () => {
 		mountApp("/home/today");
 		await screen.findByRole("navigation", { name: "Barre latérale" });
 		await user.keyboard("{Control>}k{/Control}");
-		await user.type(await screen.findByRole("combobox"), "adr:0004");
-		await user.keyboard("{Enter}");
+		await user.type(
+			await screen.findByRole("combobox", { name: "Demander ou dire à Shipyard" }),
+			"adr:0004",
+		);
+		await user.keyboard("{ArrowDown}{Enter}");
 		const inspector = await screen.findByLabelText("Inspecteur", { selector: "aside" });
 		expect(
 			await within(inspector).findByRole("heading", { name: "Spécification (2)" }),

@@ -14,6 +14,7 @@ import {
 	ChevronRightIcon,
 	ClipboardIcon,
 } from "@/ui/icons";
+import { ConfirmButton } from "@/ui/molecules/confirm-button";
 import { DiffView } from "@/ui/molecules/diff-view";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
@@ -214,7 +215,7 @@ function Reply({
 	);
 }
 
-function Changed({ files }: { files: FileDiff[] }) {
+function Changed({ files, onUndo }: { files: FileDiff[]; onUndo: () => void }) {
 	const { t } = useI18n();
 	if (!files.length) return null;
 	return (
@@ -234,6 +235,14 @@ function Changed({ files }: { files: FileDiff[] }) {
 					/>
 				</details>
 			))}
+			<ConfirmButton
+				variant="ghost"
+				className="min-h-control self-start"
+				confirm={t.assistant.undoConfirm}
+				onConfirm={onUndo}
+			>
+				{t.assistant.undo}
+			</ConfirmButton>
 		</section>
 	);
 }
@@ -314,7 +323,7 @@ export function Messages({
 					) : null}
 				</>
 			) : null}
-			<Changed files={a.changed} />
+			<Changed files={a.changed} onUndo={() => void a.undo()} />
 		</div>
 	);
 }

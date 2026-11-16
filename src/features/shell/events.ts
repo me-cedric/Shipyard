@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 import { useWatchNotice } from "@/lib/code";
@@ -159,6 +160,20 @@ function useOpenRefEvent() {
 	}, []);
 }
 
+/** The menu bar panel opens a page of the window, such as the time page. The payload is its path. */
+export const OPEN_PATH_EVENT = "open-path";
+
+function useOpenPathEvent() {
+	const navigate = useNavigate();
+	const latest = useRef(navigate);
+	latest.current = navigate;
+	useEffect(() => {
+		if (!isTauri()) return;
+		const off = listen<string>(OPEN_PATH_EVENT, (e) => void latest.current({ to: e.payload }));
+		return () => void off.then((f) => f());
+	}, []);
+}
+
 function useProjectSwitchedEvent() {
 	const { switchTo } = useProjectActions();
 	const latest = useRef(switchTo);
@@ -231,6 +246,7 @@ export function useShellEvents() {
 	useTickNotices();
 	useProjectSwitchedEvent();
 	useOpenRefEvent();
+	useOpenPathEvent();
 
 	// A question, an approval or a run that needs the person: one entry and one system notice (REQ-008).
 	// A run that ends and an automatic review draft add their own entry (their own switch).

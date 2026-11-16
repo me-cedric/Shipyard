@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { format, useI18n } from "@/lib/i18n";
 import { type Theme, usePrefs } from "@/lib/prefs";
 import { AnimatedIcon } from "../atoms/animated-icon";
@@ -715,6 +715,8 @@ function Molecules() {
 function Organisms() {
 	const { t } = useI18n();
 	const [open, setOpen] = useState(false);
+	const [text, setText] = useState("");
+	const bar = useRef<HTMLInputElement>(null);
 	const [panel, setPanel] = useState(true);
 	const [commit, setCommit] = useState(false);
 	const [dialog, setDialog] = useState(false);
@@ -723,13 +725,14 @@ function Organisms() {
 	return (
 		<div>
 			<Row name="CommandPalette">
-				<Button onClick={() => setOpen(true)}>
-					<MagnifyingGlassIcon size={14} />
-					{t.palette.title}
-				</Button>
 				<CommandPalette
 					open={open}
 					onOpenChange={setOpen}
+					text={text}
+					onTextChange={setText}
+					onSubmit={noop}
+					inputRef={bar}
+					shortcut="Ctrl+K"
 					groups={[
 						{
 							id: "go",

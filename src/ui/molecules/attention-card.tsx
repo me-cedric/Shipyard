@@ -16,7 +16,10 @@ export function AttentionCard({
 			<p className="w-fit rounded-full bg-attention-subtle px-3 text-13 font-semibold text-attention-text">
 				{who}
 			</p>
-			<h3 className="text-16 font-semibold text-n-12">{title}</h3>
+			{/* tabIndex -1: the focus lands here when the card changes. */}
+			<h3 tabIndex={-1} className="text-16 font-semibold text-n-12 outline-none">
+				{title}
+			</h3>
 			{children}
 		</article>
 	);

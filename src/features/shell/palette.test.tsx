@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
@@ -8,31 +9,105 @@ import { PLACE_IDS } from "./places";
 async function openPalette(user: ReturnType<typeof userEvent.setup>) {
 	await screen.findByRole("navigation", { name: "Sidebar" });
 	await user.keyboard("{Control>}k{/Control}");
-	return screen.findByRole("combobox");
+	const bar = await screen.findByRole("combobox", { name: "Ask or tell Shipyard" });
+	await waitFor(() => expect(bar).toHaveFocus());
+	return bar;
 }
 
-describe("command palette (shell REQ-005)", () => {
+describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 	it("lists an action for each place, with its shortcut", async () => {
 		const user = userEvent.setup();
 		mountApp("/home");
 		await openPalette(user);
-		const dialog = within(await screen.findByRole("dialog"));
+		const panel = within(await screen.findByRole("listbox"));
 		for (const i of PLACE_IDS.keys()) {
-			const option = dialog.getByRole("option", { name: new RegExp(`Ctrl\\+${i + 1}$`) });
+			const option = panel.getByRole("option", { name: new RegExp(`Ctrl\\+${i + 1}$`) });
 			expect(option).toBeVisible();
 		}
-		expect(dialog.getByRole("option", { name: /Toggle inspector.*Ctrl\+I$/ })).toBeVisible();
-		expect(dialog.getByText(/^Actions \(\d+\)$/)).toBeVisible();
+		expect(panel.getByRole("option", { name: /Toggle inspector.*Ctrl\+I$/ })).toBeVisible();
+		expect(screen.getByText("Go to")).toBeVisible();
+		expect(screen.getByText("Do")).toBeVisible();
+		expect(screen.getByRole("button", { name: "Open the full assistant" })).toBeVisible();
 	});
 
 	it("runs an action by name with Enter and closes", async () => {
 		const user = userEvent.setup();
 		mountApp("/home");
 		await openPalette(user);
-		await user.keyboard("Toggle inspector{Enter}");
+		await user.keyboard("Toggle inspector{ArrowDown}{Enter}");
 		const inspector = screen.getByLabelText("Inspector", { selector: "aside" });
 		await waitFor(() => expect(inspector).toHaveAttribute("data-open", "true"));
+		expect(screen.queryByRole("listbox")).toBeNull();
+	});
+
+	it("opens no dialog, and Escape closes the panel", async () => {
+		const user = userEvent.setup();
+		mountApp("/home");
+		await openPalette(user);
 		expect(screen.queryByRole("dialog")).toBeNull();
+		expect(await screen.findByRole("listbox")).toBeVisible();
+		await user.keyboard("{Escape}");
+		expect(screen.queryByRole("listbox")).toBeNull();
+	});
+
+	it("runs the item that an arrow key chose, and sends other text to the assistant", async () => {
+		const user = userEvent.setup();
+		mountApp("/home");
+		const bar = await openPalette(user);
+		await user.type(bar, "Toggle inspector");
+		await user.keyboard("{ArrowDown}{Enter}");
+		const inspector = screen.getByLabelText("Inspector", { selector: "aside" });
+		await waitFor(() => expect(inspector).toHaveAttribute("data-open", "true"));
+		await user.click(bar);
+		await user.type(bar, "write a poem{Enter}");
+		expect(await screen.findByRole("complementary", { name: /assistant/i })).toBeVisible();
+	});
+
+	it("answers what blocks with each blocked feature and one action for it", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const spy = vi.spyOn(commands, "featuresList").mockResolvedValue({
+			status: "ok",
+			data: [
+				{
+					title: "Fix menu",
+					stage: "build",
+					mark: "blocked",
+					ticket: null,
+					change: null,
+					run: "run:1",
+					pr: null,
+				},
+				{
+					title: "Cache list",
+					stage: "build",
+					mark: "blocked",
+					ticket: null,
+					change: null,
+					run: "run:2",
+					pr: null,
+				},
+			],
+		});
+		mountApp("/home/today");
+		const bar = await openPalette(user);
+		await user.type(bar, "what blocks the release?{Enter}");
+		expect(await screen.findByRole("button", { name: "Unblock Fix menu" })).toBeVisible();
+		expect(screen.getByRole("button", { name: "Unblock Cache list" })).toBeVisible();
+		// The text stays: an answer shows for it, and the assistant does not open.
+		expect(bar).toHaveValue("what blocks the release?");
+		spy.mockRestore();
+	});
+
+	it("sends a question that holds a match word to the assistant draft with Open the full assistant", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		mountApp("/home/today");
+		const bar = await openPalette(user);
+		await user.type(bar, "How do I stop the dev server?{Enter}");
+		await user.click(await screen.findByRole("button", { name: "Open the full assistant" }));
+		const draft = await screen.findByRole("textbox", { name: "Message" });
+		await waitFor(() => expect(draft).toHaveValue("How do I stop the dev server?"));
 	});
 
 	it("opens a ref with Enter", async () => {
@@ -41,7 +116,7 @@ describe("command palette (shell REQ-005)", () => {
 		mountApp("/home/today");
 		await openPalette(user);
 		await user.keyboard("adr:0004");
-		await user.keyboard("{Enter}");
+		await user.keyboard("{ArrowDown}{Enter}");
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
 		expect(await within(inspector).findByRole("button", { name: /^adr:0004/ })).toBeVisible();
 	});
@@ -61,6 +136,7 @@ describe("command palette (shell REQ-005)", () => {
 		mountApp("/home");
 		await screen.findByRole("navigation", { name: "Barre latérale" });
 		await user.keyboard("{Control>}k{/Control}");
+		await screen.findByRole("combobox", { name: "Demander ou dire à Shipyard" });
 		expect(await screen.findByRole("option", { name: /Basculer l'inspecteur/ })).toBeVisible();
 	});
 });
@@ -71,9 +147,9 @@ describe("project actions of the palette", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		mountApp("/home");
 		await openPalette(user);
-		const dialog = within(await screen.findByRole("dialog"));
+		const dialog = within(await screen.findByRole("listbox"));
 		expect(dialog.getByRole("option", { name: /^Switch project/ })).toBeVisible();
-		await user.keyboard("Close project{Enter}");
+		await user.keyboard("Close project{ArrowDown}{Enter}");
 		await waitFor(async () => expect(await unwrap(commands.projectsActive())).toBeNull());
 		expect(mockState().projects).toHaveLength(1);
 	});
@@ -117,8 +193,7 @@ describe("palette pages and tickets", () => {
 		mountApp("/home/today");
 		await openPalette(user);
 		await user.keyboard("invoice");
-		const dialog = within(await screen.findByRole("dialog"));
-		expect(await dialog.findByText("wi (1)")).toBeVisible();
+		const dialog = within(await screen.findByRole("listbox"));
 		const option = await dialog.findByRole("option", { name: /^wi:ACME-8/ });
 		expect(within(option).getByText("invoice").tagName).toBe("MARK");
 		await user.click(dialog.getByRole("option", { name: "Ask the assistant" }));
@@ -131,7 +206,7 @@ describe("palette pages and tickets", () => {
 		await unwrap(commands.projectsOpen("/mock/alpha", false));
 		const router = mountApp("/home/today");
 		await openPalette(user);
-		await user.keyboard("adr:0004{Enter}");
+		await user.keyboard("adr:0004{ArrowDown}{Enter}");
 		const inspector = await screen.findByLabelText("Inspector", { selector: "aside" });
 		expect(await within(inspector).findByRole("button", { name: /^adr:0004/ })).toBeVisible();
 		await waitFor(() => expect(router.state.location.pathname).toBe("/library/decisions"));
