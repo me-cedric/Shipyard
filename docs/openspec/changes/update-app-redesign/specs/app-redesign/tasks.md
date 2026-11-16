@@ -29,9 +29,9 @@ Wave 1, foundation
 
 Wave 2, Today and Ask
 
-- [ ] T010 Today: one thing at a time with its answer, the queue, the count in the title; the views Needs you, News, Activity; the menu bar panel reads the same list (`src/features/home/`, `src/features/tray/`). REQ-007, REQ-008.
-- [ ] T011 [P] Role panels, the person's work, "since you were away" and the time reminder on Today (`src/features/home/role-panels.tsx`). REQ-009.
-- [ ] T012 Ask bar: answer, go to, do; the palette shortcut; the full assistant with every control of today (`src/features/assistant/`, `src/features/shell/palette-host.tsx`). REQ-004, REQ-005.
+- [x] T010 Today: one thing at a time with its answer, the queue, the count in the title; the views Needs you, News, Activity; the menu bar panel reads the same list (`src/features/home/`, `src/features/tray/`). REQ-007, REQ-008.
+- [x] T011 [P] Role panels, the person's work, "since you were away" and the time reminder on Today (`src/features/home/role-panels.tsx`). REQ-009.
+- [x] T012 Ask bar: answer, go to, do; the palette shortcut; the full assistant with every control of today (`src/features/assistant/`, `src/features/shell/palette-host.tsx`). REQ-004, REQ-005.
 
 Wave 3, Flow and one feature
 
