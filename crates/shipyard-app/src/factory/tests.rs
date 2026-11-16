@@ -1115,3 +1115,38 @@ fn a_unit_folder_shows_only_when_it_exists_and_its_session_can_resume() {
     // Another AI tool needs only the folder.
     assert_eq!(at("codex", None, &dir_s), dir_s);
 }
+
+#[test]
+fn features_join_a_run_and_the_change_that_names_its_ticket() {
+    use shipyard_core::feature::Stage;
+    let fx = fx(Writes::default());
+    let run = fx.start("SHIP-1");
+    let root = fx.repo.path();
+    let why = "# Add x\n\n## Why\n\nTicket `wi:SHIP-1`.\n";
+    write_file(root, "docs/openspec/changes/add-x/proposal.md", why);
+    write_file(root, "docs/openspec/changes/lone/proposal.md", "# Lone\n");
+    let f = features(&fx.s).unwrap();
+    let got: Vec<_> = f
+        .iter()
+        .map(|f| {
+            (
+                f.ticket.as_deref(),
+                f.change.as_deref(),
+                f.run.clone(),
+                f.stage,
+            )
+        })
+        .collect();
+    assert_eq!(
+        got,
+        [
+            (
+                Some("wi:SHIP-1"),
+                Some("change:add-x"),
+                Some(format!("run:{run}")),
+                Stage::Build
+            ),
+            (None, Some("change:lone"), None, Stage::Spec),
+        ]
+    );
+}

@@ -6,6 +6,9 @@ import { unwrap } from "./result";
 describe("mock ipc", () => {
 	it("serves the app info and the preferences", async () => {
 		expect(await commands.appInfo()).toEqual({ name: "Shipyard", version: "0.1.0", os: "browser" });
+		resetMock();
+		// A person with no stored theme opens in Light (`app-redesign` REQ-025).
+		expect((await unwrap(commands.prefsGet())).theme).toBe("light");
 		const prefs = await unwrap(commands.prefsSet({ theme: "dark" }));
 		expect(prefs.theme).toBe("dark");
 		expect(mockState().prefs.theme).toBe("dark");

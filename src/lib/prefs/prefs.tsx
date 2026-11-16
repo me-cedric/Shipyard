@@ -89,7 +89,7 @@ export const CODE_FONTS: Record<string, string> = {
 };
 
 const DEFAULTS: Prefs = {
-	theme: "system",
+	theme: "light",
 	density: "default",
 	contrast: "default",
 	role: "none",

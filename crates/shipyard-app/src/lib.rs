@@ -370,6 +370,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             work::work_item_preview,
             work::work_item_create,
             factory::runs_list,
+            factory::features_list,
             factory::run_get_one,
             factory::run_log_page,
             factory::sessions_list,

@@ -89,6 +89,7 @@ import * as dr from "./mock-doctor";
 import * as ex from "./mock-extensions";
 import * as xt from "./mock-extras";
 import * as fx from "./mock-factory";
+import { features } from "./mock-features";
 import * as fl from "./mock-feedback-log";
 import * as kw from "./mock-knowledge";
 import * as lg from "./mock-languages";
@@ -260,7 +261,7 @@ const DEFAULT_PATHS = {
 
 const fresh = (): State => ({
 	prefs: {
-		theme: "system",
+		theme: "light",
 		density: "default",
 		contrast: "default",
 		role: "none",
@@ -2187,6 +2188,16 @@ const handlers: Handlers = {
 	tiersGet: () => fx.tiersGet(state.factory),
 	tiersSet: (row) => fx.tiersSet(state.factory, row),
 	runsList: () => fx.runsList(state.factory, active()?.id ?? null),
+	featuresList: async () =>
+		active()
+			? features(
+					await handlers.syncItems({}),
+					await handlers.specsChanges(),
+					await handlers.runsList(),
+					await handlers.pullsList(),
+					(c) => state.specs.files[`${c.path}/proposal.md`]?.text ?? "",
+				)
+			: [],
 	runGetOne: (run) => fx.runGetOne(state.factory, active()?.id ?? null, run),
 	runLogPage: (run, after, limit) => fx.runLogPage(state.factory, run, after, limit),
 	sessionsList: () => [

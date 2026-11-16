@@ -323,7 +323,8 @@ fn default_release_url() -> String {
 impl Default for Prefs {
     fn default() -> Self {
         Self {
-            theme: Theme::System,
+            // A person with no stored theme opens in Light (`app-redesign` REQ-025).
+            theme: Theme::Light,
             density: Density::Default,
             contrast: Contrast::Default,
             role: Role::None,
@@ -620,6 +621,20 @@ mod tests {
         let p = Prefs::load(dir.path());
         assert_eq!((p.theme, p.lang), (Theme::Dark, Some(Lang::Fr)));
         assert_eq!(p.release_url, DEFAULT_RELEASE_URL);
+    }
+
+    #[test]
+    fn no_stored_theme_opens_in_light_and_a_stored_theme_stays() {
+        // `app-redesign` REQ-025, `q:Q-168`: the default changes, no stored file changes.
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(Prefs::load(dir.path()).theme, Theme::Light);
+        for (stored, theme) in [("system", Theme::System), ("dark", Theme::Dark)] {
+            let old = format!(
+                r#"{{"theme":"{stored}","density":"default","contrast":"default","role":"none","sidebarOpen":true,"lang":null}}"#
+            );
+            std::fs::write(dir.path().join(FILE), old).unwrap();
+            assert_eq!(Prefs::load(dir.path()).theme, theme);
+        }
     }
 
     #[test]

@@ -874,6 +874,82 @@ pub fn runs(s: &AppState) -> Res<Vec<RunView>> {
     Ok(out)
 }
 
+/// The features of the active project (`app-redesign` REQ-012): the mirror tickets, the spec
+/// changes, the runs and the pull requests, joined by their refs. No new store.
+pub fn features(s: &AppState) -> Res<Vec<shipyard_core::feature::FlowFeature>> {
+    use shipyard_core::feature::{ChangePart, PrPart, RunPart, TicketPart};
+    let Some(a) = active(s)? else {
+        return Ok(Vec::new());
+    };
+    let items = crate::commands::sync::items(s, &Default::default())?;
+    let tickets: Vec<TicketPart> = items
+        .iter()
+        .map(|t| TicketPart {
+            key: t.key.clone(),
+            title: t.title.clone(),
+            done: t.category == "done",
+        })
+        .collect();
+    let root = Path::new(&a.entry.path);
+    let changes: Vec<ChangePart> = crate::specs::changes(s)?
+        .into_iter()
+        .map(|c| {
+            let link = format!("change:{}", c.id);
+            // shortcut: the first `wi:` ref of the proposal, in the key form of Jira; a ticket of
+            // another issue tracker links through the mirror only.
+            let cited = std::fs::read_to_string(root.join(&c.path).join("proposal.md"))
+                .ok()
+                .and_then(|t| {
+                    let rest = t.split_once("wi:")?.1;
+                    let key: String = rest
+                        .chars()
+                        .take_while(|c| c.is_ascii_alphanumeric() || *c == '-')
+                        .collect();
+                    shipyard_core::refs::parse(&format!("wi:{key}")).map(|_| key)
+                });
+            let ticket = items
+                .iter()
+                .find(|t| t.linked.as_deref() == Some(link.as_str()))
+                .map(|t| t.key.clone())
+                .or(cited);
+            ChangePart {
+                id: c.id,
+                title: c.title,
+                ticket,
+            }
+        })
+        .collect();
+    let runs: Vec<RunPart> = runs(s)?
+        .into_iter()
+        .map(|r| RunPart {
+            pr: r.pr.as_ref().map(|p| u64::from(p.number)),
+            run: shipyard_core::run::Run {
+                state: r.state,
+                return_to: r.return_to,
+            },
+            id: r.id,
+            key: r.key,
+            title: r.title,
+        })
+        .collect();
+    let prs: Vec<PrPart> = crate::delivery::pr_rows(s)?
+        .into_iter()
+        .map(|p| PrPart {
+            reference: p.reference,
+            number: u64::from(p.number),
+            title: p.title,
+            state: match p.state.as_str() {
+                "open" => shipyard_core::pickup::PrState::Open,
+                "merged" => shipyard_core::pickup::PrState::Merged,
+                _ => shipyard_core::pickup::PrState::Closed,
+            },
+        })
+        .collect();
+    Ok(shipyard_core::feature::features(
+        &tickets, &changes, &runs, &prs,
+    ))
+}
+
 /// The newest reason in the last events of the run log (REQ-004): a `stop` or `blocked` note, or
 /// an error of the AI tool. Reads the tail only, so a long log costs nothing.
 fn stop_reason(s: &AppState, run: &str) -> Option<String> {
@@ -1817,6 +1893,12 @@ use crate::commands::blocking;
 #[specta::specta]
 pub async fn runs_list(app: AppHandle) -> Api<Vec<RunView>> {
     blocking(app, runs).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn features_list(app: AppHandle) -> Api<Vec<shipyard_core::feature::FlowFeature>> {
+    blocking(app, features).await
 }
 
 #[tauri::command]

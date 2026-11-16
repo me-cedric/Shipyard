@@ -6,6 +6,7 @@ pub mod compass_health;
 pub mod delivery;
 pub mod docs_fresh;
 pub mod extensions;
+pub mod feature;
 pub mod flows;
 pub mod gherkin;
 pub mod health;

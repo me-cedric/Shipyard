@@ -343,6 +343,7 @@ export const commands = {
 	workItemPreview: (row: Row_Deserialize) => typedError<DiffRow_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_item_preview", { row })),
 	workItemCreate: (row: Row_Deserialize, click: boolean) => typedError<ApplyRow_Serialize, AppError_Serialize>(__TAURI_INVOKE("work_item_create", { row, click })),
 	runsList: () => typedError<RunView_Serialize[], AppError_Serialize>(__TAURI_INVOKE("runs_list")),
+	featuresList: () => typedError<FlowFeature_Serialize[], AppError_Serialize>(__TAURI_INVOKE("features_list")),
 	runGetOne: (run: string) => typedError<RunView_Serialize | null, AppError_Serialize>(__TAURI_INVOKE("run_get_one", { run })),
 	runLogPage: (run: string, after: number, limit: number) => typedError<RunLogPage_Serialize, AppError_Serialize>(__TAURI_INVOKE("run_log_page", { run, after, limit })),
 	sessionsList: () => typedError<SessionView_Serialize[], AppError_Serialize>(__TAURI_INVOKE("sessions_list")),
@@ -2448,6 +2449,39 @@ export type FlowAction_Deserialize = "allow" | "Allow" | "deny" | "Deny";
 /**  Named `FlowAction` in the bindings: `work::Action` has the name `Action`. */
 export type FlowAction_Serialize = "allow" | "deny";
 
+/**  One feature: its title, its place in Flow and the refs of its parts. */
+export type FlowFeature = FlowFeature_Serialize | FlowFeature_Deserialize;
+
+/**  One feature: its title, its place in Flow and the refs of its parts. */
+export type FlowFeature_Deserialize = {
+	title: string,
+	stage: Stage,
+	mark?: Mark | null,
+	/**  `wi:<key>`. */
+	ticket?: string | null,
+	/**  `change:<id>`. */
+	change?: string | null,
+	/**  `run:<id>`. */
+	run?: string | null,
+	/**  `pr:<code-host>:<number>`. */
+	pr?: string | null,
+};
+
+/**  One feature: its title, its place in Flow and the refs of its parts. */
+export type FlowFeature_Serialize = {
+	title: string,
+	stage: Stage,
+	mark: Mark | null,
+	/**  `wi:<key>`. */
+	ticket: string | null,
+	/**  `change:<id>`. */
+	change: string | null,
+	/**  `run:<id>`. */
+	run: string | null,
+	/**  `pr:<code-host>:<number>`. */
+	pr: string | null,
+};
+
 export type FlowRow = FlowRow_Serialize | FlowRow_Deserialize;
 
 export type FlowRow_Deserialize = {
@@ -3015,6 +3049,12 @@ export type MachineSession_Serialize = {
 	/**  The process to stop, for a running session. */
 	pid: number | null,
 };
+
+/**
+ *  Why a feature waits. `NeedsYou` and `Blocked` ask a person to act; `Stopped` means that no
+ *  agent works on it (REQ-014).
+ */
+export type Mark = "needs_you" | "blocked" | "stopped";
 
 export type Marker = Marker_Serialize | Marker_Deserialize;
 
@@ -5787,6 +5827,9 @@ export type StackPreset = {
 	id: string,
 	gates: string[],
 };
+
+/**  The five stages of Flow, in order. */
+export type Stage = "idea" | "spec" | "build" | "review" | "ready";
 
 export type Stash = {
 	/**  Position in the list: 0 is the newest. A drop moves the ones after it. */

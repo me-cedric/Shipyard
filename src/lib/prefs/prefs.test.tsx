@@ -17,6 +17,10 @@ function Probe() {
 	);
 }
 
+function Early() {
+	return <output>{usePrefs().theme}</output>;
+}
+
 function Size() {
 	const { size, set, reset } = usePanelSize("terminal", 288);
 	return (
@@ -47,10 +51,23 @@ const mount = () =>
 	);
 
 describe("prefs", () => {
+	// app-redesign REQ-025: light is the theme of a person with no stored theme.
+	it("starts in light until the stored prefs load", () => {
+		render(
+			<QueryClientProvider client={new QueryClient()}>
+				<PrefsProvider>
+					<Early />
+				</PrefsProvider>
+			</QueryClientProvider>,
+		);
+		expect(screen.getByRole("status")).toHaveTextContent("light");
+		expect(document.documentElement.dataset.theme).toBe("light");
+	});
+
 	it("loads from the app data folder, writes data attributes and saves through the command", async () => {
 		mockState().prefs.density = "compact";
 		mount();
-		await screen.findByText("system:");
+		await screen.findByText("light:");
 		expect(document.documentElement.dataset.density).toBe("compact");
 		act(() => screen.getByRole("button").click());
 		expect(document.documentElement.dataset.theme).toBe("dark");
