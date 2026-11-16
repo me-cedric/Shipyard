@@ -4,8 +4,8 @@ Shipyard aide une équipe à livrer un projet logiciel : la conception, les spé
 
 ## La fenêtre
 
-- La barre de gauche contient les espaces : Accueil, Conception, Spécifications, Travail, Usine, Code, Connaissances et Réglages.
-- Les onglets d'un espace sont en haut de la page. Chaque onglet a une icône et son nom.
+- La barre de gauche contient les six lieux et Configuration : Aujourd'hui, Flux, Plan, Équipe, Bibliothèque, Code et Configuration. Chaque page d'avant se trouve dans un lieu, et son ancienne adresse l'ouvre toujours.
+- Les sections d'un lieu sont en haut de la page, dans un seul sélecteur.
 - L'inspecteur à droite montre l'élément que vous sélectionnez.
 - La barre d'état en bas montre le projet, l'état de la synchronisation et la commande de commit, avec le nombre de fichiers modifiés à côté de Commit.
 - La barre du haut contient Précédent et Suivant, Synchroniser, Activité, la recherche, les boutons Fichiers et Terminal, Demander, les notifications et le menu du compte.
@@ -77,7 +77,7 @@ Créer fait le dépôt, écrit les fichiers, fait le premier commit et ouvre le 
 - Appuyez sur Ctrl+K (Cmd+K sur Mac) pour ouvrir la palette. Tapez le nom d'une page, d'un élément ou d'une action.
 - Dans la palette, tapez quelques mots pour chercher dans le texte de vos documents, décisions, spécifications, questions, tickets et maquettes. Les majuscules et les accents ne comptent pas (« decision » trouve « décision »), chaque mot doit correspondre, et le dernier mot peut être un début. Les résultats se groupent par type, montrent un court extrait avec les mots marqués, et placent en premier une page que beaucoup d'éléments citent. Choisissez Demander à l'assistant pour mettre ces éléments comme contexte dans la zone de message de l'assistant. Rien n'est envoyé avant votre envoi. Le document que vous ouvrez depuis un résultat marque les mots.
 - Les listes de Design et de Connaissances ont une zone Rechercher qui filtre la liste avec la même recherche.
-- Appuyez sur Ctrl+1 à Ctrl+8 pour aller dans un espace.
+- Appuyez sur Ctrl+1 à Ctrl+7 pour aller dans un lieu.
 - Ouvrez la palette et choisissez Ouvrir le mode d'emploi de cette page pour lire l'aide de la page que vous voyez.
 - Appuyez sur Ctrl+[ et Ctrl+] (Cmd sur Mac), ou cliquez sur Précédent et Suivant dans la barre du haut, pour passer d'une vue ouverte à l'autre.
 - Appuyez sur F1, ou choisissez Mode d'emploi dans le menu du compte, pour lire l'aide de la page que vous voyez.

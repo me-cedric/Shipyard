@@ -4,8 +4,8 @@ Shipyard hilft einem Team, ein Softwareprojekt auszuliefern: den Entwurf, die Sp
 
 ## Das Fenster
 
-- Die linke Leiste enthält die Bereiche: Start, Entwurf, Spezifikationen, Arbeit, Fabrik, Code, Wissen und Einstellungen.
-- Die Tabs eines Bereichs stehen oben auf der Seite. Jeder Tab hat ein Symbol und seinen Namen.
+- Die linke Leiste enthält die sechs Orte und Einrichtung: Heute, Ablauf, Plan, Team, Bibliothek, Code und Einrichtung. Jede frühere Seite liegt in einem Ort, und ihre alte Adresse öffnet sie weiterhin.
+- Die Abschnitte eines Ortes stehen oben auf der Seite, in einem Umschalter.
 - Der Inspektor rechts zeigt das Element, das Sie auswählen.
 - Die Statusleiste unten zeigt das Projekt, den Sync-Status und die Commit-Steuerung, mit der Zahl der geänderten Dateien neben Commit.
 - Die obere Leiste enthält Zurück und Vorwärts, Synchronisieren, Aktivität, die Suche, die Schaltflächen Dateien und Terminal, Fragen, die Benachrichtigungen und das Kontomenü.
@@ -64,7 +64,7 @@ In Start, dann Heute, nennt eine einzige Liste Erste Schritte die nächsten Schr
 - Drücken Sie Ctrl+K (Cmd+K auf einem Mac), um die Palette zu öffnen. Tippen Sie den Namen einer Seite, eines Elements oder einer Aktion.
 - Tippen Sie in der Palette ein paar Wörter, um den Text Ihrer Dokumente, Entscheidungen, Spezifikationen, Fragen, Tickets und Entwürfe zu durchsuchen. Groß- und Kleinschreibung und Akzente spielen keine Rolle („decision“ findet „décision“), jedes Wort muss passen, und das letzte Wort darf ein Anfang sein. Die Ergebnisse sind nach Art gruppiert, zeigen einen kurzen Auszug mit markierten Wörtern und stellen eine Seite, die viele Elemente zitieren, an die erste Stelle. Wählen Sie Den Assistenten fragen, um diese Elemente als Kontext in das Nachrichtenfeld des Assistenten zu legen. Nichts wird gesendet, bevor Sie senden. Das Dokument, das Sie aus einem Ergebnis öffnen, markiert die Wörter.
 - Die Listen in Entwurf und Wissen haben ein Feld Suchen, das die Liste mit derselben Suche filtert.
-- Drücken Sie Ctrl+1 bis Ctrl+8, um zu einem Bereich zu gehen.
+- Drücken Sie Ctrl+1 bis Ctrl+7, um zu einem Ort zu gehen.
 - Öffnen Sie die Palette und wählen Sie Anleitung zu dieser Seite öffnen, um die Hilfe der Seite zu lesen, die Sie sehen.
 - Drücken Sie Ctrl+[ und Ctrl+] (Cmd auf einem Mac), oder klicken Sie in der oberen Leiste auf Zurück und Vorwärts, um zwischen den geöffneten Ansichten zu wechseln.
 - Drücken Sie F1, oder wählen Sie Anleitung im Kontomenü, um die Hilfe der Seite zu lesen, die Sie sehen.

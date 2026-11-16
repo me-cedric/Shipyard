@@ -4,8 +4,8 @@ Shipyard ayuda a un equipo a entregar un proyecto de software: el diseño, las e
 
 ## La ventana
 
-- La barra izquierda contiene los espacios: Inicio, Diseño, Especificaciones, Trabajo, Fábrica, Código, Conocimiento y Ajustes.
-- Las pestañas de un espacio están arriba en la página. Cada pestaña tiene un icono y su nombre.
+- La barra izquierda contiene los seis lugares y Configuración: Hoy, Flujo, Plan, Equipo, Biblioteca, Código y Configuración. Cada página de antes está en un lugar, y su dirección anterior la abre todavía.
+- Las secciones de un lugar están arriba en la página, en un solo selector.
 - El inspector de la derecha muestra el elemento que seleccionas.
 - La barra de estado de abajo muestra el proyecto, el estado de la sincronización y el control de commit, con el número de archivos modificados junto a Commit.
 - La barra superior contiene Atrás y Adelante, Sincronizar, Actividad, la búsqueda, los botones Archivos y Terminal, Preguntar, las notificaciones y el menú de la cuenta.
@@ -64,7 +64,7 @@ En Inicio, luego Hoy, una sola lista Empezar da los pasos siguientes en orden: p
 - Pulsa Ctrl+K (Cmd+K en un Mac) para abrir la paleta. Escribe el nombre de una página, de un elemento o de una acción.
 - En la paleta, escribe unas palabras para buscar en el texto de tus documentos, decisiones, especificaciones, preguntas, tickets y diseños. Las mayúsculas y los acentos no importan («decision» encuentra «décision»), cada palabra debe coincidir, y la última palabra puede ser un comienzo. Los resultados se agrupan por tipo, muestran un extracto corto con las palabras marcadas y ponen primero una página que citan muchos elementos. Elige Preguntar al asistente para poner esos elementos como contexto en el cuadro de mensaje del asistente. No se envía nada hasta que lo envíes. El documento que abres desde un resultado marca las palabras.
 - Las listas de Diseño y Conocimiento tienen un cuadro Buscar que filtra la lista con la misma búsqueda.
-- Pulsa Ctrl+1 a Ctrl+8 para ir a un espacio.
+- Pulsa Ctrl+1 a Ctrl+7 para ir a un lugar.
 - Abre la paleta y elige Abrir el manual de esta página para leer la ayuda de la página que ves.
 - Pulsa Ctrl+[ y Ctrl+] (Cmd en un Mac), o haz clic en Atrás y Adelante en la barra superior, para moverte entre las vistas que abriste.
 - Pulsa F1, o elige Manual en el menú de la cuenta, para leer la ayuda de la página que ves.

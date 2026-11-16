@@ -34,7 +34,7 @@ model {
 
     ui = container 'React UI' {
       technology 'React 19, Vite, TypeScript'
-      description 'The spaces, the shared components and the generated IPC client (src/).'
+      description 'The six places and Setup, which are views on the spaces (adr:0023), the shared components and the generated IPC client (src/).'
 
       home = component 'Home' {
         description 'Needs you, My work, Activity.'

@@ -1,6 +1,8 @@
 # Journal des modifications
 
 ## [0.2.0]
+- La barre de gauche contient six lieux et Configuration (Aujourd'hui, Flux, Plan, Équipe, Bibliothèque, Code, Configuration) à la place des huit espaces, et un seul sélecteur en haut de la page contient les sections du lieu ; chaque page d'avant se trouve dans un lieu, son ancienne adresse l'ouvre toujours, Ctrl+1 à Ctrl+7 mènent à un lieu, et le menu Aller et la palette de commandes utilisent les mêmes noms.
+- L'apparence est plus calme : un fond gris avec des cartes blanches en Clair, un seul bleu d'accent, un orange réservé à ce qui attend une personne, et Clair est le thème d'une personne qui n'en a jamais choisi (un thème choisi, Système compris, reste).
 - Connaissance / Graphe / Code s’ouvre comme une carte de dossiers, avec des lignes plus épaisses là où plus d’appels passent entre leurs fichiers, au lieu d’une liste plate de 300 symboles : sélectionnez un dossier pour voir ses fichiers, et un fichier pour voir ses symboles avec ce qui les appelle et ce qu’ils appellent ; Tout afficher revient à la carte.
 - Code / Historique montre la photo de profil de l'auteur de chaque commit, celle de GitHub pour une adresse no-reply de GitHub et celle de Gravatar pour toute autre adresse (les initiales s'il n'y en a pas). Seule une empreinte de l'adresse part vers Gravatar.
 - Connaissance / Graphe / Code montre le graphe après Indexer : il lit l'index aussi quand le serveur de code est arrêté (il ne tourne que le temps de la lecture), et il retrouve l'index d'un dossier dont le chemin contient un lien ou une espace.

@@ -9,9 +9,26 @@ const only = process.argv.slice(2);
 
 const tabs = (p: Page) => p.getByRole("navigation", { name: "Tabs" });
 const side = (p: Page) => p.getByRole("navigation", { name: "Sidebar" });
-const open = async (p: Page, space: string, tab?: string) => {
-	await side(p).getByRole("link", { name: space }).click();
-	if (tab) await tabs(p).getByRole("link", { name: tab, exact: true }).click();
+// The place of each section that a scene opens (adr:0023).
+const PLACE: Record<string, string> = {
+	Projects: "Today",
+	Runs: "Flow",
+	Questions: "Library",
+	Architecture: "Library",
+	Learn: "Library",
+	Plan: "Plan",
+	Team: "Crew",
+	Workflows: "Crew",
+	"Agents map": "Crew",
+	Usage: "Crew",
+	"Pull requests": "Code",
+	Connections: "Setup",
+	Project: "Setup",
+	Me: "Setup",
+};
+const open = async (p: Page, tab: string) => {
+	await side(p).getByRole("link", { name: PLACE[tab] }).click();
+	await tabs(p).getByRole("link", { name: tab, exact: true }).click();
 };
 const openProject = async (p: Page) => {
 	await p.goto("/home/today");
@@ -22,7 +39,7 @@ const openProject = async (p: Page) => {
 
 // Pull request 142 of the mock has comments, two threads and one file of three lines.
 const openPull = async (p: Page, tab?: string) => {
-	await open(p, "Code", "Pull requests");
+	await open(p, "Pull requests");
 	await p.getByRole("link", { name: /refuse an empty token/ }).click();
 	if (tab) await p.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
 };
@@ -45,22 +62,22 @@ type Scene = { name: string; light?: boolean; run: (p: Page) => Promise<void> };
 const scenes: Scene[] = [
 	{ name: "home", run: async () => {} },
 	{ name: "home-light", light: true, run: async () => {} },
-	{ name: "design", run: (p) => open(p, "Design", "Architecture") },
-	{ name: "specs", run: (p) => open(p, "Specs", "Questions") },
-	{ name: "work", run: (p) => open(p, "Work", "Plan") },
+	{ name: "design", run: (p) => open(p, "Architecture") },
+	{ name: "specs", run: (p) => open(p, "Questions") },
+	{ name: "work", run: (p) => open(p, "Plan") },
 	{
 		name: "team",
 		run: async (p) => {
-			await open(p, "Work", "Team");
+			await open(p, "Team");
 			await p.getByRole("table").first().waitFor();
 		},
 	},
-	{ name: "factory", run: (p) => open(p, "Factory", "Runs") },
-	{ name: "agents", run: (p) => open(p, "Factory", "Agents map") },
+	{ name: "factory", run: (p) => open(p, "Runs") },
+	{ name: "agents", run: (p) => open(p, "Agents map") },
 	{
 		name: "workflows",
 		run: async (p) => {
-			await open(p, "Factory", "Workflows");
+			await open(p, "Workflows");
 			await p.getByRole("button", { name: /^feature/i }).click();
 			await p.getByRole("textbox", { name: "Step id" }).first().waitFor();
 		},
@@ -68,7 +85,7 @@ const scenes: Scene[] = [
 	{
 		name: "runs-history",
 		run: async (p) => {
-			await open(p, "Factory", "Runs");
+			await open(p, "Runs");
 			await p.getByRole("button", { name: "History", exact: true }).click();
 			await p.getByRole("table", { name: "History" }).waitFor();
 		},
@@ -76,14 +93,14 @@ const scenes: Scene[] = [
 	{
 		name: "usage",
 		run: async (p) => {
-			await open(p, "Factory", "Usage");
+			await open(p, "Usage");
 			await p.getByRole("region", { name: "Budgets" }).waitFor();
 		},
 	},
 	{
 		name: "run",
 		run: async (p) => {
-			await open(p, "Factory", "Runs");
+			await open(p, "Runs");
 			await p
 				.getByRole("region", { name: "Working" })
 				.getByRole("button", { name: /ACME-2/ })
@@ -95,7 +112,7 @@ const scenes: Scene[] = [
 	{
 		name: "pulls",
 		run: async (p) => {
-			await open(p, "Code", "Pull requests");
+			await open(p, "Pull requests");
 			await p.getByRole("link", { name: /refuse an empty token/ }).waitFor();
 		},
 	},
@@ -125,13 +142,13 @@ const scenes: Scene[] = [
 			await p.getByRole("dialog", { name: "Submit review" }).waitFor();
 		},
 	},
-	{ name: "knowledge", run: (p) => open(p, "Knowledge", "Learn") },
-	{ name: "settings-connections", run: (p) => open(p, "Settings", "Connections") },
-	{ name: "settings-project", run: (p) => open(p, "Settings", "Project") },
+	{ name: "knowledge", run: (p) => open(p, "Learn") },
+	{ name: "settings-connections", run: (p) => open(p, "Connections") },
+	{ name: "settings-project", run: (p) => open(p, "Project") },
 	{
 		name: "themes",
 		run: async (p) => {
-			await open(p, "Settings", "Me");
+			await open(p, "Me");
 			await p.getByRole("combobox", { name: "Theme" }).click();
 			await p.getByRole("option", { name: "OLED", exact: true }).click();
 		},
@@ -148,7 +165,7 @@ const scenes: Scene[] = [
 	{
 		name: "new-project",
 		run: async (p) => {
-			await open(p, "Home", "Projects");
+			await open(p, "Projects");
 			await p.getByRole("button", { name: "New project" }).click();
 			const d = p.getByRole("dialog", { name: "New project" });
 			await d.getByRole("textbox", { name: "Name" }).fill("Acme Web");
@@ -172,6 +189,13 @@ for (const s of scenes) {
 	});
 	const page = await ctx.newPage();
 	await openProject(page);
+	if (!s.light) {
+		// Light is the default theme: a dark scene picks Dark from the palette.
+		await page.keyboard.press("ControlOrMeta+k");
+		await page.getByRole("dialog").getByRole("combobox").fill("Theme: Dark");
+		await page.keyboard.press("Enter");
+		await page.locator('html[data-theme="dark"]').waitFor();
+	}
 	await s.run(page);
 	await page.mouse.move(800, 990); // no hover state
 	await page.waitForTimeout(800); // fades and charts settle

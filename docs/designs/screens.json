@@ -323,6 +323,16 @@
         "spec:ux-declutter"
       ],
       "file": "docs/assets/screenshots/pull-review.png"
+    },
+    {
+      "id": "SCR-036",
+      "slug": "place-menu",
+      "title": "Shell: the place menu with Today, Flow, Plan, Crew, Library and Code, Setup at its foot, and one section switch at the top of the page",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/home-light.png"
     }
   ]
 }

@@ -20,12 +20,12 @@ Wave 0, decisions
 
 Wave 1, foundation
 
-- [ ] T004 [P] Extend the inventory test with each route and each palette action of today (`src/features/shell/inventory.test.tsx`). REQ-003.
-- [ ] T005 [P] Unit tests, then the map from each run state to a stage and a mark in `crates/shipyard-core/`. REQ-010.
-- [ ] T006 Unit tests, then the feature read model that joins ticket, spec change, run and pull request in `crates/shipyard-core/`; one read command in `crates/shipyard-app/`; update `src/lib/ipc/mock*.ts`. REQ-012.
-- [ ] T007 [P] Tokens of the new look in `src/ui/tokens/` for Light, Dark, OLED and System; the attention colour as one token; Light as the default for a person with no chosen theme, a chosen theme kept (`q:Q-168`). REQ-025.
-- [ ] T008 [P] Shared components with gallery entries in `src/ui/`: place menu, Ask bar, stage line, attention card, section switch, door, value row. Each is 44 px high or more. REQ-026, REQ-028.
-- [ ] T009 New shell with the six places and Setup, on main with no switch (`q:Q-171`); redirects for each old address in `src/app/router.tsx`. REQ-001, REQ-002, REQ-029.
+- [x] T004 [P] Extend the inventory test with each route and each palette action of today (`src/features/shell/inventory.test.tsx`). REQ-003.
+- [x] T005 [P] Unit tests, then the map from each run state to a stage and a mark in `crates/shipyard-core/`. REQ-010.
+- [x] T006 Unit tests, then the feature read model that joins ticket, spec change, run and pull request in `crates/shipyard-core/`; one read command in `crates/shipyard-app/`; update `src/lib/ipc/mock*.ts`. REQ-012.
+- [x] T007 [P] Tokens of the new look in `src/ui/tokens/` for Light, Dark, OLED and System; the attention colour as one token; Light as the default for a person with no chosen theme, a chosen theme kept (`q:Q-168`). REQ-025.
+- [x] T008 [P] Shared components with gallery entries in `src/ui/`: place menu, Ask bar, stage line, attention card, section switch, door, value row. Each is 44 px high or more. REQ-026, REQ-028.
+- [x] T009 New shell with the six places and Setup, on main with no switch (`q:Q-171`); redirects for each old address in `src/app/router.tsx`. REQ-001, REQ-002, REQ-029.
 
 Wave 2, Today and Ask
 

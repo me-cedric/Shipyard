@@ -4,8 +4,8 @@ Shipyard helps a team deliver a software project: the design, the specs, the wor
 
 ## The window
 
-- The left bar holds the spaces: Home, Design, Specs, Work, Factory, Code, Knowledge and Settings.
-- The tabs of a space sit at the top of the page. Each tab has an icon and its name.
+- The left bar holds the six places and Setup: Today, Flow, Plan, Crew, Library, Code and Setup. Each page of before sits in one place, and its old address still opens it.
+- The sections of a place sit at the top of the page, in one switch.
 - The inspector on the right shows the item that you select.
 - The status bar at the bottom shows the project, the sync state and the commit control, with the count of changed files beside Commit.
 - The top bar holds Back and Forward, Sync, Activity, the search, the Files and Terminal buttons, Ask, the notifications and the account menu.
@@ -81,7 +81,7 @@ Create makes the repository, writes the files, makes the first commit and opens 
 - Press Ctrl+K (Cmd+K on a Mac) to open the palette. Type the name of a page, an item or an action.
 - In the palette, type a few words to search the text of your documents, decisions, specs, questions, tickets and designs. Case and accents do not matter ("decision" finds "décision"), every word must match, and the last word can be a start. Results group by kind, show a short extract with the words marked, and put a page that many items cite first. Choose Ask the assistant to put those items as context in the message box of the assistant. Nothing is sent until you send it. The document that you open from a result marks the words.
 - Design and Knowledge lists have a Search box that filters the list with the same search.
-- Press Ctrl+1 to Ctrl+8 to go to a space.
+- Press Ctrl+1 to Ctrl+7 to go to a place.
 - Open the palette and choose Open the manual for this page to read the help of the page that you see.
 - Press Ctrl+[ and Ctrl+] (Cmd on a Mac), or click Back and Forward in the top bar, to move between the views that you opened.
 - Press F1, or choose Manual in the account menu, to read the help of the page that you see.
