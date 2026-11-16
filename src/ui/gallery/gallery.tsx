@@ -33,6 +33,8 @@ import {
 	ViewColumnsIcon,
 	XMarkIcon,
 } from "../icons";
+import { AskBar } from "../molecules/ask-bar";
+import { AttentionCard } from "../molecules/attention-card";
 import { BacklinkList } from "../molecules/backlink-list";
 import { BoardColumn } from "../molecules/board-column";
 import { Card } from "../molecules/card";
@@ -41,6 +43,7 @@ import { ConflictBlock, type ConflictChoice } from "../molecules/conflict-block"
 import { ConnectionRow } from "../molecules/connection-row";
 import { ContextMenu } from "../molecules/context-menu";
 import { DiffView } from "../molecules/diff-view";
+import { Door } from "../molecules/door";
 import { EmptyState } from "../molecules/empty-state";
 import { FileRow } from "../molecules/file-row";
 import { FilterBar } from "../molecules/filter-bar";
@@ -50,10 +53,13 @@ import { MemberRow, SuggestionRow } from "../molecules/member-row";
 import { NotificationRow } from "../molecules/notification-row";
 import { PageHeader } from "../molecules/page-header";
 import { Panel } from "../molecules/panel";
+import { PlaceMenu } from "../molecules/place-menu";
 import { ProjectSwitcher } from "../molecules/project-switcher";
 import { RefChip } from "../molecules/ref-chip";
 import { SecretInput } from "../molecules/secret-input";
+import { SectionSwitch } from "../molecules/section-switch";
 import { SettingsRow } from "../molecules/settings-row";
+import { StageLine } from "../molecules/stage-line";
 import { Stat } from "../molecules/stat";
 import { StatStrip } from "../molecules/stat-strip";
 import { SyncStatus } from "../molecules/sync-status";
@@ -327,6 +333,58 @@ function Molecules() {
 				<div className="w-96">
 					<SettingsRow icon={<SunIcon size={14} />} label={t.prefs.theme}>
 						<Switch label={t.prefs.theme} iconOnly />
+					</SettingsRow>
+				</div>
+			</Row>
+			<Row name="PlaceMenu">
+				<div className="w-56">
+					<PlaceMenu
+						items={[
+							{ id: "today", label: "Today", icon: <HomeIcon size={20} />, current: true },
+							{ id: "flow", label: "Flow", icon: <InboxIcon size={20} />, count: 3 },
+						]}
+						end={{ id: "setup", label: "Setup", icon: <Cog6ToothIcon size={20} /> }}
+					/>
+				</div>
+				<PlaceMenu
+					narrow
+					items={[{ id: "today", label: "Today", icon: <HomeIcon size={20} />, current: true }]}
+				/>
+			</Row>
+			<Row name="AskBar">
+				<div className="w-96">
+					<AskBar onSubmit={noop} />
+				</div>
+			</Row>
+			<Row name="StageLine">
+				<StageLine stage="build" mark="needs_you" />
+			</Row>
+			<Row name="AttentionCard">
+				<div className="w-96">
+					<AttentionCard who="Ana" title="Approve the plan">
+						<Button>{t.common.open}</Button>
+					</AttentionCard>
+				</div>
+			</Row>
+			<Row name="SectionSwitch">
+				<SectionSwitch
+					label={t.ui.sections}
+					items={[
+						{ id: "a", label: "Backlog", current: true },
+						{ id: "b", label: "Board" },
+					]}
+				/>
+			</Row>
+			<Row name="Door">
+				<div className="w-48">
+					<Door label="Specs" icon={<InboxIcon size={24} />} count={4} onClick={noop} />
+				</div>
+			</Row>
+			<Row name="Value row (SettingsRow)">
+				<div className="w-96">
+					<SettingsRow label="Branch">
+						<span>main</span>
+						<Button>{t.common.open}</Button>
 					</SettingsRow>
 				</div>
 			</Row>

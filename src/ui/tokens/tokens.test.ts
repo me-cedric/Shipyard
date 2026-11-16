@@ -125,6 +125,46 @@ describe("tokens (REQ-001)", () => {
 	});
 });
 
+describe("the look of the redesign (app-redesign REQ-025, REQ-026)", () => {
+	const root = block(":root");
+	const inline = block("@theme inline");
+
+	it("defines one attention colour with a soft ground and a text colour, for both themes", () => {
+		for (const k of ["--attention", "--attention-subtle", "--attention-text"])
+			expect(decl(root, k), k).toMatch(/^light-dark\(/);
+		expect(decl(root, "--attention-soft")).toContain("var(--attention)");
+		for (const k of ["", "-subtle", "-text", "-soft"])
+			expect(decl(inline, `--color-attention${k}`), k).toBe(`var(--attention${k})`);
+	});
+
+	it("keeps the attention colour distinct from the status colours and the accent", () => {
+		const hue = (name: string) =>
+			Number(/oklch\([\d.]+\s+[\d.]+\s+([\d.]+)/.exec(decl(root, name) ?? "")?.[1]);
+		expect(hue("--attention")).toBeGreaterThan(40);
+		expect(hue("--attention")).toBeLessThan(70);
+	});
+
+	it("uses the attention colour only in the attention card", () => {
+		const hits = Object.keys(sources).filter(
+			(p) =>
+				!/\.test\.tsx?$|gallery\/|molecules\/attention-card\.tsx$/.test(p) &&
+				/\battention(?:-|\b)/.test(sources[p] ?? "") &&
+				/(?:text|bg|border|ring|outline)-attention/.test(sources[p] ?? ""),
+		);
+		expect(hits).toEqual([]);
+	});
+
+	it("defines a 44 px control height", () => {
+		expect(decl(root, "--control-h")).toBe("44px");
+		expect(css).toContain("@utility min-h-control");
+	});
+
+	it("puts cards on a calmer ground in light: white cards on a grey ground", () => {
+		expect(decl(root, "--surface-1")).toMatch(/^light-dark\(oklch\(1 0 0\)/);
+		expect(decl(root, "--surface-2")).toMatch(/^light-dark\(oklch\(1 0 0\)/);
+	});
+});
+
 describe("shared timing (REQ-025)", () => {
 	it("mirrors the duration tokens in DURATION (ms)", () => {
 		const theme = block("@theme");
@@ -316,7 +356,14 @@ describe("OLED theme (themes REQ-001)", () => {
 	});
 
 	it("keeps the accent of the dark theme", () => {
-		for (const k of ["--accent", "--accent-text", "--accent-subtle", "--success", "--danger"])
+		for (const k of [
+			"--accent",
+			"--accent-text",
+			"--accent-subtle",
+			"--attention",
+			"--success",
+			"--danger",
+		])
 			expect(decl(oled, k), k).toBeUndefined();
 	});
 
@@ -332,9 +379,14 @@ describe("OLED theme (themes REQ-001)", () => {
 		].map((k) => [k, decl(oled, k) ?? ""] as const);
 		const texts = [
 			...["--n-10", "--n-11", "--n-12"].map((k) => [k, decl(oled, k) ?? ""] as const),
-			...["--accent-text", "--success-text", "--warning-text", "--danger-text", "--info-text"].map(
-				(k) => [k, dark(k)] as const,
-			),
+			...[
+				"--accent-text",
+				"--attention-text",
+				"--success-text",
+				"--warning-text",
+				"--danger-text",
+				"--info-text",
+			].map((k) => [k, dark(k)] as const),
 		];
 		for (const [tk, tv] of texts) {
 			expect(tv, tk).toMatch(/^oklch\(/);

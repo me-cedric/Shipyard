@@ -80,6 +80,11 @@
 	--color-accent-subtle: var(--accent-subtle);
 	--color-accent-text: var(--accent-text);
 
+	--color-attention: var(--attention);
+	--color-attention-subtle: var(--attention-subtle);
+	--color-attention-text: var(--attention-text);
+	--color-attention-soft: var(--attention-soft);
+
 	--color-success: var(--success);
 	--color-success-subtle: var(--success-subtle);
 	--color-success-text: var(--success-text);
@@ -120,6 +125,8 @@
 :root {
 	color-scheme: light dark;
 	--row-h: 28px;
+	/* The height of each control that a person clicks (app-redesign REQ-026). */
+	--control-h: 44px;
 	--text-ui: 0.8125rem;
 
 	--n-1: light-dark(oklch(0.992 0.003 250), oklch(0.155 0.008 250));
@@ -135,12 +142,17 @@
 	--n-11: light-dark(oklch(0.48 0.012 250), oklch(0.76 0.012 250));
 	--n-12: light-dark(oklch(0.23 0.01 250), oklch(0.96 0.005 250));
 
-	/* Accent: the logo blue #3BB9FD. */
-	--accent: oklch(0.757 0.147 238);
-	--accent-hover: light-dark(oklch(0.7 0.15 238), oklch(0.8 0.13 238));
-	--accent-fg: oklch(0.2 0.03 245);
-	--accent-subtle: light-dark(oklch(0.95 0.03 238), oklch(0.28 0.05 245));
-	--accent-text: light-dark(oklch(0.5 0.15 245), oklch(0.8 0.12 238));
+	/* Accent: one blue, deep in light and soft in dark. */
+	--accent: light-dark(oklch(0.5 0.19 265), oklch(0.72 0.14 265));
+	--accent-hover: light-dark(oklch(0.45 0.19 265), oklch(0.78 0.13 265));
+	--accent-fg: light-dark(oklch(0.99 0 0), oklch(0.2 0.03 265));
+	--accent-subtle: light-dark(oklch(0.95 0.03 265), oklch(0.28 0.06 265));
+	--accent-text: light-dark(oklch(0.46 0.17 265), oklch(0.8 0.12 265));
+
+	/* Attention: the one colour for "a person must act". Only the attention card uses it. */
+	--attention: light-dark(oklch(0.7 0.15 55), oklch(0.76 0.14 55));
+	--attention-subtle: light-dark(oklch(0.96 0.03 60), oklch(0.3 0.07 55));
+	--attention-text: light-dark(oklch(0.45 0.12 50), oklch(0.86 0.09 65));
 
 	--success: light-dark(oklch(0.62 0.16 150), oklch(0.72 0.17 150));
 	--success-subtle: light-dark(oklch(0.95 0.04 150), oklch(0.27 0.05 150));
@@ -159,11 +171,11 @@
 	--surface-0: color-mix(
 		in oklch,
 		var(--accent) 2%,
-		light-dark(oklch(0.975 0.004 85), oklch(0.145 0.01 250))
+		light-dark(oklch(0.965 0.004 265), oklch(0.17 0.006 265))
 	);
-	--surface-1: light-dark(oklch(0.99 0.002 85), oklch(0.175 0.011 250));
-	--surface-2: light-dark(oklch(1 0 0), oklch(0.205 0.012 250));
-	--surface-3: light-dark(oklch(1 0 0), oklch(0.235 0.013 250));
+	--surface-1: light-dark(oklch(1 0 0), oklch(0.2 0.009 265));
+	--surface-2: light-dark(oklch(1 0 0), oklch(0.225 0.01 265));
+	--surface-3: light-dark(oklch(1 0 0), oklch(0.255 0.011 265));
 
 	/* Elevation: soft, wide shadows in light; in dark a 1 px top highlight does most of the work. */
 	--highlight: light-dark(oklch(1 0 0 / 70%), oklch(1 0 0 / 5%));
@@ -189,6 +201,7 @@
 	--warning-soft: color-mix(in oklch, var(--warning) 16%, transparent);
 	--danger-soft: color-mix(in oklch, var(--danger) 14%, transparent);
 	--info-soft: color-mix(in oklch, var(--info) 14%, transparent);
+	--attention-soft: color-mix(in oklch, var(--attention) 16%, transparent);
 
 	/* The canvas of the main area: an accent aurora at the top over a faint dot grid. */
 	--aurora: light-dark(
@@ -245,17 +258,20 @@
 /* A project can override the accent. Only the hue changes. */
 :root[data-accent] .canvas-dark,
 :root[data-accent] {
-	--accent: oklch(0.757 0.147 var(--accent-hue));
-	--accent-hover: light-dark(oklch(0.7 0.15 var(--accent-hue)), oklch(0.8 0.13 var(--accent-hue)));
+	--accent: light-dark(oklch(0.5 0.19 var(--accent-hue)), oklch(0.72 0.14 var(--accent-hue)));
+	--accent-hover: light-dark(
+		oklch(0.45 0.19 var(--accent-hue)),
+		oklch(0.78 0.13 var(--accent-hue))
+	);
 	--accent-subtle: light-dark(
 		oklch(0.95 0.03 var(--accent-hue)),
 		oklch(0.28 0.05 var(--accent-hue))
 	);
-	--accent-text: light-dark(oklch(0.5 0.15 var(--accent-hue)), oklch(0.8 0.12 var(--accent-hue)));
+	--accent-text: light-dark(oklch(0.46 0.17 var(--accent-hue)), oklch(0.8 0.12 var(--accent-hue)));
 }
 
 :root[data-accent="blue"] {
-	--accent-hue: 238;
+	--accent-hue: 265;
 }
 
 :root[data-accent="violet"] {
@@ -285,8 +301,8 @@
 	--n-12: light-dark(oklch(0.14 0.01 250), oklch(0.99 0.003 250));
 	/* Text on a soft accent tint, such as the active page tab: 7:1 or more in both themes. */
 	--accent-text: light-dark(
-		oklch(0.4 0.15 var(--accent-hue, 245)),
-		oklch(0.95 0.05 var(--accent-hue, 238))
+		oklch(0.4 0.15 var(--accent-hue, 265)),
+		oklch(0.95 0.05 var(--accent-hue, 265))
 	);
 }
 
@@ -302,6 +318,10 @@
 
 @utility min-h-row {
 	min-height: var(--row-h);
+}
+
+@utility min-h-control {
+	min-height: var(--control-h);
 }
 
 @utility bg-accent-gradient {
