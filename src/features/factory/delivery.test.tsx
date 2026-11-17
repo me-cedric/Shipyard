@@ -11,7 +11,7 @@ async function renderRuns() {
 }
 const lane = async (name: string) => within(await screen.findByRole("region", { name }));
 
-describe("Delivery on the run cards", () => {
+describe("Delivery on the cards of Flow", () => {
 	beforeEach(() => {
 		window.matchMedia = ((query: string) => ({
 			matches: false,
@@ -21,43 +21,43 @@ describe("Delivery on the run cards", () => {
 		})) as unknown as typeof window.matchMedia;
 	});
 
-	it("shows the pull request, CI and review state in In review (REQ-021, REQ-029)", async () => {
+	it("shows the checks of a pull request in the state of a card in Review (REQ-021, REQ-029)", async () => {
 		await renderRuns();
-		const review = await lane("In review");
+		const review = await lane("Review");
 		const failing = within(await review.findByRole("button", { name: /ACME-7/ }));
-		expect(failing.getByText("#43")).toBeInTheDocument();
-		expect(failing.getByText("CI failing")).toBeInTheDocument();
-		expect(failing.getByText("Review clear")).toBeInTheDocument();
-		const asked = within(review.getByRole("button", { name: /ACME-5/ }));
-		expect(asked.getByText("Changes requested", { selector: "span" })).toBeInTheDocument();
+		expect(failing.getByText("Checks fail")).toBeInTheDocument();
+		const passing = within(await review.findByRole("button", { name: /ACME-8/ }));
+		expect(passing.getByText("Ready to merge")).toBeInTheDocument();
 	});
 
-	it("puts a passing, clear pull request in Ready to merge", async () => {
+	it("shows no pull request line on a card before review", async () => {
 		await renderRuns();
-		const ready = within(
-			(await (
-				await lane("Ready to merge")
-			).findByRole("button", { name: /ACME-8/ })) as HTMLElement,
+		const card = within(
+			await (await lane("Build")).findByRole("heading", { name: /Add export endpoint/ }),
 		);
-		expect(ready.getByText("#42")).toBeInTheDocument();
-		expect(ready.getByText("CI passing")).toBeInTheDocument();
-		expect(ready.getByText("Review clear")).toBeInTheDocument();
-	});
-
-	it("shows no pull request line in a lane before review", async () => {
-		await renderRuns();
-		const card = within(await (await lane("Working")).findByRole("button", { name: /ACME-2/ }));
 		expect(card.queryByText(/^#\d+$/)).toBeNull();
+		expect(screen.queryByText(/^#\d+$/)).toBeNull();
 	});
 
-	it("shows the open questions and the approvals of a run", async () => {
+	it("says in plain words what a run waits for: a question, or approvals", async () => {
 		await renderRuns();
-		const asking = within(
-			await (await lane("Needs you")).findByRole("button", { name: /ACME-1(?!\d)/ }),
-		);
-		expect(asking.getByText("Questions 1")).toBeInTheDocument();
-		const working = within(await (await lane("Working")).findByRole("button", { name: /ACME-10/ }));
-		expect(working.getByText("Approvals 1")).toBeInTheDocument();
+		const build = await lane("Build");
+		const asking = (await build.findByRole("heading", { name: "Fix login redirect" })).closest(
+			"article",
+		) as HTMLElement;
+		expect(within(asking).getByText("Answer a question")).toBeInTheDocument();
+		const working = (await build.findByRole("heading", { name: "Add export endpoint" })).closest(
+			"article",
+		) as HTMLElement;
+		expect(within(working).getByText("Approve 2 actions")).toBeInTheDocument();
+		const review = await lane("Review");
+		expect(
+			within(
+				(await review.findByRole("heading", { name: "Add the health dot" })).closest(
+					"article",
+				) as HTMLElement,
+			).getByText("Approve 1 action"),
+		).toBeInTheDocument();
 	});
 
 	it("shows the draft flag, a status dot with its own shape, and opens with Enter (REQ-021, REQ-029)", async () => {

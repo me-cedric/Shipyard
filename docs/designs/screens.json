@@ -49,7 +49,7 @@
     {
       "id": "SCR-005",
       "slug": "work",
-      "title": "Work",
+      "title": "Plan",
       "artifacts": [
         "spec:work",
         "spec:ux-declutter"
@@ -59,7 +59,7 @@
     {
       "id": "SCR-006",
       "slug": "factory",
-      "title": "Factory / Runs: no tiles, one bar with search, the filter All, Needs you and Mine, and Board and History; five lanes that fit with a count each; a card with its one action and a menu with Stop",
+      "title": "Flow: each feature once in five stages (Idea, Spec, Build, Review, Ready), the views Flow, List, Done and Health, the filter All, Needs me and Mine, and New feature; a card shows the title, who works on it and its state",
       "artifacts": [
         "spec:factory",
         "spec:ux-declutter"
@@ -233,7 +233,7 @@
     {
       "id": "SCR-026",
       "slug": "factory-run",
-      "title": "Factory / Runs: a run page with a summary, the one action of the state, what needs you, and the tabs Activity, Changes and Workflow",
+      "title": "Flow / Feature: the page of one feature from a run, with the stage line, the one action of the state, one question for its approvals, and the sections Story, Brief, Design, Changes, Checks and Chat",
       "artifacts": [
         "spec:factory",
         "spec:ux-declutter"
@@ -243,7 +243,7 @@
     {
       "id": "SCR-031",
       "slug": "runs-history",
-      "title": "Factory / Runs, History: each ended run and each older run of a ticket, newest end first, with search; a row opens the run",
+      "title": "Flow / Done: each ended feature, newest end first, with search; a row opens the feature page",
       "artifacts": [
         "spec:factory",
         "spec:ux-declutter"
@@ -300,7 +300,7 @@
     {
       "id": "SCR-033",
       "slug": "pull-request",
-      "title": "Code / Pull request, Overview: the header with the state, the branches and the line counts, the four tabs, the merge box with Checks, Comments and Approvals and a Merge split button, the description, the conversation with threads, and the sidebar with reviewers, links and Cited by",
+      "title": "Flow / Feature, Changes: the pull request of a feature with the header, the four tabs, the merge box and the conversation; the old pull request address opens it. the header with the state, the branches and the line counts, the four tabs, the merge box with Checks, Comments and Approvals and a Merge split button, the description, the conversation with threads, and the sidebar with reviewers, links and Cited by",
       "artifacts": [
         "spec:code",
         "spec:ux-declutter"
@@ -356,6 +356,26 @@
         "adr:0023"
       ],
       "file": "docs/assets/screenshots/ask-bar.png"
+    },
+    {
+      "id": "SCR-039",
+      "slug": "flow-list",
+      "title": "Flow / List: the features as rows with the same filter, the old Backlog and Changes addresses",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/flow-list.png"
+    },
+    {
+      "id": "SCR-040",
+      "slug": "flow-new",
+      "title": "Flow / New: what to build, the kind, three ways (an agent writes the spec, I write the spec, build now), and start from a ticket",
+      "artifacts": [
+        "spec:app-redesign",
+        "adr:0023"
+      ],
+      "file": "docs/assets/screenshots/new-feature.png"
     }
   ]
 }

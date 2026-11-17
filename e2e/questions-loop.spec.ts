@@ -23,11 +23,10 @@ test("answers Q-101 with the keyboard, and the run leaves Needs you", async ({ p
 		.getByRole("navigation", { name: "Sidebar" })
 		.getByRole("link", { name: "Flow" })
 		.click();
-	await page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Runs" }).click();
-	await expect(
-		page.getByRole("region", { name: "Needs you" }).getByRole("button", { name: /ACME-1(?!\d)/ }),
-	).toHaveCount(0);
-	await expect(
-		page.getByRole("region", { name: "Working" }).getByRole("button", { name: /ACME-1(?!\d)/ }),
-	).toBeVisible();
+	// The run is on the board with its answer in: its card no longer asks for one.
+	const card1 = page
+		.getByRole("region", { name: "Build", exact: true })
+		.getByRole("button", { name: /ACME-1(?!\d)/ });
+	await expect(card1).toBeVisible();
+	await expect(card1).not.toContainText("Answer a question");
 });

@@ -12,7 +12,9 @@ const side = (p: Page) => p.getByRole("navigation", { name: "Sidebar" });
 // The place of each section that a scene opens (adr:0023).
 const PLACE: Record<string, string> = {
 	Projects: "Today",
-	Runs: "Flow",
+	Flow: "Flow",
+	List: "Flow",
+	Done: "Flow",
 	Questions: "Library",
 	Architecture: "Library",
 	Learn: "Library",
@@ -38,10 +40,10 @@ const openProject = async (p: Page) => {
 };
 
 // Pull request 142 of the mock has comments, two threads and one file of three lines.
-const openPull = async (p: Page, tab?: string) => {
+// The page opens on Changes: the merge box, the commits and the files.
+const openPull = async (p: Page) => {
 	await open(p, "Pull requests");
 	await p.getByRole("link", { name: /refuse an empty token/ }).click();
-	if (tab) await p.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
 };
 // Adds a comment to the pending review: opens the file, the "+" of the line, the box.
 const comment = async (p: Page, line: number, text: string) => {
@@ -91,7 +93,15 @@ const scenes: Scene[] = [
 			await p.getByRole("table").first().waitFor();
 		},
 	},
-	{ name: "factory", run: (p) => open(p, "Runs") },
+	{ name: "factory", run: (p) => open(p, "Flow") },
+	{ name: "flow-list", run: (p) => open(p, "List") },
+	{
+		name: "new-feature",
+		run: async (p) => {
+			await p.goto("/flow/new");
+			await p.getByRole("heading", { name: "What do you want to build?" }).waitFor();
+		},
+	},
 	{ name: "agents", run: (p) => open(p, "Agents map") },
 	{
 		name: "workflows",
@@ -104,8 +114,7 @@ const scenes: Scene[] = [
 	{
 		name: "runs-history",
 		run: async (p) => {
-			await open(p, "Runs");
-			await p.getByRole("button", { name: "History", exact: true }).click();
+			await open(p, "Done");
 			await p.getByRole("table", { name: "History" }).waitFor();
 		},
 	},
@@ -119,13 +128,13 @@ const scenes: Scene[] = [
 	{
 		name: "run",
 		run: async (p) => {
-			await open(p, "Runs");
+			await open(p, "Flow");
 			await p
-				.getByRole("region", { name: "Working" })
-				.getByRole("button", { name: /ACME-2/ })
+				.getByRole("button", { name: /Add export endpoint/ })
+				.first()
 				.click();
-			// The Activity tab is open, with the summary in view.
-			await p.getByRole("region", { name: /^Events/ }).waitFor();
+			// The feature page opens on Story, with the question of the agent.
+			await p.getByRole("region", { name: "Needs you" }).waitFor();
 		},
 	},
 	{
@@ -140,13 +149,12 @@ const scenes: Scene[] = [
 		run: async (p) => {
 			await openPull(p);
 			await p.getByRole("region", { name: "Merge status" }).waitFor();
-			await p.getByText("Thanks for the fix").waitFor();
 		},
 	},
 	{
 		name: "pull-files",
 		run: async (p) => {
-			await openPull(p, "Files changed");
+			await openPull(p);
 			await comment(p, 3, "Add a guard for the empty case.");
 			await p.getByText("Pending", { exact: true }).first().waitFor();
 		},
@@ -154,7 +162,7 @@ const scenes: Scene[] = [
 	{
 		name: "pull-review",
 		run: async (p) => {
-			await openPull(p, "Files changed");
+			await openPull(p);
 			await comment(p, 3, "Add a guard for the empty case.");
 			await comment(p, 1, "Name this value.");
 			await p.getByRole("button", { name: "Submit review" }).first().click();

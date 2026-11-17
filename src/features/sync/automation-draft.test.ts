@@ -36,6 +36,14 @@ describe("the automation draft", () => {
 		expect(fromDraft(toDraft(a), en)).toEqual({ automation: a });
 	});
 
+	it("keeps the permissions of the recipes", () => {
+		const a = {
+			...defaultAutomation(),
+			recipe_writes: { feature: ["transition" as const, "open_pr" as const] },
+		};
+		expect(fromDraft(toDraft(a), en)).toEqual({ automation: a });
+	});
+
 	it("has one mapping row for each run state", () => {
 		expect(Object.keys(toDraft(defaultAutomation()).map)).toEqual([...RUN_STATES]);
 	});

@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useI18n } from "@/lib/i18n";
-import { commands, unwrap } from "@/lib/ipc";
+import { format, useI18n } from "@/lib/i18n";
+import { commands, unwrap, type WriteKind } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
 import { type AutomationView, syncKeys, useAutomation } from "@/lib/sync";
@@ -30,17 +30,37 @@ function Form({ view }: { view: AutomationView }) {
 	const [error, setError] = useState<unknown>(null);
 	const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
 
-	const save = async () => {
-		const parsed = fromDraft(draft, t);
-		if ("error" in parsed) return setError(parsed.error);
+	const send = async (automation: AutomationView["automation"]) => {
 		try {
 			setError(null);
-			await unwrap(commands.syncAutomationSave(parsed.automation));
+			await unwrap(commands.syncAutomationSave(automation));
 			await qc.invalidateQueries({ queryKey: syncKeys.all });
 		} catch (e) {
 			setError(e);
 		}
 	};
+	const save = async () => {
+		const parsed = fromDraft(draft, t);
+		if ("error" in parsed) return setError(parsed.error);
+		await send(parsed.automation);
+	};
+	// Remove narrows the draft: Save sends it with the rest, and the save only narrows these
+	// permissions. A recipe with no kind left goes out.
+	const recipes = Object.entries(draft.kept.recipe_writes ?? {});
+	const remove = (recipe: string, kind: WriteKind) =>
+		setDraft({
+			...draft,
+			kept: {
+				...draft.kept,
+				recipe_writes: Object.fromEntries(
+					recipes
+						.map(
+							([r, kinds]) => [r, r === recipe ? kinds.filter((k) => k !== kind) : kinds] as const,
+						)
+						.filter(([, kinds]) => kinds.length),
+				),
+			},
+		});
 
 	const field = (
 		id: keyof Omit<Draft, "map" | "writes" | "kept">,
@@ -140,6 +160,37 @@ function Form({ view }: { view: AutomationView }) {
 							),
 						})),
 					},
+					...(recipes.length
+						? [
+								{
+									id: "recipe-writes",
+									title: a.recipes,
+									rows: recipes.map(([recipe, kinds]) => ({
+										id: `recipe-${recipe}`,
+										icon: ICON,
+										label: recipe,
+										control: (
+											<span className="flex flex-wrap items-center gap-2">
+												{kinds.map((kind) => (
+													<span key={kind} className="flex items-center gap-2">
+														{a.kind[kind]}
+														<RightButton
+															right="project.settings"
+															variant="ghost"
+															className="min-h-control"
+															aria-label={format(a.removeKind, { kind: a.kind[kind], recipe })}
+															onClick={() => remove(recipe, kind)}
+														>
+															{a.remove}
+														</RightButton>
+													</span>
+												))}
+											</span>
+										),
+									})),
+								},
+							]
+						: []),
 				]}
 			/>
 			{view.file === "invalid" ? (

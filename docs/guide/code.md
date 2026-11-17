@@ -30,7 +30,7 @@ The branch selector in the top bar has a filter box. Type to narrow the list, mo
 
 Pull requests lists the pull requests of the code host. The list has a search and two filters. All shows every pull request. Needs review shows the open pull requests that are not drafts, wait for a review and have no request for changes. The rows sit in three groups: Open, Merged and Closed, each with its count. A row shows the number, the title, the draft mark, the state of the checks and the state of the review. A row shows no author: the app does not keep it. Open pull request starts a new one.
 
-Click a row to open the pull request as its own page. Back returns to the list with the same search and filter.
+A pull request that a feature holds also opens on the feature page, in its section Changes: the old address of the pull request page opens it. Click a row to open the pull request as its own page. Back returns to the list with the same search and filter.
 
 ### The page
 

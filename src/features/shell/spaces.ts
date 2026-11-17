@@ -59,13 +59,20 @@ export const SPACE_IDS = Object.keys(SPACES) as SpaceId[];
 // shortcut: one cast. A template over two unions makes invalid pairs, so the callers pass a valid pair.
 export const tabPath = (space: SpaceId, tab: TabId) => `/${space}/${tab}` as TabPath;
 
-export const tabLabel = (t: Messages, space: SpaceId, tab: string): string =>
-	(t.tabs[space] as Record<string, string>)[tab] ?? "";
+/** A space of before adr:0023, or `flow`: the views of Flow are sections of their own. */
+export type SectionSpace = SpaceId | "flow";
+
+export const tabLabel = (t: Messages, space: SectionSpace, tab: string): string =>
+	((space === "flow" ? t.flow.views : t.tabs[space]) as Record<string, string>)[tab] ?? "";
 
 type TabIcon = ComponentType<{ size?: number }>;
 
 /** The icon of each tab: the one its page header shows (REQ-021). */
 const TAB_ICON: Record<string, TabIcon> = {
+	"flow/flow": ViewColumnsIcon,
+	"flow/list": QueueListIcon,
+	"flow/done": CheckIcon,
+	"flow/health": ShieldCheckIcon,
 	"home/today": ClockIcon,
 	"home/projects": FolderOpenIcon,
 	"home/news": BellIcon,
@@ -114,7 +121,7 @@ const TAB_ICON: Record<string, TabIcon> = {
 	"settings/health": ShieldCheckIcon,
 };
 
-export const tabIcon = (space: SpaceId, tab: string) => TAB_ICON[`${space}/${tab}`];
+export const tabIcon = (space: SectionSpace, tab: string) => TAB_ICON[`${space}/${tab}`];
 
 /** The first tab of each role of `team-rights` (REQ-013). */
 export const FIRST_TAB: Record<TeamRole, TabPath> = {
@@ -167,7 +174,7 @@ export const visibleTabs = <S extends SpaceId>(space: S, role: TeamRole | null, 
 
 /** Terminal and Manual keep their address, palette entry and menu entry, but no tab (REQ-014). */
 const OFF_BAR = new Set(["code/terminal", "knowledge/manual"]);
-export const isOffBar = (space: SpaceId, tab: string) => OFF_BAR.has(`${space}/${tab}`);
+export const isOffBar = (space: SectionSpace, tab: string) => OFF_BAR.has(`${space}/${tab}`);
 
 /** The tabs that the tab bar draws. */
 export const barTabs = (space: SpaceId, role: TeamRole | null, level = open) =>

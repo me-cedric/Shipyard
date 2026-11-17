@@ -19,7 +19,7 @@ export function RunsPart({ live }: { live: { id: string; key: string; title: str
 	const title = format(t.count, { name: t.shell.runs, count: live.length });
 	return (
 		<section aria-label={t.shell.runs}>
-			<Link to="/flow/runs" className={`${heading} text-accent-text hover:underline`}>
+			<Link to="/flow/flow" className={`${heading} text-accent-text hover:underline`}>
 				{title}
 			</Link>
 			{error ? (

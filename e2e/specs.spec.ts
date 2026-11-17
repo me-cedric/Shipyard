@@ -3,6 +3,8 @@ import { openFirstFolder } from "./first-run";
 import { placeOf } from "./places";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
+/** The row of a spec change in Flow / List: the title is the id of the change. */
+const change = (page: Page, id: string) => page.getByRole("button", { name: new RegExp(`^${id}`) });
 
 /** Opens the mock project with a Linear tracker, then the Specs space on the given tab. */
 async function openSpecs(page: Page, tab: string) {
@@ -36,8 +38,8 @@ async function openSpecs(page: Page, tab: string) {
 test("shows a validation finding on the artifact that holds it, with its line", async ({
 	page,
 }) => {
-	await openSpecs(page, "Proposals");
-	await page.getByRole("button", { name: /^add-billing/ }).click();
+	await openSpecs(page, "List");
+	await change(page, "add-billing").click();
 	await page.getByRole("button", { name: "Validate" }).click();
 	const artifacts = page.getByRole("navigation", { name: "Artifacts" });
 	await expect(artifacts.getByRole("img", { name: "Proposal: Done" })).toBeVisible();
@@ -70,8 +72,8 @@ test("folds an answer into its spec after the preview and one click", async ({ p
 		.getByRole("navigation", { name: "Sidebar" })
 		.getByRole("link", { name: "Flow" })
 		.click();
-	await tabs(page).getByRole("link", { name: "Proposals" }).click();
-	await page.getByRole("button", { name: /^add-export/ }).click();
+	await tabs(page).getByRole("link", { name: "List" }).click();
+	await change(page, "add-export").click();
 	await page
 		.getByRole("navigation", { name: "Artifacts" })
 		.getByRole("button", { name: /Spec \/ export/ })
@@ -83,8 +85,8 @@ test("folds an answer into its spec after the preview and one click", async ({ p
 });
 
 test("applies a split once and a second apply creates no duplicate", async ({ page }) => {
-	await openSpecs(page, "Proposals");
-	await page.getByRole("button", { name: /^add-auth/ }).click();
+	await openSpecs(page, "List");
+	await change(page, "add-auth").click();
 	const open = async () => {
 		await page.getByRole("main").getByRole("button", { name: "Split into work items" }).click();
 		await page.getByRole("button", { name: "Preview" }).click();

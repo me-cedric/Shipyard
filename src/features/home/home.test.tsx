@@ -32,7 +32,9 @@ describe("Home / Today, Needs you", () => {
 			unwrap(commands.runsList()).then((r) => r.filter((x) => x.state === "PlanReview")),
 			unwrap(commands.messagesList()),
 		]);
-		const total = questions.length + approvals.length + plans.length + messages.length;
+		// The approvals of one run are one question: each run counts once.
+		const total =
+			questions.length + new Set(approvals.map((a) => a.run)).size + plans.length + messages.length;
 		expect(
 			await screen.findByRole("heading", { level: 1, name: `${total} things need you` }),
 		).toBeInTheDocument();
@@ -64,8 +66,9 @@ describe("Home / Today, Needs you", () => {
 		const heading = await screen.findByRole("heading", { level: 1, name: /things need you$/ });
 		const count = Number(/^(\d+)/.exec(heading.textContent ?? "")?.[1]);
 		await pick(user, /Comment on ACME-1: the question/);
-		const bar = await (await card()).findByRole("region", { name: "Post a comment on ACME-1" });
-		await user.click(within(bar).getByRole("button", { name: "Approve" }));
+		const on = await card();
+		expect(await on.findByText("Post a comment on ACME-1")).toBeVisible();
+		await user.click(on.getByRole("button", { name: "Approve" }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.approvalsList())).length).toBe(before - 1),
 		);
@@ -73,9 +76,7 @@ describe("Home / Today, Needs you", () => {
 		expect(
 			await screen.findByRole("heading", { level: 1, name: `${count - 1} things need you` }),
 		).toBeInTheDocument();
-		await waitFor(() =>
-			expect(screen.queryByRole("region", { name: "Post a comment on ACME-1" })).toBeNull(),
-		);
+		await waitFor(() => expect(screen.queryByText("Post a comment on ACME-1")).toBeNull());
 	});
 
 	it("names a force push in plain words, in the danger colour, with the command hidden", async () => {

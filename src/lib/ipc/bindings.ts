@@ -385,6 +385,7 @@ export const commands = {
 	approvalsList: () => typedError<ApprovalView[], AppError_Serialize>(__TAURI_INVOKE("approvals_list")),
 	approvalApprove: (id: number) => typedError<string | null, AppError_Serialize>(__TAURI_INVOKE("approval_approve", { id })),
 	approvalReject: (id: number) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("approval_reject", { id })),
+	approvalsAllowRecipe: (ids: number[]) => typedError<null, AppError_Serialize>(__TAURI_INVOKE("approvals_allow_recipe", { ids })),
 	pullsList: () => typedError<PrRowView[], AppError_Serialize>(__TAURI_INVOKE("pulls_list")),
 	pullsStatusGet: () => typedError<PullsStatus_Serialize, AppError_Serialize>(__TAURI_INVOKE("pulls_status_get")),
 	designList: () => typedError<DesignList_Serialize, AppError_Serialize>(__TAURI_INVOKE("design_list")),
@@ -768,6 +769,8 @@ export type ApprovalView = {
 	/**  The ticket of the run, `""` when the run is gone. */
 	key: string,
 	title: string,
+	/**  The workflow of the run: the recipe that "Do not ask again" names (`app-redesign` REQ-013). */
+	workflow: string,
 	/**  `transition`, `labels`, `comment`, `push`, `open_pr` or `resolve_threads`. */
 	kind: string,
 	/**  One line that names the write. */
@@ -1036,6 +1039,12 @@ export type Automation_Deserialize = {
 	/**  Key: a run state name (`RunState::as_str`). */
 	status_map?: { [key in string]: StateMapping_Deserialize },
 	writes?: Writes_Deserialize,
+	/**
+	 *  Key: a workflow id (a recipe). The kinds of write that a person allowed for the runs of
+	 *  that workflow only, with "Do not ask again for this recipe" (`app-redesign` REQ-013). A
+	 *  write goes out when its project switch is on or when its recipe names its kind.
+	 */
+	recipe_writes?: { [key in string]: WriteKind[] },
 	/**  The reviewers of a pull request that a run opens (`delivery` REQ-012, `q:Q-029`). */
 	reviewers?: string[],
 	/**  The assignee of that pull request when the ticket names none (`delivery` REQ-012). */
@@ -1055,6 +1064,12 @@ export type Automation_Serialize = {
 	/**  Key: a run state name (`RunState::as_str`). */
 	status_map: { [key in string]: StateMapping_Serialize },
 	writes: Writes_Serialize,
+	/**
+	 *  Key: a workflow id (a recipe). The kinds of write that a person allowed for the runs of
+	 *  that workflow only, with "Do not ask again for this recipe" (`app-redesign` REQ-013). A
+	 *  write goes out when its project switch is on or when its recipe names its kind.
+	 */
+	recipe_writes?: { [key in string]: WriteKind[] },
 	/**  The reviewers of a pull request that a run opens (`delivery` REQ-012, `q:Q-029`). */
 	reviewers?: string[],
 	/**  The assignee of that pull request when the ticket names none (`delivery` REQ-012). */
@@ -1513,6 +1528,8 @@ export type ChildResult_Serialize = {
 export type Choice = "ours" | "theirs" | 
 /**  Ours, then theirs. */
 "both" | "neither";
+
+export type Ci = "passing" | "failing" | "pending";
 
 export type CliLogin = {
 	/**  `gh` or `glab`. */
@@ -2465,6 +2482,21 @@ export type FlowFeature_Deserialize = {
 	run?: string | null,
 	/**  `pr:<code-host>:<number>`. */
 	pr?: string | null,
+	/**
+	 *  The agent step that works now, else the assignee of the ticket, else the author of the pull
+	 *  request (REQ-011).
+	 */
+	who?: Who | null,
+	/**
+	 *  The facts of the state line: the state of the run, what waits for a person, the checks of
+	 *  the pull request.
+	 */
+	runState?: RunState | null,
+	approvals: number,
+	questions: number,
+	checks?: Ci | null,
+	/**  The main action of a stopped run (`stop_of`). `None`: nothing waits on a stop. */
+	stop?: Stop | null,
 };
 
 /**  One feature: its title, its place in Flow and the refs of its parts. */
@@ -2480,6 +2512,21 @@ export type FlowFeature_Serialize = {
 	run: string | null,
 	/**  `pr:<code-host>:<number>`. */
 	pr: string | null,
+	/**
+	 *  The agent step that works now, else the assignee of the ticket, else the author of the pull
+	 *  request (REQ-011).
+	 */
+	who: Who | null,
+	/**
+	 *  The facts of the state line: the state of the run, what waits for a person, the checks of
+	 *  the pull request.
+	 */
+	runState: RunState | null,
+	approvals: number,
+	questions: number,
+	checks: Ci | null,
+	/**  The main action of a stopped run (`stop_of`). `None`: nothing waits on a stop. */
+	stop: Stop | null,
 };
 
 export type FlowRow = FlowRow_Serialize | FlowRow_Deserialize;
@@ -5365,6 +5412,8 @@ export type RunView_Deserialize = {
 	 *  newest error of the AI tool. `None` for a run that works or ended well.
 	 */
 	reason?: string | null,
+	/**  The main action of the stop (`app-redesign` REQ-014). `None`: the run waits on no stop. */
+	stop?: Stop | null,
 };
 
 /**  A run with what a card needs (`factory` REQ-027, REQ-038). */
@@ -5398,6 +5447,8 @@ export type RunView_Serialize = {
 	 *  newest error of the AI tool. `None` for a run that works or ended well.
 	 */
 	reason: string | null,
+	/**  The main action of the stop (`app-redesign` REQ-014). `None`: the run waits on no stop. */
+	stop: Stop | null,
 };
 
 export type Runner = Runner_Serialize | Runner_Deserialize;
@@ -5952,6 +6003,24 @@ export type Step_Serialize = {
 	max_rounds?: number,
 	action?: StepAction,
 };
+
+/**
+ *  The one main action of a stopped run (REQ-014, `adr:0023`): the card of Flow, Today and the
+ *  Ask bar name it with no run log.
+ */
+export type Stop = 
+/**  The run waits for an answer. */
+"reply" | 
+/**  Blocked. */
+"unblock" | 
+/**  Paused because a budget was reached. */
+"add_budget" | 
+/**  Failed. */
+"try_again" | 
+/**  Paused by a person, or for another cause. */
+"resume" | 
+/**  Nothing to deliver, or the pull request closed or merged on the code host. */
+"close_done";
 
 export type Suggestion = {
 	handle: string,
@@ -6757,6 +6826,12 @@ export type WatchNotice_Serialize = {
 	changes: HeadChange_Serialize[],
 };
 
+/**  Who works on a feature (REQ-011): an agent step of the run, or a person. */
+export type Who = {
+	name: string,
+	agent: boolean,
+};
+
 export type WireState = "wired" | "out-of-date" | "not-wired";
 
 /**  One detected agent tool. */
@@ -7014,6 +7089,13 @@ export type Worktree = {
 	/**  The commit that the diff reads against. */
 	base: string,
 };
+
+/**
+ *  One kind of write that an approval names: the `kind` of the approval (`app-redesign` REQ-013).
+ *  A durable permission of a recipe covers exactly these kinds (constitution 5.4). A push with
+ *  force with lease has no kind: no permission covers it.
+ */
+export type WriteKind = "transition" | "labels" | "comment" | "push" | "open_pr" | "resolve_threads";
 
 /**  What a write did: the files that it wrote and the files that it kept. */
 export type WriteReport = {

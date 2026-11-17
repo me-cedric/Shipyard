@@ -2,7 +2,7 @@
 //! (spec `sync`, REQ-002, REQ-003, REQ-004, REQ-006, REQ-007). No I/O: the engine fetches,
 //! these functions decide.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
@@ -122,6 +122,22 @@ impl Writes {
     }
 }
 
+/// One kind of write that an approval names: the `kind` of the approval (`app-redesign` REQ-013).
+/// A durable permission of a recipe covers exactly these kinds (constitution 5.4). A push with
+/// force with lease has no kind: no permission covers it.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Type,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum WriteKind {
+    Transition,
+    Labels,
+    Comment,
+    Push,
+    OpenPr,
+    ResolveThreads,
+}
+
 /// Money budgets in USD (`factory` REQ-022, REQ-032). Key `*` is the budget of every day or of
 /// every member that has no key of its own. No entry means no budget (`q:Q-023`, option 1).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, Type)]
@@ -210,6 +226,11 @@ pub struct Automation {
     /// Key: a run state name (`RunState::as_str`).
     pub status_map: BTreeMap<String, StateMapping>,
     pub writes: Writes,
+    /// Key: a workflow id (a recipe). The kinds of write that a person allowed for the runs of
+    /// that workflow only, with "Do not ask again for this recipe" (`app-redesign` REQ-013). A
+    /// write goes out when its project switch is on or when its recipe names its kind.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub recipe_writes: BTreeMap<String, BTreeSet<WriteKind>>,
     /// The reviewers of a pull request that a run opens (`delivery` REQ-012, `q:Q-029`).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub reviewers: Vec<String>,
@@ -258,6 +279,7 @@ impl Default for Automation {
             concurrency: Limits::default(),
             status_map: BTreeMap::new(),
             writes: Writes::all_on(),
+            recipe_writes: BTreeMap::new(),
             reviewers: Vec::new(),
             assignee: None,
             budgets: Budgets::default(),
@@ -280,6 +302,14 @@ impl Automation {
             if RunState::from_str(key).is_err() {
                 out.push(Issue {
                     field: format!("status_map.{key}"),
+                    value: key.clone(),
+                });
+            }
+        }
+        for key in self.recipe_writes.keys() {
+            if key.trim().is_empty() {
+                out.push(Issue {
+                    field: format!("recipe_writes.{key}"),
                     value: key.clone(),
                 });
             }

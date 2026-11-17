@@ -42,14 +42,14 @@ describe("Run address", () => {
 		expect(runOfRef("pr:github:44")).toBeUndefined();
 	});
 
-	it("opens a run by its address, with Runs selected in the Factory bar", async () => {
+	it("opens a run by its address, with Flow selected in the section bar", async () => {
 		await open();
 		const run = await find("ACME-2");
 		const router = mountApp(`/factory/runs/${run.id}`);
 		expect(await screen.findByRole("region", { name: "ACME-2" })).toBeInTheDocument();
 		const tabs = screen.getByRole("navigation", { name: "Tabs" });
-		expect(within(tabs).getByRole("link", { name: "Runs", current: "page" })).toBeInTheDocument();
-		// The Runs list header and its lanes do not show above the run.
+		expect(within(tabs).getByRole("link", { name: "Flow", current: "page" })).toBeInTheDocument();
+		// The board and its columns do not show above the run.
 		expect(screen.queryByRole("heading", { name: /^Working/ })).not.toBeInTheDocument();
 		await idle(router);
 	});
@@ -63,26 +63,25 @@ describe("Run address", () => {
 		await idle(router);
 	});
 
-	it("says No run for an unknown run, and leads back to Runs", async () => {
+	it("says No run for an unknown run, and leads back to Flow", async () => {
 		await open();
 		const user = userEvent.setup();
 		const router = mountApp("/factory/runs/nope");
 		expect(await screen.findByText("No run")).toBeInTheDocument();
-		await user.click(screen.getByRole("button", { name: "Runs" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/runs"));
+		await user.click(screen.getByRole("button", { name: "Flow" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/flow"));
 		await idle(router);
 	});
 
 	it("opens the run from a card, and Back returns to the list", async () => {
 		await open();
 		const user = userEvent.setup();
-		const run = await find("ACME-2");
 		const router = mountApp("/factory/runs");
 		await user.click(await screen.findByRole("button", { name: /ACME-2/ }));
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${run.id}`));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/feature/wi%3AACME-2"));
 		await screen.findByRole("region", { name: "ACME-2" });
 		router.history.back();
-		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/runs"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/flow"));
 		await idle(router);
 	});
 

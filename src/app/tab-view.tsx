@@ -24,13 +24,10 @@ const LOADERS: Partial<Record<string, Load>> = {
 	"settings/agents-rules": () =>
 		import("@/features/settings/agents-rules").then((m) => m.AgentsRules),
 	"settings/extensions": () => import("@/features/settings/extensions").then((m) => m.Extensions),
-	"work/backlog": () => import("@/features/work/backlog").then((m) => m.Backlog),
-	"work/board": () => import("@/features/work/board").then((m) => m.Board),
 	"work/plan": () => import("@/features/work/plan").then((m) => m.Plan),
 	"work/estimates": () => import("@/features/work/estimates").then((m) => m.Estimates),
 	"work/team": () => import("@/features/work/team").then((m) => m.Team),
 	"work/time": () => import("@/features/work/time").then((m) => m.Time),
-	"factory/runs": () => import("@/features/factory/runs/runs").then((m) => m.Runs),
 	"factory/workflows": () =>
 		import("@/features/factory/workflows/workflows").then((m) => m.Workflows),
 	"factory/agents-map": () =>
@@ -44,7 +41,6 @@ const LOADERS: Partial<Record<string, Load>> = {
 	"design/data": () => import("@/features/design/data").then((m) => m.Data),
 	"design/flows": () => import("@/features/design/flows").then((m) => m.Flows),
 	"design/screens": () => import("@/features/design/screens").then((m) => m.Screens),
-	"specs/changes": () => import("@/features/specs/changes").then((m) => m.SpecChanges),
 	"specs/capabilities": () => import("@/features/specs/capabilities").then((m) => m.Capabilities),
 	"specs/questions": () => import("@/features/specs/questions").then((m) => m.Questions),
 	"specs/test-plans": () => import("@/features/specs/test-plans").then((m) => m.TestPlans),

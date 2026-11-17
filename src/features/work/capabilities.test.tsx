@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap, type WorkContext_Serialize } from "@/lib/ipc";
 import { mountApp } from "@/test/mount";
@@ -17,12 +17,13 @@ async function without(flag: Flag) {
 		.mockResolvedValue({ status: "ok", data: { ...real, capabilities: caps } });
 }
 
+/** The ticket on the Brief of its feature page, from the menu of its row in Flow / List. */
 const openTicket = async (user: ReturnType<typeof userEvent.setup>) => {
-	mountApp("/work/backlog");
-	await user.click(
-		within(await screen.findByRole("group", { name: "ACME-8" })).getByRole("button"),
-	);
-	return within(await screen.findByRole("complementary", { name: "ACME-8" }));
+	mountApp("/flow/list");
+	fireEvent.contextMenu(await screen.findByRole("button", { name: /ACME-8(?!\d)/ }));
+	await user.click(await screen.findByRole("menuitem", { name: "Edit the ticket" }));
+	await screen.findByRole("region", { name: "ACME-8" });
+	return screen;
 };
 
 describe("A tracker with a capability flag off", () => {

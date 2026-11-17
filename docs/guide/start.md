@@ -96,7 +96,7 @@ Create makes the repository, writes the files, makes the first commit and opens 
 
 ## Your role
 
-In Settings, then Me, choose your role. The role sets the space that opens first. A tech lead starts in Factory, Runs. A project manager starts in Work, Board.
+In Settings, then Me, choose your role. The role sets the space that opens first. A tech lead starts in Flow. A project manager starts in Flow.
 
 ## Safe by default
 

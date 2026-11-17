@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const PLACES = [
 	["Today", "Today"],
-	["Flow", "Backlog"],
+	["Flow", "Flow"],
 	["Plan", "Plan"],
 	["Crew", "Team"],
 	["Library", "Diagrams"],

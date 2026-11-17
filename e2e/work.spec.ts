@@ -5,6 +5,8 @@ import { placeOf } from "./places";
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
 const inspector = (page: Page, name: string) => page.getByRole("complementary", { name });
+/** The name of the row or the card of a feature: its title, then the key of its ticket. */
+const ticket = (key: string) => new RegExp(`${key}(?!\\d)`);
 
 /** Opens the mock project with a Linear tracker, imports the backlog and opens a Work tab. */
 async function openWork(page: Page, tab: string) {
@@ -28,10 +30,10 @@ async function openWork(page: Page, tab: string) {
 		"Acme",
 	);
 	await sidebar(page).getByRole("link", { name: "Flow" }).click();
-	await tabs(page).getByRole("link", { name: "Backlog" }).click();
+	await tabs(page).getByRole("link", { name: "List" }).click();
 	await page.getByRole("button", { name: "Import" }).click();
 	await page.getByRole("button", { name: "Confirm" }).click();
-	await expect(page.getByRole("group", { name: "ACME-1", exact: true })).toBeVisible();
+	await expect(page.getByRole("button", { name: ticket("ACME-1") })).toBeVisible();
 	await sidebar(page)
 		.getByRole("link", { name: placeOf(tab) })
 		.click();
@@ -39,30 +41,34 @@ async function openWork(page: Page, tab: string) {
 }
 
 test("assigns a member from the ranked list and marks the item for the agent", async ({ page }) => {
-	await openWork(page, "Backlog");
-	await page.getByRole("group", { name: "ACME-8" }).getByRole("button").click();
-	const panel = inspector(page, "ACME-8");
-	await panel.getByRole("combobox", { name: "Assignee" }).click();
+	await openWork(page, "List");
+	// The ticket opens on its page, in the Brief, from the menu of its row.
+	await page.getByRole("button", { name: ticket("ACME-8") }).click({ button: "right" });
+	await page.getByRole("menuitem", { name: "Edit the ticket" }).click();
+	const assignee = page.getByRole("combobox", { name: "Assignee" });
+	await assignee.click();
 	await expect(page.getByRole("option", { name: /^Grace Hopper/ })).toBeVisible();
 	// Opening the suggestion assigns nobody.
-	await expect(page.getByRole("group", { name: "ACME-8" })).not.toContainText("Hopper");
+	await expect(assignee).not.toContainText("Hopper");
 	await page.getByRole("option", { name: /^Grace Hopper/ }).click();
-	await expect(page.getByRole("group", { name: "ACME-8" })).toContainText("Grace Hopper");
-	await panel.getByRole("button", { name: "Mark for agent" }).click();
-	await expect(panel.getByRole("button", { name: "Mark for agent" })).toBeDisabled();
+	await expect(assignee).toContainText("Grace Hopper");
+	await page.getByRole("button", { name: "Mark for agent" }).click();
+	await expect(page.getByRole("button", { name: "Mark for agent" })).toBeDisabled();
 });
 
 test("moves a card on the board with the keyboard", async ({ page }) => {
-	await openWork(page, "Board");
-	// Scoped to the column: the Backlog row of ACME-3 stays on screen until the lazy Board tab mounts.
-	const card = page
-		.getByRole("region", { name: "To Do (7)" })
-		.getByRole("button", { name: /ACME-3/ });
+	await openWork(page, "Flow");
+	// The drag and Shift+Arrow of the old board are the "Move to" item of the menu of the card.
+	const card = page.getByRole("button", { name: ticket("ACME-3") });
 	await card.focus();
-	await page.keyboard.press("Shift+ArrowRight");
-	await expect(
-		page.getByRole("region", { name: "In Progress (3)" }).getByRole("button", { name: /ACME-3/ }),
-	).toBeVisible();
+	await page.keyboard.press("ContextMenu");
+	await page.getByRole("menuitem", { name: "Move to In Progress" }).click();
+	// The ticket has the new status: the list with the filter In Progress holds it, with 2 more.
+	await tabs(page).getByRole("link", { name: "List" }).click();
+	await page.getByRole("combobox", { name: "Status" }).click();
+	await page.getByRole("option", { name: "In Progress" }).click();
+	await expect(page.getByRole("button", { name: ticket("ACME-3") })).toBeVisible();
+	await expect(page.getByRole("button", { name: /ACME-\d+/ })).toHaveCount(3);
 });
 
 test("estimates a task and sees the summary move", async ({ page }) => {

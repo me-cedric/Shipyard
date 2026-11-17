@@ -3,7 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { useRights } from "@/lib/rights";
 import { SectionSwitch } from "@/ui/molecules/section-switch";
 import { StaleBadge, useStalePages } from "../specs/chain-badge";
-import { barSections, type PlaceId, sectionPath } from "./places";
+import { barSections, type PlaceId, sectionPath, viewsOf } from "./places";
 import { tabLabel } from "./spaces";
 
 /** The one section switch of a place, under the page (adr:0023 point 1). */
@@ -27,7 +27,7 @@ export function SectionBar({ place, slug }: { place: PlaceId; slug?: string }) {
 						// A pointer that rests on a section loads its code before the click.
 						<Link to={sectionPath(place, item.id)} preload="intent" {...props}>
 							{item.label}
-							{view && stale.has(view.join("/")) ? <StaleBadge /> : null}
+							{view && viewsOf(...view).some((v) => stale.has(v)) ? <StaleBadge /> : null}
 						</Link>
 					);
 				}}

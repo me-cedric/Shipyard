@@ -77,6 +77,12 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 					change: null,
 					run: "run:1",
 					pr: null,
+					who: null,
+					runState: null,
+					approvals: 0,
+					questions: 0,
+					checks: null,
+					stop: null,
 				},
 				{
 					title: "Cache list",
@@ -86,6 +92,12 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 					change: null,
 					run: "run:2",
 					pr: null,
+					who: null,
+					runState: null,
+					approvals: 0,
+					questions: 0,
+					checks: null,
+					stop: null,
 				},
 			],
 		});
@@ -97,6 +109,101 @@ describe("Ask bar and its panel (shell REQ-005, app-redesign REQ-004)", () => {
 		// The text stays: an answer shows for it, and the assistant does not open.
 		expect(bar).toHaveValue("what blocks the release?");
 		spy.mockRestore();
+	});
+
+	it("answers what stopped with the main action of the stop state, in one click (REQ-014)", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const paused = (await unwrap(commands.runsList())).find((r) => r.key === "ACME-6");
+		if (!paused) throw new Error("the mock has no ACME-6");
+		// The run stopped at its budget limit.
+		mockState()
+			.factory.runs.find((r) => r.id === paused.id)
+			?.log.push({
+				id: 9991,
+				step: null,
+				kind: "note",
+				payload: JSON.stringify({ stop: "budget" }),
+				ts: Date.now(),
+			});
+		// The mock gives no reason to a run: say it from the list, as the app does.
+		vi.spyOn(commands, "runsList").mockResolvedValue({
+			status: "ok",
+			data: (await unwrap(commands.runsList())).map((r) =>
+				r.id === paused.id ? { ...r, reason: "budget" } : r,
+			),
+		});
+		vi.spyOn(commands, "featuresList").mockResolvedValue({
+			status: "ok",
+			data: [
+				{
+					title: "Cache the list",
+					stage: "build",
+					mark: "stopped",
+					ticket: null,
+					change: null,
+					run: `run:${paused.id}`,
+					pr: null,
+					who: null,
+					runState: "Paused",
+					approvals: 0,
+					questions: 0,
+					checks: null,
+					stop: "add_budget",
+				},
+			],
+		});
+		const resume = vi.spyOn(commands, "runResume");
+		mountApp("/home/today");
+		const bar = await openPalette(user);
+		await user.type(bar, "what stopped?{Enter}");
+		await user.click(await screen.findByRole("button", { name: "Add budget Cache the list" }));
+		await waitFor(() => expect(resume).toHaveBeenCalledWith(paused.id, 2, 0, null));
+	});
+
+	it("turns the stop action of the answer off for a viewer", async () => {
+		const user = userEvent.setup();
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const failed = (await unwrap(commands.runsList())).find((r) => r.key === "ACME-6");
+		if (!failed) throw new Error("the mock has no ACME-6");
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "viewer",
+			admin: false,
+			readOnly: false,
+			rights: [],
+		};
+		vi.spyOn(commands, "runsList").mockResolvedValue({
+			status: "ok",
+			data: (await unwrap(commands.runsList())).map((r) =>
+				r.id === failed.id ? { ...r, state: "Failed" as const } : r,
+			),
+		});
+		vi.spyOn(commands, "featuresList").mockResolvedValue({
+			status: "ok",
+			data: [
+				{
+					title: "Cache the list",
+					stage: "build",
+					mark: "stopped",
+					ticket: null,
+					change: null,
+					run: `run:${failed.id}`,
+					pr: null,
+					who: null,
+					runState: "Failed",
+					approvals: 0,
+					questions: 0,
+					checks: null,
+					stop: "try_again",
+				},
+			],
+		});
+		mountApp("/home/today");
+		const bar = await openPalette(user);
+		await user.type(bar, "what stopped?{Enter}");
+		expect(await screen.findByRole("button", { name: "Try again Cache the list" })).toBeDisabled();
 	});
 
 	it("sends a question that holds a match word to the assistant draft with Open the full assistant", async () => {

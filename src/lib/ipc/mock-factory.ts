@@ -47,7 +47,9 @@ import type {
 	WorkflowSource,
 	WorkItemView_Serialize,
 	Workspace,
+	WriteKind,
 } from "./bindings";
+import { stopOf } from "./mock-features";
 import { FAKE_TICKETS } from "./mock-sync";
 
 const WF_DIR = ".shipyard/workflows";
@@ -569,6 +571,32 @@ const prRow = (f: MockFactory, p: Pull): PrRowView => ({
 	runs: f.runs.filter((r) => r.pr === p.number).map((r) => r.id),
 });
 
+/**
+ * The cause of the stop: a budget that the run reached while it is paused, else the `cause` of a
+ * note after the last change of state (the escalation record).
+ */
+function causeOf(r: Rec): string | null {
+	if (r.state === "Paused" && r.budgetUsd !== null && r.costUsd >= r.budgetUsd) return "budget";
+	const since = r.log.slice(r.log.map((e) => e.kind).lastIndexOf("state") + 1);
+	const notes = since.filter((e) => e.kind === "note").map((e) => JSON.parse(e.payload));
+	return notes.findLast((n) => typeof n.cause === "string")?.cause ?? null;
+}
+
+/**
+ * The stop action, as the run view of Rust. The day budget pauses a run with the note
+ * `{stop: "budget", budget: "day:…"}`: the run waits for the next day, so it has no action. A
+ * resume cannot go on while the day is spent.
+ */
+function stopOfRun(r: Rec, pr: string | null) {
+	const stop = stopOf(r.state, causeOf(r), pr);
+	const last = r.log
+		.filter((e) => e.kind === "note")
+		.map((e) => JSON.parse(e.payload))
+		.findLast((n) => "stop" in n);
+	const day = last?.stop === "budget" && String(last.budget).startsWith("day:");
+	return stop === "resume" && day ? null : stop;
+}
+
 function view(f: MockFactory, r: Rec): RunView_Serialize {
 	const { log: _log, pr: prNumber, ...rest } = r;
 	const pr = f.pulls.find((p) => p.number === prNumber);
@@ -580,6 +608,7 @@ function view(f: MockFactory, r: Rec): RunView_Serialize {
 		openQuestions: f.questions.filter((x) => x.run === r.id && x.q.state === "open").length,
 		approvals: f.approvals.filter((a) => a.run === r.id).length,
 		reason: null,
+		stop: stopOfRun(r, pr?.state ?? null),
 	};
 }
 
@@ -810,6 +839,7 @@ export function seedFactory(): MockFactory {
 			run: r.id,
 			key: r.key,
 			title: r.title,
+			workflow: r.workflow,
 			kind,
 			summary,
 			detail,
@@ -1107,9 +1137,26 @@ const lastBlock = (r: Rec): string | undefined =>
 		.map((e) => (e.kind === "note" ? JSON.parse(e.payload).blocked : undefined))
 		.findLast((b) => typeof b === "string");
 
-/** Close a run blocked with nothing to deliver as `Done`. */
+/**
+ * Close a run blocked with nothing to deliver as `Done`. A run whose pull request merged or closed
+ * on the code host takes that event, as `close_outside`: a merge ends in `Done`, a close cancels.
+ */
 export function runCloseDone(f: MockFactory, run: string): null {
 	const r = find(f, run);
+	const pr = f.pulls.find((p) => p.number === r.pr)?.state;
+	if (pr === "merged" || pr === "closed") {
+		if (FINAL.includes(r.state) || r.state === "Merged")
+			throw `the run is ${r.state}: it closes by itself`;
+		push(f, r, null, "pr", { number: r.pr, event: pr === "merged" ? "Merged" : "Closed" });
+		if (pr === "closed") cancel(f, r, "pull request closed");
+		else {
+			for (const x of f.questions)
+				if (x.run === r.id && x.q.state === "open") x.q.state = "withdrawn";
+			move(f, r, "Merged");
+			move(f, r, "Done");
+		}
+		return null;
+	}
 	if (r.state !== "Blocked" || !lastBlock(r)?.startsWith("nothing to deliver"))
 		throw "only a run blocked with nothing to deliver closes as done";
 	push(f, r, null, "note", {
@@ -1253,7 +1300,7 @@ export function approvalsList(f: MockFactory, project: string | null): ApprovalV
 	const runs = runsOf(f, project);
 	return f.approvals.flatMap((a) => {
 		const r = runs.find((x) => x.id === a.run);
-		return r ? [{ ...a, key: r.key, title: r.title }] : [];
+		return r ? [{ ...a, key: r.key, title: r.title, workflow: r.workflow }] : [];
 	});
 }
 
@@ -1277,6 +1324,50 @@ export function approvalApprove(f: MockFactory, id: number): string | null {
 	}
 	f.approvals = f.approvals.filter((x) => x.id !== id);
 	return a.kind === "comment" ? `comment-${id}` : a.kind === "open_pr" ? "48" : null;
+}
+
+/**
+ * "Approve these effects and do not ask again for this recipe", with the rules of
+ * `approvals_allow_recipe`: waiting ids of one run, no push with force with lease, and the rights.
+ * `recipes` is `recipe_writes` of the automation file. Only the kinds of the named effects are
+ * allowed, for the workflow of the run only. Then the named ids go out. Each other write that
+ * waits keeps its question: the permission covers only a later write.
+ */
+export function approvalsAllowRecipe(
+	f: MockFactory,
+	project: string | null,
+	ids: number[],
+	rights: string[],
+	recipes: Record<string, WriteKind[]>,
+): null {
+	for (const r of ["project.settings", "runs.approve"])
+		if (!rights.includes(r)) throw `missing right ${r}`;
+	if (f.kill) throw "the kill switch is on: no write goes out";
+	const picked = ids.map((id) => waiting(f, id));
+	const [first] = picked;
+	if (!first) throw "name at least one approval";
+	if (picked.some((a) => a.run !== first.run))
+		throw "the approvals belong to more than one run: allow one recipe at a time";
+	const run = runsOf(f, project).find((r) => r.id === first.run);
+	if (!run) throw "the run is not in the active project";
+	for (const a of picked) {
+		if (!rights.includes(a.right)) throw `missing right ${a.right}`;
+		if (a.force) throw "a push with force with lease always waits: approve it alone";
+	}
+	const on = [...new Set(picked.map((a) => a.kind as WriteKind))];
+	const kinds = [...new Set([...(recipes[run.workflow] ?? []), ...on])];
+	recipes[run.workflow] = kinds;
+	push(f, run, null, "write", { state: "recipe_allowed", workflow: run.workflow, kinds: on });
+	// Only the named ids go, each with the checks of a click: any other write that waits keeps
+	// its question (`release_allowed`).
+	for (const id of ids.filter((id) => f.approvals.some((a) => a.id === id))) {
+		try {
+			approvalApprove(f, id);
+		} catch (e) {
+			throw `the permission is saved, but approval ${id}: ${e}`;
+		}
+	}
+	return null;
 }
 
 /** The write is dropped and the run blocks. */

@@ -110,7 +110,7 @@ describe("role homes (shell REQ-009, team-rights REQ-013)", () => {
 		// The Rust reader maps an old prefs file; an old registry entry can still hold the text.
 		(mockState().prefs as { role: string }).role = "junior";
 		const router = mountApp("/");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/runs"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/flow"));
 	});
 });
 
@@ -118,13 +118,13 @@ describe("tab names", () => {
 	it("opens Flow on the Board for a PM, and Settings has no Team: Work / Team is the one place", async () => {
 		mockState().prefs.role = "pm";
 		const router = mountApp("/work");
-		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/board"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/flow"));
 		expect(SPACES.settings).not.toContain("team");
 	});
 
 	it.each([
-		["/factory", "/flow/runs"],
-		["/specs", "/flow/changes"],
+		["/factory", "/flow/flow"],
+		["/specs", "/flow/list"],
 		["/knowledge", "/library/graph"],
 		["/design", "/library/diagrams"],
 		["/home", "/today/today"],

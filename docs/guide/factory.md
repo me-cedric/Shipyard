@@ -4,6 +4,14 @@ The Factory lets agents work on tickets. Each job is a run. A run follows a work
 
 ## Runs
 
+Flow replaces Runs. Its old address opens Flow. Flow shows each feature once in five stages: Idea, Spec, Build, Review and Ready. The views are Flow, List, Done and Health. The filter is All, Needs me or Mine. A card shows the title, who works on it and its state. Done holds what ended, in place of History. New feature starts a feature: what to build, the kind, and one of three ways (an agent writes the spec, I write the spec, build now), or start from a ticket. A spec change with only its proposal is an idea.
+
+Each feature has one page, `/flow/feature/<id>`, with the stage line and the sections Story, Brief, Design, Changes, Checks and Chat. It joins the ticket, the spec change, the agent work, the pull request and the checks. The old run and pull request addresses open it on the section of that part.
+
+The approvals of one run are one question that names each effect. The main button approves each effect. Each step opens the list where you approve or reject one effect alone. Not yet moves the question to Later and decides nothing. Do not ask again for this recipe allows exactly the shown kinds for that recipe, and a push that rewrites history is never part of it. A write that already waits keeps its question: the permission applies to the writes that come later. Settings / Project lists the permissions, and Remove takes one away with Save.
+
+When an agent stops, one main action shows: Reply, Unblock, Add budget, Try again, Resume or Close as done. Today and the Ask bar give the same action.
+
 Runs shows the runs that need attention in five lanes: Queued, Working, Needs you, In review and Ready to merge. Each lane shows its count, and None when it is empty. The count next to Runs is the number of cards on the board, or the number of rows in History. The five lanes fit the window with no sideways scroll.
 
 The bar above the lanes has:

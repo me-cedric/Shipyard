@@ -3,58 +3,29 @@ import userEvent from "@testing-library/user-event";
 import { specsEn, specsFr } from "@/lib/i18n/specs";
 import { commands } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
-import { Capabilities, Constitution, SpecChanges } from "./index";
-import { renderSpecs } from "./test-harness";
+import { Capabilities, Constitution } from "./index";
+import { renderChange, renderSpecs } from "./test-harness";
 
 const files = () => mockState().specs.files;
 const CH = "docs/openspec/changes";
-// Each change is a card: a button with the change id first.
 const row = (name: RegExp) => screen.findByRole("button", { name });
-const open = async (user: ReturnType<typeof userEvent.setup>, id: string) => {
-	// nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- test input is a fixed id
-	await user.click(await row(new RegExp(id)));
+/** The change as the Brief of its feature page draws it (the cards of the list moved to Flow / List). */
+const open = async (_user: ReturnType<typeof userEvent.setup>, id: string) => {
+	await renderChange(id);
 	return screen.findByRole("navigation", { name: "Artifacts" });
 };
 
-describe("Specs / Changes", () => {
-	it("lists each change as a card with the stepper of its five artifacts and its open markers", async () => {
-		await renderSpecs(<SpecChanges />);
-		for (const id of ["add-auth", "add-billing", "add-export"])
-			expect(await row(new RegExp(id))).toBeVisible();
-		// add-export has a spec and no plan; add-billing has both.
-		const exp = await row(/add-export/);
-		expect(within(exp).getByRole("img", { name: "Spec: Draft" })).toBeInTheDocument();
-		expect(within(exp).getByRole("img", { name: "Plan: Missing" })).toBeInTheDocument();
-		expect(
-			within(await row(/add-billing/)).getByRole("img", { name: "Plan: Draft" }),
-		).toBeInTheDocument();
-		await waitFor(() => expect(exp).toHaveTextContent(/Open markers\s*1/));
-	});
-
-	it("shows ghost rows and one action when there is no change", async () => {
-		for (const p of Object.keys(files())) if (p.startsWith(`${CH}/`)) delete files()[p];
-		await renderSpecs(<SpecChanges />);
-		expect(await screen.findAllByRole("button", { name: "New change" })).toHaveLength(1);
-	});
-
-	it("creates a change from a plain title and refuses a title with no letter", async () => {
+describe("Specs / Change detail", () => {
+	it("shows the status of each artifact of a change in its list", async () => {
 		const user = userEvent.setup();
-		await renderSpecs(<SpecChanges />);
-		await user.click(await screen.findByRole("button", { name: "New change" }));
-		await user.type(screen.getByRole("textbox", { name: "Title" }), "!!");
-		await user.click(screen.getByRole("button", { name: "Create" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("Use a title with at least one");
-		await user.clear(screen.getByRole("textbox", { name: "Title" }));
-		await user.type(screen.getByRole("textbox", { name: "Title" }), "Add search");
-		await user.click(screen.getByRole("button", { name: "Create" }));
-		await screen.findByRole("navigation", { name: "Artifacts" });
-		expect(files()[`${CH}/add-search/proposal.md`]?.text).toContain("# Add search");
-		expect(await screen.findAllByText("Add search")).not.toHaveLength(0);
+		// add-export has a spec and no plan (the stepper of the old card).
+		const exp = within(await open(user, "add-export"));
+		expect(await exp.findByRole("img", { name: "Spec / export: Draft" })).toBeInTheDocument();
+		expect(exp.getByRole("img", { name: /^Plan.*: Missing$/ })).toBeInTheDocument();
 	});
 
 	it("shows a finding on the artifact that holds it, with its line", async () => {
 		const user = userEvent.setup();
-		await renderSpecs(<SpecChanges />);
 		const nav = within(await open(user, "add-billing"));
 		await user.click(await screen.findByRole("button", { name: "Validate" }));
 		await waitFor(() =>
@@ -72,7 +43,6 @@ describe("Specs / Changes", () => {
 
 	it("says how many problems Validate found, and says when it found none", async () => {
 		const user = userEvent.setup();
-		await renderSpecs(<SpecChanges />);
 		await open(user, "add-billing");
 		await user.click(await screen.findByRole("button", { name: "Validate" }));
 		expect(await screen.findByText("Problems found: 1")).toBeVisible();
@@ -89,7 +59,6 @@ describe("Specs / Changes", () => {
 
 	it("keeps text typed during a save and saves it next", async () => {
 		const user = userEvent.setup();
-		await renderSpecs(<SpecChanges />);
 		await open(user, "add-billing");
 		const path = `${CH}/add-billing/proposal.md`;
 		await user.click(await screen.findByRole("tab", { name: "Text" }));
@@ -123,7 +92,6 @@ describe("Specs / Changes", () => {
 
 	it("edits and saves an artifact, and offers reload or keep mine after a change on disk", async () => {
 		const user = userEvent.setup();
-		await renderSpecs(<SpecChanges />);
 		await open(user, "add-billing");
 		const path = `${CH}/add-billing/proposal.md`;
 		await user.click(await screen.findByRole("tab", { name: "Text" }));
@@ -146,7 +114,6 @@ describe("Specs / Changes", () => {
 
 	it("opens a markdown artifact in a form that saves one section and keeps the rest", async () => {
 		const user = userEvent.setup();
-		await renderSpecs(<SpecChanges />);
 		await open(user, "add-billing");
 		const path = `${CH}/add-billing/proposal.md`;
 		const before = files()[path]?.text ?? "";
@@ -163,7 +130,6 @@ describe("Specs / Changes", () => {
 
 	it("keeps the stamp of the open: a disk change before the edit gives the conflict", async () => {
 		const user = userEvent.setup();
-		await renderSpecs(<SpecChanges />);
 		await open(user, "add-billing");
 		const path = `${CH}/add-billing/proposal.md`;
 		await user.click(await screen.findByRole("tab", { name: "Text" }));
@@ -183,7 +149,6 @@ describe("Specs / Changes", () => {
 		const p = `${CH}/add-export/specs/export/spec.md`;
 		const f = files()[p];
 		if (f) f.text += "\nA rule [NEEDS CLARIFICATION: who decides?]\n";
-		await renderSpecs(<SpecChanges />);
 		await open(user, "add-export");
 		await user.click(screen.getByRole("button", { name: /Spec \/ export/ }));
 		const markers = await screen.findByRole("region", { name: "Open markers" });
@@ -191,23 +156,6 @@ describe("Specs / Changes", () => {
 		expect(within(markers).getByText("Unlinked")).toBeInTheDocument();
 		await user.click(within(markers).getByRole("button", { name: /q:Q-035/ }));
 		expect(screen.getByRole("status", { name: "Inspector" })).toHaveTextContent("q:Q-035");
-	});
-
-	it("opens a change with the keyboard", async () => {
-		const user = userEvent.setup();
-		await renderSpecs(<SpecChanges />);
-		(await row(/add-auth/)).focus();
-		await user.keyboard("{Enter}");
-		expect(await screen.findByRole("navigation", { name: "Artifacts" })).toBeVisible();
-	});
-
-	it("puts the change ref in the inspector when a change opens", async () => {
-		const user = userEvent.setup();
-		await renderSpecs(<SpecChanges />);
-		await open(user, "add-billing");
-		expect(screen.getByRole("status", { name: "Inspector" })).toHaveTextContent(
-			"change:add-billing",
-		);
 	});
 });
 
@@ -264,12 +212,5 @@ describe("Specs strings", () => {
 				typeof v === "object" ? keys(v, `${p}${k}.`) : [`${p}${k}`],
 			);
 		expect(keys(specsFr)).toEqual(keys(specsEn));
-	});
-
-	it("shows French when the language is French", async () => {
-		mockState().prefs.lang = "fr";
-		await renderSpecs(<SpecChanges />);
-		expect(await row(/add-auth/)).toBeVisible();
-		expect(screen.getByRole("button", { name: "Nouveau changement" })).toBeInTheDocument();
 	});
 });

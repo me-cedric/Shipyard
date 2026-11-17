@@ -13,16 +13,19 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { motion } from "motion/react";
+import { SECTIONS, type Section } from "@/features/flow/sections";
 import {
 	AppShell,
 	firstPath,
 	firstSection,
+	hiddenSection,
 	hiddenTab,
 	PLACES,
 	type PlaceId,
 	type PlacePath,
 	placePath,
 	SectionBar,
+	type SectionSpace,
 	SPACES,
 	type SpaceId,
 	sectionPath,
@@ -61,7 +64,7 @@ const indexRoute = createRoute({
 });
 
 /** A tab of an area at `none`: a direct route shows this, not the view. */
-function NoAccess({ space, tab }: { space: SpaceId; tab: string }) {
+function NoAccess({ space, tab }: { space: SectionSpace; tab: string }) {
 	const { t } = useI18n();
 	const navigate = useNavigate();
 	const Icon = tabIcon(space, tab);
@@ -84,7 +87,9 @@ function PlaceLayout({ place }: { place: PlaceId }) {
 	const still = useReducedMotionPref();
 	const { level } = useRights();
 	// The place index has no section: it redirects to the first visible section.
-	const slug = path.split("/")[2];
+	// A run has its own address under Flow, with the view Flow selected (ux-declutter REQ-027).
+	const part = path.split("/")[2];
+	const slug = place === "flow" && (part === "runs" || part === "feature") ? "flow" : part;
 	const view = slug ? sectionView(place, slug) : undefined;
 	return (
 		<div className="flex h-full flex-col">
@@ -99,7 +104,7 @@ function PlaceLayout({ place }: { place: PlaceId }) {
 					transition={SPRING.gentle}
 					className="flex min-h-0 flex-1 flex-col"
 				>
-					{view && hiddenTab(level, ...view) ? (
+					{view && hiddenSection(level, ...view) ? (
 						<NoAccess space={view[0]} tab={view[1]} />
 					) : (
 						<Outlet />
@@ -130,26 +135,58 @@ const runsSearch = (
 	...(s.view === "history" ? { view: "history" as const } : {}),
 });
 
+/** The bar of Flow: the search and the filter of the runs of before, with no view (History is its own view). */
+const flowSearch = (s: Record<string, unknown>): { q?: string; filter?: "needs" | "mine" } => {
+	const { view: _, ...rest } = runsSearch(s);
+	return rest;
+};
+
+const kindSearch = (s: Record<string, unknown>): { kind?: "idea" } =>
+	s.kind === "idea" ? { kind: "idea" } : {};
+
 const pullsSearch = (s: Record<string, unknown>): { q?: string; filter?: "needs" } => ({
 	...(s.q != null && s.q !== "" ? { q: String(s.q) } : {}),
 	...(s.filter === "needs" ? { filter: "needs" as const } : {}),
 });
 
+const sectionSearch = (s: Record<string, unknown>): { section?: Section } =>
+	SECTIONS.includes(s.section as Section) ? { section: s.section as Section } : {};
+
 const runSearch = (
 	s: Record<string, unknown>,
-): { unit?: string; tab?: "changes" | "workflow" } => ({
+): { unit?: string; tab?: "changes" | "workflow"; section?: Section } => ({
+	...sectionSearch(s),
 	...(typeof s.unit === "string" && s.unit ? { unit: s.unit } : {}),
 	// Activity is the default tab: it has no value in the address.
 	...(s.tab === "changes" || s.tab === "workflow" ? { tab: s.tab } : {}),
 });
 
+const featureSearch = (s: Record<string, unknown>): { section?: Section; unit?: string } => ({
+	...sectionSearch(s),
+	...(typeof s.unit === "string" && s.unit ? { unit: s.unit } : {}),
+});
+
 /** An address of before adr:0023 opens the new place of its page, with its search and its hash (adr:0023 point 9). */
 const toPlace = ({ location }: { location: ParsedLocation }) => {
-	const to = placePath(location.pathname);
+	let to = placePath(location.pathname);
 	if (!to || to === location.pathname) return;
+	let search = location.searchStr;
+	// The run history of before is the view Done: its `view` choice leaves the address.
+	if (to === "/flow/flow" && (location.search as { view?: unknown }).view === "history") {
+		to = "/flow/done";
+		search = search.replace(/([?&])view=[^&]*&?/, "$1").replace(/[?&]$/, "");
+	}
 	const hash = location.hash ? `#${location.hash}` : "";
-	throw redirect({ href: `${to}${location.searchStr}${hash}`, replace: true });
+	throw redirect({ href: `${to}${search}${hash}`, replace: true });
 };
+
+/** The views of Flow, each a page of the flow feature. The old tab views are its parts. */
+const FLOW_VIEW = {
+	"flow/flow": () => lazyRouteComponent(() => import("@/features/flow/flow-page"), "FlowBoard"),
+	"flow/list": () => lazyRouteComponent(() => import("@/features/flow/flow-page"), "FlowList"),
+	"flow/done": () => lazyRouteComponent(() => import("@/features/flow/flow-page"), "FlowDone"),
+	"flow/health": () => lazyRouteComponent(() => import("@/features/code/quality"), "Quality"),
+} as const;
 
 type TabOf<V> = V extends `${string}/${infer T}` ? T : never;
 
@@ -174,13 +211,17 @@ function placeRoute<P extends PlaceId>(place: P) {
 			loader: () => preloadTab(space, tab),
 			// News and Activity of Today are pages of the home feature: no old tab view holds them.
 			component:
-				view === "home/news"
-					? lazyRouteComponent(() => import("@/features/home/news"), "News")
-					: view === "home/activity"
-						? lazyRouteComponent(() => import("@/features/home/activity"), "ActivityView")
-						: () => <TabView space={space} tab={tab} />,
-			// The bar of Runs (ux-declutter REQ-034): search, filter and view, kept in the address.
-			...(view === "factory/runs" ? { validateSearch: runsSearch } : {}),
+				view in FLOW_VIEW
+					? FLOW_VIEW[view as keyof typeof FLOW_VIEW]()
+					: view === "home/news"
+						? lazyRouteComponent(() => import("@/features/home/news"), "News")
+						: view === "home/activity"
+							? lazyRouteComponent(() => import("@/features/home/activity"), "ActivityView")
+							: () => <TabView space={space} tab={tab} />,
+			// The bar of Flow (ux-declutter REQ-034): search and filter, kept in the address.
+			...(view === "flow/flow" || view === "flow/list" || view === "flow/done"
+				? { validateSearch: flowSearch }
+				: {}),
 			// The bar of Pull requests (ux-declutter REQ-042): search and filter, kept in the address.
 			...(view === "code/pull-requests" ? { validateSearch: pullsSearch } : {}),
 		});
@@ -194,8 +235,32 @@ function placeRoute<P extends PlaceId>(place: P) {
 						path: "runs/$runId",
 						validateSearch: runSearch,
 						component: lazyRouteComponent(
-							() => import("@/features/factory/runs/run-page"),
-							"RunPage",
+							() => import("@/features/flow/feature/feature-page"),
+							"RunAddress",
+						),
+					}),
+					// One feature, found by the ref of one of its parts (`spec:app-redesign#REQ-012`).
+					createRoute({
+						getParentRoute: () => route,
+						path: "feature/$featureId",
+						validateSearch: featureSearch,
+						component: lazyRouteComponent(
+							() => import("@/features/flow/feature/feature-page"),
+							"FeaturePage",
+						),
+					}),
+					// The tabs of Flow before wave 3 redirect to their view.
+					...(["backlog", "board", "runs", "changes", "quality"] as const).map((tab) =>
+						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),
+					),
+					// New feature (`spec:app-redesign#REQ-003`).
+					createRoute({
+						getParentRoute: () => route,
+						path: "new",
+						validateSearch: kindSearch,
+						component: lazyRouteComponent(
+							() => import("@/features/flow/new-feature"),
+							"NewFeature",
 						),
 					}),
 				]
@@ -210,13 +275,17 @@ function placeRoute<P extends PlaceId>(place: P) {
 						path: "pull-requests/$pullId",
 						validateSearch: (
 							s: Record<string, unknown>,
-						): { tab?: "commits" | "checks" | "files" } => ({
-							// Overview is the default tab: it has no value in the address.
+						): { tab?: "commits" | "checks" | "files"; section?: Section } => ({
+							...sectionSearch(s),
+							// A pull request opens on Changes: its tabs of before name a section.
 							...(s.tab === "commits" || s.tab === "checks" || s.tab === "files"
 								? { tab: s.tab }
 								: {}),
 						}),
-						component: lazyRouteComponent(() => import("@/features/code/pull-page"), "PullPage"),
+						component: lazyRouteComponent(
+							() => import("@/features/flow/feature/feature-page"),
+							"PullAddress",
+						),
 					}),
 					...(["quality", "impacts"] as const).map((tab) =>
 						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),

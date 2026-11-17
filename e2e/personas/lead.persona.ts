@@ -7,11 +7,11 @@ test("functional lead", async ({ page }) => {
 	await w.start();
 
 	await w.step(
-		"Land on the backlog, open the proposals",
-		"the page that opens first: Work, Backlog, then Specs, Proposals",
+		"Land on the list, open the changes",
+		"the page that opens first: Flow, List, then the change rows",
 		async () => {
-			await w.landsOn("Flow", "Backlog");
-			await w.go("Flow", "Proposals");
+			await w.landsOn("Flow", "List");
+			await w.go("Flow", "List");
 			await w.see(page.getByRole("button", { name: /add-billing/ }), "no change in the list");
 		},
 	);

@@ -154,7 +154,16 @@ export function automationGet(sync: MockSync): AutomationView_Serialize {
 
 export function automationSave(sync: MockSync, a: Automation_Serialize) {
 	if ((a.interval ?? 60) < 30) throw `invalid automation file: interval = ${a.interval}`;
-	sync.automation = { ...defaultAutomation(), ...a };
+	// As `automation_save`: a save keeps only the kinds that both the file and the form name.
+	const file = sync.file === "valid" ? (sync.automation.recipe_writes ?? {}) : {};
+	const kept = Object.entries(file)
+		.map(
+			([recipe, kinds]) =>
+				[recipe, kinds.filter((k) => a.recipe_writes?.[recipe]?.includes(k))] as const,
+		)
+		.filter(([, kinds]) => kinds.length > 0);
+	const recipes = kept.length > 0 ? Object.fromEntries(kept) : undefined;
+	sync.automation = { ...defaultAutomation(), ...a, recipe_writes: recipes };
 	sync.file = "valid";
 }
 

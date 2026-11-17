@@ -87,7 +87,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.backlogHealth}
-				to="/flow/backlog"
+				to="/flow/list"
 				items={x.map((i) => line(i.key, i.title))}
 			/>
 		);
@@ -97,7 +97,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.ready}
-				to="/flow/backlog"
+				to="/flow/list"
 				items={useTodo().map((i) => line(i.key, i.title))}
 			/>
 		);
@@ -189,7 +189,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.runs}
-				to="/flow/runs"
+				to="/flow/flow"
 				items={x.map((r) => line(r.key, r.title))}
 			/>
 		);
@@ -203,7 +203,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.quality}
-				to="/flow/quality"
+				to="/flow/health"
 				items={x.map((r) => r.label ?? r.name)}
 			/>
 		);
@@ -223,7 +223,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		const { t } = useI18n();
 		const x = (useChanges().data ?? []).filter((c) => !c.validated);
 		return (
-			<Card title={t.rights.panel.specChanges} to="/flow/changes" items={x.map((c) => c.title)} />
+			<Card title={t.rights.panel.specChanges} to="/flow/list" items={x.map((c) => c.title)} />
 		);
 	},
 	openQuestions: function OpenQuestionsPanel() {
@@ -243,7 +243,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.myTickets}
-				to="/flow/backlog"
+				to="/flow/list"
 				items={x.map((i) => line(i.key, i.title))}
 			/>
 		);

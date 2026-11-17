@@ -3,6 +3,13 @@ import { openFirstFolder } from "./first-run";
 
 const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
+/** The rows of the tickets of Flow / List: one button for each, with the key in its name. */
+const rows = (page: Page) => page.getByRole("button", { name: /ACME-\d+/ });
+/** The Status filter of Flow / List: the old group heading "To Do (7)" is its count. */
+async function onlyStatus(page: Page, status: string) {
+	await page.getByRole("combobox", { name: "Status" }).click();
+	await page.getByRole("option", { name: status }).click();
+}
 
 /** Opens the mock project and names a Linear tracker with a secret as its tracker. */
 async function openWithTracker(page: Page, secret: string | null = "tok-e2e-sync") {
@@ -33,17 +40,23 @@ test("imports the backlog after a count, then reads it from the mirror with no t
 }) => {
 	await openWithTracker(page);
 	await sidebar(page).getByRole("link", { name: "Flow" }).click();
-	await tabs(page).getByRole("link", { name: "Backlog" }).click();
+	await tabs(page).getByRole("link", { name: "List" }).click();
 
 	await page.getByRole("button", { name: "Import" }).click();
 	await expect(page.getByRole("main").getByRole("status")).toHaveText("10 open tickets");
-	await expect(page.getByRole("group", { name: /^ACME-/ })).toHaveCount(0);
+	// The mirror holds no ticket yet: the Status filter has no status to offer.
+	await page.getByRole("combobox", { name: "Status" }).click();
+	await expect(page.getByRole("option", { name: "To Do" })).toHaveCount(0);
+	await page.getByRole("option", { name: "All statuses" }).click();
 	await page.getByRole("button", { name: "Confirm" }).click();
-	await expect(page.getByRole("heading", { name: "To Do (7)" })).toBeVisible();
+	await onlyStatus(page, "To Do");
+	await expect(rows(page)).toHaveCount(7);
+	await onlyStatus(page, "All statuses");
 
-	await page.getByRole("textbox", { name: "Search" }).fill("export");
-	await expect(page.getByRole("group", { name: /^ACME-/ })).toHaveCount(1);
-	await expect(page.getByRole("group", { name: "ACME-2" })).toBeVisible();
+	// The search of Flow is the search of the tickets.
+	await page.getByRole("searchbox", { name: "Search runs" }).fill("export");
+	await expect(rows(page)).toHaveCount(1);
+	await expect(page.getByRole("button", { name: /ACME-2(?!\d)/ })).toBeVisible();
 });
 
 test("the sync action in the status bar runs a tick and the connection shows its state", async ({
@@ -63,8 +76,9 @@ test("the sync action in the status bar runs a tick and the connection shows its
 
 	// The tick filled the mirror: the backlog shows tickets with no import.
 	await sidebar(page).getByRole("link", { name: "Flow" }).click();
-	await tabs(page).getByRole("link", { name: "Backlog" }).click();
-	await expect(page.getByRole("heading", { name: "To Do (7)" })).toBeVisible();
+	await tabs(page).getByRole("link", { name: "List" }).click();
+	await onlyStatus(page, "To Do");
+	await expect(rows(page)).toHaveCount(7);
 });
 
 test("a failed poll shows the failed state and keeps the mirror", async ({ page }) => {

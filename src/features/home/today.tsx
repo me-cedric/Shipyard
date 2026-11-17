@@ -65,6 +65,11 @@ export function Today({ start }: { start?: ReactNode }) {
 		moved.current = false;
 		(page.current?.querySelector<HTMLElement>("article h3") ?? page.current)?.focus();
 	}, [first?.id]);
+	const toLater = (id: string) => {
+		moved.current = true;
+		setLater([...later.filter((x) => x !== id), id]);
+		setPicked(null);
+	};
 	const nothing = items.length === 0 && mine.length === 0 && !timesheet;
 	return (
 		// tabIndex -1: where the focus lands when the last thing leaves (`Leave`).
@@ -103,16 +108,10 @@ export function Today({ start }: { start?: ReactNode }) {
 							<p className="text-ui text-n-11">
 								{format(t.home.position, { n: ordered.indexOf(first) + 1, total: ordered.length })}
 							</p>
-							<NeedsRow key={first.id} item={first} />
-							{ordered.length > 1 ? (
-								<Button
-									className="min-h-control self-start"
-									onClick={() => {
-										moved.current = true;
-										setLater([...later.filter((id) => id !== first.id), first.id]);
-										setPicked(null);
-									}}
-								>
+							<NeedsRow key={first.id} item={first} onLater={() => toLater(first.id)} />
+							{/* An approval question has its own Not yet. */}
+							{ordered.length > 1 && first.kind !== "approval" ? (
+								<Button className="min-h-control self-start" onClick={() => toLater(first.id)}>
 									{t.home.later}
 								</Button>
 							) : null}
@@ -155,7 +154,7 @@ export function Today({ start }: { start?: ReactNode }) {
 					title={t.empty.needsYou}
 					action={{
 						label: t.home.today.backlog,
-						onClick: () => void navigate({ to: "/flow/backlog" }),
+						onClick: () => void navigate({ to: "/flow/list" }),
 					}}
 				/>
 			) : null}

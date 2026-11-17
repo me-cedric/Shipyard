@@ -174,11 +174,23 @@ export type NeedsYouItem = {
 	ref: string;
 } & (
 	| { kind: "question"; item: QuestionItem }
-	| { kind: "approval"; item: ApprovalItem }
+	/** `items`: every effect that waits for the run, as one question (`spec:app-redesign#REQ-013`). */
+	| { kind: "approval"; item: ApprovalItem; items: ApprovalItem[] }
 	| { kind: "plan"; item: RunItem }
 	| { kind: "review"; item: ReviewItem }
 	| { kind: "message"; item: MessageItem }
 );
+
+/** The approvals of one run are one question: one group for each run, in the order of the first. */
+function approvalsByRun(list: ApprovalItem[]): [ApprovalItem, ...ApprovalItem[]][] {
+	const groups = new Map<string, [ApprovalItem, ...ApprovalItem[]]>();
+	for (const a of list) {
+		const g = groups.get(a.run);
+		if (g) g.push(a);
+		else groups.set(a.run, [a]);
+	}
+	return [...groups.values()];
+}
 
 /**
  * The one list of what needs the person (spec:app-redesign#REQ-007, REQ-008), routed by role. Order:
@@ -216,17 +228,18 @@ export function useNeedsYou(everyone = false) {
 				item,
 			}),
 		),
-		...inbox.approvals.map(
-			(item): NeedsYouItem => ({
-				id: `approval:${item.id}`,
+		...approvalsByRun(inbox.approvals).map(
+			(items): NeedsYouItem => ({
+				id: `approvals:${items[0].run}`,
 				kind: "approval",
 				who: "agent",
-				by: named(item.run),
-				key: item.key,
-				title: item.title,
-				text: item.summary,
-				ref: `run:${item.run}`,
-				item,
+				by: named(items[0].run),
+				key: items[0].key,
+				title: items[0].title,
+				text: items.map((a) => a.summary).join(" · "),
+				ref: `run:${items[0].run}`,
+				item: items[0],
+				items,
 			}),
 		),
 		...inbox.plans.map(
@@ -291,6 +304,8 @@ export function useInboxActions() {
 				run(commands.questionAnswer(r, id, choice)),
 			approve: (id: number) => run(commands.approvalApprove(id)),
 			reject: (id: number) => run(commands.approvalReject(id)),
+			/** Approves these waiting effects of one run and stores the permission of the recipe for their kinds. */
+			allowRecipe: (ids: number[]) => run(commands.approvalsAllowRecipe(ids)),
 			planApprove: (r: string) => run(commands.runPlanApprove(r)),
 			planReject: (r: string, note: string) => run(commands.runPlanReject(r, note)),
 			markRead: (r: string, n: number) => run(commands.messageReadMark(r, n)),

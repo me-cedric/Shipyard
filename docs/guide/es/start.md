@@ -79,7 +79,7 @@ En Inicio, luego Hoy, una sola lista Empezar da los pasos siguientes en orden: p
 
 ## Tu rol
 
-En Ajustes, luego Yo, elige tu rol. El rol fija el espacio que se abre primero. Un responsable técnico empieza en Fábrica, Ejecuciones. Un jefe de proyecto empieza en Trabajo, Tablero.
+En Ajustes, luego Yo, elige tu rol. El rol fija el espacio que se abre primero. Un responsable técnico empieza en Flow. Un jefe de proyecto empieza en Flow.
 
 ## Seguro por defecto
 

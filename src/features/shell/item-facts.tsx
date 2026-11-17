@@ -12,7 +12,7 @@ import { IconButton } from "@/ui/atoms/icon-button";
 import { Skeleton } from "@/ui/atoms/skeleton";
 import { BookOpenIcon, CheckIcon, ClipboardIcon, PencilIcon } from "@/ui/icons";
 import { blocks } from "@/ui/organisms/markdown-view";
-import { docTarget, refPage, refSelection } from "./ref-page";
+import { docTarget, featureOfRef, refPage, refSelection } from "./ref-page";
 
 const OUTLINE_MAX = 8;
 
@@ -130,6 +130,8 @@ export function OpenActions({ refId }: { refId: string }) {
 	if (!page) return null;
 	const editable = doc?.page === "/library/handbook";
 	const go = (edit: boolean) => {
+		const feature = featureOfRef(refId);
+		if (feature) return void router.navigate(feature);
 		const open = doc ? ([doc.scope, doc.id] as const) : refSelection(t, refId);
 		if (open) rememberSelection(...open);
 		if (edit && doc && editable) requestEdit(doc.id);

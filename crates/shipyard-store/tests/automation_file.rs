@@ -244,3 +244,22 @@ fn a_questions_block_is_read_checked_and_stays_out_at_the_defaults() {
         assert!(parse_automation(bad).is_err(), "{bad}");
     }
 }
+
+#[test]
+fn recipe_switches_are_read_checked_and_stay_out_when_empty() {
+    // `app-redesign` REQ-013: "Do not ask again for this recipe" lives in the file.
+    use shipyard_core::pickup::WriteKind;
+    let a = parse_automation("recipe_writes:\n  feature:\n  - open_pr\n  - transition\n").unwrap();
+    let w: Vec<_> = a.recipe_writes["feature"].iter().copied().collect();
+    assert_eq!(w, [WriteKind::Transition, WriteKind::OpenPr]);
+    assert_eq!(
+        parse_automation(&render_automation(&a).unwrap()).unwrap(),
+        a
+    );
+    let text = render_automation(&Automation::default()).unwrap();
+    assert!(!text.contains("recipe_writes"), "{text}");
+    assert!(parse_automation("recipe_writes:\n  feature:\n  - deploy\n").is_err());
+    // A recipe names kinds, not the switches of the project.
+    assert!(parse_automation("recipe_writes:\n  feature:\n    pull_request: true\n").is_err());
+    assert!(parse_automation("recipe_writes:\n  ' ':\n  - push\n").is_err());
+}

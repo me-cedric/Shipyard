@@ -6,6 +6,13 @@ import { mountApp } from "@/test/mount";
 
 const demo = () => unwrap(commands.projectsOpen("/mock/demo", false));
 const draft = (text: RegExp) => screen.findByDisplayValue(text);
+// The write box, the agent review and the assistant actions are in Chat.
+const toChat = async (user: ReturnType<typeof userEvent.setup>) =>
+	user.click(
+		within(await screen.findByRole("navigation", { name: "Sections" })).getByRole("button", {
+			name: "Chat",
+		}),
+	);
 
 describe("Code, W10", () => {
 	it("fills the draft of the assistant with the pull request", async () => {
@@ -13,6 +20,7 @@ describe("Code, W10", () => {
 		await demo();
 		mountApp("/code/pull-requests");
 		await user.click(await screen.findByRole("link", { name: /health route/ }));
+		await toChat(user);
 		await user.click(await screen.findByRole("button", { name: "Write description" }));
 		expect(await draft(/Write the description of pull request #\d+ .*health route/)).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Review" }));

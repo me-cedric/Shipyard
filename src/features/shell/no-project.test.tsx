@@ -5,11 +5,11 @@ import { mountApp } from "@/test/mount";
 
 describe("No-project page (REQ-006)", () => {
 	it.each([
-		["/work/backlog", "Backlog"],
+		["/work/backlog", "Flow"],
 		["/specs/capabilities", "Capabilities"],
 		["/code/changes", "Local changes"],
 		["/design/architecture", "Architecture"],
-		["/factory/runs", "Runs"],
+		["/factory/runs", "Flow"],
 		["/knowledge/graph", "Graph"],
 	])("%s offers the three ways to open a project under one h1", async (path, title) => {
 		const user = userEvent.setup();

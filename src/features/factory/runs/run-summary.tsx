@@ -1,10 +1,9 @@
-import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useState } from "react";
 import { CI_STATUS, REVIEW_STATUS } from "@/features/code/status";
 import { useSessions } from "@/lib/factory";
 import { endOf } from "@/lib/home";
 import { format, useI18n } from "@/lib/i18n";
 import type { RunLogEvent_Serialize, RunState, RunView_Serialize } from "@/lib/ipc";
-import { openUrl } from "@/lib/menus";
 import { useRights } from "@/lib/rights";
 import { Badge } from "@/ui/atoms/badge";
 import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
@@ -159,8 +158,8 @@ function Fact({ label, icon, children }: { label: string; icon: ReactNode; child
 }
 
 /**
- * The top of the run page, and it stays in view (REQ-029): the ticket and the state, the facts of
- * the run, the one action of the state and a menu with Stop (the page has Copy ref).
+ * The agent card in the side column of the feature page (flow REQ-012): the state, the facts of the
+ * run, the one action of the state, Talk, and a menu with Stop. The page header has the title.
  */
 export function RunSummary({
 	run,
@@ -169,6 +168,7 @@ export function RunSummary({
 	primary,
 	onStop,
 	onOpenPr,
+	onTalk,
 }: {
 	run: RunView_Serialize;
 	events: RunLogEvent_Serialize[];
@@ -177,13 +177,13 @@ export function RunSummary({
 	/** Absent when the run has ended: nothing to stop. */
 	onStop?: () => void;
 	onOpenPr: (reference: string) => void;
+	/** Opens the conversation of the session. */
+	onTalk: () => void;
 }) {
 	const { t } = useI18n();
 	const f = t.factory;
 	const { gate } = useRights();
 	const [stopping, setStopping] = useState(false);
-	const head = useRef<HTMLElement>(null);
-	useScrollClear(head);
 	const sessions = useSessions().data;
 	const status = RUN_STATUS[run.state];
 	const step = stepperOf(run);
@@ -194,79 +194,55 @@ export function RunSummary({
 	// The model of the session that ran, not the one that the workflow asks for.
 	const model =
 		session && sessions?.find((x) => x.run === run.id && x.step === session.unit.id)?.model;
-	const ticket = webUrl(run.url);
 	const pr = run.pr;
 	const ci = pr && (CI_STATUS[pr.ci] ?? "idle");
 	const review = pr && (REVIEW_STATUS[pr.review] ?? "idle");
 	return (
-		<header
-			ref={head}
-			className="sticky top-0 z-10 flex flex-col gap-2 rounded-lg border bg-surface-1 p-3 shadow-1"
+		<section
+			aria-label={t.flow.feature.agent}
+			className="flex flex-col gap-3 rounded-lg border bg-surface-1 p-3 shadow-1"
 		>
-			<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-				<h1
-					tabIndex={-1}
-					data-run-title
-					className="flex min-w-0 flex-1 items-center gap-2 rounded-sm text-16 font-semibold text-n-12 focus-visible:shadow-glow focus-visible:outline-none"
-				>
-					{ticket ? (
-						<a
-							href={ticket}
-							// Click, middle click and modifier click all open it in the browser of the person.
-							onClick={(e) => {
-								e.preventDefault();
-								openUrl(ticket);
-							}}
-							onAuxClick={(e) => {
-								e.preventDefault();
-								openUrl(ticket);
-							}}
-							className="shrink-0 rounded-sm font-mono text-12 font-normal text-accent-text hover:underline focus-visible:shadow-glow"
-						>
-							{run.key}
-						</a>
-					) : (
-						<span className="shrink-0 font-mono text-12 font-normal text-n-11">{run.key}</span>
-					)}
-					<span className="min-w-0 truncate">{run.title}</span>
-				</h1>
-				<Badge variant={STATUS_BADGE[status]}>
-					<StatusDot status={status} label={f.state[run.state]} className="size-2" />
-					{f.state[run.state]}
-				</Badge>
-				<div className="flex items-center gap-2">
-					{primary}
-					{stopping ? (
-						<Button
-							variant="danger"
-							autoFocus
-							onBlur={() => setStopping(false)}
-							onClick={() => {
-								setStopping(false);
-								onStop?.();
-							}}
-						>
-							{format(f.machine.confirmStop, { name: run.key })}
-						</Button>
-					) : onStop ? (
-						<MenuButton
-							iconOnly
-							label={f.moreActions}
-							icon={<ChevronDownIcon size={14} />}
-							items={[
-								{
-									id: "stop",
-									label: f.kill,
-									danger: true,
-									...gate("runs.start"),
-									onSelect: () => setStopping(true),
-								},
-							]}
-						/>
-					) : null}
-				</div>
+			<Badge variant={STATUS_BADGE[status]} className="w-fit">
+				<StatusDot status={status} label={f.state[run.state]} className="size-2" />
+				{f.state[run.state]}
+			</Badge>
+			<div className="flex flex-wrap items-center gap-2">
+				{primary}
+				{live ? (
+					<Button className="min-h-control" onClick={onTalk}>
+						{t.flow.feature.talk}
+					</Button>
+				) : null}
+				{stopping ? (
+					<Button
+						variant="danger"
+						autoFocus
+						onBlur={() => setStopping(false)}
+						onClick={() => {
+							setStopping(false);
+							onStop?.();
+						}}
+					>
+						{format(f.machine.confirmStop, { name: run.key })}
+					</Button>
+				) : onStop ? (
+					<MenuButton
+						iconOnly
+						label={f.moreActions}
+						icon={<ChevronDownIcon size={14} />}
+						items={[
+							{
+								id: "stop",
+								label: f.kill,
+								danger: true,
+								...gate("runs.start"),
+								onSelect: () => setStopping(true),
+							},
+						]}
+					/>
+				) : null}
 			</div>
-			<div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+			<div className="flex flex-col gap-2">
 				<Fact
 					label={format(f.stepOf, { n: step.n, total: step.total })}
 					icon={<QueueListIcon size={14} />}
@@ -338,6 +314,6 @@ export function RunSummary({
 					</Fact>
 				) : null}
 			</div>
-		</header>
+		</section>
 	);
 }

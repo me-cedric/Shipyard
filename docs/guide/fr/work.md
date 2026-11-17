@@ -4,6 +4,8 @@ Travail montre les tickets de l'outil de suivi des tickets et le plan de l'équi
 
 ## Backlog
 
+L'ancienne adresse du Backlog ouvre Flux, dans la vue Liste, qui garde les mêmes tickets et les mêmes filtres.
+
 Backlog liste les tickets par état. Filtrez par état, personne, étiquette et exécution.
 
 - Importer : l'application montre d'abord le nombre. Elle n'écrit rien avant votre confirmation.
@@ -11,6 +13,8 @@ Backlog liste les tickets par état. Filtrez par état, personne, étiquette et 
 - Marquer pour l'agent : un clic donne le ticket aux agents.
 
 ## Tableau
+
+L'ancienne adresse du Tableau ouvre Flux, qui montre chaque fonctionnalité une fois, en cinq étapes (Idée, Spec, Construction, Revue, Prêt). Une carte montre le titre, qui y travaille et son état.
 
 Tableau montre une colonne par état. Déplacez une carte avec la souris ou le clavier. Quand l'outil de suivi des tickets refuse le déplacement, la carte revient et montre la raison.
 

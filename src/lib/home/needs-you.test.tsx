@@ -39,6 +39,15 @@ describe("useNeedsYou (spec:app-redesign#REQ-007, REQ-008)", () => {
 		expect(list.every((x) => x.at(-1) === "agent")).toBe(true);
 	});
 
+	it("gives one item for the approvals of one run (spec:app-redesign#REQ-013)", async () => {
+		const approvals = await unwrap(commands.approvalsList());
+		const runs = new Set(approvals.map((a) => a.run));
+		expect(approvals.length).toBeGreaterThan(runs.size);
+		renderApp(<Probe />);
+		const list = await ids();
+		expect(list.filter((x) => x[0] === "approval")).toHaveLength(runs.size);
+	});
+
 	it("keeps the time reminder out of the list", async () => {
 		renderApp(<Probe />);
 		await ids();

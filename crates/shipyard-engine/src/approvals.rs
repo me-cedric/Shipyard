@@ -4,11 +4,15 @@
 //! until a person approves it (Home / Inbox). A rejection drops it. A rejected tracker write is
 //! skipped and the run goes on; a rejected push or pull request escalates the run. A push with
 //! force with lease always waits (`delivery` REQ-015). Each step of the life of a write is one
-//! `write` event in the run log.
+//! `write` event in the run log. A kind in a recipe (`Automation::recipe_writes`) acts as the
+//! project switch for that kind only and for the runs of that workflow only (`app-redesign`
+//! REQ-013).
+
+use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use shipyard_core::pickup::{Writes, question_marker};
+use shipyard_core::pickup::{Automation, WriteKind, Writes, question_marker};
 use shipyard_core::rights::Right;
 use shipyard_core::run::Cause;
 use shipyard_store::run_log::kind;
@@ -101,6 +105,23 @@ impl Write {
         }
     }
 
+    /// The kind that a durable permission of a recipe names for this write. `None` for a push
+    /// with force with lease: no permission ever covers it.
+    pub fn kind(&self) -> Option<WriteKind> {
+        Some(match self {
+            Self::Transition { .. } => WriteKind::Transition,
+            Self::Labels { .. } => WriteKind::Labels,
+            Self::Comment { .. } => WriteKind::Comment,
+            Self::Push {
+                force_with_lease: true,
+                ..
+            } => return None,
+            Self::Push { .. } => WriteKind::Push,
+            Self::OpenPr { .. } => WriteKind::OpenPr,
+            Self::ResolveThreads { .. } => WriteKind::ResolveThreads,
+        })
+    }
+
     /// The right that the write needs (`team-rights` REQ-009).
     pub fn right(&self) -> Right {
         match self {
@@ -182,26 +203,43 @@ impl Inner {
         });
     }
 
-    /// The switch, and the right of the member who started the run: else a person with the
-    /// right sends it from the Inbox (`team-rights` REQ-009). A run from before team rights has
-    /// no member: it acts for the person of this machine in the project. No person: no right.
+    /// The switch of the project or the kind in the recipe of the run, and the right of the member who
+    /// started the run: else a person with the right sends it from the Inbox (`team-rights`
+    /// REQ-009). A run from before team rights has no member: it acts for the person of this
+    /// machine in the project. No person: no right.
     pub(crate) fn may_send(&self, run_id: &str, write: &Write) -> bool {
-        self.project_of(run_id)
-            .is_some_and(|p| write.allowed(&p.automation.writes))
-            && self.runs.get(run_id).is_some_and(|r| {
-                r.by.as_ref()
-                    .or_else(|| self.actors.get(&r.project))
-                    .is_some_and(|a| a.rights.contains(&write.right()))
-            })
+        self.allows(run_id, write, true)
     }
 
-    /// Sends each waiting write that the switches and the rights now allow: a switch turned on,
-    /// or the person known after a restart, needs no click for the writes that wait.
+    /// `may_send`, and the kind in the recipe counts only when `recipe` is true.
+    fn allows(&self, run_id: &str, write: &Write, recipe: bool) -> bool {
+        let wf = self.runs.get(run_id).map(|r| r.wf.id.as_str());
+        self.project_of(run_id).is_some_and(|p| {
+            write.allowed(&p.automation.writes)
+                || recipe
+                    && wf
+                        .and_then(|id| p.automation.recipe_writes.get(id))
+                        .zip(write.kind())
+                        .is_some_and(|(kinds, k)| kinds.contains(&k))
+        }) && self.runs.get(run_id).is_some_and(|r| {
+            r.by.as_ref()
+                .or_else(|| self.actors.get(&r.project))
+                .is_some_and(|a| a.rights.contains(&write.right()))
+        })
+    }
+
+    /// Sends each waiting write that the switches of the project and the rights now allow: a
+    /// switch turned on, or the person known after a restart, needs no click for the writes that
+    /// wait. A permission of a recipe never sends a write that waits: the person did not see that
+    /// effect, so it keeps its question (`app-redesign` REQ-013). The kill switch holds them all.
     pub(crate) fn release_allowed(&mut self) {
+        if self.kill {
+            return;
+        }
         let ready: Vec<u64> = self
             .approvals
             .iter()
-            .filter(|a| self.may_send(&a.run, &a.write))
+            .filter(|a| self.allows(&a.run, &a.write, false))
             .map(|a| a.id)
             .collect();
         for id in ready {
@@ -347,6 +385,29 @@ impl Factory {
         drop(inner);
         let made = slot.lock().unwrap_or_else(|e| e.into_inner()).take();
         Ok(made)
+    }
+
+    /// "Do not ask again for this recipe" (`app-redesign` REQ-013): the project of `run_id` takes
+    /// `automation`, which the caller wrote to the file, and the run log keeps the kinds `on`
+    /// for the workflow of the run. Only a later write uses the permission: a write that waits
+    /// keeps its question, and the caller approves the ids that the person saw.
+    pub fn allow_recipe(
+        &self,
+        run_id: &str,
+        automation: Automation,
+        on: &BTreeSet<WriteKind>,
+    ) -> Result<(), String> {
+        let mut inner = self.lock();
+        let rec = inner.run(run_id)?;
+        let (project, wf) = (rec.project.clone(), rec.wf.id.clone());
+        inner
+            .projects
+            .get_mut(&project)
+            .ok_or_else(|| format!("project {project} is not open"))?
+            .automation = automation;
+        let note = json!({"state": "recipe_allowed", "workflow": wf, "kinds": on});
+        inner.log(run_id, None, kind::WRITE, note);
+        Ok(())
     }
 
     /// A person rejects the write: it is dropped (REQ-026). A ticket move, labels, a comment or

@@ -57,8 +57,8 @@ test("tester", async ({ page }) => {
 		await w.until(() => page.getByRole("dialog").count(), 0, "the dialog stays open");
 	});
 
-	await w.step("Run the project checks", "Code, Quality, Run Tests", async () => {
-		await w.go("Flow", "Quality");
+	await w.step("Run the project checks", "Flow, Health, Run Tests", async () => {
+		await w.go("Flow", "Health");
 		await w.click(page.getByRole("button", { name: "Run Tests" }));
 		await w.click(page.getByRole("button", { name: "Run secrets" }));
 		await w.see(page.getByText("Findings").first(), "no findings list");
@@ -70,7 +70,11 @@ test("tester", async ({ page }) => {
 		async () => {
 			await w.go("Code", "Pull requests");
 			await w.click(page.getByRole("link", { name: /#43 Audit the keychain use/ }));
-			await w.see(page.getByRole("tab", { name: /Checks/ }), "no Checks tab on the pull request");
+			const checks = page
+				.getByRole("navigation", { name: "Sections" })
+				.getByRole("button", { name: "Checks", exact: true });
+			await w.see(checks, "no Checks section on the pull request");
+			await w.click(checks);
 			await w.see(page.getByText("CI failing").first(), "the failing check is not named");
 		},
 	);

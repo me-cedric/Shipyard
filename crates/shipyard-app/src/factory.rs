@@ -772,6 +772,17 @@ pub struct RunView {
     /// Why a failed, paused or blocked run stopped: the newest `stop` or `blocked` note, or the
     /// newest error of the AI tool. `None` for a run that works or ended well.
     pub reason: Option<String>,
+    /// The main action of the stop (`app-redesign` REQ-014). `None`: the run waits on no stop.
+    pub stop: Option<shipyard_core::feature::Stop>,
+}
+
+/// The state of a pull request row of the mirror.
+fn pr_state(state: &str) -> shipyard_core::pickup::PrState {
+    match state {
+        "open" => shipyard_core::pickup::PrState::Open,
+        "merged" => shipyard_core::pickup::PrState::Merged,
+        _ => shipyard_core::pickup::PrState::Closed,
+    }
 }
 
 fn run_view(r: &RunInfo, pulls: &[PrRowView], questions: u32, approvals: u32) -> RunView {
@@ -786,6 +797,11 @@ fn run_view(r: &RunInfo, pulls: &[PrRowView], questions: u32, approvals: u32) ->
         changes_requested: p.review == "changes_requested",
         draft: p.draft,
     });
+    let cause = r.escalation.as_ref().map(|e| e.cause);
+    let pr_state = pr.as_ref().map(|p| pr_state(&p.state));
+    // A run that the day budget paused waits for the next day: a resume cannot go on before.
+    let stop = shipyard_core::feature::stop_of(r.run.state, cause, pr_state)
+        .filter(|s| !(r.day_pause && *s == shipyard_core::feature::Stop::Resume));
     RunView {
         id: r.id.clone(),
         reference: format!("run:{}", r.id),
@@ -837,6 +853,7 @@ fn run_view(r: &RunInfo, pulls: &[PrRowView], questions: u32, approvals: u32) ->
         open_questions: questions,
         approvals,
         reason: None,
+        stop,
     }
 }
 
@@ -888,6 +905,7 @@ pub fn features(s: &AppState) -> Res<Vec<shipyard_core::feature::FlowFeature>> {
             key: t.key.clone(),
             title: t.title.clone(),
             done: t.category == "done",
+            assignee: t.assignee.clone(),
         })
         .collect();
     let root = Path::new(&a.entry.path);
@@ -912,10 +930,16 @@ pub fn features(s: &AppState) -> Res<Vec<shipyard_core::feature::FlowFeature>> {
                 .find(|t| t.linked.as_deref() == Some(link.as_str()))
                 .map(|t| t.key.clone())
                 .or(cited);
+            // Each artifact but the proposal sits under `specs/` of the change.
+            let has_spec = c.artifacts.iter().any(|a| {
+                a.artifact != "proposal"
+                    && !matches!(a.status, shipyard_core::specs::ArtifactStatus::Missing)
+            });
             ChangePart {
                 id: c.id,
                 title: c.title,
                 ticket,
+                has_spec,
             }
         })
         .collect();
@@ -923,6 +947,14 @@ pub fn features(s: &AppState) -> Res<Vec<shipyard_core::feature::FlowFeature>> {
         .into_iter()
         .map(|r| RunPart {
             pr: r.pr.as_ref().map(|p| u64::from(p.number)),
+            step: r
+                .steps
+                .iter()
+                .find(|st| st.state == StepState::Running)
+                .map(|st| st.id.clone()),
+            approvals: r.approvals,
+            questions: r.open_questions,
+            stop: r.stop,
             run: shipyard_core::run::Run {
                 state: r.state,
                 return_to: r.return_to,
@@ -938,10 +970,15 @@ pub fn features(s: &AppState) -> Res<Vec<shipyard_core::feature::FlowFeature>> {
             reference: p.reference,
             number: u64::from(p.number),
             title: p.title,
-            state: match p.state.as_str() {
-                "open" => shipyard_core::pickup::PrState::Open,
-                "merged" => shipyard_core::pickup::PrState::Merged,
-                _ => shipyard_core::pickup::PrState::Closed,
+            state: pr_state(&p.state),
+            // shortcut: the mirror keeps no author of a pull request, add it to `PrRow` when a
+            // card must name the person of a pull request with no ticket.
+            author: None,
+            checks: match p.ci.as_str() {
+                "passing" => Some(shipyard_core::delivery::Ci::Passing),
+                "failing" => Some(shipyard_core::delivery::Ci::Failing),
+                "pending" => Some(shipyard_core::delivery::Ci::Pending),
+                _ => None,
             },
         })
         .collect();
@@ -1160,6 +1197,7 @@ pub fn usage(s: &AppState) -> Res<UsageView> {
 pub fn budget_save(s: &AppState, scope: &str, key: &str, usd: Option<f64>) -> Res<()> {
     crate::rights::require(s, crate::rights::Right::ProjectSettings, "budget_set", key)?;
     let (id, root) = root_of(s)?;
+    let _file = crate::commands::sync::automation_lock();
     set_budget(&root, scope, key, usd).map_err(err)?;
     if let AutomationRead::Valid(a) = read_automation(&root).map_err(err)? {
         s.factory.factory.set_budgets(&id, a.budgets);
@@ -1305,10 +1343,27 @@ pub fn unblock(s: &AppState, run: &str, note: Option<&str>) -> Res<()> {
     done(s, s.factory.factory.unblock_with(run, note))
 }
 
-/// A run blocked with nothing to deliver ends as `Done`: the work is on the base already.
+/// A run blocked with nothing to deliver ends as `Done`: the work is on the base already. A run
+/// whose pull request merged or closed on the code host takes that event now (`stop_of`).
 pub fn close_done(s: &AppState, run: &str) -> Res<()> {
+    use shipyard_core::pickup::PrState;
     crate::rights::require(s, crate::rights::Right::RunsStart, "run_close_done", run)?;
-    done(s, s.factory.factory.close_done(run))
+    let f = &s.factory.factory;
+    let outside = match f.run_info(run).and_then(|r| r.pr) {
+        Some(n) => pr_rows(s)?
+            .into_iter()
+            .find(|p| u64::from(p.number) == n)
+            .map(|p| pr_state(&p.state)),
+        None => None,
+    };
+    done(
+        s,
+        match outside {
+            Some(PrState::Merged) => f.close_outside(run, true),
+            Some(PrState::Closed) => f.close_outside(run, false),
+            _ => f.close_done(run),
+        },
+    )
 }
 
 pub fn approve_plan(s: &AppState, run: &str) -> Res<()> {

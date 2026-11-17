@@ -136,7 +136,7 @@ export function ChangeDetail({ change, onBack }: { change: Change; onBack: () =>
 				>
 					<DocumentTextIcon size={16} />
 				</span>
-				<h1 className="text-20 text-n-12">{change.title}</h1>
+				<h2 className="text-20 text-n-12">{change.title}</h2>
 				<Progress value={done} max={change.artifacts.length} label={s.artifacts} className="w-32" />
 				<span className="font-mono text-12 text-n-11">
 					{done}/{change.artifacts.length}

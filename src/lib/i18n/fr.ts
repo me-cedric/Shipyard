@@ -9,6 +9,7 @@ import type { Messages } from "./en";
 import { extensionsFr } from "./extensions";
 import { extrasFr } from "./extras";
 import { factoryFr } from "./factory";
+import { flowFr } from "./flow";
 import { glossaryFr } from "./glossary";
 import { homeFr } from "./home";
 import { knowledgeFr } from "./knowledge";
@@ -630,6 +631,17 @@ export const fr: Messages = {
 				trackerComment: "Commentaire du ticket",
 			},
 			save: "Enregistrer",
+			recipes: "Autorisé pour une recette",
+			kind: {
+				transition: "Déplacer le ticket",
+				labels: "Étiquettes du ticket",
+				comment: "Commentaire du ticket",
+				push: "Push",
+				open_pr: "Ouvrir une pull request",
+				resolve_threads: "Fermer les fils de revue",
+			},
+			remove: "Retirer",
+			removeKind: "Retirer {kind} pour {recipe}",
 			error: {
 				interval: "Intervalle : {min} s au minimum",
 				number: "{name} : un nombre entier",
@@ -932,6 +944,7 @@ export const fr: Messages = {
 	assistant: assistantFr,
 	design: designFr,
 	factory: factoryFr,
+	flow: flowFr,
 	glossary: glossaryFr,
 	settings: settingsFr,
 	specs: specsFr,

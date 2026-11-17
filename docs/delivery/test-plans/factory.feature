@@ -435,6 +435,36 @@ Feature: factory
     When the run sends it
     Then the push waits as an approval in Home / Inbox
 
+  @spec:factory#REQ-025
+  Scenario: Write switches: Recipe permission
+    Given an approval question with the effects `transition` and `open_pr` and `push` off
+    When the person ticks "Do not ask again for this recipe" and approves
+    Then `recipe_writes` of `.shipyard/automation.yaml` holds exactly these two kinds for that recipe
+
+  @spec:factory#REQ-025
+  Scenario: Write switches: Permission applies to later writes
+    Given a recipe with a permission for `open_pr`
+    When a run of another recipe asks to open a pull request
+    Then the write waits as an approval in Home / Inbox
+
+  @spec:factory#REQ-025
+  Scenario: Write switches: Force with lease has no permission
+    Given a question that holds a push that rewrites history
+    When the person ticks "Do not ask again for this recipe"
+    Then the push is not stored in `recipe_writes` and waits next time
+
+  @spec:factory#REQ-025
+  Scenario: Write switches: A waiting write keeps its question
+    Given a write that waits and a person who then stores the permission for its kind
+    When the person opens Home / Inbox
+    Then the waiting write still shows its question
+
+  @spec:factory#REQ-025
+  Scenario: Write switches: Remove goes with Save
+    Given a recipe with a permission in Settings / Project
+    When the person clicks Remove and then Save
+    Then the kind leaves `recipe_writes` and the next write of that kind waits
+
   @spec:factory#REQ-026
   Scenario: Approvals: Approve
     Given a run that wants to push and `push` off

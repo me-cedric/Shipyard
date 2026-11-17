@@ -6,6 +6,13 @@ import { mountApp } from "@/test/mount";
 
 const demo = () => unwrap(commands.projectsOpen("/mock/demo", false));
 const row = (name: RegExp) => screen.findByRole("link", { name });
+// The write box, the agent review and the assistant actions are in Chat.
+const toChat = async (user: ReturnType<typeof userEvent.setup>) =>
+	user.click(
+		within(await screen.findByRole("navigation", { name: "Sections" })).getByRole("button", {
+			name: "Chat",
+		}),
+	);
 
 describe("Code / Pull requests: agent actions", () => {
 	it("reviews with an agent, shows the finding on its line, drops one and posts once", async () => {
@@ -13,6 +20,7 @@ describe("Code / Pull requests: agent actions", () => {
 		await demo();
 		mountApp("/code/pull-requests");
 		await user.click(await row(/health route/));
+		await toChat(user);
 		await user.click(await screen.findByRole("button", { name: "Review with an agent" }));
 		const panel = (await screen.findByRole("heading", { name: "Agent review (2)" })).closest(
 			"section",
@@ -45,6 +53,7 @@ describe("Code / Pull requests: agent actions", () => {
 			];
 		mountApp("/code/pull-requests");
 		await user.click(await row(/health route/));
+		await toChat(user);
 		const panel = (await screen.findByRole("heading", { name: "Agent review (3)" })).closest(
 			"section",
 		) as HTMLElement;
@@ -69,6 +78,7 @@ describe("Code / Pull requests: agent actions", () => {
 		});
 		mountApp("/code/pull-requests");
 		await user.click(await row(/health route/));
+		await toChat(user);
 		const button = await screen.findByRole("button", { name: "Post review" });
 		await user.dblClick(button);
 		expect(await screen.findByText("Posted")).toBeVisible();
@@ -109,6 +119,7 @@ describe("Code / Pull requests: agent actions", () => {
 		if (project) project.overrides = { ...project.overrides, readOnly: true };
 		mountApp("/code/pull-requests");
 		await user.click(await row(/health route/));
+		await toChat(user);
 		// The control is off with the reason: the click never reaches the backend.
 		const review = await screen.findByRole("button", { name: "Review with an agent" });
 		await waitFor(() => expect(review).toBeDisabled());

@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { type ComponentProps, useEffect, useState } from "react";
 import { planOf } from "@/features/factory/runs/plan";
-import { useGuard } from "@/features/work/guard";
+import { message, useGuard } from "@/features/work/guard";
 import { useRunLog } from "@/lib/factory";
 import {
 	type ApprovalItem,
@@ -11,26 +11,27 @@ import {
 	type ReviewItem,
 	useInboxActions,
 } from "@/lib/home";
-import { useI18n } from "@/lib/i18n";
+import { format, useI18n } from "@/lib/i18n";
 import { showAnchor } from "@/lib/notifications/targets";
 import { RightButton, useRights } from "@/lib/rights";
 import { pullHref, useShell } from "@/lib/shell";
 import { capabilityOf, useFile, useFoldTargets, useSpecsActions, useSpecView } from "@/lib/specs";
 import { Button } from "@/ui/atoms/button";
+import { Checkbox } from "@/ui/atoms/checkbox";
 import { Input } from "@/ui/atoms/input";
-import { ApprovalBar } from "@/ui/molecules/approval-bar";
+import { ApprovalBar, approvalSentence } from "@/ui/molecules/approval-bar";
 import { Card } from "@/ui/molecules/card";
 import { QuestionCard } from "@/ui/molecules/question-card";
 import { RefChip } from "@/ui/molecules/ref-chip";
 import { MarkdownView } from "@/ui/organisms/markdown-view";
 
 /** The row of a thing that needs the person, with each control and each right gate (spec:app-redesign#REQ-007). */
-export function NeedsRow({ item: x }: { item: NeedsYouItem }) {
+export function NeedsRow({ item: x, onLater }: { item: NeedsYouItem; onLater?: () => void }) {
 	switch (x.kind) {
 		case "question":
 			return <QuestionRow item={x.item} />;
 		case "approval":
-			return <ApprovalRow approval={x.item} />;
+			return <ApprovalsQuestion approvals={x.items} onNotYet={onLater} />;
 		case "plan":
 			return <PlanRow run={x.item.id} ticket={x.item.key} title={x.item.title} />;
 		case "review":
@@ -142,6 +143,116 @@ export function ApprovalRow({
 				onReject={() => void run(() => act.reject(a.id))}
 			/>
 			<Failure error={error} />
+		</Card>
+	);
+}
+
+/**
+ * The approvals that wait for one run, as one question (`spec:app-redesign#REQ-013`). One chip names
+ * each effect. The main button sends exactly the effects that show, but never a push with force: that
+ * one needs its own click under Each step. Reject exists only under Each step. With the box ticked,
+ * the main button stores the permission of the recipe for these effects in place of the single approvals.
+ */
+export function ApprovalsQuestion({
+	approvals,
+	noRun,
+	onNotYet,
+}: {
+	approvals: ApprovalItem[];
+	/** Hide the chip of the run: the feature page already is that run. */
+	noRun?: boolean;
+	/** "Not yet" sends and rejects nothing: the caller moves the question away. */
+	onNotYet?: () => void;
+}) {
+	const { t } = useI18n();
+	const h = t.home;
+	const act = useInboxActions();
+	const { gate } = useRights();
+	const { error, run } = useGuard();
+	const [steps, setSteps] = useState<boolean | null>(null);
+	const [recipe, setRecipe] = useState(false);
+	const first = approvals[0];
+	// A push that rewrites history never goes with the main button or the durable permission.
+	const ids = approvals.filter((a) => !a.force).map((a) => a.id);
+	const reason = approvals.filter((a) => !a.force).flatMap((a) => gate(a.right).reason ?? [])[0];
+	const settings = gate("project.settings").reason;
+	if (!first) return null;
+	const open = steps ?? ids.length === 0;
+	const send = () =>
+		void run(async () => {
+			if (recipe) return void (await act.allowRecipe(ids));
+			// Each effect has its own call: one that fails leaves the others as they went out.
+			const failed: string[] = [];
+			for (const id of ids)
+				try {
+					await act.approve(id);
+				} catch (e) {
+					failed.push(message(e));
+				}
+			if (failed.length) throw new Error(failed.join("\n"));
+		});
+	return (
+		<Card className="*:border-b-0">
+			<div className="flex flex-col gap-3 px-3 py-2">
+				{noRun ? null : <RunLink run={first.run} ticket={first.key} />}
+				<ul aria-label={h.approvals} className="flex flex-wrap gap-2">
+					{approvals.map((a) => (
+						<li
+							key={a.id}
+							id={`approval-${a.id}`}
+							className={
+								a.force
+									? "rounded-full bg-danger-soft px-3 py-1 text-ui text-danger-text"
+									: "rounded-full bg-n-3 px-3 py-1 text-ui text-n-12"
+							}
+						>
+							{approvalSentence(h.approval, a)}
+						</li>
+					))}
+				</ul>
+				{ids.length ? (
+					<div className="flex flex-wrap items-center gap-2">
+						<span className="inline-flex min-h-control items-center">
+							<Checkbox
+								label={format(h.recipe, { recipe: first.workflow })}
+								checked={recipe}
+								onCheckedChange={setRecipe}
+								disabled={!!settings}
+							/>
+						</span>
+						{settings ? <span className="text-12 text-n-11">{settings}</span> : null}
+					</div>
+				) : null}
+				<div className="flex flex-wrap gap-2">
+					{ids.length ? (
+						<Button
+							variant="primary"
+							className="min-h-control"
+							disabled={!!reason}
+							reason={reason}
+							onClick={send}
+						>
+							{ids.length > 1 ? h.approveAll : h.approve}
+						</Button>
+					) : null}
+					<Button className="min-h-control" aria-expanded={open} onClick={() => setSteps(!open)}>
+						{h.eachStep}
+					</Button>
+					{onNotYet ? (
+						<Button className="min-h-control" onClick={onNotYet}>
+							{h.notYet}
+						</Button>
+					) : null}
+				</div>
+				{open
+					? approvals.map((a) => (
+							<div key={a.id}>
+								<ApprovalRow approval={a} noRun />
+							</div>
+						))
+					: null}
+				<Failure error={error} />
+			</div>
 		</Card>
 	);
 }

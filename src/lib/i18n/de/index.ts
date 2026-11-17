@@ -9,6 +9,7 @@ import { editingDe } from "./editing";
 import { extensionsDe } from "./extensions";
 import { extrasDe } from "./extras";
 import { factoryDe } from "./factory";
+import { flowDe } from "./flow";
 import { glossaryDe } from "./glossary";
 import { homeDe } from "./home";
 import { knowledgeDe } from "./knowledge";
@@ -633,6 +634,17 @@ export const de: Messages = {
 				trackerComment: "Ticket-Kommentar",
 			},
 			save: "Speichern",
+			recipes: "Für ein Rezept erlaubt",
+			kind: {
+				transition: "Ticket verschieben",
+				labels: "Ticket-Labels",
+				comment: "Ticket-Kommentar",
+				push: "Push",
+				open_pr: "Pull Request öffnen",
+				resolve_threads: "Review-Threads schließen",
+			},
+			remove: "Entfernen",
+			removeKind: "{kind} für {recipe} entfernen",
 			error: {
 				interval: "Intervall: mindestens {min} s",
 				number: "{name}: eine ganze Zahl",
@@ -941,6 +953,7 @@ export const de: Messages = {
 	assistant: assistantDe,
 	design: designDe,
 	factory: factoryDe,
+	flow: flowDe,
 	glossary: glossaryDe,
 	settings: settingsDe,
 	specs: specsDe,

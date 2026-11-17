@@ -1,11 +1,13 @@
 import type {
 	ChangeView_Serialize,
+	Ci,
 	FlowFeature_Serialize,
 	Mark,
 	PrRowView,
 	RunState,
 	RunView_Serialize,
 	Stage,
+	Stop,
 	WorkItemView_Serialize,
 } from "./bindings";
 import { isRef } from "./mock-refs";
@@ -36,6 +38,22 @@ export function stageOf(state: RunState, returnTo: RunState | null): [Stage, Mar
 	return [stage ?? (returnTo ? SPLIT[returnTo][0] : null) ?? "build", mark];
 }
 
+/**
+ * The main action of a stopped run, as `shipyard_core::feature::stop_of`. `cause` is the cause of
+ * the stop (`budget`, `nothing_to_deliver`, …), `pr` the state of its pull request.
+ */
+export function stopOf(state: RunState, cause: string | null, pr: string | null): Stop | null {
+	const final = ["Failed", "Cancelled", "Done"].includes(state);
+	if ((pr === "merged" || pr === "closed") && !final && state !== "Merged") return "close_done";
+	if (state === "WaitingForAnswer") return "reply";
+	if (state === "Blocked") return cause === "nothing_to_deliver" ? "close_done" : "unblock";
+	if (state === "Paused") return cause === "budget" ? "add_budget" : "resume";
+	return state === "Failed" ? "try_again" : null;
+}
+
+/** The checks of a pull request; `none` is no checks. */
+const CHECKS: Ci[] = ["passing", "failing", "pending"];
+
 type Ticket = WorkItemView_Serialize;
 type Change = ChangeView_Serialize;
 type Run = RunView_Serialize;
@@ -52,9 +70,17 @@ function one(ticket?: Ticket, change?: Change, run?: Run, pr?: Pull): FlowFeatur
 					: ["review", "stopped"]
 			: ticket?.category === "done"
 				? ["ready", null]
-				: change
+				: // Each artifact but the proposal sits under `specs/`: with none, the change is an idea.
+					change?.artifacts.some((a) => a.artifact !== "proposal" && a.status !== "missing")
 					? ["spec", null]
 					: ["idea", null];
+	// The agent step that works, else the assignee. The mirror keeps no author of a pull request.
+	const step = run?.steps.find((x) => x.state === "running")?.id;
+	const who = step
+		? { name: step, agent: true }
+		: ticket?.assignee
+			? { name: ticket.assignee, agent: false }
+			: null;
 	return {
 		title: ticket?.title ?? change?.title ?? run?.title ?? pr?.title ?? "",
 		stage,
@@ -63,6 +89,12 @@ function one(ticket?: Ticket, change?: Change, run?: Run, pr?: Pull): FlowFeatur
 		change: change ? `change:${change.id}` : null,
 		run: run?.reference ?? null,
 		pr: pr?.reference ?? null,
+		who,
+		runState: run?.state ?? null,
+		approvals: run?.approvals ?? 0,
+		questions: run?.openQuestions ?? 0,
+		checks: CHECKS.find((c) => c === pr?.ci) ?? null,
+		stop: run?.stop ?? null,
 	};
 }
 

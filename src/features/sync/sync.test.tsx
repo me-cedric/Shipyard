@@ -146,6 +146,42 @@ describe("Settings / Project, group Automation", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent("Per status: name=number");
 	});
 
+	it("removes a kind of a recipe permission in the draft, and Save sends it with the rest", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().sync.file = "valid";
+		mockState().sync.automation.recipe_writes = { feature: ["transition", "open_pr"] };
+		mountApp("/settings/project");
+		const interval = await screen.findByRole("spinbutton", { name: "Interval (s)" });
+		await user.clear(interval);
+		await user.type(interval, "45");
+		await user.click(
+			screen.getByRole("button", { name: "Remove Open a pull request for feature" }),
+		);
+		// Remove changes the draft only: the file keeps both kinds, the edit of the form stays.
+		expect(mockState().sync.automation.recipe_writes).toEqual({
+			feature: ["transition", "open_pr"],
+		});
+		expect(
+			screen.queryByRole("button", { name: "Remove Open a pull request for feature" }),
+		).toBeNull();
+		expect(screen.getByRole("spinbutton", { name: "Interval (s)" })).toHaveValue(45);
+		await user.click(screen.getByRole("button", { name: "Remove Move the ticket for feature" }));
+		expect(screen.queryByText("Allowed for a recipe")).toBeNull();
+		await user.click(screen.getByRole("button", { name: "Save" }));
+		await waitFor(() => expect(mockState().sync.automation.recipe_writes).toBeUndefined());
+		expect(mockState().sync.automation.interval).toBe(45);
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Save" })).toBeNull());
+	});
+
+	it("shows no recipe permission list when none exists", async () => {
+		await withTracker();
+		mountApp("/settings/project");
+		await screen.findByRole("spinbutton", { name: "Interval (s)" });
+		expect(screen.queryByText("Allowed for a recipe")).toBeNull();
+		expect(screen.queryByRole("button", { name: /^Remove .+ for / })).toBeNull();
+	});
+
 	it("is in French when the language is French", async () => {
 		mockState().prefs.lang = "fr";
 		await withTracker();

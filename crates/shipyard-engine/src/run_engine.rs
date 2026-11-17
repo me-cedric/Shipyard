@@ -208,6 +208,8 @@ pub struct RunInfo {
     pub worktree_kept: Option<String>,
     /// Why the run stopped for a person (REQ-053). `None`: no escalation, or a log from before.
     pub escalation: Option<Escalation>,
+    /// The day budget paused the run, with no escalation: the next day resumes it (REQ-022).
+    pub day_pause: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -779,6 +781,29 @@ impl Factory {
         Ok(())
     }
 
+    /// A person closes a run whose pull request merged or closed on the code host before the
+    /// engine read the event (`app-redesign` REQ-014). The run takes that event now, as from the
+    /// sync: a merge closes the run as `Done`, a close with no merge cancels it (REQ-026).
+    pub fn close_outside(&self, run_id: &str, merged: bool) -> Result<(), String> {
+        let mut inner = self.lock();
+        let rec = inner.run(run_id)?;
+        let state = rec.run.state;
+        let number = rec.pr.ok_or("the run has no pull request")?;
+        if state.is_final() || state == RunState::Merged {
+            return Err(format!(
+                "the run is {}: it closes by itself",
+                state.as_str()
+            ));
+        }
+        let event = if merged {
+            shipyard_core::pickup::PrEventKind::Merged
+        } else {
+            shipyard_core::pickup::PrEventKind::Closed
+        };
+        inner.pr_event(run_id, number, event);
+        Ok(())
+    }
+
     /// Send the pull request back with a text: a feedback round on the run that holds it.
     pub fn send_back(&self, number: u64, text: &str) {
         self.lock().send_back(number, text);
@@ -949,6 +974,7 @@ impl Inner {
             findings: r.d.findings.clone(),
             worktree_kept: r.d.kept.clone(),
             escalation: r.escalation.clone(),
+            day_pause: r.c.day_pause.is_some(),
         }
     }
 

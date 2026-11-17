@@ -1,17 +1,8 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { latestPerTicket } from "@/lib/home";
 import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
-
-const LANES = [
-	["queued", "Queued"],
-	["working", "Working"],
-	["needs_you", "Needs you"],
-	["in_review", "In review"],
-	["ready_to_merge", "Ready to merge"],
-] as const;
 
 async function renderRuns() {
 	await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
@@ -34,81 +25,6 @@ describe("Factory / Runs", () => {
 		})) as unknown as typeof window.matchMedia;
 	});
 
-	it("shows five lanes with a count each, from the mock dataset", async () => {
-		await renderRuns();
-		const all = await unwrap(commands.runsList());
-		const runs = latestPerTicket(all);
-		for (const [lane, name] of LANES) {
-			const n = runs.filter((r) => r.lane === lane).length;
-			expect(await screen.findByRole("heading", { name: `${name} (${n})` })).toBeInTheDocument();
-		}
-		expect(all).toHaveLength(14);
-	});
-
-	it("has no stat tiles and five lanes in an equal grid", async () => {
-		await renderRuns();
-		await screen.findByRole("heading", { name: /^Queued \(/ });
-		expect(screen.queryByText("Live runs")).toBeNull();
-		expect(screen.queryByText("Success rate")).toBeNull();
-		expect(screen.queryByRole("heading", { name: /^Done \(/ })).toBeNull();
-		const lanes = screen
-			.getAllByRole("region")
-			.filter((r) => r.parentElement?.className.includes("grid-cols-5"));
-		expect(lanes).toHaveLength(5);
-	});
-
-	it("shows the ticket key and one action on a card that waits, and opens the run at the plan", async () => {
-		const user = userEvent.setup();
-		await renderRuns();
-		const review = within(await screen.findByRole("region", { name: "Needs you" }));
-		const card = within(await review.findByRole("group", { name: /ACME-4/ }));
-		expect(card.getByText("ACME-4")).toBeVisible();
-		expect(
-			card.getAllByRole("button").map((b) => b.getAttribute("aria-label") ?? b.textContent),
-		).toEqual([expect.stringContaining("ACME-4"), "Review plan", "More actions"]);
-		await user.click(card.getByRole("button", { name: "Review plan" }));
-		expect(await screen.findByRole("region", { name: "ACME-4" })).toBeVisible();
-	});
-
-	it("filters by text and by Needs you, and keeps both in the address", async () => {
-		const user = userEvent.setup();
-		const router = await renderRuns();
-		await screen.findByRole("heading", { name: /^Queued \(/ });
-		await user.click(screen.getByRole("button", { name: "Needs you" }));
-		await waitFor(() => expect(router.state.location.search).toMatchObject({ filter: "needs" }));
-		const all = latestPerTicket(await unwrap(commands.runsList()));
-		const n = all.filter((r) => r.lane === "needs_you").length;
-		expect(await screen.findByRole("heading", { name: `Needs you (${n})` })).toBeInTheDocument();
-		expect(screen.getByRole("heading", { name: "Working (0)" })).toBeInTheDocument();
-		await user.type(screen.getByRole("searchbox", { name: "Search runs" }), "ACME-4");
-		expect(await screen.findByRole("heading", { name: "Needs you (1)" })).toBeInTheDocument();
-		await waitFor(() => expect(router.state.location.search).toMatchObject({ q: "ACME-4" }));
-	});
-
-	it("names the workflow on the step line of a card", async () => {
-		await renderRuns();
-		const working = within(await screen.findByRole("region", { name: "Working" }));
-		const card = within(await working.findByRole("group", { name: /ACME-2/ }));
-		expect(card.getByText(/^Feature · /)).toBeVisible();
-	});
-
-	it("keeps a failed run in Needs you and in History, and its card starts the run again and opens it", async () => {
-		const user = userEvent.setup();
-		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
-		const failed = await find("ACME-3");
-		const rec = mockState().factory.runs.find((r) => r.id === failed.id);
-		if (rec) rec.state = "Failed";
-		const router = mountApp("/factory/runs");
-		const needs = within(await screen.findByRole("region", { name: "Needs you" }));
-		const card = within(await needs.findByRole("group", { name: /ACME-3 / }));
-		await user.click(card.getByRole("button", { name: "Start again" }));
-		expect(await screen.findByRole("region", { name: "ACME-3" })).toBeVisible();
-		const mine = (await unwrap(commands.runsList())).filter((r) => r.key === "ACME-3");
-		expect(mine).toHaveLength(2);
-		const started = mine.find((r) => r.id !== failed.id);
-		await waitFor(() => expect(router.state.location.pathname).toBe(`/flow/runs/${started?.id}`));
-	});
-
 	it("goes back to History with its search from a run, and says Back", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
@@ -122,9 +38,8 @@ describe("Factory / Runs", () => {
 		await user.keyboard("{Enter}");
 		await screen.findByRole("region", { name: "ACME-3" });
 		await user.click(screen.getByRole("link", { name: "Back" }));
-		await waitFor(() =>
-			expect(router.state.location.search).toMatchObject({ view: "history", q: "ACME-3" }),
-		);
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/done"));
+		expect(router.state.location.search).toMatchObject({ q: "ACME-3" });
 		expect(await screen.findByRole("table", { name: "History" })).toBeVisible();
 	});
 
@@ -136,37 +51,8 @@ describe("Factory / Runs", () => {
 		await screen.findByRole("region", { name: "ACME-2" });
 		expect(screen.queryByRole("link", { name: "Back" })).toBeNull();
 		const page = within(screen.getByRole("region", { name: "ACME-2" }));
-		await user.click(page.getByRole("link", { name: "Runs" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/runs"));
-	});
-
-	it("counts the cards on the board and the rows in History", async () => {
-		await renderRuns();
-		const all = await unwrap(commands.runsList());
-		const cards = latestPerTicket(all).filter((r) => LANES.some(([lane]) => lane === r.lane));
-		const count = async () =>
-			(await screen.findByRole("heading", { level: 1, name: "Runs" })).nextElementSibling;
-		expect(latestPerTicket(all).length).toBeGreaterThan(cards.length);
-		await waitFor(async () => expect(await count()).toHaveTextContent(String(cards.length)));
-		const sum = LANES.reduce((n, [lane]) => n + cards.filter((r) => r.lane === lane).length, 0);
-		expect(sum).toBe(cards.length);
-	});
-
-	it("shows None and the empty pattern in a lane without a card", async () => {
-		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
-		mountApp("/factory/runs?filter=needs");
-		const working = within(await screen.findByRole("region", { name: "Working" }));
-		expect(await working.findByText("None")).toBeVisible();
-	});
-
-	it("moves the focus to the plan after the Review plan button of a card", async () => {
-		const user = userEvent.setup();
-		await renderRuns();
-		const review = within(await screen.findByRole("region", { name: "Needs you" }));
-		const card = within(await review.findByRole("group", { name: /ACME-4/ }));
-		await user.click(card.getByRole("button", { name: "Review plan" }));
-		const plan = await screen.findByRole("region", { name: "Plan" });
-		await waitFor(() => expect(plan).toHaveFocus());
+		await user.click(page.getByRole("link", { name: "Flow" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/flow"));
 	});
 
 	it("moves the focus to the title of the run after Approve plan", async () => {
@@ -176,35 +62,6 @@ describe("Factory / Runs", () => {
 		const panel = await screen.findByRole("region", { name: "ACME-4" });
 		await user.click(await within(panel).findByRole("button", { name: "Approve plan" }));
 		await waitFor(() => expect(within(panel).getByRole("heading", { level: 1 })).toHaveFocus());
-	});
-
-	it("shows the reason on Stop, Start again and in the card menu for a viewer", async () => {
-		const user = userEvent.setup();
-		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
-		mockState().person = {
-			member: "bo",
-			found: "email",
-			role: "viewer",
-			admin: false,
-			readOnly: false,
-			rights: [],
-		};
-		const failed = await find("ACME-3");
-		const rec = mockState().factory.runs.find((r) => r.id === failed.id);
-		if (rec) rec.state = "Failed";
-		mountApp("/factory/runs");
-		const reason = "Needs the right runs.start (your role: Viewer)";
-		const needs = within(await screen.findByRole("region", { name: "Needs you" }));
-		const card = within(await needs.findByRole("group", { name: /ACME-3 / }));
-		expect(card.getByRole("button", { name: "Start again" })).toBeDisabled();
-		expect(card.getByRole("button", { name: "Start again" })).toHaveAccessibleDescription(reason);
-		const working = within(await screen.findByRole("region", { name: "Working" }));
-		const live = within(await working.findByRole("group", { name: /ACME-2 / }));
-		await user.click(live.getByRole("button", { name: "More actions" }));
-		const stop = await screen.findByRole("menuitem", { name: "Stop" });
-		expect(stop).toHaveAttribute("aria-disabled", "true");
-		expect(stop).toHaveAccessibleDescription(reason);
-		expect(stop).toHaveAttribute("title", reason);
 	});
 
 	it("lists a failed run that is the latest of its ticket in History", async () => {
@@ -218,21 +75,6 @@ describe("Factory / Runs", () => {
 		expect(rows).toHaveLength(1);
 		// No end time is known: the cell shows a dash, not a blank.
 		expect(rows[0]).toHaveTextContent("–");
-	});
-
-	it("tells the person that a stopped run is in History, and moves the focus to the next card", async () => {
-		const user = userEvent.setup();
-		const router = await renderRuns();
-		const working = within(await screen.findByRole("region", { name: "Working" }));
-		const card = within(await working.findByRole("group", { name: /ACME-2 / }));
-		await user.click(card.getByRole("button", { name: "More actions" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Stop" }));
-		await user.click(await card.findByRole("button", { name: "Stop ACME-2?" }));
-		const toast = within(await screen.findByRole("status", { name: "Notifications" }));
-		expect(await toast.findByText("ACME-2 stopped")).toBeVisible();
-		await waitFor(() => expect(document.body).not.toBe(document.activeElement));
-		await user.click(toast.getByRole("button", { name: "History" }));
-		await waitFor(() => expect(router.state.location.search).toMatchObject({ view: "history" }));
 	});
 
 	it("shows the reason on Stop in the menu of the run page for a viewer", async () => {
@@ -253,19 +95,6 @@ describe("Factory / Runs", () => {
 		expect(await screen.findByRole("menuitem", { name: "Stop" })).toHaveAccessibleDescription(
 			"Needs the right runs.start (your role: Viewer)",
 		);
-	});
-
-	it("searches without case or accents", async () => {
-		const user = userEvent.setup();
-		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
-		const run = await find("ACME-4");
-		const rec = mockState().factory.runs.find((r) => r.id === run.id);
-		if (rec) rec.title = "Résumé parser";
-		mountApp("/factory/runs");
-		await screen.findByRole("heading", { name: /^Queued \(/ });
-		await user.type(screen.getByRole("searchbox", { name: "Search runs" }), "resume");
-		expect(await screen.findByRole("group", { name: /Résumé parser/ })).toBeVisible();
-		expect(screen.queryByRole("group", { name: /ACME-2 / })).toBeNull();
 	});
 
 	it("lists both runs of a ticket in History, and a row opens the run", async () => {
@@ -290,12 +119,8 @@ describe("Factory / Runs", () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		mountApp("/factory/runs?view=history&q=zzzz");
 		await screen.findByText("No runs");
-		// The switch has the same name: the action of the empty state is the one that is not a toggle.
-		const back = screen
-			.getAllByRole("button", { name: "Board" })
-			.find((b) => !b.hasAttribute("aria-pressed"));
-		await user.click(back as HTMLElement);
-		expect(await screen.findByRole("heading", { name: /^Queued \(/ })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Board" }));
+		expect(await screen.findByRole("region", { name: "Build" })).toBeInTheDocument();
 	});
 
 	it("shows the plan and its tasks on a run in plan review", async () => {
@@ -305,21 +130,6 @@ describe("Factory / Runs", () => {
 		const plan = await screen.findByRole("region", { name: "Plan" });
 		expect(within(plan).getByText(/Add the export button\./)).toBeInTheDocument();
 		expect(within(plan).getByText("Add it to the toolbar.")).toBeInTheDocument();
-	});
-
-	it("hides a run that a newer run of its ticket replaces", async () => {
-		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
-		await unwrap(commands.syncItems({}));
-		await unwrap(commands.runCancel((await find("ACME-3")).id));
-		await unwrap(commands.runStart("ACME-3"));
-		await renderRuns();
-		const all = await unwrap(commands.runsList());
-		const runs = latestPerTicket(all);
-		expect(runs.length).toBeLessThan(all.length);
-		for (const [lane, name] of LANES) {
-			const n = runs.filter((r) => r.lane === lane).length;
-			expect(await screen.findByRole("heading", { name: `${name} (${n})` })).toBeInTheDocument();
-		}
 	});
 
 	it("shows the kill switch as an agents toggle", async () => {
@@ -404,15 +214,18 @@ describe("Factory / Runs", () => {
 		await user.keyboard("{Enter}");
 		// The run view opens wide, next to the lanes.
 		const panel = await screen.findByRole("region", { name: "ACME-2" });
-		// Activity is the default tab: the events show first, then the Changes and Workflow tabs.
-		expect(await within(panel).findByRole("region", { name: /^Events/ })).toBeInTheDocument();
+		// Story is the first section: the plain events show, and one control opens all of them.
 		await waitFor(() => expect(within(panel).getAllByRole("listitem").length).toBeGreaterThan(0));
+		await user.click(within(panel).getByRole("button", { name: /^All \d+ events$/ }));
+		expect(await within(panel).findByRole("region", { name: /^Events/ })).toBeInTheDocument();
 		expect(
 			within(within(panel).getByRole("group", { name: "Cost" })).getByText(/\$1\.84/),
 		).toBeVisible();
-		await user.click(within(panel).getByRole("tab", { name: /^Changes/ }));
+		const sections = within(within(panel).getByRole("navigation", { name: "Sections" }));
+		await user.click(sections.getByRole("button", { name: "Changes" }));
 		expect(await within(panel).findByRole("region", { name: "Diff" })).toBeInTheDocument();
-		await user.click(within(panel).getByRole("tab", { name: "Workflow" }));
+		await user.click(sections.getByRole("button", { name: "Story" }));
+		await user.click(await within(panel).findByRole("button", { name: "Requests and sessions" }));
 		const graph = await within(panel).findByRole("region", { name: "Workflow" });
 		// jsdom measures no node, so xyflow keeps each one hidden.
 		const node = (id: string) => within(graph).findByTestId(`rf__node-${id}`);
@@ -435,18 +248,22 @@ describe("Factory / Runs", () => {
 	it("unblocks and resumes from the run view", async () => {
 		const user = userEvent.setup();
 		const router = await renderRuns();
+		// ACME-6 stopped at its budget limit: its main action adds 2 USD, the default of the stepper.
+		mockState()
+			.factory.runs.find((r) => r.key === "ACME-6")
+			?.log.push({
+				id: 9998,
+				step: null,
+				kind: "note",
+				payload: JSON.stringify({ stop: "budget" }),
+				ts: Date.now(),
+			});
 		for (const [key, button, to] of [
 			["ACME-9", "Unblock", "Working"],
-			["ACME-6", "Resume", "Working"],
+			["ACME-6", "Add budget", "Working"],
 		] as const) {
 			await user.click(await screen.findByRole("button", { name: new RegExp(key) }));
 			const panel = await screen.findByRole("region", { name: key });
-			if (button === "Resume")
-				await user.type(
-					await within(panel).findByRole("textbox", { name: "Added budget (USD)" }),
-					"2",
-				);
-			// The summary has the same action, which moves the focus here: the form sends.
 			const needs = await within(panel).findByRole("region", { name: "Needs you" });
 			await user.click(within(needs).getByRole("button", { name: button }));
 			await waitFor(async () => expect((await find(key)).state).toBe(to));
@@ -468,7 +285,10 @@ describe("Factory / Runs", () => {
 			id: 9999,
 			step: "pr",
 			kind: "note",
-			payload: JSON.stringify({ blocked: "nothing to deliver: the run changed no file" }),
+			payload: JSON.stringify({
+				blocked: "nothing to deliver: the run changed no file",
+				cause: "nothing_to_deliver",
+			}),
 			ts: Date.now(),
 		});
 		// Open the page again: it reads the log anew.
@@ -484,7 +304,7 @@ describe("Factory / Runs", () => {
 		await renderRuns();
 		await user.click(await screen.findByRole("button", { name: /ACME-9/ }));
 		const panel = await screen.findByRole("region", { name: "ACME-9" });
-		const banner = await within(panel).findByRole("status");
+		const banner = await within(panel).findByRole("article");
 		expect(banner).toHaveTextContent("The same failure came back twice in a row.");
 		expect(banner).toHaveTextContent("Tried: 1 review rounds of 4");
 		expect(banner).not.toHaveTextContent("also unblocks");
@@ -510,6 +330,7 @@ describe("Factory / Runs", () => {
 		await renderRuns();
 		await user.click(await screen.findByRole("button", { name: /ACME-2/ }));
 		const panel = await screen.findByRole("region", { name: "ACME-2" });
+		await user.click(await within(panel).findByRole("button", { name: /^All \d+ events$/ }));
 		const events = await within(panel).findByRole("region", { name: /^Events/ });
 		expect(await within(events).findByText("ACME-2 moved to Claimed")).toBeInTheDocument();
 		expect(within(events).queryByText(/"from"/)).toBeNull();
@@ -529,6 +350,9 @@ describe("Factory / Runs", () => {
 		).toBeInTheDocument();
 		expect(await within(panel).findByRole("button", { name: "Send" })).toBeInTheDocument();
 		expect(await within(panel).findByRole("button", { name: "Approve" })).toBeInTheDocument();
+		// Reject is under Each step only.
+		expect(within(panel).queryByRole("button", { name: "Reject" })).toBeNull();
+		await user.click(within(panel).getByRole("button", { name: "Each step" }));
 		expect(within(panel).getByRole("button", { name: "Reject" })).toBeInTheDocument();
 	});
 

@@ -16,7 +16,7 @@ test("keyboard path: place shortcut, palette action, inspector and a focus ring"
 	await expect(page.getByRole("button", { name: /^Project/ })).toBeVisible();
 
 	await page.keyboard.press("ControlOrMeta+2");
-	await expect(page.getByRole("link", { name: "Backlog", exact: true })).toHaveAttribute(
+	await expect(page.getByRole("link", { name: "Flow", exact: true })).toHaveAttribute(
 		"aria-current",
 		"page",
 	);

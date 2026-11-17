@@ -410,6 +410,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             delivery::approvals_list,
             delivery::approval_approve,
             delivery::approval_reject,
+            delivery::approvals_allow_recipe,
             delivery::pulls_list,
             delivery::pulls_status_get,
             design::design_list,

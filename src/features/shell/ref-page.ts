@@ -12,11 +12,11 @@ const PAGE: Record<string, PlacePath> = {
 	data: "/library/data",
 	flow: "/library/flows",
 	screen: "/library/screens",
-	change: "/flow/changes",
+	change: "/flow/list",
 	spec: "/library/capabilities",
 	q: "/library/questions",
 	test: "/library/test-plans",
-	wi: "/flow/backlog",
+	wi: "/flow/list",
 	est: "/plan/estimates",
 	member: "/crew/team",
 	wf: "/crew/workflows",
@@ -40,6 +40,16 @@ export function docTarget(ref: string): { page: PlacePath; scope: string; id: st
 	return hit && { page: hit[1], scope: `knowledge:${hit[0]}`, id };
 }
 
+/** A change or a ticket has no list page: it opens as a feature, on its Brief. */
+export const featureOfRef = (ref: string) =>
+	/^(change|wi):.+/.test(ref)
+		? {
+				to: "/flow/feature/$featureId" as const,
+				params: { featureId: ref },
+				search: { section: "brief" as const },
+			}
+		: undefined;
+
 export const refPage = (ref: string): PlacePath | undefined => PAGE[ref.slice(0, ref.indexOf(":"))];
 
 /**
@@ -53,7 +63,6 @@ export function refSelection(t: Messages, ref: string): [scope: string, id: stri
 	const [, place = "", tab = ""] = page.split("/");
 	if (sectionView(place as PlaceId, tab)?.[0] === "design")
 		return [`design:${tabLabel(t, "design", tab)}`, ref];
-	if (kind === "change") return ["specs:changes", rest];
 	if (kind === "spec") return ["specs:capabilities", rest.split("#")[0] ?? rest];
 	return undefined;
 }

@@ -6,12 +6,13 @@ test("project manager", async ({ page }) => {
 	const w = new Walk(page, { key: "pm", label: "Project manager" });
 	await w.start();
 
-	await w.step("Land on the board", "the page that opens first: Work, Board", async () => {
-		await w.landsOn("Flow", "Board");
+	await w.step("Land on the board", "the page that opens first: Flow, Flow", async () => {
+		await w.landsOn("Flow", "Flow");
 		await w.see(page.getByText("Bump dependencies"), "no card on the board");
 	});
 
 	await w.step("Filter the board by person", "the All assignees menu", async () => {
+		await w.go("Flow", "List");
 		await w.click(page.getByRole("combobox", { name: "Assignee" }));
 		await w.click(page.getByRole("option", { name: "Grace Hopper" }));
 		await w.see(page.getByText("Fix the French menu"), "the filter hides the person's card");
@@ -20,9 +21,14 @@ test("project manager", async ({ page }) => {
 	});
 
 	await w.step("Assign a ticket", "the card, then the person with free days", async () => {
+		await w.click(page.getByRole("button", { name: /Bump dependencies/ }));
+		await w.click(
+			page
+				.getByRole("navigation", { name: "Sections" })
+				.getByRole("button", { name: "Brief", exact: true }),
+		);
 		const held = page.getByRole("main").getByText("Grace Hopper");
 		const before = await held.count();
-		await w.click(page.getByText("Bump dependencies"));
 		await w.click(page.getByRole("combobox", { name: "Assignee" }).last());
 		await w.see(page.getByText("4 d free"), "no free-time hint beside the person");
 		await w.click(page.getByRole("option", { name: /^Grace Hopper/ }));
@@ -35,7 +41,7 @@ test("project manager", async ({ page }) => {
 
 	await w.step(
 		"Mark the ticket for the agent",
-		"the Mark for agent button in the panel",
+		"the Mark for agent button in the Brief",
 		async () => {
 			await w.click(page.getByRole("button", { name: "Mark for agent" }));
 			await w.see(page.getByText("shipyard").first(), "no agent label on the ticket");
@@ -83,9 +89,14 @@ test("project manager", async ({ page }) => {
 		}
 	});
 
-	await w.step("Find the backlog with the keyboard", "Ctrl+K, the name of a page", async () => {
-		await w.palette("Backlog", "the palette finds no page by its name (Backlog)");
-		await w.see(page.getByRole("heading", { name: "Backlog" }), "Enter does not open the page");
+	await w.step("Find the list with the keyboard", "Ctrl+K, the name of a page", async () => {
+		await w.palette("List", "the palette finds no page by its name (List)");
+		await w.see(
+			page
+				.getByRole("navigation", { name: "Tabs" })
+				.locator("[aria-current=page]", { hasText: "List" }),
+			"Enter does not open the page",
+		);
 	});
 
 	await w.step("Check the budget", "the Usage page, the money figures", async () => {

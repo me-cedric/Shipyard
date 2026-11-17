@@ -66,22 +66,27 @@ impl Inner {
             .map(|r| r.id.clone())
             .collect();
         for id in ids {
-            let note = json!({"number": number, "event": format!("{event:?}")});
-            self.log(&id, None, kind::PR, note);
-            match event {
-                PrEventKind::Merged => {
-                    // A merge in any state: the agents stop and the questions go (REQ-002).
-                    if self.transition(&id, RunEvent::PrMerged) {
-                        self.withdraw_ticket_questions(&id);
-                        self.close_merged(&id);
-                    }
+            self.pr_event(&id, number, event);
+        }
+    }
+
+    /// One event of the pull request `number` on the run that holds it.
+    pub(crate) fn pr_event(&mut self, id: &str, number: u64, event: PrEventKind) {
+        let note = json!({"number": number, "event": format!("{event:?}")});
+        self.log(id, None, kind::PR, note);
+        match event {
+            PrEventKind::Merged => {
+                // A merge in any state: the agents stop and the questions go (REQ-002).
+                if self.transition(id, RunEvent::PrMerged) {
+                    self.withdraw_ticket_questions(id);
+                    self.close_merged(id);
                 }
-                PrEventKind::ChangesRequested | PrEventKind::CiFailed => {
-                    self.feedback(&id, number, event);
-                }
-                PrEventKind::Closed => self.pr_closed(&id, number),
-                PrEventKind::Opened | PrEventKind::CiPassed => {}
             }
+            PrEventKind::ChangesRequested | PrEventKind::CiFailed => {
+                self.feedback(id, number, event);
+            }
+            PrEventKind::Closed => self.pr_closed(id, number),
+            PrEventKind::Opened | PrEventKind::CiPassed => {}
         }
     }
 

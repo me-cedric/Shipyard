@@ -91,7 +91,7 @@ Créer fait le dépôt, écrit les fichiers, fait le premier commit et ouvre le 
 
 ## Votre rôle
 
-Dans Réglages, puis Moi, choisissez votre rôle. Le rôle fixe l'espace qui s'ouvre en premier. Un responsable technique commence dans Usine, Exécutions. Un chef de projet commence dans Travail, Tableau.
+Dans Réglages, puis Moi, choisissez votre rôle. Le rôle fixe l'espace qui s'ouvre en premier. Un responsable technique commence dans Flux. Un chef de projet commence dans Flux.
 
 ## Sûr par défaut
 

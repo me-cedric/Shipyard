@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { openFirstFolder } from "./first-run";
 
-const lane = (page: Page, name: string) => page.getByRole("region", { name });
+const lane = (page: Page, name: string) => page.getByRole("region", { name, exact: true });
 
 test("approvals wait for a click, and the runs show the review, CI and merge state", async ({
 	page,
@@ -29,25 +29,28 @@ test("approvals wait for a click, and the runs show the review, CI and merge sta
 		.getByRole("navigation", { name: "Sidebar" })
 		.getByRole("link", { name: "Flow" })
 		.click();
-	await page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Runs" }).click();
 
-	const failing = lane(page, "In review").getByRole("button", { name: /ACME-7/ });
-	await expect(failing).toContainText("#43");
-	await expect(failing).toContainText("CI failing");
+	const failing = lane(page, "Review").getByRole("button", { name: /ACME-7/ });
+	await expect(failing).toContainText("Checks fail");
+	// The pull request number is on the page of the feature, not on its card.
+	await failing.click();
+	await expect(page.getByRole("region", { name: "ACME-7", exact: true })).toContainText("#43");
+	await page.getByRole("link", { name: "Flow", exact: true }).first().click();
 
-	await lane(page, "Working")
-		.getByRole("button", { name: /ACME-10/ })
+	await page.getByRole("button", { name: /ACME-10/ }).click();
+	// The findings are in the Changes section of the feature page.
+	await page
+		.getByRole("navigation", { name: "Sections" })
+		.getByRole("button", { name: "Changes" })
 		.click();
-	// The findings are on the Changes tab of the run page.
-	await page.getByRole("tab", { name: /^Changes/ }).click();
 	await expect(
 		page.getByRole("region", { name: /^Findings/ }).getByText(/status never resets/),
 	).toBeVisible();
 
-	await page.getByRole("link", { name: "Runs", exact: true }).first().click();
-	const ready = lane(page, "Ready to merge").getByRole("button", { name: /ACME-8/ });
-	await expect(ready).toContainText("CI passing");
-	await page.getByRole("button", { name: "History" }).click();
+	await page.getByRole("link", { name: "Flow", exact: true }).first().click();
+	const ready = lane(page, "Review").getByRole("button", { name: /ACME-8/ });
+	await expect(ready).toContainText("Ready to merge");
+	await page.getByRole("navigation", { name: "Tabs" }).getByRole("link", { name: "Done" }).click();
 	await expect(
 		page
 			.getByRole("table", { name: "History" })

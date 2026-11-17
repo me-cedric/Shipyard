@@ -373,8 +373,20 @@ pub fn automation_get(s: &AppState) -> Res<AutomationView> {
     })
 }
 
+/// Holds each read-modify-write of `.shipyard/automation.yaml`: two writers on two threads never
+/// lose a change of the other.
+static AUTOMATION_FILE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+pub(crate) fn automation_lock() -> std::sync::MutexGuard<'static, ()> {
+    AUTOMATION_FILE_LOCK
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+}
+
 /// Validates, then writes the file. An interval under 30 s leaves the old file (REQ-002). The
-/// running engine takes the new rules at once.
+/// running engine takes the new rules at once. A save can only narrow the permissions of the
+/// recipes: it keeps the kinds that both the file and the form name. Only "Do not ask again for
+/// this recipe" adds one (`approvals_allow_recipe`).
 pub fn automation_save(s: &AppState, automation: &Automation) -> Res<()> {
     crate::rights::require(
         s,
@@ -383,7 +395,26 @@ pub fn automation_save(s: &AppState, automation: &Automation) -> Res<()> {
         "",
     )?;
     let root = active_root(s)?;
-    write_automation(&root, automation).map_err(err)?;
+    let file = automation_lock();
+    let recipe_writes = match read_automation(&root).map_err(err)? {
+        AutomationRead::Valid(a) => a
+            .recipe_writes
+            .into_iter()
+            .filter_map(|(recipe, kinds)| {
+                let form = automation.recipe_writes.get(&recipe)?;
+                let kept: std::collections::BTreeSet<_> =
+                    kinds.intersection(form).copied().collect();
+                (!kept.is_empty()).then_some((recipe, kept))
+            })
+            .collect(),
+        AutomationRead::Missing | AutomationRead::Invalid(_) => Default::default(),
+    };
+    let automation = Automation {
+        recipe_writes,
+        ..automation.clone()
+    };
+    write_automation(&root, &automation).map_err(err)?;
+    drop(file);
     refresh(s);
     s.sync.changed();
     Ok(())

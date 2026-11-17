@@ -16,7 +16,14 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-const h1 = () => screen.findByRole("heading", { level: 1, name: /#141/ });
+const h1 = () => screen.findByRole("heading", { level: 2, name: /#141/ });
+// A section of the feature page, from its switch.
+const toSection = async (user: ReturnType<typeof userEvent.setup>, name: string) =>
+	user.click(
+		within(await screen.findByRole("navigation", { name: "Sections" })).getByRole("button", {
+			name,
+		}),
+	);
 const barSubmit = async () =>
 	within(await screen.findByRole("region", { name: "Pending review" })).getByRole("button", {
 		name: "Submit review",
@@ -41,7 +48,7 @@ async function open(withComments = true) {
 }
 
 describe("the review bar and Submit review", () => {
-	it("shows the bar only with a pending comment, on every tab", async () => {
+	it("shows the bar only with a pending comment, on every section", async () => {
 		const user = userEvent.setup();
 		const { router, store } = await open(false);
 		expect(screen.queryByRole("region", { name: "Pending review" })).toBeNull();
@@ -51,10 +58,17 @@ describe("the review bar and Submit review", () => {
 			store.result.current.add({ path: "src/a.ts", line: 2, body: "y", headSha: d?.headSha ?? "" });
 		});
 		const bar = await screen.findByRole("region", { name: "Pending review" });
-		await user.click(screen.getByRole("tab", { name: /Commits/ }));
+		await toSection(user, "Chat");
 		expect(screen.getByRole("region", { name: "Pending review" })).toBeVisible();
 		await user.click(within(bar).getByRole("button", { name: "2 pending comments" }));
-		await waitFor(() => expect(router.state.location.search).toMatchObject({ tab: "files" }));
+		// The count opens Changes.
+		await waitFor(() =>
+			expect(
+				within(screen.getByRole("navigation", { name: "Sections" })).getByRole("button", {
+					name: "Changes",
+				}),
+			).toHaveAttribute("aria-pressed", "true"),
+		);
 		await idle(router);
 	});
 
@@ -87,7 +101,8 @@ describe("the review bar and Submit review", () => {
 		expect(
 			await screen.findByText("1 comment was added as text instead of on a line"),
 		).toHaveAttribute("role", "status");
-		expect(await h1()).toHaveFocus();
+		// The focus goes to the title of the page: the sent bar is gone.
+		await waitFor(() => expect(document.querySelector("[data-run-title]")).toHaveFocus());
 		await idle(router);
 	});
 
@@ -112,6 +127,7 @@ describe("the review bar and Submit review", () => {
 	it("approves and requests changes from the dialog with no pending comment", async () => {
 		const user = userEvent.setup();
 		const { router } = await open(false);
+		await toSection(user, "Chat");
 		await user.click(await screen.findByRole("button", { name: "Submit review" }));
 		let dialog = await screen.findByRole("dialog");
 		await user.click(within(dialog).getByRole("radio", { name: "Request changes" }));
@@ -131,6 +147,7 @@ describe("the review bar and Submit review", () => {
 	});
 
 	it("turns Submit review off, with the reason, for a viewer", async () => {
+		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen("/mock/demo", false));
 		mockState().person = {
 			member: "bo",
@@ -141,6 +158,7 @@ describe("the review bar and Submit review", () => {
 			rights: [],
 		};
 		const router = mountApp("/code/pull-requests/github-demo-141");
+		await toSection(user, "Chat");
 		const button = await screen.findByRole("button", { name: "Submit review" });
 		expect(button).toBeDisabled();
 		expect(button).toHaveAccessibleDescription("Needs the right code.write (your role: Viewer)");
@@ -252,9 +270,11 @@ describe("a partial result, the kept text and the close guard", () => {
 });
 
 describe("one control each, the limit and the focus", () => {
-	it("shows Submit review once on the Overview while the bar shows", async () => {
+	it("shows Submit review once in Chat while the bar shows", async () => {
+		const user = userEvent.setup();
 		const { router } = await open();
 		await barSubmit();
+		await toSection(user, "Chat");
 		expect(screen.getAllByRole("button", { name: "Submit review" })).toHaveLength(1);
 		await idle(router);
 	});
@@ -287,9 +307,7 @@ describe("one control each, the limit and the focus", () => {
 		const { router } = await open();
 		await user.click(await screen.findByRole("button", { name: "Discard" }));
 		await user.click(screen.getByRole("button", { name: "Discard 2 pending comments?" }));
-		await waitFor(() =>
-			expect(screen.getByRole("heading", { level: 1, name: /#141/ })).toHaveFocus(),
-		);
+		await waitFor(() => expect(document.querySelector("[data-run-title]")).toHaveFocus());
 		await idle(router);
 	});
 
@@ -297,7 +315,7 @@ describe("one control each, the limit and the focus", () => {
 		const user = userEvent.setup();
 		const guard = vi.spyOn(commands, "closeGuardDrafts");
 		const { router } = await open(false);
-		const files = () => user.click(screen.getByRole("tab", { name: /Files changed/ }));
+		const files = () => toSection(user, "Changes");
 		await files();
 		const tree = await screen.findByRole("group", { name: "Changed files" });
 		await user.click(within(tree).getAllByRole("button").at(-1) as HTMLElement);
@@ -307,7 +325,7 @@ describe("one control each, the limit and the focus", () => {
 		const area = screen.getByRole("textbox", { name: /Comment on line/ });
 		await user.type(area, "half");
 		await waitFor(() => expect(guard).toHaveBeenCalledWith(1));
-		await user.click(screen.getByRole("tab", { name: /Commits/ }));
+		await toSection(user, "Chat");
 		await files();
 		await user.click(
 			within(await screen.findByRole("group", { name: "Changed files" }))

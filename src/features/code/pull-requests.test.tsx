@@ -15,6 +15,16 @@ import { routers } from "@/test/routers";
 
 const demo = () => unwrap(commands.projectsOpen("/mock/demo", false));
 const row = (name: RegExp) => screen.findByRole("link", { name });
+// The conversation and the write box are in Chat.
+const toChat = () => section(userEvent.setup(), "Chat");
+const toStory = () => section(userEvent.setup(), "Story");
+// A section of the feature page, from its switch.
+const section = async (user: ReturnType<typeof userEvent.setup>, name: string) =>
+	user.click(
+		within(await screen.findByRole("navigation", { name: "Sections" })).getByRole("button", {
+			name,
+		}),
+	);
 const idle = (router: ReturnType<typeof mountApp>) =>
 	waitFor(() => expect(router.state.status).toBe("idle"));
 
@@ -92,7 +102,7 @@ describe("Code / Pull requests", () => {
 		spy.mockRestore();
 	});
 
-	it("opens a pull request as a page with its address, header and tabs", async () => {
+	it("opens a pull request as a page with its address, header and sections", async () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests");
@@ -101,42 +111,52 @@ describe("Code / Pull requests", () => {
 			await screen.findByRole("heading", { level: 1, name: /refuse an empty token/ }),
 		).toBeVisible();
 		expect(router.state.location.pathname).toBe("/code/pull-requests/github-demo-142");
-		expect(screen.getByText("feat/demo/pr-142")).toBeInTheDocument();
+		expect(await screen.findByText("feat/demo/pr-142")).toBeInTheDocument();
 		expect(screen.getByText("main", { selector: "header span" })).toBeInTheDocument();
 		expect(screen.getByTitle("Lines added")).toHaveTextContent("+1");
 		expect(screen.getByTitle("Lines removed")).toHaveTextContent("−0");
-		for (const name of ["Overview", "Commits (1)", "Checks (3)", "Files changed (1)"])
-			expect(screen.getByRole("tab", { name })).toBeInTheDocument();
+		const sections = within(screen.getByRole("navigation", { name: "Sections" }));
+		for (const name of ["Story", "Brief", "Design", "Changes", "Checks", "Chat"])
+			expect(sections.getByRole("button", { name })).toBeInTheDocument();
+		// A pull request opens on Changes.
+		expect(sections.getByRole("button", { name: "Changes" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
 		// Pull requests stays the selected tab of the Code bar.
 		const bar = screen.getByRole("navigation", { name: "Tabs" });
 		expect(within(bar).getByRole("link", { name: "Pull requests", current: "page" })).toBeVisible();
 		await idle(router);
 	});
 
-	it("shows the conversation, the reviewers and the links in the Overview", async () => {
+	it("shows the conversation in Chat, and the reviewers and the links in the side column of the Story", async () => {
+		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-142");
+		await section(user, "Chat");
 		expect(await screen.findByRole("heading", { name: "Conversation (4)" })).toBeInTheDocument();
 		expect(screen.getByText("rename this")).toBeInTheDocument();
-		const side = screen.getByRole("complementary", { name: "Details" });
+		expect(screen.getByRole("button", { name: "Review with an agent" })).toBeInTheDocument();
+		await section(user, "Story");
+		const side = await screen.findByRole("complementary", { name: "Details" });
 		expect(within(side).getByText("Grace Hopper")).toBeInTheDocument();
 		expect(within(side).getByText("Changes requested")).toBeInTheDocument();
 		expect(within(side).getByText(/wi:SHIP-42/)).toBeInTheDocument();
 		// The data has no assignee, project or milestone.
 		expect(screen.queryByText(/assignee|milestone/i)).toBeNull();
-		expect(screen.getByRole("button", { name: "Review with an agent" })).toBeInTheDocument();
 		await idle(router);
 	});
 
-	it("keeps the tab in the address and shows each tab", async () => {
+	it("keeps the section in the address and shows each section", async () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-142");
-		await user.click(await screen.findByRole("tab", { name: "Commits (1)" }));
-		expect(router.state.location.search).toEqual({ tab: "commits" });
+		// The commits and the files are parts of Changes.
 		const commits = await screen.findByRole("region", { name: "Commits" });
 		expect(within(commits).getByText("fix(auth): refuse an empty token")).toBeInTheDocument();
-		await user.click(screen.getByRole("tab", { name: "Checks (3)" }));
+		expect(await screen.findByRole("group", { name: "Changed files" })).toBeInTheDocument();
+		await section(user, "Checks");
+		expect(router.state.location.search).toEqual({ section: "checks" });
 		const checks = await screen.findByRole("region", { name: "Checks" });
 		// Failing first, and a check with a web address is a link.
 		expect(
@@ -149,18 +169,20 @@ describe("Code / Pull requests", () => {
 			"https://ci.example.com/unit",
 		);
 		expect(within(checks).getAllByRole("img", { name: "Failing" })).toHaveLength(2);
-		await user.click(screen.getByRole("tab", { name: "Files changed (1)" }));
-		await waitFor(() => expect(router.state.location.search).toEqual({ tab: "files" }));
-		await user.click(screen.getByRole("tab", { name: "Overview" }));
+		await section(user, "Changes");
 		await waitFor(() => expect(router.state.location.search).toEqual({}));
 		await idle(router);
 	});
 
-	it("opens a tab from its address", async () => {
+	it("opens a section from its address", async () => {
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-142?tab=checks");
 		expect(await screen.findByRole("heading", { name: "Checks (3)" })).toBeInTheDocument();
-		expect(screen.getByRole("tab", { name: "Checks (3)", selected: true })).toBeInTheDocument();
+		const sections = within(screen.getByRole("navigation", { name: "Sections" }));
+		expect(sections.getByRole("button", { name: "Checks" })).toHaveAttribute(
+			"aria-pressed",
+			"true",
+		);
 		await idle(router);
 	});
 
@@ -309,7 +331,7 @@ describe("Code / Pull requests", () => {
 		expect(merge).toBeDisabled();
 		await user.click(screen.getByRole("button", { name: "Mark ready" }));
 		await waitFor(() => expect(screen.getByRole("button", { name: "Merge" })).toBeEnabled());
-		expect(screen.queryByRole("button", { name: "Mark ready" })).toBeNull();
+		await waitFor(() => expect(screen.queryByRole("button", { name: "Mark ready" })).toBeNull());
 		await user.click(screen.getByRole("button", { name: "Merge" }));
 		await user.click(await screen.findByRole("button", { name: "Merge with Merge?" }));
 		await screen.findByText("Merged", { selector: "p[role=status]" });
@@ -378,6 +400,7 @@ describe("Code / Pull requests", () => {
 		const user = userEvent.setup();
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-141");
+		await toChat();
 		await user.click(await screen.findByRole("button", { name: "Submit review" }));
 		const dialog = await screen.findByRole("dialog");
 		await user.click(within(dialog).getByRole("radio", { name: "Request changes" }));
@@ -421,12 +444,14 @@ describe("Pull request conversation", () => {
 	const open = async (n = 142) => {
 		await demo();
 		await unwrap(commands.codePullDetail(n));
-		return mountApp(`/code/pull-requests/github-demo-${n}`);
+		const router = mountApp(`/code/pull-requests/github-demo-${n}`);
+		await toChat();
+		return router;
 	};
 	const mockPull = (n: number) => mockState().prs?.pulls.find((p) => p.number === n);
 	// A thread button says where it replies, so it differs from the Reply of PrAi.
 	const thread = (place: string) => within(screen.getByRole("article", { name: place }));
-	const box = () => screen.getByRole("region", { name: "Merge status" });
+	const box = () => screen.findByRole("region", { name: "Merge status" });
 
 	it("mixes the comments and the threads in time order", async () => {
 		const router = await open();
@@ -459,6 +484,7 @@ describe("Pull request conversation", () => {
 			created: "",
 		});
 		const router = mountApp("/code/pull-requests/github-demo-142");
+		await toChat();
 		const link = await screen.findByRole("link", { name: "the guide" });
 		expect(link).toHaveAttribute("href", "https://example.com/guide");
 		expect(screen.getByText("retry()").tagName).toBe("CODE");
@@ -473,7 +499,7 @@ describe("Pull request conversation", () => {
 
 	it("shows nothing for an empty conversation", async () => {
 		const router = await open(141);
-		await screen.findByRole("region", { name: "Merge status" });
+		await screen.findByRole("textbox", { name: "Comment" });
 		expect(screen.queryByRole("heading", { name: /^Conversation/ })).toBeNull();
 		await idle(router);
 	});
@@ -512,13 +538,17 @@ describe("Pull request conversation", () => {
 		const user = userEvent.setup();
 		const router = await open();
 		await user.click(await screen.findByRole("button", { name: "Resolve" }));
-		expect(await within(box()).findByText("0 unresolved of 2")).toBeInTheDocument();
+		// The merge box is in Changes.
+		await section(user, "Changes");
+		expect(await within(await box()).findByText("0 unresolved of 2")).toBeInTheDocument();
+		await section(user, "Chat");
 		expect(mockPull(142)?.threads[0]?.resolved).toBe(true);
 		const rows = await screen.findAllByRole("button", { name: /src\/app\.ts:2/ });
 		expect(rows[0]).toHaveAttribute("aria-expanded", "false");
 		await user.click(rows[0] as HTMLElement);
 		await user.click(await screen.findByRole("button", { name: "Reopen" }));
-		expect(await within(box()).findByText("1 unresolved of 2")).toBeInTheDocument();
+		await section(user, "Changes");
+		expect(await within(await box()).findByText("1 unresolved of 2")).toBeInTheDocument();
 		await idle(router);
 	});
 
@@ -549,8 +579,8 @@ describe("Pull request conversation", () => {
 		await user.click(screen.getByRole("tab", { name: "Preview" }));
 		expect(screen.queryByRole("textbox", { name: "Comment" })).toBeNull();
 		expect(screen.getByRole("link", { name: "doc" })).toBeInTheDocument();
-		await user.click(screen.getByRole("tab", { name: "Files changed (1)" }));
-		await user.click(await screen.findByRole("tab", { name: "Overview" }));
+		await section(user, "Changes");
+		await section(user, "Chat");
 		expect(await screen.findByRole("textbox", { name: "Comment" })).toHaveValue(
 			"see `x` and [doc](https://example.com/doc)",
 		);
@@ -643,6 +673,7 @@ describe("Pull request conversation", () => {
 			comments: [{ id: "TC9", author: "Eve", body: "general point", created: "" }],
 		});
 		const router = mountApp("/code/pull-requests/github-demo-142");
+		await toChat();
 		const card = await screen.findByRole("article", { name: "the conversation" });
 		expect(
 			within(card).getByRole("button", { name: "Reply to the conversation" }),
@@ -660,6 +691,7 @@ describe("Pull request conversation", () => {
 		const first = p.threads[0];
 		if (first) first.commentsTotal = 80;
 		const router = mountApp("/code/pull-requests/github-demo-142");
+		await toChat();
 		expect(await screen.findByText("Showing the latest 2 comments")).toBeInTheDocument();
 		expect(screen.getByText("Showing the first 2 review threads")).toBeInTheDocument();
 		expect(screen.getByText("Showing the last 2 of 80 comments")).toBeInTheDocument();
@@ -762,6 +794,7 @@ describe("Pull request page limits", () => {
 		const file = doc ? mockState().knowledge.files[doc] : undefined;
 		if (file) file.text += "\nThe fix is pr:github-demo:141.\n";
 		const router = mountApp("/code/pull-requests/github-demo-141");
+		await toStory();
 		const side = await screen.findByRole("complementary", { name: "Details" });
 		await within(side).findByRole("heading", { name: "Cited by" });
 		expect(within(side).getByText(/getting-started/)).toBeInTheDocument();
@@ -851,7 +884,8 @@ describe("Pull request page limits", () => {
 		await demo();
 		const router = mountApp("/code/pull-requests/github-demo-141");
 		await screen.findByRole("heading", { level: 1, name: /health route/ });
-		await user.type(screen.getByRole("textbox", { name: "Comment" }), "kept");
+		await toChat();
+		await user.type(await screen.findByRole("textbox", { name: "Comment" }), "kept");
 		const down = {
 			status: "error",
 			error: { code: "forge_unreachable", details: "network error: offline", action: null },

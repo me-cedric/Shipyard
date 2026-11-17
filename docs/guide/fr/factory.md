@@ -4,6 +4,14 @@ L'Usine laisse des agents travailler sur des tickets. Chaque travail est une ex�
 
 ## Exécutions
 
+Flux remplace Exécutions. Son ancienne adresse ouvre Flux. Flux montre chaque fonctionnalité une fois, en cinq étapes : Idée, Spec, Construction, Revue et Prêt. Les vues sont Flux, Liste, Terminé et Santé. Le filtre est Tout, Me concerne ou Les miens. Une carte montre le titre, qui y travaille et son état. Terminé garde ce qui est fini, à la place de l'Historique. Nouvelle fonctionnalité en démarre une : quoi construire, le genre, et l'une de trois façons (un agent écrit la spec, j'écris la spec, construire maintenant), ou partir d'un ticket. Un changement de spec avec sa seule proposition est une idée.
+
+Chaque fonctionnalité a une page, `/flow/feature/<id>`, avec la ligne d'étapes et les sections Histoire, Cahier, Conception, Changements, Contrôles et Discussion. Elle réunit le ticket, le changement de spec, le travail de l'agent, la pull request et les contrôles. Les anciennes adresses d'exécution et de pull request l'ouvrent sur la section de cette partie.
+
+Les approbations d'une exécution forment une seule question qui nomme chaque effet. Le bouton principal approuve chaque effet. Étape par étape ouvre la liste où vous approuvez ou rejetez un effet seul. Pas encore met la question dans Plus tard et ne décide rien. Ne plus demander pour la recette autorise exactement les types montrés pour cette recette, et un push qui réécrit l'historique n'en fait jamais partie. Une écriture qui attend déjà garde sa question : l'autorisation vaut pour les écritures suivantes. Réglages / Projet liste les autorisations, et Retirer en enlève une avec Enregistrer.
+
+Quand un agent s'arrête, une action principale s'affiche : Répondre, Débloquer, Ajouter du budget, Réessayer, Reprendre ou Clore comme terminé. Aujourd'hui et la barre Demander donnent la même action.
+
 Exécutions montre les exécutions qui demandent de l'attention en cinq voies : En file, En cours, Vous attend, En revue et Prêt à fusionner. Chaque voie montre son nombre, et Aucune quand elle est vide. Le nombre à côté d'Exécutions est le nombre de cartes du tableau, ou le nombre de lignes de l'historique. Les cinq voies tiennent dans la fenêtre, sans défilement latéral.
 
 La barre au-dessus des voies contient :

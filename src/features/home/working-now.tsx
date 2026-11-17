@@ -1,8 +1,10 @@
 import { Link } from "@tanstack/react-router";
+import { doStop, type StopAction, stopAction } from "@/features/flow/stop-action";
 import { useGuard } from "@/features/work/guard";
 import { useDailySpend, useRunActions, useRuns } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
-import { useRights } from "@/lib/rights";
+import type { RunView_Serialize } from "@/lib/ipc";
+import { RightButton, useRights } from "@/lib/rights";
 import { runHref, useShell } from "@/lib/shell";
 import { Badge } from "@/ui/atoms/badge";
 import { Sparkline } from "@/ui/atoms/sparkline";
@@ -14,6 +16,42 @@ import { RUN_STATUS } from "@/ui/molecules/run-card";
 import { useMyItems } from "./stats";
 
 const TREND_DAYS = 14;
+
+/** The one main action of a stopped run, in one click (`spec:app-redesign#REQ-014`). A reply has its question card. */
+function StopButton({
+	run,
+	guard,
+}: {
+	run: { id: string; key: string; stop: RunView_Serialize["stop"] };
+	guard: ReturnType<typeof useGuard>["run"];
+}) {
+	const { t } = useI18n();
+	const { openRef } = useShell();
+	const act = useRunActions();
+	const action = stopAction(run);
+	if (!action || action === "reply") return null;
+	const label: Record<StopAction, string> = {
+		reply: t.flow.stop.reply,
+		unblock: t.factory.unblock,
+		addBudget: t.flow.stop.addBudget,
+		tryAgain: t.flow.stop.tryAgain,
+		resume: t.factory.resume,
+		closeDone: t.factory.closeDone,
+	};
+	return (
+		<RightButton
+			right="runs.start"
+			variant="primary"
+			className="min-h-control"
+			aria-label={`${label[action]} ${run.key}`}
+			onClick={() =>
+				void guard(() => doStop(act, run, action, { open: (id) => openRef(`run:${id}`) }))
+			}
+		>
+			{label[action]}
+		</RightButton>
+	);
+}
 
 /** The live runs of the person, each with its stop, and the spend of today (spec:app-redesign#REQ-007). */
 export function WorkingNow() {
@@ -58,6 +96,7 @@ export function WorkingNow() {
 						<Link {...runHref(r.id)} className="min-w-0 flex-1 truncate text-ui hover:underline">
 							{r.title}
 						</Link>
+						{stopAction(r) ? <StopButton run={r} guard={run} /> : null}
 						<ConfirmButton
 							variant="ghost"
 							className="min-h-control"

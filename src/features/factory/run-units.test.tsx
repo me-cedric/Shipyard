@@ -48,27 +48,37 @@ describe("Factory / run sessions", () => {
 		await router.navigate(runHref(run?.id ?? "", "t2"));
 		const second = await screen.findByRole("listitem", { name: "Build 2" });
 		await waitFor(() => expect(second).toHaveFocus());
-		expect(screen.getByRole("tab", { name: "Workflow" })).toHaveAttribute("aria-selected", "true");
+		// A link to a session opens the requests and the sessions of the Story.
+		expect(screen.getByRole("button", { name: "Hide requests and sessions" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
 	});
 
-	it("keeps the tab in the address: a reload opens the same tab", async () => {
+	it("keeps the section in the address: a reload opens the same section", async () => {
 		const user = userEvent.setup();
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const run = (await unwrap(commands.runsList())).find((r) => r.key === "ACME-2");
 		const router = mountApp(`/factory/runs/${run?.id}`);
-		await user.click(await screen.findByRole("tab", { name: "Workflow" }));
-		await waitFor(() => expect(router.state.location.search).toEqual({ tab: "workflow" }));
-		await user.click(screen.getByRole("tab", { name: "Activity" }));
+		const switcher = async () =>
+			within(await screen.findByRole("navigation", { name: "Sections" }));
+		await user.click((await switcher()).getByRole("button", { name: "Chat" }));
+		await waitFor(() => expect(router.state.location.search).toEqual({ section: "chat" }));
+		await user.click((await switcher()).getByRole("button", { name: "Story" }));
 		await waitFor(() => expect(router.state.location.search).toEqual({}));
-		screen.getByRole("tab", { name: "Workflow" });
+		expect((await switcher()).getByRole("button", { name: "Chat" })).toHaveAttribute(
+			"aria-pressed",
+			"false",
+		);
 	});
 
-	it("opens the tab that the address names", async () => {
+	it("opens the section that the address names", async () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const run = (await unwrap(commands.runsList())).find((r) => r.key === "ACME-2");
 		mountApp(`/factory/runs/${run?.id}?tab=changes`);
-		expect(await screen.findByRole("tab", { name: /^Changes/ })).toHaveAttribute(
-			"aria-selected",
+		const switcher = within(await screen.findByRole("navigation", { name: "Sections" }));
+		expect(switcher.getByRole("button", { name: "Changes" })).toHaveAttribute(
+			"aria-pressed",
 			"true",
 		);
 	});

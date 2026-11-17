@@ -8,6 +8,7 @@ import { editingEn } from "./editing";
 import { extensionsEn } from "./extensions";
 import { extrasEn } from "./extras";
 import { factoryEn } from "./factory";
+import { flowEn } from "./flow";
 import { glossaryEn } from "./glossary";
 import { homeEn } from "./home";
 import { knowledgeEn } from "./knowledge";
@@ -621,6 +622,17 @@ export const en = {
 				trackerComment: "Ticket comment",
 			},
 			save: "Save",
+			recipes: "Allowed for a recipe",
+			kind: {
+				transition: "Move the ticket",
+				labels: "Ticket labels",
+				comment: "Ticket comment",
+				push: "Push",
+				open_pr: "Open a pull request",
+				resolve_threads: "Close the review threads",
+			},
+			remove: "Remove",
+			removeKind: "Remove {kind} for {recipe}",
 			error: {
 				interval: "Interval: at least {min} s",
 				number: "{name}: a whole number",
@@ -908,6 +920,7 @@ export const en = {
 	assistant: assistantEn,
 	design: designEn,
 	factory: factoryEn,
+	flow: flowEn,
 	glossary: glossaryEn,
 	settings: settingsEn,
 	specs: specsEn,

@@ -6,6 +6,7 @@ const feature = (
 	title: string,
 	mark: FlowFeature_Serialize["mark"],
 	run: string | null = null,
+	stop: FlowFeature_Serialize["stop"] = null,
 ): FlowFeature_Serialize => ({
 	title,
 	stage: "build",
@@ -14,6 +15,12 @@ const feature = (
 	change: null,
 	run,
 	pr: null,
+	who: null,
+	runState: null,
+	approvals: 0,
+	questions: 0,
+	checks: null,
+	stop,
 });
 const list = [
 	feature("Fix the French menu", "blocked", "run:1"),
@@ -61,5 +68,27 @@ describe("answerOf", () => {
 		expect(
 			answerOf("what stopped", [], { blocked: "block", stopped: "stop", needs: "need" }),
 		).not.toBeNull();
+	});
+
+	it("gives the main action of the stop fact when the run of a feature is known", () => {
+		const runs = [
+			{ id: "1", key: "ACME-9", state: "Blocked" as const },
+			{ id: "4", key: "ACME-6", state: "Paused" as const },
+		];
+		const facts = [
+			feature("Fix the French menu", "blocked", "run:1", "unblock"),
+			feature("Cache the project list", "blocked", "run:2"),
+			feature("Retry the sync", "stopped", "run:4", "add_budget"),
+		];
+		const a = answerOf("what blocks and what stopped", facts, words, runs);
+		expect(a?.[0]?.features.map((f) => f.action)).toEqual(["unblock", undefined]);
+		expect(a?.[1]?.features.map((f) => f.action)).toEqual(["addBudget"]);
+	});
+
+	it("gives Close as done for a run whose pull request was closed on the code host", () => {
+		const runs = [{ id: "1", key: "ACME-9", state: "PROpen" as const }];
+		const facts = [feature("Fix the French menu", "blocked", "run:1", "close_done")];
+		const a = answerOf("what blocks", facts, words, runs);
+		expect(a?.[0]?.features.map((f) => f.action)).toEqual(["closeDone"]);
 	});
 });

@@ -39,7 +39,7 @@ describe("Home / Today role panels (team-rights REQ-012)", () => {
 		await waitFor(() =>
 			expect(panel.getAllByRole("listitem")).toHaveLength(Math.min(todo.length, 5)),
 		);
-		expect(panel.getByRole("link", { name: "Open Flow / Backlog" })).toBeInTheDocument();
+		expect(panel.getByRole("link", { name: "Open Flow / List" })).toBeInTheDocument();
 	});
 
 	it("shows the spend panel only with costs.view", async () => {
@@ -111,8 +111,14 @@ describe("Inbox routing (team-rights REQ-014)", () => {
 				name: /Comment on ACME-1: the question/,
 			}),
 		);
-		const bar = within(await screen.findByRole("region", { name: "Post a comment on ACME-1" }));
-		const approve = bar.getByRole("button", { name: "Approve" });
+		const on = within((await screen.findAllByRole("article"))[0] as HTMLElement);
+		expect(await on.findByText("Post a comment on ACME-1")).toBeVisible();
+		const approve = on.getByRole("button", { name: "Approve" });
+		// The box of the durable permission is off too.
+		expect(on.getByRole("checkbox", { name: /Do not ask again/ })).toHaveAttribute(
+			"aria-disabled",
+			"true",
+		);
 		expect(approve).toBeDisabled();
 		expect(approve).toHaveAccessibleDescription(
 			/^Needs the right .+ \(your role: Project manager\)$/,

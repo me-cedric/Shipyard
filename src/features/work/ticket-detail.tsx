@@ -45,7 +45,14 @@ const FILL = "w-full min-w-0 max-w-full shrink";
  * One ticket in the inspector: its status, its assignee with the ranked members, the pickup mark
  * and the link to a local item. Each write is one click, and a missing capability names itself.
  */
-export function TicketDetail({ itemKey }: { itemKey: string }) {
+export function TicketDetail({
+	itemKey,
+	comments = true,
+}: {
+	itemKey: string;
+	/** The feature page draws the comments in its Chat section. */
+	comments?: boolean;
+}) {
 	const { t } = useI18n();
 	const d = t.work.ticket;
 	const items = useWorkItems({}).data ?? [];
@@ -215,9 +222,11 @@ export function TicketDetail({ itemKey }: { itemKey: string }) {
 						</Prop>
 						<TicketFields itemKey={item.key} />
 					</div>
-					<div className="min-w-0 @xl:col-start-1 @xl:row-start-2">
-						<TicketComments itemKey={item.key} />
-					</div>
+					{comments ? (
+						<div className="min-w-0 @xl:col-start-1 @xl:row-start-2">
+							<TicketComments itemKey={item.key} />
+						</div>
+					) : null}
 				</div>
 			</div>
 

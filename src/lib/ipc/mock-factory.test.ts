@@ -302,6 +302,39 @@ describe("mock factory: run actions", () => {
 		expect(await one("ACME-9")).toMatchObject({ state: "Done", lane: "done" });
 	});
 
+	it("closes a run whose pull request merged or closed on the code host", async () => {
+		const f = mockState().factory;
+		const merged = need(f.runs.find((r) => r.key === "ACME-8"));
+		const closed = need(f.runs.find((r) => r.key === "ACME-7"));
+		need(f.pulls.find((p) => p.number === merged.pr)).state = "merged";
+		need(f.pulls.find((p) => p.number === closed.pr)).state = "closed";
+		closed.state = "WaitingForAnswer";
+		expect((await one("ACME-8")).stop).toBe("close_done");
+		expect((await one("ACME-7")).stop).toBe("close_done");
+		await unwrap(commands.runCloseDone(merged.id));
+		expect(await stateOf(merged.id)).toBe("Done");
+		await unwrap(commands.runCloseDone(closed.id));
+		expect(await stateOf(closed.id)).toBe("Cancelled");
+		await expect(unwrap(commands.runCloseDone(merged.id))).rejects.toMatchObject({
+			details: expect.stringContaining("the run is Done: it closes by itself"),
+		});
+	});
+
+	it("gives no action to a run that the day budget paused", async () => {
+		const rec = need(mockState().factory.runs.find((r) => r.key === "ACME-6"));
+		// The run budget is not spent: only the day budget is.
+		rec.budgetUsd = null;
+		expect((await one("ACME-6")).stop).toBe("resume");
+		rec.log.push({
+			id: 9998,
+			step: null,
+			kind: "note",
+			payload: JSON.stringify({ stop: "budget", budget: "day:2026-11-17" }),
+			ts: Date.now(),
+		});
+		expect((await one("ACME-6")).stop).toBeNull();
+	});
+
 	it("resumes a paused run with a budget, and refuses a bad budget", async () => {
 		const paused = await one("ACME-6");
 		expect(paused).toMatchObject({ state: "Paused", lane: "needs_you" });
@@ -400,6 +433,93 @@ describe("mock factory: run actions", () => {
 			"transition",
 		]);
 		expect(await unwrap(commands.approvalApprove(comment?.id ?? 0))).toMatch(/^comment-/);
+	});
+
+	it("allows the named effects for one recipe only (REQ-013)", async () => {
+		const list = await unwrap(commands.approvalsList());
+		const building = await one("ACME-2");
+		// Picture 003: the agent asks to open a pull request and to move the ticket.
+		const ask = list.filter((a) => a.run === building.id);
+		expect(ask.map((a) => [a.kind, a.workflow])).toEqual([
+			["transition", "feature"],
+			["open_pr", "feature"],
+		]);
+		const ids = ask.map((a) => a.id);
+		const comment = need(list.find((a) => a.kind === "comment"));
+		const force = need(list.find((a) => a.force));
+		const refused = (args: number[], text: string) =>
+			expect(unwrap(commands.approvalsAllowRecipe(args))).rejects.toMatchObject({
+				details: expect.stringContaining(text),
+			});
+		await refused([comment.id, ...ids], "more than one run");
+		await refused([force.id], "force with lease");
+		await refused([999], "no approval 999 waits");
+		mockState().person = {
+			member: "bo",
+			found: "email",
+			role: "developer",
+			admin: false,
+			readOnly: false,
+			rights: ["runs.approve", "work.edit", "code.write"],
+		};
+		await refused(ids, "project.settings");
+		mockState().person = undefined;
+		// The flag alone: the command also cancels the runs.
+		mockState().factory.kill = true;
+		await refused(ids, "kill switch");
+		mockState().factory.kill = false;
+		mockState().sync.file = "invalid";
+		await refused(ids, "not valid");
+		expect(mockState().sync.file).toBe("invalid");
+		mockState().sync.file = "valid";
+		expect((await unwrap(commands.syncAutomationGet())).automation.recipe_writes).toBeUndefined();
+		expect(await unwrap(commands.approvalsList())).toEqual(list);
+
+		// A ticket move of another feature run waits already: the grant never sends it.
+		const other = { ...force, id: 900, force: false, kind: "transition" as const };
+		mockState().factory.approvals.push(other);
+		// The ticket move alone: the pull request of the same run still waits.
+		const [move, pr] = ids;
+		await unwrap(commands.approvalsAllowRecipe([need(move)]));
+		expect((await unwrap(commands.approvalsList())).map((a) => a.id)).toContain(pr);
+		await unwrap(commands.approvalsAllowRecipe([need(pr)]));
+		const { automation } = await unwrap(commands.syncAutomationGet());
+		expect(automation.recipe_writes).toEqual({ feature: ["transition", "open_pr"] });
+		expect(automation.writes).toEqual(mockState().sync.automation.writes);
+		// A save of Settings keeps the permissions and adds none (`automation_save`).
+		await unwrap(
+			commands.syncAutomationSave({
+				...automation,
+				interval: 120,
+				recipe_writes: { ...automation.recipe_writes, bug: ["push"] },
+			}),
+		);
+		expect((await unwrap(commands.syncAutomationGet())).automation.recipe_writes).toEqual({
+			feature: ["transition", "open_pr"],
+		});
+		const left = await unwrap(commands.approvalsList());
+		expect(left.some((a) => a.run === building.id)).toBe(false);
+		// The force push and the ticket move of another feature run and the comment of a bug run
+		// still wait.
+		expect(left.map((a) => a.id)).toEqual([comment.id, force.id, other.id]);
+		const log = await unwrap(commands.runLogPage(building.id, 0, 500));
+		expect(log.events.some((e) => e.kind === "write" && e.payload.includes("recipe_allowed"))).toBe(
+			true,
+		);
+	});
+
+	it("saves the permission but keeps a pull request write of a run that waits", async () => {
+		const building = await one("ACME-2");
+		const pr = need((await unwrap(commands.approvalsList())).find((a) => a.kind === "open_pr"));
+		need(mockState().factory.runs.find((r) => r.id === building.id)).state = "WaitingForAnswer";
+		await expect(unwrap(commands.approvalsAllowRecipe([pr.id]))).rejects.toMatchObject({
+			details: expect.stringContaining(
+				`the permission is saved, but approval ${pr.id}: the run is WaitingForAnswer`,
+			),
+		});
+		const { automation } = await unwrap(commands.syncAutomationGet());
+		expect(automation.recipe_writes).toEqual({ feature: ["open_pr"] });
+		expect((await unwrap(commands.approvalsList())).map((a) => a.id)).toContain(pr.id);
 	});
 });
 

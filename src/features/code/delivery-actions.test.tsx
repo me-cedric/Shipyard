@@ -6,6 +6,14 @@ import { mountApp } from "@/test/mount";
 import { renderApp } from "@/ui/test-utils";
 import { OpenInEditor } from "./open-in-editor";
 
+// The write box, the agent review and the assistant actions are in Chat.
+const toChat = async (user: ReturnType<typeof userEvent.setup>) =>
+	user.click(
+		within(await screen.findByRole("navigation", { name: "Sections" })).getByRole("button", {
+			name: "Chat",
+		}),
+	);
+
 const demo = () => unwrap(commands.projectsOpen("/mock/demo", false));
 
 describe("Code: origin and publish", () => {
@@ -57,6 +65,7 @@ describe("Code: close, send back and archive", () => {
 		await demo();
 		mountApp("/code/pull-requests");
 		await user.click(await screen.findByRole("link", { name: /refuse an empty token/ }));
+		await toChat(user);
 		await user.type(await screen.findByRole("textbox", { name: "Comment" }), "Wrong approach");
 		await user.click(screen.getByRole("button", { name: "Close pull request" }));
 		await user.click(await screen.findByRole("button", { name: "Close #142?" }));
@@ -71,6 +80,7 @@ describe("Code: close, send back and archive", () => {
 		await demo();
 		mountApp("/code/pull-requests");
 		await user.click(await screen.findByRole("link", { name: /show the pull requests/ }));
+		await toChat(user);
 		const back = await screen.findByRole("button", { name: "Send back to the agent" });
 		await user.click(back);
 		expect(await screen.findByRole("alert")).toHaveTextContent(

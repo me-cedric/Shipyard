@@ -229,6 +229,7 @@ fn a_pull_request_decides_the_lane_of_a_run_in_review() {
         findings: vec![],
         worktree_kept: None,
         escalation: None,
+        day_pause: false,
     };
     let pr = |ci: &str, review: &str, draft: bool| PrRowView {
         reference: "pr:github:7".into(),
@@ -266,6 +267,25 @@ fn a_pull_request_decides_the_lane_of_a_run_in_review() {
     // "/wt/01J" is not on this machine: no folder, no terminal.
     assert_eq!((u.runner.as_str(), u.dir.as_str()), ("claude", ""));
     assert_eq!((u.started, u.last), (10.0, 20.0));
+    // The stop action (REQ-014): the pull request that merged on the code host, the day budget.
+    use shipyard_core::feature::Stop;
+    assert_eq!(v.stop, None);
+    let merged = PrRowView {
+        state: "merged".into(),
+        ..pr("passing", "clear", false)
+    };
+    assert_eq!(run_view(&info, &[merged], 0, 0).stop, Some(Stop::CloseDone));
+    let paused = |day_pause| RunInfo {
+        run: shipyard_core::run::Run {
+            state: RunState::Paused,
+            return_to: Some(RunState::PROpen),
+        },
+        day_pause,
+        ..info.clone()
+    };
+    // The day budget: the run resumes by itself the next day, a click cannot resume it before.
+    assert_eq!(run_view(&paused(true), &[], 0, 0).stop, None);
+    assert_eq!(run_view(&paused(false), &[], 0, 0).stop, Some(Stop::Resume));
 }
 
 #[test]
@@ -1125,6 +1145,16 @@ fn features_join_a_run_and_the_change_that_names_its_ticket() {
     let why = "# Add x\n\n## Why\n\nTicket `wi:SHIP-1`.\n";
     write_file(root, "docs/openspec/changes/add-x/proposal.md", why);
     write_file(root, "docs/openspec/changes/lone/proposal.md", "# Lone\n");
+    write_file(
+        root,
+        "docs/openspec/changes/specced/proposal.md",
+        "# Specced\n",
+    );
+    write_file(
+        root,
+        "docs/openspec/changes/specced/specs/x/spec.md",
+        "# x\n",
+    );
     let f = features(&fx.s).unwrap();
     let got: Vec<_> = f
         .iter()
@@ -1146,7 +1176,18 @@ fn features_join_a_run_and_the_change_that_names_its_ticket() {
                 Some(format!("run:{run}")),
                 Stage::Build
             ),
-            (None, Some("change:lone"), None, Stage::Spec),
+            // Only its proposal: an idea. A spec file: the Spec stage.
+            (None, Some("change:lone"), None, Stage::Idea),
+            (None, Some("change:specced"), None, Stage::Spec),
         ]
     );
+    // The card facts of `app-redesign` REQ-011: the agent step that works, and what waits.
+    let who = shipyard_core::feature::Who {
+        name: "work".into(),
+        agent: true,
+    };
+    assert_eq!(f[0].who.as_ref(), Some(&who));
+    assert_eq!(f[0].run_state, Some(RunState::Working));
+    assert_eq!((f[0].approvals, f[0].questions), (2, 0));
+    assert_eq!((f[1].who.as_ref(), f[1].run_state), (None, None));
 }

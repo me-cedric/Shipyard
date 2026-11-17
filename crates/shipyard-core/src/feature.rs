@@ -4,8 +4,9 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::delivery::Ci;
 use crate::pickup::PrState;
-use crate::run::{Run, RunState};
+use crate::run::{Cause, Run, RunState};
 
 /// The five stages of Flow, in order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
@@ -26,6 +27,45 @@ pub enum Mark {
     NeedsYou,
     Blocked,
     Stopped,
+}
+
+/// The one main action of a stopped run (REQ-014, `adr:0023`): the card of Flow, Today and the
+/// Ask bar name it with no run log.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum Stop {
+    /// The run waits for an answer.
+    Reply,
+    /// Blocked.
+    Unblock,
+    /// Paused because a budget was reached.
+    AddBudget,
+    /// Failed.
+    TryAgain,
+    /// Paused by a person, or for another cause.
+    Resume,
+    /// Nothing to deliver, or the pull request closed or merged on the code host.
+    CloseDone,
+}
+
+/// The main action of a run in `state`. `cause` is the cause of the last escalation, `pr` the
+/// state of its pull request on the code host. `CloseDone` on a pull request that merged or
+/// closed gives the run the event of the code host (`Factory::close_outside`).
+/// `None`: the run does not wait for a person. In `Merged` the engine saw the merge and closes
+/// the run itself.
+pub fn stop_of(state: RunState, cause: Option<Cause>, pr: Option<PrState>) -> Option<Stop> {
+    use RunState as S;
+    let outside = matches!(pr, Some(PrState::Merged | PrState::Closed));
+    match state {
+        _ if outside && !state.is_final() && state != S::Merged => Some(Stop::CloseDone),
+        S::WaitingForAnswer => Some(Stop::Reply),
+        S::Blocked if cause == Some(Cause::NothingToDeliver) => Some(Stop::CloseDone),
+        S::Blocked => Some(Stop::Unblock),
+        S::Paused if cause == Some(Cause::Budget) => Some(Stop::AddBudget),
+        S::Paused => Some(Stop::Resume),
+        S::Failed => Some(Stop::TryAgain),
+        _ => None,
+    }
 }
 
 /// The stage and the mark of a run.
@@ -74,6 +114,7 @@ pub struct TicketPart {
     pub title: String,
     /// The issue tracker puts the ticket in a done category.
     pub done: bool,
+    pub assignee: Option<String>,
 }
 
 /// A spec change.
@@ -84,6 +125,8 @@ pub struct ChangePart {
     /// The key of the ticket that the change belongs to: the mirror link or the `wi:` ref of the
     /// proposal.
     pub ticket: Option<String>,
+    /// The change has a file under its `specs/`. A change with only its proposal is an idea.
+    pub has_spec: bool,
 }
 
 /// A run of the factory. `key` is its ticket.
@@ -94,6 +137,13 @@ pub struct RunPart {
     pub title: String,
     pub run: Run,
     pub pr: Option<u64>,
+    /// The step of the run whose agent works now. `None`: no agent works.
+    pub step: Option<String>,
+    /// The approvals and the open questions that wait for a person.
+    pub approvals: u32,
+    pub questions: u32,
+    /// The main action of the stop (`stop_of`).
+    pub stop: Option<Stop>,
 }
 
 /// A pull request of the mirror.
@@ -104,6 +154,18 @@ pub struct PrPart {
     pub number: u64,
     pub title: String,
     pub state: PrState,
+    /// `None` when the mirror does not hold it.
+    pub author: Option<String>,
+    /// `None`: the code host has no checks for it.
+    pub checks: Option<Ci>,
+}
+
+/// Who works on a feature (REQ-011): an agent step of the run, or a person.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct Who {
+    pub name: String,
+    pub agent: bool,
 }
 
 /// One feature: its title, its place in Flow and the refs of its parts.
@@ -121,6 +183,17 @@ pub struct FlowFeature {
     pub run: Option<String>,
     /// `pr:<code-host>:<number>`.
     pub pr: Option<String>,
+    /// The agent step that works now, else the assignee of the ticket, else the author of the pull
+    /// request (REQ-011).
+    pub who: Option<Who>,
+    /// The facts of the state line: the state of the run, what waits for a person, the checks of
+    /// the pull request.
+    pub run_state: Option<RunState>,
+    pub approvals: u32,
+    pub questions: u32,
+    pub checks: Option<Ci>,
+    /// The main action of a stopped run (`stop_of`). `None`: nothing waits on a stop.
+    pub stop: Option<Stop>,
 }
 
 /// Joins the parts into features: each ticket and each change shows in one feature.
@@ -195,7 +268,7 @@ fn feature(
             PrState::Closed => at(Stage::Review, Some(Mark::Stopped)),
         },
         _ if ticket.is_some_and(|t| t.done) => at(Stage::Ready, None),
-        _ if change.is_some() => at(Stage::Spec, None),
+        _ if change.is_some_and(|c| c.has_spec) => at(Stage::Spec, None),
         _ => at(Stage::Idea, None),
     };
     let title = ticket
@@ -205,6 +278,12 @@ fn feature(
         .or(pr.map(|p| &p.title))
         .cloned()
         .unwrap_or_default();
+    let person = |name: &Option<String>| name.clone().map(|name| Who { name, agent: false });
+    let who = run
+        .and_then(|r| r.step.clone())
+        .map(|name| Who { name, agent: true })
+        .or_else(|| ticket.and_then(|t| person(&t.assignee)))
+        .or_else(|| pr.and_then(|p| person(&p.author)));
     FlowFeature {
         title,
         stage: at_stage.stage,
@@ -213,6 +292,12 @@ fn feature(
         change: change.map(|c| format!("change:{}", c.id)),
         run: run.map(|r| format!("run:{}", r.id)),
         pr: pr.map(|p| p.reference.clone()),
+        who,
+        run_state: run.map(|r| r.run.state),
+        approvals: run.map_or(0, |r| r.approvals),
+        questions: run.map_or(0, |r| r.questions),
+        checks: pr.and_then(|p| p.checks),
+        stop: run.and_then(|r| r.stop),
     }
 }
 
@@ -278,6 +363,58 @@ mod tests {
     }
 
     #[test]
+    fn each_stop_state_has_its_one_action() {
+        use Stop::*;
+        let at = |state| stop_of(state, None, None);
+        assert_eq!(at(S::WaitingForAnswer), Some(Reply));
+        assert_eq!(at(S::Blocked), Some(Unblock));
+        assert_eq!(at(S::Failed), Some(TryAgain));
+        // A person paused it, or max turns: Resume. A budget: Add budget.
+        assert_eq!(at(S::Paused), Some(Resume));
+        assert_eq!(
+            stop_of(S::Paused, Some(Cause::MaxTurns), None),
+            Some(Resume)
+        );
+        assert_eq!(
+            stop_of(S::Paused, Some(Cause::Budget), None),
+            Some(AddBudget)
+        );
+        assert_eq!(
+            stop_of(S::Blocked, Some(Cause::ReviewRounds), None),
+            Some(Unblock)
+        );
+        assert_eq!(
+            stop_of(S::Blocked, Some(Cause::NothingToDeliver), None),
+            Some(CloseDone)
+        );
+        // Each other state waits on no stop.
+        for s in RunState::ALL {
+            if !matches!(s, S::WaitingForAnswer | S::Blocked | S::Failed | S::Paused) {
+                assert_eq!(at(s), None, "{s:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_pull_request_that_ended_on_the_code_host_closes_a_run_that_is_not_final() {
+        use Stop::*;
+        for pr in [PrState::Merged, PrState::Closed] {
+            assert_eq!(stop_of(S::PROpen, None, Some(pr)), Some(CloseDone));
+            assert_eq!(stop_of(S::Blocked, None, Some(pr)), Some(CloseDone));
+            assert_eq!(
+                stop_of(S::Paused, Some(Cause::Budget), Some(pr)),
+                Some(CloseDone)
+            );
+            // A final run, or a run that saw the merge, has nothing to close.
+            assert_eq!(stop_of(S::Done, None, Some(pr)), None);
+            assert_eq!(stop_of(S::Cancelled, None, Some(pr)), None);
+            assert_eq!(stop_of(S::Failed, None, Some(pr)), Some(TryAgain));
+            assert_eq!(stop_of(S::Merged, None, Some(pr)), None);
+        }
+        assert_eq!(stop_of(S::PROpen, None, Some(PrState::Open)), None);
+    }
+
+    #[test]
     fn the_tests_name_all_sixteen_states() {
         let named = [
             S::Queued,
@@ -308,6 +445,7 @@ mod tests {
             key: key.into(),
             title: format!("ticket {key}"),
             done,
+            assignee: None,
         }
     }
 
@@ -316,6 +454,7 @@ mod tests {
             id: id.into(),
             title: format!("change {id}"),
             ticket: ticket.map(str::to_string),
+            has_spec: true,
         }
     }
 
@@ -329,6 +468,10 @@ mod tests {
                 return_to: (state == S::Blocked).then_some(S::Working),
             },
             pr,
+            step: None,
+            approvals: 0,
+            questions: 0,
+            stop: stop_of(state, None, None),
         }
     }
 
@@ -338,6 +481,8 @@ mod tests {
             number,
             title: format!("pull {number}"),
             state,
+            author: None,
+            checks: None,
         }
     }
 
@@ -349,7 +494,13 @@ mod tests {
                 ticket("A-2", false),
                 ticket("A-3", true),
             ],
-            &[change("add-x", Some("A-2")), change("lone", None)],
+            &[
+                change("add-x", Some("A-2")),
+                ChangePart {
+                    has_spec: false,
+                    ..change("lone", None)
+                },
+            ],
             &[],
             &[
                 pr(7, PrState::Open),
@@ -367,7 +518,7 @@ mod tests {
                 ("ticket A-1", Idea, None),
                 ("ticket A-2", Spec, None),
                 ("ticket A-3", Ready, None),
-                ("change lone", Spec, None),
+                ("change lone", Idea, None),
                 ("pull 7", Review, None),
                 ("pull 8", Ready, None),
                 ("pull 6", Review, Some(Stopped)),
@@ -376,6 +527,41 @@ mod tests {
         assert_eq!(got[1].change.as_deref(), Some("change:add-x"));
         assert_eq!(got[1].ticket.as_deref(), Some("wi:A-2"));
         assert_eq!(got[4].pr.as_deref(), Some("pr:gh:7"));
+    }
+
+    #[test]
+    fn a_feature_takes_the_stop_of_its_run() {
+        let got = features(
+            &[],
+            &[],
+            &[
+                run("r1", "A-1", S::Blocked, None),
+                run("r2", "A-2", S::Working, None),
+            ],
+            &[pr(9, PrState::Closed)],
+        );
+        let stops: Vec<_> = got.iter().map(|f| f.stop).collect();
+        assert_eq!(stops, [Some(Stop::Unblock), None, None]);
+    }
+
+    #[test]
+    fn a_change_with_only_its_proposal_is_an_idea_until_it_has_a_spec() {
+        let bare = ChangePart {
+            has_spec: false,
+            ..change("add-x", Some("A-1"))
+        };
+        let stage = |c: &ChangePart, r: &[RunPart], p: &[PrPart]| {
+            features(&[ticket("A-1", false)], std::slice::from_ref(c), r, p)[0].stage
+        };
+        assert_eq!(stage(&bare, &[], &[]), Idea);
+        assert_eq!(stage(&change("add-x", Some("A-1")), &[], &[]), Spec);
+        // A run or a pull request gives the stage, spec or not.
+        assert_eq!(
+            stage(&bare, &[run("R1", "A-1", S::Working, None)], &[]),
+            Build
+        );
+        let opened = run("R1", "A-1", S::PROpen, Some(9));
+        assert_eq!(stage(&bare, &[opened], &[pr(9, PrState::Open)]), Review);
     }
 
     #[test]
@@ -401,6 +587,12 @@ mod tests {
                     change: Some("change:add-x".into()),
                     run: Some("run:R2".into()),
                     pr: Some("pr:gh:9".into()),
+                    who: None,
+                    run_state: Some(S::Blocked),
+                    approvals: 0,
+                    questions: 0,
+                    checks: None,
+                    stop: Some(Stop::Unblock),
                 },
                 FlowFeature {
                     title: "run R3".into(),
@@ -410,8 +602,78 @@ mod tests {
                     change: None,
                     run: Some("run:R3".into()),
                     pr: None,
+                    who: None,
+                    run_state: Some(S::Working),
+                    approvals: 0,
+                    questions: 0,
+                    checks: None,
+                    stop: None,
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn who_is_the_working_agent_else_the_assignee_else_the_author() {
+        // The scenario "A working feature" of REQ-011: the card names the agent.
+        let agent = |name: &str| {
+            Some(Who {
+                name: name.into(),
+                agent: true,
+            })
+        };
+        let person = |name: &str| {
+            Some(Who {
+                name: name.into(),
+                agent: false,
+            })
+        };
+        let mut t = ticket("A-1", false);
+        t.assignee = Some("Ada".into());
+        let mut r = run("R1", "A-1", S::Working, Some(9));
+        r.step = Some("build".into());
+        let mut p = pr(9, PrState::Open);
+        p.author = Some("Grace".into());
+        let mut lone = pr(10, PrState::Open);
+        lone.author = Some("Linus".into());
+        let who = |t: &[TicketPart], r: &[RunPart], p: &[PrPart]| {
+            features(t, &[], r, p)
+                .into_iter()
+                .map(|f| f.who)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            who(&[t.clone()], &[r.clone()], &[p.clone()]),
+            [agent("build")]
+        );
+        r.step = None;
+        assert_eq!(
+            who(&[t.clone()], &[r.clone()], &[p.clone()]),
+            [person("Ada")]
+        );
+        t.assignee = None;
+        assert_eq!(
+            who(&[t.clone()], &[r.clone()], &[p.clone()]),
+            [person("Grace")]
+        );
+        assert_eq!(who(&[t], &[], &[lone]), [None, person("Linus")]);
+    }
+
+    #[test]
+    fn the_state_facts_come_from_the_run_and_the_pull_request() {
+        let mut r = run("R1", "A-1", S::WaitingForAnswer, Some(9));
+        (r.approvals, r.questions) = (2, 1);
+        let mut p = pr(9, PrState::Open);
+        p.checks = Some(Ci::Failing);
+        let f = &features(&[ticket("A-1", false)], &[], &[r], &[p])[0];
+        assert_eq!(
+            (f.run_state, f.approvals, f.questions, f.checks),
+            (Some(S::WaitingForAnswer), 2, 1, Some(Ci::Failing))
+        );
+        let idea = &features(&[ticket("A-2", false)], &[], &[], &[])[0];
+        assert_eq!(
+            (idea.run_state, idea.approvals, idea.questions, idea.checks),
+            (None, 0, 0, None)
         );
     }
 }

@@ -6,17 +6,25 @@ test("developer", async ({ page }) => {
 	const w = new Walk(page, { key: "developer", label: "Developer" });
 	await w.start();
 
-	await w.step("Land on the runs", "the page that opens first: Factory, Runs", async () => {
-		await w.landsOn("Flow", "Runs");
-		await w.see(page.getByText("Needs you").first(), "no list of runs that need me");
+	await w.step("Land on the runs", "the page that opens first: Flow, Flow", async () => {
+		await w.landsOn("Flow", "Flow");
+		await w.see(
+			page.getByRole("button", { name: "Needs me", exact: true }),
+			"no filter for the runs that need me",
+		);
 		await w.see(page.getByRole("switch", { name: "Agents on" }), "no switch to stop the agents");
 	});
 
 	await w.step("Open a run", "the run card, the steps graph, the cost", async () => {
-		await w.click(page.getByText("Add export endpoint"));
+		await w.click(page.getByRole("button", { name: /Open Add export endpoint/ }));
 		await w.see(page.getByRole("button", { name: "More actions" }), "no way to stop the run");
 		await w.see(page.getByRole("group", { name: "Cost" }), "no cost on the run");
-		await w.click(page.getByRole("main").getByRole("link", { name: "Runs", exact: true }).first());
+		await w.click(
+			page
+				.getByRole("main")
+				.getByRole("link", { name: /^(Back|Flow)$/ })
+				.first(),
+		);
 	});
 
 	await w.step("Start a run from a ticket", "the Ticket field, then Start run", async () => {
@@ -39,7 +47,12 @@ test("developer", async ({ page }) => {
 				.getByRole("button", { name: "More actions" }),
 			"the link does not open the run",
 		);
-		await w.click(page.getByRole("main").getByRole("link", { name: "Runs", exact: true }).first());
+		await w.click(
+			page
+				.getByRole("main")
+				.getByRole("link", { name: /^(Back|Flow)$/ })
+				.first(),
+		);
 	});
 
 	await w.step("Answer an agent question", "Home, the Agent questions list, Send", async () => {
@@ -57,16 +70,17 @@ test("developer", async ({ page }) => {
 	});
 
 	await w.step("Approve what the agent asks", "Approvals, Approve", async () => {
+		// The approvals of one run are one question: the main button sends them all.
 		// The approval waits in the queue: a click makes it the card.
-		await w.click(page.getByRole("button", { name: /Move ACME-2 to In Progress/ }));
-		const approve = page.getByRole("button", { name: "Approve", exact: true });
-		const before = await approve.count();
-		await w.click(approve);
-		await w.until(
-			() => approve.count(),
-			before - 1,
-			"the approval stays in the list after Approve",
+		await w.click(
+			page
+				.getByRole("list", { name: "Needs you" })
+				.getByRole("button", { name: /ACME-2 Add export endpoint/ }),
 		);
+		const effect = page.getByText(/Change the status of ACME-2/);
+		await w.see(effect, "no approval of the agent on the card");
+		await w.click(page.getByRole("button", { name: /^Approve( all)?$/ }));
+		await w.until(() => effect.count(), 0, "the approval stays in the list after Approve");
 	});
 
 	await w.step("Stage and commit my changes", "Code, Local changes, Stage, Commit", async () => {
@@ -81,6 +95,11 @@ test("developer", async ({ page }) => {
 	await w.step("Review a pull request", "the pull request row, Approve", async () => {
 		await w.go("Code", "Pull requests");
 		await w.click(page.getByRole("link", { name: /#44 Rework the settings page/ }));
+		await w.click(
+			page
+				.getByRole("navigation", { name: "Sections" })
+				.getByRole("button", { name: "Chat", exact: true }),
+		);
 		await w.click(page.getByRole("button", { name: "Submit review" }));
 		const dialog = page.getByRole("dialog", { name: "Submit review" });
 		await w.see(dialog.getByText("Request changes", { exact: true }), "no review verdicts");
@@ -105,8 +124,8 @@ test("developer", async ({ page }) => {
 		},
 	);
 
-	await w.step("Run the checks", "Code, Quality, Run Tests", async () => {
-		await w.go("Flow", "Quality");
+	await w.step("Run the checks", "Flow, Health, Run Tests", async () => {
+		await w.go("Flow", "Health");
 		await w.click(page.getByRole("button", { name: "Run Tests" }));
 		await w.see(
 			page.getByText(/passed|failed|Pass|Fail/i).first(),

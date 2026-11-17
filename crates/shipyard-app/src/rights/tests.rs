@@ -152,6 +152,7 @@ fn an_unknown_person_gets_a_refusal_that_names_each_right() {
     refused(crate::factory::cancel(s, "r1"), "runs.start");
     refused(crate::factory::approve_plan(s, "r1"), "runs.approve");
     refused(crate::delivery::approve(s, 1).map(drop), "runs.approve");
+    refused(crate::delivery::allow_recipe(s, &[1]), "project.settings");
     refused(
         crate::commands::sync::automation_save(s, &Automation::default()),
         "project.settings",

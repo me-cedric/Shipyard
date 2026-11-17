@@ -22,6 +22,12 @@ describe("Home / Needs you: agent review", () => {
 		await waitFor(() =>
 			expect(router.state.location.pathname).toBe("/code/pull-requests/github-demo-141"),
 		);
+		// The agent review is in Chat.
+		await user.click(
+			within(await screen.findByRole("navigation", { name: "Sections" })).getByRole("button", {
+				name: "Chat",
+			}),
+		);
 		expect(await screen.findByRole("heading", { name: /Agent review \(2\)/ })).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Post review" }));
 		expect(await screen.findByText("Posted")).toBeVisible();

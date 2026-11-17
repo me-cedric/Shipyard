@@ -79,7 +79,7 @@ In Start, dann Heute, nennt eine einzige Liste Erste Schritte die nächsten Schr
 
 ## Ihre Rolle
 
-Wählen Sie in Einstellungen, dann Ich, Ihre Rolle. Die Rolle legt den Bereich fest, der zuerst öffnet. Ein Tech Lead startet in Fabrik, Läufe. Eine Projektleitung startet in Arbeit, Board.
+Wählen Sie in Einstellungen, dann Ich, Ihre Rolle. Die Rolle legt den Bereich fest, der zuerst öffnet. Ein Tech Lead startet in Flow. Eine Projektleitung startet in Flow.
 
 ## Standardmäßig sicher
 

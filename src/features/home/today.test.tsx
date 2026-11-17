@@ -91,7 +91,7 @@ describe("Home / Today", () => {
 		expect(await within(await card()).findByText("1 of 2")).toBeVisible();
 		await user.click(screen.getByRole("button", { name: "Later" }));
 		const on = within(await card());
-		expect(await on.findByRole("region", { name: "Post a comment on ACME-1" })).toBeInTheDocument();
+		expect(await on.findByText("Post a comment on ACME-1")).toBeInTheDocument();
 		expect(on.getByText("1 of 2")).toBeInTheDocument();
 		await user.click(
 			within(screen.getByRole("list", { name: "Needs you" })).getByRole("button", {
@@ -99,6 +99,41 @@ describe("Home / Today", () => {
 			}),
 		);
 		expect(await within(await card()).findByText("2 of 2")).toBeVisible();
+		vi.restoreAllMocks();
+	});
+
+	it("gives the card of a stopped run its main action in one click (REQ-014)", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		await importAll();
+		const [run] = (await mine()).runs;
+		if (!run) throw new Error("the person has no run");
+		const rec = mockState().factory.runs.find((r) => r.id === run.id);
+		if (!rec) throw new Error("no record");
+		// The run is paused by a person: its main action is Resume.
+		rec.state = "Paused";
+		const resume = vi.spyOn(commands, "runResume");
+		mountApp("/today/today");
+		await user.click(await screen.findByRole("button", { name: `Resume ${run.key}` }));
+		await waitFor(() => expect(resume).toHaveBeenCalledWith(run.id, 0, 0, null));
+		vi.restoreAllMocks();
+	});
+
+	it("counts the approvals of one run once in the title (REQ-013)", async () => {
+		await unwrap(commands.projectsOpen("/mock/alpha", false));
+		const approvals = await unwrap(commands.approvalsList());
+		const runs = new Set(approvals.map((a) => a.run));
+		expect(approvals.length).toBeGreaterThan(runs.size);
+		const [question] = await unwrap(commands.questionsList());
+		if (!question) throw new Error("the mock lacks a question");
+		vi.spyOn(commands, "questionsList").mockResolvedValue(ok([]));
+		vi.spyOn(commands, "messagesList").mockResolvedValue(ok([]));
+		vi.spyOn(commands, "prReviewWaiting").mockResolvedValue(ok([]));
+		vi.spyOn(commands, "runsList").mockResolvedValue(ok([]));
+		mountApp("/today/today");
+		expect(
+			await screen.findByRole("heading", { level: 1, name: `${runs.size} things need you` }),
+		).toBeInTheDocument();
 		vi.restoreAllMocks();
 	});
 
@@ -119,8 +154,9 @@ describe("Home / Today", () => {
 		mountApp("/home/today");
 		await pick(user, /Comment on ACME-1: the question/);
 		const before = (await unwrap(commands.approvalsList())).length;
-		const bar = within(await card()).getByRole("region", { name: "Post a comment on ACME-1" });
-		await user.click(within(bar).getByRole("button", { name: "Approve" }));
+		const on = within(await card());
+		expect(await on.findByText("Post a comment on ACME-1")).toBeVisible();
+		await user.click(on.getByRole("button", { name: "Approve" }));
 		await waitFor(async () =>
 			expect((await unwrap(commands.approvalsList())).length).toBe(before - 1),
 		);
@@ -133,6 +169,7 @@ describe("Home / Today", () => {
 		if (approval) approval.detail = "## Add export endpoint\n\nUse `GET /export`.";
 		mountApp("/home/today");
 		await pick(user, /Comment on ACME-1: the question/);
+		await user.click(await screen.findByRole("button", { name: "Each step" }));
 		const bar = within(await screen.findByRole("region", { name: "Post a comment on ACME-1" }));
 		expect(await bar.findByRole("heading", { name: "Add export endpoint" })).toBeInTheDocument();
 		expect(bar.getByText("GET /export").tagName).toBe("CODE");
@@ -288,7 +325,7 @@ describe("Home / Today", () => {
 		expect(await screen.findByText("Nothing needs you")).toBeInTheDocument();
 		expect(screen.queryByRole("article")).toBeNull();
 		await user.click(screen.getByRole("button", { name: "Open the backlog" }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/backlog"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/flow/list"));
 		vi.restoreAllMocks();
 		vi.setSystemTime(new Date("2026-10-28T10:00:00"));
 	});

@@ -13,11 +13,19 @@ const find = async (key: string) => {
 	if (!r) throw new Error(key);
 	return r;
 };
-// The first heading of the page is not always ours: the summary is the header of the open run.
-const summaryOf = async () =>
-	(await screen.findByRole("region", { name: /^ACME-\d+$/ })).querySelector(
-		"header",
-	) as HTMLElement;
+// The agent card of the feature page holds the facts of the run and its one action.
+const summaryOf = () => screen.findByRole("region", { name: "Agent" });
+const pageOf = () => screen.findByRole("region", { name: /^ACME-\d+$/ });
+// A section of the feature page, from its switch.
+const section = async (user: ReturnType<typeof userEvent.setup>, name: string) =>
+	user.click(
+		within(await screen.findByRole("navigation", { name: "Sections" })).getByRole("button", {
+			name,
+		}),
+	);
+// The plain events show first; one control opens all of them.
+const allEvents = async (user: ReturnType<typeof userEvent.setup>) =>
+	user.click(await screen.findByRole("button", { name: /^All \d+ events$/ }));
 const ev = (kind: string, payload: object): RunLogEvent_Serialize =>
 	({
 		id: 1,
@@ -152,11 +160,10 @@ describe("Factory / run page", () => {
 		expect(await within(summary).findByRole("link", { name: "#42" })).toBeVisible();
 		expect(within(summary).getByRole("group", { name: /^Step \d+ of \d+$/ })).toBeVisible();
 		expect(within(summary).getByRole("group", { name: "Cost" })).toHaveTextContent("$0.88");
-		expect(within(summary).getByRole("heading", { level: 1 })).toHaveTextContent(run.title);
-		// One h1 on the run page: the title in the summary (the assistant panel has its own).
-		expect(
-			within(summary.parentElement as HTMLElement).getAllByRole("heading", { level: 1 }),
-		).toHaveLength(1);
+		// One h1 on the run page: the title in the header of the page (the assistant panel has its own).
+		const page = await pageOf();
+		expect(within(page).getAllByRole("heading", { level: 1 })).toHaveLength(1);
+		expect(within(page).getByRole("heading", { level: 1 })).toHaveTextContent(run.title);
 		expect(within(summary).getByRole("button", { name: "Open pull request" })).toBeVisible();
 		expect(summary.textContent).not.toMatch(/pr:|run:/);
 	});
@@ -174,19 +181,43 @@ describe("Factory / run page", () => {
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
-	it("puts the added budget, the message and Resume in one form for a paused run", async () => {
+	it("puts the stepper, the message and Add budget on the card of a run that stopped at its budget", async () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const run = await find("ACME-6");
+		mockState()
+			.factory.runs.find((x) => x.id === run.id)
+			?.log.push({
+				id: 9990,
+				step: null,
+				kind: "note",
+				payload: JSON.stringify({ stop: "budget" }),
+				ts: Date.now(),
+			});
 		mountApp(`/factory/runs/${run.id}`);
 		const needs = await screen.findByRole("region", { name: "Needs you" });
-		const form = needs.querySelector("form") as HTMLFormElement;
-		expect(within(form).getByRole("textbox", { name: "Added budget (USD)" })).toBeVisible();
+		const form = (await within(needs).findByRole("button", { name: "Add budget" })).closest("form");
+		if (!form) throw new Error("the card has its form");
+		expect(within(form).getByRole("group", { name: "Budget to add (USD)" })).toHaveTextContent(
+			"$2",
+		);
 		expect(within(form).getByRole("textbox", { name: "Message to the agent" })).toBeVisible();
-		expect(within(form).getByRole("button", { name: "Resume" })).toBeVisible();
 		expect(needs).not.toHaveTextContent("first tick");
 		// The fact sits in the layout: two numbers and a meter, and no sentence of help.
 		expect(within(needs).getByRole("meter", { name: "Cost" })).toBeVisible();
 		expect(needs).not.toHaveTextContent("resumes by itself");
+	});
+
+	it("puts Resume and Stop it on the card of a run that a person paused", async () => {
+		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+		const run = await find("ACME-6");
+		// A person paused it: the budget is not reached.
+		const rec = mockState().factory.runs.find((x) => x.id === run.id);
+		if (rec) rec.budgetUsd = 10;
+		mountApp(`/factory/runs/${run.id}`);
+		const needs = await screen.findByRole("region", { name: "Needs you" });
+		expect(await within(needs).findByRole("button", { name: "Resume" })).toBeVisible();
+		expect(within(needs).getByRole("button", { name: "Stop it" })).toBeVisible();
+		expect(within(needs).queryByRole("button", { name: "Add budget" })).toBeNull();
 	});
 
 	it("shows no chip of the run on its own question and approval rows", async () => {
@@ -198,14 +229,17 @@ describe("Factory / run page", () => {
 		expect(needs.querySelector('[aria-label*="run:"]')).toBeNull();
 	});
 
-	it("moves the focus to the form when the person picks the primary action of a paused run", async () => {
-		const user = userEvent.setup();
+	it("gives a paused run one main action, on its card and not in the agent card", async () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const run = await find("ACME-6");
+		// A person paused it: the budget is not reached.
+		const rec = mockState().factory.runs.find((x) => x.id === run.id);
+		if (rec) rec.budgetUsd = 10;
 		mountApp(`/factory/runs/${run.id}`);
 		const summary = await summaryOf();
-		await user.click(within(summary).getByRole("button", { name: "Resume" }));
-		expect(screen.getByRole("textbox", { name: "Added budget (USD)" })).toHaveFocus();
+		await screen.findByRole("button", { name: "Resume" });
+		expect(within(summary).queryByRole("button", { name: "Resume" })).toBeNull();
+		expect(screen.getAllByRole("button", { name: "Resume" })).toHaveLength(1);
 	});
 
 	it("offers Start again on a cancelled run and opens the new run", async () => {
@@ -237,6 +271,7 @@ describe("Factory / run page", () => {
 				ts: Date.now(),
 			});
 		mountApp(`/factory/runs/${run.id}`);
+		await allEvents(user);
 		const events = await screen.findByRole("region", { name: /^Events/ });
 		await within(events).findByText("ACME-2 moved to Claimed");
 		expect(within(events).queryByText("The agent used read file")).toBeNull();
@@ -263,6 +298,7 @@ describe("Factory / run page", () => {
 		}
 		const order = async (id: string) => {
 			const router = mountApp(`/factory/runs/${id}`);
+			await allEvents(userEvent.setup());
 			const events = await screen.findByRole("region", { name: /^Events/ });
 			await within(events).findByText(/moved to Paused/);
 			const rows = within(events)
@@ -292,6 +328,7 @@ describe("Factory / run page", () => {
 				ts: 1_000 + i,
 			});
 		const router = mountApp(`/factory/runs/${live.id}`);
+		await allEvents(userEvent.setup());
 		const events = await screen.findByRole("region", { name: /^Events/ });
 		await waitFor(
 			() => {
@@ -318,6 +355,7 @@ describe("Factory / run page", () => {
 				ts: 1_000 + i,
 			});
 		const router = mountApp(`/factory/runs/${live.id}`);
+		await allEvents(userEvent.setup());
 		const events = await screen.findByRole("region", { name: /^Events/ });
 		expect(
 			await screen.findByText(
@@ -337,8 +375,10 @@ describe("Factory / run page", () => {
 		const unit = run.steps.flatMap((x) => x.units).find((u) => u.state === "running" && u.runner);
 		const log = mockState().factory.runs.find((x) => x.id === run.id)?.log;
 		log?.splice(0);
+		const user = userEvent.setup();
 		const router = mountApp(`/factory/runs/${run.id}`);
-		await screen.findByRole("region", { name: /^Events/ });
+		await section(user, "Chat");
+		await screen.findByRole("tabpanel", { name: "Chat" });
 		expect(screen.queryByRole("log", { name: "Session transcript" })).toBeNull();
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 		cleanup();
@@ -350,6 +390,7 @@ describe("Factory / run page", () => {
 			ts: 1_000,
 		});
 		const again = mountApp(`/factory/runs/${run.id}`);
+		await section(userEvent.setup(), "Chat");
 		expect(await screen.findByRole("log", { name: "Session transcript" })).toBeInTheDocument();
 		await waitFor(() => expect(again.state.status).toBe("idle"));
 	});
@@ -359,7 +400,7 @@ describe("Factory / run page", () => {
 		await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
 		const run = await find("ACME-2");
 		mountApp(`/factory/runs/${run.id}`);
-		await user.click(await screen.findByRole("tab", { name: /^Changes/ }));
+		await section(user, "Changes");
 		const diff = await screen.findByRole("region", { name: "Diff" });
 		const files = await within(diff).findAllByRole("button", { expanded: false });
 		const file = files.find((b) => b.hasAttribute("aria-expanded")) as HTMLElement;

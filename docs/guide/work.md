@@ -4,6 +4,8 @@ Work shows the tickets of the issue tracker and the plan of the team. The app ke
 
 ## Backlog
 
+The old address of Backlog opens Flow, in the List view, which holds the same tickets and filters.
+
 Backlog lists the tickets by state. Filter by state, person, label and run.
 
 - Import: the app shows the count first. It writes nothing before you confirm.
@@ -11,6 +13,8 @@ Backlog lists the tickets by state. Filter by state, person, label and run.
 - Mark for the agent: one click gives the ticket to the agents.
 
 ## Board
+
+The old address of Board opens Flow, which shows each feature once in five stages (Idea, Spec, Build, Review, Ready). A card shows the title, who works on it and its state.
 
 Board shows one column for each state. Move a card with the mouse or the keyboard. When the issue tracker refuses the move, the card goes back and shows the reason.
 

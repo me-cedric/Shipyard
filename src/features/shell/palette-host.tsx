@@ -1,13 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { doStop } from "@/features/flow/stop-action";
+import { useGuard } from "@/features/work/guard";
 import { cannedPrompt, itemTypeOf, PROMPT_KINDS, pageItemType } from "@/lib/assistant/prompts";
+import { useRunActions, useRuns } from "@/lib/factory";
 import { format, LANGS, useI18n } from "@/lib/i18n";
 import { commands, unwrap } from "@/lib/ipc";
 import { usePrefs } from "@/lib/prefs";
 import { useProjectActions, useProjects } from "@/lib/projects";
 import { setHitQuery, snippetParts, useParsedRef, useRefSearch } from "@/lib/refs";
-import { useRights } from "@/lib/rights";
+import { RightButton, useRights } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { rememberSelection } from "@/lib/shell/selection";
 import { Button } from "@/ui/atoms/button";
@@ -37,6 +40,9 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		queryKey: ["features", "list"],
 		queryFn: () => unwrap(commands.featuresList()),
 	}).data;
+	const runs = useRuns().data;
+	const act = useRunActions();
+	const { error: stopError, run: guard } = useGuard();
 	const { level } = useRights();
 	const navigate = useNavigate();
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -165,17 +171,31 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 		},
 	];
 
-	const found = answerOf(text, features ?? [], {
-		blocked: t.palette.wordsBlocked,
-		stopped: t.palette.wordsStopped,
-		needs: t.palette.wordsNeeds,
-	});
+	const found = answerOf(
+		text,
+		features ?? [],
+		{
+			blocked: t.palette.wordsBlocked,
+			stopped: t.palette.wordsStopped,
+			needs: t.palette.wordsNeeds,
+		},
+		runs ?? [],
+	);
+	const label = {
+		reply: t.flow.stop.reply,
+		unblock: t.factory.unblock,
+		addBudget: t.flow.stop.addBudget,
+		tryAgain: t.flow.stop.tryAgain,
+		resume: t.factory.resume,
+		closeDone: t.factory.closeDone,
+	};
 	const markName = {
 		blocked: t.palette.markBlocked,
 		stopped: t.palette.markStopped,
 		needs_you: t.palette.markNeeds,
 	};
-	// The main action of each mark: it opens the run, where that action is on top (as the Runs card does).
+	// The action of a mark: the main action of the stop state when the run is known (one click, as on Today),
+	// else it opens the run, where that action is on top.
 	const actionOf = {
 		blocked: t.factory.unblock,
 		stopped: t.factory.why.again,
@@ -193,7 +213,23 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 						{g.features.map((f) => (
 							<li key={`${f.title}-${f.ref}`} className="flex items-center justify-between gap-2">
 								<span className="min-w-0 flex-1 truncate text-ui text-n-12">{f.title}</span>
-								{f.ref ? (
+								{f.action && f.run && f.action !== "reply" ? (
+									<RightButton
+										right="runs.start"
+										variant="primary"
+										className="min-h-control"
+										aria-label={`${label[f.action]} ${f.title}`}
+										onClick={() => {
+											const { action, run } = f;
+											if (!(action && run)) return;
+											void guard(() =>
+												doStop(act, run, action, { open: (id) => openRef(`run:${id}`) }),
+											).then((ok) => ok && setPaletteOpen(false));
+										}}
+									>
+										{label[f.action]}
+									</RightButton>
+								) : f.ref ? (
 									<Button
 										className="min-h-control"
 										aria-label={`${actionOf[g.mark]} ${f.title}`}
@@ -211,6 +247,11 @@ export function PaletteHost({ actions, shortcut }: { actions: Action[]; shortcut
 					</ul>
 				</div>
 			))}
+			{stopError ? (
+				<p role="alert" className="text-ui text-danger-text">
+					{stopError}
+				</p>
+			) : null}
 			<Button
 				variant="ghost"
 				className="min-h-control self-start"

@@ -9,6 +9,7 @@ import { editingEs } from "./editing";
 import { extensionsEs } from "./extensions";
 import { extrasEs } from "./extras";
 import { factoryEs } from "./factory";
+import { flowEs } from "./flow";
 import { glossaryEs } from "./glossary";
 import { homeEs } from "./home";
 import { knowledgeEs } from "./knowledge";
@@ -633,6 +634,17 @@ export const es: Messages = {
 				trackerComment: "Comentario del ticket",
 			},
 			save: "Guardar",
+			recipes: "Permitido para una receta",
+			kind: {
+				transition: "Mover el ticket",
+				labels: "Etiquetas del ticket",
+				comment: "Comentario del ticket",
+				push: "Push",
+				open_pr: "Abrir un pull request",
+				resolve_threads: "Cerrar los hilos de revisión",
+			},
+			remove: "Quitar",
+			removeKind: "Quitar {kind} para {recipe}",
 			error: {
 				interval: "Intervalo: al menos {min} s",
 				number: "{name}: un número entero",
@@ -925,6 +937,7 @@ export const es: Messages = {
 	assistant: assistantEs,
 	design: designEs,
 	factory: factoryEs,
+	flow: flowEs,
 	glossary: glossaryEs,
 	settings: settingsEs,
 	specs: specsEs,

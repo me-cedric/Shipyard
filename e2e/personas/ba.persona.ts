@@ -6,12 +6,12 @@ test("business analyst", async ({ page }) => {
 	const w = new Walk(page, { key: "ba", label: "Business analyst" });
 	await w.start();
 
-	await w.step("Land on the proposals", "the page that opens first: Specs, Proposals", async () => {
-		await w.landsOn("Flow", "Proposals");
+	await w.step("Land on the proposals", "the page that opens first: Flow, List", async () => {
+		await w.landsOn("Flow", "List");
 		await w.see(page.getByRole("button", { name: /add-export/ }), "no change in the list");
 	});
 
-	await w.step("Open a change", "the change card, then the Proposal section", async () => {
+	await w.step("Open a change", "the change row, then the Brief section", async () => {
 		await w.click(page.getByRole("button", { name: /add-export/ }));
 		await w.see(
 			page.getByRole("button", { name: "Split into work items" }),
@@ -48,6 +48,7 @@ test("business analyst", async ({ page }) => {
 	});
 
 	await w.step("Write a change from a plain title", "New change, a title, Create", async () => {
+		await w.go("Flow", "List");
 		await w.click(page.getByRole("button", { name: "New change" }));
 		await w.fill(page.getByRole("dialog").getByRole("textbox"), "Add login page");
 		await w.click(page.getByRole("dialog").getByRole("button", { name: "Create" }));

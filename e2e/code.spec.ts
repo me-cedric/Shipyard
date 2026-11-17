@@ -18,6 +18,9 @@ async function openCode(page: Page, tab: string) {
 
 const unstaged = (page: Page) => page.getByRole("region", { name: "Unstaged" });
 const heading = (page: Page, name: string) => page.getByRole("heading", { name });
+// A section of the feature page, from its switch. A pull request opens on Changes.
+const section = (page: Page, name: string) =>
+	page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name }).click();
 
 test("stages a file, commits it from the status bar and finds it in History", async ({ page }) => {
 	await openCode(page, "Local changes");
@@ -138,6 +141,8 @@ test("lists the pull requests by state, opens one and comments", async ({ page }
 	await expect(
 		page.getByText("Merge is blocked: 2 checks failing, changes requested"),
 	).toBeVisible();
+	// The conversation and the threads are in Chat.
+	await section(page, "Chat");
 	await expect(page.getByText("rename this")).toBeVisible();
 	// A resolved thread is one line: it opens on click and offers Reopen.
 	await page.getByRole("button", { name: /src\/lib\.ts:7/ }).click();
@@ -148,8 +153,11 @@ test("lists the pull requests by state, opens one and comments", async ({ page }
 	await page.getByRole("button", { name: "Post reply" }).click();
 	await expect(page.getByText("Renamed.")).toBeVisible();
 	await thread.getByRole("button", { name: "Resolve", exact: true }).click();
+	// The merge box is in Changes.
+	await section(page, "Changes");
 	await expect(page.getByText("0 unresolved of 2")).toBeVisible();
 
+	await section(page, "Chat");
 	await page.getByRole("textbox", { name: "Comment" }).fill("Looks right now.");
 	await page.getByRole("button", { name: "Comment", exact: true }).click();
 	await expect(page.getByText("Looks right now.")).toBeVisible();
@@ -159,6 +167,8 @@ test("lists the pull requests by state, opens one and comments", async ({ page }
 test("approves a pull request from Submit review", async ({ page }) => {
 	await openCode(page, "Pull requests");
 	await pull(page, 141).click();
+	// The write box of Chat has Submit review (the review bar has it while a comment waits).
+	await section(page, "Chat");
 	await page.getByRole("button", { name: "Submit review" }).click();
 	const dialog = page.getByRole("dialog", { name: "Submit review" });
 	// The radio is hidden: a click on its label picks it.
@@ -209,7 +219,7 @@ test("merges only after the confirm click", async ({ page }) => {
 test("opens a file of a pull request in the viewer", async ({ page }) => {
 	await openCode(page, "Pull requests");
 	await pull(page, 142).click();
-	await page.getByRole("tab", { name: /Files changed/ }).click();
+	await section(page, "Changes");
 	await page.getByRole("button", { name: "Expand all" }).click();
 	await page.getByRole("button", { name: "Open src/app.ts" }).click();
 	const dialog = page.getByRole("dialog");
@@ -230,7 +240,7 @@ const plusOf = async (page: Page, line: number) => {
 test("comments on a line of a pull request: pending first, then one at once", async ({ page }) => {
 	await openCode(page, "Pull requests");
 	await pull(page, 142).click();
-	await page.getByRole("tab", { name: /Files changed/ }).click();
+	await section(page, "Changes");
 	// The file has one thread, so its row says so while it is closed.
 	await expect(page.getByText("1 comment").first()).toBeVisible();
 	await page.getByRole("button", { name: "Expand all" }).click();

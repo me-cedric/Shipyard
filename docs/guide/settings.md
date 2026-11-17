@@ -6,6 +6,8 @@ Settings holds the settings of the project, your connections and your own choice
 
 Project holds the folders of the project, the default workflow, the automation switches and the project import. Settings that are rarely changed sit under Advanced.
 
+The automation switches let the agents push, open a pull request, move a ticket and comment on it with no click. With a switch off, each write of that kind waits for your approval. "Do not ask again for this recipe" on an approval allows exactly the kinds of its effects (for example `transition` and `open_pr`) for the runs of that workflow only. Another kind still waits. The file keeps them under `recipe_writes` in .shipyard/automation.yaml. The Automation group lists each recipe with a permission: Remove takes one kind away, and the next write of that kind waits for you again. A save in Settings never adds a permission. A force push always waits for you. The file is shared: each teammate needs a version of Shipyard that reads `recipe_writes`, else the file is not valid for that teammate and their sync stops.
+
 The docs language and the pull request language set the language of the specs, documents and pull request text of the agents. Code and comments stay in English. A change applies to the next agent brief and pull request only. Existing docs stay as they are.
 
 Agent review of each pull request is one choice: Off, Draft or Post. Draft keeps a review for you to read and post. Post adds a comment review by itself and never approves. The choice goes to .shipyard/automation.yaml.

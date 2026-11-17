@@ -4,7 +4,7 @@ Les Spécifications disent ce que le produit doit faire. Un changement commence 
 
 ## Propositions
 
-Propositions liste les changements en cours, avec l'état de chaque partie : manquante, brouillon ou terminée.
+L'ancienne adresse des Changements ouvre Flux, dans la vue Liste. Propositions liste les changements en cours, avec l'état de chaque partie : manquante, brouillon ou terminée.
 
 1. Cliquez sur Nouvelle proposition. Donnez-lui un titre simple. L'application fait l'identifiant à partir du titre.
 2. Remplissez chaque partie. Une vue formulaire montre les parties. Une vue en texte brut existe aussi.

@@ -4,7 +4,7 @@ Specs says what the product must do. A change starts as a proposal. When the tea
 
 ## Proposals
 
-Proposals lists the changes in progress, with the state of each part: missing, draft or done.
+The old address of Changes opens Flow, in the List view. Proposals lists the changes in progress, with the state of each part: missing, draft or done.
 
 1. Click New proposal. Give it a plain title. The app makes the id from the title.
 2. Fill in each part. A form view shows the parts. A raw text view is also there.

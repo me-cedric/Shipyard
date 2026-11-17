@@ -73,6 +73,12 @@ describe("a viewer on a pull request page", () => {
 	it("sees Comment, Reply, Resolve and Reopen off, with the reason", async () => {
 		const user = userEvent.setup();
 		await open("github-demo-142");
+		// The write box and the threads are in Chat.
+		await user.click(
+			within(await screen.findByRole("navigation", { name: "Sections" })).getByRole("button", {
+				name: "Chat",
+			}),
+		);
 		const off = (b: HTMLElement) => {
 			expect(b).toBeDisabled();
 			expect(b).toHaveAccessibleDescription(needs("code.write"));

@@ -30,6 +30,7 @@ import {
 	MagnifyingGlassIcon,
 	MoonIcon,
 	PlayIcon,
+	PlusIcon,
 	SunIcon,
 	SwatchIcon,
 	ViewColumnsIcon,
@@ -299,8 +300,15 @@ export function useActions() {
 			key: "mod+shift+k",
 			run: () => setShortcutsOpen(true),
 		});
+		const newFeature: Action = {
+			id: "new-feature",
+			label: t.flow.newAction,
+			Icon: PlusIcon,
+			run: () => void navigate({ to: "/flow/new" }),
+		};
 		const list: Action[] = [
 			...places,
+			newFeature,
 			...spaces,
 			assistant,
 			palette,

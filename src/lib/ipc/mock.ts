@@ -2246,6 +2246,26 @@ const handlers: Handlers = {
 	approvalsList: () => fx.approvalsList(state.factory, active()?.id ?? null),
 	approvalApprove: (id) => fx.approvalApprove(state.factory, id),
 	approvalReject: (id) => fx.approvalReject(state.factory, id),
+	approvalsAllowRecipe: (ids) => {
+		if (!active()) throw "no active project";
+		const me = state.person ? withAccess(state.person) : teamPerson();
+		if (state.sync.file === "invalid") throw "the automation file is not valid: fix it first";
+		// A refusal leaves the file as it was.
+		const recipes = { ...state.sync.automation.recipe_writes };
+		const save = () => {
+			state.sync.automation.recipe_writes = recipes;
+			state.sync.file = "valid";
+		};
+		try {
+			fx.approvalsAllowRecipe(state.factory, active()?.id ?? null, ids, me.rights, recipes);
+		} catch (e) {
+			// The file is saved before the named writes go out (`allow_recipe`).
+			if (String(e).startsWith("the permission is saved")) save();
+			throw e;
+		}
+		save();
+		return null;
+	},
 	pullsStatusGet: () => {
 		const p = active();
 		const forge = p ? state.files[p.id]?.connections?.forge : undefined;

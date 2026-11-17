@@ -1,8 +1,11 @@
+import { screen } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { commands, unwrap } from "@/lib/ipc";
 import { useBacklinks } from "@/lib/refs";
 import { ShellProvider, useShell } from "@/lib/shell";
+import { useChanges } from "@/lib/specs";
 import { renderApp } from "@/ui/test-utils";
+import { ChangeDetail } from "./change-detail";
 
 /** What the inspector would show: the ref that a view selected and its backlinks by kind. */
 function Probe() {
@@ -25,4 +28,17 @@ export async function renderSpecs(ui: ReactElement) {
 			<Probe />
 		</ShellProvider>,
 	);
+}
+
+/** The detail of one change, as the Brief of its feature page draws it. */
+export function OpenChange({ id }: { id: string }) {
+	const change = useChanges().data?.find((c) => c.id === id);
+	return change ? <ChangeDetail change={change} onBack={() => {}} /> : null;
+}
+
+/** Opens a change and waits until its proposal form has loaded, so the buttons that the test clicks stay. */
+export async function renderChange(id: string) {
+	const view = await renderSpecs(<OpenChange id={id} />);
+	await screen.findByRole("textbox", { name: "Why" });
+	return view;
 }

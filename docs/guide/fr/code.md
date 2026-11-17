@@ -28,7 +28,7 @@ Le sélecteur de branche de la barre du haut a une zone de filtre. Tapez pour r�
 
 Pull requests liste les pull requests de l'hébergeur de code. La liste a une recherche et deux filtres. Toutes montre chaque pull request. À relire montre les pull requests ouvertes qui ne sont pas des brouillons, attendent une relecture et n'ont pas de demande de modifications. Les lignes sont en trois groupes : Ouvertes, Fusionnées et Fermées, chacun avec son compte. Une ligne montre le numéro, le titre, la marque brouillon, l'état des vérifications et l'état de la relecture. Une ligne ne montre pas d'auteur : l'application ne le garde pas. Ouvrir une pull request en démarre une nouvelle.
 
-Cliquez sur une ligne pour ouvrir la pull request sur sa propre page. Retour revient à la liste avec la même recherche et le même filtre.
+Une pull request qu'une fonctionnalité contient s'ouvre aussi sur la page de la fonctionnalité, dans sa section Changements : l'ancienne adresse de la page de la pull request l'ouvre. Cliquez sur une ligne pour ouvrir la pull request sur sa propre page. Retour revient à la liste avec la même recherche et le même filtre.
 
 ### La page
 

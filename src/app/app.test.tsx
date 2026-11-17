@@ -122,7 +122,8 @@ describe("shell", () => {
 		mount("/home");
 		await sidebar();
 		await user.keyboard("{Control>}2{/Control}");
-		expect(await screen.findByRole("link", { name: "Backlog", current: "page" })).toBeTruthy();
+		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+		expect(await within(tabs).findByRole("link", { name: "Flow", current: "page" })).toBeTruthy();
 	});
 
 	it("opens the assistant with Mod+J, focuses its input and keeps the draft in the next view", async () => {
@@ -138,7 +139,8 @@ describe("shell", () => {
 		await waitFor(() => expect(input).toHaveFocus());
 		await user.type(input, "keep me");
 		await user.keyboard("{Control>}2{/Control}");
-		await screen.findByRole("link", { name: "Backlog", current: "page" });
+		const tabs = await screen.findByRole("navigation", { name: "Tabs" });
+		await within(tabs).findByRole("link", { name: "Flow", current: "page" });
 		expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("keep me");
 		// The shortcut toggles it closed again: the Ask button left the top bar (app-redesign REQ-004).
 		await user.keyboard("{Control>}j{/Control}");

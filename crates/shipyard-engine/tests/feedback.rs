@@ -475,6 +475,30 @@ fn a_merge_while_the_run_is_blocked_closes_it() {
 }
 
 #[test]
+fn a_person_closes_a_run_whose_pull_request_ended_on_the_code_host() {
+    // The code host merged it: the run closes as after the merge event of the sync.
+    let fx = Fx::new(writes(true), &[]);
+    let run = open(&fx);
+    fx.f.close_outside(&run, true).unwrap();
+    fx.f.pump();
+    assert_eq!(fx.state(&run), RunState::Done);
+    assert!(fx.f.close_outside(&run, true).is_err(), "a final run");
+    // The code host closed it with no merge: the run is cancelled with its stop report.
+    let fx = Fx::new(writes(true), &[]);
+    let run = open(&fx);
+    fx.f.apply(&run, RunEvent::Ask).unwrap();
+    fx.f.close_outside(&run, false).unwrap();
+    assert_eq!(fx.state(&run), RunState::Cancelled);
+    let e = fx.f.run_info(&run).unwrap().escalation.unwrap();
+    assert_eq!(e.cause, Cause::PullRequestClosed);
+    // A run with no pull request has no event to take.
+    let fx = Fx::new(writes(true), &[]);
+    let run = fx.start("SHIP-1", &["wf:bug"]);
+    assert!(fx.f.close_outside(&run, true).is_err());
+    assert_ne!(fx.state(&run), RunState::Done);
+}
+
+#[test]
 fn passing_ci_and_a_new_pull_request_change_nothing() {
     let fx = Fx::new(writes(true), &[]);
     let run = open(&fx);

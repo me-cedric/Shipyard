@@ -4,6 +4,7 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
+use shipyard_core::pickup::WriteKind;
 use shipyard_engine::approvals::Write;
 use shipyard_engine::ports::{Git, Merge, Workspaces, Writer};
 use shipyard_git::worktree::child_branch;
@@ -467,4 +468,292 @@ fn a_red_gate_names_its_first_error_not_only_the_last_line() {
     assert!(first.starts_with("error[E0061]"), "{first}");
     assert!(first.contains("creator.rs:536"), "{first}");
     assert_eq!(super::first_error(&["all good", "test result: ok"]), None);
+}
+
+// ---- "Do not ask again for this recipe" (`app-redesign` REQ-013)
+
+/// A project with every write switch off, in the file and in the engine, and one run of the
+/// recipe `one` whose ticket move, labels and pull request wait.
+fn send_for_review() -> (crate::factory::tests::Fx, String) {
+    use shipyard_core::pickup::{Automation, Writes};
+    let fx = crate::factory::tests::fx(Writes::default());
+    let off = Automation {
+        writes: Writes::default(),
+        ..Automation::default()
+    };
+    shipyard_store::automation_file::write_automation(fx.repo.path(), &off).unwrap();
+    let run = fx.start("SHIP-1");
+    let pr = Write::OpenPr {
+        run: run.clone(),
+        branch: "feat/src/add-x".into(),
+        base: "develop".into(),
+        title: "Add x".into(),
+        body: String::new(),
+        labels: vec![],
+        reviewers: vec!["alice".into()],
+        draft: true,
+    };
+    assert_eq!(fx.s.factory.factory.write(&run, pr), Ok(None));
+    (fx, run)
+}
+
+fn file_of(fx: &crate::factory::tests::Fx) -> shipyard_core::pickup::Automation {
+    match shipyard_store::automation_file::read_automation(fx.repo.path()).unwrap() {
+        shipyard_store::automation_file::AutomationRead::Valid(a) => a,
+        _ => panic!("the automation file is not valid"),
+    }
+}
+
+#[test]
+fn allow_recipe_turns_on_only_the_named_kinds_for_that_recipe_and_approves() {
+    let (fx, run) = send_for_review();
+    let list = approvals(&fx.s).unwrap();
+    assert!(list.iter().all(|a| a.run == run && a.workflow == "one"));
+    let pick: Vec<u32> = list
+        .iter()
+        .filter(|a| a.kind == "transition" || a.kind == "open_pr")
+        .map(|a| a.id)
+        .collect();
+    assert_eq!(pick.len(), 2, "{list:?}");
+    allow_recipe(&fx.s, &pick).unwrap();
+    let a = file_of(&fx);
+    assert_eq!(a.writes, shipyard_core::pickup::Writes::default());
+    assert_eq!(a.recipe_writes.keys().collect::<Vec<_>>(), ["one"]);
+    let w: Vec<_> = a.recipe_writes["one"].iter().copied().collect();
+    assert_eq!(w, [WriteKind::Transition, WriteKind::OpenPr]);
+    // The labels share the project switch of the ticket move, not the grant: they still wait.
+    let left = approvals(&fx.s).unwrap();
+    assert_eq!(
+        left.iter().map(|a| a.kind.as_str()).collect::<Vec<_>>(),
+        ["labels"]
+    );
+    let sent = fx.writer.sent();
+    assert!(sent.iter().any(|w| matches!(w, Write::OpenPr { .. })));
+    assert!(!sent.iter().any(|w| matches!(w, Write::Labels { .. })));
+    let log = fx.s.factory.log().after(&run, 0).unwrap();
+    assert!(
+        log.iter()
+            .any(|e| e.kind == "write" && e.payload["state"] == "recipe_allowed")
+    );
+}
+
+#[test]
+fn durable_permission_the_next_run_of_that_recipe_does_not_ask() {
+    // The scenario "Durable permission" of `spec:app-redesign#REQ-013`.
+    let (fx, run) = send_for_review();
+    let ids: Vec<u32> = approvals(&fx.s).unwrap().iter().map(|a| a.id).collect();
+    allow_recipe(&fx.s, &ids).unwrap();
+    fx.s.factory.factory.cancel(&run).unwrap();
+    let before = fx.writer.sent().len();
+    let next = fx.start("SHIP-2");
+    assert!(approvals(&fx.s).unwrap().iter().all(|a| a.run != next));
+    assert!(
+        fx.writer.sent().len() > before,
+        "the ticket move went at once"
+    );
+    let pr = Write::OpenPr {
+        run: next.clone(),
+        branch: "feat/src/add-y".into(),
+        base: "develop".into(),
+        title: "Add y".into(),
+        body: String::new(),
+        labels: vec![],
+        reviewers: vec!["alice".into()],
+        draft: true,
+    };
+    assert_ne!(fx.s.factory.factory.write(&next, pr), Ok(None));
+    assert!(approvals(&fx.s).unwrap().is_empty());
+}
+
+#[test]
+fn allow_recipe_refuses_two_runs_and_a_force_push_and_changes_nothing() {
+    let (fx, run) = send_for_review();
+    let other = fx.start("SHIP-2");
+    let list = approvals(&fx.s).unwrap();
+    let one_of = |r: &str| list.iter().find(|a| a.run == r).unwrap().id;
+    let before = file_of(&fx);
+    let mixed = allow_recipe(&fx.s, &[one_of(&run), one_of(&other)]).unwrap_err();
+    assert!(mixed.contains("more than one run"), "{mixed}");
+    let lease = Write::Push {
+        run: run.clone(),
+        branch: "feat/src/add-x".into(),
+        base: "develop".into(),
+        force_with_lease: true,
+    };
+    assert_eq!(fx.s.factory.factory.write(&run, lease), Ok(None));
+    let all = approvals(&fx.s).unwrap();
+    let force: Vec<u32> = all.iter().filter(|a| a.run == run).map(|a| a.id).collect();
+    let refused = allow_recipe(&fx.s, &force).unwrap_err();
+    assert!(refused.contains("force with lease"), "{refused}");
+    assert!(
+        allow_recipe(&fx.s, &[999])
+            .unwrap_err()
+            .contains("no approval 999")
+    );
+    assert!(allow_recipe(&fx.s, &[]).is_err());
+    assert_eq!(file_of(&fx), before);
+    assert_eq!(approvals(&fx.s).unwrap(), all);
+    assert!(fx.writer.sent().is_empty());
+}
+
+/// The file text, the approvals and the sent writes: a refusal changes none of them.
+fn unchanged(fx: &crate::factory::tests::Fx) -> impl Fn(&str) + '_ {
+    let path = fx.repo.path().join(shipyard_core::pickup::AUTOMATION_FILE);
+    let (text, waiting) = (
+        fs::read_to_string(&path).unwrap(),
+        fx.s.factory.factory.approvals(),
+    );
+    move |why| {
+        assert_eq!(fs::read_to_string(&path).unwrap(), text, "{why}");
+        assert_eq!(fx.s.factory.factory.approvals(), waiting, "{why}");
+        assert!(fx.writer.sent().is_empty(), "{why}");
+    }
+}
+
+fn ids_of(fx: &crate::factory::tests::Fx) -> Vec<u32> {
+    approvals(&fx.s).unwrap().iter().map(|a| a.id).collect()
+}
+
+#[test]
+fn allow_recipe_refuses_while_the_kill_switch_is_on() {
+    let (fx, _) = send_for_review();
+    let ids = ids_of(&fx);
+    fx.s.factory.factory.set_kill_switch(true);
+    let check = unchanged(&fx);
+    let e = allow_recipe(&fx.s, &ids).unwrap_err();
+    assert!(e.contains("kill switch"), "{e}");
+    check("kill switch");
+}
+
+#[test]
+fn allow_recipe_refuses_an_automation_file_that_is_not_valid() {
+    let (fx, _) = send_for_review();
+    let ids = ids_of(&fx);
+    write(
+        fx.repo.path(),
+        shipyard_core::pickup::AUTOMATION_FILE,
+        "interval: [\n",
+    );
+    let check = unchanged(&fx);
+    let e = allow_recipe(&fx.s, &ids).unwrap_err();
+    assert!(e.contains("not valid"), "{e}");
+    check("invalid file");
+}
+
+#[test]
+fn allow_recipe_refuses_a_run_of_another_project() {
+    let (fx, _) = send_for_review();
+    let ids = ids_of(&fx);
+    let check = unchanged(&fx);
+    let other = tempfile::tempdir().unwrap();
+    shipyard_git::project::init(other.path()).unwrap();
+    crate::commands::projects::open(&fx.s, other.path().to_str().unwrap()).unwrap();
+    let path = other.path().join(shipyard_core::pickup::AUTOMATION_FILE);
+    let seeded = fs::read_to_string(&path).ok();
+    let e = allow_recipe(&fx.s, &ids).unwrap_err();
+    assert!(e.contains("not in the active project"), "{e}");
+    assert_eq!(fs::read_to_string(&path).ok(), seeded);
+    check("another project");
+}
+
+#[test]
+fn allow_recipe_needs_the_right_of_each_write() {
+    use shipyard_core::rights::Cell;
+    use shipyard_core::work::{Member, Team};
+    // `bo` may change the settings and approve, but not write code: no pull request.
+    let (fx, _) = send_for_review();
+    let root = fx.repo.path();
+    git(root, &["config", "user.email", "bo@example.com"]);
+    let member = |handle: &str, role: &str, admin: bool| Member {
+        name: handle.to_uppercase(),
+        handle: handle.into(),
+        emails: vec![format!("{handle}@example.com")],
+        role: role.into(),
+        admin,
+        ..Member::default()
+    };
+    let team = Team {
+        members: vec![
+            member("bo", "developer", false),
+            member("root", "techlead", true),
+        ],
+        roles: [(
+            "developer".to_string(),
+            [
+                ("settings".to_string(), Cell::Text("write".into())),
+                ("code".to_string(), Cell::Text("read".into())),
+            ]
+            .into(),
+        )]
+        .into(),
+        ..Team::default()
+    };
+    let text = shipyard_store::work::write_team(&team, None).unwrap();
+    write(root, shipyard_store::work::TEAM_PATH, &text);
+    let pr: Vec<u32> = approvals(&fx.s)
+        .unwrap()
+        .iter()
+        .filter(|a| a.kind == "open_pr")
+        .map(|a| a.id)
+        .collect();
+    let check = unchanged(&fx);
+    let e = allow_recipe(&fx.s, &pr).unwrap_err();
+    assert!(e.contains("missing right code.write"), "{e}");
+    check("no code.write");
+}
+
+/// A recipe `one` with the permission of `transition` and `open_pr`.
+fn with_permission() -> crate::factory::tests::Fx {
+    let (fx, _) = send_for_review();
+    let pick: Vec<u32> = approvals(&fx.s)
+        .unwrap()
+        .iter()
+        .filter(|a| a.kind == "transition" || a.kind == "open_pr")
+        .map(|a| a.id)
+        .collect();
+    allow_recipe(&fx.s, &pick).unwrap();
+    fx
+}
+
+#[test]
+fn a_settings_save_that_removes_a_kind_removes_it() {
+    let fx = with_permission();
+    let mut form = file_of(&fx);
+    form.interval = 120;
+    form.recipe_writes
+        .get_mut("one")
+        .unwrap()
+        .remove(&WriteKind::OpenPr);
+    crate::commands::sync::automation_save(&fx.s, &form).unwrap();
+    let a = file_of(&fx);
+    assert_eq!(a.interval, 120);
+    let w: Vec<_> = a.recipe_writes["one"].iter().copied().collect();
+    assert_eq!(w, [WriteKind::Transition]);
+    // The last kind out takes the recipe out.
+    form.recipe_writes.clear();
+    crate::commands::sync::automation_save(&fx.s, &form).unwrap();
+    assert!(file_of(&fx).recipe_writes.is_empty());
+}
+
+#[test]
+fn a_settings_save_adds_no_kind_and_no_recipe() {
+    let fx = with_permission();
+    let kept = file_of(&fx).recipe_writes;
+    let mut form = file_of(&fx);
+    form.recipe_writes
+        .get_mut("one")
+        .unwrap()
+        .insert(WriteKind::Push);
+    form.recipe_writes
+        .insert("bug".into(), [WriteKind::Push].into());
+    crate::commands::sync::automation_save(&fx.s, &form).unwrap();
+    assert_eq!(file_of(&fx).recipe_writes, kept);
+}
+
+#[test]
+fn a_settings_save_with_the_same_permissions_changes_nothing() {
+    let fx = with_permission();
+    let before = file_of(&fx);
+    crate::commands::sync::automation_save(&fx.s, &before).unwrap();
+    assert_eq!(file_of(&fx), before);
 }
