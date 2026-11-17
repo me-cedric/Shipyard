@@ -35,11 +35,11 @@ Wave 2, Today and Ask
 
 Wave 3, Flow and one feature
 
-- [ ] T013 Flow with the five stages and the views Flow, List, Done (`src/features/work/`, `src/features/factory/runs/`). REQ-010, REQ-011.
-- [ ] T014 Feature page: stage line, Story, Brief, Design, Changes, Checks, Chat, from the run page, the change detail, the ticket detail and the pull request page. REQ-012, REQ-015.
-- [ ] T015 One approval for one intent, each effect approvable alone, the durable permission of a recipe (one command in `crates/shipyard-app/`, mocks updated). REQ-013.
-- [ ] T016 [P] One main action for each stop state. REQ-014.
-- [ ] T017 [P] New feature page and "start from a ticket". REQ-003.
+- [x] T013 Flow with the five stages and the views Flow, List, Done (`src/features/work/`, `src/features/factory/runs/`). REQ-010, REQ-011.
+- [x] T014 Feature page: stage line, Story, Brief, Design, Changes, Checks, Chat, from the run page, the change detail, the ticket detail and the pull request page. REQ-012, REQ-015.
+- [x] T015 One approval for one intent, each effect approvable alone, the durable permission of a recipe (one command in `crates/shipyard-app/`, mocks updated). REQ-013.
+- [x] T016 [P] One main action for each stop state. REQ-014.
+- [x] T017 [P] New feature page and "start from a ticket". REQ-003.
 
 Wave 4, Crew and Plan
 

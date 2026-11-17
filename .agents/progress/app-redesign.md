@@ -86,3 +86,53 @@ Open after Wave 2:
 1. Read this file, `tasks.md`, `plan.md`, REQ-010 to REQ-015 and the Flow and feature screens in `docs/designs/redesign/`.
 2. Add who works on a feature to `FlowFeature` (REQ-011), then build Flow on `features_list`.
 3. Give the Ask answer and the Today card the one-click actions of T016.
+
+## Wave 3, Flow and one feature (2026-11-17): T013 to T017 done
+
+Branch `feature/app-redesign-wave-3-949c03`, cut from the wave 2 branch, local commits only. Not pushed, no pull request.
+
+What the wave did:
+
+- T013: Flow is `src/features/flow/flow-page.tsx` on `features_list`: the views Flow (five stage columns), List (one table of features), Done (the ready features and the run history) and Health (the Quality page of today), the filter All / Needs me / Mine, the agents switch, Start run and New. A card shows the title, who works on it and its state. `FlowFeature` has `who`, `runState`, `approvals`, `questions`, `checks` and `stop`. `places.ts` holds a view of Flow as `flow/<slug>`, and `REPLACES` names the old tabs that it takes over. Work / Backlog, Work / Board, Factory / Runs and Specs / Changes redirect, and their page files are removed.
+- T014: one feature page, `src/features/flow/feature/`, at `/flow/feature/$featureId` (the ref of the first part: ticket, change, run, pull request). The stage line and the sections Story, Brief, Design, Changes, Checks, Chat. `/flow/runs/$runId` and `/code/pull-requests/$pullId` show the same page. The run page, the change detail, the ticket detail and the pull request page are its parts now.
+- T015: the approvals of one run are one question (`ApprovalsQuestion` in `src/features/home/inbox/inbox.tsx`) on the feature page and on Today, counted once. "Each step" has Approve and Reject for each effect. "Not yet" sends nothing. "Do not ask again for the <recipe> recipe" calls `approvals_allow_recipe(ids)`: the recipe and the kinds come from the waiting approvals, and the permission is one list of write kinds for each workflow in `recipe_writes` of the automation file. Settings / Project lists the permissions, and Remove goes with Save.
+- T016: `stop_of` in `crates/shipyard-core/src/feature.rs` gives the one action of a stopped run (`stop` on `RunView` and `FlowFeature`): Reply, Unblock, Add budget, Try again, Resume, Close as done. The card of the feature page (`stop-card.tsx`), the row of Today and the answer of the Ask bar use it.
+- T017: `/flow/new` (`src/features/flow/new-feature.tsx`): what to build, the kind, three ways, or start from a ticket.
+
+Decisions of this wave (change them in one place):
+
+- A spec change with only its proposal, and no run and no pull request, is an idea. A change with a file under `specs/` is in Spec (`feature()` in `feature.rs`, mirrored in `mock-features.ts`).
+- New feature: each way first makes a spec change with the text as its title. A ticket comes from `change:<id>`, never from an invented ref. "Idea for later" makes the change only.
+- A recipe permission covers only a write that comes later. A write that already waits keeps its question, also after a reload (`release_allowed` reads the project switches only). A push with force with lease is never in a permission. A save of the settings can remove a kind and can never add one. One mutex guards each writer of the automation file.
+- The day budget pause gives no action: the run goes on the next day.
+- Close as done on a run whose pull request merged or closed on the code host gives the run that event: merged ends as Done, closed ends as Cancelled.
+- The move of a card is the menu item "Move to <status>". The drag and Shift+Arrow of the old board are gone.
+- `openRef` of a change or a ticket from the palette still opens the inspector. Its "Open page" goes to the feature page, section Brief.
+
+Audit against the map of `plan.md` (rows "Work / Backlog, Board; Factory / Runs board and History; Specs / Changes" and "Run page, change detail, ticket detail, pull request page, unit chat"): a reviewer in a fresh context compared each old page at the wave 2 commit with the new pages. Each control, filter, right gate, error line, empty state and deep link has its new place. Gone on purpose: the drag of the board, the status group headings of the backlog (the Status filter gives each count), the stepper and the task progress on a change row (they are on Brief), the cost and the step on a run card (they are on the feature page).
+
+Reviews in a fresh context (Opus): the T015 backend (2 major, 3 minor), the interface (1 major, 9 minor), the whole wave with the audit (3 major, 4 minor). All fixed. The majors: the permission was stored by switch and not by kind, the settings form erased the permissions, a grant released the waiting writes of other runs, Close as done called a command that refused the run, Flow hid a load error, "Open page" of a change went nowhere.
+
+Checks, run by the lead on the final tree:
+
+- Passed: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --no-fail-fast` (2037 tests), `pnpm typecheck`, `pnpm lint`, `pnpm test` (260 files, 2175 tests), `pnpm ipc:check`, `CI=1 npx playwright test` (130), `pnpm test:personas` (7), `openspec validate update-app-redesign --strict`.
+- The end-to-end specs and the persona walks moved to the new pages: each test and each check stays, with its new path. One walk found a gap: the Checks section now names the CI state of the pull request.
+
+Open after Wave 3:
+
+- No command exists for these controls of the design, so they are left out: Pause on the agent card, Limit (a budget for one run) and Add a document on New feature, Recipe for "Build now".
+- The mirror keeps no author of a pull request: `who` of a feature with only a pull request is empty.
+- The label "Close as done" also shows for a pull request that was closed with no merge, where the run ends as Cancelled.
+- A teammate with an older build reads an automation file that has `recipe_writes` as not valid. The guide says so.
+- The feature page shows the title two times on Changes (the page and the pull request header), and the approvals question has no title line as the picture has ("Send it for review?").
+- Other pages still link to `/specs/changes`, `/work/backlog` and `/factory/runs` (the Get started list, the next step of Specs, Capabilities). They redirect.
+- Dead i18n keys of the removed pages stay (`sync.backlog.adopt` and others), and `src/ui/molecules/run-card` can have no user now: T030 removes them.
+- The guide has the new text in `factory.md` and short notes in the other pages (English and French; German and Spanish have `start.md` only). T032 rewrites the guide by place.
+- The German and Spanish texts of this wave are translations by the agent (`q:Q-172`).
+- The controls inside `ApprovalBar`, `QuestionCard` and the pull request parts are under 44 px until the atoms get the new size (T031).
+
+## How Wave 4 starts (T018 to T020 and T035, Crew and Plan)
+
+1. Read this file, `tasks.md`, `plan.md`, REQ-016 to REQ-019, REQ-030 and REQ-033, and the Crew and Plan screens in `docs/designs/redesign/`.
+2. Crew / Recipes is the place for the permissions of a recipe: show them with each step field (they are in Settings / Project today).
+3. Keep `inventory.test.tsx` green. Update the end-to-end specs and the persona walks with each page that moves.
