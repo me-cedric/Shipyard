@@ -3,6 +3,7 @@ import { assistantDe } from "./assistant";
 import { forgeDe } from "./code";
 import { costingDe } from "./costing";
 import { creatorDe } from "./creator";
+import { crewDe } from "./crew";
 import { designDe } from "./design";
 import { doctorDe } from "./doctor";
 import { editingDe } from "./editing";
@@ -16,6 +17,7 @@ import { knowledgeDe } from "./knowledge";
 import { onboardingDe } from "./onboarding";
 import { panelsDe } from "./panels";
 import { personalDe } from "./personal";
+import { planDe } from "./plan";
 import { reportsDe } from "./reports";
 import { reviewDe } from "./review";
 import { rightsDe } from "./rights";
@@ -954,6 +956,8 @@ export const de: Messages = {
 	design: designDe,
 	factory: factoryDe,
 	flow: flowDe,
+	crewPlace: crewDe,
+	planPlace: planDe,
 	glossary: glossaryDe,
 	settings: settingsDe,
 	specs: specsDe,

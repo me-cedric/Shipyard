@@ -22,19 +22,14 @@ import {
 /**
  * The places of the main menu in menu order (adr:0023 points 1 and 3). Each section is one view
  * `space/tab` of before the change, and the tab id is the slug of the section. The views of Flow
- * are `flow/<slug>`: `REPLACES` names the old views that each one takes over.
+ * are `flow/<slug>`, and the sections of Plan and Crew are `plan/<slug>` and `crew/<slug>`:
+ * `REPLACES` names the old views that each one takes over.
  */
 export const PLACES = {
 	today: ["home/today", "home/news", "home/activity", "home/projects"],
 	flow: ["flow/flow", "flow/list", "flow/done", "flow/health", "code/impacts"],
-	plan: ["work/plan", "work/estimates", "work/time"],
-	crew: [
-		"work/team",
-		"factory/workflows",
-		"factory/agents-map",
-		"factory/sessions",
-		"factory/usage",
-	],
+	plan: ["plan/timeline", "plan/people", "plan/estimates", "plan/time"],
+	crew: ["crew/crew", "crew/recipes", "crew/sessions", "crew/spend", "crew/rights"],
 	library: [
 		"design/diagrams",
 		"design/architecture",
@@ -72,6 +67,16 @@ export const REPLACES: Record<string, readonly string[]> = {
 	"flow/list": ["work/backlog", "specs/changes"],
 	"flow/done": ["factory/runs"],
 	"flow/health": ["code/quality"],
+	// Wave 4 (`spec:app-redesign#REQ-016`, `spec:app-redesign#REQ-018`). The live work rows replace the agents map.
+	"plan/timeline": ["work/plan"],
+	"plan/people": ["work/plan"],
+	"plan/estimates": ["work/estimates"],
+	"plan/time": ["work/time"],
+	"crew/crew": ["work/team", "factory/agents-map"],
+	"crew/recipes": ["factory/workflows"],
+	"crew/sessions": ["factory/sessions"],
+	"crew/spend": ["factory/usage"],
+	"crew/rights": ["work/team"],
 };
 
 /** The old views that a section stands for: the ones that it replaces, else itself. */
@@ -108,17 +113,16 @@ export const sections = (place: PlaceId) =>
 export const sectionView = (place: PlaceId, slug: string) =>
 	sections(place).find(([, tab]) => tab === slug);
 
-/** The slug of the view of Flow that takes over an old view. */
-const flowSlug = (view: string) =>
+/** The section `[place, slug]` that takes over an old view: the first one that names it. */
+const taker = (view: string) =>
 	Object.entries(REPLACES)
 		.find(([, old]) => old.includes(view))?.[0]
-		.slice("flow/".length);
+		.split("/") as [PlaceId, string] | undefined;
 
 /** The place that holds an old view. */
 export const placeOfView = (space: SpaceId, tab: string) =>
-	flowSlug(`${space}/${tab}`)
-		? "flow"
-		: PLACE_IDS.find((p) => (PLACES[p] as readonly string[]).includes(`${space}/${tab}`));
+	taker(`${space}/${tab}`)?.[0] ??
+	PLACE_IDS.find((p) => (PLACES[p] as readonly string[]).includes(`${space}/${tab}`));
 
 /** A section is hidden exactly when each old tab that it replaces is hidden (`hiddenTab`). */
 export const hiddenSection = (level: LevelOf, space: SectionSpace, tab: string) =>
@@ -152,28 +156,26 @@ export function viewPath(path: string) {
 
 const TODAY_TABS = new Set(["inbox", "my-work"]);
 
-/** The addresses of wave 1 under Flow: the old tab names, each taken over by a view of Flow. */
-const FLOW_OLD: Record<string, string> = {
-	runs: "flow",
-	board: "flow",
-	backlog: "list",
-	changes: "list",
-	quality: "health",
+/** The addresses of wave 1 under Flow, Plan and Crew: the old tab names, each taken over by a section. */
+export const OLD_SLUGS: Partial<Record<PlaceId, Record<string, string>>> = {
+	flow: { runs: "flow", board: "flow", backlog: "list", changes: "list", quality: "health" },
+	plan: { plan: "timeline" },
+	crew: { team: "crew", workflows: "recipes", "agents-map": "crew", usage: "spend" },
 };
 
 /** The new path of a path of before adr:0023, or undefined when it names no old page or no tab. */
 export function placePath(path: string): string | undefined {
 	const [, space, tab, ...rest] = path.replace(/\/$/, "").split("/");
 	// Settings / Team moved to Work / Team, and Inbox and My work became Today.
-	if (space === "settings" && tab === "team") return "/crew/team";
+	if (space === "settings" && tab === "team") return "/crew/crew";
 	if (space === "home" && tab && TODAY_TABS.has(tab)) return "/today/today";
-	if (space === "flow" && tab && rest.length === 0 && tab in FLOW_OLD)
-		return `/flow/${FLOW_OLD[tab]}`;
+	const old = OLD_SLUGS[space as PlaceId]?.[tab ?? ""];
+	if (old && rest.length === 0) return `/${space}/${old}`;
 	if (!space || !(space in SPACES)) return undefined;
 	// A bare space has no tab: the route of the space picks the first tab of the role (`OldSpaceHome`).
 	if (!tab) return undefined;
 	const place = placeOfView(space as SpaceId, tab);
 	// A run address keeps its tab (`/flow/runs/$runId`): only a bare tab names a view of Flow.
-	const slug = rest.length === 0 ? flowSlug(`${space}/${tab}`) : undefined;
+	const slug = rest.length === 0 ? taker(`${space}/${tab}`)?.[1] : undefined;
 	return place ? [`/${place}`, slug ?? tab, ...rest].join("/") : undefined;
 }

@@ -20,6 +20,7 @@ import {
 	firstSection,
 	hiddenSection,
 	hiddenTab,
+	OLD_SLUGS,
 	PLACES,
 	type PlaceId,
 	type PlacePath,
@@ -141,6 +142,9 @@ const flowSearch = (s: Record<string, unknown>): { q?: string; filter?: "needs" 
 	return rest;
 };
 
+const crewSearch = (s: Record<string, unknown>): { view?: "live" } =>
+	s.view === "live" ? { view: "live" } : {};
+
 const kindSearch = (s: Record<string, unknown>): { kind?: "idea" } =>
 	s.kind === "idea" ? { kind: "idea" } : {};
 
@@ -176,6 +180,9 @@ const toPlace = ({ location }: { location: ParsedLocation }) => {
 		to = "/flow/done";
 		search = search.replace(/([?&])view=[^&]*&?/, "$1").replace(/[?&]$/, "");
 	}
+	// The agents map of before is the live view of Crew.
+	if (location.pathname.replace(/\/$/, "").endsWith("/agents-map"))
+		search = search ? `${search}&view=live` : "?view=live";
 	const hash = location.hash ? `#${location.hash}` : "";
 	throw redirect({ href: `${to}${search}${hash}`, replace: true });
 };
@@ -204,7 +211,7 @@ function placeRoute<P extends PlaceId>(place: P) {
 	});
 	const views: readonly (typeof PLACES)[P][number][] = PLACES[place];
 	const sections = views.map((view) => {
-		const [space, tab] = view.split("/") as [SpaceId, TabOf<typeof view>];
+		const [space, tab] = view.split("/") as [SectionSpace, TabOf<typeof view>];
 		return createRoute({
 			getParentRoute: () => route,
 			path: tab,
@@ -222,6 +229,8 @@ function placeRoute<P extends PlaceId>(place: P) {
 			...(view === "flow/flow" || view === "flow/list" || view === "flow/done"
 				? { validateSearch: flowSearch }
 				: {}),
+			// Crew shows the cards or the live work rows (`spec:app-redesign#REQ-017`).
+			...(view === "crew/crew" ? { validateSearch: crewSearch } : {}),
 			// The bar of Pull requests (ux-declutter REQ-042): search and filter, kept in the address.
 			...(view === "code/pull-requests" ? { validateSearch: pullsSearch } : {}),
 		});
@@ -292,7 +301,16 @@ function placeRoute<P extends PlaceId>(place: P) {
 					),
 				]
 			: [];
-	return route.addChildren([index, ...sections, ...run, ...code]);
+	// The tabs of Plan and Crew before wave 4 redirect to their section.
+	const old =
+		place === "plan" || place === "crew"
+			? Object.keys(OLD_SLUGS[place] ?? {})
+					.filter((tab) => !views.some((v) => v === `${place}/${tab}`))
+					.map((tab) =>
+						createRoute({ getParentRoute: () => route, path: tab, beforeLoad: toPlace }),
+					)
+			: [];
+	return route.addChildren([index, ...sections, ...run, ...code, ...old]);
 }
 
 /** A bare old space opens the place of the first tab that the role sees, so `/factory` shows Runs. */

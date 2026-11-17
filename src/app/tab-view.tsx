@@ -1,5 +1,5 @@
 import { type ComponentType, type LazyExoticComponent, lazy, Suspense } from "react";
-import { type SpaceId, tabIcon, tabLabel } from "@/features/shell";
+import { type SectionSpace, tabIcon, tabLabel } from "@/features/shell";
 import { useI18n } from "@/lib/i18n";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
@@ -24,16 +24,16 @@ const LOADERS: Partial<Record<string, Load>> = {
 	"settings/agents-rules": () =>
 		import("@/features/settings/agents-rules").then((m) => m.AgentsRules),
 	"settings/extensions": () => import("@/features/settings/extensions").then((m) => m.Extensions),
-	"work/plan": () => import("@/features/work/plan").then((m) => m.Plan),
-	"work/estimates": () => import("@/features/work/estimates").then((m) => m.Estimates),
-	"work/team": () => import("@/features/work/team").then((m) => m.Team),
-	"work/time": () => import("@/features/work/time").then((m) => m.Time),
-	"factory/workflows": () =>
-		import("@/features/factory/workflows/workflows").then((m) => m.Workflows),
-	"factory/agents-map": () =>
-		import("@/features/factory/agents-map/agents-map").then((m) => m.AgentsMap),
-	"factory/sessions": () => import("@/features/factory/sessions/sessions").then((m) => m.Sessions),
-	"factory/usage": () => import("@/features/factory/usage/usage").then((m) => m.Usage),
+	// Wave 4: the sections of Plan and Crew (`spec:app-redesign#REQ-016`, `spec:app-redesign#REQ-018`).
+	"plan/timeline": () => import("@/features/plan/timeline").then((m) => m.Timeline),
+	"plan/people": () => import("@/features/plan/people").then((m) => m.People),
+	"plan/estimates": () => import("@/features/plan/estimates").then((m) => m.PlanEstimates),
+	"plan/time": () => import("@/features/plan/time").then((m) => m.PlanTime),
+	"crew/crew": () => import("@/features/crew/crew-page").then((m) => m.CrewPage),
+	"crew/recipes": () => import("@/features/crew/recipes").then((m) => m.Recipes),
+	"crew/sessions": () => import("@/features/crew/sessions").then((m) => m.CrewSessions),
+	"crew/spend": () => import("@/features/crew/spend").then((m) => m.Spend),
+	"crew/rights": () => import("@/features/crew/rights").then((m) => m.Rights),
 	"design/diagrams": () => import("@/features/design/diagrams").then((m) => m.Diagrams),
 	"design/architecture": () => import("@/features/design/architecture").then((m) => m.Architecture),
 	"design/decisions": () => import("@/features/design/decisions").then((m) => m.Decisions),
@@ -78,13 +78,13 @@ function lazyView(key: string, load: Load) {
 }
 
 /** Loads the code of a tab. The router calls it before it shows the tab and when a pointer rests on a link to the tab. */
-export async function preloadTab(space: SpaceId, tab: string) {
+export async function preloadTab(space: SectionSpace, tab: string) {
 	const key = `${space}/${tab}`;
 	const View = await LOADERS[key]?.();
 	if (View) loaded.set(key, View);
 }
 
-export function TabView({ space, tab }: { space: SpaceId; tab: string }) {
+export function TabView({ space, tab }: { space: SectionSpace; tab: string }) {
 	const { t } = useI18n();
 	const key = `${space}/${tab}`;
 	// A preloaded view renders at once; the lazy one covers a render before the preload ends.

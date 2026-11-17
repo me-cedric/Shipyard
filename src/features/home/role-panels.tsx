@@ -108,7 +108,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.roadmap}
-				to="/plan/plan"
+				to="/plan/timeline"
 				items={x.map((i) => line(i.key, i.title))}
 			/>
 		);
@@ -119,7 +119,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.plan}
-				to="/plan/plan"
+				to="/plan/timeline"
 				items={x.map((i) => line(i.key, i.title))}
 			/>
 		);
@@ -130,7 +130,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		return (
 			<Card
 				title={t.rights.panel.capacity}
-				to="/plan/plan"
+				to="/plan/timeline"
 				items={x.map((m) => `${m.name} ${m.capacity ?? 0}`)}
 			/>
 		);
@@ -147,7 +147,7 @@ const PANELS: Record<string, () => ReactNode> = {
 		if (!can("costs.view") || month === 0) return null;
 		const money = new Intl.NumberFormat(lang, { style: "currency", currency: "USD" }).format(month);
 		return (
-			<Card title={t.rights.panel.spend} to="/crew/usage" items={[]}>
+			<Card title={t.rights.panel.spend} to="/crew/spend" items={[]}>
 				{<p className="px-3 py-2 font-mono text-ui">{money}</p>}
 			</Card>
 		);

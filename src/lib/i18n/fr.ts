@@ -2,6 +2,7 @@ import { assistantFr } from "./assistant";
 import { forgeFr } from "./code";
 import { costingFr } from "./costing";
 import { creatorFr } from "./creator";
+import { crewFr } from "./crew";
 import { designFr } from "./design";
 import { doctorFr } from "./doctor";
 import { editingFr } from "./editing";
@@ -16,6 +17,7 @@ import { knowledgeFr } from "./knowledge";
 import { onboardingFr } from "./onboarding";
 import { panelsFr } from "./panels";
 import { personalFr } from "./personal";
+import { planFr } from "./plan";
 import { reportsFr } from "./reports";
 import { reviewFr } from "./review";
 import { rightsFr } from "./rights";
@@ -945,6 +947,8 @@ export const fr: Messages = {
 	design: designFr,
 	factory: factoryFr,
 	flow: flowFr,
+	crewPlace: crewFr,
+	planPlace: planFr,
 	glossary: glossaryFr,
 	settings: settingsFr,
 	specs: specsFr,

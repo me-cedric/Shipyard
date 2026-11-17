@@ -19,7 +19,7 @@ vi.mock("@/ui/organisms/excalidraw-board", () => ({
 
 // A view whose chunk fails to load until the flag turns off.
 const chunk = vi.hoisted(() => ({ fail: false }));
-vi.mock("@/features/work/estimates", async (orig) => {
+vi.mock("@/features/plan/estimates", async (orig) => {
 	if (chunk.fail) throw new Error("Failed to fetch dynamically imported module: /assets/x.js");
 	return orig();
 });

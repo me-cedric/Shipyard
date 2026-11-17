@@ -3,6 +3,7 @@ import { assistantEs } from "./assistant";
 import { forgeEs } from "./code";
 import { costingEs } from "./costing";
 import { creatorEs } from "./creator";
+import { crewEs } from "./crew";
 import { designEs } from "./design";
 import { doctorEs } from "./doctor";
 import { editingEs } from "./editing";
@@ -16,6 +17,7 @@ import { knowledgeEs } from "./knowledge";
 import { onboardingEs } from "./onboarding";
 import { panelsEs } from "./panels";
 import { personalEs } from "./personal";
+import { planEs } from "./plan";
 import { reportsEs } from "./reports";
 import { reviewEs } from "./review";
 import { rightsEs } from "./rights";
@@ -938,6 +940,8 @@ export const es: Messages = {
 	design: designEs,
 	factory: factoryEs,
 	flow: flowEs,
+	crewPlace: crewEs,
+	planPlace: planEs,
 	glossary: glossaryEs,
 	settings: settingsEs,
 	specs: specsEs,

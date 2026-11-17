@@ -59,11 +59,22 @@ export const SPACE_IDS = Object.keys(SPACES) as SpaceId[];
 // shortcut: one cast. A template over two unions makes invalid pairs, so the callers pass a valid pair.
 export const tabPath = (space: SpaceId, tab: TabId) => `/${space}/${tab}` as TabPath;
 
-/** A space of before adr:0023, or `flow`: the views of Flow are sections of their own. */
-export type SectionSpace = SpaceId | "flow";
+/** A space of before adr:0023, or a place with sections of its own: Flow, Plan and Crew. */
+export type SectionSpace = SpaceId | "flow" | "plan" | "crew";
+
+const OWN_VIEWS = (t: Messages) => ({
+	flow: t.flow.views,
+	plan: t.planPlace.views,
+	crew: t.crewPlace.views,
+});
 
 export const tabLabel = (t: Messages, space: SectionSpace, tab: string): string =>
-	((space === "flow" ? t.flow.views : t.tabs[space]) as Record<string, string>)[tab] ?? "";
+	(
+		(space in OWN_VIEWS(t) ? OWN_VIEWS(t)[space as "flow"] : t.tabs[space as SpaceId]) as Record<
+			string,
+			string
+		>
+	)[tab] ?? "";
 
 type TabIcon = ComponentType<{ size?: number }>;
 
@@ -73,6 +84,15 @@ const TAB_ICON: Record<string, TabIcon> = {
 	"flow/list": QueueListIcon,
 	"flow/done": CheckIcon,
 	"flow/health": ShieldCheckIcon,
+	"plan/timeline": CalendarDaysIcon,
+	"plan/people": UsersIcon,
+	"plan/estimates": CurrencyIcon,
+	"plan/time": ClockIcon,
+	"crew/crew": UsersIcon,
+	"crew/recipes": ArrowsRightLeftIcon,
+	"crew/sessions": CommandLineIcon,
+	"crew/spend": ChartBarIcon,
+	"crew/rights": LockClosedIcon,
 	"home/today": ClockIcon,
 	"home/projects": FolderOpenIcon,
 	"home/news": BellIcon,

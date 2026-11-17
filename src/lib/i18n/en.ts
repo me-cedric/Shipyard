@@ -2,6 +2,7 @@ import { assistantEn } from "./assistant";
 import { forgeEn } from "./code";
 import { costingEn } from "./costing";
 import { creatorEn } from "./creator";
+import { crewEn } from "./crew";
 import { designEn } from "./design";
 import { doctorEn } from "./doctor";
 import { editingEn } from "./editing";
@@ -15,6 +16,7 @@ import { knowledgeEn } from "./knowledge";
 import { onboardingEn } from "./onboarding";
 import { panelsEn } from "./panels";
 import { personalEn } from "./personal";
+import { planEn } from "./plan";
 import { reportsEn } from "./reports";
 import { reviewEn } from "./review";
 import { rightsEn } from "./rights";
@@ -921,6 +923,8 @@ export const en = {
 	design: designEn,
 	factory: factoryEn,
 	flow: flowEn,
+	crewPlace: crewEn,
+	planPlace: planEn,
 	glossary: glossaryEn,
 	settings: settingsEn,
 	specs: specsEn,
