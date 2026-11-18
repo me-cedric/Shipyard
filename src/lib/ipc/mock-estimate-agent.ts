@@ -48,14 +48,15 @@ export function estimateStart(
 ): EstimateProposal[] | Promise<EstimateProposal[]> {
 	if (!click) throw "this change needs the click of a person";
 	if (off.readOnly) throw "the profile of this project is read only";
-	if (taskIds.length === 0) throw "no task is selected";
 	if (w.sealed !== null) throw "the sheet is sealed: an agent cannot estimate it";
 	const sheet = w.sheets[slug];
 	if (!sheet) throw `no sheet ${slug}`;
 	if (sheet.frozen) throw "the sheet is frozen: unfreeze it first";
+	const tasks = sheet.features.flatMap((f) => f.tasks);
+	// Only the tasks that the sheet holds count.
+	if (!taskIds.some((id) => tasks.some((t) => t.id === id))) throw "no task is selected";
 	if (off.stopped) throw "the agents are stopped: switch them on first";
 	if (a.running[slug]) throw "an estimate of this sheet is running";
-	const tasks = sheet.features.flatMap((f) => f.tasks);
 	const proposals = taskIds.flatMap((id): EstimateProposal[] => {
 		const task = tasks.find((t) => t.id === id);
 		if (!task) return [];

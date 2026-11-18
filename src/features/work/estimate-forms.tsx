@@ -20,6 +20,10 @@ import { Textarea } from "@/ui/atoms/textarea";
 import { TrashIcon } from "@/ui/icons";
 import { useGuard } from "./guard";
 
+/** Each control inside is 44 px high or more (`spec:app-redesign#REQ-026`). A checkbox keeps its size. */
+export const CONTROLS =
+	"[&_button:not([role=checkbox])]:min-h-control [&_button:not([role=checkbox])]:min-w-(--control-h) [&_input:not([aria-hidden]):not([type=checkbox])]:min-h-control";
+
 const NEW = "@@new";
 const UNSET = "@@unset";
 const MINUTES_PER_DAY = 480;
@@ -111,7 +115,7 @@ export function TaskForm({ slug, taskId }: { slug: string; taskId: string | null
 
 	return (
 		<form
-			className="flex flex-col gap-2"
+			className={`flex flex-col gap-2 ${CONTROLS}`}
 			onSubmit={(ev) => {
 				ev.preventDefault();
 				void save();
@@ -320,7 +324,7 @@ export function SheetForm({
 	const target = slug ?? (id || slugify(name));
 	return (
 		<form
-			className="flex flex-col gap-2"
+			className={`flex flex-col gap-2 ${CONTROLS}`}
 			onSubmit={async (ev) => {
 				ev.preventDefault();
 				const sheet: Sheet = {

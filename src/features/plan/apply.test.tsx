@@ -19,7 +19,7 @@ describe("the apply preview and apply", () => {
 		await withTracker();
 		mountApp("/plan/timeline");
 		const dialog = await openApply(user);
-		expect(await dialog.findByRole("heading", { name: "Create (8)" })).toBeInTheDocument();
+		expect(await dialog.findByRole("heading", { name: "New (8)" })).toBeInTheDocument();
 		// 2 features (epics) and 6 tasks (stories).
 		expect(dialog.getAllByText("Epic")).toHaveLength(2);
 		expect(dialog.getAllByText("Story")).toHaveLength(6);
@@ -41,7 +41,7 @@ describe("the apply preview and apply", () => {
 		await user.keyboard("{Escape}");
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 		dialog = await openApply(user);
-		expect(await dialog.findByRole("heading", { name: "Unchanged (8)" })).toBeInTheDocument();
+		expect(await dialog.findByRole("heading", { name: "Stays the same (8)" })).toBeInTheDocument();
 		expect(dialog.getByRole("button", { name: "Apply" })).toBeDisabled();
 		expect(written()).toHaveLength(8);
 	});
@@ -82,9 +82,9 @@ describe("the apply preview and apply", () => {
 		);
 		dialog = await openApply(user);
 		// The task and the test task, which is a share of the build effort.
-		expect(await dialog.findByRole("heading", { name: "Update (2)" })).toBeInTheDocument();
+		expect(await dialog.findByRole("heading", { name: "Changed (2)" })).toBeInTheDocument();
 		expect(dialog.getAllByText("Estimate")).toHaveLength(2);
-		expect(dialog.getByRole("heading", { name: "Unchanged (6)" })).toBeInTheDocument();
+		expect(dialog.getByRole("heading", { name: "Stays the same (6)" })).toBeInTheDocument();
 	});
 });
 
@@ -95,7 +95,7 @@ describe("the preview before the plan goes to the issue tracker", () => {
 		await withTracker();
 		mountApp("/plan/timeline");
 		let dialog = await openApply(user);
-		await dialog.findByRole("heading", { name: "Create (8)" });
+		await dialog.findByRole("heading", { name: "New (8)" });
 		// The last row stays out of the first send: the next preview creates it.
 		await user.click(dialog.getAllByRole("checkbox")[7] as HTMLElement);
 		await user.click(dialog.getByRole("button", { name: "Apply" }));
@@ -113,9 +113,9 @@ describe("the preview before the plan goes to the issue tracker", () => {
 			}),
 		);
 		dialog = await openApply(user);
-		expect(await dialog.findByRole("heading", { name: "Create (1)" })).toBeInTheDocument();
-		expect(dialog.getByRole("heading", { name: /^Update \(\d\)$/ })).toBeInTheDocument();
-		expect(dialog.getByRole("heading", { name: /^Unchanged \(\d\)$/ })).toBeInTheDocument();
+		expect(await dialog.findByRole("heading", { name: "New (1)" })).toBeInTheDocument();
+		expect(dialog.getByRole("heading", { name: /^Changed \(\d\)$/ })).toBeInTheDocument();
+		expect(dialog.getByRole("heading", { name: /^Stays the same \(\d\)$/ })).toBeInTheDocument();
 		expect(written()).toHaveLength(7);
 	});
 });
@@ -126,7 +126,7 @@ describe("the review of each row before the write", () => {
 		await withTracker();
 		mountApp("/plan/timeline");
 		const dialog = await openApply(user);
-		await dialog.findByRole("heading", { name: "Create (8)" });
+		await dialog.findByRole("heading", { name: "New (8)" });
 		const boxes = dialog.getAllByRole("checkbox");
 		expect(boxes).toHaveLength(8);
 		await user.click(boxes[7] as HTMLElement);

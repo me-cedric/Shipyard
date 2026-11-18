@@ -2233,7 +2233,11 @@ const handlers: Handlers = {
 	runPlanReject: (run, note) => fx.runPlanReject(state.factory, run, note),
 	killSwitchGet: () => fx.killSwitchGet(state.factory),
 	runLogDegraded: () => fx.runLogDegraded(),
-	killSwitchSet: (on) => fx.killSwitchSet(state.factory, on),
+	killSwitchSet: (on) => {
+		// "Stop all agents" stops a running estimate, as `factory::set_kill_switch` does.
+		if (on) for (const stop of Object.values(estimateAgent().running)) stop();
+		return fx.killSwitchSet(state.factory, on);
+	},
 	workflowsList: () => fx.workflowsList(need(state.factory)),
 	workflowGet: (id) => fx.workflowGet(need(state.factory), id),
 	workflowCheck: (id, text) => fx.workflowCheck(need(state.factory), id, text),

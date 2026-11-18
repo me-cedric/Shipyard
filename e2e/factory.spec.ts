@@ -6,7 +6,7 @@ const tabs = (page: Page) => page.getByRole("navigation", { name: "Tabs" });
 const sidebar = (page: Page) => page.getByRole("navigation", { name: "Sidebar" });
 const lane = (page: Page, name: string) => page.getByRole("region", { name, exact: true });
 
-/** Opens the mock project (it owns the 14 factory runs), then Factory on the given tab. */
+/** Opens the mock project (it owns the 14 factory runs), then the given section of Flow or Crew. */
 async function openFactory(page: Page, tab: string) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
@@ -16,7 +16,7 @@ async function openFactory(page: Page, tab: string) {
 	await sidebar(page)
 		.getByRole("link", { name: placeOf(tab) })
 		.click();
-	await tabs(page).getByRole("link", { name: tab }).click();
+	await tabs(page).getByRole("link", { name: tab, exact: true }).click();
 }
 
 test("shows five stage columns with counts, opens a run and stops it", async ({ page }) => {
@@ -133,7 +133,8 @@ test("the global kill switch cancels the runs and releases", async ({ page }) =>
 });
 
 test("shows a check error with its line for a broken workflow", async ({ page }) => {
-	await openFactory(page, "Workflows");
+	await openFactory(page, "Recipes");
+	await expect(page).toHaveURL(/\/crew\/recipes$/);
 	await page.getByRole("button", { name: /^Bug/ }).click();
 	await page.getByRole("tab", { name: "Text" }).click();
 	const editor = page.getByRole("textbox", { name: "bug" });
@@ -147,7 +148,7 @@ test("shows a check error with its line for a broken workflow", async ({ page })
 test("makes a workflow from a preset, changes an effort in the form and saves it", async ({
 	page,
 }) => {
-	await openFactory(page, "Workflows");
+	await openFactory(page, "Recipes");
 	await page.getByRole("button", { name: "New", exact: true }).click();
 	const dialog = page.getByRole("dialog");
 	await dialog.getByRole("combobox", { name: "Preset" }).click();
@@ -171,7 +172,8 @@ test("lists every AI session on the computer and stops a running one", async ({ 
 });
 
 test("shows the spend of the computer as a chart and keeps a monthly budget", async ({ page }) => {
-	await openFactory(page, "Usage");
+	await openFactory(page, "Spend");
+	await expect(page).toHaveURL(/\/crew\/spend$/);
 	await expect(page.getByRole("img", { name: "Spend by day" })).toBeVisible();
 	await page.getByRole("spinbutton", { name: "Monthly budget (USD)" }).fill("1000");
 	await page.getByRole("button", { name: "Save" }).click();

@@ -121,7 +121,17 @@ describe("Plan / Timeline and People", () => {
 			await screen.findByRole("heading", { name: /^Ada Lovelace \(\d+\)$/ }),
 		).toBeInTheDocument();
 		expect(screen.getAllByText(/is over capacity on \d+ days/)).toHaveLength(over.length);
-		expect(screen.getAllByText(/^[\d.]+ of [\d.]+ days$/)).toHaveLength(plan.load.members.length);
+		// The load against the capacity: one total for each person, and one for each of their weeks.
+		const weeks = plan.load.members.flatMap((m) => [
+			...new Set(m.days.map((d) => `${m.handle} ${weekStart(d.day)}`)),
+		]);
+		expect(screen.getAllByText(/^[\d.]+ of [\d.]+ days$/)).toHaveLength(
+			plan.load.members.length + weeks.length,
+		);
+		const ada = screen.getByRole("heading", { name: /^Ada Lovelace/ }).closest("li") as HTMLElement;
+		expect(within(ada).getByText("Week of 11/2/2026").closest("li")).toHaveTextContent(
+			"10 of 5 days",
+		);
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
@@ -240,26 +250,53 @@ describe("Plan / Timeline and People", () => {
 		expect(cards).toHaveLength(1);
 		const card = within(cards[0] as HTMLElement);
 		expect(card.getByRole("heading", { name: "3 people have too much work" })).toBeInTheDocument();
+		// The heading order is valid: a level-two heading comes before the level-three heading of the card.
+		const levels = screen.getAllByRole("heading").map((h) => Number(h.tagName.slice(1)));
+		expect(levels.slice(0, 3)).toEqual([1, 2, 3]);
 		expect(card.getAllByRole("button", { name: /^Apply: / })).toHaveLength(3);
 		expect(card.getByRole("button", { name: "Rebalance" })).toBeInTheDocument();
+		// Grace Hopper has no room on these days: the task does not go to her, it starts later.
 		await user.click(
-			card.getByRole("button", {
-				name: "Apply: Export endpoint from Ada Lovelace to Grace Hopper",
-			}),
+			card.getByRole("button", { name: "Apply: Export endpoint starts 11/13/2026" }),
 		);
 		await waitFor(() =>
-			expect(mockState().work.decisions.tasks["est:mvp-1#export-api"]).toEqual({ member: "grace" }),
+			expect(mockState().work.decisions.tasks["est:mvp-1#export-api"]).toEqual({
+				start: "2026-11-13",
+			}),
 		);
 		// The other decisions stay.
 		expect(mockState().work.decisions.tasks["est:mvp-1#auth-web"]).toEqual({
 			member: "grace",
 			start: "2026-11-09",
 		});
-		await waitFor(() => expect(bar("Export endpoint")).toHaveAccessibleName(/Grace Hopper/));
+		await waitFor(() => expect(bar("Export endpoint")).toHaveAccessibleName(/2026-11-13 to /));
 		// Show opens the people.
 		await user.click(screen.getByRole("link", { name: "Show" }));
 		await waitFor(() => expect(router.state.location.pathname).toBe("/plan/people"));
 		expect(await screen.findAllByRole("button", { name: /^Apply: / })).not.toHaveLength(0);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+});
+
+describe("the sheet of Plan", () => {
+	it("keeps the chosen sheet from Timeline to People, in the search key sheet", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const sheets = (await unwrap(commands.estimateList())).filter((s) => s.state === "ready");
+		const other = sheets[1];
+		if (!other) throw new Error("the mock needs two ready sheets");
+		const router = mountApp("/plan/timeline");
+		await bars();
+		await user.click(screen.getByRole("combobox", { name: "Sheet" }));
+		await user.click(await screen.findByRole("option", { name: other.name ?? other.slug }));
+		await waitFor(() => expect(router.state.location.search).toMatchObject({ sheet: other.slug }));
+		// The section switch links with no search.
+		await router.navigate({ to: "/plan/people" });
+		expect(await screen.findByRole("combobox", { name: "Sheet" })).toHaveTextContent(
+			other.name ?? other.slug,
+		);
+		// The next test starts on the first sheet again.
+		await router.navigate({ to: "/plan/people", search: { sheet: sheets[0]?.slug } as never });
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 });

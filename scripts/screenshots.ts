@@ -18,11 +18,12 @@ const PLACE: Record<string, string> = {
 	Questions: "Library",
 	Architecture: "Library",
 	Learn: "Library",
-	Plan: "Plan",
-	Team: "Crew",
-	Workflows: "Crew",
-	"Agents map": "Crew",
-	Usage: "Crew",
+	Timeline: "Plan",
+	People: "Plan",
+	Estimates: "Plan",
+	Crew: "Crew",
+	Recipes: "Crew",
+	Spend: "Crew",
 	"Pull requests": "Code",
 	Connections: "Setup",
 	Project: "Setup",
@@ -31,6 +32,17 @@ const PLACE: Record<string, string> = {
 const open = async (p: Page, tab: string) => {
 	await side(p).getByRole("link", { name: PLACE[tab] }).click();
 	await tabs(p).getByRole("link", { name: tab, exact: true }).click();
+};
+// Crew / Live: one row for each agent at work (the agents map of before).
+const openLive = async (p: Page) => {
+	await open(p, "Crew");
+	await p.getByRole("main").getByRole("link", { name: "Live", exact: true }).click();
+	await p.getByRole("table", { name: "Agents at work" }).waitFor();
+};
+// Plan / Timeline: the chart with its bars.
+const openTimeline = async (p: Page) => {
+	await open(p, "Timeline");
+	await p.getByRole("heading", { level: 1, name: / ends / }).waitFor();
 };
 const openProject = async (p: Page) => {
 	await p.goto("/home/today");
@@ -85,12 +97,37 @@ const scenes: Scene[] = [
 	},
 	{ name: "design", run: (p) => open(p, "Architecture") },
 	{ name: "specs", run: (p) => open(p, "Questions") },
-	{ name: "work", run: (p) => open(p, "Plan") },
+	// The old names stay for the docs that cite them: the plan, and the member page of the team.
+	{ name: "work", run: openTimeline },
 	{
 		name: "team",
 		run: async (p) => {
-			await open(p, "Team");
-			await p.getByRole("table").first().waitFor();
+			await open(p, "Crew");
+			await p.getByRole("list", { name: "People" }).getByRole("button").first().click();
+			await p.getByRole("spinbutton", { name: "Capacity (days a week)" }).waitFor();
+		},
+	},
+	{
+		name: "crew",
+		run: async (p) => {
+			await open(p, "Crew");
+			await p.getByRole("list", { name: "People" }).waitFor();
+		},
+	},
+	{ name: "crew-live", run: openLive },
+	{ name: "plan-timeline", run: openTimeline },
+	{
+		name: "plan-people",
+		run: async (p) => {
+			await open(p, "People");
+			await p.getByRole("heading", { level: 1, name: "People" }).waitFor();
+		},
+	},
+	{
+		name: "plan-estimates",
+		run: async (p) => {
+			await open(p, "Estimates");
+			await p.getByRole("table", { name: "Backlog" }).waitFor();
 		},
 	},
 	{ name: "factory", run: (p) => open(p, "Flow") },
@@ -102,11 +139,11 @@ const scenes: Scene[] = [
 			await p.getByRole("heading", { name: "What do you want to build?" }).waitFor();
 		},
 	},
-	{ name: "agents", run: (p) => open(p, "Agents map") },
+	{ name: "agents", run: openLive },
 	{
 		name: "workflows",
 		run: async (p) => {
-			await open(p, "Workflows");
+			await open(p, "Recipes");
 			await p.getByRole("button", { name: /^feature/i }).click();
 			await p.getByRole("textbox", { name: "Step id" }).first().waitFor();
 		},
@@ -121,7 +158,7 @@ const scenes: Scene[] = [
 	{
 		name: "usage",
 		run: async (p) => {
-			await open(p, "Usage");
+			await open(p, "Spend");
 			await p.getByRole("region", { name: "Budgets" }).waitFor();
 		},
 	},

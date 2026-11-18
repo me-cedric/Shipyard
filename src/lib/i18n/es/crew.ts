@@ -23,4 +23,11 @@ export const crewEs: typeof crewEn = {
 	countAtWork: "{count} trabajando",
 	more: "{title}, y {count} más",
 	spendOpen: "Gasto del trabajo abierto",
+	who: "Quién",
+	workGroup: "Trabajo",
+	when: "Cuándo",
+	extraRights: "Derechos de más o de menos que el rol",
+	removeMember: "Quitar del equipo",
+	perWeek: "{days} días por semana",
+	limit: "Límite de {usd} por funcionalidad",
 };

@@ -22,6 +22,13 @@ export const crewEn = {
 	countAtWork: "{count} at work",
 	more: "{title}, and {count} more",
 	spendOpen: "Spend on open work",
+	who: "Who",
+	workGroup: "Work",
+	when: "When",
+	extraRights: "Rights more or less than the role",
+	removeMember: "Remove from the team",
+	perWeek: "{days} days a week",
+	limit: "Limit of {usd} for each feature",
 };
 
 export const crewFr: typeof crewEn = {
@@ -47,4 +54,11 @@ export const crewFr: typeof crewEn = {
 	countAtWork: "{count} au travail",
 	more: "{title}, et {count} de plus",
 	spendOpen: "Dépenses du travail ouvert",
+	who: "Qui",
+	workGroup: "Travail",
+	when: "Quand",
+	extraRights: "Droits en plus ou en moins du rôle",
+	removeMember: "Retirer de l'équipe",
+	perWeek: "{days} jours par semaine",
+	limit: "Limite de {usd} par fonctionnalité",
 };

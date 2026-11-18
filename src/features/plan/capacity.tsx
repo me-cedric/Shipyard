@@ -1,5 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
 import { format, useI18n } from "@/lib/i18n";
@@ -10,37 +9,54 @@ import { isoWeekday, memberName, usePlan, useSheets, useTeam, useWorkActions } f
 import { CalendarDaysIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
+import { PageHeader } from "@/ui/molecules/page-header";
 import { type Proposal, proposals, withProposals } from "./proposals";
 
 type PlanView = NonNullable<ReturnType<typeof usePlan>["data"]>;
 
-/** The sheet of the plan that the person chose, the first ready sheet by default, and its plan. */
+// The section switch links with no search: the sheet of the last visit stays for Timeline and People.
+let last: string | null = null;
+
+/**
+ * The sheet of the plan that the person chose, the first ready sheet by default, and its plan.
+ * The address holds the choice in the search key `sheet`, as Estimates does.
+ */
 export function usePlanSheet(title: string) {
 	const { t } = useI18n();
 	const navigate = useNavigate();
 	const active = useActiveProject().data;
 	const sheets = useSheets();
-	const [chosen, setChosen] = useState<string | null>(null);
+	const search: { sheet?: unknown } = useSearch({ strict: false });
+	if (typeof search.sheet === "string") last = search.sheet;
+	const chosen = last;
+	const setChosen = (sheet: string) => {
+		last = sheet;
+		void navigate({ search: (prev: object) => ({ ...prev, sheet }), replace: true } as never);
+	};
 	const ready = (sheets.data ?? []).filter((s) => s.state === "ready");
 	const slug = chosen && ready.some((s) => s.slug === chosen) ? chosen : (ready[0]?.slug ?? null);
-	const plan = usePlan(slug).data;
+	const planOf = usePlan(slug);
+	const plan = planOf.data;
 	const icon = <CalendarDaysIcon size={16} />;
 	/** What shows in place of the plan: the load, no project, or no ready sheet. */
 	const blank =
-		active === undefined || sheets.isLoading ? (
+		active === undefined || sheets.isLoading || (active && planOf.isLoading) ? (
 			<Loading title={title} icon={icon} />
 		) : active === null ? (
 			<NoProject title={title} icon={icon} />
 		) : !slug || !plan ? (
-			<div className="p-4">
-				<EmptyState
-					title={t.empty.sprint}
-					action={{
-						label: t.planPlace.views.estimates,
-						onClick: () => void navigate({ to: "/plan/estimates" }),
-					}}
-				/>
-			</div>
+			<>
+				<PageHeader title={title} icon={icon} />
+				<div className="p-4">
+					<EmptyState
+						title={t.empty.sprint}
+						action={{
+							label: t.planPlace.views.estimates,
+							onClick: () => void navigate({ to: "/plan/estimates" }),
+						}}
+					/>
+				</div>
+			</>
 		) : null;
 	return { ready, slug, setChosen, plan, blank };
 }

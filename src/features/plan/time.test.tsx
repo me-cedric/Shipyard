@@ -293,4 +293,96 @@ describe("Plan / Time", () => {
 		expect(await group("À envoyer (2)")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "Saisie" })).toBeInTheDocument();
 	});
+
+	// spec:app-redesign#REQ-019
+	describe("the week grid", () => {
+		const cell = (ticket: string, day: string) =>
+			screen.findByRole("textbox", { name: `Hours of ${ticket}, ${day}` });
+
+		it("shows the hours of each ticket on each day of the week, and moves by a week", async () => {
+			const user = userEvent.setup();
+			await withTracker();
+			mountApp("/plan/time");
+			const week = within(await screen.findByRole("region", { name: "Week of 11/2/2026" }));
+			expect(await cell("ACME-2", "2026-11-02")).toHaveValue("4h");
+			expect(await cell("No ticket", "2026-11-03")).toHaveValue("1h");
+			// The entry that the issue tracker does not hold has the mark.
+			expect(week.getAllByRole("img", { name: "To send" })).toHaveLength(2);
+			await user.click(week.getByRole("button", { name: "Next week" }));
+			expect(await screen.findByRole("region", { name: "Week of 11/9/2026" })).toBeInTheDocument();
+			// A week of the month before shows its month.
+			await user.click(screen.getByRole("button", { name: "Previous week" }));
+			await user.click(screen.getByRole("button", { name: "Previous week" }));
+			await user.click(screen.getByRole("button", { name: "Previous week" }));
+			expect(await screen.findByRole("region", { name: "Week of 10/19/2026" })).toBeInTheDocument();
+			expect(screen.getByText("October 2026")).toBeInTheDocument();
+		});
+
+		it("changes, adds and deletes an entry from a cell", async () => {
+			const user = userEvent.setup();
+			await withTracker();
+			await importAll();
+			mountApp("/plan/time");
+			const first = await cell("ACME-2", "2026-11-02");
+			await user.clear(first);
+			await user.type(first, "2h{Enter}");
+			await waitFor(() =>
+				expect(mockState().work.time.ada?.find((e) => e.id === "t1")).toMatchObject({
+					minutes: 120,
+					note: "Token API",
+				}),
+			);
+			await user.type(await cell("ACME-1", "2026-11-04"), "1h30{Enter}");
+			await waitFor(() =>
+				expect(mockState().work.time.ada?.find((e) => e.day === "2026-11-04")).toMatchObject({
+					minutes: 90,
+					ticket: "ACME-1",
+				}),
+			);
+			mockState().confirm = false;
+			await user.clear(await cell("ACME-1", "2026-11-03"));
+			await user.tab();
+			await waitFor(async () => expect(await cell("ACME-1", "2026-11-03")).toHaveValue("3h"));
+			expect(mockState().work.time.ada?.some((e) => e.id === "t2")).toBe(true);
+			mockState().confirm = true;
+			await user.clear(await cell("ACME-1", "2026-11-03"));
+			await user.tab();
+			await waitFor(() =>
+				expect(mockState().work.time.ada?.some((e) => e.id === "t2")).toBe(false),
+			);
+		});
+
+		it("keeps the note of an entry of the month beside after a change of its hours", async () => {
+			const user = userEvent.setup();
+			await withTracker();
+			mockState().work.time.ada?.push({
+				id: "t9",
+				day: "2026-10-30",
+				minutes: 60,
+				note: "Old note\nsecond line",
+				ticket: "ACME-3",
+			});
+			mountApp("/plan/time");
+			await user.click(await screen.findByRole("button", { name: "Previous week" }));
+			const field = await cell("ACME-3", "2026-10-30");
+			await user.clear(field);
+			await user.type(field, "2h{Enter}");
+			await waitFor(() =>
+				expect(mockState().work.time.ada?.find((e) => e.id === "t9")?.minutes).toBe(120),
+			);
+			expect(mockState().work.time.ada?.find((e) => e.id === "t9")?.note).toBe(
+				"Old note\nsecond line",
+			);
+		});
+
+		it("refuses a bad duration in a cell and shows the stored hours again", async () => {
+			const user = userEvent.setup();
+			await withTracker();
+			mountApp("/plan/time");
+			await user.type(await cell("ACME-2", "2026-11-02"), "x{Enter}");
+			expect(await screen.findByRole("alert")).toHaveTextContent("Duration: 90, 1h30 or 2h");
+			expect(await cell("ACME-2", "2026-11-02")).toHaveValue("4h");
+			expect(mockState().work.time.ada?.find((e) => e.id === "t1")?.minutes).toBe(240);
+		});
+	});
 });

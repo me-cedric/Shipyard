@@ -61,6 +61,8 @@ export function EstimateAgent({
 		});
 	const accept = (p: EstimateProposal) =>
 		saving.run(async () => {
+			// The sheet of the file, not the one of this render: an earlier accept can be in it.
+			const { sheet } = await unwrap(commands.estimateGet(slug));
 			await act.saveSheet(slug, {
 				...sheet,
 				features: sheet.features.map((f) => ({
@@ -136,11 +138,16 @@ export function EstimateAgent({
 										right="work.edit"
 										variant="primary"
 										className="min-h-control"
+										disabled={saving.busy}
 										onClick={() => void accept(p)}
 									>
 										{a.accept}
 									</RightButton>
-									<Button className="min-h-control" onClick={() => drop(p.task)}>
+									<Button
+										className="min-h-control"
+										disabled={saving.busy}
+										onClick={() => drop(p.task)}
+									>
 										{a.discard}
 									</Button>
 								</div>

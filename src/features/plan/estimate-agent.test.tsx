@@ -81,6 +81,73 @@ describe("Plan / Estimates: ask an agent to estimate", () => {
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 
+	it("keeps the values of the first accepted task when a second task is accepted", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const router = mountApp("/plan/estimates");
+		await pick(user);
+		await user.click(await ask());
+		const list = within(await screen.findByRole("region", { name: "Proposals of the agent" }));
+		const accept = (name: string) =>
+			within(list.getByRole("listitem", { name })).getByRole("button", { name: "Accept" });
+		const task = (id: string) =>
+			mockState()
+				.work.sheets["mvp-1"]?.features.flatMap((f) => f.tasks)
+				.find((x) => x.id === id);
+		await user.click(accept("Export endpoint"));
+		// A save runs: the other proposals wait for it.
+		const next = list.queryByRole("listitem", { name: "Login form" });
+		if (next) await waitFor(() => expect(accept("Login form")).toBeEnabled());
+		await user.click(accept("Login form"));
+		await waitFor(() =>
+			expect(task("auth-web")).toMatchObject({
+				assumptions: "Login form needs no new service.",
+			}),
+		);
+		expect(task("export-api")).toMatchObject({ days: 7, optimistic: 3.5, pessimistic: 14 });
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("turns Accept and Discard off while a save runs", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		const router = mountApp("/plan/estimates");
+		await pick(user);
+		await user.click(await ask());
+		const list = within(await screen.findByRole("region", { name: "Proposals of the agent" }));
+		// The save does not end before the test lets it.
+		let end = () => {};
+		const save = vi.spyOn(commands, "estimateSave").mockReturnValue(
+			new Promise((_, fail) => {
+				end = () => fail("held");
+			}),
+		);
+		const row = within(list.getByRole("listitem", { name: "Login form" }));
+		await user.click(
+			within(list.getByRole("listitem", { name: "Export endpoint" })).getByRole("button", {
+				name: "Accept",
+			}),
+		);
+		await waitFor(() => expect(row.getByRole("button", { name: "Accept" })).toBeDisabled());
+		expect(row.getByRole("button", { name: "Discard" })).toBeDisabled();
+		await user.click(row.getByRole("button", { name: "Accept" }));
+		expect(save).toHaveBeenCalledTimes(1);
+		end();
+		await waitFor(() => expect(row.getByRole("button", { name: "Accept" })).toBeEnabled());
+		save.mockRestore();
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("is off on a frozen sheet, with the reason", async () => {
+		await withTracker();
+		const frozen = mockState().work.sheets["mvp-1"];
+		if (frozen) frozen.frozen = true;
+		const router = mountApp("/plan/estimates");
+		expect(await ask()).toBeDisabled();
+		expect(await ask()).toHaveAccessibleDescription("Frozen");
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
 	it("is off on a sealed sheet and on a frozen sheet", async () => {
 		const user = userEvent.setup();
 		await withTracker();
@@ -120,6 +187,21 @@ describe("Plan / Estimates: ask an agent to estimate", () => {
 		expect((await unwrap(commands.sessionsList())).filter((s) => s.step === "estimate")).toEqual(
 			[],
 		);
+		await waitFor(() => expect(router.state.status).toBe("idle"));
+	});
+
+	it("stops when a person stops all agents", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().estimateAgent = { hold: true, running: {} };
+		const router = mountApp("/plan/estimates");
+		await pick(user);
+		const before = sheet();
+		await user.click(await ask());
+		await screen.findByRole("button", { name: "Stop" });
+		await unwrap(commands.killSwitchSet(true));
+		expect(await screen.findByRole("alert")).toHaveTextContent("the estimate was stopped");
+		expect(sheet()).toBe(before);
 		await waitFor(() => expect(router.state.status).toBe("idle"));
 	});
 });

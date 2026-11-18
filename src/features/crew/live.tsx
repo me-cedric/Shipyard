@@ -112,65 +112,77 @@ export function LiveRows({ rows, ready }: { rows: AgentRow[]; ready: boolean }) 
 					]}
 				/>
 			</div>
-			<div className="overflow-x-auto rounded-xl bg-surface-2 px-4 shadow-1">
-				<table aria-label={c.atWork} className="w-full text-left text-ui">
-					<thead>
-						<tr className="text-12 text-n-11">
-							<th className="py-3 font-medium">{t.factory.agent}</th>
-							<th className="py-3 font-medium">{c.feature}</th>
-							<th className="py-3 font-medium">{c.touches}</th>
-						</tr>
-					</thead>
-					<tbody>
-						{shown.map((r) => (
-							<tr key={r.id} className="border-t">
-								<td className="py-1 pr-3">
-									<ContextMenu
-										items={[
-											{ id: "copy", label: t.context.copyRef, onSelect: () => copyText(r.id) },
-										]}
-									>
-										<button
-											type="button"
-											title={r.id}
-											onClick={() => openRef(r.id)}
-											className="min-h-control font-medium text-n-12 hover:underline"
-										>
-											{nameOf(r.role ?? r.session.step)}
-										</button>
-									</ContextMenu>
-								</td>
-								<td className="py-1 pr-3">
-									{r.feature ? (
-										<Link
-											{...featureHref(r.feature)}
-											className="inline-flex min-h-control items-center gap-2 font-medium text-n-12 hover:underline"
-										>
-											{r.title}
-											<span className="font-normal text-n-11">{stateText(t, r.feature)}</span>
-										</Link>
-									) : (
-										r.title
-									)}
-								</td>
-								<td className="py-1">
-									<span className="flex flex-wrap gap-1.5">
-										{r.refs.map((ref) => (
-											<RefChip
-												key={ref}
-												refId={ref}
-												state="resolved"
-												text={isFile(ref) ? ref.split("/").at(-1) : undefined}
-												onOpen={openRef}
-											/>
-										))}
-									</span>
-								</td>
+			{ready && shown.length === 0 ? (
+				<EmptyState title={t.empty.sessions} />
+			) : (
+				<div className="overflow-x-auto rounded-xl bg-surface-2 px-4 shadow-1">
+					<table aria-label={c.atWork} className="w-full text-left text-ui">
+						<thead>
+							<tr className="text-12 text-n-11">
+								<th className="py-3 font-medium">{t.factory.agent}</th>
+								<th className="py-3 font-medium">{c.feature}</th>
+								<th className="py-3 font-medium">{c.touches}</th>
 							</tr>
-						))}
-					</tbody>
-				</table>
-			</div>
+						</thead>
+						<tbody>
+							{shown.map((r) => (
+								<tr key={r.id} className="border-t">
+									<td className="py-1 pr-3">
+										<ContextMenu
+											items={[
+												{ id: "copy", label: t.context.copyRef, onSelect: () => copyText(r.id) },
+											]}
+										>
+											<button
+												type="button"
+												title={r.id}
+												// An estimate is no run: its agent opens the sheet (the key of the session).
+												onClick={() =>
+													r.session.step === "estimate"
+														? void navigate({
+																to: "/plan/estimates",
+																search: { sheet: r.session.key } as never,
+															})
+														: openRef(r.id)
+												}
+												className="min-h-control font-medium text-n-12 hover:underline"
+											>
+												{nameOf(r.role ?? r.session.step)}
+											</button>
+										</ContextMenu>
+									</td>
+									<td className="py-1 pr-3">
+										{r.feature ? (
+											<Link
+												{...featureHref(r.feature)}
+												className="inline-flex min-h-control items-center gap-2 font-medium text-n-12 hover:underline"
+											>
+												{r.title}
+												<span className="font-normal text-n-11">{stateText(t, r.feature)}</span>
+											</Link>
+										) : (
+											r.title
+										)}
+									</td>
+									<td className="py-1">
+										<span className="flex flex-wrap gap-1.5">
+											{r.refs.map((ref) => (
+												<RefChip
+													key={ref}
+													refId={ref}
+													state="resolved"
+													text={isFile(ref) ? ref.split("/").at(-1) : undefined}
+													onOpen={openRef}
+												/>
+											))}
+										</span>
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			)}
 		</>
 	);
 }

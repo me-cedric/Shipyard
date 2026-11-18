@@ -14,6 +14,11 @@ export const planEn = {
 	startsOn: "{task} starts {day}",
 	noOwner: "Tasks with no owner",
 	load: "{used} of {capacity} days",
+	week: "Week of {day}",
+	previousWeek: "Previous week",
+	nextWeek: "Next week",
+	hours: "Hours of {ticket}, {day}",
+	groups: { create: "New", update: "Changed", unchanged: "Stays the same" },
 };
 
 export const planFr: typeof planEn = {
@@ -31,4 +36,9 @@ export const planFr: typeof planEn = {
 	startsOn: "{task} commence le {day}",
 	noOwner: "Tâches sans responsable",
 	load: "{used} sur {capacity} jours",
+	week: "Semaine du {day}",
+	previousWeek: "Semaine précédente",
+	nextWeek: "Semaine suivante",
+	hours: "Heures de {ticket}, {day}",
+	groups: { create: "Nouveau", update: "Modifié", unchanged: "Reste identique" },
 };

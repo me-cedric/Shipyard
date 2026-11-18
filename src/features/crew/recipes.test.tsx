@@ -2,21 +2,19 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
-import { ShellProvider } from "@/lib/shell";
-import { renderApp } from "@/ui/test-utils";
-import { Recipes as Workflows } from "./recipes";
+import { mountApp } from "@/test/mount";
 
 const text = async (id: string) => (await unwrap(commands.workflowGet(id))).text;
+
+let router: ReturnType<typeof mountApp> | undefined;
+afterEach(() => waitFor(() => expect(router?.state.status ?? "idle").toBe("idle")));
 
 /** Opens the workflow `id` in its form. The mock holds a proposal for `bug`, so pass `discard` to drop it first. */
 async function open(id: string) {
 	const user = userEvent.setup();
 	await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
-	renderApp(
-		<ShellProvider>
-			<Workflows />
-		</ShellProvider>,
-	);
+	// The pick of Recipes is in the address: the page needs the router.
+	router = mountApp("/crew/recipes");
 	await user.click(
 		await screen.findByRole("button", {
 			name: new RegExp(`^${id.charAt(0).toUpperCase()}${id.slice(1)}`),
@@ -124,7 +122,7 @@ describe("Workflows: the form", () => {
 		expect(header.getByText("spike")).toBeInTheDocument();
 		// Duplicate, Rename and Delete are not buttons of the frame: they are in the menu.
 		for (const name of ["Duplicate", "Rename", "Delete"])
-			expect(screen.queryByRole("button", { name })).toBeNull();
+			expect(within(screen.getByRole("main")).queryByRole("button", { name })).toBeNull();
 		await user.click(await screen.findByRole("button", { name: "More actions" }));
 		for (const name of ["Duplicate", "Rename", "Delete"])
 			expect(await screen.findByRole("menuitem", { name })).toBeInTheDocument();
@@ -187,6 +185,11 @@ describe("Workflows: the form", () => {
 		// The permissions of another recipe do not show here.
 		expect(part.queryByText("Push")).toBeNull();
 		await user.click(part.getByRole("button", { name: "Remove Open a pull request for feature" }));
+		// The file is shared with the team: the removal asks first, and saves on the answer.
+		expect(mockState().sync.automation.recipe_writes?.feature).toEqual(["transition", "open_pr"]);
+		await user.click(
+			part.getByRole("button", { name: "Remove Open a pull request for the whole team?" }),
+		);
 		await waitFor(() =>
 			expect(mockState().sync.automation.recipe_writes).toEqual({
 				feature: ["transition"],

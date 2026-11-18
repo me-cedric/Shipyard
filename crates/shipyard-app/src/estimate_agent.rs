@@ -198,7 +198,8 @@ fn secrets(s: &AppState) -> Vec<String> {
     all
 }
 
-/// The switch, the budget and the limit of the factory stop an estimate (REQ-033).
+/// The switch, the budget and the limit of the factory stop an estimate (REQ-033). The estimate
+/// holds its slot: the count has it, and a stop of all agents that comes now reaches it.
 fn guard(s: &AppState, pid: &str, root: &Path) -> Res<()> {
     if crate::factory::kill_switch(s) {
         return Err("the agents are stopped: switch them on first".into());
@@ -215,7 +216,7 @@ fn guard(s: &AppState, pid: &str, root: &Path) -> Res<()> {
         .concurrency
         .global as usize;
     let busy = s.factory.factory.active_runs().len() + crate::pr_agent::running_count();
-    if busy + jobs().len() >= limit {
+    if busy + jobs().len() > limit {
         return Err("the agent limit is reached: wait for a run to end".into());
     }
     Ok(())
@@ -293,9 +294,6 @@ pub fn start(
         "estimate_agent_start",
         slug,
     )?;
-    if task_ids.is_empty() {
-        return Err("no task is selected".into());
-    }
     // A sealed sheet stays on this machine: its text never goes to an agent.
     if crate::work::seal_state(s)?.sealed {
         return Err("the sheet is sealed: an agent cannot estimate it".into());
@@ -304,12 +302,21 @@ pub fn start(
     if sheet.frozen {
         return Err(crate::work::FROZEN.into());
     }
+    // Only the tasks that the sheet holds go to the agent and come back.
+    let held = sheet.features.iter().flat_map(|f| &f.tasks);
+    let task_ids: Vec<String> = held
+        .filter(|t| task_ids.contains(&t.id))
+        .map(|t| t.id.clone())
+        .collect();
+    if task_ids.is_empty() {
+        return Err("no task is selected".into());
+    }
     let (pid, root) = project(s)?;
-    guard(s, &pid, &root)?;
     let slot = Slot::take(&pid, slug)?;
-    let text = ask(s, &pid, &root, &prompt(&sheet, task_ids), &slot, program)?;
+    guard(s, &pid, &root)?;
+    let text = ask(s, &pid, &root, &prompt(&sheet, &task_ids), &slot, program)?;
     let secrets = secrets(s);
-    Ok(parse(&text, task_ids)?
+    Ok(parse(&text, &task_ids)?
         .into_iter()
         .map(|p| EstimateProposal {
             task: p.task,
@@ -534,6 +541,86 @@ echo '{{"type":"result","subtype":"success","is_error":false,"session_id":"s1","
         crate::factory::set_kill_switch(&f.s, false);
         // One estimate for each sheet at a time.
         assert!(Slot::take(&f.pid, "lot").is_err());
+    }
+
+    #[test]
+    fn a_stop_before_the_turn_has_its_handle_ends_the_turn() {
+        let _turn = TURN.lock().unwrap_or_else(|e| e.into_inner());
+        let f = fx();
+        let bin = runner(&f, "sleep 20", ANSWER);
+        let slot = Slot::take(&f.pid, "lot").unwrap();
+        stop(&f.s, "lot").unwrap();
+        let at = std::time::Instant::now();
+        let e = ask(&f.s, &f.pid, f.repo.path(), "estimate", &slot, Some(bin)).unwrap_err();
+        assert_eq!(e, STOPPED);
+        assert!(at.elapsed() < std::time::Duration::from_secs(10));
+    }
+
+    #[test]
+    fn the_agent_limit_counts_the_estimates_and_a_refusal_frees_the_slot() {
+        let _turn = TURN.lock().unwrap_or_else(|e| e.into_inner());
+        let f = fx();
+        let bin = runner(&f, "", ANSWER);
+        let dir = f.repo.path().join(".shipyard");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("automation.yaml"), "concurrency:\n  global: 1\n").unwrap();
+        let all = ids(&["a"]);
+        let other = Slot::take(&f.pid, "other").unwrap();
+        let e = start(&f.s, "lot", &all, true, Some(bin.clone())).unwrap_err();
+        assert!(e.contains("the agent limit is reached"), "{e}");
+        assert_eq!(started(&f), 0);
+        // The refusal freed the slot of this sheet: only the other estimate is a session.
+        assert_eq!(sessions(&f.pid).len(), 1);
+        drop(other);
+        // One estimate alone is in the limit of 1.
+        start(&f.s, "lot", &all, true, Some(bin)).unwrap();
+    }
+
+    #[test]
+    fn a_task_that_the_sheet_does_not_hold_is_not_selected() {
+        let _turn = TURN.lock().unwrap_or_else(|e| e.into_inner());
+        let f = fx();
+        let bin = runner(&f, "", ANSWER);
+        let e = start(&f.s, "lot", &ids(&["other"]), true, Some(bin.clone())).unwrap_err();
+        assert_eq!(e, "no task is selected");
+        assert_eq!(started(&f), 0);
+        // The agent answers for "other" too: only the task of the sheet comes back.
+        let out = start(&f.s, "lot", &ids(&["other", "b"]), true, Some(bin)).unwrap();
+        assert_eq!(
+            out.iter().map(|p| p.task.as_str()).collect::<Vec<_>>(),
+            ["b"]
+        );
+    }
+
+    #[test]
+    fn a_secret_in_an_assumption_comes_back_scrubbed() {
+        use crate::connections::{ConnectionDraft, ConnectionGroup, ConnectionKind};
+        let _turn = TURN.lock().unwrap_or_else(|e| e.into_inner());
+        let f = fx();
+        let c =
+            f.s.connections
+                .add(ConnectionDraft {
+                    name: "Code".into(),
+                    group: ConnectionGroup::Forge,
+                    kind: ConnectionKind::GitHub,
+                    url: "https://github.com".into(),
+                    user: None,
+                })
+                .unwrap();
+        let fake = "fake-value-of-a-test"; // shipyard:allow-secret
+        f.s.connections
+            .set_secret(&c.id, shipyard_secrets::Secret::new(fake))
+            .unwrap();
+        let answer = ANSWER.replace("One sign-in provider", &format!("Uses {fake} to sign in"));
+        let out = start(
+            &f.s,
+            "lot",
+            &ids(&["a"]),
+            true,
+            Some(runner(&f, "", &answer)),
+        )
+        .unwrap();
+        assert_eq!(out[0].assumptions, ["Uses *** to sign in"]);
     }
 
     #[test]

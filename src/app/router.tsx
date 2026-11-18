@@ -142,8 +142,17 @@ const flowSearch = (s: Record<string, unknown>): { q?: string; filter?: "needs" 
 	return rest;
 };
 
-const crewSearch = (s: Record<string, unknown>): { view?: "live" } =>
-	s.view === "live" ? { view: "live" } : {};
+const crewSearch = (s: Record<string, unknown>): { view?: "live"; member?: string } => ({
+	...(s.view === "live" ? { view: "live" as const } : {}),
+	// The open person: a handle, or an empty text for a new member.
+	...(s.member != null ? { member: String(s.member) } : {}),
+});
+
+/** One optional text key of the address, such as the recipe of Recipes or the sheet of Plan. */
+const textSearch =
+	<K extends string>(key: K) =>
+	(s: Record<string, unknown>): { [P in K]?: string } =>
+		(s[key] != null && s[key] !== "" ? { [key]: String(s[key]) } : {}) as { [P in K]?: string };
 
 const kindSearch = (s: Record<string, unknown>): { kind?: "idea" } =>
 	s.kind === "idea" ? { kind: "idea" } : {};
@@ -231,6 +240,11 @@ function placeRoute<P extends PlaceId>(place: P) {
 				: {}),
 			// Crew shows the cards or the live work rows (`spec:app-redesign#REQ-017`).
 			...(view === "crew/crew" ? { validateSearch: crewSearch } : {}),
+			// The open recipe of Recipes, and the sheet that the sections of Plan share.
+			...(view === "crew/recipes" ? { validateSearch: textSearch("recipe") } : {}),
+			...(view === "plan/timeline" || view === "plan/people" || view === "plan/estimates"
+				? { validateSearch: textSearch("sheet") }
+				: {}),
 			// The bar of Pull requests (ux-declutter REQ-042): search and filter, kept in the address.
 			...(view === "code/pull-requests" ? { validateSearch: pullsSearch } : {}),
 		});

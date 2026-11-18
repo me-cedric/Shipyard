@@ -1,31 +1,26 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { AgentsToggle } from "@/features/factory/agents-toggle";
+import { SectionCard } from "@/features/factory/section-card";
 import { MachineUsage } from "@/features/factory/usage/machine-usage";
 import { RequestTree } from "@/features/factory/usage/request-tree";
 import { NoProject } from "@/features/shell/no-project";
 import { tabIcon } from "@/features/shell/spaces";
-import { useGuard } from "@/features/work/guard";
-import { useFactoryWrites, useRuns, useUsage } from "@/lib/factory";
+import { useRuns, useUsage } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
-import { RightButton } from "@/lib/rights";
 import { useShell } from "@/lib/shell";
 import { useViewState } from "@/lib/shell/view-state";
-import { useAutomation } from "@/lib/sync";
-import { Button } from "@/ui/atoms/button";
 import { CountUp } from "@/ui/atoms/count-up";
-import { Input } from "@/ui/atoms/input";
-import { Select } from "@/ui/atoms/select";
 import { Switch } from "@/ui/atoms/switch";
 import { CheckIcon, CurrencyIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { Panel } from "@/ui/molecules/panel";
 import { SpendMeter, spendStatus } from "@/ui/molecules/spend-meter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
+import { Budgets, useBudgets } from "./budgets";
 
 type Kind = "run" | "day" | "member";
 type Row = {
@@ -54,16 +49,9 @@ export function Spend() {
 	const f = t.factory;
 	const active = useActiveProject().data;
 	const usage = useUsage();
-	const automation = useAutomation().data?.automation.budgets;
-	const writes = useFactoryWrites();
-	const { error, run } = useGuard();
+	const b = useBudgets();
 	const { openRef } = useShell();
 	const titles = new Map((useRuns().data ?? []).map((r) => [r.id, r]));
-	const [editing, setEditing] = useState(false);
-	const [scope, setScope] = useState<"day" | "member">("day");
-	const [key, setKey] = useState("");
-	const [amount, setAmount] = useState("");
-	const field = useRef<HTMLInputElement>(null);
 	const [prices, setPrices] = useViewState("usage-prices", true);
 	const x = t.extras.usage;
 	const Icon = tabIcon("crew", "spend");
@@ -166,25 +154,6 @@ export function Spend() {
 			),
 		},
 	];
-	const set = () =>
-		void run(async () => {
-			const usd = amount.trim() === "" ? null : Number(amount);
-			await writes.budget(scope, key.trim(), usd);
-			setKey("");
-			setAmount("");
-		});
-	// The configured budgets, from the budgets data: the default `*` once, then each key of its own.
-	const budgets = (["day", "member"] as const).flatMap((scope) =>
-		Object.entries(automation?.[scope] ?? {})
-			.flatMap(([k, usd]) => (usd === null ? [] : [{ k, usd }]))
-			.sort((a, b) => Number(b.k === "*") - Number(a.k === "*") || a.k.localeCompare(b.k))
-			.map(({ k, usd }) => ({
-				id: `${scope}:${k}`,
-				name: k === "*" ? (scope === "day" ? f.perDay : f.perMember) : k,
-				budget: usd,
-			})),
-	);
-	const form = editing || budgets.length === 0;
 	const label: Record<string, string> = { run: f.perRun, day: f.perDay, member: f.perMember };
 	const money = new Intl.NumberFormat(lang, { style: "currency", currency: "USD" });
 	// Newest day first, keyed by the UTC day.
@@ -202,98 +171,31 @@ export function Spend() {
 			sum += d.usd ?? 0;
 			return sum;
 		});
-	// The budgets: one line of amounts while a budget is set, the form when none is or on Edit.
-	const budgetPanel = (
-		<Panel
-			title={f.budgets}
-			toolbar={
-				budgets.length > 0 ? (
-					<Button
-						className="min-h-control"
-						aria-expanded={form}
-						onClick={() => setEditing(!editing)}
-					>
-						{f.edit}
-					</Button>
-				) : undefined
-			}
-		>
-			{budgets.length > 0 ? (
-				<ul aria-label={f.budget} className="flex flex-wrap gap-x-4 gap-y-1 px-3 py-2 text-ui">
-					{budgets.map((b) => (
-						<li key={b.id} className="flex gap-2">
-							<span className="text-n-11">{b.name}</span>
-							<span className="font-mono">{price(`$${(b.budget ?? 0).toFixed(2)}`)}</span>
-						</li>
-					))}
-				</ul>
-			) : null}
-			{form ? (
-				<div className="flex flex-wrap items-end gap-2 p-3">
-					<Select
-						caption
-						label={f.budgetScope}
-						items={[
-							{ value: "day", label: f.perDay },
-							{ value: "member", label: f.perMember },
-						]}
-						value={scope}
-						onValueChange={(v) => setScope(v === "member" ? "member" : "day")}
-					/>
-					<Input
-						ref={field}
-						caption
-						label={f.budgetKey}
-						className="w-48"
-						value={key}
-						onChange={(e) => setKey(e.target.value)}
-					/>
-					<Input
-						caption
-						label={f.budgetAmount}
-						type="number"
-						min="0"
-						step="any"
-						className="w-28"
-						value={amount}
-						onChange={(e) => setAmount(e.target.value)}
-					/>
-					<RightButton
-						right="project.settings"
-						variant="primary"
-						className="min-h-control"
-						disabled={!key.trim()}
-						onClick={set}
-					>
-						{f.setBudget}
-					</RightButton>
-				</div>
-			) : null}
-		</Panel>
-	);
+	const budgetPanel = <Budgets budgets={b} price={price} />;
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
 			<PageHeader
 				icon={icon}
 				title={t.ui.place.crew}
+				chips={<AgentsToggle />}
 				action={<Switch label={x.showPrices} checked={prices} onCheckedChange={setPrices} />}
 			/>
-			{error ? (
+			{b.error ? (
 				<p role="alert" className="px-4 pb-2 text-ui text-danger-text">
-					{error}
+					{b.error}
 				</p>
 			) : null}
 			{rows.length === 0 && !usage.isPending ? (
-				<div className="flex flex-col gap-3 overflow-y-auto p-4 [&>*]:shrink-0">
+				<div className="flex flex-col gap-3 overflow-y-auto px-4 pt-2 pb-4 [&>*]:shrink-0">
 					<EmptyState
 						// No budget, or budgets and no usage yet.
-						title={budgets.length === 0 ? t.empty.budget : t.empty.usage}
+						title={b.list.length === 0 ? t.empty.budget : t.empty.usage}
 						action={{
 							label: f.setBudget,
 							// The form must be on the page before the field takes the focus.
 							onClick: () => {
-								flushSync(() => setEditing(true));
-								field.current?.focus();
+								flushSync(() => b.setEditing(true));
+								b.field.current?.focus();
 							},
 						}}
 					/>
@@ -301,88 +203,95 @@ export function Spend() {
 					<MachineUsage prices={prices} />
 				</div>
 			) : (
-				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4 [&>*]:shrink-0">
-					{usage.isPending ? (
-						<Loading rows={3} />
-					) : (
-						<>
-							<StatStrip
-								items={[
-									{
-										label: prices ? t.ui.spendToday : x.tokensToday,
-										value: prices ? (
-											<CountUp
-												value={days.find((d) => d.key === today)?.usd ?? 0}
-												format={money.format}
-											/>
-										) : (
-											<CountUp value={days.find((d) => d.key === today)?.tokens ?? 0} />
-										),
-										icon: <CurrencyIcon size={12} />,
-										tone: "info",
-										trend: days
-											.slice(0, 14)
-											.reverse()
-											.map((d) => d.usd ?? 0),
-									},
-									{
-										label: prices ? f.spend : x.runs,
-										value: prices ? (
-											<CountUp value={runs.reduce((a, r) => a + r.usd, 0)} format={money.format} />
-										) : (
-											<CountUp value={runs.length} />
-										),
-										tone: "accent",
-										trend: cumulative,
-									},
-									{
-										label: f.tokens,
-										value: <CountUp value={runs.reduce((a, r) => a + r.tokens, 0)} />,
-										tone: "accent",
-									},
-									{
-										label: f.successRate,
-										value: ended.length ? `${Math.round((won / ended.length) * 100)} %` : "-",
-										icon: <CheckIcon size={12} />,
-										tone: "success",
-										delta: `${won}/${ended.length}`,
-									},
-									{
-										label: f.overBudget,
-										value: String(
-											runs.filter((r) => spendStatus(r.usd, r.budget) === "danger").length,
-										),
-										tone: "danger",
-									},
-								]}
-							/>
-							{budgetPanel}
-							<Panel
-								title={f.usage}
-								count={rows.length}
-								flush
-								className="min-h-64 flex-1"
-								bodyClassName="min-h-0 flex-1"
-							>
-								<DataTable
-									label={f.usage}
-									columns={columns}
-									data={rows}
-									rowId={(r) => r.id}
-									group={(r) => r.kind}
-									groupLabel={(g) => label[g] ?? g}
-									onOpen={(r) => {
-										if (r.kind === "run") return openRef(r.id);
-										setScope(r.kind);
-										setKey(r.key);
-										setEditing(true);
-									}}
+				// The spend on the left, the budgets and this computer on the right (picture 013).
+				<div className="grid min-h-0 flex-1 content-start gap-3 overflow-y-auto px-4 pt-2 pb-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+					<div className="flex min-w-0 flex-col gap-3">
+						{usage.isPending ? (
+							<Loading rows={3} />
+						) : (
+							<>
+								<StatStrip
+									items={[
+										{
+											label: prices ? t.ui.spendToday : x.tokensToday,
+											value: prices ? (
+												<CountUp
+													value={days.find((d) => d.key === today)?.usd ?? 0}
+													format={money.format}
+												/>
+											) : (
+												<CountUp value={days.find((d) => d.key === today)?.tokens ?? 0} />
+											),
+											icon: <CurrencyIcon size={12} />,
+											tone: "info",
+											trend: days
+												.slice(0, 14)
+												.reverse()
+												.map((d) => d.usd ?? 0),
+										},
+										{
+											label: prices ? f.spend : x.runs,
+											value: prices ? (
+												<CountUp
+													value={runs.reduce((a, r) => a + r.usd, 0)}
+													format={money.format}
+												/>
+											) : (
+												<CountUp value={runs.length} />
+											),
+											tone: "accent",
+											trend: cumulative,
+										},
+										{
+											label: f.tokens,
+											value: <CountUp value={runs.reduce((a, r) => a + r.tokens, 0)} />,
+											tone: "accent",
+										},
+										{
+											label: f.successRate,
+											value: ended.length ? `${Math.round((won / ended.length) * 100)} %` : "-",
+											icon: <CheckIcon size={12} />,
+											tone: "success",
+											delta: `${won}/${ended.length}`,
+										},
+										{
+											label: f.overBudget,
+											value: String(
+												runs.filter((r) => spendStatus(r.usd, r.budget) === "danger").length,
+											),
+											tone: "danger",
+										},
+									]}
 								/>
-							</Panel>
-							<RequestTree runs={u?.runs ?? []} />
-						</>
-					)}
-					<MachineUsage prices={prices} />
+								<SectionCard
+									title={f.usage}
+									count={rows.length}
+									flush
+									// The table is a virtual list: it needs a height of its own.
+									className="h-96"
+									bodyClassName="min-h-0 flex-1"
+								>
+									<DataTable
+										label={f.usage}
+										columns={columns}
+										data={rows}
+										rowId={(r) => r.id}
+										group={(r) => r.kind}
+										groupLabel={(g) => label[g] ?? g}
+										onOpen={(r) => {
+											if (r.kind === "run") return openRef(r.id);
+											b.edit(r.kind, r.key);
+										}}
+									/>
+								</SectionCard>
+								<RequestTree runs={u?.runs ?? []} />
+							</>
+						)}
+					</div>
+					<div className="flex min-w-0 flex-col gap-3">
+						{budgetPanel}
+						<MachineUsage prices={prices} />
+					</div>
 				</div>
 			)}
 		</div>

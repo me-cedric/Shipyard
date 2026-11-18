@@ -30,6 +30,10 @@ describe("the estimate agent mock", () => {
 		const w = seedWork();
 		expect(() => estimateStart(a, w, "mvp-1", ids, false, on)).toThrow(/click/);
 		expect(() => estimateStart(a, w, "mvp-1", [], true, on)).toThrow(/no task/);
+		// A task that the sheet does not hold is not a selected task.
+		expect(() => estimateStart(a, w, "mvp-1", ["no-task"], true, on)).toThrow(
+			/no task is selected/,
+		);
 		expect(() => estimateStart(a, w, "mvp-1", ids, true, { ...on, stopped: true })).toThrow(
 			/agents are stopped/,
 		);

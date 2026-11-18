@@ -135,7 +135,7 @@ describe("Get started checklist", () => {
 		const today = await card();
 		expect(await today.findByRole("button", { name: s.action.team })).toBeInTheDocument();
 		await user.click(await today.findByRole("button", { name: s.action.openTeam }));
-		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/team"));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/crew/crew"));
 		expect(await screen.findByRole("textbox", { name: "Handle" })).toBeInTheDocument();
 	});
 

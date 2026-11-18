@@ -298,6 +298,36 @@ describe("Plan / Estimates", () => {
 		expect(await screen.findByRole("table", { name: "By profile, Portfolio" })).toBeInTheDocument();
 	});
 
+	it("gives each control the height of 44 px (spec:app-redesign#REQ-026)", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().nextFile = "/mock/bad.xlsx";
+		mountApp("/plan/estimates");
+		const tall = (el: HTMLElement) => expect(el.closest('[class*="min-h-control"]')).not.toBeNull();
+		const table = await screen.findByRole("table", { name: "Backlog" });
+		for (const name of ["Seal", "Sheet actions", "Import", "Export", "Task"])
+			tall(screen.getByRole("button", { name }));
+		tall(screen.getByRole("combobox", { name: "Sheet" }));
+		tall(screen.getByRole("tab", { name: "Summary" }));
+		tall(screen.getByRole("textbox", { name: "Search" }));
+		await user.click(await within(table).findByRole("checkbox", { name: "Select Token API" }));
+		const bulk = within(screen.getByRole("region", { name: "1 selected" }));
+		tall(bulk.getByRole("textbox", { name: "Set role" }));
+		for (const name of ["Apply", "Delete", "Clear selection"])
+			tall(bulk.getByRole("button", { name }));
+		await user.click(within(table).getByText("Export endpoint"));
+		const panel = await aside("Task");
+		tall(panel.getByRole("spinbutton", { name: "Days" }));
+		tall(panel.getByRole("combobox", { name: "Confidence" }));
+		tall(panel.getByRole("button", { name: "Save" }));
+		await user.click(screen.getByRole("tab", { name: "Summary" }));
+		tall(await screen.findByRole("button", { name: /Export endpoint/ }));
+		await user.click(screen.getByRole("button", { name: "Import" }));
+		const dialog = within(await screen.findByRole("dialog"));
+		tall(dialog.getByRole("textbox", { name: "File name" }));
+		tall(dialog.getByRole("button", { name: "Replace mvp-1" }));
+	});
+
 	it("is in French when the language is French", async () => {
 		mockState().prefs.lang = "fr";
 		await withTracker();

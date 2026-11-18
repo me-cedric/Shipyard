@@ -104,6 +104,7 @@ function BarDetail({ slug, task }: { slug: string; task: string }) {
 			</p>
 			<Select
 				caption
+				className="min-h-control"
 				label={p.member}
 				disabled={!can("work.edit")}
 				value={mine.member ?? AUTO}
@@ -116,6 +117,7 @@ function BarDetail({ slug, task }: { slug: string; task: string }) {
 			<div className="flex items-center gap-2">
 				<Input
 					caption
+					className="min-h-control"
 					label={p.fixedStart}
 					disabled={!can("work.edit")}
 					type="date"
@@ -123,6 +125,7 @@ function BarDetail({ slug, task }: { slug: string; task: string }) {
 					onChange={(e) => isDay(e.target.value) && void patch({ start: e.target.value })}
 				/>
 				<RightIconButton
+					className="size-(--control-h)"
 					right="work.edit"
 					label={p.clearStart}
 					disabled={!mine.start}
@@ -133,10 +136,20 @@ function BarDetail({ slug, task }: { slug: string; task: string }) {
 			</div>
 			<Caption label={p.order}>
 				<span className="flex items-center gap-1">
-					<RightIconButton right="work.edit" label={p.earlier} onClick={() => void shift(-1)}>
+					<RightIconButton
+						className="size-(--control-h)"
+						right="work.edit"
+						label={p.earlier}
+						onClick={() => void shift(-1)}
+					>
 						<ChevronUpIcon size={14} />
 					</RightIconButton>
-					<RightIconButton right="work.edit" label={p.later} onClick={() => void shift(1)}>
+					<RightIconButton
+						className="size-(--control-h)"
+						right="work.edit"
+						label={p.later}
+						onClick={() => void shift(1)}
+					>
 						<ChevronDownIcon size={14} />
 					</RightIconButton>
 				</span>
@@ -165,7 +178,7 @@ function CalendarForm({ slug }: { slug: string }) {
 	return (
 		<div className="flex flex-col gap-3">
 			<HolidayCountry />
-			<fieldset className="flex flex-col">
+			<fieldset className="flex flex-col [&_label]:min-h-control">
 				<legend className="pb-1 text-12 font-medium text-n-11">{p.workingDays}</legend>
 				{[1, 2, 3, 4, 5, 6, 7].map((n) => (
 					<Checkbox
@@ -202,12 +215,14 @@ function CalendarForm({ slug }: { slug: string }) {
 					}}
 				>
 					<Input
+						className="min-h-control"
 						label={p.holiday}
 						type="date"
 						value={day}
 						onChange={(e) => setDay(e.target.value)}
 					/>
 					<RightIconButton
+						className="size-(--control-h)"
 						right="work.edit"
 						label={p.addHoliday}
 						type="submit"
@@ -217,9 +232,10 @@ function CalendarForm({ slug }: { slug: string }) {
 					</RightIconButton>
 				</form>
 				{cal.holidays.map((h) => (
-					<div key={h} className="flex h-row items-center justify-between border-b">
+					<div key={h} className="flex min-h-control items-center justify-between border-b">
 						<span className="font-mono text-12">{h}</span>
 						<RightIconButton
+							className="size-(--control-h)"
 							right="work.edit"
 							label={`${t.work.remove} ${h}`}
 							onClick={() => void save({ ...cal, holidays: cal.holidays.filter((x) => x !== h) })}
@@ -337,11 +353,14 @@ export function Timeline() {
 							<CalendarDaysIcon size={14} />
 							{t.planPlace.calendar}
 						</Button>
-						<PageExport
-							page="plan"
-							slug={slug}
-							extra={[{ id: "png", label: c.png, save: { name: slug, ext: "png", job: png } }]}
-						/>
+						{/* The menu of Export has no class of its own: its button gets the height here. */}
+						<span className="inline-flex [&_button]:min-h-control">
+							<PageExport
+								page="plan"
+								slug={slug}
+								extra={[{ id: "png", label: c.png, save: { name: slug, ext: "png", job: png } }]}
+							/>
+						</span>
 						<RightButton
 							right="work.edit"
 							variant="primary"
@@ -357,17 +376,20 @@ export function Timeline() {
 			/>
 			<div className="flex shrink-0 flex-wrap items-center gap-2 px-4 pb-3">
 				<Select
+					className="min-h-control"
 					label={p.sheet}
 					value={slug}
 					onValueChange={setChosen}
 					items={ready.map((s) => ({ value: s.slug, label: s.name ?? s.slug }))}
 				/>
-				<ViewTabs
-					label={c.zoom}
-					value={zoom}
-					onValueChange={setZoom}
-					tabs={(["day", "week", "month"] as const).map((z) => ({ value: z, label: c[z] }))}
-				/>
+				<span className="inline-flex [&_[role=tab]]:min-h-control">
+					<ViewTabs
+						label={c.zoom}
+						value={zoom}
+						onValueChange={setZoom}
+						tabs={(["day", "week", "month"] as const).map((z) => ({ value: z, label: c[z] }))}
+					/>
+				</span>
 				{error ? (
 					<p role="alert" className="text-ui text-danger-text">
 						{error}
@@ -376,6 +398,8 @@ export function Timeline() {
 			</div>
 			{over.length > 0 ? (
 				<div className="mx-4 mb-3">
+					{/* The card draws a level-three heading: the page needs a level-two heading before it. */}
+					<h2 className="sr-only">{c.capacity}</h2>
 					<AttentionCard
 						who={t.planPlace.planner}
 						title={

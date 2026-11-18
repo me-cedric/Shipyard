@@ -516,7 +516,8 @@ fn guard(s: &AppState, pid: &str, root: &Path) -> Res<()> {
         .unwrap_or_default()
         .concurrency
         .global as usize;
-    if s.factory.factory.active_runs().len() + jobs().len() >= limit {
+    let busy = s.factory.factory.active_runs().len() + jobs().len();
+    if busy + crate::estimate_agent::running_count() >= limit {
         return Err("the agent limit is reached: wait for a run to end".into());
     }
     Ok(())

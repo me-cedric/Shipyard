@@ -31,6 +31,7 @@ export function HolidayCountry({ row }: { row?: boolean }) {
 	const select = (
 		<Select
 			caption={!row}
+			className="min-h-control"
 			label={t.costing.plan.country}
 			{...gate("work.edit")}
 			value={cal.country || NONE}

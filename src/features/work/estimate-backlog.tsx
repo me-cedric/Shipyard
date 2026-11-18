@@ -22,6 +22,7 @@ import { QueueListIcon, TrashIcon, XMarkIcon } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { FilterBar } from "@/ui/molecules/filter-bar";
 import { DataTable } from "@/ui/organisms/data-table";
+import { CONTROLS } from "./estimate-forms";
 import { useGuard } from "./guard";
 
 type Line = { feature: Feature; task: Task };
@@ -263,24 +264,26 @@ export function EstimateBacklog({
 
 	return (
 		<div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col gap-2">
-			<FilterBar
-				query={query}
-				onQueryChange={setQuery}
-				filters={[
-					...roles.map((r) => ({ id: r, label: r })),
-					{ id: LOW, label: c.filter.lowConfidence },
-					{ id: NO_TICKET, label: c.filter.noTicket },
-				]}
-				active={active}
-				onToggle={(id) =>
-					setActive(active.includes(id) ? active.filter((x) => x !== id) : [...active, id])
-				}
-			/>
-			<EstimateAgent slug={slug} view={view} ids={chosen} />
+			<div className={CONTROLS}>
+				<FilterBar
+					query={query}
+					onQueryChange={setQuery}
+					filters={[
+						...roles.map((r) => ({ id: r, label: r })),
+						{ id: LOW, label: c.filter.lowConfidence },
+						{ id: NO_TICKET, label: c.filter.noTicket },
+					]}
+					active={active}
+					onToggle={(id) =>
+						setActive(active.includes(id) ? active.filter((x) => x !== id) : [...active, id])
+					}
+				/>
+			</div>
+			<EstimateAgent key={slug} slug={slug} view={view} ids={chosen} />
 			{chosen.length > 0 && !frozen ? (
 				<section
 					aria-label={format(c.bulk.selected, { count: chosen.length })}
-					className="flex flex-wrap items-end gap-2 rounded-lg border bg-surface-2 p-2"
+					className={`flex flex-wrap items-end gap-2 rounded-lg border bg-surface-2 p-2 ${CONTROLS}`}
 				>
 					<span className="h-row content-center text-ui font-medium">
 						{format(c.bulk.selected, { count: chosen.length })}

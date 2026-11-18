@@ -63,4 +63,38 @@ describe("the proposals of the plan", () => {
 			},
 		});
 	});
+
+	it("does not move a task to a person who would go over, so two people never trade a task", () => {
+		const both = [
+			bar("est:a#one", "ada", "2026-11-02", "2026-11-02"),
+			bar("est:a#two", "ada", "2026-11-02", "2026-11-02"),
+		];
+		const full = [
+			{ handle: "ada", days: [day("2026-11-02", 2)] },
+			{ handle: "grace", days: [day("2026-11-02", 1)] },
+		];
+		expect(proposals(both, full, members)).toEqual([
+			{ task: "est:a#one", name: "est:a#one", from: "ada", start: "2026-11-03" },
+		]);
+		// The same day after a move to Grace: the task does not go back to Ada.
+		const traded = [both[0], { ...both[1], member: "grace" }] as typeof both;
+		const after = [
+			{ handle: "ada", days: [day("2026-11-02", 1)] },
+			{ handle: "grace", days: [day("2026-11-02", 2)] },
+		];
+		expect(proposals(traded, after, members).map((p) => p.to)).toEqual([undefined]);
+	});
+
+	it("gives one free person the task of one person only, when two people are over", () => {
+		const two = [
+			bar("est:a#one", "ada", "2026-11-02", "2026-11-02"),
+			bar("est:a#two", "grace", "2026-11-02", "2026-11-02"),
+		];
+		const devs = [...members, { handle: "linus", role: "dev" }];
+		const overTwo = [
+			{ handle: "ada", days: [day("2026-11-02", 2)] },
+			{ handle: "grace", days: [day("2026-11-02", 2)] },
+		];
+		expect(proposals(two, overTwo, devs).map((p) => p.to)).toEqual(["linus", undefined]);
+	});
 });

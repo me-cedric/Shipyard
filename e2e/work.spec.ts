@@ -8,7 +8,7 @@ const inspector = (page: Page, name: string) => page.getByRole("complementary", 
 /** The name of the row or the card of a feature: its title, then the key of its ticket. */
 const ticket = (key: string) => new RegExp(`${key}(?!\\d)`);
 
-/** Opens the mock project with a Linear tracker, imports the backlog and opens a Work tab. */
+/** Opens the mock project with a Linear tracker, imports the backlog and opens a section of Flow, Plan or Crew. */
 async function openWork(page: Page, tab: string) {
 	await page.goto("/home/today");
 	await openFirstFolder(page);
@@ -37,7 +37,7 @@ async function openWork(page: Page, tab: string) {
 	await sidebar(page)
 		.getByRole("link", { name: placeOf(tab) })
 		.click();
-	await tabs(page).getByRole("link", { name: tab }).click();
+	await tabs(page).getByRole("link", { name: tab, exact: true }).click();
 }
 
 test("assigns a member from the ranked list and marks the item for the agent", async ({ page }) => {
@@ -91,7 +91,8 @@ test("estimates a task and sees the summary move", async ({ page }) => {
 });
 
 test("plans with the keyboard and applies the sheet to the tracker", async ({ page }) => {
-	await openWork(page, "Plan");
+	await openWork(page, "Timeline");
+	await expect(page).toHaveURL(/\/plan\/timeline$/);
 	const bar = page.getByRole("button", { name: /^Token API,/ });
 	await expect(bar).toHaveAccessibleName(/2026-11-02 to/);
 	await bar.focus();
@@ -100,17 +101,18 @@ test("plans with the keyboard and applies the sheet to the tracker", async ({ pa
 		/2026-11-03 to/,
 	);
 
-	await page.getByRole("button", { name: "Apply" }).click();
+	const send = page.getByRole("button", { name: "Send to the issue tracker" });
+	await send.click();
 	const dialog = page.getByRole("dialog");
-	await expect(dialog.getByRole("heading", { name: "Create (8)" })).toBeVisible();
+	await expect(dialog.getByRole("heading", { name: "New (8)" })).toBeVisible();
 	await dialog.getByRole("button", { name: "Apply" }).click();
 	await expect(dialog.getByRole("heading", { name: "Written (8)" })).toBeVisible();
 	await page.keyboard.press("Escape");
 
 	// A second apply creates nothing.
-	await page.getByRole("button", { name: "Apply" }).click();
+	await send.click();
 	await expect(
-		page.getByRole("dialog").getByRole("heading", { name: "Unchanged (8)" }),
+		page.getByRole("dialog").getByRole("heading", { name: "Stays the same (8)" }),
 	).toBeVisible();
 	await expect(page.getByRole("dialog").getByRole("button", { name: "Apply" })).toBeDisabled();
 });
@@ -139,15 +141,20 @@ test("adds a time entry that goes to the issue tracker on save, and sends a wait
 });
 
 test("edits the team and seals the project, then unlocks it", async ({ page }) => {
-	await openWork(page, "Team");
-	await page.getByRole("row", { name: "grace", exact: true }).getByRole("button").click();
-	const panel = inspector(page, "Grace Hopper");
+	await openWork(page, "Crew");
+	const grace = page
+		.getByRole("list", { name: "People" })
+		.getByRole("button", { name: /^Grace Hopper/ });
+	await grace.click();
+	// The member is a page of Crew, with its handle in the address.
+	await expect(page).toHaveURL(/\/crew\/crew\?member=grace$/);
+	const panel = page.getByRole("main");
+	await expect(panel.getByRole("heading", { level: 1, name: "Grace Hopper" })).toBeVisible();
 	const capacity = panel.getByRole("spinbutton", { name: "Capacity (days a week)" });
 	await capacity.fill("3");
 	await panel.getByRole("button", { name: "Save" }).click();
-	await expect(
-		page.getByRole("row", { name: "grace", exact: true }).getByRole("cell").nth(2),
-	).toHaveText("3");
+	await panel.getByRole("button", { name: "Crew", exact: true }).click();
+	await expect(grace).toContainText("3 days a week");
 
 	await sidebar(page).getByRole("link", { name: "Plan" }).click();
 	await tabs(page).getByRole("link", { name: "Estimates" }).click();
@@ -180,4 +187,71 @@ test("shows the Work views in French", async ({ page }) => {
 	await barre.getByRole("link", { name: "Équipe" }).click();
 	await onglets.getByRole("link", { name: "Équipe" }).click();
 	await expect(page.getByRole("button", { name: "Membre" })).toBeVisible();
+});
+
+test("Plan gives the end date in its title and one capacity card with proposals", async ({
+	page,
+}) => {
+	await openWork(page, "Timeline");
+	const main = page.getByRole("main");
+	// The title says when the release ends, and it is the only level-one heading.
+	await expect(main.getByRole("heading", { level: 1 })).toHaveText(
+		/^MVP 1 ends \d{1,2}\/\d{1,2}\/\d{4}$/,
+	);
+	await expect(main.getByRole("heading", { level: 1 })).toHaveCount(1);
+	// The people who are over are one card, not one warning for each person.
+	const card = main.getByRole("article").filter({ hasText: "too much work" });
+	await expect(card).toHaveCount(1);
+	await expect(card.getByRole("heading", { name: /too much work$/ })).toBeVisible();
+	await expect(card.getByRole("button", { name: /^Apply: / })).not.toHaveCount(0);
+	await expect(card.getByRole("button", { name: "Rebalance" })).toBeVisible();
+	// One proposal applies as a decision of the plan: the task starts on the proposed day.
+	const later = card.getByRole("button", { name: "Apply: Export endpoint starts 11/13/2026" });
+	await later.click();
+	await expect(later).toHaveCount(0);
+	await expect(page.getByRole("button", { name: /^Export endpoint,/ })).toHaveAccessibleName(
+		/2026-11-13 to /,
+	);
+
+	// Show opens People: each person with the load, and the proposals of a person who is over.
+	await card.getByRole("link", { name: "Show" }).click();
+	await expect(page).toHaveURL(/\/plan\/people/);
+	await expect(main.getByRole("heading", { level: 1, name: "People" })).toBeVisible();
+	await expect(main.getByRole("heading", { name: /^Ada Lovelace \(\d+\)$/ })).toBeVisible();
+	await expect(main.getByText(/^[\d.]+ of [\d.]+ days$/).first()).toBeVisible();
+	// A capacity warning opens the member in Crew.
+	await main
+		.getByRole("link", { name: /is over capacity on \d+ days?/ })
+		.first()
+		.click();
+	await expect(page).toHaveURL(/\/crew\/crew\?member=/);
+	await expect(page.getByRole("spinbutton", { name: "Capacity (days a week)" })).toBeVisible();
+});
+
+test("asks an agent to estimate, and Accept puts the values in the sheet", async ({ page }) => {
+	await openWork(page, "Estimates");
+	const table = page.getByRole("table", { name: "Backlog" });
+	const ask = page.getByRole("button", { name: "Ask an agent to estimate" });
+	// No task is selected: the action is off.
+	await expect(ask).toBeDisabled();
+	await expect(table.getByRole("row", { name: /Export endpoint dev 6/ })).toBeVisible();
+	await table.getByRole("checkbox", { name: "Select Export endpoint" }).check();
+	await ask.click();
+	// The agent only proposes: the sheet keeps its 6 days until Accept.
+	const row = page
+		.getByRole("region", { name: "Proposals of the agent" })
+		.getByRole("listitem", { name: "Export endpoint" });
+	await expect(row).toContainText("6 → 7");
+	await expect(row).toContainText("— → 3.5");
+	await expect(row).toContainText("— → 14");
+	await expect(table.getByRole("row", { name: /Export endpoint dev 6/ })).toBeVisible();
+	await row.getByRole("button", { name: "Accept" }).click();
+	await expect(row).toHaveCount(0);
+	await expect(table.getByRole("row", { name: /Export endpoint dev 7/ })).toBeVisible();
+	// The three values are in the task.
+	await table.getByRole("cell", { name: "Export endpoint", exact: true }).click();
+	const panel = inspector(page, "Task");
+	await expect(panel.getByRole("spinbutton", { name: "Likely" })).toHaveValue("7");
+	await expect(panel.getByRole("spinbutton", { name: "Optimistic" })).toHaveValue("3.5");
+	await expect(panel.getByRole("spinbutton", { name: "Pessimistic" })).toHaveValue("14");
 });

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { PageExport } from "@/features/reports/page-export";
 import { NoProject } from "@/features/shell/no-project";
 import { EstimateBacklog } from "@/features/work/estimate-backlog";
-import { SheetForm, TaskForm } from "@/features/work/estimate-forms";
+import { CONTROLS, SheetForm, TaskForm } from "@/features/work/estimate-forms";
 import { ExcelDialog } from "@/features/work/excel-dialog";
 import { useGuard } from "@/features/work/guard";
 import { SealBar } from "@/features/work/seal";
@@ -159,7 +159,7 @@ export function PlanEstimates() {
 	if (locked && seal)
 		return (
 			<ListDetail title={t.planPlace.views.estimates} icon={<CurrencyIcon size={16} />}>
-				<div className="flex items-center gap-2 p-4">
+				<div className={`flex items-center gap-2 p-4 ${CONTROLS}`}>
 					<LockClosedIcon size={14} />
 					<span className="text-ui text-n-11">{e.locked}</span>
 					<SealBar state={seal} />
@@ -216,7 +216,8 @@ export function PlanEstimates() {
 				</RightButton>
 			}
 			toolbar={
-				<>
+				// `contents`: the frame lays out the controls, this box only gives them their height.
+				<div className={`contents ${CONTROLS}`}>
 					<Select
 						className="min-h-control"
 						label={e.sheet}
@@ -277,7 +278,7 @@ export function PlanEstimates() {
 								: []
 						}
 					/>
-				</>
+				</div>
 			}
 		>
 			<ErrorNotice error={failure} className="px-3 py-1" />
@@ -350,7 +351,7 @@ export function PlanEstimates() {
 									key={l.task.id}
 									type="button"
 									onClick={() => openTask(l.task.id)}
-									className="flex h-10 items-center gap-3 border-b px-3 text-left text-ui last:border-b-0 hover:bg-n-3"
+									className="flex min-h-control items-center gap-3 border-b px-3 text-left text-ui last:border-b-0 hover:bg-n-3"
 								>
 									<span className="min-w-0 flex-1 truncate">{l.task.name}</span>
 									<span className="truncate text-12 text-n-11">{l.feature.name}</span>

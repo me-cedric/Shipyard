@@ -8,12 +8,13 @@ import type {
 } from "@/lib/ipc";
 import { Button } from "@/ui/atoms/button";
 import { Checkbox } from "@/ui/atoms/checkbox";
-import { IconButton } from "@/ui/atoms/icon-button";
 import { Input } from "@/ui/atoms/input";
 import { Segmented } from "@/ui/atoms/segmented";
 import { Select, type SelectItem } from "@/ui/atoms/select";
 import { Switch } from "@/ui/atoms/switch";
-import { ChevronDownIcon, ChevronUpIcon, PlusIcon, TrashIcon } from "@/ui/icons";
+import { PlusIcon } from "@/ui/icons";
+import { SettingsRow } from "@/ui/molecules/settings-row";
+import { SectionCard } from "../section-card";
 
 const EFFORTS: Effort[] = ["low", "medium", "high", "xhigh", "max"];
 /** The value of a Select item that stands for no value. */
@@ -29,7 +30,7 @@ const items = (list: string[], current?: string): SelectItem[] =>
 		label: v,
 	}));
 
-/** A number field. An empty field gives `undefined`. */
+/** A number field. An empty field gives `undefined`. Its row shows the label. */
 function NumberField({
 	label,
 	value,
@@ -42,16 +43,16 @@ function NumberField({
 	return (
 		<Input
 			label={label}
-			caption
 			type="number"
 			min="0"
+			className="min-h-control"
 			value={value ?? ""}
 			onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
 		/>
 	);
 }
 
-/** A switch with a number: off is `null`, and on starts at `initial`. */
+/** A row with a switch and a number: off is `null`, and on starts at `initial`. */
 function OptionalNumber({
 	label,
 	value,
@@ -64,21 +65,23 @@ function OptionalNumber({
 	onChange: (v: number | null) => void;
 }) {
 	return (
-		<span className="flex items-end gap-3">
-			<Switch
-				label={label}
-				checked={value !== null}
-				onCheckedChange={(on) => onChange(on ? initial : null)}
-			/>
+		<SettingsRow label={label}>
 			{value !== null ? (
 				<span className="w-28">
 					<NumberField label={label} value={value} onChange={(v) => onChange(v ?? initial)} />
 				</span>
 			) : null}
-		</span>
+			<Switch
+				iconOnly
+				label={label}
+				checked={value !== null}
+				onCheckedChange={(on) => onChange(on ? initial : null)}
+			/>
+		</SettingsRow>
 	);
 }
 
+/** A row of checkboxes, one for each id. No id, no row. */
 function Group({
 	label,
 	ids,
@@ -92,8 +95,7 @@ function Group({
 }) {
 	if (ids.length === 0) return null;
 	return (
-		<fieldset className="flex flex-wrap items-center gap-x-3">
-			<legend className="float-left mr-3 text-12 text-n-11">{label}</legend>
+		<SettingsRow label={label}>
 			{ids.map((id) => (
 				<Checkbox
 					key={id}
@@ -102,10 +104,16 @@ function Group({
 					onCheckedChange={(c) => onChange(c ? [...on, id] : on.filter((x) => x !== id))}
 				/>
 			))}
-		</fieldset>
+		</SettingsRow>
 	);
 }
 
+/** The small title of a group of rows in a step. */
+const Title = ({ children }: { children: string }) => (
+	<h3 className="px-3 pt-3 pb-1 text-12 font-medium text-n-11">{children}</h3>
+);
+
+/** One step as a card (picture 080): who does it, the people, how it works and its limits. */
 function StepForm({
 	step,
 	index,
@@ -136,174 +144,228 @@ function StepForm({
 	return (
 		<section
 			aria-label={format(w.step, { id: step.id })}
-			className="flex flex-col gap-3 rounded-lg border bg-surface-1 p-3"
+			className="grid gap-x-4 rounded-xl bg-surface-2 p-1 shadow-1 lg:grid-cols-2"
 		>
-			<div className="flex items-end gap-2">
-				<Input
-					label={w.stepId}
-					caption
-					value={step.id}
-					onChange={(e) => onChange({ id: e.target.value })}
-				/>
-				<span className="w-40 shrink-0">
-					<Segmented
-						label={w.kind}
-						value={agent ? "agent" : "action"}
-						onValueChange={(k) =>
-							onChange(
-								k === "agent"
-									? { role: "worker", action: undefined }
-									: { action: "open_pr", role: undefined },
-							)
-						}
-						items={[
-							{ value: "agent", label: w.agent },
-							{ value: "action", label: w.action },
-						]}
+			<div className="flex flex-col">
+				<Title>{w.who}</Title>
+				<SettingsRow label={w.stepId}>
+					<Input
+						label={w.stepId}
+						className="min-h-control"
+						value={step.id}
+						onChange={(e) => onChange({ id: e.target.value })}
 					/>
-				</span>
-				<span className="flex-1" />
-				<IconButton label={w.up} disabled={index === 0} onClick={() => onMove(-1)}>
-					<ChevronUpIcon size={14} />
-				</IconButton>
-				<IconButton label={w.down} disabled={index === count - 1} onClick={() => onMove(1)}>
-					<ChevronDownIcon size={14} />
-				</IconButton>
-				<IconButton label={w.remove} onClick={onRemove}>
-					<TrashIcon size={14} />
-				</IconButton>
-			</div>
-			<div className="flex flex-wrap items-end gap-3">
+				</SettingsRow>
+				<SettingsRow label={w.kind}>
+					<span className="w-40">
+						<Segmented
+							label={w.kind}
+							value={agent ? "agent" : "action"}
+							onValueChange={(k) =>
+								onChange(
+									k === "agent"
+										? { role: "worker", action: undefined }
+										: { action: "open_pr", role: undefined },
+								)
+							}
+							items={[
+								{ value: "agent", label: w.agent },
+								{ value: "action", label: w.action },
+							]}
+						/>
+					</span>
+				</SettingsRow>
 				{agent ? (
 					<>
-						<Select
-							caption
-							label={w.role}
-							value={step.role ?? ""}
-							items={items(options.roles, step.role)}
-							onValueChange={(v) => onChange({ role: v })}
-						/>
-						<Select
-							caption
-							label={w.model}
-							value={step.model ?? NONE}
-							items={[{ value: NONE, label: w.roleDefault }, ...items(options.tiers, step.model)]}
-							onValueChange={(v) => onChange({ model: pick(v) })}
-						/>
-						<Select
-							caption
-							label={w.effort}
-							value={step.effort ?? NONE}
-							items={[{ value: NONE, label: w.roleDefault }, ...items(EFFORTS)]}
-							onValueChange={(v) => onChange({ effort: pick(v) as Effort | undefined })}
-						/>
-						<Select
-							caption
-							label={w.mode}
-							value={step.mode}
-							items={[
-								{ value: "plan", label: w.plan },
-								{ value: "auto", label: w.auto },
-							]}
-							onValueChange={(v) => onChange({ mode: v as Step["mode"] })}
-						/>
+						<SettingsRow label={w.role}>
+							<Select
+								label={w.role}
+								className="min-h-control"
+								value={step.role ?? ""}
+								items={items(options.roles, step.role)}
+								onValueChange={(v) => onChange({ role: v })}
+							/>
+						</SettingsRow>
+						<SettingsRow label={w.model}>
+							<Select
+								label={w.model}
+								className="min-h-control"
+								value={step.model ?? NONE}
+								items={[{ value: NONE, label: w.roleDefault }, ...items(options.tiers, step.model)]}
+								onValueChange={(v) => onChange({ model: pick(v) })}
+							/>
+						</SettingsRow>
+						<SettingsRow label={w.effort}>
+							<Select
+								label={w.effort}
+								className="min-h-control"
+								value={step.effort ?? NONE}
+								items={[{ value: NONE, label: w.roleDefault }, ...items(EFFORTS)]}
+								onValueChange={(v) => onChange({ effort: pick(v) as Effort | undefined })}
+							/>
+						</SettingsRow>
+						<SettingsRow label={w.mode}>
+							<Select
+								label={w.mode}
+								className="min-h-control"
+								value={step.mode}
+								items={[
+									{ value: "plan", label: w.plan },
+									{ value: "auto", label: w.auto },
+								]}
+								onValueChange={(v) => onChange({ mode: v as Step["mode"] })}
+							/>
+						</SettingsRow>
 					</>
 				) : (
-					<Select
-						caption
-						label={w.action}
-						value={step.action ?? "open_pr"}
-						items={[{ value: "open_pr", label: w.openPr }]}
-						onValueChange={() => {}}
-					/>
+					<SettingsRow label={w.action}>
+						<Select
+							label={w.action}
+							className="min-h-control"
+							value={step.action ?? "open_pr"}
+							items={[{ value: "open_pr", label: w.openPr }]}
+							onValueChange={() => {}}
+						/>
+					</SettingsRow>
 				)}
-				<Switch
-					label={w.gate}
-					checked={step.gate === "human"}
-					onCheckedChange={(on) => onChange({ gate: on ? "human" : "none" })}
-				/>
+				<Title>{w.people}</Title>
+				<SettingsRow label={w.gate}>
+					<Switch
+						iconOnly
+						label={w.gate}
+						checked={step.gate === "human"}
+						onCheckedChange={(on) => onChange({ gate: on ? "human" : "none" })}
+					/>
+				</SettingsRow>
 			</div>
-			<Group
-				label={w.needs}
-				ids={others}
-				on={step.needs ?? []}
-				onChange={(needs) => onChange({ needs })}
-			/>
-			{agent ? (
+			<div className="flex flex-col">
+				<Title>{w.how}</Title>
 				<Group
-					label={w.tools}
-					ids={[...options.tools, ...(step.tools ?? []).filter((x) => !options.tools.includes(x))]}
-					on={step.tools ?? []}
-					onChange={(tools) => onChange({ tools })}
+					label={w.needs}
+					ids={others}
+					on={step.needs ?? []}
+					onChange={(needs) => onChange({ needs })}
 				/>
-			) : null}
-			<div>
-				<Button aria-expanded={more} onClick={() => onMore(!more)}>
-					{t.factory.more}
-				</Button>
-			</div>
-			{more ? (
-				<div className="flex flex-wrap items-end gap-3">
-					<Select
-						caption
-						label={w.workspace}
-						value={step.workspace}
-						items={[
-							{ value: "shared", label: w.shared },
-							{ value: "worktree", label: w.worktree },
-							{ value: "none", label: w.none },
+				{agent ? (
+					<Group
+						label={w.tools}
+						ids={[
+							...options.tools,
+							...(step.tools ?? []).filter((x) => !options.tools.includes(x)),
 						]}
-						onValueChange={(v) => onChange({ workspace: v as Step["workspace"] })}
+						on={step.tools ?? []}
+						onChange={(tools) => onChange({ tools })}
 					/>
-					<Input
-						label={w.forEach}
-						caption
-						value={step.for_each ?? ""}
-						onChange={(e) => onChange({ for_each: e.target.value || undefined })}
-					/>
-					<NumberField
-						label={w.maxParallel}
-						value={step.max_parallel}
-						onChange={(v) => onChange({ max_parallel: v })}
-					/>
-					<NumberField
-						label={w.retry}
-						value={step.retry}
-						onChange={(v) => onChange({ retry: v ?? 0 })}
-					/>
-					<NumberField
-						label={w.timeout}
-						value={step.timeout}
-						onChange={(v) => onChange({ timeout: v })}
-					/>
-					<NumberField
-						label={w.stepBudget}
-						value={step.budget}
-						onChange={(v) => onChange({ budget: v ?? null })}
-					/>
-					{agent ? (
-						<>
+				) : null}
+				{more ? (
+					<>
+						<SettingsRow label={w.workspace}>
 							<Select
-								caption
-								label={w.skill}
-								value={step.skill ?? NONE}
-								items={[{ value: NONE, label: w.none }, ...items(options.skills, step.skill)]}
-								onValueChange={(v) => onChange({ skill: pick(v) })}
+								label={w.workspace}
+								className="min-h-control"
+								value={step.workspace}
+								items={[
+									{ value: "shared", label: w.shared },
+									{ value: "worktree", label: w.worktree },
+									{ value: "none", label: w.none },
+								]}
+								onValueChange={(v) => onChange({ workspace: v as Step["workspace"] })}
 							/>
+						</SettingsRow>
+						<SettingsRow label={w.forEach}>
+							<Input
+								label={w.forEach}
+								className="min-h-control"
+								value={step.for_each ?? ""}
+								onChange={(e) => onChange({ for_each: e.target.value || undefined })}
+							/>
+						</SettingsRow>
+						<SettingsRow label={w.maxParallel}>
 							<NumberField
-								label={w.rounds}
-								value={step.max_rounds}
-								onChange={(v) => onChange({ max_rounds: v })}
+								label={w.maxParallel}
+								value={step.max_parallel}
+								onChange={(v) => onChange({ max_parallel: v })}
 							/>
-							<Switch
-								label={w.fresh}
-								checked={step.fresh_context}
-								onCheckedChange={(on) => onChange({ fresh_context: on })}
+						</SettingsRow>
+						{agent ? (
+							<>
+								<SettingsRow label={w.skill}>
+									<Select
+										label={w.skill}
+										className="min-h-control"
+										value={step.skill ?? NONE}
+										items={[{ value: NONE, label: w.none }, ...items(options.skills, step.skill)]}
+										onValueChange={(v) => onChange({ skill: pick(v) })}
+									/>
+								</SettingsRow>
+								<SettingsRow label={w.fresh}>
+									<Switch
+										iconOnly
+										label={w.fresh}
+										checked={step.fresh_context}
+										onCheckedChange={(on) => onChange({ fresh_context: on })}
+									/>
+								</SettingsRow>
+							</>
+						) : null}
+					</>
+				) : null}
+				<SettingsRow label={w.place}>
+					<Button className="min-h-control" disabled={index === 0} onClick={() => onMove(-1)}>
+						{w.up}
+					</Button>
+					<Button
+						className="min-h-control"
+						disabled={index === count - 1}
+						onClick={() => onMove(1)}
+					>
+						{w.down}
+					</Button>
+				</SettingsRow>
+				{more ? (
+					<>
+						<Title>{w.limits}</Title>
+						<SettingsRow label={w.retry}>
+							<NumberField
+								label={w.retry}
+								value={step.retry}
+								onChange={(v) => onChange({ retry: v ?? 0 })}
 							/>
-						</>
-					) : null}
+						</SettingsRow>
+						<SettingsRow label={w.timeout}>
+							<NumberField
+								label={w.timeout}
+								value={step.timeout}
+								onChange={(v) => onChange({ timeout: v })}
+							/>
+						</SettingsRow>
+						<SettingsRow label={w.stepBudget}>
+							<NumberField
+								label={w.stepBudget}
+								value={step.budget}
+								onChange={(v) => onChange({ budget: v ?? null })}
+							/>
+						</SettingsRow>
+						{agent ? (
+							<SettingsRow label={w.rounds}>
+								<NumberField
+									label={w.rounds}
+									value={step.max_rounds}
+									onChange={(v) => onChange({ max_rounds: v })}
+								/>
+							</SettingsRow>
+						) : null}
+					</>
+				) : null}
+				<div className="flex flex-wrap gap-2 p-3">
+					<Button className="min-h-control" aria-expanded={more} onClick={() => onMore(!more)}>
+						{t.factory.more}
+					</Button>
+					<Button className="min-h-control text-danger-text" onClick={onRemove}>
+						{w.remove}
+					</Button>
 				</div>
-			) : null}
+			</div>
 		</section>
 	);
 }
@@ -377,15 +439,14 @@ export function WorkflowForm({
 		onChange({ ...workflow, limits: { ...limits, ...p } });
 	return (
 		<div className="flex flex-col gap-3">
-			<section
-				aria-label={w.limits}
-				className="flex flex-wrap items-end gap-4 rounded-lg border bg-surface-1 p-3"
-			>
-				<NumberField
-					label={w.stall}
-					value={limits.stall_s}
-					onChange={(v) => setLimits({ stall_s: v ?? 0 })}
-				/>
+			<SectionCard title={w.limits} flush>
+				<SettingsRow label={w.stall}>
+					<NumberField
+						label={w.stall}
+						value={limits.stall_s}
+						onChange={(v) => setLimits({ stall_s: v ?? 0 })}
+					/>
+				</SettingsRow>
 				<OptionalNumber
 					label={w.turnLimit}
 					value={limits.max_turns}
@@ -398,7 +459,7 @@ export function WorkflowForm({
 					initial={BUDGET}
 					onChange={(budget_usd) => setLimits({ budget_usd })}
 				/>
-			</section>
+			</SectionCard>
 			{steps.map((s, i) => (
 				<StepForm
 					// biome-ignore lint/suspicious/noArrayIndexKey: a step id changes while a person types it
@@ -416,7 +477,7 @@ export function WorkflowForm({
 				/>
 			))}
 			<div>
-				<Button onClick={add}>
+				<Button className="min-h-control" onClick={add}>
 					<PlusIcon size={14} />
 					{w.addStep}
 				</Button>

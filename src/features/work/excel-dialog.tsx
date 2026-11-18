@@ -46,6 +46,7 @@ export function ExcelDialog({
 				<RightButton
 					right="work.edit"
 					variant="primary"
+					className="min-h-control"
 					disabled={slug === ""}
 					onClick={() =>
 						void run(async () => {
@@ -62,6 +63,7 @@ export function ExcelDialog({
 			{current.scopes.length > 1 ? (
 				<Select
 					caption
+					className="min-h-control"
 					label={e.lot}
 					value={current.scope ?? ""}
 					onValueChange={(scope) =>
@@ -76,7 +78,7 @@ export function ExcelDialog({
 				label={e.slug}
 				value={slug}
 				onChange={(ev) => setSlug(ev.target.value)}
-				className="font-mono"
+				className="min-h-control font-mono"
 			/>
 			{current.refused.length > 0 ? (
 				<section aria-labelledby="refused">

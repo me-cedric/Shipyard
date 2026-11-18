@@ -1,5 +1,7 @@
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nameOf } from "@/features/factory/runs/run-live";
+import { SectionCard } from "@/features/factory/section-card";
 import { lineDiff } from "@/features/factory/workflows/line-diff";
 import { WorkflowForm } from "@/features/factory/workflows/workflow-form";
 import { NoProject } from "@/features/shell/no-project";
@@ -33,7 +35,6 @@ import { ErrorNotice } from "@/ui/molecules/error-notice";
 import { Loading } from "@/ui/molecules/loading";
 import { MenuButton } from "@/ui/molecules/menu-button";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { Panel } from "@/ui/molecules/panel";
 import { RunStep } from "@/ui/molecules/run-step";
 import { SplitPane } from "@/ui/molecules/split-pane";
 import { code } from "@/ui/molecules/syntax";
@@ -107,7 +108,7 @@ function Proposal({ proposal }: { proposal: WorkflowProposal }) {
 	const writes = useFactoryWrites();
 	const { error, run } = useGuard();
 	return (
-		<Panel
+		<SectionCard
 			title={w.proposal}
 			toolbar={
 				<>
@@ -115,12 +116,14 @@ function Proposal({ proposal }: { proposal: WorkflowProposal }) {
 						right="project.settings"
 						variant="primary"
 						onClick={() => void run(() => writes.apply(proposal.id))}
+						className="min-h-control"
 					>
 						{w.apply}
 					</RightButton>
 					<RightButton
 						right="project.settings"
 						onClick={() => void run(() => writes.discard(proposal.id))}
+						className="min-h-control"
 					>
 						{w.discard}
 					</RightButton>
@@ -139,7 +142,7 @@ function Proposal({ proposal }: { proposal: WorkflowProposal }) {
 					{error}
 				</p>
 			) : null}
-		</Panel>
+		</SectionCard>
 	);
 }
 
@@ -229,6 +232,7 @@ function FileEditor({
 							<Button
 								{...gate("project.settings")}
 								variant="danger"
+								className="min-h-control"
 								autoFocus
 								onBlur={() => setDeleting(false)}
 								onClick={() => {
@@ -343,7 +347,18 @@ export function Recipes() {
 	const roles = useRoles().data ?? [];
 	const proposals = useWorkflowProposals().data ?? [];
 	const options = useWorkflowOptions().data;
-	const [pick, setPick] = useState<Pick | null>(null);
+	// The chosen recipe is in the address (`recipe`): a link opens one recipe. A role stays in the page.
+	const search: { recipe?: unknown } = useSearch({ strict: false });
+	const navigate = useNavigate();
+	const [role, setRole] = useState<string | null>(null);
+	const setPick = (next: Pick | null) => {
+		setRole(next?.kind === "role" ? next.id : null);
+		if (next?.kind !== "role")
+			void navigate({
+				search: (prev: object) => ({ ...prev, recipe: next?.id }),
+				replace: true,
+			} as never);
+	};
 	const [adding, setAdding] = useState(false);
 	const writes = useFactoryWrites();
 	const Icon = tabIcon("crew", "recipes");
@@ -351,8 +366,15 @@ export function Recipes() {
 	if (active === undefined) return <Loading title={t.ui.place.crew} icon={icon} />;
 	if (active === null) return <NoProject title={t.ui.place.crew} icon={icon} />;
 	const first = workflows[0];
-	// The first workflow opens until a person picks a file.
-	const current = pick ?? (first ? { kind: "workflow" as const, id: first.id } : null);
+	// The first workflow opens until a person picks a file. A recipe that is not in the list opens it too.
+	const known = [...workflows, ...proposals].some((w) => w.id === search.recipe);
+	const current: Pick | null = role
+		? { kind: "role", id: role }
+		: known
+			? { kind: "workflow", id: search.recipe as string }
+			: first
+				? { kind: "workflow", id: first.id }
+				: null;
 	const groups = [
 		{
 			name: t.crewPlace.views.recipes,
@@ -386,48 +408,46 @@ export function Recipes() {
 			<PageHeader icon={icon} title={t.ui.place.crew} />
 			<div className="flex min-h-0 flex-1 gap-3 px-4 pt-2 pb-4">
 				<SplitPane id="workflows-width" label={t.factory.resize.workflows} fallback={320}>
-					<div className="flex shrink-0 flex-col gap-3 overflow-auto">
+					<div className="flex shrink-0 flex-col gap-4 overflow-auto p-1">
 						{groups.map((g) => (
-							<Panel key={g.kind} title={g.name} count={g.rows.length} toolbar={g.toolbar} flush>
-								<ul aria-label={g.name}>
+							<section key={g.kind} aria-label={g.name} className="flex flex-col gap-2">
+								<div className="flex min-h-control items-center gap-2">
+									<h2
+										aria-label={format(t.count, { name: g.name, count: g.rows.length })}
+										className="flex flex-1 items-center gap-2 text-16 font-semibold text-n-12"
+									>
+										{g.name}
+										<Badge className="font-mono">{g.rows.length}</Badge>
+									</h2>
+									{g.toolbar}
+								</div>
+								<ul aria-label={g.name} className="flex flex-col gap-2">
 									{g.rows.map((r) => {
 										const on = current?.kind === g.kind && current.id === r.id;
 										return (
-											<li key={r.id} className="border-b last:border-b-0">
+											<li key={r.id}>
 												<button
 													type="button"
 													data-nav=""
 													aria-current={on ? "true" : undefined}
 													onClick={() => setPick({ kind: g.kind, id: r.id })}
 													className={cn(
-														"relative flex min-h-control w-full flex-col justify-center gap-1.5 px-3 py-2 text-left text-ui transition-colors duration-(--duration-fast) hover:bg-n-3",
-														on && "bg-accent-soft",
+														"flex min-h-control w-full flex-col justify-center gap-2 rounded-xl border-2 border-transparent bg-surface-2 p-4 text-left text-ui shadow-1 transition-shadow duration-(--duration-base) hover:shadow-2 focus-visible:shadow-glow",
+														on && "border-accent bg-accent-soft",
 													)}
 												>
-													{on ? (
-														<span
-															aria-hidden="true"
-															className="absolute inset-y-0 left-0 w-0.5 bg-accent-gradient"
-														/>
-													) : null}
 													<span className="flex items-center gap-2">
-														<span title={r.id} className="flex-1 text-12 font-medium text-n-12">
+														<span title={r.id} className="flex-1 text-14 font-semibold text-n-12">
 															{nameOf(r.id)}
 														</span>
 														{r.proposed ? <Badge variant="info">{f.wf.proposed}</Badge> : null}
 														{r.bad ? <Badge variant="danger">{t.design.unreadable}</Badge> : null}
+														<span className="text-12 font-medium text-accent-text">{f.edit}</span>
 													</span>
 													{r.steps.length ? (
 														<span className="flex flex-wrap items-center gap-1">
-															{r.steps.map((step, i) => (
-																<span key={step} className="flex items-center gap-1">
-																	{i > 0 ? (
-																		<span aria-hidden="true" className="text-n-9">
-																			›
-																		</span>
-																	) : null}
-																	<RunStep id={step} name={nameOf(step)} state="pending" />
-																</span>
+															{r.steps.map((step) => (
+																<RunStep key={step} id={step} name={nameOf(step)} state="pending" />
 															))}
 														</span>
 													) : null}
@@ -436,11 +456,11 @@ export function Recipes() {
 										);
 									})}
 								</ul>
-							</Panel>
+							</section>
 						))}
 					</div>
 				</SplitPane>
-				<div className="flex min-w-0 flex-1 flex-col gap-3 overflow-auto rounded-lg border bg-surface-1 p-3 shadow-1">
+				<div className="flex min-w-0 flex-1 flex-col gap-3 overflow-auto rounded-xl bg-surface-2 p-4 shadow-1">
 					{current?.kind === "workflow" && !workflows.some((w) => w.id === current.id) ? (
 						// A proposal for a new id has no file yet.
 						proposals

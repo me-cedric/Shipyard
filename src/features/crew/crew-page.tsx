@@ -1,4 +1,4 @@
-import { Link, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { AgentsToggle } from "@/features/factory/agents-toggle";
 import { nameOf } from "@/features/factory/runs/run-live";
@@ -11,6 +11,7 @@ import { format, useI18n } from "@/lib/i18n";
 import { useActiveProject } from "@/lib/projects";
 import { RightButton } from "@/lib/rights";
 import { useFormIntent, useFormIntentFor } from "@/lib/shell";
+import { useViewState } from "@/lib/shell/view-state";
 import { useWorkItems } from "@/lib/sync";
 import { usePlan, useSealState, useSheets, useTeam } from "@/lib/work";
 import { Avatar } from "@/ui/atoms/avatar";
@@ -30,8 +31,8 @@ const H2 = "text-16 font-semibold text-n-12";
 const LINK =
 	"inline-flex min-h-control items-center justify-center rounded-md border px-3 text-ui font-medium text-n-12 hover:bg-n-3";
 
-/** The member that is open, or the form of a new one (`handle` null). */
-type Open = { handle: string | null; week?: { from: string; slug: string } };
+/** The week of a capacity warning, for the member that it names. */
+type Week = { handle: string; from: string; slug: string };
 
 /**
  * Crew (`spec:app-redesign#REQ-016`, `spec:app-redesign#REQ-017`): the people and the agent roles
@@ -41,7 +42,11 @@ type Open = { handle: string | null; week?: { from: string; slug: string } };
 export function CrewPage() {
 	const { t } = useI18n();
 	const c = t.crewPlace;
-	const live = (useSearch({ strict: false }) as { view?: string }).view === "live";
+	// The open member lives in the address (`member`, a handle, or empty for a new member): Back
+	// closes the member page and a link opens one person.
+	const search = useSearch({ strict: false }) as { view?: string; member?: unknown };
+	const navigate = useNavigate();
+	const live = search.view === "live";
 	const active = useActiveProject().data;
 	const team = useTeam();
 	const seal = useSealState().data;
@@ -54,16 +59,41 @@ export function CrewPage() {
 	// The load of each person comes from the plan of the first sheet that is ready, as on Plan.
 	const slug = useSheets().data?.find((s) => s.state === "ready")?.slug ?? null;
 	const load = usePlan(slug).data?.load.members;
-	const [open, setOpen] = useState<Open>();
+	const [week, setWeek] = useState<Week>();
+	// The switch of Spend: a shared screen keeps the amounts private here too.
+	const [prices] = useViewState("usage-prices", true);
+	const price = (text: string) =>
+		prices ? (
+			text
+		) : (
+			<span>
+				<span aria-hidden="true">•••</span>
+				<span className="sr-only">{t.extras.usage.hidden}</span>
+			</span>
+		);
 	const members = team.data?.team.members ?? [];
-	useFormIntent("member", () => setOpen({ handle: null }));
+	const show = (handle?: string | null, replace = false) =>
+		void navigate({
+			to: "/crew/crew",
+			search: (handle === undefined ? {} : { member: handle ?? "" }) as never,
+			replace,
+		});
+	// A handle that is not in the team opens no page.
+	const open =
+		search.member === ""
+			? { handle: null }
+			: members.some((x) => x.handle === search.member)
+				? { handle: search.member as string }
+				: undefined;
+	useFormIntent("member", () => show(null));
 	// A capacity warning of the plan opens the member that it names, on the week of the warning.
 	useFormIntentFor(
 		"member:",
 		(rest) => {
 			const { handle, week, slug } = parseMemberWeek(rest);
 			if (!members.some((o) => o.handle === handle)) return;
-			setOpen({ handle, week: week && slug ? { from: week, slug } : undefined });
+			setWeek(week && slug ? { handle, from: week, slug } : undefined);
+			show(handle);
 		},
 		!!team.data,
 	);
@@ -84,35 +114,33 @@ export function CrewPage() {
 		) : null;
 
 	if (open) {
-		const member = members.find((x) => x.handle === open.handle);
 		return (
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 				<div className="px-4 pt-3">
-					<Button className="min-h-control" onClick={() => setOpen(undefined)}>
+					<Button className="min-h-control" onClick={() => show()}>
 						<ChevronLeftIcon size={14} />
 						{t.ui.place.crew}
 					</Button>
 				</div>
-				<PageHeader icon={icon} title={member?.name ?? t.work.team.add} />
-				<div className="flex flex-col gap-3 px-4 pb-4">
-					{sealed}
-					<MemberForm
-						// The form starts again when the seal opens: the day rate is in the team only then.
-						key={`${open.handle}:${team.data?.locked}`}
-						handle={open.handle}
-						week={open.week}
-						onOpen={(handle) => setOpen(handle === null ? undefined : { handle })}
-					/>
-				</div>
+				<MemberForm
+					key={open.handle}
+					handle={open.handle}
+					week={week?.handle === open.handle ? week : undefined}
+					icon={icon}
+					seal={sealed}
+					// A saved or removed member replaces the entry of the form: Back does not show it again.
+					onOpen={(handle) => show(handle ?? undefined, true)}
+				/>
 			</div>
 		);
 	}
 
 	const working = agents.rows.filter(atWork);
 	const openRuns = new Set(runs.filter((r) => !ENDED.includes(r.state)).map((r) => r.id));
-	const spend = (usage?.runs ?? [])
-		.filter((r) => openRuns.has(r.run))
-		.reduce((a, r) => a + (r.usd ?? 0), 0);
+	const spent = (usage?.runs ?? []).filter((r) => openRuns.has(r.run));
+	const spend = spent.reduce((a, r) => a + (r.usd ?? 0), 0);
+	// The limit of a feature is the budget of its run. When the open runs differ, the lowest shows.
+	const limits = spent.flatMap((r) => (r.budget == null ? [] : [r.budget]));
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 			<PageHeader
@@ -153,7 +181,7 @@ export function CrewPage() {
 									id="add-member"
 									right="project.settings"
 									className="min-h-control"
-									onClick={() => setOpen({ handle: null })}
+									onClick={() => show(null)}
 								>
 									<PlusIcon size={14} />
 									{t.work.team.add}
@@ -173,7 +201,7 @@ export function CrewPage() {
 									id: "add-member",
 									label: t.work.team.add,
 									icon: <PlusIcon size={14} />,
-									onClick: () => setOpen({ handle: null }),
+									onClick: () => show(null),
 								}}
 							/>
 						) : (
@@ -190,8 +218,7 @@ export function CrewPage() {
 										<li key={m.handle}>
 											<button
 												type="button"
-												aria-label={m.handle}
-												onClick={() => setOpen({ handle: m.handle })}
+												onClick={() => show(m.handle)}
 												className={`${CARD} w-full hover:shadow-2 focus-visible:shadow-glow`}
 											>
 												<Avatar name={m.name} className="size-10 text-13" />
@@ -201,6 +228,17 @@ export function CrewPage() {
 														.filter((i) => i.member === m.handle && i.category === "in-progress")
 														.map((i) => i.title)
 														.join(", ")}
+												</span>
+												{/* The members table of before, on the card: role, capacity, skills and day rate. */}
+												<span className="text-12 text-n-11">
+													{[
+														t.rights.role[m.role as keyof typeof t.rights.role] ?? m.role,
+														format(c.perWeek, { days: m.capacity ?? 0 }),
+														...m.skills,
+														...(m.dayRate == null ? [] : [`${t.work.team.dayRate} ${m.dayRate}`]),
+													]
+														.filter(Boolean)
+														.join(" · ")}
 												</span>
 												{days ? (
 													<Badge variant={over > 0 ? "warning" : "success"}>
@@ -223,7 +261,6 @@ export function CrewPage() {
 										<Link
 											to="/crew/crew"
 											search={{ view: "live" } as never}
-											aria-label={role.id}
 											className={`${CARD} hover:shadow-2 focus-visible:shadow-glow`}
 										>
 											<span className="font-medium text-n-12">{nameOf(role.id)}</span>
@@ -247,7 +284,14 @@ export function CrewPage() {
 							})}
 							<li className={CARD}>
 								<span className="text-12 font-medium text-n-11">{c.spendOpen}</span>
-								<span className="text-20 font-semibold text-n-12">${spend.toFixed(2)}</span>
+								<span className="text-20 font-semibold text-n-12">
+									{price(`$${spend.toFixed(2)}`)}
+								</span>
+								{limits.length ? (
+									<span className="text-ui text-n-11">
+										{price(format(c.limit, { usd: `$${Math.min(...limits).toFixed(2)}` }))}
+									</span>
+								) : null}
 								<Link to="/crew/spend" className={LINK}>
 									{t.factory.budgets}
 								</Link>
@@ -268,6 +312,7 @@ export function CrewPage() {
 									</span>
 									<Link
 										to="/crew/recipes"
+										search={{ recipe: w.id } as never}
 										aria-label={`${t.factory.edit} ${nameOf(w.id)}`}
 										className={LINK}
 									>

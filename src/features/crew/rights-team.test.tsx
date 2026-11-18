@@ -1,10 +1,10 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { joinEntry } from "@/features/work/team-rights";
 import { commands, unwrap } from "@/lib/ipc";
 import { mockState } from "@/lib/ipc/mock";
 import { mountApp } from "@/test/mount";
 import { withTracker } from "@/test/tracker";
-import { joinEntry } from "./team-rights";
 
 // The members and their form are on Crew: `src/features/crew/crew-page.test.tsx`.
 describe("Crew / Rights: the team file", () => {

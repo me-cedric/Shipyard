@@ -8,8 +8,8 @@ import { Badge } from "@/ui/atoms/badge";
 import { Button } from "@/ui/atoms/button";
 import { StatusDot } from "@/ui/atoms/status-dot";
 import { ClipboardIcon, CommandLineIcon } from "@/ui/icons";
-import { Panel } from "@/ui/molecules/panel";
 import { DataTable } from "@/ui/organisms/data-table";
+import { SectionCard } from "../section-card";
 
 const SHAPE = { working: "accent", idle: "warning", done: "neutral", unknown: "neutral" } as const;
 const DOT = { working: "active", idle: "warning", done: "idle", unknown: "idle" } as const;
@@ -79,6 +79,7 @@ export function OrcaSessions() {
 			cell: (c) => (
 				<Button
 					variant="ghost"
+					className="min-h-control"
 					aria-label={format(o.open, { name: c.row.original.title || c.row.original.id })}
 					onClick={() => void run(async () => unwrap(commands.orcaOpen(c.row.original.id, true)))}
 				>
@@ -89,33 +90,27 @@ export function OrcaSessions() {
 		},
 	];
 	return (
-		<Panel
-			title={o.title}
-			count={status.sessions.length}
-			icon={<CommandLineIcon size={14} />}
-			flush
-			className="shrink-0"
-		>
+		<SectionCard title={o.title} count={status.sessions.length} flush className="shrink-0">
 			{error ? (
 				<p role="alert" className="px-3 py-2 text-ui text-danger-text">
 					{error}
 				</p>
 			) : null}
 			{!status.installed ? (
-				<div className="flex items-center gap-2 px-3 py-2 text-ui text-n-11">
+				<div className="flex items-center gap-2 px-4 pb-4 text-ui text-n-11">
 					<span className="flex-1">{o.missing}</span>
-					<Button variant="ghost" onClick={() => copyText(status.downloadUrl)}>
+					<Button className="min-h-control" onClick={() => copyText(status.downloadUrl)}>
 						<ClipboardIcon size={14} />
 						{o.copyAddress}
 					</Button>
 				</div>
 			) : !status.running ? (
-				<p className="px-3 py-2 text-ui text-n-11">{status.message || o.closed}</p>
+				<p className="px-4 pb-4 text-ui text-n-11">{status.message || o.closed}</p>
 			) : status.sessions.length === 0 ? (
-				<p className="px-3 py-2 text-ui text-n-11">{o.none}</p>
+				<p className="px-4 pb-4 text-ui text-n-11">{o.none}</p>
 			) : (
 				<DataTable label={o.title} columns={columns} data={status.sessions} rowId={(r) => r.id} />
 			)}
-		</Panel>
+		</SectionCard>
 	);
 }

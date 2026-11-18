@@ -8,9 +8,9 @@ import { BrandIcon, runnerName } from "@/ui/atoms/brand-icon";
 import { IconButton } from "@/ui/atoms/icon-button";
 import { LiveDot } from "@/ui/atoms/live-dot";
 import { StatusDot } from "@/ui/atoms/status-dot";
-import { ComputerDesktopIcon, StopIcon } from "@/ui/icons";
-import { Panel } from "@/ui/molecules/panel";
+import { StopIcon } from "@/ui/icons";
 import { DataTable } from "@/ui/organisms/data-table";
+import { SectionCard } from "../section-card";
 
 const SHAPE = { working: "accent", idle: "warning", done: "neutral" } as const;
 const DOT = { working: "active", idle: "warning", done: "idle" } as const;
@@ -84,6 +84,7 @@ export function MachineSessions() {
 				return pid === null ? null : (
 					<IconButton
 						label={format(m.stop, { name: `${c.row.original.runner} ${c.row.original.project}` })}
+						className="min-h-control min-w-11"
 						onClick={() => void run(() => writes.stop(pid))}
 					>
 						<StopIcon size={14} />
@@ -93,10 +94,9 @@ export function MachineSessions() {
 		},
 	];
 	return (
-		<Panel
+		<SectionCard
 			title={m.title}
 			count={rows.length}
-			icon={<ComputerDesktopIcon size={14} />}
 			flush
 			className="min-h-64 flex-1"
 			bodyClassName="min-h-0 flex-1"
@@ -107,6 +107,6 @@ export function MachineSessions() {
 				</p>
 			) : null}
 			<DataTable label={m.title} columns={columns} data={rows} rowId={(r) => r.key} />
-		</Panel>
+		</SectionCard>
 	);
 }

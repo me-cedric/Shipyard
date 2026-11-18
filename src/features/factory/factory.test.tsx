@@ -4,9 +4,10 @@ import { errorMessages } from "@/lib/i18n/errors";
 import { commands, unwrap } from "@/lib/ipc";
 import { DEMO_FOLDER, mockState } from "@/lib/ipc/mock";
 import { ShellProvider, useShell } from "@/lib/shell";
+import { mountApp } from "@/test/mount";
 import { spendStatus } from "@/ui/molecules/spend-meter";
 import { renderApp } from "@/ui/test-utils";
-import { Sessions, Usage, Workflows } from "./index";
+import { Sessions, Usage } from "./index";
 
 /** Stands in for the inspector of the shell. */
 function Panel() {
@@ -24,6 +25,15 @@ async function renderTab(tab: React.ReactNode) {
 	);
 }
 
+let router: ReturnType<typeof mountApp> | undefined;
+afterEach(() => waitFor(() => expect(router?.state.status ?? "idle").toBe("idle")));
+
+/** The pick of Recipes is in the address: the page needs the router. */
+async function renderRecipes() {
+	await unwrap(commands.projectsOpen(DEMO_FOLDER, false));
+	router = mountApp("/crew/recipes");
+}
+
 describe("Factory tabs", () => {
 	// jsdom has no matchMedia: the graph reads the colour scheme and the motion preference.
 	beforeEach(() => {
@@ -36,7 +46,7 @@ describe("Factory tabs", () => {
 	});
 
 	it("Recipes: two groups with counts, from the mock", async () => {
-		await renderTab(<Workflows />);
+		await renderRecipes();
 		const wf = await unwrap(commands.workflowsList());
 		const roles = await unwrap(commands.rolesList());
 		expect(
@@ -48,7 +58,7 @@ describe("Factory tabs", () => {
 
 	it("Workflows: a validation error shows with its line, and blocks the save", async () => {
 		const user = userEvent.setup();
-		await renderTab(<Workflows />);
+		await renderRecipes();
 		await user.click(await screen.findByRole("button", { name: /^Bug/ }));
 		await user.click(await screen.findByRole("tab", { name: "Text" }));
 		const editor = await screen.findByRole("textbox", { name: "bug" });
@@ -63,7 +73,7 @@ describe("Factory tabs", () => {
 
 	it("Workflows: save calls workflowWrite", async () => {
 		const user = userEvent.setup();
-		await renderTab(<Workflows />);
+		await renderRecipes();
 		await user.click(await screen.findByRole("button", { name: /^Bug/ }));
 		await user.click(await screen.findByRole("tab", { name: "Text" }));
 		const editor = (await screen.findByRole("textbox", { name: "bug" })) as HTMLTextAreaElement;
@@ -77,7 +87,7 @@ describe("Factory tabs", () => {
 
 	it("Workflows: text typed during a save stays and saves next", async () => {
 		const user = userEvent.setup();
-		await renderTab(<Workflows />);
+		await renderRecipes();
 		await user.click(await screen.findByRole("button", { name: /^Bug/ }));
 		await user.click(await screen.findByRole("tab", { name: "Text" }));
 		const editor = (await screen.findByRole("textbox", { name: "bug" })) as HTMLTextAreaElement;
@@ -115,7 +125,7 @@ describe("Factory tabs", () => {
 
 	it("Workflows: a role saves with roleWrite", async () => {
 		const user = userEvent.setup();
-		await renderTab(<Workflows />);
+		await renderRecipes();
 		await user.click(await screen.findByRole("button", { name: /^Scout/ }));
 		const editor = (await screen.findByRole("textbox", { name: "scout" })) as HTMLTextAreaElement;
 		const next = `${editor.value}\nBe brief.\n`;

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { memberWeek, weekStart } from "@/features/work/week-focus";
 import { format, useI18n } from "@/lib/i18n";
+import { useDay } from "@/lib/prefs";
 import { askForm } from "@/lib/shell";
 import { memberName, useTeam } from "@/lib/work";
 import { Select } from "@/ui/atoms/select";
@@ -17,6 +18,7 @@ export function People() {
 	const p = t.planPlace;
 	const { ready, slug, setChosen, plan, blank } = usePlanSheet(t.ui.place.plan);
 	const members = useTeam().data?.team.members ?? [];
+	const day = useDay();
 	if (blank || !slug || !plan) return blank;
 
 	return (
@@ -26,6 +28,7 @@ export function People() {
 				title={p.views.people}
 				action={
 					<Select
+						className="min-h-control"
 						label={t.work.plan.sheet}
 						value={slug}
 						onValueChange={setChosen}
@@ -39,6 +42,10 @@ export function People() {
 					const tasks = plan.gantt.bars.filter((b) => b.member === m.handle);
 					const over = overDays(m.days);
 					const first = over[0];
+					// The load of each week. The plan gives the capacity of the days with work only.
+					const weeks = new Map<string, typeof m.days>();
+					for (const d of m.days)
+						weeks.set(weekStart(d.day), [...(weeks.get(weekStart(d.day)) ?? []), d]);
 					return (
 						<li key={m.handle} className="flex flex-col gap-2 border-b px-4 py-3 last:border-b-0">
 							<div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -64,6 +71,22 @@ export function People() {
 									{format(t.costing.plan.over, { name, count: over.length })}
 								</Link>
 							) : null}
+							<ol className="flex flex-wrap gap-2 text-12 text-n-11">
+								{[...weeks].map(([week, days]) => (
+									<li
+										key={week}
+										className={`rounded-lg border px-3 py-1 ${overDays(days).length > 0 ? "border-n-12 font-semibold text-n-12" : ""}`}
+									>
+										{format(p.week, { day: day(week) })}
+										<span className="ml-2 font-mono">
+											{format(p.load, {
+												used: sum(days.map((d) => d.used)),
+												capacity: sum(days.map((d) => d.capacity)),
+											})}
+										</span>
+									</li>
+								))}
+							</ol>
 							<ul className="text-ui text-n-12">
 								{tasks.map((b) => (
 									<li key={b.task} className="flex justify-between gap-3">

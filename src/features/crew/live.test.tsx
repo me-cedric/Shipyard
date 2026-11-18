@@ -79,8 +79,32 @@ describe("Crew / Live", () => {
 		await waitFor(async () =>
 			expect(await rows()).toHaveLength(sessions.filter((s) => s.key === "ACME-10").length),
 		);
+		// No session touches a spec: the empty state shows in place of a table with no row.
 		await user.click(filter().getByRole("button", { name: "Specs" }));
-		await waitFor(async () => expect(await rows()).toHaveLength(0));
+		expect(await screen.findByText("No sessions")).toBeInTheDocument();
+		expect(screen.queryByRole("table", { name: "Agents at work" })).toBeNull();
+		await user.click(filter().getByRole("button", { name: "Ended" }));
+		expect(await rows()).not.toHaveLength(0);
+		await idle(router);
+	});
+
+	// spec:app-redesign#REQ-033: an estimate is no run, its agent opens the sheet.
+	it("opens the sheet of an estimate from its agent", async () => {
+		const user = userEvent.setup();
+		await withTracker();
+		mockState().estimateAgent = { hold: true, running: {} };
+		const task = mockState().work.sheets["mvp-1"]?.features[0]?.tasks[0]?.id;
+		if (!task) throw new Error("no task");
+		const turn = unwrap(commands.estimateAgentStart("mvp-1", [task], true)).catch(
+			(e: unknown) => e,
+		);
+		const router = mountApp("/crew/crew?view=live");
+		const table = within(await screen.findByRole("table", { name: "Agents at work" }));
+		await user.click(await table.findByRole("button", { name: "Estimate" }));
+		await waitFor(() => expect(router.state.location.pathname).toBe("/plan/estimates"));
+		expect(router.state.location.search).toEqual({ sheet: "mvp-1" });
+		await unwrap(commands.estimateAgentStop("mvp-1"));
+		await turn;
 		await idle(router);
 	});
 

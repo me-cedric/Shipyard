@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useUsageTree } from "@/lib/factory";
 import { useI18n } from "@/lib/i18n";
 import { Select } from "@/ui/atoms/select";
-import { Panel } from "@/ui/molecules/panel";
+import { SectionCard } from "../section-card";
 import { SpendFlame } from "./spend-flame";
 
 type Run = { run: string; key: string };
@@ -20,11 +20,12 @@ export function RequestTree({ runs }: { runs: Run[] }) {
 	const time = new Intl.DateTimeFormat(lang, { timeStyle: "medium" });
 	if (runs.length === 0) return null;
 	return (
-		<Panel
+		<SectionCard
 			title={f.requestTree}
 			toolbar={
 				<Select
 					label={f.treeRun}
+					className="min-h-control"
 					value={run ?? ""}
 					onValueChange={setPicked}
 					items={runs.map((r) => ({ value: r.run, label: r.key }))}
@@ -37,7 +38,7 @@ export function RequestTree({ runs }: { runs: Run[] }) {
 				{(tree?.steps ?? []).map((s) => (
 					<li key={s.step} className="border-b">
 						<details open>
-							<summary className="flex min-h-row cursor-pointer items-center gap-3 px-3 text-ui font-medium">
+							<summary className="flex min-h-control cursor-pointer items-center gap-3 px-3 text-ui font-medium">
 								<span className="min-w-0 flex-1 truncate font-mono">{s.step}</span>
 								<span className="text-12 text-n-11">{s.tokens.toLocaleString()}</span>
 								<span className="w-16 text-right text-12">{money.format(s.usd ?? 0)}</span>
@@ -65,6 +66,6 @@ export function RequestTree({ runs }: { runs: Run[] }) {
 					</li>
 				))}
 			</ul>
-		</Panel>
+		</SectionCard>
 	);
 }

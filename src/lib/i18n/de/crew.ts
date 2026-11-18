@@ -23,4 +23,11 @@ export const crewDe: typeof crewEn = {
 	countAtWork: "{count} bei der Arbeit",
 	more: "{title} und {count} weitere",
 	spendOpen: "Ausgaben für offene Arbeit",
+	who: "Wer",
+	workGroup: "Arbeit",
+	when: "Wann",
+	extraRights: "Rechte mehr oder weniger als die Rolle",
+	removeMember: "Aus dem Team entfernen",
+	perWeek: "{days} Tage pro Woche",
+	limit: "Limit von {usd} pro Funktion",
 };

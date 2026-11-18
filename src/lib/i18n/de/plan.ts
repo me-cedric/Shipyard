@@ -15,4 +15,9 @@ export const planDe: typeof planEn = {
 	startsOn: "{task} beginnt am {day}",
 	noOwner: "Aufgaben ohne Verantwortliche",
 	load: "{used} von {capacity} Tagen",
+	week: "Woche vom {day}",
+	previousWeek: "Vorherige Woche",
+	nextWeek: "Nächste Woche",
+	hours: "Stunden für {ticket}, {day}",
+	groups: { create: "Neu", update: "Geändert", unchanged: "Bleibt gleich" },
 };

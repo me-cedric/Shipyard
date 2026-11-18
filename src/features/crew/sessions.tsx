@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AgentsToggle } from "@/features/factory/agents-toggle";
 import { nameOf } from "@/features/factory/runs/run-live";
+import { SectionCard } from "@/features/factory/section-card";
 import { MachineSessions } from "@/features/factory/sessions/machine-sessions";
 import { OrcaSessions } from "@/features/factory/sessions/orca-sessions";
 import { NoProject } from "@/features/shell/no-project";
@@ -9,7 +10,7 @@ import { tabIcon } from "@/features/shell/spaces";
 import { useGuard } from "@/features/work/guard";
 import { useFactoryWrites, useSessions } from "@/lib/factory";
 import { format, useI18n } from "@/lib/i18n";
-import type { SessionView } from "@/lib/ipc";
+import { commands, type SessionView, unwrap } from "@/lib/ipc";
 import { useActiveProject } from "@/lib/projects";
 import { RightIconButton } from "@/lib/rights";
 import { runHref } from "@/lib/shell";
@@ -21,7 +22,6 @@ import { StopIcon } from "@/ui/icons";
 import { EmptyState } from "@/ui/molecules/empty-state";
 import { Loading } from "@/ui/molecules/loading";
 import { PageHeader } from "@/ui/molecules/page-header";
-import { Panel } from "@/ui/molecules/panel";
 import { STEP_STATUS } from "@/ui/molecules/run-step";
 import { DataTable } from "@/ui/organisms/data-table";
 
@@ -105,17 +105,30 @@ export function CrewSessions() {
 				c.row.original.costUsd === null ? "-" : `$${c.row.original.costUsd.toFixed(2)}`,
 		},
 		{
-			// An agent review is no run: its session has the pull request, and Stop ends it.
+			// An agent review and an estimate are no run: Stop ends the session
+			// (`spec:app-redesign#REQ-033`). The key of an estimate is its sheet.
 			id: "stop",
 			header: "",
 			meta: { width: "3rem" },
 			cell: (c) => {
-				const { pull, key, state } = c.row.original;
-				return pull == null || state !== "running" ? null : (
+				const { pull, key, step, state } = c.row.original;
+				return (pull == null && step !== "estimate") || state !== "running" ? null : (
 					<RightIconButton
 						right="runs.start"
 						label={format(f.machine.stop, { name: key })}
-						onClick={() => void run(() => writes.reviewStop(pull))}
+						className="min-h-control min-w-11"
+						onClick={(e) => {
+							// The row opens its page on a click: Stop does not.
+							e.stopPropagation();
+							void run(async () => {
+								if (pull != null) return writes.reviewStop(pull);
+								try {
+									await unwrap(commands.estimateAgentStop(key));
+								} finally {
+									await sessions.refetch();
+								}
+							});
+						}}
 					>
 						<StopIcon size={14} />
 					</RightIconButton>
@@ -144,7 +157,7 @@ export function CrewSessions() {
 				</p>
 			) : null}
 			{rows.length === 0 && !sessions.isPending ? (
-				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 [&>*]:shrink-0">
+				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-2 pb-4 [&>*]:shrink-0">
 					<EmptyState
 						title={t.empty.sessions}
 						action={{ label: f.runs, onClick: () => void navigate({ to: "/flow/flow" }) }}
@@ -153,8 +166,8 @@ export function CrewSessions() {
 					<OrcaSessions />
 				</div>
 			) : (
-				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4 [&>*]:shrink-0">
-					<Panel
+				<div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 pt-2 pb-4 [&>*]:shrink-0">
+					<SectionCard
 						title={f.sessions}
 						count={rows.length}
 						flush
@@ -169,12 +182,14 @@ export function CrewSessions() {
 							group={(r) => (live(r) ? "active" : "previous")}
 							groupLabel={(g) => (g === "active" ? f.sessionsActive : f.sessionsPrevious)}
 							footer={totals}
-							// A review is no run: only a run unit opens its run page, at the unit.
+							// A review is no run: only a run unit opens its run page, at the unit. An estimate opens its sheet.
 							onOpen={(r) => {
-								if (r.pull == null) void navigate(runHref(r.run, r.step));
+								if (r.step === "estimate")
+									void navigate({ to: "/plan/estimates", search: { sheet: r.key } as never });
+								else if (r.pull == null) void navigate(runHref(r.run, r.step));
 							}}
 						/>
-					</Panel>
+					</SectionCard>
 					<MachineSessions />
 					<OrcaSessions />
 				</div>

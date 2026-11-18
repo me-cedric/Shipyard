@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { type ReactNode, useState } from "react";
+import { SectionCard } from "@/features/factory/section-card";
 import { format, useI18n } from "@/lib/i18n";
 import {
 	type Access,
@@ -33,7 +34,6 @@ import {
 	XMarkIcon,
 } from "@/ui/icons";
 import { ErrorNotice } from "@/ui/molecules/error-notice";
-import { Panel } from "@/ui/molecules/panel";
 import { DataTable } from "@/ui/organisms/data-table";
 import { useGuard } from "./guard";
 
@@ -48,6 +48,7 @@ export function RoleSelect({ value, onChange }: { value: string; onChange: (v: s
 			value={value}
 			onValueChange={onChange}
 			placeholder={t.rights.team.pickRole}
+			className="min-h-control"
 			items={[
 				...(value && !known ? [{ value, label: value }] : []),
 				...TEAM_ROLES.map((r) => ({ value: r, label: t.rights.role[r] })),
@@ -199,7 +200,7 @@ function LevelCell({ k, access, name, onChange }: LevelRow & { k: Area | "merge"
 			label={`${name} ${r.area[k]}`}
 			value={access[k]}
 			onValueChange={(v) => onChange({ ...access, [k]: v as Level })}
-			className="w-28 min-w-0"
+			className="min-h-control w-28 min-w-0"
 			items={LEVELS.map((l) => ({
 				value: l,
 				label: r.level[l],
@@ -243,7 +244,7 @@ function Frame({ label, children }: { label: string; children: ReactNode }) {
 			// biome-ignore lint/a11y/noNoninteractiveTabindex: the keyboard scrolls a region that is wider than the page
 			tabIndex={0}
 			aria-label={label}
-			className="overflow-auto rounded-lg border bg-surface-1 text-12"
+			className="overflow-auto rounded-xl bg-surface-2 text-12 shadow-1"
 		>
 			<div className="flex w-max min-w-full flex-col">{children}</div>
 		</div>
@@ -296,6 +297,7 @@ export function TeamRights() {
 						{draft ? (
 							<IconButton
 								label={format(r.reset, { role: name })}
+								className="min-h-control min-w-11"
 								onClick={() => setAccess(x.role, DEFAULTS[x.role])}
 							>
 								<ArrowPathIcon size={12} />
@@ -329,7 +331,7 @@ export function TeamRights() {
 								{draft ? (
 									<IconButton
 										label={format(r.removeRole, { role: t.rights.role[x], name: m.name })}
-										className="size-4"
+										className="min-h-control min-w-11"
 										onClick={() =>
 											setRoles(
 												m,
@@ -348,7 +350,7 @@ export function TeamRights() {
 								placeholder={r.pickRole}
 								value=""
 								onValueChange={(v) => setRoles(m, [...mine, v as TeamRole])}
-								className="w-32 min-w-0"
+								className="min-h-control w-32 min-w-0"
 								items={TEAM_ROLES.filter((x) => !mine.includes(x)).map((x) => ({
 									value: x,
 									label: t.rights.role[x],
@@ -363,9 +365,9 @@ export function TeamRights() {
 		r,
 	);
 	return (
-		<section className="flex flex-col gap-2 px-4 pb-4">
+		<section className="flex flex-col gap-3">
 			<div className="flex items-center gap-2">
-				<h2 className="flex-1 text-ui font-medium">{r.matrix}</h2>
+				<h2 className="flex-1 text-16 font-semibold text-n-12">{r.matrix}</h2>
 				{draft ? (
 					<>
 						<Button
@@ -434,12 +436,12 @@ export function TeamBanners() {
 		lines.push(format(r.differs, { branch: view.branch ?? "main" }));
 	if (view.warnings.includes("team-invalid")) lines.push(r.invalid);
 	return (
-		<ul className="flex flex-col gap-1 px-4 pb-2">
+		<ul className="flex flex-col gap-2 empty:hidden">
 			{lines.map((l) => (
 				<li
 					key={l}
 					role="status"
-					className="rounded-md bg-warning-subtle px-3 py-1 text-ui text-warning-text"
+					className="flex min-h-control items-center rounded-xl bg-warning-subtle px-4 py-1 text-ui text-warning-text"
 				>
 					{l}
 				</li>
@@ -509,7 +511,7 @@ export function JoinRequest() {
 	return (
 		<form
 			aria-label={r.askJoin}
-			className="mx-4 mb-3 flex flex-wrap items-end gap-2 rounded-lg border bg-surface-1 p-3"
+			className="flex flex-wrap items-end gap-3 rounded-xl bg-surface-2 p-4 shadow-1"
 			onSubmit={(e) => {
 				e.preventDefault();
 				void send();
@@ -518,12 +520,14 @@ export function JoinRequest() {
 			<Input
 				caption
 				label={t.work.team.name}
+				className="min-h-control"
 				value={f.name}
 				onChange={(e) => set({ name: e.target.value })}
 			/>
 			<Input
 				caption
 				label={r.emails}
+				className="min-h-control"
 				type="email"
 				value={f.email}
 				onChange={(e) => set({ email: e.target.value })}
@@ -531,12 +535,14 @@ export function JoinRequest() {
 			<Input
 				caption
 				label={t.work.team.accounts}
+				className="min-h-control"
 				value={f.account}
 				onChange={(e) => set({ account: e.target.value })}
 			/>
 			<Select
 				caption
 				label={r.askedRole}
+				className="min-h-control"
 				value={f.role}
 				onValueChange={(role) => set({ role })}
 				items={TEAM_ROLES.map((x) => ({ value: x, label: t.rights.role[x] }))}
@@ -629,10 +635,13 @@ export function Migration() {
 	const p = proposal(o, team);
 	if (p.members.length === 0 && p.dropped.length === 0) return null;
 	return (
-		<Panel title={r.migrate} flush className="mx-4 mb-3">
+		<SectionCard title={r.migrate} flush>
 			<ul className="flex flex-col">
 				{p.members.map((m) => (
-					<li key={m.handle} className="flex h-row items-center gap-2 border-b px-3 text-ui">
+					<li
+						key={m.handle}
+						className="flex min-h-control items-center gap-2 border-b px-3 text-ui"
+					>
 						<span className="flex-1">{m.emails?.[0]}</span>
 						<span className="text-n-11">{t.rights.role[m.role as keyof typeof t.rights.role]}</span>
 						{m.rights?.length ? (
@@ -669,7 +678,7 @@ export function Migration() {
 					{r.moveRoles}
 				</RightButton>
 			</div>
-		</Panel>
+		</SectionCard>
 	);
 }
 
@@ -686,7 +695,7 @@ export function AuditTail() {
 	if (!can("project.settings") || !lines?.length) return null;
 	const time = new Intl.DateTimeFormat(lang, { dateStyle: "short", timeStyle: "medium" });
 	return (
-		<div className="px-4 pb-4">
+		<div>
 			<Frame label={r.audit}>
 				<DataTable
 					label={r.audit}

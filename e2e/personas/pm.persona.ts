@@ -1,7 +1,7 @@
 import { test } from "@playwright/test";
 import { Walk } from "./walk";
 
-// Project manager, first hour: the board, assign, hand to the agent, plan, estimate, time, approvals, budget.
+// Project manager, first hour: the board, assign, hand to the agent, plan, estimate, agent estimate, time, crew, approvals, budget.
 test("project manager", async ({ page }) => {
 	const w = new Walk(page, { key: "pm", label: "Project manager" });
 	await w.start();
@@ -48,14 +48,24 @@ test("project manager", async ({ page }) => {
 		},
 	);
 
-	await w.step("Read the plan", "the Plan tab and its warnings", async () => {
-		await w.go("Plan", "Plan");
-		await w.see(page.getByText("over capacity").first(), "no capacity warning");
+	await w.step("Read the plan", "Plan, Timeline: the end date and the capacity card", async () => {
+		await w.go("Plan", "Timeline");
+		await w.see(
+			page.getByRole("heading", { level: 1, name: / ends / }),
+			"the title of the plan does not say when the release ends",
+		);
+		await w.see(page.getByText("too much work").first(), "no capacity warning");
+		await w.see(
+			page.getByRole("button", { name: /^Apply: / }),
+			"the capacity card proposes no change",
+		);
+		await w.click(page.getByRole("link", { name: "Show", exact: true }));
+		await w.see(page.getByText("over capacity").first(), "People names no person over capacity");
 		await w.click(page.getByRole("link", { name: /over capacity/ }));
 		await w.until(
-			() => page.url().includes("/crew/team"),
+			() => page.url().includes("/crew/crew"),
 			true,
-			"a capacity warning does not open the member in Crew / Team",
+			"a capacity warning does not open the member in Crew",
 		);
 		await w.see(page.getByLabel(/Capacity/).first(), "the member does not open with its capacity");
 	});
@@ -66,10 +76,32 @@ test("project manager", async ({ page }) => {
 		await w.see(page.getByText("Price"), "no price figure");
 		if (await page.getByText("€0").first().isVisible()) {
 			w.confusing(
-				"cost and price read €0; the only hint (Unrated) is small text at the foot of the page, and Team already holds day rates",
+				"cost and price read €0; the only hint (Unrated) is small text at the foot of the page, and Crew already holds day rates",
 			);
 		}
 	});
+
+	await w.step(
+		"Ask an agent to estimate",
+		"the Backlog tab: select a task, Ask an agent to estimate, Accept",
+		async () => {
+			await w.click(page.getByRole("tab", { name: "Backlog" }));
+			await w.click(page.getByRole("checkbox", { name: "Select Export endpoint" }));
+			await w.click(page.getByRole("button", { name: "Ask an agent to estimate" }));
+			const row = page
+				.getByRole("region", { name: "Proposals of the agent" })
+				.getByRole("listitem", { name: "Export endpoint" });
+			await w.see(row, "the agent proposes no estimate");
+			await w.click(row.getByRole("button", { name: "Accept" }));
+			await w.until(() => row.count(), 0, "an accepted proposal stays in the list");
+			await w.see(
+				page
+					.getByRole("table", { name: "Backlog" })
+					.getByRole("row", { name: /Export endpoint dev 7/ }),
+				"the accepted values are not in the sheet",
+			);
+		},
+	);
 
 	await w.step(
 		"Send the time to the issue tracker",
@@ -81,12 +113,22 @@ test("project manager", async ({ page }) => {
 		},
 	);
 
-	await w.step("Look at the team load", "the Team tab: who is free", async () => {
-		await w.go("Crew", "Team");
-		await w.see(page.getByText("Ada Lovelace"), "no team member");
-		if (!(await page.getByRole("columnheader").count())) {
-			w.confusing("the team shows no column headers for load or capacity");
+	await w.step("Look at the team load", "Crew: who is free, and which agent works", async () => {
+		await w.go("Crew", "Crew");
+		const people = page.getByRole("list", { name: "People" });
+		await w.see(people.getByText("Ada Lovelace"), "no team member");
+		if (!(await people.getByText(/Has room|Over by \d+ days/).count())) {
+			w.confusing("the people cards show no load or capacity");
 		}
+		await w.see(
+			page.getByRole("list", { name: "Agents" }).getByRole("link").first(),
+			"no agent beside the people",
+		);
+		await w.click(page.getByRole("main").getByRole("link", { name: "Live", exact: true }));
+		await w.see(
+			page.getByRole("table", { name: "Agents at work" }).locator("tbody tr"),
+			"the live view shows no agent at work",
+		);
 	});
 
 	await w.step("Find the list with the keyboard", "Ctrl+K, the name of a page", async () => {
@@ -99,8 +141,8 @@ test("project manager", async ({ page }) => {
 		);
 	});
 
-	await w.step("Check the budget", "the Usage page, the money figures", async () => {
-		await w.go("Crew", "Usage");
+	await w.step("Check the budget", "Crew, Spend: the money figures", async () => {
+		await w.go("Crew", "Spend");
 		await w.see(page.getByText("Over budget").first(), "no budget warning");
 		if (await page.getByText("Hidden").first().isVisible()) {
 			await w.click(page.getByRole("switch", { name: "Show prices" }));

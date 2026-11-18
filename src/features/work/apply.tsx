@@ -42,6 +42,7 @@ export function ApplyFlow({ slugs, onClose }: { slugs: string[]; onClose: () => 
 			open
 			onOpenChange={(open) => !open && onClose()}
 			title={t.work.apply.title}
+			names={t.planPlace.groups}
 			rows={(preview.data ?? []).map(toRow)}
 			results={results}
 			busy={busy || preview.isLoading}

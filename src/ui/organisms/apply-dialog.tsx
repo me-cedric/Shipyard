@@ -69,6 +69,7 @@ export function ApplyDialog({
 	busy,
 	error,
 	review,
+	names,
 	onApply,
 }: {
 	open: boolean;
@@ -79,11 +80,14 @@ export function ApplyDialog({
 	busy?: boolean;
 	error?: string | null;
 	review?: boolean;
+	/** Plain names for the lists of the preview, in place of Create, Update and Unchanged. */
+	names?: Partial<Record<ApplyAction, string>>;
 	onApply: (rows: ApplyPreviewRow[]) => void;
 }) {
 	const { t } = useI18n();
 	const a = t.work.apply;
 	const r = t.review.apply;
+	const groupName = useCallback((g: Group) => names?.[g as ApplyAction] ?? a.group[g], [names, a]);
 	const [dropped, setDropped] = useState<string[]>([]);
 	const [edits, setEdits] = useState<Record<string, { title?: string; days?: string }>>({});
 	const editable = Boolean(review) && !results;
@@ -160,7 +164,7 @@ export function ApplyDialog({
 				header: "",
 				meta: { width: "1rem" },
 				cell: ({ row }) => (
-					<StatusDot status={DOT[row.original.group]} label={a.group[row.original.group]} />
+					<StatusDot status={DOT[row.original.group]} label={groupName(row.original.group)} />
 				),
 			},
 			{
@@ -177,6 +181,7 @@ export function ApplyDialog({
 					if (!editable || x.action === "unchanged") return x.title;
 					return (
 						<Input
+							className="min-h-control"
 							label={format(r.title, { name: x.title })}
 							value={x.typed}
 							onChange={(e) => edit(x.reference, { title: e.target.value })}
@@ -197,6 +202,7 @@ export function ApplyDialog({
 							type="number"
 							min={0}
 							step={0.5}
+							className="min-h-control"
 							label={format(r.days, { name: x.title })}
 							value={x.typedDays}
 							onChange={(e) => edit(x.reference, { days: e.target.value })}
@@ -221,7 +227,7 @@ export function ApplyDialog({
 				),
 			},
 		],
-		[a, r, editable, edit, toggle],
+		[a, r, editable, edit, toggle, groupName],
 	);
 
 	const todo = approved.length;
@@ -233,7 +239,12 @@ export function ApplyDialog({
 			wide
 			actions={
 				results ? null : (
-					<Button variant="primary" disabled={busy || todo === 0} onClick={() => onApply(approved)}>
+					<Button
+						variant="primary"
+						className="min-h-control"
+						disabled={busy || todo === 0}
+						onClick={() => onApply(approved)}
+					>
 						{a.apply}
 					</Button>
 				)
@@ -245,8 +256,9 @@ export function ApplyDialog({
 					data={lines}
 					columns={columns}
 					rowId={(r) => r.reference}
+					rowHeight={editable ? 52 : undefined}
 					group={(r) => r.group}
-					groupLabel={(g) => a.group[g as Group]}
+					groupLabel={(g) => groupName(g as Group)}
 				/>
 			</div>
 			{error ? (

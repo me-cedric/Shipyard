@@ -30,16 +30,18 @@ export function Rights() {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 			<PageHeader icon={icon} title={t.ui.place.crew} />
-			<TeamBanners />
-			<JoinRequest />
-			<Migration />
-			{team.data?.error ? (
-				<p role="alert" className="px-4 pb-2 text-ui text-danger-text">
-					{team.data.error}
-				</p>
-			) : null}
-			<TeamRights />
-			<AuditTail />
+			<div className="flex flex-col gap-3 px-4 pt-2 pb-4">
+				<TeamBanners />
+				<JoinRequest />
+				<Migration />
+				{team.data?.error ? (
+					<p role="alert" className="text-ui text-danger-text">
+						{team.data.error}
+					</p>
+				) : null}
+				<TeamRights />
+				<AuditTail />
+			</div>
 		</div>
 	);
 }

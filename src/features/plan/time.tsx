@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { NoProject } from "@/features/shell/no-project";
 import { useGuard } from "@/features/work/guard";
 import { TicketField } from "@/features/work/ticket-field";
+import { weekStart } from "@/features/work/week-focus";
 import { format, useI18n } from "@/lib/i18n";
 import { confirmDialog, type TimeState } from "@/lib/ipc";
 import { useDay, usePanelSize } from "@/lib/prefs";
@@ -46,6 +47,7 @@ import { Splitter } from "@/ui/molecules/splitter";
 import { StatStrip } from "@/ui/molecules/stat-strip";
 import { DataTable } from "@/ui/organisms/data-table";
 import { ListDetail } from "@/ui/templates/list-detail";
+import { type WeekEntry, WeekGrid } from "./week-grid";
 
 const STATE_ORDER: TimeState[] = ["to-send", "in-tracker", "only-in-tracker"];
 const DOT: Record<TimeState, Status> = {
@@ -73,6 +75,23 @@ type Line = {
 };
 
 const firstLine = (s: string) => s.split("\n")[0] ?? "";
+
+/** One row of the month as a line. `ticket` names the ticket of a row that only the tracker has. */
+function toLine(r: TimeRow, ticket: string): Line {
+	return {
+		id: r.entry?.id ?? `log:${r.log?.id}`,
+		state: r.state,
+		day: r.entry?.day ?? "",
+		ticket: r.entry?.ticket ?? ticket,
+		note: firstLine(r.entry?.note ?? r.log?.note ?? ""),
+		fullNote: r.entry?.note ?? "",
+		minutes: r.entry?.minutes ?? r.log?.minutes ?? 0,
+		tracker: r.differs && r.log ? r.log.minutes : null,
+		lost: r.lostReceipt,
+		entryId: r.entry?.id ?? null,
+		unsynced: r.entry?.unsynced ?? null,
+	};
+}
 
 /** The weeks of a month, Monday first: each cell is a day of the month or null. */
 export function monthWeeks(month: string): (string | null)[][] {
@@ -163,6 +182,10 @@ export function PlanTime() {
 	const { error, failure, busy, run, setError } = useGuard();
 	const [member, setMember] = useState<string | null>(null);
 	const [month, setMonth] = useState<string | null>(null);
+	/** The Monday of the week of the grid. Null is the week of today, or the first week of another month. */
+	const [week, setWeek] = useState<string | null>(null);
+	/** The cell whose change did not go through: its field shows the stored hours again. */
+	const [undone, setUndone] = useState({ cell: "", n: 0 });
 	const [adding, setAdding] = useState(false);
 	const [reduce, setReduce] = useState(false);
 	/** The entry that goes to the tracker now. One send at a time: a second click waits for it. */
@@ -177,23 +200,24 @@ export function PlanTime() {
 	const view = useTimeView(member, shownMonth);
 	const data = view.data;
 	const handle = data?.member ?? member;
+	const first = `${shownMonth}-01`;
+	// No month before the project context is here.
+	const shownWeek = !shownMonth
+		? ""
+		: (week ??
+			(ctx?.today.startsWith(shownMonth)
+				? weekStart(ctx.today)
+				: weekStart(addDays(first, (8 - isoWeekday(first)) % 7))));
+	// A week at the edge of the month has days of one other month: the grid reads that month too.
+	const edge =
+		(shownWeek ? [shownWeek, addDays(shownWeek, 6)] : [])
+			.map((d) => d.slice(0, 7))
+			.find((m) => m !== shownMonth) ?? shownMonth;
+	const beside = useTimeView(member, edge).data;
 
 	const lines = useMemo<Line[]>(() => {
 		if (!data) return [];
 		const tickets = new Set(Object.keys(fetched));
-		const toLine = (r: TimeRow, ticket: string): Line => ({
-			id: r.entry?.id ?? `log:${r.log?.id}`,
-			state: r.state,
-			day: r.entry?.day ?? "",
-			ticket: r.entry?.ticket ?? ticket,
-			note: firstLine(r.entry?.note ?? r.log?.note ?? ""),
-			fullNote: r.entry?.note ?? "",
-			minutes: r.entry?.minutes ?? r.log?.minutes ?? 0,
-			tracker: r.differs && r.log ? r.log.minutes : null,
-			lost: r.lostReceipt,
-			entryId: r.entry?.id ?? null,
-			unsynced: r.entry?.unsynced ?? null,
-		});
 		const local = data.rows
 			.filter((r) => !(r.entry?.ticket && tickets.has(r.entry.ticket)))
 			.map((r) => toLine(r, r.entry?.ticket ?? ""));
@@ -396,6 +420,56 @@ export function PlanTime() {
 	if (active === null) return <NoProject title={t.tabs.work.time} icon={<ClockIcon size={16} />} />;
 	if (!ctx) return <Loading icon={<ClockIcon size={16} />} title={t.tabs.work.time} />;
 
+	const weekEntries: WeekEntry[] = [
+		...lines,
+		...(edge === shownMonth ? [] : (beside?.rows ?? []).map((r) => toLine(r, ""))),
+	].flatMap((l) =>
+		l.entryId
+			? [
+					{
+						id: l.entryId,
+						day: l.day,
+						ticket: l.ticket,
+						minutes: l.minutes,
+						note: l.fullNote,
+						pending: l.state === "to-send" || Boolean(l.unsynced),
+					},
+				]
+			: [],
+	);
+	/** A cell of the week: a new value adds or changes the entry, an empty value or 0 deletes it. */
+	const setCell = (ticket: string, day: string, entry: WeekEntry | null, text: string) => {
+		const minutes = text === "" ? 0 : parseDuration(text);
+		const undo = () => setUndone((u) => ({ cell: `${ticket}|${day}`, n: u.n + 1 }));
+		if (minutes === null) {
+			undo();
+			return setError(e.badDuration);
+		}
+		void run(async () => {
+			let unsynced: string | null = null;
+			if (!entry) {
+				if (minutes === 0) return;
+				unsynced = (await act.addTime(handle, day, minutes, "", ticket || null, reduce)).error;
+			} else if (minutes === 0) {
+				if (!(await confirmDialog(format(e.confirmDelete, { day, ticket })))) return undo();
+				await act.removeTime(handle, day, entry.id);
+			} else {
+				unsynced = (await act.updateTime(handle, day, entry.id, minutes, entry.note)).error;
+			}
+			setFetched({});
+			if (unsynced) setError(format(e.unsynced, { reason: unsynced }));
+		}).then((ok) => ok || undo());
+	};
+	const toWeek = (next: string) => {
+		setWeek(next);
+		const months = [next, addDays(next, 6)].map((d) => d.slice(0, 7));
+		if (!months.includes(shownMonth)) setMonth(months[0] ?? shownMonth);
+	};
+	const toMonth = (by: number) => {
+		setMonth(addMonths(shownMonth, by));
+		setWeek(null);
+	};
+
 	const submit = async (ev: React.FormEvent) => {
 		ev.preventDefault();
 		const minutes = parseDuration(form.duration);
@@ -419,6 +493,7 @@ export function PlanTime() {
 			setForm({ day: "", duration: "", ticket: "", note: "" });
 			setAdding(false);
 			setMonth(day.slice(0, 7));
+			setWeek(weekStart(day));
 		}
 	};
 	// One read of the whole month: the worklogs of each ticket of the month.
@@ -449,24 +524,17 @@ export function PlanTime() {
 			}
 			toolbar={
 				<>
-					<IconButton
-						className="size-(--control-h)"
-						label={e.previous}
-						onClick={() => setMonth(addMonths(shownMonth, -1))}
-					>
+					<IconButton className="size-(--control-h)" label={e.previous} onClick={() => toMonth(-1)}>
 						<ChevronLeftIcon size={14} />
 					</IconButton>
 					<span className="min-w-28 text-center text-ui font-medium">
 						{monthLabel(shownMonth, lang)}
 					</span>
-					<IconButton
-						className="size-(--control-h)"
-						label={e.next}
-						onClick={() => setMonth(addMonths(shownMonth, 1))}
-					>
+					<IconButton className="size-(--control-h)" label={e.next} onClick={() => toMonth(1)}>
 						<ChevronRightIcon size={14} />
 					</IconButton>
 					<Select
+						className="min-h-control"
 						label={e.member}
 						value={handle ?? ""}
 						onValueChange={setMember}
@@ -553,6 +621,17 @@ export function PlanTime() {
 							icon: <PlusIcon size={14} />,
 							onClick: () => void run(() => act.addMe()),
 						}}
+					/>
+				</div>
+			) : null}
+			{data ? (
+				<div className="shrink-0 px-4 pb-3">
+					<WeekGrid
+						week={shownWeek}
+						entries={weekEntries}
+						undone={undone}
+						onWeek={toWeek}
+						onChange={setCell}
 					/>
 				</div>
 			) : null}
