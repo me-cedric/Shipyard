@@ -214,3 +214,49 @@ Open after Wave 5:
 - The guide has the Library text in English and French; German and Spanish have `start.md` only (T032). 20 older screenshots are not retaken.
 - The German and Spanish texts of this wave are translations by the agent (`q:Q-172`).
 - Merge note: waves 4, 5 and 6 each add a command. Run `pnpm ipc:gen` after the merge; `bindings.ts` is generated.
+## Wave 6, Code, Health and Setup (2026-11-18): T024 to T027 and T037 done
+
+Branch `feature/app-redesign-wave-6-ed14f2`, cut from the wave 3 branch, local commits only. Not pushed, no pull request. Waves 4 and 5 ran at the same time on their own branches.
+
+What the wave did:
+
+- T024: Code has the sections Now, History, Branches and Terminal (`/code/now`, `src/features/code/now.tsx`). Now shows the files to commit with an inline commit box (`WorkingCopy` in `changes.tsx`), the pull requests (`PullList` in `pull-requests.tsx`) and the doors Product health and Files. Terminal is a page on the switch. `SyncMark` (`sync-mark.tsx`) is in the top bar of each page: the branch, one state and Sync.
+- T025: Flow / Health shows for every role. A missing right turns Run, Set up, the terminal, Install and the file link off. The impacts open from the row "Impacts on other code" in the Checks of a feature. The full page is `/flow/impacts`, off the switch, with the gate of the code area.
+- T026: Setup has Start, This project, This computer and Me (section space `setup`, labels in `t.tabs.setup`). Start (`src/features/onboarding/start.tsx`) is the guided start with each item of the checklist and three doors. The scopes are `setup-project.tsx`, `setup-computer.tsx` and `setup-me.tsx` in `src/features/settings/`. A sub-page of a scope is `?page=<id>` with a back link. `setupAddress` gives the new address of each old Settings address.
+- T027: the Projects page is `/projects`, behind the project name of the top bar. The new project steps have an "All steps" view. The system moments have the new look with their logic of today.
+- T037: Health of this project has "Fix all with an agent" (`HealthActions` in `src/features/projects/doctor-compliance.tsx`). It uses the commands of "Build now": a spec change with the findings in its proposal, a ticket with the label `health-fix`, then one run. No new command, no Rust change.
+
+Decisions of this wave (change them in one place):
+
+- The connection of an issue tracker and of a code host is under This project only. The add form of This computer offers only MCP server and Model provider.
+- Health is split: the tools are Health of this computer, the rest is Health of this project. The health link of the status bar opens the scope of the worst finding.
+- The permissions of the operating system and "Replay the tour" are under This computer. A role with no access to the settings area gets them under Me (`usePermissionsPlace`).
+- The old Settings tabs open a sub-page: Extensions opens `/setup/project?page=extensions`, Agents and rules opens `/setup/computer?page=models`, Health opens `/setup/project?page=health`.
+- One feature holds the fix of the findings: while its ticket is not done, a new start runs on that ticket. The budget is the one of the recipe that the engine picks. With no budget, the button is off.
+- "Merge" on a pull request row is a link to the pull request page: the merge box there asks for the confirmation.
+- "Write it for me" puts a prompt with the staged files in the draft of the assistant: no command writes a commit message.
+- The Projects page has "Open now" and "Opened before", with the host as a badge. It is never stored as the last view.
+- The typed links do not know `?page`: two casts with a `shortcut:` comment, the other callers use `navigate({ href })`.
+
+Audit against the map of `plan.md` (rows "Home / Projects, first run, new project wizard", "Code / Quality", "Code / Impacts", "Code / Changes, History, Branches, Pull requests, Terminal, Files" and the three Settings rows): a reviewer in a fresh context compared each old page at the wave 3 commit with the new pages. Gone on purpose: the stat strip of Changes, the groups by host of the Projects page, the progress bar of the checklist.
+
+Reviews in a fresh context: three reviewers, 18 findings (6 major, 12 minor), all fixed with a test. The majors: four controls of Health stayed on with no right on code, "Fix all with an agent" could make a second feature after a start that failed, the run could start with no budget, the Ask bar lost the Go to entries of the moved pages, the health link opened the wrong scope, the permissions were hidden for a role with no access to the settings area.
+
+Shared files touched (small edits, for the merge with waves 4 and 5): `src/features/shell/places.ts`, `spaces.ts`, `context-bar.tsx`, `status-bar.tsx`, `ref-page.ts`, `palette-host.tsx`, `item-facts.tsx`, `page-chrome.tsx`, `view-memory.tsx`, `no-project.tsx`, `close-guard.tsx` and the shell tests; `src/app/router.tsx`, `tab-view.tsx`, `views.tsx`; `src/lib/i18n/en.ts`, `fr.ts`, `de/index.ts`, `es/index.ts`; `src/ui/molecules/project-switcher.tsx`, `src/ui/organisms/editor-frame.tsx`, `leave-guard.tsx`, `src/lib/menus/rename.tsx`; `src/features/home/role-panels.tsx`, `inbox/inbox.tsx`; each file of `e2e/` except assistant, delivery, design, design-system, factory, knowledge, questions-loop and shell (address and label lines), the developer and tester walks; `scripts/screenshots.ts`; `docs/designs/screens.json`; both changelogs (8 bullets at the top of 0.2.0); one line each in `src/features/factory/runs.test.tsx` and `src/features/knowledge/manual.test.tsx`.
+
+Open after Wave 6:
+
+- No old page file was removed: each one is a part of a new page. The old page modes of Connections, Health, ProjectSettings and Me (no scope) are dead code: T030 removes them.
+- Partial against the pictures: the scopes reuse the panels of today behind doors (no card grid of pictures 054 to 058, no finding cards of picture 091), Health has no "Fix with an agent" card, Impacts keeps its layout of today, History and Branches keep their layout.
+- The unsaved changes dialog has no "Save all" and no file list, and "Keep them working" of the close guard cannot hide the window: no command exists for them.
+- The backend does not check a right in `terminal_open` and in the install commands: the gate of Health is in the interface only.
+- In the browser mock, "Fix all with an agent" and "Build now" end with "not found" after the ticket is made (`adopt` in `mock-sync.ts`). The unit tests cover the flow.
+- A person who changes the label `health-fix` or the title of the fix ticket gets "Fix all" again.
+- Links in the folders of the other waves and in `src/lib/notifications/targets.ts` still name the old addresses. They redirect.
+- The guide has the new text in English and French. German and Spanish have `start.md` only (T032). The German and Spanish labels are translations by the agent (`q:Q-172`).
+- The controls inside the reused parts are under 44 px until the atoms get the new size (T031).
+- The pictures of the pages of the other waves still show the top bar of before (no sync mark). They were left as they are, so that the three branches merge with no conflict in a picture: regenerate all after the merge (`node scripts/screenshots.ts`).
+
+Checks, run by the lead on the final tree:
+
+- Passed: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --no-fail-fast`, `pnpm typecheck`, `pnpm lint`, `pnpm test` (265 files, 2303 tests), `CI=1 npx playwright test` (134), `pnpm test:personas` (7), `openspec validate update-app-redesign --strict`. No Rust file changed in this wave.

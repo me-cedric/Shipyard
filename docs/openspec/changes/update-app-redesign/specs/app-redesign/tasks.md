@@ -57,11 +57,11 @@ Wave 5, Library
 
 Wave 6, Code, Health and Setup
 
-- [ ] T024 Code with Now, History, Branches, Terminal and the sync mark (`src/features/code/`). REQ-022.
-- [ ] T025 [P] Health as a view of Flow; impacts from the Checks of a feature. REQ-023.
-- [ ] T026 Setup: guided start with every checklist item, the scopes This project, This computer, Me, one place for each setting (`src/features/settings/`, `src/features/onboarding/`). REQ-024.
-- [ ] T027 [P] Projects page, new project steps and the system moments (no project, permissions, tour, close guard, unsaved changes). REQ-003.
-- [ ] T037 Tests, then "Fix all with an agent": one feature in Flow with the findings in its Brief, normal review, budget and stop (`src/features/projects/doctor-compliance.tsx`). REQ-031, REQ-033.
+- [x] T024 Code with Now, History, Branches, Terminal and the sync mark (`src/features/code/`). REQ-022.
+- [x] T025 [P] Health as a view of Flow; impacts from the Checks of a feature. REQ-023.
+- [x] T026 Setup: guided start with every checklist item, the scopes This project, This computer, Me, one place for each setting (`src/features/settings/`, `src/features/onboarding/`). REQ-024.
+- [x] T027 [P] Projects page, new project steps and the system moments (no project, permissions, tour, close guard, unsaved changes). REQ-003.
+- [x] T037 Tests, then "Fix all with an agent": one feature in Flow with the findings in its Brief, normal review, budget and stop (`src/features/projects/doctor-compliance.tsx`). REQ-031, REQ-033.
 
 Wave 7, roles, words, removal
 
