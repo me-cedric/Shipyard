@@ -95,8 +95,7 @@ describe("a page header on every page off the section switches (REQ-017)", () =>
 describe("a page header on every tab (REQ-017)", () => {
 	// Code / Terminal is a page (`spec:app-redesign#REQ-022`). The manual is off the bar, with its icon.
 	const named = TABS;
-	const title = (space: SpaceId, tab: string) =>
-		placeTitle(space, tab) ?? tabLabel(en, space, tab);
+	const title = (space: SpaceId, tab: string) => placeTitle(space, tab) ?? tabLabel(en, space, tab);
 	it.each(named)("shows the header of %s / %s with no project", async (space, tab) => {
 		// Home / Today without a project is the welcome page, headed by the logo.
 		const home = space === "home" && tab === "today";
