@@ -50,10 +50,10 @@ Wave 4, Crew and Plan
 
 Wave 5, Library
 
-- [ ] T021 Library doors with the waiting items; each Design, Knowledge and spec reference view opens from a door. REQ-020.
-- [ ] T022 [P] Picture-first readers with the text on demand for models, diagrams, specs, test plans and decisions. REQ-021.
-- [ ] T023 [P] Reports, the map of the code, the flow matrix and the manual in their new place. REQ-003.
-- [ ] T036 Tests, then "Build a tile for me": proposed tile, Accept and Discard, budget and stop (`src/features/knowledge/dashboards.tsx`). REQ-032, REQ-033.
+- [x] T021 Library doors with the waiting items; each Design, Knowledge and spec reference view opens from a door. REQ-020.
+- [x] T022 [P] Picture-first readers with the text on demand for models, diagrams, specs, test plans and decisions. REQ-021.
+- [x] T023 [P] Reports, the map of the code, the flow matrix and the manual in their new place. REQ-003.
+- [x] T036 Tests, then "Build a tile for me": proposed tile, Accept and Discard, budget and stop (`src/features/knowledge/dashboards.tsx`). REQ-032, REQ-033.
 
 Wave 6, Code, Health and Setup
 

@@ -179,3 +179,38 @@ Open after Wave 4:
 - The guide has the new text in English and French. `docs/guide/team.md` still lists the old first tabs of each role (T032).
 - The German and Spanish texts of this wave are translations by the agent (`q:Q-172`).
 - Shared files that this wave touched, for the merge with waves 5 and 6: `src/app/router.tsx`, `src/app/tab-view.tsx`, `src/features/shell/places.ts`, `spaces.ts`, `ref-page.ts` and three shell tests, `src/features/home/role-panels.tsx` (four links), the four i18n index files (two lines each), `src/lib/ipc/mock.ts`, `src/ui/organisms/apply-dialog.tsx`, `e2e/`, `scripts/screenshots.ts`, `docs/designs/screens.json`, `docs/guide/`, both changelogs, `docs/openspec/specs/work/`.
+## Wave 5, Library (2026-11-18): T021 to T023 and T036 done
+
+Branch `feature/app-redesign-wave-5-e2d864`, cut from the wave 3 branch, local commits only. Not pushed, no pull request. Waves 4 and 6 ran at the same time on their own branches.
+
+What the wave did:
+
+- T021: Library opens on `/library/home` (`src/features/library/library-home.tsx`): four doors, one chip for each view, the waiting items first (the open questions, the proposed decisions). Library has no section switch: each page has the back link "Library" (`back-link.tsx`, drawn by `section-bar.tsx`). The stale mark of a page is on its chip. `PLACES.library` holds `library/home` and `library/reports`; the space `library` works like the space `flow`. `Door` has a `chips` slot.
+- T022: a reader opens on the picture or the read form alone. `SideSwitch` in `src/ui/molecules/pane-toggle.tsx` is one switch Picture / Both / Text (Read / Both / Text for a document). The stored key `sides:<id>` and its shape stay. The text shows by itself for a new file, a save conflict and an error with a line. A test plan opens as scenario cards with its tags (`test-plans.tsx`), with Read and Edit.
+- T023: `/library/reports` (`src/features/reports/reports-page.tsx`) lists each export of today, the two forms, and a link to Plan or Estimates where the export needs data of that page. Each Export menu stays on its page. The source and view switches of the graph and of the network flows are buttons of 44 px. The manual opens its Library and Reports sections for the new addresses.
+- T036: `dashboard_tile_build(slug, text, budget_usd)` in `crates/shipyard-app/src/pr_agent/tile.rs`, with the reply check in `crates/shipyard-core/src/tile.rs`. One read-only turn in the review slot, no worktree, no file change. The page (`dashboards.tsx`) shows the proposed tile with Accept and Discard; Accept saves through `dashboard_save_one`. The mock is `src/lib/ipc/mock-tile-build.ts`.
+
+Decisions of this wave (change them in one place):
+
+- The click on Library always opens the doors. The first page of the app for a role keeps the role rule (an architect starts on Decisions).
+- A report shows only to a role that sees the page of its export. Reports hides when no report is left (`REPLACES["library/reports"]` in `places.ts`, `AREA` in `reports-page.tsx`: keep the two lists in step).
+- The tile turn is a session row with the step `tile`, the dashboard as key and a pull number from 4,000,000,000, so the stop of a session of today stops it. It stops at its budget where the AI tool reports a live cost, and after 120 seconds on each AI tool. The last reply can pass the budget by a small amount.
+- The format choice of Reports is a filter: each export has one format today.
+- Not built, because no page of today holds the function: "What is tested", "Answers", "Glossary", "Pinned" and "Opened last" of picture 006, "Written for you" of picture 071, Orphans / Stale and "Check against the code" of pictures 075 and 077.
+
+Audit against the map of `plan.md` (row "Design (all tabs); Specs / Capabilities, Questions, Test plans, Constitution; Knowledge (all tabs); reports"): a reviewer in a fresh context compared each old page at the wave 3 commit with the new pages. All 19 views open from a door, old addresses keep their search and hash, the stale marks and the waiting chips are there, no test assertion was weakened. Gone on purpose: the section switch of Library, the two icon toggles Editor and Preview.
+
+Reviews in a fresh context: the interface with the audit (1 major, 6 minor), the tile agent with a security view (2 major, 4 minor). All fixed. The majors: Reports showed each export to each role, Accept lost the tile on a save conflict with no message, the budget did nothing on an AI tool that reports no live cost.
+
+Open after Wave 5:
+
+- A dashboard tile with its source off shows the word "tracker" (`off` of the tile data). T029 owns the words.
+- Rust does not refuse a second tile build of the same dashboard: only the page does.
+- The Crew row of a tile build shows the raw step `tile`, as `review` does. Wave 4 owns Crew.
+- The chips name the pages as today (Graph, Capabilities, Constitution). The pictures say Map, Specs, Project rules: T029.
+- The change request form stays a dialog (picture 096 shows a page). The side card of the code map stays the inspector.
+- A role that sees only Design, in a project with no flow file, gets an empty Reports page.
+- The Learn chip has no progress count.
+- The guide has the Library text in English and French; German and Spanish have `start.md` only (T032). 20 older screenshots are not retaken.
+- The German and Spanish texts of this wave are translations by the agent (`q:Q-172`).
+- Merge note: waves 4, 5 and 6 each add a command. Run `pnpm ipc:gen` after the merge; `bindings.ts` is generated.
